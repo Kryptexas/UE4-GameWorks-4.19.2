@@ -1,8 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "BoneControllers/AnimNode_TwoBoneIK.h"
 #include "AnimationRuntime.h"
+
+DECLARE_CYCLE_STAT(TEXT("TwoBoneIK Eval"), STAT_TwoBoneIK_Eval, STATGROUP_Anim);
+
 
 /////////////////////////////////////////////////////
 // FAnimNode_TwoBoneIK
@@ -33,6 +36,8 @@ void FAnimNode_TwoBoneIK::GatherDebugData(FNodeDebugData& DebugData)
 
 void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
+	SCOPE_CYCLE_COUNTER(STAT_TwoBoneIK_Eval);
+
 	check(OutBoneTransforms.Num() == 0);
 
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
@@ -120,11 +125,11 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 
 	FVector	JointTargetPos = JointTargetTransform.GetTranslation();
 	FVector JointTargetDelta = JointTargetPos - RootPos;
-	float JointTargetLength = JointTargetDelta.Size();
+	const float JointTargetLengthSqr = JointTargetDelta.SizeSquared();
 
 	// Same check as above, to cover case when JointTarget position is the same as RootPos.
 	FVector JointPlaneNormal, JointBendDir;
-	if (JointTargetLength < (float)KINDA_SMALL_NUMBER)
+	if (JointTargetLengthSqr < FMath::Square((float)KINDA_SMALL_NUMBER))
 	{
 		JointBendDir = FVector(0,1,0);
 		JointPlaneNormal = FVector(0,0,1);
@@ -135,7 +140,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 
 		// If we are trying to point the limb in the same direction that we are supposed to displace the joint in, 
 		// we have to just pick 2 random vector perp to DesiredDir and each other.
-		if (JointPlaneNormal.Size() < (float)KINDA_SMALL_NUMBER)
+		if (JointPlaneNormal.SizeSquared() < FMath::Square((float)KINDA_SMALL_NUMBER))
 		{
 			DesiredDir.FindBestAxisVectors(JointPlaneNormal, JointBendDir);
 		}
@@ -239,7 +244,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 		FVector const OldDir = (InitialJointPos - RootPos).GetSafeNormal();
 		FVector const NewDir = (OutJointPos - RootPos).GetSafeNormal();
 		// Find Delta Rotation take takes us from Old to New dir
-		FQuat const DeltaRotation = FQuat::FindBetween(OldDir, NewDir);
+		FQuat const DeltaRotation = FQuat::FindBetweenNormals(OldDir, NewDir);
 		// Rotate our Joint quaternion by this delta rotation
 		UpperLimbCSTransform.SetRotation( DeltaRotation * UpperLimbCSTransform.GetRotation() );
 		// And put joint where it should be.
@@ -256,7 +261,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 		FVector const NewDir = (OutEndPos - OutJointPos).GetSafeNormal();
 
 		// Find Delta Rotation take takes us from Old to New dir
-		FQuat const DeltaRotation = FQuat::FindBetween(OldDir, NewDir);
+		FQuat const DeltaRotation = FQuat::FindBetweenNormals(OldDir, NewDir);
 		// Rotate our Joint quaternion by this delta rotation
 		LowerLimbCSTransform.SetRotation( DeltaRotation * LowerLimbCSTransform.GetRotation() );
 		// And put joint where it should be.

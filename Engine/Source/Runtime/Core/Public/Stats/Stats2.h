@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -91,8 +91,7 @@ MS_ALIGN(8)
 struct TStatIdData
 {
 	FORCEINLINE TStatIdData()
-		: Name(NameToMinimalName(NAME_None))
-		, AnsiString(0)
+		: AnsiString(0)
 		, WideString(0)
 	{
 	}
@@ -1164,7 +1163,7 @@ private:
 	};
 
 	/** Lock free pool of FThreadStats instances. */
-	TLockFreePointerList<FThreadStats> Pool;
+	TLockFreePointerListUnordered<FThreadStats> Pool;
 
 public:
 	/** Default constructor. */
@@ -1274,9 +1273,8 @@ public:
 			const bool bFrameHasChanged = FStats::GameThreadStatsFrame > CurrentGameFrame;
 			if( bFrameHasChanged )
 			{
-				// Other threads are one frame behind so set the frame to the previous one.
-				Packet.AssignFrame( CurrentGameFrame );
 				CurrentGameFrame = FStats::GameThreadStatsFrame;
+				Packet.AssignFrame( CurrentGameFrame );
 				return true;
 			}
 		}
@@ -1877,19 +1875,23 @@ struct FStat_##StatName\
 }
 #define INC_FLOAT_STAT_BY(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, double(Amount));\
 }
 #define INC_DWORD_STAT_BY(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
 }
 #define INC_DWORD_STAT_FNAME_BY(StatFName, Amount) \
 {\
-	FThreadStats::AddMessage(StatFName, EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(StatFName, EStatOperation::Add, int64(Amount));\
 }
 #define INC_MEMORY_STAT_BY(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
 }
 #define DEC_DWORD_STAT(Stat) \
 {\
@@ -1897,19 +1899,23 @@ struct FStat_##StatName\
 }
 #define DEC_FLOAT_STAT_BY(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, double(Amount));\
 }
 #define DEC_DWORD_STAT_BY(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_DWORD_STAT_FNAME_BY(StatFName,Amount) \
 {\
-	FThreadStats::AddMessage(StatFName, EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+ 		FThreadStats::AddMessage(StatFName, EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_MEMORY_STAT_BY(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
 }
 #define SET_MEMORY_STAT(Stat,Value) \
 {\
@@ -1943,15 +1949,18 @@ struct FStat_##StatName\
 }
 #define INC_FLOAT_STAT_BY_FName(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Add, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Add, double(Amount));\
 }
 #define INC_DWORD_STAT_BY_FName(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
 }
 #define INC_MEMORY_STAT_BY_FName(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
 }
 #define DEC_DWORD_STAT_FName(Stat) \
 {\
@@ -1959,15 +1968,18 @@ struct FStat_##StatName\
 }
 #define DEC_FLOAT_STAT_BY_FName(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Subtract, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Subtract, double(Amount));\
 }
 #define DEC_DWORD_STAT_BY_FName(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_MEMORY_STAT_BY_FName(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
 }
 #define SET_MEMORY_STAT_FName(Stat,Value) \
 {\
@@ -1995,6 +2007,7 @@ DECLARE_STATS_GROUP(TEXT("Audio"), STATGROUP_Audio, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Beam Particles"),STATGROUP_BeamParticles, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("CPU Stalls"), STATGROUP_CPUStalls, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Canvas"),STATGROUP_Canvas, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Character"), STATGROUP_Character, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Collision"),STATGROUP_Collision, STATCAT_Advanced);
 DECLARE_STATS_GROUP_VERBOSE(TEXT("CollisionVerbose"),STATGROUP_CollisionVerbose, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Crash Tracker"),STATGROUP_CrashTracker, STATCAT_Advanced);
@@ -2057,5 +2070,6 @@ DECLARE_STATS_GROUP(TEXT("User"),STATGROUP_User, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FrameTime"),STAT_FrameTime,STATGROUP_Engine, CORE_API);
 DECLARE_FNAME_STAT_EXTERN(TEXT("NamedMarker"),STAT_NamedMarker,STATGROUP_StatSystem, CORE_API);
+DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Seconds Per Cycle"),STAT_SecondsPerCycle,STATGROUP_Engine, CORE_API);
 
 #endif

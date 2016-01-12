@@ -15,8 +15,64 @@ The following tips and tricks come right from the Epic developers that used the 
 Please keep in mind that the following is not meant to be a step by step tutorial but more of a high level look at what was done and how you could apply these techniques to your projects.
 
 [region:note]
-If you are looking for more basic information on how to use the Open World Tools check out the **[Procedural Foliage Quick Start](Engine\OpenWorldTools\ProceduralFoliage\QuickStart)** or the **[Grass Tools Quick Start](Engine\OpenWorldTools\Grass\QuickStart)** for more basic information on how to use these tools.
+If you are looking for more basic information on how to use the Open World Tools check out the [Procedural Foliage Quick Start](Engine\OpenWorldTools\ProceduralFoliage\QuickStart) or the [Grass Tools Quick Start](Engine\OpenWorldTools\Grass\QuickStart) for more basic information on how to use these tools.
 [/region]
+
+## Grass Tool Foliage Mesh Culling
+[region:warning]
+While you can adjust the culling of the Grass Tool to render Static Meshes extremely far in the distance be careful setting the options to high as you could run the risk of crashing your video card and/ or UE4 editor session.
+[/region]
+
+When using the Grass Tools in your projects you might notice that past a certain distance the Static Meshes that are used stop being displayed. 
+This is called culling and it is an optimization method that can be used to help lessen the rendering demand for your project by stopping objects from being rendered past a certain distance from the camera. 
+Inside of UE4 you can adjust the distance at which the Grass Tool stops rendering Static Meshes a number of different ways.
+The first way you can effect the distance at which the Grass Tool culls Static Meshes is to set the **Start** and **End** Cull Distance setting that can be found in the **Landscape Grass Type** Actor under the **Grass Varieties** section.
+
+![](Grass_Tool_Cull_Distance.png)
+
+The image above shows the Culling settings used for the Field Grass Static Mesh that was used for some of the grass in the Kite demo.
+In the image below we compare the original settings of 6,500 with the new setting of 30,000 making the Static Mesh used for the Grass being rendered further out in the distance.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Default of 6,500](Default_6500.png)(w:900)
+	[/PARAM]
+	[PARAM:after]
+	![Set to 30,000](30k_Culling.png)(w:900)
+	[/PARAM]
+[/OBJECT]
+
+If you look closely at the comparison screen shots above you will notice that no matter how big you set the End Cull Distance number the Static Mesh that is used will still stop being rendered past a certain point. 
+To make the Static Meshes render even further out you will need to input the following command into the UE4 Console followed by a decimal number.
+
+	Foliage.MinimumScreenSize 0.0001
+
+The **Foliage.MinimumScreenSize** command will increase or decrease the size, in screen space, at which the Static Meshes will be culled.
+The reason size in screen space is used in conjunction with distance from the camera is to ensure that you do not accidentally render objects that are very small and very far away from the camera.
+You can consider this setting more of a catch all to ensure that your projects performance does not suffer in case someone accidently missed setting a certain meshes cull distance.
+To enter the command press the Tilde(~) or Back tick(`) key on the keyboard to open up the Unreal Console with in the UE4 Editor.
+When the Unreal Console is opened you should see something that looks like the image below open up at the bottom of the UE4 editor.
+
+![](UE4_Console.png)
+
+Input the following command into the console, **Foliage.MinimumScreenSize 0.0001**, and then press the **Enter** key to apply the command. 
+After the Grass Maps rebuild, inside of the viewport you should now see the Static Meshes being used rendered further in the distance than before.
+
+![](UE4_Foliage_Command.png)
+
+Here is a comparison image that shows the difference culling distance between the default setting of **0.0001** and a setting of **0.00000001**.
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Original Settings of 0.0001](0.0001.png)(w:900)
+	[/PARAM]
+	[PARAM:after]
+	![Max Settings of 0.00000001](0.00000001.png)(w:900)
+	[/PARAM]
+[/OBJECT]
+
+Keep in mind that using values bigger than the default of 0.0001 could cause performance problems. 
+If you do decide to increase the Foliage.MinimumScreenSize make sure you perform performance testing to ensure that your changes to culling do not have a huge impact on your projects overall performance.
 
 ## Procedural Foliage Volume Based Masking
 
@@ -108,7 +164,6 @@ To get the Grass tool to function like this, make sure that **Use Grid** is chec
 The following image shows how the Landscape Grass Type was set up to achieve the results you saw in the first image.
 
 ![](T_LGT_Crops_Setup.png)
-
 
 
 

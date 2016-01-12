@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -102,7 +102,7 @@ public:
 
 	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
-	FORCEINLINE T* ConstructWidget(TSubclassOf<UWidget> WidgetType, FName WidgetName = NAME_None)
+	FORCEINLINE T* ConstructWidget(TSubclassOf<UWidget> WidgetType = T::StaticClass(), FName WidgetName = NAME_None)
 	{
 		if ( WidgetType->IsChildOf(UUserWidget::StaticClass()) )
 		{
@@ -120,14 +120,8 @@ public:
 	}
 
 	// UObject interface
-	virtual void PreSave() override
-	{
-		AllWidgets.Empty();
-
-		GetAllWidgets(AllWidgets);
-
-		Super::PreSave();
-	}
+	virtual void PreSave() override;
+	virtual void PostLoad() override;
 	// End of UObject interface
 
 public:

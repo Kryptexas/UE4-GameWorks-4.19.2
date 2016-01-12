@@ -10,7 +10,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights
 Related: Engine/Rendering/LightingAndShadows/LightMobility/StaticLights
 Related: Engine/Rendering/LightingAndShadows/IESLightProfiles
 Related: Resources/ContentExamples/Lighting/4_2
-
+Version: 4.9
 
 
 
@@ -31,12 +31,15 @@ For the daylight scene (_Room.umap_), the Stationary Directional Light provides 
 
 Although the sunlight is bounced around by Lightmass, there are 4 Static Spot Lights that simulate bounced light from the sky. These are used instead of the **Lightmass Environment Light** found in the **World Settings** to allow more precise control over bounces throughout the room.
 
-[REGION:imagetable]
-| Bounce Light Comparison ||
-| --- | --- |
-| ![](WithBounceSpots.png)(w:455) | ![](WithoutBounceLights.png)(w:455) |
-| **With ambient spot lights** | **Without ambient spot lights** |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With ambient spot lights](WithBounceSpots.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Without ambient spot lights](WithoutBounceLights.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
 
 [INCLUDE:Resources/Showcases/RealisticRendering#IESProfiles]
 

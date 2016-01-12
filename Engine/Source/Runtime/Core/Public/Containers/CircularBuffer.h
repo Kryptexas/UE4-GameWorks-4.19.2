@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -87,6 +87,17 @@ public:
 	FORCEINLINE uint32 GetNextIndex( uint32 CurrentIndex ) const
 	{
 		return ((CurrentIndex + 1) & IndexMask);
+	}
+
+	/**
+	 * Calculates the index previous to the given index.
+	 *
+	 * @param CurrentIndex The current index.
+	 * @return The previous index.
+	 */
+	FORCEINLINE uint32 GetPreviousIndex( uint32 CurrentIndex ) const
+	{
+		return ( ( CurrentIndex - 1 ) & IndexMask );
 	}
 
 private:

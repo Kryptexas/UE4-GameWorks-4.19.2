@@ -1,6 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "ModuleManager.h"
 
 /** Possible XMPP login states */
 namespace EXmppLoginStatus
@@ -21,7 +23,7 @@ public:
 	FXmppServer() 
 		: ServerPort(5222) 
 		, bUseSSL(true)
-		, PingInterval(180.0f)
+		, PingInterval(60.0f)
 		, PingTimeout(30.0f)
 		, MaxPingRetries(1)
 	{}
@@ -32,8 +34,12 @@ public:
 	int32 ServerPort;
 	/** domain for user jid */
 	FString Domain;
-	/** client id user is logging in from */
+	/** client id user is logging in from (constructed from other fields) */
 	FString ClientResource;
+	/** app id associated with this client */
+	FString AppId;
+	/** platform the player is using */
+	FString Platform;
 	/** true to enable SSL handshake for connection */
 	bool bUseSSL;
 	/** seconds between sending server ping requests */
@@ -47,7 +53,7 @@ public:
 /**
  * Jid for identifying user on the current connection as well as roster members
  */
-class FXmppUserJid
+class XMPP_API FXmppUserJid
 {
 public:
 
@@ -67,6 +73,16 @@ public:
 	FString Domain;
 	/** client resource user is logged in from */
 	FString Resource;
+
+	/**
+	 * Get the components that comprise the resource
+	 *
+	 * @param OutAppId The app id the user is using
+	 * @param OutPlatform The platform the user is using
+	 *
+	 * @return Whether the Resource was successfully parsed or not
+	 */
+	bool ParseResource(FString& OutAppId, FString& OutPlatform) const;
 
 	bool operator==(const FXmppUserJid& Other)
 	{

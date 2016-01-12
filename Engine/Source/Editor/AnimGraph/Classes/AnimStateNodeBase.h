@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
@@ -31,6 +31,8 @@ class UAnimStateNodeBase : public UEdGraphNode
 
 	//
 	virtual UEdGraph* GetBoundGraph() const { return NULL; }
+
+	ANIMGRAPH_API UAnimBlueprint* GetAnimBlueprint() const;
 
 protected:
 	// Name used as a seed when pasting nodes

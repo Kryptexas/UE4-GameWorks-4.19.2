@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserViewport.h"
@@ -23,7 +23,7 @@ void FWebBrowserViewport::Tick( const FGeometry& AllottedGeometry, double InCurr
 		// Calculate max corner of the viewport using same method as Slate
 		FVector2D MaxPos = AllottedGeometry.AbsolutePosition + AllottedGeometry.GetLocalSize();
 		// Get size by subtracting as int to avoid incorrect rounding when size and position are .5
-		WebBrowserWindow->SetViewportSize(MaxPos.IntPoint() - AllottedGeometry.AbsolutePosition.IntPoint());
+		WebBrowserWindow->SetViewportSize(MaxPos.IntPoint() - AllottedGeometry.AbsolutePosition.IntPoint(), AllottedGeometry.AbsolutePosition.IntPoint());
 	}
 }
 
@@ -46,9 +46,14 @@ FReply FWebBrowserViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const
 {
 	// Capture mouse on left button down so that you can drag out of the viewport
 	FReply Reply = WebBrowserWindow->OnMouseButtonDown(MyGeometry, MouseEvent, bIsPopup);
-	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && ViewportWidget.IsValid())
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		return Reply.CaptureMouse(ViewportWidget.Pin().ToSharedRef());
+		const FWidgetPath* Path = MouseEvent.GetEventPath();
+		if (Path->IsValid())
+		{
+			TSharedRef<SWidget> TopWidget = Path->Widgets.Last().Widget;
+			return Reply.CaptureMouse(TopWidget);
+		}
 	}
 	return Reply;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Light.h"
@@ -20,17 +20,17 @@ class APointLight : public ALight
 	// END DEPRECATED
 
 #if WITH_EDITOR
-	// Begin AActor interface.
+	//~ Begin AActor Interface.
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
-	// End AActor interface.
+	//~ End AActor Interface.
 #endif
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif
-	// End UObject interface.
+	//~ End UObject Interface.
 };
 
 

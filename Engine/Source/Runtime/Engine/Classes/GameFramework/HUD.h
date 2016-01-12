@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/Actor.h"
@@ -12,6 +12,9 @@ class AActor;
 class UCanvas;
 class APlayerController;
 class UFont;
+class AHUD;
+
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnShowDebugInfo, AHUD* /* HUD */, UCanvas* /* Canvas */, const FDebugDisplayInfo& /* DisplayInfo */, float& /* YL */, float& /* YPos */);
 
 /** 
  * Base class of the heads-up display. This has a canvas and a debug canvas on which primitives can be drawn.
@@ -124,7 +127,8 @@ public:
 
 private:
 	/** if true show debug info for 'ShowDebugTargetActor', otherwise for Camera Viewtarget */
-	static bool bShowDebugForReticleTarget;
+	UPROPERTY(Transient)
+	bool bShowDebugForReticleTarget;
 
 	/** Class filter for selecting 'ShowDebugTargetActor' when 'bShowDebugForReticleTarget' is true. */
 	UPROPERTY(Transient)
@@ -454,6 +458,9 @@ public:
 	 */
 	virtual void ShowDebugInfo(float& YL, float& YPos);
 
+	// Callback allowing external systems to register to show debug info
+	static FOnShowDebugInfo OnShowDebugInfo;
+
 	/** PostRender is the main draw loop. */
 	virtual void PostRender();
 
@@ -464,9 +471,6 @@ public:
 	// Messaging.
 	//=============================================================================
 
-	/** Display current messages */
-	virtual void DrawText(const FString& Text, FVector2D Position, UFont* TextFont, FVector2D FontScale, FColor TextColor);
-	
 	/** @return UFont* from given FontSize index */
 	virtual  UFont* GetFontFromSizeIndex(int32 FontSize) const;
 

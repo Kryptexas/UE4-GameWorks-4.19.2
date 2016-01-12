@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -230,6 +230,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 									ClassTerm->bIsLiteral = true;
 									ClassTerm->Source     = Node;
 									ClassTerm->ObjectLiteral = InterfaceClass;
+									ClassTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Class;
 
 									// insert a cast op before a call to the function (and replace
 									// the param with the result from the cast)
@@ -597,9 +598,15 @@ void FKCHandler_CallFunction::RegisterNet(FKismetFunctionContext& Context, UEdGr
 UFunction* FKCHandler_CallFunction::FindFunction(FKismetFunctionContext& Context, UEdGraphNode* Node)
 {
 	UClass* CallingContext = GetCallingContext(Context, Node);
-	FString FunctionName = GetFunctionNameFromNode(Node);
 
-	return CallingContext->FindFunctionByName(*FunctionName);
+	if (CallingContext)
+	{
+		FString FunctionName = GetFunctionNameFromNode(Node);
+
+		return CallingContext->FindFunctionByName(*FunctionName);
+	}
+
+	return nullptr;
 }
 
 void FKCHandler_CallFunction::Transform(FKismetFunctionContext& Context, UEdGraphNode* Node)

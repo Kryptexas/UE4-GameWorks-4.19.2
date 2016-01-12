@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "EnvQueryTypes.h"
+#include "Engine/DataAsset.h"
 #include "EnvQuery.generated.h"
 
 class UEnvQueryOption;
@@ -10,8 +11,8 @@ class UEnvQueryOption;
 class UEdGraph;
 #endif // WITH_EDITORONLY_DATA
 
-UCLASS()
-class AIMODULE_API UEnvQuery : public UObject
+UCLASS(BlueprintType)
+class AIMODULE_API UEnvQuery : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
 
@@ -21,9 +22,29 @@ class AIMODULE_API UEnvQuery : public UObject
 	UEdGraph*	EdGraph;
 #endif
 
+protected:
+	friend class UEnvQueryManager;
+
+	UPROPERTY()
+	FName QueryName;
+
 	UPROPERTY()
 	TArray<UEnvQueryOption*> Options;
 
+public:
 	/** Gather all required named params */
+	void CollectQueryParams(UObject& QueryOwner, TArray<FAIDynamicParam>& NamedValues) const;
+
+	DEPRECATED(4.10, "This version of CollectQueryParams is deprecated. Please use the other version.")
 	void CollectQueryParams(TArray<FEnvNamedValue>& NamedValues) const;
+
+	virtual  void PostInitProperties() override;
+
+	/** QueryName patching up */
+	virtual void PostLoad() override;
+
+	FName GetQueryName() const { return QueryName; }
+
+	TArray<UEnvQueryOption*>& GetOptionsMutable() { return Options; }
+	const TArray<UEnvQueryOption*>& GetOptions() const { return Options; }
 };

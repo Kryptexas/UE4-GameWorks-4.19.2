@@ -1,10 +1,12 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
 #if WITH_FANCY_TEXT
 
 #include "SlateTextRun.h"
+#include "ShapedTextCache.h"
+#include "RunUtils.h"
 
 TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {
@@ -38,7 +40,7 @@ int16 FSlateTextRun::GetMaxHeight( float Scale ) const
 	return FontMeasure->GetMaxCharacterHeight( Style.Font, Scale ) + FMath::Abs(Style.ShadowOffset.Y * Scale);
 }
 
-FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale ) const 
+FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale, const FRunTextContext& TextContext ) const 
 {
 	const FVector2D ShadowOffsetToApply((EndIndex == Range.EndIndex) ? FMath::Abs(Style.ShadowOffset.X * Scale) : 0.0f, FMath::Abs(Style.ShadowOffset.Y * Scale));
 
@@ -47,11 +49,11 @@ FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale 
 		return FVector2D( ShadowOffsetToApply.X * Scale, GetMaxHeight( Scale ) );
 	}
 
-	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->Measure( **Text, BeginIndex, EndIndex, Style.Font, true, Scale ) + ShadowOffsetToApply;
+	// Use the full text range (rather than the run range) so that text that spans runs will still be shaped correctly
+	return ShapedTextCacheUtil::MeasureShapedText(TextContext.ShapedTextCache, FCachedShapedTextKey(FTextRange(0, Text->Len()), Scale, TextContext, Style.Font), FTextRange(BeginIndex, EndIndex), **Text) + ShadowOffsetToApply;
 }
 
-int8 FSlateTextRun::GetKerning(int32 CurrentIndex, float Scale) const
+int8 FSlateTextRun::GetKerning(int32 CurrentIndex, float Scale, const FRunTextContext& TextContext) const
 {
 	const int32 PreviousIndex = CurrentIndex - 1;
 	if ( PreviousIndex < 0 || CurrentIndex == Text->Len() )
@@ -59,13 +61,13 @@ int8 FSlateTextRun::GetKerning(int32 CurrentIndex, float Scale) const
 		return 0;
 	}
 
-	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	return FontMeasure->GetKerning( Style.Font, Scale, (*Text)[ PreviousIndex ], (*Text)[ CurrentIndex ] );
+	// Use the full text range (rather than the run range) so that text that spans runs will still be shaped correctly
+	return ShapedTextCacheUtil::GetShapedGlyphKerning(TextContext.ShapedTextCache, FCachedShapedTextKey(FTextRange(0, Text->Len()), Scale, TextContext, Style.Font), PreviousIndex, **Text);
 }
 
-TSharedRef< ILayoutBlock > FSlateTextRun::CreateBlock( int32 BeginIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunRenderer >& Renderer )
+TSharedRef< ILayoutBlock > FSlateTextRun::CreateBlock( int32 BeginIndex, int32 EndIndex, FVector2D Size, const FLayoutBlockTextContext& TextContext, const TSharedPtr< IRunRenderer >& Renderer )
 {
-	return FDefaultLayoutBlock::Create( SharedThis( this ), FTextRange( BeginIndex, EndIndex ), Size, Renderer );
+	return FDefaultLayoutBlock::Create( SharedThis( this ), FTextRange( BeginIndex, EndIndex ), Size, TextContext, Renderer );
 }
 
 int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
@@ -73,9 +75,10 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
 	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-	const bool ShouldDropShadow = Style.ShadowOffset.Size() > 0 && Style.ShadowColorAndOpacity.A > 0;
+	const bool ShouldDropShadow = Style.ShadowColorAndOpacity.A > 0.f && Style.ShadowOffset.SizeSquared() > 0.f;
 	const FVector2D BlockLocationOffset = Block->GetLocationOffset();
 	const FTextRange BlockRange = Block->GetTextRange();
+	const FLayoutBlockTextContext BlockTextContext = Block->GetTextContext();
 	
 	// The block size and offset values are pre-scaled, so we need to account for that when converting the block offsets into paint geometry
 	const float InverseScale = Inverse(AllottedGeometry.Scale);
@@ -90,17 +93,24 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 		(Style.ShadowOffset.Y < 0.0f) ? -Style.ShadowOffset.Y * AllottedGeometry.Scale : 0.0f
 		);
 
+	// Make sure we have up-to-date shaped text to work with
+	// We use the full line view range (rather than the run range) so that text that spans runs will still be shaped correctly
+	FShapedGlyphSequenceRef ShapedText = ShapedTextCacheUtil::GetShapedTextSubSequence(
+		BlockTextContext.ShapedTextCache, 
+		FCachedShapedTextKey(Line.Range, AllottedGeometry.GetAccumulatedLayoutTransform().GetScale(), BlockTextContext, Style.Font), 
+		BlockRange, 
+		**Text,  
+		BlockTextContext.TextDirection
+		);
+
 	// Draw the optional shadow
-	if ( ShouldDropShadow )
+	if (ShouldDropShadow)
 	{
-		FSlateDrawElement::MakeText(
+		FSlateDrawElement::MakeShapedText(
 			OutDrawElements,
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset() + DrawShadowOffset))),
-			Text.Get(),
-			BlockRange.BeginIndex,
-			BlockRange.EndIndex,
-			Style.Font,
+			ShapedText,
 			ClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity
@@ -108,14 +118,11 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	}
 
 	// Draw the text itself
-	FSlateDrawElement::MakeText(
+	FSlateDrawElement::MakeShapedText(
 		OutDrawElements,
 		++LayerId,
 		AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset() + DrawTextOffset))),
-		Text.Get(),
-		BlockRange.BeginIndex,
-		BlockRange.EndIndex,
-		Style.Font,
+		ShapedText,
 		ClippingRect,
 		DrawEffects,
 		InWidgetStyle.GetColorAndOpacityTint() * Style.ColorAndOpacity.GetColor(InWidgetStyle)
@@ -153,12 +160,13 @@ int32 FSlateTextRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, co
 	}
 
 	const FTextRange BlockRange = Block->GetTextRange();
-	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	const FLayoutBlockTextContext BlockTextContext = Block->GetTextContext();
 
-	const int32 Index = FontMeasure->FindCharacterIndexAtOffset( Text.Get(), BlockRange.BeginIndex, BlockRange.EndIndex, Style.Font, Location.X - BlockOffset.X, true, Scale );
+	// Use the full text range (rather than the run range) so that text that spans runs will still be shaped correctly
+	const int32 Index = ShapedTextCacheUtil::FindCharacterIndexAtOffset(BlockTextContext.ShapedTextCache, FCachedShapedTextKey(FTextRange(0, Text->Len()), Scale, BlockTextContext, Style.Font), BlockRange, **Text, Location.X - BlockOffset.X);
 	if (OutHitPoint)
 	{
-		*OutHitPoint = (Index == BlockRange.EndIndex) ? ETextHitPoint::RightGutter : ETextHitPoint::WithinText;
+		*OutHitPoint = RunUtils::CalculateTextHitPoint(Index, BlockRange, BlockTextContext.TextDirection);
 	}
 
 	return Index;
@@ -168,14 +176,11 @@ FVector2D FSlateTextRun::GetLocationAt( const TSharedRef< ILayoutBlock >& Block,
 {
 	const FVector2D& BlockOffset = Block->GetLocationOffset();
 	const FTextRange& BlockRange = Block->GetTextRange();
+	const FLayoutBlockTextContext BlockTextContext = Block->GetTextContext();
 
-	if (BlockRange.BeginIndex + Offset == BlockRange.EndIndex)
-	{
-		return BlockOffset + Block->GetSize();
-	}
-
-	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const FVector2D OffsetLocation = FontMeasure->Measure( Text.Get(), BlockRange.BeginIndex, BlockRange.BeginIndex + Offset, Style.Font, true, Scale );
+	// Use the full text range (rather than the run range) so that text that spans runs will still be shaped correctly
+	const FTextRange RangeToMeasure = RunUtils::CalculateOffsetMeasureRange(Offset, BlockRange, BlockTextContext.TextDirection);
+	const FVector2D OffsetLocation = ShapedTextCacheUtil::MeasureShapedText(BlockTextContext.ShapedTextCache, FCachedShapedTextKey(FTextRange(0, Text->Len()), Scale, BlockTextContext, Style.Font), RangeToMeasure, **Text);
 
 	return BlockOffset + OffsetLocation;
 }

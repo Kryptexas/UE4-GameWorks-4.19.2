@@ -1,8 +1,62 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "SlateMaterialShader.h"
 #include "RenderingCommon.h"
+
+
+FSlateMaterialShaderVS::FSlateMaterialShaderVS(const FMaterialShaderType::CompiledShaderInitializerType& Initializer)
+	: FMaterialShader(Initializer)
+{
+	ViewProjection.Bind(Initializer.ParameterMap, TEXT("ViewProjection"));
+	SwitchVerticalAxisMultiplier.Bind( Initializer.ParameterMap, TEXT("SwitchVerticalAxisMultiplier"));
+}
+
+
+void FSlateMaterialShaderVS::ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+{
+	// Set defines based on what this shader will be used for
+	OutEnvironment.SetDefine( TEXT("USE_MATERIALS"), 1 );
+	OutEnvironment.SetDefine( TEXT("NUM_CUSTOMIZED_UVS"), Material->GetNumCustomizedUVs() );
+	OutEnvironment.SetDefine( TEXT("HAS_SCREEN_POSITION"), Material->HasVertexPositionOffsetConnected() );
+
+	FMaterialShader::ModifyCompilationEnvironment( Platform, Material, OutEnvironment );
+}
+
+bool FSlateMaterialShaderVS::ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
+{
+	return Material->GetMaterialDomain() == MD_UI;
+}
+
+void FSlateMaterialShaderVS::SetViewProjection(FRHICommandList& RHICmdList, const FMatrix& InViewProjection )
+{
+	SetShaderValue(RHICmdList, GetVertexShader(), ViewProjection, InViewProjection );
+}
+
+void FSlateMaterialShaderVS::SetMaterialShaderParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material)
+{
+	const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
+
+	const bool bDeferredPass = false;
+	FMaterialShader::SetParameters<FVertexShaderRHIParamRef>(RHICmdList, ShaderRHI, MaterialRenderProxy, *Material, View, bDeferredPass, ESceneRenderTargetsMode::DontSet);
+}
+
+void FSlateMaterialShaderVS::SetVerticalAxisMultiplier(FRHICommandList& RHICmdList, float InMultiplier )
+{
+	SetShaderValue(RHICmdList, GetVertexShader(), SwitchVerticalAxisMultiplier, InMultiplier );
+}
+
+
+bool FSlateMaterialShaderVS::Serialize(FArchive& Ar)
+{
+	bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
+
+	Ar << ViewProjection;
+	Ar << SwitchVerticalAxisMultiplier;
+
+	return bShaderHasOutdatedParameters;
+}
+
 
 bool FSlateMaterialShaderPS::ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 {
@@ -14,6 +68,7 @@ void FSlateMaterialShaderPS::ModifyCompilationEnvironment(EShaderPlatform Platfo
 {
 	// Set defines based on what this shader will be used for
 	OutEnvironment.SetDefine( TEXT("USE_MATERIALS"), 1 );
+	OutEnvironment.SetDefine( TEXT("NUM_CUSTOMIZED_UVS"), Material->GetNumCustomizedUVs() );
 
 	FMaterialShader::ModifyCompilationEnvironment( Platform, Material, OutEnvironment );
 }
@@ -84,10 +139,22 @@ bool FSlateMaterialShaderPS::Serialize(FArchive& Ar)
 	return bShaderHasOutdatedParameters;
 }
 
+
+#define IMPLEMENT_SLATE_VERTEXMATERIALSHADER_TYPE(bUseInstancing) \
+	typedef TSlateMaterialShaderVS<bUseInstancing> TSlateMaterialShaderVS##bUseInstancing; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TSlateMaterialShaderVS##bUseInstancing, TEXT("SlateVertexShader"), TEXT("Main"), SF_Vertex);
+
+/** Instancing vertex shader */
+IMPLEMENT_SLATE_VERTEXMATERIALSHADER_TYPE(true);
+
+/** Non instancing vertex shader */
+IMPLEMENT_SLATE_VERTEXMATERIALSHADER_TYPE(false);
+
 #define IMPLEMENT_SLATE_MATERIALSHADER_TYPE(ShaderType, bDrawDisabledEffect) \
 	typedef TSlateMaterialShaderPS<ESlateShader::ShaderType, bDrawDisabledEffect> TSlateMaterialShaderPS##ShaderType##bDrawDisabledEffect; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TSlateMaterialShaderPS##ShaderType##bDrawDisabledEffect, TEXT("SlateElementPixelShader"), TEXT("Main"), SF_Pixel);
 
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Custom, false)
 
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,true);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,false);

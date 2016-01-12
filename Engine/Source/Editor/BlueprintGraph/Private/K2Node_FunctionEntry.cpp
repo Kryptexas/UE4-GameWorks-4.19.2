@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -125,6 +125,23 @@ void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
 		{
 			// Allow legacy implementations to violate const-correctness
 			bEnforceConstCorrectness = false;
+		}
+
+		// @TODO: Dev-BP=>Main; gate this with a version check once it makes its way into main
+		//if (Ar.UE4Ver() < VER_UE4_CLEAN_BLUEPRINT_FUNC_FLAGS))
+		{
+			// Flags we explicitly use ExtraFlags for (at the time this fix was made):
+			//     FUNC_Public, FUNC_Protected, FUNC_Private, 
+			//     FUNC_Static, FUNC_Const,
+			//     FUNC_BlueprintPure, FUNC_BlueprintCallable, FUNC_BlueprintEvent, FUNC_BlueprintAuthorityOnly,
+			//     FUNC_Net, FUNC_NetMulticast, FUNC_NetServer, FUNC_NetClient, FUNC_NetReliable
+			// 
+			// FUNC_Exec, FUNC_Event, & FUNC_BlueprintCosmetic are all inherited 
+			// in FKismetCompilerContext::PrecompileFunction()
+			static const uint32 InvalidExtraFlagsMask = FUNC_Final | FUNC_RequiredAPI | FUNC_BlueprintCosmetic |
+				FUNC_NetRequest | FUNC_Exec | FUNC_Native | FUNC_Event | FUNC_NetResponse | FUNC_MulticastDelegate |
+				FUNC_Delegate | FUNC_HasOutParms | FUNC_HasDefaults | FUNC_DLLImport | FUNC_NetValidate;
+			ExtraFlags &= ~InvalidExtraFlagsMask;
 		}
 	}
 }
@@ -270,6 +287,26 @@ FText UK2Node_FunctionEntry::GetTooltipText() const
 		return FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
 	}
 	return Super::GetTooltipText();
+}
+
+int32 UK2Node_FunctionEntry::GetFunctionFlags() const
+{
+	int32 ReturnFlags = 0;
+
+	UClass* ClassToLookup = SignatureClass;
+
+	if (SignatureClass && SignatureClass->ClassGeneratedBy)
+	{
+		UBlueprint* GeneratingBP = CastChecked<UBlueprint>(SignatureClass->ClassGeneratedBy);
+		ClassToLookup = GeneratingBP->SkeletonGeneratedClass;
+	}
+
+	UFunction* Function = FindField<UFunction>(ClassToLookup, SignatureName);
+	if (Function)
+	{
+		ReturnFlags = Function->FunctionFlags;
+	}
+	return ReturnFlags | ExtraFlags;
 }
 
 void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

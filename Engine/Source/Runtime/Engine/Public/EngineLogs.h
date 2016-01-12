@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // 
 // Log categories used by the Engine
 
@@ -21,6 +21,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogRep, Log, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNetPlayerMovement, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNetTraffic, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogRepTraffic, Warning, All);
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNetFastTArray, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNetDormancy, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogSkeletalControl, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogSubtitle, Log, All);

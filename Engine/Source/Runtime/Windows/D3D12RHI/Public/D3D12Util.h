@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Util.h: D3D RHI utility definitions.
@@ -70,6 +70,171 @@ namespace D3D12RHI
 }
 
 using namespace D3D12RHI;
+
+enum EShaderVisibility
+{
+	SV_Vertex,
+	SV_Pixel,
+	SV_Hull,
+	SV_Domain,
+	SV_Geometry,
+	SV_All,
+	SV_ShaderVisibilityCount
+};
+
+FORCEINLINE D3D12_SHADER_VISIBILITY GetD3D12ShaderVisibility(EShaderVisibility Visibility)
+{
+	switch (Visibility)
+	{
+	case SV_Vertex:
+		return D3D12_SHADER_VISIBILITY_VERTEX;
+	case SV_Hull:
+		return D3D12_SHADER_VISIBILITY_HULL;
+	case SV_Domain:
+		return D3D12_SHADER_VISIBILITY_DOMAIN;
+	case SV_Geometry:
+		return D3D12_SHADER_VISIBILITY_GEOMETRY;
+	case SV_Pixel:
+		return D3D12_SHADER_VISIBILITY_PIXEL;
+	case SV_All:
+		return D3D12_SHADER_VISIBILITY_ALL;
+
+	default:
+		check(false);
+		return static_cast<D3D12_SHADER_VISIBILITY>(-1);
+	};
+}
+
+FORCEINLINE D3D12_ROOT_SIGNATURE_FLAGS GetD3D12RootSignatureDenyFlag(EShaderVisibility Visibility)
+{
+	switch (Visibility)
+	{
+	case SV_Vertex:
+		return D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS;
+	case SV_Hull:
+		return D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+	case SV_Domain:
+		return D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS;
+	case SV_Geometry:
+		return D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
+	case SV_Pixel:
+		return D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+	case SV_All:
+		return D3D12_ROOT_SIGNATURE_FLAG_NONE;
+
+	default:
+		check(false);
+		return static_cast<D3D12_ROOT_SIGNATURE_FLAGS>(-1);
+	};
+}
+
+struct FShaderRegisterCounts
+{
+	uint8 SamplerCount;
+	uint8 ConstantBufferCount;
+	uint8 ShaderResourceCount;
+	uint8 UnorderedAccessCount;
+};
+
+struct FD3D12QuantizedBoundShaderState
+{
+	FShaderRegisterCounts RegisterCounts[SV_ShaderVisibilityCount];
+	bool bAllowIAInputLayout;
+
+	inline bool operator==(const FD3D12QuantizedBoundShaderState& RHS) const
+	{
+		return 0 == FMemory::Memcmp(this, &RHS, sizeof(RHS));
+	}
+
+	friend uint32 GetTypeHash(const FD3D12QuantizedBoundShaderState& Key);
+
+	static void InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader);
+};
+
+/**
+* Creates a discrete bound shader state object from a collection of graphics pipeline shaders.
+*/
+
+class FD3D12BoundShaderState;
+extern void QuantizeBoundShaderState(
+	const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier,
+	const FD3D12BoundShaderState* const BSS,
+	FD3D12QuantizedBoundShaderState &QBSS
+	);
+
+class FD3D12ComputeShader;
+extern void QuantizeBoundShaderState(
+	const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier,
+	const FD3D12ComputeShader* const ComputeShader,
+	FD3D12QuantizedBoundShaderState &QBSS);
+
+class FD3D12RootSignatureDesc
+{
+public:
+	explicit FD3D12RootSignatureDesc(const FD3D12QuantizedBoundShaderState& QBSS)
+	{
+		const EShaderVisibility RootSignaturePriorityOrder[] = { SV_Pixel, SV_Vertex, SV_Hull, SV_Domain, SV_Geometry, SV_All };
+		D3D12_ROOT_SIGNATURE_FLAGS Flags = QBSS.bAllowIAInputLayout ? D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT : D3D12_ROOT_SIGNATURE_FLAG_NONE;
+		uint32 RootParameterCount = 0;
+		for (uint32 i = 0; i < _countof(RootSignaturePriorityOrder); i++)
+		{
+			const EShaderVisibility Visibility = RootSignaturePriorityOrder[i];
+			bool bUsesShaderRegisters = false;
+			if (QBSS.RegisterCounts[Visibility].ShaderResourceCount > 0)
+			{
+				check(RootParameterCount < MaxRootParameters);
+				DescriptorRanges[RootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, QBSS.RegisterCounts[Visibility].ShaderResourceCount, 0u);
+				TableSlots[RootParameterCount].InitAsDescriptorTable(1, &DescriptorRanges[RootParameterCount], GetD3D12ShaderVisibility(Visibility));
+				RootParameterCount++;
+				bUsesShaderRegisters = true;
+			}
+
+			if (QBSS.RegisterCounts[Visibility].ConstantBufferCount > 0)
+			{
+				check(RootParameterCount < MaxRootParameters);
+				DescriptorRanges[RootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, QBSS.RegisterCounts[Visibility].ConstantBufferCount, 0u);
+				TableSlots[RootParameterCount].InitAsDescriptorTable(1, &DescriptorRanges[RootParameterCount], GetD3D12ShaderVisibility(Visibility));
+				RootParameterCount++;
+				bUsesShaderRegisters = true;
+			}
+
+			if (QBSS.RegisterCounts[Visibility].SamplerCount > 0)
+			{
+				check(RootParameterCount < MaxRootParameters);
+				DescriptorRanges[RootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, QBSS.RegisterCounts[Visibility].SamplerCount, 0u);
+				TableSlots[RootParameterCount].InitAsDescriptorTable(1, &DescriptorRanges[RootParameterCount], GetD3D12ShaderVisibility(Visibility));
+				RootParameterCount++;
+				bUsesShaderRegisters = true;
+			}
+
+			if (QBSS.RegisterCounts[Visibility].UnorderedAccessCount > 0)
+			{
+				check(RootParameterCount < MaxRootParameters);
+				DescriptorRanges[RootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, QBSS.RegisterCounts[Visibility].UnorderedAccessCount, 0u);
+				TableSlots[RootParameterCount].InitAsDescriptorTable(1, &DescriptorRanges[RootParameterCount], GetD3D12ShaderVisibility(Visibility));
+				RootParameterCount++;
+				bUsesShaderRegisters = true;
+			}
+
+			if (!bUsesShaderRegisters)
+			{
+				// Deny access to the shader stage in the root signature.
+				Flags = (Flags | GetD3D12RootSignatureDenyFlag(Visibility));
+			}
+		}
+
+		// Init the desc.
+		RootDesc.Init(RootParameterCount, TableSlots, 0, nullptr, Flags);
+	}
+
+	inline const D3D12_ROOT_SIGNATURE_DESC& GetDesc() const { return RootDesc; }
+
+private:
+	static const uint32 MaxRootParameters = 16;
+	CD3DX12_ROOT_PARAMETER TableSlots[MaxRootParameters];
+	CD3DX12_DESCRIPTOR_RANGE DescriptorRanges[MaxRootParameters];
+	CD3DX12_ROOT_SIGNATURE_DESC RootDesc;
+};
 
 /**
 * Convert from ECubeFace to D3DCUBEMAP_FACES type
@@ -255,9 +420,9 @@ private:
 	class FD3D12DynamicHeapAllocator& UploadHeapAllocator;
 };
 
-static D3D12_DESCRIPTOR_HEAP_DESC CreateDHD (D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32 NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAGS Flags)
+static D3D12_DESCRIPTOR_HEAP_DESC CreateDHD(D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32 NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAGS Flags)
 {
-	D3D12_DESCRIPTOR_HEAP_DESC DHD = {Type, NumDescriptorsPerHeap, Flags};
+	D3D12_DESCRIPTOR_HEAP_DESC DHD ={Type, NumDescriptorsPerHeap, Flags};
 
 	return DHD;
 }
@@ -283,7 +448,7 @@ private: // Types
 public: // Methods
 	FDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE Type,
 		uint32 NumDescriptorsPerHeap)
-		: m_Desc(CreateDHD (Type, NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAG_NONE))
+		: m_Desc(CreateDHD(Type, NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAG_NONE))
 		, m_DescriptorSize(0)
 		, m_pDevice(nullptr)
 	{
@@ -327,7 +492,7 @@ public: // Methods
 		FScopeLock Lock(&CritSect);
 		SHeapEntry &HeapEntry = m_Heaps[index];
 
-		SFreeRange NewRange = 
+		SFreeRange NewRange =
 		{
 			Offset.ptr,
 			Offset.ptr + m_DescriptorSize
@@ -375,12 +540,12 @@ private: // Methods
 	void AllocateHeap()
 	{
 		TRefCountPtr<ID3D12DescriptorHeap> Heap;
-		VERIFYD3D11RESULT( m_pDevice->CreateDescriptorHeap(&m_Desc, IID_PPV_ARGS(Heap.GetInitReference())) );
+		VERIFYD3D11RESULT(m_pDevice->CreateDescriptorHeap(&m_Desc, IID_PPV_ARGS(Heap.GetInitReference())));
 		HeapOffset HeapBase = Heap->GetCPUDescriptorHandleForHeapStart();
 		check(HeapBase.ptr != 0);
 
 		// Allocate and initialize a single new entry in the map
-		m_Heaps.SetNum(m_Heaps.Num() + 1); 
+		m_Heaps.SetNum(m_Heaps.Num() + 1);
 		SHeapEntry& HeapEntry = m_Heaps.Last();
 		HeapEntry.m_FreeList.AddTail({HeapBase.ptr,
 			HeapBase.ptr + m_Desc.NumDescriptors * m_DescriptorSize});
@@ -469,17 +634,17 @@ struct ShaderBytecodeHash
 class FD3D12ShaderBytecode
 {
 public:
-	 FD3D12ShaderBytecode()
+	FD3D12ShaderBytecode()
 	{
-		 FMemory::Memzero(&Shader, sizeof(Shader));
-		 FMemory::Memset(&Hash, 0, sizeof(Hash));
+		FMemory::Memzero(&Shader, sizeof(Shader));
+		FMemory::Memset(&Hash, 0, sizeof(Hash));
 	}
 
-	 FD3D12ShaderBytecode(const D3D12_SHADER_BYTECODE &InShader) :
+	FD3D12ShaderBytecode(const D3D12_SHADER_BYTECODE &InShader) :
 		Shader(InShader)
-	 {
-		 HashShader();
-	 }
+	{
+		HashShader();
+	}
 
 	void SetShaderBytecode(const D3D12_SHADER_BYTECODE &InShader)
 	{
@@ -488,7 +653,7 @@ public:
 	}
 
 	const D3D12_SHADER_BYTECODE& GetShaderBytecode() const { return Shader; }
-	ShaderBytecodeHash GetHash() const { return Hash; }
+	const ShaderBytecodeHash& GetHash() const { return Hash; }
 
 private:
 	void HashShader()
@@ -505,8 +670,10 @@ private:
 	D3D12_SHADER_BYTECODE Shader;
 };
 
+class FD3D12RootSignature;
 struct FD3D12LowLevelGraphicsPipelineStateDesc
 {
+	FD3D12RootSignature *pRootSignature;
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc;
 	ShaderBytecodeHash VSHash;
 	ShaderBytecodeHash HSHash;
@@ -529,17 +696,18 @@ struct FD3D12HighLevelGraphicsPipelineStateDesc
 	uint32 SampleMask;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
 	uint32 NumRenderTargets;
-	DXGI_FORMAT RTVFormats[ 8 ];
+	DXGI_FORMAT RTVFormats[8];
 	DXGI_FORMAT DSVFormat;
 	DXGI_SAMPLE_DESC SampleDesc;
 
 	SIZE_T CombinedHash; // Pre-computed hash
 
-	void GetLowLevelDesc(ID3D12RootSignature* pRS, FD3D12LowLevelGraphicsPipelineStateDesc& psoDesc);
+	void GetLowLevelDesc(FD3D12LowLevelGraphicsPipelineStateDesc& psoDesc);
 };
 
 struct FD3D12ComputePipelineStateDesc
 {
+	FD3D12RootSignature* pRootSignature;
 	D3D12_COMPUTE_PIPELINE_STATE_DESC Desc;
 	ShaderBytecodeHash CSHash;
 
@@ -566,8 +734,8 @@ public:
 	bool Dequeue(Type& Result)
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
-		
-		return Items.Dequeue (Result);
+
+		return Items.Dequeue(Result);
 	}
 
 	template <typename CompareFunc>
@@ -575,12 +743,12 @@ public:
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 
-		if (Items.Peek (Result))
+		if (Items.Peek(Result))
 		{
-			if (Func (Result))
+			if (Func(Result))
 			{
-				Items.Dequeue (Result);
-				
+				Items.Dequeue(Result);
+
 				return true;
 			}
 		}
@@ -588,23 +756,46 @@ public:
 		return false;
 	}
 
-	bool Peek (Type& Result)
+	bool Peek(Type& Result)
 	{
-		FScopeLock ScopeLock( &SynchronizationObject );
-		return Items.Peek (Result);
+		FScopeLock ScopeLock(&SynchronizationObject);
+		return Items.Peek(Result);
 	}
 
 	bool IsEmpty()
 	{
-		FScopeLock ScopeLock( &SynchronizationObject );
+		FScopeLock ScopeLock(&SynchronizationObject);
 		return Items.IsEmpty();
 	}
 
 	void Empty()
 	{
-		FScopeLock ScopeLock( &SynchronizationObject );
+		FScopeLock ScopeLock(&SynchronizationObject);
 
 		Type Result;
-		while (Items.Dequeue (Result)) {}
+		while (Items.Dequeue(Result)) {}
 	}
+};
+class FD3D12Fence;
+class FD3D12SyncPoint
+{
+public:
+	FD3D12SyncPoint()
+		: Fence(nullptr)
+		, Value(0)
+	{
+	}
+
+	FD3D12SyncPoint(FD3D12Fence* InFence, uint64 InValue)
+		: Fence(InFence)
+		, Value(InValue)
+	{
+	}
+
+	bool IsComplete() const;
+	void WaitForCompletion() const;
+
+private:
+	FD3D12Fence* Fence;
+	uint64 Value;
 };

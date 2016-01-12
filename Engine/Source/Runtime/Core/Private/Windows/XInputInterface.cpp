@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
@@ -104,9 +104,13 @@ void XInputInterface::SendControllerEvents()
 			XINPUT_STATE XInputState;
 			FMemory::Memzero( &XInputState, sizeof(XINPUT_STATE) );
 
-			ControllerState.bIsConnected = ( XInputGetState( ControllerIndex, &XInputState ) == ERROR_SUCCESS ) ? true : false;
+			bool bWasConnected = ControllerState.bIsConnected;
 
-			if( ControllerState.bIsConnected )
+			ControllerState.bIsConnected = ( XInputGetState( ControllerIndex, &XInputState ) == ERROR_SUCCESS ) ? true : false;
+			
+			// If the controller is connected send events or if the controller was connected send a final event with default states so that 
+			// the game doesnt think that controller buttons are still held down
+			if( ControllerState.bIsConnected || bWasConnected )
 			{
 				bool CurrentStates[MAX_NUM_CONTROLLER_BUTTONS] = {0};
 		

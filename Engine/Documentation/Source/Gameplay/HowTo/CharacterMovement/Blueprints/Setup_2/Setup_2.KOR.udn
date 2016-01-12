@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611449
+﻿INTSourceChangelist:2625808
 Availability: Public
 Title:3. 캐릭터 셋업 마무리
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -56,7 +56,11 @@ Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 �
 
 1.	아래와 같이 "Jog Pressed" 적합한 **Set** 노드에 되어있도록 망을 구성합니다.
 
-	![](Character_JogB.png)(w:720)
+	[REGION:lightbox]
+	[![](Character_JogB.png)(w:720)](Character_JogB.png)
+	[/REGION:lightbox]
+
+	_Click image for full view._
 
 	여기서는 조깅을 누르면 **Jog Pressed** 를 _True_ 로 설정하고, **Character Movement** 컴포넌트에서 캐릭터의 **Max Walk Speed** 를 **375** 로 설정하고 있습니다 (이 값을 조절하여 조깅 속도를 올리고/내릴 수 있습니다).
 	

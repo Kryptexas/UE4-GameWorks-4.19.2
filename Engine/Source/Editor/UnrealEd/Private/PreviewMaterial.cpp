@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Editor/MaterialEditor/Public/MaterialEditorModule.h"
@@ -39,7 +39,8 @@ public:
 
 		if( Material->IsUIMaterial() )
 		{
-			if (FCString::Stristr(ShaderType->GetName(), TEXT("TSlateMaterialShaderPS")))
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("TSlateMaterialShaderPS")) ||
+				FCString::Stristr(ShaderType->GetName(), TEXT("TSlateMaterialShaderVS")))
 			{
 				return true;
 			}
@@ -72,12 +73,11 @@ public:
 
 			if (bEditorStatsMaterial)
 			{
-				TArray<FString> ShaderTypeNames;
-				TArray<FString> ShaderTypeDescriptions;
-				GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
+				TMap<FName, FString> ShaderTypeNamesAndDescriptions;
+				GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNamesAndDescriptions);
 
 				//Only allow shaders that are used in the stats.
-				return ShaderTypeNames.Find(ShaderType->GetName()) != INDEX_NONE;
+				return ShaderTypeNamesAndDescriptions.Contains(ShaderType->GetFName());
 			}
 
 			// look for any of the needed type

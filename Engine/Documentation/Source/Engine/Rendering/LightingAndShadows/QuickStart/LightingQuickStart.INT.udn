@@ -2,6 +2,8 @@ Availability: Public
 Title:Lighting Quick Start Guide
 Crumbs:%ROOT%, GettingStarted
 Description:In this guide you will create and light a small apartment using different types of lighting technqiues. 
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

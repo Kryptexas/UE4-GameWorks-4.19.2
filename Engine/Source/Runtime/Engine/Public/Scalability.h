@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*===================================================================================
 	Scalability.h: Manager class for handling scalability settings
@@ -37,8 +37,13 @@ namespace Scalability
 			return !(*this == Other);
 		}
 
-		// @param Value 0:low, 1:medium, 2:high, 3:epic
+		// Sets all other settings based on an overall value
+		// @param Value 0:low, 1:medium, 2:high, 3:epic (gets clamped if needed)
 		void SetFromSingleQualityLevel(int32 Value);
+
+		// Returns the overall value if all settings are set to the same thing
+		// @param Value -1:custom, 0:low, 1:medium, 2:high, 3:epic
+		int32 GetSingleQualityLevel() const;
 
 		void SetBenchmarkFallback();
 

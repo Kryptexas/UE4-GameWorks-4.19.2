@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -379,6 +379,9 @@ class GenericApplication
 {
 public:
 
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnConsoleCommandAdded, const FString& /*Command*/ );
+	typedef FOnConsoleCommandAdded::FDelegate FOnConsoleCommandListener;
+
 	GenericApplication( const TSharedPtr< ICursor >& InCursor )
 		: Cursor( InCursor )
 		, MessageHandler( MakeShareable( new FGenericApplicationMessageHandler() ) )
@@ -413,6 +416,9 @@ public:
 	/** @return true if the system cursor is currently directly over a slate window. */
 	virtual bool IsCursorDirectlyOverSlateWindow() const { return true; }
 
+	/** @return Native window under the mouse cursor. */
+	virtual TSharedPtr< FGenericWindow > GetWindowUnderCursor() { return TSharedPtr< FGenericWindow >( nullptr ); }
+
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) { };
 
 	virtual bool IsUsingHighPrecisionMouseMode() const { return false; }
@@ -420,6 +426,10 @@ public:
 	virtual bool IsUsingTrackpad() const { return false; }
 
 	virtual bool IsMouseAttached() const { return true; }
+
+	virtual void RegisterConsoleCommandListener(const FOnConsoleCommandListener& InListener) {}
+
+	virtual void AddPendingConsoleCommand(const FString& InCommand) {}
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const
 	{

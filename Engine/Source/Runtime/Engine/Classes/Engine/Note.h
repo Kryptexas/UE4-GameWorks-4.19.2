@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * A sticky note.  Level designers can place these in the level and then
@@ -32,9 +32,9 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITOR
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void CheckForErrors() override;
-	// End AActor Interface
+	//~ End AActor Interface
 #endif
 
 #if WITH_EDITORONLY_DATA

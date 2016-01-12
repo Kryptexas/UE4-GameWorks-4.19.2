@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2560162
+﻿INTSourceChangelist:2676075
 Availability:Public
 Title:파생 데이터 캐시
 Crumbs:%ROOT%, Engine
 Description: Derived Data Cache 및 UE4 와 그 타겟 플랫폼에서 사용되는 포맷의 애셋 저장에 대한 개요입니다.
+version: 4.9
 
 **Derived Data Cache** (DDC, 파생 데이터 캐시)는 여러 버전의 애셋을 엔진과 그 타겟 플랫폼에서 
-사용되는 포맷으로 저장하는 기능입니다. 아티스트가 만들어서 에디터로 임포트하여 `.uasset` 파일로 
-저장되는 소스 포맷과는 다르지요. DDC 에 저장된 콘텐츠는 `.uasset` 파일에 저장된 데이터를 사용하여 
+사용되는 포맷으로 저장하는 기능입니다. 아티스트가 만들어서 에디터로 임포트하여 .uasset 파일로 
+저장되는 소스 포맷과는 다르지요. DDC 에 저장된 콘텐츠는 .uasset 파일에 저장된 데이터를 사용하여 
 언제든지 재생성할 수 있다는 의미에서 _일회성_ 이라 볼 수 있습니다. 이렇게 _파생된_ 포맷을 
 외부에 저장함으로써 소스 애셋 파일을 수정할 필요 없이 엔진이 사용하는 포맷을 쉽게 
 추가 또는 변경할 수 있습니다.
@@ -24,10 +25,10 @@ Description: Derived Data Cache 및 UE4 와 그 타겟 플랫폼에서 사용되
 것이 더 빠르기에 시간 낭비가 되고 맙니다.
 [/REGION]
 
-공유 DDC 구성을 위해서는, 게임의 `DefaultEngine.ini` 에서 `[DerivedDataBackendGraph]` 섹션을 선언하여 
-그에 대한 경로를 덮어씁니다. 이 섹션은 원래 `BaseEngine.ini` 에 선언되며, 기본적으로 에픽의 내부 DDC 
+공유 DDC 구성을 위해서는, 게임의 DefaultEngine.ini 에서 [DerivedDataBackendGraph] 섹션을 선언하여 
+그에 대한 경로를 덮어씁니다. 이 섹션은 원래 BaseEngine.ini 에 선언되며, 기본적으로 에픽의 내부 DDC 
 공유 경로로 설정되어 있습니다. 다른 네트워크 공유 경로로 설정하려면 이 섹션을 다시 선언하고 
-경로를 (`Path=\\mystudio.net\DDC` 식으로) 바꿔 주어야 합니다.
+경로를 (Path=\\mystudio.net\DDC 식으로) 바꿔 주어야 합니다.
 
 	[DerivedDataBackendGraph]
 	MinimumDaysToKeepFile=7
@@ -42,7 +43,7 @@ Description: Derived Data Cache 및 UE4 와 그 타겟 플랫폼에서 사용되
 	EnginePak=(Type=ReadPak, Filename=../../../Engine/DerivedDataCache/DDC.ddp)
 
 
-여러 지사에서 하나의 공유 코드 베이스로 작업을 하려는 경우, `UE-SharedDataCachePath` 환경 변수를 
+여러 지사에서 하나의 공유 코드 베이스로 작업을 하려는 경우, UE-SharedDataCachePath 환경 변수를 
 각 지사의 모든 사용자가 읽고 쓸 수 있는 경로로 설정해 줍니다. 그러면 각 지사 자체적으로 
 공유 DDC 가 생깁니다.
 
@@ -55,7 +56,7 @@ Description: Derived Data Cache 및 UE4 와 그 타겟 플랫폼에서 사용되
 솔로 개발자나 원격 작업을 하는 개발자는 보통 그냥 로컬 DDC 를 사용합니다. 엔진에서 공유 DDC 사용을 
 시도하지 않도록 하는 방법은 다음과 같습니다:
 
-* 명령줄에 `-ddc=noshared` 를 붙입니다.
+* 명령줄에 -ddc=noshared 를 붙입니다.
 * 환경 변수를 로컬 하드 디스크 위치로 설정합니다:
     
 		UE-SharedDataCachePath=c:\DDC
@@ -82,10 +83,10 @@ Description: Derived Data Cache 및 UE4 와 그 타겟 플랫폼에서 사용되
 
 **DDC 패키징을 위해서는:**
  
-1. `UE4/Engine/Binaries/Win64` 디렉토리에서 UE4Editor.exe 에 다음과 같은 인수를 붙여 실행합니다:
+1. UE4/Engine/Binaries/Win64 디렉토리에서 UE4Editor.exe 에 다음과 같은 인수를 붙여 실행합니다:
 
 		UE4Editor.exe [GameName] -run=DerivedDataCache -fill -DDC=CreatePak
  
-1. `UE4\[GameName]\DerivedDataCache` 디렉토리에 `DDC.ddp` 파일이 생깁니다.
+1. UE4\[GameName]\DerivedDataCache 디렉토리에 DDC.ddp 파일이 생깁니다.
 
-1. 이 `.ddp` 파일은 엔진에서 자동으로 찾아 사용합니다.
+1. 이 .ddp 파일은 엔진에서 자동으로 찾아 사용합니다.

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GameProjectGenerationPrivatePCH.h"
@@ -970,7 +970,7 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 	FEngineVersion EngineVersion;
 	if (FDesktopPlatformModule::Get()->TryParseStockEngineVersion(ProjectIdentifier, EngineVersion))
 	{
-		if (FEngineVersion::GetNewest(EngineVersion, GEngineVersion, nullptr) == EVersionComparison::First)
+		if (FEngineVersion::GetNewest(EngineVersion, FEngineVersion::Current(), nullptr) == EVersionComparison::First)
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("CantLoadNewerProject", "Unable to open this project, as it was made with a newer version of the Unreal Engine."));
 			return false;
@@ -1308,7 +1308,8 @@ FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 
-		if (DesktopPlatform->OpenLauncher(false, TEXT("ue/marketplace"), FString()))
+		FOpenLauncherOptions OpenOptions(TEXT("ue/marketplace"));
+		if ( DesktopPlatform->OpenLauncher(OpenOptions) )
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
 		}
@@ -1318,7 +1319,8 @@ FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
 
 			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
 			{
-				if (!DesktopPlatform->OpenLauncher(true, TEXT("ue/marketplace"), FString()))
+				FOpenLauncherOptions InstallOptions(true, TEXT("ue/marketplace"));
+				if ( !DesktopPlatform->OpenLauncher(InstallOptions) )
 				{
 					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
 					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));

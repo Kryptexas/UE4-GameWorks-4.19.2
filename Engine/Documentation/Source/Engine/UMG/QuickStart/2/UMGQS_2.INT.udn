@@ -2,6 +2,7 @@ Availability: Public
 Title:2. Displaying Health, Energy and Ammo
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:In this step we will hook up and display the Health, Energy and Ammo of the player on our HUD. 
+version: 4.9
 
 
 [VAR:Steps]
@@ -78,7 +79,7 @@ Here we will begin setting up the visual aspects of our HUD.
 
 1.	Select the **Progress Bar** next to health and in the **Details** panel set the **Fill Color and Opacity** to a green color. 
 
-	![](Step2_24.png)(w:800)
+	![](UMGColorPicker1.jpg)(w:800)
 
 	You may notice that Progress Bar does not change color when assigning a color. This is because the **Percent** value to fill the bar is set to 0.0 (you can change this to test out different colors, later we will link this to the health value of our character). 
 
@@ -114,7 +115,9 @@ Now that we have our visual layout, we can add the hooks to provide the function
 
 	![](Step2_20.png)
 
-1.	In the **Graph** under the **Event Construct**, **Right-click** and add a **Get Player Character** node then **Cast To FirstPersonCharacter**. 
+1.	In the **Graph** under the **Event Construct** node, **Right-click** and add a **Get Player Character** node. 
+
+1.  Drag off the **Return Value** pin and select **Cast to FirstPersonCharacter**
 
 	![](Step2_21.png)
 
@@ -126,21 +129,23 @@ Now that we have our visual layout, we can add the hooks to provide the function
 
 	This will allow us to access the variables contained inside our **FirstPersonCharacter** Blueprint. 
 
+1.  Click **Compile** in the toolbar to compile the script.
+
 1.	Return to the **Designer** tab and select the **Progress Bar** next to **Health**. 
 
-1.	In the **Details** panel under **Appearance**, click the **Bind** option next to **Percent** and set it to use **Health** from **MyCharacter**. 
+1.	In the **Details** panel under **Progress**, click the **Bind** option next to **Percent** and set it to use **Health** from **MyCharacter**. 
 
-	![](Step2_23.png)
+	![](HealthProgress.jpg)
 
 	This binds the value of the Progress Bar to our **Health** variable inside our **First Person Character** Blueprint. Now whenever our Health value changes in our Character Blueprint it will automatically be updated in our HUD as well. You may also notice that the Progress Bar does not change after binding it. That is because we've stated this to occur upon **Event Construct** (or when the HUD is constructed, which occurs when the game is started).
 
 1.	Select the **Progress Bar** next to Energy and repeat the process above, binding **Percent** to **Energy** from **MyCharacter**. 
 
-	![](Step2_25.png)
+	![](EnergyProgress.jpg)
 
 1.	Select the 25 following the Ammo text, then in the **Details** panel for **Text**, click **Bind** and **Create Binding**. 
 
-	![](Step2_26.png)
+	![](CreateBinding.jpg)
 
 	Now, like the way we previously used **Sub-Object Properties** to bind properties of the same type, we can also create our own custom bindings. Here we are going to bind our **Text** property to an **Integer** property from our **First Person Character** Blueprint giving us a display of our current Ammo.  
 
@@ -148,7 +153,9 @@ Now that we have our visual layout, we can add the hooks to provide the function
 
 	![](Step2_27.png)(w:820)
 
-1.	Off **MyCharacter**, get **Ammo** and connect it to the **Return Value** of the **Return Node**. 
+1.	Drag off the pin **MyCharacter** and select get **Ammo**. 
+
+1.  Connect the Ammo pin to the **Return Value** of the **Return Node**. 
 
 	![](Step2_28.png)
 

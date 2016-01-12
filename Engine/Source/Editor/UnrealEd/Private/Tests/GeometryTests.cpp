@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -77,7 +77,7 @@ namespace GeometryPromotionHelpers
 * There will be a few subtractive brushes intersecting with other objects.
 * Tests for number of surfaces and vertices, numbers of brushes created, and brush location.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGeometryPromotionValidation, "System.Promotion.Editor.Geometry Validation", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGeometryPromotionValidation, "System.Promotion.Editor.Geometry Validation", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FGeometryPromotionValidation::RunTest(const FString& Parameters)
 {
@@ -277,7 +277,7 @@ bool FGeometryPromotionValidation::RunTest(const FString& Parameters)
 * Subtractive brush intersects will the additive brush.
 * Tests for number of surfaces and vertices, numbers of brushes created, and brush location.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBSPCubePlacement, "System.Editor.Geometry.BSP Cube.Brush Placement", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBSPCubePlacement, "System.Editor.Geometry.BSP Cube.Brush Placement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FBSPCubePlacement::RunTest(const FString& Parameters)
 {
@@ -365,7 +365,7 @@ bool FBSPCubePlacement::RunTest(const FString& Parameters)
 * Adds an additive brush to the world and then does an undo/redo of that transaction.
 * Tests for number vertices in the level.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBSPCubeUndoRedoPlacement, "System.Editor.Geometry.BSP Cube.Brush Placement Undo Redo", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBSPCubeUndoRedoPlacement, "System.Editor.Geometry.BSP Cube.Brush Placement Undo Redo", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FBSPCubeUndoRedoPlacement::RunTest(const FString& Parameters)
 {

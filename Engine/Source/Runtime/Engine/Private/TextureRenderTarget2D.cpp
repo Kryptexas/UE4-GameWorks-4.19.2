@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureRenderTarget2D.cpp: UTextureRenderTarget2D implementation
@@ -114,6 +114,12 @@ void UTextureRenderTarget2D::PostEditChangeProperty(FPropertyChangedEvent& Prope
 	EPixelFormat Format = GetFormat();
 	SizeX = FMath::Clamp<int32>(SizeX - (SizeX % GPixelFormats[Format].BlockSizeX),1,MaxSize);
 	SizeY = FMath::Clamp<int32>(SizeY - (SizeY % GPixelFormats[Format].BlockSizeY),1,MaxSize);
+
+	// Always set SRGB back to 'on'; it will be turned off again in the call to Super::PostEditChangeProperty below if necessary
+	if (PropertyChangedEvent.Property)
+	{
+		SRGB = true;
+	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -395,7 +401,7 @@ void FTextureRenderTarget2DResource::UpdateDeferredResource( FRHICommandListImme
 	{
 		RHICmdList.SetViewport(0, 0, 0.0f, TargetSizeX, TargetSizeY, 1.0f);
 		ensure(RenderTargetTextureRHI->GetClearColor() == ClearColor);
-		SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
+		SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite, true);
 	}
  
 	if (Owner->bAutoGenerateMips)

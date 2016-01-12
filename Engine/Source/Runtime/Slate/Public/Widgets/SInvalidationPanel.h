@@ -1,10 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Input/HittestGrid.h"
 
-class SLATE_API SInvalidationPanel : public SCompoundWidget, public ILayoutCache
+class SLATE_API SInvalidationPanel : public SCompoundWidget, public FGCObject, public ILayoutCache
 {
 public:
 	SLATE_BEGIN_ARGS( SInvalidationPanel )
@@ -19,10 +19,17 @@ public:
 	void Construct( const FArguments& InArgs );
 	~SInvalidationPanel();
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool GetCanCache() const;
+#else
+	FORCEINLINE bool GetCanCache() const { return bCanCache; }
+#endif
+
 	void SetCanCache(bool InCanCache);
 
 	FORCEINLINE void InvalidateCache() { bNeedsCaching = true; }
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	// ILayoutCache overrides
 	virtual void InvalidateWidget(SWidget* InvalidateWidget) override;
@@ -40,9 +47,28 @@ public:
 
 	void SetContent(const TSharedRef< SWidget >& InContent);
 
-#if !UE_BUILD_SHIPPING
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static bool IsInvalidationDebuggingEnabled();
 	static void EnableInvalidationDebugging(bool bEnable);
+
+	static bool GetEnableWidgetCaching();
+	static void SetEnableWidgetCaching(bool bEnable);
+#else
+	static bool IsInvalidationDebuggingEnabled() { return false; }
+	static void EnableInvalidationDebugging(bool bEnable) { }
+
+	static bool GetEnableWidgetCaching() { return true; }
+	static void SetEnableWidgetCaching(bool bEnable) { }
+#endif
+
+private:
+	TSharedPtr< FSlateWindowElementList > GetNextCachedElementList(const TSharedPtr<SWindow>& CurrentWindow) const;
+	void OnGlobalInvalidate();
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bool IsCachingNeeded() const;
+#else
+	FORCEINLINE bool IsCachingNeeded() const { return bNeedsCaching; }
 #endif
 
 private:
@@ -51,17 +77,23 @@ private:
 	FSimpleSlot EmptyChildSlot;
 	FVector2D CachedDesiredSize;
 
-#if !UE_BUILD_SHIPPING
-	mutable TSet<TWeakPtr<SWidget>> InvalidatorWidgets;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	mutable TMap<TWeakPtr<SWidget>, double> InvalidatorWidgets;
 #endif
 
 	mutable FCachedWidgetNode* RootCacheNode;
 	mutable TSharedPtr< FSlateWindowElementList > CachedWindowElements;
+	mutable TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderData;
+
+	mutable TSet<UObject*> CachedResources;
+	
 	mutable FVector2D CachedAbsolutePosition;
+	mutable FVector2D AbsoluteDeltaPosition;
+
 	mutable TArray< FCachedWidgetNode* > NodePool;
 	mutable int32 LastUsedCachedNodeIndex;
-	mutable int32 LastLayerId;
 	mutable int32 LastHitTestIndex;
+	mutable FVector2D LastClipRectSize;
 
 	mutable int32 CachedMaxChildLayer;
 	mutable bool bNeedsCaching;

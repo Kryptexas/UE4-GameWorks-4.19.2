@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEd.cpp: UnrealEd package file
@@ -153,6 +153,8 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 				TEXT( "Duration" ), FString::Printf( TEXT( "%.3f" ), StartupTime ) );
 		}
 	}
+
+	FModuleManager::LoadModuleChecked<IModuleInterface>(TEXT("HierarchicalLODOutliner"));
 
 	// this will be ultimately returned from main(), so no error should be 0.
 	return 0;

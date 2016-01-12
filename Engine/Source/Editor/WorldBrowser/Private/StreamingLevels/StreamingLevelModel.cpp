@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldBrowserPrivatePCH.h"
 
@@ -70,11 +70,6 @@ void FStreamingLevelModel::UpdateAsset(const FAssetData& AssetData)
 	{
 		LevelStreaming->SetWorldAssetByPackageName(AssetData.PackageName);
 	}
-}
-
-bool FStreamingLevelModel::SupportsLevelColor() const
-{
-	return LevelStreaming.IsValid();
 }
 
 FLinearColor FStreamingLevelModel::GetLevelColor() const

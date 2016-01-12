@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "Runtime/Engine/Classes/Engine/UserDefinedStruct.h"
@@ -84,4 +84,9 @@ FString UK2Node_StructOperation::GetPinMetaData(FString InPinName, FName InKey)
 		}
 	}
 	return ReturnValue;
+}
+
+FString UK2Node_StructOperation::GetFindReferenceSearchString() const
+{
+	return UEdGraphNode::GetFindReferenceSearchString();
 }

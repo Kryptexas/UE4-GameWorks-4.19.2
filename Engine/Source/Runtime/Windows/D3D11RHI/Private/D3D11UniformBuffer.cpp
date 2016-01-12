@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11UniformBuffer.cpp: D3D uniform buffer RHI implementation.
@@ -264,13 +264,14 @@ void FD3D11UniformBuffer::CacheResourcesInternal()
 	// Texture streaming makes textures complicated :)
 	for (int32 i = 0; i < NumResources; ++i)
 	{
+		RawResources[i].SetResourceName(NAME_None);
 		switch (ResourceTypes[i])
 		{
 		case UBMT_SRV:
 			{
 				FD3D11ShaderResourceView* ShaderResourceViewRHI = (FD3D11ShaderResourceView*)Resources[i].GetReference();
 				RawResources[i].ShaderResource = ShaderResourceViewRHI->Resource.GetReference();
-				RawResources[i].D3D11Resource = (IUnknown*)ShaderResourceViewRHI->View.GetReference();
+				RawResources[i].D3D11Resource = (IUnknown*)ShaderResourceViewRHI->View.GetReference();				
 			}
 			break;
 
@@ -283,6 +284,7 @@ void FD3D11UniformBuffer::CacheResourcesInternal()
 				FD3D11TextureBase* TextureD3D11 = GetD3D11TextureFromRHITexture(TextureRHI);
 				RawResources[i].ShaderResource = TextureD3D11->GetBaseShaderResource();
 				RawResources[i].D3D11Resource = (IUnknown*)TextureD3D11->GetShaderResourceView();
+				RawResources[i].SetResourceName(TextureRHI->GetName());
 			}
 			break;
 

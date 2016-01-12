@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "BlueprintGraphDefinitions.h"
@@ -163,4 +163,4 @@ void UNiagaraNodeOp::Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNo
 	}
 }
 
-#undef  LOCTEXT_NAMESPACE
+#undef LOCTEXT_NAMESPACE

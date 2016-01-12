@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "SlateFontInfo.h"
@@ -15,8 +15,11 @@ UEditableTextBox::UEditableTextBox(const FObjectInitializer& ObjectInitializer)
 	BackgroundColor_DEPRECATED = FLinearColor::White;
 	ReadOnlyForegroundColor_DEPRECATED = FLinearColor::Black;
 
-	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-	Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+	if (!UE_SERVER)
+	{
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+	}
 
 	// Grab other defaults from slate arguments.
 	SEditableTextBox::FArguments Defaults;
@@ -29,6 +32,7 @@ UEditableTextBox::UEditableTextBox(const FObjectInitializer& ObjectInitializer)
 	RevertTextOnEscape = Defaults._RevertTextOnEscape.Get();
 	ClearKeyboardFocusOnCommit = Defaults._ClearKeyboardFocusOnCommit.Get();
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
+	AllowContextMenu = Defaults._AllowContextMenu.Get();
 
 	WidgetStyle = *Defaults._Style;
 }
@@ -50,9 +54,10 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 		.RevertTextOnEscape(RevertTextOnEscape)
 		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 		.SelectAllTextOnCommit(SelectAllTextOnCommit)
+		.AllowContextMenu(AllowContextMenu)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
-		;
+		.VirtualKeyboardType(EVirtualKeyboardType::AsKeyboardType(KeyboardType.GetValue()));
 
 	return MyEditableTextBlock.ToSharedRef();
 }
@@ -75,6 +80,7 @@ void UEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetRevertTextOnEscape(RevertTextOnEscape);
 	MyEditableTextBlock->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
 	MyEditableTextBlock->SetSelectAllTextOnCommit(SelectAllTextOnCommit);
+	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
 }
 
 FText UEditableTextBox::GetText() const

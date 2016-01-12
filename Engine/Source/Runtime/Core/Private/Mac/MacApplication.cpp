@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -17,6 +17,9 @@
 #include "CocoaTextView.h"
 
 FMacApplication* MacApplication = nullptr;
+
+static FCriticalSection GAllScreensMutex;
+TArray<TSharedRef<FMacScreen>> FMacApplication::AllScreens;
 
 const uint32 RESET_EVENT_SUBTYPE = 0x0f00;
 
@@ -76,6 +79,11 @@ FMacApplication::FMacApplication()
 																									 queue:[NSOperationQueue mainQueue]
 																								usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = false; }];
 
+	WorkspaceActiveSpaceChangeObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceActiveSpaceDidChangeNotification
+																										 object:[NSWorkspace sharedWorkspace]
+																										  queue:[NSOperationQueue mainQueue]
+																									 usingBlock:^(NSNotification* Notification){ OnActiveSpaceDidChange(); }];
+
 	MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
 	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* Event) { return HandleNSEvent(Event); }];
 
@@ -119,6 +127,10 @@ FMacApplication::~FMacApplication()
 	if (WorkspaceDeactivationObserver)
 	{
 		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
+	}
+	if (WorkspaceActiveSpaceChangeObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActiveSpaceChangeObserver];
 	}
 
 	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
@@ -184,6 +196,11 @@ void FMacApplication::ProcessDeferredEvents(const float TimeDelta)
 	const bool bAlreadyProcessingDeferredEvents = bIsProcessingDeferredEvents;
 	bIsProcessingDeferredEvents = true;
 
+	if (!bAlreadyProcessingDeferredEvents)
+	{
+		UpdateScreensArray();
+	}
+
 	for (int32 Index = 0; Index < EventsToProcess.Num(); ++Index)
 	{
 		ProcessEvent(EventsToProcess[Index]);
@@ -234,6 +251,17 @@ bool FMacApplication::IsCursorDirectlyOverSlateWindow() const
 	return Window && [Window isKindOfClass:[FCocoaWindow class]] && Window != DraggedWindow;
 }
 
+TSharedPtr<FGenericWindow> FMacApplication::GetWindowUnderCursor()
+{
+	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
+	NSWindow* const Window = [NSApp windowWithWindowNumber:WindowNumber];
+	if (Window && [Window isKindOfClass:[FCocoaWindow class]] && Window != DraggedWindow)
+	{
+		return StaticCastSharedPtr<FGenericWindow>(FindWindowByNSWindow((FCocoaWindow*)Window));
+	}
+	return TSharedPtr<FMacWindow>(nullptr);
+}
+
 void FMacApplication::SetHighPrecisionMouseMode(const bool Enable, const TSharedPtr<FGenericWindow>& InWindow)
 {
 	bUsingHighPrecisionMouseInput = Enable;
@@ -244,14 +272,14 @@ FPlatformRect FMacApplication::GetWorkArea(const FPlatformRect& CurrentWindow) c
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	NSScreen* Screen = FindScreenByPoint(CurrentWindow.Left, CurrentWindow.Top);
+	TSharedRef<FMacScreen> Screen = FindScreenByPoint(CurrentWindow.Left, CurrentWindow.Top);
 
-	const int32 ScreenHeight = FMath::TruncToInt([Screen frame].size.height);
-	const NSRect VisibleFrame = [Screen visibleFrame];
+	const int32 ScreenHeight = FMath::TruncToInt(Screen->Frame.size.height);
+	const NSRect VisibleFrame = Screen->VisibleFrame;
 
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-	NSRect PrimaryFrame = [PrimaryScreen frame];
+	GAllScreensMutex.Lock();
+	NSRect PrimaryFrame = AllScreens[0]->Frame;
+	GAllScreensMutex.Unlock();
 
 	FPlatformRect WorkArea;
 	WorkArea.Left = VisibleFrame.origin.x;
@@ -648,8 +676,9 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 {
 	if (EventWindow.IsValid() && EventWindow->IsRegularWindow())
 	{
-		bool IsMouseOverTitleBar = false;
-		const bool IsMovable = IsWindowMovable(EventWindow.ToSharedRef(), &IsMouseOverTitleBar);
+		const EWindowZone::Type Zone = GetCurrentWindowZone(EventWindow.ToSharedRef());
+		bool IsMouseOverTitleBar = (Zone == EWindowZone::TitleBar);
+		const bool IsMovable = IsMouseOverTitleBar || IsEdgeZone(Zone);
 		[EventWindow->GetWindowHandle() setMovable:IsMovable];
 		[EventWindow->GetWindowHandle() setMovableByWindowBackground:IsMouseOverTitleBar];
 	}
@@ -661,11 +690,18 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 		// Get the mouse position
 		FVector2D HighPrecisionMousePos = MacCursor->GetPositionNoScaling();
 
-		// Find the screen the cursor is currently on.
-		NSEnumerator *ScreenEnumerator = [[NSScreen screens] objectEnumerator];
-		NSScreen *Screen;
-		while ((Screen = [ScreenEnumerator nextObject]) && !NSMouseInRect(NSMakePoint(HighPrecisionMousePos.X, FPlatformMisc::ConvertSlateYPositionToCocoa(HighPrecisionMousePos.Y)), Screen.frame, NO))
-			;
+		// Find the visible frame of the screen the cursor is currently on.
+		NSRect VisibleFrame;
+		GAllScreensMutex.Lock();
+		for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+		{
+			if (NSMouseInRect(NSMakePoint(HighPrecisionMousePos.X, ConvertSlateYPositionToCocoa(HighPrecisionMousePos.Y)), CurScreen->Frame, NO))
+			{
+				VisibleFrame = CurScreen->VisibleFrame;
+				break;
+			}
+		}
+		GAllScreensMutex.Unlock();
 
 		// Under OS X we disassociate the cursor and mouse position during hi-precision mouse input.
 		// The game snaps the mouse cursor back to the starting point when this is disabled, which
@@ -687,7 +723,6 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 		// assorted potential for mouse abuse.
 		if (bUsingHighPrecisionMouseInput)
 		{
-			NSRect VisibleFrame = [Screen visibleFrame];
 			// Avoid the menu bar & dock disclosure borders at the top & bottom of fullscreen windows
 			if (EventWindow.IsValid() && EventWindow->GetWindowMode() != EWindowMode::Windowed)
 			{
@@ -695,8 +730,8 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 				VisibleFrame.size.height -= 10;
 			}
 			int32 ClampedPosX = FMath::Clamp((int32)HighPrecisionMousePos.X, (int32)VisibleFrame.origin.x, (int32)(VisibleFrame.origin.x + VisibleFrame.size.width)-1);
-			int32 ClampedPosY = FMath::Clamp((int32)FPlatformMisc::ConvertSlateYPositionToCocoa(HighPrecisionMousePos.Y), (int32)VisibleFrame.origin.y, (int32)(VisibleFrame.origin.y + VisibleFrame.size.height)-1);
-			MacCursor->SetPositionNoScaling(ClampedPosX, FPlatformMisc::ConvertSlateYPositionToCocoa(ClampedPosY));
+			int32 ClampedPosY = FMath::Clamp((int32)ConvertSlateYPositionToCocoa(HighPrecisionMousePos.Y), (int32)VisibleFrame.origin.y, (int32)(VisibleFrame.origin.y + VisibleFrame.size.height)-1);
+			MacCursor->SetPositionNoScaling(ClampedPosX, ConvertSlateYPositionToCocoa(ClampedPosY));
 		}
 		else
 		{
@@ -709,7 +744,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 	else
 	{
 		NSPoint CursorPos = [NSEvent mouseLocation];
-		FVector2D NewPosition = FVector2D(CursorPos.x, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y));
+		FVector2D NewPosition = FVector2D(CursorPos.x, ConvertSlateYPositionToCocoa(CursorPos.y));
 		const FVector2D MouseDelta = NewPosition - MacCursor->GetPositionNoScaling();
 		if (MacCursor->UpdateCursorClipping(NewPosition))
 		{
@@ -766,11 +801,10 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSha
 
 	if (EventWindow.IsValid())
 	{
+		const EWindowZone::Type Zone = GetCurrentWindowZone(EventWindow.ToSharedRef());
 		if (Button == LastPressedMouseButton && (Event.ClickCount % 2) == 0)
 		{
-			bool IsMouseOverTitleBar = false;
-			const bool IsMovable = IsWindowMovable(EventWindow.ToSharedRef(), &IsMouseOverTitleBar);
-			if (IsMouseOverTitleBar)
+			if (Zone == EWindowZone::TitleBar)
 			{
 				const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
 				FCocoaWindow* WindowHandle = EventWindow->GetWindowHandle();
@@ -788,7 +822,8 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSha
 				MessageHandler->OnMouseDoubleClick(EventWindow, Button);
 			}
 		}
-		else
+		// Only forward left mouse button down events if it's not inside the resize edge zone of a normal resizable window.
+		else if (!EventWindow->IsRegularWindow() || Button != EMouseButtons::Left || !IsEdgeZone(Zone))
 		{
 			MessageHandler->OnMouseDown(EventWindow, Button);
 		}
@@ -943,7 +978,7 @@ void FMacApplication::OnWindowDidMove(TSharedRef<FMacWindow> Window)
 
 	if ([Window->GetWindowHandle() windowMode] != EWindowMode::Fullscreen)
 	{
-		Y = FPlatformMisc::ConvertCocoaYPositionToSlate(WindowFrame.origin.y + OpenGLFrame.size.height);
+		Y = ConvertCocoaYPositionToSlate(WindowFrame.origin.y + OpenGLFrame.size.height);
 	}
 
 	MessageHandler->OnMovedWindow(Window, X, Y);
@@ -1124,6 +1159,19 @@ void FMacApplication::OnWindowsReordered()
 	}
 }
 
+void FMacApplication::OnActiveSpaceDidChange()
+{
+	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
+	{
+		TSharedRef<FMacWindow> WindowRef = Windows[WindowIndex];
+		FCocoaWindow* WindowHandle = WindowRef->GetWindowHandle();
+		if (WindowHandle)
+		{
+			WindowHandle->bIsOnActiveSpace = [WindowHandle isOnActiveSpace];
+		}
+	}
+}
+
 void FMacApplication::OnCursorLock()
 {
 	NSWindow* NativeWindow = [NSApp keyWindow];
@@ -1216,17 +1264,18 @@ FCocoaWindow* FMacApplication::FindEventWindow(NSEvent* Event) const
 	return EventWindow;
 }
 
-NSScreen* FMacApplication::FindScreenByPoint(int32 X, int32 Y) const
+TSharedRef<FMacScreen> FMacApplication::FindScreenByPoint(int32 X, int32 Y) const
 {
 	NSPoint Point = {0};
 	Point.x = X;
-	Point.y = FPlatformMisc::ConvertSlateYPositionToCocoa(Y);
+	Point.y = ConvertSlateYPositionToCocoa(Y);
 
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* TargetScreen = [AllScreens objectAtIndex: 0];
-	for(NSScreen* Screen in AllScreens)
+	FScopeLock Lock(&GAllScreensMutex);
+
+	TSharedRef<FMacScreen> TargetScreen = AllScreens[0];
+	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
-		if (Screen && NSPointInRect(Point, [Screen frame]))
+		if (NSPointInRect(Point, Screen->Frame))
 		{
 			TargetScreen = Screen;
 			break;
@@ -1236,19 +1285,48 @@ NSScreen* FMacApplication::FindScreenByPoint(int32 X, int32 Y) const
 	return TargetScreen;
 }
 
-bool FMacApplication::IsWindowMovable(TSharedRef<FMacWindow> Window, bool* OutMovableByBackground) const
+int32 FMacApplication::ConvertSlateYPositionToCocoa(int32 YPosition)
 {
-	if (OutMovableByBackground)
+	GAllScreensMutex.Lock();
+	NSRect ScreenFrame = AllScreens[0]->Frame;
+	NSRect WholeWorkspace = {{0,0},{0,0}};
+	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
-		*OutMovableByBackground = false;
+		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->Frame);
 	}
+	GAllScreensMutex.Unlock();
 
+	const float WholeWorkspaceOrigin = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
+	const float WholeWorkspaceHeight = WholeWorkspace.origin.y + WholeWorkspace.size.height;
+	return -((YPosition - WholeWorkspaceOrigin) - WholeWorkspaceHeight + 1);
+}
+
+int32 FMacApplication::ConvertCocoaYPositionToSlate(int32 YPosition)
+{
+	GAllScreensMutex.Lock();
+	NSRect ScreenFrame = AllScreens[0]->Frame;
+	NSRect WholeWorkspace = {{0,0},{0,0}};
+	for (TSharedRef<FMacScreen> Screen : AllScreens)
+	{
+		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->Frame);
+	}
+	GAllScreensMutex.Unlock();
+
+	CGFloat const OffsetToPrimary = ((ScreenFrame.origin.y + ScreenFrame.size.height) - (WholeWorkspace.origin.y + WholeWorkspace.size.height));
+	CGFloat const OffsetToWorkspace = (WholeWorkspace.size.height - (YPosition)) + WholeWorkspace.origin.y;
+	return OffsetToWorkspace + OffsetToPrimary;
+}
+
+EWindowZone::Type FMacApplication::GetCurrentWindowZone(const TSharedRef<FMacWindow>& Window) const
+{
 	const FVector2D CursorPos = ((FMacCursor*)Cursor.Get())->GetPosition();
 	const int32 LocalMouseX = CursorPos.X - Window->PositionX;
 	const int32 LocalMouseY = CursorPos.Y - Window->PositionY;
+	return MessageHandler->GetWindowZoneForPoint(Window, LocalMouseX, LocalMouseY);
+}
 
-	const EWindowZone::Type Zone = MessageHandler->GetWindowZoneForPoint(Window, LocalMouseX, LocalMouseY);
-	const bool IsMouseOverTitleBar = Zone == EWindowZone::TitleBar;
+bool FMacApplication::IsEdgeZone(EWindowZone::Type Zone) const
+{
 	switch (Zone)
 	{
 		case EWindowZone::NotInWindow:
@@ -1262,11 +1340,6 @@ bool FMacApplication::IsWindowMovable(TSharedRef<FMacWindow> Window, bool* OutMo
 		case EWindowZone::BottomRightBorder:
 			return true;
 		case EWindowZone::TitleBar:
-			if (OutMovableByBackground)
-			{
-				*OutMovableByBackground = true;
-			}
-			return true;
 		case EWindowZone::ClientArea:
 		case EWindowZone::MinimizeButton:
 		case EWindowZone::MaximizeButton:
@@ -1420,6 +1493,43 @@ void FMacApplication::InvalidateTextLayouts()
 
 }
 
+void FMacApplication::UpdateScreensArray()
+{
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		FScopeLock Lock(&GAllScreensMutex);
+		AllScreens.Empty();
+		NSArray* Screens = [NSScreen screens];
+		for (NSScreen* Screen in Screens)
+		{
+			AllScreens.Add(MakeShareable(new FMacScreen(Screen)));
+		}
+	}, NSDefaultRunLoopMode, true);
+}
+
+FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
+{
+	NSRect WholeWorkspace = {{0, 0}, {0, 0}};
+	NSRect ScreenFrame = {{0, 0}, {0, 0}};
+	GAllScreensMutex.Lock();
+	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+	{
+		WholeWorkspace = NSUnionRect(WholeWorkspace, CurScreen->Frame);
+		if (Screen == CurScreen->Screen)
+		{
+			ScreenFrame = CurScreen->Frame;
+		}
+	}
+	GAllScreensMutex.Unlock();
+	return FVector2D(ScreenFrame.origin.x, WholeWorkspace.size.height - ScreenFrame.size.height - ScreenFrame.origin.y);
+}
+
+int32 FMacApplication::GetPrimaryScreenBackingScaleFactor()
+{
+	FScopeLock Lock(&GAllScreensMutex);
+	return (int32)AllScreens[0]->Screen.backingScaleFactor;
+}
+
 #if WITH_EDITOR
 void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
 {
@@ -1435,11 +1545,13 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+	FScopeLock Lock(&GAllScreensMutex);
 
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect VisibleFrame = [PrimaryScreen visibleFrame];
+	const TArray<TSharedRef<FMacScreen>>& AllScreens = FMacApplication::GetAllScreens();
+	TSharedRef<FMacScreen> PrimaryScreen = AllScreens[0];
+
+	NSRect ScreenFrame = PrimaryScreen->Frame;
+	NSRect VisibleFrame = PrimaryScreen->VisibleFrame;
 
 	// Total screen size of the primary monitor
 	OutDisplayMetrics.PrimaryDisplayWidth = ScreenFrame.size.width;
@@ -1447,12 +1559,9 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 
 	// Virtual desktop area
 	NSRect WholeWorkspace = {{0,0},{0,0}};
-	for (NSScreen* Screen in AllScreens)
+	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
-		if (Screen)
-		{
-			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
-		}
+		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->Frame);
 	}
 	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
 	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);

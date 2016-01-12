@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDOF.h: Post process Depth of Field implementation.
@@ -31,7 +31,7 @@ private:
 };
 
 
-// ePId_Input0: SceneColor
+// ePId_Input0: DOFInput or DOFInputTemporalAA
 class FRCPassPostProcessCircleDOFDilate : public TRenderingCompositePassBase<1, 1>
 {
 public:
@@ -49,7 +49,7 @@ public:
 
 
 // ePId_Input0: setup results for far
-// ePId_Input1: setup results for near
+// ePId_Input1: setup results for near, might have been processed by the dilate pass
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 class FRCPassPostProcessCircleDOF : public TRenderingCompositePassBase<2, 2>
 {
@@ -66,6 +66,9 @@ public:
 private:
 
 	bool bNearBlurEnabled;
+
+	template <uint32 NearBlurEnable, uint32 Quality>
+	FShader* SetShaderTempl(const FRenderingCompositePassContext& Context);
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
@@ -86,10 +89,13 @@ public:
 private:
 
 	bool bNearBlurEnabled;
+
+	template <uint32 NearBlurEnable, uint32 Quality>
+	FShader* SetShaderTempl(const FRenderingCompositePassContext& Context);
 };
 
 // to verify this can be used: http://www.radical.org/aov
 // @return in mm, assuming this sensor: APS-C 24.576 mm
 float ComputeFocalLengthFromFov(const FSceneView& View);
 
-FVector4 CircleDofCoc(const FSceneView& View);
+FVector4 CircleDofHalfCoc(const FSceneView& View);

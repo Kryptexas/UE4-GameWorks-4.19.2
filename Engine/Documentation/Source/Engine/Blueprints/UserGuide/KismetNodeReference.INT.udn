@@ -2,13 +2,53 @@ Availability:Public
 Title: Blueprint User Guide
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
+version: 4.9
+parent:Engine/Blueprints
+order:3
+type:reference
 
-
-## Overview
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [INCLUDE:Engine\Blueprints#intro]
 
-This page outlines the various types of Blueprints and Graph Types, Blueprint Elements (such as _Variables_, _Components_, and _Graphs_), Communication Methods and how to pass information between Blueprints, as well as a breakdown of the different types of Graph Nodes you will be working with as you create your Blueprints. 
+This page outlines the various types of Blueprints and Graph Types, Blueprint Elements (such as Variables, Components, and Graphs), Communication Methods and how to pass information between Blueprints, as well as a breakdown of the different types of Graph Nodes you will be working with as you create your Blueprints. 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -38,7 +78,7 @@ This page outlines the various types of Blueprints and Graph Types, Blueprint El
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
-		![](%ROOT%/Editor_icon.png)(convert:false)
+		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		Blueprint Graph Types
@@ -121,7 +161,7 @@ This page outlines the various types of Blueprints and Graph Types, Blueprint El
 -->
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
-		![](%ROOT%/Blueprint_icon.png)(convert:false)
+		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		Graph Nodes

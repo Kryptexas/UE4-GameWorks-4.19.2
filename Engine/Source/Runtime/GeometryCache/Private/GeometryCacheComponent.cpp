@@ -1,11 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryCacheModulePrivatePCH.h"
 #include "GeometryCacheComponent.h"
+#include "MessageLog.h"
+#include "ContentStreaming.h"
 
 #include "GeometryCacheSceneProxy.h"
 #include "GeometryCacheTrack.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
+
+#define LOCTEXT_NAMESPACE "GeometryCacheComponent"
 
 DECLARE_CYCLE_STAT(TEXT("GeometryCacheTick"), STAT_GeometryCacheComponent_TickComponent, STATGROUP_GeometryCache);
 
@@ -30,27 +34,38 @@ void UGeometryCacheComponent::BeginDestroy()
 
 void UGeometryCacheComponent::OnRegister()
 {
+	ClearTrackData();
+	SetupTrackData();
+	Super::OnRegister();
+}
+
+void UGeometryCacheComponent::ClearTrackData()
+{
 	NumTracks = 0;
 	TrackMatrixSampleIndices.Empty();
 	TrackMatrixSampleIndices.Empty();
 	TrackSections.Empty();
+	SceneProxy = nullptr;
+}
 
-	if (GeometryCache != NULL)
+void UGeometryCacheComponent::SetupTrackData()
+{
+	if (GeometryCache != nullptr)
 	{
 		// Refresh NumTracks and clear Index Arrays
-		NumTracks = GeometryCache->Tracks.Num();		
+		NumTracks = GeometryCache->Tracks.Num();
 		TrackMeshSampleIndices.Empty(GeometryCache->Tracks.Num());
 		TrackMatrixSampleIndices.Empty(GeometryCache->Tracks.Num());
 
 		Duration = 0.0f;
 		// Create mesh sections for each GeometryCacheTrack
-		for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex )
-		{ 				
-			UGeometryCacheTrack* Track = GeometryCache->Tracks[TrackIndex];			
+		for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
+		{
+			UGeometryCacheTrack* Track = GeometryCache->Tracks[TrackIndex];
 			FMatrix WorldMatrix;
 			int32 MeshSampleIndex = -1;
 			int32 MatrixSampleIndex = -1;
-			FGeometryCacheMeshData* MeshData = NULL;
+			FGeometryCacheMeshData* MeshData = nullptr;
 
 			// Retrieve the matrix/mesh data and the appropriate sample indices
 			Track->UpdateMatrixData(ElapsedTime + StartTimeOffset, bLooping, MatrixSampleIndex, WorldMatrix);
@@ -64,11 +79,9 @@ void UGeometryCacheComponent::OnRegister()
 			TrackMatrixSampleIndices.Add(MatrixSampleIndex);
 
 			const float TrackMaxSampleTime = Track->GetMaxSampleTime();
-			Duration = ( Duration > TrackMaxSampleTime ) ? Duration : TrackMaxSampleTime;
+			Duration = (Duration > TrackMaxSampleTime) ? Duration : TrackMaxSampleTime;
 		}
 	}
-
-	Super::OnRegister();
 }
 
 void UGeometryCacheComponent::OnUnregister()
@@ -89,7 +102,6 @@ void UGeometryCacheComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		// Increase total elapsed time since BeginPlay according to PlayDirection and speed
 		ElapsedTime += (DeltaTime * PlayDirection * PlaybackSpeed);
 
-		// QQ change this for reverse playing? extra float for runningtime vs sample time?
 		if (ElapsedTime < 0.0f)
 		{
 			ElapsedTime += Duration;
@@ -100,7 +112,7 @@ void UGeometryCacheComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 			// Determine if and which part of the section we have to update
 			UGeometryCacheTrack* Track = GeometryCache->Tracks[TrackIndex];
 			FMatrix WorldMatrix;
-			FGeometryCacheMeshData* MeshData = NULL;
+			FGeometryCacheMeshData* MeshData = nullptr;
 
 			const bool bUpdateMatrix = Track->UpdateMatrixData(ElapsedTime + StartTimeOffset, bLooping, TrackMatrixSampleIndices[TrackIndex], WorldMatrix);
 			const bool bUpdateMesh = Track->UpdateMeshData(ElapsedTime + StartTimeOffset, bLooping, TrackMeshSampleIndices[TrackIndex], MeshData);
@@ -180,16 +192,7 @@ void UGeometryCacheComponent::CreateTrackSection(int32 SectionIndex, const FMatr
 
 	// Number of Vertices
 	const int32 NumVerts = MeshData->Vertices.Num();
-
-	// Copy index buffer (clamping to vertex range)
-	const int32 NumTriIndices = NumVerts;
-	NewSection.IndexBuffer.Reset();
-	NewSection.IndexBuffer.AddUninitialized(NumTriIndices);
-	for (int32 IndexIdx = 0; IndexIdx < NumTriIndices; IndexIdx++)
-	{
-		NewSection.IndexBuffer[IndexIdx] = FMath::Min(IndexIdx, NumVerts - 1);
-	}
-	
+		
 	// Store Matrix and MeshData-pointer
 	NewSection.WorldMatrix = WorldMatrix;
 	NewSection.MeshData = MeshData;
@@ -207,43 +210,28 @@ void UGeometryCacheComponent::UpdateTrackSectionMeshData(int32 SectionIndex, FGe
 	
 	// Number of Vertices
 	const int32 NumVerts = MeshData->Vertices.Num();
-	// Determine if we actually need a new index buffer
-	if (UpdateSection.IndexBuffer.Num() != MeshData->Vertices.Num())
-	{
-		// Copy index buffer (clamping to vertex range)
-		const int32 NumTriIndices = NumVerts;
-		UpdateSection.IndexBuffer.Reset();
-		UpdateSection.IndexBuffer.AddUninitialized(NumTriIndices);
-		for (int32 IndexIdx = 0; IndexIdx < NumTriIndices; IndexIdx++)
-		{
-			UpdateSection.IndexBuffer[IndexIdx] = FMath::Min(IndexIdx, NumVerts - 1);
-		}
-
-		if (SceneProxy)
-		{
-			UpdateTrackSectionIndexbuffer(SectionIndex, UpdateSection.IndexBuffer);
-		}
-	}
-
+	
 	// Update MeshDataPointer
 	UpdateSection.MeshData = MeshData;
 
-	if (SceneProxy)
-	{		
-		UpdateTrackSectionVertexbuffer(SectionIndex, MeshData);
-		// Will update the bounds (used for frustum culling)
-		MarkRenderTransformDirty();
-	}
-	else
-	{
-		// Recreate scene proxy
-		MarkRenderStateDirty(); 
-	}
-
-	MarkRenderStateDirty();
+	//if (SceneProxy)
+	//{		
+	//	UpdateTrackSectionVertexbuffer(SectionIndex, MeshData);
+	//	UpdateTrackSectionIndexbuffer(SectionIndex, MeshData->Indices);
+	//	// Will update the bounds (used for frustum culling)
+	//	MarkRenderTransformDirty();
+	//	MarkRenderDynamicDataDirty();
+	//}
+	//else
+	//{
+	//	// Recreate scene proxy
+	//	MarkRenderStateDirty(); 
+	//}
 
 	// Update overall bounds	
-	UpdateLocalBounds(); 	
+	UpdateLocalBounds();
+
+	MarkRenderStateDirty();
 }
 
 void UGeometryCacheComponent::UpdateTrackSectionMatrixData(int32 SectionIndex, const FMatrix& WorldMatrix)
@@ -255,7 +243,7 @@ void UGeometryCacheComponent::UpdateTrackSectionMatrixData(int32 SectionIndex, c
 	// Update the WorldMatrix only
 	UpdateSection.WorldMatrix = WorldMatrix;
 
-	if (!IsRenderStateDirty() && SceneProxy != NULL)
+	if (!IsRenderStateDirty() && SceneProxy != nullptr)
 	{
 		// Update it within the scene proxy
 		SceneProxy->UpdateSectionWorldMatrix(SectionIndex, WorldMatrix);
@@ -280,13 +268,13 @@ void UGeometryCacheComponent::UpdateTrackSectionVertexbuffer(int32 SectionIndex,
 	});
 }
 
-void UGeometryCacheComponent::UpdateTrackSectionIndexbuffer(int32 SectionIndex, const TArray<int32>& Indices)
+void UGeometryCacheComponent::UpdateTrackSectionIndexbuffer(int32 SectionIndex, const TArray<uint32>& Indices)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		FUpdateVertexBufferCommand,
 		FGeometryCacheSceneProxy*, SceneProxy, SceneProxy,
 		const int32, Index, SectionIndex,
-		const TArray<int32>&, Data, Indices,
+		const TArray<uint32>&, Data, Indices,
 		{
 		SceneProxy->UpdateSectionIndexBuffer(Index, Data);
 	});
@@ -299,7 +287,7 @@ void UGeometryCacheComponent::OnObjectReimported(UGeometryCache* ImportedGeometr
 		ReleaseResources();
 		GeometryCache = ImportedGeometryCache;
 
-		if (GeometryCache != NULL)
+		if (GeometryCache != nullptr)
 		{
 			// Refresh NumTracks and clear Index Arrays
 			NumTracks = GeometryCache->Tracks.Num();
@@ -314,7 +302,7 @@ void UGeometryCacheComponent::OnObjectReimported(UGeometryCache* ImportedGeometr
 				FMatrix WorldMatrix;
 				int32 MeshSampleIndex = -1;
 				int32 MatrixSampleIndex = -1;
-				FGeometryCacheMeshData* MeshData = NULL;
+				FGeometryCacheMeshData* MeshData = nullptr;
 
 				// Retrieve the matrix/mesh data and the appropriate sample indices
 				Track->UpdateMatrixData(ElapsedTime + StartTimeOffset, bLooping, MatrixSampleIndex, WorldMatrix);
@@ -396,6 +384,49 @@ void UGeometryCacheComponent::SetPlaybackSpeed(const float NewPlaybackSpeed)
 	PlaybackSpeed = fabs( NewPlaybackSpeed );
 }
 
+bool UGeometryCacheComponent::SetGeometryCache(UGeometryCache* NewGeomCache)
+{
+	// Do nothing if we are already using the supplied static mesh
+	if (NewGeomCache == GeometryCache)
+	{
+		return false;
+	}
+
+	// Don't allow changing static meshes if "static" and registered
+	AActor* Owner = GetOwner();
+	if (!AreDynamicDataChangesAllowed() && Owner != nullptr)
+	{
+		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("SetGeometryCache", "Calling SetGeometryCache on '{0}' but Mobility is Static."),
+			FText::FromString(GetPathName())));
+		return false;
+	}
+
+
+	GeometryCache = NewGeomCache;
+
+	ClearTrackData();
+	SetupTrackData();
+
+	// Need to send this to render thread at some point
+	MarkRenderStateDirty();
+
+	// Update physics representation right away
+	RecreatePhysicsState();
+	
+	// Notify the streaming system. Don't use Update(), because this may be the first time the geometry cache has been set
+	// and the component may have to be added to the streaming system for the first time.
+	IStreamingManager::Get().NotifyPrimitiveAttached(this, DPT_Spawned);
+
+	// Since we have new tracks, we need to update bounds
+	UpdateBounds();
+	return true;
+}
+
+UGeometryCache* UGeometryCacheComponent::GetGeometryCache() const
+{
+	return GeometryCache;
+}
+
 void UGeometryCacheComponent::PlayReversedFromEnd()
 {
 	ElapsedTime = Duration;
@@ -424,7 +455,7 @@ void UGeometryCacheComponent::InvalidateTrackSampleIndices()
 
 void UGeometryCacheComponent::ReleaseResources()
 {
-	GeometryCache = NULL;
+	GeometryCache = nullptr;
 	NumTracks = 0;
 	TrackMatrixSampleIndices.Empty();
 	TrackMatrixSampleIndices.Empty();
@@ -443,3 +474,5 @@ void UGeometryCacheComponent::PostEditUndo()
 	InvalidateTrackSampleIndices();
 	MarkRenderStateDirty();
 }
+
+#undef LOCTEXT_NAMESPACE

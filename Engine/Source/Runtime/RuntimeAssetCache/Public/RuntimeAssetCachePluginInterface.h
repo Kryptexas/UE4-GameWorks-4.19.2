@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "RuntimeAssetCachePluginInterface.generated.h"
@@ -58,6 +58,15 @@ public:
 	* @return Asset version.
 	*/
 	virtual int32 GetAssetVersion() = 0;
+
+	/**
+	* Check if the cached asset is up to date. If the current AssetVersion is greater than the cached AssetVersion, the cached asset will be re-built.
+	* @return Whether the cached asset is good (return true) or needs to be rebuilt (return false).
+	*/
+	virtual bool CachedAssetVersionIsUpToDate(int32 CachedAssetVersion)
+	{
+		return CachedAssetVersion >= GetAssetVersion();
+	}
 
 	/**
 	* Gets whether Build function must be called asynchronously.

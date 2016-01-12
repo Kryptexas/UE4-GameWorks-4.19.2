@@ -2,6 +2,7 @@ Availability: Licensee
 Title:Setting Up a Perforce Connection
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:Guide to connecting to Epic's Perforce server to obtain Unreal Engine 4 builds.
+version: 4.9
 
 [TOC(start:2)]
 
@@ -16,8 +17,8 @@ To learn about setting up and establishing a VPN connection, see the [Setting Up
 
 [REGION:red]
 Epic Games has executed a custom licensing agreement with Perforce. To be in compliance with this license, only 
-one machine per license should sync full builds, but multiple users **may** connect with the same login name to 
-view source metadata and past revisions. Individual UDN login information will **not** work.
+one machine per license should sync full builds, but multiple users may connect with the same login name to 
+view source metadata and past revisions. Individual UDN login information will not work.
 [/REGION]
 
 In some cases, larger organizations may have an account for each team; even still, only one machine per team 
@@ -66,7 +67,7 @@ will be used to download and store the engine builds.
 The P4V client is the current client provided by Perforce. It provides access to versioned files through a 
 graphical interface and also includes tools for merging and visualizing code evolution.
 
-![p4v.jpg](p4v.jpg)(w:900 h:591)
+![](P4VUpdated.png)(w:900 h:591)
 
 The full P4V installer can be downloaded from the [Perforce Downloads: The Essentials](http://www.perforce.com/perforce/downloads/index.html) page.
 
@@ -176,7 +177,7 @@ this on our proxy.
 
 
 It is a VBScript that removes files that have not been accessed within a certain time period, keeping things nice and 
-tidy. It is best to set up as a Windows _at job_ or a scheduled task. Be sure to run it as a user with the appropriate 
+tidy. It is best to set up as a Windows "at job" or a scheduled task. Be sure to run it as a user with the appropriate 
 permissions to the location on the file system.
 
 The script can be called as:
@@ -187,10 +188,10 @@ The script can be called as:
     
 
 
-
-NOTE: This only works on Windows.  Also, if running on Windows Server 2008 R2, Vista or Windows 7, last access date is 
+[REGION:note]
+This only works on Windows.  Also, if running on Windows Server 2008 R2, Vista or Windows 7, last access date is 
 disabled by default.  You need to "fsutil behavior set disablelastaccess 0" to reenable last accessed date.
-
+[/REGION]
 
 ### Scheduled Downtime
 

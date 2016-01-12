@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "IOSApplication.h"
@@ -116,14 +116,10 @@ TSharedRef< FGenericWindow > FIOSApplication::MakeWindow()
 	return FIOSWindow::Make();
 }
 
+#if !PLATFORM_TVOS
 void FIOSApplication::OrientationChanged(UIDeviceOrientation orientation)
 {
 	FScopeLock Lock(&CriticalSection);
 	bOrientationChanged = true;
 }
-
-IInputInterface* FIOSApplication::GetInputInterface()
-{
-    // NOTE: This does not increase the reference count, so don't cache the result
-    return InputInterface.Get();
-}
+#endif

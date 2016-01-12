@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2653104
 Availability: Public
 Title:2.4 - 이벤트와 리시버를 통한 파티클 스폰
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -9,6 +9,24 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/EffectsGallery/2_C "%Resources/ContentExamples/EffectsGallery/2_C:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[이펙트 갤러리 홈](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/EffectsGallery/2_E "%Resources/ContentExamples/EffectsGallery/2_E:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

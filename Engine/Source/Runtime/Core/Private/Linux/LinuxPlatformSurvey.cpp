@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -22,7 +22,7 @@ bool FLinuxPlatformSurvey::GetSurveyResults(FHardwareSurveyResults& OutResults, 
 	OutResults.bIsLaptopComputer = FPlatformMisc::IsRunningOnBattery();	// FIXME [RCL] 2015-07-15: incorrect. Laptops don't have to run on battery
 
 	// Synth benchmark
-	ISynthBenchmark::Get().Run(OutResults.SynthBenchmark);
+	ISynthBenchmark::Get().Run(OutResults.SynthBenchmark, true, 5.f);
 
 	OutResults.ErrorCount++;
 	WriteFStringToResults(OutResults.LastSurveyError, TEXT("Survey is incomplete"));

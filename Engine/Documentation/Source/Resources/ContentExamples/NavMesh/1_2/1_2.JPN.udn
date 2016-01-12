@@ -1,12 +1,31 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2719778
 Availability:Public
 Title:1.2 - Nav Link Proxy
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/NavMesh
-Description: NavMesh 事例レベルの概要、事例 1.2:Nav Link Proxy
+Description: NavMesh サンプル レベルの概要、サンプル 1.2:Nav Link Proxy
 Related:Engine/AI/BehaviorTrees/QuickStart
 Related:Gameplay/AI
 Related:Engine/AI/BehaviorTrees/NodeReference
 Related:Engine/Actors/Volumes
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/NavMesh/1_1 "%Resources/ContentExamples/NavMesh/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Navmesh のホーム](Resources/ContentExamples/NavMesh)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/NavMesh/1_3 "%Resources/ContentExamples/NavMesh/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -51,7 +70,7 @@ Related:Engine/Actors/Volumes
 ![](Resources\ContentExamples\NavMesh\NavMesh_banner.png)
 [/REGION]
 
-**NavLinkProxy** アクタは、ポーンがジャンプまたは外壁から落ちることができる場所を指定するために使用します。これにより、アクタは一時的に **NavMesh** を離れてギャップを渡ることができます。開始ポイントと終了ポイントの配置が可能で、パスノードとして取り扱われます。この事例では、ポーンは **NavLinkProxy** の開始ポイントへ移動し、次に終了ポイントに到達するために傾斜に降りて、そこで目的地に向かって **NavMesh** 上でナビゲートを再開します。この **NavLinkProxy** は一方向のみに設定されるので、ポーンが戻るために振り向く場合、NavLinkProxy を再度使用しようせずにランプのまわりをナビゲーションします。
+**NavLinkProxy** アクタは、ポーンがジャンプまたは外壁から落ちることができる場所を指定するために使用します。これにより、アクタは一時的に **NavMesh** を離れてギャップを渡ることができます。開始ポイントと終了ポイントの配置が可能で、パスノードとして取り扱われます。このサンプルでは、ポーンは NavLinkProxy の開始ポイントへ移動し、次に終了ポイントに到達するために傾斜に降りて、そこで目的地に向かって NavMesh 上でナビゲートを再開します。この NavLinkProxy は一方向のみに設定されるので、ポーンが戻るために振り向く場合、NavLinkProxy を再度使用しようせずにランプのまわりをナビゲーションします。
 
 [REGION:lightbox]
 [![](NavMesh_1_2_001.png)(w:225)](NavMesh_1_2_001.png)

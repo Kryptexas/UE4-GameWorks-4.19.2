@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,16 +20,37 @@ struct FLevelGuids
 };
 
 /**
+ * Represents the result of saving a package
+ */
+enum class ESavePackageResult
+{
+	/** Package was saved successfully */
+	Success, 
+	/** Unknown error occured when saving package */
+	Error,
+	/** Canceled by user */
+	Canceled,
+	/** [When cooking] Package was not saved because it contained editor-only data */
+	ContainsEditorOnlyData,
+	/** [When cooking] Package was not saved because it was referenced by editor-only properties */
+	ReferencedOnlyByEditorOnlyData, 
+	/** [When cooking] Package was not saved because it contains assets that were converted into native code */
+	ReplaceCompletely,
+	/** [When cooking] Package was saved, but we should generate a stub so that other converted packages can interface with it*/
+	GenerateStub
+};
+
+/**
  * A package.
  */
 PRAGMA_DISABLE_DEPRECATION_WARNINGS // Required for auto-generated functions referencing PackageFlags
 class COREUOBJECT_API UPackage : public UObject
 {
 	// Have to unwind this macro to support the reference variable, can go back to commented declaration when removing the deprecated variable
-	// DECLARE_CASTED_CLASS_INTRINSIC(UPackage,UObject,0,CoreUObject, CASTCLASS_UPackage)
+	// DECLARE_CASTED_CLASS_INTRINSIC(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage)
 
 #if WITH_HOT_RELOAD_CTORS
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( UPackage, UObject, 0, CoreUObject, CASTCLASS_UPackage, NO_API )
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API )
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UPackage(FVTableHelper& Helper)
 		: Super(Helper)
@@ -37,7 +58,7 @@ class COREUOBJECT_API UPackage : public UObject
 	{
 	};
 #else
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage,UObject,0,CoreUObject, CASTCLASS_UPackage, NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UPackage, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UPackage, NO_API)
 #endif
 
 
@@ -74,6 +95,10 @@ public:
 private:
 	/** Used by the editor to determine if a package has been changed.																							*/
 	bool	bDirty;
+#if WITH_EDITORONLY_DATA
+	/** True if this package is only referenced by editor-only properties */
+	bool bLoadedByEditorPropertiesOnly;
+#endif
 public:
 	/** Whether this package has been fully loaded (aka had all it's exports created) at some point.															*/
 	bool	bHasBeenFullyLoaded;
@@ -94,6 +119,13 @@ private:
 public:
 
 	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all packages have stable net names
+
+#if WITH_EDITORONLY_DATA
+	/** Sets the bLoadedByEditorPropertiesOnly flag */
+	void SetLoadedByEditorPropertiesOnly(bool bIsEditorOnly, bool bRecursive = false);
+	/** returns true when the package is only referenced by editor-only flag */
+	bool IsLoadedByEditorPropertiesOnly() const { return bLoadedByEditorPropertiesOnly; }
+#endif
 
 private:
 	/** New private Package Flags. When deprecated PackageFlags removed, make this a member instead of a reference */
@@ -369,13 +401,6 @@ public:
 		return PackageFlagsPrivate;
 	}
 
-	typedef TFunction<void (const UObject* const, TArray<FGatherableTextData>&)> FLocalizationDataGatheringCallback;
-	static TMap<UField*, FLocalizationDataGatheringCallback>& GetTypeSpecificLocalizationDataGatheringCallbacks()
-	{
-		static TMap<UField*, FLocalizationDataGatheringCallback> TypeSpecificLocalizationDataGatheringCallbacks;
-		return TypeSpecificLocalizationDataGatheringCallbacks;
-	}
-
 	/** Returns true if this package has a thumbnail map */
 	bool HasThumbnailMap() const
 	{
@@ -465,11 +490,35 @@ public:
 	 * @param	TargetPlatform					The platform being saved for
 	 * @param	FinalTimeStamp					If not FDateTime::MinValue(), the timestamp the saved file should be set to. (Intended for cooking only...)
 	 *
-	 * @return	true if the package was saved successfully.
+	 * @return	ESavePackageResult enum value with the result of saving a package.
 	 */
-	static bool SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
+	static ESavePackageResult Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 		FOutputDevice* Error=GError, FLinkerLoad* Conform=NULL, bool bForceByteSwapping=false, bool bWarnOfLongFilename=true, 
 		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true );
+
+	/**
+	* Save one specific object (along with any objects it references contained within the same Outer) into an Unreal package.
+	*
+	* @param	InOuter							the outer to use for the new package
+	* @param	Base							the object that should be saved into the package
+	* @param	TopLevelFlags					For all objects which are not referenced [either directly, or indirectly] through Base, only objects
+	*											that contain any of these flags will be saved.  If 0 is specified, only objects which are referenced
+	*											by Base will be saved into the package.
+	* @param	Filename						the name to use for the new package file
+	* @param	Error							error output
+	* @param	Conform							if non-NULL, all index tables for this will be sorted to match the order of the corresponding index table
+	*											in the conform package
+	* @param	bForceByteSwapping				whether we should forcefully byte swap before writing to disk
+	* @param	bWarnOfLongFilename				[opt] If true (the default), warn when saving to a long filename.
+	* @param	SaveFlags						Flags to control saving
+	* @param	TargetPlatform					The platform being saved for
+	* @param	FinalTimeStamp					If not FDateTime::MinValue(), the timestamp the saved file should be set to. (Intended for cooking only...)
+	*
+	* @return	true if the package was saved successfully.
+	*/
+	static bool SavePackage(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+		FOutputDevice* Error = GError, FLinkerLoad* Conform = NULL, bool bForceByteSwapping = false, bool bWarnOfLongFilename = true,
+		uint32 SaveFlags = SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true);
 
 	/** Wait for any SAVE_Async file writes to complete **/
 	static void WaitForAsyncFileWrites();
@@ -528,7 +577,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
  */
 class COREUOBJECT_API UMetaData : public UObject
 {
-	DECLARE_CLASS_INTRINSIC(UMetaData, UObject, 0, CoreUObject)
+	DECLARE_CLASS_INTRINSIC(UMetaData, UObject, 0, TEXT("/Script/CoreUObject"))
 
 public:
 	// Variables.
@@ -636,6 +685,9 @@ public:
 #if HACK_HEADER_GENERATOR
 	// Returns the remapped key name, or NAME_None was not remapped.
 	static FName GetRemappedKeyName(FName OldKey);
+
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FMetadataArchiveProxy;
 #endif
 
 private:

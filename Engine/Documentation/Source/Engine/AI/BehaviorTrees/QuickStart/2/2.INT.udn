@@ -30,23 +30,23 @@ The NavMesh in Unreal has a number of functions that work well with Behavior Tre
 
 ## Steps
 
-1. [REGION:raw]**Modes Panel** %arrow% **Create** %arrow% **Volumes**.[/REGION]
+1. [REGION:raw]**Modes** panel %arrow% **Volumes** %arrow% **Volumes**.[/REGION]
 
 1. Click and drag a **Nav Mesh Bounds Volume** into the map.
 
 	![](createNavVol.png)
 
-1. Translate and scale the volume so it encapsulates the areas you want your characters to be able to navigate.
+1. **Translate** and **Scale** the volume so it encapsulates the areas you want your characters to be able to navigate.
 
 	* You can use more than one Volume if you like, or one large one that encapsulates the entire level.
 
-1. While working in the Viewport, press the "**P**" key to see if your NavMesh is building.
+1. While working in the Viewport, press the **P** key to see if your NavMesh is building.
 
 	![](NMVis.png)
 
 	If you see a green mesh overlay on your floors, it is building correctly. When the mesh turns red, it means it is recalculating a section because you either moved the volume or the mesh inside of it.
 
-	You can press the "**P**" key at any time to show or hide the NavMesh.
+	You can press the **P** key at any time to show or hide the NavMesh.
 
 [/EXCERPT:AICreateNav]
 %Steps%

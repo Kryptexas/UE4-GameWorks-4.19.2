@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,9 +20,8 @@ public:
 	 * @param InViewportWidget The Widget displaying this viewport (needed to capture mouse)
 	 * @param InIsPopup Used to initialize a viewport for showing browser popup menus instead of the main window.
 	 */
-	FWebBrowserViewport(TSharedPtr<IWebBrowserWindow> InWebBrowserWindow, TSharedPtr<SWidget> InViewportWidget, bool InIsPopup = false)
+	FWebBrowserViewport(TSharedPtr<IWebBrowserWindow> InWebBrowserWindow, bool InIsPopup = false)
 		: WebBrowserWindow(InWebBrowserWindow)
-		, ViewportWidget(InViewportWidget)
 		, bIsPopup(InIsPopup)
 	{ }
 
@@ -56,8 +55,6 @@ public:
 private:
 	/** The web browser this viewport will display */
 	TSharedPtr<IWebBrowserWindow>	WebBrowserWindow;
-	/** The viewport widget using this interface */
-	TWeakPtr<SWidget>				ViewportWidget;
 	/** Whether this viewport is showing the browser window or a popup menu widget */
 	bool const						bIsPopup;
 };

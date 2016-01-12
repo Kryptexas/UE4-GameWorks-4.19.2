@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,7 @@ public:
 
 	void RefreshViewport();
 	
-	void SetPreviewEffect(FNiagaraEffectInstance* InEffect);
+	void SetPreviewEffect(TSharedPtr<FNiagaraEffectInstance> InEffect);
 	
 	void ToggleRealtime();
 	

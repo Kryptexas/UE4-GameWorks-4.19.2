@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EpicSurveyPrivatePCH.h"
 #include "EpicSurvey.h"
@@ -105,7 +105,7 @@ TSharedPtr< FSlateDynamicImageBrush > FEpicSurvey::LoadRawDataAsBrush( FName Res
 
 void FEpicSurvey::Initialize()
 {
-	//IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get("Mcp");
+	//IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(MCP_SUBSYSTEM);
 	//if (OnlineSub)
 	//{
 	//	TitleCloud = OnlineSub->GetTitleFileInterface();

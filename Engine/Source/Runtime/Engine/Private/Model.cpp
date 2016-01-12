@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Model.cpp: Unreal model functions
@@ -438,7 +438,7 @@ void UModel::PostDuplicate(bool bDuplicateForPIE)
 #if WITH_EDITOR
 	if( Polys )
 	{
-		Polys = CastChecked<UPolys>(StaticDuplicateObject( Polys, this, NULL ));
+		Polys = CastChecked<UPolys>(StaticDuplicateObject( Polys, this ));
 	}
 #endif // WITH_EDITOR
 }

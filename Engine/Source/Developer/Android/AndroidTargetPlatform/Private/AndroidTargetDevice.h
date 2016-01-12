@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidTargetDevice.h: Declares the AndroidTargetDevice class.
@@ -108,7 +108,7 @@ public:
 
 public:
 
-	// Begin ITargetDevice interface
+	//~ Begin ITargetDevice Interface
 	virtual bool Connect() override
 	{
 		return true;
@@ -173,7 +173,7 @@ public:
 	virtual bool GetUserCredentials(FString& OutUserName, FString& OutUserPassword) override;
 	virtual void ExecuteConsoleCommand(const FString& ExecCommand) const override;
 	virtual ITargetDeviceOutputPtr CreateDeviceOutputRouter(FOutputDevice* Output) const override;
-	// End ITargetDevice interface
+	//~ End ITargetDevice Interface
 
 	/** Full filename for ADB executable. */
 	static bool GetAdbFullFilename(FString& OutFilename);

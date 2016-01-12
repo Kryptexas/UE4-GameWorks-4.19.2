@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,7 +6,12 @@ public class Sequencer : ModuleRules
 {
 	public Sequencer(TargetInfo Target)
 	{
-		PrivateIncludePaths.Add("Editor/Sequencer/Private");
+		PrivateIncludePaths.AddRange(
+            new string[] {
+                "Editor/Sequencer/Private",
+                "Editor/Sequencer/Private/DisplayNodes",
+            }
+        );
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -22,9 +27,11 @@ public class Sequencer : ModuleRules
 				"MovieSceneTracks", 
 				"MovieSceneTools", 
 				"MovieSceneCapture", 
+                "MovieSceneCaptureDialog", 
 				"EditorWidgets", 
 				"SequencerWidgets",
 				"BlueprintGraph",
+				"LevelSequence"
 			}
 		);
 
@@ -32,6 +39,7 @@ public class Sequencer : ModuleRules
 			new string[] {
 				"PropertyEditor",
 				"Kismet",
+				"SceneOutliner"
 			}
 		);
 
@@ -39,7 +47,8 @@ public class Sequencer : ModuleRules
 			new string[] {
 				"PropertyEditor",
 				"LevelEditor",
-				"WorkspaceMenuStructure",
+				"SceneOutliner",
+				"WorkspaceMenuStructure"
 			}
 		);
 

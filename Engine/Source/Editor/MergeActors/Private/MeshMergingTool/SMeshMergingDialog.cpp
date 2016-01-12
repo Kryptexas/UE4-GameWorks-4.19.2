@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MergeActorsPrivatePCH.h"
 #include "SMeshMergingDialog.h"
@@ -32,7 +32,8 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs, FMeshMergingTool* I
 	}
 
 	Tool->MergingSettings.TargetLightMapResolution = FMath::Clamp(Tool->MergingSettings.TargetLightMapResolution, MinTexResolution, MaxTexResolution);
-	Tool->MergingSettings.MergedMaterialAtlasResolution = FMath::Clamp(Tool->MergingSettings.MergedMaterialAtlasResolution, MinTexResolution, MaxTexResolution);
+	Tool->MergingSettings.MaterialSettings.TextureSize.X = FMath::Clamp(Tool->MergingSettings.MaterialSettings.TextureSize.X, MinTexResolution, MaxTexResolution);
+	Tool->MergingSettings.MaterialSettings.TextureSize.Y = FMath::Clamp(Tool->MergingSettings.MaterialSettings.TextureSize.Y, MinTexResolution, MaxTexResolution);
 		
 	// Setup available UV channels for an atlased lightmap
 	for (int32 Index = 0; Index < MAX_MESH_TEXTURE_COORDS; Index++)
@@ -358,7 +359,7 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs, FMeshMergingTool* I
 						SNew(STextComboBox)
 						.IsEnabled(this, &SMeshMergingDialog::IsMaterialMergingEnabled)
 						.OptionsSource(&MergedMaterialResolutionOptions)
-						.InitiallySelectedItem(MergedMaterialResolutionOptions[FMath::FloorLog2(Tool->MergingSettings.MergedMaterialAtlasResolution)])
+						.InitiallySelectedItem(MergedMaterialResolutionOptions[FMath::FloorLog2(Tool->MergingSettings.MaterialSettings.TextureSize.X)])
 						.OnSelectionChanged(this, &SMeshMergingDialog::SetMergedMaterialAtlasResolution)
 						.Font(FEditorStyle::GetFontStyle("StandardDialog.SmallFont"))
 					]
@@ -416,12 +417,12 @@ void SMeshMergingDialog::SetExportSpecificLODIndex(TSharedPtr<FString> NewSelect
 
 ECheckBoxState SMeshMergingDialog::GetImportVertexColors() const
 {
-	return (Tool->MergingSettings.bImportVertexColors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	return (Tool->MergingSettings.bBakeVertexData ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
 void SMeshMergingDialog::SetImportVertexColors(ECheckBoxState NewValue)
 {
-	Tool->MergingSettings.bImportVertexColors = (ECheckBoxState::Checked == NewValue);
+	Tool->MergingSettings.bBakeVertexData = (ECheckBoxState::Checked == NewValue);
 }
 
 ECheckBoxState SMeshMergingDialog::GetPivotPointAtZero() const
@@ -471,47 +472,48 @@ void SMeshMergingDialog::SetMergeMaterials(ECheckBoxState NewValue)
 
 ECheckBoxState SMeshMergingDialog::GetExportNormalMap() const
 {
-	return (Tool->MergingSettings.bExportNormalMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	return (Tool->MergingSettings.MaterialSettings.bNormalMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
 void SMeshMergingDialog::SetExportNormalMap(ECheckBoxState NewValue)
 {
-	Tool->MergingSettings.bExportNormalMap = (ECheckBoxState::Checked == NewValue);
+	Tool->MergingSettings.MaterialSettings.bNormalMap = (ECheckBoxState::Checked == NewValue);
 }
 
 ECheckBoxState SMeshMergingDialog::GetExportMetallicMap() const
 {
-	return (Tool->MergingSettings.bExportMetallicMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	return (Tool->MergingSettings.MaterialSettings.bMetallicMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
 void SMeshMergingDialog::SetExportMetallicMap(ECheckBoxState NewValue)
 {
-	Tool->MergingSettings.bExportMetallicMap = (ECheckBoxState::Checked == NewValue);
+	Tool->MergingSettings.MaterialSettings.bMetallicMap = (ECheckBoxState::Checked == NewValue);
 }
 
 ECheckBoxState SMeshMergingDialog::GetExportRoughnessMap() const
 {
-	return (Tool->MergingSettings.bExportRoughnessMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	return (Tool->MergingSettings.MaterialSettings.bRoughnessMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
 void SMeshMergingDialog::SetExportRoughnessMap(ECheckBoxState NewValue)
 {
-	Tool->MergingSettings.bExportRoughnessMap = (ECheckBoxState::Checked == NewValue);
+	Tool->MergingSettings.MaterialSettings.bRoughnessMap = (ECheckBoxState::Checked == NewValue);
 }
 
 ECheckBoxState SMeshMergingDialog::GetExportSpecularMap() const
 {
-	return (Tool->MergingSettings.bExportSpecularMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	return (Tool->MergingSettings.MaterialSettings.bSpecularMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }
 
 void SMeshMergingDialog::SetExportSpecularMap(ECheckBoxState NewValue)
 {
-	Tool->MergingSettings.bExportSpecularMap = (ECheckBoxState::Checked == NewValue);
+	Tool->MergingSettings.MaterialSettings.bSpecularMap = (ECheckBoxState::Checked == NewValue);
 }
 
 void SMeshMergingDialog::SetMergedMaterialAtlasResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
-	TTypeFromString<int32>::FromString(Tool->MergingSettings.MergedMaterialAtlasResolution, **NewSelection);
+	TTypeFromString<int32>::FromString(Tool->MergingSettings.MaterialSettings.TextureSize.X, **NewSelection);
+	TTypeFromString<int32>::FromString(Tool->MergingSettings.MaterialSettings.TextureSize.Y, **NewSelection);
 }
 
 

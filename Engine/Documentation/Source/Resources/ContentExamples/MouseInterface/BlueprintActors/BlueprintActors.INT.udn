@@ -2,6 +2,7 @@ Availability: Public
 Title:Blueprint Actor Setup
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
 Description:An overview of the Blueprint Actor setup used in the Mouse Interface Demolet
+Version: 4.9
 
 
 [TOC(start:2 end:2)]
@@ -12,14 +13,14 @@ Description:An overview of the Blueprint Actor setup used in the Mouse Interface
 The Blueprint Actors (MI_Sphere) arrayed within the scene can be moved during gameplay by clicking and dragging with the mouse. 
 
 [REGION:imagetable]
-|![](MiSpheres.png)(h:307)|![](OnMouseOver.png)(h:307)|![](MovingSpheres.png)(h:307)|
+|![](MiSpheres.png)(h:235)|![](OnMouseOver.png)(h:235)|![](MovingSpheres.png)(h:235)|
 |:---:|:---:|:---: |
 |In Editor|During Gameplay: Mouse Over|During Gameplay: Dragging|
 [/REGION]
 
 ## Components
 
-The Components List for the MI_Sphere Blueprint is exceedingly simple; really, it is just a single Static Mesh sphere.
+The Components List for the **MI_Sphere** Blueprint is exceedingly simple; really, it is just a single Static Mesh sphere.
 
 ![](MI_Sphere_Components.png)(w:700)
 

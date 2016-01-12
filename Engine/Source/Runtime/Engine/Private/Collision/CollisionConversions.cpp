@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -10,6 +10,29 @@
 #include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+
+// Used to place overlaps into a TMap when deduplicating them
+struct FOverlapKey
+{
+	UPrimitiveComponent* Component;
+	int32 ComponentIndex;
+
+	FOverlapKey(UPrimitiveComponent* InComponent, int32 InComponentIndex)
+		: Component(InComponent)
+		, ComponentIndex(InComponentIndex)
+	{
+	}
+
+	friend bool operator==(const FOverlapKey& X, const FOverlapKey& Y)
+	{
+		return (X.Component == Y.Component) && (X.ComponentIndex == Y.ComponentIndex);
+	}
+};
+
+uint32 GetTypeHash(const FOverlapKey& Key)
+{
+	return GetTypeHash(Key.Component) ^ GetTypeHash(Key.ComponentIndex);
+}
 
 
 #define DRAW_OVERLAPPING_TRIS (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -404,7 +427,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 	OutResult.FaceIndex = INDEX_NONE;
 }
 
-void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat)
+EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitResult& OutResult, float CheckLength, const PxFilterData& QueryFilter, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry* const Geom, const PxTransform& QueryTM, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ConvertQueryImpactHit);
 
@@ -413,7 +436,7 @@ void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitR
 	if (bInitialOverlap && Geom != nullptr)
 	{
 		ConvertOverlappedShapeToImpactHit(World, PHit, StartLoc, EndLoc, OutResult, *Geom, QueryTM, QueryFilter, bReturnPhysMat);
-		return;
+		return EConvertQueryResult::Valid;
 	}
 
 	// See if this is a 'blocking' hit
@@ -433,10 +456,24 @@ void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitR
 	OutResult.Location = SafeLocationToFitShape;
 
 	const bool bUsePxPoint = ((PHit.flags & PxHitFlag::ePOSITION) && !bInitialOverlap);
+	if (bUsePxPoint && !PHit.position.isFinite())
+	{
+		OutResult.Reset();
+		logOrEnsureNanError(TEXT("ConvertQueryImpactHit() received NaN/Inf for position: %.2f %.2f %.2f"), PHit.position.x, PHit.position.y, PHit.position.z);
+		return EConvertQueryResult::Invalid;
+	}
+
 	OutResult.ImpactPoint = bUsePxPoint ? P2UVector(PHit.position) : StartLoc;
 	
 	// Caution: we may still have an initial overlap, but with null Geom. This is the case for RayCast results.
 	const bool bUsePxNormal = ((PHit.flags & PxHitFlag::eNORMAL) && !bInitialOverlap);
+	if (bUsePxNormal && !PHit.normal.isFinite())
+	{
+		OutResult.Reset();
+		logOrEnsureNanError(TEXT("ConvertQueryImpactHit() received NaN/Inf for normal: %.2f %.2f %.2f"), PHit.normal.x, PHit.normal.y, PHit.normal.z);
+		return EConvertQueryResult::Invalid;
+	}
+
 	FVector Normal = bUsePxNormal ? P2UVector(PHit.normal).GetSafeNormal() : -TraceStartToEnd.GetSafeNormal();
 	OutResult.Normal = Normal;
 	OutResult.ImpactNormal = Normal;
@@ -486,11 +523,15 @@ void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitR
 			OutResult.FaceIndex	= PTriMeshGeom.triangleMesh->getTrianglesRemap()[PHit.faceIndex];
 		}
 	}
+
+	return EConvertQueryResult::Valid;
 }
 
-void ConvertRaycastResults(const UWorld* World, int32 NumHits, PxRaycastHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, bool bReturnFaceIndex, bool bReturnPhysMat)
+EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, PxRaycastHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
 	OutHits.Reserve(OutHits.Num() + NumHits);
+	EConvertQueryResult ConvertResult = EConvertQueryResult::Valid;
+	bool bHadBlockingHit = false;
 
 	PxTransform PStartTM(U2PVector(StartLoc));
 	for(int32 i=0; i<NumHits; i++)
@@ -498,16 +539,28 @@ void ConvertRaycastResults(const UWorld* World, int32 NumHits, PxRaycastHit* Hit
 		FHitResult& NewResult = OutHits[OutHits.AddDefaulted()];
 		const PxRaycastHit& PHit = Hits[i];
 
-		ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, NULL, PStartTM, bReturnFaceIndex, bReturnPhysMat);
+		if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, NULL, PStartTM, bReturnFaceIndex, bReturnPhysMat) == EConvertQueryResult::Valid)
+		{
+			bHadBlockingHit |= NewResult.bBlockingHit;
+		}
+		else
+		{
+			// Reject invalid result (this should be rare). Remove from the results.
+			OutHits.Pop(/*bAllowShrinking=*/ false);
+			ConvertResult = EConvertQueryResult::Invalid;
+		}
 	}
 
 	// Sort results from first to last hit
 	OutHits.Sort( FCompareFHitResultTime() );
+	OutHasValidBlockingHit = bHadBlockingHit;
+	return ConvertResult;
 }
 
-bool AddSweepResults(const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat)
+EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat)
 {
 	OutHits.Reserve(OutHits.Num() + NumHits);
+	EConvertQueryResult ConvertResult = EConvertQueryResult::Valid;
 	bool bHadBlockingHit = false;
 
 	for(int32 i=0; i<NumHits; i++)
@@ -517,14 +570,24 @@ bool AddSweepResults(const UWorld* World, int32 NumHits, const PxSweepHit* Hits,
 		if(PHit.distance <= MaxDistance)
 		{
 			FHitResult& NewResult = OutHits[OutHits.AddDefaulted()];
-			ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, &Geom, QueryTM, false, bReturnPhysMat);
-			bHadBlockingHit |= NewResult.bBlockingHit;
+			if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, &Geom, QueryTM, false, bReturnPhysMat) == EConvertQueryResult::Valid)
+			{
+				bHadBlockingHit |= NewResult.bBlockingHit;
+			}
+			else
+			{
+				// Reject invalid result (this should be rare). Remove from the results.
+				OutHits.Pop(/*bAllowShrinking=*/ false);
+				ConvertResult = EConvertQueryResult::Invalid;
+			}
+			
 		}
 	}
 
 	// Sort results from first to last hit
 	OutHits.Sort( FCompareFHitResultTime() );
-	return bHadBlockingHit;
+	OutHasValidBlockingHit = bHadBlockingHit;
+	return ConvertResult;
 }
 
 /* Function to find the best normal from the list of triangles that are overlapping our geom. */
@@ -989,6 +1052,15 @@ bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
 	return bBlock;
 }
 
+/** Min number of overlaps required before using a TMap for deduplication */
+int32 GNumOverlapsRequiredForTMap = 2;
+
+static FAutoConsoleVariableRef GTestOverlapSpeed(
+	TEXT("Engine.MinNumOverlapsToUseTMap"),
+	GNumOverlapsRequiredForTMap,
+	TEXT("Min number of overlaps required before using a TMap for deduplication")
+	);
+
 bool ConvertOverlapResults(int32 NumOverlaps, PxOverlapHit* POverlapResults, const PxFilterData& QueryFilter, TArray<FOverlapResult>& OutOverlaps)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CollisionConvertOverlap);
@@ -996,23 +1068,65 @@ bool ConvertOverlapResults(int32 NumOverlaps, PxOverlapHit* POverlapResults, con
 	OutOverlaps.Reserve(OutOverlaps.Num() + NumOverlaps);
 	bool bBlockingFound = false;
 
-	for(int32 i=0; i<NumOverlaps; i++)
+	if (OutOverlaps.Max() >= GNumOverlapsRequiredForTMap)
 	{
-		FOverlapResult NewOverlap;		
-		
-		ConvertQueryOverlap( POverlapResults[i].shape, POverlapResults[i].actor, NewOverlap, QueryFilter);
+		// Map from an overlap to the position in the result array (the index has one added to it so 0 can be a sentinel)
+		TMap<FOverlapKey, int32> OverlapMap;
+		OverlapMap.Reserve(OutOverlaps.Max());
 
-
-		if(NewOverlap.bBlockingHit)
+		// Fill in the map with existing hits
+		for (int32 ExistingIndex = 0; ExistingIndex < OutOverlaps.Num(); ++ExistingIndex)
 		{
-			bBlockingFound = true;
+			const FOverlapResult& ExistingOverlap = OutOverlaps[ExistingIndex];
+			OverlapMap.Add(FOverlapKey(ExistingOverlap.Component.Get(), ExistingOverlap.ItemIndex), ExistingIndex + 1);
 		}
 
-		AddUniqueOverlap(OutOverlaps, NewOverlap);
+		for (int32 PResultIndex = 0; PResultIndex < NumOverlaps; ++PResultIndex)
+		{
+			FOverlapResult NewOverlap;
+			ConvertQueryOverlap(POverlapResults[PResultIndex].shape, POverlapResults[PResultIndex].actor, NewOverlap, QueryFilter);
+
+			if (NewOverlap.bBlockingHit)
+			{
+				bBlockingFound = true;
+			}
+
+			// Look for it in the map, newly added elements will start with 0, so we know we need to add it to the results array then (the index is stored as +1)
+			int32& DestinationIndex = OverlapMap.FindOrAdd(FOverlapKey(NewOverlap.Component.Get(), NewOverlap.ItemIndex));
+			if (DestinationIndex == 0)
+			{
+				DestinationIndex = OutOverlaps.Add(NewOverlap) + 1;
+			}
+			else
+			{
+				FOverlapResult& ExistingOverlap = OutOverlaps[DestinationIndex - 1];
+
+				// If we had a non-blocking overlap with this component, but now we have a blocking one, use that one instead!
+				if (!ExistingOverlap.bBlockingHit && NewOverlap.bBlockingHit)
+				{
+					ExistingOverlap = NewOverlap;
+				}
+			}
+		}
+	}
+	else
+	{
+		// N^2 approach, no maps
+		for (int32 i = 0; i < NumOverlaps; i++)
+		{
+			FOverlapResult NewOverlap;
+			ConvertQueryOverlap(POverlapResults[i].shape, POverlapResults[i].actor, NewOverlap, QueryFilter);
+
+			if (NewOverlap.bBlockingHit)
+			{
+				bBlockingFound = true;
+			}
+
+			AddUniqueOverlap(OutOverlaps, NewOverlap);
+		}
 	}
 
 	return bBlockingFound;
 }
-
 
 #endif // WITH_PHYSX

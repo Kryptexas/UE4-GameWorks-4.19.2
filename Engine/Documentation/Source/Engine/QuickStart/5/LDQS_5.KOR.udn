@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2610045
+﻿INTSourceChangelist:2634286
 Availability: Public
 Title:5 - 배치된 액터 편집
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:이번 단계에서는 배치한 액터의 프로퍼티를 편집하여 보다 독특한 모습을 냅니다.
 SkillLevel:Beginner
-Version:4.8
+Version:4.9
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/LightingAndShadows/LightTypes
 Related:Engine/Content/FBX/ImportOptions

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldGlobalIllumination.usf
@@ -211,7 +211,7 @@ void VPLPlacementCS(
 
 				float3 DiffuseColor = .5f;
 				float CellExtent = VPLPlacementCameraRadius * InvPlacementGridSize.x;
-				float CellRadius = sqrt(2) * CellExtent;
+				float CellRadius = sqrt(2.0) * CellExtent;
 
 				float3 Flux = DiffuseColor * LightColor.rgb * max(dot(IntersectionNormal, -LightDirection), 0) * PI * CellRadius * CellRadius;
 
@@ -271,7 +271,7 @@ void CullVPLsForViewCS(
 	{
 		uint SourceIndex = VPLIndex * VPL_DATA_STRIDE;
 		float4 BoundingSphere = VPLData[SourceIndex + 0];
-		float DistanceToViewSq = dot(View.ViewOrigin.xyz - BoundingSphere.xyz, View.ViewOrigin.xyz - BoundingSphere.xyz);
+		float DistanceToViewSq = dot(View.WorldCameraOrigin - BoundingSphere.xyz, View.WorldCameraOrigin - BoundingSphere.xyz);
 
 		if (DistanceToViewSq < Square(AOMaxViewDistance + BoundingSphere.w)
 			&& ViewFrustumIntersectSphere(BoundingSphere.xyz, BoundingSphere.w + AOObjectMaxDistance))
@@ -511,7 +511,7 @@ float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 
 uint GetViewBasedSurfelLOD(float3 ObjectPosition)
 {
-	return length(ObjectPosition - View.ViewOrigin.xyz) > .4f * AOMaxViewDistance ? 1 : 0;
+	return length(ObjectPosition - View.WorldCameraOrigin) > .4f * AOMaxViewDistance ? 1 : 0;
 	//return 0;
 }
 

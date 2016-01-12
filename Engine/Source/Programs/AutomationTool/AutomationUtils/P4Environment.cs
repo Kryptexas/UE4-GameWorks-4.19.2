@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -58,7 +58,6 @@ namespace AutomationTool
 		public string BuildRootEscaped { get; protected set; }
 		public string LabelToSync { get; protected set; }
 		public string LabelPrefix { get; protected set; }
-		public string BranchName { get; protected set; }
 
 
 		internal P4Environment(P4Connection Connection, CommandEnvironment CmdEnv)
@@ -109,22 +108,6 @@ namespace AutomationTool
 					// We may not always need the changelist number if we're not a build machine.
 					// In local runs, changelist initialization can be really slow!
 					VerifyChangelistStringAndSetChangelistNumber();
-				}
-
-				// Setup branch name
-				string DepotSuffix = "//depot/";
-				if (BuildRootP4.StartsWith(DepotSuffix))
-				{
-					BranchName = BuildRootP4.Substring(DepotSuffix.Length);
-				}
-				else
-				{
-					throw new AutomationException("Needs update to work with a stream");
-				}
-
-				if (String.IsNullOrWhiteSpace(BranchName))
-				{
-					throw new AutomationException("BUILD FAILED no branch name.");
 				}
 			}
 

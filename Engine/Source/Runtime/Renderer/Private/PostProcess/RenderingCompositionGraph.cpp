@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingCompositionGraph.cpp: Scene pass order and dependency system.
@@ -169,21 +169,23 @@ void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, cons
 
 		bool bNewOrder = CVarCompositionGraphOrder.GetValueOnRenderThread() != 0;
 
+		Graph.RecursivelyGatherDependencies(Root);
+
 		if(bNewOrder)
 		{
+			// process in the order the nodes have been created (for more control), unless the dependencies require it differently
 			for (FRenderingCompositePass* Node : Graph.Nodes)
 			{
-				Graph.RecursivelyGatherDependencies(Node);
-			}
-
-			for (FRenderingCompositePass* Node : Graph.Nodes)
-			{
-				Graph.RecursivelyProcess(Node, *this);
+				// only if this is true the node is actually needed - no need to compute it when it's not needed
+				if(Node->WasComputeOutputDescCalled())
+				{
+					Graph.RecursivelyProcess(Node, *this);
+				}
 			}
 		}
 		else
 		{
-			Graph.RecursivelyGatherDependencies(Root);
+			// process in the order of the dependencies, starting from the root (without processing unreferenced nodes)
 			Graph.RecursivelyProcess(Root, *this);
 		}
 
@@ -272,7 +274,63 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(FRenderingComposi
 	}
 }
 
-void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const
+template<typename TColor> struct TAsyncBufferWrite;
+
+struct FAsyncBufferWriteQueue
+{
+	template<typename T>
+	static TFuture<void> Dispatch(TAsyncBufferWrite<T>&& In)
+	{
+		NumInProgressWrites.Increment();
+
+		while (NumInProgressWrites.GetValue() >= MaxAsyncWrites)
+		{
+			// Yield until we can write another
+			FPlatformProcess::Sleep(0.f);
+		}
+
+		return Async<void>(EAsyncExecution::ThreadPool, MoveTemp(In));
+	}
+	
+	static FThreadSafeCounter NumInProgressWrites;
+	static const int32 MaxAsyncWrites = 6;
+};
+FThreadSafeCounter FAsyncBufferWriteQueue::NumInProgressWrites;
+
+/** Callable type used to save a color buffer on an async task without allocating/copying into a new one */
+template<typename TColor>
+struct TAsyncBufferWrite
+{
+	TAsyncBufferWrite(FString InFilename, FIntPoint InDestSize, TArray<TColor> InBitmap) : Filename(MoveTemp(InFilename)), DestSize(InDestSize), Bitmap(MoveTemp(InBitmap)) {}
+
+	TAsyncBufferWrite(TAsyncBufferWrite&& In) : Filename(MoveTemp(In.Filename)), DestSize(In.DestSize), Bitmap(MoveTemp(In.Bitmap)) {}
+	TAsyncBufferWrite& operator=(TAsyncBufferWrite&& In) { Filename = MoveTemp(In.Filename); DestSize = In.DestSize; Bitmap = MoveTemp(In.Bitmap); return *this; }
+
+	/** Call operator that saves the color buffer data */
+	void operator()()
+	{
+		FString ResultPath;
+		GetHighResScreenshotConfig().SaveImage(Filename, Bitmap, DestSize, &ResultPath);
+		UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *ResultPath);
+
+		FAsyncBufferWriteQueue::NumInProgressWrites.Decrement();
+	}
+
+	/** Copy semantics are only defined to appease TFunction, whose virtual CloneByCopy function is always instantiated, even if the TFunction itself is never copied */
+	TAsyncBufferWrite(const TAsyncBufferWrite& In) : Filename(In.Filename), DestSize(In.DestSize), Bitmap(In.Bitmap) { ensureMsgf(false, TEXT("Type should not be copied")); }
+	TAsyncBufferWrite& operator=(const TAsyncBufferWrite& In) { Filename = In.Filename; DestSize = In.DestSize; Bitmap = In.Bitmap; ensureMsgf(false, TEXT("Type should not be copied")); return *this; }
+
+private:
+
+	/** The filename to save to */
+	FString Filename;
+	/** The size of the bitmap */
+	FIntPoint DestSize;
+	/** The bitmap data itself */
+	TArray<TColor> Bitmap;
+};
+
+TFuture<void> FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const
 {
 	FSceneRenderTargetItem& RenderTargetItem = Output->PooledRenderTarget->GetRenderTargetItem();
 	FHighResScreenshotConfig& HighResScreenshotConfig = GetHighResScreenshotConfig();
@@ -280,35 +338,32 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	check(Texture);
 	check(Texture->GetTexture2D());
 
-	FIntRect SourceRect;
+	FIntRect SourceRect = Context.View.ViewRect;
+
 	int32 MSAAXSamples = Texture->GetNumSamples();
-	if (GIsHighResScreenshot)
+
+	if (GIsHighResScreenshot && HighResScreenshotConfig.CaptureRegion.Area())
 	{
 		SourceRect = HighResScreenshotConfig.CaptureRegion;
-		if (SourceRect.Area() == 0)
-		{
-			SourceRect = Context.View.ViewRect;
-		}
-		else
-		{
-			SourceRect.Min.X *= MSAAXSamples;
-			SourceRect.Max.X *= MSAAXSamples;
-		}
 	}
+
+	SourceRect.Min.X *= MSAAXSamples;
+	SourceRect.Max.X *= MSAAXSamples;
 
 	FIntPoint DestSize(SourceRect.Width(), SourceRect.Height());
 
 	EPixelFormat PixelFormat = Texture->GetFormat();
-	FString ResultPath;
+	
 	switch (PixelFormat)
 	{
 		case PF_FloatRGBA:
 		{
 			TArray<FFloat16Color> Bitmap;
 			Context.RHICmdList.ReadSurfaceFloatData(Texture, SourceRect, Bitmap, (ECubeFace)0, 0, 0);
-			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
+
+			return FAsyncBufferWriteQueue::Dispatch(TAsyncBufferWrite<FFloat16Color>(Filename, DestSize, MoveTemp(Bitmap)));
 		}
-		break;
+
 		case PF_R8G8B8A8:
 		case PF_B8G8R8A8:
 		{
@@ -321,12 +376,12 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 			{
 				Pixel->A = 255;
 			}
-			HighResScreenshotConfig.SaveImage(Filename, Bitmap, DestSize, &ResultPath);
+
+			return FAsyncBufferWriteQueue::Dispatch(TAsyncBufferWrite<FColor>(Filename, DestSize, MoveTemp(Bitmap)));
 		}
-		break;
 	}
 
-	UE_LOG(LogConsoleResponse, Display, TEXT("Content was saved to \"%s\""), *ResultPath);
+	return TFuture<void>();
 }
 
 void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOutputRef& InOutputRef, FRenderingCompositePassContext& Context) const
@@ -691,19 +746,19 @@ void FPostProcessPassParameters::Bind(const FShaderParameterMap& ParameterMap)
 	}
 }
 
-void FPostProcessPassParameters::SetPS(const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture, FSamplerStateRHIParamRef* FilterOverrideArray)
+void FPostProcessPassParameters::SetPS(const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
+	Set(ShaderRHI, Context, Filter, FallbackColor, FilterOverrideArray);
 }
 
-void FPostProcessPassParameters::SetCS(const FComputeShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture, FSamplerStateRHIParamRef* FilterOverrideArray)
+void FPostProcessPassParameters::SetCS(const FComputeShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
+	Set(ShaderRHI, Context, Filter, FallbackColor, FilterOverrideArray);
 }
 
-void FPostProcessPassParameters::SetVS(const FVertexShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture, FSamplerStateRHIParamRef* FilterOverrideArray)
+void FPostProcessPassParameters::SetVS(const FVertexShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, EFallbackColor FallbackColor, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
+	Set(ShaderRHI, Context, Filter, FallbackColor, FilterOverrideArray);
 }
 
 template< typename ShaderRHIParamRef >
@@ -711,7 +766,7 @@ void FPostProcessPassParameters::Set(
 	const ShaderRHIParamRef& ShaderRHI,
 	const FRenderingCompositePassContext& Context,
 	FSamplerStateRHIParamRef Filter,
-	bool bWhiteIfNoTexture,
+	EFallbackColor FallbackColor,
 	FSamplerStateRHIParamRef* FilterOverrideArray)
 {
 	// assuming all outputs have the same size
@@ -780,6 +835,17 @@ void FPostProcessPassParameters::Set(
 									((float)ContextViewportRect.Max.X/SceneRTSize.X), 
 									((float)ContextViewportRect.Max.Y/SceneRTSize.Y) );
 
+	IPooledRenderTarget* FallbackTexture = 0;
+	
+	switch(FallbackColor)
+	{
+		case eFC_0000: FallbackTexture = GSystemTextures.BlackDummy; break;
+		case eFC_0001: FallbackTexture = GSystemTextures.BlackAlphaOneDummy; break;
+		case eFC_1111: FallbackTexture = GSystemTextures.WhiteDummy; break;
+		default:
+			ensure(!"Unhandled enum in EFallbackColor");
+	}
+
 	// ePId_Input0, ePId_Input1, ...
 	for(uint32 Id = 0; Id < (uint32)ePId_Input_MAX; ++Id)
 	{
@@ -831,11 +897,9 @@ void FPostProcessPassParameters::Set(
 		}
 		else
 		{
-			IPooledRenderTarget* Texture = bWhiteIfNoTexture ? GSystemTextures.WhiteDummy : GSystemTextures.BlackDummy;
-
 			// if the input is not there but the shader request it we give it at least some data to avoid d3ddebug errors and shader permutations
 			// to make features optional we use default black for additive passes without shader permutations
-			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, Texture->GetRenderTargetItem().TargetableTexture);
+			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInputParameter[Id], PostprocessInputParameterSampler[Id], LocalFilter, FallbackTexture->GetRenderTargetItem().TargetableTexture);
 
 			FVector4 Dummy(1, 1, 1, 1);
 			SetShaderValue(RHICmdList, ShaderRHI, PostprocessInputSizeParameter[Id], Dummy);
@@ -851,7 +915,7 @@ void FPostProcessPassParameters::Set(
 		const ShaderRHIParamRef& ShaderRHI,				\
 		const FRenderingCompositePassContext& Context,	\
 		FSamplerStateRHIParamRef Filter,				\
-		bool bWhiteIfNoTexture,							\
+		EFallbackColor FallbackColor,					\
 		FSamplerStateRHIParamRef* FilterOverrideArray	\
 	);
 
@@ -883,6 +947,7 @@ const FSceneRenderTargetItem& FRenderingCompositeOutput::RequestSurface(const FR
 {
 	if(PooledRenderTarget)
 	{
+		Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, PooledRenderTarget->GetRenderTargetItem().TargetableTexture);
 		return PooledRenderTarget->GetRenderTargetItem();
 	}
 
@@ -896,7 +961,7 @@ const FSceneRenderTargetItem& FRenderingCompositeOutput::RequestSurface(const FR
 
 	if(!PooledRenderTarget)
 	{
-		GRenderTargetPool.FindFreeElement(RenderTargetDesc, PooledRenderTarget, RenderTargetDesc.DebugName);
+		GRenderTargetPool.FindFreeElement(Context.RHICmdList, RenderTargetDesc, PooledRenderTarget, RenderTargetDesc.DebugName);
 	}
 
 	check(!PooledRenderTarget->IsFree());

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "AbilityTask.h"
@@ -11,8 +11,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitConfirmCancelDelegate);
 // UAbilityTask_WaitConfirmCancel = Wait for Targeting confirm/cancel
 // UAbilityTask_WaitConfirm = Wait for server to confirm ability activation
 
-UCLASS(MinimalAPI)
-class UAbilityTask_WaitConfirmCancel : public UAbilityTask
+UCLASS()
+class GAMEPLAYABILITIES_API UAbilityTask_WaitConfirmCancel : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 

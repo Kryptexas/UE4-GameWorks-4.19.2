@@ -23,16 +23,14 @@ Version: 4.9
 %Steps%
 
 [REGION:note]
-You should have a copy of **Visual Studio 2013** for Deskstop (Preferably Community or Professional) installed before starting this tutorial.
+You should have a copy of **Visual Studio 2013** for Desktop (Preferably Community or Professional Editions) installed before starting this tutorial.
 [/REGION]
 
 1. Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.
 
-1. Click on the **New Project** tab and then select the **C++** tab. From there, select **Basic Code** so we have a clean starting point, and make sure "With Starter Content" is set. We'll need to enter a project name, so we'll use "QuickStart". We can now click **Create Project** and get started.
+1. Click on the **New Project** tab and then select the **C++** tab. From there, select **Basic Code** so we have a clean starting point, and make sure **With Starter Content** is set. We'll need to enter a project name, so we'll use "QuickStart". We can now click **Create Project** and get started.
 
 	[![](CreateProject.png)](CreateProject.png)
-
-----
 
 The **Unreal Editor** will now open our new project. **Visual Studio** will also open and load the solution file that our project has created.
 

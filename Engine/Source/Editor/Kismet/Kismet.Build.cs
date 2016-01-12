@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -47,6 +47,7 @@ public class Kismet : ModuleRules
                 "DerivedDataCache",
 				"DesktopPlatform",
 				"HotReload",
+                "BlueprintNativeCodeGen"
 			}
 			);
 
@@ -57,6 +58,7 @@ public class Kismet : ModuleRules
 				"EditorWidgets",
 				"GameProjectGeneration",
                 "BlueprintCompilerCppBackend",
+                "BlueprintProfiler"
 			}
             );
 

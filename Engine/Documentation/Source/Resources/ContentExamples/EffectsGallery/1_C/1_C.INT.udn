@@ -8,6 +8,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/1_B "%Resources/ContentExamples/EffectsGallery/1_B:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/EffectsGallery/1_D "%Resources/ContentExamples/EffectsGallery/1_D:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -56,7 +75,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 This example shows 3 spheres traveling about a central point while leaving trails behind them. The effect requires that particles be spawned from the location of other particles, which is handled by way of the Emitter Initial Location module. This spawns particles at the location of the particles from a named Emitter. This means that the effect uses two Emitters:
 
 * **Lead_sphere:** This Emitter creates 3 spheres that fly around the center of the effect due to a Point Attractor module.
-* **Trails:** This Emitter spawns trails that are born at the location of the particles in _Lead_sphere_.
+* **Trails:** This Emitter spawns trails that are born at the location of the particles in Lead_sphere.
 
 
 ![](image016.png)

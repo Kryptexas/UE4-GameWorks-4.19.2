@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "TimespanStructCustomization.h"
@@ -100,6 +100,7 @@ void FTimespanStructCustomization::HandleTextBoxTextCommited( const FText& NewTe
 			*(FTimespan*)RawDataInstance = ParsedTimespan;
 		}
 		PropertyHandle->NotifyPostChange();
+		PropertyHandle->NotifyFinishedChangingProperties();
 	}
 }
 

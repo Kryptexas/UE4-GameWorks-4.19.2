@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // 
 
 #include "ShaderFormatOpenGL.h"
@@ -284,7 +284,7 @@ static void _PlatformCreateDummyGLWindow(FPlatformOpenGLContext *OutContext)
 	// Create a dummy window.
 	OutContext->hWnd = SDL_CreateWindow(NULL,
 		0, 0, 1, 1,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN);
+		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN | SDL_WINDOW_SKIP_TASKBAR );
 }
 
 static void _PlatformCreateOpenGLContextCore(FPlatformOpenGLContext* OutContext)
@@ -799,12 +799,12 @@ static void BuildShaderOutput(
 			);
 	}
 
-	Header.ShaderName = CCHeader.Name.GetCharArray();
+	Header.ShaderName = CCHeader.Name;
 
 	// Build the SRT for this shader.
 	{
 		// Build the generic SRT for this shader.
-		FShaderResourceTable GenericSRT;
+		FShaderCompilerResourceTable GenericSRT;
 		BuildResourceTableMapping(ShaderInput.Environment.ResourceTableMap, ShaderInput.Environment.ResourceTableLayoutHashes, UsedUniformBufferSlots, ShaderOutput.ParameterMap, GenericSRT);
 
 		// Copy over the bits indicating which resource tables are active.
@@ -832,10 +832,13 @@ static void BuildShaderOutput(
 	else
 	{
 		// Write out the header and shader source code.
-		FMemoryWriter Ar(ShaderOutput.Code, true);
+		FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
 		Ar << Header;
 		Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
 		
+		// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+		ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+
 		ShaderOutput.NumInstructions = 0;
 		ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
 		ShaderOutput.bSucceeded = true;
@@ -1124,52 +1127,18 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 
 static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags ) 
 {
-	const TCHAR* FrequencySwitch = TEXT("");
-	switch (Frequency)
-	{
-		case HSF_PixelShader:
-			FrequencySwitch = TEXT(" -ps");
-			break;
-
-		case HSF_VertexShader:
-			FrequencySwitch = TEXT(" -vs");
-			break;
-
-		case HSF_HullShader:
-			FrequencySwitch = TEXT(" -hs");
-			break;
-
-		case HSF_DomainShader:
-			FrequencySwitch = TEXT(" -ds");
-			break;
-
-		case HSF_ComputeShader:
-			FrequencySwitch = TEXT(" -cs");
-			break;
-
-		case HSF_GeometryShader:
-			FrequencySwitch = TEXT(" -gs");
-			break;
-
-		default:
-			check(0);
-	}
-
 	const TCHAR* VersionSwitch = TEXT("");
 	switch (Version)
 	{
 		case GLSL_150:
 		case GLSL_150_ES2:
 		case GLSL_150_ES3_1:
-			VersionSwitch = TEXT(" -gl3 -separateshaders");
+		case GLSL_150_ES2_NOUB:
+			VersionSwitch = TEXT(" -gl3");
 			break;
 
 		case GLSL_150_MAC:
-			VersionSwitch = TEXT(" -gl3 -mac -separateshaders");
-			break;
-
-		case GLSL_150_ES2_NOUB:
-			VersionSwitch = TEXT(" -gl3 -flattenub -flattenubstruct -separateshaders");
+			VersionSwitch = TEXT(" -gl3 -mac");
 			break;
 
 		case GLSL_310_ES_EXT:
@@ -1177,14 +1146,11 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			break;
 
 		case GLSL_430:
-			VersionSwitch = TEXT(" -gl4 -separateshaders");
+			VersionSwitch = TEXT(" -gl4");
 			break;
 
 		case GLSL_ES2:
 		case GLSL_ES2_WEBGL:
-			VersionSwitch = TEXT(" -es2");
-			break;
-
 		case GLSL_ES2_IOS:
 			VersionSwitch = TEXT(" -es2");
 			break;
@@ -1193,8 +1159,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			return TEXT("");
 	}
 
-	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
+	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, Frequency, EntryPoint, VersionSwitch, CCFlags, TEXT(""));
 }
 
 /**
@@ -1207,6 +1172,9 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
 	EHlslCompileTarget HlslCompilerTarget = HCT_InvalidTarget;
+	ECompilerFlags PlatformFlowControl = CFLAG_AvoidFlowControl;
+
+	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
 	switch (Version)
 	{
 		case GLSL_310_ES_EXT:
@@ -1233,6 +1201,9 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL3_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelSM4;
+			// On OS X it is always better to leave the flow control statements in the GLSL & let the GLSL->GPU compilers
+			// optimise it appropriately for each GPU. This gives a performance gain on AMD & Intel and is neutral on Nvidia.
+			PlatformFlowControl = CFLAG_PreferFlowControl;
 			break;
 
 		case GLSL_ES2_WEBGL:
@@ -1249,6 +1220,8 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
+			AdditionalDefines.SetDefine(TEXT("noperspective"), TEXT(""));
+			
 			break; 
 
 		case GLSL_ES2:
@@ -1279,9 +1252,19 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 
-	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
+	if(Input.Environment.CompilerFlags.Contains(CFLAG_AvoidFlowControl) || PlatformFlowControl == CFLAG_AvoidFlowControl)
+	{
+		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
+	}
+	else
+	{
+		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)0);
+	}
 	if (PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 	{
+		// Disable instanced stereo until supported for glsl
+		StripInstancedStereo(PreprocessedShader);
+
 		char* GlslShaderSource = NULL;
 		char* ErrorLog = NULL;
 
@@ -1353,7 +1336,8 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			const FString CCBatchFileContents = CreateCrossCompilerBatchFile(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
 			if (!CCBatchFileContents.IsEmpty())
 			{
-				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CrossCompile.bat")));
+				const TCHAR * ScriptName = PLATFORM_WINDOWS ? TEXT("CrossCompile.bat") : TEXT("CrossCompile.sh");
+				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / ScriptName));
 			}
 		}
 
@@ -1396,6 +1380,13 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 				if (GlslSourceLen > 0)
 				{
+					uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(GlslShaderSource) + 20;
+					char* Dest = (char*)malloc(Len);
+					FCStringAnsi::Snprintf(Dest, Len, "// ! %s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)GlslShaderSource);
+					free(GlslShaderSource);
+					GlslShaderSource = Dest;
+					GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
+					
 					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".glsl")));
 					if (FileWriter)
 					{

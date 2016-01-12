@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "GameplayTaskOwnerInterface.h"
@@ -256,6 +256,8 @@ public:
 
 	ETaskResourceOverlapPolicy GetResourceOverlapPolicy() const { return ResourceOverlapPolicy; }
 
+	virtual bool IsWaitingOnRemotePlayerdata() const { return false; }
+
 protected:
 	/** End and CleanUp the task - may be called by the task itself or by the task owner if the owner is ending. 
 	 *	IMPORTANT! Do NOT call directly! Call EndTask() or TaskOwnerEnded() 
@@ -364,9 +366,9 @@ struct FGameplayTaskInstanceNamePredicate
 		InstanceName = DesiredInstanceName;
 	}
 
-	bool operator()(const TWeakObjectPtr<UGameplayTask> A) const
+	bool operator()(const UGameplayTask* A) const
 	{
-		return (A.IsValid() && !A.Get()->GetInstanceName().IsNone() && A.Get()->GetInstanceName().IsValid() && (A.Get()->GetInstanceName() == InstanceName));
+		return (A && !A->GetInstanceName().IsNone() && A->GetInstanceName().IsValid() && (A->GetInstanceName() == InstanceName));
 	}
 
 	FName InstanceName;
@@ -380,9 +382,9 @@ struct FGameplayTaskInstanceClassPredicate
 		TaskClass = Class;
 	}
 
-	bool operator()(const TWeakObjectPtr<UGameplayTask> A) const
+	bool operator()(const UGameplayTask* A) const
 	{
-		return (A.IsValid() && (A.Get()->GetClass() == TaskClass));
+		return (A && (A->GetClass() == TaskClass));
 	}
 
 	TSubclassOf<UGameplayTask> TaskClass;

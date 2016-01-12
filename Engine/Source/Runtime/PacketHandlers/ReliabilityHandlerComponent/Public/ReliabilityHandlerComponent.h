@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -55,5 +55,5 @@ protected:
 class FReliabilityHandlerComponentModuleInterface : public FPacketHandlerComponentModuleInterface
 {
 public:
-	virtual HandlerComponent* CreateComponentInstance() override;
+	virtual TSharedPtr<HandlerComponent> CreateComponentInstance(FString& Options) override;
 };

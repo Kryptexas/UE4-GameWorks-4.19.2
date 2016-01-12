@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2077918
+﻿INTSourceChangelist:2734140
 Availability:Public
-Title:物理ボディのリファレンス
+Title:物理ボディ
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:ほとんどの物理相互作用の基礎。物理ボディ。
+Description:ほとんどの物理相互作用の基礎: 物理ボディ [ボディ インスタンス]
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -44,75 +44,38 @@ Description:ほとんどの物理相互作用の基礎。物理ボディ。
 [/VAR]
 
 
-[TOC(start:2)]
+3D メッシュがますます複雑化していることを考えると、リアルタイム 3D レンダリング アプリケーションで物理シミュレーションを動かすためにプロキシ形状を使用しなければなりません。物理ボディ (ボディ インスタンス) は、アンリアル エンジン 4 が物理シミュレーションのために使用する単純化された 3D メッシュです。ボックス、球体、カプセル、凸包の形状にすることができます。
 
-## 概要
+以下は物理ボディに関する情報のリンクです。
 
-3D メッシュがますます複雑化していることを考えると、リアルタイム 3D レンダリング アプリケーションで物理シミュレーションを動かすためにプロキシ形状を使用しなければなりません。物理ボディは、アンリアル エンジン 4 が物理シミュレーションのために使用する単純化された 3D メッシュです。ボックス、球体、カプセル、凸包の形状にすることができます。
-
-以下のリンクには、物理ボディを作成し、物理ボディで作業するための様々なエディタとワークフローに関する情報があります。
-
-
-###スタティックメッシュ
-
-ご利用の 3D アートプログラムで物理ボディを作成するには以下を参照してください。[FBX:スタティックメッシュ](Engine/Content\FBX\StaticMeshes#コリジョン)
-
-スタティックメッシュ エディタを使用して物理ボディを作成するには以下を参照してください。[コリジョン リファレンス:スタティック メッシュ エディタ](Engine/Physics\Collision\Reference#3Dコンテンツ作成パッケージを使ってコリジョンモデルを作成する)
-
-
-###物理アセット/ スケルタルメッシュ
-
-スケルタルメッシュで使用する物理アセットの作成に関しては [](Engine/Physics\PhAT) ドキュメントを参照してください。　
-
-
-### 形状のコンポーネント
-
-何らかのコリジョン、オーバーラップ、その他の物理シミュレーションのイベントに対してボックス、球体、カプセルのコンポーネントが設定されていれば、自動的に物理ボディを得ます。
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Essentials
+	[/PARAM]
+	[PARAM:links]
+		[PUBLISH:Docs]
+		* [](Engine/Physics/PhysicsBodies/Overview "%Engine/Physics/PhysicsBodies/Overview:description%")
+		[/PUBLISH:Docs]
+		<!-- * [](Engine/Physics/PhysicsBodies/HowTo "%Engine/Physics/PhysicsBodies/HowTo:description%") -->
+		* [](Engine/Physics/PhysicsBodies/Reference "%Engine/Physics/PhysicsBodies/Reference:description%")
+	[/PARAM]
+[/OBJECT]
 
 
-##参照
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Related
+	[/PARAM]
+	[PARAM:links]
 
-すべての物理ボディには共有する一連のプロパティがあります。以下は物理ボディと合わせて表示される主なカテゴリにあるプロパティです。アクタやコンポーネントで必ずしもすべてのプロパティが表示されるわけではありません。プロパティのコンテキストによって変わります。
-
-
-### 物理
-
-| プロパティ | 説明 |
-| --- | --- |
-|[REGION:tablesection]Physics[/REGION]||
-| **Mass in KG** | ボディの質量 KG 単位 |
-| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
-| **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
-| **Phys Material** | %doxygen:UBodySetup::PhysMaterial% |
-| **Walkable Slope Override** | %doxygen:UBodySetup::WalkableSlopeOverride% |
-| **Walkable Slope Behavior** | %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
-| **Walkable Slope Angle** | %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
-| **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
-| **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
-| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
-| **COMNudge** | %doxygen:FBodyInstance::COMNudge% |
-| **Sleep Family** | %doxygen:FBodyInstance::SleepFamily% |
-| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
-| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
-| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
-| **Position Solver Iteration Count** | %doxygen:FBodyInstance::PositionSolverIterationCount% |
-| **Velocity Solver Iteration Count** | %doxygen:FBodyInstance::VelocitySolverIterationCount% |
+	[/PARAM]
+[/OBJECT]
 
 
-### コリジョン
 
-| プロパティ | 説明 |
-| --- | --- |
-|[REGION:tablesection]Collision[/REGION]||
-| **Notify Rigid Body Collision** | %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
-| **Always Create Physics State** | %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
-| **Generate Overlap Events** | %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
-| **Multi Body Overlap** | %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
-| **Trace Complex On Move** | %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
-| **Return Material On Move** | %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
-|[REGION:tablesection]Collision Responses[/REGION]||
-| | 詳しい情報については、[](Engine/Physics\Collision) ドキュメントを参照してください。 |
-|[REGION:tablesection]Extras[/REGION]||
-| **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
-| **Check Async Scene On Move** | %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
-| **Can Ever Affect Navigation** | %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |

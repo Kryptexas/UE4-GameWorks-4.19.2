@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,7 @@ struct FPropertyTag;
 struct COREUOBJECT_API FStringAssetReference
 {
 	/** Asset path */
+	DEPRECATED(4.9, "Please don't use AssetLongPathname directly. Instead use SetPath and ToString methods.")
 	FString AssetLongPathname;
 	
 	FStringAssetReference()
@@ -18,20 +19,16 @@ struct COREUOBJECT_API FStringAssetReference
 	}
 
 	FStringAssetReference(const FStringAssetReference& Other)
-		: AssetLongPathname(Other.AssetLongPathname)
 	{
+		SetPath(Other.ToString());
 	}
 
 	/**
 	 * Construct from a path string
 	 */
-	FStringAssetReference(const FString& PathString)
-		: AssetLongPathname(PathString)
+	FStringAssetReference(FString PathString)
 	{
-		if (AssetLongPathname == TEXT("None"))
-		{
-			AssetLongPathname = TEXT("");
-		}
+		SetPath(MoveTemp(PathString));
 	}
 
 	/**
@@ -39,20 +36,26 @@ struct COREUOBJECT_API FStringAssetReference
 	 */
 	FStringAssetReference(const UObject* InObject);
 
+	~FStringAssetReference();
+
 	/**
 	 * Converts in to a string
 	 */
-	const FString& ToString() const 
-	{
-		return AssetLongPathname;
-	}
+	const FString& ToString() const;
 
 	const FString GetLongPackageName() const
 	{
 		FString PackageName;
-		AssetLongPathname.Split(TEXT("."), &PackageName, nullptr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+		ToString().Split(TEXT("."), &PackageName, nullptr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 		return PackageName;
 	}
+
+	/**
+	 * Sets asset path of this reference.
+	 *
+	 * @param Path The path to the asset.
+	 */
+	void SetPath(FString Path);
 
 	/**
 	 * Attempts to load the asset.
@@ -71,7 +74,7 @@ struct COREUOBJECT_API FStringAssetReference
 	 */
 	void Reset()
 	{		
-		AssetLongPathname = TEXT("");
+		SetPath(TEXT(""));
 	}
 	
 	/**
@@ -79,7 +82,7 @@ struct COREUOBJECT_API FStringAssetReference
 	 */
 	bool IsValid() const
 	{
-		return AssetLongPathname.Len() > 0;
+		return ToString().Len() > 0;
 	}
 
 	bool Serialize(FArchive& Ar);
@@ -95,7 +98,7 @@ struct COREUOBJECT_API FStringAssetReference
 
 	FORCEINLINE friend uint32 GetTypeHash(FStringAssetReference const& This)
 	{
-		return GetTypeHash(This.AssetLongPathname);
+		return GetTypeHash(This.ToString());
 	}
 
 	/** Code needed by AssetPtr to track rather object references should be rechecked */

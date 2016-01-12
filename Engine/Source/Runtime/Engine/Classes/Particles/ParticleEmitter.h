@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
+//~=============================================================================
 // ParticleEmitter
 // The base class for any particle emitter objects.
-//=============================================================================
+//~=============================================================================
 
 #pragma once
 #include "Components/SceneComponent.h"
@@ -13,9 +13,9 @@
 
 class UInterpCurveEdSetup;
 
-//=============================================================================
+//~=============================================================================
 //	Burst emissions
-//=============================================================================
+//~=============================================================================
 UENUM()
 enum EParticleBurstMethod
 {
@@ -24,9 +24,9 @@ enum EParticleBurstMethod
 	EPBM_MAX,
 };
 
-//=============================================================================
+//~=============================================================================
 //	SubUV-related
-//=============================================================================
+//~=============================================================================
 UENUM()
 enum EParticleSubUVInterpMethod
 {
@@ -38,9 +38,9 @@ enum EParticleSubUVInterpMethod
 	PSUVIM_MAX,
 };
 
-//=============================================================================
+//~=============================================================================
 //	Cascade-related
-//=============================================================================
+//~=============================================================================
 UENUM()
 enum EEmitterRenderMode
 {
@@ -85,9 +85,9 @@ class UParticleEmitter : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	//=============================================================================
+	//~=============================================================================
 	//	General variables
-	//=============================================================================
+	//~=============================================================================
 	/** The name of the emitter. */
 	UPROPERTY(EditAnywhere, Category=Particle)
 	FName EmitterName;
@@ -113,9 +113,9 @@ class UParticleEmitter : public UObject
 	FColor EmitterEditorColor;
 
 #endif // WITH_EDITORONLY_DATA
-	//=============================================================================
+	//~=============================================================================
 	//	'Private' data - not required by the editor
-	//=============================================================================
+	//~=============================================================================
 	UPROPERTY(instanced)
 	TArray<class UParticleLODLevel*> LODLevels;
 
@@ -125,9 +125,9 @@ class UParticleEmitter : public UObject
 	UPROPERTY()
 	int32 PeakActiveParticles;
 
-	//=============================================================================
+	//~=============================================================================
 	//	Performance/LOD Data
-	//=============================================================================
+	//~=============================================================================
 	
 	/**
 	 *	Initial allocation count - overrides calculated peak count if > 0
@@ -173,12 +173,46 @@ class UParticleEmitter : public UObject
 	UPROPERTY(EditAnywhere, Category = Particle)
 	uint32 bDisabledLODsKeepEmitterAlive : 1;
 
-	// Begin UObject Interface
+	//////////////////////////////////////////////////////////////////////////
+	// Below is information udpated by calling CacheEmitterModuleInfo
+
+	uint32 bRequiresLoopNotification : 1;
+	uint32 bAxisLockEnabled : 1;
+	uint32 bMeshRotationActive : 1;
+	TEnumAsByte<EParticleAxisLock> LockAxisFlags;
+
+	/** Map module pointers to their offset into the particle data.		*/
+	TMap<UParticleModule*, uint32> ModuleOffsetMap;
+
+	/** Map module pointers to their offset into the instance data.		*/
+	TMap<UParticleModule*, uint32> ModuleInstanceOffsetMap;
+
+	/** Materials collected from any MeshMaterial modules */
+	TArray<class UMaterialInterface*> MeshMaterials;
+
+	int32 DynamicParameterDataOffset;
+	int32 LightDataOffset;
+	int32 CameraPayloadOffset;
+	int32 ParticleSize;
+	int32 ReqInstanceBytes;
+	FVector2D PivotOffset;
+	int32 TypeDataOffset;
+	int32 TypeDataInstanceOffset;
+
+	// Array of modules that want emitter instance data
+	TArray<UParticleModule*> ModulesNeedingInstanceData;
+
+	/** SubUV animation asset to use for cutout geometry. */
+	class USubUVAnimation* RESTRICT SubUVAnimation;
+
+	//////////////////////////////////////////////////////////////////////////
+
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	// @todo document
 	virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent);
@@ -309,6 +343,9 @@ class UParticleEmitter : public UObject
 	 * Builds data needed for simulation by the emitter from all modules.
 	 */
 	void Build();
+
+	/** Pre-calculate data size/offset and other info from modules in this Emitter */
+	void CacheEmitterModuleInfo();
 
 	/**
 	 *   Calculate spawn rate multiplier based on global effects quality level and emitter's quality scale

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2600504
+﻿INTSourceChangelist:2691671
 Availability:Public
 Title:블루프린트 클래스
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -137,5 +137,14 @@ _블루프린트 클래스_ 입니다. 이를 통해 상속받은 프로퍼티�
 _데이터 전용 블루프린트_ 의 편집은 간결한 프로퍼티 에디터를 통해 가능하며, 간단히 _코드_, 변수, 컴포넌트를 추가해서 풀 _블루프린트_ 로 변환시켜 
 **블루프린트 에디터** 에서 편집할 수도 있습니다.
 [/EXCERPT:DataBlueprint]
+
+[REGION:note]
+클래스 디폴트는 **GetClassDefaults** 블루프린트 노드를 통해 실행시간에 데이터 전용 블루프린트를 접근할 수 있습니다. 자세한 정보는 [](Engine\Blueprints\Editor\Modes\Defaults\DefaultsTab) 문서를 참고해 주시기 바랍니다.
+[/REGION]
+
+
+
+
+
 
 

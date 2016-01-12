@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "BlueprintNodeSpawner.h"
@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "BlueprintGameplayTagLibrary.h"
 #include "GameplayTagsModule.h"
+#include "GameplayTagsK2Node_MultiCompareBase.h"
 #include "GameplayTagsK2Node_MultiCompareGameplayTagContainer.h"
 #include "KismetCompiler.h"
 

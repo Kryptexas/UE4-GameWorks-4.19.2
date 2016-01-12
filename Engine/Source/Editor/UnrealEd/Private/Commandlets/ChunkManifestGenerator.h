@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,6 +41,9 @@ class FChunkManifestGenerator
 	TSet<FName>						InspectedNames;
 	/** */
 	UChunkDependencyInfo*			DependencyInfo;
+
+	/** Dependency type to follow when adding package dependencies to chunks.*/
+	EAssetRegistryDependencyType::Type DependencyType;
 
 	struct FReferencePair
 	{
@@ -167,9 +170,14 @@ class FChunkManifestGenerator
 	bool GatherAllPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames);
 
 	/**
+	* Gather the list of dependencies that link the source to the target.  Output array includes the target.
+	*/
+	bool GetPackageDependencyChain(FName SourcePackage, FName TargetPackage, TArray<FName>& VisitedPackages, TArray<FName>& OutDependencyChain);
+
+	/**
 	* Get an array of Packages this package will import.
 	*/
-	bool GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames);
+	bool GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames, EAssetRegistryDependencyType::Type InDependencyType);
 
 	/**
 	 * Save a CSV dump of chunk asset information.
@@ -189,12 +197,22 @@ class FChunkManifestGenerator
 	/**
 	* 
 	*/
-	void			ResolveChunkDependencyGraph(const FChunkDependencyTreeNode& Node, FChunkPackageSet BaseAssetSet);
+	void			ResolveChunkDependencyGraph(const FChunkDependencyTreeNode& Node, FChunkPackageSet BaseAssetSet, TArray<TArray<FName>>& OutPackagesMovedBetweenChunks);
 
 	/**
 	* Helper function to verify Chunk asset assigment is valid.
 	*/
 	bool			CheckChunkAssetsAreNotInChild(const FChunkDependencyTreeNode& Node);
+
+	/**
+	* Helper function to create a given collection.
+	*/
+	bool			CreateOrEmptyCollection(FName CollectionName);
+
+	/**
+	* Helper function to fill a given collection with a set of packages.
+	*/
+	void			WriteCollection(FName CollectionName, const TArray<FName>& PackageNames);
 
 public:
 

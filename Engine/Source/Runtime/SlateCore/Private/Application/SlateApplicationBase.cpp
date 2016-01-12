@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "HittestGrid.h"
@@ -81,4 +81,9 @@ bool FSlateApplicationBase::AnyActiveTimersArePending()
 bool FSlateApplicationBase::IsSlateAsleep()
 {
 	return bIsSlateAsleep;
+}
+
+void FSlateApplicationBase::InvalidateAllWidgets() const
+{
+	OnGlobalInvalidateEvent.Broadcast();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,70 +42,73 @@ enum class EAlphaBlendOption : uint8
 };
 
 /**
- * Alpha Blend Type
+ * Alpha Blend class that supports different blend options as well as custom curves
  */
 USTRUCT()
-struct FAlphaBlend
+struct ENGINE_API FAlphaBlend
 {
 	GENERATED_BODY()
+private:
+	/** 
+	 * Please note that changing below two variables would get applied in the NEXT UPDATE. 
+	 * This does not change the Alpha and BlendedValue right away and it is intentional
+	 */
 
 	/** Type of blending used (Linear, Cubic, etc.) */
 	UPROPERTY(EditAnywhere, Category = "Blend")
 	EAlphaBlendOption BlendOption;
 
-	UPROPERTY(EditAnywhere, Category = "Blend")
-	float BeginValue;
-
-	UPROPERTY(EditAnywhere, Category = "Blend")
-	float DesiredValue;
-
-	UPROPERTY(EditAnywhere, Category = "Blend")
-	float	BlendTime;
-
+	/** If you're using Custom BlendOption, you can specify curve */
 	UPROPERTY(EditAnywhere, Category = "Blend")
 	UCurveFloat* CustomCurve;
 
-	// Constructor
-	FAlphaBlend();
+public:
+	/* Constructor */
+	FAlphaBlend(float NewBlendTime = 0.2f);
 
-	/** Update transition blend time */
+	/* Constructor */
+	FAlphaBlend(const FAlphaBlend& Other, float NewBlendTime);
+
+	/** Setters - need to refresh cached value */
+	void SetBlendOption(EAlphaBlendOption InBlendOption);
+	void SetCustomCurve(UCurveFloat* InCustomCurve);
+	/** Update transition blend time. This new value will be applied in the next Update. */
 	void SetBlendTime(float InBlendTime);
 
-	/** Sets the method used to blend the value */
-	void SetBlendOption(EAlphaBlendOption InBlendOption);
-
-	/** Sets the range of values to map to the interpolation */
+	/** Sets the range of values to map to the interpolation
+	 *
+	 * @param Begin : this is start value
+	 * @param Desired : this is target value 
+	 *
+	 * This can be (0, 1) if you'd like to increase, or it can be (1, 0) if you'd like to get to 0
+	 */
 	void SetValueRange(float Begin, float Desired);
-
-	/** Sets the begin value for the blended value */
-	void SetBeginValue(float InBegin);
 
 	/** Sets the final desired value for the blended value */
 	void SetDesiredValue(float InDesired);
 
-	/** Sets the Lerp alpha value directly */
+	/** Sets the Lerp alpha value directly. PLEASE NOTE that this modifies the Blended Value right away.  */
 	void SetAlpha(float InAlpha);
-
-	/** Reset to zero / restart the blend */
-	void Reset();
-
-	/** Returns true if Target is > 0.f, or false otherwise */
-	bool GetToggleStatus();
-
-	/** Enable (1.f) or Disable (0.f) */
-	void Toggle(bool bEnable);
-
-	/** SetTarget, but check that we're actually setting a different target */
-	void ConditionalSetTarget(float InAlphaTarget);
-
-	/** Set Target for interpolation */
-	void SetTarget(float InAlphaTarget);
 
 	/** Update interpolation, has to be called once every frame */
 	void Update(float InDeltaTime);
 
-	/** Converts internal lerped alpha into the output alpha type */
-	float AlphaToBlendOption();
+	/** Gets whether or not the blend is complete */
+	bool IsComplete() const;
+
+	/** Gets the current 0..1 alpha value. Changed to AlphaLerp to match with SetAlpha function */
+	float GetAlpha() const { return AlphaLerp; }
+
+	/** Gets the current blended value */
+	float GetBlendedValue() const { return BlendedValue; }
+
+	/** Getters */
+	float GetBlendTime() const { return BlendTime; }
+	EAlphaBlendOption GetBlendOption() const { return BlendOption; }
+	UCurveFloat* GetCustomCurve() const { return CustomCurve; }
+
+	/** Get the current desired value */
+	float GetDesiredValue() const { return DesiredValue; }
 
 	/** Converts InAlpha from a linear 0...1 value into the output alpha described by InBlendOption 
 	 *  @param InAlpha In linear 0...1 alpha
@@ -114,33 +117,76 @@ struct FAlphaBlend
 	 */
 	static float AlphaToBlendOption(float InAlpha, EAlphaBlendOption InBlendOption, UCurveFloat* InCustomCurve = nullptr);
 
-	/** Gets the current 0..1 alpha value */
-	float GetAlpha();
+private:
+	/** Blend Time */
+	UPROPERTY(EditAnywhere, Category = "Blend")
+	float	BlendTime;
 
-	/** Gets the current blended value */
-	float GetBlendedValue();
-
-	/** Gets whether or not the blend is complete */
-	bool IsComplete();
-
-protected:
 	/** Internal Lerped value for Alpha */
-	UPROPERTY()
 	float	AlphaLerp;
 
 	/** Resulting Alpha value, between 0.f and 1.f */
-	UPROPERTY()
 	float	AlphaBlend;
 
-	/** Target to reach */
-	UPROPERTY()
-	float	AlphaTarget;
-
 	/** Time left to reach target */
-	UPROPERTY()
 	float	BlendTimeRemaining;
 
-	/** The current blended value derived from the begin and desired values */
-	UPROPERTY()
+	/** The current blended value derived from the begin and desired values. 
+	  * This value should not change unless Update. 
+	  */
 	float BlendedValue;
+
+	/** The Start value. It is 'from' range */
+	float BeginValue;
+
+	/**  The Target value. It is 'to' range */
+	float DesiredValue;
+
+	/** 
+	 * Reset functions - 
+	 *
+	 * The distinction is important. 
+	 * 
+	 * We have 3 different reset functions depending on usability
+	 * 
+	 * Reset function : will change Blended Value to BeginValue, so that it can start blending
+	 * That is only supposed to be used when you want to clear it up and restart
+	 *
+	 * ResetAlpha will change AlphaLerp/AlphaBlend to match with current Blend Value, 
+	 * that way we keep the current blended value and move to target using the current value
+	 * That will make sure this doesn't pop when you change direction of Desired
+	 *
+	 * ResetBlendTime will change BlendTimeRemaining as well as possibly weight because if BlendTimeRemaining <= 0.f, 
+	 * We'll arrive to the destination
+	 *
+	 * The reason we need ResetAlpha and ResetBlendTime is that we don't want to modify blend time if direction changes or we don't want to reset alpha if blend time changes
+	 * Those two have to work independently
+	 * */
+
+public:
+	/** Reset to zero / restart the blend. This resets whole thing.  */
+	void Reset();
+
+private:
+	/** Reset alpha, this keeps current BlendedValue but modify Alpha to keep the blending state.  */
+	void ResetAlpha();
+
+	/* Reset Blend Time, this modifies BlendTimeRemaining and possibly Weight when BlendTimeRemaining <= 0.f */
+	void ResetBlendTime();
+
+	/** Converts internal lerped alpha into the output alpha type */
+	float AlphaToBlendOption();
+
+	/** internal flag to reset the alpha value */
+	bool bNeedsToResetAlpha;
+
+	/** internal flat to reset blend time. The two distinction is required. Otherwise, you'll modify blend time when you just change range */
+	bool bNeedsToResetBlendTime;
+
+	/** Cached Desired Value with Alpha 1 so that we can check if reached or not */
+	float CachedDesiredBlendedValue;
+	
+	/** This function refreshes desired blended value, so that we can check if we reached there or not. We make sure this value gets updated whenever any data changes. 
+	 *	IsComplete is called by Update, and recalc in every frame might not be worth it, so caching that data here*/
+	void RecacheDesiredBlendedValue();
 };

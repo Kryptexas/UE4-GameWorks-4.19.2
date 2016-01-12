@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GCObject.h: Abstract base class to allow non-UObject objects reference
@@ -26,7 +26,7 @@ class UGCObjectReferencer : public UObject
 	TArray<FGCObject*> ReferencedObjects;
 
 public:
-	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UGCObjectReferencer,UObject,CLASS_Transient,CoreUObject,CASTCLASS_None,COREUOBJECT_API);
+	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UGCObjectReferencer, UObject, CLASS_Transient, TEXT("/Script/CoreUObject"), CASTCLASS_None, COREUOBJECT_API);
 
 	/**
 	 * Adds an object to the referencer list

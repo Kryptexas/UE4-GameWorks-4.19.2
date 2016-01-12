@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AssetPtr.h: Pointer to UObject asset, keeps extra information so that it is robust to missing assets.
@@ -297,6 +297,9 @@ template <class T> struct TIsWeakPointerType<TAssetPtr<T> > { enum { Value = TIs
 template<class TClass>
 class TAssetSubclassOf
 {
+	template <class U>
+	friend class TAssetSubclassOf;
+
 public:
 	/** NULL constructor **/
 	FORCEINLINE TAssetSubclassOf()

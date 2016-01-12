@@ -1,13 +1,14 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "TestBeaconHost.h"
 #include "TestBeaconClient.h"
 
 ATestBeaconHost::ATestBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	BeaconTypeName = TEST_BEACON_TYPE;
 	ClientBeaconActorClass = ATestBeaconClient::StaticClass();
+	BeaconTypeName = ClientBeaconActorClass->GetName();
 }
 
 bool ATestBeaconHost::Init()

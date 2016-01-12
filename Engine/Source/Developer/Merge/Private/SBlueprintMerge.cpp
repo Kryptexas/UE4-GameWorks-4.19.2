@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MergePrivatePCH.h"
 
@@ -329,7 +329,7 @@ void SBlueprintMerge::OnStartMerge()
 
 			UPackage* TransientPackage = GetTransientPackage();
 			Data.BlueprintLocal = Cast<const UBlueprint>(StaticDuplicateObject(LocalBlueprint, TransientPackage,
-				*MakeUniqueObjectName(TransientPackage, LocalBlueprint->GetClass(), LocalBlueprint->GetFName()).ToString()));
+				MakeUniqueObjectName(TransientPackage, LocalBlueprint->GetClass(), LocalBlueprint->GetFName())));
 		}
 		else
 		{

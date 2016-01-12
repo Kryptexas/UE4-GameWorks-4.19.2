@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -23,13 +23,13 @@ class UParticleSpriteEmitter : public UParticleEmitter
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UParticleEmitter Interface
+	//~ Begin UParticleEmitter Interface
 	virtual FParticleEmitterInstance* CreateInstance(UParticleSystemComponent* InComponent) override;
 	virtual void SetToSensibleDefaults() override;
-	// End UParticleEmitter Interface
+	//~ End UParticleEmitter Interface
 };
 

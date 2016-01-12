@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,9 @@ enum class EConsumeMouseWheel
 
 	/** Always consume mouse wheel event even if we don't scroll at all. */
 	Always,
+
+	/** Never consume the mouse wheel */
+	Never,
 };
 
 

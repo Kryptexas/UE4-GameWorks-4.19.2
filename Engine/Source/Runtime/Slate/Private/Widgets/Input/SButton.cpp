@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -22,7 +22,9 @@ void SButton::Construct( const FArguments& InArgs )
 			{
 				return SNew(STextBlock)
 					.Text( InOpArgs._Text )
-					.TextStyle( InOpArgs._TextStyle );
+					.TextStyle( InOpArgs._TextStyle )
+					.TextShapingMethod( InOpArgs._TextShapingMethod )
+					.TextFlowDirection( InOpArgs._TextFlowDirection );
 			}
 			else
 			{
@@ -55,6 +57,8 @@ void SButton::Construct( const FArguments& InArgs )
 	OnClicked = InArgs._OnClicked;
 	OnPressed = InArgs._OnPressed;
 	OnReleased = InArgs._OnReleased;
+	OnHovered = InArgs._OnHovered;
+	OnUnhovered = InArgs._OnUnhovered;
 
 	ClickMethod = InArgs._ClickMethod;
 	TouchMethod = InArgs._TouchMethod;
@@ -62,6 +66,35 @@ void SButton::Construct( const FArguments& InArgs )
 
 	HoveredSound = InArgs._HoveredSoundOverride.Get(Style->HoveredSlateSound);
 	PressedSound = InArgs._PressedSoundOverride.Get(Style->PressedSlateSound);
+}
+
+int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	bool bEnabled = ShouldBeEnabled(bParentEnabled);
+	bool bShowDisabledEffect = GetShowDisabledEffect();
+
+	const FSlateBrush* BrushResource = !bShowDisabledEffect && !bEnabled ? DisabledImage : GetBorder();
+	
+	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
+
+	if (BrushResource && BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType)
+	{
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			LayerId,
+			AllottedGeometry.ToPaintGeometry(),
+			BrushResource,
+			MyClippingRect,
+			DrawEffects,
+			BrushResource->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * BorderBackgroundColor.Get().GetColor(InWidgetStyle)
+			);
+	}
+
+	FWidgetStyle CompoundedWidgetStyle = FWidgetStyle(InWidgetStyle)
+		.BlendColorAndOpacityTint(ColorAndOpacity.Get())
+		.SetForegroundColor(ForegroundColor.Get());
+
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith(AllottedGeometry.GetClippingRect()), OutDrawElements, LayerId, CompoundedWidgetStyle, bEnabled);
 }
 
 FMargin SButton::GetCombinedPadding() const
@@ -221,8 +254,12 @@ FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 		}
 		else
 		{
-			const bool bIsUnderMouse = MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
-			if( bIsUnderMouse )
+			bool bEventOverButton = IsHovered();
+			if (!bEventOverButton && MouseEvent.IsTouchEvent())
+			{
+				bEventOverButton = MyGeometry.IsUnderLocation(MouseEvent.GetScreenSpacePosition());
+			}
+			if (bEventOverButton)
 			{
 				// If we asked for a precise tap, all we need is for the user to have not moved their pointer very far.
 				const bool bTriggerForTouchEvent = IsPreciseTapOrClick(MouseEvent);
@@ -277,6 +314,8 @@ void SButton::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& Mo
 	
 	SBorder::OnMouseEnter( MyGeometry, MouseEvent );
 
+	OnHovered.ExecuteIfBound();
+
 	Invalidate(EInvalidateWidget::Layout);
 }
 
@@ -291,6 +330,8 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 	{
 		Release();
 	}
+
+	OnUnhovered.ExecuteIfBound();
 
 	Invalidate(EInvalidateWidget::Layout);
 }

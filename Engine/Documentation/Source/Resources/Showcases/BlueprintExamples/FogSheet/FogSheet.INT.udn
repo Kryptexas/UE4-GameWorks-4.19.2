@@ -1,11 +1,12 @@
 Availability: Public
-Title:Fog Sheet & Light Beams
+Title:Fog Sheet and Light Beams
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
 Description:An overview of the Fog Sheet Blueprint.
 Related: Engine/Blueprints/Overview
 Related: Engine/Blueprints/UserGuide/Variables
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Engine/Rendering/Materials/MaterialInstances
+Version: 4.9
 
 
 
@@ -33,7 +34,7 @@ The Fog Sheet Blueprint, shown above, consists of a Static Mesh plane with a clo
 [![](FogSheetCS.png)](FogSheetCS.png)
 [/REGION]
 [/REGION]
-Each of the 3 aspects of the Blueprint (i.e. the _Components List_, the _Construction Script_, and the _Event Graph_) are responsible for a different part of the overall effect. The following table breaks down the jobs for each aspect and how they work together to create the final result.
+Each of the three aspects of the Blueprint (i.e. the _Components List_, the _Construction Script_, and the _Event Graph_) are responsible for a different part of the overall effect. The following table breaks down the jobs for each aspect and how they work together to create the final result.
 
 
 

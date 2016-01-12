@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OculusInput.h"
 
-#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
+#if USE_OVR_MOTION_SDK
 
 #if PLATFORM_WINDOWS
 	// Required for OVR_CAPIShim.c
@@ -17,4 +17,4 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-#endif	// OCULUS_TOUCH_SUPPORTED_PLATFORMS
+#endif	// USE_OVR_MOTION_SDK

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -21,7 +21,11 @@ FLogWindowManager::~FLogWindowManager()
 
 		if (CurEntry->LogWindow.IsValid())
 		{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 			CurEntry->LogWindow->MultiOnWindowClosed.Remove(OnWindowClosedDelegateHandles.FindRef(CurEntry->LogWindow.Get()));
+#else
+			CurEntry->LogWindow->MultiOnWindowClosed.RemoveRaw(this, &FLogWindowManager::OnWindowClosed);
+#endif
 		}
 	}
 
@@ -29,7 +33,11 @@ FLogWindowManager::~FLogWindowManager()
 	{
 		if (OverflowWindows[i].IsValid())
 		{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 			OverflowWindows[i]->MultiOnWindowClosed.Remove(OnWindowClosedDelegateHandles.FindRef(OverflowWindows[i].Get()));
+#else
+			OverflowWindows[i]->MultiOnWindowClosed.RemoveRaw(this, &FLogWindowManager::OnWindowClosed);
+#endif
 		}
 	}
 }
@@ -74,7 +82,7 @@ void FLogWindowManager::Initialize(int InLogWidth, int InLogHeight)
 		}
 
 
-		// @todo JohnB: Remove this debug code
+		// @todo #JohnBDebug: Remove this debug code
 #if 0
 		for (int i = 0; i<GridSpaces.Num(); i++)
 		{
@@ -128,8 +136,12 @@ TSharedPtr<SLogWindow> FLogWindowManager::CreateLogWindow(FString Title, ELogTyp
 
 	if (ReturnVal.IsValid())
 	{
+#if TARGET_UE4_CL >= CL_DEPRECATEDEL
 		OnWindowClosedDelegateHandles.Add(ReturnVal.Get(),
 											ReturnVal->MultiOnWindowClosed.AddRaw(this, &FLogWindowManager::OnWindowClosed));
+#else
+		ReturnVal->MultiOnWindowClosed.AddRaw(this, &FLogWindowManager::OnWindowClosed);
+#endif
 
 		FSlateApplication::Get().AddWindow(ReturnVal.ToSharedRef());
 

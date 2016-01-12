@@ -1,11 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include <sys/utime.h>
-
-
-// make an FTimeSpan object that represents the "epoch" for time_t (from a _stat struct)
-const FDateTime WindowsEpoch(1970, 1, 1);
 
 #include "AllowWindowsPlatformTypes.h"
 	namespace FileConstants
@@ -13,6 +9,68 @@ const FDateTime WindowsEpoch(1970, 1, 1);
 		uint32 WIN_INVALID_SET_FILE_POINTER = INVALID_SET_FILE_POINTER;
 	}
 #include "HideWindowsPlatformTypes.h"
+
+namespace
+{
+	FORCEINLINE int32 UEDayOfWeekToWindowsSystemTimeDayOfWeek(const EDayOfWeek InDayOfWeek)
+	{
+		switch (InDayOfWeek)
+		{
+			case EDayOfWeek::Monday:
+				return 1;
+			case EDayOfWeek::Tuesday:
+				return 2;
+			case EDayOfWeek::Wednesday:
+				return 3;
+			case EDayOfWeek::Thursday:
+				return 4;
+			case EDayOfWeek::Friday:
+				return 5;
+			case EDayOfWeek::Saturday:
+				return 6;
+			case EDayOfWeek::Sunday:
+				return 0;
+			default:
+				break;
+		}
+
+		return 0;
+	}
+
+	FORCEINLINE FDateTime WindowsFileTimeToUEDateTime(const FILETIME& InFileTime)
+	{
+		// This roundabout conversion clamps the precision of the returned time value to match that of time_t (1 second precision)
+		// This avoids issues when sending files over the network via cook-on-the-fly
+		SYSTEMTIME SysTime;
+		if (FileTimeToSystemTime(&InFileTime, &SysTime))
+		{
+			return FDateTime(SysTime.wYear, SysTime.wMonth, SysTime.wDay, SysTime.wHour, SysTime.wMinute, SysTime.wSecond);
+		}
+
+		// Failed to convert
+		return FDateTime::MinValue();
+	}
+
+	FORCEINLINE FILETIME UEDateTimeToWindowsFileTime(const FDateTime& InDateTime)
+	{
+		// This roundabout conversion clamps the precision of the returned time value to match that of time_t (1 second precision)
+		// This avoids issues when sending files over the network via cook-on-the-fly
+		SYSTEMTIME SysTime;
+		SysTime.wYear = InDateTime.GetYear();
+		SysTime.wMonth = InDateTime.GetMonth();
+		SysTime.wDay = InDateTime.GetDay();
+		SysTime.wDayOfWeek = UEDayOfWeekToWindowsSystemTimeDayOfWeek(InDateTime.GetDayOfWeek());
+		SysTime.wHour = InDateTime.GetHour();
+		SysTime.wMinute = InDateTime.GetMinute();
+		SysTime.wSecond = InDateTime.GetSecond();
+		SysTime.wMilliseconds = 0;
+
+		FILETIME FileTime;
+		SystemTimeToFileTime(&SysTime, &FileTime);
+
+		return FileTime;
+	}
+}
 
 /**
  * This file reader uses overlapped i/o and double buffering to asynchronously read from files
@@ -514,46 +572,42 @@ public:
 
 	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override
 	{
-		// get file times
-		struct _stati64 FileInfo;
-		if(_wstati64(*NormalizeFilename(Filename), &FileInfo))
+		WIN32_FILE_ATTRIBUTE_DATA Info;
+		if (GetFileAttributesExW(*NormalizeFilename(Filename), GetFileExInfoStandard, &Info))
 		{
-			return FDateTime::MinValue();
+			return WindowsFileTimeToUEDateTime(Info.ftLastWriteTime);
 		}
 
-		// convert _stat time to FDateTime
-		FTimespan TimeSinceEpoch(0, 0, FileInfo.st_mtime);
-		return WindowsEpoch + TimeSinceEpoch;
+		return FDateTime::MinValue();
 	}
 
 	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
-		// get file times
-		struct _stati64 FileInfo;
-		if(_wstati64(*NormalizeFilename(Filename), &FileInfo))
+		HANDLE Handle = CreateFileW(*NormalizeFilename(Filename), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, nullptr);
+		if (Handle != INVALID_HANDLE_VALUE)
 		{
-			return;
+			const FILETIME ModificationFileTime = UEDateTimeToWindowsFileTime(DateTime);
+			if (!SetFileTime(Handle, nullptr, nullptr, &ModificationFileTime))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("SetTimeStamp: Failed to SetFileTime on %s"), Filename);
+			}
+			CloseHandle(Handle);
 		}
-
-		// change the modification time only
-		struct _utimbuf Times;
-		Times.actime = FileInfo.st_atime;
-		Times.modtime = (DateTime - WindowsEpoch).GetTotalSeconds();
-		_wutime(Filename, &Times);
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SetTimeStamp: Failed to open file %s"), Filename);
+		}
 	}
 
 	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override
 	{
-		// get file times
-		struct _stati64 FileInfo;
-		if(_wstati64(*NormalizeFilename(Filename), &FileInfo))
+		WIN32_FILE_ATTRIBUTE_DATA Info;
+		if (GetFileAttributesExW(*NormalizeFilename(Filename), GetFileExInfoStandard, &Info))
 		{
-			return FDateTime::MinValue();
+			return WindowsFileTimeToUEDateTime(Info.ftLastAccessTime);
 		}
 
-		// convert _stat time to FDateTime
-		FTimespan TimeSinceEpoch(0, 0, FileInfo.st_atime);
-		return WindowsEpoch + TimeSinceEpoch;
+		return FDateTime::MinValue();
 	}
 
 	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override
@@ -639,7 +693,73 @@ public:
 		RemoveDirectoryW(*NormalizeDirectory(Directory));
 		return !DirectoryExists(Directory);
 	}
-	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor)
+	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override
+	{
+		WIN32_FILE_ATTRIBUTE_DATA Info;
+		if (GetFileAttributesExW(*NormalizeFilename(FilenameOrDirectory), GetFileExInfoStandard, &Info))
+		{
+			const bool bIsDirectory = !!(Info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+
+			int64 FileSize = -1;
+			if (!bIsDirectory)
+			{
+				LARGE_INTEGER li;
+				li.HighPart = Info.nFileSizeHigh;
+				li.LowPart = Info.nFileSizeLow;
+				FileSize = static_cast<int64>(li.QuadPart);
+			}
+
+			return FFileStatData(
+				WindowsFileTimeToUEDateTime(Info.ftCreationTime),
+				WindowsFileTimeToUEDateTime(Info.ftLastAccessTime),
+				WindowsFileTimeToUEDateTime(Info.ftLastWriteTime),
+				FileSize, 
+				bIsDirectory,
+				!!(Info.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+				);
+		}
+
+		return FFileStatData();
+	}
+	virtual bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override
+	{
+		const FString DirectoryStr = Directory;
+		return IterateDirectoryCommon(Directory, [&](const WIN32_FIND_DATAW& InData) -> bool
+		{
+			const bool bIsDirectory = !!(InData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+			return Visitor.Visit(*(DirectoryStr / InData.cFileName), bIsDirectory);
+		});
+	}
+	virtual bool IterateDirectoryStat(const TCHAR* Directory, FDirectoryStatVisitor& Visitor) override
+	{
+		const FString DirectoryStr = Directory;
+		return IterateDirectoryCommon(Directory, [&](const WIN32_FIND_DATAW& InData) -> bool
+		{
+			const bool bIsDirectory = !!(InData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+
+			int64 FileSize = -1;
+			if (!bIsDirectory)
+			{
+				LARGE_INTEGER li;
+				li.HighPart = InData.nFileSizeHigh;
+				li.LowPart = InData.nFileSizeLow;
+				FileSize = static_cast<int64>(li.QuadPart);
+			}
+
+			return Visitor.Visit(
+				*(DirectoryStr / InData.cFileName), 
+				FFileStatData(
+					WindowsFileTimeToUEDateTime(InData.ftCreationTime),
+					WindowsFileTimeToUEDateTime(InData.ftLastAccessTime),
+					WindowsFileTimeToUEDateTime(InData.ftLastWriteTime),
+					FileSize, 
+					bIsDirectory,
+					!!(InData.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+					)
+				);
+		});
+	}
+	bool IterateDirectoryCommon(const TCHAR* Directory, const TFunctionRef<bool(const WIN32_FIND_DATAW&)>& Visitor)
 	{
 		bool Result = false;
 		WIN32_FIND_DATAW Data;
@@ -651,7 +771,7 @@ public:
 			{
 				if (FCString::Strcmp(Data.cFileName, TEXT(".")) && FCString::Strcmp(Data.cFileName, TEXT("..")))
 				{
-					Result = Visitor.Visit(*(FString(Directory) / Data.cFileName), !!(Data.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY));
+					Result = Visitor(Data);
 				}
 			} while (Result && FindNextFileW(Handle, &Data));
 			FindClose(Handle);

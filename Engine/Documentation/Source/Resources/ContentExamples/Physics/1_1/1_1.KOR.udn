@@ -1,15 +1,32 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2720001
 Availability: Public
 Title:1.1 - 피직스 시뮬레이션
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:Physics 예제 레벨에 대한 개요로, 예제 1.1: Object Simulating Physics 입니다.
 Related: Engine/Physics/PhysicsBodies
-Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/PhAT/HowTo
 Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
-Related: Engine/Physics/PhysicalMaterials/PhysMatReference
+Related: Engine/Physics/PhysicalMaterials/Reference
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[피직스 홈](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Physics/1_2 "%Resources/ContentExamples/Physics/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597179
+﻿INTSourceChangelist:2683156
 Availability:Public
 Title: 컴파일러 결과
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:블루프린트 에디터의 컴파일러 결과 패널에 대한 인터페이스입니다.
+version: 4.9
 
 
 [REGION:fullwidth]
@@ -43,7 +44,7 @@ Description:블루프린트 에디터의 컴파일러 결과 패널에 대한 �
 * 메시지에 클릭하면 문제가 있는 노드나 비주얼 스크립트 부분에 그래프 뷰를 바로 점프시킵니다.
 
 	[REGION:raw]
-	![](WarningFocus.png)(w:750)
+	![](WarningFocus.jpg)
 	[/REGION]
 	
 * 패널 우하단 구석의 **비우기** 버튼을 클릭하면 기존 메시지를 비웁니다.

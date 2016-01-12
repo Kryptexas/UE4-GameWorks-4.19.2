@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2181912
+﻿INTSourceChangelist:2663375
 Availability:Public
-Title:ブレンド スペースの使用
+Title:Blend Space の使用方法
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
-Description:Animation ブループリントのブレンド スペースを使用してアニメーション ポーズのデータを入力しサンプルを出力するためのガイド
+Description:Animation ブループリントの Blend Space を使用してアニメーション ポーズのデータを入力しサンプルを出力するためのガイド
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -26,57 +27,56 @@ Description:Animation ブループリントのブレンド スペースを使用
 
 [TOC(start:2)]
 
-## 概要
 
 [EXCERPT:Intro]
-_ブレンド スペース_ は _Animation ブループリント_ の **AnimGraphs** にノードを設置して使用します。これらのノードは、最終的にブレンドしたポーズを _ブレンド スペース_ が作成するために使うアニメーションを操作するための値を受け取ります。
+Blendspace は Animation ブループリントの _AnimGraphs_ にノードを設置して使用します。これらのノードは、最終的にブレンドしたポーズを Blend Space が作成するために使うアニメーションを操作するための値を受け取ります。
 [/EXCERPT:Intro]
 
 ##Blend Space ノードの追加
 
-_Blendspace_ ノードは、サンプルのパラメータ データへのアクセスとブレンド スペースのポーズの出力をします。
+Blendspace ノードは、サンプルのパラメータ データへのアクセスと Blendspace のポーズの出力をします。
  
-**ドラッグ＆ドロップ操作で _BlendSpace_ ノードを設置する**
+ドラッグ＆ドロップ操作で BlendSpace ノードを設置する
 
-1. **アセット ブラウザ** でサンプル化したい _ブレンド スペース_ を **ペルソナ** で探します。
+1. **ペルソナ** の **アセット ブラウザ** で、サンプル化したい Blend Space を 探します。
 
 	![](SelectBlendSpace.png)
 
-1. その上で左クリックをして、マウスを **AnimGraph** へドラッグします。 
+1. その上で **左クリック** をして、マウスを **AnimGraph** へドラッグします。 
 
 	![](DragDropBlendSpace.png)(w:720)
 
-1. **左のマウスボタン** を放して、_BlendSpace_ ノードを設置します。
+1. **マウスの左ボタン** をリリースして、BlendSpace ノードを設置します。
 
 	![](BlendSpaceNodeAdded.png)
 
 
-**コンテクスト メニューを使用して _BlendSpace_ ノードを設置する**
+**コンテキスト メニューを使用して BlendSpace ノードを設置する**
 
-1. **AnimGraph** で右クリックをして、 **アニメーション** を展開して、互換性のある全てのブレンド スペースのリスト表示します。
+1. **AnimGraph** を **右クリック** をして、**Animation** を展開して、互換性のある全てのBlend Space をリスト表示します。
 
 	![](AnimationContextMenu.png)
 
-1. サンプル化したい _ブレンド スペース_ をクリックします。
+1. サンプル化したい Blend Space をクリックします。
 
 	![](BlendSpaceContextSelection.png)
 
-1. _BlendSpace_ ノードが設置されました。
+1. BlendSpace ノードが設置されました。
 
 	![](BlendSpaceNodeAdded.png)
 
 
 ##データを入力する
 
-アニメーションのブレンドを実行するために、ブレンド スペースはサンプル パラメータに渡されたデータに依存します。各 _BlendSpace_ ノードは各サンプル パラメータに対し、入力データ ピンを持ちます。他ノードからの変数もしくは出力は、 _BlendSpace_ へ必要なデータを送信するため、これらのピンを線で結びます。
+アニメーションのブレンドを実行するために、Blend Space はサンプル パラメータに渡されたデータに依存します。それぞれの BlendSpace ノードには、それぞれのサンプル パラメータに対する入力データ ピンがあります。他のノードからの変数もしくは出力をワイヤーで接続して、BlendSpace へ必要なデータを渡すことができます。
 
 ![Variable Input Data](bs_input_variables.png)
 
 [REGION:note]
-_BlendSpace_ の編集は現在 2 つの入力ピンの使用に制限されているため、 3 番目の入力ピンの使用はできません。
+BlendSpace の編集に使用できる入力ピンは現在 2 つまでに制限されています。3 つ目の入力ピンは使用できません。
 [/REGION]
 
-_Blend Space_ に渡される値は、通常は **EventGraph** での更新サイクル中に計算された変数、またはゲームプレイコードで計算された変数です。_Animation Blueprint_ の **EventGraph** で計算された Direction 変数と Speed 変数の例が以下となります。
+Blend Space に渡される値は、通常は **EventGraph** での更新サイクル中に計算された変数、またはゲームプレイコードで計算された変数です。以下は、Animation ブループリントの **EventGraph** で計算された Direction 変数と Speed 変数の例です。
 
 [REGION:fullwidth]
 ![Variable Input Data - Update Cycle](bs_input_calc.png)
@@ -84,7 +84,7 @@ _Blend Space_ に渡される値は、通常は **EventGraph** での更新サ�
 
 ## 出力ポーズ
 
-最も簡単なケースでは、 _Blend Space_ ノードの **Pose** を出力するピンを、 **AnimGraph** で **Result** ノードの **Pose** 入力ピンと線で結ぶことが出来ます。
+最も簡単なケースでは、Blend Space ノードの **Pose** を出力するピンを、 **AnimGraph** で **Result** ノードの **Pose** 入力ピンへワイヤーを伸ばすことができます。
 
 ![Output Pose - Result](bs_output_result.png)
 

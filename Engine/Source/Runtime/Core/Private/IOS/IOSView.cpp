@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "IOSView.h"
@@ -19,15 +19,15 @@ id<MTLDevice> GMetalDevice = nil;
 
 @synthesize SwapCount, OnScreenColorRenderBuffer, OnScreenColorRenderBufferMSAA;
 
-+ (bool)IsDeviceOnIOS8
++(bool)IsDeviceOnIOS8
 {
 #ifdef __IPHONE_9_0
-    bool bRequiresIOS8Workaround = true;
-    GConfig->GetBool(TEXT("/Script/IOSWorkarounds.IOSWorkarounds"), TEXT("bUseIOS8Workaround"), bRequiresIOS8Workaround, GEngineIni);
-    NSArray* versionArray = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
-    return [[versionArray objectAtIndex:0] intValue] == 8 && bRequiresIOS8Workaround;
+	bool bRequiresIOS8Workaround = true;
+	GConfig->GetBool(TEXT("/Script/IOSWorkarounds.IOSWorkarounds"), TEXT("bUseIOS8Workaround"), bRequiresIOS8Workaround, GEngineIni);
+	NSArray* versionArray = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
+	return [[versionArray objectAtIndex : 0] intValue] == 8 && bRequiresIOS8Workaround;
 #else
-    return false;
+	return false;
 #endif
 }
 
@@ -250,8 +250,10 @@ id<MTLDevice> GMetalDevice = nil;
  */
 - (void)layoutSubviews
 {
+#if !PLATFORM_TVOS
 	UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
 	FIOSApplication::OrientationChanged(orientation);
+#endif
 }
 
 -(void)UpdateRenderWidth:(uint32)Width andHeight:(uint32)Height
@@ -264,8 +266,8 @@ id<MTLDevice> GMetalDevice = nil;
 			// grab the MetalLayer and typecast it to match what's in layerClass
 			CAMetalLayer* MetalLayer = (CAMetalLayer*)self.layer;
 			CGSize drawableSize = CGSizeMake(Width, Height);
-			check( drawableSize.width == (self.bounds.size.width * self.contentScaleFactor) && drawableSize.height == (self.bounds.size.height * self.contentScaleFactor));
-
+			check( FMath::TruncToInt(drawableSize.width) == FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor) && 
+				   FMath::TruncToInt(drawableSize.height) == FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor));
 			MetalLayer.drawableSize = drawableSize;
 		}
 		return;
@@ -527,7 +529,9 @@ id<MTLDevice> GMetalDevice = nil;
 #endif
 
 	self.view.clearsContextBeforeDrawing = NO;
+#if !PLATFORM_TVOS
 	self.view.multipleTouchEnabled = NO;
+#endif
 }
 
 /**

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -91,7 +91,7 @@ bool UVMReflection::ExecuteUnitTest()
 		TestResults.Add(TEXT("UObject Writing"), (!bError && TestObjA->AObjectRef == TargetResult));
 	}
 
-	// @todo JohnB: Add a test for UObject** casting, i.e. writable object property references, now that it is supported
+	// @todo #JohnB_VMRefl: Add a test for UObject** casting, i.e. writable object property references, now that it is supported
 
 
 
@@ -774,7 +774,7 @@ bool UVMReflection::ExecuteUnitTest()
 		}
 
 		bool bError = false;
-		FText Result = FText::GetEmpty();// (FText)((FVMReflection(TestObj)->*"TextProp"), &bError);
+		FText Result = (FText)(FVMReflection(TestObj)->*"TextProp", &bError);
 
 		TestResults.Add(TEXT("FText Reading"), (!bError && Result.EqualTo(TargetResult)));
 	}
@@ -1364,7 +1364,7 @@ bool UVMReflection::ExecuteUnitTest()
 		bool bError = false;
 		FText Result;
 		
-		Result = FText::GetEmpty();// (FText)((FVMReflection(TestObj)->*"DynTextPropArray")["FText"][0], &bError);
+		Result = (FText)((FVMReflection(TestObj)->*"DynTextPropArray")["FText"][0], &bError);
 
 		TestResults.Add(TEXT("Dynamic Array Type Verify (FText)"), (!bError && Result.EqualTo(TargetResult)));
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,7 @@ class ANUTActor;
 /**
  * Enum for defining custom NetcodeUnitTest control channel commands (sent through NMT_NUTControl)
  */
-// @todo JohnB: Fully document individually
+// @todo #JohnBDoc: Fully document individually
 namespace ENUTControlCommand
 {
 	enum Type
@@ -162,7 +162,7 @@ public:
 	/**
 	 * Received by all clients, emits a ping to log
 	 */
-	// @todo JohnB: When the VM reflection helper is finished, remove NETCODEUNITTEST_API from this, and use reflection instead
+	// @todo #JohnBRefactor: When the VM reflection helper is finished, remove NETCODEUNITTEST_API from this, and use reflection instead
 	UFUNCTION(reliable, NetMulticast)
 	NETCODEUNITTEST_API void NetMulticastPing();
 
@@ -184,10 +184,12 @@ public:
 	void ServerExecute(const FString& InDelegate);
 
 
-	/**
-	 * Monitor for initial player on server, in order to assign ownership
-	 */
 	virtual void Tick(float DeltaSeconds) override;
+
+	/**
+	 * Update the owner for the NUTActor, if the current owner is no longer valid
+	 */
+	void UpdateOwner();
 };
 
 

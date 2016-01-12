@@ -1,17 +1,19 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2659180
 Availability:Public
-Title:物理コンポーネント
+Title:Physics コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:被破壊、スラスタ、フォースのコンポーネントなど、物理と合わせて使用するコンポーネントについて説明します。 
+Description:Destructible、Thruster、r Force のコンポーネントなど、物理と合わせて使用するコンポーネントについて説明します。 
 Related:Engine/Physics
 Related:Engine/Physics/Constraints/ConstraintsBlueprints
 Related:Resources/ContentExamples/Physics
 Related:Resources/ContentExamples/Destructables
 Related:Engine/Blueprints/UserGuide/Components
+SkillLevel:初心者向け
+Version:4.9
 
-物理コンポーネントは、レベル内で様々な方法で物理を利用するオブジェクトに作用するために使用されます。 
+Physics コンポーネントは、レベル内で様々な方法で物理を利用するオブジェクトに作用するために使用します。 
 
-## 被破壊コンポーネント
+## Destructible コンポーネント
 
 **Destructible コンポーネント** は、Destructible アクタの物理データを保持します。このコンポーネントをサブオブジェクトとして追加する場合、使用する **Destructible Mesh** アセットを指定しなければなりません。必要があれば、アセットの Fracture Effects を使用する代わりに、**Fracture Effects** をオーバーライドし、指定することもできます。 
 
@@ -19,29 +21,29 @@ Related:Engine/Blueprints/UserGuide/Components
 
 ![](destructible_mesh.png)(w:400)
 
-## 物理コンストレイント コンポーネント
+## Physics Constraint コンポーネント
 
 **PhysicsConstraint コンポーネント** は、2 つの剛体の接続に効果的なジョイントです。コンポーネントの様々なパラメータを使用して様々なタイプのジョイントを作成できます。 
 
-**PhysicsConstraint コンポーネント** と、2 つの **StaticMesh コンポーネント** を使用することで、ぶら下がるタイプのオブジェクトを作成できます。例えば、ワールドで物理に反応する回転するタイヤ、サンドバッグ、標識など、プレイヤーがコンポーネントとインタラクションできるようにします (**ブループリント** の例については、[](Engine/Physics/Constraints/ConstraintsBlueprints) をご覧ください)。 
+**PhysicsConstraint コンポーネント** と、2 つの **StaticMesh コンポーネント** を使用することで、ぶら下がるタイプのオブジェクトを作成できます。例えば、ワールドで物理に反応する揺れるタイヤ、サンドバッグ、標識など、プレイヤーがコンポーネントとインタラクションできるようにします (**ブループリント** の例については、**[](Engine/Physics/Constraints/ConstraintsBlueprints)** をご覧ください)。 
 
 ![](constraint.png)(w:400)
 
-## 物理ハンドル コンポーネント
+## Physics Handle コンポーネント
 
-**PhysicsHandle コンポーネント** は、物理オブジェクトを「つかんで」移動するためのオブジェクトです。その間、つかんだオブジェクトは物理の使用を継続することができます。この例としては、物理オブジェクトをピックアップし、落とすことができる「重力銃」があります (詳しい情報は、[物理コンポーネントの例](Resources/ContentExamples/Physics) をご覧ください)。
+**PhysicsHandle コンポーネント** は、物理オブジェクトを「つかんで」移動するためのオブジェクトです。その間、つかんだオブジェクトは物理の使用を継続することができます。この例としては、物理オブジェクトをピックアップし、落とすことができる「重力銃」があります (詳しい情報は、[**物理コンポーネントの例**](Resources/ContentExamples/Physics) をご覧ください)。
 
 ![](handle.png)(w:400)
 
-## スラスタ（推力）コンポーネント
+## Physics Thruster コンポーネント
 
-**PhysicsThruster コンポーネント** を負の X 方向に下向きに指定した力(すなわち、押し込みたい方向のポイントX) を適用するための物理を持つオブジェクトと合わせて使用します。スラスタは連続力を使用し、スクリプトによって自動起動、起動または停止させることができます。 
+**PhysicsThruster コンポーネント** を、負の X 方向に指定した力(すなわち、押し込みたい方向のポイントX) を適用するための物理を持つオブジェクトと合わせて使用します。スラスタは連続力を使用し、スクリプトによって自動起動、起動または停止させることができます。 
 
-スラスタの使用例としてはロケット (以下の図) があります。これは、ロケットを上方向に推進する力を継続的に適用します (スラスタはロケットの下に配置されるため)。スラスタの影響を受けるコンポーネントの動きを **Blocking Volumes** を使用して抑えることができます。  
+スラスタの使用例としてはロケット (以下の図) があります。これは、ロケットを上方向に推進する力 (スラスタはロケットの下に配置されるため)を継続的に適用します。スラスタの影響を受けるコンポーネントの動きを **Blocking ボリューム** を使用して抑えることができます。  
 
 ![](thruster.png)(w:800)
 
-## ラジアル フォースコンポーネント
+## RadialForce コンポーネント
 
 **RadialForce コンポーネント** を使用して、物理オブジェクトおよび / または被破壊性オブジェクトに影響するラジアルフォースまたは衝撃を放射します。**PhysicsThruster コンポーネント** とは異なり、このタイプのコンポーネントは、「ファイヤー アンド フォーゲット」 (撃ちっ放し) タイプの力を適用し、継続的ではありません。 
 

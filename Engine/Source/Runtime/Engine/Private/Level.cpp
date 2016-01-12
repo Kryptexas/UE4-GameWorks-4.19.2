@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 Level.cpp: Level-related functions
@@ -182,10 +182,10 @@ bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails
 {
 	return bCreatePackagePerAsset == Other.bCreatePackagePerAsset
 		&& DetailsPercentage == Other.DetailsPercentage
-		&& StaticMeshMaterial == Other.StaticMeshMaterial
+		&& StaticMeshMaterialSettings == Other.StaticMeshMaterialSettings
 		&& bOverrideLandscapeExportLOD == Other.bOverrideLandscapeExportLOD
 		&& LandscapeExportLOD == Other.LandscapeExportLOD
-		&& LandscapeMaterial == Other.LandscapeMaterial
+		&& LandscapeMaterialSettings == Other.LandscapeMaterialSettings
 		&& bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape
 		&& bBakeGrassToLandscape == Other.bBakeGrassToLandscape;
 }
@@ -195,35 +195,59 @@ void FLevelSimplificationDetails::PostLoadDeprecated()
 	FLevelSimplificationDetails DefaultObject;
 	if (bGenerateMeshNormalMap_DEPRECATED != DefaultObject.bGenerateMeshNormalMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bNormalMap = bGenerateMeshNormalMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bNormalMap = bGenerateMeshNormalMap_DEPRECATED;
 	}
 	if (bGenerateMeshMetallicMap_DEPRECATED != DefaultObject.bGenerateMeshMetallicMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bMetallicMap = bGenerateMeshMetallicMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bMetallicMap = bGenerateMeshMetallicMap_DEPRECATED;
 	}
 	if (bGenerateMeshRoughnessMap_DEPRECATED != DefaultObject.bGenerateMeshRoughnessMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bRoughnessMap = bGenerateMeshRoughnessMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bRoughnessMap = bGenerateMeshRoughnessMap_DEPRECATED;
 	}
 	if (bGenerateMeshSpecularMap_DEPRECATED != DefaultObject.bGenerateMeshSpecularMap_DEPRECATED)
 	{
-		StaticMeshMaterial.bSpecularMap = bGenerateMeshSpecularMap_DEPRECATED;
+		StaticMeshMaterial_DEPRECATED.bSpecularMap = bGenerateMeshSpecularMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeNormalMap_DEPRECATED != DefaultObject.bGenerateLandscapeNormalMap_DEPRECATED)
 	{
-		LandscapeMaterial.bNormalMap = bGenerateLandscapeNormalMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bNormalMap = bGenerateLandscapeNormalMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeMetallicMap_DEPRECATED != DefaultObject.bGenerateLandscapeMetallicMap_DEPRECATED)
 	{
-		LandscapeMaterial.bMetallicMap = bGenerateLandscapeMetallicMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bMetallicMap = bGenerateLandscapeMetallicMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeRoughnessMap_DEPRECATED != DefaultObject.bGenerateLandscapeRoughnessMap_DEPRECATED)
 	{
-		LandscapeMaterial.bRoughnessMap = bGenerateLandscapeRoughnessMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bRoughnessMap = bGenerateLandscapeRoughnessMap_DEPRECATED;
 	}
 	if (bGenerateLandscapeSpecularMap_DEPRECATED != DefaultObject.bGenerateLandscapeSpecularMap_DEPRECATED)
 	{
-		LandscapeMaterial.bSpecularMap = bGenerateLandscapeSpecularMap_DEPRECATED;
+		LandscapeMaterial_DEPRECATED.bSpecularMap = bGenerateLandscapeSpecularMap_DEPRECATED;
+	}
+
+	if (!(LandscapeMaterial_DEPRECATED == DefaultObject.LandscapeMaterial_DEPRECATED))
+	{
+		LandscapeMaterialSettings.TextureSize = LandscapeMaterial_DEPRECATED.BaseColorMapSize;
+		LandscapeMaterialSettings.bNormalMap = LandscapeMaterial_DEPRECATED.bNormalMap;
+		LandscapeMaterialSettings.bMetallicMap = LandscapeMaterial_DEPRECATED.bMetallicMap;
+		LandscapeMaterialSettings.bRoughnessMap = LandscapeMaterial_DEPRECATED.bRoughnessMap;
+		LandscapeMaterialSettings.bSpecularMap = LandscapeMaterial_DEPRECATED.bSpecularMap;
+		LandscapeMaterialSettings.RoughnessConstant = LandscapeMaterial_DEPRECATED.RoughnessConstant;
+		LandscapeMaterialSettings.MetallicConstant = LandscapeMaterial_DEPRECATED.MetallicConstant;
+		LandscapeMaterialSettings.SpecularConstant = LandscapeMaterial_DEPRECATED.SpecularConstant;
+	}
+
+	if (!(StaticMeshMaterial_DEPRECATED == DefaultObject.StaticMeshMaterial_DEPRECATED))
+	{
+		StaticMeshMaterialSettings.TextureSize = StaticMeshMaterial_DEPRECATED.BaseColorMapSize;
+		StaticMeshMaterialSettings.bNormalMap = StaticMeshMaterial_DEPRECATED.bNormalMap;
+		StaticMeshMaterialSettings.bMetallicMap = StaticMeshMaterial_DEPRECATED.bMetallicMap;
+		StaticMeshMaterialSettings.bRoughnessMap = StaticMeshMaterial_DEPRECATED.bRoughnessMap;
+		StaticMeshMaterialSettings.bSpecularMap = StaticMeshMaterial_DEPRECATED.bSpecularMap;
+		StaticMeshMaterialSettings.RoughnessConstant = StaticMeshMaterial_DEPRECATED.RoughnessConstant;
+		StaticMeshMaterialSettings.MetallicConstant = StaticMeshMaterial_DEPRECATED.MetallicConstant;
+		StaticMeshMaterialSettings.SpecularConstant = StaticMeshMaterial_DEPRECATED.SpecularConstant;
 	}
 }
 
@@ -236,6 +260,9 @@ ULevel::ULevel( const FObjectInitializer& ObjectInitializer )
 	,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 	,	PrecomputedLightVolume(new FPrecomputedLightVolume())
 {
+#if WITH_EDITORONLY_DATA
+	LevelColor = FLinearColor::White;
+#endif
 }
 
 void ULevel::Initialize(const FURL& InURL)
@@ -418,6 +445,21 @@ void ULevel::Serialize( FArchive& Ar )
 	}
 }
 
+bool ULevel::IsNetActor(const AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return false;
+	}
+
+	// If this is a server, use RemoteRole.
+	// If this is a client, use Role.
+	const ENetRole NetRole = (Actor->GetNetMode() < NM_Client) ? Actor->GetRemoteRole() : (ENetRole)Actor->Role;
+
+	// This test will return true on clients for actors with ROLE_Authority, which might be counterintuitive,
+	// but clients will need to consider these actors in some cases, such as if their bTearOff flag is true.
+	return NetRole > ROLE_None;
+}
 
 void ULevel::SortActorList()
 {
@@ -439,7 +481,8 @@ void ULevel::SortActorList()
 	for (int32 ActorIndex = StartIndex; ActorIndex < Actors.Num(); ActorIndex++)
 	{
 		AActor* Actor = Actors[ActorIndex];
-		if (Actor != NULL && !Actor->IsPendingKill() && Actor->GetRemoteRole() == ROLE_None)
+
+		if (Actor != NULL && !Actor->IsPendingKill() && !IsNetActor(Actor))
 		{
 			NewActors.Add(Actor);
 		}
@@ -450,7 +493,7 @@ void ULevel::SortActorList()
 	for (int32 ActorIndex = StartIndex; ActorIndex < Actors.Num(); ActorIndex++)
 	{
 		AActor* Actor = Actors[ActorIndex];		
-		if (Actor != NULL && !Actor->IsPendingKill() && Actor->GetRemoteRole() > ROLE_None)
+		if (Actor != NULL && !Actor->IsPendingKill() && IsNetActor(Actor))
 		{
 			NewActors.Add(Actor);
 		}
@@ -719,6 +762,18 @@ static void SortActorsHierarchy(TTransArray<AActor*>& Actors)
 	StableSortInternal(Actors.GetData(), Actors.Num(), [&](AActor* L, AActor* R) {
 			return CalcAttachDepth(L) < CalcAttachDepth(R);
 	});
+
+	// Since all the null entries got sorted to the end, lop them off right now
+	int32 RemoveAtIndex = Actors.Num();
+	while (RemoveAtIndex > 0 && Actors[RemoveAtIndex - 1] == nullptr)
+	{
+		--RemoveAtIndex;
+	}
+
+	if (RemoveAtIndex < Actors.Num())
+	{
+		Actors.RemoveAt(RemoveAtIndex, Actors.Num() - RemoveAtIndex);
+	}
 }
 
 void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bRerunConstructionScripts)
@@ -779,9 +834,10 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 			// Don't rerun construction scripts until after all actors' components have been registered.  This
 			// is necessary because child attachment lists are populated during registration, and running construction
 			// scripts requires that the attachments are correctly initialized.
-			for (AActor* Actor : Actors)
+			// Don't use ranged for as construction scripts can manipulate the actor array
+			for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ++ActorIndex)
 			{
-				if (Actor)
+				if (AActor* Actor = Actors[ActorIndex])
 				{
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 					FScopeCycleCounterUObject ContextScope(Actor);
@@ -800,6 +856,25 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 }
 
 #if WITH_EDITOR
+
+void ULevel::MarkLevelComponentsRenderStateDirty()
+{
+	for (UModelComponent* ModelComponent : ModelComponents)
+	{
+		if (ModelComponent)
+		{
+			ModelComponent->MarkRenderStateDirty();
+		}
+	}
+
+	for (AActor* Actor : Actors)
+	{
+		if (Actor)
+		{
+			Actor->MarkComponentsRenderStateDirty();
+		}
+	}
+}
 
 void ULevel::CreateModelComponents()
 {
@@ -1168,7 +1243,7 @@ void ULevel::PostEditUndo()
 	//Actors.Remove(nullptr); // removed because TTransArray exploded (undo followed by redo ends up with a different ArrayNum to originally)
 	TSet<AActor*> ActorsSet(Actors);
 	TArray<UObject *> InnerObjects;
-	GetObjectsWithOuter(this, InnerObjects, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_PendingKill);
+	GetObjectsWithOuter(this, InnerObjects, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_NoFlags, /* InternalExclusionFlags */ EInternalObjectFlags::PendingKill);
 	for (UObject* InnerObject : InnerObjects)
 	{
 		AActor* InnerActor = Cast<AActor>(InnerObject);
@@ -1425,6 +1500,20 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 							TextureInstance.BoundingSphere	= PrimitiveStreamingTexture.Bounds;
 							TextureInstance.TexelFactor		= PrimitiveStreamingTexture.TexelFactor;
 
+							// HLOD support.
+							TextureInstance.MinDistance = Primitive->MinDrawDistance;
+							const UPrimitiveComponent* LODParentPrimitive = Primitive->GetLODParentPrimitive();
+							if (LODParentPrimitive) // Max distance when HLOD becomes visible.
+							{
+								TextureInstance.MaxDistance = LODParentPrimitive->MinDrawDistance;
+								// Taken into account the streaming distance offsets.
+								TextureInstance.MaxDistance += (Primitive->Bounds.Origin - LODParentPrimitive->Bounds.Origin).Size();
+							}
+							else
+							{
+								TextureInstance.MaxDistance = FLT_MAX;
+							}
+
 							// See whether there already is an instance in the level.
 							TArray<FStreamableTextureInstance>* TextureInstances = TextureToInstancesMap.Find( Texture2D );
 							// We have existing instances.
@@ -1637,8 +1726,9 @@ void ULevel::ReleaseRenderingResources()
 void ULevel::RouteActorInitialize()
 {
 	// Send PreInitializeComponents and collect volumes.
-	for( AActor* const Actor : Actors )
+	for( int32 Index = 0; Index < Actors.Num(); ++Index )
 	{
+		AActor* const Actor = Actors[Index];
 		if( Actor && !Actor->IsActorInitialized() )
 		{
 			Actor->PreInitializeComponents();
@@ -1649,8 +1739,9 @@ void ULevel::RouteActorInitialize()
 	TArray<AActor *> ActorsToBeginPlay;
 
 	// Send InitializeComponents on components and PostInitializeComponents.
-	for( AActor* const Actor : Actors )
+	for( int32 Index = 0; Index < Actors.Num(); ++Index )
 	{
+		AActor* const Actor = Actors[Index];
 		if( Actor )
 		{
 			if( !Actor->IsActorInitialized() )
@@ -1681,6 +1772,7 @@ void ULevel::RouteActorInitialize()
 	for (int32 ActorIndex = 0; ActorIndex < ActorsToBeginPlay.Num(); ActorIndex++)
 	{
 		AActor* Actor = ActorsToBeginPlay[ActorIndex];
+		SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
 		Actor->BeginPlay();			
 	}
 }
@@ -1709,7 +1801,7 @@ TArray<UBlueprint*> ULevel::GetLevelBlueprints() const
 {
 	TArray<UBlueprint*> LevelBlueprints;
 	TArray<UObject*> LevelChildren;
-	GetObjectsWithOuter(this, LevelChildren, false, RF_PendingKill);
+	GetObjectsWithOuter(this, LevelChildren, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
 	for (UObject* LevelChild : LevelChildren)
 	{

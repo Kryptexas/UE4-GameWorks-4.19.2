@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,6 +13,7 @@
 #define ARG_THREAD_SINGLETON_TEST			"threadsingleton"
 #define ARG_SYSINFO_TEST					"sysinfo"
 #define ARG_CRASH_TEST						"crash"
+#define ARG_STRINGPRECISION_TEST			"stringprecision"
 
 // this module headers
 #include "Parent.h"

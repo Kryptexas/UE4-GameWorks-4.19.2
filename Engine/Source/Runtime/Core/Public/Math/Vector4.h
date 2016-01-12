@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -298,13 +298,26 @@ public:
 	FORCEINLINE FVector4 UnsafeNormal3() const;
 
 	/**
-	 * Return the FRotator corresponding to the direction that the vector
-	 * is pointing in.  Sets Yaw and Pitch to the proper numbers, and sets
-	 * roll to zero because the roll can't be determined from a vector.
-	 *
-	 * @return The FRotator of the vector's direction.
+	 * Return the FRotator orientation corresponding to the direction in which the vector points.
+	 * Sets Yaw and Pitch to the proper numbers, and sets roll to zero because the roll can't be determined from a vector.
+	 * @return FRotator from the Vector's direction.
 	 */
-	CORE_API FRotator Rotation() const;
+	CORE_API FRotator ToOrientationRotator() const;
+
+	/**
+	 * Return the Quaternion orientation corresponding to the direction in which the vector points.
+	 * @return Quaternion from the Vector's direction.
+	 */
+	CORE_API FQuat ToOrientationQuat() const;
+
+	/**
+	 * Return the FRotator orientation corresponding to the direction in which the vector points.
+	 * Sets Yaw and Pitch to the proper numbers, and sets roll to zero because the roll can't be determined from a vector.
+	 * Identical to 'ToOrientationRotator()'.
+	 * @return FRotator from the Vector's direction.
+	 * @see ToOrientationRotator()
+	 */
+	FRotator Rotation() const;
 
 	/**
 	 * Set all of the vectors coordinates.
@@ -346,12 +359,17 @@ public:
 	void FindBestAxisVectors3( FVector4& Axis1, FVector4& Axis2 ) const;
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN() const
+	FORCEINLINE void DiagnosticCheckNaN()
 	{
-		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		if (ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("FVector contains NaN: %s"), *ToString());
+			*this = FVector4(FVector::ZeroVector);
+
+		}
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN() const { }
+	FORCEINLINE void DiagnosticCheckNaN() { }
 #endif
 
 public:

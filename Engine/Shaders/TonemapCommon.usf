@@ -1,11 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TonemapCommon.usf: PostProcessing tone mapping common
 =============================================================================*/
 
 // #todo-rco: Fix in the cross-compiler
-#if COMPILER_GLSL || COMPILER_GLSL_ES2 || METAL_PROFILE || VULKAN_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
+#if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_METAL || VULKAN_PROFILE
 #define log10(x)  log(x) / log(10.0)
 #endif
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingThread.h: Rendering thread definitions.
@@ -83,6 +83,7 @@ extern RENDERCORE_API void FlushRenderingCommands();
 extern RENDERCORE_API void FlushPendingDeleteRHIResources_GameThread();
 extern RENDERCORE_API void FlushPendingDeleteRHIResources_RenderThread();
 
+extern RENDERCORE_API void TickRenderingTickables();
 
 ////////////////////////////////////
 // Render thread suspension
@@ -150,6 +151,7 @@ public:
 	// All render commands run on the render thread
 	static ENamedThreads::Type GetDesiredThread()
 	{
+		check(!GIsThreadedRendering || ENamedThreads::RenderThread != ENamedThreads::GameThread);
 		return ENamedThreads::RenderThread;
 	}
 

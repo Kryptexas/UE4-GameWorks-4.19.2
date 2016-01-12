@@ -1,19 +1,15 @@
-﻿INTSourceChangelist:2431696
+﻿INTSourceChangelist:2638758
 Availability:Docs
 Title:썸네일 렌더링 테크니컬 가이드
 Crumbs: %ROOT%, Engine, Engine/UI, Programming
 Description:콘텐츠 브라우저에서 애셋 유형별로 썸네일을 렌더링하는 법에 대한 프로그래머용 안내서입니다.
-Version: 4.5
+Version: 4.9
 
 [REGION:todo]
 	언리얼 엔진 3 에서 이식해 온 문서로 현재 검토중에 있습니다. 정보가 맞지 않을 수 있습니다.
 [/REGION]
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 이전 렌더링 시스템은 문제가 있는 객체의 일부였습니다. 이것은 썸네일을 렌더하는데 필요한 렌더링 인터페이스로의 액세스가 없는 Core에서 정의되었습니다. 따라서 썸네일 뷰를 제공할 방법이 없었던 Archetype과 같은 객체에 문제가 되었습니다. 또한 이 에디터 전용 함수가 공간만을 차지하는 콘솔에 포함되어 있었습니다. 이 시스템의 또 다른 문제는 동일한 접근 방법(즉, 썸네일용 아이콘)을 사용하여 썸네일을 렌더하는 항목에 대한 알맞은 재사용이 부족한 것이었습니다.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkyLightingShared.usf
@@ -58,6 +58,6 @@ float GetDynamicSkyIndirectIrradiance(float2 ScreenUV, float3 WorldNormal)
 {
 	float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz;
 	float SkyVisibility = length(BentNormal);
-	float3 DiffuseLookup = GetSkySHDiffuse(WorldNormal) * View.SkyLightColor.rgb;
+	float3 DiffuseLookup = GetSkySHDiffuse(WorldNormal) * Frame.SkyLightColor.rgb;
 	return Luminance(DiffuseLookup) * SkyVisibility;
 }

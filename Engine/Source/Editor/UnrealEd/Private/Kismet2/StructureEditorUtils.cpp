@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "StructureEditorUtils.h"
@@ -377,8 +377,13 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 		{
 			bResult = true;
 		}
-		else if ((PinType.PinCategory == K2Schema->PC_Object) || (PinType.PinCategory == K2Schema->PC_Interface) || (PinType.PinCategory == K2Schema->PC_Class))
+		else if ((PinType.PinCategory == K2Schema->PC_Object) 
+			|| (PinType.PinCategory == K2Schema->PC_Interface) 
+			|| (PinType.PinCategory == K2Schema->PC_Class)
+			|| (PinType.PinCategory == K2Schema->PC_AssetClass)
+			|| (PinType.PinCategory == K2Schema->PC_Asset))
 		{
+			// K2Schema->DefaultValueSimpleValidation finds an object, passed by path, invalid
 			bResult = true;
 		}
 		else
@@ -682,6 +687,58 @@ void FStructureEditorUtils::ModifyStructData(UUserDefinedStruct* Struct)
 	{
 		EditorData->Modify();
 	}
+}
+
+bool FStructureEditorUtils::CanEnableMultiLineText(const UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	if (VarDesc)
+	{
+		auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+		if (Property)
+		{
+			// Can only set multi-line text on string and text properties
+			return Property->IsA(UStrProperty::StaticClass())
+				|| Property->IsA(UTextProperty::StaticClass());
+		}
+	}
+	return false;
+}
+
+bool FStructureEditorUtils::ChangeMultiLineTextEnabled(UUserDefinedStruct* Struct, FGuid VarGuid, bool bIsEnabled)
+{
+	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	if (CanEnableMultiLineText(Struct, VarGuid) && VarDesc->bEnableMultiLineText != bIsEnabled)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeMultiLineTextEnabled", "Change Multi-line Text Enabled"));
+		ModifyStructData(Struct);
+
+		VarDesc->bEnableMultiLineText = bIsEnabled;
+		auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+		if (Property)
+		{
+			if (VarDesc->bEnableMultiLineText)
+			{
+				Property->SetMetaData("MultiLine", TEXT("true"));
+			}
+			else
+			{
+				Property->RemoveMetaData("MultiLine");
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+bool FStructureEditorUtils::IsMultiLineTextEnabled(const UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	if (CanEnableMultiLineText(Struct, VarGuid))
+	{
+		return VarDesc->bEnableMultiLineText;
+	}
+	return false;
 }
 
 bool FStructureEditorUtils::CanEnable3dWidget(const UUserDefinedStruct* Struct, FGuid VarGuid)

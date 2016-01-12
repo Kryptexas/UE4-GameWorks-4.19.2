@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/DynamicBlueprintBinding.h"
@@ -32,6 +32,6 @@ class ENGINE_API UInputDelegateBinding : public UDynamicBlueprintBinding
 	GENERATED_UCLASS_BODY()
 
 	virtual void BindToInputComponent(UInputComponent* InputComponent) const { };
-
-	static void BindInputDelegates(const UBlueprintGeneratedClass* BGClass, UInputComponent* InputComponent);
+	static bool SupportsInputDelegate(const UClass* InClass);
+	static void BindInputDelegates(const UClass* InClass, UInputComponent* InputComponent);
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -117,9 +117,9 @@ HRESULT FD3D12DynamicHeapAllocator::CreateResource(FD3D12DynamicHeapAllocator* A
 void FD3D12DynamicHeapAllocator::ReleaseAllResources()
 {
 	TRefCountPtr<FD3D12ResourceBlockInfo> pBlock;
-	
+
 	// Empty the expired blocks list
-	while(!ExpiredBlocks.IsEmpty())
+	while (!ExpiredBlocks.IsEmpty())
 	{
 		ExpiredBlocks.Dequeue(pBlock);
 	}
@@ -194,7 +194,7 @@ void FD3D12DynamicHeapAllocator::Alloc(uint32 size, uint32 alignment, FD3D12Reso
 			// Create additional available blocks that can be sub-allocated from the same resource
 			for (uint32 Offset = BlockSize; Offset <= MIN_HEAP_SIZE - BlockSize; Offset += BlockSize)
 			{
-				void* Start = (void* )((uint8* )BaseAddress + Offset);
+				void* Start = (void*)((uint8*)BaseAddress + Offset);
 				FD3D12ResourceBlockInfo* NewBlock = new FD3D12ResourceBlockInfo(Resource, Start, Offset, bucket, this);
 
 				// Add the bucket to the available list
@@ -280,7 +280,7 @@ void* FD3D12DynamicHeapAllocator::FastAlloc(uint32 size, uint32 alignment, class
 	ResourceLocation->SetFromD3DResource(FastAllocBuffer->GetResource(), CurrentOffset, size);
 	ResourceLocation->LinkToResourceLocation(FastAllocBuffer);
 	NextFastAllocOffset = CurrentOffset + size;
-	pData = (void* )((uint8* )FastAllocData + CurrentOffset);
+	pData = (void*)((uint8*)FastAllocData + CurrentOffset);
 
 	return pData;
 }
@@ -304,15 +304,15 @@ const uint64 DefaultRetentionFrameCount = 5;
 
 struct FDequeueAlloc
 {
-	FDequeueAlloc (FD3D12CommandListManager* InCommandListManager, const uint64 InRetentionFrameCount)
-		: CommandListManager (InCommandListManager)
+	FDequeueAlloc(FD3D12CommandListManager* InCommandListManager, const uint64 InRetentionFrameCount)
+		: CommandListManager(InCommandListManager)
 		, RetentionFrameCount(InRetentionFrameCount)
 	{
 	}
 
 	bool operator() (FD3D12ResourceBlockInfo* pBlockInfo)
 	{
-		return CommandListManager->GetFence(FT_Frame).IsFenceFinished(pBlockInfo->FrameFence + RetentionFrameCount);
+		return CommandListManager->GetFence(FT_Frame).IsFenceComplete(pBlockInfo->FrameFence + RetentionFrameCount);
 	}
 
 	FD3D12CommandListManager* CommandListManager;
@@ -324,7 +324,7 @@ void FD3D12DynamicHeapAllocator::CleanupFreeBlocks()
 	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
 
 #if SUB_ALLOCATED_DEFAULT_ALLOCATIONS
-	const static uint32 MinCleanupBucket = FMath::Max<uint32> (0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
+	const static uint32 MinCleanupBucket = FMath::Max<uint32>(0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
 #else
 	const static uint32 MinCleanupBucket = 0;
 #endif
@@ -336,19 +336,19 @@ void FD3D12DynamicHeapAllocator::CleanupFreeBlocks()
 		FDequeueAlloc DequeueAlloc(&CommandListManager, DynamicRetentionFrameCount);
 		TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
 
-		while (AvailableBlocks[bucket].Dequeue (pBlockInfo, DequeueAlloc))
+		while (AvailableBlocks[bucket].Dequeue(pBlockInfo, DequeueAlloc))
 		{
 #if UE_BUILD_DEBUG
 			AllocatorStats.AvailableAllocs[bucket]--;
 #endif
 		}
 	}
-	
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-	FDequeueAlloc DequeueAlloc (&CommandListManager, 0);
 
-	while(ExpiredBlocks.Dequeue (pBlockInfo, DequeueAlloc))
-	 {
+	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
+	FDequeueAlloc DequeueAlloc(&CommandListManager, 0);
+
+	while (ExpiredBlocks.Dequeue(pBlockInfo, DequeueAlloc))
+	{
 		check(pBlockInfo);
 		uint32 bucket = pBlockInfo->Bucket;
 		// Add the bucket to the available list
@@ -394,7 +394,7 @@ void FD3D12DefaultBufferPool::CleanupFreeBlocks()
 	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
 
 #if SUB_ALLOCATED_DEFAULT_ALLOCATIONS
-	const static uint32 MinCleanupBucket = FMath::Max<uint32> (0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
+	const static uint32 MinCleanupBucket = FMath::Max<uint32>(0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
 #else
 	const static uint32 MinCleanupBucket = 0;
 #endif
@@ -403,7 +403,7 @@ void FD3D12DefaultBufferPool::CleanupFreeBlocks()
 	// and would be fragmented by deleting blocks
 	for (uint32 bucket = MinCleanupBucket; bucket < NumBuckets; bucket++)
 	{
-		FDequeueAlloc DequeueAlloc (&CommandListManager, DefaultRetentionFrameCount);
+		FDequeueAlloc DequeueAlloc(&CommandListManager, DefaultRetentionFrameCount);
 
 		TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
 
@@ -413,9 +413,9 @@ void FD3D12DefaultBufferPool::CleanupFreeBlocks()
 	}
 
 	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-	FDequeueAlloc DequeueAlloc (&CommandListManager, 0);
+	FDequeueAlloc DequeueAlloc(&CommandListManager, 0);
 
-	while(ExpiredBlocks.Dequeue (pBlockInfo, DequeueAlloc))
+	while (ExpiredBlocks.Dequeue(pBlockInfo, DequeueAlloc))
 	{
 		check(pBlockInfo);
 		// Add the bucket to the available list if there is room
@@ -537,7 +537,7 @@ HRESULT FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC&
 				// Add the bucket to the available list
 				AvailableBuffers[bucket].Enqueue(NewBlock);
 			}
-	}
+		}
 #endif
 #endif
 	}
@@ -563,10 +563,10 @@ HRESULT FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC&
 
 		if (AlignmentMismatch != 0)
 		{
-			ResourceLocation->SetPadding (Alignment - AlignmentMismatch);
+			ResourceLocation->SetPadding(Alignment - AlignmentMismatch);
 
-			check (ResourceLocation->GetOffset() % Alignment == 0);
-			check (ResourceLocation->GetOffset() % 4         == 0);
+			check(ResourceLocation->GetOffset() % Alignment == 0);
+			check(ResourceLocation->GetOffset() % 4         == 0);
 		}
 	}
 
@@ -628,7 +628,7 @@ void FD3D12DefaultBufferPool::ReleaseAllResources()
 // Grab a buffer from the available buffers or create a new buffer if none are available
 HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* pInitialData, FD3D12ResourceLocation* ResourceLocation, uint32 Alignment)
 {
-	check ((uint32)Desc.Flags < MAX_DEFAULT_POOLS);
+	check((uint32)Desc.Flags < MAX_DEFAULT_POOLS);
 
 	return DefaultBufferPools[Desc.Flags]->AllocDefaultResource(Desc, pInitialData, ResourceLocation, Alignment);
 }
@@ -663,13 +663,13 @@ HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC&
 
 HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
 {
-	return FD3D12DynamicRHI::CreateCommittedResource (Desc, HeapProps, InitialUsage, ClearValue, ppResource);
+	return FD3D12DynamicRHI::CreateCommittedResource(Desc, HeapProps, InitialUsage, ClearValue, ppResource);
 }
 
 HRESULT FD3D12ResourceHelper::CreateDefaultResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
 {
 	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-	return FD3D12DynamicRHI::CreateCommittedResource (Desc, heapProperties, D3D12_RESOURCE_STATE_COMMON, ClearValue, ppResource);
+	return FD3D12DynamicRHI::CreateCommittedResource(Desc, heapProperties, D3D12_RESOURCE_STATE_COMMON, ClearValue, ppResource);
 }
 
 HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 initHeapSize, FD3D12Resource** ppResource)
@@ -702,7 +702,10 @@ void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* In
 	// Cache the resource binding tier
 	ResourceBindingTier = GetParentDevice()->GetResourceBindingTier();
 
-	DescriptorCache.Init(InParent, InCmdContext);
+	// Init the descriptor heaps
+	const uint32 NumViewDescriptors = (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_TIER_1 : NUM_VIEW_DESCRIPTORS_TIER_2;
+	const uint32 NumSamplerDescriptors = NUM_SAMPLER_DESCRIPTORS;
+	DescriptorCache.Init(InParent, InCmdContext, NumViewDescriptors, NumSamplerDescriptors);
 
 	if (AncestralState)
 	{
@@ -779,10 +782,10 @@ void FD3D12StateCacheBase::ClearState()
 
 	ClearSRVs();
 
-	FMemory::Memzero(PipelineState.Common.CurrentShaderSamplerCounts, sizeof (PipelineState.Common.CurrentShaderSamplerCounts));
-	FMemory::Memzero(PipelineState.Common.CurrentShaderSRVCounts, sizeof (PipelineState.Common.CurrentShaderSRVCounts));
-	FMemory::Memzero(PipelineState.Common.CurrentShaderCBCounts, sizeof (PipelineState.Common.CurrentShaderCBCounts));
-	FMemory::Memzero(PipelineState.Common.CurrentShaderUAVCounts, sizeof (PipelineState.Common.CurrentShaderUAVCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderSamplerCounts, sizeof(PipelineState.Common.CurrentShaderSamplerCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderSRVCounts, sizeof(PipelineState.Common.CurrentShaderSRVCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderCBCounts, sizeof(PipelineState.Common.CurrentShaderCBCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderUAVCounts, sizeof(PipelineState.Common.CurrentShaderUAVCounts));
 
 	// Unordered Access View State Cache
 	for (int i = 0; i < D3D12_PS_CS_UAV_REGISTER_COUNT; ++i)
@@ -821,8 +824,8 @@ void FD3D12StateCacheBase::ClearState()
 	PipelineState.Graphics.CurrentPipelineStateObject = nullptr;
 	PipelineState.Compute.CurrentPipelineStateObject = nullptr;
 	PipelineState.Common.CurrentPipelineStateObject = nullptr;
-	FMemory::Memzero(PipelineState.Graphics.CurrentStreamOutTargets, sizeof (PipelineState.Graphics.CurrentStreamOutTargets));
-	FMemory::Memzero(PipelineState.Graphics.CurrentSOOffsets, sizeof (PipelineState.Graphics.CurrentSOOffsets));
+	FMemory::Memzero(PipelineState.Graphics.CurrentStreamOutTargets, sizeof(PipelineState.Graphics.CurrentStreamOutTargets));
+	FMemory::Memzero(PipelineState.Graphics.CurrentSOOffsets, sizeof(PipelineState.Graphics.CurrentSOOffsets));
 
 	FMemory::Memzero(PipelineState.Graphics.CurrentScissorRects, sizeof(PipelineState.Graphics.CurrentScissorRects));
 
@@ -836,8 +839,12 @@ void FD3D12StateCacheBase::ClearState()
 	PipelineState.Graphics.HighLevelDesc.SampleMask = 0xffffffff;
 	PipelineState.Graphics.HighLevelDesc.BlendState = nullptr;
 
-	for(int i = 0; i < D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; ++i)
+	for (int i = 0; i < D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; ++i)
+	{
 		PipelineState.Graphics.CurrentVertexBuffers[i].VertexBufferLocation = nullptr;
+	}
+	PipelineState.Graphics.MaxBoundVertexBufferIndex = INDEX_NONE;
+
 	FMemory::Memzero(PipelineState.Common.CurrentSamplerStates, sizeof(PipelineState.Common.CurrentSamplerStates));
 
 	FMemory::Memzero(PipelineState.Graphics.RenderTargetArray, sizeof(PipelineState.Graphics.RenderTargetArray));
@@ -882,7 +889,7 @@ void FD3D12StateCacheBase::DirtyViewDescriptorTables()
 	// Note: Descriptor table state is undefined at the beginning of a command list and after descriptor heaps are changed on a command list.
 	// This will cause the next call to ApplyState to copy and set these descriptors again.
 
-	// Currently only a single RS is used, so set all tables for the specified type in that RS
+	// Could optimize here by only setting dirty flags for things that are valid with the current root signature.
 	{
 		bNeedSetUAVs = true;
 		bNeedSetSRVs = true;
@@ -901,7 +908,7 @@ void FD3D12StateCacheBase::DirtySamplerDescriptorTables()
 	// Note: Descriptor table state is undefined at the beginning of a command list and after descriptor heaps are changed on a command list.
 	// This will cause the next call to ApplyState to copy and set these descriptors again.
 
-	// Currently only a single RS is used, so set all tables for the specified type in that RS
+	// Could optimize here by only setting dirty flags for things that are valid with the current root signature.
 	{
 		bNeedSetSamplers = true;
 		for (int i = 0; i < SF_NumFrequencies; i++)
@@ -937,14 +944,14 @@ void FD3D12StateCacheBase::UpdateViewportScissorRects()
 {
 	for (uint32 i = 0; i < PipelineState.Graphics.CurrentNumberOfScissorRects; ++i)
 	{
-		D3D12_VIEWPORT& Viewport		    = PipelineState.Graphics.CurrentViewport[FMath::Min (i, PipelineState.Graphics.CurrentNumberOfViewports)];
+		D3D12_VIEWPORT& Viewport		    = PipelineState.Graphics.CurrentViewport[FMath::Min(i, PipelineState.Graphics.CurrentNumberOfViewports)];
 		D3D12_RECT&     ScissorRect         = PipelineState.Graphics.CurrentScissorRects[i];
 		D3D12_RECT&     ViewportScissorRect = PipelineState.Graphics.CurrentViewportScissorRects[i];
 
-		ViewportScissorRect.top    = FMath::Max(ScissorRect.top,    (LONG)Viewport.TopLeftY);
-		ViewportScissorRect.left   = FMath::Max(ScissorRect.left,   (LONG)Viewport.TopLeftX);
+		ViewportScissorRect.top    = FMath::Max(ScissorRect.top, (LONG)Viewport.TopLeftY);
+		ViewportScissorRect.left   = FMath::Max(ScissorRect.left, (LONG)Viewport.TopLeftX);
 		ViewportScissorRect.bottom = FMath::Min(ScissorRect.bottom, (LONG)Viewport.TopLeftY + (LONG)Viewport.Height);
-		ViewportScissorRect.right  = FMath::Min(ScissorRect.right,  (LONG)Viewport.TopLeftX + (LONG)Viewport.Width);
+		ViewportScissorRect.right  = FMath::Min(ScissorRect.right, (LONG)Viewport.TopLeftX + (LONG)Viewport.Width);
 	}
 
 	bNeedSetScissorRects = true;
@@ -970,11 +977,12 @@ void FD3D12StateCacheBase::SetScissorRects(uint32 Count, D3D12_RECT* ScissorRect
 	}
 }
 
-void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(ID3D12RootSignature* rootSignature, FD3D12LowLevelGraphicsPipelineStateDesc& psoDesc)
+void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(FD3D12LowLevelGraphicsPipelineStateDesc& psoDesc)
 {
 	ZeroMemory(&psoDesc, sizeof(psoDesc));
 
-	psoDesc.Desc.pRootSignature = rootSignature;
+	psoDesc.pRootSignature = BoundShaderState->pRootSignature;
+	psoDesc.Desc.pRootSignature = psoDesc.pRootSignature->GetRootSignature();
 	psoDesc.Desc.SampleMask = SampleMask;
 	psoDesc.Desc.PrimitiveTopologyType = PrimitiveTopologyType;
 	psoDesc.Desc.NumRenderTargets = NumRenderTargets;
@@ -1014,6 +1022,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 
 	FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
 	FD3D12PipelineStateCache& PSOCache = GetParentDevice()->GetPSOCache();
+	const FD3D12RootSignature* const pRootSignature = IsCompute ?
+		PipelineState.Compute.CurrentComputeShader->pRootSignature : PipelineState.Graphics.HighLevelDesc.BoundShaderState->pRootSignature;
 
 	// PSO
 	if (IsCompute)
@@ -1023,7 +1033,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			FD3D12ComputePipelineStateDesc psoDescCompute;
 			ZeroMemory(&psoDescCompute, sizeof(psoDescCompute));
 
-			psoDescCompute.Desc.pRootSignature = GetParentDevice()->GetComputeRootSignature();
+			psoDescCompute.pRootSignature = PipelineState.Compute.CurrentComputeShader->pRootSignature;
+			psoDescCompute.Desc.pRootSignature = psoDescCompute.pRootSignature->GetRootSignature();
 			psoDescCompute.Desc.CS = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetShaderBytecode();
 			psoDescCompute.CSHash = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetHash();
 
@@ -1036,6 +1047,23 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			// Indicate we need to set the PSO on the command list
 			PipelineState.Common.bNeedSetPSO = true;
 			PipelineState.Compute.bNeedRebuildPSO = false;
+		}
+
+		// See if we need to set a compute root signature
+		if (PipelineState.Compute.bNeedSetRootSignature)
+		{
+			CommandList->SetComputeRootSignature(pRootSignature->GetRootSignature());
+			PipelineState.Compute.bNeedSetRootSignature = false;
+
+			// After setting a root signature, all root parameters are undefined and must be set again.
+			bNeedSetUAVs = pRootSignature->HasUAVs();
+			bNeedSetSRVs = pRootSignature->HasSRVs();
+			bNeedSetConstantBuffers = pRootSignature->HasCBVs();
+			bNeedSetSamplers = pRootSignature->HasSamplers();
+
+			bNeedSetSamplersPerShaderStage[SF_Compute] = pRootSignature->MaxSamplerCount(SF_Compute) > 0;
+			bNeedSetSRVsPerShaderStage[SF_Compute] = pRootSignature->MaxSRVCount(SF_Compute) > 0;
+			bNeedSetConstantBuffersPerShaderStage[SF_Compute] = pRootSignature->MaxCBVCount(SF_Compute) > 0;
 		}
 	}
 	else
@@ -1077,7 +1105,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			{
 				const D3D12_DEPTH_STENCIL_VIEW_DESC &dsvDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc();
 				D3D12_RESOURCE_DESC const& resDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetResource()->GetDesc();
-				
+
 				psoDesc.DSVFormat = dsvDesc.Format;
 				if (psoDesc.NumRenderTargets == 0 || psoDesc.SampleDesc.Count == 0)
 				{
@@ -1086,8 +1114,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 				}
 			}
 
-			ID3D12PipelineState* psoGraphics = 
-				PSOCache.FindGraphics(PipelineState.Graphics.HighLevelDesc, GetParentDevice()->GetGraphicsRootSignature(), true);
+			ID3D12PipelineState* psoGraphics =
+				PSOCache.FindGraphics(PipelineState.Graphics.HighLevelDesc, true);
 
 			// Save the current PSO
 			PipelineState.Common.CurrentPipelineStateObject = psoGraphics;
@@ -1096,6 +1124,26 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			// Indicate we need to set the PSO on the command list
 			PipelineState.Common.bNeedSetPSO = true;
 			PipelineState.Graphics.bNeedRebuildPSO = false;
+		}
+
+		// See if we need to set a graphics root signature
+		if (PipelineState.Graphics.bNeedSetRootSignature)
+		{
+			CommandList->SetGraphicsRootSignature(pRootSignature->GetRootSignature());
+			PipelineState.Graphics.bNeedSetRootSignature = false;
+
+			// After setting a root signature, all root parameters are undefined and must be set again.
+			bNeedSetUAVs = pRootSignature->HasUAVs();
+			bNeedSetSRVs = pRootSignature->HasSRVs();
+			bNeedSetConstantBuffers = pRootSignature->HasCBVs();
+			bNeedSetSamplers = pRootSignature->HasSamplers();
+
+			for (uint32 Stage = 0; Stage < SF_Compute; ++Stage)
+			{
+				bNeedSetSamplersPerShaderStage[Stage] = pRootSignature->MaxSamplerCount(static_cast<EShaderFrequency>(Stage)) > 0;
+				bNeedSetSRVsPerShaderStage[Stage] = pRootSignature->MaxSRVCount(static_cast<EShaderFrequency>(Stage)) > 0;
+				bNeedSetConstantBuffersPerShaderStage[Stage] = pRootSignature->MaxCBVCount(static_cast<EShaderFrequency>(Stage)) > 0;
+			}
 		}
 	}
 
@@ -1115,7 +1163,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 		if (bNeedSetVB || bForceState)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetVertexBufferTime);
-			DescriptorCache.SetVertexBuffers(PipelineState.Graphics.CurrentVertexBuffers, D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
+			const uint32 VBCount = PipelineState.Graphics.MaxBoundVertexBufferIndex + 1;
+			DescriptorCache.SetVertexBuffers(PipelineState.Graphics.CurrentVertexBuffers, VBCount);
 			bNeedSetVB = false;
 		}
 		if (bNeedSetIB || bForceState)
@@ -1170,9 +1219,9 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 	const uint32 StartStage = IsCompute ? SF_Compute : 0;
 	const uint32 EndStage = IsCompute ? SF_NumFrequencies : SF_Compute;
 	uint32 NumUAVs = 0;
-	uint32 NumSRVs[SF_NumFrequencies + 1] = {};
-	uint32 NumCBs[SF_NumFrequencies + 1] = {};
-	uint32 NumSamplers[SF_NumFrequencies + 1] = {};
+	uint32 NumSRVs[SF_NumFrequencies + 1] ={};
+	uint32 NumCBs[SF_NumFrequencies + 1] ={};
+	uint32 NumSamplers[SF_NumFrequencies + 1] ={};
 
 	uint32 ViewHeapSlot = 0;
 	uint32 SamplerHeapSlot = 0;
@@ -1184,7 +1233,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2)
 			{
 				// Tier 1 and 2 HW requires the full number of UAV descriptors defined in the root signature.
-				NumUAVs = D3D12_PS_CS_UAV_REGISTER_COUNT;
+				NumUAVs = pRootSignature->MaxUAVCount(IsCompute ? SF_Compute : SF_Pixel);
 			}
 			else
 			{
@@ -1198,13 +1247,11 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 				if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
 				{
 					// Tier 1 HW requires the full number of SRV descriptors defined in the root signature.
-					NumSRVs[Stage] = MAX_SRVS;
+					NumSRVs[Stage] = pRootSignature->MaxSRVCount(Stage);
 				}
 				else
 				{
-					// Disable SRV slot optimization for now. This will causes us to use a lot more descriptor heap slots.
-					//NumSRVs[Stage] = PipelineState.Common.MaxBoundShaderResourcesIndex[Stage] + 1;
-					NumSRVs[Stage] = MAX_SRVS;
+					NumSRVs[Stage] = PipelineState.Common.CurrentShaderSRVCounts[Stage];
 				}
 			}
 			if ((bNeedSetConstantBuffers && (bNeedSetConstantBuffersPerShaderStage[Stage])) || bForceState)
@@ -1212,7 +1259,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 				if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2)
 				{
 					// Tier 1 and 2 HW requires the full number of CB descriptors defined in the root signature.
-					NumCBs[Stage] = MAX_CBS;
+					NumCBs[Stage] = pRootSignature->MaxCBVCount(Stage);
 				}
 				else
 				{
@@ -1246,7 +1293,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 					if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
 					{
 						// Tier 1 HW requires the full number of sampler descriptors defined in the root signature.
-						NumSamplers[Stage] = D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
+						NumSamplers[Stage] = pRootSignature->MaxSamplerCount(Stage);
 					}
 					else
 					{
@@ -1588,9 +1635,31 @@ void FDiskCacheInterface::Flush(uint32 numberOfPSOs)
 	}
 }
 
-void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* pGraphicsRootSig, ID3D12RootSignature* pComputeRootSignature)
+FD3D12PipelineStateCache& FD3D12PipelineStateCache::operator=(const FD3D12PipelineStateCache& In)
 {
-	FScopeLock Lock (&CS);
+	if (&In != this)
+	{
+		HighLevelGraphicsPipelineStateCache = In.HighLevelGraphicsPipelineStateCache;
+		LowLevelGraphicsPipelineStateCache = In.LowLevelGraphicsPipelineStateCache;
+		ComputePipelineStateCache = In.ComputePipelineStateCache;
+
+		for (int32 Index = 0; Index < NUM_PSO_CACHE_TYPES; ++Index)
+		{
+			DiskCaches[Index] = In.DiskCaches[Index];
+		}
+#if UE_BUILD_DEBUG
+		GraphicsCacheRequestCount = In.GraphicsCacheRequestCount;
+		HighLevelCacheFulfillCount = In.HighLevelCacheFulfillCount;
+		HighLevelCacheStaleCount = In.HighLevelCacheStaleCount;
+		HighLevelCacheMissCount = In.HighLevelCacheMissCount;
+#endif
+	}
+	return *this;
+}
+
+void FD3D12PipelineStateCache::RebuildFromDiskCache()
+{
+	FScopeLock Lock(&CS);
 	if (DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState() || DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 	{
 		return;
@@ -1615,14 +1684,28 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* pGraphi
 		DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&GraphicsPSODesc, sizeof(*GraphicsPSODesc));
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC* PSODesc = &GraphicsPSODesc->Desc;
 
-		PSODesc->pRootSignature = pGraphicsRootSig;
+		GraphicsPSODesc->pRootSignature = nullptr;
+		SIZE_T* RSBlobLength = nullptr;
+		DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&RSBlobLength, sizeof(*RSBlobLength));
+		if (RSBlobLength > 0)
+		{
+			void* RSBlobData = nullptr;
+			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&RSBlobData, *RSBlobLength);
 
+			// Create the root signature
+			const HRESULT CreateRootSignatureHR = GetParentDevice()->GetDevice()->CreateRootSignature(0, RSBlobData, *RSBlobLength, IID_PPV_ARGS(&PSODesc->pRootSignature));
+			if (FAILED(CreateRootSignatureHR))
+			{
+				// The cache has failed, build PSOs at runtime
+				return;
+			}
+		}
 		if (PSODesc->InputLayout.NumElements)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs, PSODesc->InputLayout.NumElements * sizeof(D3D12_INPUT_ELEMENT_DESC), true);
 			for (uint32 i = 0; i < PSODesc->InputLayout.NumElements; i++)
 			{
-			   // Get the Sematic name string
+				// Get the Sematic name string
 				uint32* stringLength = nullptr;
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&stringLength, sizeof(uint32));
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs[i].SemanticName, *stringLength, true);
@@ -1706,13 +1789,28 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* pGraphi
 	for (uint32 i = 0; i < NumComputePSOs; i++)
 	{
 		FD3D12ComputePipelineStateDesc* ComputePSODesc = nullptr;
-		DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&ComputePSODesc, sizeof(FD3D12ComputePipelineStateDesc));
+		DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&ComputePSODesc, sizeof(*ComputePSODesc));
 		D3D12_COMPUTE_PIPELINE_STATE_DESC* PSODesc = &ComputePSODesc->Desc;
 
-		PSODesc->pRootSignature = pComputeRootSignature;
+		ComputePSODesc->pRootSignature = nullptr;
+		SIZE_T* RSBlobLength = nullptr;
+		DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&RSBlobLength, sizeof(*RSBlobLength));
+		if (RSBlobLength > 0)
+		{
+			void* RSBlobData = nullptr;
+			DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&RSBlobData, *RSBlobLength);
+
+			// Create the root signature
+			const HRESULT CreateRootSignatureHR = GetParentDevice()->GetDevice()->CreateRootSignature(0, RSBlobData, *RSBlobLength, IID_PPV_ARGS(&PSODesc->pRootSignature));
+			if (FAILED(CreateRootSignatureHR))
+			{
+				// The cache has failed, build PSOs at runtime
+				return;
+			}
+		}
 		if (PSODesc->CS.BytecodeLength)
 		{
-			DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&PSODesc->CS.pShaderBytecode, PSODesc->CS.BytecodeLength, true);
+			DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&PSODesc->CS.pShaderBytecode, PSODesc->CS.BytecodeLength, bBackShadersWithSystemMemory);
 		}
 
 		SIZE_T* cachedBlobSize = nullptr;
@@ -1753,9 +1851,9 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* pGraphi
 	}
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc, ID3D12RootSignature* rootSignature, bool insertIntoDiskCache)
+ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
 #if UE_BUILD_DEBUG
 	++GraphicsCacheRequestCount;
@@ -1774,7 +1872,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 	}
 
 	FD3D12LowLevelGraphicsPipelineStateDesc lowLevelDesc;
-	graphicsPSODesc.GetLowLevelDesc(rootSignature, lowLevelDesc);
+	graphicsPSODesc.GetLowLevelDesc(lowLevelDesc);
 	ID3D12PipelineState* PSO = FindGraphicsLowLevel(lowLevelDesc, insertIntoDiskCache);
 
 	if (HighLevelCacheEntry)
@@ -1810,7 +1908,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 
 ID3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 	computePSODesc.CombinedHash = FD3D12PipelineStateCache::HashPSODesc(computePSODesc);
 
 	if (TRefCountPtr<ID3D12PipelineState>* PSO = ComputePipelineStateCache.Find(computePSODesc))
@@ -1846,6 +1944,8 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelin
 	VERIFYD3D11RESULT(Hr);
 
 #if UE_BUILD_DEBUG
+	// If this check fires, it's either adding a duplicate PSO to the map or
+	// it *thinks* it's adding a duplicate PSO to the map because the PSO desc has the same key.
 	check(LowLevelGraphicsPipelineStateCache.Find(graphicsPSODesc) == nullptr);
 #endif
 
@@ -1856,6 +1956,15 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelin
 	{
 		DiskCaches[PSO_CACHE_GRAPHICS].AppendData(&graphicsPSODesc, sizeof(graphicsPSODesc));
 
+		ID3DBlob* const pRSBlob = graphicsPSODesc.pRootSignature ? graphicsPSODesc.pRootSignature->GetRootSignatureBlob() : nullptr;
+		const SIZE_T RSBlobLength = pRSBlob ? pRSBlob->GetBufferSize() : 0;
+		DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)(&RSBlobLength), sizeof(RSBlobLength));
+		if (RSBlobLength > 0)
+		{
+			// Save the root signature
+			check(graphicsPSODesc.pRootSignature->GetRootSignature() == psoDesc.pRootSignature);
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
+		}
 		if (psoDesc.InputLayout.NumElements)
 		{
 			//Save the layout structs
@@ -1885,23 +1994,23 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelin
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)&psoDesc.StreamOutput.pBufferStrides, psoDesc.StreamOutput.NumStrides * sizeof(uint32));
 		}
-		if (psoDesc.VS.pShaderBytecode)
+		if (psoDesc.VS.BytecodeLength)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 		}
-		if (psoDesc.PS.pShaderBytecode)
+		if (psoDesc.PS.BytecodeLength)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.PS.pShaderBytecode, psoDesc.PS.BytecodeLength);
 		}
-		if (psoDesc.DS.pShaderBytecode)
+		if (psoDesc.DS.BytecodeLength)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.DS.pShaderBytecode, psoDesc.DS.BytecodeLength);
 		}
-		if (psoDesc.HS.pShaderBytecode)
+		if (psoDesc.HS.BytecodeLength)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.HS.pShaderBytecode, psoDesc.HS.BytecodeLength);
 		}
-		if (psoDesc.GS.pShaderBytecode)
+		if (psoDesc.GS.BytecodeLength)
 		{
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.GS.pShaderBytecode, psoDesc.GS.BytecodeLength);
 		}
@@ -1938,7 +2047,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelin
 
 ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
 	TRefCountPtr<ID3D12PipelineState> PSO;
 	D3D12_COMPUTE_PIPELINE_STATE_DESC &psoDesc = computePSODesc.Desc;
@@ -1959,6 +2068,8 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 	VERIFYD3D11RESULT(Hr);
 
 #if UE_BUILD_DEBUG
+	// If this check fires, it's either adding a duplicate PSO to the map or
+	// it *thinks* it's adding a duplicate PSO to the map because the PSO desc has the same key.
 	check(ComputePipelineStateCache.Find(computePSODesc) == nullptr);
 #endif
 
@@ -1967,7 +2078,17 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 	if (insertIntoDiskCache && !DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 	{
 		DiskCaches[PSO_CACHE_COMPUTE].AppendData(&computePSODesc, sizeof(computePSODesc));
-		if (psoDesc.CS.pShaderBytecode)
+
+		ID3DBlob* const pRSBlob = computePSODesc.pRootSignature ? computePSODesc.pRootSignature->GetRootSignatureBlob() : nullptr;
+		const SIZE_T RSBlobLength = pRSBlob ? pRSBlob->GetBufferSize() : 0;
+		DiskCaches[PSO_CACHE_COMPUTE].AppendData((void*)(&RSBlobLength), sizeof(RSBlobLength));
+		if (RSBlobLength > 0)
+		{
+			// Save the root signature
+			check(computePSODesc.pRootSignature->GetRootSignature() == psoDesc.pRootSignature);
+			DiskCaches[PSO_CACHE_COMPUTE].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
+		}
+		if (psoDesc.CS.BytecodeLength)
 		{
 			DiskCaches[PSO_CACHE_COMPUTE].AppendData((void*)psoDesc.CS.pShaderBytecode, psoDesc.CS.BytecodeLength);
 		}
@@ -2004,7 +2125,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 
 void FD3D12PipelineStateCache::Close()
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
 	DiskCaches[PSO_CACHE_GRAPHICS].Reset();
 	DiskCaches[PSO_CACHE_COMPUTE].Reset();
@@ -2083,6 +2204,7 @@ SIZE_T FD3D12PipelineStateCache::HashPSODesc(const FD3D12LowLevelGraphicsPipelin
 	hashTemp.Desc.CachedPSO.CachedBlobSizeInBytes = 0;
 	hashTemp.CombinedHash = 0;
 	hashTemp.Desc.pRootSignature = nullptr;
+	hashTemp.pRootSignature = nullptr;
 
 	return HashData(&hashTemp, sizeof(hashTemp));
 }
@@ -2104,6 +2226,8 @@ SIZE_T FD3D12PipelineStateCache::HashPSODesc(const FD3D12ComputePipelineStateDes
 	hashTemp.Desc.CachedPSO.CachedBlobSizeInBytes = 0;
 	hashTemp.CombinedHash = 0;
 	hashTemp.Desc.pRootSignature = nullptr;
+	hashTemp.pRootSignature = nullptr;
+
 	return HashData(&hashTemp, sizeof(hashTemp));
 }
 
@@ -2112,7 +2236,7 @@ SIZE_T FD3D12PipelineStateCache::HashPSODesc(const FD3D12ComputePipelineStateDes
 #define SSE4_CPUID_ARRAY_INDEX 2
 void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &ComputeCacheFilename)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
 	DiskCaches[PSO_CACHE_GRAPHICS].Init(GraphicsCacheFilename);
 	DiskCaches[PSO_CACHE_COMPUTE].Init(ComputeCacheFilename);
@@ -2180,7 +2304,7 @@ bool FD3D12StateCacheBase::VerifyResourceStates(const bool IsCompute)
 					}
 				}
 				check(SanityCheckCount == PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount);
-				
+
 				const D3D12_DEPTH_STENCIL_VIEW_DESC& desc = pCurrentView->GetDesc();
 				const bool bDepthIsReadOnly = !!(desc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH);
 				const bool bStencilIsReadOnly = !!(desc.Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL);
@@ -2219,7 +2343,7 @@ bool FD3D12StateCacheBase::VerifyResourceStates(const bool IsCompute)
 							// Stencil plane
 							expectedState = bStencilIsReadOnly ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_DEPTH_WRITE;
 						}
-						
+
 						bool bGoodState = !!pDebugCommandList->AssertResourceState(pResource->GetResource(), SubresourceIndex, expectedState);
 						if (!bGoodState)
 						{
@@ -2328,14 +2452,14 @@ void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStart
 	{
 		return;
 	}
-	
+
 	PipelineState.Common.CurrentUAVStartSlot = FMath::Min(UAVStartSlot, PipelineState.Common.CurrentUAVStartSlot);
 	PipelineState.Common.CurrentUAVStage = ShaderStage;
-	
+
 	TRefCountPtr<ID3D12Resource> CounterUploadHeap      = GetParentDevice()->GetCounterUploadHeap();
 	uint32&                      CounterUploadHeapIndex = GetParentDevice()->GetCounterUploadHeapIndex();
 	void*                        CounterUploadHeapData  = GetParentDevice()->GetCounterUploadHeapData();
-	
+
 	for (uint32 i = 0; i < NumSimultaneousUAVs; ++i)
 	{
 		PipelineState.Common.UnorderedAccessViewArray[UAVStartSlot + i] = UAVArray[i];
@@ -2467,6 +2591,27 @@ void FD3D12StateCacheBase::InternalSetStreamSource(FD3D12ResourceLocation* Verte
 		{
 			bNeedSetVB = true;
 		}
+
+		// Keep track of the highest bound vertex buffer
+		int32& MaxResourceIndex = PipelineState.Graphics.MaxBoundVertexBufferIndex;
+		if (VertexBufferLocation)
+		{
+			// Update the max resource index to the highest bound resource index.
+			MaxResourceIndex = FMath::Max(MaxResourceIndex, static_cast<int32>(StreamIndex));
+		}
+		else
+		{
+			// If this was the highest bound resource...
+			if (MaxResourceIndex == StreamIndex)
+			{
+				// Adjust the max resource index downwards until we
+				// hit the next non-null slot, or we've run out of slots.
+				do
+				{
+					MaxResourceIndex--;
+				} while (MaxResourceIndex >= 0 && !PipelineState.Graphics.CurrentVertexBuffers[MaxResourceIndex].VertexBufferLocation);
+			}
+		}
 	}
 }
 
@@ -2532,7 +2677,23 @@ void FD3D12DescriptorCache::HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type)
 	}
 }
 
-void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext)
+void FD3D12DescriptorCache::HeapLoopedAround(D3D12_DESCRIPTOR_HEAP_TYPE Type)
+{
+	if (Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+	{
+		ViewHeapSequenceNumber++;
+
+		SRVMap.Reset();
+	}
+	else
+	{
+		check(Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+		SamplerMap.Reset();
+	}
+}
+
+void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, uint32 InNumViewDescriptors, uint32 InNumSamplerDescriptors)
 {
 	Parent = InParent;
 	CmdContext = InCmdContext;
@@ -2546,12 +2707,13 @@ void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* I
 	ViewHeap.Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	SamplerHeap.Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier = GetParentDevice()->GetResourceBindingTier();
-	ViewHeap.Desc.NumDescriptors = (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_TIER_1 : NUM_VIEW_DESCRIPTORS_TIER_2;
-	SamplerHeap.Desc.NumDescriptors = NUM_SAMPLER_DESCRIPTORS;
+	ViewHeap.Desc.NumDescriptors = InNumViewDescriptors;
+	SamplerHeap.Desc.NumDescriptors = InNumSamplerDescriptors;
 
 	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&ViewHeap.Desc, IID_PPV_ARGS(ViewHeap.Heap.GetInitReference())));
 	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&SamplerHeap.Desc, IID_PPV_ARGS(SamplerHeap.Heap.GetInitReference())));
+	ViewHeap.Entry.Heap = ViewHeap.Heap;
+	SamplerHeap.Entry.Heap = SamplerHeap.Heap;
 
 	ViewHeap.CPUBase = ViewHeap.Heap->GetCPUDescriptorHandleForHeapStart();
 	ViewHeap.GPUBase = ViewHeap.Heap->GetGPUDescriptorHandleForHeapStart();
@@ -2649,11 +2811,7 @@ void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* I
 
 			CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptor = pNullCBV;
 
-			GetParentDevice()->GetDevice()->CopyDescriptors(
-				1, &OfflineDescriptor, nullptr,
-				1, &SrcDescriptor, nullptr,
-				ViewHeap.Desc.Type
-				);
+			GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, ViewHeap.Desc.Type);
 		}
 
 		for (uint32 i = 0; i < D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
@@ -2661,11 +2819,7 @@ void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* I
 			CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineDescriptor(OfflineHeap[ShaderFrequency].SRVBaseHandle, i, ViewHeap.DescriptorSize);
 			CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptor = pNullSRV->GetView();
 
-			GetParentDevice()->GetDevice()->CopyDescriptors(
-				1, &OfflineDescriptor, nullptr,
-				1, &SrcDescriptor, nullptr,
-				ViewHeap.Desc.Type
-				);
+			GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, ViewHeap.Desc.Type);
 		}
 	}
 }
@@ -2680,6 +2834,26 @@ void FD3D12DescriptorCache::Clear()
 void FD3D12DescriptorCache::EndFrame()
 {
 	SRVMap.Reset();
+#if UE_BUILD_DEBUG
+	uint32 SlotsPerFrame = ViewHeap.NextSlotIndex >= ViewHeap.StartSlotPerFrame ?
+		ViewHeap.NextSlotIndex - ViewHeap.StartSlotPerFrame :
+		ViewHeap.NextSlotIndex + ViewHeap.Desc.NumDescriptors - ViewHeap.StartSlotPerFrame;
+
+	if (SlotsPerFrame > ViewHeap.MaxSlotsPerFrame)
+	{
+		ViewHeap.MaxSlotsPerFrame = SlotsPerFrame;
+		//UE_LOG(LogD3D12RHI, Log, TEXT("Descriptor heap %X016: Uses a max of %u descriptor slots/frame. You can use this info to tune the size of the descriptor heap."), this, ViewHeap.MaxSlotsPerFrame);
+	}
+
+	// Update the start slot for the next frame.
+	ViewHeap.StartSlotPerFrame = ViewHeap.NextSlotIndex;
+#endif
+}
+
+void FD3D12DescriptorCache::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)
+{
+	ViewHeap.NotifyCurrentCommandList(CommandListHandle);
+	SamplerHeap.NotifyCurrentCommandList(CommandListHandle);
 }
 
 void FD3D12DescriptorCache::SetIndexBuffer(FD3D12ResourceLocation* IndexBufferLocation, DXGI_FORMAT Format, uint32 Offset)
@@ -2699,19 +2873,7 @@ void FD3D12DescriptorCache::SetIndexBuffer(FD3D12ResourceLocation* IndexBufferLo
 
 void FD3D12DescriptorCache::SetVertexBuffers(FD3D12VertexBufferState* VertexBuffers, uint32 Count)
 {
-	// Determine how many slots are really needed, since the Count passed in is a pre-defined maximum
-	uint32 SlotsNeeded = 0;
-	for (int32 i = Count - 1; i >= 0; i--)
-	{
-		FD3D12Resource* Resource = VertexBuffers[i].VertexBufferLocation ? VertexBuffers[i].VertexBufferLocation->GetResource() : nullptr;
-
-		if (Resource)
-		{
-			SlotsNeeded = i + 1;
-			break;
-		}
-	}
-
+	const uint32 SlotsNeeded = Count;
 	if (0 == SlotsNeeded)
 	{
 		return; // No-op
@@ -2723,7 +2885,7 @@ void FD3D12DescriptorCache::SetVertexBuffers(FD3D12VertexBufferState* VertexBuff
 	for (uint32 i = 0; i < SlotsNeeded; i++)
 	{
 		ID3D12Resource* VertexBuffer = VertexBuffers[i].VertexBufferLocation ? VertexBuffers[i].VertexBufferLocation->GetResource()->GetResource() : nullptr;
-		if (VertexBuffer != NULL)
+		if (VertexBuffer != nullptr)
 		{
 			D3D12_VERTEX_BUFFER_VIEW &currentView = VBViews[i];
 			currentView.BufferLocation = VertexBuffer->GetGPUVirtualAddress() + VertexBuffers[i].VertexBufferLocation->GetOffset() + VertexBuffers[i].Offset;
@@ -2783,11 +2945,13 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 
 	if (ShaderStage == SF_Pixel)
 	{
-		CommandList->SetGraphicsRootDescriptorTable(Graphics_UAVs, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetGraphicsRootSignature()->UAVRDTBindSlot(ShaderStage);
+		CommandList->SetGraphicsRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 	else if (ShaderStage == SF_Compute)
 	{
-		CommandList->SetComputeRootDescriptorTable(Compute_UAVs, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->UAVRDTBindSlot(ShaderStage);
+		CommandList->SetComputeRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 	else
 	{
@@ -2891,10 +3055,10 @@ void FD3D12DescriptorCache::SetStreamOutTargets(FD3D12Resource** Buffers, uint32
 	for (uint32 i = 0; i < SlotsNeeded; i++)
 	{
 		ID3D12Resource* StreamOutBuffer = Buffers[i] ? Buffers[i]->GetResource() : nullptr;
-		
+
 		D3D12_STREAM_OUTPUT_BUFFER_VIEW &currentView = SOViews[i];
 		currentView.BufferLocation = (StreamOutBuffer != nullptr) ? StreamOutBuffer->GetGPUVirtualAddress() : 0;
-		
+
 		// MS - The following view members are not correct
 		check(0);
 		currentView.BufferFilledSizeLocation = 0;
@@ -2983,12 +3147,13 @@ void FD3D12DescriptorCache::SetSamplers(EShaderFrequency ShaderStage, FD3D12Samp
 
 	if (ShaderStage == SF_Compute)
 	{
-		CommandList->SetComputeRootDescriptorTable(Compute_Samplers, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->SamplerRDTBindSlot(ShaderStage);
+		CommandList->SetComputeRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 	else
 	{
-		uint32 RTLIndex = SamplerRTLBindSlot(ShaderStage);
-		CommandList->SetGraphicsRootDescriptorTable(RTLIndex, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetGraphicsRootSignature()->SamplerRDTBindSlot(ShaderStage);
+		CommandList->SetGraphicsRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 
 #ifdef VERBOSE_DESCRIPTOR_HEAP_DEBUG
@@ -3013,7 +3178,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 
 	// Check to see if the srv configuration is already in the srv heap
 	FD3D12SRVArrayDesc Desc = {0};
-	check (SlotsNeeded <= _countof(Desc.SRVSequenceNumber));
+	check(SlotsNeeded <= _countof(Desc.SRVSequenceNumber));
 	Desc.Count = SlotsNeeded;
 
 	for (uint32 i = 0; i < SlotsNeeded; i++)
@@ -3021,7 +3186,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 		if (SRVs[i] != NULL)
 		{
 			Desc.SRVSequenceNumber[i] = SRVs[i]->GetSequenceNumber();
-	
+
 			if (CurrentShaderResourceViewsIntersectWithDepthRT[i] == true)
 			{
 				FD3D12DynamicRHI::TransitionResource(CommandList, SRVs[i], ResourceStateFlag | D3D12_RESOURCE_STATE_DEPTH_READ);
@@ -3049,6 +3214,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 		CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineBase = OfflineHeap[ShaderStage].SRVBaseHandle;
 
 		uint32 DescriptorSize = ViewHeap.DescriptorSize;
+		ID3D12Device *pDevice = GetParentDevice()->GetDevice();
 
 		// Copy to offline heap (only those descriptors which have changed)
 		CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineDescriptor = OfflineBase;
@@ -3071,11 +3237,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 
 			if (SequenceNumber != CurrentSequenceNumber[i])
 			{
-				GetParentDevice()->GetDevice()->CopyDescriptors(
-					1, &OfflineDescriptor, nullptr,
-					1, &SrcDescriptor, nullptr,
-					ViewHeap.Desc.Type
-					);
+				pDevice->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, ViewHeap.Desc.Type);
 
 				CurrentSequenceNumber[i] = SequenceNumber;
 			}
@@ -3087,11 +3249,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 		D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = ViewHeap.GetCPUSlotHandle(FirstSlotIndex);
 
 		// Copy the descriptors from the offline heaps to the online heap
-		GetParentDevice()->GetDevice()->CopyDescriptors(
-			1, &DestDescriptor, &SlotsNeeded,
-			1, &OfflineBase, &SlotsNeeded,
-			ViewHeap.Desc.Type
-			);
+		pDevice->CopyDescriptorsSimple(SlotsNeeded, DestDescriptor, OfflineBase, ViewHeap.Desc.Type);
 
 		BindDescriptor = ViewHeap.GetGPUSlotHandle(FirstSlotIndex);
 
@@ -3101,12 +3259,13 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 
 	if (ShaderStage == SF_Compute)
 	{
-		CommandList->SetComputeRootDescriptorTable(Compute_SRVs, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->SRVRDTBindSlot(ShaderStage);
+		CommandList->SetComputeRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 	else
 	{
-		uint32 RTLIndex = SRVRTLBindSlot(ShaderStage);
-		CommandList->SetGraphicsRootDescriptorTable(RTLIndex, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetGraphicsRootSignature()->SRVRDTBindSlot(ShaderStage);
+		CommandList->SetGraphicsRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 
 #if SUPPORTS_MEMORY_RESIDENCY
@@ -3142,10 +3301,7 @@ void FD3D12DescriptorCache::SetConstantBuffer(
 	// Only call CopyDescriptors if this is a new uniform buffer for this slot
 	if (CurrentSequenceNumber[SlotIndex] != UniformBuffer->SequenceNumber)
 	{
-		GetParentDevice()->GetDevice()->CopyDescriptors(
-			1, &DestCPUHandle, nullptr /*sizes, null means assume 1*/,
-			1, &UniformBuffer->OfflineDescriptorHandle, nullptr/*sizes, null means assume 1*/,
-			ViewHeap.Desc.Type);
+		GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestCPUHandle, UniformBuffer->OfflineDescriptorHandle, ViewHeap.Desc.Type);
 
 		CurrentSequenceNumber[SlotIndex] = UniformBuffer->SequenceNumber;
 	}
@@ -3192,11 +3348,8 @@ void FD3D12DescriptorCache::ClearConstantBuffer(
 	// Only call CopyDescriptors if this is a new uniform buffer for this slot
 	if (CurrentSequenceNumber[SlotIndex] != 0)
 	{
-		GetParentDevice()->GetDevice()->CopyDescriptors(
-			1, &DestCPUHandle, nullptr /*sizes, null means assume 1*/,
-			1, &pNullCBV, nullptr/*sizes, null means assume 1*/,
-			ViewHeap.Desc.Type);
-	
+		GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestCPUHandle, pNullCBV, ViewHeap.Desc.Type);
+
 		CurrentSequenceNumber[SlotIndex] = 0;
 	}
 }
@@ -3218,11 +3371,7 @@ void FD3D12DescriptorCache::SetConstantBuffers(EShaderFrequency ShaderStage, uin
 
 	D3D12_CPU_DESCRIPTOR_HANDLE OfflineHeapHandle = OfflineHeap[ShaderStage].CBVBaseHandle;
 
-	GetParentDevice()->GetDevice()->CopyDescriptors(
-		1, &OnlineHeapHandle, &SlotsNeeded,
-		1, &OfflineHeapHandle, &SlotsNeeded,
-		ViewHeap.Desc.Type
-		);
+	GetParentDevice()->GetDevice()->CopyDescriptorsSimple(SlotsNeeded, OnlineHeapHandle, OfflineHeapHandle, ViewHeap.Desc.Type);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE BindDescriptor = ViewHeap.GetGPUSlotHandle(FirstSlotIndex);
 
@@ -3230,12 +3379,13 @@ void FD3D12DescriptorCache::SetConstantBuffers(EShaderFrequency ShaderStage, uin
 
 	if (ShaderStage == SF_Compute)
 	{
-		CommandList->SetComputeRootDescriptorTable(Compute_CBs, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->CBVRDTBindSlot(ShaderStage);
+		CommandList->SetComputeRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 	else
 	{
-		uint32 RTLIndex = CBCRTLBindSlot(ShaderStage);
-		CommandList->SetGraphicsRootDescriptorTable(RTLIndex, BindDescriptor);
+		const uint32 RDTIndex = CmdContext->StateCache.GetGraphicsRootSignature()->CBVRDTBindSlot(ShaderStage);
+		CommandList->SetGraphicsRootDescriptorTable(RDTIndex, BindDescriptor);
 	}
 
 #ifdef VERBOSE_DESCRIPTOR_HEAP_DEBUG
@@ -3259,34 +3409,54 @@ bool FD3D12DescriptorCache::OnlineHeap::CanReserveSlots(uint32 NumSlots)
 	uint32 FirstRequestedSlot = NextSlotIndex;
 	uint32 SlotAfterReservation = NextSlotIndex + NumSlots;
 
+	// TEMP: Disable wrap around by not allowing it to reserve slots if the heap is full.
 	if (SlotAfterReservation > HeapSize)
 	{
 		return false;
 	}
+
 	return true;
+
+	// TEMP: Uncomment this code once the heap wrap around is fixed.
+	//if (SlotAfterReservation <= HeapSize)
+	//{
+	//	return true;
+	//}
+
+	//// Try looping around to prevent rollovers
+	//SlotAfterReservation = NumSlots;
+
+	//if (SlotAfterReservation <= FirstUsedSlot)
+	//{
+	//	return true;
+	//}
+
+	//return false;
 }
 
 void FD3D12DescriptorCache::OnlineHeap::RollOver()
 {
-	// Roll over
-	PoolEntry Entry;
-	Entry.Heap.Swap(Heap);
-	Entry.SyncPoint = CurrentCommandList;
+	// Enqueue the current entry
 	ReclaimPool.Enqueue(Entry);
 
-	if (ReclaimPool.Peek(Entry) &&
-		GetParentDevice()->GetCommandListManager().IsReady() &&
-		GetParentDevice()->GetCommandListManager().GetCommandListState(Entry.SyncPoint) == CommandListState::kFinished)
+	if (ReclaimPool.Peek(Entry) && Entry.SyncPoint.IsComplete())
 	{
 		ReclaimPool.Dequeue(Entry);
-		Heap.Swap(Entry.Heap);
+
+		Heap = Entry.Heap;
 	}
 	else
 	{
+		UE_LOG(LogD3D12RHI, Warning, TEXT("OnlineHeap RollOver Detected. Increase the heap size to prevent creation of additional heaps"));
 		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+
+		Entry.Heap = Heap;
 	}
 
+	Entry.SyncPoint = CurrentCommandList;
+
 	NextSlotIndex = 0;
+	FirstUsedSlot = 0;
 
 	// Notify other layers of heap change
 	CPUBase = Heap->GetCPUDescriptorHandleForHeapStart();
@@ -3309,12 +3479,23 @@ uint32 FD3D12DescriptorCache::OnlineHeap::ReserveSlots(uint32 NumSlotsRequested)
 		throw E_OUTOFMEMORY;
 	}
 
+	// CanReserveSlots should have been called first
+	check(CanReserveSlots(NumSlotsRequested));
+
 	// Decide which slots will be reserved and what needs to be cleaned up
 	uint32 FirstRequestedSlot = NextSlotIndex;
 	uint32 SlotAfterReservation = NextSlotIndex + NumSlotsRequested;
 
-	// CanReserveSlots should have ben called first
-	check(SlotAfterReservation <= HeapSize);
+	// Loop around if the end of the heap has been reached
+	if (SlotAfterReservation > HeapSize)
+	{
+		FirstRequestedSlot = 0;
+		SlotAfterReservation = NumSlotsRequested;
+
+		FirstUsedSlot = SlotAfterReservation;
+
+		Parent->HeapLoopedAround(Desc.Type);
+	}
 
 	// Note where to start looking next time
 	NextSlotIndex = SlotAfterReservation;
@@ -3331,6 +3512,30 @@ void FD3D12DescriptorCache::OnlineHeap::SetNextSlot(uint32 NextSlot)
 	NextSlotIndex = NextSlot;
 }
 
+void FD3D12DescriptorCache::OnlineHeap::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)
+{
+	if (CurrentCommandList != nullptr && NextSlotIndex > 0)
+	{
+		// Track the previous command list
+		SyncPointEntry SyncPoint;
+		SyncPoint.SyncPoint = CurrentCommandList;
+		SyncPoint.LastSlotInUse = NextSlotIndex - 1;
+		SyncPoints.Enqueue(SyncPoint);
+
+		Entry.SyncPoint = CurrentCommandList;
+
+		// Free up slots for finished command lists
+		while (SyncPoints.Peek(SyncPoint) && SyncPoint.SyncPoint.IsComplete())
+		{
+			SyncPoints.Dequeue(SyncPoint);
+			FirstUsedSlot = SyncPoint.LastSlotInUse + 1;
+		}
+	}
+
+	// Update the current command list
+	CurrentCommandList = CommandListHandle;
+}
+
 uint32 GetTypeHash(const FD3D12SamplerArrayDesc& Key)
 {
 	return uint32(FD3D12PipelineStateCache::HashData((void*)Key.SamplerID, Key.Count * sizeof(Key.SamplerID[0])));
@@ -3339,4 +3544,9 @@ uint32 GetTypeHash(const FD3D12SamplerArrayDesc& Key)
 uint32 GetTypeHash(const FD3D12SRVArrayDesc& Key)
 {
 	return uint32(FD3D12PipelineStateCache::HashData((void*)Key.SRVSequenceNumber, Key.Count * sizeof(Key.SRVSequenceNumber[0])));
+}
+
+uint32 GetTypeHash(const FD3D12QuantizedBoundShaderState& Key)
+{
+	return uint32(FD3D12PipelineStateCache::HashData((void*)&Key, sizeof(Key)));
 }

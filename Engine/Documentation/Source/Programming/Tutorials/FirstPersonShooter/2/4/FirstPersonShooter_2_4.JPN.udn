@@ -1,0 +1,110 @@
+﻿INTSourceChangelist:2672917
+Availability:Docs
+Title:2.4 - マウスによるカメラ制御の実装
+Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
+Description:First Person Shooter キャラクターのマウスによるカメラ制御の実装方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/2/3)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/2)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Programming/Tutorials/FirstPersonShooter/2/5)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+このステップでは、マウス操作で周囲を見回したり、操縦する方法を追加します。
+
+## 軸マッピングの回転
+
+1.	**[Edit (編集)]** メニューで、**[Project Settings (プロジェクト設定)]** を **クリック** します。
+
+1.	**[Project Settings]** タブの左側にある **[Engine]** の見出しで、**[Input]** を **クリック** します。
+
+1.	**[Bindings]** の **[Axis Mappings]** の隣にあるプラス記号を **クリック** します。
+
+1.	**[Axis Mappings]** の左側にある矢印を **クリック** します。
+
+1.	表示されるテキスト欄に "Turn" と入力し、テキスト ボックスの左側の矢印を **クリック** して軸結合オプションを展開します。
+
+1.	ドロップダウン メニューで **[Mouse]** ドロップダウン リストから ** [Mouse X]** を選択します。
+
+1.	入力設定は以下のようになります。
+
+	![](TurnAxisMapping_MouseX.png)
+
+## 軸マッピングのルックアップ
+
+1.	**[Bindings]** の **[Axis Mappings]** の隣にあるプラス記号を **クリック** します。
+
+1.	表示されるテキスト欄に **LookUp** と入力し、テキスト ボックスの左側の矢印を **クリック** して軸結合オプションを展開します。
+
+1.	ドロップダウン メニューで **[Mouse]** ドロップダウン リストから ** [Mouse Y]** を選択します。
+
+1.	**[Mouse Y]** の隣の **Scale** 欄に、 "-1" と入力します。
+
+1.	入力設定は以下のようになります。
+
+	![](TurnAxisMapping_MouseY.png)
+
+1.	**[Project Settings]** メニューを閉じます。
+
+## 入力処理の実装
+
+ターンとルックアップのためにマウス入力を処理するコードを追加します。`Character` 基底クラスは、以下の 2 つの必須関数を定義します。
+
+*	`AddYawInput`
+*	`AddPitchInput`
+
+[REGION:note]
+感度や軸反転のサポートなど追加の処理が必要な場合、上記の関数へ渡す前に値を調整する独自の関数を使用できますが、この例では入力を`AddYawInput` 関数と `AddPitchInput` 関数に直接バインドさせます。
+[/REGION]
+
+1.	以下のコードを「`FPSCharacter.cpp`」ファイルの `SetupPlayerInputComponent` へ追加します。
+		// ゲームプレイのマウス バインドのセットアップ
+		InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+		InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+
+1.	`SetupPlayerInputComponent` 関数は以下のようになります。
+
+		// 機能と入力をバインドするために呼ばれます
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		{
+			Super::SetupPlayerInputComponent(InputComponent);
+			// ゲームプレイのキーバインドをセットアップ
+
+			InputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+			InputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
+			// ゲームプレイのマウス バインドのセットアップ
+			InputComponent->BindAxis("Turn", this, &AFPSCharacter::AddControllerYawInput);
+			InputComponent->BindAxis("LookUp", this, &AFPSCharacter::AddControllerPitchInput);
+		}
+
+## マウス操作によるカメラ制御
+
+1.	Visual Studio に `FPSCharacter` 実装ファイルを保存します。
+
+1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
+
+1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+
+	![](BuildProject.png)
+
+1.	ビルドが終了したらアンリアル エディタで **FPSProject** を開きます。
+
+1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンを **クリック** します。これでマウス操作によるカメラの制御が可能になりました。
+
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを **クリック** します。
+
+%Steps%

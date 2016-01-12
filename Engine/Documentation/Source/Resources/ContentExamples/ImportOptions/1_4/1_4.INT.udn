@@ -11,6 +11,25 @@ Related: Engine/Content/FBX
 Related: Engine/Content/FBX/MorphTargets
 Related: Shared/Editor/FbxErrors
 Related: Engine/Content/FBX/Materials
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/ImportOptions/1_3 "%Resources/ContentExamples/ImportOptions/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Import Options Home](Resources/ContentExamples/ImportOptions)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/ImportOptions/1_5 "%Resources/ContentExamples/ImportOptions/1_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 
 [VAR:TopicCompact]

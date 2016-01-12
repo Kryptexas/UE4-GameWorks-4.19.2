@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,6 +73,12 @@ public:
 
 	TSharedPtr< FUICommandInfo > DistributeNodesHorizontally;
 	TSharedPtr< FUICommandInfo > DistributeNodesVertically;
+	
+	// Enable/disable commands
+	TSharedPtr< FUICommandInfo > EnableNodes;
+	TSharedPtr< FUICommandInfo > DisableNodes;
+	TSharedPtr< FUICommandInfo > EnableNodes_Always;
+	TSharedPtr< FUICommandInfo > EnableNodes_DevelopmentOnly;
 
 	//
 	TSharedPtr< FUICommandInfo > SelectReferenceInLevel;
@@ -80,6 +86,7 @@ public:
 
 	// Find references
 	TSharedPtr< FUICommandInfo > FindReferences;
+	TSharedPtr< FUICommandInfo > FindAndReplaceReferences;
 
 	// Goto native code actions
 	TSharedPtr< FUICommandInfo > GotoNativeFunctionDefinition;

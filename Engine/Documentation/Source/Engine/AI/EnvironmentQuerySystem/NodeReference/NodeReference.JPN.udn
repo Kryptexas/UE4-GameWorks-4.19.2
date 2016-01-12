@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2652981
 Availability:Public
 Title:The  Environment Query System ノードのリファレンス
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:Environment Query System エディタで利用できる各種ノードの詳細と説明
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,7 +56,7 @@ Description:Environment Query System エディタで利用できる各種ノー�
 
 ### Actors of Class
 
-コンテキスト周囲のにある Search Radius 内のクラスのアクタを全て探します。そのアクタは、テストで使用するアイテムとして返されます。
+**Search Center** の周囲にある **Search Radius** 内のクラスのアクタを全て探します。そのアクタは、テストで使用するアイテムとして返されます。
 
 ![](gen_actor.png)(convert:false)
 
@@ -71,7 +72,7 @@ Description:Environment Query System エディタで利用できる各種ノー�
 
 ### On circle
 
-ヒットあるいは (生成された円の) 半径のエッジをアイテムとして返して、コンテキストからトレースを放射状に広げます。
+ヒットあるいは (生成された円の) 半径のエッジをアイテムとして返して、**Circle Center** からトレースを放射状に広げます。
 
 ![](gen_circle.png)(convert:false)
 
@@ -102,7 +103,7 @@ Grid と似ていますが、NavMesh 上の様々なポイントにパスし、M
 | --- | --- | :--- |
 | **Max Distance** || パスする際の Querier からの距離です。 |
 | **Distance Between** || 生成されたアイテム間の距離です。 |
-| **Path to Item** || アイテム **へ** パスするのか、アイテム **から** パスするのか設定します。 |
+| **Path to Item** || アイテム へ パスするのか、アイテム から パスするのか設定します。 |
 | **Generate Around** || Pathing Grid を周りに生成するコンテキストです。 |
 | **Navigation Filter** || 使用するナビゲーション フィルタです。 | 
 [/REGION]
@@ -129,7 +130,7 @@ Querier の周囲にアイテムのグリッドを生成します。
 
 ### Distance
 
-アイテムと選択されたコンテキスト間の直接距離を返します。コンテキストが複数の場所に位置する場合、それぞれの距離を確認した結果の平均値になります。
+アイテムと選択した **Distance To** との間の直接距離を返します。Distance To が複数の場所に位置する場合、それぞれの距離を確認した結果の平均値になります。
 
 ![](test_dist.png)
 
@@ -138,7 +139,7 @@ Querier の周囲にアイテムのグリッドを生成します。
 [REGION:raw]
 | プロパティ | %spacer% | 説明 |
 | --- | --- | :--- |
-| **Test Mode** || 距離のチェックを 3D で行う場合、2D XY plane 、または単に Z 軸沿いにします。 |
+| **Test Mode** || Distance Check を 3D で行う場合、2D XY plane 、または単に Z 軸沿いにします。 |
 | **Distance To** || 距離の測定に使用するコンテキストです。 |
 | **Test Purpose** || テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
 | **Filter Type** || フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
@@ -179,13 +180,13 @@ Querier の周囲にアイテムのグリッドを生成します。
 
 <!--
 [EXCERPT:dotLine]
-Rotation の **Mode** 設定:
+Rotation の Mode 設定:
 
 | プロパティ | 説明 |
 |---|---|
 | Rotation | 回転ベクターまたは選択されたコンテキストを返します。 |
 
-Two Points の **Mode** 設定:
+Two Points の Mode 設定:
 
 | プロパティ | 説明 |
 |---|---|
@@ -226,7 +227,7 @@ Two Points の **Mode** 設定:
 | **Skip Unreachable** || 到達不可能なアイテムにすべてフィルタをかけます。 |
 | **Use Hierarchical Pathfinding** || 精度は落ちても早い階層的パスファインディングを使用します。 |
 | **Test Purpose** || テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
-| **Filter Type** || フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Filter Type** || フィルタのタイプを、最小、最大、値域に変更します。 Float Value Min または Float Value Max での設定値から外れると、値はカリングされます。 |
 | **Float Value Min** || この値と同等またはそれ以下の値をフィルタします。 |
 | **Float Value Max** || この値と同等またはそれ以上の値をフィルタします。 |
 | **Clamping** || 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |
@@ -258,7 +259,7 @@ Two Points の **Mode** 設定:
 | プロパティ | %spacer% | 説明 |
 | --- | --- | :--- |
 | **Test Purpose** || テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
-| **Filter Type** || フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Filter Type** || フィルタのタイプを、最小、最大、値域に変更します。 Float Value Min または Float Value Max での設定値から外れると、値はカリングされます。 |
 | **Float Value Min** || この値と同等またはそれ以下の値をフィルタします。 |
 | **Float Value Max** || この値と同等またはそれ以上の値をフィルタします。 |
 | **Clamping** || 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |
@@ -280,7 +281,7 @@ Two Points の **Mode** 設定:
 | プロパティ | %spacer% | 説明 |
 | --- | --- | :--- |
 | [REGION:tablesection]**Trace Data**[/REGION] |||
-| **Trance Channel** || トレースを行います。デフォルトでアンリアル エンジンには Visibility と Camera が付いています。Trace Channel の調整は、**[Edit Menu (編集メニュー)] -> [Project Settings (プロパティ設定)] -> [Physics (フィジックス)] -> Simulation (シミュレーション) ** カテゴリで行います。
+| **Trace Channel** || トレースを行います。デフォルトでアンリアル エンジンには Visibility と Camera が付いています。Trace Channel の調整は、**[Edit Menu (編集メニュー)] -> [Project Settings (プロパティ設定)] -> [Physics (フィジックス)] -> Simulation (シミュレーション) ** カテゴリで行います。
 | **Trace Shape** || 線形、球体、ボックス、カプセルです。 |
 | **Trace Complex** || トレースの対象がメッシュなのか、単なるシンプル コリジョンなのかを設定します。 |
 | **Only Blocking Hits** || トレース結果にブロッキング トレースかノンブロッキング トレースを使用するのかを設定します。 | 
@@ -290,7 +291,7 @@ Two Points の **Mode** 設定:
 | **Item Height Offset** || テストの追跡元 / 追跡先に cm 単位で Z オフセットを追加します。 |
 | **Context Height Offset** || テストの追跡元 / 追跡先に cm 単位で Z オフセットを追加します。 |
 | **Test Purpose** || テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
-| **Filter Type** || フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Filter Type** || フィルタのタイプを、最小、最大、値域に変更します。 Float Value Min または Float Value Max での設定値から外れると、値はカリングされます。 |
 | **Float Value Min** || この値と同等またはそれ以下の値をフィルタします。 |
 | **Float Value Max** || この値と同等またはそれ以上の値をフィルタします。 |
 | **Clamping** || 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |

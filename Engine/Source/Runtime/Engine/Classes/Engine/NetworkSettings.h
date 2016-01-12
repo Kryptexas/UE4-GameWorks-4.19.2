@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,13 +20,13 @@ class ENGINE_API UNetworkSettings : public UDeveloperSettings
 
 public:
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-	// End UObject interface
+	//~ End UObject Interface
 
 };

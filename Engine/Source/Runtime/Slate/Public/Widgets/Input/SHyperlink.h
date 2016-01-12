@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,14 +19,18 @@ public:
 		, _UnderlineStyle(nullptr)
 		, _Padding()
 		, _OnNavigate()
+		, _TextShapingMethod()
+		, _TextFlowDirection()
 		{}
 
-		SLATE_TEXT_ATTRIBUTE( Text )
+		SLATE_ATTRIBUTE( FText, Text )
 		SLATE_STYLE_ARGUMENT( FHyperlinkStyle, Style )
 		SLATE_STYLE_ARGUMENT( FTextBlockStyle, TextStyle )
 		SLATE_STYLE_ARGUMENT( FButtonStyle, UnderlineStyle )
 		SLATE_ATTRIBUTE( FMargin, Padding )
 		SLATE_EVENT( FSimpleDelegate, OnNavigate )
+		SLATE_ARGUMENT( TOptional<ETextShapingMethod>, TextShapingMethod )
+		SLATE_ARGUMENT( TOptional<ETextFlowDirection>, TextFlowDirection )
 	SLATE_END_ARGS()
 
 	/**
@@ -50,7 +54,9 @@ public:
 			.ButtonStyle( UnderlineStyle )
 			.TextStyle( TextStyle )
 			.OnClicked(this, &SHyperlink::Hyperlink_OnClicked)
-			.ForegroundColor(FSlateColor::UseForeground())			
+			.ForegroundColor(FSlateColor::UseForeground())
+			.TextShapingMethod( InArgs._TextShapingMethod )
+			.TextFlowDirection( InArgs._TextFlowDirection )
 		);
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsTextInputMethodSystem.h"
@@ -391,7 +391,10 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 		{
 			TCHAR ErrorMsg[1024];
 			FPlatformMisc::GetSystemErrorMessage(ErrorMsg, 1024, Result);
-			UE_LOG(LogWindowsTextInputMethodSystem, Warning, TEXT("Initialization failed while creating the TSF thread manager. %s (0x%08x)"), ErrorMsg, Result);
+			if (!GIsBuildMachine)
+			{
+				UE_LOG(LogWindowsTextInputMethodSystem, Warning, TEXT("Initialization failed while creating the TSF thread manager. %s (0x%08x)"), ErrorMsg, Result);
+			}
 			TSFInputProcessorProfiles.Reset();
 			TSFInputProcessorProfileManager.Reset();
 			return false;
@@ -479,7 +482,10 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 	{
 		TCHAR ErrorMsg[1024];
 		FPlatformMisc::GetSystemErrorMessage(ErrorMsg, 1024, Result);
-		UE_LOG(LogWindowsTextInputMethodSystem, Warning, TEXT("Initialization failed while creating the TSF thread manager. %s (0x%08x)"), ErrorMsg, Result);
+		if (!GIsBuildMachine)
+		{
+			UE_LOG(LogWindowsTextInputMethodSystem, Warning, TEXT("Initialization failed while creating the TSF thread manager. %s (0x%08x)"), ErrorMsg, Result);
+		}
 		TSFInputProcessorProfiles.Reset();
 		TSFInputProcessorProfileManager.Reset();
 		TSFThreadManager.Reset();

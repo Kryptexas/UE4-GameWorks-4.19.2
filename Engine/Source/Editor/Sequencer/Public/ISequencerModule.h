@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,9 +32,6 @@ DECLARE_DELEGATE_TwoParams(FOnGetAddMenuContent, FMenuBuilder& /*MenuBuilder*/, 
  */
 struct FSequencerViewParams
 {
-	/** The initial time range of the view. */
-	TRange<float> InitalViewRange;
-
 	/** Initial Scrub Position. */
 	float InitialScrubPosition;
 
@@ -47,8 +44,7 @@ struct FSequencerViewParams
 	FString UniqueName;
 
 	FSequencerViewParams(FString InName = FString())
-		: InitalViewRange(0.0f, 5.0f)
-		, InitialScrubPosition(0.0f)
+		: InitialScrubPosition(0.0f)
 		, UniqueName(MoveTemp(InName))
 	{ }
 };
@@ -70,6 +66,9 @@ struct FSequencerInitParams
 
 	/** Whether or not sequencer should be edited within the level editor */
 	bool bEditWithinLevelEditor;
+
+	/** Domain-specific spawn register for the movie scene */
+	TSharedPtr<IMovieSceneSpawnRegister> SpawnRegister;
 };
 
 

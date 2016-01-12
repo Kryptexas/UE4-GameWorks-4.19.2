@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -50,5 +50,8 @@ void SGroupMarkerBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const
 	[
 		SNullWidget::NullWidget
 	];
-}
 
+	// Add this widget to the search list of the multibox and hide it
+	if (MultiBlock->GetSearchable())
+		OwnerMultiBoxWidget.Pin()->AddSearchElement(this->AsWidget(), FText::GetEmpty());
+}

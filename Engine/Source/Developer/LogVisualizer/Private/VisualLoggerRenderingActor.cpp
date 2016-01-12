@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "Engine/GameInstance.h"
@@ -24,9 +24,10 @@ public:
 		DrawType = SolidAndWireMeshes;
 		ViewFlagName = TEXT("VisLog");
 		ViewFlagIndex = uint32(FEngineShowFlags::FindIndexByName(*ViewFlagName));
+		bWantsSelectionOutline = false;
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View);
@@ -59,26 +60,18 @@ FPrimitiveSceneProxy* UVisualLoggerRenderingComponent::CreateSceneProxy()
 	ULogVisualizerSettings *Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
 	FVisualLoggerSceneProxy *VLogSceneProxy = new FVisualLoggerSceneProxy(this);
 	VLogSceneProxy->SolidMeshMaterial = Settings->GetDebugMeshMaterial();
-	VLogSceneProxy->Spheres = RenderingActor->PrimaryDebugShapes.Points;
-	VLogSceneProxy->Lines = RenderingActor->PrimaryDebugShapes.Lines;
-	VLogSceneProxy->Cones = RenderingActor->PrimaryDebugShapes.Cones;
-	VLogSceneProxy->Boxes = RenderingActor->PrimaryDebugShapes.Boxes;
-	VLogSceneProxy->Meshes = RenderingActor->PrimaryDebugShapes.Meshes;
-	VLogSceneProxy->Cones = RenderingActor->PrimaryDebugShapes.Cones;
-	VLogSceneProxy->Texts = RenderingActor->PrimaryDebugShapes.Texts;
-	VLogSceneProxy->Cylinders = RenderingActor->PrimaryDebugShapes.Cylinders;
-	VLogSceneProxy->Capsles = RenderingActor->PrimaryDebugShapes.Capsles;
 
+	for (auto& CurrentShapes : RenderingActor->DebugShapesPerRow)
 	{
-		VLogSceneProxy->Spheres.Append(RenderingActor->SecondaryDebugShapes.Points);
-		VLogSceneProxy->Lines.Append(RenderingActor->SecondaryDebugShapes.Lines);
-		VLogSceneProxy->Cones.Append(RenderingActor->SecondaryDebugShapes.Cones);
-		VLogSceneProxy->Boxes.Append(RenderingActor->SecondaryDebugShapes.Boxes);
-		VLogSceneProxy->Meshes.Append(RenderingActor->SecondaryDebugShapes.Meshes);
-		VLogSceneProxy->Cones.Append(RenderingActor->SecondaryDebugShapes.Cones);
-		VLogSceneProxy->Texts.Append(RenderingActor->SecondaryDebugShapes.Texts);
-		VLogSceneProxy->Cylinders.Append(RenderingActor->SecondaryDebugShapes.Cylinders);
-		VLogSceneProxy->Capsles.Append(RenderingActor->SecondaryDebugShapes.Capsles);
+		VLogSceneProxy->Spheres.Append(CurrentShapes.Value.Points);
+		VLogSceneProxy->Lines.Append(CurrentShapes.Value.Lines);
+		VLogSceneProxy->Cones.Append(CurrentShapes.Value.Cones);
+		VLogSceneProxy->Boxes.Append(CurrentShapes.Value.Boxes);
+		VLogSceneProxy->Meshes.Append(CurrentShapes.Value.Meshes);
+		VLogSceneProxy->Cones.Append(CurrentShapes.Value.Cones);
+		VLogSceneProxy->Texts.Append(CurrentShapes.Value.Texts);
+		VLogSceneProxy->Cylinders.Append(CurrentShapes.Value.Cylinders);
+		VLogSceneProxy->Capsles.Append(CurrentShapes.Value.Capsles);
 	}
 
 	{
@@ -133,7 +126,126 @@ void UVisualLoggerRenderingComponent::DestroyRenderState_Concurrent()
 AVisualLoggerRenderingActor::AVisualLoggerRenderingActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComp"));
+	RootComponent = SceneComponent;
+
 	RenderingComponent = CreateDefaultSubobject<UVisualLoggerRenderingComponent>(TEXT("RenderingComponent"));
+
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		FVisualLoggerDatabase::Get().GetEvents().OnItemSelectionChanged.AddUObject(this, &AVisualLoggerRenderingActor::OnItemSelectionChanged);
+		FVisualLoggerDatabase::Get().GetEvents().OnRowSelectionChanged.AddUObject(this, &AVisualLoggerRenderingActor::ObjectSelectionChanged);
+
+		FLogVisualizer::Get().GetEvents().OnFiltersChanged.AddUObject(this, &AVisualLoggerRenderingActor::OnFiltersChanged);
+	}
+}
+
+AVisualLoggerRenderingActor::~AVisualLoggerRenderingActor()
+{
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		FVisualLoggerDatabase::Get().GetEvents().OnItemSelectionChanged.RemoveAll(this);
+		FVisualLoggerDatabase::Get().GetEvents().OnRowSelectionChanged.RemoveAll(this);
+		FLogVisualizer::Get().GetEvents().OnFiltersChanged.RemoveAll(this);
+	}
+}
+
+void AVisualLoggerRenderingActor::ObjectSelectionChanged(const TArray<FName>& Selection)
+{
+	//PrimaryDebugShapes.Reset();
+
+	if (Selection.Num() > 0)
+	{
+		for (auto CurrentName : Selection)
+		{
+			if (DebugShapesPerRow.Contains(CurrentName) == false)
+			{
+				DebugShapesPerRow.Add(CurrentName);
+				FVisualLoggerDBRow &DBRow = FVisualLoggerDatabase::Get().GetRowByName(CurrentName);
+				FTimelineDebugShapes& ShapesCache = DebugShapesPerRow[CurrentName];
+				for (const auto &CurrentEntry : DBRow.GetItems())
+				{
+					if (CurrentEntry.Entry.Location != FVector::ZeroVector)
+					{
+						ShapesCache.LogEntriesPath.Add(CurrentEntry.Entry.Location);
+					}
+				}
+			}
+		}
+
+		for (auto Element : DebugShapesPerRow)
+		{
+			if (Selection.Find(Element.Key) == INDEX_NONE)
+			{
+				DebugShapesPerRow.Remove(Element.Key);
+			}
+		}
+	}
+	else
+	{
+		DebugShapesPerRow.Reset();
+	}
+	CachedRowSelection = Selection;
+	MarkComponentsRenderStateDirty();
+}
+
+void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLoggerDBRow& DBRow, int32 ItemIndex)
+{
+	const FName RowName = DBRow.GetOwnerName();
+
+	const TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
+	for (auto& Extension : AllExtensions)
+	{
+		Extension.Value->DrawData(FVisualLoggerEditorInterface::Get(), NULL);
+	}
+
+	if (DebugShapesPerRow.Contains(RowName) == false)
+	{
+		return;
+	}
+
+	if (FVisualLoggerDatabase::Get().IsRowVisible(RowName) == false || DBRow.GetItems().IsValidIndex(ItemIndex) == false)
+	{
+		return;
+	}
+
+	FTimelineDebugShapes& ShapesCache = DebugShapesPerRow[RowName];
+	ShapesCache.Reset();
+	const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = DBRow.GetItems();
+	const int32 CurrentItemIndex = DBRow.GetCurrentItemIndex();
+	GetDebugShapes(Entries[CurrentItemIndex], ShapesCache);
+
+	MarkComponentsRenderStateDirty();
+}
+
+void AVisualLoggerRenderingActor::ResetRendering()
+{
+	CachedRowSelection.Reset();
+	DebugShapesPerRow.Reset();
+	MarkComponentsRenderStateDirty();
+}
+
+void AVisualLoggerRenderingActor::OnFiltersChanged()
+{
+	const TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
+	for (auto& Extension : AllExtensions)
+	{
+		Extension.Value->DrawData(FVisualLoggerEditorInterface::Get(), NULL);
+	}
+
+	DebugShapesPerRow.Reset();
+	const TArray<FName>& RowNames = FVisualLoggerDatabase::Get().GetSelectedRows();
+	for (FName CurrentName : RowNames)
+	{
+		FVisualLoggerDBRow& DBRow = FVisualLoggerDatabase::Get().GetRowByName(CurrentName);
+		FTimelineDebugShapes& ShapesCache = DebugShapesPerRow.FindOrAdd(CurrentName);
+		ShapesCache.Reset();
+		if (DBRow.GetCurrentItemIndex() != INDEX_NONE)
+		{
+			GetDebugShapes(DBRow.GetCurrentItem(), ShapesCache);
+		}
+	}
+	MarkComponentsRenderStateDirty();
 }
 
 void AVisualLoggerRenderingActor::AddDebugRendering()
@@ -184,41 +296,52 @@ void AVisualLoggerRenderingActor::AddDebugRendering()
 	}
 }
 
-void AVisualLoggerRenderingActor::ObjectSelectionChanged(TArray<TSharedPtr<class STimeline> >& TimeLines)
-{
-	PrimaryDebugShapes.Reset();
-
-	if (TimeLines.Num() > 0)
-	{
-		const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = TimeLines[TimeLines.Num() - 1]->GetEntries();
-		for (const auto &CurrentEntry : Entries)
-		{
-			if (CurrentEntry.Entry.Location != FVector::ZeroVector)
-			{
-				PrimaryDebugShapes.LogEntriesPath.Add(CurrentEntry.Entry.Location);
-			}
-		}
-	}
-	SelectedTimeLines = TimeLines;
-	MarkComponentsRenderStateDirty();
-}
-
 namespace
 {
+	static bool IsPolygonWindingCorrect(const TArray<FVector>& Verts)
+	{
+		// this will work only for convex polys, but we're assuming that all logged polygons are convex in the first place
+		if (Verts.Num() >= 3)
+		{
+			const FVector SurfaceNormal = FVector::CrossProduct(Verts[1] - Verts[0], Verts[2] - Verts[0]);
+			const float TestDot = FVector::DotProduct(SurfaceNormal, FVector(0, 0, 1));
+			return TestDot > 0;
+		}
+
+		return false;
+	}
+
 	static void GetPolygonMesh(const FVisualLogShapeElement* ElementToDraw, FDebugRenderSceneProxy::FMesh& TestMesh, const FVector& VertexOffset = FVector::ZeroVector)
 	{
 		TestMesh.Color = ElementToDraw->GetFColor();
 
 		FClipSMPolygon InPoly(ElementToDraw->Points.Num());
-		for (int32 Index = 0; Index < ElementToDraw->Points.Num(); Index++)
+		InPoly.FaceNormal = FVector(0, 0, 1);
+
+		const bool bHasCorrectWinding = IsPolygonWindingCorrect(ElementToDraw->Points);
+		if (bHasCorrectWinding)
 		{
-			FClipSMVertex v1;
-			v1.Pos = ElementToDraw->Points[Index];
-			InPoly.Vertices.Add(v1);
+			for (int32 Index = 0; Index < ElementToDraw->Points.Num(); Index++)
+			{
+				FClipSMVertex v1;
+				v1.Pos = ElementToDraw->Points[Index];
+				InPoly.Vertices.Add(v1);
+			}
+		}
+		else
+		{
+			for (int32 Index = ElementToDraw->Points.Num() - 1; Index >= 0; Index--)
+			{
+				FClipSMVertex v1;
+				v1.Pos = ElementToDraw->Points[Index];
+				InPoly.Vertices.Add(v1);
+			}
 		}
 
 		TArray<FClipSMTriangle> OutTris;
-		if (TriangulatePoly(OutTris, InPoly, false))
+		
+		const bool bTriangulated = TriangulatePoly(OutTris, InPoly, false);
+		if (bTriangulated)
 		{
 			int32 LastIndex = 0;
 
@@ -265,35 +388,9 @@ void AVisualLoggerRenderingActor::GetDebugShapes(const FVisualLogDevice::FVisual
 		}
 	}
 
-	const TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
-	for (auto& Extension : AllExtensions)
-	{
-		Extension.Value->OnTimestampChange(Entry->TimeStamp, GetWorld(), this);
-	}
-
-	for (const auto CurrentData : Entry->DataBlocks)
-	{
-		const FName TagName = CurrentData.TagName;
-		const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.Category.ToString(), ELogVerbosity::All) && FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.TagName.ToString(), ELogVerbosity::All);
-		FVisualLogExtensionInterface* Extension = FVisualLogger::Get().GetExtensionForTag(TagName);
-		if (!Extension)
-		{
-			continue;
-		}
-
-		if (!bIsValidByFilter)
-		{
-			Extension->DisableDrawingForData(GetWorld(), NULL, this, TagName, CurrentData, Entry->TimeStamp);
-		}
-		else
-		{
-			Extension->DrawData(GetWorld(), NULL, this, TagName, CurrentData, Entry->TimeStamp);
-		}
-	}
-
 	for (int32 ElementIndex = 0; ElementIndex < ElementsCount; ++ElementIndex, ++ElementToDraw)
 	{
-		if (!FCategoryFiltersManager::Get().MatchCategoryFilters(ElementToDraw->Category.ToString(), ElementToDraw->Verbosity))
+		if (!FVisualLoggerFilters::Get().MatchCategoryFilters(ElementToDraw->Category.ToString(), ElementToDraw->Verbosity))
 		{
 			continue;
 		}
@@ -557,55 +654,3 @@ void AVisualLoggerRenderingActor::GetDebugShapes(const FVisualLogDevice::FVisual
 		}
 	}
 }
-
-void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& EntryItem)
-{
-	PrimaryDebugShapes.Reset();
-	GetDebugShapes(EntryItem, PrimaryDebugShapes);
-
-	SecondaryDebugShapes.Reset();
-	if (SelectedTimeLines.Num() > 1)
-	{
-		for (TSharedPtr<class STimeline> CurrentTimeline : SelectedTimeLines)
-		{
-			if (CurrentTimeline.IsValid() == false || CurrentTimeline->GetVisibility().IsVisible() == false)
-			{
-				continue;
-			}
-
-			if (EntryItem.OwnerName == CurrentTimeline->GetName())
-			{
-				continue;
-			}
-
-			const TArray<FVisualLogDevice::FVisualLogEntryItem>& Entries = CurrentTimeline->GetEntries();
-
-			int32 BestItemIndex = INDEX_NONE;
-			float BestDistance = MAX_FLT;
-			for (int32 Index = 0; Index < Entries.Num(); Index++)
-			{
-				auto& CurrentEntryItem = Entries[Index];
-
-				if (CurrentTimeline->IsEntryHidden(CurrentEntryItem))
-				{
-					continue;
-				}
-				TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
-				const float CurrentDist = FMath::Abs(CurrentEntryItem.Entry.TimeStamp - EntryItem.Entry.TimeStamp);
-				if (CurrentDist < BestDistance)
-				{
-					BestDistance = CurrentDist;
-					BestItemIndex = Index;
-				}
-			}
-
-			if (Entries.IsValidIndex(BestItemIndex))
-			{
-				GetDebugShapes(Entries[BestItemIndex], SecondaryDebugShapes);
-			}
-		}
-	}
-
-	MarkComponentsRenderStateDirty();
-}
-

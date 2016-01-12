@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2532042
-Availability:Public
+﻿Availability:Public
 Title:Material 入力			
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:マテリアルに利用可能なさまざまな入力ポートの詳細とその使用方法
@@ -11,9 +10,9 @@ Description:マテリアルに利用可能なさまざまな入力ポートの�
 
 ## 入力ポートとマテリアル設定
 
-作成したすべての種類のマテリアルに、全ての入力ポートが便利というわけではありません。例えば、 Light 関数の作成時にライトに適用するマテリアルは、 Metallic や Roughness などその他の入力ポートは適用できないため、 **Emissive Color** 入力ポートのみの使用となります。そのため、使用する入力ポートを気にする前に、作成しているマテリアルのタイプを理解することが重要になります。以下が、主要な 3 つの制御プロパティです。
+作成したすべての種類のマテリアルに、全ての入力ポートが便利というわけではありません。例えば、 Light 関数の作成時にライトに適用するマテリアルは、 Metallic や Roughness などその他の入力ポートは適用できないため、 Emissive Color 入力ポートのみの使用となります。そのため、作成しているマテリアルのタイプをしっかり理解してから、使用する入力ポートを考えることが重要です。以下が、主要な 3 つの制御プロパティです。
 
-* **Blend Mode** - マテリアルが背後のピクセルとブレンドする方法を制御します。
+* **Blend Model** - マテリアルが背後のピクセルとブレンドする方法を制御します。
 * **Shading Model** - マテリアルの表面へライトを計算する方法を定義します。
 * **Material Domain** - マテリアルの使用目的を制御します。表面の一部、 Light 関数、ポストプロセス マテリアルとしての使用などです。
 
@@ -69,7 +68,7 @@ Description:マテリアルに利用可能なさまざまな入力ポートの�
 [/EXCERPT:lightbox]
 [/EXCERPT:Emissive]
 
-## オパシティ (不透明)
+## Opacity (オパシティ)
 
 [EXCERPT:Opacity]
 [Translucent Blend Mode](Engine/Rendering/Materials\MaterialProperties\BlendModes#Translucent) を使用する場合は **Opacity** 入力が使用されます。以下の条件で 0 と 1 の間の値の入力が有効になります。
@@ -94,7 +93,7 @@ Opacity は主に、 _半透明_ 、 _加算_ 、 _変調マテリアル_ に使
 
 
 [EXCERPT:OpacityMask]
-**Opacity Mask** は Opacity と似た入力ですが、Masked Blend Mode を使用した場合のみ利用できます。Opacity と同様に 0.0 から 1.0 の間の値を受け取りますが、 Opacity と _異なる_ 点は、グレーのさまざまな描画は結果的に表示されないという点です。Masked モードにすると、マテリアルは完全に表示または非表示のどちらかになります。ワイヤーメッシュ、チェーンでつながれたフェンスなど、複雑な固体表面を定義するマテリアルが必要な時に理想的な解決法です。不透明部分はいまだにライティングを尊重します。
+**Opacity Mask** は Opacity と似た入力ですが、Masked Blend モードを使用した場合のみ利用できます。Opacity と同様に 0.0 から 1.0 の間の値を受け取りますが、 Opacity と _異なる_ 点は、グレーのさまざまな描画は結果的に表示されないという点です。Masked モードにすると、マテリアルは完全に表示または非表示のどちらかになります。ワイヤーメッシュ、チェーンでつながれたフェンスなど、複雑な固体表面を定義するマテリアルが必要な時に理想的な解決法です。不透明部分はいまだにライティングを尊重します。
 
 **Opacity Mask Clip Value** プロパティをベースの Material ノードに使用して、クリッピングが生じる場所を制御することができます。詳細は [Material Blend モード](Engine/Rendering/Materials\MaterialProperties\BlendModes#Masked) を参照してください。
 
@@ -111,11 +110,11 @@ Opacity は主に、 _半透明_ 、 _加算_ 、 _変調マテリアル_ に使
 ## Normal
 
 [EXCERPT:Normal]
-**Normal** 入力は、各ピクセルの「法線」または対向方向を摂動して、表面に多くの物理的な詳細を提供する法線マップを受け取ります。 
+**Normal** 入力は法線マップを受け取り、各ピクセルの「法線」または対向方向を摂動して、表面に多くの物理的な詳細を与えます。 
 
 ![](Axes.png)(w:935)
 
-**この画像では** 、両方の武器に同一の静的メッシュを使用しています。下側の画像は、非常に詳細な法線マップを表しています。多大な追加詳細をもたらし、実際にレンダリングされているよりもポリゴン数が表面に多く含まれているような錯覚を与えます。このような法線マップは、Pixologic ZBrush など、高解像度モデリングソフトで作成されることが多いです。
+**上の画像では** 両方の武器に同一のスタティック メッシュを使用しています。下の画像では、非常に詳細な法線マップを表すことで、非常に多くの詳細が追加されるため、実際のレンダリング数よりも多いポリゴン数が表面に含まれているような錯覚を与えます。このような法線マップは多くの場合、Pixologic ZBrush など、高解像度モデリングソフトで作成されます。
 
 ![](NormalNetwork.png)
 [/EXCERPT:Normal]
@@ -133,7 +132,7 @@ Opacity は主に、 _半透明_ 、 _加算_ 、 _変調マテリアル_ に使
 [![](WPODancing.png)(w:935)](WPODancing.png)
 [/REGION]
 
-上記のネットワークは、オブジェクトにらせん運動と上下への波打ちを同時に実行し、ダンスをしているかのような動作を引き起こします。
+上記ネットワークは、らせん運動と上下への波打ちをオブジェクトに対して同時に実行し、ダンスをしているような動作を引き起こします。
 
 [REGION:warning]
 World Position Offset を使用して元の範囲を超えてオブジェクトを展開する時、オクルージョン カリングは元の範囲を使用していることに留意してください。つまり、カリングおよびシャドウイング エラーが発生するかもしれません。パフォーマンスの妨げとなりシャドーイング エラーに繋がる恐れもありますが、メッシュのプロパティの **Scale Bounds** プロパティを設定してこれを補います。
@@ -144,11 +143,11 @@ World Position Offset を使用して元の範囲を超えてオブジェクト�
 ## World Displacement と Tessellation Multiplier
 
 [EXCERPT:WorldDisp]
-**World Displacement** 入力は World Position Offset ととても似ていますが、メッシュのベースとなる頂点ではなく、 Tessellation の頂点を使用します。有効にするには、 Material ノードの **Tessellation** プロパティを _None_ 以外の何かに設定しなくてはいけません。
+**World Displacement** 入力は World Position Offset ととても似ていますが、メッシュのベースとなる頂点ではなく、 Tessellation の頂点を使用します。Material ノードの Tessellation プロパティを _None_ 以外の何かに設定して有効にします。
 [/EXCERPT:WorldDisp]
 
 [EXCERPT:TessMult]
-**Tessellation Multiplier** 入力はサーフェスに沿ってテッセレーションの量を制御し、必要な箇所に詳細を追加します。World Displacement 入力同様に、これを有効にするには **Tessellation** プロパティを _None_ 以外の何かに設定しなくてはいけません。
+**Tessellation Multiplier** 入力はサーフェスに沿ってテッセレーションの量を制御し、必要に応じて詳細を追加できるようにします。World Displacement 入力と同じで、Tessellation プロパティを _None_ 以外に設定して有効にします。
 [/EXCERPT:TessMult]
 
 [EXCERPT:WorldDispAndTess]
@@ -160,7 +159,7 @@ World Position Offset を使用して元の範囲を超えてオブジェクト�
 
 
 [REGION:warning]
-World Position Offset を使用して元の範囲を超えてオブジェクトを展開する時、オクルージョン カリングは元の範囲を使用していることに留意してください。つまり、カリングおよびシャドウイング エラーが発生するかもしれません。パフォーマンスの妨げとなりシャドーイング エラーに繋がる恐れもありますが、メッシュのプロパティの **Scale Bounds** プロパティを設定してこれを補います。
+World Position Offset を使用して元の範囲を超えてオブジェクトを展開する時、オクルージョン カリングは元の範囲を使用していることに留意してください。つまり、カリングおよびシャドウイング エラーが発生するかもしれません。メッシュのプロパティの **Scale Bounds** プロパティを設定して調整してください。ただし、パフォーマンスの妨げとなりシャドーイング エラーが起こる可能性があります。
 [/REGION]
 
 [/EXCERPT:WorldDispAndTess]
@@ -207,7 +206,7 @@ Refraction 入力は、表面の屈折インデックスをシミュレーショ
 
 ## Clear Coat (クリアコート)
 
- Clear Coat Shading Model は、マテリアルのサーフェス上に薄い半透明層のフィルムを持つマルチレイヤーのマテリアルを、より適切にシミュレーションするために使用できます。
+Clear Coat Shading Model は、マテリアルのサーフェス上に薄い半透明層のフィルムを持つマルチレイヤーのマテリアルを、より適切にシミュレーションするために使用できます。
 それ以外にも、金属、非金属のサーフェスで使用できます。実際、無色系の金属マテリアルの上に 
 色がついた半透明の層を重ねるような表現に特化して設計されています。Clear Coat マテリアルの例としては、金属の上にアクリルやラッカーのクリアコートが塗られていたり、色付きフィルムが被せられた飲料水の缶やクルマのペイントがあります。 
 

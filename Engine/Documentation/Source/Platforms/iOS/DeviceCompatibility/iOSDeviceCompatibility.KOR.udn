@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2671180
 Availability:Public
 Title:iOS 디바이스 호환성
 Crumbs:%ROOT%, Platforms, Platforms/iOS
@@ -35,6 +35,8 @@ Description:iOS 개발시 디바이스 호환성에 대해서입니다.
 | **아이폰4S** | %Retina% 레티나 | %NonRetina% 논-레티나 | %Unsupported% 미지원 | %Unsupported% 미지원 |
 | **아이폰5** | %Retina% 레티나 | %Retina% 레티나 |%NonRetina%  논-레티나 | %Unsupported% 미지원 |
 | **아이폰5S** | %Retina% 레티나 | %Retina% 레티나 | %Retina% 레티나 | %Retina% 레티나 |
+| **아이폰6** | %Retina% 레티나 | %Retina% 레티나 | %Retina% 레티나 | %Retina% 레티나 |
+| **아이폰6 플러스** | %Retina% 레티나 | %Retina% 레티나 | %Retina% 레티나 | %Retina% 레티나 |
 [/REGION]
 
 이 표는 태블릿 디바이스 목록입니다:

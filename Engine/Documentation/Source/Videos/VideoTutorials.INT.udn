@@ -1,7 +1,8 @@
 Title:Video Tutorials
-Description:Video tutorials demonstrating concepts and techniques in Unreal Engine 4.
+Description: Video tutorials demonstrating concepts and techniques in Unreal Engine 4.
 Crumbs:%ROOT%
 Availability:Public
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

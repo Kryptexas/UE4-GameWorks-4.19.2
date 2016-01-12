@@ -3,13 +3,19 @@ Title:Set and Get an Actor Reference
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:Using Actor Reference to move different Actors around in a level.
 Related: Gameplay/HowTo/ReferenceAssets/Blueprints
+version: 4.9
+skilllevel:Intermediate
+type:howto
+parent:Engine/Blueprints/BP_HowTo
+order:1
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
 Follow the steps below for an example of **Setting** and **Getting** reference to an Actor. 
 
-_For this example, we are using a new **Blueprint Third Person Template** with **Starter Content** enabled._
-
+[REGION:note]
+For this example, we are using a new **Blueprint Third Person Template** with **Starter Content** enabled.
+[/REGION]
 1. From the **Modes** Menu under **Basic**, drag a **Box Trigger** into your level. 
 
 	![](1AddTriggerBox.png)
@@ -65,7 +71,7 @@ _For this example, we are using a new **Blueprint Third Person Template** with *
 	![](9AddingAnActor.png)
 
 	[REGION:note]
-	If you are using your own project, you can add any Actor, **Static Mesh**, or **Blueprint** to the level instead. 
+	If you are using your own project, you can add any Actor, Static Mesh, or Blueprint to the level instead. 
 	[/REGION]
 
 1. Whatever you add to the level, in the **Details** panel for each Actor, set their mobility to **Moveable**. 

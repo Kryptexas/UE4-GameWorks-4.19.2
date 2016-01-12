@@ -2,6 +2,7 @@ Availability:Public
 Title: Actor Lifecycle
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Actors
 Description:What actually happens when an Actor is loaded or spawned, and eventually dies.
+version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -12,9 +13,7 @@ The flow graph below shows the three primary paths for how an Actor is instanced
 
 ## Lifecycle Break Down
 
-[REGION:lightbox]
 [![](ActorLifeCycle1.png)](ActorLifeCycle1.png)
-[/REGION]
 
 ## Load from Disk
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,8 +10,8 @@
 /**
  * A light component that has parallel rays. Will provide a uniform lighting across any affected surface (eg. The Sun). This will affect all objects in the defined light-mass importance volume.
  */
-UCLASS(Blueprintable, ClassGroup=Lights, hidecategories=(Object, LightProfiles), editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
-class UDirectionalLightComponent : public ULightComponent
+UCLASS(Blueprintable, ClassGroup=Lights, hidecategories=(Object, LightProfiles), editinlinenew, meta=(BlueprintSpawnableComponent))
+class ENGINE_API UDirectionalLightComponent : public ULightComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -111,8 +111,11 @@ class UDirectionalLightComponent : public ULightComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldShadows, meta=(UIMin = "0", UIMax = "100000"), DisplayName = "DistanceField Shadow Distance")
 	float DistanceFieldShadowDistance;
 
-	/** Light source angle in degrees. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=DistanceFieldShadows, meta=(UIMin = "0", UIMax = "5"))
+	/** 
+	 * Light source angle in degrees, used for dynamic shadowing methods. 
+	 * Currently only Ray Traced Distance Field shadows and Capsule shadows support area shadows, and therefore make use of LightSourceAngle.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(UIMin = "0", UIMax = "5"))
 	float LightSourceAngle;
 
 	/** Determines how far shadows can be cast, in world units.  Larger values increase the shadowing cost. */
@@ -165,7 +168,7 @@ class UDirectionalLightComponent : public ULightComponent
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
 	void SetLightShaftOverrideDirection(FVector NewValue);
 
-	// ULightComponent interface.
+	//~ Begin ULightComponent Interface
 	virtual FVector4 GetLightPosition() const override;
 	virtual ELightComponentType GetLightType() const override;
 	virtual FLightmassLightSettings GetLightmassSettings() const override
@@ -180,14 +183,15 @@ class UDirectionalLightComponent : public ULightComponent
 	{
 		return bUsedAsAtmosphereSunLight;
 	}
+	//~ End ULightComponent Interface
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,29 +21,29 @@ public:
 
 	void InitBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* InObject );
 
-	// Begin IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual FText GetToolkitName() const override;
 	virtual FText GetToolkitToolTipText() const override;
-	// End IToolkit interface
+	//~ End IToolkit Interface
 
-	// Begin IBehaviorTreeEditor interface
+	//~ Begin IBehaviorTreeEditor Interface
 	virtual uint32 GetSelectedNodesCount() const override { return SelectedNodesCount; }
 	virtual void InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const override;
 	virtual UEdGraphNode* FindInjectedNode(int32 Index) const override;
 	virtual void DoubleClickNode(class UEdGraphNode* Node) override;
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
-	// End IBehaviorTreeEditor interface
+	//~ End IBehaviorTreeEditor Interface
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
-	// Begin FNotifyHook Interface
+	//~ Begin FNotifyHook Interface
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 	// End of FNotifyHook
 

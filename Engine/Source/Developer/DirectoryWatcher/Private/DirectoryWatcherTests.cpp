@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DirectoryWatcherPrivatePCH.h"
 #include "DirectoryWatcherModule.h"
@@ -73,7 +73,7 @@ class FDelayedCallbackLatentCommand : public IAutomationLatentCommand
 {
 public:
 	FDelayedCallbackLatentCommand(TFunction<void()> InCallback, float InDelay = 0.1f)
-		: Callback(InCallback), Delay(InDelay)
+		: Callback(MoveTemp(InCallback)), Delay(InDelay)
 	{}
 
 	virtual bool Update() override
@@ -98,7 +98,7 @@ FString GetWorkingDir()
 }
 
 static const float TestTickDelay = 0.1f;
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleCreateTest, "System.Plugins.Directory Watcher.Simple Create", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleCreateTest, "System.Plugins.Directory Watcher.Simple Create", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSimpleCreateTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -130,7 +130,7 @@ bool FDirectoryWatcherSimpleCreateTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleModifyTest, "System.Plugins.Directory Watcher.Simple Modify", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleModifyTest, "System.Plugins.Directory Watcher.Simple Modify", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSimpleModifyTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -197,7 +197,7 @@ bool FDirectoryWatcherSimpleModifyTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleDeleteTest, "System.Plugins.Directory Watcher.Simple Delete", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSimpleDeleteTest, "System.Plugins.Directory Watcher.Simple Delete", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSimpleDeleteTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -232,7 +232,7 @@ bool FDirectoryWatcherSimpleDeleteTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSubFolderTest, "System.Plugins.Directory Watcher.Sub Folder", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherSubFolderTest, "System.Plugins.Directory Watcher.Sub Folder", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherSubFolderTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -337,7 +337,7 @@ bool FDirectoryWatcherSubFolderTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherNewFolderTest, "System.Plugins.Directory Watcher.New Folder", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherNewFolderTest, "System.Plugins.Directory Watcher.New Folder", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherNewFolderTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -421,7 +421,7 @@ bool FDirectoryWatcherNewFolderTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherIgnoreSubtreeTest, "System.Plugins.Directory Watcher.Ignore Subtree", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDirectoryWatcherIgnoreSubtreeTest, "System.Plugins.Directory Watcher.Ignore Subtree", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDirectoryWatcherIgnoreSubtreeTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();

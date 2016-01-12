@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -17,7 +17,7 @@ class UParticleModuleLifetime_Seeded : public UParticleModuleLifetime
 
 	//Begin UParticleModule Interface
 	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32	RequiredBytesPerInstance() override;
 	virtual uint32	PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData) override;
 	virtual FParticleRandomSeedInfo* GetRandomSeedInfo() override
 	{
@@ -26,9 +26,9 @@ class UParticleModuleLifetime_Seeded : public UParticleModuleLifetime
 	virtual void EmitterLoopingNotify(FParticleEmitterInstance* Owner) override;
 	//End UParticleModule Interface
 
-	// Begin UParticleModuleLifetimeBase Interface
+	//~ Begin UParticleModuleLifetimeBase Interface
 	virtual float	GetLifetimeValue(FParticleEmitterInstance* Owner, float InTime, UObject* Data = NULL) override;
-	// End UParticleModuleLifetimeBase Interface
+	//~ End UParticleModuleLifetimeBase Interface
 };
 
 

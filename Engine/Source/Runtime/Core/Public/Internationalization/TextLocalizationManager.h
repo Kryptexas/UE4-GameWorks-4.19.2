@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -28,8 +28,40 @@ private:
 		};
 
 		typedef TArray<FEntry> FEntryArray;
-		typedef TMap<FString, FEntryArray> FKeysTable;
-		typedef TMap<FString, FKeysTable> FNamespacesTable;
+
+		struct FKeyTableKeyFuncs : BaseKeyFuncs<FEntryArray, FString, false>
+		{
+			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FEntryArray>& Element)
+			{
+				return Element.Key;
+			}
+			static FORCEINLINE bool Matches(const FString& A, const FString& B)
+			{
+				return A.Equals(B, ESearchCase::CaseSensitive);
+			}
+			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
+			{
+				return FCrc::StrCrc32<TCHAR>(*Key);
+			}
+		};
+		typedef TMap<FString, FEntryArray, FDefaultSetAllocator, FKeyTableKeyFuncs> FKeysTable;
+
+		struct FNamespaceTableKeyFuncs : BaseKeyFuncs<FKeysTable, FString, false>
+		{
+			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FKeysTable>& Element)
+			{
+				return Element.Key;
+			}
+			static FORCEINLINE bool Matches(const FString& A, const FString& B)
+			{
+				return A.Equals(B, ESearchCase::CaseSensitive);
+			}
+			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
+			{
+				return FCrc::StrCrc32<TCHAR>(*Key);
+			}
+		};
+		typedef TMap<FString, FKeysTable, FDefaultSetAllocator, FNamespaceTableKeyFuncs> FNamespacesTable;
 
 		FNamespacesTable Namespaces;
 
@@ -66,8 +98,40 @@ private:
 			}
 		};
 
-		typedef TMap<FString, FDisplayStringEntry> FKeysTable;
-		typedef TMap<FString, FKeysTable> FNamespacesTable;
+		struct FKeyTableKeyFuncs : BaseKeyFuncs<FDisplayStringEntry, FString, false>
+		{
+			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FDisplayStringEntry>& Element)
+			{
+				return Element.Key;
+			}
+			static FORCEINLINE bool Matches(const FString& A, const FString& B)
+			{
+				return A.Equals(B, ESearchCase::CaseSensitive);
+			}
+			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
+			{
+				return FCrc::StrCrc32<TCHAR>(*Key);
+			}
+		};
+		typedef TMap<FString, FDisplayStringEntry, FDefaultSetAllocator, FKeyTableKeyFuncs> FKeysTable;
+
+		struct FNamespaceTableKeyFuncs : BaseKeyFuncs<FKeysTable, FString, false>
+		{
+			static FORCEINLINE const FString& GetSetKey(const TPair<FString, FKeysTable>& Element)
+			{
+				return Element.Key;
+			}
+			static FORCEINLINE bool Matches(const FString& A, const FString& B)
+			{
+				return A.Equals(B, ESearchCase::CaseSensitive);
+			}
+			static FORCEINLINE uint32 GetKeyHash(const FString& Key)
+			{
+				return FCrc::StrCrc32<TCHAR>(*Key);
+			}
+		};
+		typedef TMap<FString, FKeysTable, FDefaultSetAllocator, FNamespaceTableKeyFuncs> FNamespacesTable;
+
 		FNamespacesTable NamespacesTable;
 
 	public:
@@ -146,6 +210,9 @@ public:
 
 	/** Updates display string entries and adds new display string entries based on localizations found in a specified localization resource. */
 	void UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath);
+
+	/** Reloads resources for the current culture. */
+	void RefreshResources();
 
 	/**	Returns the current text revision number. This value can be cached when caching information from the text localization manager.
 	 *	If the revision does not match, cached information may be invalid and should be recached. */

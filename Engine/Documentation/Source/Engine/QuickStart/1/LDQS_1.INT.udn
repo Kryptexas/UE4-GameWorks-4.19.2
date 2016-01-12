@@ -3,10 +3,11 @@ Title:1 - Required Setup
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:In this step we will use the Project Browser to create a New Project. 
 SkillLevel:Beginner
-Version:4.8
+Version:4.9
 Related:Engine/Basics/Projects
 Related:Engine/Basics/Projects/Browser
 Related:GettingStarted/Installation
+checkpoint: editorqs
  
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,7 +27,7 @@ Related:GettingStarted/Installation
 %Steps%
 
 Before we get started, the first thing that we will need to do is create a [Project](Engine/Basics/Projects) to work from for the duration of this guide. In the steps below we will use Unreal Engine 4's [Project Browser](Engine/Basics/Projects/Browser) to create our project. 
-After completing this step, our project will be ready and you will gone through the process of creating a Project and using a Template which you can then use for your very own future projects. 
+After completing this step, you will have a Template that you can build onto for your future projects.  
 
 ## Steps
 

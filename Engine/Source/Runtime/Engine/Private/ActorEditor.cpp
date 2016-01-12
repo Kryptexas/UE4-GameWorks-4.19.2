@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EditorSupportDelegates.h"
@@ -28,7 +28,7 @@ void AActor::PreEditChange(UProperty* PropertyThatWillChange)
 	}
 
 	// During SIE, allow components to be unregistered here, and then reregistered and reconstructed in PostEditChangeProperty.
-	if (GEditor->bIsSimulatingInEditor || ReregisterComponentsWhenModified())
+	if ((GEditor && GEditor->bIsSimulatingInEditor) || ReregisterComponentsWhenModified())
 	{
 		UnregisterAllComponents();
 	}
@@ -47,7 +47,7 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 
 	// During SIE, allow components to reregistered and reconstructed in PostEditChangeProperty.
 	// This is essential as construction is deferred during spawning / duplication when in SIE.
-	if (GEditor->bIsSimulatingInEditor || ReregisterComponentsWhenModified())
+	if ((GEditor && GEditor->bIsSimulatingInEditor) || ReregisterComponentsWhenModified())
 	{
 		// In the Undo case we have an annotation storing information about constructed components and we do not want
 		// to improperly apply out of date changes so we need to skip registration of all blueprint created components
@@ -174,8 +174,8 @@ void AActor::PostEditMove(bool bFinished)
 			UNavigationSystem::UpdateNavOctreeBounds(ParentedActors[Idx]);
 		}
 
-		// not doing manual update of all attached actors since UpdateNavOctreeAll should take care of it
-		UNavigationSystem::UpdateNavOctreeAll(this);
+		// not doing manual update of all attached actors since UpdateActorAndComponentsInNavOctree should take care of it
+		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
 }
 
@@ -390,7 +390,7 @@ void AActor::PostEditUndo()
 	{
 		ResetOwnedComponents();
 		// notify navigation system
-		UNavigationSystem::UpdateNavOctreeAll(this);
+		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
 	else
 	{
@@ -430,7 +430,7 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	{
 		ResetOwnedComponents();
 		// notify navigation system
-		UNavigationSystem::UpdateNavOctreeAll(this);
+		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}
 	else
 	{
@@ -673,7 +673,7 @@ void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMak
 	{
 		// Generate an object name for the actor's label
 		const FName OldActorName = GetFName();
-		FName NewActorName = MakeObjectNameFromActorLabel( GetActorLabel(), OldActorName );
+		FName NewActorName = MakeObjectNameFromDisplayLabel( GetActorLabel(), OldActorName );
 
 		// Has anything changed?
 		if( OldActorName != NewActorName )

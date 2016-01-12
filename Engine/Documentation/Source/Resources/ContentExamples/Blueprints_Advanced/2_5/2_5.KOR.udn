@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2621719
+﻿INTSourceChangelist:2652851
 Availability: Public
 Title:2.5 - 자손 블루프린트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -11,6 +11,22 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Blueprints_Advanced/2_4 "%Resources/ContentExamples/Blueprints_Advanced/2_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -33,7 +49,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ![](blueprint_advanced_2_5.png)
 
-## 개요
+
 
 마스터 머티리얼을 가지고 머티리얼 인스턴스를 만들듯, 부모 블루프린트를 기반으로 자손 블루프린트를 만드는 것이 가능합니다. 부모의 함수성은 자동으로 자손에 상속되어 보강, 추가, 변경 등의 작업이 가능합니다. 이 예제에서 세 가지 수집가능 픽업 _블루프린트_ 는 일반적인 픽업 _블루프린트_ 의 자손입니다.
 

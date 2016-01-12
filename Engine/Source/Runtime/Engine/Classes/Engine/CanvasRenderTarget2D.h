@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,7 +49,7 @@ public:
 	 *
 	 * @return						Returns the instanced render target.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Canvas Render Target 2D",meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	UFUNCTION(BlueprintCallable, Category="Canvas Render Target 2D",meta=(WorldContext="WorldContextObject" ))
 	static UCanvasRenderTarget2D* CreateCanvasRenderTarget2D(UObject* WorldContextObject, TSubclassOf<UCanvasRenderTarget2D> CanvasRenderTarget2DClass, int32 Width = 1024, int32 Height = 1024);
  
 	/**

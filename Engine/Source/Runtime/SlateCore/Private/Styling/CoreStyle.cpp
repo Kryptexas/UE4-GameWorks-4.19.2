@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 
@@ -89,6 +89,16 @@ void FCoreStyle::SetPressedSelectionColor( const FLinearColor& NewColor )
 	check(Style.IsValid());
 
 	FSlateCoreStyle::SetColor(Style->SelectionColor_Pressed_LinearRef, NewColor);
+}
+
+void FCoreStyle::SetFocusBrush(FSlateBrush* NewBrush)
+{
+	TSharedRef<FSlateCoreStyle> Style = StaticCastSharedRef<FSlateCoreStyle>(Instance.ToSharedRef());
+	FSlateStyleRegistry::UnRegisterSlateStyle(Style.Get());
+
+	Style->Set("FocusRectangle", NewBrush);
+
+	FSlateStyleRegistry::RegisterSlateStyle(Style.Get());
 }
 
 
@@ -193,7 +203,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 		Style->Set("BoxShadow", new BOX_BRUSH( "Common/BoxShadow" , FMargin( 5.0f / 64.0f)));
 
-		Style->Set("FocusRectangle", new BORDER_BRUSH( "Old/DashedBorder", FMargin(6.0f / 32.0f)));
+		Style->Set("FocusRectangle", new BORDER_BRUSH( "Old/DashedBorder", FMargin(6.0f / 32.0f), FLinearColor(1, 1, 1, 0.5)));
 	}
 
 	// Important colors
@@ -259,6 +269,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Icons.Info", new IMAGE_BRUSH( "Icons/icon_info_16x", Icon16x16) );
 		Style->Set( "Icons.Warning", new IMAGE_BRUSH( "Icons/icon_warning_16x", Icon16x16) );
 		Style->Set( "Icons.Download", new IMAGE_BRUSH( "Icons/icon_Downloads_16x", Icon16x16) );
+		Style->Set( "Icons.Rename", new IMAGE_BRUSH( "Icons/icon_rename_12x", Icon12x12) );
 	}
 
 	// Tool panels

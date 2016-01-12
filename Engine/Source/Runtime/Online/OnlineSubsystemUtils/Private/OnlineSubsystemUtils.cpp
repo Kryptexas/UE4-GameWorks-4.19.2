@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "SocketSubsystem.h"
@@ -28,18 +28,6 @@
 #include "Tests/TestMessageInterface.h"
 #include "Tests/TestVoice.h"
 #include "Tests/TestExternalUIInterface.h"
-
-IMPLEMENT_MODULE(FOnlineSubsystemUtilsModule, OnlineSubsystemUtils);
-
-void FOnlineSubsystemUtilsModule::StartupModule()
-{
-	
-}
-
-void FOnlineSubsystemUtilsModule::ShutdownModule()
-{
-	
-}
 
 UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 {
@@ -81,6 +69,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 UWorld* GetWorldForOnline(FName InstanceName)
 {
 	UWorld* World = NULL;
+#ifdef WITH_EDITOR
 	if (InstanceName != FOnlineSubsystemImpl::DefaultInstanceName && InstanceName != NAME_None)
 	{
 		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(InstanceName);
@@ -88,6 +77,7 @@ UWorld* GetWorldForOnline(FName InstanceName)
 		World = WorldContext.World();
 	}
 	else
+#endif
 	{
 		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 		World = GameEngine ? GameEngine->GetGameWorld() : NULL;

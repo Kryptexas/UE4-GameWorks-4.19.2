@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,10 +32,10 @@ class UPhyaCollisionHandler : public UPhysicsCollisionHandler
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UPhysicsCollisionHandler interface
+	//~ Begin UPhysicsCollisionHandler Interface
 	virtual void InitCollisionHandler() override;
 	virtual void HandlePhysicsCollisions_AssumesLocked(const TArray<FCollisionNotifyInfo>& PendingCollisionNotifies) override;
-	// End UPhysicsCollisionHandler interface
+	//~ End UPhysicsCollisionHandler Interface
 
 	void TestImpact();
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "IMotionController.h"
@@ -23,6 +23,10 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 	/** If false, render transforms within the motion controller hierarchy will be updated a second time immediately before rendering. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MotionController")
 	uint32 bDisableLowLatencyUpdate:1;
+
+	/** The tracking status for the device (e.g. full tracking, inertial tracking only, no tracking) */
+	UPROPERTY(BlueprintReadOnly, Category = "MotionController")
+	TEnumAsByte<ETrackingStatus> CurrentTrackingStatus;
 
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 

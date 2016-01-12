@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2653187
 Availability: Public
 Title:3 - 라이팅 패스
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
@@ -7,6 +7,23 @@ Related: Engine/Rendering/LightingAndShadows/Basics
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/ParticleSystems
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/LevelDesign/2 "%Resources/ContentExamples/LevelDesign/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[레벨 디자인 홈](Resources/ContentExamples/LevelDesign)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/LevelDesign/4 "%Resources/ContentExamples/LevelDesign/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

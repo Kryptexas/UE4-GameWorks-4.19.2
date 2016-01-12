@@ -8,8 +8,10 @@ Related: Engine\Animation\AnimBlueprints
 Related: Engine\Animation\AnimHowTo\AdditiveAnimations
 Related: Engine\Animation\Skeleton
 Related: Engine\Animation\Overview
+version: 4.9
+skilllevel: Advanced
 
-**Animation Layer Editing** allows you to modify any existing [](Engine\Animation\Sequences) inside Unreal Engine 4 as part of Additive Layer Tracks. With Animation Layer Editing you can take an existing animation and adjust it to produce a different take on that animation, or you can create a separate, new animation with its own motion you provide based off the original. 
+Animation Layer Editing allows you to modify any existing [](Engine\Animation\Sequences) inside Unreal Engine 4 as part of Additive Layer Tracks. With Animation Layer Editing you can take an existing animation and adjust it to produce a different take on that animation, or you can create a separate, new animation with its own motion you provide based off the original. 
 
 This page will show you how to use the Animation Layer Editing tools and take an Idle animation and repurpose it into a Reload animation. 
 
@@ -23,7 +25,7 @@ For this guide, we created a New Project using the **Blueprint First Person** te
 
 In this section, we will create a copy of the Idle animation that we can then modify, leaving the original intact. 
 
-1.  Inside the **Content Browser**, under the **Game/FirstPersonBP/Animations** folder, open the **Prone_Idle** animation. 
+1.  Inside the **Content Browser**, under the **Game/FirstPerson/Animations** folder, open the **FirstPerson_Idle** animation. 
 
 	![](AnimEdit1.png)
 
@@ -31,9 +33,9 @@ In this section, we will create a copy of the Idle animation that we can then mo
 
 	![](AnimEdit2.png)(w:640)
 
-1.	Click the **Create Asset** button from the Toolbar Menu, then under _Create Animation_, select **From Current Animation**. 
+1.	Click the **Create Asset** button from the Toolbar Menu, then under **Create Animation**, select **From Current Animation**. 
 
-	![](AnimEdit3.png)
+	![](LE_FromCurrentAnimation.jpg)
 
 	Here we are creating a new animation based off the idle animation. There are also options for creating a new animation based off a specific pose within an animation or from the base reference pose. For our purposes, we want the entire idle animation from which to work with when modifying it to perform a reload motion, therefore **From Current Animation** is the best choice. 
 
@@ -47,13 +49,13 @@ In this section, we will create a copy of the Idle animation that we can then mo
 
 With the **FirstPerson_Reload** animation created, we can begin editing it through Animation Layer Editing. 
 
-1.  With the **FirstPerson_Reload** animation open, click the **ToNext** button in the **Playback Controls** and advance to frame 15. 
+1.  With the **FirstPerson_Reload** animation open, click the **To Next** button in the **Playback Controls** and advance to frame 15. 
 
 	![](AnimEdit5.png)
 
 1.	In the **Skeleton Tree**, click the **upperarm_l** Bone so that it is selected. 
 
-	![](AnimEdit6.png)
+	![](LE_Leftarm.jpg)
 
 	In order to start editing, you must first select the Bone that will be modified in the **Additive Layer Tracks** which we have done above. 
 
@@ -71,17 +73,17 @@ With the **FirstPerson_Reload** animation created, we can begin editing it throu
 
 	Above, three separate tracks were added for the **upperarm_l** Bone: a **Translation** track (1), a **Rotation** track (2) and a **Scale** track (3).
 
-1.	Click the **ToNext** button to advance to frame 30. 
+1.	Click the **To Next** button to advance to frame 30. 
 
 	![](AnimEdit9.png)
 
-1.	Inside the viewport, **Left-click** on the yellow arch of the **Rotation** widget. 
+1.	Inside the viewport, **Left-click** on the green arch of the **Rotation** widget. 
 
-	![](AnimEdit10.png)
+	![](LE_LeftArmRot.jpg)
 
 	It will change to an Axis Rotation widget, move the mouse to the left to the **-60.00** mark. 
 
-	![](AnimEdit11.png)
+	![](LE_LeftArmMinus60.jpg)
 
 	From a first person perspective, this will pull the hand down off screen. 
 
@@ -91,11 +93,11 @@ With the **FirstPerson_Reload** animation created, we can begin editing it throu
 
 	The new keys will be added to the Additive Layer Tracks and a curve from the first key to the second key will be created. 
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 45. 
+1.	Click the **To Next** button on the **Playback Controls** to advance to frame 45. 
 
-1.	In the viewport, **Left-click** on and drag the yellow arch of the **Rotation** widget, then rotate to the right to the **60.00** mark. 
+1.	In the viewport, **Left-click** on and drag the green arch of the **Rotation** widget, then rotate to the right to the **60.00** mark. 
 
-	![](AnimEdit14.png)
+	![](LE_LeftArmUp60.jpg)
 
 1.	From the Toolbar Menu, click the **Add Key** button (or press the **S** key). 
 
@@ -103,15 +105,15 @@ With the **FirstPerson_Reload** animation created, we can begin editing it throu
 
 	The new keys will be added and should be the same values as the first set of keys. 
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 50, then press **S** to add a set of keys. 
+1.	Click the **To Next** button on the **Playback Controls** to advance to frame 50, then press **S** to add a set of keys. 
 
 	![](AnimEdit17.png)(w:640)
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 60. 
+1.	Click the **To Next** button on the **Playback Controls** to advance to frame 60. 
 
-1.	In the viewport, press **W** to switch to **Translation** mode, then **Left-click** and drag the yellow arrow to the right slightly. 
+1.	In the viewport, press **W** to switch to **Translation** mode, then **Left-click** and drag the red arrow to the right slightly. 
 
-	![](AnimEdit19.png)
+	![](LE_LeftArmPump.jpg)
 
 	This will shift the arm backwards as if "pumping" the shotgun. You can use your discretion to determine how much to move it.  
 
@@ -121,7 +123,7 @@ With the **FirstPerson_Reload** animation created, we can begin editing it throu
 
 	The keys for the pose will be added to the Additive Layer Tracks along with a curve from the previous keys. 
 
-1.	Click the **ToNext** button on the **Playback Controls** to advance to frame 65, then press **S** to add a set of keys. 
+1.	Click the **To Next** button on the **Playback Controls** to advance to frame 65, then press **S** to add a set of keys. 
 
 	![](AnimEdit22.png)(w:640)
 
@@ -137,11 +139,47 @@ With the **FirstPerson_Reload** animation created, we can begin editing it throu
 
 	When keys and curves are added to an animation, the result is an additive motion applied to the base animation. By clicking the **Apply** button, the key and curve data will be baked into the final animation. 
 
-1.	Click the **Save** button as your animation is complete. 
+1.	Click the **Save** button as your animation is complete.
  
+1. Inside of the **Game/FirstPerson/Animations** folder, **Double-click** the **FirstPerson_AnimBP** to open it.
+
+	![](AnimEdit28.png)
+
+1. Inside of the **Animation Blueprint Editor**, open the **Anim Graph** by **Double-clicking** it in the **My Blueprint** panel
+
+	![](AnimEdit29.png)
+
+1.  **Double-click** the **New State Machine** node in the **Anim Graph**.
+
+	![](AnimEdit30.png)
+
+1. Find the node titled **FPP_Idle** and **Double-click** to open it.
+
+	![](AnimEdit31.png)
+
+1. **Right-click** in the graph and create a **Play FirstPerson_Reload** node.
+
+	![](AnimEdit32.png)
+
+1. Replace the existing **Play FirstPerson_Idle** node with your new **Play FirstPerson_Reload** node by holding **Ctrl** and dragging while holding **Left-click** from the output of the **Play FirstPerson_Idle** node to the **Play FirstPerson_Reload** node.
+
+	![](AnimEdit33.png)
+
+1. **Compile** and **Save** the Animation Blueprint before closing it and then click **Play** to test out your new animation.
+
 Below is an example of the animation playing on a character in-game. 
 
-![](ReloadGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Soior02AUtE
+[/PARAMLITERAL]
+[/OBJECT]
 
 ## Conclusion & FAQ
 
@@ -167,13 +205,13 @@ You can continue to modify this animation by moving to a frame on the timeline a
 
 *	Inside the **Show** menu options, you can enable the **Source Animation** and (or) **Baked Animation** for display in the viewport. The Source Animation can be seen as a white skeleton, while the Baked Animation can be seen as a blue skeleton as shown in the image below. 
 
-	![](AnimEdit26.png)
+	![](LE_SourceBakedAnim.jpg)
 
 **Can Animation Layer Editing be used to create root motion?**
 
 *	Yes. Select your Root Bone and key it, then scrub the timeline forward and move the Root Bone and re-key it. 
 
-	![](AnimEdit27.png)
+	![](LE_ThirdPersonAnim.jpg)
 
 	Above we have enabled the Source and Baked Animation preview where the white skeleton is the source animation. 
 

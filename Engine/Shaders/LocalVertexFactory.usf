@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	LocalVertexFactory.usf: Local vertex factory shader code.
@@ -8,11 +8,16 @@
 #include "LocalVertexFactoryCommon.usf"
 
 float4x4 PreviousLocalToWorld;
-float4 LightMapCoordinateScaleBias;
-float4 ShadowMapCoordinateScaleBias;
 
+#include "UniformBuffers/PrecomputedLightingBuffer.usf"
 
 #if USE_INSTANCING
+
+	// Instanced stereo sets the eye index explicitly for instanced geometry
+	#if INSTANCED_STEREO
+		uint InstancedEyeIndex;
+	#endif
+
 	#ifndef USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED
 		#error "USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED should have been defined"
 	#endif
@@ -52,7 +57,6 @@ float4 InstancingFadeOutParams;
 		#define USE_INSTANCING_EMULATED (0)
 	#endif
 #endif	// USE_INSTANCING
-
 
 #if USE_SPLINEDEFORM
 float3 SplineStartPos;
@@ -129,6 +133,11 @@ struct FVertexFactoryInput
 #if NEEDS_LIGHTMAP_COORDINATE
 	float2	LightMapCoordinate : ATTRIBUTE15;
 #endif
+
+/** Optional instance ID for vertex layered rendering */
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint InstanceId	: SV_InstanceID;
+#endif
 };
 
 struct FPositionOnlyVertexFactoryInput
@@ -141,6 +150,11 @@ struct FPositionOnlyVertexFactoryInput
 	half4 InstanceTransform2 : ATTRIBUTE10; // hitproxy.g in .w
 	half4 InstanceTransform3 : ATTRIBUTE11; // hitproxy.b in .w
 #endif	// USE_INSTANCING && !USE_INSTANCING_EMULATED
+
+/** Optional instance ID for vertex layered rendering */
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint InstanceId	: SV_InstanceID;
+#endif
 };
 
 struct FVertexFactoryIntermediates
@@ -226,7 +240,7 @@ float3 GetInstanceOrigin(FVertexFactoryInput Input)
 #endif	// USE_INSTANCING
 
 /** Converts from vertex factory specific interpolants to a FMaterialPixelParameters, which is used by material inputs. */
-FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 PixelPosition)
+FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 SvPosition)
 {
 	// GetMaterialPixelParameters is responsible for fully initializing the result
 	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
@@ -375,7 +389,7 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 		YVec *= UseScale.y;
 
 		// Build overall transform
-#if MAC // @todo Remove once there is a fix for Intel Iris/HD5000 GPUs from rendering corrupt geometry without the normalize calls
+#if MAC && COMPILER_GLSL // @todo Remove once there is a fix for Intel Iris/HD5000 GPUs from rendering corrupt geometry without the normalize calls
 		float3x3 SliceTransform3 = mul(transpose(float3x3(normalize(SplineMeshDir), normalize(SplineMeshX), normalize(SplineMeshY))), float3x3(float3(0,0,0), XVec, YVec));
 #else
 		float3x3 SliceTransform3 = mul(transpose(float3x3(SplineMeshDir, SplineMeshX, SplineMeshY)), float3x3(float3(0,0,0), XVec, YVec));
@@ -415,7 +429,7 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 		YVec *= sign(UseScale.y);
 
 		// Build rotation transform
-#if MAC // @todo Remove once there is a fix for Intel Iris/HD5000 GPUs from rendering corrupt geometry without the normalize calls
+#if MAC && COMPILER_GLSL // @todo Remove once there is a fix for Intel Iris/HD5000 GPUs from rendering corrupt geometry without the normalize calls
 		half3x3 SliceTransform = mul(transpose(half3x3(normalize(SplineMeshDir), normalize(SplineMeshX), normalize(SplineMeshY))), half3x3(SplineDir, XVec, YVec));
 #else
 		half3x3 SliceTransform = mul(transpose(half3x3(SplineMeshDir, SplineMeshX, SplineMeshY)), half3x3(SplineDir, XVec, YVec));
@@ -507,7 +521,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float SelectedValue = GetInstanceSelected(Input);
 	Intermediates.PerInstanceParams.x = GetInstanceRandom(Input);
 	float3 InstanceLocation = TransformLocalToWorld(GetInstanceOrigin(Input)).xyz;
-	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation + View.PreViewTranslation.xyz) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
+	Intermediates.PerInstanceParams.y = 1.0 - saturate((length(InstanceLocation + ResolvedView.PreViewTranslation.xyz) - InstancingFadeOutParams.x) * InstancingFadeOutParams.y);
 	// InstancingFadeOutParams.z,w are RenderSelected and RenderDeselected respectively.
 	Intermediates.PerInstanceParams.z = InstancingFadeOutParams.z * SelectedValue + InstancingFadeOutParams.w * (1-SelectedValue);
 	#if USE_DITHERED_LOD_TRANSITION
@@ -580,15 +594,15 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	float2 ShadowMapCoordinate = 0;
 
 	#if USE_INSTANCING
-		LightMapCoordinate = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + GetInstanceLightMapBias(Input);
+		LightMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + GetInstanceLightMapBias(Input);
 	#else
-		LightMapCoordinate = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + LightMapCoordinateScaleBias.zw;
+		LightMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.LightMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.LightMapCoordinateScaleBias.zw;
 	#endif
 	#if STATICLIGHTING_TEXTUREMASK
 		#if USE_INSTANCING
-			ShadowMapCoordinate = Input.LightMapCoordinate * ShadowMapCoordinateScaleBias.xy + GetInstanceShadowMapBias(Input);
+			ShadowMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + GetInstanceShadowMapBias(Input);
 		#else
-			ShadowMapCoordinate = Input.LightMapCoordinate * ShadowMapCoordinateScaleBias.xy + ShadowMapCoordinateScaleBias.zw;
+			ShadowMapCoordinate = Input.LightMapCoordinate * PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.xy + PrecomputedLightingBuffer.ShadowMapCoordinateScaleBias.zw;
 		#endif
 	#endif	// STATICLIGHTING_TEXTUREMASK
 
@@ -600,6 +614,11 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 #if USE_INSTANCING
 	Interpolants.PerInstanceParams = Intermediates.PerInstanceParams;
 #endif
+
+#if INSTANCED_STEREO
+	Interpolants.PackedEyeIndex = 0;
+#endif
+
 	return Interpolants;
 }
 
@@ -679,7 +698,7 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 
 		Result.TangentToWorldPreScale = 1;
 
-		Result.WorldPosition = CameraLocalWorldPosition + View.ViewOrigin.xyz;
+		Result.WorldPosition = CameraLocalWorldPosition + ResolvedView.WorldCameraOrigin;
 
 		return Result;
 	}
@@ -749,3 +768,14 @@ float4 VertexFactoryGetInstanceHitProxyId(FVertexFactoryInput Input, FVertexFact
 	return float4(R/255.0, G/255.0, B/255.0, 0);
 }
 #endif	// USE_INSTANCING
+
+#if INSTANCED_STEREO
+uint VertexFactoryGetEyeIndex(uint InstanceId)
+{
+	#if USE_INSTANCING
+		return InstancedEyeIndex;
+	#else
+		return InstanceId & 1;
+	#endif
+}
+#endif

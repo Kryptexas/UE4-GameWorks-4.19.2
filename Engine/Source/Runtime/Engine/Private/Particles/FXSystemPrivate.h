@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FXSystemPrivate.h: Internal effects system interface.
@@ -111,6 +111,9 @@ public:
 	 * @returns an offset in to the sorted buffer from which the simulation may render.
 	 */
 	int32 AddSortedGPUSimulation(FParticleSimulationGPU* Simulation, const FVector& ViewOrigin);
+
+	void PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList);
+	void FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList);
 
 private:
 

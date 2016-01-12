@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_Base.h"
-#include "Animation/AnimNode_RefPose.h"
+#include "AnimNodes/AnimNode_RefPose.h"
 #include "AnimGraphNode_RefPoseBase.generated.h"
 
 UCLASS(MinimalAPI, abstract)

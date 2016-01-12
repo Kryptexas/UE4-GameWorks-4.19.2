@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Matinee/InterpTrack.h"
@@ -56,7 +56,7 @@ class UInterpTrackEvent : public UInterpTrack
 	UPROPERTY(EditAnywhere, Category=InterpTrackEvent)
 	uint32 bUseCustomEventName:1;
 
-	// Begin UInterpTrack Interface
+	//~ Begin UInterpTrack Interface
 	virtual int32 GetNumKeyframes() const override;
 	virtual void GetTimeRange( float& StartTime, float& EndTime ) const override;
 	virtual float GetTrackEndTime() const override;
@@ -76,7 +76,7 @@ class UInterpTrackEvent : public UInterpTrack
 #endif // WITH_EDITORONLY_DATA
 	virtual bool AllowStaticActors() override { return true; }
 	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params ) override;
-	// End UInterpTrack Interface
+	//~ End UInterpTrack Interface
 };
 
 

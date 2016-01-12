@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #if WITH_RECAST
@@ -11,10 +11,17 @@
 #include "GameFramework/Character.h"
 #include "Engine/Canvas.h"
 #include "TimerManager.h"
+#include "DisplayDebugHelpers.h"
 
 #include "Navigation/PathFollowingComponent.h"
 
 #define USE_PHYSIC_FOR_VISIBILITY_TESTS 1 // Physic will be used for visibility tests if set or only raycasts on navmesh if not
+
+#if UE_BUILD_TEST || UE_BUILD_SHIPPING
+#define SHIPPING_STATIC static
+#else
+#define SHIPPING_STATIC
+#endif // UE_BUILD_TEST || UE_BUILD_SHIPPING
 
 DEFINE_LOG_CATEGORY(LogPathFollowing);
 
@@ -473,11 +480,6 @@ void UPathFollowingComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 
 void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveComp)
 {
-	if (MoveComp == MovementComp)
-	{
-		return;
-	}
-
 	MovementComp = MoveComp;
 	MyNavData = NULL;
 
@@ -490,27 +492,6 @@ void UPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveCo
 		if (GetWorld() && GetWorld()->GetNavigationSystem())
 		{	
 			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
-			if (MyNavData == nullptr)
-			{
-				GetWorld()->GetNavigationSystem()->OnNavigationInitDone.AddUObject(this, &UPathFollowingComponent::RecacheNavigationData);
-			}
-		}
-	}
-}
-
-void UPathFollowingComponent::RecacheNavigationData()
-{
-	if (MovementComp != NULL)
-	{
-		const FNavAgentProperties& NavAgentProps = MovementComp->GetNavAgentPropertiesRef();
-
-		if (ensure(GetWorld() && GetWorld()->GetNavigationSystem()))
-		{
-			MyNavData = GetWorld()->GetNavigationSystem()->GetNavDataForProps(NavAgentProps);
-			// we should get something by now!
-			UE_CLOG(MyNavData == nullptr, LogPathFollowing, Warning, TEXT("No NavigationData found while trying to cache it for %s\'s PathFollowingComponent")
-				, *GetNameSafe(GetOwner()));
-			UE_CVLOG(MyNavData == nullptr, this, LogPathFollowing, Warning, TEXT("No NavigationData found while trying to cache it in PathFollowingComponent::RecacheNavigationData"));
 		}
 	}
 }
@@ -614,6 +595,9 @@ void UPathFollowingComponent::SetDestinationActor(const AActor* InDestinationAct
 
 void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 {
+	SHIPPING_STATIC	const float PathPointAcceptanceRadius = GET_AI_CONFIG_VAR(PathfollowingRegularPathPointAcceptanceRadius);
+	SHIPPING_STATIC const float NavLinkAcceptanceRadius = GET_AI_CONFIG_VAR(PathfollowingNavLinkAcceptanceRadius);
+
 	int32 EndSegmentIndex = SegmentStartIndex + 1;
 	if (Path.IsValid() && Path->GetPathPoints().IsValidIndex(SegmentStartIndex) && Path->GetPathPoints().IsValidIndex(EndSegmentIndex))
 	{
@@ -640,7 +624,11 @@ void UPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 			SegmentEnd = *CurrentDestination;
 		}
 
-		CurrentAcceptanceRadius = (Path->GetPathPoints().Num() == (MoveSegmentEndIndex + 1)) ? AcceptanceRadius : 0.0f;
+		CurrentAcceptanceRadius = (Path->GetPathPoints().Num() == (MoveSegmentEndIndex + 1)) 
+			? AcceptanceRadius 
+			// pick appropriate value base on whether we're going to nav link or not
+			: (FNavMeshNodeFlags(PathPt1.Flags).IsNavLink() == false ? PathPointAcceptanceRadius : NavLinkAcceptanceRadius);
+
 		MoveSegmentDirection = (SegmentEnd - SegmentStart).GetSafeNormal();
 
 		// handle moving through custom nav links
@@ -717,7 +705,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 	}
 
 #endif
-	TSharedPtr<FNavigationQueryFilter> QueryFilter = Path->GetFilter()->GetCopy();
+	FSharedNavQueryFilter QueryFilter = Path->GetFilter()->GetCopy();
 #if WITH_RECAST
 	const uint8 StartArea = FNavMeshNodeFlags(Path->GetPathPoints()[StartIndex].Flags).Area;
 	TArray<float> CostArray;
@@ -1392,11 +1380,9 @@ FString UPathFollowingComponent::GetResultDesc(EPathFollowingResult::Type Result
 
 void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const
 {
-	Canvas->SetDrawColor(FColor::Blue);
-	UFont* RenderFont = GEngine->GetSmallFont();
-	FString StatusDesc = FString::Printf(TEXT("  Move status: %s"), *GetStatusDesc());
-	YL = Canvas->DrawText(RenderFont, StatusDesc, 4.0f, YPos);
-	YPos += YL;
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+	DisplayDebugManager.SetDrawColor(FColor::Blue);
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("  Move status: %s"), *GetStatusDesc()));
 
 	if (Status == EPathFollowingStatus::Moving)
 	{
@@ -1404,8 +1390,7 @@ void UPathFollowingComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayI
 		FString TargetDesc = FString::Printf(TEXT("  Move target [%d/%d]: %s (%s)"),
 			MoveSegmentEndIndex, NumMoveSegments, *GetCurrentTargetLocation().ToString(), *GetNameSafe(DestinationActor.Get()));
 		
-		YL = Canvas->DrawText(RenderFont, TargetDesc, 4.0f, YPos);
-		YPos += YL;
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("  Move status: %s"), *GetStatusDesc()));
 	}
 }
 
@@ -1573,3 +1558,5 @@ void UPathFollowingComponent::OnWaitingPathTimeout()
 		AbortMove(TEXT("waiting timeout"), CurrentRequestId);
 	}
 }
+
+#undef SHIPPING_STATIC

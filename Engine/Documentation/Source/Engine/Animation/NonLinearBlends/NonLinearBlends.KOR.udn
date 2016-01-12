@@ -1,0 +1,52 @@
+﻿INTSourceChangelist:2692399
+Availability:Public
+Title:비선형 블렌딩
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:애니메이션 포즈와 트랜지션 사이의 다양한 블렌딩 함수에 대한 개요입니다.
+version: 4.9
+Related: Engine\Animation\StateMachines\TransitionRules
+Related: Engine\Animation\StateMachines
+Related: Engine/UI/CurveEditor
+Related: Engine/Basics/Distributions
+Related: Engine/Animation/AnimMontage
+
+언리얼 엔진 4 에 제공되는 다양한 블렌딩 함수를 사용해서 애니메이션 포즈와 트랜지션 사이의 블렌딩이 가능합니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+-WeUEpZd8jY
+[/PARAMLITERAL]
+[/OBJECT]
+
+_다양한 포즈 블렌딩에 사용된 커스텀 커브 예제입니다._
+
+Linear (선형), Cubic (큐브형), Hermite Cubic (헤르밋 큐브형), Sinusodial (사인형), Quadratic (2차함수형), Circular (원형), Exponential (지수함수형), Custom (커스텀) 등 여러가지 다양한 블렌딩 함수 중 선택할 수 있습니다. 대부분의 유형에 대해 커브에 들어올 때나 나갈 때 부드럽게 만드는 이즈 인/아웃 여부를 별도로 조절할 수 있습니다.
+
+**커스텀** 옵션은 **커브 플로트** 애셋을 필요로 합니다. 하나 만든 후 관련된 노드의 **디테일** 패널에서 할당해 주면 됩니다:
+
+![](image_44.png)
+
+![](image_45.png)
+
+그러면 원하는 어떤 블렌딩이든 지정할 수 있게됩니다. 커브의 길이는 지정된 블렌딩 시간에 맞게끔 정규화 및 스케일 조절되며, 0-1 범위 밖의 값은 클램핑을 통해 맞춰집니다. 커스텀 커브가 지정되지 않으면 시스템은 아래와 같이 선형 블렌딩으로 돌아갑니다.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+GHxhplIScUY
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+

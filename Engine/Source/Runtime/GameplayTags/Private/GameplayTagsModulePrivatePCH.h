@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,12 @@
 #include "Core.h"
 #include "Engine.h"
 
-#include "GameplayTagsClasses.h"
+#include "Classes/GameplayTagContainer.h"
+#include "Classes/GameplayTagAssetInterface.h"
+#include "Classes/BlueprintGameplayTagLibrary.h"
+#include "Classes/GameplayTagsManager.h"
+#include "Classes/GameplayTagsSettings.h"
+
 #include "GameplayTagsModule.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGameplayTags, Log, All);

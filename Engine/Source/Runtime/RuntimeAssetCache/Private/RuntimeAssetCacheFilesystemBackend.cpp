@@ -1,6 +1,5 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
 #include "RuntimeAssetCachePrivatePCH.h"
 #include "RuntimeAssetCacheFilesystemBackend.h"
 #include "RuntimeAssetCacheEntryMetadata.h"
@@ -60,7 +59,8 @@ FRuntimeAssetCacheBucket* FRuntimeAssetCacheFilesystemBackend::PreLoadBucket(FNa
 			{
 				return true;
 			}
-			FArchive* Ar = Backend->CreateReadArchive(BucketName, FilenameOrDirectory);
+			FString CacheKey = FPaths::GetBaseFilename(FilenameOrDirectory);
+			FArchive* Ar = Backend->CreateReadArchive(BucketName, *CacheKey);
 			FCacheEntryMetadata* Metadata = Backend->PreloadMetadata(Ar);
 			Bucket->AddMetadataEntry(*FPaths::GetBaseFilename(FilenameOrDirectory), Metadata, true);
 			delete Ar;

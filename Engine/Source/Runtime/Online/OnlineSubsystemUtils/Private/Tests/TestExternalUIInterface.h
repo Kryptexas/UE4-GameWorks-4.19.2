@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -75,6 +75,9 @@ namespace ETestExternalUIInterfaceState
 
 	/** Delegate executed when the user profile UI has been closed. */
 	void OnProfileUIClosed();
+
+	/** Delegate executed when the show web UI has been closed. */
+	void OnShowWebUrlClosed(const FString& FinalUrl);
 
  public:
 

@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:2560162
-Availability: Public
-Title:언리얼 에디터의 패키지 저장 프로세스
+﻿INTSourceChangelist:2676051
+Availability: docs
+Title:패키지 저장 프로세스
 Crumbs: %ROOT%, Engine, Engine/Basics/AssetsAndPackages
 Description:언리얼 에디터의 콘텐츠 패키지 저장 프로세스 관련 안내서입니다.
+version: 4.9
 
 [TOC (start:2 end:3)]
 
 
 
-## 개요
 
 패키지 저장시 나타날 수 있는 대화창은 두 가지입니다. 이 대화창을 통해 에디터에 의해 저장되는 패키지를 쉽게 제어할 수 있습니다. 이 문서에서는 나타나는 대화창 순서대로 설명합니다.document describes the dialogs in the order that they appear.
 

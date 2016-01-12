@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
@@ -10,11 +10,11 @@ class UAnimStateEntryNode : public UEdGraphNode
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UEdGraphNode interface
+	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-	// End UEdGraphNode interface
+	//~ End UEdGraphNode Interface
 	
 	ANIMGRAPH_API UEdGraphNode* GetOutputNode() const;
 

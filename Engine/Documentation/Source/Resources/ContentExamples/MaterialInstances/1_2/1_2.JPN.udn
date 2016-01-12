@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2618806
+﻿INTSourceChangelist:2716853
 Availability:Public
 Title:1.2 - マテリアル インスタンス
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -10,8 +10,25 @@ Related:Engine/Rendering/Materials/ExpressionReference
 Related:Engine/Rendering/Materials/MaterialInputs
 Related:Engine/Rendering/Materials/LayeredMaterials
 Related:Engine/Actors/DecalActor
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/MaterialInstances/1_1 "%Resources/ContentExamples/MaterialInstances/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[コンテンツ サンプルのホーム](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/MaterialInstances/1_3 "%Resources/ContentExamples/MaterialInstances/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -56,9 +73,9 @@ Related:Engine/Actors/DecalActor
 ![](MI_1_2_001.png)(w:900)
 </div>
 
-**マテリアル インスタンス** は子マテリアルです。つまり、 **Parent マテリアル** が持つものをすべて持ちますが、どの **パラメータ** もマテリアル インスタンス上で個別に修正することができます。
+**マテリアル インスタンス** は子マテリアルです。つまり、 **親マテリアル** にある全てのものを持ちますが、**パラメータ** はマテリアル インスタンス上で個別に修正することができます。
 
-何故インスタンスを使用するのでしょうか？マテリアルは非常に柔軟性があり、マテリアル エディタは想像しうるほぼすべてのものを生き生きとしたものにします。しかし、テクニカル アーティストに複雑なシェーダー デザインを委ね、そのマテリアルを使用し、マテリアル インスタンスを作成し、そのテクニカル アーティストが公開したテクスチャやパラメータを単に調整したい場合もあるでしょう。このような場合にインスタンスが役立ちます。
+何故インスタンスを使用するのでしょうか？マテリアルは非常に柔軟なので、思いついたものはほとんど何でもマテリアル エディタによって命を吹き込むことができます。しかし、複雑なシェーダー デザインをテクニカル アーティストに任せて、そのマテリアルを使用してマテリアル インスタンスを作成し、テクニカル アーティストが公開したテクスチャやパラメータを調整するだけにしたい場合もあるでしょう。このような場合にインスタンスが役立ちます。
 
-インスタンス の 2 番目の利点は処理速度です。マテリアルの変更は、全ての変更に対してシェーダーをコンパイルする必要があるため時間を要します。既にシェーダーがコンパイル済みであるため、 マテリアル インスタンス のパラメータ変更は即時に行うことができます (この例外は、StaticSwitchParameter の変更で、シェーダーを再コンパイルする必要があるため常に遅くなります。StaticSwitchesはシェーダーの複雑性を変更することができます)。これらの理由から、マテリアルに微調整を加えたい場合、処理速度が断然早い マテリアル インスタンス を推奨します。
+インスタンスのもう一つの利点は処理速度です。変更するにはシェーダーをコンパイルする必要があるため、マテリアルの変更には時間を要します。既にシェーダーがコンパイルされているので、 マテリアル インスタンスのパラメータ変更は即時に行うことができます (`StaticSwitchParameter` の変更は例外です。シェーダーの複雑性を変更する際にシェーダーを再コンパイルする必要があるため常に遅くなります。)。従って、マテリアルに微調整を加えたい場合、処理速度が断然早いマテリアル インスタンスを推奨します。
 

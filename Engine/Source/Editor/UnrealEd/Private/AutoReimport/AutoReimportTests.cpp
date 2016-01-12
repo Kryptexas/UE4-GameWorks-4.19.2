@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "UnrealEd.h"
 
 #include "FileCache.h"
@@ -9,8 +9,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportTests, Log, All);
 class FDelayedCallbackLatentCommand : public IAutomationLatentCommand
 {
 public:
-	FDelayedCallbackLatentCommand(TFunction<void()> InCallback, float InDelay = 0.1f)
-		: Callback(InCallback), Delay(InDelay)
+	FDelayedCallbackLatentCommand(TFunction<void()>&& InCallback, float InDelay = 0.1f)
+		: Callback(MoveTemp(InCallback)), Delay(InDelay)
 	{}
 
 	virtual bool Update() override
@@ -60,7 +60,7 @@ struct FAutoReimportTestPayload
 	}
 	~FAutoReimportTestPayload()
 	{
-		// Avoid writing out the file after we've nuiked the directory
+		// Avoid writing out the file after we've nuked the directory
 		FileCache = nullptr;
 		IFileManager::Get().DeleteDirectory(*WorkingDir, false, true);
 	}
@@ -73,9 +73,10 @@ struct FAutoReimportTestPayload
 		}
 	}
 
-	void WaitForStartup(TFunction<void()> Finished)
+	void WaitForStartup(TFunction<void()>&& Finished)
 	{
-		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
+		// Ideally, this would capture-by-move, but we don't have full compiler support for that yet.
+		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]() mutable {
 			FileCache->Tick();
 			if (FileCache->MoveDetectionInitialized())
 			{
@@ -83,7 +84,7 @@ struct FAutoReimportTestPayload
 			}
 			else
 			{
-				WaitForStartup(Finished);
+				WaitForStartup(MoveTemp(Finished));
 			}
 		}, 0.1));
 	}
@@ -130,7 +131,7 @@ bool CopyTestFiles(const FAutoReimportTestPayload& Test, const TArray<FSrcDstFil
 }
 
 /** Test that creating a new file gets reported correctly */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleCreateTest, "System.Editor.Auto Reimport.Simple Create", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleCreateTest, "System.Editor.Auto Reimport.Simple Create", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportSimpleCreateTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -186,7 +187,7 @@ bool FAutoReimportSimpleCreateTest::RunTest(const FString& Parameters)
 }
 
 /** Test that modifying an existing file gets reported correctly */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleModifyTest, "System.Editor.Auto Reimport.Simple Modify", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleModifyTest, "System.Editor.Auto Reimport.Simple Modify", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportSimpleModifyTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -258,7 +259,7 @@ bool FAutoReimportSimpleModifyTest::RunTest(const FString& Parameters)
 }
 
 /** Test that deleting an existing file gets reported correctly */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleDeleteTest, "System.Editor.Auto Reimport.Simple Delete", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleDeleteTest, "System.Editor.Auto Reimport.Simple Delete", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportSimpleDeleteTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -323,7 +324,7 @@ bool FAutoReimportSimpleDeleteTest::RunTest(const FString& Parameters)
 }
 
 /** Test that renaming an existing file gets reported correctly */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleRenameTest, "System.Editor.Auto Reimport.Simple Rename", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleRenameTest, "System.Editor.Auto Reimport.Simple Rename", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportSimpleRenameTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -388,7 +389,7 @@ bool FAutoReimportSimpleRenameTest::RunTest(const FString& Parameters)
 }
 
 /** Test that moving a file outside of the monitored directory gets reported correctly (should be reported as a delete) */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleMoveExternallyTest, "System.Editor.Auto Reimport.Move Externally", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportSimpleMoveExternallyTest, "System.Editor.Auto Reimport.Move Externally", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportSimpleMoveExternallyTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -454,7 +455,7 @@ bool FAutoReimportSimpleMoveExternallyTest::RunTest(const FString& Parameters)
 }
 
 /** Test that bDetectChangesSinceLastRun works correctly when true and when false */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportRestartDetectionTest, "System.Editor.Auto Reimport.Restart Detection", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportRestartDetectionTest, "System.Editor.Auto Reimport.Restart Detection", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportRestartDetectionTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -553,7 +554,7 @@ bool FAutoReimportRestartDetectionTest::RunTest(const FString& Parameters)
 }
 
 /** Test that making multiple changes to the same file gets picked up correctly */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportMultipleChangesTest, "System.Editor.Auto Reimport.Multiple Changes", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportMultipleChangesTest, "System.Editor.Auto Reimport.Multiple Changes", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportMultipleChangesTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -609,7 +610,7 @@ bool FAutoReimportMultipleChangesTest::RunTest(const FString& Parameters)
 }
 
 /** Test that starting up a cache file with a different set of applicable extensions correctly ignores/updates the extensions, whilst reporting changes only for applicable extensions */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportChangeExtensionsTest, "System.Editor.Auto Reimport.Change Extensions", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportChangeExtensionsTest, "System.Editor.Auto Reimport.Change Extensions", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportChangeExtensionsTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();
@@ -701,7 +702,7 @@ bool FAutoReimportChangeExtensionsTest::RunTest(const FString& Parameters)
 }
 
 /** Test that starting up a cache file with a different set of applicable extensions correctly ignores/updates the extensions, whilst reporting changes only for applicable extensions */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportWildcardFiltersTest, "System.Editor.Auto Reimport.Wildcard Filters", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAutoReimportWildcardFiltersTest, "System.Editor.Auto Reimport.Wildcard Filters", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FAutoReimportWildcardFiltersTest::RunTest(const FString& Parameters)
 {
 	const FString WorkingDir = GetWorkingDir();

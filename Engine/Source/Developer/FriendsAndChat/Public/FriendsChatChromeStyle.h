@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,17 +39,64 @@ struct FRIENDSANDCHAT_API FFriendsChatChromeStyle
 	 */
 	static const FFriendsChatChromeStyle& GetDefault();
 
-	UPROPERTY()
-	FButtonStyle SlashMarkupButtonStyle;
-	FFriendsChatChromeStyle& SetSlashMarkupButtonStyle(const FButtonStyle& ButtonStyle);
-
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush ChatBackgroundBrush;
 	FFriendsChatChromeStyle& SetChatBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatEntryBackgroundBrush;
+	FFriendsChatChromeStyle& SetChatEntryBackgroundBrush(const FSlateBrush& InChatBackgroundBrush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChannelBackgroundBrush;
+	FFriendsChatChromeStyle& SetChannelBackgroundBrush(const FSlateBrush& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor ChatEntryBackgroundColor;
+	FFriendsChatChromeStyle& SetChatEntryBackgroundColor(const FLinearColor& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush TabBackgroundBrush;
 	FFriendsChatChromeStyle& SetTabBackgroundBrush(const FSlateBrush& InTabBackgroundBrush);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor NoneActiveTabColor;
+	FFriendsChatChromeStyle& SetNoneActiveTabColor(const FLinearColor& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor TabFontColor;
+	FFriendsChatChromeStyle& SetTabFontColor(const FLinearColor& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor TabFontColorInverted;
+	FFriendsChatChromeStyle& SetTabFontColorInverted(const FLinearColor& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	float TabWidth;
+	FFriendsChatChromeStyle& SetTabWidth(float Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin TabPadding;
+	FFriendsChatChromeStyle& SetTabPadding(const FMargin& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ChatWindowPadding;
+	FFriendsChatChromeStyle& SetChatWindowPadding(const FMargin& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ChatWindowToEntryMargin;
+	FFriendsChatChromeStyle& SetChatWindowToEntryMargin(const FMargin& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ChatChannelPadding;
+	FFriendsChatChromeStyle& SetChatChannelPadding(const FMargin& Value);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ChatEntryPadding;
+	FFriendsChatChromeStyle& SetChatEntryPadding(const FMargin& Value);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor ChatBackgroundColor;
+	FFriendsChatChromeStyle& SetChatBackgroundColor(const FLinearColor& Value);
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginBrowserPrivatePCH.h"
 #include "SNewPluginWizard.h"
@@ -335,6 +335,13 @@ void SNewPluginWizard::ValidateFullPluginPath()
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("IllegalCharacters"), FText::FromString(IllegalCharacters));
 		PluginNameError = FText::Format(LOCTEXT("WrongPluginNameErrorText", "Plugin name cannot contain illegal characters like: \"{IllegalCharacters}\""), Args);
+		bIsNewNameValid = false;
+	}
+
+	// Fail if name doesn't begin with alphabetic character.
+	if (bIsNewNameValid && !FChar::IsAlpha(GetCurrentPluginName().ToString()[0]))
+	{
+		PluginNameError = LOCTEXT("PluginNameMustBeginWithACharacter", "Plugin names must begin with an alphabetic character.");
 		bIsNewNameValid = false;
 	}
 

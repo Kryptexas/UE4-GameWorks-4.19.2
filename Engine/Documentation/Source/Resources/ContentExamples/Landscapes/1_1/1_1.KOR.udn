@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2653165
 Availability: Public
 Title:1.1 - 랜드스케이프
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Landscapes
@@ -10,6 +10,23 @@ Related: Engine/Landscape/Materials
 Related: Engine/Landscape/Editing/Splines
 Related: Engine/Landscape/Editing/Gizmos
 Related: Engine/Landscape/Editing/Brushes
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[랜드스케이프 홈](Resources/ContentExamples/Landscapes)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Landscapes/1_2 "%Resources/ContentExamples/Landscapes/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]

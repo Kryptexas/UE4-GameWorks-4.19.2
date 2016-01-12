@@ -1,11 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ModuleInterface.h"
 #include "ModuleManager.h"		// For inline LoadModuleChecked()
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
-#include "HeadMountedDisplayTypes.h"
 
 /**
  * The public interface of the MotionControlsModule

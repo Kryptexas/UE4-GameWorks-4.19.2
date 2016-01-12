@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -123,6 +123,9 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.OnVScrollBarUserScrolled(InArgs._OnVScrollBarUserScrolled)
 					.OnKeyDownHandler( InArgs._OnKeyDownHandler)
 					.ModiferKeyForNewLine(InArgs._ModiferKeyForNewLine)
+					.TextShapingMethod(InArgs._TextShapingMethod)
+					.TextFlowDirection(InArgs._TextFlowDirection)
+					.AllowContextMenu(InArgs._AllowContextMenu)
 				]
 
 				+SVerticalBox::Slot()
@@ -246,6 +249,46 @@ void SMultiLineEditableTextBox::SetReadOnlyForegroundColor(const TAttribute<FSla
 	ReadOnlyForegroundColorOverride = InReadOnlyForegroundColor;
 
 	ReadOnlyForegroundColor = ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride : Style->ReadOnlyForegroundColor;
+}
+
+void SMultiLineEditableTextBox::SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod)
+{
+	EditableText->SetTextShapingMethod(InTextShapingMethod);
+}
+
+void SMultiLineEditableTextBox::SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection)
+{
+	EditableText->SetTextFlowDirection(InTextFlowDirection);
+}
+
+void SMultiLineEditableTextBox::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
+{
+	EditableText->SetWrapTextAt(InWrapTextAt);
+}
+
+void SMultiLineEditableTextBox::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
+{
+	EditableText->SetAutoWrapText(InAutoWrapText);
+}
+
+void SMultiLineEditableTextBox::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
+{
+	EditableText->SetLineHeightPercentage(InLineHeightPercentage);
+}
+
+void SMultiLineEditableTextBox::SetMargin(const TAttribute<FMargin>& InMargin)
+{
+	EditableText->SetMargin(InMargin);
+}
+
+void SMultiLineEditableTextBox::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
+{
+	EditableText->SetJustification(InJustification);
+}
+
+void SMultiLineEditableTextBox::SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu)
+{
+	EditableText->SetAllowContextMenu(InAllowContextMenu);
 }
 
 void SMultiLineEditableTextBox::SetError( const FText& InError )

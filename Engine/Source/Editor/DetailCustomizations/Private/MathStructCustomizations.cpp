@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
@@ -112,7 +112,7 @@ void FMathStructCustomization::OnPreserveScaleRatioToggled(ECheckBoxState NewSta
 {
 	bPreserveScaleRatio = ( NewState == ECheckBoxState::Checked ) ? true : false;
 
-	if ( PropertyHandle.IsValid() )
+	if ( PropertyHandle.IsValid() && PropertyHandle.Pin()->GetProperty() )
 	{
 		FString SettingKey = ( PropertyHandle.Pin()->GetProperty()->GetName() + TEXT("_PreserveScaleRatio") );
 		GConfig->SetBool(TEXT("SelectionDetails"), *SettingKey, bPreserveScaleRatio, GEditorPerProjectIni);
@@ -704,6 +704,9 @@ FLinearColor FColorStructCustomization::OnGetColorForColorBlock() const
 
 FPropertyAccess::Result FColorStructCustomization::GetColorAsLinear(FLinearColor& OutColor) const
 {
+	// Default to full alpha in case the alpha component is disabled.
+	OutColor.A = 1.0f;
+
 	// Get each color component 
 	for(int32 ChildIndex = 0; ChildIndex < SortedChildHandles.Num(); ++ChildIndex)
 	{

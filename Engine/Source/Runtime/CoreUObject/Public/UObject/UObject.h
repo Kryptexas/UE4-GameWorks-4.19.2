@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,7 +33,7 @@ namespace EResourceSizeMode
 class COREUOBJECT_API UObject : public UObjectBaseUtility
 {
 	// Declarations.
-	DECLARE_CLASS(UObject,UObject,CLASS_Abstract|CLASS_NoExport,CASTCLASS_None,CoreUObject,NO_API)
+	DECLARE_CLASS(UObject,UObject,CLASS_Abstract|CLASS_NoExport,CASTCLASS_None,TEXT("/Script/CoreUObject"),NO_API)
 	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(UObject)
 #if WITH_HOT_RELOAD_CTORS
 	static UObject* __VTableCtorCaller(FVTableHelper& Helper)
@@ -624,6 +624,9 @@ public:
 	/** Called right after receiving a bunch */
 	virtual void PostNetReceive();
 
+	/** Called right after calling all OnRep notifies (called even when there are no notifies) */
+	virtual void PostRepNotifies() {}
+
 	/** Called right before being marked for destruction due to network replication */
 	virtual void PreDestroyFromReplication();
 
@@ -773,7 +776,7 @@ public:
 	 * @warning: Must be safe on class-default metaobjects.
 	 * !!may benefit from hierarchical propagation, deleting keys that match superclass...not sure what's best yet.
 	 */
-	virtual void SaveConfig( uint64 Flags=CPF_Config, const TCHAR* Filename=NULL, FConfigCacheIni* Config=GConfig );
+	void SaveConfig( uint64 Flags=CPF_Config, const TCHAR* Filename=NULL, FConfigCacheIni* Config=GConfig );
 
 	/**
 	 * Saves just the section(s) for this class into the default ini file for the class (with just the changes from base)
@@ -824,7 +827,7 @@ public:
 	 * @param	PropagationFlags	indicates how this call to LoadConfig should be propagated; expects a bitmask of UE4::ELoadConfigPropagationFlags values.
 	 * @param	PropertyToLoad		if specified, only the ini value for the specified property will be imported.
 	 */
-	virtual void LoadConfig( UClass* ConfigClass=NULL, const TCHAR* Filename=NULL, uint32 PropagationFlags=UE4::LCPF_None, class UProperty* PropertyToLoad=NULL );
+	void LoadConfig( UClass* ConfigClass=NULL, const TCHAR* Filename=NULL, uint32 PropagationFlags=UE4::LCPF_None, class UProperty* PropertyToLoad=NULL );
 
 	/**
 	 * Wrapper method for LoadConfig that is used when reloading the config data for objects at runtime which have already loaded their config data at least once.
@@ -1008,6 +1011,9 @@ public:
 	/** Tracepoint; only observed in the editor; executing it at any other time is a NOP */
 	DECLARE_FUNCTION(execTracepoint);
 	DECLARE_FUNCTION(execWireTracepoint);
+
+	/** Instrumentation event for profiling; only observed in the builds with blueprint instrumentation */
+	DECLARE_FUNCTION(execInstrumentation);
 
 	DECLARE_FUNCTION(execEndOfScript);
 

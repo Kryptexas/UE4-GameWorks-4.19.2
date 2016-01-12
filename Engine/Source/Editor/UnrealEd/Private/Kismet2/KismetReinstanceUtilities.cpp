@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Kismet2/CompilerResultsLog.h"
@@ -158,7 +158,9 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		GIsDuplicatingClassForReinstancing = true;
 		ClassToReinstance->ClassFlags |= CLASS_NewerVersionExists;
 		const FName RenistanceName = MakeUniqueObjectName(GetTransientPackage(), ClassToReinstance->GetClass(), *FString::Printf(TEXT("REINST_%s"), *ClassToReinstance->GetName()));
-		DuplicatedClass = (UClass*)StaticDuplicateObject(ClassToReinstance, GetTransientPackage(), *RenistanceName.ToString(), ~RF_Transactional); 
+		DuplicatedClass = (UClass*)StaticDuplicateObject(ClassToReinstance, GetTransientPackage(), RenistanceName, ~RF_Transactional); 
+		// If you compile a blueprint that is part of the rootset, there's no reason for the REINST version to be part of the rootset:
+		DuplicatedClass->RemoveFromRoot();
 
 		ClassToReinstance->ClassFlags &= ~CLASS_NewerVersionExists;
 		GIsDuplicatingClassForReinstancing = false;
@@ -311,8 +313,10 @@ void FBlueprintCompileReinstancer::GenerateFieldMappings(TMap<UObject*, UObject*
 
 void FBlueprintCompileReinstancer::AddReferencedObjects(FReferenceCollector& Collector)
 {
+	Collector.AllowEliminatingReferences(false);
 	Collector.AddReferencedObject(OriginalCDO);
 	Collector.AddReferencedObject(DuplicatedClass);
+	Collector.AllowEliminatingReferences(true);
 }
 
 void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
@@ -566,7 +570,17 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 	// Make sure we only reinstance classes once!
 	static TArray<TSharedRef<FBlueprintCompileReinstancer>> QueueToReinstance;
 	TSharedRef<FBlueprintCompileReinstancer> SharedThis = AsShared();
-	const bool bAlreadyQueued = QueueToReinstance.Contains(SharedThis);
+	bool bAlreadyQueued = QueueToReinstance.Contains(SharedThis);
+
+	// We may already be reinstancing this class, this happens when a dependent blueprint has a compile error and we try to reinstance the stub:
+	for (const auto& Entry : QueueToReinstance)
+	{
+		if (Entry->ClassToReinstance == SharedThis->ClassToReinstance)
+		{
+			bAlreadyQueued = true;
+		}
+	}
+
 	if (!bAlreadyQueued && !bHasReinstanced)
 	{
 		QueueToReinstance.Push(SharedThis);
@@ -590,7 +604,10 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				Iter.RemoveCurrent();
 				if (auto BP = BPPtr.Get())
 				{
-					FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, false, true);
+					// it's unsafe to GC in the middle of reinstancing because there may be other reinstancers still alive with references to 
+					// otherwise unreferenced classes:
+					const bool bSkipGC = true;
+					FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, false, nullptr, false, true);
 					CompiledBlueprints.Add(BP);
 				}
 			}
@@ -686,6 +703,8 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 			{
 				continue;
 			}
+
+			BPClass->ClearFunctionMapsCaches();
 
 			// Ensure that Animation Blueprint child class dependencies are always re-linked, as the child may reference properties generated during
 			// compilation of the parent class, which will have shifted to a TRASHCLASS Outer at this point (see UAnimBlueprintGeneratedClass::Link()).
@@ -1110,7 +1129,7 @@ namespace InstancedPropertyUtils
 						{
 							// @TODO: What if the instanced object is of the same type 
 							//        that we're currently reinstancing
-							Obj = StaticDuplicateObject(OldInstancedObj, Target, nullptr);// NewObject<UObject>(Target, OldInstancedObj->GetClass()->GetAuthoritativeClass(), OldInstancedObj->GetFName());
+							Obj = StaticDuplicateObject(OldInstancedObj, Target);// NewObject<UObject>(Target, OldInstancedObj->GetClass()->GetAuthoritativeClass(), OldInstancedObj->GetFName());
 						}
 					}
 				}
@@ -1603,7 +1622,7 @@ UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UObject* CDO, FName 
 	if (!CDODupProvider.IsBound() || (DupCDO = CDODupProvider.Execute(CDO, Name)) == nullptr)
 	{
 		GIsDuplicatingClassForReinstancing = true;
-		DupCDO = (UObject*)StaticDuplicateObject(CDO, GetTransientPackage(), *Name.ToString());
+		DupCDO = (UObject*)StaticDuplicateObject(CDO, GetTransientPackage(), Name);
 		GIsDuplicatingClassForReinstancing = false;
 	}
 
@@ -1617,18 +1636,18 @@ FBlueprintCompileReinstancer::FCDODuplicatesProvider& FBlueprintCompileReinstanc
 }
 
 FRecreateUberGraphFrameScope::FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate)
-	: Class(InClass)
+	: RecompiledClass(InClass)
 {
-	if (bRecreate && ensure(Class))
+	if (bRecreate && ensure(RecompiledClass))
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RecreateUberGraphPersistentFrame);
 
 		const bool bIncludeDerivedClasses = true;
-		GetObjectsOfClass(Class, Objects, bIncludeDerivedClasses);
+		GetObjectsOfClass(RecompiledClass, Objects, bIncludeDerivedClasses);
 
 		for (auto Obj : Objects)
 		{
-			Class->DestroyPersistentUberGraphFrame(Obj, true);
+			RecompiledClass->DestroyPersistentUberGraphFrame(Obj, true);
 		}
 	}
 }
@@ -1640,7 +1659,7 @@ FRecreateUberGraphFrameScope::~FRecreateUberGraphFrameScope()
 	{
 		if (IsValid(Obj))
 		{
-			Class->CreatePersistentUberGraphFrame(Obj, false, true);
+			RecompiledClass->CreatePersistentUberGraphFrame(Obj, false, true);
 		}
 	}
 }

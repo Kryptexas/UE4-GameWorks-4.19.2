@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,7 +12,6 @@
 
 #include "Editor/BspMode/Public/IBspModeModule.h"
 
-#include "GeometryModeClasses.h"
 #include "GeometryMode.h"
 #include "GeometryEdMode.h"
 #include "EditorGeometry.h"

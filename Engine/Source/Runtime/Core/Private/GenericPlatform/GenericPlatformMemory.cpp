@@ -1,6 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
+#include "Ticker.h"
+#include "Async.h"
 #include "MallocAnsi.h"
 #include "GenericPlatformMemoryPoolStats.h"
 #include "MemoryMisc.h"
@@ -21,6 +23,41 @@ DEFINE_STAT(STAT_UsedPhysical);
 DEFINE_STAT(STAT_PeakUsedPhysical);
 DEFINE_STAT(STAT_UsedVirtual);
 DEFINE_STAT(STAT_PeakUsedVirtual);
+
+/** Helper class used to update platform memory stats. */
+struct FGenericStatsUpdater
+{
+	/** Called once per second, enqueues stats update. */
+	static bool EnqueueUpdateStats( float /*InDeltaTime*/ )
+	{
+		AsyncTask( ENamedThreads::AnyThread, []()
+		{
+			DoUpdateStats();
+		} );
+		return true; // Tick again
+	}
+
+	/** Gathers and sets all platform memory statistics into the corresponding stats. */
+	static void DoUpdateStats()
+	{
+		// This is slow, so do it on the task graph.
+		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
+		SET_MEMORY_STAT( STAT_TotalPhysical, MemoryStats.TotalPhysical );
+		SET_MEMORY_STAT( STAT_TotalVirtual, MemoryStats.TotalVirtual );
+		SET_MEMORY_STAT( STAT_PageSize, MemoryStats.PageSize );
+		SET_MEMORY_STAT( STAT_TotalPhysicalGB, MemoryStats.TotalPhysicalGB );
+
+		SET_MEMORY_STAT( STAT_AvailablePhysical, MemoryStats.AvailablePhysical );
+		SET_MEMORY_STAT( STAT_AvailableVirtual, MemoryStats.AvailableVirtual );
+		SET_MEMORY_STAT( STAT_UsedPhysical, MemoryStats.UsedPhysical );
+		SET_MEMORY_STAT( STAT_PeakUsedPhysical, MemoryStats.PeakUsedPhysical );
+		SET_MEMORY_STAT( STAT_UsedVirtual, MemoryStats.UsedVirtual );
+		SET_MEMORY_STAT( STAT_PeakUsedVirtual, MemoryStats.PeakUsedVirtual );
+
+		// Platform specific stats.
+		FPlatformMemory::InternalUpdateStats( MemoryStats );
+	}
+};
 
 FGenericPlatformMemoryStats::FGenericPlatformMemoryStats()
 	: FGenericPlatformMemoryConstants( FPlatformMemory::GetConstants() )
@@ -57,8 +94,19 @@ void FGenericPlatformMemory::SetupMemoryPools()
 
 void FGenericPlatformMemory::Init()
 {
-	SetupMemoryPools();
-	UE_LOG(LogMemory, Warning, TEXT("FGenericPlatformMemory::Init not implemented on this platform"));
+	if (FPlatformMemory::SupportBackupMemoryPool())
+	{
+		SetupMemoryPools();
+	}
+
+#if	STATS
+	// Stats are updated only once per second.
+	const float PollingInterval = 1.0f;
+	FTicker::GetCoreTicker().AddTicker( FTickerDelegate::CreateStatic( &FGenericStatsUpdater::EnqueueUpdateStats ), PollingInterval );
+
+	// Update for the first time.
+	FGenericStatsUpdater::DoUpdateStats();
+#endif // STATS
 }
 
 void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
@@ -108,16 +156,16 @@ void FGenericPlatformMemory::GetStatsForMallocProfiler( FGenericMemoryStats& out
 	FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
 
 	// Base common stats for all platforms.
-	out_Stats.Add(TEXT("Total Physical"), Stats.TotalPhysical );
-	out_Stats.Add(TEXT("Total Virtual"), Stats.TotalVirtual );
-	out_Stats.Add(TEXT("Page Size"), Stats.PageSize );
-	out_Stats.Add(TEXT("Total Physical GB"), (SIZE_T)Stats.TotalPhysicalGB );
-	out_Stats.Add(TEXT("Available Physical"), Stats.AvailablePhysical );
-	out_Stats.Add(TEXT("Available Virtual"), Stats.AvailableVirtual );
-	out_Stats.Add(TEXT("Used Physical"), Stats.UsedPhysical );
-	out_Stats.Add(TEXT("Peak Used Physical"), Stats.PeakUsedPhysical );
-	out_Stats.Add(TEXT("Used Virtual"), Stats.UsedVirtual );
-	out_Stats.Add(TEXT("Peak Used Virtual"), Stats.PeakUsedVirtual );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_TotalPhysical ), Stats.TotalPhysical );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_TotalVirtual ), Stats.TotalVirtual );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_PageSize ), Stats.PageSize );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_TotalPhysicalGB ), (SIZE_T)Stats.TotalPhysicalGB );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_AvailablePhysical ), Stats.AvailablePhysical );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_AvailableVirtual ), Stats.AvailableVirtual );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_UsedPhysical ), Stats.UsedPhysical );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_PeakUsedPhysical ), Stats.PeakUsedPhysical );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_UsedVirtual ), Stats.UsedVirtual );
+	out_Stats.Add( GET_STATDESCRIPTION( STAT_PeakUsedVirtual ), Stats.PeakUsedVirtual );
 #endif // STATS
 }
 
@@ -131,29 +179,6 @@ const FPlatformMemoryConstants& FGenericPlatformMemory::GetConstants()
 uint32 FGenericPlatformMemory::GetPhysicalGBRam()
 {
 	return FPlatformMemory::GetConstants().TotalPhysicalGB;
-}
-
-void FGenericPlatformMemory::UpdateStats()
-{
-	// avoid getting OS data (costly on Linux, Windows - see CL 2460429) if we aren't collecting stats
-#if STATS
-	if (FThreadStats::IsCollectingData(GET_STATID(STAT_TotalPhysical)))
-	{
-		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-
-		SET_MEMORY_STAT(STAT_TotalPhysical,MemoryStats.TotalPhysical);
-		SET_MEMORY_STAT(STAT_TotalVirtual,MemoryStats.TotalVirtual);
-		SET_MEMORY_STAT(STAT_PageSize,MemoryStats.PageSize);
-		SET_MEMORY_STAT(STAT_TotalPhysicalGB,MemoryStats.TotalPhysicalGB);
-
-		SET_MEMORY_STAT(STAT_AvailablePhysical,MemoryStats.AvailablePhysical);
-		SET_MEMORY_STAT(STAT_AvailableVirtual,MemoryStats.AvailableVirtual);
-		SET_MEMORY_STAT(STAT_UsedPhysical,MemoryStats.UsedPhysical);
-		SET_MEMORY_STAT(STAT_PeakUsedPhysical,MemoryStats.PeakUsedPhysical);
-		SET_MEMORY_STAT(STAT_UsedVirtual,MemoryStats.UsedVirtual);
-		SET_MEMORY_STAT(STAT_PeakUsedVirtual,MemoryStats.PeakUsedVirtual);
-	}
-#endif	// STATS
 }
 
 void* FGenericPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
@@ -191,18 +216,80 @@ void FGenericPlatformMemory::DumpPlatformAndAllocatorStats( class FOutputDevice&
 	GMalloc->DumpAllocatorStats( Ar );
 }
 
-void FGenericPlatformMemory::Memswap( void* Ptr1, void* Ptr2, SIZE_T Size )
+void FGenericPlatformMemory::MemswapImpl( void* RESTRICT Ptr1, void* RESTRICT Ptr2, SIZE_T Size )
 {
-	if (Ptr1 != Ptr2)
+	union PtrUnion
 	{
-		// check that Ptr1 and Ptr2 do not overlap in undefined ways
-		checkf(reinterpret_cast<uint8 *>(Ptr1)+Size <= reinterpret_cast<uint8 *>(Ptr2) || reinterpret_cast<uint8 *>(Ptr2)+Size <= reinterpret_cast<uint8 *>(Ptr1),
-			TEXT("Pointers given to FPlatformMemory::Memswap() point to overlapping memory areas, results are undefined."));
+		void*   PtrVoid;
+		uint8*  Ptr8;
+		uint16* Ptr16;
+		uint32* Ptr32;
+		uint64* Ptr64;
+		UPTRINT PtrUint;
+	};
 
-		void* Temp = FMemory_Alloca(Size);
-		FPlatformMemory::Memcpy( Temp, Ptr1, Size );
-		FPlatformMemory::Memcpy( Ptr1, Ptr2, Size );
-		FPlatformMemory::Memcpy( Ptr2, Temp, Size );
+	if (!Size)
+	{
+		return;
+	}
+
+	PtrUnion Union1 = { Ptr1 };
+	PtrUnion Union2 = { Ptr2 };
+
+	if (Union1.PtrUint & 1)
+	{
+		Valswap(*Union1.Ptr8++, *Union2.Ptr8++);
+		Size -= 1;
+		if (!Size)
+		{
+			return;
+		}
+	}
+	if (Union1.PtrUint & 2)
+	{
+		Valswap(*Union1.Ptr16++, *Union2.Ptr16++);
+		Size -= 2;
+		if (!Size)
+		{
+			return;
+		}
+	}
+	if (Union1.PtrUint & 4)
+	{
+		Valswap(*Union1.Ptr32++, *Union2.Ptr32++);
+		Size -= 4;
+		if (!Size)
+		{
+			return;
+		}
+	}
+
+	uint32 CommonAlignment = FMath::Min(FMath::CountTrailingZeros(Union1.PtrUint - Union2.PtrUint), 3u);
+	switch (CommonAlignment)
+	{
+		default:
+			for (; Size >= 8; Size -= 8)
+			{
+				Valswap(*Union1.Ptr64++, *Union2.Ptr64++);
+			}
+
+		case 2:
+			for (; Size >= 4; Size -= 4)
+			{
+				Valswap(*Union1.Ptr32++, *Union2.Ptr32++);
+			}
+
+		case 1:
+			for (; Size >= 2; Size -= 2)
+			{
+				Valswap(*Union1.Ptr16++, *Union2.Ptr16++);
+			}
+
+		case 0:
+			for (; Size >= 1; Size -= 1)
+			{
+				Valswap(*Union1.Ptr8++, *Union2.Ptr8++);
+			}
 	}
 }
 
@@ -224,4 +311,10 @@ bool FGenericPlatformMemory::UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * 
 {
 	UE_LOG(LogHAL, Error, TEXT("FGenericPlatformMemory::UnmapNamedSharedMemoryRegion not implemented on this platform"));
 	return false;
+}
+
+
+void FGenericPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& MemoryStats )
+{
+	// Generic method is empty. Implement at platform level.
 }

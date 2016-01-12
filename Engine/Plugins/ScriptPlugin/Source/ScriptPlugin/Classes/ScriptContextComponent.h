@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "ScriptBlueprintGeneratedClass.h"
@@ -14,12 +14,12 @@ class SCRIPTPLUGIN_API UScriptContextComponent : public UActorComponent
 
 public:
 
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 	virtual void OnRegister() override;
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void BeginDestroy() override;
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 
 	/**
 	* Calls a script-defined function (no arguments)

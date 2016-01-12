@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
 #include "SProjectLauncherLaunchRoleEditor.h"
@@ -157,7 +157,7 @@ void SProjectLauncherLaunchRoleEditor::Refresh(const ILauncherProfileLaunchRoleP
 	if (RolePtr.IsValid())
 	{
 		// refresh widgets
-		CommandLineTextBox->SetText(FText::FromString(*RolePtr->GetCommandLine()));
+		CommandLineTextBox->SetText(FText::FromString(*RolePtr->GetUATCommandLine()));
 
 		// rebuild culture list
 		if (AvailableCultures != NULL)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -31,12 +31,12 @@ class UParticleModuleMeshRotationRateOverLife : public UParticleModuleRotationRa
 	virtual void	PostInitProperties() override;
 	//End UObject Interface
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	virtual bool TouchesMeshRotation() const override { return true; }
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 
 	/** Initializes the default values for this property */
 	void InitializeDefaults();

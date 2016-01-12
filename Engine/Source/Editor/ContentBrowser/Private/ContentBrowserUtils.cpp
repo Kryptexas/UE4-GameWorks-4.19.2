@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ContentBrowserPCH.h"
@@ -1085,13 +1085,16 @@ ContentBrowserUtils::ECBFolderCategory ContentBrowserUtils::GetFolderCategory( c
 
 bool ContentBrowserUtils::IsEngineFolder( const FString& InPath )
 {
-	return InPath.StartsWith(TEXT("/Engine")) || InPath == TEXT("Engine");
+	static const FString EnginePathWithSlash = TEXT("/Engine");
+	static const FString EnginePathWithoutSlash = TEXT("Engine");
+
+	return InPath.StartsWith(EnginePathWithSlash) || InPath == EnginePathWithoutSlash;
 }
 
 bool ContentBrowserUtils::IsDevelopersFolder( const FString& InPath )
 {
-	const FString DeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
-	const FString DeveloperPathWithoutSlash = DeveloperPathWithSlash.LeftChop(1);
+	static const FString DeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
+	static const FString DeveloperPathWithoutSlash = DeveloperPathWithSlash.LeftChop(1);
 		
 	return InPath.StartsWith(DeveloperPathWithSlash) || InPath == DeveloperPathWithoutSlash;
 }
@@ -1110,6 +1113,18 @@ bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 		}
 	}
 	return false;
+}
+
+bool ContentBrowserUtils::IsLocalizationFolder( const FString& InPath )
+{
+	static const FString EngineLocPathWithSlash = TEXT("/Engine/L10N");
+	static const FString EngineLocPathWithoutSlash = TEXT("Engine/L10N");
+
+	static const FString GameLocPathWithSlash = TEXT("/Game/L10N");
+	static const FString GameLocPathWithoutSlash = TEXT("Game/L10N");
+
+	return	InPath.StartsWith(EngineLocPathWithSlash) || InPath.StartsWith(EngineLocPathWithoutSlash) ||
+			InPath.StartsWith(GameLocPathWithSlash) || InPath.StartsWith(GameLocPathWithoutSlash);
 }
 
 void ContentBrowserUtils::GetObjectsInAssetData(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects)
@@ -1593,6 +1608,12 @@ bool ContentBrowserUtils::IsValidFolderPathForCreate(const FString& InFolderPath
 	}
 
 	const FString NewFolderPath = InFolderPath / NewFolderName;
+
+	if (ContentBrowserUtils::IsLocalizationFolder(NewFolderPath))
+	{
+		OutErrorMessage = LOCTEXT("LocalizationFolderReserved", "The L10N folder is reserved for localized content.");
+		return false;
+	}
 
 	if (ContentBrowserUtils::DoesFolderExist(NewFolderPath))
 	{

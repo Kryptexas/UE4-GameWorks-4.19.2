@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AtmosphericFogComponent.generated.h"
@@ -227,11 +227,11 @@ public:
 	void StartPrecompute();	
 
 protected:
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-	// End UActorComponent interface.
+	//~ End UActorComponent Interface.
 
 	 void AddFogIfNeeded();
 
@@ -246,7 +246,7 @@ public:
 	mutable FByteBulkData IrradianceData;
 	mutable FByteBulkData InscatterData;
 	
-	// Begin UObject interface. 
+	//~ Begin UObject Interface. 
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;
 
@@ -256,14 +256,14 @@ public:
 #endif // WITH_EDITOR
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 	virtual void Serialize(FArchive& Ar) override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	ENGINE_API void InitResource();
 	ENGINE_API void ReleaseResource();
 
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	// End UActorComponent interface.
+	//~ End UActorComponent Interface.
 
 	void ApplyComponentInstanceData(class FAtmospherePrecomputeInstanceData* ComponentInstanceData);
 	const FAtmospherePrecomputeParameters& GetPrecomputeParameters() const { return PrecomputeParams;  }

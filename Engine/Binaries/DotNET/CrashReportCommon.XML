@@ -1,0 +1,344 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CrashReportCommon</name>
+    </assembly>
+    <members>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.CrashReporterConstants">
+            <summary>
+            Any constant variables that need sharing between client and server.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashReporterConstants.MaxFileSizeToUpload">
+            <summary>Completely arbitrary maximum file size to upload (basic exploit check). Currently 100MB.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashReporterConstants.StreamChunkSize">
+            <summary>Size of data chunks expected. Currently 16kB.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashReporterConstants.DiagnosticsFileName">
+            <summary>The name of the generated report. Currently 'Diagnostics.txt'.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashReporterConstants.VideoFileName">
+            <summary>The name of the generated video of the editor session. Currently 'CrashVideo.avi'</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.CrashReporterConstants.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.CrashReporterResult">
+            <summary>
+            A class to return the result of the CheckReport web request.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashReporterResult.bSuccess">
+            <summary>A bool representing success or failure of the CheckReport web request.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashReporterResult.ID">
+            <summary>An optional integer value typically representing a unique ID.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashReporterResult.Message">
+            <summary>A optional message to explain any return values.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.CrashReporterResult.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.CheckReportRequest">
+            <summary>
+            A class to send to the web service to check to see if the report has already been uploaded.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CheckReportRequest.ReportId">
+            <summary>A unique ID, actually the directory name of the WER.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CheckReportRequest.DirectoryName">
+            <summary>LEGACY SUPPORT for crashes reported from clients before CrashReportUploader had been rebuilt</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.CheckReportRequest.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.CrashDescription">
+            <summary>
+            A class to send to the CrashReport website to add a new crash to the database.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.BranchName">
+            <summary>The name of the branch this game was built out of.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.GameName">
+            <summary>The name of the game that crashed.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.Platform">
+            <summary>The platform that crashed e.g. Win64.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.EngineMode">
+            <summary>The mode the game was in e.g. editor.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.BuildVersion">
+            <summary>The four component version of the app e.g. 1.0.1234.5678.</summary>
+            <remarks>The last two components of the version are the high and low 16 word of the version number.</remarks>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.CommandLine">
+            <summary>The command line of the application that crashed.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.BaseDir">
+            <summary>The base directory where the app was running.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.Language">
+            <summary>The language code the app was running in e.g. 1033.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.SystemLanguage">
+            <summary>The language code of the system.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.MachineGuid">
+            <summary>The GUID of the machine the crash occurred on.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.CallStack">
+            <summary>An array of strings representing the callstack of the crash.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.SourceContext">
+            <summary>An array of strings showing the source code around the crash.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.UserDescription">
+            <summary>An array of strings representing the user description of the crash.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.TimeofCrash">
+            <summary>The UTC time the crash occurred.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.bHasMiniDump">
+            <summary>Whether this crash has a minidump.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.bHasLog">
+            <summary>Whether this crash has a log file.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.bHasDiags">
+            <summary>Whether this crash has a diagnostics file.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.bHasWERData">
+            <summary>Whether this crash has Windows Error Reporting meta data.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.CrashDescription.bHasVideo">
+            <summary>Whether this crash has a video.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.CrashDescription.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.WERReportMetadata">
+            <summary>
+            Descriptive class for the WER report data
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadata.OSVersionInformation">
+            <summary>Host operating system version information.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadata.ParentProcessInformation">
+            <summary>Details about the process that spawned the process that crashed.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadata.ProblemSignatures">
+            <summary>A set of up to ten key value pairs representing the signature of the crash.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadata.DynamicSignatures">
+            <summary>Additional key value pairs containing information about the crash.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadata.SystemInformation">
+            <summary>Information about the system the crash occurred on.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.WERReportMetadata.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures">
+            <summary>
+            The problem signature
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.EventType">
+            <summary>The type of event e.g. crash or hang.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter0">
+            <summary>The application name.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter1">
+            <summary>The application version.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter2">
+            <summary>The application timestamp.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter3">
+            <summary>The faulting module name.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter4">
+            <summary>The faulting module version.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter5">
+            <summary>The faulting module timestamp.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter6">
+            <summary>The exception code.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter7">
+            <summary>The exception offset.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter8">
+            <summary>The command line of the crashed process.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.Parameter9">
+            <summary>Branch, BaseDir, and engine mode.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.WERReportMetadataProblemSignatures.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures">
+            <summary>
+            The dynamic signature.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter1">
+            <summary>The long version of the operating system version.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter2">
+            <summary>The LCID of the application.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter3">
+            <summary>Generic parameter</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter4">
+            <summary>Generic parameter</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter5">
+            <summary>Generic parameter</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter6">
+            <summary>Generic parameter</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter7">
+            <summary>Generic parameter</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter8">
+            <summary>Generic parameter</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.Parameter9">
+            <summary>Generic parameter</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.WERReportMetadataDynamicSignatures.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation">
+            <summary>
+            Details about the host OS the crash occurred on
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.WindowsNTVersion">
+            <summary>The Windows version e.g. 6.1.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.Build">
+            <summary>The build number and service pack. e.g. '7601 Service Pack 1'.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.Product">
+            <summary>The product name.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.Edition">
+            <summary>The type of Windows operating system e.g. Professional.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.BuildString">
+            <summary>The detailed version.e.g. '7601.17944.amd64fre.win7sp1_gdr.120830-0333'.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.Revision">
+            <summary>The revision.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.Flavor">
+            <summary>The flavor. e.g. 'Multiprocessor Free'.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.Architecture">
+            <summary>The processor architecture e.g. x64.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.LCID">
+            <summary>The system language code.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.WERReportMetadataOSVersionInformation.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.WERReportMetadataParentProcessInformation">
+            <summary>
+            Details about the process that launched the crashed application.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataParentProcessInformation.ParentProcessId">
+            <summary>The id of the parent process.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataParentProcessInformation.ParentProcessPath">
+            <summary>The full path of the parent process.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataParentProcessInformation.ParentProcessCmdLine">
+            <summary>The command line used to launch the parent process, including the executable name.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.WERReportMetadataParentProcessInformation.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.WERReportMetadataSystemInformation">
+            <summary>
+            Details about the machine the crash occurred on
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataSystemInformation.MID">
+            <summary>A GUID for the machine.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataSystemInformation.SystemManufacturer">
+            <summary>The manufacturer of the machine e.g. Hewlett Packard.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataSystemInformation.SystemProductName">
+            <summary>The system product name.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.WERReportMetadataSystemInformation.BIOSVersion">
+            <summary>The current BIOS version.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.WERReportMetadataSystemInformation.#ctor">
+            <summary>A simple default constructor to allow Xml serialisation.</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportCommon.LogWriter">
+            <summary>
+            Thread-safe log creation and writing for crash report processes
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.LogWriter.#ctor(System.String,System.String)">
+            <summary>
+            Constructor: opens the log file
+            </summary>
+            <param name="AppNameParam">Application name to prepend to log filename</param>
+            <param name="LogFolderParam">Folder in which to store log file</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.LogWriter.Dispose">
+            <summary>
+            Shutdown: flush and close the log file
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.LogWriter.Print(System.String)">
+            <summary>
+            Write a line to the log file and to the console
+            </summary>
+            <param name="Line">Text to write</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.LogWriter.Flush">
+            <summary>
+            Flush any pending content to disk
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.LogWriter.CleanOutOldLogs(System.Int32)">
+            <summary>
+            Clean out any old log files in the same directory as this log
+            </summary>
+            <param name="OlderThanDays">Files older than this many days will be deleted</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportCommon.LogWriter.CreateNewLogFile">
+            <summary>
+            Create either an initial log file or switch to a new, time-stamped log file
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.LogWriter.LogFile">
+            <summary>Open file stream messages are written to</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.LogWriter.AppName">
+            <summary>Application name to pre-pend to log filenames and put in copyright notice</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportCommon.LogWriter.LogFolder">
+            <summary>Folder log has been created in</summary>
+        </member>
+    </members>
+</doc>

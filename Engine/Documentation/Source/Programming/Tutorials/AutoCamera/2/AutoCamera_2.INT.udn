@@ -24,7 +24,7 @@ version: 4.9
 
 1. We're ready to create a C++ class to control our camera view. For this tutorial, we can extend **Actor** into a new class which we'll call CameraDirector.
 
-	[![](NameActorClass.png)](NameActorClass.png)
+	![](NameActorClass.png)
 
 1. In CameraDirector.h, add the following code to the bottom of the ACameraDirector class definition:
 
@@ -38,7 +38,7 @@ version: 4.9
 
 	[REGION:note]The **UPROPERTY** macro makes our variables visible to **Unreal Engine**. This way, values set in these variables will not be reset when we launch the game or reload our level or project in a future work session. We have also added the **EditAnywhere** keyword, which will allow us to set CameraOne and CameraTwo in the **Unreal Editor**.[/REGION]
 
-1. In CameraDirector.cpp, add the following line of code to the top of the file, right underneath the other "#include" lines:
+1. In CameraDirector.cpp, add the following line of code to the top of the file, right underneath the other #include lines:
 
 		#include "Kismet/GameplayStatics.h"
 
@@ -85,7 +85,7 @@ No further code is needed. We can set up our CameraDirector in our world now.
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -117,7 +117,7 @@ No further code is needed. We can set up our CameraDirector in our world now.
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_AutoCamera.h"
 			#include "CameraDirector.h"

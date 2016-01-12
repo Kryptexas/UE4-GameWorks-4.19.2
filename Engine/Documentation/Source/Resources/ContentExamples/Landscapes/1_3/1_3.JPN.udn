@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2716599
 Availability:Public
 Title:1.3 - フォーリッジ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Landscapes
-Description:ランドスケープの事例概要、例 1.3：フォーリッジ
+Description:ランドスケープのサンプル レベルの概要、サンプル 1.3：フォーリッジ
 Related:Engine/Landscape/Creation
 Related:Engine/Landscape/Editing
 Related:Engine/Landscape/UI
@@ -10,6 +10,24 @@ Related:Engine/Landscape/Materials
 Related:Engine/Landscape/Editing/Splines
 Related:Engine/Landscape/Editing/Gizmos
 Related:Engine/Landscape/Editing/Brushes
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Landscapes/1_2 "%Resources/ContentExamples/Landscapes/1_2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ランドスケープのホーム](Resources/ContentExamples/Landscapes)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]

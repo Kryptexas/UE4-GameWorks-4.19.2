@@ -2,11 +2,10 @@ Availability:Public
 Title: Components
 Crumbs:%ROOT%, Programming
 Description:Explanation of Components and descriptions of the various types available.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
-## Overview
 
 [EXCERPT:Overview]
 **Components** are a special type of **Object** designed to be used as sub-objects within **Actors**. These are generally used in situations where it is necessary to have easily swappable parts in 
@@ -22,7 +21,7 @@ are created specifically for that Car. If this were not the case, when one Car i
 of Components by default simplifies the process of quickly adding unique sub-objects to Actors. 
 
 [REGION:note]
-**Note:** Without Component instancing, all Component variables would need to be declared using the **[Instanced](Programming\UnrealArchitecture\Reference\Properties\Specifiers\Instanced) property specifier**.
+Without Component instancing, all Component variables would need to be declared using the [Instanced](Programming\UnrealArchitecture\Reference\Properties\Specifiers\Instanced) property specifier.
 [/REGION]
 
 ## Actor Components
@@ -39,7 +38,7 @@ In order for ActorComponents to be updated each frame and affect the scene, they
 	void UActorComponent::RegisterComponent()
 
 This function calls `UActorComponent::RegisterComponentWithScene()` to make sure that the ActorComponent is contained in the owning Actor's `Components[]` array, associate it with the 
-scene, and create the **[render proxy](#SceneProxy)** and **[physics state](#PhysicsState)** for the ActorComponent. 
+scene, and create the [render proxy](#SceneProxy) and [physics state](#PhysicsState) for the ActorComponent. 
 
 ActorComponents are automatically registered when the owning Actor is spawned, if they are created as sub-objects and added to the `Components[]` array in the default properties of the 
 Actor. They can be registered at any time during play by calling `UActorComponent::RegisterComponent()`, but be aware that registering a Component is a somewhat heavy operation, so it should 
@@ -126,7 +125,7 @@ Even when using parent-relative transform values, it is still possible to set tr
 ## Primitive Components
 
 **PrimitiveComponents** are SceneComponents that contain or generate some sort of geometry, generally to be rendered or used as collision data. There are several subclasses for the various types 
-of geometry, but the most common by far are the **CapsuleComponent**, **StaticMeshComponent**, and **SkeletalMeshComponent**. **CapsuleComponents** generate geometry that is used for collision detection, 
+of geometry, but the most common by far are the **CapsuleComponent**, **StaticMeshComponent**, and **SkeletalMeshComponent**. CapsuleComponents generate geometry that is used for collision detection, 
 but not rendered; while StaticMeshComponents and SkeletalMeshComponents contain pre-built geometry that is rendered, but can also be used for collision detection.
 
 ### Scene Proxy
@@ -134,5 +133,5 @@ but not rendered; while StaticMeshComponents and SkeletalMeshComponents contain 
 The `SceneProxy` of a PrimitiveComponent is an `FPrimitiveSceneProxy` instance that encapsulates the scene data that is mirrored in order to render the primitive in parallel to the game thread. 
 A subclass of `FPrimitiveSceneProxy` is created for each primitive type to hold the specific render data necessary to render that type of primitive.
 
-See **[Rendering System Overview](Programming/Rendering)** for more details on primitives and rendering geometry.
+See [Rendering System Overview](Programming/Rendering) for more details on primitives and rendering geometry.
 

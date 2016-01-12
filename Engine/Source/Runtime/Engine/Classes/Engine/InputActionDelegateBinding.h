@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/InputDelegateBinding.h"
@@ -35,7 +35,7 @@ class ENGINE_API UInputActionDelegateBinding : public UInputDelegateBinding
 	UPROPERTY()
 	TArray<FBlueprintInputActionDelegateBinding> InputActionDelegateBindings;
 
-	// Begin UInputDelegateBinding interface
+	//~ Begin UInputDelegateBinding Interface
 	virtual void BindToInputComponent(UInputComponent* InputComponent) const override;
-	// End UInputDelegateBinding interface
+	//~ End UInputDelegateBinding Interface
 };

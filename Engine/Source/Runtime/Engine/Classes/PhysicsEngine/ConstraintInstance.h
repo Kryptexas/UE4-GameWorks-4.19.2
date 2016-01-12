@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ConstraintInstance.generated.h"
@@ -156,7 +156,7 @@ struct ENGINE_API FConstraintInstance
 	UPROPERTY(EditAnywhere, Category=Linear)
 	TEnumAsByte<enum ELinearConstraintMotion> LinearZMotion;
 
-	/** The limiting extent in world untis of the linear motion for limitied motion axes. */
+	/** The limiting extent in world units of the linear motion for limited motion axes. */
 	UPROPERTY(EditAnywhere, Category=Linear, meta=(ClampMin = "0.0"))
 	float LinearLimitSize;
 

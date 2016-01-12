@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2620667
+﻿INTSourceChangelist:2718415
 Availability:Public
 Title:マウス操作の設定
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
 Description:マウス操作可能なゲームの設定方法
+Version:4.9
 
 [TOC(start:2 end:2)]
 
@@ -10,7 +11,7 @@ Description:マウス操作可能なゲームの設定方法
 マウス操作可能なゲーム作成を開始する前にいくつかの設定を行わなくてはいけません。以下はブループリントで行う手順の概要です。詳細も以下で説明します。
 
 * マウス カーソルとその他のマウス動作を有効にするため、新規に **PlayerController** ブループリント クラスを作成します。 
-* 新しい **PlayerController** クラスを利用する **GameMode** ブループリント クラスを新規に作成します。
+* 新しい **PlayerController** クラスを利用する GameMode ブループリント クラスを新規に作成します。
 * Default Game Type で新しい GameMode を利用するために **World Settings** を設定します。
 * マウスのインタラクションの処理にブループリントのスクリプト (Level ブループリントまたは Actor ブループリント内のどちらか) を使用します。
 
@@ -37,7 +38,7 @@ PlayerController クラスは、デフォルト設定でマウス インター�
 
 	![](MousePlayerController_CB.png)
 
-1. **コンテンツ ブラウザ** で新ブループリントを **右クリック** して、 **Edit...** を選択します。**Class Defaults** ウィンドウが開きます。
+1. **コンテンツ ブラウザ** で新ブループリントを 右クリック して、 **Edit...** を選択します。**Class Defaults** ウィンドウが開きます。
 
 	![](EditDefaultsBlueprint.png)
 
@@ -64,7 +65,7 @@ Mouse Input が有効となった PlayerController が作成されたので、�
 
 	![](Mouse_GameInfoBlueprint.png)
 
-1. **コンテンツ ブラウザ** で新ブループリントを **右クリック** して、 **Edit...** を選択します。**Class Defaults** ウィンドウが開きます。
+1. **コンテンツ ブラウザ** で新ブループリントを 右クリック して、 **Edit...** を選択します。**Class Defaults** ウィンドウが開きます。
 
 	![](EditDefaultsBlueprint2.png)
 
@@ -79,7 +80,7 @@ Mouse Input が有効となった PlayerController が作成されたので、�
 
 カスタム仕様の PlayerController と GameMode が設定されたブループリントが作成されたので、次に World Settings でこれを利用する設定をします。
 
-1. ツールバーにある **Settings (設定)** ボタンを **クリック** します。次にドロップダウンから **World Settings (ワールド設定)** を **選択** します。**[詳細]** パネルで World Settings が開きます。
+1. ツールバーにある **Settings (設定)** ボタンをクリックします。次にドロップダウンから **World Settings (ワールド設定)** を選択します。**[Details (詳細)]** パネルで World Settings が開きます。
 
 	![](WorldSettings.png)
 

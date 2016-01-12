@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,13 +6,17 @@
 
 
 class IMediaPlayer;
+enum class EMediaEvent;
 
 
-/** Multicast delegate that is invoked when a media player's media has been closed. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaPlayerMediaClosed);
+/** Multicast delegate that is invoked when a media event occurred in the player. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaPlayerMediaEvent);
 
 /** Multicast delegate that is invoked when a media player's media has been opened. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMediaPlayerMediaOpened, FString, OpenedUrl);
+
+/** Multicast delegate that is invoked when a media player's media has failed to open. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMediaPlayerMediaOpenFailed, FString, FailedUrl);
 
 
 /**
@@ -106,7 +110,7 @@ public:
 	 * Checks whether playback is currently paused.
 	 *
 	 * @return true if playback is paused, false otherwise.
-	 * @see CanPause, IsPlaying, IsStopped, Pause
+	 * @see CanPause, IsPlaying, IsReady, Pause
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool IsPaused() const;
@@ -115,19 +119,19 @@ public:
 	 * Checks whether playback has started.
 	 *
 	 * @return true if playback has started, false otherwise.
-	 * @see CanPlay, IsPaused, IsStopped, Play
+	 * @see CanPlay, IsPaused, IsReady, Play
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool IsPlaying() const;
 
 	/**
-	 * Checks whether playback has stopped.
+	 * Checks whether media is ready for playback.
 	 *
-	 * @return true if playback has stopped, false otherwise.
+	 * @return true if media is ready, false otherwise.
 	 * @see IsPaused, IsPlaying, Stop
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool IsStopped() const;
+	bool IsReady() const;
 
 	/**
 	 * Opens the specified media URL.
@@ -137,7 +141,7 @@ public:
 	 * @see GetUrl, Close
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool OpenUrl( const FString& NewUrl );
+	bool OpenUrl(const FString& NewUrl);
 
 	/**
 	 * Pauses media playback.
@@ -180,7 +184,7 @@ public:
 	 * @see GetTime, Rewind
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool Seek( const FTimespan& InTime );
+	bool Seek(const FTimespan& InTime);
 
 	/**
 	 * Enables or disables playback looping.
@@ -190,7 +194,7 @@ public:
 	 * @see IsLooping
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SetLooping( bool InLooping );
+	bool SetLooping(bool InLooping);
 
 	/**
 	 * Changes the media's playback rate.
@@ -200,7 +204,7 @@ public:
 	 * @see GetRate, SupportsRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SetRate( float Rate );
+	bool SetRate(float Rate);
 
 	/**
 	 * Checks whether the specified playback rate is supported.
@@ -210,7 +214,7 @@ public:
 	 * @see SupportsScrubbing, SupportsSeeking
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SupportsRate( float Rate, bool Unthinned ) const;
+	bool SupportsRate(float Rate, bool Unthinned) const;
 
 	/**
 	 * Checks whether the currently loaded media supports scrubbing.
@@ -232,6 +236,32 @@ public:
 
 public:
 
+	/** Holds a delegate that is invoked when playback has reached the end of the media. */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaEvent OnEndReached;
+
+	/** Holds a delegate that is invoked when a media source has been closed. */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaEvent OnMediaClosed;
+
+	/** Holds a delegate that is invoked when a media source has been opened. */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaOpened OnMediaOpened;
+
+	/** Holds a delegate that is invoked when a media source has failed to open. */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaOpenFailed OnMediaOpenFailed;
+
+	/** Holds a delegate that is invoked when media playback has been resumed. */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaEvent OnPlaybackResumed;
+
+	/** Holds a delegate that is invoked when media playback has been suspended. */
+	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
+	FOnMediaPlayerMediaEvent OnPlaybackSuspended;
+
+public:
+
 	/** Gets an event delegate that is invoked when media has been opened or closed. */
 	DECLARE_EVENT(UMediaPlayer, FOnMediaChanged)
 	FOnMediaChanged& OnMediaChanged()
@@ -245,14 +275,6 @@ public:
 	{
 		return TracksChangedEvent;
 	}
-
-	/** Holds a delegate that is invoked when a media source has been closed. */
-	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
-	FOnMediaPlayerMediaClosed OnMediaClosed;
-
-	/** Holds a delegate that is invoked when a media source has been opened. */
-	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
-	FOnMediaPlayerMediaOpened OnMediaOpened;
 
 public:
 
@@ -275,7 +297,7 @@ public:
 	virtual void PostLoad() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 protected:
@@ -295,14 +317,8 @@ protected:
 
 private:
 
-	/** Callback for when the player has closed a media source. */
-	void HandlePlayerMediaClosed();
-
-	/** Callback for when the player has opened a new media source. */
-	void HandlePlayerMediaOpened( FString OpenedUrl );
-
-	/** Callback for when the player's tracks changed. */
-	void HandlePlayerTracksChanged();
+	/** Callback for when a media event occurred in the player. */
+	void HandlePlayerMediaEvent(EMediaEvent Event);
 
 private:
 

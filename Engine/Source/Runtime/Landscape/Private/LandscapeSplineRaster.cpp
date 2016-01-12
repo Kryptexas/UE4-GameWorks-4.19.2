@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LandscapeSplineRaster.cpp:
@@ -593,7 +593,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 			if (NavSys)
 			{
-				NavSys->UpdateNavOctree(CollisionComponent);
+				NavSys->UpdateComponentInNavOctree(*CollisionComponent);
 			}
 		}
 	}
@@ -688,7 +688,7 @@ namespace LandscapeSplineRaster
 				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 				if (NavSys)
 				{
-					NavSys->UpdateNavOctree(CollisionComponent);
+					NavSys->UpdateComponentInNavOctree(*CollisionComponent);
 				}
 			}
 		}

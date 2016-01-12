@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "AITypes.h"
@@ -28,9 +28,9 @@ public:
 
 	void OnNoPath();
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
-	// End UObject interface
+	//~ End UObject Interface
 
 	TWeakObjectPtr<AAIController> AIController;
 	FAIRequestID MoveRequestId;

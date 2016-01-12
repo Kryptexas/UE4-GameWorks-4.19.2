@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2628920
 Availability: Public
 Title:에임 오프셋 만들기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -10,7 +10,17 @@ Related: Engine\Animation\AnimHowTo\AdditiveAnimations
 
 이 가이드에서는 캐릭터의 무기 조준을 돕기 위해 포즈의 블렌딩가능 시리즈를 저장하는 애셋인 [에임 오프셋](Engine/Animation/AimOffset) 을 만들겠습니다. 아래 예제에서 보듯이, 애니메이션 시퀀스를 잡아 에임 오프셋에 사용할 수 있는 포즈로 쪼갠 다음, 마우스의 위치로 플레이어의 핏치/요 를 구하고, 그를 통해 블렌딩할 포즈를 결정한 뒤, 캐릭터가 이동하면서 마우스 방향으로 (약간의 제한을 두고) 조준할 수 있도록 합니다.
 
-![](AimGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+uyeMVzNn3_s
+[/PARAMLITERAL]
+[/OBJECT]
 
 [TOC(start:2 end:2)]
 
@@ -378,7 +388,17 @@ Related: Engine\Animation\AnimHowTo\AdditiveAnimations
 
 	그러면 창 좌상단의 컴파일 버튼에 노랑 경고 신호가 제거됩니다. 프로젝트에 기본적으로 Crouch 에 대한 액션 매핑이 없기 때문인데, **C** 버튼을 사용하도록 하겠습니다 (원하는 아무 키 이벤트나 사용해도 됩니다).
 
-1.	**컴파일**, **저장** 한 다음 블루프린트를 닫고 메인 에디터 툴바의 **플레이** 를 클릭하여 게임을 플레이합니다.
+1.	**컴파일**, **저장** 한 다음 블루프린트를 닫습니다.
+
+	[REGION:note]
+	언리얼 엔진 4.8 이상에서는 레벨에서 **ThirdPersonCharacter** 를 지워줘야 합니다. 그 방법은 **에디터 뷰포트** 의 **씬 아웃라이너** 에서 **ThirdPersonCharacter** 를 찾아 클릭 후 Delete 키를 누르면 됩니다. 
+
+	그 이유는 **ThirdPersonCharacter** 가 레벨에서 자동으로 빙의되기 때문입니다.
+
+	레벨에서 **ThirdPersonCharacter** 제거 후 프로젝트 **저장**, 잊지 마세요.
+	[/REGION:note]
+
+1.	메인 에디터 툴바의 **플레이** 를 클릭하여 게임을 플레이합니다.
 
 에디터에서 플레이하면, 캐릭터는 고정 상태에서 마우스 이동에 반응하여 그 방향을 가리키도록 조준합니다. 마우스가 캐릭터 뒤에 있을때 돌아서 뒤쪽을 향하지 않도록 약간의 제약을 두었으며, 캐릭터가 조깅하는 도중 마우스를 움직이면 캐릭터의 가슴도 가리키는 방향으로 회전합니다.
 

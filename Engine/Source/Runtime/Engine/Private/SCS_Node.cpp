@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
@@ -26,7 +26,7 @@ USCS_Node::USCS_Node(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
-UActorComponent* USCS_Node::GetActualComponentTemplate(UBlueprintGeneratedClass* ActualBPGC)
+UActorComponent* USCS_Node::GetActualComponentTemplate(UBlueprintGeneratedClass* ActualBPGC) const
 {
 	UActorComponent* OverridenComponentTemplate = nullptr;
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
@@ -55,7 +55,7 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 	UActorComponent* ActualComponentTemplate = GetActualComponentTemplate(ActualBPGC);
 
 	// Create a new component instance based on the template
-	UActorComponent* NewActorComp = Actor->CreateComponentFromTemplate(ActualComponentTemplate, VariableName.ToString());
+	UActorComponent* NewActorComp = Actor->CreateComponentFromTemplate(ActualComponentTemplate, VariableName);
 	if(NewActorComp != nullptr)
 	{
 		NewActorComp->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
@@ -150,13 +150,70 @@ TArray<USCS_Node*> USCS_Node::GetAllNodes()
 	return AllNodes;
 }
 
-void USCS_Node::AddChildNode(USCS_Node* InNode)
+void USCS_Node::AddChildNode(USCS_Node* InNode, bool bAddToAllNodes)
 {
-	if(InNode != NULL && !ChildNodes.Contains(InNode))
+	if (InNode != NULL && !ChildNodes.Contains(InNode))
 	{
 		Modify();
 
 		ChildNodes.Add(InNode);
+		if (bAddToAllNodes)
+		{
+			FSCSAllNodesHelper::Add(GetSCS(), InNode);
+		}
+	}
+}
+
+void USCS_Node::RemoveChildNodeAt(int32 ChildIndex, bool bRemoveFromAllNodes)
+{
+	if (ChildIndex >= 0 && ChildIndex < ChildNodes.Num())
+	{
+		Modify();
+
+		USCS_Node* ChildNode = ChildNodes[ChildIndex];
+		ChildNodes.RemoveAt(ChildIndex);
+		if (bRemoveFromAllNodes)
+		{
+			FSCSAllNodesHelper::Remove(GetSCS(), ChildNode);
+		}
+	}
+}
+
+void USCS_Node::RemoveChildNode(USCS_Node* InNode, bool bRemoveFromAllNodes)
+{
+	Modify();
+	if (ChildNodes.Remove(InNode) != INDEX_NONE && bRemoveFromAllNodes)
+	{
+		FSCSAllNodesHelper::Remove(GetSCS(), InNode);
+	}
+}
+
+void USCS_Node::MoveChildNodes(USCS_Node* SourceNode, int32 InsertLocation)
+{
+	if (SourceNode)
+	{
+		Modify();
+		SourceNode->Modify();
+
+		USimpleConstructionScript* SourceSCS = SourceNode->GetSCS();
+		USimpleConstructionScript* MySCS = GetSCS();
+		if (SourceSCS != MySCS)
+		{
+			for (USCS_Node* SCSNode : SourceNode->ChildNodes)
+			{
+				FSCSAllNodesHelper::Remove(SourceSCS, SCSNode);
+				FSCSAllNodesHelper::Add(MySCS, SCSNode);
+			}
+		}
+		if (InsertLocation == INDEX_NONE)
+		{
+			ChildNodes.Append(SourceNode->ChildNodes);
+		}
+		else
+		{
+			ChildNodes.Insert(SourceNode->ChildNodes, InsertLocation);
+		}
+		SourceNode->ChildNodes.Empty();
 	}
 }
 
@@ -391,7 +448,7 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 						if(CompTemplate != NULL && ParentSCSNodes[ParentNodeIndex]->VariableName == ParentComponentOrVariableName)
 						{
 							// Found a match; this is our parent, we're done
-							ParentComponentTemplate = CompTemplate;
+							ParentComponentTemplate = Cast<USceneComponent>(ParentSCSNodes[ParentNodeIndex]->GetActualComponentTemplate(Cast<UBlueprintGeneratedClass>(InBlueprint->GeneratedClass)));
 							break;
 						}
 					}

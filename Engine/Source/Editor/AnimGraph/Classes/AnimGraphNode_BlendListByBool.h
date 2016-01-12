@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_BlendListBase.h"
-#include "Animation/AnimNode_BlendListByBool.h"
+#include "AnimNodes/AnimNode_BlendListByBool.h"
 #include "AnimGraphNode_BlendListByBool.generated.h"
 
 UCLASS(MinimalAPI)

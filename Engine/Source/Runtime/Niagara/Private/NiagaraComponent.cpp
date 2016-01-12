@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraPrivate.h"
 #include "NiagaraComponent.h"
@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY(LogNiagara);
 FNiagaraSceneProxy::FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
 		:	FPrimitiveSceneProxy(InComponent)
 {
-	UpdateEffectRenderers(InComponent->GetEffectInstance());
+	UpdateEffectRenderers(InComponent->GetEffectInstance().Get());
 }
 
 void FNiagaraSceneProxy::UpdateEffectRenderers(FNiagaraEffectInstance* InEffect)
@@ -89,7 +89,7 @@ void FNiagaraSceneProxy::OnTransformChanged()
 	//WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 }
 
-FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Relevance;
 	Relevance.bDynamicRelevance = true;
@@ -149,7 +149,7 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 {
 //	EmitterAge += DeltaSeconds;
 
-	if (EffectInstance)
+	if (EffectInstance.Get())
 	{ 
 		static FNiagaraVariableInfo Const_Zero(TEXT("ZERO"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_DeltaTime(TEXT("Delta Time"), ENiagaraDataType::Vector);
@@ -183,32 +183,32 @@ const UObject* UNiagaraComponent::AdditionalStatObject() const
 void UNiagaraComponent::OnRegister()
 {
 	Super::OnRegister();
-	if (Asset)
-	{
-		if (!EffectInstance)
-		{
-			EffectInstance = new FNiagaraEffectInstance(Asset, this);
-		}
-		{
-			EffectInstance->Init(this);
 
-			// initialize all render modules
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				FChangeNiagaraRenderModule,
-				FNiagaraEffectInstance*, InEffect, this->EffectInstance,
-				UNiagaraComponent*, InComponent, this,
-				{
-					for (TSharedPtr<FNiagaraSimulation> Emitter : InEffect->GetEmitters())
-					{
-						Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
-					}
-					InEffect->RenderModuleupdate();
-				}
-			);
-			FlushRenderingCommands();
-		}
-		VectorVM::Init();
+	if (!EffectInstance.IsValid() && Asset)
+	{
+		EffectInstance = MakeShareable(new FNiagaraEffectInstance(Asset, this));
 	}
+
+	if (EffectInstance.IsValid())
+	{
+		EffectInstance->Init(this);
+
+		// initialize all render modules
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			FChangeNiagaraRenderModule,
+			FNiagaraEffectInstance*, InEffect, this->EffectInstance.Get(),
+			UNiagaraComponent*, InComponent, this,
+			{
+			for (TSharedPtr<FNiagaraSimulation> Emitter : InEffect->GetEmitters())
+			{
+				Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
+			}
+			InEffect->RenderModuleupdate();
+		}
+		);
+		FlushRenderingCommands();
+	}
+	VectorVM::Init();
 }
 
 
@@ -219,7 +219,7 @@ void UNiagaraComponent::OnUnregister()
 
 void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 {
-	if (EffectInstance && SceneProxy)
+	if (EffectInstance.IsValid() && SceneProxy)
 	{
 		FNiagaraSceneProxy* NiagaraProxy = static_cast<FNiagaraSceneProxy*>(SceneProxy);
 		for (int32 i = 0; i < EffectInstance->GetEmitters().Num(); i++)
@@ -264,7 +264,7 @@ int32 UNiagaraComponent::GetNumMaterials() const
 FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox SimBounds(ForceInit);
-	if (EffectInstance)
+	if (EffectInstance.IsValid())
 	{
 		FBoxSphereBounds BSBounds(EffectInstance->GetEffectBounds());
 		//BSBounds.Origin = LocalToWorld.GetLocation();
@@ -276,7 +276,7 @@ FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) c
 FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()
 {
 	FNiagaraSceneProxy* Proxy = new FNiagaraSceneProxy(this);
-	Proxy->UpdateEffectRenderers(EffectInstance);
+	Proxy->UpdateEffectRenderers(EffectInstance.Get());
 	return Proxy;
 }
 
@@ -295,7 +295,7 @@ void UNiagaraComponent::SetAsset(UNiagaraEffect* InAsset)
 {
 	Asset = InAsset;
 
-	EffectInstance = new FNiagaraEffectInstance(Asset, this);
+	EffectInstance = MakeShareable(new FNiagaraEffectInstance(Asset, this));
 }
 
 const TArray<FNiagaraVariableInfo>& UNiagaraComponent::GetSystemConstants()
@@ -322,3 +322,6 @@ const TArray<FNiagaraVariableInfo>& UNiagaraComponent::GetSystemConstants()
 	}
 	return SystemConstants;
 }
+FNiagaraDataSetID FNiagaraDataSetID::DeathEvent(TEXT("Death"),ENiagaraDataSetType::Event);
+FNiagaraDataSetID FNiagaraDataSetID::SpawnEvent(TEXT("Spawn"), ENiagaraDataSetType::Event);
+FNiagaraDataSetID FNiagaraDataSetID::CollisionEvent(TEXT("Collision"), ENiagaraDataSetType::Event);

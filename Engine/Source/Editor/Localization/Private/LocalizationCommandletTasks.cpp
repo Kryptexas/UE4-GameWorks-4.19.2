@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationPrivatePCH.h"
 #include "LocalizationCommandletTasks.h"
@@ -197,7 +197,7 @@ bool LocalizationCommandletTasks::GenerateWordCountReportsForTargets(const TShar
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
 
-		const FText ReportTaskName = FText::Format(LOCTEXT("ReportTaskNameFormat", "Generate Word Count Report for {TargetName}"), Arguments);
+		const FText ReportTaskName = FText::Format(LOCTEXT("WordCountReportTaskNameFormat", "Generate Word Count Report for {TargetName}"), Arguments);
 		const FString ReportScriptPath = LocalizationConfigurationScript::GetWordCountReportScriptPath(Target);
 		LocalizationConfigurationScript::GenerateWordCountReportScript(Target).Write(ReportScriptPath);
 		Tasks.Add(LocalizationCommandletExecution::FTask(ReportTaskName, ReportScriptPath, ShouldUseProjectFile));
@@ -213,7 +213,7 @@ bool LocalizationCommandletTasks::GenerateWordCountReportForTarget(const TShared
 
 	const FString ReportScriptPath = LocalizationConfigurationScript::GetWordCountReportScriptPath(Target);
 	LocalizationConfigurationScript::GenerateWordCountReportScript(Target).Write(ReportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Word Count Report"), ReportScriptPath, ShouldUseProjectFile));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("WordCountReportTaskName_NoTarget", "Generate Word Count Report"), ReportScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));

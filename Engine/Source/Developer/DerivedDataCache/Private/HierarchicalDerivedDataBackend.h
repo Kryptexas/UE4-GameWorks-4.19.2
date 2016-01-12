@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,11 +65,7 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
-		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
-		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
-		Stat.AddTag(NAME_HierarchicalDDC, FString());
-
+		
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey))
@@ -88,14 +84,6 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
-		const static FName NAME_GetCachedData = FName(TEXT("GetCachedData"));
-		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
-		const static FName NAME_DataSize = FName(TEXT("DataSize")); 
-		static FName NAME_Retrieved(TEXT("Retrieved"));
-
-		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
-		Stat.AddTag(NAME_HierarchicalDDC, FString());
-
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData))
@@ -149,6 +137,15 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
+		const static FName NAME_PutCachedData = FName(TEXT("PutCachedData"));
+		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
+		const static FName NAME_DataSize = FName(TEXT("DataSize"));
+
+		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
+		Stat.AddTag(NAME_HierarchicalDDC, FString());
+		Stat.AddTag(NAME_DataSize, InData.Num());
+
+
 		if (!bIsWritable)
 		{
 			return; // no point in continuing down the chain

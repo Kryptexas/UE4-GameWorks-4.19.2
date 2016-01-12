@@ -7,10 +7,11 @@ Related: Engine\Paper2D\Sprites\RenderGeometry
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
+Version: 4.9
+SkillLevel: Beginner
 
 [TOC(start:2 end:2)]
 
-## Overview
 
 The Paper 2D **Sprite Editor** enables setup and editing of individual Sprite assets.
 
@@ -54,6 +55,7 @@ Each of the **Tool Bar** options are described in the table below:
 | **Save** | Save the sprite being edited. |
 | **Find in CB** | Show the sprite being edited in the Content Browser. |
 | **Src Tex** | Toggles display of the entire texture that the sprite is referencing. |
+| **Add Box** | Adds an additional box polygon when editing collision or render geometry. |
 | **Add Polygon** | Adds an additional polygon when editing collision or render geometry. |
 | **Snap to pixel grid** | Snaps all vertices to the pixel grid when editing collision or render geometry. |
 
@@ -63,7 +65,6 @@ The **Mode Switching Toolbar** allows you to edit and affect how your Sprite app
  
 ![](modes.png)
 
-_Click the links below for additional documentation._
 
 | Mode | Description |
 | ---- | ----------- |

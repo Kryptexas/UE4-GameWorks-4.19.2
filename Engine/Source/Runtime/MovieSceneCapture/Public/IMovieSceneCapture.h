@@ -1,10 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "IMovieSceneCapture.generated.h"
 
-class FViewport;
+class FSceneViewport;
 struct FMovieSceneCaptureSettings;
 struct FMovieSceneCaptureHandle;
 
@@ -22,7 +22,10 @@ public:
 	GENERATED_BODY()
 
 	/** Initialize this capture object by binding it to the specified viewport */
-	virtual void Initialize(FViewport* Viewport) = 0;
+	virtual void Initialize(TSharedPtr<FSceneViewport> Viewport, int32 PIEInstance = -1) = 0;
+
+	/** Instruct this capture to start capturing frames */
+	virtual void StartCapturing() = 0;
 
 	/** Shut down this movie capture */
 	virtual void Close() = 0;
@@ -32,7 +35,4 @@ public:
 
 	/** Access specific movie scene capture settings */
 	virtual const FMovieSceneCaptureSettings& GetSettings() const = 0;
-	
-	/** Get the name of a map package name that this capture wants to load */
-	virtual FString GetPackageName() const { return FString(); }
 };

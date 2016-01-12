@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -7,23 +7,30 @@ public class GeometryCache : ModuleRules
 	public GeometryCache(TargetInfo Target)
 	{
         PublicIncludePaths.Add("Runtime/GeometryCache/Public");
+        PublicIncludePaths.Add("Runtime/GeometryCache/Classes");
         PrivateIncludePaths.Add("Runtime/GeometryCache/Private");
         
         PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"CoreUObject", // @todo Mac: for some reason it's needed to link in debug on Mac
+				"CoreUObject",
 				"Engine",
 				"Slate",
 				"SlateCore",
                 "InputCore",
-                "EditorStyle",
-                "UnrealEd",
-                "AssetTools",
                 "RenderCore",
                 "ShaderCore",
                 "RHI"
 			}
 		);
+
+        PublicIncludePathModuleNames.Add("GeometryCacheEd");
+
+        if (UEBuildConfiguration.bBuildEditor)
+        {
+            DynamicallyLoadedModuleNames.Add("GeometryCacheEd");
+        }
+
+		PrecompileForTargets = PrecompileTargetsType.None;
 	}
 }

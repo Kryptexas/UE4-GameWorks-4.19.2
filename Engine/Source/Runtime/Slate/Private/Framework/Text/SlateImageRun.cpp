@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
 #if WITH_FANCY_TEXT
 
 #include "SlateImageRun.h"
+#include "RunUtils.h"
 
 TSharedRef< FSlateImageRun > FSlateImageRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FSlateBrush* InImage, int16 InBaseline )
 {
@@ -125,7 +126,10 @@ int32 FSlateImageRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, c
 	if (OutHitPoint)
 	{
 		const FTextRange BlockRange = Block->GetTextRange();
-		*OutHitPoint = (Index == BlockRange.EndIndex) ? ETextHitPoint::RightGutter : ETextHitPoint::WithinText;
+		const FLayoutBlockTextContext BlockTextContext = Block->GetTextContext();
+
+		// The block for an image will always detect a LTR reading direction, so use the base direction (of the line) for the image hit-point detection
+		*OutHitPoint = RunUtils::CalculateTextHitPoint(Index, BlockRange, BlockTextContext.BaseDirection);
 	}
 
 	return Index;
@@ -159,17 +163,17 @@ int32 FSlateImageRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineV
 	return LayerId;
 }
 
-TSharedRef< ILayoutBlock > FSlateImageRun::CreateBlock( int32 BeginIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunRenderer >& Renderer )
+TSharedRef< ILayoutBlock > FSlateImageRun::CreateBlock( int32 BeginIndex, int32 EndIndex, FVector2D Size, const FLayoutBlockTextContext& TextContext, const TSharedPtr< IRunRenderer >& Renderer )
 {
-	return FDefaultLayoutBlock::Create( SharedThis( this ), FTextRange( BeginIndex, EndIndex ), Size, Renderer );
+	return FDefaultLayoutBlock::Create( SharedThis( this ), FTextRange( BeginIndex, EndIndex ), Size, TextContext, Renderer );
 }
 
-int8 FSlateImageRun::GetKerning( int32 CurrentIndex, float Scale ) const 
+int8 FSlateImageRun::GetKerning( int32 CurrentIndex, float Scale, const FRunTextContext& TextContext ) const 
 {
 	return 0;
 }
 
-FVector2D FSlateImageRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale ) const 
+FVector2D FSlateImageRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale, const FRunTextContext& TextContext ) const 
 {
 	if ( EndIndex - BeginIndex == 0 )
 	{

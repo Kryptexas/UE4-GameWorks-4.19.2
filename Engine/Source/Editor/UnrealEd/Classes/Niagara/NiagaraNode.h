@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NiagaraNode.generated.h"
@@ -7,12 +7,15 @@ UCLASS()
 class UNREALED_API UNiagaraNode : public UEdGraphNode
 {
 	GENERATED_UCLASS_BODY()
+protected:
+
+	void ReallocatePins();
 
 public:
 
-	// Begin EdGraphNode interface
+	//~ Begin EdGraphNode Interface
 	virtual void AutowireNewNode(UEdGraphPin* FromPin)override;
-	// End EdGraphNode interface
+	//~ End EdGraphNode Interface
 
 	/** Get the Niagara graph that owns this node */
 	const class UNiagaraGraph* GetNiagaraGraph()const;

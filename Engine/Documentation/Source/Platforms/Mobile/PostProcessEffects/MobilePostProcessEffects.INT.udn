@@ -3,17 +3,15 @@ Title:Post Process Effects on Mobile Platforms
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Using Post Process Effects on mobile games.
 Platform:Mobile
+Version: 4.9
 
 [TOC(start:2)]
 
-## Overview
+
 
 Mobile postprocessing is implemented as a separate code path from PC/Console post processing. This is to reflect the slower dependent texture reads,
 missing hardware features, extra rendertarget resolve costs, and the slower performance in general. The following categories can be found in a postprocess volume (or a camera Actor).
 
-[REGION:tip]
-Some options are in the _Advanced_ properties and require clicking the ![](Engine/UI/LevelEditor/Details/button_advanced.png) button to expands the category in the **Details** panel.
-[/REGION]
 
 ## Post Process Categories
 

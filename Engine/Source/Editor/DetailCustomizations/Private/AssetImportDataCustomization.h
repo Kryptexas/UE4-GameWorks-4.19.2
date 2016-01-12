@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,8 +17,8 @@ private:
 	/** Handle the user wanting to change a specific source path */
 	FReply OnChangePathClicked(int32 Index) const;
 
-	/** Update the filename strings */
-	void UpdateCachedData();
+	/** Handle the user requesting that the specified index be cleared */
+	FReply OnClearPathClicked(int32 Index) const;
 
 	/** Access the struct we are editing */
 	FAssetImportInfo* GetEditStruct() const;

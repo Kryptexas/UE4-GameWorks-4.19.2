@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,7 @@ class FCodeLiteSourceCodeAccessor : public ISourceCodeAccessor
 public:
 
 	/**
-	 * TODO: NickD(?), implement.
+	 * Call if we've likely modified the availability of the source code accessor. 
 	 */
 	virtual void RefreshAvailability() override {}
 

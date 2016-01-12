@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OutputLogPrivatePCH.h"
 #include "SDeviceOutputLog.h"
@@ -161,7 +161,7 @@ void SDeviceOutputLog::Tick(const FGeometry& AllottedGeometry, const double InCu
 void SDeviceOutputLog::Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category)
 {
 	FScopeLock ScopeLock(&BufferedLinesSynch);
-	BufferedLines.Add(FBufferedLine(V, Verbosity, Category));
+	BufferedLines.Add(FBufferedLine(V, Category, Verbosity));
 }
 
 bool SDeviceOutputLog::CanBeUsedOnAnyThread() const

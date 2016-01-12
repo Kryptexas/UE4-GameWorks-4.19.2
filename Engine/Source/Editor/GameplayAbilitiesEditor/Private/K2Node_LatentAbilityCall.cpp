@@ -1,5 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -13,6 +12,12 @@
 #include "K2Node_EnumLiteral.h"
 #include "BlueprintFunctionNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "CompilerResultsLog.h"
+
+static FName FK2Node_LatentAbilityCallHelper_RequiresConnection(TEXT("RequiresConnection"));
+
+/////////////////////////////////////////////////////
+// UK2Node_LatentAbilityCall
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -83,6 +88,30 @@ void UK2Node_LatentAbilityCall::GetMenuActions(FBlueprintActionDatabaseRegistrar
 
 		return NodeSpawner;
 	}) );
+}
+
+void UK2Node_LatentAbilityCall::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	UFunction* DelegateSignatureFunction = NULL;
+	for (TFieldIterator<UProperty> PropertyIt(ProxyClass); PropertyIt; ++PropertyIt)
+	{
+		if (UMulticastDelegateProperty* Property = Cast<UMulticastDelegateProperty>(*PropertyIt))
+		{
+			if (Property->GetBoolMetaData(FK2Node_LatentAbilityCallHelper_RequiresConnection))
+			{
+				if (UEdGraphPin* DelegateExecPin = FindPin(Property->GetName()))
+				{
+					if (DelegateExecPin->LinkedTo.Num() < 1)
+					{
+						const FText MessageText = FText::Format(LOCTEXT("NoConnectionToRequiredExecPin", "@@ - Unhandled event.  You need something connected to the '{0}' pin"), FText::FromName(Property->GetFName()));
+						MessageLog.Warning(*MessageText.ToString(), this);
+					}
+				}
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

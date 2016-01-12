@@ -2,6 +2,7 @@ Availability: Public
 Title:Source Control
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:This document overviews the Source Control features.
+Version: 4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -41,6 +42,7 @@ You can activate source control via the editor's main Preferences window (**Edit
 
 | Item | Description |
 | --- | --- |
+| **Automatically Checkout on Asset Modification** | When checked, this will automatically check out any asset that has been modified.  |
 | **Prompt for Checkout on Package Modification** | When checked, a prompt will appear when you make changes to a source controlled-package, asking if you would like to check out (lock) that package. |
 | **Add New Files when Modified** | This will add new files into source control when they are modified. |
 | **Use Global Settings** | Use global source control login settings, rather than per-project.  Changing this will require you to login again. |
@@ -68,7 +70,7 @@ The **Content Browser** will display special icons on the **upper-right corner**
 [REGION:imagetable]
 | ![CheckedOutByYou.png](CheckedOutByYou.png)(w:178) | ![CheckedOut.png](CheckedOut.png)(w:178) | ![MarkedForAdd.png](MarkedForAdd.png)(w:178) | ![notInDepot.png](notInDepot.png)(w:178) | ![NotHadRevision.png](NotHadRevision.png)(w:178) 
 | --- | --- | --- | --- | --- |
-| Checked out by you | Checked out by another user | Marked for add | Not in depot | Not had revision
+| Checked out by you | Checked out by another user | Marked for add | Not in depot | Newer version of file exists in source control
 
 [/REGION]
 
@@ -80,10 +82,10 @@ While source control is active, the following context menu will be available whe
 
 | Item | Description |
 | --- | --- |
-| Check Out | Checks out (locks) the asset for editing. This prevents other users from editing the asset at the same time. |
-| Refresh | Refreshes the source control status of the asset. |
-| History | Gives a revision history list of the selected asset, allowing you to see previous edits. |
-| Diff Against Depot | This allows you to check the asset against the version currently stored in the source control depot. |
+| **Check Out** | Checks out (locks) the asset for editing. This prevents other users from editing the asset at the same time. |
+| **Refresh** | Refreshes the source control status of the asset. |
+| **History** | Gives a revision history list of the selected asset, allowing you to see previous edits. |
+| **Diff Against Depot** | This allows you to check the asset against the version currently stored in the source control depot. |
 
 ## Checking Out and In
 

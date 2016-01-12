@@ -1,76 +1,38 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DirectoryWatcherPrivatePCH.h"
 #include "FileCacheUtilities.h"
 
+namespace DirectoryWatcher
+{
+
 bool MatchExtensionString(const TCHAR* Filename, const TCHAR* Extensions)
 {
 	const int32 StrLength = FCString::Strlen(Filename);
-
 	const TCHAR* Ext = FCString::Strrchr(Filename, '.');
-	if (Ext && *(++Ext) != '\0')
+	const char QueryChar = ';';
+
+	if (!Ext || *(++Ext) == '\0')
 	{
-		const int32 ExtLength = StrLength - (Ext - Filename);
+		return false;
+	}
 
-		const TCHAR* Search = FCString::Strchr(Extensions, ';');
-		while(Search)
+	const int32 ExtLength = StrLength - (Ext - Filename);
+	const TCHAR* Search = FCString::Strchr(Extensions, QueryChar);
+
+	while (Search && *(++Search) != '\0')
+	{
+		if (FCString::Strnicmp(Search, Ext, ExtLength) == 0
+			&& *(Search + ExtLength) == QueryChar)
 		{
-			if (*(++Search) == '\0')
-			{
-				break;
-			}
-
-			if (FCString::Strnicmp(Search, Ext, ExtLength) == 0 && *(Search + ExtLength) == ';')
-			{
-				return true;
-			}
-
-			Search = FCString::Strchr(Search, ';');
+			return true;
 		}
+
+		Search = FCString::Strchr(Search, QueryChar);
 	}
 
 	return false;
 }
-
-/** Test MatchExtensionString */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMatchExtensionStringTest, "System.Plugins.Directory Watcher.File Cache.Extension Matching", EAutomationTestFlags::ATF_Editor)
-bool FMatchExtensionStringTest::RunTest(const FString& Parameters)
-{
-	auto Test = [](const TCHAR* Needle, const TCHAR* Haystack, bool bExpected) -> bool{
-
-		if (MatchExtensionString(Needle, Haystack) != bExpected)
-		{
-			if (bExpected)
-			{
-				UE_LOG(LogFileCache, Error, TEXT("Unable to match '%s' in '%s'"), Needle, Haystack);
-			}
-			else
-			{
-				UE_LOG(LogFileCache, Error, TEXT("Erroneously matched '%s' in '%s'"), Needle, Haystack);
-			}
-			return false;
-		}
-		return true;
-	};
-
-	bool Result = true;
-	Result = Test(TEXT("bla.txt"), TEXT(";;"), false) && Result;
-	Result = Test(TEXT("bla.txt"), TEXT(";"), false) && Result;
-	Result = Test(TEXT("bla.txt"), TEXT(""), false) && Result;
-	Result = Test(TEXT("bla.txt"), TEXT(";txt;"), true) && Result;
-	Result = Test(TEXT("bla.text"), TEXT(";txt;"), false) && Result;
-	Result = Test(TEXT("bla.txt1"), TEXT(";txt;"), false) && Result;
-	Result = Test(TEXT("bla."), TEXT(";bla;"), false) && Result;
-	Result = Test(TEXT("bla.png"), TEXT(";png;txt;"), true) && Result;
-	Result = Test(TEXT("bla.txt"), TEXT(";png;txt;"), true) && Result;
-	Result = Test(TEXT("/folder.bin/bla.txt"), TEXT(";png;txt;"), true) && Result;
-	Result = Test(TEXT("/folder.bin/bla"), TEXT(";png;bin;"), false) && Result;
-
-	return true;
-}
-
-namespace DirectoryWatcher
-{
 
 struct FWildcardRule : IMatchRule
 {

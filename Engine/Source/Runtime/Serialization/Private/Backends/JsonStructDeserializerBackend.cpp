@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SerializationPrivatePCH.h"
 #include "JsonStructDeserializerBackend.h"
@@ -255,12 +255,17 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 			{
 				return SetPropertyValue<UStrProperty, FString>(Property, Outer, Data, ArrayIndex, StringValue);
 			}
-			
+		
 			if (Property->GetClass() == UNameProperty::StaticClass())
 			{
 				return SetPropertyValue<UNameProperty, FName>(Property, Outer, Data, ArrayIndex, *StringValue);
 			}
 			
+			if (Property->GetClass() == UTextProperty::StaticClass())
+			{
+				return SetPropertyValue<UTextProperty, FText>(Property, Outer, Data, ArrayIndex, FText::FromString(StringValue));
+			}
+
 			if (Property->GetClass() == UByteProperty::StaticClass())
 			{
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);

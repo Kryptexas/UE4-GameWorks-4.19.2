@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	WinRTIncludes.h: Includes the platform specific headers for WinRT
@@ -22,7 +22,6 @@
 #include "WinRT/WinRTTLS.h"
 #include "WinRT/WinRTSplash.h"
 #include "WinRT/WinRTSurvey.h"
-#include "WinRT/WinRTHttp.h"
 
 typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VelocityShader.usf: Calculates velocity vectors.
@@ -21,14 +21,15 @@
 static const float GTessellationDepthBias = 0.001f;
 // for non tessellation: 0.0f as the isolate code should do a good job to prevent this case (can be increased if that is not the case e.g. if the platform ignores the isolate)
 static const float GNonTessellationDepthBias = 0.0f;
-
-//
+// for instanced stereo
+// TODO: We should be able to remove this bias once the velocity pass is being rendering with instanced stereo
+static const float GInstancedStereoDepthBias = 0.0001f;
 
 struct FVelocityInterpsVSToPS
 {
-	// float4(ScreenPosition.xyzw)
+	// float4(ScreenPos.xyzw)
 	float4 PackedVelocityA : TEXCOORD6;
-	// float4(PrevScreenPosition.xyzw)
+	// float4(PrevScreenPos.xyzw)
 	float4 PackedVelocityC : TEXCOORD7;
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 };
@@ -43,9 +44,9 @@ struct FVelocityVSToPS
 
 	struct FVelocityInterpsVSToDS
 	{
-		// float4(ScreenPosition.xyzw)
+		// float4(ScreenPos.xyzw)
 		float4 PackedVelocityA : TEXCOORD6;
-		// float4(PrevScreenPosition.xyzw)
+		// float4(PrevScreenPos.xyzw)
 		float4 PackedVelocityC : TEXCOORD8;
 	};
 
@@ -92,7 +93,7 @@ struct FVelocityVSToPS
 
 		ISOLATE
 		{
-			O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
+			O.Position = mul(WorldPosition, ResolvedView.TranslatedWorldToClip);
 		}
 
 		// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
@@ -120,6 +121,8 @@ void MainVertexShader(
 #endif
 	out FVertexOutput Output )
 {
+	ResolvedView = ResolveView();
+	
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 #if GPUSKIN_PASS_THROUGH
 	VFIntermediates.VertexID = VertexID;
@@ -151,27 +154,31 @@ void MainVertexShader(
 #endif
 
 	{
-		float4 ScreenPosition;
+		float4 ScreenPos;
 		// compute the old screen pos with the old world position and the old camera matrix
-		float4 PrevScreenPositionObj = mul(float4(PrevTranslatedWorldPosition.xyz, 1), View.PrevTranslatedWorldToClip);
+		float4 PrevScreenPosObj = mul(float4(PrevTranslatedWorldPosition.xyz, 1), ResolvedView.PrevTranslatedWorldToClip);
 
 #if !USING_TESSELLATION
 		ISOLATE
 		{
 #endif
-			ScreenPosition  = mul(float4(TranslatedWorldPosition.xyz, 1), View.TranslatedWorldToClip);
+			ScreenPos  = mul(float4(TranslatedWorldPosition.xyz, 1), ResolvedView.TranslatedWorldToClip);
 #if !USING_TESSELLATION
-			Output.Position = ScreenPosition;
+			Output.Position = ScreenPos;
 		}
 #endif
 
-		Output.Interps.PackedVelocityA = ScreenPosition;
-		Output.Interps.PackedVelocityC = PrevScreenPositionObj;
+		Output.Interps.PackedVelocityA = ScreenPos;
+		Output.Interps.PackedVelocityC = PrevScreenPosObj;
 	}
 
+// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
 #if !USING_TESSELLATION
-	// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
-	Output.Position.z += GNonTessellationDepthBias * Output.Position.w;
+	#if INSTANCED_STEREO
+		Output.Position.z += GInstancedStereoDepthBias * Output.Position.w;
+	#else
+		Output.Position.z += GNonTessellationDepthBias * Output.Position.w;
+	#endif
 #endif
 
 #if USING_TESSELLATION
@@ -194,10 +201,13 @@ void MainPixelShader(
 	out float4 OutColor : SV_Target0
 	)
 {
+	ResolvedView = ResolveView();
+
 	// Manual clipping here (alpha-test, etc)
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, SvPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, SvPosition);
-	GetMaterialCoverageAndClipping(MaterialParameters);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, bIsFrontFace);
+	GetMaterialClippingShadowDepth(MaterialParameters, PixelMaterialInputs);
 
 	// 2d velocity, includes camera an object motion
 	float2 Velocity = Calculate2DVelocity(Input.PackedVelocityA, Input.PackedVelocityC);

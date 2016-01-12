@@ -1,8 +1,18 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SequencerSettings.generated.h"
+
+UENUM()
+enum ESequencerSpawnPosition
+{
+	/** Origin. */
+	SSP_Origin UMETA(DisplayName="Origin"),
+
+	/** Place in Front of Camera. */
+	SSP_PlaceInFrontOfCamera UMETA(DisplayName="Place in Front of Camera"),
+};
 
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
@@ -44,10 +54,10 @@ public:
 
 	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
 
-	/** Gets whether or not auto key is enabled. */
-	bool GetAutoKeyEnabled() const;
-	/** Sets whether or not auto key is enabled. */
-	void SetAutoKeyEnabled(bool InbAutoKeyEnabled);
+	/** Gets the current auto-key mode. */
+	EAutoKeyMode GetAutoKeyMode() const;
+	/** Sets the current auto-key mode. */
+	void SetAutoKeyMode(EAutoKeyMode AutoKeyMode);
 
 	/** Gets whether or not key all is enabled. */
 	bool GetKeyAllEnabled() const;
@@ -64,6 +74,11 @@ public:
 	/** Sets default key interpolation */
 	void SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyInterpolation);
 
+	/** Get initial spawn position. */
+	ESequencerSpawnPosition GetSpawnPosition() const;
+	/** Set initial spawn position. */
+	void SetSpawnPosition(ESequencerSpawnPosition InSpawnPosition);
+
 	/** Gets whether or not to show frame numbers. */
 	bool GetShowFrameNumbers() const;
 	/** Sets whether or not to show frame numbers. */
@@ -73,11 +88,6 @@ public:
 	bool GetShowRangeSlider() const;
 	/** Sets whether or not to show frame numbers. */
 	void SetShowRangeSlider(bool InbShowRangeSlider);
-
-	/** Gets whether or not the in and out are bounded by start and end when scrolling. */
-	bool GetLockInOutToStartEndRange() const;
-	/** Sets whether or not the in and out are bounded by start and end when scrolling. */
-	void SetLockInOutToStartEndRange(bool InbLockInOutToStartEndRange);
 
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
@@ -131,8 +141,15 @@ public:
 
 	/** Gets whether or not the details view is visible. */
 	bool GetDetailsViewVisible() const;
+
 	/** Sets whether or not the details view is visible. */
 	void SetDetailsViewVisible(bool InbDetailsViewVisible);
+
+	/** Gets whether or not the label browser is visible. */
+	bool GetLabelBrowserVisible() const;
+
+	/** Sets whether or not the label browser is visible. */
+	void SetLabelBrowserVisible(bool Visible);
 
 	/** Gets whether or not auto-scroll is enabled. */
 	bool GetAutoScrollEnabled() const;
@@ -148,6 +165,21 @@ public:
 	bool GetShowCurveEditorCurveToolTips() const;
 	/** Sets whether or not to show curve tool tips in the curve editor. */
 	void SetShowCurveEditorCurveToolTips(bool InbShowCurveEditorCurveToolTips);
+	
+	/** Gets the loop mode. */
+	bool IsLooping() const;
+	/** Sets the loop mode. */
+	void SetLooping(bool bInLooping);
+
+	/** @return true if the cursor should be kept within the playback range during playback in sequencer, false otherwise */
+	bool ShouldKeepCursorInPlayRange() const;
+	/** Set whether or not the cursor should be kept within the playback range during playback in sequencer */
+	void SetKeepCursorInPlayRange(bool bInKeepCursorInPlayRange);
+
+	/** @return true if the playback range should be synced to the section bounds, false otherwise */
+	bool ShouldKeepPlayRangeInSectionBounds() const;
+	/** Set whether or not the playback range should be synced to the section bounds */
+	void SetKeepPlayRangeInSectionBounds(bool bInKeepPlayRangeInSectionBounds);
 
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
@@ -157,7 +189,7 @@ public:
 
 protected:
 	UPROPERTY( config )
-	bool bAutoKeyEnabled;
+	TEnumAsByte<EAutoKeyMode> AutoKeyMode;
 
 	UPROPERTY( config )
 	bool bKeyAllEnabled;
@@ -169,13 +201,13 @@ protected:
 	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
 
 	UPROPERTY( config )
+	TEnumAsByte<ESequencerSpawnPosition> SpawnPosition;
+
+	UPROPERTY( config )
 	bool bShowFrameNumbers;
 
 	UPROPERTY( config )
 	bool bShowRangeSlider;
-
-	UPROPERTY( config )
-	bool bLockInOutToStartEndRange;
 
 	UPROPERTY( config )
 	bool bIsSnapEnabled;
@@ -211,6 +243,9 @@ protected:
 	bool bDetailsViewVisible;
 
 	UPROPERTY( config )
+	bool bLabelBrowserVisible;
+
+	UPROPERTY( config )
 	bool bAutoScrollEnabled;
 
 	UPROPERTY( config )
@@ -218,6 +253,15 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowCurveEditorCurveToolTips;
+
+	UPROPERTY( config )
+	bool bLooping;
+
+	UPROPERTY( config )
+	bool bKeepCursorInPlayRange;
+
+	UPROPERTY( config )
+	bool bKeepPlayRangeInSectionBounds;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

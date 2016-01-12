@@ -2,6 +2,7 @@ Availability: Public
 title:Image Adjustment
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Functions for making adjustments to existing image textures, such as shifting contrast or hue.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -15,7 +16,7 @@ The following is a list of the functions found under the Image Adjustment catego
 
 ### 3ColorBlend
 
-This function blends between 3 input colors based on a grayscale alpha, in the following manner:
+The **3ColorBlend** function blends between 3 input colors based on a grayscale alpha, in the following manner:
 
 ![3ColorBlend_demo.png](3ColorBlend_demo.png)(w:720)
 
@@ -36,7 +37,7 @@ This function blends between 3 input colors based on a grayscale alpha, in the f
 
 ### CheapContrast
 
-This function boosts the contrast of an input by remapping the high end of the histogram to a lower value, and the low end of the histogram to a higher one. This is similar to applying a [Levels adjustment](http://www.cambridgeincolour.com/tutorials/levels.htm) in Photoshop, and pulling the black and white flags in a bit. The user may control the degree to which the contrast is boosted.
+The **CheapContrast** function boosts the contrast of an input by remapping the high end of the histogram to a lower value, and the low end of the histogram to a higher one. This is similar to applying a [Levels adjustment](http://www.cambridgeincolour.com/tutorials/levels.htm) in Photoshop, and pulling the black and white flags in a bit. The user may control the degree to which the contrast is boosted.
 
 | Item | Description |
 | -------- | -------- |
@@ -52,7 +53,7 @@ This function boosts the contrast of an input by remapping the high end of the h
 
 ### CheapContrast_RGB
 
-This function boosts the contrast of an input by remapping the high end of the histogram to a lower value, and the low end of the histogram to a higher one. This is similar to applying a [Levels adjustment](http://www.cambridgeincolour.com/tutorials/levels.htm) in Photoshop, and pulling the black and white flags in a bit. The user may control the degree to which the contrast is boosted.
+The **CheapConstrast_RGB** function boosts the contrast of an input by remapping the high end of the histogram to a lower value, and the low end of the histogram to a higher one. This is similar to applying a [Levels adjustment](http://www.cambridgeincolour.com/tutorials/levels.htm) in Photoshop, and pulling the black and white flags in a bit. The user may control the degree to which the contrast is boosted.
 
 Unlike the regular *CheapContrast function*, this function can take in a Vector3 as the input, allowing it to perform contrast operations on a color image.
 
@@ -67,7 +68,7 @@ Unlike the regular *CheapContrast function*, this function can take in a Vector3
 
 ### SCurve
 
-The SCurve function boosts contrast of an image by interpolating the values of each channel values of an image along an S-curve. This is similar to applying a [Curves adjustment](http://www.cambridgeincolour.com/tutorials/photoshop-curves.htm) in Photoshop and setting the RGB curve to an S-curve or using the Increase Contrast (RGB) preset.
+The **SCurve** function boosts contrast of an image by interpolating the values of each channel values of an image along an S-curve. This is similar to applying a [Curves adjustment](http://www.cambridgeincolour.com/tutorials/photoshop-curves.htm) in Photoshop and setting the RGB curve to an S-curve or using the Increase Contrast (RGB) preset.
 
 | Item | Description |
 | -------- | -------- |
@@ -80,7 +81,7 @@ The SCurve function boosts contrast of an image by interpolating the values of e
 
 ### 3PointLevels
 
-This function takes in an image and remaps the values of each channel across 3 points (white, black, middle). This is similar to applying a Levels adjustment in Photoshop. However, unlike the CheapContrast functions, this function provides full control in that it gives the user ability to adjust interpolation of lights, darks, and grays (gamma). By default, the three remapping points are interpolated linearly. However, you may input your own custom interpolation curve if you wish.
+The **3PointLevels** function takes in an image and remaps the values of each channel across 3 points (white, black, middle). This is similar to applying a Levels adjustment in Photoshop. However, unlike the CheapContrast functions, this function provides full control in that it gives the user ability to adjust interpolation of lights, darks, and grays (gamma). By default, the three remapping points are interpolated linearly. However, you may input your own custom interpolation curve if you wish.
 
 | Item | Description |
 | -------- | -------- |
@@ -107,7 +108,7 @@ This function takes in an image and remaps the values of each channel across 3 p
 
 ### HueShift
 
-The HueShift function offsets the current hue value of an input color by a given percentage. This percentage is 1-based and centered around the color wheel. For instance, a shift of 0.5 (50%) will shift to a complimentary hue, or the hue on the opposite side of the color wheel. A shift of 1.0 (100%) gives no change, as this is the equivalent of rotating completely around the color wheel.
+The **HueShift** function offsets the current hue value of an input color by a given percentage. This percentage is 1-based and centered around the color wheel. For instance, a shift of 0.5 (50%) will shift to a complimentary hue, or the hue on the opposite side of the color wheel. A shift of 1.0 (100%) gives no change, as this is the equivalent of rotating completely around the color wheel.
 
 | Item | Description |
 | -------- | -------- |
@@ -121,7 +122,7 @@ The HueShift function offsets the current hue value of an input color by a given
 
 ### SmoothThreshold
 
-The SmoothThreshold function takes in a gradient, an interpolation rate, and a threshold value (Cutoff Value). It then applies a smooth contrast to the gradient, based on the inputs. Here is a breakdown of what each input does:
+The **SmoothThreshold** function takes in a gradient, an interpolation rate, and a threshold value (Cutoff Value). It then applies a smooth contrast to the gradient, based on the inputs. Here is a breakdown of what each input does:
 
 | Item | Description |
 | -------- | -------- |

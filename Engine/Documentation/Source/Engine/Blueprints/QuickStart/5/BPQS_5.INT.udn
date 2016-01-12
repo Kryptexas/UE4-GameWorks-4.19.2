@@ -2,6 +2,10 @@ Availability: Public
 Title:5. Test the Overlapping Actor
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Make sure it is your Character overlapping the launchpad, so you only launch the Character.
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:5
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -61,7 +65,7 @@ We will do that by working with the Other Actor output from the **OnComponentBeg
 1. Type "Branch" in the search, then select **Branch** from the context menu.
 
 	![](BranchAdded.png)
-1. Connect the output pin of the **Equals** node to the input Boolean pin on the **Branch** node.
+1. Connect the output pin of the **Equals** node to the input Boolean pin on the **Condition** node.
 
 	![](BranchComplete.png)
 

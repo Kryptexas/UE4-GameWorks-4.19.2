@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "INiagaraCompiler.h"
 #include "CompilerResultsLog.h"
 #include "NiagaraScriptConstantData.h"
+#include "NiagaraScript.h"
 
 /** Base class for Niagara compilers. Children of this will include a compiler for the VectorVM and for Compute shaders. Possibly others. */
 class NIAGARAEDITOR_API FNiagaraCompiler : public INiagaraCompiler
@@ -22,14 +23,27 @@ protected:
 	/** The set of expressions generated from the script source. */
 	TArray<TNiagaraExprPtr> Expressions;
 
-	//All internal and external constants used in the graph.
+	/** All internal and external constants used in the graph. */
 	FNiagaraScriptConstantData ConstantData;
 
 	/** Map of Pins to expressions. Allows us to reuse expressions for pins that have already been compiled. */
 	TMap<UEdGraphPin*, TNiagaraExprPtr> PinToExpression;
 
-	//Message log. Automatically handles marking the NodeGraph with errors.
+	/** Message log. Automatically handles marking the NodeGraph with errors. */
 	FCompilerResultsLog MessageLog;
+
+	/** List of event names this script receives and the attributes they read. */
+	TArray<FNiagaraDataSetProperties> EventReceivers;
+
+	/** List of event names this script generates and the attributes they write. */
+	TArray<FNiagaraDataSetProperties> EventGenerators;
+
+	FNiagaraScriptUsageInfo Usage;
+
+// 	/** List of other shared data read */
+// 	TArray<FNiagaraDataSetCompilationInfo> SharedDataRead;
+// 	/** List of other shared data written */
+// 	TArray<FNiagaraDataSetCompilationInfo> SharedDataWritten;
 
 	/** Compiles an output Pin on a graph node. Caches the result for any future inputs connected to it. */
 	TNiagaraExprPtr CompileOutputPin(UEdGraphPin* Pin);
@@ -52,6 +66,8 @@ protected:
 
 	/** Searches for Function Call nodes and merges their graphs into the main graph. */
 	bool MergeInFunctionNodes();
+
+	bool MergeFunctionIntoMainGraph(UNiagaraNodeFunctionCall* FunctionNode, TArray<UNiagaraScript*>& FunctionStack);
 
 public:
 
@@ -76,9 +92,14 @@ public:
 	//End INiagaraCompiler Interface
 	
 	/** Gets the index into a constants table of the constant specified by Name and bInternal. */
-	virtual ENiagaraDataType GetConstantResultIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutResultIndex, int32& OutComponentIndex) = 0;
-	/**	Gets the index of an attribute. */
+	virtual ENiagaraDataType GetConstantResultIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutResultIndex) = 0;
+	/**	Gets the index of an attribute in particle data. */
 	int32 GetAttributeIndex(const FNiagaraVariableInfo& Attr)const;
+	/**	Gets the index of a shared data view. */
+	FNiagaraDataSetProperties* GetSharedDataIndex(FNiagaraDataSetID SharedDataSet, bool bForRead, int32& OutIndex);
+	/**	Gets the index of a variable in shared data. */
+	int32 GetSharedDataVariableIndex(FNiagaraDataSetProperties* SharedDataSet, const FNiagaraVariableInfo& Attr);
+
 	virtual void GetParticleAttributes(TArray<FNiagaraVariableInfo>& OutAttributes)const;
 
 	/**	Gets the index of a free temporary location. */

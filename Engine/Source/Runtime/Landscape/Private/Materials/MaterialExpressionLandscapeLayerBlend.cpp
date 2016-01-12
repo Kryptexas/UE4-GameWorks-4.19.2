@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
 #include "MaterialCompiler.h"
@@ -173,7 +173,7 @@ int32 UMaterialExpressionLandscapeLayerBlend::Compile(class FMaterialCompiler* C
 					// Modify weight with height
 					int32 ModifiedWeightCode = Compiler->Clamp(
 						Compiler->Add(Compiler->Lerp(Compiler->Constant(-1.f), Compiler->Constant(1.f), WeightCode), HeightCode),
-						Compiler->Constant(0.f), Compiler->Constant(1.f));
+						Compiler->Constant(0.0001f), Compiler->Constant(1.f));
 
 					// Store the final weight plus accumulate the sum of all weights so far
 					WeightCodes[LayerIdx] = ModifiedWeightCode;

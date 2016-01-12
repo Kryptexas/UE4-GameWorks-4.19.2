@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2631088
 Availability: Public
 Title:4. 메인 메뉴 스크립트
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -109,7 +109,17 @@ Description:이번 단계에서는 메인 메뉴와 게임 로드 함수성 스�
 
 1.	메인 툴바의 **플레이** 버튼을 클릭하고 에디터에서 플레이합니다.
 
-	[![](MenuImage.png)(w:720)](ExampleMainMenu.mp4)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	mEVUvk32CRI
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_위 그림을 클릭하면 비디오가 재생됩니다._
 

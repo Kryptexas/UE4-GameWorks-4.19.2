@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ExpressionParser.h"
@@ -470,7 +470,7 @@ bool TestStrings(FAutomationTestBase& Test, const TCHAR* Format, const TArray<FS
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedSimple, "System.Core.String Formatting.Simple (Named)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedSimple, "System.Core.String Formatting.Simple (Named)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestNamedSimple::RunTest( const FString& Parameters )
 {
 	TMap<FString, FStringFormatArg> Args;
@@ -483,7 +483,7 @@ bool FStringFormattingTestNamedSimple::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedMultiple, "System.Core.String Formatting.Multiple (Named)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedMultiple, "System.Core.String Formatting.Multiple (Named)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestNamedMultiple::RunTest( const FString& Parameters )
 {
 	TMap<FString, FStringFormatArg> Args;
@@ -495,7 +495,7 @@ bool FStringFormattingTestNamedMultiple::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedEscaped, "System.Core.String Formatting.Escaped (Named)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedEscaped, "System.Core.String Formatting.Escaped (Named)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestNamedEscaped::RunTest( const FString& Parameters )
 {
 	TMap<FString, FStringFormatArg> Args;
@@ -507,7 +507,7 @@ bool FStringFormattingTestNamedEscaped::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedUnbounded, "System.Core.String Formatting.Unbounded (Named)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedUnbounded, "System.Core.String Formatting.Unbounded (Named)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestNamedUnbounded::RunTest( const FString& Parameters )
 {
 	TMap<FString, FStringFormatArg> Args;
@@ -519,7 +519,7 @@ bool FStringFormattingTestNamedUnbounded::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedNonExistent, "System.Core.String Formatting.Non Existent (Named)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedNonExistent, "System.Core.String Formatting.Non Existent (Named)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestNamedNonExistent::RunTest( const FString& Parameters )
 {
 	TMap<FString, FStringFormatArg> Args;
@@ -531,7 +531,7 @@ bool FStringFormattingTestNamedNonExistent::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedInvalid, "System.Core.String Formatting.Invalid (Named)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedInvalid, "System.Core.String Formatting.Invalid (Named)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestNamedInvalid::RunTest( const FString& Parameters )
 {
 	TMap<FString, FStringFormatArg> Args;
@@ -543,7 +543,7 @@ bool FStringFormattingTestNamedInvalid::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedEmpty, "System.Core.String Formatting.Empty (Named)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestNamedEmpty, "System.Core.String Formatting.Empty (Named)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestNamedEmpty::RunTest( const FString& Parameters )
 {
 	TMap<FString, FStringFormatArg> Args;
@@ -556,7 +556,7 @@ bool FStringFormattingTestNamedEmpty::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedSimple, "System.Core.String Formatting.Simple (Ordered)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedSimple, "System.Core.String Formatting.Simple (Ordered)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestOrderedSimple::RunTest( const FString& Parameters )
 {
 	TArray<FStringFormatArg> Args;
@@ -569,7 +569,7 @@ bool FStringFormattingTestOrderedSimple::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedMultiple, "System.Core.String Formatting.Multiple (Ordered)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedMultiple, "System.Core.String Formatting.Multiple (Ordered)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestOrderedMultiple::RunTest( const FString& Parameters )
 {
 	TArray<FStringFormatArg> Args;
@@ -581,7 +581,7 @@ bool FStringFormattingTestOrderedMultiple::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedEscaped, "System.Core.String Formatting.Escaped (Ordered)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedEscaped, "System.Core.String Formatting.Escaped (Ordered)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestOrderedEscaped::RunTest( const FString& Parameters )
 {
 	TArray<FStringFormatArg> Args;
@@ -593,7 +593,7 @@ bool FStringFormattingTestOrderedEscaped::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedUnbounded, "System.Core.String Formatting.Unbounded (Ordered)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedUnbounded, "System.Core.String Formatting.Unbounded (Ordered)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestOrderedUnbounded::RunTest( const FString& Parameters )
 {
 	TArray<FStringFormatArg> Args;
@@ -605,7 +605,7 @@ bool FStringFormattingTestOrderedUnbounded::RunTest( const FString& Parameters )
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedNonExistent, "System.Core.String Formatting.Non Existent (Ordered)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedNonExistent, "System.Core.String Formatting.Non Existent (Ordered)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestOrderedNonExistent::RunTest( const FString& Parameters )
 {
 	TArray<FStringFormatArg> Args;
@@ -617,7 +617,7 @@ bool FStringFormattingTestOrderedNonExistent::RunTest( const FString& Parameters
 	return TestStrings(*this, Pattern, Args, Result);
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedAllTypes, "System.Core.String Formatting.All Types (Ordered)", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStringFormattingTestOrderedAllTypes, "System.Core.String Formatting.All Types (Ordered)", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 bool FStringFormattingTestOrderedAllTypes::RunTest( const FString& Parameters )
 {
 	const int32 Value1 = 100;

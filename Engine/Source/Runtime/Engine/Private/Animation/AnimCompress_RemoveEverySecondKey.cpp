@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompress_RemoveEverySecondKey.cpp: Keyframe reduction algorithm that simply removes every second key.
@@ -51,7 +51,7 @@ void UAnimCompress_RemoveEverySecondKey::DoReduction(UAnimSequence* AnimSeq, con
 	// record the proper runtime decompressor to use
 	AnimSeq->KeyEncodingFormat = AKF_ConstantKeyLerp;
 	AnimationFormat_SetInterfaceLinks(*AnimSeq);
-	AnimSeq->CompressionScheme = static_cast<UAnimCompress*>( StaticDuplicateObject( this, AnimSeq, TEXT("None") ) );
+	AnimSeq->CompressionScheme = static_cast<UAnimCompress*>( StaticDuplicateObject( this, AnimSeq ) );
 #endif // WITH_EDITORONLY_DATA
 };
 

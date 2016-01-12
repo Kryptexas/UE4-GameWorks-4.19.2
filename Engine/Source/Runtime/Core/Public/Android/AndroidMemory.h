@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -19,14 +19,14 @@ struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
 **/
 struct CORE_API FAndroidPlatformMemory : public FGenericPlatformMemory
 {
-	// Begin FGenericPlatformMemory interface
+	//~ Begin FGenericPlatformMemory Interface
 	static void Init();
 	static FPlatformMemoryStats GetStats();
 	static const FPlatformMemoryConstants& GetConstants();
 	static FMalloc* BaseAllocator();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
-	// End FGenericPlatformMemory interface
+	//~ End FGenericPlatformMemory Interface
 };
 
 typedef FAndroidPlatformMemory FPlatformMemory;

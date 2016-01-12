@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	IOSAudioDevice.cpp: Unreal IOSAudio audio interface object.
@@ -34,27 +34,27 @@ IMPLEMENT_MODULE(FIOSAudioDeviceModule, IOSAudio);
 void FIOSAudioDevice::ResumeContext()
 {
 	int32& SuspendCounter = GetSuspendCounter();
-    if (SuspendCounter > 0)
-    {
-        FPlatformAtomics::InterlockedDecrement(&SuspendCounter);
+	if (SuspendCounter > 0)
+	{
+		FPlatformAtomics::InterlockedDecrement(&SuspendCounter);
 
-        AUGraphStart(AudioUnitGraph);
-        AudioOutputUnitStart(OutputUnit);
-        UE_LOG(LogIOSAudio, Display, TEXT("Resuming Audio"));
-    }
+		AUGraphStart(AudioUnitGraph);
+		AudioOutputUnitStart(OutputUnit);
+		UE_LOG(LogIOSAudio, Display, TEXT("Resuming Audio"));
+	}
 }
 
 void FIOSAudioDevice::SuspendContext()
 {
 	int32& SuspendCounter = GetSuspendCounter();
-    if (SuspendCounter == 0)
-    {
-        FPlatformAtomics::InterlockedIncrement(&SuspendCounter);
+	if (SuspendCounter == 0)
+	{
+		FPlatformAtomics::InterlockedIncrement(&SuspendCounter);
 
-        AudioOutputUnitStop(OutputUnit);
-        AUGraphStop(AudioUnitGraph);
-        UE_LOG(LogIOSAudio, Display, TEXT("Suspending Audio"));
-    }
+		AudioOutputUnitStop(OutputUnit);
+		AUGraphStop(AudioUnitGraph);
+		UE_LOG(LogIOSAudio, Display, TEXT("Suspending Audio"));
+	}
 }
 
 int32& FIOSAudioDevice::GetSuspendCounter()

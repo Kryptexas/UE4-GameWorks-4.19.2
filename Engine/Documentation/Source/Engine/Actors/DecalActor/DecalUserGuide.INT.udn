@@ -84,7 +84,26 @@ A deferred decal has only a couple of properties:
 
 ## Material Settings
 
-The new **DecalBlendMode** setting defined how the material properties (diffuse, specular, normal, opacity, ...) are applied to the GBuffer. You can leave the material in the **_DBM_Auto_** mode. This mode chooses one of the other modes depending on which outputs are hooked up. The opacity is used to blend the decal contribution. An efficient decal is manipulating only few GBuffer properties. The cases we currently optimize for are represented by the other modes: **_DBM_Diffuse_**, **_DBM_Specular_**, **_DBM_Emissive_**, **_DBM_Normal_**.
+The **DecalBlendMode** setting defines how the material properties (diffuse, specular, normal, opacity, ...) are applied to the GBuffer. 
+
+The opacity is used to blend the decal contribution. An efficient decal is manipulating only few GBuffer properties. 
+The cases we currently optimize for are represented by the other modes: **_DBM_Diffuse_**, **_DBM_Specular_**, **_DBM_Emissive_**, **_DBM_Normal_**.
+
+| Item | Description | 
+|--- | --- |
+| **Translucent** | This will blend the full material, updating the GBuffer, and does not work for baked lighting. |
+| **Stain** | This is Modulate BaseColor, blend rest, updating the GBuffer, and does not work for baked lighting.  |
+| **Normal** | This will only blend normal, updating the GBuffer, and does not work for baked lighting. |
+| **Emissive** | This is for Additive emissive only. |
+| **DBuffer_Translucent Color, Normal, Roughness** | This is for non-metal, put into DBuffer to work for baked lighting as well. This will become DBM_TranslucentNormal if normal is not hooked up.  |
+| **DBuffer_Translucent Color** | This is for non-metal, put into DBuffer to work for baked lighting as well. |
+| **DBuffer_Translucent Color, Normal** | This is for non-metal, put into the DBuffer to work for baked lighting as well. This will become DBM_DBuffer_Color if normal is not hooked up. |
+| **DBuffer_Translucent Color, Roughness** | This is for non-metal, put into DBuffer to work for baked lighting as well. |
+| **DBuffer_Translucent Normal** | This is for non-metal, put into DBuffer to work for baked lighting as well. |
+| **DBuffer_Translucent Normal, Roughness** | This is for non-metal, put into DBuffer to work for baked lighting as well. This will become DBM_DBuffer_Roughness if normal is not hooked up. |
+| **DBuffer_Translucent Roughness** | This is for non-metal, put into DBuffer to work for baked lighting as well. |
+| **Volumetric Distance Function (experimental)** | This will output a signed distance in Opacity depending on LightVector.  |
+
 
 **_DBM_ScreenSpaceMask_** is special as it affects a special masking channel which is currently used by SSAO (Ambient Occlusion). This allows the decal to override or fade the contribution in some areas.
 
@@ -124,26 +143,14 @@ Decals may have 2x2 pixels block artifacts on edges as shown in the screenshot b
 
 ![](2x2_artifacts.bmp)
 
-This is where the node "Decal Mipmap Level" comes in. This node must be used with  has a very big performance impact.
+This is where the node "Decal Derivative" comes in. This node must be used carefully as it has a very big performance impact. It returns the derivatives on the X and Y axis of the decal's default texture coordinates necessary for anisotropic texture filtering, but computed differently than using the hardware's default and DDX/DDY nodes, to avoid this 2x2 pixel block artifact.
 
-![](decal_mipmap_material_1.png)
+![](Decal_Derivative.png)
 
 And using it fixes the artifacts on the decal that benefits from it.
 
 ![](2x2_no_artifacts.bmp)
 
-### Missing SampleTexture UV
-
-Now this node is so expensive from a computing point of view, that it doesn't have UV input as the SampleTexture. But in case of a tilling, you can still do so by patching up the mipmap level manualy. Here is an example to have a 2^4 = 16 tiling repetition.
-
-![](decal_mipmap_material_2.png)
-
 ### Current limitations
 
-* DecalMipmapLevel doesn't support UV
-* DecalMipmapLevel doesn't work with anysotropic filtering
-
-
-
-
-
+* DecalMipmapLevel doesn't support custom UV, but you can patch'up it's output.

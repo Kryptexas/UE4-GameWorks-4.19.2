@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602544
+﻿INTSourceChangelist:2639283
 Availability: Public
 Title:머티리얼 에디터 - 컬러 반투명 그림자 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -46,7 +46,7 @@ Translucent Shadow Color 는 그림자가 통과하는 오브젝트의 색을 �
 
 ![](TCS_Lit_Masked.PNG)
 
-1. 머티리얼 입력을 선택하고 다음과 같이 바꿉니다:
+1. **Material Attributes** 노드를 선택하고 **디테일** 패널에서 다음과 같이 변경합니다:
 * Blend Mode: Translucent (블렌드 모드: 반투명)
 * (옵션) Two Sided: Checked (양면: 체크)
 * Translucency Lighting Model: TLM_Surface (반투명 라이팅 모델: 표면)
@@ -56,11 +56,11 @@ Translucent Shadow Color 는 그림자가 통과하는 오브젝트의 색을 �
 
 ![](TCS_Lit_CustomOpacity.PNG)(w:850)
 
-1. 머티리얼 입력을 선택하고 다음과 같이 바꿉니다:
+1. **Material Attributs** 를 선택하고 **디테일** 패널에서 다음과 같이 변경합니다:
 * Blend Mode: Translucent (블렌드 모드: 반투명)
 * (옵션) Two Sided: Checked (양면: 체크)
 * Translucency Lighting Model: TLM_Surface (반투명 라이팅 모델: 표면)
-1. Multiply 노드를 만든 다음 머티리얼 입력의 오파시티에 연결합니다.
+1. Multiply 노드를 만든 다음 Material Attributes 노드의 오파시티에 연결합니다.
 1. Texture Sample 의 알파를 A 핀에 연결합니다.
 1. Constant 값을 만든 다음 1 미만의 값으로 설정합니다. 0 은 완전 투명, 1 은 완전 불투명입니다.
 ![](TCS_LIT_CO_constantValue.PNG)
@@ -76,7 +76,7 @@ Translucent Shadow Color 는 그림자가 통과하는 오브젝트의 색을 �
 
 ![](TCS_Unlit_Mat.PNG)
 
-1. 머티리얼 입력을 선택하고 다음과 같이 바꿔줍니다:
+1. **Material Attributes** 노드를 선택하고 **디테일 패널** 에서 다음과 같이 바꿔줍니다:
 * Blend Mode: Translucent (블렌드 모드: 반투명)
 * Shading Model: Unlit (셰이딩 모델: 라이팅제외)
 * (옵션) Two Sided: Checked (양면: 체크)
@@ -100,7 +100,7 @@ Translucent Shadow Color 는 그림자가 통과하는 오브젝트의 색을 �
 
 ## 그림자 선명도
 
-그림자 선명도는 여러가지 요소에 영향받을 수 있는데, **반투명 그림자 컬러** 를 받는 메시의 라이트맵 해상도, 라이트의 소스 각도, 텍스처 샘플의 퀄리티 등입니다.
+그림자 선명도는 여러가지 요소에 영향받을 수 있는데, 투과된 섀도우 컬러를 받는 메시의 라이트맵 해상도, 라이트의 소스 각도, 텍스처 샘플의 퀄리티 등입니다.
 
 ### 라이트맵 해상도
 

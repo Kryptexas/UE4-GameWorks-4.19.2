@@ -2,16 +2,17 @@ Availability: Public
 Title:Material Functions Overview
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:An overview of how material functions work and some critical concepts for their use.
+Version: 4.9
 
 [REGION:banner]
-![Material Function](matfunc_overview_banner.png)
+![](matfunc_overview_banner_NEW.jpg)
 [/REGION]
 
 [TOC(start:2)]
 
 
 
-Material Functions are little snippets of material graphs that can be saved in packages and reused across multiple materials.  Their purpose is to streamline the process of material creation by giving instant access to commonly used networks of material nodes. For example, if you find yourself often creating a network just to handle chaotic texture panning, then it will be much faster to save that portion of your network out as a material function and just use that whenever you need such behavior.
+**Material Functions** are little snippets of material graphs that can be saved in packages and reused across multiple materials.  Their purpose is to streamline the process of material creation by giving instant access to commonly used networks of material nodes. For example, if you find yourself often creating a network just to handle chaotic texture panning, then it will be much faster to save that portion of your network out as a material function and just use that whenever you need such behavior.
 
 Functions are edited in the material editor like a normal material, but with some restrictions on what nodes can be used.  When used properly, they can reduce material redundancy which in turn reduces artist maintenance effort keeping those duplicate expressions in sync, and the inevitable bugs that arise when one duplicate is missed during a modification. 
 
@@ -28,7 +29,7 @@ As you can see above, what happens between the input and the output is entirely 
 
 ## Material Function Library
 
-When your material function is finished, it should be published to the material function library for easy access during material creation. The material function library is a window in the Material Editor that contains a categorized and filterable list of available material functions.  This list is populated from any loaded functions, but also from any functions which were not loaded but were found through the **Content Browser Database** which is used by the **Content Browser**.  
+When your material function is finished, it should be published to the material function library for easy access during material creation. The material function library is a window in the Material Editor that contains a categorized and filterable list of available material functions.  This list is populated from any loaded functions, but also from any functions which were not loaded but were found through the **Content Browser Database** which is used by the Content Browser.  
 
 ![FunctionLibrary.png](FunctionLibrary.png)
 
@@ -61,12 +62,6 @@ Below are the material expression nodes that relate to material functions, along
 
 Since material functions are encapsulated networks of nodes, it is up to the user to make sure that data can flow into and out of them. This is handled by way of *FunctionInput* and *FunctionOutput* nodes. Understanding these nodes is critical for using material functions.
 
-[EXCERPT:FunctionParameters]
-[REGION:warning]
-Material Parameters, such as Scalar and Vector Parameters, cannot exist within Functions. This is to avoid any potential crosstalk that might occur when multiple instances of a Function are used in a single Material. To send data into a Function from a Parameter, you must use a FunctionInput node within the Function, and connect your Parameter in from outside, in the Material itself.
-[/REGION] 
-[/EXCERPT:FunctionParameters]
-
 Within the function itself, FunctionInput and FunctionOutput nodes appear like so:
 
 ![InputOutput_Within.png](InputOutput_Within.png)
@@ -78,7 +73,7 @@ From the outside, however, when the function is used within a material, those no
 
 ### FunctionInput Nodes
 
-As stated, MaterialInput nodes serve as the gateway through which data will enter a material function. A given function may have any number of these input nodes, each corresponding with an input pin that will appear on the function itself.
+As stated, Material Input nodes serve as the gateway through which data will enter a material function. A given function may have any number of these input nodes, each corresponding with an input pin that will appear on the function itself.
 
 ![InputNode.png](InputNode.png)
 
@@ -103,12 +98,12 @@ They have the following properties and data pins:
 ### FunctionOutput Nodes
 
 
-FunctionOutput nodes provide the means by which processed data will exit the final function for further use in a material. As with FunctionInput nodes, a function may have any number of these nodes, leading to any number of potential outputs.
+**FunctionOutput** nodes provide the means by which processed data will exit the final function for further use in a material. As with FunctionInput nodes, a function may have any number of these nodes, leading to any number of potential outputs.
 
 
 ![OutputNode.png](OutputNode.png)
 
-FunctionOutput nodes have the following properties:
+**FunctionOutput** nodes have the following properties:
 
 | Item | Description | 
 |---|---|
@@ -165,7 +160,7 @@ Most of the time you will want to preview a function output, so those will be pr
 
 ![PreviewingOutput.png](PreviewingOutput.png)
 
-Function input nodes have some options for specifying preview values, since they do not know the actual values they will be used with in a material.  Each input has a built in PreviewValue can be used to show a constant for float input types.  Function inputs also have a 'Preview' connector which allows you to override that built in value with any value that matches the input's type.  In this example, a texture sample has been used to provide the preview for a float 3 input.
+Function input nodes have some options for specifying preview values, since they do not know the actual values that will be used with in a material.  Each input has a built in _Preview Value_ that can be used to show a constant for float input types.  Function inputs also have a 'Preview' connector which allows you to override that built in value with any value that matches the input's type.  In this example, a texture sample has been used to provide the preview for a float 3 input.
 
 ![PreviewTexture.png](PreviewTexture.png)
 
@@ -178,21 +173,22 @@ Note that the input has an option called "Use Preview Value As Default".  When t
 
 ## Parameters
 
-Functions are not allowed to contain parameter node types, as this would cause name conflicts with other functions declaring the same name, but you can still use parameters by passing in the values through inputs.  To use a vector or scalar parameter value with a function, simply pass it in as a function input vector type.  
+Functions can now contain parameter node types. These parameters can be passed directly to any material for use.
+
 
 To use a texture parameter with a function, make a texture input and connect it to the texture object override in a texture sample node:
 
 ![TextureParameterFunction.png](TextureParameterFunction.png)(w:720)
 
-Then, in the material that uses the function, place a TextureObjectParameter node and connect it to the texture input:
+Then, in the material that uses the function, place a **TextureObjectParameter** node and connect it to the texture input:
 
 ![TextureParameterMaterial.png](TextureParameterMaterial.png)(w:720)
 
-Similarly for static switch parameters, make a static bool input and connect it to a StaticSwitch node:
+Similarly for static switch parameters, make a **Static Bool** input and connect it to a StaticSwitch node:
 
 ![StaticSwitchFunction.png](StaticSwitchFunction.png)(w:720)
 
-Then, in the material that uses the function, place a StaticBoolParameter node and connect it to the static bool input:
+Then, in the material that uses the function, place a **StaticBoolParameter** node and connect it to the static bool input:
 
 ![StaticSwitchMaterial.png](StaticSwitchMaterial.png)(w:720)
 

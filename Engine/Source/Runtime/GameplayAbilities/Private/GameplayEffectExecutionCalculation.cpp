@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectExecutionCalculation.h"
@@ -50,6 +50,12 @@ const FGameplayEffectSpec& FGameplayEffectCustomExecutionParameters::GetOwningSp
 {
 	check(OwningSpec);
 	return *OwningSpec;
+}
+
+FGameplayEffectSpec* FGameplayEffectCustomExecutionParameters::GetOwningSpecForPreExecuteMod() const
+{
+	check(OwningSpec);
+	return OwningSpec;
 }
 
 UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetTargetAbilitySystemComponent() const

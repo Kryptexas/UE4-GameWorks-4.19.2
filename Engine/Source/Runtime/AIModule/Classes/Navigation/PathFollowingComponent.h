@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AITypes.h"
@@ -123,9 +123,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** delegate for move completion notify */
 	FMoveCompletedSignature OnMoveFinished;
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
 	/** initialize component to use */
 	virtual void Initialize();
@@ -488,9 +488,6 @@ protected:
 
 	/** set move focus in AI owner */
 	void UpdateMoveFocus();
-
-	/** Updates cached MyNavData */
-	virtual void RecacheNavigationData();
 
 	/** debug point reach test values */
 	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const;

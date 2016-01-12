@@ -1,0 +1,39 @@
+Availability: Docs
+Title: C++ First Person Shooter Tutorial
+Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
+Description: How to develop a First Person Shooter.
+SkillLevel: Beginner
+Version: 4.9
+
+![](FPS_CoverImage.png)
+_This is what you'll see at the end of this tutorial._
+
+## Goals
+
+The purpose of this tutorial is show you how to build a basic First Person Shooter (FPS) using C++ and Blueprints.
+
+## Objectives
+
+By the end of this tutorial you'll be able to:
+
+* Set-up a Project
+* Implement a Character
+* Implement a Projectile
+* Animate a Character
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Sections
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming/Tutorials/FirstPersonShooter/1 "%Programming/Tutorials/FirstPersonShooter/1:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/2 "%Programming/Tutorials/FirstPersonShooter/2:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/3 "%Programming/Tutorials/FirstPersonShooter/3:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/4 "%Programming/Tutorials/FirstPersonShooter/4:description%")
+	[/PARAM]
+[/OBJECT]

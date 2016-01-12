@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,11 +29,11 @@ public:
 
 	/** Activates the widget at the specified index. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
-	void SetActiveWidgetIndex( int32 Index );
+	virtual void SetActiveWidgetIndex( int32 Index );
 
 	/** Activates the widget and makes it the active index. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
-	void SetActiveWidget(UWidget* Widget);
+	virtual void SetActiveWidget(UWidget* Widget);
 
 	/** Get a widget at the provided index */
 	UFUNCTION( BlueprintCallable, Category = "Switcher" )

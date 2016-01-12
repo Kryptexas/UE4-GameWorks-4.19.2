@@ -8,6 +8,26 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/1_F "%Resources/ContentExamples/EffectsGallery/1_F:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/EffectsGallery/1_H "%Resources/ContentExamples/EffectsGallery/1_H:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -59,7 +79,7 @@ This effect is achieved by way of the Bone/Socket Location module, which allows 
 
 ![](image034.png)
  
-Then, in the Emitter Actor properties, you add the instance parameter with the name you specified before in the location module, select 'PSPT_Actor' from the list, and select the Actor (Skeletal Mesh in this case) you want to emit particles from, and you will immediately see particles spawning at the bones/sockets you specified in the location module. Done!
+Then, in the Emitter Actor properties, you add the instance parameter with the name you specified before in the location module, select **PSPT_Actor** from the list, and select the Actor (Skeletal Mesh in this case) you want to emit particles from, and you will immediately see particles spawning at the bones/sockets you specified in the location module. Done!
 
 ![](image036.png)
 

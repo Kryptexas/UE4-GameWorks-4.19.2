@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2620685
+﻿INTSourceChangelist:2718430
 Availability:Public
 Title:Mouse Interaction プロパティ
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
 Description:マウスのインタラクションに使用するプロパティとカーソルの内訳
+Version:4.9
 
 
 [TOC(start:2 end:2)]
@@ -18,11 +19,11 @@ Description:マウスのインタラクションに使用するプロパティ�
 PlayerController クラス内に **Mouse Interface** というプロパティのカテゴリがあります。カーソルに基づいたマウスのインタラクションの全設定がここで処理されます。以下がプロパティです。
 
 | プロパティ | 説明 |
-| ---- | ---- |
+|----|----|
 | **Show Mouse Cursor (マウス カーソルを表示)** | マウスカーソルの表示または非表示を決定します。デフォルトでオペレーティング システムのカーソルを直接呼び出しています。 |
 | **Enable Click Events (Click Event を有効にする)** | クリック イベントの処理能力をアクティベートします。このプロパティを設定しないとクリックは機能しません。 |
 | **Enable Mouse Over Events (Mouse Over Event を有効にする) ** | マウスオーバーイベントの処理能力をアクティベートします。このプロパティの設定なしにマウスオーバーは機能しません。|
-| **Default Mouse Cursor (デフォルトのマウスカーソル)** | マウスカーソルのデフォルト時の表示方法を設定します。このオプションは **[有効なカーソル](#有効なカーソル)** セクションに表示されます。  |
+| **Default Mouse Cursor (デフォルトのマウスカーソル)** | マウスカーソルのデフォルト時の表示方法を設定します。このオプションは [有効なカーソル](#有効なカーソル) セクションに表示されます。  |
 | **Default Click Trace Channel (デフォルトのクリック トレース チャンネル)** | ユーザーがクリックしたものの認識に追跡システムが使用するデフォルト チャンネルを設定します。デフォルト設定は _Visibiltiy_ です。つまり追跡はオブジェクトの可視性ステータスをチェックして、可視オブジェクトを発見すると _true_ を返します。言い換えれば、ユーザーはゲーム上に _表示_ されているオブジェクトのみとインタラクション可能です。 |
 
 
@@ -44,7 +45,7 @@ PlayerController クラス内に **Mouse Interface** というプロパティの
 | **Resize South East (斜め方向にサイズ変更)** | ウィンドウや UI アセットの端に表示され、右上隅または左下隅から垂直、水平両方向にサイズ変更ができます。 | ![](cursor_ResizeSouthEast.png) |
 | **Resize South West (斜め方向にサイズ変更)** | ウィンドウや UI アセットの端に表示され、右上隅または左下隅から垂直、水平両方向にサイズ変更ができます。  | ![](cursor_ResizeSouthWest.png) |
 | **Cardinal Cross (基本十字カーソル)**  | 画面上のウィンドウの移動時によく表示されるカーソルです。 | ![](cursor_cardinal.png) |
-| **Crosshairs (十字カーソル)** | さまざまな精密な動作を実行時に表示されるカーソルです。 | ![](cursor_Crosshairs.png) |
+| **Crosshairs (十字カーソル)** | さまざまな精密な動作の実行時に表示されるカーソルです。 | ![](cursor_Crosshairs.png) |
 | **Hand (手形カーソル)**  | ハイパーリンク上に重ねたときに表示されるカーソルです。 | ![](cursor_Hand.png) |
 | **Grab Hand (手づかみ型カーソル)** | 画面上でドラッグされるオブジェクトにカーソルを重ね合わせると手のカーソルが表示されます。 | ![](cursor_GrabHand.png) |
 | **Grab Hand Closed (手を閉じたカーソル)** | 画面上でオブジェクトをドラッグ時に表示されるカーソルです。| ![](cursor_GrabHandClosed.png) |

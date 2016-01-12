@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnalyticsPrivatePCH.h"
 #include "Interfaces/IAnalyticsProviderModule.h"
@@ -68,6 +68,12 @@ FString FAnalytics::GetConfigValueFromIni( const FString& IniName, const FString
 	}
 	return Result;
 }
+
+void FAnalytics::WriteConfigValueToIni(const FString& IniName, const FString& SectionName, const FString& KeyName, const FString& Value)
+{
+	GConfig->SetString(*SectionName, *KeyName, *Value, *IniName);
+}
+
 
 void FAnalytics::StartupModule()
 {

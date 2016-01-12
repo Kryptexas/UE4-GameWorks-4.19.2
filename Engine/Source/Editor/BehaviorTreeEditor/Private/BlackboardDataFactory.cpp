@@ -1,10 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "BlackboardDataFactory.h"
 
-#define LOCTEXT_NAMESPACE "BehaviorTreeFactory"
+#define LOCTEXT_NAMESPACE "BlackboardDataFactory"
 
 UBlackboardDataFactory::UBlackboardDataFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

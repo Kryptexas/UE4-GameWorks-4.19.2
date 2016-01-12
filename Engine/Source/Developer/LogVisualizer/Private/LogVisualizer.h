@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 /* Dependencies
@@ -17,47 +17,58 @@
 #include "VisualLogger/VisualLogger.h"
 #include "LogVisualizerSettings.h"
 #include "LogVisualizerSessionSettings.h"
+#include "VisualLoggerDatabase.h"
 
-DECLARE_DELEGATE_OneParam(FOnItemSelectionChanged, const FVisualLogDevice::FVisualLogEntryItem&);
-DECLARE_DELEGATE_OneParam(FOnObjectSelectionChanged, TSharedPtr<class STimeline>);
 DECLARE_DELEGATE_OneParam(FOnFiltersSearchChanged, const FText&);
-DECLARE_DELEGATE(FOnFiltersChanged);
-DECLARE_DELEGATE_ThreeParams(FOnLogLineSelectionChanged, TSharedPtr<FLogEntryItem> /*SelectedItem*/, int64 /*UserData*/, FName /*TagName*/);
+
+//DECLARE_DELEGATE(FOnFiltersChanged);
+DECLARE_MULTICAST_DELEGATE(FOnFiltersChanged);
+
+DECLARE_DELEGATE_ThreeParams(FOnLogLineSelectionChanged, TSharedPtr<struct FLogEntryItem> /*SelectedItem*/, int64 /*UserData*/, FName /*TagName*/);
 DECLARE_DELEGATE_RetVal_TwoParams(FReply, FOnKeyboardEvent, const FGeometry& /*MyGeometry*/, const FKeyEvent& /*InKeyEvent*/);
+DECLARE_DELEGATE_RetVal(float, FGetAnimationOutlinerFillPercentageFunc);
 
 struct FVisualLoggerEvents
 {
-	FVisualLoggerEvents() 
-	{
-	
-	}
-
-	FOnItemSelectionChanged OnItemSelectionChanged;
 	FOnFiltersChanged OnFiltersChanged;
-	FOnObjectSelectionChanged OnObjectSelectionChanged;
 	FOnLogLineSelectionChanged OnLogLineSelectionChanged;
 	FOnKeyboardEvent OnKeyboardEvent;
+	FGetAnimationOutlinerFillPercentageFunc GetAnimationOutlinerFillPercentageFunc;
 };
 
 class FVisualLoggerTimeSliderController;
 struct LOGVISUALIZER_API FLogVisualizer
 {
 	/** LogVisualizer interface*/
-	void Goto(float Timestamp, FName LogOwner = NAME_None);
-	void GotoNextItem( int32 Distance);
-	void GotoPreviousItem(int32 Distance);
-	void MoveCamera();
+	void Reset();
 
 	FLinearColor GetColorForCategory(int32 Index) const;
 	FLinearColor GetColorForCategory(const FString& InFilterName) const;
 	TSharedPtr<FVisualLoggerTimeSliderController> GetTimeSliderController() { return TimeSliderController; }
 	UWorld* GetWorld(UObject* OptionalObject = nullptr);
-	class AActor* GetVisualLoggerHelperActor();
-	FVisualLoggerEvents& GetVisualLoggerEvents() { return VisualLoggerEvents; }
+	FVisualLoggerEvents& GetEvents() { return VisualLoggerEvents; }
 
 	void SetCurrentVisualizer(TSharedPtr<class SVisualLogger> Visualizer) { CurrentVisualizer = Visualizer; }
 
-	void OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine) { CurrentTimeLine = TimeLine; }
+	void SetAnimationOutlinerFillPercentage(float FillPercentage) { AnimationOutlinerFillPercentage = FillPercentage; }
+	float GetAnimationOutlinerFillPercentage() 
+	{
+		if (VisualLoggerEvents.GetAnimationOutlinerFillPercentageFunc.IsBound())
+		{
+			SetAnimationOutlinerFillPercentage(VisualLoggerEvents.GetAnimationOutlinerFillPercentageFunc.Execute());
+		}
+		return AnimationOutlinerFillPercentage; 
+	}
+
+	int32 GetNextItem(FName RowName, int32 MoveDistance = 1);
+	int32 GetPreviousItem(FName RowName, int32 MoveDistance = 1);
+
+	void GotoNextItem(FName RowName, int32 MoveDistance = 1);
+	void GotoPreviousItem(FName RowName, int32 MoveDistance = 1);
+	void GotoFirstItem(FName RowName);
+	void GotoLastItem(FName RowName);
+
+	void UpdateCameraPosition(FName Rowname, int32 ItemIndes);
 
 	/** Static access */
 	static void Initialize();
@@ -68,8 +79,8 @@ protected:
 	
 	TSharedPtr<FVisualLoggerTimeSliderController> TimeSliderController;
 	FVisualLoggerEvents VisualLoggerEvents;
-	TWeakPtr<class STimeline> CurrentTimeLine;
 	TWeakPtr<class SVisualLogger> CurrentVisualizer;
+	float AnimationOutlinerFillPercentage;
 };
 
 class SVisualLoggerTab : public SDockTab
@@ -78,7 +89,7 @@ public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
-		return FLogVisualizer::Get().GetVisualLoggerEvents().OnKeyboardEvent.Execute(MyGeometry, InKeyEvent);
+		return FLogVisualizer::Get().GetEvents().OnKeyboardEvent.Execute(MyGeometry, InKeyEvent);
 	}
 };
 
@@ -88,7 +99,7 @@ public:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
 	{
-		return FLogVisualizer::Get().GetVisualLoggerEvents().OnKeyboardEvent.Execute(MyGeometry, InKeyEvent);
+		return FLogVisualizer::Get().GetEvents().OnKeyboardEvent.Execute(MyGeometry, InKeyEvent);
 	}
 };
 

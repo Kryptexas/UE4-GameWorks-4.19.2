@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SPackagesDialog_h__
@@ -266,6 +266,7 @@ private:
 	FString IconName; 						// Name of an icon to show next to the checkbox
 	FString IconToolTip;					// ToolTip to display for the icon
 	FSimpleDelegate RefreshButtonCallback;	// ToolTip to display for the icon
+	mutable TWeakObjectPtr<UObject> Object;			// Cached object associated with this entry.
 };
 
 /**
@@ -400,9 +401,9 @@ public:
 
 private:
 
-	// Begin SWidget Interface
+	//~ Begin SWidget Interface
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
-	// End SWidget Interface
+	//~ End SWidget Interface
 
 	/**
 	 * Called when the checkbox items have changed state

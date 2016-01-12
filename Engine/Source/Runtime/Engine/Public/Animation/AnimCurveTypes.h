@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -129,7 +129,7 @@ struct FFloatCurve : public FAnimCurveBase
 
 	// we don't want to have = operator. This only copies curves, but leaving naming and everything else intact. 
 	void CopyCurve(FFloatCurve& SourceCurve);
-	float Evaluate(float CurrentTime) const;
+	ENGINE_API float Evaluate(float CurrentTime) const;
 	void UpdateOrAddKey(float NewKey, float CurrentTime);
 	void Resize(float NewLength, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime);
 };
@@ -241,39 +241,26 @@ struct ENGINE_API FBlendedCurve
 	* List of curve elements for this pose
 	*/
 	TArray<FCurveElement> Elements;
-	TArray<FSmartNameMapping::UID> UIDList;
 
+	/**
+	* List of SmartName UIDs, retrieved from AnimInstanceProxy (which keeps authority)
+	*/
+	TArray<FSmartNameMapping::UID> const * UIDList;
+	
 	/**
 	 * constructor
 	 */
 	FBlendedCurve()
-		: bInitialized(false)
+		: UIDList(nullptr)
+		, bInitialized(false)
 	{
 	}
-
-	/**
-	 * constructor
-	 */
-	FBlendedCurve(const class UAnimInstance* AnimInstance);
-
-	/**
-	 * constructor
-	 */
-	FBlendedCurve(const class USkeleton* Skeleton)
-	{
-		check (Skeleton);
-		InitFrom(Skeleton);
-	}
-
+	
 	/** Initialize Curve Data from following data */
+	DEPRECATED(4.11, "Use new InitFrom(TArray<FSmartNameMapping::UID>* InSmartNameUIDs) signature")
 	void InitFrom(const class USkeleton* Skeleton);
-	void InitFrom(const FBlendedCurve& InCurveToInitFrom)
-	{
-		UIDList = InCurveToInitFrom.UIDList;
-		Elements.Empty(UIDList.Num());
-		Elements.AddZeroed(UIDList.Num());
-		bInitialized = true;
-	}
+	void InitFrom(TArray<FSmartNameMapping::UID> const * InSmartNameUIDs);
+	void InitFrom(const FBlendedCurve& InCurveToInitFrom);
 
 	/** Set value of InUID to InValue */
 	void Set(USkeleton::AnimCurveUID InUid, float InValue, int32 InFlags);
@@ -282,6 +269,10 @@ struct ENGINE_API FBlendedCurve
 	 * Blend (A, B) using Alpha, same as Lerp
 	 */
 	void Blend(const FBlendedCurve& A, const FBlendedCurve& B, float Alpha);
+	/**
+	 * Blend with Other using Alpha, same as Lerp 
+	 */
+	void BlendWith(const FBlendedCurve& Other, float Alpha);
 	/**
 	 * Convert current curves to Additive (this - BaseCurve) if same found
 	 */
@@ -316,8 +307,10 @@ struct ENGINE_API FBlendedCurve
 	/** Empty */
 	void Empty()
 	{
-		UIDList.Empty();
-		Elements.Empty();
+		// Set to nullptr as we only received a ptr reference from USkeleton
+		UIDList = nullptr;
+		Elements.Reset();
+		bInitialized = false;
 	}
 private:
 	/**  Whether initialized or not */
@@ -386,6 +379,12 @@ struct FRawCurveTracks
 	 * Delete curve data 
 	 */
 	ENGINE_API bool DeleteCurveData(USkeleton::AnimCurveUID Uid, ESupportedCurveType SupportedCurveType = FloatType);
+
+	/**
+	 * Delete all curve data 
+	 */
+	ENGINE_API void DeleteAllCurveData(ESupportedCurveType SupportedCurveType = FloatType);
+
 	/**
 	 * Duplicate curve data
 	 * 
@@ -395,7 +394,7 @@ struct FRawCurveTracks
 	/**
 	 * Updates the LastObservedName field of the curves from the provided name container
 	 */
-	ENGINE_API void UpdateLastObservedNames(FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType = FloatType);
+	ENGINE_API void UpdateLastObservedNames(const FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType = FloatType);
 
 	/** 
 	 * Serialize
@@ -463,5 +462,5 @@ private:
 	 * Updates the LastObservedName field of the curves from the provided name container
 	 */
 	template <typename DataType>
-	void UpdateLastObservedNamesImpl(TArray<DataType>& Curves, FSmartNameMapping* NameMapping);
+	void UpdateLastObservedNamesImpl(TArray<DataType>& Curves, const FSmartNameMapping* NameMapping);
 };

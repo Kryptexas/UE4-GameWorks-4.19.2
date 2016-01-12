@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalDistanceFieldShared.usf
@@ -14,12 +14,38 @@ float MaxGlobalDistance;
 // Must match C++
 #define MAX_GLOBAL_DF_CLIPMAPS 4
 
-Texture3D GlobalDistanceFieldTexture[MAX_GLOBAL_DF_CLIPMAPS];
-SamplerState GlobalDistanceFieldSampler[MAX_GLOBAL_DF_CLIPMAPS];
+Texture3D GlobalDistanceFieldTexture0;
+Texture3D GlobalDistanceFieldTexture1;
+Texture3D GlobalDistanceFieldTexture2;
+Texture3D GlobalDistanceFieldTexture3;
+SamplerState GlobalDistanceFieldSampler0;
+SamplerState GlobalDistanceFieldSampler1;
+SamplerState GlobalDistanceFieldSampler2;
+SamplerState GlobalDistanceFieldSampler3;
 float4 GlobalVolumeCenterAndExtent[MAX_GLOBAL_DF_CLIPMAPS];
 float4 GlobalVolumeWorldToUVAddAndMul[MAX_GLOBAL_DF_CLIPMAPS];
 float GlobalVolumeDimension;
 float GlobalVolumeTexelSize;
+
+float4 SampleGlobalDistanceField(int ClipmapIndex, float3 UV)
+{
+	if (ClipmapIndex == 0)
+	{
+		return Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, UV, 0);
+	}
+	else if (ClipmapIndex == 1)
+	{
+		return Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, UV, 0);
+	}
+	else if (ClipmapIndex == 2)
+	{
+		return Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, UV, 0);
+	}
+	else
+	{
+		return Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, UV, 0);
+	}
+}
 
 float3 ComputeGlobalUV(float3 WorldPosition, uint ClipmapIndex)
 {
@@ -31,7 +57,23 @@ float3 ComputeGlobalUV(float3 WorldPosition, uint ClipmapIndex)
 float GetDistanceToNearestSurfaceGlobalClipmap(float3 WorldPosition, uint ClipmapIndex)
 {
 	float3 GlobalUV = ComputeGlobalUV(WorldPosition, ClipmapIndex);
-	float DistanceToSurface = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], GlobalUV, 0).x;
+	float DistanceToSurface = 0;
+	if (ClipmapIndex == 0)
+	{
+		DistanceToSurface = Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, GlobalUV, 0).x;
+	}
+	else if (ClipmapIndex == 1)
+	{
+		DistanceToSurface = Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, GlobalUV, 0).x;
+	}
+	else if (ClipmapIndex == 2)
+	{
+		DistanceToSurface = Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, GlobalUV, 0).x;
+	}
+	else if (ClipmapIndex == 3)
+	{
+		DistanceToSurface = Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, GlobalUV, 0).x;
+	}
 	return DistanceToSurface;
 }
 
@@ -78,12 +120,50 @@ float GetDistanceToNearestSurfaceGlobal(float3 WorldPosition)
 float3 GetDistanceFieldGradientGlobalClipmap(float3 WorldPosition, uint ClipmapIndex)
 {
 	float3 GlobalUV = ComputeGlobalUV(WorldPosition, ClipmapIndex);
-	float R = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], float3(GlobalUV.x + GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
-	float L = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], float3(GlobalUV.x - GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
-	float F = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], float3(GlobalUV.x, GlobalUV.y + GlobalVolumeTexelSize, GlobalUV.z), 0).x;
-	float B = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], float3(GlobalUV.x, GlobalUV.y - GlobalVolumeTexelSize, GlobalUV.z), 0).x;
-	float U = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], float3(GlobalUV.x, GlobalUV.y, GlobalUV.z + GlobalVolumeTexelSize), 0).x;
-	float D = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], float3(GlobalUV.x, GlobalUV.y, GlobalUV.z - GlobalVolumeTexelSize), 0).x;
+
+	float R = 0;
+	float L = 0;
+	float F = 0;
+	float B = 0;
+	float U = 0;
+	float D = 0;
+
+	if (ClipmapIndex == 0)
+	{
+		R = Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, float3(GlobalUV.x + GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		L = Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, float3(GlobalUV.x - GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		F = Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, float3(GlobalUV.x, GlobalUV.y + GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		B = Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, float3(GlobalUV.x, GlobalUV.y - GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		U = Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z + GlobalVolumeTexelSize), 0).x;
+		D = Texture3DSampleLevel(GlobalDistanceFieldTexture0, GlobalDistanceFieldSampler0, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z - GlobalVolumeTexelSize), 0).x;
+	}
+	else if (ClipmapIndex == 1)
+	{
+		R = Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, float3(GlobalUV.x + GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		L = Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, float3(GlobalUV.x - GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		F = Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, float3(GlobalUV.x, GlobalUV.y + GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		B = Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, float3(GlobalUV.x, GlobalUV.y - GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		U = Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z + GlobalVolumeTexelSize), 0).x;
+		D = Texture3DSampleLevel(GlobalDistanceFieldTexture1, GlobalDistanceFieldSampler1, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z - GlobalVolumeTexelSize), 0).x;
+	}
+	else if (ClipmapIndex == 2)
+	{
+		R = Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, float3(GlobalUV.x + GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		L = Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, float3(GlobalUV.x - GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		F = Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, float3(GlobalUV.x, GlobalUV.y + GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		B = Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, float3(GlobalUV.x, GlobalUV.y - GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		U = Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z + GlobalVolumeTexelSize), 0).x;
+		D = Texture3DSampleLevel(GlobalDistanceFieldTexture2, GlobalDistanceFieldSampler2, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z - GlobalVolumeTexelSize), 0).x;
+	}
+	else if (ClipmapIndex == 3)
+	{
+		R = Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, float3(GlobalUV.x + GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		L = Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, float3(GlobalUV.x - GlobalVolumeTexelSize, GlobalUV.y, GlobalUV.z), 0).x;
+		F = Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, float3(GlobalUV.x, GlobalUV.y + GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		B = Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, float3(GlobalUV.x, GlobalUV.y - GlobalVolumeTexelSize, GlobalUV.z), 0).x;
+		U = Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z + GlobalVolumeTexelSize), 0).x;
+		D = Texture3DSampleLevel(GlobalDistanceFieldTexture3, GlobalDistanceFieldSampler3, float3(GlobalUV.x, GlobalUV.y, GlobalUV.z - GlobalVolumeTexelSize), 0).x;
+	}
 		
 	float Extent = GlobalVolumeCenterAndExtent[ClipmapIndex].w;
 	float3 Gradient = .5f * float3(R - L, F - B, U - D) / Extent;

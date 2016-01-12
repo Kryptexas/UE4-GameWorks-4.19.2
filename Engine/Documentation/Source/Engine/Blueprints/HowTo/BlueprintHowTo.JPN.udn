@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2468011
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ブループリント通信プロジェクト
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:様々なブループリント通信方法を使って作成されたサンプル プロジェクト 
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -23,7 +24,6 @@ Description:様々なブループリント通信方法を使って作成され�
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
@@ -44,13 +44,21 @@ Description:様々なブループリント通信方法を使って作成され�
 [/OBJECT]
 [/VAR]
 
-
-## 概要
 **ブループリント通信プロジェクト** では、シンプルな射撃スタイルのゲームを作成します。プロジェクトではレベルからキャラクターへの通信方法に加えて、キャラクター情報の HUD への渡し方を学びます。プロジェクトの終了時には、以下のようなものが出来上がります。
 
-![](Engine\Blueprints\HowTo\BPHT_6\GameplayGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+34HO1gCSJYc
+[/PARAMLITERAL]
+[/OBJECT]
 
-この短いゲーム サンプルにおいては、プレイヤーがボタンを押すと Character ブループリントの内部から被破壊スタティックメッシュがスポーンされます。岩のスポーン位置および起動位置は、レベル内に配置したスポーン地点からランダムに選択されているので、レベルから Character ブループリントへスポーンの位置を伝えなくてはなりません。 
+この短いゲーム サンプルの中で、プレイヤーがボタンを押すと Character ブループリントの内部から被破壊スタティックメッシュをスポーンします。岩のスポーン位置および起動位置は、レベル内に配置したスポーン地点からランダムに選択されているので、レベルから Character ブループリントへスポーンの位置を伝えなくてはなりません。 
 Character ブループリントに格納された情報 (発射または起動する岩の数、発射あたりの残弾数、プレイヤーの得点) も受け取り、それを HUD に渡してスクリーン上に表示します。 
 
 [OBJECT:TopicButtonList]

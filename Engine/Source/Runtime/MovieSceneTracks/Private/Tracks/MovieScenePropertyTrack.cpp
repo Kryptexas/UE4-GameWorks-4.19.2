@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScenePropertyTrack.h"
@@ -7,13 +7,12 @@
 UMovieScenePropertyTrack::UMovieScenePropertyTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
-	bSectionsAreShowable = false;
 }
 
 
 void UMovieScenePropertyTrack::SetPropertyNameAndPath( FName InPropertyName, const FString& InPropertyPath )
 {
-	check( InPropertyName != NAME_None && !InPropertyPath.IsEmpty() );
+	check((InPropertyName != NAME_None) && !InPropertyPath.IsEmpty());
 
 	PropertyName = InPropertyName;
 	PropertyPath = InPropertyPath;
@@ -26,27 +25,41 @@ const TArray<UMovieSceneSection*>& UMovieScenePropertyTrack::GetAllSections() co
 }
 
 
+#if WITH_EDITORONLY_DATA
+FText UMovieScenePropertyTrack::GetDisplayName() const
+{
+	return FText::FromName(PropertyName);
+}
+#endif
+
+
+FName UMovieScenePropertyTrack::GetTrackName() const
+{
+	return PropertyName;
+}
+
+
 void UMovieScenePropertyTrack::RemoveAllAnimationData()
 {
 	Sections.Empty();
 }
 
 
-bool UMovieScenePropertyTrack::HasSection( UMovieSceneSection* Section ) const 
+bool UMovieScenePropertyTrack::HasSection(const UMovieSceneSection& Section) const 
 {
-	return Sections.Contains( Section );
+	return Sections.Contains(&Section);
 }
 
 
-void UMovieScenePropertyTrack::AddSection( UMovieSceneSection* Section ) 
+void UMovieScenePropertyTrack::AddSection(UMovieSceneSection& Section) 
 {
-	Sections.Add( Section );
+	Sections.Add(&Section);
 }
 
 
-void UMovieScenePropertyTrack::RemoveSection( UMovieSceneSection* Section ) 
+void UMovieScenePropertyTrack::RemoveSection(UMovieSceneSection& Section)
 {
-	Sections.Remove( Section );
+	Sections.Remove(&Section);
 }
 
 
@@ -112,6 +125,7 @@ UMovieSceneSection* UMovieScenePropertyTrack::FindOrAddSection( float Time )
 
 	// Add a new section that starts and ends at the same time
 	UMovieSceneSection* NewSection = CreateNewSection();
+	NewSection->SetFlags(RF_Transactional);
 	NewSection->SetStartTime( Time );
 	NewSection->SetEndTime( Time );
 

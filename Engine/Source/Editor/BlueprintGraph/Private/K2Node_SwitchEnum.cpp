@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -38,10 +38,10 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 				FString const EnumValueName = Enum->GetEnumName(EnumIndex);
 				EnumEntries.Add( FName(*EnumValueName) );
 
-				FString EnumFriendlyName = Enum->GetEnumText(EnumIndex).ToString();
-				if (EnumFriendlyName.Len() == 0)
+				FText EnumFriendlyName = Enum->GetEnumText(EnumIndex);
+				if (EnumFriendlyName.IsEmpty() )
 				{
-					EnumFriendlyName = EnumValueName;
+					EnumFriendlyName = FText::FromString(EnumValueName);
 				}
 				EnumFriendlyNames.Add( EnumFriendlyName );
 			}
@@ -156,7 +156,7 @@ void UK2Node_SwitchEnum::CreateCasePins()
 		int32 Index = EnumIt.GetIndex();
 		if (EnumFriendlyNames.IsValidIndex(Index))
 		{
-			NewPin->PinFriendlyName = FText::FromString(EnumFriendlyNames[Index]);
+			NewPin->PinFriendlyName = EnumFriendlyNames[Index];
 		}
 		
 		if(bShouldUseAdvancedView && (EnumIt.GetIndex() > 2))

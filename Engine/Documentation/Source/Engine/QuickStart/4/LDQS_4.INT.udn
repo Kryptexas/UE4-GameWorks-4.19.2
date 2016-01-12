@@ -3,12 +3,13 @@ Title:4 - Placing Actors in the Level
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:Here we will begin placing and manipulating Actors in our level to build out our environment. 
 SkillLevel:Beginner
-Version:4.8 
+Version:4.9 
 Related:Engine/UI/LevelEditor/Modes/PlaceMode
 Related:GettingStarted/HowTo/ManipulatingActors
 Related:Engine/UI/LevelEditor/Details
 Related:Engine/Actors
 Related:Engine/Rendering/LightingAndShadows
+checkpoint: editorqs
 
 
 [VAR:Steps]
@@ -59,7 +60,7 @@ After completing this step, you will know how to place Actors inside your own le
 
 	![](placeLight.png)
 	
-1. On the on the [Translation Tool](Engine/UI/LevelEditor/Viewports/ViewportControls), click and drag the Z Axis (Blue) gizmo up away from the surface of the floor.
+1. On the on the [Translation Tool](Engine/UI/LevelEditor/Viewports/ViewportControls), click and drag the Z-Axis (Blue) gizmo up away from the surface of the floor.
 
 	![](moveLight.png)
 
@@ -87,13 +88,13 @@ After completing this step, you will know how to place Actors inside your own le
 
 	![](scaleVolume.png)
 
-1. Inside the **Content Browser** under **Content > StarterContent > Props**, drag-and-drop the **SM_TableRound** into the level. 
+1. Inside the **Content Browser** under **Content** > **StarterContent** > **Props**, drag-and-drop the **SM_TableRound** into the level. 
 
 	![](placeTable.png)
 
 	Try to place the table in the center of the floor using the **Move Tool** (Keyboard Shortcut **W** if it is not selected). 
 
-1. Also under **Content > StarterContent > Props**, drag-and-drop the **SM_Chair** into the level. 
+1. Also under **Content** > **StarterContent** > **Props**, drag-and-drop the **SM_Chair** into the level. 
 
 	![](addChair.png)
 
@@ -109,7 +110,7 @@ After completing this step, you will know how to place Actors inside your own le
 
 	![](Engine/QuickStart/5/placeThings.png)
 
-	Try adding some lights, props, walls and a roof (found under the **Content > StarterContent > Architecture** folder). 
+	Try adding some lights, props, walls and a roof (found under the **Content** > **StarterContent** > **Architecture** folder). 
 
 ## End Result
 

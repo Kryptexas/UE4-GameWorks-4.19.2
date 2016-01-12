@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -134,9 +134,9 @@ public:
 	class UTexture2D* CheckerboardTexture;
 
 public:
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/**
 	 * Fixes up any classes that need to be loaded in the thumbnail types

@@ -1,9 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
 #include "LevelSequence.h"
+
 
 enum class EMapChangeType : uint8;
 class FTabManager;
@@ -45,7 +46,7 @@ public:
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
 	 * @param bEditWithinLevelEditor Whether or not sequencer should be edited within the level editor.
 	 */
-	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequenceInstance* LevelSequenceInstance, bool bEditWithinLevelEditor);
+	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, ULevelSequence* LevelSequence, bool bEditWithinLevelEditor);
 
 public:
 
@@ -62,7 +63,7 @@ public:
 
 	void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
-		Collector.AddReferencedObject(LevelSequenceInstance);
+		Collector.AddReferencedObject(LevelSequence);
 	}
 
 private:
@@ -93,8 +94,8 @@ private:
 
 private:
 
-	/** Level sequence instance for our edit operation. */
-	ULevelSequenceInstance* LevelSequenceInstance;
+	/** Level sequence for our edit operation. */
+	ULevelSequence* LevelSequence;
 
 	/** The sequencer used by this editor. */
 	TSharedPtr<ISequencer> Sequencer;

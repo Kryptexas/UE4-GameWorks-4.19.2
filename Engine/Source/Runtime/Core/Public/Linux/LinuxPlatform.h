@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	LinuxPlatform.h: Setup for the linux platform
@@ -44,6 +44,7 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_HAS_NO_EPROCLIM					1
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL		1
 #define PLATFORM_HAS_BSD_IPV6_SOCKETS				1
+#define PLATFORM_SUPPORTS_STACK_SYMBOLS				1
 
 // SOCK_CLOEXEC is available on Linux since 2.6.27
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)
@@ -58,11 +59,12 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #endif // defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
 
 // Function type macros.
-#define VARARGS													/* Functions with variable arguments */
-#define CDECL													/* Standard C function */
-#define STDCALL													/* Standard calling convention */
-#define FORCEINLINE inline __attribute__ ((always_inline))		/* Force code to be inline */
-#define FORCENOINLINE __attribute__((noinline))					/* Force code to NOT be inline */
+#define VARARGS																		/* Functions with variable arguments */
+#define CDECL																		/* Standard C function */
+#define STDCALL																		/* Standard calling convention */
+#define FORCEINLINE inline __attribute__ ((always_inline))							/* Force code to be inline */
+#define FORCENOINLINE __attribute__((noinline))										/* Force code to NOT be inline */
+#define FUNCTION_CHECK_RETURN(...) __VA_ARGS__ __attribute__ ((warn_unused_result))	/* Wrap a function signature in this to warn that callers should not ignore the return value. */
 
 #define TEXT_HELPER(a,b)	a ## b
 #define TEXT(s)				TEXT_HELPER(L, s)

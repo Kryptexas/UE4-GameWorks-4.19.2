@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -163,6 +163,14 @@ void SGameLayerManager::Tick(const FGeometry& AllottedGeometry, const double InC
 	CachedGeometry = AllottedGeometry;
 
 	UpdateLayout();
+}
+
+int32 SGameLayerManager::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	FPlatformMisc::BeginNamedEvent(FColor::Green, "Paint: Game UI");
+	const int32 ResultLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	FPlatformMisc::EndNamedEvent();
+	return ResultLayer;
 }
 
 bool SGameLayerManager::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent)

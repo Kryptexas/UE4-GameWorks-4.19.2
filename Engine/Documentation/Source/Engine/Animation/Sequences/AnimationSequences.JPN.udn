@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2600977
+﻿INTSourceChangelist:2728238
 Availability:Public
 Title:アニメーション シーケンス
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,6 +9,7 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -33,7 +34,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 [TOC(start:2 end:2)]
 
 [EXCERPT:Intro]
-**アニメーション シーケンス** は _スケルタルメッシュ_ 上で再生可能な単一のアニメーション アセットです。特定時点でボーンの位置、回転、スケーリングを指定するキーフレームを含みます。こうしたキーフレーム間でブレンディングしながら順番にキーフレームを再生することで、_スケルタルメッシュ_ のボーンをスムーズにアニメートできます。 
+**アニメーション シーケンス** はスケルタルメッシュ上で再生可能な単一のアニメーション アセットです。ボーンの位置、回転、スケーリングを特定の時点で指定するキーフレームを含みます。こうしたキーフレーム間でブレンドしながら順番にキーフレームを再生することで、スケルタルメッシュのボーンをスムーズにアニメートすることができます。 
 [/EXCERPT:Intro]
 
 [OBJECT:EmbeddedVideo]
@@ -48,10 +49,10 @@ Qo4hH0h9ZZA
 [/PARAMLITERAL]
 [/OBJECT]
 
-各 **アニメーション シーケンス** アセットは、特定の _スケルトン_ をターゲットとし、その _スケルトン_ 上でのみ再生可能です。つまり、複数のスケルタルメッシュでアニメーションを共有するには、各 _スケルタルメッシュ_ は同じ _スケルトン_ アセットを使用しなければなりません。
+各 Animation Sequence アセットは、特定のスケルトンをターゲットとし、そのスケルトン上でのみ再生可能です。つまり、複数のスケルタルメッシュ間でアニメーションを共有するには、各スケルタル メッシュは同じスケルトン アセットを使用しなければなりません。
 
 [REGION:tip]
-**アニメーション シーケンス** を使用した **スケルトン** の例は、セクション 1.1 の [アニメーション コンテンツ サンプル](Resources\ContentExamples\Animation) のページにもあります。 
+アニメーション シーケンスを使用したスケルトンの例は、セクション 1.1 の [アニメーション コンテンツ サンプル](Resources\ContentExamples\Animation) のページにもあります。 
 [/REGION]
 
 ## 編集
@@ -64,7 +65,7 @@ Qo4hH0h9ZZA
 
 [INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
 
-**アニメーション ブループリント** 内で、**アニメーション シーケンス** を使用する手順については、[](Engine/Animation/Sequences/UserGuide) をご覧ください。
+Animation ブループリント 内で、アニメーション シーケンス を使用する手順については、[](Engine/Animation/Sequences/UserGuide) をご覧ください。
 
 ## 通知
 
@@ -72,9 +73,9 @@ Qo4hH0h9ZZA
 
 利用可能な様々なタイプの通知に関する説明と使用については、[](Engine/Animation/Sequences/Notifies) をご覧ください。
 
-通知の作成と編集はペルソナ (Persona) の [アニメーション シーケンス エディタ](Engine/Animation/Sequences/Editor) を使用して実行します。
+通知の作成と編集はペルソナの [アニメーション シーケンス エディタ](Engine/Animation/Sequences/Editor) を使用して実行します。
 
-##曲線
+## カーブ
 
 [INCLUDE:Engine/Animation/Sequences/Curves#Intro]
 
@@ -83,13 +84,13 @@ Qo4hH0h9ZZA
 
 ## 圧縮
 
-**アニメーション シーケンス** アセットが、**ペルソナ** で開かれると、アセットに圧縮が適用されます。 
+Animation Sequence アセットを、**ペルソナ** で開くと、アセットを圧縮することができます。 
 
-これを行うには、**メニューバー** から、**アセット** を選択します。次に、(以下のように) **Apply Compression** を選択します。 
+これを行うには、**メニューバー** から **アセット** を選択します。次に、(以下のように) **[Apply Compression(圧縮適用)]** を選択します。 
 
 ![](ApplyCompression.png)
 
-Apply Compression (圧縮適用) を選択すると、**[Animation Compression]**（アニメーション圧縮） ウィンドウが開きます。 
+[Apply Compression(圧縮適用)] を選択すると、**[Animation Compression (アニメーション圧縮)]** ウィンドウが開きます。 
 
 ![](AnimationCompressionWindow.png)
 
@@ -97,13 +98,84 @@ Apply Compression (圧縮適用) を選択すると、**[Animation Compression]*
 
 | 圧縮タイプ | 説明|
 | --- | --- |
-| **Automatic** | アニメーション圧縮アルゴリズム。一連の他の圧縮スキームを試み、設定可能なエラー閾値内で最小の結果を選ぶシェルです。 |
+| **Automatic** | アニメーション圧縮アルゴリズム。一連の圧縮スキームを試み、設定可能なエラー閾値内の最小の結果を選ぶシェルです。 |
 | **Bitwise Compress Only** | ビット単位のアニメーション圧縮のみ。キー削減は行いません。 |
 | **Least Destructive** | アニメーション圧縮を元に戻し、アニメーションを生データに復元します。 |
-| **Remove Every Second Key** | キーを 1 つおきに取り除くキーフレーム削減アルゴリズム。 |
-| **Remove Linear Keys** | 周囲のキーの線形補間となっているキーを取り除くキーフレーム削減アルゴリズム。 |
-| **Compress each track independently** | 各トラックに対して個別に最良のビット単位圧縮を選択するとともに、周囲のキーの線形補間となっているキーを取り除くキーフレーム削減アルゴリズム。 |
-| **Remove Trivial Keys** | アニメーション全体にわたり位置や方向が一定な場合、生のアニメーション データからトラックの小さなフレームを取り除きます。 |
+| **Remove Every Second Key** | キーを 1 つおきに削除するキーフレーム削減アルゴリズム。 |
+| **Remove Linear Keys** | 周囲のキーの線形補間となっているキーを削除するキーフレーム削減アルゴリズム。 |
+| **Compress each track independently** | 各トラックに対して個別に最良のビット単位圧縮を選択するとともに、周囲のキーの線形補間となっているキーを削除するキーフレーム削減アルゴリズム。 |
+| **Remove Trivial Keys** | アニメーション全体にわたり位置や方向が一定な場合、生のアニメーション データからトラックの重要でないフレームを削除します。 |
+
+
+## Anim アセットの詳細
+
+**ペルソナ** でAnimation Sequence アセットを開く場合、**[Anim Asset Details (Anim アセットの詳細)]** パネル内で調整できるいくつかのプロパティがあり、アセットの処理方法を決めることができます。こうしたプロパティには、再生速度の微調整、ルート モーションの有効化/無効化、メタ データのアセットへの割り当てなどがあり、以下の表で説明します。 
+
+![](AnimAssetDetails.png)
+
+### 線形キーの削除
+
+|---|---|
+|**Max Pos Diff**| アニメーション キーを削除するかどうかをテストする場合に使用する最大位置差。値が低いほど多くのキーを保持しますが、圧縮は低下します。|
+|**Max Angle Diff**| アニメーション キーを取り除くかどうかをテストする場合に使用する最大角度差。値が低いほど多くのキーを保持しますが、圧縮は低下します。|
+|**Max Scale Diff**| アニメーション キーを取り除くかどうかをテストする場合に使用する最大スケーリング差。値が低いほど多くのキーを保持しますが、圧縮は低下します。|
+|**Max Effector Diff**| キーの削除についてテストする際に、エンド エフェクタに至るまでのエフェクトをモニタリングします。あるキーを削除することで、この値よりも位置が変化するという場合は、そのキーを保持します。エンド エフェクタの親を除く全てのボーンにこの値を使用します。 |
+|**Min Effector Diff**| Max Effector Diff に似ていますが、この値は、エンド エフェクタの親として使用し、スケルタル チェーンの終端近くで厳格な制約を実現します。 |
+|**Effector Diff Socket**| ソケットが親子付けされたエンド エフェクタの誤差しきい値。通常は積極的に圧縮しない重要なボーンのためのものです。 |
+|**Parent Key Scale**| 親も同一の時間位置にキーを持つ場合、ボーンがキーを保持する可能性を増すスケール値です。値が高いほど、圧縮は犠牲になりますが、アニメーションから振動によるアーティファクトを取り除くことができます。 |
+|**Retarget**| true の場合、アニメーションが圧縮されるため、アニメートしたノードを調整して圧縮誤差を補正します。false の場合は、アニメートしたノードを調整しないでください。 |
+|**Actually Filter Linear Keys**| 最終的なフィルタリング段階に入るかどうかを制御します。または、ビット単位の圧縮後のリターゲットのみが行われます。このプロパティと **Retarget** が両方とも false の場合は、線形圧縮機能は基本的なビット単位圧縮機能と同じくらい性能が低く、極めて低速となります。|
+
+
+### Animation
+
+|---|---|
+|**Retarget Source**| リターゲットする場合、このポーズはアニメーションのベースとして使用されます。|
+|**Rate Scale**| アニメーションの再生レートをグローバルに微調整する数値 |
+**Skeleton**|モンタージュと関連したスケルトンを格納します。エディタで変更はできません。|
+
+### 圧縮
+
+|---|---|
+|**Description**| アセットに対して使用された圧縮スキーム名|
+|**Do Not Override Compression**| CompressAnimations コマンドレットの実行時に圧縮スキームを上書きしません。使用頻度の高い一部のアニメーションは非常に影響を受けやすいため変更しないでください。 |
+
+### 加算設定
+
+|---|---|
+|**Additive Anim Type**| 使用する加算アニメーション タイプ：No Additive、 Local Space、 または Mesh Space.ローカル空間は加算で、デルタはローカル空間で計算されます。メッシュ空間は加算的で、デルタはコンポーネント空間に適用します。 |
+|**Base Pose Type**| 以下のように加算デルタの計算方法を決めます。None (ベースポーズなし), Reference Pose (メッシュのデフォルト参照ポーズ), Selected Animation Scaled (別のアニメーションを選択し、スケーリング), Selected Animation Frame (別のアニメーションを選択し、フレーム番号のみに基づきます).Base Pose Type は、Additive Anim Type が ローカルまたはメッシュ空間に設定されている場合に限り利用できます。 |
+
+### ルートモーション
+
+|---|---|
+|**Enable Root Motion**| オンの場合、 [ルートモーション](Engine/Animation/RootMotion) の抽出ができます。 |
+|**RootMotion Root Lock**| ルートモーション抽出時に指定した位置にルート ボーンをロックします。 |
+
+[REGION:note]
+ルートモーションについては、ネットワーク ゲームでルートモーションをレプリケートする必要があるかなど確認すべき考慮事項がいくつかあります。ルートモーションをレプリケートする必要があれば、[Animation Montage](Engine\Animation\AnimMontage) を使用する必要があります。 
+詳細は [ルートモーションを有効にする](Engine\Animation\RootMotion#ルートモーションを有効にする) をご覧ください。
+[/REGION]
+
+### インポート設定
+
+|---|---|
+|**Asset Import Data**| メッシュで使用するインポート データとオプション |
+
+
+### メタデータ
+
+|---|---|
+|**Meta Data**| アセットと共に保存可能なメタ データです。このメタデータは Anim Meta Data クラスから派生したブループリントで利用可能なクラスです。カスタムのメタ データを Animation アセットに追加できます (Anim Sequence、 Anim Montage、 Anim Composite、 および Blendspace はすべてサポートされます)。C++ で Animation アセットからこうしたデータをクエリーできます。`GetMetaData()` メソッドを呼び出すか、Anim Montages で `GetSectionMetaData()` を使用します。
+
+###サムネイル
+
+
+|---|---|
+| **Orbit Pitch** | アセット周囲の軌道カメラのピッチ |
+| **Orbit Yaw** | アセット周囲の軌道カメラのヨー (左右回転) |
+| **Orbit Zoom** | アセットから境界の球体の距離のオフセット |
+
 
 
 

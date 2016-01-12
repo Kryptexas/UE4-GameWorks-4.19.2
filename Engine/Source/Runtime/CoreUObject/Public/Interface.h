@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,7 +11,7 @@
 
 class COREUOBJECT_API UInterface : public UObject
 {
-	DECLARE_CLASS_INTRINSIC(UInterface,UObject,CLASS_Interface|CLASS_Abstract,CoreUObject)
+	DECLARE_CLASS_INTRINSIC(UInterface, UObject, CLASS_Interface | CLASS_Abstract, TEXT("/Script/CoreUObject"))
 };
 
 class COREUOBJECT_API IInterface

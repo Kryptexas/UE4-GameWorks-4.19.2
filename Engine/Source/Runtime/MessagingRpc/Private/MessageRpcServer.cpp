@@ -1,16 +1,18 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PrivatePCH.h"
+#include "MessageRpcServer.h"
+#include "IMessageRpcServer.h"
+#include "IMessageRpcReturn.h"
 #include "IMessageRpcHandler.h"
 #include "IMessageRpcReturn.h"
-
 
 /* FMessageRpcServer structors
  *****************************************************************************/
 
 FMessageRpcServer::FMessageRpcServer()
 {
-	MessageEndpoint = FMessageEndpoint::Builder("FPortalAppWindowEndpoint")
+	MessageEndpoint = FMessageEndpoint::Builder("FMessageRpcServer")
 		.WithCatchall(this, &FMessageRpcServer::HandleMessage);
 
 	TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FMessageRpcServer::HandleTicker), 0.1f);
@@ -25,6 +27,11 @@ FMessageRpcServer::~FMessageRpcServer()
 
 /* IMessageRpcServer interface
  *****************************************************************************/
+
+TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> FMessageRpcServer::GetEndpoint() const
+{
+	return MessageEndpoint;
+}
 
 void FMessageRpcServer::AddHandler(const FName& RequestMessageType, const TSharedRef<IMessageRpcHandler>& Handler)
 {
@@ -113,6 +120,7 @@ void FMessageRpcServer::SendProgress(const FGuid& CallId, const FReturnInfo& Ret
 void FMessageRpcServer::SendResult(const FGuid& CallId, const FReturnInfo& ReturnInfo)
 {
 	FRpcMessage* Message = ReturnInfo.Return->CreateResponseMessage();
+	Message->CallId = CallId;
 
 	MessageEndpoint->Send(
 		Message,

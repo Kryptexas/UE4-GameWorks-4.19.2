@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -436,7 +436,23 @@ public:
 			LockedActor = ActorLockedToCamera.Get();
 		}
 
-		return LockedActor ? LockedActor->FindComponentByClass<UCameraComponent>() : nullptr;
+		UCameraComponent* CameraComponent = nullptr;
+		if (LockedActor)
+		{
+			TArray<UCameraComponent*> CamComps;
+			LockedActor->GetComponents<UCameraComponent>(CamComps);
+
+			for (UCameraComponent* Comp : CamComps)
+			{
+				if (Comp->bIsActive)
+				{
+					CameraComponent = Comp;
+					break;
+				}
+			}
+		}
+
+		return CameraComponent;
 	}
 
 	/** 

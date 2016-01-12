@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -110,6 +110,11 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 	uint32 bMobileDynamicPointLightsUseStaticBranch : 1;
 
+	UPROPERTY(config, EditAnywhere, Category = Materials, meta = (
+		ConsoleVariable = "r.DiscardUnusedQuality", DisplayName = "Game Discards Unused Material Quality Levels",
+		ToolTip = "When running in game mode, whether to keep shaders for all quality levels in memory or only those needed for the current quality level.\nUnchecked: Keep all quality levels in memory allowing a runtime quality level change. (default)\nChecked: Discard unused quality levels when loading content for the game, saving some memory."))
+		uint32 bDiscardUnusedQualityLevels : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=Culling, meta=(
 		ConsoleVariable="r.AllowOcclusionQueries",DisplayName="Occlusion Culling",
 		ToolTip="Allows occluded meshes to be culled and no rendered."))
@@ -126,7 +131,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	float MinScreenRadiusForEarlyZPass;
 
 	UPROPERTY(config, EditAnywhere, Category=Culling, meta=(
-		ConsoleVariable="r.MinScreenRadiusForDepthPrepass",DisplayName="Min Screen Radius for Cascaded Shadow Maps",
+		ConsoleVariable="r.MinScreenRadiusForCSMDepth",DisplayName="Min Screen Radius for Cascaded Shadow Maps",
 		ToolTip="Screen radius at which objects are culled for cascaded shadow map depth passes. Larger values can improve performance but can cause artifacts as objects stop casting shadows."))
 	float MinScreenRadiusForCSMdepth;
 	
@@ -231,7 +236,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
 		ConsoleVariable="r.EarlyZPass",DisplayName="Early Z-pass",
-		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass. Need to reload the level!"))
+		ToolTip="Whether to use a depth only pass to initialize Z culling for the base pass. Requires a restart!"))
 	TEnumAsByte<EEarlyZPass::Type> EarlyZPass;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
@@ -255,6 +260,18 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired=true))
 	uint32 bBasePassOutputsVelocity:1;
 
+	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
+		ConsoleVariable="r.SelectiveBasePassOutputs", DisplayName="Selectively output to the GBuffer rendertargets",
+		ToolTip="Enables not exporting to the GBuffer rendertargets that are not relevant. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bSelectiveBasePassOutputs:1;
+
+	UPROPERTY(config, EditAnywhere, Category=VR, meta=(
+		ConsoleVariable="vr.InstancedStereo", DisplayName="Instanced Stereo",
+		ToolTip="Enable instanced stereo rendering.",
+		ConfigRestartRequired=true))
+	uint32 bInstancedStereo:1;
+
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
@@ -262,7 +279,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 public:
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 
 	virtual void PostInitProperties() override;
 
@@ -270,7 +287,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-	// End UObject interface
+	//~ End UObject Interface
 
 private:
 	

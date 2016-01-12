@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "VisualLogger/VisualLogger.h"
@@ -385,6 +385,7 @@ void FNavMeshPath::Reset()
 	PathCorridorCost.Reset();
 	bStringPulled = false;
 	bCorridorEdgesGenerated = false;
+	bIsPartial = false;
 }
 
 float FNavMeshPath::GetStringPulledLength(const int32 StartingPoint) const
@@ -839,7 +840,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 bool FNavMeshPath::IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const
 {
 	return PathPoints.IsValidIndex(PathSegmentStartIndex)
-		&& FNavMeshNodeFlags(PathPoints[PathSegmentStartIndex].Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION;
+		&& FNavMeshNodeFlags(PathPoints[PathSegmentStartIndex].Flags).IsNavLink();
 }
 
 void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
@@ -1127,7 +1128,12 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
 		
 		Verts.Reset();
-		NavMesh->GetPolyVerts(PathCorridor[Idx], Verts);
+		const bool bPolyResult = NavMesh->GetPolyVerts(PathCorridor[Idx], Verts);
+		if (!bPolyResult || Verts.Num() == 0)
+		{
+			// probably invalidated polygon, etc. (time sensitive and rare to reproduce issue)
+			continue;
+		}
 
 		const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
 		const FColor PolygonColor = AreaClass != UNavigationSystem::GetDefaultWalkableArea() ? (DefArea ? DefArea->DrawColor : NavMesh->GetConfig().Color) : FColorList::Cyan;

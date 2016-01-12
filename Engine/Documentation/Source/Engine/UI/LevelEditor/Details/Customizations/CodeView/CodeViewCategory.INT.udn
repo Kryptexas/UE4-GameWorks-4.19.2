@@ -2,6 +2,7 @@ Availability:Public
 Title: Code View Category
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:Displays the class hierarchy of the currently selected Actor, along with any public functions within those classes.
+Version: 4.9
 
 
 The **Code View** category displays the class of the currently selected Actor, along with any public functions within 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SteamVRPrivatePCH.h"
 #include "SteamVRHMD.h"
@@ -223,6 +223,11 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 		CurrentOrientation = TrackingFrame.DeviceOrientation[DeviceId];
 		CurrentPosition = TrackingFrame.DevicePosition[DeviceId];
  	}
+	else
+	{
+		CurrentOrientation = FQuat::Identity;
+		CurrentPosition = FVector::ZeroVector;
+	}
 }
 
 
@@ -359,7 +364,7 @@ void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, 
 	OutOrientation.Z = Orientation.Y;
  	OutOrientation.W = -Orientation.W;	
 
-	FVector Position = FVector(-Pose.M[3][2], Pose.M[3][0], Pose.M[3][1]) * WorldToMetersScale;
+	FVector Position = ((FVector(-Pose.M[3][2], Pose.M[3][0], Pose.M[3][1]) - BaseOffset) * WorldToMetersScale);
 	OutPosition = BaseOrientation.Inverse().RotateVector(Position);
 
 	OutOrientation = BaseOrientation.Inverse() * OutOrientation;
@@ -413,7 +418,7 @@ bool FSteamVRHMD::GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat&
 {
 	bool bHasValidPose = false;
 
-	if (DeviceId >= 0 && DeviceId < vr::k_unMaxTrackedDeviceCount)
+	if (DeviceId < vr::k_unMaxTrackedDeviceCount)
 	{
 		CurrentOrientation = TrackingFrame.DeviceOrientation[DeviceId];
 		CurrentPosition = TrackingFrame.DevicePosition[DeviceId];
@@ -424,6 +429,17 @@ bool FSteamVRHMD::GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat&
 	return bHasValidPose;
 }
 
+ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(uint32 DeviceId) const
+{
+	ETrackingStatus TrackingStatus = ETrackingStatus::NotTracked;
+
+	if (DeviceId < vr::k_unMaxTrackedDeviceCount && TrackingFrame.bPoseIsValid[DeviceId] && TrackingFrame.bDeviceIsConnected[DeviceId])
+	{
+		TrackingStatus = ETrackingStatus::Tracked;
+	}
+
+	return TrackingStatus;
+}
 
 bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FQuat& OutOrientation )
 {
@@ -434,6 +450,17 @@ bool FSteamVRHMD::GetControllerHandPositionAndOrientation( const int32 Controlle
 
 	const int32 DeviceId = UnrealControllerIdAndHandToDeviceIdMap[ ControllerIndex ][ (int32)Hand ];
 	return GetTrackedObjectOrientationAndPosition(DeviceId, OutOrientation, OutPosition);
+}
+
+ETrackingStatus FSteamVRHMD::GetControllerTrackingStatus(int32 ControllerIndex, EControllerHand DeviceHand) const
+{
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLER_PAIRS) || DeviceHand < EControllerHand::Left || DeviceHand > EControllerHand::Right)
+	{
+		return ETrackingStatus::NotTracked;
+	}
+
+	const int32 DeviceId = UnrealControllerIdAndHandToDeviceIdMap[ ControllerIndex ][ (int32)DeviceHand ];
+	return GetControllerTrackingStatus(DeviceId);
 }
 
 
@@ -462,16 +489,15 @@ void FSteamVRHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation
 	ViewRotation = FRotator(DeltaControlOrientation * CurHmdOrientation);
 }
 
-void FSteamVRHMD::UpdatePlayerCameraRotation(APlayerCameraManager* Camera, struct FMinimalViewInfo& POV)
+bool FSteamVRHMD::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	LastHmdOrientation = CurHmdOrientation;
 
-	DeltaControlRotation = POV.Rotation;
-	DeltaControlOrientation = DeltaControlRotation.Quaternion();
+	CurrentOrientation = CurHmdOrientation;
+	CurrentPosition = CurHmdPosition;
 
-	// Apply HMD orientation to camera rotation.
-	POV.Rotation = FRotator(POV.Rotation.Quaternion() * CurHmdOrientation);
+	return true;
 }
 
 bool FSteamVRHMD::IsChromaAbCorrectionEnabled() const
@@ -567,6 +593,11 @@ bool FSteamVRHMD::IsInLowPersistenceMode() const
 	return true;
 }
 
+void FSteamVRHMD::OnEndPlay()
+{
+	EnableStereo(false);
+}
+
 void FSteamVRHMD::EnableLowPersistenceMode(bool Enable)
 {
 }
@@ -584,6 +615,7 @@ void FSteamVRHMD::ResetOrientation(float Yaw)
 	ViewRotation = FRotator(TrackingFrame.DeviceOrientation[vr::k_unTrackedDeviceIndex_Hmd]);
 	ViewRotation.Pitch = 0;
 	ViewRotation.Roll = 0;
+	ViewRotation.Yaw += BaseOrientation.Rotator().Yaw;
 
 	if (Yaw != 0.f)
 	{
@@ -596,7 +628,8 @@ void FSteamVRHMD::ResetOrientation(float Yaw)
 }
 void FSteamVRHMD::ResetPosition()
 {
-	//@todo steamvr: ResetPosition()
+	FMatrix Pose = ToFMatrix(TrackingFrame.RawPoses[vr::k_unTrackedDeviceIndex_Hmd]);
+	BaseOffset = FVector(-Pose.M[3][2], Pose.M[3][0], Pose.M[3][1]);
 }
 
 void FSteamVRHMD::SetClippingPlanes(float NCP, float FCP)
@@ -670,8 +703,11 @@ void FSteamVRHMD::CalculateStereoViewOffset(const enum EStereoscopicPass StereoP
 
 		ViewLocation += ViewRotation.Quaternion().RotateVector(TotalOffset);
 
- 		const FVector vHMDPosition = DeltaControlOrientation.RotateVector(TrackingFrame.DevicePosition[vr::k_unTrackedDeviceIndex_Hmd]);
-		ViewLocation += vHMDPosition;
+		if (!bImplicitHmdPosition)
+		{
+ 			const FVector vHMDPosition = DeltaControlOrientation.RotateVector(TrackingFrame.DevicePosition[vr::k_unTrackedDeviceIndex_Hmd]);
+			ViewLocation += vHMDPosition;
+		}
 	}
 }
 
@@ -772,9 +808,17 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	check(IsInRenderingThread());
 	GetActiveRHIBridgeImpl()->BeginRendering();
 
-	FVector CurrentPosition;
-	FQuat CurrentOrientation;
-	GetCurrentPose(CurrentOrientation, CurrentPosition, vr::k_unTrackedDeviceIndex_Hmd, true);
+	FVector OldPosition;
+	FQuat OldOrientation;
+	GetCurrentPose(OldOrientation, OldPosition, vr::k_unTrackedDeviceIndex_Hmd, false);
+	const FTransform OldRelativeTransform(OldOrientation, OldPosition);
+
+	FVector NewPosition;
+	FQuat NewOrientation;
+	GetCurrentPose(NewOrientation, NewPosition, vr::k_unTrackedDeviceIndex_Hmd, true);
+	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
+
+	ApplyLateUpdate(OldRelativeTransform, NewRelativeTransform);
 }
 
 void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)
@@ -856,6 +900,7 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	CurHmdOrientation(FQuat::Identity),
 	LastHmdOrientation(FQuat::Identity),
 	BaseOrientation(FQuat::Identity),
+	BaseOffset(FVector::ZeroVector),
 	DeltaControlRotation(FRotator::ZeroRotator),
 	DeltaControlOrientation(FQuat::Identity),
 	CurHmdPosition(FVector::ZeroVector),

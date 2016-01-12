@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620588
+﻿INTSourceChangelist:2718372
 Availability:Public
 Title:マウス インターフェース
 Crumbs:%ROOT%, Resources
@@ -8,6 +8,7 @@ Related:Engine/Blueprints\Editor
 Related:Engine/Blueprints\Editor\Modes\Components
 Related:Engine/Blueprints\Editor\Modes\Defaults
 Related:Engine/Blueprints\Editor\Modes\GraphPanel
+Version:4.9
 
 
 [VAR:Topic]
@@ -56,11 +57,9 @@ Related:Engine/Blueprints\Editor\Modes\GraphPanel
 ![](MouseInterfaceTitle.png)
 [/REGION]
 
-[TOC(start:2 end:2)]
 
 
-
-マウスインターフェースのサンプルでは、マウスやタッチ入力をゲームに活用する方法を紹介しています。プレイと実行に関して非常に単純なこのレベルは、たくさんの球で構成され、背景にあるキューブがマウスの動きに沿って球を追跡します。
+コンテンツ サンプルにある **マウス インターフェース** マップでは、ゲーム内でマウスやタッチ入力を活用する方法を紹介しています。プレイと実行が非常に単純なこのレベルは、たくさんの球で構成され、背景にあるキューブがマウスの動きに沿って球を追跡します。
 
 
 ![](MouseInterfaceGame.png)(w:400)

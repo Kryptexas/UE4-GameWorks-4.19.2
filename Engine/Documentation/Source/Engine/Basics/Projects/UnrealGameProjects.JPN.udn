@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:アンリアル ゲーム プロジェクト
 Crumbs: %ROOT%, Engine
-Description:ゲーム プロジェクトおよび取り扱い作業に関する概要
+Description:ゲーム プロジェクトおよび作業の説明の概要
+version:4.9
+parent:Engine/Editor
+order:8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -74,7 +77,7 @@ Description:ゲーム プロジェクトおよび取り扱い作業に関する�
 		![](%ROOT%/related_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		関連トピック
+		Related Topics
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -86,13 +89,13 @@ Description:ゲーム プロジェクトおよび取り扱い作業に関する�
 [/OBJECT]
 
 <!--
-プロジェクトは以下の 2 タイプのどちらかになります。
+プロジェクトは以下の 2 種類のどちらかになります。
 
-* **Content-Only** - マップ、アートアセット、 _ブループリント_ などのコンテンツアセットを用いて、エディタで全ての開発を行うプロジェクトです。
-* **Code** - _コンテンツ専用_ プロジェクトで可能な通常のコンテンツ開発に加え、コード開発が行えるプロジェクトです 
+* **Content-Only (コンテンツ専用)** - マップ、アートアセット、 _ブループリント_ などのコンテンツ アセットを用いて、エディタで全ての開発を行うプロジェクトです。
+* **Code** - _コンテンツ専用_ プロジェクトで可能な通常のコンテンツ開発に加え、コード開発を行うことができるプロジェクトです 
 
 [REGION:tip]
-[](Programming/Development/ManagingGameCode/CppClassWizard) を用いてコンテンツプロジェクトをコードプロジェクトへ変換することができます。
+[](Programming/Development/ManagingGameCode/CppClassWizard) を用いてコンテンツ プロジェクトをコード プロジェクトへ変換することができます。
 [/REGION]
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnCoreNet.cpp: Core networking support.
@@ -161,9 +161,9 @@ uint32 FClassNetCacheMgr::GetFieldChecksum( const UField* Field, uint32 Checksum
 	return Checksum;
 }
 
-const FClassNetCache * FClassNetCacheMgr::GetClassNetCache( const UClass* Class )
+const FClassNetCache* FClassNetCacheMgr::GetClassNetCache( const UClass* Class )
 {
-	FClassNetCache * Result = ClassFieldIndices.FindRef( Class );
+	FClassNetCache* Result = ClassFieldIndices.FindRef( Class );
 
 	if ( !Result )
 	{
@@ -182,11 +182,12 @@ const FClassNetCache * FClassNetCacheMgr::GetClassNetCache( const UClass* Class 
 		Result->Fields.Empty( Class->NetFields.Num() );
 
 		TArray< UProperty* > Properties;
+		Properties.Empty( Class->NetFields.Num() );
 
 		for( int32 i = 0; i < Class->NetFields.Num(); i++ )
 		{
 			// Add each net field to cache, and assign index/checksum
-			UField * Field = Class->NetFields[i];
+			UField* Field = Class->NetFields[i];
 
 			UProperty* Property = Cast< UProperty >( Field );
 			
@@ -351,7 +352,16 @@ FArchive& FNetBitWriter::operator<<( UObject*& Object )
 
 FArchive& FNetBitWriter::operator<<(FStringAssetReference& Value)
 {
-	return *this << Value.AssetLongPathname;
+	FString Path = Value.ToString();
+
+	*this << Path;
+
+	if (IsLoading())
+	{
+		Value.SetPath(MoveTemp(Path));
+	}
+
+	return *this;
 }
 
 
@@ -378,7 +388,16 @@ FArchive& FNetBitReader::operator<<( class FName& N )
 
 FArchive& FNetBitReader::operator<<(FStringAssetReference& Value)
 {
-	return *this << Value.AssetLongPathname;
+	FString Path = Value.ToString();
+
+	*this << Path;
+
+	if (IsLoading())
+	{
+		Value.SetPath(MoveTemp(Path));
+	}
+
+	return *this;
 }
 
 static const TCHAR* GLastRPCFailedReason = NULL;

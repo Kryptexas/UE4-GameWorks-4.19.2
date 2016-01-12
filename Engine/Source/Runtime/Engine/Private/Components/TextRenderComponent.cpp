@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Components/TextRenderComponent.h"
@@ -365,7 +365,7 @@ public:
 	// Begin FPrimitiveSceneProxy interface
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual bool CanBeOccluded() const override;
 	virtual uint32 GetMemoryFootprint() const override;
 	uint32 GetAllocatedSize() const;
@@ -532,13 +532,14 @@ bool FTextRenderSceneProxy::CanBeOccluded() const
 	return !MaterialRelevance.bDisableDepthTest;
 }
 
-FPrimitiveViewRelevance FTextRenderSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FTextRenderSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.TextRender;
 	Result.bShadowRelevance = IsShadowCast(View);
 	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
+	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
 
 	if( IsRichView(*View->Family) 
 		|| View->Family->EngineShowFlags.Bounds 
@@ -722,53 +723,56 @@ private:
 UTextRenderComponent::UTextRenderComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
+	if( !IsRunningDedicatedServer() )
 	{
-		ConstructorHelpers::FObjectFinderOptional<UFont> Font;
-		ConstructorHelpers::FObjectFinderOptional<UMaterial> TextMaterial;
-		FConstructorStatics()
-			: Font(TEXT("/Engine/EngineFonts/RobotoDistanceField"))
-			, TextMaterial(TEXT("/Engine/EngineMaterials/DefaultTextMaterialOpaque"))
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
 		{
+			ConstructorHelpers::FObjectFinderOptional<UFont> Font;
+			ConstructorHelpers::FObjectFinderOptional<UMaterial> TextMaterial;
+			FConstructorStatics()
+				: Font(TEXT("/Engine/EngineFonts/RobotoDistanceField"))
+				, TextMaterial(TEXT("/Engine/EngineMaterials/DefaultTextMaterialOpaque"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		{
+			// Static used to watch for culture changes and update all live UTextRenderComponent components
+			// In this constructor so that it has a known initialization order, and is only created when we need it
+			static FTextRenderComponentCultureChangedFixUp TextRenderComponentCultureChangedFixUp;
 		}
-	};
-	static FConstructorStatics ConstructorStatics;
 
-	{
-		// Static used to watch for culture changes and update all live UTextRenderComponent components
-		// In this constructor so that it has a known initialization order, and is only created when we need it
-		static FTextRenderComponentCultureChangedFixUp TextRenderComponentCultureChangedFixUp;
-	}
+		PrimaryComponentTick.bCanEverTick = false;
+		bTickInEditor = false;
 
-	PrimaryComponentTick.bCanEverTick = false;
-	bTickInEditor = false;
+		Text = LOCTEXT("DefaultText", "Text");
 
-	Text = LOCTEXT("DefaultText", "Text");
+		Font = ConstructorStatics.Font.Get();
+		TextMaterial = ConstructorStatics.TextMaterial.Get();
 
-	Font = ConstructorStatics.Font.Get();
-	TextMaterial = ConstructorStatics.TextMaterial.Get();
+		SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+		TextRenderColor = FColor::White;
+		XScale = 1;
+		YScale = 1;
+		HorizSpacingAdjust = 0;
+		HorizontalAlignment = EHTA_Left;
+		VerticalAlignment = EVRTA_TextBottom;
 
-	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	TextRenderColor = FColor::White;
-	XScale = 1;
-	YScale = 1;
-	HorizSpacingAdjust = 0;
-	HorizontalAlignment = EHTA_Left;
-	VerticalAlignment = EVRTA_TextBottom;
+		bGenerateOverlapEvents = false;
 
-	bGenerateOverlapEvents = false;
-
-	if( Font )
-	{
-		Font->ConditionalPostLoad();
-		WorldSize = Font->GetMaxCharHeight();
-		InvDefaultSize = 1.0f / WorldSize;
-	}
-	else
-	{
-		WorldSize = 30.0f;
-		InvDefaultSize = 1.0f / 30.0f;
+		if(Font)
+		{
+			Font->ConditionalPostLoad();
+			WorldSize = Font->GetMaxCharHeight();
+			InvDefaultSize = 1.0f / WorldSize;
+		}
+		else
+		{
+			WorldSize = 30.0f;
+			InvDefaultSize = 1.0f / 30.0f;
+		}
 	}
 }
 

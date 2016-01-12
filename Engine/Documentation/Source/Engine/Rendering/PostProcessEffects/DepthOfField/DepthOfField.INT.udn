@@ -2,13 +2,14 @@ Availability:Public
 Title:Depth of Field
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:Simulating focus by blurring the scene depending on depth.
+Version: 4.9
 
 [REGION:fullwidth]
 ![Depth of Field](dof.png)
 [/REGION]
 
 [EXCERPT:DepthOfField_Desc]
-Depth of Field (DoF) applies a blur to the scene based on distance in front of or behind a focal point. This is to simulate what happens in real-world cameras. The effect can be used to draw the viewer's attention and to
+**Depth of Field** (DoF) applies a blur to the scene based on distance in front of or behind a focal point. This is to simulate what happens in real-world cameras. The effect can be used to draw the viewer's attention and to
 make the rendering appear more like a photograph or like a movie.
 [/EXCERPT:DepthOfField_Desc]
 
@@ -23,13 +24,13 @@ There are three methods available for performing depth of field effects in Unrea
 [/REGION]
 
 
-### Gaussian
+### Gaussian Depth of Field
 
 [EXCERPT:DepthOfField_Gaussian]
 Gaussian DoF blurs the scene using a standard Guassian blur. The Guassian method is fast and generally well-suited for use in-game, where performance is critical.
 [/EXCERPT:DepthOfField_Gaussian]
 
-### Bokeh
+### Bokeh Depth of Field
 
 [EXCERPT:DepthOfField_Bokeh]
 Bokeh is the name of the shape that can be seen in photos or movies when objects are out of focus. Bokeh DoF is a method where a textured quad is rendered for each pixel using a texture to define the shape to reproduce the effect produced by camera lenses, which gives a filmic look to the scene. 
@@ -38,12 +39,16 @@ The actual implementation does this performance intensive effect only in half re
 The Bokeh method is far more costly performance-wise, making cinematics and showcases prime candidates for the Bokeh method as the appealing visuals often outweigh any performance concerns in those situations.
 [/EXCERPT:DepthOfField_Bokeh]
 
-### Circle
+### Circle Depth of Field
 
 [EXCERPT:DepthOfField_Circle]
 The Circle DoF is the newest addition and matches real world cameras more closely. Simialar to the Bokeh DoF you can see circular shaped Bokeh with sharp HDR content. Very large Bokeh are a weakness of this
 algorithm, they appear noisy and not as clear as the BokehDOF can do them.
 The method has good performance (quite better than Bokeh DoF) and good quality, especially in the transition areas.
+
+The defaults of CircleDOF are intentionally weak to be more pleasant. To get the maximum effect you can tweak settings. Use a low Aperture for a large Bokeh, get close to an object and change the Field of View to be lower.
+Play with the focal distance to
+
 [/EXCERPT:DepthOfField_Circle]
 
 ## Implementation
@@ -56,12 +61,25 @@ Depth of Field is broken up into three layers - Near, Far, and the Focal Region 
 
 
 These layers, including the transition regions, can be visualized using the **Depth of Field Layers** show flag ( under **Show > Visualize** ). The near layer is shown in green, the far layer in blue, and the focal region is black.
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene](dof_layers.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Layer Visualization](dof_layers_visualize.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+We further improved this visualization to also include a lot of interesting information:
 
 [REGION:imagetable]
-| ![Scene](dof_layers.png)(w:455) | ![Layer Visualization](dof_layers_visualize.png)(w:455) |
-| :----: | :----: |
-| Scene with DoF | DoF Layers Visualized |
+| ![Scene](NewVisualize.png) |
+| :----: |
+| VisualizeDOF |
 [/REGION]
+
+When using the CircleDOF you also can see a crosshair attached to the mouse cursor showing the computed circle of confusion (BokehSize) together with the depth and the pixel size in numbers.
+Note that the circle size might not always match to the actual effect as the implementation is not well suited / intended for large Bokeh shapes. We might want to improve on that in the future.
 
 ## Properties
 
@@ -158,11 +176,15 @@ These layers, including the transition regions, can be visualized using the **De
 
 Bokeh depth of field is rendered at quarter-resolution (half-res in each direction) by default for performance reasons. In most cases, this downsampling is barely noticeable and is perfectly acceptable; however, it can lead to artifacting and unwanted results in some situations.
 
-[REGION:imagetable]
-| ![Adaptive Reoslution - Off](dof_adaptive_0.png)(w:455) | ![Adaptive Reoslution - On](dof_adaptive_1.png)(w:455) |
-| :----: | :----: |
-| Downsampled | Adaptive Algorithm |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Adaptive Resolution - Off](dof_adaptive_0.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Adaptive Reoslution - On](dof_adaptive_1.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
 
 You can see that the characters being blurred in the background appear blocky when using only the downsampled DoF technique. Also, there is some artifacting around the horns of the character in the foreground. The artifacting is eliminated by using the adaptive DoF, and the background characters have a much smoother appearance.
 
@@ -174,8 +196,12 @@ The adaptive DoF can be visualized using the **Adaptive Depth of Field** show fl
 
 In general, you want this to display all green. The more red shown by the visualization, the more expensive the scene is to render each frame.
 
-[REGION:imagetable]
-| ![Adaptive Reoslution - Optimized](dof_adaptive_good.png)(w:455) | ![Adaptive Reoslution - Expensive](dof_adaptive_bad.png)(w:455) |
-| :----: | :----: |
-| Optimized | Expensive |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Adaptive Reoslution - Optimized](dof_adaptive_good.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![Adaptive Reoslution - Expensive](dof_adaptive_bad.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+

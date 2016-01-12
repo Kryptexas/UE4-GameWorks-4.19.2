@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialParameterCollectionInstance.h 
@@ -16,10 +16,10 @@ class UMaterialParameterCollectionInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void FinishDestroy() override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/** Initializes the instance with the collection it is based off of and the world it is owned by. */
 	void SetCollection(UMaterialParameterCollection* InCollection, UWorld* InWorld);

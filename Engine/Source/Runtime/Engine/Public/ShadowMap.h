@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -282,7 +282,7 @@ public:
 	 * @param	InWorld				World in which the textures exist
 	 * @param	bLightingSuccessful	Whether the lighting build was successful or not.
 	 */
-	ENGINE_API static void EncodeTextures(UWorld* InWorld, bool bLightingSuccessful);
+	ENGINE_API static void EncodeTextures(UWorld* InWorld, bool bLightingSuccessful, bool bMultithreadedEncode =false );
 
 	/**
 	 * Constructs mip maps for a single shadowmap texture.

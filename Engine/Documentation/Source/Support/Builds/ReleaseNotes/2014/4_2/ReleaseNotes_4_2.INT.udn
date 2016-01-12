@@ -2,7 +2,8 @@ Title: Unreal Engine 4.2 Release Notes
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
-
+version: 4.2
+order:2
 
 [TOC(start:2 end:2)]
 

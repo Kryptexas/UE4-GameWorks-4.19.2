@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,6 +30,7 @@ protected:
 
 	// FKismetCompilerContext
 	//virtual UEdGraphSchema_K2* CreateSchema() override;
+	virtual void SetClassForBytecodeCompile(UClass* TargetClass) override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
 	virtual void PrecompileFunction(FKismetFunctionContext& Context) override;

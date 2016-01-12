@@ -24,17 +24,17 @@ version:4.9
 
 1. In the **Unreal Editor**, we can press the **Compile** button to load our code changes.
 
-	[![](CompileFromEditor.png)](CompileFromEditor.png)
+	![](CompileFromEditor.png)
 
 1. We need to drop an instance of our **CollidingPawn** into the world. We can find the class in the **Content Browser** under "C++ Classes/HowTo_Components/CollidingPawn".
 
-	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
+	![](ClassInContentBrowser.png)
 
-	[![](LevelEditorBeforePlay.png)](LevelEditorBeforePlay.png)
+	![](LevelEditorBeforePlay.png)
 
 1. Press **Play** and our sphere will move with WASD, turn with the mouse, and collide-and-slide along world objects, such as our table and chairs, or any other physical objects you might want to place in the world. It can also light itself on fire (or put itself out) with the space bar!
 
-	[![](CollidingAndOnFire.png)](CollidingAndOnFire.png)
+	![](CollidingAndOnFire.png)
 
 ----
 
@@ -49,7 +49,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -86,7 +86,7 @@ version:4.9
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -209,7 +209,7 @@ version:4.9
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -229,7 +229,7 @@ version:4.9
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"

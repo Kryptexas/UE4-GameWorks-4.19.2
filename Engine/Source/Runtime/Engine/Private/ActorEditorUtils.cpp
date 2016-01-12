@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ActorEditorUtils.h"
@@ -62,7 +62,7 @@ namespace FActorEditorUtils
 		}
 	}
 
-	bool TraverseActorTree_ParentFirst(AActor* InActor, const TFunctionRef<bool(AActor*)>& InPredicate, bool bIncludeThisActor)
+	bool TraverseActorTree_ParentFirst(AActor* InActor, TFunctionRef<bool(AActor*)> InPredicate, bool bIncludeThisActor)
 	{
 		if (!InActor)
 		{
@@ -89,7 +89,7 @@ namespace FActorEditorUtils
 		return true;
 	}
 
-	bool TraverseActorTree_ChildFirst(AActor* InActor, const TFunctionRef<bool(AActor*)>& InPredicate, bool bIncludeThisActor)
+	bool TraverseActorTree_ChildFirst(AActor* InActor, TFunctionRef<bool(AActor*)> InPredicate, bool bIncludeThisActor)
 	{
 		if (!InActor)
 		{

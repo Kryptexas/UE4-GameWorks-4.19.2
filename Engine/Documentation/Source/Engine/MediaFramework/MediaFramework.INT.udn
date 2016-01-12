@@ -5,6 +5,9 @@ Description:Overview of Media Playback functionality in Unreal Engine 4.
 Related: Engine/Blueprints
 Related: Engine/UMG
 Related: Engine/Rendering/Materials
+parent:Engine
+order:12
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -71,7 +74,7 @@ the **UMG UI Designer**.  This will cover most expected use cases, such as in-ga
 
 [REGION:warning]
 The Media Framework is not quite production ready yet and is still in the experimental stages. Some features may not work as expected, however we are currently working hard 
-to resolve those issues as well as add addition features and support. 
+to resolve those issues as well as add additional features and support. 
 [/REGION]
 
 ## What is Media Framework
@@ -120,7 +123,7 @@ Instead of clicking the **Create** button, you can also **Right-click** in the *
 
 1. Inside the MediaPlayer asset, in the Details panel, click the **Browse** button. 
 
-	![](AddMediaButton.png)
+	![](BrowseMediaPlayer.jpg)
 
 1. Browse to your media and select your file. 
 
@@ -130,13 +133,13 @@ Instead of clicking the **Create** button, you can also **Right-click** in the *
 
 	![](MediaPlay.png)
 
-1. Inside the Details panel, you may notice that a warning icon is present. 
+1. Inside the **Details** panel, you may notice that a warning icon is present. 
 
-	![](WarningIcon.png)
+	![](EpicMovieMediaFrameWorkFile.jpg)
 
 1. In order to package correctly, local media files MUST be placed in the **Content/Movies/** directory of your project. 
 
-	![](NoWarning.png)
+	![](EpicMovieMediaFrameWorkWMV.jpg)
 
 	Once you have placed your media in your projects Content/Movies/ folder, the warning icon will no longer be shown. 
 	
@@ -159,13 +162,11 @@ the media window below the playback controls.
 
 Inside the Details panel, you can inspect the properties of the media source. 
 
-![](MediaPlayerDetails.png)
+![](EpicMovieMediaFrameWork.jpg)
 
-Under the **Playback** options, you can set the media to **Auto Play** (which will automatically play the media when loaded) and **Auto Play Rate** (to define the playback 
-rate when Auto Play is enabled), as well as the ability to the media to looping when playback reaches the end. 
+Under the **Playback** option, you have the opyion to enable looping of the media when playback reaches the end by checking the **Looping** checkbox. 
 
-For the **Source** section, you can specify the path to the media locally or through the Internet via URL as well as set the Streaming Mode. The last section, displays 
-information about the media itself. 
+For the **Source** section, you can specify the path to the media locally or through the Internet via URL, as well as set the Streaming Mode.  
 
 ### MediaTexture Asset
 
@@ -214,7 +215,17 @@ This section will show you how to quickly get started with using the Media Frame
 
 Here is an example of a MediaTexture playing on a TV (click to play). 
 
-[![](video1_image.png)](video1.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+IdX1gEH2i6c
+[/PARAMLITERAL]
+[/OBJECT]
 
 _For this example, we **Migrated** the **SM_TV** asset from the **Realistic Rendering** project which can be found on the Learn Tab._
 
@@ -253,7 +264,17 @@ to it. Our MediaPlayer asset is also not set to Auto Play.
 
 When the player enters the trigger, we will play the MediaTexture applied to the TV, when they exit the trigger we will pause it (click to play). 
 
-[![](video2_image.png)](video2.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+nmb2Fj_5PjA
+[/PARAMLITERAL]
+[/OBJECT]
 
 Inside our **Level Blueprint** we have created the following script. 
 
@@ -281,7 +302,17 @@ a material that is created from a MediaTexture (which in turn is created from a 
 Below we have created a setup so that when the player press the M key in-game, a movie player is shown on screen with controls to Play, Pause, or Rewind the video that 
 is being played (click to play). 
 
-[![](video3_image.png)](video3.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+HuF6btgkfxE
+[/PARAMLITERAL]
+[/OBJECT]
 
 We did this by first creating a **[Widget Blueprint](Engine\UMG\UserGuide\WidgetBlueprints)** as indicated below. 
 

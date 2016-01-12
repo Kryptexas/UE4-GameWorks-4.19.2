@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "SplineMeshActor.generated.h"
@@ -23,16 +23,16 @@ public:
 	void SetMobility(EComponentMobility::Type InMobility);
 
 #if WITH_EDITOR
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
-	// End AActor Interface
+	//~ End AActor Interface
 #endif // WITH_EDITOR	
 
 protected:
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual FString GetDetailedInfoInternal() const override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 public:
 	/** Returns SplineMeshComponent subobject **/

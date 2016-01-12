@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Core.h"
@@ -336,6 +336,7 @@ public:
 	{
 		// Used by derived classes to spit out leaked pending rollups
 	}
+
 
 protected:
 	uint32 NextHandle()
@@ -926,6 +927,14 @@ public:
 	virtual FDerivedDataCacheInterface& GetDDC() override
 	{
 		return InternalSingleton();
+	}
+
+	virtual void StartupModule() override
+	{
+#if WITH_EDITOR
+		// Make sure the CookingStats module gets loaded on the correct thread (used by DDCStats on a background thread)
+		FModuleManager::Get().LoadModule(TEXT("CookingStats"));
+#endif // WITH_EDITOR
 	}
 
 	virtual void ShutdownModule() override

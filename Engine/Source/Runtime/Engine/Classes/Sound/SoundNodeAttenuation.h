@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
  
 #pragma once
@@ -27,10 +27,10 @@ class USoundNodeAttenuation : public USoundNode
 	uint32 bOverrideAttenuation:1;
 
 public:
-	// Begin USoundNode interface. 
+	//~ Begin USoundNode Interface. 
 	virtual void ParseNodes( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual float MaxAudibleDistance( float CurrentMaxDistance ) override;
-	// End USoundNode interface. 
+	//~ End USoundNode Interface. 
 
 	ENGINE_API FAttenuationSettings* GetAttenuationSettingsToApply();
 };

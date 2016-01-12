@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugToolExec.h: Game debug tool implementation.
@@ -24,9 +24,9 @@ protected:
 
 public:
 	
-	// Begin Exec Interface
+	//~ Begin Exec Interface
 	UNREALED_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	// End Exec Interface
+	//~ End Exec Interface
 
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
@@ -14,6 +14,74 @@
 #endif
 
 #define LOCTEXT_NAMESPACE "EdGraph"
+
+void FEdGraphSchemaAction::UpdateCategory(const FText& NewCategory)
+{
+	Category = NewCategory;
+
+	TArray<FString> Scratch;
+	Category.ToString().ParseIntoArray(FullSearchCategoryArray, TEXT(" "), true);
+	Category.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
+	FullSearchCategoryArray.Append(Scratch);
+
+	SearchText.Empty();
+	for (const auto& Entry : FullSearchTitlesArray)
+	{
+		SearchText += Entry;
+	}
+	SearchText.Append(LINE_TERMINATOR);
+	for (const auto& Entry : FullSearchKeywordsArray)
+	{
+		SearchText += Entry;
+	}
+	SearchText.Append(LINE_TERMINATOR);
+	for (const auto& Entry : FullSearchCategoryArray)
+	{
+		SearchText += Entry;
+	}
+}
+
+void FEdGraphSchemaAction::UpdateSearchData(const FText& NewMenuDescription, const FString& NewToolTipDescription, const FText& NewCategory, const FText& NewKeywords)
+{
+	MenuDescription = NewMenuDescription;
+	TooltipDescription = NewToolTipDescription;
+	Category = NewCategory;
+	Keywords = NewKeywords;
+
+	MenuDescription.ToString().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
+
+	FullSearchTitlesArray = MenuDescriptionArray;
+	TArray<FString> Scratch;
+	MenuDescription.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
+	FullSearchTitlesArray.Append(Scratch);
+
+	Keywords.ToString().ParseIntoArray(FullSearchKeywordsArray, TEXT(" "), true);
+	Keywords.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
+	FullSearchKeywordsArray.Append(Scratch);
+
+	Category.ToString().ParseIntoArray(FullSearchCategoryArray, TEXT(" "), true);
+	Category.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
+	FullSearchCategoryArray.Append(Scratch);
+
+	// Glob search text together, we use the SearchText string for basic filtering:
+	for (auto& Entry : FullSearchTitlesArray)
+	{
+		Entry.ToLowerInline();
+		SearchText += Entry;
+	}
+	SearchText.Append(LINE_TERMINATOR);
+	for (auto& Entry : FullSearchKeywordsArray)
+	{
+		Entry.ToLowerInline();
+		SearchText += Entry;
+	}
+	SearchText.Append(LINE_TERMINATOR);
+	for (auto& Entry : FullSearchCategoryArray)
+	{
+		Entry.ToLowerInline();
+		SearchText += Entry;
+	}
+}
 
 /////////////////////////////////////////////////////
 // FGraphActionListBuilderBase
@@ -56,7 +124,6 @@ FGraphActionListBuilderBase::ActionGroup::ActionGroup( TSharedPtr<FEdGraphSchema
 {
 	Actions.Add( InAction );
 	InitCategoryChain();
-	InitScoringData();
 }
 
 FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& CategoryPrefix/* = TEXT("") */ )
@@ -64,7 +131,6 @@ FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<
 {
 	Actions = InActions;
 	InitCategoryChain();
-	InitScoringData();
 }
 
 FGraphActionListBuilderBase::ActionGroup::ActionGroup(FGraphActionListBuilderBase::ActionGroup && Other)
@@ -99,10 +165,13 @@ FGraphActionListBuilderBase::ActionGroup::~ActionGroup()
 {
 }
 
-void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>& HierarchyOut) const
+const TArray<FString>& FGraphActionListBuilderBase::ActionGroup::GetCategoryChain() const
 {
 #if WITH_EDITOR
-	HierarchyOut = CategoryChain;
+	return CategoryChain;
+#else
+	static TArray<FString> Dummy;
+	return Dummy;
 #endif
 }
 
@@ -123,11 +192,6 @@ void FGraphActionListBuilderBase::ActionGroup::Move(FGraphActionListBuilderBase:
 	Actions = MoveTemp(Other.Actions);
 	RootCategory = MoveTemp(Other.RootCategory);
 	CategoryChain = MoveTemp(Other.CategoryChain);
-	SearchKeywordsArray = MoveTemp(Other.SearchKeywordsArray);
-	MenuDescriptionArray = MoveTemp(Other.MenuDescriptionArray);
-	SearchTitleArray = MoveTemp(Other.SearchTitleArray);
-	SearchCategoryArray = MoveTemp(Other.SearchCategoryArray);
-	SearchText = MoveTemp(Other.SearchText);
 }
 
 void FGraphActionListBuilderBase::ActionGroup::Copy(const ActionGroup& Other)
@@ -135,11 +199,6 @@ void FGraphActionListBuilderBase::ActionGroup::Copy(const ActionGroup& Other)
 	Actions = Other.Actions;
 	RootCategory = Other.RootCategory;
 	CategoryChain = Other.CategoryChain;
-	SearchKeywordsArray = Other.SearchKeywordsArray;
-	MenuDescriptionArray = Other.MenuDescriptionArray;
-	SearchTitleArray = Other.SearchTitleArray;
-	SearchCategoryArray = Other.SearchCategoryArray;
-	SearchText = Other.SearchText;
 }
 
 void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
@@ -152,7 +211,7 @@ void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
 	{
 		TArray<FString> SubCategoryChain;
 
-		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category.ToString());
+		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->GetCategory().ToString());
 		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
 
 		CategoryChain.Append(SubCategoryChain);
@@ -163,36 +222,6 @@ void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
 		Category.Trim();
 	}
 #endif
-}
-
-void FGraphActionListBuilderBase::ActionGroup::InitScoringData()
-{
-	if (Actions.Num() > 0)
-	{
-		FEdGraphSchemaAction& FirstAction = *Actions[0];
-
-		// We keep these individual arrays so that they can be weighted differently by the scoring algorithm in SGraphActionMenu::GetActionFilteredWeight
-		FirstAction.GetSearchKeywords().ParseIntoArray(SearchKeywordsArray, TEXT(" "), true);
-		FirstAction.MenuDescription.ToString().ToLower().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
-		FirstAction.GetSearchTitle().ParseIntoArray(SearchTitleArray, TEXT(" "), true);
-		FirstAction.GetSearchCategory().ParseIntoArray(SearchCategoryArray, TEXT(" "), true);
-
-		// Glob search text together, we use the SearchText string for basic filtering:
-		for (const auto& Entry : SearchTitleArray)
-		{
-			SearchText += Entry;
-		}
-		SearchText.Append(LINE_TERMINATOR);
-		for (const auto& Entry : SearchKeywordsArray)
-		{
-			SearchText += Entry;
-		}
-		SearchText.Append(LINE_TERMINATOR);
-		for (const auto& Entry : SearchCategoryArray)
-		{
-			SearchText += Entry;
-		}
-	}
 }
 
 /////////////////////////////////////////////////////
@@ -449,7 +478,7 @@ void UEdGraphSchema::TrySetDefaultText(UEdGraphPin& InPin, const FText& InNewDef
 		}
 		else
 		{
-			InPin.DefaultTextValue = FText::ChangeKey(TEXT(""), InPin.GetOwningNode()->NodeGuid.ToString() + TEXT("_") + InPin.PinName, InNewDefaultText);
+			InPin.DefaultTextValue = FText::ChangeKey(TEXT(""), FGuid::NewGuid().ToString(), InNewDefaultText);
 		}
 #endif
 	}
@@ -634,8 +663,13 @@ FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	else
 	{
 		ResultPinName = Pin->PinFriendlyName;
-		bool bShowNodesAndPinsUnlocalized = false;
-		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
+		static bool bInitializedShowNodesAndPinsUnlocalized = false;
+		static bool bShowNodesAndPinsUnlocalized = false;
+		if (!bInitializedShowNodesAndPinsUnlocalized)
+		{
+			GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
+			bInitializedShowNodesAndPinsUnlocalized =  true;
+		}
 		if (bShowNodesAndPinsUnlocalized)
 		{
 			ResultPinName = FText::FromString(ResultPinName.BuildSourceString());

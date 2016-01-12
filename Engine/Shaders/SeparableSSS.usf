@@ -192,7 +192,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
     float4 colorM = SSSSSampleSceneColorPoint(ViewportUV);
 
 	// we store the depth in alpha
-	float depthM = colorM.a;
+	float OutDepth = colorM.a;
 
 	colorM.a = ComputeMaskFromDepthInAlpha(colorM.a);
 
@@ -204,6 +204,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 		return 0.0f;
 	}
 
+	// 0..1
 	float SSSStrength = GetSubsurfaceStrength(GBufferUV);
 
 	// Initialize the stencil buffer in case it was not already available:
@@ -212,7 +213,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 
 	float SSSScaleX = SSSParams.x;
 
-	float scale = SSSScaleX / depthM;
+	float scale = SSSScaleX / OutDepth;
 
     // Calculate the final step to fetch the surrounding pixels:
     float2 finalStep = scale * dir;
@@ -231,17 +232,15 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 	// >0 to avoid division by 0, not 100% correct to not visible
 	float3 colorInvDiv = 0.00001f;
 
-	half4 CenterKernel = GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt);
-
-	// center sample is added in Recombine pass
-	colorInvDiv += colorM.a * CenterKernel.rgb;
-	colorAccum.rgb = colorM.rgb * CenterKernel.rgb;
+	// center sample
+	colorInvDiv += GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
+	colorAccum = colorM.rgb * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
 
 	// Accumulate the other samples:
     SSSS_UNROLL
 	for (int i = 1; i < SSSS_N_KERNELWEIGHTCOUNT; i++) 
 	{
-		// Kernel.a = 0..3
+		// Kernel.a = 0..SUBSURFACE_KERNEL_SIZE (radius)
 		half4 Kernel = GetKernel(SSSS_N_KERNELWEIGHTOFFSET + i, SubsurfaceProfileInt);
 
 		float4 LocalAccum = 0;
@@ -260,19 +259,17 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 			
 			color.a = ComputeMaskFromDepthInAlpha(color.a);
 
-			// approximation, ideally we would reconstruct the mask with ComputeMaskFromDepthInAlpha() and do manual bilinear filter
-			// needed?
-//			color.rgb *= color.a;
-
-
 #if SSSS_FOLLOW_SURFACE == 1
 			// If the difference in depth is huge, we weight the sample less or not at all
 			float s = saturate(12000.0f / 400000 * SSSParams.y *
 	//        float s = saturate(300.0f/400000 * SSSParams.y *
-				abs(depthM - LocalDepth));
+				abs(OutDepth - LocalDepth));
 
-			color *= 1 - s;
+			color.a *= 1 - s;
 #endif
+			// approximation, ideally we would reconstruct the mask with ComputeMaskFromDepthInAlpha() and do manual bilinear filter
+			// needed?
+			color.rgb *= color.a;
 
 			// Accumulate left and right 
 			LocalAccum += color;
@@ -288,7 +285,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 	float3 OutColor = colorAccum / colorInvDiv; 
 
 	// alpha stored the SceneDepth (0 if there is no subsurface scattering)
-    return float4(OutColor, depthM);
+    return float4(OutColor, OutDepth);
 }
 
 //-----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
@@ -636,7 +636,7 @@ int32 GuardedMain( const TCHAR* CmdLine, HINSTANCE hInInstance, HINSTANCE hPrevI
 	// destruction and main uses SEH.
 	// These names will be updated as soon as the Filemanager is set up so we can write to the log file.
 	// That will also use the user folder for installed builds so we don't write into program files or whatever.
-	FCString::Strcpy(MiniDumpFilenameW, *FString::Printf( TEXT("unreal-v%i-%s.dmp"), GEngineVersion.GetChangelist(), *FDateTime::Now().ToString()));
+	FCString::Strcpy(MiniDumpFilenameW, *FString::Printf( TEXT("unreal-v%i-%s.dmp"), FEngineVersion::Current().GetChangelist(), *FDateTime::Now().ToString()));
 	CmdLine = FCommandLine::RemoveExeName(CmdLine);
 
 	// Call PreInit and exit if failed.

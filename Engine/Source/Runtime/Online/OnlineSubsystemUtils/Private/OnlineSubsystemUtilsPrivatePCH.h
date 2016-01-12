@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,7 +11,8 @@
 #include "OnlineSubsystemUtilsModule.h"
 #include "SocketSubsystem.h"
 #include "ModuleManager.h"
-#include "OnlineSubsystemUtilsClasses.h"
+#include "Classes/IpConnection.h"
+#include "Classes/IpNetDriver.h"
 
 class FUniqueNetId;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 
@@ -10,64 +10,60 @@ const FFriendsListStyle& FFriendsListStyle::GetDefault()
 	return Default;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetNormalFriendsFontStyle(const FFriendsFontStyle& FontStyle)
-{
-	FriendsNormalFontStyle = FontStyle;
-	return *this;
-}
-
 FFriendsListStyle& FFriendsListStyle::SetGlobalChatButtonStyle(const FButtonStyle& ButtonStyle)
 {
 	GlobalChatButtonStyle = ButtonStyle;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetFriendsComboStyle(const FFriendsComboStyle& ComboStyle)
+FFriendsListStyle& FFriendsListStyle::SetFriendItemButtonStyle(const FButtonStyle& ButtonStyle)
 {
-	FriendsComboStyle = ComboStyle;
+	FriendItemButtonStyle = ButtonStyle;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle)
+
+FFriendsListStyle& FFriendsListStyle::SetConfirmButtonStyle(const FButtonStyle& ButtonStyle)
 {
-	ScrollBarStyle = InScrollBarStyle;
+	ConfirmButtonStyle = ButtonStyle;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetButtonInvertedForegroundColor(const FSlateColor& Value)
+
+FFriendsListStyle& FFriendsListStyle::SetCancelButtonStyle(const FButtonStyle& ButtonStyle)
 {
-	ButtonInvertedForegroundColor = Value;
+	CancelButtonStyle = ButtonStyle;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetButtonForegroundColor(const FSlateColor& Value)
+
+FFriendsListStyle& FFriendsListStyle::SetButtonContentColor(const FSlateColor& InColor)
 {
-	ButtonForegroundColor = Value;
+	ButtonContentColor = InColor;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetBorderPadding(const FMargin& Padding)
+FFriendsListStyle& FFriendsListStyle::SetButtonHoverContentColor(const FSlateColor& InColor)
 {
-	BorderPadding = Padding;
+	ButtonHoverContentColor = InColor;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetNormalFont(const FFriendsFontStyle& FontStyle)
+FFriendsListStyle& FFriendsListStyle::SetActionMenuArrowBrush(const FSlateBrush& BrushStyle)
 {
-	NormalFont = FontStyle;
+	ActionMenuArrowBrush = BrushStyle;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetFriendsListOpenButtonStyle(const FButtonStyle& ButtonStyle)
+FFriendsListStyle& FFriendsListStyle::SetBackButtonStyle(const FButtonStyle& ButtonStyle)
 {
-	FriendListOpenButtonStyle = ButtonStyle;
+	BackButtonStyle = ButtonStyle;
 	return *this;
 }
 
-/** Friends General Purpose Button style */
-FFriendsListStyle& FFriendsListStyle::SetFriendGeneralButtonStyle(const FButtonStyle& ButtonStyle)
+FFriendsListStyle& FFriendsListStyle::SetHeaderButtonStyle(const FButtonStyle& ButtonStyle)
 {
-	FriendGeneralButtonStyle = ButtonStyle;
+	HeaderButtonStyle = ButtonStyle;
 	return *this;
 }
 
@@ -78,46 +74,6 @@ FFriendsListStyle& FFriendsListStyle::SetFriendListActionButtonStyle(const FButt
 	return *this;
 }
 
-/** Friends List Critical Button style */
-FFriendsListStyle& FFriendsListStyle::SetFriendsListCriticalButtonStyle(const FButtonStyle& ButtonStyle)
-{
-	FriendListCriticalButtonStyle = ButtonStyle;
-	return *this;
-}
-
-/** Friends List Emphasis Button style */
-FFriendsListStyle& FFriendsListStyle::SetFriendsListEmphasisButtonStyle(const FButtonStyle& ButtonStyle)
-{
-	FriendListEmphasisButtonStyle = ButtonStyle;
-	return *this;
-}
-
-FFriendsListStyle& FFriendsListStyle::SetFriendsListItemButtonStyle(const FButtonStyle& ButtonStyle)
-{
-	FriendListItemButtonStyle = ButtonStyle;
-	return *this;
-}
-
-FFriendsListStyle& FFriendsListStyle::SetFriendsListItemButtonSimpleStyle(const FButtonStyle& ButtonStyle)
-{
-	FriendListItemButtonSimpleStyle = ButtonStyle;
-	return *this;
-}
-
-/** Friends List Close button style */
-FFriendsListStyle& FFriendsListStyle::SetFriendsListClosedButtonStyle(const FButtonStyle& ButtonStyle)
-{
-	FriendListCloseButtonStyle = ButtonStyle;
-	return *this;
-}
-
-/** Add Friend Close button style */
-FFriendsListStyle& FFriendsListStyle::SetAddFriendCloseButtonStyle(const FButtonStyle& ButtonStyle)
-{
-	AddFriendCloseButtonStyle = ButtonStyle;
-	return *this;
-}
-
 /** Optional content for the Add Friend button */
 FFriendsListStyle& FFriendsListStyle::SetAddFriendButtonContentBrush(const FSlateBrush& BrushStyle)
 {
@@ -125,10 +81,9 @@ FFriendsListStyle& FFriendsListStyle::SetAddFriendButtonContentBrush(const FSlat
 	return *this;
 }
 
-/** Optional content for the Add Friend button (hovered) */
-FFriendsListStyle& FFriendsListStyle::SetAddFriendButtonContentHoveredBrush(const FSlateBrush& BrushStyle)
+FFriendsListStyle& FFriendsListStyle::SetStatusIconBrush(const FSlateBrush& BrushStyle)
 {
-	AddFriendButtonContentHoveredBrush = BrushStyle;
+	StatusIconBrush = BrushStyle;
 	return *this;
 }
 
@@ -146,6 +101,18 @@ FFriendsListStyle& FFriendsListStyle::SetFortniteImageBrush(const FSlateBrush& B
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetFortniteDevImageBrush(const FSlateBrush& BrushStyle)
+{
+	FortniteDevImageBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetFortniteTestImageBrush(const FSlateBrush& BrushStyle)
+{
+	FortniteTestImageBrush = BrushStyle;
+	return *this;
+}
+
 /** Launcher Image brush style */
 FFriendsListStyle& FFriendsListStyle::SetLauncherImageBrush(const FSlateBrush& BrushStyle)
 {
@@ -157,13 +124,6 @@ FFriendsListStyle& FFriendsListStyle::SetLauncherImageBrush(const FSlateBrush& B
 FFriendsListStyle& FFriendsListStyle::SetUTImageBrush(const FSlateBrush& BrushStyle)
 {
 	UTImageBrush = BrushStyle;
-	return *this;
-}
-
-/** Friends Add Icon */
-FFriendsListStyle& FFriendsListStyle::SetFriendsAddImageBrush(const FSlateBrush& BrushStyle)
-{
-	FriendsAddImageBrush = BrushStyle;
 	return *this;
 }
 
@@ -188,34 +148,6 @@ FFriendsListStyle& FFriendsListStyle::SetAwayBrush(const FSlateBrush& BrushStyle
 	return *this;
 }
 
-/** Window background style */
-FFriendsListStyle& FFriendsListStyle::SetBackgroundBrush(const FSlateBrush& BrushStyle)
-{
-	Background = BrushStyle;
-	return *this;
-}
-
-/** Friend container header */
-FFriendsListStyle& FFriendsListStyle::SetFriendContainerHeader(const FSlateBrush& BrushStyle)
-{
-	FriendContainerHeader = BrushStyle;
-	return *this;
-}
-
-/** Friend list header */
-FFriendsListStyle& FFriendsListStyle::SetFriendListHeader(const FSlateBrush& BrushStyle)
-{
-	FriendListHeader = BrushStyle;
-	return *this;
-}
-
-/** Friend user header background */
-FFriendsListStyle& FFriendsListStyle::SetFriendUserHeaderBackground(const FSlateBrush& BrushStyle)
-{
-	FriendUserHeaderBackground = BrushStyle;
-	return *this;
-}
-
 /** Friends window background */
 FFriendsListStyle& FFriendsListStyle::SetFriendContainerBackground(const FSlateBrush& BrushStyle)
 {
@@ -223,9 +155,9 @@ FFriendsListStyle& FFriendsListStyle::SetFriendContainerBackground(const FSlateB
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetFriendListActionFontColor(const FLinearColor& Color)
+FFriendsListStyle& FFriendsListStyle::SetFriendsListBackground(const FSlateBrush& BrushStyle)
 {
-	FriendListActionFontColor = Color;
+	FriendsListBackground = BrushStyle;
 	return *this;
 }
 
@@ -241,27 +173,39 @@ FFriendsListStyle& FFriendsListStyle::SetUserPresenceImageSize(const FVector2D& 
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetAddFriendButtonSize(const FVector2D& Value)
+FFriendsListStyle& FFriendsListStyle::SetBackBrush(const FSlateBrush& Brush)
 {
-	AddFriendButtonSize = Value;
+	BackBrush = Brush;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetUserHeaderPadding(const FMargin& Margin)
+FFriendsListStyle& FFriendsListStyle::SetSelectedOptionBrush(const FSlateBrush& Brush)
 {
-	UserHeaderPadding = Margin;
+	SelectedOptionBrush = Brush;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetFriendsListWidth(const float InWidth)
+FFriendsListStyle& FFriendsListStyle::SetSettingsBrush(const FSlateBrush& Brush)
 {
-	FriendsListWidth = InWidth;
+	SettingsBrush = Brush;
 	return *this;
 }
 
-FFriendsListStyle& FFriendsListStyle::SetHasUserHeader(bool InHasUserHeader)
+FFriendsListStyle& FFriendsListStyle::SetSeperatorBrush(const FSlateBrush& Brush)
 {
-	HasUserHeader = InHasUserHeader;
+	SeperatorBrush = Brush;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetFontSizeBrush(const FSlateBrush& Brush)
+{
+	FontSizeBrush = Brush;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetSearchBrush(const FSlateBrush& Brush)
+{
+	SearchBrush = Brush;
 	return *this;
 }
 

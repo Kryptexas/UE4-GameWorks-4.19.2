@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PhysxUserData.h"
@@ -75,11 +75,13 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 #endif // WITH_PHYSX 
 
 #if WITH_EDITOR
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	virtual void Serialize(FArchive& Ar) override;
-	// End UObject interface.
+#endif
+	//~ End UObject Interface.
 
 	// Take damage
 	UFUNCTION(BlueprintCallable, Category="Components|Destructible")
@@ -105,20 +107,20 @@ public:
 	physx::apex::NxDestructibleActor* ApexDestructibleActor;
 #endif	//WITH_APEX
 
-	// Begin USceneComponent interface.
+	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
-	// End USceneComponent interface.
+	//~ End USceneComponent Interface.
 
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
 	virtual class UBodySetup* GetBodySetup() override;
-	// End UActorComponent interface.
+	//~ End UActorComponent Interface.
 
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const override;
 	virtual bool CanEditSimulatePhysics() override;
 	virtual bool IsAnySimulatingPhysics() const override;
@@ -139,17 +141,18 @@ public:
 	virtual void SetSimulatePhysics(bool bSimulate) override;
 
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
-	// End UPrimitiveComponent interface.
+	virtual void SetCollisionEnabled(ECollisionEnabled::Type NewType) override;
+	//~ End UPrimitiveComponent Interface.
 
-	// Begin SkinnedMeshComponent interface.
+	//~ Begin SkinnedMeshComponent Interface.
 	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const override;
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
 	virtual void SetSkeletalMesh(USkeletalMesh* InSkelMesh) override;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
-	// End SkinnedMeshComponent interface.
+	//~ End SkinnedMeshComponent Interface.
 
 
-	// Begin DestructibleComponent interface.
+	//~ Begin DestructibleComponent Interface.
 #if WITH_APEX
 	struct FFakeBodyInstanceState
 	{
@@ -204,7 +207,7 @@ public:
 	void OnVisibilityEvent(const physx::apex::NxApexChunkStateEventData & InDamageEvent);
 #endif // WITH_APEX
 
-	// End DestructibleComponent interface.
+	//~ End DestructibleComponent Interface.
 
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 
@@ -240,13 +243,12 @@ private:
 
 	void SetCollisionResponseForShape(physx::PxShape* Shape, int32 ChunkIdx);
 	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx, const FCollisionResponseContainer* ResponseOverride = NULL);
-	void SetCollisionResponseForAllActors(const FCollisionResponseContainer& ResponseOverride);
 
 
 public:
 	/** User data wrapper for the chunks passed to physx */
 	TArray<FPhysxUserData> PhysxChunkUserData;
-	bool IsChunkLarge(int32 ChunkIdx) const;
+	bool IsChunkLarge(physx::PxRigidActor* ChunkActor) const;
 #endif
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,6 +53,11 @@ private:
 	class FXmppMessageSendTask* MessageSendTask;
 	/** list of outgoing messages */
 	TQueue<class FXmppMessageJingle*> SendMessageQueue;
+
+	/** Number of messages received in a given interval */
+	int32 NumMessagesReceived;
+	/** Number of messages sent in a given interval */
+	int32 NumMessagesSent;
 
 	class FXmppConnectionJingle& Connection;
 	friend class FXmppConnectionJingle; 

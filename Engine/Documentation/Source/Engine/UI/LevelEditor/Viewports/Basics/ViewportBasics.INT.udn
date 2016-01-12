@@ -2,6 +2,8 @@ Availability:Public
 Title:Viewport Basics
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:Basic concepts and features of the Viewports in Unreal Editor.
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -64,8 +66,6 @@ Description:Basic concepts and features of the Viewports in Unreal Editor.
 [/VAR]
 
 [TOC(start:2 end:3)]
-
-## Overview
 
 [INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
 
@@ -169,7 +169,7 @@ will look when you run it in the game.
 To enable Game View, simply press the **G** key (by default) with the Viewport focused or choose the **Game View** option from the 
 [Viewport Options menu](Engine/UI/LevelEditor/Viewports/ViewportOptions):
 
-![](viewport_options_gameview.png)
+![](GamemodeViewport.png)
 
 ## Immersive Mode
 
@@ -180,7 +180,7 @@ maximized, this enables you to have your Viewport run in full-screen for a truly
 To enable Immersive Mode, simply press the **F11** key (by default) with the Viewport focused or choose the **Immersive Mode** option 
 from the [Viewport Options menu](Engine/UI/LevelEditor/Viewports/ViewportOptions):
 
-![](viewport_options_immersive.png)
+![](ImmersiveModeOptions.png)
 
 You can restore the Viewport to normal using the same procedure above or by pressing the ![Restore Viewport](button_restore.png) 
 button located at the top right of the Viewport when in Immersive Mode.

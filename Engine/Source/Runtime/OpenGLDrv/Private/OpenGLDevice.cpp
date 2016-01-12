@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDevice.cpp: OpenGL device RHI implementation.
@@ -470,9 +470,9 @@ void InitDebugContext()
 #elif ENABLE_OPENGL_DEBUG_GROUPS && !defined(GL_ARB_debug_output) && GL_KHR_debug
 	if(glDebugMessageControlKHR)
 	{
-		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_MARKER, GL_DONT_CARE, 0, NULL, GL_FALSE);
-		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
-		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_POP_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
+		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_MARKER_KHR, GL_DONT_CARE, 0, NULL, GL_FALSE);
+		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_PUSH_GROUP_KHR, GL_DONT_CARE, 0, NULL, GL_FALSE);
+		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_POP_GROUP_KHR, GL_DONT_CARE, 0, NULL, GL_FALSE);
 		glDebugMessageControlKHR(GL_DEBUG_SOURCE_API_KHR, GL_DEBUG_TYPE_OTHER_KHR, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 		UE_LOG(LogRHI,Verbose,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
 	}
@@ -697,6 +697,7 @@ static void InitRHICapabilitiesForGL()
 	GMaxShadowDepthBufferSizeX = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096); // Limit to the D3D11 max.
 	GMaxShadowDepthBufferSizeY = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096);
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
+	GRHISupportsInstancing = FOpenGL::SupportsInstancing(); // HTML5 does not support it. Android supports it with OpenGL ES3.0+ 
 
 	GSupportsHDR32bppEncodeModeIntrinsic = FOpenGL::SupportsHDR32bppEncodeModeIntrinsic();
 
@@ -1022,7 +1023,7 @@ static void CheckVaryingLimit()
 		UE_LOG(LogRHI, Display, TEXT("Testing for gl_FragCoord requiring a varying since mosaic is enabled"));
 		FOpenGL::bIsCheckingShaderCompilerHacks = true;
 
-		const ANSICHAR* TestVertexProgram = "\n"
+		static const ANSICHAR* TestVertexProgram = "\n"
 			"#version 100\n"
 			"attribute vec4 in_ATTRIBUTE0;\n"
 			"attribute vec4 in_ATTRIBUTE1;\n"
@@ -1046,7 +1047,7 @@ static void CheckVaryingLimit()
 			"   TexCoord7 = in_ATTRIBUTE1 * vec4(0.56,0.66,0.76,0.86);\n"
 			"	gl_Position.xyzw = in_ATTRIBUTE0;\n"
 			"}\n";
-		const ANSICHAR* TestFragmentProgram = "\n"
+		static const ANSICHAR* TestFragmentProgram = "\n"
 			"#version 100\n"
 			"varying highp vec4 TexCoord0;\n"
 			"varying highp vec4 TexCoord1;\n"
@@ -1061,35 +1062,39 @@ static void CheckVaryingLimit()
 			"   gl_FragColor = TexCoord0 * TexCoord1 * TexCoord2 * TexCoord3 * TexCoord4 * TexCoord5 * TexCoord6 * TexCoord7 * gl_FragCoord.xyxy;"
 			"}\n";
 
-		FOpenGLCodeHeader Header;
-		Header.FrequencyMarker = 0x5653;
-		Header.GlslMarker = 0x474c534c;
-		TArray<uint8> VertexCode;
+		FShaderCode VertexShaderCode;
 		{
-			FMemoryWriter Writer(VertexCode);
+			FOpenGLCodeHeader Header;
+			Header.FrequencyMarker = 0x5653;
+			Header.GlslMarker = 0x474c534c;
+
+			FMemoryWriter Writer(VertexShaderCode.GetWriteAccess(), true);
 			Writer << Header;
-			Writer.Serialize((void*)(TestVertexProgram), strlen(TestVertexProgram) + 1);
+			Writer.Serialize((void*)TestVertexProgram, sizeof(TestVertexProgram));
 			Writer.Close();
 		}
-		Header.FrequencyMarker = 0x5053;
-		Header.GlslMarker = 0x474c534c;
-		TArray<uint8> FragmentCode;
+
+		FShaderCode FragmentShaderCode;
 		{
-			FMemoryWriter Writer(FragmentCode);
+			FOpenGLCodeHeader Header;
+			Header.FrequencyMarker = 0x5053;
+			Header.GlslMarker = 0x474c534c;
+
+			FMemoryWriter Writer(FragmentShaderCode.GetWriteAccess(), true);
 			Writer << Header;
-			Writer.Serialize((void*)(TestFragmentProgram), strlen(TestFragmentProgram) + 1);
+			Writer.Serialize((void*)(TestFragmentProgram), sizeof(TestFragmentProgram));
 			Writer.Close();
 		}
 
 		// Try to compile test shaders
-		TRefCountPtr<FOpenGLVertexShader> VertexShader = (FOpenGLVertexShader*)(RHICreateVertexShader(VertexCode).GetReference());
+		TRefCountPtr<FOpenGLVertexShader> VertexShader = (FOpenGLVertexShader*)(RHICreateVertexShader(VertexShaderCode.GetReadAccess()).GetReference());
 		if (!VerifyCompiledShader(VertexShader->Resource, TestVertexProgram, false))
 		{
 			UE_LOG(LogRHI, Warning, TEXT("Vertex shader for varying test failed to compile. Try running anyway."));
 			FOpenGL::bIsCheckingShaderCompilerHacks = false;
 			return;
 		}
-		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(FragmentCode).GetReference());
+		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(FragmentShaderCode.GetReadAccess()).GetReference());
 		if (!VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
 		{
 			UE_LOG(LogRHI, Warning, TEXT("Fragment shader for varying test failed to compile. Try running anyway."));
@@ -1127,7 +1132,7 @@ static void CheckTextureCubeLodSupport()
 		FOpenGL::bIsCheckingShaderCompilerHacks = true;
 
 		// This code creates a sample program and finds out which hacks are required to compile it
-		const ANSICHAR* TestFragmentProgram = "\n"
+		static const ANSICHAR TestFragmentProgram[] = "\n"
 			"#version 100\n"
 			"#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n"
 			"#extension GL_EXT_shader_texture_lod : enable\n"
@@ -1145,23 +1150,22 @@ static void CheckTextureCubeLodSupport()
 			"	gl_FragColor = textureCubeLodEXT(Texture,TexCoord, 4.0);\n"
 			"}\n";
 
-		/*TArray<uint8> Code;
-		Code.Add( strlen( TestFragmentProgram ) + 1 );
-		FMemory::Memcpy( Code.GetData(), TestFragmentProgram, Code.Num() );*/
-
 		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = false;
 		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
 
-		FOpenGLCodeHeader Header;
-		Header.FrequencyMarker = 0x5053;
-		Header.GlslMarker = 0x474c534c;
-		TArray<uint8> Code;
+		FShaderCode ShaderCode;
 		{
-			FMemoryWriter Writer(Code);
+			FOpenGLCodeHeader Header;
+			Header.FrequencyMarker = 0x5053;
+			Header.GlslMarker = 0x474c534c;
+
+			FMemoryWriter Writer(ShaderCode.GetWriteAccess(), true);
 			Writer << Header;
-			Writer.Serialize((void*)(TestFragmentProgram), strlen(TestFragmentProgram) + 1);
+			Writer.Serialize((void*)TestFragmentProgram, sizeof(TestFragmentProgram));
 			Writer.Close();
 		}
+		const TArray<uint8>& Code = ShaderCode.GetReadAccess();
+
 		// try to compile without any hacks
 		TRefCountPtr<FOpenGLPixelShader> PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
 
@@ -1230,7 +1234,7 @@ void FOpenGLDynamicRHI::Init()
 	VERIFY_GL_SCOPE();
 
 #if PLATFORM_DESKTOP
-	FShaderCache::InitShaderCache();
+	FShaderCache::InitShaderCache(SCO_Default, FOpenGL::GetMaxTextureImageUnits());
 #endif
 
 	InitializeStateResources();
@@ -1246,11 +1250,12 @@ void FOpenGLDynamicRHI::Init()
 	// Notify all initialized FRenderResources that there's a valid RHI device to create their RHI resources for now.
 	for(TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList());ResourceIt;ResourceIt.Next())
 	{
-		ResourceIt->InitDynamicRHI();
+		ResourceIt->InitRHI();
 	}
+	// Dynamic resources can have dependencies on static resources (with uniform buffers) and must initialized last!
 	for(TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList());ResourceIt;ResourceIt.Next())
 	{
-		ResourceIt->InitRHI();
+		ResourceIt->InitDynamicRHI();
 	}
 
 #if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
@@ -1290,6 +1295,10 @@ void FOpenGLDynamicRHI::Init()
 
 	CheckTextureCubeLodSupport();
 	CheckVaryingLimit();
+	
+#if PLATFORM_DESKTOP
+	FShaderCache::LoadBinaryCache();
+#endif
 }
 
 void FOpenGLDynamicRHI::Shutdown()

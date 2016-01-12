@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlueprintGraphDefinitions.h"
@@ -13,6 +13,8 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
+#include "BehaviorTreeGraphNode_SimpleParallel.h"
+#include "BehaviorTreeGraphNode_SubtreeTask.h"
 #include "GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"

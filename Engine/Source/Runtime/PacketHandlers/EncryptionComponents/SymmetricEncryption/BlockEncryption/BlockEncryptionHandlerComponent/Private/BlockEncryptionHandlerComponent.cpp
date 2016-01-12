@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlockEncryptionHandlerComponent.h"
 #include "XORBlockEncryptor.h"
@@ -222,14 +222,21 @@ uint32 BlockEncryptor::GetFixedBlockSize()
 }
 
 // MODULE INTERFACE
-HandlerComponent* FBlockEncryptionHandlerComponentModuleInterface::CreateComponentInstance()
+TSharedPtr<HandlerComponent> FBlockEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
 {
-	return new BlockEncryptionHandlerComponent;
-}
+	TSharedPtr<HandlerComponent> ReturnVal = NULL;
 
-HandlerComponent* FBlockEncryptionHandlerComponentModuleInterface::CreateComponentInstance(FString& Options)
-{
-	TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
-	TSharedPtr<FBlockEncryptorModuleInterface> BlockEncryptorInterface(static_cast<FBlockEncryptorModuleInterface*>(&(*Interface)));
-	return new BlockEncryptionHandlerComponent(BlockEncryptorInterface->CreateBlockEncryptorInstance());
+	if (!Options.IsEmpty())
+	{
+		TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*Options));
+		TSharedPtr<FBlockEncryptorModuleInterface> BlockEncryptorInterface(static_cast<FBlockEncryptorModuleInterface*>(&(*Interface)));
+
+		ReturnVal = MakeShareable(new BlockEncryptionHandlerComponent(BlockEncryptorInterface->CreateBlockEncryptorInstance()));
+	}
+	else
+	{
+		ReturnVal = MakeShareable(new BlockEncryptionHandlerComponent);
+	}
+
+	return ReturnVal;
 }

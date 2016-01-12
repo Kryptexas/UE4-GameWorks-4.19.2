@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2652851
 Availability: Public
 Title:2.4 - 트리거 달린 문
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -13,6 +13,23 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Blueprints_Advanced/2_3 "%Resources/ContentExamples/Blueprints_Advanced/2_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Blueprints_Advanced/2_5 "%Resources/ContentExamples/Blueprints_Advanced/2_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -35,7 +52,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ![](blueprint_advanced_2_4.png)
 
-## 개요
+
 
 **BP_Door** 블루프린트는 _박스 컴포넌트_ 트리거로 열리는 문을 만드는 것으로, 게임 생성시 흔히 사용될 수 있는 또하나의 예가 되기도 하며, 스크립트와 애니메이션이 내장되어 있어 추가적인 셋업이 필요치 않습니다.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
@@ -69,7 +69,9 @@ void FTestSharingInterface::RequestPermissionsToSharePosts()
 void FTestSharingInterface::OnStatusPostingPermissionsUpdated(int32 LocalUserNum, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface::OnStatusPostingPermissionsUpdated() - %d"), bWasSuccessful);
-	SharingInterface->ClearOnRequestNewPublishPermissionsCompleteDelegate_Handle(LocalUserNum, RequestPermissionsToPostToFeedDelegateHandles.FindRef(LocalUserNum));
+
+	FDelegateHandle DelegateHandle = RequestPermissionsToPostToFeedDelegateHandles.FindRef(LocalUserNum);
+	SharingInterface->ClearOnRequestNewPublishPermissionsCompleteDelegate_Handle(LocalUserNum, DelegateHandle);
 	RequestPermissionsToPostToFeedDelegateHandles.Remove(LocalUserNum);
 
 	if( ++ResponsesReceived == MAX_LOCAL_PLAYERS )
@@ -98,7 +100,8 @@ void FTestSharingInterface::OnPostShared(int32 LocalPlayer, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FTestSharingInterface::OnPostShared[PlayerIdx:%i - Successful:%i]"), LocalPlayer, bWasSuccessful);
 
-	SharingInterface->ClearOnSharePostCompleteDelegate_Handle(LocalPlayer, OnPostSharedDelegateHandles.FindRef(LocalPlayer));
+	FDelegateHandle DelegateHandle = OnPostSharedDelegateHandles.FindRef(LocalPlayer);
+	SharingInterface->ClearOnSharePostCompleteDelegate_Handle(LocalPlayer, DelegateHandle);
 	OnPostSharedDelegateHandles.Remove(LocalPlayer);
 	if( ++ResponsesReceived == MAX_LOCAL_PLAYERS )
 	{
@@ -128,7 +131,9 @@ void FTestSharingInterface::RequestPermissionsToReadNewsFeed()
 void FTestSharingInterface::OnReadFeedPermissionsUpdated(int32 LocalUserNum, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface::OnReadFeedPermissionsUpdated() - %d"), bWasSuccessful);
-	SharingInterface->ClearOnRequestNewReadPermissionsCompleteDelegate_Handle(LocalUserNum, RequestPermissionsToReadFeedDelegateHandles.FindRef(LocalUserNum));
+
+	FDelegateHandle DelegateHandle = RequestPermissionsToReadFeedDelegateHandles.FindRef(LocalUserNum);
+	SharingInterface->ClearOnRequestNewReadPermissionsCompleteDelegate_Handle(LocalUserNum, DelegateHandle);
 	RequestPermissionsToReadFeedDelegateHandles.Remove(LocalUserNum);
 
 	if( ++ResponsesReceived == MAX_LOCAL_PLAYERS )
@@ -176,7 +181,8 @@ void FTestSharingInterface::OnNewsFeedRead(int32 LocalPlayer, bool bWasSuccessfu
 		}
 	}
 
-	SharingInterface->ClearOnReadNewsFeedCompleteDelegate_Handle(LocalPlayer, OnNewsFeedReadDelegateHandles.FindRef(LocalPlayer));
+	FDelegateHandle DelegateHandle = OnNewsFeedReadDelegateHandles.FindRef(LocalPlayer);
+	SharingInterface->ClearOnReadNewsFeedCompleteDelegate_Handle(LocalPlayer, DelegateHandle);
 	if( ++ResponsesReceived == MAX_LOCAL_PLAYERS )
 	{
 		UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface TESTS COMPLETED"), LocalPlayer, bWasSuccessful);

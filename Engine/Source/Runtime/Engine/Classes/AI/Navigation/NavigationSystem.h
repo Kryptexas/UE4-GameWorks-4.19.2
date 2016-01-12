@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -85,19 +85,18 @@ namespace FNavigationSystem
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
 {
-	// Begin FExec Interface
+	//~ Begin FExec Interface
 	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	// End FExec Interface
+	//~ End FExec Interface
 };
 
 namespace ENavigationBuildLock
 {
 	enum Type
 	{
-		LoadingAreas = 1 << 1,			// navigation areas are being loaded
-		NoUpdateInEditor = 1 << 2,		// editor doesn't allow automatic updates
-		InitialLock = 1 << 3,			// initial lock, release manually after levels are ready for rebuild (e.g. streaming)
-		Custom = 1 << 4,
+		NoUpdateInEditor = 1 << 1,		// editor doesn't allow automatic updates
+		InitialLock = 1 << 2,			// initial lock, release manually after levels are ready for rebuild (e.g. streaming)
+		Custom = 1 << 3,
 	};
 }
 
@@ -297,13 +296,13 @@ public:
 
 	/** Finds path instantly, in a FindPath Synchronously. 
 	 *	@param PathfindingContext could be one of following: NavigationData (like Navmesh actor), Pawn or Controller. This parameter determines parameters of specific pathfinding query */
-	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (WorldContext="WorldContext"))
 	static UNavigationPath* FindPathToLocationSynchronously(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, AActor* PathfindingContext = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Finds path instantly, in a FindPath Synchronously. Main advantage over FindPathToLocationSynchronously is that 
 	 *	the resulting path with automatically get updated if goal actor moves more then TetherDistance away from last path node
 	 *	@param PathfindingContext could be one of following: NavigationData (like Navmesh actor), Pawn or Controller. This parameter determines parameters of specific pathfinding query */
-	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (WorldContext="WorldContext"))
 	static UNavigationPath* FindPathToActorSynchronously(UObject* WorldContext, const FVector& PathStart, AActor* GoalActor, float TetherDistance = 50.f, AActor* PathfindingContext = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Performs navigation raycast on NavigationData appropriate for given Querier.
@@ -369,13 +368,13 @@ public:
 		CleanupUnsafe,
 	};
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
 	virtual void Tick(float DeltaSeconds);	
 
@@ -394,7 +393,7 @@ protected:
 
 public:
 	//----------------------------------------------------------------------//
-	// Public querying interface                                                                
+	//~ Begin Public querying Interface                                                                
 	//----------------------------------------------------------------------//
 	/** 
 	 *	Synchronously looks for a path from @fLocation to @EndLocation for agent with properties @AgentProperties. NavData actor appropriate for specified 
@@ -440,40 +439,40 @@ public:
 	 *	@param ResultLocation Found point is put here
 	 *	@param NavData If NavData == NULL then MainNavData is used.
 	 *	@return true if any location found, false otherwise */
-	bool GetRandomPoint(FNavLocation& ResultLocation, ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL);
+	bool GetRandomPoint(FNavLocation& ResultLocation, ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL);
 
 	/** Finds random, reachable point in navigable space restricted to Radius around Origin
 	 *	@param ResultLocation Found point is put here
 	 *	@param NavData If NavData == NULL then MainNavData is used.
 	 *	@return true if any location found, false otherwise */
-	bool GetRandomReachablePointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	bool GetRandomReachablePointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL) const;
 
 	/** Finds random, point in navigable space restricted to Radius around Origin. Resulting location is not tested for reachability from the Origin
 	 *	@param ResultLocation Found point is put here
 	 *	@param NavData If NavData == NULL then MainNavData is used.
 	 *	@return true if any location found, false otherwise */
-	bool GetRandomPointInNavigableRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	bool GetRandomPointInNavigableRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL) const;
 	
 	/** Calculates a path from PathStart to PathEnd and retrieves its cost. 
 	 *	@NOTE potentially expensive, so use it with caution */
-	ENavigationQueryResult::Type GetPathCost(const FVector& PathStart, const FVector& PathEnd, float& PathCost, const ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	ENavigationQueryResult::Type GetPathCost(const FVector& PathStart, const FVector& PathEnd, float& PathCost, const ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL) const;
 
 	/** Calculates a path from PathStart to PathEnd and retrieves its overestimated length.
 	 *	@NOTE potentially expensive, so use it with caution */
-	ENavigationQueryResult::Type GetPathLength(const FVector& PathStart, const FVector& PathEnd, float& PathLength, const ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	ENavigationQueryResult::Type GetPathLength(const FVector& PathStart, const FVector& PathEnd, float& PathLength, const ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL) const;
 
 	/** Calculates a path from PathStart to PathEnd and retrieves its overestimated length and cost.
 	 *	@NOTE potentially expensive, so use it with caution */
-	ENavigationQueryResult::Type GetPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& PathLength, float& PathCost, const ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	ENavigationQueryResult::Type GetPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& PathLength, float& PathCost, const ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL) const;
 
 	// @todo document
-	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const FNavAgentProperties* AgentProperties = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL)
+	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const FNavAgentProperties* AgentProperties = NULL, FSharedConstNavQueryFilter QueryFilter = NULL)
 	{
 		return ProjectPointToNavigation(Point, OutLocation, Extent, AgentProperties != NULL ? GetNavDataForProps(*AgentProperties) : GetMainNavData(FNavigationSystem::DontCreate), QueryFilter);
 	}
 
 	// @todo document
-	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	bool ProjectPointToNavigation(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent = INVALID_NAVEXTENT, const ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL) const;
 
 	/** 
 	 * Looks for NavData generated for specified movement properties and returns it. NULL if not found;
@@ -493,7 +492,7 @@ public:
 
 	ANavigationData* GetAbstractNavData() const { return AbstractNavData; }
 
-	TSharedPtr<FNavigationQueryFilter> CreateDefaultQueryFilterCopy() const;
+	FSharedNavQueryFilter CreateDefaultQueryFilterCopy() const;
 
 	/** Super-hacky safety feature for threaded navmesh building. Will be gone once figure out why keeping TSharedPointer to Navigation Generator doesn't 
 	 *	guarantee its existence */
@@ -570,9 +569,6 @@ protected:
 	/** Processes registration of candidates queues via RequestRegistration and stored in NavDataRegistrationQueue */
 	void ProcessRegistrationCandidates();
 
-	/** registers NavArea classes awaiting registration in PendingNavAreaRegistration */
-	void ProcessNavAreaPendingRegistration();
-
 	/** registers CustomLinks awaiting registration in PendingCustomLinkRegistration */
 	void ProcessCustomLinkPendingRegistration();
 
@@ -597,10 +593,10 @@ public:
 	static void OnActorUnregistered(AActor* Actor);
 
 	/** update navoctree entry for specified actor/component */
-	static void UpdateNavOctree(AActor* Actor);
-	static void UpdateNavOctree(UActorComponent* Comp);
+	static void UpdateActorInNavOctree(AActor& Actor);
+	static void UpdateComponentInNavOctree(UActorComponent& Comp);
 	/** update all navoctree entries for actor and its components */
-	static void UpdateNavOctreeAll(AActor* Actor, bool bUpdateAttachedActors = true);
+	static void UpdateActorAndComponentsInNavOctree(AActor& Actor, bool bUpdateAttachedActors = true);
 	/** update all navoctree entries for actor and its non scene components after root movement */
 	static void UpdateNavOctreeAfterMove(USceneComponent* Comp);
 
@@ -698,7 +694,7 @@ public:
 	/** check if building is permanently locked to avoid showing navmesh building notify (due to queued dirty areas) */
 	FORCEINLINE bool IsNavigationBuildingPermanentlyLocked() const
 	{
-		return (NavBuildingLockFlags & ~(ENavigationBuildLock::LoadingAreas | ENavigationBuildLock::InitialLock)) != 0; 
+		return (NavBuildingLockFlags & ~ENavigationBuildLock::InitialLock) != 0; 
 	}
 
 	// @todo document
@@ -736,6 +732,8 @@ public:
 
 	/** */
 	virtual void OnWorldInitDone(FNavigationSystemRunMode Mode);
+
+	FORCEINLINE bool IsInitialized() const { return bWorldInitDone; }
 
 	/** adds BSP collisions of currently streamed in levels to octree */
 	void InitializeLevelCollisions();
@@ -785,7 +783,11 @@ public:
 
 	static FORCEINLINE bool ShouldUpdateNavOctreeOnComponentChange()
 	{
-		return bUpdateNavOctreeOnComponentChange;
+		return bUpdateNavOctreeOnComponentChange
+#if WITH_EDITOR
+			|| (GIsEditor && !GIsPlayInEditorWorld)
+#endif
+			;
 	}
 
 	/** 
@@ -826,7 +828,6 @@ protected:
 
 	// async queries
 	FCriticalSection NavDataRegistrationSection;
-	static FCriticalSection NavAreaRegistrationSection;
 	static FCriticalSection CustomLinkRegistrationSection;
 	
 #if WITH_EDITOR
@@ -837,9 +838,10 @@ protected:
 	/** set of locking flags applied on startup of navigation system */
 	uint8 InitialNavBuildingLockFlags;
 
-	uint8 bInitialSetupHasBeenPerformed:1;
-	uint8 bInitialLevelsAdded:1;
-	uint8 bAsyncBuildPaused:1;
+	uint8 bInitialSetupHasBeenPerformed : 1;
+	uint8 bInitialLevelsAdded : 1;
+	uint8 bWorldInitDone : 1;
+	uint8 bAsyncBuildPaused : 1;
 
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;
@@ -861,8 +863,7 @@ protected:
 	static bool bUpdateNavOctreeOnComponentChange;
 
 	static TMap<INavLinkCustomInterface*, FWeakObjectPtr> PendingCustomLinkRegistration;
-	static TArray<UClass*> PendingNavAreaRegistration;
-	static TArray<const UClass*> NavAreaClasses;
+	TSet<const UClass*> NavAreaClasses;
 	static TSubclassOf<UNavArea> DefaultWalkableArea;
 	static TSubclassOf<UNavArea> DefaultObstacleArea;
 
@@ -891,6 +892,9 @@ protected:
 	/** tries to register navigation area */
 	void RegisterNavAreaClass(UClass* NavAreaClass);
 
+	/** tries to unregister navigation area */
+	void UnregisterNavAreaClass(UClass* NavAreaClass);
+
 	void OnNavigationAreaEvent(UClass* AreaClass, ENavAreaEvent::Type Event);
 	
  	FSetElementId RegisterNavOctreeElement(UObject* ElementOwner, INavRelevantInterface* ElementInterface, int32 UpdateFlags);
@@ -915,6 +919,12 @@ protected:
 	DEPRECATED(4.8, "EnableAllGenerators is deprecated. Use AddNavigationBuildLock / RemoveNavigationBuildLock instead.")
 	void EnableAllGenerators(bool bEnable, bool bForce = false) {}
 
+	virtual void SpawnMissingNavigationData();
+
+	/** constructs a navigation data instance of specified NavDataClass, in passed World
+	*	for supplied NavConfig */
+	virtual ANavigationData* CreateNavigationDataInstance(const FNavDataConfig& NavConfig);
+
 private:
 	DEPRECATED(4.8, "NavigationBuildingLock is deprecated. Use AddNavigationBuildLock instead.")
 	void NavigationBuildingLock() { return AddNavigationBuildLock(ENavigationBuildLock::NoUpdateInEditor); }
@@ -924,12 +934,6 @@ private:
 
 	// adds navigation bounds update request to a pending list
 	void AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest);
-
-	void SpawnMissingNavigationData();
-
-	/** constructs a navigation data instance of specified NavDataClass, in passed World
-	 *	for supplied NavConfig */
-	virtual ANavigationData* CreateNavigationDataInstance(const FNavDataConfig& NavConfig);
 
 	/** Triggers navigation building on all eligible navigation data. */
 	void RebuildAll();
@@ -978,9 +982,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext", DeprecatedFunction, DeprecatedMessage = "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace"))
 	static FVector GetRandomPointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableRadius")
-	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
+	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, FSharedConstNavQueryFilter QueryFilter = NULL) const;
 	DEPRECATED(4.8, "GetRandomPoint is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableRadius")
 	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext", DeprecatedFunction, DeprecatedMessage = "GetRandomPoint is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace"))
 	static FVector GetRandomPoint(UObject* WorldContext, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+
+	DEPRECATED(4.11, "UpdateNavOctree is deprecated. Use UpdateActorInNavOctree")
+	static void UpdateNavOctree(AActor* Actor);
+	DEPRECATED(4.11, "UpdateNavOctree is deprecated. Use UpdateComponentInNavOctree")
+	static void UpdateNavOctree(UActorComponent* Comp);
+	DEPRECATED(4.11, "UpdateNavOctreeAll is deprecated. Use UpdateActorAndComponentsInNavOctree")
+	static void UpdateNavOctreeAll(AActor* Actor);
 };
 

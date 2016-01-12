@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshParticleVertexFactory.h: Mesh particle vertex factory definitions.
@@ -101,13 +101,9 @@ public:
 	{
 		FParticleVertexFactoryBase::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 
-		const bool bInstanced = IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES3_1);
-
 		// Set a define so we can tell in MaterialTemplate.usf when we are compiling a mesh particle vertex factory
 		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_FACTORY"),TEXT("1"));
-
-		// TODO: Set based on instancing.
-		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"),(uint32)(bInstanced ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"),(uint32) 1);
 	}
 
 	/**
@@ -174,3 +170,55 @@ protected:
 	/** Uniform buffer with mesh particle paramters. */
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;
 };
+
+
+class FMeshParticleVertexFactoryEmulatedInstancing : public FMeshParticleVertexFactory
+{
+	DECLARE_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactoryEmulatedInstancing);
+
+public:
+	FMeshParticleVertexFactoryEmulatedInstancing(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel, int32 InDynamicVertexStride, int32 InDynamicParameterVertexStride)
+		: FMeshParticleVertexFactory(InType, InFeatureLevel, InDynamicVertexStride, InDynamicParameterVertexStride)
+	{}
+
+	FMeshParticleVertexFactoryEmulatedInstancing()
+		: FMeshParticleVertexFactory()
+	{}
+
+	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	{
+		return (Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL) // Those are only platforms that might not support hardware instancing
+				&& FMeshParticleVertexFactory::ShouldCache(Platform, Material, ShaderType);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FMeshParticleVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+
+		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"), (uint32) 0);
+	}
+};
+
+inline FMeshParticleVertexFactory* ConstructMeshParticleVertexFactory()
+{
+	if (GRHISupportsInstancing)
+	{
+		return new FMeshParticleVertexFactory();
+	}
+	else
+	{
+		return new FMeshParticleVertexFactoryEmulatedInstancing();
+	}
+}
+
+inline FMeshParticleVertexFactory* ConstructMeshParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel, int32 InDynamicVertexStride, int32 InDynamicParameterVertexStride)
+{
+	if (GRHISupportsInstancing)
+	{
+		return new FMeshParticleVertexFactory(InType, InFeatureLevel, InDynamicVertexStride, InDynamicParameterVertexStride);
+	}
+	else
+	{
+		return new FMeshParticleVertexFactoryEmulatedInstancing(InType, InFeatureLevel, InDynamicVertexStride, InDynamicParameterVertexStride);
+	}
+}

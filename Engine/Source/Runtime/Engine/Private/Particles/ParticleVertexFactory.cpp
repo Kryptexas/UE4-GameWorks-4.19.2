@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleVertexFactory.cpp: Particle vertex factory implementation.
@@ -33,12 +33,32 @@ class FParticleSpriteVertexFactoryShaderParametersVS : public FParticleSpriteVer
 {
 public:
 
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
+	{
+		NumCutoutVerticesPerFrame.Bind(ParameterMap, TEXT("NumCutoutVerticesPerFrame"));
+		CutoutGeometry.Bind(ParameterMap, TEXT("CutoutGeometry"));
+	}
+
+	virtual void Serialize(FArchive& Ar) override
+	{
+		Ar << NumCutoutVerticesPerFrame;
+		Ar << CutoutGeometry;
+	}
+
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
 		FParticleSpriteVertexFactory* SpriteVF = (FParticleSpriteVertexFactory*)VertexFactory;
 		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
 		SetUniformBufferParameter(RHICmdList, VertexShaderRHI, Shader->GetUniformBufferParameter<FParticleSpriteUniformParameters>(), SpriteVF->GetSpriteUniformBuffer() );
+
+		SetShaderValue(RHICmdList, VertexShaderRHI, NumCutoutVerticesPerFrame, SpriteVF->GetNumCutoutVerticesPerFrame());
+		FShaderResourceViewRHIParamRef NullSRV = GNullColorVertexBuffer.VertexBufferSRV;
+		SetSRVParameter(RHICmdList, VertexShaderRHI, CutoutGeometry, SpriteVF->GetCutoutGeometrySRV() ? SpriteVF->GetCutoutGeometrySRV() : NullSRV);
 	}
+
+private:
+	FShaderParameter NumCutoutVerticesPerFrame;
+	FShaderResourceParameter CutoutGeometry;
 };
 
 class FParticleSpriteVertexFactoryShaderParametersPS : public FParticleSpriteVertexFactoryShaderParameters
@@ -63,8 +83,9 @@ public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
 
 	// Constructor.
-	FParticleSpriteVertexDeclaration(bool bInInstanced)
-		: bInstanced(bInInstanced)
+	FParticleSpriteVertexDeclaration(bool bInInstanced, int32 InNumVertsInInstanceBuffer) :
+		bInstanced(bInInstanced),
+		NumVertsInInstanceBuffer(InNumVertsInInstanceBuffer)
 	{
 
 	}
@@ -75,7 +96,7 @@ public:
 	virtual void FillDeclElements(FVertexDeclarationElementList& Elements, int32& Offset)
 	{
 		uint32 InitialStride = sizeof(float) * 2;
-		uint32 PerParticleStride = (sizeof(float) * 4) * 4;
+		uint32 PerParticleStride = (sizeof(float) * 4) * NumVertsInInstanceBuffer;
 
 		/** The stream to read the texture coordinates from. */
 		check( Offset == 0 );
@@ -136,21 +157,25 @@ public:
 private:
 
 	bool bInstanced;
+	int32 NumVertsInInstanceBuffer;
 };
 
 /** The simple element vertex declaration. */
-static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationInstanced(true);
-static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationNonInstanced(false);
+static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationInstanced(true, 4);
+static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteEightVertexDeclarationInstanced(true, 8);
+static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationNonInstanced(false, 4);
+static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteEightVertexDeclarationNonInstanced(false, 8);
 
-inline TGlobalResource<FParticleSpriteVertexDeclaration>& GetParticleSpriteVertexDeclaration(bool SupportsInstancing)
+inline TGlobalResource<FParticleSpriteVertexDeclaration>& GetParticleSpriteVertexDeclaration(bool SupportsInstancing, int32 NumVertsInInstanceBuffer)
 {
+	check(NumVertsInInstanceBuffer == 4 || NumVertsInInstanceBuffer == 8);
 	if (SupportsInstancing)
 	{
-		return GParticleSpriteVertexDeclarationInstanced;
+		return NumVertsInInstanceBuffer == 4 ? GParticleSpriteVertexDeclarationInstanced : GParticleSpriteEightVertexDeclarationInstanced;
 	}
 	else
 	{
-		return GParticleSpriteVertexDeclarationNonInstanced;
+		return NumVertsInInstanceBuffer == 4 ? GParticleSpriteVertexDeclarationNonInstanced : GParticleSpriteEightVertexDeclarationNonInstanced;
 	}
 }
 
@@ -176,12 +201,12 @@ void FParticleSpriteVertexFactory::ModifyCompilationEnvironment(EShaderPlatform 
 void FParticleSpriteVertexFactory::InitRHI()
 {
 	InitStreams();
-	SetDeclaration(GetParticleSpriteVertexDeclaration(RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()))).VertexDeclarationRHI);
+	SetDeclaration(GetParticleSpriteVertexDeclaration(GRHISupportsInstancing, NumVertsInInstanceBuffer).VertexDeclarationRHI);
 }
 
 void FParticleSpriteVertexFactory::InitStreams()
 {
-    const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
+    const bool bInstanced = GRHISupportsInstancing;
 
 	check(Streams.Num() == 0);
 	if(bInstanced) 
@@ -208,6 +233,12 @@ void FParticleSpriteVertexFactory::SetInstanceBuffer(const FVertexBuffer* InInst
 	InstanceStream.VertexBuffer = InInstanceBuffer;
 	InstanceStream.Stride = Stride;
 	InstanceStream.Offset = StreamOffset;
+}
+
+void FParticleSpriteVertexFactory::SetTexCoordBuffer(const FVertexBuffer* InTexCoordBuffer)
+{
+	FVertexStream& TexCoordStream = Streams[0];
+	TexCoordStream.VertexBuffer = InTexCoordBuffer;
 }
 
 void FParticleSpriteVertexFactory::SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride, bool bInstanced)

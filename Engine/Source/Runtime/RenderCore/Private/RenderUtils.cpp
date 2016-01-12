@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "RenderCore.h"
@@ -584,6 +584,11 @@ SIZE_T CalcTextureMipMapSize3D( uint32 TextureSizeX, uint32 TextureSizeY, uint32
 	uint32 ZExtent;
 	CalcMipMapExtent3D(TextureSizeX, TextureSizeY, TextureSizeZ, Format, MipIndex, XExtent, YExtent, ZExtent);
 
+	// Offset MipExtent to round up result
+	XExtent += GPixelFormats[Format].BlockSizeX - 1;
+	YExtent += GPixelFormats[Format].BlockSizeY - 1;
+	ZExtent += GPixelFormats[Format].BlockSizeZ - 1;
+
 	const uint32 XPitch = (XExtent / GPixelFormats[Format].BlockSizeX) * GPixelFormats[Format].BlockBytes;
 	const uint32 NumRows = YExtent / GPixelFormats[Format].BlockSizeY;
 	const uint32 NumLayers = ZExtent / GPixelFormats[Format].BlockSizeZ;
@@ -609,6 +614,9 @@ FIntPoint CalcMipMapExtent( uint32 TextureSizeX, uint32 TextureSizeY, EPixelForm
 SIZE_T CalcTextureMipMapSize( uint32 TextureSizeX, uint32 TextureSizeY, EPixelFormat Format, uint32 MipIndex )
 {
 	FIntPoint MipExtent = CalcMipMapExtent(TextureSizeX, TextureSizeY, Format, MipIndex);
+
+	// Offset MipExtent to round up result
+	MipExtent += FIntPoint(GPixelFormats[Format].BlockSizeX, GPixelFormats[Format].BlockSizeY) - FIntPoint(1, 1);
 
 	const uint32 Pitch = (MipExtent.X / GPixelFormats[Format].BlockSizeX) * GPixelFormats[Format].BlockBytes;
 	const uint32 NumRows = MipExtent.Y / GPixelFormats[Format].BlockSizeY;

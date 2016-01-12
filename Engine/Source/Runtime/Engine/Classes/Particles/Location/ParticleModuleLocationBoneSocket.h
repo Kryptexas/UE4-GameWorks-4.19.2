@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -98,25 +98,25 @@ class UParticleModuleLocationBoneSocket : public UParticleModuleLocationBase
 
 #endif // WITH_EDITORONLY_DATA
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
 	virtual void	FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
-	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32	RequiredBytes(UParticleModuleTypeDataBase* TypeData) override;
+	virtual uint32	RequiredBytesPerInstance() override;
 	virtual uint32	PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData) override;
 	virtual bool	TouchesMeshRotation() const override { return true; }
 	virtual void	AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp) override;
 	virtual bool CanTickInAnyThread() override
 	{
-		return false;
+		return true;
 	}
 #if WITH_EDITOR
 	virtual int32 GetNumberOfCustomMenuOptions() const override;
 	virtual bool GetCustomMenuEntryDisplayString(int32 InEntryIndex, FString& OutDisplayString) const override;
 	virtual bool PerformCustomMenuEntry(int32 InEntryIndex) override;
 #endif
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 
 	/**
 	 *	Retrieve the skeletal mesh component source to use for the current emitter instance.

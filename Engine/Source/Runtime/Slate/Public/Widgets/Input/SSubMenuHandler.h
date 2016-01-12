@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,10 +34,11 @@ public:
 	 * Requests that the sub-menu associated with this widget be toggled on or off.
 	 * It does not immediately toggle the menu.  After a set amount of time is passed the menu will toggle
 	 *
-	 * @param bOpenMenu	true to open the menu, false to close the menu if one is currently open
-	 * @param bClobber true if we want to open a menu when another menu is already open
+	 * @param bOpenMenu					true to open the menu, false to close the menu if one is currently open
+	 * @param bClobber					true if we want to open a menu when another menu is already open
+	 * @param const bool bImmediate		Default false, when true the menu will open immediately
 	 */
-	void RequestSubMenuToggle( bool bOpenMenu, const bool bClobber );
+	void RequestSubMenuToggle( bool bOpenMenu, const bool bClobber, const bool bImmediate = false);
 	
 	/**
 	 * Cancels any open requests to toggle a sub-menu       
@@ -49,6 +50,9 @@ public:
 	{
 		return MenuAnchor.IsValid();
 	}
+
+	/** Returns TRUE if the sub-menu is open */
+	bool IsSubMenuOpen() const;
 
 protected:
 	/** One-off delayed active timer to update the open/closed state of the sub menu. */

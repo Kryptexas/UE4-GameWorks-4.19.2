@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneColorSection.h"
@@ -79,56 +79,49 @@ FLinearColor UMovieSceneColorSection::Eval( float Position, const FLinearColor& 
 						AlphaCurve.Eval(Position, DefaultColor.A));
 }
 
-
-void UMovieSceneColorSection::AddKey( float Time, const FColorKey& Key, FKeyParams KeyParams )
+template<typename CurveType>
+CurveType* GetCurveForChannel( EKeyColorChannel Channel, CurveType* RedCurve, CurveType* GreenCurve, CurveType* BlueCurve, CurveType* AlphaCurve )
 {
-	Modify();
-
-	static FName RedName("R");
-	static FName GreenName("G");
-	static FName BlueName("B");
-	static FName AlphaName("A");
-
-	FName CurveName = Key.CurveName;
-
-	if ( (CurveName == NAME_None || CurveName == RedName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(RedCurve.Eval(Time), Key.Value.R) || RedCurve.GetNumKeys() == 0) )
+	switch ( Channel )
 	{
-		AddKeyToCurve(RedCurve, Time, Key.Value.R, KeyParams);
-	}
-
-	if ( (CurveName == NAME_None || CurveName == GreenName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(GreenCurve.Eval(Time), Key.Value.G) || GreenCurve.GetNumKeys() == 0) )
-	{
-		AddKeyToCurve(GreenCurve, Time, Key.Value.G, KeyParams);
-	}
-
-	if ( (CurveName == NAME_None || CurveName == BlueName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(BlueCurve.Eval(Time), Key.Value.B) || BlueCurve.GetNumKeys() == 0) )
-	{
-		AddKeyToCurve(BlueCurve, Time, Key.Value.B, KeyParams);
-	}
-
-	if ( (CurveName == NAME_None || CurveName == AlphaName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(AlphaCurve.Eval(Time), Key.Value.A) || AlphaCurve.GetNumKeys() == 0) )
-	{
-		AddKeyToCurve(AlphaCurve, Time, Key.Value.A, KeyParams);
+	case EKeyColorChannel::Red:
+		return RedCurve;
+	case EKeyColorChannel::Green:
+		return GreenCurve;
+	case EKeyColorChannel::Blue:
+		return BlueCurve;
+	case EKeyColorChannel::Alpha:
+		return AlphaCurve;
+	default:
+		checkf( false, TEXT( "Invalid key color channel" ) );
+		return nullptr;
 	}
 }
 
 
-bool UMovieSceneColorSection::NewKeyIsNewData(float Time, FLinearColor Value, FKeyParams KeyParams) const
+void UMovieSceneColorSection::AddKey( float Time, const FColorKey& Key, EMovieSceneKeyInterpolation KeyInterpolation )
 {
-	bool bHasEmptyKeys = 
-		RedCurve.GetNumKeys() == 0 ||
-		GreenCurve.GetNumKeys() == 0 ||
-		BlueCurve.GetNumKeys() == 0 ||
-		AlphaCurve.GetNumKeys() == 0;
+	FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, &RedCurve, &GreenCurve, &BlueCurve, &AlphaCurve );
+	AddKeyToCurve( *ChannelCurve, Time, Key.ChannelValue, KeyInterpolation );
+}
 
-	if ( bHasEmptyKeys || (KeyParams.bAutoKeying && !Eval(Time, Value).Equals(Value) ) )
-	{
-		return true;
-	}
 
-	return false;
+bool UMovieSceneColorSection::NewKeyIsNewData( float Time, const FColorKey& Key ) const
+{
+	const FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, &RedCurve, &GreenCurve, &BlueCurve, &AlphaCurve );
+	return FMath::IsNearlyEqual( ChannelCurve->Eval( Time ), Key.ChannelValue ) == false;
+}
+
+
+bool UMovieSceneColorSection::HasKeys( const FColorKey& Key ) const
+{
+	const FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, &RedCurve, &GreenCurve, &BlueCurve, &AlphaCurve );
+	return ChannelCurve->GetNumKeys() != 0;
+}
+
+
+void UMovieSceneColorSection::SetDefault( const FColorKey& Key )
+{
+	FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, &RedCurve, &GreenCurve, &BlueCurve, &AlphaCurve );
+	return SetCurveDefault( *ChannelCurve, Key.ChannelValue );
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -11,6 +11,7 @@
 #include "Editor/UnrealEd/Classes/Factories/Factory.h"
 #include "MeshUtilities.h"
 #include "ObjectTools.h"
+#include "HierarchicalLODUtilities.h"
 #endif // WITH_EDITOR
 
 #include "GameFramework/WorldSettings.h"
@@ -22,6 +23,8 @@
 #define CM_TO_METER		0.01f
 #define METER_TO_CM		100.0f
 
+
+
 /** Utility function to calculate overlap of two spheres */
 const float CalculateOverlap(const FSphere& ASphere, const float AFillingFactor, const FSphere& BSphere, const float BFillingFactor)
 {
@@ -31,17 +34,17 @@ const float CalculateOverlap(const FSphere& ASphere, const float AFillingFactor,
 		return 0.f;
 	}
 
-	if (ASphere.IsInside(BSphere, 1.f))
+	if (ASphere.IsInside(BSphere))
 	{
 		return ASphere.GetVolume();
 	}
 
-	if(BSphere.IsInside(ASphere, 1.f))
+	if(BSphere.IsInside(ASphere))
 	{
 		return BSphere.GetVolume();
 	}
 
-	if (ASphere.Equals(BSphere, 1.f))
+	if (ASphere.Equals(BSphere))
 	{
 		return ASphere.GetVolume();
 	}
@@ -90,16 +93,17 @@ const float CalculateFillingFactor(const FSphere& ASphere, const float AFillingF
 	// http://deim.urv.cat/~rivi/pub/3d/icra04b.pdf
 	// cost is calculated based on r^3 / filling factor
 	// since it subtract by AFillingFactor * 1/2 overlap volume + BfillingFactor * 1/2 overlap volume
-	return FMath::Max(0.f, (AFillingFactor * ASphere.GetVolume() + BFillingFactor * BSphere.GetVolume() - OverlapVolume) / UnionSphere.GetVolume());
+	return FMath::Max(0.0f, (AFillingFactor * ASphere.GetVolume() + BFillingFactor * BSphere.GetVolume() - OverlapVolume) / UnionSphere.GetVolume());
 }
 
 FLODCluster::FLODCluster(const FLODCluster& Other)
 : Actors(Other.Actors)
 , Bound(Other.Bound)
 , FillingFactor(Other.FillingFactor)
-, ClusterCost( FMath::Pow(Bound.W, 3) / FillingFactor )
+, ClusterCost(Other.ClusterCost)
 , bValid(Other.bValid)
 {
+	
 }
 
 FLODCluster::FLODCluster(AActor* Actor1)
@@ -109,7 +113,7 @@ FLODCluster::FLODCluster(AActor* Actor1)
 	AddActor(Actor1);
 	// calculate new filling factor
 	FillingFactor = 1.f;	
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+	ClusterCost = (Bound.W * Bound.W * Bound.W);
 }
 
 FLODCluster::FLODCluster(AActor* Actor1, AActor* Actor2)
@@ -121,16 +125,15 @@ FLODCluster::FLODCluster(AActor* Actor1, AActor* Actor2)
 	
 	// calculate new filling factor
 	FillingFactor = CalculateFillingFactor(Actor1Bound, 1.f, Actor2Bound, 1.f);	
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+	ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
 }
 
 FLODCluster::FLODCluster()
 : Bound(ForceInit)
 , bValid(false)
 {
-	// calculate new filling factor
-	FillingFactor = 1.f;
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+	FillingFactor = 1.0f;
+	ClusterCost = (Bound.W * Bound.W * Bound.W);
 }
 
 FSphere FLODCluster::AddActor(AActor* NewActor)
@@ -139,28 +142,10 @@ FSphere FLODCluster::AddActor(AActor* NewActor)
 	ensure (Actors.Contains(NewActor) == false);
 	Actors.Add(NewActor);
 	FVector Origin, Extent;
-#ifdef WITH_EDITORONLY_DATA
-	if (NewActor->IsA<ALODActor>())
-	{
-		ALODActor* LODActor = CastChecked<ALODActor>(NewActor);
 
-		if (LODActor->IsPreviewActorInstance())
-		{
-			Origin = LODActor->GetDrawSphereComponent()->GetComponentLocation();
-			Extent = FVector(LODActor->GetDrawSphereComponent()->GetScaledSphereRadius());
-		}
-		else
-		{
-			NewActor->GetActorBounds(false, Origin, Extent);
-		}
-	}
-	else
-#endif // WITH_EDITORONLY_DATA
-	{
-		NewActor->GetActorBounds(false, Origin, Extent);
-	}
+	NewActor->GetActorBounds(false, Origin, Extent);
 
-	// scale 0.01 (change to meter from centimeter) QQ Extens.GetSize	
+	// scale 0.01 (change to meter from centimeter)
 	FSphere NewBound = FSphere(Origin*CM_TO_METER, Extent.Size()*CM_TO_METER);
 	Bound += NewBound;
 
@@ -210,7 +195,9 @@ void FLODCluster::MergeClusters(const FLODCluster& Other)
 	// have to recalculate filling factor and bound based on cluster data
 	FillingFactor = CalculateFillingFactor(Bound, FillingFactor, Other.Bound, Other.FillingFactor);
 	Bound += Other.Bound;	
-	ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+
+	ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
+	
 
 	for (auto& Actor: Other.Actors)
 	{
@@ -246,7 +233,7 @@ void FLODCluster::SubtractCluster(const FLODCluster& Other)
 		Bound = FSphere(ForceInitToZero);
 		AddActor(NewActors[0]);
 		FillingFactor = 1.f;
-		ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+		ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
 	}
 	else if (NewActors.Num() >= 2)
 	{
@@ -269,23 +256,20 @@ void FLODCluster::SubtractCluster(const FLODCluster& Other)
 			Bound += NewBound;
 		}
 
-		ClusterCost = FMath::Pow(Bound.W, 3) / FillingFactor;
+		ClusterCost = ( Bound.W * Bound.W * Bound.W ) / FillingFactor;
 	}
 }
 
-void FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes)
+
+ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes)
 {
-	FColor Colours[8] = { FColor::Cyan, FColor::Red, FColor::Green, FColor::Blue, FColor::Yellow, FColor::Magenta, FColor::White, FColor::Black };
-	// do big size
 	if (InLevel && InLevel->GetWorld())
 	{
 		// create asset using Actors
 		const FHierarchicalSimplification& LODSetup = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx];
 
 		// Retrieve draw distance for current and next LOD level
-		const float DrawDistance = LODSetup.DrawDistance;		
 		const int32 LODCount = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup.Num();
-		const float NextDrawDistance = (LODIdx < (LODCount - 1)) ? InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx + 1].DrawDistance : 0.0f;
 
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = InLevel->GetOutermost(); // this asset is going to save with map, this means, I'll have to delete with it
@@ -293,13 +277,13 @@ void FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCr
 		{
 			TArray<UStaticMeshComponent*> AllComponents;
 
-			for (auto& Actor: Actors)
+			for (auto& Actor : Actors)
 			{
 				TArray<UStaticMeshComponent*> Components;
-				
+
 				if (Actor->IsA<ALODActor>())
 				{
-					ExtractStaticMeshComponentsFromLODActor(Actor, Components);
+					FHierarchicalLODUtilities::ExtractStaticMeshComponentsFromLODActor(Actor, Components);
 				}
 				else
 				{
@@ -312,106 +296,35 @@ void FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCr
 				AllComponents.Append(Components);
 			}
 
-			// it shouldn't even have come here if it didn't have any staticmesh
-			if (ensure(AllComponents.Num() > 0))
+			// Create LOD Actor
+			UWorld* LevelWorld = Cast<UWorld>(InLevel->GetOuter());
+			check(LevelWorld);
+
+			FTransform Transform;
+			ALODActor* NewActor = nullptr;
+
+			NewActor = LevelWorld->SpawnActor<ALODActor>(ALODActor::StaticClass(), Transform);
+			NewActor->LODLevel = LODIdx + 1;
+			NewActor->LODDrawDistance = 0.0f;			
+
+			// now set as parent
+			for (auto& Actor : Actors)
 			{
-				// In case we don't have outer generated assets should have same path as LOD level
-
-				const FString AssetsPath = AssetsOuter->GetName() + TEXT("/");
-				AActor* FirstActor = Actors[0];
-
-				TArray<UObject*> OutAssets;
-				FVector OutProxyLocation = FVector::ZeroVector;
-				UStaticMesh* MainMesh = nullptr;
-				if (bCreateMeshes)
-				{
-					// Generate proxy mesh and proxy material assets
-					IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-					// should give unique name, so use level + actor name
-					const FString PackageName = FString::Printf(TEXT("LOD_%s"), *FirstActor->GetName());
-					if (MeshUtilities.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
-					{
-						MeshUtilities.CreateProxyMesh(Actors, LODSetup.ProxySetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation);
-					}
-					else
-					{						
-						MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), LODSetup.MergeSetting, AssetsOuter, PackageName, LODIdx, OutAssets, OutProxyLocation, LODSetup.DrawDistance, true);
-					}
-
-					// we make it private, so it can't be used by outside of map since it's useless, and then remove standalone
-					for (auto& AssetIter : OutAssets)
-					{
-						AssetIter->ClearFlags(RF_Public | RF_Standalone);
-					}
-
-					
-					// set staticmesh
-					for (auto& Asset : OutAssets)
-					{
-						UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset);
-
-						if (StaticMesh)
-						{
-							MainMesh = StaticMesh;
-						}
-					}
-				}
-							
-
-				if (MainMesh || !bCreateMeshes)
-				{
-					UWorld* LevelWorld = Cast<UWorld>(InLevel->GetOuter());
-
-					check (LevelWorld);
-										
-					// create LODActors using the current Actors
-					ALODActor* NewActor = Cast<ALODActor>(LevelWorld->SpawnActor(ALODActor::StaticClass(), &OutProxyLocation, &FRotator::ZeroRotator));
-					NewActor->SubObjects = OutAssets;
-					NewActor->SubActors = Actors;
-					NewActor->LODLevel = LODIdx+1; 					
-					NewActor->LODDrawDistance = DrawDistance;
-					NewActor->SetStaticMesh( MainMesh );
-					NewActor->SetFolderPath("/HLODActors");											
-
-#if WITH_EDITORONLY_DATA						
-					// Setup sphere drawing visualization
-					UDrawSphereComponent* SphereComponent = NewActor->GetDrawSphereComponent();
-					SphereComponent->SetSphereRadius(Bound.W * METER_TO_CM);
-					SphereComponent->SetWorldLocation(Bound.Center * METER_TO_CM);					
-					SphereComponent->ShapeColor = Colours[LODIdx % 7];
-					SphereComponent->MinDrawDistance = DrawDistance;
-					SphereComponent->LDMaxDrawDistance = NextDrawDistance;
-					SphereComponent->CachedMaxDrawDistance = NextDrawDistance;	
-#endif // WITH_EDITORONLY_DATA						
-					// now set as parent
-					for (auto& Actor : Actors)
-					{
-						Actor->SetLODParent(NewActor->GetStaticMeshComponent(), DrawDistance);
-					}					
-				}
+				NewActor->AddSubActor(Actor);
 			}
+
+			// Mark dirty according to whether or not this is a preview build
+			NewActor->SetIsDirty(!bCreateMeshes);
+
+			FHierarchicalLODUtilities::BuildStaticMeshForLODActor(NewActor, AssetsOuter, LODSetup, LODIdx);
+
+			return NewActor;
 		}
 	}
+
+	return nullptr;
 }
 
-void FLODCluster::ExtractStaticMeshComponentsFromLODActor(AActor* Actor, TArray<UStaticMeshComponent*> &InOutComponents)
-{
-	ALODActor* LODActor = CastChecked<ALODActor>(Actor);
-	for (auto& ChildActor : LODActor->SubActors)
-	{
-		TArray<UStaticMeshComponent*> ChildComponents;
-		if (ChildActor->IsA<ALODActor>())
-		{
-			ExtractStaticMeshComponentsFromLODActor(ChildActor, ChildComponents);
-		}
-		else
-		{
-			ChildActor->GetComponents<UStaticMeshComponent>(ChildComponents);
-		}
-		
-		InOutComponents.Append(ChildComponents);
-	}
-}
 
 bool FLODCluster::Contains(FLODCluster& Other) const
 {

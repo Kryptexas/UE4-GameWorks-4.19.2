@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,6 +44,7 @@ class UBehaviorTreeGraph : public UAIGraph
 	class UEdGraphNode* FindInjectedNode(int32 Index);
 	void ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphNode* NewNode);
 	void RebuildExecutionOrder();
+	void RebuildChildOrder(UEdGraphNode* ParentNode);
 	void SpawnMissingNodesForParallel();
 	void RemoveUnknownSubNodes();
 

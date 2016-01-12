@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "BoneControllers/AnimNode_LookAt.h"
@@ -166,11 +166,11 @@ void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 		// project target to the plane
 		FVector NewTarget = FVector::VectorPlaneProject(ToTarget, LookUpVector);
 		NewTarget.Normalize();
-		DeltaRot = FQuat::FindBetween(LookAtVector, NewTarget);
+		DeltaRot = FQuat::FindBetweenNormals(LookAtVector, NewTarget);
 	}
 	else
 	{
-		DeltaRot = FQuat::FindBetween(LookAtVector, ToTarget);
+		DeltaRot = FQuat::FindBetweenNormals(LookAtVector, ToTarget);
 	}
 
 	// transform current rotation to delta rotation
@@ -197,9 +197,9 @@ void FAnimNode_LookAt::InitializeBoneReferences(const FBoneContainer& RequiredBo
 	LookAtBone.Initialize(RequiredBones);
 }
 
-void FAnimNode_LookAt::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_LookAt::UpdateInternal(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_SkeletalControlBase::Update(Context);
+	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
 
 	AccumulatedInterpoolationTime = FMath::Clamp(AccumulatedInterpoolationTime+Context.GetDeltaTime(), 0.f, InterpolationTime);;
 }

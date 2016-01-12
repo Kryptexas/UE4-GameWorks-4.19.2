@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessGBufferHints.h: Post processing GBufferHints implementation.
@@ -15,7 +15,7 @@ class FRCPassPostProcessGBufferHints : public TRenderingCompositePassBase<2, 1>
 {
 public:
 	// constructor
-	FRCPassPostProcessGBufferHints();
+	FRCPassPostProcessGBufferHints(FRHICommandList& RHICmdList);
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;

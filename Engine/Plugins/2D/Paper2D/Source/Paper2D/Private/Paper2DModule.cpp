@@ -1,9 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "Paper2DModule.h"
-
-#include "Rendering/PaperBatchManager.h"
 
 DEFINE_STAT(STAT_PaperRender_SetSpriteRT);
 
@@ -27,13 +25,10 @@ public:
 		}
 
 		PaperAxisZ = FVector::CrossProduct(PaperAxisX, PaperAxisY);
-
-		FPaperBatchManager::Initialize();
 	}
 
 	virtual void ShutdownModule() override
 	{
-		FPaperBatchManager::Shutdown();
 	}
 };
 

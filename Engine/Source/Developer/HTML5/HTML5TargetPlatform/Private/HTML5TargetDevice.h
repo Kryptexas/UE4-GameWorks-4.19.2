@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5TargetDevice.h: Declares the HTML5TargetDevice class.
@@ -51,7 +51,7 @@ public:
 
 public:
 
-	// Begin ITargetDevice interface
+	//~ Begin ITargetDevice Interface
 
 	virtual bool Connect( ) override;
 
@@ -107,7 +107,7 @@ public:
 
 	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override;
 
-	// End ITargetDevice interface
+	//~ End ITargetDevice Interface
 
 private:
 

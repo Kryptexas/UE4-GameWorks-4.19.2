@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "LightmassLandscapeRender.h"
@@ -184,6 +184,7 @@ void RenderLandscapeMaterialForLightmass(const FLandscapeStaticLightingMesh* Lan
 			//SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
 
 			// Set the RHI render target.
+			RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RenderTarget->GetRenderTargetTexture());
 			::SetRenderTarget(RHICmdList, RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 			// disable depth test & writes
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());

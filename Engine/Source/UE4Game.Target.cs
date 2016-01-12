@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -67,7 +67,6 @@ public class UE4GameTarget : TargetRules
 		ModuleNames.Add("XmlParser");
 		ModuleNames.Add("UE4Game");
 		ModuleNames.Add("AITestSuite");
-		ModuleNames.Add("GameplayDebugger");
 		ModuleNames.Add("RuntimeAssetCache");
 		ModuleNames.Add("UnrealCodeAnalyzerTests");
 		ModuleNames.Add("JsonUtilities");

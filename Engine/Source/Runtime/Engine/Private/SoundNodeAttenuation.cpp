@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -54,9 +54,9 @@ void USoundNodeAttenuation::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT
 	if (Settings)
 	{
 		const FListener& Listener = AudioDevice->Listeners[0];
-		Settings->ApplyAttenuation(UpdatedParseParams.Transform, Listener.Transform.GetTranslation(), UpdatedParseParams.Volume, UpdatedParseParams.HighFrequencyGain);
-		UpdatedParseParams.OmniRadius = Settings->OmniRadius;
-		UpdatedParseParams.bUseSpatialization |= Settings->bSpatialize;
+
+		// Update this node's attenuation settings overrides
+		ActiveSound.ApplyAttenuation(UpdatedParseParams, Listener, Settings);
 	}
 	else
 	{

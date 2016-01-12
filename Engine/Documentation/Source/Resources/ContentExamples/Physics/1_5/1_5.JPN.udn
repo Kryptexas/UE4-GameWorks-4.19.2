@@ -1,9 +1,33 @@
-﻿INTSourceChangelist:2568567
+﻿INTSourceChangelist:2720029
 Availability:Public
 Title:1.5 - 物理コンストレイント
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理事例レベルの概要 例 1.5:物理コンストレイント
+Description: 物理のサンプル レベルの概要、サンプル 1.5:PhysicsContraints
+Related:Engine/Physics/PhysicsBodies
+Related:Engine/Physics/PhAT/HowTo
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/Constraints/ConstraintsUserGuide
+Related:Engine/Physics/Collision
+Related:Engine/Physics/PhysicalMaterials/Reference
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Physics/1_4 "%Resources/ContentExamples/Physics/1_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[物理のホーム](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Physics/1_6 "%Resources/ContentExamples/Physics/1_6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -51,15 +75,18 @@ Description: 物理事例レベルの概要 例 1.5:物理コンストレイン�
 [/REGION]
 
 
-[INCLUDE:Engine/Physics\Constraints\ConstraintsUserGuide#PhysXConstraints_001]
+**物理コンストレイント** は基本的にジョイントの一種です。2 つのアクタを接続し (おそらく 1 つは物理的にシミュレーションします)、制限や力を適用することもできます。アンリアル エンジン 4 は、 
+非常に柔軟なデータ ドリブンのコンストレイント システムです。オプションを変更するだけで、デザイナーは様々なジョイントを作成することができます。エンジンにはデフォルトでいくつかの 
+ジョイント タイプ (ボールとソケット、ヒンジ、プリズマティック (直動) ) があります。こららの違いは設定だけです。どのタイプのジョイントから初めても、ご自由に独自のコンフィギュレーションをつくる 
+ことができます。
 
-コンテンツの例では、左から右へ動きます。
+コンテンツ サンプルでは、左から右へ動きます。
 
-1. 最初の軸上ではフリーに揺れ、 2 番目の軸では 45 度に制限され、 twist axis (ひねり軸) でロックされます。
+1. 最初の軸上ではフリーに揺れ、2 番目の軸では 45 度に制限され、ひねり軸でロックされます。
 
-1. このキューブは **2 番目の角度のある揺れ** でのモーションはフリーで、それ以外ではロックされます。
+1. このキューブは **Angular Swing 2Motion** でのモーションはフリーで、それ以外ではロックされます。
 
-1. **Txist (ひねり軸)** 上ではフリーで、それ以外ではロックされます。
+1. **Txist** 上ではフリーで、それ以外ではロックされます。
 
 1. 最後のキューブは全ての軸でフリーです。
 

@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:2672918
+Availability:Docs
+Title:1.5 -  デフォルトのゲームモードを設定する
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
+Description:First Person Shooter プロジェクトのデフォルトのゲームモードの設定方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/1/4)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/1)
+	[/PARAM]
+	[PARAM:next]
+		[次のセクション](Programming/Tutorials/FirstPersonShooter/2)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+新たに追加したゲームモードのコンパイルに成功したので、このステップでは、**FPSProject** でデフォルトのゲームモードとして **FPSGameMode** を使用するように設定する必要があります。
+
+1.	**[Edit (編集)]** メニューで、**[Project Settings (プロジェクト設定)]** をクリックします。
+
+1.	**[Project Settings]** タブの左側にある **[Project]** の見出しで、**[Maps & Modes]** をクリックします。
+
+1.	Default GameMode のドロップダウンで **[FPSGameMode]** を選択します。
+
+	![](SettingFPSGameMode.png)
+
+1.	**[Project Settings]** メニューを閉じます。
+
+1.	レベルエディタのツールバーで、**[Play (再生)]** ボタンをクリックします。"We are using FPSGameMode." というメッセージがビューポートの左上隅に表示されます。
+
+	![](SectionResult.png)
+
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを押します。
+
+これで終わりです！以下について学習しました。
+
+&#x2713; 新規プロジェクトのセットアップ  
+&#x2713; C++ Class Wizard の使用  
+&#x2713; ログ メッセージをプロジェクトに追加  
+&#x2713; 初めての C++ Class のコンパイル  
+&#x2713; デフォルトのゲーム モードの設定
+
+これで次のセクションでキャラクターを実装する方法について学ぶ準備が整いました。
+
+%Steps%

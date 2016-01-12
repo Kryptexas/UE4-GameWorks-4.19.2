@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleSpriteVertexFactory.hlsl: Particle vertex factory shader code.
@@ -28,6 +28,12 @@ struct FVertexFactoryInput
 	float4 DynamicParameter			: ATTRIBUTE5;
 #endif	//USE_DYNAMIC_PARAMETERS
 	float2	TexCoord				: ATTRIBUTE4;
+	uint VertexId					: SV_VertexID;
+
+/** Optional instance ID for vertex layered rendering */
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint InstanceId	: SV_InstanceID;
+#endif
 };
 
 struct FVertexFactoryInterpolantsVSToPS
@@ -81,6 +87,10 @@ struct FVertexFactoryInterpolantsVSToPS
 #if USE_PARTICLE_SIZE
 	float2 ParticleSize : PARTICLE_SIZE;
 #endif
+
+#if INSTANCED_STEREO
+	nointerpolation uint PackedEyeIndex : PACKED_EYE_INDEX;
+#endif
 };
 
 struct FVertexFactoryIntermediates
@@ -98,6 +108,10 @@ struct FVertexFactoryIntermediates
 
 	/** The texture coordinate at this vertex. */
 	float4 TexCoord;
+#if NUM_MATERIAL_TEXCOORDS >= 3 //Unflipped UVs are placed in UVs 2-3
+	/** A second UV set. Always non-UV flipped. Allows use of UV flipping with Normal maps etc. */
+	float4 TexCoord_Unflipped;
+#endif
 	/** The sprite tangent in world space (+V). */
 	float3 TangentUp;
 	/** The sprite tangent in world space (+U). */
@@ -149,7 +163,7 @@ void SetUV(inout FVertexFactoryInterpolantsVSToPS Interpolants, int UVIndex, flo
 #endif
 
 /** Converts from vertex factory specific interpolants to a FMaterialPixelParameters, which is used by material inputs. */
-FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 PixelPosition)
+FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 SvPosition)
 {
 	// GetMaterialPixelParameters is responsible for fully initializing the result
 	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
@@ -170,7 +184,12 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	float SubImageLerp = Interpolants.TangentToWorld0AndInterp_Sizer.w;
 
 	#if GENERATE_SPHERICAL_PARTICLE_NORMALS && USE_PARTICLE_POSITION
-		Result.TangentToWorld = GetSphericalParticleNormal(PixelPosition.xyz + View.ViewOrigin.xyz, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
+		{	
+			// can be optimized
+			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+			float3 TranslatedWorldPosition = SvPositionToResolvedTranslatedWorld(SvPosition);
+			Result.TangentToWorld = GetSphericalParticleNormal(TranslatedWorldPosition + ResolvedView.WorldCameraOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
+		}
 	#else
 		Result.TangentToWorld = AssembleTangentToWorld(TangentToWorld0.xyz, TangentToWorld2);
 	#endif
@@ -258,6 +277,12 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 		Result.TexCoords[0] = Intermediates.TexCoord.xy;
 	#if NUM_MATERIAL_TEXCOORDS_VERTEX >= 2
 		Result.TexCoords[1] = Intermediates.TexCoord.zw;
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX >= 3
+		Result.TexCoords[2] = Intermediates.TexCoord_Unflipped.xy;
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX >= 4
+		Result.TexCoords[3] = Intermediates.TexCoord_Unflipped.zw;
+	#endif	// >= 4
+	#endif	// >= 3
 	#endif	// >= 2
 	#endif	// >= 1
 #endif	//NUM_MATERIAL_TEXCOORDS_VERTEX
@@ -291,11 +316,11 @@ float3 SafeNormalize(float3 V)
 void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorldPosition, out float3 OutRight, out float3 OutUp)
 {
 	// Select camera up/right vectors.
-	float3 CameraRight = lerp(View.ViewRight, SpriteVF.AxisLockRight.xyz, SpriteVF.AxisLockRight.w);
-	float3 CameraUp = lerp(-View.ViewUp, SpriteVF.AxisLockUp.xyz, SpriteVF.AxisLockUp.w);
+	float3 CameraRight = lerp(ResolvedView.ViewRight, SpriteVF.AxisLockRight.xyz, SpriteVF.AxisLockRight.w);
+	float3 CameraUp = lerp(-ResolvedView.ViewUp, SpriteVF.AxisLockUp.xyz, SpriteVF.AxisLockUp.w);
 
 	// Determine the vector from the particle to the camera and the particle's movement direction.
-	float3 CameraDirection		= SafeNormalize(View.ViewOrigin.xyz - WorldPosition.xyz);
+	float3 CameraDirection		= SafeNormalize(ResolvedView.WorldCameraOrigin - WorldPosition.xyz);
 	float3 ParticleDirection	= SafeNormalize(WorldPosition.xyz - OldWorldPosition.xyz);
 
 	// Tangent vectors for PSA_Velocity.
@@ -376,6 +401,56 @@ float3x3 CalcTangentBasis(FVertexFactoryIntermediates Intermediates)
 #endif
 }
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && !(MAC && COMPILER_GLSL)
+
+/** Number of vertices in each SubUV frame of CutoutGeometry. */
+uint NumCutoutVerticesPerFrame;
+
+/** SubUV animation bounding geometry used to minimize overdraw.  Each frame has its own polygon. */
+Buffer<float2> CutoutGeometry;
+
+#endif
+
+void ComputeBillboardUVs(FVertexFactoryInput Input, out float2 UVForPosition, out float2 UVForTexturing, out float2 UVForTexturingUnflipped)
+{
+	// Encoding the UV flip in the sign of the size data.
+	float2 UVFlip = sign(Input.SizeRotSubImage.xy);
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && !(MAC && COMPILER_GLSL)
+	BRANCH
+	if (NumCutoutVerticesPerFrame > 0)
+	{
+		// Avoid uint divide which is extremely slow on GCN
+		uint CutoutVertexIndex = (uint)fmod(Input.VertexId, NumCutoutVerticesPerFrame);
+		float NumFrames = SpriteVF.SubImageSize.x * SpriteVF.SubImageSize.y;
+		uint SubImageIndexInt = (uint)fmod(Input.SizeRotSubImage.w, NumFrames);
+
+		FLATTEN
+		if (UVFlip.x * UVFlip.y < 0)
+		{
+			// Reverse the winding order of the polygon when only flipping in one direction to counteract UV flipping
+			CutoutVertexIndex = NumCutoutVerticesPerFrame - 1 - CutoutVertexIndex;
+		}
+
+		// Fetch the billboard space positions from the appropriate frame of the preprocessed cutout geometry
+		UVForTexturing = UVForTexturingUnflipped = CutoutGeometry[SubImageIndexInt * NumCutoutVerticesPerFrame + CutoutVertexIndex];
+
+		// Invert positions on the billboard so that the cutout geometry still contains the visible portion
+		// This changes the winding order when only one direction is flipped
+		UVForPosition.x = UVFlip.x < 0.0 ? 1.0 - UVForTexturing.x : UVForTexturing.x;
+		UVForPosition.y = UVFlip.y < 0.0 ? 1.0 - UVForTexturing.y : UVForTexturing.y;
+	}
+	else
+#endif
+	{
+		UVForTexturing.x = UVFlip.x < 0.0 ? 1.0 - Input.TexCoord.x : Input.TexCoord.x;
+		UVForTexturing.y = UVFlip.y < 0.0 ? 1.0 - Input.TexCoord.y : Input.TexCoord.y;
+
+		// Note: not inverting positions, as that would change the winding order
+		UVForPosition = UVForTexturingUnflipped = Input.TexCoord.xy;
+	}
+}
+
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
 {
 	FVertexFactoryIntermediates Intermediates = (FVertexFactoryIntermediates)0;
@@ -391,19 +466,18 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.TangentUp = Up;
 	Intermediates.TangentRight = Right;
 
+	float2 UVForPosition;
+	float2 UVForTexturing;
+	float2 UVForTexturingUnflipped;
+	ComputeBillboardUVs(Input, UVForPosition, UVForTexturing, UVForTexturingUnflipped);
+
 	// Vertex position.
-	float4 VertexWorldPosition = float4(ParticleWorldPosition.xyz + View.PreViewTranslation,1);
+	float4 VertexWorldPosition = float4(ParticleWorldPosition.xyz + ResolvedView.PreViewTranslation,1);
 	float2 Size = abs(Input.SizeRotSubImage.xy);
-	VertexWorldPosition += Size.x * (Input.TexCoord.x + SpriteVF.PivotOffset.x) * float4(Right,0);
-	VertexWorldPosition += Size.y * (Input.TexCoord.y + SpriteVF.PivotOffset.y) * float4(Up,0);
+	VertexWorldPosition += Size.x * (UVForPosition.x + SpriteVF.PivotOffset.x) * float4(Right,0);
+	VertexWorldPosition += Size.y * (UVForPosition.y + SpriteVF.PivotOffset.y) * float4(Up,0);
 	Intermediates.VertexWorldPosition = VertexWorldPosition.xyz;
 	
-	//We encode the UV flip in the sign of the size data.
-	float2 UVFlip = sign(Input.SizeRotSubImage.xy);
-	float2 FlippedUV = Input.TexCoord.xy;
-	FlippedUV.x = UVFlip.x < 0.0 ? 1.0 - FlippedUV.x : FlippedUV.x;
-	FlippedUV.y = UVFlip.y < 0.0 ? 1.0 - FlippedUV.y : FlippedUV.y;
-
 	// SubUV.
 	float SubImageIndex = Input.SizeRotSubImage.w;
 	float SubImageLerp = frac(SubImageIndex);
@@ -413,8 +487,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float SubImageBH = fmod( SubImageB, SpriteVF.SubImageSize.x );
 	float SubImageAV = floor( SubImageA * SpriteVF.SubImageSize.z );
 	float SubImageBV = floor( SubImageB * SpriteVF.SubImageSize.z );
-	Intermediates.TexCoord.xy = (float2( SubImageAH, SubImageAV ) + FlippedUV) * SpriteVF.SubImageSize.zw ;
-	Intermediates.TexCoord.zw = (float2( SubImageBH, SubImageBV ) + FlippedUV) * SpriteVF.SubImageSize.zw ;
+	Intermediates.TexCoord.xy = (float2( SubImageAH, SubImageAV ) + UVForTexturing) * SpriteVF.SubImageSize.zw ;
+	Intermediates.TexCoord.zw = (float2(SubImageBH, SubImageBV) + UVForTexturing) * SpriteVF.SubImageSize.zw;
+#if NUM_MATERIAL_TEXCOORDS >= 3
+	Intermediates.TexCoord_Unflipped.xy = (float2(SubImageAH, SubImageAV) + UVForTexturingUnflipped) * SpriteVF.SubImageSize.zw;
+	Intermediates.TexCoord_Unflipped.zw = (float2(SubImageBH, SubImageBV) + UVForTexturingUnflipped) * SpriteVF.SubImageSize.zw;
+#endif
 	Intermediates.SubImageLerp = SubImageLerp;
 
 	Intermediates.Color = Input.Color;
@@ -427,6 +505,11 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 #if USE_PARTICLE_POSITION
 	float ParticleRadius = .5f * min(Input.SizeRotSubImage.x, Input.SizeRotSubImage.y);
 	Intermediates.PositionAndSize = float4(ParticleWorldPosition.xyz, ParticleRadius);
+
+#if GENERATE_SPHERICAL_PARTICLE_NORMALS
+	// Recenter the particle position for GENERATE_SPHERICAL_PARTICLE_NORMALS to use the right center.
+	Intermediates.PositionAndSize.xyz += Size.x * (SpriteVF.PivotOffset.x + .5) * Right + Size.y * (SpriteVF.PivotOffset.y + .5) * Up;
+#endif
 #endif
 
 #if USE_PARTICLE_VELOCITY
@@ -444,7 +527,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 #if USE_PARTICLE_LIGHTING_OFFSET
 	// Hash function based on the particle ID to generate a uniformly distributed 3d offset
 	float3 RandomParticleOffset = frac(Square(Input.OldPosition.w + 10) * float3(1361.456345, 2333.578, 3623.983)) * 2 - 1;
-	Intermediates.LightingPositionOffset = .5f * View.TranslucencyLightingVolumeInvSize[0].w * RandomParticleOffset;
+	Intermediates.LightingPositionOffset = .5f * Frame.TranslucencyLightingVolumeInvSize[0].w * RandomParticleOffset;
 #endif
 
 #if USE_PARTICLE_SIZE
@@ -541,6 +624,10 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	Interpolants.ParticleSize = Intermediates.ParticleSize;
 #endif
 
+#if INSTANCED_STEREO
+	Interpolants.PackedEyeIndex = 0;
+#endif
+
 	return Interpolants;
 }
 
@@ -559,3 +646,14 @@ float3x3 VertexFactoryGetTangentToLocal(FVertexFactoryInput Input, FVertexFactor
 {
 	return Intermediates.TangentToLocal;
 }
+
+#if INSTANCED_STEREO
+
+// Instanced stereo sets the eye index explicitly for instanced geometry
+uint InstancedEyeIndex;	 
+
+uint VertexFactoryGetEyeIndex(uint InstanceId)
+{
+	return InstancedEyeIndex & bIsInstancedStereo;
+}
+#endif

@@ -2,20 +2,21 @@ Availability:Public
 Title:Property Matrix
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Tool for viewing and editing multiple properties of multiple actors at the same time.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Editor/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
+		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/PropertyMatrix:title%
+		%Engine/UI/PropertyMatrix:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/PropertyMatrix:description%
+		%Engine/UI/PropertyMatrix:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/PropertyMatrix]
@@ -25,16 +26,16 @@ Description:Tool for viewing and editing multiple properties of multiple actors 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Editor/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
+		![%Engine/UI/PropertyMatrix:title%](Engine/UI/PropertyMatrix_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Editor/PropertyMatrix:title%
+		%Engine/UI/PropertyMatrix:title%
 	[/PARAM]
 	[PARAM:description]
-		%Editor/PropertyMatrix:description%
+		%Engine/UI/PropertyMatrix:description%
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/UI/PropertyMatrix]
@@ -94,7 +95,7 @@ the **Search** box will launch a **Property Matrix** bound with your current sel
 
 	![](open_matrix_details.png)
 
-* In the [](Engine/Content/Browser), make a selection of assets, **right-click**, and choose **Property Matrix** 
+* In the [](Engine/Content/Browser), make a selection of assets, **right-click**, choose **Asset Actions**, then choose **Bulk Edit via Property Matrix**. 
 from the context menu.
 
 	![](open_matrix_browser.png)

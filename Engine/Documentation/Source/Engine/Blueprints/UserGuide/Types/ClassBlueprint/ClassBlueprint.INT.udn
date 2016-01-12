@@ -2,6 +2,8 @@ Availability:Public
 Title:Blueprint Class
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:These define a new class or type of Actor which can then be placed as instances that behave like any other type of Actor.
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -129,13 +131,17 @@ Refer to the sections below for information on working with **Blueprint Classes*
 
 ## Data-Only Blueprint
 [EXCERPT:DataBlueprint]
-A **Data-Only Blueprint** is a _Blueprint Class_ that contains only the code (in the form of node graphs), variables, and components 
-inherited from its _parent_. These allow those inherited properties to be tweaked and modified, but no new elements can be added. 
+A **Data-Only Blueprint** is a Blueprint Class that contains only the code (in the form of node graphs), variables, and components 
+inherited from its parent. These allow those inherited properties to be tweaked and modified, but no new elements can be added. 
 These are essentially a replacement for archetypes and can be used to allow designers to tweak properties or set items with variations.
 		
-_Data-Only Blueprints_ are edited in a compact property editor, but can also be "converted" to full _Blueprints_ by simply adding code, 
+Data-Only Blueprint are edited in a compact property editor, but can also be "converted" to full Blueprints by simply adding code, 
 variables, or components using the full **Blueprint Editor**.
 [/EXCERPT:DataBlueprint]
+
+[REGION:note]
+Class Defaults can be accessed at runtime for data-only Blueprints through the **GetClassDefaults** Blueprint node. Please see the [Get Class Defaults](Engine\Blueprints\Editor\Modes\Defaults\DefaultsTab) for more information. 
+[/REGION]
 
 
 

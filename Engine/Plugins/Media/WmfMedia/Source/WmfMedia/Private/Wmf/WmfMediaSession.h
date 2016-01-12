@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,7 +54,7 @@ public:
 	 * @param InDuration The duration of the media.
 	 * @param InTopology The playback topology to use.
 	 */
-	FWmfMediaSession( const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology );
+	FWmfMediaSession(const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology);
 
 	/** Virtual destructor. */
 	virtual ~FWmfMediaSession() { }
@@ -179,6 +179,13 @@ public:
 		return ErrorEvent;
 	}
 
+	/** Gets an event delegate that is invoked when the last presentation segment finished playing. */
+	DECLARE_EVENT_OneParam(FWmfMediaSession, FOnSessionEvent, MediaEventType /*EventType*/)
+	FOnSessionEvent& OnSessionEvent()
+	{
+		return SessionEvent;
+	}
+
 public:
 
 	// IMFAsyncCallback interface
@@ -269,6 +276,9 @@ private:
 
 	/** Holds an event delegate that is invoked when an error occurred. */
 	FOnError ErrorEvent;
+
+	/** Holds an event delegate that is invoked when an event occurs in the session. */
+	FOnSessionEvent SessionEvent;
 };
 
 

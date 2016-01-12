@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRendering.h: Scene rendering definitions.
@@ -14,6 +14,7 @@
 
 // Forward declarations.
 class FPostprocessContext;
+struct FILCUpdatePrimTaskData;
 
 /** Information about a visible light which is specific to the view it's visible in. */
 class FVisibleLightViewInfo
@@ -323,8 +324,11 @@ public:
 	int32 Width;
 	int32 NumAlloc;
 	int32 MinDrawsPerCommandList;
+	// see r.RHICmdBalanceParallelLists
 	bool bBalanceCommands;
+	// see r.RHICmdSpewParallelListBalance
 	bool bSpewBalance;
+	bool bBalanceCommandsWithLastFrame;
 public:
 	TArray<FRHICommandList*,SceneRenderingAllocator> CommandLists;
 	TArray<FGraphEventRef,SceneRenderingAllocator> Events;
@@ -447,6 +451,9 @@ public:
 	/** The dynamic editor primitives visible in this view. */
 	TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> VisibleEditorPrimitives;
 
+	/** List of visible primitives with dirty precomputed lighting buffers */
+	TArray<FPrimitiveSceneInfo*,SceneRenderingAllocator> DirtyPrecomputedLightingBufferPrimitives;
+
 	/** View dependent global distance field clipmap info. */
 	FGlobalDistanceFieldInfo GlobalDistanceFieldInfo;
 
@@ -515,6 +522,12 @@ public:
 	uint32 bDisableDistanceBasedFadeTransitions : 1;
 	/** Whether the view has any materials that use the global distance field. */
 	uint32 bUsesGlobalDistanceField : 1;
+	uint32 bUsesLightingChannels : 1;
+	/** 
+	 * true if the scene has at least one decal. Used to disable stencil operations in the forward base pass when the scene has no decals.
+	 * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
+	 */
+	uint32 bSceneHasDecals : 1;
 	/** Bitmask of all shading models used by primitives in this view */
 	uint16 ShadingModelMaskInView;
 
@@ -557,8 +570,13 @@ public:
 
 	bool bIsSnapshot;
 
+	// Optional stencil dithering optimization during prepasses
+	bool bAllowStencilDither;
+
 	/** Custom visibility query for view */
 	ICustomVisibilityQuery* CustomVisibilityQuery;
+
+	TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> IndirectShadowPrimitives;
 
 	/** 
 	 * Initialization constructor. Passes all parameters to FSceneView constructor
@@ -576,8 +594,10 @@ public:
 	*/
 	~FViewInfo();
 
-	/** Creates the view's uniform buffer given a set of view transforms. */
-	TUniformBufferRef<FViewUniformShaderParameters> CreateUniformBuffer(
+	/** Creates the view's uniform buffers given a set of view transforms. */
+	void CreateUniformBuffer(
+		TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer, 
+		TUniformBufferRef<FFrameUniformShaderParameters>& OutFrameUniformBuffer, 
 		FRHICommandList& RHICmdList,
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
@@ -591,8 +611,18 @@ public:
 	/** Determines distance culling and fades if the state changes */
 	bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
-	/** Gets the eye adaptation render target for this view. */
-	IPooledRenderTarget* GetEyeAdaptation() const;
+	/** Gets the eye adaptation render target for this view. Same as GetEyeAdaptationRT */
+	IPooledRenderTarget* GetEyeAdaptation(FRHICommandList& RHICmdList) const;
+
+	/** Gets one of two eye adaptation render target for this view.
+	* NB: will return null in the case that the internal view state pointer
+	* (for the left eye in the stereo case) is null.
+	*/
+	IPooledRenderTarget* GetEyeAdaptationRT(FRHICommandList& RHICmdList) const;
+	IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const;
+
+	/**Swap the order of the two eye adaptation targets in the double buffer system */
+	void SwapEyeAdaptationRTs();
 
 	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
 	bool HasValidEyeAdaptation() const;
@@ -603,21 +633,54 @@ public:
 	/** Create acceleration data structure and information to do forward lighting with dynamic branching. */
 	void CreateLightGrid();
 
-	FORCEINLINE_DEBUGGABLE float GetDitheredLODTransitionValue(const FStaticMesh& Mesh) const
+	/** Instanced stereo only needs to render the left eye. */
+	bool ShouldRenderView() const 
 	{
-		float DitherValue = 0.0f;
+		if (!bIsInstancedStereoEnabled)
+		{
+			return true;
+		}
+		else if (StereoPass != eSSP_RIGHT_EYE)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE FMeshDrawingRenderState GetDitheredLODTransitionState(const FStaticMesh& Mesh, const bool bAllowStencil = false) const
+	{
+		FMeshDrawingRenderState DrawRenderState(EDitheredLODState::None, bAllowStencil);
+
 		if (Mesh.bDitheredLODTransition)
 		{
 			if (StaticMeshFadeOutDitheredLODMap[Mesh.Id])
 			{
-				DitherValue = GetTemporalLODTransition();
+				if (bAllowStencil)
+				{
+					DrawRenderState.DitheredLODState = EDitheredLODState::FadeOut;
+				}
+				else
+				{
+					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition();
+				}
 			}
 			else if (StaticMeshFadeInDitheredLODMap[Mesh.Id])
 			{
-				DitherValue = GetTemporalLODTransition() - 1.0f;
+				if (bAllowStencil)
+				{
+					DrawRenderState.DitheredLODState = EDitheredLODState::FadeIn;
+			}
+				else
+				{
+					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition() - 1.0f;
+		}
 			}
 		}
-		return DitherValue;
+
+		return DrawRenderState;
 	}
 
 	/** Create a snapshot of this view info on the scene allocator. */
@@ -733,7 +796,6 @@ public:
 	/** the last thing we do with a scene renderer, lots of cleanup related to the threading **/
 	static void WaitForTasksClearSnapshotsAndDeleteSceneRenderer(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer);
 
-
 protected:
 
 	// Shared functionality between all scene renderers
@@ -826,7 +888,7 @@ protected:
 	void ComputeViewVisibility(FRHICommandListImmediate& RHICmdList);
 
 	/** Performs once per frame setup after to visibility determination. */
-	void PostVisibilityFrameSetup();
+	void PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTaskData);
 
 	void GatherDynamicMeshElements(
 		TArray<FViewInfo>& InViews, 
@@ -860,8 +922,11 @@ protected:
 	void RenderDistortionES2(FRHICommandListImmediate& RHICmdList);
 
 	static int32 GetRefractionQuality(const FSceneViewFamily& ViewFamily);
-};
 
+	void UpdatePrimitivePrecomputedLightingBuffers();
+	void ClearPrimitiveSingleFramePrecomputedLightingBuffers();
+
+};
 
 /**
  * Renderer that implements simple forward shading and associated features.

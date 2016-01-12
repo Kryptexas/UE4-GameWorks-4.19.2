@@ -1,4 +1,4 @@
-﻿<%-- // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. --%>
+﻿<%-- // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<CrashViewModel>" %>
 <%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.Models" %>
@@ -127,7 +127,7 @@
 				<dd>	
 					<%if( Model.Crash.HasMiniDumpFile() ) 
 					{ %>
-						<a style='text-decoration:none;' href='<%=Model.Crash.GetMiniDumpUrl() %>'><img src="../../Content/Images/Icons/miniDump.png" style="height:20px;border:none;" />&nbsp;MiniDump</a>
+						<a style='text-decoration:none;' href='<%=Model.Crash.GetMiniDumpUrl() %>' title="<%=Model.Crash.GetDumpTitle()%>"><img src="../../Content/Images/Icons/miniDump.png" style="height:20px;border:none;" />&nbsp;<%=Model.Crash.GetDumpName() %></a>
 						<%
 					} %>
 				</dd>
@@ -136,6 +136,14 @@
 					<%if( Model.Crash.HasVideoFile() ) 
 					{ %>
 						<a id="VideoLink" style="text-decoration:none;" href='<%=Model.Crash.GetVideoUrl() %>'><img src="../../Content/Images/Icons/video.png" style="height:20px;border:none;" />&nbsp;Video</a>
+						<%
+					} %>
+				</dd>
+			<dt>&nbsp;</dt>
+				<dd>
+					<%if (Model.Crash.HasCrashContextFile() ) 
+					{ %>
+						<a id="A1" style="text-decoration:none;" href='<%=Model.Crash.GetCrashContextUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;CrashContext</a>
 						<%
 					} %>
 				</dd>

@@ -2,6 +2,7 @@ Availability:Public
 Title:Play In Editor Settings
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
 Description:Set up window sizes and other options for the Play-In feature
+Version: 4.9
 
 [TOC(start:2)]
 The **Play** settings panel can be opened two different ways:

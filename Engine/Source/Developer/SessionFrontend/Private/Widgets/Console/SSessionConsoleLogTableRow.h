@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,7 @@ public:
 	 *
 	 * @param InArgs The construction arguments.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 	{
 		HighlightText = InArgs._HighlightText;
 		LogMessage = InArgs._LogMessage;
@@ -35,7 +35,8 @@ public:
 
 	// SMultiColumnTableRow interface
 
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
+	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override
 	{
 		if (ColumnName == "Instance")
 		{
@@ -113,6 +114,7 @@ public:
 
 		return SNullWidget::NullWidget;
 	}
+	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 private:
 

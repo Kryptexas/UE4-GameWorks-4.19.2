@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Platforms
 Description:Developing games for the iOS platform.
 Platform:iOS
 Navigation:platform
-
+Version: 4.9
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

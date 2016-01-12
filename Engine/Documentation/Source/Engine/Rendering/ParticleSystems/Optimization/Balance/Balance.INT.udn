@@ -2,6 +2,7 @@ Availability: Public
 Title:Balancing Visuals with Performance
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:Making tradeoffs and using alternate methods to balance visual fidelity with performance cost.
+Version: 4.9
 
 
 

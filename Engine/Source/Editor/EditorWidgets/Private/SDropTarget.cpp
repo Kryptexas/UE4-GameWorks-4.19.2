@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorWidgetsPrivatePCH.h"
 
@@ -202,3 +202,5 @@ int32 SDropTarget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeom
 
 	return LayerId;
 }
+
+#undef LOCTEXT_NAMESPACE

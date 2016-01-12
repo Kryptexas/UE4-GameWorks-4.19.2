@@ -15,4 +15,4 @@ source SetupMono.sh "`dirname "$0"`"
 
 # pass all parameters to UBT
 echo 
-mono ../../../../Engine/Binaries/DotNET/UnrealBuildTool.exe -XcodeProjectFile -rocket "$@"
+mono ../../../../Engine/Binaries/DotNET/UnrealBuildTool.exe -XcodeProjectFile "$@"

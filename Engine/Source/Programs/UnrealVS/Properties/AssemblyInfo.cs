@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Reflection;
@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Epic Games, Inc.")]
 [assembly: AssemblyProduct("UnrealVS")]
-[assembly: AssemblyCopyright("Copyright 2014-2015 Epic Games, Inc.")]
+[assembly: AssemblyCopyright("Copyright 2014-2016 Epic Games, Inc.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]   
 [assembly: ComVisible(false)]     
@@ -31,8 +31,8 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("1.38.0.0")]
-[assembly: AssemblyFileVersion("1.38.0.0")]
+[assembly: AssemblyVersion("1.41.0.0")]
+[assembly: AssemblyFileVersion("1.41.0.0")]
 
 
 

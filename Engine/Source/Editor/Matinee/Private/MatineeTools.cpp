@@ -1,9 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "Matinee.h"
-#include "MatineeClasses.h"
-
+#include "Classes/InterpTrackHelper.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/MatineeActorCameraAnim.h"
 #include "Matinee/InterpTrackInst.h"
@@ -2399,7 +2398,7 @@ void FMatinee::CopySelectedGroupOrTrack(bool bCut)
 		// Add all the selected groups to the copy-paste buffer
 		for( FSelectedGroupIterator GroupIt(GetSelectedGroupIterator()); GroupIt; ++GroupIt )
 		{
-			UObject* CopiedObject = (UObject*)StaticDuplicateObject( *GroupIt, GetTransientPackage(), NULL );
+			UObject* CopiedObject = (UObject*)StaticDuplicateObject( *GroupIt, GetTransientPackage() );
 			GUnrealEd->MatineeCopyPasteBuffer.Add(CopiedObject);
 		}
 
@@ -2426,7 +2425,7 @@ void FMatinee::CopySelectedGroupOrTrack(bool bCut)
 			// Only allow base tracks to be copied.  Subtracks should never be copied because this could result in subtracks being pasted where they dont belong (like directly in groups).
 			if( Track->GetOuter()->IsA( UInterpGroup::StaticClass() ) )
 			{
-				UInterpTrack* CopiedTrack = (UInterpTrack*)StaticDuplicateObject(Track, GetTransientPackage(), NULL);
+				UInterpTrack* CopiedTrack = (UInterpTrack*)StaticDuplicateObject(Track, GetTransientPackage());
 				
 				// If we have keyframes selected in this track, make sure only those are included in the copy
 				if ( Opt->SelectedKeys.Num() > 0 )
@@ -2776,7 +2775,7 @@ UInterpTrack* FMatinee::AddTrackToGroup( UInterpGroup* Group, UClass* TrackClass
 	UInterpTrack* NewTrack = NULL;
 	if(TrackToCopy)
 	{
-		NewTrack = Cast<UInterpTrack>(StaticDuplicateObject( TrackToCopy, Group, NULL ));
+		NewTrack = Cast<UInterpTrack>(StaticDuplicateObject( TrackToCopy, Group ));
 	}
 	else
 	{
@@ -3280,7 +3279,7 @@ void FMatinee::DuplicateGroup(UInterpGroup* GroupToDuplicate)
 		IData->Modify();
 
 		// Create new InterpGroup.
-		UInterpGroup* NewGroup = (UInterpGroup*)StaticDuplicateObject( GroupToDuplicate, IData, TEXT("None"), RF_Transactional );
+		UInterpGroup* NewGroup = (UInterpGroup*)StaticDuplicateObject( GroupToDuplicate, IData, NAME_None, RF_Transactional );
 
 		if(!bDirGroup)
 		{
@@ -3946,7 +3945,9 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 	}
 
 	// Update ControllingActorViewInfo, so it is in sync with the updated viewport
+	bUpdatingCameraGuard = true;
 	InViewportClient->UpdateViewForLockedActor();
+	bUpdatingCameraGuard = false;
 }
 
 /** Restores a viewports' settings that were overridden by UpdateLevelViewport, where necessary. */
@@ -3993,6 +3994,12 @@ void FMatinee::RestoreLevelViewports()
 // If we are locking the camera to a particular actor - we update its location to match.
 void FMatinee::CamMoved(const FVector& NewCamLocation, const FRotator& NewCamRotation)
 {
+	// Don't update if we were in the middle of synchronizing the camera location.
+	if ( bUpdatingCameraGuard )
+	{
+		return;
+	}
+
 	// If cam not locked to something, do nothing.
 	AActor* ViewedActor = GetViewedActor();
 	if(ViewedActor)

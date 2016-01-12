@@ -1,8 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "TestStyle.h"
 
+#if !UE_BUILD_SHIPPING
 
 TSharedPtr< ISlateStyle > FTestStyle::Instance = nullptr;
 
@@ -396,3 +397,5 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 
 	return Style;
 }
+
+#endif // #if !UE_BUILD_SHIPPING

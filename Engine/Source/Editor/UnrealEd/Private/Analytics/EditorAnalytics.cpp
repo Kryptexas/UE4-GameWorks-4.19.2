@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "TargetPlatform.h"
@@ -55,51 +55,51 @@ public:
 			// Scoped lock
 			FSystemWideCriticalSection StoredValuesLock(EditorAnalyticsDefs::GlobalLockName, bWaitForLock ? EditorAnalyticsDefs::GlobalLockWaitTimeout : FTimespan::Zero());
 
-			// Get list of sessions in storage
+		// Get list of sessions in storage
 			if (StoredValuesLock.IsValid() && BeginReadWriteRecords())
+		{
+			TArray<FSessionRecord> SessionRecordsToDelete;
+
+			// Attempt check each stored session
+			for (FSessionRecord& Record : SessionRecords)
 			{
-				TArray<FSessionRecord> SessionRecordsToDelete;
+				FTimespan RecordAge = FDateTime::UtcNow() - Record.Timestamp;
 
-				// Attempt check each stored session
-				for (FSessionRecord& Record : SessionRecords)
+				if (Record.bCrashed)
 				{
-					FTimespan RecordAge = FDateTime::UtcNow() - Record.Timestamp;
-
-					if (Record.bCrashed)
-					{
-						// Crashed sessions
-						SessionRecordsToReport.Add(Record);
-						SessionRecordsToDelete.Add(Record);
-					}
+					// Crashed sessions
+					SessionRecordsToReport.Add(Record);
+					SessionRecordsToDelete.Add(Record);
+				}
 					else if (RecordAge > EditorAnalyticsDefs::SessionRecordExpiration)
-					{
-						// Delete expired session records
-						SessionRecordsToDelete.Add(Record);
-					}
-					else if (RecordAge > EditorAnalyticsDefs::SessionRecordTimeout)
-					{
-						// Timed out sessions
-						SessionRecordsToReport.Add(Record);
-						SessionRecordsToDelete.Add(Record);
-					}
-				}
-
-				for (FSessionRecord& DeletingRecord : SessionRecordsToDelete)
 				{
-					DeleteStoredRecord(DeletingRecord);
+					// Delete expired session records
+					SessionRecordsToDelete.Add(Record);
 				}
-
-				// Create a session record for this session
-				CreateAndWriteRecordForSession();
-
-				// Update and release list of sessions in storage
-				EndReadWriteRecords();
-
-				// Register for crash callbacks
-				FCoreDelegates::OnHandleSystemError.AddRaw(this, &FSessionManager::OnCrashing);
-
-				bInitialized = true;
+				else if (RecordAge > EditorAnalyticsDefs::SessionRecordTimeout)
+				{
+					// Timed out sessions
+					SessionRecordsToReport.Add(Record);
+					SessionRecordsToDelete.Add(Record);
+				}
 			}
+
+			for (FSessionRecord& DeletingRecord : SessionRecordsToDelete)
+			{
+				DeleteStoredRecord(DeletingRecord);
+			}
+
+			// Create a session record for this session
+			CreateAndWriteRecordForSession();
+
+			// Update and release list of sessions in storage
+			EndReadWriteRecords();
+
+			// Register for crash callbacks
+			FCoreDelegates::OnHandleSystemError.AddRaw(this, &FSessionManager::OnCrashing);
+
+			bInitialized = true;
+		}
 		}
 
 		for (FSessionRecord& ReportingSession : SessionRecordsToReport)
@@ -250,6 +250,35 @@ private:
 		SessionRecords.RemoveAll([&SessionId](const FSessionRecord& X){ return X.SessionId == SessionId; });
 	}
 
+	/**
+  	 * @EventName Editor.AbnormalShutdown
+	 *
+	 * @Trigger Fired only by the editor at startup, once for each "abnormal shutdown" detected that has not already been sent.
+	 *
+	 * @Type Static
+	 *
+	 * @EventParam SessionId Analytics SessionID of the session that abnormally terminated.
+	 * @EventParam EngineVersion EngineVersion of the session that abnormally terminated.
+	 * @EventParam ShutdownType - one of Crashed, Debugger, or AbormalShutdown
+	 *               * Crashed - we definitely detected a crash (whether or not a debugger was attached)
+	 *               * Debugger - the session crashed or shutdown abnormally, but we had a debugger attached at startup, so abnormal termination is much more likely because the user was debugging.
+	 *               * AbnormalShutdown - this happens when we didn't detect a normal shutdown, but none of the above cases is the cause.
+	 * @EventParam Timestamp - the UTC time of the last known time the crashed session was running, within 5 minutes.
+	 *
+	 * @TODO: Debugger should be a completely separate flag, since it's orthogonal to whether we detect a crash or shutdown.
+	 *
+	 * @Comments The editor will only try to check for abnormal terminations if it determines it is a real editor run (not a commandlet or PIE, or editor -game run), and the user has not disabled sending Engine Usage data to Epic via the Editor global preferences.
+	 *
+	 * SessionId can be used to find the actual session associated with this crash in the data.
+	 *
+	 * Use THIS instead of the current event's analytics AppVersion field, since the crash could be from an old version. Could technically be found by searching the data for the SessionId and checking the version there, but sending it here simplifies the backend processing and ensure we have the version here even if we never got the original events.
+	 *
+	 * If multiple versions of the editor or launched, this code will properly track each one and its shutdown status. So during startup, an editor instance may need to fire off several events.
+	 *
+	 * When attributing abnormal terminations to engine versions, be sure to use the EngineVersion associated with this event, and not the AppVersion. AppVersion is for the session that is currently sending the event, not for the session that crashed. That is why EngineVersion is sent separately.
+	 *
+	 * The editor updates this timestamp every 5 minutes, so we should know the time of the crash within 5 minutes. It should technically correlate with the last heartbeat we receive in the data for that session.
+	 */
 	void SendAbnormalShutdownReport(const FSessionRecord& Record)
 	{
 		FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
@@ -298,7 +327,7 @@ private:
 			CurrentSession.SessionId = FEngineAnalytics::GetProvider().GetSessionID();
 		}
 
-		CurrentSession.EngineVersion = GEngineVersion.ToString(EVersionComponent::Changelist);
+		CurrentSession.EngineVersion = FEngineVersion::Current().ToString(EVersionComponent::Changelist);
 		CurrentSession.Timestamp = FDateTime::UtcNow();
 		CurrentSession.bCrashed = false;
 		CurrentSession.bIsDebugger = FPlatformMisc::IsDebuggerPresent();

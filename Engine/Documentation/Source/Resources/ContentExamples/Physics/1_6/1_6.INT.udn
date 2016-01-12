@@ -3,12 +3,30 @@ Title:1.6 - Angular Motors
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:An overview of the Physics example level, example 1.6: PhysicsConstraints Angular Motors
 Related: Engine/Physics/PhysicsBodies
-Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/PhAT/HowTo
 Related: Engine/Physics/Constraints/ConstraintsReference
 Related: Engine/Physics/Constraints/ConstraintsUserGuide
 Related: Engine/Physics/Collision
-Related: Engine/Physics/PhysicalMaterials/PhysMatReference
+Related: Engine/Physics/PhysicalMaterials/Reference
+Version: 4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/Physics/1_5 "%Resources/ContentExamples/Physics/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Physics Home](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/Physics/1_7 "%Resources/ContentExamples/Physics/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -54,7 +72,7 @@ Related: Engine/Physics/PhysicalMaterials/PhysMatReference
 [/REGION]
 
 
-A constraint with an angular motor will essentially spin, but the detail is in **how** it spins. An angular motor **Driven by Velocity** will apply a constant force to essentially "spin," where as a **Driven by Position** will attempt to obtain an angle based on the size of the spring and dampening applied to said spring.
+A Physics Constraint with an **Angular Motor** will essentially spin, but the detail is in **how** it spins. An angular motor **Driven by Velocity** will apply a constant force to essentially "spin," where as a **Driven by Position** will attempt to obtain an angle based on the size of the spring and dampening applied to said spring.
 
 <div align="center">
 ![](physics_1_6_002.png)(h:300) ![](physics_1_6_003.png)(h:300)

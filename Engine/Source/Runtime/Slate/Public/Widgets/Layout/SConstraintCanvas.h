@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -110,6 +110,8 @@ public:
 	 */
 	FSlot& AddSlot()
 	{
+		Invalidate(EInvalidateWidget::Layout);
+
 		SConstraintCanvas::FSlot& NewSlot = *(new FSlot());
 		this->Children.Add( &NewSlot );
 		return NewSlot;

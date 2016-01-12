@@ -2,40 +2,318 @@ Availability: Public
 Title:Physics Constraint Reference
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:A reference for all the properties available on Physics Constraints in Unreal Editor.
+Version: 4.9
 
-[TOC(start:2)]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/Constraints/ConstraintsReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Constraints/ConstraintsReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Constraints/ConstraintsReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Constraints/ConstraintsReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
-[EXCERPT:PhysXConstraints_001]
-A constraint is basically a type of joint. It allows you to connect two Actors together (presumably one physically simulating), and also apply limits or forces. Unreal Engine 4 
-has a very flexible and data-driven constraint system that allows designers to make many different types of joints simply by changing some options. The engine has a few default 
-joint types (ball-and-socket, hinge, prismatic) but they only differ in their settings. You should feel free to start with any joint type and experiment with making your own 
-configurations.
-[/EXCERPT:PhysXConstraints_001]
 
-## Property Reference
 
-There are 3 ways to create PhysX Constraints: **Blueprint**, **Actor**, and in the **Physics Asset Tool** (**PhAT**).
+This page contains a reference listing of properties in the Physics Constraints. 
 
-### Actor Constraint
+## Properties
 
-| Property | Description |
-| -------- | ----------- |
-|[REGION:tablesection]Constraint[/REGION]||
-| **Constraint Actor 1** | %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
-| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
-| **Constraint Actor 2** | %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
-| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
-| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
-| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
-| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+Below are the properties for Physics Constraints separated by major category.
 
+[VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
+
+[VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		cons
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Constraint
+	[/PARAM]
+	[PARAM:content]
+		%p1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p1]
+
+![](propConstraint.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Constraint Actor 1** || %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
+| **Component Name 1** || %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **Constraint Actor 2** || %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
+| **Component Name 2** || %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **Joint Name** || %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** || %doxygen:FConstraintInstance::bDisableCollision% |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		proj
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Projection
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+![](propProjection.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Enable Projection** || %doxygen:FConstraintInstance::bEnableProjection% |
+| **Projection Linear Tolerance** || %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
+| **Projection Angular Tolerance** || %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		join
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Joint Presets
+	[/PARAM]
+	[PARAM:content]
+		%p3%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p3]
+
+![](propJointPresets.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Hinge** || Setup joint as hinge. A hinge joint allows motion only in one plane. |
+| **Prismatic** || Setup joint as prismatic. A prismatic joint allows only linear sliding movement. |
+| **Ball and Socket** || Setup joint as ball and socket. A Ball and Socket joint allows motion around an indefinite number of axes, which have one common center. |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linlim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Linear Limits
+	[/PARAM]
+	[PARAM:content]
+		%p4%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p4]
+
+![](propLinearLimits.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Linear XMotion** || %doxygen:FConstraintInstance::LinearXMotion% |
+| **Linear YMotion** || %doxygen:FConstraintInstance::LinearYMotion% |
+| **Linear ZMotion** || %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear Limit Size** || %doxygen:FConstraintInstance::LinearLimitSize% |
+[/REGION]
+
+### Advanced
+
+![](propLinearLimitsADV.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Linear Limit Soft** || %doxygen:FConstraintInstance::bLinearLimitSoft% |
+| **Linear Limit Stiffness** || %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Damping** || %doxygen:FConstraintInstance::LinearLimitDamping% |
+| **Linear Breakable** || %doxygen:FConstraintInstance::bLinearBreakable% |
+| **Linear Break Threshold** || %doxygen:FConstraintInstance::LinearBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		anglim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Angular Limits
+	[/PARAM]
+	[PARAM:content]
+		%p5%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p5]
+
+![](propsAngularLimits.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Angular Swing 1Motion** || %doxygen:FConstraintInstance::AngularSwing1Motion% |
+| **Angular Twist Motion** || %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Angular Swing 2Motion** || %doxygen:FConstraintInstance::AngularSwing2Motion% |
+| **Swing 1Limit Angle** || %doxygen:FConstraintInstance::Swing1LimitAngle% |
+| **Twist Limit Angle** || %doxygen:FConstraintInstance::TwistLimitAngle% |
+| **Swing 2Limit Angle** || %doxygen:FConstraintInstance::Swing2LimitAngle% |
+| **Angular Rotation Offset** || %doxygen:FConstraintInstance::AngularRotationOffset% |
+[/REGION]
+
+### Advanced
+
+![](propsAngularLimitsADV.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Swing Limit Soft** || %doxygen:FConstraintInstance::bSwingLimitSoft% |
+| **Swing Limit Stiffness** || %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Damping** || %doxygen:FConstraintInstance::SwingLimitDamping% |
+| **Twist Limit Soft** || %doxygen:FConstraintInstance::bTwistLimitSoft% |
+| **Twist Limit Stiffness** || %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Damping** || %doxygen:FConstraintInstance::TwistLimitDamping% |
+| **Angular Breakable** || %doxygen:FConstraintInstance::bAngularBreakable% |
+| **Angular Break Threshold** || %doxygen:FConstraintInstance::AngularBreakThreshold% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		linmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Linear Motor
+	[/PARAM]
+	[PARAM:content]
+		%p6%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p6]
+
+![](propLinearMotor.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Linear Position Drive** || %doxygen:FConstraintInstance::bLinearPositionDrive% |
+| **Linear Position Target** || %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Position Strength** || %doxygen:FConstraintInstance::LinearDriveSpring% |
+| **Linear Velocity Drive** || %doxygen:FConstraintInstance::bLinearVelocityDrive% |
+| **Linear Velocity Target** || %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Velocity Strength** || %doxygen:FConstraintInstance::LinearDriveDamping% |
+| **Max Linear Force** || %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+[/REGION]
+
+[/VAR]
+
+
+
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		angmot
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Angular Motor
+	[/PARAM]
+	[PARAM:content]
+		%p7%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p7]
+
+![](propsAngularMotor.png)
+
+[REGION:raw]
+| Property | %spacer% | Description |
+| --- | :---: | :--- |
+| **Angular Orientation Drive** || %doxygen:FConstraintInstance::bAngularOrientationDrive% |
+| **Angular Orientation Target** || %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Orientation Strength** || %doxygen:FConstraintInstance::AngularDriveSpring% |
+| **Angular Velocity Drive** || %doxygen:FConstraintInstance::bAngularVelocityDrive% |
+| **Angular Velocity Target** || %doxygen:FConstraintInstance::AngularVelocityTarget% |
+| **Angular Velocity Strength** || %doxygen:FConstraintInstance::AngularDriveDamping% |
+| **Max Angular Force** || %doxygen:FConstraintInstance::AngularDriveForceLimit% |
+| **Angular Drive Mode** || %doxygen:FConstraintInstance::AngularDriveMode% |
+[/REGION]
+
+[/VAR]
+
+
+
+<!--
 ![](PhysCon_JointPresets.png)(convert:false) 
 
 [INCLUDE:#presetTable]
 
 * For information on using **Physics Constraint Actor**, see: [**%Engine/Physics\Constraints\ConstraintsUserGuide:title%**](Engine/Physics\Constraints\ConstraintsUserGuide)
-<!--
+
 [EXCERPT:presetTable]
 | Joint Preset | Description |
 | --- | ---- |
@@ -43,7 +321,7 @@ There are 3 ways to create PhysX Constraints: **Blueprint**, **Actor**, and in t
 | **Prismatic** | _Locks_ the **Swing Motions**, _Locks_ the **Angular Twist Motion**, _Locks_ **Linear Y** and **Linear Z motions**, and sets **Linear ZMotion** to _Free_. Like a hydraulic piston. |
 | **Ball and Socket** | _Locks_ all **Linear Motions**, sets the **Swing Motions** and **Twist Motions** to _Free_. Completely free to rotate, similar to a punching bag or wrecking ball. |
 [/EXCERPT:presetTable]
--->
+
 
 ### Blueprint Constraint
 
@@ -116,19 +394,20 @@ There are 3 ways to create PhysX Constraints: **Blueprint**, **Actor**, and in t
 | **Linear YPosition Drive** | %doxygen:FConstraintInstance::bLinearYPositionDrive% |
 | **Linear ZPosition Drive** | %doxygen:FConstraintInstance::bLinearZPositionDrive% |
 | **Linear Position Target** | %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Position Strength** | Spring to apply to the linear drive.  |
 | **Linear Velocity Drive** | %doxygen:FConstraintInstance::bLinearVelocityDrive% |
 | **Linear Velocity Target** | %doxygen:FConstraintInstance::LinearVelocityTarget% |
-| **Linear Drive Spring** | %doxygen:FConstraintInstance::LinearDriveSpring% |
-| **Linear Drive Damping** | %doxygen:FConstraintInstance::LinearDriveDamping% |
-| **Linear Drive Force Limit** | %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+| **Linear Velocity Strength** | Damping to apply to the linear drive. |
+| **Max Linear Force** | Limit to the force the linear drive can apply. |
 |[REGION:tablesection]Angular Motor[/REGION]||
 | **Angular Orientation Drive** | %doxygen:FConstraintInstance::bAngularOrientationDrive% |
 | **Angular Orientation Target** | %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Position Strength** | Spring value to apply for the angular drive. |
 | **Angular Velocity Drive** | %doxygen:FConstraintInstance::bAngularVelocityDrive% |
 | **Angular Velocity Target** | %doxygen:FConstraintInstance::AngularVelocityTarget% |
-| **Angular Drive Force Limit** | %doxygen:FConstraintInstance::AngularDriveForceLimit% |
-| **Angular Drive Spring** | %doxygen:FConstraintInstance::AngularDriveSpring% |
-| **Angular Drive Damping** | %doxygen:FConstraintInstance::AngularDriveDamping% |
+| **Angular Velocity Strength** | Damping value to apply for the angular drive. |
+| **Max Angular Force ** | Limit to the force the angular drive can apply. |
+
 
 <!--
 
@@ -250,7 +529,7 @@ You can simulate joint friction using the drive settings. Turn on velocity drive
 You could simulate something like a punch-bag (a ball on the top of a vertical pole that can be knocked around) with a joint by first creating a ball-and-socket joint. Then turn on swing position drive and adjust the **AngularDriveSpring** and **AngularDriveDamping** until it springs nicely around the upright position when pushed. You could turn on swing limits as well to ensure that it cannot bend over too far.
 
 -->
- 
+-->
 
 
 

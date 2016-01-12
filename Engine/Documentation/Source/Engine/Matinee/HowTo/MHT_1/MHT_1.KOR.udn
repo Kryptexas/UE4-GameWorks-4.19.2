@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2604574
+﻿INTSourceChangelist:2663119
 Availability: Public
 Title:문 구성하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -46,17 +46,17 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 	
 1. **SM_DoorFrame** 스태틱 메시에 클릭한 다음 **레벨 뷰포트** 에 끌어 놓습니다.
 	
-	![](MHT1_DragFrame.png)(w:640)
+	![](MHT_DoorFrameDragIn.jpg)(w:640)
 
 1. 또 **Props** 폴더에서 **SM_Door** 스태틱 메시를 찾은 다음 **레벨 뷰포트** 에 끌어 놓습니다.
 
-	![](MHT1_DragDoor.png)(w:640)
+	![](MHT_DoorDragIn.jpg)(w:640)
 
 1. **콘텐츠 브라우저** 에서 **SM_Door** 스태틱 메시를 다시 찾은 다음 더블클릭하여 **스태틱 메시** 뷰어에서 엽니다.
 
 1. **디테일** 패널의 검색창에서 **Collision** 이라 입력한 다음 **Collision Complexity** 를 **Use Complex Collision as Simple** 로 설정합니다.
 
-	![](MHT1_DoorCollision.png)
+	![](MHT_CollisionComplexity.jpg)
 
 	_주: 위 단계로 문에 콜리전이 적용되도록 합니다._
 
@@ -72,7 +72,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 	
 1. **모드** 메뉴의 **기본** 탭 아래 **박스 트리거** 를 찾아 **레벨 뷰포트** 의 문틀 안에 끌어 놓습니다.
 
-	![](MHT1_DragTrigger.png)(w:640)
+	![](MHT_DragInBoxTrigger.jpg)(w:640)
 
 1. **디테일** 패널에서 **TriggerBox** 를 선택한 다음 **Shape** 섹션에서 **Box Extent** 에 대한 **X** 값을 **140** 으로 변경합니다. 
 
@@ -97,7 +97,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 1. **툴바** 메뉴에서 **마티네** 를 선택한 다음 **마티네 추가** 버튼을 클릭합니다.
 
-	![](MHT1_AddMatinee.png)(w:760)
+	![](MHT_AddMatinee.jpg)(w:760)
 
 1. **마티네** 되돌리기 경고창이 뜹니다. **계속** 버튼을 클릭하세요.
 
@@ -167,7 +167,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 1. **툴바** 메뉴에서 **블루프린트** 를 선택한 다음 **레벨 블루프린트 열기** 버튼을 클릭합니다.
 
-	![](MHT1_LevelBluerpint.png)(w:720)
+	![](MHT_OpenLvlBlueprint.jpg)(w:720)
 
 1. **레벨 블루프린트** 를 최소화시킨 다음 **레벨 뷰포트** 또는 **월드 아웃라이너** 를 통해 **MatineeActor** 를 클릭하여 선택합니다.
 
@@ -175,7 +175,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 1. **레벨 블루프린트** 창을 열고 **이벤트 그래프** 에 우클릭한 다음 맥락 메뉴에서 **MatineeActor 로의 레퍼런스 추가** 옵션을 선택합니다. 
 
-	![](MHT1_AddMatineeToBP.png)
+	![](MHT_MatineeReference.jpg)
 
 1. 그러면 **MatineeActor** 가 **레벨 블루프린트** 의 **이벤트 그래프** 에 추가됩니다.
 
@@ -217,7 +217,17 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 1. **레벨 블루프린트** 를 최소화시킨 다음 ![](MHT1_PlayButton.png) **플레이** 버튼을 눌러 에디터에서 플레이합니다. 
 
-	![](MHT1_SimpleDoor.gif)(w:480 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	Z2son2Wcgbo
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 ---
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,7 +20,7 @@ protected:
 		UWorld* World = NULL;
 
 		check(InComponent);
-		checkf(!InComponent->HasAnyFlags(RF_Unreachable), TEXT("%s"), *InComponent->GetFullName());
+		checkf(!InComponent->IsUnreachable(), TEXT("%s"), *InComponent->GetFullName());
 
 		if(InComponent->IsRegistered() && InComponent->GetWorld())
 		{

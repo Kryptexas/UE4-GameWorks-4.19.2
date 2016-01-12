@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620442
+﻿INTSourceChangelist:2638642
 Availability: Public
 Title:5. 2차 메뉴 제작
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -67,6 +67,11 @@ version:4.9
 
 	[REGION:note]게임 플레이 **버튼** 으로 메뉴를 비활성화시킨 이후, 게임에서 더이상 아무것도 할 수 없게 됩니다. 보통 이 시점에서 첫 레벨을 로드하고, 오프닝 동영상을 재생한 뒤 **폰** 을 스폰시켜 빙의하거나 하게 됩니다.[/REGION]
 
+1. 거의 아래와 같은 스크린샷이 두 개 생겼을 것입니다.
+
+	[![](FinalScreen.png)](FinalScreen.png)
+
+	[![](FinalScreen2.png)](FinalScreen2.png)
 
 ----
 
@@ -79,7 +84,7 @@ version:4.9
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -107,7 +112,7 @@ version:4.9
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -142,7 +147,7 @@ version:4.9
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"

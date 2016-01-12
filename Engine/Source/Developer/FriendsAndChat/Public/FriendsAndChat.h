@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,22 +8,12 @@
 
 #include "Core.h"
 #include "ModuleManager.h"
-#include "Http.h"
 #include "SlateBasics.h"
 #include "SlateStyle.h"
-#include "OnlineSubsystem.h"
-
 
 /* Interfaces
  *****************************************************************************/
-#include "IFriendsApplicationViewModel.h"
-#include "IChatDisplayService.h"
-#include "IChatSettingsService.h"
-#include "FriendsAndChatMessage.h"
-#include "FriendsAndChatUserSettings.h"
-#include "IFriendsAndChatManager.h"
 #include "IFriendsAndChatModule.h"
-#include "IFriendItem.h"
 #include "FriendsFontStyle.h"
 #include "FriendsComboStyle.h"
 #include "FriendsListStyle.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXLibs.cpp: PhysX library imports
@@ -25,7 +25,6 @@
 			HMODULE	APEX_LegacyHandle = 0;
 		#if WITH_APEX_CLOTHING
 				HMODULE	APEX_ClothingHandle = 0;
-				HMODULE APEX_Clothing_GPUHandle = 0;
 		#endif  //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
 #endif
@@ -35,10 +34,6 @@
  */
 void LoadPhysXModules()
 {
-
-// NOTE: You can change this, along with bShippingBuildsActuallyUseShippingPhysXLibraries in PhysX.Build.cs, to link with
-// pure Shipping PhysX binaries if you have those files available.  The performance and memory difference is fairly negligible.
-#define SHIPPING_BUILDS_ACTUALLY_USE_SHIPPING_PHYSX_LIBRARIES 0
 
 #if PLATFORM_WINDOWS
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/PhysX-3.3/");
@@ -67,13 +62,12 @@ void LoadPhysXModules()
 				APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructibleDEBUG_x64.dll"));
 				APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyDEBUG_x64.dll"));
 				#if WITH_APEX_CLOTHING
-					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingDEBUG_x64.dll"));
-					APEX_Clothing_GPUHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingGPUDEBUG_x64.dll"));					
+					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingDEBUG_x64.dll"));				
 				#endif //WITH_APEX_CLOTHING
 
 			#endif	//WITH_APEX
 
-		#elif (UE_BUILD_SHIPPING || UE_BUILD_TEST) && SHIPPING_BUILDS_ACTUALLY_USE_SHIPPING_PHYSX_LIBRARIES
+		#elif WITH_PHYSX_RELEASE
 
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Common_x64.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt64_1.dll"));
@@ -87,9 +81,25 @@ void LoadPhysXModules()
 				APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Legacy_x64.dll"));
 				#if WITH_APEX_CLOTHING
 					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Clothing_x64.dll"));
-					APEX_Clothing_GPUHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingGPU_x64.dll"));					
 				#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
+
+		#elif WITH_PHYSX_CHECKED
+
+					PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonCHECKED_x64.dll"));
+					nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt64_1.dll"));
+					PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3CHECKED_x64.dll"));
+		#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
+					PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingCHECKED_x64.dll"));
+		#endif
+		#if WITH_APEX
+					APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkCHECKED_x64.dll"));
+					APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructibleCHECKED_x64.dll"));
+					APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyCHECKED_x64.dll"));
+		#if WITH_APEX_CLOTHING
+					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingCHECKED_x64.dll"));
+		#endif //WITH_APEX_CLOTHING
+		#endif	//WITH_APEX
 
 		#else	//UE_BUILD_DEBUG
 		
@@ -104,8 +114,7 @@ void LoadPhysXModules()
 				APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructiblePROFILE_x64.dll"));
 				APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyPROFILE_x64.dll"));
 				#if WITH_APEX_CLOTHING
-					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingPROFILE_x64.dll"));
-					APEX_Clothing_GPUHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingGPUPROFILE_x64.dll"));					
+					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingPROFILE_x64.dll"));				
 				#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
 
@@ -137,11 +146,10 @@ void LoadPhysXModules()
 				APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyDEBUG_x86.dll"));
 				#if WITH_APEX_CLOTHING
 					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingDEBUG_x86.dll"));
-					APEX_Clothing_GPUHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingGPUDEBUG_x86.dll"));
 				#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
 
-		#elif (UE_BUILD_SHIPPING || UE_BUILD_TEST) && SHIPPING_BUILDS_ACTUALLY_USE_SHIPPING_PHYSX_LIBRARIES
+		#elif WITH_PHYSX_RELEASE
 
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Common_x86.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt32_1.dll"));
@@ -155,9 +163,25 @@ void LoadPhysXModules()
 				APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Legacy_x86.dll"));
 				#if WITH_APEX_CLOTHING
 					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Clothing_x86.dll"));
-					APEX_Clothing_GPUHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingGPU_x86.dll"));
 				#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
+
+		#elif WITH_PHYSX_CHECKED
+
+					PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonCHECKED_x86.dll"));
+					nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt32_1.dll"));
+					PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3CHECKED_x86.dll"));
+		#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
+					PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingCHECKED_x86.dll"));
+		#endif
+		#if WITH_APEX
+					APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkCHECKED_x86.dll"));
+					APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructibleCHECKED_x86.dll"));
+					APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyCHECKED_x86.dll"));
+		#if WITH_APEX_CLOTHING
+					APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingCHECKED_x86.dll"));
+		#endif //WITH_APEX_CLOTHING
+		#endif	//WITH_APEX
 
 		#else	//UE_BUILD_DEBUG
 
@@ -173,7 +197,6 @@ void LoadPhysXModules()
 					APEX_LegacyHandle = LoadLibraryW(*(RootAPEXPath + "APEX_LegacyPROFILE_x86.dll"));
 					#if WITH_APEX_CLOTHING
 						APEX_ClothingHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingPROFILE_x86.dll"));
-						APEX_Clothing_GPUHandle = LoadLibraryW(*(RootAPEXPath + "APEX_ClothingGPUPROFILE_x86.dll"));
 					#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
 
@@ -199,7 +222,6 @@ void UnloadPhysXModules()
 		FreeLibrary(APEX_LegacyHandle);
 		#if WITH_APEX_CLOTHING
 			FreeLibrary(APEX_ClothingHandle);
-			FreeLibrary(APEX_Clothing_GPUHandle);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
 #endif

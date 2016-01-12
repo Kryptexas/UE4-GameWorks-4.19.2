@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -137,6 +137,11 @@ public:
 	 * @return plugins directory
 	 */
 	static FString GamePluginsDir();
+
+	/*
+	* Returns the writable directory for downloaded data that persists across play sessions.
+	*/
+	static FString GamePersistentDownloadDir();
 
 	/**
 	 * Returns the directory the engine uses to look for the source leaf ini files. This

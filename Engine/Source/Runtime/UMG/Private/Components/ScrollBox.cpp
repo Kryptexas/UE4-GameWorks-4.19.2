@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -180,6 +180,37 @@ const FSlateBrush* UScrollBox::GetEditorIcon()
 const FText UScrollBox::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");
+}
+
+void UScrollBox::OnDescendantSelected( UWidget* DescendantWidget )
+{
+	UWidget* SelectedChild = UWidget::FindChildContainingDescendant( this, DescendantWidget );
+	if ( SelectedChild )
+	{
+		ScrollWidgetIntoView( SelectedChild, true );
+
+		if ( TickHandle.IsValid() )
+		{
+			FTicker::GetCoreTicker().RemoveTicker( TickHandle );
+			TickHandle.Reset();
+		}
+	}
+}
+
+void UScrollBox::OnDescendantDeselected( UWidget* DescendantWidget )
+{
+	if ( TickHandle.IsValid() )
+	{
+		FTicker::GetCoreTicker().RemoveTicker( TickHandle );
+		TickHandle.Reset();
+	}
+
+	// because we get a deselect before we get a select, we need to delay this call until we're sure we didn't scroll to another widget.
+	TickHandle = FTicker::GetCoreTicker().AddTicker( FTickerDelegate::CreateLambda( [=]( float ) -> bool
+	                                                                                {
+		                                                                                this->ScrollToStart();
+		                                                                                return false;
+		                                                                            } ) );
 }
 
 #endif

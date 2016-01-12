@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,7 +31,7 @@ public:
 
 public:
 
-	// Begin FImageWrapper Interface
+	//~ Begin FImageWrapper Interface
 
 	virtual void Compress( int32 Quality ) override;
 
@@ -41,7 +41,7 @@ public:
 
 	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) override;
 	
-	// End FImageWrapper Interface
+	//~ End FImageWrapper Interface
 
 public:
 

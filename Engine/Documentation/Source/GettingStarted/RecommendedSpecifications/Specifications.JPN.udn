@@ -1,11 +1,13 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2719371
 Availability:Public
 Title:ハードウェア＆ソフトウェアの仕様
+SEO-Title:ハードウェア＆ソフトウェア仕様
 Crumbs: %ROOT%, GettingStarted
 Description:アンリアル エンジンを用いた開発に必要なハードウェアの最低限スペックと推奨スペック及び必須のソフトウェア
+version:4.9
 
 [PUBLISH:Rocket]
-%Globals:OSSelect%
+%Globals:OSSelect_Linux%
 [/PUBLISH:Rocket]
 
 [TOC(start:2)]
@@ -48,23 +50,46 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 	[INCLUDE:#macosminhardware]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#linuxminhardware]
+	[/PARAM]
+[/OBJECT]
 [/PUBLISH:Rocket]
 
 <!--
 [EXCERPT:WindowsMinHardware]
-| エンジンの実行およびエンジンを用いた開発 ||
+|||
 | -------- | --- |
+| **オペレーティング システム** | Windows 7/8 64-bit |
 | **プロセッサ** | クアッドコア Intel または AMD、 2.5 GHz またはそれ以上のプロセッサ |
 | **メモリ** | 8 GB RAM |
-| **ビデオカード** | NVIDIA GeForce 470 GTX または AMD Radeon 6870 HD シリーズ、またはそれ以上のビデオカード |
+| **ビデオカード/DirectX Version** | DirectX 11 対応のグラフィック カード |
 [/EXCERPT:WindowsMinHardware]
 [EXCERPT:MacOSMinHardware]
-| エンジンの実行およびエンジンを用いた開発 ||
+|||
 | -------- | --- |
-| **プロセッサ** | クアッドコア Intel または AMD、 2.5 GHz またはそれ以上のプロセッサ |
+| **オペレーティング システム** | Mac OS X 10.9.2  |
+| **プロセッサ** | クアッドコア Intel、2.5 GHz 以上 |
 | **メモリ** | 8 GB RAM |
-| **ビデオカード** | NVIDIA GeForce 470 GTX または AMD Radeon 6870 HD シリーズ、またはそれ以上のビデオカード |
+| **ビデオカード** | DirectX 11 対応のグラフィック カード |
 [/EXCERPT:MacOSMinHardware]
+[EXCERPT:LinuxMinHardware]
+|||
+| -------- | --- |
+| **オペレーティング システム** | Ubuntu 15.04  |
+| **プロセッサ** | クアッドコア Intel または AMD、 2.5 GHz またはそれ以上のプロセッサ |
+| **メモリ** | 16 GB RAM |
+| **Video Card** | 	最新の NVidia バイナリ ドライバー付きの NVIDIA GeForce 470 GTX 以上|
+[/EXCERPT:LinuxMinHardware]
 -->
 
 [PUBLISH:Licensee]
@@ -79,7 +104,7 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 | -------- | --- |
 | **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
 | **メモリ** | 8+ GB RAM |
-| **ビデオカード** | 2GB の GDDR5 メモリを搭載した DirectX 11 |
+| **Video Card** | 2 GB GDDR5 メモリを搭載した DirectX 11 対応のグラフィック カード |
 | **モニター** | 1680x1050 かそれ以上のスペックのモニター 2 つ |
 [/EXCERPT:WindowsRecHardware]
 [EXCERPT:MacOSRecHardware]
@@ -87,9 +112,17 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 | -------- | --- |
 | **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
 | **メモリ** | 8+ GB RAM |
-| **ビデオカード** | 2GB の GDDR5 メモリ |
+| **Video Card** | 2 GB GDDR5 メモリを搭載した DirectX 11 対応のグラフィック カード |
 | **モニター** | 1680x1050 以上のスペックのモニター 2 つ |
 [/EXCERPT:MacOSRecHardware]
+[EXCERPT:LinuxRecHardware]
+| エンジンで開発を行う ||
+| -------- | --- |
+| **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
+| **メモリ** | 8+ GB RAM |
+| **Video Card** | 2 GB GDDR5 メモリを搭載した DirectX 11 対応のグラフィック カード |
+| **モニター** | 1680x1050 以上のスペックのモニター 2 つ |
+[/EXCERPT:LinuxRecHardware]
 -->
 
 [PUBLISH:Licensee]
@@ -98,7 +131,7 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 [/REGION]
 [/PUBLISH:Licensee]
 
-##ソフトウェアの必要最低条件
+## ソフトウェアの必要最低条件
 
 以下はエンジンまたはエディタを実行するための必要条件です。
 
@@ -145,18 +178,27 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 	[INCLUDE:#macosminsoftware]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#linuxminsoftware]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [EXCERPT:WindowsMinSoftware]
 | エンジンを実行する ||
 | -------- | --- |
-| **オペレーティング システム** | Windows 7/8 64 ビット [INCLUDE:#WER] |
-| **DirectX バージョン** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
-| **.NET バージョン** | .NET 4.0 (Windows Update から既にインストールされてるはずです) |
+| **オペレーティング システム** | Windows 7/8 64-bit |
+| **DirectX Runtime** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
 
-[REGION:note]
-エンジンの実行に必要な全てのソフトウェアは、インストーラが自動的にインストールします。
-[/REGION]
 [/EXCERPT:WindowsMinSoftware]
 
 [EXCERPT:MacOSMinSoftware]
@@ -164,6 +206,14 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 | -------- | --- |
 | **オペレーティング システム** | Mac OS X 10.9.2  |
 [/EXCERPT:MacOSMinSoftware]
+
+[EXCERPT:LinuxMinSoftware]
+| エンジンを実行する ||
+| -------- | --- |
+| **オペレーティング システム** | かなり新しい Linux distro (CentOS 6.x は一番古いです)  |
+| **Linux Kernel Version** | kernel 2.6.32 以上 |
+| **追加の依存関係** | glibc 2.12.2 以上  |
+[/EXCERPT:LinuxMinSoftware]
 
 [EXCERPT:WER]
 [REGION:note]
@@ -188,7 +238,7 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 | エンジンで開発を行う ||
 | -------- | --- |
 | **オペレーティング システム** | Microsoft Windows Vista/7 64 ビット |
-| **Visual Studio バージョン** | [Microsoft Visual Studio 2013 Professional](http://www.microsoft.com/en-us/download/details.aspx?id=43730) または[Microsoft Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=43733)|
+| **Visual Studio Version** | [Microsoft Visual Studio 2013 Professional](http://www.microsoft.com/en-us/download/details.aspx?id=43730) もしくは [Microsoft Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=43733)|
 | **Visual C++ ランタイム** | [INCLUDE:#VCRuntimeLicensee] |
 
 <!--
@@ -231,6 +281,19 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 	[INCLUDE:#macosmindevelopment]
 	[/PARAM]
 [/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#linuxmindevelopment]
+	[/PARAM]
+[/OBJECT]
 
 <!--
 [EXCERPT:WindowsMinDevelopment]
@@ -238,7 +301,7 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 | -------- | --- |
 | **「エンジンの実行」に必要な全ての条件 (自動インストール)** ||
 | **Visual Studio バージョン** | [INCLUDE:#VS2013] |
-| [REGION:tablesection]iOS Development[/REGION] ||
+| [REGION:tablesection]iOS 向けの開発[/REGION] ||
 | **iTunes バージョン** | [iTunes 11 以上](http://www.apple.com/itunes/) |
 [/EXCERPT:WindowsMinDevelopment]
 [EXCERPT:MacOSMinDevelopment]
@@ -246,15 +309,21 @@ UE4 のクラッシュ レポート機能を使用するには、 **[Windows Err
 | -------- | --- |
 | **Xcode バージョン** | 5.0 |
 [/EXCERPT:MacOSMinDevelopment]
+[EXCERPT:LinuxMinDevelopment]
+| エンジンで開発を行う ||
+| -------- | --- |
+| **オペレーティング システム** | Ubuntu 15.04  |
+| **コンパイラ** | clang 3.5.x または 3.6.x  |
+| [REGION:tablesection]オプション[/REGION] ||
+| **IDE** | QtCreator 3.1 または KDevelop 4.6|
+| **ビルド システム** | CMake 2.8 |
+[/EXCERPT:LinuxMinDevelopment]
 [EXCERPT:VS2013]
-Widnows デスクトップ用の Visual Studio 2013 Professional または Visual Studio 2013 Express
+Visual Studio 2013 Professional または Visual Studio 2013 Community:
 
 * [Pro](http://www.microsoft.com/en-us/download/details.aspx?id=43730)
-* [Express](http://www.microsoft.com/en-us/download/details.aspx?id=43733)
+* [Community](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx)
 
-[REGION:note]
-最新のいずれかのバージョンの Visual Studio Update のインストールが推奨されていますが、必須ではありません。ユーザーがプログラムをインストールおよび実行後に、Visual Studio が最新のバージョンへの更新を促します。
-[/REGION]
 [/EXCERPT:VS2013]
 -->
 [/PUBLISH:Rocket]

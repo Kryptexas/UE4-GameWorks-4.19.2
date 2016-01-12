@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2628951
 Availability:Public
 Title:버텍스 애니메이션 툴 - 키 프레임드 메시
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -32,12 +32,32 @@ Melt 모디파이어의 주황색 바운딩 박스가 원본 메시와 겹치지
 차주전자 사본 위치를 잡은 후 마우스 버튼과 Shift 키를 놓으면 Clone 옵션이 나타납니다.
 **Object** 가 **Copy** 로 설정되어 있는지 확인한 다음 **Number of Copies** 를 **Four** 로 설정하고 **Ok** 버튼을 눌러 사본을 복사합니다.
 
-	![](VAT_KFM_Teapot_Copy.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	H9vBL17HuWU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 그런 다음 두 번째 차주전자 메시를 선택하고 Melt 모디파이어의 **Melt Amount** 를 25 로 설정합니다.
 그리고 일직선상의 다음 차주전자를 선택한 뒤 Melt 모디파이어의 **Melt Amount** 를 50 으로, 다음은 75 로, 마지막은 100 으로 설정합니다.
 
-	![](VAT_KFM_Teapot_Melt_Amount.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	Ltbpe9C8ENw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 이제 모든 차주전자에 일정한 변형이 생겼으니, 3Ds Max 뷰포트에서 우클릭으로 모든 차주전자를 선택한 다음 **Convert To:** > **Convert to Editable Poly** 를 선택합니다.
 
@@ -49,7 +69,17 @@ Melt 모디파이어의 주황색 바운딩 박스가 원본 메시와 겹치지
 메시가 월드 중앙에 왔으면, 차주전자 메시 선택을 해제한 다음 애니메이션에서의 재생 순서대로 선택합니다.
 이 예제에서는 Teapot001 을 먼저 선택한 다음 Teapot002 식으로 다섯 개 전부 선택합니다.
 
-	![](VAT_KFM_Teapot_Export_Setup.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	sE8RBIVCBgA
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	[region:note]
 	시퀀스 페인터 툴은 애니메이션에서의 재생 순서대로 메시를 선택해야 합니다. 그렇게 하지 않으면 UE4 에서 재생되는 애니메이션이 대체할 본 구동 애니메이션과 일치하지 않을 것입니다.
@@ -97,11 +127,31 @@ Constant Parameter 노드 하나의 값을 설정한 뒤 메인 머티리얼 노
 1. 다음, 머티리얼 그래프에 우클릭하여 검색 메뉴를 띄운 다음 MS 를 검색하여 **MS_SequencePainter_SequenceFlipbook** 머티리얼 함수를 찾습니다.
 MS_SequencePainter_SequenceFlipbook 머티리얼 함수를 찾았으면 좌클릭으로 선택하여 머티리얼 그래프에 추가시킵니다.
 
-	![](VAT_KFM_Adding_MF_Flipbook.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	juDHJS0K7b4
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 이제 올바른 머티리얼 함수를 배치했으면, **MS_SequencePainter_SequenceFlipbook** 의 출력을 메인 머티리얼 노드의 월드 포지션 오프셋 입력에 연결한 뒤, 나머지 Scalar 파라미터를 MS_SequencePainter_SequenceFlipbook 머티리얼 함수 노드의 **Number Of Frames** 입력에 연결합니다.
 
-	![](VAT_KFM_Linking_Up_MF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	5VGa5sdRvfk
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 모든 것의 연결이 끝났으면 **적용** 버튼을 눌러 머티리얼을 컴파일하고 **저장** 버튼을 누릅니다.
 완료되면 머티리얼 그래프 에디터를 닫아도 됩니다.
@@ -111,7 +161,21 @@ MS_SequencePainter_SequenceFlipbook 머티리얼 함수를 찾았으면 좌클�
 1. 머티리얼 생성, 컴파일, 저장이 끝났으면 콘텐츠 브라우저에서 차주전자를 끌어 레벨에 놓은 뒤, 방금 만든 머티리얼을 콘텐츠 브라우저에서 끌어 레벨에 배치된 메시 위에 놓습니다.
 그러면 메시에 애니메이션이 재생되는 것이 보일 것입니다.
 
-	![](VAT_KFM_Final_Effect.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	TcyZIZp-0u8
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+
+
+
 
 
 

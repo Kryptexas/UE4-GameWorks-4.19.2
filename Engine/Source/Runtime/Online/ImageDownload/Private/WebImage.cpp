@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ImageDownloadPCH.h"
 #include "WebImage.h"
@@ -106,22 +106,22 @@ bool FWebImage::ProcessHttpResponse(const FString& RequestUrl, FHttpResponsePtr 
 	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
 	if (!ImageWrapper.IsValid())
 	{
-		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to make image wrapper for image format %d"), ImageFormat);
+		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to make image wrapper for image format %d"), (int32)ImageFormat);
 		return false;
 	}
 
 	// parse the content
 	if (!ImageWrapper->SetCompressed(Content.GetData(), Content.Num()))
 	{
-		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to parse image format %d from %s"), ImageFormat, *RequestUrl);
+		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to parse image format %d from %s"), (int32)ImageFormat, *RequestUrl);
 		return false;
 	}
 
 	// get the raw image data
 	const TArray<uint8>* RawImageData = nullptr;
-	if (!ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, RawImageData) || RawImageData == nullptr)
+	if (!ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawImageData) || RawImageData == nullptr)
 	{
-		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to convert image format %d to BGRA 8"), ImageFormat);
+		UE_LOG(LogImageDownload, Error, TEXT("Image Download: Unable to convert image format %d to BGRA 8"), (int32)ImageFormat);
 		return false;
 	}
 

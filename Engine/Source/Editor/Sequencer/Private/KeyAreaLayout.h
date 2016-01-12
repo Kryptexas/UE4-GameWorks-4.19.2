@@ -1,3 +1,4 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +14,7 @@ struct FKeyAreaLayoutElement
 	static FKeyAreaLayoutElement FromGroup(const TSharedRef<FGroupedKeyArea>& InKeyAreaGroup, float InOffset, TOptional<float> InHeight = TOptional<float>());
 
 	/** Construct this element from a single Key area node */
-	static FKeyAreaLayoutElement FromKeyAreaNode(const TSharedRef<FSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset);
+	static FKeyAreaLayoutElement FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset);
 
 	/** Retrieve the type of this layout element */
 	EType GetType() const;

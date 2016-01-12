@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2009 - 2010 Autodesk, Inc.  All Rights Reserved.
@@ -228,10 +228,12 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bPreserveSmoothingGroups = ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 	InOutImportOptions.bKeepOverlappingVertices = ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
 	InOutImportOptions.bCombineToSingle = ImportUI->bCombineMeshes;
+	InOutImportOptions.bTransformVertexToAbsolute = ImportUI->StaticMeshImportData->bTransformVertexToAbsolute;
 	InOutImportOptions.VertexColorImportOption = ImportUI->StaticMeshImportData->VertexColorImportOption;
 	InOutImportOptions.VertexOverrideColor = ImportUI->StaticMeshImportData->VertexOverrideColor;
 	InOutImportOptions.bRemoveDegenerates = ImportUI->StaticMeshImportData->bRemoveDegenerates;
 	InOutImportOptions.bBuildAdjacencyBuffer = ImportUI->StaticMeshImportData->bBuildAdjacencyBuffer;
+	InOutImportOptions.bBuildReversedIndexBuffer = ImportUI->StaticMeshImportData->bBuildReversedIndexBuffer;
 	InOutImportOptions.bGenerateLightmapUVs = ImportUI->StaticMeshImportData->bGenerateLightmapUVs;
 	InOutImportOptions.bOneConvexHullPerUCX = ImportUI->StaticMeshImportData->bOneConvexHullPerUCX;
 	InOutImportOptions.bAutoGenerateCollision = ImportUI->StaticMeshImportData->bAutoGenerateCollision;
@@ -241,8 +243,8 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.PhysicsAsset = ImportUI->PhysicsAsset;
 	// animation options
 	InOutImportOptions.AnimationLengthImportType = ImportUI->AnimSequenceImportData->AnimationLength;
-	InOutImportOptions.AnimationRange.X = ImportUI->AnimSequenceImportData->StartFrame;
-	InOutImportOptions.AnimationRange.Y = ImportUI->AnimSequenceImportData->EndFrame;
+	InOutImportOptions.AnimationRange.X = ImportUI->AnimSequenceImportData->FrameImportRange.Min;
+	InOutImportOptions.AnimationRange.Y = ImportUI->AnimSequenceImportData->FrameImportRange.Max;
 	InOutImportOptions.AnimationName = ImportUI->AnimationName;
 	// only re-sample if they don't want to use default sample rate
 	InOutImportOptions.bResample = !ImportUI->AnimSequenceImportData->bUseDefaultSampleRate;
@@ -297,6 +299,7 @@ FFbxImporter::FFbxImporter()
 	
 	ImportOptions = new FBXImportOptions();
 	FMemory::Memzero(*ImportOptions);
+	ImportOptions->MaterialPrefixName = NAME_None;
 	
 	CurPhase = NOTSTARTED;
 }
@@ -414,32 +417,6 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 
 			bHasAnimation = SceneInfo.bHasAnimation;
 		}
-		else // back up old solution
-		{
-			for(ItemIndex = 0; ItemIndex < Statistics.GetNbItems(); ItemIndex++)
-			{
-				Statistics.GetItemPair(ItemIndex, ItemName, ItemCount);
-				const char* NameBuffer = ItemName.Buffer();
-				if(ItemName == "Deformer" && ItemCount > 0)
-				{
-					// if SkeletalMesh is found, just return
-					Result = 1;
-					break;
-				}
-				// if Geometry is found, sets it, but it can be overwritten by Deformer
-				else if(ItemName == "Geometry" && ItemCount > 0)
-				{
-					// let it still loop through even if Geometry is found
-					// Deformer can overwrite this information
-					Result = 0;
-				}
-				// Check for animation data. It can be overwritten by Geometry or Deformer
-				else if((ItemName == "AnimationCurve" || ItemName == "AnimationCurveNode") && ItemCount > 0)
-				{
-					bHasAnimation = true;
-				}
-			}
-		}
 
 		if (Importer)
 		{
@@ -499,8 +476,6 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 	{
 		FbxTimeSpan GlobalTimeSpan(FBXSDK_TIME_INFINITE,FBXSDK_TIME_MINUS_INFINITE);
 		
-		TArray<FbxNode*> LinkNodes;
-		
 		SceneInfo.TotalMaterialNum = Scene->GetMaterialCount();
 		SceneInfo.TotalTextureNum = Scene->GetTextureCount();
 		SceneInfo.TotalGeometryNum = 0;
@@ -513,47 +488,35 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 			if (Geometry->GetAttributeType() == FbxNodeAttribute::eMesh)
 			{
 				FbxNode* GeoNode = Geometry->GetNode();
-				bool bIsLinkNode = false;
-
-				// check if this geometry node is used as link
-				for ( int32 i = 0; i < LinkNodes.Num(); i++ )
-				{
-					if ( GeoNode == LinkNodes[i])
-					{
-						bIsLinkNode = true;
-						break;
-					}
-				}
-				// if the geometry node is used as link, ignore it
-				if (bIsLinkNode)
-				{
-					continue;
-				}
-
 				SceneInfo.TotalGeometryNum++;
-				
 				FbxMesh* Mesh = (FbxMesh*)Geometry;
-				SceneInfo.MeshInfo.AddUninitialized();
+				SceneInfo.MeshInfo.AddZeroed(1);
 				FbxMeshInfo& MeshInfo = SceneInfo.MeshInfo.Last();
-				MeshInfo.Name = MakeName(GeoNode->GetName());
+				if(Geometry->GetName()[0] != '\0')
+					MeshInfo.Name = MakeName(Geometry->GetName());
+				else
+					MeshInfo.Name = MakeString(GeoNode ? GeoNode->GetName() : "None");
 				MeshInfo.bTriangulated = Mesh->IsTriangleMesh();
-				MeshInfo.MaterialNum = GeoNode->GetMaterialCount();
+				MeshInfo.MaterialNum = GeoNode? GeoNode->GetMaterialCount() : 0;
 				MeshInfo.FaceNum = Mesh->GetPolygonCount();
 				MeshInfo.VertexNum = Mesh->GetControlPointsCount();
 				
 				// LOD info
 				MeshInfo.LODGroup = NULL;
-				FbxNode* ParentNode = GeoNode->GetParent();
-				if ( ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+				if (GeoNode)
 				{
-					FbxNodeAttribute* LODGroup = ParentNode->GetNodeAttribute();
-					MeshInfo.LODGroup = MakeName(ParentNode->GetName());
-					for (int32 LODIndex = 0; LODIndex < ParentNode->GetChildCount(); LODIndex++)
+					FbxNode* ParentNode = GeoNode->GetParent();
+					if (ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 					{
-						if ( GeoNode == ParentNode->GetChild(LODIndex))
+						FbxNodeAttribute* LODGroup = ParentNode->GetNodeAttribute();
+						MeshInfo.LODGroup = MakeString(ParentNode->GetName());
+						for (int32 LODIndex = 0; LODIndex < ParentNode->GetChildCount(); LODIndex++)
 						{
-							MeshInfo.LODLevel = LODIndex;
-							break;
+							if (GeoNode == ParentNode->GetChild(LODIndex))
+							{
+								MeshInfo.LODLevel = LODIndex;
+								break;
+							}
 						}
 					}
 				}
@@ -566,17 +529,32 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 					MeshInfo.MorphNum = Mesh->GetShapeCount();
 					// skeleton root
 					FbxSkin* Skin = (FbxSkin*)Mesh->GetDeformer(0, FbxDeformer::eSkin);
-					FbxNode* Link = Skin->GetCluster(0)->GetLink();
-					while (Link->GetParent() && Link->GetParent()->GetSkeleton())
+					int32 ClusterCount = Skin->GetClusterCount();
+					FbxNode* Link = NULL;
+					for (int32 ClusterId = 0; ClusterId < ClusterCount; ++ClusterId)
 					{
-						Link = Link->GetParent();
+						FbxCluster* Cluster = Skin->GetCluster(ClusterId);
+						Link = Cluster->GetLink();
+						while (Link && Link->GetParent() && Link->GetParent()->GetSkeleton())
+						{
+							Link = Link->GetParent();
+						}
+
+						if (Link != NULL)
+						{
+							break;
+						}
 					}
-					MeshInfo.SkeletonRoot = MakeName(Link->GetName());
-					MeshInfo.SkeletonElemNum = Link->GetChildCount(true);
-					
-					FbxTimeSpan AnimTimeSpan(FBXSDK_TIME_INFINITE,FBXSDK_TIME_MINUS_INFINITE);
-					Link->GetAnimationInterval(AnimTimeSpan);
-					GlobalTimeSpan.UnionAssignment(AnimTimeSpan);
+
+					MeshInfo.SkeletonRoot = MakeString(Link ? Link->GetName() : ("None"));
+					MeshInfo.SkeletonElemNum = Link ? Link->GetChildCount(true) : 0;
+
+					if (Link)
+					{
+						FbxTimeSpan AnimTimeSpan(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
+						Link->GetAnimationInterval(AnimTimeSpan);
+						GlobalTimeSpan.UnionAssignment(AnimTimeSpan);
+					}
 				}
 				else
 				{
@@ -584,6 +562,7 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 					MeshInfo.bIsSkelMesh = false;
 					MeshInfo.SkeletonRoot = NULL;
 				}
+				MeshInfo.UniqueId = Mesh->GetUniqueID();
 			}
 		}
 		
@@ -612,12 +591,136 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 		{
 			SceneInfo.TotalTime = 0;
 		}
+		
+		FbxNode* RootNode = Scene->GetRootNode();
+		FbxNodeInfo RootInfo;
+		RootInfo.ObjectName = MakeName(RootNode->GetName());
+		RootInfo.UniqueId = RootNode->GetUniqueID();
+		RootInfo.Transform = RootNode->EvaluateGlobalTransform();
+
+		RootInfo.AttributeName = NULL;
+		RootInfo.AttributeUniqueId = 0;
+		RootInfo.AttributeType = NULL;
+
+		RootInfo.ParentName = NULL;
+		RootInfo.ParentUniqueId = 0;
+		
+		//Add the rootnode to the SceneInfo
+		SceneInfo.HierarchyInfo.Add(RootInfo);
+		//Fill the hierarchy info
+		TraverseHierarchyNodeRecursively(SceneInfo, RootNode, RootInfo);
 	}
 	
 	GWarn->EndSlowTask();
 	return Result;
 }
 
+void FFbxImporter::TraverseHierarchyNodeRecursively(FbxSceneInfo& SceneInfo, FbxNode *ParentNode, FbxNodeInfo &ParentInfo)
+{
+	int32 NodeCount = ParentNode->GetChildCount();
+	for (int32 NodeIndex = 0; NodeIndex < NodeCount; ++NodeIndex)
+	{
+		FbxNode* ChildNode = ParentNode->GetChild(NodeIndex);
+		FbxNodeInfo ChildInfo;
+		ChildInfo.ObjectName = MakeName(ChildNode->GetName());
+		ChildInfo.UniqueId = ChildNode->GetUniqueID();
+		ChildInfo.ParentName = ParentInfo.ObjectName;
+		ChildInfo.ParentUniqueId = ParentInfo.UniqueId;
+		ChildInfo.Transform = ChildNode->EvaluateLocalTransform();
+		if (ChildNode->GetNodeAttribute())
+		{
+			FbxNodeAttribute *ChildAttribute = ChildNode->GetNodeAttribute();
+			ChildInfo.AttributeUniqueId = ChildAttribute->GetUniqueID();
+			if (ChildAttribute->GetName()[0] != '\0')
+			{
+				ChildInfo.AttributeName = MakeName(ChildAttribute->GetName());
+			}
+			else
+			{
+				//Get the name of the first node that link this attribute
+				ChildInfo.AttributeName = MakeName(ChildAttribute->GetNode()->GetName());
+			}
+
+			switch (ChildAttribute->GetAttributeType())
+			{
+			case FbxNodeAttribute::eUnknown:
+				ChildInfo.AttributeType = "eUnknown";
+				break;
+			case FbxNodeAttribute::eNull:
+				ChildInfo.AttributeType = "eNull";
+				break;
+			case FbxNodeAttribute::eMarker:
+				ChildInfo.AttributeType = "eMarker";
+				break;
+			case FbxNodeAttribute::eSkeleton:
+				ChildInfo.AttributeType = "eSkeleton";
+				break;
+			case FbxNodeAttribute::eMesh:
+				ChildInfo.AttributeType = "eMesh";
+				break;
+			case FbxNodeAttribute::eNurbs:
+				ChildInfo.AttributeType = "eNurbs";
+				break;
+			case FbxNodeAttribute::ePatch:
+				ChildInfo.AttributeType = "ePatch";
+				break;
+			case FbxNodeAttribute::eCamera:
+				ChildInfo.AttributeType = "eCamera";
+				break;
+			case FbxNodeAttribute::eCameraStereo:
+				ChildInfo.AttributeType = "eCameraStereo";
+				break;
+			case FbxNodeAttribute::eCameraSwitcher:
+				ChildInfo.AttributeType = "eCameraSwitcher";
+				break;
+			case FbxNodeAttribute::eLight:
+				ChildInfo.AttributeType = "eLight";
+				break;
+			case FbxNodeAttribute::eOpticalReference:
+				ChildInfo.AttributeType = "eOpticalReference";
+				break;
+			case FbxNodeAttribute::eOpticalMarker:
+				ChildInfo.AttributeType = "eOpticalMarker";
+				break;
+			case FbxNodeAttribute::eNurbsCurve:
+				ChildInfo.AttributeType = "eNurbsCurve";
+				break;
+			case FbxNodeAttribute::eTrimNurbsSurface:
+				ChildInfo.AttributeType = "eTrimNurbsSurface";
+				break;
+			case FbxNodeAttribute::eBoundary:
+				ChildInfo.AttributeType = "eBoundary";
+				break;
+			case FbxNodeAttribute::eNurbsSurface:
+				ChildInfo.AttributeType = "eNurbsSurface";
+				break;
+			case FbxNodeAttribute::eShape:
+				ChildInfo.AttributeType = "eShape";
+				break;
+			case FbxNodeAttribute::eLODGroup:
+				ChildInfo.AttributeType = "eLODGroup";
+				break;
+			case FbxNodeAttribute::eSubDiv:
+				ChildInfo.AttributeType = "eSubDiv";
+				break;
+			case FbxNodeAttribute::eCachedEffect:
+				ChildInfo.AttributeType = "eCachedEffect";
+				break;
+			case FbxNodeAttribute::eLine:
+				ChildInfo.AttributeType = "eLine";
+				break;
+			}
+		}
+		else
+		{
+			ChildInfo.AttributeType = "eNull";
+			ChildInfo.AttributeName = NULL;
+		}
+		
+		SceneInfo.HierarchyInfo.Add(ChildInfo);
+		TraverseHierarchyNodeRecursively(SceneInfo, ChildNode, ChildInfo);
+	}
+}
 
 bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSceneInfo )
 {
@@ -855,14 +958,14 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
 
 ANSICHAR* FFbxImporter::MakeName(const ANSICHAR* Name)
 {
-	int SpecialChars[] = {'.', ',', '/', '`', '%'};
+	const int SpecialChars[] = {'.', ',', '/', '`', '%'};
 
-	int len = FCStringAnsi::Strlen(Name);
+	const int len = FCStringAnsi::Strlen(Name);
 	ANSICHAR* TmpName = new ANSICHAR[len+1];
 	
 	FCStringAnsi::Strcpy(TmpName, len + 1, Name);
 
-	for ( int32 i = 0; i < 5; i++ )
+	for ( int32 i = 0; i < ARRAY_COUNT(SpecialChars); i++ )
 	{
 		ANSICHAR* CharPtr = TmpName;
 		while ( (CharPtr = FCStringAnsi::Strchr(CharPtr,SpecialChars[i])) != NULL )
@@ -889,12 +992,19 @@ ANSICHAR* FFbxImporter::MakeName(const ANSICHAR* Name)
 	return TmpName;
 }
 
+FString FFbxImporter::MakeString(const ANSICHAR* Name)
+{
+	return FString(ANSI_TO_TCHAR(Name));
+}
+
 FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)
 {
 	FName OutputName;
 
-	// "Name" field can't be empty
-	if (ImportOptions->bUsedAsFullName && InName != FString("None"))
+	//Cant name the mesh if the object is null and there InName arguments is None.
+	check(FbxObject != NULL || InName != FString("None"))
+
+	if ((ImportOptions->bUsedAsFullName || FbxObject == NULL) && InName != FString("None"))
 	{
 		OutputName = *InName;
 	}
@@ -1057,7 +1167,7 @@ void FFbxImporter::FillFbxMeshArray(FbxNode* Node, TArray<FbxNode*>& outMeshArra
 {
 	if (Node->GetMesh())
 	{
-		if (!FFbxImporter->FillCollisionModelList(Node))
+		if (!FFbxImporter->FillCollisionModelList(Node) && Node->GetMesh()->GetPolygonVertexCount() > 0)
 		{ 
 			outMeshArray.Add(Node);
 		}
@@ -1151,7 +1261,7 @@ FbxNode* FFbxImporter::GetRootSkeleton(FbxNode* Link)
 
 	// get Unreal skeleton root
 	// mesh and dummy are used as bone if they are in the skeleton hierarchy
-	while (RootBone->GetParent())
+	while (RootBone && RootBone->GetParent())
 	{
 		FbxNodeAttribute* Attr = RootBone->GetParent()->GetNodeAttribute();
 		if (Attr && 
@@ -1352,34 +1462,44 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 		
 		if (Deformer != NULL )
 		{
-			if( Deformer->GetClusterCount() > 0 )
+			int32 ClusterCount = Deformer->GetClusterCount();
+			bool bFoundCorrectLink = false;
+			for (int32 ClusterId = 0; ClusterId < ClusterCount; ++ClusterId)
 			{
-				FbxNode* Link = Deformer->GetCluster(0)->GetLink(); //Get the bone influences by this first cluster
+				FbxNode* Link = Deformer->GetCluster(ClusterId)->GetLink(); //Get the bone influences by this first cluster
 				Link = GetRootSkeleton(Link); // Get the skeleton root itself
 
-				int32 i;
-				for (i = 0; i < SkeletonArray.Num(); i++)
+				if (Link)
 				{
-					if (Link == SkeletonArray[i])
+					int32 i;
+					for (i = 0; i < SkeletonArray.Num(); i++)
 					{
-						// append to existed outSkelMeshArray element
-						TArray<FbxNode*>* TempArray = outSkelMeshArray[i];
-						TempArray->Add(NodeToAdd);
-						break;
+						if (Link == SkeletonArray[i])
+						{
+							// append to existed outSkelMeshArray element
+							TArray<FbxNode*>* TempArray = outSkelMeshArray[i];
+							TempArray->Add(NodeToAdd);
+							break;
+						}
 					}
-				}
 
-				// if there is no outSkelMeshArray element that is bind to this skeleton
-				// create new element for outSkelMeshArray
-				if (i == SkeletonArray.Num())
-				{
-					TArray<FbxNode*>* TempArray = new TArray<FbxNode*>();
-					TempArray->Add(NodeToAdd);
-					outSkelMeshArray.Add(TempArray);
-					SkeletonArray.Add(Link);
+					// if there is no outSkelMeshArray element that is bind to this skeleton
+					// create new element for outSkelMeshArray
+					if (i == SkeletonArray.Num())
+					{
+						TArray<FbxNode*>* TempArray = new TArray<FbxNode*>();
+						TempArray->Add(NodeToAdd);
+						outSkelMeshArray.Add(TempArray);
+						SkeletonArray.Add(Link);
+					}
+
+					bFoundCorrectLink = true;
+					break;
 				}
 			}
-			else
+			
+			// we didn't find the correct link
+			if (!bFoundCorrectLink)
 			{
 				AddTokenizedErrorMessage(
 					FTokenizedMessage::Create(

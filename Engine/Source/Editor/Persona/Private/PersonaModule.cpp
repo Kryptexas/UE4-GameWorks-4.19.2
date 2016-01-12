@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -67,7 +67,7 @@ void FPersonaModule::ShutdownModule()
 	MenuExtensibilityManager.Reset();
 	ToolBarExtensibilityManager.Reset();
 
-	// unregsiter when shut down
+	// Unregister when shut down
 	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -114,7 +114,7 @@ void FPersonaModule::OnNewBlueprintCreated(UBlueprint* InBlueprint)
 		GetOwnerNode->NodePosX = SafeXPosition;
 		GetOwnerNode->NodePosY = SafeYPosition;
 		UEdGraphSchema_K2::SetNodeMetaData(GetOwnerNode, FNodeMetadata::DefaultGraphNode);
-		GetOwnerNode->bIsNodeEnabled = false;
+		GetOwnerNode->DisableNode();
 
 		EventGraph->AddNode(GetOwnerNode);
 	}

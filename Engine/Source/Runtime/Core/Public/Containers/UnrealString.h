@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // This needed to be UnrealString.h to avoid conflicting with
 // the Windows platform SDK string.h
@@ -240,10 +240,10 @@ private:
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.
 	 */
-	FORCEINLINE friend TIterator      begin(      FString& Str) { return begin(Str.Data); }
-	FORCEINLINE friend TConstIterator begin(const FString& Str) { return begin(Str.Data); }
-	FORCEINLINE friend TIterator      end  (      FString& Str) { TIterator      Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
-	FORCEINLINE friend TConstIterator end  (const FString& Str) { TConstIterator Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
+	FORCEINLINE friend DataType::RangedForIteratorType      begin(      FString& Str) { auto Result = begin(Str.Data);                                   return Result; }
+	FORCEINLINE friend DataType::RangedForConstIteratorType begin(const FString& Str) { auto Result = begin(Str.Data);                                   return Result; }
+	FORCEINLINE friend DataType::RangedForIteratorType      end  (      FString& Str) { auto Result = end  (Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
+	FORCEINLINE friend DataType::RangedForConstIteratorType end  (const FString& Str) { auto Result = end  (Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
 
 public:
 	FORCEINLINE uint32 GetAllocatedSize() const
@@ -752,7 +752,7 @@ public:
 	 */
 	FORCEINLINE FString& operator/=( const TCHAR* Str )
 	{
-		if( Data.Num() > 1 && Data[Data.Num()-2] != TEXT('/') && Data[Data.Num()-2] != TEXT('\\') )
+		if( Data.Num() > 1 && Data[Data.Num()-2] != TEXT('/') && Data[Data.Num()-2] != TEXT('\\') && (!Str || *Str != TEXT('/')) )
 		{
 			*this += TEXT("/");
 		}
@@ -1076,7 +1076,7 @@ public:
 		return FPlatformString::Stricmp(Lhs, *Rhs) != 0;
 	}
 
-	/** Get the length of the sting, excluding terminating character */
+	/** Get the length of the string, excluding terminating character */
 	FORCEINLINE int32 Len() const
 	{
 		return Data.Num() ? Data.Num() - 1 : 0;
@@ -1247,7 +1247,7 @@ public:
 	 * 
 	 * @param Other 	The string test against
 	 * @param SearchCase 	Whether or not the comparison should ignore case
-	 * @return 0 if equal, -1 if less than, 1 if greater than
+	 * @return 0 if equal, negative if less than, positive if greater than
 	 */
 	FORCEINLINE int32 Compare( const FString& Other, ESearchCase::Type SearchCase = ESearchCase::CaseSensitive ) const
 	{
@@ -1287,8 +1287,14 @@ public:
 	/** @return a new string with the characters of this converted to uppercase */
 	FString ToUpper() const;
 
+	/** Converts all characters in this string to uppercase */
+	void ToUpperInline();
+
 	/** @return a new string with the characters of this converted to lowercase */
 	FString ToLower() const;
+
+	/** Converts all characters in this string to lowercase */
+	void ToLowerInline();
 
 	/** Pad the left of this string for ChCount characters */
 	FString LeftPad( int32 ChCount ) const;
@@ -2036,5 +2042,15 @@ public:
 		return *this;
 	}
 };
+
+/**
+ * A helper function to find closing parenthesis that matches the first open parenthesis found. The open parenthesis
+ * referred to must be at or further up from the start index.
+ *
+ * @param TargetString      The string to search in
+ * @param StartSearch       The index to start searching at
+ * @return the index in the given string of the closing parenthesis
+ */
+CORE_API int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 StartSearch = 0);
 
 #include "Misc/StringFormatArg.h"

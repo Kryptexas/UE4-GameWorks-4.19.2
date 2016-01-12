@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GenericPlatform/GenericPlatformContext.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 // commandline parameter to suppress DWARF parsing (greatly speeds up callstack generation)
 #define CMDARG_SUPPRESS_DWARF_PARSING			"nodwarf"

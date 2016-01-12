@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,6 +58,17 @@ public:
 
 	/** Get the number of outstanding changes that we potentially have to process (when not already processing) */
 	int32 GetNumUnprocessedChanges() const { return Cache.GetNumOutstandingChanges(); }
+
+private:
+
+	/** Import a new asset into the specified package path, from the specified file */ 
+	void ImportAsset(const FString& PackagePath, const FString& Filename, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context);
+
+	/** Reimport a specific asset, provided its source content differs from the specified file hash */
+	void ReimportAsset(UObject* InAsset, const FString& FullFilename, const FMD5Hash& NewFileHash, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context);
+
+	/** Set the specified asset to import from the specified file, then attempt to reimport it */
+	void ReimportAssetWithNewSource(UObject* InAsset, const FString& FullFilename, const FMD5Hash& NewFileHash, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context);
 
 private:
 

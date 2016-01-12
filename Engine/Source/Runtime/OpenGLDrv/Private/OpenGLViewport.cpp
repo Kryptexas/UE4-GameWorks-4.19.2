@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLViewport.cpp: OpenGL viewport RHI implementation.
@@ -194,17 +194,6 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 		bRevertToSharedContextAfterDrawingViewport = false;
 	}
 }
-
-/**
- * Determine if currently drawing the viewport
- *
- * @return true if currently within a BeginDrawingViewport/EndDrawingViewport block
- */
-bool FOpenGLDynamicRHI::RHIIsDrawingViewport()
-{
-	return DrawingViewport != NULL;
-}
-
 
 
 FTexture2DRHIRef FOpenGLDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)

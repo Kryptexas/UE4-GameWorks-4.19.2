@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -431,6 +431,10 @@ public:
 	UPROPERTY()
 	TArray<FEventGraphFastCallPair> FastCallPairs_DEPRECATED;
 
+	// If this Generated Class has instrumentation
+	UPROPERTY()
+	bool bHasInstrumentation;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Transient)
 	UObject* OverridenArchetypeForCDO;
@@ -451,7 +455,8 @@ public:
 	UActorComponent* FindComponentTemplateByName(const FName& TemplateName) const;
 
 	/** Create Timeline objects for this Actor based on the Timelines array*/
-	virtual void CreateComponentsForActor(AActor* Actor) const;
+	static void CreateComponentsForActor(const UClass* ThisClass, AActor* Actor);
+	static void CreateTimelineComponent(AActor* Actor, const UTimelineTemplate* TimelineTemplate);
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
@@ -474,6 +479,10 @@ public:
 	virtual void Bind() override;
 	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
+	virtual bool HasInstrumentation() const override 
+	{
+		return bHasInstrumentation; 
+	}
 	// End UClass interface
 
 	static void AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector);
@@ -492,23 +501,28 @@ public:
 #endif
 
 	/** Bind functions on supplied actor to delegates */
-	void BindDynamicDelegates(UObject* InInstance) const;
+	static void BindDynamicDelegates(const UClass* ThisClass, UObject* InInstance);
+
+	// Finds the desired dynamic binding object for this blueprint generated class
+	static UDynamicBlueprintBinding* GetDynamicBindingObject(const UClass* ThisClass, UClass* BindingClass);
+
+#if WITH_EDITOR
+	/** Unbind functions on supplied actor from delegates */
+	static void UnbindDynamicDelegates(const UClass* ThisClass, UObject* InInstance);
 
 	/** Unbind functions on supplied actor from delegates tied to a specific property */
 	void UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty);
-	
-	// Finds the desired dynamic binding object for this blueprint generated class
-	UDynamicBlueprintBinding* GetDynamicBindingObject(UClass* InClass) const;
+#endif
 
 	/** called to gather blueprint replicated properties */
 	virtual void GetLifetimeBlueprintReplicationList(TArray<class FLifetimeProperty>& OutLifetimeProps) const;
 	/** called prior to replication of an instance of this BP class */
-	virtual void InstancePreReplication(class IRepChangedPropertyTracker& ChangedPropertyTracker) const
+	virtual void InstancePreReplication(UObject* Obj, class IRepChangedPropertyTracker& ChangedPropertyTracker) const
 	{
 		UBlueprintGeneratedClass* SuperBPClass = Cast<UBlueprintGeneratedClass>(GetSuperStruct());
 		if (SuperBPClass != NULL)
 		{
-			SuperBPClass->InstancePreReplication(ChangedPropertyTracker);
+			SuperBPClass->InstancePreReplication(Obj, ChangedPropertyTracker);
 		}
 	}
 };

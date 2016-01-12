@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -84,7 +84,7 @@ public:
 	 * Optionally supply a token to accumulate into
 	 * Returns a string token for the stream, or empty on error
 	 */
-	TOptional<FStringToken> ParseToken(const TFunctionRef<EParseState(TCHAR)>& Pred, FStringToken* Accumulate = nullptr) const;
+	TOptional<FStringToken> ParseToken(TFunctionRef<EParseState(TCHAR)> Pred, FStringToken* Accumulate = nullptr) const;
 
 	/** Attempt parse out the specified pre-defined string from the current read position (or accumulating into the specified existing token) */
 	TOptional<FStringToken> ParseToken(const TCHAR* Symbol, FStringToken* Accumulate = nullptr) const;
@@ -430,11 +430,11 @@ class CORE_API FTokenDefinitions
 public:
 	FTokenDefinitions() : bIgnoreWhitespace(false) {}
 
-	/** Define the grammer to ignore whitespace between tokens, unless explicitly included in a token */
+	/** Define the grammar to ignore whitespace between tokens, unless explicitly included in a token */
 	void IgnoreWhitespace() { bIgnoreWhitespace = true; }
 
 	/** Define a token by way of a function to be invoked to attempt to parse a token from a stream */
-	void DefineToken(const TFunction<FExpressionDefinition>& Definition);
+	void DefineToken(TFunction<FExpressionDefinition>&& Definition);
 
 public:
 

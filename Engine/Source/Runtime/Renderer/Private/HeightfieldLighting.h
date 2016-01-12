@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HeightfieldLighting.h
@@ -80,6 +80,8 @@ public:
 
 	void SetupVisibleHeightfields(const FViewInfo& View, FRHICommandListImmediate& RHICmdList);
 
+	void SetupHeightfieldsForScene(const FScene& Scene, FRHICommandListImmediate& RHICmdList);
+
 	void ClearShadowing(const FViewInfo& View, FRHICommandListImmediate& RHICmdList, const FLightSceneInfo& LightSceneInfo) const;
 
 	void ComputeShadowMapShadowing(const FViewInfo& View, FRHICommandListImmediate& RHICmdList, const FProjectedShadowInfo* ProjectedShadowInfo) const;
@@ -120,6 +122,14 @@ public:
 		FSceneRenderTargetItem& DistanceFieldNormal, 
 		const FAOScreenGridResources& ScreenGridResources,
 		const FDistanceFieldAOParameters& Parameters) const;
+
+	void PreCullTriangles(
+		const FViewInfo& View, 
+		FRHICommandListImmediate& RHICmdList,
+		class FPreCulledTriangleBuffers& PreCulledTriangleBuffers,
+		int32 StartIndexValue,
+		int32 NumTrianglesValue,
+		const class FUniformMeshBuffers& UniformMeshBuffers) const;
 
 private:
 

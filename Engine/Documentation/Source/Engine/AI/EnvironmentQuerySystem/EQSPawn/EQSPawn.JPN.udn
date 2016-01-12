@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2652918
 Availability:Public
 Title: EQS Testing Pawn
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:Environment Query System には、エディタ内での環境参照の結果をリアルタイムで表示する、特別な Pawn が含まれています。本ページでは、EQSTestingPawn の作成と使用について説明します。
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,7 +46,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 
 ![](testingPawnBanner.png)(convert:false)
 
-**Environment Query System Testing Pawn** (EQSTestingPawn) は、Environment Queries が実際にしていることを確認することができる、特別な Pawn クラスです。Environment Query は作成された物のサイズと形を常に色付きの球体で表して定義します。球体は、緑から赤のカラースケールで、Environment Query が実行した各種テストに対する一致レベルを表します。青の球体は失敗、または **Trace** テストなどの bool タイプのテストが false を返したことを表します。
+**Environment Query System Testing Pawn**** (EQSTestingPawn) は、Environment Queries が実際にしていることを確認することができる、特別な Pawn クラスです。Environment Query は作成された物のサイズと形を常に色付きの球体で表して定義します。球体は、緑から赤のカラースケールで、Environment Query が実行した各種テストに対する一致レベルを表します。青の球体は失敗、または **Trace** テストなどの bool タイプのテストが false を返したことを表します。
 
 ## EQS Testing Pawn の作成
 
@@ -54,7 +55,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 [/REGION]
 
 1. コンテンツ ブラウザで、新規のブループリントを **作成** します。
-1. **All Classes** を展開して、`EQSTestingPawn` を探します。
+1. **All Classes** を展開して、**EQSTestingPawn** を探します。
 1. **EQSTestingPawn** を選択します。
 1. 新規の **EQSTestingPawn** ブループリントに名前を付けます。
 
@@ -64,7 +65,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 [![](placeEQSPawn.png)(convert:false)](placeEQSPawn.png)
 [/REGION]
 
-1. **EQSTestingPawn** ブループリントをクリックし、 **コンテンツ ブラウザ** から **ビューポート** へドラッグして、レベル内に置きます。
+1. EQSTestingPawn ブループリントをクリックし、 **コンテンツ ブラウザ** から **ビューポート** へドラッグして、レベル内に置きます。
 
 	[REGION:note]
 	Environment Query System は実験的であり、EQSTestingPawn はプロセッサ集中型であることを考えると、有効な Query Template に変更を加えると、システムが長時間ハングします。環境に編集を加えている間は、Query Template プロパティをクリアしておくと良いでしょう。
@@ -74,7 +75,7 @@ Description:Environment Query System には、エディタ内での環境参照�
 
 ## フィードバックのリファレンス
 
-**青**:アイテムに対してテストは失敗したので、アイテムは完全にウェイトが外され、結果からカリングされました。通常、Distance Test を使って範囲を上回る (あるいは下回る) アイテムが除外されような、場合に発生します。値を完全に除去したくない場合は、採点セクションの Clamp 機能を使います。 
+**青**:アイテムに対してテストは失敗したので、アイテムは完全にウェイトが外され、結果からカリングされました。通常、Distance Test を使って範囲を上回る (あるいは下回る) アイテムを削除するような、値にフィルターをかけると発生します。値を完全に除去したくない場合は、採点セクションの Clamp 機能を使います。 
 
 **緑 - 赤**:赤より緑の方が好ましいです。これらに列挙された数字はアイテムのウェイトです。デバッグ ステップを 1 つだけプレビューする場合は、この値が選択されているテストの最終値となります。
 

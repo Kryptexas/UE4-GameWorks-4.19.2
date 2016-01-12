@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #define SPHERICAL_OPACITY_FOR_SHADOW_DEPTHS 1
 
@@ -51,6 +51,8 @@ void MainVS(
 	out float4 OutPosition : SV_POSITION
 	)
 {
+	ResolvedView = ResolveView();
+	
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 	float3x3 TangentToLocal = VertexFactoryGetTangentToLocal(Input, VFIntermediates);
@@ -74,18 +76,21 @@ float TranslInvMaxSubjectDepth;
 /** Pixel shader used to accumulate layer opacities in different channels based on the first translucent layer's depth. */
 void MainOpacityPS( 
 	FTranslucencyShadowDepthVSToPS Inputs,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor0 : SV_Target0,
 	out float4 OutColor1 : SV_Target1
 	)
 {
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, Inputs.PixelPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, 1, Inputs.PixelPosition);
+	ResolvedView = ResolveView();
+
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, SvPosition);
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, 1);
 	
 	// Evaluate the mask for translucent materials
-	GetMaterialClippingShadowDepth(MaterialParameters);
+	GetMaterialClippingShadowDepth(MaterialParameters, PixelMaterialInputs);
 
-	float Density = GetMaterialOpacity(MaterialParameters) * GetMaterialTranslucentShadowDensityScale();
+	float Density = GetMaterialOpacity(PixelMaterialInputs) * GetMaterialTranslucentShadowDensityScale();
 
 #if PERSPECTIVE_CORRECT_DEPTH
 	Inputs.ShadowDepth *= TranslInvMaxSubjectDepth;

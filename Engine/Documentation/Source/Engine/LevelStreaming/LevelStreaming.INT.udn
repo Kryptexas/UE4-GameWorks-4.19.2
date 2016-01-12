@@ -2,6 +2,8 @@ Availability: Public
 Title:Level Streaming
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:Asynchronously loading and unloading levels during play to decrease memory usage and create seamless worlds.
+parent:Engine
+order:10
 
 [VAR:Topic]
 [OBJECT:Topic]

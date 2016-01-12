@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvironmentQueryEditorModule.h"
 
@@ -47,7 +47,7 @@ void UEnvironmentQueryGraph::UpdateAsset(int32 UpdateFlags)
 	}
 
 	UEnvQuery* Query = Cast<UEnvQuery>(GetOuter());
-	Query->Options.Reset();
+	Query->GetOptionsMutable().Reset();
 	if (RootNode && RootNode->Pins.Num() > 0 && RootNode->Pins[0]->LinkedTo.Num() > 0)
 	{
 		UEdGraphPin* MyPin = RootNode->Pins[0];
@@ -88,7 +88,7 @@ void UEnvironmentQueryGraph::UpdateAsset(int32 UpdateFlags)
 						}
 					}
 
-					Query->Options.Add(OptionInstance);
+					Query->GetOptionsMutable().Add(OptionInstance);
 				}
 			}
 		}
@@ -272,7 +272,7 @@ void UEnvironmentQueryGraph::SpawnMissingNodes()
 
 	TSet<UEnvQueryTest*> ExistingTests;
 	TSet<UEnvQueryOption*> ExistingNodes;
-	TArray<UEnvQueryOption*> OptionsCopy = QueryOwner->Options;
+	TArray<UEnvQueryOption*> OptionsCopy = QueryOwner->GetOptions();
 
 	UAIGraphNode* MyRootNode = nullptr;
 	for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)

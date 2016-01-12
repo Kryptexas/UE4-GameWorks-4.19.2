@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "Kismet2NameValidators.h"
@@ -128,6 +128,8 @@ void UK2Node_Knot::PostReconstructNode()
 			break;
 		}
 	}
+
+	Super::PostReconstructNode();
 }
 
 void UK2Node_Knot::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

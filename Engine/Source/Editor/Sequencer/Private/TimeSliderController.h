@@ -1,8 +1,41 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Editor/SequencerWidgets/Public/ITimeSlider.h"
+
+struct FContextMenuSuppressor;
+
+struct FPaintPlaybackRangeArgs
+{
+	FPaintPlaybackRangeArgs()
+		: StartBrush(nullptr), EndBrush(nullptr), BrushWidth(0.f)
+	{}
+
+	FPaintPlaybackRangeArgs(const FSlateBrush* InStartBrush, const FSlateBrush* InEndBrush, float InBrushWidth)
+		: StartBrush(InStartBrush), EndBrush(InEndBrush), BrushWidth(InBrushWidth)
+	{}
+	/** Brush to use for the start bound */
+	const FSlateBrush* StartBrush;
+	/** Brush to use for the end bound */
+	const FSlateBrush* EndBrush;
+	/** The width of the above brushes, in slate units */
+	float BrushWidth;
+};
+
+struct FPaintSectionAreaViewArgs
+{
+	FPaintSectionAreaViewArgs()
+		: bDisplayTickLines(false), bDisplayScrubPosition(false)
+	{}
+
+	/** Whether to display tick lines */
+	bool bDisplayTickLines;
+	/** Whether to display the scrub position */
+	bool bDisplayScrubPosition;
+	/** Optional Paint args for the playback range*/
+	TOptional<FPaintPlaybackRangeArgs> PlaybackRangeArgs;
+};
 
 /**
  * A time slider controller for sequencer
@@ -15,10 +48,11 @@ public:
 
 	/** ITimeSliderController Interface */
 	virtual int32 OnPaintTimeSlider( bool bMirrorLabels, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-	virtual FReply OnMouseButtonDown( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseButtonUp( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseMove( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual FReply OnMouseWheel( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDown( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseWheel( SWidget& WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FCursorReply OnCursorQuery( TSharedRef<const SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	/** End ITimeSliderController Interface */
 
 	/** Get the current view range for this controller */
@@ -38,9 +72,8 @@ public:
 	 *
 	 * @param NewRangeMin		The new lower bound of the range
 	 * @param NewRangeMax		The new upper bound of the range
-	 * @param bMaintainRange	Maintain the current range size if 
 	 */	
-	void ClampViewRange(float& NewRangeMin, float& NewRangeMax, bool bMaintainRange);
+	void ClampViewRange(float& NewRangeMin, float& NewRangeMax);
 
 	/**
 	 * Set a new range based on a min, max and an interpolation mode
@@ -77,7 +110,7 @@ public:
 	/**
 	 * Draws major tick lines in the section view                                                              
 	 */
-	int32 OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, bool bDisplayTickLines, bool bDisplayScrubPosition ) const;
+	int32 OnPaintSectionView( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bEnabled, const FPaintSectionAreaViewArgs& Args ) const;
 
 private:
 	/**
@@ -97,8 +130,32 @@ private:
 	 */
 	void DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, struct FDrawTickArgs& InArgs ) const;
 
+	/**
+	 * Draws the playback range
+	 * @return the new layer ID
+	 */
+	int32 DrawPlaybackRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const;
+
+private:
+	/**
+	 * Hit test the lower bound of the playback range
+	 */
+	bool HitTestPlaybackStart(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
+
+	/**
+	 * Hit test the upper bound of the playback range
+	 */
+	bool HitTestPlaybackEnd(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
+
+	void SetPlaybackRangeStart(float NewStart);
+	void SetPlaybackRangeEnd(float NewEnd);
+
+	TSharedRef<SWidget> OpenSetPlaybackRangeMenu(float MouseTime);
+
 private:
 	FTimeSliderArgs TimeSliderArgs;
+	/** The size of the scrub handle */
+	float ScrubHandleSize;
 	/** Brush for drawing an upwards facing scrub handle */
 	const FSlateBrush* ScrubHandleUp;
 	/** Brush for drawing a downwards facing scrub handle */
@@ -110,6 +167,8 @@ private:
 	{
 		DRAG_SCRUBBING_TIME,
 		DRAG_SETTING_RANGE,
+		DRAG_START_RANGE,
+		DRAG_END_RANGE,
 		DRAG_NONE
 	};
 	DragType MouseDragType;
@@ -119,4 +178,26 @@ private:
 	FVector2D MouseDownRange;
 	/** Range stack */
 	TArray<FVector2D> RangeStack;
+	/** When > 0, we should not show context menus */
+	int32 ContextMenuSupression;
+	friend FContextMenuSuppressor;
+};
+
+struct FContextMenuSuppressor
+{
+	FContextMenuSuppressor(TSharedRef<FSequencerTimeSliderController> InTimeSliderController)
+		: TimeSliderController(InTimeSliderController)
+	{
+		++TimeSliderController->ContextMenuSupression;
+	}
+	~FContextMenuSuppressor()
+	{
+		--TimeSliderController->ContextMenuSupression;
+	}
+
+private:
+	FContextMenuSuppressor(const FContextMenuSuppressor&);
+	FContextMenuSuppressor& operator=(const FContextMenuSuppressor&);
+
+	TSharedRef<FSequencerTimeSliderController> TimeSliderController;
 };

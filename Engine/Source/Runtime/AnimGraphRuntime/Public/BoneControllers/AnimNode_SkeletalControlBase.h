@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	Abstract base class for a skeletal controller.
@@ -28,10 +28,20 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_SkeletalControlBase : public FAnimNode_Bas
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
 	FInputScaleBias AlphaScaleBias;
 
+	/*
+	* Max LOD that this node is allowed to run
+	* For example if you have LODThreadhold to be 2, it will run until LOD 2 (based on 0 index)
+	* when the component LOD becomes 3, it will stop update/evaluate
+	* currently transition would be issue and that has to be re-visited
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Performance, meta = (DisplayName = "LOD Threshold"))
+	int32 LODThreshold;
+
 public:
 
 	FAnimNode_SkeletalControlBase()
 		: Alpha(1.0f)
+		, LODThreshold(INDEX_NONE)
 	{
 	}
 
@@ -44,13 +54,14 @@ public:
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context)  override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
-	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) override;
+	virtual void Update(const FAnimationUpdateContext& Context) final;
+	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) final;
 	// End of FAnimNode_Base interface
 	
 protected:
 	// Interface for derived skeletal controls to implement
-
+	// use this function to update for skeletal control base
+	virtual void UpdateInternal(const FAnimationUpdateContext& Context);
 	// Evaluate the new component-space transforms for the affected bones.
 	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) {}
 	// return true if it is valid to Evaluate
@@ -60,4 +71,8 @@ protected:
 
 	/** Allow base to add info to the node debug output */
 	void AddDebugNodeData(FString& OutDebugData);
+private:
+
+	// Resused bone transform array to avoid reallocating in skeletal controls
+	TArray<FBoneTransform> BoneTransforms;
 };

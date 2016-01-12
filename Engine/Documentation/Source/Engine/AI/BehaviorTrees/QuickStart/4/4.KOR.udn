@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2635791
 Availability:Public
 Title: 4. 캐릭터 블루프린트 셋업
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -34,7 +34,7 @@ Description:단계 4. 캐릭터 블루프린트 셋업
 
 	![](meshComp.png)
 
-1. **디테일** 패널에서 **Mesh** 카테고리를 찾아 `HeroTPP` (또는 별도의) **스켈레탈 메시** 를 할당합니다.
+1. **디테일** 패널에서 **Mesh** 카테고리를 찾아 `SK_Mannequin` (또는 별도의) **스켈레탈 메시** 를 할당합니다.
 
 	![](assignSkelMesh.png)
 
@@ -42,7 +42,7 @@ Description:단계 4. 캐릭터 블루프린트 셋업
 
 1. **Mesh** 컴포넌트가 파랑 애로우 컴포넌트가 가리키는 쪽을 향하도록 회전시킵니다.
 
-1. **디테일** 패널에서 **Animation** 케타고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 `HeroTPP_AnimBlueprint` 를 할당합니다.
+1. **디테일** 패널에서 **Animation** 케타고리를 찾아 **Animation Blueprint Generated Class** (애니메이션 블루프린트 생성 클래스) 프로퍼티에 `TopDown_AnimBP` 를 할당합니다.
 
 	![](assignAnimBP.png)
 

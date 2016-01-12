@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
@@ -279,3 +279,5 @@ TSharedRef<SWindow> OpenLogDialog_NonModal(EAppMsgType::Type InMessageType, cons
 
 	return MsgWindow.ToSharedRef();
 }
+
+#undef LOCTEXT_NAMESPACE

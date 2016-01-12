@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * GameplayDebuggingComponent is used to replicate debug data from server to client(s).
@@ -9,6 +9,8 @@
 #include "GameplayDebuggingTypes.h"
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
+#include "Debug/DebugDrawService.h"
+#include "Debug/GameplayDebuggerBaseObject.h"
 #include "GameplayDebuggingComponent.generated.h"
 
 #define WITH_EQS 1
@@ -134,9 +136,6 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	/** End EQS replication data */
 
 	UPROPERTY(Replicated)
-	FVector SensingComponentLocation;
-
-	UPROPERTY(Replicated)
 	int32 NextPathPointIndex;
 
 	UPROPERTY(Replicated)
@@ -154,6 +153,24 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	uint32 bDrawEQSLabels:1;
 	uint32 bDrawEQSFailedItems : 1;
 
+	/** Start - Perception System */
+
+	UPROPERTY(Replicated)
+	FString PerceptionLegend;
+
+	UPROPERTY(Replicated)
+	float DistanceFromPlayer;
+	
+	UPROPERTY(Replicated)
+	float DistanceFromSensor;
+
+	UPROPERTY(Replicated)
+	FVector SensingComponentLocation;
+
+	UPROPERTY(Replicated)
+	TArray<FGameplayDebuggerShapeElement> PerceptionShapeElements;
+	/** End - Perception System */
+
 	UFUNCTION()
 	virtual void OnCycleDetailsView();
 
@@ -167,6 +184,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 
 	UFUNCTION()
 	virtual void OnRep_UpdateNavmesh();
+
+	UFUNCTION()
+	virtual void OnRep_ActivationCounter();
 
 	UFUNCTION(exec)
 	void ServerReplicateData(uint32 InMessage, uint32 DataView);
@@ -235,19 +255,17 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-
-protected:
 	void SelectTargetToDebug();
 
-	//APlayerController* PlayerOwner;
+protected:
 #if WITH_RECAST
 	ARecastNavMesh* GetNavData();
 #endif
 
-protected:
 	virtual void CollectPathData();
 	virtual void CollectBasicData();
 	virtual void CollectBehaviorTreeData();
+	virtual void CollectPerceptionData();
 
 	virtual void CollectBasicMovementData(APawn* MyPawn);
 	virtual void CollectBasicPathData(APawn* MyPawn);
@@ -262,6 +280,9 @@ protected:
 #if WITH_EDITOR
 	uint32 bWasSelectedInEditor : 1;
 #endif
+
+	UPROPERTY(ReplicatedUsing = OnRep_ActivationCounter)
+	uint8 ActivationCounter;
 
 	float NextTargrtSelectionTime;
 	/** navmesh data passed to rendering component */

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 
@@ -26,3 +26,5 @@ void FAssetTypeActions_DestructibleMesh::OpenAssetEditor( const TArray<UObject*>
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

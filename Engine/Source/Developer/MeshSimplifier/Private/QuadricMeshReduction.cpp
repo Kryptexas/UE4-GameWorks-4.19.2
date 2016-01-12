@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine.h"
 #include "RawMesh.h"
@@ -348,7 +348,8 @@ public:
 		USkeletalMesh* SkeletalMesh,
 		int32 LODIndex,
 		const FSkeletalMeshOptimizationSettings& Settings,
-		bool bCalcLODDistance
+		bool bCalcLODDistance,
+		bool bReregisterComponent = true
 		) override
 	{
 		return false;

@@ -1,16 +1,18 @@
-﻿INTSourceChangelist:2615780
+﻿INTSourceChangelist:2680849
 Availability: Public
 Title:배열 작업
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:변수 집합에 배열을 사용하는 여러가지 방법을 보여줍니다.
 Related: Engine/Blueprints/UserGuide/Arrays
 Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
+version:4.9
+skilllevel:Intermediate
 
 [TOC(start:2)]
 
 프로그래밍 용어에 익숙치 않은 분들의 경우, **Array** 배열이라 함은 하나의 개체 안에 담긴 동일 유형의 배열 집합으로 생각하면 됩니다. 예를 들어 **Float** 배열을 만들고자 하는 경우, 그 배열은 Float 변수만 저장할 수 있습니다. 배열을 생성한 이후에는, 그 배열 내 각각의 변수에 접근하여 개별적으로 변경하거나, 배열 내 모든 항목을 한꺼번에 변경하(여 개별적으로 할 때 비해 반복작업 속도를 크게 향상시키)는 것도 가능합니다.
 
-여기서는 블루프린트 안에 배열 변수를 만드는 법은 물론 **Make Array** (배열 만들기) 노드를 사용하여 배열을 만드는 법도 알아보겠습니다. 배열을 만드는 법에 대해 이해한 후에는 **배열 사용법 예제** 섹션을 참고해 보면 배열 작업 관련 용례를 확인해 볼 수 있습니다.
+여기서는 블루프린트 안에 배열 변수를 만드는 법은 물론 **Make Array** (배열 만들기) 노드를 사용하여 배열을 만드는 법도 알아보겠습니다. 배열을 만드는 법에 대해 이해한 후에는 [배열 사용법 예제](#배열사용법예제) 섹션을 참고해 보면 배열 작업 관련 용례를 확인해 볼 수 있습니다.
 
 [REGION:note]
 자세한 사용법 및 정보는 [](Engine/Blueprints/UserGuide/Arrays), [](Engine/Blueprints/UserGuide/Arrays/ArrayNodes) 문서를 참고하세요.
@@ -94,11 +96,13 @@ Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
 	![](HT12.png)
 
 
-## 예제 배열 용례
+## 배열 사용법 예제
 
 이 예제에서는 배열을 사용하여 레벨 내 임의의 위치에 임의의 블루프린트 이펙트를 스폰하도록 하겠습니다.
 
-_이 예제에서는 **시작용 콘텐츠를 포함** 한 **블루프린트 3인칭 템플릿** 프로젝트를 사용하고 있습니다._
+[REGION:note]
+이 예제에서는 **시작용 콘텐츠를 포함** 한 **블루프린트 삼인칭 템플릿** 프로젝트를 사용하고 있습니다.
+[/REGION]
 
 1.	프로젝트로 들어가 **모드** 메뉴의 **기본** 탭에서 **타겟 포인트** 를 다섯 개 레벨에 끌어 놓습니다.
 

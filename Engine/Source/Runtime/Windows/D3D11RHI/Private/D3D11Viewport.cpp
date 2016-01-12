@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Viewport.cpp: D3D viewport RHI implementation.
@@ -511,6 +511,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 	if( RenderTarget == NULL )
 	{
 		RenderTarget = Viewport->GetBackBuffer();
+		RHITransitionResources(EResourceTransitionAccess::EWritable, &RenderTarget, 1);
 	}
 	FRHIRenderTargetView View(RenderTarget);
 	RHISetRenderTargets(1,&View,nullptr,0,NULL);
@@ -521,6 +522,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 
 void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bool bPresent,bool bLockToVsync)
 {
+	++PresentCounter;
 	FD3D11Viewport* Viewport = ResourceCast(ViewportRHI);
 
 	SCOPE_CYCLE_COUNTER(STAT_D3D11PresentTime);
@@ -590,18 +592,10 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 	}
 
 #if CHECK_SRV_TRANSITIONS
+	check(UnresolvedTargetsConcurrencyGuard.Increment() == 1);
 	UnresolvedTargets.Reset();
+	check(UnresolvedTargetsConcurrencyGuard.Decrement() == 0);
 #endif
-}
-
-/**
- * Determine if currently drawing the viewport
- *
- * @return true if currently within a BeginDrawingViewport/EndDrawingViewport block
- */
-bool FD3D11DynamicRHI::RHIIsDrawingViewport()
-{
-	return DrawingViewport != NULL;
 }
 
 void FD3D11DynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()

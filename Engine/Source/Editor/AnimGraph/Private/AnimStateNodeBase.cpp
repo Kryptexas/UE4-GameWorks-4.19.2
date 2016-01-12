@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimStateNodeBase.cpp
@@ -87,5 +87,11 @@ TSharedPtr<class INameValidatorInterface> UAnimStateNodeBase::MakeNameValidator(
 FString UAnimStateNodeBase::GetDocumentationLink() const
 {
 	return TEXT("Shared/GraphNodes/AnimationStateMachine");
+}
+
+UAnimBlueprint* UAnimStateNodeBase::GetAnimBlueprint() const
+{
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(this);
+	return CastChecked<UAnimBlueprint>(Blueprint);
 }
 

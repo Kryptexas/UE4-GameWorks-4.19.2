@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SocketsPrivatePCH.h"
 #include "Sockets.h"
@@ -85,7 +85,7 @@ bool FNFSMessageHeader::ReceivePayload(FArrayReader& OutPayload, const FSimpleAb
 		
 	if (!Socket.Receive(HeaderBytes.GetData(), Size))
 	{
-		UE_LOG(LogSockets, Error, TEXT("Unable to read full header"));
+		UE_LOG(LogSockets, Error, TEXT("Unable to read full network header"));
 		return false;
 	}
 

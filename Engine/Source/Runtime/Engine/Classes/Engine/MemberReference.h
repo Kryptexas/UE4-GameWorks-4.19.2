@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -164,6 +164,7 @@ public:
 
 	/** Set to a non-'self' member, so must include reference to class owning the member. */
 	ENGINE_API void SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass);
+	ENGINE_API void SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass, FGuid& InMemberGuid);
 
 	/** Set to reference a global field (intended for things like natively defined delegate signatures) */
 	ENGINE_API void SetGlobalField(FName InFieldName, UPackage* InParentPackage);
@@ -173,6 +174,7 @@ public:
 
 	/** Set up this reference to a 'self' member name */
 	ENGINE_API void SetSelfMember(FName InMemberName);
+	ENGINE_API void SetSelfMember(FName InMemberName, FGuid& InMemberGuid);
 
 	/** Set up this reference to a 'self' member name, scoped to a struct */
 	ENGINE_API void SetLocalMember(FName InMemberName, UStruct* InScope, const FGuid InMemberGuid);
@@ -226,6 +228,17 @@ public:
 	{
 		return !MemberScope.IsEmpty();
 	}
+
+#if WITH_EDITOR
+	/**
+	 * Returns a search string to submit to Find-in-Blueprints to find references to this reference
+	 *
+	 * @param InFieldOwner		The owner of the field, cannot be resolved internally
+	 * @return					Search string to find this reference in other Blueprints
+	 */
+	ENGINE_API FString GetReferenceSearchString(UClass* InFieldOwner) const;
+#endif
+
 private:
 #if WITH_EDITOR
 	/**
@@ -259,6 +272,17 @@ public:
 	FString GetMemberScopeName() const
 	{
 		return MemberScope;
+	}
+
+	/** Compares with another MemberReference to see if they are identical */
+	bool IsSameReference(FMemberReference& InReference)
+	{
+		return 
+			bSelfContext == InReference.bSelfContext &&
+			MemberParent == InReference.MemberParent &&
+			MemberName == InReference.MemberName &&
+			MemberGuid == InReference.MemberGuid &&
+			MemberScope == InReference.MemberScope;
 	}
 
 	/** Returns whether or not the variable has been deprecated */

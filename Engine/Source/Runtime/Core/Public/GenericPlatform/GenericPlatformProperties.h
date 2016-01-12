@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -255,6 +255,12 @@ struct FGenericPlatformProperties
 
 	// Whether the platform allows an application to quit to the OS
 	static FORCEINLINE bool SupportsQuit()
+	{
+		return false;
+	}
+
+	// Whether the platform allows the call stack to be dumped during an assert
+	static FORCEINLINE bool AllowsCallStackDumpDuringAssert()
 	{
 		return false;
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,14 +38,14 @@ UENUM()
 enum ECanBeCharacterBase
 {
 	/** Character cannot step up onto this Component. */
-	ECB_No,
+	ECB_No UMETA(DisplayName="No"),
 	/** Character can step up onto this Component. */
-	ECB_Yes,
+	ECB_Yes UMETA(DisplayName="Yes"),
 	/**
 	 * Owning actor determines whether character can step up onto this Component (default true unless overridden in code).
 	 * @see AActor::CanBeBaseForCharacter()
 	 */
-	ECB_Owner,
+	ECB_Owner UMETA(DisplayName="(Owner)"),
 	ECB_MAX,
 };
 
@@ -291,7 +291,8 @@ public:
 	uint32 bCastVolumetricTranslucentShadow:1;
 
 	/** 
-	 * When enabled, the component will only cast a shadow on itself and not other components in the world.  This is especially useful for first person weapons, and forces bCastInsetShadow to be enabled.
+	 * When enabled, the component will only cast a shadow on itself and not other components in the world.  
+	 * This is especially useful for first person weapons, and forces bCastInsetShadow to be enabled.
 	 */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow"))
 	uint32 bSelfShadowOnly:1;
@@ -347,6 +348,21 @@ public:
 	/** Quality of indirect lighting for Movable primitives.  This has a large effect on Indirect Lighting Cache update time. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	TEnumAsByte<EIndirectLightingCacheQuality> IndirectLightingCacheQuality;
+
+	/** 
+	 * Whether the whole component should be shadowed as one from stationary lights, which makes shadow receiving much cheaper.
+	 * When enabled shadowing data comes from the volume lighting samples precomputed by Lightmass, which are very sparse.
+	 * This is currently only used on stationary directional lights.  
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
+	uint32 bSingleSampleShadowFromStationaryLights:1;
+
+	/** 
+	 * Channels that this component should be in.  Lights with matching channels will affect the component.  
+	 * These channels only apply to opaque materials, direct lighting, and dynamic lighting and shadowing.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
+	FLightingChannels LightingChannels;
 
 	UPROPERTY()
 	bool bHasCachedStaticLighting;
@@ -419,16 +435,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(ShowOnlyInnerProperties))
 	FBodyInstance BodyInstance;
 
-	/** Whether this component can potentially influence navigation */
-	UPROPERTY(EditAnywhere, Category=Collision, AdvancedDisplay)
-	uint32 bCanEverAffectNavigation:1;
-
-	/** Cached navigation relevancy flag for collision updates */
-	uint32 bNavigationRelevant : 1;
+	/** Used to detach physics objects before simulation begins. This is needed because at runtime we can't have simulated objects inside the attachment hierarchy */
+	virtual void BeginPlay() override;
 
 protected:
-
-	virtual void UpdateNavigationData() override;
 
 	/** Returns true if all descendant components that we can possibly overlap with use relative location and rotation. */
 	virtual bool AreAllCollideableDescendantsRelative(bool bAllowCachedValue = true) const;
@@ -471,6 +481,8 @@ public:
 private:
 	UPROPERTY()
 	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase_DEPRECATED;
+
+	FMaskFilter MoveIgnoreMask;
 
 public:
 	/**
@@ -515,6 +527,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void ClearMoveIgnoreActors();
 
+	/** Set the mask filter we use when moving. */
+	void SetMoveIgnoreMask(FMaskFilter InMoveIgnoreMask);
+
+	/** Get the mask filter we use when moving. */
+	FMaskFilter GetMoveIgnoreMask() const { return MoveIgnoreMask; }
+
+	/** Set the mask filter checked when others move into us. */
+	void SetMaskFilterOnBodyInstance(FMaskFilter InMaskFilter) { BodyInstance.SetMaskFilter(InMaskFilter); }
+
+	/** Get the mask filter checked when others move into us. */
+	FMaskFilter GetMaskFilterOnBodyInstance(FMaskFilter InMaskFilter) const { return BodyInstance.GetMaskFilter(); }
 
 #if WITH_EDITOR
 	/** Override delegate used for checking the selection state of a component */
@@ -547,12 +570,12 @@ public:
 	
 	/** 
 	 * Finish tracking an overlap interaction that is no longer occurring between this component and the component specified. 
-	 * @param OtherComp - The component of the other actor to stop overlapping
-	 * @param bDoNotifies - True to dispatch appropriate begin/end overlap notifications when these events occur.
-	 * @param bNoNotifySelf	- True to skip end overlap notifications to this component's.  Does not affect notifications to OtherComp's actor.
+	 * @param OtherComp The component of the other actor to stop overlapping
+	 * @param bDoNotifies True to dispatch appropriate begin/end overlap notifications when these events occur.
+	 * @param bSkipNotifySelf True to skip end overlap notifications to this component's.  Does not affect notifications to OtherComp's actor.
 	 * @see [Overlap Events](https://docs.unrealengine.com/latest/INT/Engine/Physics/Collision/index.html#overlapandgenerateoverlapevents)
 	 */
-	void EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies=true, bool bNoNotifySelf=false);
+	void EndComponentOverlap(const FOverlapInfo& OtherOverlap, bool bDoNotifies=true, bool bSkipNotifySelf=false);
 
 	/**
 	 * Check whether this component is overlapping another component.
@@ -699,6 +722,10 @@ public:
 	/** Event called when a finger is moved off this component when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentEndTouchOverSignature OnInputTouchLeave;
+
+	/** Scale the bounds of this object, used for frustum culling. Useful for features like WorldPositionOffset. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void SetBoundsScale(float NewBoundsScale=1.f);
 
 	/**
 	 * Returns the material used by the element at the specified index
@@ -1062,13 +1089,14 @@ public:
 	virtual const bool ShouldGenerateAutoLOD() const;
 #endif
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 	virtual bool IsEditorOnly() const override;
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual bool HasValidPhysicsState() const override;
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
-	// End UActorComponent Interface
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
+	//~ End UActorComponent Interface
 
 	/** @return true if the owner is selected and this component is selectable */
 	virtual bool ShouldRenderSelected() const;
@@ -1177,12 +1205,15 @@ public:
 	struct FPrimitiveComponentPostPhysicsTickFunction PostPhysicsComponentTick;
 
 	/** Controls if we get a post physics tick or not. If set during ticking, will take effect next frame **/
+	DEPRECATED(4.11, "Please register your own tick function or use the primary tick function")
 	void SetPostPhysicsComponentTickEnabled(bool bEnable);
 
 	/** Returns whether we have the post physics tick enabled **/
+	DEPRECATED(4.11, "Please register your own tick function or use the primary tick function")
 	bool IsPostPhysicsComponentTickEnabled() const;
 
 	/** Tick function called after physics (sync scene) has finished simulation */
+	DEPRECATED(4.11, "Please register your own tick function or use the primary tick function")
 	virtual void PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction) {}
 
 	/** Return the BodySetup to use for this PrimitiveComponent (single body case) */
@@ -1334,7 +1365,7 @@ protected:
 	/** Give the static mesh component recreate render state context access to Create/DestroyRenderState_Concurrent(). */
 	friend class FStaticMeshComponentRecreateRenderStateContext;
 
-	// Begin USceneComponent Interface
+	//~ Begin USceneComponent Interface
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 
 	/** Event called when AttachParent changes, to allow the scene to update its attachment state. */
@@ -1358,7 +1389,7 @@ public:
 	// End USceneComponentInterface
 
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 protected:
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
@@ -1371,7 +1402,7 @@ protected:
 	/**
 	 * Called to get the Component To World Transform from the Root BodyInstance
 	 * This needs to be virtual since SkeletalMeshComponent Root has to undo its own transform
-	 * Without this, the root LocalToAtom is overriden by physics simulation, causing kinematic velocity to 
+	 * Without this, the root LocalToAtom is overridden by physics simulation, causing kinematic velocity to 
 	 * accelerate simulation
 	 *
 	 * @param : UseBI - root body instsance
@@ -1383,7 +1414,7 @@ public:
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif // WITH_EDITOR	
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
 protected:
 	/** Internal function that updates physics objects to match the component collision settings. */
@@ -1396,7 +1427,7 @@ protected:
 	void EnsurePhysicsStateCreated();
 public:
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -1428,7 +1459,7 @@ public:
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	//Begin USceneComponent Interface
 
@@ -1640,10 +1671,16 @@ public:
 	 */
 	void SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses);
 	
-private:
+protected:
+
 	/** Called when the BodyInstance ResponseToChannels, CollisionEnabled or bNotifyRigidBodyCollision changes, in case subclasses want to use that information. */
 	virtual void OnComponentCollisionSettingsChanged();
 
+	/** Ends all current component overlaps. Generally used when destroying this component or when it can no longer generate overlaps. */
+	void ClearComponentOverlaps(bool bDoNotifies, bool bSkipNotifySelf);
+
+private:
+	
 	/**
 	 *	Applies a RigidBodyState struct to this Actor.
 	 *	When we get an update for the physics, we try to do it smoothly if it is less than ..DeltaThreshold.
@@ -1738,7 +1775,7 @@ public:
 	virtual bool SweepComponent(FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape &CollisionShape, bool bTraceComplex=false);
 	
 	/** 
-	 *  Test the collision of the supplied component at the supplied location/rotation, and determine if it overlaps this component
+	 *  Test the collision of the supplied component at the supplied location/rotation, and determine if it overlaps this component.
 	 *  @note This overload taking rotation as a FQuat is slightly faster than the version using FRotator.
 	 *  @note This simply calls the virtual ComponentOverlapComponentImpl() which can be overridden to implement custom behavior.
 	 *  @param  PrimComp        Component to use geometry from to test against this component. Transform of this component is ignored.
@@ -1758,7 +1795,7 @@ protected:
 public:
 	
 	/** 
-	 *  Test the collision of the supplied Sphere at the supplied location, and determine if it overlaps this component
+	 *  Test the collision of the supplied shape at the supplied location, and determine if it overlaps this component.
 	 *
 	 *  @param  Pos             Location to place PrimComp geometry at 
 	 *	@param	Rot				Rotation of PrimComp geometry
@@ -1796,31 +1833,17 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=Collision)
 	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
-
-	/** Can this component potentially influence navigation */
-	bool CanEverAffectNavigation() const
-	{
-		return bCanEverAffectNavigation;
-	}
-
-	/** set value of bCanEverAffectNavigation flag and update navigation octree if needed */
-	void SetCanEverAffectNavigation(bool bRelevant);
 	
-protected:
-	/** Makes sure navigation system has up to date information regarding component's navigation relevancy and if it can affect navigation at all */
-	void HandleCanEverAffectNavigationChange();
-
-public:
 	DEPRECATED(4.5, "UPrimitiveComponent::DisableNavigationRelevance() is deprecated, use SetCanEverAffectNavigation() instead.")
 	void DisableNavigationRelevance()
 	{
 		SetCanEverAffectNavigation(false);
 	}
 
-	// Begin INavRelevantInterface Interface
+	//~ Begin INavRelevantInterface Interface
 	virtual FBox GetNavigationBounds() const override;
 	virtual bool IsNavigationRelevant() const override;
-	// End INavRelevantInterface Interface
+	//~ End INavRelevantInterface Interface
 
 	FORCEINLINE EHasCustomNavigableGeometry::Type HasCustomNavigableGeometry() const { return bHasCustomNavigableGeometry; }
 

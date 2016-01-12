@@ -1,6 +1,37 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+/*-----------------------------------------------------------------------------
+Event graph related type definitions
+-----------------------------------------------------------------------------*/
+
+/** Type definition for shared pointers to instances of FEventGraphSample. */
+typedef TSharedPtr<class FEventGraphSample> FEventGraphSamplePtr;
+
+/** Type definition for shared references to instances of FEventGraphSample. */
+typedef TSharedRef<class FEventGraphSample> FEventGraphSampleRef;
+
+/** Type definition for weak references to instances of FEventGraphSample. */
+typedef TWeakPtr<class FEventGraphSample> FEventGraphSampleWeak;
+
+/** Type definition for shared pointers to instances of FEventGraphData. */
+typedef TSharedPtr<class FEventGraphData, ESPMode::ThreadSafe> FEventGraphDataPtr;
+
+/** Type definition for shared references to instances of FEventGraphData. */
+typedef TSharedRef<class FEventGraphData, ESPMode::ThreadSafe> FEventGraphDataRef;
+
+/** Type definition for shared pointers to instances of FEventGraphDataHandler. */
+typedef TSharedPtr<class FEventGraphDataHandler> FEventGraphDataHandlerPtr;
+
+/** Type definition for shared references to instances of FEventGraphDataHandler. */
+typedef TSharedRef<class FEventGraphDataHandler> FEventGraphDataHandlerRef;
+
+/** Scratch buffers for multithreaded usage. */
+struct FProfilerScratchArea : public TThreadSingleton<FProfilerScratchArea>
+{
+	TArray<FEventGraphSample*> ExecuteOperationArray;
+};
 
 /*-----------------------------------------------------------------------------
 	TimeAccuracy
@@ -673,32 +704,6 @@ protected:
 };
 
 /*-----------------------------------------------------------------------------
-	Event graph related type definitions
------------------------------------------------------------------------------*/
-
-/** Type definition for shared pointers to instances of FEventGraphSample. */
-typedef TSharedPtr<class FEventGraphSample> FEventGraphSamplePtr;
-
-/** Type definition for shared references to instances of FEventGraphSample. */
-typedef TSharedRef<class FEventGraphSample> FEventGraphSampleRef;
-
-/** Type definition for weak references to instances of FEventGraphSample. */
-typedef TWeakPtr<class FEventGraphSample> FEventGraphSampleWeak;
-
-/** Type definition for shared pointers to instances of FEventGraphData. */
-typedef TSharedPtr<class FEventGraphData, ESPMode::ThreadSafe> FEventGraphDataPtr;
-
-/** Type definition for shared references to instances of FEventGraphData. */
-typedef TSharedRef<class FEventGraphData, ESPMode::ThreadSafe> FEventGraphDataRef;
-
-/** Type definition for shared pointers to instances of FEventGraphDataHandler. */
-typedef TSharedPtr<class FEventGraphDataHandler> FEventGraphDataHandlerPtr;
-
-/** Type definition for shared references to instances of FEventGraphDataHandler. */
-typedef TSharedRef<class FEventGraphDataHandler> FEventGraphDataHandlerRef;
-
-
-/*-----------------------------------------------------------------------------
 	Minimal event graph sample property management
 -----------------------------------------------------------------------------*/
 
@@ -964,12 +969,6 @@ struct FEventGraphConsts
  */
 class FEventGraphSample : public TSharedFromThis<FEventGraphSample>
 {
-	enum
-	{
-		/** Maximum number of stack when traversing event graph - should be enough to store root nodes and all its children.*/
-		MaxStackSize = 256*1024
-	};
-
 	struct FDuplicateHierarchyTag {};
 	struct FDuplicateSimpleTag {};
 
@@ -1180,7 +1179,7 @@ public:
 		_ExclusiveTimeMS = FMath::Max( _ExclusiveTimeMS, Other._ExclusiveTimeMS );
 	}
 
-	const bool AreTheSamePtr( const FEventGraphSamplePtr& Other ) const
+	FORCEINLINE_DEBUGGABLE  bool AreTheSamePtr( const FEventGraphSamplePtr& Other ) const
 	{
 		return *this == *Other.Get();
 	}
@@ -1230,16 +1229,18 @@ public:
 	}
 
 	template< typename TFunc > 
-	FORCEINLINE void ExecuteOperationForAllChildren( TFunc FuncToCall )
+	FORCEINLINE_DEBUGGABLE void ExecuteOperationForAllChildren( TFunc FuncToCall )
 	{
-		FEventGraphSample** Stack = new FEventGraphSample*[MaxStackSize];
-		Stack[ 0 ] = &AsShared().Get();
+		const bool bAllowShrinking = false;
+		TArray<FEventGraphSample*>& Stack = FProfilerScratchArea::Get().ExecuteOperationArray;
+
+		Stack.Add( &AsShared().Get() );
 		int32 Idx = 1;
 
-		while( Idx > 0 )
+		while (Stack.Num() > 0)
 		{
 			// Get the parent and assign events.
-			FEventGraphSample* Current = Stack[ --Idx ];
+			FEventGraphSample* Current = Stack.Pop( bAllowShrinking );
 			FuncToCall( Current );
 
 			// Push children onto the stack.
@@ -1248,39 +1249,41 @@ public:
 			for( int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
 			{
 				const FEventGraphSamplePtr& ChildPtr = ChildrenPtr[ChildIndex];
-				Stack[ Idx++ ] = ChildPtr.Get();
+				Stack.Push( ChildPtr.Get() );
 			}
-			check(Idx < MaxStackSize);
 		}
 
-		delete [] Stack;
+		// Reset, but keep the allocation.
+		Stack.Reset();
 	}
 
 	template< typename TFunc, typename TArg0 > 
-	FORCEINLINE void ExecuteOperationForAllChildren( TFunc FuncToCall, TArg0& Arg0 )
+	FORCEINLINE_DEBUGGABLE void ExecuteOperationForAllChildren( TFunc FuncToCall, TArg0& Arg0 )
 	{
-		FEventGraphSample** Stack = new FEventGraphSample*[MaxStackSize]; 
-		Stack[ 0 ] = &AsShared().Get();
+		const bool bAllowShrinking = false;
+		TArray<FEventGraphSample*>& Stack = FProfilerScratchArea::Get().ExecuteOperationArray;
+
+		Stack.Add( &AsShared().Get() );
 		int32 Idx = 1;
 
-		while( Idx > 0 )
+		while (Stack.Num() > 0)
 		{
 			// Get the parent and assign events.
-			FEventGraphSample* Current = Stack[ --Idx ];
+			FEventGraphSample* Current = Stack.Pop( bAllowShrinking );
 			FuncToCall( Current, Arg0 );
 
 			// Push children onto the stack.
 			const TArray<FEventGraphSamplePtr>& ChildrenPtr = Current->GetChildren();
 			const int32 NumChildren = ChildrenPtr.Num();
-			for( int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
+			for (int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
 			{
 				const FEventGraphSamplePtr& ChildPtr = ChildrenPtr[ChildIndex];
-				Stack[ Idx++ ] = ChildPtr.Get();
+				Stack.Push( ChildPtr.Get() );
 			}
-			check(Idx < MaxStackSize);
 		}
 
-		delete [] Stack;
+		// Reset, but keep the allocation.
+		Stack.Reset();
 	}
 
 protected:
@@ -1327,42 +1330,32 @@ protected:
 		_ThreadPtr = ThreadEvent;
 	}
 
-	void SetRootAndThreadEvents_Iterative( FEventGraphSample* RootEvent, FEventGraphSample* ThreadEvent )
+	FORCEINLINE_DEBUGGABLE void SetRootAndThreadEvents_Iterative( FEventGraphSample* RootEvent, FEventGraphSample* ThreadEvent )
 	{
-		FEventGraphSample** Stack = new FEventGraphSample*[MaxStackSize];
-		Stack[ 0 ] = &AsShared().Get();
+		const bool bAllowShrinking = false;
+		TArray<FEventGraphSample*>& Stack = FProfilerScratchArea::Get().ExecuteOperationArray;
+
+		Stack.Add( &AsShared().Get() );
 		int32 Idx = 1;
 
-		while( Idx > 0 )
+		while (Stack.Num() > 0)
 		{
 			// Get the parent and assign events.
-			FEventGraphSample* Current = Stack[ --Idx ];
+			FEventGraphSample* Current = Stack.Pop( bAllowShrinking );
 			Current->SetRootAndThread( RootEvent, ThreadEvent );
 
 			// Push children onto the stack.
 			const TArray<FEventGraphSamplePtr>& ChildrenPtr = Current->GetChildren();
 			const int32 NumChildren = ChildrenPtr.Num();
-			for( int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
+			for (int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
 			{
 				const FEventGraphSamplePtr& ChildPtr = ChildrenPtr[ChildIndex];
-				Stack[ Idx++ ] = ChildPtr.Get();
+				Stack.Push( ChildPtr.Get() );
 			}
-			check(Idx < MaxStackSize);
 		}
 
-		delete [] Stack;
-	}
-
-	/** Not used, optimized version @see SetRootAndThreadEvents_Iterative. */
-	void SetRootAndThreadEvents_Recurrent( FEventGraphSample* RootEvent, FEventGraphSample* ThreadEvent )
-	{
-		SetRootAndThread( RootEvent, ThreadEvent );
-		const int32 NumChildren = _ChildrenPtr.Num();
-		for( int32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
-		{
-			const FEventGraphSamplePtr& ChildPtr = _ChildrenPtr[ChildIndex];
-			ChildPtr->SetRootAndThreadEvents_Recurrent( RootEvent, ThreadEvent );
-		}
+		// Reset, but keep the allocation.
+		Stack.Reset();
 	}
 
 public:

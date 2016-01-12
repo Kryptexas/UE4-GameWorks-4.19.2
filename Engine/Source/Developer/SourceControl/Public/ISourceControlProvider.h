@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -162,7 +162,7 @@ public:
 	/**
 	 * Get all cached source control state objects for which the supplied predicate returns true
 	 */
-	virtual TArray<FSourceControlStateRef> GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const = 0;
+	virtual TArray<FSourceControlStateRef> GetCachedStateByPredicate(TFunctionRef<bool(const FSourceControlStateRef&)> Predicate) const = 0;
 
 	/**
 	 * Register a delegate to be called when source control state(s) change

@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>CryptoPP</Name>
   <Location>\depot\UE4\Engine\Source\ThirdParty</Location>
-  <Date>2015-07-08T18:03:36.2674175-04:00</Date>
+  <Date>2015-09-04T18:27:50.3145468-04:00</Date>
   <Function>Provides a C++ class library of cryptographic schemes including encryption functions, hashing functions, cryptographically secure RNG's, and other helper classes to support encryption and hashing</Function>
   <Justification>It allows us to use industry standard encryption and hashing functions that have been thoroughly tested for security issues. Implementing these functions ourselves may result in errors that could make the systems vulnerable to attacks.</Justification>
   <Platforms />
@@ -16,33 +16,8 @@
   </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>true</IsSourceAvailable>
-  <NoticeType>Copyright Notice</NoticeType>
-  <Notification>Compilation Copyright (c) 1995-2013 by Wei Dai.  All rights reserved.
-This copyright applies only to this software distribution package 
-as a compilation, and does not imply a copyright on any particular 
-file in the package.
-
-All individual files in this compilation are placed in the public domain by
-Wei Dai and other contributors.
-
-I would like to thank the following authors for placing their works into
-the public domain:
-
-Joan Daemen - 3way.cpp
-Leonard Janke - cast.cpp, seal.cpp
-Steve Reid - cast.cpp
-Phil Karn - des.cpp
-Andrew M. Kuchling - md2.cpp, md4.cpp
-Colin Plumb - md5.cpp
-Seal Woods - rc6.cpp
-Chris Morgan - rijndael.cpp
-Paulo Baretto - rijndael.cpp, skipjack.cpp, square.cpp
-Richard De Moliner - safer.cpp
-Matthew Skala - twofish.cpp
-Kevin Springle - camellia.cpp, shacal2.cpp, ttmac.cpp, whrlpool.cpp, ripemd.cpp
-Ronny Van Keer - sha3.cpp
-
-The Crypto++ Library (as a compilation) is currently licensed under the Boost
+  <NoticeType>Full EULA Text</NoticeType>
+  <Notification>The Crypto++ Library (as a compilation) is currently licensed under the Boost
 Software License 1.0 (http://www.boost.org/users/license.html).
 
 Boost Software License - Version 1.0 - August 17th, 2003

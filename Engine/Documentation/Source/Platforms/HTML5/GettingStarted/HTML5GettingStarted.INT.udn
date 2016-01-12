@@ -1,7 +1,9 @@
-Availability:Public
+﻿Availability:Public
 Title: Getting Started: Developing HTML5 Projects
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:Setting up for development for the HTML5 platform.
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC(start:2 end:3)]
 
@@ -89,18 +91,18 @@ If you need to specify different paths for different OSs you can do the followin
 
 	\[HTML5SDKPaths\]
 	Windows="C:/html5sdk/path/on/windows"
-	Mac="/html5sdk/path/on/mac”
+	Mac="/html5sdk/path/on/mac"
 
 Make sure you have major browsers installed and links in `HTML5Engine.ini` under `\[HTML5DevicesWindows\]` section point to the right browser binaries. 
 
 For example:
 
 	\[HTML5DevicesWindows\]
-	Firefox="C:/Program Files (x86)/Mozilla Firefox/firefox.exe”
+	Firefox="C:/Program Files (x86)/Mozilla Firefox/firefox.exe"
 	Chrome(32bit)="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
 	Chrome(64bit)="C:/Program Files/Google/Chrome/Application/chrome.exe"
 
-Follow the instuctions on [https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) to build the editor.  Set your solution configuration to **Development** and your solution platform to **HTML5** to build HTML5. 
+Follow the instructions on [https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) to build the editor.  Set your solution configuration to **Development** and your solution platform to **HTML5** to build HTML5. 
 
 ### Mac OS
 
@@ -127,7 +129,7 @@ Please refer to [http://kripken.github.io/emscripten-site/docs/getting_started/d
 
 1. [Install Python 2.7](https://www.python.org/download/releases/2.7/)
 
-	Any version of Python **2.7** will do. As of this writing, 2.7.9 is the latest 2.7 release. Do not use Python 3.X.
+	Any version of Python **2.7** will do. As of this writing, 2.7.10 is the latest 2.7 release. **Do not use Python 3.X**.
 
 1. Update your `Engine\Config\HTML5\HTML5Engine.ini` file:
 

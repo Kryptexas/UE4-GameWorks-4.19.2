@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectHash.cpp: Unreal object name hashes
@@ -40,7 +40,7 @@ FString FPackageName::GetShortName(const FString& LongName)
 	return LongName.Mid(IndexOfLastSlash + 1);
 }
 
-FString FPackageName::GetShortName(UPackage* Package)
+FString FPackageName::GetShortName(const UPackage* Package)
 {
 	check(Package != NULL);
 	return GetShortName(Package->GetName());
@@ -328,23 +328,37 @@ FString FPackageName::FilenameToLongPackageName(const FString& InFilename)
 	return Result;
 }
 
-FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension)
+bool FPackageName::TryConvertLongPackageNameToFilename(const FString& InLongPackageName, FString& OutFilename, const FString& InExtension, const bool ShouldGetLocalizedPackage)
 {
 	const auto& Paths = FLongPackagePathsSingleton::Get();
+
+	const FCultureRef CurrentCulture = FInternationalization::Get().GetCurrentCulture();
+	const FString LocalizationPathParticle = FString::Printf(TEXT("L10N/%s/"), *CurrentCulture->GetName());
 
 	for (const auto& Pair : Paths.ContentRootToPath)
 	{
 		if (InLongPackageName.StartsWith(Pair.RootPath))
 		{
-			FString Result = Pair.ContentPath + InLongPackageName.Mid(Pair.RootPath.Len()) + InExtension;
-			return Result;
+			const FString RootRelativePath = InLongPackageName.Mid(Pair.RootPath.Len());
+			const bool IsLocalizedPath = RootRelativePath.StartsWith(LocalizationPathParticle);
+			OutFilename = Pair.ContentPath + (ShouldGetLocalizedPackage && !IsLocalizedPath ? LocalizationPathParticle : TEXT("")) + RootRelativePath + InExtension;
+			return true;
 		}
 	}
 
 	// This is not a long package name or the root folder is not handled in the above cases
-	UE_LOG(LogPackageName, Fatal,TEXT("LongPackageNameToFilename failed to convert '%s'. Path does not map to any roots."), *InLongPackageName);
+	return false;
+}
 
-	return InLongPackageName;
+FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension, const bool ShouldGetLocalizedPackage)
+{
+	FString FailureReason;
+	FString Result;
+	if (!TryConvertLongPackageNameToFilename(InLongPackageName, Result, InExtension, ShouldGetLocalizedPackage))
+	{
+		UE_LOG(LogPackageName, Fatal,TEXT("LongPackageNameToFilename failed to convert '%s'. Path does not map to any roots."), *InLongPackageName);
+	}
+	return Result;
 }
 
 FString FPackageName::GetLongPackagePath(const FString& InLongPackageName)
@@ -599,7 +613,66 @@ bool FPackageName::FindPackageFileWithoutExtension(const FString& InPackageFilen
 	return false;
 }
 
-bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid* Guid /*= NULL*/, FString* OutFilename /*= NULL*/)
+void FPackageName::FindPackageFileAndLocalizationWithoutExtension(const FString& InNativePackageFilename, const FString& InLocalizedPackageFilename, FString& OutNativeFilename, FString& OutLocalizedFilename)
+{
+	auto& FileManager = IFileManager::Get();
+
+	static const FString* PackageExtensions[] =
+	{
+		&AssetPackageExtension,
+		&MapPackageExtension
+	};
+
+	uint8 FoundBits = 0;
+
+	// Loop through all known extensions and check if the file exist.
+	for (auto Extension : PackageExtensions)
+	{
+		FString   NativePackageFilename = InNativePackageFilename + *Extension;
+		FString   LocalizedPackageFilename = InLocalizedPackageFilename + *Extension;
+
+		FDateTime NativePackageTimestamp, LocalizedPackageTimeStamp;
+		FileManager.GetTimeStampPair(*NativePackageFilename, *LocalizedPackageFilename, NativePackageTimestamp, LocalizedPackageTimeStamp);
+		
+		if (NativePackageTimestamp != FDateTime::MinValue())
+		{			
+			FoundBits |= 1;
+		}
+
+		if (LocalizedPackageTimeStamp != FDateTime::MinValue())
+		{
+			FoundBits |= 2;
+		}
+
+		if (FoundBits)
+		{
+			if (FoundBits & 1)
+			{
+				OutNativeFilename = MoveTemp(NativePackageFilename);
+			}
+			else
+			{
+				OutNativeFilename.Empty();
+			}
+
+			if (FoundBits & 2)
+			{
+				OutLocalizedFilename = MoveTemp(LocalizedPackageFilename);
+			}
+			else
+			{
+				OutLocalizedFilename.Empty();
+			}
+
+			return;
+		}
+	}
+
+	OutNativeFilename.Empty();
+	OutLocalizedFilename.Empty();
+}
+
+bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid* Guid /*= NULL*/, FString* OutFilename /*= NULL*/, const bool ShouldGetLocalizedPackage /*= false*/)
 {
 	bool bFoundFile = false;
 
@@ -627,7 +700,7 @@ bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid*
 	}
 
 	// Convert to filename (no extension yet).
-	FString Filename = LongPackageNameToFilename(PackageName);
+	FString Filename = LongPackageNameToFilename(PackageName, TEXT(""), ShouldGetLocalizedPackage);
 	// Find the filename (with extension).
 	bFoundFile = FindPackageFileWithoutExtension(Filename, Filename);
 
@@ -661,6 +734,82 @@ bool FPackageName::DoesPackageExist(const FString& LongPackageName, const FGuid*
 		*OutFilename = Filename;
 	}
 	return bFoundFile;
+}
+
+bool FPackageName::DoesPackageExistWithLocalization(const FString& LongPackageName, const FGuid* Guid, FString* OutNativeFilename, FString* OutLocalizedFilename)
+{
+	// Make sure passing filename as LongPackageName is supported.
+	FString PackageName;
+	FText Reason;
+
+	if (!FPackageName::TryConvertFilenameToLongPackageName(LongPackageName, PackageName))
+	{
+		verify(!FPackageName::IsValidLongPackageName(PackageName, true, &Reason));
+		UE_LOG(LogPackageName, Error, TEXT("Illegal call to DoesPackageExist: '%s' is not a standard unreal filename or a long path name. Reason: %s"), *LongPackageName, *Reason.ToString());
+		ensureMsgf(false, TEXT("Illegal call to DoesPackageExist: '%s' is not a standard unreal filename or a long path name. Reason: %s"), *LongPackageName, *Reason.ToString());
+		return false;
+	}
+	// Once we have the real Package Name, we can exit early if it's a script package - they exist only in memory.
+	if (IsScriptPackage(PackageName))
+	{
+		return false;
+	}
+
+	if (!FPackageName::IsValidLongPackageName(PackageName, true, &Reason))
+	{
+		UE_LOG(LogPackageName, Error, TEXT("DoesPackageExist: DoesPackageExist FAILED: '%s' is not a standard unreal filename or a long path name. Reason: %s"), *LongPackageName, *Reason.ToString());
+		return false;
+	}
+
+	// Convert to filename (no extension yet).
+	static const int32 NumFilenames = 2;
+	FString Filenames[NumFilenames];
+	Filenames[0] = LongPackageNameToFilename(PackageName, TEXT(""), false);
+	Filenames[1] = LongPackageNameToFilename(PackageName, TEXT(""), true);
+	FindPackageFileAndLocalizationWithoutExtension(Filenames[0], Filenames[1], Filenames[0], Filenames[1]);
+	
+	if (!FPlatformProperties::RequiresCookedData() && Guid != NULL)
+	{
+		for (int32 i = 0; i < NumFilenames; ++i)
+		{
+			//@todo-packageloc Load localized packages based on culture.
+
+			// On consoles, we don't support package downloading, so no need to waste any extra cycles/disk io dealing with it
+			if (Filenames[i].Len() > 0)
+			{
+				// @todo: If we could get to list of linkers here, it would be faster to check
+				// then to open the file and read it
+				FArchive* PackageReader = IFileManager::Get().CreateFileReader(*Filenames[i]);
+				// This had better open
+				check(PackageReader != NULL);
+
+				// Read in the package summary
+				FPackageFileSummary Summary;
+				*PackageReader << Summary;
+
+				// Compare Guids
+				if (Summary.Guid != *Guid)
+				{
+					Filenames[i].Empty();
+				}
+
+				// Close package file
+				delete PackageReader;
+			}
+		}
+	}
+
+	if (OutNativeFilename && Filenames[0].Len() > 0)
+	{
+		*OutNativeFilename = Filenames[0];
+	}
+
+	if (OutLocalizedFilename && Filenames[1].Len() > 0)
+	{
+		*OutLocalizedFilename = Filenames[1];
+	}
+
+	return Filenames[0].Len() > 0;
 }
 
 bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName, FString* OutFilename, bool bUseLocalizedNames)
@@ -761,7 +910,54 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 	return bResult;
 }
 
-FString FPackageName::PackageFromPath( const TCHAR* InPathName )
+bool FPackageName::TryConvertShortPackagePathToLongInObjectPath(const FString& ObjectPath, FString& ConvertedObjectPath)
+{
+	FString PackagePath;
+	FString ObjectName;
+
+	int32 DotPosition = ObjectPath.Find(TEXT("."), ESearchCase::CaseSensitive);
+	if (DotPosition != INDEX_NONE)
+	{
+		PackagePath = ObjectPath.Mid(0, DotPosition);
+		ObjectName = ObjectPath.Mid(DotPosition + 1);
+	}
+	else
+	{
+		PackagePath = ObjectPath;
+	}
+
+	FString LongPackagePath;
+	if (!SearchForPackageOnDisk(PackagePath, &LongPackagePath))
+	{
+		return false;
+	}
+
+	ConvertedObjectPath = FString::Printf(TEXT("%s.%s"), *LongPackagePath, *ObjectName);
+	return true;
+}
+
+FString FPackageName::GetNormalizedObjectPath(const FString& ObjectPath)
+{
+	if (!ObjectPath.IsEmpty() && FPackageName::IsShortPackageName(ObjectPath))
+	{
+		FString LongPath;
+
+		UE_LOG(LogPackageName, Warning, TEXT("String asset reference \"%s\" is in short form, which is unsupported and -- even if valid -- resolving it will be really slow. Please consider resaving package in order to speed-up loading."), *ObjectPath);
+
+		if (!FPackageName::TryConvertShortPackagePathToLongInObjectPath(ObjectPath, LongPath))
+		{
+			UE_LOG(LogPackageName, Warning, TEXT("String asset reference \"%s\" could not be resolved."), *ObjectPath);
+		}
+
+		return LongPath;
+	}
+	else
+	{
+		return ObjectPath;
+	}
+}
+
+FString FPackageName::PackageFromPath(const TCHAR* InPathName)
 {
 	FString PackageName;
 	if (FPackageName::TryConvertFilenameToLongPackageName(InPathName, PackageName))
@@ -806,6 +1002,55 @@ bool FPackageName::FindPackagesInDirectory( TArray<FString>& OutPackages, const 
 	return OutPackages.Num() > PreviousPackagesCount;
 }
 
+void FPackageName::IteratePackagesInDirectory(const FString& RootDir, const FPackageNameVisitor& Callback)
+{
+	class FPackageVisitor : public IPlatformFile::FDirectoryVisitor
+	{
+	public:
+		const FPackageNameVisitor& Callback;
+		explicit FPackageVisitor(const FPackageNameVisitor& InCallback)
+			: Callback(InCallback)
+		{
+		}
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+		{
+			bool Result = true;
+			if (!bIsDirectory && IsPackageFilename(FilenameOrDirectory))
+			{
+				Result = Callback(FilenameOrDirectory);
+			}
+			return Result;
+		}
+	};
+
+	FPackageVisitor PackageVisitor(Callback);
+	IFileManager::Get().IterateDirectoryRecursively(*RootDir, PackageVisitor);
+}
+
+void FPackageName::IteratePackagesInDirectory(const FString& RootDir, const FPackageNameStatVisitor& Callback)
+{
+	class FPackageStatVisitor : public IPlatformFile::FDirectoryStatVisitor
+	{
+	public:
+		const FPackageNameStatVisitor& Callback;
+		explicit FPackageStatVisitor(const FPackageNameStatVisitor& InCallback)
+			: Callback(InCallback)
+		{
+		}
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, const FFileStatData& StatData) override
+		{
+			bool Result = true;
+			if (!StatData.bIsDirectory && IsPackageFilename(FilenameOrDirectory))
+			{
+				Result = Callback(FilenameOrDirectory, StatData);
+			}
+			return Result;
+		}
+	};
+
+	FPackageStatVisitor PackageVisitor(Callback);
+	IFileManager::Get().IterateDirectoryStatRecursively(*RootDir, PackageVisitor);
+}
 
 void FPackageName::QueryRootContentPaths( TArray<FString>& OutRootContentPaths )
 {

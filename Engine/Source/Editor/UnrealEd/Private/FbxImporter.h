@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2009 - 2010 Autodesk, Inc.  All Rights Reserved.
@@ -75,11 +75,10 @@ class UInterpTrackMove;
 
 #include <fbxsdk.h>
 
-#include "TokenizedMessage.h"
-
-
 #pragma pack(pop)
 
+
+#include "TokenizedMessage.h"
 
 
 #ifdef TMP_UNFBX_BACKUP_O_RDONLY
@@ -107,6 +106,7 @@ namespace UnFbx
 struct FBXImportOptions
 {
 	// General options
+	bool bImportScene;
 	bool bImportMaterials;
 	bool bInvertNormalMap;
 	bool bImportTextures;
@@ -119,17 +119,19 @@ struct FBXImportOptions
 	float ImportUniformScale;
 	EFBXNormalImportMethod NormalImportMethod;
 	EFBXNormalGenerationMethod::Type NormalGenerationMethod;
+	bool bTransformVertexToAbsolute;
 	// Static Mesh options
 	bool bCombineToSingle;
 	EVertexColorImportOption::Type VertexColorImportOption;
 	FColor VertexOverrideColor;
 	bool bRemoveDegenerates;
 	bool bBuildAdjacencyBuffer;
+	bool bBuildReversedIndexBuffer;
 	bool bGenerateLightmapUVs;
 	bool bOneConvexHullPerUCX;
 	bool bAutoGenerateCollision;
-	
 	FName StaticMeshLODGroup;
+	bool bImportStaticMeshLODs;
 	// Skeletal Mesh options
 	bool bImportMorph;
 	bool bImportAnimations;
@@ -142,6 +144,7 @@ struct FBXImportOptions
 	bool bImportMeshesInBoneHierarchy;
 	bool bCreatePhysicsAsset;
 	UPhysicsAsset *PhysicsAsset;
+	bool bImportSkeletalMeshLODs;
 	// Animation option
 	USkeleton* SkeletonForAnimation;
 	EFBXAnimationLengthImportType AnimationLengthImportType;
@@ -150,6 +153,16 @@ struct FBXImportOptions
 	bool	bPreserveLocalTransform;
 	bool	bDeleteExistingMorphTargetCurves;
 	bool	bImportCustomAttribute;
+
+	/** This allow to add a prefix to the material name when unreal material get created.	
+	*   This prefix can just modify the name of the asset for materials (i.e. TEXT("Mat"))
+	*   This prefix can modify the package path for materials (i.e. TEXT("/Materials/")).
+	*   Or both (i.e. TEXT("/Materials/Mat"))
+	*/
+	FName MaterialPrefixName;
+
+	//This data allow to override some fbx Material(point by the uint64 id) with existing unreal material asset
+	TMap<uint64, class UMaterialInterface*> OverrideMaterials;
 
 	bool ShouldImportNormals()
 	{
@@ -170,17 +183,33 @@ struct FBXImportOptions
 
 struct FbxMeshInfo
 {
-	char* Name;
+	FString Name;
+	uint64 UniqueId;
 	int32 FaceNum;
 	int32 VertexNum;
 	bool bTriangulated;
 	int32 MaterialNum;
 	bool bIsSkelMesh;
-	char* SkeletonRoot;
+	FString SkeletonRoot;
 	int32 SkeletonElemNum;
-	char* LODGroup;
+	FString LODGroup;
 	int32 LODLevel;
 	int32 MorphNum;
+};
+
+//Node use to store the scene hierarchy transform will be relative to the parent
+struct FbxNodeInfo
+{
+	const char* ObjectName;
+	uint64 UniqueId;
+	FbxAMatrix Transform;
+	
+	const char* AttributeName;
+	uint64 AttributeUniqueId;
+	const char* AttributeType;
+
+	const char* ParentName;
+	uint64 ParentUniqueId;
 };
 
 struct FbxSceneInfo
@@ -197,6 +226,7 @@ struct FbxSceneInfo
 	int32 TotalTextureNum;
 	
 	TArray<FbxMeshInfo> MeshInfo;
+	TArray<FbxNodeInfo> HierarchyInfo;
 	
 	/* true if it has animation */
 	bool bHasAnimation;
@@ -211,29 +241,25 @@ struct FbxSceneInfo
 class FFbxDataConverter
 {
 public:
+	static FVector ConvertPos(FbxVector4 Vector);
+	static FVector ConvertDir(FbxVector4 Vector);
+	static FRotator ConvertEuler(FbxDouble3 Euler);
+	static FVector ConvertScale(FbxDouble3 Vector);
+	static FVector ConvertScale(FbxVector4 Vector);
+	static FRotator ConvertRotation(FbxQuaternion Quaternion);
+	static FVector ConvertRotationToFVect(FbxQuaternion Quaternion, bool bInvertRot);
+	static FQuat ConvertRotToQuat(FbxQuaternion Quaternion);
+	static float ConvertDist(FbxDouble Distance);
+	static bool ConvertPropertyValue(FbxProperty& FbxProperty, UProperty& UnrealProperty, union UPropertyValue& OutUnrealPropertyValue);
+	static FTransform ConvertTransform(FbxAMatrix Matrix);
+	static FMatrix ConvertMatrix(FbxAMatrix Matrix);
 
-	FFbxDataConverter() 
-	{}
-
-	FVector ConvertPos(FbxVector4 Vector);
-	FVector ConvertDir(FbxVector4 Vector);
-	FRotator ConvertEuler( FbxDouble3 Euler );
-	FVector ConvertScale(FbxDouble3 Vector);
-	FVector ConvertScale(FbxVector4 Vector);
-	FRotator ConvertRotation(FbxQuaternion Quaternion);
-	FVector ConvertRotationToFVect(FbxQuaternion Quaternion, bool bInvertRot);
-	FQuat ConvertRotToQuat(FbxQuaternion Quaternion);
-	float ConvertDist(FbxDouble Distance);
-	bool ConvertPropertyValue(FbxProperty& FbxProperty, UProperty& UnrealProperty, union UPropertyValue& OutUnrealPropertyValue);
-	FTransform ConvertTransform(FbxAMatrix Matrix);
-	FMatrix ConvertMatrix(FbxAMatrix Matrix);
-
-	FbxVector4 ConvertToFbxPos(FVector Vector);
-	FbxVector4 ConvertToFbxRot(FVector Vector);
-	FbxVector4 ConvertToFbxScale(FVector Vector);
-	FbxVector4 ConvertToFbxColor(FColor Color);
-	FbxString	ConvertToFbxString(FName Name);
-	FbxString	ConvertToFbxString(const FString& String);
+	static FbxVector4 ConvertToFbxPos(FVector Vector);
+	static FbxVector4 ConvertToFbxRot(FVector Vector);
+	static FbxVector4 ConvertToFbxScale(FVector Vector);
+	static FbxVector4 ConvertToFbxColor(FColor Color);
+	static FbxString	ConvertToFbxString(FName Name);
+	static FbxString	ConvertToFbxString(const FString& String);
 };
 
 FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
@@ -282,7 +308,6 @@ public:
 	 * @return bool true if get scene info successfully
 	 */
 	bool GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo);
-	
 
 	/**
 	 * Initialize Fbx file for import.
@@ -366,6 +391,15 @@ public:
 	 * @return UObject* the new Unreal mesh object
 	 */
 	UStaticMesh* ReimportStaticMesh(UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData);
+
+	/**
+	* re-import Unreal static mesh from updated scene Fbx file
+	* if the Fbx mesh is in LODGroup, the LOD of mesh will be updated
+	*
+	* @param Mesh the original Unreal static mesh object
+	* @return UObject* the new Unreal mesh object
+	*/
+	UStaticMesh* ReimportSceneStaticMesh(uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData);
 	
 	/**
 	* re-import Unreal skeletal mesh from updated Fbx file
@@ -488,6 +522,7 @@ public:
 
 	//help
 	ANSICHAR* MakeName(const ANSICHAR* name);
+	FString MakeString(const ANSICHAR* Name);
 	FName MakeNameForMesh(FString InName, FbxObject* FbxObject);
 
 	// meshes
@@ -701,7 +736,7 @@ protected:
 	 * @param LODIndex	LOD level to set up for StaticMesh
 	 * @return bool true if set up successfully
 	 */
-	bool BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex,FRawMesh& RawMesh,
+	bool BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex, FRawMesh& RawMesh,
 									 EVertexColorImportOption::Type VertexColorImportOption, const TMap<FVector, FColor>& ExistingVertexColorData, const FColor& VertexOverrideColor);
 	
 	/**
@@ -925,7 +960,7 @@ protected:
 	 * @param ImportData
 	 * @return int32 number of points that added when process unsmooth faces
 	*/
-	int32 DoUnSmoothVerts(FSkeletalMeshImportData &ImportData);
+	int32 DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, bool bDuplicateUnSmoothWedges = true);
 	
 	/**
 	 * Merge all layers of one AnimStack to one layer.
@@ -935,6 +970,15 @@ protected:
 	 */
 	void MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 ResampleRate);
 	
+	/**
+	* Fill the FbxNodeInfo structure recursively to reflect the FbxNode hierarchy. The result will be an array sorted with the parent first
+	*
+	* @param SceneInfo   The scene info to modify
+	* @param Parent      The parent FbxNode
+	* @param ParentInfo  The parent FbxNodeInfo
+	*/
+	void TraverseHierarchyNodeRecursively(FbxSceneInfo& SceneInfo, FbxNode *ParentNode, FbxNodeInfo &ParentInfo);
+
 	//
 	// for matinee export
 	//

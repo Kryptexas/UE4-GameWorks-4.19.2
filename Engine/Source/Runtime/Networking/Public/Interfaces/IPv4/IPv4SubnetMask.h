@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,7 +43,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FIPv4SubnetMask( ) { }
+	FIPv4SubnetMask() { }
 
 	/**
 	 * Creates and initializes a new IPv4 subnet mask with the specified components.
@@ -55,7 +55,7 @@ public:
 	 * @param C - The third component.
 	 * @param D - The fourth component.
 	 */
-	FIPv4SubnetMask( uint8 A, uint8 B, uint8 C, uint8 D )
+	FIPv4SubnetMask(uint8 A, uint8 B, uint8 C, uint8 D)
 	{
 		Bytes[0] = D;
 		Bytes[1] = C;
@@ -70,7 +70,7 @@ public:
 	 *
 	 * @param InValue - The address value.
 	 */
-	FIPv4SubnetMask( uint32 InValue )
+	FIPv4SubnetMask(uint32 InValue)
 		: Value(InValue)
 	{ }
 
@@ -84,7 +84,7 @@ public:
 	 *
 	 * @return true if the subnet masks are equal, false otherwise.
 	 */
-	bool operator==( const FIPv4SubnetMask& Other ) const
+	bool operator==(const FIPv4SubnetMask& Other) const
 	{
 		return (Value == Other.Value);
 	}
@@ -96,7 +96,7 @@ public:
 	 *
 	 * @return true if the subnet masks are not equal, false otherwise.
 	 */
-	bool operator!=( const FIPv4SubnetMask& Other ) const
+	bool operator!=(const FIPv4SubnetMask& Other) const
 	{
 		return (Value != Other.Value);
 	}
@@ -106,7 +106,7 @@ public:
 	 *
 	 * @return Inverted subnet mask.
 	 */
-	FIPv4SubnetMask operator~( ) const
+	FIPv4SubnetMask operator~() const
 	{
 		return FIPv4SubnetMask(~Value);
 	}
@@ -119,7 +119,7 @@ public:
 	 *
 	 * @return The archive.
 	 */
-	friend FArchive& operator<<( FArchive& Ar, FIPv4SubnetMask& SubnetMask )
+	friend FArchive& operator<<(FArchive& Ar, FIPv4SubnetMask& SubnetMask)
 	{
 		return Ar << SubnetMask.Value;
 	}
@@ -134,7 +134,7 @@ public:
 	 *
 	 * @return Byte component.
 	 */
-	uint8 GetByte( int32 Index ) const
+	uint8 GetByte(int32 Index) const
 	{
 		return Bytes[Index];
 	}
@@ -144,7 +144,7 @@ public:
 	 *
 	 * @return Subnet class.
 	 */
-	EIPv4SubnetClasses::Type GetClass( ) const
+	EIPv4SubnetClasses::Type GetClass() const
 	{
 		if (Bytes[3] == 255)
 		{
@@ -171,7 +171,7 @@ public:
 	 *
 	 * @return Address value.
 	 */
-	uint32 GetValue( ) const
+	uint32 GetValue() const
 	{
 		return Value;
 	}
@@ -181,7 +181,7 @@ public:
 	 *
 	 * @return String representation.
 	 */
-	NETWORKING_API FText ToText( ) const;
+	NETWORKING_API FText ToText() const;
 
 
 public:
@@ -193,7 +193,7 @@ public:
 	 *
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash( const FIPv4SubnetMask& SubnetMask )
+	friend uint32 GetTypeHash(const FIPv4SubnetMask& SubnetMask)
 	{
 		return GetTypeHash(SubnetMask.Value);
 	}
@@ -209,7 +209,7 @@ public:
 	 *
 	 * @return true if the string was converted successfully, false otherwise.
 	 */
-	static NETWORKING_API bool Parse( const FString& MaskString, FIPv4SubnetMask& OutMask );
+	static NETWORKING_API bool Parse(const FString& MaskString, FIPv4SubnetMask& OutMask);
 
 
 private:

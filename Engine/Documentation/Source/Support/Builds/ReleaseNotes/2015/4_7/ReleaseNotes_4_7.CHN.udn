@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:0
-Title: Unreal Engine 4.7 Release Notes
+﻿Title: 虚幻引擎4.7版本信息
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
@@ -7,7 +6,7 @@ Availability:Public
 [TOC(start:2 end:2)]
 
 [PUBLISH:Licensee]
-## Build Info
+## 版本信息
 
 [REGION:simpletable]
 | Item | Info |
@@ -41,432 +40,462 @@ Availability:Public
 [/PUBLISH:Licensee]
 
 
-Unreal Engine 4.7 is our biggest release yet, with the power to render huge numbers of instanced objects in large worlds, beautiful rendering of leaves and foliage, HDR texture support, in-editor animation editing, along with hundreds of optimizations and improvements.
+虚幻引擎4.7是我们迄今为止最大的更新，您可以在大型世界中渲染大量的实例化对象、对树叶和植被的美丽渲染、HDR贴图支持，编辑器内的动画编辑，以及数以百计的最优化和改进。
 
-Many highly-requested features have been added: You can now assemble new actors using components right in your level, and even create your own custom component types using Blueprint visual scripting or C++! Speaking of scripting, the Blueprint Editor UI has been redesigned with a clean, unified layout. And it's never been easier to import content in your project -- Unreal Editor now detects new asset files and imports them automatically!
+我们添加了许多令人期待的功能： 您马上可以在您的关卡中使用组件来组合新actors，甚至使用蓝图可视脚本或C++来创建您自己的自定义组件类型！ 说到脚本，我们已经使用干净、统一的布局来重新设计蓝图编辑器的用户接口。 在您的项目中导入内容从未如此简单 -- 虚幻编辑器现在可以检测新资源文件夹并自动导入它们！
 
-HTML5 platform + WebGL is ready to use -- run your game in a compatible browser with a single click! You can also now build, cook and deploy Android developers on Mac. For virtual reality creators, new "VR Preview" feature immerses you in your world instantly from the editor. In addition, you can now access Leap Motion support if you're building a code-based project. Finally, we now give you the full C++ engine source code in every release to make learning and debugging even easier!
+HTML5平台 + WebGL已可使用 -- 只需简单的点击，您就可以在兼容的编辑器中运行您的游戏！ 您现在也可以在Mac上构建、烘焙并部署Android的开发者。 对于虚拟现实的创建者来说，新“VR Preview”（虚拟现实预览）特性让您可以从编辑器中立即沉浸在您的游戏世界中。 另外，如果您正在构建基于代码的项目，您现在可以访问Leap Motion支持。 最后，我们现在在每个版本中都赋予您完整的C++引擎源代码，从而让您的学习和调试更为容易！
 
 
 
-This release includes 38 great changes that were submitted from Unreal Engine's amazing community of developers. Epic would like to especially thank community member Sebastien Rombauts for contributing his Git source control plugin to Unreal Engine for this release.  Amazing work!  Thanks to all of the contributors below:
+此次发布包括了38项重大变更，它们都是由虚幻引擎的杰出开发者社区提交的。 Epic对此次发布中贡献Git源代码控制插件到虚幻引擎的社区成员Sébastien Rombauts致以特别感谢。  很出色！  感谢以下所有的贡献者：
 
 Artem V. Navrotskiy (bozaro), ArneBezuijen, Black Phoenix (PheonixBlack), codetackler, Daniel Zeligman (dzeligman), Derek van Vliet (derekvanvliet), Fazouane Marouane (fazouane-marouane), Jesus Fernandez (jsfdez), Lukasz Baran (iniside), Moritz Wundke (moritz-wundke), Michael Kosel (TheCodez), Michael Allar (Allar), Marat Radchenko (slonopotamus), 3dluvr, Pierdek, Quadtree, Rama (EverNewJoy), Robert Wallis (robert-wallis), Rick Yorgason (Skrapion), Simon Taylor (simontaylor81), Stephen Whittle (stephenwhittle), Tobias Mollstam (mollstam), Cengiz Terzibas (yaakuro)
  
-## Major Features
+## 主要新功能 
 
-#### Realistic Foliage Lighting
-The new **Foliage Shading Model** allows light to be transmitted through grass, leaves, paper, and other materials
+#### 真实的植被光照
+新的 **植物材质模式（Shading model）** 可以为草、叶片、纸张等材质提供可透射到背面的光照效果。 
 
 ![](RealisticFoliageLighting.png)
 
-Diffuse lighting on the opposite side of the surface becomes transmissive lighting on the side being shaded
+在表面另一侧的漫反射光照成为着色侧的半投射光照
 	
-* Transmissive lighting is a mix of wrap-around diffuse with a view dependent lobe for backscattering
-* Subsurface color filters this lighting and can be used to represent varying thickness as well (e.g. leaf veins)
-* Note that using opacity with this shading model will only affect shadow falloff distance
+* 半投射光照混合了正面固有色信息与视角关联背面透射 
+* 可以使用次表面色彩（Subsurface color）这一通道来过滤光照，用来模拟厚度变化（比如添 加叶脉效果） 
+* 注意在这个材质模式下使用半透明通道只会影响阴影的衰减距离 
 
-#### Foliage Rendering for Large Worlds
-The foliage system has been optimized to to support huge, open environments!
+#### 在大世界中渲染大量植被 
+我们对植被系统进行了最优化，以支持大型、开放的环境！
 
 ![](FoliageRenderingLargeworlds.png)
 
-We now use a hierarchical system for managing and culling of foliage that scales to millions of instances!  Also, we now smoothly transition between mesh LODs with a temporal fade to eliminate the annoying pop when switching LODs!
+我们现在使用层级式系统来管理和剔除缩放为数以百万计实例的植被!  同时，我们现在对具有临时淡入淡出的网格物体LOD间进行平滑转换以消除在切换LOD时的令人厌烦的弹出窗口！
 
-#### In-World Component Editing
-Components can now be added directly to actors placed in your level. This allows you to assemble new actors out of components without having to create a Class Blueprint first. It's great for experimenting with components and assembling new objects right inside your level.
+#### 世界中的组件编辑
+组件现在可以被直接添加到放置在您关卡中的actors。 这样您可以从组件中组合新actor，而不必首先创建Class Blueprint（类蓝图）。 这对于使用组件以及在您的关卡中组合新对象很有帮助。
 
 ![](InworldComponentEditing01.png)
 
-You can now select individual components in the 3D level, move them around using familiar gizmos and edit their properties.
+您现在可以在三维关卡中选择单独的组件，使用熟悉的小工具来移动它们，并编辑其属性。
 
 ![](InworldComponentEditing02.png)
 
-After you create something awesome, click "Blueprint / Add Script" to save it as a reusable class or add scripting to it. This will automatically replace your actor with an instance of that class.
+在您创建完出色的内容后，请点击“Blueprint / Add Script”（蓝图/添加脚本）来将其保存为可再次使用的类或将对其添加脚本。 这样就会自动把您的actor替换为该类的实例。
 
 ![](InworldComponentEditing03.png)
 
-#### Placeable Empty Actors
+#### 可放置的空白Actor
 
-You can now drag and drop to place "empty actors" right into your level!
+您现在可以通过拖放以直接在您的关卡中放置“空actor“！
 
 ![](PlaceableEmptyActors.png)
 
-Empty pawns and characters are supported too. You can use the new in-world component editing features to build up interesting actors right in your level.
+我们也支持空pawn和角色。 您可以使用新建的游戏世界内组件编辑功能来在您的关卡中马上构建有趣的actor。
 
-#### Blueprintable Components
+#### 可蓝图化的组件
 
-Create your own component types using Blueprint scripting! You can save these components and reuse them on any actor!
+您可以使用蓝图脚本来创建特有的组件类型！ 您可以保存这些组件并在任意actor上重新使用它们！
 
-Click "Add Component", then select "New Blueprint Script Component..." right at the top. You can do this on actors in your level, from inside any Actor Class Blueprint, and even from the Content Browser's "New Blueprint..." window.
+您可以点击“Add Component”（添加组件），然后选择顶部的“New Blueprint Script Component…”（新建蓝图脚本组件）。 您可以对您关卡中位于任意Actor类蓝图内的actor进行此项操作，您甚至可以在内容浏览器的“New Blueprint…” （新建蓝图）窗口中进行此操作。
 
 ![](BPComponents01.png)
 
-Choose a Parent Class for your new component.  "Scene Components" have a 3D position within the actor, but "Actor Components" only have scripting logic.
+选择您新建 _蓝图_ 的 **Parent Class（父类）** 。  “Scene Components”（场景组件）在actor内具有三维位置，但“Actor Components”（Actor组件）仅具有脚本逻辑。
 
 ![](BPComponents02.png)
 
-Here is the fun part -- writing Blueprint script code for your new component.  In this example, we rotate the component's owner (the actor) around the yaw axis every single frame using the Tick event. We named this component "Spinner" because it spins actors around!
+接下来就是好玩的地方了 -- 您可以为您的组件编写蓝图脚本代码。  在这个示例中，我们使用Tick（更新）事件在每一帧围绕偏转轴旋转组件的所有者（actor）。 我们把这个组件命名为“Spinner”（旋转器），因为它会让actor旋转！
 
 ![](BPComponents03.png)
 
- Now, you can drop the component onto any actor in your scene and they will start rotating when the game begins. Yay, reusable modular functionality!
+ 现在，您可以拖曳组件到您场景中的任意actor上，而且它们会在游戏开始时进行旋转。 是的，可以重复使用的模块功能！
 
 ![](BPComponents04.png)
 
- You can also drop it into any normal actor class Blueprint. Your new components can always be found in the "Add Component" menu (under the "Custom" category), and also in the Content Browser like any other asset.
+ 您也可以将其拖曳到任意普通actor的类蓝图中。 您的新组件也会一直显示在“添加新组件 ”（Add Component）的菜单中（放置在’自定义’分类里），而且和其它资源一样，您也可以在内容浏览器中找到它们。
 
-#### Automatic Asset Importing
-Importing meshes, sounds and textures has never been easier. Simply save your source art files under your project's Content folder, and the editor will automatically import the new files, ready to be used in UE4!
+#### 资源自动导入
+导入网格物体、声音和贴图从未如此容易。 您只需把源美术文件保存在项目的内容文件夹下，编辑器将会自动导入新文件，以供您在虚幻引擎4中使用它！
 
-![](AutoAssetImport.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+8iXezqbc2kE
+[/PARAMLITERAL]
+[/OBJECT]
 
-If you update these files from an external application, the editor will detect that and automatically reimport your content! This makes iterating on game content much faster.
+如果您从外部应用中更新这些文件，编辑器将会检测到此问题并自动重新导入您的内容！ 这使得对游戏内容的迭代更为快速。
 
-This feature is turned on by default, but you can toggle it using the "Monitor Content Directories" in the "Loading & Saving" section of editor preferences.
+这个功能默认是开启的，但是您可以使用编辑器偏好设置中的“Loading & Saving”（载入和保存）部分的“Monitor Content Directories”（监视内容目录）来切换开启和关闭状态。
 
-#### Redesigned Blueprint Editor UI
-The Blueprint Editor has been redesigned to be easier to use!  All three modes have been unified into a single screen to help streamline your workflow, along with many other improvements.
+#### 重新设计的蓝图编辑器UI
+蓝图编辑器已经进行了重新设计，从而让使用更加容易！  所有的三个模式都被统一到了单个屏幕中，以帮助您简化工作流程，并进行了许多其它改进。
 
 ![](BlueprintEditorUI.png)
 
-You can now freely rearrange panels, such as the Viewport and Graph views, and even have both on screen at the same time!
+您现在可以自由地重新排列面板，诸如视口和图表视图，甚至可以让两者同时显示了！
 
-The "My Blueprint" view has been revamped to be cleaner and sparser, and it's easier to add new functions and variables.
+"My Blueprint"（我的蓝图）视图进行了修改，从而使其更加清爽和简洁，而且可以更方便地添加新功能和变量。
 
-Selecting your actor's name in the Components panel will show your class' defaults (or you can click "Class Defaults" on the toolbar.)  To see your Blueprint's settings, use the "Class Settings" button on the toolbar (previously, this was called "Blueprint Props")
+在组件面板中选择您actor的名称，将会显示出您的类的默认值（您也可以点击工具条上的"Class Defaults"（类默认值））。  如需查看您的蓝图设置，请使用工具条上的"Class Settings"（类设置）按钮（其之前的名称为“Blueprint Props”（蓝图属性））。
 
-#### HTML5 and WebGL Support (Windows Only)
-You can now package and run your game in a Web browser through the binary tools you get through the Launcher.
+#### HTML5和WebGL支持 (仅可用于Windows) 
+现在您可以通过启动程序的二进制工具来在网页浏览器中打包并运行您的游戏。 
 
 ![](HTML5_WebGL01.png)
 
-Simply install the [Emscripten SDK](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html), restart the editor and launcher, then use the Launch drop down to select a web browser!
+您只需完成[Emscripten SDK](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)的安装，重启您的编辑器与启动器，在启动按钮的下拉选项中选择一个网页浏览器即可！ 
 
 ![](HTML5_WebGL02.png)
 
-Notes about HTML5 support:
+HTML5使用时的一些注意事项: 
 
-* Firefox, Safari, or 64-bit Chrome is required during development (shipping builds work fine in 32-bit Chrome)
-* Windows is currently required for HTML5 support.  We're working on Mac for an upcoming release.
-* Your game may take a while to prepare for HTML5, especially the first time, as assets and code in your project are optimized for the web browser.
+* 开发过程中需要Firefox、Safari或者64位版本的Chrome。(发布版本可以工作在32位版本的 Chrome上）
+* 当前HTML5只支持Windows平台。  我们将在下一版本中支持Mac。 
+* 您的游戏也许需要一些额外的准备工作才能运行，特别是在首次开发HTML5项目时，因为项目的资源与代码都需要为网页浏览器做些优化。 
 
-#### OpenEXR: High Dynamic Range Textures
-2D High Dynamic Range (HDR) textures can now be imported from **OpenEXR files**!  You can store images with up to 16-bits of data per channel (about 30 stops of exposure.) 
+#### OpenEXR: 高动态范围HDR贴图 
+现在可以从 **OpenEXR 文件** 来导入2D的高动态范围（HDR）贴图了 ！  您可以在每个通道存储最高16位色深信息（大约相当于30级曝光）。  
 
 ![](HighDynamicRangeTex.png)
 
-(Previously, only Cube Map textures were able to be imported from OpenEXR files.)
+（在之前的版本中，您只能从OpenEXR文件中导入Cube Map贴图。） 
 
-#### Android Development on Mac
-The OS X version of Unreal Engine now fully supports Android development!
+#### 使用Mac开发安卓版本 
+现在OS X版本的引擎完全支持安卓版本的开发了！ 
 
 ![](AndroidDeployMac01.png)
 
-Mac users can now build, cook and package for Android, as well as deploy to Android devices from the editor or command-line.
+Mac电脑用户现在可以构建、打包安卓版本程序，并通过编辑器或者命令行工具发布到安卓设备上 。
 
 ![](AndroidDeployMac02.png)
 
-You will need Java for OS X and the Android SDK (which can be installed using the TADP installer in Engine/Extras/Android). 
-After installing, either restart the editor, or set paths to the SDK in the new Android SDK section in Project Settings.
+您需要安装Java for OS X与安卓SDK（您可以使用Engine/Extras/Android文件夹下的TADP安装程序来进行此操作） 
+安装完成后，您需要重启编辑器或者是在项目设置中找到安卓SDK的部分指定正确的SDK路径。 
 
-#### Full Engine C++ Source Code and Debug Symbols
-Unreal Engine now includes the full engine C++ source code and debugging symbols when installed using the Launcher!
+#### 完整引擎C++源代码与调试符 
+现在您用启动器安装的虚幻引擎包括了完整的C++源代码与调试符 ！ 
 
 ![](Fullc++Source.png)
 
-This allows you to seamlessly step into engine code while debugging, and you will have complete call stacks after a crash. You no longer need to compile the engine yourself to get full engine debugging powers.
+这可以使您在调试时无缝地接入引擎代码，同时，在程序崩溃后获得完全的堆栈调用。 您无需再自己编译引擎就可以对引擎进行完整调试。 
 
-Note that if you want to recompile the engine yourself, you'll still need to [go to GitHub](https://www.unrealengine.com/ue4-on-github) to get all of the required files.
+注意如果您要重新编译引擎您仍然需要[访问GitHub](https://www.unrealengine.com/ue4-on-github)以获取所有必须 的文件。 
 
-#### Play in Virtual Reality
-We have added a new "VR Preview" button to the editor!  If you have an Oculus Rift device plugged in, you can instantly play your game in virtual reality.
+#### 编辑器内直接使用VR模式 
+我们在编辑器中添加了新的"VR preview"（虚拟显示预览）按钮！  如果您已经插好了 Oculus Rift设备，您可以立即在虚拟现实（VR）模式下运行您的游戏 。 
 
 ![](PlayinVR.png)
 
-Clicking "VR Preview" will minimize the editor window, and pop up your game directly on the Oculus Rift device.
+点击“VR Preview”，编辑器窗口会最小化，您的游戏会直接在Oculus Rift设备上弹出显示 。 
 
 
-#### Leap Motion Plugin *BETA*
-UE4 now ships with support for the **Leap Motion device** through a plugin.  This allows you to use Leap's hand tracking technology directly in your project.  Their API is exposed in both Blueprints and code, so any project can take advantage of the tech.  
+#### Leap Motion手部动作感应器插件 *Beta* 
+UE4现在通过插件支持 **Leap Motion设备** 。  您可以直接在项目中使用这一手部动作感应装置。  相关API同时暴露给蓝图脚本与代码，所以任何类型的项目都可以利用这一技术。   
 
-![](LeapMotion.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+pifYPUX4ccU
+[/PARAMLITERAL]
+[/OBJECT]
 
-For examples on how to use the plugin, please see Leap Motion's website at [](https://www.leapmotion.com).  Currently, this plugin is only available to those who build the engine from GitHub, and those who download the plugin directly from Leap's website.
+想要获取如何使用这一插件的范例，请访问Leap Motion的官方网站[](https://www.leapmotion.com)。  目前这一插件仅支持GitHub自编译版本的引擎，以及直接从Leap的网站下载到此插件的用户。 
 
-#### C++ Classes in Content Browser
-Your game's C++ classes are now visible in the Content Browser!  
+#### 在内容浏览器中显示C++类 
+您的项目中的C++类现在可以显示在内容浏览器中了！   
 
 ![](C++ContentBrowser.png)
 
-You can easily create new C++ classes right from the Content Browser!  It will be automatically compiled and displayed in the editor, ready to use!
+您也可以很方便地在内容浏览器中创建新的C++类！  它会自动编译和显示在编辑器中来供您使用！ 
 
 ![](C++ContentBrowser2.png)
 
-Double-click on C++ class icons to jump straight to the source code in Visual Studio or Xcode, or right click to create a new class using the selected class as a base.
+双击C++类图标，可以直接调用Visual studio或者Xcode中的源码，或右键点击来基于现有类创建新的类。 
 
-#### Morph Target Exaggeration
-Morph Targets can now be weighted higher than 100%, allowing for exaggerated poses, or below 0% for inverse poses.
+#### 顶点变形目标动画超限化 
+现在变形目标动画的权重值可以超过100%了，这可以使您得到超夸张的动画效果，当然低于0%也可以。 
 
 ![](MorphTargetExagg.png)
 
-#### Feature Packs and Content Packs
-You can now add new "features" and content to your game at any time using Content Browser!  Packs can contain any combination of content, blueprint classes or C++ classes.  
+#### 功能包与内容包 
+您现在可以随时使用内容浏览器方便地在内容浏览器中添加新的“功能”包与内容包！  这些包可以包括任意的内容、蓝图类或者C++类资源的组合。   
 
 ![](FeaturePacksandContentBrowser.png)
 
-All existing template project features are available as Feature Packs. So you could add a First Person Feature Pack to your game, and then later on add the Vehicle Feature Pack and be able to use both of these features in your project! 
+所有已有的模板项目功能都已经打包成为功能包了。 所以您可以先添加第一人称功能包 ，然后再添加载具功能包，这样您就可以在您的项目里同时使用这两套功能了！  
 
-In Content Browser, just click Add New, then click "Add Feature or Content Pack...".  The files will be injected right into your project!  Many packs may include built-in tutorials, too!
+在内容浏览器中，只需要点击“添加新的”（Add New），然后再点 “添加功能或内容包…”（Add Feature or Content Pack…）。  这样文件就会立即导入您的项目中了！  很多包会包含内置的教程，也会一并导入！ 
 
 ![](FeaturePacksandContentBrowser2.png)
 
-Even the Starter Content can be added to your project at any time.  In fact, there is a new "Mobile Optimized" Starter Content pack you can choose, too.
+甚至起始资源包（Starter Content）也可以在任何时候导入您的项目。  实际上，我们已经有了一个新的“为移动平台优化”的起始资源包让您选择。 
 
-#### Animation Editing System
-You can now edit animations right inside the Persona animation tool!
+#### 动画编辑系统
+现在您可以直接在Persona动画工具中编辑动画！ 
 
 ![](AnimEditingSystem01.png)
 
-Scrub the time slider, select, move and rotate bones using the gizmo and set keys at any frame. (Hint: 'S' key is a shortcut)
+拖动时间滑块，选择骨骼，使用控件移动、旋转骨骼，并在任意帧设置关键帧。 （提示：关键帧设置的快捷键是‘S’） 
 
 ![](AnimEditingSystem02.png)
 
-Inside Persona, all of your animation curve edits will be stored on an "additive layer".  If you decide to reimport your original animation, your modifications will be preserved!  This layer only exists in Persona.  Simply click the "Apply" toolbar button to commit your changes and see the animation in your game!
+在Persona编辑器内，所有的动画曲线编辑都会被存储到一个“叠加层” （additive layer）。  当您重新导入原始动画数据，您所做的修改仍然被保存着！  这个层数据只存在于Persona编辑器内。  只需要在工具栏中点击“应用”提交您的修改，就可以在游戏中看到动画的修改了！ 
 
 ![](AnimEditingSystem03.png)
 
-You can also save out a whole new custom animations!  Use the "Create Asset" toolbar button to create animations from either a reference post, or your current pose or animation.
+您也可以完整保存您的定制动画！  使用工具栏的“Create Asset”（创建资源）按钮从参考姿势或您的当前姿势或动画中创建新的动画。 
 
 ![](AnimEditingSystem04.png)
 
-Some other notes:
+一些注意事项：
 
-* Animation curves can be disabled or deleted if you don't need them curves
-* Once baked, export will work with the final baked animation. Additive curves are not exported.
-* When you retarget, the curves are not transferred. However, the final baked animation will be retargeted.
+* 动画曲线可以在您不需要的时候取消或者删除 
+* 一旦烘焙完成，就只能输出烘焙完的动画。 附加的曲线不会被输出。 
+* 当您重定向您的动画目标，附加曲线不会被重定向。 所以，请完成烘焙之后再执行重定向。 
 
-#### Instant Bone Controller Preview
-Bone Controller nodes can now be adjusted interactively using the viewport gizmo, rather than having to recompile each time!
+#### 即时骨骼控制器预览 
+骨骼控制器节点现在可以使用视图中的操作器直接做交互式调整，而不用每次都重新进行编译! 
 
-![](InstantBonePreview.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+VthaM3yZbVM
+[/PARAMLITERAL]
+[/OBJECT]
 
-Currently this feature works with TwoBoneIK, ModifyBone & Fabrik nodes, but we will be adding more.
+目前这个功能只工作在TwoBoneIK, ModifyBone、Fabrik三种解算器上，不过我们会陆续添加更多的支持 。 
 
-#### Creating Animations from Physics
-You can now record physics simulation in the physics editor (PhAT) and save that as an animation!
+#### 使用物理模拟解算创建动画 
+您可以在物理编辑器（PhAT）中通过录制物理模拟来将其保存为动画 ！ 
 
 ![](AnimFromPhys_Record_01.png)
 
-Start by clicking "Record" on the toolbar, then interact with your object in the viewport to create an interesting simulation!  After you're done, click "Stop" to save the simulation as an animation.
+点击工具栏上的“Record”按钮，然后与视口中的对象进行互动以创建有趣的模拟！  在完成后，点击“Stop”，模拟的结果就存储为动画了。 
 
-You can also capture animation right from your level!
+您同样可以直接从关卡编辑器中捕捉动画! 
 
-* In the Level Editor, click the "Simulate" button in the Play toolbar drop-down
-* Find the simulated Skeletal Mesh in your scene
-* Right click on the mesh and select "Keep Simulated Changes" (or press the 'K' key) to save an animation!
+* 在关卡编辑器工具栏上找到“Play”按键，在“Play”按键的下拉选项 中点击“Simulate（模拟）”。 
+* 在场景中选中您需要记录模拟动画的骨骼模型 
+* 在模型上右键点击“Keep Simulated Changes（保存模拟的变更）”（或者按 “K”键），就可以保存动画了! 
 
-#### Project Launcher
-The new Project Launcher interface allows you to easily run or package your game with more control!
+#### 项目启动器 
+全新的项目启动器界面拥有更多控制选项，让您更加容易的运行或者打包您的游戏项目！
 
 ![](ProjectLauncher.png)
 
-Project Launcher has features to help test your game on multiple types of devices and configurations, as well as running multiple sessions simultaneously.  Launch your project on any connected device, with easily customizable build types and cooking preferences.
+项目启动器拥有多项功能帮助您在多种不同设备、多种不同设置间快速测试您的项目 ，并同时运行多个会话。  您可以更简单地定制不同的构建类型与打包设置，然后在任意连接好的设备上启动您的项目。 
 
-Use **Custom Launch Profiles** to create builds specific to your needs.
+如果您需要以下这些内容，可以使用 **自定义启动选项（Custom Launch Profiles）** 来构建版本。 
 
-* All our advanced options are exposed.
-* Select exactly the content you want to build.
-* Build multiple platforms at once.
-* Package and store builds for others to run, or to run later.
+* 将所有高级选项都暴露出来。 
+* 选择特定需要构建的内容。 
+* 一次构建多个不同平台的版本。 
+* 打包与保存多个版本然后在其他地方运行，或者是稍后再运行。 
 
-Of course, you can still run your game using the convenient "Launch" button on the main toolbar. But if you need more flexibility, just open up the the Project Launcher from either the "Launch" toolbar drop down menu, or the main Window menu.
+当然，您仍然可以使用主工具栏上的"启动"按钮来来运行您的游戏。 但是，如果您需要更多的灵活性，您还是可以轻松的通过“启动”按钮的下拉菜单或者是主菜单中的窗 口菜单来快速打开新的项目启动器。 
 
-#### Blueprint Merge Tool
-You can now merge different Blueprints together using the new Blueprint Merge Tool. 
+#### 蓝图合并工具 
+您现在可以使用新的蓝图合并工具去将不同的蓝图合并到一起。  
 
-This tool shows a visual comparison of two Blueprints and assists you in combining them!  It's great for merging versions of a single Blueprint that were modified by different team members.
+这个工具会将两个蓝图做可视化的对比，以帮助您合并他们！  这对于同一个蓝图被不同的人反复修改之 后的合并来说是非常棒的工具。 
 
 ![](BPmergeTool.png)
 
-There are three ways to use this tool:
+您可以用三种方法调用这个工具: 
 
-* Click on **File -> Merge** in the Blueprint Editor
-* Right click on an asset with a source control merge conflict and select **Merge**
-* From the **command-line**, run: UE4Editor.exe -diff [options] <File A> <File B> <Common Base File> <Output File>
+* 在蓝图编辑器中点击 **文件->合并** 。 
+* 在源码控制显示为冲突的组件上点击右键，然后选择 **合并** 。 
+* 使用 **命令行工具** ，运行： UE4Editor.exe -diff [options] <File A> <File B> <Common Base File> <Output File>
 
-#### Git Source Control Plugin (Beta!)
+#### Git源码控制插件(Beta!) 
 
-Thanks to community member Sebastien Rombauts for graciously contributing his excellent Git source control plugin to Unreal Engine!!
+感谢社区成员Sébastien Rombauts友情贡献的Git源码控制插件！ 
 
 ![](GitHubPlugin.png)
 
-If you connect your project to a Git repository, the editor supports most source control interactions such as adding and removing files, committing changes, displaying file history, diffing files, and displaying the source control status of any asset.
+当您将项目连接到Git存储区，编辑器就可以支持大部分的源码控制功能，比如添加、删除文件，提交修改，显示文件历史，比较文件，显示当前的源码控制状态等等。 
 
-#### AI Perception System: Blueprint Scripting
-The AI Perception System can now be configured using Blueprint scripts! Just add an AI Perception Component to your AI, then inspect and tweak its properties and events.
+#### AI 感知系统：支持蓝图脚本 
+AI感知系统（AI Perception System）现在可以使用蓝图脚本来设置了！ 您只需为您的AI添加AI感知组件，就可以观察、调整相关的属性与事件了。 
 
 ![](AIperceptionSystem.png)
 
-#### Tutorials for New Project Templates
-Each New Project Template now has its very own **Overview Tutorial** that provides a brief outline of how each of that template's assets and classes work.
+#### 新的项目模板附带教程 
+现在，每一个新的项目模板都有一个简单的 **概要教程** 。它大致介绍了模板的组件构成 与类是如何工作的。 
 
 ![](TemplateTutorial.png)
 
-Just **click the 'Play' button** on the Tutorial thumbnail in the Content Browser to start it!
+只需要在内容浏览器里 **点击** 教程预览图上的'播放'按钮 ，就可以开始播放教程！ 
 
 ![](TutorialContentBrowser.jpg)
 
-Content Packs and Feature Packs can also have their own tutorials too!  If you add a pack to your project, look for a tutorial that you can play that will teach you about that feature or content pack!
+内容包与功能包也可以包含自己的教程！  如果添加了新的包在您的项目，您也看看附带的教程去学习一下这些包的内容！ 
 
-#### New Thumbnail Look and Feel
-The editor now displays **asset thumbnails** using a new **colorful style**
+#### 新的缩略图视觉效果 
+现在编辑器能够以新的 **彩色风格** 显示 **资源缩略图** 了 
 
 ![](NewThumbNail.png)
 
-Also, both C++ classes and Blueprint classes will now display a **live 3D thumbnail** when possible, as well as a **small icon in the corner** that indicates what the parent class is.
+同时，现在C++类与蓝图类现在也可以显示为 **交互式的3D缩略图** 。缩略图 **右下角的小图标** 会显示出它的父类。 
 
-#### Paper2D:  Improved Tile Map Layer Editing
-We have added lots of useful **layer editing features** to the Tile Map editor!
+#### Paper2D:增强了拼贴式地图层编辑
+我们在拼贴地图编辑器里添加了一些很有用的 **图层编辑功能** ! 
 
 ![](Paper2DimprovedTilemap.png)
 
-* Layers can be reordered, moving them up or down with respect to each other
-* Selection in the layer browser now controls which layer will be painted on rather than always painting on the topmost layer
-* The selected layer is remembered across editing sessions
-* The selected layer now has a helper grid rendered at the correct depth with a wireframe outline being drawn for all unselected layers
-* Layer renaming now works exactly like renaming an actor in the World Outliner with a more obvious visual style and intuitive click interaction
-* Layers can now be duplicated
-* Tile maps can now be reusable assets or instances in the level, with a command to promote to an asset
-* Newly added layers have more meaningful names
-* Note: Tile maps are still an 'experimental' feature in this version of Unreal Engine
+* 各个层可以重新排序了，您可以让特定的层上移或下移
+* 您现在可以在选中的层上控制绘画，而不是仅仅在最上面的层
+* 整个编辑过程中，被选中的层会被锁定
+* 被选中的层会有一个帮助网格被渲染出来帮助您正确对齐其他未选中的层
+* 层命名功能现在工作起来与关卡概要视图非常相似
+* 层可以复制了
+* 拼贴地图现在可以在关卡中重用或实例化，这意味着它现在是一个资源组件了
+* 新添加的层现在有了更具可读性的命名
+* 注意: 拼贴地图现在虚幻引擎里仍然是一个'试验性'的功能
 
-#### Paper2D:  Flipbook Collision Detection
-Flipbooks allow you to create **2D animations out of images** that play in a sequence.  Now, you can define **collision properties** for your animation frames!
+#### Paper2D: 翻页式动画碰撞检测 
+翻页式动画资源允许您创建以序列形式播放的 **来自于图像的2D动画**。  现在，您可以为您的动画序列定义 **碰撞属性** ！ 
 
 ![](Paper2DFlipbook.png)
 
-Flipbook assets have a new Collision Source property that controls the source of collision data for the flipbook (if any)
+翻页式动画资源有了一组新的碰撞来源属性，用来控制翻页式动画碰撞数据的来源（如有的话）。 
 
-* **No Collision:** The flipbook has no collision
-* **First Frame Collision:** The flipbook has non-animated collision based on the first frame of the animation
-* **Each Frame Collision:** The flipbook changes collision each frame based on the animation (Note: This setting can be expensive as it requires recreating the physics state every frame)
+* **无碰撞（No Collision）：** 这个翻页式动画资源不进行碰撞检测 
+* **First Frame Collision（使用第一帧碰撞）:** 这个翻页式动画资源的碰撞检测忽略动画，它一直使用动画资源的第一帧数据来做碰撞检测
+* **Each Frame Collision（每一帧都做碰撞数据）:** 这个翻页式动画资源的碰撞数据基于动画的每一帧更新。（注意：这个设置可能会消耗大量系统资源，因为它需要在每一帧重新创建物理状态） 
 
-Some notes on usage:
+使用时的一些注意事项：
 
-* In many cases it may make more sense to attach collision components (e.g., a box component) to a socket on the flipbook component rather than directly generating collision from source frames, especially if you want some collision regions to overlap while others block
-* Character movement still relies on the collision capsule, in most cases you want to use a different collision channel for the flipbook than BlockAll to prevent the capsule from getting stuck on the flipbook (move/be blocked based on the capsule, and test for overlap or collision with projectiles based on the flipbook)
+* 在很多时候，我们只需要在翻页式动画资源上附加一个碰撞体（例如一个碰撞盒）就可以了， 而不需要真的从图片资源中获取碰撞数据，尤其是当您的一些碰撞区域之间有互相重叠的时候 
+* 角色移动依然是依赖胶囊体碰撞检测，多数情况下胶囊体设置为碰撞所有（BlockAll），而翻 页式动画资源的碰撞应该放在一个不同的碰撞通道里，防止它们之间互相卡住 (通常检测移动与阻挡使用胶囊体，检测互相穿插、碰撞或者射线使用翻页式动画自己的碰撞) 
 
-#### UI: Custom Cursor Support
-You can now create **custom Widgets** to use as **Software Cursors** in your project.  You can use all the functionality of Unreal Motion Graphics to add text, health meters, tool-tips or whatever you desire to your cursor.
+#### UI:支持自定义光标 
+现在您可以在项目中使用 **软件光标** 创建 **自定义的控件 （custom Widgets）** 。  控件可以使用UMG的所有功能，像是添加文字、血条、工具介绍以及一切您想在光标上添加的功能。 
 
 ![](UIcustomCursor.png)
 
-Software cursors can be useful in a number of cases:
+软件光标在以下案例中会非常有用: 
 
-* Adding cursors to platforms that do not have hardware cursors.  For example, a virtual mouse cursor on a console.
-* Adding cursors which are visually rich, have animations, or have complicated interactions. 
-* Adding cursors that look consistent across PC, Mac, Linux without having to worry about the platform specific formats.
+* 为不支持硬件光标的平台添加光标。比如，为主机游戏添加虚拟鼠标光标。
+* 需要为光标添加更多丰富的视觉效果，比如动画或者其他复杂的视觉交互。 
+* 保持在PC、Mac、Linux各个平台上保持一致的光标视觉效果，而不需要为特定平台制作特定格式。
 
-You can use the new **User Interface** section of **Project Settings** to setup your game's software cursor Widgets. If you do not specify a cursor, you will get a **default** hardware cursor.
+在 **项目设置** 中新 **用户界面” （User Interface）** 部分中设置是否使用软件光标控件。如果您没有特殊的设置，会使用 **默认** 的硬件光标。 
 
 [REGION:note]
-Note:  Software Cursor motion will be limited to your game's frame rate, unlike a regular mouse cursor that is rendered by your operating system.  This is the main tradeoff to consider.
+注意：  软件光标的运动受限于游戏的帧率刷新，而不像是常规的硬件光标由操作系统来渲染 。这个功能主要权衡点就是这个。 
 [/REGION]
 
-#### Unreal Motion Graphics: New Widget Binding System
-The binding system for widgets has had a massive overhaul to allow support for binding to sub-properties and functions on the widget, and to greatly improve performance!
+####  虚幻运动图像： 新的UI控件绑定系统 
+新的UI控件绑定系统用于控件与子属性、功能集之间的绑定，这是一个很大的改进并极大的提升了性能！ 
 
 ![](UMGnewWidget.png)
 
-Some notes about new Widget Bindings
+使用新的绑定系统的一些注意事项
 
-* Bindings are based on a dynamically evaluated set of fields rather than using Blueprint scripting.
-* Direct bindings to both C++ or Blueprint functions are supported!
-* Trivial conversions are handled automatically (e.g. Linear Color to Slate Color, Texture2D to a Slate Brush.)
-* Binding to properties have gotten much faster with this change!  (about 10x speed improvement)
-* Old bindings will continue to work, but you should update them to the new system to take advantage of the performance improvements
+* 绑定基于一个可动态赋值的值域， 而不是蓝图脚本。
+* 直接绑定C++或者蓝图功能集都支持！
+* 一些简单的转换都是自动处理的。（例如线性颜色转换为Slate颜色，2D贴图转换为Slate画刷）
+* 这一修改使得属性绑定变得更快!  （差不多有10倍的提升）
+* 旧的绑定方式仍然能够工作，但是为了提升性能，请考虑升级到新的绑定系统。 
 
-#### Visual Logger (AI Visualization Tool)
-We have a whole new Visual Logger tool with lots features.  This is designed to help you debug and fine-tune **AI** in your project!
+#### 可视化日志工具(AI可视化工具) 
+我们有了一个全新的功能超多的可视化日志工具。  他的设计目的是帮助您更好的调整与修正您游戏项目中的 **AI** 行为！ 
 
 ![](VisualLoggerAI.png)
 
-* Log out events, then use powerful tools to search on a timeline. This [video](https://www.youtube.com/watch?v=3jiUyciKvUI&feature=youtu.be) shows an example.
-* Items on the timeline with warnings are now shown in yellow, and items with errors in red.
-* You can use a special Debug Camera to fly around while the game is paused.
-* Save out generated 'reports' from visual logger events.  Hyperlinks in the reports allow you to filter the log, making it easier to analyze
+* 将事件记录下来，然后通过强大的工具基于时间线来搜索 。 看看这个[视频](https://www.youtube.com/watch?v=3jiUyciKvUI&feature=youtu.be)范例吧。 
+* 时间线上的对象在有警告时会显示为黄色，在出现错误时会显示为红色。
+* 您现在可以在游戏暂停状态下使用特殊的调试摄影机在场景中运动观察。 
+* 将可视化日志工具内容保存为状态'报告'。  报告中会带有超 链接让您可以快速过滤日志，便于分析。 
 
-#### Translucent Object Ordering Control
-This new feature allows you to configure the order that the renderer draws translucent objects.  This is really useful for 2D games!
+#### 半透明对象排序控制 
+这一新功能允许您手动设置半透明对象的渲染排序。  这对2D游戏来说非常有用！ 
 
 ![](TranslucentObject.png)
 
-In your project's Rendering Settings, check out the new **Translucent Sort Policy** options:
+在项目的渲染设置中，勾选新的 **半透明排序策略（ Translucent Sort Policy）** 选项 ：
 
-* **Sort by Distance:** Sort based on distance from the camera to the object's bounding sphere center. This is the default and typically the best for 3D games.
-* **Sort by Projected Z:**  Sort based on the post-projection Z distance to the camera. This setting can cause popping as the camera rotates.
-* **Sort Along Axis:**  Sort based on the projection onto a fixed axis. This is typically the best option for 2D games.  The axis to sort along is called Translucent Sort Axis and can also be edited in the renderer project settings (defaults to -Y)
+* **基于距离排序（Sort by Distance）: ** 这种排序方式基于摄影机到对象的轴点之间的距离。这一方式通常运用于3D游戏。 
+* **基于Z轴投射距离排序（Sort by Projected Z）:** 这一排序方式在后处理中计算摄影机空间的Z深度用于排序。这一设置可以抑制由于摄影 机旋转导致的对象渲染闪烁。 
+* **基于特定轴向排序（Sort Along Axis ）:** 排序基于某个特定的轴向，这一方式主要用于2D游戏中。这个特定的轴向称为半透明排序轴 （Translucent Sort Axis），您同样可以在项目的渲染设置中去编辑它（默认的轴向是 -Y） 
 
-#### Fixed Blueprint Cyclic Dependencies
-Blueprint loading has been redesigned so that it should be able to handle any "cyclic" scenario you throw at it. Your Blueprints can intermingle and cross-communicate all they want, and most importantly: they will load up properly next time around.
+#### 修正了蓝图中的循环依赖 
+蓝图的加载被重新设计，所有现在可以处理任何被“循环”了的情况。您的蓝图现在可以有各种混合、交叉调用，最重要的是：它会在下一次循环时正确加载。 
 
-This addresses many Blueprint on-load crashes, and other scenarios where Blueprints could be loaded in a malformed state!
+当然如果您有太多的蓝图加载错误，同样会导致蓝图工作在混乱的状态下！ 
 
-#### Unreal C++ Programming Improvements
-We're continuously working to make C++ in Unreal Engine easier to use and more familiar to everyone.
+#### 虚幻引擎C++编程改进 
+我们持续的改进，让C++在虚幻引擎中更加易用。
 
-* No special constructors needed! Your class constructors no longer need to take an Object Initializer argument.
-* Creating sub-objects for Unreal classes now has a new simple syntax.	
+* 不需要特殊的构造函数！类的构造函数不再需要采取对象 初始化参数。 
+* 创建虚幻类的子对象现在有新的简单语法。 	
 
 
 
-#### Multi-threaded Animation
-Animation pose calculations are now offloaded to multiple CPU cores reducing the overall amount of time the engine takes to calculate animation.
+#### 多线程动画
+动画姿势的解算现在被分配到多核CPU的各个核心，这整体上降低了引擎解算动画的负载。
 
-This improves performance in games with many animated skeletal meshes!
+这一改进将提升游戏中有大量的骨骼模型时的性能！ 
 
-#### Desktop-Quality Rendering on Android *BETA* (OpenGL ES 3.1 w/ AEP)
-OpenGL ES 3.1 (combined with the Android Extension Pack) gives you the ability to use much of the **full desktop rendering experience** on Android devices!  This feature is currently in **beta** testing, please provide feedback.
+#### 在安卓设备上实现桌面级渲染*BETA* (OpenGL ES 3.1 w/ AEP) 
+使用OpenGL ES 3.1（加上安卓扩展包功能）将带给高端安卓设备 **完全桌面级的渲染效果** 。  这一功能目前还在 **Beta** 测试中，期待各位的反馈。 
 
-* **"ES3.1+AEP"** is now a selectable target in for building and cooking.
-* Tegra K1 devices (for instance, the NVIDIA Shield Tablet) have been used for testing and development. More and more devices will be supporting AEP in the future!
-* Enable it via the "Enable OpenGL ES31 + AEP" option Android Project Settings.
+ * **“ES3.1+AEP”** 现在是构建与打包时的一个可选目标平台。 
+* Nvidia的Tegra K1设备(例如：NVIDIA Shield Tablet) 已 经可以用于开发使用。 未来会有更多支持AEP的设备！ 
+* 在安卓项目设置中打开“Enable OpenGL ES31 + AEP” 选项。 
 
 [REGION:note]
-Currently, you'll need to compile the engine yourself from the source on GitHub to use this feature.
+目前，您需要从GitHub上获取源码，自己编译版本才能支持这个功能。 
 
-Blueprint-only projects will need to recompile the base UE4Game executable with OpenGL ES 3.1 support by enabling **bBuildForES31** in the engine's BaseEngine.ini file.
+仅依赖蓝图编程的项目也需要重新编译UE4Game才能 支持OpenGL ES 3.1，请打开BaseEngine.ini设置文件中的 **bBuildForES31** 选项。 
 [/REGION]
 
-#### Downloadable Content (DLC) Packaging *BETA*
-**Downloadable content** (DLC) can now be packaged up for distribution!  
+####  附加下载内容 (DLC) 打包 *BETA* 
+**附加下载内容**  (DLC) 现在可以单独打包用于发布了。  
 
-Currently this feature is in **beta testing** and requires a command-line tool. Create your add-on DLC inside a game plugin Content folder, and use the new packaging tool to "cook" and optimize your content for your platform of choice.
+目前这个功能还处于 **beta测试** 中，需要使用命令行工具来调用。创建附加DLC内容需要放置在游戏插件内容文件夹中，然后使用新的打包工具选择对应的平台来优化与"烘焙"您的新内容。
 
-This feature makes use of the game's **asset registry** to know what content is already supplied in the shipped game, and will cook anything needed from the game's content into the DLC.
+这公共通过游戏的 **资源组件注册表** （asset registry）来获取哪些内容已经被之前发行版的游戏所包含，哪些需要被新的DLC所包含而需要打包。
 
-To use this feature, run the cook utility for your main game with "**-CreateReleaseVersion=x.y**", then again for each DLC plugin with "**-BasedOnReleaseVersion=x.y -DLCName=MyPluginName**".
+要使用这个功能，运行主游戏打包工具并附加命令行开关" **-CreateReleaseVersion=x.y** ", 之后针对每一个DLC插件使用 " **-BasedOnReleaseVersion=x.y -DLCName=MyPluginName** " 。 
 
-#### Android Movie Playback
-**Loading movies** and **startup movies** now play on Android devices!  You can configure startup movies to play in your **Project Settings**.
+#### 安卓平台电影文件播放 
+**加载影片** 与 **启动影片** 现在都可以在安卓设备上播放了！您可以在 **项目设置** 中配置您的启动影片。
 
-Android movies must be in **MP4** format to play correctly.  Also, the movie playback feature requires a device with Android 4.0 or above.
+要在安卓设备上播放的影片必须是 **MP4** 格式。而且，需要安卓4.0或以上才能支持影片播放。 
 
-#### Android SDK Path Setup in Editor
-You can now set the locations for the SDK components needed for Android development directly in the "Android SDK" section of Project Settings. This can greatly simplify the initial setup!
+#### 在编辑器中直接设置安卓SDK路径 
+您现在可以在项目设置中的“安卓SDK”属性中直接设置安卓开发所需的SDK组件的路径。这大大简化了初始安卓项目的设置！ 
 
 ![](AndroidSDKpath.png)
 
-These settings override any environment variables that are set (you can leave them blank to use the environment variables if you prefer the original method)
+这些路径环境变量是覆盖原有的路径设置方式的（如果原有的设置工作没问题， 您可以让这些新变量空着）。 
 
-#### Access Non-Editable Blueprint Variables
-You can once again access variables from other Blueprints without having to make those variables "Editable".  This was already possible in the 4.6 release, but not in 4.7.  Sorry about that!
+#### 访问非可编辑状态的蓝图变量
+在4.6版中，您可以访问其他蓝图中的变量而无需让这些变量"可编辑"，但在4.7中不行，抱歉拿掉这个功能！ 
 
-#### AI Blackboard Synchronization
-Keys defined in a Blackboard asset can now be marked as 'synced', which synchronizes its value across all AI using it. This allows you to synchronize behavior across multiple AIs, or be can be used for communication between them.
+#### AI 黑板同步 
+黑板组件内可以标记关键点为“同步的”（synced）。这些同步的值可以 被所有AI使用，这意味着您可以在多个AI间同步状态，或者是使用这些值在AI之间通讯。 
 
-## General Release Notes
+## 通用版本信息
 
 #### Rendering
 * New: Preview Mobile Rendering right in the editor!
@@ -1624,7 +1653,7 @@ Fixed poor performance when using screen space widgets coming from components. W
 * Fixed a bug in the garbage collector where it would not call destructors on objects residing in permanent pool while performing exit purge.
 * Fixed copy and paste of objects and actors not working when the property name contains a space.
 
-## In-Editor Help
+## 编辑器内帮助
 * New: Added a new in-editor tutorial that covers working with Components on Actors (in level component editing).
 * New: Added a back button to tutorial dialog!
 * Added information on the Q and E keys to the Viewport in-editor tutorial.
@@ -1726,7 +1755,7 @@ Fixed poor performance when using screen space widgets coming from components. W
 * Fixed the missing Layered Material page by resurrecting it then updating it to account for interface changes.
 * New: Updated Class Specifier page to reflect current macro keywords
 
-## Programming Release Notes
+## 编程版本信息
 
 #### AI
 * Behavior Tree functions taking a BehaviorTreeComponent have been refactored to take references instead
@@ -2289,7 +2318,7 @@ Fixed poor performance when using screen space widgets coming from components. W
 * Fixed a crash when FUMGEditorModule::PostCompile is called 2 times (without PreCompile)
 * Fixed a crash that occurs in the UMG editor when trying to insert a new node into the graph and encountering null nodes.
 
-## Upgrade Notes
+## 更新信息
 
 #### Versioning
 * The minimum engine version has been raised from version 108 to 214.

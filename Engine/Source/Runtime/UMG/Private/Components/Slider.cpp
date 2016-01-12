@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -13,7 +13,7 @@ USlider::USlider(const FObjectInitializer& ObjectInitializer)
 	Orientation = EOrientation::Orient_Horizontal;
 	SliderBarColor = FLinearColor::White;
 	SliderHandleColor = FLinearColor::White;
-
+	StepSize = 0.01f;
 	SSlider::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;
 }
@@ -24,6 +24,8 @@ TSharedRef<SWidget> USlider::RebuildWidget()
 		.Style(&WidgetStyle)
 		.OnMouseCaptureBegin(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureBegin))
 		.OnMouseCaptureEnd(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureEnd))
+		.OnControllerCaptureBegin(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnControllerCaptureBegin))
+		.OnControllerCaptureEnd(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnControllerCaptureEnd))
 		.OnValueChanged(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnValueChanged));
 
 	return MySlider.ToSharedRef();
@@ -41,6 +43,7 @@ void USlider::SynchronizeProperties()
 	MySlider->SetValue(ValueBinding);
 	MySlider->SetLocked(Locked);
 	MySlider->SetIndentHandle(IndentHandle);
+	MySlider->SetStepSize(StepSize);
 }
 
 void USlider::ReleaseSlateResources(bool bReleaseChildren)
@@ -63,6 +66,16 @@ void USlider::HandleOnMouseCaptureBegin()
 void USlider::HandleOnMouseCaptureEnd()
 {
 	OnMouseCaptureEnd.Broadcast();
+}
+
+void USlider::HandleOnControllerCaptureBegin()
+{
+	OnControllerCaptureBegin.Broadcast();
+}
+
+void USlider::HandleOnControllerCaptureEnd()
+{
+	OnControllerCaptureEnd.Broadcast();
 }
 
 float USlider::GetValue() const
@@ -101,6 +114,34 @@ void USlider::SetLocked(bool InLocked)
 		MySlider->SetLocked(InLocked);
 	}
 }
+
+void USlider::SetStepSize(float InValue)
+{
+	StepSize = InValue;
+	if (MySlider.IsValid())
+	{
+		MySlider->SetStepSize(InValue);
+	}
+}
+
+void USlider::SetSliderHandleColor(FLinearColor InValue)
+{
+	SliderHandleColor = InValue;
+	if (MySlider.IsValid())
+	{
+		MySlider->SetSliderHandleColor(InValue);
+	}
+}
+
+void USlider::SetSliderBarColor(FLinearColor InValue)
+{
+	SliderBarColor = InValue;
+	if (MySlider.IsValid())
+	{
+		MySlider->SetSliderBarColor(InValue);
+	}
+}
+
 
 #if WITH_EDITOR
 

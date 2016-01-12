@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeModule.h"
 #include "Cascade.h"
@@ -69,6 +69,7 @@ TSharedRef<SWidget> SCascadePreviewViewportToolBar::GenerateViewMenu() const
 				Menu.AddMenuEntry(FCascadeCommands::Get().View_ParticleEventCounts);
 				Menu.AddMenuEntry(FCascadeCommands::Get().View_ParticleTimes);
 				Menu.AddMenuEntry(FCascadeCommands::Get().View_ParticleMemory);
+				Menu.AddMenuEntry(FCascadeCommands::Get().View_SystemCompleted);
 			}
 			Menu.EndSection();
 		}

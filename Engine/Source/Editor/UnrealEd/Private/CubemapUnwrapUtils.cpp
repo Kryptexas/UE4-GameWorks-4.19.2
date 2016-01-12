@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CubemapUnwapUtils.cpp: Pixel and Vertex shader to render a cube map as 2D texture
@@ -84,6 +84,7 @@ namespace CubemapHelpers
 			break;
 		}
 		// Clean up.
+		RenderTargetLongLat->ReleaseResource();
 		RenderTargetLongLat->RemoveFromRoot();
 		RenderTargetLongLat = NULL;
 		delete Canvas;

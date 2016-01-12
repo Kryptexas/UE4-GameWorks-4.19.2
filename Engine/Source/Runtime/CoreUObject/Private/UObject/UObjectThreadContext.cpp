@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectThreadContext.cpp: Unreal object globals
@@ -6,6 +6,8 @@
 
 #include "CoreUObjectPrivate.h"
 #include "UObject/UObjectThreadContext.h"
+
+DEFINE_LOG_CATEGORY(LogUObjectThreadContext);
 
 FUObjectThreadContext::FUObjectThreadContext()
 : ImportCount(0)

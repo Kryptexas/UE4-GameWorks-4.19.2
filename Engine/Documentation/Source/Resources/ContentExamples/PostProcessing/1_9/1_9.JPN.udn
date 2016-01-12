@@ -1,14 +1,31 @@
-﻿INTSourceChangelist:2402210
+﻿INTSourceChangelist:2721898
 Availability:Public
-Title:1.9 - Screenspace Reflection (スクリーン空間の反射)
+Title:1.9 - Screenspace Reflection （スクリーン空間の反射）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.9：Screenspace Reflection (スクリーン空間の反射)
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.9：Screenspace Reflection (スクリーン空間の反射)
 Related:Engine/Rendering/PostProcessEffects/ScreenSpaceReflection
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_8 "%Resources/ContentExamples/PostProcessing/1_8:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_10 "%Resources/ContentExamples/PostProcessing/1_10:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -54,7 +71,7 @@ Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
 [/REGION]
 
 
-**Screen Space Reflection** (スクリーン空間の反射) は、デフォルトで有効になっているエフェクトであり、 **マテリアル** サーフェス上のオブジェクトの外観を変更します。このエフェクトについて微調整できるオプションはほんの一握りしかありません。Intensity 、Quality 、Max Roughness です。このオプションに関する詳細は、以下のリンクからスクリーン空間の反射を参照してください。  
+**Screen Space Reflection (スクリーン空間の反射)** は、デフォルトで有効になっているエフェクトであり、 マテリアル サーフェス上のオブジェクトの外観を変更します。このエフェクトについて微調整できるオプションはほんの一握りしかありません。Intensity 、Quality 、Max Roughness です。このオプションに関する詳細は、以下のリンクからスクリーン空間の反射を参照してください。  
 
 
 

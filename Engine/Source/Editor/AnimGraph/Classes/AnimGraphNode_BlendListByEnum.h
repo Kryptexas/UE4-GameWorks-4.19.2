@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimGraphNode_BlendListBase.h"
-#include "Animation/AnimNode_BlendListByEnum.h"
+#include "AnimNodes/AnimNode_BlendListByEnum.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_BlendListByEnum.generated.h"
 
@@ -26,6 +26,7 @@ public:
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PostPlacedNewNode() override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

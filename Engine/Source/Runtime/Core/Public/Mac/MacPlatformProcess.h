@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	MacPlatformProcess.h: Mac platform Process functions
@@ -33,11 +33,14 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	/**
 	 * Process enumerator.
 	 */
-	class FProcEnumerator
+	class CORE_API FProcEnumerator
 	{
 	public:
 		// Constructor
 		FProcEnumerator();
+		FProcEnumerator(const FProcEnumerator&) = delete;
+		FProcEnumerator& operator=(const FProcEnumerator&) = delete;
+
 		// Destructor
 		~FProcEnumerator();
 
@@ -65,7 +68,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	/**
 	 * Process enumeration info structure.
 	 */
-	struct FProcEnumInfo
+	struct CORE_API FProcEnumInfo
 	{
 		friend FProcEnumInfo FMacPlatformProcess::FProcEnumerator::GetCurrent() const;
 
@@ -97,6 +100,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	static uint32 GetCurrentProcessId();
 	static const TCHAR* BaseDir();
 	static const TCHAR* UserDir();
+	static const TCHAR* UserTempDir();
 	static const TCHAR* UserSettingsDir();
 	static const TCHAR* ApplicationSettingsDir();
 	static const TCHAR* ComputerName();
@@ -109,7 +113,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	static const TCHAR* GetBinariesSubdirectory();
 	static const FString GetModulesDirectory();
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
-	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );
+	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void CloseProc( FProcHandle & ProcessHandle );

@@ -1,9 +1,72 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MovieSceneSection.h"
+#include "IKeyframeSection.h"
 #include "MovieScene3DTransformSection.generated.h"
+
+
+namespace EKey3DTransformChannel
+{
+	enum Type
+	{
+		Translation = 0x00000001,
+		Rotation = 0x00000002,
+		Scale = 0x00000004,
+		All = Translation | Rotation | Scale
+	};
+}
+
+/**
+* Stores information about a transform for the purpose of adding keys to a transform section
+*/
+struct FTransformData
+{
+	/** Translation component */
+	FVector Translation;
+	/** Rotation component */
+	FRotator Rotation;
+	/** Scale component */
+	FVector Scale;
+	/** Whether or not the data is valid (any values set) */
+	bool bValid;
+
+	bool IsValid() const { return bValid; }
+
+	/**
+	* Constructor.  Builds the data from a scene component
+	* Uses relative transform only
+	*
+	* @param InComponent	The component to build from
+	*/
+	FTransformData( const USceneComponent* InComponent )
+		: Translation( InComponent->RelativeLocation )
+		, Rotation( InComponent->RelativeRotation )
+		, Scale( InComponent->RelativeScale3D )
+		, bValid( true )
+	{}
+
+	FTransformData()
+		: bValid( false )
+	{}
+};
+
+
+struct FTransformKey
+{
+	FTransformKey( EKey3DTransformChannel::Type InChannel, EAxis::Type InAxis, float InValue, bool InbUnwindRotation )
+	{
+		Channel = InChannel;
+		Axis = InAxis;
+		Value = InValue;
+		bUnwindRotation = InbUnwindRotation;
+	}
+	EKey3DTransformChannel::Type Channel;
+	EAxis::Type Axis;
+	float Value;
+	bool bUnwindRotation;
+};
 
 
 /**
@@ -12,6 +75,7 @@
 UCLASS(MinimalAPI)
 class UMovieScene3DTransformSection
 	: public UMovieSceneSection
+	, public IKeyframeSection<FTransformKey>
 {
 	GENERATED_UCLASS_BODY()
 
@@ -28,7 +92,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutTranslation	The evaluated translation.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	void EvalTranslation( float Time, FVector& OutTranslation ) const;
+	MOVIESCENETRACKS_API void EvalTranslation( float Time, FVector& OutTranslation ) const;
 
 	/**
 	 * Evaluates the rotation component of the transform
@@ -36,7 +100,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutRotation		The evaluated rotation.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	void EvalRotation( float Time, FRotator& OutRotation ) const;
+	MOVIESCENETRACKS_API void EvalRotation( float Time, FRotator& OutRotation ) const;
 
 	/**
 	 * Evaluates the scale component of the transform
@@ -44,7 +108,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutScale			The evaluated scale.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	void EvalScale( float Time, FVector& OutScale ) const;
+	MOVIESCENETRACKS_API void EvalScale( float Time, FVector& OutScale ) const;
 
 	/** 
 	 * Returns the translation curve for a specific axis
@@ -70,35 +134,12 @@ public:
 	 */
 	MOVIESCENETRACKS_API FRichCurve& GetScaleCurve( EAxis::Type Axis );
 
-	/**
-	 * Adds keys each component of translation. Note: Only adds keys if a value has changed
-	 *
-	 * @param TransformKey	Information about the transform that should be keyed
-	 */
-	void AddTranslationKeys( const class FTransformKey& TransformKey );
+	// IKeyframeSection interface.
 
-	/**
-	 * Adds keys each component of rotation. Note: Only adds keys if a value has changed
-	 *
-	 * @param TransformKey	Information about the transform that should be keyed
-	 * @param bUnwindRotation	When true, the value will be treated like a rotation value in degrees, and will automatically be unwound to prevent flipping 360 degrees from the previous key 	 
-	 */
-	void AddRotationKeys( const class FTransformKey& TransformKey, const bool bUnwindRotation );
-
-	/**
-	 * Adds keys each component of scale. Note: Only adds keys if a value has changed
-	 *
-	 * @param TransformKey	Information about the transform that should be keyed
-	 */
-	void AddScaleKeys( const class FTransformKey& TransformKey );
-	
-	/** 
-	 * Determines if a new key would be new data, or just a duplicate of existing data
-	 *
-	 * @param TransformKey	Information about the transform that should be keyed
-	 * @return True if the new key would be new data, false if duplicate
-	 */
-	bool NewKeyIsNewData(const FTransformKey& TransformKey ) const;
+	virtual bool NewKeyIsNewData( float Time, const FTransformKey& KeyData ) const override;
+	virtual bool HasKeys( const FTransformKey& KeyData ) const override;
+	virtual void AddKey( float Time, const FTransformKey& KeyData, EMovieSceneKeyInterpolation KeyInterpolation ) override;
+	virtual void SetDefault( const FTransformKey& KeyData ) override;
 
 private:
 	/** Translation curves */

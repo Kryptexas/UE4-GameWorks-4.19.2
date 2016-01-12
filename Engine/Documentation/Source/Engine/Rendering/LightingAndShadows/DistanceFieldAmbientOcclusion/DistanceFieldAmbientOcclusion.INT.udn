@@ -2,6 +2,7 @@ Availability: Public
 Title: Distance Field Ambient Occlusion
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Dynamic Ambient Occlusion for Movable SkyLights.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -57,9 +58,9 @@ This dynamic AO solution will not work for all projects, as it has some invasive
 Only Static Mesh Components, Instanced Static Mesh Components, foliage and landscape are supported for causing occlusion.  Foliage must enable "Affect Distance Field Lighting" on the foliage settings.  Other objects can still receive occlusion.
 
 ## Setup
-* First, enable the Project setting (under Rendering) 'Generate Mesh Distance Fields' and restart the editor.  The next time you load, the distance fields will be generated in the background.  This process is multithreaded so will go faster with more cores.
+* First, enable the Project setting (under Rendering) **Generate Mesh Distance Fields** and restart the editor.  The next time you load, the distance fields will be generated in the background.  This process is multithreaded so will go faster with more cores.
 * Make sure the Engine Scalability settings are set to Epic for shadowing.  Distance Field AO is disabled under lower settings.
-* Place a Skylight, change Mobility to Movable. 
+* Place a **Skylight**, change Mobility to **Movable**. 
 * You can now edit the level and AO from Static Meshes will update dynamically.
 
 By default, the resolution of the generated distance fields is quite low which can cause splotchy lighting.  Raise the **Distance Field Resolution Scale** on static meshes to compensate.
@@ -70,11 +71,14 @@ By default, the resolution of the generated distance fields is quite low which c
 
 Distance Field AO produces a bent normal (direction of least occlusion) which is used to modify the skylight diffuse calculation, along with an occlusion factor. 
 
-[REGION:lightbox]
-
-[![](Original2.jpg)(w:920)](Original2.jpg) [![](DistanceFieldAO2.jpg)(w:920)](DistanceFieldAO2.jpg)
-
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![No Distance Field Ambient Occlusion](Original2.jpg)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Ambient Occlusion](DistanceFieldAO2.jpg)(w:600)
+	[/PARAM]
+[/OBJECT]
 _A Fortnite level at midday.  In Fortnite, players can knock down any wall, floor or ceiling and build new ones, so the lighting must update accordingly.  Distance Field AO supports these changes._
 
 [_Video of interaction with objects in the level editor, with Distance Field AO updating in realtime._](http://youtu.be/FmbrnbpHT9E)
@@ -83,40 +87,43 @@ _A Fortnite level at midday.  In Fortnite, players can knock down any wall, floo
 
 DFAO also provides approximate specular occlusion on skylights.  This is computed by intersecting the directional occlusion cone with the reflection cone (whose size depends on the material roughness).
 
-[REGION:lightbox]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![](0Original.jpg)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![](0SpecularOcclusion.jpg)(w:600)
+	[/PARAM]
+[/OBJECT]
 
-[![](0Original.jpg)(w:920)](0Original.jpg) [![](0SpecularOcclusion.jpg)(w:920)](0SpecularOcclusion.jpg)
-
-[/REGION]
 _Specular occlusion on pipes._
 
 ## Foliage occlusion
 
-Even though Distance Field AO operates on surfaces, it can still handle foliage where many small leaves are combined into sheets.  Best results are obtained by enabling "Generate Distance Field As If Two Sided" on the foliage meshes, which will soften the computed occlusion.  "Min Occlusion" on the skylight is useful to prevent the interior from going fully black.
+Even though Distance Field AO operates on surfaces, it can still handle foliage where many small leaves are combined into sheets.  Best results are obtained by enabling _Generate Distance Field As If Two Sided_ on the foliage meshes, which will soften the computed occlusion.  _Min Occlusion_ on the skylight is useful to prevent the interior from going fully black.
 
-[REGION:fullwidth]
-	![](NoDFAO2.jpg)
-[/REGION]
-[REGION:caption]
-Screen Space Ambient Occlusion only
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Screen Space Ambient Occlusion only](NoDFAO2.jpg)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Distance Field Ambient Occlusion on foliage](DFAO2.jpg)(w:600)
+	[/PARAM]
+[/OBJECT]
 
-[REGION:fullwidth]
-	![](DFAO2.jpg)
-[/REGION]
-[REGION:caption]
-Distance Field Ambient Occlusion on foliage
-[/REGION]
 
 Foliage with LODs (Level of Detail models) can run into some problems with Distance Field AO as the triangle mesh shrinks inside the distance field, producing over-occlusion.  This happens because the distance field is still accurate at a distance but the triangle mesh LOD is not.
 
 To combat this you can use World Position Offset on those LODs to pull the vertices outside of the distance field.  Typically a small offset toward the camera is effective.  For billboards, use the new Pixel Depth Offset feature to create valid depth values which better represent the original 3d triangle mesh.  
 
-[REGION:lightbox]
-
-[![](0Billboard.jpg)(w:920)](0Billboard.jpg) [![](0BillboardWithPixelDepthOffset.jpg)(w:920)](0BillboardWithPixelDepthOffset.jpg)
-
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![No Pixel Depth Offset ](0Billboard.jpg)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Pixel Depth Offset](0BillboardWithPixelDepthOffset.jpg)(w:600)
+	[/PARAM]
+[/OBJECT]
 _Distant tree billboards showing over-occlusion of sky lighting, which is improved with the use of Pixel Depth Offset._
 
 ## How does it work?
@@ -135,9 +142,17 @@ The second property that makes distance fields useful is that when you trace a r
 
 The entire level is represented by instanced distance fields stored in volume textures.  Landscape has a separate representation through heightfields.
 
-[![](TriangleScene.jpg)(w:400)](TriangleScene.jpg) [![](MeshDistanceFieldScene.jpg)(w:400)](MeshDistanceFieldScene.jpg)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Scene View](TriangleScene.jpg)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Mesh Distance Fields View](MeshDistanceFieldScene.jpg)(w:600)
+	[/PARAM]
+[/OBJECT]
 
-[Further reading on using distance fields for lighting.](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
+
+Further reading on using distance fields for lighting.](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
 
 ## Settings
 
@@ -177,21 +192,64 @@ The entire level is represented by instanced distance fields stored in volume te
 
 ## Performance
 
+The cost of Distance Field AO is primarily GPU time and video memory. Distance Field AO has been optimized such that it can run on medium spec PC and PS4. It also has a much more reliable cost now, so that it's mostly constant, with a slight dependency on object density.
+
+In cases with a static camera and mostly flat surfaces, the new method is 1.6x faster when compared to previous implementations. In complex scenes with foliage and a fast moving camera, the new method is 5.5x faster. The cost of Distance Field AO on PS4 for a full game scene is 3.7ms.
+
+
+The previous method did adaptive sampling, so flat surfaces did less work, but this also caused a lot of splotchiness in clean environments
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Old Method - Adaptive](DFAO_Scene_OldMethod.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![New Method - Smooth](DFAO_Scene_NewMethod.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+The AO computations are now fast enough to get rid of the adaptive sampling, so occlusion is much smoother.
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Old Method - Adaptive](DFAO_View_OldMethod.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![New Method - Smooth](DFAO_View_NewMethod.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+The catch is that the new method requires a longer history filter, which can contribute to ghosting, especially when shadow casters are moved. Hopefully this can be improved in the future.
+
+<!---
 The cost of Distance Field AO is primarily GPU time and video memory.  In a fairly large Fortnite level, with the camera still, it costs 3.5ms on a Radeon 7870 at 1080p resolution.  The worst case when the camera is rotating rapidly is ~6ms.  For reference, SSAO costs 1ms with this setup.  ~150mb of distance field volume textures were used.
 
 Shading is done adaptively, so flat surfaces and surfaces that are not moving have a lower cost.  Conversely, scenes with many small surfaces like foliage, and many things moving between frames will have a higher GPU cost. 
 
 The primary cost of Distance Field AO is from object density, as each object must be considered separately for occlusion.  A dense forest with many nearby trees will be the worst case for the technique.
+--->
+
+## Technical Details
+
+The main optimization is the use of a global distance field, which follows the camera around. This is created by compositing all the usual per-object distance fields into a few volume textures centered around the camera, called clipmaps. Only newly visible areas or those affected by a scene modification need to be updated, so the composition doesn't cost much.
+
+Visualization of the texel size of the clipmaps - each clipmap is a different color
+
+![](DF_ClipMap.png)(w:700)
+
+The global distance field is lower resolution than the object distance fields, so it can't be used for everything. When computing cone traces for sky occlusion, the object distance fields are sampled near the point being shaded, while the much faster global distance field is sampled further away.
+
+This is a visualization of ray tracing the global distance field vs object distance fields. Surfaces in the global distance field have become blobby and thin objects disappear.
+
+![](DF_GlobalDF.png)(w:700)
 
 ## Troubleshooting and quality
 
 The main factor on quality is effective distance field resolution.  This can be modified with `DistanceFieldResolutionScale`.  Quality will be best for levels built out of meshes with similar size, as large meshes tend to create a lot of error.  In Fortnite, meshes either conform to a grid or are props placed around, this gives the best results.  Landscape is handled separately and not affected by distance field resolution.
 
- * Use the 'Distance Field AO' showflag under View->LightingFeatures to toggle the feature in the editor.  In game, the command is 'show distancefieldao'.  
- * Use the 'Distance Field AO' showflag under View->Visualize to isolate just the ambient occlusion from this feature.  
- * Use the 'Mesh Distance Fields' showflag under View->Visualize to view the distance field representation of the scene.  
+ * Use the 'Distance Field AO' showflag under **View->LightingFeatures** to toggle the feature in the editor.  In game, the command is 'show distancefieldao'.  
+ * Use the 'Distance Field AO' showflag under **View->Visualize** to isolate just the ambient occlusion from this feature.  
+ * Use the 'Mesh Distance Fields' showflag under **View->Visualize** to view the distance field representation of the scene.  
 
-[![](VisualizeMeshDistanceFields.jpg)(w:920)](VisualizeMeshDistanceFields.jpg)  
+[![](VisualizeMeshDistanceFields.jpg)(w:600)](VisualizeMeshDistanceFields.jpg)  
 _A visualization of the mesh distance fields in a level_
 
 [![](Mesh.jpg)](Mesh.jpg)  

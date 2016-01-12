@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,13 +50,11 @@ public:
 	virtual bool IsServer() const override;
 	virtual bool IsDedicated() const override{ return bForceDedicated || IsRunningDedicatedServer(); }
 	virtual void SetForceDedicated(bool bForce) override { bForceDedicated = bForce; }
-	
 	virtual class UObject* GetNamedInterface(FName InterfaceName) override;
 	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) override;
-
 	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const override;
-
 	virtual void SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP) override {};
+	virtual EOnlineEnvironment::Type GetOnlineEnvironment() const override { return EOnlineEnvironment::Unknown; }
 
 	// FTickerObjectBase
 

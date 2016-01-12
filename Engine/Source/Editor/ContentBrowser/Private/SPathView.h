@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -168,7 +168,7 @@ private:
 	FReply OnFolderDragDetected(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 
 	/** Handler use dto verify the name of a new folder */
-	bool VerifyFolderNameChanged(const FText& InName, FText& OutErrorMessage, const FString& InFolderPath) const;
+	bool VerifyFolderNameChanged(const FString& InName, FText& OutErrorMessage, const FString& InFolderPath) const;
 
 	/** Handler for when a name was given to a new folder */
 	void FolderNameChanged( const TSharedPtr< FTreeItem >& TreeItem, const FString& OldPath, const FVector2D& MessageLocation );

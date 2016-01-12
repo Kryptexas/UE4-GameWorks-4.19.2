@@ -5,7 +5,11 @@ Description:Illustrates the methods in which you can add nodes to Blueprints.
 Related: Engine/Blueprints/BP_HowTo/ConnectingNodes
 Related: Engine/Blueprints/BP_HowTo/BasicUsage
 Related: Engine/Blueprints/UserGuide
-
+version:4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+type:howto
+order:2
 
 
 On this page, you will learn how you can place nodes on your graphs in Blueprints. 

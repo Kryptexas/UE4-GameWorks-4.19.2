@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemInterface.h"
@@ -361,6 +361,15 @@ const FGameplayTagContainer& FGameplayTagCountContainer::GetExplicitGameplayTags
 	return ExplicitTags;
 }
 
+void FGameplayTagCountContainer::Reset()
+{
+	GameplayTagEventMap.Reset();
+	GameplayTagCountMap.Reset();
+	ExplicitTagCountMap.Reset();
+	ExplicitTags.Reset();
+	OnAnyTagChangeDelegate.Clear();
+}
+
 void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
 {
 	const bool bTagAlreadyExplicitlyExists = ExplicitTags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit);
@@ -462,8 +471,6 @@ FString FGameplayTagRequirements::ToString() const
 
 void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
 {
-	ABILITY_LOG_SCOPE(TEXT("ActiveGameplayEffects. Num: %d"), GetNumGameplayEffects());
-
 	for (const FActiveGameplayEffect& Effect : this)
 	{
 		Effect.PrintAll();
@@ -479,7 +486,6 @@ void FActiveGameplayEffect::PrintAll() const
 
 void FGameplayEffectSpec::PrintAll() const
 {
-	ABILITY_LOG_SCOPE(TEXT("GameplayEffectSpec"));
 	ABILITY_LOG(Log, TEXT("Def: %s"), *Def->GetName());
 
 	ABILITY_LOG(Log, TEXT("Duration: %.2f"), GetDuration());
@@ -536,4 +542,223 @@ FGameplayEffectSpecHandle::FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPt
 	: Data(DataPtr)
 {
 
+}
+
+FGameplayCueParameters::FGameplayCueParameters(const FGameplayEffectSpecForRPC& Spec)
+: NormalizedMagnitude(0.0f)
+, RawMagnitude(0.0f)
+, MatchedTagName(NAME_None)
+, Location(ForceInitToZero)
+, Normal(ForceInitToZero)
+{
+	UAbilitySystemGlobals::Get().InitGameplayCueParameters(*this, Spec);
+}
+
+FGameplayCueParameters::FGameplayCueParameters(const struct FGameplayEffectContextHandle& InEffectContext)
+: NormalizedMagnitude(0.0f)
+, RawMagnitude(0.0f)
+, MatchedTagName(NAME_None)
+, Location(ForceInitToZero)
+, Normal(ForceInitToZero)
+{
+	UAbilitySystemGlobals::Get().InitGameplayCueParameters(*this, InEffectContext);
+}
+
+bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	enum RepFlag
+	{
+		REP_NormalizedMagnitude = 0,
+		REP_RawMagnitude,
+		REP_EffectContext,
+		REP_MatchedTagName,
+		REP_OriginalTag,
+		REP_AggregatedSourceTags,
+		REP_AggregatedTargetTags,
+		REP_Location,
+		REP_Normal,
+		REP_Instigator,
+		REP_EffectCauser,
+		REP_SourceObject,
+		
+		REP_MAX
+	};
+
+	uint16 RepBits = 0;
+	if (Ar.IsSaving())
+	{
+		if (NormalizedMagnitude != 0.f)
+		{
+			RepBits |= (1 << REP_NormalizedMagnitude);
+		}
+		if (RawMagnitude != 0.f)
+		{
+			RepBits |= (1 << REP_RawMagnitude);
+		}
+		if (EffectContext.IsValid())
+		{
+			RepBits |= (1 << REP_EffectContext);
+		}
+		if (MatchedTagName != NAME_None)
+		{
+			RepBits |= (1 << REP_MatchedTagName);
+		}
+		if (OriginalTag.IsValid())
+		{
+			RepBits |= (1 << REP_OriginalTag);
+		}
+		if (AggregatedSourceTags.Num() > 0)
+		{
+			RepBits |= (1 << REP_AggregatedSourceTags);
+		}
+		if (AggregatedTargetTags.Num() > 0)
+		{
+			RepBits |= (1 << REP_AggregatedTargetTags);
+		}
+		if (Location.IsNearlyZero() == false)
+		{
+			RepBits |= (1 << REP_Location);
+		}
+		if (Normal.IsNearlyZero() == false)
+		{
+			RepBits |= (1 << REP_Normal);
+		}
+		if (Instigator.IsValid())
+		{
+			RepBits |= (1 << REP_Instigator);
+		}
+		if (EffectCauser.IsValid())
+		{
+			RepBits |= (1 << REP_EffectCauser);
+		}
+		if (SourceObject.IsValid())
+		{
+			RepBits |= (1 << REP_SourceObject);
+		}
+	}
+
+	Ar.SerializeBits(&RepBits, REP_MAX);
+
+	if (RepBits & (1 << REP_NormalizedMagnitude))
+	{
+		Ar << NormalizedMagnitude;
+	}
+	if (RepBits & (1 << REP_RawMagnitude))
+	{
+		Ar << RawMagnitude;
+	}
+	if (RepBits & (1 << REP_EffectContext))
+	{
+		EffectContext.NetSerialize(Ar, Map, bOutSuccess);
+	}
+	if (RepBits & (1 << REP_MatchedTagName))
+	{
+		Ar << MatchedTagName;
+	}
+	if (RepBits & (1 << REP_OriginalTag))
+	{
+		Ar << OriginalTag;
+	}
+	if (RepBits & (1 << REP_AggregatedSourceTags))
+	{
+		AggregatedSourceTags.NetSerialize(Ar, Map, bOutSuccess);
+	}
+	if (RepBits & (1 << REP_AggregatedTargetTags))
+	{
+		AggregatedTargetTags.NetSerialize(Ar, Map, bOutSuccess);
+	}
+	if (RepBits & (1 << REP_Location))
+	{
+		Location.NetSerialize(Ar, Map, bOutSuccess);
+	}
+	if (RepBits & (1 << REP_Normal))
+	{
+		Normal.NetSerialize(Ar, Map, bOutSuccess);
+	}
+	if (RepBits & (1 << REP_Instigator))
+	{
+		Ar << Instigator;
+	}
+	if (RepBits & (1 << REP_EffectCauser))
+	{
+		Ar << EffectCauser;
+	}
+	if (RepBits & (1 << REP_SourceObject))
+	{
+		Ar << SourceObject;
+	}
+
+	bOutSuccess = true;
+	return true;
+}
+
+bool FGameplayCueParameters::IsInstigatorLocallyControlled() const
+{
+	if (EffectContext.IsValid())
+	{
+		return EffectContext.IsLocallyControlled();
+	}
+
+	APawn* Pawn = Cast<APawn>(Instigator.Get());
+	if (!Pawn)
+	{
+		Pawn = Cast<APawn>(EffectCauser.Get());
+	}
+	if (Pawn)
+	{
+		return Pawn->IsLocallyControlled();
+	}
+	return false;
+}
+
+bool FGameplayCueParameters::IsInstigatorLocallyControlledPlayer() const
+{
+	if (EffectContext.IsValid())
+	{
+		return EffectContext.IsLocallyControlledPlayer();
+	}
+
+	APawn* Pawn = Cast<APawn>(Instigator.Get());
+	if (!Pawn)
+	{
+		Pawn = Cast<APawn>(EffectCauser.Get());
+	}
+	if (Pawn && Pawn->Controller)
+	{
+		return Pawn->Controller->IsLocalPlayerController();
+	}
+	return false;
+}
+
+AActor* FGameplayCueParameters::GetInstigator() const
+{
+	if (Instigator.IsValid())
+	{
+		return Instigator.Get();
+	}
+
+	// Fallback to effect context if the explicit data on gameplaycue parameters is not there.
+	return EffectContext.GetInstigator();
+}
+
+AActor* FGameplayCueParameters::GetEffectCauser() const
+{
+	if (EffectCauser.IsValid())
+	{
+		return EffectCauser.Get();
+	}
+
+	// Fallback to effect context if the explicit data on gameplaycue parameters is not there.
+	return EffectContext.GetEffectCauser();
+}
+
+const UObject* FGameplayCueParameters::GetSourceObject() const
+{
+	if (SourceObject.IsValid())
+	{
+		return SourceObject.Get();
+	}
+
+	// Fallback to effect context if the explicit data on gameplaycue parameters is not there.
+	return EffectContext.GetSourceObject();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassForForwardShadingCommon.usf: Base pass definitions used by both vertex and pixel shader
@@ -32,7 +32,7 @@ struct FSharedForwardShadingBasePassInterpolants
 	float4 PixelPosition	: TEXCOORD8; // xyz = world position, w = clip z
 
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-	float4 PixelPositionExcludingWPO	: TEXCOORD9;
+	float3 PixelPositionExcludingWPO	: TEXCOORD9;
 #endif
 };
 

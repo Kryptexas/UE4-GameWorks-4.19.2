@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InterpFilter.h
@@ -29,8 +29,8 @@ public:
 		}
 		else
 		{
-			FilterWindow.Empty();
-			Coefficients.Empty();
+			FilterWindow.Reset();
+			Coefficients.Reset();
 			CurrentStack = 0;		
 		}
 	}

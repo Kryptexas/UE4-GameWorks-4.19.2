@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShader.h: Shader base classes
@@ -93,7 +93,11 @@ inline FArchive& operator<<(FArchive& Ar, FDebugUniformExpressionSet& DebugExpre
 class RENDERER_API FMaterialShader : public FShader
 {
 public:
-	FMaterialShader() {}
+	static FName UniformBufferLayoutName;
+
+	FMaterialShader() : DebugUniformExpressionUBLayout(FRHIUniformBufferLayout::Zero)
+	{
+	}
 
 	FMaterialShader(const FMaterialShaderType::CompiledShaderInitializerType& Initializer);
 
@@ -106,11 +110,26 @@ public:
 	FUniformBufferRHIParamRef GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const;
 
 	template<typename ShaderRHIParamRef>
-	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI,const FSceneView& View)
+	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View)
 	{
-		check(GetUniformBufferParameter<FViewUniformShaderParameters>().IsInitialized());
+		const auto& ViewUniformBufferParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
+		const auto& FrameUniformBufferParameter = GetUniformBufferParameter<FFrameUniformShaderParameters>();
+		const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
 		CheckShaderIsValid();
-		SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FViewUniformShaderParameters>(),View.UniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUniformBufferParameter, View.ViewUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, FrameUniformBufferParameter, View.FrameUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
+
+		// Skip if instanced stereo is not enabled
+		if (View.bIsInstancedStereoEnabled && View.Family->Views.Num() > 0)
+		{
+			// When drawing the left eye in a stereo scene, copy the right eye view values into the instanced view uniform buffer.
+			const EStereoscopicPass StereoPassIndex = (View.StereoPass != eSSP_FULL) ? eSSP_RIGHT_EYE : eSSP_FULL;
+
+			const FSceneView& InstancedView = View.Family->GetStereoEyeView(StereoPassIndex);
+			const auto& InstancedViewUniformBufferParameter = GetUniformBufferParameter<FInstancedViewUniformShaderParameters>();
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, InstancedViewUniformBufferParameter, InstancedView.ViewUniformBuffer);
+		}
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -127,9 +146,10 @@ public:
 		const FMaterial& Material,
 		const FSceneView& View, 
 		bool bDeferredPass, 
-		ESceneRenderTargetsMode::Type TextureMode );
+		ESceneRenderTargetsMode::Type TextureMode, 
+		const bool bIsInstancedStereo = false);
 
-	FTextureRHIRef& GetEyeAdaptation(const FSceneView& View);
+	FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override;
@@ -162,8 +182,9 @@ private:
 
 	FGlobalDistanceFieldParameters GlobalDistanceFieldParameters;
 
-	FDebugUniformExpressionSet DebugUniformExpressionSet;
-	FString DebugDescription;
+	FDebugUniformExpressionSet	DebugUniformExpressionSet;
+	FRHIUniformBufferLayout		DebugUniformExpressionUBLayout;
+	FString						DebugDescription;
 
 	/** If true, cached uniform expressions are allowed. */
 	static int32 bAllowCachedUniformExpressions;

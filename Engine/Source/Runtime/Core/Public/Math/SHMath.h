@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,6 +45,16 @@ public:
 		V[1] = V1;
 		V[2] = V2;
 		V[3] = V3;
+	}
+
+	explicit TSHVector(const FVector4& Vector)
+	{
+		FMemory::Memzero(V,sizeof(V));
+
+		V[0] = Vector.X;
+		V[1] = Vector.Y;
+		V[2] = Vector.Z;
+		V[3] = Vector.W;
 	}
 
 	/** Scalar multiplication operator. */

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleCurveTexture.cpp: Texture used to hold particle curves.
@@ -17,7 +17,7 @@
 #include "SceneUtils.h"
 
 /** The texture size allocated for particle curves. */
-extern const int32 GParticleCurveTextureSizeX = 256;
+extern const int32 GParticleCurveTextureSizeX = 512;
 extern const int32 GParticleCurveTextureSizeY = 256;
 
 /** The texel allocator uses 16-bit integers internally. */
@@ -188,7 +188,7 @@ static void InjectCurves(
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
 
-	SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef());
+	SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef(), true);
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 	RHICmdList.SetViewport(0, 0, 0.0f, GParticleCurveTextureSizeX, GParticleCurveTextureSizeY, 1.0f);
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -549,7 +549,7 @@ FTexelAllocation FParticleCurveTexture::AddCurve( const TArray<FColor>& CurveSam
 				FMemory::Memcpy( PendingCurve->Samples, CurveSamples.GetData(), TexelAllocation.Size * sizeof(FColor) );
 				return TexelAllocation;
 			}
-			UE_LOG(LogParticles, Warning, TEXT("FParticleCurveTexture: Failed to allocate %d texels for a curve."), CurveSamples.Num() );
+			UE_LOG(LogParticles, Warning, TEXT("FParticleCurveTexture: Failed to allocate %d texels for a curve (may need to increase the size of GParticleCurveTextureSizeX or GParticleCurveTextureSizeY)."), CurveSamples.Num() );
 
 			return TexelAllocation;
 		}

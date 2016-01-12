@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "TP_2DSideScroller.h"
 #include "TP_2DSideScrollerCharacter.h"
@@ -95,10 +95,10 @@ ATP_2DSideScrollerCharacter::ATP_2DSideScrollerCharacter()
 void ATP_2DSideScrollerCharacter::UpdateAnimation()
 {
 	const FVector PlayerVelocity = GetVelocity();
-	const float PlayerSpeed = PlayerVelocity.Size();
+	const float PlayerSpeedSqr = PlayerVelocity.SizeSquared();
 
 	// Are we moving or standing still?
-	UPaperFlipbook* DesiredAnimation = (PlayerSpeed > 0.0f) ? RunningAnimation : IdleAnimation;
+	UPaperFlipbook* DesiredAnimation = (PlayerSpeedSqr > 0.0f) ? RunningAnimation : IdleAnimation;
 	if( GetSprite()->GetFlipbook() != DesiredAnimation 	)
 	{
 		GetSprite()->SetFlipbook(DesiredAnimation);

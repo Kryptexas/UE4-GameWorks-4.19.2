@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NavMeshRenderingComponent.cpp: A component that renders a nav mesh.
@@ -101,10 +101,11 @@ void UNavMeshRenderingComponent::TimerFunction()
 	}
 #endif // WITH_EDITOR
 
-	const bool bShowNavigation = IsNavigationShowFlagSet(World);
+	const bool bShowNavigation = bForceUpdate || IsNavigationShowFlagSet(World);
 
 	if (bShowNavigation != !!bCollectNavigationData && bShowNavigation == true)
 	{
+		bForceUpdate = false;
 		bCollectNavigationData = bShowNavigation;
 		MarkRenderStateDirty();
 	}

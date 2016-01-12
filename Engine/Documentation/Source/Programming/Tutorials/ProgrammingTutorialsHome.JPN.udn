@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2537337
+﻿INTSourceChangelist:2727199
 Availability:Public
 Title:C++ プログラミングのチュートリアル
 Crumbs: %ROOT%, Programming
-Description:アンリアルエンジン実践型プログラミングのステップバイステップガイド
+Description:アンリアルエンジン実践型プログラミングのステップバイステップ ガイド
+version:4.9
 
 [VAR:Params]
 [PARAM:image]

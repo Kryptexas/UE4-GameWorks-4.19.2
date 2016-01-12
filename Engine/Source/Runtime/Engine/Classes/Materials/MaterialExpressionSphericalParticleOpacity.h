@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -19,13 +19,13 @@ class UMaterialExpressionSphericalParticleOpacity : public UMaterialExpression
 	float ConstantDensity;
 
 
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override
 	{
 		OutCaptions.Add(TEXT("Spherical Particle Opacity"));
 	}
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 };
 
 

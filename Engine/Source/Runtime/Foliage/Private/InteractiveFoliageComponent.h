@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -13,13 +13,13 @@ class UInteractiveFoliageComponent : public UStaticMeshComponent
 public:
 	class FInteractiveFoliageSceneProxy* FoliageSceneProxy;
 
-	// Begin UPrimitiveComponent Interface
+	//~ Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	// End UPrimitiveComponent Interface
+	//~ End UPrimitiveComponent Interface
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void DestroyRenderState_Concurrent() override;
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
 	friend class AInteractiveFoliageActor;
 };

@@ -2,6 +2,11 @@ Availability:Public
 Title:Gameplay Framework
 Crumbs:%ROOT%, Gameplay
 Description:Core systems, such as game rules, player input and controls, cameras, and user interfaces.
+Version: 4.9
+type:reference
+parent:Gameplay
+order:1
+tags:Gameplay Framework
 
 To show how the different pieces of game framework interlock, here is a simple example. Imagine a simple concept for a game, 
 where a rabbit races a snail.  The base of the game framework is the GameMode.  The **GameMode** sets the rules for the game,

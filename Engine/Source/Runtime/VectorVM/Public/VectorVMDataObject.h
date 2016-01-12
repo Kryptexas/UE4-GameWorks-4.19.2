@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once	
 #include "VectorVMDataObject.generated.h"
@@ -25,6 +25,10 @@ class UNiagaraCurveDataObject : public UNiagaraDataObject
 	
 	UPROPERTY(EditAnywhere, Category="Curve")
 	class UCurveVector *CurveObj;
+public:
+	UNiagaraCurveDataObject(class UCurveVector *InCurve) : CurveObj(InCurve)
+	{
+	}
 
 	FVector4 Sample(const FVector4& InCoords) const;
 	virtual FVector4 Write(const FVector4& InCoords, const FVector4& InValue) override

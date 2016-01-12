@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 
@@ -51,7 +51,7 @@ void CopySceneColorToCubeFaceColorPS(
 
 	// Convert INF's to valid values
 	SceneColor = min(SceneColor, 65503);
-	float3 WorldPosition = Input.ScreenVector * SceneDepth + View.ViewOrigin.xyz;
+	float3 WorldPosition = Input.ScreenVector * SceneDepth + View.WorldCameraOrigin;
 
 	float Alpha = 1;
 
@@ -64,7 +64,7 @@ void CopySceneColorToCubeFaceColorPS(
 	}
 	else if (SkyLightCaptureParameters.x == 1)
 	{
-		float RadialDistance = length(WorldPosition - View.ViewOrigin.xyz);
+		float RadialDistance = length(WorldPosition - View.WorldCameraOrigin);
 		float MaxDistance = SkyLightCaptureParameters.y;
 
 		// Setup alpha to fade out smoothly past the max distance
@@ -111,6 +111,7 @@ float3 GetCubemapVector(float2 ScaledUVs)
 
 TextureCube SourceTexture;
 SamplerState SourceTextureSampler;
+float2 SinCosSourceCubemapRotation;
 
 void CopyCubemapToCubeFaceColorPS(
 	FScreenVertexOutput Input,
@@ -119,6 +120,8 @@ void CopyCubemapToCubeFaceColorPS(
 { 
 	float2 ScaledUVs = Input.UV * 2 - 1;
 	float3 CubeCoordinates = GetCubemapVector(ScaledUVs);
+	// Rotate around Z axis
+	CubeCoordinates.xy = float2(dot(CubeCoordinates.xy, float2(SinCosSourceCubemapRotation.y, -SinCosSourceCubemapRotation.x)), dot(CubeCoordinates.xy, SinCosSourceCubemapRotation));
 	OutColor = TextureCubeSampleLevel(SourceTexture, SourceTextureSampler, CubeCoordinates, 0);
 
 	if (SkyLightCaptureParameters.x > 0)
@@ -348,7 +351,7 @@ void StandardDeferredReflectionPS(
 		float SceneDepth = CalcSceneDepth(ScreenUV);
 		float4 HomogeneousWorldPosition = mul(float4(InScreenPosition.xy / InScreenPosition.w * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 		float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-		float3 CameraToPixel = normalize(WorldPosition - View.ViewOrigin.xyz);
+		float3 CameraToPixel = normalize(WorldPosition - View.WorldCameraOrigin);
 		float3 ReflectionVector = reflect(CameraToPixel, InGBufferData.WorldNormal);
 
 		float3 ProjectedCaptureVector = ReflectionVector;
@@ -444,7 +447,7 @@ SamplerState ScreenSpaceReflectionsSampler;
 
 /** Used to apply reflection capture contribution along with SSR to scene color. */
 void ReflectionApplyPS(
-	in float4 UVAndScreenPos : TEXCOORD0, 
+	in noperspective float4 UVAndScreenPos : TEXCOORD0, 
 	out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
@@ -456,7 +459,7 @@ void ReflectionApplyPS(
 	
 	BRANCH
 	// Only light pixels marked as lit
-	if( GBuffer.ShadingModelID > 0 )
+	if( GBuffer.ShadingModelID > 0 && GBuffer.ShadingModelID != SHADINGMODELID_HAIR )
 	{
 		// TODO if SpecularColor and Roughness were in same texture would remove 2 fetches
 		float3 V = -normalize( mul( float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld ).xyz );
@@ -475,7 +478,7 @@ void ReflectionApplyPS(
 
 #if ALLOW_STATIC_LIGHTING
 		FLATTEN
-		if( View.UseLightmaps > 0 )
+		if( Frame.UseLightmaps > 0 )
 		{
 			// We have high frequency directional data but low frequency spatial data in the envmap.
 			// We have high frequency spatial data but low frequency directional data in the lightmap.
@@ -539,7 +542,7 @@ void ReflectionApplyPS(
 		{
 			float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
 			// Normalize for static skylight types which mix with lightmaps
-			bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
+			bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
 			float3 SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
 			SkyLighting *= SpecularColor;
 

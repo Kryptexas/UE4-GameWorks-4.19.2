@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "WidgetTree.h"
 #include "WidgetAnimationBinding.generated.h"
-
 
 /**
  * A single object bound to a UMG sequence.

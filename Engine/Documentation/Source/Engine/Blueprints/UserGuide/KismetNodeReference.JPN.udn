@@ -1,22 +1,62 @@
-﻿INTSourceChangelist:2493873
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ブループリント ユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:ユーザーガイドに含まれるソースを使って、ブループリント グラフ内で使用できる、ブループリントの様々な箇所とノードについて学習することができます。
+Description:このガイドでは、ブループリントの様々な箇所とブループリント グラフ内で使用できるノードについて学習することができるソースです。
+version:4.9
+parent:Engine/Blueprints
+order:3
+type:reference
 
-
-## 概要
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [INCLUDE:Engine\Blueprints#intro]
 
-このページでは、様々なタイプのブループリント、グラフ タイプ、ブループリント エレメント (_変数_ 、 _コンポーネント_ および _グラフ_ など)、通信方法、ブループリント間での情報の渡し方、ブループリントの作成時に操作することになる各種グラフ ノードの分類の概要になります。 
+このページでは、様々なタイプのブループリント、グラフ タイプ、ブループリント エレメント (変数、コンポーネントおよびグラフなど)、通信方法、ブループリント間での情報の渡し方、ブループリントの作成時に操作することになる各種グラフ ノードの分類の概要を紹介します。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ブループリントのタイプ
+		ブループリントの種類
 	[/PARAM]
 	[PARAM:description]
 	このセクションでは、様々なブループリントについて説明します (それぞれの見出しにマウスを当ててください)。各ブループリントの詳細については 、[](Engine\Blueprints\UserGuide\Types) ページをご覧ください。 
@@ -39,10 +79,10 @@ Description:ユーザーガイドに含まれるソースを使って、ブル�
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
-		![](%ROOT%/Editor_icon.png)(convert:false)
+		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ブループリントのグラフのタイプ
+		ブループリントのグラフの種類
 	[/PARAM]
 	[PARAM:description]
 	このセクションでは、作業に使用する各種ブループリント グラフへのリンクが提供されています (見出しにマウスを当ててください)。**EventGraph** およびブループリントのその他の Graphs の詳細な作業ガイドは [ブループリント エディタ グラフ モード](Engine/Blueprints/Editor/Modes/GraphPanel) をご覧ください。
@@ -95,10 +135,10 @@ Description:ユーザーガイドに含まれるソースを使って、ブル�
 		![](%ROOT%/tech_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ブループリント通信方法
+		ブループリントの通信方法
 	[/PARAM]
 	[PARAM:description]
-	以下のリンクでは、ブループリント間での双方向の通信方法や、状況に合わせた各種通信方法に関するガイダンスが提供されてます (簡単な説明にマウスを当ててください)。 
+	以下のリンクは、ブループリント間での双方向の通信方法や、様々な状況に合わせた通信方法に関するガイダンスです (簡単な説明にマウスを当ててください)。 
 	[/PARAM]
 	[PARAM:links]
 		[REGION:topics fourth]
@@ -122,13 +162,13 @@ Description:ユーザーガイドに含まれるソースを使って、ブル�
 -->
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
-		![](%ROOT%/Blueprint_icon.png)(convert:false)
+		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		Graph ノード
 	[/PARAM]
 	[PARAM:description]
-	以下のリンクは、機能を提供するためにブループリント内で使用可能な各種ノードに関する説明です (簡単な説明にマウスを当ててください)。これらのノードとブループリントを使って一般に作業するために、 [](Engine/Blueprints/BP_HowTo) セクションを見直すようにしてください。ブループリントでのスポーン / リスポーン、タイマーの使用、入力の設定、ネットワークの構築に対するゲームプレイ ベースのブループリントの使用方法 [](Gameplay) も見直すようにしてください。 
+	以下のリンクは、機能を提供するためにブループリント内で使用可能な各種ノードに関する説明です (簡単な説明にマウスを当ててください)。これらのノードとブループリントを使って一般に作業するために、[](Engine/Blueprints/BP_HowTo) セクションを見直すようにしてください。ブループリントでのスポーン / リスポーン、タイマーの使用、入力の設定、ネットワークの構築に対するゲームプレイ ベースのブループリントの使用方法 [](Gameplay) も見直すことができます。 
 	[/PARAM]
 	[PARAM:links]
 		[REGION:topics fourth]
@@ -166,7 +206,7 @@ Description:ユーザーガイドに含まれるソースを使って、ブル�
 %Engine/Blueprints\UserGuide\Types\MacroLibrary:topic%
 [/REGION]
 
-##ブループリント通信方法
+##ブループリントの通信方法
 
 [REGION:topics third]
 [OBJECT:Topic]
@@ -274,7 +314,7 @@ Description:ユーザーガイドに含まれるソースを使って、ブル�
 [/REGION]
 [/EXCERPT:Elements]
 
-##ブループリントのグラフのタイプ
+##ブループリント グラフの種類
 
 [EXCERPT:GraphTypes]
 [REGION:topics fourth]

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -117,6 +117,15 @@ struct FDeferredMacEvent
 	NSPasteboard* DraggingPasteboard;
 };
 
+struct FMacScreen
+{
+	NSScreen* Screen;
+	NSRect Frame;
+	NSRect VisibleFrame;
+
+	FMacScreen(NSScreen* InScreen) : Screen(InScreen), Frame(InScreen.frame), VisibleFrame(InScreen.visibleFrame) {}
+};
+
 /**
  * Mac-specific application implementation.
  */
@@ -147,6 +156,8 @@ public:
 	virtual FModifierKeysState GetModifierKeys() const override;
 
 	virtual bool IsCursorDirectlyOverSlateWindow() const override;
+
+	virtual TSharedPtr<FGenericWindow> GetWindowUnderCursor() override;
 
 	virtual void SetHighPrecisionMouseMode(const bool Enable, const TSharedPtr<FGenericWindow>& InWindow) override;
 
@@ -191,6 +202,20 @@ public:
 
 	void IgnoreMouseMoveDelta() { bIgnoreMouseMoveDelta = true; }
 
+public:
+
+	static void UpdateScreensArray();
+
+	static const TArray<TSharedRef<FMacScreen>>& GetAllScreens() { return AllScreens; }
+
+	static int32 ConvertSlateYPositionToCocoa(int32 YPosition);
+
+	static int32 ConvertCocoaYPositionToSlate(int32 YPosition);
+
+	static FVector2D CalculateScreenOrigin(NSScreen* Screen);
+
+	static int32 GetPrimaryScreenBackingScaleFactor();
+
 private:
 
 	static NSEvent* HandleNSEvent(NSEvent* Event);
@@ -219,13 +244,15 @@ private:
 	void OnApplicationDidBecomeActive();
 	void OnApplicationWillResignActive();
 	void OnWindowsReordered();
+	void OnActiveSpaceDidChange();
 
 	void ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event);
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
 	FCocoaWindow* FindEventWindow(NSEvent* CocoaEvent) const;
-	NSScreen* FindScreenByPoint(int32 X, int32 Y) const;
-	bool IsWindowMovable(TSharedRef<FMacWindow> Window, bool* OutMovableByBackground) const;
+	TSharedRef<FMacScreen> FindScreenByPoint(int32 X, int32 Y) const;
+	EWindowZone::Type GetCurrentWindowZone(const TSharedRef<FMacWindow>& Window) const;
+	bool IsEdgeZone(EWindowZone::Type Zone) const;
 	bool IsPrintableKey(uint32 Character) const;
 	TCHAR ConvertChar(TCHAR Character) const;
 	TCHAR TranslateCharCode(TCHAR CharCode, uint32 KeyCode) const;
@@ -234,7 +261,7 @@ private:
 
 	/** Invalidates all queued windows requiring text layout changes */
 	void InvalidateTextLayouts();
-
+	
 #if WITH_EDITOR
 	void RecordUsage(EGestureEvent::Type Gesture);
 #else
@@ -289,6 +316,8 @@ private:
 
 	TArray<FCocoaWindow*> WindowsRequiringTextInvalidation;
 
+	static TArray<TSharedRef<FMacScreen>> AllScreens;
+
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
 	bool bIsWorkspaceSessionActive;
@@ -298,6 +327,7 @@ private:
 	id AppDeactivationObserver;
 	id WorkspaceActivationObserver;
 	id WorkspaceDeactivationObserver;
+	id WorkspaceActiveSpaceChangeObserver;
 
 	id EventMonitor;
 	id MouseMovedEventMonitor;

@@ -2,7 +2,10 @@ Title:6. Additional Resources
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Read more about Oculus development with Unreal Engine.
 Availability:Public
+Version: 4.9
+SkillLevel: Intermediate
 
+Here are some additional resources that provide useful information for developing VR projects inside of Unreal Engine 4.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -53,8 +56,37 @@ Availability:Public
 		| ------------ | ---------------- |
 		| CouchKnights | Vehicle Template[REGION:caption]Press **Tab** to switch to being inside the car.[/REGION] |
 		| ![](store_RealisticRendering_screenshot_3.png)(w:420) | ![](store_MobileTemple_screenshot_4.png)(w:420) |
-		| Architecture[REGION:caption]Disable the Matinee fly-through, then walk around the apartment level.[/REGION] | Simple Temple Environment |
+		| Architecture[REGION:caption] Disable the Matinee fly-through to walk around.[/REGION] | Simple Temple Environment |
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
+
+
+## Flashing Oculus Firmware
+
+Depending on when you got your Oculus HMD you might need to update your firmware.
+The current firmware version is listed in the Oculus Configuration Utility. 
+If your firmware version is not using the latest version, complete the following steps to update the HMD firmware.
+
+1. Click on **Tools > Advanced > Update Firmware**.
+
+	![](Platforms\Oculus\QuickStart\4\UpdateFirmware_menu.png)
+
+	[REGION:note]
+	Make sure Unreal Editor, Unreal Engine Launcher, and any other programs that might be using the Oculus are closed before you update the firmware. Otherwise, you will get a warning about closing other software and the firmware will not install.
+	[/REGION]
+
+1. Select the firmware when the file dialog appears, then click **Open**. In this image we are using version 2.12.
+
+	![](Platforms\Oculus\QuickStart\4\Firmware.png)
+
+1. The **Oculus Configuration Utility** will close. Reopen it by:
+
+	* Opening the Start Menu and navigating to **Oculus Runtime > OculusConfigUtil**, or
+	* Running `OculusConfigUtil.exe` found in `[InstallDirectory]/Tools/`.
+
+1. Verify that the firmware is the one you installed by going to **Help** and clicking on **About**. From this menu you will be able to determine which version of the Oculus drivers you are using.
+
+	![](Oculus_Current_Firmware.png)
+
 %Steps%

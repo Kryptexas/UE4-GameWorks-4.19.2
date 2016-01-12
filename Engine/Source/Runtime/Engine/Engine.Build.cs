@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -31,6 +31,9 @@ public class Engine : ModuleRules
 				"Advertising",
 				"NetworkReplayStreaming",
 				"MovieSceneCapture",
+				"AutomationWorker",
+                "Analytics",
+				"MovieSceneCapture",
 				"DesktopPlatform",
 				"Analytics"
 			}
@@ -39,6 +42,21 @@ public class Engine : ModuleRules
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
 			PrivateIncludePathModuleNames.AddRange(new string[] { "TaskGraph" });
+		}
+
+		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"SlateReflector",
+				}
+			);
+
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"SlateReflector",
+				}
+			);
 		}
 
 		PublicDependencyModuleNames.AddRange(
@@ -68,7 +86,6 @@ public class Engine : ModuleRules
                 "AppFramework",
 				"Networking",
 				"Sockets",
-				"SlateReflector",
 				"Landscape",
                 "UMG",
 				"Projects",
@@ -78,6 +95,18 @@ public class Engine : ModuleRules
                 "MaterialShaderQualitySettings",
 			}
         );
+
+        if (Target.Platform != UnrealTargetPlatform.XboxOne)
+        {
+            // these modules require variadic templates
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+                    "MessagingRpc",
+                    "PortalRpc",
+                    "PortalServices",
+                }
+            );
+        }
 
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
@@ -105,19 +134,21 @@ public class Engine : ModuleRules
 		if (Target.Type != TargetRules.TargetType.Server)
 		{
 			PrivateIncludePathModuleNames.AddRange(
-				new string[] { 
-					"SlateRHIRenderer",
+				new string[] {
+					"SlateNullRenderer",
+					"SlateRHIRenderer"
 				}
 			);
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
-					"SlateRHIRenderer",
+					"SlateNullRenderer",
+					"SlateRHIRenderer"
 				}
 			);
 		}
 
-		if (Target.Type == TargetRules.TargetType.Server)
+		if (Target.Type == TargetRules.TargetType.Server || Target.Type == TargetRules.TargetType.Editor)
 		{
 			PrivateDependencyModuleNames.Add("PerfCounters");
 		}

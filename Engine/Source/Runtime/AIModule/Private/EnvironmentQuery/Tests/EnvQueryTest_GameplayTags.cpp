@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_GameplayTags.h"
@@ -52,7 +52,13 @@ bool UEnvQueryTest_GameplayTags::SatisfiesTest(IGameplayTagAssetInterface* ItemG
 
 void UEnvQueryTest_GameplayTags::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	BoolValue.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	UObject* QueryOwner = QueryInstance.Owner.Get();
+	if (QueryOwner == nullptr)
+	{
+		return;
+	}
+
+	BoolValue.BindData(QueryOwner, QueryInstance.QueryID);
 	bool bWantsValid = BoolValue.GetValue();
 
 	// loop through all items

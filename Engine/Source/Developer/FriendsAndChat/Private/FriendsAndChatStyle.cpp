@@ -1,13 +1,24 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 
-#include "FriendsFontStyleService.h"
 const FName FFriendsAndChatStyle::TypeName( TEXT("FFriendsAndChatStyle") );
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetSmallFriendsFontStyle(const FFriendsFontStyle& FontStyle)
+{
+	FriendsSmallFontStyle = FontStyle;
+	return *this;
+}
 
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetNormalFriendsFontStyle(const FFriendsFontStyle& FontStyle)
 {
 	FriendsNormalFontStyle = FontStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetLargeFriendsFontStyle(const FFriendsFontStyle& FontStyle)
+{
+	FriendsLargeFontStyle = FontStyle;
 	return *this;
 }
 
@@ -17,9 +28,15 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsListStyle(const FFriendsLi
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsComboStyle(const FFriendsComboStyle& InFriendsComboStyle)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetCheckBoxStyle(const FCheckBoxStyle& InCheckBoxStyle)
 {
-	FriendsComboStyle = InFriendsComboStyle;
+	CheckBoxStyle = InCheckBoxStyle;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetRadioBoxStyle(const FCheckBoxStyle& InRadioBoxStyle)
+{
+	RadioBoxStyle = InRadioBoxStyle;
 	return *this;
 }
 
@@ -41,27 +58,9 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetFriendsMarkupStyle(const FFriends
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetWindowEdgingBrush(const FSlateBrush& Value)
-{
-	WindowEdgingBrush = Value;
-	return *this;
-}
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetBorderPadding(const FMargin& Padding)
-{
-	BorderPadding = Padding;
-	return *this;
-}
-
 FFriendsAndChatStyle& FFriendsAndChatStyle::SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle)
 {
 	ScrollBarStyle = InScrollBarStyle;
-	return *this;
-}
-
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetWindowStyle(const FWindowStyle& InStyle)
-{
-	WindowStyle = InStyle;
 	return *this;
 }
 
@@ -81,7 +80,6 @@ const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 	Module style set
 */
 TSharedPtr< FSlateStyleSet > FFriendsAndChatModuleStyle::FriendsAndChatModuleStyleInstance = NULL;
-TSharedPtr< FFriendsFontStyleService > FFriendsAndChatModuleStyle::FriendsFontStyleService = NULL;
 
 void FFriendsAndChatModuleStyle::Initialize(FFriendsAndChatStyle FriendStyle)
 {
@@ -89,32 +87,23 @@ void FFriendsAndChatModuleStyle::Initialize(FFriendsAndChatStyle FriendStyle)
 	{
 		FriendsAndChatModuleStyleInstance = Create(FriendStyle);
 		FSlateStyleRegistry::RegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
-
-		FriendsFontStyleService = FFriendsFontStyleServiceFactory::Create();
-		FriendsFontStyleService->SetFontStyles(FriendStyle.FriendsNormalFontStyle);
 	}
 }
 
 void FFriendsAndChatModuleStyle::Shutdown()
 {
-	FSlateStyleRegistry::UnRegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
-	ensure( FriendsAndChatModuleStyleInstance.IsUnique() );
-	FriendsAndChatModuleStyleInstance.Reset();
+	if ( FriendsAndChatModuleStyleInstance.IsValid() )
+	{
+		FSlateStyleRegistry::UnRegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
+		ensure( FriendsAndChatModuleStyleInstance.IsUnique() );
+		FriendsAndChatModuleStyleInstance.Reset();
+	}
 }
 
 FName FFriendsAndChatModuleStyle::GetStyleSetName()
 {
 	static FName StyleSetName(TEXT("FriendsAndChat"));
 	return StyleSetName;
-}
-
-TSharedPtr<FFriendsFontStyleService> FFriendsAndChatModuleStyle::GetStyleService()
-{
-	if (!FriendsFontStyleService.IsValid())
-	{
-		FriendsFontStyleService = FFriendsFontStyleServiceFactory::Create();
-	}
-	return FriendsFontStyleService;
 }
 
 TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatStyle FriendStyle)
@@ -126,20 +115,20 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 
 	// Name Style
 	const FTextBlockStyle GlobalChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GlobalChatColor);
+		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GlobalHyperlinkChatColor);
 
 	const FTextBlockStyle GameChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GameChatColor);
+		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GameHyperlinkChatColor);
 
 	const FTextBlockStyle PartyChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyChatColor);
+		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyHyperlinkChatColor);
 
 	const FTextBlockStyle WhisperChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.WhisplerChatColor);
+		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.WhisperHyperlinkChatColor);
 
 	const FButtonStyle UserNameButton = FButtonStyle()
 		.SetNormal(FSlateNoResource())
@@ -175,7 +164,7 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 
 	Style->Set("UserNameTextStyle.GlobalHyperlink", GlobalChatHyperlink);
 	Style->Set("UserNameTextStyle.GameHyperlink", GameChatHyperlink);
-	Style->Set("UserNameTextStyle.PartyHyperlink", GameChatHyperlink);
+	Style->Set("UserNameTextStyle.PartyHyperlink", PartyChatHyperlink);
 	Style->Set("UserNameTextStyle.Whisperlink", WhisperChatHyperlink);
 	Style->Set("UserNameTextStyle.DefaultHyperlink", DefaultChatHyperlink);
 	Style->Set("UserNameTextStyle.GlobalTextStyle", GlobalChatFont);
@@ -189,18 +178,6 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 		6,
 		FriendStyle.FriendsNormalFontStyle.FriendsFontSmall.TypefaceFontName
 		)));
-
-	Style->Set("GlobalChatIcon", FInlineTextImageStyle()
-		.SetImage(FriendStyle.FriendsChatStyle.ChatGlobalBrush)
-		.SetBaseline(0));
-
-	Style->Set("WhisperChatIcon", FInlineTextImageStyle()
-		.SetImage(FriendStyle.FriendsChatStyle.ChatWhisperBrush)
-		.SetBaseline(0));
-
-	Style->Set("PartyChatIcon", FInlineTextImageStyle()
-		.SetImage(FriendStyle.FriendsChatStyle.ChatGameBrush)
-		.SetBaseline(0));
 
 	return Style;
 }

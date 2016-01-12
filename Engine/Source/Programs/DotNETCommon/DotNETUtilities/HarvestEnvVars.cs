@@ -1,9 +1,10 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
@@ -51,7 +52,7 @@ namespace Tools.DotNETCommon.HarvestEnvVars
 			string EnvReaderBatchFileName = EnvOutputFileName + ".bat";
 			try
 			{
-				var EnvVarsToXMLExePath = Path.Combine(ExecutingAssembly.ExecutingAssembly.GetDirectory(), "EnvVarsToXML.exe");
+				var EnvVarsToXMLExePath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "EnvVarsToXML.exe");
 
 				// Convert every path to short filenames to ensure we don't accidentally write out a non-ASCII batch file
 				var ShortBatchFileName       = FileSystem.FileSystem.GetShortPathName(BatchFileName);

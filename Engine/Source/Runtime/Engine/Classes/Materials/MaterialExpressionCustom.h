@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -46,13 +46,14 @@ class UMaterialExpressionCustom : public UMaterialExpression
 	TArray<struct FCustomInput> Inputs;
 
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface.
+	virtual void Serialize(FArchive& Ar) override;
+	//~ End UObject Interface.
 	
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual const TArray<FExpressionInput*> GetInputs() override;
@@ -62,7 +63,7 @@ class UMaterialExpressionCustom : public UMaterialExpression
 	virtual uint32 GetInputType(int32 InputIndex) override {return MCT_Unknown;}
 	virtual uint32 GetOutputType(int32 OutputIndex) override;
 #endif // WITH_EDITOR
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 };
 
 

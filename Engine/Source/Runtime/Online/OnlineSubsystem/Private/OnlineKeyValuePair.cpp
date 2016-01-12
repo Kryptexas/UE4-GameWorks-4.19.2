@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineKeyValuePair.h"
@@ -109,6 +109,18 @@ void FVariantData::SetValue(int32 InData)
  *
  * @param InData the new data to assign
  */
+void FVariantData::SetValue(uint32 InData)
+{
+	Empty();
+	Type = EOnlineKeyValuePairDataType::UInt32;
+	Value.AsUInt = InData;
+}
+
+/**
+ * Copies the data and sets the type
+ *
+ * @param InData the new data to assign
+ */
 void FVariantData::SetValue(bool InData)
 {
 	Empty();
@@ -163,7 +175,7 @@ void FVariantData::SetValue(uint32 Size, const uint8* InData)
 	if (Size > 0)
 	{
 		// Deep copy the binary data
-		Value.AsBlob.BlobSize = (int32)Size;
+		Value.AsBlob.BlobSize = Size;
 		Value.AsBlob.BlobData = new uint8[Size];
 		FMemory::Memcpy(Value.AsBlob.BlobData, InData, Size);
 	}
@@ -174,11 +186,23 @@ void FVariantData::SetValue(uint32 Size, const uint8* InData)
  *
  * @param InData the new data to assign
  */
-void FVariantData::SetValue(uint64 InData)
+void FVariantData::SetValue(int64 InData)
 {
 	Empty();
 	Type = EOnlineKeyValuePairDataType::Int64;
 	Value.AsInt64 = InData;
+}
+
+/**
+ * Copies the data and sets the type
+ *
+ * @param InData the new data to assign
+ */
+void FVariantData::SetValue(uint64 InData)
+{
+	Empty();
+	Type = EOnlineKeyValuePairDataType::UInt64;
+	Value.AsUInt64 = InData;
 }
 
 /**
@@ -220,6 +244,23 @@ void FVariantData::GetValue(int32& OutData) const
  *
  * @param OutData out value that receives the copied data
  */
+void FVariantData::GetValue(uint32& OutData) const
+{
+	if (Type == EOnlineKeyValuePairDataType::UInt32)
+	{
+		OutData = Value.AsUInt;
+	}
+	else
+	{
+		OutData = 0;
+	}
+}
+
+/**
+ * Copies the data after verifying the type
+ *
+ * @param OutData out value that receives the copied data
+ */
 void FVariantData::GetValue(bool& OutData) const
 {
 	if (Type == EOnlineKeyValuePairDataType::Bool)
@@ -237,11 +278,28 @@ void FVariantData::GetValue(bool& OutData) const
  *
  * @param OutData out value that receives the copied data
  */
-void FVariantData::GetValue(uint64& OutData) const
+void FVariantData::GetValue(int64& OutData) const
 {
 	if (Type == EOnlineKeyValuePairDataType::Int64)
 	{
 		OutData = Value.AsInt64;
+	}
+	else
+	{
+		OutData = 0;
+	}
+}
+
+/**
+ * Copies the data after verifying the type
+ *
+ * @param OutData out value that receives the copied data
+ */
+void FVariantData::GetValue(uint64& OutData) const
+{
+	if (Type == EOnlineKeyValuePairDataType::UInt64)
+	{
+		OutData = Value.AsUInt64;
 	}
 	else
 	{
@@ -374,12 +432,26 @@ FString FVariantData::ToString() const
 			GetValue(Val);
 			return FString::Printf(TEXT("%d"), Val);
 		}
+		case EOnlineKeyValuePairDataType::UInt32:
+		{
+			// Convert the int to a string
+			uint32 Val;
+			GetValue(Val);
+			return FString::Printf(TEXT("%d"), Val);
+		}
 		case EOnlineKeyValuePairDataType::Int64:
+		{
+			// Convert the int to a string
+			int64 Val;
+			GetValue(Val);
+			return FString::Printf(TEXT("%lld"),Val);
+		}
+		case EOnlineKeyValuePairDataType::UInt64:
 		{
 			// Convert the int to a string
 			uint64 Val;
 			GetValue(Val);
-			return FString::Printf(TEXT("%lld"),Val);
+			return FString::Printf(TEXT("%lld"), Val);
 		}
 		case EOnlineKeyValuePairDataType::Double:
 		{
@@ -426,6 +498,13 @@ bool FVariantData::FromString(const FString& NewValue)
 			SetValue(IntVal);
 			return true;
 		}
+		case EOnlineKeyValuePairDataType::UInt32:
+		{
+			// Convert the string to a int
+			uint64 IntVal = FCString::Strtoui64(*NewValue, nullptr, 10);
+			SetValue(static_cast<uint32>(IntVal));
+			return true;
+		}
 		case EOnlineKeyValuePairDataType::Double:
 		{
 			// Convert the string to a double
@@ -435,7 +514,13 @@ bool FVariantData::FromString(const FString& NewValue)
 		}
 		case EOnlineKeyValuePairDataType::Int64:
 		{
-			uint64 Val = FCString::Strtoui64(*NewValue, NULL, 10);
+			int64 Val = FCString::Atoi64(*NewValue);
+			SetValue(Val);
+			return true;
+		}
+		case EOnlineKeyValuePairDataType::UInt64:
+		{
+			uint64 Val = FCString::Strtoui64(*NewValue, nullptr, 10);
 			SetValue(Val);
 			return true;
 		}
@@ -476,6 +561,13 @@ TSharedRef<class FJsonObject> FVariantData::ToJson() const
 			JsonObject->SetNumberField(ValueStr, (double)FieldValue);
 			break;
 		}
+		case EOnlineKeyValuePairDataType::UInt32:
+		{
+			uint32 FieldValue;
+			GetValue(FieldValue);
+			JsonObject->SetNumberField(ValueStr, (double)FieldValue);
+			break;
+		}
 		case EOnlineKeyValuePairDataType::Float:
 		{
 			float FieldValue;
@@ -498,6 +590,11 @@ TSharedRef<class FJsonObject> FVariantData::ToJson() const
 			break;
 		}
 		case EOnlineKeyValuePairDataType::Int64:
+		{
+			JsonObject->SetStringField(ValueStr, ToString());
+			break;
+		}
+		case EOnlineKeyValuePairDataType::UInt64:
 		{
 			JsonObject->SetStringField(ValueStr, ToString());
 			break;
@@ -541,6 +638,15 @@ bool FVariantData::FromJson(const TSharedRef<FJsonObject>& JsonObject)
 				bResult = true;
 			}
 		}
+		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::UInt32)))
+		{
+			uint32 FieldValue;
+			if (JsonObject->TryGetNumberField(ValueStr, FieldValue))
+			{
+				SetValue(FieldValue);
+				bResult = true;
+			}
+		}
 		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Float)))
 		{
 			double FieldValue;
@@ -574,6 +680,15 @@ bool FVariantData::FromJson(const TSharedRef<FJsonObject>& JsonObject)
 			if (JsonObject->TryGetStringField(ValueStr, FieldValue))
 			{
 				Type = EOnlineKeyValuePairDataType::Int64;
+				bResult = FromString(FieldValue);
+			}
+		}
+		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::UInt64)))
+		{
+			FString FieldValue;
+			if (JsonObject->TryGetStringField(ValueStr, FieldValue))
+			{
+				Type = EOnlineKeyValuePairDataType::UInt64;
 				bResult = FromString(FieldValue);
 			}
 		}
@@ -612,9 +727,17 @@ bool FVariantData::operator==(const FVariantData& Other) const
 			{
 				return Value.AsInt == Other.Value.AsInt;
 			}
+		case EOnlineKeyValuePairDataType::UInt32:
+			{
+				return Value.AsUInt == Other.Value.AsUInt;
+			}
 		case EOnlineKeyValuePairDataType::Int64:
 			{
 				return Value.AsInt64 == Other.Value.AsInt64;
+			}
+		case EOnlineKeyValuePairDataType::UInt64:
+			{
+				return Value.AsInt64 == Other.Value.AsUInt64;
 			}
 		case EOnlineKeyValuePairDataType::Double:
 			{
@@ -764,11 +887,23 @@ bool FVariantDataConverter::ConvertScalarVariantToUProperty(const FVariantData* 
 					Variant->GetValue(IntValue);
 					Value = (int64)IntValue;
 				}
+				else if (Variant->GetType() == EOnlineKeyValuePairDataType::UInt32)
+				{
+					uint32 IntValue = 0;
+					Variant->GetValue(IntValue);
+					Value = (int64)IntValue;
+				}
 				else if (Variant->GetType() == EOnlineKeyValuePairDataType::Int64)
 				{
-					uint64 Int64Value;
+					int64 Int64Value;
 					Variant->GetValue(Int64Value);
 					Value = (int64)Int64Value;
+				}
+				else if (Variant->GetType() == EOnlineKeyValuePairDataType::UInt64)
+				{
+					uint64 UInt64Value;
+					Variant->GetValue(UInt64Value);
+					Value = (int64)UInt64Value;
 				}
 
 				// AsNumber will log an error for completely inappropriate types (then give us a default)

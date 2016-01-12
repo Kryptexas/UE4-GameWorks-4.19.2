@@ -2,6 +2,7 @@ Availability:Public
 Title:Map Check Errors
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:Descriptions of errors generated during map builds or running a map check in Unreal Editor.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -358,7 +359,7 @@ Simple collision cannot be used with non-uniform scale. Please either fix the sc
 
 (#MoreMaterialsThanReferenced)
 [EXCERPT:MoreMaterialsThanReferenced]
-**More overriden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]**
+**More overridden materials [Count] on Static Mesh component than are referenced [Count] in source mesh [StaticMesh]**
 
 <!-- TODO -->
 [/EXCERPT:MoreMaterialsThanReferenced]

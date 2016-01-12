@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnRedirector.h: Object redirector definition.
@@ -14,7 +14,7 @@
  */
 class UObjectRedirector : public UObject
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UObjectRedirector, UObject, 0, CoreUObject, CASTCLASS_None, COREUOBJECT_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UObjectRedirector, UObject, 0, TEXT("/Script/CoreUObject"), CASTCLASS_None, COREUOBJECT_API)
 
 	// Variables.
 	UObject*		DestinationObject;

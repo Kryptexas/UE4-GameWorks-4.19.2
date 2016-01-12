@@ -1,74 +1,74 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2611277
 Availability: Public
-Title:2. Input and the Game Mode
+Title:2.输入和游戏模式
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:In this step we will set up the input to control our character as well as set our default pawn which is the playable character.
+Description:在这一步中，我们将设置输入来控制人物，并设置我们的默认 pawn（这是可玩人物）。
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:title%")
+		[上一步] (Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
+		[人物动作概述](Gameplay\HowTo\CharacterMovement\Blueprints)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:title%")
+		[下一步] (Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Here we will set up the **Input** (Game Controls) to control the character and create a **Game Mode** which will use our character. 
+在这里，我们将设置**Input**（游戏控制器）来控制人物，并创建将使用我们的人物的**Game Mode**。 
 
-1.	**Right-click** in the **Content Browser** and create a new **Blueprint Class** of the **Game Mode** class and name it **MyGame**. 
+1.	在**Content Browser**内**Right-click**，并创建**Game Mode**类的新**Blueprint Class**，并将其命名为**MyGame**。 
 
-1.	Open the **MyGame** Blueprint, then click the **Class Defaults** button from the toolbar. 
+1.	打开**MyGame**蓝图，然后从工具栏点击**Class Defaults**按钮。 
 
 	![](SelectClassDefaults.png)
 
-1.	In the **Details** panel under **Classes**, set the **Default Pawn Class** to use the **MyCharacter** Blueprint. 
+1.	在**Classes**下的**Details**面板内设置**Default Pawn Class**，以使用**MyCharacter**蓝图。 
 
 	![](GameMode_1.png)
 
-1.	**Compile** and **Save** then close the Blueprint. 
+1.	**Compile**并**Save**，然后关闭蓝图。 
 
-1.	From the Main Editor Window, click **Edit** from the **Menu Bar** and select **Project Settings**. 
+1.	在主编辑器窗口，从**Menu Bar**单击**Edit**，然后选择**Project Settings**。 
 
-1.	In Project Settings, click **Input** under the **Engine** section. 
+1.	在项目设置中单击**Engine**部分下的**Input**。 
 
-1.	Under **Bindings**, add four **Action Mappings** and four **Axis Mappings**.
+1.	在**Bindings**下添加四个**Action Mappings**和四个**Axis Mappings**。
 
-1.	For the first two **Axis Mappings**, click the plus sign next to each one to add an additional mapping to the group. 
+1.	对于前两个**Axis Mappings**，单击每个旁边的加号，以将额外的映射添加到组里。 
 
 	![](Input_1.png)(w:480)
 
-	Your empty Bindings should look like above. 
+	你的空白 Bindings 应看似如上。 
 
-1.	Set up your **Bindings** similar to below (make sure to set the **Scale** for **A**, **S**, and **Mouse Y** to **-1.0**). 
+1.	将你的**Bindings**设置为类似如下（请务必为**A**、**S**设置**Scale**，并将**Mouse Y**设置为**-1.0**）。 
 
 	![](Input_2.png)(w:480)
 
-	Here we set inputs for **Jump**, **Crouch**, **Jog**, and **Prone** for the **Action Mappings** and **MoveForward**, **MoveRight**, **Turn**, and **LookUp** for the **Axis Mappings**. You can set these as shown or select your own inputs for each. 
+	在这里，我们为**Jump**、**Crouch**、**Jog**设置输入，并为**Action Mappings**和**MoveForward**设置**Prone**，以及为**Axis Mappings**设置**MoveRight**、**Turn**和**LookUp**。您可以按如示设置它们，或为每项选择自己的输入。 
 
 	[REGION:note]
-	For more details on this process, see [](Gameplay\HowTo\SetUpInput\Blueprints) for more information. 
+	有关该过程的更多详情，请参阅 [](Gameplay\HowTo\SetUpInput\Blueprints) 来了解更多信息。 
 	[/REGION]
 
-1.	Click the **Maps & Modes** option under the **Project** section of Project Settings. 
+1.	单击项目设置的**Project**部分下的**Maps & Modes**选项。 
 
-1.	In Maps & Modes under **Default Modes**, set the **Default GameMode** to use the **MyGame** Game Mode. 
+1.	在**Default Modes**下的地图和模式中设置**Default GameMode**，以使用**MyGame**游戏模式。 
 
 	![](GameMode_2.png)
 
 	[REGION:note]
-	For more details on Game Modes, see [](Gameplay\HowTo\SettingUpAGameMode) for more information. 
+	有关游戏模式的更多详情，请参阅 [](Gameplay\HowTo\SettingUpAGameMode) 来了解更多信息。 
 	[/REGION]
 
-1.	After setting both the Input and Game Mode settings, close the Project Settings Window. 
+1.	设置输入和游戏模式设置后，关闭项目设置窗口。 
 
 
 %Steps%

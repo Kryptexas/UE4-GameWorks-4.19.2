@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,8 +9,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMenuOpenChangedEvent, bool, bIsOp
 /**
  * The Menu Anchor allows you to specify an location that a popup menu should be anchored to, 
  * and should be summoned from.
- * ● Single Child
- * ● Popup
+ * * Single Child
+ * * Popup
  */
 UCLASS()
 class UMG_API UMenuAnchor : public UContentWidget

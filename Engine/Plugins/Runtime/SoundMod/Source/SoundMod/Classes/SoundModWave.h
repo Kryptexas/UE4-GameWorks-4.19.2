@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
 * Playable sound object for wave files that are generated from a Sound Mod
@@ -19,8 +19,8 @@ class USoundModWave : public USoundWaveProcedural
 
 	xmp_context xmpContext;
 
-	// Begin USoundWave interface.
+	//~ Begin USoundWave Interface.
 	virtual int32 GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded) override;
-	// End USoundWave interface.
+	//~ End USoundWave Interface.
 
 };

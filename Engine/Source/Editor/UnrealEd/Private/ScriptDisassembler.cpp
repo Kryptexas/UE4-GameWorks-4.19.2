@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptDisassembler.cpp: Disassembler for Kismet bytecode.
@@ -808,6 +808,20 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 	case EX_WireTracepoint:
 		{
 			Ar.Logf(TEXT("%s $%X: .. wire debug site .."), *Indents, (int32)Opcode);
+			break;
+		}
+	case EX_InstrumentationEvent:
+		{
+			const int32 EventType = ReadINT(ScriptIndex);
+			switch (EventType)
+			{
+				case EScriptInstrumentation::NodeEntry:
+					Ar.Logf(TEXT("%s $%X: .. instrumented wire entry site .."), *Indents, (int32)Opcode);
+					break;
+				case EScriptInstrumentation::NodeExit:
+					Ar.Logf(TEXT("%s $%X: .. instrumented wire exit site .."), *Indents, (int32)Opcode);
+					break;
+			}
 			break;
 		}
 	case EX_Tracepoint:

@@ -1,0 +1,39 @@
+﻿INTSourceChangelist:2672918
+Availability:Docs
+Title:1.4 - プロジェクトをコンパイルする
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
+Description:初めての C++ クラスをコンパイルする方法を学びましょう。
+スキルレベル:初心者向け
+バージョン：4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/1/3)
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/1)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Programming/Tutorials/FirstPersonShooter/1/5)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+このステップではプロジェクトをコンパイルし、コード変更がインゲームに反映されるのがわかるようにします。 
+
+1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
+
+1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+
+	![](CompileProject.png)
+
+1.	ビルド終了後にアンリアル エディタを開いて、新しくコンパイルした **FPSGameMode** クラスが **コンテンツ ブラウザ** で見えることを確認します。
+
+	![](CompiledFPSGameModeObj.png)
+
+%Steps%

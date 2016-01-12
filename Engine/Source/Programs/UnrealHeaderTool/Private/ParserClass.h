@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,4 +44,13 @@ public:
 
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;
 	void GetShowCategories(TArray<FString>& OutShowCategories) const;
+
+	/** Helper function that checks if the field is a dynamic type (can be constructed post-startup) */
+	static bool IsDynamic(const UField* Field);
+
+	/** Helper function that checks if the field is belongs to a dynamic type */
+	static bool IsOwnedByDynamicType(const UField* Field);
+
+	/** Helper function to get the source replaced package name */
+	static FString GetTypePackageName(const UField* Field);
 };

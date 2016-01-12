@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -108,13 +108,24 @@ public:
 
 	void ScrollToEnd();
 
+	/** Where to scroll the descendant to */
+	enum EDescendantScrollDestination
+	{
+		/** Scroll the widget into view */
+		IntoView,
+
+		/** Always scroll the widget so it appears at the top/Left of the scrollable area */
+		TopOrLeft,
+	};
+
 	/** 
 	 * Attempt to scroll a widget into view, will safely handle non-descendant widgets 
 	 *
 	 * @param WidgetToFind The widget whose geometry we wish to discover.
 	 * @param InAnimateScroll	Whether or not to animate the scroll
+	 * @param InDestination		Where we want the child widget to stop.
 	 */
-	void ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true);
+	void ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true, EDescendantScrollDestination InDestination = EDescendantScrollDestination::IntoView);
 
 	/** Get the current orientation of the scrollbox. */
 	EOrientation GetOrientation();
@@ -181,7 +192,7 @@ private:
 	float DesiredScrollOffset;
 
 	/** Scrolls or begins scrolling a widget into view, only valid to call when we have layout geometry. */
-	bool ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll);
+	bool ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true, EDescendantScrollDestination InDestination = EDescendantScrollDestination::IntoView);
 
 	/**
 	 * Scroll the view by ScrollAmount given its currently AllottedGeometry.
@@ -257,6 +268,9 @@ private:
 
 	/** The widget to scroll into view next frame. */
 	TSharedPtr<SWidget> WidgetToScrollIntoView;
+
+	/** Where we should scroll the descendant to */
+	EDescendantScrollDestination DestinationScrollingWidgetIntoView;
 
 	/** Whether we should scroll the widget into view over time. */
 	bool bAnimateScrollingWidgetIntoView : 1;

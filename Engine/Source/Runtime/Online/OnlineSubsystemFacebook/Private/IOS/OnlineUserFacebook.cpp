@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 // Module includes
@@ -210,3 +210,19 @@ bool FOnlineUserFacebook::QueryUserIdMapping(const FUniqueNetId& UserId, const F
 	return false;
 }
 
+bool FOnlineUserFacebook::QueryExternalIdMappings(const FUniqueNetId& LocalUserId, const FString& AuthType, const TArray<FString>& ExternalIds, const FOnQueryExternalIdMappingsComplete& Delegate)
+{
+	Delegate.ExecuteIfBound(false, LocalUserId, AuthType, ExternalIds, TEXT("not implemented"));
+	return false;
+}
+
+void FOnlineUserFacebook::GetExternalIdMappings(const FString& AuthType, const TArray<FString>& ExternalIds, TArray<TSharedPtr<const FUniqueNetId>>& OutIds)
+{
+	// Not implemented for PS4 - return an array full of empty values
+	OutIds.SetNum(ExternalIds.Num());
+}
+
+TSharedPtr<const FUniqueNetId> FOnlineUserFacebook::GetExternalIdMapping(const FString& AuthType, const FString& ExternalId)
+{
+	return TSharedPtr<FUniqueNetId>();
+}

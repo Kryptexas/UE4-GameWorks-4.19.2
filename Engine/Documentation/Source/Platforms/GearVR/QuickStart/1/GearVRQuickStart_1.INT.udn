@@ -4,7 +4,7 @@ Crumbs:%ROOT%, Platforms/GearVR
 Description:How to create a UE4 C++ based project that can be used with the Gear VR Headset.
 Navigation:platform
 Skilllevel: Intermediate
-Version: 4.8
+Version: 4.9
 
 
 [VAR:Steps]
@@ -25,7 +25,7 @@ Version: 4.8
 
 %Steps%
 
-With the release of Unreal Engine 4.8, setting up a project that works with the Samsung Gear VR Headset is no different than setup than a normal UE4 project. 
+With the release of Unreal Engine 4.8 and later, setting up a project that works with the Samsung Gear VR Headset is no different than setup than a normal UE4 project. 
 In the following section we will go over everything you need to know in order to create a new project that will work with the Gear VR headset.
 
 [REGION:warning]

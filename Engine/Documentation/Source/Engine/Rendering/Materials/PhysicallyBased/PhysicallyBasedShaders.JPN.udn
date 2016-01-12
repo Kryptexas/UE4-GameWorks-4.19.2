@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2532326
+﻿INTSourceChangelist:2604216
 Availability:Public
 Title:物理ベースのマテリアル		
 Crumbs: %ROOT%, Engine
@@ -9,12 +9,12 @@ Description:主要マテリアルの入力とこれらを最大限に活用す�
 [/REGION]
 
 
-このドキュメントは、アンリアル エンジン 4 の物理ベースのマテリアル システムに、ユーザーが早く慣れ親しむための支援を目的に作成しています。少なくとも、アンリアル エンジン 3 かそれ以降のバージョンで
+このドキュメントの目的は、アンリアル エンジン 4 の物理ベースのマテリアル システムに、ユーザーが早く慣れ親しむことができるようにすることです。少なくとも、アンリアル エンジン 3 かそれ以降のバージョンで
 マテリアル作成を理解しているユーザーを対象としています。アンリアルを使用したマテリアル作成が全く初めての方は、
  [](Engine/Rendering/Materials\IntroductionToMaterials) ページから始めることをお勧めします。
 
 以前のアンリアル エンジンでのイタレーション開発経験があっても混乱しやすいと思うので、
-本ページでは、このシステムを使用して一般的なマテリアルを作成するため必須の要素を分かりやすく説明していきます。物理ベースのアプローチを伴うマテリアルの側面にのみ
+本ページでは、このシステムを使用して一般的なマテリアルを作成するため必須要素を分かりやすく説明していきます。物理ベースのアプローチを伴うマテリアルの側面にのみ
 焦点をあてます。利用可能な入力値に関する全体的な概要は、 [](Engine/Rendering/Materials\MaterialInputs) を参照してください。
 
 ## 物理ベースについて
@@ -41,10 +41,10 @@ SIGGRAPH プレゼンテーション [[2]](#Karis) を参照してください�
 
 
 [REGION:note]
-これらの入力値は **すべて** 、 0 から 1 の間の値を受け取るように設計されています。_Base Color_ については、RGB 値が 0 から 1 の間にある色を意味します。
+これらの入力値はすべて 0 から 1 の間の値を受け取るように設定されています。_Base Color_ については、RGB 値が 0 から 1 の間にある色を意味します。
 [/REGION]
 
-物理ベースの値は、現実社会のマテリアルから計測することも出来ます。以下にいくつかの例を示します。
+物理ベースの値は、現実世界のマテリアルから計測することも出来ます。例を紹介します。
 
 ### Base Color (基本色) 
 
@@ -119,7 +119,7 @@ Roughness  (粗さ) はサーフェスに最も物理的なバリエーション
 
 [EXCERPT:RoughnessTip]
 [REGION:tip]
-以前のアンリアル エンジンのイタレーション開発でマテリアルの作成経験があり、物理的なマテリアルに慣れていないユーザーは、 Roughness マップでほとんどのスペキュラリティ (鏡面反射性) のテクスチャリングを処理するということを覚えておいてください。
+物理ベースのマテリアルに慣れていないけれども、以前のアンリアル エンジンのイタレーション開発でマテリアルの作成経験があるユーザーは、 Roughness マップでほとんどのスペキュラリティ (鏡面反射性) のテクスチャリングを処理するということを覚えておいてください。
 [/REGION]
 [/EXCERPT:RoughnessTip]
 
@@ -129,7 +129,7 @@ Roughness  (粗さ) はサーフェスに最も物理的なバリエーション
 [EXCERPT:Metallic]
 **Metallic** 入力は、文字通りサーフェスをどのように「メタル状」にするかを制御します。非メタルは、値 0 のメタリック値を使用し、
 メタルには、値 1 のメタリック値を使用します。純粋な金属、石、プラスチックなどの純粋なサーフェスでは、
-この値は 0 ** または ** 1 を使用し、その中間値は使用しません。腐食したメタル、埃っぽいメタル、または錆びたメタルなどのハイブリッドなサーフェスを作成する場合には、
+この値は 0  または  1 を使用し、その中間値は使用しません。腐食したメタル、埃っぽいメタル、または錆びたメタルなどのハイブリッドなサーフェスを作成する場合には、
  0 と 1 の中間値を使用する場合もあります。 
 [/EXCERPT:Metallic]
 
@@ -150,7 +150,7 @@ Roughness  (粗さ) はサーフェスに最も物理的なバリエーション
 ### Specular (スペキュラ)
 
 [EXCERPT:Specular]
-ほとんどの使用例で、 **Specular** 入力を接続してデフォルト値を 0.5 のままにしておいてはいけません。
+ほとんどの場合、**Specular** 入力を接続せずに、デフォルト値は 0.5 のままにしておきます。
 
 0 と 1 の間の値を設定して、 _非メタリック_ なサーフェス上のスペキュラリティの量のスケーリングに使用します。メタルには無効です。
 [/EXCERPT:Specular]
@@ -166,7 +166,7 @@ Roughness  (粗さ) はサーフェスに最も物理的なバリエーション
 このマップは通常、非常に短い追跡距離を使用した AO (アンビエント オクルージョン) マップです。スペキュラ出力値として 0.5 (スペキュラ値のデフォルト) で出力値を乗算する前に、最終的な BaseColor で乗算処理されます。
 つまり、BaseColor = Cavity*OldBaseColor、Specular = Cavity*0.5 ということです。
 
-高度な使用法として、これを屈折率 (IOR) として使用することも可能です。これが必要かどうかは、99% のマテリアルに対してまだわかっていません。以下は測定した IOR に基づいたスペキュラ値です。
+高度な方法では、これを屈折率 (IOR) としても使用することができます。これが必要かどうかは、99% のマテリアルに対してまだわかっていません。以下は測定した IOR に基づいたスペキュラ値です。
 
 **測定スペキュラ値:**
 
@@ -194,7 +194,7 @@ Roughness  (粗さ) はサーフェスに最も物理的なバリエーション
 ##リファレンス
 
 (#Lagarde)
-**1.**Lagarde, [Feeding a physically based shading model](http://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
+**1**. Lagarde, [Feeding a physically based shading model](http://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
 (#Karis)
 **2**.Karis, [Real Shading in Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf)
 (#Burley)
@@ -232,16 +232,16 @@ Roughness  (粗さ) はサーフェスに最も物理的なバリエーション
 	[/PARAM]
 	[PARAM:image_list]
 	![](Metallic_1.png)
-	![](metallic_2.png)
-	![](metallic_3.png)
-	![](metallic_4.png)
-	![](metallic_5.png)
-	![](metallic_6.png)
-	![](metallic_7.png)
-	![](metallic_8.png)
-	![](metallic_9.png)
-	![](metallic_10.png)
-	![](metallic_11.png)
+	![](Metallic_2.png)
+	![](Metallic_3.png)
+	![](Metallic_4.png)
+	![](Metallic_5.png)
+	![](Metallic_6.png)
+	![](Metallic_7.png)
+	![](Metallic_8.png)
+	![](Metallic_9.png)
+	![](Metallic_10.png)
+	![](Metallic_11.png)
 	![](Metallic_12.png)
 	![](Metallic_13.png)
 	![](Metallic_14.png)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 struct SLATE_API FTextRange
@@ -15,6 +15,25 @@ struct SLATE_API FTextRange
 		, EndIndex( InEndIndex )
 	{
 
+	}
+
+	FORCEINLINE bool operator==(const FTextRange& Other) const
+	{
+		return BeginIndex == Other.BeginIndex 
+			&& EndIndex == Other.EndIndex;
+	}
+
+	FORCEINLINE bool operator!=(const FTextRange& Other) const
+	{
+		return !(*this == Other);
+	}
+
+	friend inline uint32 GetTypeHash(const FTextRange& Key)
+	{
+		uint32 KeyHash = 0;
+		KeyHash = HashCombine(KeyHash, GetTypeHash(Key.BeginIndex));
+		KeyHash = HashCombine(KeyHash, GetTypeHash(Key.EndIndex));
+		return KeyHash;
 	}
 
 	int32 Len() const { return EndIndex - BeginIndex; }

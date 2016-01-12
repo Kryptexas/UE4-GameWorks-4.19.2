@@ -1,14 +1,12 @@
 Availability:Public
 Title: Toolbar
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:
+Description: A bar at the top of the editor that contains buttons that control multiple functions.
+version: 4.9
 
-[TOC (start:2)]
-
-## Overview
 
 [EXCERPT:Intro]
-The **Toolbar** is displayed at the top-left of the Blueprint Editor by default. The Blueprint Editor Toolbar buttons provide easy access to common commands needed when editing Blueprints. The Toolbar provides different buttons depending on which mode is active and which _Blueprint_ type you are currently editing.
+The **Toolbar** is displayed at the top-left of the Blueprint Editor by default. The Blueprint Editor Toolbar buttons provide easy access to common commands needed when editing Blueprints. The Toolbar provides different buttons depending on which mode is active and which Blueprint type you are currently editing.
 [/EXCERPT:Intro]
 
 [REGION:fullwidth]
@@ -19,8 +17,4 @@ The Toolbar contains two sections:
 * **Toolbar options** - Tools for working with your Blueprint.
 * **Mode buttons** - Buttons that you can use to switch which mode your Blueprint is in.
 
-## Toolbar Options
-
-The Blueprint Toolbar contains many different options.  Different options are available depending on the type of Blueprint and the mode the Blueprint is in.
-
-For more information about Toolbar options, see [](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions).
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions#main]

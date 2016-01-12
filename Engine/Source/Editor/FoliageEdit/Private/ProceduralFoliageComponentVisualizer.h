@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 class FProceduralFoliageComponentVisualizer : public FComponentVisualizer
 {
 public:
-	// Begin FComponentVisualizer interface
+	//~ Begin FComponentVisualizer Interface
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-	// End FComponentVisualizer interface
+	//~ End FComponentVisualizer Interface
 };

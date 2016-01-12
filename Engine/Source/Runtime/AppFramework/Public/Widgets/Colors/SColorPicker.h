@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -271,11 +271,17 @@ private:
 	// Callback for completed eye dropper interactions.
 	void HandleEyeDropperButtonComplete();
 
-	// Callback for getting the text in the hex box.
-	FText HandleHexBoxText() const;
+	// Callback for getting the text in the hex linear box.
+	FText HandleHexLinearBoxText() const;
 
-	// Callback for committed text in the hex input box.
-	void HandleHexInputTextCommitted( const FText& Text, ETextCommit::Type CommitType );
+	// Callback for getting the text in the hex sRGB box.
+	FText HandleHexSRGBBoxText() const;
+
+	// Callback for committed text in the hex input box (sRGB gamma).
+	void HandleHexSRGBInputTextCommitted(const FText& Text, ETextCommit::Type CommitType);
+
+	// Callback for committed text in the hex input box (linear gamma).
+	void HandleHexLinearInputTextCommitted(const FText& Text, ETextCommit::Type CommitType);
 
 	// Callback for changing the HSV value of the current color.
 	void HandleHSVColorChanged( FLinearColor NewValue );

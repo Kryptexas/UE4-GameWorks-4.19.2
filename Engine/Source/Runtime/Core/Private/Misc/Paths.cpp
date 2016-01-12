@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
 #include "CorePrivatePCH.h"
@@ -16,6 +16,35 @@ namespace UE4Paths_Private
 {
 	auto IsSlashOrBackslash    = [](TCHAR C) { return C == TEXT('/') || C == TEXT('\\'); };
 	auto IsNotSlashOrBackslash = [](TCHAR C) { return C != TEXT('/') && C != TEXT('\\'); };
+
+	FString GameSavedDir()
+	{
+		FString Result = FPaths::GameUserDir();
+
+		FString NonDefaultSavedDirSuffix;
+		if (FParse::Value(FCommandLine::Get(), TEXT("-saveddirsuffix="), NonDefaultSavedDirSuffix))
+		{
+			for (int32 CharIdx = 0; CharIdx < NonDefaultSavedDirSuffix.Len(); ++CharIdx)
+			{
+				if (!FCString::Strchr(VALID_SAVEDDIRSUFFIX_CHARACTERS, NonDefaultSavedDirSuffix[CharIdx]))
+				{
+					NonDefaultSavedDirSuffix.RemoveAt(CharIdx, 1, false);
+					--CharIdx;
+				}
+			}
+
+			if (!NonDefaultSavedDirSuffix.IsEmpty())
+			{
+				Result += TEXT("Saved_") + NonDefaultSavedDirSuffix + TEXT("/");
+			}
+		}
+		else
+		{
+			Result += TEXT("Saved/");
+		}
+
+		return Result;
+	}
 }
 
 bool FPaths::ShouldSaveToUserDir()
@@ -38,7 +67,7 @@ FString FPaths::EngineUserDir()
 {
 	if (ShouldSaveToUserDir() || FApp::IsEngineInstalled())
 	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FApp::GetEpicProductIdentifier(), *GEngineVersion.ToString(EVersionComponent::Minor)) + TEXT("/");
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FApp::GetEpicProductIdentifier(), *FEngineVersion::Current().ToString(EVersionComponent::Minor)) + TEXT("/");
 	}
 	else
 	{
@@ -123,7 +152,8 @@ FString FPaths::GameConfigDir()
 
 FString FPaths::GameSavedDir()
 {
-	return GameUserDir() + TEXT("Saved/");
+	static FString Result = UE4Paths_Private::GameSavedDir();
+	return Result;
 }
 
 FString FPaths::GameIntermediateDir()
@@ -134,6 +164,11 @@ FString FPaths::GameIntermediateDir()
 FString FPaths::GamePluginsDir()
 {
 	return FPaths::GameDir() + TEXT("Plugins/");
+}
+
+FString FPaths::GamePersistentDownloadDir()
+{
+	return FPlatformMisc::GamePersistentDownloadDir();
 }
 
 FString FPaths::SourceConfigDir()
@@ -201,7 +236,7 @@ FString FPaths::AutomationLogDir()
 
 FString FPaths::CloudDir()
 {
-	return FPaths::GameSavedDir() + TEXT("Cloud/");
+	return FPlatformMisc::CloudDir();
 }
 
 FString FPaths::GameDevelopersDir()
@@ -680,7 +715,7 @@ void FPaths::MakeStandardFilename(FString& InPath)
 	// UNC (windows) network path
 	bool bCannotBeStandardized = InPath.StartsWith(TEXT("\\\\"), ESearchCase::CaseSensitive);
 	// windows drive letter path that doesn't start with base dir
-	bCannotBeStandardized |= (InPath[1] == ':' && !WithSlashes.StartsWith(RootDirectory));
+	bCannotBeStandardized |= ((InPath.Len() > 1) && (InPath[1] == ':') && !WithSlashes.StartsWith(RootDirectory));
 	// Unix style absolute path that doesn't start with base dir
 	bCannotBeStandardized |= (WithSlashes.GetCharArray()[0] == '/' && !WithSlashes.StartsWith(RootDirectory));
 

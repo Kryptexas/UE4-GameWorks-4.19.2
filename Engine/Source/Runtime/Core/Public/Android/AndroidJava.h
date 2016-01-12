@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,11 +24,11 @@ public:
 
 	~FJavaClassObject();
 
-	FJavaClassMethod GetClassMethod(const char* MethodName, const char* FuncSig) const;
+	FJavaClassMethod GetClassMethod(const char* MethodName, const char* FuncSig);
 
 	// TODO: Define this for extra cases
 	template<typename ReturnType>
-	ReturnType CallMethod(FJavaClassMethod Method, ...) const;
+	ReturnType CallMethod(FJavaClassMethod Method, ...);
 
 	FORCEINLINE jobject GetJObject() const
 	{
@@ -37,7 +37,7 @@ public:
 
 	static jstring GetJString(const FString& String);
 
-	void VerifyException() const;
+	void VerifyException();
 
 protected:
 
@@ -50,19 +50,19 @@ private:
 };
 
 template<>
-void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...) const;
+void FJavaClassObject::CallMethod<void>(FJavaClassMethod Method, ...);
 
 template<>
-bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...) const;
+bool FJavaClassObject::CallMethod<bool>(FJavaClassMethod Method, ...);
 
 template<>
-int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...) const;
+int FJavaClassObject::CallMethod<int>(FJavaClassMethod Method, ...);
 
 template<>
-jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...) const;
+jobject FJavaClassObject::CallMethod<jobject>(FJavaClassMethod Method, ...);
 
 template<>
-int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...) const;
+int64 FJavaClassObject::CallMethod<int64>(FJavaClassMethod Method, ...);
 
 template<>
-FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...) const;
+FString FJavaClassObject::CallMethod<FString>(FJavaClassMethod Method, ...);

@@ -1,15 +1,16 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /** FName declaration of IOS subsystem */
-#define IOS_SUBSYSTEM FName(TEXT("IOS"))
 
 #include "Core.h"
 #include "CoreUObject.h"
 #include "SocketSubsystem.h"
 #include "ModuleManager.h"
 #include "IOSAppDelegate.h"
+
+class FOnlineSubsystemIOS;
 
 #include "OnlineSessionInterfaceIOS.h"
 #include "OnlineFriendsInterfaceIOS.h"

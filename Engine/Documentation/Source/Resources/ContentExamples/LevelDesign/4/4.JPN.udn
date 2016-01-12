@@ -1,12 +1,29 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2716626
 Availability:Public
 Title:4 - ポリッシュ評価
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
-Description:レベルデザインの事例概要、例 4：ポリッシュ評価
+Description:レベル デザインの概要、サンプル 4：ポリッシュ評価
 Related: Engine/Rendering/LightingAndShadows/Lightmass
 Related: Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/LevelDesign/3 "%Resources/ContentExamples/LevelDesign/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[レベル デザイン ホーム](Resources/ContentExamples/LevelDesign)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -30,6 +47,6 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 
 ![](leveldesign_4.png)
 
-ポリッシュ評価は最終仕上げをレベルへ追加する段階です。また、環境全体に細部の調整も加えていきます。エフェクト、反射キャプチャアクタ、またその他の最終メッシュや
-ライティングもレベルへ追加することができます。例えばレベルデザインのコンテンツ事例では、ポリッシュ評価の際にライトのビームが追加されています。 
+ポリッシュ評価は最終仕上げをレベルへ追加する段階です。また、背景全体に細部の調整も加えていきます。エフェクト、反射キャプチャ アクタ、またその他の最終メッシュや
+ライティングもレベルへ追加することができます。例えば、レベル デザインのコンテンツ サンプルでは、ポリッシュ評価の際にライトのビームが追加されています。 
 [/REGION]

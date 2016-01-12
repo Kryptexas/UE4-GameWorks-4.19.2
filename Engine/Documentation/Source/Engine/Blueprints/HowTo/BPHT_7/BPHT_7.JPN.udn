@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2452441
+﻿INTSourceChangelist:2686221
 Availability:Public
 Title:7.応用編
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:最後のステップでは、このプロジェクトの次のレベルへ進めるためのサンプル、および追加ドキュメントへのリンクを紹介します。 
+Version:4.9
 
 
 [VAR:Steps]
@@ -24,7 +25,17 @@ Description:最後のステップでは、このプロジェクトの次のレ�
 
 このプロジェクトを通じて学んだ知識を活かして、以下の操作をしてみましょう。 
 
-[![](UpdatedImage.png)(w:720)](UpdatedExample.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yut5Feu1KxI
+[/PARAMLITERAL]
+[/OBJECT]
 
 * **FirstPersonCharacter** ブループリントで、一発目で岩にヒットした方が、二発目あるいは三発目よりも高い得点になるように設定する。 
 * **FirstPersonCharacter** ブループリントで、岩がスポーンされるまでプレイヤーは撃つことができないように設定する。 
@@ -35,15 +46,15 @@ Description:最後のステップでは、このプロジェクトの次のレ�
 
 このガイドのトピックに関連した情報は以下の通りです。
 
-* **ブループリント** 全般に関する詳細は、[ブループリント ビジュアル スクリプティング システム](Engine\Blueprints) をご覧ください。
+* ブループリント 全般に関する詳細は、[ブループリント ビジュアル スクリプティング システム](Engine\Blueprints) をご覧ください。
 
 * ダイレクト ブループリント通信 に関する詳細は、[**ブループリント通信の使用方法**](Engine/Blueprints/UserGuide/BlueprintCommsUsage) をご覧ください。
 
-* **Event Dispatcher** に関する詳細は、[Event Dispatchers](Engine/Blueprints/UserGuide/EventDispatcher) を参照してください。
+* イベントディスパッチャー に関する詳細は、[イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) を参照してください。
 
-* **Casting** に関する詳細は、 [**Casting**](Engine/Blueprints/UserGuide/CastNodes) をご覧ください。
+* キャスト に関する詳細は、[キャスト](Engine/Blueprints/UserGuide/CastNodes) をご覧ください。
 
-* **Unreal Motion Graphics** (UMG) での HUD エレメントの作成については、 [**Unreal Motion Graphics**](Engine/UMG) をご覧ください。
+* Unreal Motion Graphics (UMG) での HUD エレメントの作成については、[アンリアル モーション グラフィック (UMG)](Engine/UMG) をご覧ください。
 
 
 %Steps%

@@ -1,7 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __MovieSceneToolsPrivatePCH_h__
-#define __MovieSceneToolsPrivatePCH_h__
+#pragma once
+
 
 #include "UnrealEd.h"
 #include "MovieScene.h"
@@ -17,5 +17,9 @@
 #include "PropertyTrackEditor.h"
 #include "CommonMovieSceneTools.h"
 #include "MovieSceneToolHelpers.h"
+#include "MovieSceneCommonHelpers.h"
 
-#endif // __MovieSceneToolsPrivatePCH_h__
+
+#include "ShotSequencerSection.h"
+#include "ShotTrackThumbnail.h"
+#include "ShotTrackThumbnailPool.h"

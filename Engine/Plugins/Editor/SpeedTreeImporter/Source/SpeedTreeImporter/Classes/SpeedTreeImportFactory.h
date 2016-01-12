@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Factory for importing SpeedTrees
@@ -12,7 +12,7 @@ class USpeedTreeImportFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UFactory Interface
+	//~ Begin UFactory Interface
 	virtual FText GetDisplayName() const override;
 #if WITH_SPEEDTREE
 	virtual bool DoesSupportClass(UClass * Class) override;

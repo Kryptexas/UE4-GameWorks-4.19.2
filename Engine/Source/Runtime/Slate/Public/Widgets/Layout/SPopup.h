@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "SlateBasics.h"
@@ -16,6 +16,12 @@ public:
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 
 	SLATE_END_ARGS()
+
+	SPopup()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
 
 	void Construct(const FArguments& InArgs);
 

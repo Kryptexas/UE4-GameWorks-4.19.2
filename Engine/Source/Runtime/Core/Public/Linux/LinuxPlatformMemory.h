@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -44,7 +44,7 @@ struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 		bool			bCreatedThisRegion;
 	};
 
-	// Begin FGenericPlatformMemory interface
+	//~ Begin FGenericPlatformMemory Interface
 	static void Init();
 	static class FMalloc* BaseAllocator();
 	static FPlatformMemoryStats GetStats();
@@ -53,7 +53,7 @@ struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 	static void BinnedFreeToOS( void* Ptr );
 	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
-	// End FGenericPlatformMemory interface
+	//~ End FGenericPlatformMemory Interface
 };
 
 typedef FLinuxPlatformMemory FPlatformMemory;

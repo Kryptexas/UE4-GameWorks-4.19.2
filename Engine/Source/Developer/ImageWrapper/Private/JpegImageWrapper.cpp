@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ImageWrapperPrivatePCH.h"
 
@@ -8,6 +8,9 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshadow"
+#if PLATFORM_LINUX || PLATFORM_MAC
+#pragma clang diagnostic ignored "-Wshift-negative-value"	// clang 3.7.0
+#endif
 #endif
 
 #include "jpgd.h"

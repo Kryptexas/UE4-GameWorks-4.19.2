@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "DebugRenderSceneProxy.h"
 #include "Debug/DebugDrawService.h"
@@ -13,6 +13,7 @@
 #include "MaterialShared.h"
 #include "GenericOctreePublic.h"
 #include "GenericOctree.h"
+#include "Engine/Canvas.h"
 
 static const FColor NavMeshRenderColor_Recast_TriangleEdges(255,255,255);
 static const FColor NavMeshRenderColor_Recast_TileEdges(16,16,16,32);
@@ -561,7 +562,7 @@ public:
 		Canvas->SetDrawColor(OldDrawColor);
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		const bool bVisible = !!View->Family->EngineShowFlags.Navigation || bForceRendering;
 		FPrimitiveViewRelevance Result;

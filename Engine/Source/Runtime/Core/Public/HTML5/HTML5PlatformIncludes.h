@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	HTML5Includes.h: Includes the platform specific headers for HTML5
@@ -20,7 +20,6 @@
 #include "HTML5/HTML5PlatformTLS.h"
 #include "HTML5/HTML5PlatformSplash.h"
 #include "HTML5/HTML5PlatformSurvey.h"
-#include "HTML5/HTML5PlatformHttp.h"
 
 typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,5 +40,7 @@ public:
 	// functionality in a network-replicated (if necessary) fashion.  NOTE: creates an AGameplayDebuggingReplicator
 	// in the same World as PlayerController.
 	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) = 0;
+
+	virtual bool IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController) = 0;
 };
 

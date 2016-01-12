@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MaterialEditorModule.h"
@@ -69,6 +69,7 @@ FMaterialEditorViewportClient::FMaterialEditorViewportClient(TWeakPtr<IMaterialE
 	
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.SetSnap(0);
+	EngineShowFlags.SetSeparateTranslucency(true);
 
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;

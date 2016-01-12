@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,6 +53,7 @@ public:
 		TArray<uint16>						HeightData;
 		TArray<FLandscapeImportLayerInfo>	ImportLayers;
 		FString								HeightmapFilename;
+		ELandscapeImportAlphamapType		ImportLayerType;
 	};
 	
 	/**
@@ -82,6 +83,8 @@ public:
 	virtual void OnLevelRemovedFromWorld() override;
 	virtual void OnParentChanged() override;
 	virtual bool IsVisibleInCompositionView() const override;
+	virtual FLinearColor GetLevelColor() const override;
+	virtual void SetLevelColor(FLinearColor InColor) override;
 	// FLevelModel interface end
 	
 	/** Adds new streaming level*/

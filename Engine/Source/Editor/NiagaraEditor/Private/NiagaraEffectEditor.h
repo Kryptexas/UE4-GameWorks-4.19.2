@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "INiagaraEffectEditor.h"
@@ -26,12 +26,12 @@ public:
 	/** Destructor */
 	virtual ~FNiagaraEffectEditor();
 
-	// Begin IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	// End IToolkit interface
+	//~ End IToolkit Interface
 
 	// Delegates for the individual widgets
 	FReply OnEmitterSelected(TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType);
@@ -44,6 +44,7 @@ public:
 		return MakeShareable(new FNiagaraTrackEditor(InSequencer) );
 	}
 
+	virtual void NotifyPreChange(UProperty* PropertyAboutToChanged)override;
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 
 	FReply OnDeleteEmitterClicked(TSharedPtr<FNiagaraSimulation> Emitter);
@@ -74,7 +75,7 @@ private:
 
 	/* The Effect being edited */
 	UNiagaraEffect	*Effect;
-	class FNiagaraEffectInstance *EffectInstance;
+	TSharedPtr<FNiagaraEffectInstance> EffectInstance;
 
 	/* stuff needed by the Sequencer */
 	UMovieScene *MovieScene;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -96,9 +96,10 @@
 	#define HACK_HEADER_GENERATOR 0
 #endif
 
-/** Whether we are compiling with automation worker functionality */
+/** Whether we are compiling with automation worker functionality.  Note that automation worker defaults to enabled in
+    UE_BUILD_TEST configuration, so that it can be used for performance testing on devices */
 #ifndef WITH_AUTOMATION_WORKER
-	#define WITH_AUTOMATION_WORKER !(UE_BUILD_SHIPPING || UE_BUILD_TEST || HACK_HEADER_GENERATOR)
+	#define WITH_AUTOMATION_WORKER !(UE_BUILD_SHIPPING || HACK_HEADER_GENERATOR)
 #endif
 
 /**
@@ -240,6 +241,9 @@
 
 /** Enable fast calls for event thunks into an event graph that have no parameters  */
 #define UE_BLUEPRINT_EVENTGRAPH_FASTCALLS 1
+
+/** Enable perf counters on dedicated servers */
+#define USE_SERVER_PERF_COUNTERS ((UE_SERVER || UE_EDITOR) && WITH_PERFCOUNTERS)
 
 #define USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING 1
 #define USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS (USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING && 0)

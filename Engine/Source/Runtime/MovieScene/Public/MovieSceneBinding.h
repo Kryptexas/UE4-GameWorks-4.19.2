@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,7 +12,7 @@ class UMovieSceneTrack;
  * A set of tracks bound to runtime objects
  */
 USTRUCT()
-struct MOVIESCENE_API FMovieSceneBinding
+struct FMovieSceneBinding
 {
 	GENERATED_USTRUCT_BODY()
 

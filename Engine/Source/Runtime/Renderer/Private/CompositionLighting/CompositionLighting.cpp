@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CompositionLighting.cpp: The center for all deferred lighting activities.
@@ -51,6 +51,13 @@ static TAutoConsoleVariable<int32> CVarAmbientOcclusionLevels(
 	TEXT(" 3: three (larger radius cost less but can flicker)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarSSSHalfRes(
+	TEXT("r.SSS.HalfRes"),
+	1,
+	TEXT(" 0: full quality (not optimized, as reference)\n")
+	TEXT(" 1: parts of the algorithm runs in half resolution which is lower quality but faster (default)"),
+	ECVF_RenderThreadSafe  | ECVF_Scalability);
+
 static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 {
 	FScene* Scene = (FScene*)Context.View.Family->Scene;
@@ -58,22 +65,22 @@ static bool IsAmbientCubemapPassRequired(FPostprocessContext& Context)
 	return Context.View.FinalPostProcessSettings.ContributingCubemaps.Num() != 0 && !IsSimpleDynamicLightingEnabled();
 }
 
-static bool IsLpvIndirectPassRequired(FPostprocessContext& Context)
+bool IsLpvIndirectPassRequired(const FViewInfo& View)
 {
-	FScene* Scene = (FScene*)Context.View.Family->Scene;
+	FScene* Scene = (FScene*)View.Family->Scene;
 
-	const FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
+	const FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
 	if(ViewState)
 	{
 		// This check should be inclusive to stereo views
 		const bool bIncludeStereoViews = true;
 
-		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(Context.View.GetFeatureLevel(), bIncludeStereoViews);
+		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume(View.GetFeatureLevel(), bIncludeStereoViews);
 
 		if(LightPropagationVolume)
 		{
-			const FLightPropagationVolumeSettings& LPVSettings = Context.View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+			const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
 
 			if(LPVSettings.LPVIntensity > 0.0f)
 			{
@@ -120,10 +127,11 @@ static uint32 ComputeAmbientOcclusionPassCount(FPostprocessContext& Context)
 
 	bool bEnabled = true;
 
-	if(!IsLpvIndirectPassRequired(Context))
+	if(!IsLpvIndirectPassRequired(Context.View))
 	{
 		bEnabled = Context.View.FinalPostProcessSettings.AmbientOcclusionIntensity > 0 
 			&& Context.View.FinalPostProcessSettings.AmbientOcclusionRadius >= 0.1f 
+			&& !Context.View.Family->EngineShowFlags.ShaderComplexity 
 			&& (IsBasePassAmbientOcclusionRequired(Context) || IsAmbientCubemapPassRequired(Context) || IsReflectionEnvironmentActive(Context) || IsSkylightActive(Context) || Context.View.Family->EngineShowFlags.VisualizeBuffer )
 			&& !IsSimpleDynamicLightingEnabled();
 	}
@@ -192,7 +200,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FRHIComman
 
 	if(Levels >= 3)
 	{
-		AmbientOcclusionPassMip2 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion());
+		AmbientOcclusionPassMip2 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion(Context.View));
 		AmbientOcclusionPassMip2->SetInput(ePId_Input0, AmbientOcclusionInMip2);
 		AmbientOcclusionPassMip2->SetInput(ePId_Input1, AmbientOcclusionInMip2);
 		AmbientOcclusionPassMip2->SetInput(ePId_Input3, HZBInput);
@@ -200,7 +208,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FRHIComman
 
 	if(Levels >= 2)
 	{
-		AmbientOcclusionPassMip1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion());
+		AmbientOcclusionPassMip1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion(Context.View));
 		AmbientOcclusionPassMip1->SetInput(ePId_Input0, AmbientOcclusionInMip1);
 		AmbientOcclusionPassMip1->SetInput(ePId_Input1, AmbientOcclusionInMip1);
 		AmbientOcclusionPassMip1->SetInput(ePId_Input2, AmbientOcclusionPassMip2);
@@ -213,7 +221,7 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FRHIComman
 
 	// finally full resolution
 
-	FRenderingCompositePass* AmbientOcclusionPassMip0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion(false));
+	FRenderingCompositePass* AmbientOcclusionPassMip0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAmbientOcclusion(Context.View, false));
 	AmbientOcclusionPassMip0->SetInput(ePId_Input0, GBufferA);
 	AmbientOcclusionPassMip0->SetInput(ePId_Input1, AmbientOcclusionInMip1);
 	AmbientOcclusionPassMip0->SetInput(ePId_Input2, AmbientOcclusionPassMip1);
@@ -223,6 +231,10 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FRHIComman
 	if(AmbientOcclusionInMip1)
 	{
 		AmbientOcclusionInMip1->AddDependency(Context.FinalOutput);
+	}
+	else
+	{
+		AmbientOcclusionPassMip0->AddDependency(Context.FinalOutput);
 	}
 
 	Context.FinalOutput = FRenderingCompositeOutputRef(AmbientOcclusionPassMip0);
@@ -249,12 +261,13 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
 		// Add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ----------
 
 		// decals are before AmbientOcclusion so the decal can output a normal that AO is affected by
 		if (!Context.View.Family->EngineShowFlags.ShaderComplexity &&
+			Context.View.Family->EngineShowFlags.Decals &&
 			IsDBufferEnabled()) 
 		{
 			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(DRS_BeforeBasePass));
@@ -294,11 +307,12 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
 		// Add the passes we want to add to the graph ----------
 		
-		if(Context.View.Family->EngineShowFlags.Decals && !Context.View.Family->EngineShowFlags.ShaderComplexity)
+		if( Context.View.Family->EngineShowFlags.Decals &&
+			!Context.View.Family->EngineShowFlags.ShaderComplexity)
 		{
 			// DRS_AfterBasePass is for Volumetric decals which don't support ShaderComplexity yet
 			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(DRS_AfterBasePass));
@@ -349,9 +363,8 @@ void FCompositionLighting::ProcessLpvIndirect(FRHICommandListImmediate& RHICmdLi
 	
 	FMemMark Mark(FMemStack::Get());
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-	FPostprocessContext Context(CompositeContext.Graph, View);
+	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
-	if(IsLpvIndirectPassRequired(Context))
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
@@ -386,7 +399,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 	{
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 		FRenderingCompositeOutputRef AmbientOcclusion;
 
 		// Screen Space Subsurface Scattering
@@ -396,25 +409,37 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 			bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
 			bool bScreenSpaceSubsurfacePassNeeded = (View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0;
-			if (bScreenSpaceSubsurfacePassNeeded && Radius > 0 && !bSimpleDynamicLighting && View.Family->EngineShowFlags.SubsurfaceScattering)
+			if (bScreenSpaceSubsurfacePassNeeded && !bSimpleDynamicLighting)
 			{
-				// can be optimized out if we don't do split screen/stereo rendering (should be done after we some post process refactoring)
-				FRenderingCompositePass* PassExtractSpecular = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceExtractSpecular());
-				PassExtractSpecular->SetInput(ePId_Input0, Context.FinalOutput);
+				bool bHalfRes = CVarSSSHalfRes.GetValueOnRenderThread() != 0;
+				bool bSingleViewportMode = View.Family->Views.Num() == 1;
 
-				FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(View));
-				PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
+				if(Radius > 0 && View.Family->EngineShowFlags.SubsurfaceScattering)
+				{
+					FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup(View, bHalfRes));
+					PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
-				FRenderingCompositePass* Pass0 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0));
-				Pass0->SetInput(ePId_Input0, PassSetup);
+					FRenderingCompositePass* PassX = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(0, bHalfRes));
+					PassX->SetInput(ePId_Input0, PassSetup);
 
-				FRenderingCompositePass* Pass1 = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1));
-				Pass1->SetInput(ePId_Input0, Pass0);
+					FRenderingCompositePass* PassY = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurface(1, bHalfRes));
+					PassY->SetInput(ePId_Input0, PassX);
+					PassY->SetInput(ePId_Input1, PassSetup);
 
-				// full res composite pass, no blurring (Radius=0)
-				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine());
-				RecombinePass->SetInput(ePId_Input0, Pass1);
-				RecombinePass->SetInput(ePId_Input1, PassExtractSpecular);
+					// full res composite pass, no blurring (Radius=0), replaces SceneColor
+					FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes, bSingleViewportMode));
+					RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
+					RecombinePass->SetInput(ePId_Input1, PassY);
+					RecombinePass->SetInput(ePId_Input2, PassSetup);
+					Context.FinalOutput = FRenderingCompositeOutputRef(RecombinePass);
+				}
+				else
+				{
+					// needed for Scalability
+					FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes, bSingleViewportMode));
+					RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
+					Context.FinalOutput = FRenderingCompositeOutputRef(RecombinePass);
+				}
 			}
 		}
 

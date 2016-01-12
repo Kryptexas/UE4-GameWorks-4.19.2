@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -208,7 +208,7 @@ public:
 	/** Set which feature levels _all_ materials should compile to. GMaxRHIFeatureLevel is always compiled. */
 	ENGINE_API static void SetGlobalRequiredFeatureLevel(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile);
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void PostLoad() override;
@@ -216,22 +216,24 @@ public:
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface.
+	//~ End UObject Interface.
 
-	// Begin interface IBlendableInterface
+	//~ Begin Begin Interface IBlendableInterface
 	ENGINE_API virtual void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;
-	// End interface IBlendableInterface
+	//~ Begin End Interface IBlendableInterface
 
-	/** Walks up parent chain and finds the base Material that this is an instance of. */
+	/** Walks up parent chain and finds the base Material that this is an instance of. Just calls the virtual GetMaterial() */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Material")
 	ENGINE_API UMaterial* GetBaseMaterial();
 
 	/**
 	 * Get the material which we are instancing.
+	 * Walks up parent chain and finds the base Material that this is an instance of. 
 	 */
 	virtual class UMaterial* GetMaterial() PURE_VIRTUAL(UMaterialInterface::GetMaterial,return NULL;);
 	/**
 	 * Get the material which we are instancing.
+	 * Walks up parent chain and finds the base Material that this is an instance of. 
 	 */
 	virtual const class UMaterial* GetMaterial() const PURE_VIRTUAL(UMaterialInterface::GetMaterial,return NULL;);
 
@@ -567,9 +569,12 @@ public:
 	/** Get bitfield indicating which feature levels should be compiled by default */
 	ENGINE_API static uint32 GetFeatureLevelsToCompileForAllMaterials() { return FeatureLevelsForAllMaterials | (1 << GMaxRHIFeatureLevel); }
 
+	/** Return number of used texture coordinates and whether or not the Vertex data is used in the shader graph */
+	ENGINE_API void AnalyzeMaterialProperty(EMaterialProperty InProperty, int32& OutNumTextureCoordinates, bool& bOutRequiresVertexData);
+
 	/** Iterate over all feature levels currently marked as active */
-	template <typename TFunction>
-	static void IterateOverActiveFeatureLevels(TFunction InHandler) 
+	template <typename FunctionType>
+	static void IterateOverActiveFeatureLevels(FunctionType InHandler) 
 	{  
 		uint32 FeatureLevels = GetFeatureLevelsToCompileForAllMaterials();
 		while (FeatureLevels != 0)

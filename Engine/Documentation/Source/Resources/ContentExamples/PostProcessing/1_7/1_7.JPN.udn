@@ -1,13 +1,31 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2721898
 Availability:Public
 Title:1.7 - レンズフレア
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.7：レンズフレア
+Description:ポストプロセスのサンプル レベルの概要、サンプル 1.7：レンズフレア
 Related:Engine/Rendering/PostProcessEffects/LensFlare
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_6 "%Resources/ContentExamples/PostProcessing/1_6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_8 "%Resources/ContentExamples/PostProcessing/1_8:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

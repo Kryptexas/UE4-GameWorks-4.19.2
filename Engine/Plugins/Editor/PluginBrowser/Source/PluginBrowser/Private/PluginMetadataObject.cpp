@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginBrowserPrivatePCH.h"
 #include "DetailLayoutBuilder.h"
@@ -22,6 +22,7 @@ void UPluginMetadataObject::PopulateFromDescriptor(const FPluginDescriptor& InDe
 	CreatedBy = InDescriptor.CreatedBy;
 	CreatedByURL = InDescriptor.CreatedByURL;
 	DocsURL = InDescriptor.DocsURL;
+	MarketplaceURL = InDescriptor.MarketplaceURL;
 	SupportURL = InDescriptor.SupportURL;
 	bCanContainContent = InDescriptor.bCanContainContent;
 	bIsBetaVersion = InDescriptor.bIsBetaVersion;
@@ -37,6 +38,7 @@ void UPluginMetadataObject::CopyIntoDescriptor(FPluginDescriptor& OutDescriptor)
 	OutDescriptor.CreatedBy = CreatedBy;
 	OutDescriptor.CreatedByURL = CreatedByURL;
 	OutDescriptor.DocsURL = DocsURL;
+	OutDescriptor.MarketplaceURL = MarketplaceURL;
 	OutDescriptor.SupportURL = SupportURL;
 	OutDescriptor.bCanContainContent = bCanContainContent;
 	OutDescriptor.bIsBetaVersion = bIsBetaVersion;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -114,6 +114,42 @@ void UK2Node_CustomEvent::Serialize(FArchive& Ar)
 	if (Ar.IsLoading())
 	{
 		CachedNodeTitle.MarkDirty();
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+		// Ensure that array type inputs and non-array type pass-by-reference inputs are also marked 'const' - since arrays
+		// are implicitly passed by reference, and since events do not have return values/outputs, this equates to marking
+		// the parameter as 'const Type&' in native code. Also note that since UHT already blocks non-const reference types
+		// from being compiled into a MC delegate signature, any existing custom event param pins that were implicitly
+		// created via "Assign" in the Blueprint editor's context menu will previously have had 'const' set for its pin type.
+		//
+		// This ensures that (a) we don't emit the "no reference will be returned" note on custom event nodes with array
+		// inputs added by the user via the Details panel, and (b) we don't emit the "no reference will be returned" warning
+		// on custom event nodes with struct/object inputs added by the user in the Details tab and also set to pass-by-reference.
+		//
+		// Blueprint details customization now sets 'bIsConst' in new custom event node placements - see OnRefCheckStateChanged().
+		for (auto Pin : Pins)
+		{
+			if (Pin)
+			{
+				Ar.Preload(Pin);
+
+				if (Pin->Direction == EGPD_Output
+					&& !Pin->PinType.bIsConst
+					&& !K2Schema->IsExecPin(*Pin)
+					&& !K2Schema->IsDelegateCategory(Pin->PinType.PinCategory))
+				{
+					for (auto PinInfo : UserDefinedPins)
+					{
+						if (PinInfo->PinName == Pin->PinName)
+						{
+							Pin->PinType.bIsConst = PinInfo->PinType.bIsConst = PinInfo->PinType.bIsArray || PinInfo->PinType.bIsReference;
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -301,7 +337,7 @@ void UK2Node_CustomEvent::ReconstructNode()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	const UEdGraphPin* DelegateOutPin = FindPin(DelegateOutputName);
-	const UEdGraphPin* LinkedPin = ( DelegateOutPin && DelegateOutPin->LinkedTo.Num() && DelegateOutPin->LinkedTo[0] ) ? DelegateOutPin->LinkedTo[0] : nullptr;
+	const UEdGraphPin* LinkedPin = ( DelegateOutPin && DelegateOutPin->LinkedTo.Num() && DelegateOutPin->LinkedTo[0] ) ? FBlueprintEditorUtils::FindFirstCompilerRelevantLinkedPin(DelegateOutPin->LinkedTo[0]) : nullptr;
 
 	const UFunction* DelegateSignature = nullptr;
 

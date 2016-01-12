@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundCueEditorModule.h"
 #include "SoundDefinitions.h"
@@ -238,7 +238,7 @@ void FSoundCueEditor::PostUndo(bool bSuccess)
 
 void FSoundCueEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class UProperty* PropertyThatChanged)
 {
-	if (SoundCueGraphEditor.IsValid())
+	if (SoundCueGraphEditor.IsValid() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
 		SoundCueGraphEditor->NotifyGraphChanged();
 	}

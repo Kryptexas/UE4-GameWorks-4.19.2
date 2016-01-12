@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -60,7 +60,7 @@ public:
 	 */
 	TMap<FRigidBodyIndexPair,bool>		CollisionDisableTable;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual FString GetDesc() override;
@@ -69,7 +69,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 #endif
-	// End UObject interface
+	//~ End UObject Interface
 
 	// Find the index of the physics bone that is controlling this graphics bone.
 	ENGINE_API int32		FindControllingBodyIndex(class USkeletalMesh* skelMesh, int32 BoneIndex);

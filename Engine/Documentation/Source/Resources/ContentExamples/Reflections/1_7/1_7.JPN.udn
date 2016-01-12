@@ -1,14 +1,33 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2722008
 Availability:Public
 Title:1.7 - Scene Capture 2D
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
-Description:反射のサンプル レベル概要、例 1.7：Scene Capture 2D
+Description:反射のサンプル レベルの概要、サンプル 1.7：Scene Capture 2D
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Resources/Showcases/RealisticRendering
 Related:Engine/Rendering/PostProcessEffects
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Reflections/1_6 "%Resources/ContentExamples/Reflections/1_6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[反射のホーム](Resources/ContentExamples/Reflections)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -54,7 +73,7 @@ Related:Engine/Rendering/PostProcessEffects
 ![](Reflections_1_7_Header.png)
 ## 概要
 
-[**Scene Capture Cube**](Resources\ContentExamples\Reflections\1_6) と同様に、 **Scene Capture 2D** はシーンの画像を _フレームごと_ に作成します。Scene Capture 2D アクタは実世界の反射のようには機能しません。このアクタはカメラから画像を受信する TV スクリーンのような機能をします。Scene Capture 2D はビュー錐台からのシーンをキャプチャして、そのビューを画像としてビューへ格納します。格納した画像はその後マテリアル内で使用されます。実際にアンリアル エディタの **Scene Capture 2D** 表現はカメラで行います。ゲームのセキュリティ カメラ エフェクトとして最も一般に使用されます。 
+[Screen Capture Cube](Resources\ContentExamples\Reflections\1_6) と同様に、 **Scene Capture 2D** はシーンの画像を _フレームごと_ に作成します。Scene Capture 2D アクタは実世界の反射のようには機能しません。このアクタはカメラから画像を受信する TV スクリーンのような機能をします。Scene Capture 2D はビュー錐台からのシーンをキャプチャして、そのビューを画像としてビューへ格納します。格納した画像はその後マテリアル内で使用されます。実際にアンリアル エディタの Scene Capture 2D 表現はカメラで行います。ゲームのセキュリティ カメラ エフェクトとして最も一般に使用されます。 
 
 [REGION:warning]
 Scene Capture Cube よりも 6 分の 1 程度コストが高いだけですが、使用時はパフォーマンスヒットが発生するため、Scene Capture 2D の使用には未だ注意が必要です。

@@ -1,9 +1,12 @@
-﻿INTSourceChangelist:2612412
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:まずはここから
+Title:はじめよう
 Crumbs:%ROOT%
-Description:アンリアルエンジンの入門レベル
+Description:UNREAL ENGINE 入門
 Navigation:start
+version:4.9
+parent:%ROOT%
+order:1
 
 [VAR:Params]
 [PARAM:image]
@@ -50,7 +53,7 @@ gettingstarted
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		開始する
+		はじめよう
 	[/PARAM]
 	[PARAM:description]
 		[REGION:topics third]
@@ -100,7 +103,7 @@ gettingstarted
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		エディタの基本原理
+		エディタの基本
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Shared/Glossary/P/#Glossary_project]
@@ -116,19 +119,7 @@ gettingstarted
 		[REGION:normaltitle]
 		関連ビデオ
 		[/REGION]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-				w4XlBKeE46E
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-				PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-				180
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-		[/OBJECT]
+		[VideoLink(videoid:"w4XlBKeE46E" playlistid:"PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl" width:"180")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -138,7 +129,7 @@ gettingstarted
 		![](%ROOT%/viewport_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		エディタ ビューポート
+		エディタのビューポート
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
@@ -154,7 +145,7 @@ gettingstarted
 		![](%ROOT%/profile_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		エディタ モード
+		エディタのモード
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Shared/Glossary/M#glossary_modes_panel]
@@ -169,33 +160,21 @@ gettingstarted
 		![](%ROOT%/levels_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		アクタ＆ジオメトリ
+		アクタとジオメトリー
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Engine/UI/LevelEditor#actors]
 	[/PARAM]
 	[PARAM:links]
-	* [](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
-	* [ジオメトリ アクタ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
-	* [](Engine/Actors/Transform "%Engine/Actors/Transform:description%")
+	* [配置](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
+	* [ジオメトリー ブラシ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [トランスフォーム](Engine/Actors/Transform "%Engine/Actors/Transform:description%")
 
 	[REGION:gallery]
 	[REGION:normaltitle]
 	関連ビデオ
 	[/REGION]
-	[OBJECT:VideoLink]
-		[PARAMLITERAL:videoid]
-			cl_eoVfNDKU
-		[/PARAMLITERAL]
-		[PARAMLITERAL:playlistid]
-			PLZlv_N0_O1gak1_FoAJVrEGiLIploeF3F
-		[/PARAMLITERAL]
-		[PARAMLITERAL:width]
-			180
-		[/PARAMLITERAL]
-		[PARAMLITERAL:image]
-		[/PARAMLITERAL]
-	[/OBJECT]
+	[VideoLink(videoid:"cl_eoVfNDKU" playlistid:"PLZlv_N0_O1gak1_FoAJVrEGiLIploeF3F" width:"180")]
 	[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -259,20 +238,7 @@ gettingstarted
 		[REGION:normaltitle]
 		関連ビデオ
 		[/REGION]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-				lngF4VVNER4
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-				PLZlv_N0_O1gbQjgY0nDwZNYe_N8IcYWS-
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-				180
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-				https://img.youtube.com/vi/Yb4uu2NEC0E/maxresdefault.jpg
-			[/PARAMLITERAL]
-		[/OBJECT]
+		[VideoLink(videoid:"lngF4VVNER4" playlistid:"PLZlv_N0_O1gbQjgY0nDwZNYe_N8IcYWS-" width:"180" image:"https://img.youtube.com/vi/lngF4VVNER4/hqdefault.jpg")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -283,7 +249,7 @@ gettingstarted
 		![](%ROOT%/blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ブループリント・ビジュアル・スクリプティング
+		ブループリント ビジュアル スクリプティング
 	[/PARAM]
 	[PARAM:description]	
 		[INCLUDE:Engine/Blueprints#intro]	
@@ -295,19 +261,7 @@ gettingstarted
 		[REGION:normaltitle]
 		関連ビデオ
 		[/REGION]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-				cRhWc2kAhqI
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-				PLZlv_N0_O1gbYMYfhhdzfW1tUV4jU0YxH
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-				180
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-		[/OBJECT]
+		[VideoLink(videoid:"cRhWc2kAhqI" playlistid:"PLZlv_N0_O1gY35ezlSQn1sWOGfh4C7ewO" width:"180")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -334,19 +288,7 @@ gettingstarted
 		[REGION:normaltitle]
 		関連ビデオ
 		[/REGION]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-				vtcWrcscXos
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-				PLZlv_N0_O1gb5xvsc7VM7pfoRAKLuIcFi
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-				180
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-		[/OBJECT]
+		[VideoLink(videoid:"vtcWrcscXos" playlistid:"PLZlv_N0_O1gb5xvsc7VM7pfoRAKLuIcFi" width:"180")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]
@@ -359,9 +301,9 @@ gettingstarted
 		自分のゲームをプレイテストする
 	[/PARAM]
 	[PARAM:description]
-		アンリアル エンジンのビルトイン機能を使用してレベルとゲームプレイをテストし、デバッグします。Play In Editor モードを使用してリアルタイムのフィードバックを直接エディタから得ます。 
-		Simulate In Editor (エディタでシミュレーション) モードを使用して 
-		ゲームの実行中にオブジェクトを調べたり、操作したりすることもします。Hot Reload (ホットリロード) を使用して 
+		UNREAL ENGINE のビルトイン機能を使用してレベルとゲームプレイをテストし、デバッグします。プレイイン エディタ モードを使用してリアルタイムのフィードバックを直接エディタから得ます。 
+		シミュレート イン エディタ モードを使用して 
+		ゲームの実行中にオブジェクトを調べたり、操作したりすることもします。ホットリロードを使用して 
 		プレイ中にゲームプレイ コードを変更、ゲームをリコンパイル、更新します。
 	[/PARAM]
 	[PARAM:links]

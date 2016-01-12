@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinkerManager.h: Unreal object linker manager
@@ -142,7 +142,7 @@ void FLinkerManager::DissociateImportsAndForcedExports()
 				for (int32 ImportIndex = 0; ImportIndex < Linker->ImportMap.Num(); ImportIndex++)
 				{
 					FObjectImport& Import = Linker->ImportMap[ImportIndex];
-					if (Import.XObject && !Import.XObject->HasAnyFlags(RF_Native))
+					if (Import.XObject && !Import.XObject->IsNative())
 					{
 						Import.XObject = nullptr;
 					}

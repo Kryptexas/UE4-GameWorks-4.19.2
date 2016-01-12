@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectAggregator.h"
@@ -290,6 +290,14 @@ void FAggregator::BroadcastOnDirty()
 	{
 		// Apologies for the vague warning but its very hard from this spot to call out what data has caused this. If this frequently happens we should improve this.
 		ABILITY_LOG(Warning, TEXT("FAggregator detected cyclic attribute dependencies. We are skipping a recursive dirty call. Its possible the resulting attribute values are not what you expect!"));
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Additional, slow, debugging that will print all aggregator/attributes that are currently dirty
+		for (TObjectIterator<UAbilitySystemComponent> It; It; ++It)
+		{
+			It->DebugCyclicAggregatorBroadcasts(this);
+		}
+#endif
 		return;
 	}
 
@@ -298,7 +306,9 @@ void FAggregator::BroadcastOnDirty()
 	OnDirty.Broadcast(this);
 
 
-	TArray<FActiveGameplayEffectHandle>	ValidDependents;
+	static TArray<FActiveGameplayEffectHandle>	ValidDependents;
+	ValidDependents.Reset();
+
 	for (FActiveGameplayEffectHandle Handle : Dependents)
 	{
 		UAbilitySystemComponent* ASC = Handle.GetOwningAbilitySystemComponent();

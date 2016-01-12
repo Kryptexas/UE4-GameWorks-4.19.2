@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,7 +27,7 @@ class UCurveTable
 	/** Map of name of row to row data structure. */
 	TMap<FName, FRichCurve*>	RowMap;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void FinishDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
 
@@ -45,9 +45,9 @@ class UCurveTable
 	
 #endif	// WITH_EDITORONLY_DATA
 
-	// End  UObject interface
+	//~ End  UObject Interface
 
-	// Begin UCurveTable interface
+	//~ Begin UCurveTable Interface
 
 	/** Function to find the row of a table given its name. */
 	FRichCurve* FindCurve(FName RowName, const FString& ContextString, bool WarnIfNotFound=true) const
@@ -164,3 +164,6 @@ struct ENGINE_API FCurveTableRowHandle
 
 /** Macro to call GetCurve with a correct error info. Assumed to be called within a UObject */
 #define GETCURVE_REPORTERROR(Handle) Handle.GetCurve(FString::Printf(TEXT("%s.%s"), *GetPathName(), TEXT(#Handle)))
+
+/** Macro to call GetCurve with a correct error info. */
+#define GETCURVE_REPORTERROR_WITHPATHNAME(Handle, PathNameString) Handle.GetCurve(FString::Printf(TEXT("%s.%s"), *PathNameString, TEXT(#Handle)))

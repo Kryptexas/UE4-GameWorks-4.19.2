@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2489335
+﻿INTSourceChangelist:2620011
 Availability:Public
-Title:プレイヤー入力とPawn クラス
+Title:プレイヤー入力と Pawn クラス
 Crumbs:%ROOT%, GettingStarted
 Description:Pawn クラスを拡張してプレイヤーの入力に反応させる
+バージョン:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -57,7 +58,7 @@ Description:Pawn クラスを拡張してプレイヤーの入力に反応させ
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		手順
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

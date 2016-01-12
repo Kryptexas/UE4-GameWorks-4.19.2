@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2742417
 Availability:Public
 Title:Example Game Projects（サンプル ゲーム プロジェクト）
 Crumbs:%ROOT%, Resources
 Description:様々なジャンルの実装を実演する充実したサンプル ゲーム
+Version:4.9
 
 
 [VAR:Topic]
@@ -53,6 +54,7 @@ Example Game Projects (サンプル ゲーム プロジェクト) は、Epic の
 [/Excerpt:SampleGames]
 
 [REGION:topics third]
+%Resources/SampleGames/PlatformerGame:TopicCompact%
 %Resources/SampleGames/ShooterGame:TopicCompact%
 %Resources/SampleGames/StrategyGame:TopicCompact%
 %Resources/SampleGames/CardGame:TopicCompact%

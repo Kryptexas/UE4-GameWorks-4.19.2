@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -253,6 +253,14 @@ protected:
 	 * @return	The widget content for the new menu
 	 */
 	TSharedRef< SWidget > BuildMenuBarWidget( const FMenuEntryBuildParams& InBuildParams );
+	
+	/**
+	* Finds the STextBlock that gets displayed in the UI
+	*
+	* @param Content	Widget to check for an STextBlock
+	* @return	The STextBlock widget found
+	*/
+	TSharedRef<SWidget> FindTextBlockWidget(TSharedRef<SWidget> Content);
 
 	/**
 	 * Called to create content for a menu entry inside a pull-down, context, or sub-menu

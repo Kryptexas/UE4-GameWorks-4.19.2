@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -11,8 +11,8 @@ class UParticleModuleEventBase : public UParticleModule
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual EModuleType	GetModuleType() const override {	return EPMT_Event;	}
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 };
 

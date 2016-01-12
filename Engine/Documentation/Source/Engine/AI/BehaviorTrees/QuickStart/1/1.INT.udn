@@ -23,7 +23,7 @@ Description:Step 1. Essential Setup
 
 %Steps%
 
-This Quick Start makes some assumptions about what is available in the project, as such, if you aren't comfortable making substations or problem solving on the fly, then you should setup the project as follows.
+This Quick Start makes some assumptions about what is available in the project, as such, if you aren't comfortable making substitutions or problem solving on the fly, then you should setup the project as follows.
 
 ## Steps
 
@@ -33,7 +33,7 @@ This Quick Start makes some assumptions about what is available in the project, 
 
 1. Generate a new project based on the **Blueprint Top Down** template
 
-	The **Starter Assets** are optional for this quick start guide.
+	**Starter Content** is optional for this quick start guide.
 
 
 If you need further explanation of starting a new project, see the [Project Browser](Engine/Basics/Projects/Browser) User Guide.

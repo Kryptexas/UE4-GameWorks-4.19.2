@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,6 +40,9 @@ class UParticleSystemAuditCommandlet : public UCommandlet
 
 	/** The folder in which the commandlet's output files will be stored */
 	FString AuditOutputFolder;
+
+	/** Only assets in this collection will be considered. If this is left blank, no assets will be filtered by collection */
+	FString FilterCollection;
 
 	/** Entry point */
 	int32 Main(const FString& Params) override;

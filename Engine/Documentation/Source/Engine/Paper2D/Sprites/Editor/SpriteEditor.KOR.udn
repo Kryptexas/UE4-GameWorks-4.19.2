@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2632184
 Availability:Public
 Title:스프라이트 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -11,7 +11,6 @@ Related: Engine/Content/Types/Textures
 
 [TOC(start:2 end:2)]
 
-## 개요
 
 페이퍼 2D **스프라이트 에디터** 는 개별 스프라이트 애셋의 구성 및 편집이 가능합니다.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "LinkerPlaceholderClass.h"
@@ -19,9 +19,16 @@ void UAssetClassProperty::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-FString UAssetClassProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
+FString UAssetClassProperty::GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const
 {
-	return FString::Printf(TEXT("TAssetSubclassOf<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
+	check(MetaClass);
+	return GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, 
+		FString::Printf(TEXT("%s%s"), MetaClass->GetPrefixCPP(), *MetaClass->GetName()));
+}
+FString UAssetClassProperty::GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName) const
+{
+	ensure(!InnerNativeTypeName.IsEmpty());
+	return FString::Printf(TEXT("TAssetSubclassOf<%s> "), *InnerNativeTypeName);
 }
 FString UAssetClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {

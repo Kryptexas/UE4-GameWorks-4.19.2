@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction.h"
@@ -251,7 +251,7 @@ bool UPawnAction::Activate()
 void UPawnAction::OnPopped()
 {
 	// not calling OnFinish if action haven't actually started
-	if (bFailedToStart == false)
+	if (!bFailedToStart || bAlwaysNotifyOnFinished)
 	{
 		OnFinished(FinishResult);
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -14,10 +14,10 @@ class UInterpGroupDirector : public UInterpGroup
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UInterpGroup Interface
+	//~ Begin UInterpGroup Interface
 	virtual AActor* SelectGroupActor( class UInterpGroupInst* GrInst, bool bDeselectActors ) override;
 	virtual AActor* DeselectGroupActor( class UInterpGroupInst* GrInst ) override;
-	// End UInterpGroup Interface
+	//~ End UInterpGroup Interface
 
 	/** @return the director track inside this Director group - if present. */
 	ENGINE_API class UInterpTrackDirector* GetDirectorTrack();

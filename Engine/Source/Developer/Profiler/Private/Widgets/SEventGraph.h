@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -255,6 +255,7 @@ protected:
 	bool EventGraphType_IsEnabled( const EEventGraphTypes::Type InEventGraphType ) const;
 
 	void FilteringSearchBox_OnTextChanged( const FText& InFilterText );
+	void FilteringSearchBox_OnTextCommitted( const FText& NewText, ETextCommit::Type CommitType );
 	bool FilteringSearchBox_IsEnabled() const;
 
 	TSharedPtr<SWidget> EventGraph_GetMenuContent() const;
@@ -607,6 +608,12 @@ protected:
 			return new FEventGraphState( *this, InFilterPropertyName, InFilterEventPtr, FFilteredTag() );
 		}
 
+		FEventGraphState* CreateCopyWithTextFiltering(const FString& InFilterText)
+		{
+			FEventGraphState* Result = new FEventGraphState( *this, NAME_None, nullptr, FFilteredTag() );
+			InFilterText.ParseIntoArray(Result->TextBasedFilterStringTokens, TEXT(" "));
+			return Result;
+		}
 	protected:
 		/** Copy constructor for setting new root. */
 		FEventGraphState( const FEventGraphState& EventGraphState, const TArray<FEventGraphSamplePtr>& UniqueLeafs )
@@ -704,6 +711,9 @@ protected:
 		/** Value of the property used to filter out the event graph. */
 		FEventGraphSamplePtr FilterEventPtr;
 
+		/** Text substrings to match for text-based filtering (AND - all must be present) */
+		TArray<FString> TextBasedFilterStringTokens;
+
 		const double CreationTime;
 		EEventHistoryTypes::Type HistoryType;
 
@@ -793,9 +803,58 @@ protected:
 			}
 		}
 
+private:
+		static bool PassesTokenFilter(const TArray<FString>& FilterTokens, const FString& TestString)
+		{
+			for (const FString& Token : FilterTokens)
+			{
+				if (!TestString.Contains(Token))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		// Sets the filter and optionally culled properties, returning true if any child passed the filter
+		bool ApplyTextBasedFilterInternal(TArray< FEventGraphSamplePtr >& Nodes, bool bCullAsWell)
+		{
+			bool bAnyPasses = false;
+
+			for (FEventGraphSamplePtr& Node : Nodes)
+			{
+				const bool bChildPassesFilter = ApplyTextBasedFilterInternal(Node->GetChildren(), bCullAsWell);
+
+				const bool bThisPassesFilter = PassesTokenFilter(TextBasedFilterStringTokens, Node->_StatName.ToString());
+
+				bAnyPasses = bAnyPasses || bThisPassesFilter || bChildPassesFilter;
+
+				Node->PropertyValueAsBool(EEventPropertyIndex::bIsFiltered) = !bThisPassesFilter;
+				
+				if (bCullAsWell)
+				{
+					const bool bChildSavesFromCull = (ViewMode == EEventGraphViewModes::Hierarchical) && bChildPassesFilter;
+
+					bool& bCullState = Node->PropertyValueAsBool(EEventPropertyIndex::bIsCulled);
+
+					bCullState = (bCullState || !bChildPassesFilter) && !bChildSavesFromCull;
+				}
+			}
+
+			return bAnyPasses;
+		}
+
+public:
 		void ApplyFiltering()
 		{
-			if( IsFiltered() )
+			if (TextBasedFilterStringTokens.Num() > 0)
+			{
+				// Apply text substring filtering (and optionally culling).
+				const bool bAlsoCull = true;
+				ApplyTextBasedFilterInternal(GetRoot()->GetChildren(), bAlsoCull);
+			}
+			else if (IsFiltered())
 			{
 				// Apply filtering.
 				FEventArrayBooleanOp::ExecuteOperation

@@ -1,28 +1,3 @@
-Compilation Copyright (c) 1995-2013 by Wei Dai.  All rights reserved.
-This copyright applies only to this software distribution package 
-as a compilation, and does not imply a copyright on any particular 
-file in the package.
-
-All individual files in this compilation are placed in the public domain by
-Wei Dai and other contributors.
-
-I would like to thank the following authors for placing their works into
-the public domain:
-
-Joan Daemen - 3way.cpp
-Leonard Janke - cast.cpp, seal.cpp
-Steve Reid - cast.cpp
-Phil Karn - des.cpp
-Andrew M. Kuchling - md2.cpp, md4.cpp
-Colin Plumb - md5.cpp
-Seal Woods - rc6.cpp
-Chris Morgan - rijndael.cpp
-Paulo Baretto - rijndael.cpp, skipjack.cpp, square.cpp
-Richard De Moliner - safer.cpp
-Matthew Skala - twofish.cpp
-Kevin Springle - camellia.cpp, shacal2.cpp, ttmac.cpp, whrlpool.cpp, ripemd.cpp
-Ronny Van Keer - sha3.cpp
-
 The Crypto++ Library (as a compilation) is currently licensed under the Boost
 Software License 1.0 (http://www.boost.org/users/license.html).
 

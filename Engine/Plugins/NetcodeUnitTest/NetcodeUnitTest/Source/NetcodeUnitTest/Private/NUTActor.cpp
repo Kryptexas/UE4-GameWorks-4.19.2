@@ -1,8 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "NetcodeUnitTestPCH.h"
 
-// @todo JohnB: Need to tidy up and fully document this class; not all of the code below is clear
+// @todo #JohnBDoc: Need to tidy up and fully document this class; not all of the code below is clear
 
 #include "NUTActor.h"
 #include "NUTUtilNet.h"
@@ -86,6 +86,12 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 
 	if (MessageType == NMT_NUTControl)
 	{
+		// Some commands won't work without an owner, so if one is not set, set it now
+		if (Cast<APlayerController>(GetOwner()) == NULL)
+		{
+			UpdateOwner();
+		}
+
 		uint8 CmdType = 0;
 		FString Command;
 		FNetControlMessage<NMT_NUTControl>::Receive(Bunch, CmdType, Command);
@@ -332,48 +338,9 @@ void ANUTActor::Tick(float DeltaSeconds)
 		}
 
 		// Have the server set the owner, when appropriate
-		if ((Cast<APlayerController>(GetOwner()) == NULL || bClientTimedOut) && GEngine != NULL && CurNetMode != NM_Client)
+		if (Cast<APlayerController>(GetOwner()) == NULL || bClientTimedOut)
 		{
-			AGameState* GameState = CurWorld->GameState;
-
-			if (GameState != NULL)
-			{
-				// @todo JohnB: You want this to only happen if no remote players are present (perhaps give all players control instead,
-				//				if this becomes a problem - requires setting things up differently though)
-				if (CurNetMode == NM_ListenServer || CurNetMode == NM_Standalone)
-				{
-					for (FLocalPlayerIterator It(GEngine, CurWorld); It; ++It)
-					{
-						if (It->PlayerController != NULL)
-						{
-							// Reset LastAliveTime, to give client a chance to send initial 'alive' RPC
-							LastAliveTime = CurWorld->RealTimeSeconds;
-
-							SetOwner(It->PlayerController);
-							break;
-						}
-					}
-				}
-
-				for (int i=0; i<GameState->PlayerArray.Num(); i++)
-				{
-					APlayerController* PC = Cast<APlayerController>(GameState->PlayerArray[i] != NULL ?
-																	GameState->PlayerArray[i]->GetOwner() : NULL);
-
-					if (PC != NULL && PC != GetOwner() && Cast<UNetConnection>(PC->Player) != NULL)
-					{
-						UE_LOG(LogUnitTest, Log, TEXT("Setting NUTActor owner to: %s (%s)"), *PC->GetName(),
-							*GameState->PlayerArray[i]->PlayerName);
-
-						// Reset LastAliveTime, to give client a chance to send initial 'alive' RPC
-						LastAliveTime = CurWorld->RealTimeSeconds;
-
-						SetOwner(PC);
-
-						break;
-					}
-				}
-			}
+			UpdateOwner();
 		}
 
 
@@ -424,6 +391,52 @@ void ANUTActor::Tick(float DeltaSeconds)
 				NetMulticastPing();
 
 				bMonitorForBeacon = false;
+			}
+		}
+	}
+}
+
+void ANUTActor::UpdateOwner()
+{
+	UWorld* CurWorld = GetWorld();
+	ENetMode CurNetMode = GEngine != NULL ? GEngine->GetNetMode(CurWorld) : NM_Standalone;
+	AGameState* GameState = CurWorld->GameState;
+
+	if (GameState != NULL && GEngine != NULL && CurNetMode != NM_Client)
+	{
+		// @todo #JohnBReview: You want this to only happen if no remote players are present (perhaps give all players control instead,
+		//				if this becomes a problem - requires setting things up differently though)
+		if (CurNetMode == NM_ListenServer || CurNetMode == NM_Standalone)
+		{
+			for (FLocalPlayerIterator It(GEngine, CurWorld); It; ++It)
+			{
+				if (It->PlayerController != NULL)
+				{
+					// Reset LastAliveTime, to give client a chance to send initial 'alive' RPC
+					LastAliveTime = CurWorld->RealTimeSeconds;
+
+					SetOwner(It->PlayerController);
+					break;
+				}
+			}
+		}
+
+		for (int i=0; i<GameState->PlayerArray.Num(); i++)
+		{
+			APlayerController* PC = Cast<APlayerController>(GameState->PlayerArray[i] != NULL ?
+															GameState->PlayerArray[i]->GetOwner() : NULL);
+
+			if (PC != NULL && PC != GetOwner() && Cast<UNetConnection>(PC->Player) != NULL)
+			{
+				UE_LOG(LogUnitTest, Log, TEXT("Setting NUTActor owner to: %s (%s)"), *PC->GetName(),
+					*GameState->PlayerArray[i]->PlayerName);
+
+				// Reset LastAliveTime, to give client a chance to send initial 'alive' RPC
+				LastAliveTime = CurWorld->RealTimeSeconds;
+
+				SetOwner(PC);
+
+				break;
 			}
 		}
 	}

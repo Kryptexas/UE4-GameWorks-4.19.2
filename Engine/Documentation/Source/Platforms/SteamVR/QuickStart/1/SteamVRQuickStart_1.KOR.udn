@@ -1,0 +1,66 @@
+﻿INTSourceChangelist:2667895
+Title: 1. SteamVR 초기 구성
+Crumbs:%ROOT%, Platforms
+Description: SteamVR 필수 하드웨어 및 소프트웨어 구성법입니다.
+Availability:Public
+Navigation:platform
+Platform:SteamVR
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[SteamVR 퀵 스타트 홈](Platforms/SteamVR/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/SteamVR/QuickStart/2 "%Platforms/SteamVR/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+SteamVr 하드웨어가 제대로 구성되었고 소프트웨어가 개발 PC 에 제대로 설치되었는지 확인하는 것은 언리얼 엔진 4 에 SteamVR 하드웨어가 정상 작동하도록 하는 데 있어 매우 중요한 일입니다.
+다음 섹션에서는 UE4 에서 SteamVR 소프트웨어 및 하드웨어 작업을 할 수 있도록 구성하는 데 있어 필요한 특수 고려사항을 살펴보도록 하겠습니다.
+
+[region:note]
+SteamVR 개발 키트 각각에는 Valve 가 제공한 [상세 안내서](http://media.steampowered.com/apps/steamvr/vr_setup.pdf ) 가 포함되어 있어 올바른 구성법을 참고할 수 있습니다.
+이 문서를 읽지 않으신 경우, 계속 진행하기 전 먼저 읽어보시기 바랍니다. 왜냐면 다음 정보는 Valve 의 문서에 포함된 정보에는 적합하지 않기 때문입니다.
+[/region]
+
+1. 4 x 3 미터 정도 공간에서 SteamVR 사용 도중 걸려 넘어질 수 있는 모든 물건을 치웁니다.
+
+1. Steam 클라이언트 내 **라이브러리** 섹션에서 **툴** 옵션 아래, **SteamVR** 과 **VRMonitor** 둘 다 다운로드하여 설치합니다.
+
+	![](T_SteamTools_Software.png)
+
+1. Vive Head Mounted Display (HMD), Steam Controllers, Breakout box, Lighthouse Base station 모두 포장을 풀고 전원이 들어와 있으며 Valve 의 [안내](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) 대로 연결 및 구성되어 있는지 확인합니다.
+
+1. 모두 연결되어 전원이 켜졌으면 Vive HMD 의 렌즈가 자신을 향하도록 집어듭니다.
+Vive HMD 의 **왼쪽 측면** 에 보면 위에 작은 라이트가 있는 작은 **검정 버튼** 이 있습니다.
+현재 라이트는 **빨강** 이라 Vive HMD 가 대기 모드임을 나타냅니다.
+**검정 버튼** 을 **5 초** 이상 누르고 있으면 빨강 라이트가 **초록** 으로 바뀌어, Vive HMD 사용 준비가 되었음을 나타냅니다.
+
+	![](T_Vive_Standby_Mode.png)
+
+	[region:note]
+	한가지 염두에 둘 것은, Vive HMD 의 정상 작동을 위해서는 개발 PC 에 사용할 수 있는 **[USB 3.0](http://en.wikipedia.org/wiki/USB_3.0)** 포트가 있어야 합니다. 
+	[/region]
+
+1. Steam 클라이언트에서 **Steam VR** 어플리케이션을 실행시키면 다음과 같은 창이 뜹니다.
+
+	![](T_Steam_VR_App.png)
+
+1. **구성** 섹션의 처음 세 단계대로 완료했는지 확인한 뒤, 모든 것이 완료되었으면 **Run your first VR app!** 을 클릭한 뒤 HMD 를 착용합니다.
+   모두 제대로 구성되었다면 HMD 에 아래와 같은 이미지가 보일 것입니다.
+
+	![](T_FirstVRApp.png)
+
+
+
+
+
+%Steps%

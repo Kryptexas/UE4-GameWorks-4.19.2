@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -694,7 +694,7 @@ void UPaperTileMap::InitializeNewEmptyTileMap(UPaperTileSet* InitialTileSet)
 
 UPaperTileMap* UPaperTileMap::CloneTileMap(UObject* OuterForClone)
 {
-	return CastChecked<UPaperTileMap>(StaticDuplicateObject(this, OuterForClone, nullptr));
+	return CastChecked<UPaperTileMap>(StaticDuplicateObject(this, OuterForClone));
 }
 
 bool UPaperTileMap::UsesTileSet(UPaperTileSet* TileSet) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneParticleTrackInstance.h"
@@ -13,17 +13,17 @@ FMovieSceneParticleTrackInstance::~FMovieSceneParticleTrackInstance()
 }
 
 
-void FMovieSceneParticleTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
+void FMovieSceneParticleTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
 {
 	// @todo Sequencer We need something analagous to Matinee 1's particle replay tracks
 	// What we have here is simple toggling/triggering
 
 	if (Position > LastPosition && Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
 	{
-		
 		const TArray<UMovieSceneSection*> Sections = ParticleTrack->GetAllParticleSections();
-		EParticleKey::Type ParticleKey = EParticleKey::Active;
+		EParticleKey::Type ParticleKey = EParticleKey::Deactivate;
 		bool bKeyFound = false;
+
 		for (int32 i = 0; i < Sections.Num(); ++i)
 		{
 			UMovieSceneParticleSection* Section = Cast<UMovieSceneParticleSection>( Sections[i] );
@@ -50,17 +50,25 @@ void FMovieSceneParticleTrackInstance::Update( float Position, float LastPositio
 				AEmitter* Emitter = Cast<AEmitter>(RuntimeObjects[i]);
 				if (Emitter)
 				{
-					if ( ParticleKey == EParticleKey::Active )
+					UParticleSystemComponent* ParticleSystemComponent = Emitter->GetParticleSystemComponent();
+					if ( ParticleSystemComponent != nullptr )
 					{
-						if ( Emitter->IsActive() )
+						if ( ParticleKey == EParticleKey::Activate)
 						{
-							Emitter->Deactivate();
+							if ( ParticleSystemComponent->IsActive() )
+							{
+								ParticleSystemComponent->SetActive(false, true);
+							}
+							ParticleSystemComponent->SetActive(true, true);
 						}
-						Emitter->Activate();
-					}
-					else if( ParticleKey == EParticleKey::Inactive )
-					{
-						Emitter->Deactivate();
+						else if( ParticleKey == EParticleKey::Deactivate )
+						{
+							ParticleSystemComponent->SetActive(false, true);
+						}
+						else if ( ParticleKey == EParticleKey::Trigger )
+						{
+							ParticleSystemComponent->ActivateSystem(true);
+						}
 					}
 				}
 			}

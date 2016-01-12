@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2653049
 Availability: Public
 Title:1.1 - 기본 데칼
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -12,6 +12,22 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[데칼 홈](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Decals/1_2 "%Resources/ContentExamples/Decals/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -56,12 +72,12 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 ![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_1.png)
 
-## 개요
+
 
 Decal(데칼)이란 레벨의 메시에 투영되는 머티리얼로, 여기에는 스태틱 메시나 스켈레탈 메시가 포함됩니다. 이러한 메시는 Static (스태틱) 또는 Movable (무버블) 같은 **Mobility** (모빌리티) 세팅으로 이동가능 여부를 결정하고, 데칼은 그 위에 투영되게 됩니다. 다수의 데칼도 큰 퍼포먼스 저하 없이 한 번에 렌더링 가능합니다. 퍼포먼스 저하는 스크린 스페이스 크기가 커 질수록, 셰이더 인스트럭션 수가 많아 질수록 심해지게 됩니다.
 
 
-데칼 액터는 클래스 뷰어에서 바로 추가시킬 수 있습니다. 그 후 새 머티리얼을 만들고 **Material Domain** (머티리얼 도메인) 프로퍼티를 Deferred Decal (디퍼드 데칼)로 변경해 줘야 합니다. 그런 다음 데칼 액터에 머티리얼을 적용하면 됩니다.
+디퍼드 데칼 액터는 **모드** 패널의 **모든 클래스** 탭에서 바로 추가시킬 수 있습니다. 그 후 새 머티리얼을 만들고 머티리얼의 **디테일** 패널에서 **Material Domain** (머티리얼 도메인) 프로퍼티를 Deferred Decal (디퍼드 데칼)로 변경해 줘야 합니다. 그런 다음 데칼 액터에 머티리얼을 적용하면 됩니다.
 
 ![](DecalActorList.png)
 

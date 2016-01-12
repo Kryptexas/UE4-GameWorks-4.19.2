@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -16,8 +16,8 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
-			: base(InDesc, InRulesObject, "UE4Editor", InTargetCsFilename)
+		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, FileReference InTargetCsFilename)
+			: base(InDesc, InRulesObject, InRulesAssembly, "UE4Editor", InTargetCsFilename)
 		{
 		}
 
@@ -30,19 +30,19 @@ namespace UnrealBuildTool
 
 			{
 				// Make the editor executable.
-				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable,
+				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.Executable,
 																					InOutputFilePaths: OutputPaths,
 																					InIntermediateDirectory: EngineIntermediateDirectory,
 																					bInCreateImportLibrarySeparately: (ShouldCompileMonolithic() ? false : true),
-																					bInAllowExports:!ShouldCompileMonolithic(),
-																					InModuleNames: new List<string>() { "Launch" } );
+																					bInAllowExports: !ShouldCompileMonolithic(),
+																					InModuleNames: new List<string>() { "Launch" });
 
-				if(Platform == UnrealTargetPlatform.Win64 && Configuration != UnrealTargetConfiguration.Shipping)
+				if (Platform == UnrealTargetPlatform.Win64 && Configuration != UnrealTargetConfiguration.Shipping)
 				{
 					Config.bBuildAdditionalConsoleApp = true;
 				}
 
-				AppBinaries.Add( new UEBuildBinaryCPP( this, Config ) );
+				AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
 			}
 
 			// Add the other modules that we want to compile along with the executable.  These aren't necessarily
@@ -51,9 +51,6 @@ namespace UnrealBuildTool
 				// Modules should properly identify the 'extra modules' they need now.
 				// There should be nothing here!
 			}
-
-			// Allow the platform to setup binaries
-			UEBuildPlatform.GetBuildPlatform(Platform).SetupBinaries(this);
 		}
 
 		public override void SetupDefaultGlobalEnvironment(

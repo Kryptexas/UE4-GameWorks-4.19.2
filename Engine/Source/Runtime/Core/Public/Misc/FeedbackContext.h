@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -269,7 +269,7 @@ public:
 		CompletedWork += CurrentFrameScope;
 
 		const float WorkRemaining = TotalAmountOfWork - CompletedWork;
-		verifySlow(ExpectedWorkThisFrame <= WorkRemaining);
+		ensureMsgf(ExpectedWorkThisFrame <= WorkRemaining, TEXT("Work overflow in slow task. Please revise call-site to account for entire progress range."));
 		CurrentFrameScope = FMath::Min(WorkRemaining, ExpectedWorkThisFrame);
 
 		if (!bCreatedDialog && OpenDialogThreshold.IsSet() && static_cast<float>(FPlatformTime::Seconds() - StartTime) > OpenDialogThreshold.GetValue())

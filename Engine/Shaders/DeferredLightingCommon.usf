@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DeferredLightingCommon.usf: Common definitions for deferred lighting.
@@ -50,13 +50,6 @@ struct FSimpleDeferredLightData
 
 #undef LIGHT_SOURCE_SHAPE
 #define LIGHT_SOURCE_SHAPE 1
-
-bool RayHitSphere( float3 R, float3 SphereCenter, float SphereRadius )
-{
-	float3 ClosestPointOnRay = max( 0, dot( SphereCenter, R ) ) * R;
-	float3 CenterToRay = ClosestPointOnRay - SphereCenter;
-	return dot( CenterToRay, CenterToRay ) <= Square( SphereRadius );
-}
 
 bool RayHitRect( float3 R, float3 RectCenter, float3 RectX, float3 RectY, float3 RectZ, float RectExtentX, float RectExtentY )
 {
@@ -112,15 +105,15 @@ float3 PointLightSpecularMIS( FScreenSpaceData ScreenSpaceData, FDeferredLightDa
 		
 		if( NoL > 0 )
 		{
-			if( bSampleBRDF && !RayHitSphere( L, LightCenter, SourceRadius ) )
+			if( bSampleBRDF && !RayHitSphere( 0, L, LightCenter, SourceRadius ) )
 			{
 				continue;
 			}
 			
 			// Generalized microfacet specular
 			float D = D_GGX( Roughness, NoH );
-			float Vis = GeometricVisibility( Roughness, NoV, NoL, VoH );
-			float3 F = Fresnel( GBuffer.SpecularColor, VoH );
+			float Vis = Vis_SmithJointApprox( Roughness, NoV, NoL );
+			float3 F = F_Schlick( GBuffer.SpecularColor, VoH );
 
 			float ConePDF = 1.0 / ( 2 * PI * (1 - ConeCos) );
 			float GGXPDF = D * NoH / (4 * VoH);
@@ -241,7 +234,7 @@ void GetShadowTerms(FScreenSpaceData ScreenSpaceData, FDeferredLightData LightDa
 		// Also fix up the fade between dynamic and static shadows
 		// to work with plane splits rather than spheres.
 
-		float DynamicShadowFraction = DistanceFromCameraFade(ScreenSpaceData, LightData, WorldPosition, View.ViewOrigin.xyz);
+		float DynamicShadowFraction = DistanceFromCameraFade(ScreenSpaceData, LightData, WorldPosition, View.WorldCameraOrigin);
 		// For a directional light, fade between static shadowing and the whole scene dynamic shadowing based on distance + per object shadows
 		OpaqueShadowTerm = lerp(LightAttenuation.x, StaticShadowing, DynamicShadowFraction);
 		// Fade between SSS dynamic shadowing and static shadowing based on distance
@@ -329,7 +322,8 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 			GetShadowTerms(ScreenSpaceData, LightData, WorldPosition, LightAttenuation, SurfaceShadow, SubsurfaceShadow);
 
 			// greatly reduces shadow mapping artifacts
-			SurfaceShadow *= saturate(dot(N, L) * 6 - 0.2);
+			// Commented out because it reduces character shading quality.
+			//SurfaceShadow *= saturate(dot(N, L) * 6 - 0.2);
 		}
 		else
 		{
@@ -353,9 +347,10 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 			{
 #if 1	// for testing if there is a perf impact
 				// correct screen space subsurface scattering
-				float3 SurfaceLightingDiff = SurfaceShading(ScreenSpaceData.GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(1, 0));
-				float3 SurfaceLightingSpec = SurfaceShading(ScreenSpaceData.GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(0, 1));
+				float3 SurfaceLightingDiff = SurfaceShading(ScreenSpaceData.GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(1, 0), Random);
+				float3 SurfaceLightingSpec = SurfaceShading(ScreenSpaceData.GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(0, 1), Random);
 				LightAccumulator_Add(LightAccumulator, SurfaceLightingDiff, SurfaceLightingSpec, LightColor * (NoL * SurfaceAttenuation));
+				//LightAccumulator_Add(LightAccumulator, SurfaceLightingDiff, SurfaceLightingSpec, LightColor * (SurfaceAttenuation));
 #else
 				// wrong screen space subsurface scattering but potentially faster
 				float3 SurfaceLighting = SurfaceShading(ScreenSpaceData.GBuffer, LobeRoughness, LobeEnergy, L, V, N, float2(1, 1));
@@ -365,7 +360,7 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 
 			// accumulate subsurface
 			{
-				float3 SubsurfaceLighting = SubsurfaceShading(ScreenSpaceData.GBuffer, L, V, N);
+				float3 SubsurfaceLighting = SubsurfaceShading(ScreenSpaceData.GBuffer, L, V, N, SubsurfaceShadow, Random);
 
 				LightAccumulator_Add(LightAccumulator, SubsurfaceLighting, 0, LightColor * SubsurfaceAttenuation);
 

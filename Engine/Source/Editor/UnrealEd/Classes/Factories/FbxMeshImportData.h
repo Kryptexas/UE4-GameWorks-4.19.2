@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "FbxMeshImportData.generated.h"
@@ -42,7 +42,7 @@ class UFbxMeshImportData : public UFbxAssetImportData
 	TEnumAsByte<enum EFBXNormalImportMethod> NormalImportMethod;
 
 	/** Use the MikkTSpace tangent space generator for generating normals and tangents on the mesh */
-	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = ImportSettings, meta = (ImportType="StaticMesh"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = ImportSettings, meta=(ImportType="Mesh"))
 	TEnumAsByte<enum EFBXNormalGenerationMethod::Type> NormalGenerationMethod;
 
 	bool CanEditChange( const UProperty* InProperty ) const override;

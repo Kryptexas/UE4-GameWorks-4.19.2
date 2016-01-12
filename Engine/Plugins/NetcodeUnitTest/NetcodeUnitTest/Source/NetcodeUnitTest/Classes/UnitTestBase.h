@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,6 +64,6 @@ public:
 	// Must override in subclasses, that need ticking
 	virtual bool IsTickable() const
 	{
-		return true;
+		return false;
 	}
 };

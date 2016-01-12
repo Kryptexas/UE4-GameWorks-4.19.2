@@ -9,6 +9,24 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/1_G "%Resources/ContentExamples/EffectsGallery/1_G:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -63,7 +81,7 @@ Secondly, the lights that are intended to affect the particles must have **Cast 
  
 ![](image042.png)
 
-And finally, the settings for the shadow and self-shadow behavior are located in the Material used in this particle effect, under the two Translucency groups in the material properties. This image shows these properties from the Material Editor.
+And finally, the settings for the shadow and self-shadow behavior are located in the Material used in this particle effect, under the two **Translucency** groups in the material properties. This image shows these properties from the **Material Editor**.
 
 ![](image044.png)
 

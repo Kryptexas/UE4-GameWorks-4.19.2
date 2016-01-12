@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRender.h: Definitions and inline code for rendering SkeletalMeshComponet
@@ -10,14 +10,6 @@
 extern const float MinVertexAnimBlendWeight;
 // largest blend weight for vertex anims
 extern const float MaxVertexAnimBlendWeight;
-
-/** Dynamic data updates needed by the rendering thread are sent with this */
-class FDynamicSkelMeshObjectData
-{
-public:
-	FDynamicSkelMeshObjectData(){}
-	virtual ~FDynamicSkelMeshObjectData(){}
-};
 
 /** 
 * Stores the data for updating instanced weights

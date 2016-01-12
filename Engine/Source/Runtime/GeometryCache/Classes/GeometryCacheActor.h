@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,7 +15,7 @@ class AGeometryCacheActor : public AActor
 
 	// Begin AActor overrides.
 #if WITH_EDITOR
-		virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
+	 virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override; 
 #endif // WITH_EDITOR
 	// End AActor overrides.
 
@@ -24,5 +24,5 @@ class AGeometryCacheActor : public AActor
 public:
 	/** Returns GeometryCacheComponent subobject **/
 	UFUNCTION(BlueprintCallable, Category = "Components|GeometryCache")
-	UGeometryCacheComponent* GetGeometryCacheComponent() const;	
+	GEOMETRYCACHE_API UGeometryCacheComponent* GetGeometryCacheComponent() const;
 };

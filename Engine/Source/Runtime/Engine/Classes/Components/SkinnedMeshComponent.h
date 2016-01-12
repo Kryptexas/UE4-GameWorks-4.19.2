@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -193,12 +193,18 @@ protected:
 	 * Note this is weak object ptr, so it will go away unless you have other strong reference
 	 */
 	TArray< TWeakObjectPtr<USkinnedMeshComponent> > SlavePoseComponents;
-public:
+
 	/**
 	 *	Mapping between bone indices in this component and the parent one. Each element is the index of the bone in the MasterPoseComponent.
 	 *	Size should be the same as USkeletalMesh.RefSkeleton size (ie number of bones in this skeleton).
 	 */
 	TArray<int32> MasterBoneMap;
+
+	/** Incremented every time the master bone map changes. Used to keep in sync with any duplicate data needed by other threads */
+	int32 MasterBoneMapCacheCount;
+public:
+
+	const TArray<int32>& GetMasterBoneMap() const { return MasterBoneMap; }
 
 	/** 
 	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented
@@ -294,7 +300,7 @@ public:
 	uint32 bDisplayBones:1;
 
 	/** Disable Morphtarget for this component. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
 	uint32 bDisableMorphTarget:1;
 
 	/** Don't bother rendering the skin. */
@@ -338,7 +344,7 @@ private:
 
 public:
 
-	DEPRECATED(4.10, "bChartDistanceFactor is no longer useful, please remove references to it")
+	DEPRECATED(4.11, "bChartDistanceFactor is no longer useful, please remove references to it")
 	uint32 bChartDistanceFactor:1;
 
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
@@ -362,6 +368,20 @@ public:
 	uint8 CustomSortAlternateIndexMode;
 
 	/** 
+	 * Whether to use the capsule representation (when present) from a skeletal mesh's ShadowPhysicsAsset for direct shadowing from lights.
+	 * This type of shadowing is approximate but handles extremely wide area shadowing well.  The softness of the shadow depends on the light's LightSourceAngle / SourceRadius.
+	 * This flag will force bCastInsetShadow to be enabled.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Capsule Direct Shadow"))
+	uint32 bCastCapsuleDirectShadow:1;
+
+	/** 
+	 * Whether to use the capsule representation (when present) from a skeletal mesh's ShadowPhysicsAsset for shadowing indirect lighting (from lightmaps or skylight).
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow"))
+	uint32 bCastCapsuleIndirectShadow:1;
+
+	/** 
 	 * Override the Physics Asset of the mesh. It uses SkeletalMesh.PhysicsAsset, but if you'd like to override use this function
 	 * 
 	 * @param	NewPhysicsAsset	New PhysicsAsset
@@ -369,6 +389,22 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	virtual void SetPhysicsAsset(class UPhysicsAsset* NewPhysicsAsset, bool bForceReInit = false);
+
+	/**
+	 * Set MinLodModel of the mesh component
+	 *
+	 * @param	InNewMinLOD	Set new MinLodModel that make sure the LOD does not go below of this value. Range from [0, Max Number of LOD - 1]. This will affect in the next tick update. 
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
+	void SetMinLOD(int32 InNewMinLOD);
+
+	/**
+	 * Set MinLodModel of the mesh component
+	 *
+	 * @param	InNewForcedLOD	Set new ForcedLODModel that forces to set the incoming LOD. Range from [1, Max Number of LOD]. This will affect in the next tick update. 
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
+	void SetForcedLOD(int32 InNewForcedLOD);
 
 	/**
 	 * Find the index of bone by name. Looks in the current SkeletalMesh being used by this SkeletalMeshComponent.
@@ -427,17 +463,17 @@ public:
 	/** Gets the skeletal mesh resource used for rendering the component. */
 	FSkeletalMeshResource* GetSkeletalMeshResource() const;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual FString GetDetailedInfoInternal() const override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface
+	//~ End UObject Interface
 
 protected:
-	// Begin UActorComponent interface
+	//~ Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void CreateRenderState_Concurrent() override;
@@ -449,25 +485,25 @@ protected:
 	}
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual UObject const* AdditionalStatObject() const override;
-	// End UActorComponent interface
+	//~ End UActorComponent Interface
 
 public:
-	// Begin USceneComponent interface
+	//~ Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
 	virtual bool DoesSocketExist(FName InSocketName) const override;
 	virtual bool HasAnySockets() const override;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
-	// End USceneComponent interface
+	//~ End USceneComponent Interface
 
-	// Begin UPrimitiveComponent interface
+	//~ Begin UPrimitiveComponent Interface
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual int32 GetNumMaterials() const override;
-	// End UPrimitiveComponent interface
+	//~ End UPrimitiveComponent Interface
 
 	/**
 	 *	Sets the value of the bForceWireframe flag and reattaches the component as necessary.
@@ -475,6 +511,13 @@ public:
 	 *	@param	InForceWireframe		New value of bForceWireframe.
 	 */
 	void SetForceWireframe(bool InForceWireframe);
+
+	/**
+	*	Sets the value of the SectionIndexPreview flag and reattaches the component as necessary.
+	*
+	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
+	*/
+	void SetSectionPreview(int32 InSectionIndexPreview);
 
 	/**
 	 * Function returns whether or not CPU skinning should be applied
@@ -591,11 +634,6 @@ protected:
 	/** Track whether we still need to flip to recently modified buffer */
 	bool bNeedToFlipSpaceBaseBuffers;
 
-	/**
-	* Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
-	*/
-	static TArray<struct FActiveVertexAnim> UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& InMorphCurveAnims, const TArray<FActiveVertexAnim>& InActiveAnims);
-
 	/** 
 	 * Should update transform in Tick
 	 * 
@@ -621,14 +659,18 @@ protected:
 
 	/** LocalBounds cached, so they're computed just once. */
 	UPROPERTY(Transient)
-	FBoxSphereBounds CachedLocalBounds;
+	mutable FBoxSphereBounds CachedLocalBounds;
 
 	/** true when CachedLocalBounds is up to date. */
 	UPROPERTY(Transient)
-	bool bCachedLocalBoundsUpToDate;
+	mutable bool bCachedLocalBoundsUpToDate;
+
+public:
 
 	/** Invalidate Cached Bounds, when Mesh Component has been updated. */
 	void InvalidateCachedBounds();
+
+protected:
 
 	/** Update Mesh Bound information based on input
 	 * 
@@ -912,4 +954,6 @@ public:
 	virtual bool IsPlayingRootMotion(){ return false; }
 
 	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
+
+	bool ShouldUseUpdateRateOptimizations() const;
 };

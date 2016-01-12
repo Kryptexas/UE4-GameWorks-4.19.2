@@ -2,6 +2,7 @@ Availability:Public
 Title: Color Control
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:Properties that hold byte and linear color values.
+Version: 4.9
 
 Color and LinearColor properties provide a visual display of the color in the form of a _swatch_ along with numerical values 
 for each of the individual components that make up the color.

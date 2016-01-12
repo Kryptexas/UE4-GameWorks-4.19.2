@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -144,7 +144,7 @@ public:
 	/** Destructor to free all remaining resources */
 	UNREALED_API ~FAssetThumbnailPool();
 
-	// Begin FTickableObject interface
+	//~ Begin FTickableObject Interface
 	UNREALED_API virtual TStatId GetStatId() const override;
 
 	/** Checks if any new thumbnails are queued */
@@ -153,7 +153,7 @@ public:
 	/** Ticks the pool, rendering new thumbnails as needed */
 	UNREALED_API virtual void Tick( float DeltaTime ) override;
 
-	// End FTickableObject interface
+	//~ End FTickableObject Interface
 
 	/**
 	 * Releases all rendering resources held by the pool

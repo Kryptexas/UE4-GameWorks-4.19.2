@@ -1,119 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "TextFilterExpressionEvaluator.h"
 #include "BasicMathExpressionEvaluator.h"
-
-namespace TextFilterExpressionParser
-{
-	class FTextToken
-	{
-	public:
-		enum class EInvertResult : uint8
-		{
-			No,
-			Yes,
-		};
-
-		FTextToken(FTextFilterString InString, ETextFilterTextComparisonMode InTextComparisonMode, const EInvertResult InInvertResult)
-			: String(MoveTemp(InString))
-			, TextComparisonMode(MoveTemp(InTextComparisonMode))
-			, InvertResult(InInvertResult)
-		{
-		}
-
-		FTextToken(const FTextToken& Other)
-			: String(Other.String)
-			, TextComparisonMode(Other.TextComparisonMode)
-			, InvertResult(Other.InvertResult)
-		{
-		}
-
-		FTextToken(FTextToken&& Other)
-			: String(MoveTemp(Other.String))
-			, TextComparisonMode(Other.TextComparisonMode)
-			, InvertResult(Other.InvertResult)
-		{
-		}
-
-		FTextToken& operator=(const FTextToken& Other)
-		{
-			String = Other.String;
-			TextComparisonMode = Other.TextComparisonMode;
-			InvertResult = Other.InvertResult;
-			return *this;
-		}
-
-		FTextToken& operator=(FTextToken&& Other)
-		{
-			String = MoveTemp(Other.String);
-			TextComparisonMode = Other.TextComparisonMode;
-			InvertResult = Other.InvertResult;
-			return *this;
-		}
-
-		const FTextFilterString& GetString() const
-		{
-			return String;
-		}
-
-		bool EvaluateAsBasicStringExpression(const ITextFilterExpressionContext* InContext) const
-		{
-			if (String.IsEmpty())
-			{
-				// An empty string is always considered to be true
-				return true;
-			}
-
-			const bool bMatched = InContext->TestBasicStringExpression(String, TextComparisonMode);
-			return (InvertResult == EInvertResult::No) ? bMatched : !bMatched;
-		}
-
-		bool EvaluateAsComplexExpression(const ITextFilterExpressionContext* InContext, const FTextFilterString& InKey, const ETextFilterComparisonOperation InComparisonOperation) const
-		{
-			const bool bMatched = InContext->TestComplexExpression(InKey.AsName(), String, InComparisonOperation, TextComparisonMode);
-			return (InvertResult == EInvertResult::No) ? bMatched : !bMatched;
-		}
-
-		ETextFilterTextComparisonMode GetTextComparisonMode() const
-		{
-			return TextComparisonMode;
-		}
-
-	private:
-		FTextFilterString String;
-		ETextFilterTextComparisonMode TextComparisonMode;
-		EInvertResult InvertResult;
-	};
-} // namespace TextFilterExpressionParser
-
-#define DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(TYPE, MONIKER_COUNT, ...)	\
-	namespace TextFilterExpressionParser								\
-	{																	\
-		struct TYPE														\
-		{																\
-			static const int32 MonikerCount = MONIKER_COUNT;			\
-			static const TCHAR* Monikers[MonikerCount];					\
-		};																\
-	}																	\
-	DEFINE_EXPRESSION_NODE_TYPE(TextFilterExpressionParser::TYPE, __VA_ARGS__)
-
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FSubExpressionStart,		1,	0x0E7E1BC9, 0xF0B94D5D, 0x80F44D45, 0x85A082AA)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FSubExpressionEnd,			1,	0x5E10956D, 0x2E17411F, 0xB6469E22, 0xB5E56E6C)
-
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FEqual,					3,	0x32457EFC, 0x4928406F, 0xBD78D943, 0x633797D1)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FNotEqual,					2,	0x8F445A19, 0xF33443D9, 0x90D6DC85, 0xB0C5D071)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FLess,						1,	0xB85E222B, 0x47E24E1F, 0xBC5A384D, 0x2FF471E1)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FLessOrEqual,				2,	0x8C0A46B0, 0x8DAA4E2B, 0xA7FE4A23, 0xEF215918)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FGreater,					1,	0x6A6247F4, 0xFD78467F, 0xA6AC1244, 0x0A31E0A5)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FGreaterOrEqual,			2,	0x09D75C5E, 0xA29A4194, 0x8E8E5278, 0xC84365FD)
-
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FOr,						3,	0xF4778B51, 0xF535414D, 0x9C0EB5F2, 0x2F2B0FD4)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FAnd,						3,	0x7511397A, 0x02D24DC2, 0x86729800, 0xF454C320)
-DEFINE_TEXT_EXPRESSION_OPERATOR_NODE(FNot,						2,	0x03D78990, 0x41D04E26, 0x8E98AD2F, 0x74667868)
-
-DEFINE_EXPRESSION_NODE_TYPE(TextFilterExpressionParser::FTextToken,	0x09E49538, 0x633545E3, 0x84B5644F, 0x1F11628F);
-DEFINE_EXPRESSION_NODE_TYPE(bool,									0xC1CD5DCF, 0x2AB44958, 0xB3FF4F8F, 0xE665D121);
 
 namespace TextFilterExpressionParser
 {
@@ -447,8 +336,52 @@ bool FTextFilterExpressionEvaluator::SetFilterText(const FText& InFilterText)
 			{
 				// We inject AND operators between any adjacent text and sub-expression tokens to mimic the old search filter behavior
 				bool bWasPreviousTokenValidToInjectANDOperatorAfter = false;
-				for (FExpressionToken& CurrentToken : TmpLexTokens)
+				for (int32 TokenIdx = 0; TokenIdx < TmpLexTokens.Num(); ++TokenIdx)
 				{
+					FExpressionToken& CurrentToken = TmpLexTokens[TokenIdx];
+
+					if (TokenIdx + 3 < TmpLexTokens.Num())
+					{
+						if (const FTextToken* TextToken = CurrentToken.Node.Cast<FTextToken>())
+						{
+							FStringToken FunctionName(CurrentToken.Context);
+
+							FExpressionToken& ExpressionStartToken = TmpLexTokens[TokenIdx + 1];
+							if (ExpressionStartToken.Node.Cast<FSubExpressionStart>())
+							{
+								// We are inside a function, we need the token after the Start, but the TokenIdx is still on the function name
+								TokenIdx += 1;
+								FExpressionToken* NextToken = &TmpLexTokens[++TokenIdx];
+								FStringToken FunctionParameter(NextToken->Context);
+								int32 NestedCount = 1;
+								for (; TokenIdx < TmpLexTokens.Num(); ++TokenIdx) 
+								{
+									NextToken = &TmpLexTokens[TokenIdx];
+
+									if (NextToken->Node.Cast<FSubExpressionStart>())
+									{
+										++NestedCount;
+									}
+									else if (NextToken->Node.Cast<FSubExpressionEnd>())
+									{
+										--NestedCount;
+										if (NestedCount == 0)
+										{
+											break;
+										}
+									}
+									FunctionParameter.Accumulate(NextToken->Context);
+								}
+								FStringToken EmptyToken;
+								FinalTokens.Add(FExpressionToken(EmptyToken, FSubExpressionStart()));
+								FinalTokens.Add(FExpressionToken(FunctionName, FTextToken(FunctionName.GetString(), ETextFilterTextComparisonMode::Partial, FTextToken::EInvertResult::No)));
+								FinalTokens.Add(FExpressionToken(EmptyToken, FFunction()));
+								FinalTokens.Add(FExpressionToken(FunctionParameter, FTextToken(FunctionParameter.GetString(), ETextFilterTextComparisonMode::Partial, FTextToken::EInvertResult::No)));
+								FinalTokens.Add(FExpressionToken(EmptyToken, FSubExpressionEnd()));
+								continue;
+							}
+						}
+					}
 					// Key->value pairs require some form of comparison operator, so if we've found one of those, consider this to be a complex expression
 					if (!bIsComplexExpression && 
 						(CurrentToken.Node.Cast<FEqual>() || CurrentToken.Node.Cast<FNotEqual>() || CurrentToken.Node.Cast<FLess>() || CurrentToken.Node.Cast<FLessOrEqual>() || CurrentToken.Node.Cast<FGreater>() || CurrentToken.Node.Cast<FGreaterOrEqual>())
@@ -532,7 +465,12 @@ bool FTextFilterExpressionEvaluator::TestTextFilter(const ITextFilterExpressionC
 	return false;
 }
 
-void FTextFilterExpressionEvaluator::ConstructExpressionParser()
+void FTextFilterExpressionEvaluator::AddFunctionTokenCallback(FString InFunctionName, FTokenFunctionHandler InCallback)
+{
+	TokenFunctionHandlers.Add(InFunctionName, InCallback);
+}
+
+void FTextFilterExpressionEvaluator::SetupGrammar()
 {
 	using namespace TextFilterExpressionParser;
 	using TextFilterExpressionParser::FTextToken;
@@ -565,7 +503,15 @@ void FTextFilterExpressionEvaluator::ConstructExpressionParser()
 	Grammar.DefineBinaryOperator<FEqual>(1);
 	Grammar.DefineBinaryOperator<FOr>(2);
 	Grammar.DefineBinaryOperator<FAnd>(2);
+	Grammar.DefineBinaryOperator<FFunction>(1);
 	Grammar.DefinePreUnaryOperator<FNot>();
+}
+
+void FTextFilterExpressionEvaluator::ConstructExpressionParser()
+{
+	using namespace TextFilterExpressionParser;
+	using TextFilterExpressionParser::FTextToken;
+	SetupGrammar();
 
 	JumpTable.MapBinary<FLessOrEqual>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)		{ return B.EvaluateAsComplexExpression(InContext, A.GetString(), ETextFilterComparisonOperation::LessOrEqual); });
 	JumpTable.MapBinary<FLess>([](const FTextToken& A, const FTextToken& B, const ITextFilterExpressionContext* InContext)				{ return B.EvaluateAsComplexExpression(InContext, A.GetString(), ETextFilterComparisonOperation::Less); });
@@ -586,6 +532,17 @@ void FTextFilterExpressionEvaluator::ConstructExpressionParser()
 
 	JumpTable.MapPreUnary<FNot>([](const FTextToken& V, const ITextFilterExpressionContext* InContext)									{ return !V.EvaluateAsBasicStringExpression(InContext); });
 	JumpTable.MapPreUnary<FNot>([](bool V, const ITextFilterExpressionContext* InContext)												{ return !V; });
+
+	JumpTable.MapBinary<FFunction>(
+		[this](const TextFilterExpressionParser::FTextToken& A, const TextFilterExpressionParser::FTextToken& B, const ITextFilterExpressionContext* InContext)	
+	{
+		bool bResult = false;
+		if (FTokenFunctionHandler* FunctionCallback = TokenFunctionHandlers.Find(A.GetString().AsString()))
+		{
+			bResult = FunctionCallback->Execute(B.GetString());
+		}
+		return bResult;
+	});
 }
 
 bool FTextFilterExpressionEvaluator::EvaluateCompiledExpression(const ExpressionParser::CompileResultType& InCompiledResult, const ITextFilterExpressionContext& InContext, FText* OutErrorText) const

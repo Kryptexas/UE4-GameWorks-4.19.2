@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,44 +14,86 @@ class UMovieSceneSkeletalAnimationSection : public UMovieSceneSection
 	GENERATED_UCLASS_BODY()
 public:
 	/** Sets the animation sequence for this section */
-	void SetAnimSequence(class UAnimSequence* InAnimSequence) {AnimSequence = InAnimSequence;}
+	void SetAnimSequence(class UAnimSequence* InAnimSequence) { AnimSequence = InAnimSequence; }
 	
 	/** Gets the animation sequence for this section */
-	class UAnimSequence* GetAnimSequence() {return AnimSequence;}
+	class UAnimSequence* GetAnimSequence() { return AnimSequence; }
 	
-	/** Sets the time that the animation is supposed to be played at */
-	void SetAnimationStartTime(float InAnimationStartTime) {AnimationStartTime = InAnimationStartTime;}
-	
-	/** Gets the (absolute) time that the animation is supposed to be played at */
-	float GetAnimationStartTime() const {return AnimationStartTime;}
-	
-	/** Gets the animation duration, modified by dilation */
-	float GetAnimationDuration() const {return FMath::IsNearlyZero(AnimationDilationFactor) ? 0.f : AnimSequence->SequenceLength / AnimationDilationFactor;}
+	/** Gets the start offset into the animation clip */
+	float GetStartOffset() const { return StartOffset; }
 
-	/** Gets the animation sequence length, not modified by dilation */
-	float GetAnimationSequenceLength() const {return AnimSequence->SequenceLength;}
+	/** Sets the start offset into the animation clip */
+	void SetStartOffset(float InStartOffset) { StartOffset = InStartOffset; }
+	
+	/** Gets the end offset into the animation clip */
+	float GetEndOffset() const { return EndOffset; }
 
-	/**
-	 * @return The dilation multiplier of the animation
-	 */
-	float GetAnimationDilationFactor() const {return AnimationDilationFactor;}
+	/** Sets the end offset into the animation clip */
+	void SetEndOffset(float InEndOffset) { EndOffset = InEndOffset; }
+	
+	/** Gets the animation duration, modified by play rate */
+	float GetDuration() const { return FMath::IsNearlyZero(PlayRate) || AnimSequence == nullptr ? 0.f : AnimSequence->SequenceLength / PlayRate; }
+
+	/** Gets the animation sequence length, not modified by play rate */
+	float GetSequenceLength() const { return AnimSequence != nullptr ? AnimSequence->SequenceLength : 0.f; }
+
+	/** Sets the play rate of the animation clip */
+	float GetPlayRate() const { return PlayRate; }
+
+	/** Sets the play rate of the animation clip */
+	void SetPlayRate(float InPlayRate) { PlayRate = InPlayRate; }
+
+	/** Gets whether the playback is reversed */
+	bool GetReverse() const { return bReverse; }
+
+	/** Sets whether the playback is reversed */
+	void SetReverse(bool bInReverse) { bReverse = bInReverse; }
+
+	/** Gets the anim BP slot name. */
+	FName GetSlotName() const { return SlotName; }
+
+	/** Sets the anim BP slot name. */
+	void SetSlotName( FName InSlotName ) { SlotName = InSlotName; }
 
 	/** MovieSceneSection interface */
 	virtual void MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles ) override;
 	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles  ) override;
+	virtual UMovieSceneSection* SplitSection(float SplitTime) override;
 	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
 	virtual void GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const override;
 
 private:
+
+	static FName DefaultSlotName;
+
+	// UObject interface
+#if WITH_EDITOR
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	float PreviousPlayRate;
+#endif
+
 	/** The animation sequence this section has */
 	UPROPERTY(EditAnywhere, Category="Animation")
 	class UAnimSequence* AnimSequence;
 
-	/** The absolute time that the animation starts playing at */
+	/** The offset into the beginning of the animation clip */
 	UPROPERTY(EditAnywhere, Category="Animation")
-	float AnimationStartTime;
+	float StartOffset;
 	
-	/** The amount which this animation is time dilated by */
+	/** The offset into the end of the animation clip */
 	UPROPERTY(EditAnywhere, Category="Animation")
-	float AnimationDilationFactor;
+	float EndOffset;
+	
+	/** The playback rate of the animation clip */
+	UPROPERTY(EditAnywhere, Category="Animation")
+	float PlayRate;
+
+	/** Reverse the playback of the animation clip */
+	UPROPERTY(EditAnywhere, Category="Animation")
+	uint32 bReverse:1;
+
+	/** The slot name to use for the animation */
+	UPROPERTY( EditAnywhere, Category = "Animation" )
+	FName SlotName;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,9 @@ struct KISMET_API FBlueprintEditorTabs
 	static const FName ConstructionScriptEditorID;
 	static const FName SCSViewportID;
 	static const FName MyBlueprintID;
+	static const FName ReplaceNodeReferencesID;
 	static const FName UserDefinedStructureID;
+	static const FName BlueprintProfilerID;
 
 	// Document tab identifiers
 	static const FName GraphEditorID;

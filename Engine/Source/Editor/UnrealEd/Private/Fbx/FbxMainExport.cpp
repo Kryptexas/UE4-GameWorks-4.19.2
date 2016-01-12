@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2010 Autodesk, Inc.  All Rights Reserved.
@@ -127,10 +127,10 @@ void FFbxExporter::CreateDocument()
 	SceneInfo->mSubject = "Export FBX meshes from Unreal";
 	SceneInfo->Original_ApplicationVendor.Set( "Epic Games" );
 	SceneInfo->Original_ApplicationName.Set( "Unreal Engine" );
-	SceneInfo->Original_ApplicationVersion.Set( TCHAR_TO_UTF8(*GEngineVersion.ToString()) );
+	SceneInfo->Original_ApplicationVersion.Set( TCHAR_TO_UTF8(*FEngineVersion::Current().ToString()) );
 	SceneInfo->LastSaved_ApplicationVendor.Set( "Epic Games" );
 	SceneInfo->LastSaved_ApplicationName.Set( "Unreal Engine" );
-	SceneInfo->LastSaved_ApplicationVersion.Set( TCHAR_TO_UTF8(*GEngineVersion.ToString()) );
+	SceneInfo->LastSaved_ApplicationVersion.Set( TCHAR_TO_UTF8(*FEngineVersion::Current().ToString()) );
 
 	Scene->SetSceneInfo(SceneInfo);
 	
@@ -242,6 +242,32 @@ void FFbxExporter::CreateAnimatableUserProperty(FbxNode* Node, float Value, cons
 }
 
 /**
+*	Sorts actors such that parent actors will appear before children actors in the list
+*	Stable sort
+*/
+static void SortActorsHierarchy(TArray<AActor*>& Actors)
+{
+	auto CalcAttachDepth = [](AActor* InActor) -> int32 {
+		int32 Depth = MAX_int32;
+		if (InActor)
+		{
+			Depth = 0;
+			if (InActor->GetRootComponent())
+			{
+				for (const USceneComponent* Test = InActor->GetRootComponent()->AttachParent; Test != nullptr; Test = Test->AttachParent, Depth++);
+			}
+		}
+		return Depth;
+	};
+
+	// Unfortunately TArray.StableSort assumes no null entries in the array
+	// So it forces me to use internal unrestricted version
+	StableSortInternal(Actors.GetData(), Actors.Num(), [&](AActor* L, AActor* R) {
+		return CalcAttachDepth(L) < CalcAttachDepth(R);
+	});
+}
+
+/**
  * Exports the basic scene information to the FBX document.
  */
 void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeActor, bool bSelectedOnly )
@@ -283,42 +309,54 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 		World = CastChecked<UWorld>( InLevel->GetOuter() );
 	}
 	check(World);
-	int32 ActorCount = World->GetCurrentLevel()->Actors.Num();
+
+	TArray<AActor*> ActorToExport;
+	int32 ActorCount = InLevel->Actors.Num();
 	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
 	{
-		AActor* Actor = World->GetCurrentLevel()->Actors[ActorIndex];
-		if ( Actor != NULL && ( !bSelectedOnly || ( bSelectedOnly && Actor->IsSelected() ) ) )
+		AActor* Actor = InLevel->Actors[ActorIndex];
+		if (Actor != NULL && (!bSelectedOnly || (bSelectedOnly && Actor->IsSelected())))
 		{
-			if (Actor->IsA(ALight::StaticClass()))
-			{
-				ExportLight((ALight*) Actor, InMatineeActor );
-			}
-			else if (Actor->IsA(AStaticMeshActor::StaticClass()))
-			{
-				ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), InMatineeActor );
-			}
-			else if (Actor->IsA(ALandscapeProxy::StaticClass()))
-			{
-				ExportLandscape(CastChecked<ALandscapeProxy>(Actor), false);
-			}
-			else if (Actor->IsA(ABrush::StaticClass()))
-			{
-				// All brushes should be included within the world geometry exported above.
-				ExportBrush((ABrush*) Actor, NULL, 0 );
-			}
-			else if (Actor->IsA(AEmitter::StaticClass()))
-			{
-				ExportActor( Actor, InMatineeActor ); // Just export the placement of the particle emitter.
-			}
-			else if(Actor->IsA(ACameraActor::StaticClass()))
-			{
-				ExportCamera(CastChecked<ACameraActor>(Actor), InMatineeActor, true); // Just export the placement of the particle emitter.
-			}
-			else if( Actor != NULL )
-			{
-				// Export blueprint actors and all their components
-				ExportActor( Actor, InMatineeActor, true );
-			}
+			ActorToExport.Add(Actor);
+		}
+	}
+
+	//Sort the hierarchy to make sure parent come first
+	SortActorsHierarchy(ActorToExport);
+
+	ActorCount = ActorToExport.Num();
+	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
+	{
+		AActor* Actor = ActorToExport[ActorIndex];
+		if (Actor->IsA(ALight::StaticClass()))
+		{
+			ExportLight((ALight*) Actor, InMatineeActor );
+		}
+		else if (Actor->IsA(AStaticMeshActor::StaticClass()))
+		{
+			ExportStaticMesh( Actor, CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent(), InMatineeActor );
+		}
+		else if (Actor->IsA(ALandscapeProxy::StaticClass()))
+		{
+			ExportLandscape(CastChecked<ALandscapeProxy>(Actor), false);
+		}
+		else if (Actor->IsA(ABrush::StaticClass()))
+		{
+			// All brushes should be included within the world geometry exported above.
+			ExportBrush((ABrush*) Actor, NULL, 0 );
+		}
+		else if (Actor->IsA(AEmitter::StaticClass()))
+		{
+			ExportActor( Actor, InMatineeActor ); // Just export the placement of the particle emitter.
+		}
+		else if(Actor->IsA(ACameraActor::StaticClass()))
+		{
+			ExportCamera(CastChecked<ACameraActor>(Actor), InMatineeActor, true); // Just export the placement of the particle emitter.
+		}
+		else if( Actor != NULL )
+		{
+			// Export blueprint actors and all their components
+			ExportActor( Actor, InMatineeActor, true );
 		}
 	}
 }
@@ -627,7 +665,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	int32 LODIndex = StaticMeshComponent->ForcedLodModel-1;
 
 	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
-
+	FString FbxMeshName = StaticMesh->GetName().Replace(TEXT("-"), TEXT("_"));
 	FColorVertexBuffer* ColorBuffer = NULL;
 	
 	if (LODIndex != INDEX_NONE && LODIndex < StaticMeshComponent->LODData.Num())
@@ -636,7 +674,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	}
 
 	FbxNode* FbxActor = ExportActor(Actor, InMatineeActor);
-	ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxNodeName, FbxActor, -1, ColorBuffer);
+	ExportStaticMeshToFbx(StaticMesh, LODIndex, *FbxMeshName, FbxActor, -1, ColorBuffer);
 }
 
 struct FBSPExportData
@@ -1070,14 +1108,13 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 		
 
 		AActor* ParentActor = Actor->GetAttachParentActor();
-		FbxNode* ParentNode;
+		// this doesn't work with skeletalmeshcomponent
+		FbxNode* ParentNode = FindActor(ParentActor);
 		FVector ActorLocation, ActorRotation, ActorScale;
-		if (bKeepHierarchy && ParentActor)
+		
+		//If the parent is the root or is not export use the root node as the parent
+		if (bKeepHierarchy && ParentNode)
 		{
-			// this doesn't work with skeletalmeshcomponent
-			ParentNode = FindActor(ParentActor);
-			check (ParentNode);
-
 			// Set the default position of the actor on the transforms
 			// The transformation is different from FBX's Z-up: invert the Y-axis for translations and the Y/Z angle values in rotations.
 			const FTransform RelativeTransform = Actor->GetTransform().GetRelativeTransform(ParentActor->GetTransform());
@@ -1090,9 +1127,20 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 			ParentNode = Scene->GetRootNode();
 			// Set the default position of the actor on the transforms
 			// The transformation is different from FBX's Z-up: invert the Y-axis for translations and the Y/Z angle values in rotations.
-			ActorLocation = Actor->GetActorLocation();
-			ActorRotation = Actor->GetActorRotation().Euler();
-			ActorScale = Actor->GetRootComponent() ? Actor->GetRootComponent()->RelativeScale3D : FVector(1.f,1.f,1.f);
+			if (ParentActor != NULL)
+			{
+				//In case the parent was not export, get the absolute transform
+				const FTransform AbsoluteTransform = Actor->GetTransform();
+				ActorLocation = AbsoluteTransform.GetTranslation();
+				ActorRotation = AbsoluteTransform.GetRotation().Euler();
+				ActorScale = AbsoluteTransform.GetScale3D();
+			}
+			else
+			{
+				ActorLocation = Actor->GetActorLocation();
+				ActorRotation = Actor->GetActorRotation().Euler();
+				ActorScale = Actor->GetRootComponent() ? Actor->GetRootComponent()->RelativeScale3D : FVector(1.f, 1.f, 1.f);
+			}
 		}
 
 		ParentNode->AddChild(ActorNode);
@@ -1832,7 +1880,7 @@ void DetermineVertsToWeld(TArray<int32>& VertRemap, TArray<int32>& UniqueVerts, 
 FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int32 ExportLOD, const TCHAR* MeshName, FbxNode* FbxActor, int32 LightmapUVChannel /*= -1*/, const FColorVertexBuffer* ColorBuffer /*= NULL*/, const TArray<UMaterialInterface*>* MaterialOrderOverride /*= NULL*/)
 {
 	FbxMesh* Mesh = nullptr;
-	if (ExportLOD == 0 && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
+	if ((ExportLOD == 0 || ExportLOD == -1) && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
 	{
 		Mesh = FbxMeshes.FindRef(StaticMesh);
 	}
@@ -2111,12 +2159,34 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			}
 		}
 
-		if (ExportLOD == 0 && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
+		if ((ExportLOD == 0 || ExportLOD == -1) && LightmapUVChannel == -1 && ColorBuffer == nullptr && MaterialOrderOverride == nullptr)
 		{
 			FbxMeshes.Add(StaticMesh, Mesh);
 		}
 	}
+	else
+	{
+		//Materials in fbx are store in the node and not in the mesh, so even if the mesh was already export
+		//we have to find and assign the mesh material.
+		const FStaticMeshLODResources& RenderMesh = StaticMesh->GetLODForExport(ExportLOD);
+		const int32 PolygonsCount = RenderMesh.Sections.Num();
+		uint32 AccountedTriangles = 0;
+		for (int32 PolygonsIndex = 0; PolygonsIndex < PolygonsCount; ++PolygonsIndex)
+		{
+			const FStaticMeshSection& Polygons = RenderMesh.Sections[PolygonsIndex];
+			FIndexArrayView RawIndices = RenderMesh.IndexBuffer.GetArrayView();
+			UMaterialInterface* Material = StaticMesh->GetMaterial(Polygons.MaterialIndex);
 
+			FbxSurfaceMaterial* FbxMaterial = Material ? ExportMaterial(Material->GetMaterial()) : NULL;
+			if (!FbxMaterial)
+			{
+				FbxMaterial = CreateDefaultMaterial();
+			}
+			FbxActor->AddMaterial(FbxMaterial);
+		}
+	}
+
+	//Set the original meshes in case it was already existing
 	FbxActor->SetNodeAttribute(Mesh);
 
 	return FbxActor;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -17,17 +17,17 @@ class USceneCaptureComponentCube : public USceneCaptureComponent
 	class UTextureRenderTargetCube* TextureTarget;
 
 public:
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** Render the scene to the texture */
 	UFUNCTION(BlueprintCallable,Category = "Rendering|SceneCapture")

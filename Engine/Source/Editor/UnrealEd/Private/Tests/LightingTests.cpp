@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -112,7 +112,7 @@ namespace LightingTestHelpers
 /**
 * Lighting Promotion Test - Place a Point Light and move it to a new location.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPromotionPointLightPlaceRotScaleTest, "System.Promotion.Editor.Lighting.Place Scale Rotate", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPromotionPointLightPlaceRotScaleTest, "System.Promotion.Editor.Lighting.Place Scale Rotate", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FLightingPromotionPointLightPlaceRotScaleTest::RunTest(const FString& Parameters)
 {
@@ -157,7 +157,7 @@ bool FLightingPromotionPointLightPlaceRotScaleTest::RunTest(const FString& Param
 /**
 * Lighting Promotion Test - Modify a point lights properties.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPromotionModifyProperties, "System.Promotion.Editor.Lighting.Modify Properties", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPromotionModifyProperties, "System.Promotion.Editor.Lighting.Modify Properties", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FLightingPromotionModifyProperties::RunTest(const FString& Parameters)
 {
@@ -193,7 +193,7 @@ bool FLightingPromotionModifyProperties::RunTest(const FString& Parameters)
 /**
 * Lighting Promotion Test - Duplicate/Copy Paste a point light.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPromotionDuplicationTest, "System.Promotion.Editor.Lighting.Duplicate and Copy Paste", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPromotionDuplicationTest, "System.Promotion.Editor.Lighting.Duplicate and Copy Paste", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FLightingPromotionDuplicationTest::RunTest(const FString& Parameters)
 {
@@ -245,7 +245,7 @@ bool FLightingPromotionDuplicationTest::RunTest(const FString& Parameters)
 * Place a point light in the world with it's default settings
 * True if the light exists in the levels actor array, otherwise False.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightPointLightPlacement, "System.Editor.Lighting.Point Light.Placement", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightPointLightPlacement, "System.Editor.Lighting.Point Light.Placement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FLightPointLightPlacement::RunTest(const FString& Parameters)
 {
@@ -276,7 +276,7 @@ bool FLightPointLightPlacement::RunTest(const FString& Parameters)
 * Place a point light in the world with it's default settings
 * True if the light exists in the levels actor array, otherwise False.
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightPointLightSetLocation, "System.Editor.Lighting.Point Light.Set Location", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightPointLightSetLocation, "System.Editor.Lighting.Point Light.Set Location", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FLightPointLightSetLocation::RunTest(const FString& Parameters)
 {

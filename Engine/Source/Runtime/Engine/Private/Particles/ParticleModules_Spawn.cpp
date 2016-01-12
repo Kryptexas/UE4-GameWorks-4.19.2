@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Spawn.cpp: Particle spawn-related module implementations.
@@ -294,7 +294,7 @@ void UParticleModuleSpawnPerUnit::PostEditChangeProperty(FPropertyChangedEvent& 
 }
 #endif // WITH_EDITOR
 
-uint32 UParticleModuleSpawnPerUnit::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleSpawnPerUnit::RequiredBytesPerInstance()
 {
 	return sizeof(FParticleSpawnPerUnitInstancePayload);
 }

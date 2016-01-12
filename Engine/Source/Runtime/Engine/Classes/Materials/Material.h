@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -415,6 +415,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
 	uint32 DitheredLODTransition:1;
 
+	/** Dither opacity mask. When combined with Temporal AA this can be used as a form of limited translucency which supports all lighting features. */
+	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay)
+	uint32 DitherOpacityMask:1;
+
 	/** Number of customized UV inputs to display.  Unconnected customized UV inputs will just pass through the vertex UVs. */
 	UPROPERTY(EditAnywhere, Category=Material, AdvancedDisplay, meta=(ClampMin=0))
 	int32 NumCustomizedUVs;
@@ -431,14 +435,14 @@ public:
 	float TranslucencyDirectionalLightingIntensity;
 
 	/** Scale used to make translucent shadows more or less opaque than the material's actual opacity. */
-	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Density Scale"))
+	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Shadow Density Scale"))
 	float TranslucentShadowDensityScale;
 
 	/** 
 	 * Scale used to make translucent self-shadowing more or less opaque than the material's shadow on other objects. 
 	 * This is only used when the object is casting a volumetric translucent shadow.
 	 */
-	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Density Scale"))
+	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Self Shadow Density Scale"))
 	float TranslucentSelfShadowDensityScale;
 
 	/** Used to make a second self shadow gradient, to add interesting shading in the shadow of the first. */
@@ -617,6 +621,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
 	uint32 bUseLightmapDirectionality:1;
 
+	/* Enables high quality reflections in the forward renderer. Enabling this setting reduces the number of samplers available to the material as two more samplers will be used for reflection cubemaps. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "High Quality Reflections"))
+	uint32 bUseHQForwardReflections : 1;
+
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
 	TEnumAsByte<enum EMaterialTessellationMode> D3D11TessellationMode;
@@ -766,7 +774,7 @@ private:
 #endif // WITH_EDITORONLY_DATA
 public:
 
-	// Begin UMaterialInterface interface.
+	//~ Begin UMaterialInterface Interface.
 	ENGINE_API virtual UMaterial* GetMaterial() override;
 	ENGINE_API virtual const UMaterial* GetMaterial() const override;
 	ENGINE_API virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
@@ -813,9 +821,9 @@ public:
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property ) override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
-	// End UMaterialInterface interface.
+	//~ End UMaterialInterface Interface.
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	ENGINE_API virtual void PreSave() override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
@@ -837,7 +845,8 @@ public:
 	ENGINE_API virtual void FinishDestroy() override;
 	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject Interface
+	ENGINE_API virtual bool CanBeClusterRoot() const override;
+	//~ End UObject Interface
 
 #if WITH_EDITOR
 	/** Cancels any currently outstanding compilation jobs for this material. Useful in the material editor when some edits superceds existing, in flight compilation jobs.*/
@@ -1100,7 +1109,7 @@ public:
 	/**
 	 * Go through every material, flush the specified types and re-initialize the material's shader maps.
 	 */
-	ENGINE_API static void UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform);
+	ENGINE_API static void UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FShaderPipelineType*>& ShaderPipelineTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform);
 
 	/** 
 	 * Backs up all material shaders to memory through serialization, organized by FMaterialShaderMap. 
@@ -1220,6 +1229,9 @@ public:
 	*									or NULL if an invalid property was requested (some properties have been removed from UI, those return NULL).
 	*/
 	ENGINE_API FExpressionInput* GetExpressionInputForProperty(EMaterialProperty InProperty);
+
+	/* Returns any UMaterialExpressionCustomOutput expressions */
+	ENGINE_API void GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const;
 
 	/**
 	 *	Get all referenced expressions (returns the chains for all properties).

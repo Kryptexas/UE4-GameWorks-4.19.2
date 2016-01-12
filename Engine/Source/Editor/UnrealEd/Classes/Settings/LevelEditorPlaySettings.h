@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -248,6 +248,9 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=PlayOnDevice)
 	bool bAutoCompileBlueprintsOnLaunch;
 
+	/** A programmatically defined custom PIE window to use */
+	TWeakPtr<SWindow> CustomPIEWindow;
+	
 private:
 
 	/** NetMode to use for Play In Editor. */

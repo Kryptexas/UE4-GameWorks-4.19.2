@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IFilter.h"
@@ -239,7 +239,7 @@ public:
 	 * @param ViewportClient				The viewport client to update visibility on
 	 * @param LayerThatChanged [optional]	If one layer was changed (toggled in view pop-up, etc), then we only need to modify actors that use that layer
 	 */
-	virtual void UpdatePerViewVisibility( FLevelEditorViewportClient* ViewportClient, const FName& LayerThatChanged = NAME_Skip ) = 0;
+	virtual void UpdatePerViewVisibility( class FLevelEditorViewportClient* ViewportClient, const FName& LayerThatChanged = NAME_Skip ) = 0;
 
 	/**
 	 * Updates per-view visibility for the given actor in the given view
@@ -248,7 +248,7 @@ public:
 	 * @param Actor								Actor to update
 	 * @param bReregisterIfDirty [optional]		If true, the actor will reregister itself to give the rendering thread updated information
 	 */
-	virtual void UpdateActorViewVisibility( FLevelEditorViewportClient* ViewportClient, const TWeakObjectPtr< AActor >& Actor, bool bReregisterIfDirty = true ) = 0;
+	virtual void UpdateActorViewVisibility( class FLevelEditorViewportClient* ViewportClient, const TWeakObjectPtr< AActor >& Actor, bool bReregisterIfDirty = true ) = 0;
 
 	/**
 	 * Updates per-view visibility for the given actor for all views
@@ -262,7 +262,7 @@ public:
 	 *
 	 * @param ViewportClient	The viewport client to update visibility on
 	 */
-	virtual void RemoveViewFromActorViewVisibility( FLevelEditorViewportClient* ViewportClient ) = 0;
+	virtual void RemoveViewFromActorViewVisibility( class FLevelEditorViewportClient* ViewportClient ) = 0;
 
 	/**
 	 * Updates the provided actors visibility in the viewports

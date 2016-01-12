@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Sound/SoundNode.h"
@@ -68,19 +68,19 @@ class USoundNodeEnveloper : public USoundNode
 
 
 public:	
-	// Begin UObject interface. 
+	//~ Begin UObject Interface. 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void Serialize(FArchive& Ar) override;
-	// End UObject interface. 
+	//~ End UObject Interface. 
 
 
-	// Begin USoundNode interface. 
+	//~ Begin USoundNode Interface. 
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual float GetDuration( void ) override;
-	// End USoundNode interface. 
+	//~ End USoundNode Interface. 
 
 };
 

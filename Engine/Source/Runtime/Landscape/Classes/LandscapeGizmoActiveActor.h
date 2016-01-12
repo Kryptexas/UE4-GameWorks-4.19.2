@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -105,10 +105,10 @@ public:
 	TMap<FIntPoint, FGizmoSelectData> SelectedData;
 
 #if WITH_EDITOR
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditMove(bool bFinished) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	virtual FVector SnapToLandscapeGrid(const FVector& GizmoLocation) const;
 	virtual FRotator SnapToLandscapeGrid(const FRotator& GizmoRotation) const;

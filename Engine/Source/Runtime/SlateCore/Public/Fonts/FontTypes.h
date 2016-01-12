@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 struct SLATECORE_API FSlateFontKey
@@ -77,7 +77,9 @@ struct FCharacterRenderData
 	/** @todo Doesnt belong here. */
 	uint16 MaxHeight;
 	/** The character that was rendered */
-	TCHAR Char;	
+	TCHAR Char;
+	/** The index of the glyph from the FreeType face that was rendered */
+	uint32 GlyphIndex;
 	/** Whether or not the character has kerning */
 	bool HasKerning;
 };

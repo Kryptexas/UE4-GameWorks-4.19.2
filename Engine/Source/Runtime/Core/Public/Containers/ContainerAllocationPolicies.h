@@ -1,9 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "MemoryBase.h"
 #include "Misc/OutputDevice.h"
+#include "Templates/MemoryOps.h"
 
 
 /** Used to determine the alignment of an element type. */

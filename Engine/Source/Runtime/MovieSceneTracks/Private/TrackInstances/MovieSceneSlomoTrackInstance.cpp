@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneSlomoTrack.h"
@@ -10,13 +10,38 @@
 
 FMovieSceneSlomoTrackInstance::FMovieSceneSlomoTrackInstance(UMovieSceneSlomoTrack& InSlomoTrack)
 	: SlomoTrack(&InSlomoTrack)
+	, InitMatineeTimeDilation(1.0f)
 { }
 
+	
+void FMovieSceneSlomoTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+{
+	AWorldSettings* WorldSettings = GWorld->GetWorldSettings();
+
+	if (WorldSettings == nullptr)
+	{
+		return;
+	}
+
+	WorldSettings->MatineeTimeDilation = InitMatineeTimeDilation;
+}
+
+void FMovieSceneSlomoTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+{
+	AWorldSettings* WorldSettings = GWorld->GetWorldSettings();
+
+	if (WorldSettings == nullptr)
+	{
+		return;
+	}
+
+	InitMatineeTimeDilation = WorldSettings->MatineeTimeDilation;
+}
 
 /* IMovieSceneTrackInstance interface
  *****************************************************************************/
 
-void FMovieSceneSlomoTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player)
+void FMovieSceneSlomoTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass)
 {
 	if (!ShouldBeApplied())
 	{

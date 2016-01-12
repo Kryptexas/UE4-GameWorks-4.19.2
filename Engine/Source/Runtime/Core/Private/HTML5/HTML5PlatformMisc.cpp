@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5Misc.cpp: HTML5 implementations of misc functions
@@ -14,7 +14,7 @@
 #include "trace.h"
 
 #include "unicode/locid.h"
-#include "GenericPlatformContext.h"
+#include "GenericPlatformCrashContext.h"
 #include <SDL.h>
 #include <ctime>
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,9 @@ public:
 	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FParticleTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~FParticleTrackEditor();
+
+	/** Virtual destructor. */
+	virtual ~FParticleTrackEditor() { }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer.
@@ -38,12 +40,13 @@ public:
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
+	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 	
 	void AddParticleKey(const FGuid ObjectGuid);
 private:
 
 	/** Delegate for AnimatablePropertyChanged in AddKey. */
-	virtual void AddKeyInternal( float KeyTime, const TArray<UObject*> Objects);
+	virtual bool AddKeyInternal( float KeyTime, const TArray<UObject*> Objects);
 };
 
 

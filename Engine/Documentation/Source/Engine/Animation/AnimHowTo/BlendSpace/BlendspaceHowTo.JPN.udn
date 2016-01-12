@@ -1,57 +1,57 @@
-﻿INTSourceChangelist:2601100
+﻿INTSourceChangelist:2661240
 Availability:Public
 Title:ブレンドスペースを作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:ブレンドスペースを使用して、ボタンが押されるとキャラクターが歩行/ジョギングの間でブレンドします。 
+Description:ブレンドスペースを使用して、ボタンを押すとキャラクターが歩行/ジョギングの間でブレンドします。 
 Related:Engine/Animation/Blendspaces
 Related:Engine/Animation/NodeReference/Blend
 Related:Engine/Animation/CharacterSetupOverview
 Related:Engine/Animation/AnimBlueprints
 Related:Engine/Animation/StateMachines
+バージョン：4.9
+スキルレベル:中級者向け
 
 
-[ブレンドスペース](Engine/Animation/Blendspaces) は 2 つの入力値に基づいたアニメーションのブレンドを可能にする **AnimGraph** でサンプリングできる特殊なアセットです。単一の入力に基づいた 2 つのアニメーションの単純なブレンドは、_Animation ブループリント_ で利用可能な標準の [ブレンド ノード](Engine/Animation/NodeReference/Blend) の一つを使用して行うことができます。_ブレンドスペース_ は、複数の値 (現在は 2 に限定) に基づいた複数のアニメーション間で複雑なブレンドを可能にする手段です。
+[ブレンドスペース](Engine/Animation/Blendspaces) は 2 つの入力値に基づいたアニメーションのブレンドを可能にする **AnimGraph** でサンプリングできる特殊なアセットです。単一の入力に基づいた 2 つのアニメーションの単純なブレンドは、Animation ブループリントで利用可能な標準の [ブレンド ノード](Engine/Animation/NodeReference/Blend) の一つを使用して行うことができます。ブレンドスペースは、複数の値 (現在は 2 に限定) に基づいた複数のアニメーション間で一段と複雑なブレンドを可能にします。
 
-このページでは、既存のキャラクターを用いてその動く速度に基づき歩行とジョギングの間でブレンドする _ブレンドスペース_ を適用する方法を説明します。 
+このページでは、既存のキャラクターを用いてその動く速度に基づき歩行とジョギングの間でブレンドするブレンドスペースを適用する方法を説明します。 
 
 
 [EXCERPT:Intro]
-[REGION:note]
-このガイドでは、**Starter Content** を有効にした状態で（スターターコンテンツを含める） **Blueprint Third Person** テンプレートを使用して新規プロジェクトを作成しました。 
+このガイドでは、**Starter Content** を有効にした状態で (スターターコンテンツを含める) **Blueprint Third Person** テンプレートを使用して新規プロジェクトを作成しました。 
 
-ここでも、 **Animation Starter Pack** を使用します。**マーケット** から無料でダウンロードしてご利用いただけます。 
+ここでも、 **Animation Starter Pack** を使用します。これは、**マーケット** から無料でダウンロードしてご利用いただけます。 
 
 ![](Engine\Animation\AnimHowTo\AdditiveAnimations\AnimationAssetPack.png)
 
-Animation Starter Pack をダウンロードしたら、ランチャーの **[プロジェクトに追加する]** ボタンで自分のプロジェクトに追加することができます。
-[/REGION]
+Animation Starter Pack をダウンロードしたら、ランチャーの **[Add to project (プロジェクトに追加)]** ボタンで自分のプロジェクトに追加することができます。
 [/EXCERPT:Intro]
 
-1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「ゲーム / ブループリント」** フォルダで **MyGame** ブループリントを開きます。 
+1. プロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「Game/ThirdPersonBP/Blueprints」** フォルダで **ThirdPersonGameMode** ブループリントを開きます。 
 
-1.	**Default Pawn Class** （デフォルトのポーン クラス）でドロップダウン メニューをクリックし、**Ue4ASP_Character** を選択します。 
+1.	**Default Pawn Class (デフォルトのポーン クラス)** でドロップダウン メニューをクリックし、**Ue4ASP_Character** を選択します。 
 
-	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
+	![](BS_DefaultPawnClass.jpg)
 
 1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
 
-1.	**コンテンツ ブラウザ** で、**[Create]** （作成）ボタンをクリックします。次に _Animation_ で **Blend Space** を選択します。 
+1.	**コンテンツ ブラウザ** で、 **[Add New (新規追加)]** ボタンをクリックします。次に **Animation** で **Blend Space** を選択します。 
 
-	![](BlendSpace1.png)(w:400)
+	![](BS_BlendSpace.jpg)
 
-1.	**[Pick Skeleton]** （スケルトンを選択）ウィンドウで、 **Game/AnimStaterPack/Character** フォルダにある **HeroTPP_Skeleton** を選択するようにしてください。 
+1.	**[Pick Skeleton (スケルトンを選択)]** ウィンドウで、 **「Game/AnimStaterPack/UE4_Mannequin/Mesh」** フォルダにある **UE4_Mannequin_Skeleton** を選択するようにしてください。 
 
 	![](BlendSpace2.png)(w:400)
 
-	 _ブレンドスペース_ に **Walk_Jog_BS** などの名前を付けます。 
+	ブレンドスペースに **Walk_Jog_BS** などの名前を付けます。 
 
-	![](BlendSpace3.png)
+	![](BS_Walk_Jog_BS.jpg)
 
-1.	**Walk_Jog_BS** を開いて、ウィンドウの **Parameters** セクションに表示されている値を入力します。 
+1.	**Walk_Jog_BS** を開いて、中央のウィンドウの **Parameters** セクションに表示されている値を入力します。 
 
 	![](BlendSpace4.png)
 
-	**X Axis Label** を **Direction** に設定し、その範囲を **-180 から 180** に設定します。**Y Axis Label** を **Speed** に設定し、その範囲を **150 から 270** に設定します。値を設定した状態で、 **Apply Parameter Changes** （パラメータの変更を適用）ボタンをクリックします。これは左側のグリッド空間を上記で指定した値で更新します。ここでは、プレイヤー キャラクターから取得する変数、**Direction** と **Speed** (指定範囲にクランプ) に基づき、 _ブレンドスペース_ が作るモーションを決めるパラメータを定義します。 
+	**X Axis Label** を **Direction** に設定し、その範囲を **-180 から 180** に設定します。**Y Axis Label** を **Speed** に設定し、その範囲を **150 から 270** に設定します。値を設定した状態で、 **[Apply Parameter Changes (パラメータの変更を適用)]** ボタンをクリックします。これは左側のグリッド空間を上記で指定した値で更新します。ここでは、プレイヤー キャラクターから取得する変数、**Direction** と **Speed** (指定範囲にクランプ) に基づき、ブレンドスペースが作るモーションを決めるパラメータを定義します。 
 
 1.	**アセット ブラウザ** ウィンドウから **Walk_Fwd_Rifle_Ironsights** アニメーションをグラフの下部中央にドラッグします。 
 
@@ -79,15 +79,15 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 
 	マウスをグリッド内で移動すると、キャラクターは異なる歩行 / ジョギングのアニメーション間でブレンドを開始します。 
 
-1.	**[Anim Asset Details]** （Anim アセットの詳細）ウィンドウ内の _Sample Interpolation_ で **Target Weight Interpolation Speed Per Sec** を **4.0** に設定します。 
+1.	**[Anim Asset Details (Anim アセットの詳細)]** ウィンドウ内の Sample Interpolation セットの **[Target Weight Interpolation Speed Per Sec (ターゲット ウェイトの補間速度/秒)]** を **4.0** に設定します。 
 
 	![](BlendSpace11.png)
 
-	これにより、_ブレンドスペース_ のアニメーション間での移行を滑らかにし、ポーズ間でのポッピングを防ぎます。 
+	これにより、ブレンドスペースのアニメーション間での移行を滑らかにし、ポーズ間でのポッピングを防ぎます。 
 
-1.	**[Save]** （保存）をクリックして、_ブレンドスペース_ を閉じます。 **コンテンツ ブラウザ** で **Ue4ASP_HeroTPP_AnimBlueprint** を開きます。 
+1.	**[Save (保存)]** をクリックして、ブレンドスペースを閉じます。 **コンテンツ ブラウザ** で **Ue4ASP_HeroTPP_AnimBlueprint** を開きます。 
 
-1.	 _Animation ブループリント_ 内で、**MyBlueprint** タブをクリックします。次に **AnimGraph** を展開し、 **Locomotion をダブルクリック** します。 
+1.	 Animation ブループリント内で、**MyBlueprint** タブをクリックします。次に **AnimGraph** を展開し、 **Locomotion をダブルクリック** します。 
 
 	![](BlendSpace12.png)(w:640)
 
@@ -101,37 +101,37 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 
 	![](BlendSpace14.png)(w:640)
 
-1.	**R_Jog** を **Walk_Jog_BS** _ブレンドスペース_ に置き換え、**Direction** と **Speed** を接続し、**Result** に送り込むようにします。 
+1.	**R_Jog** を **Walk_Jog_BS** ブレンドスペース に置き換え、**Direction** と **Speed** を接続し、**Result** に送り込むようにします。 
 
 	![](BlendSpace15.png)(w:640)
 
-1.	**[コンパイル]** と **[保存]** をクリックし、_Animation ブループリント_ を閉じます。 
+1.	**[コンパイル]** と **[保存]** をクリックし、Animation ブループリントを閉じます。 
 
-1.	**コンテンツ ブラウザ** で、 **Ue4ASP_Character** _ブループリント_ フォルダを開きます。 
+1.	**コンテンツ ブラウザ** で、 **Ue4ASP_Character** _ブループリント_ を開きます。 
 
-1.	_ブループリント_ が開いた状態で、**Crouching** セクションを見つけて、**InputAction Crouch** ノードを **C** Key イベントに置き換えます。 
+1.	ブループリントが開いた状態で、**Crouching** セクションを見つけて、**InputAction Crouch** ノードを **C** Key Event に置き換えます。 
 
 	![](BlendSpace17.png)(w:640)
 
-	この _AnimBlueprint_ は、 **Crouch** (しゃがむ) と呼ばれる **アクション マッピング** が存在することを想定して作られました。新しいプロジェクトにはこれが存在せず、黄色の警告記号を取り除くためには、**C** Key Event に置き換えて、C キーが押されるとプレイヤーがしゃがむようにします。 
+	この AnimBlueprint は、 **Crouch(しゃがむ)** と呼ばれる **アクション マッピング** が存在することを想定して作られました。新しいプロジェクトにはこれが存在せず、黄色の警告記号を取り除くためには、**C** Key Event に置き換えて、C キーが押されるとプレイヤーがしゃがむようにします。 
 
 1.	**Pressed** ピンを引き出して **FlipFlop** ノードを追加します。次に **A** ピンと **B** ピンを以下のように接続します。 
 
 	![](BlendSpace18.png)(w:640)
 
-	_FlipFlop_ ノードは切り替えとして機能し、1 回めに C が押されるとキャラクターはしゃがみ、2 回めに押されると立ちます。 
+	**FlipFlop** ノードは切り替えとして機能し、1 回めに C が押されるとキャラクターはしゃがみ、2 回めに押されると立ちます。 
 
-1.	**[MyBlueprint]** で、 **[Show inherited variables (継承した変数を表示)]** ボックスをクリックし、 **CharacterMovement** をグラフへドラッグします。 
+1.	**[MyBlueprint]** で、 **[Show inherited variables (継承した変数を表示)]** ボックスをクリックし、**Ctrl** を押しながら **CharacterMovement** をグラフへドラッグします。 
 
 	![](BlendSpace19.png)
 
-1.	グラフで **CharacterMovement** ノードからドラッグし、**Set Max Walk Speed** （最高歩行速度の設定）ノードを探して追加し、それを **125** に設定します。 
+1.	グラフで **CharacterMovement** ノードからドラッグし、**Set Max Walk Speed (最高歩行速度の設定)** ノードを探して追加し、それを **125** に設定します。 
 
 1.	**Set Max Walk Speed** ノードを複製し、新しいノードを **150** に設定します。次に以下のようにノードを接続します。 
 
 	![](BlendSpace20.png)
 
-1.	_Crouch_ セクションの下でグラフ内を **右クリック** して、**Left Shift** キー イベントを追加します。 
+1.	Crouch セクションの下でグラフ内を **右クリック** して、**Left Shift** Key Event を追加します。 
 
 1.	**Pressed** ピンを引き出して **Branch** ノードを追加します。次に **Released** ピンの **Branch** を追加します。 
 
@@ -139,21 +139,23 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[�
 
 	![](BlendSpace21.png)
 
-1.	_Crouch_ セクションから **CharacterMovement** ノードと **Set Max Walk Speed** ノードを複製します。 
+1.	Crouch セクションから **CharacterMovement** ノードと **Set Max Walk Speed** ノードを複製します。 
 
 1.	以下のように各 **Branch** の **False** ピンから接続し、**Max Walk Speed** 値を **270** と **150** に設定します。 
 
 	![](BlendSpace22.png)
 
-1.	 _ブループリント_ の右上で **[デフォルト]** タブをクリックします。 
+1.	 ブループリントの右上で **[デフォルト]** タブをクリックします。 
 
 1.	検索欄に **Max Walk Speed** と入力し、 **Max Walk Speed** を **150** に、 **Max Walk Speed Crouched** を **125** に設定します。 
 
 	![](BlendSpace23.png)
 
-1.	**[コンパイル]** と **[保存]** をクリックし、 _ブループリント_ を閉じます。エディタで再生するには、**Play** をクリックします。 
+1.	**[Compile]** と **[Save]** をクリックし、ブループリントを閉じます。次に、シーンから既存の ThirdPersonCharacter を削除します。
 
-エディタで再生する場合、 **WASD** を使用して移動すると、キャラクターがデフォルトで歩行し、方向を変えるときに歩行のアニメーション間でブレンドします。 **C** を押してしゃがむと、キャラクターはしゃがんだままのポジションになり、立った姿勢 / 歩行のときよりも若干遅い速度で歩行します。立った状態で、WASD を使用しながら **Left Shift** を押して保持すると、キャラクターは歩行 / 照準のアニメーションから身を低くして / 照準して走るアニメーションにブレンドし、基本的にキャラクターの「スプリント」 (すばやく走ること) を作ります。 
+1. エディタで再生するには **Play (再生)** をクリックします。 
+
+エディタで再生する場合、 **WASD** を使用して移動すると、キャラクターがデフォルトで歩行し、方向を変えるときに歩行のアニメーション間でブレンドします。 **C** を押してしゃがませると、キャラクターはしゃがんだポジションになり、立位 / 歩行のときよりも若干遅い速度で歩行します。立った状態で、WASD を使用しながら **Left Shift** を押して保持すると、キャラクターは歩行 / 照準のアニメーションから身を低くして / 照準して走るアニメーションにブレンドし、基本的にキャラクターを「スプリント」 (すばやく走ること) させます。 
 
 
 

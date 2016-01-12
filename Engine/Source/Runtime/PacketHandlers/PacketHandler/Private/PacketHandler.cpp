@@ -1,9 +1,15 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
 #include "PacketHandler.h"
 #include "ReliabilityHandlerComponent.h"
 
 IMPLEMENT_MODULE(FPacketHandlerComponentModuleInterface, PacketHandler);
 
 DEFINE_LOG_CATEGORY(PacketHandlerLog);
+
+
+// @todo #JohnB: For the moment, disable the reliability handler, while it is causing network trouble
+#define DISABLE_RELIABILITY_HANDLER 1
 
 // BUFFERED PACKET
 BufferedPacket::BufferedPacket()
@@ -24,9 +30,10 @@ BufferedPacket::~BufferedPacket()
 
 // PACKET HANDLER
 PacketHandler::PacketHandler()
-: Time(0.f)
+: bEnabled(false)
+, Time(0.f)
 , State(Handler::State::Uninitialized)
-, ReliabilityComponent(nullptr)
+, ReliabilityComponent(NULL)
 {
 	OutgoingPacket.SetAllowResize(true);
 	OutgoingPacket.AllowAppend(true);
@@ -56,110 +63,120 @@ void PacketHandler::Tick(float DeltaTime)
 
 void PacketHandler::Initialize(Handler::Mode InMode)
 {
-	struct ComponentAndOptions
+	GConfig->GetBool(TEXT("PacketHandlerComponents"), TEXT("bEnabled"), bEnabled, GEngineIni);
+
+	if (!bEnabled && FParse::Param(FCommandLine::Get(), TEXT("PacketHandler")))
 	{
-		FString ComponentName;
-		FString Options;
-	};
-
-	Mode = InMode;
-
-	FString Components;
-	GConfig->GetString(TEXT("PacketHandlerComponents"), TEXT("Components"), Components, GEngineIni);
-
-	TArray<ComponentAndOptions> ComponentsArray;
-	ComponentsArray.Add(ComponentAndOptions());
-
-	int32 i = 0;
-	int32 ComponentsCount = 0;
-	while(i < Components.Len())
-	{
-		TCHAR c = Components[i];
-
-		// End of string
-		if(c == ',')
-		{
-			// If not end of string add a new string
-			if(i + 1 < Components.Len())
-			{
-				ComponentsArray.Add(ComponentAndOptions());
-				++ComponentsCount;
-			}
-		}
-		// Parsing Options
-		else if(c == '(')
-		{
-			// Skip '('
-			++i;
-
-			// Parse until end of options
-			while(i < Components.Len())
-			{
-				c = Components[i];
-
-				// End of options
-				if(c == ')')
-				{
-					break;
-				}
-				// Append char to options
-				else
-				{
-					ComponentsArray[ComponentsCount].Options.AppendChar(c);
-				}	
-
-				++i;
-			}
-		}
-		// Append char to component name if not whitespace
-		else if(c != ' ' )
-		{
-			ComponentsArray[ComponentsCount].ComponentName.AppendChar(c);
-		}
-
-		++i;
+		UE_LOG(PacketHandlerLog, Log, TEXT("Force-enabling packet handler from commandline."));
+		bEnabled = true;
 	}
 
-	for (i = 0; i < ComponentsArray.Num(); i++)
+	if (bEnabled)
 	{
-		// Skip adding reliability component as it is added automatically in the handler
-		if(ComponentsArray[i].ComponentName == TEXT("ReliabilityHandlerComponent"))
+		struct ComponentAndOptions
 		{
-			continue;
-		}
+			FString ComponentName;
+			FString Options;
+		};
 
-		TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*ComponentsArray[i].ComponentName));
+		Mode = InMode;
 
-		if(Interface.IsValid())
+
+		TArray<FString> Components;
+		TArray<ComponentAndOptions> ComponentsArray;
+
+		GConfig->GetArray(TEXT("PacketHandlerComponents"), TEXT("Components"), Components, GEngineIni);
+
+		for (FString CurComponent : Components)
 		{
-			TSharedPtr<FPacketHandlerComponentModuleInterface> PacketHandlerInterface(static_cast<FPacketHandlerComponentModuleInterface*>(&(*Interface)));
-
-			if(PacketHandlerInterface.IsValid())
+			if (CurComponent.IsEmpty())
 			{
-				// Options Specified
-				if(ComponentsArray[i].Options.Len() > 0)
+				continue;
+			}
+
+
+			int CurIndex = ComponentsArray.Add(ComponentAndOptions());
+
+			for (int32 i=0; i<CurComponent.Len(); i++)
+			{
+				TCHAR c = CurComponent[i];
+
+				// Parsing Options
+				if (c == '(')
 				{
-					Add(PacketHandlerInterface->CreateComponentInstance(ComponentsArray[i].Options));
+					// Skip '('
+					++i;
+
+					// Parse until end of options
+					for (; i<CurComponent.Len(); i++)
+					{
+						c = CurComponent[i];
+
+						// End of options
+						if (c == ')')
+						{
+							break;
+						}
+						// Append char to options
+						else
+						{
+							ComponentsArray[CurIndex].Options.AppendChar(c);
+						}
+					}
 				}
-				// No Options Specified
-				else
+				// Append char to component name if not whitespace
+				else if (c != ' ')
 				{
-					Add(PacketHandlerInterface->CreateComponentInstance());
+					ComponentsArray[CurIndex].ComponentName.AppendChar(c);
 				}
 			}
 		}
-		else
+
+		for (int32 i=0; i<ComponentsArray.Num(); i++)
 		{
-			UE_LOG(PacketHandlerLog, Warning, TEXT("Unable to Load Module: %s"), *ComponentsArray[i].ComponentName);
+			// Skip adding reliability component as it is added automatically in the handler
+			if(ComponentsArray[i].ComponentName == TEXT("ReliabilityHandlerComponent"))
+			{
+				continue;
+			}
+
+
+			TSharedPtr<IModuleInterface> Interface = FModuleManager::Get().LoadModule(FName(*ComponentsArray[i].ComponentName));
+
+			if(Interface.IsValid())
+			{
+				TSharedPtr<FPacketHandlerComponentModuleInterface> PacketHandlerInterface =
+					StaticCastSharedPtr<FPacketHandlerComponentModuleInterface>(Interface);
+
+				if(PacketHandlerInterface.IsValid())
+				{
+					UE_LOG(PacketHandlerLog, Log, TEXT("Loading PacketHandler component: %s (%s)"), *ComponentsArray[i].ComponentName,
+							*ComponentsArray[i].Options);
+
+					Add(PacketHandlerInterface->CreateComponentInstance(ComponentsArray[i].Options));
+				}
+			}
+			else
+			{
+				UE_LOG(PacketHandlerLog, Warning, TEXT("Unable to Load Module: %s"), *ComponentsArray[i].ComponentName);
+			}
 		}
 	}
 }
 
-void PacketHandler::Add(HandlerComponent* NewHandler)
+void PacketHandler::Add(TSharedPtr<HandlerComponent> NewHandler)
 {
 	if (State != Handler::State::Uninitialized)
 	{
 		LowLevelFatalError(TEXT("Handler added during runtime."));
+		return;
+	}
+
+	// This should always be fatal, as an unexpectedly missing handler, may break net compatibility with the remote server/client
+	if (!NewHandler.IsValid())
+	{
+		LowLevelFatalError(TEXT("Failed to add handler - invalid instance."));
+		return;
 	}
 
 	HandlerComponents.Add(NewHandler);
@@ -175,11 +192,13 @@ const ProcessedPacket PacketHandler::Outgoing(uint8* Packet, int32 Count)
 	{
 		case Handler::State::Uninitialized:
 		{
-			if(ReliabilityComponent == nullptr)
+#if !DISABLE_RELIABILITY_HANDLER
+			if (!ReliabilityComponent.IsValid())
 			{
-				ReliabilityComponent = new ReliabilityHandlerComponent;
+				ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
 				Add(ReliabilityComponent);
 			}
+#endif
 
 			// Have handlers to initialize other than reliability
 			if (HandlerComponents.Num() > 1)
@@ -224,7 +243,7 @@ const ProcessedPacket PacketHandler::Outgoing(uint8* Packet, int32 Count)
 	}
 
 	// Queue packet for resending before handling
-	if(Count > 0 && ReliabilityComponent != nullptr)
+	if(Count > 0 && ReliabilityComponent.IsValid())
 	{
 		ReliabilityComponent->QueuePacketForResending(Packet, Count);
 	}
@@ -249,11 +268,13 @@ const ProcessedPacket PacketHandler::Incoming(uint8* Packet, int32 Count)
 	{
 		case Handler::State::Uninitialized:
 		{
-			if (ReliabilityComponent == nullptr)
+#if !DISABLE_RELIABILITY_HANDLER
+			if (!ReliabilityComponent.IsValid())
 			{
-				ReliabilityComponent = new ReliabilityHandlerComponent;
+				ReliabilityComponent = MakeShareable(new ReliabilityHandlerComponent);
 				Add(ReliabilityComponent);
 			}
+#endif
 
 			if (HandlerComponents.Num() > 1)
 			{

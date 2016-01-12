@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -85,13 +85,13 @@ protected:
 		ToolTip = "Batching granularity used to register actor components during level streaming."))
 	int32 LevelStreamingComponentsRegistrationGranularity;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	// End UObject interface
+	//~ End UObject Interface
 };
 
 /** Whether to allow background level streaming. */
@@ -136,6 +136,16 @@ protected:
 		ToolTip = "If enabled, garbage collection will use multiple threads."))
 	uint32 AllowParallelGC : 1;
 
+	UPROPERTY(EditAnywhere, config, Category = Optimization, meta = (
+		ConsoleVariable = "gc.CreateGCClusters", DisplayName = "Create Garbage Collector UObject Clusters",
+		ToolTip = "If true, the engine will attempt to create clusters of objects for better garbage collection performance."))
+	uint32 CreateGCClusters : 1;
+
+	UPROPERTY(EditAnywhere, config, Category = Optimization, meta = (
+		ConsoleVariable = "gc.MergeGCClusters", DisplayName = "Merge GC Clusters",
+		ToolTip = "If true, when creating clusters, the clusters referenced from another cluster will get merged into one big cluster."))
+		uint32 MergeGCClusters : 1;
+
 	UPROPERTY(EditAnywhere, config, Category = General, meta = (
 		ConsoleVariable = "gc.NumRetriesBeforeForcingGC", DisplayName = "Number Of Retries Before Forcing GC",
 		ToolTip = "Maximum number of times GC can be skipped if worker threads are currently modifying UObject state. 0 = never force GC"))
@@ -151,11 +161,21 @@ protected:
 		ToolTip = "Size Of Permanent Object Pool (bytes). Works only in cooked builds."))
 	int32 SizeOfPermanentObjectPool;
 
-	// Begin UObject interface
+	UPROPERTY(EditAnywhere, config, Category = Optimization, meta = (
+		ConsoleVariable = "gc.MaxObjectsInGame", DisplayName = "Maximum number of UObjects that can exist in cooked game",
+		ToolTip = "Maximum number of UObjects that can exist in cooked game. Keep this as small as possible."))
+	int32 MaxObjectsInGame;
+
+	UPROPERTY(EditAnywhere, config, Category = Optimization, meta = (
+		ConsoleVariable = "gc.MaxObjectsInEditor", DisplayName = "Maximum number of UObjects that can exist in the editor",
+		ToolTip = "Maximum number of UObjects that can exist in the editor game. Make sure this can hold enough objects for the editor and commadlets within reasonable limit."))
+	int32 MaxObjectsInEditor;
+
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	// End UObject interface
+	//~ End UObject Interface
 };

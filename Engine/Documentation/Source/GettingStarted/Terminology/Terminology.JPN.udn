@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2719462
 Availability:Public
-Title:アンリアル・エンジン 4 の専門用語
+Title:UNREAL ENGINE の用語
 Crumbs: %ROOT%, Gameplay, GettingStarted
 Description:このページでは アンリアル エンジン 4 で作業する場合に一般的に使用する用語を説明します。 
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,7 +39,7 @@ Description:このページでは アンリアル エンジン 4 で作業する
 [/OBJECT]
 [/VAR]
 
-このページでは **アンリアル エンジン 4** で作業する場合に一般的に使用する用語を説明します。例えば、「**アクタ** って何？」「**コンポーネント** はどんなもの？」 「**ポーン** って何だろう？」などの疑問がわいたら、このページを見ると質問に対する回答や詳細が掲載されています。各用語の意味を理解したら、さらに詳しいドキュメントやガイダンスへのリンクがあります。 
+このページでは **UNREAL ENGINE** で作業する場合に一般的に使用する用語を説明します。例えば、「**アクタ** って何？」「**コンポーネント** はどんなもの？」 「**ポーン** って何だろう？」などの疑問がわいたら、このページを見ると質問に対する回答や詳細が掲載されています。各用語の意味を理解したら、さらに詳しいドキュメントやガイダンスへのリンクがあります。 
 
 | ------- | ------------ |
 |![](NewProject.png)(w:300 h:140)|[INCLUDE:GettingStarted\Terminology#projects]| 
@@ -118,7 +119,7 @@ Description:このページでは アンリアル エンジン 4 で作業する
 [EXCERPT:components]
 **コンポーネント**
 [INCLUDE:Shared\Glossary\C#glossary_component]
-詳細は、以下をご覧ください。[Components](Engine\Components), [Components Window](Engine/Blueprints/UserGuide/Components), [Components in Code](Programming/UnrealArchitecture/Actors/Components)
+詳細は、以下をご覧ください。[コンポーネント](Engine\Components), [コンポーネント ウィンドウ](Engine/Blueprints/UserGuide/Components), [コンポーネント](Programming/UnrealArchitecture/Actors/Components)
 [/EXCERPT:components]
 
 
@@ -132,7 +133,7 @@ Description:このページでは アンリアル エンジン 4 で作業する
 [EXCERPT:characters]
 **キャラクター**
 [INCLUDE:Shared\Glossary\C#glossary_character]
-詳細は、以下をご覧ください。[](Gameplay/Framework/Pawn/Character), [Character Setup](Engine/Animation/CharacterSetupOverview), [How To - Character Movement](Gameplay/HowTo/CharacterMovement/Blueprints)
+詳細は、以下をご覧ください。[](Gameplay/Framework/Pawn/Character), [キャラクターのセットアップ](Engine/Animation/CharacterSetupOverview), [キャラクターの移動の操作ガイド](Gameplay/HowTo/CharacterMovement/Blueprints)
 [/EXCERPT:characters]
 
 

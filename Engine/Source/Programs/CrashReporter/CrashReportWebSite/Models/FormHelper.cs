@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -28,6 +28,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary>Message/Summary or Description as query for filtering.</summary>
 		public string MessageQuery = "";
+
+		/// <summary>BuiltFromCL as query for filtering.</summary>
+		public string BuiltFromCL = "";
+
+		/// <summary>BuggId as query for filtering.</summary>
+		public string BuggId = "";
 
 		/// <summary>The page to display from the list.</summary>
 		public int Page = 1;
@@ -61,6 +67,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary>The version name to filter by.</summary>
 		public string VersionName = "";
+
+		/// <summary>The platform name to filter by.</summary>
+		public string PlatformName = "";
 
 		/// <summary>The game to filter by.</summary>
 		public string GameName = "";
@@ -171,11 +180,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			GetFormParameter( Request, Form, "EpicIdOrMachineQuery", EpicIdOrMachineQuery, out EpicIdOrMachineQuery );
 			GetFormParameter( Request, Form, "JiraQuery", JiraQuery, out JiraQuery );
 			GetFormParameter( Request, Form, "MessageQuery", MessageQuery, out MessageQuery );
+			GetFormParameter( Request, Form, "BuggId", BuggId, out BuggId );
+			GetFormParameter( Request, Form, "BuiltFromCL", BuiltFromCL, out BuiltFromCL );
 			GetFormParameter( Request, Form, "SortTerm", DefaultSortTerm, out SortTerm );
 			GetFormParameter( Request, Form, "CrashType", CrashType, out CrashType );
 			GetFormParameter( Request, Form, "UserGroup", UserGroup, out UserGroup );
 			GetFormParameter( Request, Form, "BranchName", BranchName, out BranchName );
 			GetFormParameter( Request, Form, "VersionName", VersionName, out VersionName );
+			GetFormParameter( Request, Form, "PlatformName", PlatformName, out PlatformName );
 			GetFormParameter( Request, Form, "GameName", GameName, out GameName );
 
 

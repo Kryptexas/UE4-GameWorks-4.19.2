@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:2589216
+﻿INTSourceChangelist:2735872
 Availability:Public
-Title:プログラミング案内
+Title:プログラミング ガイド
 Crumbs:%ROOT%
 Description:プログラミングに関する情報をみてみましょう
+version:4.9
+parent:%ROOT%
+order:4
 
 [VAR:Params]
 [PARAM:image]
@@ -52,7 +55,7 @@ Description:プログラミングに関する情報をみてみましょう
 [/OBJECT]
 [/VAR]
 
-[VAR:Role]
+[VAR:TopicRole]
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
@@ -61,7 +64,7 @@ Description:プログラミングに関する情報をみてみましょう
 [/OBJECT]
 [/VAR]
 
-[VAR:TopicRole]
+[VAR:Role]
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
@@ -70,7 +73,7 @@ Description:プログラミングに関する情報をみてみましょう
 [/OBJECT]
 [/VAR]
 
-アンリアル エンジン 4 には、開発のワークフローを早めるためにも使用できるプログラマー用のツールセットが 2 種類あります。新しいゲームプレイ クラス、Slate および Canvas のユーザー インターフェース エレメント、編集機能は
+UE4 には、開発のスピードを上げるために使用できるプログラミング用のツールセットが 2 種類あります。新しいゲームプレイ クラス、Slate および Canvas のユーザー インターフェース エレメント、編集機能は
 C++ で書くことができ、Visual Studio または Xcode でのコンパイル後に変更はすべてアンリアル エンジンに反映されます。ブループリント ビジュアル スクリプティング システムは、関数ブロックとプロパティ リファレンスをまとめて接続することで、
 クラスをエディタ内で作成できるようにするパワフルなツールです。 
 
@@ -102,7 +105,7 @@ C++ クラスはブループリント クラスの基底として使用できま
 		![](%ROOT%/prog_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		アンリアル エンジンの C++ 案内
+		UNREAL ENGINE の C++ ガイド
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Programming/Introduction]
@@ -189,7 +192,7 @@ C++ クラスはブループリント クラスの基底として使用できま
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		アンリアル ゲームプレイ
+		ゲームプレイ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
@@ -208,7 +211,7 @@ C++ クラスはブループリント クラスの基底として使用できま
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/Animation "%Programming/Animation:description%")
+		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
 		* [](Programming/Automation "%Programming/Automation:description%")
 		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
 		* [](Programming/Online "%Programming/Online:description%")

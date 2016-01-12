@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2421168
+﻿INTSourceChangelist:2694959
 Availability:Public
 Title: 블루프린트 유형
 Crumbs: %ROOT%, Engine/Blueprints
 Description:여러가지 블루프린트 유형 관련 정보에 대한 첫 페이지입니다.
+version: 4.9
 
 
 가끔은 어떤 유형의 **블루프린트** 를 사용해야 할지 단번에 알기가 힘이 듭니다. 
@@ -18,68 +19,52 @@ Description:여러가지 블루프린트 유형 관련 정보에 대한 첫 페�
 
 [EXCERPT:Main]
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](level_blueprint_test_image.png)(w:250)](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:title]
-		[%Engine/Blueprints/UserGuide/Types/LevelBlueprint:title%](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
+##레벨 블루프린트
+
+![](level_blueprint_test_image.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
+
+이에 대한 상세 정보는 [](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 문서를 참고하세요.
 
 
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](class_blueprint_test_image.png)(w:250)](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
-	[/PARAM]
-	[PARAM:title]
-		[%Engine/Blueprints/UserGuide/Types/ClassBlueprint:title%](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
+##블루프린트 클래스
+
+![](class_blueprint_test_image.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
+
+이에 대한 상세 정보는 [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 문서를 참고하세요.
 
 [/EXCERPT:Main]
 
 
 [EXCERPT:Types]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](data_blueprint.png)(w:250)](Engine/Blueprints/UserGuide/Types/ClassBlueprint#데이터전용블루프린트)
-	[/PARAM]
-	[PARAM:title]
-		[데이터 전용 블루프린트](Engine/Blueprints/UserGuide/Types/ClassBlueprint#데이터전용블루프린트)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](blueprint_interface.png)(w:250)](Engine/Blueprints/UserGuide/Types/Interface)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/Interface)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![](macro_blueprint.png)(w:250)](Engine/Blueprints/UserGuide/Types/MacroLibrary)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/MacroLibrary)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
-	[/PARAM]
-[/OBJECT]
+
+##데이터 전용 블루프린트
+
+![](data_blueprint.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
+
+이에 대한 상세 정보는 [](Engine/Blueprints/UserGuide/Types/ClassBlueprint) 문서를 참고하세요.
+
+##블루프린트 인터페이스
+
+![](blueprint_interface.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
+
+이에 대한 상세 정보는 [](Engine/Blueprints/UserGuide/Types/Interface) 문서를 참고하세요.
+
+##블루프린트 매크로 라이브러리
+
+![](macro_blueprint.png)(w:250)
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
+
+이번 섹션에 대한 상세 정보는, [](Engine/Blueprints/UserGuide/Types/MacroLibrary) 문서를 참고하세요.
+
 
 <!--
 [OBJECT:IconSection]

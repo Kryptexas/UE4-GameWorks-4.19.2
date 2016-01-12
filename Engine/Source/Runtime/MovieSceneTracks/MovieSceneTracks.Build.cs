@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -19,13 +19,13 @@ public class MovieSceneTracks : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"MovieScene",
 			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"MovieScene",
-				"SlateCore",
+				"SlateCore"
 			}
 		);
 	}

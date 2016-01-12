@@ -2,6 +2,7 @@ Availability: Public
 Title:Split Screen
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Optimization
 Description:Using detail mode and profiling commands to optimize effects for split screen.
+Version: 4.9
 
 [TOC]
 
@@ -37,7 +38,8 @@ View draw calls for a given area using the command `DumpParticleFrameRenderingSt
 
 Viewing the stats in the spreadsheet is straight forward. It should look something like this:
 
-![particlestats.jpg](particlestats.jpg)(w:624 h:176)
+![particlestats.jpg](particlestats.jpg)(w:960)
+
 
 In this case, the fix is pretty straight forward.  We have one effect that must call a bunch of meshes and they loop spawn most likely.  This can be tricky however, because if one effect is the primary culprit, and you wish to keep the effect's current visuals there is only one option, convert the meshes to sprites.
 

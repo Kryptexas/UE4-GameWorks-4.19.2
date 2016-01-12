@@ -2,6 +2,9 @@ Availability: Public
 Title:Landscape Outdoor Terrain
 Crumbs:%ROOT%, Engine
 Description:Landscape system for creating terrain for large, open, outdoor environments.
+version: 4.9
+parent:Engine
+order:8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -122,7 +125,7 @@ Description:Landscape system for creating terrain for large, open, outdoor envir
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
-The Landscape system enables you to create terrain for your world - mountains, valleys, uneven or sloped ground, even openings for caves - and easily modify both its shape and its appearance by using a range of tools.
+The **Landscape** system enables you to create terrain for your world - mountains, valleys, uneven or sloped ground, even openings for caves - and easily modify both its shape and its appearance by using a range of tools.
 [/EXCERPT:Intro]
 
 For information about opening and using the Landscape tool, see [](Engine/Landscape\Creation).
@@ -155,11 +158,11 @@ The main features and techniques employed by the Landscape terrain system are de
 ### Large Terrain Sizes
 
 [EXCERPT:landscape001]
-The Landscape system paves the way for terrains that are orders of magnitude larger than what has been possible in Unreal Engine previously. Because of its powerful LOD system and the way it makes efficient use of memory, heightmaps up to 8192x8192 are now legitimately possible and feasible. The Unreal Engine now supports huge outdoor worlds that allow for any number of types of games to be created quickly, easily, and without modification of the stock engine or tools.
+The Landscape system paves the way for terrains that are orders of magnitude larger than what has been possible in Unreal Engine previously. Because of its powerful **Level of Detail** (**LOD**) system and the way it makes efficient use of memory, heightmaps up to 8192x8192 are now legitimately possible and feasible. The Unreal Engine now supports huge outdoor worlds that allow for any number of types of games to be created quickly, easily, and without modification of the stock engine or tools.
 [/EXCERPT:landscape001]
 
 [REGION:raw]
-![Landscape_Terrain_Size.jpg](Landscape_Terrain_Size.jpg)
+![](Landscape_Terrain_Size.png)
 [/REGION]
 
 ### Landscape Memory Usage
@@ -179,8 +182,11 @@ The Landscape system stores the render data for the terrain in Textures in GPU m
 
 LODs for Landscape terrains are handled using standard Texture mipmaps. Each mipmap is a level of detail and the mipmap to sample can be specified using the `text2Dlod` HLSL instruction. This allows for a large number of LODs and also allows for smooth LOD transition as both mip levels can be sampled and then the heights and X and Y offsets can be interpolated in the vertex shader creating a clean morphing effect.
 
-[REGION:fullwidth raw]
-![Landscape_LOD_Morph.jpg](Landscape_LOD_Morph.jpg)
+
+[REGION:imagetable]
+| ![](Landscape_LOD1.png) | ![](Landscape_LOD1toLOD2.png) |  ![](Landscape_LOD2.png) |
+| -------- | ----------- | ------- |
+| ** Fully LOD 1 **| ** Morphing from LOD 1 to LOD 2 ** | ** Fully LOD 2**|
 [/REGION]
 
 ### Heightmap and Weight Data Streaming
@@ -191,15 +197,32 @@ Since the data is being stored in Textures, the standard Texture streaming syste
 
 Since the X and Y slopes of the Landscape are being stored, the entire high-resolution (non-LOD'd) normal data is available for lighting  calculations. 
 
-![Landscape_HighRes_Normals.jpg](Landscape_HighRes_Normals.jpg)(w:900 h:272)
+
+[REGION:imagetable]
+| ![](Landscape_LODs.png) | ![](Landscape_FullResNormals.png) |
+| -------- |-------- |
+| ** Landscape LODs **| ** Full Resolution Normals ** |
+[/REGION]
 
 This makes it possible to always use the highest resolution of the terrain for per-pixel lighting even on distant components that have been LOD'd out.
 
-![Landscape_HighRes_Lighting.jpg](Landscape_HighRes_Lighting.jpg)(w:900 h:272)
+
+[REGION:imagetable]
+| ![](Landscape_SimpleVertexLighting.png) | ![](Landscape_HRPerPixel.png) | 
+| -------- | ----------- | 
+| ** Simple Vertex Lighting **| ** High Res Per-Pixel Lighting ** | 
+[/REGION]
+
 
 When this high-resolution normal data is combined with detail normal maps, Landscape terrains can achieve extremely detailed lighting with very little overhead.
 
-![Landscape_Normals_Comparison.jpg](Landscape_Normals_Comparison.jpg)(w:900 h:272)
+
+
+[REGION:imagetable]
+| ![](Landscape_GeometryNormals.png) | ![](Landscape_DetailNormals.png) | 
+| -------- | ----------- | 
+| ** Geometry Normals Only **| ** With Detail Normals ** | 
+[/REGION]
 
 ### PhysX Collision
 

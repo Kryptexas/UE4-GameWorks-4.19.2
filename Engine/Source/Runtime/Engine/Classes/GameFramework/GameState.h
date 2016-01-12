@@ -1,12 +1,12 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "TimerManager.h"
 #include "GameState.generated.h"
 
-//=============================================================================
+//~=============================================================================
 // GameState is replicated and is valid on servers and clients.
-//=============================================================================
+//~=============================================================================
 
 UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable)
 class ENGINE_API AGameState : public AInfo
@@ -45,11 +45,11 @@ class ENGINE_API AGameState : public AInfo
 protected:
 
 	/** What match state we are currently in */
-	UPROPERTY(replicatedUsing=OnRep_MatchState)
+	UPROPERTY(ReplicatedUsing=OnRep_MatchState, BlueprintReadOnly, VisibleInstanceOnly, Category = GameState)
 	FName MatchState;
 
 	/** Previous map state, used to handle if multiple transitions happen per frame */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = GameState)
 	FName PreviousMatchState;
 
 	/** Called when the state transitions to WaitingToStart */
@@ -90,9 +90,9 @@ public:
 	UFUNCTION()
 	virtual void OnRep_ElapsedTime();
 
-	// Begin AActor interface
+	//~ Begin AActor Interface
 	virtual void PostInitializeComponents() override;
-	// End AActor interface
+	//~ End AActor Interface
 
 	/** Helper to return the default object of the GameMode class corresponding to this GameState */
 	AGameMode* GetDefaultGameMode() const;

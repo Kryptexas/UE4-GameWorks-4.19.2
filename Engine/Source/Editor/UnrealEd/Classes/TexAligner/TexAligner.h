@@ -1,10 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
+//~=============================================================================
 // TexAligner
 // Base class for all texture aligners.
 //
-//=============================================================================
+//~=============================================================================
 
 #pragma once
 
@@ -58,9 +58,9 @@ class UTexAligner : public UObject
 	FString Desc;
 
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	// @todo document
 	UNREALED_API void Align( UWorld* InWorld, ETexAlign InTexAlignType );

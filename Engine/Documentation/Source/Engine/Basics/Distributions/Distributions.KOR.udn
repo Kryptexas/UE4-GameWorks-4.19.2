@@ -1,15 +1,14 @@
-﻿INTSourceChangelist:2560162
+﻿INTSourceChangelist:2676166
 Availability: Public
 Title: 분포 (Distributions)
 Crumbs: %ROOT%, Engine
 Description:상수값, 일정 범위 내 난수값, 곡선을 따라 보간되는 값, 파라미터로 구동되는 값 등의 유연성이 제공되는 데이터 유형입니다.
-
+version: 4.9
 
 [TOC (start:2 end:3)]
 
 
 
-## 개요
 
 분포(distribution)란 상수 값, 범위 내 임의의 값, 커브를 따라 보간되는 값, 파라미터에 물려주는 값 등 데이터 유연함을 더해주는 유형 그룹을 말합니다. 보통 파티클 시스템과 사운드큐에서 노드의 프로퍼티에 사용됩니다.
 
@@ -43,7 +42,7 @@ Description:상수값, 일정 범위 내 난수값, 곡선을 따라 보간되�
 
 ![FloatConstant_Graph.png](FloatConstant_Graph.png)
 
-**1.** 변하지 않는 상수 플로트 값
+1. 변하지 않는 상수 플로트 값
 
 
 
@@ -368,6 +367,15 @@ Mirror Flags 로 각 성분의 Min/Max 값 미러링이 가능합니다. 미러�
 |EDVLF_XZ|Z-축이 X-축 값에 고정됩니다.|
 |EDVLF_YZ|Z-축이 Y-축 값에 고정됩니다.|
 |EDVLF_XYZ|YZ-축이 X-축 값에 고정됩니다.  |
+
+Mirror Flags 는 값의 각 컴포넌트에 대한 최소/최대값 미러링이 가능합니다. 미러링에 지원되는 플래그는 다음과 같습니다:
+
+
+|  **미러 플래그** | **설명** |
+| --- | --- |
+|EDVMF_Same|최소값에도 최대값을 사용합니다. |
+|EDVMF_Different|각기 다른 설정값을 사용합니다. |
+|EDVMF_Mirror|최소값은 Max 의 역(Max * -1)이 됩니다. |
 
 
 다른 커브 유형과 마찬가지로, 이 분포 유형은 커브 에디터를 통해 수정하는 것이 좋습니다.

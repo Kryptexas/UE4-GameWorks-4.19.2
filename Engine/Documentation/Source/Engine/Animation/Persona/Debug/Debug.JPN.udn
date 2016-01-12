@@ -1,7 +1,9 @@
-﻿Availability:Public
-Title:ペルソナ (Persona) のデバッグ
+﻿INTSourceChangelist:2666533
+Availability:Public
+Title:ペルソナのデバッグ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:ペルソナ (Persona) のアニメーション エディタのスケルトン ツリーのユーザーガイド
+Description:ペルソナのアニメーション エディタのアセット ブラウザのユーザーガイド
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -23,4 +25,6 @@ Description:ペルソナ (Persona) のアニメーション エディタのス�
 [/OBJECT]
 [/VAR]
 
-[INCLUDE:Engine/Blueprints/UserGuide/Debugging#debugtab]
+**[Debug (デバッグ)]** パネルには、ブレークポイントとウォッチ値、および実行されたブループリントに属するすべてのノードのスタックのトレース (追跡) という形でデザイナーが重要とみなした情報が表示されます。このパネルには、ブレークポイント使用時のゲームの実行をコントロールするための制御が表示されます。
+
+ペルソナの [Debug] パネルは、ブループリント エディタにあるパネルと同じです。このパネルの使用方法に関する詳しい情報は、[](Engine/Blueprints/UserGuide/Debugging) のページをご覧ください。

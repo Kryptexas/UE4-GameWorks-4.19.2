@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2599333
+﻿INTSourceChangelist:2688023
 Availability:Public
 Title:코멘트
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description: 관련이 있는 노드를 그룹으로 묶고 그 기능에 대한 설명을 달 수 있는 그릇입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -83,7 +84,9 @@ _블루프린트_ 에서 노드에 바로 코멘트를 추가하려면:
 1. 우클릭한 다음 **선택에서 코멘트 생성** 을 (또는 선택된 노드가 없는 경우 **코멘트 추가...** 를) 선택합니다. 새 코멘트 박스가 나타납니다.
 
 	![](create_comment_from_selection.png)
-
+	[REGION:tip]
+	**C** 를 눌러서도 코멘트를 만들 수 있습니다.
+	[/REGION]
 1. 나타나는 코멘트 박스 헤더에 코멘트를 입력합니다.
 
 	![](type_box_comment.png)

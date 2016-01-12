@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRender.h: New terrain rendering
@@ -40,6 +40,7 @@ namespace ELandscapeViewMode
 		/** Layer debug only */
 		DebugLayer,
 		LayerDensity,
+		LayerUsage,
 		LOD,
 		WireframeOnTop,
 	};
@@ -71,6 +72,7 @@ LANDSCAPE_API extern UMaterialInstanceConstant* GSelectionColorMaterial;
 LANDSCAPE_API extern UMaterialInstanceConstant* GSelectionRegionMaterial;
 LANDSCAPE_API extern UMaterialInstanceConstant* GMaskRegionMaterial;
 LANDSCAPE_API extern UTexture2D* GLandscapeBlackTexture;
+LANDSCAPE_API extern UMaterial* GLandscapeLayerUsageMaterial;
 #endif
 
 
@@ -456,32 +458,15 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 	public:
 		/** Initialization constructor. */
 		FLandscapeLCI(const ULandscapeComponent* InComponent)
+			: FLightCacheInterface(InComponent->LightMap, InComponent->ShadowMap)
 		{
-			LightMap = InComponent->LightMap;
-			ShadowMap = InComponent->ShadowMap;
 			IrrelevantLights = InComponent->IrrelevantLights;
 		}
 
 		// FLightCacheInterface
-		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const;
-
-		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
-		{
-			return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
-		}
-
-		virtual FShadowMapInteraction GetShadowMapInteraction() const
-		{
-			return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
-		}
+		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const override;
 
 	private:
-		/** The light-map used by the element. */
-		const FLightMap* LightMap;
-
-		/** The shadowmap used by the element. */
-		const FShadowMap* ShadowMap;
-
 		TArray<FGuid> IrrelevantLights;
 	};
 
@@ -526,6 +511,8 @@ protected:
 	FVector4 WeightmapScaleBias;
 	float WeightmapSubsectionOffset;
 	TArray<UTexture2D*> WeightmapTextures;
+	TArray<FName> LayerNames;
+	TArray<FLinearColor> LayerColors;
 	int8 NumWeightmapLayerAllocations;
 	UTexture2D* NormalmapTexture; // PC : Heightmap, Mobile : Weightmap
 	UTexture2D* BaseColorForGITexture;
@@ -572,7 +559,7 @@ public:
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual uint32 GetMemoryFootprint() const override { return(sizeof(*this) + GetAllocatedSize()); }
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual bool CanBeOccluded() const override;
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
 	virtual void OnTransformChanged() override;
@@ -599,6 +586,8 @@ public:
 	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
 
 	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription) override;
+
+	virtual void GetLCIs(FLCIArray& LCIs) override;
 };
 
 class FLandscapeDebugMaterialRenderProxy : public FMaterialRenderProxy
@@ -771,5 +760,76 @@ public:
 		{
 			return Parent->GetTextureValue(ParameterName, OutValue, Context);
 		}
+	}
+};
+
+class FLandscapeLayerUsageRenderProxy : public FMaterialRenderProxy
+{
+	const FMaterialRenderProxy* const Parent;
+
+	int32 ComponentSizeVerts;
+	TArray<FLinearColor> LayerColors;
+	float Rotation;
+public:
+	FLandscapeLayerUsageRenderProxy(const FMaterialRenderProxy* InParent, int32 InComponentSizeVerts, const TArray<FLinearColor>& InLayerColors, float InRotation)
+	: Parent(InParent)
+	, ComponentSizeVerts(InComponentSizeVerts)
+	, LayerColors(InLayerColors)
+	, Rotation(InRotation)
+	{}
+
+	// FMaterialRenderProxy interface.
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	{
+		return Parent->GetMaterial(FeatureLevel);
+	}
+	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	{
+		static FName ColorNames[] =
+		{
+			FName(TEXT("Color0")),
+			FName(TEXT("Color1")),
+			FName(TEXT("Color2")),
+			FName(TEXT("Color3")),
+			FName(TEXT("Color4")),
+			FName(TEXT("Color5")),
+			FName(TEXT("Color6")),
+			FName(TEXT("Color7")),
+			FName(TEXT("Color8")),
+			FName(TEXT("Color9"))
+		};
+
+		for (int32 i = 0; i < ARRAY_COUNT(ColorNames) && i < LayerColors.Num(); i++)
+		{
+			if (ParameterName == ColorNames[i])
+			{
+				*OutValue = LayerColors[i];
+				return true;
+			}
+		}
+		return Parent->GetVectorValue(ParameterName, OutValue, Context);
+	}
+	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	{
+		if (ParameterName == FName(TEXT("Rotation")))
+		{
+			*OutValue = Rotation;
+			return true;
+		}
+		if (ParameterName == FName(TEXT("NumStripes")))
+		{
+			*OutValue = LayerColors.Num();
+			return true;
+		}
+		if (ParameterName == FName(TEXT("ComponentSizeVerts")))
+		{
+			*OutValue = ComponentSizeVerts;
+			return true;
+		}		
+		return Parent->GetScalarValue(ParameterName, OutValue, Context);
+	}
+	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	{
+		return Parent->GetTextureValue(ParameterName, OutValue, Context);
 	}
 };

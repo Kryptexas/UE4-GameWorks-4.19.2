@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotManager.cpp: Implements the FScreenShotManager class.
@@ -31,7 +31,7 @@ public:
 
 public:
 
-	// Begin IScreenShotManager interface
+	//~ Begin IScreenShotManager Interface
 
 	virtual void GenerateLists() override;
 
@@ -45,7 +45,7 @@ public:
 
 	virtual void SetDisplayEveryNthScreenshot(int32 NewNth) override;
 
-	// End IScreenShotManager interface
+	//~ End IScreenShotManager Interface
 
 private:
 

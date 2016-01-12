@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealType.h: Unreal engine base type definitions.
@@ -31,6 +31,10 @@ enum EPropertyExportCPPFlags
 	CPPF_NoConst					=	0x00000010,
 	/** No reference '&' sign */
 	CPPF_NoRef						=	0x00000020,
+	/** No static array [%d] */
+	CPPF_NoStaticArray				=	0x00000040,
+	/** Blueprint compiler generated C++ code */
+	CPPF_BlueprintCppBackend		=	0x00000080,
 };
 
 namespace EExportedDeclaration
@@ -50,7 +54,7 @@ namespace EExportedDeclaration
 //
 class COREUOBJECT_API UProperty : public UField
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UProperty,UField,CLASS_Abstract,CoreUObject,CASTCLASS_UProperty,NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UProperty, UField, CLASS_Abstract, TEXT("/Script/CoreUObject"), CASTCLASS_UProperty, NO_API)
 	DECLARE_WITHIN(UField)
 
 	// Persistent variables.
@@ -101,7 +105,8 @@ public:
 											FOutputDevice* Warn, TArray<struct FDefinedProperty>& DefinedProperties );
 
 	// UHT interface
-	void ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL, uint32 AdditionalExportCPPFlags = 0, bool bSkipParameterName = false) const;
+	void ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride = NULL, uint32 AdditionalExportCPPFlags = 0
+		, bool bSkipParameterName = false, const FString* ActualCppType = nullptr, const FString* ActualExtendedType = nullptr) const;
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const;
 	virtual bool PassCPPArgsByRef() const { return false; }
 
@@ -216,13 +221,13 @@ public:
 	{
 		if( ShouldSerializeValue(Ar) )
 		{
-			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
+			FSerializedPropertyScope SerializedProperty(Ar, this);
 			for (int32 Idx = 0; Idx < ArrayDim; Idx++)
 			{
+				// Keep setting the property in case something inside of SerializeItem changes it
 				Ar.SetSerializedProperty(this);
 				SerializeItem( Ar, ContainerPtrToValuePtr<void>(Data, Idx) );
 			}
-			Ar.SetSerializedProperty(OldSerializedProperty);
 		}
 	}
 	/**
@@ -243,10 +248,8 @@ public:
 				void const* Default = ContainerPtrToValuePtrForDefaults<void>(DefaultStruct, DefaultData, Idx);
 				if ( !Identical(Target, Default, Ar.GetPortFlags()) )
 				{
-					UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
-					Ar.SetSerializedProperty(this);
+					FSerializedPropertyScope SerializedProperty(Ar, this);
 					SerializeItem( Ar, Target, Default );
-					Ar.SetSerializedProperty(OldSerializedProperty);
 				}
 			}
 		}
@@ -714,6 +717,16 @@ public:
 		return Result;
 	}
 
+	const UProperty* GetOwnerProperty() const
+	{
+		const UProperty* Result = this;
+		for (UProperty* PropBase = dynamic_cast<UProperty*>(GetOuter()); PropBase; PropBase = dynamic_cast<UProperty*>(PropBase->GetOuter()))
+		{
+			Result = PropBase;
+		}
+		return Result;
+	}
+
 	/**
 	 * Returns this property's propertyflags
 	 */
@@ -781,6 +794,11 @@ public:
 
 	/** returns true, if Other is property of exactly the same type */
 	virtual bool SameType(const UProperty* Other) const;
+
+#if HACK_HEADER_GENERATOR
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FPropertyArchiveProxy;
+#endif // HACK_HEADER_GENERATOR
 };
 
 
@@ -1033,7 +1051,7 @@ public:
 
 class COREUOBJECT_API UNumericProperty : public UProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UNumericProperty,UProperty,CLASS_Abstract,CoreUObject,CASTCLASS_UNumericProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UNumericProperty, UProperty, CLASS_Abstract, TEXT("/Script/CoreUObject"), CASTCLASS_UNumericProperty)
 
 	UNumericProperty(ECppProperty, int32 InOffset, uint64 InFlags)
 		: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1262,7 +1280,7 @@ public:
 //
 class COREUOBJECT_API UByteProperty : public TProperty_Numeric<uint8>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UByteProperty,TProperty_Numeric<uint8>,0,CoreUObject,CASTCLASS_UByteProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UByteProperty, TProperty_Numeric<uint8>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UByteProperty)
 
 	// Variables.
 	UEnum* Enum;
@@ -1313,7 +1331,7 @@ class COREUOBJECT_API UByteProperty : public TProperty_Numeric<uint8>
 //
 class COREUOBJECT_API UInt8Property : public TProperty_Numeric<int8>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UInt8Property,TProperty_Numeric<int8>,0,CoreUObject,CASTCLASS_UInt8Property)
+	DECLARE_CASTED_CLASS_INTRINSIC(UInt8Property, TProperty_Numeric<int8>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UInt8Property)
 
 	UInt8Property(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1335,7 +1353,7 @@ class COREUOBJECT_API UInt8Property : public TProperty_Numeric<int8>
 //
 class COREUOBJECT_API UInt16Property : public TProperty_Numeric<int16>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UInt16Property,TProperty_Numeric<int16>,0,CoreUObject,CASTCLASS_UInt16Property)
+	DECLARE_CASTED_CLASS_INTRINSIC(UInt16Property, TProperty_Numeric<int16>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UInt16Property)
 
 	UInt16Property(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1358,7 +1376,7 @@ class COREUOBJECT_API UInt16Property : public TProperty_Numeric<int16>
 //
 class COREUOBJECT_API UIntProperty : public TProperty_Numeric<int32>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UIntProperty,TProperty_Numeric<int32>,0,CoreUObject,CASTCLASS_UIntProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UIntProperty, TProperty_Numeric<int32>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UIntProperty)
 
 	UIntProperty(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1380,7 +1398,7 @@ class COREUOBJECT_API UIntProperty : public TProperty_Numeric<int32>
 //
 class COREUOBJECT_API UInt64Property : public TProperty_Numeric<int64>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UInt64Property,TProperty_Numeric<int64>,0,CoreUObject,CASTCLASS_UInt64Property)
+	DECLARE_CASTED_CLASS_INTRINSIC(UInt64Property, TProperty_Numeric<int64>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UInt64Property)
 
 	UInt64Property(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1402,7 +1420,7 @@ class COREUOBJECT_API UInt64Property : public TProperty_Numeric<int64>
 //
 class COREUOBJECT_API UUInt16Property : public TProperty_Numeric<uint16>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UUInt16Property,TProperty_Numeric<uint16>,0,CoreUObject,CASTCLASS_UUInt16Property)
+	DECLARE_CASTED_CLASS_INTRINSIC(UUInt16Property, TProperty_Numeric<uint16>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UUInt16Property)
 
 	UUInt16Property(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1424,7 +1442,7 @@ class COREUOBJECT_API UUInt16Property : public TProperty_Numeric<uint16>
 //
 class COREUOBJECT_API UUInt32Property : public TProperty_Numeric<uint32>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UUInt32Property,TProperty_Numeric<uint32>,0,CoreUObject,CASTCLASS_UUInt32Property)
+	DECLARE_CASTED_CLASS_INTRINSIC(UUInt32Property, TProperty_Numeric<uint32>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UUInt32Property)
 
 	UUInt32Property( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags )
 	:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
@@ -1441,7 +1459,7 @@ class COREUOBJECT_API UUInt32Property : public TProperty_Numeric<uint32>
 //
 class COREUOBJECT_API UUInt64Property : public TProperty_Numeric<uint64>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UUInt64Property,TProperty_Numeric<uint64>,0,CoreUObject,CASTCLASS_UUInt64Property)
+	DECLARE_CASTED_CLASS_INTRINSIC(UUInt64Property, TProperty_Numeric<uint64>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UUInt64Property)
 
 	UUInt64Property(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1463,7 +1481,7 @@ class COREUOBJECT_API UUInt64Property : public TProperty_Numeric<uint64>
 //
 class COREUOBJECT_API UFloatProperty : public TProperty_Numeric<float>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UFloatProperty,TProperty_Numeric<float>,0,CoreUObject,CASTCLASS_UFloatProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UFloatProperty, TProperty_Numeric<float>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UFloatProperty)
 
 	UFloatProperty(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1474,6 +1492,10 @@ class COREUOBJECT_API UFloatProperty : public TProperty_Numeric<float>
 		:	TProperty_Numeric( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	{
 	}
+
+	// UProperty interface
+	virtual void ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const override;
+	// End of UProperty interface
 };
 
 /*-----------------------------------------------------------------------------
@@ -1485,7 +1507,7 @@ class COREUOBJECT_API UFloatProperty : public TProperty_Numeric<float>
 //
 class COREUOBJECT_API UDoubleProperty : public TProperty_Numeric<double>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UDoubleProperty,TProperty_Numeric<double>,0,CoreUObject,CASTCLASS_UDoubleProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UDoubleProperty, TProperty_Numeric<double>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UDoubleProperty)
 
 	UDoubleProperty(ECppProperty, int32 InOffset, uint64 InFlags)
 		: TProperty_Numeric(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
@@ -1509,7 +1531,7 @@ class COREUOBJECT_API UDoubleProperty : public TProperty_Numeric<double>
 //
 class COREUOBJECT_API UBoolProperty : public UProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UBoolProperty,UProperty,0,CoreUObject,CASTCLASS_UBoolProperty, NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UBoolProperty, UProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UBoolProperty, NO_API)
 
 	// Variables.
 private:
@@ -1630,6 +1652,11 @@ public:
 	{
 		return FieldMask == 0xff;
 	}
+
+#if HACK_HEADER_GENERATOR
+	// Required by UHT makefiles for internal data serialization.
+	friend struct FBoolPropertyArchiveProxy;
+#endif // HACK_HEADER_GENERATOR
 };
 
 /*-----------------------------------------------------------------------------
@@ -1641,7 +1668,7 @@ public:
 //
 class COREUOBJECT_API UObjectPropertyBase : public UProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UObjectPropertyBase,UProperty,CLASS_Abstract,CoreUObject,CASTCLASS_UObjectPropertyBase)
+	DECLARE_CASTED_CLASS_INTRINSIC(UObjectPropertyBase, UProperty, CLASS_Abstract, TEXT("/Script/CoreUObject"), CASTCLASS_UObjectPropertyBase)
 
 	// Variables.
 	class UClass* PropertyClass;
@@ -1735,6 +1762,8 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	// UObjectPropertyBase interface
 public:
 
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName) const PURE_VIRTUAL(UObjectPropertyBase::GetCPPTypeCustom, return TEXT(""););
+
 	/**
 	 * Parses a text buffer into an object reference.
 	 *
@@ -1796,7 +1825,6 @@ protected:
 
 	virtual void CheckValidObject(void* Value) const;
 	// End of UObjectPropertyBase interface
-
 };
 
 template<typename InTCppType>
@@ -1839,6 +1867,14 @@ public:
 		return TIsWeakPointerType<InTCppType>::Value;
 	}
 	// End of UProperty interface
+
+	// TProperty::GetCPPType should not be used here
+	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override
+	{
+		check(UObjectPropertyBase::PropertyClass);
+		return this->GetCPPTypeCustom(ExtendedTypeText, CPPExportFlags, 
+			FString::Printf(TEXT("%s%s"), UObjectPropertyBase::PropertyClass->GetPrefixCPP(), *UObjectPropertyBase::PropertyClass->GetName()));
+	}
 };
 
 
@@ -1847,7 +1883,7 @@ public:
 //
 class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UObjectProperty,TUObjectPropertyBase<UObject*>,0,CoreUObject,CASTCLASS_UObjectProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UObjectProperty, TUObjectPropertyBase<UObject*>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UObjectProperty)
 
 	UObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
 		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
@@ -1861,7 +1897,6 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 
 	// UHT interface
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	virtual FString GetCPPTypeForwardDeclaration() const override;
 	// End of UHT interface
 
@@ -1883,6 +1918,8 @@ public:
 		return GetPropertyValue(PropertyValueAddress);
 	}
 	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override;
+
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 	// End of UObjectPropertyBase interface
 };
 
@@ -1891,7 +1928,7 @@ public:
 //
 class COREUOBJECT_API UWeakObjectProperty : public TUObjectPropertyBase<FWeakObjectPtr>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UWeakObjectProperty,TUObjectPropertyBase<FWeakObjectPtr>,0,CoreUObject,CASTCLASS_UWeakObjectProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UWeakObjectProperty, TUObjectPropertyBase<FWeakObjectPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UWeakObjectProperty)
 
 	UWeakObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
 		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClass)
@@ -1930,7 +1967,7 @@ class COREUOBJECT_API UWeakObjectProperty : public TUObjectPropertyBase<FWeakObj
 //
 class COREUOBJECT_API ULazyObjectProperty : public TUObjectPropertyBase<FLazyObjectPtr>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(ULazyObjectProperty,TUObjectPropertyBase<FLazyObjectPtr>,0,CoreUObject,CASTCLASS_ULazyObjectProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(ULazyObjectProperty, TUObjectPropertyBase<FLazyObjectPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_ULazyObjectProperty)
 
 	ULazyObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
 		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
@@ -1980,7 +2017,7 @@ public:
 //
 class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetPtr>
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UAssetObjectProperty,TUObjectPropertyBase<FAssetPtr>,0,CoreUObject,CASTCLASS_UAssetObjectProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UAssetObjectProperty, TUObjectPropertyBase<FAssetPtr>, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UAssetObjectProperty)
 
 	UAssetObjectProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InClass)
 		: TUObjectPropertyBase(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash, InClass)
@@ -1992,7 +2029,6 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 
 	// UHT interface
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	virtual FString GetCPPTypeForwardDeclaration() const override;
 	// End of UHT interface
 
@@ -2017,6 +2053,8 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 	{
 		return true;
 	}
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
+
 private:
 	virtual uint32 GetValueTypeHashInternal(const void* Src) const override
 	{
@@ -2057,19 +2095,19 @@ public:
 //
 class COREUOBJECT_API UClassProperty : public UObjectProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UClassProperty,UObjectProperty,0,CoreUObject,CASTCLASS_UClassProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UClassProperty, UObjectProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UClassProperty)
 
 	// Variables.
 	class UClass* MetaClass;
 public:
-	UClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass)
-		: UObjectProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, UClass::StaticClass())
+	UClassProperty(ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass, UClass* InClassType)
+		: UObjectProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags, InClassType ? InClassType : UClass::StaticClass())
 		, MetaClass(InMetaClass)
 	{
 	}
 
-	UClassProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass )
-	:	UObjectProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags, UClass::StaticClass() )
+	UClassProperty(const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UClass* InMetaClass, UClass* InClassType)
+		: UObjectProperty(ObjectInitializer, EC_CppProperty, InOffset, InFlags, InClassType ? InClassType : UClass::StaticClass())
 	,	MetaClass( InMetaClass )
 	{
 	}
@@ -2081,8 +2119,8 @@ public:
 	// End of UObject interface
 
 	// UHT interface
+	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags)  const override;
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	virtual FString GetCPPTypeForwardDeclaration() const override;
 	// End of UHT interface
 
@@ -2090,6 +2128,8 @@ public:
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
+
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 
 	/**
 	 * Setter function for this property's MetaClass member. Favor this function 
@@ -2119,7 +2159,7 @@ protected:
 //
 class COREUOBJECT_API UAssetClassProperty : public UAssetObjectProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UAssetClassProperty,UAssetObjectProperty,0,CoreUObject,CASTCLASS_UAssetClassProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UAssetClassProperty, UAssetObjectProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UAssetClassProperty)
 
 	// Variables.
 	class UClass* MetaClass;
@@ -2135,8 +2175,8 @@ public:
 	{}
 
 	// UHT interface
+	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override;
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	virtual FString GetCPPTypeForwardDeclaration() const override;
 	// End of UHT interface
 
@@ -2149,6 +2189,8 @@ public:
 	// UProperty interface
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
+
+	virtual FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerNativeTypeName)  const override;
 
 	/**
 	 * Setter function for this property's MetaClass member. Favor this function 
@@ -2180,7 +2222,7 @@ typedef TProperty<FScriptInterface, UProperty> UInterfaceProperty_Super;
 
 class COREUOBJECT_API UInterfaceProperty : public UInterfaceProperty_Super
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UInterfaceProperty,UInterfaceProperty_Super,0,CoreUObject,CASTCLASS_UInterfaceProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UInterfaceProperty, UInterfaceProperty_Super, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UInterfaceProperty)
 
 	/** The native interface class that this interface property refers to */
 	class	UClass*		InterfaceClass;
@@ -2253,7 +2295,7 @@ typedef TProperty_WithEqualityAndSerializer<FName, UProperty> UNameProperty_Supe
 
 class COREUOBJECT_API UNameProperty : public UNameProperty_Super
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UNameProperty,UNameProperty_Super,0,CoreUObject,CASTCLASS_UNameProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UNameProperty, UNameProperty_Super, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UNameProperty)
 public:
 	typedef UNameProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
@@ -2296,7 +2338,7 @@ typedef TProperty_WithEqualityAndSerializer<FString, UProperty> UStrProperty_Sup
 
 class COREUOBJECT_API UStrProperty : public UStrProperty_Super
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UStrProperty,UStrProperty_Super,0,CoreUObject,CASTCLASS_UStrProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UStrProperty, UStrProperty_Super, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UStrProperty)
 public:
 	typedef UStrProperty_Super::TTypeFundamentals TTypeFundamentals;
 	typedef TTypeFundamentals::TCppType TCppType;
@@ -2339,7 +2381,7 @@ typedef TProperty<FScriptArray, UProperty> UArrayProperty_Super;
 
 class COREUOBJECT_API UArrayProperty : public UArrayProperty_Super
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UArrayProperty,UArrayProperty_Super,0,CoreUObject,CASTCLASS_UArrayProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UArrayProperty, UArrayProperty_Super, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UArrayProperty)
 
 	// Variables.
 	UProperty* Inner;
@@ -2387,6 +2429,8 @@ public:
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
+
+	FString GetCPPTypeCustom(FString* ExtendedTypeText, uint32 CPPExportFlags, const FString& InnerTypeText, const FString& InInnerExtendedTypeText) const;
 };
 
 // need to break this out a different type so that the DECLARE_CASTED_CLASS_INTRINSIC macro can digest the comma
@@ -2394,7 +2438,7 @@ typedef TProperty<FScriptMap, UProperty> UMapProperty_Super;
 
 class COREUOBJECT_API UMapProperty : public UMapProperty_Super
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UMapProperty, UMapProperty_Super, 0, CoreUObject, CASTCLASS_UMapProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UMapProperty, UMapProperty_Super, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UMapProperty)
 
 	// Properties representing the key type and value type of the contained pairs
 	UProperty*       KeyProp;
@@ -3180,7 +3224,7 @@ public:
 //
 class COREUOBJECT_API UStructProperty : public UProperty
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UStructProperty,UProperty,0,CoreUObject,CASTCLASS_UStructProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UStructProperty, UProperty, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UStructProperty)
 
 	// Variables.
 	class UScriptStruct* Struct;
@@ -3215,11 +3259,9 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
-	bool UseNativeSerialization() const;
-	bool UseBinarySerialization(const FArchive& Ar) const;
-	bool UseBinaryOrNativeSerialization(const FArchive& Ar) const;
+	static const TCHAR* ImportText_Static(UScriptStruct* InStruct, const FString& InName, const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText);
 
-	static void StaticSerializeItem(FArchive& Ar, void* Value, void const* Defaults, UScriptStruct* Struct, const bool bUseBinarySerialization, const bool bUseNativeSerialization);
+	bool UseBinaryOrNativeSerialization(const FArchive& Ar) const;
 
 public:
 
@@ -3249,7 +3291,7 @@ typedef TProperty<FScriptDelegate, UProperty> UDelegateProperty_Super;
 
 class COREUOBJECT_API UDelegateProperty : public UDelegateProperty_Super
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UDelegateProperty,UDelegateProperty_Super,0,CoreUObject,CASTCLASS_UDelegateProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UDelegateProperty, UDelegateProperty_Super, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UDelegateProperty)
 
 	/** Points to the source delegate function (the function declared with the delegate keyword) used in the declaration of this delegate property. */
 	UFunction* SignatureFunction;
@@ -3302,7 +3344,7 @@ typedef TProperty<FMulticastScriptDelegate, UProperty> UMulticastDelegatePropert
 
 class COREUOBJECT_API UMulticastDelegateProperty : public UMulticastDelegateProperty_Super
 {
-	DECLARE_CASTED_CLASS_INTRINSIC(UMulticastDelegateProperty,UMulticastDelegateProperty_Super,0,CoreUObject,CASTCLASS_UMulticastDelegateProperty)
+	DECLARE_CASTED_CLASS_INTRINSIC(UMulticastDelegateProperty, UMulticastDelegateProperty_Super, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UMulticastDelegateProperty)
 
 	/** Points to the source delegate function (the function declared with the delegate keyword) used in the declaration of this delegate property. */
 	UFunction* SignatureFunction;

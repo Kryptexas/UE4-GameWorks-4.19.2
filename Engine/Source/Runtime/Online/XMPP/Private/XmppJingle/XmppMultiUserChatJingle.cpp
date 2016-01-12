@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppPrivatePCH.h"
 #include "XmppJingle.h"
@@ -161,7 +161,6 @@ private:
 		XForm->AddElement(FormTypeField);
 
 		// Setup other feature fields
-		FRoomFeatureValuePairs::const_iterator FeaturePairIt = RoomFeatureValuePairs.begin();
 		for (FRoomFeatureValuePairs::const_iterator FeaturePairIt = RoomFeatureValuePairs.begin()
 			; FeaturePairIt != RoomFeatureValuePairs.end()
 			; ++FeaturePairIt)
@@ -189,6 +188,8 @@ private:
 
 FXmppMultiUserChatJingle::FXmppMultiUserChatJingle(class FXmppConnectionJingle& InConnection)
 	: Connection(InConnection)
+	, NumOpRequests(0)
+	, NumMucResponses(0)
 {
 }
 
@@ -244,7 +245,6 @@ public:
 
 		{
 			FScopeLock Lock(&Muc.ChatroomsLock);
-
 			FXmppRoomJingle* XmppRoom = Muc.Chatrooms.Find(RoomId);
 			if (XmppRoom != NULL)
 			{
@@ -337,7 +337,6 @@ bool FXmppMultiUserChatJingle::CreateRoom(const FXmppRoomId& RoomId, const FStri
 	if (ErrorStr.IsEmpty())
 	{
 		FScopeLock Lock(&ChatroomsLock);
-
 		FXmppRoomJingle& XmppRoom = Chatrooms.FindOrAdd(RoomId);
 		if (XmppRoom.RoomInfo.Id.IsEmpty())
 		{
@@ -407,7 +406,6 @@ public:
 		Muc.OnJoinPublicRoom().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 
 		FScopeLock Lock(&Muc.ChatroomsLock);
-
 		FXmppRoomJingle* XmppRoom = Muc.Chatrooms.Find(RoomId);
 		if (XmppRoom != NULL)
 		{
@@ -472,7 +470,6 @@ bool FXmppMultiUserChatJingle::JoinPublicRoom(const FXmppRoomId& RoomId, const F
 	if (ErrorStr.IsEmpty())
 	{
 		FScopeLock Lock(&ChatroomsLock);
-
 		FXmppRoomJingle& XmppRoom = Chatrooms.FindOrAdd(RoomId);
 		if (XmppRoom.RoomInfo.Id.IsEmpty())
 		{
@@ -530,7 +527,6 @@ public:
 		Muc.OnJoinPrivateRoom().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 
 		FScopeLock Lock(&Muc.ChatroomsLock);
-
 		FXmppRoomJingle* XmppRoom = Muc.Chatrooms.Find(RoomId);
 		if (XmppRoom != NULL)
 		{
@@ -595,7 +591,6 @@ bool FXmppMultiUserChatJingle::JoinPrivateRoom(const FXmppRoomId& RoomId, const 
 	if (ErrorStr.IsEmpty())
 	{
 		FScopeLock Lock(&ChatroomsLock);
-
 		FXmppRoomJingle& XmppRoom = Chatrooms.FindOrAdd(RoomId);
 		if (XmppRoom.RoomInfo.Id.IsEmpty())
 		{
@@ -815,6 +810,7 @@ bool FXmppMultiUserChatJingle::InternalConfigureRoom(const FXmppRoomId& RoomId, 
 	bool bResult = false;
 	FString ErrorStr;
 
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom == NULL)
 	{
@@ -922,6 +918,7 @@ bool FXmppMultiUserChatJingle::RefreshRoomInfo(const FXmppRoomId& RoomId)
 	bool bResult = false;
 	FString ErrorStr;
 
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom == NULL)
 	{
@@ -967,9 +964,8 @@ public:
 	{
 		Muc.OnExitRoom().Broadcast(Muc.Connection.AsShared(), bWasSuccessful, RoomId, ErrorStr);
 
-		FScopeLock Lock(&Muc.ChatroomsLock);
-
 		// clear out cached room
+		FScopeLock Lock(&Muc.ChatroomsLock);
 		Muc.Chatrooms.Remove(RoomId);
 	}
 };
@@ -1005,6 +1001,7 @@ bool FXmppMultiUserChatJingle::ExitRoom(const FXmppRoomId& RoomId)
 	bool bResult = false;
 	FString ErrorStr;
 
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom == NULL)
 	{
@@ -1073,7 +1070,6 @@ bool FXmppMultiUserChatJingle::SendChat(const FXmppRoomId& RoomId, const class F
 	FString ErrorStr;
 
 	FScopeLock Lock(&ChatroomsLock);
-
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom == NULL)
 	{
@@ -1105,7 +1101,6 @@ bool FXmppMultiUserChatJingle::SendChat(const FXmppRoomId& RoomId, const class F
 void FXmppMultiUserChatJingle::GetJoinedRooms(TArray<FXmppRoomId>& OutRooms)
 {
 	FScopeLock Lock(&ChatroomsLock);
-
 	for (auto Entry : Chatrooms)
 	{
 		const FXmppRoomJingle& Room = Entry.Value;
@@ -1118,41 +1113,45 @@ void FXmppMultiUserChatJingle::GetJoinedRooms(TArray<FXmppRoomId>& OutRooms)
 
 bool FXmppMultiUserChatJingle::GetRoomInfo(const FXmppRoomId& RoomId, FXmppRoomInfo& OutRoomInfo)
 {
-	FScopeLock Lock(&ChatroomsLock);
+	bool bResult = false;
 
+	FScopeLock Lock(&ChatroomsLock);
 	for (auto Entry : Chatrooms)
 	{
 		const FXmppRoomJingle& Room = Entry.Value;
 		if (Room.RoomInfo.Id == RoomId)
 		{
 			OutRoomInfo = Room.RoomInfo;
-			return true;
+			bResult = true;
+			break;
 		}
 	}
-	return false;
+	return bResult;
 }
 
 bool FXmppMultiUserChatJingle::GetMembers(const FXmppRoomId& RoomId, TArray< TSharedRef<FXmppChatMember> >& OutMembers)
 {
-	FScopeLock Lock(&ChatroomsLock);
+	bool bResult = false;
 
+	FScopeLock Lock(&ChatroomsLock);
 	for (auto Entry : Chatrooms)
 	{
 		const FXmppRoomJingle& Room = Entry.Value;
 		if (Room.RoomInfo.Id == RoomId)
 		{
 			OutMembers = Room.Members;
-			return true;
+			bResult = true;
+			break;
 		}
 	}
-	return false;
+	return bResult;
 }
 
 TSharedPtr<FXmppChatMember> FXmppMultiUserChatJingle::GetMember(const FXmppRoomId& RoomId, const FXmppUserJid& MemberJid)
 {
-	FScopeLock Lock(&ChatroomsLock);
-
 	TSharedPtr<FXmppChatMember> Result;
+
+	FScopeLock Lock(&ChatroomsLock);
 	for (auto Entry : Chatrooms)
 	{
 		const FXmppRoomJingle& Room = Entry.Value;
@@ -1173,8 +1172,9 @@ TSharedPtr<FXmppChatMember> FXmppMultiUserChatJingle::GetMember(const FXmppRoomI
 
 bool FXmppMultiUserChatJingle::GetLastMessages(const FXmppRoomId& RoomId, int32 NumMessages, TArray< TSharedRef<FXmppChatMessage> >& OutMessages)
 {
-	FScopeLock Lock(&ChatroomsLock);
+	bool bResult = false;
 
+	FScopeLock Lock(&ChatroomsLock);
 	for (auto Entry : Chatrooms)
 	{
 		const FXmppRoomJingle& Room = Entry.Value;
@@ -1193,10 +1193,11 @@ bool FXmppMultiUserChatJingle::GetLastMessages(const FXmppRoomId& RoomId, int32 
 					OutMessages.Add(Room.LastMessages[Idx]);
 				}
 			}
-			return true;
+			bResult = true;
+			break;
 		}
 	}
-	return false;
+	return bResult;
 }
 
 bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
@@ -1207,6 +1208,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		if (ResultOpQueue.Dequeue(ResultOp) &&
 			ResultOp != NULL)
 		{
+			NumOpRequests++;
 			ProcessResultOp(ResultOp, *this);
 			delete ResultOp;
 		}
@@ -1217,6 +1219,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		FXmppConfigQueryResponseJingle* ConfigQueryTaskResponse = NULL;
 		if (ReceivedConfigQueryResponseQueue.Dequeue(ConfigQueryTaskResponse))
 		{
+			NumMucResponses++;
 			// We currently ignore this feature list response because we only work with 1 xmpp server so far & hardcode to those features
 			UE_LOG(LogXmpp, Verbose, TEXT("Received config query response %d for room %s"), ConfigQueryTaskResponse->bSuccess, *ConfigQueryTaskResponse->RoomId);
 			delete ConfigQueryTaskResponse;
@@ -1228,6 +1231,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		FXmppConfigResponseJingle* ConfigTaskResponse = NULL;
 		if (ReceivedConfigResponseQueue.Dequeue(ConfigTaskResponse))
 		{
+			NumMucResponses++;
 			UE_LOG(LogXmpp, Verbose, TEXT("Received config response %d for room %s"), ConfigTaskResponse->bSuccess, *ConfigTaskResponse->RoomId);
 			if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
 			{
@@ -1246,6 +1250,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		FXmppRoomInfoRefreshResponseJingle* RefreshTaskResponse = NULL;
 		if (ReceivedRoomInfoRefreshResponseQueue.Dequeue(RefreshTaskResponse))
 		{
+			NumMucResponses++;
 			UE_LOG(LogXmpp, Verbose, TEXT("Received refresh room info response %d for room %s"), RefreshTaskResponse->bSuccess, *RefreshTaskResponse->RoomInfo.Id);
 			OnRoomInfoRefreshed().Broadcast(Connection.AsShared(), RefreshTaskResponse->bSuccess, RefreshTaskResponse->RoomInfo.Id, RefreshTaskResponse->ErrorStr);
 			delete RefreshTaskResponse;
@@ -1449,7 +1454,7 @@ static void ConvertToChatMember(FXmppChatMember& OutChatMember, const buzz::Xmpp
 	if (InChatMemberJingle.presence() != NULL)
 	{
 		//@todo sz1
-		//FXmppPresenceJingle::ConvertToPresence(OutChatMember.UserPresence, *InChatMemberJingle.presence());
+		//FXmppPresenceJingle::ConvertToPresence(OutChatMember.UserPresence, *InChatMemberJingle.presence(), OutChatMember.MemberJid);
 	}
 }
 
@@ -1530,9 +1535,9 @@ void FXmppMultiUserChatJingle::MemberEntered(
 		UTF8_TO_TCHAR(RoomModule->chatroom_jid().Str().c_str()),
 		UTF8_TO_TCHAR(XmppMember->member_jid().Str().c_str()));
 
-	FScopeLock Lock(&ChatroomsLock);
-
 	FXmppRoomId RoomId(UTF8_TO_TCHAR(RoomModule->chatroom_jid().node().c_str()));
+
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom != NULL)
 	{
@@ -1578,7 +1583,6 @@ public:
 		Muc.OnRoomMemberExit().Broadcast(Muc.Connection.AsShared(), RoomId, MemberJid);
 
 		FScopeLock Lock(&Muc.ChatroomsLock);
-
 		FXmppRoomJingle* XmppRoom = Muc.Chatrooms.Find(RoomId);
 		if (XmppRoom != NULL)
 		{
@@ -1625,7 +1629,6 @@ void FXmppMultiUserChatJingle::ChatroomEnteredStatus(
 	FXmppRoomId RoomId(UTF8_TO_TCHAR(RoomModule->chatroom_jid().node().c_str()));
 
 	FScopeLock Lock(&ChatroomsLock);
-
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom != NULL)
 	{
@@ -1738,9 +1741,9 @@ void FXmppMultiUserChatJingle::ChatroomExitedStatus(
 		UTF8_TO_TCHAR(RoomModule->chatroom_jid().Str().c_str()),
 		RoomExitStatusToStr(ExitStatus));
 
-	FScopeLock Lock(&ChatroomsLock);
-
 	FXmppRoomId RoomId(UTF8_TO_TCHAR(RoomModule->chatroom_jid().node().c_str()));
+
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom != NULL)
 	{
@@ -1760,6 +1763,8 @@ void FXmppMultiUserChatJingle::MemberExited(
 	FXmppJingle::ConvertToJid(MemberJid, XmppMember->member_jid());
 
 	FXmppRoomId RoomId(UTF8_TO_TCHAR(RoomModule->chatroom_jid().node().c_str()));
+
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom != nullptr)
 	{
@@ -1778,9 +1783,9 @@ void FXmppMultiUserChatJingle::MemberChanged(
 		UTF8_TO_TCHAR(RoomModule->chatroom_jid().Str().c_str()),
 		UTF8_TO_TCHAR(XmppMember->member_jid().Str().c_str()));
 
-	FScopeLock Lock(&ChatroomsLock);
-
 	FXmppRoomId RoomId(UTF8_TO_TCHAR(RoomModule->chatroom_jid().node().c_str()));
+
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom != NULL)
 	{
@@ -1814,9 +1819,9 @@ void FXmppMultiUserChatJingle::MessageReceived(
 {
 	UE_LOG(LogXmpp, VeryVerbose, TEXT("MUC: MessageReceived"));
 
-	FScopeLock Lock(&ChatroomsLock);
-
 	FXmppRoomId RoomId(UTF8_TO_TCHAR(RoomModule->chatroom_jid().node().c_str()));
+
+	FScopeLock Lock(&ChatroomsLock);
 	FXmppRoomJingle* XmppRoom = Chatrooms.Find(RoomId);
 	if (XmppRoom != NULL)
 	{

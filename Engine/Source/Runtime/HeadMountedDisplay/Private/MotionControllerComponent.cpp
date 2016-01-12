@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
 #include "HeadMountedDisplayPrivate.h"
 #include "MotionControllerComponent.h"
@@ -89,6 +89,7 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 		{
 			if ((MotionController != nullptr) && MotionController->GetControllerOrientationAndPosition(PlayerIndex, Hand, Orientation, Position))
 			{
+				CurrentTrackingStatus = MotionController->GetControllerTrackingStatus(PlayerIndex, Hand);
 				return true;
 			}
 		}

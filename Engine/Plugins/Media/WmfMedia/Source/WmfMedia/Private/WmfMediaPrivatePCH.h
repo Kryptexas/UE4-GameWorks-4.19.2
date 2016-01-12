@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,4 +42,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogWmfMedia, Log, All);
 #include "WmfMediaReadState.h"
 #include "WmfMediaByteStream.h"
 #include "WmfMediaSession.h"
+#include "WmfMediaResolveState.h"
+#include "WmfMediaResolver.h"
 #include "WmfMediaPlayer.h"

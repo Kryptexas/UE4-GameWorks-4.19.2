@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MaterialEditorModule.h"
@@ -16,6 +16,7 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialExpressionCustomOutput.h"
 
 #include "MaterialEditorUtilities.h"
 #include "Toolkits/ToolkitManager.h"
@@ -211,6 +212,13 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 		{
 			GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(ExpressionInput->Expression, ExpressionInput->OutputIndex), MaterialInstance, VisibleExpressions, FunctionStack);
 		}
+	}
+
+	TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
+	Material->GetAllCustomOutputExpressions(CustomOutputExpressions);
+	for (UMaterialExpressionCustomOutput* Expression : CustomOutputExpressions)
+	{
+		GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(Expression, 0), MaterialInstance, VisibleExpressions, FunctionStack);
 	}
 }
 
@@ -569,9 +577,8 @@ void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBui
 				TSharedPtr<FMaterialGraphSchemaAction_NewNode> NewNodeAction(new FMaterialGraphSchemaAction_NewNode(
 					CategoryName,
 					FText::FromString(MaterialExpression.Name),
-					ToolTip.ToString(), 0));
+					ToolTip.ToString(), 0, CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords()));
 				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
-				NewNodeAction->Keywords = CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords();
 				ActionMenuBuilder.AddAction(NewNodeAction);
 			}
 		}

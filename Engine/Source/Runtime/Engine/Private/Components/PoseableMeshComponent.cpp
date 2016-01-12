@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PoseableMeshComponent.cpp: UPoseableMeshComponent methods.
@@ -84,9 +84,9 @@ void UPoseableMeshComponent::FillSpaceBases()
 
 	const int32 NumBones = LocalAtoms.Num();
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 	/** Keep track of which bones have been processed for fast look up */
-	TArray<uint8> BoneProcessed;
+	TArray<uint8, TInlineAllocator<256>> BoneProcessed;
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 	// Build in 3 passes.
@@ -94,7 +94,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 	FTransform* SpaceBasesData = GetEditableSpaceBases().GetData();
 	
 	GetEditableSpaceBases()[0] = LocalAtoms[0];
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 	BoneProcessed[0] = 1;
 #endif
 
@@ -102,7 +102,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 	{
 		FPlatformMisc::Prefetch(SpaceBasesData + BoneIndex);
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 		// Mark bone as processed
 		BoneProcessed[BoneIndex] = 1;
 #endif
@@ -110,7 +110,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 		const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 		FPlatformMisc::Prefetch(SpaceBasesData + ParentIndex);
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 		// Check the precondition that Parents occur before Children in the RequiredBones array.
 		checkSlow(BoneProcessed[ParentIndex] == 1);
 #endif
@@ -223,7 +223,7 @@ FTransform UPoseableMeshComponent::GetBoneTransformByName(FName BoneName, EBoneS
 		{
 			if (UAnimInstance* AnimInstance = SMC->GetAnimInstance())
 			{
-				return GetBoneTransformByNameHelper(BoneName, BoneSpace, AnimInstance->RequiredBones, SMC);
+				return GetBoneTransformByNameHelper(BoneName, BoneSpace, AnimInstance->GetRequiredBones(), SMC);
 			}
 			FString Message = FString::Printf(TEXT("Cannot return valid bone transform. Master Pose Component has no anim instance"));
 			FFrame::KismetExecutionMessage(*Message, ELogVerbosity::Warning);
@@ -270,5 +270,40 @@ void UPoseableMeshComponent::ResetBoneTransformByName(FName BoneName)
 	{
 		FString Message = FString::Printf(TEXT("Invalid Bone Name '%s'"), *BoneName.ToString());
 		FFrame::KismetExecutionMessage(*Message, ELogVerbosity::Warning);
+	}
+}
+
+void UPoseableMeshComponent::CopyPoseFromSkeletalComponent(const USkeletalMeshComponent* InComponentToCopy)
+{
+	if(RequiredBones.IsValid())
+	{
+		if(this->SkeletalMesh == InComponentToCopy->SkeletalMesh)
+		{
+			check(LocalAtoms.Num() == InComponentToCopy->LocalAtoms.Num());
+
+			// Quick path, we know everything matches, just copy the local atoms
+			LocalAtoms = InComponentToCopy->LocalAtoms;
+		}
+		else
+		{
+			// The meshes don't match, search bone-by-bone (slow path)
+
+			// first set the localatoms to ref pose from our current mesh
+			LocalAtoms = SkeletalMesh->RefSkeleton.GetRefBonePose();
+
+			// Now overwrite any matching bones
+			const int32 NumSourceBones = InComponentToCopy->SkeletalMesh->RefSkeleton.GetNum();
+
+			for(int32 SourceBoneIndex = 0 ; SourceBoneIndex < NumSourceBones ; ++SourceBoneIndex)
+			{
+				const FName SourceBoneName = InComponentToCopy->GetBoneName(SourceBoneIndex);
+				const int32 TargetBoneIndex = GetBoneIndex(SourceBoneName);
+
+				if(TargetBoneIndex != INDEX_NONE)
+				{
+					LocalAtoms[TargetBoneIndex] = InComponentToCopy->LocalAtoms[SourceBoneIndex];
+				}
+			}
+		}
 	}
 }

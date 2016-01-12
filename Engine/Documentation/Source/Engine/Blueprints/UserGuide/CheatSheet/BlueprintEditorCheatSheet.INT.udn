@@ -2,10 +2,47 @@ Availability:Public
 Title:Blueprint Editor Cheat Sheet
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:Reference covering Blueprint shortcuts and useful actions.
+version: 4.9
+parent:Engine/Blueprints
+order:1
+type:howto
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CheatSheet:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CheatSheet:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![%Engine\Blueprints\UserGuide\CheatSheet:title%](Engine/Blueprints/blueprintcheatsheet.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CheatSheet:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CheatSheet:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2 end:2)]
 
-The **Blueprint** editor has a lot of productivity boosting shortcuts built-in, and while many will come naturally as you use the editor, others are a little bit hidden. This page covers the most commonly used actions and the shortcuts that can be used to perform those actions more efficiently. You can also download this list of shortcuts below. 
+The **Blueprint Editor** has a lot of productivity boosting shortcuts built-in, and while many will come naturally as you use the editor, others are a little bit hidden. This page covers the most commonly used actions and the shortcuts that can be used to perform those actions more efficiently. You can also download this list of shortcuts below. 
 
 Click to download: [Color Version](BlueprintCheatSheet-1989117414.pdf) | [Black/White Version](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)
 
@@ -31,7 +68,7 @@ Click to download: [Color Version](BlueprintCheatSheet-1989117414.pdf) | [Black/
 | Select Node | **Click** on a Node |
 | Add to Selection | **Shift + Click** on a Node |
 | Toggle Selection | **Ctrl + Click** on a Node |
-| Marquee Select (Replace) | **LMB** Drag |
+| Marquee Select (Replace) | **Left Mouse Button (LMB)** Drag |
 | Marquee Select (Add) | **Shift + LMB** Drag |
 | Marquee Select (Remove) | **Ctrl + LMB** Drag |
 

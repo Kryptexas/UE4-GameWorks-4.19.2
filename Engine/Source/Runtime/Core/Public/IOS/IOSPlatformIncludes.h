@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	IOSPlatformIncludes.h: Includes the platform specific headers for iOS
@@ -22,7 +22,6 @@
 #include "Apple/ApplePlatformFile.h"
 #include "IOS/IOSPlatformSurvey.h"
 #include "IOSAsyncTask.h"
-#include "IOS/IOSPlatformHttp.h"
 #include "IOS/IOSPlatformFramePacer.h"
 #import "IOSPlatformString.h"
 

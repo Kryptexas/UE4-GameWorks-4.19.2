@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApplePlatformFile.mm: Apple platform implementations of File functions
@@ -9,6 +9,29 @@
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
 const FDateTime MacEpoch(1970, 1, 1);
+
+namespace
+{
+	FFileStatData MacStatToUEFileData(struct stat& FileInfo)
+	{
+		const bool bIsDirectory = S_ISDIR(FileInfo.st_mode);
+
+		int64 FileSize = -1;
+		if (!bIsDirectory)
+		{
+			FileSize = FileInfo.st_size;
+		}
+
+		return FFileStatData(
+			MacEpoch + FTimespan(0, 0, FileInfo.st_ctime), 
+			MacEpoch + FTimespan(0, 0, FileInfo.st_atime), 
+			MacEpoch + FTimespan(0, 0, FileInfo.st_mtime), 
+			FileSize,
+			bIsDirectory,
+			!!(FileInfo.st_mode & S_IWUSR)
+			);
+	}
+}
 
 /** 
  * Mac file handle implementation which limits number of open files per thread. This
@@ -412,6 +435,7 @@ void FApplePlatformFile::SetTimeStamp(const TCHAR* Filename, const FDateTime Dat
 	Times.modtime = (DateTime - MacEpoch).GetTotalSeconds();
 	utime(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &Times);
 }
+
 FDateTime FApplePlatformFile::GetAccessTimeStamp(const TCHAR* Filename)
 {
 	// get file times
@@ -444,6 +468,7 @@ IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrit
 	}
 	return NULL;
 }
+
 IFileHandle* FApplePlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)
 {
 	int Flags = O_CREAT;
@@ -475,6 +500,7 @@ IFileHandle* FApplePlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 	}
 	return NULL;
 }
+
 bool FApplePlatformFile::DirectoryExists(const TCHAR* Directory)
 {
 	struct stat FileInfo;
@@ -484,6 +510,7 @@ bool FApplePlatformFile::DirectoryExists(const TCHAR* Directory)
 	}
 	return false;
 }
+
 bool FApplePlatformFile::CreateDirectory(const TCHAR* Directory)
 {
 	@autoreleasepool
@@ -494,45 +521,92 @@ bool FApplePlatformFile::CreateDirectory(const TCHAR* Directory)
 		return Result;
 	}
 }
+
 bool FApplePlatformFile::DeleteDirectory(const TCHAR* Directory)
 {
 	return rmdir(TCHAR_TO_UTF8(*NormalizeFilename(Directory))) == 0;
 }
+
+FFileStatData FApplePlatformFile::GetStatData(const TCHAR* FilenameOrDirectory)
+{
+	struct stat FileInfo;
+	if (Stat(FilenameOrDirectory, &FileInfo) != -1)
+	{
+		return MacStatToUEFileData(FileInfo);
+	}
+
+	return FFileStatData();
+}
+
 bool FApplePlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor)
 {
 	@autoreleasepool
 	{
-		bool Result = false;
-		DIR* Handle = opendir(Directory[0] ? TCHAR_TO_UTF8(Directory) : ".");
-		if (Handle)
+		const FString DirectoryStr = Directory;
+		const FString NormalizedDirectoryStr = NormalizeFilename(Directory);
+
+		return IterateDirectoryCommon(Directory, [&](struct dirent* InEntry) -> bool
 		{
-			Result = true;
-			struct dirent *Entry;
-			while ((Entry = readdir(Handle)) != NULL)
+			// Normalize any unicode forms so we match correctly
+			const FString NormalizedFilename = UTF8_TO_TCHAR(([[[NSString stringWithUTF8String:InEntry->d_name] precomposedStringWithCanonicalMapping] cStringUsingEncoding:NSUTF8StringEncoding]));
+				
+			// Figure out whether it's a directory. Some protocols (like NFS) do not voluntarily return this as part of the directory entry, and need to be queried manually.
+			bool bIsDirectory = (InEntry->d_type == DT_DIR);
+			if (InEntry->d_type == DT_UNKNOWN)
 			{
-				if (FCStringAnsi::Strcmp(Entry->d_name, ".") && FCStringAnsi::Strcmp(Entry->d_name, "..") && FCStringAnsi::Strcmp(Entry->d_name, ".DS_Store"))
+				struct stat StatInfo;
+				if (stat(TCHAR_TO_UTF8(*(NormalizedDirectoryStr / NormalizedFilename)), &StatInfo) == 0)
 				{
-                    // Normalize any unicode forms so we match correctly
-                    FString NormalizedFilename = UTF8_TO_TCHAR(([[[NSString stringWithUTF8String:Entry->d_name] precomposedStringWithCanonicalMapping] cStringUsingEncoding:NSUTF8StringEncoding]));
-					
-                    // Figure out whether it's a directory. Some protocols (like NFS) do not voluntairily return this as part of the directory entry, and need to be queried manually.
-                    bool bIsDirectory = (Entry->d_type == DT_DIR);
-                    if(Entry->d_type == DT_UNKNOWN)
-                    {
-                        struct stat StatInfo;
-                        if(stat(TCHAR_TO_UTF8(*(FString(Directory) / Entry->d_name)), &StatInfo) == 0)
-                        {
-                            bIsDirectory = S_ISDIR(StatInfo.st_mode);
-                        }
-                    }
-					
-                    Result = Visitor.Visit(*(FString(Directory) / NormalizedFilename), bIsDirectory);
+					bIsDirectory = S_ISDIR(StatInfo.st_mode);
 				}
 			}
-			closedir(Handle);
-		}
-		return Result;
+					
+			return Visitor.Visit(*(DirectoryStr / NormalizedFilename), bIsDirectory);
+		});
 	}
+}
+
+bool FApplePlatformFile::IterateDirectoryStat(const TCHAR* Directory, FDirectoryStatVisitor& Visitor)
+{
+	@autoreleasepool
+	{
+		const FString DirectoryStr = Directory;
+		const FString NormalizedDirectoryStr = NormalizeFilename(Directory);
+
+		return IterateDirectoryCommon(Directory, [&](struct dirent* InEntry) -> bool
+		{
+			// Normalize any unicode forms so we match correctly
+			const FString NormalizedFilename = UTF8_TO_TCHAR(([[[NSString stringWithUTF8String:InEntry->d_name] precomposedStringWithCanonicalMapping] cStringUsingEncoding:NSUTF8StringEncoding]));
+				
+			struct stat StatInfo;
+			if (stat(TCHAR_TO_UTF8(*(NormalizedDirectoryStr / NormalizedFilename)), &StatInfo) == 0)
+			{
+				return Visitor.Visit(*(DirectoryStr / NormalizedFilename), MacStatToUEFileData(StatInfo));
+			}
+
+			return true;
+		});
+	}
+}
+
+bool FApplePlatformFile::IterateDirectoryCommon(const TCHAR* Directory, const TFunctionRef<bool(struct dirent*)>& Visitor)
+{
+	bool Result = false;
+	DIR* Handle = opendir(Directory[0] ? TCHAR_TO_UTF8(Directory) : ".");
+	if (Handle)
+	{
+		Result = true;
+		struct dirent *Entry;
+		while ((Entry = readdir(Handle)) != NULL)
+		{
+			if (FCStringAnsi::Strcmp(Entry->d_name, ".") && FCStringAnsi::Strcmp(Entry->d_name, "..") && FCStringAnsi::Strcmp(Entry->d_name, ".DS_Store"))
+			{
+                Result = Visitor(Entry);
+			}
+		}
+		closedir(Handle);
+	}
+	return Result;
 }
 
 bool FApplePlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)

@@ -2,7 +2,7 @@ Availability:Public
 Title:UObject Instance Creation
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
 Description:Methods of creating new instances of Objects in gameplay code.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -26,7 +26,7 @@ Version: 4.5
 
 ## NewNamedObject
 
-`NewNamedObject()` expands on `NewObject()` by allowing a name for the new instance as well as **[Object Flags](#ObjectFlags)** and a template object to be specified as an argument.
+`NewNamedObject()` expands on `NewObject()` by allowing a name for the new instance as well as [Object Flags](#ObjectFlags) and a template object to be specified as an argument.
 
 	template< class TClass >
 	TClass* NewNamedObject

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,7 @@
 /**
  * HUD that displays info for the DebugCameraController view.
  */
-UCLASS(config=Game)
+UCLASS(config = Game, hidedropdown)
 class ENGINE_API ADebugCameraHUD
 	: public AHUD
 {
@@ -18,8 +18,8 @@ class ENGINE_API ADebugCameraHUD
 	/** @todo document */
 	virtual bool DisplayMaterials( float X, float& Y, float DY, class UMeshComponent* MeshComp );
 	
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostRender() override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 };

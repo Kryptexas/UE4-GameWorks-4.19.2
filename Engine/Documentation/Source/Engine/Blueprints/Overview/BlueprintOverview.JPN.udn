@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2735872
 Availability:Public
 Title:ブループリントの概要
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:ブループリントの概要を、ブループリントのアナトミーと使用可能な各種タイプに分類して説明します。 
+version:4.9
+parent:Engine/Blueprints
+order:2
+type:reference
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,12 +50,10 @@ Description:ブループリントの概要を、ブループリントのアナ�
 
 [TOC (start:2)]
 
-## 概要
-
 [INCLUDE:Engine/Blueprints/GettingStarted/#BlueprintIntro]
 
-**これは、 _ブループリント_ がアンリアル スクリプトに取って替わるということでしょうか？** Yes でもあり No でもあります。 
-過去にアンリアル スクリプトを使用したゲームプレイ プログラミングやその他全てのゲームプレイ要素は今なお C++ 言語で処理することができます。同時に、_ブループリント_ はアンリアル スクリプトの代替ではないものの、 
+これは、ブループリントがアンリアル スクリプトに取って替わるということでしょうか？Yes でもあり No でもあります。 
+過去にアンリアル スクリプトを使用したゲームプレイ プログラミングやその他全てのゲームプレイ要素は今なお C++ 言語で処理することができます。同時に、ブループリントはアンリアル・スクリプトの代替ではないものの、 
 以下のような、アンリアル スクリプトで処理する多くの目的を遂行できます。
 
 * クラスの拡張
@@ -82,159 +84,65 @@ Description:ブループリントの概要を、ブループリントのアナ�
 
 ## ブループリントのタイプ
 
-_ブループリント_ は、新規タイプからスクリプトレベルイベントの作成まで、それぞれに特定用途がある数種類の中のいずれかのタイプになります。 
-他の _ブループリント_ が使用するインターフェースやマクロを定義します。
+ブループリントは、他のブループリントが使用するインターフェースやマクロを定義するために、新規タイプからスクリプトレベルイベントの作成まで、 
+数種類の中のある特定用途タイプに分類されます。
 
-[EXCERPT:Types]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		データのみのブループリント
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/levelscript_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/interface_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/Interface)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/library_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Types/MacroLibrary)
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		ブループリント ユーティリティ
-	[/PARAM]
-	[PARAM:description]
-		**ブループリント ユーティリティ** は、エディタの機能のみを持つ _ブループリント_ で、 
-		エディタの実行や機能の拡張に使用します。これらは UI のボタンとしてパラメータなしで [](Engine/Blueprints/UserGuide/Events) をエクスポーズすることができます。 
-		_ブループリント_ にエクスポーズされた全ての機能を実行する能力があり、現ビューポートで選択されたアクタ一式を実行します。
-	[/PARAM]
-[/OBJECT]
-[/EXCERPT:Types]
+
+###Blueprint クラス
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
+
+
+###データ専用ブループリント
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
+
+###Level ブループリント
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
+
+###ブループリント インターフェース
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
+
+###ブループリント マクロ ライブラリ
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
+
+###ブループリント ユーティリティ
+
+**ブループリント ユーティリティ** は **Blutility** とも呼ばれるブループリントで、 
+エディタの実行や機能の拡張に使用します。これらは UI のボタンとしてパラメータなしで [](Engine/Blueprints/UserGuide/Events) をエクスポーズすることができます。 
+_ブループリント_ にエクスポーズされた全ての機能を実行する能力があり、現ビューポートで選択されたアクタ一式を実行します。
 
 ## ブループリントのアナトミー (分析)
 
-_ブループリント_ の機能はさまざまなエレメントによって定義されます。その中にはデフォルトで存在する機能もあれば、 
-必要に応じて追加する機能もあります。これらの機能により、 _コンポーネント_ の定義、初期化の実行、 
+ブループリントの機能はさまざまな要素で定義します。その中にはデフォルトで存在する機能もあれば、 
+必要に応じて追加する機能もあります。これらの機能により、コンポーネントの定義、初期化の実行、 
 設定操作、イベントへの対応、操作の構造化およびモジュール化、 
 プロパティの定義などが可能になります。
 
-
 [EXCERPT:Sections]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/components_list.png)(w:256)](Engine/Blueprints/UserGuide/Components)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Components)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Components]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Components#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints/UserGuide/UserConstructionScript/ucs_thumb.png)(w:256)](Engine/Blueprints/UserGuide/UserConstructionScript)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/UserConstructionScript)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/UserConstructionScript]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/UserConstructionScript#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints/UserGuide/EventGraph/eventgraph_thumb.png)(w:256)](Engine/Blueprints/UserGuide/EventGraph)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/EventGraph)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/EventGraph#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints/UserGuide/Functions/functions_thumb.png)(w:256)](Engine/Blueprints/UserGuide/Functions)
-	[/PARAM]
-	[PARAM:title]
-		[](Engine/Blueprints/UserGuide/Functions)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Functions]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Functions#Intro]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:IconSection]
-	[PARAM:icon]
-		[![%Engine/Blueprints/UserGuide/Variables:title%](Engine/Blueprints/UserGuide/Variables/Variables.png)(w:256)](Engine/Blueprints/UserGuide/Variables)
-	[/PARAM]
-	[PARAM:title]
-		[Variables](Engine/Blueprints/UserGuide/Variables)
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Blueprints/UserGuide/Variables]
-	[/PARAM]
-	[PARAM:description]
-		[INCLUDE:Engine/Blueprints/UserGuide/Variables#Intro]
-	[/PARAM]
-[/OBJECT]
+### Components ウィンドウ
+
+[INCLUDE:Engine/Blueprints/UserGuide/Components#Intro]
+
+### コンストラクション スクリプト
+
+[INCLUDE:Engine/Blueprints/UserGuide/UserConstructionScript#Intro]
+
+###イベント グラフ
+
+[INCLUDE:Engine/Blueprints/UserGuide/EventGraph#Intro]
+
+###関数
+
+[INCLUDE:Engine/Blueprints/UserGuide/Functions#Intro]
+
+###変数
+
+[INCLUDE:Engine/Blueprints/UserGuide/Variables#Intro]
+
 [/EXCERPT:Sections]
 
 <!--

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "FloatPropertySection.h"
@@ -7,5 +7,16 @@
 void FFloatPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
 {
 	UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>( &SectionObject );
-	LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FFloatCurveKeyArea( &FloatSection->GetFloatCurve(), FloatSection ) ) );
+	KeyArea = MakeShareable( new FFloatCurveKeyArea( &FloatSection->GetFloatCurve(), FloatSection ) );
+	LayoutBuilder.SetSectionAsKeyArea( KeyArea.ToSharedRef() );
+}
+
+void FFloatPropertySection::SetIntermediateValue( FPropertyChangedParams PropertyChangedParams )
+{
+	KeyArea->SetIntermediateValue( PropertyChangedParams.GetPropertyValue<float>() );
+}
+
+void FFloatPropertySection::ClearIntermediateValue()
+{
+	KeyArea->ClearIntermediateValue();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -562,6 +562,38 @@ public:
 		return bSuccessful;
 	}
 
+	/**
+	 * Gets the color in a packed uint32 format packed in the order ARGB.
+	 */
+	FORCEINLINE uint32 ToPackedARGB() const
+	{
+		return ( A << 24 ) | ( R << 16 ) | ( G << 8 ) | ( B << 0 );
+	}
+
+	/**
+	 * Gets the color in a packed uint32 format packed in the order ABGR.
+	 */
+	FORCEINLINE uint32 ToPackedABGR() const
+	{
+		return ( A << 24 ) | ( B << 16 ) | ( G << 8 ) | ( R << 0 );
+	}
+
+	/**
+	 * Gets the color in a packed uint32 format packed in the order RGBA.
+	 */
+	FORCEINLINE uint32 ToPackedRGBA() const
+	{
+		return ( R << 24 ) | ( G << 16 ) | ( B << 8 ) | ( A << 0 );
+	}
+
+	/**
+	 * Gets the color in a packed uint32 format packed in the order BGRA.
+	 */
+	FORCEINLINE uint32 ToPackedBGRA() const
+	{
+		return ( B << 24 ) | ( G << 16 ) | ( R << 8 ) | ( A << 0 );
+	}
+
 	/** Some pre-inited colors, useful for debug code */
 	static CORE_API const FColor White;
 	static CORE_API const FColor Black;
@@ -572,6 +604,11 @@ public:
 	static CORE_API const FColor Yellow;
 	static CORE_API const FColor Cyan;
 	static CORE_API const FColor Magenta;
+	static CORE_API const FColor Orange;
+	static CORE_API const FColor Purple;
+	static CORE_API const FColor Turquoise;
+	static CORE_API const FColor Silver;
+	static CORE_API const FColor Emerald;
 
 private:
 	/**

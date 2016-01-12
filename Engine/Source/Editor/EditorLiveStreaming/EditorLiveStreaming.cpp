@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "EditorLiveStreamingModule.h"
 #include "EditorLiveStreaming.h"
 #include "EditorLiveStreamingSettings.h"
@@ -24,7 +24,8 @@ FEditorLiveStreaming::FEditorLiveStreaming()
 	  SubmittedVideoFrameCount( 0 ),
 	  ReadbackBufferIndex( 0 )
 {
-	ReadbackBuffers[0] = ReadbackBuffers[1] = nullptr;
+	ReadbackBuffers[0].Reset();
+	ReadbackBuffers[1].Reset();
 }
 
 
@@ -60,16 +61,21 @@ bool FEditorLiveStreaming::IsLiveStreamingAvailable() const
 {
 	bool bIsAvailable = false;
 
-	// We are not available if the game is already streaming
-	if( !IGameLiveStreaming::Get().IsBroadcastingGame() )
+	// This feature is currently "experimental" and disabled by default, even if you have a valid live streaming plugin installed
+	if( GetDefault<UEditorExperimentalSettings>()->bLiveStreamingFromEditor )
 	{
-		static const FName LiveStreamingFeatureName( "LiveStreaming" );
-		if( IModularFeatures::Get().IsModularFeatureAvailable( LiveStreamingFeatureName ) )
+		// We are not available if the game is already streaming
+		if( !IGameLiveStreaming::Get().IsBroadcastingGame() )
 		{
-			// Only if not already broadcasting
-			bIsAvailable = true;
+			static const FName LiveStreamingFeatureName( "LiveStreaming" );
+			if( IModularFeatures::Get().IsModularFeatureAvailable( LiveStreamingFeatureName ) )
+			{
+				// Only if not already broadcasting
+				bIsAvailable = true;
+			}
 		}
 	}
+
 	return bIsAvailable;
 }
 
@@ -217,7 +223,7 @@ void FEditorLiveStreaming::StopBroadcastingEditor()
 		bIsBroadcasting = false;
 		for( int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex )
 		{
-			ReadbackBuffers[ BufferIndex ] = nullptr;
+			ReadbackBuffers[BufferIndex].Reset();
 		}
 		ReadbackBufferIndex = 0;
 		SubmittedVideoFrameCount = 0;
@@ -237,9 +243,12 @@ void FEditorLiveStreaming::BroadcastEditorVideoFrame()
 			{
 				FSlateRenderer* SlateRenderer = FSlateApplication::Get().GetRenderer().Get();
 
-				if( ReadbackBuffers[ ReadbackBufferIndex ] != nullptr )
+				const FMappedTextureBuffer& CurrentBuffer = ReadbackBuffers[ReadbackBufferIndex];
+
+				if ( CurrentBuffer.IsValid() )
 				{
- 					LiveStreamer->PushVideoFrame( (FColor*)ReadbackBuffers[ ReadbackBufferIndex ] );
+					//TODO PushVideoFrame Needs to Take Width and Height
+					LiveStreamer->PushVideoFrame((FColor*)CurrentBuffer.Data/*, CurrentBuffer.Width, CurrentBuffer.Height*/);
 					++SubmittedVideoFrameCount;
 
 					// If this is the first frame we've submitted, then we can fade out our notification UI, since broadcasting is in progress
@@ -257,7 +266,7 @@ void FEditorLiveStreaming::BroadcastEditorVideoFrame()
 
 				TArray<FString> UnusedKeypressBuffer;
 				SlateRenderer->CopyWindowsToVirtualScreenBuffer( UnusedKeypressBuffer );
-				SlateRenderer->MapVirtualScreenBuffer( &ReadbackBuffers[ ReadbackBufferIndex ] );
+				SlateRenderer->MapVirtualScreenBuffer(&ReadbackBuffers[ReadbackBufferIndex]);
 
 				// Ping pong between buffers
 				ReadbackBufferIndex = ( ReadbackBufferIndex + 1 ) % 2;

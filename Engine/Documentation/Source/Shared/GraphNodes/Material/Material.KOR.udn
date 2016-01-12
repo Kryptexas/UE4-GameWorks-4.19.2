@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2588108
+﻿INTSourceChangelist:2744898
 Availability:NoPublish
 Title:
 Crumbs:
@@ -321,6 +321,14 @@ Engine/Rendering/Materials/ExpressionReference/Custom#customtexture
 [/VAR]
 [/EXCERPT:UMaterialExpressionCustomTexture]
 
+[EXCERPT:UMaterialExpressionDecalDerivative]
+DecalDerivative 는 커스텀 UV 가 없다는 가정하에 데칼 텍스처 좌표의 파생형을 명시적으로 계산하여 데칼이 투영되는 에지의 2x2 픽셀 밉맵 부작용을 피하는데 쓰이며, 비등방성 필터링도 계속 지원됩니다.
+
+[VAR:ToolTipFullLink]
+Engine/Actors/DecalActor/DecalUserGuide
+[/VAR]
+[/EXCERPT:UMaterialExpressionDecalDerivative]
+
 [EXCERPT:UMaterialExpressionDecalMipmapLevel]
 DecalMipmapLevel 는 커스텀 UV 가 없다 가정하고 데칼 텍스처의 밉맵 레벨을 명시적으로 계산하는데 사용됩니다. 이는 데칼이 투사되는 에지의 2x2 픽셀 밉맵 부작용을 피하기 위해 사용됩니다.
 
@@ -581,9 +589,9 @@ Engine/Rendering/Materials/ExpressionReference/Math#if
 [/EXCERPT:UMaterialExpressionIf]
 
 [EXCERPT:UMaterialExpressionLinearInterpolate]
-LinearInterpolate 는 세 번째 값을 마스크로 사용하여 두 입력 값을 블렌딩하는 표현식입니다. 포토샵의 레이어 마스크처럼 두 텍스처 사이의 전환을 정의하는 마스크로 간주할 수 있습니다. 마스크의 강도 Alpha 는 두 입력값에서 취할 색 비율을 결정합니다. Alpha 가 1.0/하양이면 첫 입력이 사용됩니다. Alpha 가 0.0/검정이면 둘째 입력이 사용됩니다. 
+LinearInterpolate 는 세 번째 값을 마스크로 사용하여 두 입력 값을 블렌딩하는 표현식입니다. 포토샵의 레이어 마스크처럼 두 텍스처 사이의 전환을 정의하는 마스크로 간주할 수 있습니다. 마스크의 강도 Alpha 는 두 입력값에서 취할 색 비율을 결정합니다. Alpha 가 1.0/하양이면 첫 입력이 사용됩니다.
 
-Alpha 가 회색(0.0 에서 1.0 사이)이면 출력은 두 입력 사이의 혼합이 됩니다. 유념할 것은 채널별로 블렌딩이 일어난다는 점입니다. 즉 Alpha 가 RGB 색이라면, Alpha 의 빨강 채널 값이 A 와 B 의 빨강 채널 블렌딩을 정의하며, Alpha 의 초록 채널과는 별개 입니다. Alpha 의 초록 채널은 A 와 B 의 초록 채널 블렌딩을 정의합니다.
+Alpha 가 1.0/검정이면 첫 번째 입력이, 0.0/하양이면 두 번째 입력이 사용됩니다. Alpha 가 회색(0.0 에서 1.0 사이)이면 출력은 두 입력 사이의 혼합이 됩니다. 유념할 것은 채널별로 블렌딩이 일어난다는 점입니다. 즉 Alpha 가 RGB 색이라면, Alpha 의 빨강 채널 값이 A 와 B 의 빨강 채널 블렌딩을 정의하며, Alpha 의 초록 채널과는 별개 입니다. Alpha 의 초록 채널은 A 와 B 의 초록 채널 블렌딩을 정의합니다.
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Math#linearinterpolate
@@ -785,6 +793,14 @@ TextureSample 표현식은 텍스처에서 색 값을 출력합니다. 이 텍�
 Engine/Rendering/Materials/ExpressionReference/Textures#texturesample
 [/VAR]
 [/EXCERPT:UMaterialExpressionTextureSample]
+
+[EXCERPT:UMaterialExpressionTextureProperty]
+TextureProperty 표현식은 텍스처의 크기나 텍셀 크기같은 텍스처 프로퍼티를 노출시킵니다.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Textures#textureproperty
+[/VAR]
+[/EXCERPT:UMaterialExpressionTextureProperty]
 
 [EXCERPT:UMaterialExpressionBlackBody]
 Black Body (흑체)는 머티리얼 안에서 black body radiation (흑체복사) 효과를 흉내내는 표현식입니다. 사용자가 (켈빈 단위로) 온도를 입력하면 그 색과 강도 결과를 베이스 컬러와 이미시브 값을 구동하는 데 사용하여 물리적으로 정확한 결과를 얻을 수 있습니다.

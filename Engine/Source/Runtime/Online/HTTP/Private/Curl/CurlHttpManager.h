@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,11 +27,11 @@ protected:
 
 public:
 
-	// Begin HttpManager interface
+	//~ Begin HttpManager Interface
 	virtual void AddRequest(const TSharedRef<class IHttpRequest>& Request) override;
 	virtual void RemoveRequest(const TSharedRef<class IHttpRequest>& Request) override;
 	virtual bool Tick(float DeltaSeconds) override;
-	// End HttpManager interface
+	//~ End HttpManager Interface
 
 	FCurlHttpManager();
 

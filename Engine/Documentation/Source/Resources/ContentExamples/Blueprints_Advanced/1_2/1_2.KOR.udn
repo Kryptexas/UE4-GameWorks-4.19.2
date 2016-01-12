@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2652851
 Availability: Public
 Title:1.2 - 자동 벽
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -12,7 +12,23 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Blueprints_Advanced/1_1 "%Resources/ContentExamples/Blueprints_Advanced/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Blueprints_Advanced/1_3 "%Resources/ContentExamples/Blueprints_Advanced/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -36,7 +52,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ![](blueprint_advanced_1_2.png)
 
-## 개요
+
 
 **BP_Fence** 블루프린트는 컨스트럭션 스크립트를 사용하여 시작점에서 끝점까지 연장되는 _스태틱 메시 컴포넌트_ 열을 생성합니다. 루트 _씬 컴포넌트_ 의 위치를 시작 지점, 3D 위젯으로 표시되는 벡터 변수를 끝점으로 간주합니다. 스크립트는 시작점과 끝점 사이의 간극을 메꾸기 위해 _스태틱 메시 컴포넌트_ 가 몇 개나 필요한지를 결정한 다음, 그 갯수만큼 일렬로 추가시켜 벽 시작 지점의 초기 _스태틱 메시 컴포넌트_ 에 새로 추가되는 각각의 _스태틱 메시 컴포넌트_ 를 붙입니다. 마지막으로 초기 _스태틱 메시 컴포넌트_ 의 X 축이 끝점을 향하도록 회전시켜, 열의 나머지도 따라서 회전하도록 만듭니다.
 

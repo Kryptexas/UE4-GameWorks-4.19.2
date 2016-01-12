@@ -1,18 +1,18 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SlateIcon.h"
 #include "WorkspaceItem.h"
 
-
+class FMenuBuilder;
+class FMultiBox;
 class FTabManager;
 class SDockingArea;
 class SDockTab;
 class SDockingTabStack;
 class SWindow;
 struct FTabMatcher;
-
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(
 	FOnActiveTabChanged,

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 IOSPlatformProcess.cpp: iOS implementations of Process functions
@@ -51,6 +51,15 @@ void FIOSPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 	}
 }
 
+bool FIOSPlatformProcess::CanLaunchURL(const TCHAR* URL)
+{
+	CFStringRef CFUrl = FPlatformString::TCHARToCFString(URL);
+	CFUrl = CFURLCreateStringByAddingPercentEscapes(NULL, CFUrl, CFSTR("#?+"), NULL, kCFStringEncodingUTF8);
+	bool Result = [[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString : (NSString *)CFUrl]];
+	CFRelease(CFUrl);
+
+	return Result;
+}
 void FIOSPlatformProcess::SetRealTimeMode()
 {
 	if ([IOSAppDelegate GetDelegate].OSVersion < 7 && FPlatformMisc::NumberOfCores() > 1)

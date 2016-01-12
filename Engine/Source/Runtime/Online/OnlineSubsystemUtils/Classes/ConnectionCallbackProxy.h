@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "OnlineBlueprintCallProxyBase.h"
 #include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineIdentityInterface.h"
 #include "ConnectionCallbackProxy.generated.h"
 

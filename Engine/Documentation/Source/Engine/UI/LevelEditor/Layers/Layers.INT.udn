@@ -2,13 +2,16 @@ Availability: Public
 TItle:Layers Panel User Guide
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description:Tool for organizing Actors in the level into layers for quick selection and controlling visibility.
+Version: 4.9
+SkillLevel: Beginner
+
 
 [TOC(start:2)]
 
 [EXCERPT:Overview]
 The **Layers** panel allows you to organize Actors in your Level. 
 
-![Layers Panel](layers.png)
+![](LayerInfra.jpg)
 
 Layers provide the ability to quickly select as well as control visibility of groups of related Actors. 
 You can use your layers to quickly un-clutter a scene leaving only the geometry and Actors that you are 
@@ -37,7 +40,7 @@ Layers are created in the **Layers** panel either as empty or using the current 
 
 1. The new layer is displayed in the list.
 
-	![New empty layer](layer_new_list.png)(quality:100)
+	![](LayerLayer1.jpg)(quality:100)
 
 
 **To create a layer from a selection:**
@@ -52,7 +55,7 @@ Layers are created in the **Layers** panel either as empty or using the current 
 
 1. The new layer containing the Actors is displayed in the list. 
 
-	![New empty layer](layer_new_list.png)(quality:100)
+	![](LayerLayer1.jpg)(quality:100)
 
 
 **To create a layer by drag and drop:**
@@ -61,11 +64,11 @@ Layers are created in the **Layers** panel either as empty or using the current 
 
 1. Drag the Actor(s) from the **World Outliner** on to the empty area in the **Layers** panel.
 
-	![Drag Actors to Layers panel](layer_new_drag.png)
+	![](LayerDragDrop.jpg)
 
 1. The new layer containing the Actors is displayed in the list. 
 
-	![New empty layer](layer_new_list.png)(quality:100)
+	![](LayerLayer1.jpg)(quality:100)
 
 
 ## Layer Naming
@@ -88,11 +91,11 @@ Layer names can contain any alphanumeric characters and can also include spaces,
 
 1. Enter a name in the text box containing the current name.
 
-	![Rename layer](layer_rename.png)
+	![](LayerNewName.jpg)
 
 1. The layer is displayed with the new name.
 
-	![Renamed layer](layer_renamed.png)
+	![](LayerNewName2.jpg)(quality:100)
 
 
 ## Searching Layers
@@ -102,18 +105,18 @@ matches between the text entered in the search box and the names of the layers. 
 list of layers is filtered in real-time; only displaying those layers whose names match the text.
 
 [REGION:imagetable]
-| ![Layers Unfiltered](layer_search_unfiltered.png) | ![Layers Filtered](layer_search_filtered.png) |
+| ![](LayerNewName2.jpg)(w:452) | ![](LayersFilter.jpg)(w:460) |
 | ------ | ------ |
 | Unfiltered Layer List | Filtered Layer List |
 [/REGION]
 
-Press the ![Clear Search](button_search_clear.png) button to clear the current search terms.
+Press the 'X' button to clear the current search terms.
 
 ## Layer Contents
 
 The contents of a layer can be viewed directly in the **Layers** panel. The layer contents view displays the 
 name of the layer, a list of all Actors contained in the layer, and information about the layer's contents. 
-To enter the layer contents view, press the ![See Contents](button_contents.png) button at the bottom of the 
+To enter the layer contents view, press the **See Contents** button at the bottom of the 
 **Layers** panel with the layer you want to view selected.
 
 ![Layer Contents view](layer_contents.png)
@@ -124,7 +127,7 @@ and numbers of Actors contained within the layer.
 ![Layer Contents View Title Bar](layer_title_bar.png)
 
 The various buttons to the right of the layer's name show how many of each individual type of Actor are contained 
-within the layer. For instance, the ![Layer Type Select](button_select_type.png) button informs the user that 
+within the layer. For instance, the button in the bottom right of the Layers panel informs the user that 
 there are 139 StaticMeshActors contained within the layer.
 
 [REGION:tip]
@@ -159,7 +162,7 @@ Actors can be added to one or more layers as a selection or by dragging and drop
 	to the selected layer.
 	[/REGION]
 
-	![Drag Actors to layer](layer_add_drag.png)
+	![](LayersDragandDrop.jpg)
 
 	[REGION:note]
 	The layers the Actors are already assigned to are grayed out when dragging and dropping. 
@@ -176,7 +179,7 @@ Actors can be removed from the layer individually or as a group of selected Acto
 
 **To remove individual Actors:**
 
-1. Press the ![Remove Actor](button_remove_layer.png) button next to the Actor in the layer contents view.
+1. Press the 'X' button next to the Actor in the layer contents view.
 
 	![Remove Actor button](layer_remove_actor.png)(quality:100)
 
@@ -210,11 +213,11 @@ the box, the list of Actors is filtered in real-time; only displaying those Acto
 | Unfiltered Layer Contents | Filtered Layer Contents |
 [/REGION]
 
-Press the ![Clear Search](button_search_clear.png) button to clear the current search terms.
+Press the 'X' button to clear the current search terms.
 
 ## Visibility
 
-The contents of any layer can be shown or hidden by toggling the ![Visibility](button_layer_visibility.png) 
+The contents of any layer can be shown or hidden by toggling the Visibility (eye) 
 button for the layer in the layer list.
 
 [REGION:imagetable]
@@ -278,7 +281,7 @@ Type-specific selection allows you to quickly select all of one type of Actor co
 | Layer List Contents Bar | Layer Contents View Title Bar |
 [/REGION]
 
-Pressing the ![Layer Type Select](button_select_type.png) button selects all of the StaticMeshActors in the layer.
+Pressing the instances button selects all of the StaticMeshActors in the layer.
 
 ![Selected StaticMeshActors](layer_select_type.png)
 

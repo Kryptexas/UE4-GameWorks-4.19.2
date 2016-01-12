@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2717064
 Availability:Public
 Title:1.5 - マテリアル ドメイン
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description:マテリアル インスタンスの事例概要、例 1.5：マテリアル ドメイン
+Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.5：マテリアル ドメイン
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials
 Related: Engine/Rendering/Materials/MaterialProperties/LightingModels
@@ -13,6 +13,25 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/MaterialProperties/1_4 "%Resources/ContentExamples/MaterialProperties/1_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[コンテンツ サンプル ホーム](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/MaterialProperties/1_6 "%Resources/ContentExamples/MaterialProperties/1_6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -57,12 +76,13 @@ Related: Engine/Rendering/Materials/MaterialProperties
 ![](MP_1_5_001.png)(w:900)
 [/REGION]
 
-**Domains** でマテリアルの使用全般を定義します。ただし、ほとんどのシェーダーは **Surface** です。デカール、ライト機能、ポスト プロセスとしてシェーダーを使用する場合は、これらの **ドメイン** に属する必要があります。
+**Domains (ドメイン)** でマテリアルの使用全般を定義します。ただし、ほとんどのシェーダーは **Surface** です。デカール、ライト関数、ポスト プロセスとしてシェーダーを使用する場合は、これらの ドメイン に属する必要があります。
 
 | ドメイン | 説明 |
 | ---- | ---- |
-| **Surface** | デフォルトのドメインです。全ての種類のジオメトリ向けです(静的、スケルタル、ランドスケープなど）。 |
-| **Deferred Decals** | マテリアルを **デカール アクタ** で使用する場合は、この設定にしないと機能しません。 |
-| **Light Function**  | **Light 関数** としてライトに適用されたマテリアルに使用されます |
-| **PostProcess**     | **ポストプロセス** チェーンで **ブレンド可能なマテリアル** としてマテリアルが使用される場合 |
+| **Surface (サーフェス)** | デフォルトのドメインです。あらゆるジオメトリ向けです (静的、スケルタル、ランドスケープなど）。 |
+| **Deferred Decals (ディファード デカール)** | マテリアルを デカール アクタ で使用する場合は、この設定にしないと機能しません。 |
+| **Light Function (ライト関数)**  | Light 関数 としてライトに適用されたマテリアルに使用されます。 |
+| **PostProcess (ポストプロセス)**     | ポストプロセス チェーンで ブレンド可能なマテリアル としてマテリアルが使用される場合。 |
+| **User Interface (ユーザー インターフェース)**     | このマテリアルは UMG または Slate UI に使用されます。 |
 

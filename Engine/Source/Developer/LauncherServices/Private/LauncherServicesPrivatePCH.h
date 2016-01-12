@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,14 +19,6 @@
 
 /* Private includes
  *****************************************************************************/
-
-/** Defines the launcher simple profile file version. */
-#define LAUNCHERSERVICES_SIMPLEPROFILEVERSION 1
-
-/** Defines the launcher profile file version. */
-#define LAUNCHERSERVICES_PROFILEVERSION 16 
-#define LAUNCHERSERVICES_MINPROFILEVERSION 10
-
 
 // profile manager
 #include "LauncherProjectPath.h"

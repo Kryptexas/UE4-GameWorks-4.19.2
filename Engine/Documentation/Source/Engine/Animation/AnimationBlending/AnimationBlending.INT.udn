@@ -1,9 +1,9 @@
 Availability:Public
 Title: Blending Animations
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:A look at various ways to blend together multiple animations in UE4.
+description:Transitioning smoothly between two animations on a single Skeletal Mesh
+version: 4.9
 
-## Overview
 
 Animation blending, as a concept, simply means making a smooth transition between two or more animations on a single character or Skeletal Mesh. In Unreal Engine 4, there are various ways in which such blending can be applied. In this document, we will overview each one and how they can be applied to your characters.
 

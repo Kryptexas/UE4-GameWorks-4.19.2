@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
 #include "ParserClass.h"
@@ -406,7 +406,7 @@ void FClassDeclarationMetaData::MergeAndValidateClassFlags(const FString& Declar
 			FError::Throwf(TEXT("'abstract': NoExport class missing abstract keyword from class declaration (must change C++ version first)"));
 			Class->ClassFlags |= CLASS_Abstract;
 		}
-		else if (Class->HasAnyFlags(RF_Native))
+		else if (Class->IsNative())
 		{
 			FError::Throwf(TEXT("'abstract': missing abstract keyword from class declaration - class will no longer be exported as abstract"));
 		}

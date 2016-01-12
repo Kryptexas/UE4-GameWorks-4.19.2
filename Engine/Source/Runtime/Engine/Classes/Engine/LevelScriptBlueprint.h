@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,11 +34,11 @@ class ULevelScriptBlueprint : public UBlueprint
 		return Cast<ULevel>(GetOuter());
 	}
 
-	// Begin UBlueprint interface
+	//~ Begin UBlueprint Interface
 	ENGINE_API virtual UObject* GetObjectBeingDebugged() override;
 	ENGINE_API virtual void SetObjectBeingDebugged(UObject* NewObject) override;
 	ENGINE_API virtual FString GetFriendlyName() const override;
-	// End UBlueprint interface
+	//~ End UBlueprint Interface
 
 	/** Generate a name for a level script blueprint from the current level */
 	static FString CreateLevelScriptNameFromLevel (const class ULevel* Level );

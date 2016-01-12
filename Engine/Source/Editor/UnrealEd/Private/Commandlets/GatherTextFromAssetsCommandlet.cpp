@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PackageTools.h"
@@ -93,29 +93,17 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 
 void UGatherTextFromAssetsCommandlet::ProcessPackages( const TArray< UPackage* >& PackagesToProcess )
 {
-	for(UPackage* const Package : PackagesToProcess)
+	TArray<FGatherableTextData> GatherableTextDataArray;
+
+	for(const UPackage* const Package : PackagesToProcess)
 	{
-		TArray<UObject*> ObjectsInPackage;
-		GetObjectsWithOuter(Package, ObjectsInPackage, true, RF_Transient | RF_PendingKill);
-		for (UObject* const Object : ObjectsInPackage)
-		{
-			TArray<FGatherableTextData> GatherableTextDataArray;
+		GatherableTextDataArray.Reset();
 
-			FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(GatherableTextDataArray);
-			PropertyLocalizationDataGatherer.GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object);
+		// Gathers from the given package
+		FPropertyLocalizationDataGatherer(GatherableTextDataArray, Package);
 
-				for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
-				{
-					UPackage::FLocalizationDataGatheringCallback* const CustomCallback = UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
-					if (CustomCallback)
-					{
-						(*CustomCallback)(Object, GatherableTextDataArray);
-					}
-				}
-
-				ProcessGatherableTextDataArray(Package->FileName.ToString(), GatherableTextDataArray);
-			}
-		}
+		ProcessGatherableTextDataArray(Package->FileName.ToString(), GatherableTextDataArray);
+	}
 }
 
 int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
@@ -241,14 +229,14 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		}
 	}
 
-	TArray<FAssetData> AssetData;
-	AssetRegistryModule.Get().GetAssets(Filter, AssetData);
+	TArray<FAssetData> AssetDataArray;
+	AssetRegistryModule.Get().GetAssets(Filter, AssetDataArray);
 
 	FString UAssetPackageExtension = FPackageName::GetAssetPackageExtension();
 	TSet< FString > LongPackageNamesToExclude;
-	for (int Index = 0; Index < AssetData.Num(); Index++)
+	for (int Index = 0; Index < AssetDataArray.Num(); Index++)
 	{
-		LongPackageNamesToExclude.Add( FPackageName::LongPackageNameToFilename( AssetData[Index].PackageName.ToString(), UAssetPackageExtension ) );
+		LongPackageNamesToExclude.Add( FPackageName::LongPackageNameToFilename( AssetDataArray[Index].PackageName.ToString(), UAssetPackageExtension ) );
 	}
 
 	//Get whether we should fix broken properties that we find.
@@ -361,8 +349,43 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			FPackageFileSummary PackageFileSummary;
 			(*FileReader) << PackageFileSummary;
 
-			// Package has gatherable text data in its header, process immediately.
-			if (PackageFileSummary.GetFileVersionUE4() >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+			bool MustLoadForGather = false;
+
+			// Packages not resaved since localization gathering flagging was added to packages must be loaded.
+			if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING)
+			{
+				MustLoadForGather = true;
+			}
+			// Package not resaved since gatherable text data was added to package headers must be loaded, since their package header won't contain pregathered text data.
+			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+			{
+				// Fallback on the old package flag check.
+				if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)
+				{
+					MustLoadForGather = true;
+				}
+			}
+			else if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_DIALOGUE_WAVE_NAMESPACE_AND_CONTEXT_CHANGES)
+			{
+				IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+				TArray<FAssetData> AssetDataInPackage;
+				AssetRegistry.GetAssetsByPackageName(*FPackageName::FilenameToLongPackageName(PackageFile), AssetDataInPackage);
+				for (const FAssetData& AssetData : AssetDataInPackage)
+				{
+					if (AssetData.AssetClass == UDialogueWave::StaticClass()->GetFName())
+					{
+						MustLoadForGather = true;
+					}
+				}
+			}
+				 
+			// Add package to list of packages to load fully and process.
+			if (MustLoadForGather)
+			{
+				PackageFileNamesToLoad.Add(PackageFile);
+			}
+			// Process immediately packages that don't require loading to process.
+			else
 			{
 				TArray<FGatherableTextData> GatherableTextDataArray;
 
@@ -379,15 +402,10 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 					ProcessGatherableTextDataArray(PackageFile, GatherableTextDataArray);
 				}
 			}
-			// Package not resaved since gatherable text data was added to package headers, defer processing until after loading.
-			else if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather || PackageFileSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING)
-			{
-				PackageFileNamesToLoad.Add(PackageFile);
-			}
 		}
 	}
 
-	CollectGarbage( RF_Native );
+	CollectGarbage(RF_NoFlags);
 
 	//Now go through the remaining packages in the main array and process them in batches.
 	int32 PackagesPerBatchCount = 100;
@@ -471,7 +489,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			}
 		}
 
-		CollectGarbage( RF_Native );
+		CollectGarbage(RF_NoFlags);
 		LoadedPackages.Empty(PackagesPerBatchCount);	
 		LoadedPackageFileNames.Empty(PackagesPerBatchCount);
 	}

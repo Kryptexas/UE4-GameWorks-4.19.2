@@ -5,6 +5,7 @@ Description:An overview of the post processing effects used in the Stylized Rend
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 Related: Resources/ContentExamples/PostProcessing
+Version: 4.9
 
 
 [TOC(start:2 end:3)]
@@ -67,11 +68,18 @@ The outline around the objects in the scene is handled by sampling scene depth v
 
 However, before the lines are actually rendered, a second SceneTexture is calculated from Ambient Occlusion. This is used to mask out the outline. The purpose is to prevent internal lines that appear on some wireframe edges. You can visualize this below:
 
-[REGION:imagetable]
-|![](PostProcessLines_2.png)(w:450) | ![](PostProcessLines_1.png)(w:450)|
-|:---:|:---:|
-| Before AO Masking | After AO Masking |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Before AO Masking](PostProcessLines_2.png)(%Dither%)
+	[/PARAM]
+	[PARAM:after]
+	![After AO Masking](PostProcessLines_1.png)(%Dither%)
+	[/PARAM]
+[/OBJECT]
+
+[VAR:Dither]
+w:450
+[/VAR]
 
 ### Paper Effect
 

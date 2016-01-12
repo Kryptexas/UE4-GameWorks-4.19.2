@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
 #include "Classes.h"
@@ -180,7 +180,7 @@ FClass* FClasses::FindScriptClass(const FString& InClassName, FString& OutErrorM
 	return NULL;
 }
 
-TArray<FClass*> FClasses::GetClassesInPackage(UPackage* InPackage) const
+TArray<FClass*> FClasses::GetClassesInPackage(const UPackage* InPackage) const
 {
 	TArray<FClass*> Result;
 	Result.Add(UObjectClass);

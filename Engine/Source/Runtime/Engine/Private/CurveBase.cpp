@@ -1,8 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "CsvParser.h"
 #include "EditorFramework/AssetImportData.h"
+
+DECLARE_CYCLE_STAT(TEXT("RichCurve Eval"), STAT_RichCurve_Eval, STATGROUP_Engine);
 
 
 /* FKeyHandleMap
@@ -219,7 +221,7 @@ void FNameCurve::DeleteKey(FKeyHandle KeyHandle)
 }
 
 
-FKeyHandle FNameCurve::FindKey(float KeyTime) const
+FKeyHandle FNameCurve::FindKey(float KeyTime, float KeyTimeTolerance) const
 {
 	int32 Start = 0;
 	int32 End = Keys.Num()-1;
@@ -230,7 +232,7 @@ FKeyHandle FNameCurve::FindKey(float KeyTime) const
 		int32 TestPos = Start + (End-Start) / 2;
 		float TestKeyTime = Keys[TestPos].Time;
 
-		if (TestKeyTime == KeyTime)
+		if (FMath::IsNearlyEqual(TestKeyTime, KeyTime, KeyTimeTolerance))
 		{
 			return GetKeyHandle(TestPos);
 		}
@@ -346,25 +348,25 @@ void FNameCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandl
 }
 
 
-FKeyHandle FNameCurve::UpdateOrAddKey(float InTime, const FName& InValue)
+FKeyHandle FNameCurve::UpdateOrAddKey(float InTime, const FName& InValue, float KeyTimeTolerance)
 {
 	// Search for a key that already exists at the time and if found, update its value
 	for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex)
 	{
 		float KeyTime = Keys[KeyIndex].Time;
 
+		if (FMath::IsNearlyEqual(KeyTime, InTime, KeyTimeTolerance))
+		{
+			Keys[KeyIndex].Value = InValue;
+
+			return GetKeyHandle(KeyIndex);
+		}
+
 		if (KeyTime > InTime)
 		{
 			// All the rest of the keys exist after the key we want to add
 			// so there is no point in searching
 			break;
-		}
-
-		if (FMath::IsNearlyEqual(KeyTime, InTime))
-		{
-			Keys[KeyIndex].Value = InValue;
-
-			return GetKeyHandle(KeyIndex);
 		}
 	}
 
@@ -674,25 +676,25 @@ void FRichCurve::DeleteKey(FKeyHandle InKeyHandle)
 }
 
 
-FKeyHandle FRichCurve::UpdateOrAddKey(float InTime, float InValue, const bool bUnwindRotation)
+FKeyHandle FRichCurve::UpdateOrAddKey(float InTime, float InValue, const bool bUnwindRotation, float KeyTimeTolerance)
 {
 	// Search for a key that already exists at the time and if found, update its value
 	for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex)
 	{
 		float KeyTime = Keys[KeyIndex].Time;
 
+		if (FMath::IsNearlyEqual(KeyTime, InTime, KeyTimeTolerance))
+		{
+			Keys[KeyIndex].Value = InValue;
+
+			return GetKeyHandle(KeyIndex);
+		}
+
 		if (KeyTime > InTime)
 		{
 			// All the rest of the keys exist after the key we want to add
 			// so there is no point in searching
 			break;
-		}
-
-		if (FMath::IsNearlyEqual(KeyTime, InTime))
-		{
-			Keys[KeyIndex].Value = InValue;
-
-			return GetKeyHandle(KeyIndex);
 		}
 	}
 
@@ -732,7 +734,7 @@ float FRichCurve::GetKeyTime(FKeyHandle KeyHandle) const
 }
 
 
-FKeyHandle FRichCurve::FindKey(float KeyTime) const
+FKeyHandle FRichCurve::FindKey(float KeyTime, float KeyTimeTolerance) const
 {
 	int32 Start = 0;
 	int32 End = Keys.Num()-1;
@@ -743,7 +745,7 @@ FKeyHandle FRichCurve::FindKey(float KeyTime) const
 		int32 TestPos = Start + (End-Start) / 2;
 		float TestKeyTime = Keys[TestPos].Time;
 
-		if (TestKeyTime == KeyTime)
+		if (FMath::IsNearlyEqual(TestKeyTime, KeyTime, KeyTimeTolerance))
 		{
 			return GetKeyHandle(TestPos);
 		}
@@ -1303,6 +1305,8 @@ void FRichCurve::RemapTimeValue(float& InTime, float& CycleValueOffset) const
 
 float FRichCurve::Eval(float InTime, float InDefaultValue) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_RichCurve_Eval);
+
 	// Remap time if extrapolation is present and compute offset value to use if cycling 
 	float CycleValueOffset = 0;
 	RemapTimeValue(InTime, CycleValueOffset);
@@ -1352,7 +1356,7 @@ float FRichCurve::Eval(float InTime, float InDefaultValue) const
 			int32 step = count / 2;
 			int32 middle = first + step;
 
-			if (InTime > Keys[middle].Time)
+			if (InTime >= Keys[middle].Time)
 			{
 				first = middle + 1;
 				count -= step + 1;
@@ -1448,11 +1452,7 @@ bool FRichCurve::operator==(const FRichCurve& Curve) const
 
 UCurveBase::UCurveBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-{ 
-#if WITH_EDITORONLY_DATA
-	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
-#endif
-}
+{ }
 
 
 #if WITH_EDITORONLY_DATA
@@ -1464,6 +1464,17 @@ void UCurveBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+
+void UCurveBase::PostInitProperties()
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+
+	Super::PostInitProperties();
 }
 
 
@@ -1716,28 +1727,28 @@ void FIntegralCurve::DeleteKey(FKeyHandle InKeyHandle)
 }
 
 
-FKeyHandle FIntegralCurve::UpdateOrAddKey( float Time, int32 Value )
+FKeyHandle FIntegralCurve::UpdateOrAddKey( float InTime, int32 Value, float KeyTimeTolerance )
 {
 	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
 	{
 		float KeyTime = Keys[KeyIndex].Time;
 
-		if( KeyTime > Time )
+		if (FMath::IsNearlyEqual(KeyTime, InTime, KeyTimeTolerance))
+		{
+			Keys[KeyIndex].Value = Value;
+			return GetKeyHandle(KeyIndex);
+		}
+
+		if( KeyTime > InTime )
 		{
 			// All the rest of the keys exist after the key we want to add
 			// so there is no point in searching
 			break;
 		}
-
-		if( KeyTime == Time )
-		{
-			Keys[KeyIndex].Value = Value;
-			return GetKeyHandle(KeyIndex);
-		}
 	}
 
 	// A key wasnt found, add it now
-	return AddKey( Time, Value );
+	return AddKey( InTime, Value );
 }
 
 
@@ -1838,7 +1849,7 @@ FIntegralKey FIntegralCurve::GetKey(FKeyHandle KeyHandle) const
 }
 
 
-FKeyHandle FIntegralCurve::FindKey(float KeyTime) const
+FKeyHandle FIntegralCurve::FindKey(float KeyTime, float KeyTimeTolerance) const
 {
 	int32 Start = 0;
 	int32 End = Keys.Num() - 1;
@@ -1849,7 +1860,7 @@ FKeyHandle FIntegralCurve::FindKey(float KeyTime) const
 		int32 TestPos = Start + (End - Start) / 2;
 		float TestKeyTime = Keys[TestPos].Time;
 
-		if (TestKeyTime == KeyTime)
+		if (FMath::IsNearlyEqual(TestKeyTime, KeyTime, KeyTimeTolerance))
 		{
 			return GetKeyHandle(TestPos);
 		}

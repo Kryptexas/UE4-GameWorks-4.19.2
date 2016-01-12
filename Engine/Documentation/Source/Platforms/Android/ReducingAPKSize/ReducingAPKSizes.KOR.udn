@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2622288
-Availability:Docs
-Title: APK 패키지 크기 축소
+﻿INTSourceChangelist:2684932
+Availability:Public
+Title: APK 패키지 크기 출이기
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:안드로이드 게임 패키지 파일 크기를 줄이는 방법입니다.
 Skilllevel: Intermediate
@@ -15,8 +15,7 @@ Version: 4.8
 ETC1 텍스처 포맷을 사용해서 프로젝트를 안드로이드용으로 패키징할 때, ETC1 은 알파 정보가 삽입된 텍스처를 압축하지 않는 대신 완전 미압축 텍스처로 취급한다는 점을 알아두셔야 합니다.
 프로젝트의 실행 시간 퍼포먼스에 크게 영향을 끼치지는 않겠지만, 프로젝트 APK 파일 크기가 커집니다.
 프로젝트가 알파를 사용하는 텍스처를 요하는 경우, 하나의 텍스처 안에 알파를 삽입시키는 것보다는 
-디퓨즈용으로 하나 알파용으로 하나, 
-두 개의 텍스처를 별도로 사용하면 프로젝트 쿠킹 & 패키징할 때 압축이 되도록 할 수 있습니다.
+디퓨즈용으로 하나 알파용으로 하나, 두 개의 텍스처를 별도로 사용하면 프로젝트 쿠킹 & 패키징할 때 압축이 되도록 할 수 있습니다.
 
 
 ## 새 공백 프로젝트 생성
@@ -27,10 +26,6 @@ ETC1 텍스처 포맷을 사용해서 프로젝트를 안드로이드용으로 �
 ## 쿠킹된 콘텐츠 압축
 APK 패키지 크기 줄이기에 가장 쉽고 빠른 방법은 UE4 더러 패킹 프로세스 도중 APK 패키지를 압축하라 이르는 것입니다.
 패키지 압축을 켜려면 UE4 에디터에서 다음과 같은 작업을 해 줘야 합니다.
-
-[region:note]
-주: 압축 쿠킹 패키지 생성 옵션은 기본으로 켜져있으며, 언리얼 엔진 4.8 이상 버전에서만 사용 가능합니다.
-[/region]
 
 1. 먼저 **편집** 메뉴의 **프로젝트 세팅** 을 선택하여 프로젝트 세팅을 엽니다.
 
@@ -47,7 +42,7 @@ APK 패키지 크기 줄이기에 가장 쉽고 빠른 방법은 UE4 더러 패�
 1. **Create compressed cooked packages** (압축 쿠킹 패키지 생성) 옵션을 찾아 이미 켜져있지 않은 경우 켜줍니다.
 
 	![](T_Enable_Comp_Packages.png)
-
+	
 압축 쿠킹 패키지 생성 옵션을 켜지 않고 게임을 패키징하지 않은 경우, 나중에 켜고서 다시 패키징을 해 보면 크기 차이가 크게 난다는 것을 알 수 있을 것입니다.
 사실 압축 쿠킹 패키지 생성 옵션을 켜면 프로젝트에 따라 APK 패키지 파일 크기가 50% 정도까지 압축되는 경우도 종종 볼 수 있습니다.
 
@@ -78,6 +73,12 @@ Cooked 폴더를 찾을 수 있는 곳은 **(ProjectName)\Saved\Cooked** 에서 
 가장 큰 애셋을 확인했으면 UE4 안에서 애셋을 검사하여 애셋의 완성도를 희생시키지 않고도 실제 크기를 줄일 수 있는지 알아보면 됩니다.
 
 ![](T_Cooked_Content.png)
+
+## Development 대 Shipping 빌드 크기
+
+프로젝트 최종 크기가 얼마나 될지 알아내고자 할 때, 프로젝트 Development 버전 크기는 Shipping 빌드 크기보다 약간 크다는 점을 염두에 두세요.
+Medieval Match 예제 게임의 Development 빌드와 Shipping 빌드의 크기는 약 **14 퍼센트** 차이가 났습니다.
+하지만 각 프로젝트마다 요구사항이 다르므로, 두 빌드 유형간의 차이는 14 퍼센트 이상 또는 이하가 될 수도 있습니다.
 
 ## 디바이스별 텍스처 LOD
 언리얼 엔진 4.8 릴리즈 이후 디바이스별로 사용할 텍스처 크기를 지정할 수 있게 되었습니다.
@@ -128,26 +129,43 @@ UE4 안에서 플러그인을 비활성화시키는 방법은 다음과 같습�
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-<!--
-## Package Black List
+## 패키지 블랙 리스트
 
-With the release of Unreal Engine 4.9 and later you can now place a text file in your projects **Build/Platform/(Target Platform Folder)** directory that will tell the cooker to exclude partial or complete file paths from being packaged into your project.
-Project's can have multiple Black List files for Debug, Development, Test, and Shipping builds that can be setup to include or exclude whatever project data you want.
-You can even have different Black List files for each platform your project supports like one for Android, one for iOS, ect. 
-Here is an example of what the Black List files would look like for Tappy Chicken on Android. 
+언리얼 엔진 4.9 이상 버전에서는 이제 프로젝트의 **Build/Platform/(타겟 플랫폼 폴더)** 디렉토리에 텍스트 파일을 넣어서 쿠커에게 프로젝트 패키징시 파일 경로 부분 또는 전체를 제외시킬 수 있습니다.
+프로젝트는 Debug, Development, Test, Shipping 빌드별로 다중 블랙 리스트 파일을 가질 수 있어, 프로젝트에 원하는 데이터의 추가 또는 제거 구성이 가능합니다.
+안드로이드용 하나, 플랫폼용으로 다른 하나 등, 프로젝트가 지원하는 각 플랫폼에 대해 각기 다른 블랙 리스트를 만드는 것도 가능합니다.
+안드로이드용 태피 치킨에서 블랙 리스트 파일이 어때 보이는지에 대한 예제는 이와 같습니다.
 
 ![](T_Blacklist_Packages.png)
 
-Here is an example from Tappy Chicken where the cooker is told to not include the following files when the game is cooked and packaged.
+이번에도 태피 치킨을 예제로, 쿠커더러 게임 쿠킹 및 패키징시 다름 파일을 포함시키지 말도록 한 것입니다.
 
-* **Blacklist Text File Location & Name:** TappyChicken/Build/Android/**PakBlacklist-Shipping.txt**:
+* **블랙리스트 텍스트 파일 위치 & 이름:** TappyChicken/Build/Android/**PakBlacklist-Shipping.txt**:
 
 	![](T_Black_List.png)
 
-The first three entries should be safe for any project, but there may be cases were the **AssetRegistry.bin** is needed at runtime depending on your project.
-It is highly recommend that you thoroughly test to ensure that the content you are removing will not negatively impact your game.
-An easy and simple way to go about this is to open up all your projects levels to ensure that they correctly load.
-If you run into further problems and are not sure where they are coming from check the Logcat for errors.
--->
+처음 세 항목은 어떤 프로젝트에도 안전할 것이나, 프로젝트에 따라 실행시간에 **AssetRegistry.bin** 이 필요한 경우도 있습니다.
+제거하는 콘텐츠가 악영향을 끼치지는 않는지, 철저히 테스트할 것을 강력 추천합니다.
+쉽고 간편한 테스트법이라면, 모든 프로젝트 레벨을 열어 로드하고 오류나 경고가 없으면 됩니다.
+문제가 생겼는데 무엇때문인지 모르겠다면 Logcat 에 어떤 오류가 있는지 확인해 보시기 바랍니다.
 
+## 최대 다이내믹 포인트 라이트
+
+언리얼 엔진 4.9 이후로 다이내믹 라이트용으로 생성되는 셰이더 수를 줄이는 데 도움이 될 수 있는 옵션이 새로 도입되었습니다.
+다이내믹 라이트를 요하지 않는  모바일 게임에서 특히나 유용합니다.
+**프로젝트 세팅** > **모바일** 섹션에서 **Max Dynamic Point Lights** 옵션을 찾을 수 있습니다.
+
+![](Max_Dyn_Point_Lights.png)
+
+이 기능을 완전히 끄려면 원래 **4** 인 **Max Dynamic Point Lights** 를 0 으로 설정하고 확인창이 뜨면 UE4 에디터를 재시작하면 됩니다.
+
+![](Max_Dyn_Point_Lights_To_0.png)
+
+프로젝트의 크기와 사용되는 머티리얼 양에 따라 절약되는 공간이 몇 MB 에서 수십 MB 까지도 가능합니다.
+기본 삼인칭 템플릿을 예로 들어보면, Max Dynamic Point Lights 를 켰을 때와 껐을 때 절약되는 공간이 다른 것을 볼 수 있습니다.
+
+| 상태 | 패키징된 게임 크기 | 절약 |
+| ---------| ------| -----|
+|켬|54.3 MB|0|
+|끔| 53.2 MB| 1.1 MB|
 

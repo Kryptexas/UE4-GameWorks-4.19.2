@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2260967
+﻿INTSourceChangelist:2674665
 Availability: Public
 Title:사운드큐 에디터
 Crumbs: %ROOT%, Engine, Engine/Audio
 Description:사운드큐 노드 기반 오디오 애셋을 셋업하고 편집하는 데 사용되는 툴 사용 안내서입니다.
-
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,7 +50,6 @@ Description:사운드큐 노드 기반 오디오 애셋을 셋업하고 편집�
 
 
 
-## 개요
 
 언리얼 엔진에서의 오디오 재생 작동방식은 사운드 큐(Sound Cue)에 정의됩니다. 사운드 큐 에디터는 오디오 작업에 쓰이는 노드 기반 에디터입니다.
 

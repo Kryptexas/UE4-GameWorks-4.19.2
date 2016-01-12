@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EnumEditorUtils.h"
@@ -262,7 +262,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 		{
 			return Node
 				&& (NULL != Cast<UEdGraph>(Node->GetOuter()))
-				&& !Node->HasAnyFlags(RF_Transient | RF_PendingKill);
+				&& !Node->HasAnyFlags(RF_Transient) && !Node->IsPendingKill();
 		}
 	};
 

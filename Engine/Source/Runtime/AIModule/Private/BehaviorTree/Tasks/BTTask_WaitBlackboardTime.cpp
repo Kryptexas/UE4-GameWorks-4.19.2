@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -15,7 +15,12 @@ UBTTask_WaitBlackboardTime::UBTTask_WaitBlackboardTime(const FObjectInitializer&
 void UBTTask_WaitBlackboardTime::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
-	BlackboardKey.CacheSelectedKey(GetBlackboardAsset());
+
+	UBlackboardData* BBAsset = GetBlackboardAsset();
+	if (ensure(BBAsset))
+	{
+		BlackboardKey.ResolveSelectedKey(*BBAsset);
+	}
 }
 
 EBTNodeResult::Type UBTTask_WaitBlackboardTime::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)

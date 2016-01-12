@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
 #include "HTML5HTTP.h"
@@ -295,7 +295,7 @@ bool FHTML5HttpRequest::StartRequest()
 	//"User-Agent" && "Content-Length" are automatically set by the browser xhr request. We can't do much.
 
 	// make a fake header, so server has some idea this is UE
-    SetHeader(TEXT("X-UnrealEngine-Agent"), FString::Printf(TEXT("game=%s, engine=UE4, version=%s"), FApp::GetGameName(), *GEngineVersion.ToString()));
+    SetHeader(TEXT("X-UnrealEngine-Agent"), FString::Printf(TEXT("game=%s, engine=UE4, version=%s"), FApp::GetGameName(), *FEngineVersion::Current().ToString()));
 
 	// Add "Pragma: no-cache" to mimic WinInet behavior
 	if (GetHeader("Pragma").IsEmpty())

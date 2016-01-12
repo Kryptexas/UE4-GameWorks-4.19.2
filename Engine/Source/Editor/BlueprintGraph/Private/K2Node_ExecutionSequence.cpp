@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -55,7 +55,7 @@ public:
 		// Process the pins, if there are any valid entries
 		if (OutputPins.Num() > 0)
 		{
-			if (Context.bCreateDebugData && (OutputPins.Num() > 1))
+			if (Context.IsDebuggingOrInstrumentationRequired() && (OutputPins.Num() > 1))
 			{
 				const FString NodeComment = Node->NodeComment.IsEmpty() ? Node->GetName() : Node->NodeComment;
 
@@ -79,7 +79,7 @@ public:
 					{
 						// Emit a debug site
 						FBlueprintCompiledStatement& DebugSiteAndJumpTarget = Context.AppendStatementForNode(Node);
-						DebugSiteAndJumpTarget.Type = KCST_DebugSite;
+						DebugSiteAndJumpTarget.Type = Context.GetBreakpointType();
 						DebugSiteAndJumpTarget.Comment = NodeComment;
 						DebugSiteAndJumpTarget.bIsJumpTarget = true;
 

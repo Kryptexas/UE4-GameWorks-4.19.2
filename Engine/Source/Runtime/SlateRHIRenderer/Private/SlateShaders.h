@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -8,6 +8,7 @@
 #include "ShaderParameters.h"
 #include "UniformBuffer.h"
 #include "ShaderParameterUtils.h"
+#include "Rendering/RenderingCommon.h"
 
 extern uint32 GSlateShaderColorVisionDeficiencyType;
 
@@ -26,6 +27,18 @@ public:
 
 	/** Releases the vertex declaration RHI resource */
 	virtual void ReleaseRHI() override;
+};
+
+/**
+ * The vertex declaration for the slate instanced vertex shader
+ */
+class FSlateInstancedVertexDeclaration : public FSlateVertexDeclaration
+{
+public:
+	virtual ~FSlateInstancedVertexDeclaration() {}
+	
+	/** Initializes the vertex declaration RHI resource */
+	virtual void InitRHI() override;
 };
 
 /** The slate Vertex shader representation */
@@ -125,7 +138,7 @@ public:
 
 	/**
 	 * Sets the display gamma.
- 	 *
+	 *
 	 * @param DisplayGamma The display gamma to use
 	 */
 	void SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma)
@@ -157,7 +170,7 @@ private:
 /** 
  * Pixel shader types for all elements
  */
-template<ESlateShader::Type ShaderType,bool bDrawDisabledEffect,bool bUseTextureAlpha=true> 
+template<ESlateShader::Type ShaderType, bool bDrawDisabledEffect, bool bUseTextureAlpha=true>
 class TSlateElementPS : public FSlateElementPS
 {
 	DECLARE_SHADER_TYPE( TSlateElementPS, Global );
@@ -181,8 +194,8 @@ public:
 	{
 		// Set defines based on what this shader will be used for
 		OutEnvironment.SetDefine(TEXT("SHADER_TYPE"), (uint32)ShaderType);
-		OutEnvironment.SetDefine(TEXT("DRAW_DISABLED_EFFECT"), (uint32)(bDrawDisabledEffect ? 1 : 0));
-		OutEnvironment.SetDefine(TEXT("USE_TEXTURE_ALPHA"), (uint32)(bUseTextureAlpha ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("DRAW_DISABLED_EFFECT"), (uint32)( bDrawDisabledEffect ? 1 : 0 ));
+		OutEnvironment.SetDefine(TEXT("USE_TEXTURE_ALPHA"), (uint32)( bUseTextureAlpha ? 1 : 0 ));
 		OutEnvironment.SetDefine(TEXT("COLOR_VISION_DEFICIENCY_TYPE"), GSlateShaderColorVisionDeficiencyType);
 		OutEnvironment.SetDefine(TEXT("USE_MATERIALS"), (uint32)0);
 
@@ -231,3 +244,6 @@ private:
 
 /** The simple element vertex declaration. */
 extern TGlobalResource<FSlateVertexDeclaration> GSlateVertexDeclaration;
+
+/** The instanced simple element vertex declaration. */
+extern TGlobalResource<FSlateInstancedVertexDeclaration> GSlateInstancedVertexDeclaration;

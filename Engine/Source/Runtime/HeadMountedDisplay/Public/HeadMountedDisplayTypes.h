@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /**
-* The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing
+* The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing until
 */
 namespace EHMDDeviceType
 {

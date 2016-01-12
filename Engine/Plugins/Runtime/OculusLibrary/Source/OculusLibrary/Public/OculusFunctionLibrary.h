@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
@@ -56,8 +56,8 @@ struct FHmdUserProfile
 		PlayerHeight(0.f), EyeHeight(0.f), IPD(0.f), NeckToEyeDistance(FVector2D::ZeroVector) {}
 };
 
-UCLASS(MinimalAPI)
-class UOculusFunctionLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class OCULUSLIBRARY_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 	
@@ -155,6 +155,14 @@ class UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	static void GetPlayerCameraManagerFollowHmd(bool& bFollowHmdOrientation, bool& bFollowHmdPosition);
 
 	/**
+	 * Scales the HMD position that gets added to the virtual camera position.
+	 *
+	 * @param PosScale3D	(in) the scale to apply to the HMD position.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary")
+	static void SetPositionScale3D(FVector PosScale3D);
+
+	/**
 	 * Sets 'base rotation' - the rotation that will be subtracted from
 	 * the actual HMD orientation.
 	 * The position offset might be added to current HMD position,
@@ -177,6 +185,10 @@ class UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary", meta = (DeprecatedFunction, DeprecationMessage = "A hack, proper camera positioning should be used"))
 	static void GetBaseRotationAndPositionOffset(FRotator& OutRot, FVector& OutPosOffset);
 
+	/**
+	 * Returns IStereoLayers interface to work with overlays.
+	 */
+	static class IStereoLayers* GetStereoLayers();
 protected:
 	static class FHeadMountedDisplay* GetOculusHMD();
 };

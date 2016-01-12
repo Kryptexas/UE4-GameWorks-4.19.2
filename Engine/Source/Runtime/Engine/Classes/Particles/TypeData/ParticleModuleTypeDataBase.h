@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -13,9 +13,9 @@ class UParticleModuleTypeDataBase : public UParticleModule
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual EModuleType	GetModuleType() const override {	return EPMT_TypeData;	}
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 
 	/**
 	 * Build any resources required for simulating the emitter.
@@ -31,6 +31,8 @@ class UParticleModuleTypeDataBase : public UParticleModule
 	// @todo document
 	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent);
 
+	/** Cache any desired module pointers inside this type data */
+	virtual void CacheModuleInfo(UParticleEmitter* Emitter) {}
 
 	// @todo document
 	virtual bool		SupportsSpecificScreenAlignmentFlags() const	{	return false;			}

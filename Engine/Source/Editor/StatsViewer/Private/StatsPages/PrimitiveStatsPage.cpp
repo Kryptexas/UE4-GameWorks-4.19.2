@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "StatsViewerPrivatePCH.h"
 #include "StaticMeshResources.h"
@@ -168,9 +168,10 @@ struct PrimitiveStatsGenerator
 		UWorld* World = InPrimitiveComponent->GetWorld();
 	//	check(World); // @todo: re-instate this check once the GWorld migration has completed
 		/// If we should skip the actor. Skip if the actor has no outer or if we are only showing selected actors and the actor isn't selected
-		const bool bShouldSkip = World == NULL || ActorOuter == NULL || (ActorOuter != NULL && InObjectSet == PrimitiveObjectSets_SelectedObjects && ActorOuter->IsSelected() == false );
+		const bool bShouldSkip = ActorOuter == NULL || (ActorOuter != NULL && InObjectSet == PrimitiveObjectSets_SelectedObjects && ActorOuter->IsSelected() == false );
 		// Dont' care about components without a resource.
 		if(	Resource 
+			&& World != NULL
 			// Require actor association for selection and to disregard mesh emitter components. The exception being model components.
 			&&	(!bShouldSkip || (ModelComponent && InObjectSet != PrimitiveObjectSets_SelectedObjects ) )
 			// Only list primitives in visible levels
@@ -242,7 +243,7 @@ struct PrimitiveStatsGenerator
 				else if( StaticMeshComponent )
 				{
 					// This stat is used by multiple components so accumulate instanced vertex color memory.
-					StatsEntry->InstVertexColorMem += InstVertexColorMem;
+					StatsEntry->InstVertexColorMem += (float)InstVertexColorMem / 1024.0f;
 				}
 				else if (LandscapeComponent)
 				{

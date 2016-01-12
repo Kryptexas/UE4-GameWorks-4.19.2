@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AvfMediaPrivatePCH.h"
 
@@ -6,7 +6,7 @@
 #define LOCTEXT_NAMESPACE "FAvfMediaTrack"
 
 
-/* IMediaTrack interface
+/* IMediaStream interface
  *****************************************************************************/
 
 bool FAvfMediaTrack::Disable()

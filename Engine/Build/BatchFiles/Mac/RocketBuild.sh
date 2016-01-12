@@ -28,7 +28,7 @@ case $ACTION in
 	                fi
                 fi
 
-		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "$4" -rocket
+		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $1 $Platform $3 $AdditionalFlags "$4"
 		;;
 	"clean")
 		echo "Cleaning $2 $3 $4..."
@@ -51,7 +51,7 @@ case $ACTION in
 	                fi
                 fi
 
-		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $2 $Platform $4 $AdditionalFlags "$5" -rocket
+		mono Engine/Binaries/DotNET/UnrealBuildTool.exe $2 $Platform $4 $AdditionalFlags "$5"
 		;;
 esac
 

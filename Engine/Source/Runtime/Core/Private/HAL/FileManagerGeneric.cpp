@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FileManagerGeneric.cpp: Unreal generic file manager support code.
@@ -361,6 +361,11 @@ bool FFileManagerGeneric::DeleteDirectory( const TCHAR* Path, bool RequireExists
 	return GetLowLevel().DeleteDirectory( Path ) || ( !RequireExists && !GetLowLevel().DirectoryExists( Path ) );
 }
 
+FFileStatData FFileManagerGeneric::GetStatData(const TCHAR* FilenameOrDirectory)
+{
+	return GetLowLevel().GetStatData(FilenameOrDirectory);
+}
+
 void FFileManagerGeneric::FindFiles( TArray<FString>& Result, const TCHAR* InFilename, bool Files, bool Directories )
 {
 	class FFileMatch : public IPlatformFile::FDirectoryVisitor
@@ -442,6 +447,16 @@ bool FFileManagerGeneric::IterateDirectoryRecursively(const TCHAR* Directory, IP
 	return GetLowLevel().IterateDirectoryRecursively( Directory, Visitor );
 }
 
+bool FFileManagerGeneric::IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor)
+{
+	return GetLowLevel().IterateDirectoryStat( Directory, Visitor );
+}
+
+bool FFileManagerGeneric::IterateDirectoryStatRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor)
+{
+	return GetLowLevel().IterateDirectoryStatRecursively( Directory, Visitor );
+}
+
 double FFileManagerGeneric::GetFileAgeSeconds( const TCHAR* Filename )
 {
 	// make sure it exists
@@ -458,6 +473,11 @@ FDateTime FFileManagerGeneric::GetTimeStamp(const TCHAR* Filename)
 {
 	// ask low level for timestamp
 	return GetLowLevel().GetTimeStamp(Filename);
+}
+
+void FFileManagerGeneric::GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB)
+{
+	GetLowLevel().GetTimeStampPair(PathA, PathB, OutTimeStampA, OutTimeStampB);
 }
 
 bool FFileManagerGeneric::SetTimeStamp(const TCHAR* Filename, FDateTime DateTime)
@@ -572,12 +592,12 @@ void FFileManagerGeneric::FindFilesRecursiveInternal( TArray<FString>& FileNames
 }
 
 FArchiveFileReaderGeneric::FArchiveFileReaderGeneric( IFileHandle* InHandle, const TCHAR* InFilename, int64 InSize )
-	:	Filename		( InFilename )
-	,   Size           ( InSize )
-	,   Pos            ( 0 )
-	,   BufferBase     ( 0 )
-	,   BufferCount    ( 0 )
-	,		Handle( InHandle )
+	: Filename( InFilename )
+	, Size( InSize )
+	, Pos( 0 )
+	, BufferBase( 0 )
+	, BufferCount( 0 )
+	, Handle( InHandle )
 {
 	ArIsLoading = ArIsPersistent = true;
 }
@@ -703,10 +723,11 @@ void FArchiveFileReaderGeneric::Serialize( void* V, int64 Length )
 }
 
 FArchiveFileWriterGeneric::FArchiveFileWriterGeneric( IFileHandle* InHandle, const TCHAR* InFilename, int64 InPos )
-	:	Filename	( InFilename )
-	,   Pos			( InPos )
-	,   BufferCount	( 0 )
-	,	Handle		( InHandle )
+	: Filename( InFilename )
+	, Pos( InPos )
+	, BufferCount( 0 )
+	, Handle( InHandle )
+	, bLoggingError( false )
 {
 	ArIsSaving = ArIsPersistent = true;
 }
@@ -810,8 +831,14 @@ void FArchiveFileWriterGeneric::Flush()
 
 void FArchiveFileWriterGeneric::LogWriteError(const TCHAR* Message)
 {
-	TCHAR ErrorBuffer[1024];
-	UE_LOG(LogFileManager, Error, TEXT("%s: %s (%s)"), Message, *Filename, FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, 0));
+	// Prevent re-entry if logging causes another log error leading to a stack overflow
+	if (!bLoggingError)
+	{
+		bLoggingError = true;
+		TCHAR ErrorBuffer[1024];
+		UE_LOG(LogFileManager, Error, TEXT("%s: %s (%s)"), Message, *Filename, FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, 0));
+		bLoggingError = false;
+	}
 }
 //---
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IpNetDriver.cpp: Unreal IP network driver.
@@ -168,6 +168,8 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 
 	ISocketSubsystem* SocketSubsystem = GetSocketSubsystem();
 
+	const double StartReceiveTime = FPlatformTime::Seconds();
+
 	// Process all incoming packets.
 	uint8 Data[MAX_PACKET_SIZE];
 	TSharedRef<FInternetAddr> FromAddr = SocketSubsystem->CreateInternetAddr();
@@ -302,6 +304,15 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 				Connection->ReceivedRawPacket( Data, BytesRead );
 			}
 		}
+	}
+
+	const double EndReceiveTime		= FPlatformTime::Seconds();
+	const float DeltaReceiveTime	= EndReceiveTime - StartReceiveTime;
+	const float Threshold			= 10.0f;
+
+	if ( DeltaReceiveTime > Threshold )
+	{
+		UE_LOG( LogNet, Warning, TEXT( "UIpNetDriver::TickDispatch: Took too long to receive packets. Time: %2.2f %s" ), DeltaReceiveTime, *GetName() );
 	}
 }
 

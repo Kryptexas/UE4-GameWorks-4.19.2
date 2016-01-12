@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerObjectChangeListener.h"
@@ -27,6 +27,18 @@ FSequencerObjectChangeListener::~FSequencerObjectChangeListener()
 void FSequencerObjectChangeListener::OnPropertyChanged(const TArray<UObject*>& ChangedObjects, const IPropertyHandle& PropertyHandle) const
 {
 	BroadcastPropertyChanged(FKeyPropertyParams(ChangedObjects, PropertyHandle));
+
+	for (UObject* Object : ChangedObjects)
+	{
+		if (Object)
+		{
+			const FOnObjectPropertyChanged* Event = ObjectToPropertyChangedEvent.Find(Object);
+			if (Event)
+			{
+				Event->Broadcast(*Object);
+			}
+		}
+	}
 }
 
 void FSequencerObjectChangeListener::BroadcastPropertyChanged( FKeyPropertyParams KeyPropertyParams ) const
@@ -57,11 +69,7 @@ void FSequencerObjectChangeListener::BroadcastPropertyChanged( FKeyPropertyParam
 	}
 
 	FPropertyChangedParams Params;
-	Params.KeyParams.bCreateHandleIfMissing = KeyPropertyParams.KeyParams.bCreateHandleIfMissing;
-	Params.KeyParams.bCreateTrackIfMissing = KeyPropertyParams.KeyParams.bCreateTrackIfMissing;
-	Params.KeyParams.bAddKeyEvenIfUnchanged = KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged;
-	Params.KeyParams.bAutoKeying = Sequencer.Pin()->GetAutoKeyEnabled();
-	Params.KeyParams.KeyInterpolation = Sequencer.Pin()->GetKeyInterpolation();
+	Params.KeyParams = KeyPropertyParams.KeyParams;
 	Params.ObjectsThatChanged = KeyableObjects;
 	Params.StructPropertyNameToKey = NAME_None;
 
@@ -110,6 +118,16 @@ FOnAnimatablePropertyChanged& FSequencerObjectChangeListener::GetOnAnimatablePro
 FOnPropagateObjectChanges& FSequencerObjectChangeListener::GetOnPropagateObjectChanges()
 {
 	return OnPropagateObjectChanges;
+}
+
+FOnObjectPropertyChanged& FSequencerObjectChangeListener::GetOnAnyPropertyChanged(UObject& Object)
+{
+	return ObjectToPropertyChangedEvent.FindOrAdd(&Object);
+}
+
+void FSequencerObjectChangeListener::ReportObjectDestroyed(UObject& Object)
+{
+	ObjectToPropertyChangedEvent.Remove(&Object);
 }
 
 bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectClass, const FName PropertyTypeName, const FString& InPropertyVarName, const UStructProperty* StructProperty ) const

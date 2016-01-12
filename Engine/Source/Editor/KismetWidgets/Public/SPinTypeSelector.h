@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,9 @@ typedef TSharedPtr<class UEdGraphSchema_K2::FPinTypeTreeInfo> FPinTypeTreeItem;
 typedef STreeView<FPinTypeTreeItem> SPinTypeTreeView;
 
 DECLARE_DELEGATE_ThreeParams(FGetPinTypeTree, TArray<FPinTypeTreeItem >&, bool, bool);
+
+struct FObjectReferenceType;
+typedef TSharedPtr<struct FObjectReferenceType> FObjectReferenceListItem;
 
 /** Widget for modifying the type for a variable or pin */
 class KISMETWIDGETS_API SPinTypeSelector : public SCompoundWidget
@@ -96,6 +99,11 @@ protected:
 	/** TRUE if displaying a compact selector widget, some functionality is enabled in different ways if this is TRUE */
 	bool bIsCompactSelector;
 
+	/** Holds a cache of the allowed Object Reference types for the last sub-menu opened. */
+	TArray<FObjectReferenceListItem> AllowedObjectReferenceTypes;
+	TWeakPtr<SListView<FObjectReferenceListItem>> WeakListView;
+	TWeakPtr<SMenuOwner> PinTypeSelectorMenuOwner;
+
 	/** Array checkbox support functions */
 	ECheckBoxState IsArrayChecked() const;
 	void OnArrayCheckStateChanged(ECheckBoxState NewState);
@@ -113,6 +121,10 @@ protected:
 	void OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelectInfo::Type SelectInfo);
 	void GetTypeChildren(FPinTypeTreeItem InItem, TArray<FPinTypeTreeItem>& OutChildren);
 
+	/** Listview support functions for sub-menu */
+	TSharedRef<ITableRow> GenerateObjectReferenceTreeRow(FObjectReferenceListItem InItem, const TSharedRef<STableViewBase>& OwnerTree);
+	void OnObjectReferenceSelectionChanged(FObjectReferenceListItem InItem, ESelectInfo::Type SelectInfo);
+
 	/** Reference to the menu content that's displayed when the type button is clicked on */
 	TSharedPtr<SMenuOwner> MenuContent;
 	virtual TSharedRef<SWidget>	GetMenuContent();
@@ -125,14 +137,6 @@ protected:
 	/** Helper to generate the filtered list of types, based on the search string matching */
 	bool GetChildrenMatchingSearch(const FText& SearchText, const TArray<FPinTypeTreeItem>& UnfilteredList, TArray<FPinTypeTreeItem>& OutFilteredList);
 
-	/** 
-	 * Determine the best icon to represent the given pin.
-	 *
-	 * @param PinType		The pin get the icon for.
-	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
-	 */
-	const FSlateBrush* GetIconFromPin( const FEdGraphPinType& PinType ) const;
-
 	/** Callback to get the tooltip text for the pin type combo box */
 	FText GetToolTipForComboBoxType() const;
 
@@ -140,18 +144,17 @@ protected:
 	FText GetToolTipForArrayWidget() const;
 
 	/**
-	 * Helper function to add an object reference menu entry to a MenuBuilder
+	 * Helper function to create widget for the sub-menu
 	 *
-	 * @param InOutMenuBuilder		Menu builder to add the menu entry to
 	 * @param InItem				Tree item to use for the callback when a menu item is selected
 	 * @param InPinType				Pin type for generation of the widget to display for the menu entry
 	 * @param InIconBrush			Brush icon to use for the menu entry item
 	 * @param InTooltip				The simple tooltip to use for the menu item, an advanced tooltip link will be auto-generated based on the PinCategory
 	 */
-	void AddObjectReferenceMenuEntry(FMenuBuilder& InOutMenuBuilder, FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush, FText InSimpleTooltip) const;
+	TSharedRef<SWidget> CreateObjectReferenceWidget(FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush, FText InSimpleTooltip) const;
 
 	/** Gets the allowable object types for an tree item, used for building the sub-menu */
-	TSharedRef< SWidget > GetAllowedObjectTypes(FPinTypeTreeItem InItem) const;
+	TSharedRef< SWidget > GetAllowedObjectTypes(FPinTypeTreeItem InItem);
 	
 	/**
 	 * When a pin type is selected, handle it

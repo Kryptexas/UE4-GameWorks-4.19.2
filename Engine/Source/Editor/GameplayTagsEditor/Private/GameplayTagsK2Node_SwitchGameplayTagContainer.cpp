@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "BlueprintNodeSpawner.h"
@@ -6,12 +6,13 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagsModule.h"
 #include "GameplayTagsK2Node_SwitchGameplayTagContainer.h"
+#include "BlueprintGameplayTagLibrary.h"
 
 UGameplayTagsK2Node_SwitchGameplayTagContainer::UGameplayTagsK2Node_SwitchGameplayTagContainer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	FunctionName = TEXT("NotEqual_TagContainerTagContainer");
-	FunctionClass = UGameplayTagsK2Node_SwitchGameplayTagContainer::StaticClass();
+	FunctionClass = UBlueprintGameplayTagLibrary::StaticClass();
 }
 
 void UGameplayTagsK2Node_SwitchGameplayTagContainer::CreateFunctionPin()
@@ -39,63 +40,13 @@ void UGameplayTagsK2Node_SwitchGameplayTagContainer::CreateFunctionPin()
 	}
 }
 
-bool UGameplayTagsK2Node_SwitchGameplayTagContainer::NotEqual_TagContainerTagContainer(FGameplayTagContainer A, FString B)
+void UGameplayTagsK2Node_SwitchGameplayTagContainer::PostLoad()
 {
-	FGameplayTagContainer TagContainer;
-
-	// Convert string to Tag Container before compare
-	FString TagString = B;
-	if (TagString.StartsWith(TEXT("(")) && TagString.EndsWith(TEXT(")")))
+	Super::PostLoad();
+	if (UEdGraphPin* FunctionPin = FindPin(FunctionName.ToString()))
 	{
-		TagString = TagString.LeftChop(1);
-		TagString = TagString.RightChop(1);
-
-		TagString.Split("=", NULL, &TagString);
-
-		TagString = TagString.LeftChop(1);
-		TagString = TagString.RightChop(1);
-
-		FString ReadTag;
-		FString Remainder;
-
-		while (TagString.Split(TEXT(","), &ReadTag, &Remainder))
-		{
-			ReadTag.Split("=", NULL, &ReadTag);
-			if (ReadTag.EndsWith(TEXT(")")))
-			{
-				ReadTag = ReadTag.LeftChop(1);
-				if (ReadTag.StartsWith(TEXT("\"")) && ReadTag.EndsWith(TEXT("\"")))
-				{
-					ReadTag = ReadTag.LeftChop(1);
-					ReadTag = ReadTag.RightChop(1);
-				}
-			}
-			TagString = Remainder;
-			FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(FName(*ReadTag));
-			TagContainer.AddTag(Tag);
-		}
-		if (Remainder.IsEmpty())
-		{
-			Remainder = TagString;
-		}
-		if (!Remainder.IsEmpty())
-		{
-			Remainder.Split("=", NULL, &Remainder);
-			if (Remainder.EndsWith(TEXT(")")))
-			{
-				Remainder = Remainder.LeftChop(1);
-				if (Remainder.StartsWith(TEXT("\"")) && Remainder.EndsWith(TEXT("\"")))
-				{
-					Remainder = Remainder.LeftChop(1);
-					Remainder = Remainder.RightChop(1);
-				}
-			}
-			FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(FName(*Remainder));
-			TagContainer.AddTag(Tag);
-		}
+		FunctionPin->DefaultObject = FunctionClass->GetDefaultObject();
 	}
-
-	return A != TagContainer;
 }
 
 void UGameplayTagsK2Node_SwitchGameplayTagContainer::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,11 +43,11 @@ public:
 	 */
 	uint32 Count() const
 	{
-		int32 Count = Head - Tail;
+		int32 Count = Tail - Head;
 
 		if (Count < 0)
 		{
-			Count += Buffer.GetSize();
+			Count += Buffer.Capacity();
 		}
 
 		return Count;
@@ -149,8 +149,8 @@ private:
 	TCircularBuffer<ElementType> Buffer;
 
 	/** Holds the index to the first item in the buffer. */
-	MS_ALIGN(CACHE_LINE_SIZE) volatile uint32 Head GCC_ALIGN(CACHE_LINE_SIZE);
+	MS_ALIGN(PLATFORM_CACHE_LINE_SIZE) volatile uint32 Head GCC_ALIGN(PLATFORM_CACHE_LINE_SIZE);
 
 	/** Holds the index to the last item in the buffer. */
-	MS_ALIGN(CACHE_LINE_SIZE) volatile uint32 Tail GCC_ALIGN(CACHE_LINE_SIZE);
+	MS_ALIGN(PLATFORM_CACHE_LINE_SIZE) volatile uint32 Tail GCC_ALIGN(PLATFORM_CACHE_LINE_SIZE);
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
 
@@ -8,6 +8,7 @@
 UMockTask_Log::UMockTask_Log(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Logger(nullptr)
+	, bShoudEndAsPartOfActivation(false)
 {
 
 }
@@ -29,6 +30,10 @@ void UMockTask_Log::Activate()
 {
 	Logger->Log(ETestTaskMessage::Activate);
 	Super::Activate();
+	if (bShoudEndAsPartOfActivation)
+	{
+		EndTask();
+	}
 }
 
 void UMockTask_Log::OnDestroy(bool bOwnerFinished)

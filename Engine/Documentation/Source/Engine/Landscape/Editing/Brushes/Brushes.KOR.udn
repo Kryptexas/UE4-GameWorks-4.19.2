@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2609228
+﻿INTSourceChangelist:2651797
 Availability: Public
 Title:랜드스케이프 브러시
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -42,7 +42,11 @@ Description:랜드스케이프 편집에 사용할 수 있는 브러시 사용 �
 
 현재 브러시의 크기와 감쇠는 뷰포트에 깜빡이는 연보라 색원, 또는 중심축이 같은 원 한 쌍으로 표시됩니다.
 
-![Landscape_Brush_Viewport.jpg](Landscape_Brush_Viewport.jpg)(w:900 h:184)
+[REGION:imagetable]
+| ![](Falloff00.jpg) | ![](Falloff05.jpg) | ![](Falloff10.jpg) |
+| -------- | ----------- | ------ |
+| 감쇠: 0.0 | 감쇠: 0.5 | 감쇠: 1.0 |
+[/REGION]
 
 
 ## 서클
@@ -64,8 +68,11 @@ Circle (서클) 브러시는 현재 툴을 원형 영역에, 수치와 유형별
 
 아래는 똑같은 반경과 감쇠를 가지고 하이트맵에 각각의 감쇠 유형 작업을 한 예제입니다:
 
-![landscape_brush_falloff.png](landscape_brush_falloff.png)(w:789 h:416)
-
+[REGION:imagetable]
+| ![](Smooth.jpg)(w:200 h:300) | ![](Linear.jpg)(w:200 h:300) | ![](Sphere.jpg)(w:200 h:300) | ![](Tip.jpg)(w:200 h:300) |
+| -------- | ----------- | ------ | ----- |
+| ** 스무드 **| ** 선형 ** | ** 구형 ** | ** 뾰족 ** | 
+[/REGION]
 
 ## 알파
 

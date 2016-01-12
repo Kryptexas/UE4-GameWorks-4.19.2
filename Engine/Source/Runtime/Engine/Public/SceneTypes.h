@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -141,8 +141,8 @@ enum EMaterialProperty
 	MP_WorldDisplacement,
 	MP_TessellationMultiplier,
 	MP_SubsurfaceColor,
-	MP_ClearCoat,
-	MP_ClearCoatRoughness,
+	MP_CustomData0,
+	MP_CustomData1,
 	MP_AmbientOcclusion,
 	MP_Refraction,
 	MP_CustomizedUVs0,

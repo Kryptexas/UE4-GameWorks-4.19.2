@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ActorFactory.cpp: 
@@ -732,7 +732,7 @@ bool UActorFactoryPhysicsAsset::CanCreateActorFrom( const FAssetData& AssetData,
 bool UActorFactoryPhysicsAsset::PreSpawnActor(UObject* Asset, FTransform& InOutLocation)
 {
 	UPhysicsAsset* PhysicsAsset = CastChecked<UPhysicsAsset>(Asset);
-	USkeletalMesh* UseSkelMesh = PhysicsAsset->PreviewSkeletalMesh.Get();
+	USkeletalMesh* UseSkelMesh = PhysicsAsset->PreviewSkeletalMesh.LoadSynchronous();
 
 	if(!UseSkelMesh)
 	{
@@ -1142,7 +1142,7 @@ void UActorFactorySkeletalMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO
 
 		ASkeletalMeshActor* SkeletalMeshActor = CastChecked<ASkeletalMeshActor>(CDO);
 		SkeletalMeshActor->GetSkeletalMeshComponent()->SkeletalMesh = SkeletalMesh;
-		SkeletalMeshActor->GetSkeletalMeshComponent()->AnimBlueprintGeneratedClass = AnimBlueprint ? Cast<UAnimBlueprintGeneratedClass>(AnimBlueprint->GeneratedClass) : NULL;
+		SkeletalMeshActor->GetSkeletalMeshComponent()->AnimClass = AnimBlueprint ? Cast<UAnimBlueprintGeneratedClass>(AnimBlueprint->GeneratedClass) : NULL;
 	}
 }
 
@@ -1555,7 +1555,7 @@ UActorFactoryDirectionalLight::UActorFactoryDirectionalLight(const FObjectInitia
 {
 	DisplayName = LOCTEXT("DirectionalLightDisplayName", "Directional Light");
 	NewActorClass = ADirectionalLight::StaticClass();
-	SpawnPositionOffset = FVector(200, 0, 0);
+	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
 }
 
@@ -1567,7 +1567,7 @@ UActorFactorySpotLight::UActorFactorySpotLight(const FObjectInitializer& ObjectI
 {
 	DisplayName = LOCTEXT("SpotLightDisplayName", "Spot Light");
 	NewActorClass = ASpotLight::StaticClass();
-	SpawnPositionOffset = FVector(200, 0, 0);
+	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
 }
 
@@ -1579,7 +1579,7 @@ UActorFactoryPointLight::UActorFactoryPointLight(const FObjectInitializer& Objec
 {
 	DisplayName = LOCTEXT("PointLightDisplayName", "Point Light");
 	NewActorClass = APointLight::StaticClass();
-	SpawnPositionOffset = FVector(200, 0, 0);
+	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
 }
 
@@ -1601,7 +1601,7 @@ UActorFactorySphereReflectionCapture::UActorFactorySphereReflectionCapture(const
 {
 	DisplayName = LOCTEXT("ReflectionCaptureSphereDisplayName", "Sphere Reflection Capture");
 	NewActorClass = ASphereReflectionCapture::StaticClass();
-	SpawnPositionOffset = FVector(200, 0, 0);
+	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
 }
 
@@ -1613,7 +1613,7 @@ UActorFactoryBoxReflectionCapture::UActorFactoryBoxReflectionCapture(const FObje
 {
 	DisplayName = LOCTEXT("ReflectionCaptureBoxDisplayName", "Box Reflection Capture");
 	NewActorClass = ABoxReflectionCapture::StaticClass();
-	SpawnPositionOffset = FVector(200, 0, 0);
+	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
 }
 
@@ -1625,7 +1625,7 @@ UActorFactoryPlaneReflectionCapture::UActorFactoryPlaneReflectionCapture(const F
 {
 	DisplayName = LOCTEXT("ReflectionCapturePlaneDisplayName", "Plane Reflection Capture");
 	NewActorClass = APlaneReflectionCapture::StaticClass();
-	SpawnPositionOffset = FVector(200, 0, 0);
+	SpawnPositionOffset = FVector(50, 0, 0);
 	bUseSurfaceOrientation = true;
 }
 

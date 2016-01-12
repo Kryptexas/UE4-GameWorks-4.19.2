@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,9 +12,9 @@ public:
 	SLATE_BEGIN_ARGS(SVisualLoggerFilters) { }
 	SLATE_END_ARGS()
 		
+	virtual ~SVisualLoggerFilters();
 	void Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList);
-	void AddFilter(const FString& InFilterName);
-	void AddFilter(const FString& GraphName, const FString& DataName);
+
 	uint32 GetCategoryIndex(const FString& InFilterName) const;
 	void OnFiltersSearchChanged(const FText& Filter);
 	void OnSearchChanged(const FText& Filter);
@@ -30,12 +30,27 @@ public:
 
 	TSharedRef<SWidget> MakeGraphsFilterMenu();
 	void CreateFiltersMenuCategoryForGraph(FMenuBuilder& MenuBuilder, FName MenuCategory) const;
-	bool HasFilters() { return Filters.Num() || GraphFilters.Num(); }
+	bool HasFilters() { return Filters.Num() || CachedGraphFilters.Num(); }
+
+protected:
+	//void OnNewItemHandler(const FVisualLoggerDBRow& BDRow, int32 ItemIndex);
+
+	void AddFilterCategory(FString, ELogVerbosity::Type, bool bMarkAsInUse);
+	void OnFilterCategoryAdded(FString, ELogVerbosity::Type);
+	void OnFilterCategoryRemoved(FString);
+	void OnItemsSelectionChanged(const FVisualLoggerDBRow& ChangedRow, int32 SelectedItemIndex);
+
+	void OnGraphAddedEvent(const FName& OwnerName, const FName& GraphName);
+	void OnGraphDataNameAddedEvent(const FName& OwnerName, const FName& GraphName, const FName& DataName);
+
 protected:
 	/** The horizontal box which contains all the filters */
 	TSharedPtr<SWrapBox> FilterBox;
 	TArray<TSharedRef<SFilterWidget> > Filters;
-	TMap<FName, TArray<FString> > GraphFilters;
 	TSharedPtr<SComboButton> GraphsFilterCombo;
-	FString GraphsFilter;
+
+	FString GraphsSearchString;
+	TMap<FName, TArray<FString> > CachedGraphFilters;
+
+	TMap<FName, TArray<FName> > CachedDatasPerGraph;
 };

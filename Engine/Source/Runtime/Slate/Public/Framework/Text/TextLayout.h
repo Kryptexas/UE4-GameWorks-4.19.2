@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IBreakIterator.h"
 #include "TextRunRenderer.h"
 #include "TextLineHighlight.h"
 #include "ILineHighlighter.h"
+#include "ShapedTextCacheFwd.h"
 #include "TextLayout.generated.h"
 
 #define TEXT_LAYOUT_DEBUG 0
@@ -14,11 +15,47 @@ namespace ETextJustify
 {
 	enum Type
 	{
+		/**
+		 * Justify the text logically to the left.
+		 * When text is flowing left-to-right, this will align text visually to the left.
+		 * When text is flowing right-to-left, this will align text visually to the right.
+		 */
 		Left,
+
+		/**
+		 * Justify the text in the center.
+		 * Text flow direction has no impact on this justification mode.
+		 */
 		Center,
-		Right
+
+		/**
+		 * Justify the text logically to the right.
+		 * When text is flowing left-to-right, this will align text visually to the right.
+		 * When text is flowing right-to-left, this will align text visually to the left.
+		 */
+		Right,
 	};
 }
+
+/** 
+ * The different directions that text can flow within a paragraph of text.
+ * @note If you change this enum, make sure and update CVarDefaultTextFlowDirection and GetDefaultTextFlowDirection.
+ */
+UENUM( BlueprintType )
+enum class ETextFlowDirection : uint8
+{
+	/** Automatically detect the flow direction for each paragraph from its text */
+	Auto = 0,
+
+	/** Force text to be flowed left-to-right */
+	LeftToRight,
+
+	/** Force text to be flowed right-to-left */
+	RightToLeft,
+};
+
+/** Get the default text flow direction (from the "Slate.DefaultTextFlowDirection" CVar) */
+SLATE_API ETextFlowDirection GetDefaultTextFlowDirection();
 
 /** Location within the text model. */
 struct FTextLocation
@@ -137,7 +174,7 @@ public:
 	{
 		/** Range inclusive of trailing whitespace, as used to visually display and interact with the text */
 		FTextRange ActualRange;
-
+		/** The render to use with this run (if any) */
 		TSharedPtr< IRunRenderer > Renderer;
 	};
 
@@ -183,15 +220,15 @@ public:
 		int16 GetBaseLine( float Scale ) const;
 		int16 GetMaxHeight( float Scale ) const;
 
-		FVector2D Measure( int32 BeginIndex, int32 EndIndex, float Scale );
+		FVector2D Measure( int32 BeginIndex, int32 EndIndex, float Scale, const FRunTextContext& InTextContext );
 
-		uint8 GetKerning( int32 CurrentIndex, float Scale );
+		uint8 GetKerning( int32 CurrentIndex, float Scale, const FRunTextContext& InTextContext );
 
 		static int32 BinarySearchForBeginIndex( const TArray< FTextRange >& Ranges, int32 BeginIndex );
 
 		static int32 BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex );
 
-		TSharedRef< ILayoutBlock > CreateBlock( const FBlockDefinition& BlockDefine, float Scale ) const;
+		TSharedRef< ILayoutBlock > CreateBlock( const FBlockDefinition& BlockDefine, float InScale, const FLayoutBlockTextContext& InTextContext ) const;
 
 		void ClearCache();
 
@@ -205,6 +242,19 @@ public:
 		TArray< FVector2D > MeasuredRangeSizes;
 	};
 
+	struct ELineModelDirtyState
+	{
+		typedef uint8 Flags;
+		enum Enum
+		{
+			None = 0,
+			WrappingInformation = 1<<0,
+			TextBaseDirection = 1<<1, 
+			ShapingCache = 1<<2,
+			All = WrappingInformation | TextBaseDirection | ShapingCache,
+		};
+	};
+
 	struct FLineModel
 	{
 	public:
@@ -212,11 +262,13 @@ public:
 		FLineModel( const TSharedRef< FString >& InText );
 
 		TSharedRef< FString > Text;
+		FShapedTextCacheRef ShapedTextCache;
+		TextBiDi::ETextDirection TextBaseDirection;
 		TArray< FRunModel > Runs;
 		TArray< FBreakCandidate > BreakCandidates;
 		TArray< FTextRunRenderer > RunRenderers;
 		TArray< FTextLineHighlight > LineHighlights;
-		mutable bool HasWrappingInformation;
+		ELineModelDirtyState::Flags DirtyFlags;
 	};
 
 	struct FLineViewHighlight
@@ -238,6 +290,7 @@ public:
 		FVector2D Size;
 		FVector2D TextSize;
 		FTextRange Range;
+		TextBiDi::ETextDirection TextBaseDirection;
 		int32 ModelIndex;
 	};
 
@@ -277,26 +330,32 @@ public:
 
 	virtual ~FTextLayout();
 
-	const TArray< FTextLayout::FLineView >& GetLineViews() const;
-	const TArray< FTextLayout::FLineModel >& GetLineModels() const;
+	FORCEINLINE const TArray< FTextLayout::FLineView >& GetLineViews() const { return LineViews; }
+	FORCEINLINE const TArray< FTextLayout::FLineModel >& GetLineModels() const { return LineModels; }
 
 	FVector2D GetSize() const;
 	FVector2D GetDrawSize() const;
 	FVector2D GetWrappedSize() const;
 
-	float GetWrappingWidth() const;
+	FORCEINLINE float GetWrappingWidth() const { return WrappingWidth; }
 	void SetWrappingWidth( float Value );
 
-	float GetLineHeightPercentage() const;
+	FORCEINLINE float GetLineHeightPercentage() const { return LineHeightPercentage; }
 	void SetLineHeightPercentage( float Value );
 
-	ETextJustify::Type GetJustification() const;
+	FORCEINLINE ETextJustify::Type GetJustification() const { return Justification; }
 	void SetJustification( ETextJustify::Type Value );
 
-	float GetScale() const;
+	FORCEINLINE float GetScale() const { return Scale; }
 	void SetScale( float Value );
 
-	FMargin GetMargin() const;
+	FORCEINLINE ETextShapingMethod GetTextShapingMethod() const { return TextShapingMethod; }
+	void SetTextShapingMethod( const ETextShapingMethod InTextShapingMethod );
+
+	FORCEINLINE ETextFlowDirection GetTextFlowDirection() const { return TextFlowDirection; }
+	void SetTextFlowDirection( const ETextFlowDirection InTextFlowDirection );
+
+	FORCEINLINE FMargin GetMargin() const { return Margin; }
 	void SetMargin( const FMargin& InMargin );
 
 	void SetVisibleRegion( const FVector2D& InViewSize, const FVector2D& InScrollOffset );
@@ -353,16 +412,16 @@ public:
 
 	bool IsLayoutDirty() const;
 
-	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck);
+	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck) const;
 
 	/**
 	 * 
 	 */
-	FTextLocation GetTextLocationAt( const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr );
+	FTextLocation GetTextLocationAt( const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr ) const;
 
-	FTextLocation GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr );
+	FTextLocation GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr ) const;
 
-	FVector2D GetLocationAt( const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck );
+	FVector2D GetLocationAt( const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck ) const;
 
 	bool SplitLineAt(const FTextLocation& Location);
 
@@ -396,9 +455,20 @@ protected:
 	FTextLayout();
 
 	/**
+	 * Calculates the text direction for each line based upon the current shaping method and document flow direction
+	 * When changing the shaping method, or document flow direction, all the lines need to be dirtied (see DirtyAllLineModels(ELineModelDirtyState::TextBaseDirection))
+	 */
+	void CalculateTextDirection();
+
+	/**
+	 * Calculates the text direction for the given line based upon the current shaping method and document flow direction
+	 */
+	void CalculateLineTextDirection(FLineModel& LineModel);
+
+	/**
 	* Create the wrapping cache for the current text based upon the current scale
 	* Each line keeps its own cached state, so needs to be cleared when changing the text within a line
-	* When changing the scale, all the lines need to be cleared (see ClearWrappingCache)
+	* When changing the scale, all the lines need to be cleared (see DirtyAllLineModels(ELineModelDirtyState::WrappingInformation))
 	*/
 	void CreateWrappingCache();
 
@@ -408,9 +478,19 @@ protected:
 	void CreateLineWrappingCache(FLineModel& LineModel);
 
 	/**
-	 * Clears the current wrapping cache for all lines
+	 * Flushes the text shaping cache for each line
 	 */
-	void ClearWrappingCache();
+	void FlushTextShapingCache();
+
+	/**
+	 * Flushes the text shaping cache for the given line
+	 */
+	void FlushLineTextShapingCache(FLineModel& LineModel);
+
+	/**
+	 * Set the given dirty flags on all line models in this layout
+	 */
+	void DirtyAllLineModels(const ELineModelDirtyState::Flags InDirtyFlags);
 
 	/**
 	* Clears the current layouts view information.
@@ -463,7 +543,7 @@ private:
 
 protected:
 	
-	struct EDirtyState
+	struct ETextLayoutDirtyState
 	{
 		typedef uint8 Flags;
 		enum Enum
@@ -471,6 +551,7 @@ protected:
 			None = 0,
 			Layout = 1<<0,
 			Highlights = 1<<1, 
+			All = Layout | Highlights,
 		};
 	};
 
@@ -510,7 +591,13 @@ protected:
 	TArray< FLineView > LineViews;
 
 	/** Whether parameters on the layout have changed which requires the view be updated. */
-	EDirtyState::Flags DirtyFlags;
+	ETextLayoutDirtyState::Flags DirtyFlags;
+
+	/** The method used to shape the text within this layout */
+	ETextShapingMethod TextShapingMethod;
+
+	/** How should the text within this layout be flowed? */
+	ETextFlowDirection TextFlowDirection;
 
 	/** The scale to draw the text at */
 	float Scale;
@@ -541,4 +628,7 @@ protected:
 
 	/** The iterator to use to detect word boundaries */
 	TSharedPtr<IBreakIterator> WordBreakIterator;
+
+	/** Unicode BiDi text detection */
+	TUniquePtr<TextBiDi::ITextBiDi> TextBiDiDetection;
 };

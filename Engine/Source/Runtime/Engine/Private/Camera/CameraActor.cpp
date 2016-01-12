@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Camera/CameraComponent.h"
@@ -16,15 +16,19 @@
 ACameraActor::ACameraActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
+
+	// Make the scene component the root component
+	RootComponent = SceneComponent;
+	
 	// Setup camera defaults
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->FieldOfView = 90.0f;
 	CameraComponent->bConstrainAspectRatio = true;
 	CameraComponent->AspectRatio = 1.777778f;
 	CameraComponent->PostProcessBlendWeight = 1.0f;
-
-	// Make the camera component the root component
-	RootComponent = CameraComponent;
+	
+	CameraComponent->AttachParent = SceneComponent;
 
 	// Initialize deprecated properties (needed for backwards compatibility due to delta serialization)
 	FOVAngle_DEPRECATED = 90.0f;
@@ -32,8 +36,6 @@ ACameraActor::ACameraActor(const FObjectInitializer& ObjectInitializer)
 	AspectRatio_DEPRECATED = 1.777778f;
 	PostProcessBlendWeight_DEPRECATED = 1.0f;
 	// End of deprecated property initialization
-
-	PrimaryActorTick.bCanEverTick = true;
 }
 
 void ACameraActor::Serialize(FArchive& Ar)
@@ -53,19 +55,23 @@ void ACameraActor::Serialize(FArchive& Ar)
 
 void ACameraActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
+	USceneComponent* OldRoot = RootComponent;
+	USceneComponent* OldAttachParent = OldRoot->AttachParent;
+	const FName OldSocketName = OldRoot->AttachSocketName;
+
+	Super::PostLoadSubobjects(OuterInstanceGraph);
+	
 	if (GetLinkerUE4Version() < VER_UE4_CAMERA_ACTOR_USING_CAMERA_COMPONENT)
 	{
-		USceneComponent* OldRoot = RootComponent;
-		USceneComponent* OldAttachParent = OldRoot->AttachParent;
-
-		Super::PostLoadSubobjects(OuterInstanceGraph);
-
 		CameraComponent->AttachParent = OldAttachParent;
 		OldRoot->AttachParent = NULL;
 	}
-	else
+
+	if (GetLinkerUE4Version() < VER_UE4_CAMERA_COMPONENT_ATTACH_TO_ROOT)
 	{
-		Super::PostLoadSubobjects(OuterInstanceGraph);
+		RootComponent = SceneComponent;
+		CameraComponent->AttachTo(RootComponent);
+		RootComponent->AttachTo(OldAttachParent, OldSocketName);
 	}
 }
 
@@ -80,6 +86,11 @@ void ACameraActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 		PreviewedCameraAnim->BasePostProcessSettings = CameraComponent->PostProcessSettings;
 		PreviewedCameraAnim->BasePostProcessBlendWeight = CameraComponent->PostProcessBlendWeight;
 	}
+}
+
+USceneComponent* ACameraActor::GetDefaultAttachComponent() const
+{
+	return CameraComponent;
 }
 #endif
 

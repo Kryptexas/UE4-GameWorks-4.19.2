@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -78,15 +78,16 @@ static int32 GetFormattingInfo(const WIDECHAR* Format, FFormatInfo& OutInfo)
 
 	OutInfo.Type = *Format++;
 
-	int32 FormatLength = Format - FormatStart;
+	const int32 FormatLength = Format - FormatStart;
 
 	FMemory::Memcpy(OutInfo.Format, FormatStart, FormatLength * sizeof(WIDECHAR));
+	int32 OutInfoFormatLength = FormatLength;
 	if (OutInfo.HasDynamicWidth && FChar::ToLower(OutInfo.Type) == LITERAL(WIDECHAR, 's'))
 	{
-		OutInfo.Format[FormatLength - 1] = 'l';
-		OutInfo.Format[FormatLength++] = 's';
+		OutInfo.Format[OutInfoFormatLength - 1] = 'l';
+		OutInfo.Format[OutInfoFormatLength++] = 's';
 	}
-	OutInfo.Format[FormatLength] = 0;
+	OutInfo.Format[OutInfoFormatLength] = 0;
 
 	return FormatLength;
 }

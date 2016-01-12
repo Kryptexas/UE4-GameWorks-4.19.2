@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
 #if WITH_FANCY_TEXT
 
 #include "SlateWidgetRun.h"
+#include "RunUtils.h"
 
 TSharedRef< FSlateWidgetRun > FSlateWidgetRun::Create(const TSharedRef<class FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FWidgetRunInfo& InWidgetInfo)
 {
@@ -36,7 +37,7 @@ int16 FSlateWidgetRun::GetMaxHeight( float Scale ) const
 	return Info.Size.Get( Info.Widget->GetDesiredSize() ).Y * Scale;
 }
 
-FVector2D FSlateWidgetRun::Measure( int32 StartIndex, int32 EndIndex, float Scale ) const 
+FVector2D FSlateWidgetRun::Measure( int32 StartIndex, int32 EndIndex, float Scale, const FRunTextContext& TextContext ) const 
 {
 	if ( EndIndex - StartIndex == 0 )
 	{
@@ -46,14 +47,14 @@ FVector2D FSlateWidgetRun::Measure( int32 StartIndex, int32 EndIndex, float Scal
 	return Info.Size.Get( Info.Widget->GetDesiredSize() ) * Scale;
 }
 
-int8 FSlateWidgetRun::GetKerning( int32 CurrentIndex, float Scale ) const 
+int8 FSlateWidgetRun::GetKerning( int32 CurrentIndex, float Scale, const FRunTextContext& TextContext ) const 
 {
 	return 0;
 }
 
-TSharedRef< ILayoutBlock > FSlateWidgetRun::CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunRenderer >& Renderer )
+TSharedRef< ILayoutBlock > FSlateWidgetRun::CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const FLayoutBlockTextContext& TextContext, const TSharedPtr< IRunRenderer >& Renderer )
 {
-	return FDefaultLayoutBlock::Create( SharedThis( this ), FTextRange( StartIndex, EndIndex ), Size, Renderer );
+	return FDefaultLayoutBlock::Create( SharedThis( this ), FTextRange( StartIndex, EndIndex ), Size, TextContext, Renderer );
 }
 
 int32 FSlateWidgetRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
@@ -118,7 +119,10 @@ int32 FSlateWidgetRun::GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, 
 	if (OutHitPoint)
 	{
 		const FTextRange BlockRange = Block->GetTextRange();
-		*OutHitPoint = (Index == BlockRange.EndIndex) ? ETextHitPoint::RightGutter : ETextHitPoint::WithinText;
+		const FLayoutBlockTextContext BlockTextContext = Block->GetTextContext();
+
+		// The block for a widget will always detect a LTR reading direction, so use the base direction (of the line) for the image hit-point detection
+		*OutHitPoint = RunUtils::CalculateTextHitPoint(Index, BlockRange, BlockTextContext.BaseDirection);
 	}
 
 	return Index;

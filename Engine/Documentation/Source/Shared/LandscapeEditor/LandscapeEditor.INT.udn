@@ -61,7 +61,7 @@ Engine/Landscape/Editing/ManageMode
 [/EXCERPT:MoveToLevelTool]
 
 [EXCERPT:ResizeLandscape]
-The Change Component Size Landscape tool allows you to change the size of the entire Landscape. Keep in mind that this does not work on individual components but on the entire Landscape as a whole. With this tool you can change the size of the Landscape components and adjust how many sections each component has in the Change Component Size section.
+The **Change Component Size** Landscape tool allows you to change the size of the entire Landscape. Keep in mind that this does not work on individual components but on the entire Landscape as a whole. With this tool you can change the size of the Landscape components and adjust how many sections each component has in the Change Component Size section.
 [VAR:ToolTipFullLink]
 Engine/Landscape/Editing/ManageMode
 [/VAR]

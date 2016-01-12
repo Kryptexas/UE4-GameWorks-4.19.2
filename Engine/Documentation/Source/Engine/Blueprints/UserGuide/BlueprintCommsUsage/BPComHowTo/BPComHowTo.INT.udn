@@ -7,7 +7,7 @@ Description:Examples of how to setup and use different methods of Blueprint Comm
 
 On this page you will learn step-by-step how to set up and use different methods of **Blueprint Communication**. 
 
-For examples of when to use each type of **Blueprint Communication**, refer to the [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) page.
+For examples of when to use each type of Blueprint Communication, refer to the [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) page.
 
 ### Direct Blueprint Communications
 
@@ -15,16 +15,20 @@ Below we have two **Blueprints** in our level that we want to have communicate w
 
 ![](2_1.png)(w:400)
 
-* The cube above is a **Blueprint** created using the **Shape_Cube** mesh and its collision has been set to **OverlapOnlyPawn** so it acts as a trigger.
+* The cube above is a Blueprint created using the **Shape_Cube** mesh and its collision has been set to **OverlapOnlyPawn** so it acts as a trigger. Also enable **Generate Overlap Events**
 * The sparks above are the **Blueprint_Effect_Sparks** asset (included with starter content).
 
-Using **Direct Blueprint Communication**, we would do the following: 
+Using Direct Blueprint Communication, we would do the following: 
 
-1. In the **Shape_Cube** Blueprint, under **MyBlueprint** click the ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) button on the Variables category: ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_variable.png). 
+1. In the **Shape_Cube** Blueprint, under **My Blueprint** click the ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) button on the Variables category: ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_variable.png). 
 
-1. In the **Details** panel, under **Variable Type** select the type of Blueprint you wish to access (Reference types are denoted by an appended **_C**).
+1. In the **Details** panel, under **Variable Type** select the type of Blueprint you wish to access.
 
 	![](2_3.png)
+
+	Hover over the **Blueprint_Effects_Sparks** Variable Type and select **Reference** from the list.
+
+	![](2_3_1.png)
 
 	Here we are stating that we want to access a **Blueprint_Effect_Sparks** Blueprint.
 
@@ -33,7 +37,7 @@ Using **Direct Blueprint Communication**, we would do the following:
 	![](2_4.png)
 
 	1. **Variable Name** - give the variable a descriptive name such as **TargetBlueprint**. 
-	1. **Variable Type** - this should be the type of **Blueprint** that you want to access. 
+	1. **Variable Type** - this should be the type of Blueprint that you want to access. 
 	1. **Editable** - make sure this is checked to expose the variable and make it public which will allow you to access it in the Level Editor. 
 	1. **Tool Tip** - add a short description of what the variable does or what it will reference. 
 
@@ -41,22 +45,22 @@ Using **Direct Blueprint Communication**, we would do the following:
 
 	![](2_6.png)
 
-	1. Click the **None** drop-down box to assign a **Target Blueprint**. 
+	1. Click the **None** drop-down box to assign a Target Blueprint. 
 	1. All instances of the Blueprint placed in the level are displayed here, allowing you to specify which instance is the **Target Blueprint**. 
 
-	Here we are stating which **Blueprint_Effect_Sparks** Blueprint Actor we want to affect that is placed in our level; this considered the **Instance** Actor. If we had multiple sparks in our level and we only wanted to turn off one of them, we could choose which instance of the Blueprint we want to affect here by setting it as the **Target Blueprint**.
+	Here we are stating which **Blueprint_Effect_Sparks** Blueprint Actor we want to affect that is placed in our level; this considered the Instance Actor. If we had multiple sparks in our level and we only wanted to turn off one of them, we could choose which instance of the Blueprint we want to affect here by setting it as the **Target Blueprint**.
 			
 1. Instead of using the drop-down, you can click the ![](2_7.png) icon, then click on the object you want to reference that is placed in your level. 
 
 	![](2_8.png)
 
-	You can only set the **Target Blueprint** to target the specified **Variable Type** (in our case **Blueprint_Effect_Sparks**).
+	You can only set the **Target Blueprint** to target the specified Variable Type (in our case **Blueprint_Effect_Sparks**).
 
-1. In the **Shape_Cube** Blueprint, while holding down the **Control** key, drag the variable into the graph. 
+1. In the **Shape_Cube** Blueprint, while holding down the **Ctrl** key, drag the variable into the graph. 
 
 	![](2_9.png)
 
-	1. This creates a "getter" node which allows you to access Events, Variables, Functions, etc. from the **Target Blueprint**. 
+	1. This creates a Getter node which allows you to access Events, Variables, Functions, etc. from the **Target Blueprint**. 
 	1. Drag off the out pin to view the context menu.  
 	
 	Here we are searching for the spark effect and spark audio components from our **Target Blueprint** as we want to access those components. 
@@ -87,16 +91,16 @@ Refer to the [](Engine\Blueprints\UserGuide\BlueprintComms) documentation for mo
 
 [EXCERPT:CastExample]
 
-For this example, we have a fire effect **Blueprint** in our level (which is an Actor) and we want it to communicate with the playable **Character Blueprint** the player is using. When the player enters the fire, we want to send a signal to the **Character Blueprint** that the player has entered the fire and that they should now take damage. By using the **Return Value** of an **OverlapEvent**, we can **Cast To** our **Character Blueprint** and access the Events, Functions, or Variables within it. 
+For this example, we have a fire effect Blueprint in our level (which is an Actor) and we want it to communicate with the playable Character Blueprint the player is using. When the player enters the fire, we want to send a signal to the Character Blueprint that the player has entered the fire and that they should now take damage. By using the Return Value of an OverlapEvent, we can Cast To our Character Blueprint and access the Events, Functions, or Variables within it. 
 
  ![](3_0a.png)
 
 * The fire effect above is the **Blueprint_Effect_Fire** asset (included with starter content).
 * A sphere component named **Trigger** was added to the Blueprint and was set to **OverlapOnlyPawn** for its collision. 
 
- Using **Blueprint Casting**, we would do the following: 
+ Using Blueprint Casting, we would do the following: 
 
-1. The **Character Blueprint** assigned to the **Default Pawn Class** (the playable character) is our **Target Blueprint** we want to access. 
+1. The Character Blueprint assigned to the **Default Pawn Class** (the playable character) is our Target Blueprint we want to access. 
 
 	![](3_0b.png)
 
@@ -172,7 +176,7 @@ In the image above for number 2, a **Widget Blueprint** is created and assigned 
 [/EXCERPT:TargetCasting]
 
 ### Event Dispatchers
-Below we have a bush Actor **Blueprint** in our level that we want to recieve communication from the **Character Blueprint** when the player presses a button to set the bush on fire, then destroy the fire and the bush after a few seconds. We are wanting to communicate from the **Character Blueprint** to the **Level Blueprint** which can be done through using an **Event Dispatcher**. 
+Below we have a bush **Actor Blueprint** in our level that we want to recieve communication from the **Character Blueprint** when the player presses a button to set the bush on fire, then destroy the fire and the bush after a few seconds. We are wanting to communicate from the **Character Blueprint** to the **Level Blueprint** which can be done through using an **Event Dispatcher**. 
 
 ![](Event1.png)(w:340)
 
@@ -224,7 +228,7 @@ If you compile and save then play in the editor, you should see that when you pr
 
 This is of course a simple example and you would probably want more checking to occur (if the player is near the bush allow them to set it on fire) as well only allowing the player to start the fire once, but it illustrates how you can execute events inside the **Level Blueprint** by way of a **Character Blueprint** using an **Event Dispatcher**. The example above also shows how you can assign an **Event Dispatcher** to a Spawned Actor and execute Events when something occurs to that Actor (in this case, when it is destroyed).  
 
-Refer to the [](Engine\Blueprints\UserGuide\EventDispatcher) documentation for more information. 
+Refer to the **[](Engine\Blueprints\UserGuide\EventDispatcher)** documentation for more information. 
 
 
 ### Blueprint Interfaces
@@ -400,6 +404,6 @@ Here is how we would set up passing through those variables:
 
 	The second **Branch** node checks if the **PlayerHealth** value is 0 and if it is, text is printed to the screen that states "1 More Hit" before the character is "dead". This is by no means a perfect Health/Damage setup, but it illustrates how you can pass two variables through an Interface and how you could then use those variables in another Blueprint. The "PlayerHealth" value in this example could be passed to a HUD and updated to reflect current Health for example.  
 
-Refer to the [](Engine\Blueprints\UserGuide\Types\Interface) documentation for more information. 
+Refer to the **[](Engine\Blueprints\UserGuide\Types\Interface)** documentation for more information. 
 
 

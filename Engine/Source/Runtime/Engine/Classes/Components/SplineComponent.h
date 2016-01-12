@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -73,7 +73,7 @@ class ENGINE_API USplineComponent : public UPrimitiveComponent
 	bool bStationaryEndpoints;
 
 	/** Whether the spline has been edited from its default by the spline component visualizer */
-	UPROPERTY(VisibleAnywhere, Category = Spline)
+	UPROPERTY(EditAnywhere, Category = Spline, meta=(DisplayName="Override Construction Script"))
 	bool bSplineHasBeenEdited;
 
 private:
@@ -107,13 +107,14 @@ public:
 	float ScaleVisualizationWidth;
 #endif
 
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	// End UActorComponent interface.
+	//~ End UActorComponent Interface.
 
 	void ApplyComponentInstanceData(class FSplineInstanceData* ComponentInstanceData, const bool bPostUCS);
 
 	/** Update the spline tangents and SplineReparamTable */
+	UFUNCTION(BlueprintCallable, Category = Spline)
 	void UpdateSpline();
 
 	/** Get location along spline at the provided input key value */
@@ -172,6 +173,14 @@ public:
 	/** Adds a point to the spline */
 	UFUNCTION(BlueprintCallable, Category = Spline)
 	void AddSplinePoint(const FVector& Position, ESplineCoordinateSpace::Type CoordinateSpace);
+
+	/** Adds a point to the spline at the specified index*/
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void AddSplinePointAtIndex(const FVector& Position, int32 Index, ESplineCoordinateSpace::Type CoordinateSpace);
+
+	/** Removes point at specified index from the spline */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void RemoveSplinePoint(const int32 Index);
 
 	/** Adds a world space point to the spline */
 	UFUNCTION(BlueprintCallable, Category = Spline, meta = (DeprecatedFunction, DeprecationMessage = "Please use AddSplinePoint, specifying SplineCoordinateSpace::World"))
@@ -397,14 +406,59 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FVector GetScaleAtTime(float Time, bool bUseConstantVelocity = false) const;
 
-	// UObject interface
+    /** Given a location, in world space, return the input key closest to that location. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	float FindInputKeyClosestToWorldLocation(const FVector& WorldLocation) const;
+
+	/** Given a location, in world space, return the point on the curve that is closest to the location. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FVector FindLocationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world spcae, return a unit direction vector of the spline tangent closest to the location. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FVector FindDirectionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return the tangent vector of the spline closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindTangentClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return a quaternion corresponding to the spline's rotation closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FQuat FindQuaternionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return rotation corresponding to the spline's rotation closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FRotator FindRotationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return a unit direction vector corresponding to the spline's up vector closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindUpVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+    /** Given a location, in world space, return a unit direction vector corresponding to the spline's right vector closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindRightVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+    /** Given a location, in world space, return the spline's roll closest to the location, in degrees. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+    float FindRollClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return the spline's scale closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindScaleClosestToWorldLocation(const FVector& WorldLocation) const;
+
+	/** Given a location, in world space, return an FTransform closest to that location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FTransform FindTransformClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace, bool bUseScale = false) const;
+
+
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 	virtual void PostEditImport() override;
 #if WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
-	// End of UObject interface
+	//~ End UObject Interface
 
 private:
 	/** Returns the length of the specified spline segment up to the parametric value given */

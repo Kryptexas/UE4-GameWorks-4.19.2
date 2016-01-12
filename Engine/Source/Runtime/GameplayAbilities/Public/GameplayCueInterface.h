@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -105,6 +105,9 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 
 	void PredictiveAdd(const FGameplayTag& Tag, FPredictionKey& PredictionKey);
 
+	/** Does explicit check for gameplay cue tag */
+	bool HasCue(const FGameplayTag& Tag) const;
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
 		return FastArrayDeltaSerialize<FActiveGameplayCue>(GameplayCues, DeltaParms, *this);
@@ -122,4 +125,22 @@ struct TStructOpsTypeTraits< FActiveGameplayCueContainer > : public TStructOpsTy
 	{
 		WithNetDeltaSerializer = true,
 	};
+};
+
+
+/**
+ *	Wrapper struct around a gameplaytag with the GameplayCue category. This also allows for a details customization
+ */
+USTRUCT(BlueprintType)
+struct FGameplayCueTag
+{
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (Categories="GameplayCue"), Category="GameplayCue")
+	FGameplayTag GameplayCueTag;
+
+	bool IsValid() const
+	{
+		return GameplayCueTag.IsValid();
+	}
 };

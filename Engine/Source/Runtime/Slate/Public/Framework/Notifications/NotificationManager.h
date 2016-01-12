@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -90,5 +90,5 @@ private:
 	TArray< FRegionalNotificationList > RegionalLists;
 
 	/** Thread safe queue of notifications to display */
-	TLockFreePointerList<FNotificationInfo> PendingNotifications;
+	TLockFreePointerListLIFO<FNotificationInfo> PendingNotifications;
 };

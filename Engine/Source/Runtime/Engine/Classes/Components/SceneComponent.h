@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/ActorComponent.h"
@@ -104,7 +104,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** What we are currently attached to. If valid, RelativeLocation etc. are used relative to this object */
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_AttachParent)
 	class USceneComponent* AttachParent;
 
 	/** List of child SceneComponents that are attached to us. */
@@ -112,26 +112,24 @@ public:
 	TArray< USceneComponent* > AttachChildren;
 
 	/** Optional socket name on AttachParent that we are attached to. */
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_AttachSocketName)
 	FName AttachSocketName;
 
 	/** if true, will call GetCustomLocation instead or returning the location part of ComponentToWorld */
 	UPROPERTY()
 	uint32 bRequiresCustomLocation:1;
 
+protected:
+
+	/** True if we have ever updated ComponentToWorld based on RelativeLocation/Rotation/Scale. Used at startup to make sure it is initialized. */
+	UPROPERTY(Transient)
+	uint32 bWorldToComponentUpdated : 1;
+
+public:
+
 	/** If RelativeLocation should be considered relative to the world, rather than the parent */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	uint32 bAbsoluteLocation:1;
-
-private:
-	// DEPRECATED
-	UPROPERTY()
-	uint32 bAbsoluteTranslation_DEPRECATED:1;
-
-	// Appends all descendants (recursively) of this scene component to the list of Children.  NOTE: It does NOT clear the list first.
-	void AppendDescendants(TArray<USceneComponent*>& Children) const;
-
-public:
 
 	/** If RelativeRotation should be considered relative to the world, rather than the parent */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
@@ -167,13 +165,22 @@ public:
 	uint32 bUseAttachParentBound:1;
 
 protected:
-	UPROPERTY(Transient)
-	uint32 bWorldToComponentUpdated:1;
 
 	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
 	uint32 bDisableDetachmentUpdateOverlaps:1;
 
+	/** If true, OnUpdateTransform virtual will be called each time this component is moved. */
+	uint32 bWantsOnUpdateTransform:1;
+
 private:
+
+	// DEPRECATED
+	UPROPERTY()
+	uint32 bAbsoluteTranslation_DEPRECATED : 1;
+
+	// Appends all descendants (recursively) of this scene component to the list of Children.  NOTE: It does NOT clear the list first.
+	void AppendDescendants(TArray<USceneComponent*>& Children) const;
+
 	/** Physics Volume in which this SceneComponent is located **/
 	UPROPERTY(transient)
 	TWeakObjectPtr<class APhysicsVolume> PhysicsVolume;
@@ -224,8 +231,8 @@ public:
 
 private:
 
-	bool NetUpdateTransform;
-
+	bool bNetUpdateTransform;
+	bool bNetUpdateAttachment;
 	FName NetOldAttachSocketName;
 	USceneComponent *NetOldAttachParent;
 
@@ -233,10 +240,17 @@ private:
 	void OnRep_Transform();
 
 	UFUNCTION()
+	void OnRep_AttachParent();
+
+	UFUNCTION()
+	void OnRep_AttachSocketName();
+
+	UFUNCTION()
 	void OnRep_Visibility(bool OldValue);
 
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;
+	virtual void PostRepNotifies() override;
 
 public:
 
@@ -516,9 +530,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual bool IsAnySimulatingPhysics() const;
 
-	/** Get a pointer to the USceneComponent we are attached to */
+	/** Get the SceneComponent we are attached to. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	class USceneComponent* GetAttachParent() const;
+	USceneComponent* GetAttachParent() const;
+
+	/** Get the socket we are attached to. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	FName GetAttachSocketName() const;
 
 	/** Gets all parent components up to and including the root component */
 	UFUNCTION(BlueprintCallable, Category="Components")
@@ -540,15 +558,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components")
 	void GetChildrenComponents(bool bIncludeAllDescendants, TArray<USceneComponent*>& Children) const;
 
-	/** 
-	 *   Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
-	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of the component to keep its world position the same
+	/**
+	 * Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
+	 * @param  InParent				Parent to attach to.
+	 * @param  InSocketName			Optional socket to attach to on the parent.
+	 * @param  AttachType			How to handle transform when attaching (Keep relative offset, keep world position, etc).
+	 * @param  bWeldSimulatedBodies Whether to weld together simulated physics bodies.
+	 * @return True if attachment is successful (or already attached to requested parent/socket), false if attachment is rejected and there is no change in AttachParent.
 	 */
-	void AttachTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
+	 bool AttachTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = false);
 
 	/**
-	*   Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
-	*   @param bMaintainWorldTransform	If true, update the relative location/rotation of the component to keep its world position the same
+	 * Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
+	 * @param  InParent				Parent to attach to.
+	 * @param  InSocketName			Optional socket to attach to on the parent.
+	 * @param  AttachType			How to handle transform when attaching (Keep relative offset, keep world position, etc).
+	 * @param  bWeldSimulatedBodies Whether to weld together simulated physics bodies.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation", meta = (DisplayName = "AttachTo", AttachType = "KeepRelativeOffset"))
 	void K2_AttachTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset, bool bWeldSimulatedBodies = true);
@@ -660,35 +685,40 @@ public:
 	UPROPERTY(BlueprintAssignable, Category=PhysicsVolume, meta=(DisplayName="Physics Volume Changed"))
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
-	// Begin ActorComponent interface
+	//~ Begin ActorComponent Interface
 	virtual void OnRegister() override;
 	/** Return true if CreateRenderState() should be called */
 	virtual bool ShouldCreateRenderState() const override
 	{
 		return true;
 	}
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None) override final;
+	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None) override final
+	{
+		UpdateComponentToWorldWithParent(AttachParent, AttachSocketName, bSkipPhysicsMove, RelativeRotationCache.RotatorToQuat(RelativeRotation), Teleport);
+	}
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
-	virtual void OnComponentDestroyed() override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
-	// End ActorComponent interface
+	//~ End ActorComponent Interface
 
 	// Call UpdateComponentToWorld if bWorldToComponentUpdated is false.
 	void ConditionalUpdateComponentToWorld();
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 	virtual void BeginDestroy() override;
+#if WITH_EDITORONLY_DATA
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+#endif
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 
-	// End UObject Interface
+	//~ End UObject Interface
 protected:
 	/**
 	 * Internal helper, for use from MoveComponent().  Special codepath since the normal setters call MoveComponent.
@@ -837,7 +867,7 @@ public:
 	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const;
 
 	/** Update the Bounds of the component.*/
-	virtual void UpdateBounds();
+	void UpdateBounds();
 
 	/** If true, bounds should be used when placing component/actor in level. Does not affect spawning. */
 	virtual bool ShouldCollideWhenPlacing() const
@@ -900,8 +930,28 @@ protected:
 
 	/** Calculate the new ComponentToWorld transform for this component.
 		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
-		If Parent is not passed in or is NULL then we use the component's existing AttachParent and AttachSocket */
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL, FName SocketName = NAME_None) const;
+		If Parent is not passed in we use the component's AttachParent*/
+	FORCEINLINE FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL, FName SocketName = NAME_None) const
+	{
+		SocketName = Parent ? SocketName : AttachSocketName;
+		Parent = Parent ? Parent : AttachParent;
+		if (Parent)
+		{
+			const bool bGeneral = bAbsoluteLocation || bAbsoluteRotation || bAbsoluteScale;
+			if (!bGeneral)
+			{
+				return NewRelativeTransform * Parent->GetSocketTransform(AttachSocketName);
+			}
+			
+			return CalcNewComponentToWorld_GeneralCase(NewRelativeTransform, Parent, SocketName);
+		}
+		else
+		{
+			return NewRelativeTransform;
+		}
+	}
+
+	FTransform CalcNewComponentToWorld_GeneralCase(const FTransform& NewRelativeTransform, const USceneComponent* Parent, FName SocketName) const;
 
 	
 public:
@@ -954,10 +1004,24 @@ public:
 	/** Returns the form of collision for this component */
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const;
 
-	/** Utility to see if there is any form of collision enabled on this component */
-	bool IsCollisionEnabled() const
+	/** Utility to see if there is any form of collision (query or physics) enabled on this component. */
+	FORCEINLINE_DEBUGGABLE bool IsCollisionEnabled() const
 	{
 		return GetCollisionEnabled() != ECollisionEnabled::NoCollision;
+	}
+
+	/** Utility to see if there is any query collision enabled on this component. */
+	FORCEINLINE_DEBUGGABLE bool IsQueryCollisionEnabled() const
+	{
+		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
+		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::QueryOnly);
+	}
+
+	/** Utility to see if there is any physics collision enabled on this component. */
+	FORCEINLINE_DEBUGGABLE bool IsPhysicsCollisionEnabled() const
+	{
+		const ECollisionEnabled::Type CollisionSetting = GetCollisionEnabled();
+		return (CollisionSetting == ECollisionEnabled::QueryAndPhysics) || (CollisionSetting == ECollisionEnabled::PhysicsOnly);
 	}
 
 	/** Returns the response that this component has to a specific collision channel. */
@@ -1015,7 +1079,7 @@ protected:
 	virtual void OnChildDetached(USceneComponent* ChildComponent) {}
 
 	/** Called after changing transform, tries to update navigation octree for this component */
-	virtual void UpdateNavigationData();
+	void UpdateNavigationData();
 
 	/** Called after changing transform, tries to update navigation octree for owner */
 	void PostUpdateNavigationData();
@@ -1035,6 +1099,16 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 // USceneComponent inlines
+
+FORCEINLINE USceneComponent* USceneComponent::GetAttachParent() const
+{
+	return AttachParent;
+}
+
+FORCEINLINE FName USceneComponent::GetAttachSocketName() const
+{
+	return AttachSocketName;
+}
 
 FORCEINLINE_DEBUGGABLE void USceneComponent::ConditionalUpdateComponentToWorld()
 {
@@ -1090,6 +1164,72 @@ public:
 	TArray<USceneComponent*> AttachedInstanceComponents;
 };
 
+
+//////////////////////////////////////////////////////////////////////////
+
+/**
+ * Utility for temporarily changing the behavior of a SceneComponent to use absolute transforms, and then restore it to the behavior at the start of the scope.
+ */
+class ENGINE_API FScopedPreventAttachedComponentMove : private FNoncopyable
+{
+public:
+
+	/**
+	 * Init scoped behavior for a given Component.
+	 * Note that null is perfectly acceptable here (does nothing) as a simple way to toggle behavior at runtime without weird conditional compilation.
+	 */
+	FScopedPreventAttachedComponentMove(USceneComponent* Component)
+	: Owner(Component)
+	{
+		if (Component)
+		{
+			// Save old flags
+			bSavedAbsoluteLocation = Component->bAbsoluteLocation;
+			bSavedAbsoluteRotation = Component->bAbsoluteRotation;
+			bSavedAbsoluteScale = Component->bAbsoluteScale;
+			bSavedNonAbsoluteComponent = !(bSavedAbsoluteLocation && bSavedAbsoluteRotation && bSavedAbsoluteScale);
+		
+			// Use absolute (stay in world space no matter what parent does)
+			Component->bAbsoluteLocation = true;
+			Component->bAbsoluteRotation = true;
+			Component->bAbsoluteScale = true;
+
+			if (bSavedNonAbsoluteComponent && Component->GetAttachParent())
+			{
+				// Make RelativeLocation etc relative to the world.
+				Component->ConditionalUpdateComponentToWorld();
+				Component->RelativeLocation = Component->GetComponentLocation();
+				Component->RelativeRotation = Component->GetComponentRotation();
+				Component->RelativeScale3D = Component->GetComponentScale();
+			}
+		}
+		else
+		{
+			bSavedAbsoluteLocation = false;
+			bSavedAbsoluteRotation = false;
+			bSavedAbsoluteScale = false;
+		}
+	}
+
+	~FScopedPreventAttachedComponentMove();
+
+private:
+
+	USceneComponent* Owner;
+	uint32 bSavedAbsoluteLocation:1;
+	uint32 bSavedAbsoluteRotation:1;
+	uint32 bSavedAbsoluteScale:1;
+	uint32 bSavedNonAbsoluteComponent:1; // Whether any of the saved location/rotation/scale flags were false (or equivalently: not all were true).
+
+	// This class can only be created on the stack, otherwise the ordering constraints
+	// of the constructor and destructor between encapsulated scopes could be violated.
+	void*	operator new		(size_t);
+	void*	operator new[]		(size_t);
+	void	operator delete		(void *);
+	void	operator delete[]	(void*);
+};
+
+//////////////////////////////////////////////////////////////////////////
 
 /**
  * Enum that controls the scoping behavior of FScopedMovementUpdate.

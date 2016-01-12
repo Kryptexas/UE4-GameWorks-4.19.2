@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysCollision.cpp: Skeletal mesh collision code
@@ -182,20 +182,20 @@ static bool EnsureHullIsValid(TArray<FVector>& InVerts)
 	const FVector FirstVert = InVerts[0];
 
 	// Now find vert furthest from this one.
-	float FurthestDist = 0.f;
+	float FurthestDistSqr = 0.f;
 	int32 FurthestVertIndex = INDEX_NONE;
 	for(int32 i=1; i<InVerts.Num(); i++)
 	{
-		const float TestDist = (InVerts[i] - FirstVert).Size();
-		if(TestDist > FurthestDist)
+		const float TestDistSqr = (InVerts[i] - FirstVert).SizeSquared();
+		if(TestDistSqr > FurthestDistSqr)
 		{
-			FurthestDist = TestDist;
+			FurthestDistSqr = TestDistSqr;
 			FurthestVertIndex = i;
 		}
 	}
 
 	// If smallest dimension is too small - hull is invalid.
-	if(FurthestVertIndex == INDEX_NONE || FurthestDist < MIN_HULL_VALID_DIMENSION)
+	if(FurthestVertIndex == INDEX_NONE || FurthestDistSqr < FMath::Square(MIN_HULL_VALID_DIMENSION))
 	{
 		return false;
 	}

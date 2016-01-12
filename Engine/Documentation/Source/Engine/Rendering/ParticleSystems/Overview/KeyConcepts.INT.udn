@@ -2,6 +2,7 @@ Availability:Public
 Title: Key Particle Concepts
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:Critical concepts for working with particles in Unreal and the Cascade particle editor.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -192,14 +193,14 @@ Many of the properties found within modules in Cascade can have different distri
 
 There are 5 primary distribution types:
 
-* Constant - This designates a single static value that does not change in any way.
-* Uniform - A uniform distribution provides a min and max value, outputting a random selection from between (and including) the two values.
-* Constant Curve - A constant curve provides a single curve over which a value interpolates over time. In this case, time generally refers to the duration between birth and death of a particle, or the start and stop times for particle emission.
-* Uniform Curve - A uniform curve distribution provides a min and max curve. The final value is chosen from the point along a graph that sits between these two curves.
-* Parameter - This is a type of distribution that allows a property to be parameterized so that it can be manipulated externally via Blueprints, Matinee, or other means.
+* **Constant** - This designates a single static value that does not change in any way.
+* **Uniform** - A uniform distribution provides a min and max value, outputting a random selection from between (and including) the two values.
+* **Constant Curve** - A constant curve provides a single curve over which a value interpolates over time. In this case, time generally refers to the duration between birth and death of a particle, or the start and stop times for particle emission.
+* **Uniform Curve** - A uniform curve distribution provides a min and max curve. The final value is chosen from the point along a graph that sits between these two curves.
+* **Parameter** - This is a type of distribution that allows a property to be parameterized so that it can be manipulated externally via Blueprints, Matinee, or other means.
 
 [REGION:note]
-	Each of these distribution types exist separately for float and vector data type values. For instance, there exist both Float Uniform Curve and Vector Uniform Curve distributions. However, whether you use a float or a vector version of each distribution is governed by the type of property being controlled; the user has no choice. As an example, you would control color (a vector value for RGB) via a Vector Uniform distribution, but Lifespan (a single float value) via a Float Uniform.
+	Each of these distribution types exist separately for float and vector data type values. For instance, there exists both Float Uniform Curve and Vector Uniform Curve distributions. However, whether you use a float or a vector version of each, distribution is governed by the type of property being controlled; the user has no choice. As an example, you would control color (a vector value for RGB) via a Vector Uniform distribution, but Lifespan (a single float value) via a Float Uniform.
 [/REGION]
 
 

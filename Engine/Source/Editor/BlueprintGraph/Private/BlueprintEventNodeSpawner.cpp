@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEventNodeSpawner.h"
@@ -58,7 +58,7 @@ UK2Node_Event* UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(UBlueprint* B
 //------------------------------------------------------------------------------
 static void UBlueprintEventNodeSpawnerImpl::RemoveAllDisabledNodes(UEdGraphNode* InNode, UEdGraph* InParentGraph)
 {
-	if(InNode && !InNode->bIsNodeEnabled)
+	if(InNode && !InNode->IsNodeEnabled() && !InNode->bUserSetEnabledState)
 	{
 		// Go through all pin connections and consume any disabled nodes so we do not leave garbage.
 		for (UEdGraphPin* Pin : InNode->Pins)
@@ -191,7 +191,7 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 
 	// This Event node might already be present in the Blueprint in a disabled state, 
 	// remove it and allow the user to successfully place the node where they want it.
-	if(EventNode && !EventNode->bIsNodeEnabled)
+	if(EventNode && !EventNode->IsNodeEnabled() && !EventNode->bUserSetEnabledState)
 	{
 		UBlueprintEventNodeSpawnerImpl::RemoveAllDisabledNodes(EventNode, ParentGraph);
 		EventNode = nullptr;

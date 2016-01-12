@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchProgress.h: Declares classes involved with tracking the patch
@@ -14,8 +14,11 @@ namespace EBuildPatchProgress
 {
 	enum Type
 	{
+		// The patch process is waiting for other installs
+		Queued = 0,
+
 		// The patch process is initializing
-		Initializing = 0,
+		Initializing,
 
 		// The patch process is enumerating existing staged data
 		Resuming,

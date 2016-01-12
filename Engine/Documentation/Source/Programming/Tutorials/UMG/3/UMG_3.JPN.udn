@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2537337
+﻿INTSourceChangelist:2620339
 Availability:Public
 Title:3.Menu Widget ブループリントの作成
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:メニュースクリーンとして使用する Widget ブループリントを作成する
+バージョン:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:メニュースクリーンとして使用する Widget ブループ
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+		[UMG チュートリアルのホームページ](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\UMG\4 "%Programming\Tutorials\UMG\4:title%")
@@ -23,57 +24,60 @@ Description:メニュースクリーンとして使用する Widget ブループ
 %Steps%
 
 
-1. **アンリアルエディタ** で **Compile（コンパイル）** ボタンを押して新規コードをビルドします。ビルドすると、 **ユーザーウィジェット** をメニューとして利用できるようになります。
+1. **アンリアルエディタ** で **[Compile (コンパイル)]** ボタンを押して新規コードをビルドします。ビルドすると、**ユーザー ウィジェット** をメニューとして利用できるようになります。
 
 	[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-1. **Game Mode** でメニューとして使用する **ユーザーウィジェット** を作成します。**コンテンツブラウザ** の "Add New" ボタンを使用します。**Widget Blueprint** クラスは "User Interface" カテゴリにあります。1つは "MainMenu" 、もう1つは "NewGameMenu" と名前を付けてウィジェットを2つ作成します。メインメニューでゲームが開始して、 New Game Menu へ進むオプションが表示されます。
+1. **Game Mode** でメニューとして使用する **ユーザー ウィジェット** を作成します。**コンテンツ ブラウザ** の **[Add New (新規追加)]** ボタンを使用します。**Widget Blueprint** クラスは **User Interface** カテゴリにあります。1 つは MainMenu 、もう1つは NewGameMenu と名前を付けてウィジェットを 2 つ作成します。メイン メニューでゲームが開始して、New Game Menu へ進むオプションが表示されます。
 
 	[![](CreateWidgetBP.png)](CreateWidgetBP.png)
 
-1. 作成したばかりの "メインメニュー" の **ウィジェット** をダブルクリックすると、メニューレイアウトを作成することができる **ブループリントデザイナー** へ移動します。
+1. 作成したばかりの MainMenu の **ウィジェット** をダブルクリックすると、メニューレイアウトを作成することができる **ブループリント デザイナー** へ移動します。
 
-1. **パレットパネル** の "Common" セクションから **ボタン** を **グラフ** へドラッグしましょう。この **ボタン** は最終的に New Game Menu を開くために使用します。
+1. **Palette Panel** の **[Common (コメント)]** セクションから **[Button]** と **[Text]** を **グラフ** へドラッグしましょう。このボタンは最終的に New Game Menu を開くために使用します。
 
 	[![](AddButtonAndTextBlock.png)](AddButton.png)
 
-1. レイアウトを正しく表示するために、最初に **ボタン** の位置とサイズを調整します。以下の設定を変更します。
+1. レイアウトを正しく表示するために、最初にボタンの位置とサイズを調整します。以下の設定を変更します。
 	* サイズを 200x200 に設定します。
 	* 位置を (200, 100) に設定します。
-	* 後に機能と接続する際にすぐわかるように、名前を "NewGameButton" に変更します。
+	* 後に機能と接続する際にすぐわかるように、名前を「NewGameButton」に変更します。
 
 	[![](ButtonDetails.png)](ButtonDetails.png)
 
-1. **ボタン** 用に画像のカスタムセットを描画しないため、 **テキストブロック** をドロップして名前をつけて、以下の変更を行うこともできます。
-	* "New Game" と入力します。
-	* Visibility を Hit Test Invisible に変更します。**テキストブロック** が下の **ボタン** 向けのマウスクリックをインターセプトすることを防ぎます。
-	* 名前を "NewGameText" に設定します。必要ではありませんが、この設定を行うことは良い習慣です。
+1. ボタン用に画像のカスタムセットを描画しないため、テキスト ブロックをドロップして名前をつけて、以下の変更を行うこともできます。
+	* 「New Game」 と入力します。
+	* Visibility を [Hit Test Invisible] に変更します。テキストブロックが下のボタン向けのマウスクリックをインターセプトしないようにします。
+	* 名前を「NewGameText」に設定します。必要ではありませんが、この設定を行うことは良い習慣です。
 
 	[![](TextBlockDetails.png)](TextBlockDetails.png)
 
-1. 次に2番目の **ボタン** と **テキストブロック** で "Quit" 機能を作成します。"New Game" **ボタン** と **テキストブロック** と同じ方法で設定します。
+1. 次に 2 番目のボタンとテキストブロックで "Quit" 機能を作成します。New Game のボタンとテキストブロックと同じ方法で設定しますが、以下の点は異なります。
+	* [QuitButton] 用のボタン名を設定します。
+	* 位置を (600, 100) に設定します。
+	* [QuitText] 用のボタン名を設定します。
 
-1. その後、**ボタン** をクリックするとコードを実行するように、 **ボタン** に **イベント** を追加することができます。**詳細パネル** で、適切な **イベント** 名の横にある "+" を検索してクリックして追加します。この例では、 "OnClicked" が唯一使用できる **イベント** です。このイベントを NewGameButton と QuitButton **ウィジェット** 両方に作成します。
+1. その後、ボタンをクリックするとコードを実行するようにボタンに **イベント** を追加することができます。**[Details (詳細)] パネル** で、適切なイベント名の横にある "+" を検索し、クリックして追加します。この例では、**OnClicked** が唯一使用できるイベントです。このイベントを [NewGameButton] と [QuitButton] ウィジェットの両方に作成します。
 
 	[![](CreateOnClickedEvent.png)](CreateOnClickedEvent.png)
 
 	[REGION:note]デザイナーはここで **ブループリント** スクリプティングを利用して機能を構築することができます。もしくは、 C++ プログラマーは公開された関数を呼び出すノードを接続することも出来ます。[/REGION]
 
-1. "OnClicked(NewGameButton)" という名前の **イベント** に以下の設定を行います。
-	* 以前 **Game Mode** に追加した関数を使用するために _ChangeMenuWidget_ ノードを接続します。
-	* _ChangeMenuWidget_ ノードの New Widget Class 入力フィールドに "NewGameMenu" アセットを設定します。
+1. **OnClicked(NewGameButton)** という名前のイベントに以下の設定を行います。
+	* 以前 Game Mode に追加した関数を使用するために **ChangeMenuWidget** ノードを接続します。
+	* **ChangeMenuWidget** ノードの **[New Widget Class]** 入力フィールドに "NewGameMenu" アセットを設定します。
 
 	[![](OnClicked_NewGame.png)](OnClicked_NewGame.png)
 
-1. "OnClicked(QuitButton)" **イベント** に以下を設定します。
-	* "Quit Game" ノードに接続します。
+1. **OnClicked(QuitButton)** Event に以下を設定します。
+	* **Quit Game** ノードに接続します。
 
 	[![](OnClicked_Quit.png)](OnClicked_Quit.png)
 
 
 ----
 
-メインメニューを作成したら、レベルが開始すると同時にロードを行う **Game Mode** アセットを設定できます。
+メインメニューを作成したら、レベルが開始すると同時にロードを行う Game Mode アセットを設定できます。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -84,7 +88,7 @@ Description:メニュースクリーンとして使用する Widget ブループ
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -96,10 +100,10 @@ Description:メニュースクリーンとして使用する Widget ブループ
 
 					//PrivateDependencyModuleNames.AddRange(new string[] {  });
 
-					// Uncomment if you are using Slate UI
+					// Uncomment if you are using Slate UI (スレート UI を使用している場合はコメント行を外します)
 					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		// Uncomment if you are using online features（オンライン機能を使用している場合は非コメント化する）
 
+					// Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
 					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 					// {
@@ -112,7 +116,7 @@ Description:メニュースクリーンとして使用する Widget ブループ
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -147,7 +151,7 @@ Description:メニュースクリーンとして使用する Widget ブループ
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"

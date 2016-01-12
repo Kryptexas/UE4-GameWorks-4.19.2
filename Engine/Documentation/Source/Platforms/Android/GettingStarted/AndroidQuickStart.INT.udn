@@ -2,6 +2,8 @@ Availability: Public
 Title: Android Quick Start
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:Setting up for development for the Android platform.
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -37,9 +39,19 @@ Description:Setting up for development for the Android platform.
 [/OBJECT]
 [/VAR]
 
-The Android Quick Start will walk you through setting up your computer and your Android device for deployment, and putting a template game on your device using both the launching and packaging features.
-This guide uses TADP as the Android SDK, but if you would like to know how to set up another SDK for use with Unreal Engine, see the [](Platforms\Android\Reference) page.
+The Android Quick Start will walk you through setting up your computer and your Android device for deployment, as well as putting a template game on your device using both the launching and packaging features.
 
+## Goals
+
+The focus of the Android Quick start is to walk you through the basics of setting up your PC or Mac for Android Development with UE4.
+
+## Objectives
+
+* Install and setup the Android SDK.
+* Setting up your Android device for development.
+* Creating a project that is targeted towards Android mobile development.
+* How to deploy a level to your Android device
+* How to package your game for release.
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -59,3 +71,9 @@ This guide uses TADP as the Android SDK, but if you would like to know how to se
 	* [](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:description%")
 	[/PARAM]
 [/OBJECT]
+
+[region:note]
+This guide uses **Android Works** as the Android SDK, but if you would like to know how to set up another SDK for use with Unreal Engine 4.0, please checkout the [](Platforms\Android\Reference) page.
+[/region]
+
+

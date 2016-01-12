@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2652851
 Availability: Public
 Title:1.4 - 커스텀 스포트라이트
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -12,7 +12,22 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Blueprints_Advanced/1_3 "%Resources/ContentExamples/Blueprints_Advanced/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -36,7 +51,6 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ![](blueprint_advanced_1_4.png)
 
-## 개요
 
 **BP_Spotlight** 블루프린트는 게임 제작시의 여러 상황에서 재사용할 수 있는 커스터마이징 가능 _액터_ 를 만드는 데 사용되는 _블루프린트_ 예제입니다. 다양한 컴포넌트를 배치하기 쉬운 하나의 _액터_ 속으로 합치고, 사용자는 컨스트럭션 스크립트를 통해 여러가지 변수 트윅 작업을 할 수 있습니다.
 

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -10,7 +10,12 @@ using System.Text;
 namespace UnrealBuildTool
 {
 	public abstract class AppleToolChain : RemoteToolChain
-    {
+	{
+		public AppleToolChain(CPPTargetPlatform InCppPlatform, UnrealTargetPlatform InRemoteToolChainPlatform, FileReference InProjectFile)
+			: base(InCppPlatform, InRemoteToolChainPlatform, InProjectFile)
+		{
+		}
+
 		protected static void SelectXcode(ref string DeveloperDir, bool bVerbose)
 		{
 			string Reason = "hardcoded";

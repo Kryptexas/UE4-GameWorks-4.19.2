@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __ActorEditorUtils_h__
 #define __ActorEditorUtils_h__
@@ -39,7 +39,7 @@ namespace FActorEditorUtils
 	 * @param bIncludeThisActor		True to include this actor in the traversal, false otherwise
 	 * @return true on expected completion, false where the client prematurely terminated the traversal
 	 */
-	ENGINE_API bool TraverseActorTree_ParentFirst(AActor* InActor, const TFunctionRef<bool(AActor*)>& InPredicate, bool bIncludeThisActor = true);
+	ENGINE_API bool TraverseActorTree_ParentFirst(AActor* InActor, TFunctionRef<bool(AActor*)> InPredicate, bool bIncludeThisActor = true);
 
 	/**
 	 * Traverse an actor sub-tree (defined by attached children), child first.
@@ -49,7 +49,7 @@ namespace FActorEditorUtils
 	 * @param bIncludeThisActor		True to include this actor in the traversal, false otherwise
 	 * @return true on expected completion, false where the client prematurely terminated the traversal
 	 */
-	ENGINE_API bool TraverseActorTree_ChildFirst(AActor* InActor, const TFunctionRef<bool(AActor*)>& InPredicate, bool bIncludeThisActor = true);
+	ENGINE_API bool TraverseActorTree_ChildFirst(AActor* InActor, TFunctionRef<bool(AActor*)> InPredicate, bool bIncludeThisActor = true);
 };
 
 #endif// __ActorEditorUtils_h__

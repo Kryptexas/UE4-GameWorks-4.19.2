@@ -2,6 +2,7 @@ Availability:Public
 Title:Viewport Controls
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:Learn about the various control schemes for the editor's viewports.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -92,7 +93,7 @@ buttons pressed. These are also the only controls that can be used to navigate t
 
 ### Magic Mouse and Magic Trackpad
 
-After enabling Secondary click  in **System Preference** -> **Mouse** for the Magic Mouse, or enabling Secondary click  with two fingers in **System Preference** -> **Trackpad** for the Magic Trackpad, the following controls are available.
+On a Mac, after enabling Secondary click  in **System Preference** -> **Mouse** for the Magic Mouse, or enabling Secondary click  with two fingers in **System Preference** -> **Trackpad** for the Magic Trackpad, the following controls are available.
 
 | Magic Mouse | Magic Trackpad | Action |
 | ------- | ------- | ------- |

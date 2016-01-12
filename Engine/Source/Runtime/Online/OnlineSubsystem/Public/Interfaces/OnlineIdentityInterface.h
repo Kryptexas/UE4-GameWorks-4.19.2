@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineDelegateMacros.h"
@@ -350,6 +350,13 @@ public:
 	 * @return The corresponding id or PLATFORMID_NONE if not found
 	 */
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) = 0;
+
+	/**
+	 * Get the auth type associated with accounts for this platform
+	 *
+	 * @return The auth type associated with accounts for this platform
+	 */
+	virtual FString GetAuthType() const = 0;
 };
 
 typedef TSharedPtr<IOnlineIdentity, ESPMode::ThreadSafe> IOnlineIdentityPtr;

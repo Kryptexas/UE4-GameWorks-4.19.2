@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "SlateCore.h"
@@ -16,6 +16,12 @@ public:
 
 	SLATE_END_ARGS()
 
+	/** Constructor */
+	STooltipPresenter()
+	{
+		bCanSupportFocus = false;
+	}
+
 	void Construct(const FArguments& InArgs);
 
 	void SetContent(const TSharedRef<SWidget>& InWidget);
@@ -31,5 +37,5 @@ private:
 	virtual FChildren* GetChildren() override;
 
 	FVector2D LocalCursorPosition;
-	FSimpleSlot ChildSlot;
+	TWeakChild<SWidget> ChildSlot;
 };

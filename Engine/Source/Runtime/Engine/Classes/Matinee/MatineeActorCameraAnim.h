@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Matinee/MatineeActor.h"
@@ -18,7 +18,7 @@ class AMatineeActorCameraAnim : public AMatineeActor
 	UPROPERTY(Transient)
 	UCameraAnim* CameraAnim;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual bool NeedsLoadForClient() const override
 	{ 
 		return false; 
@@ -28,5 +28,5 @@ class AMatineeActorCameraAnim : public AMatineeActor
 	{ 
 		return false;
 	}
-	// End UObject interface
+	//~ End UObject Interface
 };

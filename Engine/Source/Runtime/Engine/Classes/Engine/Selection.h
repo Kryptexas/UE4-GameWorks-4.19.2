@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Manages selections of objects.  Used in the editor for selecting
@@ -172,7 +172,7 @@ public:
 
 				if ( InClass->HasAnyClassFlags(CLASS_Interface) )
 				{
-					// InClass is an interface, and we want the top object that implements it
+					//~ Begin InClass is an Interface, and we want the top object that implements it
 					if ( SelectedObject->GetClass()->ImplementsInterface(InClass) )
 					{
 						return SelectedObject;
@@ -180,7 +180,7 @@ public:
 				}
 				else if ( SelectedObject->IsA(InClass) )
 				{
-					// InClass is a class, so we want the top object of that class that implements the required interface, if specified
+					//~ Begin InClass is a class, so we want the top object of that class that implements the required Interface, if specified
 					if ( !RequiredInterface || SelectedObject->GetClass()->ImplementsInterface(RequiredInterface) )
 					{
 						return SelectedObject;
@@ -290,10 +290,10 @@ public:
 	}
 
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool Modify( bool bAlwaysMarkDirty=true) override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 
 	/**

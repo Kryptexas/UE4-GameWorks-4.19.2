@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -39,6 +39,7 @@ static TAutoConsoleVariable<int32> CVarViewportTest(
 
 #endif
 
+DECLARE_CYCLE_STAT(TEXT("CalcSceneView"), STAT_CalcSceneView, STATGROUP_Engine);
 
 //////////////////////////////////////////////////////////////////////////
 // Things used by ULocalPlayer::Exec
@@ -55,7 +56,8 @@ FLocalPlayerContext::FLocalPlayerContext()
 
 }
 
-FLocalPlayerContext::FLocalPlayerContext( const class ULocalPlayer* InLocalPlayer )
+FLocalPlayerContext::FLocalPlayerContext( const class ULocalPlayer* InLocalPlayer, UWorld* InWorld )
+	: World(InWorld)
 {
 	SetLocalPlayer( InLocalPlayer );
 }
@@ -66,6 +68,7 @@ FLocalPlayerContext::FLocalPlayerContext( const class APlayerController* InPlaye
 }
 
 FLocalPlayerContext::FLocalPlayerContext( const FLocalPlayerContext& InPlayerContext )
+	: World(InPlayerContext.World)
 {
 	check(InPlayerContext.GetLocalPlayer());
 	SetLocalPlayer(InPlayerContext.GetLocalPlayer());
@@ -83,6 +86,12 @@ bool FLocalPlayerContext::IsInitialized() const
 
 UWorld* FLocalPlayerContext::GetWorld() const
 {
+	UWorld* WorldPtr = World.Get();
+	if (WorldPtr != nullptr)
+	{
+		return WorldPtr;	
+	}
+
 	check( LocalPlayer.IsValid() );
 	return LocalPlayer->GetWorld();	
 }
@@ -96,34 +105,38 @@ ULocalPlayer* FLocalPlayerContext::GetLocalPlayer() const
 APlayerController* FLocalPlayerContext::GetPlayerController() const
 {
 	check( LocalPlayer.IsValid() );
-	return LocalPlayer->PlayerController;
+	UWorld* WorldPtr = World.Get();
+	return WorldPtr != nullptr ? LocalPlayer->GetPlayerController(WorldPtr) : LocalPlayer->PlayerController;
 }
 
 AGameState* FLocalPlayerContext::GetGameState() const
 {
+	UWorld* WorldPtr = World.Get();
+	if (WorldPtr != nullptr)
+	{
+		return WorldPtr->GameState;
+	}
+	
 	check(LocalPlayer.IsValid());
-	UWorld* World = LocalPlayer->GetWorld();
-	return World ? World->GameState : NULL;
+	UWorld* LocalPlayerWorld = LocalPlayer->GetWorld();
+	return LocalPlayerWorld ? LocalPlayerWorld->GameState : NULL;
 }
 
 APlayerState* FLocalPlayerContext::GetPlayerState() const
 {
-	check(LocalPlayer.IsValid());
-	APlayerController* PC = LocalPlayer->PlayerController;
+	APlayerController* PC = GetPlayerController();
 	return PC ? PC->PlayerState : NULL;
 }
 
 AHUD* FLocalPlayerContext::GetHUD() const
 {
-	check(LocalPlayer.IsValid())
-	APlayerController* PC = LocalPlayer->PlayerController;
+	APlayerController* PC = GetPlayerController();
 	return PC ? PC->MyHUD : NULL;
 }
 
 class APawn* FLocalPlayerContext::GetPawn() const
 {
-	check(LocalPlayer.IsValid())
-	APlayerController* PC = LocalPlayer->PlayerController;
+	APlayerController* PC = GetPlayerController();
 	return PC ? PC->GetPawn() : NULL;
 }
 
@@ -136,6 +149,7 @@ void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayer
 {
 	check( InPlayerController->IsLocalPlayerController() );
 	LocalPlayer = CastChecked<ULocalPlayer>(InPlayerController->Player);
+	World = InPlayerController->GetWorld();
 }
 
 bool FLocalPlayerContext::IsFromLocalPlayer(const AActor* ActorToTest) const
@@ -644,6 +658,8 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	class FViewElementDrawer* ViewDrawer,
 	EStereoscopicPass StereoPass)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CalcSceneView);
+
 	if ((PlayerController == NULL) || (Size.X <= 0.f) || (Size.Y <= 0.f) || (Viewport == NULL))
 	{
 		return NULL;
@@ -928,6 +944,9 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
     FVector StereoViewLocation = ViewInfo.Location;
     if (bNeedStereo || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
     {
+		AActor* ViewTarget = PlayerController->GetViewTarget();
+		const bool bHasActiveCamera = ViewTarget && ViewTarget->HasActiveCameraComponent();
+		GEngine->StereoRenderingDevice->UseImplicitHmdPosition(bHasActiveCamera);
         GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
     }
 
@@ -1428,6 +1447,21 @@ void ULocalPlayer::SetControllerId( int32 NewControllerId )
 
 FString ULocalPlayer::GetNickname() const
 {
+	// Try to get platform identity first
+	IOnlineSubsystem* PlatformSubsystem = IOnlineSubsystem::GetByPlatform(false);
+	if (PlatformSubsystem)
+	{
+		IOnlineIdentityPtr OnlineIdentityInt = PlatformSubsystem->GetIdentityInterface();
+		if (OnlineIdentityInt.IsValid())
+		{
+			FString PlayerNickname = OnlineIdentityInt->GetPlayerNickname(ControllerId);
+			if (!PlayerNickname.IsEmpty())
+			{
+				return PlayerNickname;
+			}
+		}
+	}
+
 	UWorld* World = GetWorld();
 	if (World != NULL)
 	{

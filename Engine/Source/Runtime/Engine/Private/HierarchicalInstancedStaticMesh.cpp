@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedStaticMesh.cpp: Static mesh rendering code.
@@ -752,7 +752,7 @@ public:
 		SceneProxyCreatedFrameNumberRenderThread = GFrameNumberRenderThread;
 	}
 	
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 		if (bIsGrass ? View->Family->EngineShowFlags.InstancedGrass : View->Family->EngineShowFlags.InstancedFoliage)
@@ -1097,7 +1097,7 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					FMeshBatch& MeshElement = Collector.AllocateMesh();
 					INC_DWORD_STAT(STAT_FoliageMeshBatches);
 
-					if (!FStaticMeshSceneProxy::GetMeshElement(LODIndex, 0, SectionIndex, GetDepthPriorityGroup(ElementParams.View), ElementParams.BatchRenderSelection[SelectionGroupIndex], ElementParams.bUseHoveredMaterial, MeshElement))
+					if (!FStaticMeshSceneProxy::GetMeshElement(LODIndex, 0, SectionIndex, GetDepthPriorityGroup(ElementParams.View), ElementParams.BatchRenderSelection[SelectionGroupIndex], ElementParams.bUseHoveredMaterial, true, MeshElement))
 					{
 						continue;
 					}
@@ -1111,6 +1111,7 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					BatchElement0.MinScreenSize = 0.0;
 					BatchElement0.InstancedLODIndex = LODIndex;
 					BatchElement0.InstancedLODRange = bDitherLODEnabled ? 1 : 0;
+					BatchElement0.bIsInstancedMesh = true;
 					MeshElement.bCanApplyViewModeOverrides = true;
 					MeshElement.bUseSelectionOutline = ElementParams.BatchRenderSelection[SelectionGroupIndex];
 					MeshElement.bUseWireframeSelectionColoring = ElementParams.BatchRenderSelection[SelectionGroupIndex];
@@ -1234,7 +1235,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 			ElementParams.BatchRenderSelection[1] = false;
 			ElementParams.bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 			ElementParams.bUseHoveredMaterial = IsHovered();
-			ElementParams.bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(InstancedRenderData.FeatureLevel));
+			ElementParams.bInstanced = GRHISupportsInstancing;
 			ElementParams.FeatureLevel = InstancedRenderData.FeatureLevel;
 			ElementParams.ViewIndex = ViewIndex;
 			ElementParams.View = View;
@@ -1270,10 +1271,32 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				}
 				else
 				{
-					FMatrix LocalViewProjForCulling = GetLocalToWorld() * View->ViewMatrices.GetViewProjMatrix();
+					// Instanced stereo needs to use the right plane from the right eye when constructing the frustum bounds to cull against.
+					// Otherwise we'll cull objects visible in the right eye, but not the left.
+					if (Views[0]->IsInstancedStereoPass() && ViewIndex == 0)
+					{
+						check(Views.Num() == 2);
+						
+						const FMatrix LeftEyeLocalViewProjForCulling  = GetLocalToWorld() * Views[0]->ViewMatrices.GetViewProjMatrix();
+						const FMatrix RightEyeLocalViewProjForCulling = GetLocalToWorld() * Views[1]->ViewMatrices.GetViewProjMatrix();
 
-					GetViewFrustumBounds(InstanceParams.ViewFrustumLocal, LocalViewProjForCulling, false);
-
+						FConvexVolume LeftEyeBounds, RightEyeBounds;
+						GetViewFrustumBounds(LeftEyeBounds, LeftEyeLocalViewProjForCulling, false);
+						GetViewFrustumBounds(RightEyeBounds, RightEyeLocalViewProjForCulling, false);
+						
+						InstanceParams.ViewFrustumLocal.Planes.Empty(5);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[0]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(RightEyeBounds.Planes[1]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[2]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[3]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[4]);
+						InstanceParams.ViewFrustumLocal.Init();
+					}
+					else
+					{
+						const FMatrix LocalViewProjForCulling = GetLocalToWorld() * View->ViewMatrices.GetViewProjMatrix();
+						GetViewFrustumBounds(InstanceParams.ViewFrustumLocal, LocalViewProjForCulling, false);
+					}
 
 					if (View->ViewMatrices.IsPerspectiveProjection())
 					{
@@ -1285,7 +1308,6 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 							ThreePlanes.SetAxes(&InstanceParams.ViewFrustumLocal.Planes[0], &InstanceParams.ViewFrustumLocal.Planes[1], &InstanceParams.ViewFrustumLocal.Planes[2]);
 							FVector ProjectionOrigin = ThreePlanes.Inverse().GetTransposed().TransformVector(FVector(InstanceParams.ViewFrustumLocal.Planes[0].W, InstanceParams.ViewFrustumLocal.Planes[1].W, InstanceParams.ViewFrustumLocal.Planes[2].W));
 
-							FVector Forward = LocalViewProjForCulling.GetColumn(3).GetSafeNormal();
 							for (int32 Index = 0; Index < InstanceParams.ViewFrustumLocal.Planes.Num(); Index++)
 							{
 								FPlane Src = InstanceParams.ViewFrustumLocal.Planes[Index];
@@ -1619,6 +1641,7 @@ FBoxSphereBounds UHierarchicalInstancedStaticMeshComponent::CalcBounds(const FTr
 UHierarchicalInstancedStaticMeshComponent::UHierarchicalInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, ClusterTreePtr(MakeShareable(new TArray<FClusterNode>))
+	, WriteOncePrebuiltInstanceBuffer(/*NeedsCPUAccess*/ false, /*bSupportsVertexHalfFloat*/ GVertexElementTypeSupport.IsSupported(VET_Half2))
 	, NumBuiltInstances(0)
 	, UnbuiltInstanceBounds(0)
 	, bIsAsyncBuilding(false)
@@ -2004,8 +2027,8 @@ void UHierarchicalInstancedStaticMeshComponent::PostBuildStats()
 {
 #if 0
 	const TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
-	int32 NumInst = WriteOncePrebuiltInstanceBuffer.Num() ? WriteOncePrebuiltInstanceBuffer.Num() : PerInstanceSMData.Num();
-	UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d instances, %d nodes, %f instances / leaf (desired %d) and %d verts in LOD0. Grass? %d "), NumInst, ClusterTree.Num(), ActualInstancesPerLeaf(), DesiredInstancesPerLeaf(), GetVertsForLOD(0), !!WriteOncePrebuiltInstanceBuffer.Num());
+	int32 NumInst = WriteOncePrebuiltInstanceBuffer.NumInstances() ? WriteOncePrebuiltInstanceBuffer.NumInstances() : PerInstanceSMData.Num();
+	UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d instances, %d nodes, %f instances / leaf (desired %d) and %d verts in LOD0. Grass? %d "), NumInst, ClusterTree.Num(), ActualInstancesPerLeaf(), DesiredInstancesPerLeaf(), GetVertsForLOD(0), !!WriteOncePrebuiltInstanceBuffer.NumInstances());
 #endif
 }
 
@@ -2090,7 +2113,7 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClust
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UHierarchicalInstancedStaticMeshComponent_AcceptPrebuiltTree);
 	// this is only for prebuild data, already in the correct order
 	check(!PerInstanceSMData.Num());
-	NumBuiltInstances = WriteOncePrebuiltInstanceBuffer.Num();
+	NumBuiltInstances = WriteOncePrebuiltInstanceBuffer.NumInstances();
 	check(NumBuiltInstances);
 	UnbuiltInstanceBounds.Init();
 	UnbuiltInstanceBoundsList.Empty();
@@ -2360,7 +2383,7 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have instances
-		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.Num() > 0 || bPerInstanceRenderDataWasPrebuilt) &&
+		(PerInstanceSMData.Num() > 0 || WriteOncePrebuiltInstanceBuffer.NumInstances() > 0 || bPerInstanceRenderDataWasPrebuilt) &&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
 		StaticMesh->HasValidRenderData() &&
@@ -2383,17 +2406,19 @@ FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProx
 			InstancingRandomSeed = FMath::Rand();
 		}
 
-		if (WriteOncePrebuiltInstanceBuffer.Num() > 0 || bPerInstanceRenderDataWasPrebuilt)
+		if (WriteOncePrebuiltInstanceBuffer.NumInstances() > 0 || bPerInstanceRenderDataWasPrebuilt)
 		{
-			ProxySize = FStaticMeshInstanceData::GetResourceSize(WriteOncePrebuiltInstanceBuffer.Num());
+			ProxySize = WriteOncePrebuiltInstanceBuffer.GetResourceSize();
 			INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 
 			bool bIsGrass = !PerInstanceSMData.Num();
 
-			check(bIsGrass || PerInstanceSMData.Num() == WriteOncePrebuiltInstanceBuffer.Num());
+			check(bIsGrass || PerInstanceSMData.Num() == WriteOncePrebuiltInstanceBuffer.NumInstances());
 			return ::new FHierarchicalStaticMeshSceneProxy(bIsGrass, this, GetWorld()->FeatureLevel, WriteOncePrebuiltInstanceBuffer);
 		}
-		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num());
+
+		const bool bSupportsVertexHalfFloat = GVertexElementTypeSupport.IsSupported(VET_Half2);
+		ProxySize = FStaticMeshInstanceData::GetResourceSize(PerInstanceSMData.Num(), bSupportsVertexHalfFloat);
 		INC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
 		return ::new FHierarchicalStaticMeshSceneProxy(false, this, GetWorld()->FeatureLevel);
 	}
@@ -2411,18 +2436,17 @@ void FAsyncBuildInstanceBuffer::DoWork()
 
 	for (int32 InstanceIndex = 0; InstanceIndex < Num; InstanceIndex++)
 	{
-		FInstanceStream* InstanceRenderData = Component->WriteOncePrebuiltInstanceBuffer.GetInstanceWriteAddress(bUseRemapTable ? Component->InstanceReorderTable[InstanceIndex] : InstanceIndex);
 		const FInstancedStaticMeshInstanceData& Instance = Component->PerInstanceSMData[InstanceIndex];
-
-		InstanceRenderData->SetInstance(Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+		const int32 DestInstanceIndex = bUseRemapTable ? Component->InstanceReorderTable[InstanceIndex] : InstanceIndex;
+		Component->WriteOncePrebuiltInstanceBuffer.SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
 	}
 	if (Component->RemovedInstances.Num())
 	{
 		check(bUseRemapTable);
 		for (int32 InstanceIndex = 0; InstanceIndex < Component->RemovedInstances.Num(); InstanceIndex++)
 		{
-			FInstanceStream* InstanceRenderData = Component->WriteOncePrebuiltInstanceBuffer.GetInstanceWriteAddress(Component->RemovedInstances[InstanceIndex]);
-			InstanceRenderData->NullifyInstance();
+			const int32 DestInstanceIndex = Component->RemovedInstances[InstanceIndex];
+			Component->WriteOncePrebuiltInstanceBuffer.NullifyInstance(DestInstanceIndex);
 		}
 	}
 
@@ -2481,19 +2505,19 @@ static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMes
 				{
 					int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
 
-						FTransform InstanceToComponent;
-						if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
-						{
-							InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
-						}
-						else if (Component.PerInstanceRenderData.IsValid())
-						{
-							// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
-							FInstanceStream const* Inst = Component.PerInstanceRenderData->InstanceBuffer.GetInstance(i);
-							FMatrix XformMat;
-							Inst->GetInstanceTransform(XformMat);
-							InstanceToComponent = FTransform(XformMat);
-						}
+					FTransform InstanceToComponent;
+					if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
+					{
+						InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
+					}
+					else if (Component.PerInstanceRenderData.IsValid())
+					{
+						// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
+						FMatrix XformMat;
+						Component.PerInstanceRenderData->InstanceBuffer.GetInstanceTransform(i, XformMat);
+						InstanceToComponent = FTransform(XformMat);
+					}
+					
 					if (!InstanceToComponent.GetScale3D().IsZero())
 					{
 						InstanceData.Add(InstanceToComponent*Component.ComponentToWorld);
@@ -2597,7 +2621,7 @@ void UHierarchicalInstancedStaticMeshComponent::PartialNavigationUpdate(int32 In
 	if (InstanceIdx == INDEX_NONE)
 	{
 		AccumulatedNavigationDirtyArea.Init();
-		UNavigationSystem::UpdateNavOctree(this);
+		UNavigationSystem::UpdateComponentInNavOctree(*this);
 	}
 	else if (StaticMesh)
 	{

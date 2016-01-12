@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -84,7 +84,7 @@ public:
 	void			PreAnimUpdate();
 	void			PostAnimUpdate();
 
-	// Begin SAnimEditorBase interface
+	//~ Begin SAnimEditorBase Interface
 	virtual TSharedRef<SWidget> CreateDocumentAnchor() override;
-	// End SAnimEditorBase interface
+	//~ End SAnimEditorBase Interface
 };

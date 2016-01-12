@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IFilter.h"
@@ -140,9 +140,6 @@ public:
 
 	/** Sets new translation delta to this model and all descendants*/
 	void SetLevelTranslationDelta(FVector2D InAbsoluteDelta);
-
-	/** @return Whether level supports a Level Color for visualization. (Show -> Advanced -> Level Coloration) */
-	virtual bool SupportsLevelColor() const;
 
 	/** @return level color, used for visualization. (Show -> Advanced -> Level Coloration) */
 	virtual FLinearColor GetLevelColor() const;

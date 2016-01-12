@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 //
 // A channel for exchanging voice data.
@@ -49,6 +49,9 @@ protected:
 	 * Performs any per tick update of the VoIP state
 	 */
 	virtual void Tick() override;
+
+	/** Always tick voice channels for now. */
+	virtual bool CanStopTicking() const override { return false; }
 
 	/** Human readable information about the channel */
 	virtual FString Describe() override

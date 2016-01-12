@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintEditorPrivatePCH.h"
@@ -24,12 +24,12 @@ USTRUCT()
 struct FBlueprintAction_PromoteVariable : public FEdGraphSchemaAction
 {
 	FBlueprintAction_PromoteVariable(bool bInToMemberVariable)
-		: FEdGraphSchemaAction()
+		: FEdGraphSchemaAction(	FText(), 
+								bInToMemberVariable? LOCTEXT("PromoteToVariable", "Promote to variable") : LOCTEXT("PromoteToLocalVariable", "Promote to local variable"),
+								bInToMemberVariable ? LOCTEXT("PromoteToVariable", "Promote to variable").ToString() : LOCTEXT("PromoteToLocalVariable", "Promote to local variable").ToString(),
+								1)
 		, bToMemberVariable(bInToMemberVariable)
 	{
-		MenuDescription = bInToMemberVariable? LOCTEXT("PromoteToVariable", "Promote to variable") : LOCTEXT("PromoteToLocalVariable", "Promote to local variable");
-		TooltipDescription = bInToMemberVariable? LOCTEXT("PromoteToVariable", "Promote to variable").ToString() : LOCTEXT("PromoteToLocalVariable", "Promote to local variable").ToString();
-		Grouping = 1;
 	}
 
 	// FEdGraphSchemaAction interface

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,7 +10,7 @@
 	#if ENGINE_IS_LICENSEE_VERSION
 		#define MODULE_API_VERSION BUILT_FROM_CHANGELIST
 	#else
-		#define MODULE_API_VERSION 2758231 /* Or hotfix compatibility changelist */
+		#define MODULE_API_VERSION BUILT_FROM_CHANGELIST /* Or hotfix compatibility changelist */
 	#endif
 #else
 	#define MODULE_API_VERSION 0

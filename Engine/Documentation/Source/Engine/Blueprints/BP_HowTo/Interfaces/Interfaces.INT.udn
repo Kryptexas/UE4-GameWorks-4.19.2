@@ -5,6 +5,8 @@ Description:Sample of using Blueprint Interfaces to communicate with multiple Bl
 Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
+version:4.8
+skilllevel:Advanced
 
 In this How To, we will set up a [Blueprint Interface](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) which will execute different scripts in multiple Blueprints when called. 
 

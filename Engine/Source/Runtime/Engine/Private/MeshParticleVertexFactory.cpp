@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshParticleVertexFactory.cpp: Mesh particle vertex factory implementation
@@ -42,7 +42,7 @@ public:
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
-		const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(View.GetFeatureLevel()));
+		const bool bInstanced = GRHISupportsInstancing;
 		FMeshParticleVertexFactory* MeshParticleVF = (FMeshParticleVertexFactory*)VertexFactory;
 		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
 		SetUniformBufferParameter(RHICmdList, VertexShaderRHI, Shader->GetUniformBufferParameter<FMeshParticleUniformParameters>(), MeshParticleVF->GetUniformBuffer() );
@@ -86,7 +86,7 @@ void FMeshParticleVertexFactory::InitRHI()
 {
 	FVertexDeclarationElementList Elements;
 
-    const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
+    const bool bInstanced = GRHISupportsInstancing;
 
 	if (Data.bInitialized)
 	{
@@ -225,4 +225,5 @@ FVertexFactoryShaderParameters* FMeshParticleVertexFactory::ConstructShaderParam
 }
 
 IMPLEMENT_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactory,"MeshParticleVertexFactory",true,false,true,false,false);
+IMPLEMENT_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactoryEmulatedInstancing,"MeshParticleVertexFactory",true,false,true,false,false);
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FMeshParticleUniformParameters,TEXT("MeshParticleVF"));

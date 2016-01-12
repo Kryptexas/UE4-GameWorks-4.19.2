@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,11 +7,11 @@
 /**
  * The rich text block
  *
- * ● Fancy Text
- * ● No Children
+ * * Fancy Text
+ * * No Children
  */
 UCLASS(Experimental)
-class UMG_API URichTextBlock : public UWidget
+class UMG_API URichTextBlock : public UTextLayoutWidget
 {
 	GENERATED_BODY()
 
@@ -49,26 +49,6 @@ protected:
 	/** The default color for the text. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	FLinearColor Color;
-
-	/** How the text should be aligned with the margin. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	TEnumAsByte<ETextJustify::Type> Justification;
-
-	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	bool AutoWrapText;
-
-	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
-	float WrapTextAt;
-
-	/** The amount of blank space left around the edges of text area. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
-	FMargin Margin;
-
-	/** The amount to scale each lines height by. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, AdvancedDisplay)
-	float LineHeightPercentage;
 
 	UPROPERTY(EditAnywhere, Instanced, Category=Decorators)
 	TArray<class URichTextBlockDecorator*> Decorators;

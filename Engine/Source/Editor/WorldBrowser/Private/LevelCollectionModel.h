@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "LevelModel.h"
@@ -307,6 +307,12 @@ protected:
 	/** Make this Level the Current Level */
 	void MakeLevelCurrent_Executed();
 
+	/** Find selected levels in Content Browser */
+	void FindInContentBrowser_Executed();
+
+	/** Is FindInContentBrowser a valid action */
+	bool IsValidFindInContentBrowser();
+
 	/** Moves the selected actors to this level */
 	void MoveActorsToSelected_Executed();
 
@@ -380,7 +386,7 @@ protected:
 	void LockSelectedLevels_Executed();
 
 	/** Unlocks selected levels */
-	void UnockSelectedLevels_Executed();
+	void UnlockSelectedLevels_Executed();
 
 	/** Locks all levels */
 	void LockAllLevels_Executed();

@@ -2,7 +2,8 @@ Title:1. Register as an Oculus Developer
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Register as an Oculus developer to gain access to necessary programs and documentation
 Availability:Public
-
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -19,23 +20,28 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
+In this section we will go over how to register as an Oculus developer if you are not already one. 
+While it is not mandatory to register as an Oculus developer, registering will allow you to access to the Oculus forums as well as submit games to the Oculus store.
+
 %Steps%
 
-1. Visit the [Oculus Developer Center](https://developer.oculus.com/) and click on [Downloads](https://developer.oculus.com/downloads/). 
+Visit the [Oculus Developer Center](https://developer.oculus.com/) and click on the person icon in the upper right hand corner of the page to log in if you already have an Oculus account. 
+Please note that if you already have an account you can skip ahead to the next step.
+	
+![](Oculus_Downloads.png)
 
-	![](Oculus_Downloads.png)
+[region:note]
+While you do not need an Oculus account do to download the required Oculus runtime software, creating an account enables you to post in the forums, submit your game to Oculus Share, and more.
+[/region]
 
-From the [Oculus Developer Center](https://developer.oculus.com/) you can also click the Log In link to create an account, or access your existing account. Creating an account
-enables you to post in the forums, submit your game to Oculus Share, and more.
-
-* If you have an Oculus account, enter your e-mail and password and click the **Log In** button.
-
-	![](2-2-click-the-log-in-link.jpg)
-
-* If you do not have an Oculus account, click **Create a free account**.
-	1. Fill out the registration form following the instructions on the page.
-	1. Oculus will e-mail you a link to verify your e-mail address and confirm your registration.
-	1. Return to the [Oculus Developer Center](https://developer.oculus.com/) and click the **Log In** link.
+If you do not have an Oculus account you can make one by clicking on the person icon in the upper right hand corner of the page to get to the [login page](https://id.oculus.com/US/en-US/login/). Once on the page you can do the following to setup an account.
+	
+ ![](2-2-click-the-log-in-link.png)
+	
+1. Click on the **Create a free account** option.
+1. Fill out the registration form following the instructions on the page.
+1. Oculus will e-mail you a link to verify your e-mail address and confirm your registration.
+1. Return to the [Oculus Developer Center](https://developer.oculus.com/) and click the **Log In** link.
 
 
 %Steps%

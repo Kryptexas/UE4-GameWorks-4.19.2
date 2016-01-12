@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IBuildInstaller.h: Declares the IBuildInstaller interface.
@@ -8,6 +8,66 @@
 
 typedef TSharedPtr< class IBuildInstaller, ESPMode::ThreadSafe > IBuildInstallerPtr;
 typedef TSharedRef< class IBuildInstaller, ESPMode::ThreadSafe > IBuildInstallerRef;
+
+/**
+ * Declares the error type enum for use with the error system
+ */
+enum class EBuildPatchInstallError
+{
+	// There has been no registered error
+	NoError = 0,
+
+	// A download request failed and ran out of allowed retries
+	DownloadError = 1,
+
+	// A file failed to construct properly
+	FileConstructionFail = 2,
+
+	// An error occurred trying to move the file to the install location
+	MoveFileToInstall = 3,
+
+	// The installed build failed to verify
+	BuildVerifyFail = 4,
+
+	// The user or some process has closed the application
+	ApplicationClosing = 5,
+
+	// An application error, such as module fail to load.
+	ApplicationError = 6,
+
+	// User canceled download
+	UserCanceled = 7,
+
+	// A prerequisites installer failed
+	PrerequisiteError = 8,
+
+	// An initialization error
+	InitializationError = 9,
+
+	// An error occurred creating a file due to excessive path length
+	PathLengthExceeded = 10,
+
+	// An error occurred creating a file due to their not being enough space left on the disk
+	OutOfDiskSpace = 11
+};
+
+// Enum describing download health. The actual percentage values used are configurable in the engine ini.
+enum class EBuildPatchDownloadHealth
+{
+	// All requests are in the retrying state. No progress currently. Possibly disconnected.
+	Disconnected = 0,
+	// More than 10% of requests are failing.
+	Poor,
+	// 10% or fewer requests are failing.
+	OK,
+	// 1% or fewer requests are failing.
+	Good,
+	// No requests are failing.
+	Excellent,
+
+	// Must be last value, only used for value counts.
+	NUM_Values
+};
 
 /**
  * A struct to hold stats for the build process.
@@ -33,9 +93,11 @@ struct FBuildInstallStats
 		, TheoreticalDownloadTime(0.0f)
 		, VerifyTime(0.0f)
 		, CleanUpTime(0.0f)
+		, PrereqTime(0.0f)
 		, ProcessExecuteTime(0.0f)
 		, ProcessPausedTime(0.0f)
 		, ProcessSuccess(false)
+		, FailureType(EBuildPatchInstallError::InitializationError)
 	{}
 
 	// The name of the app being installed
@@ -80,6 +142,8 @@ struct FBuildInstallStats
 	float VerifyTime;
 	// The total time that the install cleanup took to complete
 	float CleanUpTime;
+	// The total time that the prereq install took to complete
+	float PrereqTime;
 	// The total time that the install process took to complete
 	float ProcessExecuteTime;
 	// The amount of time that was spent paused
@@ -90,6 +154,8 @@ struct FBuildInstallStats
 	FString FailureReason;
 	// The localised, more generic failure reason
 	FText FailureReasonText;
+	// The failure type for the install
+	EBuildPatchInstallError FailureType;
 };
 
 /**
@@ -132,6 +198,12 @@ public:
 	 * @return	true if installation was a failure
 	 */
 	virtual bool HasError() = 0;
+
+	/**
+	 * Get the type of error for a failure that has occurred.
+	 * @return	the enum representing the type of error
+	 */
+	virtual EBuildPatchInstallError GetErrorType() = 0;
 
 	/**
 	 * This is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
@@ -185,6 +257,12 @@ public:
 	 * @return	A struct containing information about the build
 	 */
 	virtual FBuildInstallStats GetBuildStatistics() = 0;
+
+	/**
+	 * Get the current download health rating.
+	 * @return	the enum representing the download health
+	 */
+	virtual EBuildPatchDownloadHealth GetDownloadHealth() const = 0;
 
 	/**
 	 * Get the display text for the error that occurred. Only valid to call after completion

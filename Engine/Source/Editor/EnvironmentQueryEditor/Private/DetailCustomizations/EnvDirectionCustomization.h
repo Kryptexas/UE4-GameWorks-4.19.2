@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,10 +9,10 @@ class FEnvDirectionCustomization : public IPropertyTypeCustomization
 {
 public:
 
-	// Begin IPropertyTypeCustomization interface
+	//~ Begin IPropertyTypeCustomization Interface
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
-	// End IPropertyTypeCustomization interface
+	//~ End IPropertyTypeCustomization Interface
 
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance( );
 

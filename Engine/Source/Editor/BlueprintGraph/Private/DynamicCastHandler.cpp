@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "DynamicCastHandler.h"
@@ -82,6 +82,7 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	ClassTerm->bIsLiteral = true;
 	ClassTerm->Source = Node;
 	ClassTerm->ObjectLiteral = DynamicCastNode->TargetType;
+	ClassTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Class;
 
 	UClass const* const InputObjClass  = Cast<UClass>((*ObjectToCast)->Type.PinSubCategoryObject.Get());
 	UClass const* const OutputObjClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());

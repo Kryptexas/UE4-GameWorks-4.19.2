@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "SGameplayTagWidget.h"
@@ -8,6 +8,13 @@
 #include "Editor/PropertyEditor/Public/PropertyHandle.h"
 #include "SSearchBox.h"
 #include "SScaleBox.h"
+#include "AssetEditorManager.h"
+#include "AssetToolsModule.h"
+#include "SHyperlink.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#include "SSearchBox.h"
+#include "GameplayTagsSettings.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagWidget"
 
@@ -23,8 +30,11 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 	TagContainerName = InArgs._TagContainerName;
 	bMultiSelect = InArgs._MultiSelect;
 	PropertyHandle = InArgs._PropertyHandle;
+	bIsAddingNewTag = false;
+	RootFilterString = InArgs._Filter;
 
 	IGameplayTagsModule::Get().GetGameplayTagsManager().GetFilteredGameplayRootTags(InArgs._Filter, TagItems);
+	bool CanAddFromINI = UGameplayTagsManager::ShouldImportTagsFromINI(); // We only support adding new tags to the ini files.
 
 	// Tag the assets as transactional so they can support undo/redo
 	for (int32 AssetIdx = 0; AssetIdx < TagContainers.Num(); ++AssetIdx)
@@ -47,6 +57,32 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 			.VAlign(VAlign_Top)
 			[
 				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(2.0f, 2.0f)
+				.AutoWidth()
+				[
+					SAssignNew(NewTagTextBox, SEditableTextBox)
+					.MinDesiredWidth(210.0f)
+					.HintText(LOCTEXT("NewTag", "X.Y.Z"))
+					.OnTextCommitted(this, &SGameplayTagWidget::OnNewGameplayTagCommited)
+					.Visibility(CanAddFromINI ? EVisibility::Visible : EVisibility::Collapsed)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(2.0f, 2.0f)
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("AddNew", "Add New"))
+					.OnClicked(this, &SGameplayTagWidget::OnNewGameplayTagButtonPressed)
+					.Visibility(CanAddFromINI ? EVisibility::Visible : EVisibility::Collapsed)
+				]
+			]
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.VAlign(VAlign_Top)
+			[
+				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
@@ -56,6 +92,7 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+
 				[
 					SNew(SButton)
 					.OnClicked(this, &SGameplayTagWidget::OnCollapseAllClicked)
@@ -74,7 +111,7 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 				.FillWidth(1.f)
 				.Padding(5,1,5,1)
 				[
-					SNew(SSearchBox)
+					SAssignNew(SearchTagBox, SSearchBox)
 					.HintText(LOCTEXT("GameplayTagWidget_SearchBoxHint", "Search Gameplay Tags"))
 					.OnTextChanged( this, &SGameplayTagWidget::OnFilterTextChanged )
 				]
@@ -102,6 +139,54 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 
 	// Strip any invalid tags from the assets being edited
 	VerifyAssetTagValidity();
+}
+
+void SGameplayTagWidget::OnNewGameplayTagCommited(const FText& InText, ETextCommit::Type InCommitType)
+{
+	if (InCommitType == ETextCommit::OnEnter)
+	{
+		CreateNewGameplayTag();
+	}
+}
+
+FReply SGameplayTagWidget::OnNewGameplayTagButtonPressed()
+{
+	CreateNewGameplayTag();
+	return FReply::Handled();
+}
+
+void SGameplayTagWidget::CreateNewGameplayTag()
+{
+	// Only support adding tags via ini file
+	if (UGameplayTagsManager::ShouldImportTagsFromINI() == false)
+	{
+		return;
+	}
+
+	FString str = NewTagTextBox->GetText().ToString();
+	if (str.IsEmpty())
+	{
+		return;
+	}
+
+	// set bIsAddingNewTag, this guards against the window closing when it loses focus due to source control checking out a file
+	TGuardValue<bool>	Guard(bIsAddingNewTag, true);
+
+	UGameplayTagsManager::AddNewGameplayTagToINI(str);
+
+	NewTagTextBox->SetText(FText::GetEmpty());
+
+	IGameplayTagsModule::Get().GetGameplayTagsManager().GetFilteredGameplayRootTags(RootFilterString, TagItems);
+	TagTreeWidget->RequestTreeRefresh();
+
+	auto node = IGameplayTagsModule::Get().GetGameplayTagsManager().FindTagNode(FName(*str));
+	if (node.IsValid())
+	{
+		OnTagChecked(node);
+	}
+
+	// Filter on the new tag
+	SearchTagBox->SetText(FText::FromString(str));
 }
 
 void SGameplayTagWidget::OnFilterTextChanged( const FText& InFilterText )
@@ -219,7 +304,7 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 {
 	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_AddTags", "Add Gameplay Tags") );
 
-	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 	for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 	{
@@ -263,7 +348,7 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_RemoveTags", "Remove Gameplay Tags"));
 	if (NodeUnchecked.IsValid())
 	{
-		UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+		UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 		for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 		{
@@ -313,7 +398,7 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 
 void SGameplayTagWidget::UncheckChildren(TSharedPtr<FGameplayTagNode> NodeUnchecked, FGameplayTagContainer& EditableContainer)
 {
-	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 	FGameplayTag Tag = TagsManager.RequestGameplayTag(NodeUnchecked->GetCompleteTag());
 	EditableContainer.RemoveTag(Tag);
@@ -332,7 +417,7 @@ ECheckBoxState SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayTagNode> Nod
 
 	if (Node.IsValid())
 	{
-		UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+		UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 		for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 		{
@@ -340,10 +425,13 @@ ECheckBoxState SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayTagNode> Nod
 			if (Container)
 			{
 				NumValidAssets++;
-				FGameplayTag Tag = TagsManager.RequestGameplayTag(Node->GetCompleteTag());
-				if (Container->HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+				FGameplayTag Tag = TagsManager.RequestGameplayTag(Node->GetCompleteTag(), false);
+				if (Tag.IsValid())
 				{
-					++NumAssetsTagIsAppliedTo;
+					if (Container->HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+					{
+						++NumAssetsTagIsAppliedTo;
+					}
 				}
 			}
 		}
@@ -434,7 +522,7 @@ void SGameplayTagWidget::VerifyAssetTagValidity()
 	// Create a set that is the library of all valid tags
 	TArray< TSharedPtr<FGameplayTagNode> > NodeStack;
 
-	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 	
 	TagsManager.GetFilteredGameplayRootTags(TEXT(""), NodeStack);
 

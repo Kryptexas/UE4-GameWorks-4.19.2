@@ -1,7 +1,9 @@
-﻿Availability:Public
-Title:Convert Sparces ノード
+﻿INTSourceChangelist:2664756
+Availability:Public
+Title:Convert Spaces ノード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:ローカルとコンポーネントの空間の間でポーズを変換する Animation ノード
+バージョン：4.9
 
 [REGION:banner]
 ![Space Conversion](spaceconversion_banner.png)(convert:false)
@@ -9,20 +11,20 @@ Description:ローカルとコンポーネントの空間の間でポーズを�
 
 [TOC(start:2 end:3)]
 
-## 概要
+
 
 [EXCERPT:Intro]
-ポーズは、 _local-space_ または _component-space_ のいずれかにあります。_Animation Blueprints_ の **AnimGraph** にある **Convert Spaces** ノードは、 
-ローカルとコンポーネントの空間との間でポーズを変換する機能を提供します。ローカル空間では、 
+ポーズは、ローカル空間またはコンポーネント空間のいずれかにあります。Animation ブループリントの **AnimGraph** にある **Convert Spaces** ノードは、 
+ローカル空間とコンポーネント空間の間でポーズを変換する機能を提供します。ローカル空間では、 
 ボーンの変換がボーンに対して相対的であることが前提です。コンポーネント空間では、ボーンの変換が 
- _SkeletalMeshComponent_　に対して相対的であることが前提となっています。
+ SkeletalMeshComponent に対して相対的であることが前提となっています。
 
-通常は、_Animation Blueprint_ でのポーズの処理はローカル空間となります。 しかし、ある特定の blend ノードや、 
-全ての _SkeletalControls_ 処理はコンポーネント空間になります。これは、入力ポーズがこれらノードタイプのどれかに渡される前に、  
+通常 Animation ブループリントでのポーズ処理は、ローカル空間で行われます。しかし、特定のブレンド ノード、 
+そして SkeletalControls についてはすべて、コンポーネント空間で処理されます。これは、入力ポーズがこれらのいずれかのノード タイプに渡される前に、 
 変形が必要であることを意味します。入力ポーズが、ローカル空間にあるポーズを出力するノードから渡される場合、 
-対象となるポーズは _SkeletalControl_ が処理を実行する前に正しい空間へ変換されなくてはいけません。 
-_SkeletalControl_ が処理を実行し、結果として生じるポーズは、 
-追加のブレンドまたは **Result** ノード入力としてローカル空間へ戻されなくてはいけません。
+対象となるポーズは、SkeletalControl が処理を実行する前に、正しい空間へ変換されなくてはいけません。 
+SkeletalControl が処理を実行し、結果として生じるポーズは、 
+追加のブレンドの入力ピンまたは Result ピンとしてローカル空間へ戻されなくてはいけません。
 [/EXCERPT:Intro]
 
 [REGION:fullwidth]
@@ -30,12 +32,12 @@ _SkeletalControl_ が処理を実行し、結果として生じるポーズは�
 [/REGION]
 
 コンポーネント空間へ、もしくはコンポーネント空間からのそれぞれの変換にはコストが発生するため、 
-例えば _SkeletalControls_　など、 コンポーネント空間で動作するノードをグループ化するのが最良です。 
-これによって、全てが列上で実行され、変換の必要数を制限することができます。
+例えば SkeletalControls などのコンポーネント空間で動作するノードをグループ化すると良いでしょう。 
+これにより行ですべて実行され、変換の必要数を制限することができます。
 
 
 
-## コンポーネント空間からローカル空間 
+## コンポーネント空間からローカル空間
 
 **Component to Local** ノードは、コンポーネント空間のポーズを、ローカル空間のポーズへ変換します。
 

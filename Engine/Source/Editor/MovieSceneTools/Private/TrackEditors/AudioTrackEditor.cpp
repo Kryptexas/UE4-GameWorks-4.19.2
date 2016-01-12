@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieScene.h"
@@ -12,7 +12,6 @@
 #include "ISequencerObjectChangeListener.h"
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
-#include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "AudioTrackEditor.h"
 #include "MovieSceneAudioSection.h"
@@ -27,6 +26,9 @@
 #include "Sound/SoundBase.h"
 #include "Sound/SoundWave.h"
 #include "Sound/SoundCue.h"
+
+
+#define LOCTEXT_NAMESPACE "FAudioTrackEditor"
 
 
 namespace AnimatableAudioEditorConstants
@@ -342,6 +344,10 @@ UMovieSceneSection* FAudioSection::GetSectionObject()
 	return &Section;
 }
 
+bool FAudioSection::ShouldDrawKeyAreaBackground() const
+{
+	return false;
+}
 
 FText FAudioSection::GetDisplayName() const
 {
@@ -466,6 +472,19 @@ TSharedRef<ISequencerTrackEditor> FAudioTrackEditor::CreateTrackEditor( TSharedR
 }
 
 
+void FAudioTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AddTrack", "Audio Track"),
+		LOCTEXT("AddTooltip", "Adds a new master audio track that can play sounds."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Tracks.Audio"),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FAudioTrackEditor::HandleAddAudioTrackMenuEntryExecute)
+		)
+	);
+}
+
+
 bool FAudioTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	return Type == UMovieSceneAudioTrack::StaticClass();
@@ -492,13 +511,11 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 			TArray<UObject*> OutObjects;
 			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
-			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(),
-				FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));
+			AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));
 		}
 		else
 		{
-			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(),
-				FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewMasterSound, Sound));
+			AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewMasterSound, Sound));
 		}
 
 		return true;
@@ -507,31 +524,74 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 }
 
 
-void FAudioTrackEditor::AddNewMasterSound( float KeyTime, USoundBase* Sound )
+bool FAudioTrackEditor::AddNewMasterSound( float KeyTime, USoundBase* Sound )
 {
-	UMovieSceneTrack* Track = GetMasterTrack( UMovieSceneAudioTrack::StaticClass() );
+	UMovieSceneTrack* Track = FindOrCreateMasterTrack<UMovieSceneAudioTrack>().Track;
 
 	auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
 	AudioTrack->AddNewSound( Sound, KeyTime );
+	AudioTrack->SetDisplayName(LOCTEXT("AudioTrackName", "Audio"));
+
+	return true;
 }
 
 
-void FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo )
+bool FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo )
 {
+	bool bHandleCreated = false;
+	bool bTrackCreated = false;
+	bool bTrackModified = false;
+
 	for( int32 ObjectIndex = 0; ObjectIndex < ObjectsToAttachTo.Num(); ++ObjectIndex )
 	{
 		UObject* Object = ObjectsToAttachTo[ObjectIndex];
 
-		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
+		FGuid ObjectHandle = HandleResult.Handle;
+		bHandleCreated |= HandleResult.bWasCreated;
+
 		if (ObjectHandle.IsValid())
 		{
-			
-			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
+			FFindOrCreateTrackResult TrackResult = FindOrCreateTrackForObject(ObjectHandle, UMovieSceneAudioTrack::StaticClass());
+			UMovieSceneTrack* Track = TrackResult.Track;
+			bTrackCreated |= TrackResult.bWasCreated;
 
 			if (ensure(Track))
 			{
-				Cast<UMovieSceneAudioTrack>(Track)->AddNewSound( Sound, KeyTime );
+				auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
+				AudioTrack->AddNewSound(Sound, KeyTime);
+				AudioTrack->SetDisplayName(LOCTEXT("AudioTrackName", "Audio"));
+				bTrackModified = true;
 			}
 		}
 	}
+
+	return bHandleCreated || bTrackCreated || bTrackModified;
 }
+
+
+/* FAudioTrackEditor callbacks
+ *****************************************************************************/
+
+void FAudioTrackEditor::HandleAddAudioTrackMenuEntryExecute()
+{
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
+
+	if (FocusedMovieScene == nullptr)
+	{
+		return;
+	}
+
+	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddAudioTrack_Transaction", "Add Audio Track"));
+	FocusedMovieScene->Modify();
+	
+	auto NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneAudioTrack>();
+	ensure(NewTrack);
+
+	NewTrack->SetDisplayName(LOCTEXT("AudioTrackName", "Audio"));
+
+	GetSequencer()->NotifyMovieSceneDataChanged();
+}
+
+
+#undef LOCTEXT_NAMESPACE

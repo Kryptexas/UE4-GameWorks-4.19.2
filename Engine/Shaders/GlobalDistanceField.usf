@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalDistanceField.usf
@@ -121,7 +121,7 @@ uint3 CullGridDimension;
 RWBuffer<uint> RWCulledObjectGrid;
 
 #ifndef CULL_GRID_TILE_SIZE
-#define CULL_GRID_TILE_SIZE 0
+#define CULL_GRID_TILE_SIZE 1
 #endif
 
 #ifndef MAX_GRID_CULLED_DF_OBJECTS
@@ -223,7 +223,7 @@ void CompositeObjectDistanceFieldsCS(
 
 #if USE_CULL_GRID
 	uint GridBaseIndex = ComputeGridBaseIndex(DispatchThreadId / CULL_GRID_TILE_SIZE);
-	uint NumGridCulledObjects = min(CulledObjectGrid[GridBaseIndex], MAX_GRID_CULLED_DF_OBJECTS);
+	uint NumGridCulledObjects = min(CulledObjectGrid[GridBaseIndex], (uint)MAX_GRID_CULLED_DF_OBJECTS);
 	NumCulledObjects = NumGridCulledObjects;
 #endif
 
@@ -252,7 +252,7 @@ void CompositeObjectDistanceFieldsCS(
 
 	GroupMemoryBarrierWithGroupSync();
 
-	NumCulledObjects = min(NumTileCulledObjects, MAX_CULLED_DF_OBJECTS);
+	NumCulledObjects = min(NumTileCulledObjects, (uint)MAX_CULLED_DF_OBJECTS);
 
 #endif
 

@@ -2,6 +2,7 @@ Availability:Public
 Title:Setting Device Profiles
 Crumbs:%ROOT%, Platforms
 Description:Setting device profiles for platform-specific configurations
+Version: 4.9
 
 
 The best way to set device-specific configurations is to create a custom `Config/DefaultDeviceProfiles.ini` inside your project. You can set many properties in a device profile, such as a 

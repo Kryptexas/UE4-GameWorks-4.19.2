@@ -41,7 +41,9 @@ Slate is the name for Unreal's custom UI programming framework.  The editor inte
 	[PARAM:links]
 		* [](Programming/Slate/Architecture "%Programming/Slate/Architecture:Description%")
 		* [](Programming/Slate/DetailsCustomization "%Programming/Slate/DetailsCustomization:Description%")
+		* [](Programming/Slate/InGameUI "%Programming/Slate/InGameUI:Description%")
 		* [](Programming/Slate/Overview "%Programming/Slate/Overview:Description%")
+		* [](Programming/Slate/Setup "%Programming/Slate/Setup:Description%")
 		* [](Programming/Slate/Widgets "%Programming/Slate/Widgets:Description%")
 	[/PARAM]
 [/OBJECT]

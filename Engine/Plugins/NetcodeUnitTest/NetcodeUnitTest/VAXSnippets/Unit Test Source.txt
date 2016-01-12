@@ -3,7 +3,7 @@ Shortcut:
 Description: Creates the source file for a basic unit test.
 
 Source:
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "$UnitTestProject$PCH.h"
 
@@ -26,7 +26,7 @@ U$FILE_BASE$::U$FILE_BASE$(const FObjectInitializer& ObjectInitializer)
 
 	bWorkInProgress = true;
 
-	// @todo JohnB: Bugtracking/changelist notes
+	// @todo #JohnBExploitCL: Bugtracking/changelist notes
 
 	ExpectedResult.Add(TEXT("$TargetGame$"), EUnitTestVerification::VerifiedNotFixed);
 
@@ -44,7 +44,7 @@ void U$FILE_BASE$::InitializeEnvironmentSettings()
 
 void U$FILE_BASE$::ExecuteClientUnitTest()
 {
-	// @todo JohnB
+	// @todo #JohnB
 }
 
 void U$FILE_BASE$::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLogLines)
@@ -55,7 +55,7 @@ void U$FILE_BASE$::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, const 
 	{
 		for (auto CurLine : InLogLines)
 		{
-			// @todo JohnB
+			// @todo #JohnB
 		}
 	}
 }

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2653049
 Availability: Public
 Title:1.2 - 데칼 블렌드 모드
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -11,6 +11,24 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Decals/1_1 "%Resources/ContentExamples/Decals/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[데칼 홈](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Decals/1_3 "%Resources/ContentExamples/Decals/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -55,7 +73,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 
 ![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_2.png)
 
-## 개요
+
 
 데칼이 사용할 수 있는 블렌드 모드에 대한 예제입니다. 여러가지 블렌드 모드는 데칼이 표면에 영향을 끼치는 방식을 변경합니다. 이는 머티리얼에서 찾을 수 있는 **Decal Blend Mode** (데칼 블렌드 모드) 프로퍼티로 설정됩니다.
 

@@ -2,6 +2,11 @@ Availability:Public
 Title:Blueprint Interface
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:Blueprints that declare functions to define an interface between Blueprints.
+related: Engine\Blueprints\UserGuide\BlueprintCommsUsage
+related: Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo
+related: Engine\Blueprints\UserGuide\EventDispatcher
+related: Engine\Blueprints\UserGuide\BlueprintComms
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,47 +50,47 @@ Description:Blueprints that declare functions to define an interface between Blu
 
 [EXCERPT:Intro]
 A **Blueprint Interface** is a collection of one or more functions - name only, no implementation - that can be added to 
-other _Blueprints_. Any _Blueprint_ that has the _Interface_ added is guaranteed to have those functions. The functions 
-of the _Interface_ can be given functionality in each of the _Blueprints_ that added it. This is essentially like the 
+other Blueprints. Any Blueprint that has the Interface added is guaranteed to have those functions. The functions 
+of the Interface can be given functionality in each of the Blueprints that added it. This is essentially like the 
 concept of an interface in general programming, which allows multiple different types of Objects to all share and be accessed 
-through a common interface. Put simply, _Blueprint Interfaces_ allow different _Blueprints_ to share with and send data to one another.
+through a common interface. Put simply, Blueprint Interfaces allow different Blueprints to share with and send data to one another.
 
-_Blueprint Interfaces_ can be made by content creators through the editor in a similar fashion to other _Blueprints_, but they 
+Blueprint Interfaces can be made by content creators through the editor in a similar fashion to other Blueprints, but they 
 come with certain limitations in that they cannot:
 
 * Add new variables
 * Edit graphs
-* Add _Components_
+* Add Components
 
 
 [/EXCERPT:Intro]
 
-The use of _Blueprint Interfaces_ allows for a common method of interacting with multiple disparate types of Objects that all share 
+The use of Blueprint Interfaces allows for a common method of interacting with multiple disparate types of Objects that all share 
 some specific functionality. This means you can have completely different types of Objects, such as a car and a tree, that 
-share one specific thing like they can both be shot by weapon fire and take damage. By creating a _Blueprint Interface_ that 
-contains an `OnTakeWeaponFire` function, and having both the car and the tree implement that _Blueprint Interface_, you can treat the 
+share one specific thing like they can both be shot by weapon fire and take damage. By creating a Blueprint Interface that 
+contains an `OnTakeWeaponFire` function, and having both the car and the tree implement that Blueprint Interface, you can treat the 
 car and the tree as the same type and simply call the `OnTakeWeaponFire` function when either of them is shot. Read about how to implement
-_Blueprint Interfaces_ on the [](Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces) page.
+Blueprint Interfaces on the [](Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces) page.
 
 ## Creating Blueprint Interfaces
 
-_Blueprint Interface_ creation within the **Content Browser** is as simple as **right-clicking** and choosing _Blueprint Interface_ from the context menu, then naming your new Interface.
+Blueprint Interface creation within the **Content Browser** is as simple as **right-clicking** and choosing Blueprint Interface from the context menu, then naming your new Interface.
 
-![](CreateInterface.gif)
+![](createinterface.png)
 
-![](CreatedBlueprintInterface.gif)
+![](createdblueprintinterface.png)
 
 Once created, you need to edit the Interface's functions.
 
 ## Editing Blueprint Interfaces
 
-_Blueprint Interfaces_ are edited the **Blueprint Editor**. Since you cannot create your own variables, graphs, or components, the process of Interface editing differs greatly from the process of editing standard _Blueprint Classes_. 
+Blueprint Interfaces are edited the **Blueprint Editor**. Since you cannot create your own variables, graphs, or components, the process of Interface editing differs greatly from the process of editing standard Blueprint Classes. 
 
 When you first open up a new Interface, the editor looks like this:
 
 ![](InterfaceEditor.png)
 
-If you have just created your Interface, you will see that the Editor has created a new blank Function for you named `NewFunction_0` and it will be highlighted for you to rename it.
+If you have just created your Interface, you will see that the Editor has created a new blank Function for you named NewFunction_0 and it will be highlighted for you to rename it.
 
 ### Adding Functions
 
@@ -110,7 +115,7 @@ Since an interface function has no implementation, all you can do as a designer 
 
 To edit a function's signature:
 
-1. In the **Details** tab, scroll to the _Inputs_ category and click the ![](button_New.png) button to create a new Input Parameter.
+1. In the **Details** tab, scroll to the Inputs category and click the ![](button_New.png) button to create a new Input Parameter.
 
 	![](Details_Signature.png)
 
@@ -133,16 +138,4 @@ To edit a function's signature:
 
 * You can change where the input and output parameters appear on the node using the ![](button_moveUp.png) and ![](button_moveDown.png) found in the **Details** tab when the parameter properties are expanded.
 
-* You can use the Replicates checkbox for any Interfaces containing functions that need to replicate across the server. This is found within the **Details** tab by first clicking the ![](BlueprintProps.png) button.
-
-## Reference Links
-
-Refer to the following links for additional documentation regarding **Blueprint Communication**: 
-
-* For information on **Blueprint Communication Guidelines**, see: [**Blueprint Communication Usage**](Engine\Blueprints\UserGuide\BlueprintCommsUsage) 
-
-* For information on **How to Setup Different Blueprint Communications**, see: [**How to Use Blueprint Communications**](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo) 
-
-* For information on **Event Dispatchers**, see: [**Event Dispatchers**](Engine\Blueprints\UserGuide\EventDispatcher) 
-
-* For information on **Direct Blueprint Communication**, see: [**Direct Blueprint Communications**](Engine\Blueprints\UserGuide\BlueprintComms)
+* You can use the Replicates checkbox for any Interfaces containing functions that need to replicate across the server. This is found within the **Details** tab by first clicking the **Class Settings** button.

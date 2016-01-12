@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SystemSettings.cpp: Unreal engine HW compat scalability system.
@@ -42,9 +42,9 @@ public:
 	/** Applies setting overrides based on command line options. */
 	void ApplyOverrides();
 	
-	// Begin Exec Interface
+	//~ Begin Exec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	// End Exec Interface
+	//~ End Exec Interface
 
 	/** Mask where 1 bits mean we want to force the engine show flag to be off */
 	const FEngineShowFlags& GetForce0Mask() const { return Force0Mask; }

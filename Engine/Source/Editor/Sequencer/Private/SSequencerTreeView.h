@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,6 +23,7 @@ struct FSequencerTreeViewColumn
 	typedef TFunction<TSharedRef<SWidget>(const FDisplayNodeRef&, const TSharedRef<SSequencerTreeViewRow>&)> FOnGenerate;
 
 	FSequencerTreeViewColumn(const FOnGenerate& InOnGenerate, const TAttribute<float>& InWidth) : Generator(InOnGenerate), Width(InWidth) {}
+	FSequencerTreeViewColumn(FOnGenerate&& InOnGenerate, const TAttribute<float>& InWidth) : Generator(MoveTemp(InOnGenerate)), Width(InWidth) {}
 
 	/** Function used to generate a cell for this column */
 	FOnGenerate Generator;
@@ -66,16 +67,13 @@ public:
 	void Refresh();
 
 	/** Expand or collapse nodes */
-	void ToggleExpandCollapseNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive);
+	void ToggleExpandCollapseNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive, bool bExpandAll = false);
 
 	/** Expand nodes */
-	void ExpandNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive);
+	void ExpandNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive, bool bExpandAll = false);
 
 	/** Collapse nodes */
-	void CollapseNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive);
-
-	/** Expand or collapse selected nodes */
-	void ExpandSelectedNodes(ETreeRecursion Recursion);
+	void CollapseNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive, bool bExpandAll = false);
 
 	/** Scroll this tree view by the specified number of slate units */
 	void ScrollByDelta(float DeltaInSlateUnits);
@@ -83,7 +81,7 @@ public:
 protected:
 
 	/** Expand or collapse nodes */
-	void ExpandOrCollapseNodes(ETreeRecursion Recursion, bool bExpand);
+	void ExpandOrCollapseNodes(ETreeRecursion Recursion, bool bExpandAll, bool bExpand);
 
 	/** Set the item's expansion state, including all of its children */
 	void ExpandCollapseNode(const FDisplayNodeRef& InNode, bool bExpansionState, ETreeRecursion Recursion);

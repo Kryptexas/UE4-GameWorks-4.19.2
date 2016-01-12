@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,7 +65,7 @@ class FNullHttpResponse : public IHttpResponse
 	virtual FString GetContentType() override;
 	virtual int32 GetContentLength() override;
 	virtual const TArray<uint8>& GetContent() override;
-	// Begin IHttpResponse interface
+	//~ Begin IHttpResponse Interface
 	virtual int32 GetResponseCode() override;
 	virtual FString GetContentAsString() override;
 

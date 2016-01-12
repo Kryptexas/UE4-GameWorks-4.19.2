@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,14 +21,14 @@ public:
 	/** Destructor */
 	virtual ~FNiagaraEditor();
 
-	// Begin IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	// End IToolkit interface
+	//~ End IToolkit Interface
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
@@ -42,10 +42,13 @@ protected:
 
 private:
 	/** Create widget for graph editing */
-	TSharedRef<class SGraphEditor> CreateGraphEditorWidget(UEdGraph* InGraph);
+	TSharedRef<class SGraphEditor> CreateGraphEditorWidget(UEdGraph* InGraph, bool bEditable = true);
 
 	/** Spawns the tab with the update graph inside */
 	TSharedRef<SDockTab> SpawnTab_NodeGraph(const FSpawnTabArgs& Args);
+
+	/** Spawns the tab with the flattened graph inside */
+	TSharedRef<SDockTab> SpawnTab_FlattenedNodeGraph(const FSpawnTabArgs& Args);
 
 	/** Spawns the tab with the node details inside. */
 	TSharedRef<SDockTab> SpawnTab_NodeProperties(const FSpawnTabArgs& Args);
@@ -79,6 +82,7 @@ private:
 	UNiagaraScriptSource*		Source;
 	/** */
 	TWeakPtr<SGraphEditor>		NodeGraphEditorPtr;
+	TWeakPtr<SGraphEditor>		FlattenedNodeGraphEditorPtr;
 
 	/** The command list for this editor */
 	TSharedPtr<FUICommandList> GraphEditorCommands;
@@ -87,7 +91,8 @@ private:
 	TSharedPtr<class IDetailsView> NiagaraDetailsView;
 
 	/**	The tab ids for the Niagara editor */
-	static const FName NodeGraphTabId;
+	static const FName NodeGraphTabId; 
+	static const FName FlattenedNodeGraphTabId; 
 	static const FName PropertiesTabId;
 
 };

@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
 #include "HttpWinInet.h"
+#include "EngineVersion.h"
 
 bool FWinInetConnection::bStaticConnectionInitialized = false;
 
@@ -624,12 +625,20 @@ void FHttpRequestWinInet::FinishedRequest()
 	if (Response.IsValid() &&
 		Response->bResponseSucceeded)
 	{
-		UE_LOG(LogHttp, Log, TEXT("Finished request %p. response=%d %s url=%s elapsed=%.3f DownloadSize=%d"), 
-			this, Response->GetResponseCode(), *GetVerb(), *GetURL(), ElapsedTime, Response->GetContentLength());
-
 		const bool bDebugServerResponse = Response->GetResponseCode() >= 500 && Response->GetResponseCode() <= 505;
 
-		// log info about cloud front to identify failed downloads
+		if (bDebugServerResponse)
+		{
+			UE_LOG(LogHttp, Warning, TEXT("Finished request %p. response=%d %s url=%s elapsed=%.3f DownloadSize=%d"),
+			this, Response->GetResponseCode(), *GetVerb(), *GetURL(), ElapsedTime, Response->GetContentLength());
+		}
+		else
+		{
+			UE_LOG(LogHttp, Log, TEXT("Finished request %p. response=%d %s url=%s elapsed=%.3f DownloadSize=%d"),
+				this, Response->GetResponseCode(), *GetVerb(), *GetURL(), ElapsedTime, Response->GetContentLength());
+		}
+
+		// log info about error responses to identify failed downloads
 		if (UE_LOG_ACTIVE(LogHttp, Verbose) ||
 			bDebugServerResponse)
 		{
@@ -637,7 +646,7 @@ void FHttpRequestWinInet::FinishedRequest()
 			for (TArray<FString>::TConstIterator It(AllHeaders); It; ++It)
 			{
 				const FString& HeaderStr = *It;
-				if (!HeaderStr.Contains(TEXT("Authorization")))
+				if (!HeaderStr.StartsWith(TEXT("Authorization")) && !HeaderStr.StartsWith(TEXT("Set-Cookie")))
 				{
 					if (bDebugServerResponse)
 					{

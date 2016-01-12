@@ -7,7 +7,7 @@ Related: Gameplay/Networking/Actors/Components
 
 [TOC (start:2 end:3)]
 
-RPCs (Remote Procedure Calls) are functions that are called locally, but executed remotely on another machine (separate from the calling machine). 
+**RPCs** (**Remote Procedure Calls**) are functions that are called locally, but executed remotely on another machine (separate from the calling machine). 
 
 RPC functions can be very useful and allow either the client or the server to send messages to each other over a network connection.
 
@@ -91,7 +91,7 @@ Custom events can however be marked as replicated from within the Blueprint edit
 
 To use this feature, create a new custom event in your event graph. Click on the custom event and edit the Replication settings in the details view:
 
-![](RPC_BP.png)(w:400)
+![](RPC_BP.png)
 
 ## Validation
 

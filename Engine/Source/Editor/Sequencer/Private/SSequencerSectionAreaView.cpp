@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SSequencerSectionAreaView.h"
@@ -71,7 +71,7 @@ void SSequencerSectionAreaView::Construct( const FArguments& InArgs, TSharedRef<
 	ViewRange = InArgs._ViewRange;
 
 	check( Node->GetType() == ESequencerNode::Track );
-	SectionAreaNode = StaticCastSharedRef<FTrackNode>( Node );
+	SectionAreaNode = StaticCastSharedRef<FSequencerTrackNode>( Node );
 
 	BackgroundBrush = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
 
@@ -101,7 +101,7 @@ void SSequencerSectionAreaView::GenerateSectionWidgets()
 		for ( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
 		{
 			Children.Add( 
-				SNew( SSection, SectionAreaNode.ToSharedRef(), SectionIndex ) 
+				SNew( SSequencerSection, SectionAreaNode.ToSharedRef(), SectionIndex ) 
 				.Visibility( this, &SSequencerSectionAreaView::GetSectionVisibility, Sections[SectionIndex]->GetSectionObject() )
 				);
 		}
@@ -120,14 +120,29 @@ int32 SSequencerSectionAreaView::OnPaint( const FPaintArgs& Args, const FGeometr
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	ArrangeChildren(AllottedGeometry, ArrangedChildren);
 
+	int32 MaxLayerId = LayerId;
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId+1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		const int32 ThisLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		MaxLayerId = FMath::Max(ThisLayerId, MaxLayerId);
 	}
 
-	return LayerId+1;
+	return MaxLayerId + 1;
+}
+
+void SSequencerSectionAreaView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	if (Children.Num())
+	{
+		StableSort(&Children[0], Children.Num(), [](const TSharedRef<SSequencerSection>& A, const TSharedRef<SSequencerSection>& B){
+			UMovieSceneSection* SectionA = A->GetSectionInterface()->GetSectionObject();
+			UMovieSceneSection* SectionB = B->GetSectionInterface()->GetSectionObject();
+
+			return SectionA && SectionB && SectionA->GetOverlapPriority() < SectionB->GetOverlapPriority();
+		});
+	}
 }
 
 void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
@@ -135,7 +150,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 	int32 MaxRowIndex = 0;
 	for( int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex )
 	{
-		const TSharedRef<SSection>& Widget = Children[WidgetIndex];
+		const TSharedRef<SSequencerSection>& Widget = Children[WidgetIndex];
 
 		TSharedPtr<ISequencerSection> SectionInterface = Widget->GetSectionInterface();
 
@@ -150,7 +165,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 
 	for( int32 WidgetIndex = 0; WidgetIndex < Children.Num(); ++WidgetIndex )
 	{
-		const TSharedRef<SSection>& Widget = Children[WidgetIndex];
+		const TSharedRef<SSequencerSection>& Widget = Children[WidgetIndex];
 
 		TSharedPtr<ISequencerSection> SectionInterface = Widget->GetSectionInterface();
 

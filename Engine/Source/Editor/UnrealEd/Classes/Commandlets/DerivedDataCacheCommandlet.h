@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
@@ -13,9 +13,9 @@ UCLASS()
 class UDerivedDataCacheCommandlet : public UCommandlet
 {
 	GENERATED_UCLASS_BODY()
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 
 	// We hook this up to a delegate to avoid reloading textures and whatnot
 	TSet<FString> PackagesToNotReload;

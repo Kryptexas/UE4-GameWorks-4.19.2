@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "ActorDetails.h"
@@ -338,7 +338,7 @@ TSharedRef<SWidget> FActorDetails::MakeConvertMenu( const FSelectedActorInfo& Se
 		.ButtonContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("ConvertButton", "Select a Type"))
+			.Text(LOCTEXT("SelectAType", "Select a Type"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 
@@ -549,8 +549,8 @@ void FActorDetails::AddActorCategory( IDetailLayoutBuilder& DetailBuilder, const
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("ConvertButton", "Convert Actor"))
-			.ToolTipText(LOCTEXT("ConvertButton_ToolTip", "Convert actors to different types"))
+			.Text(LOCTEXT("ConvertActor", "Convert Actor"))
+			.ToolTipText(LOCTEXT("ConvertActor_ToolTip", "Convert actors to different types"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()

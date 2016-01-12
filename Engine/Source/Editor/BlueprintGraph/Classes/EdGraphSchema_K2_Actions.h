@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node.h"
@@ -31,8 +31,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2NewNode : public FEdGraphSchema
 		, bGotoNode(false)
 	{}
 
-	FEdGraphSchemaAction_K2NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
+	FEdGraphSchemaAction_K2NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const FText& InKeywords = FText())
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping, InKeywords)
 		, NodeTemplate(NULL)
 		, bGotoNode(false)
 	{}
@@ -308,33 +308,6 @@ struct FEdGraphSchemaAction_K2AddCallOnActor : public FEdGraphSchemaAction_K2New
 };
 
 /*******************************************************************************
-* FEdGraphSchemaAction_K2AddCallOnVariable
-*******************************************************************************/
-
-/** Action to add a 'call function on variable' pair of nodes to the graph */
-USTRUCT()
-struct FEdGraphSchemaAction_K2AddCallOnVariable : public FEdGraphSchemaAction_K2NewNode
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Property name we want to call the function on */
-	UPROPERTY()
-	FName VariableName;
-
-	FEdGraphSchemaAction_K2AddCallOnVariable()
-		: FEdGraphSchemaAction_K2NewNode()
-	{}
-
-	FEdGraphSchemaAction_K2AddCallOnVariable(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
-	{}
-
-	// FEdGraphSchemaAction interface
-	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface	
-};
-
-/*******************************************************************************
 * FEdGraphSchemaAction_K2AddComment
 *******************************************************************************/
 
@@ -349,52 +322,15 @@ struct FEdGraphSchemaAction_K2AddComment : public FEdGraphSchemaAction
 	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
 
 	FEdGraphSchemaAction_K2AddComment()
-		: FEdGraphSchemaAction()
+		: FEdGraphSchemaAction(FText(), NSLOCTEXT("K2AddComment", "AddComment", "Add Comment..."), NSLOCTEXT("K2AddComment", "AddComment_Tooltip", "Create a resizable comment box.").ToString(), 0)
 	{
-		MenuDescription = NSLOCTEXT("K2AddComment", "AddComment", "Add Comment...");
-		TooltipDescription = NSLOCTEXT("K2AddComment", "AddComment_Tooltip", "Create a resizable comment box.").ToString();
 	}
 
 	FEdGraphSchemaAction_K2AddComment(const FText& InDescription, const FString& InToolTip)
-		: FEdGraphSchemaAction()
+		: FEdGraphSchemaAction(FText(), InDescription, InToolTip, 0)
 	{
-		MenuDescription = InDescription;
-		TooltipDescription = InToolTip;
 	}
 
-	// FEdGraphSchemaAction interface
-	BLUEPRINTGRAPH_API virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface
-};
-
-/*******************************************************************************
-* FEdGraphSchemaAction_K2AddDocumentation
-*******************************************************************************/
-
-/** Action to add a 'documentation' node to the graph */
-USTRUCT()
-struct FEdGraphSchemaAction_K2AddDocumentation : public FEdGraphSchemaAction
-{
-	GENERATED_USTRUCT_BODY()
-
-	// Simple type info
-	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddDocumentation"); return Type;}
-	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
-
-	FEdGraphSchemaAction_K2AddDocumentation()
-		: FEdGraphSchemaAction()
-	{
-		MenuDescription = NSLOCTEXT("K2AddDocumentation", "AddDocumentation", "Add Documentation ...");
-		TooltipDescription = NSLOCTEXT("K2AddDocumentation", "AddDocumentation_Tooltip", "Creates a Documentation Node.").ToString();
-	}
-
-	FEdGraphSchemaAction_K2AddDocumentation(const FString& InDescription, const FString& InToolTip)
-		: FEdGraphSchemaAction()
-	{
-		MenuDescription = FText::FromString( InDescription );
-		TooltipDescription = InToolTip;
-	}
-	
 	// FEdGraphSchemaAction interface
 	BLUEPRINTGRAPH_API virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
 	// End of FEdGraphSchemaAction interface
@@ -531,8 +467,8 @@ public:
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2Var (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2Var (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const int32 InSectionID)
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping, FText(), InSectionID)
 	{}
 
 	FName GetVariableName() const
@@ -598,8 +534,8 @@ public:
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2LocalVar (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FEdGraphSchemaAction_K2LocalVar(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const int32 InSectionID)
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping, FText(), InSectionID)
 	{}
 
 	FName GetVariableName() const
@@ -669,8 +605,8 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Graph : public FEdGraphSchemaAc
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2Graph (EEdGraphSchemaAction_K2Graph::Type InType, const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping), GraphType(InType), EdGraph(NULL)
+	FEdGraphSchemaAction_K2Graph (EEdGraphSchemaAction_K2Graph::Type InType, const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const int32 InSectionID = 0)
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping, FText(), InSectionID), GraphType(InType), EdGraph(NULL)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -815,8 +751,8 @@ public:
 		: FEdGraphSchemaAction(), EdGraph(NULL)
 	{}
 
-	FEdGraphSchemaAction_K2Delegate(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping), EdGraph(NULL)
+	FEdGraphSchemaAction_K2Delegate(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const int32 InSectionID)
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping, FText(), InSectionID), EdGraph(NULL)
 	{}
 
 	FName GetDelegateName() const

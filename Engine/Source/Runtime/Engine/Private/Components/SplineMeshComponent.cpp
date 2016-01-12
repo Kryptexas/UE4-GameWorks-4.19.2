@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Components/SplineMeshComponent.h"
@@ -88,16 +88,15 @@ FVertexFactoryShaderParameters* FSplineMeshVertexFactory::ConstructShaderParamet
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshSceneProxy
 
-
-
-void FSplineMeshSceneProxy::InitResources(USplineMeshComponent* InComponent, int32 InLODIndex)
+void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer )
 {
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		InitSplineMeshVertexFactory,
 		FSplineMeshVertexFactory*, VertexFactory, LODResources[InLODIndex].VertexFactory,
-		const FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
+		FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
 		UStaticMesh*, Parent, InComponent->StaticMesh,
+		FColorVertexBuffer*, OverridenColorVertexBuffer, InOverrideColorVertexBuffer,
 		{
 		FLocalVertexFactory::DataType Data;
 
@@ -119,13 +118,19 @@ void FSplineMeshSceneProxy::InitResources(USplineMeshComponent* InComponent, int
 			RenderData->VertexBuffer.GetStride(),
 			VET_PackedNormal
 			);
-
-		if (RenderData->ColorVertexBuffer.GetNumVertices() > 0)
+		
+		FColorVertexBuffer* LODColorVertexBuffer = &RenderData->ColorVertexBuffer;
+		// Override the buffer if it has been changed
+		if ( OverridenColorVertexBuffer != NULL )
+		{
+			LODColorVertexBuffer = OverridenColorVertexBuffer;
+		}
+		if ( LODColorVertexBuffer->GetNumVertices() > 0 )
 		{
 			Data.ColorComponent = FVertexStreamComponent(
-				&RenderData->ColorVertexBuffer,
+				LODColorVertexBuffer,
 				0,	// Struct offset to color
-				RenderData->ColorVertexBuffer.GetStride(),
+				LODColorVertexBuffer->GetStride(),
 				VET_Color
 				);
 		}
@@ -239,6 +244,8 @@ USplineMeshComponent::USplineMeshComponent(const FObjectInitializer& ObjectIniti
 
 	SplineBoundaryMin = 0;
 	SplineBoundaryMax = 0;
+
+	bMeshDirty = false;
 }
 
 FVector USplineMeshComponent::GetStartPosition() const
@@ -246,10 +253,14 @@ FVector USplineMeshComponent::GetStartPosition() const
 	return SplineParams.StartPos;
 }
 
-void USplineMeshComponent::SetStartPosition(FVector StartPos)
+void USplineMeshComponent::SetStartPosition(FVector StartPos, bool bUpdateMesh)
 {
 	SplineParams.StartPos = StartPos;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector USplineMeshComponent::GetStartTangent() const
@@ -257,10 +268,14 @@ FVector USplineMeshComponent::GetStartTangent() const
 	return SplineParams.StartTangent;
 }
 
-void USplineMeshComponent::SetStartTangent(FVector StartTangent)
+void USplineMeshComponent::SetStartTangent(FVector StartTangent, bool bUpdateMesh)
 {
 	SplineParams.StartTangent = StartTangent;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector USplineMeshComponent::GetEndPosition() const
@@ -268,10 +283,14 @@ FVector USplineMeshComponent::GetEndPosition() const
 	return SplineParams.EndPos;
 }
 
-void USplineMeshComponent::SetEndPosition(FVector EndPos)
+void USplineMeshComponent::SetEndPosition(FVector EndPos, bool bUpdateMesh)
 {
 	SplineParams.EndPos = EndPos;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector USplineMeshComponent::GetEndTangent() const
@@ -279,19 +298,27 @@ FVector USplineMeshComponent::GetEndTangent() const
 	return SplineParams.EndTangent;
 }
 
-void USplineMeshComponent::SetEndTangent(FVector EndTangent)
+void USplineMeshComponent::SetEndTangent(FVector EndTangent, bool bUpdateMesh)
 {
 	SplineParams.EndTangent = EndTangent;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
-void USplineMeshComponent::SetStartAndEnd(FVector StartPos, FVector StartTangent, FVector EndPos, FVector EndTangent)
+void USplineMeshComponent::SetStartAndEnd(FVector StartPos, FVector StartTangent, FVector EndPos, FVector EndTangent, bool bUpdateMesh)
 {
 	SplineParams.StartPos = StartPos;
 	SplineParams.StartTangent = StartTangent;
 	SplineParams.EndPos = EndPos;
 	SplineParams.EndTangent = EndTangent;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector2D USplineMeshComponent::GetStartScale() const
@@ -299,10 +326,14 @@ FVector2D USplineMeshComponent::GetStartScale() const
 	return SplineParams.StartScale;
 }
 
-void USplineMeshComponent::SetStartScale(FVector2D StartScale)
+void USplineMeshComponent::SetStartScale(FVector2D StartScale, bool bUpdateMesh)
 {
 	SplineParams.StartScale = StartScale;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 float USplineMeshComponent::GetStartRoll() const
@@ -310,10 +341,14 @@ float USplineMeshComponent::GetStartRoll() const
 	return SplineParams.StartRoll;
 }
 
-void USplineMeshComponent::SetStartRoll(float StartRoll)
+void USplineMeshComponent::SetStartRoll(float StartRoll, bool bUpdateMesh)
 {
 	SplineParams.StartRoll = StartRoll;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector2D USplineMeshComponent::GetStartOffset() const
@@ -321,10 +356,14 @@ FVector2D USplineMeshComponent::GetStartOffset() const
 	return SplineParams.StartOffset;
 }
 
-void USplineMeshComponent::SetStartOffset(FVector2D StartOffset)
+void USplineMeshComponent::SetStartOffset(FVector2D StartOffset, bool bUpdateMesh)
 {
 	SplineParams.StartOffset = StartOffset;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector2D USplineMeshComponent::GetEndScale() const
@@ -332,10 +371,14 @@ FVector2D USplineMeshComponent::GetEndScale() const
 	return SplineParams.EndScale;
 }
 
-void USplineMeshComponent::SetEndScale(FVector2D EndScale)
+void USplineMeshComponent::SetEndScale(FVector2D EndScale, bool bUpdateMesh)
 {
 	SplineParams.EndScale = EndScale;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 float USplineMeshComponent::GetEndRoll() const
@@ -343,10 +386,14 @@ float USplineMeshComponent::GetEndRoll() const
 	return SplineParams.EndRoll;
 }
 
-void USplineMeshComponent::SetEndRoll(float EndRoll)
+void USplineMeshComponent::SetEndRoll(float EndRoll, bool bUpdateMesh)
 {
 	SplineParams.EndRoll = EndRoll;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector2D USplineMeshComponent::GetEndOffset() const
@@ -354,10 +401,14 @@ FVector2D USplineMeshComponent::GetEndOffset() const
 	return SplineParams.EndOffset;
 }
 
-void USplineMeshComponent::SetEndOffset(FVector2D EndOffset)
+void USplineMeshComponent::SetEndOffset(FVector2D EndOffset, bool bUpdateMesh)
 {
 	SplineParams.EndOffset = EndOffset;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 ESplineMeshAxis::Type USplineMeshComponent::GetForwardAxis() const
@@ -365,10 +416,14 @@ ESplineMeshAxis::Type USplineMeshComponent::GetForwardAxis() const
 	return ForwardAxis;
 }
 
-void USplineMeshComponent::SetForwardAxis(ESplineMeshAxis::Type InForwardAxis)
+void USplineMeshComponent::SetForwardAxis(ESplineMeshAxis::Type InForwardAxis, bool bUpdateMesh)
 {
 	ForwardAxis = InForwardAxis;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 FVector USplineMeshComponent::GetSplineUpDir() const
@@ -376,10 +431,14 @@ FVector USplineMeshComponent::GetSplineUpDir() const
 	return SplineUpDir;
 }
 
-void USplineMeshComponent::SetSplineUpDir(const FVector& InSplineUpDir)
+void USplineMeshComponent::SetSplineUpDir(const FVector& InSplineUpDir, bool bUpdateMesh)
 {
 	SplineUpDir = InSplineUpDir.GetSafeNormal();
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 float USplineMeshComponent::GetBoundaryMin() const
@@ -387,10 +446,14 @@ float USplineMeshComponent::GetBoundaryMin() const
 	return SplineBoundaryMin;
 }
 
-void USplineMeshComponent::SetBoundaryMin(float InBoundaryMin)
+void USplineMeshComponent::SetBoundaryMin(float InBoundaryMin, bool bUpdateMesh)
 {
 	SplineBoundaryMin = InBoundaryMin;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
 float USplineMeshComponent::GetBoundaryMax() const
@@ -398,23 +461,37 @@ float USplineMeshComponent::GetBoundaryMax() const
 	return SplineBoundaryMax;
 }
 
-void USplineMeshComponent::SetBoundaryMax(float InBoundaryMax)
+void USplineMeshComponent::SetBoundaryMax(float InBoundaryMax, bool bUpdateMesh)
 {
 	SplineBoundaryMax = InBoundaryMax;
-	MarkSplineParamsDirty();
+	bMeshDirty = true;
+	if (bUpdateMesh)
+	{
+		UpdateRenderStateAndCollision();
+	}
 }
 
+void USplineMeshComponent::UpdateMesh()
+{
+	if (bMeshDirty)
+	{
+		UpdateRenderStateAndCollision();
+	}
+}
 
-void USplineMeshComponent::MarkSplineParamsDirty()
+void USplineMeshComponent::UpdateRenderStateAndCollision()
 {
 	MarkRenderStateDirty();
 
 #if WITH_EDITOR
 	if (!GetWorld()->AreActorsInitialized())
 	{
-		RecreateCollision();
+		DestroyBodySetup();
+		RecreatePhysicsState();
 	}
 #endif // WITH_EDITOR
+
+	bMeshDirty = false;
 }
 
 void USplineMeshComponent::Serialize(FArchive& Ar)
@@ -841,6 +918,7 @@ void USplineMeshComponent::DestroyBodySetup()
 	}
 }
 
+
 #if WITH_EDITOR
 void USplineMeshComponent::RecreateCollision()
 {
@@ -991,7 +1069,7 @@ void USplineMeshComponent::ApplyComponentInstanceData(FSplineMeshInstanceData* S
 			SplineParams.EndPos = SplineMeshInstanceData->EndPos;
 			SplineParams.StartTangent = SplineMeshInstanceData->StartTangent;
 			SplineParams.EndTangent = SplineMeshInstanceData->EndTangent;
-			MarkSplineParamsDirty();
+			UpdateRenderStateAndCollision();
 		}
 	}
 }

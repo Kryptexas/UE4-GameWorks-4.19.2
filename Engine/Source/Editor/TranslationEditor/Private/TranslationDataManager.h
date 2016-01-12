@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,7 +61,7 @@ public:
 	void HandlePropertyChanged(FName PropertyName);
 
 	/** Regenerate and reload archives to reflect modifications in the UI */
-	void PreviewAllTranslationsInEditor();
+	void PreviewAllTranslationsInEditor(ULocalizationTarget* LocalizationTarget);
 
 	/** Put items in the Search Array if they match this filter */
 	void PopulateSearchResultsUsingFilter(const FString& SearchFilter);

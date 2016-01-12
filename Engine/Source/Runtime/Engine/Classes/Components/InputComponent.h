@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Runtime/InputCore/Classes/InputCoreTypes.h"
@@ -663,6 +663,18 @@ public:
 	 */
 	template<class UserClass>
 	FInputActionBinding& BindAction( const FName ActionName, const EInputEvent KeyEvent, UserClass* Object, typename FInputActionHandlerSignature::TUObjectMethodDelegate< UserClass >::FMethodPtr Func )
+	{
+		FInputActionBinding AB( ActionName, KeyEvent );
+		AB.ActionDelegate.BindDelegate(Object, Func);
+		return AddActionBinding(AB);
+	}
+
+	/**
+	 * Binds a delegate function to an Action defined in the project settings.
+	 * Returned reference is only guaranteed to be valid until another action is bound.
+	 */
+	template<class UserClass>
+	FInputActionBinding& BindAction( const FName ActionName, const EInputEvent KeyEvent, UserClass* Object, typename FInputActionHandlerWithKeySignature::TUObjectMethodDelegate< UserClass >::FMethodPtr Func )
 	{
 		FInputActionBinding AB( ActionName, KeyEvent );
 		AB.ActionDelegate.BindDelegate(Object, Func);

@@ -1,28 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<ItemGroup Label="ProjectConfigurations">
-	<ProjectConfiguration Include="debug|x64">
+		<ProjectConfiguration Include="debug|x64">
 			<Configuration>debug</Configuration>
 			<Platform>x64</Platform>
-	</ProjectConfiguration>
-	<ProjectConfiguration Include="checked|x64">
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="checked|x64">
 			<Configuration>checked</Configuration>
 			<Platform>x64</Platform>
-	</ProjectConfiguration>
-	<ProjectConfiguration Include="release|x64">
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="release|x64">
 			<Configuration>release</Configuration>
 			<Platform>x64</Platform>
-	</ProjectConfiguration>
-	<ProjectConfiguration Include="profile|x64">
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="profile|x64">
 			<Configuration>profile</Configuration>
 			<Platform>x64</Platform>
-	</ProjectConfiguration>
+		</ProjectConfiguration>
 	</ItemGroup>
 	<PropertyGroup Label="Globals">
-		<ApplicationEnvironment>title</ApplicationEnvironment>
-		<!-- - - - -->
-		<PlatformToolset>v110</PlatformToolset>
-		<MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+		<ProjectGuid>{E52F63A7-67BB-4C5F-AC3F-306F95DBDD0F}</ProjectGuid>
+		<RootNamespace>ApexShared</RootNamespace>
 	</PropertyGroup>
 	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='debug|x64'" Label="Configuration">

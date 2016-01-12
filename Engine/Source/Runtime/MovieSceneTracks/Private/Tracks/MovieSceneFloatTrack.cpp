@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneFloatSection.h"
@@ -24,23 +24,6 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneFloatTrack::CreateInstance()
 }
 
 
-bool UMovieSceneFloatTrack::AddKeyToSection( float Time, float Value, FKeyParams KeyParams )
-{
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneFloatSection>(NearestSection)->NewKeyIsNewData(Time, Value, KeyParams))
-	{
-		Modify();
-
-		UMovieSceneFloatSection* NewSection = Cast<UMovieSceneFloatSection>( FindOrAddSection( Time ) );
-
-		NewSection->AddKey( Time, Value, KeyParams );
-
-		return true;
-	}
-	return false;
-}
-
-
 bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& OutFloat ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
@@ -56,15 +39,5 @@ bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& Out
 	}
 
 	return Section != nullptr;
-}
-
-bool UMovieSceneFloatTrack::CanKeyTrack(float Time, float Value, FKeyParams KeyParams) const
-{
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || CastChecked<UMovieSceneFloatSection>(NearestSection)->NewKeyIsNewData(Time, Value, KeyParams))
-	{
-		return true;
-	}
-	return false;
 }
 

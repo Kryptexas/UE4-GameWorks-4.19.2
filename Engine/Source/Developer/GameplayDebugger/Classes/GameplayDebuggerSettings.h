@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
@@ -37,18 +37,18 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggerSettings : public UObject
 	GENERATED_UCLASS_BODY()
 public:
 #if WITH_EDITOR
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 #endif
 
 	DECLARE_EVENT_OneParam(UGameplayDebuggerSettings, FSettingChangedEvent, FName /*PropertyName*/);
 	FSettingChangedEvent& OnSettingChanged() { return SettingChangedEvent; }
 
-	uint32 GetSettings()
+	uint32& GetSettings()
 	{
-		uint32 Settings = 0;
+		static uint32 Settings = 0;
 		Settings = OverHead ? Settings | (1 << EAIDebugDrawDataView::OverHead) : Settings & ~(1 << EAIDebugDrawDataView::OverHead);
 		Settings = Basic ? Settings | (1 << EAIDebugDrawDataView::Basic) : Settings & ~(1 << EAIDebugDrawDataView::Basic);
 		Settings = BehaviorTree ? Settings | (1 << EAIDebugDrawDataView::BehaviorTree) : Settings & ~(1 << EAIDebugDrawDataView::BehaviorTree);

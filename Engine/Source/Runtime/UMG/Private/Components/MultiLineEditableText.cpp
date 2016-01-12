@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -12,11 +12,14 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 {
 	SMultiLineEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._TextStyle;
-
-	bAutoWrapText = true;
+	AllowContextMenu = Defaults._AllowContextMenu.Get();
+	AutoWrapText = true;
 	
-	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-	Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+	if (!UE_SERVER)
+	{
+		static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
+		Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+	}
 }
 
 void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
@@ -30,9 +33,7 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 {
 	MyMultiLineEditableText = SNew(SMultiLineEditableText)
 	.TextStyle(&WidgetStyle)
-	.Justification(Justification)
-	.WrapTextAt( WrapTextAt )
-	.AutoWrapText( bAutoWrapText )
+	.AllowContextMenu(AllowContextMenu)
 //	.MinDesiredWidth(MinimumDesiredWidth)
 //	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 //	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
@@ -54,13 +55,18 @@ void UMultiLineEditableText::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
+	TAttribute<FText> HintTextBinding = OPTIONAL_BINDING(FText, HintText);
+
 	MyMultiLineEditableText->SetText(Text);
-//	MyMultiLineEditableText->SetHintText(HintText);
+	MyMultiLineEditableText->SetHintText(HintTextBinding);
+	MyMultiLineEditableText->SetAllowContextMenu(AllowContextMenu);
 //	MyMultiLineEditableText->SetIsReadOnly(IsReadOnly);
 //	MyMultiLineEditableText->SetIsPassword(IsPassword);
 //	MyMultiLineEditableText->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SMultiLineEditableText
+
+	Super::SynchronizeTextLayoutProperties(*MyMultiLineEditableText);
 }
 
 FText UMultiLineEditableText::GetText() const

@@ -1,12 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-
 class IMessageRpcServer;
+class IPortalRpcServer;
 
-
-DECLARE_DELEGATE_RetVal_OneParam(TSharedPtr<IMessageRpcServer>, FOnPortalRpcLookup, const FString& /*ProductKey*/)
+DECLARE_DELEGATE_RetVal_OneParam(TSharedPtr<IPortalRpcServer>, FOnPortalRpcLookup, const FString& /*ProductKey*/)
 
 
 /**

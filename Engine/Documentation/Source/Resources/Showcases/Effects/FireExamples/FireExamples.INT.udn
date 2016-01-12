@@ -5,6 +5,7 @@ Description:An overview of the Fire Effects that exist as a part of the Particle
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Related: Engine/Rendering/ParticleSystems/Optimization
+Version: 4.9
 
 [REGION:fullwidth]
 ![](title_Fire.png)

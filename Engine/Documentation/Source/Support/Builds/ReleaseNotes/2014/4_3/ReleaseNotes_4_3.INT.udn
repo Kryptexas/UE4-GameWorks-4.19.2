@@ -2,7 +2,8 @@ Title: Unreal Engine 4.3 Release Notes
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
-
+version: 4.3
+order:3
 
 [TOC(start:2 end:2)]
 

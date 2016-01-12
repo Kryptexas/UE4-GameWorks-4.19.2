@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DistCurveEditorModule.h"
 #include "SDistributionCurveEditor.h"
@@ -821,6 +821,11 @@ void FCurveEditorViewportClient::Exec(const TCHAR* Cmd)
 
 float FCurveEditorViewportClient::GetViewportVerticalScrollBarRatio() const
 {
+	if (SharedData->LabelContentBoxHeight == 0.0f)
+	{
+		return 1.0f;
+	}
+
 	float WidgetHeight = 1.0f;
 	if (CurveEditorViewportPtr.Pin()->GetVerticalScrollBar().IsValid())
 	{

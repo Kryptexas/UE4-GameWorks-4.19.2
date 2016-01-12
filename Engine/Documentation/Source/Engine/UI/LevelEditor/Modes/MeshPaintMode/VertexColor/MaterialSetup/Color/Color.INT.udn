@@ -2,7 +2,8 @@ Availability: Public
 Title:Vertex Color Materials
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup
 Description:How to set up materials that utilize Vertex Color so that you can paint colors in Mesh Paint Mode.
-
+Version: 4.9
+SkillLevel: Intermediate
 
 There are really an infinite number of ways one could use the colors from a Vertex Color material expression. For this setup, we are going to keep things relatively simple and just multiply the colors into an existing material. This allows us to have the original texture in place, but to tint it with the Mesh Paint tool.
 
@@ -14,8 +15,9 @@ In order to make this paintable, we need to get the Vertex Color material expres
 
 **Click for full size.**
 
- [![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
-
+[REGION:lightbox]
+[![](OriginalColorMaterial.png)(w:720)](OriginalColorMaterial.png)
+[/REGION]
 
 [REGION:note]
 This material has been desaturated a bit, giving us more room to add color via the Mesh Paint tool.
@@ -25,9 +27,10 @@ This material has been desaturated a bit, giving us more room to add color via t
  To get our vertex colors worked into the material, we simply need to intercept the Base Color connection and multiply it by a Vertex Color expression's RGB value, like so:
 
  **Click for full size.**
-
+ 
+[REGION:lightbox]
 [![](VertexColorAdded.png)(w:720)](VertexColorAdded.png)
-
+[/REGION]
 
 Within the commented area, you can see where we have added a Multiply node and a corresponding Vertex Color node.
 

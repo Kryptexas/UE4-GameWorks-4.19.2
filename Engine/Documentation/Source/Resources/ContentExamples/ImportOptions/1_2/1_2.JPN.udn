@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2615751
+﻿INTSourceChangelist:2714607
 Availability:Public
-Title:1.2 - メッシュ LOD のインポート
+Title:1.2 - メッシュ の LOD のインポート
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/ImportOptions
-Description:メッシュ LOD のインポート
+Description:メッシュの LOD のインポート
 Related:Engine/Content/FBX/ImportOptions
 Related:Engine/Content/FBX/BestPractices
 Related:Engine/Content/FBX/StaticMeshes
@@ -13,6 +13,25 @@ Related:Engine/Content/FBX/MorphTargets
 Related:Shared/Editor/FbxErrors
 Related:Engine/Content/FBX/Materials
 Related:Engine/Content/Types/StaticMeshes/HowTo/LODs
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/ImportOptions/1_1 "%Resources/ContentExamples/ImportOptions/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[インポート オプション ホーム](Resources/ContentExamples/ImportOptions)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/ImportOptions/1_3 "%Resources/ContentExamples/ImportOptions/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 
 [VAR:TopicCompact]

@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2616803
+﻿INTSourceChangelist:2726436
 Availability:Public
 Title:リフレクション 
 Crumbs:%ROOT%, Resources
-Description: UE4 に含まれるリフレクション サンプルの概要
+Description: UE4 に含まれるリフレクションのサンプルの概要
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering\LightingAndShadows
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/PostProcessEffects/ScreenSpaceReflection
 Related:Resources/ContentExamples/Reflections/1_4
 Related:Resources/ContentExamples/Reflections/1_3
-
+Version:4.9
 
 
 
@@ -105,7 +105,7 @@ Reflection Capture アクタは、レベル全体へ戦略的に配置するオ�
 ![](ScreenSpaceReflections.gif)
 
 アンリアル エンジン 4 のスクリーン空間反射はデフォルト設定でアクティブになっていますが、設定によっては _r.SSR.Quality 3_ または _r.SSR.Quality 0_ などのコンソールコマンドを使用してトグルすることも出来ます。
-以下は (r.SSR を 1 に設定) した例と、スクリーン空間反射なし (r.SSR を 0 に設定) の両設定をした反射シーンの結果です。
+以下はスクリーン空間反射あり (r.SSR を 1 に設定) の場合と、スクリーン空間反射なし (r.SSR を 0 に設定) の場合の反射シーンの結果です。
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

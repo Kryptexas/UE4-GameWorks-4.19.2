@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2666757
+Availability:Public
 Title:被破壊性プロパティのマトリックス
 Crumbs: %ROOT%, Engine
 Description:被破壊メッシュ エディタ内の Destructible アクタの全プロパティの説明
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -85,8 +87,7 @@ Description:被破壊メッシュ エディタ内の Destructible アクタの�
 | **Enable Shadow Casting** | シャドウをキャストするためにこのマテリアルを有効にします。1 エレメントレベル当たりであるため、それぞれの破砕レベルは異なるマテリアルを使用できます。破砕されたオブジェクトより小さなレベルでシャドウを消すことができます。 |
 | **Force CPUSkinning** | 全てのスキニングは、 GPU スキニングがデフォルト値です。この設定により、Destructible アクタは強制的に CPU スキニングを使用します。 |
 | **Use Full Precision UVs** | _true_ の場合、このオブジェクトは 32 ビットの UV を使用します。 _false_ の場合、 16 ビットの UV を使用してメモリをセーブします。|
-
-### テクスチャストリーミングのサブカテゴリ
+		### テクスチャストリーミングのサブカテゴリ
 
 | **プロパティ** | **説明** |
 | --------| ---------|

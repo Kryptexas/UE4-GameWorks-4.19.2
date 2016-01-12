@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -30,94 +30,11 @@
 
 // The number of view descriptors available per (online) descriptor heap, depending on hardware tier
 #define NUM_VIEW_DESCRIPTORS_TIER_1 250000
-#define NUM_VIEW_DESCRIPTORS_TIER_2 250000
+#define NUM_VIEW_DESCRIPTORS_TIER_2 150000
 #define NUM_SAMPLER_DESCRIPTORS 2000
 
 // Heap for updating UAV counter values.
 #define COUNTER_HEAP_SIZE 1024 * 64
-
-enum EGraphicsDescriptorTables
-{
-	Graphics_PS_SRVs,
-	Graphics_PS_CBs,
-	Graphics_PS_Samplers,
-	Graphics_VS_SRVs,
-	Graphics_VS_CBs,
-	Graphics_VS_Samplers,
-	Graphics_GS_SRVs,
-	Graphics_GS_CBs,
-	Graphics_GS_Samplers,
-	Graphics_HS_SRVs,
-	Graphics_HS_CBs,
-	Graphics_HS_Samplers,
-	Graphics_DS_SRVs,
-	Graphics_DS_CBs,
-	Graphics_DS_Samplers,
-	Graphics_UAVs,
-	Graphics_DescriptorTableCount,
-};
-
-enum EComputeDescriptorTables
-{
-	Compute_SRVs,
-	Compute_CBs,
-	Compute_Samplers,
-	Compute_UAVs,
-	Compute_DescriptorTableCount,
-};
-
-enum EShaderStageDescriptorTables
-{
-	Descriptors_SRVs,
-	Descriptors_CBs,
-	Descriptors_Samplers,
-	Descriptors_ShaderStageTableCount,
-};
-
-#define NUM_CB_RTL_SLOTS 4
-
-inline uint32 SamplerRTLBindSlot(EShaderFrequency SF)
-{
-	switch (SF)
-	{
-	case SF_Vertex: return Graphics_VS_Samplers;
-	case SF_Pixel: return Graphics_PS_Samplers;
-	case SF_Geometry: return Graphics_GS_Samplers;
-	case SF_Hull: return Graphics_HS_Samplers;
-	case SF_Domain: return Graphics_DS_Samplers;
-
-	default: check(false); // Caller should check compute first if it's an option
-	}
-	return UINT_MAX;
-}
-
-inline uint32 SRVRTLBindSlot(EShaderFrequency SF)
-{
-	switch (SF)
-	{
-	case SF_Vertex: return Graphics_VS_SRVs;
-	case SF_Pixel: return Graphics_PS_SRVs;
-	case SF_Geometry: return Graphics_GS_SRVs;
-	case SF_Hull: return Graphics_HS_SRVs;
-	case SF_Domain: return Graphics_DS_SRVs;
-	default: check(false); // Caller should check compute first if it's an option
-	}
-	return UINT_MAX;
-}
-
-inline uint32 CBCRTLBindSlot(EShaderFrequency SF)
-{
-	switch (SF)
-	{
-	case SF_Vertex: return Graphics_VS_CBs;
-	case SF_Pixel: return Graphics_PS_CBs;
-	case SF_Geometry: return Graphics_GS_CBs;
-	case SF_Hull: return Graphics_HS_CBs;
-	case SF_Domain: return Graphics_DS_CBs;
-	default: check(false); // Caller should check compute first if it's an option
-		return UINT_MAX;
-	}
-}
 
 // Keep set state functions inline to reduce call overhead
 #define D3D12_STATE_CACHE_INLINE FORCEINLINE
@@ -138,8 +55,8 @@ inline void hash_combine(SIZE_T & seed, const T & v)
 #define PSO_IF_MEMCMP_FAILS_RETURN_FALSE( value ) if(FMemory::Memcmp(&lhs.##value, &rhs.##value, sizeof(rhs.##value)) != 0){ return false; }
 
 #define PSO_IF_STRING_COMPARE_FAILS_RETURN_FALSE( value ) \
-	const char* lhString = lhs.##value##; \
-	const char* rhString = rhs.##value##; \
+	const char* const lhString = lhs.##value##; \
+	const char* const rhString = rhs.##value##; \
 	if (lhString != rhString) \
 	{ \
 		if (strcmp(lhString, rhString) != 0) \
@@ -279,6 +196,12 @@ template <> struct equality_pipeline_state_desc<FD3D12ComputePipelineStateDesc>
 		PSO_IF_NOT_EQUAL_RETURN_FALSE(Desc.pRootSignature)
 		PSO_IF_NOT_EQUAL_RETURN_FALSE(Desc.NodeMask)
 		
+		// Shader byte code is hashed with SHA1 (160 bit) so the chances of collision
+		// should be tiny i.e if there were 1 quadrillion shaders the chance of a 
+		// collision is ~ 1 in 10^18. so only do a full check on debug builds
+		PSO_IF_NOT_EQUAL_RETURN_FALSE(CSHash)
+
+#if UE_BUILD_DEBUG
 		if (lhs.Desc.CS.pShaderBytecode != rhs.Desc.CS.pShaderBytecode &&
 			lhs.Desc.CS.BytecodeLength)
 		{
@@ -287,6 +210,7 @@ template <> struct equality_pipeline_state_desc<FD3D12ComputePipelineStateDesc>
 				return false;
 			}
 		}
+#endif
 
 		return true;
 	}
@@ -450,6 +374,11 @@ public:
 		, Desc({})
 		, DescriptorSize(0)
 		, NextSlotIndex(0)
+		, FirstUsedSlot(0)
+#if UE_BUILD_DEBUG
+		, StartSlotPerFrame(0)
+		, MaxSlotsPerFrame(0)
+#endif
 		{ }
 
 		friend class FD3D12DescriptorCache;
@@ -472,13 +401,57 @@ public:
 		// This index indicate where the next set of descriptors should be placed *if* there's room
 		uint32 NextSlotIndex;
 
+		// Indicates the last free slot marked by the command list being finished
+		uint32 FirstUsedSlot;
+
+#if UE_BUILD_DEBUG
+		uint32 StartSlotPerFrame;
+		uint32 MaxSlotsPerFrame;
+#endif
+
 		FD3D12CommandListHandle CurrentCommandList;
+
+		struct SyncPointEntry
+		{
+			FD3D12CLSyncPoint SyncPoint;
+			uint32 LastSlotInUse;
+
+			SyncPointEntry() : LastSlotInUse(0)
+			{}
+
+			SyncPointEntry(const SyncPointEntry& InSyncPoint) : SyncPoint(InSyncPoint.SyncPoint), LastSlotInUse(InSyncPoint.LastSlotInUse)
+			{}
+
+			SyncPointEntry& operator = (const SyncPointEntry& InSyncPoint)
+			{
+				SyncPoint = InSyncPoint.SyncPoint;
+				LastSlotInUse = InSyncPoint.LastSlotInUse;
+
+				return *this;
+			}
+		};
+		TQueue<SyncPointEntry> SyncPoints;
 
 		struct PoolEntry
 		{
 			TRefCountPtr<ID3D12DescriptorHeap> Heap;
 			FD3D12CLSyncPoint SyncPoint;
+
+			PoolEntry()
+			{}
+
+			PoolEntry(const PoolEntry& InPoolEntry) : Heap(InPoolEntry.Heap), SyncPoint(InPoolEntry.SyncPoint)
+			{}
+
+			PoolEntry& operator = (const PoolEntry& InPoolEntry)
+			{
+				Heap = InPoolEntry.Heap;
+				SyncPoint = InPoolEntry.SyncPoint;
+
+				return *this;
+			}
 		};
+		PoolEntry Entry;
 		TQueue<PoolEntry> ReclaimPool;
 
 	public:
@@ -490,8 +463,10 @@ public:
 		void RollOver();
 		uint32 ReserveSlots(uint32 NumSlotsRequested);
 		void SetNextSlot(uint32 NextSlot);
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{ CPUBase.ptr + Slot * DescriptorSize }; }
-		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{ GPUBase.ptr + Slot * DescriptorSize }; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{CPUBase.ptr + Slot * DescriptorSize}; }
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{GPUBase.ptr + Slot * DescriptorSize}; }
+
+		void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
 	};
 
 	OnlineHeap ViewHeap;
@@ -509,7 +484,7 @@ public:
 		CmdContext = nullptr;
 	}
 
-	~FD3D12DescriptorCache(){}
+	~FD3D12DescriptorCache() {}
 
 	inline ID3D12DescriptorHeap *GetViewDescriptorHeap()
 	{
@@ -523,11 +498,7 @@ public:
 
 	// Notify the descriptor cache of the current fence value every time you start recording a command list; this allows
 	// us to avoid querying DX12 for that value thousands of times per frame, which can be costly.
-	inline void NotifyCurrentCommandList(FD3D12CommandListHandle CommandListHandle)
-	{
-		ViewHeap.CurrentCommandList = CommandListHandle;
-		SamplerHeap.CurrentCommandList = CommandListHandle;
-	}
+	void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
 
 	// ------------------------------------------------------
 	// end Descriptor Slot Reservation stuff
@@ -542,7 +513,7 @@ public:
 
 	void SetIndexBuffer(FD3D12ResourceLocation* IndexBufferLocation, DXGI_FORMAT Format, uint32 Offset);
 	void SetVertexBuffers(FD3D12VertexBufferState* VertexBuffers, uint32 Count);
-	void SetUAVs(EShaderFrequency ShaderStage,uint32 UAVStartSlot, TRefCountPtr<FD3D12UnorderedAccessView>* UnorderedAccessViewArray, uint32 Count, uint32 &HeapSlot);
+	void SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, TRefCountPtr<FD3D12UnorderedAccessView>* UnorderedAccessViewArray, uint32 Count, uint32 &HeapSlot);
 	void SetRenderTargets(FD3D12RenderTargetView **RenderTargetViewArray, uint32 Count, FD3D12DepthStencilView* DepthStencilTarget, bool bDepthIsBoundAsSRV);
 	void SetSamplers(EShaderFrequency ShaderStage, FD3D12SamplerState** Samplers, uint32 Count, uint32 &HeapSlot);
 	void SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<FD3D12ShaderResourceView> * SRVs, uint32 Count, bool* CurrentShaderResourceViewsIntersectWithDepthRT, uint32 &HeapSlot);
@@ -554,7 +525,8 @@ public:
 	void ClearConstantBuffer(EShaderFrequency ShaderStage, uint32 SlotIndex);
 
 	void HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type);
-	void Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext);
+	void HeapLoopedAround(D3D12_DESCRIPTOR_HEAP_TYPE Type);
+	void Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, uint32 InNumViewDescriptors, uint32 InNumSamplerDescriptors);
 	void Clear();
 	void EndFrame();
 
@@ -579,7 +551,7 @@ class FDiskCacheInterface
 {
 	// Increment this if changes are made to the
 	// disk caches so stale caches get updated correctly
-	static const uint32 mCurrentHeaderVersion = 2;
+	static const uint32 mCurrentHeaderVersion = 3;
 	struct FDiskCacheHeader
 	{
 		uint32 mHeaderVersion;
@@ -690,9 +662,9 @@ private:
 #endif
 
 public:
-	void RebuildFromDiskCache(ID3D12RootSignature* pGraphicsRootSig, ID3D12RootSignature* pComputeRootSignature);
+	void RebuildFromDiskCache();
 
-	ID3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc, ID3D12RootSignature* rootSignature, bool insertIntoDiskCache = false);
+	ID3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache = false);
 	ID3D12PipelineState* FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache = false);
 
 	void Close();
@@ -708,6 +680,8 @@ public:
 	FD3D12PipelineStateCache(FD3D12Device* InParent);
 	~FD3D12PipelineStateCache();
 
+	FD3D12PipelineStateCache& operator=(const FD3D12PipelineStateCache&);
+
 	static const bool bUseAPILibaries = false;
 };
 
@@ -715,25 +689,25 @@ class FD3D12BitArray
 {
 public:
 
-	FD3D12BitArray() : Array (0) {}
-	FD3D12BitArray (uint32 InArray) : Array (InArray) {}
+	FD3D12BitArray() : Array(0) {}
+	FD3D12BitArray(uint32 InArray) : Array(InArray) {}
 
 	void Clear()
 	{
 		Array = 0;
 	}
 
-	void SetIndex (uint32 Index)
+	void SetIndex(uint32 Index)
 	{
 		Array |= (1 << Index);
 	}
 
-	void ClearIndex (uint32 Index)
+	void ClearIndex(uint32 Index)
 	{
 		Array &= ~(1 << Index);
 	}
 
-	void Set (uint32 Bits)
+	void Set(uint32 Bits)
 	{
 		for (uint32 i = 0; i < Bits; ++i)
 		{
@@ -748,7 +722,7 @@ public:
 
 	uint32 LastSet() const
 	{
-		return 32 - FMath::CountLeadingZeros (Array);
+		return 32 - FMath::CountLeadingZeros(Array);
 	}
 
 	uint32 GetValue() const
@@ -765,21 +739,21 @@ class FD3D12StateArray
 {
 public:
 
-	void SetIndex (uint32 Index)
+	void SetIndex(uint32 Index)
 	{
-		SetIndices.SetIndex     (Index);
-		ChangedIndices.SetIndex (Index);
+		SetIndices.SetIndex(Index);
+		ChangedIndices.SetIndex(Index);
 	}
 
-	void ClearIndex (uint32 Index)
+	void ClearIndex(uint32 Index)
 	{
-		SetIndices.ClearIndex   (Index);
-		ChangedIndices.SetIndex (Index);
+		SetIndices.ClearIndex(Index);
+		ChangedIndices.SetIndex(Index);
 	}
 
 	uint32 LastSet() const
 	{
-		FD3D12BitArray Merged (SetIndices.GetValue() | ChangedIndices.GetValue());
+		FD3D12BitArray Merged(SetIndices.GetValue() | ChangedIndices.GetValue());
 
 		return Merged.LastSet();
 	}
@@ -846,6 +820,9 @@ protected:
 			ID3D12PipelineState* CurrentPipelineStateObject;
 			bool bNeedRebuildPSO;
 
+			// Note: Current root signature is part of the bound shader state
+			bool bNeedSetRootSignature;
+
 			// Full high level PSO desc
 			FD3D12HighLevelGraphicsPipelineStateDesc HighLevelDesc;
 
@@ -861,6 +838,7 @@ protected:
 
 			// Vertex Buffer State
 			FD3D12VertexBufferState CurrentVertexBuffers[D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+			int32 MaxBoundVertexBufferIndex;
 
 			// SO
 			uint32			CurrentNumberOfStreamOutTargets;
@@ -881,7 +859,7 @@ protected:
 			uint32 CurrentNumberOfScissorRects;
 
 			FD3D12RenderTargetView* RenderTargetArray[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-			
+
 			FD3D12DepthStencilView* CurrentDepthStencilTarget;
 		} Graphics;
 
@@ -890,6 +868,9 @@ protected:
 			// Cache
 			ID3D12PipelineState* CurrentPipelineStateObject;
 			bool bNeedRebuildPSO;
+
+			// Note: Current root signature is part of the bound compute shader
+			bool bNeedSetRootSignature;
 
 			// Compute
 			FD3D12ComputeShader* CurrentComputeShader;
@@ -1053,10 +1034,10 @@ protected:
 		TShader* OldShader = Traits::GetShader(BSS());
 		if (OldShader != Shader)
 		{
-			PipelineState.Common.CurrentShaderSamplerCounts[Traits::Frequency] = (Shader) ? Shader->SamplerCount : 0;
-			PipelineState.Common.CurrentShaderSRVCounts[Traits::Frequency]     = (Shader) ? Shader->SRVCount     : 0;
-			PipelineState.Common.CurrentShaderCBCounts[Traits::Frequency]      = (Shader) ? Shader->CBCount      : 0;
-			PipelineState.Common.CurrentShaderUAVCounts[Traits::Frequency]     = (Shader) ? Shader->UAVCount     : 0;
+			PipelineState.Common.CurrentShaderSamplerCounts[Traits::Frequency] = (Shader) ? Shader->ResourceCounts.NumSamplers : 0;
+			PipelineState.Common.CurrentShaderSRVCounts[Traits::Frequency]     = (Shader) ? Shader->ResourceCounts.NumSRVs     : 0;
+			PipelineState.Common.CurrentShaderCBCounts[Traits::Frequency]      = (Shader) ? Shader->ResourceCounts.NumCBs      : 0;
+			PipelineState.Common.CurrentShaderUAVCounts[Traits::Frequency]     = (Shader) ? Shader->ResourceCounts.NumUAVs     : 0;
 		}
 	}
 
@@ -1067,7 +1048,7 @@ protected:
 
 public:
 
-	void InheritState( const FD3D12StateCacheBase& AncestralCache )
+	void InheritState(const FD3D12StateCacheBase& AncestralCache)
 	{
 		FMemory::Memcpy(&PipelineState, &AncestralCache.PipelineState, sizeof(PipelineState));
 		RestoreState();
@@ -1081,6 +1062,18 @@ public:
 	ID3D12PipelineState* GetPipelineStateObject()
 	{
 		return PipelineState.Common.CurrentPipelineStateObject;
+	}
+
+	FD3D12RootSignature* GetGraphicsRootSignature()
+	{
+		return PipelineState.Graphics.HighLevelDesc.BoundShaderState ?
+			PipelineState.Graphics.HighLevelDesc.BoundShaderState->pRootSignature : nullptr;
+	}
+
+	FD3D12RootSignature* GetComputeRootSignature()
+	{
+		return PipelineState.Compute.CurrentComputeShader ?
+			PipelineState.Compute.CurrentComputeShader->pRootSignature : nullptr;
 	}
 
 	void ClearSamplers();
@@ -1294,9 +1287,17 @@ public:
 			SetShader<FD3D12GeometryShader>(nullptr);
 		}
 
-		if (PipelineState.Graphics.HighLevelDesc.BoundShaderState != BoundShaderState)
+		FD3D12BoundShaderState*& CurrentBSS = PipelineState.Graphics.HighLevelDesc.BoundShaderState;
+		if (CurrentBSS != BoundShaderState)
 		{
-			PipelineState.Graphics.HighLevelDesc.BoundShaderState = BoundShaderState;
+			const FD3D12RootSignature* const pCurrentRootSignature = CurrentBSS ? CurrentBSS->pRootSignature : nullptr;
+			const FD3D12RootSignature* const pNewRootSignature = BoundShaderState ? BoundShaderState->pRootSignature : nullptr;
+			if (pCurrentRootSignature != pNewRootSignature)
+			{
+				PipelineState.Graphics.bNeedSetRootSignature = true;
+			}
+
+			CurrentBSS = BoundShaderState;
 			PipelineState.Graphics.bNeedRebuildPSO = true;
 		}
 	}
@@ -1310,12 +1311,20 @@ public:
 	{
 		if (PipelineState.Compute.CurrentComputeShader != Shader)
 		{
+			// See if we need to change the root signature
+			const FD3D12RootSignature* const pCurrentRootSignature = PipelineState.Compute.CurrentComputeShader ? PipelineState.Compute.CurrentComputeShader->pRootSignature : nullptr;
+			const FD3D12RootSignature* const pNewRootSignature = Shader ? Shader->pRootSignature : nullptr;
+			if (pCurrentRootSignature != pNewRootSignature)
+			{
+				PipelineState.Compute.bNeedSetRootSignature = true;
+			}
+
 			PipelineState.Compute.CurrentComputeShader                  = Shader;
 			PipelineState.Compute.bNeedRebuildPSO = true;
-			PipelineState.Common.CurrentShaderSamplerCounts[SF_Compute] = (Shader) ? Shader->SamplerCount : 0;
-			PipelineState.Common.CurrentShaderSRVCounts[SF_Compute]     = (Shader) ? Shader->SRVCount     : 0;
-			PipelineState.Common.CurrentShaderCBCounts[SF_Compute]      = (Shader) ? Shader->CBCount      : 0;
-			PipelineState.Common.CurrentShaderUAVCounts[SF_Compute]     = (Shader) ? Shader->UAVCount     : 0;
+			PipelineState.Common.CurrentShaderSamplerCounts[SF_Compute] = (Shader) ? Shader->ResourceCounts.NumSamplers : 0;
+			PipelineState.Common.CurrentShaderSRVCounts[SF_Compute]     = (Shader) ? Shader->ResourceCounts.NumSRVs     : 0;
+			PipelineState.Common.CurrentShaderCBCounts[SF_Compute]      = (Shader) ? Shader->ResourceCounts.NumCBs      : 0;
+			PipelineState.Common.CurrentShaderUAVCounts[SF_Compute]     = (Shader) ? Shader->ResourceCounts.NumUAVs     : 0;
 		}
 	}
 
@@ -1379,7 +1388,7 @@ public:
 
 	D3D12_STATE_CACHE_INLINE bool IsStreamSource(const FD3D12ResourceLocation* VertexBufferLocation) const
 	{
-		for (uint32 index = 0; index < D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; ++index)
+		for (int32 index = 0; index <= PipelineState.Graphics.MaxBoundVertexBufferIndex; ++index)
 		{
 			if (PipelineState.Graphics.CurrentVertexBuffers[index].VertexBufferLocation.GetReference() == VertexBufferLocation)
 			{
@@ -1424,6 +1433,8 @@ public:
 		{
 			Index = INDEX_NONE;
 		}
+
+		PipelineState.Graphics.MaxBoundVertexBufferIndex = INDEX_NONE;
 	}
 
 	void Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, const FD3D12StateCacheBase* AncestralState, bool bInAlwaysSetIndexBuffers = false);
@@ -1495,6 +1506,8 @@ public:
 
 	void ForceRebuildGraphicsPSO() { PipelineState.Graphics.bNeedRebuildPSO = true; }
 	void ForceRebuildComputePSO() { PipelineState.Compute.bNeedRebuildPSO = true; }
+	void ForceSetGraphicsRootSignature() { PipelineState.Graphics.bNeedSetRootSignature = true; }
+	void ForceSetComputeRootSignature() { PipelineState.Compute.bNeedSetRootSignature = true; }
 	void ForceSetVB() { bNeedSetVB = true; }
 	void ForceSetIB() { bNeedSetIB = true; }
 	void ForceSetUAVs() { bNeedSetUAVs = true; }

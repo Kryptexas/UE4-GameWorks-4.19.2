@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeModule.h"
 #include "FXSystem.h"
@@ -1228,7 +1228,7 @@ bool FCascade::InsertModule(UParticleModule* Module, UParticleEmitter* TargetEmi
 
 		if (bInsert == true)
 		{
-			LODLevel->TypeDataModule = Module;
+			LODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(Module);
 
 			if (DraggedModules.Num() > 0)
 			{
@@ -1238,7 +1238,7 @@ bool FCascade::InsertModule(UParticleModule* Module, UParticleEmitter* TargetEmi
 					UParticleLODLevel* TargetEmitterLODLevel = TargetEmitter->GetLODLevel(LODIndex);
 					UParticleModule* DraggedModule = DraggedModules[LODIndex];
 
-					TargetEmitterLODLevel->TypeDataModule = DraggedModule;
+					TargetEmitterLODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(DraggedModule);
 				}
 			}
 		}
@@ -1331,7 +1331,7 @@ void FCascade::CopyModuleToEmitter(UParticleModule* pkSourceModule, UParticleEmi
 		return;
 	}
 
-	UObject* DupObject = StaticDuplicateObject(pkSourceModule, pkTargetSystem, TEXT("None"));
+	UObject* DupObject = StaticDuplicateObject(pkSourceModule, pkTargetSystem);
 	if (DupObject)
 	{
 		UParticleModule* Module	= Cast<UParticleModule>(DupObject);
@@ -1352,7 +1352,7 @@ void FCascade::CopyModuleToEmitter(UParticleModule* pkSourceModule, UParticleEmi
 				UParticleModule* CopySource = DraggedModules[LODIndex];
 				if (CopySource)
 				{
-					DupObject = StaticDuplicateObject(CopySource, pkTargetSystem, TEXT("None"));
+					DupObject = StaticDuplicateObject(CopySource, pkTargetSystem);
 					if (DupObject)
 					{
 						UParticleModule* NewModule	= Cast<UParticleModule>(DupObject);
@@ -2134,6 +2134,12 @@ void FCascade::BindCommands()
 		FIsActionChecked::CreateSP(this, &FCascade::IsViewParticleMemoryChecked));
 
 	ToolkitCommands->MapAction(
+		Commands.View_SystemCompleted,
+		FExecuteAction::CreateSP(this, &FCascade::OnViewSystemCompleted),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FCascade::IsViewSystemCompletedChecked));
+
+	ToolkitCommands->MapAction(
 		Commands.ToggleGeometry,
 		FExecuteAction::CreateSP(this, &FCascade::OnViewGeometry),
 		FCanExecuteAction(),
@@ -2728,7 +2734,7 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 				}
 				else
 				{
-					DupObject = StaticDuplicateObject(SourceLODLevel->RequiredModule, DestSystem, TEXT("None"));
+					DupObject = StaticDuplicateObject(SourceLODLevel->RequiredModule, DestSystem);
 					check(DupObject);
 					NewLODLevel->RequiredModule						= Cast<UParticleModuleRequired>(DupObject);
 					NewLODLevel->RequiredModule->ModuleEditorColor	= FColor::MakeRandomColor();
@@ -2750,7 +2756,7 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 				}
 				else
 				{
-					DupObject = StaticDuplicateObject(SourceLODLevel->SpawnModule, DestSystem, TEXT("None"));
+					DupObject = StaticDuplicateObject(SourceLODLevel->SpawnModule, DestSystem);
 					check(DupObject);
 					NewLODLevel->SpawnModule					= Cast<UParticleModuleSpawn>(DupObject);
 					NewLODLevel->SpawnModule->ModuleEditorColor	= FColor::MakeRandomColor();
@@ -2776,7 +2782,7 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 					}
 					else
 					{
-						DupObject = StaticDuplicateObject(SourceModule, DestSystem, TEXT("None"));
+						DupObject = StaticDuplicateObject(SourceModule, DestSystem);
 						if (DupObject)
 						{
 							UParticleModule* Module				= Cast<UParticleModule>(DupObject);
@@ -2803,12 +2809,12 @@ bool FCascade::DuplicateEmitter(UParticleEmitter* SourceEmitter, UParticleSystem
 					}
 					else
 					{
-						DupObject = StaticDuplicateObject(SourceLODLevel->TypeDataModule, DestSystem, TEXT("None"));
+						DupObject = StaticDuplicateObject(SourceLODLevel->TypeDataModule, DestSystem);
 						if (DupObject)
 						{
 							UParticleModule* Module		= Cast<UParticleModule>(DupObject);
 							Module->ModuleEditorColor	= FColor::MakeRandomColor();
-							NewLODLevel->TypeDataModule	= Module;
+							NewLODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(Module);
 						}
 					}
 				}
@@ -3041,7 +3047,7 @@ void FCascade::DuplicateModule(bool bDoShare, bool bUseHighest)
 				DestLODLevel->SpawnModule = CastChecked<UParticleModuleSpawn>(NewModule);
 				break;
 			case INDEX_TYPEDATAMODULE:
-				DestLODLevel->TypeDataModule = NewModule;
+				DestLODLevel->TypeDataModule = CastChecked<UParticleModuleTypeDataBase>(NewModule);
 				break;
 			default:
 				DestLODLevel->Modules[SelectedModuleIndex] = NewModule;
@@ -3581,6 +3587,16 @@ bool FCascade::IsViewParticleMemoryChecked() const
 	return IsDrawOptionEnabled(FCascadeEdPreviewViewportClient::ParticleMemory);
 }
 
+void FCascade::OnViewSystemCompleted()
+{
+	ToggleDrawOption(FCascadeEdPreviewViewportClient::ParticleSystemCompleted);
+}
+
+bool FCascade::IsViewSystemCompletedChecked() const
+{
+	return IsDrawOptionEnabled(FCascadeEdPreviewViewportClient::ParticleSystemCompleted);
+}
+
 void FCascade::OnViewGeometry()
 {
 	if ((PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid()) &&
@@ -3820,7 +3836,7 @@ void FCascade::OnToggleGrid()
 		EditorOptions->SaveConfig();
 		DrawHelper.bDrawGrid = bShowGrid;
 
-		PreviewViewport->GetViewportClient()->EngineShowFlags.Grid = bShowGrid;
+		PreviewViewport->GetViewportClient()->EngineShowFlags.SetGrid(bShowGrid);
 		PreviewViewport->RefreshViewport();
 	}
 }
@@ -4671,7 +4687,7 @@ bool FCascade::ConvertModuleToSeeded(UParticleSystem* ParticleSystem, UParticleE
 		UParticleModule* NewModule = ConvertModule;
 		if ((LODIdx == 0) || ((ConvertModule->LODValidity & (1 << (LODIdx - 1))) == 0))
 		{
-			NewModule = CastChecked<UParticleModule>(StaticDuplicateObject(ConvertModule, ParticleSystem, TEXT("None"), RF_AllFlags, InSeededClass));
+			NewModule = CastChecked<UParticleModule>(StaticDuplicateObject(ConvertModule, ParticleSystem, NAME_None, RF_AllFlags, InSeededClass));
 
 			// Since we used the non-randomseed module to create, this flag won't be set during construction...
 			NewModule->bSupportsRandomSeed = true;

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -275,7 +275,7 @@ public partial class Project : CommandUtils
 								if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
 								{
 									Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
-									Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
+									LogError("Automated test failed ({0}).", Test);
 									LastAutoFailIndex = FailIndex;
 								}
 							}
@@ -303,12 +303,12 @@ public partial class Project : CommandUtils
 
 								if (FullSummary.Length > 0)
 								{
-									Log(System.Diagnostics.TraceEventType.Error, "Commandlet failed, summary:" + Environment.NewLine +
+									LogError("Commandlet failed, summary:" + Environment.NewLine +
 																					FullSummary);
 								}
 								else
 								{
-									Log(System.Diagnostics.TraceEventType.Error, "Commandlet failed.");
+									LogError("Commandlet failed.");
 								}
 							}
 						}
@@ -515,7 +515,7 @@ public partial class Project : CommandUtils
 												if (OpenParenIndex >= 0 && CloseParenIndex > OpenParenIndex)
 												{
 													Test = Tail.Substring(OpenParenIndex + 1, CloseParenIndex - OpenParenIndex - 1);
-													Log(System.Diagnostics.TraceEventType.Error, "Automated test failed ({0}).", Test);
+													LogError("Automated test failed ({0}).", Test);
 													LastAutoFailIndex = FailIndex;
 												}
 											}
@@ -775,7 +775,7 @@ public partial class Project : CommandUtils
                 }
 				TempCmdLine += " ";
 
-				if (!Params.CookOnTheFlyStreaming)
+				if (Params.CookOnTheFlyStreaming)
 				{
 					TempCmdLine += "-streaming ";
 				}
@@ -870,7 +870,7 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-nullrhi ";
 		}
-		if (Params.Deploy && SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.PS4)
+		if (Params.Deploy && !Params.CookOnTheFly && (SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.PS4))
 		{
 			TempCmdLine += "-deployedbuild ";
 		}
@@ -1006,11 +1006,11 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	private static ProcessResult RunCookOnTheFlyServer(string ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
+	private static ProcessResult RunCookOnTheFlyServer(FileReference ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
 	{
 		var ServerApp = HostPlatform.Current.GetUE4ExePath("UE4Editor.exe");
 		var Args = String.Format("{0} -run=cook -cookonthefly -unattended -CrashForUAT -FORCELOGFLUSH -log",
-			CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName));
+			CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName.FullName));
 		if (!String.IsNullOrEmpty(ServerLogFile))
 		{
 			Args += " -abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile);
@@ -1055,7 +1055,7 @@ public partial class Project : CommandUtils
 
 		Log("Running UnrealFileServer *******");
 		var Args = String.Format("{0} -abslog={1} -unattended -CrashForUAT -FORCELOGFLUSH -log {2}",
-						CommandUtils.MakePathSafeToUseWithCommandLine(Params.RawProjectPath),
+						CommandUtils.MakePathSafeToUseWithCommandLine(Params.RawProjectPath.FullName),
 						CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile),
 						AdditionalCommandLine);
 		if (IsBuildMachine)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
 #include "SDockTab.h"
@@ -55,18 +55,18 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 		.SetGroup(AppMenuGroup);
 	
 	// create tab layout
-	const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SessionFrontendLayout_v1.1")
+	const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SessionFrontendLayout_v1.2")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
-				->SetOrientation(Orient_Vertical)
+				->SetOrientation(Orient_Horizontal)
 				->Split
 				(
 					// session browser
 					FTabManager::NewStack()
 						->AddTab(SessionBrowserTabId, ETabState::OpenedTab)
 						->SetHideTabWell(true)
-						->SetSizeCoefficient(0.15f)
+						->SetSizeCoefficient(0.25f)
 				)
 				->Split
 				(
@@ -74,9 +74,9 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 					FTabManager::NewStack()
 						->AddTab(SessionConsoleTabId, ETabState::OpenedTab)
 						->AddTab(AutomationTabId, ETabState::OpenedTab)
-						->AddTab(SessionScreenTabId, ETabState::ClosedTab)
+						->AddTab(SessionScreenTabId, ETabState::OpenedTab)
 						->AddTab(ProfilerTabId, ETabState::OpenedTab)
-						->SetSizeCoefficient(0.85f)
+						->SetSizeCoefficient(0.75f)
 						->SetForegroundTab(SessionConsoleTabId)
 				)							
 		);

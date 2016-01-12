@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -257,6 +257,7 @@ class UEdGraphPin : public UObject
 public:
 	// UObject interface
 	virtual bool IsSafeForRootSet() const override { return false; }
+	virtual void PostLoad() override;
 	// End UObject interface
 
 	/** Create a link. Note, this does not check that schema allows it, and will not break any existing connections */

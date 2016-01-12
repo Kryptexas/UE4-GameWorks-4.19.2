@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Scalability.h"
@@ -58,8 +58,50 @@ static TAutoConsoleVariable<int32> CVarEffectsQuality(
 namespace Scalability
 {
 	// Select a the correct quality level for the given benchmark value and thresholds
-static int32 ComputeOptionFromPerfIndex(float PerfIndex, float Index01, float Index12, float Index23 )
+static int32 ComputeOptionFromPerfIndex(const FString& GroupName, float CPUPerfIndex, float GPUPerfIndex)
 {
+	// Some code defaults in case the ini file can not be read or has dirty data
+	float PerfIndex = FMath::Min(CPUPerfIndex, GPUPerfIndex);
+	float Index01 = 20;
+	float Index12 = 50;
+	float Index23 = 70;
+
+	if (GConfig)
+	{
+		const FString ArrayKey = FString(TEXT("PerfIndexThresholds_")) + GroupName;
+		TArray<FString> PerfIndexThresholds;
+		GConfig->GetSingleLineArray(TEXT("ScalabilitySettings"), *ArrayKey, PerfIndexThresholds, GScalabilityIni);
+
+		// This array takes on the form: "TypeString Index01 Index12 Index23"
+		if (PerfIndexThresholds.Num() > 3)
+		{
+			const FString TypeString = PerfIndexThresholds[0];
+			bool bTypeValid = false;
+			if (TypeString == TEXT("CPU"))
+			{
+				PerfIndex = CPUPerfIndex;
+				bTypeValid = true;
+			}
+			else if (TypeString == TEXT("GPU"))
+			{
+				PerfIndex = GPUPerfIndex;
+				bTypeValid = true;
+			}
+			else if (TypeString == TEXT("Min"))
+			{
+				PerfIndex = FMath::Min(CPUPerfIndex, GPUPerfIndex);
+				bTypeValid = true;
+			}
+
+			if (bTypeValid)
+			{
+				Index01 = FCString::Atof(*PerfIndexThresholds[1]);
+				Index12 = FCString::Atof(*PerfIndexThresholds[2]);
+				Index23 = FCString::Atof(*PerfIndexThresholds[3]);
+			}
+		}
+	}
+
 	if(PerfIndex < Index01)
 	{
 		return 0;
@@ -242,17 +284,16 @@ FQualityLevels BenchmarkQualityLevels(uint32 WorkScale)
 
 	float CPUPerfIndex = SynthBenchmark.ComputeCPUPerfIndex();
 	float GPUPerfIndex = SynthBenchmark.ComputeGPUPerfIndex();
-	float MinPerfIndex = FMath::Min(CPUPerfIndex, GPUPerfIndex);
 
 	// decide on the actual quality needed
 
-	Results.ResolutionQuality = GetRenderScaleLevelFromQualityLevel(ComputeOptionFromPerfIndex(GPUPerfIndex, 15, 45, 70));
-	Results.ViewDistanceQuality = ComputeOptionFromPerfIndex(MinPerfIndex, 20, 50, 70);
-	Results.AntiAliasingQuality = ComputeOptionFromPerfIndex(GPUPerfIndex, 15, 50, 70);
-	Results.ShadowQuality = ComputeOptionFromPerfIndex(MinPerfIndex, 15, 50, 70);
-	Results.PostProcessQuality = ComputeOptionFromPerfIndex(GPUPerfIndex, 20, 50, 70);
-	Results.TextureQuality = ComputeOptionFromPerfIndex(GPUPerfIndex, 10, 40, 70);
-	Results.EffectsQuality = ComputeOptionFromPerfIndex(MinPerfIndex, 25, 55, 70);
+	Results.ResolutionQuality = GetRenderScaleLevelFromQualityLevel(ComputeOptionFromPerfIndex(TEXT("ResolutionQuality"), CPUPerfIndex, GPUPerfIndex));
+	Results.ViewDistanceQuality = ComputeOptionFromPerfIndex(TEXT("ViewDistanceQuality"), CPUPerfIndex, GPUPerfIndex);
+	Results.AntiAliasingQuality = ComputeOptionFromPerfIndex(TEXT("AntiAliasingQuality"), CPUPerfIndex, GPUPerfIndex);
+	Results.ShadowQuality = ComputeOptionFromPerfIndex(TEXT("ShadowQuality"), CPUPerfIndex, GPUPerfIndex);
+	Results.PostProcessQuality = ComputeOptionFromPerfIndex(TEXT("PostProcessQuality"), CPUPerfIndex, GPUPerfIndex);
+	Results.TextureQuality = ComputeOptionFromPerfIndex(TEXT("TextureQuality"), CPUPerfIndex, GPUPerfIndex);
+	Results.EffectsQuality = ComputeOptionFromPerfIndex(TEXT("EffectsQuality"), CPUPerfIndex, GPUPerfIndex);
 
 	return Results;
 }
@@ -384,6 +425,9 @@ void FQualityLevels::SetDefaults()
 
 void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 {
+	// clamp in the range "low" to "epic"
+	Value = FMath::Clamp(Value, 0, 3);
+
 	ResolutionQuality = GetRenderScaleLevelFromQualityLevel(Value);
 	ViewDistanceQuality = Value;
 	AntiAliasingQuality = Value;
@@ -391,6 +435,24 @@ void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 	PostProcessQuality = Value;
 	TextureQuality = Value;
 	EffectsQuality = Value;
+}
+
+// Returns the overall value if all settings are set to the same thing
+// @param Value -1:custom 0:low, 1:medium, 2:high, 3:epic
+int32 FQualityLevels::GetSingleQualityLevel() const
+{
+	int32 Result = ViewDistanceQuality;
+
+	const int32 Target = ViewDistanceQuality;
+	if ((Target == AntiAliasingQuality) && (Target == ShadowQuality) && (Target == PostProcessQuality) && (Target == TextureQuality) && (Target == EffectsQuality))
+	{
+		if (GetRenderScaleLevelFromQualityLevel(Target) == ResolutionQuality)
+		{
+			return Target;
+		}
+	}
+
+	return -1;
 }
 
 void LoadState(const FString& IniName)

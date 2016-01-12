@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2574074
+﻿INTSourceChangelist:2620221
 Availability:Public
 Title:2.ゲームモードの拡張
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
-Description:スクリーンにメニューを追加したり削除するためにプロジェクトの Game Mode を拡張する
+Description:スクリーンにメニューを追加および削除できるように、プロジェクトのゲームモードを拡張する
+バージョン:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,10 +13,10 @@ Description:スクリーンにメニューを追加したり削除するため�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+		[UMG チュートリアルのホームページ](Programming\Tutorials\UMG)
 	[/PARAM]
 	[PARAM:next]
-		[次の手順](Programming\Tutorials\UMG\3 "%Programming\Tutorials\UMG\3:title%")
+		[前の手順](Programming\Tutorials\UMG\3 "%Programming\Tutorials\UMG\3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -23,7 +24,7 @@ Description:スクリーンにメニューを追加したり削除するため�
 %Steps%
 
 
-1. これから作成するメニューは **User Widgets（ユーザーウィジェット）** から作成します。新規の **User Widget** を作成したら表示する関数を記述して、ゲームが開始したらこの関数を呼び出します。後に削除が出来るように、作成したものはすべて覚えておかなくてはいけません。それぞれのプロジェクトはカスタム **Game Mode** クラスと一緒に提供されるため、「 `HowTo_UMGGameMode.h` 」ファイルに定義されているこのクラスを開きます。以下の関数とプロパティをクラスの下に追加します。
+1. これから作成するメニューは **User Widgets (ユーザー ウィジェット)** から作成します。新規の User Widget を作成したら表示する関数を記述して、ゲームが開始したらこの関数を呼び出します。後に削除が出来るように、作成したものはすべて覚えておかなくてはいけません。それぞれのプロジェクトはカスタム **Game Mode** クラスと一緒に提供されるため、 "HowTo_UMGGameMode.h" に定義されているこのクラスを開きます。以下の関数とプロパティをクラスの下に追加します。
 
 		public:
 			/** Called when the game starts. */
@@ -42,11 +43,11 @@ Description:スクリーンにメニューを追加したり削除するため�
 			UPROPERTY()
 			UUserWidget* CurrentWidget;
 
-1. コードで **User Widgets** を使用するために、 "#include" セクションの上に次のラインを追加します。
+1. コードで User Widgets を使用するために、"#include" セクションの上に次のラインを追加します。
 
 		#include "Blueprint/UserWidget.h"
 
-1. ここで「 `HowTo_UMGGameMode.cpp` 」へ移動して、宣言した2つの関数のボディにコードを記述します。BeginPlay() のオーバーライドから始めます。
+1. ここで "HowTo_UMGGameMode.cpp" へ移動して、宣言した 2 つの関数のボディにコードを記述します。**BeginPlay()** のオーバーライドから始めます。
 
 		void AHowTo_UMGGameMode::BeginPlay()
 		{
@@ -54,9 +55,9 @@ Description:スクリーンにメニューを追加したり削除するため�
 			ChangeMenuWidget(StartingWidgetClass);
 		}
 
-	[REGION:note]この時に _BeginPlay_ をオーバーライドするように、親クラスから関数をオーバーライドする時は（「Super」が参照）、この関数の親クラスを呼ぶことが重要になります。ここでの関数バージョンは、既存プロシージャーの終わりに手順を1つだけ追加するだけなので、関数の1行目で _Super::BeginPlay_ を呼び出します。[/REGION]
+	[REGION:note]この時に BeginPlay をオーバーライドするように、親クラスから関数をオーバーライドする時は (「Super」が参照)、この関数の親クラスを呼ぶことが重要になります。ここでの関数バージョンは、既存プロシージャーの終わりに手順を 1 つだけ追加するだけなので、関数の 1 行目で _Super::BeginPlay_ を呼び出します。[/REGION]
 
-1. 次に「 `HowTo_UMGGameMode.cpp` 」に、メニューが画面遷移する方法を定義しなくてはいけません。必要な場合は、アクティブな **ユーザーウィジェット** をすべてビューポートから削除します。次に **User Widget** を新規に作成して、ビューポートに追加します。
+1. 次に "HowTo_UMGGameMode.cpp" に、メニューが画面遷移する方法を定義しなくてはいけません。必要な場合は、アクティブなユーザー ウィジェットをすべてビューポートから削除します。次にユーザー ウィジェットを新規に作成して、ビューポートに追加します。
 
 		void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
 		{
@@ -75,12 +76,12 @@ Description:スクリーンにメニューを追加したり削除するため�
 			}
 		}
 
-	[REGION:note]このコードは作成した **ウィジェット** のインスタンスを生成して、スクリーンにこれを配置します。 **アンリアルエンジン** は一度に多数の **ウィジェット** の表示とインタラクションを処理しますが、コードはウィジェットの削除も行うため、一度に1つのウィジェットのみがアクティブになります。**アンリアルエンジン** のガーベジコレクションシステムがビューポートからウィジェットを削除したり、ウィジェットが参照するすべての変数をクリア（または変更）するため、ウィジェットを直接破壊する必要はありません。[/REGION]
+	[REGION:note]このコードは作成した **ウィジェット** のインスタンスを生成して、スクリーンにこれを配置します。 **アンリアル エンジン** は一度に多数のウィジェットの表示とインタラクションを処理しますが、コードはウィジェットの削除も行うため、一度に 1 つのウィジェットのみがアクティブになります。アンリアル エンジンのガーベジ コレクション システムがビューポートからウィジェットを削除したり、ウィジェットが参照するすべての変数をクリア (または変更) するため、ウィジェットを直接破壊する必要はありません。[/REGION]
 
 
 ----
 
-メニューの作成と表示、また不要になったら削除を行うコードフレームワークを作成しました。**アンリアルエディタ** へ戻る準備が整ったので、メニューアセットをデザインしましょう！
+メニューの作成と表示、また不要になったら削除を行うコードフレームワークを作成しました。**アンリアル エディタ** へ戻る準備が整ったので、メニューアセットをデザインしましょう！
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -91,7 +92,7 @@ Description:スクリーンにメニューを追加したり削除するため�
     [/PARAM]
     [PARAM:content]
 		**HowTo_UMG.Build.cs**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			using UnrealBuildTool;
 
@@ -103,10 +104,10 @@ Description:スクリーンにメニューを追加したり削除するため�
 
 					//PrivateDependencyModuleNames.AddRange(new string[] {  });
 
-					// Uncomment if you are using Slate UI
+					// Uncomment if you are using Slate UI (スレート UI を使用している場合はコメント行を外します)
 					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		// Uncomment if you are using online features
 
+					// Uncomment if you are using online features (オンライン機能を使用している場合はコメント行を外します)
 					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
 					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 					// {
@@ -119,7 +120,7 @@ Description:スクリーンにメニューを追加したり削除するため�
 			}
 
 		**HowTo_UMGGameMode.h**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -154,7 +155,7 @@ Description:スクリーンにメニューを追加したり削除するため�
 			};
 
 		**HowTo_UMGGameMode.cpp**
-			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_UMG.h"
 			#include "HowTo_UMGGameMode.h"

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2714514
 Availability:Public
 Title:2.2  - グローバル ベクターフィールド経由のパーティクル動作の操作
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
-Description:エフェクト ギャラリーの事例概要
+Description:エフェクト ギャラリーのサンプル レベルの概要
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 Related: Engine/Rendering/ParticleSystems/Overview
 Related: Engine/Rendering/ParticleSystems/Reference
@@ -10,6 +10,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/2_A "%Resources/ContentExamples/EffectsGallery/2_A:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/2_C "%Resources/ContentExamples/EffectsGallery/2_C:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -55,11 +74,11 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/REGION]
 
 
-グローバル ベクターフィールドは前例で紹介したローカル ベクターフィールドに似ていますが、エミッタ内のモジュールではなく、レベル内への配置が可能で必要に応じて位置調整や編集ができるアクタです。ローカル ベクターフィールド同様に、GPU パーティクルはパーティクルがフィールドのボリューム内に存在する時にベクターフィールドの力のみに影響を受けます。 
+**グローバル ベクターフィールド** は前のサンプルで紹介したローカル ベクターフィールドに似ていますが、エミッタ内のモジュールではなく、レベル内への配置が可能で必要に応じて位置調整や編集ができるアクタです。ローカル ベクターフィールド同様に、GPU パーティクルはパーティクルがフィールドのボリューム内に存在する時にベクターフィールドの力のみに影響を受けます。 
 
-グローバル ベクターフィールドの設定は、レベルにベクター フィールドボリュームを配置して、エミッタに Global Vector Field モジュールを追加するのみです！完了です!
+グローバル ベクターフィールドの設定は、レベルにベクター フィールドボリュームを配置して、エミッタに Global Vector Field モジュールを追加するのみです！これで完了です!
 
-この例では、レベルでベクターフィールド (VectorFieldVolume1) を選択して Y 軸に沿って移動させることができます。パーティクルはフィールド通過時に、パーティクル動作に対するフィールドの影響を受けています。
+このサンプルでは、レベルでベクターフィールド (VectorFieldVolume1) を選択して Y 軸に沿って移動させることができます。パーティクルはフィールドを通過しながら、その動きはフィールドの影響を受けています。
 
 ![](image052.png)
 

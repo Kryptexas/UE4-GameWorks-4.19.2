@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Controller.cpp: 
@@ -11,6 +11,7 @@
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/GameMode.h"
+#include "GameFramework/GameState.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "MessageLog.h"
 
@@ -98,11 +99,19 @@ void AController::SetInitialLocationAndRotation(const FVector& NewLocation, cons
 
 FRotator AController::GetControlRotation() const
 {
+	ControlRotation.DiagnosticCheckNaN();
 	return ControlRotation;
 }
 
 void AController::SetControlRotation(const FRotator& NewRotation)
 {
+#if ENABLE_NAN_DIAGNOSTIC
+	if (NewRotation.ContainsNaN())
+	{
+		logOrEnsureNanError(TEXT("AController::SetControlRotation about to apply NaN-containing rotation! (%s)"), *NewRotation.ToString());
+		return;
+	}
+#endif
 	if (!ControlRotation.Equals(NewRotation, 1e-3f))
 	{
 		ControlRotation = NewRotation;
@@ -327,10 +336,8 @@ void AController::RemovePawnTickDependency(APawn* InOldPawn)
 		{
 			PawnMovement->PrimaryComponentTick.RemovePrerequisite(this, this->PrimaryActorTick);
 		}
-		else
-		{
-			InOldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
-		}
+		
+		InOldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
 	}
 }
 
@@ -339,12 +346,20 @@ void AController::AddPawnTickDependency(APawn* NewPawn)
 {
 	if (NewPawn != NULL)
 	{
+		bool bNeedsPawnPrereq = true;
 		UPawnMovementComponent* PawnMovement = NewPawn->GetMovementComponent();
-		if (PawnMovement)
+		if (PawnMovement && PawnMovement->PrimaryComponentTick.bCanEverTick)
 		{
 			PawnMovement->PrimaryComponentTick.AddPrerequisite(this, this->PrimaryActorTick);
+
+			// Don't need a prereq on the pawn if the movement component already sets up a prereq.
+			if (PawnMovement->bTickBeforeOwner || NewPawn->PrimaryActorTick.GetPrerequisites().Contains(FTickPrerequisite(PawnMovement, PawnMovement->PrimaryComponentTick)))
+			{
+				bNeedsPawnPrereq = false;
+			}
 		}
-		else
+		
+		if (bNeedsPawnPrereq)
 		{
 			NewPawn->PrimaryActorTick.AddPrerequisite(this, this->PrimaryActorTick);
 		}
@@ -432,7 +447,17 @@ void AController::InitPlayerState()
 	if ( GetNetMode() != NM_Client )
 	{
 		UWorld* const World = GetWorld();
-		AGameMode* const GameMode = World ? World->GetAuthGameMode() : NULL;
+		const AGameMode* GameMode = World ? World->GetAuthGameMode() : NULL;
+
+		// If the GameMode is null, this might be a network client that's trying to
+		// record a replay. Try to use the default game mode in this case so that
+		// we can still spawn a PlayerState.
+		if (GameMode == NULL)
+		{
+			const AGameState* const GameState = World ? World->GetGameState() : NULL;
+			GameMode = GameState ? GameState->GetDefaultGameMode() : NULL;
+		}
+
 		if (GameMode != NULL)
 		{
 			FActorSpawnParameters SpawnInfo;
@@ -478,26 +503,23 @@ void AController::GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Ro
 
 void AController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-	UFont* RenderFont = GEngine->GetSmallFont();
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	if ( Pawn == NULL )
 	{
 		if (PlayerState == NULL)
 		{
-			YL = Canvas->DrawText(RenderFont, TEXT("NO PlayerState"), 4.0f, YPos );
+			DisplayDebugManager.DrawString(TEXT("NO PlayerState"));
 		}
 		else
 		{
 			PlayerState->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}
-		YPos += YL;
-
-		Super::DisplayDebug(Canvas, DebugDisplay, YL,YPos);
+		Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		return;
 	}
 
-	Canvas->SetDrawColor(255,0,0);
-	YL = Canvas->DrawText(RenderFont, FString::Printf(TEXT("CONTROLLER %s Pawn %s"), *GetName(), *Pawn->GetName()), 4.0f, YPos );
-	YPos += YL;
+	DisplayDebugManager.SetDrawColor(FColor(255, 0, 0));
+	DisplayDebugManager.DrawString(FString::Printf(TEXT("CONTROLLER %s Pawn %s"), *GetName(), *Pawn->GetName()));
 }
 
 FString AController::GetHumanReadableName() const

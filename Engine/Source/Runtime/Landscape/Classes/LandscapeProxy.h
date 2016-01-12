@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,6 +30,8 @@ class ALandscape;
 class ALandscapeProxy;
 class ULandscapeComponent;
 class USplineComponent;
+struct FLandscapeInfoLayerSettings;
+struct FAsyncGrassBuilder;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
@@ -126,6 +128,20 @@ struct FLandscapeLayerStruct
 	}
 };
 
+UENUM()
+enum class ELandscapeImportAlphamapType : uint8
+{
+	// Three layers blended 50/30/20 represented as 0.5, 0.3, and 0.2 in the alpha maps
+	// All alpha maps for blended layers total to 1.0
+	// This is the style used by UE4 internally for blended layers
+	Additive,
+
+	// Three layers blended 50/30/20 represented as 0.5, 0.6, and 1.0 in the alpha maps
+	// Each alpha map only specifies the remainder from previous layers, so the last layer used will always be 1.0
+	// Some other tools use this format
+	Layered,
+};
+
 /** Structure storing Layer Data for import */
 USTRUCT()
 struct FLandscapeImportLayerInfo
@@ -158,7 +174,7 @@ struct FLandscapeImportLayerInfo
 	{
 	}
 
-	LANDSCAPE_API FLandscapeImportLayerInfo(const struct FLandscapeInfoLayerSettings& InLayerSettings);
+	LANDSCAPE_API FLandscapeImportLayerInfo(const FLandscapeInfoLayerSettings& InLayerSettings);
 #endif
 };
 
@@ -166,20 +182,20 @@ struct FLandscapeImportLayerInfo
 // results in Engine being dependent on LandscapeEditor, as the actual landscape editing
 // code (e.g. LandscapeEdit.h) is in /Engine/ for some reason...
 UENUM()
-namespace ELandscapeLayerPaintingRestriction
+enum class ELandscapeLayerPaintingRestriction : uint8
 {
-	enum Type
-	{
-		/** No restriction, can paint anywhere (default). */
-		None         UMETA(DisplayName="None"),
+	/** No restriction, can paint anywhere (default). */
+	None         UMETA(DisplayName="None"),
 
-		/** Uses the MaxPaintedLayersPerComponent setting from the LandscapeProxy. */
-		UseMaxLayers UMETA(DisplayName="Limit Layer Count"),
+	/** Uses the MaxPaintedLayersPerComponent setting from the LandscapeProxy. */
+	UseMaxLayers UMETA(DisplayName="Limit Layer Count"),
 
-		/** Restricts painting to only components that already have this layer. */
-		ExistingOnly UMETA(DisplayName="Existing Layers Only"),
-	};
-}
+	/** Restricts painting to only components that already have this layer. */
+	ExistingOnly UMETA(DisplayName="Existing Layers Only"),
+
+	/** Restricts painting to only components that have this layer in their whitelist. */
+	UseComponentWhitelist UMETA(DisplayName="Component Whitelist"),
+};
 
 UENUM()
 namespace ELandscapeLODFalloff
@@ -285,11 +301,11 @@ struct FCachedLandscapeFoliage
 class FAsyncGrassTask : public FNonAbandonableTask
 {
 public:
-	struct FAsyncGrassBuilder* Builder;
+	FAsyncGrassBuilder* Builder;
 	FCachedLandscapeFoliage::FGrassCompKey Key;
 	TWeakObjectPtr<UHierarchicalInstancedStaticMeshComponent> Foliage;
 
-	FAsyncGrassTask(struct FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
+	FAsyncGrassTask(FAsyncGrassBuilder* InBuilder, const FCachedLandscapeFoliage::FGrassCompKey& InKey, UHierarchicalInstancedStaticMeshComponent* InFoliage)
 		: Builder(InBuilder)
 		, Key(InKey)
 		, Foliage(InFoliage)
@@ -416,7 +432,7 @@ public:
 
 	/** The Lightmass settings for this object. */
 	UPROPERTY(EditAnywhere, Category=Lightmass)
-	struct FLightmassPrimitiveSettings LightmassSettings;
+	FLightmassPrimitiveSettings LightmassSettings;
 
 	// Landscape LOD to use for collision tests. Higher numbers use less memory and process faster, but are much less accurate
 	UPROPERTY(EditAnywhere, Category=Landscape)
@@ -430,6 +446,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision, meta=(ShowOnlyInnerProperties))
 	FBodyInstance BodyInstance;
 
+	/** Whether to bake the landscape material's vertical world position offset into the collision heightfield.
+		Note: Only z (vertical) offset is supported. XY offsets are ignored.
+		Does not work with CollisionMipLevel > 0
+		Does not work with an XY offset map (mesh collision) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Landscape)
+	bool bBakeMaterialPositionOffsetIntoCollision;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	TArray<ULandscapeLayerInfoObject*> EditorCachedLayerInfos_DEPRECATED;
@@ -438,7 +461,7 @@ public:
 	FString ReimportHeightmapFilePath;
 
 	UPROPERTY()
-	TArray<struct FLandscapeEditorLayerSettings> EditorLayerSettings;
+	TArray<FLandscapeEditorLayerSettings> EditorLayerSettings;
 #endif
 
 	/** Data set at creation time */
@@ -459,7 +482,7 @@ public:
 	ENavDataGatheringMode NavigationGeometryGatheringMode;
 
 	UPROPERTY(EditAnywhere, Category=LOD)
-	TEnumAsByte<enum ELandscapeLODFalloff::Type> LODFalloff;
+	TEnumAsByte<ELandscapeLODFalloff::Type> LODFalloff;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Landscape)
@@ -476,7 +499,7 @@ public:
 	TMap<FString, UMaterialInstanceConstant*> MaterialInstanceConstantMap;
 
 	/** Map of weightmap usage */
-	TMap<UTexture2D*, struct FLandscapeWeightmapUsage> WeightmapUsageMap;
+	TMap<UTexture2D*, FLandscapeWeightmapUsage> WeightmapUsageMap;
 
 	// Blueprint functions
 
@@ -503,7 +526,7 @@ public:
 
 	// End blueprint functions
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void UnregisterAllComponents() override;
 	virtual void RegisterAllComponents() override;
 	virtual void RerunConstructionScripts() override {}
@@ -516,7 +539,7 @@ public:
 	virtual void PostEditMove(bool bFinished) override;
 	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
 	virtual bool ShouldExport() override;
-	// End AActor Interface
+	//~ End AActor Interface
 #endif	//WITH_EDITOR
 
 	FGuid GetLandscapeGuid() const { return LandscapeGuid; }
@@ -553,7 +576,7 @@ public:
 	int32 UpdateBakedTexturesCountdown;
 #endif
 
-	// Begin FTickableGameObject interface.
+	//~ Begin FTickableGameObject Interface.
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override 
 	{ 
@@ -572,7 +595,7 @@ public:
 		return GetStatID();
 	}
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostLoad() override;
@@ -583,7 +606,7 @@ public:
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual void PostEditImport() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	LANDSCAPE_API static TArray<FName> GetLayersFromMaterial(UMaterialInterface* Material);
 	LANDSCAPE_API TArray<FName> GetLayersFromMaterial() const;
@@ -633,10 +656,9 @@ public:
 
 	LANDSCAPE_API static ULandscapeMaterialInstanceConstant* GetLayerThumbnailMIC(UMaterialInterface* LandscapeMaterial, FName LayerName, UTexture2D* ThumbnailWeightmap, UTexture2D* ThumbnailHeightmap, ALandscapeProxy* Proxy);
 
-	LANDSCAPE_API void Import(FGuid Guid, int32 VertsX, int32 VertsY, 
-							int32 ComponentSizeQuads, int32 NumSubsections, int32 SubsectionSizeQuads, 
-							const uint16* HeightData, const TCHAR* HeightmapFileName, 
-							const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos);
+	LANDSCAPE_API void Import(FGuid Guid, int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, int32 NumSubsections, int32 SubsectionSizeQuads,
+							const uint16* HeightData, const TCHAR* HeightmapFileName,
+							const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos, ELandscapeImportAlphamapType ImportLayerType);
 
 	/**
 	 * Exports landscape into raw mesh
@@ -645,7 +667,7 @@ public:
 	 * @param OutRawMesh - Resulting raw mesh
 	 * @return true if successful
 	 */
-	LANDSCAPE_API bool ExportToRawMesh(int32 InExportLOD, struct FRawMesh& OutRawMesh) const;
+	LANDSCAPE_API bool ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) const;
 
 
 	/** @return Current size of bounding rectangle in quads space */
@@ -670,6 +692,4 @@ public:
 	LANDSCAPE_API void RemoveOverlappingComponent(ULandscapeComponent* Component);
 #endif
 };
-
-
 

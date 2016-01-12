@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneVectorSection.h"
@@ -7,7 +7,9 @@
 
 UMovieSceneVectorSection::UMovieSceneVectorSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{ }
+{
+	ChannelsUsed = 0;
+}
 
 
 FVector4 UMovieSceneVectorSection::Eval( float Position, const FVector4& DefaultVector ) const
@@ -20,70 +22,52 @@ FVector4 UMovieSceneVectorSection::Eval( float Position, const FVector4& Default
 }
 
 
-void UMovieSceneVectorSection::AddKey( float Time, FName CurveName, const FVector4& Value, FKeyParams KeyParams )
+template<typename CurveType>
+CurveType* GetCurveForChannel( EKeyVectorChannel Channel, CurveType* Curves, int32 ChannelsUsed )
 {
-	Modify();
-
-	static FName X("X");
-	static FName Y("Y");
-	static FName Z("Z");
-	static FName W("W");
-	
-	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
-
-	for (int32 i = 0; i < ChannelsUsed; ++i)
+	switch ( Channel )
 	{
-		if ( CurveName == NAME_None || 
-			 (CurveName == X && i == 0) ||
-			 (CurveName == Y && i == 1) ||
-			 (CurveName == Z && i == 2) ||
-			 (CurveName == W && i == 3) )
-		{
-			if (Curves[i].GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
-			{
-				Curves[i].SetDefaultValue(Value[i]);
-			}
-			else
-			{
-				Curves[i].UpdateOrAddKey(Time, Value[i]);
-			}
-		}
+		case EKeyVectorChannel::X:
+			return &Curves[0];
+		case EKeyVectorChannel::Y:
+			return &Curves[1];
+		case EKeyVectorChannel::Z:
+			checkf( ChannelsUsed >= 3, TEXT( "Can not get Z channel, it is not in use on this section." ) );
+			return &Curves[2];
+		case EKeyVectorChannel::W:
+			checkf( ChannelsUsed >= 4, TEXT("Can not get W channel, it is not in use on this section." ) );
+			return &Curves[3];
 	}
+	checkf( false, TEXT( "Invalid channel requested" ) );
+	return nullptr;
 }
 
 
-bool UMovieSceneVectorSection::NewKeyIsNewData(float Time, const FVector4& Value, FKeyParams KeyParams) const
+void UMovieSceneVectorSection::AddKey( float Time, const FVectorKey& Key, EMovieSceneKeyInterpolation KeyInterpolation )
 {
-	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
+	FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, Curves, ChannelsUsed );
+	AddKeyToCurve( *ChannelCurve, Time, Key.Value, KeyInterpolation );
+}
 
-	bool bHasEmptyKeys = false;
-	for (int32 i = 0; i < ChannelsUsed; ++i)
-	{
-		if (Curves[i].GetNumKeys() == 0)
-		{
-			bHasEmptyKeys = true;
-			break;
-		}
-	}
 
-	bool bNewData = false;
-	for (int32 i = 0; i < ChannelsUsed; ++i)
-	{
-		float OriginalData = Curves[i].Eval(Time);
-		// don't re-add keys if the data already matches
-		if (!FMath::IsNearlyEqual(OriginalData, Value[i]))
-		{
-			bNewData = true;
-			break;
-		}
-	}
+bool UMovieSceneVectorSection::NewKeyIsNewData( float Time, const FVectorKey& Key ) const
+{
+	const FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, Curves, ChannelsUsed );
+	return FMath::IsNearlyEqual( ChannelCurve->Eval( Time ), Key.Value ) == false;
+}
 
-	if ( bHasEmptyKeys || (KeyParams.bAutoKeying && bNewData) )
-	{
-		return true;
-	}
 
-	return false;
+bool UMovieSceneVectorSection::HasKeys( const FVectorKey& Key ) const
+{
+	const FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, Curves, ChannelsUsed );
+	return ChannelCurve->GetNumKeys() > 0;
+}
+
+
+void UMovieSceneVectorSection::SetDefault( const FVectorKey& Key )
+{
+	FRichCurve* ChannelCurve = GetCurveForChannel( Key.Channel, Curves, ChannelsUsed );
+	ChannelCurve->SetDefaultValue( Key.Value );
 }
 
 

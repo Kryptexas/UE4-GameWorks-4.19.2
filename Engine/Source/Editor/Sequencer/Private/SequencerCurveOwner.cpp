@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerCurveOwner.h"
@@ -31,8 +31,8 @@ void GetAllKeyAreas( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, TArray<
 		NodesToProcess.RemoveNode( Node );
 		if ( Node->GetType() == ESequencerNode::Track )
 		{
-			TSharedRef<FTrackNode> TrackNode = StaticCastSharedRef<FTrackNode>( Node );
-			TSharedPtr<FSectionKeyAreaNode> TopLevelKeyNode = TrackNode->GetTopLevelKeyNode();
+			TSharedRef<FSequencerTrackNode> TrackNode = StaticCastSharedRef<FSequencerTrackNode>( Node );
+			TSharedPtr<FSequencerSectionKeyAreaNode> TopLevelKeyNode = TrackNode->GetTopLevelKeyNode();
 			if ( TopLevelKeyNode.IsValid() )
 			{
 				for ( TSharedRef<IKeyArea> KeyArea : TopLevelKeyNode->GetAllKeyAreas() )
@@ -43,7 +43,7 @@ void GetAllKeyAreas( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, TArray<
 		}
 		if ( Node->GetType() == ESequencerNode::KeyArea )
 		{
-			for ( TSharedRef<IKeyArea> KeyArea : StaticCastSharedRef<FSectionKeyAreaNode>( Node )->GetAllKeyAreas() )
+			for ( TSharedRef<IKeyArea> KeyArea : StaticCastSharedRef<FSequencerSectionKeyAreaNode>( Node )->GetAllKeyAreas() )
 			{
 				DisplayNodesAndKeyAreas.Add( FDisplayNodeAndKeyArea( Node, KeyArea ) );
 			}
@@ -156,7 +156,7 @@ void FSequencerCurveOwner::MakeTransactional()
 
 void FSequencerCurveOwner::OnCurveChanged( const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos )
 {
-	// Whenever a curve changes make sure to resize it's section so that the curve fits.
+	// Whenever a curve changes make sure to resize its section so that the curve fits.
 	for ( auto& ChangedCurveEditInfo : ChangedCurveEditInfos )
 	{
 		UMovieSceneSection** OwningSection = EditInfoToSectionMap.Find(ChangedCurveEditInfo);
@@ -175,6 +175,8 @@ void FSequencerCurveOwner::OnCurveChanged( const TArray<FRichCurveEditInfo>& Cha
 			}
 		}
 	}
+
+	SequencerNodeTree->GetSequencer().UpdateRuntimeInstances();
 }
 
 bool FSequencerCurveOwner::IsValidCurve( FRichCurveEditInfo CurveInfo )

@@ -24,23 +24,23 @@ version:4.9
 
 1. Once our code has compiled, we can drag an instance of our new class from the **Content Browser** into the **Level Editor**.
 
-	[![](CameraDirectorInContentBrowser.png)](CameraDirectorInContentBrowser.png)
+	![](CameraDirectorInContentBrowser.png)
 
 1. Next, we'll need to set the CameraOne and CameraTwo variables. Find our CameraDirector in the **World Outliner** and edit it in the **Details Panel**.
 
-	[![](CameraDirectorDetails.png)](CameraDirectorDetails.png)
+	![](CameraDirectorDetails.png)
 
 	Click on the dropdown boxes labeled "None" and set our variables to the **Cube** and the **CameraActor** that we created earlier.
 
-	[![](CameraDirectorDetails2.png)](CameraDirectorDetails2.png)
+	![](CameraDirectorDetails2.png)
 
 1. If we press **Play**, we will see the camera snap to this view:
 
-	[![](CameraOneView.png)](CameraOneView.png)
+	![](CameraOneView.png)
 
 	And then blend smoothly to this view:
 
-	[![](CameraTwoView.png)](CameraTwoView.png)
+	![](CameraTwoView.png)
 
 	Where it will wait a few seconds before snapping back.
 
@@ -57,7 +57,7 @@ We now have a system that moves the player's camera based purely on game logic. 
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -89,7 +89,7 @@ We now have a system that moves the player's camera based purely on game logic. 
 			};
 
 		**MyPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_AutoCamera.h"
 			#include "CameraDirector.h"

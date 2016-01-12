@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -66,10 +66,10 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 	void Construct( const FArguments& InArgs );
 
 
-	// Begin SWidget interface
+	//~ Begin SWidget Interface
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	// End SWidget Interface
+	//~ End SWidget Interface
 
 	/** Returns the offset from the SNode center slot */
 	FVector2D GetOffset() const;

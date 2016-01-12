@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Blend Space Base. Contains base functionality shared across all blend space objects
@@ -8,6 +8,7 @@
 #pragma once
 
 #include "AnimSequence.h"
+#include "AnimationRuntime.h"
 #include "BlendSpaceBase.generated.h"
 
 /** Interpolation data types. */
@@ -197,7 +198,7 @@ namespace ENotifyTriggerMode
  * Allows multiple animations to be blended between based on input parameters
  */
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
-class UBlendSpaceBase : public UAnimationAsset
+class UBlendSpaceBase : public UAnimationAsset, public IInterpolationIndexProvider
 {
 	GENERATED_UCLASS_BODY()
 
@@ -255,15 +256,15 @@ public:
 	UPROPERTY(EditAnywhere, Category=SampleInterpolation)
 	TArray<FPerBoneInterpolation> PerBoneBlend;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface
+	//~ End UObject Interface
 
-	// Begin UAnimationAsset interface
-	virtual void TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
+	//~ Begin UAnimationAsset Interface
+	virtual void TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const override;
 	// this is used in editor only when used for transition getter
 	// this doesn't mean max time. In Sequence, this is SequenceLength,
 	// but for BlendSpace CurrentTime is normalized [0,1], so this is 1
@@ -271,13 +272,32 @@ public:
 #if WITH_EDITOR
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
+	virtual int32 GetMarkerUpdateCounter() const;
 #endif
-	// End of UAnimationAsset interface
+	virtual TArray<FName>* GetUniqueMarkerNames() override { return (bAllSequencesHaveMatchingMarkers && SampleData.Num() > 0) ? SampleData[0].Animation->GetUniqueMarkerNames() : nullptr; }
+	//~ End UAnimationAsset Interface
+
+	void TickFollowerSamples(TArray<FBlendSampleData> &SampleDataList, const int32 HighestWeightIndex, FAnimAssetTickContext &Context, bool bResetMarkerDataOnFollowers) const
+	{
+		for (int32 SampleIndex = 0; SampleIndex < SampleDataList.Num(); ++SampleIndex)
+		{
+			FBlendSampleData& SampleDataItem = SampleDataList[SampleIndex];
+			const FBlendSample& Sample = SampleData[SampleDataItem.SampleDataIndex];
+			if (HighestWeightIndex != SampleIndex)
+			{
+				if (bResetMarkerDataOnFollowers)
+				{
+					SampleDataItem.MarkerTickRecord.Reset();
+				}
+				Sample.Animation->TickByMarkerAsFollower(SampleDataItem.MarkerTickRecord, Context.MarkerTickContext, SampleDataItem.Time, SampleDataItem.PreviousTime, Context.GetLeaderDelta(), true);
+			}
+		}
+	}
 
 	/**
 	 * BlendSpace Get Animation Pose function
 	 */
-	void GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve);
+	ENGINE_API void GetAnimationPose(TArray<FBlendSampleData>& BlendSampleDataCache, /*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve);
 
 	/** Accessor for blend parameter **/
 	ENGINE_API const FBlendParameter& GetBlendParameter(int32 Index)
@@ -350,13 +370,13 @@ public:
 	ENGINE_API bool IsTooCloseToExistingSamplePoint(const FVector& SampleValue, int32 OriginalIndex) const;
 
 	/** Initialize BlendSpace for runtime. It needs certain data to be reinitialized per instsance **/
-	void InitializeFilter(FBlendFilter* Filter) const;
+	ENGINE_API void InitializeFilter(FBlendFilter* Filter) const;
 
 	/** 
 	 * Get PerBoneInterpolationIndex for the input BoneIndex
 	 * If nothing found, return INDEX_NONE
 	 */
-	int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const;
+	virtual int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const override;
 
 	/** return true if all sample data is additive **/
 	virtual bool IsValidAdditive() const {check(false); return false;}
@@ -410,7 +430,16 @@ protected:
 	 * @param	OutBlendSamples		Populated with the samples nearest the BlendInput 
 	 *
 	 */
-	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const {}
+	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const {}
+
+	/** Track whether all our sequences have the same marker set for blending (if false use original scale based on length approach) */
+	bool bAllSequencesHaveMatchingMarkers;
+
+#if WITH_EDITOR
+private:
+	// Track whether we have updated markers so cached data can be updated
+	int32 MarkerDataUpdateCounter;
+#endif
 
 public:
 	

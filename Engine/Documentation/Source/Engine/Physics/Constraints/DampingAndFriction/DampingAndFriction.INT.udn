@@ -2,6 +2,7 @@ Availability: Public
 Title:Physics Damping
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:Properties and methods used to cause physical objects to resist movement.
+Version: 4.9
 
 
 [TOC(start:2)]
@@ -34,7 +35,7 @@ The Damping for Physics Constraints work a bit differently than with Physics Bod
 Physics Constraint's Motion(s) to Limited will display the **Soft Limits**:
 
 [REGION:raw]
-![](Phys_ConstraintDampProps.png)(convert:false)
+![](AngularAndDamping.png)(convert:false)
 [/REGION]
 
 _The two Angular Swing Motions share Damping values, the Angular Twist receives its own Damping values, and all the Linear axes use the same Damping values. While they may have 
@@ -48,10 +49,10 @@ separate properties, the properties all have the same effect on the Motions they
 The two values work together to create different effects. A high Stiffness and low Damping will look like a hard limit, while having them both high will appear to be move through 
 tar, coming to a stop gently but quickly. A good deal of experimentation is necessary to find the right values for your specific needs.
 
-For more information on Constraints, see: [](Engine/Physics/Constraints/ConstraintsUserGuide)
+For more information on Constraints, see: **[](Engine/Physics/Constraints/ConstraintsUserGuide)**
 
 Or for a reference on the properties available to Physics Constraints,
- see: [](Engine/Physics\Constraints\ConstraintsReference)
+ see: **[](Engine/Physics\Constraints\ConstraintsReference)**
 
 <!--
 ## PhysicalMaterial Damping

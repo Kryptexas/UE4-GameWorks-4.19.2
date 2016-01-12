@@ -2,6 +2,7 @@ Availability: Public
 Title:Landscape Brushes
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:Guide to the brushes available for modifying Landscapes.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -26,7 +27,7 @@ Description:Guide to the brushes available for modifying Landscapes.
 
 [TOC(start:2 end:2)]
 
-The Landscape tool's brush defines the size and shape of the area of the Landscape that will be affected by either sculpting or painting. Brushes can have different shapes, sizes, and falloffs. Brushes should be a familiar concept to anyone who has experience using Photoshop or a similar image-editing application. 
+The **Landscape** tool's brush defines the size and shape of the area of the Landscape that will be affected by either sculpting or painting. Brushes can have different shapes, sizes, and falloffs. Brushes should be a familiar concept to anyone who has experience using Photoshop or a similar image-editing application. 
 
 You can set the brush type and falloff in either **Sculpt** or **Paint** mode.
 
@@ -41,14 +42,18 @@ You can set the brush type and falloff in either **Sculpt** or **Paint** mode.
 
 The size and falloff of the current brush is displayed in the viewport as a flashing, light-purple filled circle, or pair of concentric circles.
 
-![Landscape_Brush_Viewport.jpg](Landscape_Brush_Viewport.jpg)(w:900 h:184)
+[REGION:imagetable]
+| ![](Falloff00.jpg) | ![](Falloff05.jpg) | ![](Falloff10.jpg) |
+| -------- | ----------- | ------ |
+| Falloff: 0.0 | Falloff: 0.5 | Falloff: 1.0 |
+[/REGION]
 
 
 ## Circle
 
 ![Circle Brush](Landscape_CircleBrush.png)
 
-The Circle brush applies the current tool in a circular area, with a falloff defined both numerically and by type.
+The **Circle** brush applies the current tool in a circular area, with a falloff defined both numerically and by type.
 
 ![circle.jpg](circle.jpg)(w:486 h:486)
 
@@ -63,14 +68,17 @@ The Circle brush applies the current tool in a circular area, with a falloff def
 
 Below is an example of each of these falloff types when operating on the heightmap, with the same radius and falloff:
 
-![landscape_brush_falloff.png](landscape_brush_falloff.png)(w:789 h:416)
-
+[REGION:imagetable]
+| ![](Smooth.jpg)(w:200 h:300) | ![](Linear.jpg)(w:200 h:300) | ![](Sphere.jpg)(w:200 h:300) | ![](Tip.jpg)(w:200 h:300) |
+| -------- | ----------- | ------ | ----- |
+| ** Smooth **| ** Linear ** | ** Spherical** | ** Tip ** | 
+[/REGION]
 
 ## Alpha
 
 ![Alpha Brush](Landscape_AlphaBrush.png)
 
-The Alpha brush is similar to the Pattern brush, but instead of tiling the texture across the Landscape as you paint, it orients the brush texture in the direction of your painting and drags the shape as you move the cursor.
+The **Alpha** brush is similar to the Pattern brush, but instead of tiling the texture across the Landscape as you paint, it orients the brush texture in the direction of your painting and drags the shape as you move the cursor.
 
 ![brush_alpha_drag.jpg](brush_alpha_drag.jpg)(w:273 h:475)
 
@@ -91,7 +99,7 @@ The Alpha brush is similar to the Pattern brush, but instead of tiling the textu
 
 ![Pattern Brush](Landscape_PatternBrush.png)
 
-The Pattern brush allows you to use an arbitrary shape for the brush by sampling a single color channel from a texture to use as the alpha for the brush. The texture pattern is tiled as the brush is painted.
+The **Pattern** brush allows you to use an arbitrary shape for the brush by sampling a single color channel from a texture to use as the alpha for the brush. The texture pattern is tiled as the brush is painted.
 
 For example, the textures below could be used as the alpha:
 
@@ -124,7 +132,7 @@ Those would result in the following brushes:
 
 ![Component Brush](Landscape_ComponentBrush.png)
 
-The Component brush is used for operating on individual components. The cursor becomes limited to a single component at a time:
+The **Component** brush is used for operating on individual components. The cursor becomes limited to a single component at a time:
 
 ![selection_cursor.jpg](selection_cursor.jpg)(w:900 h:453)
 
@@ -136,7 +144,7 @@ The Component brush is the only brush available when you are using tools that op
 
 ![Gizmo Brush](Landscape_GizmoBrush.png)
 
-The Gizmo brush is used for modifying your Landscape with Landscape Gizmos, which are tools that you use to perform actions to a specific localized area of the Landscape.
+The **Gizmo** brush is used for modifying your Landscape with Landscape Gizmos, which are tools that you use to perform actions to a specific localized area of the Landscape.
 
 [REGION:note]
 The Gizmo brush is available only when you are using the Copy/Paste tool in Sculpt mode.

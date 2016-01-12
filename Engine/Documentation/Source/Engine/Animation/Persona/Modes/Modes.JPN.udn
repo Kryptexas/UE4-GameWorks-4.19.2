@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2593442
+﻿INTSourceChangelist:2666071
 Availability:Public
 Title:ペルソナの編集モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:ペルソナのアニメーション エディタで利用出来る編集モードのユーザーガイド
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -25,18 +26,17 @@ Description:ペルソナのアニメーション エディタで利用出来る�
 [/VAR]
 
 
-## 概要
 
 [EXCERPT:Overview]
-ペルソナは、単なる単一ツールというよりはむしろ、実際は様々なアニメーションツールやエディタ群から構成されていることを忘れてはいけません。ペルソナで、スケルトン、メッシュ、アニメーション、そして Animation ブループリントの編集が可能です。そのためペルソナにはさまざまな _モード_ が含まれていて、手元の編集作業を最適に処理する操作が可能です。 
+ペルソナは、単なる単一ツールというよりはむしろ、実際は様々なアニメーションツールやエディタ群から構成されていることを忘れてはいけません。ペルソナで、スケルトン、メッシュ、アニメーション、そして Animation ブループリントの編集が可能です。ペルソナに備わっている様々なモードを使って、最適に手近に編集作業を行うことができるのです。 
 
 ペルソナの UI はツールとエディタのさまざまなレイアウトを表示するために、各モードで更新されます。
 [/EXCERPT:Overview]
 
 [REGION:note]
-	全てのモードが常に利用可能なわけではありません。例えば Animation ブループリント モードは、 Animation ブループリントがコンテンツ ブラウザから開かれた時 _のみ_ 利用が可能です。 
+	全てのモードをいつでも使用できるわけではありません。例えば **Graph** モードは、 Animation ブループリントがコンテンツ ブラウザから開かれた時のみ使用できます。 
 
-	また、編集レイアウトへの変更はそのまま保持されるのでご注意ください。例として、 Skeleton editing モード中にパネルを移動すると、 Animation モードへ切り替わります。 Skeleton editing モードへ再度切り替えても、移動したパネルは与えられた位置を保ちます。
+	また、編集レイアウトへの変更はそのまま保持されるのでご注意ください。例として、Skeleton Editing モード中にパネルを移動すると Animation モードへ切り替わります。Skeleton Editing モードへ再度切り替えても、移動したパネルは与えられた位置を保ちます。
 [/REGION]
 
 
@@ -45,7 +45,7 @@ Description:ペルソナのアニメーション エディタで利用出来る�
 
 [![](Persona_Mode_Skeleton.png)(w:800)](Engine/Animation/Persona/Modes/Skeleton)
 
-(画像をクリックして **スケルトン編集モード** ページへ移動)
+(画像をクリックして **Skeleton Editing** モードのページへ移動)
 
 [EXCERPT:SkeletonModeUI]
 1. [ツール バー](Engine/Animation/Persona\Toolbar) 
@@ -57,7 +57,7 @@ Description:ペルソナのアニメーション エディタで利用出来る�
 [/EXCERPT:SkeletonMode]
 
 [REGION:note]
-ペルソナの **[Details]** (詳細) パネルには、アニメーション アセットに関連したプロパティのみが表示されます。ただし、機能的にはメイン エディタ ウィンドウの標準的な **[Details]** パネルと同様です。
+ペルソナの **[Details (詳細)]** パネルには、アニメーション アセットに関連したプロパティのみが表示されます。ただし、機能的にはメイン エディタ ウィンドウの標準的な **[Details]** パネルと同様です。
 [/REGION]
 
 [EXCERPT:MeshMode]
@@ -65,7 +65,7 @@ Description:ペルソナのアニメーション エディタで利用出来る�
 
 [![](Persona_Mode_Mesh.png)(w:800)](Engine/Animation/Persona/Modes/Mesh)
 
-(画像をクリックして **メッシュ編集モード** ページへ移動)
+(画像をクリックして **Mesh Editing** モードのページへ移動)
 
 [EXCERPT:MeshModeUI]
 1. [ツール バー](Engine/Animation/Persona\Toolbar) 
@@ -83,7 +83,7 @@ Description:ペルソナのアニメーション エディタで利用出来る�
 
 [![](Persona_Mode_Anmation.png)(w:800)](Engine/Animation/Persona/Modes/Animation)
 
-(画像をクリックして **アニメーション編集モード** ページへ移動)
+(画像をクリックして **Animation Editing** モードのページへ移動)
 
 [EXCERPT:AnimationModeUI]
 1. [ツール バー](Engine/Animation/Persona\Toolbar) 
@@ -102,7 +102,7 @@ Description:ペルソナのアニメーション エディタで利用出来る�
 
 [![](Persona_Mode_Vim.png)(w:800)](Engine/Animation/Persona/Modes/Graph)
 
-(画像をクリックして **グラフ編集モード** ページへ移動)
+(画像をクリックして **Graph Editing** モードのページへ移動)
 
 [EXCERPT:GraphModeUI]
 1. [ツール バー](Engine/Animation/Persona\Toolbar) 

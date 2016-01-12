@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshPaintPrivatePCH.h"
 #include "MeshPaintAdapterFactory.h"
@@ -21,4 +21,12 @@ TSharedPtr<class IMeshPaintGeometryAdapter> FMeshPaintAdapterFactory::CreateAdap
 	}
 
 	return Result;
+}
+
+void FMeshPaintAdapterFactory::InitializeAdapterGlobals()
+{
+	for (const auto& Factory : FactoryList)
+	{
+		Factory->InitializeAdapterGlobals();
+	}
 }

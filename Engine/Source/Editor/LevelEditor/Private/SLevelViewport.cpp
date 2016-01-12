@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -334,10 +334,10 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	{
 		EditorShowFlags.MotionBlur = 0;
 		EditorShowFlags.Fog = 0;
-		EditorShowFlags.DepthOfField = 0;
+		EditorShowFlags.SetDepthOfField(false);
 		GameShowFlags.MotionBlur = 0;
 		GameShowFlags.Fog = 0;
-		GameShowFlags.DepthOfField = 0;
+		GameShowFlags.SetDepthOfField(false);
 	}
 
 	EditorShowFlags.SetSnap(1);
@@ -376,10 +376,10 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->OverrideFarClipPlane( ViewportInstanceSettings.FarViewPlane );
 	
 	// Set the selection outline flag based on preferences
-	LevelViewportClient->EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
+	LevelViewportClient->EngineShowFlags.SetSelectionOutline(GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline);
 	
 	// Always composite editor objects after post processing in the editor
-	LevelViewportClient->EngineShowFlags.CompositeEditorPrimitives = true;
+	LevelViewportClient->EngineShowFlags.SetCompositeEditorPrimitives(true);
 
 	LevelViewportClient->SetViewModes(ViewportInstanceSettings.PerspViewModeIndex, ViewportInstanceSettings.OrthoViewModeIndex );
 }
@@ -1928,7 +1928,7 @@ void SLevelViewport::OnUseDefaultShowFlags(bool bUseSavedDefaults)
 	// this trashes the current viewmode!
 	LevelViewportClient->EngineShowFlags = EditorShowFlags;
 	// Restore the state of SelectionOutline based on user settings
-	LevelViewportClient->EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
+	LevelViewportClient->EngineShowFlags.SetSelectionOutline(GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline);
 	LevelViewportClient->LastEngineShowFlags = GameShowFlags;
 
 	// re-apply the cached viewmode, as it was trashed with FEngineShowFlags()
@@ -2436,9 +2436,9 @@ void SLevelViewport::OnActorSelectionChanged(const TArray<UObject*>& NewSelectio
 	// On the first actor selection after entering Game View, enable the selection show flag
 	if (IsVisible() && IsInGameView() && NewSelection.Num() != 0)
 	{
-		LevelViewportClient->EngineShowFlags.ModeWidgets = 1;
-		LevelViewportClient->EngineShowFlags.Selection = 1;
-		LevelViewportClient->EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
+		LevelViewportClient->EngineShowFlags.SetModeWidgets(true);
+		LevelViewportClient->EngineShowFlags.SetSelection(true);
+		LevelViewportClient->EngineShowFlags.SetSelectionOutline(GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline);
 	}
 
 
@@ -3020,7 +3020,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 				// Default to "game" show flags for camera previews
 				// Still draw selection highlight though
 				ActorPreviewLevelViewportClient->EngineShowFlags = FEngineShowFlags(ESFIM_Game);
-				ActorPreviewLevelViewportClient->EngineShowFlags.Selection = 1;
+				ActorPreviewLevelViewportClient->EngineShowFlags.SetSelection(true);
 				ActorPreviewLevelViewportClient->LastEngineShowFlags = FEngineShowFlags(ESFIM_Editor);
 				
 				// We don't use view modes for preview viewports
@@ -3129,8 +3129,8 @@ void SLevelViewport::UpdateActorPreviewViewports()
 		CurActorPreview.LevelViewportClient->SetRealtime( LevelViewportClient->IsRealtime() );
 		CurActorPreview.LevelViewportClient->bDrawBaseInfo = LevelViewportClient->bDrawBaseInfo;
 		CurActorPreview.LevelViewportClient->bDrawVertices = LevelViewportClient->bDrawVertices;
-		CurActorPreview.LevelViewportClient->EngineShowFlags.SelectionOutline = LevelViewportClient->EngineShowFlags.SelectionOutline;
-		CurActorPreview.LevelViewportClient->EngineShowFlags.CompositeEditorPrimitives = LevelViewportClient->EngineShowFlags.CompositeEditorPrimitives;
+		CurActorPreview.LevelViewportClient->EngineShowFlags.SetSelectionOutline(LevelViewportClient->EngineShowFlags.SelectionOutline);
+		CurActorPreview.LevelViewportClient->EngineShowFlags.SetCompositeEditorPrimitives(LevelViewportClient->EngineShowFlags.CompositeEditorPrimitives);
 	}
 }
 
@@ -3498,8 +3498,6 @@ void SLevelViewport::HideMouseCaptureLabel()
 
 void SLevelViewport::ResetNewLevelViewFlags()
 {
-	ChangeExposureSetting(FEditorViewportCommands::AutoExposureRadioID);
-
 	const bool bUseSavedDefaults = true;
 	OnUseDefaultShowFlags(bUseSavedDefaults);
 }
@@ -3743,12 +3741,19 @@ bool SLevelViewport::GetCameraInformationFromActor(AActor* Actor, FMinimalViewIn
 {
 	// @todo camerapip: Could support actors other than cameras too!  (Character views?)
 	//@TODO: CAMERA: Support richer camera interactions in SIE; this may shake out naturally if everything uses camera components though
-	if (UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>())
+	TArray<UCameraComponent*> CamComps;
+	Actor->GetComponents<UCameraComponent>(CamComps);
+	for (UCameraComponent* CamComp : CamComps)
 	{
-		CameraComponent->GetCameraView(0.0f, out_CameraInfo);
-		return true;
+		if (CamComp->bIsActive)
+		{
+			// first active camera, use it and be done
+			CamComp->GetCameraView(0.0f, out_CameraInfo);
+			return true;
+		}
 	}
 
+	// no active cameras
 	return false;
 }
 

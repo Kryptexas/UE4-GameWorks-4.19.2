@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ModuleManager.h"
@@ -6,6 +6,7 @@
 #include "EngineBuildSettings.h"
 #include "UProjectInfo.h"
 #include "ScopeExit.h"
+#include "ModuleVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
@@ -939,34 +940,61 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 
 void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
-	// Get the prefix and suffix for module filenames
-	FString ModulePrefix, ModuleSuffix;
-	GetModuleFilenameFormat(bIsGameDirectory, ModulePrefix, ModuleSuffix);
-
-	// Find all the files
-	TArray<FString> FullFileNames;
-	IFileManager::Get().FindFilesRecursive(FullFileNames, *InDirectoryName, *(ModulePrefix + NamePattern + ModuleSuffix), true, false);
-
-	// Parse all the matching module names
-	for (int32 Idx = 0; Idx < FullFileNames.Num(); Idx++)
+	if(QueryModulesDelegate.IsBound())
 	{
-		const FString &FullFileName = FullFileNames[Idx];
-	
-		// On Mac OS X the separate debug symbol format is the dSYM bundle, which is a bundle folder hierarchy containing a .dylib full of Mach-O formatted DWARF debug symbols, these are not loadable modules, so we mustn't ever try and use them. If we don't eliminate this here then it will appear in the module paths & cause errors later on which cannot be recovered from.
-	#if PLATFORM_MAC
-		if(FullFileName.Contains(".dSYM"))
+		// Find all the directories to search through, including the base directory
+		TArray<FString> SearchDirectoryNames;
+		IFileManager::Get().FindFilesRecursive(SearchDirectoryNames, *InDirectoryName, TEXT("*"), false, true);
+		SearchDirectoryNames.Insert(InDirectoryName, 0);
+
+		// Find the modules in each directory
+		for(const FString& SearchDirectoryName: SearchDirectoryNames)
 		{
-			continue;
-		}
-	#endif
-		
-		FString FileName = FPaths::GetCleanFilename(FullFileName);
-		if (FileName.StartsWith(ModulePrefix) && FileName.EndsWith(ModuleSuffix))
-		{
-			FString ModuleName = FileName.Mid(ModulePrefix.Len(), FileName.Len() - ModulePrefix.Len() - ModuleSuffix.Len());
-			if (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame"))
+			// Use the delegate to query all the modules in this directory
+			TMap<FString, FString> ValidModules;
+			QueryModulesDelegate.Execute(SearchDirectoryName, bIsGameDirectory, ValidModules);
+
+			// Fill the output map with modules that match the wildcard
+			for(const TPair<FString, FString>& Pair: ValidModules)
 			{
-				OutModulePaths.Add(FName(*ModuleName), FullFileName);
+				if(Pair.Key.MatchesWildcard(NamePattern))
+				{
+					OutModulePaths.Add(FName(*Pair.Key), *FPaths::Combine(*SearchDirectoryName, *Pair.Value));
+				}
+			}
+		}
+	}
+	else
+	{
+		// Get the prefix and suffix for module filenames
+		FString ModulePrefix, ModuleSuffix;
+		GetModuleFilenameFormat(bIsGameDirectory, ModulePrefix, ModuleSuffix);
+
+		// Find all the files
+		TArray<FString> FullFileNames;
+		IFileManager::Get().FindFilesRecursive(FullFileNames, *InDirectoryName, *(ModulePrefix + NamePattern + ModuleSuffix), true, false);
+
+		// Parse all the matching module names
+		for (int32 Idx = 0; Idx < FullFileNames.Num(); Idx++)
+		{
+			const FString &FullFileName = FullFileNames[Idx];
+	
+			// On Mac OS X the separate debug symbol format is the dSYM bundle, which is a bundle folder hierarchy containing a .dylib full of Mach-O formatted DWARF debug symbols, these are not loadable modules, so we mustn't ever try and use them. If we don't eliminate this here then it will appear in the module paths & cause errors later on which cannot be recovered from.
+		#if PLATFORM_MAC
+			if(FullFileName.Contains(".dSYM"))
+			{
+				continue;
+			}
+		#endif
+		
+			FString FileName = FPaths::GetCleanFilename(FullFileName);
+			if (FileName.StartsWith(ModulePrefix) && FileName.EndsWith(ModuleSuffix))
+			{
+				FString ModuleName = FileName.Mid(ModulePrefix.Len(), FileName.Len() - ModulePrefix.Len() - ModuleSuffix.Len());
+				if (!ModuleName.EndsWith("-Debug") && !ModuleName.EndsWith("-Shipping") && !ModuleName.EndsWith("-Test") && !ModuleName.EndsWith("-DebugGame"))
+				{
+					OutModulePaths.Add(FName(*ModuleName), FullFileName);
+				}
 			}
 		}
 	}
@@ -1051,7 +1079,8 @@ const TCHAR *FModuleManager::GetUBTConfiguration()
 bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
 {
 	int32 ModuleApiVersion = FPlatformProcess::GetDllApiVersion(Filename);
-	int32 CompiledInApiVersion = GCompatibleWithEngineVersion.GetChangelist();
+	int32 CompiledInApiVersion = MODULE_API_VERSION;
+
 	if (ModuleApiVersion != CompiledInApiVersion)
 	{
 		UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (API version %d), but it was incompatible with the current engine API version (%d). This is likely a stale module that must be recompiled."), Filename, ModuleApiVersion, CompiledInApiVersion);

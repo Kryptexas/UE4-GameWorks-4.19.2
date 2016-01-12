@@ -2,6 +2,7 @@ Availability: Public
 Title:Level Blueprint
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
 Description:An overview of the Level Blueprint setup used in the Mouse Interface Demolet
+Version: 4.9
 
 
 [TOC(start:2 end:2)]

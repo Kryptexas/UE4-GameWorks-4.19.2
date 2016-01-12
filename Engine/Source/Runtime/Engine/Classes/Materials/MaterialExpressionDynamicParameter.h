@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -26,22 +26,22 @@ class UMaterialExpressionDynamicParameter : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionDynamicParameter)
 	FLinearColor DefaultValue;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
 	virtual void PostLoad() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual TArray<FExpressionOutput>& GetOutputs() override;
 	virtual int32 GetWidth() const override;
 	virtual int32 GetLabelPadding() override { return 8; }
 	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 
 	/**
 	 * Iterate through all of the expression nodes until we find another 

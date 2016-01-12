@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -70,6 +70,7 @@ public:
 	virtual TArray<TSharedRef<IPlugin>> GetEnabledPlugins() override;
 	virtual TArray<TSharedRef<IPlugin>> GetDiscoveredPlugins() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
+	virtual void AddPluginSearchPath(const FString& ExtraDiscoveryPath, bool bRefresh = true) override;
 
 private:
 
@@ -78,7 +79,7 @@ private:
 	void DiscoverAllPlugins();
 
 	/** Reads all the plugin descriptors */
-	static void ReadAllPlugins(TArray<TSharedRef<FPlugin>>& Plugins);
+	static void ReadAllPlugins(TArray<TSharedRef<FPlugin>>& Plugins, const TSet<FString>& ExtraSearchPaths);
 
 	/** Reads all the plugin descriptors from disk */
 	static void ReadPluginsInDirectory(const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray<TSharedRef<FPlugin>>& Plugins);
@@ -91,6 +92,9 @@ private:
 
 	/** Gets the instance of a given plugin */
 	TSharedPtr<FPlugin> FindPluginInstance(const FString& Name);
+
+	/** Returns true if the plugin is supported by the current target (program/game) */
+	bool IsPluginSupportedByCurrentTarget(TSharedRef<FPlugin> Plugin) const;
 
 private:
 	/** All of the plugins that we know about */
@@ -105,6 +109,9 @@ private:
 
 	/** Set if all the required plugins are available */
 	bool bHaveAllRequiredPlugins;
+
+	/** List of additional directory paths to search for plugins within */
+	TSet<FString> PluginDiscoveryPaths;
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemNullPrivatePCH.h"
 #include "OnlineIdentityNull.h"
@@ -22,6 +22,17 @@ bool FUserOnlineAccountNull::GetUserAttribute(const FString& AttrName, FString& 
 	if (FoundAttr != NULL)
 	{
 		OutAttrValue = *FoundAttr;
+		return true;
+	}
+	return false;
+}
+
+bool FUserOnlineAccountNull::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	const FString* FoundAttr = UserAttributes.Find(AttrName);
+	if (FoundAttr == NULL || *FoundAttr != AttrValue)
+	{
+		UserAttributes.Add(AttrName, AttrValue);
 		return true;
 	}
 	return false;
@@ -294,3 +305,7 @@ FPlatformUserId FOnlineIdentityNull::GetPlatformUserIdFromUniqueNetId(const FUni
 	return PLATFORMUSERID_NONE;
 }
 
+FString FOnlineIdentityNull::GetAuthType() const
+{
+	return TEXT("");
+}

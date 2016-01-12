@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SizeMapModule.h"
 #include "STreeMap.h"
@@ -84,7 +84,8 @@ namespace SizeMapInternals
 			// Only look at objects which are valid
 			const bool bIsValidObject =
 				Object != nullptr &&	// Object should not be null
-				!Object->HasAnyFlags( RF_Transient | RF_PendingKill );	// Should not be transient or pending kill
+				!Object->HasAnyFlags(RF_Transient) &&	// Should not be transient
+				!Object->IsPendingKill(); // Should not be pending kill
 			if( bIsValidObject )
 			{
 				// Skip objects that we've already processed

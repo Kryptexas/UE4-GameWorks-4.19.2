@@ -1,14 +1,17 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 class FVirtualTrackArea;
 struct ISequencerHotspot;
 
-class IEditToolDragOperation
+
+/**
+ * Interface for drag and drop operations that are handled by edit tools in Sequencer.
+ */
+class ISequencerEditToolDragOperation
 {
 public:
-	virtual ~IEditToolDragOperation(){}
 
 	/**
 	 * Called to initiate a drag
@@ -37,40 +40,43 @@ public:
 	virtual void OnEndDrag( const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) = 0;
 
 	/** Request the cursor for this drag operation */
-	virtual FCursorReply GetCursor() const { return FCursorReply::Cursor( EMouseCursor::Default ); }
+	virtual FCursorReply GetCursor() const = 0;
 
 	/** Override to implement drag-specific paint logic */
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const { return LayerId; }
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const = 0;
+
+public:
+
+	/** Virtual destructor. */
+	virtual ~ISequencerEditToolDragOperation() { }
 };
 
-class ISequencerEditTool
+
+/**
+ * Interface for edit tools in Sequencer.
+ */
+class ISequencerEditTool : public ISequencerInputHandler
 {
 public:
-	virtual ~ISequencerEditTool() { }
 
-	virtual FReply OnMouseButtonDown(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return FReply::Unhandled(); }
-	virtual FReply OnMouseButtonUp(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return FReply::Unhandled(); }
-	virtual FReply OnMouseMove(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return FReply::Unhandled(); }
-	virtual FReply OnMouseWheel(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return FReply::Unhandled(); }
-	virtual void   OnMouseCaptureLost() { }
-	virtual void OnMouseEnter(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { }
-	virtual void OnMouseLeave(SWidget& OwnerWidget, const FPointerEvent& MouseEvent) { }
-	virtual int32  OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const { return LayerId; }
-	virtual void   Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) { }
-	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const { return FCursorReply::Unhandled(); }
-
+	// @todo sequencer: documentation needed
+	virtual void OnMouseCaptureLost() = 0;
+	virtual void OnMouseEnter(SWidget& OwnerWidget, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) = 0;
+	virtual void OnMouseLeave(SWidget& OwnerWidget, const FPointerEvent& MouseEvent) = 0;
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const = 0;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) = 0;
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const = 0;
 	virtual ISequencer& GetSequencer() const = 0;
-
 	virtual FName GetIdentifier() const = 0;
 
 	/** Get the current active hotspot */
-	TSharedPtr<ISequencerHotspot> GetHotspot() { return Hotspot; }
+	virtual TSharedPtr<ISequencerHotspot> GetHotspot() const = 0;
 
 	/** Set the hotspot to something else */
-	void SetHotspot(TSharedPtr<ISequencerHotspot> NewHotspot) { Hotspot = MoveTemp(NewHotspot); }
+	virtual void SetHotspot(TSharedPtr<ISequencerHotspot> NewHotspot) = 0;
 
-protected:
+public:
 
-	/** The current hotspot that can be set from anywhere to initiate drags */
-	TSharedPtr<ISequencerHotspot> Hotspot;
+	/** Virtual destructor. */
+	virtual ~ISequencerEditTool() { }
 };

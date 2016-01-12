@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2717082
 Availability:Public
 Title:1.6 - 透過の分離
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description:マテリアル インスタンスの事例概要、例 1.6：透過の分離
+Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.6：Separate Translucency
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials
@@ -14,7 +14,25 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/MaterialProperties/1_5 "%Resources/ContentExamples/MaterialProperties/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[コンテンツ サンプル ホーム](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/MaterialProperties/1_7 "%Resources/ContentExamples/MaterialProperties/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -56,7 +74,14 @@ Related: Engine/Rendering/Materials/MaterialProperties
 [/VAR]
 
 <div align="center">
-![](MP_1_6_001.png)(h:350) ![](MP_1_6_002.png)(h:350)
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Separate Translucency No Post Process](MP_1_6_001.png)(h:400)
+	[/PARAM]
+	[PARAM:after]
+	![Separate Translucency with Depth of Field ](MP_1_6_002.png)(h:400)
+	[/PARAM]
+[/OBJECT]
 </div>
 
 透過オブジェクトを別々に描画します。**Separate Translucency** シェーダーは **被写界深度** の影響を受けません。

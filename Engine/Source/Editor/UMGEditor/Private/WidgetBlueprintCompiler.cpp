@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -17,11 +17,19 @@
 
 FWidgetBlueprintCompiler::FWidgetBlueprintCompiler(UWidgetBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded)
 	: Super(SourceSketch, InMessageLog, InCompilerOptions, InObjLoaded)
+	, NewWidgetBlueprintClass(nullptr)
 {
 }
 
 FWidgetBlueprintCompiler::~FWidgetBlueprintCompiler()
 {
+}
+
+void FWidgetBlueprintCompiler::SetClassForBytecodeCompile(UClass* TargetClass)
+{
+	FKismetCompilerContext::SetClassForBytecodeCompile(TargetClass);
+
+	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>(TargetClass);
 }
 
 void FWidgetBlueprintCompiler::CreateFunctionList()
@@ -232,9 +240,12 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), WidgetClass, false, false);
 		
+		// Always name the variable according to the underlying FName of the widget object
 		UProperty* WidgetProperty = CreateVariable(Widget->GetFName(), WidgetPinType);
 		if ( WidgetProperty != nullptr )
 		{
+			const FString VariableName = Widget->IsGeneratedName() ? Widget->GetName() : Widget->GetLabelText().ToString();
+			WidgetProperty->SetMetaData(TEXT("DisplayName"), *VariableName);
 			WidgetProperty->SetMetaData(TEXT("Category"), *Blueprint->GetName());
 			
 			WidgetProperty->SetPropertyFlags(CPF_BlueprintVisible);
@@ -312,6 +323,26 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 void FWidgetBlueprintCompiler::Compile()
 {
 	Super::Compile();
+
+	//TODO Once we handle multiple derived blueprint classes, we need to check parent versions of the class.
+	if ( const UFunction* ReceiveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(GET_FUNCTION_NAME_CHECKED(UUserWidget, Tick), NewWidgetBlueprintClass) )
+	{
+		NewWidgetBlueprintClass->bCanEverTick = true;
+	}
+	else
+	{
+		NewWidgetBlueprintClass->bCanEverTick = false;
+	}
+	
+	//TODO Once we handle multiple derived blueprint classes, we need to check parent versions of the class.
+	if ( const UFunction* ReceivePaintEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(GET_FUNCTION_NAME_CHECKED(UUserWidget, OnPaint), NewWidgetBlueprintClass) )
+	{
+		NewWidgetBlueprintClass->bCanEverPaint = true;
+	}
+	else
+	{
+		NewWidgetBlueprintClass->bCanEverPaint = false;
+	}
 
 	WidgetToMemberVariableMap.Empty();
 }

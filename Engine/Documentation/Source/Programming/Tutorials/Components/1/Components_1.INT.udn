@@ -24,9 +24,9 @@ version:4.9
 
 1. We will begin by creating a new, Basic Code project, with starter content, named HowTo_Components. The first thing we'll need to add to this project will be a customized Pawn that will hold our **Components**, move around our level, and collide with solid objects. For this tutorial, we'll name it CollidingPawn.
 
-	[![](ChooseParentClass.png)](ChooseParentClass.png)
+	![](ChooseParentClass.png)
 
-	[![](NamePawnClass.png)](NamePawnClass.png)
+	![](NamePawnClass.png)
 
 1. In **Visual Studio**, we should open CollidingPawn.h and add the following code to the bottom of our class definition:
 
@@ -78,7 +78,7 @@ version:4.9
 			SpringArm->bEnableCameraLag = true;
 			SpringArm->CameraLagSpeed = 3.0f;
 
-1. The actual Camera Component is easy to create, and we don't require any special settings. The **Spring Arm** has a special built-in **socket** that we can attach to, rather than attaching to its base.
+1. The actual Camera Component is easy to create, and we don't require any special settings. The **Spring Arm** has a special built-in socket that we can attach to, rather than attaching to its base.
 			// Create a camera and attach to our spring arm
 			UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
 			Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
@@ -100,7 +100,7 @@ Our new Pawn now has a collection of useful Components attached to it, and is re
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -129,7 +129,7 @@ Our new Pawn now has a collection of useful Components attached to it, and is re
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"

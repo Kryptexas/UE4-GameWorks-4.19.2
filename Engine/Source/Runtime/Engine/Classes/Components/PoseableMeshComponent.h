@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Animation/AnimationAsset.h"
@@ -44,10 +44,13 @@ class ENGINE_API UPoseableMeshComponent : public USkinnedMeshComponent
 	UFUNCTION(BlueprintCallable, Category="Components|PoseableMesh")
 	void ResetBoneTransformByName(FName BoneName);
 
-	// Begin USkinnedMeshComponent Interface
+	UFUNCTION(BlueprintCallable, Category="Components|PoseableMesh")
+	void CopyPoseFromSkeletalComponent(const USkeletalMeshComponent* InComponentToCopy);
+
+	//~ Begin USkinnedMeshComponent Interface
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
 	virtual bool AllocateTransformData() override;
-	// End USkinnedMeshComponent Interface
+	//~ End USkinnedMeshComponent Interface
 
 	bool IsRunningParallelEvaluation() const { return false; }
 	/**

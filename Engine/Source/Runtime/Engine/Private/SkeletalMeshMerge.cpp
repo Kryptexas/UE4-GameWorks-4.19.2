@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshMerge.cpp: Unreal skeletal mesh merging implementation.
@@ -810,7 +810,7 @@ bool FSkeletalMeshMerge::AddSocket(const USkeletalMeshSocket* Socket)
 		}
 	}
 
-	USkeletalMeshSocket* NewSocket = CastChecked<USkeletalMeshSocket>(StaticDuplicateObject(Socket, MergeMesh, TEXT("None")));
+	USkeletalMeshSocket* NewSocket = CastChecked<USkeletalMeshSocket>(StaticDuplicateObject(Socket, MergeMesh));
 	SocketList.Add(NewSocket);
 
 	return true;

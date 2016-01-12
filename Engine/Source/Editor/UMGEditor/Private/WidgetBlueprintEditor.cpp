@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
 #include "SKismetInspector.h"
 #include "WidgetBlueprintEditor.h"
 #include "MovieScene.h"
+#include "MovieSceneSequenceInstance.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "ObjectEditorUtils.h"
 
@@ -553,7 +554,6 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 
 		FSequencerViewParams ViewParams(TEXT("UMGSequencerSettings"));
 		{
-			ViewParams.InitalViewRange = TRange<float>(InTime, OutTime);
 			ViewParams.InitialScrubPosition = 0;
 			ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContent);
 		}
@@ -561,10 +561,8 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 		FSequencerInitParams SequencerInitParams;
 		{
 			UWidgetAnimation* NullAnimation = UWidgetAnimation::GetNullAnimation();
-			NullAnimation->MovieScene->StartTime = InTime;
-			NullAnimation->MovieScene->InTime = InTime;
-			NullAnimation->MovieScene->OutTime = OutTime;
-			NullAnimation->MovieScene->EndTime = OutTime;
+			NullAnimation->MovieScene->SetPlaybackRange(InTime, OutTime);
+			NullAnimation->MovieScene->GetEditorData().WorkingRange = TRange<float>(InTime, OutTime);
 
 			SequencerInitParams.ViewParams = ViewParams;
 			SequencerInitParams.RootSequence = NullAnimation;
@@ -599,7 +597,7 @@ void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimatio
 		{
 			// Disable sequencer from interaction
 			Sequencer->GetSequencerWidget()->SetEnabled(false);
-			Sequencer->SetAutoKeyEnabled(false);
+			Sequencer->SetAutoKeyMode(EAutoKeyMode::KeyNone);
 			NoAnimationTextBlockPin->SetVisibility(EVisibility::Visible);
 			SequencerOverlayPin->SetVisibility( EVisibility::HitTestInvisible );
 		}
@@ -677,11 +675,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	}
 
 	OnWidgetPreviewUpdated.Broadcast();
-
-	if (Sequencer.IsValid())
-	{
-		Sequencer->UpdateRuntimeInstances();
-	}
+	GetSequencer()->UpdateRuntimeInstances();
 }
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) const
@@ -718,7 +712,7 @@ const FWidgetReference& FWidgetBlueprintEditor::GetHoveredWidget() const
 
 void FWidgetBlueprintEditor::AddPostDesignerLayoutAction(TFunction<void()> Action)
 {
-	QueuedDesignerActions.Add(Action);
+	QueuedDesignerActions.Add(MoveTemp(Action));
 }
 
 TArray< TFunction<void()> >& FWidgetBlueprintEditor::GetQueuedDesignerActions()
@@ -810,7 +804,7 @@ void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuil
 	{
 		for (FObjectAndDisplayName& BindableObject : BindableObjects)
 		{
-			FGuid BoundObjectGuid = CurrentAnimation->FindObjectId(*BindableObject.Object);
+			FGuid BoundObjectGuid = Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*BindableObject.Object);
 			if (BoundObjectGuid.IsValid() == false)
 			{
 				FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));

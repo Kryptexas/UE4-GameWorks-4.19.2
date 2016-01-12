@@ -1,11 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "OculusInputPrivatePCH.h"
 #include "OculusInputState.h"
 
-#if OCULUS_TOUCH_SUPPORTED_PLATFORMS
+#if USE_OVR_MOTION_SDK
 
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 	#pragma pack (push,8)
@@ -73,6 +73,7 @@ public:
 
 	// IMotionController overrides
 	virtual bool GetControllerOrientationAndPosition( const int32 ControllerIndex, const EControllerHand DeviceHand, FRotator& OutOrientation, FVector& OutPosition ) const override;
+	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const override;
 
 	// IHapticDevice overrides
 	IHapticDevice* GetHapticDevice() override { return (IHapticDevice*)this; }
@@ -99,4 +100,4 @@ private:
 
 DEFINE_LOG_CATEGORY_STATIC(LogOcInput, Log, All);
 
-#endif //OCULUS_TOUCH_SUPPORTED_PLATFORMS
+#endif	// USE_OVR_MOTION_SDK

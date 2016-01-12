@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Matinee/MatineeActor.h"
@@ -113,8 +113,16 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "PackageTools.h"
 
+#include "FileHelpers.h"
+#if !UE_BUILD_SHIPPING
+#include "AutomationCommon.h"
+#endif
+
 #include "PhysicsPublic.h"
 #include "Engine/CoreSettings.h"
+#include "ShaderCompiler.h"
+
+#include "AnimationRecorder.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -213,8 +221,6 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 		struct FConstructorStatics
 		{
 			ConstructorHelpers::FObjectFinder<UTexture2D> BadTexture;
-			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundTexture;
-			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundHiTexture;
 			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCubeMesh;
 			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorSphereMesh;
 			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorPlaneMesh;
@@ -222,8 +228,6 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 			ConstructorHelpers::FObjectFinder<UFont> SmallFont;
 			FConstructorStatics()
 				: BadTexture(TEXT("/Engine/EditorResources/Bad"))
-				, BackgroundTexture(TEXT("/Engine/EditorResources/Bkgnd"))
-				, BackgroundHiTexture(TEXT("/Engine/EditorResources/BkgndHi"))
 				, EditorCubeMesh(TEXT("/Engine/EditorMeshes/EditorCube"))
 				, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
 				, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
@@ -235,8 +239,6 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 		static FConstructorStatics ConstructorStatics;
 
 		Bad = ConstructorStatics.BadTexture.Object;
-		Bkgnd = ConstructorStatics.BackgroundTexture.Object;
-		BkgndHi = ConstructorStatics.BackgroundHiTexture.Object;
 		EditorCube = ConstructorStatics.EditorCubeMesh.Object;
 		EditorSphere = ConstructorStatics.EditorSphereMesh.Object;
 		EditorPlane = ConstructorStatics.EditorPlaneMesh.Object;
@@ -252,6 +254,13 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	bAllowMultiplePIEWorlds = true;
 	NumOnlinePIEInstances = 0;
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
+
+#if !UE_BUILD_SHIPPING
+	if (!AutomationCommon::OnEditorAutomationMapLoadDelegate().IsBound())
+	{
+		AutomationCommon::OnEditorAutomationMapLoadDelegate().AddUObject(this, &UEditorEngine::AutomationLoadMap);
+	}
+#endif
 }
 
 
@@ -443,7 +452,8 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform != NULL )
 		{
-			DesktopPlatform->OpenLauncher(false, FString(), FString("-silent"));
+			FOpenLauncherOptions SilentOpen;
+			DesktopPlatform->OpenLauncher(SilentOpen);
 		}
 	}
 
@@ -586,9 +596,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Init transactioning.
 	Trans = CreateTrans();
-
-	// Load all of the runtime modules that the game needs.  The game is part of the editor, so we'll need these loaded.
-	UGameEngine::LoadRuntimeEngineStartupModules();
 
 	SlowTask.EnterProgressFrame(50);
 
@@ -1394,7 +1401,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	// Update viewports.
 
-	for(int32 ViewportIndex = 0;ViewportIndex < AllViewportClients.Num();ViewportIndex++)
+	for (int32 ViewportIndex = AllViewportClients.Num()-1; ViewportIndex >= 0; ViewportIndex--)
 	{
 		FEditorViewportClient* ViewportClient = AllViewportClients[ ViewportIndex ];
 
@@ -1580,6 +1587,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	FUnrealEdMisc::Get().TickPerformanceAnalytics();
 
+	FAnimationRecorderManager::Get().Tick(DeltaSeconds);
+	
 	// If the fadeout animation has completed for the undo/redo notification item, allow it to be deleted
 	if(UndoRedoNotificationItem.IsValid() && UndoRedoNotificationItem->GetCompletionState() == SNotificationItem::CS_None)
 	{
@@ -1772,6 +1781,17 @@ void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 			Blueprint->Status = BS_Dirty;
 		}
 	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bOptimizeAnimBlueprintMemberVariableAccess))
+	{
+		FScopedSlowTask SlowTask(100, LOCTEXT("DirtyingAnimBlueprintsDueToOptimizationChange", "Invalidating All Anim Blueprints"));
+
+		// Flag all Blueprints as out of date (this doesn't dirty the package as needs saving but will force a recompile during PIE)
+		for (TObjectIterator<UAnimBlueprint> AnimBlueprintIt; AnimBlueprintIt; ++AnimBlueprintIt)
+		{
+			UAnimBlueprint* AnimBlueprint = *AnimBlueprintIt;
+			AnimBlueprint->Status = BS_Dirty;
+		}
+	}
 }
 
 void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& TransReset )
@@ -1809,7 +1829,7 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 		// will occur next time someone tries to use it. This is caused by
 		// the fact that the loading routing will check that already
 		// existed, but the object was missing in cache.
-		const EObjectFlags FlagsToClear = RF_Standalone | RF_RootSet | RF_Transactional;
+		const EObjectFlags FlagsToClear = RF_Standalone | RF_Transactional;
 		TArray<UPackage*> PackagesToUnload;
 		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
 		{
@@ -1836,6 +1856,7 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			{
 				// In case this isn't redirector-only package, clear just the redirector.
 				RedirIt->ClearFlags(FlagsToClear);
+				RedirIt->RemoveFromRoot();
 			}
 		}
 
@@ -1846,9 +1867,11 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			for (auto* Object : PackageObjects)
 			{
 				Object->ClearFlags(FlagsToClear);
+				Object->RemoveFromRoot();
 			}
 
 			PackageToUnload->ClearFlags(FlagsToClear);
+			PackageToUnload->RemoveFromRoot();
 		}
 
 		// Collect garbage.
@@ -1942,6 +1965,17 @@ void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 	}
 }
 
+void UEditorEngine::PlayEditorSound( USoundBase* InSound )
+{
+	// Only play sounds if the user has that feature enabled
+	if (!GIsSavingPackage && IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds)
+	{
+		if (InSound != nullptr)
+		{
+			GEditor->PlayPreviewSound(InSound);
+		}
+	}
+}
 
 void UEditorEngine::ClearPreviewComponents()
 {
@@ -2513,17 +2547,17 @@ void UEditorEngine::LoadMapListFromIni(const FString& InSectionName, TArray<FStr
 	}
 }
 
-void UEditorEngine::SyncBrowserToObjects( TArray<UObject*>& InObjectsToSync )
+void UEditorEngine::SyncBrowserToObjects( TArray<UObject*>& InObjectsToSync, bool bFocusContentBrowser )
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().SyncBrowserToAssets( InObjectsToSync );
+	ContentBrowserModule.Get().SyncBrowserToAssets( InObjectsToSync, false, bFocusContentBrowser );
 
 }
 
-void UEditorEngine::SyncBrowserToObjects( TArray<class FAssetData>& InAssetsToSync )
+void UEditorEngine::SyncBrowserToObjects( TArray<class FAssetData>& InAssetsToSync, bool bFocusContentBrowser )
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().SyncBrowserToAssets( InAssetsToSync );
+	ContentBrowserModule.Get().SyncBrowserToAssets( InAssetsToSync, false, bFocusContentBrowser );
 }
 
 
@@ -2584,6 +2618,39 @@ void UEditorEngine::SyncToContentBrowser()
 	SyncBrowserToObjects(Objects);
 }
 
+void UEditorEngine::GetLevelsToSyncToContentBrowser(TArray<UObject*>& Objects)
+{
+	for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = CastChecked<AActor>(*It);
+		ULevel* ActorLevel = Actor->GetLevel();
+		if (ActorLevel)
+		{
+			// Get the outer World as this is the actual asset we need to find
+			UObject* ActorWorld = ActorLevel->GetOuter();
+			if (ActorWorld)
+			{
+				Objects.AddUnique(ActorWorld);
+			}
+		}
+	}
+}
+
+void UEditorEngine::SyncActorLevelsToContentBrowser()
+{
+	TArray<UObject*> Objects;
+	GetLevelsToSyncToContentBrowser(Objects);
+
+	SyncBrowserToObjects(Objects);
+}
+
+bool UEditorEngine::CanSyncActorLevelsToContentBrowser()
+{
+	TArray<UObject*> Objects;
+	GetLevelsToSyncToContentBrowser(Objects);
+
+	return Objects.Num() > 0;
+}
 
 void UEditorEngine::GetReferencedAssetsForEditorSelection(TArray<UObject*>& Objects, const bool bIgnoreOtherAssetsIfBPReferenced)
 {
@@ -2745,11 +2812,16 @@ void UEditorEngine::SelectAllActorsWithClass( bool bArchetype )
 {
 	if( !bArchetype )
 	{
-		FSelectedActorInfo SelectionInfo = AssetSelectionUtils::GetSelectedActorInfo();
-
-		if( SelectionInfo.NumSelected )
+		TArray<UClass*> SelectedClasses;
+		for (auto It = GetSelectedActorIterator(); It; ++It)
 		{
-			GUnrealEd->Exec( SelectionInfo.SharedWorld, *FString::Printf( TEXT("ACTOR SELECT OFCLASS CLASS=%s"), *SelectionInfo.SelectionStr ) );
+			SelectedClasses.AddUnique(It->GetClass());
+		}
+
+		UWorld* CurrentEditorWorld = GetEditorWorldContext().World();
+		for (UClass* Class : SelectedClasses)
+		{
+			GUnrealEd->Exec(CurrentEditorWorld, *FString::Printf(TEXT("ACTOR SELECT OFCLASS CLASS=%s"), *Class->GetName()));
 		}
 	}
 	else
@@ -2851,6 +2923,7 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 		checkSlow( VolumeClass && VolumeClass->IsChildOf( AVolume::StaticClass() ) );
 
 		TArray< UWorld* > WorldsAffected;
+		TArray< ULevel* > LevelsAffected;
 		// Iterate over all selected actors, converting the brushes to volumes of the provided class
 		for ( int32 BrushIdx = 0; BrushIdx < BrushesToConvert.Num(); BrushIdx++ )
 		{
@@ -2859,6 +2932,7 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 			
 			ULevel* CurActorLevel = CurBrushActor->GetLevel();
 			check( CurActorLevel );
+			LevelsAffected.AddUnique( CurActorLevel );
 
 			// Cache the world and store in a list.
 			UWorld* World = CurBrushActor->GetWorld();
@@ -2903,9 +2977,15 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 		GEditor->RedrawLevelEditingViewports();
 
 		// Broadcast a message that the levels in these worlds have changed
-		for (int32 iWorld = 0; iWorld < WorldsAffected.Num() ; iWorld++)
+		for (UWorld* ChangedWorld : WorldsAffected)
 		{
-			WorldsAffected[ iWorld ]->BroadcastLevelsChanged();
+			ChangedWorld->BroadcastLevelsChanged();
+		}
+
+		// Rebuild BSP for any levels affected
+		for (ULevel* ChangedLevel : LevelsAffected)
+		{
+			GEditor->RebuildLevel(*ChangedLevel);
 		}
 
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
@@ -3397,10 +3477,38 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 
 void UEditorEngine::UpdateReflectionCaptures()
 {
-	// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
 	UWorld* World = GWorld;
-	World->UpdateAllSkyCaptures();
-	World->UpdateAllReflectionCaptures();
+	const ERHIFeatureLevel::Type ActiveFeatureLevel = World->FeatureLevel;
+	if (ActiveFeatureLevel < ERHIFeatureLevel::SM4 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	{
+		FScopedSlowTask SlowTask(4, LOCTEXT("UpdatingReflectionCaptures", "Updating reflection captures"));
+		SlowTask.MakeDialog();
+		// change to GMaxRHIFeatureLevel feature level to generate capture images.
+		SlowTask.EnterProgressFrame();			
+		World->ChangeFeatureLevel(GMaxRHIFeatureLevel, false);
+
+		// Wait for shaders to compile so the capture result isn't capture black
+		if (GShaderCompilingManager != NULL)
+		{
+			GShaderCompilingManager->FinishAllCompilation();
+		}
+
+		// Update captures
+		SlowTask.EnterProgressFrame();
+		World->UpdateAllSkyCaptures();
+		SlowTask.EnterProgressFrame();
+		World->UpdateAllReflectionCaptures();
+
+		// restore to the preview feature level.
+		SlowTask.EnterProgressFrame();
+		World->ChangeFeatureLevel(ActiveFeatureLevel, false);
+	}
+	else
+	{
+		// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
+		World->UpdateAllSkyCaptures();
+		World->UpdateAllReflectionCaptures();
+	}
 }
 
 void UEditorEngine::EditorAddModalWindow( TSharedRef<SWindow> InModalWindow ) const
@@ -3447,7 +3555,7 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 	if (CanParentActors(ParentActor, ChildActor))
 	{
 		USceneComponent* ChildRoot = ChildActor->GetRootComponent();
-		USceneComponent* ParentRoot = ParentActor->GetRootComponent();
+		USceneComponent* ParentRoot = ParentActor->GetDefaultAttachComponent();
 
 		check(ChildRoot);	// CanParentActors() call should ensure this
 		check(ParentRoot);	// CanParentActors() call should ensure this
@@ -3527,7 +3635,7 @@ bool UEditorEngine::CanParentActors( const AActor* ParentActor, const AActor* Ch
 	}
 
 	USceneComponent* ChildRoot = ChildActor->GetRootComponent();
-	USceneComponent* ParentRoot = ParentActor->GetRootComponent();
+	USceneComponent* ParentRoot = ParentActor->GetDefaultAttachComponent();
 	if(ChildRoot == NULL || ParentRoot == NULL)
 	{
 		if (ReasonText)
@@ -3692,11 +3800,19 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 	}
 }
 
-bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
+ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 				 FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
 				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
 {
 	FScopedSlowTask SlowTask(100, FText(), bSlowTask);
+
+	// If we we need to fixup string asset references, load any referenced by this package before it is saved
+	static bool bForceLoadStringAssetReferences = FParse::Param(FCommandLine::Get(), TEXT("FixupStringAssetReferences"));
+
+	if (bForceLoadStringAssetReferences)
+	{
+		GRedirectCollector.ResolveStringAssetReference(Filename);
+	}
 
 	UObject* Base = InBase;
 	if ( !Base && InOuter && InOuter->HasAnyPackageFlags(PKG_ContainsMap) )
@@ -3771,13 +3887,13 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 
 	SlowTask.EnterProgressFrame(70);
 
-	bool bSuccess = UPackage::SavePackage(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	const ESavePackageResult Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 
 	SlowTask.EnterProgressFrame(10);
 
 	// If the package is a valid candidate for being automatically-added to source control, go ahead and add it
 	// to the default changelist
-	if( bSuccess && bAutoAddPkgToSCC )
+	if (Result == ESavePackageResult::Success && bAutoAddPkgToSCC)
 	{
 		// IsPackageValidForAutoAdding should not return true if SCC is disabled
 		check(ISourceControlModule::Get().IsEnabled());
@@ -3804,7 +3920,7 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 			World->PersistentLevel->OwningWorld = OriginalOwningWorld;
 		}
 
-		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, bSuccess);
+		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, Result == ESavePackageResult::Success);
 
 		if (bInitializedPhysicsSceneForSave)
 		{
@@ -3818,7 +3934,17 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 		}
 	}
 
-	return bSuccess;
+	return Result;
+}
+
+bool UEditorEngine::SavePackage(UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename,
+	uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask)
+{
+	// Workaround to avoid function signature change while keeping both bool and ESavePackageResult versions of SavePackage
+	const ESavePackageResult Result = Save(InOuter, InBase, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping,
+		bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	return Result == ESavePackageResult::Success;
 }
 
 void UEditorEngine::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)
@@ -4550,6 +4676,27 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 	// Reattaches actors based on their previous parent child relationship.
 	ReattachActorsHelper::ReattachActors(ConvertedMap, AttachmentInfo);
 
+	// Perform reference replacement on all Actors referenced by World
+	UWorld* CurrentEditorWorld = GetEditorWorldContext().World();
+	FArchiveReplaceObjectRef<AActor> Ar(CurrentEditorWorld, ConvertedMap, false, true, false);
+
+	// Go through modified objects, marking their packages as dirty and informing them of property changes
+	for (const auto& MapItem : Ar.GetReplacedReferences())
+	{
+		UObject* ModifiedObject = MapItem.Key;
+
+		if (!ModifiedObject->HasAnyFlags(RF_Transient) && ModifiedObject->GetOutermost() != GetTransientPackage() && !ModifiedObject->RootPackageHasAnyFlags(PKG_CompiledIn))
+		{
+			ModifiedObject->MarkPackageDirty();
+		}
+
+		for (UProperty* Property : MapItem.Value)
+		{
+			FPropertyChangedEvent PropertyEvent(Property);
+			ModifiedObject->PostEditChangeProperty(PropertyEvent);
+		}
+	}
+
 	RedrawLevelEditingViewports();
 
 	ULevel::LevelDirtiedEvent.Broadcast();
@@ -4977,7 +5124,7 @@ AActor* UEditorEngine::ConvertBrushesToStaticMesh(const FString& InStaticMeshPac
 		InBrushesToConvert[BrushesIdx]->TeleportTo(Location - InPivotLocation, Rotation, false, true);
 	}
 
-	GEditor->RebuildModelFromBrushes(ConversionTempModel, true );
+	GEditor->RebuildModelFromBrushes(ConversionTempModel, true, true );
 	GEditor->bspBuildFPolys(ConversionTempModel, true, 0);
 
 	if (0 < ConversionTempModel->Polys->Element.Num())
@@ -6415,6 +6562,85 @@ void UEditorEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type Fa
 	{
 		Super::HandleTravelFailure(InWorld, FailureType, ErrorString);
 	}
+}
+
+void UEditorEngine::AutomationLoadMap(const FString& MapName)
+{
+#if !UE_BUILD_SHIPPING
+	struct FFailedGameStartHandler
+	{
+		bool bCanProceed;
+
+		FFailedGameStartHandler()
+		{
+			bCanProceed = true;
+			FEditorDelegates::EndPIE.AddRaw(this, &FFailedGameStartHandler::OnEndPIE);
+		}
+
+		~FFailedGameStartHandler()
+		{
+			FEditorDelegates::EndPIE.RemoveAll(this);
+		}
+
+		bool CanProceed() const { return bCanProceed; }
+
+		void OnEndPIE(const bool bInSimulateInEditor)
+		{
+			bCanProceed = false;
+		}
+	};
+
+	bool bLoadAsTemplate = false;
+	bool bShowProgress = false;
+
+	bool bNeedLoadEditorMap = true;
+	bool bNeedPieStart = true;
+	bool bPieRunning = false;
+
+	//check existing worlds
+	const TIndirectArray<FWorldContext> WorldContexts = GEngine->GetWorldContexts();
+	for (auto& Context : WorldContexts)
+	{
+		if (Context.World())
+		{
+			if (Context.WorldType == EWorldType::PIE)
+			{
+				//don't quit!  This was triggered while pie was already running!
+				bNeedPieStart = !MapName.Contains(Context.World()->GetName());
+				bPieRunning = true;
+				break;
+			}
+			else if (Context.WorldType == EWorldType::Editor)
+			{
+				bNeedLoadEditorMap = !MapName.Contains(Context.World()->GetName());
+			}
+		}
+	}
+
+	if (bNeedLoadEditorMap)
+	{
+		if (bPieRunning)
+		{
+			GEditor->EndPlayMap();
+		}
+		FEditorFileUtils::LoadMap(*MapName, bLoadAsTemplate, bShowProgress);
+		bNeedPieStart = true;
+	}
+	// special precaution needs to be taken while triggering PIE since it can
+	// fail if there are BP compilation issues
+	if (bNeedPieStart)
+	{
+		FFailedGameStartHandler FailHandler;
+		GEditor->PlayInEditor(GWorld, /*bInSimulateInEditor=*/false);
+		//bCanProceed = FailHandler.CanProceed();
+	}
+
+	//should really be wait until the map is properly loaded....in PIE or gameplay....
+	if (bNeedPieStart)
+	{
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+	}
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE 

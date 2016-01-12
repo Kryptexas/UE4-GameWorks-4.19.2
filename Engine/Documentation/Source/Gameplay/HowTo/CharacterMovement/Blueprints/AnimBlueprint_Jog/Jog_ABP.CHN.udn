@@ -1,100 +1,100 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2612291
 Availability: Public
-Title:7. Animation Blueprint - Jog State
+Title:7.动画蓝图 – 慢跑状态
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
-Description:This section focuses on setting up the Jog States for our Character. 
+Description:本节专注于设置人物的慢跑状态。 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
+		[上一步] (Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Character Movement Overview](Gameplay\HowTo\CharacterMovement\Blueprints)
+		[人物动作概述](Gameplay\HowTo\CharacterMovement\Blueprints)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
+		[下一步] (Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Continuing in the **Animation Blueprint** and **State Machine**, this section we set up the **Jog** state and transitions to/from it. 
+继续**Animation Blueprint**和**State Machine**，本节我们设置**Jog**状态以及到/从它的过渡。 
 
-1.	In your State Machine graph, in the **Asset Browser**, drag into the graph the **Jog_BS**. 
+1.	在状态机图形中，在**Asset Browser**中拖入图形**Jog_BS**。 
 
 	![](AnimBP_Jog1.png)
 
-1.	Open the **Jog_BS** and drag in the **Speed** and **Direction** variables and connect as shown. 
+1.	打开**Jog_BS**并拖入**Speed**和**Direction**变量，如下所示连接。 
 
 	![](AnimBP_Jog2.png)
 
-1.	Return to the State Machine graph.
+1.	返回状态机图形。
 
-1.	Create **Transitions** from **Crouch_Idle_Rifle_Hip** to **Jog_BS** and **Jog_BS** to **Crouch_Idle_Rifle_Hip**. 
+1.	创建从**Crouch_Idle_Rifle_Hip**到**Jog_BS**以及从**Jog_BS**到**Crouch_Idle_Rifle_Hip**的**Transitions**。 
 
 	![](AnimBP_Jog3.png)
 
-1.	Open the **Transition Rule** for **Crouch_Idle_Rifle_Hip** to **Jog_BS** and recreate the graph below. 
+1.	打开从**Crouch_Idle_Rifle_Hip**到**Jog_BS**的**Transition Rule**并重建以下图形。 
 
 	![](AnimBP_Jog3b.png)
 
-	If Is Jogging is _True_ and the player's speed is greater than 0, they will enter the Jogging Blend Space. 
+	如果慢跑为_True_且玩家的速度大于 0，他们将进入慢跑混合空间。 
 
-1.	Return to the State Machine graph, open the **Transition Rule** for **Jog_BS** to **Crouch_Idle_Rifle_Hip**.
+1.	返回状态机图形，并打开从**Jog_BS**到**Crouch_Idle_Rifle_Hip**的**Transition Rule**。
 
-1.	Inside the **Transition Rule** create the graph below. 
+1.	在**Transition Rule**中创建以下图形。 
 
 	![](AnimBP_Jog3c.png)
 
-	Here we are allowing the player to enter a Jog State from Crouch (once they stop jogging they return to Crouch). 
+	在这里，我们将让玩家从蹲伏进入慢跑状态（他们停止慢跑后即返回蹲伏）。 
 
-1.	Return to the State Machine graph, and create **Transitions** from **Crouch_BS** to **Jog_BS** and **Jog_BS** to **Crouch_BS**. 
+1.	返回状态机图形，并创建从**Crouch_BS**到**Jog_BS**以及从**Jog_BS**到**Crouch_BS**的**Transitions**。 
 
 	![](AnimBP_Jog3d.png)
 
-1.	Open the **Transition Rule** for **Crouch_BS** to **Jog_BS** and create the graph below. 
+1.	打开从**Crouch_BS**到**Jog_BS**的**Transition Rule**并创建以下图形。 
 
 	![](AnimBP_Jog5.png)(w:760)
 
-	This checks if the player is crouched and presses **Left Shift** (our Jog key), that we transition them to the Jog state.  
+	这会检查玩家是否已蹲伏并按下**Left Shift**（我们的慢跑键），如果是就将他们过渡到慢跑状态。  
 
-1.	Return to the State Machine graph and open the **Transition Rule** for **Jog_BS** to **Crouch_BS**. 
+1.	返回状态机图形，并打开从**Jog_BS**到**Crouch_BS**的**Transition Rule**。 
 
 	![](AnimBP_Jog5b.png)
 
-1.	Inside the **Transition Rule**, recreate the graph below. 
+1.	在**Transition Rule**内重建以下图形。 
 
 	![](AnimBP_Jog6.png)
 
-	Here we check if the player is jogging and presses **C** (our Crouch key), that we transition them to the Crouch walk state. 
+	在这里，我们检查玩家是否在慢跑并按下**C**（我们的蹲伏键），如果是就将他们过渡到蹲走状态。 
 
-1.	Return to the State Machine graph and create a **Transition** from **Jog_BS** to **Idle_Rifle_Hip**. 
+1.	返回状态机图形，并创建从**Jog_BS**到**Idle_Rifle_Hip**的**Transition**。 
 
 	![](AnimBP_Jog7.png)
 
-1.	Open the **Transition Rule** for **Jog_BS** to **Idle_Rifle_Hip** and create the graph below. 
+1.	打开从**Jog_BS**到**Idle_Rifle_Hip**的**Transition Rule**并创建以下图形。 
 
 	![](AnimBP_Jog8.png)
 
-1.	Return to the State Machine graph and create **Transitions** from **Jog_BS** to **Walk_BS** and **Walk_BS** to **Jog_BS**. 
+1.	返回状态机图形，并创建从**Jog_BS**到**Walk_BS**以及从**Walk_BS**到**Jog_BS**的**Transitions**。 
 
 	![](AnimBP_Jog9.png)
 
-1.	Open the **Transition Rule** for **Jog_BS** to **Walk_BS** and recreate the graph below. 
+1.	打开从**Jog_BS**到**Walk_BS**的**Transition Rule**并重建以下图形。 
 
 	![](AnimBP_Jog10.png)
 
-1.	Return to the State Machine graph and open the **Transition Rule** for **Walk_BS** to **Jog_BS**. 
+1.	返回状态机图形，并打开从**Walk_BS**到**Jog_BS**的**Transition Rule**。 
 
-1.	Inside the **Transition Rule**, recreate the graph below. 
+1.	在**Transition Rule**内重建以下图形。 
 
 	![](AnimBP_Jog11.png)
 
-1.	**Compile** and **Save** the Animation Blueprint. 
+1.	**Compile**并**Save**动画蓝图。 
 
 
 %Steps%

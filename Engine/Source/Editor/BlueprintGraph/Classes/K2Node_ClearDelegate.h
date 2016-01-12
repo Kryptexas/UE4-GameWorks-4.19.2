@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "K2Node_BaseMCDelegate.h"
@@ -10,11 +10,11 @@ class UK2Node_ClearDelegate : public UK2Node_BaseMCDelegate
 	GENERATED_UCLASS_BODY()
 
 public:
-	// UEdGraphNode interface
+	//~ Begin UEdGraphNode Interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	// End of UEdGraphNode interface
+	//~ End UEdGraphNode Interface
 
-	// Begin of UK2Node interface
+	//~ Begin of UK2Node Interface
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	// End of UK2Node interface
+	//~ End UK2Node Interface
 };

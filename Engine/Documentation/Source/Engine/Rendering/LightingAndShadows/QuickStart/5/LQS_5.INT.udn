@@ -2,7 +2,8 @@ Availability: Public
 Title:5. Light Quality and Reflections
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:In this step we'll take a look at optimizing and improving light quality. 
-
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]

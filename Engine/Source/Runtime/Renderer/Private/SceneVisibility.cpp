@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneVisibility.cpp: Scene visibility determination.
@@ -8,7 +8,6 @@
 #include "Engine.h"
 #include "ScenePrivate.h"
 #include "FXSystem.h"
-#include "../../Engine/Private/SkeletalRenderGPUSkin.h"		// GPrevPerBoneMotionBlur
 #include "SceneUtils.h"
 #include "PostProcessing.h"
 
@@ -85,20 +84,35 @@ static FAutoConsoleVariableRef CVarAllowSubPrimitiveQueries(
 	ECVF_RenderThreadSafe
 	);
 
-
-static TAutoConsoleVariable<int32> CVarLightShaftQuality(
-	TEXT("r.LightShaftQuality"),
-	1,
-	TEXT("Defines the light shaft quality.\n")
-	TEXT("  0: off\n")
-	TEXT("  1: on (default)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
 	TEXT("r.StaticMeshLODDistanceScale"),
 	1.0f,
 	TEXT("Scale factor for the distance used in computing discrete LOD for static meshes. (0.25-1)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static int32 GOcclusionCullParallelPrimFetch = 0;
+static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
+	TEXT("r.OcclusionCullParallelPrimFetch"),
+	GOcclusionCullParallelPrimFetch,
+	TEXT("Enables Parallel Occlusion Cull primitive fetch."),
+	ECVF_RenderThreadSafe
+	);
+
+static int32 GOcclusionCullParallelPrimFetchHiPri = 1;
+static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetchHiPri(
+	TEXT("r.OcclusionCullParallelPrimFetchHiPri"),
+	GOcclusionCullParallelPrimFetchHiPri,
+	TEXT("When using r.OcclusionCullParallelPrimFetch, setting this to 1 uses hi priority tasks."),
+	ECVF_RenderThreadSafe
+	);
+
+static int32 GILCUpdatePrimTaskEnabled = 0;
+static FAutoConsoleVariableRef CVarILCUpdatePrimitivesTask(
+	TEXT("r.Cache.UpdatePrimsTaskEnabled"),
+	GILCUpdatePrimTaskEnabled,
+	TEXT("Enable threading for ILC primitive update.  Will overlap with the rest the end of InitViews."),
+	ECVF_RenderThreadSafe
+	);
 
 /** Distance fade cvars */
 static int32 GDisableLODFade = false;
@@ -395,13 +409,788 @@ static void UpdatePrimitiveFading(const FScene* Scene, FViewInfo& View)
 	}
 }
 
+struct FOcclusionBounds
+{
+	FOcclusionBounds(FPrimitiveOcclusionHistory* InPrimitiveOcclusionHistory, const FVector& InBoundsOrigin, const FVector& InBoundsExtent, bool bInGroupedQuery)
+		: PrimitiveOcclusionHistory(InPrimitiveOcclusionHistory)
+		, BoundsOrigin(InBoundsOrigin)
+		, BoundsExtent(InBoundsExtent)
+		, bGroupedQuery(bInGroupedQuery)
+	{}
+	FPrimitiveOcclusionHistory* PrimitiveOcclusionHistory;
+	FVector BoundsOrigin;
+	FVector BoundsExtent;	
+	bool bGroupedQuery;
+};
+
+struct FHZBBound
+{
+	FHZBBound(FPrimitiveOcclusionHistory* InTargetHistory, const FVector& InBoundsOrigin, const FVector& InBoundsExtent)
+	: TargetHistory(InTargetHistory)
+	, BoundsOrigin(InBoundsOrigin)
+	, BoundsExtent(InBoundsExtent)
+	{}
+
+	FPrimitiveOcclusionHistory* TargetHistory;
+	FVector BoundsOrigin;
+	FVector BoundsExtent;
+};
+
+#define BALANCE_LOAD 1
+#define QUERY_SANITY_CHECK 0
+
+struct FVisForPrimParams
+{
+	FVisForPrimParams(){}
+
+	FVisForPrimParams(const FScene* InScene, 
+						FViewInfo* InView, 
+						FViewElementPDI* InOcclusionPDI, 						
+						const int32 InStartIndex, 
+						const int32 InNumToProcess, 
+						const bool bInSubmitQueries, 
+						const bool bInHZBOcclusion,						
+						TArray<FPrimitiveOcclusionHistory>* OutOcclusionHistory,
+						TArray<FPrimitiveOcclusionHistory*>* OutQueriesToRelease,
+						TArray<FHZBBound>* OutHZBBounds,
+						TArray<FOcclusionBounds>* OutQueriesToRun,
+						TArray<bool>* OutSubIsOccluded)
+		: Scene(InScene)
+		, View(InView)
+		, OcclusionPDI(InOcclusionPDI)		
+		, StartIndex(InStartIndex)
+		, NumToProcess(InNumToProcess)
+		, bSubmitQueries(bInSubmitQueries)
+		, bHZBOcclusion(bInHZBOcclusion)		
+		, InsertPrimitiveOcclusionHistory(OutOcclusionHistory)
+		, QueriesToRelease(OutQueriesToRelease)
+		, HZBBoundsToAdd(OutHZBBounds)
+		, QueriesToAdd(OutQueriesToRun)	
+		, SubIsOccluded(OutSubIsOccluded)
+	{
+
+	}
+
+	void Init(	const FScene* InScene,
+				FViewInfo* InView,
+				FViewElementPDI* InOcclusionPDI,
+				const int32 InStartIndex,
+				const int32 InNumToProcess,
+				const bool bInSubmitQueries,
+				const bool bInHZBOcclusion,				
+				TArray<FPrimitiveOcclusionHistory>* OutOcclusionHistory,
+				TArray<FPrimitiveOcclusionHistory*>* OutQueriesToRelease,
+				TArray<FHZBBound>* OutHZBBounds,
+				TArray<FOcclusionBounds>* OutQueriesToRun,
+				TArray<bool>* OutSubIsOccluded)
+			
+	{
+		Scene = InScene;
+		View = InView;
+		OcclusionPDI = InOcclusionPDI;
+		StartIndex = InStartIndex;
+		NumToProcess = InNumToProcess;
+		bSubmitQueries = bInSubmitQueries;
+		bHZBOcclusion = bInHZBOcclusion;
+		InsertPrimitiveOcclusionHistory = OutOcclusionHistory;
+		QueriesToRelease = OutQueriesToRelease;
+		HZBBoundsToAdd = OutHZBBounds;
+		QueriesToAdd = OutQueriesToRun;
+		SubIsOccluded = OutSubIsOccluded;
+	}
+
+	const FScene* Scene;
+	FViewInfo* View;
+	FViewElementPDI* OcclusionPDI;
+	int32 StartIndex;
+	int32 NumToProcess;
+	bool bSubmitQueries;
+	bool bHZBOcclusion;	
+
+	//occlusion history to insert into.  In parallel these will be all merged back into the view's history on the main thread.
+	//use TChunkedArray so pointers to the new FPrimitiveOcclusionHistory's won't change if the array grows.	
+	TArray<FPrimitiveOcclusionHistory>*		InsertPrimitiveOcclusionHistory;
+	TArray<FPrimitiveOcclusionHistory*>*	QueriesToRelease;
+	TArray<FHZBBound>*						HZBBoundsToAdd;
+	TArray<FOcclusionBounds>*				QueriesToAdd;
+	int32									NumOccludedPrims;
+	TArray<bool>*							SubIsOccluded;
+};
+
+//This function is shared between the single and multi-threaded versions.  Modifications to any primitives indexed by BitIt should be ok
+//since only one of the task threads will ever reference it.  However, any modifications to shared state like the ViewState must be buffered
+//to be recombined later.
+template<bool bSingleThreaded>
+static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
+{	
+	int32 NumOccludedPrimitives = 0;
+	
+	const FScene* Scene				= Params.Scene;
+	FViewInfo& View					= *Params.View;
+	FViewElementPDI* OcclusionPDI	= Params.OcclusionPDI;
+	const int32 StartIndex			= Params.StartIndex;
+	const int32 NumToProcess		= Params.NumToProcess;
+	const bool bSubmitQueries		= Params.bSubmitQueries;
+	const bool bHZBOcclusion		= Params.bHZBOcclusion;
+
+	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+	const int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+	const bool bClearQueries = !View.Family->EngineShowFlags.HitProxies;
+	const float CurrentRealTime = View.Family->CurrentRealTime;
+	uint32 OcclusionFrameCounter = ViewState->OcclusionFrameCounter;
+	FRenderQueryPool& OcclusionQueryPool = ViewState->OcclusionQueryPool;
+	FHZBOcclusionTester& HZBOcclusionTests = ViewState->HZBOcclusionTests;
+	
+
+	TSet<FPrimitiveOcclusionHistory, FPrimitiveOcclusionHistoryKeyFuncs>& ViewPrimitiveOcclusionHistory = ViewState->PrimitiveOcclusionHistorySet;
+	TArray<FPrimitiveOcclusionHistory>* InsertPrimitiveOcclusionHistory = Params.InsertPrimitiveOcclusionHistory;
+	TArray<FPrimitiveOcclusionHistory*>* QueriesToRelease = Params.QueriesToRelease;
+	TArray<FHZBBound>* HZBBoundsToAdd = Params.HZBBoundsToAdd;
+	TArray<FOcclusionBounds>* QueriesToAdd = Params.QueriesToAdd;	
+
+	const int32 ReserveAmount = NumToProcess;
+	if (!bSingleThreaded)
+	{		
+		check(InsertPrimitiveOcclusionHistory);
+		check(QueriesToRelease);
+		check(HZBBoundsToAdd);
+		check(QueriesToAdd);
+
+		//avoid doing reallocs as much as possible.  Unlikely to make an entry per processed element.		
+		InsertPrimitiveOcclusionHistory->Reserve(ReserveAmount);
+		QueriesToRelease->Reserve(ReserveAmount);
+		HZBBoundsToAdd->Reserve(ReserveAmount);
+		QueriesToAdd->Reserve(ReserveAmount);
+	}
+	
+	int32 NumProcessed = 0;
+	int32 NumTotalPrims = View.PrimitiveVisibilityMap.Num();
+	int32 NumTotalDefUnoccluded = View.PrimitiveDefinitelyUnoccludedMap.Num();
+
+	//if we are load balanced then we iterate only the set bits, and the ranges have been pre-selected to evenly distribute set bits among the tasks with no overlaps.
+	//if not, then the entire array is evenly divided by range.
+#if BALANCE_LOAD
+	for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap, StartIndex); BitIt && (NumProcessed < NumToProcess); ++BitIt, ++NumProcessed)
+#else
+	for (TBitArray<SceneRenderingBitArrayAllocator>::FIterator BitIt(View.PrimitiveVisibilityMap, StartIndex); BitIt && (NumProcessed < NumToProcess); ++BitIt, ++NumProcessed)
+#endif
+	{		
+		uint8 OcclusionFlags = Scene->PrimitiveOcclusionFlags[BitIt.GetIndex()];
+		bool bCanBeOccluded = (OcclusionFlags & EOcclusionFlags::CanBeOccluded) != 0;
+
+#if !BALANCE_LOAD		
+		if (!View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt))
+		{
+			continue;
+		}
+#endif
+
+		//we can't allow the prim history insertion array to realloc or it will invalidate pointers in the other output arrays.
+		const bool bCanAllocPrimHistory = bSingleThreaded || InsertPrimitiveOcclusionHistory->Num() < InsertPrimitiveOcclusionHistory->Max();		
+
+		if (GIsEditor)
+		{
+			FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[BitIt.GetIndex()];
+
+			if (PrimitiveSceneInfo->Proxy->IsSelected())
+			{
+				// to render occluded outline for selected objects
+				bCanBeOccluded = false;
+			}
+		}
+		int32 NumSubQueries = 1;
+		bool bSubQueries = false;
+		const TArray<FBoxSphereBounds>* SubBounds = nullptr;
+
+		check(Params.SubIsOccluded);
+		TArray<bool>& SubIsOccluded = *Params.SubIsOccluded;
+		int32 SubIsOccludedStart = SubIsOccluded.Num();
+		if ((OcclusionFlags & EOcclusionFlags::HasSubprimitiveQueries) && GAllowSubPrimitiveQueries)
+		{
+			FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
+			SubBounds = Proxy->GetOcclusionQueries(&View);
+			NumSubQueries = SubBounds->Num();
+			bSubQueries = true;
+			if (!NumSubQueries)
+			{
+				View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+				continue;
+			}
+			SubIsOccluded.Reserve(NumSubQueries);
+		}
+
+		bool bAllSubOcclusionStateIsDefinite = true;
+		bool bAllSubOccluded = true;
+		FPrimitiveComponentId PrimitiveId = Scene->PrimitiveComponentIds[BitIt.GetIndex()];
+
+		for (int32 SubQuery = 0; SubQuery < NumSubQueries; SubQuery++)
+		{
+			FPrimitiveOcclusionHistory* PrimitiveOcclusionHistory = ViewPrimitiveOcclusionHistory.Find(FPrimitiveOcclusionHistoryKey(PrimitiveId, SubQuery));
+			
+			bool bIsOccluded = false;
+			bool bOcclusionStateIsDefinite = false;			
+
+			if (!PrimitiveOcclusionHistory)
+			{
+				// If the primitive doesn't have an occlusion history yet, create it.
+				if (bSingleThreaded)
+				{					
+					// In singlethreaded mode we can safely modify the view's history directly.
+					PrimitiveOcclusionHistory = &ViewPrimitiveOcclusionHistory[
+						ViewPrimitiveOcclusionHistory.Add(FPrimitiveOcclusionHistory(PrimitiveId, SubQuery))
+					];
+				}
+				else if (bCanAllocPrimHistory)
+				{
+					// In multithreaded mode we have to buffer the new histories and add them to the view during a post-combine
+					PrimitiveOcclusionHistory = &(*InsertPrimitiveOcclusionHistory)[
+						InsertPrimitiveOcclusionHistory->Add(FPrimitiveOcclusionHistory(PrimitiveId, SubQuery))
+					];
+				}				
+				
+				// If the primitive hasn't been visible recently enough to have a history, treat it as unoccluded this frame so it will be rendered as an occluder and its true occlusion state can be determined.
+				// already set bIsOccluded = false;
+
+				// Flag the primitive's occlusion state as indefinite, which will force it to be queried this frame.
+				// The exception is if the primitive isn't occludable, in which case we know that it's definitely unoccluded.
+				bOcclusionStateIsDefinite = bCanBeOccluded ? false : true;
+			}
+			else
+			{
+				if (View.bIgnoreExistingQueries)
+				{
+					// If the view is ignoring occlusion queries, the primitive is definitely unoccluded.
+					// already set bIsOccluded = false;
+					bOcclusionStateIsDefinite = View.bDisableQuerySubmissions;
+				}
+				else if (bCanBeOccluded)
+				{
+					if (bHZBOcclusion)
+					{
+						if (HZBOcclusionTests.IsValidFrame(PrimitiveOcclusionHistory->HZBTestFrameNumber))
+						{
+							bIsOccluded = !HZBOcclusionTests.IsVisible(PrimitiveOcclusionHistory->HZBTestIndex);
+							bOcclusionStateIsDefinite = true;
+						}
+					}
+					else
+					{
+						// Read the occlusion query results.
+						uint64 NumSamples = 0;
+						FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(OcclusionFrameCounter, NumBufferedFrames);
+						if (IsValidRef(PastQuery))
+						{
+							//int32 RefCount = PastQuery.GetReference()->GetRefCount();
+							// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
+							//if (RHICmdList.GetRenderQueryResult(PastQuery, NumSamples, true))
+							if (GDynamicRHI->RHIGetRenderQueryResult(PastQuery.GetReference(), NumSamples, true))
+							{
+								// we render occlusion without MSAA
+								uint32 NumPixels = (uint32)NumSamples;
+
+								// The primitive is occluded if none of its bounding box's pixels were visible in the previous frame's occlusion query.
+								bIsOccluded = (NumPixels == 0);
+
+								
+								if (!bIsOccluded)
+								{
+									checkSlow(View.OneOverNumPossiblePixels > 0.0f);
+									PrimitiveOcclusionHistory->LastPixelsPercentage = NumPixels * View.OneOverNumPossiblePixels;
+								}
+								else
+								{
+									PrimitiveOcclusionHistory->LastPixelsPercentage = 0.0f;
+								}								
+
+
+								// Flag the primitive's occlusion state as definite if it wasn't grouped.
+								bOcclusionStateIsDefinite = !PrimitiveOcclusionHistory->bGroupedQuery;
+							}
+							else
+							{
+								// If the occlusion query failed, treat the primitive as visible.  
+								// already set bIsOccluded = false;
+							}
+							//checkf(RefCount == PastQuery.GetReference()->GetRefCount(), TEXT("Ref count on prim: %i, old: %i, new: %i"), PrimitiveOcclusionHistory->PrimitiveId.PrimIDValue, RefCount, PastQuery.GetReference()->GetRefCount());
+						}
+						else
+						{
+							// If there's no occlusion query for the primitive, set it's visibility state to whether it has been unoccluded recently.
+							bIsOccluded = (PrimitiveOcclusionHistory->LastVisibleTime + GEngine->PrimitiveProbablyVisibleTime < CurrentRealTime);
+
+							
+							
+							if (bIsOccluded)
+							{
+								PrimitiveOcclusionHistory->LastPixelsPercentage = 0.0f;
+							}
+							else
+							{
+								PrimitiveOcclusionHistory->LastPixelsPercentage = GEngine->MaxOcclusionPixelsFraction;
+							}							
+
+							// the state was definite last frame, otherwise we would have ran a query
+							bOcclusionStateIsDefinite = true;							
+						}
+					}
+
+					if (GVisualizeOccludedPrimitives && OcclusionPDI && bIsOccluded)
+					{
+						const FBoxSphereBounds& Bounds = bSubQueries ? (*SubBounds)[SubQuery] : Scene->PrimitiveOcclusionBounds[BitIt.GetIndex()];
+						DrawWireBox(OcclusionPDI, Bounds.GetBox(), FColor(50, 255, 50), SDPG_Foreground);
+					}
+				}
+				else
+				{					
+					// Primitives that aren't occludable are considered definitely unoccluded.
+					// already set bIsOccluded = false;
+					bOcclusionStateIsDefinite = true;
+				}
+
+				if (bClearQueries)
+				{					
+					if (bSingleThreaded)
+					{						
+						OcclusionQueryPool.ReleaseQuery(PrimitiveOcclusionHistory->GetPastQuery(OcclusionFrameCounter, NumBufferedFrames));
+					}
+					else
+					{
+						FRenderQueryRHIRef &Query = PrimitiveOcclusionHistory->GetPastQuery(OcclusionFrameCounter, NumBufferedFrames);
+						if (IsValidRef(Query))
+						{
+							check(Query.GetRefCount() > 0);
+							QueriesToRelease->Add(PrimitiveOcclusionHistory);							
+						}
+					}
+				}
+			}
+
+			if (PrimitiveOcclusionHistory)
+			{
+
+				// Set the primitive's considered time to keep its occlusion history from being trimmed.
+				PrimitiveOcclusionHistory->LastConsideredTime = CurrentRealTime;
+
+				if (bSubmitQueries && bCanBeOccluded)
+				{
+					bool bAllowBoundsTest;
+					const FBoxSphereBounds& OcclusionBounds = bSubQueries ? (*SubBounds)[SubQuery] : Scene->PrimitiveOcclusionBounds[BitIt.GetIndex()];
+					if (View.bHasNearClippingPlane)
+					{
+						bAllowBoundsTest = View.NearClippingPlane.PlaneDot(OcclusionBounds.Origin) <
+							-(FVector::BoxPushOut(View.NearClippingPlane, OcclusionBounds.BoxExtent));
+
+					}
+					else if (!View.IsPerspectiveProjection())
+					{
+						// Transform parallel near plane
+						static_assert((int32)ERHIZBuffer::IsInverted != 0, "Check equation for culling!");
+						bAllowBoundsTest = View.WorldToScreen(OcclusionBounds.Origin).Z - View.ViewMatrices.ProjMatrix.M[2][2] * OcclusionBounds.SphereRadius < 1;
+					}
+					else
+					{
+						bAllowBoundsTest = OcclusionBounds.SphereRadius < HALF_WORLD_MAX;
+					}
+
+					if (bAllowBoundsTest)
+					{
+						if (bHZBOcclusion)
+						{
+							// Always run
+							if (bSingleThreaded)
+							{								
+								PrimitiveOcclusionHistory->HZBTestIndex = HZBOcclusionTests.AddBounds(OcclusionBounds.Origin, OcclusionBounds.BoxExtent);
+							}
+							else
+							{
+								HZBBoundsToAdd->Emplace(PrimitiveOcclusionHistory, OcclusionBounds.Origin, OcclusionBounds.BoxExtent);
+							}
+							PrimitiveOcclusionHistory->HZBTestFrameNumber = OcclusionFrameCounter;
+						}
+						else
+						{
+							// decide if a query should be run this frame
+							bool bRunQuery, bGroupedQuery;
+
+							if (!bSubQueries && // sub queries are never grouped, we assume the custom code knows what it is doing and will group internally if it wants
+								(OcclusionFlags & EOcclusionFlags::AllowApproximateOcclusion))
+							{
+								if (bIsOccluded)
+								{
+									// Primitives that were occluded the previous frame use grouped queries.
+									bGroupedQuery = true;
+									bRunQuery = true;
+								}
+								else if (bOcclusionStateIsDefinite)
+								{
+									// If the primitive's is definitely unoccluded, only requery it occasionally.
+									float FractionMultiplier = FMath::Max(PrimitiveOcclusionHistory->LastPixelsPercentage / GEngine->MaxOcclusionPixelsFraction, 1.0f);
+									bRunQuery = (FractionMultiplier * GOcclusionRandomStream.GetFraction()) < GEngine->MaxOcclusionPixelsFraction;
+									bGroupedQuery = false;
+								}
+								else
+								{
+									bGroupedQuery = false;
+									bRunQuery = true;
+								}
+							}
+							else
+							{
+								// Primitives that need precise occlusion results use individual queries.
+								bGroupedQuery = false;
+								bRunQuery = true;
+							}
+
+							if (bRunQuery)
+							{
+								const FVector BoundOrigin = OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation;
+								const FVector BoundExtent = OcclusionBounds.BoxExtent;
+
+								if (bSingleThreaded)
+								{
+									PrimitiveOcclusionHistory->SetCurrentQuery(OcclusionFrameCounter,
+										bGroupedQuery ?
+										View.GroupedOcclusionQueries.BatchPrimitive(BoundOrigin, BoundExtent) :
+										View.IndividualOcclusionQueries.BatchPrimitive(BoundOrigin, BoundExtent),
+										NumBufferedFrames
+										);
+								}
+								else
+								{
+									QueriesToAdd->Emplace(PrimitiveOcclusionHistory, BoundOrigin, BoundExtent, bGroupedQuery);
+								}
+							}
+
+							PrimitiveOcclusionHistory->bGroupedQuery = bGroupedQuery;
+						}
+					}
+					else
+					{
+						// If the primitive's bounding box intersects the near clipping plane, treat it as definitely unoccluded.
+						bIsOccluded = false;
+						bOcclusionStateIsDefinite = true;
+					}
+				}
+			}
+
+
+			if (bSubQueries)
+			{
+				SubIsOccluded.Add(bIsOccluded);
+				if (!bIsOccluded)
+				{
+					bAllSubOccluded = false;
+					if (bOcclusionStateIsDefinite)
+					{
+						if (PrimitiveOcclusionHistory)
+						{
+							PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
+						}
+					}
+				}
+				if (bIsOccluded || !bOcclusionStateIsDefinite)
+				{
+					bAllSubOcclusionStateIsDefinite = false;
+				}
+			}
+			else
+			{
+					
+				if (bIsOccluded)
+				{
+					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+					STAT(NumOccludedPrimitives++);
+				}
+				else if (bOcclusionStateIsDefinite)
+				{
+					if (PrimitiveOcclusionHistory)
+					{
+						PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
+					}
+					
+					View.PrimitiveDefinitelyUnoccludedMap.AccessCorrespondingBit(BitIt) = true;
+				}					
+			}			
+		}
+
+		if (bSubQueries)
+		{
+			FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
+			Proxy->AcceptOcclusionResults(&View, &SubIsOccluded[SubIsOccludedStart], SubIsOccluded.Num() - SubIsOccludedStart);
+			if (bAllSubOccluded)
+			{
+				View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+				STAT(NumOccludedPrimitives++);
+			}
+			else if (bAllSubOcclusionStateIsDefinite)
+			{
+				View.PrimitiveDefinitelyUnoccludedMap.AccessCorrespondingBit(BitIt) = true;
+			}
+		}
+	}
+
+	check(NumTotalDefUnoccluded == View.PrimitiveDefinitelyUnoccludedMap.Num());
+	check(NumTotalPrims == View.PrimitiveVisibilityMap.Num());
+	check(!InsertPrimitiveOcclusionHistory || InsertPrimitiveOcclusionHistory->Num() <= ReserveAmount);
+	Params.NumOccludedPrims = NumOccludedPrimitives;	
+}
+
+class FetchVisibilityForPrimitivesTask
+{
+	FVisForPrimParams& Params;
+
+public:
+
+	FetchVisibilityForPrimitivesTask(FVisForPrimParams& InParams)
+		: Params(InParams)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FetchVisibilityForPrimitivesTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return GOcclusionCullParallelPrimFetchHiPri ? ENamedThreads::HiPri(ENamedThreads::AnyThread) : ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		FetchVisibilityForPrimitives_Range<false>(Params);
+	}
+};
+
+static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, const bool bSubmitQueries, const bool bHZBOcclusion)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitives);
+	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+
+	const int32 NumBufferedSubIsOccludedArrays = 2;
+	static int32 SubIsOccludedArrayIndex = 0;
+	SubIsOccludedArrayIndex = 1 - SubIsOccludedArrayIndex;
+
+	if (GOcclusionCullParallelPrimFetch && GSupportsParallelOcclusionQueries)
+	{		
+		static const int32 MaxNumCullTasks = 4;
+		static const int32 ActualNumCullTasks = 4;
+		static const int32 NumOutputArrays = MaxNumCullTasks;
+		
+		FGraphEventRef TaskRefArray[NumOutputArrays];
+
+		//params for each task
+		FVisForPrimParams Params[NumOutputArrays];
+
+		//output arrays for each task
+		TArray<FPrimitiveOcclusionHistory> OutputOcclusionHistory[NumOutputArrays];
+		TArray<FPrimitiveOcclusionHistory*> OutQueriesToRelease[NumOutputArrays];
+		TArray<FHZBBound> OutHZBBounds[NumOutputArrays];
+		TArray<FOcclusionBounds> OutQueriesToRun[NumOutputArrays];	
+
+		static TArray<bool> FrameSubIsOccluded[NumOutputArrays][NumBufferedSubIsOccludedArrays];
+
+		//optionally balance the tasks by how the visible primitives are distributed in the array rather than just breaking up the array by range.
+		//should make the tasks more equal length.
+#if BALANCE_LOAD
+		int32 StartIndices[NumOutputArrays] = { 0 };
+		int32 ProcessRange[NumOutputArrays] = { 0 };
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitivesPreProcess);
+			int32 NumBitsSet = 0;
+			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt, ++NumBitsSet)
+			{
+			}
+			
+			int32 BitsPerTask = NumBitsSet / ActualNumCullTasks;
+			int32 NumBitsForRange = 0;
+			int32 CurrentStartIndex = 0;
+			int32 RangeToSet = 0;
+
+			//accumulate set bits for each task until we reach the target, then set the start/end and move on.
+			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt && RangeToSet < (ActualNumCullTasks - 1); ++BitIt)
+			{
+				++NumBitsForRange;
+				if (NumBitsForRange == BitsPerTask)
+				{
+					StartIndices[RangeToSet] = CurrentStartIndex;
+					ProcessRange[RangeToSet] = NumBitsForRange;
+
+					++RangeToSet;
+					NumBitsForRange = 0;
+					CurrentStartIndex = BitIt.GetIndex() + 1;
+				}
+			}
+
+			//final range is the rest of the set bits, no matter how many there are.
+			StartIndices[ActualNumCullTasks - 1] = CurrentStartIndex;
+			ProcessRange[ActualNumCullTasks - 1] = NumBitsSet - (BitsPerTask * 3);
+		}
+#endif
+
+		const int32 NumPrims = View.PrimitiveVisibilityMap.Num();
+		const int32 NumPerTask = NumPrims / ActualNumCullTasks;
+		int32 StartIndex = 0;
+		int32 NumToProcess = NumPerTask;
+
+		FGraphEventArray TaskWaitArray;
+		int32 NumTasks = 0;
+		for (int32 i = 0; i < ActualNumCullTasks && (StartIndex < NumPrims); ++i, ++NumTasks)
+		{
+			NumToProcess = (i == (ActualNumCullTasks - 1)) ? (NumPrims - StartIndex) : NumPerTask;
+			TArray<bool>& SubIsOccluded = FrameSubIsOccluded[i][SubIsOccludedArrayIndex];
+			SubIsOccluded.Reset();
+
+			Params[i].Init(
+				Scene,
+				&View,
+				nullptr,
+#if BALANCE_LOAD
+				StartIndices[i],
+				ProcessRange[i],
+#else
+				StartIndex,
+				NumToProcess,
+#endif
+				bSubmitQueries,
+				bHZBOcclusion,				
+				&OutputOcclusionHistory[i],
+				&OutQueriesToRelease[i],
+				&OutHZBBounds[i],
+				&OutQueriesToRun[i],
+				&SubIsOccluded
+				);
+
+			TaskRefArray[i] = TGraphTask<FetchVisibilityForPrimitivesTask>::CreateTask(nullptr, ENamedThreads::AnyThread).ConstructAndDispatchWhenReady(Params[i]);			
+			TaskWaitArray.Add(TaskRefArray[i]);
+
+			StartIndex += NumToProcess;
+		}
+
+		const int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+		uint32 OcclusionFrameCounter = ViewState->OcclusionFrameCounter;
+		TSet<FPrimitiveOcclusionHistory, FPrimitiveOcclusionHistoryKeyFuncs>& ViewPrimitiveOcclusionHistory = ViewState->PrimitiveOcclusionHistorySet;
+		FRenderQueryPool& OcclusionQueryPool = ViewState->OcclusionQueryPool;
+		FHZBOcclusionTester& HZBOcclusionTests = ViewState->HZBOcclusionTests;		
+
+		int32 NumOccludedPrims = 0;
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitivesCombine);
+
+			//wait for them all so we don't start modifying the prim histories while the gather is running
+			FTaskGraphInterface::Get().WaitUntilTasksComplete(TaskWaitArray, ENamedThreads::RenderThread_Local);			
+
+#if QUERY_SANITY_CHECK
+			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitivesSanity);
+				TSet<int32> ReleaseQuerySet;
+				TSet<int32> RunQuerySet;
+				TSet<int32> MasterPrimsProcessed;
+				for (int32 i = 0; i < NumTasks; ++i)
+				{
+					bool bAlreadyIn = false;
+					for (auto ReleaseQueryIter = OutQueriesToRelease[i].CreateIterator(); ReleaseQueryIter; ++ReleaseQueryIter)
+					{
+						FPrimitiveOcclusionHistory* History = *ReleaseQueryIter;
+						ReleaseQuerySet.Add(History->PrimitiveId.PrimIDValue, &bAlreadyIn);
+						checkf(!bAlreadyIn, TEXT("Prim: %i double released query."), History->PrimitiveId.PrimIDValue);
+					}
+
+					for (auto RunQueriesIter = OutQueriesToRun[i].CreateIterator(); RunQueriesIter; ++RunQueriesIter)
+					{
+						FPrimitiveOcclusionHistory* History = RunQueriesIter->PrimitiveOcclusionHistory;
+						RunQuerySet.Add(History->PrimitiveId.PrimIDValue, &bAlreadyIn);
+						checkf(!bAlreadyIn, TEXT("Prim: %i double run query."), History->PrimitiveId.PrimIDValue);
+					}					
+				}
+			}
+#endif
+
+			//Add/Release query ops use stored PrimitiveHistory pointers. We must do ALL of these from all tasks before adding any new PrimitiveHistories to the view.
+			//Adding new histories to the view could cause the array to resize which would invalidate all the stored output pointers for the other operations.
+			for (int32 i = 0; i < NumTasks; ++i)
+			{
+				//HZB output
+				for (auto HZBBoundIter = OutHZBBounds[i].CreateIterator(); HZBBoundIter; ++HZBBoundIter)
+				{
+					HZBBoundIter->TargetHistory->HZBTestIndex = HZBOcclusionTests.AddBounds(HZBBoundIter->BoundsOrigin, HZBBoundIter->BoundsExtent);
+				}
+
+				//Manual query release handling
+				for (auto ReleaseQueryIter = OutQueriesToRelease[i].CreateIterator(); ReleaseQueryIter; ++ReleaseQueryIter)
+				{
+					FPrimitiveOcclusionHistory* History = *ReleaseQueryIter;
+					OcclusionQueryPool.ReleaseQuery(History->GetPastQuery(OcclusionFrameCounter, NumBufferedFrames));
+				}
+				
+				//New query batching
+				for (auto RunQueriesIter = OutQueriesToRun[i].CreateIterator(); RunQueriesIter; ++RunQueriesIter)
+				{
+					RunQueriesIter->PrimitiveOcclusionHistory->SetCurrentQuery(OcclusionFrameCounter,
+						RunQueriesIter->bGroupedQuery ?
+						View.GroupedOcclusionQueries.BatchPrimitive(RunQueriesIter->BoundsOrigin, RunQueriesIter->BoundsExtent) :
+						View.IndividualOcclusionQueries.BatchPrimitive(RunQueriesIter->BoundsOrigin, RunQueriesIter->BoundsExtent),
+						NumBufferedFrames
+						);
+				}
+			}
+
+			//now add new primitivie histories to the view. may resize the view's array.
+			for (int32 i = 0; i < NumTasks; ++i)
+			{								
+				const TArray<FPrimitiveOcclusionHistory>& NewHistoryArray = OutputOcclusionHistory[i];				
+				for (int32 HistoryIndex = 0; HistoryIndex < NewHistoryArray.Num(); ++HistoryIndex)
+				{
+					const FPrimitiveOcclusionHistory& CopySourceHistory = NewHistoryArray[HistoryIndex];
+					ViewPrimitiveOcclusionHistory.Add(CopySourceHistory);
+				}
+
+				//accumulate occluded prims across tasks
+				NumOccludedPrims += Params[i].NumOccludedPrims;
+			}
+		}
+		
+		return NumOccludedPrims;
+	}
+	else
+	{
+		//SubIsOccluded stuff needs a frame's lifetime
+		static TArray<bool> FrameSubIsOccluded[NumBufferedSubIsOccludedArrays];
+
+		TArray<bool>& SubIsOccluded = FrameSubIsOccluded[SubIsOccludedArrayIndex];
+		SubIsOccluded.Reset();
+
+		FViewElementPDI OcclusionPDI(&View, NULL);
+		int32 StartIndex = 0;
+		int32 NumToProcess = View.PrimitiveVisibilityMap.Num();				
+		FVisForPrimParams Params(
+			Scene,
+			&View,
+			&OcclusionPDI,
+			StartIndex,
+			NumToProcess,
+			bSubmitQueries,
+			bHZBOcclusion,			
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			&FrameSubIsOccluded[SubIsOccludedArrayIndex]
+			);
+
+		FetchVisibilityForPrimitives_Range<true>(Params);
+		return Params.NumOccludedPrims;
+	}
+}
+
 /**
  * Cull occluded primitives in the view.
  */
 static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* Scene, FViewInfo& View)
 {
-	SCOPE_CYCLE_COUNTER(STAT_OcclusionCull);
-	int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+	SCOPE_CYCLE_COUNTER(STAT_OcclusionCull);	
 
 	// INITVIEWS_TODO: This could be more efficient if broken up in to separate concerns:
 	// - What is occluded?
@@ -441,7 +1230,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 	{
 		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
-			bool bClearQueries = !View.Family->EngineShowFlags.HitProxies;
+			
 			bool bSubmitQueries = !View.bDisableQuerySubmissions;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			bSubmitQueries = bSubmitQueries && !ViewState->HasViewParent() && !ViewState->bIsFrozen;
@@ -453,288 +1242,8 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 				check(!ViewState->HZBOcclusionTests.IsValidFrame(ViewState->OcclusionFrameCounter));
 				ViewState->HZBOcclusionTests.MapResults(RHICmdList);
 			}
-
-			FViewElementPDI OcclusionPDI(&View, NULL);
-
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitives);
-
-			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
-			{
-				uint8 OcclusionFlags = Scene->PrimitiveOcclusionFlags[BitIt.GetIndex()];
-				bool bCanBeOccluded = (OcclusionFlags & EOcclusionFlags::CanBeOccluded) != 0;
-
-				if(GIsEditor)
-				{
-					FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[BitIt.GetIndex()];
-
-					if(PrimitiveSceneInfo->Proxy->IsSelected())
-					{
-						// to render occluded outline for selected objects
-						bCanBeOccluded = false;
-					}
-				}
-				int32 NumSubQueries = 1;
-				bool bSubQueries = false;
-				const TArray<FBoxSphereBounds>* SubBounds = nullptr;
-				TArray<bool, SceneRenderingAllocator> SubIsOccluded;
-
-				if ((OcclusionFlags & EOcclusionFlags::HasSubprimitiveQueries) && GAllowSubPrimitiveQueries)
-				{
-					FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
-					SubBounds = Proxy->GetOcclusionQueries(&View);
-					NumSubQueries = SubBounds->Num();
-					bSubQueries = true;
-					if (!NumSubQueries)
-					{
-						View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-						continue;
-					}
-					SubIsOccluded.Reserve(NumSubQueries);
-				}
-
-				bool bAllSubOcclusionStateIsDefinite = true;
-				bool bAllSubOccluded = true;
-				FPrimitiveComponentId PrimitiveId = Scene->PrimitiveComponentIds[BitIt.GetIndex()];
-				for (int32 SubQuery = 0; SubQuery < NumSubQueries; SubQuery++)
-				{
-
-					FPrimitiveOcclusionHistory* PrimitiveOcclusionHistory = ViewState->PrimitiveOcclusionHistorySet.Find(FPrimitiveOcclusionHistoryKey(PrimitiveId, SubQuery));
-					bool bIsOccluded = false;
-					bool bOcclusionStateIsDefinite = false;
-					if (!PrimitiveOcclusionHistory)
-					{
-						// If the primitive doesn't have an occlusion history yet, create it.
-						PrimitiveOcclusionHistory = &ViewState->PrimitiveOcclusionHistorySet[
-							ViewState->PrimitiveOcclusionHistorySet.Add(FPrimitiveOcclusionHistory(PrimitiveId, SubQuery))
-							];
-
-						// If the primitive hasn't been visible recently enough to have a history, treat it as unoccluded this frame so it will be rendered as an occluder and its true occlusion state can be determined.
-						// already set bIsOccluded = false;
-
-						// Flag the primitive's occlusion state as indefinite, which will force it to be queried this frame.
-						// The exception is if the primitive isn't occludable, in which case we know that it's definitely unoccluded.
-						bOcclusionStateIsDefinite = bCanBeOccluded ? false : true;
-					}
-					else
-					{
-						if (View.bIgnoreExistingQueries)
-						{
-							// If the view is ignoring occlusion queries, the primitive is definitely unoccluded.
-							// already set bIsOccluded = false;
-							bOcclusionStateIsDefinite = View.bDisableQuerySubmissions;
-						}
-						else if (bCanBeOccluded)
-						{
-							if( bHZBOcclusion )
-							{
-								if( ViewState->HZBOcclusionTests.IsValidFrame(PrimitiveOcclusionHistory->HZBTestFrameNumber) )
-								{
-									bIsOccluded = !ViewState->HZBOcclusionTests.IsVisible( PrimitiveOcclusionHistory->HZBTestIndex );
-									bOcclusionStateIsDefinite = true;
-								}
-							}
-							else
-							{
-								// Read the occlusion query results.
-								uint64 NumSamples = 0;
-								FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter, NumBufferedFrames);
-								if (IsValidRef(PastQuery))
-								{
-									// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
-									if (RHICmdList.GetRenderQueryResult(PastQuery, NumSamples, true))
-									{
-										// we render occlusion without MSAA
-										uint32 NumPixels = (uint32)NumSamples;
-
-										// The primitive is occluded if none of its bounding box's pixels were visible in the previous frame's occlusion query.
-										bIsOccluded = (NumPixels == 0);
-										if (!bIsOccluded)
-										{
-											checkSlow(View.OneOverNumPossiblePixels > 0.0f);
-											PrimitiveOcclusionHistory->LastPixelsPercentage = NumPixels * View.OneOverNumPossiblePixels;
-										}
-										else
-										{
-											PrimitiveOcclusionHistory->LastPixelsPercentage = 0.0f;
-										}
-
-
-										// Flag the primitive's occlusion state as definite if it wasn't grouped.
-										bOcclusionStateIsDefinite = !PrimitiveOcclusionHistory->bGroupedQuery;
-									}
-									else
-									{
-										// If the occlusion query failed, treat the primitive as visible.  
-										// already set bIsOccluded = false;
-									}
-								}
-								else
-								{
-									// If there's no occlusion query for the primitive, set it's visibility state to whether it has been unoccluded recently.
-									bIsOccluded = (PrimitiveOcclusionHistory->LastVisibleTime + GEngine->PrimitiveProbablyVisibleTime < CurrentRealTime);
-									if (bIsOccluded)
-									{
-										PrimitiveOcclusionHistory->LastPixelsPercentage = 0.0f;
-									}
-									else
-									{
-										PrimitiveOcclusionHistory->LastPixelsPercentage = GEngine->MaxOcclusionPixelsFraction;
-									}
-
-									// the state was definite last frame, otherwise we would have ran a query
-									bOcclusionStateIsDefinite = true;
-								}
-							}
-
-							if( GVisualizeOccludedPrimitives && bIsOccluded )
-							{
-								const FBoxSphereBounds& Bounds = bSubQueries ? (*SubBounds)[SubQuery] : Scene->PrimitiveOcclusionBounds[ BitIt.GetIndex() ];
-								DrawWireBox( &OcclusionPDI, Bounds.GetBox(), FColor(50, 255, 50), SDPG_Foreground );
-							}
-						}
-						else
-						{
-							// Primitives that aren't occludable are considered definitely unoccluded.
-							// already set bIsOccluded = false;
-							bOcclusionStateIsDefinite = true;
-						}
-
-						if (bClearQueries)
-						{
-							ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter, NumBufferedFrames));
-						}
-					}
-
-					// Set the primitive's considered time to keep its occlusion history from being trimmed.
-					PrimitiveOcclusionHistory->LastConsideredTime = CurrentRealTime;
-
-					if (bSubmitQueries && bCanBeOccluded)
-					{
-						bool bAllowBoundsTest;
-						const FBoxSphereBounds& OcclusionBounds = bSubQueries ? (*SubBounds)[SubQuery] : Scene->PrimitiveOcclusionBounds[ BitIt.GetIndex() ];
-						if (View.bHasNearClippingPlane)
-						{
-							bAllowBoundsTest = View.NearClippingPlane.PlaneDot(OcclusionBounds.Origin) < 
-								-(FVector::BoxPushOut(View.NearClippingPlane,OcclusionBounds.BoxExtent));
-						}
-						else if (!View.IsPerspectiveProjection())
-						{
-							// Transform parallel near plane
-							static_assert((int32)ERHIZBuffer::IsInverted != 0, "Check equation for culling!");
-							bAllowBoundsTest = View.WorldToScreen(OcclusionBounds.Origin).Z - View.ViewMatrices.ProjMatrix.M[2][2] * OcclusionBounds.SphereRadius < 1;
-						}
-						else
-						{
-							bAllowBoundsTest = OcclusionBounds.SphereRadius < HALF_WORLD_MAX;
-						}
-
-						if (bAllowBoundsTest)
-						{
-							if( bHZBOcclusion )
-							{
-								// Always run
-								PrimitiveOcclusionHistory->HZBTestIndex = ViewState->HZBOcclusionTests.AddBounds( OcclusionBounds.Origin, OcclusionBounds.BoxExtent );
-								PrimitiveOcclusionHistory->HZBTestFrameNumber = ViewState->OcclusionFrameCounter;
-							}
-							else
-							{
-								// decide if a query should be run this frame
-								bool bRunQuery,bGroupedQuery;
-
-								if (!bSubQueries && // sub queries are never grouped, we assume the custom code knows what it is doing and will group internally if it wants
-									(OcclusionFlags & EOcclusionFlags::AllowApproximateOcclusion))
-								{
-									if (bIsOccluded)
-									{
-										// Primitives that were occluded the previous frame use grouped queries.
-										bGroupedQuery = true;
-										bRunQuery = true;
-									}
-									else if (bOcclusionStateIsDefinite)
-									{
-										// If the primitive's is definitely unoccluded, only requery it occasionally.
-										float FractionMultiplier = FMath::Max(PrimitiveOcclusionHistory->LastPixelsPercentage/GEngine->MaxOcclusionPixelsFraction, 1.0f);
-										bRunQuery = (FractionMultiplier * GOcclusionRandomStream.GetFraction() < GEngine->MaxOcclusionPixelsFraction);
-										bGroupedQuery = false;
-									}
-									else
-									{
-										bGroupedQuery = false;
-										bRunQuery = true;
-									}
-								}
-								else
-								{
-									// Primitives that need precise occlusion results use individual queries.
-									bGroupedQuery = false;
-									bRunQuery = true;
-								}
-
-								if (bRunQuery)
-								{
-									PrimitiveOcclusionHistory->SetCurrentQuery(ViewState->OcclusionFrameCounter, 
-										bGroupedQuery ? 
-										View.GroupedOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent) :
-										View.IndividualOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent),
-										NumBufferedFrames
-										);	
-								}
-								PrimitiveOcclusionHistory->bGroupedQuery = bGroupedQuery;
-							}
-						}
-						else
-						{
-							// If the primitive's bounding box intersects the near clipping plane, treat it as definitely unoccluded.
-							bIsOccluded = false;
-							bOcclusionStateIsDefinite = true;
-						}
-					}
-
-					if (bSubQueries)
-					{
-						SubIsOccluded.Add(bIsOccluded);
-						if (!bIsOccluded)
-						{
-							bAllSubOccluded = false;
-							if (bOcclusionStateIsDefinite)
-							{
-								PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
-							}
-						}
-						if (bIsOccluded || !bOcclusionStateIsDefinite)
-						{
-							bAllSubOcclusionStateIsDefinite = false;
-						}
-					}
-					else
-					{
-						if (bIsOccluded)
-						{
-							View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-							STAT(NumOccludedPrimitives++);
-						}
-						else if (bOcclusionStateIsDefinite)
-						{
-							PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
-							View.PrimitiveDefinitelyUnoccludedMap.AccessCorrespondingBit(BitIt) = true;
-						}
-					}
-				}
-				if (bSubQueries)
-				{
-					FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
-					Proxy->AcceptOcclusionResults(&View, &SubIsOccluded[0], SubIsOccluded.Num());
-					if (bAllSubOccluded)
-					{
-						View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-						STAT(NumOccludedPrimitives++);
-					}
-					else if (bAllSubOcclusionStateIsDefinite)
-					{
-						View.PrimitiveDefinitelyUnoccludedMap.AccessCorrespondingBit(BitIt) = true;
-					}
-				}
-			}
+			
+			NumOccludedPrimitives += FetchVisibilityForPrimitives(Scene, View, bSubmitQueries, bHZBOcclusion);			
 
 			if( bHZBOcclusion )
 			{
@@ -857,10 +1366,12 @@ struct FRelevancePacket
 	FRelevancePrimSet<FTranslucentPrimSet::FSortedPrim> SortedTranslucencyPrims;
 	FRelevancePrimSet<FPrimitiveSceneProxy*> DistortionPrimSet;
 	FRelevancePrimSet<FPrimitiveSceneProxy*> CustomDepthSet;
-	FRelevancePrimSet<FPrimitiveSceneInfo*> LazyUpdates;
+	FRelevancePrimSet<FPrimitiveSceneInfo*> LazyUpdatePrimitives;
+	FRelevancePrimSet<FPrimitiveSceneInfo*> DirtyPrecomputedLightingBufferPrimitives;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleEditorPrimitives;
 	uint16 CombinedShadingModelMask;
 	bool bUsesGlobalDistanceField;
+	bool bUsesLightingChannels;
 
 	FRelevancePacket(
 		FRHICommandListImmediate& InRHICmdList,
@@ -884,6 +1395,7 @@ struct FRelevancePacket
 		, MarkMasks(InMarkMasks)
 		, CombinedShadingModelMask(0)
 		, bUsesGlobalDistanceField(false)
+		, bUsesLightingChannels(false)
 	{
 	}
 
@@ -897,6 +1409,7 @@ struct FRelevancePacket
 	{
 		CombinedShadingModelMask = 0;
 		bUsesGlobalDistanceField = false;
+		bUsesLightingChannels = false;
 
 		SCOPE_CYCLE_COUNTER(STAT_ComputeViewRelevance);
 		for (int32 Index = 0; Index < Input.NumPrims; Index++)
@@ -959,6 +1472,7 @@ struct FRelevancePacket
 
 			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;			
 			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
+			bUsesLightingChannels |= ViewRelevance.bUsesLightingChannels;
 
 			if (ViewRelevance.bRenderCustomDepth)
 			{
@@ -994,11 +1508,22 @@ struct FRelevancePacket
 				&& (!Scene->ShouldUseDeferredRenderer() || bTranslucentRelevance))
 			{
 				PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIndex].Origin);
+
+				if (!Scene->ShouldUseDeferredRenderer())
+				{
+					// forward HQ reflections
+					Scene->FindClosestReflectionCaptures(Scene->PrimitiveBounds[BitIndex].Origin, PrimitiveSceneInfo->CachedReflectionCaptureProxies);
+				}
+
 				PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
 			}
 			if (PrimitiveSceneInfo->NeedsLazyUpdateForRendering())
 			{
-				LazyUpdates.AddPrim(PrimitiveSceneInfo);
+				LazyUpdatePrimitives.AddPrim(PrimitiveSceneInfo);
+			}
+			if (PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate())
+			{
+				DirtyPrecomputedLightingBufferPrimitives.AddPrim(PrimitiveSceneInfo);
 			}
 		}
 	}
@@ -1010,6 +1535,8 @@ struct FRelevancePacket
 		int32 NumVisibleStaticMeshElements = 0;
 		FViewInfo& WriteView = const_cast<FViewInfo&>(View);
 
+		const bool bHLODActive = Scene->SceneLODHierarchy.IsActive();
+
 		for (int32 StaticPrimIndex = 0, Num = RelevantStaticPrimitives.NumPrims; StaticPrimIndex < Num; ++StaticPrimIndex)
 		{
 			int32 PrimitiveIndex = RelevantStaticPrimitives.Prims[StaticPrimIndex];
@@ -1018,6 +1545,8 @@ struct FRelevancePacket
 			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
 
 			FLODMask LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ViewData.ForcedLODLevel, ViewData.LODScale);
+			const bool bIsHLODFading = bHLODActive && Scene->SceneLODHierarchy.IsNodeFading(PrimitiveIndex);
+			const bool bIsHLODFadingOut = bHLODActive && Scene->SceneLODHierarchy.IsNodeFadingOut(PrimitiveIndex);
 
 			float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
 			const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * ViewData.InvLODScale);
@@ -1033,13 +1562,24 @@ struct FRelevancePacket
 					uint8 MarkMask = 0;
 					bool bNeedsBatchVisibility = false;
 
-					if (LODToRender.IsDithered())
+					if (bIsHLODFading)
+					{
+						if (bIsHLODFadingOut)
+						{
+							MarkMask |= EMarkMaskBits::StaticMeshFadeOutDitheredLODMapMask;
+						}
+						else
+						{
+							MarkMask |= EMarkMaskBits::StaticMeshFadeInDitheredLODMapMask;
+						}	
+					}
+					else if (LODToRender.IsDithered())
 					{
 						if (LODToRender.DitheredLODIndices[0] == StaticMesh.LODIndex)
 						{
 							MarkMask |= EMarkMaskBits::StaticMeshFadeOutDitheredLODMapMask;
 						}
-						if (LODToRender.DitheredLODIndices[1] == StaticMesh.LODIndex)
+						else
 						{
 							MarkMask |= EMarkMaskBits::StaticMeshFadeInDitheredLODMapMask;
 						}
@@ -1052,15 +1592,18 @@ struct FRelevancePacket
 						bNeedsBatchVisibility = true;
 					}
 
-					if(ViewRelevance.bDrawRelevance && !StaticMesh.bShadowOnly && (ViewRelevance.bRenderInMainPass || ViewRelevance.bRenderCustomDepth))
+					if(ViewRelevance.bDrawRelevance && (StaticMesh.bUseForMaterial || StaticMesh.bUseAsOccluder) && (ViewRelevance.bRenderInMainPass || ViewRelevance.bRenderCustomDepth))
 					{
 						// Mark static mesh as visible for rendering
-						MarkMask |= EMarkMaskBits::StaticMeshVisibilityMapMask;
-						if (PrimitiveSceneInfo->ShouldRenderVelocity(View, false))
+						if (StaticMesh.bUseForMaterial)
 						{
-							MarkMask |= EMarkMaskBits::StaticMeshVelocityMapMask;
+							MarkMask |= EMarkMaskBits::StaticMeshVisibilityMapMask;
+							if (PrimitiveSceneInfo->ShouldRenderVelocity(View, false))
+							{
+								MarkMask |= EMarkMaskBits::StaticMeshVelocityMapMask;
+							}
+							++NumVisibleStaticMeshElements;
 						}
-						++NumVisibleStaticMeshElements;
 
 						// If the static mesh is an occluder, check whether it covers enough of the screen to be used as an occluder.
 						if(	StaticMesh.bUseAsOccluder && bDrawDepthOnly )
@@ -1096,15 +1639,16 @@ struct FRelevancePacket
 		}
 		WriteView.ShadingModelMaskInView |= CombinedShadingModelMask;
 		WriteView.bUsesGlobalDistanceField |= bUsesGlobalDistanceField;
+		WriteView.bUsesLightingChannels |= bUsesLightingChannels;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
 		VisibleDynamicPrimitives.AppendTo(WriteView.VisibleDynamicPrimitives);
 		WriteView.TranslucentPrimSet.AppendScenePrimitives(SortedTranslucencyPrims.Prims, SortedTranslucencyPrims.NumPrims, SortedSeparateTranslucencyPrims.Prims, SortedSeparateTranslucencyPrims.NumPrims);
 		DistortionPrimSet.AppendTo(WriteView.DistortionPrimSet);
 		CustomDepthSet.AppendTo(WriteView.CustomDepthSet);
-
-		for (int32 Index = 0; Index < LazyUpdates.NumPrims; Index++)
+		DirtyPrecomputedLightingBufferPrimitives.AppendTo(WriteView.DirtyPrecomputedLightingBufferPrimitives);
+		for (int32 Index = 0; Index < LazyUpdatePrimitives.NumPrims; Index++)
 		{
-			LazyUpdates.Prims[Index]->ConditionalLazyUpdateForRendering(RHICmdList);
+			LazyUpdatePrimitives.Prims[Index]->ConditionalLazyUpdateForRendering(RHICmdList);
 		}
 	}
 };
@@ -1282,15 +1826,20 @@ void FSceneRenderer::GatherDynamicMeshElements(
 			Collector.AddViewMeshArrays(&InViews[ViewIndex], &InViews[ViewIndex].DynamicMeshElements, &InViews[ViewIndex].SimpleElementCollector, InViewFamily.GetFeatureLevel());
 		}
 
+		const bool bIsInstancedStereo = (InViews.Num() > 0) ? InViews[0].IsInstancedStereoPass() : false;
+
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
 		{
 			const uint8 ViewMask = HasDynamicMeshElementsMasks[PrimitiveIndex];
 
 			if (ViewMask != 0)
 			{
+				// Don't cull a single eye when drawing a stereo pair
+				const uint8 ViewMaskFinal = (bIsInstancedStereo) ? ViewMask | 0x3 : ViewMask;
+
 				FPrimitiveSceneInfo* PrimitiveSceneInfo = InScene->Primitives[PrimitiveIndex];
 				Collector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
-				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(InViewFamily.Views, InViewFamily, ViewMask, Collector);
+				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(InViewFamily.Views, InViewFamily, ViewMaskFinal, Collector);
 			}
 		}
 	}
@@ -1727,6 +2276,10 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 
 		View.VisibleLightInfos.Empty(Scene->Lights.GetMaxIndex());
 
+		// The dirty list allocation must take into account the max possible size because when GILCUpdatePrimTaskEnabled is true,
+		// the indirect lighting cache will be update on by threaded job, which can not do reallocs on the buffer (since it uses the SceneRenderingAllocator).
+		View.DirtyPrecomputedLightingBufferPrimitives.Reserve(Scene->Primitives.Num());
+
 		for(int32 LightIndex = 0;LightIndex < Scene->Lights.GetMaxIndex();LightIndex++)
 		{
 			if( LightIndex+2 < Scene->Lights.GetMaxIndex() )
@@ -1885,6 +2438,8 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		FSceneBitArray PrimitiveHiddenByLODMap;
 		if (bLODSceneTreeActive)
 		{
+			Scene->SceneLODHierarchy.PopulateFadingFlags(View);
+
 			PrimitiveHiddenByLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
 			Scene->SceneLODHierarchy.PopulateHiddenFlags(View, PrimitiveHiddenByLODMap);
 
@@ -1935,6 +2490,10 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 			}
 		}
 #endif
+
+		// TODO: right now decals visibility computed right before rendering them, ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
+	    // Currently used to disable stencil operations in forward base pass when scene has no any decals
+		View.bSceneHasDecals = (Scene->Decals.Num() > 0);
 	}
 
 	GatherDynamicMeshElements(Views, Scene, ViewFamily, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks, MeshCollector);
@@ -1944,7 +2503,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 	INC_DWORD_STAT_BY(STAT_OccludedPrimitives,NumOccludedPrimitives);
 }
 
-void FSceneRenderer::PostVisibilityFrameSetup()
+void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTaskData)
 {
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{		
@@ -1973,12 +2532,20 @@ void FSceneRenderer::PostVisibilityFrameSetup()
 			View.LightShaftColorApply = FLinearColor(0.0f,0.0f,0.0f);
 		}
 		
-		bCheckLightShafts = ViewFamily.EngineShowFlags.LightShafts && CVarLightShaftQuality.GetValueOnRenderThread() > 0;
+		extern int32 GLightShafts;
+		bCheckLightShafts = ViewFamily.EngineShowFlags.LightShafts && GLightShafts;
 	}
 
 	if (ViewFamily.EngineShowFlags.HitProxies == 0)
 	{
-		Scene->IndirectLightingCache.UpdateCache(Scene, *this, true);
+		if (GILCUpdatePrimTaskEnabled)
+		{
+			Scene->IndirectLightingCache.StartUpdateCachePrimitivesTask(Scene, *this, true, OutILCTaskData);
+		}
+		else
+		{
+			Scene->IndirectLightingCache.UpdateCache(Scene, *this, true);
+		}		
 	}
 
 	// determine visibility of each light
@@ -2129,7 +2696,7 @@ uint32 GetShadowQuality();
  * Check visibility, sort translucent items, etc.
  */
 void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
-{
+{	
 	SCOPED_DRAW_EVENT(RHICmdList, InitViews);
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
@@ -2144,10 +2711,10 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 			View.FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
 	}
-
+	FILCUpdatePrimTaskData ILCTaskData;
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
-	PostVisibilityFrameSetup();
+	PostVisibilityFrameSetup(ILCTaskData);
 
 	FVector AverageViewPosition(0);
 
@@ -2164,7 +2731,7 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	}
 	else
 	{
-	SortBasePassStaticData(AverageViewPosition);
+		SortBasePassStaticData(AverageViewPosition);
 	}
 
 	// this cannot be moved later because of static mesh updates for stuff that is only visible in shadows
@@ -2182,11 +2749,23 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		InitDynamicShadows(RHICmdList);
 	}
 
+	// if we kicked off ILC update via task, wait and finalize.
+	if (ILCTaskData.TaskRef.IsValid())
+	{
+		Scene->IndirectLightingCache.FinalizeCacheUpdates(Scene, *this, ILCTaskData);
+	}
+
+	// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
+	UpdatePrimitivePrecomputedLightingBuffers();
+
 	// initialize per-view uniform buffer.
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		// Initialize the view's RHI resources.
 		Views[ViewIndex].InitRHIResources(nullptr);
+
+		// Possible stencil dither optimization approach
+		Views[ViewIndex].bAllowStencilDither = bDitheredLODTransitionsUseStencil;
 	}
 
 	OnStartFrame();
@@ -2245,7 +2824,89 @@ void FLODSceneTree::UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitive
 	}
 }
 
-void FLODSceneTree::PopulateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, FLODSceneNode& Node)
+void FLODSceneTree::PopulateFadingFlags(FViewInfo& View)
+{
+	PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+	PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+
+	if (const FSceneViewState* ViewState = (FSceneViewState*)View.State)
+	{
+		// Update persistent state on temporal dither sync frames
+		const FTemporalLODState& LODState = ViewState->GetTemporalLODState();
+		bool bSyncFrame = false;
+		
+		if (TemporalLODSyncTime != LODState.TemporalLODTime[0])
+		{
+			TemporalLODSyncTime = LODState.TemporalLODTime[0];
+			bSyncFrame = true;
+		}
+
+		for (auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
+		{
+			FLODSceneNode& Node = Iter.Value();
+			if (Node.SceneInfo && Node.LatestUpdateCount == UpdateCount)
+			{
+				const int32 NodeIndex = Node.SceneInfo->GetIndex();
+				const TIndirectArray<FStaticMesh>& NodeMeshes = Node.SceneInfo->StaticMeshes;
+
+				if (NodeMeshes.Num() > 0 && NodeMeshes[0].bDitheredLODTransition)
+				{
+					if (bSyncFrame)
+					{
+						bool bChildrenFading = false;
+
+						// Note: Unless ending a fade, need to wait for all children to finish fading?
+						// Not sure this can actually happen as we wait for the syncs so will override the fade
+						if (Node.bWasVisible != Node.bIsVisible || !bChildrenFading)
+						{
+							Node.bWasVisible = Node.bIsVisible;
+							Node.bIsVisible = View.PrimitiveVisibilityMap[NodeIndex];
+						}
+					}
+
+					// Fade until state back in sync, then hold visibility
+					if (Node.bWasVisible != Node.bIsVisible)
+					{
+						PrimitiveFadingLODMap[NodeIndex] = true;
+						PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
+
+						PropagateFadingFlagsToChildren(View, Node, true, Node.bIsVisible);
+					}
+					else
+					{
+						View.PrimitiveVisibilityMap[NodeIndex] = Node.bIsVisible;
+					}
+				}
+			}
+		}
+	}
+}
+
+void FLODSceneTree::PropagateFadingFlagsToChildren(FViewInfo& View, FLODSceneNode& Node, bool bIsFading, bool bIsFadingOut)
+{
+	if (Node.SceneInfo)
+	{
+		const int32 NodeIndex = Node.SceneInfo->GetIndex();
+
+		for (const auto& Child : Node.ChildrenSceneInfos)
+		{
+			const int32 ChildIndex = Child->GetIndex();
+
+			PrimitiveFadingLODMap[ChildIndex] = bIsFading;
+			PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
+
+			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
+			{
+				PropagateFadingFlagsToChildren(View, *ChildNode, bIsFading, bIsFadingOut);
+			}
+		}
+
+		// Force visibility during fades
+		View.PrimitiveVisibilityMap[NodeIndex] = true;
+	}
+}
+
+void FLODSceneTree::PropagateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, FLODSceneNode& Node)
 {
 	// if already updated, no reason to do this
 	if(Node.LatestUpdateCount != UpdateCount)
@@ -2267,7 +2928,7 @@ void FLODSceneTree::PopulateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, F
 			// if you have child, populate it again, 
 			if (ChildNode)
 			{
-				PopulateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
+				PropagateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
 			}
 		}
 	}
@@ -2289,29 +2950,34 @@ void FLODSceneTree::PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenF
 			if(Node.SceneInfo)
 			{
 				int32 NodeIndex = Node.SceneInfo->GetIndex();
-				// if this node is visible, children shouldn't show up
-				if(View.PrimitiveVisibilityMap[NodeIndex])
+
+				// Only override visibility when fading isn't forcing state
+				if (!IsNodeFading(NodeIndex))
 				{
-					for(const auto& Child : Node.ChildrenSceneInfos)
+					// if this node is visible, children shouldn't show up
+					if (View.PrimitiveVisibilityMap[NodeIndex])
 					{
-						const int32 ChildIndex = Child->GetIndex();
-
-						// first update the flags
-						FRelativeBitReference BitRef(ChildIndex);
-						HiddenFlags.AccessCorrespondingBit(BitRef) = true;
-
-						// find the node for it
-						FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
-						// if you have child, populate it again, 
-						if(ChildNode)
+						for (const auto& Child : Node.ChildrenSceneInfos)
 						{
-							PopulateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
+							const int32 ChildIndex = Child->GetIndex();
+
+							// first update the flags
+							FRelativeBitReference BitRef(ChildIndex);
+							HiddenFlags.AccessCorrespondingBit(BitRef) = true;
+
+							// find the node for it
+							FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
+							// if you have child, populate it again, 
+							if (ChildNode)
+							{
+								PropagateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
+							}
 						}
 					}
-				}
-				else
-				{
-					HiddenFlags.AccessCorrespondingBit(FRelativeBitReference(NodeIndex)) = true;
+					else
+					{
+						HiddenFlags.AccessCorrespondingBit(FRelativeBitReference(NodeIndex)) = true;
+					}
 				}
 			}
 		}

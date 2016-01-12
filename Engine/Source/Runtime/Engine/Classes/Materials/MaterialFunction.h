@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "MaterialFunction.generated.h"
@@ -29,6 +29,7 @@ class UMaterialFunction : public UObject
 	UPROPERTY(EditAnywhere, Category=MaterialFunction, AssetRegistrySearchable)
 	uint32 bExposeToLibrary:1;
 
+#if WITH_EDITORONLY_DATA
 	/** 
 	 * Categories that this function belongs to in the material function library.  
 	 * Ideally categories should be chosen carefully so that there are not too many.
@@ -42,7 +43,7 @@ class UMaterialFunction : public UObject
 	 */
 	UPROPERTY(EditAnywhere, Category=MaterialFunction, AssetRegistrySearchable)
 	TArray<FText> LibraryCategoriesText;
-
+#endif
 	/** Array of material expressions, excluding Comments.  Used by the material editor. */
 	UPROPERTY()
 	TArray<class UMaterialExpression*> FunctionExpressions;
@@ -62,14 +63,14 @@ private:
 
 public:
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/** Recursively update all function call expressions in this function, or in nested functions. */
 	void UpdateFromFunctionResource();

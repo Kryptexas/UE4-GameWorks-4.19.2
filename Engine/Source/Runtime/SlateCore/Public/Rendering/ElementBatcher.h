@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,7 +31,11 @@ public:
 	 * Resets all stored data accumulated during the batching process
 	 */
 	void ResetBatches();
+
 private:
+	void AddElements(FSlateDrawLayer& InDrawLayer);
+	
+	FColor PackVertexColor(const FLinearColor& InLinearColor);
 
 	/** 
 	 * Creates vertices necessary to draw a Quad element 
@@ -47,6 +51,11 @@ private:
 	 * Creates vertices necessary to draw a string (one quad per character)
 	 */
 	void AddTextElement( const FSlateDrawElement& DrawElement );
+
+	/** 
+	 * Creates vertices necessary to draw a shaped glyph sequence (one quad per glyph)
+	 */
+	void AddShapedTextElement( const FSlateDrawElement& DrawElement );
 
 	/** 
 	 * Creates vertices necessary to draw a gradient box (horizontal or vertical)
@@ -85,6 +94,12 @@ private:
 	 */
 	void AddCustomElement( const FSlateDrawElement& DrawElement );
 
+	void AddCustomVerts( const FSlateDrawElement& DrawElement );
+
+	void AddCachedBuffer( const FSlateDrawElement& DrawElement );
+
+	void AddLayer(const FSlateDrawElement& DrawElement);
+
 	/** 
 	 * Finds an batch for an element based on the passed in parameters
 	 * Elements with common parameters and layers will batched together.
@@ -108,11 +123,20 @@ private:
 	/** Batch data currently being filled in */
 	FSlateBatchData* BatchData;
 
-	/** Resource manager for accessing shader resources */
-	FSlateShaderResourceManager& ResourceManager;
+	/** The draw layer currently being accumulated */
+	FSlateDrawLayer* DrawLayer;
 
-	/** Font cache used to layout text */
-	FSlateFontCache& FontCache;
+	/** Rendering policy we were created from */
+	FSlateRenderingPolicy* RenderingPolicy;
+
+	/** Track the number of drawn batches from the previous frame to report to stats. */
+	int32 NumDrawnBatchesStat;
+
+	/** Track the number of drawn boxes from the previous frame to report to stats. */
+	int32 NumDrawnBoxesStat;
+
+	/** Track the number of drawn texts from the previous frame to report to stats. */
+	int32 NumDrawnTextsStat;
 
 	/** Offset to use when supporting 1:1 texture to pixel snapping */
 	const float PixelCenterOffset;

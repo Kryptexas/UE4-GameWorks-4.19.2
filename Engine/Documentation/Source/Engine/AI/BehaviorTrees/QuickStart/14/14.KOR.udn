@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2637071
 Availability:Public
 Title: 14. 비헤이비어 트리 제작
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -57,19 +57,19 @@ Description:14 단계. 비헤이비어 트리 제작
 1. 그래프 에디터에 **우클릭** 하여 노드를 생성할 수 있습니다.
 	1. **Composites** -> **Sequence** 노드를 추가합니다.
 
-		![](Engine/AI/BehaviorTrees/QuickStart/10/sequence.png)
+		![](sequence.jpg)
 
 	1. **Composites** -> **Selector** 노드를 두 개 추가합니다.
 
-		![](Engine/AI/BehaviorTrees/QuickStart/10/selector.png)
+		![](selector.jpg)
 
 1. 루트 노드와 Selector 노드 중 하나를 연결합니다.
 
-	![](connectNodes.png)
+	![](connectNodes.jpg)
 
 1. 새로 연결된 Sequence 노드를 Selector 노드와 나머지 Sequence 노드에 연결합니다. 그런 다음 이렇게 배치합니다:
 
-	![](connectNodes2.png)
+	![](connectNodes2.jpg)
 
 	_왼쪽에 두 번째 Selector 노드, 오른쪽에 Sequence 노드입니다._
 
@@ -82,7 +82,7 @@ Description:14 단계. 비헤이비어 트리 제작
 1. **Selector** 노드에서 **Agro Check** 박스를 선택한 다음 **디테일** 패널을 사용해서 **Target to Follow** 프로퍼티를 `TargetToFollow` 로, **Target Location** 을 `TargetLocation` 으로 설정하고, **Interval** 을 `0.5` 로, **Random Deviation** 을 `0.0` 으로 조정합니다.
 
 	[REGION:raw]
-	![](setAgroCheck.png)
+	![](setAgroCheck.jpg)
 	[/REGION]
 
 ### 태스크 추가
@@ -103,13 +103,13 @@ Description:14 단계. 비헤이비어 트리 제작
 1. 가장 오른쪽의 **Move To** 노드의 **Blackboard Key** 프로퍼티를 `HomeLocation` 로 설정합니다.
 
 	[REGION:raw]
-	![](adjustMoveTo.png)
+	![](adjustMoveTo.jpg)
 	[/REGION]
 
 1. **Wait** 노드를 선택한 다음 **디테일** 패널을 사용하여 **Wait Time** 프로퍼티를 `2.5` 로 설정합니다.
 
 	[REGION:raw]
-	![](adjustWait.png)
+	![](adjustWait.jpg)
 	[/REGION]
 
 1. **RapidMoveTo** 노드를 선택하고 **디테일** 패널을 사용하여 **Target to Follow** 프로퍼티를 `TargetToFollow` 로 설정합니다.
@@ -120,14 +120,14 @@ Description:14 단계. 비헤이비어 트리 제작
 1. 아래쪽 **Selector** 노드에 **우클릭** 한 다음 **데코레이터 추가..** -> **Close Enough** 를 선택합니다.
 
 	[REGION:raw]
-	![](addDecorator1.png)
+	![](addDecorator1.jpg)
 	[/REGION]
 
 1. **Blackboard** 데코레이터의 **Observer Aborts** 프로퍼티를 `Both` 로, **Key Query** 를 `Is Set` 으로, **Blackboard Key** 를 `TargetToFollow` 로 설정합니다.
 1. **Close Enough** 데코레이터의 **Acceptable Distance** 프로퍼티를 `100.0` 으로, **Target to Follow** 프로퍼티를 `TargetToFollow` 로 설정합니다.
 
 	[REGION:raw]
-	![](setBB1.png)
+	![](setBB1.jpg)
 	[/REGION]
 
 1. **Sequence** 노드에 **우클릭** 한 다음 **데코레이터 추가..** -> **Blackboard** 를 선택합니다.
@@ -150,6 +150,21 @@ Description:14 단계. 비헤이비어 트리 제작
 다 됐습니다! **비헤이비어 트리** 에디터를 열어둔 채 **에디터에서 플레이** 하면 트리가 어떻게 돌아가는지 확인할 수 있을 것입니다. AI 에 충분히 가까이 가서 우리를 볼 수 있게 되면, 우리를 쫓아오기 시작합니다. 시선을 막을 수 있다면, 마지막 알던 위치로 돌아가 기다린 다음 시작했던 곳으로 되돌아갑니다.
 
 
-![](BTFinal.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+1td5wSD3PPU
+[/PARAMLITERAL]
+[/OBJECT]
 
 %Steps%
+
+
+
+
+

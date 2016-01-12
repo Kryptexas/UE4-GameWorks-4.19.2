@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2635295
 Availability:Public
 Title:애니메이션 스테이트 머신 구성
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -153,7 +153,17 @@ Related: Engine\Paper2D\Flipbooks
 
 1.	**컴파일**, **저장** 후 에디터에서 플레이합니다.
 
-	![](AnimationExample.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	umA8BlEjgF8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	캐릭터의 이동 여부에 따라 두 가지 상태가 전환되는 캐릭터가 생겼습니다.
 

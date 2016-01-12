@@ -1,5 +1,5 @@
 Availability: Public
-Title:Security Camera, Alarm, & Door
+Title:Security Camera, Alarm, and Door
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
 Description:An overview of the Security Door Blueprints.
 Related: Engine/Blueprints/Overview
@@ -9,8 +9,11 @@ Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Engine/Blueprints/UserGuide/Components
 Related: Engine/Blueprints/UserGuide/Timelines
 Related: Gameplay/Framework/Pawn
+Version: 4.9
 
+<div align= "center">
 ![](SecurityCameraAndDoorHeader.png)(w:600)
+</div>
 
 [EXCERPT:Overview]
 The security camera Blueprints seen throughout the level are designed to interact with the player when in Play mode. During play, they will pan back and forth in a search pattern. When the green search cone overlaps a pawn, the light turns red and the camera begins to track player movement. It continues to track the player until the player moves out of range. Then, after a few seconds, it returns to searching.
@@ -22,7 +25,7 @@ Of particular importance in this Blueprint is the use of a [Blueprint Interface]
 
 In this example, the Security Alarm Interface acts as a data conduit, allowing us to share functionality with both the Alarm Beacon and the Door Blueprints, specifically, whether the alarm is on or off.
 
-[REGION:raw]![](InterfaceConceptDiagram.png)[/REGION]
+[REGION:raw]![](InterfaceConceptDiagramNew.jpg)[/REGION]
 
 
 ## Camera Blueprint
@@ -46,8 +49,8 @@ The Components List, Construction Script, and Event Graph for this Blueprint per
 
 
 
-[REGION:fullwidth]
-![](CameraEG.png)
+[REGION:lightbox]
+![](CameraEG.png)(w:920)
 [/REGION]
 
 
@@ -79,8 +82,9 @@ The camera has the following exposed properties:
 
 
 ## Alarm Blueprint
-
+<div align= "center">
 ![](AlarmImage.png)
+</div>
 
 The Alarm Blueprint serves as a visual cue that the player has tripped the alarm by stepping in front of the security camera. When activated, it seems to change from green to red, and a beacon light begins spinning. It continues to do this until the alarm deactivates.
 
@@ -98,7 +102,9 @@ The Components List, Construction Script, and Event Graph for this Blueprint per
 | **Construction Script** | [INCLUDE:#AlarmCS] |
 | **Event Graph** | [INCLUDE:#AlarmEG]  |
 
-![](AlarmGraph.png)
+[Region:lightbox]
+![](AlarmGraph.png)(w:920)
+[/region]
 
 
 ### Editable Variables
@@ -114,8 +120,9 @@ The alarm has the following exposed properties:
 
 
 ## Door Blueprint
-
+<div align= "center">
 ![](Door.png)
+</div>
 
 The Door is set up such that it remains open so long as the alarm is not engaged. The moment the alarm is triggered, however, the doors are animated such that they slam shut and will not reopen until the alarm ends. It is important to note that Timelines are used to animate the doors. In fact, there are 2 separate Timelines - one to open the doors and another to close them. This allows the doors to open at one speed and close at another. 
 

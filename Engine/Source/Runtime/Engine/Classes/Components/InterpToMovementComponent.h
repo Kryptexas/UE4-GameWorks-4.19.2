@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/MovementComponent.h"
@@ -39,12 +39,12 @@ public:
 	{
 		bPositionIsRelative = true;
 	}
-	FInterpControlPoint(FVector InPosition)
+	FInterpControlPoint(FVector InPosition, bool bIsRelative)
 	{
 		PositionControlPoint = InPosition;
-		bPositionIsRelative = true;
+		bPositionIsRelative = bIsRelative;
 	}
-	
+
 	float StartTime;
 	float DistanceToNext;
 	float Percentage;
@@ -110,6 +110,7 @@ class ENGINE_API UInterpToMovementComponent : public UMovementComponent
 	//Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void BeginPlay() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	//End UActorComponent Interface
 
 	//Begin UMovementComponent Interface
@@ -174,12 +175,20 @@ class ENGINE_API UInterpToMovementComponent : public UMovementComponent
 	TArray<FInterpControlPoint> ControlPoints;
 		
 	/* Add a control point that represents a position. */
-	virtual void AddControlPointPosition(FVector Pos);
+	virtual void AddControlPointPosition(FVector Pos, bool bPositionIsRelative = true);
 	
+	/* Reset to start. Sets time to zero and direction to 1.  */
+	UFUNCTION(BlueprintCallable, Category = "Control")
+	void RestartMovement(float InitialDirection = 1.0f);
+
+	/* Initialise the control points array. Call after adding control points if they are add after begin play .  */
+	UFUNCTION(BlueprintCallable, Category = "Control")
+	void FinaliseControlPoints();
+
 #if WITH_EDITOR
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 #endif // WITH_EDITOR
 
 protected:

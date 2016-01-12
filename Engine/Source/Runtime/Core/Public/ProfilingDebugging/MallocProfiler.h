@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocProfiler.h: Memory profiling support.
@@ -155,7 +155,7 @@ public:
 	 */
 	virtual ~FMallocProfilerBufferedFileWriter();
 
-	// FArchive interface.
+	//~ Begin FArchive Interface.
 	virtual void Serialize( void* V, int64 Length );
 	virtual void Seek( int64 InPos );
 	virtual bool Close();
@@ -494,9 +494,9 @@ public:
 	}
 
 	
-	// Begin Exec Interface
+	//~ Begin Exec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	// End Exec Interface
+	//~ End Exec Interface
 
 	/** 
 	 * Exec command handlers

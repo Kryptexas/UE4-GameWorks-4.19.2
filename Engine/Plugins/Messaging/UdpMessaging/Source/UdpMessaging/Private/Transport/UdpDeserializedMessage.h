@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,7 @@ public:
 	 *
 	 * @param InAttachment An optional message attachment.
 	 */
-	FUdpDeserializedMessage( const IMessageAttachmentPtr& InAttachment )
+	FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
 		: Attachment(InAttachment)
 	{ }
 
@@ -28,7 +28,7 @@ public:
 	 * @param ReassembledMessage The reassembled message to deserialize.
 	 * @return true on success, false otherwise.
 	 */
-	bool Deserialize( const FUdpReassembledMessageRef& ReassembledMessage );
+	bool Deserialize(const FUdpReassembledMessageRef& ReassembledMessage);
 
 public:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EmptyViewport.cpp: Empty viewport RHI implementation.
@@ -53,11 +53,6 @@ void FEmptyDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 void FEmptyDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bool bPresent,bool bLockToVsync)
 {
 	FEmptyViewport* Viewport = ResourceCast(ViewportRHI);
-}
-
-bool FEmptyDynamicRHI::RHIIsDrawingViewport()
-{
-	return true;
 }
 
 FTexture2DRHIRef FEmptyDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)

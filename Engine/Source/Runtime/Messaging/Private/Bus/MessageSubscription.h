@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,7 +27,7 @@ public:
 	 * @param InReceivingThread The thread on which to receive messages on.
 	 * @param InScopeRange The message scope range to subscribe to.
 	 */
-	FMessageSubscription( const IReceiveMessagesRef& InSubscriber, const FName& InMessageType, const FMessageScopeRange& InScopeRange )
+	FMessageSubscription(const IReceiveMessagesRef& InSubscriber, const FName& InMessageType, const FMessageScopeRange& InScopeRange)
 		: Enabled(true)
 		, MessageType(InMessageType)
 		, ScopeRange(InScopeRange)

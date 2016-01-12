@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,6 +34,14 @@ class UEditorPerProjectUserSettings : public UObject
 	/** When enabled, Engine Version Number is displayed in the ProjectBadge */
 	UPROPERTY(EditAnywhere, config, Category = DeveloperTools, meta = (DisplayName = "Display Engine Version Number in Project Badge", ConfigRestartRequired = true))
 	bool bDisplayEngineVersionInBadge;
+
+	/** When enabled, use SimplygonSwarm Module / server to create proxies */
+	UPROPERTY(EditAnywhere, config, Category = SimplygonSwarm, meta = (DisplayName = "Use Simplygon distributed proxy server", ConfigRestartRequired = false))
+	bool bUseSimplygonSwarm;
+
+	/** Server IP for the distributed Simplygon server */
+	UPROPERTY(EditAnywhere, config, Category = SimplygonSwarm, meta = (DisplayName = "Simplygon distributed proxy server IP", ConfigRestartRequired = false, editcondition = "bUseSimplygonSwarm"))
+	FString SimplygonServerIP;
 	
 	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
 	UPROPERTY(EditAnywhere, config, Category=Performance)
@@ -113,10 +121,10 @@ public:
 	DECLARE_EVENT_OneParam(UEditorPerProjectUserSettings, FUserSettingChangedEvent, FName /*PropertyName*/);
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 private:
 

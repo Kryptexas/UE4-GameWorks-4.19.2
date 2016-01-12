@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CollectionManagerPrivatePCH.h"
 #include "FileCache.h"
@@ -151,7 +151,7 @@ const FCollectionHierarchyMap& FCollectionManagerCache::GetCachedHierarchy() con
 	return CachedHierarchy_Internal;
 }
 
-void FCollectionManagerCache::RecursionHelper_DoWork(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InRecursionMode, const FRecursiveWorkerFunc& InWorkerFunc) const
+void FCollectionManagerCache::RecursionHelper_DoWork(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InRecursionMode, FRecursiveWorkerFunc InWorkerFunc) const
 {
 	if ((InRecursionMode & ECollectionRecursionFlags::Self) && InWorkerFunc(InCollectionKey, ECollectionRecursionFlags::Self) == ERecursiveWorkerFlowControl::Stop)
 	{
@@ -169,7 +169,7 @@ void FCollectionManagerCache::RecursionHelper_DoWork(const FCollectionNameType& 
 	}
 }
 
-FCollectionManagerCache::ERecursiveWorkerFlowControl FCollectionManagerCache::RecursionHelper_DoWorkOnParents(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const
+FCollectionManagerCache::ERecursiveWorkerFlowControl FCollectionManagerCache::RecursionHelper_DoWorkOnParents(const FCollectionNameType& InCollectionKey, FRecursiveWorkerFunc InWorkerFunc) const
 {
 	const TSharedRef<FCollection>* const CollectionRefPtr = AvailableCollections.Find(InCollectionKey);
 	if (CollectionRefPtr)
@@ -189,7 +189,7 @@ FCollectionManagerCache::ERecursiveWorkerFlowControl FCollectionManagerCache::Re
 	return ERecursiveWorkerFlowControl::Continue;
 }
 
-FCollectionManagerCache::ERecursiveWorkerFlowControl FCollectionManagerCache::RecursionHelper_DoWorkOnChildren(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const
+FCollectionManagerCache::ERecursiveWorkerFlowControl FCollectionManagerCache::RecursionHelper_DoWorkOnChildren(const FCollectionNameType& InCollectionKey, FRecursiveWorkerFunc InWorkerFunc) const
 {
 	const TSharedRef<FCollection>* const CollectionRefPtr = AvailableCollections.Find(InCollectionKey);
 	if (CollectionRefPtr)
@@ -242,7 +242,10 @@ FCollectionManager::FCollectionManager()
 		}
 
 		// Make sure the folder we want to watch exists on disk
-		IFileManager::Get().MakeDirectory(*CollectionFolder, true);
+		if (!IFileManager::Get().MakeDirectory(*CollectionFolder, true))
+		{
+			continue;
+		}
 
 		DirectoryWatcher::FFileCacheConfig FileCacheConfig(FPaths::ConvertRelativePathToFull(CollectionFolder), FString());
 		FileCacheConfig.DetectMoves(false);

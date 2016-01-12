@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectsPrivatePCH.h"
 
@@ -70,6 +70,9 @@ const TCHAR* EHostType::ToString( const EHostType::Type Value )
 		case RuntimeNoCommandlet:
 			return TEXT( "RuntimeNoCommandlet" );
 
+		case RuntimeAndProgram:
+			return TEXT("RuntimeAndProgram");
+
 		case Developer:
 			return TEXT( "Developer" );
 
@@ -81,6 +84,9 @@ const TCHAR* EHostType::ToString( const EHostType::Type Value )
 
 		case Program:
 			return TEXT("Program");
+
+		case ServerOnly:
+			return TEXT("ServerOnly");
 
 		default:
 			ensureMsgf( false, TEXT( "Unrecognized EModuleType value: %i" ), Value );
@@ -273,6 +279,13 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 	{
 	case EHostType::Runtime:
 	case EHostType::RuntimeNoCommandlet:
+#if IS_PROGRAM
+		return false;
+#else
+		return true;
+#endif
+
+	case EHostType::RuntimeAndProgram:
 		return true;
 
 	case EHostType::Developer:
@@ -293,6 +306,9 @@ bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
 			return true;
 		#endif
 		break;
+
+	case EHostType::ServerOnly:
+		return !FPlatformProperties::IsClientOnly();
 	}
 
 	return false;
@@ -309,14 +325,20 @@ bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
 	// Check that the runtime environment allows it to be loaded
 	switch (Type)
 	{
-	case EHostType::Runtime:
-		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
+	case EHostType::RuntimeAndProgram:
+		#if (WITH_ENGINE || WITH_PLUGIN_SUPPORT)
 			return true;
 		#endif
 		break;
 
+	case EHostType::Runtime:
+		#if (WITH_ENGINE || WITH_PLUGIN_SUPPORT) && !IS_PROGRAM
+			return true;
+		#endif
+		break;
+	
 	case EHostType::RuntimeNoCommandlet:
-		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
+		#if (WITH_ENGINE || WITH_PLUGIN_SUPPORT)  && !IS_PROGRAM
 			if(!IsRunningCommandlet()) return true;
 		#endif
 		break;
@@ -344,6 +366,9 @@ bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
 			return true;
 		#endif
 		break;
+
+	case EHostType::ServerOnly:
+		return !FPlatformProperties::IsClientOnly();
 	}
 
 	return false;

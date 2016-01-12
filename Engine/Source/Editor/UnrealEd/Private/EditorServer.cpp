@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -30,6 +30,7 @@
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "InstancedFoliageActor.h"
+#include "MovieSceneCaptureModule.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
@@ -68,9 +69,9 @@
 #include "Components/DrawFrustumComponent.h"
 #include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
-
+#include "PhysicsPublic.h"
+#include "AnimationRecorder.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
-
 #include "KismetReinstanceUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
@@ -547,8 +548,7 @@ void UEditorEngine::LoadAndSelectAssets( TArray<FAssetData>& Assets, UClass* Typ
 
 bool UEditorEngine::UsePercentageBasedScaling() const
 {
-	// Use percentage based scaling if the user setting is enabled or more than component or actor is selected.  Multiplicative scaling doesn't work when more than one object is selected
-	return GetDefault<ULevelEditorViewportSettings>()->UsePercentageBasedScaling() || GetSelectedActorCount() > 1 || GetSelectedComponentCount() > 1;
+	return GetDefault<ULevelEditorViewportSettings>()->UsePercentageBasedScaling();
 }
 
 bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar )
@@ -1601,7 +1601,7 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	GLevelEditorModeTools().MapChangeNotify();
 }
 
-void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
+void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly, bool bTreatMovableBrushesAsStatic)
 {
 	TUniquePtr<FBspPointsGrid> BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
 	TUniquePtr<FBspPointsGrid> BspVectors = MakeUnique<FBspPointsGrid>(1/16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
@@ -1641,7 +1641,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	for (auto It(Level->Actors.CreateConstIterator()); It; ++It)
 	{
 		ABrush* Brush = Cast<ABrush>(*It);
-		if ((Brush && Brush->IsStaticBrush() && !FActorEditorUtils::IsABuilderBrush(Brush)) &&
+		if ((Brush && (Brush->IsStaticBrush() || bTreatMovableBrushesAsStatic) && !FActorEditorUtils::IsABuilderBrush(Brush)) &&
 			(!bSelectedBrushesOnly || Brush->IsSelected()) &&
 			(!(Brush->PolyFlags & PF_Semisolid) || (Brush->BrushType != Brush_Add) || (Brush->PolyFlags & PF_Portal)))
 		{
@@ -1669,6 +1669,8 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 
 	// Build list of dynamic brushes
 	TArray<ABrush*> DynamicBrushes;
+	if (!bTreatMovableBrushesAsStatic)
+	{
 	for( auto It(Level->Actors.CreateConstIterator()); It; ++It )
 		{
 			ABrush* DynamicBrush = Cast<ABrush>(*It);
@@ -1678,6 +1680,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 				DynamicBrushes.Add(DynamicBrush);
 			}
 		}
+	}
 
 	FScopedSlowTask SlowTask(StaticBrushes.Num() + DynamicBrushes.Num());
 	SlowTask.MakeDialogDelayed(3.0f);
@@ -1709,7 +1712,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 
 void UEditorEngine::RebuildAlteredBSP()
 {
-	if( GUndo && !GIsTransacting )
+	if( !GIsTransacting )
 	{
 		// Early out if BSP auto-updating is disabled
 		if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
@@ -1721,15 +1724,15 @@ void UEditorEngine::RebuildAlteredBSP()
 
 		// A list of all the levels that need to be rebuilt
 		TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
-			ABrush::NeedsRebuild(&LevelsToRebuild);
+		ABrush::NeedsRebuild(&LevelsToRebuild);
 
 		// Determine which levels need to be rebuilt
 		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
 		{
 			AActor* Actor = static_cast<AActor*>(*It);
-				checkSlow(Actor->IsA(AActor::StaticClass()));
+			checkSlow(Actor->IsA(AActor::StaticClass()));
 
-				ABrush* SelectedBrush = Cast< ABrush >(Actor);
+			ABrush* SelectedBrush = Cast< ABrush >(Actor);
 			if (SelectedBrush && !FActorEditorUtils::IsABuilderBrush(Actor))
 			{
 				ULevel* Level = SelectedBrush->GetLevel();
@@ -1742,16 +1745,16 @@ void UEditorEngine::RebuildAlteredBSP()
 			{
 				// In addition to any selected brushes, any brushes attached to a selected actor should be rebuilt
 				TArray<AActor*> AttachedActors;
-					Actor->GetAttachedActors(AttachedActors);
+				Actor->GetAttachedActors(AttachedActors);
 
 				const bool bExactClass = true;
 				TArray<AActor*> AttachedBrushes;
 				// Get any brush actors attached to the selected actor
-					if (ContainsObjectOfClass(AttachedActors, ABrush::StaticClass(), bExactClass, &AttachedBrushes))
+				if (ContainsObjectOfClass(AttachedActors, ABrush::StaticClass(), bExactClass, &AttachedBrushes))
 				{
-						for (int32 BrushIndex = 0; BrushIndex < AttachedBrushes.Num(); ++BrushIndex)
+					for (int32 BrushIndex = 0; BrushIndex < AttachedBrushes.Num(); ++BrushIndex)
 					{
-							ULevel* Level = CastChecked<ABrush>(AttachedBrushes[BrushIndex])->GetLevel();
+						ULevel* Level = CastChecked<ABrush>(AttachedBrushes[BrushIndex])->GetLevel();
 						if (Level)
 						{
 							LevelsToRebuild.AddUnique(Level);
@@ -1786,7 +1789,7 @@ void UEditorEngine::RebuildAlteredBSP()
 	}
 	else
 	{
- 		ensureMsgf(0, TEXT("Rebuild BSP ignored. Not in a transaction") );
+ 		ensureMsgf(0, TEXT("Rebuild BSP ignored during undo/redo") );
 		ABrush::OnRebuildDone();
 	}
 }
@@ -1876,7 +1879,8 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	if (ContextWorld->WorldType != EWorldType::Preview && ContextWorld->WorldType != EWorldType::Inactive)
 	{
 		// Go away, come again never!
-		ContextWorld->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+		ContextWorld->ClearFlags(RF_Standalone | RF_Transactional);
+		ContextWorld->RemoveFromRoot();
 
 		// If this was a memory-only world, we should inform the asset registry that this asset is going away forever.
 		if (WorldPackage)
@@ -3396,12 +3400,25 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 				const FVector Location = bbox.GetCenter();
 				const FVector Adjust = Origin - Location;
 
+				// List of group actors in the selection
+				TArray<AGroupActor*> GroupActors;
+
 				// Move the actors.
 				AActor* SingleActor = NULL;
 				for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 				{
 					AActor* Actor = static_cast<AActor*>( *It );
 					checkSlow( Actor->IsA(AActor::StaticClass()) );
+
+					// If this actor is in a group, add it to the list
+					if (GEditor->bGroupingActive)
+					{
+						AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);
+						if (ActorGroupRoot)
+						{
+							GroupActors.AddUnique(ActorGroupRoot);
+						}
+					}
 
 					SingleActor = Actor;
 					Actor->SetActorLocation(Actor->GetActorLocation() + Adjust, false);
@@ -3411,6 +3428,15 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 				// Update the pivot location.
 				check(SingleActor);
 				SetPivot( SingleActor->GetActorLocation(), false, true );
+
+				// If grouping is active, go through the unique group actors and update the group actor location
+				if (GEditor->bGroupingActive)
+				{
+					for (AGroupActor* GroupActor : GroupActors)
+					{
+						GroupActor->CenterGroupLocation();
+					}
+				}
 			}
 		}
 
@@ -4800,6 +4826,15 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 		FVector NewLocation = Hit.Location - LocationOffset;
 		NewLocation.Z += KINDA_SMALL_NUMBER;	// Move the new desired location up by an error tolerance
 		
+		if (Object.Actor)
+		{
+			GEditor->BroadcastBeginObjectMovement(*Object.Actor);
+		}
+		else
+		{
+			GEditor->BroadcastBeginObjectMovement(*Object.Component);
+		}
+
 		Object.SetWorldLocation( NewLocation );
 		//InActor->TeleportTo( NewLocation, InActor->GetActorRotation(), false,true );
 		
@@ -4810,6 +4845,16 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 			NewRotation.Pitch -= 90.f;
 			Object.SetWorldRotation( NewRotation );
 		}
+
+		if (Object.Actor)
+		{
+			GEditor->BroadcastEndObjectMovement(*Object.Actor);
+		}
+		else
+		{
+			GEditor->BroadcastEndObjectMovement(*Object.Component);
+		}
+
 
 		// Switch to the pie world if we have one
 		FScopedConditionalWorldSwitcher WorldSwitcher( GCurrentLevelEditingViewportClient );
@@ -5664,6 +5709,10 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	{
 		HandleRemoveArchtypeFlagCommand( Str, Ar );
 	}
+	else if( FParse::Command(&Str,TEXT("STARTMOVIECAPTURE")) )
+	{
+		bProcessed = HandleStartMovieCaptureCommand( Str, Ar );
+	}
 	else
 	{
 		bProcessed = FBlueprintEditorUtils::KismetDiagnosticExec(Stream, Ar);
@@ -6431,6 +6480,31 @@ bool UEditorEngine::HandleRemoveArchtypeFlagCommand( const TCHAR* Str, FOutputDe
 		}
 	}
 	return true;
+}
+
+bool UEditorEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().GetFirstActiveMovieSceneCapture();
+	if (CaptureInterface)
+	{
+		CaptureInterface->StartCapturing();
+		return true;
+	}
+
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::PIE)
+		{
+			FSlatePlayInEditorInfo* SlatePlayInEditorSession = GEditor->SlatePlayInEditorMap.Find(Context.ContextHandle);
+			if (SlatePlayInEditorSession && SlatePlayInEditorSession->SlatePlayInEditorWindowViewport.IsValid())
+			{
+				IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(SlatePlayInEditorSession->SlatePlayInEditorWindowViewport.ToSharedRef());
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 /**

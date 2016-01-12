@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,9 +16,9 @@ public:
 	SLATE_USER_ARGS(SConfigEditor) {}
 	SLATE_END_ARGS()
 
-	// Begin SCompoundWidget|SWidget interface
+	//~ Begin SCompoundWidget|SWidget Interface
 	virtual void Construct(const FArguments& InArgs, TWeakObjectPtr<UProperty> InEditProperty);
-	// End SCompoundWidget|SWidget interface
+	//~ End SCompoundWidget|SWidget Interface
 
 private:
 	/**
@@ -51,4 +51,4 @@ private:
 	TWeakObjectPtr<UProperty> EditProperty;
 };
 
-#undef LOCTEXT_NAMESPACE // "ConfigEditor"
+#undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,8 @@ using System.IO;
 using UnrealBuildTool;
 using System.Diagnostics;
 using Tools.DotNETCommon.CaselessDictionary;
-using Tools.DotNETCommon.ExecutingAssembly;
+using Tools.DotNETCommon;
+using System.Reflection;
 
 namespace AutomationTool
 {
@@ -26,7 +27,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Full Project path. Must be a .uproject file
 		/// </summary>
-		public string RawProjectPath;
+		public FileReference RawProjectPath;
 
 		/// <summary>
 		/// True if the uproject contains source code.
@@ -106,9 +107,9 @@ namespace AutomationTool
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <param name="bIsUProjectFile">True if a uproject.</param>
 		/// <returns>Short project name</returns>
-		public static string GetShortProjectName(string RawProjectPath)
+		public static string GetShortProjectName(FileReference RawProjectPath)
 		{
-			return CommandUtils.GetFilenameWithoutAnyExtensions(RawProjectPath);
+			return CommandUtils.GetFilenameWithoutAnyExtensions(RawProjectPath.FullName);
 		}
 
 		/// <summary>
@@ -116,17 +117,17 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>Properties of the project.</returns>
-		public static ProjectProperties GetProjectProperties(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms = null)
+		public static ProjectProperties GetProjectProperties(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms = null, bool AssetNativizationRequested = false)
 		{
 			string ProjectKey = "UE4";
-			if (!String.IsNullOrEmpty(RawProjectPath))
+			if (RawProjectPath != null)
 			{
-				ProjectKey = CommandUtils.ConvertSeparators(PathSeparator.Slash, Path.GetFullPath(RawProjectPath));
+				ProjectKey = CommandUtils.ConvertSeparators(PathSeparator.Slash, RawProjectPath.FullName);
 			}
 			ProjectProperties Properties;
 			if (PropertiesCache.TryGetValue(ProjectKey, out Properties) == false)
 			{
-				Properties = DetectProjectProperties(RawProjectPath, ClientTargetPlatforms);
+                Properties = DetectProjectProperties(RawProjectPath, ClientTargetPlatforms, AssetNativizationRequested);
 				PropertiesCache.Add(ProjectKey, Properties);
 			}
 			return Properties;
@@ -137,7 +138,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>True if the project is a UProject file with source code.</returns>
-		public static bool IsCodeBasedUProjectFile(string RawProjectPath)
+		public static bool IsCodeBasedUProjectFile(FileReference RawProjectPath)
 		{
 			return GetProjectProperties(RawProjectPath, null).bIsCodeBasedProject;
 		}
@@ -157,23 +158,35 @@ namespace AutomationTool
 			return ProjectClientBinariesPath;
 		}
 
-		private static bool RequiresTempTarget(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
+		private static bool RequiresTempTarget(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms, bool AssetNativizationRequested)
 		{
 			// check to see if we already have a Target.cs file
-			if (File.Exists (Path.Combine (Path.GetDirectoryName (RawProjectPath), "Source", Path.GetFileNameWithoutExtension (RawProjectPath) + ".Target.cs")))
+			if (File.Exists (Path.Combine (Path.GetDirectoryName (RawProjectPath.FullName), "Source", RawProjectPath.GetFileNameWithoutExtension() + ".Target.cs")))
 			{
 				return false;
 			}
-			else if (Directory.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Source")))
+			else if (Directory.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath.FullName), "Source")))
 			{
 				// wasn't one in the main Source directory, let's check all sub-directories
 				//@todo: may want to read each target.cs to see if it has a target corresponding to the project name as a final check
-				FileInfo[] Files = (new DirectoryInfo( Path.Combine (Path.GetDirectoryName (RawProjectPath), "Source")).GetFiles ("*.Target.cs", SearchOption.AllDirectories));
+				FileInfo[] Files = (new DirectoryInfo( Path.Combine (Path.GetDirectoryName (RawProjectPath.FullName), "Source")).GetFiles ("*.Target.cs", SearchOption.AllDirectories));
 				if (Files.Length > 0)
 				{
 					return false;
 				}
 			}
+
+            //
+            // once we reach this point, we can surmise that this is an asset-
+            // only (code free) project
+
+            if (AssetNativizationRequested)
+            {
+                // we're going to be converting some of the project's assets 
+                // into native code, so we require a distinct target (executable) 
+                // be generated for this project
+                return true;
+            }
 
 			// no Target file, now check to see if build settings have changed
 			List<UnrealTargetPlatform> TargetPlatforms = ClientTargetPlatforms;
@@ -194,24 +207,24 @@ namespace AutomationTool
 			string oldCWD = Directory.GetCurrentDirectory();
 			if (BuildConfiguration.RelativeEnginePath == "../../Engine/")
 			{
-				string EngineSourceDirectory = Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine", "Source");
+				string EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Source");
 				if (!Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
 				{
-					EngineSourceDirectory = Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine", "Binaries");
+                    EngineSourceDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..", "Engine", "Binaries");
 				}
 				Directory.SetCurrentDirectory(EngineSourceDirectory);
 			}
 
 			// Read the project descriptor, and find all the plugins available to this project
-			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(RawProjectPath);
+			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath.FullName);
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(BuildConfiguration.RelativeEnginePath), RawProjectPath);
 
 			// check the target platforms for any differences in build settings or additional plugins
 			bool RetVal = false;
 			foreach (UnrealTargetPlatform TargetPlatformType in TargetPlatforms)
 			{
-				IUEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
-				if (!GlobalCommandLine.Rocket && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, Path.GetDirectoryName(RawProjectPath)))
+				UEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
+				if (!Automation.IsEngineInstalled() && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, RawProjectPath.Directory))
 				{
 					RetVal = true;
 					break;
@@ -237,17 +250,17 @@ namespace AutomationTool
 			return RetVal;
 		}
 
-		private static void GenerateTempTarget(string RawProjectPath)
+		private static void GenerateTempTarget(FileReference RawProjectPath)
 		{
 			// read in the template target cs file
 			var TempCSFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "Target.cs.template");
 			string TargetCSFile = File.ReadAllText(TempCSFile);
 
 			// replace {GAME_NAME} with the game name
-			TargetCSFile = TargetCSFile.Replace("{GAME_NAME}", Path.GetFileNameWithoutExtension(RawProjectPath));
+			TargetCSFile = TargetCSFile.Replace("{GAME_NAME}", Path.GetFileNameWithoutExtension(RawProjectPath.FullName));
 
 			// write out the file in a new Source directory
-			string FileName = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs");
+			string FileName = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath.FullName) + ".Target.cs");
 			if (!Directory.Exists(Path.GetDirectoryName(FileName)))
 			{
 				Directory.CreateDirectory(Path.GetDirectoryName(FileName));
@@ -261,25 +274,33 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>Project properties.</returns>
-		private static ProjectProperties DetectProjectProperties(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
+        private static ProjectProperties DetectProjectProperties(FileReference RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms, bool AssetNativizationRequested)
 		{
 			var Properties = new ProjectProperties();
 			Properties.RawProjectPath = RawProjectPath;
 
 			// detect if the project is content only, but has non-default build settings
 			List<string> ExtraSearchPaths = null;
-			if (!string.IsNullOrEmpty(RawProjectPath))
+			if (RawProjectPath != null)
 			{
-				if (RequiresTempTarget(RawProjectPath, ClientTargetPlatforms))
+                if (RequiresTempTarget(RawProjectPath, ClientTargetPlatforms, AssetNativizationRequested))
 				{
 					GenerateTempTarget(RawProjectPath);
 					Properties.bWasGenerated = true;
 					ExtraSearchPaths = new List<string>();
-					ExtraSearchPaths.Add(CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source"));
+
+                    string TempTargetDir = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source");
+                    ExtraSearchPaths.Add(TempTargetDir);
+
+                    // in case the RulesCompiler (what we use to find all the 
+                    // Target.cs files) has already cached the contents of this 
+                    // directory, then we need to invalidate that cache (so 
+                    // it'll find/use the new Target.cs file)
+                    RulesCompiler.InvalidateRulesFileCache(TempTargetDir);
 				}
-				else if (File.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs")))
+				else if (File.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath.FullName) + ".Target.cs")))
 				{
-					File.Delete(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs"));
+					File.Delete(Path.Combine(Path.GetDirectoryName(RawProjectPath.FullName), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath.FullName) + ".Target.cs"));
 				}
 			}
 
@@ -291,14 +312,14 @@ namespace AutomationTool
 			else
 			{
 				// should never ask for engine targets if we can't compile
-				if (String.IsNullOrEmpty(RawProjectPath))
+				if (RawProjectPath == null)
 				{
 					throw new AutomationException("Cannot determine engine targets if we can't compile.");
 				}
 
 				Properties.bIsCodeBasedProject = Properties.bWasGenerated;
 				// if there's a Source directory with source code in it, then mark us as having source code
-				string SourceDir = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Source");
+				string SourceDir = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath.FullName), "Source");
 				if (Directory.Exists(SourceDir))
 				{
 					string[] CppFiles = Directory.GetFiles(SourceDir, "*.cpp", SearchOption.AllDirectories);
@@ -308,14 +329,14 @@ namespace AutomationTool
 			}
 
 			// check to see if the uproject loads modules, only if we haven't already determined it is a code based project
-			if (!Properties.bIsCodeBasedProject)
+			if (!Properties.bIsCodeBasedProject && RawProjectPath != null)
 			{
-				string uprojectStr = File.ReadAllText(RawProjectPath);
+				string uprojectStr = File.ReadAllText(RawProjectPath.FullName);
 				Properties.bIsCodeBasedProject = uprojectStr.Contains("\"Modules\"");
 			}
 
 			// Get all ini files
-			if (!String.IsNullOrWhiteSpace(RawProjectPath))
+			if (RawProjectPath != null)
 			{
 				CommandUtils.LogVerbose("Loading ini files for {0}", RawProjectPath);
 
@@ -324,7 +345,7 @@ namespace AutomationTool
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = new ConfigCacheIni(TargetPlatformType, "Engine", Path.GetDirectoryName(RawProjectPath), EngineDirectory);
+						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Engine", RawProjectPath.Directory, new DirectoryReference(EngineDirectory));
 						Properties.EngineConfigs.Add(TargetPlatformType, Config);
 					}
 				}
@@ -333,7 +354,7 @@ namespace AutomationTool
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = new ConfigCacheIni(TargetPlatformType, "Game", Path.GetDirectoryName(RawProjectPath));
+						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Game", RawProjectPath.Directory);
 						Properties.GameConfigs.Add(TargetPlatformType, Config);
 					}
 				}
@@ -350,7 +371,7 @@ namespace AutomationTool
 		/// <param name="TargetType">Target type.</param>
 		/// <param name="bIsUProjectFile">True if uproject file.</param>
 		/// <returns>Binaries path.</returns>
-		public static string GetClientProjectBinariesRootPath(string RawProjectPath, TargetRules.TargetType TargetType, bool bIsCodeBasedProject)
+		public static string GetClientProjectBinariesRootPath(FileReference RawProjectPath, TargetRules.TargetType TargetType, bool bIsCodeBasedProject)
 		{
 			var BinPath = String.Empty;
 			switch (TargetType)
@@ -366,7 +387,7 @@ namespace AutomationTool
 					}
 					else
 					{
-						BinPath = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath), "Binaries");
+						BinPath = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(RawProjectPath.FullName), "Binaries");
 					}
 					break;
 			}
@@ -398,26 +419,25 @@ namespace AutomationTool
 		private static void DetectTargetsForProject(ProjectProperties Properties, List<string> ExtraSearchPaths = null)
 		{
 			Properties.Targets = new Dictionary<TargetRules.TargetType, SingleTargetProperties>();
-			string TargetsDllFilename;
+			FileReference TargetsDllFilename;
 			string FullProjectPath = null;
 
-			var GameFolders = new List<string>();
-			var RulesFolder = GetRulesAssemblyFolder();
-			if (!String.IsNullOrEmpty(Properties.RawProjectPath))
+			var GameFolders = new List<DirectoryReference>();
+			var RulesFolder = new DirectoryReference(GetRulesAssemblyFolder());
+			if (Properties.RawProjectPath != null)
 			{
 				CommandUtils.LogVerbose("Looking for targets for project {0}", Properties.RawProjectPath);
 
-				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
+				TargetsDllFilename = FileReference.Combine(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
 
-				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath);
-				GameFolders.Add(FullProjectPath);
+				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath.FullName);
+				GameFolders.Add(new DirectoryReference(FullProjectPath));
 				CommandUtils.LogVerbose("Searching for target rule files in {0}", FullProjectPath);
 			}
 			else
 			{
-				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", "_BaseEngine_"));
+				TargetsDllFilename = FileReference.Combine(RulesFolder, String.Format("UATRules{0}.dll", "_BaseEngine_"));
 			}
-			RulesCompiler.SetAssemblyNameAndGameFolders(TargetsDllFilename, GameFolders);
 
 			// the UBT code assumes a certain CWD, but artists don't have this CWD.
 			var SourceDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source");
@@ -427,7 +447,8 @@ namespace AutomationTool
 				CommandUtils.PushDir(SourceDir);
 				DirPushed = true;
 			}
-			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, ExtraSearchPaths);
+			var ExtraSearchDirectories = (ExtraSearchPaths == null)? null : ExtraSearchPaths.Select(x => new DirectoryReference(x)).ToList();
+			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, GameFolders: GameFolders, ForeignPlugins: null, AdditionalSearchPaths: ExtraSearchDirectories);
 			if (DirPushed)
 			{
 				CommandUtils.PopDir();
@@ -436,13 +457,12 @@ namespace AutomationTool
 			if (!CommandUtils.IsNullOrEmpty(TargetScripts))
 			{
 				// We only care about project target script so filter out any scripts not in the project folder, or take them all if we are just doing engine stuff
-				var ProjectTargetScripts = new List<string>();
-				foreach (var Filename in TargetScripts)
+				var ProjectTargetScripts = new List<FileReference>();
+				foreach (var TargetScript in TargetScripts)
 				{
-					var FullScriptPath = CommandUtils.CombinePaths(Path.GetFullPath(Filename));
-					if (FullProjectPath == null || FullScriptPath.StartsWith(FullProjectPath, StringComparison.InvariantCultureIgnoreCase))
+					if (FullProjectPath == null || TargetScript.IsUnderDirectory(new DirectoryReference(FullProjectPath)))
 					{
-						ProjectTargetScripts.Add(FullScriptPath);
+						ProjectTargetScripts.Add(TargetScript);
 					}
 				}
 				TargetScripts = ProjectTargetScripts;
@@ -460,15 +480,15 @@ namespace AutomationTool
 				bool DoNotCompile = false;
 				if (!CommandUtils.IsBuildMachine && !CheckIfScriptAssemblyIsOutOfDate(TargetsDllFilename, TargetScripts))
 				{
-					Log.TraceInformation("Targets DLL {0} is up to date.", TargetsDllFilename);
+					Log.TraceVerbose("Targets DLL {0} is up to date.", TargetsDllFilename);
 					DoNotCompile = true;
 				}
-				if (!DoNotCompile && CommandUtils.FileExists_NoExceptions(TargetsDllFilename))
+				if (!DoNotCompile && CommandUtils.FileExists_NoExceptions(TargetsDllFilename.FullName))
 				{
-					if (!CommandUtils.DeleteFile_NoExceptions(TargetsDllFilename, true))
+					if (!CommandUtils.DeleteFile_NoExceptions(TargetsDllFilename.FullName, true))
 					{
 						DoNotCompile = true;
-						CommandUtils.Log("Could not delete {0} assuming it is up to date and reusable for a recursive UAT call.", TargetsDllFilename);
+						CommandUtils.LogVerbose("Could not delete {0} assuming it is up to date and reusable for a recursive UAT call.", TargetsDllFilename);
 					}
 				}
 
@@ -483,9 +503,9 @@ namespace AutomationTool
 		/// <param name="TargetsDllFilename"></param>
 		/// <param name="DoNotCompile"></param>
 		/// <param name="TargetScripts"></param>
-		private static void CompileAndLoadTargetsAssembly(ProjectProperties Properties, string TargetsDllFilename, bool DoNotCompile, List<string> TargetScripts)
+		private static void CompileAndLoadTargetsAssembly(ProjectProperties Properties, FileReference TargetsDllFilename, bool DoNotCompile, List<FileReference> TargetScripts)
 		{
-			CommandUtils.Log("Compiling targets DLL: {0}", TargetsDllFilename);
+			CommandUtils.LogVerbose("Compiling targets DLL: {0}", TargetsDllFilename);
 
 			var ReferencedAssemblies = new List<string>() 
 					{ 
@@ -495,7 +515,7 @@ namespace AutomationTool
 						typeof(UnrealBuildTool.UnrealBuildTool).Assembly.Location
 					};
 			var TargetsDLL = DynamicCompilation.CompileAndLoadAssembly(TargetsDllFilename, TargetScripts, ReferencedAssemblies, null, DoNotCompile);
-			var DummyTargetInfo = new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development);
+			var DummyTargetInfo = new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, "");
 			var AllCompiledTypes = TargetsDLL.GetTypes();
 			foreach (Type TargetType in AllCompiledTypes)
 			{
@@ -535,15 +555,15 @@ namespace AutomationTool
 		/// <param name="TargetsDllFilename"></param>
 		/// <param name="TargetScripts"></param>
 		/// <returns>True if the generated assembly is out of date.</returns>
-		private static bool CheckIfScriptAssemblyIsOutOfDate(string TargetsDllFilename, List<string> TargetScripts)
+		private static bool CheckIfScriptAssemblyIsOutOfDate(FileReference TargetsDllFilename, List<FileReference> TargetScripts)
 		{
 			var bOutOfDate = false;
-			var AssemblyInfo = new FileInfo(TargetsDllFilename);
+			var AssemblyInfo = new FileInfo(TargetsDllFilename.FullName);
 			if (AssemblyInfo.Exists)
 			{
 				foreach (var ScriptFilename in TargetScripts)
 				{
-					var ScriptInfo = new FileInfo(ScriptFilename);
+					var ScriptInfo = new FileInfo(ScriptFilename.FullName);
 					if (ScriptInfo.Exists && ScriptInfo.LastWriteTimeUtc > AssemblyInfo.LastWriteTimeUtc)
 					{
 						bOutOfDate = true;
@@ -579,7 +599,7 @@ namespace AutomationTool
 		/// </summary>
 		public static void CleanupFolders()
 		{
-			CommandUtils.Log("Cleaning up project rules folder");
+			CommandUtils.LogVerbose("Cleaning up project rules folder");
 			var RulesFolder = GetRulesAssemblyFolder();
 			if (CommandUtils.DirectoryExists(RulesFolder))
 			{
@@ -602,7 +622,7 @@ namespace AutomationTool
         public class BranchUProject
         {
             public string GameName;
-            public string FilePath;
+            public FileReference FilePath;
             public ProjectProperties Properties;
 
             public BranchUProject(UnrealBuildTool.UProjectInfo InfoEntry)
@@ -610,14 +630,14 @@ namespace AutomationTool
                 GameName = InfoEntry.GameName;
 
                 //not sure what the heck this path is relative to
-                FilePath = Path.GetFullPath(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", InfoEntry.FilePath));
+                FilePath = InfoEntry.FilePath;
 
-                if (!CommandUtils.FileExists_NoExceptions(FilePath))
+                if (!CommandUtils.FileExists_NoExceptions(FilePath.FullName))
                 {
                     throw new AutomationException("Could not resolve relative path corrctly {0} -> {1} which doesn't exist.", InfoEntry.FilePath, FilePath);
                 }
 
-                Properties = ProjectUtils.GetProjectProperties(Path.GetFullPath(FilePath));
+                Properties = ProjectUtils.GetProjectProperties(FilePath);
 
 
 
@@ -625,7 +645,7 @@ namespace AutomationTool
             public BranchUProject()
             {
                 GameName = "UE4";
-                Properties = ProjectUtils.GetProjectProperties("");
+                Properties = ProjectUtils.GetProjectProperties(null);
                 if (!Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
                 {
                     throw new AutomationException("Base UE4 project did not contain an editor target.");
@@ -719,7 +739,7 @@ namespace AutomationTool
             BaseEngineProject = new BranchUProject();
 
             var AllProjects = UnrealBuildTool.UProjectInfo.FilterGameProjects(false, null);
-			using(CommandUtils.TelemetryStopwatch SortProjectsStopwatch = new CommandUtils.TelemetryStopwatch("SortProjects"))
+			using(TelemetryStopwatch SortProjectsStopwatch = new TelemetryStopwatch("SortProjects"))
 			{
 				foreach (var InfoEntry in AllProjects)
 				{
@@ -732,7 +752,7 @@ namespace AutomationTool
 					{
 						NonCodeProjects.Add(UProject);
 						// the base project uses BlankProject if it really needs a .uproject file
-						if (String.IsNullOrEmpty(BaseEngineProject.FilePath) && UProject.GameName == "BlankProject")
+						if (BaseEngineProject.FilePath == null && UProject.GameName == "BlankProject")
 						{
 							BaseEngineProject.FilePath = UProject.FilePath;
 						}
@@ -744,17 +764,17 @@ namespace AutomationTool
                 throw new AutomationException("All branches must have the blank project /Samples/Sandbox/BlankProject");
             }*/
 
-			using(CommandUtils.TelemetryStopwatch ProjectDumpStopwatch = new CommandUtils.TelemetryStopwatch("Project Dump"))
+			using(TelemetryStopwatch ProjectDumpStopwatch = new TelemetryStopwatch("Project Dump"))
 			{
-				CommandUtils.Log("  Base Engine:");
+				CommandUtils.LogVerbose("  Base Engine:");
 				BaseEngineProject.Dump(InHostPlatforms);
 
-				CommandUtils.Log("  {0} Code projects:", CodeProjects.Count);
+				CommandUtils.LogVerbose("  {0} Code projects:", CodeProjects.Count);
 				foreach (var Proj in CodeProjects)
 				{
 					Proj.Dump(InHostPlatforms);
 				}
-				CommandUtils.Log("  {0} Non-Code projects:", CodeProjects.Count);
+				CommandUtils.LogVerbose("  {0} Non-Code projects:", CodeProjects.Count);
 				foreach (var Proj in NonCodeProjects)
 				{
 					Proj.Dump(InHostPlatforms);
@@ -798,6 +818,18 @@ namespace AutomationTool
                     return Proj;
                 }
             }
+
+			foreach (var CodeProj in CodeProjects)
+			{
+				foreach (var Proj in CodeProj.Properties.Programs)
+				{
+					if (Proj.TargetName.Equals(ProgramName, StringComparison.InvariantCultureIgnoreCase))
+					{
+						return Proj;
+					}
+				}
+			}
+
             SingleTargetProperties Result;
             Result.TargetName = ProgramName;
             Result.Rules = null;

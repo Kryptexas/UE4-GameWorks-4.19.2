@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,9 +32,15 @@ struct FStructDeserializerPolicies
 	/** Holds the policy for handling missing fields. */
 	EStructDeserializerErrorPolicies MissingFields;
 
+	/** Predicate for performing advanced filtering of struct properties. 
+		If set, the predicate should return true for all properties it wishes to include in the output.
+	 */
+	TFunction<bool (const UProperty* /*CurrentProp*/, const UProperty* /*ParentProp*/)> PropertyFilter;
+
 	/** Default constructor. */
 	FStructDeserializerPolicies()
 		: MissingFields(EStructDeserializerErrorPolicies::Ignore)
+		, PropertyFilter()
 	{ }
 };
 

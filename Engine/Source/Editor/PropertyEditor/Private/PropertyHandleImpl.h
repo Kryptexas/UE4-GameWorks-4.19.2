@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,8 +6,8 @@ class FObjectBaseAddress
 {
 public:
 	FObjectBaseAddress()
-		:	Object( NULL )
-		,	BaseAddress( NULL )
+		:	Object( nullptr )
+		,	BaseAddress( nullptr )
 		,	bIsStruct(false)
 	{}
 	FObjectBaseAddress(UObject* InObject, uint8* InBaseAddress, bool InIsStruct)
@@ -129,6 +129,11 @@ public:
 	 * Sets a delegate to call when the property value changes
 	 */
 	void SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged );
+	
+	/**
+	 * Sets a delegate to call when the propery value of a child changes
+	 */
+	void SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged );
 
 	/**
 	 * Sets a delegate to call when children of the property node must be rebuilt
@@ -207,15 +212,15 @@ public:
 	 * Gets a child node of the property node
 	 * 
 	 * @param ChildName	The name of the child to get
-	 * @return The child property node or NULL if it doesnt exist
+	 * @return The child property node or nullptr if it doesnt exist
 	 */
-	TSharedPtr<FPropertyNode> GetChildNode( FName ChildName ) const;
+	TSharedPtr<FPropertyNode> GetChildNode( FName ChildName, bool bRecurse = true ) const;
 
 	/**
 	 * Gets a child node of the property node
 	 * 
 	 * @param ChildIndex	The child index where the child is stored
-	 * @return The child property node or NULL if it doesnt exist
+	 * @return The child property node or nullptr if it doesnt exist
 	 */
 	TSharedPtr<FPropertyNode> GetChildNode( int32 ChildIndex ) const ;
 
@@ -283,7 +288,7 @@ public:
 	/**
 	 * @return true if the property node is valid
 	 */
-	bool HasValidProperty() const;
+	bool HasValidPropertyNode() const;
 
 	/**
 	 * @return The display name of the property
@@ -316,8 +321,6 @@ protected:
 	/** Property node used to access UProperty and address of object to change */
 	TWeakPtr<FPropertyNode> PropertyNode;
 	TWeakPtr<IPropertyUtilities> PropertyUtilities;
-	/** This delegate is executed when the property value changed.  The property node is registed with this callback and we store it so we can remove it later */
-	FSimpleDelegate PropertyValueChangedDelegate;
 	/** Notify hook to call when properties change */
 	FNotifyHook* NotifyHook;
 	/** Set true if a change was made with bFinished=false */
@@ -369,9 +372,10 @@ public:
 	virtual bool IsCustomized() const override;
 	virtual FString GeneratePathToProperty() const override;
 	virtual TSharedRef<SWidget> CreatePropertyNameWidget( const FText& NameOverride = FText::GetEmpty(), const FText& ToolTipOverride = FText::GetEmpty(), bool bDisplayResetToDefault = false, bool bDisplayText = true, bool bDisplayThumbnail = true ) const override;
-	virtual TSharedRef<SWidget> CreatePropertyValueWidget() const override;
+	virtual TSharedRef<SWidget> CreatePropertyValueWidget( bool bDisplayDefaultPropertyButtons = true ) const override;
 	virtual bool IsEditConst() const override;
 	virtual void SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) override;
+	virtual void SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) override;
 	virtual int32 GetIndexInArray() const override;
 	virtual FPropertyAccess::Result GetValueAsFormattedString( FString& OutValue ) const override;
 	virtual FPropertyAccess::Result GetValueAsDisplayString( FString& OutValue ) const override;
@@ -379,14 +383,14 @@ public:
 	virtual FPropertyAccess::Result GetValueAsDisplayText( FText& OutValue ) const override;
 	virtual FPropertyAccess::Result SetValueFromFormattedString( const FString& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( uint32 ChildIndex ) const override;
-	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName ) const override;
+	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName, bool bRecurse = true ) const override;
 	virtual TSharedPtr<IPropertyHandle> GetParentHandle() const override;
 	virtual void AccessRawData( TArray<void*>& RawData ) override;
 	virtual void AccessRawData( TArray<const void*>& RawData ) const override;
 	virtual uint32 GetNumOuterObjects() const override;
 	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const override;
 	virtual FPropertyAccess::Result GetNumChildren( uint32& OutNumChildren ) const override;
-	virtual TSharedPtr<IPropertyHandleArray> AsArray() override { return NULL; }
+	virtual TSharedPtr<IPropertyHandleArray> AsArray() override { return nullptr; }
 	virtual const UClass* GetPropertyClass() const override;
 	virtual UProperty* GetProperty() const override;
 	virtual UProperty* GetMetaDataProperty() const override;

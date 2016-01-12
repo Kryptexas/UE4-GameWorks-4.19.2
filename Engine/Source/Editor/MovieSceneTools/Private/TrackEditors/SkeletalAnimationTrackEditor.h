@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,7 @@ public:
 	FSkeletalAnimationTrackEditor( TSharedRef<ISequencer> InSequencer );
 
 	/** Virtual destructor. */
-	virtual ~FSkeletalAnimationTrackEditor();
+	virtual ~FSkeletalAnimationTrackEditor() { }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -31,11 +31,12 @@ public:
 
 	// ISequencerTrackEditor interface
 
-	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset) override;
+	virtual void AddKey(const FGuid& ObjectGuid) override;
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override;
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
+	virtual void BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track ) override;
 
 private:
 
@@ -46,7 +47,7 @@ private:
 	void OnAnimationAssetSelected(const FAssetData& AssetData, FGuid ObjectBinding);
 
 	/** Delegate for AnimatablePropertyChanged in AddKey */
-	void AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, class UAnimSequence* AnimSequence);
+	bool AddKeyInternal(float KeyTime, const TArray<UObject*> Objects, class UAnimSequence* AnimSequence);
 
 	/** Gets a skeleton from an object guid in the movie scene */
 	class USkeleton* AcquireSkeletonFromObjectGuid(const FGuid& Guid);
@@ -64,13 +65,14 @@ public:
 	FSkeletalAnimationSection( UMovieSceneSection& InSection );
 
 	/** Virtual destructor. */
-	virtual ~FSkeletalAnimationSection();
+	virtual ~FSkeletalAnimationSection() { }
 
 public:
 
 	// ISequencerSection interface
 
 	virtual UMovieSceneSection* GetSectionObject() override;
+	virtual bool ShouldDrawKeyAreaBackground() const override;
 	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;

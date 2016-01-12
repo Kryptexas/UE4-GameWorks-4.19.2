@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2595364
+﻿INTSourceChangelist:2677539
 Availability: Public
-Title: UE4 에서 Perforce 소스 콘트롤 사용하기
+Title: Perforce 소스 콘트롤 사용
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
 Description: 팀 내 다른 사람들과의 애셋 공유를 위한 Perforce 구성 방법입니다.
 Related: Engine/UI/SourceControl
@@ -8,11 +8,11 @@ Related: Engine/Content/Browser
 Related: Engine/Basics/Redirectors
 Related: Engine/UI/ProjectSettings
 Related: Programming/Basics/ConfigurationFiles
-
+version: 4.9
 
 [TOC(start:2)]
 
-## 개요
+
 언리얼 엔진 4 에는 Perforce 라는 버전 콘트롤 소프트웨어를 사용하여 프로젝트 작업을 함께 할 수 있도록 해 주는 통합 방식이 내장되어 있습니다.
 버전 콘트롤을 통해 팀원끼리 애셋과 코드를 공유할 수 있을 뿐만 아니라, 백업과 변경내역도 제공되어 어떤 파일이든 문제가 생긴 경우 
 예전 버전으로 되돌릴 수 있습니다.
@@ -116,7 +116,7 @@ p4 환경 변수를 설정해 줘야 합니다.
 끝날 것입니다. Perforce 클라우드 제공사 접속 관련 참고사항은, 아래 **언리얼 에디터에서 접속하기** 부분을 참고하세요.
 
 ### 로컬 워크스페이스 구성하기
-Perforce 콘트롤 하의 파일 작업을 위해서는, 로컬 퍼민에 있는 파일 관리가 가능하도록 Workspace (워크스페이스) 구성을 해 줘야 합니다. 이 작업은 P4V 의 Workspace 탭을 통해 가능합니다:
+Perforce 콘트롤 하의 파일 작업을 위해서는, 로컬 퍼민에 있는 파일 관리가 가능하도록 Workspace (워크스페이스) 구성을 해 줘야 합니다. 이 작업은 P4V **View** 드롭다운의 Workspace 탭을 통해 가능합니다:
 
 ![](SC_View_Workspace.png)
 
@@ -156,7 +156,7 @@ Perforce 에 파일을 추가하는 방법은 몇 단계로 아주 간단합니�
 그러면 위의 워크스페이스 루트로 지정한 위치에 모든 파일이 다운로드됩니다.
 
 ### 언리얼 에디터에서 접속하기
-에디터에서 우상단 구석에 있는 **소스 콘트롤** 아이콘을 클릭하면 에디터 안에서 바로 Perforce 에 접속 가능합니다:
+에디터에서 **툴바** 에 있는 **소스 콘트롤** 아이콘을 클릭하면 에디터 안에서 바로 Perforce 에 접속 가능합니다:
 
 ![](SC_UE4_SC_Enable.png)
 

@@ -1,7 +1,9 @@
 Availability: Public
-Title:Use Multiple Cameras
+Title:Using Multiple Cameras
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:This scene shows how to switch between multiple cameras and apply camera movement.
+Version: 4.9
+SkillLevel: Intermediate
 
 
 ---
@@ -36,19 +38,19 @@ In the following steps, we are going to create a short sequence that uses multip
 
 1.  Minimize the Matinee window, then from the **Modes** menu under the **Basic** tab, **Drag-and-drop** a **Camera** into the viewport.
 
-	![](MHT3_DragCamera.png)(w:580)
+	![](MHT_3_Drag_In_Camera.jpg)(w:580)
 
 	_Try to place the **Camera** somewhere to the left of the template text as seen in the image above._
 
 1.  Place two more **Cameras** in the viewport and rotate them inward to face the box as seen in the image below. 
 
-	![](MHT3_AllCamerasPlaced.png)(w:580)
+	![](MHT3_All_CamerasPlaced.jpg)(w:580)
 
 	_You can rotate a **Camera** by selecting it and pressing the **E** key, then using the widget to orientate it._
 		
 1.  From the **Content Browser** under the **Game/Props** folder, locate the **SM_Chair** and **Drag-and-drop** it into the viewport, onto the box. 
 
-	![](MHT3_AddChair.png)
+	![](MHT3_Drag_In_Chair.jpg)
 			
 1.  With the chair still selected, press **E** to enter **Rotation Mode** and rotate the chair around to **140.00** as seen below. 
 
@@ -82,7 +84,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 1. Next, we will increase the length of the Matinee by holding **Control** and dragging the red marker (in the yellow box below) to the **15.00** mark (yellow X). 
 	[REGION:fullwidth]
-	![](MHT3_IncreaseMatineeTime.png)
+	![](MHT3_Increase_MatineeTime.jpg)
 	[/REGION]
 
 1. Click on the first keyframe at **0.00** on the **Movement** track of Camera1 the camera should be selected in the viewport. 
@@ -190,7 +192,7 @@ In the following steps, we are going to create a short sequence that uses multip
 
 1. Move the **Time Bar** back to **0.00** (if it is not already there) and click on the **Director** track then press **Enter** to add a keyframe. 
 
-1. The ![](MHT3_CutToGroup.png) **Cut To Group** pop-up window will appear, go ahead and press **Ok** for **Camera1** to finish adding the keyframe. 
+1. The **Cut To Group** pop-up window will appear, go ahead and press **Ok** for **Camera1** to finish adding the keyframe. 
 	
 	![](MHT3_FirstCutAdded.png)(w:740)
 
@@ -204,7 +206,8 @@ In the following steps, we are going to create a short sequence that uses multip
 	_Click image for full view._
 
 1. **Close** the Matinee window, then select the **Matinee** in the **World Outliner** and in the Details panel, check the following options: **Play on Level Load**, **Looping**, **Disable Movement Input**, **Disable Look at Input**, and **Hide Player**. 
-
+	
+	![](MHT3_CutToGroup.png)
 	![](MHT3_MatineeActorSettings.png)
 
 1. From the main toolbar, click **Build** (optional to build the lighting in the level) then click the **Play** button. 
@@ -213,6 +216,16 @@ In the following steps, we are going to create a short sequence that uses multip
 
 1. You should now have a Matinee sequence that starts when the level loads and cycles through three different cameras. 
 
-	![](MHT3_FinalResultGif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	k3r1aNcbO8Y
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 

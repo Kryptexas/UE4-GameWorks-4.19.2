@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LocalVertexFactory.cpp: Local vertex factory implementation
@@ -12,17 +12,25 @@
 void FLocalVertexFactoryShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
 	LODParameter.Bind(ParameterMap, TEXT("SpeedTreeLODInfo"));
+	bAnySpeedTreeParamIsBound = LODParameter.IsBound() || ParameterMap.ContainsParameterAllocation(TEXT("SpeedTreeData"));
 }
 
 void FLocalVertexFactoryShaderParameters::Serialize(FArchive& Ar)
 {
-	Ar << LODParameter;
+	Ar << LODParameter << bAnySpeedTreeParamIsBound;
 }
 
 void FLocalVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
-	if (View.Family != NULL && View.Family->Scene != NULL)
+	if (BatchElement.bUserDataIsColorVertexBuffer)
 	{
+		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
+		check(OverrideColorVertexBuffer);
+		static_cast<const FLocalVertexFactory*>(VertexFactory)->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
+	}
+	if (bAnySpeedTreeParamIsBound && View.Family != NULL && View.Family->Scene != NULL)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FLocalVertexFactoryShaderParameters_SetMesh_SpeedTree);
 		FUniformBufferRHIParamRef SpeedTreeUniformBuffer = View.Family->Scene->GetSpeedTreeUniformBuffer(VertexFactory);
 		if (SpeedTreeUniformBuffer != NULL)
 		{
@@ -111,6 +119,7 @@ void FLocalVertexFactory::InitRHI()
 		FVertexStreamComponent NullColorComponent(&GNullColorVertexBuffer, 0, 0, VET_Color);
 		Elements.Add(AccessStreamComponent(NullColorComponent,3));
 	}
+	ColorStreamIndex = Elements.Last().StreamIndex;
 
 	if(Data.TextureCoordinates.Num())
 	{

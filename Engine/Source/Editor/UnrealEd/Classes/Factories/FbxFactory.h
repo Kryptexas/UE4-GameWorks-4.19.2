@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "FbxFactory.generated.h"
@@ -16,18 +16,18 @@ class UNREALED_API UFbxFactory : public UFactory
 	void EnableShowOption() { bShowOption = true; }
 
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void CleanUp() override;
 	virtual bool ConfigureProperties() override;
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UFactory Interface
+	//~ Begin UFactory Interface
 	virtual bool DoesSupportClass(UClass * Class) override;
 	virtual UClass* ResolveSupportedClass() override;
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 	virtual bool FactoryCanImport(const FString& Filename) override;
-	// End UFactory Interface
+	//~ End UFactory Interface
 	
 	/**
 	 * Detect mesh type to import: Static Mesh or Skeletal Mesh.

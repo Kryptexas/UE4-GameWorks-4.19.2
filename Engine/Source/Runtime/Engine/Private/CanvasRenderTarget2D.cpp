@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/CanvasRenderTarget2D.h"
@@ -45,7 +45,7 @@ void UCanvasRenderTarget2D::UpdateResource()
 		TextureRenderTarget,
 		(FTextureRenderTarget2DResource*)GameThread_GetRenderTargetResource(),
 		{
-			SetRenderTarget(RHICmdList, TextureRenderTarget->GetRenderTargetTexture(), FTexture2DRHIRef());
+			SetRenderTarget(RHICmdList, TextureRenderTarget->GetRenderTargetTexture(), FTexture2DRHIRef(), true);
 			RHICmdList.SetViewport(0, 0, 0.0f, TextureRenderTarget->GetSizeXY().X, TextureRenderTarget->GetSizeXY().Y, 1.0f);
 		}
 	);

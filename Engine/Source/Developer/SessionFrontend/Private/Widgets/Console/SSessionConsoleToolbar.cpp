@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
 
@@ -7,7 +7,7 @@
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SSessionConsoleToolbar::Construct( const FArguments& InArgs, const TSharedRef<FUICommandList>& CommandList )
+void SSessionConsoleToolbar::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& CommandList)
 {
 	FSessionConsoleCommands::Register();
 
@@ -16,7 +16,6 @@ void SSessionConsoleToolbar::Construct( const FArguments& InArgs, const TSharedR
 	{
 		Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().SessionCopy);
 		Toolbar.AddSeparator();
-
 		Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().Clear);
 		Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().SessionSave);
 	}

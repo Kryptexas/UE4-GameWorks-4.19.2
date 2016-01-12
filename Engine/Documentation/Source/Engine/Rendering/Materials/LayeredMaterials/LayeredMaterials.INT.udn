@@ -2,6 +2,7 @@ Availability: Public
 Title:Layered Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:An introductory document on the Layered Materials technique in UE4.
+Version: 4.9
 
 [REGION:fullwidth]
 ![](LayeredMaterials.png)
@@ -9,25 +10,25 @@ Description:An introductory document on the Layered Materials technique in UE4.
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 Layered Materials can be thought of as "Materials within Materials." They provide a means to create a single Material that has a series of sub-Materials (or _layers_) that can be placed across the surface of your objects using per-pixel operations, such as masks. They are perfect for handling complex blending between unique surface types. In the image of the rockets above, the rocket on the far right is using separate Material Layers, including chrome, aluminum, and copper, and is blending between each material on a per-pixel basis. This effect is easily achieved with Layered Materials.
 
-As a feature, Layered Materials exist as an extension Material Functions. Functions, as you may recall, are self-contained node networks that perform a specific operation, such as a complex math equation. These functions can then be reused at will in any number of Materials. Because of the _Make Material Attributes_ and _Break Material Attributes_ nodes, functions can also be used to define a Material, entirely _within_ a Function. Then, by bringing those functions into a final Material, you have then a Layered Material.
+As a feature, Layered Materials exist as an extension of Material Functions. Functions, as you may recall, are self-contained node networks that perform a specific operation, such as a complex math equation. These functions can then be reused at will in any number of Materials. Because of the _Make Material Attributes_ and _Break Material Attributes_ nodes, functions can also be used to define a Material, entirely _within_ a Function. Then, by bringing those functions into a final Material, you can have a Layered Material.
 
 ![](ChromeLayer.png)(w:600)
 
-In the image above, we have created a simple chrome material, entirely within a Material Function, via a Make Material Attributes node. This function can now be used as a Material Layer, and can be blended with other Material Layers.
+In the image above, we have created a simple chrome material, entirely within a Material Function, via a **Make Material Attributes** node. This function can now be used as a **Material Layer**, and can be blended with other Material Layers.
 
-It is important to realize that since Material Functions cannot be applied directly to a surface, you need bring your Material Layer functions into a new Material, which can then be applied to your objects. The great thing about this is that you can bring in as many Material Layers as you wish, blending them together however you see fit.
+It is important to realize that since Material Functions cannot be applied directly to a surface, you need to bring your Material Layer functions into a new Material, which can then be applied to your objects. The great thing about this is that you can bring in as many Material Layers as you wish, blending them together however you see fit.
 
 So, at a high level, the workflow goes like this:
 
 * Make your new Material and tweak it to perfection.
-* In the **Content Browser**, create a new Material Function and copy/paste all your Material Function nodes into it.
+* In the Content Browser, create a new Material Function and copy/paste all your Material Function nodes into it.
 * Connect your network to a new Make Material Attributes node, and connect it to the Function output.
 * Save the function.
-* Drag and drop the function from the **Content Browser** into the Material Editor. It is now a Material Layer.
+* Drag and drop the function from the Content Browser into the Material Editor. It is now a Material Layer.
 * Blend multiple Material Layers together using the Material Layer Blend functions.
 
 
@@ -42,7 +43,9 @@ One of the benefits to using Layered Materials are that they allow you to create
 Consider the complexity of the network below, which uses no material layers and blends a chrome and a copper effect, such as the one seen above:
 
 **Without Material Layers**
-![](WithoutLayers.png)(w:900)
+[REGION:lightbox]
+![](Rocket_Material_Beforelayers.jpg)(w:900)
+[/REGION]
 
 
 However, with a Layered Material, each different Material type is contained within its own node, making blending much simpler and far easier for an artist to edit and debug. By using the Make Material Attributes and Break Material Attributes nodes, all of the different Material Layers can be connected directly without having to worry about wiring up individual properties.
@@ -50,7 +53,9 @@ However, with a Layered Material, each different Material type is contained with
 The network below works the same way as the one above, but with the chrome and copper effects modularized into their own Material Layers:
 
 **With Material Layers**
-![](WithLayers.png)(w:900)
+[REGION:lightbox]
+![](MatieralLayering.jpg)
+[/REGION]
 
 Another benefit of Material Layers is that since they utilize Material Functions, they are reusable. This allows you to set up a library of Material archetypes, or Materials that define a basic real-world surface type. For example, you can create layers that represent generic surfaces such as aluminum, steel, leather, plastic, rubber, and so on. You can then use a Layered Material to blend between them. This can be very useful when wanting to create a detailed object - such as a character - without having to create a massive set of materials to apply separately to the surface.
 
@@ -93,7 +98,7 @@ Within the Material Functions list of the Material Editor is a list of various M
 
 ## Instancing Layered Materials
 
-Because Layered Materials are essentially Material Functions, parameterizing them for instancing requires a little bit of extra forethought. Parameter expressions, such as Scalar and Vector Parameters, _cannot exist within a function_. To use them, you must create a Function Input expression as a part of the Material Layer. You can then connect a parameter into this input from the top-level Material. See the [Material Functions overview](Engine/Rendering/Materials\Functions) for more information.
+Because Layered Materials are essentially Material Functions, parameterizing them for instancing requires a little bit of extra forethought. To make better use of Scalar and Vector Parameters, you can create a Function Input expression as part of a Material Layer. You can then connect a parameter into this input from the top-level Material. See the [Material Functions overview](Engine/Rendering/Materials\Functions) for more information.
 
 The flow works something like this:
 

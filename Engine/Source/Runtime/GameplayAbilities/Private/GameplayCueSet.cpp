@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueSet.h"
@@ -44,11 +44,11 @@ void UGameplayCueSet::AddCues(const TArray<FGameplayCueReferencePair>& CuesToAdd
 
 			// Check for duplicates: we may want to remove this eventually.
 			bool bDupe = false;
-			for (FGameplayCueNotifyData Data : GameplayCueData)
+			for (FGameplayCueNotifyData& Data : GameplayCueData)
 			{
 				if (Data.GameplayCueTag == GameplayCueTag)
 				{
-					ABILITY_LOG(Warning, TEXT("AddGameplayCueData_Internal called for [%s,%s] when it already existed [%s,%s]. Skipping."), *GameplayCueTag.ToString(), *StringRef.ToString(), *Data.GameplayCueTag.ToString(), *Data.GameplayCueNotifyObj.ToString());
+					ABILITY_LOG(Verbose, TEXT("AddGameplayCueData_Internal called for [%s,%s] when it already existed [%s,%s]. Skipping."), *GameplayCueTag.ToString(), *StringRef.ToString(), *Data.GameplayCueTag.ToString(), *Data.GameplayCueNotifyObj.ToString());
 					bDupe = true;
 					break;
 				}
@@ -89,6 +89,22 @@ void UGameplayCueSet::RemoveCuesByStringRefs(const TArray<FStringAssetReference>
 		}
 	}
 }
+
+#if WITH_EDITOR
+void UGameplayCueSet::UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath)
+{
+	
+	for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
+	{
+		if (GameplayCueData[idx].GameplayCueNotifyObj == CueToRemove)
+		{
+			GameplayCueData[idx].GameplayCueNotifyObj = NewPath;
+			BuildAccelerationMap_Internal();
+			break;
+		}
+	}
+}
+#endif
 
 void UGameplayCueSet::Empty()
 {

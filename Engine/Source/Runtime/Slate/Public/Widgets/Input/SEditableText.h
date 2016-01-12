@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,6 +31,7 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit(true)
+		, _AllowContextMenu(true)
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
 		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
@@ -77,6 +78,9 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
+
+		/** Whether the context menu can be opened  */
+		SLATE_ATTRIBUTE(bool, AllowContextMenu)
 
 		/** Delegate to call before a context menu is opened. User returns the menu content or null to the disable context menu */
 		SLATE_EVENT(FOnContextMenuOpening, OnContextMenuOpening)
@@ -141,6 +145,9 @@ public:
 	
 	/** See the ColorAndOpacity attribute */
 	void SetColorAndOpacity(TAttribute<FSlateColor> Color);
+
+	/** See the AllowContextMenu attribute */
+	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
 	/**
 	 * Restores the text to the original state
@@ -332,7 +339,7 @@ protected:
 	};
 	
 public:
-	// BEGIN ITextEditorWidget interface
+	//~ Begin ITextEditorWidget Interface
 	virtual void StartChangingText() override;
 	virtual void FinishChangingText() override;
 	virtual bool GetIsReadOnly() const override;
@@ -369,11 +376,11 @@ public:
 	virtual TSharedRef< SWidget > GetWidget() override;
 	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath) override;
 	virtual void LoadText() override;
-	// END ITextEditorWidget interface
+	//~ End ITextEditorWidget Interface
 
 public:
-	// BEGIN IVirtualKeyboardEntry interface
-	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+	//~ Begin IVirtualKeyboardEntry Interface
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType) override;
 
 	virtual const FText& GetText() const override
 	{
@@ -394,10 +401,10 @@ public:
 	{
 		return false;
 	}
-	// END IVirtualKeyboardEntry interface
+	//~ End IVirtualKeyboardEntry Interface
 
 protected:
-	// BEGIN SWidget interface
+	//~ Begin SWidget Interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
@@ -414,7 +421,9 @@ protected:
 	virtual FReply OnMouseMove( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	// END SWidget interface
+	virtual const FSlateBrush* GetFocusBrush() const;
+	virtual bool IsInteractable() const override;
+	//~ End SWidget Interface
 
 protected:
 	/**
@@ -579,6 +588,9 @@ private:
 	/** Whether to select all text when pressing enter to commit changes */
 	TAttribute< bool > SelectAllTextOnCommit;
 
+	/** Whether to disable the context menu */
+	TAttribute< bool > AllowContextMenu;
+
 	/** Delegate to call before a context menu is opened */
 	FOnContextMenuOpening OnContextMenuOpening;
 
@@ -651,9 +663,6 @@ private:
 	/** Notification interface object for text input method systems. */
 	TSharedPtr<ITextInputMethodChangeNotifier> TextInputMethodChangeNotifier;
 
-	/** The type of virtual keyboard to use for editing this text on mobile */
-	TAttribute<EKeyboardType> VirtualKeyboardType;
-
 	/** True if the text has been changed by a virtual keyboard */
 	bool bTextChangedByVirtualKeyboard;
 
@@ -665,6 +674,9 @@ private:
 
 	/** Callback delegate to have first chance handling of the OnKeyDown event */
 	FOnKeyDown OnKeyDownHandler;
+
+	/** The type of virtual keyboard to use for editing this text on mobile */
+	TAttribute<EKeyboardType> VirtualKeyboardType;
 
 	/** Keep track of whether we showed the virtual keyboard when focus was received */
 	bool bShowingVirtualKeyboard;

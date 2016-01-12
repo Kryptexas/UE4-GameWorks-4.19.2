@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,7 +73,7 @@ public:
 					.FillWidth(1.0f)
 					.VAlign(VAlign_Center)
 					[
-						SAssignNew(ProfileNameDescEditor, SProjectLauncherProfileNameDescEditor, false)
+						SAssignNew(ProfileNameDescEditor, SProjectLauncherProfileNameDescEditor, InModel, false)
 						.LaunchProfile(this, &SProjectLauncherProfileListRow::GetLaunchProfile)
 					]
 

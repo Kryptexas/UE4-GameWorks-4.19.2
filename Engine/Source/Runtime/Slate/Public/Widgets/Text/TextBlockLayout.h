@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,7 +42,7 @@ public:
 		const TAttribute<ETextJustify::Type>& Justification;
 	};
 
-	static TSharedRef<FTextBlockLayout> Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	static TSharedRef<FTextBlockLayout> Create(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/**
 	 * Get the computed desired size for this layout, updating the internal cache as required
@@ -65,6 +65,16 @@ public:
 	 * Please note that changing the size or font used by the text may causing clipping issues until the next call to ComputeDesiredSize
 	 */
 	void OverrideTextStyle(const FTextBlockStyle& InTextStyle);
+
+	/**
+	 * Set the text shaping method that the internal text layout should use
+	 */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/**
+	 * See the text flow direction that the internal text layout should use
+	 */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
 
 	/**
 	 * Get the child widgets of this layout
@@ -92,7 +102,7 @@ private:
 	/** Calculate the wrapping width based on the given fixed wrap width, and whether we're auto-wrapping */
 	float CalculateWrappingWidth(const FWidgetArgs& InWidgetArgs) const;
 
-	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/** In control of the layout and wrapping of the text */
 	TSharedPtr<FSlateTextLayout> TextLayout;

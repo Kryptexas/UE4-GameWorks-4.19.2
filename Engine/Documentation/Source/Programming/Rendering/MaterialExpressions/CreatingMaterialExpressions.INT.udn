@@ -2,11 +2,9 @@ Availability: Docs
 Title:Material Expressions Technical Guide
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Guide to creating new material expressions for use in the Material Editor.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
-
-## Overview
 
 Creating a new material expression in UE4 is straightforward.  As an example, I will create a new material expression that squares the input, called MaterialExpressionSquare.  Note that all material expressions in UE4 are implemented in `MaterialExpressions.cpp`.
 
@@ -14,9 +12,9 @@ Creating a new material expression in UE4 is straightforward.  As an example, I 
 
 ## Declaration
 
-First, add a new engine script file with a new type that derives from MaterialExpression.  Declare the expression's inputs and virtual functions, for example:<br>  
+First, add a new engine script file with a new type that derives from MaterialExpression.  Declare the expression's inputs and virtual functions, for example:<br> 
 
-`MaterialExpressionSquare.h`
+	MaterialExpressionSquare.h
 
 	UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 	public class UMaterialExpressionSquare : public UMaterialExpression
@@ -91,5 +89,5 @@ The constructor is used to set default values for the properties. In this exampl
 Your new material expression should now be in the list in the material editor.  Here you can see the Square expression in action:  
 
 [REGION:todo]
-![SquareMaterialExpression.jpg](SquareMaterialExpression.jpg)
+![](MaterialExpression.png)
 [/REGION]

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "BytePropertyTrackEditor.h"
@@ -13,16 +13,16 @@ TSharedRef<ISequencerTrackEditor> FBytePropertyTrackEditor::CreateTrackEditor( T
 }
 
 
-TSharedRef<ISequencerSection> FBytePropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<FPropertySection> FBytePropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
 {
-	return MakeShareable( new FBytePropertySection( SectionObject, Track.GetTrackName(), Cast<UMovieSceneByteTrack>( SectionObject.GetOuter() )->GetEnum() ) );
+	return MakeShareable( new FBytePropertySection( SectionObject, Track.GetDisplayName(), Cast<UMovieSceneByteTrack>( SectionObject.GetOuter() )->GetEnum() ) );
 }
 
 
 UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerObjectHandle, FName PropertyName, UMovieSceneByteTrack* ByteTrack)
 {
 	
-	UObject* RuntimeObject = Sequencer->GetFocusedMovieSceneSequence()->FindObject(OwnerObjectHandle);
+	UObject* RuntimeObject = Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObject(OwnerObjectHandle, *Sequencer);
 	TSet<UEnum*> PropertyEnums;
 
 	if (RuntimeObject != nullptr)
@@ -68,23 +68,7 @@ UMovieSceneTrack* FBytePropertyTrackEditor::AddTrack(UMovieScene* FocusedMovieSc
 }
 
 
-bool FBytePropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey )
+void FBytePropertyTrackEditor::GenerateKeysFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, TArray<uint8>& NewGeneratedKeys, TArray<uint8>& DefaultGeneratedKeys )
 {
-	OutKey = *PropertyChangedParams.GetPropertyValue<uint8>();
-
-	if (InTrack == nullptr)
-	{
-		return false;
-	}
-
-	const UMovieSceneByteTrack* ByteTrack = CastChecked<const UMovieSceneByteTrack>( InTrack );
-
-	if (ByteTrack == nullptr)
-	{
-		return false;
-	}
-
-	float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
-
-	return ByteTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+	NewGeneratedKeys.Add( PropertyChangedParams.GetPropertyValue<uint8>() );
 }

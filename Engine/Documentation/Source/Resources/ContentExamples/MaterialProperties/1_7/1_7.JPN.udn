@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2618983
+﻿INTSourceChangelist:2718128
 Availability:Public
-Title:1.7 - ボリュメトリック指向性ライト強度
+Title:1.7 - ボリュメトリック指向性ライトの強度
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description:マテリアル インスタンスの事例概要、例 1.7：ボリュメトリック指向性ライト強度
+Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.7：ボリュメトリック指向性ライトの強度
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Engine/Rendering/Materials
@@ -14,7 +14,25 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Actors/DecalActor
 Related: Engine/Rendering/Materials/MaterialProperties
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/MaterialProperties/1_6 "%Resources/ContentExamples/MaterialProperties/1_6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[コンテンツ サンプル ホーム](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/MaterialProperties/1_8 "%Resources/ContentExamples/MaterialProperties/1_8:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

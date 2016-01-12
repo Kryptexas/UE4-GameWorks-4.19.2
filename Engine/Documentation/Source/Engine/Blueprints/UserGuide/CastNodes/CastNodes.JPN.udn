@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2599318
+﻿INTSourceChangelist:2687969
 Availability:Public
 Title:キャスティング
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:様々なキャスティング ノードと使用例 
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
-Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
 Related:Engine/Blueprints/HowTo
+Version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -48,7 +48,7 @@ Related:Engine/Blueprints/HowTo
 
 [TOC (start:2 end:2)]
 
-**ブループリント** で **Cast To** ノードを使用する場合、簡単に言うと、キャスト元のオブジェクトが **Cast To** 先の特定のオブジェクトであるかをチェックしようとしています。つまり、その中に変数または他のカスタム機能を持つ特殊な Character ブループリント (例えば、MyCharacter と呼ばれるもの) を作成し、それをデフォルトのPawn クラス (またはすべてのプレイヤー キャラクターがデフォルトで使用するCharacter ブループリント) として割り当てたとします。 
+**ブループリント** で **Cast To** ノードを使用する場合、簡単に言うと、キャスト元のオブジェクトがキャスト先の特定のオブジェクトであるかをチェックしようとしています。つまり、その中に変数または他のカスタム機能を持つ特殊な Character ブループリント (例えば、MyCharacter と呼ばれるもの) を作成し、それをデフォルトのPawn クラス (またはすべてのプレイヤー キャラクターがデフォルトで使用するCharacter ブループリント) として割り当てたとします。 
 
 プレイヤー キャラクターのプロパティに別のブループリントからアクセスしたい場合は、**Get Player Character** ノードを使用し、ごく一般的な方法 (位置、回転などを設定/取得するなど) でプレイヤー キャラクターに影響を及ぼすことができます。しかし、セットアップした MyCharacter ブループリントに追加したカスタム機能にはアクセスできません。プレイヤー キャラクターは get していますが、特定のタイプのキャラクター タイプを get していないからです。 
 

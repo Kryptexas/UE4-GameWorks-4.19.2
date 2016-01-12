@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompositeBase.cpp: Anim Composite base class that contains AnimTrack data structure/interface
@@ -166,7 +166,8 @@ void FAnimSegment::GetRootMotionExtractionStepsForTrackRange(TArray<FRootMotionE
 
 			// Get starting position, closest overlap.
 			float AnimStartPosition = ConvertTrackPosToAnimPos(bTrackPlayingBackwards ? FMath::Min(StartTrackPosition, SegmentEndPos) : FMath::Max(StartTrackPosition, SegmentStartPos));
-			check( (AnimStartPosition >= AnimStartTime) && (AnimStartPosition <= AnimEndTime) );
+			AnimStartPosition = FMath::Clamp(AnimStartPosition, AnimStartTime, AnimEndTime);
+			//check( (AnimStartPosition >= AnimStartTime) && (AnimStartPosition <= AnimEndTime) );
 			float TrackTimeToGo = FMath::Abs(EndTrackPosition - StartTrackPosition);
 
 			// The track can be playing backwards and the animation can be playing backwards, so we
@@ -481,11 +482,11 @@ void FAnimTrack::SortAnimSegments()
 }
 #endif
 
-void FAnimTrack::GetAnimationPose(/*out*/ FCompactPose& OutPose,/*out*/ FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
+void FAnimTrack::GetAnimationPose(/*out*/ FCompactPose& OutPose, /*out*/ FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
-	TArray<FCompactPose> SourcePoses;
-	TArray<float> SourceWeights;
-	TArray<FBlendedCurve> SourceCurves;
+	TArray<FCompactPose, TInlineAllocator<8>> SourcePoses;
+	TArray<float, TInlineAllocator<8>> SourceWeights;
+	TArray<FBlendedCurve, TInlineAllocator<8>> SourceCurves;
 	float TotalWeight = 0.f;
 
 	float CurrentTime = FMath::Clamp(ExtractionContext.CurrentTime, 0.f, GetLength());
@@ -520,11 +521,11 @@ void FAnimTrack::GetAnimationPose(/*out*/ FCompactPose& OutPose,/*out*/ FBlended
 		}
 	}
 
-	if(SourcePoses.Num() == 0)
+	if (SourcePoses.Num() == 0)
 	{
 		OutPose.ResetToRefPose();
 	}
-	else if(SourcePoses.Num() == 1)
+	else if (SourcePoses.Num() == 1)
 	{
 		OutPose = SourcePoses[0];
 		OutCurve = SourceCurves[0];

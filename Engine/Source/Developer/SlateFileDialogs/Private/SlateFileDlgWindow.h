@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "SlateBasics.h"
@@ -24,12 +24,12 @@ struct FFileEntry
 	FFileEntry() { }
 
 	FFileEntry(FString InLabel, FString InModDate, FString InFileSize, bool InIsDirectory)
+		: Label(MoveTemp(InLabel))
+		, ModDate(MoveTemp(InModDate))
+		, FileSize(MoveTemp(InFileSize))
+		, bIsSelected(false)
+		, bIsDirectory(InIsDirectory)
 	{
-		Label = InLabel;
-		ModDate = FString(InModDate);
-		FileSize = FString(InFileSize);
-		bIsSelected = false;
-		bIsDirectory = InIsDirectory;
 	}
 
 	inline static bool ConstPredicate ( const TSharedPtr<FFileEntry> Entry1, const TSharedPtr<FFileEntry> Entry2)
@@ -72,6 +72,8 @@ private:
 	FString CurrentDirectory;
 
 	FSlateFileDialogsStyle* StyleSet;
+
+	void TrimStartDirectory(FString &Path);
 };
 
 
@@ -109,27 +111,27 @@ public:
 		_StyleSet(nullptr)
 	{}
 
-	SLATE_ATTRIBUTE(FString, CurrentPath)
-	SLATE_ATTRIBUTE(FString, Filters)
-	SLATE_ATTRIBUTE(bool, bMultiSelectEnabled)
-	SLATE_ATTRIBUTE(FString, WindowTitleText)
-	SLATE_ATTRIBUTE(FText, AcceptText)
-	SLATE_ATTRIBUTE(bool, bDirectoriesOnly)
-	SLATE_ATTRIBUTE(bool, bSaveFile)
-	SLATE_ATTRIBUTE(TArray<FString> *, OutNames)
-	SLATE_ATTRIBUTE(int32 *, OutFilterIndex)
-	SLATE_ATTRIBUTE(TWeakPtr<SWindow>, ParentWindow)
-	SLATE_ATTRIBUTE(FSlateFileDialogsStyle *, StyleSet)
+	SLATE_ARGUMENT(FString, CurrentPath)
+	SLATE_ARGUMENT(FString, Filters)
+	SLATE_ARGUMENT(bool, bMultiSelectEnabled)
+	SLATE_ARGUMENT(FString, WindowTitleText)
+	SLATE_ARGUMENT(FText, AcceptText)
+	SLATE_ARGUMENT(bool, bDirectoriesOnly)
+	SLATE_ARGUMENT(bool, bSaveFile)
+	SLATE_ARGUMENT(TArray<FString>*, OutNames)
+	SLATE_ARGUMENT(int32*, OutFilterIndex)
+	SLATE_ARGUMENT(TWeakPtr<SWindow>, ParentWindow)
+	SLATE_ARGUMENT(FSlateFileDialogsStyle*, StyleSet)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
 	FSlateFileDlgWindow::EResult GetResponse() { return UserResponse; }
-	void SetOutNames(TArray<FString> *Ptr) { OutNames = Ptr; }
-	void SetOutFilterIndex(int32 *InOutFilterIndex) { OutFilterIndex = InOutFilterIndex; }
+	void SetOutNames(TArray<FString>* Ptr) { OutNames = Ptr; }
+	void SetOutFilterIndex(int32* InOutFilterIndex) { OutFilterIndex = InOutFilterIndex; }
 	void SetDefaultFile(FString DefaultFile);
 
 private:	
-	void OnPathClicked( const FString & CrumbData );
+	void OnPathClicked( const FString& CrumbData );
 	TSharedPtr<SWidget> OnGetCrumbDelimiterContent(const FString& CrumbData) const;
 	void RebuildFileTable();
 	void BuildDirectoryPath();
@@ -137,7 +139,7 @@ private:
 	void RefreshCrumbs();
 	void OnPathMenuItemClicked( FString ClickedPath );
 	void OnItemSelected(TSharedPtr<FFileEntry> Item, ESelectInfo::Type SelectInfo);
-
+	void ParseTextField(TArray<FString> &FilenameArray, FString Files);
 	void Tick(const FGeometry &AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
 	TSharedRef<ITableRow> OnGenerateWidgetForList(TSharedPtr<FFileEntry> Item, const TSharedRef<STableViewBase> &OwnerTable);
@@ -148,12 +150,15 @@ private:
 	FReply OnQuickLinkClick(FSlateFileDlgWindow::EResult ButtonID);
 	FReply OnDirSublevelClick(int32 Level);
 	void OnDirectoryChanged(const TArray <FFileChangeData> &FileChanges);	
-	void OnFileNameCommitted(const FText & InText, ETextCommit::Type InCommitType);
+	void OnFileNameCommitted(const FText& InText, ETextCommit::Type InCommitType);
 
-	void OnNewDirectoryCommitted(const FText & InText, ETextCommit::Type InCommitType);
+	void OnNewDirectoryCommitted(const FText& InText, ETextCommit::Type InCommitType);
 	FReply OnNewDirectoryClick();
 	bool OnNewDirectoryTextChanged(const FText &InText, FText &ErrorMsg);
 	FReply OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::EResult ButtonID);
+
+	FReply OnGoForwardClick();
+	FReply OnGoBackClick();
 
 	/** Collects the output files. */
 	void SetOutputFiles();
@@ -193,22 +198,25 @@ private:
 	int32 DirNodeIndex;
 	FString SaveFilename;
 
-	TAttribute<TWeakPtr<SWindow>> ParentWindow;
-	TAttribute<FString> CurrentPath;
-	TAttribute<FString> Filters;
-	TAttribute<FString> WindowTitleText;
-	TAttribute<bool> bMultiSelectEnabled;
-	TAttribute<TArray<FString> *> OutNames;
-	TAttribute<int32 *> OutFilterIndex;
-	TAttribute<bool> bDirectoriesOnly;
-	TAttribute<bool> bSaveFile;
-	TAttribute<FText> AcceptText;
-	TAttribute<FSlateFileDialogsStyle *> StyleSet;
+	TWeakPtr<SWindow> ParentWindow;
+	FString CurrentPath;
+	FString Filters;
+	FString WindowTitleText;
+	bool bMultiSelectEnabled;
+	TArray<FString>* OutNames;
+	int32* OutFilterIndex;
+	bool bDirectoriesOnly;
+	bool bSaveFile;
+	FText AcceptText;
+	FSlateFileDialogsStyle* StyleSet;
 
 	IDirectoryWatcher *DirectoryWatcher;
 	FDelegateHandle OnDialogDirectoryChangedDelegateHandle;
 	FString RegisteredPath;
 	FString NewDirectoryName;
+
+	TArray<FString> History;
+	int32 HistoryIndex;
 };
 
 
@@ -220,7 +228,7 @@ public:
 	
 	SLATE_BEGIN_ARGS(SSlateFileDialogRow) { }
 	SLATE_ARGUMENT(SSlateFileDialogItemPtr, DialogItem)
-	SLATE_ATTRIBUTE(FSlateFileDialogsStyle *, StyleSet)
+	SLATE_ARGUMENT(FSlateFileDialogsStyle *, StyleSet)
 	SLATE_END_ARGS()
 
 
@@ -237,8 +245,85 @@ public:
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
-		FSlateFontInfo ItemFont = StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog");
-		struct EVisibility FolderIconVisibility = DialogItem->bIsDirectory ? EVisibility::Visible : EVisibility::Hidden;
+		FSlateFontInfo ItemFont = StyleSet->GetFontStyle("SlateFileDialogs.Dialog");
+		struct EVisibility FolderIconVisibility = EVisibility::Visible;
+		const FSlateBrush *Icon;
+			
+		if (DialogItem->bIsDirectory)
+		{
+			Icon = StyleSet->GetBrush("SlateFileDialogs.Folder16");
+		}
+		else
+		{
+			FString Extension = FPaths::GetExtension(DialogItem->Label, false);
+
+			if (Extension.Equals(TEXT("uasset"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.UAsset16");
+			}
+			else if (Extension.Equals(TEXT("uproject"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.UProject16");
+			}
+
+			else if (Extension.Equals(TEXT("fbx"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Model3D");
+			}
+
+			else if (Extension.Equals(TEXT("cpp"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+			else if (Extension.Equals(TEXT("h"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+			else if (Extension.Equals(TEXT("txt"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+			else if (Extension.Equals(TEXT("log"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+
+			else if (Extension.Equals(TEXT("wav"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Audio");
+			}
+			else if (Extension.Equals(TEXT("mp3"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Audio");
+			}
+			else if (Extension.Equals(TEXT("ogg"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Audio");
+			}
+			else if (Extension.Equals(TEXT("mp4"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Video");
+			}
+
+			else if (Extension.Equals(TEXT("png"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Image");
+			}
+			else if (Extension.Equals(TEXT("jpg"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Image");
+			}
+			else if (Extension.Equals(TEXT("bmp"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Image");
+			}
+
+			else
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.PlaceHolder");
+				FolderIconVisibility = EVisibility::Hidden;
+			}
+		}
 
 		if (ColumnName == TEXT("Pathname"))
 		{
@@ -251,7 +336,7 @@ public:
 					.Padding(FMargin(5.0f, 2.0f))
 					[
 						SNew(SImage)
-						.Image(StyleSet.Get()->GetBrush("SlateFileDialogs.Folder16"))
+						.Image(Icon)
 						.Visibility(FolderIconVisibility)
 					]
 
@@ -262,20 +347,20 @@ public:
 					.Padding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 					[
 						SNew(STextBlock)
-						.Text(DialogItem->Label)
+						.Text(FText::FromString(DialogItem->Label))
 						.Font(ItemFont)
 					];
 		}
 		else if (ColumnName == TEXT("ModDate"))
 		{
 			return SNew(STextBlock)
-					.Text(DialogItem->ModDate)
+					.Text(FText::FromString(DialogItem->ModDate))
 					.Font(ItemFont);
 		}
 		else if (ColumnName == TEXT("FileSize"))
 		{
 			return SNew(STextBlock)
-					.Text(DialogItem->FileSize)
+					.Text(FText::FromString(DialogItem->FileSize))
 					.Font(ItemFont);
 		}
 		else
@@ -288,7 +373,7 @@ public:
 
 private:
 	SSlateFileDialogItemPtr DialogItem;
-	TAttribute<FSlateFileDialogsStyle *> StyleSet;
+	FSlateFileDialogsStyle* StyleSet;
 };
 
 #undef LOCTEXT_NAMESPACE

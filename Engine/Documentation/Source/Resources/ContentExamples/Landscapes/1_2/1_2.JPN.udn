@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2716574
 Availability:Public
 Title:1.2 - スプライン ツール
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Landscapes
-Description:ランドスケープの事例概要、例 1.2：スプライン ツール
+Description:ランドスケープのサンプル レベルの概要、サンプル 1.2：スプライン ツール
 Related:Engine/Landscape/Creation
 Related:Engine/Landscape/Editing
 Related:Engine/Landscape/UI
@@ -10,6 +10,25 @@ Related:Engine/Landscape/Materials
 Related:Engine/Landscape/Editing/Splines
 Related:Engine/Landscape/Editing/Gizmos
 Related:Engine/Landscape/Editing/Brushes
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Landscapes/1_1 "%Resources/ContentExamples/Landscapes/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ランドスケープのホーム](Resources/ContentExamples/Landscapes)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Landscapes/1_3 "%Resources/ContentExamples/Landscapes/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]

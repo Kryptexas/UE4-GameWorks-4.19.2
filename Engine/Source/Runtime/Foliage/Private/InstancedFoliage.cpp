@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedFoliage.cpp: Instanced foliage implementation.
@@ -286,6 +286,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	ZOffset.Max = 0.0f;
 	CullDistance.Min = 0;
 	CullDistance.Max = 0;
+	bEnableStaticLighting_DEPRECATED = true;
 	MinimumLayerWeight = 0.5f;
 	IsSelected = false;
 	DensityAdjustmentFactor = 1.0f;
@@ -467,6 +468,7 @@ UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FObject
 {
 	Mesh = nullptr;
 	ComponentClass = UFoliageInstancedStaticMeshComponent::StaticClass();
+	CustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 }
 
 
@@ -530,7 +532,7 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 	// Notify any currently-loaded InstancedFoliageActors
 	if (IsFoliageReallocationRequiredForPropertyChange(PropertyChangedEvent))
 	{
-		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject | RF_PendingKill); It; ++It)
+		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFalgs */ EInternalObjectFlags::PendingKill); It; ++It)
 		{
 			It->NotifyFoliageTypeChanged(this, bMeshChanged);
 		}
@@ -2141,7 +2143,7 @@ void AInstancedFoliageActor::MapRebuild()
 					FVector End(InstanceToWorld.TransformPosition(Down));
 
 					FHitResult Result;
-					bool bHit = World->LineTraceSingleByObjectType(Result, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(true));
+					bool bHit = World->LineTraceSingleByObjectType(Result, Start, End, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_None,true));
 
 					if (bHit && Result.Component.IsValid() && Result.Component->IsA(UModelComponent::StaticClass()))
 					{
@@ -2229,7 +2231,7 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 			else if (FoliageType->Mesh != OldMeshInfo.Key)
 			{
 				// If mesh doesn't match (two meshes sharing the same settings object?) then we need to duplicate as that is no longer supported
-				FoliageType = (UFoliageType_InstancedStaticMesh*)StaticDuplicateObject(FoliageType, this, nullptr, RF_AllFlags & ~(RF_Standalone | RF_Public));
+				FoliageType = (UFoliageType_InstancedStaticMesh*)StaticDuplicateObject(FoliageType, this, NAME_None, RF_AllFlags & ~(RF_Standalone | RF_Public));
 				FoliageType->Mesh = OldMeshInfo.Key;
 			}
 			NewMeshInfo.FoliageTypeUpdateGuid = FoliageType->UpdateGuid;
@@ -2581,7 +2583,7 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 	Super::AddReferencedObjects(This, Collector);
 }
 
-bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex, FFoliageTraceFilterFunc FilterFunc)
+bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex, const FFoliageTraceFilterFunc& FilterFunc)
 {
 	FCollisionQueryParams QueryParams(InTraceTag, true);
 	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;

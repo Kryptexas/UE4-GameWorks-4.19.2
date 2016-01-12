@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AtmospherePrecompute.usf: Precompute data for Atmospheric fog
@@ -21,6 +21,13 @@
 =============================================================================*/
 
 #include "Common.usf"
+
+// Disable USING_VERTEX_SHADER_LAYER as it would be an error for these shaders as they are intended to render to 2D targets only.
+#if USING_VERTEX_SHADER_LAYER != 0
+	#undef USING_VERTEX_SHADER_LAYER
+	#define USING_VERTEX_SHADER_LAYER 0
+#endif
+
 #include "AtmosphereCommon.usf"
 #include "AtmospherePrecomputeCommon.usf"
 
@@ -49,6 +56,7 @@ void MainVS(
 	)
 {
 	DrawRectangle(InPosition, InTexCoord, Out.OutPosition, Out.OutTexCoord );
+    Out.LayerIndex = 0;
 }
 
 // pixel shader entry point
@@ -57,7 +65,7 @@ void TransmittancePS(FAtmosphereVSOutput Input, out float4 OutColor : SV_Target0
 	// RETURN_COLOR not needed unless writing to SceneColor
     float Radius, MuS;
     GetTransmittanceRMuS(Input.OutTexCoord, Radius, MuS);
-    float3 Depth = BetaRayleighScattering * OpticalDepth(View.AtmosphericFogHeightScaleRayleigh, Radius, MuS) + BetaMieExtinction * OpticalDepth(HeightScaleMie, Radius, MuS);
+    float3 Depth = BetaRayleighScattering * OpticalDepth(Frame.AtmosphericFogHeightScaleRayleigh, Radius, MuS) + BetaMieExtinction * OpticalDepth(HeightScaleMie, Radius, MuS);
 	OutColor = float4(exp(-Depth), 0.f); // Eq (5)
 }
 

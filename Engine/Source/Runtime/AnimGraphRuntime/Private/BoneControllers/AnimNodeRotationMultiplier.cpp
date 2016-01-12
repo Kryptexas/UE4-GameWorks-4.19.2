@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "BoneControllers/AnimNode_RotationMultiplier.h"
@@ -48,7 +48,7 @@ FQuat FAnimNode_RotationMultiplier::ExtractAngle(const FTransform& RefPoseTransf
 	const FVector LocalRotationVector = LocalBoneTransform.GetRotation().RotateVector(RotationAxis);
 	const FVector ReferenceRotationVector = ReferenceBoneTransform.GetRotation().RotateVector(RotationAxis);
 
-	const FQuat LocalToRefQuat = FQuat::FindBetween(LocalRotationVector, ReferenceRotationVector);
+	const FQuat LocalToRefQuat = FQuat::FindBetweenNormals(LocalRotationVector, ReferenceRotationVector);
 	checkSlow( LocalToRefQuat.IsNormalized() );
 
 	// Rotate parent bone atom from position in local space to reference skeleton

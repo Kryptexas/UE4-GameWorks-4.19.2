@@ -2,6 +2,7 @@ Availability:Public
 Title:Bloom
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:Haloing to produce glow effects for bright objects such as lights.
+Version: 4.9
 
 [EXCERPT:Bloom_Desc]
 **Bloom** is a real world light phenomena that can greatly add to the perceived realism of a rendered image at a moderate render performance cost. Bloom can be seen by the naked eye when looking at very bright objects that are on a much darker background. Even brighter objects also cause other effects (streaks, lens flares), but those are not covered by the classic bloom effect. Because our displays (e.g. TV, TFT, ...) usually do not support HDR (high dynamic range), we cannot really render very bright objects. Instead we simulate the effects that happen in the eye (retina subsurface scattering), when light hits the film (film subsurface scattering), or in front of the camera (milky glass filter). The effect might not always be physically correct but it can help to hint the relative brightness of objects or add realism to the LDR (low dynamic range) image that is shown on the screen.
@@ -32,11 +33,14 @@ We combine the blurs differently to get more control and higher quality. For bes
 [/EXCERPT:Intensity]
 
 [EXCERPT:Threshold]
-[REGION:imagetable]
-| ![Bloom Threshold - 0](bloom_threshold_0_small.png)(w:380) | ![Bloom Threshold - 10](bloom_threshold_10_small.png)(w:380) |
-| ------ | ------ |
-| 0.0 | 10.0 |
-[/REGION]
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Threshold - 0.0](bloom_threshold_0_small.png)
+	[/PARAM]
+	[PARAM:after]
+	![Threshold - 10.0](bloom_threshold_10_small.png)
+	[/PARAM]
+[/OBJECT]
 [/EXCERPT:Threshold]
 
 [EXCERPT:Size]

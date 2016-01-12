@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDrv.h: Public OpenGL RHI definitions.
@@ -248,6 +248,8 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 	int CurrentGPUFrameQueryIndex;
 
 	class FOpenGLDynamicRHI* OpenGLRHI;
+	// count the number of beginframe calls without matching endframe calls.
+	int32 NestedFrameCount;
 
 	/** GPU hitch profile histories */
 	TIndirectArray<FOpenGLEventNodeFrame> GPUHitchEventNodeFrames;
@@ -257,6 +259,7 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 	,	FrameTiming(InOpenGLRHI, 4)
 	,	CurrentGPUFrameQueryIndex(0)
 	,	OpenGLRHI(InOpenGLRHI)
+	,	NestedFrameCount(0)
 	{
 		FrameTiming.InitResource();
 		for ( int32 Index=0; Index < MAX_GPUFRAMEQUERIES; ++Index )
@@ -307,8 +310,6 @@ public:
 		return static_cast<typename TOpenGLResourceTraits<TRHIType>::TConcreteType*>(Resource);
 	}
 
-	virtual void RHIGpuTimeBegin(uint32 Hash,bool bCompute) final override;
-	virtual void RHIGpuTimeEnd(uint32 Hash,bool bCompute) final override;
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
 	virtual FDepthStencilStateRHIRef RHICreateDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer) final override;
@@ -381,7 +382,6 @@ public:
 	virtual bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, uint64& OutResult, bool bWait) final override;
 	virtual FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport) final override;
 	virtual void RHIAdvanceFrameForGetViewportBackBuffer() final override;
-	virtual bool RHIIsDrawingViewport() final override;
 	virtual void RHIAcquireThreadOwnership() final override;
 	virtual void RHIReleaseThreadOwnership() final override;
 	virtual void RHIFlushResources() final override;
@@ -392,9 +392,6 @@ public:
 	virtual void RHISetStreamOutTargets(uint32 NumTargets,const FVertexBufferRHIParamRef* VertexBuffers,const uint32* Offsets) final override;
 	virtual void RHIDiscardRenderTargets(bool Depth,bool Stencil,uint32 ColorBitMask) final override;
 	virtual void RHIBlockUntilGPUIdle() final override;
-	virtual void RHISuspendRendering() final override;
-	virtual void RHIResumeRendering() final override;
-	virtual bool RHIIsRenderingSuspended() final override;
 	virtual bool RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate) final override;
 	virtual void RHIGetSupportedResolution(uint32& Width, uint32& Height) final override;
 	virtual void RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef Texture, uint32 FirstMip) final override;
@@ -587,6 +584,9 @@ private:
 	/** Per-context state caching */
 	FOpenGLContextState	SharedContextState;
 	FOpenGLContextState	RenderingContextState;
+	
+	/** Cached mip-limits for textures when ARB_texture_view is unavailable */
+	TMap<GLuint, TPair<GLenum, GLenum>> TextureMipLimits;
 
 	/** Underlying platform-specific data */
 	struct FPlatformOpenGLDevice* PlatformDevice;

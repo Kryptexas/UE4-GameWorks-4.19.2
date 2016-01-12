@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "StandaloneRendererPrivate.h"
 
@@ -34,11 +34,10 @@ static GLenum GetOpenGLPrimitiveType( ESlateDrawPrimitive::Type SlateType )
 };
 
 
-FSlateOpenGLRenderingPolicy::FSlateOpenGLRenderingPolicy( TSharedPtr<FSlateFontCache>& InFontCache, TSharedPtr<FSlateOpenGLTextureManager>& InTextureManager )
-	: FSlateRenderingPolicy( PixelCenterOffsetOpenGL )
+FSlateOpenGLRenderingPolicy::FSlateOpenGLRenderingPolicy( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateOpenGLTextureManager> InTextureManager )
+	: FSlateRenderingPolicy( InSlateFontServices, PixelCenterOffsetOpenGL )
 	, VertexBuffer( sizeof(FSlateVertex) )
 	, WhiteTexture( NULL )
-	, FontCache( InFontCache )
 	, TextureManager( InTextureManager )
 	, bIsInitialized( false )
 {
@@ -286,7 +285,7 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 
 }
 
-TSharedRef<FSlateShaderResourceManager> FSlateOpenGLRenderingPolicy::GetResourceManager()
+TSharedRef<FSlateShaderResourceManager> FSlateOpenGLRenderingPolicy::GetResourceManager() const
 {
 	return TextureManager.ToSharedRef();
 }

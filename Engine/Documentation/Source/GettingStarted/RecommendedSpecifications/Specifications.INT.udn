@@ -3,6 +3,7 @@ Title:Hardware & Software Specifications
 SEO-Title:Hardware & Software Specifications
 Crumbs: %ROOT%, GettingStarted
 Description:Minimum and recommended hardware specifications and necessary software for developing with Unreal Engine.
+version: 4.9
 
 [PUBLISH:Rocket]
 %Globals:OSSelect_Linux%
@@ -70,8 +71,7 @@ Unreal Engine has some specific hardware and software requirements for running t
 | **Operating System** | Windows 7/8 64-bit |
 | **Processor** | Quad-core Intel or AMD, 2.5 GHz or faster |
 | **Memory** | 8 GB RAM |
-| **Video Card** | DirectX 11 compatible graphics card |
-| **DirectX Version** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
+| **Video Card/DirectX Version** | DirectX 11 compatible graphics card |
 [/EXCERPT:WindowsMinHardware]
 [EXCERPT:MacOSMinHardware]
 |||
@@ -196,7 +196,7 @@ Below are the requirements for running the engine or editor.
 | Running the Engine ||
 | -------- | --- |
 | **Operating System** | Windows 7/8 64-bit |
-| **DirectX Version** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
+| **DirectX Runtime** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
 
 [/EXCERPT:WindowsMinSoftware]
 

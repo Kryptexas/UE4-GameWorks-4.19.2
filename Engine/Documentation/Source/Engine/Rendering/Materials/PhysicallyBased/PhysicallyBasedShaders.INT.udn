@@ -2,6 +2,7 @@ Availability:Public
 Title:Physically Based Materials		
 Crumbs: %ROOT%, Engine
 Description:An overview of the primary Material inputs and how best to use them.
+Version: 4.9
 
 [REGION:fullwidth]
 ![](PhysMatHeader.png)

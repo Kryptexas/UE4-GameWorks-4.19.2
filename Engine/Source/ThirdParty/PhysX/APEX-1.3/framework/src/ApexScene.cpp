@@ -1331,6 +1331,9 @@ void ApexScene::simulate(physx::PxF32 elapsedTime,
 						 PxU32 scratchMemBlockSize)
 #endif
 {
+	PX_UNUSED(scratchMemBlock);
+	PX_UNUSED(scratchMemBlockSize);
+
 	NX_WRITE_ZONE();
 	if (mApexSDK->getPvdBinding())
 	{
@@ -1349,7 +1352,7 @@ void ApexScene::simulate(physx::PxF32 elapsedTime,
 
 	mFinalStep = finalStep;
 
-	if (mSimulating || !mPhysXScene)
+	if (mSimulating /*|| !mPhysXScene*/)
 	{
 		return;
 	}
@@ -1465,6 +1468,7 @@ void ApexScene::simulate(physx::PxF32 elapsedTime,
 	// make sure we use the apex user notify... if the application
 	// changes their custom one make sure we map to it.
 	mUserNotify.setBatchAppNotify(manualSubsteps > 1);
+	if (getPhysXScene())
 	{
 		SCOPED_PHYSX_LOCK_WRITE(*this);
 		PxSimulationEventCallback* userNotify = getPhysXScene()->getSimulationEventCallback();
@@ -1650,6 +1654,8 @@ bool ApexScene::fetchResults(bool block, physx::PxU32* errorState)
 		mModuleScenes[i]->lockRenderResources();
 	}
 
+	bool bSuccess = false;
+
 	if (mPhysXScene != NULL)
 	{
 		PX_PROFILER_PERF_SCOPE("PhysXScene::fetchResults");
@@ -1700,7 +1706,7 @@ bool ApexScene::fetchResults(bool block, physx::PxU32* errorState)
 		mUserFluidNotify.playBatchedNotifications();
 #else
 		SCOPED_PHYSX_LOCK_WRITE(*this);
-		mPhysXScene->fetchResults(true);
+		bSuccess = mPhysXScene->fetchResults(true);
 		// SJB TODO3.0
 		mPxStepWasValid	= true;
 		// Check if PhysX actually ran any substeps. (nbSubSteps is the amount of substeps ran during the last simulation)
@@ -1776,7 +1782,7 @@ bool ApexScene::fetchResults(bool block, physx::PxU32* errorState)
 	mCudaProfileManager.nextFrame();
 #endif
 
-	return true;
+	return bSuccess;
 }
 
 

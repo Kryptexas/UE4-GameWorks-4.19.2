@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Engine/LevelScriptBlueprint.h"
@@ -81,7 +81,15 @@ FString FLevelModel::GetDisplayName() const
 
 FString FLevelModel::GetPackageFileName() const
 {
-	return FPackageName::LongPackageNameToFilename(GetLongPackageName().ToString(), FPackageName::GetMapPackageExtension());
+	const FName LocalPackageName = GetLongPackageName();
+	if (LocalPackageName != NAME_None)
+	{
+		return FPackageName::LongPackageNameToFilename(LocalPackageName.ToString(), FPackageName::GetMapPackageExtension());
+	}
+	else
+	{
+		return FString();
+	}
 }
 
 void FLevelModel::Accept(FLevelModelVisitor& Vistor)
@@ -352,12 +360,6 @@ void FLevelModel::SetLevelTranslationDelta(FVector2D InAbsoluteDelta)
 	{
 		(*It)->SetLevelTranslationDelta(InAbsoluteDelta);
 	}
-}
-
-bool FLevelModel::SupportsLevelColor() const
-{
-	// By default Levels don't support a level color
-	return false;
 }
 
 FLinearColor FLevelModel::GetLevelColor() const

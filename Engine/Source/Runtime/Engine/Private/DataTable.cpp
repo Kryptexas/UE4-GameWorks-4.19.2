@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/DataTable.h"
@@ -12,18 +12,19 @@ ENGINE_API const FString FDataTableCategoryHandle::Unknown(TEXT("UNKNOWN"));
 #if WITH_EDITORONLY_DATA
 namespace
 {
-	void GatherDataTableForLocalization(const UObject* const Object, TArray<FGatherableTextData>& GatherableTextDataArray)
+	void GatherDataTableForLocalization(const UObject* const Object, FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 	{
 		const UDataTable* const DataTable = CastChecked<UDataTable>(Object);
+
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(DataTable, GatherTextFlags);
 
 		const FString PathToObject = DataTable->GetPathName();
 		for (const auto& Pair : DataTable->RowMap)
 		{
 			const FString PathToRow = PathToObject + TEXT(".") + Pair.Key.ToString();
-			for (TFieldIterator<UProperty> PropIt(DataTable->RowStruct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
+			for (TFieldIterator<const UProperty> PropIt(DataTable->RowStruct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
 			{
-				FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(GatherableTextDataArray);
-				PropertyLocalizationDataGatherer.GatherLocalizationDataFromChildTextProperies(PathToRow, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Pair.Value));
+				PropertyLocalizationDataGatherer.GatherLocalizationDataFromChildTextProperties(PathToRow, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Pair.Value), GatherTextFlags);
 			}
 		}
 	}
@@ -34,11 +35,11 @@ UDataTable::UDataTable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	struct FAutomaticRegistrationOfLocalizationGatherer
+	static struct FAutomaticRegistrationOfLocalizationGatherer
 	{
 		FAutomaticRegistrationOfLocalizationGatherer()
 		{
-			UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDataTable::StaticClass(), &GatherDataTableForLocalization);
+			FPropertyLocalizationDataGatherer::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDataTable::StaticClass(), &GatherDataTableForLocalization);
 		}
 	} AutomaticRegistrationOfLocalizationGatherer;
 #endif
@@ -47,9 +48,12 @@ UDataTable::UDataTable(const FObjectInitializer& ObjectInitializer)
 void UDataTable::LoadStructData(FArchive& Ar)
 {
 	UScriptStruct* LoadUsingStruct = RowStruct;
-	if (LoadUsingStruct == NULL)
+	if (!LoadUsingStruct)
 	{
-		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while loading DataTable '%s'!"), *GetPathName());
+		if (!HasAnyFlags(RF_ClassDefaultObject))
+		{
+			UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while loading DataTable '%s'!"), *GetPathName());
+		}
 		LoadUsingStruct = FTableRowBase::StaticStruct();
 	}
 
@@ -64,9 +68,11 @@ void UDataTable::LoadStructData(FArchive& Ar)
 
 		// Load row data
 		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
-		LoadUsingStruct->InitializeStruct(RowData);
+
 		// And be sure to call DestroyScriptStruct later
-		LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
+		LoadUsingStruct->InitializeStruct(RowData);
+
+		LoadUsingStruct->SerializeItem(Ar, RowData, nullptr);
 
 		// Add to map
 		RowMap.Add(RowName, RowData);
@@ -75,28 +81,43 @@ void UDataTable::LoadStructData(FArchive& Ar)
 
 void UDataTable::SaveStructData(FArchive& Ar)
 {
-	// Don't even try to save rows if no RowStruct
-	if (RowStruct != NULL)
+	UScriptStruct* SaveUsingStruct = RowStruct;
+	if (!SaveUsingStruct)
 	{
-		int32 NumRows = RowMap.Num();
-		Ar << NumRows;
-
-		// Now iterate over rows in the map
-		for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
+		if (!HasAnyFlags(RF_ClassDefaultObject))
 		{
-			// Save out name
-			FName RowName = RowIt.Key();
-			Ar << RowName;
-
-			// Save out data
-			uint8* RowData = RowIt.Value();
-			RowStruct->SerializeTaggedProperties(Ar, RowData, RowStruct, NULL);
+			UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while saving DataTable '%s'!"), *GetPathName());
 		}
+		SaveUsingStruct = FTableRowBase::StaticStruct();
+	}
+
+	int32 NumRows = RowMap.Num();
+	Ar << NumRows;
+
+	// Now iterate over rows in the map
+	for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
+	{
+		// Save out name
+		FName RowName = RowIt.Key();
+		Ar << RowName;
+
+		// Save out data
+		uint8* RowData = RowIt.Value();
+
+		SaveUsingStruct->SerializeItem(Ar, RowData, nullptr);
 	}
 }
 
 void UDataTable::Serialize( FArchive& Ar )
 {
+#if WITH_EDITORONLY_DATA
+	// Make sure and update RowStructName before calling the parent Serialize (which will save the properties)
+	if (Ar.IsSaving() && RowStruct)
+	{
+		RowStructName = RowStruct->GetFName();
+	}
+#endif	// WITH_EDITORONLY_DATA
+
 	Super::Serialize(Ar); // When loading, this should load our RowStruct!	
 
 	if (RowStruct && RowStruct->HasAnyFlags(RF_NeedLoad))
@@ -157,11 +178,23 @@ void UDataTable::FinishDestroy()
 }
 
 #if WITH_EDITORONLY_DATA
+FName UDataTable::GetRowStructName() const
+{
+	return (RowStruct) ? RowStruct->GetFName() : RowStructName;
+}
+
 void UDataTable::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	if (AssetImportData)
 	{
 		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
+	}
+
+	const FName ResolvedRowStructName = GetRowStructName();
+	if (!ResolvedRowStructName.IsNone())
+	{
+		static const FName RowStructureTag = "RowStructure";
+		OutTags.Add( FAssetRegistryTag(RowStructureTag, ResolvedRowStructName.ToString(), FAssetRegistryTag::TT_Alphabetical) );
 	}
 
 	Super::GetAssetRegistryTags(OutTags);
@@ -191,18 +224,21 @@ void UDataTable::PostLoad()
 
 void UDataTable::EmptyTable()
 {
-	UScriptStruct* LoadUsingStruct = RowStruct;
-	if (LoadUsingStruct == NULL)
+	UScriptStruct* EmptyUsingStruct = RowStruct;
+	if (!EmptyUsingStruct)
 	{
-		UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while emptying DataTable '%s'!"), *GetPathName());
-		LoadUsingStruct = FTableRowBase::StaticStruct();
+		if (!HasAnyFlags(RF_ClassDefaultObject))
+		{
+			UE_LOG(LogDataTable, Error, TEXT("Missing RowStruct while emptying DataTable '%s'!"), *GetPathName());
+		}
+		EmptyUsingStruct = FTableRowBase::StaticStruct();
 	}
 
 	// Iterate over all rows in table and free mem
 	for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
 	{
 		uint8* RowData = RowIt.Value();
-		LoadUsingStruct->DestroyStruct(RowData);
+		EmptyUsingStruct->DestroyStruct(RowData);
 		FMemory::Free(RowData);
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,6 +26,9 @@ namespace EProfilerSessionTypes
 
 		/** Invalid enum type, may be used as a number of enumerations. */
 		InvalidOrMax,
+
+
+
 	};
 
 	/**
@@ -1068,10 +1071,10 @@ public:
 
 	const FEventGraphDataRef GetEventGraphDataAverage() const
 	{
-		const uint32 NumFrames = EventGraphDataTotal->GetNumFrames();
+		const uint32 NumFramesLocal = EventGraphDataTotal->GetNumFrames();
 		FEventGraphDataRef EventGraphDataAverage = EventGraphDataTotal->DuplicateAsRef();
-		EventGraphDataAverage->Divide( (double)NumFrames );
-		EventGraphDataAverage->Advance( 0, NumFrames );
+		EventGraphDataAverage->Divide( (double)NumFramesLocal );
+		EventGraphDataAverage->Advance( 0, NumFramesLocal );
 
 		return EventGraphDataAverage;
 	}
@@ -1139,12 +1142,26 @@ protected:
 	 */
 	void UpdateAggregatedEventGraphData( const uint32 FrameIndex );
 
-	void EventGraphCombineAndMax( const FEventGraphDataRef Current, const uint32 NumFrames );
+	/** Completion sync. */
+	void CompletionSyncAggregatedEventGraphData();
 
-	void EventGraphCombineAndAdd( const FEventGraphDataRef Current, const uint32 NumFrames );
+	void EventGraphCombineAndMax( const FEventGraphData* Current, const uint32 NumFrames );
+
+	void EventGraphCombineAndAdd( const FEventGraphData* Current, const uint32 NumFrames );
 
 	/** Called when the capture file has been fully loaded. */
 	void LoadComplete();
+
+	/** Sets number of frames. */
+	void SetNumberOfFrames( int32 InNumFrames )
+	{
+		NumFrames = InNumFrames;
+	}
+	
+	/**
+	 * @return progress as floating point between 0 and 1.
+	 */
+	float GetProgress() const;
 
 protected:
 	/** All aggregated stats, stored as StatID -> FProfilerAggregatedStat. */
@@ -1158,8 +1175,8 @@ protected:
 	TMap<uint32, FProfilerDataFrame> FrameToProfilerDataMapping;
 	/** Frame indices that should be processed by the profiler manager. */
 	TArray<uint32> FrameToProcess;
-	/** Reference to the client's stat metadata. */
-	const FStatMetaData* ClientStatMetadata;
+	/** Copy of the client stats metadata. */
+	FStatMetaData ClientStatMetadata;
 	/** If true, we need to update the metadata before we update the data provider. */
 	bool bRequestStatMetadataUpdate;
 	bool bLastPacket;
@@ -1186,8 +1203,8 @@ protected:
 	/** Aggregated event graph data for all collected frames, contains only maximum inclusive times. */
 	FEventGraphDataRef EventGraphDataMaximum;
 
-	/** Temporary event graph data for the specified frame. */
-	FEventGraphDataRef EventGraphDataCurrent;
+	/** Temporary event graph data for the specified frame. Recreated each frame, used by the task graph tasks only. */
+	const FEventGraphData* EventGraphDataCurrent;
 
 	/** Event graph completion sync ( combine for max, combine for add ) that can be done in parallel, but need to wait before combining the next frame. */
 	FGraphEventRef CompletionSync;
@@ -1207,6 +1224,12 @@ protected:
 
 	/** Data filepath. */
 	/*const*/ FString DataFilepath;
+
+	/** Number of frames in the file. */	
+	int32 NumFrames;
+
+	/** Number of frames already processed. */
+	int32 NumFramesProcessed;
 
 	/** True, if this profiler session instance is currently previewing data, only valid if profiler is connected to network based session. */
 	bool bDataPreviewing;

@@ -1,22 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "STextBlock.h"
 #include "IMenu.h"
+#include "PopupMethodReply.h"
 
 /** Notification when popup is opened/closed. */
 DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)
 
 
-enum class EPopupMethod : uint8
-{
-	/** Creating a new window allows us to place popups outside of the window in which the menu anchor resides. */
-	CreateNewWindow,
-	/** Place the popup into the current window. Applications that intend to run in fullscreen cannot create new windows, so they must use this method.. */
-	UseCurrentWindow
-};
 
-;
 
 /**
  * A PopupAnchor summons a Popup relative to its content.
@@ -150,7 +143,7 @@ protected:
 	TOptional<EPopupMethod> Method;
 
 	/** Method currently being used to show the popup. No value if popup is closed. */
-	TOptional<EPopupMethod> MethodInUse;
+	FPopupMethodReply MethodInUse;
 
 	/**
 	 * @todo Slate : Unify geometry so that this is not necessary.

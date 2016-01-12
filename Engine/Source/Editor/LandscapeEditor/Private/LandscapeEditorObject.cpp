@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEditorObject.h"
@@ -74,6 +74,7 @@ ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectI
 	, NewLandscape_Scale(100, 100, 100)
 	, ImportLandscape_Width(0)
 	, ImportLandscape_Height(0)
+	, ImportLandscape_AlphamapType(ELandscapeImportAlphamapType::Additive)
 
 	// Brush Settings:
 	, BrushRadius(2048.0f)
@@ -118,20 +119,20 @@ void ULandscapeEditorObject::PostEditChangeProperty(FPropertyChangedEvent& Prope
 	SetPasteMode(PasteMode);
 	SetbSnapGizmo(bSnapGizmo);
 
-	if (PropertyChangedEvent.MemberProperty == NULL ||
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, AlphaTexture) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, AlphaTextureChannel))
 	{
 		SetAlphaTexture(AlphaTexture, AlphaTextureChannel);
 	}
 
-	if (PropertyChangedEvent.MemberProperty == NULL ||
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, GizmoHeightmapFilenameString))
 	{
 		GuessGizmoImportSize();
 	}
 
-	if (PropertyChangedEvent.MemberProperty == NULL ||
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_QuadsPerSection) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_SectionsPerComponent) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_ComponentCount))
@@ -139,7 +140,7 @@ void ULandscapeEditorObject::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		NewLandscape_ClampSize();
 	}
 
-	if (PropertyChangedEvent.MemberProperty == NULL ||
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ResizeLandscape_QuadsPerSection) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ResizeLandscape_SectionsPerComponent) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ResizeLandscape_ConvertMode))
@@ -147,11 +148,17 @@ void ULandscapeEditorObject::PostEditChangeProperty(FPropertyChangedEvent& Prope
 		UpdateComponentCount();
 	}
 
-	if (PropertyChangedEvent.MemberProperty == NULL ||
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_Material) ||
 		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, ImportLandscape_HeightmapFilename))
 	{
 		RefreshImportLayersList();
+	}
+
+	if (PropertyChangedEvent.MemberProperty == nullptr ||
+		PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, PaintingRestriction))
+	{
+		UpdateComponentLayerWhitelist();
 	}
 }
 
@@ -282,6 +289,10 @@ void ULandscapeEditorObject::Load()
 	GConfig->GetString(TEXT("LandscapeEdit"), TEXT("NewLandscapeMaterialName"), NewLandscapeMaterialName, GEditorPerProjectIni);
 	NewLandscape_Material = LoadObject<UMaterialInterface>(NULL, *NewLandscapeMaterialName, NULL, LOAD_NoWarn);
 
+	int32 AlphamapType = (uint8)ImportLandscape_AlphamapType;
+	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ImportLandscape_AlphamapType"), AlphamapType, GEditorPerProjectIni);
+	ImportLandscape_AlphamapType = (ELandscapeImportAlphamapType)AlphamapType;
+
 	RefreshImportLayersList();
 }
 
@@ -351,6 +362,8 @@ void ULandscapeEditorObject::Save()
 
 	const FString NewLandscapeMaterialName = (NewLandscape_Material != NULL) ? NewLandscape_Material->GetPathName() : FString();
 	GConfig->SetString(TEXT("LandscapeEdit"), TEXT("NewLandscapeMaterialName"), *NewLandscapeMaterialName, GEditorPerProjectIni);
+
+	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("ImportLandscape_AlphamapType"), (uint8)ImportLandscape_AlphamapType, GEditorPerProjectIni);
 }
 
 // Region
@@ -388,26 +401,25 @@ void ULandscapeEditorObject::SetbSnapGizmo(bool InbSnapGizmo)
 {
 	bSnapGizmo = InbSnapGizmo;
 
-	FEdModeLandscape* EdMode = (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
-	if (EdMode && EdMode->CurrentGizmoActor.IsValid())
+	if (ParentMode->CurrentGizmoActor.IsValid())
 	{
-		EdMode->CurrentGizmoActor->bSnapToLandscapeGrid = bSnapGizmo;
+		ParentMode->CurrentGizmoActor->bSnapToLandscapeGrid = bSnapGizmo;
 	}
 
 	if (bSnapGizmo)
 	{
-		if (EdMode && EdMode->CurrentGizmoActor.IsValid())
+		if (ParentMode->CurrentGizmoActor.IsValid())
 		{
-			check(EdMode->CurrentGizmoActor->TargetLandscapeInfo);
+			check(ParentMode->CurrentGizmoActor->TargetLandscapeInfo);
 
-			const FVector WidgetLocation = EdMode->CurrentGizmoActor->GetActorLocation();
-			const FRotator WidgetRotation = EdMode->CurrentGizmoActor->GetActorRotation();
+			const FVector WidgetLocation = ParentMode->CurrentGizmoActor->GetActorLocation();
+			const FRotator WidgetRotation = ParentMode->CurrentGizmoActor->GetActorRotation();
 
-			const FVector SnappedWidgetLocation = EdMode->CurrentGizmoActor->SnapToLandscapeGrid(WidgetLocation);
-			const FRotator SnappedWidgetRotation = EdMode->CurrentGizmoActor->SnapToLandscapeGrid(WidgetRotation);
+			const FVector SnappedWidgetLocation = ParentMode->CurrentGizmoActor->SnapToLandscapeGrid(WidgetLocation);
+			const FRotator SnappedWidgetRotation = ParentMode->CurrentGizmoActor->SnapToLandscapeGrid(WidgetRotation);
 
-			EdMode->CurrentGizmoActor->SetActorLocation(SnappedWidgetLocation, false);
-			EdMode->CurrentGizmoActor->SetActorRotation(SnappedWidgetRotation);
+			ParentMode->CurrentGizmoActor->SetActorLocation(SnappedWidgetLocation, false);
+			ParentMode->CurrentGizmoActor->SetActorRotation(SnappedWidgetRotation);
 		}
 	}
 }
@@ -683,5 +695,13 @@ void ULandscapeEditorObject::RefreshImportLayersList()
 		}
 
 		ImportLandscape_Layers.Add(MoveTemp(NewImportLayer));
+	}
+}
+
+void ULandscapeEditorObject::UpdateComponentLayerWhitelist()
+{
+	if (ParentMode->CurrentToolTarget.LandscapeInfo.IsValid())
+	{
+		ParentMode->CurrentToolTarget.LandscapeInfo->UpdateComponentLayerWhitelist();
 	}
 }

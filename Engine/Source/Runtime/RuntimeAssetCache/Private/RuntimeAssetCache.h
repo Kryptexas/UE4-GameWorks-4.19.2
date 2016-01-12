@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "RuntimeAssetCacheInterface.h"
+#include "RuntimeAssetCacheAsyncWorker.h"
 
 /** Stats. */
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("RAC ASync Wait Time"), STAT_RAC_ASyncWaitTime, STATGROUP_RAC, );
@@ -9,7 +10,6 @@ DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("RAC ASync Wait Time"), STAT_RAC_ASyn
 /** Forward declarations. */
 class IRuntimeAssetCacheBuilder;
 class IRuntimeAssetCacheBackend;
-class FRuntimeAssetCacheAsyncWorker;
 class FCacheEntryMetadata;
 class FRuntimeAssetCacheBucket;
 

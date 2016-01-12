@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -1427,16 +1427,16 @@ bool FSourceCodeNavigation::NavigateToProperty( UProperty* InProperty )
 {
 	bool bResult = false;
 
-	if( InProperty && InProperty->HasAllFlags( RF_Native ))
+	if (InProperty && InProperty->IsNative())
 	{
 		FString SourceFilePath;
-		const bool bFileLocated =	FindClassHeaderPath( InProperty, SourceFilePath ) && 
-									IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE;
+		const bool bFileLocated = FindClassHeaderPath(InProperty, SourceFilePath) &&
+			IFileManager::Get().FileSize(*SourceFilePath) != INDEX_NONE;
 
-		if( bFileLocated )
+		if (bFileLocated)
 		{
-			const FString AbsoluteSourcePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SourceFilePath );
-			bResult = OpenSourceFile( AbsoluteSourcePath );
+			const FString AbsoluteSourcePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SourceFilePath);
+			bResult = OpenSourceFile(AbsoluteSourcePath);
 		}
 	}
 	return bResult;

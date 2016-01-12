@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimationRuntime.h"
@@ -6,6 +6,8 @@
 #include "GameFramework/WheeledVehicle.h"
 #include "Vehicles/WheeledVehicleMovementComponent.h"
 #include "Vehicles/VehicleWheel.h"
+#include "Animation/AnimInstanceProxy.h"
+
 
 /////////////////////////////////////////////////////
 // FAnimNode_WheelHandler
@@ -102,7 +104,7 @@ void FAnimNode_WheelHandler::InitializeBoneReferences(const FBoneContainer& Requ
 	WheelSimulators.Sort([](FWheelSimulator L, FWheelSimulator R) { return L.BoneReference.BoneIndex < R.BoneReference.BoneIndex; });
 }
 
-void FAnimNode_WheelHandler::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_WheelHandler::UpdateInternal(const FAnimationUpdateContext& Context)
 {
 	if(VehicleSimComponent)
 	{
@@ -125,14 +127,14 @@ void FAnimNode_WheelHandler::Update(const FAnimationUpdateContext& Context)
 		}
 	}
 
-	FAnimNode_SkeletalControlBase::Update(Context);
+	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
 }
 
 void FAnimNode_WheelHandler::Initialize(const FAnimationInitializeContext& Context)
 {
 	// TODO: only check vehicle anim instance
 	// UVehicleAnimInstance
-	AWheeledVehicle * Vehicle = Cast<AWheeledVehicle> ((CastChecked<USkeletalMeshComponent> (Context.AnimInstance->GetOuter()))->GetOwner());
+	AWheeledVehicle * Vehicle = Cast<AWheeledVehicle> (Context.AnimInstanceProxy->GetSkelMeshComponent()->GetOwner());
 	;
 	// we only support vehicle for this class
 	if(Vehicle != nullptr)

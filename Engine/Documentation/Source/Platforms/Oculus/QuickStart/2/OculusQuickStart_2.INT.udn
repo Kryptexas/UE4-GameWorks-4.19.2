@@ -2,7 +2,8 @@ Title:2. Download the Oculus Runtime
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:Download the needed software for running games on the Oculus Rift
 Availability:Public
-
+Version: 4.9
+SkillLevel: Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,59 +21,29 @@ Availability:Public
 [/OBJECT]
 [/VAR]
 
+In this section we will go over which version of the Oculus PC Runtime drivers you need to download and where you can download them from.
+
 %Steps%
 
 
 [REGION:note]
-The version of the Oculus Runtime that is currently compatible with Unreal Engine 4 is **Oculus SDK v0.4.2 Beta**. 
+The version of the Oculus Runtime that is currently compatible with the latest version of Unreal Engine 4 is **Oculus SDK v0.7.0.0-BETA**. 
 [/REGION]
 
-%Globals:OSSelect%
 
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	windows
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#windows]
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	OS
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	mac
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	[INCLUDE:#macos]
-	[/PARAM]
-[/OBJECT]
-<!--
-[EXCERPT:windows]
-1. Click the [Oculus Runtime for Windows version 0.4.2-beta](https://developer.oculus.com/downloads/#id=9f27e6a8). 
+1. From the web browser of your choice go to the Oculus Developer webpage by clicking on the link below.
+	
+	[https://developer.oculus.com/](https://developer.oculus.com/) 
 
-	![](3-oculus-runtime-for-windows.jpg)
-1. Read and agree to the terms of the EULA to start the download.
+1. Download the [PC RUNTIME( v0.7.0.0-BETA)](https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/) by clicking on the **PC RUNTIME(V0.7.0-BETA)** button.
 
-	![](3-oculus-eula.jpg)
-[/EXCERPT:windows]
-[EXCERPT:macos]
-[INCLUDE:Platforms/Oculus#warning]
-1. Click the [Oculus Runtime for OS X version 0.4.2-beta](https://developer.oculus.com/downloads/#id=4d85655b).
-	![](3-oculus-runtime-for-os-x.jpg)
-1. Read and agree to the terms of the EULA to start the download.
+	![](Downloads.png)
 
-	![](3-oculus-eula.jpg)
-[/EXCERPT:macos]
--->
+1. Once you have clicked on the download button you will be brought to the webpage below. 
+ Make sure to read the EULA and Terms of Use and if you agree to them then click on the box indicating you do and then the Download button will become available.
+ Click on the **DOWNLOAD** button to begin the driver download.
+
+	![](3-oculus-eula.png)
+
 
 %Steps%

@@ -2,6 +2,7 @@ Availability: Public
 Title:Editing Landscapes
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:Guide to using the tools for editing Landscape terrains.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -23,24 +24,23 @@ Description:Guide to using the tools for editing Landscape terrains.
 [/OBJECT]
 [/VAR]
 
-[TOC(start:2 end:2)]
 
 After you have created a Landscape, you can now do any of the following to it:
 
-* Modify its shape in **[Sculpt](Engine/Landscape\Editing\SculptMode)** mode.
-* Modify its appearance in **[Paint](Engine/Landscape\Editing\PaintMode)** mode.
-* Change the size, shape, and type of **[Brush](Engine/Landscape\Editing\Brushes)** you use to modify the Landscape's shape and appearance.
-* Modify the size and shape of its components in **[Manage](Engine/Landscape\Editing\ManageMode)** mode.
-* Copy, paste, import, and export parts of the Landscape's heightmap with **[Landscape Gizmos](Engine/Landscape\Editing\Gizmos)**.
-* Modify the Landscape's **[Material](Engine/Landscape\Materials)**.
-* Create **[Splines](Engine/Landscape\Editing\Splines)** for any linear features you want to use in your Landscape.
-* Create **[holes](Engine/Landscape\Materials)** in your Landscape for features such as caves.
+* Modify its shape in [Sculpt](Engine/Landscape\Editing\SculptMode) mode.
+* Modify its appearance in [Paint](Engine/Landscape\Editing\PaintMode) mode.
+* Change the size, shape, and type of [Brush](Engine/Landscape\Editing\Brushes) you use to modify the Landscape's shape and appearance.
+* Modify the size and shape of its components in [Manage](Engine/Landscape\Editing\ManageMode) mode.
+* Copy, paste, import, and export parts of the Landscape's heightmap with [Landscape Gizmos](Engine/Landscape\Editing\Gizmos).
+* Modify the Landscape's [Material](Engine/Landscape\Materials).
+* Create [Splines](Engine/Landscape\Editing\Splines) for any linear features you want to use in your Landscape.
+* Create [holes](Engine/Landscape\Materials) in your Landscape for features such as caves.
 
-For information about creating Landscapes, see **[](Engine/Landscape\Creation)**.
+For information about creating Landscapes, see [](Engine/Landscape\Creation).
 
-For a quick reference guide to the various Landscape tool modes and options, see **[](Engine/Landscape/UI)**.
+For a quick reference guide to the various Landscape tool modes and options, see [](Engine/Landscape/UI).
 
-For examples of the Landscape tool in action, see the **[](Resources\ContentExamples\Landscapes)**.
+For examples of the Landscape tool in action, see the [](Resources\ContentExamples\Landscapes).
 
 
 [REGION:topics third]

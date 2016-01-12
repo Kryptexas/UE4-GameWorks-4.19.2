@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,7 +18,7 @@ private:
 
 	virtual ~FOnlineSubsystemGooglePlayModule(){}
 
-	// Begin IModuleInterface interface
+	//~ Begin IModuleInterface Interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
@@ -31,7 +31,7 @@ private:
 	{
 		return false;
 	}
-	// End IModuleInterface interface
+	//~ End IModuleInterface Interface
 };
 
 typedef TSharedPtr<FOnlineSubsystemGooglePlayModule> FOnlineSubsystemGooglePlayModulePtr;

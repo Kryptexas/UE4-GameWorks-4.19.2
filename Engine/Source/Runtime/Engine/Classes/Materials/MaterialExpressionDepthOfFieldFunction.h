@@ -1,10 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDepthOfFieldFunction.generated.h"
 
+// Note: The index is used to map the enum to different code in the shader
 UENUM()
 enum EDepthOfFieldFunctionValue
 {
@@ -14,6 +15,8 @@ enum EDepthOfFieldFunctionValue
 	TDOF_NearMask,
 	/** 0:in Focus or Near .. 1:Far. */
 	TDOF_FarMask,
+	/** in pixels, only works for CircleDOF, use Abs for the actual radius as the sign of the value indicates near out of focus, positive indicates far out of focus */
+	TDOF_CircleOfConfusionRadius,
 	TDOF_MAX,
 };
 
@@ -31,10 +34,10 @@ class UMaterialExpressionDepthOfFieldFunction : public UMaterialExpression
 	FExpressionInput Depth;
 
 
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Kismet/GameplayStatics.h"
@@ -46,6 +46,8 @@ AAIController::AAIController(const FObjectInitializer& ObjectInitializer)
 	bSkipExtraLOSChecks = true;
 	bWantsPlayerState = false;
 	TeamID = FGenericTeamId::NoTeam;
+
+	bStopAILogicOnUnposses = true;
 }
 
 void AAIController::Tick(float DeltaTime)
@@ -111,8 +113,8 @@ void AAIController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& Debug
 		AActor* FocusActor = GetFocusActor();
 		if (FocusActor)
 		{
-			YL = Canvas->DrawText(GEngine->GetSmallFont(), FString::Printf(TEXT("      Focus %s"), *FocusActor->GetName()), 4.0f, YPos);
-			YPos += YL;
+			FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("      Focus %s"), *FocusActor->GetName()));
 		}
 	}
 }
@@ -442,6 +444,12 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 
 void AAIController::Possess(APawn* InPawn)
 {
+	// don't even try possessing pending-kill pawns
+	if (InPawn != nullptr && InPawn->IsPendingKill())
+	{
+		return;
+	}
+
 	Super::Possess(InPawn);
 
 	if (GetPawn() == nullptr || InPawn == nullptr)
@@ -468,20 +476,22 @@ void AAIController::Possess(APawn* InPawn)
 
 	// a Pawn controlled by AI _requires_ a GameplayTasksComponent, so if Pawn 
 	// doesn't have one we need to create it
-	UGameplayTasksComponent* GTComp = InPawn->FindComponentByClass<UGameplayTasksComponent>();
-	if (GTComp == nullptr)
+	if (CachedGameplayTasksComponent == nullptr)
 	{
-		GTComp = NewObject<UGameplayTasksComponent>(InPawn, TEXT("GameplayTasksComponent"));
-		GTComp->RegisterComponent();
+		UGameplayTasksComponent* GTComp = InPawn->FindComponentByClass<UGameplayTasksComponent>();
+		if (GTComp == nullptr)
+		{
+			GTComp = NewObject<UGameplayTasksComponent>(InPawn, TEXT("GameplayTasksComponent"));
+			GTComp->RegisterComponent();
+		}
+		CachedGameplayTasksComponent = GTComp;
 	}
-	CachedGameplayTasksComponent = GTComp;
 
-	// Prevents re-entrant issues.
-	if (GTComp && !GTComp->OnClaimedResourcesChange.Contains(this, GET_FUNCTION_NAME_CHECKED(AAIController, OnGameplayTaskResourcesClaimed)))
+	if (CachedGameplayTasksComponent && !CachedGameplayTasksComponent->OnClaimedResourcesChange.Contains(this, GET_FUNCTION_NAME_CHECKED(AAIController, OnGameplayTaskResourcesClaimed)))
 	{
-		GTComp->OnClaimedResourcesChange.AddDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
+		CachedGameplayTasksComponent->OnClaimedResourcesChange.AddDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
 
-		REDIRECT_OBJECT_TO_VLOG(GTComp, this);
+		REDIRECT_OBJECT_TO_VLOG(CachedGameplayTasksComponent, this);
 	}
 
 	OnPossess(InPawn);
@@ -489,6 +499,8 @@ void AAIController::Possess(APawn* InPawn)
 
 void AAIController::UnPossess()
 {
+	APawn* OldPawn = GetPawn();
+
 	Super::UnPossess();
 
 	if (PathFollowingComponent)
@@ -496,9 +508,12 @@ void AAIController::UnPossess()
 		PathFollowingComponent->Cleanup();
 	}
 
-	if (BrainComponent)
+	if (bStopAILogicOnUnposses)
 	{
-		BrainComponent->Cleanup();
+		if (BrainComponent)
+		{
+			BrainComponent->Cleanup();
+		}
 	}
 
 	if (CachedGameplayTasksComponent)
@@ -506,6 +521,8 @@ void AAIController::UnPossess()
 		CachedGameplayTasksComponent->OnClaimedResourcesChange.RemoveDynamic(this, &AAIController::OnGameplayTaskResourcesClaimed);
 		CachedGameplayTasksComponent = nullptr;
 	}
+
+	OnUnpossess(OldPawn);
 }
 
 void AAIController::SetPawn(APawn* InPawn)
@@ -588,7 +605,7 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 			const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
 			FNavLocation ProjectedLocation;
 
-			if (NavSys && !NavSys->ProjectPointToNavigation(MoveRequest.GetGoalLocation(), ProjectedLocation, AgentProps.GetExtent(), &AgentProps))
+			if (NavSys && !NavSys->ProjectPointToNavigation(MoveRequest.GetGoalLocation(), ProjectedLocation, INVALID_NAVEXTENT, &AgentProps))
 			{
 				UE_VLOG_LOCATION(this, LogAINavigation, Error, MoveRequest.GetGoalLocation(), 30.f, FColor::Red, TEXT("AAIController::MoveTo failed to project destination location to navmesh"));
 				bCanRequestMove = false;
@@ -721,7 +738,7 @@ bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathF
 				}
 			}
 
-			Query = FPathFindingQuery(this, *NavData, GetNavAgentLocation(), GoalLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, MoveRequest.GetNavigationFilter()));
+			Query = FPathFindingQuery(*this, *NavData, GetNavAgentLocation(), GoalLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, MoveRequest.GetNavigationFilter()));
 			Query.SetAllowPartialPaths(MoveRequest.IsUsingPartialPaths());
 
 			if (PathFollowingComponent)
@@ -761,6 +778,8 @@ bool AAIController::PreparePathfinding(FPathFindingQuery& Query, const FVector& 
 
 FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest, FPathFindingQuery& Query)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AI_Overall);
+
 	FAIRequestID RequestID;
 
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
@@ -783,7 +802,10 @@ FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest
 		}
 		else
 		{
-			UE_VLOG(this, LogAINavigation, Error, TEXT("Trying to find path to %s resulted in Error"), *GetNameSafe(MoveRequest.GetGoalActor()));
+			UE_VLOG(this, LogAINavigation, Error, TEXT("Trying to find path to %s resulted in Error")
+				, MoveRequest.IsMoveToActorRequest() ? *GetNameSafe(MoveRequest.GetGoalActor()) : *MoveRequest.GetGoalLocation().ToString());
+			UE_VLOG_SEGMENT(this, LogAINavigation, Error, GetPawn() ? GetPawn()->GetActorLocation() : FAISystem::InvalidLocation
+				, MoveRequest.GetGoalLocation(), FColor::Red, TEXT("Failed move to %s"), *GetNameSafe(MoveRequest.GetGoalActor()));
 		}
 	}
 

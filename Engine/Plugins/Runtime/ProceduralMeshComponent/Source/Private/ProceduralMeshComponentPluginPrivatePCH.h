@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObject.h"
 #include "Engine.h"
@@ -9,3 +9,7 @@
 
 #include "ProceduralMeshComponent.h"
 #include "PhysicsEngine/BodySetup.h"
+
+#pragma once
+
+DECLARE_STATS_GROUP(TEXT("ProceduralMesh"), STATGROUP_ProceduralMesh, STATCAT_Advanced);

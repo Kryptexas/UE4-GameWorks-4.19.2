@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346406
+﻿INTSourceChangelist:2629322
 Availability: Public
 Title:이펙트 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -49,7 +49,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 **Effects** 맵에는 여러가지 비주얼 이펙트나 파티클 시스템 예제가 들어있으며, 이들은 현실감을 더해주거나 화염이나 폭발 등 위험지대같은 게임플레이 요소를 레벨에 있는 플레이어에게 알리는 데 도움을 줄 수 있습니다.
 
 이 맵에서는 움직이는 파티클, 콜리전이 있는 파티클, 다른 파티클 스폰이 가능한 파티클, 플레이어나 여러가지 것들에 붙일 수 있는 파티클을 만드는 법을 보여줍니다. 각 예제는 그 이펙트를 변형시키거나 새로 만들 수 있도록 분해가 가능하게끔 구성되어 있습니다.

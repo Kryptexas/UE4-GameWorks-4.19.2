@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,18 +14,6 @@
 	Standard templates.
 -----------------------------------------------------------------------------*/
 
-/** 
- * CanConvertPointerFromTo<From, To>::Result is an enum value equal to 1 if From* is automatically convertable to a To* (without regard to const!)
- **/
-template<class From, class To>
-class CanConvertPointerFromTo
-{
-public:
-	DEPRECATED(4.8, "This trait is deprecated as it does not follow UE4 standards of syntax and hides a const conversion. Please use TPointerIsConvertibleFromTo instead.")
-	static const bool Result = TPointerIsConvertibleFromTo<From, const To>::Value;
-};
-
-
 /**
  * Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two.
  *
@@ -38,6 +26,19 @@ inline CONSTEXPR T Align( const T Ptr, int32 Alignment )
 {
 	return (T)(((PTRINT)Ptr + Alignment - 1) & ~(Alignment-1));
 }
+
+/**
+ * Checks if a pointer is aligned to the specified alignment.
+ *
+ * @param Ptr - The pointer to check.
+ *
+ * @return true if the pointer is aligned, false otherwise.
+ */
+static FORCEINLINE bool IsAligned(const volatile void* Ptr, const uint32 Alignment)
+{
+	return !(UPTRINT(Ptr) & (Alignment - 1));
+}
+
 /**
  * Aligns a value to the nearest higher multiple of 'Alignment'.
  *
@@ -550,6 +551,14 @@ struct TOr : TOrValue<LHS::Value, RHS>
 {
 };
 
+/**
+ * Metafunction which returns the specified boolean value.
+ */
+template <bool bValue>
+struct TBoolConstant
+{
+	enum { Value = bValue };
+};
 
 /**
  * Equivalent to std::declval.  

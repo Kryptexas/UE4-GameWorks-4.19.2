@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -23,7 +23,7 @@ public class HTMLPakAutomation
 	public static bool CanCreateMapPaks(ProjectParams Param)
 	{
 		bool UseAsyncLevelLoading = false;
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Param.RawProjectPath), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", DirectoryReference.FromFile(Param.RawProjectPath), new DirectoryReference(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine")));
 		ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UseAsyncLevelLoading", out UseAsyncLevelLoading);
 
 		if (Param.Run)
@@ -45,7 +45,7 @@ public class HTMLPakAutomation
 			PakOrderFileLocation = CommandUtils.CombinePaths(PakOrderFileLocationBase, "EditorOpenOrder.log");
 		}
 
-		string PakPath = Path.Combine(new string[] { Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5", SC.ShortProjectName});
+		string PakPath = Path.Combine(new string[] { Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5", SC.ShortProjectName});
 		if (Directory.Exists(PakPath))
 		{
 			Directory.Delete(PakPath,true);
@@ -86,7 +86,7 @@ public class HTMLPakAutomation
 	{
 		string StagedDir = Path.Combine(Params.BaseStageDirectory, "HTML5");// CommandUtils.CombinePaths(SC.ProjectRoot, "Saved", "Cooked", "HTML5");
 	
-		 string PakPath = Path.Combine( new string [] { Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5", SC.ShortProjectName, "Content","Paks"});
+		 string PakPath = Path.Combine( new string [] { Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5", SC.ShortProjectName, "Content","Paks"});
 		 if (!Directory.Exists(PakPath))
 		 {
 			 Directory.CreateDirectory(PakPath);
@@ -117,7 +117,7 @@ public class HTMLPakAutomation
 
 		string StagedDir = Path.Combine(Params.BaseStageDirectory, "HTML5");// CommandUtils.CombinePaths(SC.ProjectRoot, "Saved", "Cooked", "HTML5");
 
-		string PakPath = Path.Combine(new string[] { Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5", Params.ShortProjectName, "Content", "Paks" });
+		string PakPath = Path.Combine(new string[] { Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5", Params.ShortProjectName, "Content", "Paks" });
 		if (!Directory.Exists(PakPath))
 		{
 			Directory.CreateDirectory(PakPath);
@@ -307,7 +307,7 @@ public class HTMLPakAutomation
 	{
 		string CookedDir = Path.Combine(Params.BaseStageDirectory, "HTML5");
 
-		string PakPath = Path.Combine(new string[] { Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5", Params.ShortProjectName, "Content", "Paks" });
+		string PakPath = Path.Combine(new string[] { Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5", Params.ShortProjectName, "Content", "Paks" });
 		if (!Directory.Exists(PakPath))
 		{
 			Directory.CreateDirectory(PakPath);

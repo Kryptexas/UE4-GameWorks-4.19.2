@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /** FName declaration of Steam subsystem */
-#define GOOGLEPLAY_SUBSYSTEM FName(TEXT("GooglePlay"))
+
 
 #include "Engine.h"
 #include "CoreUObject.h"

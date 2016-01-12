@@ -1,9 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
+#include "Editor/UnrealEd/Public/CookerSettings.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "SlateBasics.h"
 #include "ScopedTransaction.h"
@@ -42,7 +43,9 @@ FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGra
 UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, AdvancedPinDisplay(ENodeAdvancedPins::NoPins)
-	, bIsNodeEnabled(true)
+	, EnabledState(ENodeEnabledState::Enabled)
+	, bUserSetEnabledState(false)
+	, bIsNodeEnabled_DEPRECATED(true)
 {
 
 #if WITH_EDITORONLY_DATA
@@ -254,6 +257,21 @@ void UEdGraphNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	Super::AddReferencedObjects(This, Collector);
 }
 
+void UEdGraphNode::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		// If this was an older version, ensure that we update the enabled state for already-disabled nodes.
+		// Note: We need to do this here and not in PostLoad() as it must be assigned prior to compile-on-load.
+		if(!bIsNodeEnabled_DEPRECATED && !bUserSetEnabledState && EnabledState == ENodeEnabledState::Enabled)
+		{
+			EnabledState = ENodeEnabledState::Disabled;
+		}
+	}
+}
+
 void UEdGraphNode::PostLoad()
 {
 	Super::PostLoad();
@@ -261,7 +279,7 @@ void UEdGraphNode::PostLoad()
 	// Create Guid if not present (and not CDO)
 	if(!NodeGuid.IsValid() && !IsTemplate() && GetLinker() && GetLinker()->IsPersistent() && GetLinker()->IsLoading())
 	{
-		UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid."), *GetPathName());
+		UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid, this can cause deterministic cooking issues please resave package."), *GetPathName());
 
 		// Generate new one
 		CreateNewGuid();
@@ -270,6 +288,8 @@ void UEdGraphNode::PostLoad()
 	// Duplicating a Blueprint needs to have a new Node Guid generated, which was not occuring before this version
 	if(GetLinkerUE4Version() < VER_UE4_POST_DUPLICATE_NODE_GUID)
 	{
+		UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid because of upgrade from old package version, this can cause deterministic cooking issues please resave package."), *GetPathName());
+
 		// Generate new one
 		CreateNewGuid();
 	}
@@ -341,6 +361,11 @@ FText UEdGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(GetClass()->GetName());
 }
 
+FString UEdGraphNode::GetFindReferenceSearchString() const
+{
+	return GetNodeTitle(ENodeTitleType::ListView).ToString();
+}
+
 UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
 {
 	return NULL;
@@ -393,6 +418,16 @@ FText UEdGraphNode::GetKeywords() const
 }
 
 #endif	//#if WITH_EDITOR
+
+bool UEdGraphNode::IsInDevelopmentMode() const
+{
+#if WITH_EDITOR
+	// By default, development mode is implied when running in the editor and not cooking via commandlet, unless enabled in the project settings.
+	return !IsRunningCommandlet() || GetDefault<UCookerSettings>()->bCompileBlueprintsInDevelopmentMode;
+#else
+	return false;
+#endif
+}
 
 /////////////////////////////////////////////////////
 

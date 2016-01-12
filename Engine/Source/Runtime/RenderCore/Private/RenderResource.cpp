@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderResource.cpp: Render resource implementation.
@@ -22,7 +22,7 @@ void FRenderResource::InitResource()
 	if(!bInitialized)
 	{
 		ResourceLink = TLinkedList<FRenderResource*>(this);
-		ResourceLink.Link(GetResourceList());
+		ResourceLink.LinkHead(GetResourceList());
 		if(GIsRHIInitialized)
 		{
 			InitDynamicRHI();

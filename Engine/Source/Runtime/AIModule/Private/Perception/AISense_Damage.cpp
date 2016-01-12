@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Damage.h"
@@ -87,7 +87,7 @@ float UAISense_Damage::Update()
 		if (PerceptionListener != nullptr)
 		{
 			UAIPerceptionComponent* PerceptionComponent = PerceptionListener->GetPerceptionComponent();
-			if (PerceptionComponent != nullptr)
+			if (PerceptionComponent != nullptr && PerceptionComponent->GetListenerId().IsValid())
 			{
 				// this has to succeed, will assert a failure
 				FPerceptionListener& Listener = ListenersMap[PerceptionComponent->GetListenerId()];

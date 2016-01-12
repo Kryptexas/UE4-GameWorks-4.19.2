@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620792
+﻿INTSourceChangelist:2653552
 Availability: Public
 Title:1.5 - 함수 리플리케이션
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -8,6 +8,24 @@ Related: Gameplay/Networking/Actors/Components
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Networking/1_4 "%Resources/ContentExamples/Networking/1_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[네트워킹 홈](Resources/ContentExamples/Networking)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

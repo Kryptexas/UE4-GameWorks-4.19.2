@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,9 +37,12 @@ public:
 		, _ClearTextSelectionOnFocusLoss(true)
 		, _RevertTextOnEscape(false)
 		, _ClearKeyboardFocusOnCommit(true)
+		, _AllowContextMenu(true)
 		, _OnCursorMoved()
 		, _ContextMenuExtender()
 		, _ModiferKeyForNewLine(EModifierKey::None)
+		, _TextShapingMethod()
+		, _TextFlowDirection()
 	{}
 		/** The initial text that will appear in the widget. */
 		SLATE_ATTRIBUTE(FText, Text)
@@ -100,6 +103,9 @@ public:
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE(bool, ClearKeyboardFocusOnCommit)
 
+		/** Whether to prevent the context menu from being displayed  */
+		SLATE_ATTRIBUTE(bool, AllowContextMenu)
+
 		/** Delegate to call before a context menu is opened. User returns the menu content or null to the disable context menu */
 		SLATE_EVENT(FOnContextMenuOpening, OnContextMenuOpening)
 
@@ -120,6 +126,12 @@ public:
 
 		/** The optional modifier key necessary to create a newline when typing into the editor. */
 		SLATE_ARGUMENT(EModifierKey::Type, ModiferKeyForNewLine)
+
+		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
+		SLATE_ARGUMENT( TOptional<ETextShapingMethod>, TextShapingMethod )
+		
+		/** Which text flow direction should we use? (unset to use the default returned by GetDefaultTextFlowDirection) */
+		SLATE_ARGUMENT( TOptional<ETextFlowDirection>, TextFlowDirection )
 
 	SLATE_END_ARGS()
 
@@ -150,6 +162,30 @@ public:
 	* @param  InNewFont	The new font to use
 	*/
 	void SetFont(const TAttribute< FSlateFontInfo >& InNewFont);
+
+	/** See TextShapingMethod attribute */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/** See TextFlowDirection attribute */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
+
+	/** See WrapTextAt attribute */
+	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
+
+	/** See AutoWrapText attribute */
+	void SetAutoWrapText(const TAttribute<bool>& InAutoWrapText);
+
+	/** See LineHeightPercentage attribute */
+	void SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage);
+
+	/** See Margin attribute */
+	void SetMargin(const TAttribute<FMargin>& InMargin);
+
+	/** See Justification attribute */
+	void SetJustification(const TAttribute<ETextJustify::Type>& InJustification);
+
+	/** See the AllowContextMenu attribute */
+	void SetAllowContextMenu(const TAttribute< bool >& InAllowContextMenu);
 
 	virtual bool GetIsReadOnly() const override;
 	virtual void ClearSelection() override;
@@ -267,6 +303,7 @@ private:
 		FCursorInfo()
 			: CursorPosition()
 			, CursorAlignment(ECursorAlignment::Left)
+			, CursorTextDirection(TextBiDi::ETextDirection::LeftToRight)
 			, LastCursorInteractionTime(0)
 		{
 		}
@@ -283,6 +320,12 @@ private:
 			return CursorAlignment;
 		}
 
+		/** Get the direction of the text under the cursor */
+		FORCEINLINE TextBiDi::ETextDirection GetCursorTextDirection() const
+		{
+			return CursorTextDirection;
+		}
+
 		/** Get the interaction position of the cursor (where to insert, delete, etc, text from/to) */
 		FORCEINLINE FTextLocation GetCursorInteractionLocation() const
 		{
@@ -296,10 +339,10 @@ private:
 		}
 
 		/** Set the position of the cursor, and then work out the correct alignment based on the current text layout */
-		void SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition);
+		void SetCursorLocationAndCalculateAlignment(const FTextLayout& InTextLayout, const FTextLocation& InCursorPosition);
 
 		/** Set the literal position and alignment of the cursor */
-		void SetCursorLocationAndAlignment(const FTextLocation& InCursorPosition, const ECursorAlignment InCursorAlignment);
+		void SetCursorLocationAndAlignment(const FTextLayout& InTextLayout, const FTextLocation& InCursorPosition, const ECursorAlignment InCursorAlignment);
 
 		/** Create an undo for this cursor data */
 		FCursorInfo CreateUndo() const;
@@ -313,6 +356,9 @@ private:
 
 		/** Cursor alignment (horizontal) within its position. This affects the rendering and behavior of the cursor when adding new characters */
 		ECursorAlignment CursorAlignment;
+
+		/** The direction of the text under the cursor */
+		TextBiDi::ETextDirection CursorTextDirection;
 
 		/** Last time the user did anything with the cursor.*/
 		double LastCursorInteractionTime;
@@ -428,7 +474,7 @@ private:
 
 private:
 
-	// BEGIN ITextEditorWidget interface
+	//~ Begin ITextEditorWidget Interface
 	virtual void StartChangingText() override;
 	virtual void FinishChangingText() override;
 	virtual void BackspaceChar() override;
@@ -463,11 +509,11 @@ private:
 	virtual TSharedRef< SWidget > GetWidget() override;
 	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath) override;
 	virtual void LoadText() override;
-	// END ITextEditorWidget interface
+	//~ End ITextEditorWidget Interface
 
 public:
-	// BEGIN IVirtualKeyboardEntry interface
-	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+	//~ Begin IVirtualKeyboardEntry Interface
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextType SetTextType, ETextCommit::Type CommitType) override;
 
 	virtual const FText& GetText() const override
 	{
@@ -488,10 +534,10 @@ public:
 	{
 		return true;
 	}
-	// END IVirtualKeyboardEntry interface
+	//~ End IVirtualKeyboardEntry Interface
 
 protected:
-	// BEGIN SWidget interface
+	//~ Begin SWidget Interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual void CacheDesiredSize(float) override;
@@ -510,7 +556,8 @@ protected:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	// END SWidget interface
+	virtual bool IsInteractable() const override;
+	//~ End SWidget Interface
 
 private:
 	
@@ -689,6 +736,9 @@ private:
 	/** True if we want the text control to lose focus on an text commit/revert events */
 	TAttribute< bool > bClearKeyboardFocusOnCommit;
 
+	/** Whether the context menu can be opened */
+	TAttribute< bool > AllowContextMenu;
+
 	/** True if we're currently selecting text by dragging the mouse cursor with the left button held down */
 	bool bIsDragSelecting;
 
@@ -760,6 +810,12 @@ private:
 
 	/** Whether the text has been changed by a virtual keyboard */
 	bool bTextChangedByVirtualKeyboard;
+
+	/** Whether the text has been committed by a virtual keyboard */
+	bool bTextCommittedByVirtualKeyboard;
+
+	/** How the text was committed by the virtual keyboard */
+	ETextCommit::Type VirtualKeyboardTextCommitType;
 
 	/** The optional modifier key necessary to create a newline when typing into the editor. */
 	EModifierKey::Type ModiferKeyForNewLine;

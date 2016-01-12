@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:0
-Title: Unreal Engine 4.5 Release Notes
+﻿Title: 虚幻引擎4.5版本信息
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
@@ -7,7 +6,7 @@ Availability:Public
 [TOC(start:2 end:2)]
 
 [PUBLISH:Licensee]
-## Build Info
+## 版本信息
 
 [REGION:simpletable]
 | Item | Info |
@@ -32,256 +31,256 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 [/PUBLISH:Licensee]
 
 
-The 4.5 release includes eagerly-awaited features such as animation retargeting, automatic C++ hot reload, light map UV generation and streaming video textures.  New real-time ray traced soft shadows allow for beautifully lit dynamic scenes, and screen-space subsurface scattering enables very realistic skin materials.  Support for mobile platforms and consoles is better than ever, and hundreds of targeted improvements in this release allow complex online games to pass console certification tests.  Finally, creating user interfaces has never been easier now that Unreal Motion Graphics is ready to use!
+本次4.5版本包含了大家翘首以待的新功能，包括了动画重定向、自动C++热重载、光照贴图UV生成以及动态载入视频贴图。  新的实时光线追踪的柔和阴影让您可以创建具有绚丽光照的动态场景，并且屏幕空间的次表面散射令异常真实的皮肤材质成为可能。  我们对移动平台和主机平台的支持比以往任何时候都更好，本次更新还包括了数以百计的定向改进，使得复杂的在线游戏能够通过主机平台的验证测试。  最后，Unreal Motion Graphics（虚幻运动图形）已经可以使用，这大大地简化了用户界面的创建！
 
-This release also contains a huge number of usability and learning enhancements, an all new tutorial system, and new game templates for Advanced Vehicles and Twin Stick Shooters.
+本次更新还包含了海量的可用性和学习增强功能、一个全新的教程系统以及高级车辆模板和双摇杆射击游戏的全新游戏模板。
 
-In this release, more than 40 features and improvements were contributed by our amazing community of developers.  We would like to extend our gratitude the contributors below.
+在此次更新中，超过40项功能和改进都是由我们杰出的社区开发者所提供的。  在此，我们谨向以下贡献者们表达我们诚挚的谢意。
 
 3dluvr, Allegorithmic, Cameron (Alters), Jefferson Pinheiro (Ixiguis), Kyle Rocha (kylawl), Luna (PSG-Luna), leobenaducci, Mathias L. Baumann (Marenz), Martino Giovanelli (Hurricane86), Moritz Wundke (moritz-wundke), Pierdek, Rama (EverNewJoy), Ryan Ingram (ryani), Robert Wallis (robert-wallis), Rick Yorgason (Skrapion), Roy (Shammah), Salamanderrake, Sam Clegg (sbc100), Steve Anichini (solid-angle), Shaun Hedrick (triplefault), Thomas Mayer (tommybear), Tim Donks (timdonks), Temaran, Vitaly Ogoltsov (vogoltsov), Zachary Burke (error454)
 
-We would also like to extend a special thanks to Lee Perry-Smith and Infinite Realities (http://ir-ltd.net) for providing the head model and assistance with Screen Space Subsurface Scattering.
+同时我们在此要特别感谢Lee Perry-Smith和Infinite Realities (http://ir-ltd.net) ，他们为我们提供了头部模型并帮助开发了Screen Space Subsurface Scattering（屏幕空间次表面散射）。
 
-## Major New Features
+## 主要新功能
 
-#### Rendering
+#### 渲染
 
-##### Ray Traced Distance Field Soft Shadows
-There is a new dynamic shadowing method which works by tracing a ray through mesh distance fields to the light. This allows for soft area shadows with sharp contacts! 
+##### 光线追踪的距离场柔和阴影
+这是一种新的动态阴影方式，它是通过追溯穿过网格物体距离场到光照的光线来完成的。 这样可以使柔和的区域阴影能具有清晰的边缘！ 
  
 ![](RayTracedDistanceFieldSoftShadows.png)
 
-*Here is a directional light with ray traced soft shadows. Long shadows get softer and self-shadowing in the distance is still detailed.*
+*此处是具有光线追踪的柔和阴影的定向光照。 较长的阴影会变得更加柔和，并且远处的自投阴影仍具有许多细节。*
 
 ![](RayTracedDistanceField03.png)
 
-*Point and spot lights work too. 'Source Radius' is used to control how large the light source is and therefore how large the shadow penumbras are.*
+*这对点光源和聚光源也是一样。 我们使用‘Source Radius’（光源半径）来控制光源的大小，以及由此形成的阴影半影的大小。*
 
 
-Ray traced shadows can be efficiently computed for longer view distances than traditional cascaded shadow maps (CSM). Distant shadows can be ray traced while nearby shadows are computed with CSM to get the best of both approaches.  
+相比传统的cascade处理的阴影贴图（CSM），光线追踪阴影可以更高效地在较长的视图距离中进行计算。 较远的阴影可以使用光线追踪，而较近的阴影则可以使用CSM来计算，这样可以融合两者的长处。  
 
-Ray traced shadows are generally 20-30% faster on the GPU than cascaded shadow maps.
+一般来说，GPU处理光线追踪阴影的速度要比cascade处理的阴影贴图快20-30%。
 
-These distance fields are the same data used by the Distance Field Ambient Occlusion feature. You can enable it with 'Use RayTraced DistanceField Shadows' on a light, in projects which have the 'Generate Mesh Distance Fields' project setting enabled.
+ Distance Field Ambient Occlusion（距离场环境遮挡）功能也使用这些距离场的数据。 您可以使用光照的 ‘Use RayTraced DistanceField Shadows’ （使用光线追踪的距离场阴影）来启用它，对启用了‘Generate Mesh Distance Fields’（生成网格物体距离场）的项目设置的项目进行启用。
 
-For more information check out the [documentation](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing/index.html)!
+如需更多信息，请查阅[文档](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing/index.html)！
 
-##### Distance Field Ambient Occlusion Improvements
+##### 改进的距离场环境遮挡
 
-The project rendering setting is now called bGenerateMeshDistanceFields, check that box and restart the editor to use any distance field lighting features.
+项目渲染设置当前的名称为bGenerateMeshDistanceFields，请您勾选该框，然后重启编辑器来使用任意距离场光照功能。
 
-**Generation**
+**生成**
 
-The distance field generation has been made asynchronous. It will use most of the CPU's cores but leave a few available for using the editor in the meantime.  
+距离场的生成是异步的。 它会使用CPU的大部分资源，但会留出一些以供同时使用编辑器。  
 
 ![](DistanceFieldAOimprovements01.png)
 
-Meshes no longer need to be closed to support a distance field.
+您不再需要关闭网格物体以支持距离场。
 
-**Specular Occlusion**
+**高光遮挡**
 
-We now have some approximate specular occlusion for the sky. The Distance Field AO computation produces a bent normal, which is a cone indicating sky visibility at that point. Intersecting this cone with the reflection cone gives a shadowing term for the sky specular. This prevents leaking near occluders and works best on somewhat rough materials or wherever SSR is not valid due to screen space limitations.
+现在游戏中的天空有一些近似于高光遮挡的效果。 距离场环境遮挡的计算生成了bent normal，它是在该点位置处表现天空可见度的一个椎体。 将折射椎体与此椎体交叉，将会展现出天空高光的阴影。 这样可以防止在遮挡体附近的泄漏，并且对有些粗糙的材质或是由于屏幕空间限制而令SSR无效的位置使用能产生最佳效果。
 
-Meshes no longer need to be closed to support a distance field.
+您不再需要关闭网格物体以支持距离场。
 
-*Original*	
+*原始图*	
 ![](DistanceFieldAOimprovements02.png)
 
-*With Specular Occlusion*
+*加了高光遮挡后的效果图*
 ![](DistanceFieldAOimprovements03.png)
 
-For more information check out the [Distance Field AO documentation](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/index.html)!
+如需更多信息，请查阅[距离场环境遮挡文档!](https://docs.unrealengine.com/latest/INT/Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion/index.html)！
 
-##### Screen-space Subsurface Scattering 
-A new "Subsurface Profile" shading model has been added!  You can use subsurface scattering to create realistic skin materials and other awesome effects.
+##### 屏幕空间次表面散射 
+我们添加了全新的“Subsurface Profile”（次表面分析）着色模型！  您可以使用次表面散射来创建栩栩如生的皮肤材质和其它出色效果。
 
 ![](ScreenSpaceSubsurfaceResults.png)
-*Left: no subsurface scattering, Right: realistic settings*
+*左侧： 不使用次表面散射。右侧： 真实化次表面散射设置*
 
-##### Dynamic Shadows on Mobile 
-Dynamic shadows for movable directional lights are now supported on mobile platforms! Shadows are rendered using cascaded shadow maps with up to two cascades.
+##### 移动平台的动态阴影 
+现在您可以在移动平台上使用可移动定向光源的动态阴影了！ 您最多可以在两个cascade中使用cascade处理过的阴影贴图来渲染阴影。
 
-### Unreal Motion Graphics (GUI Designer)
+### 虚幻运动图形（GUI设计程序）
 
-Unreal Motion Graphics is now ready to use and available by default! Simply create a new "Widget Blueprint" and start designing your UI.  Of course, new features and improvements are still being added daily.
+Unreal Motion Graphics（虚幻运动图形）现已可使用，并且默认可用！ 您可以创建全新的“控件蓝图“，并开始设计您的用户界面。  当然，我们每天还是会添加新功能和新改进内容。
 
 ![](UMGuidesigner.png)
 
 
-##### UI Render Transforms
-Widgets in UMG and Slate can now be translated, rotated, scaled, and sheared! 
+##### UI渲染变换
+UMG（虚幻运动图形）和Slate中的控件现在可以进行平移、旋转、缩放和剪切了！ 
 
 ![](UIrenderTrans.png)
 
-##### UI Styles
-We now allow styling to be done completely inline for a widget's definition. This allows users a much greater control over how widgets look without needing to clutter up their project with several dozen style variations. Styles can now be changed in game, allowing dynamic material instances to be used on any UI!
+##### UI风格
+在控件的定义方面,我们现在可以完全通过内联来创建UI的风格。 这样用户就可以更好地控制控件的外观，而无需在各种风格间寻找适合于他们项目的内容。 您现在可以在游戏中改变UI风格，这样您可以在任何UI上使用动态材质实例！
 
 ![](UIstyles.png)
 
 
-##### UI Animation
-UMG now includes more robust animation support.  
-* Multiple animations can be created for each widget
-* Animations can be controlled at runtime in your widget's blueprint graph
-* Keys can now be added to animations automatically via the details panel
+##### UI动画
+UMG现在包含了更为动态的动画。  
+* 您可以为每个控件创建多个动画
+* 在您控件的蓝图图表中，您可以在运行时控制动画
+* 您现在可以通过详细信息面板来自动添加关键帧
 
 ![](UIanimation01.png)
 
-UI animations can be controlled in the widget blueprint graph. This is an example of playing an animation when a widget is hovered.
+您可以在控件蓝图图表中控制UI动画。 下图是您把鼠标悬停在控件位置处时播放动画的示例。
 
 ![](UIanimation02.png)
 
-##### DPI Scaling
-Unreal Motion Graphics now supports automatic scaling for resolution-independent UI. We now provide default DPI scaling rules for all games. You can configure this in your project's Rendering settings.
+##### DPI缩放
+Unreal Motion Graphics（虚幻运动图形）现在支持对与分辨率无关的UI的自动缩放。 我们现在对所有游戏提供默认的DPI缩放规则。 您可以在项目的渲染设置中配置此选项。
 
 ![](DPIscaling.png)
 
 
-#### Programming
+#### 编程
 
-##### Automatic C++ Hot Reloading
-Unreal Engine now automatically "hot reloads" your C++ gameplay code after you compile in Visual Studio or Xcode!
+##### 自动C++热重载
+虚幻引擎现在会在您完成Visual Studio或Xcode中的编译后，自动“热重载”您的C++游戏代码！ 
 
 ![](AutoHotReload.png)
 
-No need to shutdown the editor while you're working. Just compile your gameplay code normally from Visual Studio or Xcode, and the engine will apply your C++ changes instantly.
+您无需在工作时关闭编辑器。 您只需正常从Visual Studio或Xcode中编辑游戏代码，然后引擎会立即应用您对C++代码的变更。
 
-##### Full Game C++ Hot Reload
-You can now compile any type of game C++ code without even restarting the editor, and your changes will be applied live!  Even adding whole new classes or properties is supported.
+##### 完整游戏的C++热重载
+您现在可以编译任意类型的游戏C++代码，而无需重启编辑器，并且您所做的变更将会被实时应用！  我们甚至支持添加全新的类或属性。
 
 ![](FullGameHotReload.png)
 
-### Sample Content
+### 示例内容
 
-##### Advanced Vehicle Template
-The new [Advanced Vehicle template](https://docs.unrealengine.com/latest/INT/Engine/Physics/Vehicles/DoubleWishboneVehicle/index.html) shows off a vehicle with double wishbone suspension, and a test track with terrain and many ramps and loops!  It also works great with a VR headset.
+##### 高级车辆模板
+全新的[高级车辆模块](https://docs.unrealengine.com/latest/INT/Engine/Physics/Vehicles/DoubleWishboneVehicle/index.html) 展示了具有双横臂式悬架的车辆，以及具有地形和许多斜坡和循环的测试跑道！  您可以使用虚拟现实头盔来运行这个模板。
 
 ![](AdvancedVehicleTemp.png)
 
 
-##### Twin Stick Shooter Template
-The new Twin Stick Shooter template is a perfect starting point for creating fast-paced, top-down shooter games!
+##### 双摇杆射击游戏模板
+全新的双摇杆射击游戏模板是创建快节奏、俯视射击游戏的绝佳起点！
 
 ![](TwinStickTemp.png)
 	
 
-It's a simple template for a Twin Stick shooter where one joystick is used for movement and the other is used to fire in any direction
+这是一个双摇杆射击游戏的简单模板，一个摇杆负责移动，一个摇杆负责向任意方向射击。
 
-##### Advanced_Lighting Map
-[A new map](https://docs.unrealengine.com/latest/INT/Engine/Content/Packs/index.html#advancedlightingmap) is available in the template starter content which provides artists a testing area to try out different lighting setups and see how their content is affected.
+##### 高级光照地图
+模板初学者内容中有[一张新地图](https://docs.unrealengine.com/latest/INT/Engine/Content/Packs/index.html#advancedlightingmap) ，它为美术人员提供了测试区域，以尝试不同的光照设置，并了解他们制作的内容如何受其影响。
 
 ![](ArtistTempMap.png)
 
-#### Animation
+#### 动画
 
-##### Animation Retargeting System
+##### 动画重定向系统
 
-The new Animation Retargeting System allows you to convert animations between **different skeletons** using the humanoid rig!
+新的动画重定向系统让您可以使用类人骨架在 **不同的骨架间** 转换动画！
 
 ![](RetargetingSystem03.png) ![](RetargetingSystem04.png)
 
 
 
-Once you have set this up, you will be able to convert animations between any skeleton that uses the same rig.
+在您设置完成后，您将可以在使用相同骨骼的任意骨架间转换动画。 
 
-#### Media Playback and Capture
+#### 媒体内容回放及捕获
 
-##### Video Textures (Media Framework)
+##### 视频贴图（媒体框架）
 
-The new Media Framework allows you to play streaming video on UI widgets and textured objects in your levels!
+新的媒体框架让您可以在您关卡中的用户界面控件和贴图化对象上播放动态载入的视频！
 
 ![](MediaFramework.png)
 ![](MediaFramework2.png)
 
-Check out our [forum post](https://forums.unrealengine.com/showthread.php?46879-Media-Framework-Documentation-for-4-5-Preview) for more information about this new feature.
+请查看[论坛发帖](https://forums.unrealengine.com/showthread.php?46879-Media-Framework-Documentation-for-4-5-Preview)以了解此新功能。 
 
-##### OpenEXR Frame Capture
+##### OpenEXR帧捕获
 
-You can now save rich frame data including HDR colors and 16-bit pixel depth into an OpenEXR file. This is really useful for offline compositing work.
+您现在可以保存包括HDR颜色和16位像素深度的多种帧数据到OpenEXR文件中。 这对于离线的合成很有用。
 
 ![](OpenEXRFrameCapture.png)
 
-#### Project Creation
+#### 项目创建
 
-##### New Project Creation Window
-The **New Project** window has been redesigned to simplify the process of creating new projects!
+##### 全新项目创建窗口
+这个 **新项目** 的窗口已经经过了重新设计，以简化创建新项目的流程！
 
 ![](ProjectCreation.png)
 
-##### Target Hardware Selection
+##### 目标硬件选择
 
-You can now select the type of hardware and devices you want to support, and the engine will choose optimal settings for the best player experience! This can be set when creating your project in the **New Project** window or in the Project Settings under Target Hardware. 
+您现在可以选择希望使用的硬件和设备类型，引擎会选择最佳设置以供您获得最佳的用户体验！ 当您在 **New Project（新项目）** 窗口或在Target Hardware（目标硬件）下的Project Settings（项目设置）中创建您的项目时，您可以设置该选项。 
 
 ![](TargetHardwareSelection.png)
 
-### Learning Resources
-In addition to new videos and new written documentation, there are major updates to how you can learn about how to use the editor and access documentation right when you need it! 
+### 学习资源
+除了新视频和新书面文档外，还有一些重要更新可供您学习如何使用编辑器，并在您需要时马上访问相关文档！ 
 
-##### New Tutorial System
-The tutorial system has been completely overhauled in order to provide a more immersive experience! 
+##### 新教程系统
+我们对教程系统进行了全面修改，从而为您提供更加引入入胜的体验！ 
 
 ![](TakingATutorial2.png)
 
-There are no more popup windows. (Yay!)  Unobtrusive text bubbles overlaid on the editor now walk you through interface elements and various features. The editor will alert you about tutorials you haven't tried, but it never forces you to view anything.
+现在不会再出现弹出窗口。 (好棒!)  重叠于编辑器的不引人注目的气泡文本会带领您浏览界面元素和不同功能。 编辑器会对您尚未尝试的教程进行提示，但其不会强制您查看任何内容。
 
 ![](TakingATutorial.png)
 
-Once you have decided to take a tutorial, you can **right-click** to see other navigation options (or click the combo arrow in the top-right of the content bubble)
+一旦您决定要阅读一段教程内容，您可以 **点击右键** 来查看其它的导航选项（或者点击内容气泡的右上角处的组合箭头）
 
-##### Tutorials Browser
-There is a fancy new **Tutorials Browser** that provides easy access to all of the tutorials
+##### 教程浏览器
+这个全新的 **教程浏览器** 提供了对所有教程内容的快捷访问。
 
 ![](TutorialsBrowser.png)
 
-Tutorials can be accessed from either the Help menu or by clicking the new Tutorials icon in the top-right of the editor. 
+您可以通过帮助菜单或通过点击编辑器右上方的新教程图标来访问教程。 
 
-##### Tutorials Blueprints
-Tutorials are actually now built as Blueprint assets. This means you can create your own in-editor tutorials to include with content published to the Marketplace!
+##### 教程蓝图
+教程现在实际上作为蓝图资源来构建。 这表示您自己可以创建编辑器内的教程，从而向Marketplace发布内容！
 
 ![](TutorialsareBlueprints.png)
 
-Tutorials you create will automatically be visible in the new Tutorial Browser UI.
+您创建的教程将会在新教程浏览器的用户界面中自动可见。
 
 
-### Improved In-Editor Help
+### 改进的编辑器内帮助
 
-##### Instant Online Help
-You can type into the new Online Help box and the editor will gather as many helpful resources as we can find from the internet. 
+##### 快速网上帮助
+您可以在新的在线帮助框内输入文字，编辑器将会尽可能从互联网上搜集对您有帮助的资源。 
 
 ![](InstantOnlineHelp.png)
 
-Tutorials, documentation, community wiki, and AnswerHub pages are now all accessible from here! *Note*:  We've moved the in-editor debug console.  You can now press the tilde (~) key to summon the console anywhere within the editor!.
+您现在可以从此处访问教程、文档、社区wiki以及AnswerHub页面！ *注意* ：  我们已经移动了编辑器内的调试控制台。  您现在可以在编辑器的任意位置处通过按下波浪 (~) 键来调出控制台！
 
-##### New Help Buttons
-With lots of new documentation anchors, it's easier to jump directly to reference documentation as you need it in the editor! 
+##### 新帮助按钮
+通过诸多文档锚点，根据您在编辑器中的需要，您可以更方便地在编辑器中直接跳转到参考文档！ 
 
 ![](NewHelpButtons.png)
 
-##### Documentation Actors
-New documentation Actors have been added to sample content that links you to helpful documentation pages.  Check out the updated Content Examples project that includes lots of new help links!
+##### 文档Actor
+我们添加了新的文档Actor到示例内容中，它会把您链接到有帮助的文档页面中。  请查看包含了许多新帮助链接的更新后的内容示例项目！
 
 ![](DocActors.png)
 
-##### Documentation Nodes
-Documentation nodes provide the ability to display documentation snippets in Blueprint graphs. This means you can embed text and images in your graphs to provide information that goes above and beyond the usual comment blocks!
+##### 文档节点
+文档节点让您可以在蓝图图表中显示文档摘要。 这表示您可以在图表中植入文本和图像，从而提供位于常见注释区域外的信息！
 
 ![](DocNodes.png)
 
-##### New Help Tool-tips
-Lots of detailed tool-tips have been added all over the editor.  Material nodes, placeable Actors and blueprintable classes now all have rich help when you hover over them with Ctrl+Alt held down.
+##### 新的工具提示帮助文本
+我们对整个编辑器中的工具提示添加了许多更详细的内容。  当您按下Ctrl+Alt时，您可以使用鼠标在材质节点、可放置的Actor以及蓝图类上方悬停，您会发现丰富的提示信息。
 
 ![](NewHelpTool-tips.png)
 
-#### Documentation 
-The [Unreal Engine documentation](https://docs.unrealengine.com/latest/INT/) now features an updated look which improves readability! In addition, we added search term suggestions to the front page to help you quickly find the topics you are looking for. 
+#### 文档 
+[虚幻引擎文档](https://docs.unrealengine.com/latest/INT/)现在具有新的外观，改善了可读性！ 另外，我们还对主页添加了搜索术语推荐，以帮助您快速查找您所需的主题。 
 
-#### Video Tutorial System
+#### 视频教程系统
 
-The documentation now includes a [video system](https://docs.unrealengine.com/latest/INT/Videos/index.html) for finding and viewing all of our video tutorial series! Everything is organized into categories and videos can easily be viewed as an entire series.
+文档现在包含了[视频系统](https://docs.unrealengine.com/latest/INT/Videos/index.html)，以供您搜寻和查看我们所有的视频教程系列！  所有内容都被组织到了分类中，您可以很方便地查看整个系列的视频。
 
 ![](VideoTutorialSystem1.png)
 
-## New Additions 
+## 新增内容 
 
 #### Learning Resources
 * The [Getting Started](https://docs.unrealengine.com/latest/INT/GettingStarted/index.html) page has been overhauled to make the most important resources for those just starting out easily accessible.
@@ -1340,7 +1339,7 @@ SEditableText, SEditableTextBox, SMultiLineEditableText, and SMultilineEditableT
 * Shootergame - Wrapped PlayerOwner pointers with TWeakObjectPtr's.
 
 
-## Upgrade Notes
+## 更新信息
 
 #### Editor and Tools
 * Large refactor was done to the Project Launcher (formerly Game Launcher). Launch profiles will need to be recreated.

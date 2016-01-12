@@ -137,7 +137,7 @@ TextTest.cpp 에는 유효 문화권을 인지하여 포맷, 비교, 소팅을 �
 
 ### 캔버스
 
-[캔버스](Programming/Gameplay/Framework\UIAndHUD#캔버스) 를 사용해서 HUD 에 FText 를 표시하려면, FCanvasTextItem 을 새로 만들어야 합니다.
+[캔버스](Programming/Gameplay/Framework\UIAndHUD) 를 사용해서 HUD 에 FText 를 표시하려면, FCanvasTextItem 을 새로 만들어야 합니다.
 
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, TestHUDText, BigFont, FLinearColor::Black);
 	

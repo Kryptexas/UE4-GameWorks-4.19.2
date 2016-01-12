@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2603006
+﻿INTSourceChangelist:2663119
 Availability: Public
 Title:다중 카메라 사용하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -37,19 +37,19 @@ Description:다수의 카메라를 전환하고 카메라 이동을 적용하는
 
 1.  **마티네** 창을 최소화한 다음, **모드** 메뉴에서 **기본** 탭 아래 **카메라** 를 끌어 뷰포트에 놓습니다.
 
-	![](MHT3_DragCamera.png)(w:580)
+	![](MHT_3_Drag_In_Camera.jpg)(w:580)
 
 	_위 그림에서처럼 템플릿 텍스트 왼쪽 어딘가에 **카메라** 를 배치하도록 합니다._
 
 1.  뷰포트게 **카메라** 를 두 대 더 놓은 다음 아래 그림과같이 박스를 향하도록 안쪽으로 회전시킵니다. 
 
-	![](MHT3_AllCamerasPlaced.png)(w:580)
+	![](MHT3_All_CamerasPlaced.jpg)(w:580)
 
 	_**카메라** 를 선택한 다음 **E** 키를 누르고 위젯을 사용하여 방향을 맞추는 것으로 회전시킬 수 있습니다._
 		
 1.  **콘텐츠 브라우저** 에서 **Game/Props** 폴더 아래, **SM_Chair** 를 찾은 다음 뷰포트의 박스 위에 끌어 놓습니다.
 
-	![](MHT3_AddChair.png)
+	![](MHT3_Drag_In_Chair.jpg)
 			
 1.  여전히 의자를 선택한 상태로 **E** 키를 눌러 **회전 모드** 로 들어간 다음, 희자를 아래와 같이 **140.00** 정도로 회전시킵니다.
 
@@ -83,7 +83,7 @@ Description:다수의 카메라를 전환하고 카메라 이동을 적용하는
 
 1. 다음으로 **Ctrl** 키를 누른 상태로 (아래 노랑색 박스의) 빨강색 마커를 끌어 **마티네** 길이를 **15.00** (노랑 X) 로 늘입니다.
 	[REGION:fullwidth]
-	![](MHT3_IncreaseMatineeTime.png)
+	![](MHT3_Increase_MatineeTime.jpg)
 	[/REGION]
 
 1. **Camera1** 의 **Movement** 트랙에서 **0.00** 위치의 첫 번째 키프레임을 클릭하면, 뷰포트의 카메라가 선택될 것입니다.
@@ -214,6 +214,16 @@ Description:다수의 카메라를 전환하고 카메라 이동을 적용하는
 
 1. 레벨이 로드되면 시작되어 세 개의 카메라를 순환하는 **마티네** 시퀀스가 생겼을 것입니다.
 
-	![](MHT3_FinalResultGif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	k3r1aNcbO8Y
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 

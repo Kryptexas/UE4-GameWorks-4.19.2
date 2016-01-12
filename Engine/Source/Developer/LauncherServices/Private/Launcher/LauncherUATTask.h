@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -48,18 +48,12 @@ protected:
 		FString Executable = TEXT("RunUAT.bat");
 #endif
 
-        // check for rocket
-        FString Rocket;
-        if ( FRocketSupport::IsRocket() )
-        {
-            Rocket = TEXT(" -rocket" );
-        }
-        
 		// base UAT command arguments
 		FString UATCommandLine;
 		FString ProjectPath = *ChainState.Profile->GetProjectPath();
 		ProjectPath = FPaths::ConvertRelativePathToFull(ProjectPath);
-		UATCommandLine = FString::Printf(TEXT("BuildCookRun -project=\"%s\" -noP4 -clientconfig=%s -serverconfig=%s"),
+		UATCommandLine = FString::Printf(TEXT("-ScriptsForProject=\"%s\" BuildCookRun -project=\"%s\" -noP4 -clientconfig=%s -serverconfig=%s"),
+			*ProjectPath,
 			*ProjectPath,
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()],
 			*ConfigStrings[ChainState.Profile->GetBuildConfiguration()]);
@@ -69,12 +63,17 @@ protected:
 		UATCommandLine += FParse::Param( FCommandLine::Get(), TEXT("development") ) || ChainState.Profile->IsBuildingUAT() ? TEXT("") : TEXT(" -nocompile");
 		// we never want to build the editor when launching from the editor or running with an installed engine (which can't rebuild itself)
 		UATCommandLine += GIsEditor || FApp::IsEngineInstalled() ? TEXT(" -nocompileeditor") : TEXT("");
-        UATCommandLine += Rocket;
 
 		// specify the path to the editor exe if necessary
 		if(EditorExe.Len() > 0)
 		{
 			UATCommandLine += FString::Printf(TEXT(" -ue4exe=\"%s\""), *EditorExe);
+
+			bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+			if (bRunningDebug)
+			{
+				UATCommandLine += TEXT(" -UseDebugParamForEditorExe");
+			}
 		}
 
 		// specialized command arguments for this particular task

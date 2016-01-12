@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -142,6 +142,8 @@ protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
 	virtual void UpdateSelection() override;
 	virtual FWidgetReference AsDraggedWidgetReference() const;
+
+	void DoDrop(UWidget* NamedSlotHostWidget, UWidget* DroppingWidget);
 
 private:
 

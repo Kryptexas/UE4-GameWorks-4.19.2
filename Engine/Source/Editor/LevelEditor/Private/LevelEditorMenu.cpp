@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -155,6 +155,9 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 				{
 					// Import
 					MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().Import );
+
+					// Import Scene
+					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ImportScene);
 
 					// Export All
 					MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().ExportAll );

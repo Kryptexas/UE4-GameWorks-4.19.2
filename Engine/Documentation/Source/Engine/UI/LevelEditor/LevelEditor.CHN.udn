@@ -1,7 +1,35 @@
-Availability:Public
+﻿Availability:Public
 Title:关卡编辑器
 Crumbs:%ROOT%, Engine, Engine/UI
-Description:该指南概述了虚幻编辑器的主要作用：设计及构建游戏关卡及场景。
+Description:本指南概述了如何设计及构建游戏关卡及场景。
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		关卡设计_初学者
+	[/PARAMLITERAL]
+	[PARAM:next]
+		[下一主题](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		Programming_Beginner
+	[/PARAMLITERAL]
+	[PARAM:next]
+		[下一主题](Engine/Actors "%Engine/Actors:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/Programming/Beginner)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -71,15 +99,12 @@ Description:该指南概述了虚幻编辑器的主要作用：设计及构建�
 
 [TOC(start:2)]
 
-
-## 概述
-
 [EXCERPT:Intro]
-**关卡编辑器** 为虚幻编辑器提供了关卡创建方面的核心功能。在这里，主要通过放置、变换及编辑 **Actor** 的属性来创建、查看及修改关卡。
+**关卡编辑器** 为虚幻编辑器提供了关卡创建方面的核心功能。在这里，主要通过放置、变换及编辑 [Actors](Engine/Actors) 的属性来创建、查看及修改关卡。
 [/EXCERPT:Intro]
 
 [EXCERPT:Levels]
-在虚幻编辑器中，您创建游戏体验所在的场景一般称之为 **关卡** 。您可以把关卡想象成为一个三维场景，在该场景中您可以放置一系列的对象和几何体来定义您的玩家将要体验的世界。您放置到世界中的任何对象都认为是Actor，无论该对象是一个光源、网格物体还是一个角色。从技术上讲， _Actor_ 是虚幻引擎中使用的一个编程类，用于定义一个具有三维位置、旋转度及缩放比例数据的对象。然而，出于方便，最简单的方法是将Actor当成 _一个您可以放置到关卡中的任何对象_ 。
+在虚幻编辑器中，您创建游戏体验所在的场景一般称之为 [关卡](Engine/Levels) 。您可以把关卡想象成为一个三维场景，在该场景中您可以放置一系列的对象和几何体来定义您的玩家将要体验的世界。您放置到世界中的任何对象都认为是Actor，无论该对象是一个光源、网格物体还是一个角色。从技术上讲， _Actor_ 是虚幻引擎中使用的一个编程类，用于定义一个具有三维位置、旋转度及缩放比例数据的对象。然而，出于方便，最简单的方法是将Actor当成 _一个您可以放置到关卡中的任何对象_ 。
 [/EXCERPT:Levels]
 
 [EXCERPT:Actors]
@@ -100,8 +125,8 @@ Description:该指南概述了虚幻编辑器的主要作用：设计及构建�
 1. 模式
 1. 内容浏览器
 1. 视口 
-1. 场景大纲视图
-1. 细节
+1. 世界大纲视图
+1. 详细信息
 
 
 ### 选卡栏
@@ -167,21 +192,23 @@ Description:该指南概述了虚幻编辑器的主要作用：设计及构建�
 
 ### 模式
 
-[INCLUDE:Engine/UI/LevelEditor/Modes]
+[INCLUDE:Engine/UI/LevelEditor/Modes#main]
 
-### 场景大纲视图
+### 世界大纲视图
 
 [REGION:raw]
 ![Scene Outliner Panel](Engine/UI/LevelEditor/SceneOutliner/scene_outliner.png)
 [/REGION]
 
 
-**Scene Outliner（场景大纲视图）** 面板以层次化的树状图形式显示了场景中的所有Actor。您可以在这里直接选择及修改Actor。您也可以使用 **Info(信息)** 下拉列表来打开额外的竖栏来显示关卡、图层或ID名称。
+**World  Outliner（世界大纲视图）** 面板以层次化的树状图形式显示了场景中的所有Actor。您可以从 **世界大纲视图** 中直接选择及修改Actor。您也可以使用 **Info(信息)** 下拉列表来打开额外的竖栏来显示关卡、图层或ID名称。
 
-请参照 [场景大纲视图](Engine/UI/LevelEditor/SceneOutliner) 页面获得关于使用 **场景大纲视图** 的详细内容。
+请参照[世界大纲视图](Engine/UI/LevelEditor/SceneOutliner)页面获得关于使用 **世界大纲视图** 的详细内容。
 
 ### 图层
 
 [INCLUDE:Engine/UI/LevelEditor/Layers#Overview]
 
 请参照[](Engine/UI/LevelEditor/Layers) 页面获得关于使用 **图层** 面板的详细内容。
+
+%playlistnav%

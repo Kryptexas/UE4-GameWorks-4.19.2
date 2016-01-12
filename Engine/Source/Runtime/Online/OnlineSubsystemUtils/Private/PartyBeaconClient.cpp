@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "PartyBeaconClient.h"
@@ -255,4 +255,10 @@ void APartyBeaconClient::ClientSendReservationUpdates_Implementation(int32 NumRe
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon reservations remaining %d"), NumRemainingReservations);
 	ReservationCountUpdate.ExecuteIfBound(NumRemainingReservations);
+}
+
+void APartyBeaconClient::ClientSendReservationFull_Implementation()
+{
+	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon reservations full"));
+	ReservationFull.ExecuteIfBound();
 }

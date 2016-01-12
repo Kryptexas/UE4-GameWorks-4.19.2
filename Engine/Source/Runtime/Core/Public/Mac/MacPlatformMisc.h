@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	MacPlatformMisc.h: Mac platform misc functions
@@ -100,6 +100,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void NormalizePath(FString& InPath);
 	static FString GetPrimaryGPUBrand();
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
+	static bool HasPlatformFeature(const TCHAR* FeatureName);
+	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
 
 
 	/** 
@@ -144,24 +146,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
-
-	/**
-	 * Converts Y position from Slate (left-top origin) to Cocoa (left-bottom origin) coordinates
-	 *
-	 * @param	YPosition		Position to convert
-	 *
-	 * @return					Converted position
-	 */
-    static int32 ConvertSlateYPositionToCocoa(int32 YPosition);
-    
-    /**
-     * Converts Y position from Cocoa (left-bottom origin) to Slate (left-top origin) coordinates
-     *
-     * @param	YPosition		Position to convert
-     *
-     * @return					Converted position
-     */
-    static int32 ConvertCocoaYPositionToSlate(int32 YPosition);
 	
 	static void SetGracefulTerminationHandler();
 	

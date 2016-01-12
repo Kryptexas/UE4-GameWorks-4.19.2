@@ -2,6 +2,7 @@ Availability:Public
 Title:Particle Lights
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Particle Lights are another weapon in the VFX artist's arsenal.
+Version: 4.9
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

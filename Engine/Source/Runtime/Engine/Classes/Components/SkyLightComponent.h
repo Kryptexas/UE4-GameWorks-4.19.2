@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -97,6 +97,10 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light)
 	class UTextureCube* Cubemap;
 
+	/** Angle to rotate the source cubemap when SourceType is set to SLS_SpecifiedCubemap. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(UIMin = "0", UIMax = "360"))
+	float SourceCubemapAngle;
+
 	/** 
 	 * Distance from the sky light at which any geometry should be treated as part of the sky. 
 	 * This is also used by reflection captures, so update reflection captures to see the impact.
@@ -137,7 +141,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 
 	class FSkyLightSceneProxy* CreateSceneProxy() const;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
@@ -148,7 +152,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	void ApplyComponentInstanceData(class FPrecomputedSkyLightInstanceData* ComponentInstanceData);
@@ -242,10 +246,10 @@ protected:
 	static TArray<USkyLightComponent*> SkyCapturesToUpdate;
 	static TArray<USkyLightComponent*> SkyCapturesToUpdateBlendDestinations;
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 
 	void UpdateLimitedRenderingStateFast();
 

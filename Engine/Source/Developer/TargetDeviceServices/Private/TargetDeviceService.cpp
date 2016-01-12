@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "TargetDeviceServicesPrivatePCH.h"
 #include "PlatformInfo.h"
@@ -175,13 +175,13 @@ bool FTargetDeviceService::Start()
 		// notify other services
 		ClaimAddress = MessageEndpoint->GetAddress();
 		ClaimHost = FPlatformProcess::ComputerName();
-		ClaimUser = FPlatformProcess::UserName(true);
+		ClaimUser = FPlatformProcess::UserName(false);
 
 		MessageEndpoint->Publish(new FTargetDeviceClaimed(DeviceName, ClaimHost, ClaimUser));
 
 		Running = true;
 	}
-
+		
 	return true;
 }
 
@@ -190,10 +190,12 @@ void FTargetDeviceService::Stop()
 {
 	if (Running)
 	{
-		// notify other services
-		MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(true)));
+	
+		MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)));
+	    // Only stop the device if we care about device claiming
 
-		Running = false;
+		GConfig->GetBool(TEXT("/Script/Engine.Engine"), TEXT("DisableDeviceClaiming"), Running, GEngineIni);
+		
 	}
 }
 
@@ -282,7 +284,7 @@ void FTargetDeviceService::HandleClaimedMessage(const FTargetDeviceClaimed& Mess
 	{
 		if (Context->GetSender() != MessageEndpoint->GetAddress())
 		{
-			MessageEndpoint->Send(new FTargetDeviceClaimDenied(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(true)), Context->GetSender());
+			MessageEndpoint->Send(new FTargetDeviceClaimDenied(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)), Context->GetSender());
 		}
 	}
 	else
@@ -385,7 +387,7 @@ void FTargetDeviceService::HandlePingMessage(const FTargetDeviceServicePing& InM
 		return;
 	}
 
-	if (!Shared && (InMessage.HostUser != FPlatformProcess::UserName(true)))
+	if (!Shared && (InMessage.HostUser != FPlatformProcess::UserName(false)))
 	{
 		return;
 	}
@@ -402,7 +404,7 @@ void FTargetDeviceService::HandlePingMessage(const FTargetDeviceServicePing& InM
 		Message->Name = DefaultDevice->GetName();
 		Message->Type = TargetDeviceTypes::ToString(DefaultDevice->GetDeviceType());
 		Message->HostName = FPlatformProcess::ComputerName();
-		Message->HostUser = FPlatformProcess::UserName(true);
+		Message->HostUser = FPlatformProcess::UserName(false);
 		Message->Connected = DefaultDevice->IsConnected();
 		Message->Make = TEXT("@todo");
 		Message->Model = TEXT("@todo");

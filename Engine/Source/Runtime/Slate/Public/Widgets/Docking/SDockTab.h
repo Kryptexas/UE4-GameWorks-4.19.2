@@ -1,10 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "SBorder.h"
+#include "TabManager.h"
 
 class SDockingTabWell;
 class SDockingTabStack;
+class SImage;
+class STextBlock;
+class SToolTip;
 
 /** How will this tab be used. */
 enum ETabRole : uint8
@@ -244,10 +249,7 @@ public:
 	bool HasSiblingTab(const FTabId& SiblingTabId, const bool TreatIndexNoneAsWildcard = true) const;
 
 	/** Updates the 'last activated' time to the current time */
-	void UpdateActivationTime()
-	{
-		LastActivationTime = FSlateApplication::Get().GetCurrentTime();
-	}
+	void UpdateActivationTime();
 
 	/** Returns the time this tab was last activated */
 	double GetLastActivationTime()

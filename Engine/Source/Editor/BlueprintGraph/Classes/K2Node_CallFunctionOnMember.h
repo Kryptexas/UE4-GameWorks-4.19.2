@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -17,12 +17,12 @@ class UK2Node_CallFunctionOnMember : public UK2Node_CallFunction
 
 	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 
-	// Begin UK2Node_CallFunction interface
+	//~ Begin UK2Node_CallFunction Interface
 	virtual UEdGraphPin* CreateSelfPin(const UFunction* Function) override;
 	virtual FText GetFunctionContextString() const override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
-	// End UK2Node_CallFunction interface
+	//~ End UK2Node_CallFunction Interface
 
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EnvironmentQuery/EnvQueryTypes.h"
@@ -27,6 +27,10 @@ class AIMODULE_API UEnvQueryGenerator : public UEnvQueryNode
 	/** type of generated items */
 	UPROPERTY()
 	TSubclassOf<UEnvQueryItemType> ItemType;
+
+	/** if set, tests will be automatically sorted for best performance before running query */
+	UPROPERTY(EditDefaultsOnly, Category = Option, AdvancedDisplay)
+	uint32 bAutoSortTests : 1;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }
 

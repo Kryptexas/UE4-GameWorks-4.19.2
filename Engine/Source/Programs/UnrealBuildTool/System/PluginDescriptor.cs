@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -33,7 +35,7 @@ namespace UnrealBuildTool
 		// Name of the version for this plugin.  This is the front-facing part of the version number.  It doesn't need to match
 		// the version number numerically, but should be updated when the version number is increased accordingly.
 		public string VersionName;
-		 
+
 		// Friendly name of the plugin
 		public string FriendlyName;
 
@@ -70,6 +72,9 @@ namespace UnrealBuildTool
 		// Marks the plugin as beta in the UI
 		public bool bIsBetaVersion;
 
+		// Whether this plugin can be used by UnrealHeaderTool
+		public bool bCanBeUsedWithUnrealHeaderTool;
+
 		// Set for plugins which are installed
 		public bool bInstalled;
 
@@ -86,26 +91,26 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="FileName">The filename to read</param>
 		/// <returns>New plugin descriptor</returns>
-		public static PluginDescriptor FromFile(string FileName)
+		public static PluginDescriptor FromFile(FileReference FileName)
 		{
-			JsonObject RawObject = JsonObject.FromFile(FileName);
+			JsonObject RawObject = JsonObject.Read(FileName.FullName);
 			try
 			{
 				PluginDescriptor Descriptor = new PluginDescriptor();
 
 				// Read the version
-				if(!RawObject.TryGetIntegerField("FileVersion", out Descriptor.FileVersion))
+				if (!RawObject.TryGetIntegerField("FileVersion", out Descriptor.FileVersion))
 				{
-					if(!RawObject.TryGetIntegerField("PluginFileVersion", out Descriptor.FileVersion))
+					if (!RawObject.TryGetIntegerField("PluginFileVersion", out Descriptor.FileVersion))
 					{
 						throw new BuildException("Plugin descriptor file '{0}' does not contain a valid FileVersion entry", FileName);
 					}
 				}
 
 				// Check it's not newer than the latest version we can parse
-				if(Descriptor.FileVersion > (int)PluginDescriptorVersion.Latest)
+				if (Descriptor.FileVersion > (int)PluginDescriptorVersion.Latest)
 				{
-					throw new BuildException( "Plugin descriptor file '{0}' appears to be in a newer version ({1}) of the file format that we can load (max version: {2}).", FileName, Descriptor.FileVersion, (int)PluginDescriptorVersion.Latest);
+					throw new BuildException("Plugin descriptor file '{0}' appears to be in a newer version ({1}) of the file format that we can load (max version: {2}).", FileName, Descriptor.FileVersion, (int)PluginDescriptorVersion.Latest);
 				}
 
 				// Read the other fields
@@ -119,7 +124,7 @@ namespace UnrealBuildTool
 					// Category used to be called CategoryPath in .uplugin files
 					RawObject.TryGetStringField("CategoryPath", out Descriptor.Category);
 				}
-        
+
 				// Due to a difference in command line parsing between Windows and Mac, we shipped a few Mac samples containing
 				// a category name with escaped quotes. Remove them here to make sure we can list them in the right category.
 				if (Descriptor.Category != null && Descriptor.Category.Length >= 2 && Descriptor.Category.StartsWith("\"") && Descriptor.Category.EndsWith("\""))
@@ -134,7 +139,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetStringField("SupportURL", out Descriptor.SupportURL);
 
 				JsonObject[] ModulesArray;
-				if(RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
+				if (RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
 				{
 					Descriptor.Modules = Array.ConvertAll(ModulesArray, x => ModuleDescriptor.FromJsonObject(x));
 				}
@@ -143,10 +148,11 @@ namespace UnrealBuildTool
 				RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
 				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
 				RawObject.TryGetBoolField("Installed", out Descriptor.bInstalled);
+				RawObject.TryGetBoolField("CanBeUsedWithUnrealHeaderTool", out Descriptor.bCanBeUsedWithUnrealHeaderTool);
 
 				return Descriptor;
 			}
-			catch(JsonParseException ParseException)
+			catch (JsonParseException ParseException)
 			{
 				throw new JsonParseException("{0} (in {1})", ParseException.Message, FileName);
 			}
@@ -158,7 +164,7 @@ namespace UnrealBuildTool
 		/// <param name="FileName">The filename to write to</param>
 		public void Save(string FileName)
 		{
-			using(JsonWriter Writer = new JsonWriter(FileName))
+			using (JsonWriter Writer = new JsonWriter(FileName))
 			{
 				Writer.WriteObjectStart();
 
@@ -173,13 +179,12 @@ namespace UnrealBuildTool
 				Writer.WriteValue("DocsURL", DocsURL);
 				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
 				Writer.WriteValue("SupportURL", SupportURL);
-
-				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
-
 				Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
 				Writer.WriteValue("CanContainContent", bCanContainContent);
 				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
 				Writer.WriteValue("Installed", bInstalled);
+
+				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
 
 				Writer.WriteObjectEnd();
 			}
@@ -241,15 +246,15 @@ namespace UnrealBuildTool
 		/// <returns>True if the plugin should be enabled</returns>
 		public bool IsEnabledForPlatform(UnrealTargetPlatform Platform)
 		{
-			if(!bEnabled)
+			if (!bEnabled)
 			{
 				return false;
 			}
-			if(WhitelistPlatforms != null && WhitelistPlatforms.Length > 0 && !WhitelistPlatforms.Contains(Platform))
+			if (WhitelistPlatforms != null && WhitelistPlatforms.Length > 0 && !WhitelistPlatforms.Contains(Platform))
 			{
 				return false;
 			}
-			if(BlacklistPlatforms != null && BlacklistPlatforms.Contains(Platform))
+			if (BlacklistPlatforms != null && BlacklistPlatforms.Contains(Platform))
 			{
 				return false;
 			}

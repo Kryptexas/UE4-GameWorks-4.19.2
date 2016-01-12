@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenSpaceReflections.usf: To generate screen space reflections as a postprocess
@@ -93,11 +93,11 @@ void ScreenSpaceReflectionsStencilPS(in float4 UVAndScreenPos : TEXCOORD0, out f
 	OutColor = 0;
 }
 
-void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 	float2 ScreenPos = UVAndScreenPos.zw;
-	int2 PixelPos = int2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+	int2 PixelPos = (int2)SvPosition.xy;
 
 	OutColor = 0;
 
@@ -125,23 +125,23 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	const float3 N = GBuffer.WorldNormal;
 	const float SceneDepth = CalcSceneDepth(UV);
 	const float3 PositionTranslatedWorld = mul( float4( ScreenPos * SceneDepth, SceneDepth, 1 ), View.ScreenToTranslatedWorld ).xyz;
-	const float3 V = normalize(View.TranslatedViewOrigin.xyz - PositionTranslatedWorld);
+	const float3 V = normalize(View.TranslatedWorldCameraOrigin - PositionTranslatedWorld);
 
 	uint FrameRandom;
 	{
-		bool bTemporalAAIsOn = View.TemporalAAParams.g > 1;
+		bool bTemporalAAIsOn = Frame.TemporalAAParams.g > 1;
 
 		if(bTemporalAAIsOn)
 		{
 			// usually this number is in the 0..7 range but it depends on the TemporalAA quality
-			FrameRandom = (uint)(View.TemporalAAParams.r * 1551);
+			FrameRandom = (uint)(Frame.TemporalAAParams.r * 1551);
 		}
 		else
 		{
 			// todo: using the FrameNumber can be wrong in editor
 			// 4 aligns with the temporal smoothing, larger number will do more flickering (power of two for best performance)
 			const uint RandomizeOverNFrames = 8;
-			FrameRandom = (View.FrameNumber % RandomizeOverNFrames) * 1551;
+			FrameRandom = (Frame.FrameNumber % RandomizeOverNFrames) * 1551;
 		}
 	}
 
@@ -149,7 +149,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	const int NumSteps = 16;
 	
 	{
-		const float2 PixelPos = UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw;
+		const float2 PixelPos = SvPosition.xy;
 		const float2 E = float2(PseudoRandom(PixelPos + int2(FrameRandom, 0)), PseudoRandom(PixelPos + int2(0, FrameRandom)));
 		const float StepOffset = PseudoRandom(PixelPos + FrameRandom);
 
@@ -158,7 +158,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 		const float3 R = 2 * dot( V, H ) * H - V;
 
 		const float ReflectPDF = HNAndPDF.w / (4 * saturate(dot(V, H)));
-		const float TotalSamples = View.TemporalAAParams.g;
+		const float TotalSamples = Frame.TemporalAAParams.g;
 		const float SolidAngleSample = 1.0 / ( TotalSamples * ReflectPDF );
 		const float ConeAngleWorld = acos( 1 - SolidAngleSample / (2*PI) );
 

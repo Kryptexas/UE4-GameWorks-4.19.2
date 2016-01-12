@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Animation/AnimNodeBase.h"
@@ -70,5 +70,5 @@ public:
 
 	bool InputNodeNeedsUpdate() const;
 	bool InputNodeNeedsEvaluate() const;
-	void CachePose(FPoseContext& PoseToCache);
+	void CachePose(const FPoseContext& PoseToCache);
 };

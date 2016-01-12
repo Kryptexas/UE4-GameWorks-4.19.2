@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -185,10 +185,6 @@ public:
 	static FName GetPaletteIconForFunction(UFunction const* Function, FLinearColor& OutColor);
 
 private: 
-
-	/** Helper function to check if the SelfPin is wired correctly */
-	bool IsSelfPinCompatibleWithBlueprintContext (UEdGraphPin *SelfPin, UBlueprint* BlueprintObj) const;
-
 	/* Looks at function metadata and properties to determine if this node should be using enum to exec expansion */
 	void DetermineWantsEnumToExecExpansion(const UFunction* Function);
 
@@ -209,7 +205,7 @@ private:
 
 protected:
 	/** Helper function to ensure function is called in our context */
-	virtual void EnsureFunctionIsInBlueprint();
+	virtual void FixupSelfMemberContext();
 
 	/** Helper function to find UFunction entries from the skeleton class, use with caution.. */
 	UFunction* GetTargetFunctionFromSkeletonClass() const;

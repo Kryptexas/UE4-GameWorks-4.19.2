@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CanvasItem.h: Unreal canvas item definitions
@@ -364,7 +364,7 @@ public:
 	{
 		ShadowOffset = InOffset;
 		ShadowColor = InColor;
-		FontRenderInfo.bEnableShadow = ShadowOffset.Size() != 0.0f;
+		FontRenderInfo.bEnableShadow = ShadowOffset.SizeSquared() != 0.0f;
 	}
 	
 	/** 

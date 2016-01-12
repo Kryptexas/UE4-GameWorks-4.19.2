@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.h: D3D viewport RHI definitions.
@@ -27,7 +27,7 @@ public:
 
 	FD3D12Viewport(class FD3D12Device* InParent, HWND InWindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen, EPixelFormat InPixelFormat);
 
-    void Init(IDXGIFactory4* Factory, bool AssociateWindow = true);
+	void Init(IDXGIFactory4* Factory, bool AssociateWindow = true);
 
 	~FD3D12Viewport();
 
@@ -66,7 +66,7 @@ public:
 
 	virtual void* GetNativeWindow(void** AddParam = nullptr) const override { return (void*)WindowHandle; }
 
-    uint32 GetNumBackBuffers(){ return NumBackBuffers; }
+	uint32 GetNumBackBuffers() { return NumBackBuffers; }
 
 private:
 
@@ -85,7 +85,7 @@ private:
 	int32 SyncCounter;
 	bool bSyncedLastFrame;
 	HWND WindowHandle;
-    uint32 MaximumFrameLatency;
+	uint32 MaximumFrameLatency;
 	uint32 SizeX;
 	uint32 SizeY;
 	bool bIsFullscreen;

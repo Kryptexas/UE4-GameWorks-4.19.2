@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * ChartCreation
@@ -60,6 +60,7 @@ enum FPSChartStats
 	STAT_FPSChart_Hitch_150_200,
 	STAT_FPSChart_Hitch_100_150,
 	STAT_FPSChart_Hitch_60_100,
+	STAT_FPSChart_Hitch_30_60,
 	STAT_FPSChart_LastHitchBucketStat,
 	STAT_FPSChart_TotalHitchCount,
 };

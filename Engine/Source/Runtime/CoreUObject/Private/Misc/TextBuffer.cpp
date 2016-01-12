@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextBuffer.cpp: UObject class for storing text
@@ -32,6 +32,10 @@ void UTextBuffer::Serialize (const TCHAR* Data, ELogVerbosity::Type Verbosity, c
 	Text += (TCHAR*)Data;
 }
 
+void UTextBuffer::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time )
+{
+	Text += (TCHAR*)Data;
+}
 
 /* UObject interface
  *****************************************************************************/

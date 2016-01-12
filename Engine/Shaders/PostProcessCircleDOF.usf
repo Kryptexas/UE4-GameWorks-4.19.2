@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessCircleDOF.usf: PostProcessing Circle Depth of Field
@@ -10,8 +10,11 @@
 #include "DepthOfFieldCommon.usf"
 #include "CircleDOFCommon.usf"
 
+// 0:off / 1:on (use with "vis CircleDOF0")
+#define DEBUG_SAMPLE_PATTERN 0
+
 // pixel shader entry point
-void CircleSetupPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
+void CircleSetupPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 
@@ -19,38 +22,112 @@ void CircleSetupPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_
 
 	UV = UVAndScreenPos.xy - 0.5*PostprocessInput0Size.zw;
 
-	float4 CW = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0);
-	float4 CZ = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0, int2(1,0));
-	float4 CX = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0, int2(0,1));
-	float4 CY = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0, int2(1,1));
+	float3 CW = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0).rgb;
+	float3 CZ = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0, int2(1,0)).rgb;
+	float3 CX = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0, int2(0,1)).rgb;
+	float3 CY = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0, int2(1,1)).rgb;
+
+	// clamp to avoid artifacts from exceeding fp16 through framebuffer blending of multiple very bright lights
+	CW = min(256 * 256, CW);
+	CZ = min(256 * 256, CZ);
+	CX = min(256 * 256, CX);
+	CY = min(256 * 256, CY);
 
 	float4 CocQuad = float4(DepthToCoc(DepthQuad.x), DepthToCoc(DepthQuad.y), DepthToCoc(DepthQuad.z), DepthToCoc(DepthQuad.w));
+
+#if ENABLE_FAR_BLUR == 0
+	CocQuad = min(CocQuad, 0);
+#endif
 
 	// Doing a max depth reduction (erode the foreground). Less correct, but less artifacts.
 	// Perhaps need to re-open this in the future.
 
-	#if 0
+	float mi = min(min(CocQuad.x,CocQuad.y),min(CocQuad.z,CocQuad.w));
+	float ma = max(max(CocQuad.x,CocQuad.y),max(CocQuad.z,CocQuad.w));
+	float ami = min(min(abs(CocQuad.x),abs(CocQuad.y)),min(abs(CocQuad.z),abs(CocQuad.w)));
+	float ama = max(max(abs(CocQuad.x),abs(CocQuad.y)),max(abs(CocQuad.z),abs(CocQuad.w)));
+
+	// 0:was an option before, causes erosion / 1:to reduce TemporalAA issues / 2:was used in KiteDemo
+	#define COC_METHOD 2
+
+	#if COC_METHOD == 0
 		// Stuff max radius in alpha.
-		OutColor0.a = max(max(CocQuad.x,CocQuad.y),max(CocQuad.z,CocQuad.w));
-	#else
+		// bad erosion on TemporalDitherAA
+		OutColor0.a = ma;
+	#elif COC_METHOD == 1
+		// acceptable TemporalDitherAA
+		// requires DefaultWeight > 1
+		OutColor0.a = (mi + ma) / 2;
+	#elif COC_METHOD == 2
 		// This in theory is better but causes bleeding artifacts with temporal AA..
 		// This is important otherwise near thin objects disappear (leaves clamping artifacts in recombined pass).
+		// bad on TemporalDitherAA, flat opacity where it should transition
 		OutColor0.a = CocQuad.x;
 		if(abs(OutColor0.a) > CocQuad.y) OutColor0.a = CocQuad.y;
 		if(abs(OutColor0.a) > CocQuad.z) OutColor0.a = CocQuad.z;
 		if(abs(OutColor0.a) > CocQuad.w) OutColor0.a = CocQuad.w;
+	#elif COC_METHOD == 3
+		// this should be better than the method before
+		// bad on TemporalDitherAA
+		OutColor0.a = CocQuad.x;
+		if(abs(OutColor0.a) > abs(CocQuad.y)) OutColor0.a = CocQuad.y;
+		if(abs(OutColor0.a) > abs(CocQuad.z)) OutColor0.a = CocQuad.z;
+		if(abs(OutColor0.a) > abs(CocQuad.w)) OutColor0.a = CocQuad.w;
+	#elif COC_METHOD == 4
+		// Stuff max radius in alpha.
+		OutColor0.a = mi;
+	#elif COC_METHOD == 5
+		// artifacts that look like negative colors (tb070) (with and without the 2nd line)
+		// bad erosion on TemporalDitherAA
+		OutColor0.a = (ami + ama) / 2;
+//		if((mi + ma) / 2 < 0) OutColor0.a = 0;
+	#elif COC_METHOD == 6
+		// like #3 but with inverted comparison, ok?
+		// bad erosion on TemporalDitherAA
+		OutColor0.a = CocQuad.x;
+		if(abs(OutColor0.a) < abs(CocQuad.y)) OutColor0.a = CocQuad.y;
+		if(abs(OutColor0.a) < abs(CocQuad.z)) OutColor0.a = CocQuad.z;
+		if(abs(OutColor0.a) < abs(CocQuad.w)) OutColor0.a = CocQuad.w;
+	#elif COC_METHOD == 7
+		// requires DefaultWeight > 1
+		float A = CocQuad.x;
+		if(abs(A) < abs(CocQuad.y)) A = CocQuad.y;
+		if(abs(A) < abs(CocQuad.z)) A = CocQuad.z;
+		if(abs(A) < abs(CocQuad.w)) A = CocQuad.w;
+		float B = CocQuad.x;
+		if(abs(B) > abs(CocQuad.y)) B = CocQuad.y;
+		if(abs(B) > abs(CocQuad.z)) B = CocQuad.z;
+		if(abs(B) > abs(CocQuad.w)) B = CocQuad.w;
+		OutColor0.a= (A + B) / 2;
+	#elif COC_METHOD == 8
+		// broken near dof
+		OutColor0.a = dot(0.25f, max(0, CocQuad));
+	#elif COC_METHOD == 9
+		// mix between 2 and 8, seems to be best in most cases
+		// requires DefaultWeight > 1
+		OutColor0.a = CocQuad.x;
+		if(abs(OutColor0.a) > CocQuad.y) OutColor0.a = CocQuad.y;
+		if(abs(OutColor0.a) > CocQuad.z) OutColor0.a = CocQuad.z;
+		if(abs(OutColor0.a) > CocQuad.w) OutColor0.a = CocQuad.w;
+		if(OutColor0.a > 0)	OutColor0.a = dot(0.25f, max(0, CocQuad));
+	#else
+		error
 	#endif
+
+	// >1 to avoid /0 (resulting in dark outlines in level tb070)
+	// a bit laregr to avoid a specific leaking artifact in level tb080 
+	const float DefaultWeight = 1.4f;
 
 	// Remove samples which are outside the size.
 	// TODO: Tune the ScaleFactor.
 	float ScaleFactor = 64.0;
 	float4 W = float4(
-		1.0-saturate(abs(OutColor0.a - CocQuad.x) * ScaleFactor),
-		1.0-saturate(abs(OutColor0.a - CocQuad.y) * ScaleFactor),
-		1.0-saturate(abs(OutColor0.a - CocQuad.z) * ScaleFactor),
-		1.0-saturate(abs(OutColor0.a - CocQuad.w) * ScaleFactor));
+		DefaultWeight - saturate(abs(OutColor0.a - CocQuad.x) * ScaleFactor),
+		DefaultWeight - saturate(abs(OutColor0.a - CocQuad.y) * ScaleFactor),
+		DefaultWeight - saturate(abs(OutColor0.a - CocQuad.z) * ScaleFactor),
+		DefaultWeight - saturate(abs(OutColor0.a - CocQuad.w) * ScaleFactor));
 
-	OutColor0.rgb = (1.0/(W.x+W.y+W.z+W.w)) * (CX.rgb*W.x + CY.rgb*W.y + CZ.rgb*W.z + CW.rgb*W.w);
+	OutColor0.rgb = (1.0 / (W.x + W.y + W.z + W.w)) * (CX * W.x + CY * W.y + CZ * W.z + CW * W.w);
 }
 
 
@@ -89,6 +166,7 @@ float Min16(float4 A, float4 B, float4 C, float4 D)
 }
 
 // This does a 2x2:1 reduction with a 4x4:1 dilation.
+// OutColor is float as we output to a single channel format (NVIDIA Windows driver has undefined result in the other channels if the RT has more than one)
 void CircleDilatePS(float4 UVAndScreenPos : TEXCOORD0, out float OutColor : SV_Target0)
 {
 	// Sampling pattern (each gather4)
@@ -128,9 +206,12 @@ void CircleDilatePS(float4 UVAndScreenPos : TEXCOORD0, out float OutColor : SV_T
 	OutColor = min(0.0, Min16(Sd, Sg, Sj, Sm));
 }
 
+float4 TestFunc(float2 p)
+{
+	return saturate(15 - length((p- 0.5f) * PostprocessInput0Size.xy));
+}
 
-// pixel shader entry point
-void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
+void Circle4Samples(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0, float InRand)
 {
 	float2 UV = UVAndScreenPos.xy;
 
@@ -141,20 +222,26 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 
 	// Fixed maximum search size (in terms of Circle of Confusion radius).
 	// Higher than 8 is too noizy for 4 samples.
-	float Coc = 8.0 * CircleDofParams.w;
+	float Coc = 8.0 * Frame.CircleDOFParams.w;
+
+	float LocalRand = RandomOffset.x + InRand;
 
 	// Get base semi-random direction and dither along radius.
 	// Reused throughout the rest of the algorithm.
 	float TwoPi = 2.0 * 3.14159;
-	float RadianBase = NoizSnorm(UVAndScreenPos.xy, 0.010 * RandomOffset.x) * TwoPi;
-	float RadiusBase = NoizNorm(UVAndScreenPos.xy, 0.013 * RandomOffset.x);
+	float RadianBase = NoizSnorm(UVAndScreenPos.xy, 0.010 * LocalRand) * TwoPi;
+	float RadiusBase = NoizNorm(UVAndScreenPos.xy, 0.013 * LocalRand);
+
+#if DEBUG_SAMPLE_PATTERN
+	Coc = 100;
+#endif
 
 	// Radius 
 	float RadiusBase2 = RadiusBase * (1.0/4.0);
 	float R1 = sqrt(RadiusBase2 + 3.0/4.0) * Coc;
 	float R2 = sqrt(RadiusBase2 + 2.0/4.0) * Coc;
 	float R3 = sqrt(RadiusBase2 + 1.0/4.0) * Coc;
-	float R4 = sqrt(RadiusBase2 + 0.0/4.0) * Coc;
+	float R4 = sqrt(RadiusBase2 + 0.6/4.0) * Coc;	// 0 gives a disk shape, 0.6 avoids some artifacts but results in a dark center
 
 	float2 UV1 = RotVec(R1, RadianBase + TwoPi * 0.0/4.0);
 	float2 UV2 = RotVec(R2, RadianBase + TwoPi * 2.0/4.0);
@@ -165,6 +252,16 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 	UV2 = UVAndScreenPos.xy + UV2 * PostprocessInput0Size.zw;
 	UV3 = UVAndScreenPos.xy + UV3 * PostprocessInput0Size.zw;
 	UV4 = UVAndScreenPos.xy + UV4 * PostprocessInput0Size.zw;
+
+#if DEBUG_SAMPLE_PATTERN
+	OutColor0 = TestFunc(UV1)*float4(1,0,0,0) + 
+				TestFunc(UV2)*float4(0,1,0,0) +
+				TestFunc(UV3)*float4(0,0,1,0) +
+				TestFunc(UV4)*float4(1,1,1,0)/3.0f;
+	OutColor0.rgb=dot(1/3.0f, OutColor0.rgb);
+	OutColor0.a=1;
+	return;
+#endif
 
 	float D1 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UV1, 0).x;
 	float D2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UV2, 0).x;
@@ -192,6 +289,10 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 
 	// Grab circle of confusion for the pixel and pixel color.
 	OutColor0 = Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, UV, 0);
+
+	// Uncomment to see intermediate debug output
+//	return; 
+
 	float FarCoc = OutColor0.a;
 
 	// Fix in case no near exists.
@@ -273,9 +374,17 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 	OutColor0.rgb = OutColor0.rgb * W0 + C1.rgb * W1 + C2.rgb * W2 + C3.rgb * W3 + C4.rgb * W4;
 	float Weight = W0+W1+W2+W3+W4;
 
+
 	// Set current result as possible background.
 	float3 Background = OutColor0.rgb * (1.0/Weight);
 
+	// former method
+//	 #define FadeOutOutsideCoC(INDEX, COC) C##INDEX.rgb = lerp(C##INDEX.rgb, Background.rgb, saturate(abs(C##INDEX.a) - COC));
+	// new method avoids having the center leaking with large CoC
+#define FadeOutOutsideCoC(INDEX, COC) W##INDEX = lerp(W##INDEX, 0, saturate(abs(C##INDEX.a) - COC));
+
+	// Uncomment to see intermediate debug output
+//	OutColor0.rgb *= (1.0/Weight);return; 
 
 	//
 	// Pass 2
@@ -313,10 +422,10 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 	C4 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV4, 0);
 
 	// Lerp to background if outside possibly smaller CoC.
-	C1.rgb = lerp(C1.rgb, Background.rgb, saturate(abs(C1.a) - Coc2));
-	C2.rgb = lerp(C2.rgb, Background.rgb, saturate(abs(C2.a) - Coc2));
-	C3.rgb = lerp(C3.rgb, Background.rgb, saturate(abs(C3.a) - Coc2));
-	C4.rgb = lerp(C4.rgb, Background.rgb, saturate(abs(C4.a) - Coc2));
+	FadeOutOutsideCoC(1, Coc2)
+	FadeOutOutsideCoC(2, Coc2)
+	FadeOutOutsideCoC(3, Coc2)
+	FadeOutOutsideCoC(4, Coc2)
 
 	W1 = R1;
 	W2 = R2;
@@ -343,7 +452,9 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 
 	OutColor0.rgb += C1.rgb * W1 + C2.rgb * W2 + C3.rgb * W3 + C4.rgb * W4;
 	Weight += W1+W2+W3+W4;
-
+	
+	// Uncomment to see intermediate debug output
+//	OutColor0.rgb *= (1.0/Weight);return; 
 
 	//
 	// Pass 3
@@ -383,10 +494,10 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 	C3 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV3, 0);
 	C4 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV4, 0);
 
-	C1.rgb = lerp(C1.rgb, Background.rgb, saturate(abs(C1.a) - Coc3));
-	C2.rgb = lerp(C2.rgb, Background.rgb, saturate(abs(C2.a) - Coc3));
-	C3.rgb = lerp(C3.rgb, Background.rgb, saturate(abs(C3.a) - Coc3));
-	C4.rgb = lerp(C4.rgb, Background.rgb, saturate(abs(C4.a) - Coc3));
+	FadeOutOutsideCoC(1, Coc3)
+	FadeOutOutsideCoC(2, Coc3)
+	FadeOutOutsideCoC(3, Coc3)
+	FadeOutOutsideCoC(4, Coc3)
 
 	W1 = R1;
 	W2 = R2;
@@ -407,30 +518,44 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 	Weight += W1+W2+W3+W4;
 
 	OutColor0.rgb *= (1.0/Weight);
-
 }
 
-
-// pixel shader to combine the full res scene and the blurred images behind and in front of the the focal plane
-void MainCircleRecombinePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+// pixel shader entry point
+void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
 {
-	// Circle of confusion size for the pixel.
-	float PixDepth = CalcSceneDepth(UVAndScreenPos.xy);
-	float PixCoc = DepthToCoc(PixDepth);
+#if QUALITY
+	// 2 or higher, gets slower but less noisy
+	const uint Count = 32;
+#else
+	const uint Count = 1;
+#endif
 
-	// Grab nearest Coc.
-	PixCoc = min(PixCoc, PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVAndScreenPos.xy, 0).a);
+	OutColor0 = 0;
+	LOOP for(uint i = 0; i < Count; ++i)
+	{
+		float4 Color;
+		Circle4Samples(UVAndScreenPos, Color, i);
 
-	// Transform into sample pattern.
-	PixCoc = abs(PixCoc) * 2.0; // 2x because full instead of half resolution.
+		OutColor0 += Color;
+	}
+
+	OutColor0 /= Count;
+}
+
+// actual color is RGB/A
+float4 Recombine2Samples(float4 UVAndScreenPos, float PixCoc, float InRand)
+{
+	float LocalRand = RandomOffset.x + InRand;
 
 	#if 1
 		// Fetch 2 samples mirrored around the pixel 
 		// which is stochastically distributed to fill out the circle of confusion.
 		// TODO: Fix the "random values".
 		float2 UV = UVAndScreenPos.xy * PostprocessInput0Size.xy;
-		float RadianBase = NoizNorm(UVAndScreenPos.xy, 0.010 * RandomOffset.x) * 3.14159 * 2.0;
-		float RadiusJitter = NoizNorm(UVAndScreenPos.xy, 0.013 * RandomOffset.x);
+
+		float RadianBase = NoizNorm(UVAndScreenPos.xy, 0.010 * LocalRand) * 3.14159;			// 0..PI as we use sample pairs and don't need 0..2*PI
+		float RadiusJitter = NoizNorm(UVAndScreenPos.xy, 0.013 * LocalRand);
+
 		float ICoc = PixCoc*sqrt(RadiusJitter);
 		float2 VP = RotVec(ICoc, RadianBase) * PostprocessInput0Size.zw;
 
@@ -439,23 +564,34 @@ void MainCircleRecombinePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 		float4 CA = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy + VP, 0);
 		float4 CB = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy - VP, 0);
 
+		// clamp to avoid artifacts from exceeding fp16 through framebuffer blending of multiple very bright lights
+		CA.rgb = min(float3(256 * 256, 256 * 256, 256 * 256), CA.rgb);
+		CB.rgb = min(float3(256 * 256, 256 * 256, 256 * 256), CB.rgb);
+
+		float I1 = 1.0/65536.0;
+		float I2 = 1.0/65536.0;
+
+#if QUALITY
+		// we don't have depth in the alpha channel
+		CA.a = DepthToCoc(CalcSceneDepth(UVAndScreenPos.xy + VP));
+		CB.a = DepthToCoc(CalcSceneDepth(UVAndScreenPos.xy - VP));
+
 		// Weight the two samples to avoid forground into background bleed.
 		float IFeather0 = 1.0/4.0;
 		ICoc *= 0.5; // Coc is half res units.
-		float I1 = saturate((abs(CA.a) - ICoc) * IFeather0);
-		float I2 = saturate((abs(CB.a) - ICoc) * IFeather0);
-		I1 += 1.0/65536.0;
-		I2 += 1.0/65536.0;
-	
-		OutColor = (CA * I1 + CB * I2) * (1.0/(I1+I2));
+		I1 += saturate((abs(CA.a) - ICoc) * IFeather0 + Frame.GeneralPurposeTweak);
+		I2 += saturate((abs(CB.a) - ICoc) * IFeather0 + Frame.GeneralPurposeTweak);
+#endif
+
+		return float4(CA.rgb * I1 + CB.rgb * I2, I1 + I2);
 	#else
 	    // Possibly higher quality option in the future.
 
 		// Fetch 4 samples in filled disc pattern
 		// which is stochastically distributed to fill out the circle of confusion.
 		float2 UV = UVAndScreenPos.xy * PostprocessInput0Size.xy;
-		float RadianBase = NoizNorm(UVAndScreenPos.xy, 0.010 * RandomOffset.x) * 3.14159 * 2.0;
-		float RadiusBase = NoizNorm(UVAndScreenPos.xy, 0.013 * RandomOffset.x);
+		float RadianBase = NoizNorm(UVAndScreenPos.xy, 0.010 * LocalRand) * 3.14159 * 2.0;
+		float RadiusBase = NoizNorm(UVAndScreenPos.xy, 0.013 * LocalRand);
 
 		float RadiusBase2 = RadiusBase * (1.0/4.0);
 		float R1 = sqrt(RadiusBase2 + 3.0/4.0) * PixCoc;
@@ -493,9 +629,54 @@ void MainCircleRecombinePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 		I3 += 1.0/65536.0;
 		I4 += 1.0/65536.0;
 
-		OutColor = (CA * I1 + CB * I2 + CC * I3 + CD * I4) * (1.0/(I1+I2+I3+I4));
+		return float4(CA.rgb * I1 + CB.rgb * I2 + CC.rgb * I3 + CD.rgb * I4, I1+I2+I3+I4);
 	#endif
+}
 
+float3 RecombineNSamples(float4 UVAndScreenPos, float PixCoc)
+{
+#if QUALITY
+	// 2 or higher, gets slower but less noisy
+	const uint Count = 32;
+#else
+	const uint Count = 1;
+#endif
+
+	float4 SumWithWeight = 0;
+	LOOP for(uint i = 0; i < Count; ++i)
+	{
+		float4 ColorWithWeight = Recombine2Samples(UVAndScreenPos, PixCoc, i);
+	
+		SumWithWeight += ColorWithWeight;
+	}
+
+	return SumWithWeight.rgb / SumWithWeight.a;
+}
+
+// pixel shader to combine the full res scene and the blurred images behind and in front of the the focal plane
+void MainCircleRecombinePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	// Circle of confusion size for the pixel.
+	float PixDepth = CalcSceneDepth(UVAndScreenPos.xy);
+	float PixCoc = DepthToCoc(PixDepth);
+
+	float4 HalfRes = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVAndScreenPos.xy, 0);
+	
+	// debug CircleDOF pass
+//	OutColor = HalfRes; return;
+
+	// Grab nearest Coc.
+	PixCoc = min(PixCoc, HalfRes.a);
+
+	// debug CoC
+//	OutColor = PixCoc*0.05f; return;
+
+	// Transform into sample pattern.
+	PixCoc = abs(PixCoc) * 2.0; // 2x because full instead of half resolution.
+
+	OutColor.rgb = RecombineNSamples(UVAndScreenPos, PixCoc);
+	OutColor.a=0;
+	
 	// Grab the half resolution neighborhood to remove the artifacts from the full resolution output.
 	// Nearest location.
 	#if 1
@@ -514,6 +695,13 @@ void MainCircleRecombinePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 	float4 H2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, HUV, 0, int2(0,1));
 	float4 H3 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, HUV, 0, int2(1,1));
 
+	// to YCoCg (doesn't make much of a difference)
+//	H0.rgb = RGBToYCoCg(H0.rgb);
+//	H1.rgb = RGBToYCoCg(H1.rgb);
+//	H2.rgb = RGBToYCoCg(H2.rgb);
+//	H3.rgb = RGBToYCoCg(H3.rgb);
+//	OutColor.rgb = RGBToYCoCg(OutColor.rgb);
+
 	// TODO: This would work a lot better in YUV style colorspace?
 	// Limit the full resolution to remove jitter artifacts.
 	float4 HMax = max(max(H0,H1),max(H2,H3));
@@ -526,10 +714,14 @@ void MainCircleRecombinePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutC
 		HMax += HD * Small;
 		HMin -= HD * Small;
 	#endif
+		
+	// debug unclamped color
+//	return;
 
 	// Blend in the limited version quickly to remove HDR jitter artifacts and noise.
 	float4 OutLimited = min(max(OutColor,HMin),HMax);
 	OutColor = lerp(OutColor, OutLimited, saturate(PixCoc*PixCoc*4.0));
+
+	// back to RGB
+//	OutColor.rgb = YCoCgToRGB(OutColor.rgb);
 }
-
-

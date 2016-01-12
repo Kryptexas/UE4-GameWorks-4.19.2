@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CameraDetails.h"
@@ -27,7 +27,7 @@ void FCameraDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	TSharedPtr<IPropertyHandle> bConstrainAspectRatioProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UCameraComponent, bConstrainAspectRatio));
 	TSharedPtr<IPropertyHandle> ProjectionModeProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UCameraComponent, ProjectionMode));
 	AspectRatioProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UCameraComponent, AspectRatio));
-	check(AspectRatioProperty.IsValid() && AspectRatioProperty->IsValidHandle());
+	check(AspectRatioProperty.IsValid());
 
 	FSimpleDelegate OnAspectRatioChangedDelegate = FSimpleDelegate::CreateSP( this, &FCameraDetails::OnAspectRatioChanged );
 	AspectRatioProperty->SetOnPropertyValueChanged( OnAspectRatioChangedDelegate );

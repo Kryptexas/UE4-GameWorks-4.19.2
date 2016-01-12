@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 
@@ -80,7 +80,7 @@ FSlateFontAtlasRHI::~FSlateFontAtlasRHI()
 
 void FSlateFontAtlasRHI::ReleaseResources()
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	BeginReleaseResource( FontTexture.Get() );
 }
@@ -101,7 +101,7 @@ void FSlateFontAtlasRHI::ConditionalUpdateTexture()
 		}
 		else
 		{
-			check( IsThreadSafeForSlateRendering() );
+			checkSlow( IsThreadSafeForSlateRendering() );
 
 			BeginInitResource( FontTexture.Get() );
 

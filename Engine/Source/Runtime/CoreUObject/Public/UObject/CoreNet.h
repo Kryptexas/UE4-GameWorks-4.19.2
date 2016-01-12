@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -120,7 +120,7 @@ private:
 //
 class COREUOBJECT_API UPackageMap : public UObject
 {
-	DECLARE_CLASS_INTRINSIC( UPackageMap, UObject, CLASS_Transient | CLASS_Abstract | 0, CoreUObject );
+	DECLARE_CLASS_INTRINSIC(UPackageMap, UObject, CLASS_Transient | CLASS_Abstract | 0, TEXT("/Script/CoreUObject"));
 
 	virtual bool		WriteObject( FArchive & Ar, UObject* InOuter, FNetworkGUID NetGUID, FString ObjName ) { return false; }
 
@@ -150,9 +150,10 @@ class COREUOBJECT_API UPackageMap : public UObject
 	void							ResetTrackedUnmappedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
 	const TArray< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
 
-	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
-	virtual UObject*	GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
-	virtual bool		IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const { return false; }
+	virtual void			LogDebugInfo( FOutputDevice & Ar) { }
+	virtual UObject*		GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
+	virtual FNetworkGUID	GetNetGUIDFromObject( const UObject* InObject) const { return FNetworkGUID(); }
+	virtual bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const { return false; }
 
 protected:
 
@@ -434,7 +435,7 @@ COREUOBJECT_API void SerializeChecksum(FArchive &Ar, uint32 x, bool ErrorOK);
 * Values used for initializing UNetConnection and LanBeacon
 */
 enum { MAX_PACKET_SIZE = 512 }; // MTU for the connection
-enum { LAN_BEACON_MAX_PACKET_SIZE = 512 }; // MTU for the connection
+enum { LAN_BEACON_MAX_PACKET_SIZE = 1024 }; // MTU for the connection
 
 /**
  * Functions to assist in detecting errors during RPC calls

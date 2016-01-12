@@ -2,6 +2,7 @@ Availability:Public
 Title:Editor Viewports
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:A guide to navigation techniques and visualization settings for the Unreal Editor viewports.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,8 +47,6 @@ Description:A guide to navigation techniques and visualization settings for the 
 [REGION:fullwidth]
 ![](Viewports_Topic.png)
 [/REGION]
-
-## Overview
 
 [EXCERPT:Intro]
 [INCLUDE:Shared/Tutorials/inEditorTutorialCamera#viewportintro]

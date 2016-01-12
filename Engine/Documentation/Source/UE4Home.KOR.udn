@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2613760
+﻿INTSourceChangelist:2738359
 Availability:Public
 Title: 언리얼 엔진 4 문서
 Crumbs:
-Description: UE4 최상위 링크 문서입니다.
+Description: 언리얼 엔진 4 사용법 학습용 자료 전집입니다.
 Navigation:home
+
 
 [PUBLISH:Rocket]
 ## 검색
@@ -64,6 +65,9 @@ Navigation:home
 
 [/PUBLISH:Rocket]
 
+[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%")]
+
+<!--
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
@@ -76,4 +80,4 @@ Navigation:home
 	%Platforms:role%
 	%Support/Builds:role%
 	[/REGION]
-[/REGION]
+[/REGION]-->

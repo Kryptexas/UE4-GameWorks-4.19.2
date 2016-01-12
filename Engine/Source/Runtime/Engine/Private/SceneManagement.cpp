@@ -1,8 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
 #include "../../Renderer/Private/ScenePrivate.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 
 static TAutoConsoleVariable<float> CVarLODTemporalLag(
@@ -372,7 +374,8 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	// Handle forced LOD level first
 	if(ForcedLODLevel >= 0)
 	{
-		int8 MaxLOD = 0;
+		// Note: starting at -1 which is the default LODIndex, for cases where LODIndex didn't get set
+		int8 MaxLOD = -1;
 		for(int32 MeshIndex = 0 ; MeshIndex < StaticMeshes.Num() ; ++MeshIndex)
 		{
 			const FStaticMesh&  Mesh = StaticMeshes[MeshIndex];
@@ -445,7 +448,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	return LODToRender;
 }
 
-FViewUniformShaderParameters::FViewUniformShaderParameters()
+FFrameUniformShaderParameters::FFrameUniformShaderParameters()
 	: DirectionalLightShadowTexture(GWhiteTexture->TextureRHI)
 	, DirectionalLightShadowSampler(TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI())
 {
@@ -475,4 +478,43 @@ void InitializeSharedSamplerStates()
 	Clamp_WorldGroupSettings = new FSharedSamplerState(false);
 	BeginInitResource(Wrap_WorldGroupSettings);
 	BeginInitResource(Clamp_WorldGroupSettings);
+}
+
+
+FLightMapInteraction FLightCacheInterface::GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
+{
+	return LightMap ? LightMap->GetInteraction(InFeatureLevel) : FLightMapInteraction();
+}
+
+FShadowMapInteraction FLightCacheInterface::GetShadowMapInteraction() const
+{
+	return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
+}
+
+ELightInteractionType FLightCacheInterface::GetStaticInteraction(const FLightSceneProxy* LightSceneProxy, const TArray<FGuid>& IrrelevantLights) const
+{
+	ELightInteractionType Ret = LIT_MAX;
+
+	// Check if the light has static lighting or shadowing.
+	// This directly accesses the component's static lighting with the assumption that it won't be changed without synchronizing with the rendering thread.
+	if(LightSceneProxy->HasStaticShadowing())
+	{
+		const FGuid LightGuid = LightSceneProxy->GetLightGuid();
+
+		// this code was unified, in some place IrrelevantLights was checked after LightMap and ShadowMap
+		if(IrrelevantLights.Contains(LightGuid))
+		{
+			Ret = LIT_CachedIrrelevant;
+		}
+		else if(LightMap && LightMap->ContainsLight(LightGuid))
+		{
+			Ret = LIT_CachedLightMap;
+		}
+		else if(ShadowMap && ShadowMap->ContainsLight(LightGuid))
+		{
+			Ret = LIT_CachedSignedDistanceFieldShadowMap2D;
+		}
+	}
+
+	return Ret;
 }

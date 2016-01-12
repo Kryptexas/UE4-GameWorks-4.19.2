@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2600497
+﻿INTSourceChangelist:2692092
 Availability:Public
 Title: 키와 커브
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description: 블루프린트의 타임라인 에디터 안에서 키와 커브 작업 방식에 대한 개요서입니다.
+version: 4.9
 
-## 개요
 
 %Description%
 
@@ -20,7 +20,7 @@ Description: 블루프린트의 타임라인 에디터 안에서 키와 커브 �
 
 ### 키 편집
 
-키의 시간과 값은 키에 클릭한 뒤 트랙 상단 근처의 시간과 time 과 value 필드에 값을 입력하여 설정할 수 있습니다. 키의 인덱스 번호 옆에 표시되는 것입니다.
+키의 시간과 값은 키에 클릭한 뒤 트랙 상단 근처의 시간과 time 과 value 필드에 값을 입력하여 설정할 수 있습니다.
 
 ![Blueprint Timeline - Key Values](k2_timeline_track_key_values.png)
 
@@ -39,13 +39,7 @@ Description: 블루프린트의 타임라인 에디터 안에서 키와 커브 �
 
 ![](key_interpolation_example.png)
 
-## 커브
-
-여기서는 타임라인에서 보간 커브 작업을 하는 데 있어 중요한 개념을 몇 가지 다룹니다.
-
-### 커브 보간
-
-(키가 아닌) 커브에 우클릭하면 그 커브의 보간 유형을 선택할 수 있습니다. 사용할 수 있는 보간 유형은 다음과 같습니다:
+사용할 수 있는 보간 유형은 다음과 같습니다:
 
 * **Auto** 자동
 
@@ -68,11 +62,7 @@ Description: 블루프린트의 타임라인 에디터 안에서 키와 커브 �
 	![](Clamped.png)
 
 
-
-
-
-
-### 외부 커브
+## 외부 커브
 
 메인 키 영역 왼쪽에는 콘텐츠 브라우저에서 해당 트랙으로 외부 커브 애셋을 추가시킬 수 있는 칸이 있습니다. 이 부분은 ![](Engine/Blueprints/UserGuide\Timelines\Editor\add_external_curve_button.png) 버튼을 사용하는 것과는 달라서, 선택된 외부 커브에서 
 트랙을 새로 만드는 것입니다.

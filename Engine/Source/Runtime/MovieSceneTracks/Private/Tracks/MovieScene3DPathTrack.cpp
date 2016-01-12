@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DPathSection.h"
@@ -7,15 +7,12 @@
 #include "MovieScene3DPathTrackInstance.h"
 
 
+#define LOCTEXT_NAMESPACE "MovieScene3DPathTrack"
+
+
 UMovieScene3DPathTrack::UMovieScene3DPathTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 { }
-
-
-FName UMovieScene3DPathTrack::GetTrackName() const
-{
-	return FName("Path");
-}
 
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DPathTrack::CreateInstance()
@@ -24,7 +21,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DPathTrack::CreateInstance()
 }
 
 
-void UMovieScene3DPathTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FGuid& ConstraintId)
+void UMovieScene3DPathTrack::AddConstraint(float KeyTime, float ConstraintEndTime, const FName SocketName, const FGuid& ConstraintId)
 {
 	UMovieScene3DPathSection* NewSection = NewObject<UMovieScene3DPathSection>(this);
 	{
@@ -34,3 +31,14 @@ void UMovieScene3DPathTrack::AddConstraint(float KeyTime, float ConstraintEndTim
 
 	ConstraintSections.Add(NewSection);
 }
+
+
+#if WITH_EDITORONLY_DATA
+FText UMovieScene3DPathTrack::GetDisplayName() const
+{
+	return LOCTEXT("TrackName", "Path");
+}
+#endif
+
+
+#undef LOCTEXT_NAMESPACE

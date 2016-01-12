@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * This is the PhysicalMaterialPropertyBase which the PhysicalMaterial has.
@@ -28,9 +28,9 @@ class UDEPRECATED_PhysicalMaterialPropertyBase : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual bool IsAsset() const override { return false; }
-	// End UObject Interface
+	//~ End UObject Interface
 
 	// compatibility support function
 	virtual EPhysicalSurface ConvertToSurfaceType(){ return SurfaceType_Default;  }

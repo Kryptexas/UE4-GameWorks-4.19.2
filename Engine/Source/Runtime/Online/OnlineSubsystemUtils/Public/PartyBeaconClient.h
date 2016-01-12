@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,8 +10,6 @@
 struct FUniqueNetIdRepl;
 struct FPartyReservation;
 class FOnlineSessionSearchResult;
-
-#define PARTY_BEACON_TYPE TEXT("PartyBeacon")
 
 /**
  * Types of reservation requests that can be made by this beacon
@@ -27,8 +25,6 @@ enum class EClientRequestType : uint8
 	ReservationUpdate,
 	/** Reservation to configure an empty server  */
 	EmptyServerReservation,
-	/** Attempt to change an existing session to use a new world */
-	ChangeWorldRequest,
 	/** Simple reconnect (checks for existing reservation) */
 	Reconnect
 };
@@ -53,10 +49,6 @@ inline const TCHAR* ToString(EClientRequestType RequestType)
 	{
 		return TEXT("Empty Server Reservation");
 	}
-	case EClientRequestType::ChangeWorldRequest:
-	{
-		return TEXT("Change World Request");
-	}
 	case EClientRequestType::Reconnect:
 	{
 		return TEXT("Reconnect Only");
@@ -79,6 +71,9 @@ DECLARE_DELEGATE_OneParam(FOnReservationRequestComplete, EPartyReservationResult
  */
 DECLARE_DELEGATE_OneParam(FOnReservationCountUpdate, int32 /** NumRemaining */);
 
+/** Delegate triggered when the host indicated the reservation is full */
+DECLARE_DELEGATE(FOnReservationFull);
+
 /**
  * A beacon client used for making reservations with an existing game session
  */
@@ -87,14 +82,10 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AOnlineBeacon Interface
-	virtual FString GetBeaconType() override { return PARTY_BEACON_TYPE; }
-	// End AOnlineBeacon Interface
-
-	// Begin AOnlineBeaconClient Interface
+	//~ Begin AOnlineBeaconClient Interface
 	virtual void OnConnected() override;
 	virtual void OnFailure() override;
-	// End AOnlineBeaconClient Interface
+	//~ End AOnlineBeaconClient Interface
 
 	/**
 	 * Sends a request to the remote host to allow the specified members to reserve space
@@ -181,6 +172,10 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 	UFUNCTION(client, reliable)
 	virtual void ClientSendReservationUpdates(int32 NumRemainingReservations);
 
+	/** Response from the host session that the reservation is full */
+	UFUNCTION(client, reliable)
+	virtual void ClientSendReservationFull();
+
 	/**
 	 * Delegate triggered when a response from the party beacon host has been received
 	 *
@@ -195,6 +190,9 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 	 */
 	FOnReservationCountUpdate& OnReservationCountUpdate() { return ReservationCountUpdate; }
 
+	/** Delegate triggered when the host indicated the reservation is full */
+	FOnReservationFull& OnReservationFull() { return ReservationFull; }
+
 	/**
 	* @return the pending reservation associated with this beacon client
 	*/
@@ -206,6 +204,9 @@ protected:
 	FOnReservationRequestComplete ReservationRequestComplete;
 	/** Delegate for reservation count updates */
 	FOnReservationCountUpdate ReservationCountUpdate;
+
+	/** Delegate for reservation full */
+	FOnReservationFull ReservationFull;
 
 	/** Session Id of the destination host */
 	UPROPERTY()

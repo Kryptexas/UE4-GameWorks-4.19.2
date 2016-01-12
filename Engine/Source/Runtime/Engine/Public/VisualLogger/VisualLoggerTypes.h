@@ -1,6 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "EngineDefines.h"
+
+class UObject;
+class UWorld;
 
 enum class ECreateIfNeeded : int8
 {
@@ -219,15 +222,6 @@ struct ENGINE_API FVisualLogEntry
 
 #if  ENABLE_VISUAL_LOG
 
-class FVisualLogExtensionInterface
-{
-public:
-	virtual void OnTimestampChange(float Timestamp, class UWorld* InWorld, class AActor* HelperActor) = 0;
-	virtual void DrawData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp) = 0;
-	virtual void DisableDrawingForData(class UWorld* InWorld, class UCanvas* Canvas, class AActor* HelperActor, const FName& TagName, const FVisualLogDataBlock& DataBlock, float Timestamp) = 0;
-	virtual void LogEntryLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName) = 0;
-};
-
 /**
  * Interface for Visual Logger Device
  */
@@ -262,6 +256,12 @@ struct ENGINE_API FVisualLoggerCategoryVerbosityPair
 	ELogVerbosity::Type Verbosity;
 };
 
+inline bool operator==(const FVisualLoggerCategoryVerbosityPair& A, const FVisualLoggerCategoryVerbosityPair& B)
+{
+	return A.CategoryName == B.CategoryName
+		&& A.Verbosity == B.Verbosity;
+}
+
 struct ENGINE_API FVisualLoggerHelpers
 {
 	static FString GenerateTemporaryFilename(const FString& FileExt);
@@ -270,6 +270,32 @@ struct ENGINE_API FVisualLoggerHelpers
 	static FArchive& Serialize(FArchive& Ar, TArray<FVisualLogDevice::FVisualLogEntryItem>& RecordedLogs);
 	static void GetCategories(const FVisualLogEntry& RecordedLogs, TArray<FVisualLoggerCategoryVerbosityPair>& OutCategories);
 	static void GetHistogramCategories(const FVisualLogEntry& RecordedLogs, TMap<FString, TArray<FString> >& OutCategories);
+};
+
+struct IVisualLoggerEditorInterface
+{
+	virtual const FName& GetRowClassName(FName RowName) const = 0;
+	virtual int32 GetSelectedItemIndex(FName RowName) const = 0;
+	virtual const TArray<FVisualLogDevice::FVisualLogEntryItem>& GetRowItems(FName RowName) = 0;
+	virtual const FVisualLogDevice::FVisualLogEntryItem& GetSelectedItem(FName RowName) const = 0;
+
+	virtual const TArray<FName>& GetSelectedRows() const = 0;
+	virtual bool IsRowVisible(FName RowName) const = 0;
+	virtual bool IsItemVisible(FName RowName, int32 ItemIndex) const = 0;
+	virtual UWorld* GetWorld() const = 0;
+	virtual AActor* GetHelperActor(UWorld* InWorld = nullptr) const = 0;
+
+	virtual bool MatchCategoryFilters(const FString& String, ELogVerbosity::Type Verbosity = ELogVerbosity::All) = 0;
+};
+
+class FVisualLogExtensionInterface
+{
+public:
+	virtual void ResetData(IVisualLoggerEditorInterface* EdInterface) = 0;
+	virtual void DrawData(IVisualLoggerEditorInterface* EdInterface, UCanvas* Canvas) = 0;
+
+	virtual void OnItemsSelectionChanged(IVisualLoggerEditorInterface* EdInterface) {};
+	virtual void OnLogLineSelectionChanged(IVisualLoggerEditorInterface* EdInterface, TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData) {};
 };
 
 ENGINE_API  FArchive& operator<<(FArchive& Ar, FVisualLogDevice::FVisualLogEntryItem& FrameCacheItem);

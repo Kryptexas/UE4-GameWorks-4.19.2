@@ -1,8 +1,12 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "FloatCurveKeyArea.h"
+
+
 class UMovieSceneColorSection;
+
 
 /**
 * A color section implementation
@@ -21,7 +25,7 @@ public:
 	 * @param InTrack The track that owns the section.
 	 */
 	FColorPropertySection(UMovieSceneSection& InSectionObject, ISequencer* InSequencer, UMovieSceneTrack& InTrack)
-		: FPropertySection(InSectionObject, InTrack.GetTrackName())
+		: FPropertySection(InSectionObject, InTrack.GetDisplayName())
 		, Sequencer(InSequencer)
 		, Track(*Cast<UMovieSceneColorTrack>(&InTrack))
 	{ }
@@ -32,6 +36,8 @@ public:
 
 	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override;
 	virtual int32 OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const override;
+	virtual void SetIntermediateValue( FPropertyChangedParams PropertyChangedParams ) override;
+	virtual void ClearIntermediateValue() override;
 
 protected:
 
@@ -42,6 +48,11 @@ protected:
 	FLinearColor FindSlateColor(const FName& ColorName) const;
 
 private:
+
+	mutable TSharedPtr<FFloatCurveKeyArea> RedKeyArea;
+	mutable TSharedPtr<FFloatCurveKeyArea> GreenKeyArea;
+	mutable TSharedPtr<FFloatCurveKeyArea> BlueKeyArea;
+	mutable TSharedPtr<FFloatCurveKeyArea> AlphaKeyArea;
 
 	/** The sequencer that manages the section. */
 	ISequencer* Sequencer;

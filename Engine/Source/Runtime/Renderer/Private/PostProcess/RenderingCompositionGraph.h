@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingCompositionGraph.h: Scene pass order and dependency system.
@@ -61,7 +61,7 @@ private:
 	void RecursivelyProcess(const FRenderingCompositeOutputRef& InOutputRef, FRenderingCompositePassContext& Context) const;
 
 	/** Write the contents of the specified output to a file */
-	void DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const;
+	TFuture<void> DumpOutputToFile(FRenderingCompositePassContext& Context, const FString& Filename, FRenderingCompositeOutput* Output) const;
 
 	/**
 	 * for debugging purpose O(n)
@@ -159,7 +159,7 @@ private:
 	TShaderMap<FGlobalShaderType>* ShaderMap;
 	// to ensure we only process the graph once
 	bool bWasProcessed;
-
+	// updated once a frame in Process()
 	// If true there's a custom mesh to use instead of a full screen quad when rendering post process passes.
 	bool bHasHmdMesh;
 };
@@ -264,6 +264,9 @@ struct FRenderingCompositePass
 
 	/** */
 	virtual void Release() = 0;
+
+	/** can be called after RecursivelyGatherDependencies to detect if the node is reference by any other node - if not we don't need to run it */
+	bool WasComputeOutputDescCalled() const { return bComputeOutputDescWasCalled; }
 
 protected:
 

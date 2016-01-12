@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "AndroidInputInterface.h"
@@ -12,6 +12,7 @@
 #include "AndroidPlatformCrashContext.h"
 #include "PlatformMallocCrash.h"
 #include "AndroidJavaMessageBox.h"
+#include "GenericPlatformChunkInstall.h"
 
 #include <android_native_app_glue.h>
 
@@ -364,6 +365,12 @@ bool FAndroidMisc::AllowRenderThread()
 		return false;
 	}
 
+	// Vivante GC1000 with 2.x driver has issues with render thread
+	if (FAndroidMisc::GetGPUFamily().StartsWith(TEXT("Vivante GC1000")) && FAndroidMisc::GetGLVersion().StartsWith(TEXT("OpenGL ES 2.")))
+	{
+		return false;
+	}
+
 	// there is an issue with presenting the buffer on kindle fire (1st gen) with multiple threads using opengl
 	if (FAndroidMisc::GetDeviceModel() == FString(TEXT("Kindle Fire")))
 	{
@@ -514,7 +521,7 @@ void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 
 	// Restore system handlers so Android could catch this signal after we are done with crashreport
 	RestorePreviousSignalHandlers();
-	
+
 	FAndroidCrashContext CrashContext;
 	CrashContext.InitFromSignal(Signal, Info, Context);
 
@@ -558,6 +565,27 @@ TArray<uint8> FAndroidMisc::GetSystemFontBytes()
 	static FString FullFontPath = GFontPathBase + FString(TEXT("DroidSans.ttf"));
 	FFileHelper::LoadFileToArray(FontBytes, *FullFontPath);
 	return FontBytes;
+}
+
+class IPlatformChunkInstall* FAndroidMisc::GetPlatformChunkInstall()
+{
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+	if (!ChunkInstall)
+	{
+		if (PlatformChunkInstallModule != NULL)
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		}
+		else
+		{
+			// Placeholder instance
+			ChunkInstall = new FGenericPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
 }
 
 void FAndroidMisc::SetVersionInfo( FString InAndroidVersion, FString InDeviceMake, FString InDeviceModel, FString InOSLanguage )

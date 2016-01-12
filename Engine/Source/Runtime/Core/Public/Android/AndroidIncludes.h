@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	AndroidIncludes.h: Includes the platform specific headers for Android
@@ -21,7 +21,6 @@
 #include "Android/AndroidSplash.h"
 #include "Android/AndroidFile.h"
 #include "Android/AndroidSurvey.h"
-#include "Android/AndroidHttp.h"
 #include "Android/AndroidAffinity.h"
 
 // include platform properties and typedef it for the runtime

@@ -1,21 +1,22 @@
-﻿INTSourceChangelist:2516357
+﻿INTSourceChangelist:2702740
 Availability:Public
 Title:5.ランドスケープ マテリアルをペイントする
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
-Description:アクタがレベル内にある状態で、バリエーションを加えます。
+Description:レベルにアクタをいくつか作成したのでバリエーションを増やしてみましょう。
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/Landscape/QuickStart/4 "%Engine/Landscape/QuickStart/4:title%") 
+		[前のステップ](Engine/Landscape/QuickStart/4 "%Engine/Landscape/QuickStart/4:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/Landscape/QuickStart) 
+		[クイックスタートのホーム](Engine/Landscape/QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/Landscape/QuickStart/6 "%Engine/Landscape/QuickStart/6:title%") 
+		[次のステップ](Engine/Landscape/QuickStart/6 "%Engine/Landscape/QuickStart/6:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -23,18 +24,18 @@ Description:アクタがレベル内にある状態で、バリエーション�
 %Steps%
 
 
-ランドスケープ マテリアルを作成したら、それをランドスケープに適用し、ランドスケープ ペイントツールを使用してランドスケープをペイントします。 
+ランドスケープ マテリアルを作成したら、それをランドスケープに適用し、ランドスケープ ペイント ツールを使用してランドスケープをペイントします。 
 
 ## ランドスケープのペイントの準備
 ランドスケープのペイントを開始する前に、先にセットアップすべきものがいくつかあります。最初にすべきことは、ランドスケープ マテリアルをランドスケープに適用することです。以下の手順で行います。 
-1. まず、**コンテンツ ブラウザ** でマテリアルを見つけます。これは前のセクションで作成された **Materials** という名前のフォルダにあります。見つかったら、クリックして選択するようにします。
+1. まず、**コンテンツ ブラウザ** でマテリアルを見つけます。これは前のセクションで作成された「**Materials**」という名前のフォルダにあります。見つかったら、クリックして選択するようにします。
 
 	![](T_Landscape_Materail_In_CB.png)
 
-1. **コンテンツ ブラウザ** でランドスケープ マテリアルを選択したら、ワールドでランドスケープをクリックして、選択します。次に、**[詳細]** パネルで **Landscape** セクションを展開し、**Landscape Material** 入力を探します。 
+1. **コンテンツ ブラウザ** でランドスケープ マテリアルを選択したら、ワールドでランドスケープをクリックして、選択します。次に、**[Details (詳細)]** パネルの **[Landscape]** セクションを展開し、**Landscape Material** 入力を探します。 
 
 	![](T_Landscape_Material_Input.png)
-1. **[Use Selected Asset from the Content Browser]** (コンテンツ ブラウザから選択したアセットを使用する) 矢印アイコンを使用してマテリアルをランドスケープに適用します。 
+1. **[Use Selected Asset from the Content Browser (コンテンツ ブラウザから選択したアセットを使用する)]** 矢印アイコンを使用してマテリアルをランドスケープに適用します。 
 	[REGION:fullwidth] 
 	![](T_Landscape_Assign_Material.png)
 	[/REGION]
@@ -44,27 +45,27 @@ Description:アクタがレベル内にある状態で、バリエーション�
 	![](T_Landscape_With_Material_Applied.png)
 	[/REGION]
 	[REGION:note]
-上記の画像の黒いラインはランドスケープでビルドされていないライティングがあるためです。レベルのライティングをリビルドすると黒いラインはなくなります。
+	上記の画像の黒いラインはランドスケープでビルドされていないライティングがあるためです。レベルのライティングをリビルドすると黒いラインはなくなります。
 	[/REGION]
 
 ランドスケープ マテリアルが適用されたら、ペイントを開始する準備がほぼ整いましたが、その前に 3 つの **Landscape Layer Info Objects** を作成し、割り当てます。**Landscape Layer Info Objects** を割り当てる前にペイントしようとすると、以下の警告メッセージが表示されます。
 
 ![](T_Landscape_Paint_Warning.png)
 
-これを修正するには、以下を行うことでペイントしたい各テクスチャに対して 1 つづつ 3 つの **Landscape Layer Info Objects** を作成します。 
+これを修正するには、以下を行うことでペイントしたい各テクスチャ 1 に対して **Landscape Layer Info Objects** を 3 つ作成します。 
+
 1. 最初に、**[Landscape Paint]** モードになっていることを確認します。
 
 	![](T_Landscape_Paint_Mode.png)
 
-1. [Modes] ツールバーで、**Target Layers** セクションに、**Soil, Grass** と **Snow** という名前の 3 つのインプットがあるはずです。 
+1. [Modes] ツールバーの **[Target Layers (ターゲット レイヤー)]** セクションに、**Soil、Grass**、**Snow** という名前の 3 つのインプットがあるはずです。 
 
 	![](T_Landscape_Target_Layers.png)
 
-1. 名前の右側に、**プラス記号** のアイコンがあります。プラス記号のアイコンをクリックすると、どのタイプのレイヤーを追加したいかを尋ねる別のメニューが表示されます。例えば、**Weight-Blended Layer(normal)** オプションを選択します。
-
+1. 名前の右側に、**プラス記号** のアイコンがあります。プラス記号のアイコンをクリックすると、どのタイプのレイヤーを追加したいかを尋ねる別のメニューが表示されます。例えば、**[Weight-Blended Layer(normal)]** オプションを選択してみましょう。
 	![](T_Landscape_Blend_Layer.png)
 
-1. **Weight-Blended Layer(normal)** オプションを選択すると、ポップアップ ボックスが表示され新規作成した **Landscape Layer Info Objects** の保存先を尋ねられます。**「Landscape」** フォルダにある **「Resources」** フォルダを選択し、**OK** ボタンを押します。
+1. **[Weight-Blended Layer(normal)]** オプションを選択すると、新規作成した **Landscape Layer Info Objects** の保存先を尋ねるポップアップが表示されます。**「Landscape」** フォルダにある **「Resources」** フォルダを選択し、**[OK]** ボタンを押します。
 
 	![](T_Landscape_Layer_Info_Save.png)
 
@@ -79,14 +80,15 @@ Description:アクタがレベル内にある状態で、バリエーション�
 ランドスケープをペイントする前に、ランドスケープのペイント時に頻繁に使用するキーボードとマウス入力を以下にまとめます。
 | **一般的な制御** | **処理内容** |
 | --- | --- |
-| **左マウスボタン** | 選択したレイヤーに、選択ツールのエフェクトを適用するストロークを実行します。|
-| **Ctrl+Z** | 最後のストロークを元に戻します。|
-| **Ctrl+Y** | 最後に元に戻したストロークをやり直します。|
+| **マウスの左ボタン** | 選択されているツールのエフェクトを選択してレイヤーに適用するストロークを実行します。 |
+| **Ctrl+Z** | 最後のストロークをアンドゥします。|
+| **Ctrl+Y** | 最後に元に戻したストロークをリドゥします。|
 
 テクスチャを実際にランドスケープに適用するために使用するメインツールは、**ペイント ツール** です。ランドスケープをペイントするために使用可能なすべてのツールや、その仕組みについての詳細は、[ペイントモード](Engine/Landscape/Editing/PaintMode) ドキュメントをご覧ください。 
-マテリアルをランドスケープに適用するには、**左マウスボタン** を押して選択したテクスチャをマウスの下にあるエリアに適用します。 
 
-ペイントする新規テクスチャを選択するには、最初に **Landscape Painting モード** になっていることを確認します。次に、**Target Layers** セクションの **[Modes]** パネルでリストの中からペイントしたいテクスチャをクリックして選択します。**オレンジ** でハイライトされているテクスチャが、ランドスケープにペイントするテクスチャになります。以下の画像では、**Soil** が **オレンジ** でハイライトされています。つまり、これがランドスケープにペイントされるテクスチャです。ペイントする別のテクスチャを選択するには、リストから選択しペイントを開始します。
+マテリアルをランドスケープに適用するには、**マウスの左ボタン** を押して選択したテクスチャをマウスの下にあるエリアに適用します。 
+
+ペイントする新規テクスチャを選択するには、最初に **Landscape Painting モード** になっていることを確認します。次に、**[Target Layers]** セクションの **[Modes]** パネルでリストの中からペイントしたいテクスチャをクリックして選択します。オレンジでハイライトされているテクスチャが、ランドスケープにペイントするテクスチャになります。以下の画像では、**Soil** が オレンジ でハイライトされています。つまり、これがランドスケープにペイントされるテクスチャです。ペイントする別のテクスチャを選択するには、リストから選択しペイントを開始します。
 
 [REGION:fullwidth] 
 ![](T_Landscape_Picking_Layers_To_Paint.png)
@@ -112,7 +114,7 @@ Description:アクタがレベル内にある状態で、バリエーション�
  
  ![](T_Landscape_Texture_Size.png)
 
- 以下は、左側が **Mapping Scale**、**0.5** で、右側が **7.0** の比較になっています。
+ 以下は **Mapping Scale** の比較です。左側が **0.5**、右側が **7.0** です。
 [REGION:fullwidth] 
 ![](T_Landscape_Mapping_Scale.png)
 [/REGION]

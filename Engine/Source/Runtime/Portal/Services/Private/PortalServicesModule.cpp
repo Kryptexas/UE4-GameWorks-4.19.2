@@ -1,7 +1,8 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "PortalServicesPrivatePCH.h"
 #include "IPortalServicesModule.h"
+#include "PortalServiceLocator.h"
 #include "ModuleManager.h"
 
 
@@ -22,7 +23,7 @@ public:
 
 	virtual TSharedRef<IPortalServiceLocator> CreateLocator(const TSharedRef<FTypeContainer>& ServiceDependencies) override
 	{
-		return MakeShareable(new FPortalServiceLocator(ServiceDependencies));
+		return FPortalServiceLocatorFactory::Create(ServiceDependencies);
 	}
 
 public:

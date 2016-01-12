@@ -1,14 +1,32 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2720062
 Availability:Public
 Title:1.8 - 破壊可能コンストレイント
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理事例レベルの概要例 1.8:破壊可能物理コンストレイント
+Description: 物理のサンプル レベルの概要、サンプル 1.8:破壊可能物理コンストレイント
 Related:Engine/Physics/PhysicsBodies
-Related:Engine/Physics/PhAT/UserGuide
+Related:Engine/Physics/PhAT/HowTo
 Related:Engine/Physics/Constraints/ConstraintsReference
 Related:Engine/Physics/Constraints/ConstraintsUserGuide
 Related:Engine/Physics/Collision
-Related:Engine/Physics/PhysicalMaterials/PhysMatReference
+Related:Engine/Physics/PhysicalMaterials/Reference
+Version:4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Physics/1_7 "%Resources/ContentExamples/Physics/1_7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[物理のホーム](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -50,15 +68,16 @@ Related:Engine/Physics/PhysicalMaterials/PhysMatReference
 [/VAR]
 
 
+
 <div align="center">
-	![](physics_1_8_002.png)(w:450) ![](physics_1_8_001.png)(w:450)
+	![](physics_1_8_002.png)(w:960) <!---![](physics_1_8_001.png)(w:450)--->
 </div>
 
 
 コンストレイントされたオブジェクトを通じで一定量の角度または線の力がコンストレイントに適用されると、コンストレイントを破砕させることができます。**Angular Force** は、小枝をスナップする力、またはねじりフォースのようなものです。**Linear Force** は、クレーンを持ち上げる線に対して適用するかなりの重量といった、コンストレイントの長さに沿った引く力です。
 
-[REGION:fullwidth]
-	![](physics_1_8_003.png)
-[/REGION]
+<div align="center">
+	![](physics_1_8_003.png)(w:500)
+</div>
 
 

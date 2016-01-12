@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*===========================================================================
 	ErrorChecking.cpp
@@ -243,7 +243,7 @@ void ALevelStreamingVolume::CheckForErrors()
 	bool bHasAssociatedLevels = false;
 	for (auto It = GetWorld()->StreamingLevels.CreateConstIterator(); It; ++It)
 	{
-		if ((*It)->EditorStreamingVolumes.Find(this) != INDEX_NONE)
+		if ((*It)->EditorStreamingVolumes.Contains(this))
 		{
 			bHasAssociatedLevels = true;
 			break;

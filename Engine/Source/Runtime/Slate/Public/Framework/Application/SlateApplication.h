@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "MenuStack.h"
 #include "SlateDelegates.h"
 #include "SlateApplicationBase.h"
+#include "NavigationConfig.h"
 
 
 class SToolTip;
@@ -81,7 +82,6 @@ class SLATE_API FPopupSupport
 	TArray<FClickSubscriber> ClickZoneNotifications;
 
 };
-
 
 class SLATE_API FSlateApplication
 	: public FSlateApplicationBase
@@ -221,6 +221,8 @@ public:
 
 	/** Returns true if this slate application is ready to display windows. */
 	bool CanDisplayWindows() const;
+
+	virtual EUINavigation GetNavigationDirectionFromKey( const FKeyEvent& InKeyEvent ) const override;
 	
 	/**
 	 * Adds a modal window to the application.  
@@ -305,9 +307,10 @@ public:
 	 * @param InContent				The content to be placed inside the new menu
 	 * @param OutWrappedContent		Returns the InContent wrapped with widgets needed by the menu stack system. This is what should be drawn by the host after this call.
 	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param ShouldThrottle		Should we throttle engine ticking to maximize the menu responsiveness
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
 	 */
-	TSharedPtr<IMenu> PushHostedMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+	TSharedPtr<IMenu> PushHostedMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
 	
 	/**
 	 * Creates a new hosted child Menu and adds it to the menu stack under the specified parent menu.
@@ -318,9 +321,10 @@ public:
 	 * @param InContent				The menu's content
 	 * @param OutWrappedContent		Returns the InContent wrapped with widgets needed by the menu stack system. This is what should be drawn by the host after this call.
 	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param ShouldThrottle		Should we throttle engine ticking to maximize the menu responsiveness
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
 	 */	
-	TSharedPtr<IMenu> PushHostedMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+	TSharedPtr<IMenu> PushHostedMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
 
 	/** @return Returns whether the window has child menus. */
 	DEPRECATED(4.9, "HasOpenSubMenus() taking a window is deprecated. Use HasOpenSubMenus() taking an IMenu as a parameter.")
@@ -388,6 +392,13 @@ public:
 	 * will only be re-enabled when all tracked external modal windows have been dismissed.
 	 */
 	void ExternalModalStop();
+
+	/** Delegate for retainer widgets to know when they should update */
+	DECLARE_EVENT_OneParam(FSlateApplication, FSlateTickEvent, float);
+	FSlateTickEvent& OnPreTick()  { return PreTickEvent; }
+
+	/** Delegate for after slate application ticks. */
+	FSlateTickEvent& OnPostTick()  { return PostTickEvent; }
 
 	/** 
 	 * Removes references to FViewportRHI's.  
@@ -748,6 +759,18 @@ public:
 	 */
 	bool TakeScreenshot(const TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize);
 
+	/**
+	 * 
+	 */
+	TSharedPtr< FSlateWindowElementList > GetCachableElementList(const TSharedPtr<SWindow>& CurrentWindow, const ILayoutCache* LayoutCache);
+
+	/**
+	 * Once a layout cache is destroyed it needs to free any resources it was using in a safe way to prevent
+	 * any in-flight rendering from being interrupted by referencing resources that go away.  So when a layout
+	 * cache is destroyed it should call this function so any associated resources can be collected when it's safe.
+	 */
+	void ReleaseResourcesForLayoutCache(const ILayoutCache* LayoutCache);
+
 protected:
 
 	friend class FAnalogCursor;
@@ -758,6 +781,16 @@ protected:
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const override;
 	virtual bool IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const override;
 	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const override;
+
+	/**
+	 * Pumps and ticks the platform.
+	 */
+	void TickPlatform(float DeltaTime);
+
+	/**
+	 * Ticks and paints the actual Slate portion of the application.
+	 */
+	void TickApplication(float DeltaTime);
 
 	/** 
 	 * Ticks a slate window and all of its children
@@ -927,6 +960,8 @@ public:
 
 public:
 
+	void SetNavigationConfig( FNavigationConfig&& Config );
+
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();
 
@@ -1021,7 +1056,7 @@ public:
 
 public:
 
-	// Begin FSlateApplicationBase interface
+	//~ Begin FSlateApplicationBase Interface
 
 	virtual TSharedRef<SWindow> AddWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately = true ) override;
 
@@ -1071,7 +1106,7 @@ protected:
 
 public:
 
-	// FSlateApplicationBase interface
+	//~ Begin FSlateApplicationBase Interface
 
 	virtual bool HasAnyMouseCaptor() const override;
 	virtual FSlateRect GetPreferredWorkArea() const override;
@@ -1082,8 +1117,6 @@ public:
 	virtual bool IsWindowHousingInteractiveTooltip(const TSharedRef<const SWindow>& WindowToTest) const override;
 	virtual TSharedRef<SWidget> MakeImage( const TAttribute<const FSlateBrush*>& Image, const TAttribute<FSlateColor>& Color, const TAttribute<EVisibility>& Visibility ) const override;
 	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const override;
-	DEPRECATED(4.8, "Passing text to Slate as FString is deprecated, please use FText instead (likely via a LOCTEXT).")
-	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FString>& ToolTipString ) override;
 	virtual TSharedRef<IToolTip> MakeToolTip( const TAttribute<FText>& ToolTipText ) override;
 	virtual TSharedRef<IToolTip> MakeToolTip( const FText& ToolTipText ) override;
 	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) override;
@@ -1093,7 +1126,7 @@ public:
 
 public:
 
-	// FGenericApplicationMessageHandler interface
+	//~ Begin FGenericApplicationMessageHandler Interface
 
 	virtual bool ShouldProcessUserInputMessages( const TSharedPtr< FGenericWindow >& PlatformWindow ) const override;
 	virtual bool OnKeyChar( const TCHAR Character, const bool IsRepeat ) override;
@@ -1136,7 +1169,7 @@ public:
 	virtual EDropEffect::Type OnDragDrop( const TSharedPtr< FGenericWindow >& Window ) override;
 	virtual bool OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType ) override;
 
-private:
+public:
 
 	/**
 	 * Directly routes a pointer down event to the widgets in the specified widget path
@@ -1619,4 +1652,31 @@ private:
 	// e.g. On windows the origin (coordinates X=0, Y=0) is the upper left of the primary monitor,
 	// but there could be another monitor on any of the sides.
 	FSlateRect VirtualDesktopRect;
+
+	//
+	// Invalidation Support
+	//
+
+	class FCacheElementPools
+	{
+	public:
+		TSharedPtr< FSlateWindowElementList > GetNextCachableElementList(const TSharedPtr<SWindow>& CurrentWindow );
+		bool IsInUse() const;
+
+	private:
+		TArray< TSharedPtr< FSlateWindowElementList > > ActiveCachedElementListPool;
+		TArray< TSharedPtr< FSlateWindowElementList > > InactiveCachedElementListPool;
+	};
+
+	TMap< const ILayoutCache*, TSharedPtr<FCacheElementPools> > CachedElementLists;
+	TArray< TSharedPtr<FCacheElementPools> > ReleasedCachedElementLists;
+
+	/** Configured fkeys to control navigation */
+	FNavigationConfig NavigationConfig;
+
+	/** Delegate for pre slate tick */
+	FSlateTickEvent PreTickEvent;
+
+	/** Delegate for post slate Tick */
+	FSlateTickEvent PostTickEvent;
 };

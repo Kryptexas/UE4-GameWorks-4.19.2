@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ContentBrowserPCH.h"
@@ -429,7 +429,7 @@ void SFilterList::Construct( const FArguments& InArgs )
 		AllFrontendFilters.Add(Filter);
 	}
 
-	AllFrontendFilterCategories.Add(DefaultCategory);
+	AllFrontendFilterCategories.AddUnique(DefaultCategory);
 
 	// Auto add all inverse filters
 	for (auto FilterIt = AllFrontendFilters.CreateConstIterator(); FilterIt; ++FilterIt)

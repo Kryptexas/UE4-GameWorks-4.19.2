@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using Ionic.Zip;
 using System.IO;
@@ -31,14 +31,14 @@ public class HTML5Platform : Platform
 		HTML5SDKInfo.SetupEmscriptenTemp();
 		HTML5SDKInfo.SetUpEmscriptenConfigFile();
 
-		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
+		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5");
 		if (!Directory.Exists(PackagePath))
 		{
 			Directory.CreateDirectory(PackagePath);
 		}
 		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
@@ -98,8 +98,8 @@ public class HTML5Platform : Platform
         string FullGameExePath = Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe);
         if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullGameExePath))
         {
-	        Log("Failed to find game application " + FullGameExePath);
-	        throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
+			Log("Failed to find game application " + FullGameExePath);
+	        throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
         }
 
 		if (Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) != Path.Combine(PackagePath, GameExe))
@@ -148,6 +148,19 @@ public class HTML5Platform : Platform
 		string MonoPath = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "BatchFiles", "Mac", "SetupMono.sh");
 		GenerateMacCommandFromTemplate(MacBashTemplateFile, MacBashOutputFile, MonoPath);
 
+		string htaccessTemplate = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", "htaccess.template");
+		string htaccesspath = Path.Combine(PackagePath, ".htaccess");
+		if ( File.Exists(htaccesspath) )
+		{
+			FileAttributes attributes = File.GetAttributes(htaccesspath);
+			if ((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+			{
+				attributes &= ~FileAttributes.ReadOnly;
+				File.SetAttributes(htaccesspath, attributes);
+			}
+		}
+		File.Copy(htaccessTemplate, htaccesspath, true);
+
 		string JSDir = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5");
 		string OutDir = PackagePath;
 
@@ -155,7 +168,7 @@ public class HTML5Platform : Platform
 		string[] UtilityJavaScriptFiles = Directory.GetFiles(JSDir, "*.js");
 
 		string DestinationFile = OutDir + "/Utility.js";
-		File.Delete(DestinationFile);
+        File.Delete(DestinationFile);
 		foreach( var UtilityFile in UtilityJavaScriptFiles)
 		{
 			string Data = File.ReadAllText(UtilityFile);
@@ -165,17 +178,17 @@ public class HTML5Platform : Platform
 		// Compress all files. These are independent tasks which can be threaded. 
 		Task[] CompressionTasks = new Task[6];
 		//data file.
-		CompressionTasks[0] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation, FinalDataLocation + ".gz"));		
+		CompressionTasks[0] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation, FinalDataLocation + "gz"));		
 		// data file .js driver.
-		CompressionTasks[1] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".js.gz"));
+		CompressionTasks[1] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".jsgz"));
 		// main js.
-		CompressionTasks[2] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe), Path.Combine(PackagePath, GameExe) + ".gz"));
+		CompressionTasks[2] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe), Path.Combine(PackagePath, GameExe) + "gz"));
 		// mem init file.
-		CompressionTasks[3] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".mem.gz"));
+		CompressionTasks[3] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".memgz"));
 		// symbols file.
-		CompressionTasks[4] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbols.gz"));
+		CompressionTasks[4] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbolsgz"));
 		// Utility 
-		CompressionTasks[5] = Task.Factory.StartNew(() => CompressFile(OutDir + "/Utility.js", OutDir + "/Utility.js.gz"));
+		CompressionTasks[5] = Task.Factory.StartNew(() => CompressFile(OutDir + "/Utility.js", OutDir + "/Utility.jsgz"));
 
 		File.Copy(CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/HTML5LaunchHelper.exe"),CombinePaths(OutDir, "HTML5LaunchHelper.exe"),true);
 		Task.WaitAll(CompressionTasks);
@@ -351,7 +364,7 @@ public class HTML5Platform : Platform
 			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
-		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
+		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Binaries", "HTML5");
 		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
 		// copy the "Executable" to the archive directory
@@ -366,17 +379,23 @@ public class HTML5Platform : Platform
 		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
 
 		// data file 
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + "gz"));
 		// data file js driver 
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".jsgz"));
 		// main js file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + "gz"));
 		// memory init file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".memgz"));
 		// symbols file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbols.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbols"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbolsgz"));
 		// utilities
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.js.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.jsgz"));
 		// landing page.
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
 
@@ -385,6 +404,7 @@ public class HTML5Platform : Platform
 		SC.ArchiveFiles(LaunchHelperPath, "HTML5LaunchHelper.exe");
 		SC.ArchiveFiles(Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5"), "Readme.txt");
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(Path.Combine(PackagePath, "RunMacHTML5LaunchHelper.command")));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(Path.Combine(PackagePath, ".htaccess")));
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
@@ -408,7 +428,7 @@ public class HTML5Platform : Platform
 		// open the webpage
 		Int32 ServerPort = 8000;
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath), CombinePaths(CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CombinePaths(CmdEnv.LocalRoot, "Engine"));
 		ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "DeployServerPort", out ServerPort);
 		string WorkingDirectory = Path.GetDirectoryName(ClientApp);
 		string url = Path.GetFileName(ClientApp) +".html";
@@ -438,7 +458,7 @@ public class HTML5Platform : Platform
 		// Check HTML5LaunchHelper source for command line args
 
 		var LowerBrowserPath = BrowserPath.ToLower();
-		var ProfileDirectory = Path.Combine(Utils.GetUserSettingDirectory(), "UE4_HTML5", "user");
+		var ProfileDirectory = Path.Combine(Utils.GetUserSettingDirectory().FullName, "UE4_HTML5", "user");
 
 		string BrowserCommandline = url; 
 
@@ -467,13 +487,6 @@ public class HTML5Platform : Platform
 	public override string GetCookExtraCommandLine(ProjectParams Params)
 	{
 		return HTMLPakAutomation.CanCreateMapPaks(Params) ? " -GenerateDependenciesForMaps " : ""; 
-	}
-
-	public override List<string> GetCookExtraMaps()
-	{
-		var Maps = new List<string>();
-		Maps.Add("/Engine/Maps/Entry");
-		return Maps; 
 	}
 
 	public override bool DeployPakInternalLowerCaseFilenames()
@@ -524,7 +537,7 @@ public class HTML5Platform : Platform
 #region AMAZON S3 
 	public void UploadToS3(DeploymentContext SC)
 	{
-		ConfigCacheIni Ini = new ConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", Path.GetDirectoryName(SC.RawProjectPath));
+		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", DirectoryReference.FromFile(SC.RawProjectPath));
 		bool Upload = false;
 
 		string KeyId = "";
@@ -575,13 +588,13 @@ public class HTML5Platform : Platform
 	private static IDictionary<string, string> MimeTypeMapping = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) 
 		{
 			{ ".html", "text/html"},
-			{ ".js.gz", "application/x-javascript" },  // upload compressed javascript. 
-			{ ".data.gz", "appication/octet-stream"}
+			{ ".jsgz", "application/x-javascript" },  // upload compressed javascript. 
+			{ ".datagz", "appication/octet-stream"}
 		}; 
 
 	public void UploadToS3Worker(FileInfo Info, string KeyId, string AccessKey, string BucketName, string FolderName )
 	{
-			Log(" Uploading " + Info.Name); 
+		Log(" Uploading " + Info.Name); 
 
 			// force upload files even if the timestamps haven't changed. 
 			string TimeStamp = string.Format("{0:r}", DateTime.UtcNow);
@@ -608,7 +621,7 @@ public class HTML5Platform : Platform
 			Request.Headers["x-amz-acl"] = "public-read"; // we probably want to make public read by default. 
 
 			// set correct content encoding for compressed javascript. 
-			if ( Info.Extension == ".gz")
+			if ( Info.Extension.EndsWith("gz") )
 			{
 				Request.Headers["Content-Encoding"] = "gzip";
 			}
@@ -648,7 +661,7 @@ public class HTML5Platform : Platform
 				throw ex;
 			}
 
-			Log(Info.Name + " has been uploaded " ); 
+			Log(Info.Name + " has been uploaded "); 
 	}
 
 #endregion 

@@ -2,6 +2,7 @@ Availability:Public
 Title: Particle System Level of Detail (LOD)
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:GPU-simulation of particles that allows for hundreds of thousands of particles at any time.
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
@@ -82,7 +83,7 @@ We set up the highest LOD level
 
 ![HighestLOD.png](HighestLOD.png)
 
-Once the designer feels the particle system is ready for LOD development, he should select ![Cascade_Toolbar_RegenLOD.png](Cascade_Toolbar_RegenLOD.png)(w:32) **Regenerate Lowest LOD** from the toolbar. This will cause the system to regenerate the lowest LOD level. (It will also delete any static LOD levels that were created in the interim.) At the current time, this will simply duplicate the highest LOD level with a lower spawn rate.
+Once the designer feels the particle system is ready for LOD development, he should select **Regenerate Lowest LOD** from the toolbar. This will cause the system to regenerate the lowest LOD level. (It will also delete any static LOD levels that were created in the interim.) At the current time, this will simply duplicate the highest LOD level with a lower spawn rate.
 
 After selecting the lowest LOD level, tweaking of values can commence on it to get the appropriate look. One thing to note is that by default, all modules in the static LOD level are marked _un-editable_. This is represented by the module showing a marbled background.
 
@@ -109,13 +110,13 @@ In our example, we have enabled the SubImage Index module for editing and set th
 
 Note that the spawn rate was automatically set to 10% of the highest LOD level.
 
-The next step would involve adding a static LOD in-between the highest and lowest by pressing the ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)(w:32) **Add LOD before current** button (assuming you are still viewing the lowest LOD). The SubImage Index module is enabled and has the index set to 1. This results in the emitter showing a blue *2*, as shown below:
+The next step would involve adding a static LOD in-between the highest and lowest by pressing the **Add LOD before current** button (assuming you are still viewing the lowest LOD). The SubImage Index module is enabled and has the index set to 1. This results in the emitter showing a blue *2*, as shown below:
 
 **LOD Level 1**
 
 ![LOD_33.png](LOD_33.png)
 
-The same was done for another static LOD between the first static LOD and the lowest LOD by pressing the ![Cascade_Toolbar_AddLOD_After.png](Cascade_Toolbar_AddLOD_After.png)(w:32) **Add LOD after current** button and enabling the SubImage index module. The SubImage Index was set to 2 resulting in an emitter displaying a green *3*, as shown below:
+The same was done for another static LOD between the first static LOD and the lowest LOD by pressing the **Add LOD after current** button and enabling the SubImage index module. The SubImage Index was set to 2 resulting in an emitter displaying a green *3*, as shown below:
 
 **LOD Level 2**
 

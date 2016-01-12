@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "GameplayTagAssetInterface.h"
@@ -86,7 +86,10 @@ void UBTDecorator_CheckGameplayTagsOnActor::InitializeFromAsset(UBehaviorTree& A
 	Super::InitializeFromAsset(Asset);
 
 	UBlackboardData* BBAsset = GetBlackboardAsset();
-	ActorToCheck.CacheSelectedKey(BBAsset);
+	if (ensure(BBAsset))
+	{
+		ActorToCheck.ResolveSelectedKey(*BBAsset);
+	}
 
 #if WITH_EDITOR
 	BuildDescription();

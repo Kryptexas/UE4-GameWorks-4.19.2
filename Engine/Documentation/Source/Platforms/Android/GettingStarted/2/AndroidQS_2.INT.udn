@@ -2,9 +2,10 @@ Availability:Public
 Title:2. Set Up Your Android Device
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Set up your Android device for development.
+Version:4.9
+Skilllevel:Intermediate
 
-
-
+Now that Android Works has been installed it is now time to setup your Android device so that it can be used in development. In the following section we will go over all you need to know to setup your Android device so that it can be used to run your UE4 project.
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -58,65 +59,145 @@ Description:Set up your Android device for development.
 <!--
 [EXCERPT:WindowsSetup]
 
-1. Connect your device.
+1. Connect your Android device to your development PC via USB.
+
 1.	Device driver software may automatically install, but if not, visit [Android's OEM USB Drivers](http://developer.android.com/tools/extras/oem-usb.html) page to find driver installation links and additional information.  
-1.	Open the **Settings** application on your device.
-1.	Look for the **Developer Options** menu. If it is not available, you need to enable Developer Options on your device. For more about developer options, visit [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) page.
-	1.	Scroll down and select **About Phone**. Depending on your Android device, you may have an **About Device**, **About Tablet**, or **About Shield** option instead.
-		[REGION: note]
-		Note: This may be in a **More** section on newer Android versions.
-		[/REGION]
-	1.	Tap the **Build Number** 7 times. After the first few presses, you will see a message stating You are now # steps away from becoming a developer.
-	1.	You will get a success message once **Developer Mode** has been activated.
-	1.	Navigate back to the **Settings** menu and select **Developer Options** which is now available.
-1.	In the **Developer Options** menu, enable USB debugging. 
-1. Select **OK** when prompted.
-1.	To verify that your device is set up properly, open a command prompt by pressing **Windows+R** and typing `cmd.exe` in the **Run** window.
-1.	Type `adb devices` in the command window. You should see a device listed. Some troubleshooting points here are:
+
+1.	Open the **Settings** application on your Android device.
+
+1.	Tap **Developer Options** to open the Developer Options menu. 
+
+	[REGION:note]
+	If you do not see this item, you need to enable Developer Options on your device. 
+	For more about developer options, visit [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) page.
+	[/REGION]
+
+1.	Scroll down and select **About Phone**. Depending on your Android device, you may have an **About Device**, **About Tablet**, or **About Shield** option instead.
+	[REGION: note]
+	Note: This may be in a **More** section on newer Android versions.
+	[/REGION]
+
+1.	Tap the **Build Number** **7** times to activate developer mode. 
+
+	![](Enable_Dev_Mode.png)
+
+1. After the first few presses, you will see a message stating You are now **# steps** away from becoming a developer.
+
+1.	Once developer mode has been activated you will get a success message displayed on the screen similar to the one below.
+
+	![](Dev_Mode_Active.png)
+
+1.	Navigate back to the **Settings** menu and select **Developer Options** which should now available.
+
+	![](Dev_Options_Enabled.png)
+
+1.	In the **Developer Options** menu, enable **USB debugging** by tapping on it with your finger. 
+
+	![](Enable_USB_Debugging.png)
+
+1. When prompted press the **OK** button to enable USB debugging.
+
+	![](Enable_USB_Debugging_Warning.png)
+
+1. You can tell USB Debugging has been enabled as there will be a green checkmark in the checkmark box next to USB debugging.
+
+	![](USB_Debugging_Enabled.png)
+
+1. Disconnect your Android device from USB and then immediately plug it back in. 
+	After the device is recognized by the PC the following message will appear on your Android device asking you if you want to allow this PC to talk to your device.
+	Press the checkmark box that says **Always allow this computer** and the press the **OK** button.
+	
+	![](PC_RSA_Fingerprint.png)
+
+1.	To verify that your device is set up properly, open a command prompt by pressing the **Windows + R** keys and typing **cmd** in the **Run** window.
+
+	![](Windows_Run_Command.png)
+
+1.	Type **adb devices** in the command prompt and you should see all devices that are connected to your PC.
+
+	![](ADB_Devices.png)
+
+	[region:note]
+
+	If you do not see your device after you input the adb devices command, here are some things you try to enable your PC to see your Android device. 
 	* If the device is listed but shows unauthorized, that indicates that you need to get the device to ask if you want to authorize the PC.
 	* You may need to unplug and reconnect your device to make it show up.
 	* It is recommended you check the Always allow checkbox.
-	* In some cases, a correctly configured device may not show up if it is connected as a **Media Device (MTP)** instead of as a **Camera (PTP)**. Select the **Camera (PTP)** option if your device is not visible at all under `adb devices` at this point.
+	* In some cases, a correctly configured device may not show up if it is connected as a **Media Device (MTP)** instead of as a **Camera (PTP)**. Select the **Camera (PTP)** option if your device is not visible at all under ***adb devices** at this point.
+
+	[/region]
+
 
 [/EXCERPT:WindowsSetup]
 
 [EXCERPT:MacOSSetup]
 
-1. Connect your device to your Mac.
+1. Connect your Android device to your Mac via USB.
 
-1. Open the **Settings application** on your device.
+1. Open the **Settings** application on your Android device.
 
-1. Look for the **Developer Options** menu. If it is not available, you need to enable Developer Options on your device. 
-	For more about developer options, visit **[Android's Using Hardware Devices](http://developer.android.com/tools/device.html)** page.
-	To enable developer options on your device you will need to do the following.
+1. Tap **Developer Options** to open the Developer Options menu. 
+	
+	[REGION:note]
+	If you do not see this item, you need to enable Developer Options on your device. 
+	For more about developer options, visit [Android's Using Hardware Devices](http://developer.android.com/tools/device.html) page.
+	[/REGION]
 
-	* Scroll down and select About Phone. 
-	* Depending on your Android device, you may have an **About Device**, **About Tablet**, or **About Shield** option instead.
+1. Scroll down and select **About Phone**. Depending on your Android device, you may have an **About Device**, **About Tablet**, or **About Shield** option instead.
 
-	[region:note]
-	In newer versions of Android this may be in the More section.
-	[/region]
+	[REGION: note]
+	Note: This may be in a **More** section on newer Android versions.
+	[/REGION]
 
-	* Tap the Build Number **7** times. 
-	* After the first few presses, you will see a message that says, **You are now # steps away from becoming a developer**. 
-	* Once developer mode has been activated you will get a success message displayed on the screen.
-	* Navigate back to the **Settings menu** and select **Developer Options** which is now available.
+1. Tap the **Build Number** **7** times to activate developer mode.
+
+	![](Enable_Dev_Mode.png)
+
+1. After the first few presses, you will see a message that says, **You are now # steps away from becoming a developer**. 
+
+1. Once developer mode has been activated you will get a success message displayed on the screen similar to the one below.
+
+	![](Dev_Mode_Active.png)
+
+1. Navigate back to the **Settings menu** and select **Developer Options** which is now available.
+
+	![](Dev_Options_Enabled.png)
 
 1. In the **Developer Options** menu, enable **USB debugging**. 
 
-1. Select **OK** when prompted.
+	![](Enable_USB_Debugging.png)
+
+1. When prompted press the **OK** button to enable USB debugging.
+
+	![](Enable_USB_Debugging_Warning.png)
+
+1. You can tell USB Debugging has been enabled as there will be a green checkmark in the checkmark box next to USB debugging.
+
+	![](USB_Debugging_Enabled.png)
+
+1. Disconnect your Android device from USB and then immediately plug it back in. 
+	After the device is recognized by the PC the following message will appear on your Android device asking you if you want to allow this Mac to talk to your device.
+	Press the checkmark box that says **Always allow this computer** and the press the **OK** button.
+	
+	![](PC_RSA_Fingerprint.png)
 
 1. To verify that your device is set up properly, open the **Terminal app** from /Applications/Utilties.
 
-1. Type **adb devices** in the terminal window and you should see a device listed. If you do not see your device listed here are some troubleshooting points you can try.
+	![](MAC_Terminal_Activate.png)
 
-	* If the device is listed but shows unauthorized, that indicates that you need to get the device to ask if you want to authorize the Mac.
+1.	Type **ADB devices** in the command prompt and you should see all devices that are connected to your Mac.
 
-	* You may need to unplug and reconnect your device to make it show up.
+	![](MAC_Checking_ADB_Devices.png)
 
-	* It is recommended you check the Always allow checkbox to always allow connections from the computer that it is pluged into.
+[region:note]
 
-	* In some cases, a correctly configured device may not show up if it is connected as a Media Device (MTP) instead of as a Camera (PTP). Select the Camera (PTP) option if your device is not visible at all under adb devices at this point.
+If you do not see your device after you input the adb devices command, here are some things you try to enable your PC to see your Android device. 
+* If the device is listed but shows unauthorized, that indicates that you need to get the device to ask if you want to authorize the PC.
+* You may need to unplug and reconnect your device to make it show up.
+* It is recommended you check the Always allow checkbox.
+* In some cases, a correctly configured device may not show up if it is connected as a **Media Device (MTP)** instead of as a **Camera (PTP)**. Select the **Camera (PTP)** option if your device is not visible at all under ***adb devices** at this point.
+
+[/region]
 
 [/EXCERPT:MacOSSetup]
 

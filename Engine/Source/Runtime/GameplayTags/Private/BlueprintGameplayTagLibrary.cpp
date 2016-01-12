@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsModulePrivatePCH.h"
 
@@ -78,4 +78,68 @@ bool UBlueprintGameplayTagLibrary::AppendGameplayTagContainers(const FGameplayTa
 	InOutTagContainer.AppendTags(InTagContainer);
 
 	return true;
+}
+
+bool UBlueprintGameplayTagLibrary::NotEqual_TagTag(FGameplayTag A, FString B)
+{
+	return A.ToString() != B;
+}
+
+bool UBlueprintGameplayTagLibrary::NotEqual_TagContainerTagContainer(FGameplayTagContainer A, FString B)
+{
+	FGameplayTagContainer TagContainer;
+
+	// Convert string to Tag Container before compare
+	FString TagString = B;
+	if (TagString.StartsWith(TEXT("(")) && TagString.EndsWith(TEXT(")")))
+	{
+		TagString = TagString.LeftChop(1);
+		TagString = TagString.RightChop(1);
+
+		TagString.Split("=", NULL, &TagString);
+
+		TagString = TagString.LeftChop(1);
+		TagString = TagString.RightChop(1);
+
+		FString ReadTag;
+		FString Remainder;
+
+		while (TagString.Split(TEXT(","), &ReadTag, &Remainder))
+		{
+			ReadTag.Split("=", NULL, &ReadTag);
+			if (ReadTag.EndsWith(TEXT(")")))
+			{
+				ReadTag = ReadTag.LeftChop(1);
+				if (ReadTag.StartsWith(TEXT("\"")) && ReadTag.EndsWith(TEXT("\"")))
+				{
+					ReadTag = ReadTag.LeftChop(1);
+					ReadTag = ReadTag.RightChop(1);
+				}
+			}
+			TagString = Remainder;
+			FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(FName(*ReadTag));
+			TagContainer.AddTag(Tag);
+		}
+		if (Remainder.IsEmpty())
+		{
+			Remainder = TagString;
+		}
+		if (!Remainder.IsEmpty())
+		{
+			Remainder.Split("=", NULL, &Remainder);
+			if (Remainder.EndsWith(TEXT(")")))
+			{
+				Remainder = Remainder.LeftChop(1);
+				if (Remainder.StartsWith(TEXT("\"")) && Remainder.EndsWith(TEXT("\"")))
+				{
+					Remainder = Remainder.LeftChop(1);
+					Remainder = Remainder.RightChop(1);
+				}
+			}
+			FGameplayTag Tag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(FName(*Remainder));
+			TagContainer.AddTag(Tag);
+		}
+	}
+
+	return A != TagContainer;
 }

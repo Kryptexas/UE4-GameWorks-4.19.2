@@ -1,9 +1,13 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "NiagaraScript.h"
 #include "NiagaraConstants.h"
 #include "NiagaraEditorModule.h"
+#include "ComponentReregisterContext.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSimulation.h"
+#include "NiagaraEffect.h"
 
 //////////////////////////////////////////////////////////////////////////
 // NiagaraGraph
@@ -45,6 +49,28 @@ void UNiagaraGraph::FindInputNodes(TArray<class UNiagaraNodeInput*>& OutInputNod
 		if (UNiagaraNodeInput* InNode = Cast<UNiagaraNodeInput>(Node))
 		{
 			OutInputNodes.Add(InNode);
+		}
+	}
+}
+
+void UNiagaraGraph::FindReadDataSetNodes(TArray<class UNiagaraNodeReadDataSet*>& OutReadNodes) const
+{
+	for (UEdGraphNode* Node : Nodes)
+	{
+		if (UNiagaraNodeReadDataSet* InNode = Cast<UNiagaraNodeReadDataSet>(Node))
+		{
+			OutReadNodes.Add(InNode);
+		}
+	}
+}
+
+void UNiagaraGraph::FindWriteDataSetNodes(TArray<class UNiagaraNodeWriteDataSet*>& OutWriteNodes) const
+{
+	for (UEdGraphNode* Node : Nodes)
+	{
+		if (UNiagaraNodeWriteDataSet* InNode = Cast<UNiagaraNodeWriteDataSet>(Node))
+		{
+			OutWriteNodes.Add(InNode);
 		}
 	}
 }
@@ -99,10 +125,72 @@ void UNiagaraScriptSource::PostLoad()
 #endif
 }
 
+struct FNiagaraComponentReregisterContext : FComponentReregisterContext
+{
+	FNiagaraEmitterScriptProperties* ScriptProps;
+	UNiagaraEmitterProperties* EmitterProps;
+	FNiagaraComponentReregisterContext(UNiagaraComponent* Comp, FNiagaraEmitterScriptProperties* InScriptProps, UNiagaraEmitterProperties* InEmitterProps)
+		: FComponentReregisterContext(Comp)
+		, ScriptProps(InScriptProps)
+		, EmitterProps(InEmitterProps)
+	{
+
+	}
+	~FNiagaraComponentReregisterContext()
+	{
+		ScriptProps->Init(EmitterProps);
+	}
+};
+
+class FNiagaraScriptCompileContext
+{
+public:
+	/** Initialization constructor. */
+	FNiagaraScriptCompileContext(UNiagaraScript* Script)
+	{
+		// wait until resources are released
+		FlushRenderingCommands();
+
+		// Reregister all components usimg Script.
+		for (TObjectIterator<UNiagaraComponent> ComponentIt; ComponentIt; ++ComponentIt)
+		{
+			UNiagaraComponent* Comp = *ComponentIt;
+			TSharedPtr<FNiagaraEffectInstance> Inst = Comp->GetEffectInstance();
+			if (Inst.IsValid())
+			{
+				TArray<TSharedPtr<FNiagaraSimulation>>& Emitters = Inst->GetEmitters();
+				for (TSharedPtr<FNiagaraSimulation> Sim : Emitters)
+				{
+					if (Sim.IsValid())
+					{
+						if (UNiagaraEmitterProperties* Props = Sim->GetProperties().Get())
+						{
+							if (Props->UpdateScriptProps.Script == Script)
+							{
+								new(ComponentContexts)FNiagaraComponentReregisterContext(Comp, &Props->UpdateScriptProps, Props);
+							}
+							else if (Props->SpawnScriptProps.Script == Script)
+							{
+								new(ComponentContexts)FNiagaraComponentReregisterContext(Comp, &Props->SpawnScriptProps, Props);
+							}
+						}						
+					}
+				}
+			}
+		}
+	}
+	
+private:
+	/** The recreate contexts for the individual components. */
+	TIndirectArray<FNiagaraComponentReregisterContext> ComponentContexts;
+};
 
 void UNiagaraScriptSource::Compile()
 {
 	UNiagaraScript* ScriptOwner = Cast<UNiagaraScript>(GetOuter());
+	
+	FNiagaraScriptCompileContext ScriptCompileContext(ScriptOwner);
+
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
 	NiagaraEditorModule.CompileScript(ScriptOwner);
 

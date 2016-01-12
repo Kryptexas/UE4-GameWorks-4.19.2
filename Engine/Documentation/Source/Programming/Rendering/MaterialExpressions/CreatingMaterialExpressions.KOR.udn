@@ -1,13 +1,11 @@
-﻿INTSourceChangelist:2481343
+﻿INTSourceChangelist:2646570
 Availability: Docs
 Title:머티리얼 표현식 만들기
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:머티리얼 에디터에서 사용할 수 있는 머티리얼 표현식을 새로 만드는 방법 안내입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
-
-## 개요
 
 UE4에서 머티리얼 표현식 새로 만들기는 간단합니다. 예로 MaterialExpressionSquare 라는, 입력을 제곱하는 머티리얼 표현식을 새로 만들어 보겠습니다. 알아두실 점은, UE4의 모든 머티리얼 표현식은 MaterialExpressions.cpp 에 구현된다는 점입니다.
 
@@ -17,7 +15,7 @@ UE4에서 머티리얼 표현식 새로 만들기는 간단합니다. 예로 Mat
 
 먼저 MaterialExpression 에서 파생된 새 유형으로 된 엔진 스크립트 파일을 새로 추가합니다. 표현식의 입력 및 가상 함수를 선언합니다. 예를 들어:<br>  
 
-`MaterialExpressionSquare.h`
+	MaterialExpressionSquare.h
 
 	UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 	public class UMaterialExpressionSquare : public UMaterialExpression
@@ -92,5 +90,5 @@ UE4에서 머티리얼 표현식 새로 만들기는 간단합니다. 예로 Mat
 이제 머티리얼 에디터의 목록에 새로운 머티리얼 표현식이 나타날 것입니다. Square 표현식이 돌아가는 모습입니다:  
 
 [REGION:todo]
-![SquareMaterialExpression.jpg](SquareMaterialExpression.jpg)
+![](MaterialExpression.png)
 [/REGION]

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,7 @@ class UUnitTestPackageMap : public UPackageMapClient
 #endif
 
 
-	virtual bool SerializeObject(FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID* OutNetGUID=NULL) override;
+	virtual bool SerializeObject(FArchive& Ar, UClass* InClass, UObject*& Obj, FNetworkGUID* OutNetGUID=NULL) override;
 
 	virtual bool SerializeNewActor(FArchive& Ar, class UActorChannel* Channel, class AActor*& Actor) override;
 

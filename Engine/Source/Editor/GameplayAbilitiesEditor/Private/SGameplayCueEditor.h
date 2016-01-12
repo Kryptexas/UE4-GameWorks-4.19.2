@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,4 +20,7 @@ public:
 	virtual FReply OnNewGameplayCueButtonPressed() = 0;
 	
 	static FString GetPathNameForGameplayCueTag(FString Tag);
+
+	static void CreateNewGameplayCueNotifyDialogue(FString GameplayCue);
+	static void OpenEditorForNotify(FString NotifyFullPath);
 };

@@ -2,6 +2,9 @@ Title: Gameplay Guide
 Crumbs:%ROOT%
 Description:Overviews and examples of gameplay functionality for programmers and visual scripters.
 Availability:Public
+version: 4.9
+parent:%ROOT%
+order:6
 
 [VAR:Params]
 [PARAM:image]
@@ -60,7 +63,7 @@ gameplay
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -73,12 +76,7 @@ gameplay
 		class page for more information.
 	[/PARAM]
 	[PARAM:links]
-		* [Framework Overview](Gameplay/Framework "%Gameplay/Framework:description%")
-		* [Quick Reference](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
-		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
-		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
-		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
-		* [](Gameplay/Framework/Camera "%Gameplay/Framework/Camera:description%")
+	[DIR(output:"listbutton" type:"reference" tags:"Gameplay Framework" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 
@@ -120,7 +118,7 @@ gameplay
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicButtonList]
+[OBJECT:TopicList]
 	[PARAM:icon]
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
@@ -132,25 +130,7 @@ gameplay
 		Whether it is how to spawn enemies or pick-ups in your game, change camera angles, or set up player inputs; these pages provide example setups for you in both Blueprints and C++.
 	[/PARAM]
 	[PARAM:links]
-		* [Spawning/Destroying Actors](Gameplay\HowTo\SpawnAndDestroyActors)
-		* [Respawning (OnDestroyed)](Gameplay\HowTo\RespawnPlayer)
-		* [Possessing Pawns](Gameplay\HowTo\PossessPawns)
-		* [Using Raycasts (Tracing)](Gameplay\HowTo\UseRaycasts)
-		* [Referencing Actors](Gameplay\HowTo\ReferenceAssets)
-		* [Using Timers](Gameplay\HowTo\UseTimers)
-		* [Setting Up a Game Mode](Gameplay\HowTo\SettingUpAGameMode)
-		* [Setting Up Player Input](Gameplay\HowTo\SetUpInput)
-		* [Setting Up Input on an Actor](Gameplay\HowTo\ActorInput)
-		* [Setting Up Character Movement](Gameplay\HowTo\CharacterMovement)
-		* [Finding Actors in your Scene](Gameplay\HowTo\FindingActors)
-		* [Using Cameras](Gameplay\HowTo\UsingCameras)
-		* [Adding Components](Gameplay\HowTo\AddingComponents)
-		* [Using OnHit Events](Gameplay\HowTo\UseOnHit)
-			* **Networking**
-			* [Replicating Actors](Gameplay\HowTo\Networking\ReplicateActor)
-			* [Replicating Functions](Gameplay\HowTo\Networking\ReplicateFunction)
-			* [Replicating Variables](Gameplay\HowTo\Networking\ReplicateVariable)
-			* [Testing Multiplayer](Gameplay\HowTo\Networking\TestMultiplayer)
+	[DIR(end:"3" type:"how-to" output:"listbutton" parent:"Gameplay" org:"hierarchy")]
 	[/PARAM]
 [/OBJECT]
 

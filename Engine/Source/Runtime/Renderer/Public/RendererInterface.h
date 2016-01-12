@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RendererInterface.h: Renderer interface definition.
@@ -46,6 +46,7 @@ public:
 		, TargetableFlags(TexCreate_None)
 		, bForceSeparateTargetAndShaderResource(false)
 		, DebugName(TEXT("UnknownTexture"))
+		, AutoWritable(true)
 	{
 		check(!IsValid());
 	}
@@ -61,7 +62,8 @@ public:
 		uint32 InFlags,
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
-		uint16 InNumMips = 1)
+		uint16 InNumMips = 1,
+		bool InAutowritable = true)
 	{
 		check(InExtent.X);
 		check(InExtent.Y);
@@ -79,6 +81,7 @@ public:
 		NewDesc.TargetableFlags = InTargetableFlags;
 		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
 		NewDesc.DebugName = TEXT("UnknownTexture2D");
+		NewDesc.AutoWritable = InAutowritable;
 		check(NewDesc.Is2DTexture());
 		return NewDesc;
 	}
@@ -96,7 +99,8 @@ public:
 		uint32 InFlags,
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
-		uint16 InNumMips = 1)
+		uint16 InNumMips = 1,
+		bool InAutowritable = true)
 	{
 		check(InSizeX);
 		check(InSizeY);
@@ -114,6 +118,7 @@ public:
 		NewDesc.TargetableFlags = InTargetableFlags;
 		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
 		NewDesc.DebugName = TEXT("UnknownTextureVolume");
+		NewDesc.AutoWritable = InAutowritable;
 		check(NewDesc.Is3DTexture());
 		return NewDesc;
 	}
@@ -130,7 +135,8 @@ public:
 		uint32 InTargetableFlags,
 		bool bInForceSeparateTargetAndShaderResource,
 		uint32 InArraySize = 1,
-		uint16 InNumMips = 1)
+		uint16 InNumMips = 1,
+		bool InAutowritable = true)
 	{
 		check(InExtent);
 
@@ -148,6 +154,7 @@ public:
 		NewDesc.TargetableFlags = InTargetableFlags;
 		NewDesc.bForceSeparateTargetAndShaderResource = bInForceSeparateTargetAndShaderResource;
 		NewDesc.DebugName = TEXT("UnknownTextureCube");
+		NewDesc.AutoWritable = InAutowritable;
 		check(NewDesc.IsCubemap());
 
 		return NewDesc;
@@ -159,7 +166,7 @@ public:
 		auto LhsFlags = Flags;
 		auto RhsFlags = rhs.Flags;
 
-		if(!bExact)
+		if (!bExact || !FPlatformProperties::SupportsFastVRAMMemory())
 		{
 			LhsFlags &= (~TexCreate_FastVRAM);
 			RhsFlags &= (~TexCreate_FastVRAM);
@@ -175,7 +182,8 @@ public:
 			&& LhsFlags == RhsFlags
 			&& TargetableFlags == rhs.TargetableFlags
 			&& bForceSeparateTargetAndShaderResource == rhs.bForceSeparateTargetAndShaderResource
-			&& ClearValue == rhs.ClearValue;
+			&& ClearValue == rhs.ClearValue
+			&& AutoWritable == rhs.AutoWritable;
 	}
 
 	bool IsCubemap() const
@@ -285,6 +293,7 @@ public:
 		NumSamples = 1;
 
 		bForceSeparateTargetAndShaderResource = false;
+		AutoWritable = true;
 
 		// Remove UAV flag for rendertargets that don't need it (some formats are incompatible)
 		TargetableFlags &= (~TexCreate_UAV);
@@ -317,6 +326,8 @@ public:
 	bool bForceSeparateTargetAndShaderResource;
 	/** only set a pointer to memory that never gets released */
 	const TCHAR *DebugName;
+	/** automatically set to writable via barrier during */
+	bool AutoWritable;
 };
 
 
@@ -537,11 +548,13 @@ public:
 	/** Sets the buffer size of the render targets. */
 	virtual void SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY) = 0;
 
+	virtual void InitializeSystemTextures(FRHICommandListImmediate& RHICmdList) = 0;
+
 	/** Draws a tile mesh element with the specified view. */
 	virtual void DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& View, const FMeshBatch& Mesh, bool bIsHitTesting, const class FHitProxyId& HitProxyId) = 0;
 
 	/** Render thread side, use TRefCountPtr<IPooledRenderTarget>, allows to use sharing and VisualizeTexture */
-	virtual void RenderTargetPoolFindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName) = 0;
+	virtual void RenderTargetPoolFindFreeElement(FRHICommandListImmediate& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName) = 0;
 	
 	/** Render thread side, to age the pool elements so they get released at some point */
 	virtual void TickRenderTargetPool() = 0;

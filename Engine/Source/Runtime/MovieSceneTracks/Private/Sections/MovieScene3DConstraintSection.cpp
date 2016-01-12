@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DConstraintSection.h"
@@ -11,9 +11,10 @@ UMovieScene3DConstraintSection::UMovieScene3DConstraintSection( const FObjectIni
 
 void UMovieScene3DConstraintSection::SetConstraintId(const FGuid& InConstraintId)
 {
-	Modify();
-
-	ConstraintId = InConstraintId;
+	if (TryModify())
+	{
+		ConstraintId = InConstraintId;
+	}
 }
 
 

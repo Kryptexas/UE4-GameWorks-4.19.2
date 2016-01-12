@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkyLightComponent.cpp: SkyLightComponent implementation.
@@ -316,7 +316,8 @@ bool USkyLightComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		FString PropertyName = InProperty->GetName();
 
-		if (FCString::Strcmp(*PropertyName, TEXT("Cubemap")) == 0)
+		if (FCString::Strcmp(*PropertyName, TEXT("Cubemap")) == 0
+			|| FCString::Strcmp(*PropertyName, TEXT("SourceCubemapAngle")) == 0)
 		{
 			return SourceType == SLS_SpecifiedCubemap;
 		}
@@ -350,7 +351,7 @@ void USkyLightComponent::CheckForErrors()
 				USkyLightComponent* Component = *ComponentIt;
 
 				if (Component != this 
-					&& !Component->HasAnyFlags(RF_PendingKill)
+					&& !Component->IsPendingKill()
 					&& Component->bVisible
 					&& Component->bAffectsWorld
 					&& Component->GetOwner() 

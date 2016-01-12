@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -15,6 +15,7 @@ struct FRWBuffer
 
 	FRWBuffer(): NumBytes(0) {}
 
+	// @param AdditionalUsage passed down to RHICreateVertexBuffer(), get combined with "BUF_UnorderedAccess | BUF_ShaderResource" e.g. BUF_Static
 	void Initialize(uint32 BytesPerElement, uint32 NumElements, EPixelFormat Format, uint32 AdditionalUsage = 0)
 	{
 		check(GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5);
@@ -171,40 +172,103 @@ inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLo
 	}
 }
 
+inline void TransitionSetRenderTargetsHelper(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget, FExclusiveDepthStencil DepthStencilAccess)
+{
+	int32 TransitionIndex = 0;
+	FTextureRHIParamRef Transitions[2];
+	if (NewRenderTarget)
+	{
+		Transitions[TransitionIndex] = NewRenderTarget;
+		++TransitionIndex;
+	}
+	if (NewDepthStencilTarget && DepthStencilAccess.IsDepthWrite())
+	{
+		Transitions[TransitionIndex] = NewDepthStencilTarget;
+		++TransitionIndex;
+	}
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, Transitions, TransitionIndex);
+}
+
+inline void TransitionSetRenderTargetsHelper(FRHICommandList& RHICmdList, uint32 NumRenderTargets, const FTextureRHIParamRef* NewRenderTargetsRHI, const FTextureRHIParamRef NewDepthStencilTargetRHI, FExclusiveDepthStencil DepthStencilAccess)
+{
+	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
+	FTextureRHIParamRef Transitions[MaxSimultaneousRenderTargets + 1];
+	int32 TransitionIndex = 0;
+	for (uint32 Index = 0; Index < NumRenderTargets; Index++)
+	{
+		if (NewRenderTargetsRHI[Index])
+		{
+			Transitions[TransitionIndex] = NewRenderTargetsRHI[Index];
+			++TransitionIndex;
+		}
+	}
+
+	if (NewDepthStencilTargetRHI && DepthStencilAccess.IsDepthWrite())
+	{
+		Transitions[TransitionIndex] = NewDepthStencilTargetRHI;
+		++TransitionIndex;
+	}	
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, Transitions, TransitionIndex);
+}
+
 /** Helper for the common case of using a single color and depth render target. */
-inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget);
 	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+
+	//make these rendertargets safely writable
+	if (bWritableBarrier)
+	{
+		TransitionSetRenderTargetsHelper(RHICmdList, NewRenderTarget, NewDepthStencilTarget, FExclusiveDepthStencil::DepthWrite_StencilWrite);
+	}
 	RHICmdList.SetRenderTargets(1, &RTV, &DepthRTV, 0, NULL);
 }
 
 /** Helper for the common case of using a single color and depth render target. */
-inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget, ESimpleRenderTargetMode Mode, FExclusiveDepthStencil DepthStencilAccess = FExclusiveDepthStencil::DepthWrite_StencilWrite)
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget, ESimpleRenderTargetMode Mode, FExclusiveDepthStencil DepthStencilAccess = FExclusiveDepthStencil::DepthWrite_StencilWrite, bool bWritableBarrier = false)
 {
 	ERenderTargetLoadAction ColorLoadAction, DepthLoadAction;
 	ERenderTargetStoreAction ColorStoreAction, DepthStoreAction;	
 	DecodeRenderTargetMode(Mode, ColorLoadAction, ColorStoreAction, DepthLoadAction, DepthStoreAction, DepthStencilAccess);
 
+	//make these rendertargets safely writable
+	if (bWritableBarrier)
+	{
+		TransitionSetRenderTargetsHelper(RHICmdList, NewRenderTarget, NewDepthStencilTarget, DepthStencilAccess);
+	}
+
 	// now make the FRHISetRenderTargetsInfo that encapsulates all of the info
 	FRHIRenderTargetView ColorView(NewRenderTarget, 0, -1, ColorLoadAction, ColorStoreAction);
-	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(NewDepthStencilTarget, DepthLoadAction, DepthStoreAction, DepthStencilAccess));
+	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(NewDepthStencilTarget, DepthLoadAction, DepthStoreAction, DepthStencilAccess));	
 	RHICmdList.SetRenderTargetsAndClear(Info);
 }
 
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
-inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget)
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
 	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+	
+	//make these rendertargets safely writable
+	if (bWritableBarrier)
+	{
+		TransitionSetRenderTargetsHelper(RHICmdList, NewRenderTarget, NewDepthStencilTarget, FExclusiveDepthStencil::DepthWrite_StencilWrite);
+	}
 	RHICmdList.SetRenderTargets(1, &RTV, &DepthRTV, 0, nullptr);
 }
 
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
-inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget)
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget, bool bWritableBarrier = false)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, ArraySliceIndex);
 	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTarget);
+
+	//make these rendertargets safely writable
+	if (bWritableBarrier)
+	{
+		TransitionSetRenderTargetsHelper(RHICmdList, NewRenderTarget, NewDepthStencilTarget, FExclusiveDepthStencil::DepthWrite_StencilWrite);
+	}
 	RHICmdList.SetRenderTargets(1, &RTV, &DepthRTV, 0, nullptr);
 }
 
@@ -215,14 +279,21 @@ inline void SetRenderTargets(
 	const FTextureRHIParamRef* NewRenderTargetsRHI,
 	FTextureRHIParamRef NewDepthStencilTargetRHI,
 	uint32 NewNumUAVs,
-	const FUnorderedAccessViewRHIParamRef* UAVs
+	const FUnorderedAccessViewRHIParamRef* UAVs,
+	bool bWritableBarrier = false
 	)
 {
 	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
-
 	for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
 	{
 		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index]);
+	
+	}
+
+	//make these rendertargets safely writable
+	if (bWritableBarrier)
+	{
+		TransitionSetRenderTargetsHelper(RHICmdList, NewNumSimultaneousRenderTargets, NewRenderTargetsRHI, NewDepthStencilTargetRHI, FExclusiveDepthStencil::DepthWrite_StencilWrite);
 	}
 
 	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI);
@@ -236,7 +307,8 @@ inline void SetRenderTargets(
 	const FTextureRHIParamRef* NewRenderTargetsRHI,
 	FTextureRHIParamRef NewDepthStencilTargetRHI,
 	ESimpleRenderTargetMode Mode,
-	FExclusiveDepthStencil DepthStencilAccess
+	FExclusiveDepthStencil DepthStencilAccess,
+	bool bWritableBarrier = false
 	)
 {
 	ERenderTargetLoadAction ColorLoadAction, DepthLoadAction;
@@ -244,10 +316,16 @@ inline void SetRenderTargets(
 	DecodeRenderTargetMode(Mode, ColorLoadAction, ColorStoreAction, DepthLoadAction, DepthStoreAction, DepthStencilAccess);
 
 	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
-
+		
 	for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
 	{
-		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index], 0, -1, ColorLoadAction, ColorStoreAction);
+		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index], 0, -1, ColorLoadAction, ColorStoreAction);	
+	}
+
+	//make these rendertargets safely writable
+	if (bWritableBarrier)
+	{
+		TransitionSetRenderTargetsHelper(RHICmdList, NewNumSimultaneousRenderTargets, NewRenderTargetsRHI, NewDepthStencilTargetRHI, DepthStencilAccess);
 	}
 
 	FRHIDepthRenderTargetView DepthRTV(NewDepthStencilTargetRHI, DepthLoadAction, DepthStoreAction, DepthStencilAccess);
@@ -506,3 +584,36 @@ inline void DrawIndexedPrimitiveUP(
 	FMemory::Memcpy( IndexBuffer, IndexData, NumIndices * IndexDataStride );
 	RHICmdList.EndDrawIndexedPrimitiveUP();
 }
+
+inline uint32 ComputeAnisotropyRT(int32 InitializerMaxAnisotropy)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MaxAnisotropy"));
+	int32 CVarValue = CVar->GetValueOnRenderThread();
+
+	return FMath::Clamp(InitializerMaxAnisotropy > 0 ? InitializerMaxAnisotropy : CVarValue, 1, 16);
+}
+
+#if UE_BUILD_SHIPPING || UE_BUILD_TEST
+#define ENABLE_TRANSITION_DUMP 0
+#else
+#define ENABLE_TRANSITION_DUMP 1
+#endif
+
+class RHI_API FDumpTransitionsHelper
+{
+public:
+	static void DumpResourceTransition(const FName& ResourceName, const EResourceTransitionAccess TransitionType);
+	
+private:
+	static void DumpTransitionForResourceHandler();
+
+	static TAutoConsoleVariable<FString> CVarDumpTransitionsForResource;
+	static FAutoConsoleVariableSink CVarDumpTransitionsForResourceSink;
+	static FName DumpTransitionForResource;
+};
+
+#if ENABLE_TRANSITION_DUMP
+#define DUMP_TRANSITION(ResourceName, TransitionType) FDumpTransitionsHelper::DumpResourceTransition(ResourceName, TransitionType);
+#else
+#define DUMP_TRANSITION(ResourceName, TransitionType)
+#endif

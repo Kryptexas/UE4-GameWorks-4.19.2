@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	MeshPaintRendering.cpp: Mesh texture paint brush rendering
@@ -24,7 +24,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache( EShaderPlatform Platform )
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
 		}
 
 		/** Default constructor. */
@@ -68,7 +68,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache(EShaderPlatform Platform)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
 		}
 
 		/** Default constructor. */
@@ -187,7 +187,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache( EShaderPlatform Platform )
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
 		}
 
 		/** Default constructor. */
@@ -231,7 +231,7 @@ namespace MeshPaintRendering
 
 		static bool ShouldCache(EShaderPlatform Platform)
 		{
-			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+			return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsConsolePlatform(Platform);
 		}
 
 		/** Default constructor. */

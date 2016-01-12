@@ -6,11 +6,12 @@ Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/ContentExamples/MaterialNodes/1_4
 Related: Resources/ContentExamples/MaterialNodes/1_2
 Related: Resources/ContentExamples/MaterialNodes/1_3
+Version: 4.9
+SkillLevel:Intermediate
 
 
 [TOC(start:2 end:3)]
 
-## Overview
 
 Every object that you come into contact with everyday has some level of shininess to it. 
 Inside of Unreal Engine 4, you can simulate the shininess of objects using Metallic, Specular, and Roughness Material inputs. 
@@ -81,9 +82,9 @@ content page for information about how to move content between projects. This wa
 
 
 1. First use the mouse to **Right-Click** in the **Content Browser** and then from the **Create Basic Asset** section of the pop-up Menu, select **Material**. 
-   Once selected, a new **Material** will be created.
+   Once selected, a new Material will be created.
 
-	![](Engine\Rendering\Materials\HowTo\Transparency\Trans_Create_New_Material.png)
+	![](Create_New_Material.png)
 
 1. Name the Material **Shiny_Material** and then open it up by using the **Left Mouse Button** and **Double-Clicking** on the Material in the **Content Browser.** 
 

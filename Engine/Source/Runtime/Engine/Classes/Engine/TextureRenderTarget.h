@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * TextureRenderTarget
@@ -36,10 +36,10 @@ class UTextureRenderTarget : public UTexture
 	ENGINE_API class FTextureRenderTargetResource* GameThread_GetRenderTargetResource();
 
 
-	// Begin UTexture Interface
+	//~ Begin UTexture Interface
 	ENGINE_API virtual class FTextureResource* CreateResource() override;
 	ENGINE_API virtual EMaterialValueType GetMaterialType() override;
-	// End UTexture Interface
+	//~ End UTexture Interface
 };
 
 

@@ -1,16 +1,18 @@
-﻿INTSourceChangelist:2596121
+﻿INTSourceChangelist:2680802
 Availability: Public
 Title:함수 생성
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:키를 누르면 텍스트를 표시하는 함수를 만듭니다.
 Related: Engine/Blueprints/UserGuide/Functions
 Related: Engine/Blueprints/UserGuide/Functions/FunctionCalls
+version:4.9
+skilllevel:Intermediate
 
 [INCLUDE:Engine/Blueprints/UserGuide/Functions#intro]
 
 버튼을 누르면 화면에 텍스트를 출력하는 함수를 만드는 법에 대한 단계별 안내입니다.
 
-1.  **콘텐츠 브라우저** 안에서 **생성** 버튼을 누른 다음 **블루프린트** 를 선택합니다.
+1.  **콘텐츠 브라우저** 안에서 **생성** 버튼을 누른 다음 **블루프린트 클래스** 를 선택합니다.
 
 	![](NewBlueprint.png)
 
@@ -54,7 +56,7 @@ Related: Engine/Blueprints/UserGuide/Functions/FunctionCalls
 
 	![](RenameFunction.png)
 
-1.	함수 이름을 **Print Text** 식으로 짓습니다.
+1.	함수 이름을 "Print Text" 식으로 짓습니다.
 
 1.	함수의 그래프에서 **Print Text** 핀을 끌어 놓은 다음 **Print String** 노드를 검색 추가합니다.
 

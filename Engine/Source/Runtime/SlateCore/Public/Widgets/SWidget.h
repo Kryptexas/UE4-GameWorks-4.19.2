@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 #include "SlateColor.h"
 #include "WidgetActiveTimerDelegate.h"
 #include "DeclarativeSyntaxSupport.h"
+#include "Layout/LayoutGeometry.h"
 
 class ISlateMetaData;
 class FActiveTimerHandle;
@@ -68,21 +69,31 @@ public:
 
 
 /**
- * 
+ * The different types of invalidation that are possible for a widget.
  */
 enum class EInvalidateWidget
 {
+	/**
+	 * Use Layout invalidation if you're changing a normal property involving painting or sizing.
+	 */
 	Layout,
+	/**
+	 * Use Layout invalidation if you're changing a normal property involving painting or sizing.
+	 * Additionally if the property that was changed affects Volatility in anyway, it's important
+	 * that you invalidate volatility so that it can be recalculated and cached.
+	 */
 	LayoutAndVolatility
 };
 
 
 /**
- * 
+ * An ILayoutCache implementor is responsible for caching a the hierarchy of widgets it is drawing.
+ * The shipped implementation of this is SInvalidationPanel.
  */
 class ILayoutCache
 {
 public:
+	virtual ~ILayoutCache() { }
 	virtual void InvalidateWidget(class SWidget* InvalidateWidget) = 0;
 	virtual FCachedWidgetNode* CreateCacheNode() const = 0;
 };
@@ -488,7 +499,7 @@ public:
 	 *      EPopupMethod::UserCurrentWindow. This makes all the menu anchors within them
 	 *      use the current window.
 	 */
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const;
+	virtual FPopupMethodReply OnQueryPopupMethod() const;
 
 	virtual TSharedPtr<FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
 	
@@ -536,8 +547,9 @@ public:
 	 */
 	void SlatePrepass(float LayoutScaleMultiplier);
 
+	public:
 	/** @return the DesiredSize that was computed the last time CacheDesiredSize() was called. */
-	public:  const FVector2D& GetDesiredSize() const;
+	FORCEINLINE const FVector2D& GetDesiredSize() const { return DesiredSize; }
 
 	/**
 	 * The system calls this method. It performs a breadth-first traversal of every visible widget and asks
@@ -566,7 +578,7 @@ public:
 	 */
 	private: virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
 
-	public:
+public:
 
 	/** What is the Child's scale relative to this widget. */
 	virtual float GetRelativeLayoutScale( const FSlotBase& Child ) const;
@@ -580,7 +592,10 @@ public:
 	 * @param AllottedGeometry    The geometry allotted for this widget by its parent.
 	 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
 	 */
-	void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
+	FORCEINLINE void ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+	{
+		OnArrangeChildren(AllottedGeometry, ArrangedChildren);
+	}
 
 	/**
 	 * Every widget that has children must implement this method. This allows for iteration over the Widget's
@@ -701,7 +716,7 @@ public:
 	virtual bool IsDirectlyHovered() const;
 
 	/** @return is this widget visible, hidden or collapsed */
-	EVisibility GetVisibility() const;
+	FORCEINLINE EVisibility GetVisibility() const { return Visibility.Get(); }
 
 	/** @param InVisibility  should this widget be */
 	virtual void SetVisibility( TAttribute<EVisibility> InVisibility )
@@ -780,10 +795,9 @@ protected:
 	 */
 	FORCEINLINE void Advanced_ForceInvalidateLayout()
 	{
-		TSharedPtr<ILayoutCache> Cache = LayoutCache.Pin();
-		if ( Cache.IsValid() )
+		if ( LayoutCache )
 		{
-			Cache->InvalidateWidget(this);
+			LayoutCache->InvalidateWidget(this);
 		}
 	}
 
@@ -819,9 +833,6 @@ public:
 	 *
 	 * @param InToolTipText  the text that should appear in the tool tip
 	 */
-	DEPRECATED(4.8, "Passing text to Slate as FString is deprecated, please use FText instead (likely via a LOCTEXT).")
-	void SetToolTipText( const TAttribute<FString>& InToolTipText );
-
 	void SetToolTipText(const TAttribute<FText>& ToolTipText);
 
 	void SetToolTipText( const FText& InToolTipText );
@@ -983,6 +994,16 @@ protected:
 		return Visibility.IsBound() || EnabledState.IsBound() || RenderTransform.IsBound();
 	}
 
+	/**
+	 * Protected static helper to allow widgets to access the visibility attribute of other widgets directly
+	 * 
+	 * @param Widget The widget to get the visibility attribute of
+	 */
+	static const TAttribute<EVisibility>& AccessWidgetVisibilityAttribute(const TSharedRef<SWidget>& Widget)
+	{
+		return Widget->Visibility;
+	}
+
 private:
 
 	/**
@@ -1020,7 +1041,7 @@ protected:
 	 * on invisible children that never get the opportunity to paint and receive the layout cache through the normal
 	 * means.  That way if an invisible widget becomes visible, we still properly invalidate the hierarchy.
 	 */
-	void CachePrepass(TWeakPtr<ILayoutCache> LayoutCache);
+	void CachePrepass(ILayoutCache* LayoutCache);
 
 protected:
 	/**
@@ -1105,11 +1126,23 @@ private:
 	TSharedPtr<IToolTip> ToolTip;
 
 	/** The current layout cache that may need to invalidated by changes to this widget. */
-	mutable TWeakPtr<ILayoutCache> LayoutCache;
+	mutable ILayoutCache* LayoutCache;
 
 protected:
 	/** Is this widget hovered? */
-	bool bIsHovered;
+	bool bIsHovered : 1;
+
+	/** Can the widget ever be ticked. */
+	bool bCanTick : 1;
+
+	/** Can the widget ever support keyboard focus */
+	bool bCanSupportFocus : 1;
+
+	/**
+	 * Can the widget ever support children?  This will be false on SLeafWidgets, 
+	 * rather than setting this directly, you should probably inherit from SLeafWidget.
+	 */
+	bool bCanHaveChildren : 1;
 
 private:
 
@@ -1117,14 +1150,44 @@ private:
 	 * Whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
 	 * occupied by this widget, and will instead be repelled to an outside edge
 	 */
-	bool bToolTipForceFieldEnabled;
+	bool bToolTipForceFieldEnabled : 1;
 
 	/** Should we be forcing this widget to be volatile at all times and redrawn every frame? */
-	bool bForceVolatile;
+	bool bForceVolatile : 1;
 
 	/** The last cached volatility of this widget.  Cached so that we don't need to recompute volatility every frame. */
-	bool bCachedVolatile;
+	bool bCachedVolatile : 1;
 
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
-	mutable bool bInheritedVolatility;
+	mutable bool bInheritedVolatility : 1;
 };
+
+//=================================================================
+// FGeometry Arranged Widget Inlined Functions
+//=================================================================
+
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
+{
+	// If there is no render transform set, use the simpler MakeChild call that doesn't bother concatenating the render transforms.
+	// This saves a significant amount of overhead since every widget does this, and most children don't have a render transform.
+	if ( ChildWidget->GetRenderTransform().IsSet() )
+	{
+		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform().GetValue(), ChildWidget->GetRenderTransformPivot()));
+	}
+	else
+	{
+		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform));
+	}
+}
+
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FLayoutGeometry& LayoutGeometry) const
+{
+	return MakeChild(ChildWidget, LayoutGeometry.GetSizeInLocalSpace(), LayoutGeometry.GetLocalToParentTransform());
+}
+
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale) const
+{
+	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
+	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
+	return MakeChild(ChildWidget, LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)));
+}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Blueprint.h"
@@ -22,7 +22,7 @@ UAISense_Blueprint::UAISense_Blueprint(const FObjectInitializer& ObjectInitializ
 		OnNewListenerDelegate.BindUObject(this, &UAISense_Blueprint::OnNewListenerImpl);
 		OnListenerRemovedDelegate.BindUObject(this, &UAISense_Blueprint::OnListenerRemovedImpl);
 		// update is optional
-		if (BlueprintNodeHelpers::HasBlueprintFunction(TEXT("OnListenerUpdated"), this, StopAtClass))
+		if (BlueprintNodeHelpers::HasBlueprintFunction(TEXT("OnListenerUpdated"), *this, *StopAtClass))
 		{
 			OnListenerUpdateDelegate.BindUObject(this, &UAISense_Blueprint::OnListenerUpdateImpl);
 		}

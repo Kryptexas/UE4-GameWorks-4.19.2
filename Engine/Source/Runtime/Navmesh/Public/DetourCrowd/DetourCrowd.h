@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -205,6 +205,12 @@ enum UpdateFlags
 	DT_CROWD_OPTIMIZE_VIS_MULTI		= 1 << 5,	///< [UE4] Multiple calls for optimizePathVisibility instead of checking last point
 	DT_CROWD_OFFSET_PATH			= 1 << 6,	///< [UE4] Offset path points from corners by agent radius
 	DT_CROWD_SLOWDOWN_AT_GOAL		= 1 << 7,	///< [UE4] Slowdown before reaching goal
+};
+
+// [UE4] Flags used by boundary segments (dtLocalBoundary::Segment)
+enum CrowdBoundaryFlags
+{
+	DT_CROWD_BOUNDARY_IGNORE = 1 << 0,
 };
 
 struct NAVMESH_API dtCrowdAgentDebugInfo

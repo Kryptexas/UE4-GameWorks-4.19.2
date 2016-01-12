@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -178,7 +178,7 @@ void SMenuEntryBlock::Construct( const FArguments& InArgs )
 }
 
 
-TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuildParams& InBuildParams )
+TSharedRef< SWidget> SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuildParams& InBuildParams )
 {
 	const TAttribute<FText>& Label = InBuildParams.Label;
 	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
@@ -236,6 +236,7 @@ TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuild
 					SNew( STextBlock )
 					.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
 					.Text( Label )
+					.HighlightText( OwnerMultiBoxWidget.Pin().Get(), &SMultiBoxWidget::GetSearchText )
 				]
 
 				// Bind the button's "on clicked" event to our object's method for this
@@ -247,6 +248,28 @@ TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuild
 	MenuAnchor = NewMenuAnchor;
 
 	return Widget;
+}
+
+
+TSharedRef<SWidget> SMenuEntryBlock::FindTextBlockWidget( TSharedRef<SWidget> Content )
+{
+	if (Content->GetType() == FName(TEXT("STextBlock")))
+	{
+		return Content;
+	}
+
+	FChildren* Children = Content->GetChildren();
+	int32 NumChildren = Children->Num();
+
+	for( int32 Index = 0; Index < NumChildren; ++Index )
+	{
+		TSharedRef<SWidget> Found = FindTextBlockWidget( Children->GetChildAt( Index ));
+		if (Found != SNullWidget::NullWidget)
+		{
+			return Found;
+		}
+	}
+	return SNullWidget::NullWidget;
 }
 
 
@@ -359,6 +382,7 @@ public:
 		FReply Reply = SButton::OnMouseButtonUp(MyGeometry, MouseEvent);
 
 		bIsPressed = bWasPressed;
+		bIsHovered = true;
 
 		return Reply;
 	}
@@ -369,6 +393,8 @@ public:
 		{
 			ResponseToMouseUp = EResponseToMouseUp::Handle;
 		}
+
+		bIsPressed = false;
 
 		SButton::OnMouseLeave(MouseEvent);
 	}
@@ -470,6 +496,8 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 		CheckBoxForegroundColor = TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw( this, &SMenuEntryBlock::TintOnHover ) );
 	}
 
+	// If there is custom menu widget, set it
+	// If there isn't, create it
 	TSharedPtr< SWidget > ButtonContent = MenuEntryBlock->EntryWidget;
 	if ( !ButtonContent.IsValid() )
 	{
@@ -503,6 +531,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 			SNew( STextBlock )
 			.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
 			.Text( Label )
+			.HighlightText( OwnerMultiBoxWidget.Pin().Get(), &SMultiBoxWidget::GetSearchText )
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
@@ -764,6 +793,7 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 			SNew( STextBlock )
 			.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
 			.Text( Label )
+			.HighlightText( OwnerMultiBoxWidget.Pin().Get(), &SMultiBoxWidget::GetSearchText )
 		];
 	}
 
@@ -822,10 +852,12 @@ void SMenuEntryBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 	TSharedPtr< const FMultiBox > MultiBox = OwnerMultiBoxWidget.Pin()->GetMultiBox();
 	TSharedPtr< const FMenuEntryBlock > MenuEntryBlock = StaticCastSharedRef< const FMenuEntryBlock >( MultiBlock.ToSharedRef() );
 	BuildParams.MultiBox = MultiBox;
+	
 	BuildParams.MenuEntryBlock = MenuEntryBlock;
 	BuildParams.UICommand = BuildParams.MenuEntryBlock->GetAction();
 	BuildParams.StyleSet = StyleSet;
 	BuildParams.StyleName = StyleName;
+
 	if (MenuEntryBlock->LabelOverride.IsSet())
 	{
 		BuildParams.Label = MenuEntryBlock->LabelOverride;
@@ -833,6 +865,34 @@ void SMenuEntryBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 	else
 	{
 		BuildParams.Label = BuildParams.UICommand.IsValid() ? BuildParams.UICommand->GetLabel() : FText::GetEmpty();
+	}
+
+	// Add this widget to the search list of the multibox
+	// If there is a widget already assigned (created early) ensure that it's STextBlock is set up for searching
+	TSharedPtr< SWidget > ButtonContent = MenuEntryBlock->EntryWidget;
+	if( ButtonContent.IsValid() )
+	{
+		TSharedRef<SWidget> TextBlock = FindTextBlockWidget(ButtonContent.ToSharedRef());
+		if (TextBlock != SNullWidget::NullWidget )
+		{
+			TSharedRef<STextBlock> TheTextBlock = StaticCastSharedRef<STextBlock>(TextBlock);
+
+			// Bind the search text to the widgets text to highlight
+			TAttribute<FText> HighlightText;
+			HighlightText.Bind(OwnerMultiBoxWidget.Pin().Get(), &SMultiBoxWidget::GetSearchText);
+			TheTextBlock->SetHighlightText(HighlightText);
+
+			OwnerMultiBoxWidget.Pin()->AddSearchElement( this->AsWidget(), TheTextBlock.Get().GetText() );
+		}
+		else
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("Custom widget block will not be searched, could not find it's displayed STextBlock"));
+		}
+	}
+	else
+	{
+		if (MultiBlock->GetSearchable() && !BuildParams.Label.Get().IsEmpty())
+			OwnerMultiBoxWidget.Pin()->AddSearchElement( this->AsWidget(), BuildParams.Label.Get() );
 	}
 
 	// Tool tips are optional so if the tool tip override is empty and there is no UI command just use the empty tool tip.

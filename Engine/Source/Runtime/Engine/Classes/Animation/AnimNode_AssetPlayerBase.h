@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,9 @@ struct ENGINE_API FAnimNode_AssetPlayerBase : public FAnimNode_Base
 	/** Get the last encountered blend weight for this node */
 	virtual float GetCachedBlendWeight();
 	
+	/** Set the cached blendweight to zero */
+	void ClearCachedBlendWeight();
+
 	/** Get the currently referenced time within the asset player node */
 	virtual float GetAccumulatedTime();
 
@@ -31,13 +34,28 @@ struct ENGINE_API FAnimNode_AssetPlayerBase : public FAnimNode_Base
 	/** Get the animation asset associated with the node, derived classes should implement this */
 	virtual UAnimationAsset* GetAnimAsset();
 
+	/** Initialize function for setup purposes */
+	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+
 	/** Update the node, marked final so we can always handle blendweight caching.
 	 *  Derived classes should implement UpdateAssetPlayer
 	 */
+
 	virtual void Update(const FAnimationUpdateContext& Context) final override;
 
 	/** Update method for the asset player, to be implemented by derived classes */
 	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) {};
+
+	// The group index, assigned at compile time based on the editoronly GroupName (or INDEX_NONE if it is not part of any group)
+	UPROPERTY()
+	int32 GroupIndex;
+
+	// The role this player can assume within the group (ignored if GroupIndex is INDEX_NONE)
+	UPROPERTY()
+	TEnumAsByte<EAnimGroupRole::Type> GroupRole;
+
+	// Create a tick record for this node
+	void CreateTickRecordForNode(const FAnimationUpdateContext& Context, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate);
 
 protected:
 
@@ -48,4 +66,10 @@ protected:
 	/** Accumulated time used to reference the asset in this node */
 	UPROPERTY(BlueprintReadWrite, Transient, Category=DoNotEdit)
 	float InternalTimeAccumulator;
+
+	/** Store data about current marker position when using marker based syncing*/
+	FMarkerTickRecord MarkerTickRecord;
+
+	/** Track whether we have been full weight previously. Reset when we reach 0 weight*/
+	bool bHasBeenFullWeight;
 };

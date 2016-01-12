@@ -5,6 +5,25 @@ Description:An overview of the Post Processing example level, example 1.17: Prio
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/PostProcessing/1_16 "%Resources/ContentExamples/PostProcessing/1_16:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Post Processing Home](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/PostProcessing/1_18 "%Resources/ContentExamples/PostProcessing/1_18:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,5 +71,5 @@ Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 [/REGION:lightbox]
 </div>
 
-Volume Priority allows you to control which Post Process Volume will override another if one is nested inside the other. If you are inside two volumes, the volume with the higher priority will be used and lower priority volumes will be ignored.
+**Volume Priority** allows you to control which Post Process Volume will override another if one is nested inside the other. If you are inside two volumes, the volume with the higher priority will be used and lower priority volumes will be ignored.
 

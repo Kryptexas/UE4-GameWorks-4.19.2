@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -10,12 +10,12 @@ class UK2Node_CallParentFunction : public UK2Node_CallFunction
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin EdGraphNode interface
+	//~ Begin EdGraphNode Interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual void PostPlacedNewNode() override;
-	// End EdGraphNode interface
+	//~ End EdGraphNode Interface
 
 	virtual void SetFromFunction(const UFunction* Function) override;
 };

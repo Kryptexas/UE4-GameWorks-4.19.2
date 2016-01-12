@@ -1,23 +1,29 @@
 {
 	"FileVersion" : 3,
-
-	"FriendlyName" : "Oculus Audio Plugin",
 	"Version" : 1,
 	"VersionName" : "1.0",
-	"CreatedBy" : "Epic Games, Inc.",
-	"CreatedByURL" : "http://epicgames.com",
-	"EngineVersion" : "4.2.0",
+	"FriendlyName" : "Oculus Audio Plugin",
 	"Description" : "Support for the Oculus audio spatialization library",
 	"Category" : "Audio",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"DocsURL" : "",
+	"MarketplaceURL" : "",
+	"SupportURL" : "",
 	"EnabledByDefault" : false,
-
+	"CanContainContent" : false,
+	"IsBetaVersion" : false,
+	"Installed" : false,
 	"Modules" :
 	[
 		{
 			"Name" : "OculusAudio",
 			"Type" : "Runtime",
-			"WhitelistPlatforms" : [ "Win64" ],
-			"LoadingPhase" : "PostConfigInit"
+			"LoadingPhase" : "PostConfigInit",
+			"WhitelistPlatforms" :
+			[
+				"Win64"
+			]
 		}
 	]
 }

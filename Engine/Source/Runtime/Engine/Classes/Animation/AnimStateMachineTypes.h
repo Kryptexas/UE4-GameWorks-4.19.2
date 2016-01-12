@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -135,6 +135,9 @@ struct FAnimationTransitionBetweenStates : public FAnimationStateBase
 	UCurveFloat* CustomCurve;
 
 	UPROPERTY()
+	UBlendProfile* BlendProfile;
+
+	UPROPERTY()
 	TEnumAsByte<ETransitionLogicType::Type> LogicType;
 
 #if WITH_EDITORONLY_DATA
@@ -151,6 +154,7 @@ struct FAnimationTransitionBetweenStates : public FAnimationStateBase
 		, InterruptNotify(INDEX_NONE)
 		, BlendMode(EAlphaBlendOption::CubicInOut)
 		, CustomCurve(nullptr)
+		, BlendProfile(nullptr)
 		, LogicType(ETransitionLogicType::TLT_StandardBlend)
 #if WITH_EDITOR
 		, ReverseTransition(false)
@@ -176,13 +180,13 @@ struct FBakedStateExitTransition
 	UPROPERTY()
 	int32 TransitionIndex;
 
-	// For transitions that go automatically at the end of the sequence, this is the index for the sole sequence player node in the graph
-	UPROPERTY()
-	int32 StateSequencePlayerToQueryIndex;
-
 	// What the transition rule node needs to return to take this transition (for bidirectional transitions)
 	UPROPERTY()
 	bool bDesiredTransitionReturnValue;
+
+	// Automatic Transition Rule based on animation remaining time.
+	UPROPERTY()
+	bool bAutomaticRemainingTimeRule;
 	
 	UPROPERTY()
 	TArray<int32> PoseEvaluatorLinks;
@@ -191,8 +195,8 @@ struct FBakedStateExitTransition
 		: CanTakeDelegateIndex(INDEX_NONE)
 		, CustomResultNodeIndex(INDEX_NONE)
 		, TransitionIndex(INDEX_NONE)
-		, StateSequencePlayerToQueryIndex(INDEX_NONE)
 		, bDesiredTransitionReturnValue(true)
+		, bAutomaticRemainingTimeRule(false)
 	{
 	}
 };
@@ -266,19 +270,33 @@ struct FBakedAnimationStateMachine
 	UPROPERTY()
 	TArray<FAnimationTransitionBetweenStates> Transitions;
 
+	// Cached StatID for this state machine
+	STAT(mutable TStatId StatID;)
+
 public:
 	FBakedAnimationStateMachine()
 		: InitialState(INDEX_NONE)
 	{}
 
-	// Finds a state by name or NULL if no such state exists
-	int32 FindStateIndex(FName StateName);
+	// Finds a state by name or INDEX_NONE if no such state exists
+	ENGINE_API int32 FindStateIndex(const FName& StateName) const;
+
+	// Find the index of a transition from StateNameFrom to StateNameTo
+	ENGINE_API int32 FindTransitionIndex(const FName& InStateNameFrom, const FName& InStateNameTo) const;
+	ENGINE_API int32 FindTransitionIndex(const int32 InStateIdxFrom, const int32 InStateIdxTo) const;
+
+#if STATS
+	/** Get the StatID for timing this state machine */
+	FORCEINLINE TStatId GetStatID() const
+	{
+		if (!StatID.IsValidStat())
+		{
+			StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Anim>(MachineName);
+		}
+		return StatID;
+	}
+#endif // STATS
 };
-
-
-
-
-
 
 UCLASS()
 class UAnimStateMachineTypes : public UObject

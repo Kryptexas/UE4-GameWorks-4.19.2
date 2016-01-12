@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Copyright 2010 Autodesk, Inc. All Rights Reserved.
@@ -59,7 +59,7 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Mesh, meta=(ToolTip="If enabled, combines all meshes into a single mesh", ImportType="StaticMesh"))
 	uint32 bCombineMeshes:1;
 
-	/** Skeleton to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing and animation this MUST be specified to import the asset. */
+	/** Skeleton to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing an animation this MUST be specified to import the asset. */
 	UPROPERTY(EditAnywhere, Category=Mesh, meta=(ImportType="SkeletalMesh|Animation"))
 	class USkeleton* Skeleton;
 
@@ -107,9 +107,9 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, Instanced, Category=Material)
 	class UFbxTextureImportData* TextureImportData;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
-	// End UObject Interface
+	//~ End UObject Interface
 };
 
 

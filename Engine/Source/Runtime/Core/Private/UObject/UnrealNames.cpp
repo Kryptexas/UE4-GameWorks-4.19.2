@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -8,6 +8,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealNames, Log, All);
 /*-----------------------------------------------------------------------------
 	FName helpers.
 -----------------------------------------------------------------------------*/
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+	void CallNameCreationHook();
+#else
+	FORCEINLINE void CallNameCreationHook()
+	{
+	}
+#endif
 
 FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* HashNext, bool bIsPureAnsi );
 
@@ -617,6 +624,7 @@ bool FName::InitInternal_FindOrAdd(const TCharType* InName, const EFindName Find
 template <typename TCharType>
 bool FName::InitInternal_FindOrAddNameEntry(const TCharType* InName, const EFindName FindType, const ENameCase ComparisonMode, int32& OutIndex)
 {
+	CallNameCreationHook();
 	// Hash value of string
 	const int32 iHash = ( (ComparisonMode == ENameCase::IgnoreCase) ? FCrc::Strihash_DEPRECATED( InName ) : FCrc::StrCrc32( InName ) ) & (ARRAY_COUNT(NameHash)-1);
 
@@ -1119,109 +1127,121 @@ FNameEntry* AllocateNameEntry( const void* Name, NAME_INDEX Index, FNameEntry* H
 	return NameEntry;
 }
 
-#if !UE_BUILD_SHIPPING
 
-#include "TaskGraphInterfaces.h"
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-/**
- Exec function for FNames, mostly for testing
-**/
-static class FFNameExec: private FSelfRegisteringExec
+#include "StackTracker.h"
+static TAutoConsoleVariable<int32> CVarLogGameThreadFNameChurn(
+	TEXT("LogGameThreadFNameChurn.Enable"),
+	0,
+	TEXT("If > 0, then collect sample game thread fname create, periodically print a report of the worst offenders."));
+
+static TAutoConsoleVariable<int32> CVarLogGameThreadFNameChurn_PrintFrequency(
+	TEXT("LogGameThreadFNameChurn.PrintFrequency"),
+	300,
+	TEXT("Number of frames between churn reports."));
+
+static TAutoConsoleVariable<int32> CVarLogGameThreadFNameChurn_Threshhold(
+	TEXT("LogGameThreadFNameChurn.Threshhold"),
+	10,
+	TEXT("Minimum average number of fname creations per frame to include in the report."));
+
+static TAutoConsoleVariable<int32> CVarLogGameThreadFNameChurn_SampleFrequency(
+	TEXT("LogGameThreadFNameChurn.SampleFrequency"),
+	1,
+	TEXT("Number of fname creates per sample. This is used to prevent churn sampling from slowing the game down too much."));
+
+static TAutoConsoleVariable<int32> CVarLogGameThreadFNameChurn_StackIgnore(
+	TEXT("LogGameThreadFNameChurn.StackIgnore"),
+	4,
+	TEXT("Number of items to discard from the top of a stack frame."));
+
+static TAutoConsoleVariable<int32> CVarLogGameThreadFNameChurn_RemoveAliases(
+	TEXT("LogGameThreadFNameChurn.RemoveAliases"),
+	1,
+	TEXT("If > 0 then remove aliases from the counting process. This essentialy merges addresses that have the same human readable string. It is slower."));
+
+static TAutoConsoleVariable<int32> CVarLogGameThreadFNameChurn_StackLen(
+	TEXT("LogGameThreadFNameChurn.StackLen"),
+	3,
+	TEXT("Maximum number of stack frame items to keep. This improves aggregation because calls that originate from multiple places but end up in the same place will be accounted together."));
+
+
+struct FSampleFNameChurn
 {
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
+	FStackTracker GGameThreadFNameChurnTracker;
+	bool bEnabled;
+	int32 CountDown;
+	uint64 DumpFrame;
+
+	FSampleFNameChurn()
+		: bEnabled(false)
+		, CountDown(MAX_int32)
+		, DumpFrame(0)
 	{
-		// Display information about the name table only rather than using HASH
-		if( FParse::Command( &Cmd, TEXT("NAMEHASH") ) )
-		{
-			FName::DisplayHash(Ar);
-			return true;
-		}
-#if !UE_BUILD_SHIPPING
-		else if( FParse::Command( &Cmd, TEXT("FNAME") ) )
-		{
-			if( FParse::Command(&Cmd,TEXT("THREADTEST")) )
-			{
-				Ar.Logf( TEXT("Starting fname threading test."));
-				struct FTest
-				{
-					enum 
-					{
-						NUM_TESTS = 400000,
-						NUM_TASKS = 8
-					};
-					struct FTestTable
-					{
-						FString TheString;
-						volatile int32 NameNumber;
-						volatile int32 NameIndex;
-						FTestTable(FString const& InString)
-							: TheString(InString)
-							, NameNumber(0)
-							, NameIndex(0)
-						{
-						}
-					};
-					TArray<FTestTable> Table;
-					FThreadSafeCounter TestCounter;
-					FTest()
-					{
-						for (int32 Index = 0; Index < NUM_TESTS; Index++)
-						{
-							int32 Name = Index / 10;
-							int32 Number = Index % 10;
-							FString TestString = FString::Printf(TEXT("Test%dTest_%d"), Name, Number);
-							new (Table) FTestTable(TestString);
-						}
-					}
-					void Thread()
-					{
-						for (int32 Index = 0; Index < Table.Num(); Index++)
-						{
-							FName Temp(*Table[Index].TheString);
-							check(Temp != NAME_None);
-							check(Temp.ToString() == Table[Index].TheString);
-							if (Table[Index].NameNumber == 0)
-							{
-								Table[Index].NameNumber = Temp.GetNumber();
-							}
-							check(Table[Index].NameNumber == Temp.GetNumber());
-							if (Table[Index].NameIndex == 0)
-							{
-								Table[Index].NameIndex = Temp.GetComparisonIndex();
-							}
-							check(Table[Index].NameIndex == Temp.GetComparisonIndex());
-
-							FName Temp2(*Table[Index].TheString);
-							check(Temp2.ToString() == Table[Index].TheString);
-							check(Table[Index].NameNumber == Temp2.GetNumber());
-							check(Table[Index].NameIndex == Temp2.GetComparisonIndex());
-							TestCounter.Increment();
-						}
-
-					}
-				} Test;
-
-				FGraphEventArray Handles;
-
-				for (int32 ThreadIndex = 0; ThreadIndex < FTest::NUM_TASKS; ThreadIndex++)
-				{
-					DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.FName Test"),
-						STAT_FSimpleDelegateGraphTask_FName_Test,
-						STATGROUP_TaskGraphTasks);
-
-					new (Handles) FGraphEventRef(FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-						FSimpleDelegateGraphTask::FDelegate::CreateRaw(&Test, &FTest::Thread),
-						GET_STATID(STAT_FSimpleDelegateGraphTask_FName_Test), NULL,
-						ENamedThreads::AnyThread));
-				}
-				FTaskGraphInterface::Get().WaitUntilTasksComplete(Handles, ENamedThreads::GameThread);
-				check(Test.TestCounter.GetValue() == FTest::NUM_TESTS * FTest::NUM_TASKS);
-				Ar.Logf( TEXT("Ran fname threading test."));
-			}
-			return true;
-#endif // !UE_BUILD_SHIPPING
-		}
-		return false;
 	}
-} FNameExec;
+
+	void NameCreationHook()
+	{
+		bool bNewEnabled = CVarLogGameThreadFNameChurn.GetValueOnGameThread() > 0;
+		if (bNewEnabled != bEnabled)
+		{
+			check(IsInGameThread());
+			bEnabled = bNewEnabled;
+			if (bEnabled)
+			{
+				CountDown = CVarLogGameThreadFNameChurn_SampleFrequency.GetValueOnGameThread();
+				DumpFrame = GFrameCounter + CVarLogGameThreadFNameChurn_PrintFrequency.GetValueOnGameThread();
+				GGameThreadFNameChurnTracker.ResetTracking();
+				GGameThreadFNameChurnTracker.ToggleTracking(true, true);
+			}
+			else
+			{
+				GGameThreadFNameChurnTracker.ToggleTracking(false, true);
+				DumpFrame = 0;
+				GGameThreadFNameChurnTracker.ResetTracking();
+			}
+		}
+		else if (bEnabled)
+		{
+			check(IsInGameThread());
+			check(DumpFrame);
+			if (--CountDown <= 0)
+			{
+				CountDown = CVarLogGameThreadFNameChurn_SampleFrequency.GetValueOnGameThread();
+				CollectSample();
+				if (GFrameCounter > DumpFrame)
+				{
+					PrintResultsAndReset();
+				}
+			}
+		}
+	}
+
+	void CollectSample()
+	{
+		check(IsInGameThread());
+		GGameThreadFNameChurnTracker.CaptureStackTrace(CVarLogGameThreadFNameChurn_StackIgnore.GetValueOnGameThread(), nullptr, CVarLogGameThreadFNameChurn_StackLen.GetValueOnGameThread(), CVarLogGameThreadFNameChurn_RemoveAliases.GetValueOnGameThread() > 0);
+	}
+	void PrintResultsAndReset()
+	{
+		DumpFrame = GFrameCounter + CVarLogGameThreadFNameChurn_PrintFrequency.GetValueOnGameThread();
+		FOutputDeviceRedirector* Log = FOutputDeviceRedirector::Get();
+		float SampleAndFrameCorrection = float(CVarLogGameThreadFNameChurn_SampleFrequency.GetValueOnGameThread()) / float(CVarLogGameThreadFNameChurn_PrintFrequency.GetValueOnGameThread());
+		GGameThreadFNameChurnTracker.DumpStackTraces(CVarLogGameThreadFNameChurn_Threshhold.GetValueOnGameThread(), *Log, SampleAndFrameCorrection);
+		GGameThreadFNameChurnTracker.ResetTracking();
+	}
+};
+
+FSampleFNameChurn GGameThreadFNameChurnTracker;
+
+void CallNameCreationHook()
+{
+	if (GIsRunning && IsInGameThread())
+	{
+		GGameThreadFNameChurnTracker.NameCreationHook();
+	}
+}
+
 #endif
+

@@ -1,8 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SPopup.h"
-
 
 void SPopup::Construct(const FArguments& InArgs)
 {
@@ -11,7 +10,6 @@ void SPopup::Construct(const FArguments& InArgs)
 		InArgs._Content.Widget
 	];
 }
-
 
 int32 SPopup::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
@@ -35,5 +33,3 @@ int32 SPopup::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
 	}
 	return LayerId;
 }
-
-

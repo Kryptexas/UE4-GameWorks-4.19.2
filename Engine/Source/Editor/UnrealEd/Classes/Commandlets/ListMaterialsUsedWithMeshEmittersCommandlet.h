@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Commandlets/Commandlet.h"
@@ -12,7 +12,7 @@ class UListMaterialsUsedWithMeshEmittersCommandlet : public UCommandlet
 	/** Process the given particle system. For mesh emitters, output material paths that don't have bUsedWithParticleSprites flagged.*/
 	void ProcessParticleSystem(UParticleSystem* ParticleSystem , TArray<FString> &OutMaterials);
 
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 };

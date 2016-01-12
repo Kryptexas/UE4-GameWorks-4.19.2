@@ -1,0 +1,77 @@
+Availability: Docs
+Title: 1.1 - Setting up your Project
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
+Description: Learn how to set up your First Person Shooter project.
+SkillLevel: Beginner
+Version: 4.9
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Section Home](Programming/Tutorials/FirstPersonShooter/1)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Programming/Tutorials/FirstPersonShooter/1/2)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:note]
+You should have a copy of **Visual Studio 2013** for Desktop (Preferably Community or Professional Editions) installed before starting this tutorial.
+[/REGION]
+
+During this step, you will create a starting point for your First Person Shooter (FPS) game by using Unreal Engine 4's Project Browser.
+
+1.	Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.
+
+1.	Click on the **New Project** tab and then select the **Blueprint** tab.
+
+1.	Select the **Blank** project.
+
+1.	Name the project "FPSProject". Make sure **No Starter Content** is set.
+	
+	![](UnrealPrjBrowser.png)
+
+	[REGION:warning]
+	Some of the code samples in this tutorial will need to be updated if you name your project differently.
+	[/REGION]
+
+1.	Click the **Create Project** button.
+
+1.	Your project is now open in Unreal Editor. Click the **Play** button in the Level Editor to move around the level. Use the WASD keys to move and use the mouse to aim your camera.
+
+	![](ClickPlayButton.png)
+
+1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+
+	![](ClickStopButton.png)
+
+1.	Create a Maps folder within the Content folder.
+
+	![](MapsFolder.png)
+
+1.	In the **File** menu, select **Save as...** to save your level as "FPSMap" within the Maps folder.
+
+	![](SaveLevelAs.png)
+
+1.	In the **Edit** menu, click on **Project Settings**.
+
+1.	Under the **Project** heading on the left side of the **Project Settings** tab, click on **Maps & Modes**.
+
+1.	Select **FPSMap** as the **Editor Startup Map** using the dropdown menu.
+
+	![](EditorDefaultMap.png)
+
+	[REGION:note]
+	From now on, the editor will automatically load FPSMap as the default map.
+	[/REGION]
+
+1.	Close the **Project Settings** menu.
+
+%Steps%

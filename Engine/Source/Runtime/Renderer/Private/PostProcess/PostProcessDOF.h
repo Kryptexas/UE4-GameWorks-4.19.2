@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDOF.h: Post process Depth of Field implementation.
@@ -15,8 +15,10 @@
 class FRCPassPostProcessDOFSetup : public TRenderingCompositePassBase<2, 2>
 {
 public:
-
-	FRCPassPostProcessDOFSetup(bool bInNearBlurEnabled) : bNearBlurEnabled ( bInNearBlurEnabled ) {}
+	FRCPassPostProcessDOFSetup(bool bInFarBlur, bool bInNearBlur) 
+		: bFarBlur(bInFarBlur)
+		, bNearBlur(bInNearBlur)
+	{}
 
 	// interface FRenderingCompositePass ---------
 
@@ -25,26 +27,21 @@ public:
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
 private:
-
-	bool bNearBlurEnabled;
+	
+	bool bFarBlur;
+	bool bNearBlur;
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
 // ePId_Input0: Full res scene color
-// ePId_Input1: output 0 from the DOFSetup (possibly further blurred)
-// ePId_Input2: output 1 from the DOFSetup (possibly further blurred)
-class FRCPassPostProcessDOFRecombine : public TRenderingCompositePassBase<3, 1>
+// ePId_Input1: FarBlur from the DOFSetup (possibly further blurred)
+// ePId_Input2: NearBlur from the DOFSetup (possibly further blurred)
+// ePId_Input3: optional SeparateTransluceny
+class FRCPassPostProcessDOFRecombine : public TRenderingCompositePassBase<4, 1>
 {
 public:
-
-	FRCPassPostProcessDOFRecombine(bool bInNearBlurEnabled) : bNearBlurEnabled ( bInNearBlurEnabled ) {}
-
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
-
-private:
-
-	bool bNearBlurEnabled;
 };

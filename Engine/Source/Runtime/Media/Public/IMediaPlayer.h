@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,37 @@ class IMediaStream;
 class IMediaAudioTrack;
 class IMediaCaptionTrack;
 class IMediaVideoTrack;
+
+
+/**
+ * Enumerates media player related events.
+ */
+enum class EMediaEvent
+{
+	/** Unknown event. */
+	Unknown,
+
+	/** The current media source has been closed. */
+	MediaClosed,
+
+	/** A new media source has been opened. */
+	MediaOpened,
+
+	/** A media source failed to open. */
+	MediaOpenFailed,
+
+	/** The end of the media (or beginning if playing in reverse) has been reached. */
+	PlaybackEndReached,
+
+	/** Playback has been resumed. */
+	PlaybackResumed,
+
+	/** Playback has been suspended. */
+	PlaybackSuspended,
+
+	/** Media tracks have changed. */
+	TracksChanged
+};
 
 
 /**
@@ -34,7 +65,7 @@ enum class EMediaSeekDirection
 /**
  * Interface for media players.
  *
- * @see IMediaTrack
+ * @see IMediaStream
  */
 class IMediaPlayer
 {
@@ -140,21 +171,31 @@ public:
 	virtual bool IsReady() const = 0;
 
 	/**
-	 * Opens a media from a file on disk.
+	 * Opens a media from a URL, possibly asynchronously.
+	 *
+	 * The media may not necessarily be opened after this function succeeds,
+	 * because opening may happen asynchronously. Subscribe to the OnOpened
+	 * OnOpenFailed events to detect when the media finished or failed to
+	 * open. These events are only triggered if Open returns true.
 	 *
 	 * @param Url The URL of the media to open (file name or web address).
-	 * @return true if the media was opened successfully, false otherwise.
-	 * @see Close, IsReady
+	 * @return true if the media is being opened, false otherwise.
+	 * @see Close, IsReady, OnOpen, OnOpenFailed
 	 */
 	virtual bool Open(const FString& Url) = 0;
 
 	/**
-	 * Opens a media from a file or memory archive.
+	 * Opens a media from a file or memory archive, possibly asynchronously.
+	 *
+	 * The media may not necessarily be opened after this function succeeds,
+	 * because opening may happen asynchronously. Subscribe to the OnOpened
+	 * OnOpenFailed events to detect when the media finished or failed to
+	 * open. These events are only triggered if Open returns true.
 	 *
 	 * @param Archive The archive holding the media data.
 	 * @param OriginalUrl The original URL of the media that was loaded into the buffer.
-	 * @return true if the media was opened, false otherwise.
-	 * @see Close, IsReady
+	 * @return true if the media is being opened, false otherwise.
+	 * @see Close, IsReady, OnOpen, OnOpenFailed
 	 */
 	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl) = 0;
 
@@ -191,17 +232,9 @@ public:
 
 public:
 
-	/** Gets an event delegate that is invoked when media has been closed. */
-	DECLARE_EVENT(IMediaPlayer, FOnMediaClosed)
-	virtual FOnMediaClosed& OnClosed() = 0;
-
-	/** Gets an event delegate that is invoked when media has been opened. */
-	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaOpened, FString /*OpenedUrl*/)
-	virtual FOnMediaOpened& OnOpened() = 0;
-
-	/** Gets an event delegate that is invoked when the media tracks have changed. */
-	DECLARE_EVENT(IMediaPlayer, FOnTracksChanged)
-	virtual FOnTracksChanged& OnTracksChanged() = 0;
+	/** Gets an event delegate that is invoked when some interesting event occurred. */
+	DECLARE_EVENT_OneParam(IMediaPlayer, FOnMediaEvent, EMediaEvent /*Event*/)
+	virtual FOnMediaEvent& OnMediaEvent() = 0;
 
 public:
 

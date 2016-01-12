@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2486386
-Title:Unreal Engine 4.4 リリースノート
+﻿INTSourceChangelist:2735872
+Title:アンリアル エンジン 4.4 リリース ノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
+version:4.4
+order:4
 
 [TOC(start:2 end:2)]
 
@@ -789,7 +791,7 @@ Ragdollはデフォルトではルートボディでコンストレインされ�
 * New:モジュールのために PostEngineInit の load phase (読み込み段階) を追加しました。これによって、GEngine/GEditor が作成された後にモジュールを登録できるようになります。
 * New:コマンドライン上で cofig オプションをオーバーライドできる機能。以下の形式を使用してください。
 	* -ini:IniName:[Section1]:Key1=Value1,[Section2]:Key2=Value2
-* New:file system block alignment (ファイル システム ブロック整列) オプションを Unreal pak に追加しました。これによって、小さなファイルがファイル システム ブロックの境界をまたがなくなり、プラットフォームによっては引き起こされかねない余計な負荷を防ぐことができます。このオプションは、そのようなコストを低減するのに役立ちます。オプションを有効化するためには、 �blocksize=X[KB|MB] を使います。
+* New:file system block alignment (ファイル システム ブロック整列) オプションを Unreal pak に追加しました。これによって、小さなファイルがファイル システム ブロックの境界をまたがなくなり、プラットフォームによっては引き起こされかねない余計な負荷を防ぐことができます。このオプションは、そのようなコストを低減するのに役立ちます。有効化するためには、 �blocksize=X[KB|MB] を使います。
 * ENGINE_API を FComponentInstanceDataBase に追加して、他のモジュールでも使用できるようにしました。
 * 複数のファイルを取る ISourceControlLabel::Sync() のオーバーロードを追加しました。
 * New:アップデート中にファイルが削除できない場合に表示される適切なエラーメッセージを追加しました。また、必要に応じてプロジェクトをチェックアウトする機能を追加しました。
@@ -821,7 +823,7 @@ Ragdollはデフォルトではルートボディでコンストレインされ�
 * ScriptPlugin から、ScriptAsset、ScriptFunction、ScriptActor の各クラスを削除しました。
 * CoreUObject モジュールにおいていくつかのテンプレートから DLLEXPORT の指定を削除しました。インライン拡張が無効化されている場合に不具合を起こす可能性がありました。
 * ツールチップが UField のために存在していない場合は、代わりにフィールドの名前を使用します。
-* �stat unitgraph� がコンソールのオートコンプリートに表示されない問題を修正しました。
+* 'stat unitgraph' がコンソールのオートコンプリートに表示されない問題を修正しました。
 * source control 下にあるファイルをコピーすると、ブランチの履歴が保持されなくなる問題を修正しました。
 * stat dumpframe を使用する際に、self および他の子が表示されない問題を修正しました。
 * 低頻度ガーベジコレクションが不適切なタイミングで実行されるバグを修正しました。
@@ -879,7 +881,7 @@ Ragdollはデフォルトではルートボディでコンストレインされ�
 
 
 #### UnrealHeaderTool
-* 「ScriptPlugins」ini 設定項目を削除しました。プラグインは、uplugin ファイルで指定される 'Category' によって発見されるようになります。(UHT については、 �UnrealHeaderTool.Code Generator� によってプレフィックスがつけられなければなりません。)
+* 「ScriptPlugins」ini 設定項目を削除しました。プラグインは、uplugin ファイルで指定される 'Category' によって発見されるようになります。(UHT については、'UnrealHeaderTool.Code Generator' によってプレフィックスがつけられなければなりません。)
 
 ## 周知の問題
 * IPP に関して既知の問題があります。ユーザーが具体的なアプリケーション ID (com.yourcompany.* ではなく com.yourcompany.gamename) をともなったモバイル プロビジョンをインポートしようとすると、インポートされたモバイル プロビジョンを正しく見つけることができないという IPP の問題です。ワークアラウンドは以下のようになります。 

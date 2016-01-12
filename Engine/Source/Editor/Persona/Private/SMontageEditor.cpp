@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -347,6 +347,8 @@ void SMontageEditor::OnMontageChange(class UObject *EditorAnimBaseObj, bool Rebu
 
 	if ( MontageObj != nullptr )
 	{
+		float PreviouewSeqLength = GetSequenceLength();
+
 		if(Rebuild && !bIsActiveTimerRegistered)
 		{
 			bIsActiveTimerRegistered = true;
@@ -358,6 +360,13 @@ void SMontageEditor::OnMontageChange(class UObject *EditorAnimBaseObj, bool Rebu
 		}
 		
 		MontageObj->MarkPackageDirty();
+
+		// if animation length changed, we might be out of range, let's restart
+		if (GetSequenceLength() != PreviouewSeqLength)
+		{
+			// this might not be safe
+			RestartPreview();
+		}
 	}
 }
 

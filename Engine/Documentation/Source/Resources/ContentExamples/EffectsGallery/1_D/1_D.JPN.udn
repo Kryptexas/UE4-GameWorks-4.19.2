@@ -1,15 +1,33 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2714455
 Availability:Public
 Title:1.4 - Point Gravity モジュールを使用した GPU パーティクル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
-Description:エフェクト ギャラリーの事例概要
+Description:エフェクト ギャラリーのサンプル レベルの概要
 Related:Engine/Rendering/ParticleSystems/Overview
 Related:Engine/Rendering/ParticleSystems/Reference
 Related:Engine/Rendering/ParticleSystems/Optimization
 Related:Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related:Engine/Rendering/ParticleSystems/ParticleLights
 Related:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version:4.9 
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/1_C "%Resources/ContentExamples/EffectsGallery/1_C:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/1_E "%Resources/ContentExamples/EffectsGallery/1_E:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -55,7 +73,7 @@ Related:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [/REGION]
 
 
-このエフェクトでは Point Gravity モジュールを紹介します。Point Gravity は GPU パーティクルと互換性がある唯一のモジュールです。このモジュールを使用して、エミッタの全パーティクルが描画される空間の近くにポイントを指定することができます。Point Gravity モジュールは、CPU パーティクルのみと互換性のある Point Attractor、Line Attractor、そして Particle Attractor モジュールの代わりになります。Point Gravity モジュールでは位置、半径、強さを設定する必要があります。
+このエフェクトでは Point Gravity モジュールを紹介します。Point Gravity は GPU パーティクルと互換性がある唯一のモジュールです。このモジュールを使用して、エミッタの全パーティクルが引き寄せられる空間内のポイントを指定することができます。Point Gravity モジュールは、CPU パーティクルのみと互換性のある Point Attractor、Line Attractor、そして Particle Attractor モジュールの代わりになります。Point Gravity モジュールでは位置、半径、強さを設定する必要があります。
 
 [REGION:fullwidth]
 ![](PointGrav.png)
@@ -63,8 +81,8 @@ Related:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 
 このエフェクトには以下の 2 つのエミッタがあります。
 
-* ひとつは GPU スプライト エミッタでエフェクトで可視化できるほとんどのパーティクルを作成し、Point Gravity と Collision (Scene Depth) モジュールが含まれています。
-* もうひとつは、標準の CPU エミッタです。いくつかのパーティクルだけを放射しますが、Light モジュールも使用します。パーティクルはシーンを照らす動的ライトをスポーンできるようになります。
+* ひとつは GPU スプライト エミッタでエフェクトで可視化できるほとんどのパーティクルを作成し、Point Gravity と Collision (Scene Depth) が含まれています。
+* もうひとつは、標準の CPU エミッタです。いくつかのパーティクルだけを放射しますが、Light モジュールも使用し、パーティクルはシーンを照らす動的ライトをスポーンできるようになります。
 
 
 Attractor モジュールに関する詳細は [Attractor モジュールのドキュメント](Engine/Rendering/ParticleSystems\Reference\Modules\Attractor) をご覧ください。

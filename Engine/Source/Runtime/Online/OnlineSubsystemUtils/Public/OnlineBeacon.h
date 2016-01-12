@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineBeacon.generated.h"
@@ -29,7 +29,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Connection) override;
 	virtual bool IsRelevancyOwnerFor(const AActor* ReplicatedActor, const AActor* ActorOwner, const AActor* ConnectionActor) const override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
@@ -37,21 +37,14 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	virtual UNetConnection* GetNetConnection() const override { return nullptr; }
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
-	// End AActor Interface
+	//~ End AActor Interface
 
-	// Begin FNetworkNotify Interface
+	//~ Begin FNetworkNotify Interface
 	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
 	virtual void NotifyAcceptedConnection(UNetConnection* Connection) override;
 	virtual bool NotifyAcceptingChannel(UChannel* Channel) override;
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch) override;
-	// End FNetworkNotify Interface
-
-	/**
-	 * Each beacon must have a unique type identifier
-	 *
-	 * @return string representing the type of beacon 
-	 */
-	virtual FString GetBeaconType() PURE_VIRTUAL(AOnlineBeacon::GetBeaconType, return TEXT(""););
+	//~ End FNetworkNotify Interface
 	
     /**
 	 * Get the current state of the beacon

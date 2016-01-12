@@ -1,15 +1,17 @@
 Availability: Public
-Title:Create Functions
+Title:Creating Functions
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:Create a Function which displays text when a key is pressed. 
 Related: Engine/Blueprints/UserGuide/Functions
 Related: Engine/Blueprints/UserGuide/Functions/FunctionCalls
+version:4.9
+skilllevel:Intermediate
 
 [INCLUDE:Engine/Blueprints/UserGuide/Functions#intro]
 
 The steps below will guide you through creating a Function which will print text to the screen when a button is pressed. 
 
-1.  Inside the **Content Browser**, click the **New** Button then select **Blueprint**. 
+1.  Inside the **Content Browser**, click the **New** Button then select **Blueprint Class**. 
 
 	![](NewBlueprint.png)
 
@@ -53,7 +55,7 @@ The steps below will guide you through creating a Function which will print text
 
 	![](RenameFunction.png)
 
-	Give the Function a name such as **Print Text**. 
+	Give the Function a name such as "Print Text". 
 
 1.	In the Function's graph, drag off the **Print Text** pin and search for and add a **Print String** node. 
 

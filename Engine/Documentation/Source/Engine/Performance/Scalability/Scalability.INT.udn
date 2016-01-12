@@ -2,6 +2,7 @@ Availability:Public
 Title: Scalability
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:Options for adjusting quality and performance.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

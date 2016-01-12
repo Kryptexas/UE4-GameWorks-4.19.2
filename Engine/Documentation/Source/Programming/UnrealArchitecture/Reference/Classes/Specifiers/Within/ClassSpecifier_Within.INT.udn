@@ -4,7 +4,7 @@ Description:
 Availability:Public
 Version: 4.9
 
-The **Within** class specifier indicates that objects of this class cannot exist _outside_ of an instance of 
+The `Within` class specifier indicates that objects of this class cannot exist _outside_ of an instance of 
 *ClassName*. In order to create an object of this class, you must specify an instance of *ClassName* as the 
 `Outer` object.
 

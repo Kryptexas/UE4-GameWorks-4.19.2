@@ -54,7 +54,7 @@ Description:물리 시뮬레이션 프리미티브에 바로 또는 머티리얼
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Physics/PhysicalMaterials/PhysMatUserGuide "%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:description%")
-		* [](Engine/Physics/PhysicalMaterials/PhysMatReference "%Engine/Physics/PhysicalMaterials/PhysMatReference:description%")
+		* [](Engine/Physics/PhysicalMaterials/Reference "%Engine/Physics/PhysicalMaterials/Reference:description%")
 	[/PARAM]
 [/OBJECT]
 

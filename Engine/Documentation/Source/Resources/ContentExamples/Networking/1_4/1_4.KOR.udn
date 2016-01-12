@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2620779
+﻿INTSourceChangelist:2653552
 Availability: Public
-Title:1.4 - 변수 리플리케이션 (RepNotify)
+Title:1.4 - 변수 리플리케이션 [RepNotify]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:Network Feature 예제 레벨에 대한 개요로, 예제 1.4: Variable Replication, RepNotify 입니다.
 Related: Gameplay/Networking
@@ -8,6 +8,24 @@ Related: Gameplay/Networking/Actors/Components
 Related: Gameplay/Networking/Actors
 Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Networking/1_3 "%Resources/ContentExamples/Networking/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[네트워킹 홈](Resources/ContentExamples/Networking)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Networking/1_5 "%Resources/ContentExamples/Networking/1_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]

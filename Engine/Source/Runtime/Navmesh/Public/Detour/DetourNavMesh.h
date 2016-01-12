@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -742,6 +742,11 @@ public:
 	{
 		// has no tile grid set up
 		return (m_tileWidth > 0 && m_tileHeight > 0) == false;
+	}
+
+	inline unsigned int getSaltBits() const
+	{
+		return m_saltBits;
 	}
 
 	void applyAreaCostOrder(unsigned char* costOrder);

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,13 +43,13 @@ public:
 	/** Get the Material value type of an output pin */
 	uint32 GetOutputType(const UEdGraphPin* OutputPin);
 
-	// UObject interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditImport() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	// End of UObject interface
+	//~ End UObject Interface
 
-	// Begin UEdGraphNode interface.
+	//~ Begin UEdGraphNode Interface.
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
@@ -63,14 +63,14 @@ public:
 	virtual void OnCommentBubbleToggled( bool bInCommentBubbleVisible ) override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual FString GetDocumentationExcerptName() const override;
-	// End UEdGraphNode interface.
+	//~ End UEdGraphNode Interface.
 
-	// UMaterialGraphNode_Base interface
+	//~ Begin UMaterialGraphNode_Base Interface
 	virtual void CreateInputPins() override;
 	virtual void CreateOutputPins() override;
 	virtual UNREALED_API int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
 	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const override;
-	// End of UMaterialGraphNode_Base interface
+	//~ End UMaterialGraphNode_Base Interface
 
 private:
 	/** Make sure the MaterialExpression is owned by the Material */

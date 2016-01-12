@@ -2,6 +2,7 @@ Availability:Public
 Title:Coordinates Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Expressions that perform actions on texture coordinates or output values that can be used as, or to modify, texture coordinates.
+Version:4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -16,7 +17,7 @@ Description:Expressions that perform actions on texture coordinates or output va
 
 ## LightmapUVs
 
-The LightmapUVs expression outputs the lightmap UV texture coordinates in the forum of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0).
+The **LightmapUVs** expression outputs the lightmap UV texture coordinates in the forum of a two-channel vector value. If lightmap UVs are unavailable, it will output a two-channel vector value of (0,0).
 
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Vector#ObjectOrientation]
@@ -27,7 +28,7 @@ The LightmapUVs expression outputs the lightmap UV texture coordinates in the fo
 
 ## ObjectRadius
 
-The object radius outputs a value equal to the radius of a given object in Unreal units. Scaling is taken into account and the results can be unique for each individual object.
+The **Object Radius** outputs a value equal to the radius of a given object in Unreal units. Scaling is taken into account and the results can be unique for each individual object.
 
 [REGION:fullwidth]
 ![ObjectRadiusExample.png](ObjectRadiusExample.png)
@@ -38,7 +39,7 @@ In this example, both meshes are receiving this material in which the ObjectRadi
 
 ## Panner
 
-The Panner expression outputs UV texture coordinates that can be used to create panning, or moving, textures.
+The **Panner** expression outputs UV texture coordinates that can be used to create panning, or moving, textures.
 
 | Item | Description |
 | -------- | ----------- |
@@ -65,7 +66,7 @@ Panner generates UVs that change according to the Time input.  The Coordinate in
 
 ## Rotator
 
-The Rotator expression outputs UV texture coordinates in the form of a two-channel vector value that can be used to create rotating textures.
+The **Rotator** expression outputs UV texture coordinates in the form of a two-channel vector value that can be used to create rotating textures.
 
 | Item | Description |
 | -------- | ----------- |
@@ -83,11 +84,11 @@ The Rotator expression outputs UV texture coordinates in the form of a two-chann
 
 ## SceneTexelSize
 
-The SceneTexelSize expression allows you to offset by texel sizes, as you would when using the SceneColor and SceneDepth expressions. This is useful for edge detection in multi-resolution systems, as without this calculation you would be forced to use a small static value, resulting in inconsistent results at lower resolutions.
+The **SceneTexelSize** expression allows you to offset by texel sizes, as you would when using the SceneColor and SceneDepth expressions. This is useful for edge detection in multi-resolution systems, as without this calculation you would be forced to use a small static value, resulting in inconsistent results at lower resolutions.
 
 ## ScreenPosition
 
-The ScreenPosition expression outputs the screen-space position of the pixel currently being rendered.  
+The **ScreenPosition** expression outputs the screen-space position of the pixel currently being rendered.  
 
 <!--| Item | Description |
 | -------- | ----------- |
@@ -100,7 +101,7 @@ The ScreenPosition expression outputs the screen-space position of the pixel cur
 
 ## TextureCoordinate
 
-The TextureCoordinate expression outputs UV texture coordinates in the form of a two-channel vector value allowing materials to use different UV channels, specify tiling, and otherwise operate on the UVs of a mesh.
+The **TextureCoordinate** expression outputs UV texture coordinates in the form of a two-channel vector value allowing materials to use different UV channels, specify tiling, and otherwise operate on the UVs of a mesh.
 
 | Item | Description |
 | -------- | ----------- |
@@ -123,7 +124,7 @@ The TextureCoordinate expression outputs UV texture coordinates in the form of a
 
 ## ViewSize
  
- The ViewSize expression outputs a 2D vector giving the size of the current view in pixels. This is useful for causing various changes in your materials based on the current resolution of the screen.
+ The **ViewSize** expression outputs a 2D vector giving the size of the current view in pixels. This is useful for causing various changes in your materials based on the current resolution of the screen.
 
  ![](ViewSizeNetwork.png)
 
@@ -140,7 +141,7 @@ The TextureCoordinate expression outputs UV texture coordinates in the form of a
 ## WorldPosition
 
 
-The WorldPosition expression outputs the position of the current pixel in world space. To visualize, simply plug the output into Emissive:
+The **WorldPosition** expression outputs the position of the current pixel in world space. To visualize, simply plug the output into Emissive:
 
 [REGION:fullwidth]
 ![WorldPositionExample.png](WorldPositionExample.png)

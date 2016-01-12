@@ -2,7 +2,10 @@ Availability: Public
 Title:3. Convert Your Actor to a Blueprint Class
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:Make your launchpad reusable and scriptable by converting it to a Blueprint Class
-
+version: 4.9
+parent:Engine/Blueprints/QuickStart
+order:3
+type:multi-step
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,7 +26,7 @@ Description:Make your launchpad reusable and scriptable by converting it to a Bl
 %Steps%
 
 ---
-Making changes inside the Blueprint means that each time you make a new launchpad, it will have the look and feel you have created in the Blueprint Editor. While you could duplicate your LaunchPad
+Making changes inside the Blueprint means that each time you make a new launchpad, it will have the look and feel you have created in the **Blueprint Editor**. While you could duplicate your LaunchPad
 Actor around the level, any changes you make on a particular launchpad would only affect that one copy. 
 
 1. In the **Details** panel, click on the **Blueprint/Add Script** button.

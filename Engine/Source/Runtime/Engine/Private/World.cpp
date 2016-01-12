@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	World.cpp: UWorld implementation
@@ -40,6 +40,7 @@
 #include "GameFramework/GameMode.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 #include "Materials/MaterialParameterCollectionInstance.h"
 
@@ -81,30 +82,34 @@
 #include "Engine/GameInstance.h"
 #include "UObject/UObjectThreadContext.h"
 #include "Engine/CoreSettings.h"
+#include "PerfCountersHelpers.h"
+#include "NetworkReplayStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
 
 #define LOCTEXT_NAMESPACE "World"
 
-FActorSpawnParameters& FActorSpawnParameters::operator=(const FActorSpawnParameters& Other)
-{
-	Name = Other.Name;
-	Template = Other.Template;
-	Owner = Other.Owner;
-	Instigator = Other.Instigator;
-	OverrideLevel = Other.OverrideLevel;
-	SpawnCollisionHandlingOverride = Other.SpawnCollisionHandlingOverride;
+// Deprecation warnings disabled to initialize bNoCollisionFail
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	bNoCollisionFail = Other.bNoCollisionFail;
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	bRemoteOwned = Other.bRemoteOwned;
-	bNoFail = Other.bNoFail;
-	bDeferConstruction = Other.bDeferConstruction;
-	bAllowDuringConstructionScript = Other.bAllowDuringConstructionScript;
-	ObjectFlags = Other.ObjectFlags;
-	return *this;
+
+FActorSpawnParameters::FActorSpawnParameters()
+: Name(NAME_None)
+, Template(NULL)
+, Owner(NULL)
+, Instigator(NULL)
+, OverrideLevel(NULL)
+, SpawnCollisionHandlingOverride(ESpawnActorCollisionHandlingMethod::Undefined)
+, bNoCollisionFail(false)
+, bRemoteOwned(false)
+, bNoFail(false)
+, bDeferConstruction(false)
+, bAllowDuringConstructionScript(false)
+, ObjectFlags(RF_Transactional)
+{
 }
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 /*-----------------------------------------------------------------------------
 	UWorld implementation.
@@ -426,7 +431,7 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 		{
 			if (Tex && Tex->GetOutermost() != MyPackage)
 			{
-				UObject* NewTex = StaticDuplicateObject(Tex, MyPackage, *Tex->GetName());
+				UObject* NewTex = StaticDuplicateObject(Tex, MyPackage, Tex->GetFName());
 				ReplacementMap.Add(Tex, NewTex);
 			}
 		}
@@ -439,7 +444,7 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 			UObject* OldGeneratedClass = LevelScriptBlueprint->GeneratedClass;
 			if (OldGeneratedClass)
 			{
-				UObject* NewGeneratedClass = StaticDuplicateObject(OldGeneratedClass, MyPackage, *OldGeneratedClass->GetName());
+				UObject* NewGeneratedClass = StaticDuplicateObject(OldGeneratedClass, MyPackage, OldGeneratedClass->GetFName());
 				ReplacementMap.Add(OldGeneratedClass, NewGeneratedClass);
 
 				// The class may have referenced a lightmap or landscape resource that is also being duplicated. Add it to the list of objects that need references fixed up.
@@ -449,7 +454,7 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 			UObject* OldSkeletonClass = LevelScriptBlueprint->SkeletonGeneratedClass;
 			if (OldSkeletonClass)
 			{
-				UObject* NewSkeletonClass = StaticDuplicateObject(OldSkeletonClass, MyPackage, *OldSkeletonClass->GetName());
+				UObject* NewSkeletonClass = StaticDuplicateObject(OldSkeletonClass, MyPackage, OldSkeletonClass->GetFName());
 				ReplacementMap.Add(OldSkeletonClass, NewSkeletonClass);
 
 				// The class may have referenced a lightmap or landscape resource that is also being duplicated. Add it to the list of objects that need references fixed up.
@@ -794,14 +799,13 @@ void UWorld::UpdateParameterCollectionInstances(bool bUpdateInstanceUniformBuffe
 
 UAISystemBase* UWorld::CreateAISystem()
 {
-#if WITH_SERVER_CODE || WITH_EDITOR
 	// create navigation system for editor and server targets, but remove it from game clients
-	if (AISystem == NULL && GetNetMode() != NM_Client)
+	if (AISystem == NULL && UAISystemBase::ShouldInstantiateInNetMode(GetNetMode()))
 	{
 		FName AIModuleName = UAISystemBase::GetAISystemModuleName();
 		if (AIModuleName.IsNone() == false)
 		{
-			auto AISystemModule = FModuleManager::LoadModulePtr<IAISystemModule>(UAISystemBase::GetAISystemModuleName());
+			IAISystemModule* AISystemModule = FModuleManager::LoadModulePtr<IAISystemModule>(UAISystemBase::GetAISystemModuleName());
 			if (AISystemModule)
 			{
 				AISystem = AISystemModule->CreateAISystemInstance(this);
@@ -812,7 +816,7 @@ UAISystemBase* UWorld::CreateAISystem()
 			}
 		}
 	}
-#endif
+
 	return AISystem; 
 }
 
@@ -970,6 +974,10 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	CurrentLevel		= PersistentLevel;
 
 	bAllowAudioPlayback = IVS.bAllowAudioPlayback;
+#if WITH_EDITOR
+	// Disable audio playback on PIE dedicated server
+	bAllowAudioPlayback = bAllowAudioPlayback && (GetNetMode() != NM_DedicatedServer);
+#endif // WITH_EDITOR
 
 	bDoDelayedUpdateCullDistanceVolumes = false;
 
@@ -1129,7 +1137,7 @@ void UWorld::MarkObjectsPendingKill()
 	{
 		Object->MarkPendingKill();
 	};
-	ForEachObjectWithOuter(this, MarkObjectPendingKill, true, RF_PendingKill);
+	ForEachObjectWithOuter(this, MarkObjectPendingKill, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 }
 
 UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName, UPackage* InWorldPackage, bool bAddToRoot, ERHIFeatureLevel::Type InFeatureLevel)
@@ -1139,11 +1147,10 @@ UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngi
 		InFeatureLevel = GMaxRHIFeatureLevel;
 	}
 
-	// Create a new package unless we're a commandlet in which case we keep the dummy world in the transient package.
 	UPackage* WorldPackage = InWorldPackage;
 	if ( !WorldPackage )
 	{
-		WorldPackage = IsRunningCommandlet() ? GetTransientPackage() : CreatePackage( NULL, NULL );
+		WorldPackage = CreatePackage( NULL, NULL );
 	}
 
 	if (InWorldType == EWorldType::PIE)
@@ -1701,7 +1708,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 	
 	check(Level);
 	check(!Level->IsPendingKill());
-	check(!Level->HasAnyFlags(RF_Unreachable));
+	check(!Level->IsUnreachable());
 
 	FScopeCycleCounterUObject ContextScope(Level);
 
@@ -1908,7 +1915,8 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		{
 			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
-				if (It->PlayerController != NULL)
+				APlayerController* LocalPlayerController = It->GetPlayerController(this);
+				if (LocalPlayerController != NULL)
 				{
 					// Remap packagename for PIE networking before sending out to server
 					FName PackageName = Level->GetOutermost()->GetFName();
@@ -1918,7 +1926,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 						PackageName = FName(*PackageNameStr);
 					}
 
-					It->PlayerController->ServerUpdateLevelVisibility(PackageName, true);
+					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, true);
 				}
 			}
 		}
@@ -1975,7 +1983,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 	FScopeCycleCounterUObject Context(Level);
 	check(Level);
 	check(!Level->IsPendingKill());
-	check(!Level->HasAnyFlags(RF_Unreachable));
+	check(!Level->IsUnreachable());
 
 	if (CurrentLevelPendingVisibility == NULL && Level->bIsVisible)
 	{
@@ -2024,7 +2032,8 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		{
 			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
 			{
-				if (It->PlayerController != NULL)
+				APlayerController* LocalPlayerController = It->GetPlayerController(this);
+				if (LocalPlayerController != NULL)
 				{
 					// Remap packagename for PIE networking before sending out to server
 					FName PackageName = Level->GetOutermost()->GetFName();
@@ -2034,7 +2043,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 						PackageName = FName(*PackageNameStr);
 					}
 
-					It->PlayerController->ServerUpdateLevelVisibility(PackageName, false);
+					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, false);
 				}
 			}
 		}
@@ -2323,7 +2332,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(PackageNamesBeingDuplicatedForPIE);
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
-	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, *EditorLevelWorld->GetName(), RF_AllFlags, nullptr, SDO_DuplicateForPie));
+	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, EditorLevelWorld->GetFName(), RF_AllFlags, nullptr, SDO_DuplicateForPie));
 	
 	// Clean up string asset reference fixups
 	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
@@ -2667,6 +2676,71 @@ bool UWorld::AllowLevelLoadRequests()
 	return true;
 }
 
+bool UWorld::HandleDemoScrubCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)
+{
+	FString TimeString;
+	if (!FParse::Token(Cmd, TimeString, 0))
+	{
+		Ar.Log(TEXT("You must specify a time"));
+	}
+	else if (DemoNetDriver != nullptr && DemoNetDriver->ReplayStreamer.IsValid() && DemoNetDriver->ServerConnection != nullptr && DemoNetDriver->ServerConnection->OwningActor != nullptr)
+	{
+		APlayerController* PlayerController = Cast<APlayerController>(DemoNetDriver->ServerConnection->OwningActor);
+		if (PlayerController != nullptr)
+		{
+			GetWorldSettings()->Pauser = PlayerController->PlayerState;
+			const uint32 Time = FCString::Atoi(*TimeString);
+			DemoNetDriver->GotoTimeInSeconds(Time);
+		}
+	}
+	return true;
+}
+
+bool UWorld::HandleDemoPauseCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)
+{
+	FString TimeString;
+
+	AWorldSettings* WorldSettings = GetWorldSettings();
+	check(WorldSettings != nullptr);
+
+	if (WorldSettings->Pauser == nullptr)
+	{
+		if (DemoNetDriver != nullptr && DemoNetDriver->ServerConnection != nullptr && DemoNetDriver->ServerConnection->OwningActor != nullptr)
+		{
+			APlayerController* PlayerController = Cast<APlayerController>(DemoNetDriver->ServerConnection->OwningActor);
+			if (PlayerController != nullptr)
+			{
+				WorldSettings->Pauser = PlayerController->PlayerState;
+			}
+		}
+	}
+	else
+	{
+		WorldSettings->Pauser = nullptr;
+	}
+	return true;
+}
+
+bool UWorld::HandleDemoSpeedCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)
+{
+	FString TimeString;
+
+	AWorldSettings* WorldSettings = GetWorldSettings();
+	check(WorldSettings != nullptr);
+
+	FString SpeedString;
+	if (!FParse::Token(Cmd, SpeedString, 0))
+	{
+		Ar.Log(TEXT("You must specify a speed in the form of a float"));
+	}
+	else
+	{
+		const float Speed = FCString::Atof(*SpeedString);
+		WorldSettings->DemoPlayTimeDilation = Speed;
+	}
+	return true;
+}
+
 bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if( FParse::Command( &Cmd, TEXT("TRACETAG") ) )
@@ -2692,6 +2766,18 @@ bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if( FParse::Command( &Cmd, TEXT("DEMOSTOP") ) )
 	{		
 		return HandleDemoStopCommand( Cmd, Ar, InWorld );
+	}
+	else if (FParse::Command(&Cmd, TEXT("DEMOSCRUB")))
+	{
+		return HandleDemoScrubCommand(Cmd, Ar, InWorld);
+	}
+	else if (FParse::Command(&Cmd, TEXT("DEMOPAUSE")))
+	{
+		return HandleDemoPauseCommand(Cmd, Ar, InWorld);
+	}
+	else if (FParse::Command(&Cmd, TEXT("DEMOSPEED")))
+	{
+		return HandleDemoSpeedCommand(Cmd, Ar, InWorld);
 	}
 	else if( ExecPhysCommands( Cmd, &Ar, InWorld ) )
 	{
@@ -2878,16 +2964,7 @@ bool UWorld::SetGameMode(const FURL& InURL)
 
 		if ( !GameClass )
 		{
-			if( GIsAutomationTesting )
-			{
-				// fall back to raw GameMode if Automation Testing, as the shared engine maps were not designed to use what could be any developer default GameMode
-				GameClass = AGameMode::StaticClass();
-			}
-			else
-			{
-				// fall back to overall default game type
-				GameClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *UGameMapsSettings::GetGlobalDefaultGameMode(), NULL, LOAD_None, NULL);
-			}
+			GameClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *UGameMapsSettings::GetGlobalDefaultGameMode(), NULL, LOAD_None, NULL);
 		}
 
 		if ( !GameClass ) 
@@ -3139,7 +3216,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 #endif //WITH_EDITOR
 
 #if ENABLE_VISUAL_LOG
-	FVisualLogger::Get().Cleanup();
+	FVisualLogger::Get().Cleanup(this);
 #endif // ENABLE_VISUAL_LOG	
 
 	// Tell actors to remove their components from the scene.
@@ -3395,7 +3472,7 @@ void UWorld::SetPhysicsScene(FPhysScene* InScene)
 	// Clear world pointer in old FPhysScene (if there is one)
 	if(PhysicsScene != NULL)
 	{
-		PhysicsScene->OwningWorld = NULL;
+		PhysicsScene->SetOwningWorld(nullptr);
 		delete PhysicsScene;
 	}
 
@@ -3405,7 +3482,7 @@ void UWorld::SetPhysicsScene(FPhysScene* InScene)
 	// Set pointer in scene to know which world its coming from
 	if(PhysicsScene != NULL)
 	{
-		PhysicsScene->OwningWorld = this;
+		PhysicsScene->SetOwningWorld(this);
 	}
 }
 
@@ -3617,8 +3694,8 @@ void UWorld::NotifyAcceptedConnection( UNetConnection* Connection )
 {
 	check(NetDriver!=NULL);
 	check(NetDriver->ServerConnection==NULL);
-	UE_LOG(LogNet, Log, TEXT("Open %s %s %s"), *GetName(), FPlatformTime::StrTimestamp(), *Connection->LowLevelGetRemoteAddress() );
-	NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("OPEN"), *(GetName() + TEXT(" ") + Connection->LowLevelGetRemoteAddress())));
+	UE_LOG(LogNet, Log, TEXT("NotifyAcceptedConnection: Name: %s, TimeStamp: %s, %s"), *GetName(), FPlatformTime::StrTimestamp(), *Connection->Describe() );
+	NETWORK_PROFILER( GNetworkProfiler.TrackEvent( TEXT( "OPEN" ), *( GetName() + TEXT( " " ) + Connection->LowLevelGetRemoteAddress() ), Connection ) );
 }
 
 bool UWorld::NotifyAcceptingChannel( UChannel* Channel )
@@ -3636,6 +3713,13 @@ bool UWorld::NotifyAcceptingChannel( UChannel* Channel )
 		{
 			// Actor channel.
 			//UE_LOG(LogWorld, Log,  "Client accepting actor channel" );
+			return 1;
+		}
+		else if (Channel->ChType == CHTYPE_Voice)
+		{
+			// Accept server requests to open a voice channel, allowing for custom voip implementations
+			// which utilize multiple server controlled voice channels.
+			//UE_LOG(LogNet, Log,  "Client accepting voice channel" );
 			return 1;
 		}
 		else
@@ -3682,7 +3766,7 @@ void UWorld::WelcomePlayer(UNetConnection* Connection)
 	if (AuthorityGameMode != NULL)
 	{
 		GameName = AuthorityGameMode->GetClass()->GetPathName();
-		RedirectURL = AuthorityGameMode->GetRedirectURL(LevelName);
+		AuthorityGameMode->GameWelcomePlayer(Connection, RedirectURL);
 	}
 
 	FNetControlMessage<NMT_Welcome>::Send(Connection, LevelName, GameName, RedirectURL);
@@ -3793,6 +3877,8 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
 					Connection->FlushNet(true);
 					Connection->Close();
+
+					PerfCountersIncrement(TEXT("ClosedConnectionsDueToIncompatibleVersion"));
 				}
 				else
 				{
@@ -3865,7 +3951,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				if (!ErrorMsg.IsEmpty())
 				{
 					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("RRELOGIN FAILURE"), *ErrorMsg));
+					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("RRELOGIN FAILURE"), *ErrorMsg, Connection));
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					Connection->FlushNet(true);
 					//@todo sz - can't close the connection here since it will leave the failure message 
@@ -3900,7 +3986,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					{
 						// Failed to connect.
 						UE_LOG(LogNet, Log, TEXT("Join failure: %s"), *ErrorMsg);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN FAILURE"), *ErrorMsg));
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN FAILURE"), *ErrorMsg, Connection));
 						FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 						Connection->FlushNet(true);
 						//@todo sz - can't close the connection here since it will leave the failure message 
@@ -3911,7 +3997,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					{
 						// Successfully in game.
 						UE_LOG(LogNet, Log, TEXT("Join succeeded: %s"), *Connection->PlayerController->PlayerState->PlayerName);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN"), *Connection->PlayerController->PlayerState->PlayerName));
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOIN"), *Connection->PlayerController->PlayerState->PlayerName, Connection));
 						// if we're in the middle of a transition or the client is in the wrong world, tell it to travel
 						FString LevelName;
 						FSeamlessTravelHandler &SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld( this );
@@ -3983,7 +4069,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				{
 					// if any splitscreen viewport fails to join, all viewports on that client also fail
 					UE_LOG(LogNet, Log, TEXT("PreLogin failure: %s"), *ErrorMsg);
-					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg));
+					NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("PRELOGIN FAILURE"), *ErrorMsg, Connection));
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					Connection->FlushNet(true);
 					//@todo sz - can't close the connection here since it will leave the failure message 
@@ -4010,7 +4096,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					{
 						// Failed to connect.
 						UE_LOG(LogNet, Log, TEXT("JOINSPLIT: Join failure: %s"), *ErrorMsg);
-						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOINSPLIT FAILURE"), *ErrorMsg));
+						NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("JOINSPLIT FAILURE"), *ErrorMsg, Connection));
 						// remove the child connection
 						Connection->Children.Remove(ChildConn);
 						// if any splitscreen viewport fails to join, all viewports on that client also fail
@@ -4208,8 +4294,9 @@ bool UWorld::SetNewWorldOrigin(FIntVector InNewOriginLocation)
 	{
 		ULevel* LevelToShift = Levels[LevelIndex];
 		
-		// Only visible levels need to be shifted
-		if (LevelToShift->bIsVisible)
+		// Only visible sub-levels need to be shifted
+		// Hidden sub-levels will be shifted once they become visible in UWorld::AddToWorld
+		if (LevelToShift->bIsVisible || LevelToShift->IsPersistentLevel())
 		{
 			LevelToShift->ApplyWorldOffset(Offset, true);
 		}
@@ -4572,7 +4659,7 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			{
 				PackageFlags |= PKG_PlayInEditor;
 			}
-			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_PendingKill);
+			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
 			if (EditorLevelPackage)
 			{
 				PIEInstanceID = WorldContext.PIEInstance;
@@ -5161,6 +5248,11 @@ bool UWorld::IsGameWorld() const
 	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
 }
 
+bool UWorld::IsPreviewWorld() const
+{
+	return WorldType == EWorldType::Preview;
+}
+
 bool UWorld::UsesGameHiddenFlags() const
 {
 	return IsGameWorld() || bHack_Force_UsesGameHiddenFlags_True;
@@ -5443,6 +5535,19 @@ ENetMode UWorld::GetNetMode() const
 	return AttemptDeriveFromURL();
 }
 
+bool UWorld::IsRecordingClientReplay() const
+{
+	if (GetNetDriver() != nullptr && !GetNetDriver()->IsServer())
+	{
+		if (DemoNetDriver != nullptr && DemoNetDriver->IsServer())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 #if WITH_EDITOR
 ENetMode UWorld::AttemptDeriveFromPlayInSettings() const
 {
@@ -5613,11 +5718,11 @@ void UWorld::CreateFXSystem()
 }
 
 #if WITH_EDITOR
-void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
+void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bShowSlowProgressDialog )
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
-        FScopedSlowTask SlowTask(100.f, NSLOCTEXT("Engine", "ChangingPreviewRenderingLevelMessage", "Changing Preview Rendering Level"));
+		FScopedSlowTask SlowTask(100.f, NSLOCTEXT("Engine", "ChangingPreviewRenderingLevelMessage", "Changing Preview Rendering Level"), bShowSlowProgressDialog);
         SlowTask.MakeDialog();
         {
             SlowTask.EnterProgressFrame(10.0f);

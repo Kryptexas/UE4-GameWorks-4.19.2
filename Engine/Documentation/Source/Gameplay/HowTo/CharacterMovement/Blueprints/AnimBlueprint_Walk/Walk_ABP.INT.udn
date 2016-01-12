@@ -2,6 +2,8 @@ Availability: Public
 Title:5. Animation Blueprint - Idle and Walk States
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Here in this step, we'll create the logic for Idle and Walking states for our character in our Animation Blueprint. 
+Version: 4.9
+SkillLevel:Advanced
 
 [VAR:Steps]
 [OBJECT:Navigation]

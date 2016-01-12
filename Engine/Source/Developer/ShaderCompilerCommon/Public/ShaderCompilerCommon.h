@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,11 +14,11 @@
  * buffer we allocate a slot for it from UsedUniformBufferSlots.
  */
 extern SHADERCOMPILERCOMMON_API void BuildResourceTableMapping(
-	const TMap<FString,FResourceTableEntry>& ResourceTableMap,
-	const TMap<FString,uint32>& ResourceTableLayoutHashes,
-	TBitArray<>& UsedUniformBufferSlots,
-	FShaderParameterMap& ParameterMap,
-	FShaderResourceTable& OutSRT
+		const TMap<FString,FResourceTableEntry>& ResourceTableMap,
+		const TMap<FString,uint32>& ResourceTableLayoutHashes,
+		TBitArray<>& UsedUniformBufferSlots,
+		FShaderParameterMap& ParameterMap,
+		FShaderCompilerResourceTable& OutSRT
 	);
 
 /**
@@ -34,7 +34,7 @@ extern SHADERCOMPILERCOMMON_API void BuildResourceTableTokenStream(
 	);
 
 // Finds the number of used uniform buffers in a resource map
-extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT);
+extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderCompilerResourceTable& InSRT);
 
 
 // This function goes through the shader source and converts
@@ -61,7 +61,17 @@ extern SHADERCOMPILERCOMMON_API int16 GetNumUniformBuffersUsed(const FShaderReso
 //		{
 //		[...]UniformBuffer_Member[...]
 //		}
+//
 extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
+extern SHADERCOMPILERCOMMON_API bool RemoveUnusedOutputs(FString& InOutSourceCode, const TArray<FString>& InUsedOutputs, FString& InOutEntryPoint, TArray<FString>& OutErrors);
+
+extern SHADERCOMPILERCOMMON_API bool RemoveUnusedInputs(FString& InOutSourceCode, const TArray<FString>& InUsedInputs, FString& InOutEntryPoint, TArray<FString>& OutErrors);
+
+/**
+* Fall back to using the View uniform buffer directly for platforms that don't support instanced stereo.
+* @param ShaderSource - Preprocessed shader source
+*/
+extern SHADERCOMPILERCOMMON_API void StripInstancedStereo(FString& ShaderSource);
 
 // Cross compiler support/common functionality
 namespace CrossCompiler
@@ -69,9 +79,10 @@ namespace CrossCompiler
 	extern SHADERCOMPILERCOMMON_API FString CreateBatchFileContents(
 		const FString& ShaderFile,
 		const FString& OutputFile,
-		const FString& FrequencySwitch,
+		uint32 Frequency,
 		const FString& EntryPoint,
 		const FString& VersionSwitch,
+		uint32 CCFlags,
 		const FString& ExtraArguments = TEXT(""));
 
 	extern SHADERCOMPILERCOMMON_API void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FString& InLine);

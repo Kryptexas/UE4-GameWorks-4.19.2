@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Interpolation.cpp: Code for supporting interpolation of properties in-game.
@@ -361,6 +361,7 @@ AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	bPlayOnLevelLoad = false;
 #if WITH_EDITORONLY_DATA
@@ -423,6 +424,7 @@ void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime, bool 
 		}
 	}
 
+#if !UE_BUILD_SHIPPING
 	if (EventName == NAME_PerformanceCapture)
 	{
 		//get the map name
@@ -433,8 +435,9 @@ void AMatineeActor::NotifyEventTriggered(FName EventName, float EventTime, bool 
 		PackageName.Split(TEXT("/"), &FolderName, &MapName, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
 		FString CaptureName = FString::Printf(TEXT("PerformanceCapture/%s/%s_%4.2f"), *MapName, *GetName(), EventTime);
-		GEngine->PerformanceCapture(CaptureName);
+		GEngine->PerformanceCapture(GetWorld(), CaptureName);
 	}
+#endif	// UE_BUILD_SHIPPING
 }
 
 void AMatineeActor::Play()
@@ -471,6 +474,7 @@ void AMatineeActor::Play()
 	bReversePlayback = false;
 	bIsPlaying = true;
 	bPaused = false;
+	SetActorTickEnabled(true);
 }
 
 void AMatineeActor::Reverse()
@@ -484,6 +488,7 @@ void AMatineeActor::Reverse()
 	bReversePlayback = true;
 	bIsPlaying = true;
 	bPaused = false;
+	SetActorTickEnabled(true);
 }
 
 void AMatineeActor::Stop()
@@ -493,6 +498,7 @@ void AMatineeActor::Stop()
 
 	bIsPlaying = false;
 	bPaused = false;
+	SetActorTickEnabled(false);
 
 	if (GetWorld()->IsGameWorld())
 	{
@@ -507,6 +513,7 @@ void AMatineeActor::Pause()
 	{
 		EnableRadioFilter();
 		bPaused = !bPaused;
+		SetActorTickEnabled(!bPaused);
 	}
 }
 
@@ -515,6 +522,7 @@ void AMatineeActor::ChangePlaybackDirection()
 	bReversePlayback = !bReversePlayback;
 	bIsPlaying = true;
 	bPaused = false;
+	SetActorTickEnabled(true);
 }
 
 void AMatineeActor::SetLoopingState(bool bNewLooping)
@@ -9697,6 +9705,29 @@ UInterpTrackFloatAnimBPParam::UInterpTrackFloatAnimBPParam(const FObjectInitiali
 	TrackTitle = TEXT("Float AnimBP Param");
 }
 
+void UInterpTrackFloatAnimBPParam::Serialize(FArchive& Ar)
+{
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS	
+	if (Ar.IsSaving() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
+	{
+		if ((nullptr != AnimBlueprintClass) && (nullptr == AnimClass))
+		{
+			AnimClass = AnimBlueprintClass;
+		}
+	}
+
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
+	{
+		if ((nullptr != AnimBlueprintClass) && (nullptr == AnimClass))
+		{
+			AnimClass = AnimBlueprintClass;
+		}
+	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
 #if WITH_EDITOR
 
 void UInterpTrackFloatAnimBPParam::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -9707,7 +9738,7 @@ void UInterpTrackFloatAnimBPParam::PostEditChangeProperty(FPropertyChangedEvent&
 	FName PropertyName = PropertyThatChanged != NULL ? PropertyThatChanged->GetFName() : NAME_None;
 
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UInterpTrackFloatAnimBPParam, ParamName) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(UInterpTrackFloatAnimBPParam, AnimBlueprintClass))
+		PropertyName == GET_MEMBER_NAME_CHECKED(UInterpTrackFloatAnimBPParam, AnimClass))
 	{
 		bRefreshParamter = true;
 	}
@@ -9811,7 +9842,7 @@ void UInterpTrackInstFloatAnimBPParam::RefreshParameter(UInterpTrack* Track)
 			{
 				UAnimInstance* NewAnimInstance = SkeletalMeshComponents[0]->GetAnimInstance();
 
-				if(NewAnimInstance && NewAnimInstance->GetClass() == ParamTrack->AnimBlueprintClass)
+				if (NewAnimInstance && NewAnimInstance->GetClass() == ParamTrack->AnimClass)
 				{
 					AnimScriptInstance = NewAnimInstance;
 					// make sure the class has the parameter

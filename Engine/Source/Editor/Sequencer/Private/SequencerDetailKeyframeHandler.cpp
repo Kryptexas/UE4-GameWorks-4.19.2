@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerDetailKeyframeHandler.h"
@@ -26,8 +26,9 @@ void FSequencerDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle
 	FKeyPropertyParams KeyPropertyParams(Objects, KeyedPropertyHandle);
 	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
 	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = true;
-	KeyPropertyParams.KeyParams.KeyInterpolation = Sequencer.Pin()->GetKeyInterpolation();
+	KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
+	KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
+	KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = false;
 
 	Sequencer.Pin()->KeyProperty(KeyPropertyParams);
 }

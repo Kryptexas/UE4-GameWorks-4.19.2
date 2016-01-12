@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2603905
+﻿INTSourceChangelist:2644097
 Availability: Public
 Title:핵심 머티리얼 개념
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -175,15 +175,15 @@ UE4 의 머티리얼에 대해 고려할 때, 다수의 표현식이 **각각의
 
 1. 콘텐츠 브라우저에서 머티리얼을 선택합니다.
 
-	![](MaterialSelectedInCB.png)
+	![](MaterialSelected.png)
 
 1. 머티리얼을 적용하고자 하는 브러시 표면을 클릭합니다.
 
-	![](SurfaceSelected.png)
+	![](BoxPanelSelected.png)
 
-1. 디테일 패널에서 ![](button_ApplyMaterials.png) 버튼을 누릅니다. 나타나는 드롭다운 메뉴에서 원하는 머티리얼을 선택합니다.
+1. 디테일 패널에서 ![](ArrowButton.png) 버튼을 누릅니다. 이 버튼을 누르면 브러시 표면에 머티리얼을 적용합니다.
 
-	![](ApplyMaterial.png)![](MaterialApplied.png)
+	![](AddingMaterialToBox.png)![](RedOnBox.png)
 
 
 %playlistnav%

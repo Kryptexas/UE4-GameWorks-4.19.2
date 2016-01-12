@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +29,7 @@ public class AndroidPlatform : Platform
 
 	private static string GetFinalApkName(ProjectParams Params, string DecoratedExeName, bool bRenameUE4Game, string Architecture, string GPUArchitecture)
 	{
-		string ProjectDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath)), "Binaries/Android");
+		string ProjectDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath.FullName)), "Binaries/Android");
 
 		if (Params.Prebuilt)
 		{
@@ -63,13 +63,13 @@ public class AndroidPlatform : Platform
 		string PackageName = GetPackageInfo(ApkName, false);
 		if (PackageName == null)
 		{
-			throw new AutomationException(ErrorCodes.Error_FailureGettingPackageInfo, "Failed to get package name from " + ApkName);
+			throw new AutomationException(ExitCode.Error_FailureGettingPackageInfo, "Failed to get package name from " + ApkName);
 		}
 
 		string PackageVersion = GetPackageInfo(ApkName, true);
 		if (PackageVersion == null || PackageVersion.Length == 0)
 		{
-			throw new AutomationException(ErrorCodes.Error_FailureGettingPackageInfo, "Failed to get package version from " + ApkName);
+			throw new AutomationException(ExitCode.Error_FailureGettingPackageInfo, "Failed to get package version from " + ApkName);
 		}
 
 		if (PackageVersion.Length > 0)
@@ -114,8 +114,9 @@ public class AndroidPlatform : Platform
 	{
 		// collect plugin extra data paths from target receipts
 		List<string> PluginExtras = new List<string>();
-		foreach (BuildReceipt Receipt in SC.StageTargetReceipts)
+		foreach (StageTarget Target in SC.StageTargets)
 		{
+			TargetReceipt Receipt = Target.Receipt;
 			var Results = Receipt.AdditionalProperties.Where(x => x.Name == "AndroidPlugin");
 			foreach (var Property in Results)
 			{
@@ -133,12 +134,13 @@ public class AndroidPlatform : Platform
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
-		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
-		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk(false);
+		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		var Architectures = ToolChain.GetAllArchitectures();
+		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
 
-		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		var Deploy = new UEDeployAndroid(Params.RawProjectPath);
+		bool bPackageDataInsideApk = Deploy.PackageDataInsideApk(false);
 
 		string BaseApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "", "");
 		Log("BaseApkName = {0}", BaseApkName);
@@ -177,7 +179,7 @@ public class AndroidPlatform : Platform
 		}
 
 		// collect plugin extra data paths from target receipts
-		((UnrealBuildTool.Android.UEDeployAndroid)Deploy).SetAndroidPluginData(CollectPluginDataPaths(SC));
+		Deploy.SetAndroidPluginData(Architectures, CollectPluginDataPaths(SC));
 
 		foreach (string Architecture in Architectures)
 		{
@@ -190,8 +192,8 @@ public class AndroidPlatform : Platform
                     UE4SOName = UE4SOName.Replace(".apk", ".so");
                     if (FileExists_NoExceptions(UE4SOName) == false)
 					{
-                        Log("Failed to find game .so " + UE4SOName);
-                        throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Could not find .so {0}. You may need to build the UE4 project with your target configuration and platform.", UE4SOName);
+						Log("Failed to find game .so " + UE4SOName);
+                        throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find .so {0}. You may need to build the UE4 project with your target configuration and platform.", UE4SOName);
 					}
 				}
 				
@@ -200,8 +202,7 @@ public class AndroidPlatform : Platform
 				{
 					string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
 					string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
-					((UnrealBuildTool.Android.UEDeployAndroid)Deploy).SetAndroidPluginData(CollectPluginDataPaths(SC));
-					Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
+					Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, false);
 				}
 
 			    // Create APK specific OBB in case we have a detached OBB.
@@ -252,7 +253,7 @@ public class AndroidPlatform : Platform
         {
             string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName;
 
-            Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
+			Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
             BatchLines = new string[] {
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
@@ -296,7 +297,7 @@ public class AndroidPlatform : Platform
         {
             string OBBInstallCommand = bNoObbInstall ? "shell rm -r %STORAGE%/" + DeviceObbName : "push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName;
 
-            Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
+			Log("Writing bat for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate OBB");
             BatchLines = new string[] {
 						"setlocal",
                         "set ANDROIDHOME=%ANDROID_HOME%",
@@ -339,13 +340,14 @@ public class AndroidPlatform : Platform
 	{
 		if (SC.StageTargetConfigurations.Count != 1)
 		{
-			throw new AutomationException(ErrorCodes.Error_OnlyOneTargetConfigurationSupported, "Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+			throw new AutomationException(ExitCode.Error_OnlyOneTargetConfigurationSupported, "Android is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
 		}
 
-		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
-		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
-		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk(false);
+		AndroidToolChain ToolChain = new AndroidToolChain(Params.RawProjectPath);
+		var Architectures = ToolChain.GetAllArchitectures();
+		var GPUArchitectures = ToolChain.GetAllGPUArchitectures();
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bPackageDataInsideApk = new UnrealBuildTool.UEDeployAndroid(Params.RawProjectPath).PackageDataInsideApk(false);
 
 		bool bAddedOBB = false;
 		foreach (string Architecture in Architectures)
@@ -360,11 +362,11 @@ public class AndroidPlatform : Platform
 				// verify the files exist
 				if (!FileExists(ApkName))
 				{
-					throw new AutomationException(ErrorCodes.Error_AppNotFound, "ARCHIVE FAILED - {0} was not found", ApkName);
+					throw new AutomationException(ExitCode.Error_AppNotFound, "ARCHIVE FAILED - {0} was not found", ApkName);
 				}
 				if (!bPackageDataInsideApk && !FileExists(ObbName))
 				{
-                    throw new AutomationException(ErrorCodes.Error_ObbNotFound, "ARCHIVE FAILED - {0} was not found", ObbName);
+                    throw new AutomationException(ExitCode.Error_ObbNotFound, "ARCHIVE FAILED - {0} was not found", ObbName);
 				}
 
 				SC.ArchiveFiles(Path.GetDirectoryName(ApkName), Path.GetFileName(ApkName));
@@ -535,13 +537,15 @@ public class AndroidPlatform : Platform
 		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, DeviceArchitecture, GPUArchitecture);
 
 		// make sure APK is up to date (this is fast if so)
-		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		var Deploy = new UEDeployAndroid(Params.RawProjectPath);
 		if (!Params.Prebuilt)
 		{
 			string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
 			string SOName = GetSONameWithoutArchitecture(Params, SC.StageExecutables[0]);
-			((UnrealBuildTool.Android.UEDeployAndroid)Deploy).SetAndroidPluginData(CollectPluginDataPaths(SC));
-			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, true);
+			List<string> Architectures = new List<string>();
+			Architectures.Add(DeviceArchitecture);
+			Deploy.SetAndroidPluginData(Architectures, CollectPluginDataPaths(SC));
+			Deploy.PrepForUATPackageOrDeploy(Params.RawProjectPath, Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor, true);
 		}
 
 		// now we can use the apk to get more info
@@ -614,7 +618,7 @@ public class AndroidPlatform : Platform
 					}
 				}
 
-				throw new AutomationException(ErrorCodes.Error_AppInstallFailed, ErrorMessage);
+				throw new AutomationException(ExitCode.Error_AppInstallFailed, ErrorMessage);
 			}
 		}
  
@@ -944,7 +948,7 @@ public class AndroidPlatform : Platform
 		string[] Subdirs = Directory.GetDirectories(Path.Combine(HomePath, "build-tools"));
         if (Subdirs.Length == 0)
         {
-            throw new AutomationException(ErrorCodes.Error_AndroidBuildToolsPathNotFound, "Failed to find %ANDROID_HOME%/build-tools subdirectory. Run SDK manager and install build-tools.");
+            throw new AutomationException(ExitCode.Error_AndroidBuildToolsPathNotFound, "Failed to find %ANDROID_HOME%/build-tools subdirectory. Run SDK manager and install build-tools.");
         }
 
 		// valid directories will have a source.properties with the Pkg.Revision (there is no guarantee we can use the directory name as revision)
@@ -982,7 +986,7 @@ public class AndroidPlatform : Platform
 
 		if (BestToolPath == null)
 		{
-			throw new AutomationException(ErrorCodes.Error_AndroidBuildToolsPathNotFound, "Failed to find %ANDROID_HOME%/build-tools subdirectory with aapt. Run SDK manager and install build-tools.");
+            throw new AutomationException(ExitCode.Error_AndroidBuildToolsPathNotFound, "Failed to find %ANDROID_HOME%/build-tools subdirectory with aapt. Run SDK manager and install build-tools.");
 		}
 
 		CachedAaptPath = BestToolPath;
@@ -995,20 +999,20 @@ public class AndroidPlatform : Platform
 
 	private string GetBestDeviceArchitecture(ProjectParams Params)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{
 			return "";
 		}
 
-		var AppArchitectures = AndroidToolChain.GetAllArchitectures();
+		var AppArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllArchitectures();
 
 		// ask the device
 		ProcessResult ABIResult = RunAdbCommand(Params, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
 
 		// the output is just the architecture
-		string DeviceArch = UnrealBuildTool.Android.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
+		string DeviceArch = UnrealBuildTool.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
 
 		// if the architecture wasn't built, look for a backup
 		if (!AppArchitectures.Contains(DeviceArch))
@@ -1052,7 +1056,7 @@ public class AndroidPlatform : Platform
 		// if after the fallbacks, we still don't have it, we can't continue
 		if (!AppArchitectures.Contains(DeviceArch))
 		{
-            throw new AutomationException(ErrorCodes.Error_NoApkSuitableForArchitecture, "Unable to run because you don't have an apk that is usable on {0}. Looked for {1}", Params.Device, DeviceArch);
+            throw new AutomationException(ExitCode.Error_NoApkSuitableForArchitecture, "Unable to run because you don't have an apk that is usable on {0}. Looked for {1}", Params.Device, DeviceArch);
 		}
 
 		return DeviceArch;
@@ -1060,14 +1064,14 @@ public class AndroidPlatform : Platform
 
 	private string GetBestGPUArchitecture(ProjectParams Params)
 	{
-		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
+		bool bMakeSeparateApks = UnrealBuildTool.UEDeployAndroid.ShouldMakeSeparateApks();
 		// if we are joining all .so's into a single .apk, there's no need to find the best one - there is no other one
 		if (!bMakeSeparateApks)
 		{
 			return "";
 		}
 
-		var AppGPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+		var AppGPUArchitectures = new AndroidToolChain(Params.RawProjectPath).GetAllGPUArchitectures();
 
 		// get the device extensions
 		ProcessResult ExtensionsResult = RunAdbCommand(Params, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
@@ -1102,7 +1106,7 @@ public class AndroidPlatform : Platform
 		string PackageName = GetPackageInfo(ApkName, false);
 		if (PackageName == null)
 		{
-            throw new AutomationException(ErrorCodes.Error_FailureGettingPackageInfo, "Failed to get package name from " + ClientApp);
+            throw new AutomationException(ExitCode.Error_FailureGettingPackageInfo, "Failed to get package name from " + ClientApp);
 		}
 
 		if (Params.Prebuilt)
@@ -1224,28 +1228,28 @@ public class AndroidPlatform : Platform
 		return Params.Package ? PakType.Always : PakType.DontCare;
 	}
 
-	/*
+/*
 	public override bool RequiresPackageToDeploy
 	{
 		get { return true; }
 	}
-    */
-
+*/
+    
 	#region Hooks
 
-	public override void PostBuildTarget(UE4Build Build, string ProjectName, string UProjectPath, string Config)
+	public override void PostBuildTarget(UE4Build Build, FileReference UProjectPath, string TargetName, string Config)
 	{
 		// Run UBT w/ the prep for deployment only option
 		// This is required as UBT will 'fake' success when building via UAT and run
 		// the deployment prep step before all the required parts are present.
-		if (ProjectName.Length > 0)
+		if (!String.IsNullOrEmpty(TargetName) && TargetName.Length > 0)
 		{
-			string ProjectToBuild = ProjectName;
-			if (ProjectToBuild != "UE4Game" && !string.IsNullOrEmpty(UProjectPath))
+			string ProjectArg = "";
+			if(UProjectPath != null)
 			{
-				ProjectToBuild = UProjectPath;
+				ProjectArg = string.Format(" -project=\"{0}\"", UProjectPath);
 			}
-			string UBTCommand = string.Format("\"{0}\" Android {1} -prepfordeploy", ProjectToBuild, Config);
+			string UBTCommand = string.Format("{0} Android {1} -prepfordeploy{2}", TargetName, Config, ProjectArg);
 			CommandUtils.RunUBT(UE4Build.CmdEnv, Build.UBTExecutable, UBTCommand);
 		}
 	}

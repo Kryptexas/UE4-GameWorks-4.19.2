@@ -1,18 +1,17 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2683220
+Availability:Public
 Title:Debug パネル
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
-Description:
+Description:Debug パネルは、ブレークポイントやウォッチ値など、ブループリントで現在使用している全てのデバッグツールのリストを表示します。
+version:4.9
 
-
-## 概要
-
-**[Debug]** パネルは、ブレークポイントやウォッチ値など、ブループリントで現在使用している全てのデバッグツールのリストを表示します。PIE を使用中は、特定のブループリント内で生じた各ノード実行を表示する、Execution Trace (実行追跡) へアクセスができます。
+**[Debug]** パネルは、ブレークポイントやウォッチ値など、ブループリントで現在使用している全てのデバッグツールのリストを表示します。PIE を使用中は、特定のブループリント内で生じた各ノード実行を表示する Execution Trace (実行追跡) へアクセスができます。
 
 ブループリントのデバッグ作業に関する詳細は、 [](Engine/Blueprints/UserGuide\Debugging) を参照してください。
 
 ## インターフェース
 
-**[Debug]** パネルのインターフェースの変更は、ユーザーがエディタでプレイ中またはシミュレーション中であるかどうかで決まります。
+**[Debug]** パネルのインターフェースは、ユーザーがエディタでプレイ中またはシミュレーション中と、そうでない場合は異なります。
 
 **プレイ中またはシミュレーション中ではない時:**
 

@@ -9,6 +9,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Version: 4.9
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/EffectsGallery/2_G "%Resources/ContentExamples/EffectsGallery/2_G:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Effects Gallery Home](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -53,7 +72,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 ![](image078.png)
 [/REGION]
 
-The Beam TypeData allows you to create an effect that connects two points - you can either specify the Source and the Target point, or have them as Actors, or other Emitters. It is used often as a bullet trail effect in shooter type games. In this case, we use it as an electric arc, with the help of the Noise module, inside the Beam group. 
+The **Beam TypeData** allows you to create an effect that connects two points - you can either specify the Source and the Target point, or have them as Actors, or other Emitters. It is used often as a bullet trail effect in shooter type games. In this case, we use it as an electric arc, with the help of the **Noise** module, inside the **Beam** group. 
  
  
  ![](image080.png)

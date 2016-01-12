@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/TouchInterface.h"
@@ -38,7 +38,7 @@ void UTouchInterface::Activate(TSharedPtr<SVirtualJoystick> VirtualJoystick)
 			SlateControl->Center = Control.Center;
 			SlateControl->VisualSize = Control.VisualSize;
 			SlateControl->ThumbSize = Control.ThumbSize;
-			if (Control.InputScale.Size() > DELTA)
+			if (Control.InputScale.SizeSquared() > FMath::Square(DELTA))
 			{
 				SlateControl->InputScale = Control.InputScale;
 			}

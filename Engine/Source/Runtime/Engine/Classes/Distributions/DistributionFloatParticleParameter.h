@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -11,8 +11,8 @@ class UDistributionFloatParticleParameter : public UDistributionFloatParameterBa
 	GENERATED_UCLASS_BODY()
 
 
-	// Begin UDistributionFloatParameterBase Interface
+	//~ Begin UDistributionFloatParameterBase Interface
 	virtual bool GetParamValue(UObject* Data, FName ParamName, float& OutFloat) const override;
-	// End UDistributionFloatParameterBase Interface
+	//~ End UDistributionFloatParameterBase Interface
 };
 

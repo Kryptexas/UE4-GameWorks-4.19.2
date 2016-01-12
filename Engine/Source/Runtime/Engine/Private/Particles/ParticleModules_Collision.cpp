@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Collision.cpp: 
@@ -113,13 +113,13 @@ void UParticleModuleCollision::PostEditChangeProperty(FPropertyChangedEvent& Pro
 }
 #endif // WITH_EDITOR
 
-uint32 UParticleModuleCollision::RequiredBytes(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleCollision::RequiredBytes(UParticleModuleTypeDataBase* TypeData)
 {
 	return sizeof(FParticleCollisionPayload);
 }
 
 
-uint32 UParticleModuleCollision::RequiredBytesPerInstance(FParticleEmitterInstance* Owner)
+uint32 UParticleModuleCollision::RequiredBytesPerInstance()
 {
 	return sizeof(FParticleCollisionInstancePayload);
 }
@@ -156,7 +156,7 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 	check(Owner);
 	check(Owner->Component);
 	UWorld* World = Owner->Component->GetWorld();
-	if (bDropDetail && World && World->bDropDetail)
+	if (Owner->ActiveParticles == 0 || (bDropDetail && World && World->bDropDetail))
 	{
 		return;
 	}

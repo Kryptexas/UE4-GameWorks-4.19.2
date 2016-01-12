@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2602520
+﻿INTSourceChangelist:2638701
 Availability:Public
-Title: 머티리얼 에디터 - 머티리얼에 서브서피스 프로파일 사용 비법
+Title: 머티리얼 에디터 - 머티리얼에 서브서피스 프로파일 사용
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description: 머티리얼에 서브서피스 프로파일을 구성하여 피부나 밀랍같은 표면 렌더링을 개선시키는 방법입니다.
 Related: Engine/Rendering/Materials/LightingModels/SubSurfaceProfile
@@ -25,10 +25,22 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 	![](SSP_Create_New_Material.png)
 
 1. 다음, **콘텐츠 브라우저** 에서 머티리얼에 **더블클릭** 하여 엽니다.
+	[REGION:lightbox]
 	![](SSP_Open_New_Material.png)
+	[/REGION]
 
 1. 머티리얼이 열렸으면, 머티리얼의 **Shading Model** (셰이딩 모델) 을 **Default Lit** (기본 라이팅포함)에서 **Subsurface Profile** (서브서피스 프로파일)로 변경해 줘야 합니다.
-	![](SSP_Enable_Subsurface_Profile.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	QxtmqE7B_w8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 이 시점에서 **디테일** 패널의 **Subsurface Profile** 섹션에 **Subsurface Profile** 을 입력하는 것으로 할당해 줄 수 있습니다.
 	![](SSP_Apply_SSP.png)
@@ -57,7 +69,9 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 1. 먼저 위에서 만든 서브서피스 머티리얼이 열렸는지 확인해 줘야 합니다. 머티리얼이 열렸다면 다음 단계로 넘어갑니다.
    열려있지 않타면, 머티리얼을 엽니다. 먼저 **콘텐츠 브라우저** 에서 찾은 다음 **더블클릭** 하면 됩니다.
    완료되면 화면에 다음과 같이 나타날 것입니다.
+	[REGION:lightbox]
 	![](SSP_Open_New_Material.png)
+	[/REGION]
 
 1. 머티리얼이 열렸으면, 머티리얼 표현식 노드를 몇 개 배치할 차례입니다. 이 튜토리얼에서 활용할 노드는 다음과 같습니다.
 	* **Vector Parameter** x 1
@@ -80,21 +94,43 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 **오른쪽** 으로 끌면 선이 나타납니다. 그 상태에서 메인 머티리얼 노드의 사용하고자 하는 입력에까지 끌어옵니다.
 사용하고자 하는 입력 위에서 **마우스 왼쪽 버튼** 을 놓으면 선이 연결됩니다.
 
-	![](SSP_Wire_Material_Up.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	osuR7VXYBWc
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 모두 연결되었으니, 이제 서브서피스 프로파일을 머티리얼에 추가해 주면 됩니다.
  그 방법은 **디테일** 패널의 **Material** 섹션에서 **Subsurface Profile** 입력을 찾습니다.
  그런 다음 **None** (없음)이라 된 부분을 **좌클릭** 합니다.
  그러면 예전 단계에서 생성된 서브서피스 프로파일이 보일 것입니다. 클릭해서 그 프로파일을 선택합니다.
 	
-	![](SSP_Set_Subsurface_Profile.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	YBRE4qwtfX0
+	[/PARAMLITERAL]
+	[/OBJECT]
 	[region:note]
 	서브서피스 프로파일을 제공해 주지 않으면 기본값이 사용됩니다. 기본값은 백인 피부를 추정한 것입니다.
 	[/region]
 
 1. 서브서피스 프로파일을 적용하고 머티리얼 표현식을 메인 머티리얼 노드에 연결했으면, 셰이더를 컴파일하고 그 머티리얼에서 머티리얼 인스턴스를 만들 차례입니다.
    머티리얼 작업이 완료되면 이런 모습일 것입니다.
+	[REGION:lightbox]
 	![](SSP_Completed_Material.png)
+	[/REGION]
 
 ## 머티리얼 인스턴스에서 서브서피스 프로파일 사용하기
 
@@ -107,11 +143,15 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 
 1. 머티리얼 인스턴스가 생성되었으면, **콘텐츠 브라우저** 에서 **더블클릭** 하여 열어줍니다. 다음과 같은 화면이 보일 것입니다.
 
+	[REGION:lightbox]
 	![](SSP_Material_Instance.png)
+	[/REGION]
 
 1. 머티리얼 인스턴스의 서브서피스 프로파일을 변경하려면, 먼저 **Override Subsurface Profile** (서브서피스 프로파일 덮어쓰기) 옵션이 켜졌다 확인한 다음, **Subsurface Profile** 입력을 
 	**좌클릭** 하여 사용하고자 하는 서브서피스 프로파일을 제공해 줍니다. 입력에 클릭하면 사용할 수 있는 서브서피스 프로파일이 표시되며, 거기서 선택하면 됩니다.
+	[REGION:lightbox]
 	![](SSP_SSP_In_Material_Instance.png)
+	[/REGION]
 
 	[region:note]
 	마스터 머티리얼에 서브서피스 프로파일을 이미 제공한 경우, 머티리얼 인스턴스에서 덮어쓸 필요가 없습니다. 이미 사용중인 서브서피스 프로파일과 다른 것을 사용하고자 할 때만 해 주면 됩니다.
@@ -123,7 +163,17 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 1. 머티리얼 인스턴스가 생성되었으니, 새 머티리얼을 테스트할 차례입니다.
 	그러기 위해 메인 메뉴의 **파일** 아래 **새 레벨** 옵션을 선택하여 작업할 공백 레벨을 먼저 만들어 줘야 합니다.
 	어떤 유형의 레벨을 선택할 것인지 물어오면, **공백 레벨** 을 선택합니다.
-	![](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Create_New_Level.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	bRuKiOW0i-w
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. 새 레벨이 생성되었으면, 서브서피스 머티리얼의 모습을 확인할 수 있도록 라이트를 조금 추가해 줘야 합니다. 첫 번째로 추가할 라이트는 **포인트 라이트** 입니다. 씬에 포인트 라이트를 추가하려면, 먼저 **모드** 메뉴의 **라이트** 옵션 아래 있는 포인트 라이트를 찾아야 합니다. 포인트 라이트를 찾았으면, 먼저 포인트 라이트를 **좌클릭** 한 상태로 씬에 끌어온 다음 **마우스 왼쪽 버튼** 을 놓으면 추가됩니다. 씬에 추가한 이후에는, 라이트를 **좌클릭** 하여 선택합니다. 그리고 다음 값을 입력합니다.
 	| 프로퍼티 이름 | 값 |
@@ -140,7 +190,9 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 
 	완료되면 다음과 같은 모습일 것입니다.
 
+	[REGION:lightbox]
 	![](Engine\Rendering\Materials\HowTo\Subsurface_Scattering\SSM_Light_Settings.png)
+	[/REGION]
 
 1. 라이트를 전부 추가했으면, 테스트할 스태틱 메시를 추가하면 됩니다. 이 예제에서 사용할 메시는 다음과 같습니다.
 
@@ -159,7 +211,17 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 1. 레벨에 스태틱 메시가 배치되었으면, 이제 서브서피스 머티리얼을 적용해 주면 됩니다.
 	그러기 위해서는 먼저 **콘텐츠 브라우저** 에서 서브서피스 머티리얼을 찾습니다.
 	머티리얼을 찾았으면, **콘텐츠 브라우저** 에서 끌어 적용하려는 메시 위에 놓습니다.
-	![](SSP_Apply_Material_Instance.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	XU50LZ1lxMA
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 ## 서브서피스 프로파일 조절하기
 
@@ -181,7 +243,17 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 	산란이 보이는 영역 전반적으로 좀 더 복잡해 보이는 셰이딩 변화를 이뤄내려면 선명한 원색 사용은 피해야 할 것입니다.
 
 1. 아래에서 보시듯이 서브서피스 프로파일의 파라미터는 실시간 조정할 수 있다는 점 유념하세요.
-	![](SSP_Adjusting_SSP.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	u3gFHZiKxCY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 ## 팁과 꼼수
 서브서피스 프로파일 렌더링 방식으로 인해 최대한의 활용을 위한 몇 가지 팁과 꼼수가 있습니다.
@@ -202,6 +274,9 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 * 머티리얼 인스턴스는 값의 실시간 조정이 가능하여 결과를 훨씬 빨리 확인할 수 있습니다.
 * **오파시티** 입력을 사용하여 표면에 대한 서브서피스 공헌을 약화시킬 수 있습니다. 하지만 이 값은 1 로 놔두고 서브서피스 프로파일 안의 파라미터를 조정할 것을 추천합니다. 이 값은 그것만으로 원하는 결과를 낼 수 없었을 때만 조정하시기 바랍니다.
 * 각 색 선택기의 **Value** (값) 슬라이더로 서브서피스 이펙트의 영향력을 조절합니다. 이 값이 하양쪽에 가깝게 설정될 수록, 이펙트가 더욱 도드라집니다. 반면 검정에 가깝게 설정할 수록, 이펙트가 잘 보이지 않게 됩니다.
+
+
+
 
 
 

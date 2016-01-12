@@ -127,8 +127,6 @@ UTF-8 or default Windows encoding. MSVC, the Xbox360 compiler and gcc should all
     * People can check in ASCII, UTF-8, UTF-16 and it will work in engine.
     * However, binary files cannot be merged, so if the files are not marked as exclusive checkout, changes will be stomped upon.
 * If you use 'UTF-16', make sure no one checks in a file that is not UTF-16
-    * We have a Perforce trigger that disallows check-ing in a non UTF-16 as UTF-16
-        * //depot/UnrealEngine3/Development/Tools/P4Utils/CheckUTF16/
 * The 'Unicode' type is UTF-8, and of no use to us here.
 
 

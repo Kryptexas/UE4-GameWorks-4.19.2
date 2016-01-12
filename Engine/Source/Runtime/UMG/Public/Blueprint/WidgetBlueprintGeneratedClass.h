@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -81,6 +81,12 @@ public:
 	UPROPERTY()
 	TArray< FName > NamedSlots;
 
+	UPROPERTY()
+	uint32 bCanEverTick : 1;
+
+	UPROPERTY()
+	uint32 bCanEverPaint : 1;
+
 public:
 
 	virtual void PostLoad() override;
@@ -91,4 +97,13 @@ public:
 	 * binding and wiring necessary to have the user's widget perform as desired.
 	 */
 	void InitializeWidget(UUserWidget* UserWidget) const;
+
+	static void InitializeWidgetStatic(UUserWidget* UserWidget
+		, const UClass* InClass
+		, bool InCanEverTick
+		, bool InCanEverPaint
+		, UWidgetTree* InWidgetTree
+		, const TArray< UWidgetAnimation* >& InAnimations
+		, const TArray< FDelegateRuntimeBinding >& InBindings
+		, UWidgetTree* InDesignerWidgetTree);
 };

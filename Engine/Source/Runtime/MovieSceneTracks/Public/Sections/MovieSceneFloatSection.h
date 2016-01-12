@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,9 @@
  * A single floating point section
  */
 UCLASS( MinimalAPI )
-class UMovieSceneFloatSection : public UMovieSceneSection
+class UMovieSceneFloatSection
+	: public UMovieSceneSection
+	, public IKeyframeSection<float>
 {
 	GENERATED_UCLASS_BODY()
 public:
@@ -19,24 +21,12 @@ public:
 	 */
 	float Eval( float Position ) const;
 
-	/** 
-	 * Adds a key to the section
-	 *
-	 * @param Time	The location in time where the key should be added
-	 * @param Value	The value of the key
-	 * @param KeyParams The keying parameters
-	 */
-	void AddKey( float Time, float Value, FKeyParams KeyParams );
-	
-	/** 
-	 * Determines if a new key would be new data, or just a duplicate of existing data
-	 *
-	 * @param Time	The location in time where the key would be added
-	 * @param Value	The value of the new key
-	 * @param KeyParams The keying parameters
-	 * @return True if the new key would be new data, false if duplicate
-	 */
-	bool NewKeyIsNewData(float Time, float Value, FKeyParams KeyParams) const;
+	// IKeyframeSection interface.
+
+	void AddKey( float Time, const float& Value, EMovieSceneKeyInterpolation KeyInterpolation );
+	bool NewKeyIsNewData(float Time, const float& Value) const;
+	bool HasKeys( const float& Value ) const;
+	void SetDefault( const float& Value );
 
 	/**
 	 * UMovieSceneSection interface 

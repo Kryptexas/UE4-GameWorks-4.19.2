@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -50,10 +50,7 @@ public class Launch : ModuleRules
 			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 				(Target.Platform == UnrealTargetPlatform.Win64))
 			{
-				if (!WindowsPlatform.IsWindowsXPSupported())
-				{
-					DynamicallyLoadedModuleNames.Add("D3D12RHI");
-				}
+				DynamicallyLoadedModuleNames.Add("D3D12RHI");
 				DynamicallyLoadedModuleNames.Add("D3D11RHI");
 				DynamicallyLoadedModuleNames.Add("XAudio2");
 			}
@@ -64,24 +61,20 @@ public class Launch : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
 				DynamicallyLoadedModuleNames.Add("ALAudio");
-
-				// CL 2712559 introduced dependency on Json module for everything that includes OnlineJsonSerializer.h
-				// (only relevant to debug since in other configurations functions get inlined)
-				if (Target.Configuration == UnrealTargetConfiguration.Debug)
-				{
-					PrivateDependencyModuleNames.Add("Json");
-				}                                        
+				PrivateDependencyModuleNames.Add("Json");
 			}
 
 			PrivateIncludePathModuleNames.AddRange(
                 new string[] {
-			        "SlateRHIRenderer",
+			        "SlateNullRenderer",
+					"SlateRHIRenderer"
 		        }
             );
 
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
-			        "SlateRHIRenderer",
+			        "SlateNullRenderer",
+					"SlateRHIRenderer"
 		        }
             );
         }
@@ -121,6 +114,13 @@ public class Launch : ModuleRules
 			PublicIncludePathModuleNames.Add("ProfilerService");
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "TaskGraph", "RealtimeProfiler", "ProfilerService" });
 		}
+		
+		// The engine can use AutomationController in any connfiguration besides shipping.  This module is loaded
+		// dynamically in LaunchEngineLoop.cpp in non-shipping configurations
+		if (UEBuildConfiguration.bCompileAgainstEngine && Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			DynamicallyLoadedModuleNames.AddRange(new string[] { "AutomationController" });
+		}
 
 		if (UEBuildConfiguration.bBuildEditor == true)
 		{
@@ -138,7 +138,6 @@ public class Launch : ModuleRules
 			// ExtraModules that are loaded when WITH_EDITOR=1 is true
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
-					"AutomationController",
 					"AutomationWindow",
 					"ProfilerClient",
 					"Toolbox",
@@ -162,7 +161,8 @@ public class Launch : ModuleRules
 			}
 		}
 
-		if (Target.Platform == UnrealTargetPlatform.IOS)
+		if (Target.Platform == UnrealTargetPlatform.IOS ||
+			Target.Platform == UnrealTargetPlatform.TVOS)
 		{
 			PrivateDependencyModuleNames.Add("OpenGLDrv");
 			PrivateDependencyModuleNames.Add("IOSAudio");
@@ -205,6 +205,15 @@ public class Launch : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			bFasterWithoutUnity = true;
+		}
+
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"LinuxCommonStartup"
+				}
+			);
 		}
 	}
 }

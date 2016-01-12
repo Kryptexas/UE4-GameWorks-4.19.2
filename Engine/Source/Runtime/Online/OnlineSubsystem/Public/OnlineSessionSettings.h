@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "OnlineKeyValuePair.h"
 #include "OnlineSubsystemPackage.h"
 #include "OnlineSubsystemSessionSettings.h"
+#include "OnlineSessionSettings.generated.h"
 
 /** Setting describing the name of the current map (value is FString) */
 #define SETTING_MAPNAME FName(TEXT("MAPNAME"))
@@ -15,6 +16,12 @@
 #define SETTING_GAMEMODE FName(TEXT("GAMEMODE"))
 /** Setting describing the beacon host port (value is int32) */
 #define SETTING_BEACONPORT FName(TEXT("BEACONPORT"))
+/** Server responds to Qos beacon requests (value is int32) */
+#define SETTING_QOS FName(TEXT("QOS"))
+/** Setting describing the region of the world you are in (value is FString) */
+#define SETTING_REGION FName(TEXT("REGION"))
+/** Setting describing the unique id of a datacenter (value is FString) */
+#define SETTING_DCID FName(TEXT("DCID"))
 
 /** 8 user defined integer params to be used when filtering searches for sessions */
 #define SETTING_CUSTOMSEARCHINT1 FName(TEXT("CUSTOMSEARCHINT1"))
@@ -301,6 +308,44 @@ public:
 
 };
 
+USTRUCT()
+struct FJoinabilitySettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Name of session these settings affect */
+	UPROPERTY()
+	FName SessionName;
+	/** Is this session now publicly searchable */
+	UPROPERTY()
+	bool bPublicSearchable;
+	/** Does this session allow invites */
+	UPROPERTY()
+	bool bAllowInvites;
+	/** Does this session allow public join via presence */
+	UPROPERTY()
+	bool bJoinViaPresence;
+	/** Does this session allow friends to join via presence */
+	UPROPERTY()
+	bool bJoinViaPresenceFriendsOnly;
+	/** Current max players in this session */
+	UPROPERTY()
+	int32 MaxPlayers;
+	/** Current max party size in this session */
+	UPROPERTY()
+	int32 MaxPartySize;
+
+	FJoinabilitySettings() :
+		SessionName(NAME_None),
+		bPublicSearchable(false),
+		bAllowInvites(false),
+		bJoinViaPresence(false),
+		bJoinViaPresenceFriendsOnly(false),
+		MaxPlayers(0),
+		MaxPartySize(0)
+	{}
+};
+
 /** Basic session information serializable into a NamedSession or SearchResults */
 class FOnlineSession
 {
@@ -479,6 +524,8 @@ public:
 #define SEARCH_PRESENCE FName(TEXT("PRESENCESEARCH"))
 /** Search for a match with min player availability (value is int) */
 #define SEARCH_MINSLOTSAVAILABLE FName(TEXT("MINSLOTSAVAILABLE"))
+/** Exclude all matches where any unique ids in a given array are present (value is string of the form "uniqueid1;uniqueid2;uniqueid3") */
+#define SEARCH_EXCLUDE_UNIQUEIDS FName(TEXT("EXCLUDEUNIQUEIDS"))
 /** User ID to search for session of */
 #define SEARCH_USER FName(TEXT("SEARCHUSER"))
 /** Keywords to match in session search */

@@ -77,7 +77,7 @@ Creating the widget using `SNew()` when passing it to `GameViewportClient::AddVi
 Or using `SAssignNew()` to create it, assign it to a `TSharedPtr` member, and pass it in:
 
 	GEngine->GameViewport->AddViewportWidgetContent(
-		SAssingNew(MyWidgetPtr, SWeakWidget)
+		SAssignNew(MyWidgetPtr, SWeakWidget)
 		.PossiblyNullContent(MyWidgetClass)
 	);
 

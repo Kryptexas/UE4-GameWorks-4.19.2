@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HModel.cpp: HModel implementation
@@ -29,6 +29,7 @@ public:
 
 	/** Initialization constructor. */
 	FModelHitState(int32 InHitX,int32 InHitY):
+		SurfaceIndex(INDEX_NONE),
 		SurfaceW(FLT_MAX),
 		bHitSurface(false),
 		HitX(InHitX),
@@ -79,8 +80,12 @@ bool HModel::ResolveSurface(const FSceneView* View,int32 X,int32 Y,uint32& OutSu
 		FBspNode& Node = Model->Nodes[NodeIndex];
 		FBspSurf& Surf = Model->Surfs[Node.iSurf];
 
+		bool bIsHidden = false;
+#if WITH_EDITOR
+		bIsHidden = (Surf.Actor && Surf.Actor->IsHiddenEd());
+#endif
 		const bool bIsPortal = (Surf.PolyFlags & PF_Portal) != 0;
-		if(!bIsPortal)
+		if(!bIsPortal && !bIsHidden)
 		{
 			// Convert the BSP node to a FPoly.
 			FPoly NodePolygon;

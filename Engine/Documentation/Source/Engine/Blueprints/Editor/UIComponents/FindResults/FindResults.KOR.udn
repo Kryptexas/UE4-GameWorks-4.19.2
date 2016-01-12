@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2597211
+﻿INTSourceChangelist:2683262
 Availability:Public
 Title: 찾기 결과 패널
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
-Description:
-
+Description: 블루프린트 에디터에서 다양한 오브젝트를 빠르게 추적할 수 있도록 해주는 검색 툴 패널입니다.
+version: 4.9
 
 
 **찾기 결과** 패널은 블루프린트 에디터 안에서 다음 범주에 따라 다양한 오브젝트를 빠르게 찾아주는 강력한 검색 도구입니다:
@@ -19,7 +19,7 @@ Description:
 웹 브라우저에서의 검색과 마찬가지로, 찾기 결과 패널은 블루프린트 에디터 작업을 하는 도중 **Ctrl+F** 키를 눌러 사용할 수 있습니다. 기본적으로 그래프 패널 하단에 패널이 뜹니다. 컴파일러 패널이 표시된 경우, 찾기 결과 패널은 그 옆에 도킹됩니다.
 
 [REGION:note]
-언리얼 엔진 4 의 다른 검색창과는 다르게, 찾기 결과 패널에서는 비슷한 결과가 너무 많을 수 있기에, 내용을 입력함에 따라 결과에 필터가 바로 적용되지 않습니다. 다 입력한 뒤 _Enter_ 키를 치면 결과가 뜹니다.
+언리얼 엔진 4 의 다른 검색창과는 다르게, 찾기 결과 패널에서는 비슷한 결과가 너무 많을 수 있기에, 내용을 입력함에 따라 결과에 필터가 바로 적용되지 않습니다. 다 입력한 뒤 **Enter** 키를 치면 결과가 뜹니다.
 [/REGION]
 
 ## 인터페이스

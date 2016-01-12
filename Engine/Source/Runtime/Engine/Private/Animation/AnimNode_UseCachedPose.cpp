@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_UseCachedPose.h"
@@ -12,6 +12,8 @@ FAnimNode_UseCachedPose::FAnimNode_UseCachedPose()
 
 void FAnimNode_UseCachedPose::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	LinkToCachingNode.Initialize(Context);
 }
 

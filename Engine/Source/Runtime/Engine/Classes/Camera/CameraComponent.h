@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Camera/CameraTypes.h"
@@ -17,30 +17,48 @@ class ENGINE_API UCameraComponent : public USceneComponent
 	/** The horizontal field of view (in degrees) in perspective mode (ignored in Orthographic mode) */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0"))
 	float FieldOfView;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetFieldOfView(float InFieldOfView) { FieldOfView = InFieldOfView; }
 
 	/** The desired width (in world units) of the orthographic view (ignored in Perspective mode) */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	float OrthoWidth;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetOrthoWidth(float InOrthoWidth) { OrthoWidth = InOrthoWidth; }
 
 	/** The near plane distance of the orthographic view (in world units) */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	float OrthoNearClipPlane;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetOrthoNearClipPlane(float InOrthoNearClipPlane) { OrthoNearClipPlane = InOrthoNearClipPlane; }
 
 	/** The far plane distance of the orthographic view (in world units) */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	float OrthoFarClipPlane;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetOrthoFarClipPlane(float InOrthoFarClipPlane) { OrthoFarClipPlane = InOrthoFarClipPlane; }
 
 	// Aspect Ratio (Width/Height)
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(ClampMin = "0.1", ClampMax = "100.0", EditCondition="bConstrainAspectRatio"))
 	float AspectRatio;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetAspectRatio(float InAspectRatio) { AspectRatio = InAspectRatio; }
 
 	// If bConstrainAspectRatio is true, black bars will be added if the destination view has a different aspect ratio than this camera requested.
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bConstrainAspectRatio:1;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetConstraintAspectRatio(bool bInConstrainAspectRatio) { bConstrainAspectRatio = bInConstrainAspectRatio; }
 
 	// If true, account for the field of view angle when computing which level of detail to use for meshes.
 	UPROPERTY(Interp, EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bUseFieldOfViewForLOD:1;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetUseFieldOfViewForLOD(bool bInUseFieldOfViewForLOD) { bUseFieldOfViewForLOD = bInUseFieldOfViewForLOD; }
+
+	/** True if the camera's orientation and position should be locked to the HMD */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
+	uint32 bLockToHmd:1;
 
 	/**
 	 * If this camera component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
@@ -52,10 +70,14 @@ class ENGINE_API UCameraComponent : public USceneComponent
 	// The type of camera
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	TEnumAsByte<ECameraProjectionMode::Type> ProjectionMode;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetProjectionMode(ECameraProjectionMode::Type InProjectionMode) { ProjectionMode = InProjectionMode; }
 
 	/** Indicates if PostProcessSettings should be used when using this Camera to view through. */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float PostProcessBlendWeight;
+	UFUNCTION(BlueprintCallable, Category=Camera)
+	void SetPostProcessBlendWeight(float InPostProcessBlendWeight) { PostProcessBlendWeight = InPostProcessBlendWeight; }
 
 	/** Post process settings to use for this camera. Don't forget to check the properties you want to override */
 	UPROPERTY(Interp, BlueprintReadWrite, Category=CameraSettings)
@@ -63,15 +85,17 @@ class ENGINE_API UCameraComponent : public USceneComponent
 
 	// UActorComponent interface
 	virtual void OnRegister() override;
-	virtual void OnUnregister() override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void OnComponentDestroyed() override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 	virtual void CheckForErrors() override;
+#endif
 	// End of UActorComponent interface
 
 	// UObject interface
+#if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #endif
 	virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface
@@ -90,14 +114,12 @@ class ENGINE_API UCameraComponent : public USceneComponent
 protected:
 #if WITH_EDITORONLY_DATA
 	// The frustum component used to show visually where the camera field of view is
-	UPROPERTY(transient)
 	class UDrawFrustumComponent* DrawFrustum;
 
 	UPROPERTY(transient)
 	class UStaticMesh* CameraMesh;
 	
 	// The camera mesh to show visually where the camera is placed
-	UPROPERTY(transient)
 	class UStaticMeshComponent* ProxyMeshComponent;
 
 public:

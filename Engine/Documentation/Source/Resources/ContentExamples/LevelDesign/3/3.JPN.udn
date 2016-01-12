@@ -1,12 +1,30 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2716625
 Availability:Public
 Title:3 - ライティング評価
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
-Description:レベルデザインの事例概要、例　3：ライティング評価
+Description:レベルデザインの概要、サンプル 3：ライティング評価
 Related: Engine/Rendering/LightingAndShadows/Basics
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/ParticleSystems
+Version:4.9
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/LevelDesign/2 "%Resources/ContentExamples/LevelDesign/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[レベル デザイン ホーム](Resources/ContentExamples/LevelDesign)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/LevelDesign/4 "%Resources/ContentExamples/LevelDesign/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -30,8 +48,8 @@ Related: Engine/Rendering/ParticleSystems
 
 ![](leveldesign_3.png)
 
-ライティング評価では、最終版のライトをレベル全体に配置します。配置されたライトは単に基礎的なイルミネーションを提供するのではなく、最終イメージおよびレベルの雰囲気と一致させるために 
-設定を微調整します。この時点でポストプロセスエフェクトも調整します。繰り返しになりますが、最終イメージとレベルの雰囲気と一致させるための調整です。ライティングとポストプロセスエフェクトの変更は、 
-レベル全体に適用したマテリアルの変更が必然であることも意味します。最後に、いくつかのパーティクルエフェクトをレベルへ追加します。例えばレベルで使用するライティングがトーチの場合、
-トーチの炎のパーティクル効果をこの評価最中に追加することができます。
+ライティング評価では、最終版のライトをレベル全体に配置します。配置されたライトは単に基礎的なイルミネーションを提供するのではなく、最終イメージやレベルの雰囲気に合わせるために 
+設定を微調整します。この時点でポストプロセス エフェクトも最終イメージとレベルの雰囲気に合わせるために調整します。ライティングとポストプロセス エフェクトを変更するということは、 
+レベル全体に適用したマテリアルの変更が必要であることも意味します。最後に、いくつかのパーティクル エフェクトをレベルへ追加します。例えばレベルで使用するライティングがトーチの場合、
+トーチの炎のパーティクル効果をこの評価中に追加することができます。
 [/REGION]

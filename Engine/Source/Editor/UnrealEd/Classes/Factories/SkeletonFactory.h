@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -16,10 +16,10 @@ class USkeletonFactory : public UFactory
 	UPROPERTY()
 	class USkeletalMesh* TargetSkeletalMesh;
 
-	// Begin UFactory Interface
+	//~ Begin UFactory Interface
 	virtual bool ConfigureProperties() override;
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
-	// Begin UFactory Interface	
+	//~ Begin UFactory Interface	
 
 private:
 	void OnTargetSkeletalMeshSelected(const FAssetData& SelectedAsset);

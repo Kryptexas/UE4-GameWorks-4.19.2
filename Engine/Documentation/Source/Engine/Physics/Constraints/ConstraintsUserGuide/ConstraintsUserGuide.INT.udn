@@ -2,6 +2,8 @@ Availability: Public
 Title:PhysX Constraint User Guide
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:Physical joints used to connect two rigid body simulated objects together.
+SkillLevel: Beginner
+Version:  4.9
 
 [REGION:fullwidth raw]
 ![](Engine/Physics\physics_banner.png)
@@ -23,7 +25,7 @@ very flexible and data-driven constraint system that allows designers to make ma
 
 1. The Physics Constraint Actor can be found in the **All Classes** section of the **Modes** panel's **Place** mode:
 	[REGION:raw]
-	![](PhysCon_ContentBrowser.png)(convert:false)
+	![](PhysConMode.png)
 	[/REGION]
 1. From here, it can be brought into the level, like any other Actor, by clicking and dragging it into the viewport.
 
@@ -58,7 +60,7 @@ very flexible and data-driven constraint system that allows designers to make ma
 	* **Swing 1Limit Angle** and **Swing 2Limit Angle** to 25 degrees.
 	* Disable **Swing Limit Soft**.
 	
-	![](PhysCon_SettingsForThisDoc.png)(h:279 convert:false) ![](PhysCon_AngularCone_3.png)(convert:false)
+	![](AngularLimits1.png)(h:279 convert:false) ![](PhysCon_AngularCone_3.png)(convert:false)
 
 	Want to know what all the properties on a Physics Constraint affect? See the [%Engine/Physics\Constraints\ConstraintsReference:title%](Engine/Physics\Constraints\ConstraintsReference) for specific details.
 
@@ -66,7 +68,7 @@ very flexible and data-driven constraint system that allows designers to make ma
 
 	You may need a way to apply force to the constrained Actors depending on how you have them arranged and not all project templates have a way to do that. A **RadialForceActor** can be used. It is found in the **All Classes** section just like the Physics Constraint Actor, and is placed in the same way.
 	[REGION:raw]
-	![](PhysCon_Force2.png)(w:880)
+	![](Arrows.png)(w:880)
 	[/REGION]
 	_For the cubes used in this document, a force of 50000 was found to be enough to push it around. Radius of the RadialForceActor reduced to fit in image._
 

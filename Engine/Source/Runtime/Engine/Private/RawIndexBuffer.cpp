@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RawIndexBuffer.cpp: Raw index buffer implementation.
@@ -123,15 +123,12 @@ void FRawIndexBuffer16or32::InitRHI()
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
 
-	// BSP sample debugging requires CPU access to index buffers
-#if !ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	// Undo/redo can destroy and recreate the render resources for UModels without rebuilding the
 	// buffers, so the indices need to be saved when in the editor.
 	if (!GIsEditor && !IsRunningCommandlet())
 	{
 		Indices.Empty();
 	}
-#endif
 }
 
 FArchive& operator<<(FArchive& Ar,FRawIndexBuffer16or32& I)

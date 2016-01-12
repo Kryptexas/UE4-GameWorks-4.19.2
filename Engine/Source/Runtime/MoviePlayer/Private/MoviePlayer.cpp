@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MoviePlayer.h"
 
@@ -77,5 +77,11 @@ TSharedPtr<IGameMoviePlayer> GetMoviePlayer()
 
 bool IsMoviePlayerEnabled()
 {
-	return !GIsEditor && !IsRunningDedicatedServer() && !IsRunningCommandlet() && GUseThreadedRendering;
+	bool bEnabled = !GIsEditor && !IsRunningDedicatedServer() && !IsRunningCommandlet() && GUseThreadedRendering;
+	
+#if !UE_BUILD_SHIPPING
+	bEnabled &= !FParse::Param(FCommandLine::Get(), TEXT("NoLoadingScreen"));
+#endif
+
+	return bEnabled;
 }

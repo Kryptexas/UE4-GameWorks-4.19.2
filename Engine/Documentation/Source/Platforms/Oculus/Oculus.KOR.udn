@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2670824
 Title:오큘러스 리프트 개발
 Crumbs:%ROOT%, Platforms
 Description:
@@ -8,7 +8,7 @@ Platform:Oculus
 
 [EXCERPT:warning]
 [REGION:warning]
-맥에서 오큘러스 개발을 하려면 현재 언리얼 엔진 4.3 이 필요합니다.
+맥에서 오큘러스 개발을 하려면 현재 언리얼 엔진 4.3 이상이 필요합니다.
 [/REGION]
 [/EXCERPT:warning]
 

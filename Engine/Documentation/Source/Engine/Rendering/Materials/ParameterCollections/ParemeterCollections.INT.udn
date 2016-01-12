@@ -7,6 +7,7 @@ Related: Engine/Rendering/Materials/MaterialInstances
 Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/HowTo/Instancing
 Related: Engine/Blueprints/UserGuide/Timelines
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -30,20 +31,20 @@ In the example above, global parameters are used to control the following aspect
 * The sun angle and color is also tracked and used to correctly colorize the water crests and limit the effect to only times when light shines directly through the wave crests (when the player is looking toward the sun). 
 * The coloration of effect across the time of day and overall diffuse lighting color for the water are also being controlled. 
 
-## Creating & Editing Material Parameter Collections
+## Creating and Editing Material Parameter Collections
 
-MaterialParameterCollections are created through the [**Content Browser**](Engine/Content/Browser) via the **New** menu 
+MaterialParameterCollections are created through the [Content Browser](Engine/Content/Browser) via the **New** menu 
 or the **Right-Click** context menu and can be edited and saved like any other assets.
 
 
 1. To create a Material Parameter Collection, you must first **Right-click** in the **Content Browser** to expose the create menu. From that menu, select the **Materials & Textures** section
    and then select **Material Parameter Collection**. Once selected, it will create a new Material Parameter Collection in the **Content Browser**. 
 
-	![](MPC_Create_New_Collection.png)
+	![](MatPC.jpg)
 
-1. The Material Parameter Collection will be added and saved to the **Content Browser** just like any other Actor. 
+1. The Material Parameter Collection will be added and saved to the **Content Browser** just like any other Asset. 
 	
-	![](MPC_Saved_In_CB.png)
+	![](MatPraCollectionMP.jpg)
 
 1. To edit a Material Parameter Collection, you must first **Double-click** on it with the **Left Mouse Button** to open up the property window for it.  
 
@@ -132,7 +133,7 @@ This is an extremely powerful way to manipulate Material Collection Parameter as
 	Once you are over the object that you want to use the Material Instance on, release the **Left Mouse Button** to apply the Material Instance to the object.
 	When completed you should have something that looks like this.
 
-	![](MPC_Applied_Materials.png)
+	![](ColorsMP.jpg)
 
 1. With the Material Instances now applied to objects in the level, it is now time to open up the Level Blueprint. 
 	To open up the Level Blueprint, click on **Blueprints** icon on the main tool bar and then from the drop down menu select **Level Blueprint**.
@@ -146,7 +147,7 @@ This is an extremely powerful way to manipulate Material Collection Parameter as
 	* ** Float Variable Named: Des**
 
 	When completed, your Blueprint Graph should look something like this. 
-	![](MPC_Added_Nodes_To_BP.png)
+	![](SetUpBlueprintMP.jpg)
 
 1. With the correct nodes added to the Blueprint Graph, it is now time to set them up. 
 	The first thing that we are going to set up is the  ** Set Scalar Parameter Value**. 
@@ -189,7 +190,8 @@ This is an extremely powerful way to manipulate Material Collection Parameter as
 	Once you press play, a new window will be displayed with the level running inside of it.
 	To see the Material Collection Parameter in action, hold down the **Left Mouse Button**
 	and the colors of the Materials in the scene will go from their original color to grey.
-	Release the **Left Mouse Button**, and the Materials will return their original color. 
+	Release the **Left Mouse Button**, and the Materials will return their original color.
+	 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
 		640
@@ -198,7 +200,7 @@ This is an extremely powerful way to manipulate Material Collection Parameter as
 		360
 		[/PARAMLITERAL]
 		[PARAMLITERAL:videoid]
-		9hIp_3qNPis
+		saVjrY41jWk
 		[/PARAMLITERAL]
 	[/OBJECT]
 

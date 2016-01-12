@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
 
@@ -109,15 +109,17 @@ void FUdpMessageBeacon::Stop()
 void FUdpMessageBeacon::SendSegment(EUdpMessageSegments::Type SegmentType)
 {
 	FUdpMessageSegment::FHeader Header;
-
-	Header.SenderNodeId = NodeId;
-	Header.ProtocolVersion = UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION;
-	Header.SegmentType = SegmentType;
+	{
+		Header.SenderNodeId = NodeId;
+		Header.ProtocolVersion = UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION;
+		Header.SegmentType = SegmentType;
+	}
 
 	FArrayWriter Writer;
-	
-	Writer << Header;
-	Writer << NodeId;
+	{
+		Writer << Header;
+		Writer << NodeId;
+	}
 
 	int32 Sent;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -106,6 +106,30 @@ DECLARE_MULTICAST_DELEGATE_FiveParams(FOnDeleteFriendComplete, int32, bool, cons
 typedef FOnDeleteFriendComplete::FDelegate FOnDeleteFriendCompleteDelegate;
 
 /**
+ * Delegate used when a block request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UniqueID Player blocked
+ * @param ListName name of the friends list that was operated on
+ * @param ErrorStr string representing the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnBlockedPlayerComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
+typedef FOnBlockedPlayerComplete::FDelegate FOnBlockedPlayerCompleteDelegate;
+
+/**
+ * Delegate used when an unblock request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UniqueID Player unblocked
+ * @param ListName name of the friends list that was operated on
+ * @param ErrorStr string representing the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnUnblockedPlayerComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
+typedef FOnUnblockedPlayerComplete::FDelegate FOnUnblockedPlayerCompleteDelegate;
+
+/**
  * Delegate used when the query for recent players has completed
  *
  * @param UserId the id of the user that made the request
@@ -115,6 +139,16 @@ typedef FOnDeleteFriendComplete::FDelegate FOnDeleteFriendCompleteDelegate;
  */
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, const FString& /*Namespace*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
 typedef FOnQueryRecentPlayersComplete::FDelegate FOnQueryRecentPlayersCompleteDelegate;
+
+/**
+ * Delegate used when the query for blocked players has completed
+ *
+ * @param UserId the id of the user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ErrorStr string representing the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnQueryBlockedPlayersComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
+typedef FOnQueryBlockedPlayersComplete::FDelegate FOnQueryBlockedPlayersCompleteDelegate;
 
 /**
  * Delegate called when remote friend sends an invite
@@ -288,6 +322,28 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnDeleteFriendComplete, bool, const FUniqueNetId&, const FString&, const FString&);
 
 	/**
+	 * Delegate used when a block player request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UniqueIF player that was blocked
+	 * @param ListName name of the friends list that was operated on
+	 * @param ErrorStr string representing the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnBlockedPlayerComplete, bool, const FUniqueNetId&, const FString&, const FString&);
+
+	/**
+	 * Delegate used when an ublock player request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UniqueIF player that was unblocked
+	 * @param ListName name of the friends list that was operated on
+	 * @param ErrorStr string representing the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnUnblockedPlayerComplete, bool, const FUniqueNetId&, const FString&, const FString&);
+
+	/**
 	 * Copies the list of friends for the player previously retrieved from the online service
 	 *
 	 * @param LocalUserNum the user to read the friends list of
@@ -341,6 +397,15 @@ public:
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, const FString& /*Namespace*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
 
 	/**
+	 * Delegate used when the query for blocked players has completed
+	 *
+	 * @param UserId the id of the user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param Error string representing the error condition
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnQueryBlockedPlayersComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
+
+	/**
 	 * Copies the cached list of recent players for a given user
 	 *
 	 * @param UserId user to retrieve recent players for
@@ -350,6 +415,46 @@ public:
 	 * @return true if recent players list was found for the given user
 	 */
 	virtual bool GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers) = 0;
+
+	/**
+	 * Block a player
+	 *
+	 * @param LocalUserNum The user to check for
+	 * @param PlayerId The player to block
+	 *
+	 * @return true if query was started
+	 */
+	virtual bool BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) = 0;
+
+	/**
+	 * Unblock a player
+	 *
+	 * @param LocalUserNum The user to check for
+	 * @param PlayerId The player to unblock
+	 *
+	 * @return true if query was started
+	 */
+	virtual bool UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) = 0;
+
+	/**
+	 * Query for blocked players
+	 *
+	 * @param UserId user to query blocked players for
+	 *
+	 * @return true if query was started
+	 */
+	virtual bool QueryBlockedPlayers(const FUniqueNetId& UserId) = 0;
+
+	/**
+	 * Get the list of blocked players
+	 *
+	 * @param UserId user to retrieve blocked players for
+	 * @param OuBlockedPlayers [out] array that receives the copied data
+	 *
+	 * @return true if blocked players list was found for the given user
+	 */
+	virtual bool GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineBlockedPlayer> >& OutBlockedPlayers) = 0;
+
 };
 
 typedef TSharedPtr<IOnlineFriends, ESPMode::ThreadSafe> IOnlineFriendsPtr;

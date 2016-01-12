@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,9 +32,8 @@ public:
 	 */
 	void AddAttach( float Time, float SequenceEndTime, const FGuid& InAttachId);
 	
-private:
-
-	//@todo need additional actor component/bone to attach to
+	UPROPERTY(EditAnywhere, Category="Attach")
+	FName AttachSocketName;
 
 	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainTx:1;

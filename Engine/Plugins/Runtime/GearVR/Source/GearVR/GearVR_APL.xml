@@ -171,6 +171,7 @@
 				</insert>
 				<if condition="bEntitlementCheck">
 					<true>
+						<!-- add entitlement check if osig files are removed -->
 						<insert>
 				com.oculus.svclib.OVREntitlementChecker.doAutomatedCheck(this);
 						</insert>

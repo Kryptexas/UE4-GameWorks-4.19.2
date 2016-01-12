@@ -1,7 +1,6 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
-#include "ISettingsModule.h"
 #include "ModuleManager.h"
 #include "Sequencer.h"
 #include "Toolkits/ToolkitManager.h"
@@ -68,14 +67,6 @@ public:
 
 		MenuExtensibilityManager = MakeShareable( new FExtensibilityManager );
 		ToolBarExtensibilityManager = MakeShareable( new FExtensibilityManager );
-
-		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-		{
-			SettingsModule->RegisterSettings("Project", "Editor", "Sequencer",
-				LOCTEXT("RuntimeSettingsName", "Sequencer"),
-				LOCTEXT("RuntimeSettingsDescription", "Configure the Sequencer plugin"),
-				GetMutableDefault<USequencerProjectSettings>());
-		}
 	}
 
 	virtual void ShutdownModule() override
@@ -85,11 +76,6 @@ public:
 			FSequencerCommands::Unregister();
 
 			FEditorModeRegistry::Get().UnregisterMode(FSequencerEdMode::EM_SequencerMode);
-		}
-
-		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-		{
-			SettingsModule->UnregisterSettings("Project", "Editor", "Sequencer");
 		}
 	}
 

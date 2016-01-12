@@ -2,6 +2,8 @@ Availability:Public
 Title:World Composition User Guide
 Crumbs: %ROOT%, Engine, Engine/LevelStreaming
 Description:System for managing large worlds including origin shifting technology.
+SkillLevel: Intermediate
+Version: 4.9
 
 [TOC (start:2 end:3)]
 

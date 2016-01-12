@@ -1,10 +1,23 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "EngineVersion.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "EngineBuildSettings.h"
 #include "ModuleVersion.h"
+#include "UObject/ReleaseObjectVersion.h"
+
+/** Version numbers for networking */
+int32 GEngineNetVersion			= BUILT_FROM_CHANGELIST;
+const int32 GEngineMinNetVersion		= 7038;
+const int32 GEngineNegotiationVersion	= 3077;
+
+// Global instance of the current engine version
+FEngineVersion FEngineVersion::CurrentVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (BUILT_FROM_CHANGELIST | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+
+// Version which this engine maintains strict API and package compatibility with. By default, we always maintain compatibility with the current major/minor version, unless we're built at a different changelist.
+FEngineVersion FEngineVersion::CompatibleWithVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, (MODULE_API_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+
 
 FEngineVersionBase::FEngineVersionBase()
 : Major(0)
@@ -183,6 +196,29 @@ bool FEngineVersion::Parse(const FString &Text, FEngineVersion &OutVersion)
 	return true;
 }
 
+const FEngineVersion& FEngineVersion::Current()
+{
+	return CurrentVersion;
+}
+
+const FEngineVersion& FEngineVersion::CompatibleWith()
+{
+	return CompatibleWithVersion;
+}
+
+bool FEngineVersion::OverrideCurrentVersionChangelist(int32 NewChangelist)
+{
+	if(CurrentVersion.GetChangelist() != 0 || CompatibleWithVersion.GetChangelist() != 0)
+	{
+		return false;
+	}
+
+	CurrentVersion.Set(CurrentVersion.Major, CurrentVersion.Minor, CurrentVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CurrentVersion.Branch);
+	CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
+	GEngineNetVersion = NewChangelist;
+	return true;
+}
+
 void operator<<(FArchive &Ar, FEngineVersion &Version)
 {
 	Ar << Version.Major;
@@ -192,16 +228,8 @@ void operator<<(FArchive &Ar, FEngineVersion &Version)
 	Ar << Version.Branch;
 }
 
-// Make sure this is defined
-#ifndef ENGINE_IS_LICENSEE_VERSION
-	#define ENGINE_IS_LICENSEE_VERSION 0
-#endif
 
-// Licensee changelists part of the engine version has the top bit set to 1
-#define ENGINE_VERSION_INTERNAL_OR_LICENSEE (BUILT_FROM_CHANGELIST | (ENGINE_IS_LICENSEE_VERSION << 31))
-
-// Global instance of the current engine version
-const FEngineVersion GEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, ENGINE_VERSION_INTERNAL_OR_LICENSEE, BRANCH_NAME);
-
-// Version which this engine maintains strict API and package compatibility with. By default, we always maintain compatibility with the current major/minor version, unless we're built at a different changelist.
-const FEngineVersion GCompatibleWithEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, (MODULE_API_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+// Unique Release Object version id
+const FGuid FReleaseObjectVersion::GUID(0x9C54D522, 0xA8264FBE, 0x94210746, 0x61B482D0);
+// Register Release custom version with Core
+FCustomVersionRegistration GRegisterReleaseObjectVersion(FReleaseObjectVersion::GUID, FReleaseObjectVersion::LatestVersion, TEXT("Release"));

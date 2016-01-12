@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XAudio2Device.h: Unreal XAudio2 audio interface object.
@@ -51,6 +51,12 @@ enum ChannelOutputs
 	CHANNELOUT_RADIO,
 	CHANNELOUT_COUNT
 };
+
+// We are supporting spatializing non-mono assets, so our channel output will be a "matrix" 
+// of channel-out mappings per input channel only supporting stereo 3d spatialization, but 
+// if we support 3d spatialization of other N channel source files, we'd bump this up
+#define MAX_INPUT_CHANNELS_SPATIALIZED (2)
+#define CHANNEL_MATRIX_COUNT (MAX_INPUT_CHANNELS_SPATIALIZED*CHANNELOUT_COUNT)
 
 #define SPEAKER_5POINT0          ( SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_SIDE_LEFT | SPEAKER_SIDE_RIGHT )
 #define SPEAKER_6POINT1          ( SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_SIDE_LEFT | SPEAKER_SIDE_RIGHT | SPEAKER_BACK_CENTER )
@@ -159,12 +165,6 @@ protected:
 	void TestDecompressOggVorbis( USoundWave* Wave );
 	/** Decompress a wav a number of times for profiling purposes */
 	void TimeTest( FOutputDevice& Ar, const TCHAR* WaveAssetName );
-
-	/** Inverse listener transformation, used for spatialization */
-	FMatrix								InverseTransform;
-
-	// For calculating spatialised volumes
-	static FSpatializationHelper		SpatializationHelper;
 
 	friend class FXAudio2SoundBuffer;
 	friend class FXAudio2SoundSource;

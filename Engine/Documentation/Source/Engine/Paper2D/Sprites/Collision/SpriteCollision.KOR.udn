@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2632144
 Availability:Public
 Title:스프라이트 콜리전
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
@@ -12,7 +12,6 @@ Related: Engine/Content/Types/Textures
 [TOC(start:2)]
 
 
-## 개요
 
 스태틱 메시, 스켈레탈 메시 등과 같은 다른 지오메트리 유형과 마찬가지로, **스프라이트** 는 월드 내 다른 지오메트리와의 콜리전 계산에 사용되는 모양을 정의할 수 있습니다.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -965,13 +965,13 @@ public:
 	 */
 	void SetShowAspectRatioBarDisplay(bool bEnable)
 	{
-		EngineShowFlags.CameraAspectRatioBars = bEnable ? 1 : 0;
+		EngineShowFlags.SetCameraAspectRatioBars(bEnable);
 		Invalidate(false,false);
 	}
 
 	void SetShowSafeFrameBoxDisplay(bool bEnable)
 	{
-		EngineShowFlags.CameraSafeFrames = bEnable ? 1 : 0;
+		EngineShowFlags.SetCameraSafeFrames(bEnable);
 		Invalidate(false,false);
 	}
 

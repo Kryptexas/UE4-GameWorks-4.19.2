@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -17,7 +17,18 @@ using System.Web.Mvc;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
-	
+	class CrashComparer : IEqualityComparer<Crash>
+	{
+		public bool Equals( Crash C1, Crash C2 )
+		{
+			return C1.Id == C2.Id;
+		}
+
+		public int GetHashCode( Crash C )
+		{
+			return C.Id;
+		}
+	}
 
 	/// <summary>
 	/// A model to talk to the database.
@@ -78,7 +89,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				{
 					var BranchList = Context.Crashes
 					.Where( n => n.TimeOfCrash > DateTime.Now.AddMonths( -3 ) )
-					.Where( n => n.Branch.StartsWith( "UE4" ) )
+					// Depot - //depot/UE4* || Stream //UE4, //Something etc.
+					.Where( n => n.Branch.StartsWith( "UE4" ) || n.Branch.StartsWith( "//" ) )
 					.Select( n => n.Branch )
 					.Distinct()
 					.ToList();
@@ -94,6 +106,25 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 
+		private static List<SelectListItem> PlatformsAsListItems = null;
+		/// <summary>
+		/// Static list of platforms for filtering
+		/// </summary>
+		public static List<SelectListItem> GetPlatformsAsListItems()
+		{
+			if( PlatformsAsListItems == null )
+			{
+				string[] PlatformNames = { "Win64", "Win32", "Mac", "Linux", "PS4", "XboxOne" };
+				List<string> Platforms = new List<string>( PlatformNames );
+
+				PlatformsAsListItems = Platforms
+						.Select( listitem => new SelectListItem { Selected = false, Text = listitem, Value = listitem } )
+						.ToList();
+				PlatformsAsListItems.Insert( 0, new SelectListItem { Selected = true, Text = "", Value = "" } );
+			}
+			return PlatformsAsListItems;
+		
+		}
 
 		private static DateTime LastVersionDate = DateTime.UtcNow.AddDays( -1 );
 		private static List<SelectListItem> VersionsAsSelectList = null;
@@ -168,7 +199,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						select CrashDetail
 					);
 
-					return Crashes.FirstOrDefault();
+					Crash Result = Crashes.FirstOrDefault();
+					Result.ReadCrashContextIfAvailable();
+					return Result;
 				}
 				catch( Exception Ex )
 				{
@@ -291,6 +324,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				// Filter by data and get as enumerable.
 				Results = FilterByDate(ResultsAll, FormData.DateFrom, FormData.DateTo);
 
+				// Filter by BuggId
+				if (!string.IsNullOrEmpty( FormData.BuggId ))
+				{
+					int BuggId = 0;
+					bool bValid = int.TryParse( FormData.BuggId, out BuggId );
+
+					if (bValid)
+					{
+						BuggRepository Buggs = new BuggRepository();
+						Bugg NewBugg = Buggs.GetBugg( BuggId );
+
+						if( NewBugg != null )
+						{
+							List<Crash> Crashes = NewBugg.GetCrashes();
+							var NewResult = Results.Intersect( Crashes, new CrashComparer() );
+							Results = NewResult;
+						}
+					}
+				}				
+
 				// Get UserGroup ResultCounts
 				Dictionary<string, int> GroupCounts = GetCountsByGroupFromCrashes( Results );
 
@@ -357,11 +410,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					UsernameQuery = FormData.UsernameQuery,
 					EpicIdOrMachineQuery = FormData.EpicIdOrMachineQuery,
 					MessageQuery = FormData.MessageQuery,
+					BuiltFromCL = FormData.BuiltFromCL,
+					BuggId = FormData.BuggId,
 					JiraQuery = FormData.JiraQuery,
 					DateFrom = (long)( FormData.DateFrom - CrashesViewModel.Epoch ).TotalMilliseconds,
 					DateTo = (long)( FormData.DateTo - CrashesViewModel.Epoch ).TotalMilliseconds,
 					BranchName = FormData.BranchName,
 					VersionName = FormData.VersionName,
+					PlatformName = FormData.PlatformName,
 					GameName = FormData.GameName,
 					GroupCounts = GroupCounts,
 					RealUserName = UniqueUser != null ? UniqueUser.ToString() : null,
@@ -630,6 +686,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}
 				else if (NewCrash.RawCallStack.Contains( "FDebug::Ensure" ))
 				{
+					NewCrash.CrashType = 3;			
+				}
+				else if (NewCrash.RawCallStack.Contains( "FDebug::OptionallyLogFormattedEnsureMessageReturningFalse" ))
+				{
 					NewCrash.CrashType = 3;
 				}
 				else if (NewCrash.RawCallStack.Contains( "NewReportEnsure" ))
@@ -764,15 +824,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						select CrashDetail
 					);
 			}
-			else
-			{
-				Results =
-				(
-					from CrashDetail in Results
-					where !CrashDetail.Branch.Contains( "UE4-UT" )
-					select CrashDetail
-				);
-			}
 
 			// Filter by VersionName
 			if (!string.IsNullOrEmpty( FormData.VersionName ))
@@ -781,6 +832,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					(
 						from CrashDetail in Results
 						where CrashDetail.BuildVersion.Equals( FormData.VersionName )
+						select CrashDetail
+					);
+			}
+
+			// Filter by PlatformName
+			if (!string.IsNullOrEmpty( FormData.PlatformName ))
+			{
+				Results =
+					(
+						from CrashDetail in Results
+						where CrashDetail.PlatformName.Contains( FormData.PlatformName )
 						select CrashDetail
 					);
 			}
@@ -810,6 +872,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}
 			}
 
+			// Filter by MessageQuery
 			if (!string.IsNullOrEmpty( FormData.MessageQuery ))
 			{
 				Results =
@@ -818,6 +881,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						where SqlMethods.Like( CrashDetail.Summary, "%" + FormData.MessageQuery + "%" ) || SqlMethods.Like( CrashDetail.Description, "%" + FormData.MessageQuery + "%" )
 						select CrashDetail
 						);
+			}
+
+			// Filter by BuiltFromCL
+			if (!string.IsNullOrEmpty( FormData.BuiltFromCL ))
+			{
+				int BuiltFromCL = 0;
+				bool bValid = int.TryParse( FormData.BuiltFromCL, out BuiltFromCL );
+
+				if (bValid)
+				{
+					Results =
+						(
+							from CrashDetail in Results
+							where CrashDetail.BuiltFromCL.Equals( BuiltFromCL )
+							select CrashDetail
+						);
+				}
 			}
 
 			return Results;

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -145,19 +145,19 @@
  */
 
 
-// @todo JohnB: Write unit test for 'struct object access' above (a struct with an object member)
-// @todo JohnB: Add 'structonscope' example to unit test as well (it's verified as working, but should be in the unit test too)
+// @todo #JohnB_VMRefl: Write unit test for 'struct object access' above (a struct with an object member)
+// @todo #JohnB_VMRefl: Add 'structonscope' example to unit test as well (it's verified as working, but should be in the unit test too)
 
 
-// @todo JohnB: Add an example of iterating struct arrays of unknown struct type, to the unit test - as an example, see:
+// @todo #JohnB_VMRefl: Add an example of iterating struct arrays of unknown struct type, to the unit test - as an example, see:
 //				UInfiniteItems_Grenades::GetInventoryInfo
 
-// @todo JohnB: You haven't yet had to actually adjust the size of dynamic arrays of unknown/inaccessible type,
+// @todo #JohnB_VMRefl: You haven't yet had to actually adjust the size of dynamic arrays of unknown/inaccessible type,
 //				or add/remove elements and other manipulation yet; add and document a method of doing this, eventually
 
 
 
-// @todo JohnB: In principle, there's nothing to stop you adding another boilerplate 'FVMReflectionString' class,
+// @todo #JohnBFeature: In principle, there's nothing to stop you adding another boilerplate 'FVMReflectionString' class,
 //				taking and parsing a string using same syntax as FVMReflection (may as well optimize syntax though, as C++ is limited),
 //				then tying that to a console-command, as a supercharged version of 'get/set' commands, but with reflection capabilities.
 //
@@ -684,7 +684,7 @@ struct NUTUtilRefl
 	/**
 	 * Iterates a functions parameters, and converts them to a human readable string
 	 * NOTE: Can not be passed back to functions that read parameters from a string, e.g. 'CallFunctionByNameWithArguments'
-	 *			@todo JohnB: This would be a good goal though
+	 *			@todo #JohnB: This would be a good goal though
 	 *
 	 * @param InFunction	The function template whose parameters are being parsed
 	 * @param Parms			The parameter data to be parsed

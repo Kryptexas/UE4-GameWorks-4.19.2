@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is the definition for a skeleton, used to animate USkeletalMesh
@@ -12,6 +12,7 @@
 
 class UAnimSequence;
 class USkeletalMesh;
+class UBlendProfile;
 
 /** This is a mapping table between bone in a particular skeletal mesh and bone of this skeleton set. */
 USTRUCT()
@@ -273,9 +274,35 @@ public:
 	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
 	static ENGINE_API const FName AnimTrackCurveMappingName;
 
+	/** Caches the Animation curve mapping name UIds from SmartNames into CachedAnimCurveMappingNameUids (used in FBlendedCurve::InitFrom) */
+	void CacheAnimCurveMappingNameUids();
+
+	// Returns the cached animation curve mapping Uids, used for initializing FBlendedCurve 
+	const TArray<FSmartNameMapping::UID>& GetCachedAnimCurveMappingNameUids();
+
+protected:
 	// Container for smart name mappings
 	UPROPERTY()
 	FSmartNameContainer SmartNames;
+
+	/** Cached animation curves smart name mapping UIDs, only at runtime, not serialized. (accessed in FBlendedCurve::InitFrom) */
+	TArray<FSmartNameMapping::UID> CachedAnimCurveMappingNameUids;
+
+public:
+	//////////////////////////////////////////////////////////////////////////
+	// Blend Profiles
+
+	/** List of blend profiles available in this skeleton */
+	UPROPERTY(Instanced)
+	TArray<UBlendProfile*> BlendProfiles;
+
+	/** Get the specified blend profile by name */
+	ENGINE_API UBlendProfile* GetBlendProfile(const FName& InProfileName);
+
+	/** Create a new blend profile with the specified name */
+	ENGINE_API UBlendProfile* CreateNewBlendProfile(const FName& InProfileName);
+
+	//////////////////////////////////////////////////////////////////////////
 
 	/************************************************************************/
 	/* Slot Groups */
@@ -307,6 +334,26 @@ public:
 	ENGINE_API void RemoveSlotGroup(const FName& InSlotName);
 	ENGINE_API void RenameSlotName(const FName& OldName, const FName& NewName);
 
+	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
+	// return bool - Whether a name was added (false if already present)
+	ENGINE_API bool AddSmartNameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid);
+
+	// Renames a smartname in the specified container and modifies the skeleton
+	// return bool - Whether the rename was sucessful
+	ENGINE_API bool RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName);
+
+	// Removes a smartname from the specified container and modifies the skeleton
+	ENGINE_API void RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid);
+
+	// Removes smartnames from the specified container and modifies the skeleton
+	ENGINE_API void RemoveSmartnamesAndModify(FName ContainerName, const TArray<FSmartNameMapping::UID>& Uids);
+
+	// Get or add a smartname container with the given name
+	ENGINE_API const FSmartNameMapping* GetOrAddSmartNameContainer(FName ContainerName);
+
+	// Get or add a smartname container with the given name
+	ENGINE_API const FSmartNameMapping* GetSmartNameContainer(FName ContainerName) const;
+
 #if WITH_EDITORONLY_DATA
 private:
 	/** The default skeletal mesh to use when previewing this skeleton */
@@ -321,17 +368,6 @@ private:
 
 public:
 
-	// Adds a new name to the smart name container and modifies the skeleton so it can be saved
-	// return bool - Whether a name was added (false if already present)
-	ENGINE_API bool AddSmartnameAndModify(FName ContainerName, FName NewName, FSmartNameMapping::UID& NewUid);
-
-	// Renames a smartname in the specified container and modifies the skeleton
-	// return bool - Whether the rename was sucessful
-	ENGINE_API bool RenameSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid, FName NewName);
-
-	// Removes a smartname from the specified container and modifies the skeleton
-	ENGINE_API void RemoveSmartnameAndModify(FName ContainerName, FSmartNameMapping::UID Uid);
-
 	/** AnimNotifiers that has been created. Right now there is no delete step for this, but in the future we'll supply delete**/
 	UPROPERTY()
 	TArray<FName> AnimationNotifies;
@@ -339,9 +375,6 @@ public:
 	/* Attached assets component for this skeleton */
 	UPROPERTY()
 	FPreviewAssetAttachContainer PreviewAttachedAssetContainer;
-
-	UPROPERTY()
-	TArray< struct FBoneReductionSetting > BoneReductionSettingsForLODs;
 #endif // WITH_EDITORONLY_DATA
 
 private:
@@ -409,31 +442,6 @@ public:
 	 * @param	(out) List of Direct Children
 	 */
 	ENGINE_API int32 GetChildBones(int32 ParentBoneIndex, TArray<int32> & Children) const;
-
-	/**
-	 * Remove Bone from the LOD
-	 *
-	 * @param	LODIndex	LOD to remove from
-	 * @param 	BoneIndex	Bone to remove
-	 */
-	ENGINE_API int32 RemoveBoneFromLOD(int32 LODIndex, int32 BoneIndex);
-	
-	/**
-	 * Return true if this bone is included in LOD. 
-	 * In other words, this returns true if it's not in BoneReductionSettingsForLODs
-	 *
-	 * @param	LODIndex	LOD to check
-	 * @param 	BoneIndex	Bone to check
-	 */
-	ENGINE_API bool IsBoneIncludedInLOD(int32 LODIndex, int32 BoneIndex);
-
-	/**
-	 * Add Bone back to the LOD
-	 *
-	 * @param	LODIndex	LOD to add back to 
-	 * @param 	BoneIndex	Bone to add back
-	 */	
-	ENGINE_API void AddBoneToLOD(int32 LODIndex, int32 BoneIndex);
 
 #endif
 
@@ -535,13 +543,6 @@ public:
 
 		return ReferenceSkeleton.GetRefBonePose();	
 	}
-
-	/** 
-	 * Rebuild reference pose from the list of mesh 
-	 * Priority goes from 0->N, where 0 is highest
-	 * Sequential index will be used to fill up bones not found from previous index
-	 */
-	ENGINE_API void RebuildReferencePose(TArray<USkeletalMesh*> InSkelMeshList);
 
 	/** 
 	 * Get Track index of InAnimSeq for the BoneTreeIndex of BoneTree
@@ -687,6 +688,6 @@ public:
 #endif
 
 private:
-	void RegenerateGuid();
+	void RegenerateGuid();	
 };
 

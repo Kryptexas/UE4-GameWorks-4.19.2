@@ -320,8 +320,16 @@ Engine/Rendering/Materials/ExpressionReference/Custom#customtexture
 [/VAR]
 [/EXCERPT:UMaterialExpressionCustomTexture]
 
+[EXCERPT:UMaterialExpressionDecalDerivative]
+The DecalDerivative is used to explicitly compute a decal's texture coordinate's derivative assuming there is no custom uv, to avoid the 2x2 pixel mipmap artefacts on the edges where the decal is project to, but still with support of anisotropic filtering.
+
+[VAR:ToolTipFullLink]
+Engine/Actors/DecalActor/DecalUserGuide
+[/VAR]
+[/EXCERPT:UMaterialExpressionDecalDerivative]
+
 [EXCERPT:UMaterialExpressionDecalMipmapLevel]
-The DecalMipmapLevel is used to explicitly compute a decal's texture's mipmap level assuming there is no custom uv, to avoid the 2x2 pixel mipmap artefacts on the edges where the decal is project to.
+Deprecated. Use DecalDerivative instead.
 
 [VAR:ToolTipFullLink]
 Engine/Actors/DecalActor/DecalUserGuide
@@ -580,9 +588,9 @@ Engine/Rendering/Materials/ExpressionReference/Math#if
 [/EXCERPT:UMaterialExpressionIf]
 
 [EXCERPT:UMaterialExpressionLinearInterpolate]
-The LinearInterpolate expression blends between two input value(s) based on a third input value used as a mask. This can be thought of as a mask to define transitions between two textures, like a layer mask in Photoshop. The intensity of the mask Alpha determines the ratio of color to take from the two input values. If Alpha is 1.0/white, the first input is used.
+The LinearInterpolate expression blends between two input value(s) based on a third input value used as a mask. This can be thought of as a mask to define transitions between two textures, like a layer mask in Photoshop. The intensity of the mask Alpha determines the ratio of color to take from the two input values. 
 
-If Alpha is 0.0/black, the second input is used. If Alpha is grey (somewhere between 0.0 and 1.0), the output is a blend between the two inputs. Keep in mind that the blend happens per channel. So, if Alpha is an RGB color, Alpha's red channel value defines the blend between A and B's red channels independently of Alpha's green channel, which defines the blend between A and B's green channels.
+If Alpha is 1.0/black, the first input is used. If Alpha is 0.0/white, the second input is used. If Alpha is grey (somewhere between 0.0 and 1.0), the output is a blend between the two inputs. Keep in mind that the blend happens per channel. So, if Alpha is an RGB color, Alpha's red channel value defines the blend between A and B's red channels independently of Alpha's green channel, which defines the blend between A and B's green channels.
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Math#linearinterpolate
@@ -784,6 +792,14 @@ The TextureSample expression outputs the color value(s) from a texture. This tex
 Engine/Rendering/Materials/ExpressionReference/Textures#texturesample
 [/VAR]
 [/EXCERPT:UMaterialExpressionTextureSample]
+
+[EXCERPT:UMaterialExpressionTextureProperty]
+The TextureProperty expression exposes a texture's properties such as the texture's size or the texel size. 
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Textures#textureproperty
+[/VAR]
+[/EXCERPT:UMaterialExpressionTextureProperty]
 
 [EXCERPT:UMaterialExpressionBlackBody]
 The Black Body expression simulates the effects of black body radiation within your Material. The user inputs a temperature (in Kelvin) and the resulting color and intensity can be used to drive Base Color and Emissive values to get a physically accurate result. 

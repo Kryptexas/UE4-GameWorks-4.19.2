@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowSetup.cpp: Dynamic shadow setup implementation.
@@ -72,6 +72,14 @@ bool ShouldUseCachePreshadows()
 {
 	return CVarCachePreshadows.GetValueOnRenderThread() != 0;
 }
+
+int32 GPreshadowsForceLowestLOD = 0;
+FAutoConsoleVariableRef CVarPreshadowsForceLowestLOD(
+	TEXT("r.Shadow.PreshadowsForceLowestDetailLevel"),
+	GPreshadowsForceLowestLOD,
+	TEXT("When enabled, static meshes render their lowest detail level into preshadow depth maps.  Disabled by default as it causes artifacts with poor quality LODs (tree billboard)."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
 
 /**
  * This value specifies how much bounds will be expanded when rendering a cached preshadow (0.15 = 15% larger).
@@ -379,6 +387,7 @@ FProjectedShadowInfo::FProjectedShadowInfo()
 	, bWholeSceneShadow(false)
 	, bReflectiveShadowmap(false)
 	, bTranslucentShadow(false)
+	, bCapsuleShadow(false)
 	, bPreShadow(false)
 	, bSelfShadowOnly(false)
 	, LightSceneInfo(0)
@@ -407,6 +416,7 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 	ResolutionX = InResolutionX;
 	MaxScreenPercent = InMaxScreenPercent;
 	bDirectionalLight = InLightSceneInfo->Proxy->GetLightType() == LightType_Directional;
+	bCapsuleShadow = InParentSceneInfo->Proxy->CastsCapsuleDirectShadow() && !bInPreShadow;
 	bTranslucentShadow = bInTranslucentShadow;
 	bPreShadow = bInPreShadow;
 	bSelfShadowOnly = InParentSceneInfo->Proxy->CastsSelfShadowOnly();
@@ -757,7 +767,11 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 					{
 						bool bUseExistingVisibility = false;
 
-						if(!bReflectiveShadowmap) // Don't use existing visibility for RSMs 
+						// Preshadows use the lowest LOD because there is no self shadowing
+						const bool bForceLowestDetailLevel = bReflectiveShadowmap || (bPreShadow && GPreshadowsForceLowestLOD);
+
+						// Don't use existing visibility if we need to use a different LOD in the shadow depth pass
+						if (!bForceLowestDetailLevel)
 						{
 							for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
 							{
@@ -786,7 +800,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							int32 ForcedLODLevel = (CurrentView.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
 
 							// Add the primitive's static mesh elements to the draw lists.
-							if ( bReflectiveShadowmap) 
+							if (bForceLowestDetailLevel) 
 							{
 								int8 LODToRenderScan = -CHAR_MAX;
 								// Force the lowest detail LOD Level in reflective shadow maps.
@@ -850,7 +864,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							{
 								const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
 								OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, FeatureLevel);
-								SubjectMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
+								StaticSubjectMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
 							}
 						}
 					}
@@ -859,7 +873,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 			else
 			{
 				// Add the primitive to the subject primitive list.
-				SubjectPrimitives.Add(PrimitiveSceneInfo);
+				DynamicSubjectPrimitives.Add(PrimitiveSceneInfo);
 			}
 		}
 
@@ -909,8 +923,8 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 
 bool FProjectedShadowInfo::HasSubjectPrims() const
 {
-	return SubjectPrimitives.Num() > 0
-		|| SubjectMeshElements.Num() > 0
+	return DynamicSubjectPrimitives.Num() > 0
+		|| StaticSubjectMeshElements.Num() > 0
 		|| EmissiveOnlyPrimitives.Num() > 0 
 		|| EmissiveOnlyMeshElements.Num() > 0
 		|| GIBlockingMeshElements.Num() > 0
@@ -926,11 +940,11 @@ void FProjectedShadowInfo::AddReceiverPrimitive(FPrimitiveSceneInfo* PrimitiveSc
 static TAutoConsoleVariable<int32> CVarDisableCullShadows(
 	TEXT("foliage.DisableCullShadows"),
 	0,
-	TEXT("First three bits are disable SubjectPrimitives, ReceiverPrimitives, SubjectTranslucentPrimitives"));
+	TEXT("First three bits are disable DynamicSubjectPrimitives, ReceiverPrimitives, SubjectTranslucentPrimitives"));
 
 void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, FVisibleLightInfo& VisibleLightInfo, TArray<const FSceneView*>& ReusedViewsArray)
 {
-	if (SubjectPrimitives.Num() > 0 || ReceiverPrimitives.Num() > 0 || SubjectTranslucentPrimitives.Num() > 0)
+	if (DynamicSubjectPrimitives.Num() > 0 || ReceiverPrimitives.Num() > 0 || SubjectTranslucentPrimitives.Num() > 0)
 	{
 		// Choose an arbitrary view where this shadow's subject is relevant.
 		FViewInfo* FoundView = NULL;
@@ -971,19 +985,26 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 		    int32 Disable = 0; //CVarDisableCullShadows.GetValueOnRenderThread();
 		    FConvexVolume NoCull;
     
+			if (bPreShadow && GPreshadowsForceLowestLOD)
+			{
+				FoundView->DrawDynamicFlags = EDrawDynamicFlags::ForceLowestLOD;
+			}
+
 		    if (IsWholeSceneDirectionalShadow())
 		    {
 			    FoundView->ViewMatrices.PreShadowTranslation = FVector(0,0,0);
 			    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate;
-			    GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
 			    FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
 		    }
 		    else
 		    {
 			    FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
 			    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CasterFrustum;
-			    GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
 		    }
+
+			FoundView->DrawDynamicFlags = EDrawDynamicFlags::None;
     
 		    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 2) ? &NoCull : &ReceiverFrustum;
 		    GatherDynamicMeshElementsArray(FoundView, Renderer, ReceiverPrimitives, DynamicReceiverMeshElements, ReusedViewsArray);
@@ -1045,9 +1066,9 @@ void FProjectedShadowInfo::GatherDynamicMeshElementsArray(
 bool FProjectedShadowInfo::SubjectsVisible(const FViewInfo& View) const
 {
 	checkSlow(!IsWholeSceneDirectionalShadow());
-	for(int32 PrimitiveIndex = 0;PrimitiveIndex < SubjectPrimitives.Num();PrimitiveIndex++)
+	for(int32 PrimitiveIndex = 0;PrimitiveIndex < DynamicSubjectPrimitives.Num();PrimitiveIndex++)
 	{
-		const FPrimitiveSceneInfo* SubjectPrimitiveSceneInfo = SubjectPrimitives[PrimitiveIndex];
+		const FPrimitiveSceneInfo* SubjectPrimitiveSceneInfo = DynamicSubjectPrimitives[PrimitiveIndex];
 		if(View.PrimitiveVisibilityMap[SubjectPrimitiveSceneInfo->GetIndex()])
 		{
 			return true;
@@ -1063,9 +1084,9 @@ bool FProjectedShadowInfo::SubjectsVisible(const FViewInfo& View) const
 void FProjectedShadowInfo::ClearTransientArrays()
 {
 	SubjectTranslucentPrimitives.Empty();
-	SubjectPrimitives.Empty();
+	DynamicSubjectPrimitives.Empty();
 	ReceiverPrimitives.Empty();
-	SubjectMeshElements.Empty();
+	StaticSubjectMeshElements.Empty();
 	EmissiveOnlyPrimitives.Empty();
 	EmissiveOnlyMeshElements.Empty();
 	DynamicSubjectMeshElements.Empty();
@@ -1336,6 +1357,14 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 	TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> ShadowGroupPrimitives;
 	PrimitiveSceneInfo->GatherLightingAttachmentGroupPrimitives(ShadowGroupPrimitives);
 
+#if ENABLE_NAN_DIAGNOSTIC
+	// allow for silent failure: only possible if NaN checking is enabled.  
+	if (ShadowGroupPrimitives.Num() == 0)
+	{
+		return;
+	}
+#endif
+
 	// Compute the composite bounds of this group of shadow primitives.
 	FBoxSphereBounds OriginalBounds = ShadowGroupPrimitives[0]->Proxy->GetBounds();
 
@@ -1418,7 +1447,9 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 		&& bSubjectIsVisible 
 		// Only objects with dynamic lighting should create a preshadow
 		// Unless we're in the editor and need to preview an object without built lighting
-		&& (!PrimitiveSceneInfo->Proxy->HasStaticLighting() || !Interaction->IsShadowMapped());
+		&& (!PrimitiveSceneInfo->Proxy->HasStaticLighting() || !Interaction->IsShadowMapped())
+		// Disable preshadows from directional lights for primitives that use single sample shadowing, the shadow factor will be written into the precomputed shadow mask in the GBuffer instead
+		&& !(PrimitiveSceneInfo->Proxy->UseSingleSampleShadowFromStationaryLights() && LightSceneInfo->Proxy->GetLightType() == LightType_Directional);
 
 	if (bRenderPreShadow && ShouldUseCachePreshadows())
 	{
@@ -1583,7 +1614,7 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 
 				// Only add to OutPreShadows if the preshadow doesn't already have depths cached, 
 				// Since OutPreShadows is used to generate information only used when rendering the shadow depths.
-				if (!ProjectedPreShadowInfo->bDepthsCached)
+				if (!ProjectedPreShadowInfo->bDepthsCached && ProjectedPreShadowInfo->CasterFrustum.PermutedPlanes.Num())
 				{
 					OutPreShadows.Add(ProjectedPreShadowInfo);
 				}
@@ -2108,6 +2139,7 @@ void FSceneRenderer::GatherShadowPrimitives(
 			ProjectedShadowInfo->StaticMeshWholeSceneShadowBatchVisibility.AddZeroed(Scene->StaticMeshes.GetMaxIndex());
 		}
 
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ShadowOctreeTraversal);
 		// Find primitives that are in a shadow frustum in the octree.
 		for(FScenePrimitiveOctree::TConstIterator<SceneRenderingAllocator> PrimitiveOctreeIt(Scene->PrimitiveOctree);
 			PrimitiveOctreeIt.HasPendingNodes();
@@ -2117,7 +2149,6 @@ void FSceneRenderer::GatherShadowPrimitives(
 			const FOctreeNodeContext& PrimitiveOctreeNodeContext = PrimitiveOctreeIt.GetCurrentContext();
 
 			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_ShadowOctreeTraversal);
 				// Find children of this octree node that may contain relevant primitives.
 				FOREACH_OCTREE_CHILD_NODE(ChildRef)
 				{
@@ -2134,6 +2165,7 @@ void FSceneRenderer::GatherShadowPrimitives(
 							{
 								FProjectedShadowInfo* ProjectedShadowInfo = PreShadows[ShadowIndex];
 
+								check(ProjectedShadowInfo->CasterFrustum.PermutedPlanes.Num());
 								// Check if this primitive is in the shadow's frustum.
 								if(ProjectedShadowInfo->CasterFrustum.IntersectBox(
 									ChildContext.Bounds.Center + ProjectedShadowInfo->PreShadowTranslation,
@@ -2152,6 +2184,7 @@ void FSceneRenderer::GatherShadowPrimitives(
 							{
 								FProjectedShadowInfo* ProjectedShadowInfo = ViewDependentWholeSceneShadows[ShadowIndex];
 
+								//check(ProjectedShadowInfo->CasterFrustum.PermutedPlanes.Num());
 								// Check if this primitive is in the shadow's frustum.
 								if(ProjectedShadowInfo->CasterFrustum.IntersectBox(
 									ChildContext.Bounds.Center + ProjectedShadowInfo->PreShadowTranslation,
@@ -2405,7 +2438,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 				const int32 NumHigh = FMath::Min(((NumWholeSceneShadows - 1) / MaxWide) + 1, MaxHigh);
 
 				const FIntPoint AtlasShadowBufferResolution(ShadowBufferResolution.X * NumWide, ShadowBufferResolution.Y * NumHigh);
-				SceneContext.AllocateForwardShadingShadowDepthTarget(AtlasShadowBufferResolution);
+				SceneContext.AllocateForwardShadingShadowDepthTarget(RHICmdList, AtlasShadowBufferResolution);
 
 				// Allocate atlas shadow texture space to the shadows.
 				FTextureLayout ShadowLayout(1, 1, AtlasShadowBufferResolution.X, AtlasShadowBufferResolution.Y, false, false);
@@ -2429,7 +2462,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 				// Per obj projected shadows are in use. Ensure the shadow depth target is available for modulated shadow use later.
 				FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 				const FIntPoint ShadowBufferResolution = SceneContext.GetShadowDepthTextureResolution();
-				SceneContext.AllocateForwardShadingShadowDepthTarget(ShadowBufferResolution);
+				SceneContext.AllocateForwardShadingShadowDepthTarget(RHICmdList, ShadowBufferResolution);
 			}
 		}
 
@@ -2552,4 +2585,6 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate&
 
 	// Generate mesh element arrays from shadow primitive arrays
 	GatherShadowDynamicMeshElements();
+
+	CreateIndirectCapsuleShadows();
 }

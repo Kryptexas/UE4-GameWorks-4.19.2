@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2571058
+﻿INTSourceChangelist:2624398
 Availability:Public
 Title:자동 프로젝트 파일 생성
 Crumbs:%ROOT%, Programming, Programming/UnrealBuildSystem
 Description:현재 워크스페이스에서 게임과 모듈에 쓸 프로젝트 파일을 자동으로 생성하는 프로세스입니다.
-Version: 4.5
+Version: 4.9
 
 최신 언리얼 엔진 4 코드를 받아도 엔진이나 예제 게임을 컴파일하고 실행할 수 있도록 Visual Studio 나 Xcode 프로젝트 파일이 포함되어 있지 않다는 것을 알게 되실 것입니다. 로드할 프로젝트 파일을 생성하는 스크립트를 실행해 줘야 하는데요:
 
-* ('//depot/UE4/` 에 매핑된) UE4 메인 디렉토리의 `GenerateProjectFiles.bat` 파일을 실행시킵니다.
+* <!--(//depot/UE4/ 에 매핑된)--> UE4 메인 디렉토리의 `GenerateProjectFiles.bat` 파일을 실행시킵니다.
 
 	[REGION:note]
 	이 스크립트는 어느 폴더에서도 실행시킬 수 있습니다. (원한다면 바탕화면에 바로가기를 만드세요.)
@@ -115,7 +115,7 @@ Unreal Build Tool 위주의 단순한 스크립트로, 프로그램 실행파일
 
 * 스타트업 프로젝트를 UnrealBuildTool 로 바꿉니다.
 * 디버깅용 명령줄 파라미터를 이렇게 설정합니다:  `-ProjectFiles`
-* 작업 디렉토리를 다음에 대한 로컬 경로로 설정합니다: `//depot/UE4/Engine/Source/`
+* 작업 디렉토리를 다음에 대한 로컬 경로로 설정합니다: <!--//depot/UE4-->[UE4 설치 디렉토리]/Engine/Source/
 * 평소처럼 컴파일하고 디버깅합니다.
 
 

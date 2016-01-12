@@ -2,6 +2,7 @@ Availability: Public
 title:Misc
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
 Description:Miscellaneous functions that do not fall into existing categories.
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
@@ -15,7 +16,7 @@ The following is a list of all the functions underneath the Misc category.
 
 ### TimeWithSpeedVariable
 
-The TimeWithSpeedVariable functions just like a time node, but with an optional input for a multiplier. This function can output the multiplied result, or has an optional Frac Time output for only outputting the decimal places of the multiply operation.
+The **TimeWithSpeedVariable** functions just like a time node, but with an optional input for a multiplier. This function can output the multiplied result, or has an optional Frac Time output for only outputting the decimal places of the multiply operation.
 
 | Item | Description |
 | -------- | -------- |
@@ -33,7 +34,7 @@ The Output Result will preview the node by default.  In this case, the node will
 
 ### OffsetAndScaleTo1
 
-This function takes in a value, offsets it by a given amount, and then scales the result back down to the 0-1 range.
+The **OffsetAndScaleTo1** function takes in a value, offsets it by a given amount, and then scales the result back down to the 0-1 range.
 
 | Item | Description |
 | -------- | -------- |
@@ -50,7 +51,7 @@ As its name suggests, this node serves merely as a pass-through. Whatever is pas
 
 ### SplitComponents
 
-The SplitComponents function busts apart the components of an incoming color or image, giving you individual access to the red, green, or blue channels.
+The **SplitComponents** function busts apart the components of an incoming color or image, giving you individual access to the red, green, or blue channels.
 
 | Item | Description |
 | -------- | -------- |
@@ -67,7 +68,7 @@ The SplitComponents function busts apart the components of an incoming color or 
 
 ### Flipbook
 
-This function takes in a Texture2D, such as a grid of sprite frames, and outputs an animation of them playing back in order.
+The **Flipbook** function takes in a Texture2D, such as a grid of sprite frames, and outputs an animation of them playing back in order.
 
 | Item | Description |
 | -------- | -------- |

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -24,4 +24,17 @@ int32 UBlueprintFunctionLibrary::GetFunctionCallspace(UFunction* Function, void*
 	const bool Absorb = (Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly) && GEngine->ShouldAbsorbAuthorityOnlyEvent()) ||
 						(Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic) && GEngine->ShouldAbsorbCosmeticOnlyEvent());
 	return Absorb ? FunctionCallspace::Absorbed : FunctionCallspace::Local;
+}
+
+FStringAssetReference UBlueprintFunctionLibrary::Generic_MakeStringAssetReference(FFrame& Stack, const FString& AssetLongPathname)
+{
+	FStringAssetReference Ref(AssetLongPathname);
+	if (!AssetLongPathname.IsEmpty() && !Ref.IsValid())
+	{
+		FBlueprintExceptionInfo Info(EBlueprintExceptionType::FatalError, TEXT("Asset path not valid. Only long path name is allowed."));
+		FBlueprintCoreDelegates::ThrowScriptException(Stack.Object, Stack, Info);
+		return FStringAssetReference();
+	}
+
+	return Ref;
 }

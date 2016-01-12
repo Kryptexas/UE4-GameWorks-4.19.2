@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizer.h"
 #include "STimeSlider.h"
@@ -21,17 +21,17 @@ int32 STimeSlider::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 FReply STimeSlider::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	return TimeSliderController->OnMouseButtonDown( SharedThis(this), MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseButtonDown( *this, MyGeometry, MouseEvent );
 }
 
 FReply STimeSlider::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	return TimeSliderController->OnMouseButtonUp( SharedThis(this),  MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseButtonUp( *this,  MyGeometry, MouseEvent );
 }
 
 FReply STimeSlider::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	return TimeSliderController->OnMouseMove( SharedThis(this), MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseMove( *this, MyGeometry, MouseEvent );
 }
 
 FVector2D STimeSlider::ComputeDesiredSize( float ) const
@@ -41,7 +41,7 @@ FVector2D STimeSlider::ComputeDesiredSize( float ) const
 
 FReply STimeSlider::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	return TimeSliderController->OnMouseWheel( SharedThis(this), MyGeometry, MouseEvent );
+	return TimeSliderController->OnMouseWheel( *this, MyGeometry, MouseEvent );
 }
 
 #undef LOCTEXT_NAMESPACE

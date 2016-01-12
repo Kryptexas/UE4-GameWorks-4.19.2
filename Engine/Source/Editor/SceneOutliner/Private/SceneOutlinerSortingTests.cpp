@@ -1,9 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SceneOutlinerPrivatePCH.h"
 #include "SortHelper.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSortBasicTest, "System.Editor.Scene Outliner.SortBasic", 0)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSortBasicTest, "System.Editor.Scene Outliner.SortBasic", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FSortBasicTest::RunTest(const FString& Parameters)
 {
 	TArray<SceneOutliner::FNumericStringWrapper> Muddled;

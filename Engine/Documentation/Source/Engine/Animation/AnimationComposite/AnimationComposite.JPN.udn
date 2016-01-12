@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2592092
+﻿INTSourceChangelist:2725188
 Availability:Public
 Title:アニメーション合成
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱います。
+バージョン：4.9
 
 [REGION:fullwidth]
 ![](AnimationCompositeHeader.png)
@@ -10,23 +11,20 @@ Description:アニメーション合成は複数のアニメーションを結�
 
 [TOC(start:2 end:2)]
 
-## 概要
 
 一定の状況下では、いくつかのアニメーション シーケンスをつなぎ合わせて、多数のシーケンスではなく、単一シーケンスとして使用できるようにする必要があるかもしれません。まさにこれが **アニメーション合成** の用途です。アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱えるように設計されたアニメーション アセットです。しかし、合成はアニメーションを単につなげるだけで、ブレンド機能はないことに注意してください。
 
-アニメーション合成は、[通知](Engine/Animation/Sequences\Notifies) と [カーブ] (Engine/Animation/Sequences\Curves) の独自のセットを持つこともできます。こうしたトピックに関する詳細は、各トピックの関連ドキュメントを参照してください。
+[REGION:note]
+アニメーション合成は、[通知](Engine/Animation/Sequences\Notifies) と [カーブ](Engine/Animation/Sequences\Curves) の独自のセットを持つこともできます。 
+[/REGION]
 
 ## 合成を作成する
 
-アニメーション合成を新規作成するのは、新規アセットを **コンテンツ ブラウザ** に追加するのと同じくらい簡単です。
+新規アニメーション合成を作成するには、**コンテンツ ブラウザ** で **右クリック** (または **Add New** ボタンを選択) して、**アニメーション** を選択して、表示されるコンテキストメニューから **Animation Composite** を選択します。 
 
 ![](AnimationCompositeContextMenu.png)
 
-[REGION:caption]
-**コンテンツ ブラウザ** を **右クリック** して、コンテキスト メニューから **Animation > Animation Composite** の順に選択します。あるいは ![](button_NewAsset.png) ボタンを使用することもできます。
-[/REGION]
-
-新規に作成した合成を関連付けるための [スケルトン アセット](Engine/Animation/Skeleton) を指定する必要もあります。 
+新しいアニメーション合成を関連付けるための [スケルトン アセット](Engine/Animation/Skeleton) を指定する必要もあります。 
 
 ![](PickSkeleton.png)
 
@@ -44,26 +42,59 @@ Description:アニメーション合成は複数のアニメーションを結�
 
 合成を **ダブルクリック** すると、その合成が選択され、編集できる状態でアニメーション モードでペルソナが開きます。
 
-![](AnimationCompositeEdit.png)(w:500)
+![](AnimationCompositeEdit.png)(w:600)
 
-**[アセットエディタ]** パネル上部に合成トラックが表示されます。
+[REGION:caption]
+このアニメーション合成は、**ペルソナ** の右下のパネルにある **アセット ブラウザ** でハイライトされます。
+[/REGION]
+
+**[アセットエディタ]** パネル上部に **Composite Track (合成トラック)** が表示されます。
 
 ![](CompositeTrack.png)(w:600)
 
-合成にアニメーション シーケンスを追加するには、合成トラックにドラッグ & ドロップするだけでできます。さらにシーケンスをドラッグすると、自動的に追加されます。
+合成にアニメーション シーケンスを追加するには、**アセット ブラウザ** から アニメーション シーケンスを **Composite Track** にドラッグ & ドロップします。
 
-![](AddingAnimationsToComposite.png)(w:700)
+![](AddingAnimationsToComposite.png)(w:900)
 
-[REGION:note]
-**アセット ブラウザ** からアセットをドラッグして出すと、アセット エディタがグレー表示され、**Currently previewing another asset ** (現在、他のアセットをプレビューしています) という警告が表示されることがあります。これは、想定内の挙動です。そのままアニメーション シーケンスの合成トラックへのドラッグを継続します。
+[REGION:caption]
+さらにシーケンスをドラッグすると、自動的に追加されます。
 [/REGION]
 
-シーケンスをドラッグして合成トラックで移動できます。また、**右クリック** してコンテキスト メニューから **[Delete Segment]** （セグメントを削除）を選択して削除することができます。
+シーケンスをドラッグして **合成トラック** に沿って移動できます。また、シーケンス上で **右クリック** してコンテキスト メニューから **[Delete Segment (セグメントの削除)]** を選択して削除することができます。
 
 ![](DeleteSegment.png)
 
 ## 合成を使用する
 
-一度まとめられると、合成はアニメーションブループリントの AnimGraph にあるアニメーション シーケンスと同じように扱われます。
+一度まとめられると、アニメーション合成は Animation ブループリント (Engine\Animation\AnimBlueprints) の AnimGraph にある [アニメーション シーケンス](Engine\Animation\Sequences) と同じように扱われます。
 
 ![](PlayComposite.png)
+
+[REGION:note]
+**Animation ブループリント** のアニメーションの再生に関する詳細は [](Engine/Animation/Sequences/UserGuide) を参照してください。
+[/REGION]
+
+
+##Anim アセットの詳細
+
+**ペルソナ** でアニメーション合成を開く場合、**Anim Asset Details** パネル内で調整できるいくつかのプロパティがあり、アセットの処理方法を決めることができます。こうしたプロパティには、再生速度の微調整、メタ データのアセットへの割り当てなどがあり、以下の表で説明します。 
+
+![](AnimAssetDetailsComposite.png)
+
+|合成のプロパティ||
+|---|---|
+|[REGION:tablesection]加算設定[/REGION]||
+|**Preview Base Pose**| 加算ブレンドスペースのためのベース ポーズをプレビューします。|
+|[REGION:tablesection]長さ[/REGION]||
+|**Sequence Length**| 速度 1.0 (調整不可) で再生した場合の AnimSequence の長さ (秒単位) |
+|[REGION:tablesection]アニメーション[/REGION]||
+|**Rate Scale**| アニメーションの再生レートをグローバルに微調整する数値 |
+|**Skeleton**| アセットを再生できるスケルトンへのポインタ (調整不可)|
+|[REGION:tablesection]メタ データ[/REGION]||
+|**Meta Data**| アセットと共に保存可能なメタ データです。このメタデータは Anim Meta Data クラスから派生したブループリントで利用可能なクラスです。カスタムのメタ データを Animation アセットに追加できます (Anim Sequence、 Anim Montage、 Anim Composite、 および Blendspace はすべてサポートされます)。C++ で Animation アセットからこうしたデータをクエリーできます。`GetMetaData()` メソッドを呼び出すか、Anim Montages で `GetSectionMetaData()` を使用します。
+|[REGION:tablesection]サムネイル[/REGION]||
+| **Orbit Pitch** | アセット周囲の軌道カメラのピッチ |
+| **Orbit Yaw** | アセット周囲の軌道カメラのヨー (左右回転) |
+| **Orbit Zoom** | アセットから境界の球体の距離のオフセット |
+
+

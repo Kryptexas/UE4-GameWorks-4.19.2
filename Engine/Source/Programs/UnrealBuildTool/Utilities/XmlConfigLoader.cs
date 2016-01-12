@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -13,7 +13,7 @@ using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
-using Tools.DotNETCommon.ExecutingAssembly;
+using Tools.DotNETCommon;
 
 namespace UnrealBuildTool
 {
@@ -138,7 +138,7 @@ namespace UnrealBuildTool
 			InvokeIfExists(Class, "Reset");
 
 			XmlConfigLoaderClassData ClassData;
-			if(Data.TryGetValue(Class, out ClassData))
+			if (Data.TryGetValue(Class, out ClassData))
 			{
 				ClassData.LoadXmlData();
 			}
@@ -163,7 +163,7 @@ namespace UnrealBuildTool
 					new XElement(NS + "element", new XAttribute("name", "Configuration"),
 						new XElement(NS + "complexType",
 							new XElement(NS + "all",
-								// loop over all public types in UBT assembly
+				// loop over all public types in UBT assembly
 								from ConfigType in GetAllConfigurationTypes()
 								// find all public static fields of intrinsic types (and a few extra)
 								let PublicStaticFields = GetConfigurableFields(ConfigType).ToList()
@@ -192,20 +192,20 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void Init()
 		{
-            // No one should try to refereence configuration values until the config files are loaded.
-            // The XmlConfig system itself will SET config values below, then anyone can read them.
-            // But our static constructor checks can't differentiate this, so we just allow reads starting now,
-            // right before the XML files are loaded.
-            UnrealBuildTool.bIsSafeToReferenceConfigurationValues = true;
+			// No one should try to refereence configuration values until the config files are loaded.
+			// The XmlConfig system itself will SET config values below, then anyone can read them.
+			// But our static constructor checks can't differentiate this, so we just allow reads starting now,
+			// right before the XML files are loaded.
+			UnrealBuildTool.bIsSafeToReferenceConfigurationValues = true;
 
-            OverwriteIfDifferent(GetXSDPath(), BuildXSD());
+			OverwriteIfDifferent(GetXSDPath(), BuildXSD());
 
 			LoadDefaults();
 			CreateUserXmlConfigTemplate();
 
 			LoadData();
 
-			foreach(var ConfClass in Data.Keys)
+			foreach (var ConfClass in Data.Keys)
 			{
 				Load(ConfClass);
 			}
@@ -223,10 +223,10 @@ namespace UnrealBuildTool
 		{
 			if (FileDifferentThan(FilePath, Content))
 			{
-				if(bReadOnlyFile && File.Exists(FilePath))
+				if (bReadOnlyFile && File.Exists(FilePath))
 				{
 					var Attributes = File.GetAttributes(FilePath);
-					if(Attributes.HasFlag(FileAttributes.ReadOnly))
+					if (Attributes.HasFlag(FileAttributes.ReadOnly))
 					{
 						File.SetAttributes(FilePath, Attributes & ~FileAttributes.ReadOnly);
 					}
@@ -235,7 +235,7 @@ namespace UnrealBuildTool
 				Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
 				File.WriteAllText(FilePath, Content, Encoding.UTF8);
 
-				if(bReadOnlyFile)
+				if (bReadOnlyFile)
 				{
 					File.SetAttributes(FilePath, File.GetAttributes(FilePath) | FileAttributes.ReadOnly);
 				}
@@ -284,10 +284,10 @@ namespace UnrealBuildTool
 					DataPair.Key.SetValue(null, DataPair.Value);
 				}
 
-                foreach (var PropertyPair in PropertyMap)
-                {
-                    PropertyPair.Key.SetValue(null, PropertyPair.Value, null);
-                }
+				foreach (var PropertyPair in PropertyMap)
+				{
+					PropertyPair.Key.SetValue(null, PropertyPair.Value, null);
+				}
 			}
 
 			/// <summary>
@@ -297,7 +297,7 @@ namespace UnrealBuildTool
 			/// <param name="Value">The value to store.</param>
 			public void SetValue(FieldInfo Field, object Value)
 			{
-				if(DataMap.ContainsKey(Field))
+				if (DataMap.ContainsKey(Field))
 				{
 					DataMap[Field] = Value;
 				}
@@ -307,29 +307,29 @@ namespace UnrealBuildTool
 				}
 			}
 
-            /// <summary>
-            /// Adds or overrides value in the cache.
-            /// </summary>
-            /// <param name="Property">The property info of the class.</param>
-            /// <param name="Value">The value to store.</param>
-            public void SetValue(PropertyInfo Property, object Value)
-            {
-                if (PropertyMap.ContainsKey(Property))
-                {
-                    PropertyMap[Property] = Value;
-                }
-                else
-                {
-                    PropertyMap.Add(Property, Value);
-                }
-            }
+			/// <summary>
+			/// Adds or overrides value in the cache.
+			/// </summary>
+			/// <param name="Property">The property info of the class.</param>
+			/// <param name="Value">The value to store.</param>
+			public void SetValue(PropertyInfo Property, object Value)
+			{
+				if (PropertyMap.ContainsKey(Property))
+				{
+					PropertyMap[Property] = Value;
+				}
+				else
+				{
+					PropertyMap.Add(Property, Value);
+				}
+			}
 
 			// Loaded data map.
 			Dictionary<FieldInfo, object> DataMap = new Dictionary<FieldInfo, object>();
-        
-            // Loaded data map.
-            Dictionary<PropertyInfo, object> PropertyMap = new Dictionary<PropertyInfo, object>();
-        }
+
+			// Loaded data map.
+			Dictionary<PropertyInfo, object> PropertyMap = new Dictionary<PropertyInfo, object>();
+		}
 
 		/// <summary>
 		/// Class that stores information about possible BuildConfiguration.xml
@@ -343,7 +343,7 @@ namespace UnrealBuildTool
 			/// <returns>Location of the BuildConfiguration.xml.</returns>
 			private static string GetConfigLocation(IEnumerable<string> PossibleLocations, out bool bExists)
 			{
-				if(PossibleLocations.Count() == 0)
+				if (PossibleLocations.Count() == 0)
 				{
 					throw new ArgumentException("Empty possible locations", "PossibleLocations");
 				}
@@ -353,17 +353,17 @@ namespace UnrealBuildTool
 				// Filter out non-existing
 				var ExistingLocations = new List<string>();
 
-				foreach(var PossibleLocation in PossibleLocations)
+				foreach (var PossibleLocation in PossibleLocations)
 				{
 					var FilePath = Path.Combine(PossibleLocation, ConfigXmlFileName);
 
-					if(File.Exists(FilePath))
+					if (File.Exists(FilePath))
 					{
 						ExistingLocations.Add(FilePath);
 					}
 				}
 
-				if(ExistingLocations.Count == 0)
+				if (ExistingLocations.Count == 0)
 				{
 					bExists = false;
 					return Path.Combine(PossibleLocations.First(), ConfigXmlFileName);
@@ -371,7 +371,7 @@ namespace UnrealBuildTool
 
 				bExists = true;
 
-				if(ExistingLocations.Count == 1)
+				if (ExistingLocations.Count == 1)
 				{
 					return ExistingLocations.First();
 				}
@@ -468,7 +468,7 @@ namespace UnrealBuildTool
 			{
 
 			}
-			
+
 			/// <summary>
 			/// Creates template file in the FS location.
 			/// </summary>
@@ -516,7 +516,7 @@ namespace UnrealBuildTool
 			 *	priority. Not defined classes and fields are left alone.
 			 */
 
-			var UE4EnginePath = new FileInfo(Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..")).FullName;
+			var UE4EnginePath = new FileInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..")).FullName;
 
 			ConfigLocationHierarchy = new XmlConfigLocation[]
 			{
@@ -545,7 +545,7 @@ namespace UnrealBuildTool
 		{
 			foreach (var PossibleConfigLocation in ConfigLocationHierarchy)
 			{
-				if(!PossibleConfigLocation.bExists)
+				if (!PossibleConfigLocation.bExists)
 				{
 					continue;
 				}
@@ -554,7 +554,7 @@ namespace UnrealBuildTool
 				{
 					LoadDataFromFile(PossibleConfigLocation.FSLocation);
 				}
-				catch(Exception Ex)
+				catch (Exception Ex)
 				{
 					Console.WriteLine("Problem parsing {0}:\n   {1}", PossibleConfigLocation.FSLocation, Ex.ToString());
 				}
@@ -608,7 +608,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		private static XmlSchema GetConfigSchema()
 		{
-			if(ConfigSchemaCache == null)
+			if (ConfigSchemaCache == null)
 			{
 				ConfigSchemaCache = ReadConfigSchema();
 			}
@@ -644,9 +644,9 @@ namespace UnrealBuildTool
 
 			var XmlClasses = ConfigDocument.DocumentElement.SelectNodes("/ns:Configuration/*", NS);
 
-			if(XmlClasses.Count == 0)
+			if (XmlClasses.Count == 0)
 			{
-				if(ConfigDocument.DocumentElement.Name == "Configuration")
+				if (ConfigDocument.DocumentElement.Name == "Configuration")
 				{
 					ConfigDocument.DocumentElement.SetAttribute("xmlns", "https://www.unrealengine.com/BuildConfiguration");
 
@@ -658,7 +658,7 @@ namespace UnrealBuildTool
 					{
 						File.WriteAllText(ConfigurationXmlPath, WriteToBuffer(NSDoc));
 					}
-					catch(Exception)
+					catch (Exception)
 					{
 						// Ignore gently.
 					}
@@ -671,7 +671,7 @@ namespace UnrealBuildTool
 			{
 				var ClassType = Type.GetType("UnrealBuildTool." + XmlClass.Name);
 
-				if(ClassType == null)
+				if (ClassType == null)
 				{
 					Log.TraceVerbose("XmlConfig Loading: class '{0}' doesn't exist.", XmlClass.Name);
 					continue;
@@ -700,26 +700,26 @@ namespace UnrealBuildTool
 					// allow settings in the .xml that don't exist, as another branch may have it, and can share this file from Documents
 					if (Field == null)
 					{
-                        PropertyInfo Property = ClassType.GetProperty(XmlField.Name);
-                        if (Property != null)
-                        {
-                            if (!IsConfigurable(Property))
-                            {
-                                throw new BuildException("BuildConfiguration Loading: property '{0}' is either non-public, non-static or not-xml-configurable.", XmlField.Name);
-                            }
+						PropertyInfo Property = ClassType.GetProperty(XmlField.Name);
+						if (Property != null)
+						{
+							if (!IsConfigurable(Property))
+							{
+								throw new BuildException("BuildConfiguration Loading: property '{0}' is either non-public, non-static or not-xml-configurable.", XmlField.Name);
+							}
 
-                            ClassData.SetValue(Property, ParseFieldData(Property.PropertyType, XmlField.InnerText));
-                        }
+							ClassData.SetValue(Property, ParseFieldData(Property.PropertyType, XmlField.InnerText));
+						}
 
-                        continue;
+						continue;
 					}
-					
+
 					if (!IsConfigurableField(Field))
 					{
 						throw new BuildException("BuildConfiguration Loading: field '{0}' is either non-public, non-static or not-xml-configurable.", XmlField.Name);
 					}
 
-					if(Field.FieldType.IsArray)
+					if (Field.FieldType.IsArray)
 					{
 						// If the type is an array type get items for it.
 						var XmlItems = XmlField.SelectNodes("ns:Item", NS);
@@ -731,7 +731,7 @@ namespace UnrealBuildTool
 						var OutputArray = Array.CreateInstance(ItemType, XmlItems.Count);
 
 						int Id = 0;
-						foreach(XmlNode XmlItem in XmlItems)
+						foreach (XmlNode XmlItem in XmlItems)
 						{
 							// Append values to the OutputArray.
 							OutputArray.SetValue(ParseFieldData(ItemType, XmlItem.InnerText), Id++);
@@ -794,7 +794,7 @@ namespace UnrealBuildTool
 			bool bWithCulture = true;
 			var ParseMethod = ParsingType.GetMethod("Parse", new Type[] { typeof(System.String), typeof(IFormatProvider) });
 
-			if(ParseMethod == null)
+			if (ParseMethod == null)
 			{
 				ParseMethod = ParsingType.GetMethod("Parse", new Type[] { typeof(System.String) });
 				bWithCulture = false;
@@ -807,7 +807,7 @@ namespace UnrealBuildTool
 
 			var ParametersList = new List<object> { UnparsedValue };
 
-			if(bWithCulture)
+			if (bWithCulture)
 			{
 				ParametersList.Add(CultureInfo.InvariantCulture);
 			}
@@ -816,9 +816,9 @@ namespace UnrealBuildTool
 			{
 				ParsedValue = ParseMethod.Invoke(null, ParametersList.ToArray());
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
-				if(e is TargetInvocationException &&
+				if (e is TargetInvocationException &&
 					(
 						e.InnerException is ArgumentNullException ||
 						e.InnerException is FormatException ||
@@ -843,23 +843,23 @@ namespace UnrealBuildTool
 		/// <returns>True if the class is configurable using XML system. Otherwise false.</returns>
 		private static bool IsConfigurableClass(Type Class)
 		{
-            return
-                Class.GetFields().Any((Field) => IsConfigurableField(Field)) ||
-                Class.GetProperties().Any(prop => IsConfigurable(prop));
+			return
+				Class.GetFields().Any((Field) => IsConfigurableField(Field)) ||
+				Class.GetProperties().Any(prop => IsConfigurable(prop));
 
 		}
 
-        /// <summary>
-        /// Tells if given property is XML configurable.
-        /// </summary>
-        /// <param name="Property">Property to check.</param>
-        /// <returns>True if the property is configurable using XML system. Otherwise false.</returns>
-        private static bool IsConfigurable(PropertyInfo Property)
-        {
-            return Property.GetCustomAttributes(typeof(XmlConfigAttribute), false).Length > 0 && Property.CanWrite && Property.GetSetMethod().IsStatic && Property.GetSetMethod().IsPublic;
-        }
+		/// <summary>
+		/// Tells if given property is XML configurable.
+		/// </summary>
+		/// <param name="Property">Property to check.</param>
+		/// <returns>True if the property is configurable using XML system. Otherwise false.</returns>
+		private static bool IsConfigurable(PropertyInfo Property)
+		{
+			return Property.GetCustomAttributes(typeof(XmlConfigAttribute), false).Length > 0 && Property.CanWrite && Property.GetSetMethod().IsStatic && Property.GetSetMethod().IsPublic;
+		}
 
-        /// <summary>
+		/// <summary>
 		/// Tells if given field is XML configurable.
 		/// </summary>
 		/// <param name="Field">field to check.</param>
@@ -885,11 +885,11 @@ namespace UnrealBuildTool
 		/// <param name="MethodName">Name of the method.</param>
 		private static void InvokeIfExists(Type ClassType, string MethodName)
 		{
-			var Method = ClassType.GetMethod(MethodName, new Type[]{}, new ParameterModifier[]{});
+			var Method = ClassType.GetMethod(MethodName, new Type[] { }, new ParameterModifier[] { });
 
-			if(Method != null && Method.IsPublic && Method.IsStatic)
+			if (Method != null && Method.IsPublic && Method.IsStatic)
 			{
-				Method.Invoke(null, new object[]{});
+				Method.Invoke(null, new object[] { });
 			}
 		}
 
@@ -938,7 +938,7 @@ namespace UnrealBuildTool
 			var Array = Field.GetValue(null) as IEnumerable;
 			var ElementList = new List<XElement>();
 
-			foreach(var Element in Array)
+			foreach (var Element in Array)
 			{
 				ElementList.Add(new XElement(NS + "Item", GetObjectXMLValue(Field.FieldType.GetElementType(), Element)));
 			}
@@ -971,7 +971,7 @@ namespace UnrealBuildTool
 
 			if (FieldType == typeof(bool))
 			{
-				return (bool) Obj ? "true" : "false";
+				return (bool)Obj ? "true" : "false";
 			}
 
 			return Obj;
@@ -983,7 +983,7 @@ namespace UnrealBuildTool
 		/// <returns>Standard BuildConfiguration.xml schema path.</returns>
 		public static string GetXSDPath()
 		{
-			return new FileInfo(Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "Saved", "UnrealBuildTool", "BuildConfiguration.Schema.xsd")).FullName;
+			return new FileInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "Saved", "UnrealBuildTool", "BuildConfiguration.Schema.xsd")).FullName;
 		}
 
 		private static XElement CreateXSDElementForField(FieldInfo Field)

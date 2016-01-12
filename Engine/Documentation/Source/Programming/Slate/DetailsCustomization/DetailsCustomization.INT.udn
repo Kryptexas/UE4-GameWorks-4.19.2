@@ -252,7 +252,7 @@ Example:
 
 ##### SProperty Notes
 
-* `SProperty` always displays reset to default even if you make a custom widget.  There is an argument on the `SProperty` which toggles this behavior.  For example, if you have a row of properties, you may want to tell it not to display a reset to default for each one but make a big menu at the end.  See [`SResetToDefaultMenu`](#SResetToDefaultMenu) below.
+* `SProperty` always displays reset to default even if you make a custom widget.  There is an argument on the `SProperty` which toggles this behavior.  For example, if you have a row of properties, you may want to tell it not to display a reset to default for each one but make a big menu at the end.  See [SResetToDefaultMenu](#SResetToDefaultMenu) below.
 * If you pass an invalid handle to `SProperty`, it will simply not show up.
 
 

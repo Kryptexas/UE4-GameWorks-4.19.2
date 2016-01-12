@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -107,7 +107,9 @@ public:
 
 	void PreCompile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions) override
 	{
-		if ( ReRegister == nullptr && CanCompile(Blueprint) && CompileOptions.CompileType == EKismetCompileType::Full )
+		if ( ReRegister == nullptr 
+			&& CanCompile(Blueprint) 
+			&& (CompileOptions.CompileType == EKismetCompileType::Full || CompileOptions.CompileType == EKismetCompileType::Cpp))
 		{
 			ReRegister = new TComponentReregisterContext<UWidgetComponent>();
 		}

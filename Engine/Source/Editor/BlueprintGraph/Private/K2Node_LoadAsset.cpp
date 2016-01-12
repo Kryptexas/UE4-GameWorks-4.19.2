@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -94,7 +94,7 @@ void UK2Node_LoadAsset::ExpandNode(class FKismetCompilerContext& CompilerContext
 	// Create OnLoadEvent
 	const FString DelegateOnLoadedParamName(TEXT("OnLoaded"));
 	auto OnLoadEventNode = CompilerContext.SpawnIntermediateNode<UK2Node_CustomEvent>(this, SourceGraph);
-	OnLoadEventNode->CustomFunctionName = *FString::Printf(TEXT("OnLoaded_%s"), *OnLoadEventNode->NodeGuid.ToString());
+	OnLoadEventNode->CustomFunctionName = *FString::Printf(TEXT("OnLoaded_%s"), *CompilerContext.GetGuid(this));
 	OnLoadEventNode->AllocateDefaultPins();
 	{
 		UFunction* LoadAssetFunction = CallLoadAssetNode->GetTargetFunction();
@@ -228,12 +228,12 @@ FName UK2Node_LoadAssetClass::NativeFunctionName() const
 
 FText UK2Node_LoadAssetClass::GetTooltipText() const
 {
-	return FText(LOCTEXT("UK2Node_LoadAssetClassGetTooltipText", "Async Load Asset Class"));
+	return FText(LOCTEXT("UK2Node_LoadAssetClassGetTooltipText", "Async Load Class Asset"));
 }
 
 FText UK2Node_LoadAssetClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText(LOCTEXT("UK2Node_LoadAssetClassGetNodeTitle", "Load Asset Class"));
+	return FText(LOCTEXT("UK2Node_LoadAssetClassGetNodeTitle", "Load Class Asset"));
 }
 
 const FString& UK2Node_LoadAssetClass::GetInputCategory() const

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PhysicsAssetUtils.h"
@@ -339,7 +339,7 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			FVector ChildPos = RelTM.GetOrigin();
 
 			// Check that child is not on top of parent. If it is - we can't make an orientation
-			if(ChildPos.Size() > KINDA_SMALL_NUMBER)
+			if(ChildPos.SizeSquared() > FMath::Square(KINDA_SMALL_NUMBER))
 			{
 				// ZAxis for collision geometry lies down axis to child bone.
 				FVector ZAxis = ChildPos.GetSafeNormal();

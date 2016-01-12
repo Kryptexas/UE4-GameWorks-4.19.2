@@ -79,7 +79,7 @@ C++ コードのみを使用した「LightSwitch」クラスは **LightSwitchCod
 LightSwitchCodeOnly.h
 [/REGION:codetitlebar]
 
-		// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+		// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 		#pragma once
 
@@ -161,7 +161,7 @@ LightSwitchCodeOnly.h
 LightSwitchCodeOnly.cpp
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+	// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 	#include "BasicClasses.h"
 	#include "LightSwitchCodeOnly.h"

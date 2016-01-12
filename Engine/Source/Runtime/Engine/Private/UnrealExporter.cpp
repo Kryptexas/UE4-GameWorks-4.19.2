@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UExporter.cpp: Exporter class implementation.
@@ -519,7 +519,7 @@ void UExporter::EmitEndObject( FOutputDevice& Ar )
 FExportObjectInnerContext::FExportObjectInnerContext()
 {
 	// For each object . . .
-	for (UObject* InnerObj : TObjectRange<UObject>(RF_ClassDefaultObject | RF_PendingKill))
+	for (UObject* InnerObj : TObjectRange<UObject>(RF_ClassDefaultObject, true, EInternalObjectFlags::PendingKill))
 	{
 		UObject* OuterObj = InnerObj->GetOuter();
 		if ( OuterObj )
@@ -544,7 +544,7 @@ FExportObjectInnerContext::FExportObjectInnerContext()
 FExportObjectInnerContext::FExportObjectInnerContext(TArray<UObject*>& ObjsToIgnore)
 {
 	// For each object . . .
-	for (UObject* InnerObj : TObjectRange<UObject>(RF_ClassDefaultObject | RF_PendingKill))
+	for (UObject* InnerObj : TObjectRange<UObject>(RF_ClassDefaultObject, true, EInternalObjectFlags::PendingKill))
 	{
 		if (!ObjsToIgnore.Contains(InnerObj))
 		{
@@ -583,7 +583,7 @@ void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObj
 	else
 	{
 		// NOTE: We ignore inner objects that have been tagged for death
-		GetObjectsWithOuter(Object, TempInners, false, RF_PendingKill);
+		GetObjectsWithOuter(Object, TempInners, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 	}
 	FExportObjectInnerContext::InnerList const& UnsortedObjectInners = ContextInners ? *ContextInners : TempInners;
 
@@ -724,8 +724,15 @@ void ExportProperties
 				// we won't use this if DiffArr is NULL, but we have to set it up to something
 				FScriptArrayHelper DiffArrayHelper(ArrayProperty, DiffArr);
 
-				bool bAnyElementDiffered = false;
-				for( int32 DynamicArrayIndex=0;DynamicArrayIndex<ArrayHelper.Num();DynamicArrayIndex++ )
+				// If the current size of the array is 0 and the default one is not, add in an empty item so on import it will be empty
+				if( ArrayHelper.Num() == 0 && DiffArrayHelper.Num() != 0 )
+				{
+					Out.Logf(TEXT("%s%s=\r\n"), FCString::Spc(Indent), *Property->GetName());
+				}
+
+				// If the array sizes are different, we will need to export each index so on import we maintain the size
+				bool bAnyElementDiffered = ArrayHelper.Num() != DiffArrayHelper.Num();
+				for( int32 DynamicArrayIndex = 0; DynamicArrayIndex < ArrayHelper.Num(); DynamicArrayIndex++ )
 				{
 					FString	Value;
 

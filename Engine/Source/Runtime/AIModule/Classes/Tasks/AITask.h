@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "GameplayTask.h"
@@ -17,7 +17,7 @@ enum class EAITaskPriority : uint8
 	Ultimate = 254,
 };
 
-UCLASS(Abstract)
+UCLASS(Abstract, BlueprintType)
 class AIMODULE_API UAITask : public UGameplayTask
 {
 	GENERATED_BODY()

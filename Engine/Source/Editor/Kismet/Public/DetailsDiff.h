@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyPath.h"
@@ -9,12 +9,14 @@ class KISMET_API FDetailsDiff
 public:
 	DECLARE_DELEGATE( FOnDisplayedPropertiesChanged );
 
-	FDetailsDiff( const UObject* InObject, const TArray< FPropertyPath >& InDifferingProperties, FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChanged );
+	FDetailsDiff( const UObject* InObject, FOnDisplayedPropertiesChanged InOnDisplayedPropertiesChanged );
 	~FDetailsDiff();
 
 	void HighlightProperty( const FPropertySoftPath& PropertyName );
 	TSharedRef< SWidget > DetailsWidget();
 	TArray<FPropertySoftPath> GetDisplayedProperties() const;
+
+	void DiffAgainst(const FDetailsDiff& Newer, TArray< FSingleObjectDiffEntry > &OutDifferences) const;
 
 private:
 	void HandlePropertiesChanged();

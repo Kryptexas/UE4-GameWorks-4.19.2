@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -124,6 +124,7 @@ public:
 	 */
 	FReply& ReleaseMouseCapture()
 	{
+		this->MouseCaptor.Reset();
 		this->bReleaseMouseCapture = true;
 		this->bUseHighPrecisionMouse = false;
 		return Me();

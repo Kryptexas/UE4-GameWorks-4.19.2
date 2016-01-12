@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Stack.h: Kismet VM execution stack definition.
@@ -109,10 +109,11 @@ public:
 
 	virtual ~FFrame()
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (GScriptStack.Num())
+#if DO_BLUEPRINT_GUARD
+		FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+		if (BlueprintExceptionTracker.ScriptStack.Num())
 		{
-			GScriptStack.Pop();
+			BlueprintExceptionTracker.ScriptStack.Pop(false);
 		}
 #endif
 	}
@@ -187,9 +188,9 @@ inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFr
 	, CurrentNativeFunction(NULL)
 	, bArrayContextFailed(false)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if DO_BLUEPRINT_GUARD
 	FScriptTraceStackNode StackNode(InNode->GetOuter()->GetFName(), InNode->GetFName());
- 	GScriptStack.Push(StackNode);
+	FBlueprintExceptionTracker::Get().ScriptStack.Push(StackNode);
 #endif
 }
 

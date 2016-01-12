@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "XmppPrivatePCH.h"
 #include "XmppJingle.h"
@@ -8,7 +8,32 @@
 #include "XmppChatJingle.h"
 #include "XmppMultiUserChatJingle.h"
 
+#include "Stats.h"
+
+DECLARE_STATS_GROUP(TEXT("Xmpp"), STATGROUP_Xmpp, STATCAT_Advanced);
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("PresQry"), STAT_XmppPresenceQueries, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("PresIn"), STAT_XmppPresenceIn, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("PresOut"), STAT_XmppPresenceOut, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MsgIn"), STAT_XmppMessagesReceived, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MsgOut"), STAT_XmppMessagesSent, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("ChatIn"), STAT_XmppChatReceived, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("ChatOut"), STAT_XmppChatSent, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MucResponses"), STAT_XmppMucResponses, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MucOps"), STAT_XmppMucOpRequests, STATGROUP_Xmpp, );
+
+DEFINE_STAT(STAT_XmppPresenceQueries);
+DEFINE_STAT(STAT_XmppPresenceIn);
+DEFINE_STAT(STAT_XmppPresenceOut);
+DEFINE_STAT(STAT_XmppMessagesReceived);
+DEFINE_STAT(STAT_XmppMessagesSent);
+DEFINE_STAT(STAT_XmppChatReceived);
+DEFINE_STAT(STAT_XmppChatSent);
+DEFINE_STAT(STAT_XmppMucResponses);
+DEFINE_STAT(STAT_XmppMucOpRequests);
+
 #if WITH_XMPP_JINGLE
+
+#define XMPP_RESOURCE_VERSION 2
 
 /**
  * Thread to create the xmpp pump/connection
@@ -31,7 +56,7 @@ public:
 		, ServerPingTask(NULL)
 		, ServerPingRetries(0)
 	{
-		Thread = FRunnableThread::Create(this, TEXT("XmppConnectionThread"));
+		Thread = FRunnableThread::Create(this, TEXT("XmppConnectionThread"), 64 * 1024, TPri_Normal);
 	}
 
 	~FXmppConnectionPumpThread()
@@ -105,10 +130,16 @@ public:
 				{
 					XmppThread->Restart();
 				}
+
+				XmppSocket = new buzz::XmppSocket(Connection.ClientSettings.use_tls());
+				XmppSocket->SignalError.connect(this, &FXmppConnectionPumpThread::OnSocketError);
+				XmppSocket->SignalClosed.connect(this, &FXmppConnectionPumpThread::OnSocketClosed);
+				XmppSocket->SignalCloseEvent.connect(this, &FXmppConnectionPumpThread::OnSslClosed);
+
 				// kick off login task
 				XmppPump->DoLogin(
 					Connection.ClientSettings, 
-					new buzz::XmppSocket(Connection.ClientSettings.use_tls()), 
+					XmppSocket, 
 					NULL);
 
 				Connection.HandlePumpStarting(XmppPump);
@@ -151,6 +182,7 @@ public:
 
 		delete XmppPump;
 		XmppPump = NULL;
+		XmppSocket = NULL;
 	}
 
 private:
@@ -198,42 +230,70 @@ private:
 	}
 
 	// callbacks
+
+	void OnSocketError()
+	{
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSocketError state=%d"), (int32)XmppSocket->state());
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSocketError error=%d"), (int32)XmppSocket->error());
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSocketError winsock=%d"), XmppSocket->GetError());
+	}
+
+	void OnSocketClosed()
+	{
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSocketClosed state=%d"), (int32)XmppSocket->state());
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSocketClosed error=%d"), (int32)XmppSocket->error());
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSocketClosed winsock=%d"), XmppSocket->GetError());
+	}
+
+	void OnSslClosed(int Error)
+	{
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSslClosed ERROR=%d"), Error);
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSslClosed state=%d"), (int32)XmppSocket->state());
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSslClosed error=%d"), (int32)XmppSocket->error());
+		UE_LOG(LogXmpp, VeryVerbose, TEXT("OnSslClosed winsock=%d"), XmppSocket->GetError());
+
+		if (LoginState == ELoginProgress::ProcessingLogin)
+		{
+			OnSignalStateChange(buzz::XmppEngine::STATE_CLOSED);
+		}
+	}
+
 	void OnSignalStateChange(buzz::XmppEngine::State State)
 	{
 		switch (State)
 		{
-		case buzz::XmppEngine::STATE_START:
-			UE_LOG(LogXmpp, Verbose, TEXT("STATE_START"));
-			break;
-		case buzz::XmppEngine::STATE_OPENING:
-			UE_LOG(LogXmpp, Verbose, TEXT("STATE_OPENING"));
-			break;
-		case buzz::XmppEngine::STATE_OPEN:
-		{
-			UE_LOG(LogXmpp, Verbose, TEXT("STATE_OPEN"));
-
-			Connection.HandleLoginChange(LoginState, ELoginProgress::LoggedIn);
-			LoginState = ELoginProgress::LoggedIn;
-
-			StartServerPing();
-		}
-			break;
-		case buzz::XmppEngine::STATE_CLOSED:
-		{
-			UE_LOG(LogXmpp, Verbose, TEXT("STATE_CLOSED"));
-
-			if (LoginState != ELoginProgress::LoggedIn)
+			case buzz::XmppEngine::STATE_START:
+				UE_LOG(LogXmpp, Verbose, TEXT("STATE_START"));
+				break;
+			case buzz::XmppEngine::STATE_OPENING:
+				UE_LOG(LogXmpp, Verbose, TEXT("STATE_OPENING"));
+				break;
+			case buzz::XmppEngine::STATE_OPEN:
 			{
-				LogError(TEXT("log-in"));
+				UE_LOG(LogXmpp, Verbose, TEXT("STATE_OPEN"));
+
+				Connection.HandleLoginChange(LoginState, ELoginProgress::LoggedIn);
+				LoginState = ELoginProgress::LoggedIn;
+
+				StartServerPing();
 			}
+			break;
+			case buzz::XmppEngine::STATE_CLOSED:
+			{
+				UE_LOG(LogXmpp, Verbose, TEXT("STATE_CLOSED"));
 
-			StopServerPing();
-			Connection.HandlePumpQuitting(XmppPump);
-			XmppThread->Quit();
+				if (LoginState != ELoginProgress::LoggedIn)
+				{
+					LogError(TEXT("log-in"));
+				}
 
-			Connection.HandleLoginChange(LoginState, ELoginProgress::LoggedOut);
-			LoginState = ELoginProgress::LoggedOut;
-		}
+				StopServerPing();
+				Connection.HandlePumpQuitting(XmppPump);
+				XmppThread->Quit();
+
+				Connection.HandleLoginChange(LoginState, ELoginProgress::LoggedOut);
+				LoginState = ELoginProgress::LoggedOut;
+			}
 			break;
 		}
 	}
@@ -300,6 +360,8 @@ private:
 	buzz::XmppPump* XmppPump;
 	/** thread used by xmpp. set to this current thread */
 	rtc::Thread* XmppThread;
+	/** socket for the connection */
+	buzz::XmppSocket* XmppSocket;
 
 	/** steps during login/logout */
 	ELoginProgress::Type LoginState;
@@ -313,6 +375,8 @@ private:
 FXmppConnectionJingle::FXmppConnectionJingle()
 	: LastLoginState(ELoginProgress::NotStarted)
 	, LoginState(ELoginProgress::NotStarted)
+	, StatUpdateFreq(1.0)
+	, LastStatUpdateTime(0.0)
 	, PresenceJingle(NULL)
 	, PumpThread(NULL)
 {
@@ -379,18 +443,24 @@ TSharedPtr<class IXmppChat> FXmppConnectionJingle::PrivateChat()
 
 bool FXmppConnectionJingle::Tick(float DeltaTime)
 {
-	FScopeLock Lock(&LoginStateLock);
-
-	if (LastLoginState != LoginState)
+	ELoginProgress::Type LocalLastLoginState, LocalLoginState;
 	{
-		if (LoginState == ELoginProgress::LoggedIn)
+		FScopeLock Lock(&LoginStateLock);
+		LocalLastLoginState = LastLoginState;
+		LocalLoginState = LoginState;
+		LastLoginState = LoginState;
+	}
+
+	if (LocalLastLoginState != LocalLoginState)
+	{
+		if (LocalLoginState == ELoginProgress::LoggedIn)
 		{
 			UE_LOG(LogXmpp, Log, TEXT("Logged IN JID=%s"), *GetUserJid().GetFullPath());
-			if (LastLoginState == ELoginProgress::ProcessingLogin)
+			if (LocalLastLoginState == ELoginProgress::ProcessingLogin)
 			{
 				OnLoginComplete().Broadcast(GetUserJid(), true, FString());
 
- 				// send/obtain initial presence
+				// send/obtain initial presence
 				if (Presence().IsValid())
 				{
 					FXmppUserPresence InitialPresence = Presence()->GetPresence();
@@ -401,26 +471,91 @@ bool FXmppConnectionJingle::Tick(float DeltaTime)
 			}
 			OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedIn);
 		}
-		else if (LoginState == ELoginProgress::LoggedOut)
+		else if (LocalLoginState == ELoginProgress::LoggedOut)
 		{
 			UE_LOG(LogXmpp, Log, TEXT("Logged OUT JID=%s"), *GetUserJid().GetFullPath());
-			if (LastLoginState == ELoginProgress::ProcessingLogin)
+			if (LocalLastLoginState == ELoginProgress::ProcessingLogin)
 			{
 				OnLoginComplete().Broadcast(GetUserJid(), false, FString());
 			}
-			else if (LastLoginState == ELoginProgress::ProcessingLogout)
+			else if (LocalLastLoginState == ELoginProgress::ProcessingLogout)
 			{
 				OnLogoutComplete().Broadcast(GetUserJid(), true, FString());
 			}
-			if (LastLoginState == ELoginProgress::LoggedIn ||
-				LastLoginState == ELoginProgress::ProcessingLogout)
+			if (LocalLastLoginState == ELoginProgress::LoggedIn ||
+				LocalLastLoginState == ELoginProgress::ProcessingLogout)
 			{
 				OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedOut);
 			}
 		}
-		LastLoginState = LoginState;
 	}
+
+	UpdateStatCounters();	
 	return true;
+}
+
+void FXmppConnectionJingle::UpdateStatCounters()
+{
+#if STATS
+	double CurTime = FPlatformTime::Seconds();
+	if (CurTime - LastStatUpdateTime >= StatUpdateFreq)
+	{
+		double RealTime = (CurTime - LastStatUpdateTime) / StatUpdateFreq;
+
+		if (PresenceJingle.IsValid())
+		{
+			int32 NumQueryRequests = FMath::RoundToInt(PresenceJingle->NumQueryRequests / RealTime);
+			int32 NumPresenceIn = FMath::RoundToInt(PresenceJingle->NumPresenceIn / RealTime);
+			int32 NumPresenceOut = FMath::RoundToInt(PresenceJingle->NumPresenceOut / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppPresenceQueries, NumQueryRequests);
+			SET_DWORD_STAT(STAT_XmppPresenceIn, NumPresenceIn);
+			SET_DWORD_STAT(STAT_XmppPresenceOut, NumPresenceOut);
+
+			PresenceJingle->NumQueryRequests = 0;
+			PresenceJingle->NumPresenceIn = 0;
+			PresenceJingle->NumPresenceOut = 0;
+		}
+
+		if (MessagesJingle.IsValid())
+		{
+			int32 NumMessagesReceived = FMath::RoundToInt(MessagesJingle->NumMessagesReceived / RealTime);
+			int32 NumMessagesSent = FMath::RoundToInt(MessagesJingle->NumMessagesSent / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppMessagesReceived, NumMessagesReceived);
+			SET_DWORD_STAT(STAT_XmppMessagesSent, NumMessagesSent);
+
+			MessagesJingle->NumMessagesReceived = 0;
+			MessagesJingle->NumMessagesSent = 0;
+		}
+
+		if (ChatJingle.IsValid())
+		{
+			int32 NumReceivedChat = FMath::RoundToInt(ChatJingle->NumReceivedChat / RealTime);
+			int32 NumSentChat = FMath::RoundToInt(ChatJingle->NumSentChat / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppChatReceived, NumReceivedChat);
+			SET_DWORD_STAT(STAT_XmppChatSent, NumSentChat);
+
+			ChatJingle->NumReceivedChat = 0;
+			ChatJingle->NumSentChat = 0;
+		}
+
+		if (MultiUserChatJingle.IsValid())
+		{
+			int32 NumMucResponses = FMath::RoundToInt(MultiUserChatJingle->NumMucResponses / RealTime);
+			int32 NumOpRequests = FMath::RoundToInt(MultiUserChatJingle->NumOpRequests / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppMucResponses, NumMucResponses);
+			SET_DWORD_STAT(STAT_XmppMucOpRequests, NumOpRequests);
+
+			MultiUserChatJingle->NumMucResponses = 0;
+			MultiUserChatJingle->NumOpRequests = 0;
+		}
+
+		LastStatUpdateTime = CurTime;
+	}
+#endif // STATS
 }
 
 void FXmppConnectionJingle::Startup()
@@ -520,7 +655,11 @@ void FXmppConnectionJingle::SetServer(const FXmppServer& InServer)
 	// in order to ensure unique connections from user/client combination
 	// add random number to the client resource identifier
 	ServerConfig = InServer;
-	ServerConfig.ClientResource += FString(TEXT("-")) + FGuid::NewGuid().ToString(EGuidFormats::Digits);
+	
+	ServerConfig.ClientResource  = FString::Printf(TEXT("V%u"), XMPP_RESOURCE_VERSION) + FString(TEXT(":"));
+	ServerConfig.ClientResource += ServerConfig.AppId + FString(TEXT(":"));
+	ServerConfig.ClientResource += ServerConfig.Platform + FString(TEXT(":"));
+	ServerConfig.ClientResource += FGuid::NewGuid().ToString(EGuidFormats::Digits);
 }
 
 const FXmppServer& FXmppConnectionJingle::GetServer() const
@@ -607,12 +746,7 @@ void FXmppConnectionJingle::Login(const FString& UserId, const FString& Password
 
 void FXmppConnectionJingle::Logout()
 {	
-	FString ErrorStr;
-
-	if (GetLoginStatus() != EXmppLoginStatus::LoggedIn)
-	{
-		ErrorStr = TEXT("not logged in");
-	}
+	FString ErrorStr;	
 	if (PumpThread != NULL)
 	{
 		//@todo sz1 - should be able to reuse existing connection pump for login/logout
@@ -620,8 +754,12 @@ void FXmppConnectionJingle::Logout()
 		PumpThread->Logout();
 #else
 		Shutdown();
-		OnLogoutComplete().Broadcast(GetUserJid(), true, ErrorStr);
 #endif
+		if (GetLoginStatus() != EXmppLoginStatus::LoggedIn)
+		{
+			// we want this to trigger OnLogoutComplete because Shutdown() will not (in the case of not logged in)
+			ErrorStr = TEXT("not logged in");
+		}
 	}
 	else
 	{

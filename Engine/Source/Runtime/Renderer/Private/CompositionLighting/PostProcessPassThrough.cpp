@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessPassThrough.cpp: Post processing pass through implementation.
@@ -143,7 +143,6 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
-
 FPooledRenderTargetDesc FRCPassPostProcessPassThrough::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
 	FPooledRenderTargetDesc Ret;
@@ -163,4 +162,52 @@ FPooledRenderTargetDesc FRCPassPostProcessPassThrough::ComputeOutputDesc(EPassOu
 	Ret.DebugName = TEXT("PassThrough");
 
 	return Ret;
+}
+
+void CopyOverOtherViewportsIfNeeded(FRenderingCompositePassContext& Context, const FSceneView& ExcludeView)
+{
+	const FSceneView& View = Context.View;
+	const FSceneViewFamily* ViewFamily = View.Family;
+
+	// only for multiple views we need to do this
+	if(ViewFamily->Views.Num())
+	{
+		SCOPED_DRAW_EVENT(Context.RHICmdList, CopyOverOtherViewportsIfNeeded);
+
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+		TShaderMapRef<FPostProcessPassThroughPS> PixelShader(Context.GetShaderMap());
+
+		static FGlobalBoundShaderState BoundShaderState;
+
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+		VertexShader->SetParameters(Context);
+		PixelShader->SetParameters(Context);
+
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
+
+		FIntPoint Size = SceneContext.GetBufferSizeXY();
+	
+		for(uint32 ViewId = 0, ViewCount = ViewFamily->Views.Num(); ViewId < ViewCount; ++ViewId)
+		{
+			const FSceneView& LocalView = *ViewFamily->Views[ViewId];
+			
+			if(&LocalView != &ExcludeView)
+			{
+				FIntRect Rect = LocalView.ViewRect;
+
+				DrawPostProcessPass(Context.RHICmdList,
+					Rect.Min.X, Rect.Min.Y,
+					Rect.Width(), Rect.Height(),
+					Rect.Min.X, Rect.Min.Y,
+					Rect.Width(), Rect.Height(),
+					Size,
+					Size,
+					*VertexShader,
+					View.StereoPass, 
+					Context.HasHmdMesh(),
+					EDRF_UseTriangleOptimization);
+			}
+		}
+	}
 }

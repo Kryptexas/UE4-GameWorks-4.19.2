@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -250,13 +250,30 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		ensureMsgf(!Origin.ContainsNaN(), TEXT("Origin contains NaN: %s"), *Origin.ToString());
-		ensureMsgf(!BoxExtent.ContainsNaN(), TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
-		ensureMsgf(!FMath::IsNaN(SphereRadius) && FMath::IsFinite(SphereRadius), TEXT("SphereRadius contains NaN: %f"), SphereRadius);
+		if (Origin.ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("Origin contains NaN: %s"), *Origin.ToString());
+			const_cast<FBoxSphereBounds*>(this)->Origin = FVector::ZeroVector;
+		}
+		if (BoxExtent.ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
+			const_cast<FBoxSphereBounds*>(this)->BoxExtent = FVector::ZeroVector;
+		}
+		if (FMath::IsNaN(SphereRadius) || !FMath::IsFinite(SphereRadius))
+		{
+			logOrEnsureNanError(TEXT("SphereRadius contains NaN: %f"), SphereRadius);
+			const_cast<FBoxSphereBounds*>(this)->SphereRadius = 0.f;
+		}
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}
 #endif
+
+	inline bool ContainsNaN() const
+	{
+		return Origin.ContainsNaN() || BoxExtent.ContainsNaN() || FMath::IsNaN(SphereRadius) || !FMath::IsFinite(SphereRadius);
+	}
 
 public:
 

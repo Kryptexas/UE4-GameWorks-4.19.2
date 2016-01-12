@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 namespace HierarchyColumns
@@ -100,6 +100,9 @@ private:
 	void OnColorPickerCancelled(FLinearColor OriginalColor);
 	void OnColorPickerInteractiveBegin();
 	void OnColorPickerInteractiveEnd();
+
+	/** Whether color button should be visible, depends on whether sub-level is loaded */
+	EVisibility GetColorButtonVisibility() const;
 	
 	/**
 	 *  @return The text of level name while it is not being edited

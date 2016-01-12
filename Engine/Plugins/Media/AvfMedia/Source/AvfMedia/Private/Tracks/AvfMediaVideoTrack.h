@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,7 +31,7 @@ public:
 
 public:
 
-	// IMediaTrackVideoDetails interface
+	// IMediaVideoTrack interface
 
 	virtual uint32 GetBitRate() const override
 	{
@@ -53,19 +53,23 @@ public:
 		return *this;
 	}
 
+#if WITH_ENGINE
+	virtual void BindTexture(class FRHITexture* Texture) override;
+	virtual void UnbindTexture(class FRHITexture* Texture) override;
+#endif
 
 public:
 
-	// IMediaTrack interface
+	// IMediaStream interface
 
-    virtual void AddSink( const IMediaSinkRef& Sink ) override
+    virtual void AddSink(const IMediaSinkRef& Sink) override
     {
-        Sinks.Add( Sink );
+        Sinks.Add(Sink);
     }
 
-    virtual void RemoveSink( const IMediaSinkRef& Sink ) override
+    virtual void RemoveSink(const IMediaSinkRef& Sink) override
     {
-        Sinks.Remove( Sink );
+        Sinks.Remove(Sink);
     }
 
 public:
@@ -83,7 +87,7 @@ public:
      *
      * @param SeekTime The time the Track Reader should be set to.
      */
-    bool SeekToTime( const CMTime& SeekTime );
+    bool SeekToTime(const CMTime& SeekTime);
     
     /** 
      * Has the video track completed it's playthrough

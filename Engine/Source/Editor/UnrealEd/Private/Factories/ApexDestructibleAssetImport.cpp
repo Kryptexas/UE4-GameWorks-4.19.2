@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApexDestructibleAssetImport.cpp:
@@ -858,8 +858,13 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 
+		IMeshUtilities::MeshBuildOptions BuildOptions;
+		BuildOptions.bKeepOverlappingVertices = false;
+		BuildOptions.bComputeNormals = !bHaveNormals;
+		BuildOptions.bComputeTangents = !bHaveTangents;
+
 		// Create actual rendering data.
-		if (!MeshUtilities.BuildSkeletalMesh(DestructibleMeshResource.LODModels[0], DestructibleMesh.RefSkeleton, LODInfluences,LODWedges,LODFaces,LODPoints,LODPointToRawMap,false,!bHaveNormals,!bHaveTangents))
+		if (!MeshUtilities.BuildSkeletalMesh(DestructibleMeshResource.LODModels[0], DestructibleMesh.RefSkeleton, LODInfluences,LODWedges,LODFaces,LODPoints,LODPointToRawMap,BuildOptions))
 		{
 			DestructibleMesh.MarkPendingKill();
 			return false;
@@ -948,7 +953,7 @@ UNREALED_API bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& D
 
 		for (int32 MaterialIndex = 0; MaterialIndex < DestructibleMesh.Materials.Num(); ++MaterialIndex)
 		{
-			if (MaterialIndex < OverrideMaterials.Num())	//if user has overriden materials use it
+			if (MaterialIndex < OverrideMaterials.Num())	//if user has overridden materials use it
 			{
 				DestructibleMesh.Materials[MaterialIndex].MaterialInterface = OverrideMaterials[MaterialIndex];
 			}

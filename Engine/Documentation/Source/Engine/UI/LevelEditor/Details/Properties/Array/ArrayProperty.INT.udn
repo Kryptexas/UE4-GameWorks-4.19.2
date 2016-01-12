@@ -2,6 +2,7 @@ Availability:Public
 Title: Array Control
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:Dynamic lists of other property types.
+Version:4.9
 
 `Arrays` are dynamic lists of some other type of property, such as Object references. The list of 
 elements is displayed vertically with each individual element using the standard controls for that 

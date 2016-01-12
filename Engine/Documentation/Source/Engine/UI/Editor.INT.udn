@@ -3,6 +3,9 @@ Title: Unreal Editor Interface
 Crumbs:%ROOT%, Engine
 Description:A breakdown of the Unreal Editor user interface, along with key principles on how the editor works.
 Navigation:topic
+Version: 4.9
+parent:Engine/Editor
+order:1
 
 [EXCERPT:LevelEditor]
 
@@ -148,22 +151,7 @@ Not every part of Unreal Editor is exposed by default, as it would simply requir
 	[/PARAM]
 	[PARAM:description]
 		[REGION:simplegallery]
-		[OBJECT:VideoLink]
-			[PARAMLITERAL:videoid]
-			w4XlBKeE46E
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playlistid]
-			PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl
-			[/PARAMLITERAL]
-			[PARAMLITERAL:width]
-			275
-			[/PARAMLITERAL]
-			[PARAMLITERAL:image]
-			[/PARAMLITERAL]
-			[PARAMLITERAL:playerurl]
-				https://wiki.unrealengine.com/Videos/Player
-			[/PARAMLITERAL]
-		[/OBJECT]
+		[VideoLink(videoid:"w4XlBKeE46E" playlistid:"PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl" width:"275")]
 		[/REGION]
 	[/PARAM]
 [/OBJECT]

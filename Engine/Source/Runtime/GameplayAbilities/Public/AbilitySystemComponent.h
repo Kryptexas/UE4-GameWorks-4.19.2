@@ -1,6 +1,5 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "GameplayAbility.h"
@@ -50,6 +49,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FAbilityFailedDelegate, const UGameplayAbil
 /** Called when ability ends */
 DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityEnded, UGameplayAbility*);
 
+/** Notify interested parties that ability spec has been modified */
+DECLARE_MULTICAST_DELEGATE_OneParam(FAbilitySpecDirtied, const FGameplayAbilitySpec&);
+
 /**
  *	The core ActorComponent for interfacing with the GameplayAbilities System
  */
@@ -72,7 +74,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	virtual void InitializeComponent() override;
 	virtual void UninitializeComponent() override;
-	virtual void OnComponentDestroyed() override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
 	/** retrieves information whether this component should be ticking taken current
@@ -122,6 +124,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	UFUNCTION(BlueprintCallable, Category="Skills", meta=(DisplayName="InitStats"))
 	void K2_InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
 		
+	/** Returns a list of all attributes for this abiltiy system component */
+	void GetAllAttributes(OUT TArray<FGameplayAttribute>& Attributes);
 
 	UPROPERTY(EditAnywhere, Category="AttributeTest")
 	TArray<FAttributeDefaults>	DefaultStartingData;
@@ -131,6 +135,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Sets the base value of an attribute. Existing active modifiers are NOT cleared and will act upon the new base value. */
 	void SetNumericAttributeBase(const FGameplayAttribute &Attribute, float NewBaseValue);
+
+	/** Gets the base value of an attribute. That is, the value of the attribute with no stateful modifiers */
+	float GetNumericAttributeBase(const FGameplayAttribute &Attribute);
 
 	/**
 	 *	Applies an inplace mod to the given attribute. This correctly update the attribute's aggregator, updates the attribute set property,
@@ -152,8 +159,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Returns current (final) value of an attribute */
 	float GetNumericAttribute(const FGameplayAttribute &Attribute) const;
 	float GetNumericAttributeChecked(const FGameplayAttribute &Attribute) const;
-
-	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
 	// -- Replication -------------------------------------------------------------------------------------------------
 
@@ -302,7 +307,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	 * @return Count of the specified source effect
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category=GameplayEffects)
-	int32 GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent);
+	int32 GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent, bool bEnforceOnGoingCheck = true);
 
 	/** Returns the sum of StackCount of all gameplay effects that pass query */
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
@@ -339,6 +344,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Returns current stack count of an already applied GE, but given the ability spec handle that was granted by the GE */
 	int32 GetCurrentStackCount(FGameplayAbilitySpecHandle Handle) const;
+
+	/** Returns debug string describing active gameplay effect */
+	FString GetActiveGEDebugString(FActiveGameplayEffectHandle Handle) const;
 
 	/** Gets the GE Handle of the GE that granted the passed in Ability */
 	FActiveGameplayEffectHandle FindActiveGameplayEffectHandle(FGameplayAbilitySpecHandle Handle) const;
@@ -382,11 +390,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	void OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle);
 
+	void OnPeriodicGameplayEffectExecuteOnTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle);
+
+	void OnPeriodicGameplayEffectExecuteOnSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle);
+
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGameplayEffectAppliedDelegate, UAbilitySystemComponent*, const FGameplayEffectSpec&, FActiveGameplayEffectHandle);
 
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToSelf;
 
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToTarget;
+
+	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnSelf;
+
+	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnTarget;
 
 	// --------------------------------------------
 	// Tags
@@ -445,7 +461,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	// --------------------------------------------
 	
 	FOnActiveGameplayEffectRemoved* OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle);
-	FOnActiveGameplayEffectRemoved& OnAnyGameplayEffectRemovedDelegate();
+	FOnGivenActiveGameplayEffectRemoved& OnAnyGameplayEffectRemovedDelegate();
+
+	FOnActiveGameplayEffectStackChange* OnGameplayEffectStackChangeDelegate(FActiveGameplayEffectHandle Handle);
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(DisplayName = "ApplyGameplayEffectToTarget"))
 	FActiveGameplayEffectHandle BP_ApplyGameplayEffectToTarget(TSubclassOf<UGameplayEffect> GameplayEffectClass, UAbilitySystemComponent *Target, float Level, FGameplayEffectContextHandle Context);
@@ -482,25 +500,41 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
-	TArray<float> GetActiveEffectsTimeRemaining(const FGameplayEffectQuery Query) const;
+	TArray<float> GetActiveEffectsTimeRemaining(const FGameplayEffectQuery& Query) const;
 
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
-	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery Query) const;
+	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const;
 
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
-	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery Query) const;
+	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
+
+	/** This will give the world time that all effects matching this query will be finished. If multiple effects match, it returns the one that returns last.*/
+	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
 
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 
+	/** Removes all active effects that contain any of the tags in Tags */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	void RemoveActiveEffectsWithTags(FGameplayTagContainer Tags);
+
+	/** Removes all active effects with captured source tags that contain any of the tags in Tags */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	void RemoveActiveEffectsWithSourceTags(FGameplayTagContainer Tags);
+
+	/** Removes all active effects that apply any of the tags in Tags */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	void RemoveActiveEffectsWithAppliedTags(FGameplayTagContainer Tags);
+
+	/** Removes all active effects that grant any of the tags in Tags */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	void RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer Tags);
 
 	/** Removes all active effects that match given query. StacksToRemove=-1 will remove all stacks. */
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove=-1);
-	void RemoveActiveEffects(const FGameplayEffectQuery Query, int32 StacksToRemove = -1);
+	void RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove = -1);
 
 	void OnRestackGameplayEffects();	
 	
@@ -631,11 +665,17 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Cancels the specified ability CDO. */
 	void CancelAbility(UGameplayAbility* Ability);	
 
+	/** Cancels the ability indicated by passed in spec handle. If handle is not found among reactivated abilities nothing happens. */
+	void CancelAbilityHandle(const FGameplayAbilitySpecHandle& AbilityHandle);
+
 	/** Cancel all abilities with the specified tags. Will not cancel the Ignore instance */
 	void CancelAbilities(const FGameplayTagContainer* WithTags=nullptr, const FGameplayTagContainer* WithoutTags=nullptr, UGameplayAbility* Ignore=nullptr);
 
 	/** Cancels all abilities regardless of tags. Will not cancel the ignore instance */
 	void CancelAllAbilities(UGameplayAbility* Ignore=nullptr);
+
+	/** Cancels all abilities and kills any remaining instanced abilities */
+	virtual void DestroyActiveState();
 
 	// ----------------------------------------------------------------------------------------------------------------
 	/** 
@@ -675,14 +715,20 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Returns an ability spec from a GE handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromGEHandle(FActiveGameplayEffectHandle Handle);
 
+	/** Returns an ability spec corresponding to given ability class. If modifying call MarkAbilitySpecDirty */
+	FGameplayAbilitySpec* FindAbilitySpecFromClass(TSubclassOf<UGameplayAbility> InAbilityClass);
+
 	/** Returns an ability spec from a handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromInputID(int32 InputID);
+
+	/** Retrieves the EffectContext of the GameplayEffect of the active GameplayEffect. */
+	FGameplayEffectContextHandle GetEffectContextFromActiveGEHandle(FActiveGameplayEffectHandle Handle);
 
 	/** Call to mark that an ability spec has been modified */
 	void MarkAbilitySpecDirty(FGameplayAbilitySpec& Spec);
 
 	/** Attempts to activate the given ability, will only work if called from the correct client/server context */
-	bool InternalTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey = FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate = nullptr, const FGameplayEventData* TriggerEventData = nullptr);
+	bool InternalTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey = FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr, FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate = nullptr, const FGameplayEventData* TriggerEventData = nullptr);
 
 	/** Called from the ability to let the component know it is ended */
 	virtual void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
@@ -692,6 +738,55 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	void IncrementAbilityListLock();
 	void DecrementAbilityListLock();
+
+	// --------------------------------------------
+	// Debugging
+	// --------------------------------------------
+
+	struct FAbilitySystemComponentDebugInfo
+	{
+		FAbilitySystemComponentDebugInfo()
+		{
+			FMemory::Memzero(*this);
+		}
+
+		class UCanvas* Canvas;
+
+		bool bPrintToLog;
+
+		bool bShowAttributes;
+		bool bShowGameplayEffects;;
+		bool bShowAbilities;
+
+		float XPos;
+		float YPos;
+		float OriginalX;
+		float OriginalY;
+		float MaxY;
+		float NewColumnYPadding;
+		float YL;
+
+		bool Accumulate;
+		TArray<FString>	Strings;
+	};
+
+	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+	virtual void PrintDebug();
+
+	void AccumulateScreenPos(FAbilitySystemComponentDebugInfo& Info);
+	virtual void Debug_Internal(struct FAbilitySystemComponentDebugInfo& Info);
+	void DebugLine(struct FAbilitySystemComponentDebugInfo& Info, FString Str, float XOffset, float YOffset);
+	FString CleanupName(FString Str);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerPrintDebug_Request();
+
+	UFUNCTION(Client, reliable)
+	void ClientPrintDebug_Response(const TArray<FString>& Strings);
+
+	/** Called when the ability is forced cancelled due to replication */
+	void	ForceCancelAbilityDueToReplication(UGameplayAbility* Instance);
+
 protected:
 
 	/**
@@ -816,6 +911,8 @@ public:
 
 	FAbilityEnded AbilityEndedCallbacks;
 
+	FAbilitySpecDirtied AbilitySpecDirtiedCallbacks;
+
 	/** Generic local callback for generic CancelEvent that any ability can listen to */
 	FAbilityConfirmOrCancel	GenericLocalCancelCallbacks;
 
@@ -828,6 +925,9 @@ public:
 
 	/** Executes a gameplay event. Returns the number of successful ability activations triggered by the event */
 	virtual int32 HandleGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
+
+	/** Generic callbacks for gameplay events. See UAbilityTask_WaitGameplayEvent */
+	TMap<FGameplayTag, FGameplayEventMulticastDelegate> GenericGameplayEventCallbacks;
 
 	virtual void NotifyAbilityCommit(UGameplayAbility* Ability);
 	virtual void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
@@ -981,12 +1081,19 @@ public:
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey);
 
-	/** Replicates the Generic Replicated Event to the server. */
+	/** Replicates the Generic Replicated Event to the server with payload. */
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerSetReplicatedEventWithPayload(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey, FVector_NetQuantize100 VectorPayload);
+
+	/** Replicates the Generic Replicated Event to the client. */
 	UFUNCTION(Client, reliable)
 	void ClientSetReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/** Calls local callbacks that are registered with the given Generic Replicated Event */
 	bool InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+
+	/** Calls local callbacks that are registered with the given Generic Replicated Event */
+	bool InvokeReplicatedEventWithPayload(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FVector_NetQuantize100 VectorPayload);
 	
 	/**  */
 	UFUNCTION(Server, reliable, WithValidation)
@@ -1009,6 +1116,9 @@ public:
 
 	/** Consumes the given Generic Replicated Event (unsets it). */
 	void ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+
+	/** Gets replicated data of the given Generic Replicated Event. */
+	FAbilityReplicatedData GetReplicatedDataOfGenericReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 	
 	/** Calls any Replicated delegates that have been sent (TargetData or Generic Replicated Events). Note this can be dangerous if multiple places in an ability register events and then call this function. */
 	void CallAllReplicatedDelegatesIfSet(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
@@ -1072,7 +1182,7 @@ protected:
 
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
 		
-	TArray<TWeakObjectPtr<UGameplayTask> >&	GetAbilityActiveTasks(UGameplayAbility* Ability);
+	TArray<UGameplayTask*>&	GetAbilityActiveTasks(UGameplayAbility* Ability);
 	// --------------------------------------------
 	
 	// Contains all of the gameplay effects that are currently active on this component
@@ -1092,6 +1202,8 @@ protected:
 	UFUNCTION()
 	void OnRep_GameplayEffects();
 
+	void DebugCyclicAggregatorBroadcasts(struct FAggregator* Aggregator);
+
 	// ---------------------------------------------
 	
 	// Acceleration map for all gameplay tags (OwnedGameplayTags from GEs and explicit GameplayCueTags)
@@ -1101,6 +1213,8 @@ protected:
 	
 	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
 
+	void ResetTagMap();
+
 	void NotifyTagMap_StackCountChange(const FGameplayTagContainer& Container);
 
 	virtual void OnTagUpdated(const FGameplayTag& Tag, bool TagExists) {};
@@ -1108,6 +1222,7 @@ protected:
 	// ---------------------------------------------
 
 	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
 	const UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
@@ -1120,6 +1235,7 @@ protected:
 	friend struct FActiveGameplayCueContainer;
 	friend struct FGameplayAbilitySpec;
 	friend struct FGameplayAbilitySpecContainer;
+	friend struct FAggregator;
 
 private:
 	FDelegateHandle MonitoredTagChangedDelegatHandle;

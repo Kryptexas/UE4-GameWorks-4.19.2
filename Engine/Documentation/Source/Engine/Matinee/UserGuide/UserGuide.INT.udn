@@ -2,6 +2,8 @@ Availability: Public
 Title:Matinee User Guide
 Crumbs: %ROOT%, Engine, Engine/Matinee
 Description:Guide to using the Matinee editor to animate properties and Actors in-game.
+Version: 4.9
+SkillLevel:Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -40,9 +42,9 @@ To create a Matinee sequence, you create a Matinee Actor and place it in your sc
 * In the **Place Mode** panel, find Matinee under **All Classes** and drag it into the viewport.
 
 
-After you have created your Matinee Actor, to view the Matinee interface and modify your cinematic, **select** the Matinee Actor either in the **World Outliner** 
-or in the viewport, and then click **Open Matinee** in the **Details** panel. Alternatively, you can **click** the Matinee button in the toolbar at the top of the Editor, 
-and then **select** your Matinee Actor from the list.
+After you have created your Matinee Actor, to view the Matinee interface and modify your cinematic, select the Matinee Actor either in the **World Outliner** 
+or in the viewport, and then click **Open Matinee** in the **Details** panel. Alternatively, you can click the Matinee button in the toolbar at the top of the Editor, 
+and then select your Matinee Actor from the list.
 
 [REGION:note]
 If you want to set key bindings for keyboard shortcuts in Matinee, you can do so by clicking **Editor Preferences** on the **Edit** menu, and then clicking **Keyboard Shortcuts.** 
@@ -54,12 +56,12 @@ Scroll down to and expand the Matinee section to view and set key bindings.
 
 Matinee is structured around the idea of a set of Groups, each containing a number of different Tracks. A Group is associated with a particular Actor in the level.
 
-For more information on the different types to Tracks and Track Usage, refer to the **[](Engine\Matinee\TrackReference)** documentation. 
+For more information on the different types to Tracks and Track Usage, refer to the [](Engine\Matinee\TrackReference) documentation. 
 
 ### Creating A New Group
 
-To create a new Group in your Matinee sequence, first **select** the Actor in the level that you wish to modify. Then **right-click** in the gray bar down the left of Matinee 
-and **select** 'Add New Group'. 
+To create a new Group in your Matinee sequence, first select the Actor in the level that you wish to modify. Then **right-click** in the gray bar down the left of Matinee 
+and select **Add New Group**. 
 
 ![New Group menu](Matinee_NewGroup.png)
 
@@ -134,7 +136,7 @@ You can also delete the loop section altogether by selecting 'Delete Section' fr
 ## Locking The View To A Group
 
 In Matinee, particularly when creating cinematics, it is often helpful to lock the Editor view to one of the Actors you are controlling in the scene. When you press the 
-![Locking button](lockview_button.jpg) button on the Group title bar, it locks any perspective viewports to be at the position of the Actor controlled by that group. As you scrub 
+**Lock View** (![Locking button](lockview_button.jpg)) button on the Group title bar, it locks any perspective viewports to be at the position of the Actor controlled by that group. As you scrub 
 through the sequence, the camera will move with that object. Also, when you move the Editor camera, it will move the Actor around to follow it. This can be useful when adjusting a 
 keyframe for an object to look in a particular direction.
 
@@ -152,8 +154,8 @@ Each Matinee sequence can have only one Director Group.
 When making a cinematic sequence, it can be very helpful to use Camera Actors placed in the level. Although you can view through any Actor you have a Group for, CameraActors give you 
 additional properties to control using a Float Property Track such as the camera FOV and aspect ratio, and allow you to graphically see the camera view frustum in the Editor.
 
-You can add a Camera Actor to the level by opening the **[](Engine/UI/ClassViewer)**, **selecting** CameraActor from the Actor class hierarchy, **right-clicking** in the level and choosing 
-'Add CameraActor Here'.
+You can add a Camera Actor to the level by opening the [](Engine/UI/ClassViewer), selecting CameraActor from the Actor class hierarchy, **right-clicking** in the level and choosing 
+**Add CameraActor Here**.
 
 Here is a CameraActor in a level:
 
@@ -185,7 +187,7 @@ custom placed dynamic lights to light the characters during close-up shots.
 For these sequences, you can use real dynamic lights because they look a little better and give you more control. You should still use very few lights, and often only one of them for 
 casting shadows.
 
-There is a small performance difference, but since cinematics have no gameplay to further slow down things you should be able to get away with it. You may have to have LD's go into 
+There is a small performance difference, but since cinematics have no gameplay to further slow down things you should be able to get away with it. You may have to have Level Designer's go into 
 cinematic maps and optimize them a few times to get things running smoothly on consoles. In most cases, all static geometry in cut scenes (except for the ground the characters are standing 
 on, which needs real lighting for shadows) can still be light mapped.
 
@@ -243,12 +245,12 @@ You play a Matinee sequence via function calls in a Blueprint graph. Most common
 
 **To play a Matinee sequence:**
 
-1. **Select** the Matinee Actor that contains the sequence you want to play from the World Outliner.
+1. Select the **Matinee Actor** that contains the sequence you want to play from the **World Outliner**.
 
-1. **Open** the Level Blueprint.  Make sure the Blueprint is in Graph Mode.
+1. Open the **Level Blueprint**.  Make sure the Blueprint is in Graph Mode.
 
 1. In the Level Blueprint, with the Matinee Actor still selected, **right-click** in the graph. In the context menu that appears, expand 'Call Function on YourMatineeName', expand the 
-Cinematic section, and then **click** Play. (Alternatively, in the context menu, start typing "play" to filter the results, and **choose** Play from the list.) A **Play** node appears, 
+Cinematic section, and then click **Play**. (Alternatively, in the context menu, start typing "play" to filter the results, and choose Play from the list.) A **Play** node appears, 
 with the 'Matinee Actor' node already attached to it.
 
 	![](Matinee_Play.png)

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2599247
+﻿INTSourceChangelist:2687954
 Availability:Docs
 Title:블루프린트 통신 비법
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/BlueprintCommsUsage
@@ -16,16 +16,20 @@ Description:블루프린트 통신의 사양한 메소드 셋업 및 사용법 �
 
 ![](2_1.png)(w:400)
 
-* 위 큐브는 **Shape_Cube** 메시를 사용하고 콜리전은 **OverlapOnlyPawn** 으로 설정하여 트리거 역할을 하도록 만든 **블루프린트** 입니다.
+* 위 큐브는 **Shape_Cube** 메시를 사용하고 콜리전은 **OverlapOnlyPawn** 으로 설정하여 트리거 역할을 하도록 만든 **블루프린트** 입니다. **Generate Overlap Events** (오버랩 이벤트 생성)도 켭니다.
 * 위의 스파크는 (시작용 콘텐츠에 포함된) **Blueprint_Effect_Sparks** 애셋입니다.
 
 **직접 블루프린트 통신** 을 사용하여, 다음과 같은 작업을 합니다:
 
 1. **Shape_Cube** 블루프린트에서 **MyBlueprint** 아래 Variables (변수) 카테고리의 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) 버튼을 클릭합니다: ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_variable.png). 
 
-1. **디테일** 패널에서 **변수 유형** 아래 접근하고자 하는 블루프린트 유형을 선택합니다 (레퍼런스 유형은 뒤에 붙은 **_C** 를 통해 알 수 있습니다).
+1. **디테일** 패널에서 **변수 유형** 아래 접근하고자 하는 블루프린트 유형을 선택합니다.
 
 	![](2_3.png)
+
+	**Blueprint_Effects_Sparks** 변수 유형에 커서를 올리고 목록에서 **레퍼런스** 를 선택합니다.
+
+	![](2_3_1.png)
 
 	**Blueprint_Effect_Sparks** 블루프린트에 접근하고자 한다는 뜻입니다.
 

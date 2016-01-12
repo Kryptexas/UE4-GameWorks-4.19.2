@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -122,7 +122,7 @@ public:
 
 public:
 
-	// Begin IWindowTitleBar interface
+	//~ Begin IWindowTitleBar Interface
 
 	void Flash( ) override
 	{
@@ -130,7 +130,7 @@ public:
 		TitleFlashSequence.Play(this->AsShared());
 	}
 
-	// Begin IWindowTitleBar interface
+	//~ Begin IWindowTitleBar Interface
 	
 protected:
 

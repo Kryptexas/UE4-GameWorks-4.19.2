@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.h: PhysX support
@@ -54,8 +54,6 @@ private:
 const uint32 AggregateMaxSize	   = 128;
 const uint32 AggregateBodyShapesThreshold	   = 999999999;
 
-/** Global CCD Switch*/
-const bool bGlobalCCD = true;
 
 /////// UTILS
 
@@ -490,19 +488,6 @@ private:
 	int32 SceneType;
 };
 
-/** Used to dispatch physx tasks to task graph */
-class FPhysXCPUDispatcher : public PxCpuDispatcher
-{
-	virtual void submitTask(PxBaseTask& task ) override;
-	virtual PxU32 getWorkerCount() const override;
-};
-
-/** Used to dispatch physx tasks to the game thread */
-class FPhysXCPUDispatcherSingleThread : public PxCpuDispatcher
-{
-	virtual void submitTask( PxBaseTask& task ) override;
-	virtual PxU32 getWorkerCount() const override;
-};
 
 #if WITH_APEX
 /**

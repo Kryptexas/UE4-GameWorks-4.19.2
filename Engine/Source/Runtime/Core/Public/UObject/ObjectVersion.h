@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -560,6 +560,38 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MAX_ANGULAR_VELOCITY_DEFAULT,
 	// Build Adjacency index buffer for clothing tessellation
 	VER_UE4_APEX_CLOTH_TESSELLATION,
+	// Added DecalSize member, solved backward compatibility
+	VER_UE4_DECAL_SIZE,
+	// Keep only package names in StringAssetReferencesMap
+	VER_UE4_KEEP_ONLY_PACKAGE_NAMES_IN_STRING_ASSET_REFERENCES_MAP,
+	// Support sound cue not saving out editor only data
+	VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT,
+	// Updated dialogue wave localization gathering logic.
+	VER_UE4_DIALOGUE_WAVE_NAMESPACE_AND_CONTEXT_CHANGES,
+	// Renamed MakeRot MakeRotator and rearranged parameters.
+	VER_UE4_MAKE_ROT_RENAME_AND_REORDER,
+	// K2Node_Variable will properly have the VariableReference Guid set if available
+	VER_UE4_K2NODE_VAR_REFERENCEGUIDS,
+	// Added support for sound concurrency settings structure and overrides
+	VER_UE4_SOUND_CONCURRENCY_PACKAGE,
+	// Changing the default value for focusable user widgets to false
+	VER_UE4_USERWIDGET_DEFAULT_FOCUSABLE_FALSE,
+	// Custom event nodes implicitly set 'const' on array and non-array pass-by-reference input params
+	VER_UE4_BLUEPRINT_CUSTOM_EVENT_CONST_INPUT,
+	// Renamed HighFrequencyGain to LowPassFilterFrequency
+	VER_UE4_USE_LOW_PASS_FILTER_FREQ,
+	// UAnimBlueprintGeneratedClass can be replaced by a dynamic class. Use TSubclassOf<UAnimInstance> instead.
+	VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE,
+	// The SCS keeps a list of all nodes in its hierarchy rather than recursively building it each time it is requested
+	VER_UE4_SCS_STORES_ALLNODES_ARRAY,
+	// Moved StartRange and EndRange in UFbxAnimSequenceImportData to use FInt32Interval
+	VER_UE4_FBX_IMPORT_DATA_RANGE_ENCAPSULATION,
+	// Adding a new root scene component to camera component
+	VER_UE4_CAMERA_COMPONENT_ATTACH_TO_ROOT,
+	// Updating custom material expression nodes for instanced stereo implementation
+	VER_UE4_INSTANCED_STEREO_UNIFORM_UPDATE,
+	// Texture streaming min and max distance to handle HLOD
+	VER_UE4_STREAMABLE_TEXTURE_MIN_MAX_DISTANCE,	// -----<new versions can be added before this line>-------------------------------------------------
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
@@ -586,9 +618,5 @@ enum EUnrealEngineObjectLicenseeUE4Version
 
 // Version access.
 
-extern CORE_API int32			GEngineNetVersion;				// Version used for networking; the P4 changelist number.
-extern CORE_API int32			GEngineMinNetVersion;			// Earliest engine build that is network compatible with this one.
-extern CORE_API int32			GEngineNegotiationVersion;		// Base protocol version to negotiate in network play.
-
-extern CORE_API int32			GPackageFileUE4Version;			// UE4 Version Number.
-extern CORE_API int32			GPackageFileLicenseeUE4Version;	// Licensee Version Number.
+extern const CORE_API int32			GPackageFileUE4Version;			// UE4 Version Number.
+extern const CORE_API int32			GPackageFileLicenseeUE4Version;	// Licensee Version Number.

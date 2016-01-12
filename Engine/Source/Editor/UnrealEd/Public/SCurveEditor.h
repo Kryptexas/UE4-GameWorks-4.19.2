@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SCurveEditor_h__
@@ -247,9 +247,9 @@ public:
 	UNREALED_API virtual TArray<FRichCurve*> GetCurvesToFit()const;
 
 	/** Zoom to fit */
-	UNREALED_API void ZoomToFitHorizontal();
-	UNREALED_API void ZoomToFitVertical();
-	UNREALED_API void ZoomToFit();
+	UNREALED_API void ZoomToFitHorizontal(const bool bZoomToFitAll = false);
+	UNREALED_API void ZoomToFitVertical(const bool bZoomToFitAll = false);
+	UNREALED_API void ZoomToFit(const bool bZoomToFitAll = false);
 
 private:
 	/** Used to track a key and the curve that owns it */
@@ -368,9 +368,6 @@ private:
 
 	/** Empty key and tangent selection set */
 	void EmptyAllSelection();
-
-	/** Ensure that selected keys and tangents are still valid */
-	void ValidateSelection();
 
 	/** Get the value of the desired key as text */
 	TOptional<float> GetKeyValue(FSelectedCurveKey Key) const;
@@ -576,6 +573,9 @@ protected:
 
 	/** Return whether any curve view models are selected */
 	UNREALED_API bool AnyCurveViewModelsSelected() const;
+
+	/** Ensure that selected keys and tangents are still valid */
+	UNREALED_API void ValidateSelection();
 
 private:
 

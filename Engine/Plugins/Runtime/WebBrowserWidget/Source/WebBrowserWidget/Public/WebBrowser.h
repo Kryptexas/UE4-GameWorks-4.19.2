@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,9 +41,9 @@ public:
 
 public:
 
-	// UWidget interface
+	//~ Begin UWidget interface
 	virtual void SynchronizeProperties() override;
-	// End of UWidget interface
+	// End UWidget interface
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
@@ -52,9 +52,11 @@ public:
 #endif
 
 protected:
+	/** URL that the browser will initially navigate to. The URL should include the protocol, eg http:// */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FString InitialURL;
 
+	/** Should the browser window support transparency. */
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	bool bSupportsTransparency;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParllelFor.h: TaskGraph library
@@ -13,17 +13,49 @@
 struct FParallelForData
 {
 	int32 Num;
+	int32 BlockSize;
+	int32 LastBlockExtraNum;
 	TFunctionRef<void(int32)> Body;
-	FScopedEvent& DoneEvent;
+	FEvent* Event;
 	FThreadSafeCounter IndexToDo;
 	FThreadSafeCounter NumCompleted;
-	FParallelForData(int32 InNum, TFunctionRef<void(int32)> InBody, FScopedEvent& InDoneEvent)
-		: Num(InNum)
-		, Body(InBody)
-		, DoneEvent(InDoneEvent)
+	bool bExited;
+	bool bTriggered;
+	bool bSaveLastBlockForMaster;
+	FParallelForData(int32 InTotalNum, int32 InNumThreads, bool bInSaveLastBlockForMaster, TFunctionRef<void(int32)> InBody)
+		: Body(InBody)
+		, Event(FPlatformProcess::GetSynchEventFromPool(false))
+		, bExited(false)
+		, bTriggered(false)
+		, bSaveLastBlockForMaster(bInSaveLastBlockForMaster)
 	{
+		check(InTotalNum >= InNumThreads);
+		BlockSize = 0;
+		Num = 0;
+		for (int32 Div = 3; Div; Div--)
+		{
+			BlockSize = InTotalNum / (InNumThreads * Div);
+			if (BlockSize)
+			{
+				Num = InTotalNum / BlockSize;
+				if (Num >= InNumThreads + !!bSaveLastBlockForMaster)
+				{
+					break;
+				}
+			}
+		}
+		check(BlockSize && Num);
+		LastBlockExtraNum = InTotalNum - Num * BlockSize;
+		check(LastBlockExtraNum >= 0);
 	}
-	void Process(int32 TasksToSpawn, TSharedRef<FParallelForData, ESPMode::ThreadSafe>& Data);
+	~FParallelForData()
+	{
+		check(IndexToDo.GetValue() >= Num);
+		check(NumCompleted.GetValue() == Num);
+		check(bExited);
+		FPlatformProcess::ReturnSynchEventToPool(Event);
+	}
+	bool Process(int32 TasksToSpawn, TSharedRef<FParallelForData, ESPMode::ThreadSafe>& Data, bool bMaster);
 };
 
 class FParallelForTask
@@ -50,11 +82,16 @@ public:
 	}
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		Data->Process(TasksToSpawn, Data);
+		if (Data->Process(TasksToSpawn, Data, false))
+		{
+			checkSlow(!Data->bTriggered);
+			Data->bTriggered = true;
+			Data->Event->Trigger();
+		}
 	}
 };
 
-inline void FParallelForData::Process(int32 TasksToSpawn, TSharedRef<FParallelForData, ESPMode::ThreadSafe>& Data)
+inline bool FParallelForData::Process(int32 TasksToSpawn, TSharedRef<FParallelForData, ESPMode::ThreadSafe>& Data, bool bMaster)
 {
 	int32 MaybeTasksLeft = Num - IndexToDo.GetValue();
 	if (TasksToSpawn && MaybeTasksLeft > 0)
@@ -62,24 +99,50 @@ inline void FParallelForData::Process(int32 TasksToSpawn, TSharedRef<FParallelFo
 		TasksToSpawn = FMath::Min<int32>(TasksToSpawn, MaybeTasksLeft);
 		TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data, TasksToSpawn - 1);		
 	}
+	int32 LocalBlockSize = BlockSize;
+	int32 LocalNum = Num;
+	bool bLocalSaveLastBlockForMaster = bSaveLastBlockForMaster;
+	TFunctionRef<void(int32)> LocalBody(Body);
 	while (true)
 	{
 		int32 MyIndex = IndexToDo.Increment() - 1;
-		if (MyIndex < Num)
+		if (bLocalSaveLastBlockForMaster)
 		{
-			Body(MyIndex);
-			if (NumCompleted.Increment() == Num)
+			if (!bMaster && MyIndex >= LocalNum - 1)
 			{
-				DoneEvent.Trigger(); // I was the last one; let parallelfor exit
+				break; // leave the last block for the master, hoping to avoid an event
+			}
+			else if (bMaster && MyIndex > LocalNum - 1)
+			{
+				MyIndex = LocalNum - 1; // I am the master, I need to take this block, hoping to avoid an event
 			}
 		}
-		else
+		if (MyIndex < LocalNum)
+		{
+			int32 ThisBlockSize = LocalBlockSize;
+			if (MyIndex == LocalNum - 1)
+			{
+				ThisBlockSize += LastBlockExtraNum;
+			}
+			for (int32 LocalIndex = 0; LocalIndex < ThisBlockSize; LocalIndex++)
+			{
+				LocalBody(MyIndex * LocalBlockSize + LocalIndex);
+			}
+			checkSlow(!bExited);
+			int32 LocalNumCompleted = NumCompleted.Increment();
+			if (LocalNumCompleted == LocalNum)
+			{
+				return true;
+			}
+			checkSlow(LocalNumCompleted < LocalNum);
+		}
+		if (MyIndex >= LocalNum - 1)
 		{
 			break;
 		}
 	}
+	return false;
 }
-
 
 /** 
 	*	General purpose parallel for that uses the taskgraph
@@ -107,12 +170,21 @@ inline void ParallelFor(int32 Num, TFunctionRef<void(int32)> Body, bool bForceSi
 		}
 		return;
 	}
-
-	FScopedEvent DoneEvent;
-	TSharedRef<FParallelForData, ESPMode::ThreadSafe> Data = MakeShareable(new FParallelForData(Num, Body, DoneEvent));
+	FParallelForData* DataPtr = new FParallelForData(Num, AnyThreadTasks + 1, Num > AnyThreadTasks + 1, Body);
+	TSharedRef<FParallelForData, ESPMode::ThreadSafe> Data = MakeShareable(DataPtr);
 	TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data, AnyThreadTasks - 1);		
 	// this thread can help too and this is important to prevent deadlock on recursion 
-	Data->Process(0, Data);
+	if (!Data->Process(0, Data, true))
+	{
+		Data->Event->Wait();
+		check(Data->bTriggered);
+	}
+	else
+	{
+		check(!Data->bTriggered);
+	}
+	check(Data->NumCompleted.GetValue() == Data->Num);
+	Data->bExited = true;
 	// DoneEvent waits here if some other thread finishes the last item
 	// Data must live on until all of the tasks are cleared which might be long after this function exits
 }
@@ -128,12 +200,11 @@ inline void ParallelFor(int32 Num, TFunctionRef<void(int32)> Body, bool bForceSi
 inline void ParallelForWithPreWork(int32 Num, TFunctionRef<void(int32)> Body, TFunctionRef<void()> CurrentThreadWorkToDoBeforeHelping, bool bForceSingleThread = false)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParallelFor);
-	check(Num >= 0);
 
 	int32 AnyThreadTasks = 0;
-	if (Num > 1 && !bForceSingleThread && FApp::ShouldUseThreadingForPerformance())
+	if (!bForceSingleThread && FApp::ShouldUseThreadingForPerformance())
 	{
-		AnyThreadTasks = FMath::Min<int32>(FTaskGraphInterface::Get().GetNumWorkerThreads(), Num - 1);
+		AnyThreadTasks = FMath::Min<int32>(FTaskGraphInterface::Get().GetNumWorkerThreads(), Num);
 	}
 	if (!AnyThreadTasks)
 	{
@@ -146,15 +217,24 @@ inline void ParallelForWithPreWork(int32 Num, TFunctionRef<void(int32)> Body, TF
 		}
 		return;
 	}
-
-	FScopedEvent DoneEvent;
-	TSharedRef<FParallelForData, ESPMode::ThreadSafe> Data = MakeShareable(new FParallelForData(Num, Body, DoneEvent));
+	check(Num);
+	FParallelForData* DataPtr = new FParallelForData(Num, AnyThreadTasks, false, Body);
+	TSharedRef<FParallelForData, ESPMode::ThreadSafe> Data = MakeShareable(DataPtr);
 	TGraphTask<FParallelForTask>::CreateTask().ConstructAndDispatchWhenReady(Data, AnyThreadTasks - 1);		
 	// do the prework
 	CurrentThreadWorkToDoBeforeHelping();
 	// this thread can help too and this is important to prevent deadlock on recursion 
-	Data->Process(0, Data);
-	// DoneEvent waits here if some other thread finishes the last item
+	if (!Data->Process(0, Data, true))
+	{
+		Data->Event->Wait();
+		check(Data->bTriggered);
+	}
+	else
+	{
+		check(!Data->bTriggered);
+	}
+	check(Data->NumCompleted.GetValue() == Data->Num);
+	Data->bExited = true;
 	// Data must live on until all of the tasks are cleared which might be long after this function exits
 }
 

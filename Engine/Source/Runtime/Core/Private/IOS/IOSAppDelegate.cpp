@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "IOSAppDelegate.h"
@@ -8,6 +8,8 @@
 #include "CallbackDevice.h"
 #include "IOSView.h"
 #include "TaskGraphInterfaces.h"
+#include "GenericPlatformChunkInstall.h"
+#include "IOSPlatformMisc.h"
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <AVFoundation/AVAudioSession.h>
@@ -65,7 +67,7 @@ void InstallSignalHandlers()
 
 @implementation IOSAppDelegate
 
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 	@synthesize ConsoleAlert;
 #ifdef __IPHONE_8_0
     @synthesize ConsoleAlertController;
@@ -387,9 +389,13 @@ void InstallSignalHandlers()
 	// save launch options
 	self.launchOptions = launchOptions;
 
+#if PLATFORM_TVOS
+	self.bDeviceInPortraitMode = false;
+#else
 	// use the status bar orientation to properly determine landscape vs portrait
 	self.bDeviceInPortraitMode = UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]);
 	printf("========= This app is in %s mode\n", self.bDeviceInPortraitMode ? "PORTRAIT" : "LANDSCAPE");
+#endif
 
 		// check OS version to make sure we have the API
 	OSVersion = [[[UIDevice currentDevice] systemVersion] floatValue];
@@ -440,6 +446,12 @@ void InstallSignalHandlers()
 		{
 			[ImageString appendString : @"-Portrait"];
 		}
+	}
+	else if (Device == FPlatformMisc::IOS_AppleTV)
+	{
+		// @todo tvos: Make an AppleTV one?
+		// use IPhone6 image for now
+		[ImageString appendString : @"-IPhone6Plus-Landscape"];
 	}
 	else
 	{
@@ -498,7 +510,7 @@ void InstallSignalHandlers()
 	[GameThread start];
 
 	self.CommandLineParseTimer = [NSTimer scheduledTimerWithTimeInterval:0.01f target:self selector:@selector(NoUrlCommandLine) userInfo:nil repeats:NO];
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING && !PLATFORM_TVOS
 	// make a history buffer
 	self.ConsoleHistoryValues = [[NSMutableArray alloc] init];
 
@@ -718,11 +730,15 @@ void InstallSignalHandlers()
 {
 	// create the leaderboard display object 
 	GKGameCenterViewController* GameCenterDisplay = [[[GKGameCenterViewController alloc] init] autorelease];
+#if !PLATFORM_TVOS
 	GameCenterDisplay.viewState = GKGameCenterViewControllerStateLeaderboards;
+#endif
 #ifdef __IPHONE_7_0
     if ([GameCenterDisplay respondsToSelector:@selector(leaderboardIdentifier)] == YES)
     {
+#if !PLATFORM_TVOS // @todo tvos: Why not??
         GameCenterDisplay.leaderboardIdentifier = Category;
+#endif
     }
     else
 #endif
@@ -744,7 +760,9 @@ void InstallSignalHandlers()
 {
 	// create the leaderboard display object 
 	GKGameCenterViewController* GameCenterDisplay = [[[GKGameCenterViewController alloc] init] autorelease];
+#if !PLATFORM_TVOS
 	GameCenterDisplay.viewState = GKGameCenterViewControllerStateAchievements;
+#endif
 	GameCenterDisplay.gameCenterDelegate = self;
 
 	// show it 
@@ -768,6 +786,7 @@ CORE_API bool IOSShowLeaderboardUI(const FString& CategoryName)
 */
 CORE_API bool IOSShowAchievementsUI()
 {
+	
 	// route the function to iOS thread
 	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowAchievements) withObject:nil waitUntilDone : NO];
 

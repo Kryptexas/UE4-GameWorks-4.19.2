@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
@@ -47,11 +47,11 @@ public:
 
 public:
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	UNREALED_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UEdGraphNode interface
+	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override {}
 	UNREALED_API virtual FText GetTooltipText() const override;
 	UNREALED_API virtual FLinearColor GetNodeCommentColor() const override;
@@ -66,7 +66,7 @@ public:
 	UNREALED_API virtual FString GetDocumentationLink() const override;
 	UNREALED_API virtual FString GetDocumentationExcerptName() const override;
 	UNREALED_API virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
-	// End UEdGraphNode interface
+	//~ End UEdGraphNode Interface
 
 	/** Add a node that will be dragged when this comment is dragged */
 	UNREALED_API void	AddNodeUnderComment(UObject* Object);

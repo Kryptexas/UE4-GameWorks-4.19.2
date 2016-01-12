@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2652851
 Availability: Public
 Title:1.1 - 랜덤 메시
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -12,6 +12,22 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/Blueprints_Advanced/1_2 "%Resources/ContentExamples/Blueprints_Advanced/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:CSImage]
 AdvBP_1_1_ConstructionScript.png
@@ -40,7 +56,7 @@ AdvBP_1_1_ConstructionScript.png
 ![](blueprint_advanced_1_1.png)
 
 
-## 개요
+
 
 **BP_Random_Meshes** _블루프린트_ 는 컨스트럭션 스크립트를 사용하여 일정 반경 내 _스태틱 메시_ 를 임의로 흩뿌리며, 사용자는 노출된 변수를 통해 _스태틱 메시_ 의 스케일, 로테이션, 여백을 임의로 조절할 수 있습니다. 모든 _스태틱 메시_ 는 실제로 **BP_Random_Meshes** 블루프린트 안의 컴포넌트 입니다.
 

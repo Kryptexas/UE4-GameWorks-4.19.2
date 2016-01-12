@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,8 +10,6 @@
 
 #define INVALID_INDEX -1
 
-/** FName declaration of Null subsystem */
-#define NULL_SUBSYSTEM FName(TEXT("Null"))
 /** URL Prefix when using Null socket connection */
 #define NULL_URL_PREFIX TEXT("Null.")
 

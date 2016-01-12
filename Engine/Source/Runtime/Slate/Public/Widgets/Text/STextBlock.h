@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
@@ -41,11 +41,13 @@ public:
 		, _LineHeightPercentage(1.0f)
 		, _Justification(ETextJustify::Left)
 		, _MinDesiredWidth(0.0f)
+		, _TextShapingMethod()
+		, _TextFlowDirection()
 		, _LineBreakPolicy()
 		{}
 
 		/** The text displayed in this text block */
-		SLATE_TEXT_ATTRIBUTE( Text )
+		SLATE_ATTRIBUTE( FText, Text )
 
 		/** Pointer to a style of the text block, which dictates the font, color, and shadow options. */
 		SLATE_STYLE_ARGUMENT( FTextBlockStyle, TextStyle )
@@ -91,6 +93,12 @@ public:
 		/** Minimum width that a text block should be */
 		SLATE_ATTRIBUTE( float, MinDesiredWidth )
 
+		/** Which text shaping method should we use? (unset to use the default returned by GetDefaultTextShapingMethod) */
+		SLATE_ARGUMENT( TOptional<ETextShapingMethod>, TextShapingMethod )
+		
+		/** Which text flow direction should we use? (unset to use the default returned by GetDefaultTextFlowDirection) */
+		SLATE_ARGUMENT( TOptional<ETextFlowDirection>, TextFlowDirection )
+
 		/** The iterator to use to detect appropriate soft-wrapping points for lines (or null to use the default) */
 		SLATE_ARGUMENT( TSharedPtr<IBreakIterator>, LineBreakPolicy )
 
@@ -98,6 +106,13 @@ public:
 		SLATE_EVENT( FOnClicked, OnDoubleClicked )
 
 	SLATE_END_ARGS()
+
+	/** Constructor */
+	STextBlock()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
 
 	/**
 	 * Construct this widget
@@ -127,6 +142,13 @@ public:
 	void SetText( const FText& InText );
 
 	/**
+	* Sets the highlight text for this text block 
+	*
+	* @param	InText	The new text to highlight
+	*/
+	void SetHighlightText(TAttribute<FText> InText);
+
+	/**
 	 * Sets the font used to draw the text
 	 *
 	 * @param	InFont	The new font to use
@@ -141,6 +163,12 @@ public:
 
 	/** See TextStyle argument */
 	void SetTextStyle(const FTextBlockStyle* InTextStyle);
+
+	/** See TextShapingMethod attribute */
+	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
+
+	/** See TextFlowDirection attribute */
+	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
 
 	/** See WrapTextAt attribute */
 	void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);

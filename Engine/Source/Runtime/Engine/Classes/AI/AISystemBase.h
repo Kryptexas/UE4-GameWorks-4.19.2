@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Math/IntPoint.h"
@@ -45,10 +45,14 @@ private:
 
 	UPROPERTY(globalconfig, noclear, meta = (MetaClass = "AISystem", DisplayName = "AISystem Module"))
 	FName AISystemModuleName;
+
+	UPROPERTY(globalconfig, noclear)
+	bool bInstantiateAISystemOnClient;
 	
 public:
 	static FStringClassReference GetAISystemClassName();
 	static FName GetAISystemModuleName();
+	static bool ShouldInstantiateInNetMode(ENetMode NetMode);
 };
 
 class IAISystemModule : public IModuleInterface

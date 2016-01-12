@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "InvalidationBox.h"
@@ -12,6 +12,7 @@
 UInvalidationBox::UInvalidationBox(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bCanCache = true;
 	Visibility = ESlateVisibility::SelfHitTestInvisible;
 }
 
@@ -28,10 +29,7 @@ TSharedRef<SWidget> UInvalidationBox::RebuildWidget()
 		SNew(SInvalidationPanel)
 		.CacheRelativeTransforms(CacheRelativeTransforms);
 
-	if ( IsDesignTime() )
-	{
-		MyInvalidationPanel->SetCanCache(false);
-	}
+	MyInvalidationPanel->SetCanCache(IsDesignTime() ? false : bCanCache);
 
 	if ( GetChildrenCount() > 0 )
 	{
@@ -64,6 +62,25 @@ void UInvalidationBox::InvalidateCache()
 	if ( MyInvalidationPanel.IsValid() )
 	{
 		return MyInvalidationPanel->InvalidateCache();
+	}
+}
+
+bool UInvalidationBox::GetCanCache() const
+{
+	if ( MyInvalidationPanel.IsValid() )
+	{
+		return MyInvalidationPanel->GetCanCache();
+	}
+
+	return bCanCache;
+}
+
+void UInvalidationBox::SetCanCache(bool CanCache)
+{
+	bCanCache = CanCache;
+	if ( MyInvalidationPanel.IsValid() )
+	{
+		return MyInvalidationPanel->SetCanCache(bCanCache);
 	}
 }
 

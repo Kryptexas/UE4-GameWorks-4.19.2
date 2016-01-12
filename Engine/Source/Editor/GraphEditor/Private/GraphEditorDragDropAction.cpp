@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
 #include "SScaleBox.h"
@@ -183,7 +183,7 @@ void FGraphSchemaActionDragDropAction::HoverTargetChanged()
 		const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode"));
 
 		//Create feedback message with the function name.
-		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, ActionNode->MenuDescription);
+		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, ActionNode->GetMenuDescription());
 	}
 }
 

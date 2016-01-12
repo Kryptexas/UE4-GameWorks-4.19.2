@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -21,7 +21,6 @@ DECLARE_DELEGATE_RetVal( bool, FOnGetIsAnimNotifySelectionValidForReplacement )
 DECLARE_DELEGATE_TwoParams( FReplaceWithNotify, FString, UClass* )
 DECLARE_DELEGATE_TwoParams( FReplaceWithBlueprintNotify, FString, FString )
 DECLARE_DELEGATE( FDeselectAllNotifies )
-DECLARE_DELEGATE( FCopyNotifies )
 DECLARE_DELEGATE_OneParam( FOnGetBlueprintNotifyData, TArray<FAssetData>& )
 DECLARE_DELEGATE_OneParam( FOnGetNativeNotifyClasses, TArray<UClass*>&)
 
@@ -182,7 +181,6 @@ public:
 	FReply InsertTrack(int32 TrackIndexToInsert);
 	FReply DeleteTrack(int32 TrackIndexToDelete);
 	bool CanDeleteTrack(int32 TrackIndexToDelete);
-	void DeleteNotify(FAnimNotifyEvent* Notify);
 	void Update();
 	TWeakPtr<FPersona> GetPersona() const { return PersonaPtr; }
 
@@ -194,8 +192,8 @@ public:
 
 	virtual float GetSequenceLength() const override {return Sequence->SequenceLength;}
 
-	void CopySelectedNotifiesToClipboard() const;
-	void OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float ClickTime, ENotifyPasteMode::Type PasteMode, ENotifyPasteMultipleMode::Type MultiplePasteType);
+	void CopySelectedNodesToClipboard() const;
+	void OnPasteNodes(SAnimNotifyTrack* RequestTrack, float ClickTime, ENotifyPasteMode::Type PasteMode, ENotifyPasteMultipleMode::Type MultiplePasteType);
 
 	/** Handler for properties changing on objects */
 	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
@@ -246,9 +244,6 @@ private:
 	/** Cached list of anim tracks for notify node drag drop */
 	TArray<TSharedPtr<SAnimNotifyTrack>> NotifyAnimTracks;
 
-	// Read common info from the clipboard
-	bool ReadNotifyPasteHeader(FString& OutPropertyString, const TCHAR*& OutBuffer, float& OutOriginalTime, float& OutOriginalLength, int32& OutTrackSpan) const;
-
 	// this just refresh notify tracks - UI purpose only
 	// do not call this from here. This gets called by asset. 
 	void RefreshNotifyTracks();
@@ -258,7 +253,7 @@ private:
 	void OnDeletePressed();
 
 	/** Deletes all currently selected notifies in the panel */
-	void DeleteSelectedNotifies();
+	void DeleteSelectedNodeObjects();
 
 	/** We support keyboard focus to detect when we should process key commands like delete */
 	virtual bool SupportsKeyboardFocus() const override

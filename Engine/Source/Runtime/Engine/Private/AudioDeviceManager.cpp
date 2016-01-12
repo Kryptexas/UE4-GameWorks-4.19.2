@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Audio.h"
@@ -37,6 +37,8 @@ FAudioDeviceManager::FAudioDeviceManager()
 	, NextResourceID(1)
 	, SoloDeviceHandle(INDEX_NONE)
 	, ActiveAudioDeviceHandle(INDEX_NONE)
+	, bPlayAllDeviceAudio(false)
+	, bVisualize3dDebug(false)
 {
 }
 
@@ -491,3 +493,25 @@ void FAudioDeviceManager::RemoveSoundMix(USoundMix* SoundMix)
 		}
 	}
 }
+
+void FAudioDeviceManager::TogglePlayAllDeviceAudio()
+{
+	bPlayAllDeviceAudio = !bPlayAllDeviceAudio;
+}
+
+bool FAudioDeviceManager::IsPlayAllDeviceAudio() const
+{
+	return bPlayAllDeviceAudio;
+}
+
+bool FAudioDeviceManager::IsVisualizeDebug3dEnabled() const
+{
+	return bVisualize3dDebug;
+}
+
+void FAudioDeviceManager::ToggleVisualize3dDebug()
+{
+	bVisualize3dDebug = !bVisualize3dDebug;
+}
+
+

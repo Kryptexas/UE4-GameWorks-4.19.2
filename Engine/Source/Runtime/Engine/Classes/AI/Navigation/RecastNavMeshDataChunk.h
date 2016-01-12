@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NavigationDataChunk.h"
@@ -38,9 +38,9 @@ class ENGINE_API URecastNavMeshDataChunk : public UNavigationDataChunk
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** Attaches tiles to specified navmesh, transferring tile ownership to navmesh */
 	TArray<uint32> AttachTiles(FPImplRecastNavMesh& NavMeshImpl);

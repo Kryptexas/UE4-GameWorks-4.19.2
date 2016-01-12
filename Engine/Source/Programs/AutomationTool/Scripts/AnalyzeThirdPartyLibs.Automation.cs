@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -95,7 +95,7 @@ class ThirdPartyLibraryInfo
 
 				if (!bAllowed)
 				{
-					CommandUtils.Log("WARNING: {0} is {1} with an unexpected extension", Filename, AnalyzeThirdPartyLibs.ToMegabytes(Size));
+					CommandUtils.LogWarning("{0} is {1} with an unexpected extension", Filename, AnalyzeThirdPartyLibs.ToMegabytes(Size));
 				}
 			}
 		}

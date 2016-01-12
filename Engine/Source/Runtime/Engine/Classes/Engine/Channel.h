@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -90,6 +90,9 @@ public:
 	
 	/** Handle time passing on this channel. */
 	virtual void Tick();
+
+	/** Return true to indicate that this channel no longer needs to Tick() every frame. */
+	virtual bool CanStopTicking() const { return !bPendingDormancy; }
 
 	// General channel functions.
 	/** Handle an acknowledgment on this channel. */

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BlendSpace.cpp: 2D BlendSpace functionality
@@ -77,9 +77,9 @@ void UBlendSpace::GetGridSamplesFromBlendInput(const FVector &BlendInput, FGridB
 	}
 }
 
-void UBlendSpace::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const
+void UBlendSpace::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const
 {
-	OutBlendSamples.Empty(4);
+	OutBlendSamples.Reset();
 	OutBlendSamples.AddUninitialized(4);
 
 	GetGridSamplesFromBlendInput(BlendInput, OutBlendSamples[0], OutBlendSamples[1], OutBlendSamples[2], OutBlendSamples[3]);

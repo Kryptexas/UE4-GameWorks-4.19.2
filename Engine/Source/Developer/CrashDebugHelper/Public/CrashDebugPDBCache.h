@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -216,7 +216,7 @@ protected:
 	/**
 	*	Reads an existing PDB Cache entry.
 	*/
-	FPDBCacheEntryRef ReadPDBCacheEntry( const FString& Directory );
+	FPDBCacheEntryPtr ReadPDBCacheEntry( const FString& Directory );
 
 	/**
 	*	Sort PDB Cache entries by last access time.

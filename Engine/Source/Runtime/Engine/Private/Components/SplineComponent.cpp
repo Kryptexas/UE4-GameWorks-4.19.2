@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Spline.cpp
@@ -231,7 +231,7 @@ float USplineComponent::GetSegmentLength(const int32 Index, const float Param) c
 	{
 		// Calculate derivative at each Legendre-Gauss sample, and perform a weighted sum
 		const float Alpha = HalfParam * (1.0f + LegendreGaussCoefficient.Abscissa);
-		const FVector Derivative = (Coeff1 * Alpha + Coeff2) * Alpha + Coeff3;
+		const FVector Derivative = ((Coeff1 * Alpha + Coeff2) * Alpha + Coeff3) * ComponentToWorld.GetScale3D();
 		Length += Derivative.Size() * LegendreGaussCoefficient.Weight;
 	}
 	Length *= HalfParam;
@@ -462,6 +462,46 @@ void USplineComponent::AddSplinePoint(const FVector& Position, ESplineCoordinate
 	UpdateSpline();
 }
 
+void USplineComponent::AddSplinePointAtIndex(const FVector& Position, int32 Index, ESplineCoordinateSpace::Type CoordinateSpace)
+{
+	const FVector TransformedPosition = (CoordinateSpace == ESplineCoordinateSpace::World) ?
+		ComponentToWorld.InverseTransformPosition(Position) : Position;
+
+	const float InKey = static_cast<float>(Index);
+
+	if (((Index >= 0) && 
+		(Index < SplineInfo.Points.Num())) &&
+		(Index < SplineRotInfo.Points.Num()) &&
+		(Index < SplineScaleInfo.Points.Num()))
+	{
+		SplineInfo.Points.Insert(FInterpCurvePoint<FVector>(InKey, TransformedPosition, FVector::ZeroVector, FVector::ZeroVector, CIM_CurveAuto), Index);
+		SplineRotInfo.Points.Insert(FInterpCurvePoint<FQuat>(InKey, FQuat::Identity, FQuat::Identity, FQuat::Identity, CIM_CurveAuto), Index);
+		SplineScaleInfo.Points.Insert(FInterpCurvePoint<FVector>(InKey, FVector(1.0f), FVector::ZeroVector, FVector::ZeroVector, CIM_CurveAuto), Index);
+	}
+
+	UpdateSpline();
+}
+
+void USplineComponent::RemoveSplinePoint(const int32 Index)
+{
+	int32 Count = 1;
+
+	if ((Index >= 0) &&
+		(SplineInfo.Points.Num() >= 0) &&
+		(SplineRotInfo.Points.Num() >= 0) &&
+		(SplineScaleInfo.Points.Num() >= 0) &&
+		(Index + Count <= SplineInfo.Points.Num()) &&
+		(Index + Count <= SplineRotInfo.Points.Num()) &&
+		(Index + Count <= SplineScaleInfo.Points.Num())
+		)
+	{
+		SplineInfo.Points.RemoveAt(Index, Count, false);
+		SplineRotInfo.Points.RemoveAt(Index, Count, false);
+		SplineScaleInfo.Points.RemoveAt(Index, Count, false);
+	}
+
+	UpdateSpline();
+}
 
 void USplineComponent::SetSplinePoints(const TArray<FVector>& Points, ESplineCoordinateSpace::Type CoordinateSpace)
 {
@@ -510,7 +550,7 @@ void USplineComponent::SetTangentAtSplinePoint(int32 PointIndex, const FVector& 
 	if ((PointIndex >= 0) && (PointIndex < NumPoints))
 	{
 		const FVector TransformedTangent = (CoordinateSpace == ESplineCoordinateSpace::World) ?
-			ComponentToWorld.InverseTransformPosition(InTangent) : InTangent;
+			ComponentToWorld.InverseTransformVector(InTangent) : InTangent;
 
 		SplineInfo.Points[PointIndex].LeaveTangent = TransformedTangent;
 		SplineInfo.Points[PointIndex].ArriveTangent = TransformedTangent;
@@ -682,7 +722,7 @@ float USplineComponent::GetInputKeyAtDistanceAlongSpline(float Distance) const
 		return 0.0f;
 	}
 
-	const float TimeMultiplier = Duration / (NumPoints - 1.0f);
+	const float TimeMultiplier = Duration / (bClosedLoop ? NumPoints : (NumPoints - 1.0f));
 	return SplineReparamTable.Eval(Distance, 0.0f) * TimeMultiplier;
 }
 
@@ -967,6 +1007,84 @@ FVector USplineComponent::GetScaleAtTime(float Time, bool bUseConstantVelocity) 
 }
 
 
+float USplineComponent::FindInputKeyClosestToWorldLocation(const FVector& WorldLocation) const
+{
+	const FVector LocalLocation = ComponentToWorld.InverseTransformPosition(WorldLocation);
+	float Dummy;
+	return SplineInfo.InaccurateFindNearest(LocalLocation, Dummy);
+}
+
+
+FVector USplineComponent::FindLocationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetLocationAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindDirectionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetDirectionAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindTangentClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetTangentAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FQuat USplineComponent::FindQuaternionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetQuaternionAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FRotator USplineComponent::FindRotationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetRotationAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindUpVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetUpVectorAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindRightVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetRightVectorAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+float USplineComponent::FindRollClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetRollAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindScaleClosestToWorldLocation(const FVector& WorldLocation) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetScaleAtSplineInputKey(Param);
+}
+
+
+FTransform USplineComponent::FindTransformClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace, bool bUseScale) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetTransformAtSplineInputKey(Param, CoordinateSpace, bUseScale);
+}
+
+
 /** Used to store spline data during RerunConstructionScripts */
 class FSplineInstanceData : public FSceneComponentInstanceData
 {
@@ -1043,6 +1161,6 @@ void USplineComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& P
 		}
 	}
 
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
 #endif
