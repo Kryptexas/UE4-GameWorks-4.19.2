@@ -165,7 +165,8 @@ public:
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 
-		const bool bIsInstancedStereo = false
+		const bool bIsInstancedStereo = false, 
+		const bool bNeedsInstancedStereoBias = false
 		);
 
 	static bool DrawStaticMesh(
@@ -177,7 +178,8 @@ public:
 		bool bPreFog,
 		const FMeshDrawingRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
+		FHitProxyId HitProxyId, 
+		const bool bNeedsInstancedStereoBias = false
 		);
 
 private:
@@ -196,6 +198,7 @@ private:
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 
-		const bool bIsInstancedStereo = false
+		const bool bIsInstancedStereo = false, 
+		const bool bNeedsInstancedStereoBias = false
 		);
 };

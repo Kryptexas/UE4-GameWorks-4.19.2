@@ -63,9 +63,9 @@ public:
 	/** Context data required by the drawing policy that is not known when caching policies in static mesh draw lists. */
 	struct ContextDataType
 	{
-		ContextDataType(bool InbIsInstancedStereo) : bIsInstancedStereo(InbIsInstancedStereo) {};
-		ContextDataType() : bIsInstancedStereo(false) {};
-		bool bIsInstancedStereo;
+		ContextDataType(const bool InbIsInstancedStereo, const bool InbNeedsInstancedStereoBias) : bIsInstancedStereo(InbIsInstancedStereo), bNeedsInstancedStereoBias(InbNeedsInstancedStereoBias){};
+		ContextDataType() : bIsInstancedStereo(false), bNeedsInstancedStereoBias(false){};
+		bool bIsInstancedStereo, bNeedsInstancedStereoBias;
 	};
 
 	FMeshDrawingPolicy(
