@@ -260,6 +260,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		if(GeneratingBP)
 		{
 			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcLastCompiledCDO;
+			Dependencies.Empty();
 			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 
 			bool const bIsLevelPackage = (UWorld::FindWorldInPackage(GeneratingBP->GetOutermost()) != nullptr);
