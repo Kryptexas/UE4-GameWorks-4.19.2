@@ -18,6 +18,12 @@ void Main(
 	out float4 OutColor : SV_Target0
 	)
 {
+#if INSTANCED_STEREO
+	ResolvedView = ResolveView(DebugInputs.EyeIndex);
+#else
+	ResolvedView = ResolveView();
+#endif
+
 	float3 Result = float3(.1, .1, .1);
 
 	if (CPUTexelFactor >= 0)

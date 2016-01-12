@@ -14,12 +14,18 @@ struct FDebugVSToPS
 	// TexCoords must first in order to be compatible with viewmode requiring using only SV_Position
 	float4 Position : SV_POSITION;
 	float2 TexCoords : TEXCOORD0;
+#if INSTANCED_STEREO
+	nointerpolation uint EyeIndex : EYE_INDEX;
+#endif
 };
 
 struct FDebugPSIn
 {
 	float4 SvPosition : SV_POSITION;
 	float2 TexCoords : TEXCOORD0;
+#if INSTANCED_STEREO
+	nointerpolation uint EyeIndex : EYE_INDEX;
+#endif
 	uint SvPrimitiveID : SV_PrimitiveID;
 };
 

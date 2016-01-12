@@ -45,7 +45,7 @@
 		ISOLATE
 		{
 
-			O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
+			O.Position = mul(WorldPosition, ResolvedView.TranslatedWorldToClip);
 		}
 
 #if NUM_MATERIAL_TEXCOORDS > 0
@@ -54,6 +54,9 @@
 		O.TexCoords = 0;
 #endif
 
+#if INSTANCED_STEREO
+		O.EyeIndex = Interpolants.FactoryInterpolants.EyeIndex;
+#endif
 		
 		return O;
 	}
@@ -67,8 +70,21 @@ void Main(
 	FVertexFactoryInput Input,
 	OPTIONAL_VertexID
 	out FDebugVSOutput Output
+#if INSTANCED_STEREO
+	, uint InstanceId : SV_InstanceID
+	, out float4 OutClipDistance : SV_ClipDistance
+	, out float4 OutCullDistance : SV_CullDistance
+#endif
 	)
 {
+#if INSTANCED_STEREO
+	OutCullDistance = OutClipDistance = 0.0;
+	const uint EyeIndex = VertexFactoryGetEyeIndex(InstanceId);
+	ResolvedView = ResolveView(EyeIndex);
+#else
+	ResolvedView = ResolveView();
+#endif
+
 	FVertexFactoryIntermediates VFIntermediates = GetVertexFactoryIntermediates(Input);
 	float4 WorldPos = VertexFactoryGetWorldPosition(Input, VFIntermediates);
 
@@ -87,17 +103,39 @@ void Main(
 	// Transformation is done in Domain shader when tessellating
 	Output.Position = WorldPos;
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToDS(Input, VFIntermediates, VertexParameters);
+#if INSTANCED_STEREO
+	Output.FactoryInterpolants.EyeIndex = EyeIndex;
+#endif
+
 #else
 	ISOLATE
 	{
 		float4 RasterizedWorldPosition = VertexFactoryGetRasterizedWorldPosition(Input, VFIntermediates, WorldPos);
-		Output.Position = mul(RasterizedWorldPosition, View.TranslatedWorldToClip);
-	}
+		Output.Position = mul(RasterizedWorldPosition, ResolvedView.TranslatedWorldToClip);
 
+		#if INSTANCED_STEREO
+		BRANCH 
+		if (bIsInstancedStereo)  
+		{
+			// Clip at the center of the screen
+			OutCullDistance.x = OutClipDistance.x = dot(Output.Position, EyeClipEdge[EyeIndex]);
+
+			// Scale to the width of a single eye viewport
+			Output.Position.x *= 0.5 * Frame.HMDEyePaddingOffset;
+
+			// Shift to the eye viewport
+			Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) / Frame.HMDEyePaddingOffset;
+		}
+		#endif
+	}
 #if NUM_MATERIAL_TEXCOORDS > 0
 	Output.TexCoords = VertexParameters.TexCoords[0];
 #else
 	Output.TexCoords = 0;
+#endif
+
+#if INSTANCED_STEREO
+	Output.EyeIndex = EyeIndex;
 #endif
 
 #endif
