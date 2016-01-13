@@ -42,9 +42,9 @@ public:
 		ShearYKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetSheerCurve(EAxis::Y), TransformSection, GreenKeyAreaColor));
 
 		// This generates the tree structure for the transform section
-		LayoutBuilder.PushCategory("Location", NSLOCTEXT("F2DTransformSection", "LocationArea", "Location"));
-			LayoutBuilder.AddKeyArea("Location.X", NSLOCTEXT("F2DTransformSection", "LocXArea", "X"), TranslationXKeyArea.ToSharedRef());
-			LayoutBuilder.AddKeyArea("Location.Y", NSLOCTEXT("F2DTransformSection", "LocYArea", "Y"), TranslationYKeyArea.ToSharedRef());
+		LayoutBuilder.PushCategory("Translation", NSLOCTEXT("F2DTransformSection", "TranslationArea", "Translation"));
+			LayoutBuilder.AddKeyArea("Translation.X", NSLOCTEXT("F2DTransformSection", "TransXArea", "X"), TranslationXKeyArea.ToSharedRef());
+			LayoutBuilder.AddKeyArea("Translation.Y", NSLOCTEXT("F2DTransformSection", "TransYArea", "Y"), TranslationYKeyArea.ToSharedRef());
 		LayoutBuilder.PopCategory();
 
 		LayoutBuilder.PushCategory("Rotation", NSLOCTEXT("F2DTransformSection", "RotationArea", "Rotation"));
