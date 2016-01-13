@@ -243,7 +243,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	static FORCEINLINE void VertexAttribDivisor(GLuint Index, GLuint Divisor)
 	{
-		if (bES30Support)
+		if (SupportsInstancing())
 		{
 			glVertexAttribDivisor(Index, Divisor);
 		}
@@ -256,7 +256,7 @@ struct FAndroidOpenGL : public FOpenGLES2
 	// 32 bpp HDR encoding mode via 'intrinsic_GetHDR32bppEncodeModeES2()'.
 	static FORCEINLINE bool SupportsHDR32bppEncodeModeIntrinsic()		{ return true; }
 
-	static FORCEINLINE bool SupportsInstancing()						{ return bES30Support; }
+	static FORCEINLINE bool SupportsInstancing()						{ return bSupportsInstancing; }
 
 	static FORCEINLINE bool UseES30ShadingLanguage()
 	{
@@ -273,6 +273,10 @@ struct FAndroidOpenGL : public FOpenGLES2
 	
 	// whether device supports ES 3.0
 	static bool bES30Support;
+
+	// whether device supports hardware instancing
+	static bool bSupportsInstancing;
+
 };
 
 typedef FAndroidOpenGL FOpenGL;
