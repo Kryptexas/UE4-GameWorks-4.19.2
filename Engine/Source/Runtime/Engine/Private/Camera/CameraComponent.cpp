@@ -223,11 +223,15 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
 		{
 			FTransform PawnViewTransform(PawnViewRotation.Quaternion());
-			FTransform Transform(Orientation, Position);
-			SetRelativeTransform(Transform * PawnViewTransform);
+			FTransform HmdTransform(Orientation, Position);
+			FTransform CombinedTransform = HmdTransform * PawnViewTransform;
+			SetRelativeTransform(CombinedTransform);
+
+			PawnViewRotation = CombinedTransform.GetRotation().Rotator();
 		}
 	}
-	else if (bUsePawnControlRotation)
+
+	if (bUsePawnControlRotation)
 	{
 		if (!PawnViewRotation.Equals(GetComponentRotation()))
 		{
