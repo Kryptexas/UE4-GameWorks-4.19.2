@@ -71,14 +71,14 @@ void FSlateFontServices::FlushFontCache()
 
 void FSlateFontServices::FlushGameThreadFontCache()
 {
-	GameThreadFontCache->FlushCache();
+	GameThreadFontCache->RequestFlushCache();
 	GameThreadFontMeasure->FlushCache();
 }
 
 
 void FSlateFontServices::FlushRenderThreadFontCache()
 {
-	RenderThreadFontCache->FlushCache();
+	RenderThreadFontCache->RequestFlushCache();
 	RenderThreadFontMeasure->FlushCache();
 }
 

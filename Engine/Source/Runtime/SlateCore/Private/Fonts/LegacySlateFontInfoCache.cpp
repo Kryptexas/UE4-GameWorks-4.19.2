@@ -10,8 +10,16 @@ FLegacySlateFontInfoCache& FLegacySlateFontInfoCache::Get()
 	if (!Singleton.IsValid())
 	{
 		Singleton = MakeShareable(new FLegacySlateFontInfoCache());
+
+		FInternationalization::Get().OnCultureChanged().AddSP(Singleton.Get(), &FLegacySlateFontInfoCache::HandleCultureChanged);
 	}
 	return *Singleton;
+}
+
+FLegacySlateFontInfoCache::FLegacySlateFontInfoCache()
+	: LocalizedFallbackFontDataHistoryVersion(INDEX_NONE)
+	, LocalizedFallbackFontFrameCounter(0)
+{
 }
 
 TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetCompositeFont(const FName& InLegacyFontName, const EFontHinting InLegacyFontHinting)
@@ -82,13 +90,17 @@ const FFontData& FLegacySlateFontInfoCache::GetLocalizedFallbackFontData()
 
 	// The fallback font can change if the active culture is changed
 	const int32 CurrentHistoryVersion = FTextLocalizationManager::Get().GetTextRevision();
+	const uint64 CurrentFrameCounter = GFrameCounter;
 
-	if (!LocalizedFallbackFontData.IsValid() || LocalizedFallbackFontDataHistoryVersion != CurrentHistoryVersion)
+	// Only allow the fallback font to be updated once per-frame, as a culture change mid-frame could cause it to change unexpectedly and invalidate some assumptions that the font cache makes
+	// By only allowing it to update once per-frame, we ensure that the font cache has been flushed (which happens at the end of the frame) before we return a new font
+	if (!LocalizedFallbackFontData.IsValid() || (LocalizedFallbackFontDataHistoryVersion != CurrentHistoryVersion && LocalizedFallbackFontFrameCounter != CurrentFrameCounter))
 	{
 		// Don't allow GC while we perform this allocation
 		FGCScopeGuard GCGuard;
 
 		LocalizedFallbackFontDataHistoryVersion = CurrentHistoryVersion;
+		LocalizedFallbackFontFrameCounter = CurrentFrameCounter;
 
 		const FString FallbackFontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/") / (NSLOCTEXT("Slate", "FallbackFont", "DroidSansFallback").ToString() + TEXT(".ttf"));
 		LocalizedFallbackFontData = AllLocalizedFallbackFontData.FindRef(FallbackFontPath);
@@ -152,4 +164,10 @@ void FLegacySlateFontInfoCache::AddReferencedObjects(FReferenceCollector& Collec
 		const UFontBulkData* TmpPtr = LastResortFontData->BulkDataPtr;
 		Collector.AddReferencedObject(TmpPtr);
 	}
+}
+
+void FLegacySlateFontInfoCache::HandleCultureChanged()
+{
+	// We set this to the current frame count, as this will prevent the fallback font being updated for the remainder of this frame (as the culture change may have affected the fallback font used)
+	LocalizedFallbackFontFrameCounter = GFrameCounter;
 }

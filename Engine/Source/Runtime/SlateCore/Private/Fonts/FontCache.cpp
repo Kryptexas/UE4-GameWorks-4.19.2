@@ -754,7 +754,6 @@ FSlateFontCache::FSlateFontCache( TSharedRef<ISlateFontAtlasFactory> InFontAtlas
 	, TextShaper( new FSlateTextShaper( FTGlyphCache.Get(), FTAdvanceCache.Get(), FTKerningPairCache.Get(), CompositeFontCache.Get(), FontRenderer.Get(), this ) )
 	, FontAtlasFactory( InFontAtlasFactory )
 	, bFlushRequested( false )
-	, LastFlushHistoryVersion( FTextLocalizationManager::Get().GetTextRevision() )
 {
 	UE_LOG(LogSlate, Log, TEXT("SlateFontCache - WITH_FREETYPE: %d, WITH_HARFBUZZ: %d"), WITH_FREETYPE, WITH_HARFBUZZ);
 
@@ -918,17 +917,6 @@ FShapedGlyphSequenceRef FSlateFontCache::ShapeUnidirectionalText( const TCHAR* I
 
 FCharacterList& FSlateFontCache::GetCharacterList( const FSlateFontInfo &InFontInfo, float FontScale ) const
 {
-	{
-		// If the active culture has changed, then the localized fallback font may also have changed
-		// We need to flush the cache *immediately* in order to avoid getting bad data back from the character list cache
-		// We don't do this immediate flush in HandleCultureChanged because that may be called from the wrong thread
-		const int32 CurrentHistoryVersion = FTextLocalizationManager::Get().GetTextRevision();
-		if (LastFlushHistoryVersion != CurrentHistoryVersion)
-		{
-			FlushCache();
-		}
-	}
-
 	// Create a key for looking up each character
 	const FSlateFontKey FontKey( InFontInfo, FontScale );
 
@@ -1029,6 +1017,11 @@ const TSet<FName>& FSlateFontCache::GetFontAttributes( const FFontData& InFontDa
 	return CompositeFontCache->GetFontAttributes(InFontData);
 }
 
+void FSlateFontCache::RequestFlushCache()
+{
+	bFlushRequested = true;
+}
+
 void FSlateFontCache::FlushObject( const UObject* const InObject )
 {
 	if( !InObject )
@@ -1098,8 +1091,6 @@ void FSlateFontCache::FlushCache() const
 		SET_DWORD_STAT(STAT_SlateNumFontAtlases, 0);
 
 		FontAtlases.Empty();
-
-		LastFlushHistoryVersion = FTextLocalizationManager::Get().GetTextRevision();
 
 		UE_LOG(LogSlate, Verbose, TEXT("Slate font cache was flushed"));
 	}
