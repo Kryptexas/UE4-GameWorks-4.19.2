@@ -124,6 +124,19 @@ FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCur
 	}
 }
 
+FORCEINLINE void BlendCurves(const TFixedSizeArrayView<FBlendedCurve>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, const TFixedSizeArrayView<int32>& SourceWeightsIndices, FBlendedCurve& OutCurve)
+{
+	if (SourceCurves.Num() > 0)
+	{
+		OutCurve.Override(SourceCurves[0], SourceWeights[SourceWeightsIndices[0]]);
+
+		for (int32 CurveIndex = 1; CurveIndex<SourceCurves.Num(); ++CurveIndex)
+		{
+			OutCurve.Accumulate(SourceCurves[CurveIndex], SourceWeights[SourceWeightsIndices[CurveIndex]]);
+		}
+	}
+}
+
 FORCEINLINE void BlendCurves(const TFixedSizeArrayView<const FBlendedCurve*>& SourceCurves, const TFixedSizeArrayView<float>& SourceWeights, FBlendedCurve& OutCurve)
 {
 	if(SourceCurves.Num() > 0)
@@ -230,7 +243,7 @@ void FAnimationRuntime::BlendPosesTogether(const TFixedSizeArrayView<FCompactPos
 	// curve blending if exists
 	if (SourceCurves.Num() > 0)
 	{
-		BlendCurves(SourceCurves, SourceWeights, ResultCurve);
+		BlendCurves(SourceCurves, SourceWeights, SourceWeightsIndices, ResultCurve);
 	}
 }
 
