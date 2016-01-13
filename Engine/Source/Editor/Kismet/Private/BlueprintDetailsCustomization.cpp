@@ -4740,7 +4740,9 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 			.Padding(2.0f, 1.0f)
 			[
 				PropertyCustomizationHelpers::MakeBrowseButton(
-					FSimpleDelegate::CreateSP(this, &FBlueprintComponentDetails::OnBrowseSocket), LOCTEXT( "SocketBrowseButtonToolTipText", "Browse available Bones and Sockets")
+					FSimpleDelegate::CreateSP(this, &FBlueprintComponentDetails::OnBrowseSocket), 
+					LOCTEXT( "SocketBrowseButtonToolTipText", "Select a different Parent Socket - cannot change socket on inherited componentes"), 
+					TAttribute<bool>(this, &FBlueprintComponentDetails::CanChangeSocket)
 				)
 			]
 			+SHorizontalBox::Slot()
@@ -4749,7 +4751,11 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 			.VAlign(VAlign_Center)
 			.Padding(2.0f, 1.0f)
 			[
-				PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FBlueprintComponentDetails::OnClearSocket))
+				PropertyCustomizationHelpers::MakeClearButton(
+					FSimpleDelegate::CreateSP(this, &FBlueprintComponentDetails::OnClearSocket), 
+					LOCTEXT("SocketClearButtonToolTipText", "Clear the Parent Socket - cannot change socket on inherited componentes"), 
+					TAttribute<bool>(this, &FBlueprintComponentDetails::CanChangeSocket)
+				)
 			]
 		];
 	}
@@ -4967,6 +4973,17 @@ FText FBlueprintComponentDetails::GetSocketName() const
 		return FText::FromName(CachedNodePtr->GetSCSNode()->AttachToName);
 	}
 	return FText::GetEmpty();
+}
+
+bool FBlueprintComponentDetails::CanChangeSocket() const
+{
+	check(CachedNodePtr.IsValid());
+
+	if (CachedNodePtr->GetSCSNode() != NULL)
+	{
+		return !CachedNodePtr->IsInherited();
+	}
+	return true;
 }
 
 void FBlueprintComponentDetails::OnBrowseSocket()
