@@ -143,7 +143,7 @@ void FMovieSceneSequenceInstance::Update( float Position, float LastPosition, cl
 		for (int32 ObjectIndex = 0; ObjectIndex < ObjectBindingInstance.RuntimeObjects.Num(); )
 		{
 			UObject* RuntimeObject = ObjectBindingInstance.RuntimeObjects[ObjectIndex];
-			if (RuntimeObject == nullptr || RuntimeObject->IsPendingKill())
+			if (RuntimeObject == nullptr || RuntimeObject->HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed) || RuntimeObject->IsPendingKill())
 			{
 				ObjectBindingInstance.RuntimeObjects.RemoveAt(ObjectIndex);
 			}
