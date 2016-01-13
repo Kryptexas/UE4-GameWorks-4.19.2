@@ -4556,6 +4556,8 @@ float UAnimSequence::GetCurrentTimeFromMarkers(FMarkerPair& PrevMarker, FMarkerP
 	{
 		CurrentTime += SequenceLength;
 	}
+	CurrentTime = FMath::Clamp<float>(CurrentTime, 0, SequenceLength);
+
 	PrevMarker.TimeToMarker = PrevTime - CurrentTime;
 	NextMarker.TimeToMarker = NextTime - CurrentTime;
 	return CurrentTime;

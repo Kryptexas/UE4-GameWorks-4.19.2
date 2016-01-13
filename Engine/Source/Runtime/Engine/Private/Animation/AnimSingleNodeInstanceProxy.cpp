@@ -309,6 +309,7 @@ void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewA
 	PlayRate = InPlayRate;
 	CurrentTime = 0.f;
 	BlendSpaceInput = FVector::ZeroVector;
+	BlendSampleData.Empty();
 	MarkerTickRecord.Reset();
 
 #if WITH_EDITORONLY_DATA
