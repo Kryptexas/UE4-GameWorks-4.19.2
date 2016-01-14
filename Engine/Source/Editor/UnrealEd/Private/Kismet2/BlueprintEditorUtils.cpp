@@ -3970,7 +3970,7 @@ void FBlueprintEditorUtils::GetHiddenPinsForFunction(UEdGraph const* Graph, UFun
 					bool bHasIntrinsicWorldContext = false;
 
 					UBlueprint const* CallingContext = FindBlueprintForGraph(Graph);
-					if (GEngine && CallingContext && CallingContext->ParentClass)
+					if (CallingContext && CallingContext->ParentClass)
 					{
 						bHasIntrinsicWorldContext = CallingContext->ParentClass->GetDefaultObject()->ImplementsGetWorld();
 					}
