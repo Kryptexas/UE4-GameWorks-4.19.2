@@ -331,7 +331,7 @@ namespace UnrealBuildTool
 		{
 			// Use the native 64-bit compiler if present, otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
 			var Result = Path.Combine(BaseVSToolPath, "../../VC/bin/amd64");
-			if (Directory.Exists(Result))
+			if (File.Exists(Path.Combine(Result, "cl.exe")))
 			{
 				return Result;
 			}
