@@ -377,8 +377,8 @@ public partial class GUBP : BuildCommand
 	{
 		foreach(BuildNode NodeToDo in NodesToDo)
 		{
-            // Construct the full temp storage node info
-			NodeToDo.IsComplete = TempStorage.TempStorageExists(NodeToDo.Name, SharedStorageDir, bQuiet: true);
+            // Construct the full temp storage node info. Check both the block name and the succeeded record; we may have skipped copying the build products themselves because they weren't input dependencies.
+			NodeToDo.IsComplete = TempStorage.TempStorageExists(NodeToDo.Name, SharedStorageDir, bQuiet: true) || TempStorage.TempStorageExists(NodeToDo.Name + SucceededTempStorageSuffix, SharedStorageDir, bQuiet: true);
 
             LogVerbose("** {0}", NodeToDo.Name);
 			if (!NodeToDo.IsComplete)
