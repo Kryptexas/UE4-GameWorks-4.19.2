@@ -71,14 +71,6 @@ static TAutoConsoleVariable<int32> CVarInstancedStereo(
 	TEXT("0 to disable instanced stereo (default), 1 to enable."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
-TAutoConsoleVariable<int32> CVarCustomDepthOrder(
-	TEXT("r.CustomDepth.Order"),
-	1,	
-	TEXT("When CustomDepth (and CustomStencil) is getting rendered\n")
-	TEXT("  0: Before GBuffer (can be more efficient with AsyncCompute, allows using it in DBuffer pass, no GBuffer blending decals allow GBuffer compression)\n")
-	TEXT("  1: After Base Pass (default)"),
-	ECVF_RenderThreadSafe);
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarGeneralPurposeTweak(
 	TEXT("r.GeneralPurposeTweak"),
@@ -1531,6 +1523,7 @@ void ServiceLocalQueue();
 
 void FSceneRenderer::RenderCustomDepthPassAtLocation(FRHICommandListImmediate& RHICmdList, int32 Location)
 {		
+	extern TAutoConsoleVariable<int32> CVarCustomDepthOrder;
 	int32 CustomDepthOrder = FMath::Clamp(CVarCustomDepthOrder.GetValueOnRenderThread(), 0, 1);
 
 	if(CustomDepthOrder == Location)

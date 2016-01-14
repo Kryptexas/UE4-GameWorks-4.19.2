@@ -68,21 +68,6 @@ class FEditorAnalytics
 {
 public:
 	/**
-	 * Starts the session manager if needed
-	 */
-	UNREALED_API static void InitializeSessionManager();
-
-	/**
-	 * Stops the session manager if needed
-	 */
-	UNREALED_API static void ShutdownSessionManager();
-
-	/**
-	 * Update the editor session's heartbeat time
-	 */
-	UNREALED_API static void SessionHeartbeat();
-
-	/**
 	* Reports an event to the analytics system if it is enabled
 	*
 	* @param EventName - name of the event
@@ -127,5 +112,5 @@ public:
 	UNREALED_API static bool ShouldElevateMessageThroughDialog(const int32 ErrorCode);
 
 private:
-	static TSharedPtr<class FSessionManager> SessionManager;
+	static TSharedPtr<class FEngineSessionManager> SessionManager;
 };

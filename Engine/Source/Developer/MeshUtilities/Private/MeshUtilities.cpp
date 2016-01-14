@@ -312,27 +312,7 @@ protected:
 	};
 
 	void ProcessJob(const FGuid& JobGuid, FProxyGenerationData* Data)
-	{
-		// Fill proxy material constants if applicable
-		if (Data->Material.MetallicSamples.Num() == 0)
-		{
-			Data->Material.MetallicSize = FIntPoint(1, 1);
-			Data->Material.MetallicSamples.SetNum(1);
-			Data->Material.MetallicSamples[0].DWColor() = *(uint32*)(&Data->MergeData->InProxySettings.MaterialSettings.MetallicConstant);
-		}
-		if (Data->Material.RoughnessSamples.Num() == 0)
-		{
-			Data->Material.RoughnessSize = FIntPoint(1, 1);
-			Data->Material.RoughnessSamples.SetNum(1);
-			Data->Material.RoughnessSamples[0].DWColor() = *(uint32*)(&Data->MergeData->InProxySettings.MaterialSettings.RoughnessConstant);
-		}
-		if (Data->Material.SpecularSamples.Num() == 0)
-		{
-			Data->Material.SpecularSize = FIntPoint(1, 1);
-			Data->Material.SpecularSamples.SetNum(1);
-			Data->Material.SpecularSamples[0].DWColor() = *(uint32*)(&Data->MergeData->InProxySettings.MaterialSettings.SpecularConstant);
-		}
-
+	{	
 		TArray<UObject*> OutAssetsToSync;
 		const FString AssetBaseName = FPackageName::GetShortName(Data->MergeData->ProxyBasePackageName);
 		const FString AssetBasePath = Data->MergeData->InOuter ? TEXT("") : FPackageName::GetLongPackagePath(Data->MergeData->ProxyBasePackageName) + TEXT("/");
@@ -344,7 +324,7 @@ protected:
 		FMaterialUtilities::OptimizeFlattenMaterial(Data->Material);
 
 		// Construct proxy material
-		UMaterial* ProxyMaterial = FMaterialUtilities::CreateMaterial(Data->Material, Data->MergeData->InOuter, Data->MergeData->ProxyBasePackageName, RF_Public | RF_Standalone, OutAssetsToSync);
+		UMaterial* ProxyMaterial = FMaterialUtilities::CreateMaterial(Data->Material, Data->MergeData->InOuter, Data->MergeData->ProxyBasePackageName, RF_Public | RF_Standalone, Data->MergeData->InProxySettings.MaterialSettings, OutAssetsToSync);
 
 		// Set material static lighting usage flag if project has static lighting enabled
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
@@ -5682,7 +5662,7 @@ bool FMeshUtilities::ConstructRawMesh(
 		UE_LOG(LogMeshUtilities, Error, TEXT("Raw mesh (%s) is corrupt for LOD%d."), *SrcMesh->GetName(), LODIndex);
 		return false;
 	}
-
+	
 	// Handle spline mesh deformation
 	if (InMeshComponent->IsA<USplineMeshComponent>())
 	{
@@ -5995,7 +5975,7 @@ bool FMeshUtilities::PropagatePaintedColorsToRawMesh(UStaticMeshComponent* Stati
 
 				return true;
 			}
-		}
+		}	
 	}
 
 	return false;
@@ -6477,42 +6457,42 @@ static void MergeFlattenedMaterials(TArray<struct FFlattenMaterial>& InMaterialL
 			SetTextureRect(FlatMaterial.DiffuseSamples[0], ExportTextureSize, OutMergedMaterial.DiffuseSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
 
-		if (FlatMaterial.NormalSamples.Num() >= 1)
+		if (FlatMaterial.NormalSamples.Num() >= 1 && bExportNormal)
 		{
-			FlatMaterial.NormalSize = bExportNormal ? ConditionalImageResize(FlatMaterial.NormalSize, ExportTextureSize, FlatMaterial.NormalSamples, false) : FIntPoint::ZeroValue;
+			FlatMaterial.NormalSize = ConditionalImageResize(FlatMaterial.NormalSize, ExportTextureSize, FlatMaterial.NormalSamples, false);
 			CopyTextureRect(FlatMaterial.NormalSamples.GetData(), ExportTextureSize, OutMergedMaterial.NormalSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
-		else if (FlatMaterial.NormalSamples.Num() == 1)
+		else if (FlatMaterial.NormalSamples.Num() == 1 && bExportNormal)
 		{
 			SetTextureRect(FlatMaterial.NormalSamples[0], ExportTextureSize, OutMergedMaterial.NormalSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
 
-		if (FlatMaterial.MetallicSamples.Num() >= 1)
+		if (FlatMaterial.MetallicSamples.Num() >= 1 && bExportMetallic)
 		{
-			FlatMaterial.MetallicSize = bExportMetallic ? ConditionalImageResize(FlatMaterial.MetallicSize, ExportTextureSize, FlatMaterial.MetallicSamples, false) : FIntPoint::ZeroValue;
+			FlatMaterial.MetallicSize = ConditionalImageResize(FlatMaterial.MetallicSize, ExportTextureSize, FlatMaterial.MetallicSamples, false);
 			CopyTextureRect(FlatMaterial.MetallicSamples.GetData(), ExportTextureSize, OutMergedMaterial.MetallicSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
-		else if (FlatMaterial.MetallicSamples.Num() == 1)
+		else if (FlatMaterial.MetallicSamples.Num() == 1 && bExportMetallic)
 		{
 			SetTextureRect(FlatMaterial.MetallicSamples[0], ExportTextureSize, OutMergedMaterial.MetallicSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
 
-		if (FlatMaterial.RoughnessSamples.Num() >= 1)
+		if (FlatMaterial.RoughnessSamples.Num() >= 1 && bExportRoughness)
 		{
-			FlatMaterial.RoughnessSize = bExportRoughness ? ConditionalImageResize(FlatMaterial.RoughnessSize, ExportTextureSize, FlatMaterial.RoughnessSamples, false) : FIntPoint::ZeroValue;
+			FlatMaterial.RoughnessSize = ConditionalImageResize(FlatMaterial.RoughnessSize, ExportTextureSize, FlatMaterial.RoughnessSamples, false);
 			CopyTextureRect(FlatMaterial.RoughnessSamples.GetData(), ExportTextureSize, OutMergedMaterial.RoughnessSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
-		else if (FlatMaterial.RoughnessSamples.Num() == 1)
+		else if (FlatMaterial.RoughnessSamples.Num() == 1 && bExportRoughness)
 		{
 			SetTextureRect(FlatMaterial.RoughnessSamples[0], ExportTextureSize, OutMergedMaterial.RoughnessSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
 
-		if (FlatMaterial.SpecularSamples.Num() >= 1)
+		if (FlatMaterial.SpecularSamples.Num() >= 1 && bExportSpecular)
 		{
-			FlatMaterial.SpecularSize = bExportSpecular ? ConditionalImageResize(FlatMaterial.SpecularSize, ExportTextureSize, FlatMaterial.SpecularSamples, false) : FIntPoint::ZeroValue;
+			FlatMaterial.SpecularSize = ConditionalImageResize(FlatMaterial.SpecularSize, ExportTextureSize, FlatMaterial.SpecularSamples, false);
 			CopyTextureRect(FlatMaterial.SpecularSamples.GetData(), ExportTextureSize, OutMergedMaterial.SpecularSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
-		else if (FlatMaterial.SpecularSamples.Num() == 1)
+		else if (FlatMaterial.SpecularSamples.Num() == 1 && bExportSpecular)
 		{
 			SetTextureRect(FlatMaterial.SpecularSamples[0], ExportTextureSize, OutMergedMaterial.SpecularSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 		}
@@ -6823,7 +6803,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			MaterialPackage->Modify();
 		}
 
-		UMaterial* MergedMaterial = FMaterialUtilities::CreateMaterial(MergedFlatMaterial, MaterialPackage, MaterialAssetName, RF_Public | RF_Standalone, OutAssetsToSync);
+		UMaterial* MergedMaterial = FMaterialUtilities::CreateMaterial(MergedFlatMaterial, MaterialPackage, MaterialAssetName, RF_Public | RF_Standalone, InSettings.MaterialSettings, OutAssetsToSync);
 
 		// Set material static lighting usage flag if project has static lighting enabled
 		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));

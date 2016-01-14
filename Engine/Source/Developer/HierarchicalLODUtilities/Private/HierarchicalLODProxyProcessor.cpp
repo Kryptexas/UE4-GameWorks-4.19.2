@@ -45,6 +45,11 @@ bool FHierarchicalLODProxyProcessor::Tick(float DeltaTime)
 		}
 		check(MainMesh != nullptr);
 
+		// Force lightmap coordinate to 0 for proxy meshes
+		MainMesh->LightMapCoordinateIndex = 0;
+		// Trigger post edit change, simulating we made a change in the Static mesh editor (could only call Build, but this is for possible future changes)
+		MainMesh->PostEditChange();
+
 		// Set new static mesh, location and sub-objects (UObjects)
 		Data->LODActor->SetStaticMesh(MainMesh);
 		Data->LODActor->SetActorLocation(FVector::ZeroVector);
@@ -60,10 +65,6 @@ bool FHierarchicalLODProxyProcessor::Tick(float DeltaTime)
 
 		// Freshly build so mark not dirty
 		Data->LODActor->SetIsDirty(false);
-
-		// Force lightmap coordinate to 0 for proxy meshes
-		//Data->LODActor->GetStaticMeshComponent()->StaticMesh->LightMapCoordinateIndex = 0;
-
 		delete Data;
 	}
 

@@ -83,12 +83,6 @@ class UAnimSequenceBase : public UAnimationAsset
 	/** Evaluate curve data to Instance at the time of CurrentTime **/
 	ENGINE_API virtual void EvaluateCurveData(FBlendedCurve& OutCurve, float CurrentTime) const;
 
-	/**
-	 * return true if this is valid additive animation
-	 * false otherwise
-	 */
-	virtual bool IsValidAdditive() const { return false; }
-
 #if WITH_EDITOR
 	/** Return Number of Frames **/
 	virtual int32 GetNumberOfFrames() const;

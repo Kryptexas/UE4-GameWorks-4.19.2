@@ -2043,29 +2043,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			LandscapeFlattenMaterial.SpecularSize = SimplificationDetails.LandscapeMaterialSettings.bSpecularMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
 			
 			FMaterialUtilities::ExportLandscapeMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
-
-			// Fill landscape material constants
-			{
-				if (LandscapeFlattenMaterial.MetallicSamples.Num() == 0)
-				{
-					LandscapeFlattenMaterial.MetallicSize = FIntPoint(1, 1);
-					LandscapeFlattenMaterial.MetallicSamples.SetNum(1);
-					LandscapeFlattenMaterial.MetallicSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.MetallicConstant);
-				}
-				if (LandscapeFlattenMaterial.RoughnessSamples.Num() == 0)
-				{
-					LandscapeFlattenMaterial.RoughnessSize = FIntPoint(1, 1);
-					LandscapeFlattenMaterial.RoughnessSamples.SetNum(1);
-					LandscapeFlattenMaterial.RoughnessSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.RoughnessConstant);
-				}
-				if (LandscapeFlattenMaterial.SpecularSamples.Num() == 0)
-				{
-					LandscapeFlattenMaterial.SpecularSize = FIntPoint(1, 1);
-					LandscapeFlattenMaterial.SpecularSamples.SetNum(1);
-					LandscapeFlattenMaterial.SpecularSamples[0].DWColor() = *(uint32*)(&SimplificationDetails.LandscapeMaterialSettings.SpecularConstant);
-				}
-			}
-		
+					
 			if (SimplificationDetails.bBakeGrassToLandscape)
 			{
 				Landscape->FlushGrassComponents(); // wipe this and let it fix itself later
@@ -2073,7 +2051,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			FString LandscapeBaseAssetName = FString::Printf(TEXT("%s_LOD%d"), *Landscape->GetName(), TargetLODIndex + 1);
 			// Construct landscape material
 			UMaterial* StaticLandscapeMaterial = FMaterialUtilities::CreateMaterial(
-				LandscapeFlattenMaterial, AssetsOuter, *(AssetsPath + LandscapeBaseAssetName), RF_Public|RF_Standalone, GeneratedAssets);
+				LandscapeFlattenMaterial, AssetsOuter, *(AssetsPath + LandscapeBaseAssetName), RF_Public | RF_Standalone, SimplificationDetails.LandscapeMaterialSettings, GeneratedAssets);
 			// Currently landscape exports world space normal map
 			StaticLandscapeMaterial->bTangentSpaceNormal = false;
 			StaticLandscapeMaterial->PostEditChange();

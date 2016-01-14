@@ -146,6 +146,14 @@ void UUMGSequencePlayer::Pause()
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 }
 
+void UUMGSequencePlayer::Reverse()
+{
+	if (PlayerStatus == EMovieScenePlayerStatus::Playing)
+	{
+		bIsPlayingForward = !bIsPlayingForward;
+	}
+}
+
 void UUMGSequencePlayer::Stop()
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;

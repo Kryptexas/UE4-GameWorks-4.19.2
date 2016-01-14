@@ -866,7 +866,7 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	/**
 	 * Handler for device delegate to prompt us to load a new pak.	 
 	 */
-	bool HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder);
+	bool HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder, IPlatformFile::FDirectoryVisitor* Visitor);
 
 	/**
 	 * Handler for device delegate to prompt us to unload a pak.

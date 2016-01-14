@@ -90,7 +90,12 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 	// Don't add compressed data to size of streaming sounds
 	if (AudioDevice && (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
 	{
+		// Only add the compressed data size of the asset from DDC in editor builds otherwise use ResourceSize (which may be 0)
+#if WITH_EDITOR
 		CalculatedResourceSize += GetCompressedDataSize(AudioDevice->GetRuntimeFormat(this));
+#else
+		CalculatedResourceSize += ResourceSize;
+#endif
 	}
 
 	return CalculatedResourceSize;

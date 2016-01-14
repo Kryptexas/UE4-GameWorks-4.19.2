@@ -20,7 +20,7 @@ void ULeaderboardFlushCallbackProxy::TriggerFlush(APlayerController* PlayerContr
 		TSharedPtr<const FUniqueNetId> UserID = PlayerState->UniqueId.GetUniqueNetId();
 		if (UserID.IsValid())
 		{
-			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
+			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::IsLoaded() ? IOnlineSubsystem::Get() : nullptr)
 			{
 				IOnlineLeaderboardsPtr Leaderboards = OnlineSub->GetLeaderboardsInterface();
 				if (Leaderboards.IsValid())
@@ -77,7 +77,7 @@ void ULeaderboardFlushCallbackProxy::RemoveDelegate()
 {
 	if (!bFailedToEvenSubmit)
 	{
-		if (IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get())
+		if (IOnlineSubsystem* OnlineSub = IOnlineSubsystem::IsLoaded() ? IOnlineSubsystem::Get() : nullptr)
 		{
 			IOnlineLeaderboardsPtr Leaderboards = OnlineSub->GetLeaderboardsInterface();
 			if (Leaderboards.IsValid())

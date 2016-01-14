@@ -2035,6 +2035,14 @@ void FStaticMeshComponentLODInfo::ImportText(const TCHAR** SourceText)
 	}
 }
 
+int32 GKeepKeepOverrideVertexColorsOnCPU = 1;
+FAutoConsoleVariableRef CKeepOverrideVertexColorsOnCPU(
+	TEXT("r.KeepOverrideVertexColorsOnCPU"),
+	GKeepKeepOverrideVertexColorsOnCPU,
+	TEXT("Keeps a CPU copy of override vertex colors.  May be required for some blueprints / object spawning."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 {
 	const uint8 OverrideColorsStripFlag = 1;
@@ -2077,7 +2085,9 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 				I.OverrideVertexColors = new FColorVertexBuffer;
 			}
 
-			I.OverrideVertexColors->Serialize( Ar, true );
+			//we want to discard the vertex colors after rhi init when in cooked/client builds.
+			const bool bNeedsCPUAccess = !Ar.IsLoading() || GIsEditor || IsRunningCommandlet() || (GKeepKeepOverrideVertexColorsOnCPU != 0);
+			I.OverrideVertexColors->Serialize(Ar, bNeedsCPUAccess);
 		}
 	}
 

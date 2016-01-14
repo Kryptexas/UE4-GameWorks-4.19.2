@@ -1521,6 +1521,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	~FActiveGameplayEffectsContainer();
 
 	UAbilitySystemComponent* Owner;
+	bool OwnerIsNetAuthority;
 
 	FOnGivenActiveGameplayEffectRemoved	OnActiveGameplayEffectRemovedDelegate;
 
@@ -1741,7 +1742,10 @@ private:
 	 */
 	bool InternalExecuteMod(FGameplayEffectSpec& Spec, FGameplayModifierEvaluatedData& ModEvalData);
 
-	bool IsNetAuthority() const;
+	bool IsNetAuthority() const
+	{
+		return OwnerIsNetAuthority;
+	}
 
 	/** Called internally to actually remove a GameplayEffect or to reduce its StackCount. Returns true if we resized our internal GameplayEffect array. */
 	bool InternalRemoveActiveGameplayEffect(int32 Idx, int32 StacksToRemove, bool bPrematureRemoval);

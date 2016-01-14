@@ -91,7 +91,8 @@ void UAnalyticsPrivacySettings::OnSendFullUsageDataChanged()
 		if (FEngineAnalytics::IsAvailable())
 		{
 			FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Privacy.EndUserOptOut"));
-			FEngineAnalytics::Shutdown();
+			const bool bIsEngineShutdown = false;
+			FEngineAnalytics::Shutdown(bIsEngineShutdown);
 		}
 	}
 }

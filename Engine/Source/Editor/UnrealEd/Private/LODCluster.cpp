@@ -315,8 +315,11 @@ ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bo
 
 			// Mark dirty according to whether or not this is a preview build
 			NewActor->SetIsDirty(!bCreateMeshes);
-
-			FHierarchicalLODUtilities::BuildStaticMeshForLODActor(NewActor, AssetsOuter, LODSetup, LODIdx);
+			
+			if (bCreateMeshes)
+			{
+				FHierarchicalLODUtilities::BuildStaticMeshForLODActor(NewActor, AssetsOuter, LODSetup, LODIdx);
+			}
 
 			return NewActor;
 		}

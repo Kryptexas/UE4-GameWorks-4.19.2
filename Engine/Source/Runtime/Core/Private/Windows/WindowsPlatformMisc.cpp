@@ -2388,9 +2388,57 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 			DisplayDevice.cb = sizeof( DisplayDevice );
 			DeviceIndex++;
 		}
-
 	}
+
 	return PrimaryGPUBrand;
+}
+
+void FWindowsPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate)
+{
+	// to prevent bugs
+	InternalDriverVersion.Empty();
+	UserDriverVersion.Empty();
+	DriverDate.Empty();
+
+	for(uint32 i = 0;; ++i)
+	{
+		// Iterate all installed display adapters
+		FString Key = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
+
+		FString LocalDeviceDescription; // e.g. "NVIDIA GeForce GTX 680" or "AMD Radeon R9 200 / HD 7900 Series"
+		bool bDevice = FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("Device Description"), LocalDeviceDescription);	// AMD and NVIDIA
+
+		if(!bDevice)
+		{
+			break;
+		}
+
+		// AMD (not the Catalyst one) and NVIDIA
+		// e.g. "15.200.1062.1004"(AMD) "9.18.13.4788" (NVIDIA)
+		FString LocalInternalDriverVersion;
+		FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("DriverVersion"), LocalInternalDriverVersion);
+
+		// if there is no Catalyst_Version we use the internal version
+		FString LocalUserDriverVersion = LocalInternalDriverVersion;
+
+		// AMD only
+		// e.g. 15.7.1
+		FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("Catalyst_Version"), LocalUserDriverVersion);
+
+		// AMD and NVIDIA
+		// e.g. 3-13-2015
+		FString LocalDriverDate;
+		FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("DriverDate"), LocalDriverDate);
+
+		if(LocalDeviceDescription == DeviceDescription)
+		{
+			// found the one we are searching for (if there are multiple we only get the first one)
+			InternalDriverVersion = LocalInternalDriverVersion;
+			UserDriverVersion = LocalUserDriverVersion;
+			DriverDate = LocalDriverDate;
+			break;
+		}
+	}
 }
 #include "HideWindowsPlatformTypes.h"
 

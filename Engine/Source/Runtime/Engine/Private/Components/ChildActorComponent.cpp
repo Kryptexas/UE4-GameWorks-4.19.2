@@ -243,6 +243,17 @@ void UChildActorComponent::SetChildActorClass(TSubclassOf<AActor> Class)
 	}
 }
 
+struct FActorParentComponentSetter
+{
+private:
+	static void Set(AActor* ChildActor, UChildActorComponent* ParentComponent)
+	{
+		ChildActor->ParentComponent = ParentComponent;
+	}
+
+	friend UChildActorComponent;
+};
+
 void UChildActorComponent::CreateChildActor()
 {
 	// Kill spawned actor if we have one
@@ -265,14 +276,21 @@ void UChildActorComponent::CreateChildActor()
 					bSpawn = false;
 					UE_LOG(LogChildActorComponent, Error, TEXT("Found cycle in child actor component '%s'.  Not spawning Actor of class '%s' to break."), *GetPathName(), *ChildActorClass->GetName());
 				}
-				Actor = Actor->ParentComponentActor.Get();
+				if (UChildActorComponent* ParentComponent = Actor->GetParentComponent())
+				{
+					Actor = ParentComponent->GetOwner();
+				}
+				else
+				{
+					Actor = nullptr;
+				}
 			}
 
 			if (bSpawn)
 			{
 				FActorSpawnParameters Params;
 				Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-				Params.bDeferConstruction = true; // We defer construction so that we set ParentComponentActor prior to component registration so they appear selected
+				Params.bDeferConstruction = true; // We defer construction so that we set ParentComponent prior to component registration so they appear selected
 				Params.bAllowDuringConstructionScript = true;
 				Params.OverrideLevel = (MyOwner ? MyOwner->GetLevel() : nullptr);
 				Params.Name = ChildActorName;
@@ -291,8 +309,8 @@ void UChildActorComponent::CreateChildActor()
 				{
 					ChildActorName = ChildActor->GetFName();
 
-					// Remember which actor spawned it (for selection in editor etc)
-					ChildActor->ParentComponentActor = MyOwner;
+					// Remember which component spawned it (for selection in editor etc)
+					FActorParentComponentSetter::Set(ChildActor, this);
 
 					// Parts that we deferred from SpawnActor
 					const FComponentInstanceDataCache* ComponentInstanceData = (CachedInstanceData ? CachedInstanceData->ComponentInstanceData : nullptr);

@@ -42,6 +42,7 @@ DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 #include "Engine/Selection.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/LightmassPortalComponent.h"
+#include "Runtime/CoreUObject/Public/Misc/UObjectToken.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 
@@ -776,12 +777,20 @@ void UpdateStaticLightingHLODTreeIndices(TMultiMap<AActor*, FStaticLightingMesh*
 
 			for (FStaticLightingMesh* SubActorMesh : SubActorMeshes)
 			{
-				checkf(SubActorMesh->HLODTreeIndex == 0, TEXT("ERROR: HLODTreeIndex != 0 for '%s' while processing LOD actor '%s'"), *SubActorMesh->Component->GetPathName(), *LODActor->GetName());
+				if (SubActorMesh->HLODTreeIndex == 0)
 				{
 					SubActorMesh->HLODTreeIndex = HLODTreeIndex;
 					SubActorMesh->HLODChildStartIndex = HLODLeafIndex;
 					SubActorMesh->HLODChildEndIndex = HLODLeafIndex;
 					++HLODLeafIndex;
+				}
+				else
+				{
+					// Output error to message log containing tokens to the problematic objects
+					FMessageLog("LightingResults").Warning()
+						->AddToken(FUObjectToken::Create(SubActorMesh->Component->GetOwner()))
+						->AddToken(FTextToken::Create(LOCTEXT("LightmassError_InvalidHLODTreeIndex", "will not be correctly lit since it is part of another Hierarchical LOD cluster besides ")))
+						->AddToken(FUObjectToken::Create(LODActor));
 				}
 			}
 		}

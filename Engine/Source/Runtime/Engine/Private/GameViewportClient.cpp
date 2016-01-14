@@ -305,6 +305,7 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 	AddCursor(EMouseCursor::Default, UISettings->DefaultCursor);
 	AddCursor(EMouseCursor::TextEditBeam, UISettings->TextEditBeamCursor);
 	AddCursor(EMouseCursor::Crosshairs, UISettings->CrosshairsCursor);
+	AddCursor(EMouseCursor::Hand, UISettings->HandCursor);
 	AddCursor(EMouseCursor::GrabHand, UISettings->GrabHandCursor);
 	AddCursor(EMouseCursor::GrabHandClosed, UISettings->GrabHandClosedCursor);
 	AddCursor(EMouseCursor::SlashedCircle, UISettings->SlashedCircleCursor);
@@ -2758,6 +2759,7 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		if( UserSettings != nullptr )
 		{
 			UserSettings->SetFullscreenMode( FullScreenMode );
+			UserSettings->ConfirmVideoMode();
 		}
 	}
 

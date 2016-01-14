@@ -40,6 +40,7 @@
 #include "GameFramework/GameMode.h"
 #include "GameDelegates.h"
 #include "Engine/CoreSettings.h"
+#include "EngineAnalytics.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
@@ -205,7 +206,14 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 
 	// consume available desktop area
 	FDisplayMetrics DisplayMetrics;
-	FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
+	}
+	else
+	{
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+	}
 
 	// Find the maximum allowed resolution
 	// Use PrimaryDisplayWidth/Height in windowed mode
@@ -576,7 +584,7 @@ void UGameEngine::PreExit()
 
 			if (World->GetGameInstance() != nullptr)
 			{
-			World->GetGameInstance()->Shutdown();
+				World->GetGameInstance()->Shutdown();
 			}
 
 			World->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
@@ -622,7 +630,7 @@ bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading 
 		{
 			const FString StreamingLevelName = StreamingLevel->GetWorldAsset().GetLongPackageName();
 			if (StreamingLevelName == PrefixedName)
-	{
+			{
 				Str = PrefixedName;
 				return true;
 			}
@@ -781,6 +789,9 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
+	// temp hack: debugging a crash on exit that doesnt repro. Need to find the calling code
+	ensureMsgf(0, TEXT("Debugging graceful exit from the game during load"));
+	
 	Ar.Log( TEXT("Closing by request") );
 	FGameDelegates::Get().GetExitCommandDelegate().Broadcast();
 	FPlatformMisc::RequestExit( 0 );
@@ -948,6 +959,8 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		StaticTick(DeltaSeconds, !!GAsyncLoadingUseFullTimeLimit, GAsyncLoadingTimeLimit / 1000.f);
 	}
 
+	FEngineAnalytics::Tick(DeltaSeconds);
+
 	// -----------------------------------------------------
 	// Begin ticking worlds
 	// -----------------------------------------------------
@@ -1059,45 +1072,45 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	// Tick the viewport
-		if ( GameViewport != NULL && !bIdleMode )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
-			GameViewport->Tick(DeltaSeconds);
-		}
+	if ( GameViewport != NULL && !bIdleMode )
+	{
+		SCOPE_CYCLE_COUNTER(STAT_GameViewportTick);
+		GameViewport->Tick(DeltaSeconds);
+	}
 
-		if (FPlatformProperties::SupportsWindowedMode())
+	if (FPlatformProperties::SupportsWindowedMode())
+	{
+		// Hide the splashscreen and show the game window
+		static bool bFirstTime = true;
+		if ( bFirstTime )
 		{
-			// Hide the splashscreen and show the game window
-			static bool bFirstTime = true;
-			if ( bFirstTime )
+			bFirstTime = false;
+			FPlatformSplash::Hide();
+			if ( GameViewportWindow.IsValid() )
 			{
-				bFirstTime = false;
-				FPlatformSplash::Hide();
-				if ( GameViewportWindow.IsValid() )
-				{
-					GameViewportWindow.Pin()->ShowWindow();
-					FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
-				}
+				GameViewportWindow.Pin()->ShowWindow();
+				FSlateApplication::Get().RegisterGameViewport( GameViewportWidget.ToSharedRef() );
 			}
 		}
+	}
 
-		if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
-		{
-			// Render everything.
-			RedrawViewports();
-		}
+	if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
+	{
+		// Render everything.
+		RedrawViewports();
+	}
 
-		if( GIsClient )
-		{
-			// Update resource streaming after viewports have had a chance to update view information. Normal update.
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
-				IStreamingManager::Get().Tick( DeltaSeconds );
-			}
+	if( GIsClient )
+	{
+		// Update resource streaming after viewports have had a chance to update view information. Normal update.
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_IStreamingManager);
+		IStreamingManager::Get().Tick( DeltaSeconds );
+	}
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
 	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 	if (AudioDeviceManager)
-			{
+	{
 		AudioDeviceManager->UpdateActiveAudioDevices(bIsAnyNonPreviewWorldUnpaused);
 	}
 

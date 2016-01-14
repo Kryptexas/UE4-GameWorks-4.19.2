@@ -725,12 +725,12 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	return true;
 }
 
-bool UDemoNetDriver::IsRecording()
+bool UDemoNetDriver::IsRecording() const
 {
 	return ClientConnections.Num() > 0 && ClientConnections[0] != nullptr && ClientConnections[0]->State != USOCK_Closed;
 }
 
-bool UDemoNetDriver::IsPlaying()
+bool UDemoNetDriver::IsPlaying() const
 {
 	return ServerConnection != nullptr && ServerConnection->State != USOCK_Closed;
 }

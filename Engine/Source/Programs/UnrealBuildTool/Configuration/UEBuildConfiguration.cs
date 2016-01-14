@@ -248,6 +248,12 @@ namespace UnrealBuildTool
 		public static bool bUseLoggingInShipping;
 
 		/// <summary>
+		/// Whether to turn on checks (asserts) for test/shipping builds
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseChecksInShipping;
+
+		/// <summary>
 		/// True if we need PhysX vehicle support
 		/// </summary>
 		[XmlConfig]
@@ -329,6 +335,7 @@ namespace UnrealBuildTool
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
 			bUseLoggingInShipping = false;
+			bUseChecksInShipping = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
 			bCompilePhysXVehicle = true;

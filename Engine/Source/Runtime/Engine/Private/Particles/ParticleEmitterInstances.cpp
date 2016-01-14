@@ -320,6 +320,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
 	, LightDataOffset(0)
 	, OrbitModuleOffset(0)
 	, CameraPayloadOffset(0)
+	, bEnabled(1)
     , bKillOnDeactivate(0)
     , bKillOnCompleted(0)
 	, bHaltSpawning(0)
@@ -1493,7 +1494,7 @@ float FParticleEmitterInstance::GetCurrentBurstRateOffset(float& DeltaTime, int3
 		{
 			FParticleBurst* BurstEntry = &(LODLevel->SpawnModule->BurstList[BurstIdx]);
 			// If it hasn't been fired
-			if (LODLevel->Level < BurstFired.Num())
+			if (BurstEntry && LODLevel->Level < BurstFired.Num())
 			{
 				FLODBurstFired& LocalBurstFired = BurstFired[LODLevel->Level];
 				if (BurstIdx < LocalBurstFired.Fired.Num())
@@ -2504,7 +2505,7 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 	// NOTE: This the base class implementation that should ONLY be called by derived classes' FillReplayData()!
 
 	// Make sure there is a template present
-	if (!SpriteTemplate)
+	if (!SpriteTemplate || !bEnabled)
 	{
 		return false;
 	}

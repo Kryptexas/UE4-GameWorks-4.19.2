@@ -98,6 +98,13 @@ uint32 SMeshWidget::AddMesh(USlateVectorArtData& InMeshData)
 	return RenderData.Num()-1;
 }
 
+uint32 SMeshWidget::AddMeshWithInstancing(USlateVectorArtData& InMeshData, int32 InitialBufferSize)
+{
+	const uint32 NewMeshId = AddMesh(InMeshData);
+	EnableInstancing(NewMeshId, InitialBufferSize);
+	return NewMeshId;
+}
+
 
 UMaterialInstanceDynamic* SMeshWidget::ConvertToMID(uint32 MeshId)
 {

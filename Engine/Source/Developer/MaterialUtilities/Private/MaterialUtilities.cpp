@@ -821,7 +821,7 @@ bool FMaterialUtilities::ExportLandscapeMaterial(ALandscapeProxy* InLandscape, c
 	return true;
 }
 
-UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, TArray<UObject*>& OutGeneratedAssets)
+UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets)
 {
 	// Base name for a new assets
 	// In case outer is null BaseName has to be long package name
@@ -985,16 +985,16 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	else
 	{
 		// Metallic
-		if (InFlattenMaterial.MetallicSamples.Num() > 1)
+		if (InFlattenMaterial.MetallicSamples.Num() > 1 && MaterialProxySettings.bMetallicMap)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_M");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto MetallicExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			MetallicExpression->Texture = Texture;
-			MetallicExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+			MetallicExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 			MetallicExpression->MaterialExpressionEditorX = -400;
 			MetallicExpression->MaterialExpressionEditorY = MaterialNodeY;
 			Material->Expressions.Add(MetallicExpression);
@@ -1004,16 +1004,16 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		}
 
 		// Specular
-		if (InFlattenMaterial.SpecularSamples.Num() > 1)
+		if (InFlattenMaterial.SpecularSamples.Num() > 1 && MaterialProxySettings.bSpecularMap)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto SpecularExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			SpecularExpression->Texture = Texture;
-			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 			SpecularExpression->MaterialExpressionEditorX = -400;
 			SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
 			Material->Expressions.Add(SpecularExpression);
@@ -1023,16 +1023,16 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		}
 
 		// Roughness
-		if (InFlattenMaterial.RoughnessSamples.Num() > 1)
+		if (InFlattenMaterial.RoughnessSamples.Num() > 1 && MaterialProxySettings.bRoughnessMap)
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_R");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto RoughnessExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			RoughnessExpression->Texture = Texture;
-			RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+			RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 			RoughnessExpression->MaterialExpressionEditorX = -400;
 			RoughnessExpression->MaterialExpressionEditorY = MaterialNodeY;
 			Material->Expressions.Add(RoughnessExpression);
@@ -1042,11 +1042,10 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		}
 	}
 
-	if (InFlattenMaterial.MetallicSamples.Num() == 1)
+	if (InFlattenMaterial.MetallicSamples.Num() == 1 || !MaterialProxySettings.bMetallicMap)
 	{
-		FLinearColor MetallicColor = FLinearColor(InFlattenMaterial.MetallicSamples[0]);
 		auto MetallicExpression = NewObject<UMaterialExpressionConstant>(Material);
-		MetallicExpression->R = MetallicColor.R;
+		MetallicExpression->R = MaterialProxySettings.bMetallicMap ? FLinearColor(InFlattenMaterial.MetallicSamples[0]).R : MaterialProxySettings.MetallicConstant;
 		MetallicExpression->MaterialExpressionEditorX = -400;
 		MetallicExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(MetallicExpression);
@@ -1055,12 +1054,11 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		MaterialNodeY += MaterialNodeStepY;
 	}
 
-	if (InFlattenMaterial.SpecularSamples.Num() == 1)
+	if (InFlattenMaterial.SpecularSamples.Num() == 1 || !MaterialProxySettings.bSpecularMap)
 	{
 		// Set Specular to constant
-		FLinearColor SpecularColor = FLinearColor(InFlattenMaterial.SpecularSamples[0]);
 		auto SpecularExpression = NewObject<UMaterialExpressionConstant>(Material);
-		SpecularExpression->R = SpecularColor.R;
+		SpecularExpression->R = MaterialProxySettings.bSpecularMap ? FLinearColor(InFlattenMaterial.SpecularSamples[0]).R : MaterialProxySettings.SpecularConstant;
 		SpecularExpression->MaterialExpressionEditorX = -400;
 		SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(SpecularExpression);
@@ -1069,12 +1067,11 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		MaterialNodeY += MaterialNodeStepY;
 	}
 	
-	if (InFlattenMaterial.RoughnessSamples.Num() == 1)
+	if (InFlattenMaterial.RoughnessSamples.Num() == 1 || !MaterialProxySettings.bRoughnessMap)
 	{
 		// Set Roughness to constant
-		FLinearColor RoughnessColor = FLinearColor(InFlattenMaterial.RoughnessSamples[0]);
 		auto RoughnessExpression = NewObject<UMaterialExpressionConstant>(Material);
-		RoughnessExpression->R = RoughnessColor.R;
+		RoughnessExpression->R = MaterialProxySettings.bRoughnessMap ? FLinearColor(InFlattenMaterial.RoughnessSamples[0]).R : MaterialProxySettings.RoughnessConstant;
 		RoughnessExpression->MaterialExpressionEditorX = -400;
 		RoughnessExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(RoughnessExpression);
@@ -1162,13 +1159,13 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_O");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.OpacitySize, InFlattenMaterial.OpacitySamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.OpacitySize, InFlattenMaterial.OpacitySamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		//Assign opacity to the material
 		UMaterialExpressionTextureSample* OpacityExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 		OpacityExpression->Texture = Texture;
-		OpacityExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Grayscale;
+		OpacityExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
 		OpacityExpression->MaterialExpressionEditorX = -400;
 		OpacityExpression->MaterialExpressionEditorY = MaterialNodeY;
 		Material->Expressions.Add(OpacityExpression);
@@ -1832,7 +1829,7 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 	CurrentlyRendering = true;
 
 	UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(bInForceLinearGamma, InPixelFormat, OutSampleSize);
-
+	
 	OutSamples.Empty(InTargetSize.X * InTargetSize.Y);
 	bool bResult = FMeshRenderer::RenderMaterial(
 		InMaterialData,
@@ -1841,8 +1838,9 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 		RenderTarget,
 		OutSamples);
 
+	/** Disabled for now, see comment below */
 	// Check for uniform value, perhaps this can be determined before rendering the material, see WillGenerateUniformData (LightmassRender)
-	bool bIsUniform = true;
+	/*bool bIsUniform = true;
 	FColor MaxColor(0, 0, 0, 0);
 	if (bResult)
 	{
@@ -1885,7 +1883,7 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 		OutSampleSize = FIntPoint(1, 1);
 		OutSamples.Empty();
 		OutSamples.Add(MaxColor);
-	}
+	}*/
 
 	CurrentlyRendering = false;
 

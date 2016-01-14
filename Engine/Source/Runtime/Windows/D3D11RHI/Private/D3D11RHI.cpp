@@ -185,6 +185,13 @@ void FD3D11DynamicRHI::InternalSetShaderResourceView(FD3D11BaseShaderResource* R
 	check((Resource && SRV) || (!Resource && !SRV));
 	CheckIfSRVIsResolved(SRV);
 
+	//avoid state cache crash
+	if (!((Resource && SRV) || (!Resource && !SRV)))
+	{
+		//UE_LOG(LogRHI, Warning, TEXT("Bailing on InternalSetShaderResourceView on resource: %i, %s"), ResourceIndex, *SRVName.ToString());
+		return;
+	}
+
 	if (Resource)
 	{		
 		const EResourceTransitionAccess CurrentAccess = Resource->GetCurrentGPUAccess();

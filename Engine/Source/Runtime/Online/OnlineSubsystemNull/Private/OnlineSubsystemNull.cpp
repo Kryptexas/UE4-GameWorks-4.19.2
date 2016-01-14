@@ -20,6 +20,11 @@ IOnlineFriendsPtr FOnlineSubsystemNull::GetFriendsInterface() const
 	return nullptr;
 }
 
+IMessageSanitizerPtr FOnlineSubsystemNull::GetMessageSanitizerInterface() const
+{
+	return nullptr;
+}
+
 IOnlinePartyPtr FOnlineSubsystemNull::GetPartyInterface() const
 {
 	return nullptr;

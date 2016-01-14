@@ -6,6 +6,7 @@
 #include "Scalability.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Engine/GameEngine.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
@@ -32,10 +33,25 @@ FIntPoint UGameUserSettings::GetLastConfirmedScreenResolution() const
 	return FIntPoint(LastUserConfirmedResolutionSizeX, LastUserConfirmedResolutionSizeY);
 }
 
-void UGameUserSettings::SetScreenResolution( FIntPoint Resolution )
+FIntPoint UGameUserSettings::GetDesktopResolution() const
+{
+	FDisplayMetrics DisplayMetrics;
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
+	}
+	else
+	{
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+	}
+	return FIntPoint(DisplayMetrics.PrimaryDisplayWidth, DisplayMetrics.PrimaryDisplayHeight);
+}
+
+void UGameUserSettings::SetScreenResolution(FIntPoint Resolution)
 {
 	ResolutionSizeX = Resolution.X;
 	ResolutionSizeY = Resolution.Y;
+	UpdateMinResolutionScaling();
 }
 
 EWindowMode::Type UGameUserSettings::GetFullscreenMode() const
@@ -66,6 +82,8 @@ void UGameUserSettings::SetFullscreenMode( EWindowMode::Type InFullscreenMode )
 			FullscreenMode = 2;
 			break;
 	}
+
+	UpdateMinResolutionScaling();
 }
 
 void UGameUserSettings::SetVSyncEnabled( bool bEnable )
@@ -139,8 +157,11 @@ void UGameUserSettings::SetToDefaults()
 	WindowPosY = GetDefaultWindowPosition().Y;
 	FullscreenMode = GetDefaultWindowMode();
 	FrameRateLimit = 0.0f;
+	MinResolutionScale = Scalability::MinResolutionScale;
 
 	ScalabilityQuality.SetDefaults();
+
+	UpdateMinResolutionScaling();
 }
 
 bool UGameUserSettings::IsVersionValid()
@@ -151,6 +172,14 @@ bool UGameUserSettings::IsVersionValid()
 void UGameUserSettings::UpdateVersion()
 {
 	Version = UE_GAMEUSERSETTINGS_VERSION;
+}
+
+void UGameUserSettings::UpdateMinResolutionScaling()
+{
+	const int32 MinHeight = UKismetSystemLibrary::GetMinYResolutionForUI();
+	const int32 ScreenHeight = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution().Y : ResolutionSizeY;
+	MinResolutionScale = FMath::Max<int32>(Scalability::MinResolutionScale, ((float)MinHeight / (float)ScreenHeight) * 100);
+	ScalabilityQuality.ResolutionQuality = FMath::Max(ScalabilityQuality.ResolutionQuality, MinResolutionScale);
 }
 
 void UGameUserSettings::ValidateSettings()
@@ -358,7 +387,7 @@ FIntPoint UGameUserSettings::GetDefaultWindowPosition()
 
 EWindowMode::Type UGameUserSettings::GetDefaultWindowMode()
 {
-	return EWindowMode::Windowed;
+	return EWindowMode::WindowedFullscreen;
 }
 
 void UGameUserSettings::ResetToCurrentSettings()
@@ -382,6 +411,8 @@ void UGameUserSettings::ResetToCurrentSettings()
 
 		// Reset the quality settings to the current levels
 		ScalabilityQuality = Scalability::GetQualityLevels();
+
+		UpdateMinResolutionScaling();
 	}
 }
 
@@ -419,7 +450,8 @@ float UGameUserSettings::GetFrameRateLimit() const
 void UGameUserSettings::SetOverallScalabilityLevel(int32 Value)
 {
 	Value = FMath::Clamp(Value, 0, 3);
-	ScalabilityQuality.SetFromSingleQualityLevel(Value);
+
+	ScalabilityQuality.SetFromSingleQualityLevel(Value);	
 }
 
 int32 UGameUserSettings::GetOverallScalabilityLevel() const
@@ -430,19 +462,19 @@ int32 UGameUserSettings::GetOverallScalabilityLevel() const
 void UGameUserSettings::GetResolutionScaleInformation(float& CurrentScaleNormalized, int32& CurrentScaleValue, int32& MinScaleValue, int32& MaxScaleValue) const
 {
 	CurrentScaleValue = ScalabilityQuality.ResolutionQuality;
-	MinScaleValue = Scalability::MinResolutionScale;
+	MinScaleValue = MinResolutionScale;
 	MaxScaleValue = Scalability::MaxResolutionScale;
 	CurrentScaleNormalized = ((float)CurrentScaleValue - (float)MinScaleValue) / (float)(MaxScaleValue - MinScaleValue);
 }
 
 void UGameUserSettings::SetResolutionScaleValue(int32 NewScaleValue)
 {
-	ScalabilityQuality.ResolutionQuality = FMath::Clamp(NewScaleValue, Scalability::MinResolutionScale, Scalability::MaxResolutionScale);
+	ScalabilityQuality.ResolutionQuality = FMath::Clamp(NewScaleValue, MinResolutionScale, Scalability::MaxResolutionScale);
 }
 
 void UGameUserSettings::SetResolutionScaleNormalized(float NewScaleNormalized)
 {
-	const int32 RemappedValue = (int32)FMath::Lerp((float)Scalability::MinResolutionScale, (float)Scalability::MaxResolutionScale, NewScaleNormalized);
+	const int32 RemappedValue = (int32)FMath::Lerp((float)MinResolutionScale, (float)Scalability::MaxResolutionScale, NewScaleNormalized);
 	SetResolutionScaleValue(RemappedValue);
 }
 

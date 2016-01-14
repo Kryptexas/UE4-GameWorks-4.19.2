@@ -1159,8 +1159,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, PassOutputs[0].RenderTargetDesc.Extent.X, PassOutputs[0].RenderTargetDesc.Extent.Y, 1.0f);
-		
 	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 	{
 		// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
@@ -1171,6 +1169,8 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
 		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
 	}
+
+	Context.SetViewportAndCallRHI(DestRect.Min.X, DestRect.Min.Y, 0.0f, DestRect.Max.X + 1, DestRect.Max.Y + 1, 1.0f );
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -1211,11 +1211,11 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 
 	DrawPostProcessPass(
 		Context.RHICmdList,
-		DestRect.Min.X, DestRect.Min.Y,
+		0, 0,
 		DestRect.Width(), DestRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y,
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		PassOutputs[0].RenderTargetDesc.Extent,
+		DestRect.Size(),
 		SceneContext.GetBufferSizeXY(),
 		VertexShader,
 		View.StereoPass,

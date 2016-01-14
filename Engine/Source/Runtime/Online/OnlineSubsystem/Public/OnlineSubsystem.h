@@ -37,6 +37,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceInt"), STAT_Voice_Interface, STATGROUP_Onli
 typedef TSharedPtr<class IOnlineSession, ESPMode::ThreadSafe> IOnlineSessionPtr;
 typedef TSharedPtr<class IOnlineFriends, ESPMode::ThreadSafe> IOnlineFriendsPtr;
 typedef TSharedPtr<class IOnlinePartySystem, ESPMode::ThreadSafe> IOnlinePartyPtr;
+typedef TSharedPtr<class IMessageSanitizer, ESPMode::ThreadSafe> IMessageSanitizerPtr;
 typedef TSharedPtr<class IOnlineGroups, ESPMode::ThreadSafe> IOnlineGroupsPtr;
 typedef TSharedPtr<class IOnlineSharedCloud, ESPMode::ThreadSafe> IOnlineSharedCloudPtr;
 typedef TSharedPtr<class IOnlineUserCloud, ESPMode::ThreadSafe> IOnlineUserCloudPtr;
@@ -222,6 +223,12 @@ public:
 	 * @return Interface pointer for the appropriate friend service
 	 */
 	virtual IOnlineFriendsPtr GetFriendsInterface() const = 0;
+
+	/**
+	* Get the interface for accessing the message sanitizer service
+	* @return Interface pointer for the appropriate sanitizer service
+	*/
+	virtual IMessageSanitizerPtr GetMessageSanitizerInterface() const = 0;
 
 	/**
 	 * Get the interface for accessing the groups services

@@ -74,8 +74,6 @@ FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCult
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FCulturePtr Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
-	FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
-
 	double TotalHours = Timespan.GetTotalHours();
 	int32 Hours = static_cast<int32>(TotalHours);
 	int32 Minutes = Timespan.GetMinutes();
@@ -85,11 +83,23 @@ FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCult
 	NumberFormattingOptions.MinimumIntegralDigits = 2;
 	NumberFormattingOptions.MaximumIntegralDigits = 2;
 
-	FFormatNamedArguments TimeArguments;
-	TimeArguments.Add(TEXT("Hours"), Hours);
-	TimeArguments.Add(TEXT("Minutes"), FText::AsNumber(Minutes, &(NumberFormattingOptions), Culture));
-	TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
-	return FText::Format(TimespanFormatPattern, TimeArguments);
+	if (Hours > 0)
+	{
+		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
+		FFormatNamedArguments TimeArguments;
+		TimeArguments.Add(TEXT("Hours"), Hours);
+		TimeArguments.Add(TEXT("Minutes"), FText::AsNumber(Minutes, &(NumberFormattingOptions), Culture));
+		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
+		return FText::Format(TimespanFormatPattern, TimeArguments);
+	}
+	else
+	{
+		FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern2", "{Minutes}:{Seconds}");
+		FFormatNamedArguments TimeArguments;
+		TimeArguments.Add(TEXT("Minutes"), Minutes);
+		TimeArguments.Add(TEXT("Seconds"), FText::AsNumber(Seconds, &(NumberFormattingOptions), Culture));
+		return FText::Format(TimespanFormatPattern, TimeArguments);
+	}
 }
 
 FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)

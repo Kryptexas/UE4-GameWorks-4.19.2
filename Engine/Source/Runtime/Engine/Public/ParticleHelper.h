@@ -1422,6 +1422,8 @@ struct FDynamicEmitterDataBase
 	/** Returns the current macro uv override. Specialized by FGPUSpriteDynamicEmitterData  */
 	virtual const FMacroUVOverride& GetMacroUVOverride() const { return GetSource().MacroUVOverride; }
 
+	/** Stat id of this object, 0 if nobody asked for it yet */
+	mutable TStatId StatID;
 	/** true if this emitter is currently selected */
 	uint32	bSelected:1;
 	/** true if this emitter has valid rendering data */
@@ -2708,3 +2710,20 @@ FORCEINLINE FVector2D GetParticleSizeWithUVFlipInSign(const FBaseParticle& Parti
 		Particle.BaseSize.X >= 0.0f ? ScaledSize.X : -ScaledSize.X,
 		Particle.BaseSize.Y >= 0.0f ? ScaledSize.Y : -ScaledSize.Y);
 }
+
+
+/** A level of significance for a particle system. Used by game code to enable/disable emitters progressively as they move away from the camera or are occluded/off screen. */
+UENUM()
+enum class EParticleSignificanceLevel : uint8
+{
+	/** Low significance emitter. Culled first. */
+	Low,
+	/** Medium significance emitter. */
+	Medium,
+	/** High significance emitter. Culled last. */
+	High,
+	/** Critical emitter. Never culled. */
+	Critical,
+
+	Num UMETA(Hidden),
+};

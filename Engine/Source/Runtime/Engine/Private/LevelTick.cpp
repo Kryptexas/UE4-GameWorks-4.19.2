@@ -37,7 +37,6 @@ bool GLogDetailedDumpStats = true;
 
 /** Game stats */
 
-
 // DECLARE_CYCLE_STAT is the reverse of what will be displayed in the game's stat game
 
 DEFINE_STAT(STAT_AsyncWorkWaitTime);

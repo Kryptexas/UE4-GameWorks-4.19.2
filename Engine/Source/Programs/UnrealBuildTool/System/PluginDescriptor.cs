@@ -78,12 +78,16 @@ namespace UnrealBuildTool
 		// Set for plugins which are installed
 		public bool bInstalled;
 
+		// For plugins that are under a platform folder (eg. /PS4/), determines whether compiling the plugin requires the build platform and/or SDK to be available
+		public bool bRequiresBuildPlatform;
+
 		/// <summary>
 		/// Private constructor. This object should not be created directly; read it from disk using FromFile() instead.
 		/// </summary>
 		private PluginDescriptor()
 		{
 			FileVersion = (int)PluginDescriptorVersion.Latest;
+			bRequiresBuildPlatform = true;
 		}
 
 		/// <summary>
@@ -149,6 +153,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
 				RawObject.TryGetBoolField("Installed", out Descriptor.bInstalled);
 				RawObject.TryGetBoolField("CanBeUsedWithUnrealHeaderTool", out Descriptor.bCanBeUsedWithUnrealHeaderTool);
+				RawObject.TryGetBoolField("RequiresBuildPlatform", out Descriptor.bRequiresBuildPlatform);
 
 				return Descriptor;
 			}
@@ -183,6 +188,7 @@ namespace UnrealBuildTool
 				Writer.WriteValue("CanContainContent", bCanContainContent);
 				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
 				Writer.WriteValue("Installed", bInstalled);
+				Writer.WriteValue("RequiresBuildPlatform", bRequiresBuildPlatform);
 
 				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
 
@@ -199,6 +205,9 @@ namespace UnrealBuildTool
 
 		// Whether it should be enabled by default
 		public bool bEnabled;
+
+		// Whether this plugin is optional, and the game should silently ignore it not being present
+		public bool bOptional;
 
 		// Description of the plugin for users that do not have it installed.
 		public string Description;
@@ -232,6 +241,7 @@ namespace UnrealBuildTool
 		public static PluginReferenceDescriptor FromJsonObject(JsonObject RawObject)
 		{
 			PluginReferenceDescriptor Descriptor = new PluginReferenceDescriptor(RawObject.GetStringField("Name"), null, RawObject.GetBoolField("Enabled"));
+			RawObject.TryGetBoolField("Optional", out Descriptor.bOptional);
 			RawObject.TryGetStringField("Description", out Descriptor.Description);
 			RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("WhitelistPlatforms", out Descriptor.WhitelistPlatforms);

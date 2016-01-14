@@ -741,6 +741,14 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
 	void SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 NumLoopsToPlay);
 
+	/**
+	* If an animation is playing, this function will reverse the playback.
+	*
+	* @param InAnimation The playing animation that we want to reverse
+	*/
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
+	void ReverseAnimation(const UWidgetAnimation* InAnimation);
+
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
 

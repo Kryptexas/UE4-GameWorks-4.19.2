@@ -1283,7 +1283,10 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 			{
 				for (const auto& SelectedWidget : SelectedWidgets)
 				{
-					if (PendingSelectedWidget == SelectedWidget || PendingSelectedWidget.GetTemplate()->IsChildOf(SelectedWidget.GetTemplate()))
+					auto PendingTemplate = PendingSelectedWidget.GetTemplate();
+					auto SelectedTemplate = SelectedWidget.GetTemplate();
+
+					if ( PendingSelectedWidget == SelectedWidget || ( PendingTemplate && SelectedTemplate && PendingTemplate->IsChildOf( SelectedTemplate ) ) )
 					{
 						bResolvePendingSelectionImmediately = false;
 						break;

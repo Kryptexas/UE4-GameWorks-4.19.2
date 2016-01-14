@@ -3251,7 +3251,7 @@ namespace UnrealBuildTool
 					ExcludeFolders.Add(DirectoryFragment);
 				}
 			}
-			ValidPlugins.RemoveAll(x => ShouldExcludePlugin(x, ExcludeFolders));
+			ValidPlugins.RemoveAll(x => x.Descriptor.bRequiresBuildPlatform && ShouldExcludePlugin(x, ExcludeFolders));
 
 			// Build a list of enabled plugins
 			EnabledPlugins = new List<PluginInfo>();
@@ -3520,6 +3520,15 @@ namespace UnrealBuildTool
 			else
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_LOGGING_IN_SHIPPING=0");
+			}
+
+			if (UEBuildConfiguration.bUseChecksInShipping)
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("USE_CHECKS_IN_SHIPPING=1");
+			}
+			else
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("USE_CHECKS_IN_SHIPPING=0");
 			}
 
 			// Propagate whether we want a lean and mean build to the C++ code.

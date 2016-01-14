@@ -428,6 +428,11 @@ public:
 
 		TOptional<int32> AsIndex() const
 		{
+			if (NameLen <= 0)
+			{
+				return TOptional<int32>();
+			}
+
 			int32 Index = 0;
 			for (int32 NameOffset = 0; NameOffset < NameLen; ++NameOffset)
 			{
@@ -841,7 +846,7 @@ FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bo
 		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg);
 	}
 
-	auto GetArgumentValue = [&Arguments](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
+	auto GetArgumentValue = [&Arguments, &Pattern](const FTextFormatHelper::FArgumentName& ArgumentName, int32 ArgumentNumber) -> const FFormatArgumentValue*
 	{
 		TOptional<int32> ArgumentIndex = ArgumentName.AsIndex();
 		if (!ArgumentIndex.IsSet())
@@ -850,6 +855,7 @@ FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bo
 			// We have existing code that is incorrectly using names in the format string when providing ordered arguments
 			// ICU used to fallback to treating the index of the argument within the string as if it were the index specified 
 			// by the argument name, so we need to emulate that behavior to avoid breaking some format operations
+			UE_LOG(LogText, Warning, TEXT("Failed to parse argument \"%s\" as a number (using \"%d\" as a fallback). Please check your format string for errors: \"%s\"."), *FString(ArgumentName.NameLen, ArgumentName.NamePtr), ArgumentNumber, *Pattern.ToString());
 			ArgumentIndex = ArgumentNumber;
 		}
 		return Arguments.IsValidIndex(ArgumentIndex.GetValue()) ? &(Arguments[ArgumentIndex.GetValue()]) : nullptr;

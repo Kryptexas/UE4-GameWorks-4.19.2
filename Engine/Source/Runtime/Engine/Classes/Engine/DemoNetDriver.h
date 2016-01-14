@@ -134,8 +134,8 @@ public:
 	*/
 	void GotoTimeInSeconds(const float TimeInSeconds, const FOnGotoTimeDelegate& InOnGotoTimeDelegate = FOnGotoTimeDelegate());
 
-	bool IsRecording();
-	bool IsPlaying();
+	bool IsRecording() const;
+	bool IsPlaying() const;
 
 public:
 

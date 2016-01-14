@@ -204,6 +204,8 @@ TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFo
 	TSharedPtr<FFreeTypeFace> FaceAndMemory = FontFaceMap.FindRef(&InFontData);
 	if (!FaceAndMemory.IsValid() && InFontData.BulkDataPtr)
 	{
+		FScopeCycleCounterUObject ContextScope(InFontData.BulkDataPtr);
+
 		int32 LockedFontDataSizeBytes = 0;
 		const void* const LockedFontData = InFontData.BulkDataPtr->Lock(LockedFontDataSizeBytes);
 		if (LockedFontDataSizeBytes > 0)

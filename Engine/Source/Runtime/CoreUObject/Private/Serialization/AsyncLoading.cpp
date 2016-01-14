@@ -1889,6 +1889,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 		}
 		// All object must be finalized on the game thread
 		DeferredFinalizeObjects.Add(Object);
+		check(Object->IsValidLowLevelFast());
 		// Make sure all objects in DeferredFinalizeObjects are referenced too
 		FAsyncObjectsReferencer::Get().AddObject(Object);
 	}

@@ -2189,6 +2189,8 @@ public:
 		int64 BulkDataOffsetInFilePos;
 		/** Offset to the location where the payload size is stored */
 		int64 BulkDataSizeOnDiskPos;
+		/** Offset to the location where the bulk data flags are stored */
+		int64 BulkDataFlagsPos;
 		/** Bulk data flags at the time of serialization */
 		uint32 BulkDataFlags;
 		/** The bulkdata */

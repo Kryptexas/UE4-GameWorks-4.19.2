@@ -40,6 +40,11 @@ IOnlineFriendsPtr FOnlineSubsystemFacebook::GetFriendsInterface() const
 	return FacebookFriends;
 }
 
+IMessageSanitizerPtr FOnlineSubsystemFacebook::GetMessageSanitizerInterface() const
+{
+	return nullptr;
+}
+
 IOnlineGroupsPtr FOnlineSubsystemFacebook::GetGroupsInterface() const
 {
 	return nullptr;

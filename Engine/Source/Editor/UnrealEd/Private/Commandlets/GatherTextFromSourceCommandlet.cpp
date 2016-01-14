@@ -16,6 +16,12 @@ UGatherTextFromSourceCommandlet::UGatherTextFromSourceCommandlet(const FObjectIn
 
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::DefineString(TEXT("#define "));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::UndefString(TEXT("#undef "));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::IfString(TEXT("#if "));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::IfDefString(TEXT("#ifdef "));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::ElIfString(TEXT("#elif "));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::ElseString(TEXT("#else"));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::EndIfString(TEXT("#endif"));
+const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::DefinedString(TEXT("defined "));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::LocNamespaceString(TEXT("LOCTEXT_NAMESPACE"));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::LocDefRegionString(TEXT("LOC_DEFINE_REGION"));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::IniNamespaceString(TEXT("["));
@@ -212,6 +218,16 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	Parsables.Add(new FUndefDescriptor());
 
+	Parsables.Add(new FIfDescriptor());
+
+	Parsables.Add(new FIfDefDescriptor());
+
+	Parsables.Add(new FElIfDescriptor());
+
+	Parsables.Add(new FElseDescriptor());
+
+	Parsables.Add(new FEndIfDescriptor());
+
 	Parsables.Add(new FCommandMacroDescriptor());
 
 	// New Localization System with Namespace as literal argument.
@@ -230,6 +246,12 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	// Init a parse context to track the state of the file parsing 
 	FSourceFileParseContext ParseCtxt;
 	ParseCtxt.ManifestInfo = ManifestInfo;
+
+	// Get whether we should gather editor-only data. Typically only useful for the localization of UE4 itself.
+	if (!GetBoolFromConfig(*SectionName, TEXT("ShouldGatherFromEditorOnlyData"), ParseCtxt.ShouldGatherFromEditorOnlyData, GatherTextConfigPath))
+	{
+		ParseCtxt.ShouldGatherFromEditorOnlyData = false;
+	}
 
 	// Parse all source files for macros and add entries to SourceParsedEntries
 	for ( FString& SourceFile : FilesToProcess)
@@ -255,6 +277,7 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 		ParseCtxt.WithinStringLiteral = false;
 		ParseCtxt.WithinNamespaceDefine = false;
 		ParseCtxt.WithinStartingLine.Empty();
+		ParseCtxt.FlushMacroStack();
 
 		FString SourceFileText;
 		if (!FFileHelper::LoadFileToString(SourceFileText, *SourceFile))
@@ -549,13 +572,63 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 
 bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddManifestText( const FString& Token, const FString& InNamespace, const FString& SourceText, const FContext& Context )
 {
-	FString EntryDescription = FString::Printf( TEXT("In %s macro at %s - line %d:%s"),
-		*Token,
-		*Filename, 
-		LineNumber, 
-		*LineText);
-	FLocItem Source( SourceText.ReplaceEscapedCharWithChar() );
-	return ManifestInfo->AddEntry(EntryDescription, InNamespace, Source, Context);
+	const bool bIsEditorOnly = EvaluateMacroStack() == EMacroBlockState::EditorOnly;
+
+	if (!bIsEditorOnly || ShouldGatherFromEditorOnlyData)
+	{
+		FString EntryDescription = FString::Printf( TEXT("In %s macro at %s - line %d:%s"),
+			*Token,
+			*Filename, 
+			LineNumber, 
+			*LineText);
+		FLocItem Source( SourceText.ReplaceEscapedCharWithChar() );
+		return ManifestInfo->AddEntry(EntryDescription, InNamespace, Source, Context);
+	}
+
+	return false;
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::PushMacroBlock( const FString& InBlockCtx )
+{
+	MacroBlockStack.Push(InBlockCtx);
+	CachedMacroBlockState.Reset();
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::PopMacroBlock()
+{
+	if (MacroBlockStack.Num() > 0)
+	{
+		MacroBlockStack.Pop(/*bAllowShrinking*/false);
+		CachedMacroBlockState.Reset();
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FSourceFileParseContext::FlushMacroStack()
+{
+	MacroBlockStack.Reset();
+}
+
+UGatherTextFromSourceCommandlet::EMacroBlockState UGatherTextFromSourceCommandlet::FSourceFileParseContext::EvaluateMacroStack() const
+{
+	if (CachedMacroBlockState.IsSet())
+	{
+		return CachedMacroBlockState.GetValue();
+	}
+
+	static const FString WithEditorString = TEXT("WITH_EDITOR");
+	static const FString WithEditorOnlyDataString = TEXT("WITH_EDITORONLY_DATA");
+
+	CachedMacroBlockState = EMacroBlockState::Normal;
+	for (const FString& BlockCtx : MacroBlockStack)
+	{
+		if (BlockCtx.Equals(WithEditorString, ESearchCase::CaseSensitive) || BlockCtx.Equals(WithEditorOnlyDataString, ESearchCase::CaseSensitive))
+		{
+			CachedMacroBlockState = EMacroBlockState::EditorOnly;
+			break;
+		}
+	}
+
+	return CachedMacroBlockState.GetValue();
 }
 
 void UGatherTextFromSourceCommandlet::FDefineDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
@@ -637,6 +710,81 @@ void UGatherTextFromSourceCommandlet::FUndefDescriptor::TryParse(const FString& 
 				Context.WithinNamespaceDefine = false;
 			}
 		}
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FIfDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #if <defname>
+
+	FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		// Handle "#if defined <defname>"
+		if (RemainingText.StartsWith(DefinedString, ESearchCase::CaseSensitive))
+		{
+			RemainingText = Text.RightChop(DefinedString.Len()).Trim();
+		}
+
+		Context.PushMacroBlock(RemainingText);
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FIfDefDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #ifdef <defname>
+
+	FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		Context.PushMacroBlock(RemainingText);
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FElIfDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #elif <defname>
+
+	FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		// Handle "#elif defined <defname>"
+		if (RemainingText.StartsWith(DefinedString, ESearchCase::CaseSensitive))
+		{
+			RemainingText = Text.RightChop(DefinedString.Len()).Trim();
+		}
+
+		Context.PopMacroBlock(); // Pop the current #if or #ifdef state
+		Context.PushMacroBlock(RemainingText);
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FElseDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #else
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		Context.PopMacroBlock(); // Pop the current #if or #ifdef state
+		Context.PushMacroBlock(FString());
+	}
+}
+
+void UGatherTextFromSourceCommandlet::FEndIfDescriptor::TryParse(const FString& Text, FSourceFileParseContext& Context) const
+{
+	// Attempt to parse something of the format
+	// #endif
+
+	if (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)
+	{
+		Context.PopMacroBlock(); // Pop the current #if or #ifdef state
 	}
 }
 

@@ -296,6 +296,7 @@ public:
 
 		SkeletalMesh->PostEditChange();
 		SkeletalMesh->InitResources();
+		SkeletalMesh->MarkPackageDirty();
 
 		delete SrcModel;
 

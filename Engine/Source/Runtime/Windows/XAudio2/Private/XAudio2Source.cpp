@@ -373,6 +373,9 @@ bool FXAudio2SoundSource::CreateSource( void )
 	bUsingHRTFSpatialization = false;
 	bool bCreatedWithSpatializationEffect = false;
 	MaxEffectChainChannels = 0;
+	
+	// Set to nullptr in case the voice is not successfully created, the source won't be garbage
+	Source = nullptr;
 
 	if (CreateWithSpatializationEffect())
 	{
@@ -1729,8 +1732,10 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 	OrientFront.DiagnosticCheckNaN(TEXT("FSpatializationHelper: OrientFront"));
 	ListenerPosition.DiagnosticCheckNaN(TEXT("FSpatializationHelper: ListenerPosition"));
 	EmitterPosition.DiagnosticCheckNaN(TEXT("FSpatializationHelper: EmitterPosition"));
-	if (!FMath::IsFinite(OmniRadius))
+	static bool bLoggedOmniRadius = false;
+	if (!FMath::IsFinite(OmniRadius) && !bLoggedOmniRadius)
 	{
+		bLoggedOmniRadius = true;
 		const FString NaNorINF = FMath::IsNaN(OmniRadius) ? TEXT("NaN") : TEXT("INF");
 		UE_LOG(LogXAudio2, Warning, TEXT("OmniRadius generated a %s: %f"), *NaNorINF, OmniRadius);
 	}
@@ -1757,9 +1762,11 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 		OutVolumes[SpeakerIndex] *= DSPSettings.pMatrixCoefficients[SpeakerIndex];
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		static bool bLoggedDSPSettings = false;
 		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
-		if (!FMath::IsFinite(OutVolumes[SpeakerIndex]))
+		if (!FMath::IsFinite(OutVolumes[SpeakerIndex]) && !bLoggedDSPSettings)
 		{
+			bLoggedDSPSettings = true;
 			const FString NaNorINF = FMath::IsNaN(OutVolumes[SpeakerIndex]) ? TEXT("NaN") : TEXT("INF");
 			UE_LOG(LogXAudio2, Warning, TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
 				*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);

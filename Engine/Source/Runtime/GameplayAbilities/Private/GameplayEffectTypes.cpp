@@ -286,41 +286,6 @@ FString EGameplayCueEventToString(int32 Type)
 	return e->GetEnumName(Type);
 }
 
-bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
-{
-	return ExplicitTags.HasTag(TagToCheck, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
-}
-
-bool FGameplayTagCountContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
-{
-	return ExplicitTags.MatchesAll(TagContainer, bCountEmptyAsMatch);
-}
-
-
-bool FGameplayTagCountContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
-{
-	return ExplicitTags.MatchesAny(TagContainer, bCountEmptyAsMatch);
-}
-
-void FGameplayTagCountContainer::UpdateTagCount(const FGameplayTag& Tag, int32 CountDelta)
-{
-	if (CountDelta != 0)
-	{
-		UpdateTagMap_Internal(Tag, CountDelta);
-	}
-}
-
-void FGameplayTagCountContainer::UpdateTagCount(const FGameplayTagContainer& Container, int32 CountDelta)
-{	
-	if (CountDelta != 0)
-	{
-		for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
-		{
-			UpdateTagMap_Internal(*TagIt, CountDelta);
-		}
-	}
-}
-
 void FGameplayTagCountContainer::Notify_StackCountChange(const FGameplayTag& Tag)
 {	
 	// The purpose of this function is to let anyone listening on the EGameplayTagEventType::AnyCountChange event know that the 
@@ -351,16 +316,6 @@ FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGameplayTa
 	return Info.OnAnyChange;
 }
 
-FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGenericGameplayEvent()
-{
-	return OnAnyTagChangeDelegate;
-}
-
-const FGameplayTagContainer& FGameplayTagCountContainer::GetExplicitGameplayTags() const
-{
-	return ExplicitTags;
-}
-
 void FGameplayTagCountContainer::Reset()
 {
 	GameplayTagEventMap.Reset();
@@ -370,7 +325,7 @@ void FGameplayTagCountContainer::Reset()
 	OnAnyTagChangeDelegate.Clear();
 }
 
-void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
+bool FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
 {
 	const bool bTagAlreadyExplicitlyExists = ExplicitTags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit);
 
@@ -391,7 +346,7 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 			{
 				ABILITY_LOG(Warning, TEXT("Attempted to remove tag: %s from tag count container, but it is not explicitly in the container!"), *Tag.ToString());
 			}
-			return;
+			return false;
 		}
 	}
 
@@ -409,6 +364,7 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 
 	// Check if change delegates are required to fire for the tag or any of its parents based on the count change
 	FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
+	bool CreatedSignificantChange = false;
 	for (auto CompleteTagIt = TagAndParentsContainer.CreateConstIterator(); CompleteTagIt; ++CompleteTagIt)
 	{
 		const FGameplayTag& CurTag = *CompleteTagIt;
@@ -423,6 +379,7 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 
 		// If a significant change (new addition or total removal) occurred, trigger related delegates
 		bool SignificantChange = (OldCount == 0 || TagCount == 0);
+		CreatedSignificantChange |= SignificantChange;
 		if (SignificantChange)
 		{
 			OnAnyTagChangeDelegate.Broadcast(CurTag, TagCount);
@@ -438,6 +395,8 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 			}
 		}
 	}
+
+	return CreatedSignificantChange;
 }
 
 bool FGameplayTagRequirements::RequirementsMet(const FGameplayTagContainer& Container) const
@@ -547,7 +506,6 @@ FGameplayEffectSpecHandle::FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPt
 FGameplayCueParameters::FGameplayCueParameters(const FGameplayEffectSpecForRPC& Spec)
 : NormalizedMagnitude(0.0f)
 , RawMagnitude(0.0f)
-, MatchedTagName(NAME_None)
 , Location(ForceInitToZero)
 , Normal(ForceInitToZero)
 {
@@ -557,7 +515,6 @@ FGameplayCueParameters::FGameplayCueParameters(const FGameplayEffectSpecForRPC& 
 FGameplayCueParameters::FGameplayCueParameters(const struct FGameplayEffectContextHandle& InEffectContext)
 : NormalizedMagnitude(0.0f)
 , RawMagnitude(0.0f)
-, MatchedTagName(NAME_None)
 , Location(ForceInitToZero)
 , Normal(ForceInitToZero)
 {
@@ -571,15 +528,12 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		REP_NormalizedMagnitude = 0,
 		REP_RawMagnitude,
 		REP_EffectContext,
-		REP_MatchedTagName,
-		REP_OriginalTag,
-		REP_AggregatedSourceTags,
-		REP_AggregatedTargetTags,
 		REP_Location,
 		REP_Normal,
 		REP_Instigator,
 		REP_EffectCauser,
 		REP_SourceObject,
+		REP_PhysMaterial,
 		
 		REP_MAX
 	};
@@ -598,22 +552,6 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		if (EffectContext.IsValid())
 		{
 			RepBits |= (1 << REP_EffectContext);
-		}
-		if (MatchedTagName != NAME_None)
-		{
-			RepBits |= (1 << REP_MatchedTagName);
-		}
-		if (OriginalTag.IsValid())
-		{
-			RepBits |= (1 << REP_OriginalTag);
-		}
-		if (AggregatedSourceTags.Num() > 0)
-		{
-			RepBits |= (1 << REP_AggregatedSourceTags);
-		}
-		if (AggregatedTargetTags.Num() > 0)
-		{
-			RepBits |= (1 << REP_AggregatedTargetTags);
 		}
 		if (Location.IsNearlyZero() == false)
 		{
@@ -635,9 +573,17 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		{
 			RepBits |= (1 << REP_SourceObject);
 		}
+		if (PhysicalMaterial.IsValid())
+		{
+			RepBits |= (1 << REP_PhysMaterial);
+		}
 	}
 
 	Ar.SerializeBits(&RepBits, REP_MAX);
+
+	// Tag containers serialize empty containers with 1 bit, so no need to serialize this in the RepBits field.
+	AggregatedSourceTags.NetSerialize(Ar, Map, bOutSuccess);
+	AggregatedTargetTags.NetSerialize(Ar, Map, bOutSuccess);
 
 	if (RepBits & (1 << REP_NormalizedMagnitude))
 	{
@@ -650,22 +596,6 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	if (RepBits & (1 << REP_EffectContext))
 	{
 		EffectContext.NetSerialize(Ar, Map, bOutSuccess);
-	}
-	if (RepBits & (1 << REP_MatchedTagName))
-	{
-		Ar << MatchedTagName;
-	}
-	if (RepBits & (1 << REP_OriginalTag))
-	{
-		Ar << OriginalTag;
-	}
-	if (RepBits & (1 << REP_AggregatedSourceTags))
-	{
-		AggregatedSourceTags.NetSerialize(Ar, Map, bOutSuccess);
-	}
-	if (RepBits & (1 << REP_AggregatedTargetTags))
-	{
-		AggregatedTargetTags.NetSerialize(Ar, Map, bOutSuccess);
 	}
 	if (RepBits & (1 << REP_Location))
 	{
@@ -686,6 +616,10 @@ bool FGameplayCueParameters::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	if (RepBits & (1 << REP_SourceObject))
 	{
 		Ar << SourceObject;
+	}
+	if (RepBits & (1 << REP_SourceObject))
+	{
+		Ar << PhysicalMaterial;
 	}
 
 	bOutSuccess = true;
@@ -761,4 +695,63 @@ const UObject* FGameplayCueParameters::GetSourceObject() const
 
 	// Fallback to effect context if the explicit data on gameplaycue parameters is not there.
 	return EffectContext.GetSourceObject();
+}
+
+bool FMinimapReplicationTagCountMap::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	const int32 CountBits = 4;
+	const int32 MaxCount = ((1 << CountBits)-1);
+
+	if (Ar.IsSaving())
+	{
+		int32 Count = TagMap.Num();
+		if (Count > MaxCount)
+		{
+			ABILITY_LOG(Error, TEXT("FMinimapReplicationTagCountMap has too many tags (%d)"), TagMap.Num());
+			Count = MaxCount;
+		}
+
+		Ar.SerializeBits(&Count, CountBits);
+		for(auto& It : TagMap)
+		{
+			FGameplayTag& Tag = It.Key;
+			Tag.NetSerialize(Ar, Map, bOutSuccess);
+			if (--Count <= 0)
+			{
+				break;
+			}
+		}
+	}
+	else
+	{
+		int32 Count = TagMap.Num();
+		Ar.SerializeBits(&Count, CountBits);
+
+		// Reset our local map
+		for(auto& It : TagMap)
+		{
+			It.Value = 0;
+		}
+
+		// See what we have
+		while(Count-- > 0)
+		{
+			FGameplayTag Tag;
+			Tag.NetSerialize(Ar, Map, bOutSuccess);
+			TagMap.FindOrAdd(Tag) = 1;
+		}
+
+		if (Owner)
+		{
+			// Update our tags with owner tags
+			for(auto& It : TagMap)
+			{
+				Owner->SetTagMapCount(It.Key, It.Value);
+			}
+		}
+	}
+
+
+	bOutSuccess = true;
+	return true;
 }

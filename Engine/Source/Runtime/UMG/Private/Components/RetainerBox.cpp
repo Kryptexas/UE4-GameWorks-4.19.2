@@ -117,6 +117,17 @@ const FText URetainerBox::GetPaletteCategory()
 
 #endif
 
+const FGeometry& URetainerBox::GetCachedAllottedGeometry() const
+{
+	if (MyRetainerWidget.IsValid())
+	{
+		return MyRetainerWidget->GetCachedAllottedGeometry();
+	}
+
+	static const FGeometry TempGeo;
+	return TempGeo;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

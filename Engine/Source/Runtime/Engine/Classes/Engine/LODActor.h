@@ -27,7 +27,7 @@ public:
 	TArray<class AActor*> SubActors;
 
 	/** what distance do you want this to show up instead of SubActors */
-	UPROPERTY(Category=LODActor, EditAnywhere, meta=(ClampMin = "0", UIMin = "0"))
+	UPROPERTY()
 	float LODDrawDistance;
 	
 	/** what distance do you want this to show up instead of SubActors */
@@ -100,6 +100,9 @@ public:
 
 	/** Cleans the SubActor array (removes all NULL entries) */
 	void CleanSubActorArray();
+
+	/** Recalculates the drawing distance according to a fixed FOV of 90 and the transition screen size*/
+	void RecalculateDrawingDistance(const float TransitionScreenSize );
 #endif // WITH_EDITOR
 	
 	//~ Begin UObject Interface.
@@ -130,11 +133,29 @@ public:
 	UPROPERTY()
 	uint32 NumTrianglesInMergedMesh;
 
-	UPROPERTY(EditAnywhere, Category = MaterialMerge)
+	/** Flag whether or not to use the override MaterialSettings when creating the proxy mesh */
+	UPROPERTY(EditAnywhere, Category = HierarchicalLODSettings)
 	bool bOverrideMaterialMergeSettings;
 
-	UPROPERTY(EditAnywhere, Category = MaterialMerge, meta = (editcondition = "bOverrideMaterialMergeSettings"))
+	/** Override Material Settings, used when creating the proxy mesh */
+	UPROPERTY(EditAnywhere, Category = HierarchicalLODSettings, meta = (editcondition = "bOverrideMaterialMergeSettings"))
 	FMaterialProxySettings MaterialSettings;
+
+	/** Flag whether or not to use the override TransitionScreenSize for this proxy mesh */
+	UPROPERTY(EditAnywhere, Category = HierarchicalLODSettings)
+	bool bOverrideTransitionScreenSize;
+
+	/** Override transition screen size value, determines the screen size / draw distance at which the proxy mesh is visible */
+	UPROPERTY(EditAnywhere, Category = HierarchicalLODSettings, meta = (editcondition = "bOverrideTransitionScreenSize"))
+	float TransitionScreenSize;
+
+	/** Flag whether or not to use the override ScreenSize when creating the proxy mesh */
+	UPROPERTY(EditAnywhere, Category = HierarchicalLODSettings)
+	bool bOverrideScreenSize;
+
+	/** Override screen size value, used when creating the proxy mesh */
+	UPROPERTY(EditAnywhere, Category = HierarchicalLODSettings, meta = (editcondition = "bOverrideScreenSize"))
+	int32 ScreenSize;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Returns StaticMeshComponent subobject **/

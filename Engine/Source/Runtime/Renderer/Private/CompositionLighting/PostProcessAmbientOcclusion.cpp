@@ -20,7 +20,7 @@ static TAutoConsoleVariable<int32> CVarAmbientOcclusionCompute(
 	TEXT("r.AmbientOcclusion.Compute"),
 	0,
 	TEXT("If SSAO should use ComputeShader (not available on all platforms) or PixelShader.\n")
-	TEXT("The Compute Shader version is WIP, not optimized, requires hardware support (not mobile/DX10/OpenGL3),")
+	TEXT("The Compute Shader version is WIP, not optimized, requires hardware support (not mobile/DX10/OpenGL3),\n")
 	TEXT("does not use normals which allows it to run right after EarlyZPass (better performance when used with AyncCompute)\n")
 	TEXT(" 0: PixelShader (default)\n")
 	TEXT(" 1: (WIP) Use ComputeShader if possible, otherwise fall back to '0'\n")

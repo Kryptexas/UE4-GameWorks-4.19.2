@@ -738,30 +738,125 @@ void ULevel::UpdateLevelComponents(bool bRerunConstructionScripts)
 	IncrementalUpdateComponents( 0, bRerunConstructionScripts );
 }
 
+namespace FLevelSortUtils
+{
+	void AddToListSafe(AActor* TestActor, TArray<AActor*>& List)
+	{
+		if (TestActor)
+		{
+			const bool bAlreadyAdded = List.Contains(TestActor);
+			if (bAlreadyAdded)
+			{
+				FString ListItemDesc;
+				for (int32 Idx = 0; Idx < List.Num(); Idx++)
+				{
+					if (Idx > 0)
+					{
+						ListItemDesc += TEXT(", ");
+					}
+
+					ListItemDesc += GetNameSafe(List[Idx]);
+				}
+
+				UE_LOG(LogLevel, Warning, TEXT("Found a cycle in actor's parent chain: %s"), *ListItemDesc);
+			}
+			else
+			{
+				List.Add(TestActor);
+			}
+		}
+	}
+
+	// Finds list of parents from an entry in ParentMap, returns them in provided array and removes from map
+	// Logs an error when cycle is found
+	void FindAndRemoveParentChain(TMap<AActor*, AActor*>& ParentMap, TArray<AActor*>& ParentChain)
+	{
+		check(ParentMap.Num());
+		
+		// seed from first entry
+		TMap<AActor*, AActor*>::TIterator It(ParentMap);
+		ParentChain.Add(It.Key());
+		ParentChain.Add(It.Value());
+		It.RemoveCurrent();
+
+		// fill chain's parent nodes
+		bool bLoop = true;
+		while (bLoop)
+		{
+			AActor* MapValue = nullptr;
+			bLoop = ParentMap.RemoveAndCopyValue(ParentChain.Last(), MapValue);
+			AddToListSafe(MapValue, ParentChain);
+		}
+
+		// find chain's child nodes, ignore cycle detection since it would've triggered already from previous loop
+		for (AActor* const* MapKey = ParentMap.FindKey(ParentChain[0]); MapKey; MapKey = ParentMap.FindKey(ParentChain[0]))
+		{
+			AActor* MapValue = nullptr;
+			ParentMap.RemoveAndCopyValue((AActor*)MapKey, MapValue);
+			ParentChain.Insert(MapValue, 0);
+		}
+	}
+
+	struct FDepthSort
+	{
+		TMap<AActor*, int32> DepthMap;
+
+		bool operator()(AActor* A, AActor* B) const
+		{
+			const int32 DepthA = A ? DepthMap.FindRef(A) : MAX_int32;
+			const int32 DepthB = B ? DepthMap.FindRef(B) : MAX_int32;
+			return DepthA < DepthB;
+		}
+	};
+}
+
 /**
 *	Sorts actors such that parent actors will appear before children actors in the list
 *	Stable sort
 */
-static void SortActorsHierarchy(TTransArray<AActor*>& Actors)
+static void SortActorsHierarchy(TTransArray<AActor*>& Actors, UObject* Level)
 {
-	auto CalcAttachDepth = [](AActor* InActor) -> int32 {
-		int32 Depth = MAX_int32;
-		if (InActor)
+	const double StartTime = FPlatformTime::Seconds();
+
+	// Precalculate parent map to avoid processing cycles during sort
+	TMap<AActor*, AActor*> ParentMap;
+	for (int32 Idx = 0; Idx < Actors.Num(); Idx++)
+	{
+		if (Actors[Idx])
 		{
-			Depth = 0;
-			if (InActor->GetRootComponent())
+			AActor* ParentActor = Actors[Idx]->GetAttachParentActor();
+			if (ParentActor)
 			{
-				for (const USceneComponent* Test = InActor->GetRootComponent()->AttachParent; Test != nullptr; Test = Test->AttachParent, Depth++);
+				ParentMap.Add(Actors[Idx], ParentActor);
 			}
 		}
-		return Depth;
-	};
-	
-	// Unfortunately TArray.StableSort assumes no null entries in the array
-	// So it forces me to use internal unrestricted version
-	StableSortInternal(Actors.GetData(), Actors.Num(), [&](AActor* L, AActor* R) {
-			return CalcAttachDepth(L) < CalcAttachDepth(R);
-	});
+	}
+
+	if (ParentMap.Num())
+	{
+		FLevelSortUtils::FDepthSort DepthSorter;
+		TArray<AActor*> ParentChain;
+		while (ParentMap.Num())
+		{
+			ParentChain.Reset();
+			FLevelSortUtils::FindAndRemoveParentChain(ParentMap, ParentChain);
+
+			for (int32 Idx = 0; Idx < ParentChain.Num(); Idx++)
+			{
+				DepthSorter.DepthMap.Add(ParentChain[Idx], ParentChain.Num() - Idx - 1);
+			}
+		}
+
+		// Unfortunately TArray.StableSort assumes no null entries in the array
+		// So it forces me to use internal unrestricted version
+		StableSortInternal(Actors.GetData(), Actors.Num(), DepthSorter);
+	}
+
+	const float ElapsedTime = (float)(FPlatformTime::Seconds() - StartTime);
+	if (ElapsedTime > 1.0f)
+	{
+		UE_LOG(LogLevel, Warning, TEXT("SortActorsHierarchy(%s) took %f seconds"), Level ? *GetNameSafe(Level->GetOutermost()) : TEXT("??"), ElapsedTime);
+	}
 
 	// Since all the null entries got sorted to the end, lop them off right now
 	int32 RemoveAtIndex = Actors.Num();
@@ -790,7 +885,7 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 	{
 		UpdateModelComponents();
 		// Sort actors to ensure that parent actors will be registered before child actors
-		SortActorsHierarchy(Actors);
+		SortActorsHierarchy(Actors, this);
 	}
 
 	// Find next valid actor to process components registration

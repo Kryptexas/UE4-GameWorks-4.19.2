@@ -6,6 +6,7 @@
  * The base class for a playable sound object 
  */
 
+#include "Audio.h"
 #include "Sound/SoundConcurrency.h"
 #include "SoundBase.generated.h"
 
@@ -108,6 +109,9 @@ public:
 
 	virtual float GetVolumeMultiplier();
 	virtual float GetPitchMultiplier();
+
+	/** Returns whether or not this sound is looping. */
+	const bool IsLooping() { return (GetDuration() >= INDEFINITELY_LOOPING_DURATION); }
 
 	/** 
 	 * Parses the Sound to generate the WaveInstances to play

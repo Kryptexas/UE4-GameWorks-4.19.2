@@ -13,6 +13,7 @@ FPluginDescriptor::FPluginDescriptor()
 	, bCanContainContent(false)
 	, bIsBetaVersion(false)
 	, bInstalled(false)
+	, bRequiresBuildPlatform(true)
 { 
 }
 
@@ -102,6 +103,11 @@ bool FPluginDescriptor::Read(const FString& Text, FText& OutFailReason)
 	Object.TryGetBoolField(TEXT("IsBetaVersion"), bIsBetaVersion);
 	Object.TryGetBoolField(TEXT("Installed"), bInstalled);
 
+	if(!Object.TryGetBoolField(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform))
+	{
+		bRequiresBuildPlatform = true;
+	}
+
 	return true;
 }
 
@@ -145,6 +151,10 @@ FString FPluginDescriptor::ToString() const
 	Writer.WriteValue(TEXT("Installed"), bInstalled);
 
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
+	if(!bRequiresBuildPlatform)
+	{
+		Writer.WriteValue(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform);
+	}
 
 	Writer.WriteObjectEnd();
 	Writer.Close();
@@ -157,6 +167,7 @@ FString FPluginDescriptor::ToString() const
 FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString& InName, bool bInEnabled, const FString& InMarketplaceURL )
 	: Name(InName)
 	, bEnabled(bInEnabled)
+	, bOptional(false)
 	, MarketplaceURL(InMarketplaceURL)
 { }
 
@@ -200,7 +211,10 @@ bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFail
 		OutFailReason = LOCTEXT("PluginReferenceWithoutEnabled", "Plugin references must have an 'Enabled' field");
 		return false;
 	}
-	
+
+	// Read the optional field
+	Object.TryGetBoolField(TEXT("Optional"), bOptional);
+
 	// Read the metadata for users that don't have the plugin installed
 	Object.TryGetStringField(TEXT("Description"), Description);
 	Object.TryGetStringField(TEXT("MarketplaceURL"), MarketplaceURL);
@@ -246,6 +260,11 @@ void FPluginReferenceDescriptor::Write( TJsonWriter<>& Writer ) const
 	Writer.WriteObjectStart();
 	Writer.WriteValue(TEXT("Name"), Name);
 	Writer.WriteValue(TEXT("Enabled"), bEnabled);
+
+	if (bEnabled && bOptional)
+	{
+		Writer.WriteValue(TEXT("Optional"), bOptional);
+	}
 
 	if (Description.Len() > 0)
 	{

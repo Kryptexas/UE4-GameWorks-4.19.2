@@ -21,6 +21,14 @@ class UEndUserSettings : public UObject, public IImportantToggleSettingInterface
 	UPROPERTY(EditAnywhere, config, Category=Privacy)
 	bool bSendAnonymousUsageDataToEpic;
 
+	/** Determines whether the engine sends anonymous crash/abnormal-shutdown data about game sessions to Epic Games in order to improve Unreal Engine. Information will never be shared with 3rd parties. */
+	UPROPERTY(EditAnywhere, config, Category=PrivacyDetails)
+	bool bSendMeanTimeBetweenFailureDataToEpic;
+
+	/** If enabled, adds user identifying data to the otherwise anonymous reports sent to Epic Games. */
+	UPROPERTY(EditAnywhere, config, Category = PrivacyDetails)
+	bool bAllowUserIdInUsageData;
+
 public:
 	/** Sets bSendAnonymousUsageDataToEpic. It MUST be set this way when the end user changes the value to trigger the correct state change in the analytics system. */
 	void SetSendAnonymousUsageDataToEpic(bool bEnable);

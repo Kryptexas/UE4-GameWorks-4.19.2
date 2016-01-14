@@ -992,6 +992,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		StaticTick(DeltaSeconds, !!GAsyncLoadingUseFullTimeLimit, GAsyncLoadingTimeLimit / 1000.f);
 	}
 
+	FEngineAnalytics::Tick(DeltaSeconds);
+
 	// Look for realtime flags.
 	bool IsRealtime = false;
 

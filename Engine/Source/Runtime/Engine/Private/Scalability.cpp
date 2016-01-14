@@ -10,7 +10,7 @@ static TAutoConsoleVariable<int32> CVarResolutionQuality(
 	TEXT("sg.ResolutionQuality"),
 	100,
 	TEXT("Scalability quality state (internally used by scalability system, ini load/save or using SCALABILITY console command)\n")
-	TEXT(" 50..100, default: 100"),
+	TEXT(" 10..100, default: 100"),
 	ECVF_ScalabilityGroup);
 
 static TAutoConsoleVariable<int32> CVarViewDistanceQuality(
@@ -282,11 +282,10 @@ FQualityLevels BenchmarkQualityLevels(uint32 WorkScale)
 	FSynthBenchmarkResults SynthBenchmark;
 	ISynthBenchmark::Get().Run(SynthBenchmark, true, WorkScale );
 
-	float CPUPerfIndex = SynthBenchmark.ComputeCPUPerfIndex();
-	float GPUPerfIndex = SynthBenchmark.ComputeGPUPerfIndex();
+	const float CPUPerfIndex = SynthBenchmark.ComputeCPUPerfIndex();
+	const float GPUPerfIndex = SynthBenchmark.ComputeGPUPerfIndex();
 
 	// decide on the actual quality needed
-
 	Results.ResolutionQuality = GetRenderScaleLevelFromQualityLevel(ComputeOptionFromPerfIndex(TEXT("ResolutionQuality"), CPUPerfIndex, GPUPerfIndex));
 	Results.ViewDistanceQuality = ComputeOptionFromPerfIndex(TEXT("ViewDistanceQuality"), CPUPerfIndex, GPUPerfIndex);
 	Results.AntiAliasingQuality = ComputeOptionFromPerfIndex(TEXT("AntiAliasingQuality"), CPUPerfIndex, GPUPerfIndex);
@@ -294,6 +293,8 @@ FQualityLevels BenchmarkQualityLevels(uint32 WorkScale)
 	Results.PostProcessQuality = ComputeOptionFromPerfIndex(TEXT("PostProcessQuality"), CPUPerfIndex, GPUPerfIndex);
 	Results.TextureQuality = ComputeOptionFromPerfIndex(TEXT("TextureQuality"), CPUPerfIndex, GPUPerfIndex);
 	Results.EffectsQuality = ComputeOptionFromPerfIndex(TEXT("EffectsQuality"), CPUPerfIndex, GPUPerfIndex);
+	Results.CPUBenchmarkResults = CPUPerfIndex;
+	Results.GPUBenchmarkResults = GPUPerfIndex;
 
 	return Results;
 }
@@ -327,6 +328,9 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 	bool bInfoMode = false;
 	FString Token;
 
+	float CPUBenchmarkValue = -1.0f;
+	float GPUBenchmarkValue = -1.0f;
+
 	// Parse command line
 	if (FParse::Token(Cmd, Token, true))
 	{
@@ -337,6 +341,8 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 			Scalability::SaveState(GIsEditor ? GEditorSettingsIni : GGameUserSettingsIni);
 			bPrintUsage = false;
 			bPrintCurrentSettings = true;
+			CPUBenchmarkValue = State.CPUBenchmarkResults;
+			GPUBenchmarkValue = State.GPUBenchmarkResults;
 		}
 		else if (Token == TEXT("reapply"))
 		{
@@ -382,6 +388,15 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 		PrintGroupInfo(TEXT("PostProcessQuality"), bInfoMode);
 		PrintGroupInfo(TEXT("TextureQuality"), bInfoMode);
 		PrintGroupInfo(TEXT("EffectsQuality"), bInfoMode);
+
+		if (CPUBenchmarkValue >= 0.0f)
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("CPU benchmark value: %f"), CPUBenchmarkValue);
+		}
+		if (GPUBenchmarkValue >= 0.0f)
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("GPU benchmark value: %f"), GPUBenchmarkValue);
+		}
 	}
 }
 

@@ -22,7 +22,12 @@ namespace Scalability
 		int32 TextureQuality;
 		int32 EffectsQuality;
 
+		float CPUBenchmarkResults;
+		float GPUBenchmarkResults;
+
 		FQualityLevels()
+			: CPUBenchmarkResults(-1.0f)
+			, GPUBenchmarkResults(-1.0f)
 		{
 			SetDefaults();
 		}
@@ -80,7 +85,7 @@ namespace Scalability
 	ENGINE_API void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 
 	/** Minimum single axis scale for render resolution */
-	static const int32 MinResolutionScale = 50;
+	static const int32 MinResolutionScale = 10;
 
 	/** Maximum single axis scale for render resolution */
 	static const int32 MaxResolutionScale = 100;

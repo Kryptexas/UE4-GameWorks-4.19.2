@@ -265,7 +265,7 @@ protected:
 	virtual void Uninitialize(UAnimInstance* InAnimInstance);
 
 	/** Called before update so we can copy any data we need */
-	virtual void PreUpdate(const UAnimInstance* InAnimInstance, float DeltaSeconds);
+	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds);
 
 	/** Update override point */
 	virtual void Update(float DeltaSeconds) {}

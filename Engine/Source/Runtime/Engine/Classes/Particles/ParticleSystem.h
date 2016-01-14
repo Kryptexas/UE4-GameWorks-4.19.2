@@ -2,6 +2,8 @@
 
 
 #pragma once
+#include "ParticleHelper.h"
+
 #include "ParticleSystem.generated.h"
 
 /**
@@ -295,6 +297,13 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Minimum duration between ticks; 33=tick at max. 30FPS, 16=60FPS, 8=120FPS"))
 	uint32 MinTimeBetweenTicks;
+
+	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Time this system can be deemed insignificant before it deactivates. "))
+	float InsignificantTimeTillDeactivate;
+
+	/** The maximum level of significance for emitters in this system. Any emitters with a higher significance will be capped at this significance level. */
+	UPROPERTY(EditAnywhere, Category = Performance)
+	EParticleSignificanceLevel MaxSignificanceLevel;
 
 	/** Local space position that UVs generated with the ParticleMacroUV material node will be centered on. */
 	UPROPERTY(EditAnywhere, Category=MacroUV)

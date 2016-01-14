@@ -14,6 +14,9 @@ struct ENGINE_API FAnimSingleNodeInstanceProxy : public FAnimInstanceProxy
 public:
 	FAnimSingleNodeInstanceProxy()
 	{
+#if WITH_EDITOR
+		bCanProcessAdditiveAnimations = false;
+#endif
 	}
 
 	FAnimSingleNodeInstanceProxy(UAnimInstance* InAnimInstance)
@@ -29,7 +32,11 @@ public:
 		, bLooping(true)
 		, bPlaying(true)
 		, bReverse(false)
-	{}
+	{
+#if WITH_EDITOR
+		bCanProcessAdditiveAnimations = false;
+#endif
+	}
 
 	virtual void Initialize(UAnimInstance* InAnimInstance) override;
 	virtual bool Evaluate(FPoseContext& Output) override;
@@ -104,6 +111,13 @@ public:
 
 private:
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
+
+protected:
+#if WITH_EDITOR
+	/** If this is being used by a user (for instance on a skeletal mesh placed in a level) we don't want to allow
+	additives. But we need to be able to override this for editor preview windows */
+	bool bCanProcessAdditiveAnimations;
+#endif
 
 private:
 	/** Current Asset being played **/

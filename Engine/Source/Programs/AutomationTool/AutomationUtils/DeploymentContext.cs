@@ -190,11 +190,11 @@ public class DeploymentContext //: ProjectParams
 	/// <summary>
 	/// Filename for the manifest of files currently deployed on a device.
 	/// </summary>
-	static public readonly string UFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
-	static public readonly string NonUFSDeployedManifestFileName	= "Manifest_NonUFSFiles.txt";
+	static public readonly string sUFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
+	static public readonly string sNonUFSDeployedManifestFileName	= "Manifest_NonUFSFiles.txt";
 
 	
-
+	
 
 	/// <summary>
 	/// The client connects to dedicated server to get data
@@ -754,5 +754,21 @@ public class DeploymentContext //: ProjectParams
 	public String GetNonUFSDeploymentObsoletePath()
 	{
 		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName);
+	}
+
+	public string UFSDeployedManifestFileName
+	{
+		get
+		{
+			return "Manifest_UFSFiles_" + StageTargetPlatform.PlatformType.ToString() + ".txt";
+		}
+	}
+
+	public string NonUFSDeployedManifestFileName
+	{
+		get
+		{
+			return "Manifest_NonUFSFiles_" + StageTargetPlatform.PlatformType.ToString() + ".txt";
+		}
 	}
 }

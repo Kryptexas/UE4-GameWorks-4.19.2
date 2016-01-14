@@ -1491,6 +1491,7 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 
 FActiveGameplayEffectsContainer::FActiveGameplayEffectsContainer()
 	: Owner(nullptr)
+	, OwnerIsNetAuthority(false)
 	, ScopedLockCount(0)
 	, PendingRemoves(0)
 	, PendingGameplayEffectHead(nullptr)
@@ -1514,6 +1515,7 @@ void FActiveGameplayEffectsContainer::RegisterWithOwner(UAbilitySystemComponent*
 	if (Owner != InOwner)
 	{
 		Owner = InOwner;
+		OwnerIsNetAuthority = Owner->IsOwnerActorAuthoritative();
 
 		// Binding raw is ok here, since the owner is literally the UObject that owns us. If we are destroyed, its because that uobject is destroyed,
 		// and if that is destroyed, the delegate wont be able to fire.
@@ -2570,8 +2572,12 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 
 	// Update our owner with the tags this GameplayEffect grants them
 	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, 1);
-
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, 1);
+	if (IsNetAuthority() && Owner->bMinimalReplication)
+	{
+		Owner->AddMinimalReplicationGameplayTags(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
+		Owner->AddMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
+	}
 
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, 1);
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, 1);
@@ -2599,6 +2605,17 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 		{
 			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::OnActive);
 			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
+		}
+
+		if (IsNetAuthority() && Owner->bMinimalReplication)
+		{
+			for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
+			{
+				// Note: minimal replication does not replicate the effect context with the gameplay cue parameters.
+				// This is just a choice right now. If needed, it may be better to convert the effect context to GC parameters *here*
+				// and pass those into this function
+				Owner->AddGameplayCue_MinimalReplication(CueTag);
+			}
 		}
 	}
 }
@@ -2776,11 +2793,16 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	// Update gameplaytag count and broadcast delegate if we are at 0
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
+	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
+
+	if (IsNetAuthority() && Owner->bMinimalReplication)
+	{
+		Owner->RemoveMinimalReplicationGameplayTags(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
+		Owner->RemoveMinimalReplicationGameplayTags(Effect.Spec.DynamicGrantedTags);
+	}
 
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.RequireTags, -1);
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, -1);
-
-	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
 
 	// Cancel/remove granted abilities
 	if (IsNetAuthority())
@@ -2814,12 +2836,20 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	// Update GameplayCue tags and events
 	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 	{
+		Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
+
 		if (bInvokeGameplayCueEvents)
 		{
 			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::Removed);			
 		}
 
-		Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
+		if (IsNetAuthority() && Owner->bMinimalReplication)
+		{
+			for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
+			{
+				Owner->RemoveGameplayCue_MinimalReplication(CueTag);
+			}
+		}
 	}
 }
 
@@ -2938,14 +2968,14 @@ bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGamepl
 	return false;
 }
 
-bool FActiveGameplayEffectsContainer::IsNetAuthority() const
-{
-	check(Owner);
-	return Owner->IsOwnerActorAuthoritative();
-}
-
 bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 {
+	// Have to manually return here, replication conditions don't apply to delta properties
+	if (Owner && Owner->bMinimalReplication)
+	{
+		return true;
+	}
+
 	bool RetVal = FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects_Internal, DeltaParms, *this);
 
 	// After the array has been replicated, invoke GC events ONLY if the effect is not inhibited

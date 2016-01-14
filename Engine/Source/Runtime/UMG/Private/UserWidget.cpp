@@ -63,9 +63,18 @@ bool UUserWidget::Initialize()
 
 		// Only do this if this widget is of a blueprint class
 		UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-		if ( BGClass != nullptr )
+		if (BGClass != nullptr)
 		{
-			BGClass->InitializeWidget(this);
+			//TODO NickD: This is a hack, and should be undone later
+			UWidgetBlueprintGeneratedClass* SuperBGClass = Cast<UWidgetBlueprintGeneratedClass>(BGClass->GetSuperClass());
+			if (BGClass->WidgetTree->RootWidget == nullptr && SuperBGClass )
+			{
+				SuperBGClass->InitializeWidget(this);
+			}
+			else
+			{
+				BGClass->InitializeWidget(this);
+			}
 		}
 		else
 		{
@@ -339,6 +348,19 @@ void UUserWidget::SetNumLoopsToPlay(const UWidgetAnimation* InAnimation, int32 I
 		if (FoundPlayer)
 		{
 			(*FoundPlayer)->SetNumLoopsToPlay(InNumLoopsToPlay);
+		}
+	}
+}
+
+void UUserWidget::ReverseAnimation(const UWidgetAnimation* InAnimation)
+{
+	if (InAnimation)
+	{
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+
+		if (FoundPlayer)
+		{
+			(*FoundPlayer)->Reverse();
 		}
 	}
 }
@@ -924,6 +946,11 @@ void UUserWidget::StopListeningForAllInputActions()
 {
 	if ( InputComponent )
 	{
+		for ( int32 ExistingIndex = InputComponent->GetNumActionBindings() - 1; ExistingIndex >= 0; --ExistingIndex )
+		{
+			InputComponent->RemoveActionBinding( ExistingIndex );
+		}
+
 		if ( APlayerController* Controller = GetOwningPlayer() )
 		{
 			Controller->PopInputComponent( InputComponent );

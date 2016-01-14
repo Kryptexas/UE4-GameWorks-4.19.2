@@ -79,6 +79,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Signifies that the plugin was installed on top of the engine */
 	bool bInstalled;
 
+	/** For plugins that are under a platform folder (eg. /PS4/), determines whether compiling the plugin requires the build platform and/or SDK to be available */
+	bool bRequiresBuildPlatform;
+
 	/** Constructor. */
 	FPluginDescriptor();
 
@@ -105,6 +108,9 @@ struct PROJECTS_API FPluginReferenceDescriptor
 
 	/** Whether it should be enabled by default */
 	bool bEnabled;
+
+	/** Whether this plugin is optional, and the game should silently ignore it not being present */
+	bool bOptional;
 	
 	/** Description of the plugin for users that do not have it installed. */
 	FString Description;

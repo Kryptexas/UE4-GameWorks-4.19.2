@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	D3D11Device.cpp: D3D device RHI implementation.
+	WindowsD3D11Device.cpp: Windows D3D device RHI implementation.
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
@@ -269,6 +269,8 @@ void FD3D11DynamicRHIModule::FindAdapter()
 	bool bIsAnyIntel = false;
 	bool bIsAnyNVIDIA = false;
 
+	UE_LOG(LogD3D11RHI, Log, TEXT("D3D11 adapters:"));
+
 	// Enumerate the DXGIFactory's adapters.
 	for(uint32 AdapterIndex = 0; DXGIFactory1->EnumAdapters(AdapterIndex,TempAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND; ++AdapterIndex)
 	{
@@ -284,13 +286,13 @@ void FD3D11DynamicRHIModule::FindAdapter()
 				uint32 OutputCount = CountAdapterOutputs(TempAdapter);
 
 				UE_LOG(LogD3D11RHI, Log,
-					TEXT("Found D3D11 adapter %u: %s (Feature Level %s)"),
+					TEXT("  %2u. '%s' (Feature Level %s)"),
 					AdapterIndex,
 					AdapterDesc.Description,
 					GetFeatureLevelString(ActualFeatureLevel)
 					);
 				UE_LOG(LogD3D11RHI, Log,
-					TEXT("Adapter has %uMB of dedicated video memory, %uMB of dedicated system memory, and %uMB of shared system memory, %d output[s]"),
+					TEXT("      %uMB of dedicated video memory, %uMB of dedicated system memory, and %uMB of shared system memory, %d output[s]"),
 					(uint32)(AdapterDesc.DedicatedVideoMemory / (1024*1024)),
 					(uint32)(AdapterDesc.DedicatedSystemMemory / (1024*1024)),
 					(uint32)(AdapterDesc.SharedSystemMemory / (1024*1024)),
@@ -361,7 +363,7 @@ void FD3D11DynamicRHIModule::FindAdapter()
 
 	if(ChosenAdapter.IsValid())
 	{
-		UE_LOG(LogD3D11RHI, Log, TEXT("Chosen D3D11 Adapter Id = %u"), ChosenAdapter.AdapterIndex);
+		UE_LOG(LogD3D11RHI, Log, TEXT("Chosen D3D11 Adapter: %u"), ChosenAdapter.AdapterIndex);
 	}
 	else
 	{
@@ -380,6 +382,43 @@ FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI()
 void FD3D11DynamicRHI::Init()
 {
 	InitD3DDevice();
+}
+
+void FD3D11DynamicRHI::FlushPendingLogs()
+{
+#if !(UE_BUILD_SHIPPING && WITH_EDITOR)
+	if (D3D11RHI_ShouldCreateWithD3DDebug())
+	{
+		TRefCountPtr<ID3D11InfoQueue> InfoQueue = nullptr;
+		VERIFYD3D11RESULT(Direct3DDevice->QueryInterface(IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()));
+		if (InfoQueue)
+		{
+			FString FullMessage;
+			uint64 NumMessages = InfoQueue->GetNumStoredMessagesAllowedByRetrievalFilter();
+			for (uint64 Index = 0; Index < NumMessages; ++Index)
+			{
+				SIZE_T Length = 0;
+				if (SUCCEEDED(InfoQueue->GetMessage(Index, nullptr, &Length)))
+				{
+					TArray<uint8> Bytes;
+					Bytes.AddUninitialized((int32)Length);
+					D3D11_MESSAGE* Message = (D3D11_MESSAGE*)Bytes.GetData();
+					if (SUCCEEDED(InfoQueue->GetMessage(Index, Message, &Length)))
+					{
+						FullMessage += TEXT("\n\t");
+						FullMessage += Message->pDescription;
+					}
+				}
+			}
+
+			if (FullMessage.Len() > 0)
+			{
+				UE_LOG(LogD3D11RHI, Warning, TEXT("d3debug warnings/errors found:%s"), *FullMessage);
+			}
+			InfoQueue->ClearStoredMessages();
+		}
+	}
+#endif
 }
 
 void FD3D11DynamicRHI::InitD3DDevice()
@@ -461,6 +500,15 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 					GRHIAdapterName = AdapterDesc.Description;
 					GRHIVendorId = AdapterDesc.VendorId;
+					
+					// get driver version (todo: share with other RHIs)
+					{
+						FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
+
+						UE_LOG(LogD3D11RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
+						UE_LOG(LogD3D11RHI, Log, TEXT("  Driver Version: %s (internal %s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion);
+						UE_LOG(LogD3D11RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
+					}
 
 					// Issue: 32bit windows doesn't report 64bit value, we take what we get.
 					FD3D11GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc.DedicatedVideoMemory);
@@ -615,9 +663,9 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		// Add some filter outs for known debug spew messages (that we don't care about)
 		if(DeviceFlags & D3D11_CREATE_DEVICE_DEBUG)
 		{
-			ID3D11InfoQueue *pd3dInfoQueue = NULL;
-			VERIFYD3D11RESULT(Direct3DDevice->QueryInterface( IID_ID3D11InfoQueue, (void**)&pd3dInfoQueue));
-			if(pd3dInfoQueue)
+			TRefCountPtr<ID3D11InfoQueue> InfoQueue;
+			VERIFYD3D11RESULT(Direct3DDevice->QueryInterface( IID_ID3D11InfoQueue, (void**)InfoQueue.GetInitReference()));
+			if (InfoQueue)
 			{
 				D3D11_INFO_QUEUE_FILTER NewFilter;
 				FMemory::Memzero(&NewFilter,sizeof(NewFilter));
@@ -658,20 +706,18 @@ void FD3D11DynamicRHI::InitD3DDevice()
 				NewFilter.DenyList.NumIDs = sizeof(DenyIds)/sizeof(D3D11_MESSAGE_ID);
 				NewFilter.DenyList.pIDList = (D3D11_MESSAGE_ID*)&DenyIds;
 
-				pd3dInfoQueue->PushStorageFilter(&NewFilter);
+				InfoQueue->PushStorageFilter(&NewFilter);
 
 				// Break on D3D debug errors.
-				pd3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR,true);
+				InfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR,true);
 
 				// Enable this to break on a specific id in order to quickly get a callstack
-				//pd3dInfoQueue->SetBreakOnID(D3D11_MESSAGE_ID_DEVICE_DRAW_CONSTANT_BUFFER_TOO_SMALL, true);
+				//InfoQueue->SetBreakOnID(D3D11_MESSAGE_ID_DEVICE_DRAW_CONSTANT_BUFFER_TOO_SMALL, true);
 
-				if(FParse::Param(FCommandLine::Get(),TEXT("d3dbreakonwarning")))
+				if (FParse::Param(FCommandLine::Get(),TEXT("d3dbreakonwarning")))
 				{
-					pd3dInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING,true);
+					InfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING,true);
 				}
-
-				pd3dInfoQueue->Release();
 			}
 		}
 #endif

@@ -596,6 +596,60 @@ TArray<FChildWaiterThread *> FChildWaiterThread::ChildWaiterThreadsArray;
 /** See FChildWaiterThread */
 FCriticalSection FChildWaiterThread::ChildWaiterThreadsArrayGuard;
 
+namespace LinuxPlatformProcess
+{
+	/**
+	 * This function tries to set exec permissions on the file (if it is missing them).
+	 * It exists because files copied manually from foreign filesystems (e.g. CrashReportClient) or unzipped from
+	 * certain arhcive types may lack +x, yet we still want to execute them.
+	 *
+	 * @param AbsoluteFilename absolute filename to the file in question
+	 *
+	 * @return true if we should attempt to execute the file, false if it is not worth even trying
+	 */	
+	bool AttemptToMakeExecIfNotAlready(const FString & AbsoluteFilename)
+	{
+		bool bWorthTryingToExecute = true;	// be conservative and let the OS decide in most cases
+
+		FTCHARToUTF8 AbsoluteFilenameUTF8Buffer(*AbsoluteFilename);
+		const char* AbsoluteFilenameUTF8 = AbsoluteFilenameUTF8Buffer.Get();
+
+		struct stat FilePerms;
+		if (UNLIKELY(stat(AbsoluteFilenameUTF8, &FilePerms) == -1))
+		{
+			int ErrNo = errno;
+			UE_LOG(LogHAL, Warning, TEXT("LinuxPlatformProcess::AttemptToMakeExecIfNotAlready: could not stat '%s', errno=%d (%s)"),
+				*AbsoluteFilename,
+				ErrNo,
+				ANSI_TO_TCHAR(strerror(ErrNo))
+				);
+		}
+		else
+		{
+			// Try to make a guess if we can execute the file. We are not trying to do the exact check,
+			// so if any of executable bits are set, assume it's executable
+			if ((FilePerms.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0)
+			{
+				// if no executable bits at all, try setting permissions
+				if (chmod(AbsoluteFilenameUTF8, FilePerms.st_mode | S_IXUSR) == -1)
+				{
+					int ErrNo = errno;
+					UE_LOG(LogHAL, Warning, TEXT("LinuxPlatformProcess::AttemptToMakeExecIfNotAlready: could not chmod +x '%s', errno=%d (%s)"),
+						*AbsoluteFilename,
+						ErrNo,
+						ANSI_TO_TCHAR(strerror(ErrNo))
+						);
+
+					// at this point, assume that execution will fail
+					bWorthTryingToExecute = false;
+				}
+			}
+		}
+
+		return bWorthTryingToExecute;
+	}
+}
+
 FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild)
 {
 	// @TODO bLaunchHidden bLaunchReallyHidden are not handled
@@ -607,6 +661,12 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	}
 
 	if (!FPaths::FileExists(ProcessPath))
+	{
+		return FProcHandle();
+	}
+
+	// check if it's worth attemptting to execute the file
+	if (!LinuxPlatformProcess::AttemptToMakeExecIfNotAlready(ProcessPath))
 	{
 		return FProcHandle();
 	}

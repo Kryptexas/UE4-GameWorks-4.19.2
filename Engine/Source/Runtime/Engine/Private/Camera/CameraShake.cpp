@@ -40,16 +40,33 @@ UCameraShake::UCameraShake(const FObjectInitializer& ObjectInitializer)
 	OscillationBlendOutTime = 0.2f;
 }
 
-void UCameraShake::StopShake()
+void UCameraShake::StopShake(bool bImmediately)
 {
-	// stop cam anim if playing
-	if ((AnimInst != nullptr) && !AnimInst->bFinished)
+	if (bImmediately)
 	{
-		CameraOwner->StopCameraAnimInst(AnimInst, true);
+		// stop cam anim if playing
+		if ((AnimInst != nullptr) && !AnimInst->bFinished)
+		{
+			CameraOwner->StopCameraAnimInst(AnimInst, true);
+		}
+
 		AnimInst = nullptr;
+
+		// stop oscillation
+		OscillatorTimeRemaining = 0.f;
+	}
+	else
+	{
+		// advance to the blend out time
+		OscillatorTimeRemaining = FMath::Min(OscillatorTimeRemaining, OscillationBlendOutTime);
+
+		if ((AnimInst != nullptr) && !AnimInst->bFinished)
+		{
+			CameraOwner->StopCameraAnimInst(AnimInst, false);
+		}
 	}
 
-	ReceiveStopShake();
+	ReceiveStopShake(bImmediately);
 }
 
 void UCameraShake::PlayShake(APlayerCameraManager* Camera, float Scale, ECameraAnimPlaySpace::Type InPlaySpace, FRotator UserPlaySpaceRot)

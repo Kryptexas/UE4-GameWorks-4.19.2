@@ -368,9 +368,15 @@ namespace HLODOutliner
 		/** Tells the scene outliner that it should do a full refresh, which will clear the entire tree and rebuild it from scratch. */
 		void FullRefresh();
 
+		/** Retrieves and updates the current world and world settings pointers (returns whether or not a world was found) */
+		const bool UpdateCurrentWorldAndSettings();
+	
 		/** Populates the HLODTreeRoot array and consequently the Treeview */
 		void Populate();
-	
+
+		/** Clears and resets all arrays and maps containing cached/temporary data */
+		void ResetCachedData();
+
 		/** Structure containing information relating to the expansion state of parent items in the tree */
 		typedef TMap<FTreeItemID, bool> FParentsExpansionState;
 
@@ -416,6 +422,8 @@ namespace HLODOutliner
 
 		/** World instance we are currently representing/mirroring in the panel */
 		UWorld* CurrentWorld;
+		/** World settings found in CurrentWorld */
+		AWorldSettings* CurrentWorldSettings;
 
 		/** Tree view nodes */
 		TArray<FTreeItemPtr> HLODTreeRoot;

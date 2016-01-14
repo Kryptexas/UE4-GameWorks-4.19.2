@@ -23,6 +23,7 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Non-streaming Textures"),STAT_NonStreaming
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Textures On Disk"),STAT_StreamingTexturesMaxSize,STATGROUP_StreamingDetails,FPlatformMemory::MCR_TexturePool, );
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Lightmaps In Memory"),STAT_LightmapMemorySize,STATGROUP_StreamingDetails,FPlatformMemory::MCR_TexturePool, );
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Lightmaps On Disk"),STAT_LightmapDiskSize,STATGROUP_StreamingDetails,FPlatformMemory::MCR_TexturePool, );
+DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("HLOD Textures In Memory"), STAT_HLODTextureMemorySize, STATGROUP_StreamingDetails, FPlatformMemory::MCR_TexturePool, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Requests In Cancelation Phase"),STAT_RequestsInCancelationPhase,STATGROUP_StreamingDetails, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Requests In Update Phase"),STAT_RequestsInUpdatePhase,STATGROUP_StreamingDetails, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Requests in Finalize Phase"),STAT_RequestsInFinalizePhase,STATGROUP_StreamingDetails, );
@@ -476,6 +477,12 @@ struct ITextureStreamingManager : public IStreamingManager
 	virtual bool IsManagedStreamingTexture(const UTexture2D* Texture2D) = 0;
 
 	virtual int64 GetMemoryOverBudget() const = 0;
+
+	/** Max required textures ever seen in bytes. */
+	virtual int64 GetMaxEverRequired() const = 0;
+
+	/** Resets the max ever required textures.  For possibly when changing resolutions or screen pct. */
+	virtual void ResetMaxEverRequired() = 0;
 };
 
 /**
@@ -922,6 +929,10 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 
 	virtual int64 GetMemoryOverBudget() const override { return MemoryOverBudget; }
 
+	virtual int64 GetMaxEverRequired() const override { return MaxEverRequired; }
+
+	virtual void ResetMaxEverRequired() override { MaxEverRequired = 0; }
+
 	/**
 	 * Allows the streaming manager to process exec commands.
 	 *
@@ -945,6 +956,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	bool HandleListStreamingTexturesReportCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // STATS
 #if !UE_BUILD_SHIPPING
+	bool HandleResetMaxEverRequiredTexturesCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	bool HandleLightmapStreamingFactorCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCancelTextureStreamingCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleShadowmapStreamingFactorCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1337,6 +1349,8 @@ protected:
 	uint64 TotalLightmapMemorySize;
 	/** Total number of bytes on disk, for all streaming lightmap textures. */
 	uint64 TotalLightmapDiskSize;
+	/** Total number of bytes in memory, for all HLOD textures. */
+	uint64 TotalHLODMemorySize;
 	/** Number of mip count increase requests in flight. */
 	uint32 TotalMipCountIncreaseRequestsInFlight;
 	/** Total number of bytes in memory, if all textures were streamed perfectly with a 1.0 fudge factor. */
@@ -1350,6 +1364,7 @@ protected:
 	/** Total number of bytes using ForcedIntoMemory heuristics, currently in memory. */
 	uint64 TotalForcedHeuristicSize;
 	int64 MemoryOverBudget;
+	int64 MaxEverRequired;
 
 	/** Unmodified texture pool size, in bytes, as specified in the .ini file. */
 	int64 OriginalTexturePoolSize;

@@ -48,12 +48,20 @@ static FAutoConsoleVariableRef CVarEarlyZPassMovable(
 	ECVF_RenderThreadSafe | ECVF_ReadOnly
 	);
 
+TAutoConsoleVariable<int32> CVarCustomDepthOrder(
+	TEXT("r.CustomDepth.Order"),
+	1,	
+	TEXT("When CustomDepth (and CustomStencil) is getting rendered\n")
+	TEXT("  0: Before GBuffer (can be more efficient with AsyncCompute, allows using it in DBuffer pass, no GBuffer blending decals allow GBuffer compression)\n")
+	TEXT("  1: After Base Pass (default)"),
+	ECVF_RenderThreadSafe);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarVisualizeTexturePool(
 	TEXT("r.VisualizeTexturePool"),
 	0,
 	TEXT("Allows to enable the visualize the texture pool (currently only on console).\n")
-	TEXT(" 0: off\n")
+	TEXT(" 0: off (default)\n")
 	TEXT(" 1: on"),
 	ECVF_Cheat | ECVF_RenderThreadSafe);
 #endif
@@ -809,6 +817,12 @@ void ServiceLocalQueue()
 	FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::RenderThread_Local);
 }
 
+// @return 0/1
+static int32 GetCustomDepthPassLocation()
+{		
+	return FMath::Clamp(CVarCustomDepthOrder.GetValueOnRenderThread(), 0, 1);
+}
+
 extern bool IsLpvIndirectPassRequired(const FViewInfo& View);
 
 static TAutoConsoleVariable<float> CVarStallInitViews(
@@ -1018,7 +1032,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	RenderOcclusion(RHICmdList, bOcclusionBeforeBasePass, bHZBBeforeBasePass);
 	ServiceLocalQueue();
-	
+
 	// Clear LPVs for all views
 	if (FeatureLevel >= ERHIFeatureLevel::SM5)
 	{
@@ -1027,7 +1041,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
-	RenderCustomDepthPassAtLocation(RHICmdList, 0);
+	if(GetCustomDepthPassLocation() == 0)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_CustomDepthPass0);
+		RenderCustomDepthPassAtLocation(RHICmdList, 0);
+	}
 
 	// only temporarily available after early z pass and until base pass
 	check(!SceneContext.DBufferA);
@@ -1129,7 +1147,13 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		SceneContext.FinishRenderingGBuffer(RHICmdList);
 	}
 
-	RenderCustomDepthPassAtLocation(RHICmdList, 1);
+	if(GetCustomDepthPassLocation() == 1)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_CustomDepthPass1);
+		RenderCustomDepthPassAtLocation(RHICmdList, 1);
+	}
+
+	ServiceLocalQueue();
 
 	// Notify the FX system that opaque primitives have been rendered and we now have a valid depth buffer.
 	if (Scene->FXSystem && Views.IsValidIndex(0))

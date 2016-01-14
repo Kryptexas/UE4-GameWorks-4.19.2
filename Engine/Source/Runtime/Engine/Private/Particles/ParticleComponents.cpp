@@ -710,6 +710,8 @@ UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, QualityLevelSpawnRateScale(1.0f)
 	, bDisabledLODsKeepEmitterAlive(false)
+	, bDisableWhenInsignficant(0)
+	, SignificanceLevel(EParticleSignificanceLevel::Critical)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -1527,8 +1529,8 @@ void UParticleEmitter::Build()
 		if (HighLODLevel->TypeDataModule != nullptr)
 		{
 			if(HighLODLevel->TypeDataModule->RequiresBuild())
-			{
-				FParticleEmitterBuildInfo EmitterBuildInfo;
+		{
+			FParticleEmitterBuildInfo EmitterBuildInfo;
 				HighLODLevel->CompileModules( EmitterBuildInfo );
 				HighLODLevel->TypeDataModule->Build( EmitterBuildInfo );
 			}
@@ -1704,6 +1706,23 @@ bool UParticleEmitter::HasAnyEnabledLODs()const
 	
 	return false;
 }
+
+#if STATS
+
+DEFINE_STAT(STAT_EmittersStatGroupTester);
+
+void UParticleEmitter::CreateStatID() const
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UParticleEmitterCreateStatID);
+
+	UObject* Outer = GetOuter();
+	FName OuterName = Outer ? Outer->GetFName() : NAME_None;
+	FString LongName;
+	LongName = FString(TEXT("Emitter")) / OuterName.ToString() / EmitterName.ToString();
+	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Emitters>(LongName);
+}
+#endif
+
 
 /*-----------------------------------------------------------------------------
 	UParticleSpriteEmitter implementation.
@@ -1913,6 +1932,8 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	MacroUVRadius = 200.0f;
 	bAutoDeactivate = true;
 	MinTimeBetweenTicks = 0;
+	InsignificantTimeTillDeactivate = 5.0f;
+	MaxSignificanceLevel = EParticleSignificanceLevel::Critical;
 }
 
 
@@ -2996,6 +3017,106 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 	SavedAutoAttachRelativeScale3D = FVector(1.f, 1.f, 1.f);
 	TimeSinceLastTick = 0;
+
+	RequiredSignificance = EParticleSignificanceLevel::Low;
+	bMissingEmittersDueToSignificance = false;
+	InitRequiredSignificanceLevel = EParticleSignificanceLevel::Critical;
+	LastSignificantTime = 0.0f;
+}
+
+static float GParticleEmitterSignificanceThreshold_Low = .6666f;
+static FAutoConsoleVariableRef ParticleEmitterSignificanceThreshold_Low(
+	TEXT("fx.Significance.EmitterLevel_Low"),
+	GParticleEmitterSignificanceThreshold_Low,
+	TEXT("The significance value (0.0 to 1.0) to use as the Low Significance Level in particle emitter. \n"),
+	ECVF_Default
+	);
+static float GParticleEmitterSignificanceThreshold_Medium = .3333f;
+static FAutoConsoleVariableRef ParticleEmitterSignificanceThreshold_Medium(
+	TEXT("fx.Significance.EmitterLevel_Medium"),
+	GParticleEmitterSignificanceThreshold_Medium,
+	TEXT("The significance value (0.0 to 1.0) to use as the Medium Significance Level in particle emitter. \n"),
+	ECVF_Default
+	);
+static float GParticleEmitterSignificanceThreshold_High = 0.0f;
+static FAutoConsoleVariableRef ParticleEmitterSignificanceThreshold_High(
+	TEXT("fx.Significance.EmitterLevel_High"),
+	GParticleEmitterSignificanceThreshold_High,
+	TEXT("The significance value (0.0 to 1.0) to use as the High Significance Level in particle emitter. \n"),
+	ECVF_Default
+	);
+
+void UParticleSystemComponent::SetSignificance(float OldSignificance, float NewSignificance)
+{
+	check(Template);
+	check(!bAutoDestroy);//We can't use significance with systems that will auto destroy.
+
+	float SignificanceLevels[(int32)EParticleSignificanceLevel::Num] =
+	{
+		GParticleEmitterSignificanceThreshold_Low/*EParticleRequiredSignificanceLevel::Low*/,
+		GParticleEmitterSignificanceThreshold_Medium/*EParticleRequiredSignificanceLevel::Medium*/,
+		GParticleEmitterSignificanceThreshold_High/*EParticleRequiredSignificanceLevel::High*/,
+		0.0f
+	};
+
+	if (NewSignificance > SignificanceLevels[(int32)EParticleSignificanceLevel::Low])
+	{
+		RequiredSignificance = EParticleSignificanceLevel::Low;
+	}
+	else if (NewSignificance > SignificanceLevels[(int32)EParticleSignificanceLevel::Medium])
+	{
+		RequiredSignificance = EParticleSignificanceLevel::Medium;
+	}
+	else if (NewSignificance > SignificanceLevels[(int32)EParticleSignificanceLevel::High])
+	{
+		RequiredSignificance = EParticleSignificanceLevel::High;
+	}
+	else
+	{
+		RequiredSignificance = EParticleSignificanceLevel::Critical;
+	}
+
+	bool bNeedsInit = false;
+	// We need to re-init. Some emitters are missing due to significance that may now be significant.
+	if (bIsActive && ((int32)RequiredSignificance < (int32)InitRequiredSignificanceLevel))
+	{
+		InitParticles(false);
+	}
+
+	bool bHasAnyEmittersEnabled = false;
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
+			if ((int32)Inst->SpriteTemplate->SignificanceLevel >= (int32)RequiredSignificance)
+			{
+				bHasAnyEmittersEnabled = true;
+				Inst->bEnabled = true;
+				Inst->SetHaltSpawning(false);
+				//TODO: Warm up if was previously disabled emitters? How does this all interact with LODs?
+			}
+			else
+			{
+				Inst->bEnabled = Inst->SpriteTemplate->bDisableWhenInsignficant ? false : true;
+				Inst->SetHaltSpawning(true);
+				//Inst->DisabledSince = GetWorld()->GetTimeSeconds();//Allows us to warm back up if we ever re-enable?
+			}
+		}
+	}
+
+	if (bHasAnyEmittersEnabled)
+	{
+		LastSignificantTime = GetWorld()->GetTimeSeconds();
+		Activate();
+	}
+	else
+	{
+		float CurrentTime = GetWorld()->GetTimeSeconds();
+		if (Template->InsignificantTimeTillDeactivate > 0.0f && CurrentTime >= LastSignificantTime + Template->InsignificantTimeTillDeactivate)
+		{
+			Deactivate();
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -3323,6 +3444,8 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 	checkSlow(EmitterInstance && EmitterInstance->CurrentLODLevel);
 	check( EmitterReplayData != NULL );
 
+	FScopeCycleCounterEmitter AdditionalScope(EmitterInstance);
+
 	// Allocate the appropriate type of emitter data
 	FDynamicEmitterDataBase* EmitterData = NULL;
 
@@ -3427,7 +3550,12 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 			}
 			break;
 	}
-
+#if STATS
+	if (EmitterData)
+	{
+		EmitterData->StatID = EmitterInstance->SpriteTemplate->GetStatID();
+	}
+#endif
 	return EmitterData;
 }
 
@@ -3436,7 +3564,7 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 
 FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 {
-	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData);
+	//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData);
 
 	// Only proceed if we have any live particles or if we're actively replaying/capturing
 	if (EmitterInstances.Num() > 0)
@@ -3554,19 +3682,22 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 		// Is the particle system allowed to run?
 		if( bForcedInActive == false )
 		{
-			SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Gather);
+			//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData_Gather);
 			ParticleDynamicData->DynamicEmitterDataArray.Reset();
 			ParticleDynamicData->DynamicEmitterDataArray.Reserve(EmitterInstances.Num());
 
+			//QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData);
 			for (int32 EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
 			{
 				FDynamicEmitterDataBase* NewDynamicEmitterData = NULL;
 				FParticleEmitterInstance* EmitterInst = EmitterInstances[EmitterIndex];
 				if (EmitterInst)
 				{
+					FScopeCycleCounterEmitter AdditionalScope(EmitterInst);
+
 					// Generate the dynamic data for this emitter
 					{
-						SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData);
+						//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_GetDynamicData);
 						bool bIsOwnerSeleted = false;
 #if WITH_EDITOR
 						{
@@ -3578,6 +3709,9 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 					}
 					if( NewDynamicEmitterData != NULL )
 					{
+#if STATS
+						NewDynamicEmitterData->StatID = EmitterInst->SpriteTemplate->GetStatID();
+#endif
 						NewDynamicEmitterData->bValid = true;
 						ParticleDynamicData->DynamicEmitterDataArray.Add( NewDynamicEmitterData );
 						// Are we current capturing particle state?
@@ -3670,7 +3804,7 @@ void UParticleSystemComponent::ClearDynamicData()
 
 void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Proxy)
 {
-	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_UpdateDynamicData);
+	//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_UpdateDynamicData);
 
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	if (SceneProxy)
@@ -4015,7 +4149,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 		return;
 	} 
-	else
+	else if (bWarmingUp == false)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_CheckForReset);
 		bool bRequiresReset = false;
@@ -4189,6 +4323,7 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 	for (EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
 	{
 		FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
+		FScopeCycleCounterEmitter AdditionalScopeInner(Instance);
 
 		if (EmitterIndex + 1 < EmitterInstances.Num())
 		{
@@ -4196,7 +4331,7 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 			FPlatformMisc::Prefetch(NextInstance);
 		}
 
-		if (Instance && Instance->SpriteTemplate)
+		if (Instance && Instance->SpriteTemplate && Instance->bEnabled)
 		{
 			check(Instance->SpriteTemplate->LODLevels.Num() > 0);
 
@@ -4244,19 +4379,21 @@ void UParticleSystemComponent::FinalizeTickComponent()
 		for (EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
 		{
 			FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
-
-			if (EmitterIndex + 1 < EmitterInstances.Num())
+			if (Instance && Instance->bEnabled)
 			{
-				FParticleEmitterInstance* NextInstance = EmitterInstances[EmitterIndex+1];
-				FPlatformMisc::Prefetch(NextInstance);
-			}
-
-			if (Instance && Instance->SpriteTemplate)
-			{
-				UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-				if (SpriteLODLevel && SpriteLODLevel->bEnabled)
+				if (EmitterIndex + 1 < EmitterInstances.Num())
 				{
-					Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
+					FParticleEmitterInstance* NextInstance = EmitterInstances[EmitterIndex + 1];
+					FPlatformMisc::Prefetch(NextInstance);
+				}
+
+				if (Instance->SpriteTemplate)
+				{
+					UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+					if (SpriteLODLevel && SpriteLODLevel->bEnabled)
+					{
+						Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
+					}
 				}
 			}
 		}
@@ -4390,7 +4527,7 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 	}
 }
 
-void UParticleSystemComponent::InitParticles()
+void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_InitParticles);
 
@@ -4407,92 +4544,74 @@ void UParticleSystemComponent::InitParticles()
 
 	if (Template != NULL)
 	{
+		InitRequiredSignificanceLevel = RequiredSignificance;
+
 		WarmupTime = Template->WarmupTime;
 		WarmupTickRate = Template->WarmupTickRate;
 		bIsViewRelevanceDirty = true;
 		const int32 GlobalDetailMode = GetCachedScalabilityCVars().DetailMode;
+		const bool bCanEverRender = CanEverRender();
 
-		// If nothing is initialized, create EmitterInstances here.
-		if (EmitterInstances.Num() == 0)
+		//simplified version.
+		int32 NumInstances = EmitterInstances.Num();
+		int32 NumEmitters = Template->Emitters.Num();
+		const bool bIsFirstCreate = NumInstances == 0;
+		check(bIsFirstCreate || NumInstances == NumEmitters);
+		EmitterInstances.SetNumZeroed(NumEmitters);
+
+		bWasCompleted = bIsFirstCreate ? false : bWasCompleted;
+
+		bool bClearDynamicData = false;
+		int32 PreferredLODLevel = LODLevel;
+		bool bSetLodLevels = false;
+
+		for (int32 Idx = 0; Idx < NumEmitters; Idx++)
 		{
-			const bool bDetailModeAllowsRendering	= DetailMode <= GlobalDetailMode;
-			if (bDetailModeAllowsRendering && (CanEverRender()))
+			UParticleEmitter* Emitter = Template->Emitters[Idx];
+			FParticleEmitterInstance* Instance = NumInstances == 0 ? NULL : EmitterInstances[Idx];
+			
+			const bool bDetailModeAllowsRendering = DetailMode <= GlobalDetailMode;
+			bool bShouldCreateAndOrInit = bDetailModeAllowsRendering && Emitter->HasAnyEnabledLODs() && bCanEverRender;
+			const bool bIsSignificant = (int32)Emitter->SignificanceLevel >= (int32)RequiredSignificance;
+			bool bFailedOnlyOnSignificance = false;
+			if (bShouldCreateAndOrInit && !bIsSignificant)
 			{
-				EmitterInstances.Empty(Template->Emitters.Num());
-				for (int32 Idx = 0; Idx < Template->Emitters.Num(); Idx++)
-				{
-					// Must have a slot for each emitter instance - even if it's NULL.
-					// This is so the indexing works correctly.
-					UParticleEmitter* Emitter = Template->Emitters[Idx];
-					if (Emitter && Emitter->DetailMode <= GlobalDetailMode && Emitter->HasAnyEnabledLODs())
-					{
-						EmitterInstances.Add(Emitter->CreateInstance(this));
-					}
-					else
-					{
-						int32 NewIndex = EmitterInstances.AddUninitialized();
-						EmitterInstances[NewIndex] = NULL;
-					}
-				}
-				bWasCompleted = false;
+				bFailedOnlyOnSignificance = true;
+				bShouldCreateAndOrInit = false;
 			}
-		}
-		else
-		{
-			// create new instances as needed
-			for (int32 Idx = 0; Idx < EmitterInstances.Num(); Idx++)
+
+			if (bShouldCreateAndOrInit)
 			{
-				FParticleEmitterInstance* Instance = EmitterInstances[Idx];
 				if (Instance)
 				{
 					Instance->SetHaltSpawning(false);
 				}
-			}
-			while (EmitterInstances.Num() < Template->Emitters.Num())
-			{
-				int32					Index	= EmitterInstances.Num();
-				UParticleEmitter*	Emitter	= Template->Emitters[Index];
-				if (Emitter && Emitter->DetailMode <= GlobalDetailMode)
-				{
-					FParticleEmitterInstance* Instance = Emitter->CreateInstance(this);
-					EmitterInstances.Add(Instance);
-					if (Instance)
-					{
-						Instance->InitParameters(Emitter, this);
-					}
-				}
 				else
 				{
-					int32 NewIndex = EmitterInstances.AddUninitialized();
-					EmitterInstances[NewIndex] = NULL;
+					Instance = Emitter->CreateInstance(this);
+					EmitterInstances[Idx] = Instance;
 				}
-			}
 
-			int32 PreferredLODLevel = LODLevel;
-			// re-initialize the instances
-			bool bClearDynamicData = false;
-			for (int32 Idx = 0; Idx < EmitterInstances.Num(); Idx++)
-			{
-				FParticleEmitterInstance* Instance = EmitterInstances[Idx];
-				if (Instance != NULL)
+				if (Instance)
 				{
-					UParticleEmitter* Emitter = NULL;
-					if (Idx < Template->Emitters.Num())
-					{
-						Emitter = Template->Emitters[Idx];
-					}
-					if (Emitter && Emitter->DetailMode <= GlobalDetailMode)
+					Instance->bEnabled = true;
+					if (bReInitExistingEmitters)
 					{
 						Instance->InitParameters(Emitter, this);
 						Instance->Init();
-						if (PreferredLODLevel >= Emitter->LODLevels.Num())
-						{
-							PreferredLODLevel = Emitter->LODLevels.Num() - 1;
-						}
+
+						PreferredLODLevel = FMath::Min(PreferredLODLevel, Emitter->LODLevels.Num());
+						bSetLodLevels |= !bIsFirstCreate;//Only set lod levels if we init any instances and it's not the first creation time.
 					}
-					else
+				}
+			}
+			else
+			{
+				if (Instance)
+				{
+					if(!bFailedOnlyOnSignificance)
 					{
-						// Get rid of the 'phantom' instance
+						//If the instance exists already and we failed for something other than significance then destroy this emitter.
 #if STATS
 						Instance->PreDestructorCall();
 #endif
@@ -4500,40 +4619,23 @@ void UParticleSystemComponent::InitParticles()
 						EmitterInstances[Idx] = NULL;
 						bClearDynamicData = true;
 					}
-				}
-				else
-				{
-					UParticleEmitter* Emitter = NULL;
-					if (Idx < Template->Emitters.Num())
-					{
-						Emitter = Template->Emitters[Idx];
-					}
-					if (Emitter && Emitter->DetailMode <= GlobalDetailMode)
-					{
-						Instance = Emitter->CreateInstance(this);
-						EmitterInstances[Idx] = Instance;
-						if (Instance != NULL)
-						{
-							Instance->InitParameters(Emitter, this);
-							Instance->Init();
-							if (PreferredLODLevel >= Emitter->LODLevels.Num())
-							{
-								PreferredLODLevel = Emitter->LODLevels.Num() - 1;
-							}
-						}
-					}
 					else
 					{
-						EmitterInstances[Idx] = NULL;
+						//otherwise, we just disable it.
+						Instance->bEnabled = false;
 					}
 				}
+				bMissingEmittersDueToSignificance |= bFailedOnlyOnSignificance;
 			}
+		}
 
-			if (bClearDynamicData)
-			{
-				ClearDynamicData();
-			}
+		if (bClearDynamicData)
+		{
+			ClearDynamicData();
+		}
 
+		if (bSetLodLevels)
+		{
 			if (PreferredLODLevel != LODLevel)
 			{
 				// This should never be higher...
@@ -4547,8 +4649,15 @@ void UParticleSystemComponent::InitParticles()
 				// set the LOD levels here
 				if (Instance)
 				{
-					Instance->CurrentLODLevelIndex	= LODLevel;
-					Instance->CurrentLODLevel		= Instance->SpriteTemplate->LODLevels[Instance->CurrentLODLevelIndex];
+					Instance->CurrentLODLevelIndex = LODLevel;
+
+					// small safety net for OR-11322; can be removed if the ensure never fires after the change in SetTemplate (reset all instances LOD indices to 0)
+					if (Instance->CurrentLODLevelIndex >= Instance->SpriteTemplate->LODLevels.Num())
+					{
+						Instance->CurrentLODLevelIndex = Instance->SpriteTemplate->LODLevels.Num()-1;
+						ensureMsgf(false, TEXT("LOD access out of bounds (OR-11322). Please let olaf.piesche or simon.tovey know."));
+					}
+					Instance->CurrentLODLevel = Instance->SpriteTemplate->LODLevels[Instance->CurrentLODLevelIndex];
 				}
 			}
 		}
@@ -4583,8 +4692,11 @@ void UParticleSystemComponent::ResetParticles(bool bEmptyInstances)
 		}
 	}
 
-	// Set the system as deactive
+	// Set the system as inactive
 	bIsActive	= false;
+
+	
+	bMissingEmittersDueToSignificance = false;
 
 	// Remove instances if we're not running gameplay.ww
 	if (!bIsGameWorld || bEmptyInstances)
@@ -4667,6 +4779,10 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			WarmupTime = 0.0f;
 		}
 
+		// set the LOD level to 0 in case we're recycling the component, so InitParticles doesn't mistakenly grab an invalid LOD level
+		// speculative fix for OR-11322. May become permanent if the ensure in InitParticles never fires.
+		LODLevel = 0;
+
 		if(NewTemplate && IsRegistered())
 		{
 			if ((bAutoActivate || bWasActive) && (bIsTemplate == false))
@@ -4689,6 +4805,17 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 		Template = NULL;
 	}
 	EmitterMaterials.Empty();
+
+	for (int32 Idx = 0; Idx < EmitterInstances.Num(); Idx++)
+	{
+		FParticleEmitterInstance* Instance = EmitterInstances[Idx];
+		// set the LOD levels to 0 in case we're recycling the component, so InitParticles doesn't mistakenly grab an invalid LOD level
+		if (Instance)
+		{
+			Instance->CurrentLODLevelIndex = 0;
+		}
+	}
+
 }
 
 void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
@@ -4737,6 +4864,9 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	// System settings may have been lowered. Support late deactivation.
 	const bool bDetailModeAllowsRendering	= DetailMode <= GetCachedScalabilityCVars().DetailMode;
 
+	//Assume significant initially.
+	LastSignificantTime = GetWorld()->GetTimeSeconds();
+
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{
 		// Auto attach if requested
@@ -4766,6 +4896,9 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 				CancelAutoAttachment(true);
 			}
 		}
+
+		//Call this now after any attachment has happened.
+		OnSystemPreActivate.Broadcast(this);
 
 		if (bFlagAsJustAttached)
 		{

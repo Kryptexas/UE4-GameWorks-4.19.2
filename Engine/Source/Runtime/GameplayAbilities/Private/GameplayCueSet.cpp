@@ -27,7 +27,10 @@ bool UGameplayCueSet::HandleGameplayCue(AActor* TargetActor, FGameplayTag Gamepl
 	if (Ptr)
 	{
 		int32 DataIdx = *Ptr;
-		return HandleGameplayCueNotify_Internal(TargetActor, DataIdx, EventType, Parameters);
+
+		// TODO - resolve internal handler modifying params before passing them on with new const-ref params.
+		FGameplayCueParameters writableParameters = Parameters;
+		return HandleGameplayCueNotify_Internal(TargetActor, DataIdx, EventType, writableParameters);
 	}
 
 	return false;
@@ -130,7 +133,7 @@ void UGameplayCueSet::PrintCues() const
 	}
 }
 
-bool UGameplayCueSet::HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
+bool UGameplayCueSet::HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters& Parameters)
 {	
 	bool bReturnVal = false;
 
@@ -139,6 +142,8 @@ bool UGameplayCueSet::HandleGameplayCueNotify_Internal(AActor* TargetActor, int3
 		check(GameplayCueData.IsValidIndex(DataIdx));
 
 		FGameplayCueNotifyData& CueData = GameplayCueData[DataIdx];
+
+		Parameters.MatchedTagName = CueData.GameplayCueTag;
 
 		// If object is not loaded yet
 		if (CueData.LoadedGameplayCueClass == nullptr)
@@ -244,7 +249,8 @@ void UGameplayCueSet::BuildAccelerationMap_Internal()
 
 		FGameplayTag Parent = ThisGameplayCueTag.RequestDirectParent();
 
-		GameplayCueDataMap.Add(ThisGameplayCueTag) = GameplayCueDataMap.FindChecked(Parent);
+		int32 ParentValue = GameplayCueDataMap.FindChecked(Parent);
+		GameplayCueDataMap.Add(ThisGameplayCueTag, ParentValue);
 	}
 
 

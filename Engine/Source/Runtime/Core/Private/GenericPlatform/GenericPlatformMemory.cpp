@@ -125,17 +125,21 @@ void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 	}
 	UE_LOG(LogMemory, Warning, TEXT("MemoryStats:")\
 		TEXT("\n\tAvailablePhysical %llu")\
-		TEXT("\n\tAvailableVirtual %llu")\
-		TEXT("\n\tUsedPhysical %llu")\
-		TEXT("\n\tPeakUsedPhysical %llu")\
-		TEXT("\n\tUsedVirtual %llu")\
-		TEXT("\n\tPeakUsedVirtual %llu"),
+		TEXT("\n\t AvailableVirtual %llu")\
+		TEXT("\n\t     UsedPhysical %llu")\
+		TEXT("\n\t PeakUsedPhysical %llu")\
+		TEXT("\n\t      UsedVirtual %llu")\
+		TEXT("\n\t  PeakUsedVirtual %llu"),
 		(uint64)PlatformMemoryStats.AvailablePhysical,
 		(uint64)PlatformMemoryStats.AvailableVirtual,
 		(uint64)PlatformMemoryStats.UsedPhysical,
 		(uint64)PlatformMemoryStats.PeakUsedPhysical,
 		(uint64)PlatformMemoryStats.UsedVirtual,
 		(uint64)PlatformMemoryStats.PeakUsedVirtual);
+	if (GWarn)
+	{
+		GMalloc->DumpAllocatorStats(*GWarn);
+	}
 	UE_LOG(LogMemory, Fatal, TEXT("Ran out of memory allocating %llu bytes with alignment %u"), Size, Alignment);
 }
 

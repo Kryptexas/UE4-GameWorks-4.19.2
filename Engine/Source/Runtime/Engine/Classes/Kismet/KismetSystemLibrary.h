@@ -1362,6 +1362,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	static bool GetSupportedFullscreenResolutions(TArray<FIntPoint>& Resolutions);
 
+	/**
+	 * Gets the smallest Y resolution we want to support in the UI, clamped within reasons
+	 * @return value in pixels
+	 */
+	UFUNCTION(BlueprintPure, Category="Rendering", meta=(UnsafeDuringActorConstruction = "true"))
+	static int32 GetMinYResolutionForUI();
+
 	// Opens the specified URL in the platform's web browser of choice
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void LaunchURL(const FString& URL);
@@ -1500,4 +1507,10 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void RegisterForRemoteNotifications();
+
+	/**
+	 * Tells the engine what the user is doing for debug, analytics, etc.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities")
+	static void SetUserActivity(const FUserActivity& UserActivity);
 };

@@ -502,6 +502,9 @@ void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, 
 		VirtualKeyboardTextCommitType = CommitType;
 		bTextCommittedByVirtualKeyboard = true;
 	}
+
+	// Clear focus so that virtual keyboard can be reopened again my clicking on the text box
+	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
 }
 
 bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool bForce)

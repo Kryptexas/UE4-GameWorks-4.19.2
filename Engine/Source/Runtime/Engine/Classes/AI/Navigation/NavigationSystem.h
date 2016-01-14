@@ -706,7 +706,7 @@ public:
 	/** Used to display "navigation building in progress" notify */
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);
 
-	void OnNavigationGenerationFinished(ANavigationData& NavData);
+	virtual void OnNavigationGenerationFinished(ANavigationData& NavData);
 
 	/** Used to display "navigation building in progress" counter */
 	int32 GetNumRemainingBuildTasks() const;

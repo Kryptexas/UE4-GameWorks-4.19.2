@@ -375,13 +375,14 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 	if(ForcedLODLevel >= 0)
 	{
 		// Note: starting at -1 which is the default LODIndex, for cases where LODIndex didn't get set
-		int8 MaxLOD = -1;
+		int8 MinLOD = 127, MaxLOD = -1;
 		for(int32 MeshIndex = 0 ; MeshIndex < StaticMeshes.Num() ; ++MeshIndex)
 		{
 			const FStaticMesh&  Mesh = StaticMeshes[MeshIndex];
+			MinLOD = FMath::Min(MinLOD, Mesh.LODIndex);
 			MaxLOD = FMath::Max(MaxLOD, Mesh.LODIndex);
 		}
-		LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, 0, MaxLOD));
+		LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, MinLOD, MaxLOD));
 	}
 	else if (View.Family->EngineShowFlags.LOD)
 	{

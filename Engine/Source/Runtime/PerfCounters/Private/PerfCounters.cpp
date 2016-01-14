@@ -231,6 +231,26 @@ bool FPerfCounters::Tick(float DeltaTime)
 		}
 	}
 
+	// set some internal perf stats ([RCL] FIXME 2015-12-08: move to a better place and make configurable)
+	const float kInternalStatsUpdateInterval = 60.0;	// 60 seconds
+	static float LastTimeStatsUpdated = FPlatformTime::Seconds() - kInternalStatsUpdateInterval * FMath::FRand();
+	float CurrentTime = FPlatformTime::Seconds();
+	if (CurrentTime - LastTimeStatsUpdated > kInternalStatsUpdateInterval)
+	{
+		FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
+		Set(TEXT("AvailablePhysicalMemoryMB"), static_cast<uint64>(Stats.AvailablePhysical / (1024 * 1024)));
+		Set(TEXT("AvailableVirtualMemoryMB"), static_cast<uint64>(Stats.AvailableVirtual / (1024 * 1024)));
+
+		const FString LogFilename = FPlatformOutputDevices::GetAbsoluteLogFilename();
+		uint64 TotalBytesOnLogDrive = 0, FreeBytesOnLogDrive = 0;
+		if (FPlatformMisc::GetDiskTotalAndFreeSpace(LogFilename, TotalBytesOnLogDrive, FreeBytesOnLogDrive))
+		{
+			Set(TEXT("FreeSpaceOnLogFileDiskInMB"), static_cast<uint64>(FreeBytesOnLogDrive / (1024 * 1024)));
+		}
+
+		LastTimeStatsUpdated = CurrentTime;
+	}
+
 	// keep ticking
 	return true;
 }
@@ -279,14 +299,6 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 			else if (Tokens[1].StartsWith(TEXT("/stats")))
 			{
 				Response.Body = GetAllCountersAsJson();
-
-				// retrieving stats resets them by default, unless ?peek parameter is passed
-				const int kStatsTokenLength = 6; // strlen("/stats");
-				FString TokenRemainder = Tokens[1].Mid(kStatsTokenLength);
-				if (TokenRemainder != TEXT("?peek"))
-				{
-					ResetStatsForNextPeriod();
-				}
 			}
 			else if (Tokens[1].StartsWith(TEXT("/exec?c=")))
 			{

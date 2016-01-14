@@ -165,7 +165,7 @@ void FMapPakDownloader::CachePak()
 
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("%s download complete!"), *PakRequest->GetFileName());
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("Mounting..."), *Name);
-											FCoreDelegates::OnMountPak.Execute(Name, 0);
+											FCoreDelegates::OnMountPak.Execute(Name, 0, nullptr);
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("%s Mounted!"), *Name);
 
 											// Get hold of the world.

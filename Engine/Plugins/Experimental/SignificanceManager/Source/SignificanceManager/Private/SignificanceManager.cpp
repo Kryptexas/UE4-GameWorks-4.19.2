@@ -15,6 +15,7 @@ DECLARE_CYCLE_STAT(TEXT("Register Object"), STAT_SignificanceManager_RegisterObj
 DECLARE_CYCLE_STAT(TEXT("Initial Significance Update"), STAT_SignificanceManager_InitialSignificanceUpdate, STATGROUP_SignificanceManager);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Managed Objects"), STAT_SignificanceManager_NumObjects, STATGROUP_SignificanceManager);
 
+const FSignificanceNotify GDummySignificanceNotify;
 
 bool CompareBySignificanceAscending(const USignificanceManager::FManagedObjectInfo& A, const USignificanceManager::FManagedObjectInfo& B) 
 { 
@@ -118,13 +119,18 @@ void USignificanceManager::BeginDestroy()
 
 void USignificanceManager::RegisterObject(const UObject* Object, const FName Tag, FSignificanceFunction SignificanceFunction)
 {
+	RegisterObject(Object, Tag, SignificanceFunction, GDummySignificanceNotify);
+}
+
+void USignificanceManager::RegisterObject(const UObject* Object, const FName Tag, FSignificanceFunction SignificanceFunction, const FSignificanceNotify& SignificanceNotifyDelegate)
+{
 	INC_DWORD_STAT(STAT_SignificanceManager_NumObjects);
 	SCOPE_CYCLE_COUNTER(STAT_SignificanceManager_RegisterObject);
 
 	check(Object);
 	checkf(!ManagedObjects.Contains(Object), TEXT("'%s' already added to significance manager. Original Tag: '%s' New Tag: '%s'"), *Object->GetName(), *ManagedObjects.FindChecked(Object)->GetTag().ToString(), *Tag.ToString());
 
-	FManagedObjectInfo* ObjectInfo = new FManagedObjectInfo(Object, Tag, SignificanceFunction);
+	FManagedObjectInfo* ObjectInfo = new FManagedObjectInfo(Object, Tag, SignificanceFunction, SignificanceNotifyDelegate);
 	
 	// Calculate initial significance
 	if (Viewpoints.Num())
@@ -196,6 +202,18 @@ void USignificanceManager::UnregisterObject(const UObject* Object)
 	}
 }
 
+void USignificanceManager::UnregisterAll(FName Tag)
+{
+	if (TArray<const FManagedObjectInfo*>* ObjectsWithTag = ManagedObjectsByTag.Find(Tag))
+	{
+		for (const FManagedObjectInfo* ManagedObj : *ObjectsWithTag)
+		{
+			ManagedObjects.Remove(ManagedObj->GetObject());
+		}
+		ManagedObjectsByTag.Remove(Tag);
+	}
+}
+
 const TArray<const USignificanceManager::FManagedObjectInfo*>& USignificanceManager::GetManagedObjects(const FName Tag) const
 {
 	if (const TArray<const FManagedObjectInfo*>* ObjectsWithTag = ManagedObjectsByTag.Find(Tag))
@@ -248,6 +266,7 @@ bool USignificanceManager::QuerySignificance(const UObject* Object, float& OutSi
 
 void USignificanceManager::FManagedObjectInfo::UpdateSignificance(const TArray<FTransform>& InViewpoints)
 {
+	float OldSignificance = Significance;
 	if (InViewpoints.Num())
 	{
 		Significance = TNumericLimits<float>::Lowest();
@@ -264,6 +283,8 @@ void USignificanceManager::FManagedObjectInfo::UpdateSignificance(const TArray<F
 	{
 		Significance = 0.f;
 	}
+
+	SignificanceNotifyDelegate.ExecuteIfBound(OldSignificance, Significance);
 }
 
 void USignificanceManager::Update(const TArray<FTransform>& InViewpoints)

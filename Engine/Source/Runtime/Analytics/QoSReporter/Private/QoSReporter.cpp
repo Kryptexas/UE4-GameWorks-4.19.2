@@ -17,7 +17,11 @@
 
 bool FQoSReporter::bIsInitialized;
 TSharedPtr<IAnalyticsProvider> FQoSReporter::Analytics;
-FGuid FQoSReporter::InstanceId;
+
+namespace
+{
+	FString		StoredDeploymentName;
+};
 
 /**
 * External code should bind this delegate if QoS reporting is desired,
@@ -33,14 +37,14 @@ QOSREPORTER_API FAnalytics::FProviderConfigurationDelegate& GetQoSOverrideConfig
 /**
 * Get analytics pointer
 */
-IAnalyticsProvider& FQoSReporter::GetProvider()
+QOSREPORTER_API IAnalyticsProvider& FQoSReporter::GetProvider()
 {
 	checkf(bIsInitialized && IsAvailable(), TEXT("FQoSReporter::GetProvider called outside of Initialize/Shutdown."));
 
 	return *Analytics.Get();
 }
 
-void FQoSReporter::Initialize()
+QOSREPORTER_API void FQoSReporter::Initialize()
 {
 	checkf(!bIsInitialized, TEXT("FQoSReporter::Initialize called more than once."));
 
@@ -82,13 +86,14 @@ void FQoSReporter::Initialize()
 	Analytics = FAnalytics::Get().CreateAnalyticsProvider(
 		FName(*DefaultEngineAnalyticsConfig.Execute(TEXT("ProviderModuleName"), true)),
 		DefaultEngineAnalyticsConfig);
+	if (!Analytics.IsValid())
+	{
+		return;
+	}
 
-	// add a unique id
-	InstanceId = FGuid::NewGuid();
-	FPlatformMisc::CreateGuid(InstanceId);
+	SetBackendDeploymentName(StoredDeploymentName);
 
 	// check if Configs override the heartbeat interval
-	
 	float ConfigHeartbeatInterval = 0.0;
 	if (GConfig->GetFloat(TEXT("QoSReporter"), TEXT("HeartbeatInterval"), ConfigHeartbeatInterval, GEngineIni))
 	{
@@ -110,9 +115,14 @@ void FQoSReporter::Shutdown()
 	bIsInitialized = false;
 }
 
-FGuid FQoSReporter::GetQoSReporterInstanceId()
+FString FQoSReporter::GetQoSReporterInstanceId()
 {
-	return InstanceId;
+	if (Analytics.IsValid())
+	{
+		return Analytics->GetUserID();
+	}
+
+	return FString();
 }
 
 double FQoSReporter::ModuleInitializationTime = FPlatformTime::Seconds();
@@ -129,10 +139,34 @@ void FQoSReporter::ReportStartupCompleteEvent()
 	double Difference = CurrentTime - ModuleInitializationTime;
 
 	TArray<FAnalyticsEventAttribute> ParamArray;
+
 	ParamArray.Add(FAnalyticsEventAttribute(EQoSEvents::ToString(EQoSEventParam::StartupTime), Difference));
 	Analytics->RecordEvent(EQoSEvents::ToString(EQoSEventParam::StartupTime), ParamArray);
 
 	bStartupEventReported = true;
+}
+
+void FQoSReporter::SetBackendDeploymentName(const FString & InDeploymentName)
+{
+	if (Analytics.IsValid())
+	{
+		// abuse somewhat outdated IAnalyticsProvider API for this
+		Analytics->SetLocation(InDeploymentName);
+
+		if (InDeploymentName.Len() > 0)
+		{
+			UE_LOG(LogQoSReporter, Log, TEXT("QoSReporter has been configured for '%s' deployment."), *InDeploymentName);
+		}
+		else
+		{
+			UE_LOG(LogQoSReporter, Log, TEXT("QoSReporter has been configured without a valid deployment name."));
+		}
+	}
+	else
+	{
+		StoredDeploymentName = InDeploymentName;
+		UE_LOG(LogQoSReporter, Log, TEXT("QoSReporter will be configured for '%s' deployment."), *StoredDeploymentName);
+	}
 }
 
 double FQoSReporter::HeartbeatInterval = 300;
@@ -180,9 +214,6 @@ void FQoSReporter::SendHeartbeat()
 	checkf(Analytics.IsValid(), TEXT("SendHeartbeat() should not be called if Analytics provider was not configured"));
 
 	TArray<FAnalyticsEventAttribute> ParamArray;
-	ParamArray.Add(FAnalyticsEventAttribute(TEXT("Role"), GetApplicationRole()));
-	ParamArray.Add(FAnalyticsEventAttribute(TEXT("SystemId"), FPlatformMisc::GetOperatingSystemId()));
-	ParamArray.Add(FAnalyticsEventAttribute(TEXT("InstanceId"), InstanceId.ToString()));
 
 	if (IsRunningDedicatedServer())
 	{
@@ -227,30 +258,9 @@ void FQoSReporter::AddServerHeartbeatAttributes(TArray<FAnalyticsEventAttribute>
 			}
 		}
 
-		// for compatibility with wash, avoid resetting if -statsport is used (temporary measure to avoid interference)
-		static bool bCheckedResettingStats = false;
-		static bool bResetStats = true;
-
-		if (!bCheckedResettingStats)
-		{
-			int32 StatsPort = -1;
-			if (FParse::Value(FCommandLine::Get(), TEXT("statsPort="), StatsPort) && StatsPort > 0)
-			{
-				bResetStats = false;
-			}
-
-			bCheckedResettingStats = true;
-		}
-		
-		if (bResetStats)
-		{
-			UE_LOG(LogQoSReporter, Verbose, TEXT("Resetting PerfCounters - new stat period begins."));
-			PerfCounters->ResetStatsForNextPeriod();
-		}
-		else
-		{
-			UE_LOG(LogQoSReporter, Verbose, TEXT("Not resetting PerfCounters, relying on wash to drive stats periods."));
-		}
+		// reset perfcounters stats here
+		UE_LOG(LogQoSReporter, Verbose, TEXT("Resetting PerfCounters - new stat period begins."));
+		PerfCounters->ResetStatsForNextPeriod();
 	}
 	else if (UE_SERVER)
 	{
@@ -268,29 +278,3 @@ void FQoSReporter::AddClientHeartbeatAttributes(TArray<FAnalyticsEventAttribute>
 {
 	OutArray.Add(FAnalyticsEventAttribute(TEXT("AverageFPS"), GAverageFPS));
 }
-
-/**
- * Returns application role (server, client)
- */
-FString FQoSReporter::GetApplicationRole()
-{
-	if (IsRunningDedicatedServer())
-	{
-		static FString DedicatedServer(TEXT("DedicatedServer"));
-		return DedicatedServer;
-	}
-	else if (IsRunningClientOnly())
-	{
-		static FString ClientOnly(TEXT("ClientOnly"));
-		return ClientOnly;
-	}
-	else if (IsRunningGame())
-	{
-		static FString StandaloneGame(TEXT("StandaloneGame"));
-		return StandaloneGame;
-	}
-
-	static FString Editor(TEXT("Editor"));
-	return Editor;
-}
-

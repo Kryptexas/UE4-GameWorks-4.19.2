@@ -197,11 +197,14 @@ void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &Dragg
 			for (TWeakObjectPtr<AActor> StaticMeshActor : DraggedObjects.StaticMeshActors.GetValue())
 			{
 				AActor* InActor = StaticMeshActor.Get();
+				checkf(InActor != nullptr, TEXT("Null-ed StaticMeshActor found in drag and drop operation"));
+
+				InActor->Modify();
 				ALODActor* CurrentParentActor = FHierarchicalLODUtilities::GetParentLODActor(InActor);
 				if (CurrentParentActor)
 				{
 					CurrentParentActor->RemoveSubActor(InActor);
-
+					CurrentParentActor->Modify();
 					if (!CurrentParentActor->HasValidSubActors())
 					{
 						FHierarchicalLODUtilities::DeleteLODActor(CurrentParentActor);
@@ -214,10 +217,13 @@ void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &Dragg
 			for (TWeakObjectPtr<AActor> LODActor : DraggedObjects.LODActors.GetValue())
 			{
 				AActor* InActor = LODActor.Get();
+				checkf(InActor != nullptr, TEXT("Null-ed StaticMeshActor found in drag and drop operation"));
 				ALODActor* CurrentParentActor = FHierarchicalLODUtilities::GetParentLODActor(InActor);
+				InActor->Modify();
 				if (CurrentParentActor)
 				{
 					CurrentParentActor->RemoveSubActor(InActor);
+					CurrentParentActor->Modify();
 					if (!CurrentParentActor->HasValidSubActors())
 					{
 						FHierarchicalLODUtilities::DeleteLODActor(CurrentParentActor);
@@ -226,6 +232,9 @@ void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &Dragg
 
 				NewCluster->AddSubActor(InActor);
 			}
+
+			// Update sub actor LOD parents to populate 
+			NewCluster->UpdateSubActorLODParents();
 		}
 	}
 }

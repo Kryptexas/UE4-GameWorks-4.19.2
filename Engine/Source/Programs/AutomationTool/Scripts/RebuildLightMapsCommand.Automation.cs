@@ -42,10 +42,15 @@ namespace AutomationScripts.Automation
 				);
 
 				// Sync and build our targets required for the commandlet to run correctly.
-				P4.Sync(String.Format("{0}/...#head", P4Env.BuildRootP4));
+				// P4.Sync(String.Format("-f {0}/...#head", P4Env.BuildRootP4));
 
-				BuildNecessaryTargets();
-				CheckOutMaps(Params);
+                bool NoBuild = ParseParam("nobuild");
+
+                if (!NoBuild)
+                {
+                    BuildNecessaryTargets();
+                }
+				CreateChangelist(Params);
 				RunRebuildLightmapsCommandlet(Params);
 				SubmitRebuiltMaps();
 			}
@@ -88,24 +93,14 @@ namespace AutomationScripts.Automation
 			}
 		}
 
-		private void CheckOutMaps(ProjectParams Params)
+
+		private void CreateChangelist(ProjectParams Params)
 		{
 			Log("Running Step:- RebuildLightMaps::CheckOutMaps");
 			// Setup a P4 Cl we will use to submit the new lightmaps
-			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("{0} rebuilding lightmaps from changelist {1}", Params.ShortProjectName, P4Env.Changelist));
+			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("{0} rebuilding lightmaps from changelist {1}\n#rb None\n#tests None", Params.ShortProjectName, P4Env.Changelist));
 			Log("Working in {0}", WorkingCL);
 
-			string AllMapsWildcardCmdline = String.Format("{0}\\...\\*.umap", Params.RawProjectPath.Directory);
-			string Output = "";
-			P4.P4Output(out Output, String.Format("edit -c {0} {1}", WorkingCL, AllMapsWildcardCmdline));
-
-			// We need to ensure that any error in the output log is observed.
-			// P4 is still successful if it manages to run the operation.
-			if (FoundCheckOutErrorInP4Output(Output) == true)
-			{
-				LogError("Failed to check out every one of the project maps.");
-				throw new AutomationException("Failed to check out every one of the project maps.");
-			}
 		}
 
 		private void RunRebuildLightmapsCommandlet(ProjectParams Params)
@@ -124,12 +119,17 @@ namespace AutomationScripts.Automation
 			try
 			{
 				var CommandletParams = IsBuildMachine ? "-unattended -buildmachine -fileopenlog" : "-fileopenlog";
+                CommandletParams += " -AutoCheckOutPackages";
+                if (P4Enabled)
+                {
+                    CommandletParams += String.Format(" -SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Changelist={4} -P4Passwd={5}", "Perforce", P4Env.P4Port, P4Env.User, P4Env.Client, WorkingCL.ToString(), P4.GetAuthenticationToken());
+                }
 				RebuildLightMapsCommandlet(Params.RawProjectPath, Params.UE4Exe, Params.MapsToRebuildLightMaps.ToArray(), CommandletParams);
 			}
 			catch (Exception Ex)
 			{
 				// Something went wrong with the commandlet. Abandon this run, don't check in any updated files, etc.
-				LogError("Rebuild Light Maps has failed.");
+				LogError("Rebuild Light Maps has failed. because "+ Ex.ToString());
 				throw new AutomationException(ExitCode.Error_Unknown, Ex, "RebuildLightMaps failed.");
 			}
 		}
@@ -141,9 +141,10 @@ namespace AutomationScripts.Automation
 			// Check everything in!
 			if (WorkingCL != -1)
 			{
+                Log("Running Step:- Submitting CL " + WorkingCL);
 				int SubmittedCL;
 				P4.Submit(WorkingCL, out SubmittedCL, true, true);
-				Log("New lightmaps have been submitted in changelist {0}", SubmittedCL);
+				Log("INFO: Lightmaps successfully submitted in cl "+ SubmittedCL.ToString());
 			}
 		}
 

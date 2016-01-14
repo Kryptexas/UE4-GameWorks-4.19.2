@@ -18,8 +18,6 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 	bUniqueInstancePerInstigator = false;
 
 	NumPreallocatedInstances = 0;
-
-	StackCount = 0;
 }
 
 #if WITH_EDITOR
@@ -79,40 +77,32 @@ bool AGameplayCueNotify_Actor::HandlesEvent(EGameplayCueEvent::Type EventType) c
 	return true;
 }
 
-int32 GameplayCueNotifyActorStacking = 0;
-static FAutoConsoleVariableRef CVarGameplayCueNotifyActorStacking(TEXT("AbilitySystem.GameplayCueNotifyActorStacking"), GameplayCueNotifyActorStacking, TEXT("Enable simple stacking rules for gameplaycue actors"), ECVF_Default );
+int32 GameplayCueNotifyTagCheckOnRemove = 1;
+static FAutoConsoleVariableRef CVarGameplayCueNotifyActorStacking(TEXT("AbilitySystem.GameplayCueNotifyTagCheckOnRemove"), GameplayCueNotifyTagCheckOnRemove, TEXT("Check that target no longer has tag when removing GamepalyCues"), ECVF_Default );
 
 void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters)
 {
 	SCOPE_CYCLE_COUNTER(STAT_HandleGameplayCueNotifyActor);
 
+	if (Parameters.MatchedTagName.IsValid() == false)
+	{
+		ABILITY_LOG(Warning, TEXT("GameplayCue parameter is none for %s"), *GetNameSafe(this));
+	}
+
+	// If cvar is enabled, check that the target no longer has the matched tag before doing remove logic. This is a simple way of supporting stacking, such that if an actor has two sources giving him the same GC tag, it will not be removed when the first one is removed.
+	if (GameplayCueNotifyTagCheckOnRemove > 0 && EventType == EGameplayCueEvent::Removed)
+	{
+		if (IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(MyTarget))
+		{
+			if (TagInterface->HasMatchingGameplayTag(Parameters.MatchedTagName))
+			{
+				return;
+			}			
+		}
+	}
+
 	if (MyTarget && !MyTarget->IsPendingKill())
 	{
-		if (GameplayCueNotifyActorStacking)
-		{
-			if (EventType == EGameplayCueEvent::WhileActive)
-			{
-				StackCount++;
-				if (StackCount > 1)
-				{
-					return;
-				}
-			}
-			else if (EventType == EGameplayCueEvent::Removed)
-			{
-				StackCount--;
-				if (StackCount > 0)
-				{
-					return;
-				}
-				if (!ensureMsgf(StackCount == 0, TEXT("GameplayCue %s has negative StackCount."), *GetName()))
-				{
-					StackCount = 0;
-				}
-			}
-		}
-
-
 		K2_HandleGameplayCue(MyTarget, EventType, Parameters);
 
 		// Clear any pending auto-destroy that may have occurred from a previous OnRemove
@@ -151,7 +141,12 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 	}
 	else
 	{
-		ABILITY_LOG(Warning, TEXT("Null Target"));
+		ABILITY_LOG(Warning, TEXT("Null Target called for event %d on GameplayCueNotifyActor %s"), (int32)EventType, *GetName() );
+		if (EventType == EGameplayCueEvent::Removed)
+		{
+			// Make sure the removed event is handled so that we don't leak GC notify actors
+			GameplayCueFinishedCallback();
+		}
 	}
 }
 
@@ -198,6 +193,5 @@ bool AGameplayCueNotify_Actor::GameplayCuePendingRemove()
 
 bool AGameplayCueNotify_Actor::Recycle()
 {
-	StackCount = 0;
 	return false;
 }

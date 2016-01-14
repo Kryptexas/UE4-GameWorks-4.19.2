@@ -14,7 +14,8 @@ public class FunctionalTesting : ModuleRules
 				"Slate",
                 "MessageLog",
                 "AIModule",
-                "RenderCore"
+                "RenderCore",
+                "RHI"
 			}
 			);
 

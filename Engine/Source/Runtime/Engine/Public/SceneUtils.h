@@ -10,12 +10,8 @@
 // Each event type will be displayed using the defined color
 #pragma once
 
-// Disable draw mesh events for final builds
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS
-#define WANTS_DRAW_MESH_EVENTS 1
-#else
-#define WANTS_DRAW_MESH_EVENTS 0
-#endif
+// Note:  WITH_PROFILEGPU should be 0 for final builds
+#define WANTS_DRAW_MESH_EVENTS (WITH_PROFILEGPU && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS)
 
 #if WANTS_DRAW_MESH_EVENTS
 

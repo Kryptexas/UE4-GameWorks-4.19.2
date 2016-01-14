@@ -1166,7 +1166,7 @@ bool ULocalPlayer::HandleExecCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool ULocalPlayer::HandleToggleDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WITH_PROFILEGPU
 	if( GEmitDrawEvents )
 	{
 		GEmitDrawEvents = false;
@@ -1354,7 +1354,7 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 	{
 		return HandleExecCommand( Cmd, Ar );
 	}
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WITH_PROFILEGPU
 	else if( FParse::Command(&Cmd,TEXT("TOGGLEDRAWEVENTS")) )
 	{
 		return HandleToggleDrawEventsCommand( Cmd, Ar );

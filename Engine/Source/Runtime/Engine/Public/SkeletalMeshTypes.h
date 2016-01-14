@@ -1753,6 +1753,7 @@ public:
 	
 	virtual bool HasDistanceFieldRepresentation() const override;
 	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const override;
+	virtual void GetShadowShapeBoneIndices(TArray<uint16>& BoneIndices) const override;
 
 	/**
 	 * Returns the world transform to use for drawing.

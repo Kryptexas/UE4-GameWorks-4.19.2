@@ -857,7 +857,6 @@ public:
 
 		FString CustomUVAssignments;
 
-		{
 			int32 LastProperty = -1;
 			for (uint32 CustomUVIndex = 0; CustomUVIndex < NumUserTexCoords; CustomUVIndex++)
 			{
@@ -876,7 +875,6 @@ public:
 				}
 				CustomUVAssignments += FString::Printf(TEXT("\tOutTexCoords[%u] = %s;") LINE_TERMINATOR, CustomUVIndex, *TranslatedCodeChunks[MP_CustomizedUVs0 + CustomUVIndex]);
 			}
-		}
 
 		LazyPrintf.PushParam(*CustomUVAssignments);
 

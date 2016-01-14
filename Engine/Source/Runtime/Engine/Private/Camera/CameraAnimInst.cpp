@@ -167,6 +167,8 @@ static const FName NAME_CameraComponentFieldOfViewPropertyName(TEXT("CameraCompo
 
 void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRate, float InScale, float InBlendInTime, float InBlendOutTime, bool bInLooping, bool bRandomStartTime, float Duration)
 {
+	check(IsInGameThread());
+
 	if (Anim && Anim->CameraInterpGroup)
 	{
 		// make sure any previous anim has been terminated correctly
@@ -196,6 +198,8 @@ void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRa
 			CamActor->SetActorRotation(FRotator::ZeroRotator);
 		}
 		InterpGroupInst->InitGroupInst(CamAnim->CameraInterpGroup, CamActor);
+
+		checkf(CamAnim->CameraInterpGroup->InterpTracks.Num() == InterpGroupInst->TrackInst.Num(), TEXT("Track count mismatch! Outer = %s"), *GetNameSafe(CamAnim));
 
 		// cache move track refs
 		for (int32 Idx = 0; Idx < InterpGroupInst->TrackInst.Num(); ++Idx)
@@ -242,11 +246,14 @@ void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRa
 
 void UCameraAnimInst::Stop(bool bImmediate)
 {
+	check(IsInGameThread());
+
 	if ( bImmediate || (BlendOutTime <= 0.f) )
 	{
 		if (InterpGroupInst->Group != NULL)
 		{
 			InterpGroupInst->TermGroupInst(true);
+			InterpGroupInst->Group = nullptr;
 		}
 		MoveTrack = NULL;
 		MoveInst = NULL;

@@ -355,7 +355,7 @@ bool FParse::Text( const TCHAR* Str, FText& Value, const TCHAR* Namespace )
 			FString SourceString;
 			const int32 ExpectedStringCount = bFoundNSLocText ? 3 : 2;
 
-			while( *Str && *Str != ')' && !bError )
+			while( *Str && (*Str != ')' || bInQuotes) && !bError )
 			{
 				const TCHAR c = *Str;
 				if( bInQuotes )
@@ -457,11 +457,14 @@ bool FParse::Text( const TCHAR* Str, FText& Value, const TCHAR* Namespace )
 
 			if( *Str == ')' && !bError && StringCount == ExpectedStringCount )
 			{
-				if ( !FText::FindText( bFoundNSLocText ? NamespaceString : Namespace, KeyString, /*OUT*/Value ) )
-				{ 
-					Value = FText::FromString( ParsedString );
+				if (KeyString.IsEmpty())
+				{
+					Value = FText::AsCultureInvariant( ParsedString );
 				}
-
+				else
+				{
+					Value = FInternationalization::Get().ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( *ParsedString, *(bFoundNSLocText ? NamespaceString : Namespace), *KeyString );
+				}
 				return true;
 			}
 		}

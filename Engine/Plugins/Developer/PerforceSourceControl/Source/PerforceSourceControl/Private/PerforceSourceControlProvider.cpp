@@ -121,18 +121,20 @@ void FPerforceSourceControlProvider::ParseCommandLineSettings(bool bForceConnect
 	FString UserName = PerforceSourceControl.AccessSettings().GetUserName();
 	FString ClientSpecName = PerforceSourceControl.AccessSettings().GetWorkspace();
 	FString HostOverrideName = PerforceSourceControl.AccessSettings().GetHostOverride();
+	FString Changelist = PerforceSourceControl.AccessSettings().GetChangelistNumber();
 	bFoundCmdLineSettings = FParse::Value(FCommandLine::Get(), TEXT("P4Port="), PortName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4User="), UserName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Client="), ClientSpecName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Host="), HostOverrideName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Passwd="), Ticket);
-
+	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Changelist="), Changelist);
 	if(bFoundCmdLineSettings)
 	{
 		PerforceSourceControl.AccessSettings().SetPort(PortName);
 		PerforceSourceControl.AccessSettings().SetUserName(UserName);
 		PerforceSourceControl.AccessSettings().SetWorkspace(ClientSpecName);
 		PerforceSourceControl.AccessSettings().SetHostOverride(HostOverrideName);
+		PerforceSourceControl.AccessSettings().SetChangelistNumber(Changelist);
 	}
 	
 	if (bForceConnection)

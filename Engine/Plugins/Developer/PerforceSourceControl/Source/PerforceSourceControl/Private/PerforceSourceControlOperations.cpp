@@ -245,6 +245,16 @@ bool FPerforceCheckOutWorker::Execute(FPerforceSourceControlCommand& InCommand)
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
+
+		FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
+		FPerforceSourceControlSettings& Settings = PerforceSourceControl.AccessSettings();
+		if (Settings.GetChangelistNumber().IsEmpty() == false)
+		{
+			Parameters.Add(TEXT("-c"));
+			Parameters.Add(Settings.GetChangelistNumber());
+			// Parameters.Add(FString::Printf(TEXT("-c %s"), *Settings.GetChangelistNumber()));
+		}
+
 		Parameters.Append(InCommand.Files);
 		FP4RecordSet Records;
 		InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("edit"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);

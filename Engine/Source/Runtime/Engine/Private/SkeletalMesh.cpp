@@ -4815,6 +4815,17 @@ void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShap
 	}
 }
 
+void FSkeletalMeshSceneProxy::GetShadowShapeBoneIndices(TArray<uint16>& BoneIndices) const
+{
+	for (const TPair<int32, FCapsuleShape>& Capsule : ShadowCapsuleData)
+	{
+		if (Capsule.Key != INDEX_NONE)
+		{
+			BoneIndices.Add(Capsule.Key);
+		}
+	}
+}
+
 /**
  * Returns the world transform to use for drawing.
  * @param OutLocalToWorld - Will contain the local-to-world transform when the function returns.

@@ -166,13 +166,13 @@ ENGINE_API UEngine*	GEngine = NULL;
  */
 ENGINE_API bool GShowDebugSelectedLightmap = false;
 
-#if !UE_BUILD_SHIPPING
+#if WITH_PROFILEGPU
 	/**
 	 * true if we debug material names with SCOPED_DRAW_EVENT.
 	 * Toggle with "ShowMaterialDrawEvents" console command.
 	 */
 	bool GShowMaterialDrawEvents = false;
-#endif // !UE_BUILD_SHIPPING
+#endif
 
 ENGINE_API uint32 GGPUFrameTime = 0;
 
@@ -271,7 +271,7 @@ void ScalabilityCVarsSinkCallback()
 
 	{
 		static const auto ViewDistanceScale = ConsoleMan.FindTConsoleVariableDataFloat(TEXT("r.ViewDistanceScale"));
-		LocalScalabilityCVars.ViewDistanceScale = FMath::Clamp(ViewDistanceScale->GetValueOnGameThread(), 0.0f, 1.0f);
+		LocalScalabilityCVars.ViewDistanceScale = FMath::Max(ViewDistanceScale->GetValueOnGameThread(), 0.0f);
 		LocalScalabilityCVars.ViewDistanceScaleSquared = FMath::Square(LocalScalabilityCVars.ViewDistanceScale);
 	}
 
@@ -941,7 +941,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	UE_LOG(LogInit, Log, TEXT("Texture streaming: %s"), IStreamingManager::Get().IsTextureStreamingEnabled() ? TEXT("Enabled") : TEXT("Disabled") );
 
 	// Initialize the online subsystem as early as possible
-	IOnlineSubsystem* SubSystem = IOnlineSubsystem::Get();
+	IOnlineSubsystem* SubSystem = IOnlineSubsystem::IsLoaded() ? IOnlineSubsystem::Get() : nullptr;
 	if (SubSystem != nullptr)
 	{
 		IOnlineExternalUIPtr ExternalUI = SubSystem->GetExternalUIInterface();
@@ -1072,7 +1072,8 @@ void UEngine::PreExit()
 	}
 
 	ShutdownRenderingCVarsCaching();
-	FEngineAnalytics::Shutdown();
+	const bool bIsEngineShutdown = true;
+	FEngineAnalytics::Shutdown(bIsEngineShutdown);
 	if (ScreenSaverInhibitor)
 	{
 		// Resume the thread to avoid a deadlock while waiting for finish.
@@ -2468,6 +2469,16 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 #endif
 
+#if WITH_PROFILEGPU
+	else if( FParse::Command(&Cmd,TEXT("PROFILEGPU")) )
+	{
+		return HandleProfileGPUCommand( Cmd, Ar );
+	}
+	else if( FParse::Command(&Cmd,TEXT("SHOWMATERIALDRAWEVENTS")) )
+	{
+		return HandleShowMaterialDrawEventsCommand( Cmd, Ar );
+	}
+#endif // #if !UE_BUILD_SHIPPING
 
 #if	!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
 	else if( FParse::Command(&Cmd,TEXT("HotReload")) )
@@ -2481,10 +2492,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if (FParse::Command(&Cmd, TEXT("DumpConsoleCommands")))
 	{
 		return HandleDumpConsoleCommandsCommand( Cmd, Ar, InWorld );
-	}
-	else if( FParse::Command(&Cmd,TEXT("SHOWMATERIALDRAWEVENTS")) )
-	{
-		return HandleShowMaterialDrawEventsCommand( Cmd, Ar );
 	}
 	else if (FParse::Command(&Cmd, TEXT("DUMPAVAILABLERESOLUTIONS")))
 	{
@@ -2545,10 +2552,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if (FParse::Command(&Cmd, TEXT("DumpShaderPipelineStats")))
 	{
 		return HandleDumpShaderPipelineStatsCommand(Cmd, Ar);
-	}
-	else if( FParse::Command(&Cmd,TEXT("PROFILEGPU")) )
-	{
-		return HandleProfileGPUCommand( Cmd, Ar );
 	}
 	else if (FParse::Command(&Cmd, TEXT("visrt")))
 	{
@@ -3108,13 +3111,6 @@ bool UEngine::HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice&
 	return true;
 }
 
-bool UEngine::HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	GShowMaterialDrawEvents = !GShowMaterialDrawEvents;
-	UE_LOG(LogEngine, Warning, TEXT("Show material names in SCOPED_DRAW_EVENT: %s"), GShowMaterialDrawEvents ? TEXT("true") : TEXT("false") );
-	return true;
-}
-
 bool UEngine::HandleDumpAvailableResolutionsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	UE_LOG(LogEngine, Log, TEXT("DumpAvailableResolutions"));
@@ -3454,20 +3450,6 @@ bool UEngine::HandleDumpMaterialStatsCommand( const TCHAR* Cmd, FOutputDevice& A
 	return true;
 }
 
-bool UEngine::HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	if (!GTriggerGPUHitchProfile)
-	{
-		GTriggerGPUProfile = true;
-		Ar.Logf(TEXT("Profiling the next GPU frame"));
-	}
-	else
-	{
-		Ar.Logf(TEXT("Can't do a gpu profile during a hitch profile!"));
-	}
-	return true;
-}
-
 bool UEngine::HandleProfileCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if ( FParse::Command(&Cmd,TEXT("GPU")) )
@@ -3486,6 +3468,43 @@ bool UEngine::HandleProfileCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	return false;
 }
 
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+#if WITH_PROFILEGPU
+bool UEngine::HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	if (FParse::Command(&Cmd, TEXT("TRACE")))
+	{
+		FString Filename = CreateProfileDirectoryAndFilename(TEXT(""), TEXT(".rtt"));
+		//FPaths::MakePlatformFilename(Filename);
+		GGPUTraceFileName = Filename;
+		Ar.Logf(TEXT("Tracing the next GPU frame"));
+	}
+	else
+	{
+		if (!GTriggerGPUHitchProfile)
+		{
+			GTriggerGPUProfile = true;
+			Ar.Logf(TEXT("Profiling the next GPU frame"));
+		}
+		else
+		{
+			Ar.Logf(TEXT("Can't do a gpu profile during a hitch profile!"));
+		}
+	}
+
+	return true;
+}
+
+bool UEngine::HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	GShowMaterialDrawEvents = !GShowMaterialDrawEvents;
+	UE_LOG(LogEngine, Warning, TEXT("Show material names in SCOPED_DRAW_EVENT: %s"), GShowMaterialDrawEvents ? TEXT("true") : TEXT("false") );
+	return true;
+}
+#endif // WITH_PROFILEGPU
+
+#if !UE_BUILD_SHIPPING
 bool UEngine::HandleStartFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// start the chart data capture
@@ -3651,6 +3670,18 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	// Retrieve mapping from LOD group enum value to text representation.
 	TArray<FString> TextureGroupNames = UTextureLODSettings::GetTextureGroupNames();
 
+	TArray<uint64> TextureGroupCurrentSizes;
+	TArray<uint64> TextureGroupMaxSizes;
+	
+	TArray<uint64> FormatCurrentSizes;
+	TArray<uint64> FormatMaxSizes;
+
+	TextureGroupCurrentSizes.AddZeroed(TextureGroupNames.Num());
+	TextureGroupMaxSizes.AddZeroed(TextureGroupNames.Num());
+
+	FormatCurrentSizes.AddZeroed(PF_MAX);
+	FormatMaxSizes.AddZeroed(PF_MAX);
+
 	// Display.
 	int32 TotalMaxSize		= 0;
 	int32 TotalCurrentSize	= 0;
@@ -3658,6 +3689,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	for( int32 TextureIndex=0; TextureIndex<SortedTextures.Num(); TextureIndex++ )
 	{
 		const FSortedTexture& SortedTexture = SortedTextures[TextureIndex];
+		const bool bValidTextureGroup = TextureGroupNames.IsValidIndex(SortedTexture.LODGroup);
 		Ar.Logf( TEXT(",%i,%i,%i,%i,%s,%i,%i,%i,%i,%i,%s,%s,%s,%i"),
 			SortedTexture.OrigSizeX,
 			SortedTexture.OrigSizeY,
@@ -3669,16 +3701,43 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			SortedTexture.MaxSize,
 			SortedTexture.CurrentSize,
 			SortedTexture.LODBias,
-			TextureGroupNames.IsValidIndex(SortedTexture.LODGroup) ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
+			bValidTextureGroup ? *TextureGroupNames[SortedTexture.LODGroup] : TEXT("INVALID"),
 			*SortedTexture.Name,
 			SortedTexture.bIsStreaming ? TEXT("YES") : TEXT("NO"),
 			SortedTexture.UsageCount );
+
+		if (bValidTextureGroup)
+		{
+			TextureGroupCurrentSizes[SortedTexture.LODGroup] += SortedTexture.CurrentSize;
+			TextureGroupMaxSizes[SortedTexture.LODGroup] += SortedTexture.MaxSize;
+		}
+
+		if (SortedTexture.Format >= 0 && SortedTexture.Format < PF_MAX)
+		{
+			FormatCurrentSizes[SortedTexture.Format] += SortedTexture.CurrentSize;
+			FormatMaxSizes[SortedTexture.Format] += SortedTexture.MaxSize;
+		}
 
 		TotalMaxSize		+= SortedTexture.MaxSize;
 		TotalCurrentSize	+= SortedTexture.CurrentSize;
 	}
 
-	Ar.Logf(TEXT("Total size: Current= %d  Max= %d  Count=%d"), TotalCurrentSize, TotalMaxSize, SortedTextures.Num() );
+	Ar.Logf(TEXT("Total size: Current= %d KB  Max= %d KB  Count=%d"), TotalCurrentSize, TotalMaxSize, SortedTextures.Num() );
+	for (int32 i = 0; i < PF_MAX; ++i)
+	{
+		if (FormatCurrentSizes[i] > 0 || FormatMaxSizes[i] > 0)
+		{
+			Ar.Logf(TEXT("Total %s size: Current= %d MB  Max= %d MB "), GetPixelFormatString((EPixelFormat)i), FormatCurrentSizes[i] / 1024, FormatMaxSizes[i] / 1024);
+		}
+	}
+
+	for (int32 i = 0; i < TextureGroupCurrentSizes.Num(); ++i)
+	{
+		if (TextureGroupCurrentSizes[i] > 0 || TextureGroupMaxSizes[i] > 0)
+		{
+			Ar.Logf(TEXT("Total %s size: Current= %d MB  Max= %d MB "), *TextureGroupNames[i], TextureGroupCurrentSizes[i] / 1024, TextureGroupMaxSizes[i] / 1024);
+		}
+	}
 	return true;
 }
 
@@ -4368,29 +4427,64 @@ bool UEngine::HandleListPreCacheMapPackagesCommand( const TCHAR* Cmd, FOutputDev
 
 bool UEngine::HandleListLoadedPackagesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	TArray<FString> Packages;
+	TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
 
-	for( TObjectIterator<UPackage> It; It; ++It )
+	struct FPackageInfo
+	{
+		FString Name;
+		float LoadTime;
+		UClass* AssetType;
+
+		FPackageInfo(UPackage* InPackage)
+		{
+			Name = InPackage->GetPathName();
+			LoadTime = InPackage->GetLoadTime();
+			AssetType = nullptr;
+		}
+	};
+
+	TArray<FPackageInfo> Packages;
+
+	TArray<UObject*> ObjectsInPackageTemp;
+
+	for (TObjectIterator<UPackage> It; It; ++It)
 	{
 		UPackage* Package = *It;
 
-		const bool bIsARootPackage = Package->GetOuter() == NULL;
+		const bool bIsARootPackage = Package->GetOuter() == nullptr;
 
-		if( bIsARootPackage == true )
+		if (bIsARootPackage == true)
 		{
-			Packages.Add( Package->GetFullName() );
-			//UE_LOG(LogParticle, Warning, TEXT("Package %s"), *Package->GetFullName() );
+			const int32 NewIndex = Packages.Emplace(Package);
+
+			// Determine the contained asset type
+			ObjectsInPackageTemp.Reset();
+			GetObjectsWithOuter(Package, /*out*/ ObjectsInPackageTemp, /*bIncludeNestedObjects=*/ false);
+
+			UClass* AssetType = nullptr;
+			for (UObject* Object : ObjectsInPackageTemp)
+			{
+				if (!Object->IsA(UMetaData::StaticClass()) && !Object->IsA(UClass::StaticClass()) && !Object->HasAnyFlags(RF_ClassDefaultObject))
+				{
+					AssetType = Object->GetClass();
+					break;
+				}
+			}
+
+			Packages[NewIndex].AssetType = AssetType;
 		}
 	}
 
-	Packages.Sort();
+	// Sort by name
+	Packages.Sort([](const FPackageInfo& A, const FPackageInfo& B) { return A.Name < B.Name; });
 
-	Ar.Logf( TEXT( "Total Number Of Packages Loaded: %i " ), Packages.Num() );
-
-	for( int32 i = 0; i < Packages.Num(); ++i )
+	Ar.Logf(TEXT("List of all loaded packages"));
+	Ar.Logf(TEXT("Name,Type,LoadTime"), Packages.Num());
+	for (const FPackageInfo& Info : Packages)
 	{
-		Ar.Logf( TEXT( "%4i %s" ), i, *Packages[i] );
+		Ar.Logf(TEXT("%s,%s,%f"), *Info.Name, (Info.AssetType != nullptr) ? *Info.AssetType->GetName() : TEXT("unknown"), Info.LoadTime);
 	}
+
 	Ar.Logf( TEXT( "Total Number Of Packages Loaded: %i " ), Packages.Num() );
 
 	return true;
@@ -5878,8 +5972,6 @@ bool UEngine::HandleToggleAllScreenMessagesCommand( const TCHAR* Cmd, FOutputDev
 		GAreScreenMessagesEnabled ? TEXT("ENABLED") : TEXT("DISABLED"));
 	return true;
 }
-
-
 
 bool UEngine::HandleTestslateGameUICommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
@@ -9775,6 +9867,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "LoadMapComplete - " ) + URL.Map )) );
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapEnd( URL.Map ); )
 
+	double StopTime = FPlatformTime::Seconds();
+
+	UE_LOG(LogEngine, Log, TEXT("Took %f seconds to LoadMap(%s)"), StopTime - StartTime, *URL.Map);
+
 	// Successfully started local level.
 	return true;
 }
@@ -10134,6 +10230,16 @@ UGameViewportClient* UEngine::GameViewportForWorld(const UWorld *InWorld) const
 bool UEngine::AreGameAnalyticsEnabled() const
 { 
 	return GetDefault<UEndUserSettings>()->bSendAnonymousUsageDataToEpic;
+}
+
+bool UEngine::AreGameAnalyticsAnonymous() const
+{
+	return !GetDefault<UEndUserSettings>()->bAllowUserIdInUsageData;
+}
+
+bool UEngine::AreGameMTBFEventsEnabled() const
+{
+	return GetDefault<UEndUserSettings>()->bSendMeanTimeBetweenFailureDataToEpic;
 }
 
 FWorldContext* UEngine::GetWorldContextFromGameViewport(const UGameViewportClient *InViewport)

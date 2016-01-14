@@ -34,7 +34,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 			{
 				const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
 
-				FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
+				FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOpaque);
 
 				if (bWriteCustomStencilValues)
 				{
@@ -65,7 +65,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 							bDirty |= FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 
 								View,
-								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders),
+								Context,
 								StaticMesh,
 								StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
 								true,

@@ -11,18 +11,19 @@ DEFINE_LOG_CATEGORY(LogQos);
 
 void FQosModule::StartupModule()
 {
-	QosInterface = new FQosInterface();
 }
 
 void FQosModule::ShutdownModule()
 {
-	delete QosInterface;
-	QosInterface = nullptr;
 }
 
-FQosInterface* FQosModule::GetQosInterface()
+TSharedRef<FQosInterface> FQosModule::GetQosInterface()
 {
-	return QosInterface;
+	if (!QosInterface.IsValid())
+	{
+		QosInterface = MakeShareable(new FQosInterface());
+	}
+	return QosInterface.ToSharedRef();
 }
 
 bool FQosModule::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)

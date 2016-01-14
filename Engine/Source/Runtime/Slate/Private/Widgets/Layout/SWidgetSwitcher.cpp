@@ -114,6 +114,7 @@ int32 SWidgetSwitcher::RemoveSlot( TSharedRef<SWidget> WidgetToRemove )
 void SWidgetSwitcher::SetActiveWidgetIndex( int32 Index )
 {
 	WidgetIndex = Index;
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 

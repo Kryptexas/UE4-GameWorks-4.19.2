@@ -746,7 +746,9 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 				}
 
 				{
-					SCOPED_DRAW_EVENT(RHICmdList, Upsample);
+					SCOPED_DRAW_EVENTF(RHICmdList, Upsample, TEXT("UpsampleDirectCapsuleShadowRendering %dx%d"),
+						ScissorRect.Width(), ScissorRect.Height());
+						
 					FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
 
 					RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
@@ -1052,7 +1054,8 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(FRHICommandList
 						}
 			
 						{
-							SCOPED_DRAW_EVENT(RHICmdList, Upsample);
+							SCOPED_DRAW_EVENTF(RHICmdList, Upsample, TEXT("UpsampleIndirectCapsuleShadowRendering %dx%d"),
+								ScissorRect.Width(), ScissorRect.Height());
 
 							FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 

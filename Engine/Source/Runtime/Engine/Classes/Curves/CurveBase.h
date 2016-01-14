@@ -509,6 +509,9 @@ public:
 	/** Gets a copy of the keys, so indices and handles can't be meddled with */
 	TArray<FRichCurveKey> GetCopyOfKeys() const;
 
+	/** Gets a const reference of the keys, so indices and handles can't be meddled with */
+	const TArray<FRichCurveKey>& GetConstRefOfKeys() const;
+
 	/** Const iterator for the keys, so the indices and handles stay valid */
 	TArray<FRichCurveKey>::TConstIterator GetKeyIterator() const;
 	

@@ -116,6 +116,7 @@ FPlatformErrorReport LoadErrorReport()
 	}
 	else
 	{
+		UE_LOG(CrashReportClientLog, Warning, TEXT("No error report found"));
 		return FPlatformErrorReport();
 	}
 
@@ -167,8 +168,8 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		if (bUnattended)
 		{
 			// In the unattended mode we don't send any PII.
-			ErrorReport.SetUserComment(NSLOCTEXT("CrashReportClient", "UnattendedMode", "Sent in the unattended mode"));
 			FCrashReportClientUnattended CrashReportClient(ErrorReport);
+			ErrorReport.SetUserComment(NSLOCTEXT("CrashReportClient", "UnattendedMode", "Sent in the unattended mode"));
 
 			// loop until the app is ready to quit
 			while (!GIsRequestingExit)
@@ -194,6 +195,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 			auto Window = FSlateApplication::Get().AddWindow(
 				SNew(SWindow)
 				.Title(NSLOCTEXT("CrashReportClient", "CrashReportClientAppName", "Unreal Engine 4 Crash Reporter"))
+				.HasCloseButton(FCrashReportClientConfig::Get().IsAllowedToCloseWithoutSending())
 				.ClientSize(InitialWindowDimensions)
 				[
 					ClientControl

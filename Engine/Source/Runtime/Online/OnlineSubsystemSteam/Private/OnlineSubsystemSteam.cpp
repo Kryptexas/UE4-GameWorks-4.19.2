@@ -162,6 +162,11 @@ IOnlineFriendsPtr FOnlineSubsystemSteam::GetFriendsInterface() const
 	return FriendInterface;
 }
 
+IMessageSanitizerPtr FOnlineSubsystemSteam::GetMessageSanitizerInterface() const
+{
+	return nullptr;
+}
+
 IOnlineGroupsPtr FOnlineSubsystemSteam::GetGroupsInterface() const
 {
 	return nullptr;

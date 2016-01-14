@@ -26,36 +26,13 @@ public:
 		PageSize = 64 * 1024,
 		SmallPageSize = 1024
 	};
-	FORCEINLINE static void *Alloc()
-	{
-		void *Result = TheAllocator.Allocate();
-		STAT(UpdateStats());
-		return Result;
-	}
-	FORCEINLINE static void Free(void *Mem)
-	{
-		TheAllocator.Free(Mem);
-		STAT(UpdateStats());
-	}
-	FORCEINLINE static void *AllocSmall()
-	{
-		void *Result = TheSmallAllocator.Allocate();
-		STAT(UpdateStats());
-		return Result;
-	}
-	FORCEINLINE static void FreeSmall(void *Mem)
-	{
-		TheSmallAllocator.Free(Mem);
-		STAT(UpdateStats());
-	}
-	static uint64 BytesUsed()
-	{
-		return uint64(TheAllocator.GetNumUsed().GetValue()) * PageSize + uint64(TheSmallAllocator.GetNumUsed().GetValue()) * SmallPageSize;
-	}
-	static uint64 BytesFree()
-	{
-		return uint64(TheAllocator.GetNumFree().GetValue()) * PageSize + uint64(TheSmallAllocator.GetNumFree().GetValue()) * SmallPageSize;
-	}
+	static void *Alloc();
+	static void Free(void *Mem);
+	static void *AllocSmall();
+	static void FreeSmall(void *Mem);
+	static uint64 BytesUsed();
+	static uint64 BytesFree();
+	static void LatchProtectedMode();
 private:
 
 #if STATS

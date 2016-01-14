@@ -535,7 +535,8 @@ void FRHICommandListExecutor::LatchBypass()
 
 void FRHICommandListExecutor::CheckNoOutstandingCmdLists()
 {
-	check(GRHICommandList.OutstandingCmdListCount.GetValue() == 2); // else we are attempting to delete resources while there is still a live cmdlist (other than the immediate cmd list) somewhere.
+	// else we are attempting to delete resources while there is still a live cmdlist (other than the immediate cmd list) somewhere.
+	checkf(GRHICommandList.OutstandingCmdListCount.GetValue() == 2, TEXT("Oustanding: %i"), GRHICommandList.OutstandingCmdListCount.GetValue());
 }
 
 bool FRHICommandListExecutor::IsRHIThreadActive()

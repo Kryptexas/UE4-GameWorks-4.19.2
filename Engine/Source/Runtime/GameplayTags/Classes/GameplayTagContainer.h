@@ -4,6 +4,8 @@
 
 #include "GameplayTagContainer.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogGameplayTags, Log, All);
+
 DECLARE_STATS_GROUP(TEXT("Gameplay Tags"), STATGROUP_GameplayTags, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FGameplayTagContainer::HasTag"), STAT_FGameplayTagContainer_HasTag, STATGROUP_GameplayTags, GAMEPLAYTAGS_API);
@@ -132,6 +134,8 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	/** Overridden for fast serialize */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
+	bool NetSerialize_Packed(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
 private:
 
 	/** Intentionally private so only the tag manager can use */
@@ -142,6 +146,7 @@ private:
 	FName TagName;
 
 	friend class UGameplayTagsManager;
+	friend struct FGameplayTagContainer;
 };
 
 template<>
@@ -187,6 +192,14 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	FGameplayTagContainer& operator=(FGameplayTagContainer&& Other);
 	bool operator==(FGameplayTagContainer const& Other) const;
 	bool operator!=(FGameplayTagContainer const& Other) const;
+
+	template<class AllocatorType>
+	static FGameplayTagContainer CreateFromArray(TArray<FGameplayTag, AllocatorType>& SourceTags)
+	{
+		FGameplayTagContainer Container;
+		Container.GameplayTags.Append(SourceTags);
+		return Container;
+	}
 
 	/**  Returns a new container containing all of the tags of this container, as well as all of their parent tags */
 	FGameplayTagContainer GetGameplayTagParents() const;

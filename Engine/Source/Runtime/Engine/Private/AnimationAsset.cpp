@@ -63,7 +63,7 @@ void FAnimGroupInstance::TestMontageTickRecordForLeadership()
 
 void FAnimGroupInstance::Finalize(const FAnimGroupInstance* PreviousGroup)
 {
-	if (!PreviousGroup || PreviousGroup->GroupLeaderIndex != GroupLeaderIndex || ValidMarkers != PreviousGroup->ValidMarkers
+	if (!PreviousGroup || PreviousGroup->GroupLeaderIndex != GroupLeaderIndex
 		|| (PreviousGroup->MontageLeaderWeight > 0.f && MontageLeaderWeight == 0.f/*if montage disappears, we should reset as well*/))
 	{
 		UE_LOG(LogAnimMarkerSync, Log, TEXT("Resetting Marker Sync Groups"));
@@ -86,8 +86,6 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 		ValidMarkers = *MarkerNames;
 		ActivePlayers[0].bCanUseMarkerSync = true;
 		bCanUseMarkerSync = true;
-
-		int32 PlayerIndexToResetMarkers = INDEX_NONE;
 
 		//filter markers based on what exists in the other animations
 		for ( int32 ActivePlayerIndex = 0; ActivePlayerIndex < ActivePlayers.Num(); ++ActivePlayerIndex )
@@ -128,8 +126,6 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 						if ( !PlayerMarkerNames->Contains(MarkerName) )
 						{
 							ValidMarkers.RemoveAtSwap(ValidMarkerIndex, 1, false);
-
-							PlayerIndexToResetMarkers = ActivePlayerIndex;
 						}
 					}
 				}
@@ -140,12 +136,9 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 
 		ValidMarkers.Sort();
 
-		// if we have list of markers that needs to rest
-		if (PlayerIndexToResetMarkers > 0)
+		if (PreviousGroup && (ValidMarkers != PreviousGroup->ValidMarkers))
 		{
-			// if you removed valid markers, we also should reset previous candidate marker tick record
-			// because they might contain previous marker sets
-			for (int32 InternalActivePlayerIndex = 0; InternalActivePlayerIndex < PlayerIndexToResetMarkers; ++InternalActivePlayerIndex)
+			for (int32 InternalActivePlayerIndex = 0; InternalActivePlayerIndex < ActivePlayers.Num(); ++InternalActivePlayerIndex)
 			{
 				ActivePlayers[InternalActivePlayerIndex].MarkerTickRecord->Reset();
 			}

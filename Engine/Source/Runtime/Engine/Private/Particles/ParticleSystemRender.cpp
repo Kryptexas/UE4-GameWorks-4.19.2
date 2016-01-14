@@ -6548,6 +6548,7 @@ void FParticleSystemSceneProxy::GetDynamicMeshElements(const TArray<const FScene
 				{
 					continue;
 				}
+				FScopeCycleCounter AdditionalScope(Data->StatID);
 
 				//hold on to the emitter index in case we need to access any of its properties
 				DynamicData->EmitterIndex = Index;
@@ -6605,6 +6606,7 @@ void FParticleSystemSceneProxy::CreateRenderThreadResourcesForEmitterData()
 			FDynamicEmitterDataBase* Data =	DynamicData->DynamicEmitterDataArray[Index];
 			if (Data != NULL)
 			{
+				FScopeCycleCounter AdditionalScope(Data->StatID);
 				Data->UpdateRenderThreadResourcesEmitter(this);
 			}
 		}
@@ -6620,6 +6622,7 @@ void FParticleSystemSceneProxy::ReleaseRenderThreadResourcesForEmitterData()
 			FDynamicEmitterDataBase* Data =	DynamicData->DynamicEmitterDataArray[Index];
 			if (Data != NULL)
 			{
+				FScopeCycleCounter AdditionalScope(Data->StatID);
 				Data->ReleaseRenderThreadResources(this);
 			}
 		}
@@ -6830,9 +6833,11 @@ void FParticleSystemSceneProxy::GatherSimpleLights(const FSceneViewFamily& ViewF
 {
 	if (DynamicData != NULL)
 	{
+		FScopeCycleCounter Context(GetStatId());
 		for (int32 EmitterIndex = 0; EmitterIndex < DynamicData->DynamicEmitterDataArray.Num(); EmitterIndex++)
 		{
 			const FDynamicEmitterDataBase* DynamicEmitterData = DynamicData->DynamicEmitterDataArray[EmitterIndex];
+			FScopeCycleCounter AdditionalScope(DynamicEmitterData->StatID);
 			if (DynamicEmitterData)
 			{
 				DynamicEmitterData->GatherSimpleLights(this, ViewFamily, OutParticleLights);

@@ -73,6 +73,11 @@ struct CORE_API FCommandLine
 	static const TCHAR* Get();
 	
 	/**
+	 * Returns an edited version of the executable's command line. 
+	 */
+	static const TCHAR* GetForLogging();
+
+	/**
 	 * Returns the command line originally passed to the executable.
 	 */
 	static const TCHAR* GetOriginal();
@@ -127,9 +132,12 @@ private:
 	static void WhitelistCommandLines();
 	/** Filters any command line args that aren't on the approved list */
 	static TArray<FString> FilterCommandLine(TCHAR* CommandLine);
+	/** Filters any command line args that are on the to-strip list */
+	static TArray<FString> FilterCommandLineForLogging(TCHAR* CommandLine);
 	/** Rebuilds the command line using the filtered args */
 	static void BuildWhitelistCommandLine(TCHAR* CommandLine, uint32 Length, const TArray<FString>& FilteredArgs);
 	static TArray<FString> ApprovedArgs;
+	static TArray<FString> FilterArgsForLogging;
 #else
 #define WhitelistCommandLines()
 #endif
@@ -140,6 +148,8 @@ private:
 	static TCHAR CmdLine[MaxCommandLineSize];
 	/** character buffer containing the original command line */
 	static TCHAR OriginalCmdLine[MaxCommandLineSize];
+	/** character buffer containing the command line filtered for logging purposes */
+	static TCHAR LoggingCmdLine[MaxCommandLineSize];
 	/** subprocess command line */
 	static FString SubprocessCommandLine;
 };

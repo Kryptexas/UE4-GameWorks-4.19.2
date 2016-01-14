@@ -78,6 +78,11 @@ struct FCrashReportClientConfig
 		return bHideLogFilesOption;
 	}
 
+	const bool& IsAllowedToCloseWithoutSending() const
+	{
+		return bIsAllowedToCloseWithoutSending;
+	}
+
 	void SetAllowToBeContacted( bool bNewValue );
 	void SetSendLogFile( bool bNewValue );
 
@@ -120,4 +125,7 @@ protected:
 
 	/** Whether the user is shown the option to enable/disable sending the log file. */
 	bool bHideLogFilesOption;
+
+	/** Whether the user is allowed to close the crash reporter without sending a report */
+	bool bIsAllowedToCloseWithoutSending;
 };

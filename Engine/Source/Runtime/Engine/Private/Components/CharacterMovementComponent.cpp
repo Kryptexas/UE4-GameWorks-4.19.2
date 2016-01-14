@@ -467,8 +467,8 @@ void UCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdate
 
 bool UCharacterMovementComponent::HasValidData() const
 {
-#if ENABLE_NAN_DIAGNOSTIC
 	bool bIsValid = UpdatedComponent && IsValid(CharacterOwner);
+#if ENABLE_NAN_DIAGNOSTIC
 	if (bIsValid)
 	{
 		// NaN-checking updates
@@ -484,11 +484,13 @@ bool UCharacterMovementComponent::HasValidData() const
 		{
 			logOrEnsureNanError(TEXT("UCharacterMovementComponent::HasValidData detected NaN/INF in UpdatedComponent ComponentTransform!"));
 		}
+		if (UpdatedComponent->GetComponentRotation().ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("UCharacterMovementComponent::HasValidData detected NaN/INF in UpdatedComponent->GetComponentRotation()! %s"), *UpdatedComponent->GetComponentRotation().ToString());
+		}
 	}
-	return bIsValid;
-#else
-	return UpdatedComponent && IsValid(CharacterOwner);
 #endif
+	return bIsValid;
 }
 
 FCollisionShape UCharacterMovementComponent::GetPawnCapsuleCollisionShape(const EShrinkCapsuleExtent ShrinkMode, const float CustomShrinkAmount) const

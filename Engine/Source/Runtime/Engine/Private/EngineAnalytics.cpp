@@ -6,11 +6,13 @@
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "GeneralProjectSettings.h"
+#include "EngineSessionManager.h"
 
 bool FEngineAnalytics::bIsInitialized;
 bool FEngineAnalytics::bIsEditorRun;
 bool FEngineAnalytics::bIsGameRun;
 TSharedPtr<IAnalyticsProvider> FEngineAnalytics::Analytics;
+TSharedPtr<FEngineSessionManager> FEngineAnalytics::SessionManager;
 
 /**
  * Engine analytics config log to initialize the engine analytics provider.
@@ -112,7 +114,7 @@ void FEngineAnalytics::Initialize()
 			if (Analytics.IsValid())
 			{
 				// Use an anonymous user id in-game
-				if (bIsGameRun)
+				if (bIsGameRun && GEngine->AreGameAnalyticsAnonymous())
 				{
 					FString AnonymousId;
 					if (!FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Privacy"), TEXT("AnonymousID"), AnonymousId) || AnonymousId.IsEmpty())
@@ -142,12 +144,37 @@ void FEngineAnalytics::Initialize()
 				bIsInitialized = true;
 			}
 		}
+
+		// Create the session manager singleton
+		if (!SessionManager.IsValid())
+		{
+			if (bIsEditorRun || (bIsGameRun && GEngine->AreGameMTBFEventsEnabled()))
+			{
+				SessionManager = MakeShareable(new FEngineSessionManager(bIsEditorRun ? EEngineSessionManagerMode::Editor : EEngineSessionManagerMode::Game));
+				SessionManager->Initialize();
+			}
+		}
 	}
 }
 
 
-void FEngineAnalytics::Shutdown()
+void FEngineAnalytics::Shutdown(bool bIsEngineShutdown)
 {
 	Analytics.Reset();
 	bIsInitialized = false;
+
+	// Destroy the session manager singleton if it exists
+	if (SessionManager.IsValid() && bIsEngineShutdown)
+	{
+		SessionManager->Shutdown();
+		SessionManager.Reset();
+	}
+}
+
+void FEngineAnalytics::Tick(float DeltaTime)
+{
+	if (SessionManager.IsValid())
+	{
+		SessionManager->Tick(DeltaTime);
+	}
 }

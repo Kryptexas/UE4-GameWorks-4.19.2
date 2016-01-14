@@ -707,7 +707,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		
 		if ( PacketsLost > 10 )
 		{
-			UE_LOG( LogNetTraffic, Warning, TEXT( "High single frame packet loss. PacketsLost: %i %s" ), PacketsLost, *Describe() );
+			UE_LOG( LogNetTraffic, Log, TEXT( "High single frame packet loss. PacketsLost: %i %s" ), PacketsLost, *Describe() );
 		}
 
 		InPacketsLost += PacketsLost;
@@ -1371,7 +1371,15 @@ float UNetConnection::GetTimeoutValue()
 	float Timeout = Driver->InitialConnectTimeout;
 	if ( ( State != USOCK_Pending ) && ( bPendingDestroy || ( OwningActor && OwningActor->UseShortConnectTimeout() ) ) )
 	{
-		Timeout = bPendingDestroy ? 2.f : Driver->ConnectionTimeout;
+#if !UE_BUILD_SHIPPING
+		// Check for -notimeouts, if using it then set the timeout value to a huge number
+		const float ConnectionTimeout = !Driver->bNoTimeouts ? Driver->ConnectionTimeout : MAX_FLT;
+#else
+		const float ConnectionTimeout = Driver->ConnectionTimeout;
+#endif
+
+		// If the connection is pending destroy give it 2 seconds to try to finish sending any reliable packets
+		Timeout = bPendingDestroy ? 2.f : ConnectionTimeout;
 	}
 
 	return Timeout;
@@ -1468,21 +1476,17 @@ void UNetConnection::Tick()
 
 	// Check to see if too much time is passing between ticks
 	// Setting this to somewhat large value for now, but small enough to catch blocking calls that are causing timeouts
-	const float TickWarnThreshold = 5.0f;
+	const float TickLogThreshold = 5.0f;
 
-	if ( DeltaTime > TickWarnThreshold || FrameTime > TickWarnThreshold )
+	if ( DeltaTime > TickLogThreshold || FrameTime > TickLogThreshold )
 	{
-		UE_LOG( LogNet, Warning, TEXT( "UNetConnection::Tick: Very long time between ticks. DeltaTime: %2.2f, Realtime: %2.2f %s" ), DeltaTime, FrameTime, *Describe() );
+		UE_LOG( LogNet, Log, TEXT( "UNetConnection::Tick: Very long time between ticks. DeltaTime: %2.2f, Realtime: %2.2f %s" ), DeltaTime, FrameTime, *Describe() );
 	}
 
 	// Handle timeouts.
 	const float Timeout = GetTimeoutValue();
 
-#if !UE_BUILD_SHIPPING
-	if (!Driver->bNoTimeouts && (Driver->Time - LastReceiveTime) > Timeout)
-#else
 	if ((Driver->Time - LastReceiveTime) > Timeout)
-#endif
 	{
 		// Compute true realtime since packet was received (as well as truly processed)
 		const double Seconds = FPlatformTime::Seconds();
@@ -1807,7 +1811,6 @@ void UNetConnection::ResetGameWorldState()
 	RecentlyDormantActors.Empty();
 	DormantActors.Empty();
 	ClientVisibleLevelNames.Empty();
-	ClientWorldPackageName = NAME_None;
 	KeepProcessingActorChannelBunchesMap.Empty();
 	DormantReplicatorMap.Empty();
 

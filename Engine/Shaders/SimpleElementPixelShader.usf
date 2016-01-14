@@ -321,14 +321,15 @@ void GammaDistanceFieldMain(
 		float ShadowDist = ShadowTexture.a;
 		// smooth range between ShadowSmoothWidth texels around edge
 		float4 ShadowResult = ShadowColor * smoothstep(0.5-ShadowSmoothWidth, 0.5+ShadowSmoothWidth, ShadowDist);
-		BaseColor = lerp(ShadowResult,BaseColor,BaseColor.a);
+		BaseColor =  lerp(ShadowResult, BaseColor, BaseColor.a);
 	}
 
 	if (EnableGlow)
 	{
 		// testing glow rendering
-		//GlowOuterRadius = float2(0.3,0.45);
-		//GlowInnerRadius = float2(0.45,0.5);	
+		//GlowColor = float4(0, 1, 0, 1);
+		//GlowOuterRadius = float2(0.45,0.5);
+		//GlowInnerRadius = float2(0.5,0.51);	
 
 		if (BaseDist >= GlowOuterRadius[0] && BaseDist <= GlowInnerRadius[1])
 		{
@@ -336,12 +337,14 @@ void GammaDistanceFieldMain(
 			if (BaseDist <= GlowOuterRadius[1])
 			{
 				OutlineFactor = smoothstep(GlowOuterRadius[0],GlowOuterRadius[1],BaseDist);
+				BaseColor = lerp(float4(GlowColor.rgb, 0.0), GlowColor, OutlineFactor);
 			}
 			else
 			{
-				OutlineFactor = smoothstep(GlowInnerRadius[1],GlowInnerRadius[0],BaseDist);			
+				OutlineFactor = smoothstep(GlowInnerRadius[1],GlowInnerRadius[0],BaseDist);
+				BaseColor = lerp(BaseColor, GlowColor, OutlineFactor);
 			}
-			BaseColor = lerp(BaseColor,GlowColor,OutlineFactor);
+			
 		}
 	}
  #endif

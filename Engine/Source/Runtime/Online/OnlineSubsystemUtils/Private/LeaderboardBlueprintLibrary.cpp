@@ -19,7 +19,7 @@ bool ULeaderboardBlueprintLibrary::WriteLeaderboardObject(APlayerController* Pla
 		TSharedPtr<const FUniqueNetId> UserId = PlayerState->UniqueId.GetUniqueNetId();
 		if (UserId.IsValid())
 		{
-			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
+			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::IsLoaded() ? IOnlineSubsystem::Get() : nullptr)
 			{
 				IOnlineLeaderboardsPtr Leaderboards = OnlineSub->GetLeaderboardsInterface();
 				if (Leaderboards.IsValid())

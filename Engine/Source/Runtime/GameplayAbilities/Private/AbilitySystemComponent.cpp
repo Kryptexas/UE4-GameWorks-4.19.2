@@ -32,9 +32,8 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 	bAutoActivate = true;	// Forcing AutoActivate since above we manually force tick enabled.
 							// if we don't have this, UpdateShouldTick() fails to have any effect
 							// because we'll be receiving ticks but bIsActive starts as false
-
-	ActiveGameplayCues.Owner = this;
-
+	
+	CachedIsNetSimulated = false;
 	UserAbilityActivationInhibited = false;
 
 	GenericConfirmInputID = INDEX_NONE;
@@ -127,6 +126,9 @@ void UAbilitySystemComponent::OnRegister()
 {
 	Super::OnRegister();
 
+	// Cached off netrole to avoid constant checking on owning actor
+	CachedIsNetSimulated = IsNetSimulating();
+
 	// Init starting data
 	for (int32 i=0; i < DefaultStartingData.Num(); ++i)
 	{
@@ -139,6 +141,11 @@ void UAbilitySystemComponent::OnRegister()
 
 	ActiveGameplayEffects.RegisterWithOwner(this);
 	ActivatableAbilities.RegisterWithOwner(this);
+	ActiveGameplayCues.Owner = this;
+	ActiveGameplayCues.bMinimalReplication = false;
+	MinimalReplicationGameplayCues.Owner = this;
+	MinimalReplicationGameplayCues.bMinimalReplication = true;
+	MinimalReplicationTags.Owner = this;
 
 	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
 	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
@@ -156,11 +163,6 @@ void UAbilitySystemComponent::OnUnregister()
 const FActiveGameplayEffect* UAbilitySystemComponent::GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const
 {
 	return ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-}
-
-bool UAbilitySystemComponent::IsOwnerActorAuthoritative() const
-{
-	return !IsNetSimulating();
 }
 
 bool UAbilitySystemComponent::HasNetworkAuthorityToApplyGameplayEffect(FPredictionKey PredictionKey) const
@@ -426,36 +428,6 @@ FOnActiveGameplayEffectStackChange* UAbilitySystemComponent::OnGameplayEffectSta
 	return nullptr;
 }
 
-int32 UAbilitySystemComponent::GetNumActiveGameplayEffects() const
-{
-	return ActiveGameplayEffects.GetNumGameplayEffects();
-}
-
-void UAbilitySystemComponent::GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies)
-{	
-	ActiveGameplayEffects.GetAllActiveGameplayEffectSpecs(OutSpecCopies);
-}
-
-const FGameplayTagContainer* UAbilitySystemComponent::GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const
-{
-	return ActiveGameplayEffects.GetGameplayEffectSourceTagsFromHandle(Handle);
-}
-
-const FGameplayTagContainer* UAbilitySystemComponent::GetGameplayEffectTargetTagsFromHandle(FActiveGameplayEffectHandle Handle) const
-{
-	return ActiveGameplayEffects.GetGameplayEffectTargetTagsFromHandle(Handle);
-}
-
-void UAbilitySystemComponent::CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec)
-{
-	// Verify the capture is happening on an attribute the component actually has a set for; if not, can't capture the value
-	const FGameplayAttribute& AttributeToCapture = OutCaptureSpec.BackingDefinition.AttributeToCapture;
-	if (AttributeToCapture.IsValid() && (AttributeToCapture.IsSystemAttribute() || GetAttributeSubobject(AttributeToCapture.GetAttributeSetClass())))
-	{
-		ActiveGameplayEffects.CaptureAttributeForGameplayEffect(OutCaptureSpec);
-	}
-}
-
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag, EGameplayTagEventType::Type EventType)
 {
 	return GameplayTagCountContainer.RegisterGameplayTagEvent(Tag, EventType);
@@ -498,73 +470,6 @@ const FGameplayEffectAttributeCaptureDefinition& UAbilitySystemComponent::GetInc
 }
 
 // ------------------------------------------------------------------------
-
-void UAbilitySystemComponent::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetOwnedTags);
-	TagContainer.AppendTags(GameplayTagCountContainer.GetExplicitGameplayTags());
-}
-
-bool UAbilitySystemComponent::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_HasMatchingGameplayTag);
-	return GameplayTagCountContainer.HasMatchingGameplayTag(TagToCheck);
-}
-
-bool UAbilitySystemComponent::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAllTags);
-	return GameplayTagCountContainer.HasAllMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
-}
-
-bool UAbilitySystemComponent::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
-	return GameplayTagCountContainer.HasAnyMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
-}
-
-void UAbilitySystemComponent::AddLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count)
-{
-	UpdateTagMap(GameplayTag, Count);
-}
-
-void UAbilitySystemComponent::AddLooseGameplayTags(const FGameplayTagContainer& GameplayTags, int32 Count)
-{
-	UpdateTagMap(GameplayTags, Count);
-}
-
-void UAbilitySystemComponent::RemoveLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count)
-{
-	UpdateTagMap(GameplayTag, -Count);
-}
-
-void UAbilitySystemComponent::RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTags, int32 Count)
-{
-	UpdateTagMap(GameplayTags, -Count);
-}
-
-// These are functionally redundant but are called by GEs and GameplayCues that add tags that are not 'loose' (but are handled the same way in practice)
-
-void UAbilitySystemComponent::UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta)
-{
-	const bool bHadTag = GameplayTagCountContainer.HasMatchingGameplayTag(BaseTag);
-	GameplayTagCountContainer.UpdateTagCount(BaseTag, CountDelta);
-	const bool bHasTag = GameplayTagCountContainer.HasMatchingGameplayTag(BaseTag);
-
-	if (bHadTag != bHasTag)
-	{
-		OnTagUpdated(BaseTag, bHasTag);
-	}
-}
-
-void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
-{
-	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
-	{
-		const FGameplayTag& Tag = *TagIt;
-		UpdateTagMap(Tag, CountDelta);
-	}
-}
 
 void UAbilitySystemComponent::ResetTagMap()
 {
@@ -742,7 +647,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			// Because PostReplicatedChange will get called from modifying the stack count
 			// (and not PostReplicatedAdd) we won't know which GE was modified.
 			// So instead we need to explicitly RPC the client so it knows the GC needs updating
-			NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec(*OurCopyOfSpec, PredictionKey);
+			UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueAddedAndWhileActive_FromSpec(this, *OurCopyOfSpec, PredictionKey);
 		}
 		else
 		{
@@ -1056,14 +961,14 @@ void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueT
 	UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_WithParams(this, GameplayCueTag, ScopedPredictionKey, GameplayCueParameters);
 }
 
-void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext)
+void UAbilitySystemComponent::AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, const FGameplayEffectContextHandle& EffectContext, FActiveGameplayCueContainer& GameplayCueContainer)
 {
 	if (IsOwnerActorAuthoritative())
 	{
 		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
 
 		ForceReplication();
-		ActiveGameplayCues.AddCue(GameplayCueTag, ScopedPredictionKey);
+		GameplayCueContainer.AddCue(GameplayCueTag, ScopedPredictionKey);
 		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, ScopedPredictionKey, EffectContext);
 
 		if (!bWasInList)
@@ -1074,7 +979,7 @@ void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, 
 	}
 	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
-		ActiveGameplayCues.PredictiveAdd(GameplayCueTag, ScopedPredictionKey);
+		GameplayCueContainer.PredictiveAdd(GameplayCueTag, ScopedPredictionKey);
 
 		// Allow for predictive gameplaycue events? Needs more thought
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
@@ -1082,13 +987,13 @@ void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, 
 	}
 }
 
-void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTag)
+void UAbilitySystemComponent::RemoveGameplayCue_Internal(const FGameplayTag GameplayCueTag, FActiveGameplayCueContainer& GameplayCueContainer)
 {
 	if (IsOwnerActorAuthoritative())
 	{
 		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
 
-		ActiveGameplayCues.RemoveCue(GameplayCueTag);
+		GameplayCueContainer.RemoveCue(GameplayCueTag);
 
 		if (bWasInList)
 		{
@@ -1099,7 +1004,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 	}
 	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
-		ActiveGameplayCues.PredictiveRemove(GameplayCueTag);
+		GameplayCueContainer.PredictiveRemove(GameplayCueTag);
 	}
 }
 
@@ -1119,6 +1024,8 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Im
 	}
 }
 
+// -----------
+
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
@@ -1126,6 +1033,19 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementat
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, EffectContext);
 	}
 }
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCuesExecuted_Implementation(const FGameplayTagContainer GameplayCueTags, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
+{
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	{
+		for (const FGameplayTag& GameplayCueTag : GameplayCueTags)
+		{
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, EffectContext);
+		}
+	}
+}
+
+// -----------
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_WithParams_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters)
 {
@@ -1135,6 +1055,19 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_WithParams_
 	}
 }
 
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCuesExecuted_WithParams_Implementation(const FGameplayTagContainer GameplayCueTags, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters)
+{
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	{
+		for (const FGameplayTag& GameplayCueTag : GameplayCueTags)
+		{
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, GameplayCueParameters);
+		}
+	}
+}
+
+// -----------
+
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
@@ -1142,6 +1075,8 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
 	}
 }
+
+// -----------
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec_Implementation(const FGameplayEffectSpecForRPC& Spec, FPredictionKey PredictionKey)
 {
@@ -1152,22 +1087,30 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAddedAndWhileActive_
 	}
 }
 
-bool UAbilitySystemComponent::IsGameplayCueActive(const FGameplayTag GameplayCueTag) const
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAddedAndWhileActive_WithParams_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters)
 {
-	return HasMatchingGameplayTag(GameplayCueTag);
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	{
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, GameplayCueParameters);
+		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, GameplayCueParameters);
+	}
+}
+
+	
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCuesAddedAndWhileActive_WithParams_Implementation(const FGameplayTagContainer GameplayCueTags, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters)
+{
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	{
+		for (const FGameplayTag& GameplayCueTag : GameplayCueTags)
+		{
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, GameplayCueParameters);
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive, GameplayCueParameters);
+		}
+	}
 }
 
 // ----------------------------------------------------------------------------------------
 
-void UAbilitySystemComponent::SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute)
-{
-	ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue);
-}
-
-bool UAbilitySystemComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
-{
-	return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, EffectContext);
-}
 
 // #deprecated, use FGameplayEffectQuery version
 TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
@@ -1203,16 +1146,6 @@ TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(co
 TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffects(Query);
-}
-
-float UAbilitySystemComponent::GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const
-{
-	return ActiveGameplayEffects.GetActiveEffectsEndTime(Query);
-}
-
-void UAbilitySystemComponent::ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
-{
-	ActiveGameplayEffects.ModifyActiveEffectStartTime(Handle, StartTimeDiff);
 }
 
 void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagContainer Tags)
@@ -1270,7 +1203,7 @@ void UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Qu
 void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {	
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
-	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
+	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects );
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
 	
 	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, ActivatableAbilities, COND_ReplayOrOwner);
@@ -1282,7 +1215,16 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
 	DOREPLIFETIME(UAbilitySystemComponent, RepAnimMontageInfo);
 	
+	DOREPLIFETIME(UAbilitySystemComponent, MinimalReplicationGameplayCues );
+	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, MinimalReplicationTags, COND_Custom);
+	
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
+void UAbilitySystemComponent::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
+{	
+	// These only replicate when in minimal replication mode	
+	DOREPLIFETIME_ACTIVE_OVERRIDE(UAbilitySystemComponent, MinimalReplicationTags, bMinimalReplication);
 }
 
 void UAbilitySystemComponent::ForceReplication()
@@ -1338,11 +1280,6 @@ void UAbilitySystemComponent::PostNetReceive()
 	ActiveGameplayEffects.DecrementLock();
 }
 
-void UAbilitySystemComponent::OnRep_GameplayEffects()
-{
-
-}
-
 void UAbilitySystemComponent::OnRep_PredictionKey()
 {
 	// Every predictive action we've done up to and including the current value of ReplicatedPredictionKey needs to be wiped
@@ -1352,6 +1289,11 @@ void UAbilitySystemComponent::OnRep_PredictionKey()
 bool UAbilitySystemComponent::HasAuthorityOrPredictionKey(const FGameplayAbilityActivationInfo* ActivationInfo) const
 {
 	return ((ActivationInfo->ActivationMode == EGameplayAbilityActivationMode::Authority) || CanPredict());
+}
+
+void UAbilitySystemComponent::SetMinimalReplication(bool bNewMinimalReplication)
+{
+	bMinimalReplication = true;
 }
 
 // ---------------------------------------------------------------------------------------

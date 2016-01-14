@@ -276,7 +276,6 @@ struct FScopedAnimSequenceCompressedDataCache
 		RawAnimationData = Src->RawAnimationData;
 		AnimationTrackNames = Src->AnimationTrackNames;
 		TrackToSkeletonMapTable = Src->TrackToSkeletonMapTable;
-		CompressedTrackOffsets = MoveTemp(Src->CompressedTrackOffsets);
 		TranslationData = MoveTemp(Src->TranslationData);
 		RotationData = MoveTemp(Src->RotationData);
 		ScaleData = MoveTemp(Src->ScaleData);
@@ -299,7 +298,6 @@ struct FScopedAnimSequenceCompressedDataCache
 		Src->RawAnimationData = MoveTemp(RawAnimationData);
 		Src->AnimationTrackNames = MoveTemp(AnimationTrackNames);
 		Src->TrackToSkeletonMapTable = MoveTemp(TrackToSkeletonMapTable);
-		Src->CompressedTrackOffsets = MoveTemp(CompressedTrackOffsets);
 		Src->TranslationData = MoveTemp(TranslationData);
 		Src->RotationData = MoveTemp(RotationData);
 		Src->ScaleData = MoveTemp(ScaleData);
@@ -4144,7 +4142,10 @@ void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, c
 	bool bOffsetInitialized = false;
 	float MarkerTimeOffset = 0.f;
 
-	check(CurrentTime >= 0.f && CurrentTime <= SequenceLength);
+	// Hard to reproduce issue triggering this, ensure & clamp for now
+	ensureMsgf(CurrentTime >= 0.f && CurrentTime <= SequenceLength, TEXT("Current time inside of AdvanceMarkerPhaseAsLeader is out of range %.3f of 0.0 to %.3f\n    Sequence: %s"), CurrentTime, SequenceLength, *GetFullName());
+
+	CurrentTime = FMath::Clamp(CurrentTime, 0.f, SequenceLength);
 
 	if (bPlayingForwards)
 	{
@@ -4609,10 +4610,13 @@ void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& S
 		const FAnimSyncMarker& PrevMarker = AuthoredSyncMarkers[PrevMarkerIdx];
 		if (PrevMarker.MarkerName == SyncPosition.PreviousMarkerName)
 		{
-			int32 EndCount = bLooping ? AuthoredSyncMarkers.Num() : (AuthoredSyncMarkers.Num() - (PrevMarkerIdx + 1));
-			for (int32 NextMarkerCount = 0; NextMarkerCount < EndCount; ++NextMarkerCount)
+			const int32 EndMarkerSearchStart = PrevMarkerIdx + 1;
+
+			const int32 EndCount = bLooping ? AuthoredSyncMarkers.Num() + EndMarkerSearchStart : AuthoredSyncMarkers.Num();
+			for (int32 NextMarkerCount = EndMarkerSearchStart; NextMarkerCount < EndCount; ++NextMarkerCount)
 			{
-				int32 NextMarkerIdx = (PrevMarkerIdx + 1 + NextMarkerCount) % AuthoredSyncMarkers.Num();
+				const int32 NextMarkerIdx = NextMarkerCount % AuthoredSyncMarkers.Num();
+
 				if (AuthoredSyncMarkers[NextMarkerIdx].MarkerName == SyncPosition.NextMarkerName)
 				{
 					float NextMarkerTime = AuthoredSyncMarkers[NextMarkerIdx].Time;
@@ -4637,6 +4641,26 @@ void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& S
 					// this marker test is done, move onto next one
 					break;
 				}
+			}
+
+			// If we get here and we haven't found a match and we are not looping then there 
+			// is no point running the rest of the loop set up something as relevant as we can and carry on
+			if (OutPrevMarker.MarkerIndex == MarkerIndexSpecialValues::Unitialized)
+			{
+				//Find nearest previous marker that is earlier than our current time
+				DiffToCurrentTime = OutCurrentTime - PrevMarker.Time;
+				int32 PrevMarkerToUse = PrevMarkerIdx + 1;
+				while (DiffToCurrentTime > 0.f && PrevMarkerToUse < AuthoredSyncMarkers.Num())
+				{
+					DiffToCurrentTime = OutCurrentTime - AuthoredSyncMarkers[PrevMarkerToUse].Time;
+					++PrevMarkerToUse;
+				}
+				OutPrevMarker.MarkerIndex = PrevMarkerToUse - 1;	// We always go one past the marker we actually want to use
+				
+				OutNextMarker.MarkerIndex = -1;						// This goes to minus one as the very fact we are here means
+																	// that there is no next marker to use
+				OutCurrentTime = GetCurrentTimeFromMarkers(OutPrevMarker, OutNextMarker, SyncPosition.PositionBetweenMarkers);
+				break; // no need to keep searching, we are done
 			}
 		}
 	}

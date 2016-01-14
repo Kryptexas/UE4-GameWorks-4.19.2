@@ -132,9 +132,9 @@ public:
 	 * Return the provider instance. Not valid outside of Initialize/Shutdown calls.
 	 * Note: must check IsAvailable() first else this code will assert if the provider is not valid.
 	 */
-	static IAnalyticsProvider& GetProvider();
+	QOSREPORTER_API static IAnalyticsProvider& GetProvider();
 	/** Helper function to determine if the provider is valid. */
-	static bool IsAvailable() { return Analytics.IsValid(); }
+	QOSREPORTER_API static bool IsAvailable() { return Analytics.IsValid(); }
 	/** Called to initialize the singleton. */
 	QOSREPORTER_API static void Initialize();
 	/** Called to shut down the singleton */
@@ -158,9 +158,16 @@ public:
 	static void QOSREPORTER_API Tick();
 
 	/**
-	 * This function is expected to be called periodically to update ongoing tasks.
+	 * Returns instance id that QoS reporter is using in its events
 	 */
-	static FGuid QOSREPORTER_API GetQoSReporterInstanceId();
+	static FString QOSREPORTER_API GetQoSReporterInstanceId();
+
+	/**
+	 * Backend services are split into deployments; this can be used to distinguish between them.
+	 *
+	 * @param InDeploymentName deployment name (has a meaning for the game and QoS alerting). Won't be sent if empty.
+	 */
+	static void QOSREPORTER_API SetBackendDeploymentName(const FString & InDeploymentName);
 
 private:
 
@@ -179,16 +186,8 @@ private:
 	 */
 	static void AddClientHeartbeatAttributes(TArray<FAnalyticsEventAttribute> & OutArray);
 
-	/**
-	 * Returns application role (server, client)
-	 */
-	static FString GetApplicationRole();
-
 	/** Whether the module has been initialized. */
 	static bool bIsInitialized;
-
-	/** Unique identifier for this QoS reporter instance (only changed on module initialization) */
-	static FGuid InstanceId;
 
 	/** Chosen analytics provider. */
 	static TSharedPtr<IAnalyticsProvider> Analytics;
@@ -207,5 +206,4 @@ private:
 
 	/** Whether startup event was reported. */
 	static bool bStartupEventReported;
-
 };

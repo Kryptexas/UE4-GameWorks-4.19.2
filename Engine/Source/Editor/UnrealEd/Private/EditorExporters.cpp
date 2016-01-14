@@ -1943,7 +1943,7 @@ namespace MaterialExportUtils
 
 	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* Outer, const FString& BaseName, EObjectFlags Flags, TArray<UObject*>& OutGeneratedAssets)
 	{
-		return FMaterialUtilities::CreateMaterial(InFlattenMaterial, Outer, BaseName, Flags, OutGeneratedAssets);
+		return FMaterialUtilities::CreateMaterial(InFlattenMaterial, Outer, BaseName, Flags, FMaterialProxySettings(), OutGeneratedAssets);
 	}
 
 	bool ExportBaseColor(ULandscapeComponent* LandscapeComponent, int32 TextureSize, TArray<FColor>& OutSamples)

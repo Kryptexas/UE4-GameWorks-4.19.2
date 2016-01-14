@@ -1101,9 +1101,16 @@ void FDynamicSkelMeshObjectDataGPUSkin::InitDynamicSkelMeshObjectDataGPUSkin(
 	// append instead of equals to avoid alloc
 	ActiveVertexAnims.Append(InActiveVertexAnims);
 	NumWeightedActiveVertexAnims = 0;
-	// update ReferenceToLocal
-	UpdateRefToLocalMatrices( ReferenceToLocal, InMeshComponent, InSkeletalMeshResource, LODIndex );
 
+	// Gather any bones referenced by shadow shapes
+	TArray<FBoneIndexType> ExtraRequiredBoneIndices;
+	if (FSkeletalMeshSceneProxy* SkeletalMeshProxy = (FSkeletalMeshSceneProxy*)InMeshComponent->SceneProxy)
+	{
+		SkeletalMeshProxy->GetShadowShapeBoneIndices(ExtraRequiredBoneIndices);
+	}
+
+	// update ReferenceToLocal
+	UpdateRefToLocalMatrices( ReferenceToLocal, InMeshComponent, InSkeletalMeshResource, LODIndex, &ExtraRequiredBoneIndices );
 	UpdateCustomLeftRightVectors( CustomLeftRightVectors, InMeshComponent, InSkeletalMeshResource, LODIndex );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

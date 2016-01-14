@@ -45,6 +45,9 @@ private:
 	static TSubclassOf<USignificanceManager>  SignificanceManagerClass;
 };
 
+DECLARE_DELEGATE_TwoParams(FSignificanceNotify, float, float);
+extern SIGNIFICANCEMANAGER_API const FSignificanceNotify GDummySignificanceNotify;
+
 /* The significance manager provides a framework for registering objects by tag to each have a significance
  * value calculated from which a game specific subclass and game logic can make decisions about what level
  * of detail objects should be at, tick frequency, whether to spawn effects, and other such functionality
@@ -71,11 +74,12 @@ public:
 		{
 		}
 
-		FManagedObjectInfo(const UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction)
+		FManagedObjectInfo(const UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction, const FSignificanceNotify& Notify)
 			: Object(InObject)
 			, Tag(InTag)
 			, Significance(0.f)
 			, SignificanceFunction(InSignificanceFunction)
+			, SignificanceNotifyDelegate(Notify)
 		{
 		}
 
@@ -89,6 +93,8 @@ public:
 		float Significance;
 
 		FSignificanceFunction SignificanceFunction;
+
+		FSignificanceNotify SignificanceNotifyDelegate;
 
 		void UpdateSignificance(const TArray<FTransform>& ViewPoints);
 
@@ -107,9 +113,13 @@ public:
 
 	// Overridable function used to register an object as managed by the significance manager
 	virtual void RegisterObject(const UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction);
-
+	virtual void RegisterObject(const UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction, const FSignificanceNotify& SignificanceNotifyDelegate);
+	
 	// Overridable function used to unregister an object as managed by the significance manager
 	virtual void UnregisterObject(const UObject* Object);
+
+	// Unregisters all objects with the specified tag.
+	void UnregisterAll(FName Tag);
 
 	// Returns objects of specified tag, Tag must be specified or else an empty array will be returned
 	const TArray<const FManagedObjectInfo*>& GetManagedObjects(FName Tag) const;

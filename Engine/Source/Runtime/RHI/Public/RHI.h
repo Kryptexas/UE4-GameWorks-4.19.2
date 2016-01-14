@@ -73,6 +73,9 @@ extern RHI_API bool GSupportsDepthFetchDuringDepthTest;
  * e.g. "NVIDIA GeForce GTX 670"
  */
 extern RHI_API FString GRHIAdapterName;
+extern RHI_API FString GRHIAdapterInternalDriverVersion;
+extern RHI_API FString GRHIAdapterUserDriverVersion;
+extern RHI_API FString GRHIAdapterDriverDate;
 
 // 0 means not defined yet, use functions like IsRHIDeviceAMD() to access
 extern RHI_API uint32 GRHIVendorId;
@@ -191,6 +194,9 @@ extern RHI_API bool GTriggerGPUProfile;
 
 /** Whether we are profiling GPU hitches. */
 extern RHI_API bool GTriggerGPUHitchProfile;
+
+/** Non-empty if we are performing a gpu trace. Also says where to place trace file. */
+extern RHI_API FString GGPUTraceFileName;
 
 /** True if the RHI supports texture streaming */
 extern RHI_API bool GRHISupportsTextureStreaming;
@@ -1134,6 +1140,8 @@ struct FTextureMemoryStats
 
 	// Size of allocated memory, in bytes
 	int64 AllocatedMemorySize;
+	// Size of the largest memory fragment, in bytes
+	int64 LargestContiguousAllocation;
 	// 0 if streaming pool size limitation is disabled, in bytes
 	int64 TexturePoolSize;
 	// Upcoming adjustments to allocated memory, in bytes (async reallocations)
@@ -1146,6 +1154,7 @@ struct FTextureMemoryStats
 		, SharedSystemMemory(-1)
 		, TotalGraphicsMemory(-1)
 		, AllocatedMemorySize(0)
+		, LargestContiguousAllocation(0)
 		, TexturePoolSize(0)
 		, PendingMemoryAdjustment(0)
 	{

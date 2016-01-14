@@ -1710,7 +1710,15 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 		{
 			bool bIsMap = InMaps && InMaps->Contains(InDependency->GetPackageName());
 
-			if (!bIsMap)
+			check(!bIsMap || (InDependencyType == EAssetRegistryDependencyType::Soft));
+
+			// Force map dependencies to be soft references as we don't want the package loading system to try and load them
+			// automatically - the level loading stuff will do that!
+			if (bIsMap)
+			{
+				InDependencyType = EAssetRegistryDependencyType::Soft;
+			}
+
 			{
 				auto RedirectedDependency = ResolveRedirector(InDependency, Data, RedirectCache);
 

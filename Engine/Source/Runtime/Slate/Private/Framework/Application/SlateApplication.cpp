@@ -1216,15 +1216,18 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 		}
 	}
 
-
-	// Some windows may have been destroyed/removed.
-	// Do not attempt to draw any windows that have been removed.
-	TArray<TSharedRef<SWindow>> AllWindows = GatherAllDescendants(SlateWindows);
-	DrawWindowArgs.OutDrawBuffer.GetWindowElementLists().RemoveAll([&]( TSharedPtr<FSlateWindowElementList>& Candidate )
+	// This is potentially dangerous on the movie playback thread that slate sometimes runs on
+	if(!IsInSlateThread())
 	{
-		TSharedPtr<SWindow> CandidateWindow = Candidate->GetWindow();
-		return !CandidateWindow.IsValid() || !AllWindows.Contains(CandidateWindow.ToSharedRef());
-	});
+		// Some windows may have been destroyed/removed.
+		// Do not attempt to draw any windows that have been removed.
+		TArray<TSharedRef<SWindow>> AllWindows = GatherAllDescendants(SlateWindows);
+		DrawWindowArgs.OutDrawBuffer.GetWindowElementLists().RemoveAll([&](TSharedPtr<FSlateWindowElementList>& Candidate)
+		{
+			TSharedPtr<SWindow> CandidateWindow = Candidate->GetWindow();
+			return !CandidateWindow.IsValid() || !AllWindows.Contains(CandidateWindow.ToSharedRef());
+		});
+	}
 
 	{	
 		SLATE_CYCLE_COUNTER_SCOPE(GSlateRendererDrawWindows);

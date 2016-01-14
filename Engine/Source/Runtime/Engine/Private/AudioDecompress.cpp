@@ -331,6 +331,8 @@ void FAsyncAudioDecompressWorker::DoWork()
 			}
 			else
 			{
+				check(Wave->DecompressionType == DTYPE_Native);
+
 				Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
 				check(Wave->RawPCMData == nullptr);
 				Wave->RawPCMData = ( uint8* )FMemory::Malloc( Wave->RawPCMDataSize );
@@ -338,10 +340,11 @@ void FAsyncAudioDecompressWorker::DoWork()
 				// Decompress all the sample data into preallocated memory
 				AudioInfo->ExpandFile(Wave->RawPCMData, &QualityInfo);
 
-				const SIZE_T ResSize = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
-				Wave->TrackedMemoryUsage += ResSize;
-				INC_DWORD_STAT_BY( STAT_AudioMemorySize, ResSize );
-				INC_DWORD_STAT_BY( STAT_AudioMemory, ResSize );
+				// Only track the RawPCMDataSize at this point since we haven't yet
+				// removed the compressed asset from memory and GetResourceSize() would add that at this point
+				Wave->TrackedMemoryUsage += Wave->RawPCMDataSize;
+				INC_DWORD_STAT_BY(STAT_AudioMemorySize, Wave->RawPCMDataSize);
+				INC_DWORD_STAT_BY(STAT_AudioMemory, Wave->RawPCMDataSize);
 			}
 		}
 		else if (Wave->DecompressionType == DTYPE_RealTime)

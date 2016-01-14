@@ -124,6 +124,16 @@ public:
 		FPhysXOutputStream Buffer(&CookedMeshBuffer);
 		bool Result = PhysXCooking->cookConvexMesh(PConvexMeshDesc, Buffer);
 		
+		if(!Result && !(PConvexMeshDesc.flags & PxConvexFlag::eINFLATE_CONVEX))
+		{
+			//We failed to cook without inflating convex. Let's try again with inflation
+			//This is not ideal since it makes the collision less accurate. It's needed if given verts are extremely close.
+			UE_LOG(LogPhysics, Warning, TEXT("Cooking failed, possibly due to verts too close together. Trying again with inflation."));
+			PConvexMeshDesc.flags |= PxConvexFlag::eINFLATE_CONVEX;
+			Result = PhysXCooking->cookConvexMesh(PConvexMeshDesc, Buffer);
+			
+		}
+
 		// Return default cooking params to normal
 		if (bDeformableMesh)
 		{

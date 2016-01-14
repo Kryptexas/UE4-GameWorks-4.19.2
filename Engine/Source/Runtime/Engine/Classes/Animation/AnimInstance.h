@@ -711,6 +711,7 @@ public:
 	TArray<FMontageEvaluationState> MontageEvaluationData;
 
 	virtual void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
+	void ClearMontageInstanceReferences(FAnimMontageInstance& InMontageInstance);
 
 protected:
 	/** Map between Active Montages and their FAnimMontageInstance */

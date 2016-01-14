@@ -8294,7 +8294,7 @@ int32 UMaterialExpressionMaterialProxyReplace::Compile(class FMaterialCompiler* 
 	{
 		int32 Arg1 = Realtime.Compile(Compiler);
 		int32 Arg2 = MaterialProxy.Compile(Compiler);
-		return Compiler->LightmassReplace(Arg1, Arg2);
+		return Compiler->MaterialProxyReplace(Arg1, Arg2);
 	}
 }
 

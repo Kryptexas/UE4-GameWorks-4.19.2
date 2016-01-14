@@ -3655,11 +3655,11 @@ void APlayerController::ClientPlayCameraShake_Implementation( TSubclassOf<class 
 	}
 }
 
-void APlayerController::ClientStopCameraShake_Implementation( TSubclassOf<class UCameraShake> Shake )
+void APlayerController::ClientStopCameraShake_Implementation( TSubclassOf<class UCameraShake> Shake, bool bImmediately )
 {
 	if (PlayerCameraManager != NULL)
 	{
-		PlayerCameraManager->StopAllInstancesOfCameraShake(Shake);
+		PlayerCameraManager->StopAllInstancesOfCameraShake(Shake, bImmediately);
 	}
 }
 

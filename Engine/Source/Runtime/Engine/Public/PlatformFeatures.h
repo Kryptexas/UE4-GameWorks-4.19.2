@@ -37,5 +37,7 @@ public:
 
 	ENGINE_API virtual class ISaveGameSystem* GetSaveGameSystem();
 
-	ENGINE_API virtual class IDVRStreamingSystem *GetStreamingSystem();
+	ENGINE_API virtual class IDVRStreamingSystem* GetStreamingSystem();
+
+	ENGINE_API virtual TSharedPtr<const class FJsonObject> GetTitleSettings();
 };

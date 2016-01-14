@@ -46,6 +46,11 @@ IOnlineSessionPtr FOnlineSubsystemGooglePlay::GetSessionInterface() const
 	return nullptr;
 }
 
+IMessageSanitizerPtr FOnlineSubsystemGooglePlay::GetMessageSanitizerInterface() const
+{
+	return nullptr;
+}
+
 IOnlineFriendsPtr FOnlineSubsystemGooglePlay::GetFriendsInterface() const
 {
 	return nullptr;

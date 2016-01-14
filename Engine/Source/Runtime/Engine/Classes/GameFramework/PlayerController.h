@@ -838,7 +838,7 @@ public:
 
 	/** Stop camera shake on client.  */
 	UFUNCTION(reliable, client, BlueprintCallable, Category="Game|Feedback")
-	void ClientStopCameraShake(TSubclassOf<class UCameraShake> Shake);
+	void ClientStopCameraShake(TSubclassOf<class UCameraShake> Shake, bool bImmediately = true);
 
 	/** 
 	 * Play a force feedback pattern on the player's controller

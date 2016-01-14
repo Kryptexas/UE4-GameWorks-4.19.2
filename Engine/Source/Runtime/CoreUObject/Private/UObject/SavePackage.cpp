@@ -4523,8 +4523,34 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				int64 StartOfBulkDataArea = Linker->Tell();
 				Linker->Summary.BulkDataStartOffset = StartOfBulkDataArea;
 
+				if (Linker->BulkDataToAppend.Num() > 0)
 				{
 					FScopedSlowTask BulkDataFeedback(Linker->BulkDataToAppend.Num());
+
+					FArchive* TargetArchive = Linker;
+					FArchive* BulkArchive = nullptr;
+					uint32 ExtraBulkDataFlags = 0;
+
+					static struct FUseSeperateBulkDataFiles
+					{
+						bool bEnable;
+						FUseSeperateBulkDataFiles()
+						{
+							if (!GConfig->GetBool(TEXT("Core.System"), TEXT("UseSeperateBulkDataFiles"), bEnable, GEngineIni))
+							{
+								bEnable = false;
+							}
+						}
+					} ShouldUseSeperateBulkDataFiles;
+
+					const bool bShouldUseSeparateBulkFile = ShouldUseSeperateBulkDataFiles.bEnable && Linker->IsCooking();
+
+					if (bShouldUseSeparateBulkFile)
+					{
+						FString BulkFilename = FPaths::ChangeExtension(Filename, TEXT(".ubulk"));
+						TargetArchive = BulkArchive = IFileManager::Get().CreateFileWriter(*BulkFilename);
+						ExtraBulkDataFlags = BULKDATA_PayloadInSeperateFile;
+					}
 
 					for (int32 i=0; i < Linker->BulkDataToAppend.Num(); ++i)
 					{
@@ -4534,29 +4560,41 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 						// Set bulk data flags to what they were during initial serialization (they might have changed after that)
 						const uint32 OldBulkDataFlags = BulkDataStorageInfo.BulkData->GetBulkDataFlags();
-						BulkDataStorageInfo.BulkData->SetBulkDataFlags(BulkDataStorageInfo.BulkDataFlags);
+						uint32 ModifiedBulkDataFlags = BulkDataStorageInfo.BulkDataFlags | ExtraBulkDataFlags;
+						BulkDataStorageInfo.BulkData->SetBulkDataFlags(ModifiedBulkDataFlags);
 
-						int64 BulkStartOffset = Linker->Tell();
+						int64 BulkStartOffset = TargetArchive->Tell();
 						int64 StoredBulkStartOffset = BulkStartOffset - StartOfBulkDataArea;
 
-						BulkDataStorageInfo.BulkData->SerializeBulkData(*Linker, BulkDataStorageInfo.BulkData->Lock(LOCK_READ_ONLY));
+						BulkDataStorageInfo.BulkData->SerializeBulkData(*TargetArchive, BulkDataStorageInfo.BulkData->Lock(LOCK_READ_ONLY));
 
-						int64 BulkEndOffset = Linker->Tell();
+						int64 BulkEndOffset = TargetArchive->Tell();
+						int64 LinkerEndOffset = Linker->Tell();
+
 						int32 SizeOnDisk = (int32)(BulkEndOffset - BulkStartOffset);
 				
+						Linker->Seek(BulkDataStorageInfo.BulkDataFlagsPos);
+						*Linker << ModifiedBulkDataFlags;
+
 						Linker->Seek(BulkDataStorageInfo.BulkDataOffsetInFilePos);
 						*Linker << StoredBulkStartOffset;
 
 						Linker->Seek(BulkDataStorageInfo.BulkDataSizeOnDiskPos);
 						*Linker << SizeOnDisk;
 
-						Linker->Seek(BulkEndOffset);
+						Linker->Seek(LinkerEndOffset);
 
 						// Restore BulkData flags to before serialization started
 						BulkDataStorageInfo.BulkData->ClearBulkDataFlags(0xFFFFFFFF);
 						BulkDataStorageInfo.BulkData->SetBulkDataFlags(OldBulkDataFlags);
 
 						BulkDataStorageInfo.BulkData->Unlock();
+					}
+
+					if (BulkArchive)
+					{
+						BulkArchive->Close();
+						delete BulkArchive;
 					}
 				}
 

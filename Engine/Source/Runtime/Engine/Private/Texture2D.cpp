@@ -2235,8 +2235,8 @@ bool FTexture2DResource::TryReallocate( int32 OldMipCount, int32 NewMipCount )
 	check(MipIndex>=0);
 	uint32 NewSizeX	= OwnerMips[MipIndex].SizeX;
 	uint32 NewSizeY	= OwnerMips[MipIndex].SizeY;
-
-	FThreadSafeCounter AsyncReallocateCounter;
+	
+	AsyncReallocateCounter.Reset();
 	FTexture2DRHIRef NewTextureRHI = RHIAsyncReallocateTexture2D( Texture2DRHI, NewMipCount, NewSizeX, NewSizeY, &AsyncReallocateCounter );
 	RHIFinalizeAsyncReallocateTexture2D(Texture2DRHI,true);
 

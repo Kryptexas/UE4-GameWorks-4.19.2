@@ -2467,7 +2467,7 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	{
 		const bool bBlockOnLoad = (!IsGameWorld() || !GUseBackgroundLevelStreaming || bShouldBlockOnLoad);
 		// Request to load or duplicate existing level
-		StreamingLevel->RequestLevel(this, bAllowLevelLoadRequests, bBlockOnLoad);
+		StreamingLevel->RequestLevel(this, bAllowLevelLoadRequests, bBlockOnLoad ? ULevelStreaming::AlwaysBlock : ULevelStreaming::BlockAlwaysLoadedLevelsOnly );
 	}
 		
 	// Cache pointer for convenience. This cannot happen before this point as e.g. flushing async loaders
@@ -2683,6 +2683,25 @@ bool UWorld::AreAlwaysLoadedLevelsLoaded() const
 	}
 
 	return true;
+}
+
+void UWorld::AsyncLoadAlwaysLoadedLevelsForSeamlessTravel()
+{
+	for (int32 LevelIndex = 0; LevelIndex < StreamingLevels.Num(); LevelIndex++)
+	{
+		ULevelStreaming* LevelStreaming = StreamingLevels[LevelIndex];
+
+		// See whether there's a level with a pending request.
+		if (LevelStreaming != NULL && LevelStreaming->ShouldBeAlwaysLoaded())
+		{	
+			const ULevel* LoadedLevel = LevelStreaming->GetLoadedLevel();
+
+			if (LevelStreaming->bHasLoadRequestPending || !LoadedLevel)
+			{
+				LevelStreaming->RequestLevel(this, true, ULevelStreaming::NeverBlock);				
+			}
+		}
+	}
 }
 
 bool UWorld::AllowLevelLoadRequests()
@@ -4483,6 +4502,9 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 		}
 
 		SetHandlerLoadedData(LevelPackage, World);
+
+		// Now that the p map is loaded, start async loading any always loaded levels
+		World->AsyncLoadAlwaysLoadedLevelsForSeamlessTravel();
 	}
 
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "StartTravelComplete - " ) + PackageName.ToString() )) );
@@ -4492,6 +4514,8 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 {
 	FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(InCurrentWorld);
 	WorldContextHandle = Context.ContextHandle;
+
+	SeamlessTravelStartTime = FPlatformTime::Seconds();
 
 	if (!InURL.Valid)
 	{
@@ -4779,6 +4803,15 @@ UWorld* FSeamlessTravelHandler::Tick()
 
 	if ( ( LoadedPackage != NULL || LoadedWorld != NULL ) && CurrentWorld->NextURL == TEXT( "" ) )
 	{
+		// Wait for async loads to finish before finishing seamless. (E.g., we've loaded the persistent map but are still loading 'always loaded' sub levels)
+		if (LoadedWorld)
+		{
+			if (IsAsyncLoading() )
+			{
+				return nullptr;
+			}
+		}
+
 		// First some validity checks		
 		if( CurrentWorld == LoadedWorld )
 		{
@@ -5016,7 +5049,10 @@ UWorld* FSeamlessTravelHandler::Tick()
 			}
 
 			// Make sure "always loaded" sub-levels are fully loaded
-			LoadedWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
+			{
+				SCOPE_LOG_TIME_IN_SECONDS(TEXT("    SeamlessTravel FlushLevelStreaming "), nullptr)
+				LoadedWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);	
+			}
 			
 			// Note that AI system will be created only if ai-system-creation conditions are met
 			LoadedWorld->CreateAISystem();
@@ -5065,7 +5101,9 @@ UWorld* FSeamlessTravelHandler::Tick()
 				// allows for chaining of maps.
 
 				bTransitionInProgress = false;
-				UE_LOG(LogWorld, Log, TEXT("----SeamlessTravel finished------") );
+				
+				double TotalSeamlessTravelTime = FPlatformTime::Seconds() - SeamlessTravelStartTime;
+				UE_LOG(LogWorld, Log, TEXT("----SeamlessTravel finished in %.2f seconds ------"), TotalSeamlessTravelTime );
 
 				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)
@@ -5462,25 +5500,27 @@ void UWorld::SetSelectedLevels( const TArray<class ULevel*>& InLevels )
  * @param bAbsolute whether we are using relative or absolute travel
  * @param bShouldSkipGameNotify whether to notify the clients/game or not
  */
-void UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipGameNotify)
+bool UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipGameNotify)
 {
 	// NOTE - This is a temp check while we work on a long term fix
 	// There are a few issues with seamless travel using single process PIE, so we're disabling that for now while working on a fix
 	if ( WorldType == EWorldType::PIE && AuthorityGameMode && AuthorityGameMode->bUseSeamlessTravel && !FParse::Param( FCommandLine::Get(), TEXT( "MultiprocessOSS" ) ) )
 	{
 		UE_LOG( LogWorld, Warning, TEXT( "UWorld::ServerTravel: Seamless travel currently NOT supported in single process PIE." ) );
-		return;
+		return false;
 	}
 
 	if (FURL.Contains(TEXT("%")) )
 	{
-		UE_LOG(LogWorld, Log, TEXT("FURL %s Contains illegal character '%%'."), *FURL);
-		return;
+		UE_LOG(LogWorld, Error, TEXT("FURL %s Contains illegal character '%%'."), *FURL);
+		return false;
 	}
 
 	if (FURL.Contains(TEXT(":")) || FURL.Contains(TEXT("\\")) )
 	{
-		UE_LOG(LogWorld, Log, TEXT("FURL %s blocked"), *FURL);
+		UE_LOG(LogWorld, Error, TEXT("FURL %s blocked"), *FURL);
+		// TODO - restore this once Fortnite URLs are clean
+		//return false;
 	}
 
 	FString MapName;
@@ -5499,14 +5539,14 @@ void UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipG
 	if (MapName.StartsWith(TEXT("/")) && !FPackageName::IsValidLongPackageName(MapName, true, &InvalidPackageError))
 	{
 		UE_LOG(LogWorld, Log, TEXT("FURL %s blocked (%s)"), *FURL, *InvalidPackageError.ToString());
-		return;
+		return false;
 	}
 
 	// Check for an error in the server's connection
 	if (AuthorityGameMode && AuthorityGameMode->GetMatchState() == MatchState::Aborted)
 	{
 		UE_LOG(LogWorld, Log, TEXT("Not traveling because of network error"));
-		return;
+		return false;
 	}
 
 	// Set the next travel type to use
@@ -5531,6 +5571,8 @@ void UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipG
 			NextSwitchCountdown = 0;
 		}
 	}
+
+	return true;
 }
 
 void UWorld::SetNavigationSystem( UNavigationSystem* InNavigationSystem)

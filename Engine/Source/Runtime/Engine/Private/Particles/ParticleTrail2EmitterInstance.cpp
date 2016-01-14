@@ -502,48 +502,42 @@ void FParticleTrailsEmitterInstance_Base::KillParticles(int32 InTrailIdx, int32 
 	{
 		int32 KilledCount = 0;
 		// Loop over the active particles...
-		//for (int32 ParticleIdx = ActiveParticles - 1; ParticleIdx >= 0 && (KilledCount < InKillCount); ParticleIdx--)
+		for (int32 ParticleIdx = ActiveParticles - 1; ParticleIdx >= 0 && (KilledCount < InKillCount); ParticleIdx--)
 		{
-			// Find the End particle of the current trail...
-			FBaseParticle *EndParticle = nullptr;
-			FTrailsBaseTypeDataPayload* EndTrailData = nullptr;
-			int32 EndIndex = CurrentEndIndices[InTrailIdx];
-			if (EndIndex != INDEX_NONE)
-		{
-				EndParticle = (FBaseParticle*)(ParticleData + ParticleStride * EndIndex);
-				EndTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
-			}
-
-			if (EndParticle)
+			// Find the end particle
+			int32 CurrentIndex = ParticleIndices[ParticleIdx];
+			DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * CurrentIndex);
+			FTrailsBaseTypeDataPayload* TrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
+			if (TRAIL_EMITTER_IS_END(TrailData->Flags))
 			{
-				if (EndTrailData->TrailIndex == InTrailIdx)
+				if (TrailData->TrailIndex == InTrailIdx)
 				{
-					while ((EndTrailData != NULL) && (KilledCount < InKillCount))
+					while ((TrailData != NULL) && (KilledCount < InKillCount))
 					{
 						// Mark it for death...
-						EndParticle->RelativeTime = 1.1f;
+						Particle->RelativeTime = 1.1f;
 						KilledCount++;
 						// See if there is a 'prev'
-						int32 Prev = TRAIL_EMITTER_GET_PREV(EndTrailData->Flags);
+						int32 Prev = TRAIL_EMITTER_GET_PREV(TrailData->Flags);
 						if (Prev != TRAIL_EMITTER_NULL_PREV)
 						{
-							EndParticle = (FBaseParticle*)(ParticleData + (ParticleStride * Prev));
-							EndTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
-							if (TRAIL_EMITTER_IS_START(EndTrailData->Flags))
+							Particle = (FBaseParticle*)(ParticleData + (ParticleStride * Prev));
+							TrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
+							if (TRAIL_EMITTER_IS_START(TrailData->Flags))
 							{
 								// Don't kill the start, no matter what...
-								EndTrailData = NULL;
+								TrailData = NULL;
 							}
-							else if (TRAIL_EMITTER_IS_DEADTRAIL(EndTrailData->Flags))
+							else if (TRAIL_EMITTER_IS_DEADTRAIL(TrailData->Flags))
 							{
 								// Nothing to do in this case.
-								EndTrailData->TriangleCount = 0;
-								EndTrailData->RenderingInterpCount = 1;
+								TrailData->TriangleCount = 0;
+								TrailData->RenderingInterpCount = 1;
 							}
 						}
 					}
 
-					if (EndTrailData == NULL)
+					if (TrailData == NULL)
 					{
 						// Force it to exit the loop...
 						KilledCount = InKillCount;
@@ -551,7 +545,6 @@ void FParticleTrailsEmitterInstance_Base::KillParticles(int32 InTrailIdx, int32 
 				}
 			}
 		}
-
 		if (KilledCount > 0)
 		{
 			// Now use the standard KillParticles call...
@@ -624,27 +617,6 @@ bool FParticleTrailsEmitterInstance_Base::GetParticleInTrail(
 		UE_LOG(LogParticles, Warning, TEXT("GetParticleInTrail: START particle will always be in the PREV direction!"));
 	}
 
-
-	if (InGetOption == GET_Start && !bSkipStartingParticle)
-	{
-		int32 StartIndex = CurrentStartIndices[InStartingTrailData->TrailIndex];
-		OutParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-		OutTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)OutParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(OutTrailData->Flags));
-		return true;
-	}
-
-	if (InGetOption == GET_End)
-	{
-		int32 EndIndex = CurrentEndIndices[InStartingTrailData->TrailIndex];
-		OutParticle = (FBaseParticle*)(ParticleData + ParticleStride * EndIndex);
-		OutTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)OutParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(OutTrailData->Flags));
-		return true;
-	}
-
-
-
 	bool bDone = false;
 	FBaseParticle* CheckParticle = InStartingFromParticle;
 	FTrailsBaseTypeDataPayload* CheckTrailData = InStartingTrailData;
@@ -660,10 +632,28 @@ bool FParticleTrailsEmitterInstance_Base::GetParticleInTrail(
 				bItsGood = true;
 				break;
 			case GET_Spawned:
-				bItsGood = !CheckTrailData->bInterpolatedSpawn;
+				if (CheckTrailData->bInterpolatedSpawn == false)
+				{
+					bItsGood = true;
+				}
 				break;
 			case GET_Interpolated:
-				bItsGood = CheckTrailData->bInterpolatedSpawn;
+				if (CheckTrailData->bInterpolatedSpawn == true)
+				{
+					bItsGood = true;
+				}
+				break;
+			case GET_Start:
+				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+				{
+					bItsGood = true;
+				}
+				break;
+			case GET_End:
+				if (TRAIL_EMITTER_IS_END(CheckTrailData->Flags))
+				{
+					bItsGood = true;
+				}
 				break;
 			}
 
@@ -674,7 +664,6 @@ bool FParticleTrailsEmitterInstance_Base::GetParticleInTrail(
 				bDone = true;
 			}
 		}
-
 		int32 Index = -1;
 		if (!bDone)
 		{
@@ -865,14 +854,22 @@ void FParticleRibbonEmitterInstance::Tick_RecalculateTangents(float DeltaTime, U
 		for (int32 TrailIdx = 0; TrailIdx < MaxTrailCount; TrailIdx++)
 		{
 			// Find the Start particle of the current trail...
-			FBaseParticle *StartParticle = nullptr;
-			FRibbonTypeDataPayload* StartTrailData = nullptr;
-			int32 StartIndex = CurrentStartIndices[TrailIdx];
-			if (StartIndex != INDEX_NONE)
+			FBaseParticle* StartParticle = NULL;
+			FRibbonTypeDataPayload* StartTrailData = NULL;
+			for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 			{
-				StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-				StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-				check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+				int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
+				DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
+				FRibbonTypeDataPayload* CheckTrailData = ((FRibbonTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
+				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+				{
+					if (CheckTrailData->TrailIndex == TrailIdx)
+					{
+						StartParticle = CheckParticle;
+						StartTrailData = CheckTrailData;
+						break;
+					}
+				}
 			}
 
 			// Recalculate tangents at each particle to properly handle moving particles...
@@ -1272,16 +1269,25 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 		return SafetyLeftover;
 	}
 
-	// Find the Start particle of the current trail...
-	FBaseParticle *StartParticle = nullptr;
-	FRibbonTypeDataPayload* StartTrailData = nullptr;
-	int32 StartIndex = 0;
-	StartIndex = CurrentStartIndices[TrailIdx];
-	if (StartIndex != INDEX_NONE)
+	// Find the start particle of the current trail...
+	FBaseParticle* StartParticle = NULL;
+	int32 StartIndex = -1;
+	FRibbonTypeDataPayload* StartTrailData = NULL;
+	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 	{
-		StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-		StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+		int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
+		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
+		FRibbonTypeDataPayload* CheckTrailData = ((FRibbonTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
+		if (CheckTrailData->TrailIndex == TrailIdx)
+		{
+			if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+			{
+				StartParticle = CheckParticle;
+				StartIndex = CheckStartIndex;
+				StartTrailData = CheckTrailData;
+				break;
+			}
+		}
 	}
 
 	bNoLivingParticles = (StartParticle == NULL);
@@ -1600,17 +1606,25 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 
 
 
-		// Find the Start particle of the current trail...
-		FBaseParticle *StartParticle = nullptr;
-		FRibbonTypeDataPayload* StartTrailData = nullptr;
-		int32 StartIndex = INDEX_NONE;
-		int32 OrigStartIndex = INDEX_NONE;
-		StartIndex = OrigStartIndex = CurrentStartIndices[TrailIdx];
-		if (StartIndex != INDEX_NONE)
+		// Find the start particle of the current trail...
+		FBaseParticle* StartParticle = NULL;
+		int32 StartIndex = -1;
+		FRibbonTypeDataPayload* StartTrailData = NULL;
+		for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 		{
-			StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-			StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+			int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
+			DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
+			FRibbonTypeDataPayload* CheckTrailData = ((FRibbonTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+				{
+					StartParticle = CheckParticle;
+					StartIndex = CheckStartIndex;
+					StartTrailData = CheckTrailData;
+					break;
+				}
+			}
 		}
 
 		// If we are particle sourced, and the source time is NEWER than the last source time,
@@ -2941,14 +2955,22 @@ void FParticleAnimTrailEmitterInstance::Tick_RecalculateTangents(float DeltaTime
 		//@todo. Multiple trails, single emitter
 		int32 TrailIdx = 0;
 		// Find the Start particle of the current trail...
-		FBaseParticle *StartParticle = nullptr;
-		FAnimTrailTypeDataPayload* StartTrailData = nullptr;
-		int32 StartIndex = CurrentStartIndices[TrailIdx];
-		if (StartIndex != INDEX_NONE)
+		FBaseParticle* StartParticle = NULL;
+		FAnimTrailTypeDataPayload* StartTrailData = NULL;
+		for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 		{
-			StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-			StartTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+			int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
+			DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
+			FAnimTrailTypeDataPayload* CheckTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
+			if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+			{
+				if (CheckTrailData->TrailIndex == TrailIdx)
+				{
+					StartParticle = CheckParticle;
+					StartTrailData = CheckTrailData;
+					break;
+				}
+			}
 		}
 
 		// Recalculate tangents at each particle to properly handle moving particles...
@@ -3366,15 +3388,21 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	}
 
 	//@todo. Support multiple trails per emitter
-	// Find the Start particle of the current trail...
-	FBaseParticle *StartParticle = nullptr;
-	FAnimTrailTypeDataPayload* StartTrailData = nullptr;
-	int32 StartIndex = CurrentStartIndices[TrailIdx];
-	if (StartIndex != INDEX_NONE)
+	// Find the start particle of the current trail...
+	int32 StartIndex = -1;
+	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 	{
-		StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-		StartTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+		int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
+		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
+		FAnimTrailTypeDataPayload* CheckTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
+		if (CheckTrailData->TrailIndex == TrailIdx)
+		{
+			if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+			{
+				StartIndex = CheckStartIndex;
+				break;
+			}
+		}
 	}
 
 	bool bTilingTrail = !FMath::IsNearlyZero(TrailTypeData->TilingDistance);
@@ -3432,16 +3460,19 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 
 	if (bTagTrailAsDead == true)
 	{
-		int32 CheckStartIndex = CurrentStartIndices[TrailIdx];
-		if (CheckStartIndex != INDEX_NONE)
+		for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 		{
+			int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
 			DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
 			FAnimTrailTypeDataPayload* CheckTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_START(CheckTrailData->Flags));
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+				{
 					CheckTrailData->Flags = TRAIL_EMITTER_SET_DEADTRAIL(CheckTrailData->Flags);
-			SetDeadIndex(CheckTrailData->TrailIndex, CheckStartIndex);
 				}
-
+			}
+		}
 		bTagTrailAsDead = false;
 	}
 	TickCount++;

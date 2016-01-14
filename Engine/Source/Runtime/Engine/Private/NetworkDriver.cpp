@@ -193,11 +193,25 @@ void UNetDriver::AssertValid()
 
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
+#if USE_SERVER_PERF_COUNTERS
+	float ServerReplicateActorsTimeMs = 0.0f;
+#endif // USE_SERVER_PERF_COUNTERS
+
 	if ( IsServer() && ClientConnections.Num() > 0 && ClientConnections[0]->InternalAck == false )
 	{
 		// Update all clients.
 #if WITH_SERVER_CODE
+
+#if USE_SERVER_PERF_COUNTERS
+		float ServerReplicateActorsTimeStart = FPlatformTime::Seconds();
+#endif // USE_SERVER_PERF_COUNTERS
+
 		int32 Updated = ServerReplicateActors( DeltaSeconds );
+
+#if USE_SERVER_PERF_COUNTERS
+		ServerReplicateActorsTimeMs = (FPlatformTime::Seconds() - ServerReplicateActorsTimeStart) * 1000.0f;
+#endif // USE_SERVER_PERF_COUNTERS
+
 		static int32 LastUpdateCount = 0;
 		// Only log the zero replicated actors once after replicating an actor
 		if ((LastUpdateCount && !Updated) || Updated)
@@ -440,24 +454,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				PerfCounters->Set(TEXT("MinPing"), FMath::Min(MinPing, CurrentMinPing), IPerfCounters::Flags::Transient);
 
 				// update buckets
-				int TotalRecords = 0;
 				for (int BucketIdx = 0; BucketIdx < ARRAY_COUNT(Buckets); ++BucketIdx)
 				{
-					Buckets[BucketIdx] += PerfCounters->Get(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), 0);
-					TotalRecords += Buckets[BucketIdx];
-				}
-
-				float NormalizedBuckets[kNumBuckets] = { 0 };
-
-				for (int BucketIdx = 0; BucketIdx < ARRAY_COUNT(Buckets); ++BucketIdx)
-				{
-					if (TotalRecords > 0)
-					{
-						NormalizedBuckets[BucketIdx] = static_cast<float>(Buckets[BucketIdx]) / static_cast<float>(TotalRecords);
-					}
-
-					PerfCounters->Set(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), Buckets[BucketIdx], IPerfCounters::Flags::Transient);
-					PerfCounters->Set(FString::Printf(TEXT("PingBucket%d"), BucketIdx), NormalizedBuckets[BucketIdx], IPerfCounters::Flags::Transient);
+					PerfCountersIncrement(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), Buckets[BucketIdx], 0, IPerfCounters::Flags::Transient);
 				}
 			}
 			else
@@ -471,7 +470,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				for (int BucketIdx = 0; BucketIdx < kNumBuckets; ++BucketIdx)
 				{
 					PerfCounters->Set(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), 0, IPerfCounters::Flags::Transient);
-					PerfCounters->Set(FString::Printf(TEXT("PingBucket%d"), BucketIdx), 0.0f, IPerfCounters::Flags::Transient);
 				}
 			}
 
@@ -484,6 +482,8 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			PerfCounters->Set(TEXT("OutRateClientMax"), ClientOutBytesMax);
 			PerfCounters->Set(TEXT("OutRateClientMin"), ClientOutBytesMin);
 			PerfCounters->Set(TEXT("OutRateClientAvg"), ClientOutBytesAvg);
+
+			PerfCounters->Set(TEXT("ServerReplicateActorsTimeMs"), ServerReplicateActorsTimeMs);
 		}
 #endif // USE_SERVER_PERF_COUNTERS
 
@@ -856,11 +856,11 @@ void UNetDriver::TickDispatch( float DeltaTime )
 
 	// Check to see if too much time is passing between ticks
 	// Setting this to somewhat large value for now, but small enough to catch blocking calls that are causing timeouts
-	const float TickWarnThreshold = 5.0f;
+	const float TickLogThreshold = 5.0f;
 
-	if ( DeltaTime > TickWarnThreshold || DeltaRealtime > TickWarnThreshold )
+	if ( DeltaTime > TickLogThreshold || DeltaRealtime > TickLogThreshold )
 	{
-		UE_LOG( LogNet, Warning, TEXT( "UNetDriver::TickDispatch: Very long time between ticks. DeltaTime: %2.2f, Realtime: %2.2f. %s" ), DeltaTime, DeltaRealtime, *GetName() );
+		UE_LOG( LogNet, Log, TEXT( "UNetDriver::TickDispatch: Very long time between ticks. DeltaTime: %2.2f, Realtime: %2.2f. %s" ), DeltaTime, DeltaRealtime, *GetName() );
 	}
 
 	// Get new time.
@@ -2356,124 +2356,126 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 	// Make list of all actors to consider.
 	check( World == Connection->OwningActor->GetWorld() );
 
-	const int32 MaxSortedActors = ConsiderList.Num() + DestroyedStartupOrDormantActors.Num();
-	OutPriorityList = new( FMemStack::Get(), MaxSortedActors )FActorPriority;
-	OutPriorityActors = new( FMemStack::Get(), MaxSortedActors )FActorPriority*;
-
-	// determine whether we should priority sort the list of relevant actors based on the saturation/bandwidth of the current connection
-	//@note - if the server is currently CPU saturated then do not sort until framerate improves
-	check( World == Connection->ViewTarget->GetWorld() );
-	AGameMode const* const GameMode = World->GetAuthGameMode();
-	const bool bLowNetBandwidth = !bCPUSaturated && ( Connection->CurrentNetSpeed / float( GameMode->NumPlayers + GameMode->NumBots ) < 500.f );
-
 	int32 FinalSortedCount = 0;
-
-	for ( FNetworkObjectInfo* ActorInfo : ConsiderList )
-	{
-		AActor* Actor = ActorInfo->Actor;
-
-		UActorChannel* Channel = Connection->ActorChannels.FindRef( Actor );
-
-		UNetConnection* PriorityConnection = Connection;
-
-		if ( Actor->bOnlyRelevantToOwner )
-		{
-			// This actor should be owned by a particular connection, see if that connection is the one passed in
-			bool bHasNullViewTarget = false;
-
-			PriorityConnection = IsActorOwnedByAndRelevantToConnection( Actor, ConnectionViewers, bHasNullViewTarget );
-
-			if ( PriorityConnection == nullptr )
-			{
-				// Not owned by this connection, if we have a channel, close it, and continue
-				// NOTE - We won't close the channel if any connection has a NULL view target.
-				//	This is to give all connections a chance to own it
-				if ( !bHasNullViewTarget && Channel != NULL && Time - Channel->RelevantTime >= RelevantTimeout )
-				{
-					Channel->Close();
-				}
-
-				// This connection doesn't own this actor
-				continue;
-			}
-		}
-		else if ( CVarSetNetDormancyEnabled.GetValueOnGameThread() != 0 )
-		{
-			// Skip Actor if dormant
-			if ( IsActorDormant( Actor, Connection ) )
-			{
-				continue;
-			}
-
-			// See of actor wants to try and go dormant
-			if ( ShouldActorGoDormant( Actor, ConnectionViewers, Channel, Time, bLowNetBandwidth ) )
-			{
-				// Channel is marked to go dormant now once all properties have been replicated (but is not dormant yet)
-				Channel->StartBecomingDormant();
-			}
-		}
-
-		// Skip actor if not relevant and theres no channel already.
-		// Historically Relevancy checks were deferred until after prioritization because they were expensive (line traces).
-		// Relevancy is now cheap and we are dealing with larger lists of considered actors, so we want to keep the list of
-		// prioritized actors low.
-		if ( !Channel )
-		{
-			if ( !IsLevelInitializedForActor( Actor, Connection ) )
-			{
-				// If the level this actor belongs to isn't loaded on client, don't bother sending
-				continue;
-			}
-
-			if ( !IsActorRelevantToConnection( Actor, ConnectionViewers ) )
-			{
-				// If not relevant (and we don't have a channel), skip
-				continue;
-			}
-		}
-
-		// Actor is relevant to this connection, add it to the list
-		// NOTE - We use NetTag to make sure SentTemporaries didn't already mark this actor to be skipped
-		if ( Actor->NetTag != NetTag )
-		{
-			UE_LOG( LogNetTraffic, Log, TEXT( "Consider %s alwaysrelevant %d frequency %f " ), *Actor->GetName(), Actor->bAlwaysRelevant, Actor->NetUpdateFrequency );
-
-			Actor->NetTag = NetTag;
-
-			OutPriorityList[FinalSortedCount]	= FActorPriority( PriorityConnection, Channel, ActorInfo, ConnectionViewers, bLowNetBandwidth );
-			OutPriorityActors[FinalSortedCount] = OutPriorityList + FinalSortedCount;
-
-			FinalSortedCount++;
-
-			if ( DebugRelevantActors )
-			{
-				LastPrioritizedActors.Add( Actor );
-			}
-		}
-	}
-
 	int32 DeletedCount = 0;
 
-	// Add in deleted actors
-	for ( auto It = Connection->DestroyedStartupOrDormantActors.CreateIterator(); It; ++It )
+	const int32 MaxSortedActors = ConsiderList.Num() + DestroyedStartupOrDormantActors.Num();
+	if (MaxSortedActors > 0)
 	{
-		FActorDestructionInfo &DInfo = DestroyedStartupOrDormantActors.FindChecked( *It );
-		OutPriorityList[FinalSortedCount]	= FActorPriority( Connection, &DInfo, ConnectionViewers );
-		OutPriorityActors[FinalSortedCount] = OutPriorityList + FinalSortedCount;
-		FinalSortedCount++;
-		DeletedCount++;
-	}
+		OutPriorityList = new( FMemStack::Get(), MaxSortedActors )FActorPriority;
+		OutPriorityActors = new( FMemStack::Get(), MaxSortedActors )FActorPriority*;
 
-	// Sort by priority
-	struct FCompareFActorPriority
-	{
-		FORCEINLINE bool operator()( const FActorPriority& A, const FActorPriority& B ) const
+		// determine whether we should priority sort the list of relevant actors based on the saturation/bandwidth of the current connection
+		//@note - if the server is currently CPU saturated then do not sort until framerate improves
+		check( World == Connection->ViewTarget->GetWorld() );
+		AGameMode const* const GameMode = World->GetAuthGameMode();
+		const bool bLowNetBandwidth = !bCPUSaturated && ( Connection->CurrentNetSpeed / float( GameMode->NumPlayers + GameMode->NumBots ) < 500.f );
+
+		for ( FNetworkObjectInfo* ActorInfo : ConsiderList )
 		{
-			return B.Priority < A.Priority;
-		}
-	};
+			AActor* Actor = ActorInfo->Actor;
 
-	Sort( OutPriorityActors, FinalSortedCount, FCompareFActorPriority() );
+			UActorChannel* Channel = Connection->ActorChannels.FindRef( Actor );
+
+			UNetConnection* PriorityConnection = Connection;
+
+			if ( Actor->bOnlyRelevantToOwner )
+			{
+				// This actor should be owned by a particular connection, see if that connection is the one passed in
+				bool bHasNullViewTarget = false;
+
+				PriorityConnection = IsActorOwnedByAndRelevantToConnection( Actor, ConnectionViewers, bHasNullViewTarget );
+
+				if ( PriorityConnection == nullptr )
+				{
+					// Not owned by this connection, if we have a channel, close it, and continue
+					// NOTE - We won't close the channel if any connection has a NULL view target.
+					//	This is to give all connections a chance to own it
+					if ( !bHasNullViewTarget && Channel != NULL && Time - Channel->RelevantTime >= RelevantTimeout )
+					{
+						Channel->Close();
+					}
+
+					// This connection doesn't own this actor
+					continue;
+				}
+			}
+			else if ( CVarSetNetDormancyEnabled.GetValueOnGameThread() != 0 )
+			{
+				// Skip Actor if dormant
+				if ( IsActorDormant( Actor, Connection ) )
+				{
+					continue;
+				}
+
+				// See of actor wants to try and go dormant
+				if ( ShouldActorGoDormant( Actor, ConnectionViewers, Channel, Time, bLowNetBandwidth ) )
+				{
+					// Channel is marked to go dormant now once all properties have been replicated (but is not dormant yet)
+					Channel->StartBecomingDormant();
+				}
+			}
+
+			// Skip actor if not relevant and theres no channel already.
+			// Historically Relevancy checks were deferred until after prioritization because they were expensive (line traces).
+			// Relevancy is now cheap and we are dealing with larger lists of considered actors, so we want to keep the list of
+			// prioritized actors low.
+			if ( !Channel )
+			{
+				if ( !IsLevelInitializedForActor( Actor, Connection ) )
+				{
+					// If the level this actor belongs to isn't loaded on client, don't bother sending
+					continue;
+				}
+
+				if ( !IsActorRelevantToConnection( Actor, ConnectionViewers ) )
+				{
+					// If not relevant (and we don't have a channel), skip
+					continue;
+				}
+			}
+
+			// Actor is relevant to this connection, add it to the list
+			// NOTE - We use NetTag to make sure SentTemporaries didn't already mark this actor to be skipped
+			if ( Actor->NetTag != NetTag )
+			{
+				UE_LOG( LogNetTraffic, Log, TEXT( "Consider %s alwaysrelevant %d frequency %f " ), *Actor->GetName(), Actor->bAlwaysRelevant, Actor->NetUpdateFrequency );
+
+				Actor->NetTag = NetTag;
+
+				OutPriorityList[FinalSortedCount]	= FActorPriority( PriorityConnection, Channel, ActorInfo, ConnectionViewers, bLowNetBandwidth );
+				OutPriorityActors[FinalSortedCount] = OutPriorityList + FinalSortedCount;
+
+				FinalSortedCount++;
+
+				if ( DebugRelevantActors )
+				{
+					LastPrioritizedActors.Add( Actor );
+				}
+			}
+		}
+
+		// Add in deleted actors
+		for ( auto It = Connection->DestroyedStartupOrDormantActors.CreateIterator(); It; ++It )
+		{
+			FActorDestructionInfo &DInfo = DestroyedStartupOrDormantActors.FindChecked( *It );
+			OutPriorityList[FinalSortedCount]	= FActorPriority( Connection, &DInfo, ConnectionViewers );
+			OutPriorityActors[FinalSortedCount] = OutPriorityList + FinalSortedCount;
+			FinalSortedCount++;
+			DeletedCount++;
+		}
+
+		// Sort by priority
+		struct FCompareFActorPriority
+		{
+			FORCEINLINE bool operator()( const FActorPriority& A, const FActorPriority& B ) const
+			{
+				return B.Priority < A.Priority;
+			}
+		};
+
+		Sort( OutPriorityActors, FinalSortedCount, FCompareFActorPriority() );
+	}
 
 	UE_LOG( LogNetTraffic, Log, TEXT( "ServerReplicateActors_PrioritizeActors: Potential %04i ConsiderList %03i FinalSortedCount %03i" ), MaxSortedActors, ConsiderList.Num(), FinalSortedCount );
 	

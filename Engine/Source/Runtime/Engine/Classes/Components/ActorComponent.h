@@ -529,10 +529,10 @@ public:
 	/** Marks the transform as dirty - will be sent to the render thread at the end of the frame*/
 	void MarkRenderTransformDirty();
 
-	/** If we belong to a world, mark this for a deffered update, otherwise do it now. */
+	/** If we belong to a world, mark this for a deferred update, otherwise do it now. */
 	void MarkForNeededEndOfFrameUpdate();
 
-	/** If we belong to a world, mark this for a deffered update, otherwise do it now. */
+	/** If we belong to a world, mark this for a deferred update, otherwise do it now. */
 	void MarkForNeededEndOfFrameRecreate();
 
 	/** return true if this component requires end of frame updates to happen from the game thread. */

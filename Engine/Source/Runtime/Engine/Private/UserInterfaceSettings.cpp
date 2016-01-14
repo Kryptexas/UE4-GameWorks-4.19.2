@@ -91,6 +91,7 @@ void UUserInterfaceSettings::ForceLoadResources()
 	LoadedClasses.Add(TextEditBeamCursor.TryLoad());
 	LoadedClasses.Add(CrosshairsCursor.TryLoad());
 	LoadedClasses.Add(GrabHandCursor.TryLoad());
+	LoadedClasses.Add(HandCursor.TryLoad());
 	LoadedClasses.Add(GrabHandClosedCursor.TryLoad());
 	LoadedClasses.Add(SlashedCircleCursor.TryLoad());
 

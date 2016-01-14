@@ -167,11 +167,18 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Force owning actor to update it's replication, to make sure that gameplay cues get sent down quickly. Override to change how aggressive this is */
 	virtual void ForceReplication();
 
+	void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
+
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs) override;
 
 	virtual void PreNetReceive() override;
 	
 	virtual void PostNetReceive() override;
+
+	/** When true, we will not replicate active gameplay effects for this abiltiy system component, so attributes and tags */
+	void SetMinimalReplication(bool bNewMinimalReplication);
+
+	bool bMinimalReplication;
 
 	/** PredictionKeys, see more info in GameplayPrediction.h */
 	UPROPERTY(ReplicatedUsing=OnRep_PredictionKey)
@@ -356,7 +363,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	 * 
 	 * @return Source tags from the gameplay spec represented by the handle, if possible
 	 */
-	const FGameplayTagContainer* GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const;
+	const FGameplayTagContainer* GetGameplayEffectSourceTagsFromHandle(FActiveGameplayEffectHandle Handle) const
+	{
+		return ActiveGameplayEffects.GetGameplayEffectSourceTagsFromHandle(Handle);
+	}
 
 	/**
 	 * Get the target tags from the gameplay spec represented by the specified handle, if possible
@@ -365,14 +375,25 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	 * 
 	 * @return Target tags from the gameplay spec represented by the handle, if possible
 	 */
-	const FGameplayTagContainer* GetGameplayEffectTargetTagsFromHandle(FActiveGameplayEffectHandle Handle) const;
+	const FGameplayTagContainer* GetGameplayEffectTargetTagsFromHandle(FActiveGameplayEffectHandle Handle) const
+	{
+		return ActiveGameplayEffects.GetGameplayEffectTargetTagsFromHandle(Handle);
+	}
 
 	/**
 	 * Populate the specified capture spec with the data necessary to capture an attribute from the component
 	 * 
 	 * @param OutCaptureSpec	[OUT] Capture spec to populate with captured data
 	 */
-	void CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec);
+	void CaptureAttributeForGameplayEffect(OUT FGameplayEffectAttributeCaptureSpec& OutCaptureSpec)
+	{
+		// Verify the capture is happening on an attribute the component actually has a set for; if not, can't capture the value
+		const FGameplayAttribute& AttributeToCapture = OutCaptureSpec.BackingDefinition.AttributeToCapture;
+		if (AttributeToCapture.IsValid() && (AttributeToCapture.IsSystemAttribute() || GetAttributeSubobject(AttributeToCapture.GetAttributeSetClass())))
+		{
+			ActiveGameplayEffects.CaptureAttributeForGameplayEffect(OutCaptureSpec);
+		}
+	}
 	
 	// --------------------------------------------
 	// Callbacks / Notifies
@@ -405,13 +426,25 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	// --------------------------------------------
 	// Tags
 	// --------------------------------------------
-	virtual bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const override;
+	FORCEINLINE bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const override
+	{
+		return GameplayTagCountContainer.HasMatchingGameplayTag(TagToCheck);
+	}
 
-	virtual bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const override;
+	FORCEINLINE bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const override
+	{
+		return GameplayTagCountContainer.HasAllMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+	}
 
-	virtual bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const override;
+	FORCEINLINE bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const override
+	{
+		return GameplayTagCountContainer.HasAnyMatchingGameplayTags(TagContainer, bCountEmptyAsMatch);
+	}
 
-	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override;
+	FORCEINLINE void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override
+	{
+		TagContainer.AppendTags(GameplayTagCountContainer.GetExplicitGameplayTags());
+	}
 
 	/** 	 
 	 *  Allows GameCode to add loose gameplaytags which are not backed by a GameplayEffect. 
@@ -421,13 +454,50 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	 *	It is up to the calling GameCode to make sure these tags are added on clients/server where necessary
 	 */
 
-	void AddLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count=1);
+	FORCEINLINE void AddLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count=1)
+	{
+		UpdateTagMap(GameplayTag, Count);
+	}
 
-	void AddLooseGameplayTags(const FGameplayTagContainer& GameplayTag, int32 Count = 1);
+	FORCEINLINE void AddLooseGameplayTags(const FGameplayTagContainer& GameplayTags, int32 Count = 1)
+	{
+		UpdateTagMap(GameplayTags, Count);
+	}
 
-	void RemoveLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count = 1);
+	FORCEINLINE void RemoveLooseGameplayTag(const FGameplayTag& GameplayTag, int32 Count = 1)
+	{
+		UpdateTagMap(GameplayTag, -Count);
+	}
 
-	void RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTag, int32 Count = 1);
+	FORCEINLINE void RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTags, int32 Count = 1)
+	{
+		UpdateTagMap(GameplayTags, -Count);
+	}
+
+	/** 	 
+	 * Minimally replicated tags are replicated tags that come from GEs when in bMinimalReplication mode. 
+	 * (The GEs do not replicate, but the tags they grant do replicate via these functions)
+	 */
+
+	FORCEINLINE void AddMinimalReplicationGameplayTag(const FGameplayTag& GameplayTag)
+	{
+		MinimalReplicationTags.AddTag(GameplayTag);
+	}
+
+	FORCEINLINE void AddMinimalReplicationGameplayTags(const FGameplayTagContainer& GameplayTags)
+	{
+		MinimalReplicationTags.AddTags(GameplayTags);
+	}
+
+	FORCEINLINE void RemoveMinimalReplicationGameplayTag(const FGameplayTag& GameplayTag)
+	{
+		MinimalReplicationTags.RemoveTag(GameplayTag);
+	}
+
+	FORCEINLINE void RemoveMinimalReplicationGameplayTags(const FGameplayTagContainer& GameplayTags)
+	{
+		MinimalReplicationTags.RemoveTags(GameplayTags);
+	}
 	
 	/** Allow events to be registered for specific gameplay tags being added or removed */
 	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag, EGameplayTagEventType::Type EventType=EGameplayTagEventType::NewOrRemoved);
@@ -480,15 +550,27 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext, FPredictionKey PredictionKey = FPredictionKey());
 
 	// Returns the number of gameplay effects that are currently active on this ability system component
-	int32 GetNumActiveGameplayEffects() const;
+	int32 GetNumActiveGameplayEffects() const
+	{
+		return ActiveGameplayEffects.GetNumGameplayEffects();
+	}
 
 	// Makes a copy of all the active effects on this ability component
-	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies);
+	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies)
+	{
+		ActiveGameplayEffects.GetAllActiveGameplayEffectSpecs(OutSpecCopies);
+	}
 
-	void SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute);
+	void SetBaseAttributeValueFromReplication(float NewValue, FGameplayAttribute Attribute)
+	{
+		ActiveGameplayEffects.SetBaseAttributeValueFromReplication(Attribute, NewValue);
+	}
 
 	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
-	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
+	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext)
+	{
+		return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, EffectContext);
+	}
 
 	// Generic 'Get expected magnitude (list) if I was to apply this outgoing or incoming'
 
@@ -509,9 +591,15 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
 
 	/** This will give the world time that all effects matching this query will be finished. If multiple effects match, it returns the one that returns last.*/
-	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
+	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const
+	{
+		return ActiveGameplayEffects.GetActiveEffectsEndTime(Query);
+	}
 
-	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
+	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
+	{
+		ActiveGameplayEffects.ModifyActiveEffectStartTime(Handle, StartTimeDiff);
+	}
 
 	/** Removes all active effects that contain any of the tags in Tags */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
@@ -538,8 +626,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	
 	void PrintAllGameplayEffects() const;
 
+	bool CachedIsNetSimulated;
+
 	/** Returns true of this component has authority */
-	bool IsOwnerActorAuthoritative() const;
+	bool IsOwnerActorAuthoritative() const
+	{
+		return !CachedIsNetSimulated;
+	}
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
@@ -555,7 +648,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
 	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCuesExecuted(const FGameplayTagContainer GameplayCueTags, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
+
+	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueExecuted_WithParams(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters);
+
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCuesExecuted_WithParams(const FGameplayTagContainer GameplayCueTags, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters);
 
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
@@ -563,15 +662,49 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec(const FGameplayEffectSpecForRPC& Spec, FPredictionKey PredictionKey);
 
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueAddedAndWhileActive_WithParams(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters);
+
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCuesAddedAndWhileActive_WithParams(const FGameplayTagContainer GameplayCueTags, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters);
+
 	// GameplayCues can also come on their own. These take an optional effect context to pass through hit result, etc
 	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 
 	// This version allows the caller to set an explicit FGameplayCueParmeters.
 	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters);
 
-	void AddGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
+	// -------------------------
+
+	void AddGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle())
+	{
+		AddGameplayCue_Internal(GameplayCueTag, EffectContext, ActiveGameplayCues);
+	}
+
+	/** Add gameplaycue for minimal replication mode. Should only be called in paths that would replicate gameplaycues in other ways (through GE for example) if not in minimal replication mode */
+	void AddGameplayCue_MinimalReplication(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle())
+	{
+		AddGameplayCue_Internal(GameplayCueTag, EffectContext, MinimalReplicationGameplayCues);
+	}
+
+	void AddGameplayCue_Internal(const FGameplayTag GameplayCueTag, const FGameplayEffectContextHandle& EffectContext, FActiveGameplayCueContainer& GameplayCueContainer );
+
+	// -------------------------
 	
-	void RemoveGameplayCue(const FGameplayTag GameplayCueTag);
+	void RemoveGameplayCue(const FGameplayTag GameplayCueTag)
+	{
+		RemoveGameplayCue_Internal(GameplayCueTag, ActiveGameplayCues);
+	}
+
+	/** Remove gameplaycue for minimal replication mode. Should only be called in paths that would replicate gameplaycues in other ways (through GE for example) if not in minimal replication mode */
+	void RemoveGameplayCue_MinimalReplication(const FGameplayTag GameplayCueTag)
+	{
+		RemoveGameplayCue_Internal(GameplayCueTag, MinimalReplicationGameplayCues);
+	}
+
+	void RemoveGameplayCue_Internal(const FGameplayTag GameplayCueTag, FActiveGameplayCueContainer& GameplayCueContainer);
+
+	// -------------------------
 
 	/** Removes any GameplayCue added on its own, i.e. not as part of a GameplayEffect. */
 	void RemoveAllGameplayCues();
@@ -584,8 +717,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Allows polling to see if a GameplayCue is active. We expect most GameplayCue handling to be event based, but some cases we may need to check if a GamepalyCue is active (Animation Blueprint for example) */
 	UFUNCTION(BlueprintCallable, Category="GameplayCue", meta=(GameplayTagFilter="GameplayCue"))
-	bool IsGameplayCueActive(const FGameplayTag GameplayCueTag) const;
-
+	bool IsGameplayCueActive(const FGameplayTag GameplayCueTag) const
+	{
+		return HasMatchingGameplayTag(GameplayCueTag);
+	}
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -1161,6 +1296,29 @@ public:
 
 	// ---------------------------------------------------------------------
 
+	FORCEINLINE void SetTagMapCount(const FGameplayTag& Tag, int32 NewCount)
+	{
+		GameplayTagCountContainer.SetTagCount(Tag, NewCount);
+	}
+	
+	FORCEINLINE void UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta)
+	{
+		if (GameplayTagCountContainer.UpdateTagCount(BaseTag, CountDelta))
+		{
+			OnTagUpdated(BaseTag, CountDelta > 0);
+		}
+	}
+	
+	FORCEINLINE void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
+	{
+		for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
+		{
+			const FGameplayTag& Tag = *TagIt;
+			UpdateTagMap(Tag, CountDelta);
+		}
+	}	
+
+
 #if ENABLE_VISUAL_LOG
 	void ClearDebugInstantEffects();
 #endif // ENABLE_VISUAL_LOG
@@ -1191,11 +1349,15 @@ protected:
 	// --------------------------------------------
 	
 	// Contains all of the gameplay effects that are currently active on this component
-	UPROPERTY(ReplicatedUsing=OnRep_GameplayEffects)
+	UPROPERTY(Replicated)
 	FActiveGameplayEffectsContainer	ActiveGameplayEffects;
 
-	UPROPERTY(ReplicatedUsing=OnRep_GameplayEffects)
+	UPROPERTY(Replicated)
 	FActiveGameplayCueContainer	ActiveGameplayCues;
+
+	/** Replicated gameplaycues when in minimal replication mode. These are cues that would come normally come from ActiveGameplayEffects */
+	UPROPERTY(Replicated)
+	FActiveGameplayCueContainer	MinimalReplicationGameplayCues;
 
 	/** Abilities with these tags are not able to be activated */
 	FGameplayTagCountContainer BlockedAbilityTags;
@@ -1204,9 +1366,6 @@ protected:
 	UPROPERTY(Transient, Replicated)
 	TArray<uint8> BlockedAbilityBindings;
 
-	UFUNCTION()
-	void OnRep_GameplayEffects();
-
 	void DebugCyclicAggregatorBroadcasts(struct FAggregator* Aggregator);
 
 	// ---------------------------------------------
@@ -1214,9 +1373,8 @@ protected:
 	// Acceleration map for all gameplay tags (OwnedGameplayTags from GEs and explicit GameplayCueTags)
 	FGameplayTagCountContainer GameplayTagCountContainer;
 
-	void UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta);
-	
-	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
+	UPROPERTY(Replicated)
+	FMinimapReplicationTagCountMap MinimalReplicationTags;
 
 	void ResetTagMap();
 

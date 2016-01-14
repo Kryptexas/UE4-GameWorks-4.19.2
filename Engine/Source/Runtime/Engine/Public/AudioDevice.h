@@ -214,6 +214,7 @@ public:
 	bool HandleClearSoloCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandlePlayAllPIEAudioCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleAudio3dVisualizeCommand(const TCHAR* Cmd, FOutputDevice& Ar);
+	bool HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 
 	/**

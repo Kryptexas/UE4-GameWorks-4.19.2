@@ -142,6 +142,8 @@ private:
 	bool bNeedCancelCleanUp;
 	/** The context we are running in. Can be used to get the FWorldContext from Engine*/
 	FName WorldContextHandle;
+	/** Real time which we started traveling at  */
+	double SeamlessTravelStartTime = 0.f;
 
 	/** copy data between the old world and the new world */
 	void CopyWorldData();
@@ -2414,6 +2416,9 @@ public:
 	/** Returns whether all the 'always loaded' levels are loaded. */
 	bool AreAlwaysLoadedLevelsLoaded() const;
 
+	/** Requests async loading of any 'always loaded' level. Used in seamless travel to prevent blocking in the first UpdateLevelStreaming.  */
+	void AsyncLoadAlwaysLoadedLevelsForSeamlessTravel();
+
 	/**
 	 * Returns whether the level streaming code is allowed to issue load requests.
 	 *
@@ -3149,7 +3154,7 @@ public:
 	 * @param bAbsolute whether we are using relative or absolute travel
 	 * @param bShouldSkipGameNotify whether to notify the clients/game or not
 	 */
-	virtual void ServerTravel(const FString& InURL, bool bAbsolute = false, bool bShouldSkipGameNotify = false);
+	virtual bool ServerTravel(const FString& InURL, bool bAbsolute = false, bool bShouldSkipGameNotify = false);
 
 	/** seamlessly travels to the given URL by first loading the entry level in the background,
 	 * switching to it, and then loading the specified level. Does not disrupt network communication or disconnect clients.

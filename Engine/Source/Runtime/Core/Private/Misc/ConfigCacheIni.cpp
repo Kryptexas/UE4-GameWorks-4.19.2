@@ -105,8 +105,25 @@ class FTextFriendHelper
 		}
 		else
 		{
-			return FString::Printf( TEXT( "NSLOCTEXT(\"%s\",\"%s\",\"%s\")" ),
-				*FTextInspector::GetNamespace(Text).Get(TEXT("")), *FTextInspector::GetKey(Text).Get(TEXT("")), *Str );
+			FTextDisplayStringRef DisplayString = FTextInspector::GetSharedDisplayString(Text);
+
+			FString Namespace;
+			FString Key;
+			const bool FoundNamespaceAndKey = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(DisplayString, Namespace, Key);
+
+			// If this has no namespace or key, attempt to give it a GUID for a key and register it.
+			if (!FoundNamespaceAndKey && GIsEditor)
+			{
+				Key = FGuid::NewGuid().ToString();
+				if (!FTextLocalizationManager::Get().AddDisplayString(DisplayString, Namespace, Key))
+				{
+					// Could not add display string, reset namespace and key.
+					Namespace.Empty();
+					Key.Empty();
+				}
+			}
+
+			return FString::Printf( TEXT( "NSLOCTEXT(\"%s\",\"%s\",\"%s\")" ), *Namespace, *Key, *Str );
 		}
 #undef LOC_DEFINE_REGION
 	}
@@ -593,7 +610,7 @@ bool FConfigFile::ShouldExportQuotedString(const FString& PropertyValue) const
 }
 
 
-#if !UE_BUILD_SHIPPING
+#if ALLOW_INI_OVERRIDE_FROM_COMMANDLINE
 
 /** A collection of identifiers which will help us parse the commandline opions. */
 namespace CommandlineOverrideSpecifiers
@@ -859,7 +876,7 @@ bool PropertySetFromCommandlineOption(const FConfigFile* InConfigFile, const FSt
 {
 	bool bFromCommandline = false;
 
-#if !UE_BUILD_SHIPPING
+#if ALLOW_INI_OVERRIDE_FROM_COMMANDLINE
 	for (const FConfigCommandlineOverride& CommandlineOverride : InConfigFile->CommandlineOptions)
 	{
 		if (CommandlineOverride.PropertyKey.Equals(InPropertyName.ToString(), ESearchCase::IgnoreCase) &&
@@ -870,7 +887,7 @@ bool PropertySetFromCommandlineOption(const FConfigFile* InConfigFile, const FSt
 			bFromCommandline = true;
 		}
 	}
-#endif // !UE_BUILD_SHIPPING
+#endif // ALLOW_INI_OVERRIDE_FROM_COMMANDLINE
 
 	return bFromCommandline;
 }
@@ -1143,7 +1160,11 @@ bool FConfigFile::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value 
 	{
 		return false;
 	}
-	return FParse::Text( **PairString, Value, Section );
+	if( !FParse::Text( **PairString, Value, Section ) )
+	{
+		Value = FText::FromString( **PairString );
+	}
+	return true;
 }
 
 bool FConfigFile::GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const
@@ -1707,7 +1728,11 @@ bool FConfigCacheIni::GetText( const TCHAR* Section, const TCHAR* Key, FText& Va
 	{
 		return false;
 	}
-	return FParse::Text( **PairString, Value, Section );
+	if( !FParse::Text( **PairString, Value, Section ) )
+	{
+		Value = FText::FromString( **PairString );
+	}
+	return true;
 }
 
 bool FConfigCacheIni::GetSection( const TCHAR* Section, TArray<FString>& Result, const FString& Filename )
@@ -2609,7 +2634,7 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 	}
 	LoadAnIniFile(DestIniFilename, DestConfigFile);
 
-#if !UE_BUILD_SHIPPING
+#if ALLOW_INI_OVERRIDE_FROM_COMMANDLINE
 	// process any commandline overrides
 	OverrideFromCommandline(&DestConfigFile, DestIniFilename);
 #endif

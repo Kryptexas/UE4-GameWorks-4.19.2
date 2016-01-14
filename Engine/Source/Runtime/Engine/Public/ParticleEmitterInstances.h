@@ -215,6 +215,8 @@ public:
 	FMatrix EmitterToSimulation;
 	/** Transform from simulation space to world space.					*/
 	FMatrix SimulationToWorld;
+	/** Component can disable Tick and Rendering of this emitter. */
+	uint32 bEnabled : 1;
 	/** If true, kill this emitter instance when it is deactivated.		*/
 	uint32 bKillOnDeactivate:1;
 	/** if true, kill this emitter instance when it has completed.		*/
@@ -713,6 +715,59 @@ protected:
 
 };
 
+#if STATS
+struct FScopeCycleCounterEmitter : public FCycleCounter
+{
+	/**
+	* Constructor, starts timing
+	*/
+	template<class T>
+	FORCEINLINE_STATS FScopeCycleCounterEmitter(const T *Object)
+	{
+		if (Object)
+		{
+			TStatId StatId = Object->SpriteTemplate->GetStatID();
+			if (FThreadStats::IsCollectingData(StatId))
+			{
+				Start(StatId);
+			}
+		}
+	}
+	/**
+	* Constructor, starts timing with an alternate enable stat to use high performance disable for only SOME UObject stats
+	*/
+	template<class T>
+	FORCEINLINE_STATS FScopeCycleCounterEmitter(const T *Object, TStatId OtherStat)
+	{
+		if (FThreadStats::IsCollectingData(OtherStat) && Object)
+		{
+			TStatId StatId = Object->SpriteTemplate->GetStatID();
+			if (!StatId.IsNone())
+			{
+				Start(StatId);
+			}
+		}
+	}
+	/**
+	* Updates the stat with the time spent
+	*/
+	FORCEINLINE_STATS ~FScopeCycleCounterEmitter()
+	{
+		Stop();
+	}
+};
+#else
+struct FScopeCycleCounterEmitter
+{
+	FORCEINLINE_STATS FScopeCycleCounterEmitter(const FParticleEmitterInstance *Object)
+	{
+	}
+	FORCEINLINE_STATS FScopeCycleCounterEmitter(const FParticleEmitterInstance *Object, TStatId OtherStat)
+	{
+	}
+};
+#endif
+
 /*-----------------------------------------------------------------------------
 	ParticleSpriteEmitterInstance
 -----------------------------------------------------------------------------*/
@@ -1145,21 +1200,23 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 
 	void CheckIndices(int32 TrailIdx)
 	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
-		{
-			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
-			FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
-		}
+		//Disabled until bug with this optimization is found. Usage of the optimization is alredy disabled but these check were still being hit.
 
-		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
-		{
-			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
-			FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
-		}
-#endif
+// #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+// 		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
+// 		{
+// 			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
+// 			FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
+// 			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
+// 		}
+// 
+// 		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
+// 		{
+// 			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
+// 			FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
+// 			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+// 		}
+// #endif
 	}
 
 

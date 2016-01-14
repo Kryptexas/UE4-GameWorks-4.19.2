@@ -532,6 +532,11 @@ TArray<FRichCurveKey> FRichCurve::GetCopyOfKeys() const
 	return Keys;
 }
 
+const TArray<FRichCurveKey>& FRichCurve::GetConstRefOfKeys() const
+{
+	return Keys;
+}
+
 
 TArray<FRichCurveKey>::TConstIterator FRichCurve::GetKeyIterator() const
 {

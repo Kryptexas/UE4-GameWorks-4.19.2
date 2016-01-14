@@ -180,7 +180,7 @@ void FMaterialShader::SetParameters(
 	{
 		UE_LOG(
 			LogShaders,
-			Warning,	// TEMP workaround only!!!!
+			Fatal,	// TEMP workaround only!!!!
 			TEXT("%s shader uniform expression set mismatch for material %s/%s.\n")
 			TEXT("Shader compilation info:                %s\n")
 			TEXT("Material render proxy compilation info: %s\n")
@@ -224,13 +224,30 @@ void FMaterialShader::SetParameters(
 		const TArray<FGuid>& ParameterCollections = UniformExpressionCache->ParameterCollections;
 		const int32 ParameterCollectionsNum = ParameterCollections.Num();
 
+		// For shipping and test builds the assert above will be compiled out, but we're trying to verify that this condition is never hit.
+		if (ParameterCollectionUniformBuffers.Num() < ParameterCollectionsNum)
+		{
+			UE_LOG(LogRenderer, Warning,
+				TEXT("ParameterCollectionUniformBuffers.Num() [%u] < ParameterCollectionsNum [%u], this would crash below on SetUniformBufferParameter.\n")
+				TEXT("RenderProxy=%s Material=%s"),
+				ParameterCollectionUniformBuffers.Num(),
+				ParameterCollectionsNum,
+				*MaterialRenderProxy->GetFriendlyName(),
+				*Material.GetFriendlyName()
+				);
+		}
+
 		check(ParameterCollectionUniformBuffers.Num() >= ParameterCollectionsNum);
 
+		
+
+		int32 NumToSet = FMath::Min(ParameterCollectionUniformBuffers.Num(), ParameterCollections.Num());
+
 		// Find each referenced parameter collection's uniform buffer in the scene and set the parameter
-		for (int32 CollectionIndex = 0; CollectionIndex < ParameterCollectionsNum; CollectionIndex++)
-		{
+		for (int32 CollectionIndex = 0; CollectionIndex < NumToSet; CollectionIndex++)
+		{			
 			FUniformBufferRHIParamRef UniformBuffer = GetParameterCollectionBuffer(ParameterCollections[CollectionIndex], View.Family->Scene);
-			SetUniformBufferParameter(RHICmdList, ShaderRHI,ParameterCollectionUniformBuffers[CollectionIndex],UniformBuffer);
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, ParameterCollectionUniformBuffers[CollectionIndex], UniformBuffer);			
 		}
 	}
 

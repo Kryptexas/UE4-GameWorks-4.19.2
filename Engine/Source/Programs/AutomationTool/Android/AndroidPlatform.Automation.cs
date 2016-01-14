@@ -493,16 +493,16 @@ public class AndroidPlatform : Platform
 		string DeviceName = Params.Device.Replace(":", "_");
 
 		// Try retrieving the UFS files manifest files from the device
-		string UFSManifestFileName = CombinePaths(SC.StageDirectory, DeploymentContext.UFSDeployedManifestFileName + "_" + DeviceName);
-		ProcessResult UFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + DeploymentContext.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
+		string UFSManifestFileName = CombinePaths(SC.StageDirectory, SC.UFSDeployedManifestFileName + "_" + DeviceName);
+		ProcessResult UFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + SC.UFSDeployedManifestFileName + " \"" + UFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!UFSResult.Output.Contains("bytes"))
 		{
 			return false;
 		}
 
 		// Try retrieving the non UFS files manifest files from the device
-		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory, DeploymentContext.NonUFSDeployedManifestFileName + "_" + DeviceName);
-		ProcessResult NonUFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + DeploymentContext.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
+		string NonUFSManifestFileName = CombinePaths(SC.StageDirectory, SC.NonUFSDeployedManifestFileName + "_" + DeviceName);
+		ProcessResult NonUFSResult = RunAdbCommand(Params, " pull " + RemoteDir + "/" + SC.NonUFSDeployedManifestFileName + " \"" + NonUFSManifestFileName + "\"", null, ERunOptions.AppMustExist);
 		if (!NonUFSResult.Output.Contains("bytes"))
 		{
 			// Did not retrieve both so delete one we did retrieve

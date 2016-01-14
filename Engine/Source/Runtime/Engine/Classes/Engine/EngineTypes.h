@@ -4052,3 +4052,24 @@ struct FMaterialMergeData
 		, EmissiveScale(0.0f)
 	{}
 };
+
+/**
+ * The description of a user activity
+ */
+USTRUCT()
+struct FUserActivity
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Describes the user's activity */
+	UPROPERTY(EditAnywhere, Category = "Activity")
+	FString ActionName;
+
+	/** Default constructor. */
+	FUserActivity() { }
+
+	/** Creates and initializes a new instance. */
+	FUserActivity(const FString& InActionName)
+		: ActionName(InActionName)
+	{ }
+};

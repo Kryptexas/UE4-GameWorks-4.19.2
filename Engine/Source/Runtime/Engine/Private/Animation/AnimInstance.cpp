@@ -227,10 +227,16 @@ void UAnimInstance::UninitializeAnimation()
 
 	for(int32 Index = 0; Index < MontageInstances.Num(); ++Index)
 	{
-		delete MontageInstances[Index];
+		FAnimMontageInstance* MontageInstance = MontageInstances[Index];
+		if (ensure(MontageInstance != nullptr))
+		{
+			ClearMontageInstanceReferences(*MontageInstance);
+			delete MontageInstance;
+		}
 	}
 
 	MontageInstances.Empty();
+	ActiveMontagesMap.Empty();
 
 	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	if (SkelMeshComp)
@@ -1434,6 +1440,9 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 
 			if (!MontageInstance->IsValid())
 			{
+				// Make sure we've cleared our references before deleting memory
+				ClearMontageInstanceReferences(*MontageInstance);
+
 				delete MontageInstance;
 				MontageInstances.RemoveAt(InstanceIndex);
 				--InstanceIndex;
@@ -2245,27 +2254,45 @@ void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, const FAlphaBl
 
 void UAnimInstance::OnMontageInstanceStopped(FAnimMontageInstance& StoppedMontageInstance)
 {
-	UAnimMontage* MontageStopped = StoppedMontageInstance.Montage;
-	ensure(MontageStopped != NULL);
+	ClearMontageInstanceReferences(StoppedMontageInstance);
+}
 
-	// Remove instance for Active List.
-	FAnimMontageInstance** AnimInstancePtr = ActiveMontagesMap.Find(MontageStopped);
-	if (AnimInstancePtr && (*AnimInstancePtr == &StoppedMontageInstance))
+void UAnimInstance::ClearMontageInstanceReferences(FAnimMontageInstance& InMontageInstance)
+{
+	if (UAnimMontage* MontageStopped = InMontageInstance.Montage)
 	{
-		ActiveMontagesMap.Remove(MontageStopped);
+		// Remove instance for Active List.
+		FAnimMontageInstance** AnimInstancePtr = ActiveMontagesMap.Find(MontageStopped);
+		if (AnimInstancePtr && (*AnimInstancePtr == &InMontageInstance))
+		{
+			ActiveMontagesMap.Remove(MontageStopped);
+		}
+	}
+	else
+	{
+		// If Montage ref is nullptr, it's possible the instance got terminated already and that is fine.
+		// Make sure it's been removed from our ActiveMap though
+		if (ActiveMontagesMap.FindKey(&InMontageInstance) != nullptr)
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("%s: null montage found in the montage instance array!!"), *GetName());
+		}
 	}
 
 	// Clear RootMotionMontageInstance
-	if (RootMotionMontageInstance == &StoppedMontageInstance)
+	if (RootMotionMontageInstance == &InMontageInstance)
 	{
-		RootMotionMontageInstance = NULL;
+		RootMotionMontageInstance = nullptr;
 	}
+
+	// Clear any active synchronization
+	InMontageInstance.MontageSync_StopFollowing();
+	InMontageInstance.MontageSync_StopLeading();
 }
 
 FAnimMontageInstance* UAnimInstance::GetActiveInstanceForMontage(UAnimMontage const& Montage) const
 {
 	FAnimMontageInstance* const* FoundInstancePtr = ActiveMontagesMap.Find(&Montage);
-	return FoundInstancePtr ? *FoundInstancePtr : NULL;
+	return FoundInstancePtr ? *FoundInstancePtr : nullptr;
 }
 
 FAnimMontageInstance* UAnimInstance::GetRootMotionMontageInstance() const

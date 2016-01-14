@@ -159,28 +159,32 @@ void ALODActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	FName PropertyName = PropertyThatChanged != NULL ? PropertyThatChanged->GetFName() : NAME_None;
 	
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, LODDrawDistance))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, bOverrideTransitionScreenSize) || PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, TransitionScreenSize))
 	{
-		for (auto& Actor: SubActors)
-		{
-			if (Actor)
-			{
-				TArray<UPrimitiveComponent*> InnerComponents;
-				Actor->GetComponents<UPrimitiveComponent>(InnerComponents);
+		float CalculateSreenSize = 0.0f;
 
-				for(auto& Component: InnerComponents)
-				{
-					UPrimitiveComponent* ParentComp = Component->GetLODParentPrimitive();
-					if (ParentComp)
-					{
-						ParentComp->MinDrawDistance = LODDrawDistance;
-						ParentComp->MarkRenderStateDirty();
-					}
-				}
-			}
+		if (bOverrideTransitionScreenSize)
+		{
+			CalculateSreenSize = TransitionScreenSize;
 		}
+		else
+		{
+			UWorld* World = GetWorld();
+			check(World != nullptr);
+			AWorldSettings* WorldSettings = World->GetWorldSettings();
+			checkf(WorldSettings->HierarchicalLODSetup.IsValidIndex(LODLevel - 1), TEXT("Out of range HLOD level (%i) found in LODActor (%s)"), LODLevel - 1, *GetName());
+			CalculateSreenSize = WorldSettings->HierarchicalLODSetup[LODLevel - 1].TransitionScreenSize;
+		}
+
+		RecalculateDrawingDistance(CalculateSreenSize);
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, bOverrideScreenSize) || PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, ScreenSize)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, bOverrideMaterialMergeSettings) || PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, MaterialSettings))
+	{
+		// If we change override settings dirty the actor
 		SetIsDirty(true);
 	}
+	
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -366,6 +370,17 @@ void ALODActor::SetIsDirty(const bool bNewState)
 			}
 		}
 
+		// Set static mesh to null (this so we can revert without destroying the previously build static mesh)
+		StaticMeshComponent->StaticMesh = nullptr;
+		// Mark render state dirty to update viewport
+		StaticMeshComponent->MarkRenderStateDirty();
+
+		// Propagate to sub actors that we no longer have a static mesh
+		for (auto& SubActor : SubActors)
+		{
+			SubActor->SetLODParent(nullptr, LODDrawDistance);
+		}
+
 		// Broadcast actor marked dirty event
 		if (GEngine)
 		{
@@ -481,6 +496,7 @@ void ALODActor::UpdateSubActorLODParents()
 
 void ALODActor::CleanSubActorArray()
 {
+	bool bIsDirty = false;
 	for (int32 SubActorIndex = 0; SubActorIndex < SubActors.Num(); ++SubActorIndex)
 	{
 		auto& Actor = SubActors[SubActorIndex];
@@ -488,8 +504,30 @@ void ALODActor::CleanSubActorArray()
 		{
 			SubActors.RemoveAt(SubActorIndex);
 			SubActorIndex--;
+			bIsDirty = true;
 		}
 	}
+
+	if (bIsDirty)
+	{
+		SetIsDirty(true);
+	}
+}
+
+void ALODActor::RecalculateDrawingDistance(const float TransitionScreenSize)
+{
+	// At the moment this assumes a fixed field of view of 90 degrees (horizontal and vertical axi)
+	static const float FOVRad = 90.0f * (float)PI / 360.0f;
+	static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
+	FBoxSphereBounds Bounds = GetStaticMeshComponent()->CalcBounds(FTransform());
+
+	// Get projection multiple accounting for view scaling.
+	const float ScreenMultiple = FMath::Max(1920.0f / 2.0f * ProjectionMatrix.M[0][0],
+		1080.0f / 2.0f * ProjectionMatrix.M[1][1]);
+	// (ScreenMultiple * SphereRadius) / Sqrt(Screensize * 1920 * 1080.0f * PI) = Distance
+	LODDrawDistance = (ScreenMultiple * Bounds.SphereRadius) / FMath::Sqrt((TransitionScreenSize * 1920.0f * 1080.0f) / PI);
+
+	UpdateSubActorLODParents();
 }
 
 #endif // WITH_EDITOR

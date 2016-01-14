@@ -4,8 +4,7 @@
 	D3D11RHIPrivate.h: Private D3D RHI definitions.
 =============================================================================*/
 
-#ifndef __D3D11RHIPRIVATE_H__
-#define __D3D11RHIPRIVATE_H__
+#pragma once
 
 #include "D3D11RHI.h"
 // Dependencies.
@@ -300,6 +299,8 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;
+
+	virtual void FlushPendingLogs() override;
 
 	template<typename TRHIType>
 	static FORCEINLINE typename TD3D11ResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
@@ -1319,6 +1320,3 @@ private:
 	// ordered from small to large (for efficient compactening)
 	TArray<FRange> Entries;
 };
-
-
-#endif

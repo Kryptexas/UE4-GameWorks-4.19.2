@@ -239,16 +239,23 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = CameraShake)
 	bool ReceiveIsFinished() const;
 
-	/** Called when the shake is explicitly stopped. */
+	/** 
+	 * Called when the shake is explicitly stopped. 
+	 * @param bImmediatly		If true, shake stops right away regardless of blend out settings. If false, shake may blend out according to its settings.
+	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = CameraShake)
-	void ReceiveStopShake();
+	void ReceiveStopShake(bool bImmediately);
 
 	// Native API
-
 	virtual void UpdateAndApplyCameraShake(float DeltaTime, float Alpha, FMinimalViewInfo& InOutPOV);
 	virtual void PlayShake(class APlayerCameraManager* Camera, float Scale, ECameraAnimPlaySpace::Type InPlaySpace, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	virtual bool IsFinished() const;
-	virtual void StopShake();
+
+	/** 
+	 * Stops this shake from playing. 
+	 * @param bImmediatly		If true, shake stops right away regardless of blend out settings. If false, shake may blend out according to its settings.
+	 */
+	virtual void StopShake(bool bImmediately = true);
 
 	// Returns true if this camera shake will loop forever
 	bool IsLooping() const;

@@ -874,7 +874,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
-#endif // UE_EDITOR
+	if (bHasCommandletToken)
+	{
+		// will be reset later once the commandlet class loaded
+		PRIVATE_GIsRunningCommandlet = true;
+	}
+
+#endif // WITH_ENGINE
 
 
 	// trim any whitespace at edges of string - this can happen if the token was quoted with leading or trailing whitespace
@@ -969,7 +975,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 			CommandletCommandLine = ParsedCmdLine;
 		}
+	}
 
+	if (bHasCommandletToken)
+	{
+		// will be reset later once the commandlet class loaded
+		PRIVATE_GIsRunningCommandlet = true;
 	}
 
 	if( !bIsNotEditor && GIsGameAgnosticExe )
@@ -1558,7 +1569,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	MarkObjectsToDisregardForGC(); 
 	GUObjectArray.CloseDisregardForGC();
 
-	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
+	if (IOnlineSubsystem::IsLoaded())
+	{
+		SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
+	}
 
 	SlowTask.EnterProgressFrame(5);
 
@@ -2902,6 +2916,8 @@ bool FEngineLoop::AppInit( )
 	// Now finish initializing the file manager after the command line is set up
 	IFileManager::Get().ProcessCommandLineOptions();
 
+	FPageAllocator::LatchProtectedMode();
+
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("BUILDMACHINE")))
 	{
@@ -3099,7 +3115,7 @@ bool FEngineLoop::AppInit( )
 
 	UE_LOG(LogInit, Log, TEXT("Build Configuration: %s"), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()));
 	UE_LOG(LogInit, Log, TEXT("Branch Name: %s"), *FApp::GetBranchName() );
-	UE_LOG(LogInit, Log, TEXT("Command line: %s"), FCommandLine::Get() );
+	UE_LOG(LogInit, Log, TEXT("Command line: %s"), FCommandLine::GetForLogging() );
 	UE_LOG(LogInit, Log, TEXT("Base directory: %s"), FPlatformProcess::BaseDir() );
 	//UE_LOG(LogInit, Log, TEXT("Character set: %s"), sizeof(TCHAR)==1 ? TEXT("ANSI") : TEXT("Unicode") );
 	UE_LOG(LogInit, Log, TEXT("Installed Engine Build: %d"), FApp::IsEngineInstalled() ? 1 : 0);
@@ -3114,25 +3130,28 @@ bool FEngineLoop::AppInit( )
 #endif
 
 #if WITH_ENGINE
-	// Earliest place to init the online subsystems
-	// Code needs GConfigFile to be valid
-	// Must be after FThreadStats::StartThread();
-	// Must be before Render/RHI subsystem D3DCreate()
-	// For platform services that need D3D hooks like Steam
-	// --
-	// Why load HTTP?
-	// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
-	// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
-	// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
-	if(FModuleManager::Get().ModuleExists(TEXT("XMPP")))
+	if (!IsRunningCommandlet())
 	{
-		FModuleManager::Get().LoadModule(TEXT("XMPP"));
+		// Earliest place to init the online subsystems
+		// Code needs GConfigFile to be valid
+		// Must be after FThreadStats::StartThread();
+		// Must be before Render/RHI subsystem D3DCreate()
+		// For platform services that need D3D hooks like Steam
+		// --
+		// Why load HTTP?
+		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
+		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
+		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
+		if (FModuleManager::Get().ModuleExists(TEXT("XMPP")))
+		{
+			FModuleManager::Get().LoadModule(TEXT("XMPP"));
+		}
+		FModuleManager::Get().LoadModule(TEXT("HTTP"));
+		FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
+		FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
+		// Also load the console/platform specific OSS which might not necessarily be the default OSS instance
+		IOnlineSubsystem::GetByPlatform();
 	}
-	FModuleManager::Get().LoadModule(TEXT("HTTP"));
-	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
-	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
-	// Also load the console/platform specific OSS which might not necessarily be the default OSS instance
-	IOnlineSubsystem::GetByPlatform();
 #endif
 
 	// Checks.

@@ -5,10 +5,9 @@
 /**
  * Cache used to efficiently upgrade legacy FSlateFontInfo structs to use a composite font by reducing the amount of duplicate instances that are created
  */
-class FLegacySlateFontInfoCache : public FGCObject
+class FLegacySlateFontInfoCache : public FGCObject, public TSharedFromThis<FLegacySlateFontInfoCache>
 {
 public:
-
 	/**
 	 * Get (or create) the singleton instance of this cache
 	 */
@@ -43,6 +42,13 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 private:
+	FLegacySlateFontInfoCache();
+
+	/**
+	 * Called after the active culture has changed
+	 */
+	void HandleCultureChanged();
+
 	struct FLegacyFontKey
 	{
 		FLegacyFontKey()
@@ -88,6 +94,7 @@ private:
 
 	TMap<FString, TSharedPtr<const FFontData>> AllLocalizedFallbackFontData;
 	int32 LocalizedFallbackFontDataHistoryVersion;
+	uint64 LocalizedFallbackFontFrameCounter;
 
 	FCriticalSection LocalizedFallbackFontDataCS;
 	FCriticalSection LastResortFontCS;

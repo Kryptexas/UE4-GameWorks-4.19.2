@@ -315,7 +315,7 @@ public:
 USTRUCT()
 struct FJoinabilitySettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of session these settings affect */
 	UPROPERTY()

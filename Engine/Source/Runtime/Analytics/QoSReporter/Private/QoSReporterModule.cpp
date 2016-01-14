@@ -13,6 +13,9 @@ DEFINE_LOG_CATEGORY(LogQoSReporter);
 
 IMPLEMENT_MODULE(FQoSReporterModule, QoSReporter);
 
+// helps to version QoS events (date*10 to allow for 10 revisions per day)
+#define QOS_EVENTS_REVISION					201512170
+
 FString FQoSReporterModule::Config::GetDefaultAppVersion()
 { 
 	return FString::Printf(TEXT("UE4-CL-%d"), FEngineVersion::Current().GetChangelist());
@@ -37,13 +40,16 @@ public:
 
 	/** This provider is not using user IDs */
 	virtual void SetUserID(const FString& InUserID) override {};
-	/** This provider is not using user IDs */
-	virtual FString GetUserID() const override { checkf(false, TEXT("FAnalyticsProviderQoSReporter does not use user ids"));  return TEXT("UnknownUserId"); };
+	/** This provider is not using user IDs, but we're (ab)using this API to return InstanceId */
+	virtual FString GetUserID() const override { return InstanceId.ToString(); };
 
 	/** This provider does not have a concept of sessions */
 	virtual FString GetSessionID() const override { checkf(false, TEXT("FAnalyticsProviderQoSReporter is not session based"));  return TEXT("UnknownSessionId"); };
 	/** This provider does not have a concept of sessions */
 	virtual bool SetSessionID(const FString& InSessionID) override { return false; };
+
+	/** We're (ab)using this API to set DeploymentName */
+	virtual void SetLocation(const FString& InLocation) override { DeploymentName = InLocation; };
 
 	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
 	virtual ~FAnalyticsProviderQoSReporter();
@@ -63,10 +69,20 @@ private:
 	/** The upload type to use. */
 	FString UploadType;
 
+	/** Unique identifier for this QoS reporter instance (only changed on module initialization) */
+	FGuid InstanceId;
+	/** Deployment name (if empty, it won't be sent). */
+	FString DeploymentName;
+
 	/**
 	 * Delegate called when an event Http request completes
 	 */
 	void EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
+
+	/**
+	 * Returns application role (server, client)
+	 */
+	static FString GetApplicationRole();
 };
 
 void FQoSReporterModule::StartupModule()
@@ -140,6 +156,11 @@ FAnalyticsProviderQoSReporter::FAnalyticsProviderQoSReporter(const FQoSReporterM
 		UploadType = ConfigValues.GetDefaultUploadType();
 	}
 
+	// add a unique id
+	InstanceId = FGuid::NewGuid();
+	FPlatformMisc::CreateGuid(InstanceId);
+
+	UE_LOG(LogQoSReporter, Log, TEXT("QoSReporter initialized (Guid = '%s')"), *InstanceId.ToString());
 	UE_LOG(LogQoSReporter, Log, TEXT("APIKey = '%s'. APIServer = '%s'. AppVersion = '%s'. AppEnvironment = '%s'"), *APIKey, *APIServer, *AppVersion, *AppEnvironment);
 }
 
@@ -149,12 +170,30 @@ FAnalyticsProviderQoSReporter::~FAnalyticsProviderQoSReporter()
 	EndSession();
 }
 
-void FAnalyticsProviderQoSReporter::RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes)
+void FAnalyticsProviderQoSReporter::RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& InAttributes)
 {
 	if (APIKey.IsEmpty() || APIServer.IsEmpty())
 	{
 		return;
 	}
+
+	// add attributes common to each QoS event first
+	TArray<FAnalyticsEventAttribute> Attributes;
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("QoSRevision"), QOS_EVENTS_REVISION));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("Role"), GetApplicationRole()));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("SystemId"), FPlatformMisc::GetOperatingSystemId()));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("InstanceId"), InstanceId.ToString()));
+	if (LIKELY(DeploymentName.Len() > 0))
+	{
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("Deployment"), DeploymentName));
+	}
+	else
+	{
+		UE_LOG(LogQoSReporter, Warning, TEXT("QoSReporter was not configured for any deployment; metrics will be likely discarded."));
+	}
+
+	// append the rest
+	Attributes += InAttributes;
 
 	// encode params as Json
 	if (ensure(FModuleManager::Get().IsModuleLoaded("HTTP")))
@@ -238,5 +277,30 @@ void FAnalyticsProviderQoSReporter::EventRequestComplete(FHttpRequestPtr HttpReq
 		// if we cannot report QoS metrics this is pretty bad; report at least a warning
 		UE_LOG(LogQoSReporter, Warning, TEXT("QoS response for [%s]. No response"), *HttpRequest->GetURL());
 	}
+}
+
+/**
+ * Returns application role (server, client)
+ */
+FString FAnalyticsProviderQoSReporter::GetApplicationRole()
+{
+	if (IsRunningDedicatedServer())
+	{
+		static FString DedicatedServer(TEXT("DedicatedServer"));
+		return DedicatedServer;
+	}
+	else if (IsRunningClientOnly())
+	{
+		static FString ClientOnly(TEXT("ClientOnly"));
+		return ClientOnly;
+	}
+	else if (IsRunningGame())
+	{
+		static FString StandaloneGame(TEXT("StandaloneGame"));
+		return StandaloneGame;
+	}
+
+	static FString Editor(TEXT("Editor"));
+	return Editor;
 }
 

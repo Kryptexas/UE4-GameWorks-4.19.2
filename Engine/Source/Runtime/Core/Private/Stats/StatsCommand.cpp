@@ -1050,9 +1050,13 @@ struct FHUDGroupManager
 		else
 		{
 			TSet<FName> HierEnabledItems;
-			for( auto It = EnabledGroups.CreateConstIterator(); It; ++It )
+			for( auto It = EnabledGroups.CreateIterator(); It; ++It )
 			{
-				HierEnabledItems.Append( It.Value().EnabledItems );
+				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_GetStatsForGroup_EveryFrame);
+					GetStatsForGroup(It.Value().EnabledItems, It.Key());
+				}
+				HierEnabledItems.Append(It.Value().EnabledItems);
 			}
 		
 			
@@ -1421,7 +1425,7 @@ struct FHUDGroupManager
 
 	void GetStatsForGroup( TSet<FName>& out_EnabledItems, const FName GroupName )
 	{
-		out_EnabledItems.Empty();
+		out_EnabledItems.Reset();
 	
 		TArray<FName> GroupItems;
 		Stats.Groups.MultiFind( GroupName, GroupItems );
@@ -1462,6 +1466,7 @@ bool FGroupFilter::IsRoot(const FName& MessageName) const
 
 static int32 MaxDepth = MAX_int32;
 static FString NameFilter;
+static FString LeafFilter;
 static FDelegateHandle DumpFrameDelegateHandle;
 static FDelegateHandle DumpCPUDelegateHandle;
 
@@ -1535,7 +1540,18 @@ struct FDumpMultiple
 			{
 				Stack->CullByCycles( int64( DumpCull / FPlatformTime::ToMilliseconds( 1 ) ) );
 			}
-			Stack->DebugPrint(*NameFilter, MaxDepth);
+			if (!NameFilter.IsEmpty() && !LeafFilter.IsEmpty())
+			{
+				UE_LOG(LogStats, Log, TEXT("You can't have both a root and a leaf filter (though this wouldn't be hard to add)."));
+			}
+			else if (!LeafFilter.IsEmpty())
+			{
+				Stack->DebugPrintLeafFilter(*LeafFilter);
+			}
+			else
+			{
+				Stack->DebugPrint(*NameFilter, MaxDepth);
+			}
 			delete Stack;
 			Stack = NULL;
 		}
@@ -1693,8 +1709,10 @@ static void StatCmd(FString InCmd, bool bStatCommand)
 		DumpCull = 1.0f;
 		MaxDepth = MAX_int32;
 		NameFilter.Empty();
+		LeafFilter.Empty();
 
 		FParse::Value(Cmd, TEXT("ROOT="), NameFilter);
+		FParse::Value(Cmd, TEXT("LEAF="), LeafFilter);
 		FParse::Value(Cmd, TEXT("MS="), DumpCull);
 		FParse::Value(Cmd, TEXT("DEPTH="), MaxDepth);
 		if (FParse::Command(&Cmd, TEXT("DUMPFRAME")))

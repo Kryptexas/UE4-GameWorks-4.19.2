@@ -133,7 +133,7 @@ void FAnimInstanceProxy::Uninitialize(UAnimInstance* InAnimInstance)
 	MaterialParameterCurves.Reset();
 }
 
-void FAnimInstanceProxy::PreUpdate(const UAnimInstance* InAnimInstance, float DeltaSeconds)
+void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds)
 {
 	CurrentDeltaSeconds = DeltaSeconds;
 	RootMotionMode = InAnimInstance->RootMotionMode;

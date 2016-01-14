@@ -708,7 +708,6 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 	FGameplayCueParameters()
 	: NormalizedMagnitude(0.0f)
 	, RawMagnitude(0.0f)
-	, MatchedTagName(NAME_None)
 	, Location(ForceInitToZero)
 	, Normal(ForceInitToZero)
 	{}
@@ -731,11 +730,11 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 	FGameplayEffectContextHandle EffectContext;
 
 	/** The tag name that matched this specific gameplay cue handler */
-	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
-	FName MatchedTagName;
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue, NotReplicated)
+	FGameplayTag MatchedTagName;
 
 	/** The original tag of the gameplay cue */
-	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue, NotReplicated)
 	FGameplayTag OriginalTag;
 
 	/** The aggregated source tags taken from the effect spec */
@@ -763,6 +762,10 @@ struct GAMEPLAYABILITIES_API FGameplayCueParameters
 	/** Object this effect was created from, can be an actor or static object. Useful to bind an effect to a gameplay object */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	TWeakObjectPtr<const UObject> SourceObject;
+
+	/** PhysMat of the hit, if there was a hit. */
+	UPROPERTY(BlueprintReadWrite, Category = GameplayCue)
+	TWeakObjectPtr<const UPhysicalMaterial> PhysicalMaterial;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
@@ -835,9 +838,9 @@ namespace EGameplayTagEventType
  * while simultaneously tracking the count of parent tags as well. Events/delegates are fired whenever the tag counts
  * of any tag (explicit or parent) are modified.
  */
+
 struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
-{
-	// Constructor
+{	
 	FGameplayTagCountContainer()
 	{}
 
@@ -848,7 +851,10 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	 * 
 	 * @return True if the count container has a gameplay tag that matches, false if not
 	 */
-	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
+	FORCEINLINE bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const
+	{
+		return GameplayTagCountMap.FindRef(TagToCheck) > 0;
+	}
 
 	/**
 	 * Check if the count container has gameplay tags that matches against all of the specified tags (expands to include parents of asset tags)
@@ -858,7 +864,25 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	 * 
 	 * @return True if the count container matches all of the gameplay tags
 	 */
-	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+	FORCEINLINE bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const
+	{
+		// if the TagContainer count is 0 return bCountEmptyAsMatch;
+		if (TagContainer.Num() == 0)
+		{
+			return bCountEmptyAsMatch;
+		}
+
+		bool AllMatch = true;
+		for (const FGameplayTag& Tag : TagContainer)
+		{
+			if (GameplayTagCountMap.FindRef(Tag) <= 0)
+			{
+				AllMatch = false;
+				break;
+			}
+		}		
+		return AllMatch;
+	}
 	
 	/**
 	 * Check if the count container has gameplay tags that matches against any of the specified tags (expands to include parents of asset tags)
@@ -868,7 +892,19 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	 * 
 	 * @return True if the count container matches any of the gameplay tags
 	 */
-	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+	FORCEINLINE bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const
+	{
+		bool AnyMatch = (bCountEmptyAsMatch && TagContainer.Num() == 0);
+		for (const FGameplayTag& Tag : TagContainer)
+		{
+			if (GameplayTagCountMap.FindRef(Tag) > 0)
+			{
+				AnyMatch = true;
+				break;
+			}
+		}
+		return AnyMatch;
+	}
 	
 	/**
 	 * Update the specified container of tags by the specified delta, potentially causing an additional or removal from the explicit tag list
@@ -876,15 +912,59 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	 * @param Container		Container of tags to update
 	 * @param CountDelta	Delta of the tag count to apply
 	 */
-	void UpdateTagCount(const FGameplayTagContainer& Container, int32 CountDelta);
+	FORCEINLINE void UpdateTagCount(const FGameplayTagContainer& Container, int32 CountDelta)
+	{
+		if (CountDelta != 0)
+		{
+			for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
+			{
+				UpdateTagMap_Internal(*TagIt, CountDelta);
+			}
+		}
+	}
 	
 	/**
 	 * Update the specified tag by the specified delta, potentially causing an additional or removal from the explicit tag list
 	 * 
 	 * @param Tag			Tag to update
 	 * @param CountDelta	Delta of the tag count to apply
+	 * 
+	 * @return True if tag was *either* added or removed. (E.g., we had the tag and now dont. or didnt have the tag and now we do. We didn't just change the count (1 count -> 2 count would return false).
 	 */
-	void UpdateTagCount(const FGameplayTag& Tag, int32 CountDelta);
+	FORCEINLINE bool UpdateTagCount(const FGameplayTag& Tag, int32 CountDelta)
+	{
+		if (CountDelta != 0)
+		{
+			return UpdateTagMap_Internal(Tag, CountDelta);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Set the specified tag count to a specific value
+	 * 
+	 * @param Tag			Tag to update
+	 * @param Count			New count of the tag
+	 * 
+	 * @return True if tag was *either* added or removed. (E.g., we had the tag and now dont. or didnt have the tag and now we do. We didn't just change the count (1 count -> 2 count would return false).
+	 */
+	FORCEINLINE bool SetTagCount(const FGameplayTag& Tag, int32 NewCount)
+	{
+		int32 ExistingCount = 0;
+		if (int32* Ptr  = ExplicitTagCountMap.Find(Tag))
+		{
+			ExistingCount = *Ptr;
+		}
+
+		int32 CountDelta = NewCount - ExistingCount;
+		if (CountDelta != 0)
+		{
+			return UpdateTagMap_Internal(Tag, CountDelta);
+		}
+
+		return false;
+	}
 
 	/**
 	 *	Broadcasts the AnyChange event for this tag. This is called when the stack count of the backing gameplay effect change.
@@ -906,10 +986,16 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	 * 
 	 * @return Delegate for when any tag's count changes to or off of zero
 	 */
-	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayEvent();
+	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayEvent()
+	{
+		return OnAnyTagChangeDelegate;
+	}
 
 	/** Simple accessor to the explicit gameplay tag list */
-	const FGameplayTagContainer& GetExplicitGameplayTags() const;
+	const FGameplayTagContainer& GetExplicitGameplayTags() const
+	{
+		return ExplicitTags;
+	}
 
 	void Reset();
 
@@ -927,7 +1013,7 @@ private:
 	/** Map of tag to active count of that tag */
 	TMap<FGameplayTag, int32> GameplayTagCountMap;
 
-	/** Map of tag to explicit count of that tag. Cannot share with above map because it's not safe to merge explicit and generic counts */
+	/** Map of tag to explicit count of that tag. Cannot share with above map because it's not safe to merge explicit and generic counts */	
 	TMap<FGameplayTag, int32> ExplicitTagCountMap;
 
 	/** Delegate fired whenever any tag's count changes to or away from zero */
@@ -937,8 +1023,9 @@ private:
 	FGameplayTagContainer ExplicitTags;
 
 	/** Internal helper function to adjust the explicit tag list & corresponding maps/delegates/etc. as necessary */
-	void UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta);
+	bool UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta);
 };
+
 
 // -----------------------------------------------------------
 
@@ -1083,7 +1170,92 @@ struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTr
 {
 	enum
 	{
-		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithCopy = true,
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
+	};
+};
+
+// -----------------------------------------------------------
+
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FMinimapReplicationTagCountMap
+{
+	GENERATED_USTRUCT_BODY()
+
+	FMinimapReplicationTagCountMap()
+	{
+		MapID = 0;
+	}
+
+	void AddTag(const FGameplayTag& Tag)
+	{
+		MapID++;
+		TagMap.FindOrAdd(Tag)++;
+	}
+
+	void RemoveTag(const FGameplayTag& Tag)
+	{
+		MapID++;
+		int32& Count = TagMap.FindOrAdd(Tag);
+		Count--;
+		if (Count == 0)
+		{
+			// Remove from map so that we do not replicate
+			TagMap.Remove(Tag);
+		}
+		else if (Count < 0)
+		{
+			ABILITY_LOG(Error, TEXT("FMinimapReplicationTagCountMap::RemoveTag called on Tag %s and count is now < 0"), *Tag.ToString());
+			Count = 0;
+		}
+	}
+
+	void AddTags(const FGameplayTagContainer& Container)
+	{
+		for (const FGameplayTag& Tag : Container)
+		{
+			AddTag(Tag);
+		}
+	}
+
+	void RemoveTags(const FGameplayTagContainer& Container)
+	{
+		for (const FGameplayTag& Tag : Container)
+		{
+			RemoveTag(Tag);
+		}
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	TMap<FGameplayTag, int32>	TagMap;
+
+	UPROPERTY()
+	class UAbilitySystemComponent* Owner;
+
+	/** Comparison operator */
+	bool operator==(FMinimapReplicationTagCountMap const& Other) const
+	{
+		return (MapID == Other.MapID);
+	}
+
+	/** Comparison operator */
+	bool operator!=(FMinimapReplicationTagCountMap const& Other) const
+	{
+		return !(FMinimapReplicationTagCountMap::operator==(Other));
+	}
+
+	int32 MapID;
+};
+
+template<>
+struct TStructOpsTypeTraits<FMinimapReplicationTagCountMap> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = true,
 		WithNetSerializer = true,
 		WithIdenticalViaEquality = true,
 	};

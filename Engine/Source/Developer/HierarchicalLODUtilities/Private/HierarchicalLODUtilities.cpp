@@ -111,6 +111,9 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 			return false;
 		}
 
+		// Delete actor assets before generating new ones
+		FHierarchicalLODUtilities::DeleteLODActorAssets(LODActor);	
+
 		// Clean up sub objects (if applicable)
 		for (auto& SubOject : LODActor->SubObjects)
 		{
@@ -173,13 +176,25 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				FHierarchicalLODUtilities& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilities>("HierarchicalLODUtilities");
 				FHierarchicalLODProxyProcessor* Processor = Module.GetProxyProcessor();
 
+				FHierarchicalSimplification OverrideLODSetup = LODSetup;
+
 				FMeshProxySettings ProxySettings = LODSetup.ProxySetting;
 				if (LODActor->bOverrideMaterialMergeSettings)
 				{
 					ProxySettings.MaterialSettings = LODActor->MaterialSettings;
 				}
 
-				FGuid JobID = Processor->AddProxyJob(LODActor, LODSetup);
+				if (LODActor->bOverrideScreenSize)
+				{
+					ProxySettings.ScreenSize = LODActor->ScreenSize;
+				}
+
+				if (LODActor->bOverrideTransitionScreenSize)
+				{
+					OverrideLODSetup.TransitionScreenSize = LODActor->TransitionScreenSize;
+				}
+
+				FGuid JobID = Processor->AddProxyJob(LODActor, OverrideLODSetup);
 				MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, PackageName, JobID, Processor->GetCallbackDelegate(), true);
 				return true;
 			}

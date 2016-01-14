@@ -68,6 +68,8 @@ public:
 	virtual const FText GetPaletteCategory() override;
 #endif
 
+	const FGeometry& GetCachedAllottedGeometry() const;
+
 protected:
 
 	/**

@@ -107,6 +107,14 @@
       <Name>GUBP.Automation</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\Localization\Localization.Automation.csproj">
+      <Project>{c2f959b1-1727-4598-9c32-3d9acce72750}</Project>
+      <Name>Localization.Automation</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OneSkyLocalization\OneSkyLocalization.Automation.csproj">
+      <Project>{39369368-5603-46da-baae-766bb3cb2b51}</Project>
+      <Name>OneSkyLocalization.Automation</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

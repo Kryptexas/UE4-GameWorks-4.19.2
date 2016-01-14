@@ -324,6 +324,9 @@ public:
 	// Returns the path in front of the filename
 	static FString GetPath(const FString& InPath);
 
+	// Changes the extension of the given filename
+	static FString ChangeExtension(const FString& InPath, const FString& InNewExtension);
+
 	/** @return true if this file was found, false otherwise */
 	static bool FileExists(const FString& InPath);
 

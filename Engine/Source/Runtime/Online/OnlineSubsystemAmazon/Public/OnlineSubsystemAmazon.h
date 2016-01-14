@@ -35,6 +35,7 @@ public:
 
 	virtual IOnlineSessionPtr GetSessionInterface() const override { return nullptr; }
 	virtual IOnlineFriendsPtr GetFriendsInterface() const override { return nullptr; }
+	virtual IMessageSanitizerPtr GetMessageSanitizerInterface() const override { return nullptr; }
 	virtual IOnlinePartyPtr GetPartyInterface() const override { return nullptr; }
 	virtual IOnlineGroupsPtr GetGroupsInterface() const override { return nullptr; }
 	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const override { return nullptr; }

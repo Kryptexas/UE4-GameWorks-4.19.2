@@ -584,7 +584,7 @@ public:
 	UAnimMontage* GetCurrentMontage() const;
 
 	/** Call to set/get the current montage from a montage task. Set to allow hooking up montage events to ability events */
-	void SetCurrentMontage(class UAnimMontage* InCurrentMontage);
+	virtual void SetCurrentMontage(class UAnimMontage* InCurrentMontage);
 
 	/** Returns true if this ability can be canceled */
 	virtual bool CanBeCanceled() const;

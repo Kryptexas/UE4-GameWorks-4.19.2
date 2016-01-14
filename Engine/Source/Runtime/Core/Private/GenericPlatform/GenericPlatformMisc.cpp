@@ -247,6 +247,14 @@ FString FGenericPlatformMisc::GetPrimaryGPUBrand()
 	return FString( TEXT( "GenericGPUBrand" ) );
 }
 
+void FGenericPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate)
+{
+	// to prevent bugs
+	InternalDriverVersion.Empty();
+	UserDriverVersion.Empty();
+	DriverDate.Empty();
+}
+
 void FGenericPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
 {
 	// Not implemented cross-platform. Each platform may or may not choose to implement this.

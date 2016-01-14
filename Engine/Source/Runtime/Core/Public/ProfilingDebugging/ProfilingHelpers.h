@@ -48,6 +48,14 @@ CORE_API void SendDataToPCViaUnrealConsole( const FString& NotifyType, const FSt
  **/
 CORE_API FString CreateProfileFilename( const FString& InFileExtension, bool bIncludeDateForDirectoryName );
 
+/**
+* This will generate the profiling file name that will work with limited filename sizes on consoles.
+* We want a uniform naming convention so we will all just call this function.
+*
+*
+**/
+CORE_API FString CreateProfileFilename(const FString& InFilename, const FString& InFileExtension, bool bIncludeDateForDirectoryName);
+
 /** 
  * This will create the directories and the file name all in one function
  **/

@@ -48,6 +48,7 @@ DEFINE_STAT(STAT_TotalForcedHeuristicSize);
 
 DEFINE_STAT(STAT_LightmapMemorySize);
 DEFINE_STAT(STAT_LightmapDiskSize);
+DEFINE_STAT(STAT_HLODTextureMemorySize);
 DEFINE_STAT(STAT_IntermediateTexturesSize);
 DEFINE_STAT(STAT_RequestSizeCurrentFrame);
 DEFINE_STAT(STAT_RequestSizeTotal);
@@ -128,6 +129,14 @@ static TAutoConsoleVariable<float> CVarStreamingBoost(
 	ECVF_Default
 	);
 
+static TAutoConsoleVariable<float> CVarStreamingScreenSizeEffectiveMax(
+	TEXT("r.Streaming.MaxEffectiveScreenSize"),
+	0,
+	TEXT("0: Use current actual vertical screen size\n")	
+	TEXT("> 0: Clamp wanted mip size calculation to this value for the vertical screen size component."),
+	ECVF_Scalability
+	);
+
 #if PLATFORM_SUPPORTS_TEXTURE_STREAMING
 static TAutoConsoleVariable<int32> CVarSetTextureStreaming(
 	TEXT("r.TextureStreaming"),
@@ -149,6 +158,13 @@ static TAutoConsoleVariable<int32> CVarStreamingPoolSize(
 	-1,
 	TEXT("-1: Default texture pool size, otherwise the size in MB"),
 	ECVF_Scalability);
+
+static TAutoConsoleVariable<int32> CVarStreamingMaxEjectSize(
+	TEXT("r.Streaming.MaxSingleStreamOutSize"),
+	50*1024*1024,
+	TEXT("Streaming out textures costs memory because two copies of the texture are briefly alive at the same time.\n")
+	TEXT("This sets a limit on much memory to use at once.\n"),
+	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarStreamingShowWantedMips(
 	TEXT("r.Streaming.ShowWantedMips"),
@@ -246,7 +262,6 @@ struct FTexturePriority
 	int32 TextureIndex;
 };
 
-
 /** Self-contained structure to manage a streaming texture, possibly on a separate thread. */
 struct FStreamingTexture
 {
@@ -256,9 +271,21 @@ struct FStreamingTexture
 		WantedMips = InTexture->ResidentMips;
 		DynamicScreenSize = 0.0f;
 		MipCount = InTexture->GetNumMips();
-		STAT( PerfectWantedMips = InTexture->ResidentMips );
+		PerfectWantedMips = InTexture->ResidentMips;
 		STAT( MostResidentMips = InTexture->ResidentMips );
 		LODGroup = (TextureGroup) InTexture->LODGroup;
+
+		//@TODO: Temporary: Done because there is currently no texture group for HLOD textures and adding one in a branch isn't ideal; this should be removed / replaced once there is a real HLOD texture group
+		bIsHLODTexture = !Texture->HasAnyFlags(RF_Public) && Texture->GetName().StartsWith(TEXT("T_LOD_"), ESearchCase::CaseSensitive);
+
+		// Landscape textures and HLOD textures should not be affected by MipBias
+		//@TODO: Long term this should probably be a property of the texture group instead
+		bCanBeAffectedByMipBias = true;
+		if ((LODGroup == TEXTUREGROUP_Terrain_Heightmap) || (LODGroup == TEXTUREGROUP_Terrain_Weightmap) || bIsHLODTexture)
+		{
+			bCanBeAffectedByMipBias = false;
+		}
+
 		NumNonStreamingMips = InTexture->GetNumNonStreamingMips();
 		ForceLoadRefCount = 0;
 		bIsStreamingLightmap = IsStreamingLightmap( Texture );
@@ -289,7 +316,7 @@ struct FStreamingTexture
 		RequestedMips = Texture->RequestedMips;
 		MinAllowedMips = 1;			//FMath::Min(Texture->ResidentMips, Texture->RequestedMips);
 		MaxAllowedMips = MipCount;	//FMath::Max(Texture->ResidentMips, Texture->RequestedMips);
-		STAT( MaxAllowedOptimalMips = MaxAllowedMips );
+		MaxAllowedOptimalMips = MaxAllowedMips;
 		STAT( MostResidentMips = FMath::Max(MostResidentMips, Texture->ResidentMips) );
 		float LastRenderTimeForTexture = Texture->GetLastRenderTimeForStreaming();
 		LastRenderTime = (FApp::GetCurrentTime() > LastRenderTimeForTexture) ? float( FApp::GetCurrentTime() - LastRenderTimeForTexture ) : 0.0f;
@@ -427,11 +454,11 @@ struct FStreamingTexture
 	int32			WantedMips;
 	/** Largest screen size occupied by this texture, counting dynamic primitives only. Call FFloatMipLevel::FromScreenSizeInTexels() to get DynamicWantedMips. */
 	float			DynamicScreenSize;
-#if STATS
 	/** Legacy: Same as WantedMips, but not clamped by fudge factor. */
 	int32			PerfectWantedMips;
 	/** Same as MaxAllowedMips, but not clamped by the -reducepoolsize command line option. */
 	int32			MaxAllowedOptimalMips;
+#if STATS
 	/** Most number of mip-levels this texture has ever had resident in memory. */
 	int32			MostResidentMips;
 #endif
@@ -493,6 +520,11 @@ struct FStreamingTexture
 	uint32			bUsesOrphanedHeuristics : 1;
 	/** Whether this texture has been replaced in a material and all primitives using it call NotifyPrimitiveUpdated(). */
 	uint32			bNeedPrimitiveUpdate : 1;
+	/** Can this texture be affected by mip bias? */
+	uint32			bCanBeAffectedByMipBias : 1;
+	/** Is this texture a HLOD texture? */
+	//@TODO: Temporary: Done because there is currently no texture group for HLOD textures and adding one in a branch isn't ideal; this should be removed / replaced once there is a real HLOD texture group
+	uint32			bIsHLODTexture : 1;
 };
 
 // ----------------------------------------------------------------------
@@ -512,14 +544,9 @@ int32 FFloatMipLevel::ComputeMip(const FStreamingTexture* StreamingTexture, floa
 	if(StreamingTexture)
 	{
 		MinAllowedMips = StreamingTexture->MinAllowedMips;
-		MaxAllowedMips = 
-#if STATS
-			bOptimal ? StreamingTexture->MaxAllowedOptimalMips : 
-#endif
-			StreamingTexture->MaxAllowedMips;
-		// Landscape textures should not be affected by MipBias
-		if (StreamingTexture->LODGroup == TEXTUREGROUP_Terrain_Heightmap || 
-			StreamingTexture->LODGroup == TEXTUREGROUP_Terrain_Weightmap)
+		MaxAllowedMips = bOptimal ? StreamingTexture->MaxAllowedOptimalMips : StreamingTexture->MaxAllowedMips;
+
+		if (!StreamingTexture->bCanBeAffectedByMipBias)
 		{
 			MipBias = 0.0f;
 		}
@@ -924,6 +951,7 @@ struct FStreamingContext
 		ThisFrameTotalStreamingTexturesMaxSize			= 0;
 		ThisFrameTotalLightmapMemorySize				= 0;
 		ThisFrameTotalLightmapDiskSize					= 0;
+		ThisFrameTotalHLODMemorySize					= 0;
 		ThisFrameTotalMipCountIncreaseRequestsInFlight	= 0;
 		ThisFrameOptimalWantedSize						= 0;
 		ThisFrameTotalStaticTextureHeuristicSize		= 0;
@@ -983,6 +1011,7 @@ struct FStreamingContext
 		ThisFrameTotalStreamingTexturesMaxSize			+= Other.ThisFrameTotalStreamingTexturesMaxSize;
 		ThisFrameTotalLightmapMemorySize				+= Other.ThisFrameTotalLightmapMemorySize;
 		ThisFrameTotalLightmapDiskSize					+= Other.ThisFrameTotalLightmapDiskSize;
+		ThisFrameTotalHLODMemorySize					+= Other.ThisFrameTotalHLODMemorySize;
 		ThisFrameTotalMipCountIncreaseRequestsInFlight	+= Other.ThisFrameTotalMipCountIncreaseRequestsInFlight;
 		ThisFrameOptimalWantedSize						+= Other.ThisFrameOptimalWantedSize;
 		ThisFrameTotalStaticTextureHeuristicSize		+= Other.ThisFrameTotalStaticTextureHeuristicSize;
@@ -1022,6 +1051,7 @@ struct FStreamingContext
 	uint64 ThisFrameTotalStreamingTexturesMaxSize;
 	uint64 ThisFrameTotalLightmapMemorySize;
 	uint64 ThisFrameTotalLightmapDiskSize;
+	uint64 ThisFrameTotalHLODMemorySize;
 	uint64 ThisFrameTotalMipCountIncreaseRequestsInFlight;
 	uint64 ThisFrameOptimalWantedSize;
 	/** Number of bytes using StaticTexture heuristics this frame, currently in memory. */
@@ -1080,7 +1110,7 @@ public:
 		void Reset()
 		{
 			TotalResidentSize = 0;
-			STAT( TotalRequiredSize = 0 );
+			TotalRequiredSize = 0;
 			TempStreamingSize = 0;
 			PendingStreamInSize = 0;
 			PendingStreamOutSize = 0;
@@ -1091,7 +1121,7 @@ public:
 		/** Total number of bytes currently in memory */
 		int64 TotalResidentSize;
 		/** Total number of bytes required, using PerfectWantedMips */
-		STAT( int64 TotalRequiredSize );
+		int64 TotalRequiredSize;
 		/** Currently being streamed in, in bytes. */
 		SIZE_T PendingStreamInSize;
 		/** Currently being streamed out, in bytes. */
@@ -1202,8 +1232,8 @@ private:
 				}
 			}
 
-			STAT( int32 PerfectWantedTextureSize = StreamingTexture.GetSize( StreamingTexture.PerfectWantedMips ) );
-			STAT( ThreadStats.TotalRequiredSize += PerfectWantedTextureSize );
+			const int32 PerfectWantedTextureSize = StreamingTexture.GetSize( StreamingTexture.PerfectWantedMips );
+			ThreadStats.TotalRequiredSize += PerfectWantedTextureSize;
 			StreamingManager.UpdateFrameStats( ThreadContext, StreamingTexture, Index );
 
 			// Reset the boost factor
@@ -2107,6 +2137,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	TotalStreamingTexturesMaxSize(0)
 ,	TotalLightmapMemorySize(0)
 ,	TotalLightmapDiskSize(0)
+,	TotalHLODMemorySize(0)
 ,	TotalMipCountIncreaseRequestsInFlight(0)
 ,	TotalOptimalWantedSize(0)
 ,	TotalStaticTextureHeuristicSize(0)
@@ -2114,6 +2145,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	TotalLastRenderHeuristicSize(0)
 ,	TotalForcedHeuristicSize(0)
 ,	MemoryOverBudget(0)
+,	MaxEverRequired(0)
 ,	OriginalTexturePoolSize(0)
 ,	PreviousPoolSizeTimestamp(0.0)
 ,	PreviousPoolSizeSetting(-1)
@@ -2418,6 +2450,7 @@ void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TAr
  **/
 bool FStreamingManagerTexture::StreamOutTextureData( int64 RequiredMemorySize )
 {
+	const int64 MaxTempSizeForStreamout = FMath::Max(1024 * 1024, CVarStreamingMaxEjectSize.GetValueOnGameThread());
 	RequiredMemorySize = FMath::Max<int64>(RequiredMemorySize, MinEvictSize);
 
 	// Array of candidates for reducing mip-levels.
@@ -2426,6 +2459,11 @@ bool FStreamingManagerTexture::StreamOutTextureData( int64 RequiredMemorySize )
 
 	// Don't stream out character textures (to begin with)
 	float CurrentTime = float(FPlatformTime::Seconds() - GStartTime);
+
+	volatile bool bSucceeded = false;
+	
+	//resizing textures actually creates a temp copy so we can only resize so many at a time without running out of memory during the eject itself.
+	int64 MemoryCostToResize = 0;	
 
 	// Collect all textures will be considered for streaming out.
 	for (int32 StreamingIndex = 0; StreamingIndex < StreamingTextures.Num(); ++StreamingIndex)
@@ -2466,25 +2504,54 @@ bool FStreamingManagerTexture::StreamOutTextureData( int64 RequiredMemorySize )
 														Texture->LODGroup == TEXTUREGROUP_CharacterSpecular ||
 														Texture->LODGroup == TEXTUREGROUP_CharacterNormalMap;
 							uint32 TextureDataAddress = 0;
+							MemoryCostToResize += Texture->CalcTextureMemorySize(FMath::Max(0, Texture->ResidentMips - 1));
 							CandidateTextures.Add( FTextureSortElement(Texture, Texture->CalcTextureMemorySize(Texture->ResidentMips), bIsCharacterTexture ? 1 : 0, TextureDataAddress, NumRequiredResidentMips) );
 						}
 					}
 				}
 			}
 		}
-	}
 
-	volatile bool bSucceeded = false;
+		if (MemoryCostToResize >= MaxTempSizeForStreamout)
+		{			
+			// Queue up the process on the render thread.
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+				StreamOutTextureDataCommand,
+				TArray<FTextureSortElement>*, CandidateTextures, &CandidateTextures,
+				int64, RequiredMemorySize, RequiredMemorySize,
+				volatile bool*, bSucceeded, &bSucceeded,
+				{				
+				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);				
+				RHIFlushResources();
 
-	// Queue up the process on the render thread.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		StreamOutTextureDataCommand,
-		TArray<FTextureSortElement>*,CandidateTextures,&CandidateTextures,
-		int64,RequiredMemorySize,RequiredMemorySize,
-		volatile bool*,bSucceeded,&bSucceeded,
+				Renderthread_StreamOutTextureData(RHICmdList, CandidateTextures, RequiredMemorySize, bSucceeded);
+
+				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+				RHIFlushResources();
+			});
+
+			// Block until the command has finished executing.
+			FlushRenderingCommands();
+			MemoryCostToResize = 0;			
+			CandidateTextures.Reset();
+		}
+	}	
+
+	if (CandidateTextures.Num() > 0)
 	{
-		Renderthread_StreamOutTextureData(RHICmdList, CandidateTextures, RequiredMemorySize, bSucceeded);
-	});
+		// Queue up the process on the render thread.
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			StreamOutTextureDataCommand,
+			TArray<FTextureSortElement>*, CandidateTextures, &CandidateTextures,
+			int64, RequiredMemorySize, RequiredMemorySize,
+			volatile bool*, bSucceeded, &bSucceeded,
+			{
+			Renderthread_StreamOutTextureData(RHICmdList, CandidateTextures, RequiredMemorySize, bSucceeded);
+
+			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+			RHIFlushResources();
+		});
+	}
 
 	// Block until the command has finished executing.
 	FlushRenderingCommands();
@@ -3155,6 +3222,7 @@ void FStreamingManagerTexture::ResetStreamingStats()
 	TotalStreamingTexturesMaxSize						= 0;
 	TotalLightmapMemorySize								= 0;
 	TotalLightmapDiskSize								= 0;
+	TotalHLODMemorySize									= 0;
 	TotalMipCountIncreaseRequestsInFlight				= 0;
 	TotalOptimalWantedSize								= 0;
 	TotalStaticTextureHeuristicSize						= 0;
@@ -3182,6 +3250,7 @@ void FStreamingManagerTexture::UpdateStreamingStats( const FStreamingContext& Co
 	TotalStreamingTexturesMaxSize			+= Context.ThisFrameTotalStreamingTexturesMaxSize;
 	TotalLightmapMemorySize					+= Context.ThisFrameTotalLightmapMemorySize;
 	TotalLightmapDiskSize					+= Context.ThisFrameTotalLightmapDiskSize;
+	TotalHLODMemorySize						+= Context.ThisFrameTotalHLODMemorySize;
 	TotalMipCountIncreaseRequestsInFlight	+= Context.ThisFrameTotalMipCountIncreaseRequestsInFlight;
 	TotalOptimalWantedSize					+= Context.ThisFrameOptimalWantedSize;
 	TotalStaticTextureHeuristicSize			+= Context.ThisFrameTotalStaticTextureHeuristicSize;
@@ -3205,6 +3274,7 @@ void FStreamingManagerTexture::UpdateStreamingStats( const FStreamingContext& Co
 		SET_DWORD_STAT( STAT_StreamingTexturesMaxSize,		TotalStreamingTexturesMaxSize	);
 		SET_DWORD_STAT( STAT_LightmapMemorySize,			TotalLightmapMemorySize			);
 		SET_DWORD_STAT( STAT_LightmapDiskSize,				TotalLightmapDiskSize			);
+		SET_DWORD_STAT( STAT_HLODTextureMemorySize,			TotalHLODMemorySize				);
 		SET_FLOAT_STAT( STAT_StreamingBandwidth,			BandwidthAverage/1024.0f/1024.0f);
 		SET_FLOAT_STAT( STAT_StreamingLatency,				LatencyAverage					);
 		SET_MEMORY_STAT( STAT_StreamingTexturesSize,		TotalStreamingTexturesSize		);
@@ -3383,7 +3453,7 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 	ThreadStats.PendingStreamInSize += (Stats.PendingMemoryAdjustment > 0) ? Stats.PendingMemoryAdjustment : 0;
 	ThreadStats.PendingStreamOutSize += (Stats.PendingMemoryAdjustment < 0) ? -Stats.PendingMemoryAdjustment : 0;
 
-	int64 AvailableNow, AvailableLater, TempMemoryUsed;
+	int64 AvailableNow, AvailableLater, TempMemoryUsed, LargestAlloc;
 	if ( Stats.IsUsingLimitedPoolSize() )
 	{
 		ThreadStats.TempStreamingSize = GStreamMemoryTracker.CalcTempMemory();
@@ -3392,11 +3462,13 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 		// Note: 'AvailableNow' and 'AvailableLater' are allowed to be negative.
 		AvailableNow = GStreamMemoryTracker.CalcAvailableNow( Stats.ComputeAvailableMemorySize(), MemoryMargin );
 		AvailableLater = GStreamMemoryTracker.CalcAvailableLater( Stats.ComputeAvailableMemorySize(), MemoryMargin );
+		LargestAlloc = Stats.LargestContiguousAllocation;
 
-		STAT( int64 NonStreamingUsage = Stats.AllocatedMemorySize - ThreadStats.TotalResidentSize - int64(ThreadStats.PendingStreamInSize) - TempMemoryUsed );
-		STAT( int64 MemoryBudget = Stats.TexturePoolSize - NonStreamingUsage - MemoryMargin );
-		STAT( int64 LocalMemoryOverBudget = FMath::Max(ThreadStats.TotalRequiredSize - MemoryBudget, 0LL) );
-		STAT( MemoryOverBudget = FMath::Max(LocalMemoryOverBudget, 0LL) );
+		const int64 NonStreamingUsage = Stats.AllocatedMemorySize - ThreadStats.TotalResidentSize - int64(ThreadStats.PendingStreamInSize) - TempMemoryUsed;
+		const int64 MemoryBudget = Stats.TexturePoolSize - NonStreamingUsage - MemoryMargin;
+		const int64 LocalMemoryOverBudget = FMath::Max(ThreadStats.TotalRequiredSize - MemoryBudget, 0LL);
+		MemoryOverBudget = FMath::Max(LocalMemoryOverBudget, 0LL);
+		MaxEverRequired = FMath::Max(ThreadStats.TotalRequiredSize, MaxEverRequired);
 
 		SET_MEMORY_STAT( STAT_StreamingOverBudget,	MemoryOverBudget);
 		SET_MEMORY_STAT( STAT_StreamingUnderBudget,	FMath::Max(-LocalMemoryOverBudget,0ll) );
@@ -3407,6 +3479,8 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 		TempMemoryUsed = ThreadStats.TempStreamingSize;
 		AvailableNow = MAX_int64;
 		AvailableLater = MAX_int64;
+		LargestAlloc = AvailableNow;
+
 		MemoryOverBudget = 0;
 		SET_MEMORY_STAT( STAT_StreamingOverBudget, 0 );
 		SET_MEMORY_STAT( STAT_StreamingUnderBudget, 0 );
@@ -3461,9 +3535,10 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 					AvailableLater -= StreamSize;
 
 					// Can we stream in this texture now?
-					if ( StreamSize <= AvailableNow && TempMemoryUsed < MaxTempMemoryUsed )
+					if (StreamSize <= LargestAlloc && StreamSize <= AvailableNow && TempMemoryUsed < MaxTempMemoryUsed)
 					{
 						AvailableNow -= StreamSize;
+						LargestAlloc -= StreamSize;
 						TempMemoryUsed += TempSize;
 						StartStreaming( HighPrioTexture, HighPrioTexture.WantedMips, Context, true );
 					}
@@ -4016,7 +4091,7 @@ void FStreamingManagerTexture::CalcMinMaxMips( FStreamingTexture& StreamingTextu
 		StreamingTexture.MaxAllowedMips );
 
 	// Take the reduced texture pool in to account.
-	STAT( StreamingTexture.MaxAllowedOptimalMips = StreamingTexture.MaxAllowedMips );
+	StreamingTexture.MaxAllowedOptimalMips = StreamingTexture.MaxAllowedMips;
 	if ( GIsOperatingWithReducedTexturePool )
 	{				
 		int32 MaxTextureMipCount = FMath::Max( GMaxTextureMipCount - 2, 0 );
@@ -4083,8 +4158,9 @@ void FStreamingManagerTexture::UpdateFrameStats( FStreamingContext& Context, FSt
 	}
 	Context.ThisFrameNumStreamingTextures++;
 	Context.ThisFrameTotalStreamingTexturesMaxSize += PotentialSize;
-	Context.ThisFrameTotalLightmapMemorySize += StreamingTexture.bIsStreamingLightmap ? ResidentSize : 0;
+	Context.ThisFrameTotalLightmapMemorySize += (StreamingTexture.bIsStreamingLightmap || StreamingTexture.LODGroup == TEXTUREGROUP_Lightmap || StreamingTexture.LODGroup == TEXTUREGROUP_Shadowmap) ? ResidentSize : 0;
 	Context.ThisFrameTotalLightmapDiskSize += StreamingTexture.bIsStreamingLightmap ? PotentialSize : 0;
+	Context.ThisFrameTotalHLODMemorySize += StreamingTexture.bIsHLODTexture ? ResidentSize : 0;
 #endif
 }
 
@@ -4101,7 +4177,7 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 	}
 
 	float MinDistance = StreamingTexture.bUsesDynamicHeuristics ? FMath::Sqrt(StreamingTexture.DynamicMinDistanceSq) : FLT_MAX;
-	STAT(FFloatMipLevel PerfectWantedMips = WantedMips);
+	FFloatMipLevel PerfectWantedMips = WantedMips;
 
 	// Figure out miplevels to request based on handlers.
 	if ( StreamingTexture.MinAllowedMips != StreamingTexture.MaxAllowedMips )
@@ -4113,7 +4189,7 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 			float HandlerDistance = FLT_MAX;
 			FFloatMipLevel HandlerWantedMips = TextureStreamingHandler->GetWantedMips( *this, StreamingTexture, HandlerDistance );
 			WantedMips = FMath::Max( WantedMips, HandlerWantedMips );
-			STAT( PerfectWantedMips = FMath::Max( PerfectWantedMips, HandlerWantedMips ) );
+			PerfectWantedMips = FMath::Max( PerfectWantedMips, HandlerWantedMips );
 			MinDistance = FMath::Min( MinDistance, HandlerDistance );
 		}
 
@@ -4140,7 +4216,7 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 				FFloatMipLevel HandlerWantedMips = GetWantedMipsForOrphanedTexture(StreamingTexture, HandlerDistance);
 				WantedMips = FMath::Max(WantedMips, HandlerWantedMips);
 				MinDistance = FMath::Min(MinDistance, HandlerDistance);
-				STAT(PerfectWantedMips = FMath::Max(PerfectWantedMips, HandlerWantedMips));
+				PerfectWantedMips = FMath::Max(PerfectWantedMips, HandlerWantedMips);
 			}
 
 			// Still wasn't handled? Use the LastRenderTime handler as last resort.
@@ -4152,20 +4228,20 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 				FFloatMipLevel HandlerWantedMips = FallbackStreamingHandler.GetWantedMips( *this, StreamingTexture, HandlerDistance );
 				WantedMips = FMath::Max( WantedMips, HandlerWantedMips );
 				MinDistance = FMath::Min( MinDistance, HandlerDistance );
-				STAT( PerfectWantedMips = FMath::Max( PerfectWantedMips, HandlerWantedMips ) );
+				PerfectWantedMips = FMath::Max( PerfectWantedMips, HandlerWantedMips );
 			}
 		}
 	}
 	// Stream in all allowed miplevels if requested.
 	else
 	{
-		STAT( PerfectWantedMips = FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedOptimalMips) );
+		PerfectWantedMips = FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedOptimalMips);
 		WantedMips = FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips);
 	}
 
 	StreamingTexture.WantedMips = WantedMips.ComputeMip(&StreamingTexture, ThreadSettings.MipBias, false);
 	StreamingTexture.MinDistance = MinDistance;
-	STAT( StreamingTexture.PerfectWantedMips = PerfectWantedMips.ComputeMip(&StreamingTexture, ThreadSettings.MipBias, true) );
+	StreamingTexture.PerfectWantedMips = PerfectWantedMips.ComputeMip(&StreamingTexture, ThreadSettings.MipBias, true);
 }
 
 /**
@@ -4438,6 +4514,14 @@ bool FStreamingManagerTexture::HandleListStreamingTexturesReportCommand( const T
 #endif
 
 #if !UE_BUILD_SHIPPING
+
+bool FStreamingManagerTexture::HandleResetMaxEverRequiredTexturesCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	Ar.Logf(TEXT("OldMax: %u MaxEverRequired Reset."), MaxEverRequired);
+	ResetMaxEverRequired();	
+	return true;
+}
+
 bool FStreamingManagerTexture::HandleLightmapStreamingFactorCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString FactorString(FParse::Token(Cmd, 0));
@@ -4746,6 +4830,10 @@ bool FStreamingManagerTexture::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputD
 	}
 #endif
 #if !UE_BUILD_SHIPPING
+	if (FParse::Command(&Cmd, TEXT("ResetMaxEverRequiredTextures")))
+	{
+		return HandleResetMaxEverRequiredTexturesCommand(Cmd, Ar);
+	}
 	if (FParse::Command(&Cmd,TEXT("LightmapStreamingFactor")))
 	{
 		return HandleLightmapStreamingFactorCommand( Cmd, Ar );
@@ -5343,7 +5431,10 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 					for( int32 ViewIndex=0; ViewIndex < StreamingManager.ThreadNumViews() && !bShouldAbortLoop; ViewIndex++ )
 					{
 						const FStreamingViewInfo& ViewInfo = StreamingManager.ThreadGetView(ViewIndex);
-						const float ScreenSizeFloat = ViewInfo.ScreenSize * ViewInfo.BoostFactor * ScreenSizeFactor;
+
+						const float MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();
+						const float EffectiveScreenSize = (MaxEffectiveScreenSize > 0.0f) ? FMath::Min(MaxEffectiveScreenSize, ViewInfo.ScreenSize) : ViewInfo.ScreenSize;
+						const float ScreenSizeFloat = EffectiveScreenSize * ViewInfo.BoostFactor * ScreenSizeFactor;
 						const VectorRegister ScreenSize = VectorLoadFloat1( &ScreenSizeFloat );
 						const VectorRegister ViewOriginX = VectorLoadFloat1( &ViewInfo.ViewOrigin.X );
 						const VectorRegister ViewOriginY = VectorLoadFloat1( &ViewInfo.ViewOrigin.Y );

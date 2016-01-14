@@ -1280,6 +1280,7 @@ void UAbilitySystemComponent::ClientTryActivateAbility_Implementation(FGameplayA
 
 void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpecHandle Handle, bool InputPressed, const FPredictionKey& PredictionKey, const FGameplayEventData* TriggerEventData)
 {
+#if WITH_SERVER_CODE
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DenyClientActivation > 0)
 	{
@@ -1374,6 +1375,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 		Spec->InputPressed = false;
 	}
 	MarkAbilitySpecDirty(*Spec);
+#endif
 }
 
 void UAbilitySystemComponent::ReplicateEndOrCancelAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability, bool bWasCanceled)

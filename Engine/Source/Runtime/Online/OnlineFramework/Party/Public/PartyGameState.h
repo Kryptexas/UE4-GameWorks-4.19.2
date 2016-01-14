@@ -277,6 +277,13 @@ public:
 	 */
 	void GetAllPartyMembers(TArray<UPartyMemberState*>& PartyMembers) const;
 
+	/**
+	 * Get the chat room ID for this party
+	 *
+	 * @return The chat room ID
+	 */
+	FChatRoomId GetChatRoomID() const;
+
 	template< typename TPartyMemberState >
 	void GetTypedPartyMembers(TArray< TPartyMemberState* >& PartyMembers) const
 	{

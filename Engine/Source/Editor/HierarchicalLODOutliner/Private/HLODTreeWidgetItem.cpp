@@ -9,6 +9,8 @@
 #include "StaticMeshActorItem.h"
 #include "HLODOutliner.h"
 
+#define LOCTEXT_NAMESPACE "HLODTreeWidgetItem"
+
 namespace HLODOutliner
 {
 	static void UpdateOperationDecorator(const FDragDropEvent& Event, const FDragValidationInfo& ValidationInfo)
@@ -74,6 +76,8 @@ namespace HLODOutliner
 		// Validate now to make sure we don't doing anything we shouldn't
 		if (!DraggedObjects.ParseDrag(*DragDropEvent.GetOperation()))
 		{
+			// Invalid selection
+			ValidationInfo = FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_Incompatible, LOCTEXT("InvalidSelection", "Selection contains already clustered Actor(s)"));
 			return FReply::Unhandled();
 		}
 
@@ -199,3 +203,5 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		return FReply::Unhandled();
 	}	
 };
+
+#undef LOCTEXT_NAMESPACE // "HLODTreeWidgetItem"

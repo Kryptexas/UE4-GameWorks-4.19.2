@@ -22,4 +22,7 @@ struct FPerforceConnectionInfo
 
 	/** Password if in use */
 	FString Password;
+
+	/** Changelist number */
+	FString ChangelistNumber;
 };

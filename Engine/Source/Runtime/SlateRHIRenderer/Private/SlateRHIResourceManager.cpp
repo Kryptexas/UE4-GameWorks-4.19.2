@@ -699,6 +699,8 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 
 void FSlateRHIResourceManager::OnAppExit()
 {
+	FlushRenderingCommands();
+
 	ReleaseResources();
 
 	FlushRenderingCommands();
@@ -851,6 +853,8 @@ void FSlateRHIResourceManager::UpdateTextureAtlases()
 
 FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHandle(const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle)
 {
+	check(IsInRenderingThread());
+
 	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(&RenderHandle.Get());
 	if ( Buffers == nullptr )
 	{
@@ -865,8 +869,8 @@ FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHand
 		if ( Pool.Num() == 0 )
 		{
 			Buffers = new FCachedRenderBuffers();
-			Buffers->VertexBuffer.Init(200);
-			Buffers->IndexBuffer.Init(200);
+			Buffers->VertexBuffer.Init(100);
+			Buffers->IndexBuffer.Init(100);
 		}
 		else
 		{
@@ -881,16 +885,36 @@ FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHand
 	return Buffers;
 }
 
-void FSlateRHIResourceManager::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
+void FSlateRHIResourceManager::BeginReleasingRenderData(const FSlateRenderDataHandle* RenderHandle)
+{
+	struct FReleaseCachedRenderDataContext
+	{
+		FSlateRHIResourceManager* ResourceManager;
+		const FSlateRenderDataHandle* RenderDataHandle;
+		const ILayoutCache* LayoutCacher;
+	};
+	FReleaseCachedRenderDataContext ReleaseCachedRenderDataContext =
+	{
+		this,
+		RenderHandle,
+		RenderHandle->GetCacher()
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		ReleaseCachedRenderData,
+		FReleaseCachedRenderDataContext, Context, ReleaseCachedRenderDataContext,
+		{
+			Context.ResourceManager->ReleaseCachedRenderData(Context.RenderDataHandle, Context.LayoutCacher);
+		});
+}
+
+void FSlateRHIResourceManager::ReleaseCachedRenderData(const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher)
 {
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
-	check(InRenderHandle);
 
-	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(InRenderHandle);
+	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(RenderHandle);
 	if ( ensure(PooledBuffer != nullptr) )
 	{
-		const ILayoutCache* LayoutCacher = InRenderHandle->GetCacher();
 		TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(LayoutCacher);
 		if ( Pool )
 		{
@@ -904,12 +928,14 @@ void FSlateRHIResourceManager::ReleaseCachedRenderData(FSlateRenderDataHandle* I
 			delete PooledBuffer;
 		}
 
-		CachedBuffers.Remove(InRenderHandle);
+		CachedBuffers.Remove(RenderHandle);
 	}
 }
 
 void FSlateRHIResourceManager::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 {
+	check(IsInRenderingThread());
+
 	TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(Cacher);
 	if ( Pool )
 	{

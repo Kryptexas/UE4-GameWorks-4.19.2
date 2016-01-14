@@ -1262,8 +1262,7 @@ void FAnimMontageInstance::Terminate()
 	}
 
 	UAnimMontage* OldMontage = Montage;
-	Montage = NULL;
-
+	
 	UAnimInstance* Inst = AnimInstance.Get();
 	if (Inst)
 	{
@@ -1277,15 +1276,16 @@ void FAnimMontageInstance::Terminate()
 
 		// terminating, trigger end
 		Inst->QueueMontageEndedEvent(FQueuedMontageEndedEvent(OldMontage, bInterrupted, OnMontageEnded));
-	}
 
-	// Clear any active synchronization
-	MontageSync_StopFollowing();
-	MontageSync_StopLeading();
+		// Clear references to this MontageInstance. Needs to happen before Montage is cleared to nullptr, as TMaps can use that as a key.
+		Inst->ClearMontageInstanceReferences(*this);
+	}
 
 	// clear Blend curve
 	Blend.SetCustomCurve(NULL);
 	Blend.SetBlendOption(EAlphaBlendOption::Linear);
+
+	Montage = nullptr;
 
 	UE_LOG(LogAnimMontage, Verbose, TEXT("Terminating: AnimMontage: %s"), *GetNameSafe(OldMontage));
 }

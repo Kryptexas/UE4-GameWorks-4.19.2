@@ -171,6 +171,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	// GameplayCue Parameters
 	virtual void InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectSpecForRPC &Spec);
+	virtual void InitGameplayCueParameters_GESpec(FGameplayCueParameters& CueParameters, const FGameplayEffectSpec &Spec);
 	virtual void InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectContextHandle& EffectContext);
 
 	// Trigger async loading of the gameplay cue object libraries. By default, the manager will do this on creation,
@@ -247,6 +248,8 @@ private:
 #if WITH_EDITOR
 	void OnTableReimported(UObject* InObject);
 #endif
+
+	void HandlePostWorldCreate(UWorld* NewWorld);
 
 #if WITH_EDITORONLY_DATA
 	bool RegisteredReimportCallback;

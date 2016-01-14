@@ -157,7 +157,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 {
 	if (Actor != nullptr)
 	{
-		const bool bIsChildActor = Actor->ParentComponentActor.IsValid();
+		const bool bIsChildActor = Actor->IsChildActor();
 
 		TInlineComponentArray<UActorComponent*> Components(Actor);
 
@@ -201,7 +201,7 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor, const ECacheApplyP
 {
 	if (Actor != nullptr)
 	{
-		const bool bIsChildActor = Actor->ParentComponentActor.IsValid();
+		const bool bIsChildActor = Actor->IsChildActor();
 
 		TInlineComponentArray<UActorComponent*> Components(Actor);
 

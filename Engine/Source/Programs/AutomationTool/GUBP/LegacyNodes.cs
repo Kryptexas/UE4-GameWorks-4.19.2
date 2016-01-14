@@ -2648,9 +2648,9 @@ partial class GUBP
 		{
 			var UEProjectDirectory = GetUEProjectDirectory();
 			var UEProjectName = GetUEProjectName();
-			var OneSkyConfigName = GetOneSkyConfigName();
-			var OneSkyProjectGroupName = GetOneSkyProjectGroupName();
-			var OneSkyProjectNames = GetOneSkyProjectNames();
+			var LocalizationProjectNames = GetLocalizationProjectNames();
+			var LocalizationProviderName = GetLocalizationProviderName();
+			var LocalizationProviderArgs = GetLocalizationProviderArgs();
 
 			// Build the correct command line arguments.
 			var CommandLineArguments = "";
@@ -2665,24 +2665,24 @@ partial class GUBP
 				CommandLineArguments += " -UEProjectName=\"" + UEProjectName + "\"";
 			}
 
-			if (!String.IsNullOrEmpty(OneSkyConfigName))
+			if (!String.IsNullOrEmpty(LocalizationProjectNames))
 			{
-				CommandLineArguments += " -OneSkyConfigName=\"" + OneSkyConfigName + "\"";
-			}
-
-			if (!String.IsNullOrEmpty(OneSkyProjectGroupName))
-			{
-				CommandLineArguments += " -OneSkyProjectGroupName=\"" + OneSkyProjectGroupName + "\"";
-			}
-
-			if (!String.IsNullOrEmpty(OneSkyProjectNames))
-			{
-				CommandLineArguments += " -OneSkyProjectNames=\"" + OneSkyProjectNames + "\"";
+				CommandLineArguments += " -LocalizationProjectNames=\"" + LocalizationProjectNames + "\"";
 			}
 
 			if (!String.IsNullOrEmpty(LocalizationBranchSuffix))
 			{
-				CommandLineArguments += " -OneSkyBranchSuffix=\"" + LocalizationBranchSuffix + "\"";
+				CommandLineArguments += " -LocalizationBranch=\"" + LocalizationBranchSuffix + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(LocalizationProviderName))
+			{
+				CommandLineArguments += " -LocalizationProvider=\"" + LocalizationProviderName + "\"";
+			}
+
+			if (!String.IsNullOrEmpty(LocalizationProviderArgs))
+			{
+				CommandLineArguments += " " + LocalizationProviderArgs;
 			}
 
 			// Run the localise script.
@@ -2708,19 +2708,19 @@ partial class GUBP
 			throw new AutomationException("Unimplemented GetUEProjectName.");
 		}
 
-		protected virtual string GetOneSkyConfigName()
+		protected virtual string GetLocalizationProjectNames()
 		{
-			throw new AutomationException("Unimplemented GetOneSkyConfigName.");
+			throw new AutomationException("Unimplemented GetLocalizationProjectNames.");
 		}
 
-		protected virtual string GetOneSkyProjectGroupName()
+		protected virtual string GetLocalizationProviderName()
 		{
-			throw new AutomationException("Unimplemented GetOneSkyProjectGroupName.");
+			throw new AutomationException("Unimplemented GetLocalizationProviderName.");
 		}
 
-		protected virtual string GetOneSkyProjectNames()
+		protected virtual string GetLocalizationProviderArgs()
 		{
-			throw new AutomationException("Unimplemented GetOneSkyProjectNames.");
+			return "";
 		}
 
 		protected string LocalizationBranchSuffix;
@@ -2754,19 +2754,19 @@ partial class GUBP
 			return "";
 		}
 
-		protected override string GetOneSkyConfigName()
-		{
-			return "OneSkyConfig_EpicGames";
-		}
-
-		protected override string GetOneSkyProjectGroupName()
-		{
-			return "Unreal Engine";
-		}
-
-		protected override string GetOneSkyProjectNames()
+		protected override string GetLocalizationProjectNames()
 		{
 			return "Engine,Editor,EditorTutorials,PropertyNames,ToolTips,Category,Keywords";
+		}
+
+		protected override string GetLocalizationProviderName()
+		{
+			return "OneSky";
+		}
+
+		protected override string GetLocalizationProviderArgs()
+		{
+			return "-OneSkyConfigName=\"OneSkyConfig_EpicGames\" -OneSkyProjectGroupName=\"Unreal Engine\"";
 		}
 	}
 

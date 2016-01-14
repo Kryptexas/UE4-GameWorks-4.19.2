@@ -2089,7 +2089,7 @@ void UInterpGroup::PostLoad()
 
 void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool bPreview, bool bJump)
 {
-	check( InterpTracks.Num() == GrInst->TrackInst.Num() );
+	checkf( InterpTracks.Num() == GrInst->TrackInst.Num(), TEXT("UpdateGroup track mismatch! Outer = %s"), *GetNameSafe(GetOuter()) );
 
 	// Update animation state of Actor.
 #if 0

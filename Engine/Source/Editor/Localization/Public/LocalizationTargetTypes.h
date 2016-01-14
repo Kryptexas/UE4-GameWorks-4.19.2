@@ -70,6 +70,7 @@ struct FGatherTextFromTextFilesConfiguration
 	FGatherTextFromTextFilesConfiguration()
 		: IsEnabled(true)
 		, FileExtensions(GetDefaultTextFileExtensions())
+		, ShouldGatherFromEditorOnlyData(false)
 	{
 	}
 
@@ -88,6 +89,10 @@ struct FGatherTextFromTextFilesConfiguration
 	/* Text files whose names match these wildcard patterns may be parsed for text to gather. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FGatherTextFileExtension> FileExtensions;
+
+	/* If enabled, data that is specified as editor-only may be processed for gathering. */
+	UPROPERTY(config, EditAnywhere, Category = "Filter")
+	bool ShouldGatherFromEditorOnlyData;
 
 	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
@@ -123,7 +128,7 @@ struct FGatherTextFromPackagesConfiguration
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FGatherTextFileExtension> FileExtensions;
 
-	/* If enable, data that is specified as editor-only may be processed for gathering. */
+	/* If enabled, data that is specified as editor-only may be processed for gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	bool ShouldGatherFromEditorOnlyData;
 

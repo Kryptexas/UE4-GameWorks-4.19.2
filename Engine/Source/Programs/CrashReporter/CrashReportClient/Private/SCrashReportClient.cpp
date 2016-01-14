@@ -254,6 +254,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 					.ContentPadding( FMargin( 8, 2 ) )
 					.Text( LOCTEXT( "CloseWithoutSending", "Close Without Sending" ) )
 					.OnClicked( Client, &FCrashReportClient::CloseWithoutSending )
+					.Visibility(FCrashReportClientConfig::Get().IsAllowedToCloseWithoutSending() ? EVisibility::Visible : EVisibility::Hidden)
 				]
 
 				+SHorizontalBox::Slot()

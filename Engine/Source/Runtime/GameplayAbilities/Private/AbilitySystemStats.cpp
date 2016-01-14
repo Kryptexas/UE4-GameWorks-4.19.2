@@ -29,3 +29,4 @@ DEFINE_STAT(STAT_HandleGameplayCueNotifyActor);
 DEFINE_STAT(STAT_ApplyGameplayEffectToTarget);
 DEFINE_STAT(STAT_OnActiveGameplayEffectAdded);
 DEFINE_STAT(STAT_OnActiveGameplayEffectRemoved);
+DEFINE_STAT(STAT_GameplayCueInterface_HandleGameplayCue);

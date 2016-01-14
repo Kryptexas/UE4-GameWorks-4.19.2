@@ -579,8 +579,12 @@ float4 Recombine2Samples(float4 UVAndScreenPos, float PixCoc, float InRand)
 		// Weight the two samples to avoid forground into background bleed.
 		float IFeather0 = 1.0/4.0;
 		ICoc *= 0.5; // Coc is half res units.
-		I1 += saturate((abs(CA.a) - ICoc) * IFeather0 + Frame.GeneralPurposeTweak);
-		I2 += saturate((abs(CB.a) - ICoc) * IFeather0 + Frame.GeneralPurposeTweak);
+
+		// todo: verify the value, was 0.0f at some point
+		float Tweak = 1.0f;
+
+		I1 += saturate((abs(CA.a) - ICoc) * IFeather0 + Tweak); 
+		I2 += saturate((abs(CB.a) - ICoc) * IFeather0 + Tweak);
 #endif
 
 		return float4(CA.rgb * I1 + CB.rgb * I2, I1 + I2);

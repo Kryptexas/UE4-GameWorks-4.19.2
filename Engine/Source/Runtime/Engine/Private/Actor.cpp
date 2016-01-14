@@ -21,6 +21,7 @@
 #include "GameFramework/Pawn.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 #include "Components/TimelineComponent.h"
+#include "Components/ChildActorComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/DamageType.h"
 #include "Kismet/GameplayStatics.h"
@@ -525,6 +526,19 @@ void AActor::PostLoad()
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		bExchangedRoles = false;
+	}
+
+	if (AActor* ParentActor = ParentComponentActor_DEPRECATED.Get())
+	{
+		TInlineComponentArray<UChildActorComponent*> ParentChildActorComponents(ParentActor);
+		for (UChildActorComponent* ChildActorComponent : ParentChildActorComponents)
+		{
+			if (ChildActorComponent->ChildActor == this)
+			{
+				ParentComponent = ChildActorComponent;
+				break;
+			}
+		}
 	}
 
 	if ( GIsEditor )
@@ -1377,14 +1391,14 @@ void AActor::OnRep_AttachmentReplication()
 	{
 		if (RootComponent)
 		{
-			USceneComponent* ParentComponent = (AttachmentReplication.AttachComponent ? AttachmentReplication.AttachComponent : AttachmentReplication.AttachParent->GetRootComponent());
+			USceneComponent* AttachParentComponent = (AttachmentReplication.AttachComponent ? AttachmentReplication.AttachComponent : AttachmentReplication.AttachParent->GetRootComponent());
 
-			if (ParentComponent)
+			if (AttachParentComponent)
 			{
 				RootComponent->RelativeLocation = AttachmentReplication.LocationOffset;
 				RootComponent->RelativeRotation = AttachmentReplication.RotationOffset;
 				RootComponent->RelativeScale3D = AttachmentReplication.RelativeScale3D;
-				RootComponent->AttachTo(ParentComponent, AttachmentReplication.AttachSocket);
+				RootComponent->AttachTo(AttachParentComponent, AttachmentReplication.AttachSocket);
 			}
 		}
 	}
@@ -3677,8 +3691,37 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 	}
 }
 
-// COMPONENTS
+#if WITH_EDITOR
+bool AActor::IsTemporarilyHiddenInEditor(const bool bIncludeParent) const
+{
+	if (bHiddenEdTemporary)
+	{
+		return true;
+	}
 
+	if (bIncludeParent)
+	{
+		if (UChildActorComponent* ParentCAC = ParentComponent.Get())
+		{
+			return ParentCAC->GetOwner()->IsTemporarilyHiddenInEditor(true);
+		}
+	}
+
+	return false;
+}
+#endif
+
+bool AActor::IsChildActor() const
+{
+	return ParentComponent.IsValid();
+}
+
+UChildActorComponent* AActor::GetParentComponent() const
+{
+	return ParentComponent.Get();
+}
+
+// COMPONENTS
 
 void AActor::UnregisterAllComponents()
 {
@@ -3773,19 +3816,19 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 		if(!Component->IsRegistered() && Component->bAutoRegister && !Component->IsPendingKill())
 		{
 			// Ensure that all parent are registered first
-			USceneComponent* ParentComponent = GetUnregisteredParent(Component);
-			if (ParentComponent)
+			USceneComponent* UnregisteredParentComponent = GetUnregisteredParent(Component);
+			if (UnregisteredParentComponent)
 			{
 				bool bParentAlreadyHandled = false;
-				RegisteredParents.Add(ParentComponent, &bParentAlreadyHandled);
+				RegisteredParents.Add(UnregisteredParentComponent, &bParentAlreadyHandled);
 				if (bParentAlreadyHandled)
 				{
-					UE_LOG(LogActor, Error, TEXT("AActor::IncrementalRegisterComponents parent component '%s' cannot be registered in actor '%s'"), *GetPathNameSafe(ParentComponent), *GetPathName());
+					UE_LOG(LogActor, Error, TEXT("AActor::IncrementalRegisterComponents parent component '%s' cannot be registered in actor '%s'"), *GetPathNameSafe(UnregisteredParentComponent), *GetPathName());
 					break;
 				}
 
 				// Register parent first, then return to this component on a next iteration
-				Component = ParentComponent;
+				Component = UnregisteredParentComponent;
 				CompIdx--;
 				NumTotalRegisteredComponents--; // because we will try to register the parent again later...
 			}
@@ -3864,15 +3907,20 @@ void AActor::UpdateComponentTransforms()
 
 void AActor::MarkComponentsRenderStateDirty()
 {
-	TInlineComponentArray<UActorComponent*> Components;
-	GetComponents(Components);
+	TInlineComponentArray<UActorComponent*> Components(this);
 
-	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	for (UActorComponent* ActorComp : Components)
 	{
-		UActorComponent* ActorComp = Components[Idx];
 		if (ActorComp->IsRegistered())
 		{
 			ActorComp->MarkRenderStateDirty();
+			if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(ActorComp))
+			{
+				if (ChildActorComponent->ChildActor)
+				{
+					ChildActorComponent->ChildActor->MarkComponentsRenderStateDirty();
+				}
+			}
 		}
 	}
 }
@@ -3923,10 +3971,9 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 		DrawDebugCoordinateSystem(MyWorld, Loc, Rot, 10.f);
 
 		// draw line from me to my parent
-		USceneComponent const* const ParentComponent = Cast<USceneComponent>(Component->AttachParent);
-		if (ParentComponent)
+		if (Component->AttachParent)
 		{
-			DrawDebugLine(MyWorld, ParentComponent->GetComponentLocation(), Loc, BaseColor);
+			DrawDebugLine(MyWorld, Component->AttachParent->GetComponentLocation(), Loc, BaseColor);
 		}
 
 		// draw component name

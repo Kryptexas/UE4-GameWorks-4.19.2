@@ -402,6 +402,18 @@ public:
 		GRenderThreadId = 0;
 	}
 
+#if PLATFORM_WINDOWS && !PLATFORM_SEH_EXCEPTIONS_DISABLED
+	static int32 FlushRHILogsAndReportCrash(LPEXCEPTION_POINTERS ExceptionInfo)
+	{
+		if (GDynamicRHI)
+		{
+			GDynamicRHI->FlushPendingLogs();
+		}
+
+		return ReportCrash(ExceptionInfo);
+	}
+#endif
+
 	virtual uint32 Run(void) override
 	{
 		FPlatformProcess::SetupGameOrRenderThread(true);
@@ -416,7 +428,7 @@ public:
 				RenderingThreadMain( TaskGraphBoundSyncEvent );
 			}
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
-			__except( ReportCrash( GetExceptionInformation() ) )
+			__except(FlushRHILogsAndReportCrash(GetExceptionInformation()))
 			{
 				GRenderingThreadError = GErrorHist;
 

@@ -811,9 +811,28 @@ IFileHandle* FPakPlatformFile::CreatePakFileHandle(const TCHAR* Filename, FPakFi
 	return Result;
 }
 
-bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder)
+bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder, IPlatformFile::FDirectoryVisitor* Visitor)
 {
-	return Mount(*PakFilePath, PakOrder);
+	bool bReturn = Mount(*PakFilePath, PakOrder);
+	if (bReturn && Visitor != nullptr)
+	{
+		TArray<FPakListEntry> Paks;
+		GetMountedPaks(Paks);
+		// Find the single pak we just mounted
+		for (auto Pak : Paks)
+		{
+			if (PakFilePath == Pak.PakFile->GetFilename())
+			{
+				// Get a list of all of the files in the pak
+				for (FPakFile::FFileIterator It(*Pak.PakFile); It; ++It)
+				{
+					Visitor->Visit(*It.Filename(), false);
+				}
+				return true;
+			}
+		}
+	}
+	return bReturn;
 }
 
 bool FPakPlatformFile::HandleUnmountPakDelegate(const FString& PakFilePath)

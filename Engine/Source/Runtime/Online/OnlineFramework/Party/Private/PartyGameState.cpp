@@ -998,6 +998,12 @@ void UPartyGameState::GetAllPartyMembers(TArray<UPartyMemberState*>& PartyMember
 	PartyMembersState.GenerateValueArray(PartyMembers);
 }
 
+FChatRoomId UPartyGameState::GetChatRoomID() const
+{
+	ensure(OssParty.IsValid());
+	return OssParty->RoomId;
+}
+
 void UPartyGameState::OnPartyMemberPromoted(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EPromoteMemberCompletionResult Result)
 {
 	FString PartyIdDebugString = InPartyId.ToDebugString();

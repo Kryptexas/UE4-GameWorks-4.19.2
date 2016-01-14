@@ -506,17 +506,23 @@ struct FShaderParams
 class FSlateRenderer;
 class FSlateRenderBatch;
 
+class ISlateRenderDataManager
+{
+public:
+	virtual void BeginReleasingRenderData(const FSlateRenderDataHandle* RenderHandle) = 0;
+};
+
 class SLATECORE_API FSlateRenderDataHandle : public TSharedFromThis < FSlateRenderDataHandle, ESPMode::ThreadSafe >
 {
 public:
-	FSlateRenderDataHandle(const ILayoutCache* Cacher, FSlateRenderer* InRenderer);
+	FSlateRenderDataHandle(const ILayoutCache* Cacher, ISlateRenderDataManager* InManager);
 
 	virtual ~FSlateRenderDataHandle();
-
+	
 	void Disconnect();
 
 	const ILayoutCache* GetCacher() const { return Cacher; }
-	const FSlateRenderer* GetRenderer() const { return Renderer; }
+	//const FSlateRenderer* GetRenderer() const { return Renderer; }
 
 	void SetRenderBatches(TArray<FSlateRenderBatch>* InRenderBatches) { RenderBatches = InRenderBatches; }
 	TArray<FSlateRenderBatch>* GetRenderBatches() { return RenderBatches; }
@@ -528,7 +534,7 @@ public:
 
 private:
 	const ILayoutCache* Cacher;
-	FSlateRenderer* Renderer;
+	ISlateRenderDataManager* Manager;
 	TArray<FSlateRenderBatch>* RenderBatches;
 
 	volatile int32 UsageCount;

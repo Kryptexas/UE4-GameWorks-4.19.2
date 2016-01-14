@@ -54,6 +54,10 @@ public:
 	UFUNCTION(BlueprintPure, Category=Settings)
 	FIntPoint GetLastConfirmedScreenResolution() const;
 
+	/** Returns user's desktop resolution, in pixels. */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	FIntPoint GetDesktopResolution() const;
+
 	/** Sets the user setting for game screen resolution, in pixels. */
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	void SetScreenResolution(FIntPoint Resolution);
@@ -303,6 +307,9 @@ protected:
 	UPROPERTY(config)
 	float FrameRateLimit;
 
+	/** Min resolution scale we allow in current display mode */
+	int32 MinResolutionScale;
+
 	/**
 	 * Check if the current version of the game user settings is valid. Sub-classes can override this to provide game-specific versioning as necessary.
 	 * @return True if the current version is valid, false if it is not
@@ -311,4 +318,8 @@ protected:
 
 	/** Update the version of the game user settings to the current version */
 	virtual void UpdateVersion();
+
+private:
+
+	void UpdateMinResolutionScaling();
 };

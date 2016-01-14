@@ -285,6 +285,7 @@ void FD3D12DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 
 		// Truncate GTexturePoolSize to MB (but still counted in bytes)
 		OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
+		OutStats.LargestContiguousAllocation = OutStats.AllocatedMemorySize;
 		OutStats.PendingMemoryAdjustment = 0;
 	}
 	else

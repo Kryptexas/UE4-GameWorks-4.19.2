@@ -333,7 +333,7 @@ void FRawStatStackNode::DebugPrint(TCHAR const* Filter, int32 InMaxDepth, int32 
 			UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc(Depth*2), *TmpDebugStr);
 		}
 
-		static int64 MinPrint = int64( .004f / FPlatformTime::ToMilliseconds( 1 ) + 0.5f );
+		static int64 MinPrint = -1;
 		if (Children.Num())
 		{
 			TArray<FRawStatStackNode*> ChildArray;
@@ -364,6 +364,60 @@ void FRawStatStackNode::DebugPrint(TCHAR const* Filter, int32 InMaxDepth, int32 
 		}
 	}
 }
+
+void FRawStatStackNode::DebugPrintLeafFilter(TCHAR const* Filter) const
+{
+	TArray<FString> Stack;
+	DebugPrintLeafFilterInner(Filter, 0, Stack);
+}
+
+void FRawStatStackNode::DebugPrintLeafFilterInner(TCHAR const* Filter, int32 Depth, TArray<FString>& Stack) const
+{
+	{
+		FString TmpDebugStr = FStatsUtils::DebugPrint(Meta);
+		Stack.Add(TmpDebugStr);
+	}
+	if (!Filter || !*Filter)
+	{
+		int32 Offset = 1 + Depth - Stack.Num();
+		check(Offset >= 0);
+		for (int32 Index = 0; Index < Stack.Num(); Index++)
+		{
+			UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc((Index + Offset) * 2), *Stack[Index]);
+		}
+		Stack.Reset();
+	}
+	else
+	{
+		static int64 MinPrint = -1;
+		if (Children.Num())
+		{
+			TArray<FRawStatStackNode*> ChildArray;
+			Children.GenerateValueArray(ChildArray);
+			ChildArray.Sort(FStatDurationComparer<FRawStatStackNode>());
+			for (int32 Index = 0; Index < ChildArray.Num(); Index++)
+			{
+				if (ChildArray[Index]->Meta.GetValue_Duration() < MinPrint)
+				{
+					break;
+				}
+				if (ChildArray[Index]->Meta.NameAndInfo.GetRawName().ToString().Contains(Filter))
+				{
+					ChildArray[Index]->DebugPrintLeafFilterInner(nullptr, Depth + 1, Stack);
+				}
+				else
+				{
+					ChildArray[Index]->DebugPrintLeafFilterInner(Filter, Depth + 1, Stack);
+				}
+			}
+		}
+		if (Stack.Num())
+		{
+			Stack.Pop();
+		}
+	}
+}
+
 
 void FRawStatStackNode::Encode(TArray<FStatMessage>& OutStats) const
 {

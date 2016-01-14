@@ -133,7 +133,7 @@ struct FEmbreeFilterProcessor
 	/**
 	 * Test if the ray comes from an HLOD (massive LOD) ignore intersection from other LODs of this HLOD.
 	 *
-	 * @return		true if the ray is allowed to intersect with this geometry.
+	 * @return		true if the ray is rejected.
      */
 	EMBREE_INLINE bool HitRejectedByHLODTest() const
 	{
@@ -142,8 +142,8 @@ struct FEmbreeFilterProcessor
 			uint32 GeoHLODIndex = (Geo.Mesh->GetLODIndices() & 0xFFFF0000) >> 16;
 			uint32 RayHLODIndex = (Ray.MappingMesh->GetLODIndices() & 0xFFFF0000) >> 16;
 
-			// If they are from the same HLOD (0xFFFF and 0 being invalid HLOD).
-			if (GeoHLODIndex != 0 && GeoHLODIndex != 0xFFFF && GeoHLODIndex == RayHLODIndex) 
+			// If either Geo or Ray is a HLOD (0xFFFF being invalid HLOD).
+			if (GeoHLODIndex != 0xFFFF || RayHLODIndex != 0xFFFF)
 			{
 				uint32 GeoHLODRange = Geo.Mesh->GetHLODRange();
 				uint32 GeoHLODRangeStart = GeoHLODRange & 0xFFFF;
@@ -153,10 +153,18 @@ struct FEmbreeFilterProcessor
 				uint32 RayHLODRangeStart = RayHLODRange & 0xFFFF;
 				uint32 RayHLODRangeEnd = (RayHLODRange & 0xFFFF0000) >> 16;
 
-				// If both are not leaf nodes (Start == End)
-				if (GeoHLODRangeStart != GeoHLODRangeEnd || RayHLODRangeStart != RayHLODRangeEnd)
+				// Different rules apply if we're dealing with the same cluster.
+				if (GeoHLODIndex != RayHLODIndex)
 				{
-					// If they are not the same HLOD mesh (identical ranges), ignore the children of this HLOD node (range would intersect)
+					// Allow HLOD leaf nodes (Start == End) to interact with other meshes, else reject.
+					if (GeoHLODRangeStart != GeoHLODRangeEnd)
+					{
+						return true;
+					}
+				}
+				else
+				{
+					// Allow HLOD nodes to self-shadow (identical ranges), else reject where range intersects.
 					if (GeoHLODRange != RayHLODRange && 
 						GeoHLODRangeStart <= RayHLODRangeEnd && RayHLODRangeStart <= GeoHLODRangeEnd)
 					{

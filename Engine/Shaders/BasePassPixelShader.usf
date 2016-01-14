@@ -867,6 +867,10 @@ void Main(
 			EffectiveDiffuseColor += SubsurfaceColor;
 		#endif
 
+		#if MATERIAL_SHADINGMODEL_CLOTH
+			EffectiveDiffuseColor += SubsurfaceColor * saturate( GetMaterialCustomData0(MaterialParameters) );
+		#endif
+
 		#if MATERIAL_SHADINGMODEL_HAIR
 		{
 			float3 N = MaterialParameters.WorldNormal;

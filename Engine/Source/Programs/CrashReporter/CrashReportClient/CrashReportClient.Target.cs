@@ -88,7 +88,7 @@ public class CrashReportClientTarget : TargetRules
 		// the linker.
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 
-		OutCPPEnvironmentConfiguration.Definitions.Add( "USE_CHECKS_IN_SHIPPING=1" );
+		UEBuildConfiguration.bUseChecksInShipping = true;
 	}
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
 	{

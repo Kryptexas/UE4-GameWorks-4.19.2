@@ -28,9 +28,8 @@ struct FGameplayCuePendingExecute
 	, OwningComponent(NULL)
 	{
 	}
-
-	UPROPERTY()
-	FGameplayTag GameplayCueTag;
+	
+	TArray<FGameplayTag, TInlineAllocator<1> > GameplayCueTags;
 	
 	/** Prediction key that spawned this cue */
 	UPROPERTY()

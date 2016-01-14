@@ -51,6 +51,12 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		bHideLogFilesOption = false;
 	}
 	
+	if (!GConfig->GetBool(TEXT("CrashReportClient"), TEXT("bIsAllowedToCloseWithoutSending"), bIsAllowedToCloseWithoutSending, GEngineIni))
+	{
+		// Default to true (Allow the user to close without sending) when config is missing.
+		bIsAllowedToCloseWithoutSending = true;
+	}
+
 	ReadFullCrashDumpConfigurations();
 }
 

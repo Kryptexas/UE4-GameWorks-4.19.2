@@ -38,7 +38,11 @@ void UAbilitySystemGlobals::InitGlobalData()
 	GetGameplayCueManager();
 	GetGameplayTagResponseTable();
 	InitGlobalTags();
+
+	//register for world clean up events
+	FWorldDelegates::OnPostWorldCreation.AddUObject(this, &UAbilitySystemGlobals::HandlePostWorldCreate);
 }
+
 
 UCurveTable * UAbilitySystemGlobals::GetGlobalCurveTable()
 {
@@ -198,10 +202,40 @@ UFunction* UAbilitySystemGlobals::GetGameplayCueFunction(const FGameplayTag& Chi
 
 // --------------------------------------------------------------------
 
-void UAbilitySystemGlobals::InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectSpecForRPC &Spec)
+void UAbilitySystemGlobals::InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectSpecForRPC& Spec)
 {
 	CueParameters.AggregatedSourceTags = Spec.AggregatedSourceTags;
 	CueParameters.AggregatedTargetTags = Spec.AggregatedTargetTags;
+
+	InitGameplayCueParameters(CueParameters, Spec.GetContext());
+}
+
+void UAbilitySystemGlobals::InitGameplayCueParameters_GESpec(FGameplayCueParameters& CueParameters, const FGameplayEffectSpec& Spec)
+{
+	CueParameters.AggregatedSourceTags = *Spec.CapturedSourceTags.GetAggregatedTags();
+	CueParameters.AggregatedTargetTags = *Spec.CapturedTargetTags.GetAggregatedTags();
+
+	// Look for a modified attribute magnitude to pass to the CueParameters
+	for (const FGameplayEffectCue& CueDef : Spec.Def->GameplayCues)
+	{	
+		bool FoundMatch = false;
+		if (CueDef.MagnitudeAttribute.IsValid())
+		{
+			for (const FGameplayEffectModifiedAttribute& ModifiedAttribute : Spec.ModifiedAttributes)
+			{
+				if (ModifiedAttribute.Attribute == CueDef.MagnitudeAttribute)
+				{
+					CueParameters.RawMagnitude = ModifiedAttribute.TotalMagnitude;
+					FoundMatch = true;
+					break;
+				}
+			}
+			if (FoundMatch)
+			{
+				break;
+			}
+		}
+	}
 
 	InitGameplayCueParameters(CueParameters, Spec.GetContext());
 }
@@ -331,4 +365,9 @@ bool UAbilitySystemGlobals::ShouldIgnoreCosts() const
 #else
 	return false;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+void UAbilitySystemGlobals::HandlePostWorldCreate(UWorld* NewWorld)
+{
+	IGameplayCueInterface::ClearTagToFunctionMap();
 }

@@ -6,6 +6,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Particles/Emitter.h"
 #include "Particles/ParticleSystem.h"
+#include "Particles/ParticleEmitter.h"
 #include "ParticleSystemComponent.generated.h"
 
 //
@@ -73,6 +74,7 @@ enum EParticleEventType
 // Called when the particle system is done
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnSystemFinished, class UParticleSystemComponent*, PSystem );
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSystemPreActivate, class UParticleSystemComponent*, PSC);
 
 /** Struct used for a particular named instance parameter for this ParticleSystemComponent. */
 USTRUCT(BlueprintType)
@@ -313,7 +315,20 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Attachment)
 	uint32 bAutoManageAttachment:1;
+	
+	/** The significance this component requires of it's emitters for them to be enabled. */
+	UPROPERTY()
+	EParticleSignificanceLevel RequiredSignificance;
 
+	/** True if this component has emitters that weren't created or inited due to significance. If set we need to re-init when significance increases. */
+	bool bMissingEmittersDueToSignificance;
+
+	/** The significance level we ran InitParticles() with. If we change to require less significance than this we need to re-run InitParticles() to be sure we have created all emitters. */
+	EParticleSignificanceLevel InitRequiredSignificanceLevel;
+	
+	/** Time in seconds since we were last considered significant. */
+	float LastSignificantTime;
+	
 private:
 	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
 	uint32 bDidAutoAttach:1;
@@ -473,6 +488,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnSystemFinished OnSystemFinished;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnSystemPreActivate OnSystemPreActivate;
+
 public:
 	/**
 	 * Component we automatically attach to when activated, if bAutoManageAttachment is true.
@@ -522,6 +540,8 @@ private:
 	bool bAsyncDataCopyIsValid;
 	bool bParallelRenderThreadUpdate;
 public:
+
+	void SetSignificance(float OldSignificance, float NewSignificance);
 
 	FORCEINLINE const FTransform& GetAsyncComponentToWorld()
 	{
@@ -964,7 +984,7 @@ public:
 	}
 
 	// If particles have not already been initialised (ie. EmitterInstances created) do it now.
-	virtual void InitParticles();
+	virtual void InitParticles(bool bReInitExistingEmitters=true);
 
 
 	// @todo document

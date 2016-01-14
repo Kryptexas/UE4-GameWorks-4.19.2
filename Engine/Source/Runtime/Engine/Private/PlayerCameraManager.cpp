@@ -353,12 +353,14 @@ void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActo
 	// postprocess
 	if (AnimatedCamActor->GetCameraComponent()->PostProcessBlendWeight > 0.f)
 	{
-		AddCachedPPBlend(AnimatedCamActor->GetCameraComponent()->PostProcessSettings, AnimatedCamActor->GetCameraComponent()->PostProcessBlendWeight);
+		AddCachedPPBlend(AnimatedCamActor->GetCameraComponent()->PostProcessSettings, AnimatedCamActor->GetCameraComponent()->PostProcessBlendWeight * Scale);
 	}
 }
 
 UCameraAnimInst* APlayerCameraManager::AllocCameraAnimInst()
 {
+	check(IsInGameThread());
+
 	UCameraAnimInst* FreeAnim = (FreeAnims.Num() > 0) ? FreeAnims.Pop() : NULL;
 	if (FreeAnim)
 	{
@@ -1200,27 +1202,27 @@ UCameraShake* APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> Sh
 }
 
 
-void APlayerCameraManager::StopCameraShake(UCameraShake* ShakeInst)
+void APlayerCameraManager::StopCameraShake(UCameraShake* ShakeInst, bool bImmediately)
 {
 	if (ShakeInst && CachedCameraShakeMod)
 	{
-		CachedCameraShakeMod->RemoveCameraShake(ShakeInst);
+		CachedCameraShakeMod->RemoveCameraShake(ShakeInst, bImmediately);
 	}
 }
 
-void APlayerCameraManager::StopAllInstancesOfCameraShake(TSubclassOf<class UCameraShake> ShakeClass)
+void APlayerCameraManager::StopAllInstancesOfCameraShake(TSubclassOf<class UCameraShake> ShakeClass, bool bImmediately)
 {
 	if (ShakeClass && CachedCameraShakeMod)
 	{
-		CachedCameraShakeMod->RemoveAllCameraShakesOfClass(ShakeClass);
+		CachedCameraShakeMod->RemoveAllCameraShakesOfClass(ShakeClass, bImmediately);
 	}
 }
 
-void APlayerCameraManager::StopAllCameraShakes()
+void APlayerCameraManager::StopAllCameraShakes(bool bImmediately)
 {
 	if (CachedCameraShakeMod)
 	{
-		CachedCameraShakeMod->RemoveAllCameraShakes();
+		CachedCameraShakeMod->RemoveAllCameraShakes(bImmediately);
 	}
 }
 

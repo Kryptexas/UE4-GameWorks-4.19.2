@@ -170,6 +170,8 @@ namespace LocalizationConfigurationScript
 			{
 				ConfigSection.Add( TEXT("FileNameFilters"), FString::Printf( TEXT("*.%s"), *FileExtension.Pattern) );
 			}
+
+			ConfigSection.Add( TEXT("ShouldGatherFromEditorOnlyData"), Target->Settings.GatherFromTextFiles.ShouldGatherFromEditorOnlyData ? TEXT("true") : TEXT("false") );
 		}
 
 		// GatherTextFromAssets

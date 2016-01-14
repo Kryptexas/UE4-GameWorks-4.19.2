@@ -344,7 +344,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			TArray<FPluginReferenceDescriptor> PluginsCopy = Project->Plugins;
 			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
-				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid())
+				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional)
 				{
 					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
 					if(Plugin.MarketplaceURL.Len() > 0)
@@ -489,7 +489,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 					{
 						if (FCoreDelegates::OnMountPak.IsBound())
 						{
-							FCoreDelegates::OnMountPak.Execute(PakPath, 0);
+							FCoreDelegates::OnMountPak.Execute(PakPath, 0, nullptr);
 						}
 					}
 				}

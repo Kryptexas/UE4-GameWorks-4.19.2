@@ -17,6 +17,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemUtils.h"
 #include "OnlineIdentityInterface.h"
+#include "UserActivityTracking.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -3021,22 +3022,58 @@ int32 UKismetSystemLibrary::GetRenderingMaterialQualityLevel()
 
 bool UKismetSystemLibrary::GetSupportedFullscreenResolutions(TArray<FIntPoint>& Resolutions)
 {
+	uint32 MinYResolution = UKismetSystemLibrary::GetMinYResolutionForUI();
+
 	FScreenResolutionArray SupportedResolutions;
 	if ( RHIGetAvailableResolutions(SupportedResolutions, true) )
 	{
+		uint32 LargestY = 0;
 		for ( const FScreenResolutionRHI& SupportedResolution : SupportedResolutions )
 		{
-			FIntPoint Resolution;
-			Resolution.X = SupportedResolution.Width;
-			Resolution.Y = SupportedResolution.Height;
+			LargestY = FMath::Max(LargestY, SupportedResolution.Height);
+			if(SupportedResolution.Height >= MinYResolution)
+			{
+				FIntPoint Resolution;
+				Resolution.X = SupportedResolution.Width;
+				Resolution.Y = SupportedResolution.Height;
 
-			Resolutions.Add(Resolution);
+				Resolutions.Add(Resolution);
+			}
+		}
+		if(!Resolutions.Num())
+		{
+			// if we don't have any resolution, we take the largest one(s)
+			for ( const FScreenResolutionRHI& SupportedResolution : SupportedResolutions )
+			{
+				if(SupportedResolution.Height == LargestY)
+				{
+					FIntPoint Resolution;
+					Resolution.X = SupportedResolution.Width;
+					Resolution.Y = SupportedResolution.Height;
+
+					Resolutions.Add(Resolution);
+				}
+			}
 		}
 
 		return true;
 	}
 
 	return false;
+}
+
+static TAutoConsoleVariable<int32> CVarMinYResolution(
+	TEXT("r.MinYResolution"),
+	720,
+	TEXT("Defines the smallest Y resolution we want to support in the UI"),
+	ECVF_RenderThreadSafe
+	);
+
+int32 UKismetSystemLibrary::GetMinYResolutionForUI()
+{
+	int32 Value = FMath::Clamp(CVarMinYResolution.GetValueOnGameThread(), 200, 8 * 1024);
+
+	return Value;
 }
 
 void UKismetSystemLibrary::LaunchURL(const FString& URL)
@@ -3319,4 +3356,9 @@ void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, const TAs
 void UKismetSystemLibrary::RegisterForRemoteNotifications()
 {
 	FPlatformMisc::RegisterForRemoteNotifications();
+}
+
+void UKismetSystemLibrary::SetUserActivity(const FUserActivity& UserActivity)
+{
+	FUserActivityTracking::SetActivity(UserActivity);
 }

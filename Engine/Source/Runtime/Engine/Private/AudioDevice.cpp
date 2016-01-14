@@ -850,6 +850,234 @@ bool FAudioDevice::HandleAudio3dVisualizeCommand(const TCHAR* Cmd, FOutputDevice
 	}
 	return true;
 }
+
+
+bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	struct FSoundWaveInfo
+	{
+		USoundWave* SoundWave;
+		SIZE_T ResourceSize;
+		FString SoundGroupName;
+		float Duration;
+		bool bDecompressed;
+
+		FSoundWaveInfo(USoundWave* InSoundWave, SIZE_T InResourceSize, const FString& InSoundGroupName, float InDuration, bool bInDecompressed)
+			: SoundWave(InSoundWave)
+			, ResourceSize(InResourceSize)
+			, SoundGroupName(InSoundGroupName)
+			, Duration(InDuration)
+			, bDecompressed(bInDecompressed)
+		{}
+	};
+
+	struct FSoundWaveGroupInfo
+	{
+		SIZE_T ResourceSize;
+		SIZE_T CompressedResourceSize;
+
+		FSoundWaveGroupInfo()
+			: ResourceSize(0)
+			, CompressedResourceSize(0)
+		{}
+	};
+
+	// Alpha sort the objects by path name
+	struct FCompareSoundWave
+	{
+		FORCEINLINE bool operator()(const FSoundWaveInfo& A, const FSoundWaveInfo& B) const
+		{
+			return A.SoundWave->GetPathName() < B.SoundWave->GetPathName();
+		}
+	};
+
+	const FString PathName = *(FPaths::ProfilingDir() + TEXT("MemReports/"));
+	IFileManager::Get().MakeDirectory(*PathName);
+
+	const FString Filename = CreateProfileFilename(TEXT("_audio_memreport.csv"), true);
+	FString FilenameFull = PathName + Filename;
+
+	UE_LOG(LogEngine, Log, TEXT("AudioMemReport: saving to %s"), *FilenameFull);
+
+	FArchive* FileAr = IFileManager::Get().CreateDebugFileWriter(*FilenameFull);
+	FOutputDeviceArchiveWrapper* FileArWrapper = new FOutputDeviceArchiveWrapper(FileAr);
+	FOutputDevice* ReportAr = FileArWrapper;
+
+	// Get the sound wave class
+	UClass* SoundWaveClass = nullptr;
+	ParseObject<UClass>(TEXT("class=SoundWave"), TEXT("CLASS="), SoundWaveClass, ANY_PACKAGE);
+
+	TArray<FSoundWaveInfo> SoundWaveObjects;
+	TMap<FString, FSoundWaveGroupInfo> SoundWaveGroupSizes;
+	TArray<FString> SoundWaveGroupFolders;
+
+	// Grab the list of folders to specifically track memory usage for
+	FConfigSection* TrackedFolders = GConfig->GetSectionPrivate(TEXT("AudioMemReportFolders"), 0, 1, GEngineIni);
+	if (TrackedFolders)
+	{
+		for (FConfigSectionMap::TIterator It(*TrackedFolders); It; ++It)
+		{
+			FString SoundFolder = *It.Value();
+			SoundWaveGroupSizes.Add(SoundFolder, FSoundWaveGroupInfo());
+			SoundWaveGroupFolders.Add(SoundFolder);
+		}
+	}
+
+	SIZE_T TotalResourceSize = 0;
+	SIZE_T CompressedResourceSize = 0;
+	SIZE_T DecompressedResourceSize = 0;
+	int32 CompressedResourceCount = 0;
+
+	if (SoundWaveClass != nullptr)
+	{
+		// Loop through all objects and find only sound wave objects
+		for (TObjectIterator<USoundWave> It; It; ++It)
+		{
+			if (It->IsTemplate(RF_ClassDefaultObject))
+			{
+				continue;
+			}
+
+			// Get the resource size of the sound wave
+			const SIZE_T TrueResourceSize = It->GetResourceSize(EResourceSizeMode::Exclusive);
+			if (TrueResourceSize == 0)
+			{
+				continue;
+			}
+
+			USoundWave* SoundWave = *It;
+
+			const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
+			float Duration = SoundWave->GetDuration();
+			bool bDecompressed = SoundGroup.bAlwaysDecompressOnLoad || Duration < SoundGroup.DecompressedDuration;
+
+			FString SoundGroupName;
+			switch (SoundWave->SoundGroup)
+			{
+				case ESoundGroup::SOUNDGROUP_Default:
+					SoundGroupName = TEXT("Default");
+					break;
+
+				case ESoundGroup::SOUNDGROUP_Effects:
+					SoundGroupName = TEXT("Effects");
+					break;
+
+				case ESoundGroup::SOUNDGROUP_UI:
+					SoundGroupName = TEXT("UI");
+					break;
+
+				case ESoundGroup::SOUNDGROUP_Music:
+					SoundGroupName = TEXT("Music");
+					break;
+
+				case ESoundGroup::SOUNDGROUP_Voice:
+					SoundGroupName = TEXT("Voice");
+					break;
+
+				default:
+					SoundGroupName = SoundGroup.DisplayName;
+					break;
+			}
+
+			// Add the info to the SoundWaveObjects array
+			SoundWaveObjects.Add(FSoundWaveInfo(SoundWave, TrueResourceSize, SoundGroupName, Duration, bDecompressed));
+
+			// Track total resource usage
+			TotalResourceSize += TrueResourceSize;
+
+			if (bDecompressed)
+			{
+				DecompressedResourceSize += TrueResourceSize;
+				++CompressedResourceCount;
+			}
+			else
+			{
+				CompressedResourceSize += TrueResourceSize;
+			}
+
+			// Get the sound object path
+			FString SoundWavePath = SoundWave->GetPathName();
+
+			// Now track the resource size according to all the sub-directories
+			FString SubDir;
+			int32 Index = 0;
+
+			for (int32 i = 0; i < SoundWavePath.Len(); ++i)
+			{
+				if (SoundWavePath[i] == '/')
+				{
+					if (SubDir.Len() > 0)
+					{
+						FSoundWaveGroupInfo* SubDirSize = SoundWaveGroupSizes.Find(SubDir);
+						if (SubDirSize)
+						{
+							SubDirSize->ResourceSize += TrueResourceSize;
+							if (bDecompressed)
+							{
+								SubDirSize->CompressedResourceSize += TrueResourceSize;
+							}
+						}
+					}
+					SubDir = TEXT("");
+				}
+				else
+				{
+					SubDir.AppendChar(SoundWavePath[i]);
+				}
+			}
+		}
+
+		ReportAr->Log(TEXT("Sound Wave Memory Report"));
+		ReportAr->Log(TEXT(""));
+
+		if (SoundWaveObjects.Num())
+		{
+			// Alpha sort the sound wave objects
+			SoundWaveObjects.Sort(FCompareSoundWave());
+
+			// Log the sound wave objects
+			
+			ReportAr->Logf(TEXT("Memory (MB),Count"));
+			ReportAr->Logf(TEXT("Total,%.3f,%d"), TotalResourceSize / 1024.f / 1024.f, SoundWaveObjects.Num());
+			ReportAr->Logf(TEXT("Decompressed,%.3f,%d"), DecompressedResourceSize / 1024.f / 1024.f, CompressedResourceCount);
+			ReportAr->Logf(TEXT("Compressed,%.3f,%d"), CompressedResourceSize / 1024.f / 1024.f, SoundWaveObjects.Num() - CompressedResourceCount);
+
+			if (SoundWaveGroupFolders.Num())
+			{
+				ReportAr->Log(TEXT(""));
+				ReportAr->Log(TEXT("Memory Usage and Count for Specified Folders (Folders defined in [AudioMemReportFolders] section in DefaultEngine.ini file):"));
+				ReportAr->Log(TEXT(""));
+				ReportAr->Logf(TEXT("%s,%s,%s"), TEXT("Directory"), TEXT("Total (MB)"), TEXT("Compressed (MB)"));
+				for (const FString& SoundWaveGroupFolder : SoundWaveGroupFolders)
+				{
+					FSoundWaveGroupInfo* SubDirSize = SoundWaveGroupSizes.Find(SoundWaveGroupFolder);
+					check(SubDirSize);
+					ReportAr->Logf(TEXT("%s,%10.2f,%10.2f"), *SoundWaveGroupFolder, SubDirSize->ResourceSize / 1024.0f / 1024.0f, SubDirSize->CompressedResourceSize / 1024.0f / 1024.0f);
+				}
+			}
+
+			ReportAr->Log(TEXT(""));
+			ReportAr->Log(TEXT("All Sound Wave Objects Sorted Alphebetically:"));
+			ReportAr->Log(TEXT(""));
+
+			ReportAr->Logf(TEXT("%s,%s,%s,%s,%s,%s"), TEXT("SoundWave"), TEXT("KB"), TEXT("MB"), TEXT("SoundGroup"), TEXT("Duration"), TEXT("CompressionState"));
+			for (const FSoundWaveInfo& Info : SoundWaveObjects)
+			{
+				float Kbytes = Info.ResourceSize / 1024.0f;
+				ReportAr->Logf(TEXT("%s,%10.2f,%10.2f,%s,%10.2f,%s"), *Info.SoundWave->GetPathName(), Kbytes, Kbytes / 1024.0f, *Info.SoundGroupName, Info.Duration, Info.bDecompressed ? TEXT("Decompressed") : TEXT("Compressed"));
+			}
+		}
+
+	}
+
+	// Shutdown and free archive resources
+	FileArWrapper->TearDown();
+	delete FileArWrapper;
+	delete FileAr;
+
+	return true;
+}
+
 #endif // !UE_BUILD_SHIPPING
 
 EDebugState FAudioDevice::GetMixDebugState( void )
@@ -963,6 +1191,10 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if (FParse::Command(&Cmd, TEXT("Audio3dVisualize")))
 	{
 		return HandleAudio3dVisualizeCommand(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("AudioMemReport")))
+	{
+		return HandleAudioMemoryInfo(Cmd, Ar);
 	}
 #endif // !UE_BUILD_SHIPPING
 
@@ -2533,6 +2765,14 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 	{
 		const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
 
+		float CompressedDurationThreshold = SoundGroup.DecompressedDuration;
+		/*
+		if (CompressedDurationThreshold > 0.0f)
+		{
+			CompressedDurationThreshold = 1.0f;
+		}
+		*/
+
 		// handle audio decompression
 		if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming())
 		{
@@ -2540,7 +2780,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			SoundWave->bCanProcessAsync = false;
 		}
 		else if (SupportsRealtimeDecompression() && 
-			(bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > SoundGroup.DecompressedDuration)))
+				 (bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > CompressedDurationThreshold)))
 		{
 			// Store as compressed data and decompress in realtime
 			SoundWave->DecompressionType = DTYPE_RealTime;

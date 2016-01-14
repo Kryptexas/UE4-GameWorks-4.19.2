@@ -287,6 +287,12 @@ struct CORE_API FRawStatStackNode
 	/** Print this tree to the log **/
 	void DebugPrint(TCHAR const* Filter = nullptr, int32 MaxDepth = MAX_int32, int32 Depth = 0) const;
 
+	/** Print this tree to the log **/
+	void DebugPrintLeafFilter(TCHAR const* Filter) const;
+
+	/** Print this tree to the log **/
+	void DebugPrintLeafFilterInner(TCHAR const* Filter, int32 Depth, TArray<FString>& Stack) const;
+
 	/** Condense this tree into a flat list using EStatOperation::ChildrenStart, EStatOperation::ChildrenEnd, EStatOperation::Leaf **/
 	void Encode(TArray<FStatMessage>& OutStats) const;
 

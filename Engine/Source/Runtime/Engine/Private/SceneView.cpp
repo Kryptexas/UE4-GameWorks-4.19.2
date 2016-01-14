@@ -1348,12 +1348,12 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	{
 		int32 Quality = CVarTonemapperQuality.GetValueOnGameThread();
 
-		if(Quality < 5)
+		if(Quality < 1)
 		{
 			FinalPostProcessSettings.FilmContrast = 0;
 		}
 
-		if(Quality < 4)
+		if(Quality < 2)
 		{
 			FinalPostProcessSettings.VignetteIntensity = 0;
 		}
@@ -1363,12 +1363,12 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 			FinalPostProcessSettings.FilmShadowTintAmount = 0;
 		}
 
-		if(Quality < 2)
+		if(Quality < 4)
 		{
 			FinalPostProcessSettings.GrainIntensity = 0;
 		}
 
-		if(Quality < 1)
+		if(Quality < 5)
 		{
 			FinalPostProcessSettings.GrainJitter = 0;
 		}
@@ -1640,23 +1640,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 
 		check(Family->RenderTarget);
-
-		if (bFullscreen)
-		{
-			// CVar mode 2 is fullscreen with upscale
-			if(GSystemResolution.WindowMode == EWindowMode::WindowedFullscreen)
-			{
-//				FIntPoint WindowSize = Viewport->GetSizeXY();
-				FIntPoint WindowSize = Family->RenderTarget->GetSizeXY();
-
-				// allow only upscaling
-				float FractionX = FMath::Clamp((float)GSystemResolution.ResX / WindowSize.X, 0.1f, 4.0f);
-				float FractionY = FMath::Clamp((float)GSystemResolution.ResY / WindowSize.Y, 0.1f, 4.0f);
-
-				// maintain a pixel aspect ratio of 1:1 for easier internal computations
-				Fraction *= FMath::Max(FractionX, FractionY);
-			}
-		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if(CVarScreenPercentageEditor.GetValueOnAnyThread() == 0)

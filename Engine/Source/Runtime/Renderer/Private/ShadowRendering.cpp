@@ -4203,7 +4203,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandLis
 	if(bShadowsDepthsAllocated)
 	{
 		// Render the shadow depths.
-		SCOPED_DRAW_EVENT(RHICmdList, ShadowDepthsFromOpaqueProjected);
+		SCOPED_DRAW_EVENT(RHICmdList, ModulatedShadowDepthsFromOpaqueProjected);
 	
 		bool bPerformClear = true;
 		auto SetShadowRenderTargets = [&bPerformClear, &SceneContext](FRHICommandList& InRHICmdList)

@@ -1695,6 +1695,11 @@ public:
 	bool HandleDumpParticleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif
 
+#if WITH_PROFILEGPU
+	bool HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+#endif
+
 	// Compile in Debug or Development
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_HOT_RELOAD
 	bool HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1703,7 +1708,6 @@ public:
 	// Compile in Debug, Development, and Test
 #if !UE_BUILD_SHIPPING
 	bool HandleDumpConsoleCommandsCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
-	bool HandleShowMaterialDrawEventsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpAvailableResolutionsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleAnimSeqStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCountDisabledParticleItemsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1718,7 +1722,6 @@ public:
 	bool HandleRecompileGlobalShadersCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpShaderStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpMaterialStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleProfileGPUCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleProfileCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleProfileGPUHitchesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleShaderComplexityCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -2654,6 +2657,10 @@ public:
 	virtual bool AreEditorAnalyticsEnabled() const { return false; }
 	/** @return true if in-game analytics are enabled */
 	bool AreGameAnalyticsEnabled() const;
+	/** @return true if in-game analytics are sent with an anonymous GUID rather than real account and machine ids */
+	bool AreGameAnalyticsAnonymous() const;
+	/** @return true if in-game MTBF analytics are enabled */
+	bool AreGameMTBFEventsEnabled() const;
 	virtual void CreateStartupAnalyticsAttributes( TArray<struct FAnalyticsEventAttribute>& StartSessionAttributes ) const {}
 	
 	/** @return true if the engine is autosaving a package */

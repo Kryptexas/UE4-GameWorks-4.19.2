@@ -38,6 +38,7 @@ struct CORE_API FWindowsPlatformMemory
 		MCR_GPU, // memory directly a GPU (graphics card, etc)
 		MCR_GPUSystem, // system memory directly accessible by a GPU
 		MCR_TexturePool, // presized texture pools
+		MCR_GPUDefragPool, // presized pool of memory that can be defragmented.
 		MCR_SamplePlatformSpecifcMemoryRegion, 
 		MCR_MAX
 	};

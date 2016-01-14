@@ -28,6 +28,9 @@ public:
 	/** Pauses a running animation */
 	void Pause();
 
+	/** Reverses a running animation */
+	void Reverse();
+
 	/** Gets the current time position in the player (in seconds). */
 	double GetTimeCursorPosition() const { return TimeCursorPosition; }
 
