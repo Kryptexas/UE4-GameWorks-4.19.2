@@ -22,6 +22,7 @@ class FSynthBenchmark : public ISynthBenchmark
 	
 	/** ISynthBenchmark implementation */
 	virtual void Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, float WorkScale) const override;
+	virtual void GetRHIDisplay(FGPUAdpater& Out) const override;
 };
 
 IMPLEMENT_MODULE( FSynthBenchmark, SynthBenchmark )
@@ -209,4 +210,23 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 
 	UE_LOG(LogSynthBenchmark, Display, TEXT(""));
 	UE_LOG(LogSynthBenchmark, Display, TEXT("         ... Total Time: %f sec"),  (float)(FPlatformTime::Seconds() - StartTime));
+}
+
+// could be moved to a more central place, from FWindowsPlatformSurvey::WriteFStringToResults
+static void WriteFStringToResults(TCHAR* OutBuffer, const FString& InString)
+{
+	FMemory::Memset( OutBuffer, 0, sizeof(TCHAR) * FHardwareSurveyResults::MaxStringLength );
+	TCHAR* Cursor = OutBuffer;
+	for (int32 i = 0; i < FMath::Min(InString.Len(), FHardwareSurveyResults::MaxStringLength - 1); i++)
+	{
+		*Cursor++ = InString[i];
+	}
+}
+
+void FSynthBenchmark::GetRHIDisplay(FGPUAdpater& Out) const
+{
+	WriteFStringToResults(Out.AdapterName, GRHIAdapterName);
+	WriteFStringToResults(Out.AdapterInternalDriverVersion, GRHIAdapterInternalDriverVersion);
+	WriteFStringToResults(Out.AdapterUserDriverVersion, GRHIAdapterUserDriverVersion);
+	WriteFStringToResults(Out.AdapterDriverDate, GRHIAdapterDriverDate);
 }

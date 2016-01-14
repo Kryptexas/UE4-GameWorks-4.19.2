@@ -73,6 +73,9 @@ extern RHI_API bool GSupportsDepthFetchDuringDepthTest;
  * e.g. "NVIDIA GeForce GTX 670"
  */
 extern RHI_API FString GRHIAdapterName;
+extern RHI_API FString GRHIAdapterInternalDriverVersion;
+extern RHI_API FString GRHIAdapterUserDriverVersion;
+extern RHI_API FString GRHIAdapterDriverDate;
 
 // 0 means not defined yet, use functions like IsRHIDeviceAMD() to access
 extern RHI_API uint32 GRHIVendorId;

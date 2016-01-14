@@ -269,6 +269,8 @@ void FD3D11DynamicRHIModule::FindAdapter()
 	bool bIsAnyIntel = false;
 	bool bIsAnyNVIDIA = false;
 
+	UE_LOG(LogD3D11RHI, Log, TEXT("D3D11 adapters:"));
+
 	// Enumerate the DXGIFactory's adapters.
 	for(uint32 AdapterIndex = 0; DXGIFactory1->EnumAdapters(AdapterIndex,TempAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND; ++AdapterIndex)
 	{
@@ -284,13 +286,13 @@ void FD3D11DynamicRHIModule::FindAdapter()
 				uint32 OutputCount = CountAdapterOutputs(TempAdapter);
 
 				UE_LOG(LogD3D11RHI, Log,
-					TEXT("Found D3D11 adapter %u: %s (Feature Level %s)"),
+					TEXT("  %2u. '%s' (Feature Level %s)"),
 					AdapterIndex,
 					AdapterDesc.Description,
 					GetFeatureLevelString(ActualFeatureLevel)
 					);
 				UE_LOG(LogD3D11RHI, Log,
-					TEXT("Adapter has %uMB of dedicated video memory, %uMB of dedicated system memory, and %uMB of shared system memory, %d output[s]"),
+					TEXT("      %uMB of dedicated video memory, %uMB of dedicated system memory, and %uMB of shared system memory, %d output[s]"),
 					(uint32)(AdapterDesc.DedicatedVideoMemory / (1024*1024)),
 					(uint32)(AdapterDesc.DedicatedSystemMemory / (1024*1024)),
 					(uint32)(AdapterDesc.SharedSystemMemory / (1024*1024)),
@@ -361,7 +363,7 @@ void FD3D11DynamicRHIModule::FindAdapter()
 
 	if(ChosenAdapter.IsValid())
 	{
-		UE_LOG(LogD3D11RHI, Log, TEXT("Chosen D3D11 Adapter Id = %u"), ChosenAdapter.AdapterIndex);
+		UE_LOG(LogD3D11RHI, Log, TEXT("Chosen D3D11 Adapter: %u"), ChosenAdapter.AdapterIndex);
 	}
 	else
 	{
@@ -461,6 +463,15 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 					GRHIAdapterName = AdapterDesc.Description;
 					GRHIVendorId = AdapterDesc.VendorId;
+					
+					// get driver version (todo: share with other RHIs)
+					{
+						FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
+
+						UE_LOG(LogD3D11RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
+						UE_LOG(LogD3D11RHI, Log, TEXT("  Driver Version: %s (internal %s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion);
+						UE_LOG(LogD3D11RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
+					}
 
 					// Issue: 32bit windows doesn't report 64bit value, we take what we get.
 					FD3D11GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc.DedicatedVideoMemory);
