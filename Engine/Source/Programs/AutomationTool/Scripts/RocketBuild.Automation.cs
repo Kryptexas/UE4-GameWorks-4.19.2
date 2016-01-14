@@ -78,7 +78,7 @@ namespace Rocket
 			if (!BranchConfig.BranchOptions.bNoInstalledEngine)
 			{
 				// Add the aggregate for making a rocket build
-				if(!BranchConfig.HasNode(WaitToMakeRocketBuild.StaticGetFullName()))
+				if(WaitToMakeRocketBuild.ShouldAddTrigger(BranchConfig) && !BranchConfig.HasNode(WaitToMakeRocketBuild.StaticGetFullName()))
 				{
 					BranchConfig.AddNode(new WaitToMakeRocketBuild(BranchConfig));
 				}
@@ -298,6 +298,11 @@ namespace Rocket
 					AddDependency(GUBP.SingleInternalToolsNode.StaticGetFullName(HostPlatform, BuildPatchTool));
 				}
 			}
+		}
+
+		public static bool ShouldAddTrigger(GUBP.GUBPBranchConfig BranchConfig)
+		{
+			return !BranchConfig.BranchName.StartsWith("//UE4/Release-");
 		}
 
         public static string StaticGetFullName()
@@ -1046,7 +1051,10 @@ namespace Rocket
 
 			AddDependency(FilterRocketNode.StaticGetFullName(HostPlatform));
 			AddDependency(BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform));
-			AddPseudodependency(WaitToMakeRocketBuild.StaticGetFullName());
+			if (WaitToMakeRocketBuild.ShouldAddTrigger(InBranchConfig))
+			{
+				AddPseudodependency(WaitToMakeRocketBuild.StaticGetFullName());
+			}
 
 			AgentSharingGroup = "RocketGroup" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
@@ -1282,7 +1290,10 @@ namespace Rocket
 			AddDependency(GUBP.ToolsForCompileNode.StaticGetFullName(HostPlatform));
 			AddDependency(GUBP.RootEditorNode.StaticGetFullName(HostPlatform));
 			AddDependency(GUBP.ToolsNode.StaticGetFullName(HostPlatform));
-			AddDependency(WaitToMakeRocketBuild.StaticGetFullName());
+			if (WaitToMakeRocketBuild.ShouldAddTrigger(InBranchConfig))
+			{
+				AddDependency(WaitToMakeRocketBuild.StaticGetFullName());
+			}
 
 			foreach(UnrealTargetPlatform TargetPlatform in TargetPlatforms)
 			{
