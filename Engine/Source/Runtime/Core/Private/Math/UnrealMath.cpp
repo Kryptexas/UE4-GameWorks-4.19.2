@@ -2054,28 +2054,30 @@ FVector FMath::ClosestPointOnTetrahedronToPoint(const FVector& Point, const FVec
 	return Result;
 }
 
-void FMath::SphereDistToLine(FVector SphereOrigin, float SphereRadius, FVector LineOrigin, FVector LineDir, FVector& OutClosestPoint)
+void FMath::SphereDistToLine(FVector SphereOrigin, float SphereRadius, FVector LineOrigin, FVector NormalizedLineDir, FVector& OutClosestPoint)
 {
-	const float A	= LineDir | LineDir;
-	const float B	= 2.f * (LineDir | (LineOrigin - SphereOrigin));
-	const float C	= (SphereOrigin|SphereOrigin) + (LineOrigin|LineOrigin) - 2.f *(SphereOrigin|LineOrigin) - FMath::Square(SphereRadius);
-	const float D	= FMath::Square(B) - 4.f * A * C;
+	//const float A = NormalizedLineDir | NormalizedLineDir  (this is 1 because normalized)
+	//solving quadratic formula in terms of t where closest point = LineOrigin + t * NormalizedLineDir
+	const FVector LineOriginToSphereOrigin = SphereOrigin - LineOrigin;
+	const float B = -2.f * (NormalizedLineDir | LineOriginToSphereOrigin);
+	const float C = LineOriginToSphereOrigin.SizeSquared() - FMath::Square(SphereRadius);
+	const float D	= FMath::Square(B) - 4.f * C;
 
 	if( D <= KINDA_SMALL_NUMBER )
 	{
 		// line is not intersecting sphere (or is tangent at one point if D == 0 )
-		const FVector PointOnLine = LineOrigin + ( -B / 2.f * A ) * LineDir;
+		const FVector PointOnLine = LineOrigin + ( -B * 0.5f ) * NormalizedLineDir;
 		OutClosestPoint = SphereOrigin + (PointOnLine - SphereOrigin).GetSafeNormal() * SphereRadius;
 	}
 	else
 	{
 		// Line intersecting sphere in 2 points. Pick closest to line origin.
 		const float	E	= FMath::Sqrt(D);
-		const float T1	= (-B + E) / (2.f * A);
-		const float T2	= (-B - E) / (2.f * A);
-		const float T	= FMath::Abs(T1) < FMath::Abs(T2) ? T1 : T2;
+		const float T1	= (-B + E) * 0.5f;
+		const float T2	= (-B - E) * 0.5f;
+		const float T	= FMath::Abs( T1 ) == FMath::Abs( T2 ) ? FMath::Abs( T1 ) : FMath::Abs( T1 ) < FMath::Abs( T2 ) ? T1 : T2;	// In the case where both points are exactly the same distance we take the one in the direction of LineDir
 
-		OutClosestPoint	= LineOrigin + T * LineDir;
+		OutClosestPoint	= LineOrigin + T * NormalizedLineDir;
 	}
 }
 

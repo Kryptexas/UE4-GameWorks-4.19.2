@@ -247,8 +247,8 @@ void FAudioDevice::Teardown()
 		Sources[Index]->Stop();
 		delete Sources[Index];
 	}
-	Sources.Empty();
-	FreeSources.Empty();
+	Sources.Reset();
+	FreeSources.Reset();
 
 	if (SpatializationPlugin != nullptr)
 	{
@@ -331,8 +331,8 @@ void FAudioDevice::ResetInterpolation( void )
 		}
 	}
 
-	SoundMixModifiers.Empty();
-	PrevPassiveSoundMixModifiers.Empty();
+	SoundMixModifiers.Reset();
+	PrevPassiveSoundMixModifiers.Reset();
 	BaseSoundMix = NULL;
 
 	// reset audio effects
@@ -2499,7 +2499,6 @@ bool FAudioDevice::LocationIsAudible(const FVector& Location, const float MaxDis
 		return true;
 	}
 
-	const float MaxDistanceSquared = MaxDistance * MaxDistance;
 	for (const FListener& Listener : Listeners)
 	{
 		if (LocationIsAudible(Location, Listener, MaxDistance))
@@ -2520,6 +2519,141 @@ bool FAudioDevice::LocationIsAudible(const FVector& Location, const FListener& L
 
 	const float MaxDistanceSquared = MaxDistance * MaxDistance;
 	return (Listener.Transform.GetTranslation() - Location).SizeSquared() < MaxDistanceSquared;
+}
+
+void FAudioDevice::GetMaxDistanceAndFocusFactor(USoundBase* Sound, const class UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float *OutMaxDistance, float* OutFocusFactor)
+{
+	check(Sound);
+	check(OutMaxDistance);
+	check(OutFocusFactor);
+
+	bool bIsInGameWorld = World ? World->IsGameWorld() : true;
+	bool bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
+
+	if (bHasAttenuationSettings)
+	{
+		FTransform SoundTransform;
+		SoundTransform.SetTranslation(Location);
+
+		*OutMaxDistance = AttenuationSettingsToApply->GetMaxDimension();
+
+		// Now scale the max distance based on the focus settings in the attenuation settings
+		FAttenuationListenerData ListenerData;
+		*OutFocusFactor = GetFocusFactor(ListenerData, Sound, SoundTransform, *AttenuationSettingsToApply);
+	}
+	else
+	{
+		// No need to scale the distance by focus factor since we're not using any attenuation settings
+		*OutMaxDistance = Sound->GetMaxAudibleDistance();
+		*OutFocusFactor = 1.0f;
+	}
+}
+
+bool FAudioDevice::SoundIsAudible(USoundBase* Sound, const class UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor)
+{
+	bool bIsInGameWorld = World ? World->IsGameWorld() : true;
+	bool bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
+	float DistanceScale = 1.0f;
+	if (bHasAttenuationSettings)
+	{
+		DistanceScale = AttenuationSettingsToApply->GetFocusDistanceScale(GlobalFocusSettings, FocusFactor);
+	}
+
+	DistanceScale = FMath::Max(DistanceScale, 0.0001f);
+	return LocationIsAudible(Location, MaxDistance / DistanceScale);
+}
+
+int32 FAudioDevice::FindClosestListenerIndex(const FTransform& SoundTransform, const TArray<FListener>& InListeners)
+{
+	int32 ClosestListenerIndex = 0;
+	if (InListeners.Num() > 0)
+	{
+		float ClosestDistSq = FVector::DistSquared(SoundTransform.GetTranslation(), InListeners[0].Transform.GetTranslation());
+
+		for (int32 i = 1; i < InListeners.Num(); i++)
+		{
+			const float DistSq = FVector::DistSquared(SoundTransform.GetTranslation(), InListeners[i].Transform.GetTranslation());
+			if (DistSq < ClosestDistSq)
+			{
+				ClosestListenerIndex = i;
+				ClosestDistSq = DistSq;
+			}
+		}
+	}
+
+	return ClosestListenerIndex;
+}
+
+int32 FAudioDevice::FindClosestListenerIndex(const FTransform& SoundTransform) const
+{
+	return FindClosestListenerIndex(SoundTransform, Listeners);
+}
+
+void FAudioDevice::GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FListener* InListener) const
+{
+	// Only compute various components of the listener of it hasn't been computed yet
+	if (!OutListenerData.bDataComputed)
+	{
+		// Use the optional input listener param
+		OutListenerData.Listener = InListener;
+
+		// If not set, then we need to find the closest listener
+		if (!OutListenerData.Listener)
+		{
+			const int32 ClosestListenerIndex = FindClosestListenerIndex(SoundTransform);
+			OutListenerData.Listener = &Listeners[ClosestListenerIndex];
+		}
+
+		const FVector& ListenerLocation = OutListenerData.Listener->Transform.GetTranslation();
+		FVector ListenerToSound = SoundTransform.GetTranslation() - ListenerLocation;
+		ListenerToSound.ToDirectionAndLength(OutListenerData.ListenerToSoundDir, OutListenerData.ListenerToSoundDistance);
+
+		OutListenerData.AttenuationDistance = 0.0f;
+
+		if ((AttenuationSettings.bAttenuate && AttenuationSettings.AttenuationShape == EAttenuationShape::Sphere) || AttenuationSettings.bAttenuateWithLPF)
+		{
+			OutListenerData.AttenuationDistance = FMath::Max(OutListenerData.ListenerToSoundDistance - AttenuationSettings.AttenuationShapeExtents.X, 0.f);
+		}
+
+		OutListenerData.bDataComputed = true;
+	}
+}
+
+float FAudioDevice::GetFocusFactor(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FListener* InListener) const
+{
+	check(Sound);
+
+	// 0.0f means we are in focus, 1.0f means we are out of focus
+	float FocusFactor = 0.0f;
+
+	if (AttenuationSettings.bSpatialize && AttenuationSettings.bEnableListenerFocus && !Sound->bIgnoreFocus)
+	{
+		// Compute the focus factor based on listener emitter geometry (SoundTransform)
+		GetAttenuationListenerData(OutListenerData, SoundTransform, AttenuationSettings, InListener);
+
+		check(OutListenerData.Listener);
+
+		const FVector& ListenerForwardDir = OutListenerData.Listener->Transform.GetUnitAxis(EAxis::X);
+
+		const float FocusDotProduct = FMath::Clamp(FVector::DotProduct(ListenerForwardDir, OutListenerData.ListenerToSoundDir), 0.0f, 1.0f);
+		const float FocusAngleRadians = FMath::Acos(FocusDotProduct);
+		const float FocusAngle = FMath::RadiansToDegrees(FMath::Acos(FocusDotProduct));
+
+		const float FocusAzimuth = FMath::Clamp(GlobalFocusSettings.FocusAzimuthScale * AttenuationSettings.FocusAzimuth, 0.0f, 180.0f);
+		const float NonFocusAzimuth = FMath::Clamp(GlobalFocusSettings.NonFocusAzimuthScale * AttenuationSettings.NonFocusAzimuth, 0.0f, 180.0f);
+
+		if (FocusAzimuth != NonFocusAzimuth)
+		{
+			FocusFactor = (FocusAngle - FocusAzimuth) / (NonFocusAzimuth - FocusAzimuth);
+			FocusFactor = FMath::Clamp(FocusFactor, 0.0f, 1.0f);
+		}
+		else if (FocusAngle >= FocusAzimuth)
+		{
+			FocusFactor = 1.0f;
+		}
+	}
+
+	return FocusFactor;
 }
 
 UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings)
@@ -2546,54 +2680,68 @@ UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World,
 			// Don't create component on destroyed actor.
 		}
 		// Either no actor or actor is still alive.
-		else if (Location && !Sound->IsAudibleSimple(AudioDevice, *Location, AttenuationSettings))
-		{
-			// Don't create a sound component for short sounds that start out of range of any listener
-			UE_LOG(LogAudio, Log, TEXT( "AudioComponent not created for out of range Sound %s" ), *Sound->GetName() );
-		}
 		else
 		{
+			// Listener position could change before long sounds finish
+			const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
 
-
-			// Use actor as outer if we have one.
-			if( Actor )
+			bool bIsAudible = true;
+			// If a sound is a long duration, the position might change before sound finishes so assume it's audible
+			if (Location && Sound->GetDuration() <= 1.0f)
 			{
-				AudioComponent = NewObject<UAudioComponent>(Actor);
+				float MaxDistance = 0.0f;
+				float FocusFactor = 0.0f;
+				AudioDevice->GetMaxDistanceAndFocusFactor(Sound, World, *Location, AttenuationSettingsToApply, &MaxDistance, &FocusFactor);
+				bIsAudible = AudioDevice->SoundIsAudible(Sound, World, *Location, AttenuationSettingsToApply, MaxDistance, FocusFactor);
 			}
-			// Let engine pick the outer (transient package).
+
+			if (bIsAudible)
+			{
+				// Use actor as outer if we have one.
+				if (Actor)
+				{
+					AudioComponent = NewObject<UAudioComponent>(Actor);
+				}
+				// Let engine pick the outer (transient package).
+				else
+				{
+					AudioComponent = NewObject<UAudioComponent>();
+				}
+
+				check(AudioComponent);
+
+				AudioComponent->Sound = Sound;
+				AudioComponent->bAutoActivate = false;
+				AudioComponent->bIsUISound = false;
+				AudioComponent->bAutoDestroy = bPlay;
+				AudioComponent->bStopWhenOwnerDestroyed = bStopWhenOwnerDestroyed;
+#if WITH_EDITORONLY_DATA
+				AudioComponent->bVisualizeComponent = false;
+#endif
+				AudioComponent->AttenuationSettings = AttenuationSettings;
+				AudioComponent->ConcurrencySettings = ConcurrencySettings;
+
+				if (Location)
+				{
+					AudioComponent->SetWorldLocation(*Location);
+				}
+
+				// AudioComponent used in PlayEditorSound sets World to NULL to avoid situations where the world becomes invalid
+				// and the component is left with invalid pointer.
+				if (World)
+				{
+					AudioComponent->RegisterComponentWithWorld(World);
+				}
+
+				if (bPlay)
+				{
+					AudioComponent->Play();
+				}
+			}
 			else
 			{
-				AudioComponent = NewObject<UAudioComponent>();
-			}
-
-			check( AudioComponent );
-
-			AudioComponent->Sound = Sound;
-			AudioComponent->bAutoActivate = false;
-			AudioComponent->bIsUISound = false;
-			AudioComponent->bAutoDestroy = bPlay;
-			AudioComponent->bStopWhenOwnerDestroyed = bStopWhenOwnerDestroyed;
-#if WITH_EDITORONLY_DATA
-			AudioComponent->bVisualizeComponent	= false;
-#endif
-			AudioComponent->AttenuationSettings = AttenuationSettings;
-			AudioComponent->ConcurrencySettings = ConcurrencySettings;
-
-			if (Location)
-			{
-				AudioComponent->SetWorldLocation(*Location);
-			}
-
-			// AudioComponent used in PlayEditorSound sets World to NULL to avoid situations where the world becomes invalid
-			// and the component is left with invalid pointer.
-			if( World )
-			{
-				AudioComponent->RegisterComponentWithWorld(World);
-			}
-
-			if( bPlay )
-			{
-				AudioComponent->Play();
+				// Don't create a sound component for short sounds that start out of range of any listener
+				UE_LOG(LogAudio, Log, TEXT("AudioComponent not created for out of range Sound %s"), *Sound->GetName());
 			}
 		}
 	}
@@ -2608,7 +2756,13 @@ void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float V
 		return;
 	}
 
-	if (Sound->IsAudibleSimple(this, Location, AttenuationSettings))
+	const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
+	float MaxDistance = 0.0f;
+	float FocusFactor = 0.0f;
+
+	GetMaxDistanceAndFocusFactor(Sound, World, Location, AttenuationSettingsToApply, &MaxDistance, &FocusFactor);
+
+	if (Sound->GetDuration() > 1.0f || SoundIsAudible(Sound, World, Location, AttenuationSettingsToApply, MaxDistance, FocusFactor))
 	{
 		const bool bIsInGameWorld = World->IsGameWorld();
 
@@ -2625,18 +2779,15 @@ void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float V
 		NewActiveSound.bHandleSubtitles = true;
 		NewActiveSound.SubtitlePriority = 10000.f; // Todo: Fix this. Add it to USoundBase
 
-		const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
 		NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
 		if (NewActiveSound.bHasAttenuationSettings)
 		{
 			NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
-			NewActiveSound.MaxDistance = NewActiveSound.AttenuationSettings.GetMaxDimension();
+			NewActiveSound.FocusPriorityScale = AttenuationSettingsToApply->GetFocusPriorityScale(GlobalFocusSettings, FocusFactor);
+			NewActiveSound.FocusDistanceScale = AttenuationSettingsToApply->GetFocusDistanceScale(GlobalFocusSettings, FocusFactor);
 		}
-		else
-		{
-			NewActiveSound.MaxDistance = Sound->GetMaxAudibleDistance();
-		}
-			
+
+		NewActiveSound.MaxDistance = MaxDistance;
 		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 		NewActiveSound.Priority = Sound->Priority;
 
@@ -2691,13 +2842,13 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 	ProcessingPendingActiveSoundStops();
 
 	// Anytime we flush, make sure to clear all the listeners.  We'll get the right ones soon enough.
-	Listeners.Empty();
+	Listeners.Reset();
 	Listeners.Add(FListener());
 
 	// Clear all the activated reverb effects
 	if (bClearActivatedReverb)
 	{
-		ActivatedReverbs.Empty();
+		ActivatedReverbs.Reset();
 		HighestPriorityReverb = nullptr;
 	}
 
@@ -2726,7 +2877,7 @@ void FAudioDevice::Flush( UWorld* WorldToFlush, bool bClearActivatedReverb )
 				Sources[ SourceIndex ]->Stop();
 			}
 
-			WaveInstanceSourceMap.Empty();
+			WaveInstanceSourceMap.Reset();
 		}
 	}
 }

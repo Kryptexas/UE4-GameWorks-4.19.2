@@ -163,6 +163,65 @@ struct FActivatedReverb
 	}
 };
 
+/** Struct used to cache listener attenuation vector math results */
+struct FAttenuationListenerData
+{
+	FVector ListenerToSoundDir;
+	const FListener* Listener;
+	float AttenuationDistance;
+	float ListenerToSoundDistance;
+	bool bDataComputed;
+
+	FAttenuationListenerData()
+		: ListenerToSoundDir(FVector::ZeroVector)
+		, Listener(nullptr)
+		, AttenuationDistance(0.0f)
+		, ListenerToSoundDistance(0.0f)
+		, bDataComputed(false)
+	{}
+};
+
+struct FAttenuationFocusData
+{
+	float FocusFactor;
+	float DistanceScale;
+	float PriorityScale;
+	float VolumeScale;
+
+	FAttenuationFocusData()
+		: FocusFactor(1.0f)
+		, DistanceScale(1.0f)
+		, PriorityScale(1.0f)
+		, VolumeScale(1.0f)
+	{}
+};
+
+/*
+* Setting for global focus scaling
+*/
+struct FGlobalFocusSettings
+{
+	float FocusAzimuthScale;
+	float NonFocusAzimuthScale;
+	float FocusDistanceScale;
+	float NonFocusDistanceScale;
+	float FocusVolumeScale;
+	float NonFocusVolumeScale;
+	float FocusPriorityScale;
+	float NonFocusPriorityScale;
+
+	FGlobalFocusSettings()
+		: FocusAzimuthScale(1.0f)
+		, NonFocusAzimuthScale(1.0f)
+		, FocusDistanceScale(1.0f)
+		, NonFocusDistanceScale(1.0f)
+		, FocusVolumeScale(1.0f)
+		, NonFocusVolumeScale(1.0f)
+		, FocusPriorityScale(1.0f)
+		, NonFocusPriorityScale(1.0f)
+	{}
+};
+
 class ENGINE_API FAudioDevice : public FExec
 {
 public:
@@ -550,6 +609,31 @@ public:
 
 	bool IsAudioDeviceMuted() const;
 
+	/** Computes and returns some geometry related to the listener and the given sound transform. */
+	void GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FListener* InListener = nullptr) const;
+
+	/** Returns the focus factor of a sound based on its position and listener data. */
+	float GetFocusFactor(FAttenuationListenerData& OutListenerData, const class USoundBase* Sound, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FListener* InListener = nullptr) const;
+
+	/** Gets the max distance and focus factor of a sound. */
+	void GetMaxDistanceAndFocusFactor(USoundBase* Sound, const class UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float *OutMaxDistance, float* OutFocusFactor);
+
+	/**
+	* Checks if the given sound would be audible.
+	* @param Sound					The sound to check if it would be audible
+	* @param World					The world the sound is playing in
+	* @param Location				The location the sound is playing in the world
+	* @param AttenuationSettings	The (optional) attenuation settings the sound is using
+	* @param MaxDistance			The computed max distance of the sound.
+	* @param FocusFactor			The focus factor of the sound.
+	* @param Returns true if the sound is audible, false otherwise.
+	*/
+	bool SoundIsAudible(USoundBase* Sound, const class UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor);
+
+	/** Returns the index of the listener closest to the given sound transform */
+	static int32 FindClosestListenerIndex(const FTransform& SoundTransform, const TArray<FListener>& InListeners);
+	int32 FindClosestListenerIndex(const FTransform& SoundTransform) const;
+
 protected:
 	friend class FSoundSource;
 
@@ -808,6 +892,9 @@ public:
 
 	/** Global dynamic pitch scale parameter */
 	FDynamicParameter GlobalPitchScale;
+
+	/** The global focus settings */
+	FGlobalFocusSettings GlobalFocusSettings;
 
 	/** Timestamp of the last update */
 	double LastUpdateTime;

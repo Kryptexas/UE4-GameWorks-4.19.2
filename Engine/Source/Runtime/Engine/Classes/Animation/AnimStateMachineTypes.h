@@ -93,7 +93,7 @@ struct FAnimationState : public FAnimationStateBase
 	// The index of the notify to fire when this state is fully entered (weight within the machine becomes one)
 	UPROPERTY()
 	int32 FullyBlendedNotify;
-
+	
 	FAnimationState()
 		: FAnimationStateBase()
 		, StartNotify(INDEX_NONE)
@@ -238,6 +238,10 @@ struct FBakedAnimationState
 	// Indices into the property array for player nodes in the state
 	UPROPERTY()
 	TArray<int32> PlayerNodeIndices;
+
+	// Whether or not this state will ALWAYS reset it's state on reentry, regardless of remaining weight
+	UPROPERTY()
+	bool bAlwaysResetOnEntry;
 
 public:
 	FBakedAnimationState()

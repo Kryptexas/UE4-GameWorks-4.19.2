@@ -1408,7 +1408,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 
 	if(!Family->EngineShowFlags.AmbientCubemap)
 	{
-		FinalPostProcessSettings.ContributingCubemaps.Empty();
+		FinalPostProcessSettings.ContributingCubemaps.Reset();
 	}
 
 	if(!Family->EngineShowFlags.LensFlares)

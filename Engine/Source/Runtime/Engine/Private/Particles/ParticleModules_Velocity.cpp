@@ -270,9 +270,10 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 	check(LODLevel);
 	FVector OwnerScale(1.0f);
+	const FTransform& OwnerTM = Owner->Component->GetAsyncComponentToWorld();
 	if ((bApplyOwnerScale == true) && Owner->Component)
 	{
-		OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
+		OwnerScale = OwnerTM.GetScale3D();
 	}
 	if (Absolute)
 	{
@@ -281,7 +282,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 			if (bInWorldSpace == false)
 			{
 				FVector Vel;
-				const FMatrix LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixNoScale();
+				const FMatrix LocalToWorld = OwnerTM.ToMatrixNoScale();
 				BEGIN_UPDATE_LOOP;
 				{
 					Vel = VelOverLife.GetValue(Particle.RelativeTime, Owner->Component);
@@ -311,7 +312,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 			else
 			{
 				FVector Vel;
-				const FMatrix LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixNoScale();
+				const FMatrix LocalToWorld = OwnerTM.ToMatrixNoScale();
 				const FMatrix InvMat = LocalToWorld.InverseFast();
 				BEGIN_UPDATE_LOOP;
 				{
@@ -329,7 +330,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 			FVector Vel;
 			if (bInWorldSpace == false)
 			{
-				const FMatrix LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixNoScale();
+				const FMatrix LocalToWorld = OwnerTM.ToMatrixNoScale();
 				BEGIN_UPDATE_LOOP;
 				{
 					Vel = VelOverLife.GetValue(Particle.RelativeTime, Owner->Component);
@@ -359,7 +360,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 			else
 			{
 				FVector Vel;
-				const FMatrix LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixNoScale();
+				const FMatrix LocalToWorld = OwnerTM.ToMatrixNoScale();
 				const FMatrix InvMat = LocalToWorld.InverseFast();
 				BEGIN_UPDATE_LOOP;
 				{

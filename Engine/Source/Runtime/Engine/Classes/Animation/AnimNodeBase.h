@@ -131,6 +131,7 @@ public:
 struct FPoseContext : public FAnimationBaseContext
 {
 public:
+	/* These Pose/Curve is stack allocator. You should not use it outside of stack. */
 	FCompactPose	Pose;
 	FBlendedCurve	Curve;
 
@@ -387,7 +388,7 @@ public:
 #if ENABLE_ANIMNODE_POSE_DEBUG
 private:
 	// forwarded pose data from the wired node which current node's skeletal control is not applied yet
-	FCompactPose CurrentPose;
+	FCompactHeapPose CurrentPose;
 #endif //#if ENABLE_ANIMNODE_POSE_DEBUG
 };
 

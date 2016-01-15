@@ -121,7 +121,6 @@ struct FParticleSysParam
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ParticleSysParam)
 	class UMaterialInterface* Material;
 
-
 	FParticleSysParam()
 		: ParamType(0)
 		, Scalar(0)
@@ -131,8 +130,64 @@ struct FParticleSysParam
 		, Color(ForceInit)
 		, Actor(NULL)
 		, Material(NULL)
+		, AsyncActorToWorld(FTransform::Identity)
+		, AsyncActorVelocity(FVector::ZeroVector)
+		, bAsyncDataCopyIsValid(false)
 	{
 	}
+
+	void UpdateAsyncActorCache()
+	{
+		check(IsInGameThread());
+		if(Actor)
+		{
+			AsyncActorToWorld = Actor->ActorToWorld();
+			AsyncActorVelocity = Actor->GetVelocity();
+		}
+		
+		bAsyncDataCopyIsValid = true;
+	}
+
+	void ResetAsyncActorCache()
+	{
+		check(IsInGameThread());
+		bAsyncDataCopyIsValid = false;
+	}
+
+	FTransform GetAsyncActorToWorld() const
+	{
+		if(bAsyncDataCopyIsValid)
+		{
+			return AsyncActorToWorld;
+		}
+		else if(Actor)
+		{
+			check(IsInGameThread());
+			return Actor->ActorToWorld();
+		}
+
+		return FTransform::Identity;
+	}
+
+	FVector GetAsyncActorVelocity() const
+	{
+		if (bAsyncDataCopyIsValid)
+		{
+			return AsyncActorVelocity;
+		}
+		else if (Actor)
+		{
+			check(IsInGameThread());
+			return Actor->GetVelocity();
+		}
+
+		return FVector::ZeroVector;
+	}
+
+private:
+	FTransform AsyncActorToWorld;
+	FVector AsyncActorVelocity;
+	bool bAsyncDataCopyIsValid;
 
 };
 
@@ -536,9 +591,22 @@ private:
 	FTransform AsyncComponentToWorld;
 	/** Cached copy of the instance params */
 	TArray<struct FParticleSysParam> AsyncInstanceParameters;
+	/** Player locations computed before kicking off async task. Safe to access from async task or game thread*/
+	TArray<FVector> PlayerLocations;
+	/** PlayerLODDistanceFactor computed before kicking off async task. Safe to access from async task or game thread*/
+	TArray<float> PlayerLODDistanceFactor;
+	/** Cached copy of bounds */
+	FBoxSphereBounds AsyncBounds;
+	/** Cached copy of PartSysVelocity */
+	FVector AsyncPartSysVelocity;
+
 	/** Is AsyncComponentToWorld etc valid? */
 	bool bAsyncDataCopyIsValid;
 	bool bParallelRenderThreadUpdate;
+
+	/** Remember the global detail mode when we last checked the emitters. */
+	uint32 LastCheckedDetailMode;
+
 public:
 
 	void SetSignificance(float OldSignificance, float NewSignificance);
@@ -561,6 +629,36 @@ public:
 			return AsyncInstanceParameters;
 		}
 		return InstanceParameters;
+	}
+
+	FORCEINLINE const FBoxSphereBounds& GetAsyncBounds()
+	{
+		if (!bParallelRenderThreadUpdate && !IsInGameThread())
+		{
+			check(bAsyncDataCopyIsValid);
+			return AsyncBounds;
+		}
+		return Bounds;
+	}
+
+	FORCEINLINE const FVector& GetAsyncPartSysVelocity()
+	{
+		if (!bParallelRenderThreadUpdate && !IsInGameThread())
+		{
+			check(bAsyncDataCopyIsValid);
+			return AsyncPartSysVelocity;
+		}
+		return PartSysVelocity;
+	}
+
+	FORCEINLINE const TArray<FVector>& GetPlayerLocations()
+	{
+		return PlayerLocations;
+	}
+
+	FORCEINLINE const TArray<float>& GetPlayerLODDistanceFactor()
+	{
+		return PlayerLODDistanceFactor;
 	}
 
 	//

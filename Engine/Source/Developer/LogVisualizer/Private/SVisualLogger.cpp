@@ -653,10 +653,10 @@ void SVisualLogger::HandleSaveCommand(bool bSaveAllData)
 
 		if (bSaved)
 		{
-			if (SaveFilenames.Num() > 0)
+			if (SaveFilenames.Num() > 0 && SaveFilenames[0].IsEmpty() == false)
 			{
 				TArray<FVisualLogDevice::FVisualLogEntryItem> FrameCache;
-				for (auto CurrentName : SelectedRows)
+				for (const FName& CurrentName : SelectedRows)
 				{
 					FVisualLoggerDBRow& DataRow = FVisualLoggerDatabase::Get().GetRowByName(CurrentName);
 					FrameCache.Append(DataRow.GetItems());
@@ -665,10 +665,17 @@ void SVisualLogger::HandleSaveCommand(bool bSaveAllData)
 				if (FrameCache.Num())
 				{
 					FArchive* FileArchive = IFileManager::Get().CreateFileWriter(*SaveFilenames[0]);
-					FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
-					FileArchive->Close();
-					delete FileArchive;
-					FileArchive = NULL;
+					if (ensure(FileArchive))
+					{
+						FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
+						FileArchive->Close();
+						delete FileArchive;
+						FileArchive = NULL;
+					}
+					else
+					{
+						UE_LOG(LogVisualLogger, Error, TEXT("Failed to create file \"%s\""), *SaveFilenames[0]);
+					}
 				}
 			}
 		}

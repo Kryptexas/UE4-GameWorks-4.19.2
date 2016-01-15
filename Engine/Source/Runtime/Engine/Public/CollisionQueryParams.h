@@ -39,7 +39,10 @@ struct ENGINE_API FCollisionQueryParams
 	bool bIgnoreBlocks;
 
 	/** TArray typedef of components to ignore. */
-	typedef TArray<uint32, TInlineAllocator<NumInlinedActorComponents>> IgnoreComponentsArrayType;
+	typedef TArray<uint32, TInlineAllocator<8>> IgnoreComponentsArrayType;
+
+	/** TArray typedef of actors to ignore. */
+	typedef TArray<uint32, TInlineAllocator<4>> IgnoreActorsArrayType;
 
 	/** Extra filtering done on the query. See declaration for filtering logic */
 	FMaskFilter IgnoreMask;
@@ -52,12 +55,21 @@ private:
 	/** Set of components to ignore during the trace */
 	mutable IgnoreComponentsArrayType IgnoreComponents;
 
+	/** Set of actors to ignore during the trace */
+	IgnoreActorsArrayType IgnoreActors;
+
 	void Internal_AddIgnoredComponent(const UPrimitiveComponent* InIgnoreComponent);
 
 public:
 
 	/** Returns set of unique components to ignore during the trace. Elements are guaranteed to be unique (they are made so internally if they are not already). */
 	const IgnoreComponentsArrayType& GetIgnoredComponents() const;
+
+	/** Returns set of actors to ignore during the trace. Note that elements are NOT guaranteed to be unique. This is less important for actors since it's less likely that duplicates are added.*/
+	const IgnoreActorsArrayType& GetIgnoredActors() const
+	{
+		return IgnoreActors;
+	}
 
 	/** Clears the set of components to ignore during the trace. */
 	void ClearIgnoredComponents()

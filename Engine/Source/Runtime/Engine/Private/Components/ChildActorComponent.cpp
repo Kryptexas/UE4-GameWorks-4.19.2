@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "ComponentInstanceDataCache.h"
 #include "Components/ChildActorComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
@@ -94,72 +93,53 @@ void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
 }
 
-class FChildActorComponentInstanceData : public FSceneComponentInstanceData
+FChildActorComponentInstanceData::FChildActorComponentInstanceData(const UChildActorComponent* Component)
+	: FSceneComponentInstanceData(Component)
+	, ChildActorName(Component->ChildActorName)
+	, ComponentInstanceData(nullptr)
 {
-public:
-	FChildActorComponentInstanceData(const UChildActorComponent* Component)
-		: FSceneComponentInstanceData(Component)
-		, ChildActorName(Component->ChildActorName)
-		, ComponentInstanceData(nullptr)
+	if (Component->ChildActor)
 	{
-		if (Component->ChildActor)
+		ComponentInstanceData = new FComponentInstanceDataCache(Component->ChildActor);
+		// If it is empty dump it
+		if (!ComponentInstanceData->HasInstanceData())
 		{
-			ComponentInstanceData = new FComponentInstanceDataCache(Component->ChildActor);
-			// If it is empty dump it
-			if (!ComponentInstanceData->HasInstanceData())
-			{
-				delete ComponentInstanceData;
-				ComponentInstanceData = nullptr;
-			}
+			delete ComponentInstanceData;
+			ComponentInstanceData = nullptr;
+		}
 
-			USceneComponent* ChildRootComponent = Component->ChildActor->GetRootComponent();
-			if (ChildRootComponent)
+		USceneComponent* ChildRootComponent = Component->ChildActor->GetRootComponent();
+		if (ChildRootComponent)
+		{
+			for (USceneComponent* AttachedComponent : ChildRootComponent->AttachChildren)
 			{
-				for (USceneComponent* AttachedComponent : ChildRootComponent->AttachChildren)
+				if (AttachedComponent)
 				{
-					if (AttachedComponent)
+					AActor* AttachedActor = AttachedComponent->GetOwner();
+					if (AttachedActor != Component->ChildActor)
 					{
-						AActor* AttachedActor = AttachedComponent->GetOwner();
-						if (AttachedActor != Component->ChildActor)
-						{
-							FAttachedActorInfo Info;
-							Info.Actor = AttachedActor;
-							Info.SocketName = AttachedComponent->AttachSocketName;
-							Info.RelativeTransform = AttachedComponent->GetRelativeTransform();
-							AttachedActors.Add(Info);
-						}
+						FAttachedActorInfo Info;
+						Info.Actor = AttachedActor;
+						Info.SocketName = AttachedComponent->AttachSocketName;
+						Info.RelativeTransform = AttachedComponent->GetRelativeTransform();
+						AttachedActors.Add(Info);
 					}
 				}
 			}
 		}
 	}
+}
 
-	virtual ~FChildActorComponentInstanceData()
-	{
-		delete ComponentInstanceData;
-	}
+FChildActorComponentInstanceData::~FChildActorComponentInstanceData()
+{
+	delete ComponentInstanceData;
+}
 
-	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
-	{
-		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
-		CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this, CacheApplyPhase);
-	}
-
-	// The name of the spawned child actor so it (attempts to) remain constant across construction script reruns
-	FName ChildActorName;
-
-	// The component instance data cache for the ChildActor spawned by this component
-	FComponentInstanceDataCache* ComponentInstanceData;
-
-	struct FAttachedActorInfo
-	{
-		TWeakObjectPtr<AActor> Actor;
-		FName SocketName;
-		FTransform RelativeTransform;
-	};
-
-	TArray<FAttachedActorInfo> AttachedActors;
-};
+void FChildActorComponentInstanceData::ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
+{
+	FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+	CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this, CacheApplyPhase);
+}
 
 void UChildActorComponent::BeginDestroy()
 {

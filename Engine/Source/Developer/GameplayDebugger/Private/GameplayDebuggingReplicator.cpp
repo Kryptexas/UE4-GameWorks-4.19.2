@@ -317,8 +317,15 @@ void AGameplayDebuggingReplicator::ClientAutoActivate_Implementation()
 	// we are already replicated so let's activate tool
 	if (GetWorld() && GetNetMode() == ENetMode::NM_Client && !IsToolCreated() && !IsGlobalInWorld())
 	{
-		CreateTool();
-		EnableTool();
+		if (IsToolCreated())
+		{
+			EnableDraw(!IsDrawEnabled());
+		}
+		else
+		{
+			CreateTool();
+			EnableTool();
+		}
 	}
 #endif
 }
@@ -329,8 +336,15 @@ void AGameplayDebuggingReplicator::OnRep_AutoActivate()
 	// we are already replicated so let's activate tool
 	if (GetWorld() && GetNetMode() == ENetMode::NM_Client && !IsToolCreated() && !IsGlobalInWorld())
 	{
-		CreateTool();
-		EnableTool();
+		if (IsToolCreated())
+		{
+			EnableDraw(!IsDrawEnabled());
+		}
+		else
+		{
+			CreateTool();
+			EnableTool();
+		}
 	}
 #endif
 }

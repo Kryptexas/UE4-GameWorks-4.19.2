@@ -1529,8 +1529,8 @@ void UParticleEmitter::Build()
 		if (HighLODLevel->TypeDataModule != nullptr)
 		{
 			if(HighLODLevel->TypeDataModule->RequiresBuild())
-		{
-			FParticleEmitterBuildInfo EmitterBuildInfo;
+			{
+				FParticleEmitterBuildInfo EmitterBuildInfo;
 				HighLODLevel->CompileModules( EmitterBuildInfo );
 				HighLODLevel->TypeDataModule->Build( EmitterBuildInfo );
 			}
@@ -2306,6 +2306,8 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 
 	OutTags.Add(FAssetRegistryTag("NumLODs", LexicalConversion::ToString(LODDistances.Num()), FAssetRegistryTag::TT_Numerical));
 
+	OutTags.Add(FAssetRegistryTag("WarmupTime", LexicalConversion::ToString(WarmupTime), FAssetRegistryTag::TT_Numerical));
+
 	// Done here instead of as an AssetRegistrySearchable string to avoid the long prefix on the enum value string
 	FString LODMethodString = TEXT("Unknown");
 	switch (LODMethod)
@@ -2325,12 +2327,12 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	}
 	OutTags.Add(FAssetRegistryTag("LODMethod", LODMethodString, FAssetRegistryTag::TT_Alphabetical));
 
+	OutTags.Add(FAssetRegistryTag("CPUCollision", UsesCPUCollision() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 	OutTags.Add(FAssetRegistryTag("Looping", bAnyEmitterLoopsForever ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 	OutTags.Add(FAssetRegistryTag("Immortal", IsPotentiallyImmortal() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 
 	Super::GetAssetRegistryTags(OutTags);
 }
-
 
 bool UParticleSystem::IsPotentiallyImmortal() const
 {
@@ -2340,9 +2342,9 @@ bool UParticleSystem::IsPotentiallyImmortal() const
 	}
 
 	// Run thru the emitters and see if any will loop forever
-	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
+	for (const UParticleEmitter* Emitter : Emitters)
 	{
-		if (const UParticleEmitter* Emitter = Emitters[EmitterIndex])
+		if (Emitter != nullptr)
 		{
 			for (const UParticleLODLevel* LODLevel : Emitter->LODLevels)
 			{
@@ -2365,6 +2367,34 @@ bool UParticleSystem::IsPotentiallyImmortal() const
 			}
 		}
 	}
+	return false;
+}
+
+bool UParticleSystem::UsesCPUCollision() const
+{
+	for (const UParticleEmitter* Emitter : Emitters)
+	{
+		if (Emitter != nullptr)
+		{
+			// If we have not yet found a CPU collision module, and we have some enabled LODs to look in..
+			if (Emitter->HasAnyEnabledLODs() && Emitter->LODLevels.Num() > 0)
+			{
+				if (const UParticleLODLevel* HighLODLevel = Emitter->LODLevels[0])
+				{
+					// Iterate over modules of highest LOD (will have all the modules)
+					for (const UParticleModule* Module : HighLODLevel->Modules)
+					{
+						// If an enabled CPU collision module 
+						if (Module->bEnabled && Module->IsA<UParticleModuleCollision>())
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return false;
 }
 
@@ -4081,6 +4111,9 @@ public:
 	}
 };
 
+TAutoConsoleVariable<int32> CVarFXEarlySchedule(TEXT("FX.EarlyScheduleAsync"), 0, TEXT("If 1, particle system components that can run async will be scheduled earlier in the frame"));
+
+DECLARE_CYCLE_STAT(TEXT("PSys Comp Marshall Time"),STAT_UParticleSystemComponent_Marshall,STATGROUP_Particles);
 
 void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
@@ -4149,7 +4182,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		}
 		return;
 	} 
-	else if (bWarmingUp == false)
+	// See if DetailMode has changed since the last time we checked
+	else if (bWarmingUp == false && LastCheckedDetailMode != DetailModeCVar)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_CheckForReset);
 		bool bRequiresReset = false;
@@ -4165,11 +4199,15 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 				}
 			}
 		}
+
 		if (bRequiresReset)
 		{
 			ResetParticles(true);
 			InitializeSystem();
 		}
+
+		// Save the detail mode we just checked
+		LastCheckedDetailMode = DetailModeCVar;
 	}
 
 	// Bail out if MaxSecondsBeforeInactive > 0 and we haven't been rendered the last MaxSecondsBeforeInactive seconds.
@@ -4236,6 +4274,27 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	AccumTickTime += DeltaTime;
 
+	// Save player locations
+	PlayerLocations.Reset();
+	PlayerLODDistanceFactor.Reset();
+
+	if (World->IsGameWorld())
+	{
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			APlayerController* PlayerController = *Iterator;
+			if (PlayerController->IsLocalPlayerController())
+			{
+				FVector POVLoc;
+				FRotator POVRotation;
+				PlayerController->GetPlayerViewPoint(POVLoc, POVRotation);
+
+				PlayerLocations.Add(POVLoc);
+				PlayerLODDistanceFactor.Add(PlayerController->LocalPlayerCachedLODDistanceFactor);
+			}
+		}
+	}
+
 	// Orient the Z axis toward the camera
 	if (Template->bOrientZAxisTowardCamera)
 	{
@@ -4274,13 +4333,25 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	else
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueTasks);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_Marshall)
 		bAsyncDataCopyIsValid = true;
 		check(!bParallelRenderThreadUpdate);
 		AsyncComponentToWorld = ComponentToWorld;
 		AsyncInstanceParameters.Reset();
 		AsyncInstanceParameters.Append(InstanceParameters);
+			AsyncBounds = Bounds;
+			AsyncPartSysVelocity = PartSysVelocity;
+
+			//cache component to world of each actor that trails may use
+			for (FParticleSysParam& ParticleSysParam : AsyncInstanceParameters)
+			{
+				ParticleSysParam.UpdateAsyncActorCache();
+			}
 
 		bAsyncWorkOutstanding = true;
+		}
+		
 		{
 			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_QueueAsync);
 			AsyncWork = TGraphTask<FParticleAsyncTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(this);
@@ -4297,6 +4368,16 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			ThisTickFunction->GetCompletionHandle()->DontCompleteUntil(Finalize);
 		}
 #endif
+
+		if(CVarFXEarlySchedule.GetValueOnGameThread())
+		{
+			PrimaryComponentTick.TickGroup = TG_PrePhysics; 
+			PrimaryComponentTick.EndTickGroup = TG_PostPhysics;
+		}
+		else
+		{
+			PrimaryComponentTick.TickGroup = TG_DuringPhysics;
+		}
 	}
 }
 
@@ -4364,6 +4445,16 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 void UParticleSystemComponent::FinalizeTickComponent()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticleFinalizeTickTime);
+
+	if(bAsyncDataCopyIsValid)
+	{
+		//reset async actor to world
+		for (FParticleSysParam& ParticleSysParam : AsyncInstanceParameters)
+		{
+			ParticleSysParam.ResetAsyncActorCache();
+		}
+	}
+
 	bAsyncDataCopyIsValid = false;
 	if (!bNeedsFinalize)
 	{
@@ -4381,21 +4472,21 @@ void UParticleSystemComponent::FinalizeTickComponent()
 			FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
 			if (Instance && Instance->bEnabled)
 			{
-				if (EmitterIndex + 1 < EmitterInstances.Num())
-				{
-					FParticleEmitterInstance* NextInstance = EmitterInstances[EmitterIndex + 1];
-					FPlatformMisc::Prefetch(NextInstance);
-				}
+			if (EmitterIndex + 1 < EmitterInstances.Num())
+			{
+				FParticleEmitterInstance* NextInstance = EmitterInstances[EmitterIndex+1];
+				FPlatformMisc::Prefetch(NextInstance);
+			}
 
 				if (Instance->SpriteTemplate)
+			{
+				UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+				if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 				{
-					UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-					if (SpriteLODLevel && SpriteLODLevel->bEnabled)
-					{
-						Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
-					}
+					Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
 				}
 			}
+		}
 		}
 
 		AParticleEventManager* EventManager = (World ? World->MyParticleEventManager : NULL);
@@ -4570,18 +4661,18 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 			UParticleEmitter* Emitter = Template->Emitters[Idx];
 			FParticleEmitterInstance* Instance = NumInstances == 0 ? NULL : EmitterInstances[Idx];
 			
-			const bool bDetailModeAllowsRendering = DetailMode <= GlobalDetailMode;
+			const bool bDetailModeAllowsRendering	= DetailMode <= GlobalDetailMode;
 			bool bShouldCreateAndOrInit = bDetailModeAllowsRendering && Emitter->HasAnyEnabledLODs() && bCanEverRender;
 			const bool bIsSignificant = (int32)Emitter->SignificanceLevel >= (int32)RequiredSignificance;
 			bool bFailedOnlyOnSignificance = false;
 			if (bShouldCreateAndOrInit && !bIsSignificant)
-			{
+				{
 				bFailedOnlyOnSignificance = true;
 				bShouldCreateAndOrInit = false;
-			}
+					}
 
 			if (bShouldCreateAndOrInit)
-			{
+					{
 				if (Instance)
 				{
 					Instance->SetHaltSpawning(false);
@@ -4590,10 +4681,10 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 				{
 					Instance = Emitter->CreateInstance(this);
 					EmitterInstances[Idx] = Instance;
-				}
+			}
 
 				if (Instance)
-				{
+			{
 					Instance->bEnabled = true;
 					if (bReInitExistingEmitters)
 					{
@@ -4603,10 +4694,10 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 						PreferredLODLevel = FMath::Min(PreferredLODLevel, Emitter->LODLevels.Num());
 						bSetLodLevels |= !bIsFirstCreate;//Only set lod levels if we init any instances and it's not the first creation time.
 					}
-				}
-			}
-			else
-			{
+						}
+					}
+					else
+					{
 				if (Instance)
 				{
 					if(!bFailedOnlyOnSignificance)
@@ -4619,20 +4710,20 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 						EmitterInstances[Idx] = NULL;
 						bClearDynamicData = true;
 					}
-					else
-					{
+				else
+				{
 						//otherwise, we just disable it.
 						Instance->bEnabled = false;
 					}
-				}
+					}
 				bMissingEmittersDueToSignificance |= bFailedOnlyOnSignificance;
+				}
 			}
-		}
 
-		if (bClearDynamicData)
-		{
-			ClearDynamicData();
-		}
+			if (bClearDynamicData)
+			{
+				ClearDynamicData();
+			}
 
 		if (bSetLodLevels)
 		{
@@ -4649,7 +4740,7 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 				// set the LOD levels here
 				if (Instance)
 				{
-					Instance->CurrentLODLevelIndex = LODLevel;
+					Instance->CurrentLODLevelIndex	= LODLevel;
 
 					// small safety net for OR-11322; can be removed if the ensure never fires after the change in SetTemplate (reset all instances LOD indices to 0)
 					if (Instance->CurrentLODLevelIndex >= Instance->SpriteTemplate->LODLevels.Num())
@@ -4657,7 +4748,7 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 						Instance->CurrentLODLevelIndex = Instance->SpriteTemplate->LODLevels.Num()-1;
 						ensureMsgf(false, TEXT("LOD access out of bounds (OR-11322). Please let olaf.piesche or simon.tovey know."));
 					}
-					Instance->CurrentLODLevel = Instance->SpriteTemplate->LODLevels[Instance->CurrentLODLevelIndex];
+					Instance->CurrentLODLevel		= Instance->SpriteTemplate->LODLevels[Instance->CurrentLODLevelIndex];
 				}
 			}
 		}

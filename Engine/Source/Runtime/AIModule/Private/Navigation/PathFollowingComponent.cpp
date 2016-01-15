@@ -70,17 +70,20 @@ void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavigationP
 	if (Vlog.IsRecording() &&
 		InLogPath && InLogPath->IsValid() && InLogPath->GetPathPoints().Num())
 	{
-		FVisualLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner, LogOwner->GetWorld()->TimeSeconds);
-		InLogPath->DescribeSelfToVisLog(Entry);
-
 		const FVector PathEnd = *InLogPath->GetPathPointLocation(InLogPath->GetPathPoints().Num() - 1);
-		if (LogGoalActor)
+
+		FVisualLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner, LogOwner->GetWorld()->TimeSeconds);
+		if (Entry)
 		{
-			const FVector GoalLoc = LogGoalActor->GetActorLocation();
-			if (FVector::DistSquared(GoalLoc, PathEnd) > 1.0f)
+			InLogPath->DescribeSelfToVisLog(Entry);
+			if (LogGoalActor)
 			{
-				UE_VLOG_LOCATION(LogOwner, LogPathFollowing, Verbose, GoalLoc, 30, FColor::Green, TEXT("GoalActor"));
-				UE_VLOG_SEGMENT(LogOwner, LogPathFollowing, Verbose, GoalLoc, PathEnd, FColor::Green, TEXT_EMPTY);
+				const FVector GoalLoc = LogGoalActor->GetActorLocation();
+				if (FVector::DistSquared(GoalLoc, PathEnd) > 1.0f)
+				{
+					UE_VLOG_LOCATION(LogOwner, LogPathFollowing, Verbose, GoalLoc, 30, FColor::Green, TEXT("GoalActor"));
+					UE_VLOG_SEGMENT(LogOwner, LogPathFollowing, Verbose, GoalLoc, PathEnd, FColor::Green, TEXT_EMPTY);
+				}
 			}
 		}
 

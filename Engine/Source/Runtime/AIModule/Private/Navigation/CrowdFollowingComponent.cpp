@@ -639,51 +639,54 @@ void LogPathPartHelper(AActor* LogOwner, FNavMeshPath* NavMeshPath, int32 StartI
 	const FVector CorridorOffset = NavigationDebugDrawing::PathOffset * 1.25f;
 	int32 NumAreaMark = 1;
 
-	NavMesh->BeginBatchQuery();
 	FVisualLogEntry* Snapshot = VisualLogger.GetEntryToWrite(LogOwner, LogOwner->GetWorld()->GetTimeSeconds());
-
-	TArray<FVector> Verts;
-	for (int32 Idx = StartIdx; Idx <= EndIdx; Idx++)
+	if (Snapshot)
 	{
-		const uint8 AreaID = NavMesh->GetPolyAreaID(NavMeshPath->PathCorridor[Idx]);
-		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
+		NavMesh->BeginBatchQuery();
 
-		Verts.Reset();
-		NavMesh->GetPolyVerts(NavMeshPath->PathCorridor[Idx], Verts);
-
-		FVector CenterPt = FVector::ZeroVector;
-		for (int32 VIdx = 0; VIdx < Verts.Num(); VIdx++)
+		TArray<FVector> Verts;
+		for (int32 Idx = StartIdx; Idx <= EndIdx; Idx++)
 		{
-			Verts[VIdx].Z += 5.0f;
-			CenterPt += Verts[VIdx];
+			const uint8 AreaID = NavMesh->GetPolyAreaID(NavMeshPath->PathCorridor[Idx]);
+			const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
+
+			Verts.Reset();
+			NavMesh->GetPolyVerts(NavMeshPath->PathCorridor[Idx], Verts);
+
+			FVector CenterPt = FVector::ZeroVector;
+			for (int32 VIdx = 0; VIdx < Verts.Num(); VIdx++)
+			{
+				Verts[VIdx].Z += 5.0f;
+				CenterPt += Verts[VIdx];
+			}
+			CenterPt /= Verts.Num();
+
+			const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
+			const FColor PolygonColor = AreaClass != UNavigationSystem::GetDefaultWalkableArea() ? (DefArea ? DefArea->DrawColor : NavMesh->GetConfig().Color) : FColorList::LightSteelBlue;
+
+			CorridorPoly.SetColor(PolygonColor.WithAlpha(100));
+			CorridorPoly.Points.Reset();
+			CorridorPoly.Points.Append(Verts);
+			Snapshot->ElementsToDraw.Add(CorridorPoly);
+
+			if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
+			{
+				FVisualLogShapeElement AreaMarkElem(EVisualLoggerShapeElement::Segment);
+				AreaMarkElem.SetColor(FColorList::Orange.WithAlpha(100));
+				AreaMarkElem.Category = LogNavigation.GetCategoryName();
+				AreaMarkElem.Thicknes = 2;
+				AreaMarkElem.Description = AreaClass->GetName();
+
+				AreaMarkElem.Points.Add(CenterPt + CorridorOffset);
+				AreaMarkElem.Points.Add(CenterPt + CorridorOffset + FVector(0, 0, 100.0f + NumAreaMark * 50.0f));
+				Snapshot->ElementsToDraw.Add(AreaMarkElem);
+
+				NumAreaMark = (NumAreaMark + 1) % 5;
+			}
 		}
-		CenterPt /= Verts.Num();
 
-		const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
-		const FColor PolygonColor = AreaClass != UNavigationSystem::GetDefaultWalkableArea() ? (DefArea ? DefArea->DrawColor : NavMesh->GetConfig().Color) : FColorList::LightSteelBlue;
-
-		CorridorPoly.SetColor(PolygonColor.WithAlpha(100));
-		CorridorPoly.Points.Reset();
-		CorridorPoly.Points.Append(Verts);
-		Snapshot->ElementsToDraw.Add(CorridorPoly);
-
-		if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
-		{
-			FVisualLogShapeElement AreaMarkElem(EVisualLoggerShapeElement::Segment);
-			AreaMarkElem.SetColor(FColorList::Orange.WithAlpha(100));
-			AreaMarkElem.Category = LogNavigation.GetCategoryName();
-			AreaMarkElem.Thicknes = 2;
-			AreaMarkElem.Description = AreaClass->GetName();
-
-			AreaMarkElem.Points.Add(CenterPt + CorridorOffset);
-			AreaMarkElem.Points.Add(CenterPt + CorridorOffset + FVector(0, 0, 100.0f + NumAreaMark * 50.0f));
-			Snapshot->ElementsToDraw.Add(AreaMarkElem);
-
-			NumAreaMark = (NumAreaMark + 1) % 5;
-		}
+		NavMesh->FinishBatchQuery();
 	}
-
-	NavMesh->FinishBatchQuery();
 #endif // ENABLE_VISUAL_LOG && WITH_RECAST
 }
 

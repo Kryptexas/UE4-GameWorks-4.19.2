@@ -331,3 +331,6 @@ struct FMarkerSyncData
 	void CollectUniqueNames();
 	void CollectMarkersInRange(float PrevPosition, float NewPosition, TArray<FPassedMarker>& OutMarkersPassedThisTick, float TotalDeltaMove);
 };
+
+// Shortcut for the allocator used by animation nodes.
+class FAnimStackAllocator: public TMemStackAllocator<>{};

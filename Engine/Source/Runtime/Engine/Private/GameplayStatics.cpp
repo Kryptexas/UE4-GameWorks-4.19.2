@@ -650,9 +650,13 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UObject* Worl
 		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
 		{
 			UParticleSystemComponent* PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
-			PSC->SetAbsolute(true, true, true);
-			PSC->SetWorldLocationAndRotation(SpawnLocation, SpawnRotation);
-			PSC->SetRelativeScale3D(FVector(1.f));
+
+			PSC->bAbsoluteLocation = true;
+			PSC->bAbsoluteRotation = true;
+			PSC->bAbsoluteScale = true;
+			PSC->RelativeLocation = SpawnLocation;
+			PSC->RelativeRotation = SpawnRotation;
+			PSC->RelativeScale3D = FVector(1.f);
 
 			PSC->RegisterComponentWithWorld(World);
 
@@ -680,8 +684,12 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World
 	{
 		PSC = CreateParticleSystem(EmitterTemplate, World, World->GetWorldSettings(), bAutoDestroy);
 
-		PSC->SetAbsolute(true, true, true);
-		PSC->SetWorldTransform(SpawnTransform);
+		PSC->bAbsoluteLocation = true;
+		PSC->bAbsoluteRotation = true;
+		PSC->bAbsoluteScale = true;
+		PSC->RelativeLocation = SpawnTransform.GetLocation();
+		PSC->RelativeRotation = SpawnTransform.GetRotation().Rotator();
+		PSC->RelativeScale3D = SpawnTransform.GetScale3D();
 
 		PSC->RegisterComponentWithWorld(World);
 
@@ -716,16 +724,25 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 			if (World && World->GetNetMode() != NM_DedicatedServer)
 			{
 				PSC = CreateParticleSystem(EmitterTemplate, World, AttachToComponent->GetOwner(), bAutoDestroy);
-				PSC->AttachTo(AttachToComponent, AttachPointName);
+				
+				PSC->AttachParent = AttachToComponent;
+				PSC->AttachSocketName = AttachPointName;
+
 				if (LocationType == EAttachLocation::KeepWorldPosition)
 				{
-					PSC->SetWorldLocationAndRotation(Location, Rotation);
+					const FTransform ParentToWorld = AttachToComponent->GetSocketTransform(AttachPointName);
+					const FTransform ComponentToWorld(Rotation, Location);
+					const FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
+					PSC->RelativeLocation = RelativeTM.GetLocation();
+					PSC->RelativeRotation = RelativeTM.GetRotation().Rotator();
 				}
 				else
 				{
-					PSC->SetRelativeLocationAndRotation(Location, Rotation);
+					PSC->RelativeLocation = Location;
+					PSC->RelativeRotation = Rotation;
 				}
-				PSC->SetRelativeScale3D(FVector(1.f));
+				PSC->RelativeScale3D = FVector(1.f);
+
 				PSC->RegisterComponentWithWorld(World);
 				PSC->ActivateSystem(true);
 
@@ -808,6 +825,31 @@ void UGameplayStatics::SetGlobalPitchModulation(UObject* WorldContextObject, flo
 	}
 }
 
+void UGameplayStatics::SetGlobalListenerFocusParameters(UObject* WorldContextObject, float FocusAzimuthScale, float NonFocusAzimuthScale, float FocusDistanceScale, float NonFocusDistanceScale, float FocusVolumeScale, float NonFocusVolumeScale, float FocusPriorityScale, float NonFocusPriorityScale)
+{
+	if (!GEngine || !GEngine->UseSound())
+	{
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		AudioDevice->GlobalFocusSettings.FocusAzimuthScale = FMath::Max(FocusAzimuthScale, 0.0f);
+		AudioDevice->GlobalFocusSettings.NonFocusAzimuthScale = FMath::Max(NonFocusAzimuthScale, 0.0f);
+		AudioDevice->GlobalFocusSettings.FocusDistanceScale = FMath::Max(FocusDistanceScale, 0.0f);
+		AudioDevice->GlobalFocusSettings.NonFocusDistanceScale = FMath::Max(NonFocusDistanceScale, 0.0f);
+		AudioDevice->GlobalFocusSettings.FocusVolumeScale = FMath::Max(FocusVolumeScale, 0.0f);
+		AudioDevice->GlobalFocusSettings.NonFocusVolumeScale = FMath::Max(NonFocusVolumeScale, 0.0f);
+		AudioDevice->GlobalFocusSettings.FocusPriorityScale = FMath::Max(FocusPriorityScale, 0.0f);
+		AudioDevice->GlobalFocusSettings.NonFocusPriorityScale = FMath::Max(NonFocusPriorityScale, 0.0f);
+	}
+}
 
 void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundConcurrency* ConcurrencySettings)
 {
@@ -950,7 +992,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 	}
 
 	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings, ConcurrencySettings);
-	if (AudioComponent)
+	if (AudioComponent && AudioComponent->GetWorld())
 	{
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
 

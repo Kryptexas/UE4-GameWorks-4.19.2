@@ -198,13 +198,16 @@ public:
 	bool IsBlockedForAllCategories() const { return !!bBlockedAllCategories; }
 
 	/** Returns white list for modifications */
-	const TArray<FName>& GetWhiteList() const { return CategoriesWhiteList; }
+	const TArray<FName>& GetWhiteList() const { return CategoriesWhitelist; }
 
-	bool IsWhiteListed(const FName& Name) const { return CategoriesWhiteList.Find(Name) != INDEX_NONE; }
+	bool IsWhiteListed(const FName& Name) const { return CategoriesWhitelist.Find(Name) != INDEX_NONE; }
 
-	void AddCategortyToWhiteList(FName Category) { CategoriesWhiteList.AddUnique(Category); }
+	void AddCategoryToWhitelist(FName Category) { CategoriesWhitelist.AddUnique(Category); }
 
-	void ClearWhiteList() { CategoriesWhiteList.Reset(); }
+	DEPRECATED(4.12, "Please use the AddCategoryToWhitelist instead")
+	void AddCategortyToWhiteList(FName Category) { AddCategoryToWhitelist(Category); }
+
+	void ClearWhiteList() { CategoriesWhitelist.Reset(); }
 
 	/** Generates and returns Id unique for given timestamp - used to connect different logs between (ex. text log with geometry shape) */
 	int32 GetUniqueId(float Timestamp);
@@ -230,9 +233,12 @@ public:
 	const TArray<FVisualLogDevice*>& GetDevices() const { return OutputDevices; }
 	/** Check if log category can be recorded, verify before using GetEntryToWrite! */
 	bool IsCategoryLogged(const FLogCategoryBase& Category) const;
-	/** Returns  current entry for given TimeStap or creates another one  but first it serialize previous entry as completed to vislog devices. Use VisualLogger::DontCreate to get current entry without serialization*/
+	/** Returns  current entry for given TimeStap or creates another one  but first it serialize previous 
+	 *	entry as completed to vislog devices. Use VisualLogger::DontCreate to get current entry without serialization
+	 *	@note this function can return null */
 	FVisualLogEntry* GetEntryToWrite(const UObject* Object, float TimeStamp, ECreateIfNeeded ShouldCreate = ECreateIfNeeded::Create);
-	/** Retrieves last used entry for given UObject*/
+	/** Retrieves last used entry for given UObject
+	 *	@note this function can return null */
 	FVisualLogEntry* GetLastEntryForObject(const UObject* Object);
 	/** flush and serialize data if timestamp allows it */
 	virtual void Flush() override;
@@ -257,6 +263,10 @@ public:
 
 	typedef TMap<const UObject*, TWeakObjectPtr<const UWorld> > FObjectToWorldMapType;
 	FObjectToWorldMapType& GetObjectToWorldMap() { return ObjectToWorldMap; }
+
+	void AddWhitelistedClass(UClass& InClass);
+	bool IsClassWhitelisted(const UClass& InClass) const;
+
 private:
 	FVisualLogger();
 	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const FName& Category) override { ensureMsgf(0, TEXT("Regular serialize is forbiden for visual logs")); }
@@ -267,8 +277,12 @@ protected:
 	// Map for inter-objects redirections
 	static TMap<const UWorld*, RedirectionMapType> WorldToRedirectionMap;
 
+	// white-listed classes - only instances of these classes will be logged. 
+	// if ClassWhitelist is empty (default) everything will log
+	TArray<UClass*> ClassWhitelist;
+
 	// white list of categories to bypass blocking
-	TArray<FName>	CategoriesWhiteList;
+	TArray<FName>	CategoriesWhitelist;
 	// Visual Logger extensions map
 	TMap<FName, FVisualLogExtensionInterface*> AllExtensions;
 	// last generated unique id for given times tamp

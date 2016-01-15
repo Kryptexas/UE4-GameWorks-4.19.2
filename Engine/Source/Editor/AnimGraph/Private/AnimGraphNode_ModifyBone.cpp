@@ -105,7 +105,7 @@ FVector UAnimGraphNode_ModifyBone::GetWidgetLocation(const USkeletalMeshComponen
 	// if the current widget mode is translate, then shows the widget according to translation space
 	if (CurWidgetMode == FWidget::WM_Translate)
 	{
-		FCSPose<FCompactPose>& MeshBases = AnimNode->ForwardedPose;
+		FCSPose<FCompactHeapPose>& MeshBases = AnimNode->ForwardedPose;
 		WidgetLoc = ConvertWidgetLocation(SkelComp, MeshBases, Node.BoneToModify.BoneName, GetNodeValue(FString("Translation"), Node.Translation), Node.TranslationSpace);
 
 		if (MeshBases.GetPose().IsValid() && Node.TranslationMode == BMM_Additive)

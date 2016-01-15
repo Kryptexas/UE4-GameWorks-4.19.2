@@ -4844,14 +4844,8 @@ UWorld* FSeamlessTravelHandler::Tick()
 			FUObjectAnnotationSparseBool KeepAnnotation;
 			TArray<AActor*> KeepActors;
 
-			AGameMode* AuthGameMode = CurrentWorld->GetAuthGameMode();
-			if (AuthGameMode)
+			if (AGameMode* AuthGameMode = CurrentWorld->GetAuthGameMode())
 			{
-				// keep GameMode if traveling to transition map
-				if (!bSwitchedToDefaultMap)
-				{
-					KeepAnnotation.Set(CurrentWorld->GetAuthGameMode());
-				}
 				AuthGameMode->GetSeamlessTravelActorList(!bSwitchedToDefaultMap, KeepActors);
 			}
 

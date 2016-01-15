@@ -2,8 +2,10 @@
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNotifies/AnimNotify_PlayParticleEffect.h"
+#include "Animation/AnimSequenceBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
+#include "ParticleHelper.h"
 
 /////////////////////////////////////////////////////
 // UAnimNotify_PlayParticleEffect
@@ -54,6 +56,10 @@ void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshCo
 			SpawnTransform.SetRotation(MeshTransform.GetRotation() * RotationOffsetQuat);
 			UGameplayStatics::SpawnEmitterAtLocation(MeshComp->GetWorld(), PSTemplate, SpawnTransform);
 		}
+	}
+	else
+	{
+		UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Null PSTemplate for particle notify in anim: %s"), *GetNameSafe(Animation));
 	}
 }
 

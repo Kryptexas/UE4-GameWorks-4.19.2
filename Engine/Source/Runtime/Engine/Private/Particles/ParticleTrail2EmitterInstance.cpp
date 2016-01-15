@@ -2036,7 +2036,6 @@ void FParticleRibbonEmitterInstance::SetupTrailModules()
 
 void FParticleRibbonEmitterInstance::ResolveSource()
 {
-	check(IsInGameThread());
 	if (SourceModule && SourceModule->SourceName != NAME_None)
 	{
 		switch (SourceModule->SourceMethod)
@@ -2044,10 +2043,11 @@ void FParticleRibbonEmitterInstance::ResolveSource()
 		case PET2SRCM_Actor:
 			if (SourceActor == NULL)
 			{
+				const TArray<struct FParticleSysParam>& AsyncInstanceParameters = Component->GetAsyncInstanceParameters();
 				FParticleSysParam Param;
-				for (int32 ParamIdx = 0; ParamIdx < Component->InstanceParameters.Num(); ParamIdx++)
+				for (int32 ParamIdx = 0; ParamIdx < AsyncInstanceParameters.Num(); ParamIdx++)
 				{
-					Param = Component->InstanceParameters[ParamIdx];
+					Param = AsyncInstanceParameters[ParamIdx];
 					if (Param.Name == SourceModule->SourceName)
 					{
 						SourceActor = Param.Actor;
@@ -2057,9 +2057,9 @@ void FParticleRibbonEmitterInstance::ResolveSource()
 
 				if (SourceModule->SourceOffsetCount > 0)
 				{
-					for (int32 ParamIdx = 0; ParamIdx < Component->InstanceParameters.Num(); ParamIdx++)
+					for (int32 ParamIdx = 0; ParamIdx < AsyncInstanceParameters.Num(); ParamIdx++)
 					{
-						Param = Component->InstanceParameters[ParamIdx];
+						Param = AsyncInstanceParameters[ParamIdx];
 						FString ParamName = Param.Name.ToString();
 						const TCHAR* TrailSourceOffset = FCString::Strstr(*ParamName, TEXT("TrailSourceOffset"));
 						if (TrailSourceOffset)
@@ -2161,6 +2161,7 @@ void FParticleRibbonEmitterInstance::UpdateSourceData(float DeltaTime, bool bFir
 bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx, 
 	FVector& OutPosition, FQuat& OutRotation, FVector& OutUp, FVector& OutTangent, float& OutTangentStrength)
 {
+	const FTransform& AsyncComponentToWorld = Component->GetAsyncComponentToWorld();
 	bool bSourceWasSet = false;
 	// Resolve the source point...
 	if (SourceModule)
@@ -2290,15 +2291,15 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					else
 					{
 						// Fall back to the emitter location??
-						OutPosition = SourceEmitter->Component->GetComponentLocation();
-						OutTangent = Component->PartSysVelocity;
+						OutPosition = AsyncComponentToWorld.GetLocation();
+						OutTangent = Component->GetAsyncPartSysVelocity();
 						//@todo. How to handle this... can potentially cause a jump from the emitter to the
 						// particle...
 						SourceTimes[InTrailIdx] = 0.0f;
 					}
 					OutTangentStrength = OutTangent.SizeSquared();
 					//@todo. Allow particle rotation to define up??
-					OutUp = SourceEmitter->Component->ComponentToWorld.GetScaledAxis( EAxis::Z );
+					OutUp = AsyncComponentToWorld.GetScaledAxis( EAxis::Z );
 
 					//@todo. Where to get rotation from????
 					OutRotation = FQuat(0,0,0,1);
@@ -2319,11 +2320,29 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 
 				if (SourceActor)
 				{
-					FTransform ActorToWorld = SourceActor->ActorToWorld();
+					FTransform ActorToWorld = FTransform::Identity;
+					FVector SourceActorVelocity = FVector::ZeroVector;
+					if(IsInGameThread())
+					{
+						ActorToWorld = SourceActor->ActorToWorld();
+						SourceActorVelocity = SourceActor->GetVelocity();
+					}
+					else
+					{
+						const TArray<FParticleSysParam>& AsyncParticleSysParams = Component->GetAsyncInstanceParameters();
+						for(const FParticleSysParam& ParticleSysParam : AsyncParticleSysParams)
+						{
+							if(ParticleSysParam.Actor == SourceActor)
+							{
+								ActorToWorld = ParticleSysParam.GetAsyncActorToWorld();
+								SourceActorVelocity = ParticleSysParam.GetAsyncActorVelocity();
+							}
+						}
+					}
 					OutPosition = ActorToWorld.GetLocation();
 					FRotator TempRotator = ActorToWorld.Rotator();
 					OutRotation = FQuat(TempRotator);
-					OutTangent = SourceActor->GetVelocity();
+					OutTangent = SourceActorVelocity;
 					OutTangentStrength = OutTangent.SizeSquared();
 
 					OutUp = ActorToWorld.TransformVector(FVector(0.f,0.f,1.f));
@@ -2337,7 +2356,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 
 	if (bSourceWasSet == false)
 	{
-		OutPosition = Component->GetComponentLocation();
+		OutPosition = AsyncComponentToWorld.GetLocation();
 		if (SourceModule && (SourceModule->SourceOffsetCount > 0))
 		{
 			FVector SourceOffsetValue;
@@ -2346,15 +2365,15 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 				if (CurrentLODLevel && (CurrentLODLevel->RequiredModule->bUseLocalSpace == false))
 				{
 					// Transform it
-					SourceOffsetValue = Component->ComponentToWorld.TransformVector(SourceOffsetValue);
+					SourceOffsetValue = AsyncComponentToWorld.TransformVector(SourceOffsetValue);
 				}
 				OutPosition += SourceOffsetValue;
 			}
 		}
-		OutRotation = Component->GetComponentQuat();
-		OutTangent = Component->PartSysVelocity;
+		OutRotation = AsyncComponentToWorld.GetRotation();
+		OutTangent = Component->GetAsyncPartSysVelocity();
 		OutTangentStrength = OutTangent.SizeSquared();
-		OutUp = Component->ComponentToWorld.GetScaledAxis( EAxis::Z );
+		OutUp = AsyncComponentToWorld.GetScaledAxis( EAxis::Z );
 
 		bSourceWasSet = true;
 	}

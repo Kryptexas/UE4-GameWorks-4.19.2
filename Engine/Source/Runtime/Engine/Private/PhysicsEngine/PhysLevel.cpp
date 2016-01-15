@@ -349,6 +349,14 @@ void InitGamePhys()
 	check(ErrorCode == APEX_CE_NO_ERROR);
 	check(GApexSDK);
 
+
+#if UE_BUILD_SHIPPING
+	GApexSDK->setEnableApexStats(false);
+#endif
+
+
+
+
 #if APEX_STATICALLY_LINKED
 	// We need to instantiate the module if we have statically linked them
 	// Otherwise all createModule functions will fail

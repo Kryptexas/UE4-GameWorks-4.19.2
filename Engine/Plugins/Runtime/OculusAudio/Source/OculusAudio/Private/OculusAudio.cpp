@@ -281,8 +281,11 @@ public:
 
 	void Shutdown() override
 	{
-		// Better have more than 0 instances here
-		check(FOculusAudioPlugin::NumInstances > 0);
+		if (FOculusAudioPlugin::NumInstances == 0)
+		{
+			// This means we failed to load the OVR Audio module during initialization and there's nothing to shutdown.
+			return;
+		}
 
 		FOculusAudioPlugin::NumInstances--;
 

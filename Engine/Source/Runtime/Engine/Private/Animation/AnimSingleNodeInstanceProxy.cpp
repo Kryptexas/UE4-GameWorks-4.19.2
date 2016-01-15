@@ -46,7 +46,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 
 				if (bCanProcessAdditiveAnimationsLocal)
 				{
-					Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
+				Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
 				}
 				else
 				{
@@ -332,8 +332,9 @@ void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewA
 	PlayRate = InPlayRate;
 	CurrentTime = 0.f;
 	BlendSpaceInput = FVector::ZeroVector;
-	UpdateBlendspaceSamples(BlendSpaceInput);
+	BlendSampleData.Reset();
 	MarkerTickRecord.Reset();
+	UpdateBlendspaceSamples(BlendSpaceInput);
 
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;

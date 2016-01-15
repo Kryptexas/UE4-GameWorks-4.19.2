@@ -855,7 +855,11 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 	if (dtStatusDetail(FindPathStatus, DT_INVALID_CYCLE_PATH))
 	{
 		UE_VLOG(NavMeshOwner, LogNavigation, Error, TEXT("FPImplRecastNavMesh::FindPath resulted in a cyclic path!"));
-		Path.DescribeSelfToVisLog(FVisualLogger::Get().GetLastEntryForObject(NavMeshOwner));
+		FVisualLogEntry* Entry = FVisualLogger::Get().GetLastEntryForObject(NavMeshOwner);
+		if (Entry)
+		{
+			Path.DescribeSelfToVisLog(Entry);
+		}
 	}
 #endif // ENABLE_VISUAL_LOG
 

@@ -104,8 +104,8 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 				FPoseContext CurrentPoseContext(Output);
 				BlendPoses[ChildIndex].Evaluate(CurrentPoseContext);
 
-				TargetBlendPoses[ChildIndex].MoveBonesFrom(CurrentPoseContext.Pose);
-				TargetBlendCurves[ChildIndex].MoveFrom(CurrentPoseContext.Curve);
+				TargetBlendPoses[ChildIndex].CopyBonesFrom(CurrentPoseContext.Pose);
+				TargetBlendCurves[ChildIndex].CopyFrom(CurrentPoseContext.Curve);
 			}
 			else
 			{

@@ -341,6 +341,7 @@ void UParticleModuleLocationDirect::Spawn(FParticleEmitterInstance* Owner, int32
 
 void UParticleModuleLocationDirect::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 {
+	const FTransform& OwnerTM = Owner->Component->GetAsyncComponentToWorld();
 	BEGIN_UPDATE_LOOP;
 	{
 		FVector	NewLoc;
@@ -353,7 +354,7 @@ void UParticleModuleLocationDirect::Update(FParticleEmitterInstance* Owner, int3
 		else
 		{
 			FVector Loc			= Location.GetValue(Particle.RelativeTime, Owner->Component);
-			Loc = Owner->Component->ComponentToWorld.TransformPosition(Loc);
+			Loc = OwnerTM.TransformPosition(Loc);
 			NewLoc	= Loc;
 		}
 
@@ -1605,6 +1606,8 @@ void UParticleModuleLocationBoneSocket::Update(FParticleEmitterInstance* Owner, 
 	const int32 MeshRotationOffset = Owner->GetMeshRotationOffset();
 	const bool bMeshRotationActive = MeshRotationOffset > 0 && Owner->IsMeshRotationActive();
 	FQuat* SourceRotation = (bMeshRotationActive) ? NULL : &RotationQuat;
+	const FTransform& OwnerTM = Owner->Component->GetAsyncComponentToWorld();
+
 	BEGIN_UPDATE_LOOP;
 	{
 		FModuleLocationBoneSocketParticlePayload* ParticlePayload = (FModuleLocationBoneSocketParticlePayload*)((uint8*)&Particle + Offset);
@@ -1617,7 +1620,7 @@ void UParticleModuleLocationBoneSocket::Update(FParticleEmitterInstance* Owner, 
 				PayloadData->Rotation = RotationQuat.Euler();
 				if (Owner->CurrentLODLevel->RequiredModule->bUseLocalSpace == true)
 				{
-					PayloadData->Rotation = Owner->Component->ComponentToWorld.InverseTransformVectorNoScale(PayloadData->Rotation);
+					PayloadData->Rotation = OwnerTM.InverseTransformVectorNoScale(PayloadData->Rotation);
 				}
 			}
 		}
@@ -2247,6 +2250,8 @@ void UParticleModuleLocationSkelVertSurface::Update(FParticleEmitterInstance* Ow
 	FQuat SourceRotation;
 	const int32 MeshRotationOffset = Owner->GetMeshRotationOffset();
 	const bool bMeshRotationActive = MeshRotationOffset > 0 && Owner->IsMeshRotationActive();
+	const FTransform& OwnerTM = Owner->Component->GetAsyncComponentToWorld();
+
 	BEGIN_UPDATE_LOOP;
 	{
 		FModuleLocationVertSurfaceParticlePayload* ParticlePayload = (FModuleLocationVertSurfaceParticlePayload*)((uint8*)&Particle + Offset);
@@ -2270,7 +2275,7 @@ void UParticleModuleLocationSkelVertSurface::Update(FParticleEmitterInstance* Ow
 				FVector Rot = SourceRotation.Euler();
 				if (Owner->CurrentLODLevel->RequiredModule->bUseLocalSpace == true)
 				{
-					Rot = Owner->Component->ComponentToWorld.InverseTransformVectorNoScale(Rot);
+					Rot = OwnerTM.InverseTransformVectorNoScale(Rot);
 				}
 				PayloadData->Rotation = Rot;
 			}

@@ -252,7 +252,7 @@ class FAsyncTask
 	TTask Task;
 	/** Thread safe counter that indicates WORK completion, no necessarily finalization of the job */
 	FThreadSafeCounter	WorkNotFinishedCounter;
-	/** If we aren't doing the work synchrnously, this will hold the completion event */
+	/** If we aren't doing the work synchronously, this will hold the completion event */
 	FEvent*				DoneEvent;
 	/** Pool we are queued into, maintained by the calling thread */
 	FQueuedThreadPool*	QueuedPool;

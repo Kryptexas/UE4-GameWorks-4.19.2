@@ -236,9 +236,10 @@ public:
 	 * @param EndScreenX		Screen-space X coordinate of end of the line.
 	 * @param EndScreenY		Screen-space Y coordinate of end of the line.
 	 * @param LineColor			Color to draw line
+	 * @param LineThickness		Thickness of the line to draw
 	 */
 	UFUNCTION(BlueprintCallable, Category=HUD, meta=(LineColor="(R=0,G=0,B=0,A=1)"))
-	void DrawLine(float StartScreenX, float StartScreenY, float EndScreenX, float EndScreenY, FLinearColor LineColor);
+	void DrawLine(float StartScreenX, float StartScreenY, float EndScreenX, float EndScreenY, FLinearColor LineColor, float LineThickness=0.f);
 
 	/**
 	 * Draws a colored untextured quad on the HUD.

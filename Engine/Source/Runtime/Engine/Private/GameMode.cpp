@@ -728,8 +728,19 @@ void AGameMode::SetMatchState(FName NewState)
 
 	MatchState = NewState;
 
-	// Call change callbacks
+	OnMatchStateSet();
 
+	if (GameState)
+	{
+		GameState->SetMatchState(NewState);
+	}
+
+	K2_OnSetMatchState(NewState);
+}
+
+void AGameMode::OnMatchStateSet()
+{
+	// Call change callbacks
 	if (MatchState == MatchState::WaitingToStart)
 	{
 		HandleMatchIsWaitingToStart();
@@ -750,13 +761,6 @@ void AGameMode::SetMatchState(FName NewState)
 	{
 		HandleMatchAborted();
 	}
-
-	if (GameState)
-	{
-		GameState->SetMatchState(NewState);
-	}
-
-	K2_OnSetMatchState(NewState);
 }
 
 void AGameMode::Tick(float DeltaSeconds)
@@ -989,21 +993,27 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 }
 
 
-void AGameMode::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList)
+void AGameMode::GetSeamlessTravelActorList(bool bToTransition, TArray<AActor*>& ActorList)
 {
 	UWorld* World = GetWorld();
-	// always keep PlayerStates, so that after we restart we can keep players on the same team, etc
-	for (int32 i = 0; i < World->GameState->PlayerArray.Num(); i++)
-	{
-		ActorList.Add(World->GameState->PlayerArray[i]);
-	}
 
-	if (bToEntry)
+	// Get allocations for the elements we're going to add handled in one go
+	const int32 ActorsToAddCount = World->GameState->PlayerArray.Num() + (bToTransition ?  3 : 0);
+	ActorList.Reserve(ActorsToAddCount);
+
+	// always keep PlayerStates, so that after we restart we can keep players on the same team, etc
+	ActorList.Append(World->GameState->PlayerArray);
+
+	if (bToTransition)
 	{
+		// keep ourselves until we transition to the final destination
+		ActorList.Add(this);
 		// keep general game state until we transition to the final destination
 		ActorList.Add(World->GameState);
 		// keep the game session state until we transition to the final destination
 		ActorList.Add(GameSession);
+
+		// If adding in this section best to increase the literal above for the ActorsToAddCount
 	}
 }
 

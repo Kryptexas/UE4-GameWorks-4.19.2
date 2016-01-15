@@ -200,9 +200,9 @@ struct FSlotEvaluationPose
 	UPROPERTY()
 	float Weight;
 
-	/** Pose */
+	/*** ATTENTION *****/
+	/* These Pose/Curve is stack allocator. You should not use it outside of stack. */
 	FCompactPose Pose;
-	/** Curve */
 	FBlendedCurve Curve;
 
 	FSlotEvaluationPose()
@@ -1012,7 +1012,7 @@ public:
 	bool ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const;
 
 	/** Perform evaluation. Can be called from worker threads. */
-	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FBlendedCurve& OutCurve);
+	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FBlendedHeapCurve& OutCurve);
 
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();
@@ -1099,7 +1099,7 @@ private:
 
 public: 
 	/** Update all internal curves from Blended Curve */
-	void UpdateCurves(const FBlendedCurve& InCurves);
+	void UpdateCurves(const FBlendedHeapCurve& InCurves);
 
 	/** Check whether we have active morph target curves */
 	bool HasMorphTargetCurves() const;

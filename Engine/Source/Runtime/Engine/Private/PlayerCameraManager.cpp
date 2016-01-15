@@ -1230,7 +1230,7 @@ float APlayerCameraManager::CalcRadialShakeScale(APlayerCameraManager* Camera, F
 {
 	// using camera location so stuff like spectator cameras get shakes applied sensibly as well
 	// need to ensure server has reasonably accurate camera position
-	FVector POVLoc = Camera->GetActorLocation();
+	FVector POVLoc = Camera->GetCameraLocation();
 
 	if (InnerRadius < OuterRadius)
 	{

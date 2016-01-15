@@ -884,6 +884,7 @@ void FAnimBlueprintCompiler::ProcessStateMachine(UAnimGraphNode_StateMachineBase
 				BakedState.EndNotify = FindOrAddNotify(StateNode->StateLeft);
 				BakedState.FullyBlendedNotify = FindOrAddNotify(StateNode->StateFullyBlended);
 				BakedState.bIsAConduit = false;
+				BakedState.bAlwaysResetOnEntry = StateNode->bAlwaysResetOnEntry;
 
 				// Process the inner graph of this state
 				if (UAnimGraphNode_StateResult* AnimGraphResultNode = CastChecked<UAnimationStateGraph>(StateNode->BoundGraph)->GetResultNode())

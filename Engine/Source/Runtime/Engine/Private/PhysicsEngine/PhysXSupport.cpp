@@ -325,8 +325,8 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 		return PxFilterFlag::eSUPPRESS;
 	}
 
-	// if these bodies are from the same skeletal mesh component, use the disable table to see if we should disable collision
-	if((filterData0.word2 == filterData1.word2) && (filterData0.word2 != 0))
+	// if these bodies are from the same component, use the disable table to see if we should disable collision. This case should only happen for things like skeletalmesh and destruction. The table is only created for skeletal mesh components at the moment
+	if(filterData0.word2 == filterData1.word2)
 	{
 		check(constantBlockSize == sizeof(FPhysSceneShaderInfo));
 		const FPhysSceneShaderInfo* PhysSceneShaderInfo = (const FPhysSceneShaderInfo*) constantBlock;

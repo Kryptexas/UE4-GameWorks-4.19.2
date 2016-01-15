@@ -411,7 +411,7 @@ public:
 
 		const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
 		//UAnimBlueprintGeneratedClass* AnimClass = Cast<UAnimBlueprintGeneratedClass>(ClassToReinstance);
-		if (bIsAnimInstance)
+		if(bIsAnimInstance)
 		{
 			for(auto Obj : ObjectsToFinalize)
 			{

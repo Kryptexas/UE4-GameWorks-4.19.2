@@ -1268,7 +1268,6 @@ public:
 
 	//~ Begin AController Interface
 	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) override;
-	virtual bool IsLocalPlayerController() const override;
 	virtual bool IsLocalController() const override;
 	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const override;
 	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation) override;
@@ -1622,7 +1621,7 @@ private:
 
 	/** Set during SpawnActor once and never again to indicate the intent of this controller instance (SERVER ONLY) */
 	UPROPERTY()
-	bool		bIsLocalPlayerController;
+	mutable bool bIsLocalPlayerController;
 
 public:
 	/** Counter for this players seamless travels (used along with the below value, to restrict ServerNotifyLoadedWorld) */

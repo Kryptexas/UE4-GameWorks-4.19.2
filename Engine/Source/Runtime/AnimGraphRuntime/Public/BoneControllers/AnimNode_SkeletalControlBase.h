@@ -48,7 +48,7 @@ public:
 public:
 #if WITH_EDITORONLY_DATA
 	// forwarded pose data from the wired node which current node's skeletal control is not applied yet
-	FCSPose<FCompactPose> ForwardedPose;
+	FCSPose<FCompactHeapPose> ForwardedPose;
 #endif //#if WITH_EDITORONLY_DATA
 
 	// FAnimNode_Base interface

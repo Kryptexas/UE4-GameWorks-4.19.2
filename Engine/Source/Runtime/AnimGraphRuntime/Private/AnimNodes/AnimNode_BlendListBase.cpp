@@ -207,8 +207,8 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 	if ((NumPoses > 0) && (BlendPose.Num() == BlendWeights.Num()))
 	{		
 		// Scratch arrays for evaluation, stack allocated
-		TArray<FCompactPose, TMemStackAllocator<ALIGNOF(FCompactPose)>> FilteredPoses;
-		TArray<FBlendedCurve, TMemStackAllocator<ALIGNOF(FBlendedCurve)>> FilteredCurve;
+		TArray<FCompactPose, TInlineAllocator<8>> FilteredPoses;
+		TArray<FBlendedCurve, TInlineAllocator<8>> FilteredCurve;
 		FilteredPoses.SetNum(NumPoses, false);
 		FilteredCurve.SetNum(NumPoses, false);
 
@@ -222,7 +222,7 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 			FPoseLink& CurrentPose = BlendPose[PoseIndex];
 			CurrentPose.Evaluate(EvaluateContext);
 
-			FilteredPoses[i].MoveBonesFrom(EvaluateContext.Pose);
+			FilteredPoses[i].CopyBonesFrom(EvaluateContext.Pose);
 			FilteredCurve[i] = EvaluateContext.Curve;
 		}
 

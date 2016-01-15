@@ -94,7 +94,7 @@ FBoxSphereBounds UFuncTestRenderingComponent::CalcBounds(const FTransform& Local
 	const AFunctionalTest* Owner = Cast<AFunctionalTest>(GetOwner());
 	if (Owner)
 	{
-		FBox BoundingBox;
+		FBox BoundingBox(EForceInit::ForceInitToZero);
 
 		TArray<AActor*> RelevantActors;
 		Owner->GatherRelevantActors(RelevantActors);

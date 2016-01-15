@@ -331,7 +331,7 @@ void FAsyncAudioDecompressWorker::DoWork()
 			}
 			else
 			{
-				check(Wave->DecompressionType == DTYPE_Native);
+				check(Wave->DecompressionType == DTYPE_Native || Wave->DecompressionType == DTYPE_Procedural);
 
 				Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
 				check(Wave->RawPCMData == nullptr);

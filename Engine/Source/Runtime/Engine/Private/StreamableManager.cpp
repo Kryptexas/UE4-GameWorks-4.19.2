@@ -249,13 +249,13 @@ void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& T
 	TSharedRef<FStreamableRequest> NewRequest = MakeShareable(new FStreamableRequest());
 	NewRequest->CompletionDelegate = DelegateToCall;
 
-	TArray<FStreamable *> ExistingStreamables;
-	ExistingStreamables.SetNum(TargetsToStream.Num());
+	static TArray<FStreamable*> ExistingStreamables;
+	ExistingStreamables.Reserve(TargetsToStream.Num());
 
 	for (int32 i = 0; i < TargetsToStream.Num(); i++)
 	{
 		FStreamable* Existing = StreamInternal(TargetsToStream[i], Priority);
-		ExistingStreamables[i] = Existing;
+		ExistingStreamables.Add(Existing);
 
 		if (Existing)
 		{
@@ -273,6 +273,8 @@ void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& T
 			CheckCompletedRequests(TargetsToStream[i], Existing);
 		}
 	}
+
+	ExistingStreamables.Reset();
 }
 
 void FStreamableManager::RequestAsyncLoad(const FStringAssetReference& TargetToStream, FStreamableDelegate DelegateToCall, TAsyncLoadPriority Priority)

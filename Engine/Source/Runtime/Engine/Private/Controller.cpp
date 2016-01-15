@@ -42,6 +42,7 @@ AController::AController(const FObjectInitializer& ObjectInitializer)
 
 	bCanBeDamaged = false;
 	bAttachToPawn = false;
+	bIsPlayerController = false;
 
 	if (RootComponent)
 	{
@@ -56,13 +57,14 @@ void AController::K2_DestroyActor()
 	// do nothing, disallow destroying controller from Blueprints
 }
 
-bool AController::IsLocalPlayerController() const
-{
-	return false;
-}
-
 bool AController::IsLocalController() const
 {
+	if (FGenericPlatformProperties::IsServerOnly())
+	{
+		// Never local on dedicated server. IsServerOnly() is checked at compile time and optimized out if false.
+		return false;
+	}
+
 	const ENetMode NetMode = GetNetMode();
 
 	if (NetMode == NM_Standalone)

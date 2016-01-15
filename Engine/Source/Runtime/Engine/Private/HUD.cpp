@@ -810,12 +810,13 @@ void AHUD::DrawRect(FLinearColor Color, float ScreenX, float ScreenY, float Widt
 	}
 }
 
-void AHUD::DrawLine(float StartScreenX, float StartScreenY, float EndScreenX, float EndScreenY, FLinearColor LineColor)
+void AHUD::DrawLine(float StartScreenX, float StartScreenY, float EndScreenX, float EndScreenY, FLinearColor LineColor, float LineThickness)
 {
 	if (IsCanvasValid_WarnIfNot())
 	{
 		FCanvasLineItem LineItem( FVector2D(StartScreenX, StartScreenY), FVector2D(EndScreenX, EndScreenY) );
 		LineItem.SetColor( LineColor );
+		LineItem.LineThickness = LineThickness;
 		Canvas->DrawItem( LineItem );
 	}
 }

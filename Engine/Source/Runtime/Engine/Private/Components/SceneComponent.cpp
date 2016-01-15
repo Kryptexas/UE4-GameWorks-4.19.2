@@ -2290,7 +2290,7 @@ bool USceneComponent::ShouldRender() const
 		false;
 #endif
 	UWorld *World = GetWorld();
-	const bool bInGameWorld = GetWorld() && GetWorld()->UsesGameHiddenFlags();
+	const bool bInGameWorld = World && World->UsesGameHiddenFlags();
 
 	const bool bShowInGame = IsVisible() && (!Owner || !Owner->bHidden);
 	return ((bInGameWorld && bShowInGame) || (!bInGameWorld && bShowInEditor)) && bVisible == true;

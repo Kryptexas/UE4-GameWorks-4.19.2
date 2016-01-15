@@ -97,6 +97,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Cable Rendering", meta=(UIMin = "0.1", UIMax = "8"))
 	float TileMaterial;
 
+	/** Axis (in component space) that is used when building cable mesh geometry. Should be orthogonal to cable direction.  */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = "Cable")
+	FVector CableUpDir;
+
 private:
 
 	/** Solve the cable spring constraints */

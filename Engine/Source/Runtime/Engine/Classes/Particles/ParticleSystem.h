@@ -345,6 +345,7 @@ public:
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	bool IsPotentiallyImmortal() const;
+	bool UsesCPUCollision() const;
 	virtual bool CanBeClusterRoot() const override;
 	//~ End UObject Interface.
 

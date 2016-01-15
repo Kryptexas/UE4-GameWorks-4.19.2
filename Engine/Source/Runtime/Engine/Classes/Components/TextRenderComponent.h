@@ -81,6 +81,10 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category=Text)
 	float HorizSpacingAdjust;
 
+	/** Vertical adjustment per character, default is 0.0 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category=Text)
+	float VertSpacingAdjust;
+
 	/** Allows text to draw unmodified when using debug visualization modes. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category=Rendering)
 	uint32 bAlwaysRenderAsText:1;
@@ -129,6 +133,10 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	/** Change the text horizontal spacing adjustment and signal the primitives to be rebuilt */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender")
 	void SetHorizSpacingAdjust(float Value);
+
+	/** Change the text vertical spacing adjustment and signal the primitives to be rebuilt */
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender")
+	void SetVertSpacingAdjust(float Value);
 
 	/** Change the world size of the text and signal the primitives to be rebuilt */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|TextRender")

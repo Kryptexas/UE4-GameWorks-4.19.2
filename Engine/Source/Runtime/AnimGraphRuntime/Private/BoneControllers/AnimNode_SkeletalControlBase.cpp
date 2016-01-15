@@ -77,7 +77,7 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 
 #if WITH_EDITORONLY_DATA
 			// save current pose before applying skeletal control to compute the exact gizmo location in AnimGraphNode
-			ForwardedPose = Output.Pose;
+			ForwardedPose.CopyPose(Output.Pose);
 #endif // #if WITH_EDITORONLY_DATA
 
 			BoneTransforms.Reset(BoneTransforms.Num());

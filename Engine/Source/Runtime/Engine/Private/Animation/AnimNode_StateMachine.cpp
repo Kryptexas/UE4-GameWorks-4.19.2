@@ -260,11 +260,8 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 			StatesUpdated.Reset();
 			ActiveTransitionArray.Reset();
 
-			if (StateCacheBoneCounters.Num() != Machine->States.Num())
-			{
-				StateCacheBoneCounters.Reset(Machine->States.Num());
-				StateCacheBoneCounters.AddDefaulted(Machine->States.Num());
-			}
+			StateCacheBoneCounters.Reset(Machine->States.Num());
+			StateCacheBoneCounters.AddDefaulted(Machine->States.Num());
 		
 			// Move to the default state
 			SetState(Context, Machine->InitialState);
@@ -876,6 +873,14 @@ void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int3
 			OnGraphStatesExited[CurrentState].ExecuteIfBound(*this, CurrentState, NewStateIndex);
 		}
 
+		bool bForceReset = false;
+
+		if(PRIVATE_MachineDescription->States.IsValidIndex(NewStateIndex))
+		{
+			const FBakedAnimationState& BakedCurrentState = PRIVATE_MachineDescription->States[NewStateIndex];
+			bForceReset = BakedCurrentState.bAlwaysResetOnEntry;
+		}
+
 		// Determine if the new state is active or not
 		const bool bAlreadyActive = GetStateWeight(NewStateIndex) > 0.0f;
 
@@ -891,7 +896,7 @@ void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int3
 			}
 		}
 
-		if (!bAlreadyActive && !IsAConduitState(NewStateIndex))
+		if ((!bAlreadyActive || bForceReset) && !IsAConduitState(NewStateIndex))
 		{
 			// Initialize the new state since it's not part of an active transition (and thus not still initialized)
 			FAnimationInitializeContext InitContext(Context.AnimInstanceProxy);

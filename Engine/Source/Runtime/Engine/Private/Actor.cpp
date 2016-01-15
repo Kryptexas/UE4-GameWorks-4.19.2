@@ -1148,17 +1148,9 @@ void AActor::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, UClass*
 	OutOverlappingActors.Reset();
 	TArray<AActor*> OverlappingActorsForCurrentComponent;
 
-	// use a stack to walk this actor's attached component tree
-	TInlineComponentArray<USceneComponent*> ComponentStack;
-	USceneComponent const* CurrentComponent = GetRootComponent();
-	while (CurrentComponent)
+	for(UActorComponent* OwnedComp : OwnedComponents)
 	{
-		// push children on the stack so they get tested later
-		ComponentStack.Append(CurrentComponent->AttachChildren);
-
-		// get list of actors from the component
-		UPrimitiveComponent const* const PrimComp = Cast<const UPrimitiveComponent>(CurrentComponent);
-		if (PrimComp)
+		if(UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(OwnedComp))
 		{
 			PrimComp->GetOverlappingActors(OverlappingActorsForCurrentComponent, ClassFilter);
 
@@ -1172,10 +1164,6 @@ void AActor::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, UClass*
 				}
 			}
 		}
-
-		// advance to next component
-		const bool bAllowShrinking = false;
-		CurrentComponent = (ComponentStack.Num() > 0) ? ComponentStack.Pop(bAllowShrinking) : nullptr;
 	}
 }
 
@@ -1184,16 +1172,9 @@ void AActor::GetOverlappingComponents(TArray<UPrimitiveComponent*>& OutOverlappi
 	OutOverlappingComponents.Reset();
 	TArray<UPrimitiveComponent*> OverlappingComponentsForCurrentComponent;
 
-	// use a stack to walk this actor's attached component tree
-	TInlineComponentArray<USceneComponent*> ComponentStack;
-	USceneComponent* CurrentComponent = GetRootComponent();
-	while (CurrentComponent)
+	for (UActorComponent* OwnedComp : OwnedComponents)
 	{
-		// push children on the stack so they get tested later
-		ComponentStack.Append(CurrentComponent->AttachChildren);
-
-		UPrimitiveComponent const* const PrimComp = Cast<const UPrimitiveComponent>(CurrentComponent);
-		if (PrimComp)
+		if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(OwnedComp))
 		{
 			// get list of components from the component
 			PrimComp->GetOverlappingComponents(OverlappingComponentsForCurrentComponent);
@@ -1204,10 +1185,6 @@ void AActor::GetOverlappingComponents(TArray<UPrimitiveComponent*>& OutOverlappi
 				OutOverlappingComponents.AddUnique(*CompIt);
 			}
 		}
-
-		// advance to next component
-		const bool bAllowShrinking = false;
-		CurrentComponent = (ComponentStack.Num() > 0) ? ComponentStack.Pop(bAllowShrinking) : nullptr;
 	}
 }
 
@@ -1305,6 +1282,12 @@ static void MarkOwnerRelevantComponentsDirty(AActor* TheActor)
 			MarkOwnerRelevantComponentsDirty(Child);
 		}
 	}
+}
+
+bool AActor::WasRecentlyRendered(float Tolerance) const
+{
+	UWorld* World = GetWorld();
+	return (World) ? (World->GetTimeSeconds() - GetLastRenderTime() <= Tolerance) : false;
 }
 
 float AActor::GetLastRenderTime() const

@@ -86,6 +86,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bAutoManageActiveCameraTarget = true;
 	bHidePawnInCinematicMode = false;
 
+	bIsPlayerController = true;
 	bIsLocalPlayerController = false;
 
 	if (RootComponent)
@@ -144,27 +145,42 @@ bool APlayerController::DestroyNetworkActorHandled()
 
 bool APlayerController::IsLocalController() const
 {
-	ENetMode NetMode = GetNetMode();
-	if (NetMode == NM_DedicatedServer)
+	// Never local on dedicated server, always local on clients. IsServerOnly() and IsClientOnly() are checked at compile time and optimized out appropriately.
+	if (FGenericPlatformProperties::IsServerOnly())
 	{
 		check(!bIsLocalPlayerController);
 		return false;
 	}
-
-	if (NetMode == NM_Client)
+	else if (FGenericPlatformProperties::IsClientOnly())
 	{
-		// Clients only receive their own PC. We are not ROLE_AutonomousProxy until after PostInitializeComponents so we can't check that.
+		bIsLocalPlayerController = true;
+		return true;
+	}
+	
+	// Fast path if we have this bool set.
+	if (bIsLocalPlayerController)
+	{
+		return true;
+	}
+
+	ENetMode NetMode = GetNetMode();
+	if (NetMode == NM_DedicatedServer)
+	{
+		// This is still checked for the PIE case, which would not be caught in the IsServerOnly() check above.
+		check(!bIsLocalPlayerController);
+		return false;
+	}
+
+	if (NetMode == NM_Client || NetMode == NM_Standalone)
+	{
+		// Clients or Standalone only receive their own PC. We are not ROLE_AutonomousProxy until after PostInitializeComponents so we can't check that.
+		bIsLocalPlayerController = true;
 		return true;
 	}
 
 	return bIsLocalPlayerController;
 }
 
-bool APlayerController::IsLocalPlayerController() const
-{
-	// We automatically pass the "IsPlayer" part because we are a PlayerController...
-	return IsLocalController();
-}
 
 void APlayerController::FailedToSpawnPawn()
 {

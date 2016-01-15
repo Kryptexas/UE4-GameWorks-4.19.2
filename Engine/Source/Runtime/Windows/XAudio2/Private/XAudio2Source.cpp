@@ -134,6 +134,18 @@ void FXAudio2SoundSource::SubmitPCMBuffers( void )
 	XAudio2Buffers[0].AudioBytes = XAudio2Buffer->PCM.PCMDataSize;
 	XAudio2Buffers[0].pContext = this;
 
+	if (!AudioDevice)
+	{
+		UE_LOG(LogXAudio2, Error, TEXT("SubmitPCMBuffers: Audio Device is nullptr"));
+		return;
+	}
+
+	if (!Source)
+	{
+		UE_LOG(LogXAudio2, Error, TEXT("SubmitPCMBuffers: Source (IXAudio2SourceVoice is nullptr"));
+		return;
+	}
+
 	if( WaveInstance->LoopingMode == LOOP_Never )
 	{
 		XAudio2Buffers[0].Flags = XAUDIO2_END_OF_STREAM;
@@ -245,7 +257,7 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 
 	ReadMorePCMData(2, DataReadMode);
 
-	if (DataReadMode == EDataReadMode::Synchronous)
+	if (DataReadMode == EDataReadMode::Synchronous || (!bSkipFirstBuffer && WaveInstance->WaveData && !WaveInstance->WaveData->bCanProcessAsync))
 	{
 		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
 									 Source->SubmitSourceBuffer(&XAudio2Buffers[2]));
@@ -457,6 +469,10 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 
 		XAudio2Buffer = FXAudio2SoundBuffer::Init(BestAudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
 		Buffer = XAudio2Buffer;
+
+		// Reset the LPFFrequency values
+		LPFFrequency = MAX_FILTER_FREQUENCY;
+		LastLPFFrequency = MAX_FILTER_FREQUENCY;
 
 		// Buffer failed to be created, or there was an error with the compressed data
 		if (Buffer && Buffer->NumChannels > 0)
@@ -742,7 +758,7 @@ void FXAudio2SoundSource::GetStereoChannelVolumes(float ChannelVolumes[CHANNEL_M
 		ChannelVolumes[CHANNELOUT_RADIO] = 0.0f;
 		if (WaveInstance->bApplyRadioFilter)
 		{
-			ChannelVolumes[CHANNELOUT_RADIO] = WaveInstance->RadioFilterVolume;
+			ChannelVolumes[CHANNELOUT_RADIO] = AttenuatedVolume * WaveInstance->RadioFilterVolume;
 		}
 	}
 }

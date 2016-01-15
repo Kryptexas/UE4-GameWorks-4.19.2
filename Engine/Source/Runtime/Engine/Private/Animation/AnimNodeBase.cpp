@@ -229,7 +229,7 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 #endif
 		LinkedNode->Evaluate(Output);
 #if ENABLE_ANIMNODE_POSE_DEBUG
-		CurrentPose = Output.Pose;
+		CurrentPose.CopyBonesFrom(Output.Pose);
 #endif
 	}
 	else
