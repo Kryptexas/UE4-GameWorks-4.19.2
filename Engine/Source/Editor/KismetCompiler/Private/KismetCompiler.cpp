@@ -95,11 +95,6 @@ FKismetCompilerContext::~FKismetCompilerContext()
 	DefaultPropertyValueMap.Empty();
 }
 
-void FKismetCompilerContext::SetClassForBytecodeCompile(UClass* TargetClass)
-{
-	NewClass = Cast<UBlueprintGeneratedClass>(TargetClass);
-}
-
 UEdGraphSchema_K2* FKismetCompilerContext::CreateSchema()
 {
 	return NewObject<UEdGraphSchema_K2>();
@@ -409,13 +404,6 @@ UProperty* FKismetCompilerContext::CreateVariable(const FName VarName, const FEd
 			*VarName.ToString()), Blueprint);
 	}
 
-	if (CompileOptions.CompileType == EKismetCompileType::BytecodeOnly)
-	{
-		UProperty* Ret = NewClass->FindPropertyByName(VarName);
-		check(Ret);
-		return Ret;
-	}
-
 	UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(NewClass, VarName, VarType, NewClass, 0, Schema, MessageLog);
 	if (NewProperty != NULL)
 	{
@@ -658,17 +646,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			MessageLog.Error(*FString::Printf(*LOCTEXT("PropertyForLiteral_Error", "Cannot create property for a literal: %s from @@ type (%s)").ToString(), *Term.Name, *UEdGraphSchema_K2::TypeToText(Term.Type).ToString()), Term.Source);
 		}
 
-		UProperty* NewProperty = nullptr;
-		if (CompileOptions.CompileType == EKismetCompileType::BytecodeOnly)
-		{
-			NewProperty = Scope->FindPropertyByName(FName(*Term.Name));
-			check(NewProperty);
-		}
-		else
-		{
-			NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog);
-		}
-
+		UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Scope, FName(*Term.Name), Term.Type, NewClass, PropertyFlags, Schema, MessageLog);
 		if (NewProperty != NULL)
 		{
 			NewProperty->PropertyFlags |= PropertyFlags;
@@ -727,11 +705,8 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			}
 			
 			// Link this object to the tail of the list (so properties remain in the desired order)
-			if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-			{
-				*PropertyStorageLocation = NewProperty;
-				PropertyStorageLocation = &(NewProperty->Next);
-			}
+			*PropertyStorageLocation = NewProperty;
+			PropertyStorageLocation = &(NewProperty->Next);
 
 			Term.AssociatedVarProperty = NewProperty;
 			Term.SetVarTypeLocal(bPropertiesAreLocal);
@@ -799,12 +774,9 @@ void FKismetCompilerContext::CreateLocalVariablesForFunction(FKismetFunctionCont
 		}
 
 		// If there were local properties, place them at the end of the property storage location
-		if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
+		if(LocalProperties)
 		{
-			if (LocalProperties)
-			{
-				*PropertyStorageLocation = LocalProperties;
-			}
+			*PropertyStorageLocation = LocalProperties;
 		}
 
 		// Create debug data for variable reads/writes
@@ -1220,7 +1192,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			CreatedFunctionNames.Add(NewFunctionNameString);
 		}
 
-		Context.Function = CompileOptions.CompileType == EKismetCompileType::BytecodeOnly ? NewClass->FindFunctionByName(NewFunctionName) : NewObject<UFunction>(NewClass, NewFunctionName, RF_Public);
+		Context.Function = NewObject<UFunction>(NewClass, NewFunctionName, RF_Public);
 
 #if USE_TRANSIENT_SKELETON
 		// Propagate down transient settings from the class
@@ -1318,18 +1290,13 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			}
 		}
 		
+		// Link it
+		//@TODO: should this be in regular or reverse order?
+		Context.Function->Next = Context.NewClass->Children;
+		Context.NewClass->Children = Context.Function;
 
-		if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-		{
-			// Link it
-			//@TODO: should this be in regular or reverse order?
-			Context.Function->Next = Context.NewClass->Children;
-			Context.NewClass->Children = Context.Function;
-
-			// Add the function to it's owner class function name -> function map
-			Context.NewClass->AddFunctionToFunctionMap(Context.Function);
-		}
-
+		// Add the function to it's owner class function name -> function map
+		Context.NewClass->AddFunctionToFunctionMap(Context.Function);
 		if (UsePersistentUberGraphFrame() && Context.bIsUbergraph)
 		{
 			ensure(!NewClass->UberGraphFunction);
@@ -1337,11 +1304,8 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		}
 
 		// Create any user defined variables, this must occur before registering nets so that the properties are in place
-		if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-		{
-			UField** PropertyStorageLocation = &(Context.Function->Children);
-			CreateUserDefinedLocalVariablesForFunction(Context, PropertyStorageLocation);
-		}
+		UField** PropertyStorageLocation = &(Context.Function->Children);
+		CreateUserDefinedLocalVariablesForFunction(Context, PropertyStorageLocation);
 
 		//@TODO: Prune pure functions that don't have any consumers
 		if (bIsFullCompile)
@@ -1400,11 +1364,8 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		Context.Function->FunctionFlags |= Context.GetNetFlags();
 
-		if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-		{
-			// Parameter list needs to be linked before signatures are compared. 
-			Context.Function->StaticLink(true);
-		}
+		// Parameter list needs to be linked before signatures are compared. 
+		Context.Function->StaticLink(true);
 
 		// Make sure the function signature is valid if this is an override
 		if (ParentFunction)
@@ -1639,12 +1600,8 @@ void FKismetCompilerContext::PostcompileFunction(FKismetFunctionContext& Context
 void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Context)
 {
 	UFunction* Function = Context.Function;
-
-	if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-	{
-		Function->Bind();
-		Function->StaticLink(true);
-	}
+	Function->Bind();
+	Function->StaticLink(true);
 
 	// Set function flags and calculate cached values so the class can be used immediately
 	Function->ParmsSize = 0;
@@ -2987,7 +2944,7 @@ void FKismetCompilerContext::CreateFunctionList()
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CreateFunctionList);
 
 	// Process the ubergraph if one should be present
-	if (FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint) && CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
+	if (FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint))
 	{
 		CreateAndProcessUbergraph();
 	}
@@ -3203,27 +3160,16 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
-	if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-	{
-		CleanAndSanitizeClass(TargetClass, OldCDO);
-	}
-	else
-	{
-		SetClassForBytecodeCompile(TargetClass);
-		OldCDO = TargetClass->ClassDefaultObject;
-	}
+	CleanAndSanitizeClass(TargetClass, OldCDO);
 
 	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
 
 	NewClass->ClassGeneratedBy = Blueprint;
 
-	if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-	{
-		UClass* ParentClass = NewClass->ClassWithin;
-		NewClass->SetSuperStruct(ParentClass);
-		NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
-		NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;
-	}
+	UClass* ParentClass = NewClass->ClassWithin;
+	NewClass->SetSuperStruct(ParentClass);
+	NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
+	NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;
 	
 	if(Blueprint->bGenerateConstClass)
 	{
@@ -3275,7 +3221,6 @@ void FKismetCompilerContext::Compile()
 		Property->SetPropertyFlags(CPF_DuplicateTransient | CPF_Transient);
 	}
 
-	if ( CompileOptions.CompileType != EKismetCompileType::BytecodeOnly )
 	{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_BindAndLinkClass);
 
 		// Relink the class
@@ -3393,13 +3338,7 @@ void FKismetCompilerContext::Compile()
 		FUserDefinedStructureCompilerUtils::DefaultUserDefinedStructs(NewCDO, MessageLog);
 
 		// Copy over the CDO properties if we're not already regenerating on load.  In that case, the copy will be done after compile on load is complete
-		// We can't do this during the bytecode pass because we don't have an 'old cdo' to copy our overwritten values from (IE if a derived type changes
-		// some default values, we will stomp them with the parent's values.. normally we can copy the previous CDO's values over, but there
-		// is no previous CDO if NewClass == OldClass)
-		if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
-		{
-			FBlueprintEditorUtils::PropagateParentBlueprintDefaults(NewClass);
-		}
+		FBlueprintEditorUtils::PropagateParentBlueprintDefaults(NewClass);
 
 		if (Blueprint->HasAnyFlags(RF_BeingRegenerated))
 		{
@@ -3409,8 +3348,7 @@ void FKismetCompilerContext::Compile()
 				Blueprint->PRIVATE_InnermostPreviousCDO = OldCDO;
 			}
 		}
-
-		if (CompileOptions.CompileType == EKismetCompileType::Full)
+		else
 		{
 			if( NewCDO )
 			{
