@@ -27,25 +27,30 @@ FPropertyLocalizationDataGatherer::FPropertyLocalizationDataGatherer(TArray<FGat
 	// Iterate over each root object in the package
 	for (const UObject* Object : RootObjectsInPackage)
 	{
-		// See if we have a custom handler for this type
-		FLocalizationDataGatheringCallback* CustomCallback = nullptr;
-		for (const UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
-		{
-			CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
-			if (CustomCallback)
-			{
-				break;
-			}
-		}
+		GatherLocalizationDataFromObjectWithCallbacks(Object, EPropertyLocalizationGathererTextFlags::None);
+	}
+}
 
+void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectWithCallbacks(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+{
+	// See if we have a custom handler for this type
+	FLocalizationDataGatheringCallback* CustomCallback = nullptr;
+	for (const UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
+	{
+		CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
 		if (CustomCallback)
 		{
-			(*CustomCallback)(Object, *this, EPropertyLocalizationGathererTextFlags::None);
+			break;
 		}
-		else
-		{
-			GatherLocalizationDataFromObject(Object, EPropertyLocalizationGathererTextFlags::None);
-		}
+	}
+
+	if (CustomCallback)
+	{
+		(*CustomCallback)(Object, *this, GatherTextFlags);
+	}
+	else
+	{
+		GatherLocalizationDataFromObject(Object, GatherTextFlags);
 	}
 }
 
@@ -93,7 +98,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObject(const U
 
 		for (const UObject* ChildObject : ChildObjects)
 		{
-			GatherLocalizationDataFromObject(ChildObject, GatherTextFlags);
+			GatherLocalizationDataFromObjectWithCallbacks(ChildObject, GatherTextFlags);
 		}
 	}
 }
@@ -216,7 +221,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextPrope
 				const UObject* InnerObject = ObjectProperty->GetObjectPropertyValue(ElementValueAddress);
 				if (InnerObject && IsObjectValidForGather(InnerObject))
 				{
-					GatherLocalizationDataFromObject(InnerObject, ChildPropertyGatherTextFlags);
+					GatherLocalizationDataFromObjectWithCallbacks(InnerObject, ChildPropertyGatherTextFlags);
 				}
 			}
 		}
