@@ -127,7 +127,7 @@ namespace
 				.InitialSelection(EditorCulture)
 				.OnSelectionChanged_Lambda(OnSelectionChangedLambda)
 				.IsCulturePickable_Lambda(IsCulturePickableLambda)
-				.UseNativeDisplayNames(true);
+				.DisplayNameFormat(SCulturePicker::ECultureDisplayFormat::ActiveAndNativeCultureDisplayName);
 
 			return SNew(SBox)
 				.MaxDesiredHeight(300.0f)
