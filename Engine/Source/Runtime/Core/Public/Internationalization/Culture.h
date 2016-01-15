@@ -37,7 +37,7 @@ public:
 
 	int GetLCID() const;
 
-	TArray<FString> GetPrioritizedParentCultureNames();
+	TArray<FString> GetPrioritizedParentCultureNames() const;
 
 	static FString GetCanonicalName(const FString& Name);
 
@@ -60,6 +60,8 @@ public:
 	const FString& GetScript() const;
 
 	const FString& GetVariant() const;
+
+	void HandleCultureChanged();
 
 public:
 #if UE_ENABLE_ICU
