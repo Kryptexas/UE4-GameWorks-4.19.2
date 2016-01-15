@@ -119,7 +119,7 @@ static bool IncreasePerProcessLimits()
 	// - Shipping and Test disable by default (unless -core is passed)
 	// - The rest set it to infinity unless -nocore is passed
 	// (in all scenarios user wish as expressed with -core or -nocore takes priority)
-	bool bDisableCore = (UE_BUILD_SHIPPING || UE_BUILD_TEST);
+	bool bDisableCore = (UE_BUILD_SHIPPING != 0 || UE_BUILD_TEST != 0);
 	if (FParse::Param(*GSavedCommandLine, TEXT("nocore")))
 	{
 		bDisableCore = true;
