@@ -609,6 +609,50 @@ public:
 
 static bool GCPUSupportsSSE4;
 
+struct FD3D12PipelineStateWorker : public FD3D12DeviceChild, public FNonAbandonableTask
+{
+	FD3D12PipelineStateWorker(FD3D12Device* Device, D3D12_COMPUTE_PIPELINE_STATE_DESC* _Desc)
+		: bIsGraphics(false), FD3D12DeviceChild(Device) { Desc.ComputeDesc = *_Desc; };
+
+	FD3D12PipelineStateWorker(FD3D12Device* Device, D3D12_GRAPHICS_PIPELINE_STATE_DESC* _Desc)
+		: bIsGraphics(true), FD3D12DeviceChild(Device) { Desc.GraphicsDesc = *_Desc; };
+
+	void DoWork();
+
+	FORCEINLINE TStatId GetStatId() const { RETURN_QUICK_DECLARE_CYCLE_STAT(FD3D12PipelineStateWorker, STATGROUP_ThreadPoolAsyncTasks); }
+
+	union
+	{
+		D3D12_COMPUTE_PIPELINE_STATE_DESC ComputeDesc;
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsDesc;
+	} Desc;
+
+	bool bIsGraphics;
+	TRefCountPtr<ID3D12PipelineState> PSO;
+};
+
+struct FD3D12PipelineState : public FD3D12DeviceChild
+{
+public:
+	FD3D12PipelineState() :Worker(nullptr), FD3D12DeviceChild(nullptr){};
+	FD3D12PipelineState(FD3D12Device* Parent) : Worker(nullptr), FD3D12DeviceChild(Parent){};
+
+	~FD3D12PipelineState();
+
+	void Create(FD3D12ComputePipelineStateDesc* Desc);
+	void CreateAsync(FD3D12ComputePipelineStateDesc* Desc);
+
+	void Create(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
+	void CreateAsync(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
+
+	ID3D12PipelineState* GetPipelineState();
+
+private:
+	TRefCountPtr<ID3D12PipelineState> PipelineState;
+
+	FAsyncTask<FD3D12PipelineStateWorker>*	Worker;
+};
+
 class FD3D12PipelineStateCache : public FD3D12DeviceChild
 {
 private:
@@ -639,7 +683,7 @@ private:
 		}
 	};
 
-	template <typename TDesc, typename TValue = TRefCountPtr<ID3D12PipelineState>>
+	template <typename TDesc, typename TValue = FD3D12PipelineState>
 	using TPipelineCache = TMap<TDesc, TValue, FDefaultSetAllocator, TStateCacheKeyFuncs<TDesc, TValue>>;
 
 	TPipelineCache<FD3D12HighLevelGraphicsPipelineStateDesc, TPair<ID3D12PipelineState*, uint64>> HighLevelGraphicsPipelineStateCache;
@@ -649,10 +693,10 @@ private:
 	FCriticalSection CS;
 	FDiskCacheInterface DiskCaches[NUM_PSO_CACHE_TYPES];
 
-	ID3D12PipelineState* Add(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache = false);
-	ID3D12PipelineState* Add(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache = false);
+	ID3D12PipelineState* Add(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc);
+	ID3D12PipelineState* Add(FD3D12ComputePipelineStateDesc &computePSODesc);
 
-	ID3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache = false);
+	ID3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc);
 
 #if UE_BUILD_DEBUG
 	uint64 GraphicsCacheRequestCount = 0;
@@ -664,8 +708,8 @@ private:
 public:
 	void RebuildFromDiskCache();
 
-	ID3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache = false);
-	ID3D12PipelineState* FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache = false);
+	ID3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc);
+	ID3D12PipelineState* FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc);
 
 	void Close();
 

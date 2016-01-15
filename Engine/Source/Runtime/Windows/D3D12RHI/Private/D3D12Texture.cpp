@@ -484,7 +484,7 @@ void InitializeTexture2DData(
 	uint64 IntermediateBufferSize = GetRequiredIntermediateSize(pDestTexture2D->GetResource(), 0, NumSubresources);
 
 	FD3D12ResourceLocation SrcResourceLoc;
-	void* pData = DynamicHeapAllocator.Alloc(IntermediateBufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &SrcResourceLoc);
+	void* pData = DynamicHeapAllocator.FastAlloc(IntermediateBufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &SrcResourceLoc);
 	check(pData);
 
 	{
@@ -2019,6 +2019,11 @@ void FD3D12DynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, con
 {
 	FName DebugName(Name);
 	TextureRHI->SetName(DebugName);
+	FD3D12Resource* Resource = reinterpret_cast<FD3D12Resource*>(TextureRHI->GetNativeResource());
+	if (Resource)
+	{
+		Resource->SetName(Name);
+	}
 }
 
 void FD3D12DynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)

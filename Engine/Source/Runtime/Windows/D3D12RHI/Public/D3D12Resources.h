@@ -650,6 +650,7 @@ private:
 	D3D12_RESOURCE_STATES DefaultResourceState;
 	bool bRequiresResourceStateTracking;
 	D3D12_HEAP_TYPE HeapType;
+	FName DebugName;
 
 #if UE_BUILD_DEBUG
 	static int64 TotalResourceCount;
@@ -717,6 +718,15 @@ public:
 	D3D12_RESOURCE_STATES GetDefaultResourceState() const { check(!bRequiresResourceStateTracking); return DefaultResourceState; }
 	bool RequiresResourceStateTracking() const { return bRequiresResourceStateTracking; }
 
+	void SetName(const TCHAR* Name)
+	{
+		DebugName = FName(Name);
+		if (Resource)
+		{
+			VERIFYD3D11RESULT(Resource->SetName(Name));
+		}
+	}
+
 private:
 	void InitalizeResourceState()
 	{
@@ -783,6 +793,7 @@ public:
 		, Offset(0)
 		, Bucket(0)
 		, ResourceHeap(nullptr)
+		, FrameFence(0)
 		, Allocator(nullptr)
 	{
 	}
@@ -792,6 +803,7 @@ public:
 		, Offset(InOffset)
 		, Bucket(InBucket)
 		, ResourceHeap(Resource)
+		, FrameFence(0)
 		, Allocator(InAllocator)
 	{
 	}
@@ -1115,7 +1127,7 @@ public:
 	ID3D12RootSignature* GetRootSignature() const { return RootSignature.GetReference(); }
 	ID3DBlob* GetRootSignatureBlob() const { return RootSignatureBlob.GetReference(); }
 
-	inline uint32 SamplerRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 SamplerRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		switch (ShaderStage)
 		{
@@ -1131,7 +1143,7 @@ public:
 		}
 	}
 
-	inline uint32 SRVRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 SRVRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		switch (ShaderStage)
 		{
@@ -1147,7 +1159,7 @@ public:
 		}
 	}
 
-	inline uint32 CBVRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 CBVRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		switch (ShaderStage)
 		{
@@ -1163,7 +1175,7 @@ public:
 		}
 	}
 
-	inline uint32 UAVRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 UAVRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		check(ShaderStage == SF_Pixel || ShaderStage == SF_Compute);
 		return BindSlotMap[ALL_UAVs];
@@ -3263,7 +3275,7 @@ class FD3D12DynamicHeapAllocator : public FD3D12ResourceAllocator
 	D3D12_HEAP_TYPE HeapType;
 
 	// Fast alloc buffer
-	const uint32 MaxFastAllocBufferSize = 65536 * 16;
+	const uint32 MaxFastAllocBufferSize = 1024 * 1024 * 4;// 4MB
 	FD3D12ResourceLocation* GetNextFastAllocBufferLocation(uint32 Size);
 	TRefCountPtr<FD3D12ResourceLocation> FastAllocBuffer;
 	uint32 NextFastAllocOffset;

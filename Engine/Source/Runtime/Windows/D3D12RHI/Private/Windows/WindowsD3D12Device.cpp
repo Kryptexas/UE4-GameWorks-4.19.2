@@ -578,6 +578,11 @@ void FD3D12Device::InitD3DDevice()
 			UE_LOG(LogD3D12RHI, Log, TEXT("InitD3DDevice: -D3DDebug = %s"), bWithD3DDebug ? TEXT("on") : TEXT("off"));
 		}
 
+#if USE_PIX
+		UE_LOG(LogD3D12RHI, Log, TEXT("Emitting draw events for PIX profiling."));
+		GEmitDrawEvents = true;
+#endif
+		
 		TRefCountPtr<IDXGIAdapter> EnumAdapter;
 
 		if (DXGIFactory->EnumAdapters(GetAdapterIndex(), EnumAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND)
