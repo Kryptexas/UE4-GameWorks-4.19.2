@@ -4095,7 +4095,7 @@ void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediat
 	
 	// CSM was not used, render modulated shadow depths.
 	// TODO: reuse any available space left from CSM depth renders for mod shadows.
-	if(!bCSMRendered)
+	if (IsMobileHDR() && !bCSMRendered)
 	{
 		RenderModulatedShadowDepthMaps(RHICmdList);
 	}
@@ -4233,7 +4233,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandLis
 
 void FForwardShadingSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList)
 {
-	if (bModulatedShadowsInUse)
+	if (IsMobileHDR() && bModulatedShadowsInUse)
 	{
 		if(bCSMShadowsInUse)
 		{

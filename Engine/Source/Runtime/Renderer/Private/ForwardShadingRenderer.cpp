@@ -303,7 +303,8 @@ void FForwardShadingSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListI
 #if !PLATFORM_HTML5
 	auto ShaderPlatform = ViewFamily.GetShaderPlatform();
 
-	if (IsMobilePlatform(ShaderPlatform) 
+	if (IsMobileHDR() 
+		&& IsMobilePlatform(ShaderPlatform) 
 		&& !IsPCPlatform(ShaderPlatform)) // exclude mobile emulation on PC
 	{
 		bool bSceneDepthInAlpha = (SceneContext.GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
