@@ -203,12 +203,14 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
+	bool bApplyPawnControlRotation = false;
 	FRotator PawnViewRotation(0.0f, 0.0f, 0.0f);
 	if (bUsePawnControlRotation)
 	{
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
 		{
 			PawnViewRotation = OwningPawn->GetViewRotation();
+			bApplyPawnControlRotation = true;
 		}
 	}
 
@@ -231,12 +233,9 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		}
 	}
 
-	if (bUsePawnControlRotation)
+	if (bApplyPawnControlRotation && !PawnViewRotation.Equals(GetComponentRotation()))
 	{
-		if (!PawnViewRotation.Equals(GetComponentRotation()))
-		{
-			SetWorldRotation(PawnViewRotation);
-		}
+		SetWorldRotation(PawnViewRotation);
 	}
 
 	DesiredView.Location = GetComponentLocation();
