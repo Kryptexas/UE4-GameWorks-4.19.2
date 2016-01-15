@@ -74,7 +74,7 @@ int32 FExpressionInput::Compile(class FMaterialCompiler* Compiler, int32 Multipl
 	{
 		Expression->ValidateState();
 		
-		int32 ExpressionResult = Compiler->CallExpression(FMaterialExpressionKey(Expression, OutputIndex, MultiplexIndex),Compiler);
+		int32 ExpressionResult = Compiler->CallExpression(FMaterialExpressionKey(Expression, OutputIndex, MultiplexIndex, Compiler->IsCurrentlyCompilingForPreviousFrame()),Compiler);
 
 		if(Mask && ExpressionResult != INDEX_NONE)
 		{
