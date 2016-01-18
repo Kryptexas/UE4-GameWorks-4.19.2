@@ -920,8 +920,10 @@ FText FPersonaMeshDetails::GetLODImportedText(int32 LODIndex) const
 
 void FPersonaMeshDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
 	check(SelectedObjects.Num()<=1); // The OnGenerateCustomWidgets delegate will not be useful if we try to process more than one object.
+
+	SkeletalMeshPtr = SelectedObjects.Num() > 0 ? Cast<USkeletalMesh>(SelectedObjects[0].Get()) : nullptr;
 
 	// copy temporarily to refresh Mesh details tab from the LOD settings window
 	PersonaPtr->PersonaMeshDetailLayout = &DetailLayout;	
@@ -1176,7 +1178,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	const USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
+	const USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
 	if (Mesh)
 	{
 		State = Mesh->SelectedEditorSection == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1187,7 +1189,7 @@ ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
 
 void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
-	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
 
 	// Currently assumes that we only ever have one preview mesh in Persona.
 	UDebugSkelMeshComponent* MeshComponent = PersonaPtr->GetPreviewMeshComponent();
@@ -1224,13 +1226,13 @@ ECheckBoxState FPersonaMeshDetails::IsIsolateSectionEnabled(int32 SectionIndex) 
 
 void FPersonaMeshDetails::OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
-	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
 	UDebugSkelMeshComponent * MeshComponent = PersonaPtr->GetPreviewMeshComponent();
 	if (Mesh && MeshComponent)
 	{
 		if (NewState == ECheckBoxState::Checked)
 		{
-			MeshComponent->SetSectionPreview(SectionIndex); 
+			MeshComponent->SetSectionPreview(SectionIndex);
 			if (Mesh->SelectedEditorSection != SectionIndex)
 			{
 				Mesh->SelectedEditorSection = INDEX_NONE;
@@ -1248,7 +1250,7 @@ void FPersonaMeshDetails::OnSectionIsolatedChanged(ECheckBoxState NewState, int3
 ECheckBoxState FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	const USkeletalMesh* Mesh = Cast<USkeletalMesh>( SelectedObjects[0].Get() );
+	const USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
 	if (Mesh && MaterialIndex < Mesh->Materials.Num())
 	{
 		State = Mesh->Materials[MaterialIndex].bEnableShadowCasting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1259,26 +1261,26 @@ ECheckBoxState FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) 
 
 void FPersonaMeshDetails::OnShadowCastingChanged(ECheckBoxState NewState, int32 MaterialIndex)
 {
-	USkeletalMesh* Mesh = Cast<USkeletalMesh>( SelectedObjects[0].Get() );
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
 
-	if ( Mesh )
+	if (Mesh)
 	{
 		if (NewState == ECheckBoxState::Checked)
 		{
-			const FScopedTransaction Transaction( LOCTEXT( "SetShadowCastingFlag", "Set Shadow Casting For Material" ) );
+			const FScopedTransaction Transaction(LOCTEXT("SetShadowCastingFlag", "Set Shadow Casting For Material"));
 			Mesh->Modify();
 			Mesh->Materials[MaterialIndex].bEnableShadowCasting = true;
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
-			const FScopedTransaction Transaction( LOCTEXT( "ClearShadowCastingFlag", "Clear Shadow Casting For Material" ) );
+			const FScopedTransaction Transaction(LOCTEXT("ClearShadowCastingFlag", "Clear Shadow Casting For Material"));
 			Mesh->Modify();
 			Mesh->Materials[MaterialIndex].bEnableShadowCasting = false;
 		}
 		for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
 		{
 			USkinnedMeshComponent* MeshComponent = *It;
-			if (MeshComponent && 
+			if (MeshComponent &&
 				!MeshComponent->IsTemplate() &&
 				MeshComponent->SkeletalMesh == Mesh)
 			{
@@ -1352,101 +1354,104 @@ bool FPersonaMeshDetails::IsDuplicatedMaterialIndex(int32 LODIndex, int32 Materi
 
 void FPersonaMeshDetails::OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll, int32 LODIndex)
 {
-	// Whether or not we made a transaction and need to end it
-	bool bMadeTransaction = false;
-
-	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
-	UProperty* MaterialProperty = FindField<UProperty>(USkeletalMesh::StaticClass(), "Materials");
-	check(MaterialProperty);
-	Mesh->PreEditChange(MaterialProperty);
-
-	FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
-	check(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex));
-	const int32 TotalSlotCount = ImportedResource->LODModels[LODIndex].Sections.Num();
-
-	check(TotalSlotCount > SlotIndex);
-	if (LODIndex == 0)
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if(Mesh)
 	{
-		int MaterialIndex = GetMaterialIndex(LODIndex, SlotIndex);
-		UMaterialInterface* Material = Mesh->Materials[MaterialIndex].MaterialInterface;
-		if (Material == PrevMaterial || bReplaceAll)
+		// Whether or not we made a transaction and need to end it
+		bool bMadeTransaction = false;
+
+		UProperty* MaterialProperty = FindField<UProperty>(USkeletalMesh::StaticClass(), "Materials");
+		check(MaterialProperty);
+		Mesh->PreEditChange(MaterialProperty);
+
+		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+		check(ImportedResource && ImportedResource->LODModels.IsValidIndex(LODIndex));
+		const int32 TotalSlotCount = ImportedResource->LODModels[LODIndex].Sections.Num();
+
+		check(TotalSlotCount > SlotIndex);
+		if (LODIndex == 0)
 		{
-			// Begin a transaction for undo/redo the first time we encounter a material to replace.  
-			// There is only one transaction for all replacement
-			if (!bMadeTransaction)
+			int MaterialIndex = GetMaterialIndex(LODIndex, SlotIndex);
+			UMaterialInterface* Material = Mesh->Materials[MaterialIndex].MaterialInterface;
+			if (Material == PrevMaterial || bReplaceAll)
 			{
-				GEditor->BeginTransaction(LOCTEXT("PersonaReplaceMaterial", "Replace material on mesh"));
-				bMadeTransaction = true;
+				// Begin a transaction for undo/redo the first time we encounter a material to replace.  
+				// There is only one transaction for all replacement
+				if (!bMadeTransaction)
+				{
+					GEditor->BeginTransaction(LOCTEXT("PersonaReplaceMaterial", "Replace material on mesh"));
+					bMadeTransaction = true;
+				}
+				Mesh->Modify();
+				Mesh->Materials[MaterialIndex].MaterialInterface = NewMaterial;
 			}
-			Mesh->Modify();
-			Mesh->Materials[MaterialIndex].MaterialInterface = NewMaterial;
-		}
-	}
-	else
-	{
-		check(Mesh->LODInfo.IsValidIndex(LODIndex));
-
-		int32 MaterialIndex;
-		if (Mesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0)
-		{
-			MaterialIndex = Mesh->LODInfo[LODIndex].LODMaterialMap[SlotIndex];
 		}
 		else
 		{
-			MaterialIndex = SlotIndex;
-		}
+			check(Mesh->LODInfo.IsValidIndex(LODIndex));
 
-		bool bIsUsedInParentLODs = IsDuplicatedMaterialIndex(LODIndex, MaterialIndex);
-
-		if (bIsUsedInParentLODs)
-		{
-			FSkeletalMaterial NewSkelMaterial = Mesh->Materials[MaterialIndex];
-			NewSkelMaterial.MaterialInterface = NewMaterial;
-			int32 NewMaterialIndex = Mesh->Materials.Add(NewSkelMaterial);
-
+			int32 MaterialIndex;
 			if (Mesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0)
 			{
-				Mesh->LODInfo[LODIndex].LODMaterialMap[SlotIndex] = NewMaterialIndex;
+				MaterialIndex = Mesh->LODInfo[LODIndex].LODMaterialMap[SlotIndex];
 			}
 			else
 			{
-				// copy all old ones back
-				TArray<int32> LODMaterialMap;
-
-				LODMaterialMap.AddZeroed(TotalSlotCount);
-				for (int32 SlotId = 0; SlotId < TotalSlotCount; ++SlotId)
-				{
-					LODMaterialMap[SlotId] = GetMaterialIndex(LODIndex, SlotId);
-				}
-
-				LODMaterialMap[SlotIndex] = NewMaterialIndex;
-
-				Mesh->LODInfo[LODIndex].LODMaterialMap = LODMaterialMap;
+				MaterialIndex = SlotIndex;
 			}
-		}
-		else
-		{
-			// Begin a transaction for undo/redo the first time we encounter a material to replace.  
-			// There is only one transaction for all replacement
-			if (!bMadeTransaction)
+
+			bool bIsUsedInParentLODs = IsDuplicatedMaterialIndex(LODIndex, MaterialIndex);
+
+			if (bIsUsedInParentLODs)
 			{
-				GEditor->BeginTransaction(LOCTEXT("PersonaReplaceMaterial", "Replace material on mesh"));
-				bMadeTransaction = true;
+				FSkeletalMaterial NewSkelMaterial = Mesh->Materials[MaterialIndex];
+				NewSkelMaterial.MaterialInterface = NewMaterial;
+				int32 NewMaterialIndex = Mesh->Materials.Add(NewSkelMaterial);
+
+				if (Mesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0)
+				{
+					Mesh->LODInfo[LODIndex].LODMaterialMap[SlotIndex] = NewMaterialIndex;
+				}
+				else
+				{
+					// copy all old ones back
+					TArray<int32> LODMaterialMap;
+
+					LODMaterialMap.AddZeroed(TotalSlotCount);
+					for (int32 SlotId = 0; SlotId < TotalSlotCount; ++SlotId)
+					{
+						LODMaterialMap[SlotId] = GetMaterialIndex(LODIndex, SlotId);
+					}
+
+					LODMaterialMap[SlotIndex] = NewMaterialIndex;
+
+					Mesh->LODInfo[LODIndex].LODMaterialMap = LODMaterialMap;
+				}
 			}
-			Mesh->Modify();
-			Mesh->Materials[MaterialIndex].MaterialInterface = NewMaterial;
+			else
+			{
+				// Begin a transaction for undo/redo the first time we encounter a material to replace.  
+				// There is only one transaction for all replacement
+				if (!bMadeTransaction)
+				{
+					GEditor->BeginTransaction(LOCTEXT("PersonaReplaceMaterial", "Replace material on mesh"));
+					bMadeTransaction = true;
+				}
+				Mesh->Modify();
+				Mesh->Materials[MaterialIndex].MaterialInterface = NewMaterial;
+			}
 		}
-	}
 
-	FPropertyChangedEvent PropertyChangedEvent(MaterialProperty);
-	Mesh->PostEditChangeProperty(PropertyChangedEvent);
+		FPropertyChangedEvent PropertyChangedEvent(MaterialProperty);
+		Mesh->PostEditChangeProperty(PropertyChangedEvent);
 
-	if( bMadeTransaction )
-	{
-		// End the transation if we created one
-		GEditor->EndTransaction();
-		// Redraw viewports to reflect the material changes 
-		GUnrealEd->RedrawLevelEditingViewports();
+		if (bMadeTransaction)
+		{
+			// End the transation if we created one
+			GEditor->EndTransaction();
+			// Redraw viewports to reflect the material changes 
+			GUnrealEd->RedrawLevelEditingViewports();
+		}
 	}
 }
 

@@ -246,7 +246,7 @@ public:
 	}
 private:
 	// Container for the objects to display
-	TArray< TWeakObjectPtr<UObject>> SelectedObjects;
+	TWeakObjectPtr<USkeletalMesh> SkeletalMeshPtr;
 
 	// Pointer back to Persona
 	TSharedPtr<FPersona> PersonaPtr;
