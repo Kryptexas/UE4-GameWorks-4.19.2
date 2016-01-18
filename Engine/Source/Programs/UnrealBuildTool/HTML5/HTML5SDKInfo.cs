@@ -11,13 +11,13 @@ namespace UnrealBuildTool
 {
 	public class HTML5SDKInfo
 	{
-        // A GUID as a string.  Allows updates to flush the emscripten install without bumping
-        // the SDK version number.  Useful if a programming-error causes a bogus install.
-        // NOTE: Change this also when NODE_JS_MAC & NODE_JS_WIN  have been updated as well.
-		static string SDKInfoGUID = "3EB561D1-3A85-49E0-9E1A-9990AC1D9DE3";
+		// A GUID as a string.  Allows updates to flush the emscripten install without bumping
+		// the SDK version number.  Useful if a programming-error causes a bogus install.
+		// NOTE: Change this also when NODE_JS_MAC & NODE_JS_WIN  have been updated as well.
+		static string SDKInfoGUID = "AC3970B2-7D37-43F1-A83E-3A0BD2C8C89F";
 
 		static string SDKBase { get { return Path.GetFullPath(Path.Combine(new string[] { BuildConfiguration.RelativeEnginePath, "Source", "ThirdParty", "HTML5", "emsdk" })); } }
-		static string SDKVersion = "1.30.0";
+		static string SDKVersion = "1.35.0";
 		static string EMSCRIPTEN_ROOT { get { return Path.Combine(SDKBase, "emscripten", SDKVersion); } }
 
 		static string PYTHON_WIN { get { return Path.Combine(SDKBase, "Win64", "python", "2.7.5.3_64bit", "python.exe"); } }
@@ -59,8 +59,8 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static string NODE_JS_WIN { get { return Path.Combine(SDKBase, "Win64", "node", "0.12.2_64bit", "node.exe"); } }
-		static string NODE_JS_MAC { get { return Path.Combine(SDKBase, "Mac", "node", "0.12.2_64bit", "bin", "node"); } }
+		static string NODE_JS_WIN { get { return Path.Combine(SDKBase, "Win64", "node", "4.1.1_64bit", "bin", "node.exe"); } }
+		static string NODE_JS_MAC { get { return Path.Combine(SDKBase, "Mac", "node", "4.1.1_64bit", "bin", "node"); } }
 
 		static string NODE_JS
 		{
