@@ -57,14 +57,19 @@ FShapedGlyphSequence::FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToR
 	, TextBaseline(InTextBaseline)
 	, MaxTextHeight(InMaxTextHeight)
 	, FontMaterial(InFontMaterial)
+	, GlyphFontFaces()
 {
+	for (const FShapedGlyphEntry& CurrentGlyph : GlyphsToRender)
+	{
+		GlyphFontFaces.AddUnique(CurrentGlyph.FontFaceData->FontFace);
+	}
 }
 
 bool FShapedGlyphSequence::IsDirty() const
 {
-	for (const FShapedGlyphEntry& CurrentGlyph : GlyphsToRender)
+	for (const auto& GlyphFontFace : GlyphFontFaces)
 	{
-		if (!CurrentGlyph.FontFaceData->FontFace.IsValid())
+		if (!GlyphFontFace.IsValid())
 		{
 			return true;
 		}

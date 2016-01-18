@@ -331,6 +331,8 @@ private:
 	uint16 MaxTextHeight;
 	/** The material to use when rendering these glyphs */
 	const UObject* FontMaterial;
+	/** The set of fonts being used by the glyphs within this sequence */
+	TArray<TWeakPtr<FFreeTypeFace>> GlyphFontFaces;
 };
 
 /** Information for rendering one character */
