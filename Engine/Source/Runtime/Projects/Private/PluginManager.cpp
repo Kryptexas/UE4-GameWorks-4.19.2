@@ -343,18 +343,10 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		// Get all the enabled plugin names
 		TArray< FString > EnabledPluginNames;
 #if IS_PROGRAM
-		// Programs with a project file specified take the list of enabled plugins from the project file
-		if (bHasProjectFile)
-		{
-			FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
-		}
-		else
-		{
-			GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
-		}
-#else
-		FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+		// Programs can also define the list of enabled plugins in ini
+		GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
 #endif
+		FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
 
 		// Build a set from the array
 		TSet< FString > AllEnabledPlugins;

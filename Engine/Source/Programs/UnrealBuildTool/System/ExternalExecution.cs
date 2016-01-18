@@ -743,7 +743,7 @@ namespace UnrealBuildTool
 						}
 
 						// Add UHT plugins to UBT command line as external plugins
-						if (Target.ProjectDescriptor != null && Target.UnrealHeaderToolPlugins != null)
+						if (Target.UnrealHeaderToolPlugins != null)
 						{
 							foreach (PluginInfo Plugin in Target.UnrealHeaderToolPlugins)
 							{
