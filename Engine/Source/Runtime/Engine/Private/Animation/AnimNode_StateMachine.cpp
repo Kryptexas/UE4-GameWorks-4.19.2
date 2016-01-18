@@ -346,7 +346,10 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 		else if(!Machine->States.IsValidIndex(CurrentState))
 		{
 			// Attempting to catch a crash where the state machine has been freed.
-			UE_LOG(LogAnimation, Warning, TEXT("FAnimNode_StateMachine::Update - Invalid current state, please report. Attempting to use state %d in state machine %d"), CurrentState, StateMachineIndexInClass);
+			// Reported as a symptom of a crash in UE-24732 for 4.10. This log message should not appear given changes to
+			// re-instancing in 4.11 (see CL 2823202). If it does appear we need to spot integrate CL 2823202 (and supporting 
+			// anim re-init changes, probably 2799786 & 2801372).
+			UE_LOG(LogAnimation, Warning, TEXT("FAnimNode_StateMachine::Update - Invalid current state, please report. Attempting to use state %d of %d in state machine %d (ptr 0x%x)"), CurrentState, Machine->States.Num(), StateMachineIndexInClass, Machine);
 			UE_LOG(LogAnimation, Warning, TEXT("\t\tWhen updating AnimInstance: %s"), *Context.AnimInstanceProxy->GetAnimInstanceObject()->GetName())
 
 			return;
