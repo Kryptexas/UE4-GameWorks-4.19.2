@@ -771,4 +771,19 @@ public class DeploymentContext //: ProjectParams
 			return "Manifest_NonUFSFiles_" + StageTargetPlatform.PlatformType.ToString() + ".txt";
 		}
 	}
+
+	public static string GetNonUFSDeployedManifestFileName(UnrealTargetPlatform PlatformType)
+	{
+		return "Manifest_NonUFSFiles_" + PlatformType.ToString() + ".txt";
+	}
+
+	public static string GetUFSDeployedManifestFileName(UnrealTargetPlatform PlatformType)
+	{
+		return "Manifest_UFSFiles_" + PlatformType.ToString() + ".txt";
+	}
+
+	public static string GetDebugFilesManifestFileName(UnrealTargetPlatform PlatformType)
+	{
+		return "Manifest_DebugFiles_" + PlatformType.ToString() + ".txt";
+	}
 }
