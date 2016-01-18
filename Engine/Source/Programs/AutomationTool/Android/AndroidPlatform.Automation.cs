@@ -224,20 +224,20 @@ public class AndroidPlatform : Platform
 
                 // If we aren't packaging data in the APK then lets write out a bat file to also let us test without the OBB
                 // on the device.
-                String NoInstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", true);
+                //String NoInstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", true);
                 // if(!bPackageDataInsideApk)
-                {
-                    BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, true);
-                    File.WriteAllLines(NoInstallBatchName, BatchLines);
-                }
+                //{
+                //    BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, true);
+                //    File.WriteAllLines(NoInstallBatchName, BatchLines);
+                //}
 
 				if (Utils.IsRunningOnMono)
 				{
 					CommandUtils.FixUnixFilePermissions(BatchName);
-                    if(File.Exists(NoInstallBatchName)) 
-                    {
-                        CommandUtils.FixUnixFilePermissions(NoInstallBatchName);
-                    }
+                    //if(File.Exists(NoInstallBatchName)) 
+                    //{
+                    //    CommandUtils.FixUnixFilePermissions(NoInstallBatchName);
+                    //}
 				}
 			}
 		}
