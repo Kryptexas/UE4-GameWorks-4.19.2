@@ -158,12 +158,6 @@ public:
 	virtual void RemoveInvalidObjects() = 0;
 
 	/**
-	 * Immediately resolves any update requests, only do this if you need the internal state of the details panel to change
-	 * right now.  Never call while getting callbacks property changes.
-	 */
-	virtual void ImmdiatelyUpdate() = 0;
-
-	/**
 	 * Returns true if the details view is locked and cant have its observed objects changed 
 	 */
 	virtual bool IsLocked() const = 0;

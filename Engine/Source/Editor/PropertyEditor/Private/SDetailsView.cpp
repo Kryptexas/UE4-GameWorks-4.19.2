@@ -354,15 +354,6 @@ void SDetailsView::RemoveInvalidObjects()
 	}
 }
 
-void SDetailsView::ImmdiatelyUpdate()
-{
-	if ( PendingUpdateHandle.IsValid() )
-	{
-		PendingUpdateDelegate.Execute(0, 0);
-		UnRegisterActiveTimer(PendingUpdateHandle.ToSharedRef());
-	}
-}
-
 bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects ) const
 {
 	bool bShouldSetObjects = false;
@@ -411,16 +402,9 @@ bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > 
 
 void SDetailsView::BeginSelectingObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects)
 {
-	if ( PendingUpdateHandle.IsValid() )
-	{
-		UnRegisterActiveTimer(PendingUpdateHandle.ToSharedRef());
-	}
-
-	PendingUpdateDelegate = FWidgetActiveTimerDelegate::CreateLambda([=] (double, float) {
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda([=] (double, float) {
 		return FinishSelectingObjects(InObjects);
-	});
-
-	PendingUpdateHandle = RegisterActiveTimer(0.f, PendingUpdateDelegate);
+	}));
 }
 
 EActiveTimerReturnType SDetailsView::FinishSelectingObjects(const TArray< TWeakObjectPtr< UObject > > InObjects)

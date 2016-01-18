@@ -120,7 +120,6 @@ public:
 	{
 		StructData->Destroy();
 		DetailsView->SetObject(nullptr);
-		DetailsView->ImmdiatelyUpdate();
 		DetailsView->OnFinishedChangingProperties().Clear();
 	}
 
@@ -129,7 +128,6 @@ public:
 		StructData->Initialize(UserDefinedStruct.Get());
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
 		DetailsView->SetObject(UserDefinedStruct.Get());
-		DetailsView->ImmdiatelyUpdate();
 	}
 
 	// FNotifyHook interface
