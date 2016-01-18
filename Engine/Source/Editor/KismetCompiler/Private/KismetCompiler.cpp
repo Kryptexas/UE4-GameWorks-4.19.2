@@ -3445,7 +3445,7 @@ void FKismetCompilerContext::Compile()
 			}
 		}
 
-		if (CompileOptions.CompileType == EKismetCompileType::Full)
+		if (CompileOptions.CompileType != EKismetCompileType::BytecodeOnly)
 		{
 			if( NewCDO )
 			{
