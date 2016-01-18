@@ -2996,7 +2996,7 @@ void FKismetCompilerContext::CreateFunctionList()
 		}
 		else
 		{
-			if (Blueprint->ConsolidatedEventGraph->Nodes.Num() > 0)
+			if (Blueprint->ConsolidatedEventGraph && Blueprint->ConsolidatedEventGraph->Nodes.Num() > 0)
 			{
 				UbergraphContext = new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration(), CompileOptions.IsInstrumentationActive());
 				UbergraphContext->SourceGraph = Blueprint->ConsolidatedEventGraph;
