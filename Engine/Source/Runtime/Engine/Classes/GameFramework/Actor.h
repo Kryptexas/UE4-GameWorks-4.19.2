@@ -433,9 +433,15 @@ public:
 	UPROPERTY()
 	TArray< FName > Layers;
 
+private:
 	/** The Actor that owns the UChildActorComponent that owns this Actor. */
 	UPROPERTY()
-	TWeakObjectPtr<AActor> ParentComponentActor;	
+	TWeakObjectPtr<AActor> ParentComponentActor_DEPRECATED;	
+
+	/** The UChildActorComponent that owns this Actor. */
+	TWeakObjectPtr<UChildActorComponent> ParentComponent;	
+
+public:
 
 #if WITH_EDITORONLY_DATA
 
@@ -1610,9 +1616,10 @@ public:
 	virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden );
 
 	/**
+	 * @param  bIncludeParent - Whether to recurse up child actor hierarchy or not
 	 * @return Whether or not this actor is hidden in the editor for the duration of the current editor session
 	 */
-	bool IsTemporarilyHiddenInEditor() const { return bHiddenEdTemporary; }
+	bool IsTemporarilyHiddenInEditor(bool bIncludeParent = false) const;
 
 	/** @return	Returns true if this actor is allowed to be displayed, selected and manipulated by the editor. */
 	bool IsEditable() const;
@@ -1996,6 +2003,13 @@ public:
 	/** Forces dormant actor to replicate but doesn't change NetDormancy state (i.e., they will go dormant again if left dormant) */
 	UFUNCTION(BlueprintAuthorityOnly, BlueprintCallable, Category="Networking")
 	void FlushNetDormancy();
+
+	/** Returns whether this Actor was spawned by a child actor component */
+	UFUNCTION(BlueprintCallable, Category="Actor")
+	bool IsChildActor() const;
+
+	UFUNCTION(BlueprintCallable, Category="Actor")
+	UChildActorComponent* GetParentComponent() const;
 
 	/** Ensure that all the components in the Components array are registered */
 	virtual void RegisterAllComponents();
@@ -2647,6 +2661,7 @@ private:
 	void InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit);
 
 	friend struct FMarkActorIsBeingDestroyed;
+	friend struct FActorParentComponentSetter;
 };
 
 struct FMarkActorIsBeingDestroyed

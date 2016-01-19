@@ -27,6 +27,7 @@
 #include "CollisionDebugDrawingPublic.h"
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/DamageType.h"
+#include "Components/ChildActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -1001,14 +1002,21 @@ bool UPrimitiveComponent::IsComponentIndividuallySelected() const
 
 bool UPrimitiveComponent::ShouldRenderSelected() const
 {
-	const AActor* Owner = GetOwner();
-	return(	bSelectable && 
-			Owner != NULL && 
-#if WITH_EDITOR
-			(Owner->IsSelected() || (Owner->ParentComponentActor != NULL && Owner->ParentComponentActor->IsSelected())) );
-#else
-			Owner->IsSelected() );
-#endif
+	if (bSelectable)
+	{
+		if (const AActor* Owner = GetOwner())
+		{
+			if (Owner->IsSelected())
+			{
+				return true;
+			}
+			else if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+			{
+				return ParentComponent->GetOwner()->IsSelected();
+			}
+		}
+	}
+	return false;
 }
 
 void UPrimitiveComponent::SetCastShadow(bool NewCastShadow)

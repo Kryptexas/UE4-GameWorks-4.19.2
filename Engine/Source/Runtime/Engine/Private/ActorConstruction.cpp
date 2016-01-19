@@ -6,6 +6,7 @@
 #include "ComponentInstanceDataCache.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/CullDistanceVolume.h"
+#include "Components/ChildActorComponent.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -194,8 +195,8 @@ void AActor::RerunConstructionScripts()
 		
 		FTransform OldTransform = FTransform::Identity;
 		FName  SocketName;
-		AActor* Parent = NULL;
-		USceneComponent* ParentComponent = NULL;
+		AActor* Parent = nullptr;
+		USceneComponent* AttachParentComponent = nullptr;
 
 		bool bUseRootComponentProperties = true;
 
@@ -223,7 +224,7 @@ void AActor::RerunConstructionScripts()
 				if (Parent)
 				{
 					USceneComponent* AttachParent = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParent.Get();
-					ParentComponent = (AttachParent ? AttachParent : FindObjectFast<USceneComponent>(Parent, ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParentName));
+					AttachParentComponent = (AttachParent ? AttachParent : FindObjectFast<USceneComponent>(Parent, ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.AttachParentName));
 					SocketName = ActorTransactionAnnotation->RootComponentData.AttachedParentInfo.SocketName;
 					DetachRootComponentFromParent();
 				}
@@ -259,7 +260,7 @@ void AActor::RerunConstructionScripts()
 			for (AActor* AttachedActor : AttachedActors)
 			{
 				// We don't need to detach child actors, that will be handled by component tear down
-				if (!AttachedActor->ParentComponentActor.IsValid())
+				if (!AttachedActor->ParentComponent.IsValid())
 				{
 					USceneComponent* EachRoot = AttachedActor->GetRootComponent();
 					// If the component we are attached to is about to go away...
@@ -279,7 +280,7 @@ void AActor::RerunConstructionScripts()
 				}
 				else
 				{
-					check(AttachedActor->ParentComponentActor == this);
+					check(AttachedActor->ParentComponent->GetOwner() == this);
 				}
 			}
 		}
@@ -296,7 +297,7 @@ void AActor::RerunConstructionScripts()
 					UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
 					Parent = NULL;
 				}
-				ParentComponent = RootComponent->AttachParent;
+				AttachParentComponent = RootComponent->AttachParent;
 				SocketName = RootComponent->AttachSocketName;
 				//detach it to remove any scaling 
 				RootComponent->DetachFromParent(true);
@@ -356,13 +357,13 @@ void AActor::RerunConstructionScripts()
 		if(Parent)
 		{
 			USceneComponent* ChildRoot = GetRootComponent();
-			if (ParentComponent == NULL)
+			if (AttachParentComponent == nullptr)
 			{
-				ParentComponent = Parent->GetRootComponent();
+				AttachParentComponent = Parent->GetRootComponent();
 			}
-			if (ChildRoot != NULL && ParentComponent != NULL)
+			if (ChildRoot != nullptr && AttachParentComponent != nullptr)
 			{
-				ChildRoot->AttachTo(ParentComponent, SocketName, EAttachLocation::KeepWorldPosition);
+				ChildRoot->AttachTo(AttachParentComponent, SocketName, EAttachLocation::KeepWorldPosition);
 			}
 		}
 
@@ -370,7 +371,7 @@ void AActor::RerunConstructionScripts()
 		for(FAttachedActorInfo& Info : AttachedActorInfos)
 		{
 			// If this actor is no longer attached to anything, reattach
-			if (!Info.AttachedActor->IsPendingKill() && Info.AttachedActor->GetAttachParentActor() == NULL)
+			if (!Info.AttachedActor->IsPendingKill() && Info.AttachedActor->GetAttachParentActor() == nullptr)
 			{
 				USceneComponent* ChildRoot = Info.AttachedActor->GetRootComponent();
 				if (ChildRoot && ChildRoot->AttachParent != RootComponent)

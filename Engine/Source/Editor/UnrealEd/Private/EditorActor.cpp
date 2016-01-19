@@ -724,7 +724,10 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		bool bReferencedByActor = false;
 		for (AActor* ReferencingActor : ReferencingActors)
 		{
-			if (ReferencingActor->ParentComponentActor.Get() != Actor)
+			// If the referencing actor is a child actor that is referencing us, do not treat it
+			// as referencing for the purposes of warning about deletion
+			UChildActorComponent* ParentComponent = ReferencingActor->GetParentComponent();
+			if (ParentComponent == nullptr || ParentComponent->GetOwner() != Actor)
 			{
 				bReferencedByActor = true;
 				break;

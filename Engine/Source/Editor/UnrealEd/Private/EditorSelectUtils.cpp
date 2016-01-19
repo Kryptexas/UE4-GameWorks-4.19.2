@@ -533,9 +533,9 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 		if(bInSelected)
 		{
 			// If trying to select an Actor spawned by a ChildACtorComponent, instead select Actor that spawned us
-			if(Actor->ParentComponentActor.IsValid())
+			if (UChildActorComponent* ParentComponent = Actor->GetParentComponent())
 			{
-				Actor = Actor->ParentComponentActor.Get();
+				Actor = ParentComponent->GetOwner();
 			}
 		}
 

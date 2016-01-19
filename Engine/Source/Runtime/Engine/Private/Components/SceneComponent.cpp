@@ -15,6 +15,7 @@
 #include "Engine/SCS_Node.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Components/ChildActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
@@ -2303,6 +2304,18 @@ bool USceneComponent::IsVisibleInEditor() const
 bool USceneComponent::ShouldRender() const
 {
 	AActor* Owner = GetOwner();
+
+	if (Owner)
+	{
+		if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+		{
+			if (!ParentComponent->ShouldRender())
+			{
+				return false;
+			}
+		}
+	}
+	
 	const bool bShowInEditor = 
 #if WITH_EDITOR
 		GIsEditor ? (!Owner || !Owner->IsHiddenEd()) : false;
@@ -2319,6 +2332,18 @@ bool USceneComponent::ShouldRender() const
 bool USceneComponent::CanEverRender() const
 {
 	AActor* Owner = GetOwner();
+
+	if (Owner)
+	{
+		if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+		{
+			if (!ParentComponent->CanEverRender())
+			{
+				return false;
+			}
+		}
+	}
+
 	const bool bShowInEditor =
 #if WITH_EDITOR
 		GIsEditor ? (!Owner || !Owner->IsHiddenEd()) : false;
