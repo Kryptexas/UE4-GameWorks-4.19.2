@@ -36,7 +36,7 @@ void SSequencerLabelBrowser::Construct(const FArguments& InArgs, TSharedRef<FSeq
 			.TreeItemsSource(&LabelList)
 	];
 
-	Sequencer->GetLabelManager().OnLabelsChanged().AddSP(this, &SSequencerLabelBrowser::HandleLabelManagerLabelsChanged);
+	Sequencer.Pin()->GetLabelManager().OnLabelsChanged().AddSP(this, &SSequencerLabelBrowser::HandleLabelManagerLabelsChanged);
 
 	ReloadLabelList(true);
 }
@@ -72,7 +72,7 @@ void SSequencerLabelBrowser::ReloadLabelList(bool FullyReload)
 
 	TArray<FString> AllLabels;
 	
-	if (Sequencer->GetLabelManager().GetAllLabels(AllLabels) > 0)
+	if (Sequencer.IsValid() && Sequencer.Pin()->GetLabelManager().GetAllLabels(AllLabels) > 0)
 	{
 		for (const auto& Label : AllLabels)
 		{
@@ -132,7 +132,7 @@ void SSequencerLabelBrowser::ReloadLabelList(bool FullyReload)
 
 void SSequencerLabelBrowser::HandleLabelListRowLabelRenamed(TSharedPtr<FSequencerLabelTreeNode> Node, const FString& NewLabel)
 {
-	if (Sequencer->GetLabelManager().RenameLabel(Node->Label, NewLabel))
+	if (Sequencer.IsValid() && Sequencer.Pin()->GetLabelManager().RenameLabel(Node->Label, NewLabel))
 	{
 		ReloadLabelList(true);
 	}
@@ -210,9 +210,9 @@ void SSequencerLabelBrowser::HandleRemoveLabelMenuEntryExecute()
 {
 	TArray<TSharedPtr<FSequencerLabelTreeNode>> SelectedItems;
 
-	if (LabelTreeView->GetSelectedItems(SelectedItems) > 0)
+	if (Sequencer.IsValid() && LabelTreeView->GetSelectedItems(SelectedItems) > 0)
 	{
-		Sequencer->GetLabelManager().RemoveObjectLabel(FGuid(), SelectedItems[0]->Label);
+		Sequencer.Pin()->GetLabelManager().RemoveObjectLabel(FGuid(), SelectedItems[0]->Label);
 	}
 }
 

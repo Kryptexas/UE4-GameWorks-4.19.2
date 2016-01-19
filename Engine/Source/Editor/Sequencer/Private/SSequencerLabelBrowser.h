@@ -94,5 +94,5 @@ private:
 	FOnSelectionChanged OnSelectionChanged;
 
 	/** The sequencer object being visualized. */
-	TSharedPtr<FSequencer> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 };
