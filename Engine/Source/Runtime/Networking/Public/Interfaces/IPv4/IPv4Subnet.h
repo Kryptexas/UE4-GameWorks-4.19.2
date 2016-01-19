@@ -8,32 +8,36 @@
  *
  * @todo gmp: add IsValid() method
  */
-class FIPv4Subnet
+struct FIPv4Subnet
 {
-	/**
-	 * Default constructor.
-	 */
+	/** Holds the subnet's address. */
+	FIPv4Address Address;
+
+	/** Holds the subnet's mask. */
+	FIPv4SubnetMask Mask;
+
+public:
+
+	/** Default constructor. */
 	FIPv4Subnet() { }
 
 	/**
 	 * Creates and initializes a new IPv4 subnet with the specified address and mask.
 	 *
-	 * @param InAddress - The subnet's address.
-	 * @param InMask - The subnet's mask.
+	 * @param InAddress The subnet's address.
+	 * @param InMask The subnet's mask.
 	 */
 	FIPv4Subnet(const FIPv4Address& InAddress, const FIPv4SubnetMask& InMask)
 		: Address(InAddress)
 		, Mask(InMask)
 	{ }
 
-
 public:
 
 	/**
 	 * Compares this IPv4 subnet descriptor with the given subnet for equality.
 	 *
-	 * @param other - The subnet to compare with.
-	 *
+	 * @param Other The subnet to compare with.
 	 * @return true if the subnets are equal, false otherwise.
 	 */
 	bool operator==(const FIPv4Subnet& Other) const
@@ -44,8 +48,7 @@ public:
 	/**
 	 * Compares this IPv4 subnet descriptor with the given subnet for inequality.
 	 *
-	 * @param other - The subnet to compare with.
-	 *
+	 * @param Other The subnet to compare with.
 	 * @return true if the subnets are not equal, false otherwise.
 	 */
 	bool operator!=(const FIPv4Subnet& Other) const
@@ -56,9 +59,8 @@ public:
 	/**
 	 * Serializes the given subnet descriptor from or into the specified archive.
 	 *
-	 * @param Ar - The archive to serialize from or into.
-	 * @param Subnet - The subnet descriptor to serialize.
-	 *
+	 * @param Ar The archive to serialize from or into.
+	 * @param Subnet The subnet descriptor to serialize.
 	 * @return The archive.
 	 */
 	friend FArchive& operator<<(FArchive& Ar, FIPv4Subnet& Subnet)
@@ -66,14 +68,22 @@ public:
 		return Ar << Subnet.Address << Subnet.Mask;
 	}
 
-	
 public:
+
+	/**
+	* Get the broadcast address for this subnet.
+	*
+	* @return The broadcast address.
+	*/
+	FIPv4Address BroadcastAddress() const
+	{
+		return (Address | ~Mask);
+	}
 
 	/**
 	 * Checks whether the subnet contains the specified IP address.
 	 *
-	 * @param TestAddress - The address to check.
-	 *
+	 * @param TestAddress The address to check.
 	 * @return true if the subnet contains the address, false otherwise.
 	 */
 	bool ContainsAddress(const FIPv4Address& TestAddress)
@@ -82,76 +92,46 @@ public:
 	}
 
 	/**
-	 * Gets the subnet's address.
-	 *
-	 * @return Subnet address.
-	 */
-	FIPv4Address GetAddress() const
-	{
-		return Address;
-	}
-	
-	/**
-	 * Returns the broadcast address for this subnet.
-	 *
-	 * @return The broadcast address.
-	 */
-	FIPv4Address GetBroadcastAddress() const
-	{
-		return (Address | ~Mask);
-	}
-
-	/**
-	 * Gets the subnet's mask.
-	 *
-	 * @return Subnet mask.
-	 */
-	FIPv4SubnetMask GetMask() const
-	{
-		return Mask;
-	}
-	
-	/**
 	 * Converts this IP subnet to its string representation.
 	 *
 	 * @return String representation.
+	 * @see Parse, ToText
 	 */
-	NETWORKING_API FText ToText() const;
+	NETWORKING_API FString ToString() const;
 
+	/**
+	* Gets the display text representation.
+	*
+	* @return Text representation.
+	* @see ToString
+	*/
+	FText ToText() const
+	{
+		return FText::FromString(ToString());
+	}
 
 public:
 
 	/**
 	 * Gets the hash for specified IPv4 subnet.
 	 *
-	 * @param Subnet - The subnet to get the hash for.
-	 *
+	 * @param Subnet The subnet to get the hash for.
 	 * @return Hash value.
 	 */
 	friend uint32 GetTypeHash(const FIPv4Subnet& Subnet)
 	{
-		return GetTypeHash(Subnet.Address) + GetTypeHash(Subnet.Mask) * 23;
+		return HashCombine(GetTypeHash(Subnet.Address), GetTypeHash(Subnet.Mask));
 	}
-
 
 public:
 
 	/**
 	 * Converts a string to an IPv4 subnet.
 	 *
-	 * @param SubnetString - The string to convert.
-	 * @param OutSubnet - Will contain the parsed subnet.
-	 *
+	 * @param SubnetString The string to convert.
+	 * @param OutSubnet Will contain the parsed subnet.
 	 * @return true if the string was converted successfully, false otherwise.
+	 * @see ToString
 	 */
 	static NETWORKING_API bool Parse(const FString& SubnetString, FIPv4Subnet& OutSubnet);
-
-
-private:
-
-	// Holds the subnet's address.
-	FIPv4Address Address;
-	
-	// Holds the subnet's mask.
-	FIPv4SubnetMask Mask;
 };

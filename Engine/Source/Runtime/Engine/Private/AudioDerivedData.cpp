@@ -13,7 +13,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 
 
 // enable audio building stats these appear in the Saved\Stats\stats.csv file
-#define BUILD_AUDIO_STATS 1
+#define BUILD_AUDIO_STATS 1 && ENABLE_DDC_STATS
 
 #if BUILD_AUDIO_STATS
 #include "DDCStatsHelper.h"

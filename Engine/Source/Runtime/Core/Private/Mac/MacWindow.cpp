@@ -104,7 +104,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 			if (Definition->IsModalWindow)
 			{
-				WindowLevel = NSStatusWindowLevel;
+				WindowLevel = NSFloatingWindowLevel;
 			}
 			else
 			{
@@ -115,19 +115,19 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 						break;
 
 					case EWindowType::Menu:
-						WindowLevel = NSModalPanelWindowLevel;
-						break;
-
-					case EWindowType::ToolTip:
-						WindowLevel = NSPopUpMenuWindowLevel;
-						break;
-
-					case EWindowType::Notification:
 						WindowLevel = NSMainMenuWindowLevel;
 						break;
 
+					case EWindowType::ToolTip:
+						WindowLevel = NSStatusWindowLevel;
+						break;
+
+					case EWindowType::Notification:
+						WindowLevel = NSModalPanelWindowLevel;
+						break;
+
 					case EWindowType::CursorDecorator:
-						WindowLevel = NSTornOffMenuWindowLevel;
+						WindowLevel = NSPopUpMenuWindowLevel;
 						break;
 				}
 			}

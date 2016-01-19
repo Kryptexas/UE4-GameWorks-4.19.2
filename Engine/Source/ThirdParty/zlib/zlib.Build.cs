@@ -16,7 +16,9 @@ public class zlib : ModuleRules
 			PublicLibraryPaths.Add(zlibPath + "Lib/Win64");
 			PublicAdditionalLibraries.Add("zlib_64.lib");
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+		else if (Target.Platform == UnrealTargetPlatform.Win32 ||
+                (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
+        )
 		{
 			PublicLibraryPaths.Add(zlibPath + "Lib/Win32");
 			PublicAdditionalLibraries.Add("zlib.lib");
@@ -33,14 +35,23 @@ public class zlib : ModuleRules
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
-			if (UEBuildConfiguration.bCompileForSize)
-			{
-				PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib_Oz.bc");
-			}
-			else
-			{
-				PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib.bc");
-			}
+            string OpimizationSuffix = "";
+            if (UEBuildConfiguration.bCompileForSize)
+            {
+                OpimizationSuffix = "_Oz";
+            }
+            else
+            {
+                if (Target.Configuration == UnrealTargetConfiguration.Development)
+                {
+                    OpimizationSuffix = "_O2";
+                }
+                else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+                {
+                    OpimizationSuffix = "_O3";
+                }
+            }
+            PublicAdditionalLibraries.Add(zlibPath + "Lib/HTML5/zlib" + OpimizationSuffix + ".bc");
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {

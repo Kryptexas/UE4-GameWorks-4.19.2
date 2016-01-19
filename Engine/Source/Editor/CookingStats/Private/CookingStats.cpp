@@ -101,38 +101,39 @@ bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString&
 bool FCookingStats::SaveStatsAsCSV(const FString& Filename) const
 {
 	FString Output;
-	FScopeLock ScopeLock(&SyncObject);
-
-	for (const auto& Stat : KeyTags)
 	{
-		Output += Stat.Key.ToString();
+		FScopeLock ScopeLock(&SyncObject);
 
-		for (const auto& Tag : Stat.Value)
+		for (const auto& Stat : KeyTags)
 		{
-			Output += TEXT(", ");
-			Output += Tag.Key.ToString();
-			if (Tag.Value.IsEmpty() == false)
+			Output += Stat.Key.ToString();
+
+			for (const auto& Tag : Stat.Value)
 			{
-				Output += TEXT("=");
-				Output += Tag.Value.ToString();
+				Output += TEXT(", ");
+				Output += Tag.Key.ToString();
+				if (Tag.Value.IsEmpty() == false)
+				{
+					Output += TEXT("=");
+					Output += Tag.Value.ToString();
+				}
+
 			}
 
-		}
-
-		for (const auto& Tag : GlobalTags)
-		{
-			Output += TEXT(", ");
-			Output += Tag.Key.ToString();
-			if (Tag.Value.IsEmpty() == false)
+			for (const auto& Tag : GlobalTags)
 			{
-				Output += TEXT("=");
-				Output += Tag.Value;
+				Output += TEXT(", ");
+				Output += Tag.Key.ToString();
+				if (Tag.Value.IsEmpty() == false)
+				{
+					Output += TEXT("=");
+					Output += Tag.Value;
+				}
 			}
-		}
 
-		Output += FString::Printf(TEXT(", RunGuid=%s\r\n"), *RunGuid.ToString());
+			Output += FString::Printf(TEXT(", RunGuid=%s\r\n"), *RunGuid.ToString());
+		}
 	}
-
 	FFileHelper::SaveStringToFile(Output, *Filename);
 	return true;
 }

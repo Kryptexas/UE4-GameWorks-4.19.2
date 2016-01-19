@@ -58,7 +58,6 @@ namespace UnrealBuildTool
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
-			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)

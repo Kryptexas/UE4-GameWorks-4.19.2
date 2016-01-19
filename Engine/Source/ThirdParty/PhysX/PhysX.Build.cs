@@ -76,6 +76,11 @@ public class PhysX : ModuleRules
 
 		// Determine which kind of libraries to link against
 		PhysXLibraryMode LibraryMode = GetPhysXLibraryMode(Target.Configuration);
+		// Quick Mac hack
+		if (Target.Platform == UnrealTargetPlatform.Mac && (LibraryMode == PhysXLibraryMode.Checked || LibraryMode == PhysXLibraryMode.Shipping))
+		{
+			LibraryMode = PhysXLibraryMode.Profile;
+		}
 		string LibrarySuffix = GetPhysXLibrarySuffix(LibraryMode);
 
 		Definitions.Add("WITH_PHYSX=1");

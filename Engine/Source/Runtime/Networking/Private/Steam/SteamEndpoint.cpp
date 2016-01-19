@@ -6,7 +6,7 @@
 /* FSteamEndpoint interface
  *****************************************************************************/
 
-FString FSteamEndpoint::ToString( ) const
+FString FSteamEndpoint::ToString() const
 {
 	return FString::Printf(TEXT("0x%llX:%i"), UniqueNetId, SteamChannel);
 }

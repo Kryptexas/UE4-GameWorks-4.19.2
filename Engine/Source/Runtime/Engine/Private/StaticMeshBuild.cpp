@@ -146,13 +146,18 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 	// Calculate extended bounds
 	CalculateExtendedBounds();
 
+	if (NavCollision == NULL && !!bHasNavigationData)
+	{
+		CreateNavCollision();
+	}
+
 	PostMeshBuild.Broadcast(this);
 
 	if(!bSilent)
 	{
 		GWarn->EndSlowTask();
 	}
-	
+
 #else
 	UE_LOG(LogStaticMesh,Fatal,TEXT("UStaticMesh::Build should not be called on non-editor builds."));
 #endif

@@ -431,6 +431,7 @@ private:
 	bool						MatrixMixerInputStatus[CORE_AUDIO_MAX_MULTICHANNEL_AUDIOCHANNELS];
 
 	class FCoreAudioSoundSource* AudioChannels[CORE_AUDIO_MAX_CHANNELS + 1];
+	
 
 	TSet<AudioConverterRef>		CovertersToDispose;
 	bool						bNeedsUpdate;

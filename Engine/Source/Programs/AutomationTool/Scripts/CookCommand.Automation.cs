@@ -178,10 +178,6 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -cookall";
                 }
-                if (Params.CookMapsOnly)
-                {
-                    CommandletParams += " -mapsonly";
-                }
                 if (Params.HasCreateReleaseVersion)
                 {
                     CommandletParams += " -createreleaseversion=" + Params.CreateReleaseVersion;
@@ -439,10 +435,12 @@ public partial class Project : CommandUtils
                     }
                     else if (SourceFile.LongLength == DestFile.LongLength)
                     {
+                        bool bFailedDiff = false;
                         for (long Index = 0; Index < SourceFile.LongLength; ++Index) 
                         {
                             if (SourceFile[Index] != DestFile[Index])
                             {
+                                bFailedDiff = true;
                                 Log("Diff cooked content failed on file " + SourceFilename + " when comparing against " + DestFilename + " at offset " + Index.ToString());
                                 string SavedSourceFilename = CombinePaths(FailedContentDirectory, Path.GetFileName(SourceFilename) + "Source");
                                 string SavedDestFilename = CombinePaths(FailedContentDirectory, Path.GetFileName(DestFilename) + "Dest");
@@ -471,6 +469,10 @@ public partial class Project : CommandUtils
                                 Log("Content temporarily saved to " + SavedSourceFilename + " and " + SavedDestFilename + " at offset " + Index.ToString());
                                 break;
                             }
+                        }
+                        if (!bFailedDiff)
+                        {
+                            Log("Content matches for " + SourceFilename + " and " + DestFilename);
                         }
                     }
                     else

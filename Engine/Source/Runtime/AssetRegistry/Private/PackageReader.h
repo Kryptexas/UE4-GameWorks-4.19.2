@@ -10,6 +10,8 @@ public:
 
 	/** Creates a loader for the filename */
 	bool OpenPackageFile(const FString& PackageFilename);
+	bool OpenPackageFile(FArchive* Loader);
+	bool OpenPackageFile();
 
 	/** Reads information from the asset registry data table and converts it to FAssetData */
 	bool ReadAssetRegistryData(TArray<FAssetData*>& AssetDataList);

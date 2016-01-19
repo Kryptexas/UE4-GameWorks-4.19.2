@@ -19,7 +19,7 @@ class UAttributeSet;
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 
-#define ENABLE_ABILITYTASK_DEBUGMSG !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#define ENABLE_ABILITYTASK_DEBUGMSG !(UE_BUILD_SHIPPING | UE_BUILD_TEST)
 
 UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy

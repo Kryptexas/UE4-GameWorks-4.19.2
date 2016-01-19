@@ -24,3 +24,4 @@ public:
 	CORE_API bool HasParent() const { return bHasParent; }
 };
 
+#define ENABLE_DDC_STATS 1

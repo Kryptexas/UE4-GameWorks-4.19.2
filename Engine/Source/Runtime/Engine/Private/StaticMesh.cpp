@@ -1852,6 +1852,10 @@ void UStaticMesh::CalculateExtendedBounds()
 FUObjectAnnotationSparseBool GStaticMeshesThatNeedMaterialFixup;
 #endif // #if WITH_EDITORONLY_DATA
 
+#if WITH_EDITOR
+COREUOBJECT_API extern bool GOutputCookingWarnings;
+#endif
+
 /**
  *	UStaticMesh::Serialize
  */
@@ -1878,7 +1882,24 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_STORE_NAV_COLLISION)
 	{
 		Ar << NavCollision;
+#if WITH_EDITOR
+		if ((BodySetup != nullptr) && 
+			bHasNavigationData && 
+			(NavCollision == nullptr))
+		{
+			if (Ar.IsPersistent() && Ar.IsLoading() && GOutputCookingWarnings)
+			{
+					UE_LOG(LogStaticMesh, Warning, TEXT("Serialized NavCollision but it was null (%s) NavCollision will be created dynamicaly at cook time.  Please resave pacage %s."), *GetName(), *GetOutermost()->GetPathName())
+			}
+		}
+#endif
 	}
+#if WITH_EDITOR
+	else if (bHasNavigationData && BodySetup && GOutputCookingWarnings)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("This StaticMeshes (%s) NavCollision will be created dynamicaly at cook time.  Please resave %s."), *GetName(), *GetOutermost()->GetPathName())
+	}
+#endif
 
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )

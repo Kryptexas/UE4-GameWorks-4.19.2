@@ -953,6 +953,27 @@ public:
 		}
 	}
 };
+
+// this class is a hack to work around calling private functions int he linker 
+// I just want to replace the Linkers loader with a custom one
+class FUnsafeLinkerLoad : public FLinkerLoad
+{
+public:
+	FUnsafeLinkerLoad(UPackage *Package, const TCHAR* FileName, const TCHAR* DiffFilename, uint32 LoadFlags) : FLinkerLoad(Package, FileName, LoadFlags)
+	{
+		Package->LinkerLoad = this;
+
+		while (CreateLoader() == FLinkerLoad::LINKER_TimedOut)
+		{
+		}
+
+
+		FArchive* OtherFile = IFileManager::Get().CreateFileReader(DiffFilename);
+		FDiffFileArchive* DiffArchive = new FDiffFileArchive(Loader, OtherFile);
+		Loader = DiffArchive;
+	}
+};
+
 #endif
 
 
@@ -1049,7 +1070,21 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		const double StartTime = FPlatformTime::Seconds();
 
 		// Create a new linker object which goes off and tries load the file.
+#if WITH_EDITOR
+		if (LoadFlags & LOAD_ForFileDiff)
+		{
+			// Create the package with the provided long package name.
+			if (!InOuter)
+			{
+				InOuter = CreatePackage(nullptr, *FileToLoad);
+			}
+			
+			new FUnsafeLinkerLoad(InOuter, *FileToLoad, *DiffFileToLoad, LOAD_ForDiff);
+		}
+#endif
+
 		Linker = GetPackageLinker(InOuter, *FileToLoad, LoadFlags, nullptr, nullptr);
+		
 		if (!Linker)
 		{
 			EndLoad();
@@ -1058,14 +1093,6 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 		Result = Linker->LinkerRoot;
 
-#if WITH_EDITOR
-		if (LoadFlags & LOAD_ForFileDiff)
-		{
-			FArchive* OtherFile = IFileManager::Get().CreateFileReader(*DiffFileToLoad);
-			FDiffFileArchive* DiffArchive = new FDiffFileArchive(Linker->Loader, OtherFile);
-			Linker->Loader = DiffArchive;
-		}
-#endif
 
 
 		auto EndLoadAndCopyLocalizationGatherFlag = [&]
@@ -2034,9 +2061,9 @@ UObject* StaticAllocateObject
 	if(InName == NAME_None)
 	{
 #if WITH_EDITOR
-		static FName NAME_UniqueObjectNameForCooking(TEXT("UniqueObjectNameForCooking"));
 		if ( GOutputCookingWarnings && GetTransientPackage() != InOuter->GetOutermost() )
 		{
+			static const FName NAME_UniqueObjectNameForCooking(TEXT("UniqueObjectNameForCooking"));
 			InName = MakeUniqueObjectName(InOuter, InClass, NAME_UniqueObjectNameForCooking);
 		}
 		else

@@ -49,8 +49,9 @@ public class UnrealHeaderToolTarget : TargetRules
 		// automatically by Unreal Build Tool, but if bUseMallocProfiler is defined, UHT can operate incorrectly.
 		BuildConfiguration.bUseMallocProfiler = false;
 
-		// No editor needed
-		UEBuildConfiguration.bBuildEditor = false;
+        // No editor needed
+        UEBuildConfiguration.bCompileICU = false;
+        UEBuildConfiguration.bBuildEditor = false;
 		// Editor-only data, however, is needed
 		UEBuildConfiguration.bBuildWithEditorOnlyData = true;
 

@@ -81,7 +81,7 @@ public:
 	 */
 	FTcpSocketBuilder BoundToAddress(const FIPv4Address& Address)
 	{
-		BoundEndpoint = FIPv4Endpoint(Address, BoundEndpoint.GetPort());
+		BoundEndpoint = FIPv4Endpoint(Address, BoundEndpoint.Port);
 		Bound = true;
 
 		return *this;
@@ -114,7 +114,7 @@ public:
 	 */
 	FTcpSocketBuilder BoundToPort(int32 Port)
 	{
-		BoundEndpoint = FIPv4Endpoint(BoundEndpoint.GetAddress(), Port);
+		BoundEndpoint = FIPv4Endpoint(BoundEndpoint.Address, Port);
 		Bound = true;
 
 		return *this;
@@ -217,7 +217,7 @@ public:
 
 				if (!Error)
 				{
-					Error = Bound && !Socket->Bind(*SocketSubsystem->CreateInternetAddr(BoundEndpoint.GetAddress().GetValue(), BoundEndpoint.GetPort()));
+					Error = Bound && !Socket->Bind(*BoundEndpoint.ToInternetAddr());
 				}
 
 				if (!Error)

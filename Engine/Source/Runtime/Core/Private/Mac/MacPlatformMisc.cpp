@@ -200,6 +200,12 @@ struct FMacApplicationInfo
 		
 		NSString* PLCrashReportFile = [TemporaryCrashReportFolder().GetNSString() stringByAppendingPathComponent:TemporaryCrashReportName().GetNSString()];
 		[PLCrashReportFile getCString:PLCrashReportPath maxLength:PATH_MAX encoding:NSUTF8StringEncoding];
+		
+		SystemLogSize = 0;
+		if (!bIsSandboxed)
+		{
+			SystemLogSize = IFileManager::Get().FileSize(TEXT("/var/log/system.log"));
+		}
 	}
 	
 	~FMacApplicationInfo()
@@ -265,6 +271,7 @@ struct FMacApplicationInfo
 	bool RunningOnMavericks;
 	int32 PowerSourceNotification;
 	int32 NumCores;
+	int64 SystemLogSize;
 	char AppNameUTF8[PATH_MAX+1];
 	char AppLogPath[PATH_MAX+1];
 	char CrashReportPath[PATH_MAX+1];
@@ -1710,6 +1717,30 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
 			}
 			close(VideoDst);
 			close(VideoSrc);
+		}
+		
+		// Copy the system log to capture GPU restarts and other nasties not reported by our application
+		if ( !GMacAppInfo.bIsSandboxed && GMacAppInfo.SystemLogSize >= 0 && access("/var/log/system.log", R_OK|F_OK) == 0 )
+		{
+			FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
+			FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
+			FCStringAnsi::Strcat(FilePath, PATH_MAX, "system.log");
+			int SysLogSrc = open("/var/log/system.log", O_RDONLY);
+			int SysLogDst = open(FilePath, O_CREAT|O_WRONLY, 0766);
+			
+			// Attempt to capture only the system log from while our application was running but
+			if (lseek(SysLogSrc, GMacAppInfo.SystemLogSize, SEEK_SET) != GMacAppInfo.SystemLogSize)
+			{
+				close(SysLogSrc);
+				SysLogSrc = open("/var/log/system.log", O_RDONLY);
+			}
+			
+			while((Bytes = read(SysLogSrc, Data, PATH_MAX)) > 0)
+			{
+				write(SysLogDst, Data, Bytes);
+			}
+			close(SysLogDst);
+			close(SysLogSrc);
 		}
 	}
 }

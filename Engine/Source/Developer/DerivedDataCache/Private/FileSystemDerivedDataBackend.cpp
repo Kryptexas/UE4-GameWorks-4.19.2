@@ -135,6 +135,12 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
+#if ENABLE_DDC_STATS
+		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+#endif
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		FDateTime TimeStamp = IFileManager::Get().GetTimeStamp(*Filename);
@@ -159,6 +165,14 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& Data) override
 	{
+#if ENABLE_DDC_STATS
+		static FName NAME_GetCachedData(TEXT("GetCachedData"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		static FName NAME_Retrieved(TEXT("Retrieved"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+#endif
+
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		double StartTime = FPlatformTime::Seconds();
@@ -170,10 +184,16 @@ public:
 			UE_CLOG(ReadSpeed < 0.5, LogDerivedDataCache, Warning, TEXT("%s is very slow (%.2lfMB/s) when accessing %s, consider disabling it."), *CachePath, ReadSpeed, *Filename);
 
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache hit on %s"),*Filename);
+#if ENABLE_DDC_STATS
+			Stat.AddTag(NAME_Retrieved, true);
+#endif
 			return true;
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
 		Data.Empty();
+#if ENABLE_DDC_STATS
+		Stat.AddTag(NAME_Retrieved, false);
+#endif
 		return false;
 	}
 	/**
@@ -185,11 +205,12 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists) override
 	{
-		//static FName NAME_PutCachedData(TEXT("PutCachedData"));
-		//FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
-		//static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
-		//Stat.AddTag(NAME_FileDDCPath, CachePath);
-		
+#if ENABLE_DDC_STATS
+		static FName NAME_PutCachedData(TEXT("PutCachedData"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+#endif
 		check(!bFailed);
 		if (!bReadOnly)
 		{

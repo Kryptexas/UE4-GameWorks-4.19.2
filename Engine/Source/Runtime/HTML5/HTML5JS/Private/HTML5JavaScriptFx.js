@@ -161,8 +161,7 @@ var UE_JavaScriptLibary = {
 
     if (_verb === "POST") {
       var postData = Module.HEAP8.subarray(payload, payload + payloadsize);
-      // WARNING: the following errors on Safari showing: "Refused to set unsafe header "Connection"
-      xhr.setRequestHeader("Connection", "close");
+//    xhr.setRequestHeader("Connection", "close"); // NOTE: this now errors as of chrome 47.0.2526.80
       xhr.send(postData);
     } else {
       xhr.send(null);

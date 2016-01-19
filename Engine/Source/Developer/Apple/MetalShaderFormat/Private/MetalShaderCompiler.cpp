@@ -225,7 +225,9 @@ static void BuildMetalShaderOutput(
 		Header.Bindings.PackedUniformBuffers.Add(InfoArray);
 	}
 
-	// Then samplers.
+    uint32 NumTextures = 0;
+    
+    // Then samplers.
 	TMap<FString, uint32> SamplerMap;
 	for (auto& Sampler : CCHeader.Samplers)
 	{
@@ -236,16 +238,15 @@ static void BuildMetalShaderOutput(
 			Sampler.Count
 			);
 
-		Header.Bindings.NumSamplers = FMath::Max<uint8>(
-			Header.Bindings.NumSamplers,
-			Sampler.Offset + Sampler.Count
-			);
+        NumTextures += Sampler.Count;
 
 		for (auto& SamplerState : Sampler.SamplerStates)
 		{
 			SamplerMap.Add(SamplerState, Sampler.Count);
 		}
-	}	
+    }
+    
+    Header.Bindings.NumSamplers = CCHeader.SamplerStates.Num();
 
 	// Then UAVs (images in Metal)
 	for (auto& UAV : CCHeader.UAVs)

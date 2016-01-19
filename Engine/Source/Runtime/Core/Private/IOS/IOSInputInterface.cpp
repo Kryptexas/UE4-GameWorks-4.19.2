@@ -388,6 +388,8 @@ if (Controller.Previous##Gamepad != nil && Gamepad.GCAxis.value != Controller.Pr
         }
 		
 		// motion is orthogonal to buttons
+// @todo tvos: handle motion without attitude or rotation rate
+#if 0
 		if (Motion != nil)
 		{
 			FVector Attitude;
@@ -432,6 +434,8 @@ if (Controller.Previous##Gamepad != nil && Gamepad.GCAxis.value != Controller.Pr
 //			NSLog(@"Grav %.2f, %.2f, %.2f\n", Gravity.X, Gravity.Y, Gravity.Z);
 //			NSLog(@"Acce %.2f, %.2f, %.2f\n", Acceleration.X, Acceleration.Y, Acceleration.Z);
 		}
+#endif
+		
 #endif
 	}
 }

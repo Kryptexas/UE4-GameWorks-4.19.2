@@ -8,7 +8,7 @@
 
 #include "MetalCommandQueue.h"
 #if METAL_STATISTICS
-#include "Runtime/Mac/NoRedist/MetalStatistics/Public/MetalStatistics.h"
+#include "MetalStatistics.h"
 #include "ModuleManager.h"
 #endif
 

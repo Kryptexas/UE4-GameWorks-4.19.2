@@ -58,6 +58,7 @@ public:
 	uint32 GetRenderTargetArraySize() const { return RenderTargetArraySize; }
 	TArray<TRefCountPtr<FRHIUniformBuffer>> GetBoundUniformBuffers(EShaderFrequency const Freq) const { return BoundUniformBuffers[Freq]; }
 	uint32 GetDirtyUniformBuffers(EShaderFrequency const Freq) const { return DirtyUniformBuffers[Freq]; }
+	id<MTLBuffer> GetVisibilityResultsBuffer() const { return VisibilityResults; }
 
 private:
 	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);

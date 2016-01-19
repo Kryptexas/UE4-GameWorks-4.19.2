@@ -173,26 +173,24 @@ void FShaderCache::SetGameVersion(int32 InGameVersion)
 void FShaderCache::InitShaderCache(uint32 Options, uint32 InMaxResources)
 {
 #if WITH_EDITORONLY_DATA
-	check(!CookCache);
+	check(!CookCache || (Options == SCO_Cooking && WITH_EDITORONLY_DATA));
 #endif
 	check(!Cache);
 	checkf(!(Options & SCO_Cooking) || (Options == SCO_Cooking && WITH_EDITORONLY_DATA), TEXT("Binary shader cache cooking is only permitted on its own & within the editor/cooker."));
 	
 	if(bUseShaderCaching)
 	{
-		checkf(!(Options & SCO_Cooking) || (Options == SCO_Cooking && WITH_EDITORONLY_DATA), TEXT("Binary shader cache cooking is only permitted on its own & within the editor/cooker."));
-		
 		if(!(Options & SCO_Cooking))
 		{
 			Cache = new FShaderCache(Options, InMaxResources);
 		}
-#if WITH_EDITORONLY_DATA
-		else if(Options & SCO_Cooking)
-		{
-			CookCache = new FShaderCookCache;
-		}
-#endif
 	}
+#if WITH_EDITORONLY_DATA
+	else if((Options & SCO_Cooking) && !CookCache)
+	{
+		CookCache = new FShaderCookCache;
+	}
+#endif
 }
 
 void FShaderCache::LoadBinaryCache()

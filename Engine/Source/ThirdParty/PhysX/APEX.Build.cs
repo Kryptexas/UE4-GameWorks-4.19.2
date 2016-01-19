@@ -75,6 +75,13 @@ public class APEX : ModuleRules
 
 		// Determine which kind of libraries to link against
 		APEXLibraryMode LibraryMode = GetAPEXLibraryMode(Target.Configuration);
+
+		// Quick Mac hack
+		if (Target.Platform == UnrealTargetPlatform.Mac && (LibraryMode == APEXLibraryMode.Checked || LibraryMode == APEXLibraryMode.Shipping))
+		{
+			LibraryMode = APEXLibraryMode.Profile;
+		}
+
 		string LibrarySuffix = GetAPEXLibrarySuffix(LibraryMode);
 
 		Definitions.Add("WITH_APEX=1");

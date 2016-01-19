@@ -449,7 +449,7 @@ void FMacCursor::WarpCursor(const int32 X, const int32 Y)
 	// Previously there was CGSetLocalEventsSuppressionInterval to explicitly control this behaviour but that is deprecated.
 	// The replacement CGEventSourceSetLocalEventsSuppressionInterval isn't useful because it is unclear how to obtain the correct event source.
 	// Instead, when we want the warp to be visible we need to disassociate mouse & cursor...
-	if( !bUseHighPrecisionMode )
+	if (!bUseHighPrecisionMode)
 	{
 		CGAssociateMouseAndMouseCursorPosition(false);
 	}
@@ -458,7 +458,7 @@ void FMacCursor::WarpCursor(const int32 X, const int32 Y)
 	CGWarpMouseCursorPosition(CGPointMake(X, Y));
 
 	// And then reassociate the mouse cursor, which forces the mouse events to come through.
-	if( !bUseHighPrecisionMode )
+	if (!bUseHighPrecisionMode)
 	{
 		CGAssociateMouseAndMouseCursorPosition(true);
 	}
@@ -480,10 +480,10 @@ void FMacCursor::SetHighPrecisionMouseMode(const bool bEnable)
 	if (bUseHighPrecisionMode != bEnable)
 	{
 		bUseHighPrecisionMode = bEnable;
-		
-		CGAssociateMouseAndMouseCursorPosition( !bUseHighPrecisionMode );
-		
-		if ( GMacDisableMouseCoalescing )
+
+		CGAssociateMouseAndMouseCursorPosition(!bUseHighPrecisionMode);
+
+		if (GMacDisableMouseCoalescing)
 		{
 			SCOPED_AUTORELEASE_POOL;
 			[NSEvent setMouseCoalescingEnabled:!bUseHighPrecisionMode];

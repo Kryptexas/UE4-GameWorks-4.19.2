@@ -10,18 +10,18 @@ IMPLEMENT_MODULE(FNetworkingModule, Networking);
 /* IModuleInterface interface
  *****************************************************************************/
 
-void FNetworkingModule::StartupModule( )
+void FNetworkingModule::StartupModule()
 {
 	FIPv4Endpoint::Initialize();
 }
 
 
-void FNetworkingModule::ShutdownModule( )
+void FNetworkingModule::ShutdownModule()
 {
 }
 
 
-bool FNetworkingModule::SupportsDynamicReloading( )
+bool FNetworkingModule::SupportsDynamicReloading()
 {
 	return false;
 }

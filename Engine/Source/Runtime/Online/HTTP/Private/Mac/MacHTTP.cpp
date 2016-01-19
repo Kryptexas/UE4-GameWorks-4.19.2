@@ -500,7 +500,7 @@ FString FMacHttpResponse::GetURLParameter(const FString& ParameterName)
 		NSString* Key = [KeyValue objectAtIndex:0];
 		if ([Key compare:ParameterNameStr] == NSOrderedSame)
 		{
-			return FString([[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]);
+			return FString([[KeyValue objectAtIndex:1] stringByRemovingPercentEncoding]);
 		}
 	}
 	return FString();

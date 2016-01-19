@@ -260,7 +260,6 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bRuntimePhysicsCooking = false;
 			UEBuildConfiguration.bCompileSimplygon = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
-			UEBuildConfiguration.bCompileICU = true;
 
 			// we currently don't have any simulator libs for PhysX
 			if (GetActiveArchitecture() == "-simulator")

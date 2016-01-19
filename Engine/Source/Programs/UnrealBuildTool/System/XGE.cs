@@ -22,7 +22,7 @@ namespace UnrealBuildTool
 			string OutFile;
 			while (true)
 			{
-				OutFile = Path.Combine(BuildConfiguration.BaseIntermediatePath, String.Format("UBTExport.{0}.xge.xml", FileNum));
+				OutFile = Path.Combine(BuildConfiguration.BaseIntermediatePath, String.Format("UBTExport.{0}.xge.xml", FileNum.ToString("D3")));
 				FileInfo ItemInfo = new FileInfo(OutFile);
 				if (!ItemInfo.Exists)
 				{

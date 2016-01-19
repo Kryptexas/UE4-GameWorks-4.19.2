@@ -40,7 +40,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) override;
 	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) override;
-
+	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const override;
 	DECLARE_DERIVED_EVENT( FAssetRegistry, IAssetRegistry::FPathAddedEvent, FPathAddedEvent);
 	virtual FPathAddedEvent& OnPathAdded() override { return PathAddedEvent; }
 

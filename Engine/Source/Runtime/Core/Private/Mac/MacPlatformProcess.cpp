@@ -316,6 +316,43 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 		
 		@try
 		{
+			NSMutableString* StdOutString = [NSMutableString new];
+			NSMutableString* StdErrString = [NSMutableString new];
+			NSFileHandle* StdOutFile = nil;
+			NSFileHandle* StdErrFile = nil;
+			
+			if(OutStdOut)
+			{
+				StdOutFile = [StdOutPipe fileHandleForReading];
+				if(StdOutFile)
+				{
+					StdOutFile.readabilityHandler = ^(NSFileHandle* Handle){
+						NSData* FileData = Handle.availableData;
+						if (FileData.length > 0)
+						{
+							NSString* NewString = (NSString*)[[[NSString alloc] initWithData:FileData encoding:NSUTF8StringEncoding] autorelease];
+							[StdOutString appendString:NewString];
+						}
+					};
+				}
+			}
+			
+			if(OutStdErr)
+			{
+				StdErrFile = [StdErrPipe fileHandleForReading];
+				if(StdErrFile)
+				{
+					StdErrFile.readabilityHandler = ^(NSFileHandle* Handle){
+						NSData* FileData = Handle.availableData;
+						if (FileData.length > 0)
+						{
+							NSString* NewString = (NSString*)[[[NSString alloc] initWithData:FileData encoding:NSUTF8StringEncoding] autorelease];
+							[StdErrString appendString:NewString];
+						}
+					};
+				}
+			}
+
 			[ProcessHandle launch];
 			
 			[ProcessHandle waitUntilExit];
@@ -325,27 +362,35 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 				*OutReturnCode = [ProcessHandle terminationStatus];
 			}
 			
-			if(OutStdOut)
+			if (OutStdOut && StdOutFile)
 			{
-				NSFileHandle* StdOutFile = [StdOutPipe fileHandleForReading];
-				if(StdOutFile)
+				StdOutFile.readabilityHandler = nil;
+				NSData* StdOutData = [StdOutFile readDataToEndOfFile];
+				if (StdOutData.length > 0)
 				{
-					NSData* StdOutData = [StdOutFile readDataToEndOfFile];
-					NSString* StdOutString = (NSString*)[[[NSString alloc] initWithData:StdOutData encoding:NSUTF8StringEncoding] autorelease];
-					*OutStdOut = FString(StdOutString);
+					NSString* NewString = (NSString*)[[[NSString alloc] initWithData:StdOutData encoding:NSUTF8StringEncoding] autorelease];
+					[StdOutString appendString:NewString];
 				}
+				
+				*OutStdOut = FString(StdOutString);
 			}
 			
-			if(OutStdErr)
+			if (OutStdErr && StdErrFile)
 			{
-				NSFileHandle* StdErrFile = [StdErrPipe fileHandleForReading];
-				if(StdErrFile)
+				StdErrFile.readabilityHandler = nil;
+				NSData* StdErrData = [StdErrFile readDataToEndOfFile];
+				if (StdErrData.length > 0)
 				{
-					NSData* StdErrData = [StdErrFile readDataToEndOfFile];
-					NSString* StdErrString = (NSString*)[[[NSString alloc] initWithData:StdErrData encoding:NSUTF8StringEncoding] autorelease];
-					*OutStdErr = FString(StdErrString);
+					NSString* NewString = (NSString*)[[[NSString alloc] initWithData:StdErrData encoding:NSUTF8StringEncoding] autorelease];
+					[StdErrString appendString:NewString];
 				}
+				
+				*OutStdErr = FString(StdErrString);
 			}
+			
+			[StdOutString release];
+			[StdErrString release];
+			
 			return true;
 		}
 		@catch (NSException* Exc)

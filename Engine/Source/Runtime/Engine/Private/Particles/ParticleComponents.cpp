@@ -276,14 +276,14 @@ void UParticleLODLevel::PostLoad()
 #endif // WITH_EDITORONLY_DATA
 
 	// Fix up emitters that have bEnabled flag set incorrectly
-	if (RequiredModule)
+	/*if (RequiredModule)
 	{
 		RequiredModule->ConditionalPostLoad();
 		if (RequiredModule->bEnabled != bEnabled)
 		{
 			RequiredModule->bEnabled = bEnabled;
 		}
-	}
+	}*/
 }
 
 void UParticleLODLevel::UpdateModuleLists()
@@ -1192,11 +1192,12 @@ int32 UParticleEmitter::CreateLODLevel(int32 LODLevel, bool bGenerateModuleData)
 			NextLowIndex = LODLevel;
 		}
 	}
-
+	
 	// Update the LODLevel index for the lower levels and
 	// offset the LOD validity flags for the modules...
 	if (NextLowestLODLevel)
 	{
+		NextLowestLODLevel->ConditionalPostLoad();
 		for (int32 LowIndex = LODLevels.Num() - 1; LowIndex >= NextLowIndex; LowIndex--)
 		{
 			UParticleLODLevel* LowRemapLevel = LODLevels[LowIndex];
@@ -1232,6 +1233,8 @@ int32 UParticleEmitter::CreateLODLevel(int32 LODLevel, bool bGenerateModuleData)
 
 	if (NextHighestLODLevel)
 	{
+		NextHighestLODLevel->ConditionalPostLoad();
+
 		// Generate from the higher LOD level
 		if (CreatedLODLevel->GenerateFromLODLevel(NextHighestLODLevel, 100.0, bGenerateModuleData) == false)
 		{

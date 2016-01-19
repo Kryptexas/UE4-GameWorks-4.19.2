@@ -22,9 +22,8 @@ class FMetalShaderFormat : public IShaderFormat
 	
 	struct FVersion
 	{
-		uint16 HLSLCCMajor		: 3;
-		uint16 HLSLCCMinor		: 7;
-		uint16 Format			: 5;
+		uint16 HLSLCCMinor		: 8;
+		uint16 Format			: 7;
 		uint16 OfflineCompiled	: 1;
 	};
 public:
@@ -38,13 +37,11 @@ public:
 		} Version;
 
 		Version.Version.Format = HEADER_VERSION;
-		Version.Version.HLSLCCMajor = HLSLCC_VersionMajor;
 		Version.Version.HLSLCCMinor = HLSLCC_VersionMinor;
 		Version.Version.OfflineCompiled = METAL_OFFLINE_COMPILE;
 		
 		// Check that we didn't overwrite any bits
 		check(Version.Version.Format == HEADER_VERSION);
-		check(Version.Version.HLSLCCMajor == HLSLCC_VersionMajor);
 		check(Version.Version.HLSLCCMinor == HLSLCC_VersionMinor);
 		check(Version.Version.OfflineCompiled == METAL_OFFLINE_COMPILE);
 

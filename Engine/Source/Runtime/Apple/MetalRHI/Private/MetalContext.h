@@ -28,7 +28,9 @@ enum EMetalFeatures
 	/** Support for specifying the depth clip mode */
 	EMetalFeaturesDepthClipMode = 1 << 2,
 	/** Support for specifying resource usage & memory options */
-	EMetalFeaturesResourceOptions = 1 << 3
+	EMetalFeaturesResourceOptions = 1 << 3,
+	/** Supports texture->buffer blit options for depth/stencil blitting */
+	EMetalFeaturesDepthStencilBlitOptions = 1 >> 4
 };
 
 

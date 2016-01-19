@@ -1267,7 +1267,7 @@ class FLinkerLoad : public FLinker, public FArchiveUObject
 	friend class UObject;
 	friend class UPackageMap;
 	friend struct FAsyncPackage;
-
+protected:
 	/** Linker loading status. */
 	enum ELinkerStatus
 	{
@@ -1887,6 +1887,7 @@ private:
 	 */
 	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit);
 
+protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Private constructor, passing arguments through from CreateLinker.
 	 *
@@ -1895,7 +1896,7 @@ private:
 	 * @param	LoadFlags	Load flags determining behavior
 	 */
 	FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags);
-
+private:
 	/**
 	 * Returns whether the time limit allotted has been exceeded, if enabled.
 	 *
@@ -1905,12 +1906,12 @@ private:
 	 * @return true if time limit has been exceeded (and is enabled), false otherwise (including if time limit is disabled)
 	 */
 	COREUOBJECT_API bool IsTimeLimitExceeded( const TCHAR* CurrentTask, int32 Granularity = 1 );
-
+protected: // Daniel L: Made this protected so I can override the constructor and create a custom loader to load the header of the linker in the DiffFilesCommandlet
 	/**
 	 * Creates loader used to serialize content.
 	 */
 	ELinkerStatus CreateLoader();
-
+private:
 	/**
 	 * Serializes the package file summary.
 	 */

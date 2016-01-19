@@ -55,6 +55,10 @@ DECLARE_LOG_CATEGORY_EXTERN(LogUdpMessaging, Log, All);
 #include "UdpSerializeMessageTask.h"
 #include "UdpMessageTransport.h"
 
+#if PLATFORM_DESKTOP
+
 // tunnel
 #include "UdpMessageTunnelConnection.h"
 #include "UdpMessageTunnel.h"
+
+#endif

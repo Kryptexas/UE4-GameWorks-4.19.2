@@ -1021,12 +1021,12 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
 
 	TArray<UClass*> FullGCAssetClasses;
-	if ( FullGCAssetClassNames.Num() )
+	if (FullGCAssetClassNames.Num())
 	{
-		for ( const auto& ClassName : FullGCAssetClassNames )
+		for (const auto& ClassName : FullGCAssetClassNames)
 		{
 			UClass* ClassToForceFullGC = FindObject<UClass>(nullptr, *ClassName);
-			if ( ClassToForceFullGC )
+			if (ClassToForceFullGC)
 			{
 				FullGCAssetClasses.Add(ClassToForceFullGC);
 			}
@@ -1036,18 +1036,6 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			}
 		}
 	}
-
-
-	CookOnTheFlyServer->Initialize( ECookMode::CookByTheBook, CookFlags );
-
-	// for backwards compat use the FullGCAssetClasses that we got from the cook commandlet ini section
-	if ( FullGCAssetClasses.Num() > 0 )
-	{
-		CookOnTheFlyServer->SetFullGCAssetClasses( FullGCAssetClasses );
-	}
-	
-
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// parse commandline options 
@@ -1124,6 +1112,13 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 
 	}
 
+	CookOnTheFlyServer->Initialize(ECookMode::CookByTheBook, CookFlags);
+
+	// for backwards compat use the FullGCAssetClasses that we got from the cook commandlet ini section
+	if (FullGCAssetClasses.Num() > 0)
+	{
+		CookOnTheFlyServer->SetFullGCAssetClasses(FullGCAssetClasses);
+	}
 
 	// Add any map sections specified on command line
 	TArray<FString> AlwaysCookMapList;

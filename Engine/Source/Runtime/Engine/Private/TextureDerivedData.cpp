@@ -40,7 +40,7 @@ enum
 
 
 // output texture building stats to Saved\Stats\Stats.csv
-#define BUILD_TEXTURE_STATS 1
+#define BUILD_TEXTURE_STATS 1 && ENABLE_DDC_STATS
 
 #if BUILD_TEXTURE_STATS
 #include "DDCStatsHelper.h"

@@ -74,7 +74,6 @@ namespace UnrealBuildTool
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
 		{
-			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		/// <summary>

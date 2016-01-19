@@ -19,8 +19,9 @@ public class UElibPNG : ModuleRules
 			string LibFileName = "libpng" + (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT ? "d" : "") + "_64.lib";
 			PublicAdditionalLibraries.Add(LibFileName);
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Win32 || 
-				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+		else if (Target.Platform == UnrealTargetPlatform.Win32 ||
+                (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
+        )
 		{
 			libPNGPath = libPNGPath + "/lib/Win32/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 			PublicLibraryPaths.Add(libPNGPath);
@@ -78,15 +79,23 @@ public class UElibPNG : ModuleRules
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
             PublicLibraryPaths.Add(libPNGPath + "/lib/HTML5");
-
-			if (UEBuildConfiguration.bCompileForSize)
-			{
-				PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng_Oz.bc");
-			}
-			else
-			{
-				PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng.bc");
-			}
+            string OpimizationSuffix = "";
+            if (UEBuildConfiguration.bCompileForSize)
+            {
+                OpimizationSuffix = "_Oz";
+            }
+            else
+            {
+                if (Target.Configuration == UnrealTargetConfiguration.Development)
+                {
+                    OpimizationSuffix = "_O2";
+                }
+                else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+                {
+                    OpimizationSuffix = "_O3";
+                }
+            }
+            PublicAdditionalLibraries.Add(libPNGPath + "/lib/HTML5/libpng" + OpimizationSuffix + ".bc");
         } 
     }
 }

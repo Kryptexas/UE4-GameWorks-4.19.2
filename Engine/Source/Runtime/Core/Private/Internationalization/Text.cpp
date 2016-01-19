@@ -1216,6 +1216,7 @@ FText FText::FromString( FString String )
 	{
 		NewText.Flags |= ETextFlag::CultureInvariant;
 	}
+	NewText.Flags |= ETextFlag::InitializedFromString;
 
 	return NewText;
 }

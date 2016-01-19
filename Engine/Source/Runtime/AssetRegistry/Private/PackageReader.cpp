@@ -20,8 +20,19 @@ FPackageReader::~FPackageReader()
 bool FPackageReader::OpenPackageFile(const FString& InPackageFilename)
 {
 	PackageFilename = InPackageFilename;
-	Loader = IFileManager::Get().CreateFileReader( *PackageFilename );
+	Loader = IFileManager::Get().CreateFileReader(*PackageFilename);
+	return OpenPackageFile();
+}
 
+bool FPackageReader::OpenPackageFile(FArchive* InLoader)
+{
+	Loader = InLoader;
+	PackageFilename = Loader->GetArchiveName();
+	return OpenPackageFile();
+}
+
+bool FPackageReader::OpenPackageFile()
+{
 	if( Loader == NULL )
 	{
 		// Couldn't open the file

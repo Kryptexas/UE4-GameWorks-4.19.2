@@ -119,7 +119,7 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalComman
 	NSOperatingSystemVersion Vers = [[NSProcessInfo processInfo] operatingSystemVersion];
 	if(Vers.majorVersion >= 9)
 	{
-		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions;
+		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
 #if !PLATFORM_TVOS
 		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1])
 #endif
@@ -132,7 +132,7 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalComman
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset;
 	}
 #else // Assume that Mac & other platforms all support these from the start. They can diverge later.
-	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions;
+	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
 #endif
 	
 	// Hook into the ios framepacer, if it's enabled for this platform.
@@ -591,6 +591,34 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	StateCache.SetPrimitiveTopology(TranslatePrimitiveTopology(PrimitiveType));
 #endif
 	
+	// @todo Handle the editor not setting a depth-stencil target for the material editor's tiles which render to depth even when they shouldn't.
+	bool bRestoreState = false;
+	if (IsValidRef(CurrentBoundShaderState->PixelShader) && (CurrentBoundShaderState->PixelShader->Bindings.InOutMask & 0x8000) && StateCache.GetRenderPipelineDesc().PipelineDescriptor.depthAttachmentPixelFormat == MTLPixelFormatInvalid && !FShaderCache::IsPredrawCall())
+	{
+		UE_LOG(LogMetal, Warning, TEXT("Binding a temporary depth-stencil surface as the bound shader pipeline that writes to depth/stencil but no depth/stencil surface was bound!"));
+		check(StateCache.GetRenderTargetArraySize() <= 1);
+		CGSize FBSize = StateCache.GetFrameBufferSize();
+		
+		FRHISetRenderTargetsInfo Info = StateCache.GetRenderTargetsInfo();
+		
+		FRHIResourceCreateInfo TexInfo;
+		FTexture2DRHIRef DepthStencil = RHICreateTexture2D(FBSize.width, FBSize.height, PF_DepthStencil, 1, 1, TexCreate_DepthStencilTargetable, TexInfo);
+		Info.DepthStencilRenderTarget.Texture = DepthStencil;
+		
+		TRefCountPtr<FMetalBlendState> BlendState = StateCache.GetBlendState();
+		TRefCountPtr<FMetalDepthStencilState> DepthState = StateCache.GetDepthStencilState();
+		TRefCountPtr<FMetalRasterizerState> RasterState = StateCache.GetRasterizerState();
+
+		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer());
+		
+		StateCache.SetBlendState(BlendState);
+		StateCache.SetDepthStencilState(DepthState);
+		StateCache.SetRasterizerState(RasterState);
+		StateCache.SetBoundShaderState(CurrentBoundShaderState);
+		
+		bRestoreState = true;
+	}
+	
 	// make sure the BSS has a valid pipeline state object
 	CurrentBoundShaderState->PrepareToDraw(this, StateCache.GetRenderPipelineDesc());
 	
@@ -607,6 +635,10 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		if(!CommandEncoder.IsRenderCommandEncoderActive())
 		{
 			CommandEncoder.RestoreRenderCommandEncoding();
+		}
+		else if (bRestoreState)
+		{
+			CommandEncoder.RestoreRenderCommandEncodingState();
 		}
 	}
 }

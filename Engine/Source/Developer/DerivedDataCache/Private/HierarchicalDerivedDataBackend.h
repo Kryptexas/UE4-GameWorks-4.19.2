@@ -65,7 +65,13 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		
+#if ENABLE_DDC_STATS
+		const static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
+		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
+		Stat.AddTag(NAME_HierarchicalDDC, FString());
+#endif
+
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey))
@@ -84,6 +90,16 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
+#if ENABLE_DDC_STATS
+		const static FName NAME_GetCachedData = FName(TEXT("GetCachedData"));
+		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
+		const static FName NAME_DataSize = FName(TEXT("DataSize"));
+		const static FName NAME_Retrieved(TEXT("Retrieved"));
+
+		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
+		Stat.AddTag(NAME_HierarchicalDDC, FString());
+#endif
+
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData))
@@ -123,9 +139,16 @@ public:
 						}
 					}
 				}
+#if ENABLE_DDC_STATS
+				Stat.AddTag(NAME_DataSize, OutData.Num());
+				Stat.AddTag(NAME_Retrieved, true);
+#endif
 				return true;
 			}
 		}
+#if ENABLE_DDC_STATS
+		Stat.AddTag(NAME_Retrieved, false);
+#endif
 		return false;
 	}
 	/**
@@ -137,14 +160,14 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
+#if ENABLE_DDC_STATS
 		const static FName NAME_PutCachedData = FName(TEXT("PutCachedData"));
 		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
 		const static FName NAME_DataSize = FName(TEXT("DataSize"));
-
 		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
 		Stat.AddTag(NAME_HierarchicalDDC, FString());
 		Stat.AddTag(NAME_DataSize, InData.Num());
-
+#endif
 
 		if (!bIsWritable)
 		{

@@ -42,8 +42,6 @@ namespace UnrealBuildTool
 		{
 			ValidateUEBuildConfiguration();
 			//BuildConfiguration.bDeployAfterCompile = true;
-
-			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateUEBuildConfiguration()

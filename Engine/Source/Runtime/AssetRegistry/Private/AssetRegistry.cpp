@@ -1775,6 +1775,22 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	}
 }
 
+void FAssetRegistry::LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*> &AssetDataList ) const
+{
+	
+	FPackageReader Reader;
+	Reader.OpenPackageFile(&Ar);
+
+	Reader.ReadAssetRegistryData(AssetDataList);
+
+	Reader.ReadAssetDataFromThumbnailCache(AssetDataList);
+
+	TArray<FString> CookedPackageNamesWithoutAssetDataGathered;
+	Reader.ReadAssetRegistryDataIfCookedPackage(AssetDataList, CookedPackageNamesWithoutAssetDataGathered);
+
+	//bool ReadDependencyData(FPackageDependencyData& OutDependencyData);
+}
+
 void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data)
 {
 	auto Version = ReadRuntimeRegistryVersion(Ar);

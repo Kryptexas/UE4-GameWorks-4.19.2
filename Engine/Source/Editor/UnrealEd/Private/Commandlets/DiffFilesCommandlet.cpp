@@ -6,6 +6,7 @@ DiffPackagesCommandlet.cpp: Commandlet used for comparing two packages.
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiffFilesCommandlet, Log, All);
 
@@ -128,5 +129,11 @@ void UDiffFilesCommandlet::LoadAndDiff()
 
 	UPackage *Package = CreatePackage(NULL, TEXT("Package_(0)"));
 
-	LoadPackage(Package, *FString::Printf(TEXT("%s;%s"), *PackageInfos[0].FullPath, *PackageInfos[1].FullPath), LOAD_ForFileDiff);
+
+	Package = LoadPackage(Package, *FString::Printf(TEXT("%s;%s"), *PackageInfos[0].FullPath, *PackageInfos[1].FullPath), LOAD_ForDiff | LOAD_ForFileDiff);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	TArray<FAssetData*> AssetData;
+	AssetRegistry.LoadPackageRegistryData(*Package->LinkerLoad->Loader, AssetData);
 }

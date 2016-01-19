@@ -244,7 +244,9 @@ public:
 	/** Serialize raw registry data to a file, skipping editor only data */
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) = 0;
 
-
 	/** Serialize registry data from a file */
 	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) = 0;
+
+	/** Load FPackageRegistry data from the supplied package */
+	virtual void LoadPackageRegistryData(FArchive& Ar, TArray<FAssetData*>& Data) const =0;
 };

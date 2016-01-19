@@ -24,6 +24,7 @@ enum class ECookInitializationFlags
 	IncludeServerMaps =							0x080, // should we include the server maps when cooking
 	UseSerializationForPackageDependencies =	0x100, // should we use the serialization code path for generating package dependencies (old method will be deprecated)
 	BuildDDCInBackground =						0x200, // build ddc content in background while the editor is running (only valid for modes which are in editor IsCookingInEditor())
+	GeneratedAssetRegistry =					0x400, // have we generated asset registry yet
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -1152,7 +1153,7 @@ private:
 	{
 		if (IsCookByTheBookMode())
 		{
-			return CookByTheBookOptions->bIsChildCooker;
+			return !(CookByTheBookOptions->ChildCookFilename.IsEmpty());
 		}
 		return false;
 	}
@@ -1420,7 +1421,7 @@ private:
 	void PopulateCookedPackagesFromDisk( const TArray<ITargetPlatform*>& Platforms );
 
 	/** Generates asset registry */
-	void GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms);
+	void GenerateAssetRegistry();
 
 	/** Generates long package names for all files to be cooked */
 	void GenerateLongPackageNames(TArray<FName>& FilesInPath);

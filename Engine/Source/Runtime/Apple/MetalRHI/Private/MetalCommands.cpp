@@ -134,11 +134,13 @@ void FMetalRHICommandContext::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 
 	// metal doesn't support 0 sized scissor rect
 	if (bEnable == false || Scissor.width == 0 || Scissor.height == 0)
 	{
-		auto Viewport = Context->GetCurrentState().GetViewport();
+		MTLViewport const& Viewport = Context->GetCurrentState().GetViewport();
+		CGSize FBSize = Context->GetCurrentState().GetFrameBufferSize();
+		
 		Scissor.x = Viewport.originX;
 		Scissor.y = Viewport.originY;
-		Scissor.width = Viewport.width;
-		Scissor.height = Viewport.height;
+		Scissor.width = (Viewport.originX + Viewport.width <= FBSize.width) ? Viewport.width : FBSize.width - Viewport.originX;
+		Scissor.height = (Viewport.originY + Viewport.height <= FBSize.height) ? Viewport.height : FBSize.height - Viewport.originY;
 	}
 	Context->GetCommandEncoder().SetScissorRect(Scissor);
 }
@@ -626,6 +628,8 @@ void FMetalRHICommandContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef In
 	
 	NumInstances = FMath::Max(NumInstances,1u);
 
+	NumInstances = FMath::Max(NumInstances,1u);
+	
 	RHI_DRAW_CALL_STATS(PrimitiveType,NumInstances*NumPrimitives);
 
 	FMetalIndexBuffer* IndexBuffer = ResourceCast(IndexBufferRHI);

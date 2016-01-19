@@ -106,7 +106,7 @@ private:
 	void HandleTransportMessageReceived(const IMessageContextRef& Envelope, const FGuid& NodeId);
 
 	/** Callback for lost remote nodes. */
-	void HandleTransportNodeLost(const FGuid& LostNodeId);
+	void HandleTransportNodeLost(const FGuid& NodeId);
 
 private:
 

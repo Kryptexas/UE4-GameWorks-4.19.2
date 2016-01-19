@@ -134,7 +134,6 @@ namespace UnrealBuildTool
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
 		{
-			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
@@ -160,7 +159,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public override void ValidateUEBuildConfiguration()
 		{
-			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		/// <summary>

@@ -3943,7 +3943,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 							// error
 							// check(Object);
-							UE_LOG(LogSavePackage, Warning, TEXT("Saving object into cooked package which was created at cook time, Object Name %s"), *NameInUse.ToString());
+							UE_LOG(LogSavePackage, Warning, TEXT("Saving object into cooked package %s which was created at cook time, Object Name %s"), Filename, *NameInUse.ToString());
 						}
 					}
 				}
@@ -3968,13 +3968,17 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				SlowTask.EnterProgressFrame();
 
 				// Save names.
-				Linker->Summary.NameCount = Linker->NameMap.Num();
-				for( int32 i=0; i<Linker->NameMap.Num(); i++ )
 				{
-					*Linker << *const_cast<FNameEntry*>(Linker->NameMap[i].GetDisplayNameEntry());
-					Linker->NameIndices.Add(Linker->NameMap[i], i);
+#if WITH_EDITOR
+					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+#endif
+					Linker->Summary.NameCount = Linker->NameMap.Num();
+					for (int32 i = 0; i < Linker->NameMap.Num(); i++)
+					{
+						*Linker << *const_cast<FNameEntry*>(Linker->NameMap[i].GetDisplayNameEntry());
+						Linker->NameIndices.Add(Linker->NameMap[i], i);
+					}
 				}
-
 				UE_LOG_COOK_TIME(TEXT("SerializeNames"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) 
@@ -4093,7 +4097,8 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						const auto& NameInUse = Export.ObjectName;
 						if (NameInUse.GetComparisonIndex() == NAME_UniqueObjectNameForCooking.GetComparisonIndex())
 						{
-							UE_LOG(LogSavePackage, Warning, TEXT("Saving object into cooked package which was created at cook time, Object Name %s, Full Path %s, Class %s"), *NameInUse.ToString(), *Export.Object->GetFullName(), *Export.Object->GetClass()->GetName());
+							UObject* Outer = Export.Object->GetOuter();
+							UE_LOG(LogSavePackage, Warning, TEXT(" into cooked package %s which was created at cook time, Object Name %s, Full Path %s, Class %s, Outer %s, Outer class %s"), Filename, *NameInUse.ToString(), *Export.Object->GetFullName(), *Export.Object->GetClass()->GetName(), Outer ? *Outer->GetName() : TEXT("None"), Outer ? *Outer->GetClass()->GetName() : TEXT("None") );
 						}
 					}
 				}
@@ -4372,11 +4377,16 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				// Save string asset reference map
 				Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
 				Linker->Summary.StringAssetReferencesCount = StringAssetReferencesMap.Num();
-				for (int32 i = 0; i < StringAssetReferencesMap.Num(); i++)
 				{
-					*Linker << StringAssetReferencesMap[i];
-				}
+#if WITH_EDITOR
+					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+#endif
+					for (int32 i = 0; i < StringAssetReferencesMap.Num(); i++)
+					{
 
+						*Linker << StringAssetReferencesMap[i];
+					}
+				}
 				UE_LOG_COOK_TIME(TEXT("SerializeStringAssetReferenceMap"));
 	
 				// Save thumbnails
@@ -4654,10 +4664,15 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				check( Linker->Tell() == OffsetAfterImportMap );
 
 				// Save the export map.
-				Linker->Seek( Linker->Summary.ExportOffset );
-				for( int32 i=0; i<Linker->ExportMap.Num(); i++ )
+				Linker->Seek(Linker->Summary.ExportOffset);
 				{
-					*Linker << Linker->ExportMap[ i ];
+#if WITH_EDITOR
+					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+#endif
+					for (int32 i = 0; i < Linker->ExportMap.Num(); i++)
+					{
+						*Linker << Linker->ExportMap[i];
+					}
 				}
 				check( Linker->Tell() == OffsetAfterExportMap );
 

@@ -973,11 +973,16 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 	check( IsCookOnTheFlyMode() );
 	//GetDerivedDataCacheRef().WaitForQuiescence(false);
 
-	InitializeSandbox();
 
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 	const TArray<ITargetPlatform*>& Platforms = TPM.GetCookingTargetPlatforms();
 
+
+	GenerateAssetRegistry();
+
+	InitializeSandbox();
+
+	
 	{
 		// When cooking on the fly the full registry is saved at the beginning
 		// in cook by the book asset registry is saved after the cook is finished
@@ -2073,6 +2078,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 							{
 								// check if the package has already been saved
 								PackagesToSave.AddUnique(Package);
+								continue;
 							}
 						}
 					}
@@ -2237,7 +2243,9 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 					SCOPE_TIMER(SaveCookedPackage);
 					uint32 SaveFlags = SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0);
+					GOutputCookingWarnings = true;
 					SavePackageResult = SaveCookedPackage(Package, SaveFlags, bWasUpToDate, AllTargetPlatformNames);
+					GOutputCookingWarnings = false;
 					if (SavePackageResult == ESavePackageResult::Success)
 					{
 						bSucceededSavePackage = true;
@@ -2878,17 +2886,12 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	
 	UE_LOG(LogCook, Display, TEXT("Max memory allowance for cook %dmb"), MaxMemoryAllowanceInMB);
 
-	if ( IsCookByTheBookMode() )
+	if (IsCookByTheBookMode())
 	{
 		CookByTheBookOptions = new FCookByTheBookOptions();
 	}
-
-	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	const TArray<ITargetPlatform*>& Platforms = TPM.GetCookingTargetPlatforms();
+	
 	UE_LOG(LogCook, Display, TEXT("Mobile HDR setting %d"), IsMobileHDR());
-
-	// always generate the asset registry before starting to cook, for either method
-	GenerateAssetRegistry(Platforms);
 }
 
 bool UCookOnTheFlyServer::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -3543,8 +3546,14 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 #endif
 }
 
-void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms)
+void UCookOnTheFlyServer::GenerateAssetRegistry()
 {
+	if (!!(CookFlags & ECookInitializationFlags::GeneratedAssetRegistry))
+	{
+		return;
+	}
+	CookFlags |= ECookInitializationFlags::GeneratedAssetRegistry;
+
 	SCOPE_COOKING_STAT(GenerateAssetRegistry);
 	if (IsChildCooker())
 	{
@@ -3677,7 +3686,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const T
 	bool bMapsOnly = !!(FilesToCookFlags & ECookByTheBookOptions::MapsOnly);
 	bool bNoDev = !!(FilesToCookFlags & ECookByTheBookOptions::NoDevContent);
 
-	if (CookByTheBookOptions->bIsChildCooker)
+	if (IsChildCooker())
 	{
 		const FString ChildCookFilename = CookByTheBookOptions->ChildCookFilename;
 		check(ChildCookFilename.Len());
@@ -4453,10 +4462,12 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	CookByTheBookOptions->CreateReleaseVersion = CreateReleaseVersion;
 	CookByTheBookOptions->bForceEnableCompressedPackages = !!(CookOptions & ECookByTheBookOptions::ForceEnableCompressed);
 	CookByTheBookOptions->bForceDisableCompressedPackages = !!(CookOptions & ECookByTheBookOptions::ForceDisableCompressed);
-	CookByTheBookOptions->bIsChildCooker = CookByTheBookStartupOptions.ChildCookFileName.Len() > 0 ? true : false;
 	CookByTheBookOptions->ChildCookFilename = CookByTheBookStartupOptions.ChildCookFileName;
 	CookByTheBookOptions->bDisableUnsolicitedPackages = !!(CookOptions & ECookByTheBookOptions::DisableUnsolicitedPackages);
 	CookByTheBookOptions->ChildCookIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
+
+	GenerateAssetRegistry();
+
 
 	NeverCookPackageList.Empty();
 	{

@@ -31,7 +31,7 @@ public:
 		: DeleteSocket(true)
 		, Endpoint(LocalEndpoint)
 		, SleepTime(InSleepTime)
-		, Socket(NULL)
+		, Socket(nullptr)
 		, Stopping(false)
 	{
 		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), 8 * 1024, TPri_Normal);
@@ -56,21 +56,19 @@ public:
 		Thread = FRunnableThread::Create(this, TEXT("FTcpListener"), 8 * 1024, TPri_Normal);
 	}
 
-	/**
-	 * Destructor.
-	 */
+	/** Destructor. */
 	~FTcpListener()
 	{
-		if (Thread != NULL)
+		if (Thread != nullptr)
 		{
 			Thread->Kill(true);
 			delete Thread;
 		}
 
-		if (DeleteSocket && (Socket != NULL))
+		if (DeleteSocket && (Socket != nullptr))
 		{
 			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
-			Socket = NULL;
+			Socket = nullptr;
 		}
 	}
 
@@ -103,7 +101,7 @@ public:
 	 */
 	bool IsActive() const
 	{
-		return ((Socket != NULL) && !Stopping);
+		return ((Socket != nullptr) && !Stopping);
 	}
 
 public:
@@ -128,7 +126,7 @@ public:
 
 	virtual bool Init() override
 	{
-		if (Socket == NULL)
+		if (Socket == nullptr)
 		{
 			Socket = FTcpSocketBuilder(TEXT("FTcpListener server"))
 				.AsReusable()
@@ -139,7 +137,7 @@ public:
 			Socket->SetReceiveBufferSize(2*1024*1024, NewSize);
 		}
 
-		return (Socket != NULL);
+		return (Socket != nullptr);
 	}
 
 	virtual uint32 Run() override
@@ -155,7 +153,7 @@ public:
 			{
 				FSocket* ConnectionSocket = Socket->Accept(*RemoteAddress, TEXT("FTcpListener client"));
 
-				if (ConnectionSocket != NULL)
+				if (ConnectionSocket != nullptr)
 				{
 					bool Accepted = false;
 
@@ -187,26 +185,26 @@ public:
 
 private:
 
-	// Holds a flag indicating whether the socket should be deleted in the destructor.
+	/** Holds a flag indicating whether the socket should be deleted in the destructor. */
 	bool DeleteSocket;
 
-	// Holds the server endpoint.
+	/** Holds the server endpoint. */
 	FIPv4Endpoint Endpoint;
 
-	// Holds the time to sleep between checking for pending connections.
+	/** Holds the time to sleep between checking for pending connections. */
 	FTimespan SleepTime;
 
-	// Holds the server socket.
+	/** Holds the server socket. */
 	FSocket* Socket;
 
-	// Holds a flag indicating that the thread is stopping.
+	/** Holds a flag indicating that the thread is stopping. */
 	bool Stopping;
 
-	// Holds the thread object.
+	/** Holds the thread object. */
 	FRunnableThread* Thread;
 
 private:
 
-	// Holds a delegate to be invoked when an incoming connection has been accepted.
+	/** Holds a delegate to be invoked when an incoming connection has been accepted. */
 	FOnTcpListenerConnectionAccepted ConnectionAcceptedDelegate;
 };
