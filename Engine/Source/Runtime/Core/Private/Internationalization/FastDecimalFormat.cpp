@@ -185,6 +185,22 @@ void FractionalToString_SplitAndRoundNumber(const bool bIsNegative, const double
 	}
 	else
 	{
+		// Rounding may have caused the fractional value to overflow, and any overflow will need to be applied to the integral part and stripped from the fractional part
+		const double ValueToOverflowTest = (bIsNegative) ? -ValueToRound : ValueToRound;
+		if (ValueToOverflowTest >= Pow10Table[DecimalPlacesToRoundTo])
+		{
+			if (bIsNegative)
+			{
+				IntegralPart -= 1;
+				ValueToRound += Pow10Table[DecimalPlacesToRoundTo];
+			}
+			else
+			{
+				IntegralPart += 1;
+				ValueToRound -= Pow10Table[DecimalPlacesToRoundTo];
+			}
+		}
+
 		OutIntegralPart = IntegralPart;
 		OutFractionalPart = ValueToRound;
 	}
