@@ -20,7 +20,7 @@ namespace UnrealBuildTool
 			if (!CrossCompiling())
 			{
 				// use native linux toolchain
-				string[] ClangNames = { "clang++", "clang++-3.7", "clang++-3.6", "clang++-3.5", "clang++-3.3" };
+				string[] ClangNames = { "clang++", "clang++-3.7", "clang++-3.6", "clang++-3.5" };
 				foreach (var ClangName in ClangNames)
 				{
 					ClangPath = Which(ClangName);
@@ -76,11 +76,10 @@ namespace UnrealBuildTool
 				throw new BuildException("clang 3.4.x is known to miscompile the engine - refusing to register the Linux toolchain.");
 			}
 			// prevent unknown clangs since the build is likely to fail on too old or too new compilers
-			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 37 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 33)
+			else if ((CompilerVersionMajor * 10 + CompilerVersionMinor) > 38 || (CompilerVersionMajor * 10 + CompilerVersionMinor) < 35)
 			{
-				// do not mention 3.3 as it doesn't really get tested anymore, but allow it since it may still compile
 				throw new BuildException(
-					string.Format("This version of the Unreal Engine can only be compiled with clang 3.6 and 3.5. clang {0} may not build it - please use a different version.",
+					string.Format("This version of the Unreal Engine can only be compiled with clang 3.7, 3.6 and 3.5. clang {0} may not build it - please use a different version.",
 						CompilerVersionString)
 					);
 			}

@@ -94,5 +94,6 @@ private:
 	MTLViewport Viewport;
 	
 	FRHISetRenderTargetsInfo RenderTargetsInfo;
+	FTextureRHIRef DepthStencilTexture;
 	bool bHasValidRenderTarget;
 };

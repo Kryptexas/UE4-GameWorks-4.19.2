@@ -914,12 +914,16 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
 	FCompilerResultsLog Results;
 
+	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass, true);
+
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
 	{
 		FRecreateUberGraphFrameScope RecreateUberGraphFrameScope(BlueprintObj->GeneratedClass, true);
 		Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
 	}
+
+	ReinstanceHelper->UpdateBytecodeReferences();
 
 	if (BlueprintPackage != NULL)
 	{
@@ -1236,6 +1240,11 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 			{
 				Actor = ActorComponent->GetOwner();
 				check(Actor);
+			}
+
+			if (!ActorComponent->GetClass()->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
+			{
+				continue;
 			}
 
 			USCS_Node* SCSNode = FAddComponentsToBlueprintImpl::MakeComponentCopy(ActorComponent, SCS, InstanceComponentToNodeMap);

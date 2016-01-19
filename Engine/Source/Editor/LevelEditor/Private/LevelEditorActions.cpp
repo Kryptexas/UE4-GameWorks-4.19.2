@@ -2129,7 +2129,13 @@ void FLevelEditorActionCallbacks::HarvestSelectedActorsIntoBlueprintClass()
 
 bool FLevelEditorActionCallbacks::CanSubclassSelectedActorIntoBlueprintClass()
 {
-	return GEditor->GetSelectedActorCount() == 1;
+	bool bCanSubclass = GEditor->GetSelectedActorCount() == 1;
+	if (bCanSubclass)
+	{
+		AActor* Actor = Cast<AActor>(*GEditor->GetSelectedActorIterator());
+		bCanSubclass = FKismetEditorUtilities::CanCreateBlueprintOfClass(Actor->GetClass());
+	}
+	return bCanSubclass;
 }
 
 void FLevelEditorActionCallbacks::SubclassSelectedActorIntoBlueprintClass()

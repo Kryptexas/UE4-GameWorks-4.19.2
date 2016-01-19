@@ -319,6 +319,11 @@ struct CORE_API FGenericPlatformMisc
 	 */
 	static FString GetPrimaryGPUBrand();
 
+	// @param InternalDriverVersion e.g. "15.200.1062.1004"(AMD) "9.18.13.4788" (NVIDIA) for comparison
+	// @param UserDriverVersion e.g. "15.7.1"(Catalyst AMD) "9.18.13.4788" (NVIDIA) for user feedback
+	// @param DriverDate e.g. 3-13-2015
+	static void GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate);
+
 	/**
 	 * Gets the OS Version and OS Subversion.
 	 */

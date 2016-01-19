@@ -13,12 +13,6 @@ void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManage
 {
 	ScreenShotManager = InScreenShotManager;
 
-	// Create the delegate for view change callbacks
-	ScreenShotDelegate = FOnScreenFilterChanged::CreateSP( this, &SScreenShotBrowser::HandleScreenShotDataChanged );
-
-	// Register for callbacks
-	ScreenShotManager->RegisterScreenShotUpdate( ScreenShotDelegate );
-
 	ChildSlot
 	[
 		SNew( SVerticalBox )
@@ -34,6 +28,12 @@ void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManage
 			SAssignNew( TreeBoxHolder, SHorizontalBox )
 		]
 	];
+
+	// Create the delegate for view change callbacks
+	ScreenShotDelegate = FOnScreenFilterChanged::CreateSP(this, &SScreenShotBrowser::HandleScreenShotDataChanged);
+
+	// Register for callbacks
+	ScreenShotManager->RegisterScreenShotUpdate(ScreenShotDelegate);
 
 	ReGenerateTree();
 }

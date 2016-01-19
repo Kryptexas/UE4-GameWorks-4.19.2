@@ -546,13 +546,12 @@ bool UNavigationSystem::ConditionalPopulateNavOctree()
 }
 
 #if WITH_EDITOR
-void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UNavigationSystem::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	static const FName NAME_SupportedAgents = GET_MEMBER_NAME_CHECKED(UNavigationSystem, SupportedAgents);
 	static const FName NAME_NavigationDataClass = GET_MEMBER_NAME_CHECKED(FNavDataConfig, NavigationDataClass);
-	static const FName NAME_EnableActiveTiles = GET_MEMBER_NAME_CHECKED(UNavigationSystem, bGenerateNavigationOnlyAroundNavigationInvokers);
+	static const FName NAME_SupportedAgents = GET_MEMBER_NAME_CHECKED(UNavigationSystem, SupportedAgents);
 
-	Super::PostEditChangeProperty(PropertyChangedEvent);
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 
 	if (PropertyChangedEvent.Property)
 	{
@@ -567,7 +566,19 @@ void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 				SaveConfig();
 			}
 		}
-		else if (PropName == NAME_EnableActiveTiles)
+	}
+}
+
+void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	static const FName NAME_EnableActiveTiles = GET_MEMBER_NAME_CHECKED(UNavigationSystem, bGenerateNavigationOnlyAroundNavigationInvokers);
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property)
+	{
+		FName PropName = PropertyChangedEvent.Property->GetFName();
+		if (PropName == NAME_EnableActiveTiles)
 		{
 			if (NavOctree.IsValid())
 			{

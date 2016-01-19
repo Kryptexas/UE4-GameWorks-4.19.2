@@ -11,7 +11,7 @@
 
 void FForwardShadingSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)
 {
-	if (Scene->Decals.Num() == 0)
+	if (Scene->Decals.Num() == 0 || !IsMobileHDR())
 	{
 		return;
 	}

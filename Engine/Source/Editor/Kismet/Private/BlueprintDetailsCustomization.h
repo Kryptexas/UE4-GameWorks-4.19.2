@@ -736,6 +736,7 @@ protected:
 	TSharedRef<ITableRow> MakeVariableCategoryViewWidget(TSharedPtr<FText> Item, const TSharedRef< STableViewBase >& OwnerTable);
 
 	FText GetSocketName() const;
+	bool CanChangeSocket() const;
 	void OnBrowseSocket();
 	void OnClearSocket();
 	

@@ -2903,8 +2903,6 @@ void FBlueprintEditorUtils::EnsureCachedDependenciesUpToDate(UBlueprint* Bluepri
 
 void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints)
 {
-	DependentBlueprints.Empty();
-
 	TArray<UObject*> AllBlueprints;
 	bool const bIncludeDerivedClasses = true;
 	GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, bIncludeDerivedClasses );
@@ -2919,7 +2917,17 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 
 			if (TestBP->CachedDependencies.Contains(Blueprint))
 			{
-				DependentBlueprints.Add(TestBP);
+				if (!DependentBlueprints.Contains(TestBP))
+				{
+					DependentBlueprints.Add(TestBP);
+
+					// When a Macro Library depends on this Blueprint, then any Blueprint that 
+					// depends on it must also depend on this Blueprint for re-compiling (bytecode, skeleton, full) purposes
+					if (TestBP->BlueprintType == BPTYPE_MacroLibrary)
+					{
+						GetDependentBlueprints(TestBP, DependentBlueprints);
+					}
+				}
 			}
 		}
 	}
@@ -3962,7 +3970,7 @@ void FBlueprintEditorUtils::GetHiddenPinsForFunction(UEdGraph const* Graph, UFun
 					bool bHasIntrinsicWorldContext = false;
 
 					UBlueprint const* CallingContext = FindBlueprintForGraph(Graph);
-					if (GEngine && CallingContext && CallingContext->ParentClass)
+					if (CallingContext && CallingContext->ParentClass)
 					{
 						bHasIntrinsicWorldContext = CallingContext->ParentClass->GetDefaultObject()->ImplementsGetWorld();
 					}

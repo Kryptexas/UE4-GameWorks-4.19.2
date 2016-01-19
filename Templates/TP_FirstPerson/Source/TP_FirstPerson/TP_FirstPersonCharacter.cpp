@@ -38,7 +38,7 @@ ATP_FirstPersonCharacter::ATP_FirstPersonCharacter()
 	FP_Gun->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
 	FP_Gun->bCastDynamicShadow = false;
 	FP_Gun->CastShadow = false;
-	FP_Gun->AttachTo(Mesh1P, TEXT("GripPoint"), EAttachLocation::SnapToTargetIncludingScale, true);
+	//FP_Gun->AttachTo(Mesh1P, TEXT("GripPoint"), EAttachLocation::SnapToTargetIncludingScale, true);
 
 	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
 	FP_MuzzleLocation->AttachTo(FP_Gun);
@@ -49,6 +49,16 @@ ATP_FirstPersonCharacter::ATP_FirstPersonCharacter()
 
 	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P are set in the
 	// derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+	
+}
+
+void ATP_FirstPersonCharacter::BeginPlay()
+{
+	// Call the base class  
+	Super::BeginPlay();
+
+	FP_Gun->AttachTo(Mesh1P, TEXT("GripPoint"), EAttachLocation::SnapToTargetIncludingScale, true); //Attach gun mesh component to Skeleton, doing it here because the skelton is not yet created in the constructor
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -85,7 +95,7 @@ void ATP_FirstPersonCharacter::OnFire()
 	// try and fire a projectile
 	if (ProjectileClass != NULL)
 	{
-		const FRotator SpawnRotation = GetControlRotation();
+		const FRotator SpawnRotation = FirstPersonCameraComponent->GetComponentRotation();
 		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
 		const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
 

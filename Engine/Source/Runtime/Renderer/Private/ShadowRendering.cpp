@@ -2317,7 +2317,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		{
 			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, true);
 		}
 
 		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
@@ -2350,7 +2350,8 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 								true,
 								DrawRenderState,
 								ReceiverPrimitiveSceneInfo->Proxy,
-								StaticMesh.BatchHitProxyId
+								StaticMesh.BatchHitProxyId, 
+								true
 								);
 						}
 					}
@@ -4094,7 +4095,7 @@ void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediat
 	
 	// CSM was not used, render modulated shadow depths.
 	// TODO: reuse any available space left from CSM depth renders for mod shadows.
-	if(!bCSMRendered)
+	if (IsMobileHDR() && !bCSMRendered)
 	{
 		RenderModulatedShadowDepthMaps(RHICmdList);
 	}
@@ -4232,7 +4233,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandLis
 
 void FForwardShadingSceneRenderer::RenderModulatedShadowProjections(FRHICommandListImmediate& RHICmdList)
 {
-	if (bModulatedShadowsInUse)
+	if (IsMobileHDR() && bModulatedShadowsInUse)
 	{
 		if(bCSMShadowsInUse)
 		{

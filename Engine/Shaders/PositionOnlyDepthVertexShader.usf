@@ -8,6 +8,10 @@
 #include "Material.usf"
 #include "VertexFactory.usf"
 
+#if INSTANCED_STEREO
+bool bNeedsInstancedStereoBias;
+#endif
+
 void Main(
 	FPositionOnlyVertexFactoryInput Input,
 	out float4 OutPosition : SV_POSITION
@@ -44,6 +48,9 @@ void Main(
 			// Shift to the eye viewport
 			OutPosition.x += (EyeOffsetScale[EyeIndex] * OutPosition.w) / Frame.HMDEyePaddingOffset;
 		}
+		
+		// Bias the depth	
+		OutPosition.z += InstancedStereoDepthBias * OutPosition.w * (float)bNeedsInstancedStereoBias;
 		#endif
 	}
 }

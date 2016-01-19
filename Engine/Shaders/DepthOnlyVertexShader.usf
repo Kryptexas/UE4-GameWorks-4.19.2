@@ -8,6 +8,10 @@
 #include "Material.usf"
 #include "VertexFactory.usf"
 
+#if INSTANCED_STEREO
+bool bNeedsInstancedStereoBias;
+#endif
+
 struct FDepthOnlyVSToPS
 {
 	#if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
@@ -127,6 +131,9 @@ void Main(
 			// Shift to the eye viewport
 			Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) / Frame.HMDEyePaddingOffset;
 		}
+		
+		// Bias the depth
+		Output.Position.z += InstancedStereoDepthBias * Output.Position.w * (float)bNeedsInstancedStereoBias;
 		#endif
 	}
 #endif

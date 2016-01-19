@@ -722,9 +722,9 @@ public:
 	const TSet<FName>& GetFontAttributes( const FFontData& InFontData ) const;
 
 	/**
-	 * Clears all cached data from the cache
+	 * Issues a request to clear all cached data from the cache
 	 */
-	void FlushCache() const;
+	void RequestFlushCache();
 
 	/**
 	 * Clears just the cached font data, but leaves the atlases alone
@@ -735,6 +735,11 @@ private:
 	// Non-copyable
 	FSlateFontCache(const FSlateFontCache&);
 	FSlateFontCache& operator=(const FSlateFontCache&);
+
+	/**
+	 * Clears all cached data from the cache
+	 */
+	void FlushCache() const;
 
 	/** Called after the active culture has changed */
 	void HandleCultureChanged();
@@ -776,7 +781,4 @@ private:
 
 	/** Whether or not we have a pending request to flush the cache when it is safe to do so */
 	volatile mutable bool bFlushRequested;
-
-	/** Active culture version the last time the font cache was flushed */
-	mutable int32 LastFlushHistoryVersion;
 };

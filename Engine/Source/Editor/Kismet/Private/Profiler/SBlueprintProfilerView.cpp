@@ -27,6 +27,18 @@ void SBlueprintProfilerView::Construct(const FArguments& InArgs)
 	NumberFormat.UseGrouping = false;
 	// Update the average sample retention count.
 	FBPPerformanceData::StatSampleSize = GetDefault<UEditorExperimentalSettings>()->BlueprintProfilerAverageSampleCount;
+	// Create the display text for the user
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	{
+		IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
+		const bool bProfilerEnabled	= ProfilerInterface && ProfilerInterface->IsProfilerEnabled();
+		StatusText = bProfilerEnabled ? NSLOCTEXT("ActiveProfilerWidget", "NoDataText", "The Blueprint Profiler is active but does not currently have any data to display") :
+										NSLOCTEXT("InactiveProfilerWidget", "InactiveText", "The Blueprint Profiler is currently Inactive");
+	}
+	else
+	{
+		StatusText = NSLOCTEXT("DisabledProfilerWidget", "DisabledProfilerText", "The Blueprint Profiler is experimental and is currently not enabled in the editor preferences");
+	}
 	// Create the profiler view widgets
 	bTreeViewIsDirty = false;
 	CreateProfilerWidgets();
@@ -47,6 +59,8 @@ void SBlueprintProfilerView::OnGetChildrenForProfiler(FBPProfilerStatPtr InParen
 
 void SBlueprintProfilerView::OnToggleProfiler(bool bEnabled)
 {
+	StatusText = bEnabled ? NSLOCTEXT("ActiveProfilerWidget", "NoDataText", "The Blueprint Profiler is active but does not currently have any data to display") :
+							NSLOCTEXT("InactiveProfilerWidget", "InactiveText", "The Blueprint Profiler is currently Inactive");
 	if (!bEnabled)
 	{
 		// Clear profiler data, this requires work as I think the stats are currently leaking.
@@ -80,7 +94,7 @@ void SBlueprintProfilerView::CreateProfilerWidgets()
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(NSLOCTEXT("InactiveProfilerWidget", "InactiveText", "The Blueprint Profiler is currently Inactive"))
+				.Text(this, &SBlueprintProfilerView::GetProfilerStatusText)
 			]
 		]
 #if 0 // To do stat ranking list

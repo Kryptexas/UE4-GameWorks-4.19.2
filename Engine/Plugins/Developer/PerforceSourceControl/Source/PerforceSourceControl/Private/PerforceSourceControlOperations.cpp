@@ -387,7 +387,7 @@ bool FPerforceMarkForAddWorker::Execute(FPerforceSourceControlCommand& InCommand
 		if(!IFileManager::Get().FileExists(*FileToAdd))
 		{
 			bHasMissingFiles = true;
-			InCommand.ErrorMessages.Add(FText::Format(LOCTEXT("Error_FailedToMarkFileForAdd_FileMissing", "Failed mark the file '%s' for add. The file doesn't exist on disk."), FText::FromString(FileToAdd)));
+			InCommand.ErrorMessages.Add(FText::Format(LOCTEXT("Error_FailedToMarkFileForAdd_FileMissing", "Failed mark the file '{0}' for add. The file doesn't exist on disk."), FText::FromString(FileToAdd)));
 		}
 	}
 	if(bHasMissingFiles)
