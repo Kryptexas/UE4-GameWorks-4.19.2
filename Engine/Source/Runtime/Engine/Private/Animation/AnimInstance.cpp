@@ -476,6 +476,7 @@ bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 	const bool bUseParallelUpdateAnimation = bCanUseParallelUpdateAnimation || CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0;
 
 	return
+		GIntraFrameDebuggingGameThread ||
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||
 		GetWorld()->IsServer() ||

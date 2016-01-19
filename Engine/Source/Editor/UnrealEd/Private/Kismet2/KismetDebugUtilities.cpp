@@ -16,50 +16,80 @@
 
 #define LOCTEXT_NAMESPACE "BlueprintDebugging"
 
+/** Per-thread data for use by FKismetDebugUtilities functions */
+class FKismetDebugUtilitiesData : public TThreadSingleton<FKismetDebugUtilitiesData>
+{
+public:
+	FKismetDebugUtilitiesData()
+		: CurrentInstructionPointer(nullptr)
+		, MostRecentBreakpointInstructionPointer(nullptr)
+		, TargetGraphStackDepth(INDEX_NONE)
+		, StackFrameAtIntraframeDebugging(nullptr)
+		, TraceStackSamples(FKismetDebugUtilities::MAX_TRACE_STACK_SAMPLES)
+		, bIsSingleStepping(false)
+	{
+	}
+
+	TWeakObjectPtr< class UEdGraphNode > CurrentInstructionPointer;
+
+	// The current instruction encountered if we are stopped at a breakpoint; NULL otherwise
+	TWeakObjectPtr< class UEdGraphNode > MostRecentBreakpointInstructionPointer;
+
+	// The current function call graph stack.
+	TArray<TWeakObjectPtr<class UEdGraph>> GraphStack;
+
+	// The target graph call stack depth. INDEX_NONE if not active.
+	int32 TargetGraphStackDepth;
+
+	// The last message that an exception delivered
+	FString LastExceptionMessage;
+
+	// Only valid inside intraframe debugging
+	const FFrame* StackFrameAtIntraframeDebugging;
+
+	TSimpleRingBuffer<FKismetTraceSample> TraceStackSamples;
+
+	bool bIsSingleStepping;
+};
+
 //////////////////////////////////////////////////////////////////////////
 // FKismetDebugUtilities
 
-TWeakObjectPtr< UEdGraphNode > FKismetDebugUtilities::CurrentInstructionPointer;
-TWeakObjectPtr< UEdGraphNode > FKismetDebugUtilities::MostRecentBreakpointInstructionPointer;
-int32 FKismetDebugUtilities::TargetGraphStackDepth = INDEX_NONE;
-TArray<TWeakObjectPtr<UEdGraph>> FKismetDebugUtilities::GraphStack;
-
-FString FKismetDebugUtilities::LastExceptionMessage;
-const FFrame* FKismetDebugUtilities::StackFrameAtIntraframeDebugging = NULL;
-
-TSimpleRingBuffer<FKismetTraceSample> FKismetDebugUtilities::TraceStackSamples(FKismetDebugUtilities::MAX_TRACE_STACK_SAMPLES);
-
-bool FKismetDebugUtilities::bIsSingleStepping = false;
-
-//////////////////////////////////////////////////////////////////////////
-
 void FKismetDebugUtilities::EndOfScriptExecution()
 {
-	bIsSingleStepping = false;
-	TargetGraphStackDepth = INDEX_NONE;
-	GraphStack.SetNum(0, false);
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+
+	Data.bIsSingleStepping = false;
+	Data.TargetGraphStackDepth = INDEX_NONE;
+	Data.GraphStack.SetNum(0, false);
 }
 
 void FKismetDebugUtilities::RequestSingleStepping(bool bInAllowStepIn)
 {
-	bIsSingleStepping = bInAllowStepIn;
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+
+	Data.bIsSingleStepping = bInAllowStepIn;
 	if (!bInAllowStepIn)
 	{
-		TargetGraphStackDepth = GraphStack.Num();
+		Data.TargetGraphStackDepth = Data.GraphStack.Num();
 	}
 }
 
 void FKismetDebugUtilities::RequestStepOut()
 {
-	bIsSingleStepping = false;
-	if (GraphStack.Num() > 1)
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+
+	Data.bIsSingleStepping = false;
+	if (Data.GraphStack.Num() > 1)
 	{
-		TargetGraphStackDepth = GraphStack.Num() - 1;
+		Data.TargetGraphStackDepth = Data.GraphStack.Num() - 1;
 	}
 }
 
 void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const FFrame& StackFrame, const FBlueprintExceptionInfo& Info)
 {
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+
 	struct Local
 	{
 		static void OnMessageLogLinkActivated(const class TSharedRef<IMessageToken>& Token)
@@ -104,7 +134,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 			bShouldBreakExecution = true;
 			break;
 		case EBlueprintExceptionType::Tracepoint:
-			bShouldBreakExecution = bIsSingleStepping;
+			bShouldBreakExecution = Data.bIsSingleStepping;
 			break;
 		case EBlueprintExceptionType::WireTracepoint:
 			break;
@@ -208,7 +238,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 		if (BlueprintObj->GetObjectBeingDebugged() == ActiveObject)
 		{
 			// Record into the trace log
-			FKismetTraceSample& Tracer = TraceStackSamples.WriteNewElementUninitialized();
+			FKismetTraceSample& Tracer = Data.TraceStackSamples.WriteNewElementUninitialized();
 			Tracer.Context = ActiveObject;
 			Tracer.Function = StackFrame.Node;
 			Tracer.Offset = BreakpointOffset; //@TODO: Might want to make this a parameter of Info
@@ -418,6 +448,11 @@ UClass* FKismetDebugUtilities::FindClassForNode(const UObject* Object, UFunction
 	return NULL;
 }	
 
+const TSimpleRingBuffer<FKismetTraceSample>& FKismetDebugUtilities::GetTraceStack()
+{
+	return FKismetDebugUtilitiesData::Get().TraceStackSamples; 
+}
+
 UEdGraphNode* FKismetDebugUtilities::FindSourceNodeForCodeLocation(const UObject* Object, UFunction* Function, int32 DebugOpcodeOffset, bool bAllowImpreciseHit)
 {
 	if (Object != NULL)
@@ -448,37 +483,39 @@ UEdGraphNode* FKismetDebugUtilities::FindMacroSourceNodeForCodeLocation(const UO
 
 void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bool& InOutBreakExecution)
 {
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+
 	if (NodeStoppedAt)
 	{
 		// Update tracked graph stack.
-		if (!GraphStack.Num())
+		if (!Data.GraphStack.Num())
 		{
-			GraphStack.Push(NodeStoppedAt->GetTypedOuter<UEdGraph>());
+			Data.GraphStack.Push(NodeStoppedAt->GetTypedOuter<UEdGraph>());
 		}
 		else if (UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(NodeStoppedAt))
 		{
 			UEdGraph* NewGraph = FunctionNode->GetTypedOuter<UEdGraph>();
-			const bool bAddFunction = GraphStack.Num() && NewGraph ? NewGraph != GraphStack.Last() : false;
+			const bool bAddFunction = Data.GraphStack.Num() && NewGraph ? NewGraph != Data.GraphStack.Last() : false;
 
 			if (bAddFunction)
 			{
-				GraphStack.Push(NewGraph);
+				Data.GraphStack.Push(NewGraph);
 			}
 		}
 		else
 		{
 			UEdGraph* CurrGraph = NodeStoppedAt->GetTypedOuter<UEdGraph>();
-			if (GraphStack.Last() != CurrGraph)
+			if (Data.GraphStack.Last() != CurrGraph)
 			{
-				GraphStack.Pop();
+				Data.GraphStack.Pop();
 			}
 		}
 		// Figure out if we have a break condition.
-		if (!bIsSingleStepping)
+		if (!Data.bIsSingleStepping)
 		{
-			if (TargetGraphStackDepth != INDEX_NONE)
+			if (Data.TargetGraphStackDepth != INDEX_NONE)
 			{
-				InOutBreakExecution = TargetGraphStackDepth >= GraphStack.Num();
+				InOutBreakExecution = Data.TargetGraphStackDepth >= Data.GraphStack.Num();
 			}
 		}
 	}
@@ -488,11 +525,13 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 {
 	checkSlow(BlueprintObj->GetObjectBeingDebugged() == ActiveObject);
 
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+
 	// Cannot have re-entrancy while processing a breakpoint; return from this call stack before resuming execution!
 	check( !GIntraFrameDebuggingGameThread );
 	
 	TGuardValue<bool> SignalGameThreadBeingDebugged(GIntraFrameDebuggingGameThread, true);
-	TGuardValue<const FFrame*> ResetStackFramePointer(StackFrameAtIntraframeDebugging, &StackFrame);
+	TGuardValue<const FFrame*> ResetStackFramePointer(Data.StackFrameAtIntraframeDebugging, &StackFrame);
 
 	// Should we pump Slate messages from this callstack, allowing intra-frame debugging?
 	bool bShouldInStackDebug = false;
@@ -501,9 +540,9 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 	{
 		bShouldInStackDebug = true;
 
-		CurrentInstructionPointer = NodeStoppedAt;
+		Data.CurrentInstructionPointer = NodeStoppedAt;
 
-		MostRecentBreakpointInstructionPointer = NULL;
+		Data.MostRecentBreakpointInstructionPointer = NULL;
 
 		// Find the breakpoint object for the node, assuming we hit one
 		if (Info.GetType() == EBlueprintExceptionType::Breakpoint)
@@ -512,7 +551,7 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 
 			if (Breakpoint != NULL)
 			{
-				MostRecentBreakpointInstructionPointer = NodeStoppedAt;
+				Data.MostRecentBreakpointInstructionPointer = NodeStoppedAt;
 				FKismetDebugUtilities::UpdateBreakpointStateWhenHit(Breakpoint, BlueprintObj);
 					
 				//@TODO: K2: DEBUGGING: Debug print text can go eventually
@@ -526,9 +565,9 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 		}
 
 		// Turn off single stepping; we've hit a node
-		if (bIsSingleStepping)
+		if (Data.bIsSingleStepping)
 		{
-			bIsSingleStepping = false;
+			Data.bIsSingleStepping = false;
 		}
 	}
 	else
@@ -556,7 +595,7 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 	// Now enter within-the-frame debugging mode
 	if (bShouldInStackDebug)
 	{
-		LastExceptionMessage = Info.GetDescription();
+		Data.LastExceptionMessage = Info.GetDescription();
 		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(NodeStoppedAt);
 
 		FSlateApplication::Get().EnterDebuggingMode();
@@ -569,7 +608,7 @@ UEdGraphNode* FKismetDebugUtilities::GetCurrentInstruction()
 	// It only has meaning during intraframe debugging.
 	if (GIntraFrameDebuggingGameThread)
 	{
-		return CurrentInstructionPointer.Get();
+		return FKismetDebugUtilitiesData::Get().CurrentInstructionPointer.Get();
 	}
 	else
 	{
@@ -583,7 +622,7 @@ UEdGraphNode* FKismetDebugUtilities::GetMostRecentBreakpointHit()
 	// It only has meaning during intraframe debugging.
 	if (GIntraFrameDebuggingGameThread)
 	{
-		return MostRecentBreakpointInstructionPointer.Get();
+		return FKismetDebugUtilitiesData::Get().MostRecentBreakpointInstructionPointer.Get();
 	}
 	else
 	{
@@ -599,10 +638,13 @@ void FKismetDebugUtilities::NotifyDebuggerOfStartOfGameFrame(UWorld* CurrentWorl
 // Notify the debugger of the end of the game frame
 void FKismetDebugUtilities::NotifyDebuggerOfEndOfGameFrame(UWorld* CurrentWorld)
 {
-	bIsSingleStepping = false;
+	FKismetDebugUtilitiesData::Get().bIsSingleStepping = false;
 }
 
-
+bool FKismetDebugUtilities::IsSingleStepping()
+{ 
+	return FKismetDebugUtilitiesData::Get().bIsSingleStepping; 
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Breakpoint
@@ -947,6 +989,8 @@ void FKismetDebugUtilities::ClearPinWatches(UBlueprint* Blueprint)
 // Gets the watched tooltip for a specified site
 FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FString& OutWatchText, UBlueprint* Blueprint, UObject* ActiveObject, const UEdGraphPin* WatchPin)
 {
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+
 	if (UProperty* Property = FKismetDebugUtilities::FindClassPropertyForPin(Blueprint, WatchPin))
 	{
 		if (!Property->IsValidLowLevel())
@@ -978,7 +1022,7 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 			void* PropertyBase = NULL;
 
 			// Walk up the stack frame to see if we can find a function scope that contains the property as a local
-			for (const FFrame* TestFrame = StackFrameAtIntraframeDebugging; TestFrame != NULL; TestFrame = TestFrame->PreviousFrame)
+			for (const FFrame* TestFrame = Data.StackFrameAtIntraframeDebugging; TestFrame != NULL; TestFrame = TestFrame->PreviousFrame)
 			{
 				if (Property->IsIn(TestFrame->Node))
 				{
@@ -1045,8 +1089,9 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 
 FText FKismetDebugUtilities::GetAndClearLastExceptionMessage()
 {
-	const FString Result = LastExceptionMessage;
-	LastExceptionMessage.Empty();
+	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
+	const FString Result = Data.LastExceptionMessage;
+	Data.LastExceptionMessage.Empty();
 	return FText::FromString(Result);
 }
 
