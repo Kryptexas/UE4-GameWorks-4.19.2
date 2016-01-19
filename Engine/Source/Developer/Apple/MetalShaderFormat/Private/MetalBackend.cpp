@@ -1207,7 +1207,7 @@ protected:
 				tex->shadow_comparitor->accept(this);
 			}
 
-			if (tex->op == ir_txl)
+			if (tex->op == ir_txl && (!tex->shadow_comparitor || !tex->lod_info.lod->is_zero()))
 			{
 				ralloc_asprintf_append(buffer, ", level(");
 				tex->lod_info.lod->accept(this);
