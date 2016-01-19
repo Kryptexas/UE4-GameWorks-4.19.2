@@ -135,9 +135,10 @@ void FMeshPaintGeometryAdapterForStaticMeshes::OnAdded()
 		// Remember the old body setup (this will be added as a GC reference so that it doesn't get destroyed)
 		StaticMeshReferencers.RestoreBodySetup = ReferencedStaticMesh->BodySetup;
 
-		// Create a new body setup from the mesh's main body setup. This has tp have the static mesh as its outer,
+		// Create a new body setup from the mesh's main body setup. This has to have the static mesh as its outer,
 		// otherwise the body instance will not be created correctly.
 		UBodySetup* TempBodySetupRaw = DuplicateObject<UBodySetup>(ReferencedStaticMesh->BodySetup, ReferencedStaticMesh);
+		TempBodySetupRaw->ClearFlags(RF_Transactional);
 
 		// Set collide all flag so that the body creates physics meshes using ALL elements from the mesh not just the collision mesh.
 		TempBodySetupRaw->bMeshCollideAll = true;
