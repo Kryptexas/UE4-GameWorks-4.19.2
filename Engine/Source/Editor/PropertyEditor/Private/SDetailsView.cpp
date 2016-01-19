@@ -584,7 +584,7 @@ void SDetailsView::PreSetObject()
 
 	ExternalRootPropertyNodes.Empty();
 
-	RootNodePendingKill = RootPropertyNode;
+	RootNodesPendingKill.Add(RootPropertyNode);
 
 	RootPropertyNode = MakeShareable(new FObjectPropertyNode);
 
