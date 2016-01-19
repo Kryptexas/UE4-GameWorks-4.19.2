@@ -122,7 +122,7 @@ public:
 	enum { MAX_TRACE_STACK_SAMPLES = 1024 };
 
 	// Get the trace stack
-	static const TSimpleRingBuffer<FKismetTraceSample>& GetTraceStack() { return TraceStackSamples; }
+	static const TSimpleRingBuffer<FKismetTraceSample>& GetTraceStack();
 
 	// Find the node that resulted in code at the specified location in the Object, or NULL if there was a problem (e.g., no debugging information was generated)
 	static class UEdGraphNode* FindSourceNodeForCodeLocation(const UObject* Object, UFunction* Function, int32 DebugOpcodeOffset, bool bAllowImpreciseHit = false);
@@ -140,7 +140,7 @@ public:
 	static void NotifyDebuggerOfEndOfGameFrame(UWorld* CurrentWorld);
 
 	// Whether or not we are single stepping
-	static bool IsSingleStepping() { return bIsSingleStepping; }
+	static bool IsSingleStepping();
 
 	// Breakpoint utils
 
@@ -221,21 +221,6 @@ public:
 protected:
 	static void AttemptToBreakExecution(UBlueprint* BlueprintObj, const UObject* ActiveObject, const FFrame& StackFrame, const FBlueprintExceptionInfo& Info, UEdGraphNode* NodeStoppedAt, int32 DebugOpcodeOffset);
 
-private:
-	static TWeakObjectPtr< class UEdGraphNode > CurrentInstructionPointer;
-
-	// The current instruction encountered if we are stopped at a breakpoint; NULL otherwise
-	static TWeakObjectPtr< class UEdGraphNode > MostRecentBreakpointInstructionPointer;
-
-	// The last message that an exception delivered
-	static FString LastExceptionMessage;
-
-	// Only valid inside intraframe debugging
-	static const FFrame* StackFrameAtIntraframeDebugging;
-
-	static TSimpleRingBuffer<FKismetTraceSample> TraceStackSamples;
-
-	static bool bIsSingleStepping;
 private:
 	FKismetDebugUtilities() {}
 };
