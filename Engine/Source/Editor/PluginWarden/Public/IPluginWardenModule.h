@@ -33,11 +33,20 @@ public:
 	}
 
 	/**
-	 * Ask the launcher if the user has authorization to use the given plug-in. The authorized 
+	 * Ask the Unreal Engine Launcher if the user has authorization to use the given plug-in. The authorized 
 	 * callback will only be called if the user is authorized to use the plug-in.
-	 * 
+	 *
+	 * ### WARNING ### WARNING ### WARNING ### WARNING ### WARNING ###
+	 *
+	 * Do not gate the user in inline custom plug-in UI, like inside a customization in the details panel.  Only use 
+	 * this to gate the user from opening a dialog or some other big explicit action that opens up into UI that is 
+	 * exclusively the domain of your plug-in.  An example of a good place to use this would be inside of  
+	 * OpenAssetEditor(), in your derived version of FAssetTypeActions_Base for the custom assets your plug-in handles.
+	 *
+	 * ### WARNING ### WARNING ### WARNING ### WARNING ### WARNING ###
+	 *
 	 * IPluginWardenModule::Get().CheckEntitlementForPlugin(LOCTEXT("AwesomePluginName", "My Awesome Plugin"), TEXT("PLUGIN_MARKETPLACE_GUID"), [&] () {
-	 *		// Authorized Code Here
+	 *		// Code Here Will Run If Authorized
 	 * });
 	 * 
 	 * @param PluginFriendlyName The localized friendly name of the plug-in.
