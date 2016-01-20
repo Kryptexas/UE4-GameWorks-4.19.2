@@ -196,6 +196,7 @@ void FDefaultGameMoviePlayer::Shutdown()
 	if( SyncMechanism)
 	{
 		SyncMechanism->DestroySlateThread();
+		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
 		delete SyncMechanism;
 		SyncMechanism = NULL;
 	}
@@ -239,8 +240,11 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 			LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
             LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
 		
-            SyncMechanism = new FSlateLoadingSynchronizationMechanism();
-            SyncMechanism->Initialize();
+			{
+				FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
+				SyncMechanism = new FSlateLoadingSynchronizationMechanism();
+				SyncMechanism->Initialize();
+			}
 
             bBeganPlaying = true;
         }
@@ -268,8 +272,12 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		if (SyncMechanism)
 		{
 			SyncMechanism->DestroySlateThread();
-			delete SyncMechanism;
-			SyncMechanism = NULL;
+
+			{
+				FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
+				delete SyncMechanism;
+				SyncMechanism = NULL;
+			}
 		}
 
 		if( !bEnforceMinimumTime )
@@ -377,6 +385,7 @@ void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 	{
 		if (!IsLoadingFinished() && SyncMechanism)
 		{
+			FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
 			if (SyncMechanism->IsSlateDrawPassEnqueued())
 			{
 				GFrameNumberRenderThread++;

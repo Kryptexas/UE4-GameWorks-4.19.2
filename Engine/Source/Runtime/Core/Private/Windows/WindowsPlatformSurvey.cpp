@@ -386,6 +386,8 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 
 	ISynthBenchmark::Get().Run(OutResults.SynthBenchmark, true, 5.f);
 
+	ISynthBenchmark::Get().GetRHIDisplay(OutResults.RHIAdpater);
+
 	// Get CPU speed
 	if (OutResults.CPUCount > 0)
 	{

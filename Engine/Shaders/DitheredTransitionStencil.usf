@@ -9,9 +9,10 @@
 float DitheredTransitionFactor;
 
 void Main(
-	float4 SvPosition : SV_Position,
+	FScreenVertexOutput Interpolators,
 	out float OutColor : SV_Target0)
 {
+	float4 SvPosition = Interpolators.Position;
 	if (abs(DitheredTransitionFactor) > 0.001f)
 	{
 		float RandCos = cos(dot(floor(SvPosition.xy), float2(347.83451793f,3343.28371963f)));

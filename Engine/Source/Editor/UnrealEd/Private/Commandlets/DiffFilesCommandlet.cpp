@@ -68,7 +68,13 @@ bool UDiffFilesCommandlet::Initialize(const TCHAR* Parms)
 			{
 				for (int32 i = 0; i < Paths.Num(); i++)
 				{
-					IFileManager::Get().FindFiles((TArray<FString>&)FilesInPath, *(Paths[i] / PackageWildcard), 1, 0);
+					TArray<FString> Temp;
+					IFileManager::Get().FindFiles(Temp, *(Paths[i] / PackageWildcard), 1, 0);
+					FString Path = FPaths::GetPath(Paths[i] / PackageWildcard);
+					for (const auto& T : Temp)
+					{
+						FilesInPath.Add(Path / T);
+					}
 				}
 			}
 		}

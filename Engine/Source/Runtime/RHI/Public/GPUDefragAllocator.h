@@ -134,7 +134,7 @@ public:
 		* @param	ChunkToInsertAfter		Chunk to insert this after.
 		* @param	FirstFreeChunk			Reference to first free chunk Pointer.
 		*/
-		FMemoryChunk(uint8* InBase, int32 InSize, FGPUDefragAllocator& InBestFitAllocator, FMemoryChunk*& ChunkToInsertAfter, bool bSortedFreeList)
+		FMemoryChunk(uint8* InBase, int32 InSize, FGPUDefragAllocator& InBestFitAllocator, FMemoryChunk*& ChunkToInsertAfter, TStatId InStat, bool bSortedFreeList)
 			: Base(InBase)
 			, Size(InSize)
 			, bIsAvailable(false)
@@ -143,8 +143,8 @@ public:
 			, BestFitAllocator(InBestFitAllocator)
 			, SyncIndex(0)
 			, SyncSize(0)
-			, UserPayload(0)
-			, ReallocationRequestNode(nullptr)
+			, UserPayload(0)			
+			, Stat(InStat)
 		{
 			Link(ChunkToInsertAfter);
 			// This is going to change bIsAvailable.
@@ -253,15 +253,7 @@ public:
 
 			PreviousFreeChunk = nullptr;
 			NextFreeChunk = nullptr;
-		}
-
-		/**
-		*	Returns true if the Chunk has an associated reallocation request.
-		*/
-		bool	HasReallocationRequest() const
-		{
-			return ReallocationRequestNode != nullptr;
-		}
+		}		
 
 		/**
 		*	Returns true if the Chunk is being asynchronously relocated due to reallocation or defrag.
@@ -352,13 +344,10 @@ public:
 		/** Number of uint8s covered by the SyncIndex (starting from the beginning of the chunk). */
 		int64					SyncSize;
 		/** User payload, e.g. platform-specific texture Pointer. Only chunks with payload can be relocated. */
-		void*					UserPayload;
+		void*					UserPayload;		
 
-		/**
-		* Reallocation request for this chunk, or nullptr.
-		* Point32s straight to a node in FBestFitAllocator::ReallocationRequests or FBestFitAllocator::ReallocationRequestsInProgress.
-		*/
-		FRequestNode*			ReallocationRequestNode;
+		//stat associated with this allocation
+		TStatId Stat;
 	};
 
 	/** Constructor, zero initializing all member variables */
@@ -409,7 +398,7 @@ public:
 		// Update stats in a thread safe way.
 		FPlatformAtomics::InterlockedExchange(&AvailableMemorySize, MemorySize);
 		// Allocate initial chunk.
-		FirstChunk = new FMemoryChunk(MemoryBase, MemorySize, *this, FirstChunk, /*FirstChunk, FirstFreeChunk,*/ false);
+		FirstChunk = new FMemoryChunk(MemoryBase, MemorySize, *this, FirstChunk, TStatId(), false);
 		LastChunk = FirstChunk;
 	}
 
@@ -453,7 +442,7 @@ public:
 	* @param	bAllowFailure	Whether to allow allocation failure or not
 	* @return	Pointer to allocated memory
 	*/
-	virtual void*	Allocate(int64 AllocationSize, int32 Alignment, bool bAllowFailure);
+	virtual void*	Allocate(int64 AllocationSize, int32 Alignment, TStatId InStat, bool bAllowFailure);	
 
 	/**
 	* Frees allocation associated with the specified Pointer.
@@ -837,7 +826,10 @@ protected:
 		// Calculate size of second chunk...
 		int32 SecondSize = BaseChunk->Size - FirstSize;
 		// ... and create it.
-		FMemoryChunk* NewFreeChunk = new FMemoryChunk(BaseChunk->Base + FirstSize, SecondSize, *this, BaseChunk, /*FirstChunk, FirstFreeChunk,*/ bSortedFreeList);
+
+		//todo: fix stats
+		//ensureMsgf(BaseChunk->Stat.IsNone(), TEXT("Free chunk has stat"));
+		FMemoryChunk* NewFreeChunk = new FMemoryChunk(BaseChunk->Base + FirstSize, SecondSize, *this, BaseChunk, TStatId(), bSortedFreeList);
 
 		// Keep the original sync index for the new chunk if necessary.
 		if (BaseChunk->IsRelocating() && BaseChunk->SyncSize > FirstSize)
@@ -910,15 +902,7 @@ protected:
 	* @param bAnyChunkType	If false, only succeeds if 'UsedChunk' has a reallocation request and fits
 	* @return				Returns 'UsedChunk' if it fits the criteria, otherwise nullptr
 	*/
-	FMemoryChunk*	FindAdjacent(FMemoryChunk* UsedChunk, bool bAnyChunkType);
-
-	/**
-	* Searches for a reallocation request that would fit within the specified free chunk.
-	*
-	* @param FreeChunk		Free chunk we're trying to fill up
-	* @return				First request that could fit, or nullptr
-	*/
-	FRequestNode*	FindAnyReallocation(FMemoryChunk* FreeChunk);
+	FMemoryChunk*	FindAdjacent(FMemoryChunk* UsedChunk, bool bAnyChunkType);	
 
 	/**
 	* Searches for an allocated chunk that would fit within the specified free chunk.
@@ -951,16 +935,6 @@ protected:
 	* @return				Next Free chunk to try to fill up
 	*/
 	FMemoryChunk*	RelocateIntoFreeChunk(FRelocationStats& Stats, FMemoryChunk* FreeChunk, FMemoryChunk* UsedChunk);
-
-	/**
-	* Allocates memory from the specified free chunk, servicing an async allocation request.
-	*
-	* @param Stats			[out] Stats
-	* @param FreeChunk		Chunk to allocate memory from
-	* @param RequestNode	List node to the allocation request
-	* @return				Next Free chunk to try to fill up
-	*/
-	FMemoryChunk*	AllocateIntoFreeChunk(FRelocationStats& Stats, FMemoryChunk* FreeChunk, FRequestNode* RequestNode);
 
 	FMemoryChunk* RelocateAllowed(FMemoryChunk* FreeChunk, FMemoryChunk* UsedChunk);	
 
@@ -1008,12 +982,6 @@ protected:
 	int32				NumRelocationsInProgress;
 	/** Platform-specific (GPU) fence, used for synchronizing the Sync Index. */
 	uint64			PlatformSyncFence;
-
-	/** Asynchronous reallocations requested by user.				*/
-	FRequestList	ReallocationRequests;
-
-	/** Asynchronous reallocations currently being processed.		*/
-	FRequestList	ReallocationRequestsInProgress;
 
 	/** Chunks that couldn't be freed immediately because they were being relocated. */
 	TDoubleLinkedList<FMemoryChunk*>	PendingFreeChunks;
@@ -1195,7 +1163,7 @@ private:
 */
 FORCEINLINE int32 FGPUDefragAllocator::FMemoryChunk::GetFinalSize() const
 {
-	return ReallocationRequestNode ? ReallocationRequestNode->GetValue()->GetNewSize() : Size;
+	return Size;
 }
 
 /**
@@ -1207,14 +1175,6 @@ FORCEINLINE int32 FGPUDefragAllocator::FMemoryChunk::GetFinalSize() const
 */
 FORCEINLINE bool FGPUDefragAllocator::CanRelocate(const FMemoryChunk* Chunk) const
 {
-	// During reallocation, the new texture keeps the request around until it's been processed higher up.
-	// Can't relocate a request that has started until it's fully gone from the system.
-	const FRequestNode* RequestNode = Chunk->ReallocationRequestNode;
-	if (RequestNode && RequestNode->GetValue()->HasStarted())
-	{
-		return false;
-	}
-
 	if (Chunk->IsLocked())
 	{
 		return false;

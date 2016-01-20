@@ -114,9 +114,26 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 	return Allocator;
 }
 
-bool FLinuxPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
+bool FLinuxPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite)
 {
-	return mprotect(Ptr, Size, static_cast<int32>(ProtectMode)) == 0;
+	int32 ProtectMode;
+	if (bCanRead && bCanWrite)
+	{
+		ProtectMode = PROT_READ | PROT_WRITE;
+	}
+	else if (bCanRead)
+	{
+		ProtectMode = PROT_READ;
+	}
+	else if (bCanWrite)
+	{
+		ProtectMode = PROT_WRITE;
+	}
+	else
+	{
+		ProtectMode = PROT_NONE;
+	}
+	return mprotect(Ptr, Size, ProtectMode) == 0;
 }
 
 void* FLinuxPlatformMemory::BinnedAllocFromOS( SIZE_T Size )

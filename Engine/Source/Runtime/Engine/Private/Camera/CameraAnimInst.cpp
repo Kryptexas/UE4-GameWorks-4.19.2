@@ -21,7 +21,6 @@ UCameraAnimInst::UCameraAnimInst(const FObjectInitializer& ObjectInitializer)
 	bAutoReleaseWhenFinished = true;
 	PlayRate = 1.0f;
 	TransientScaleModifier = 1.0f;
-	InitialFOV = -1.f;
 	PlaySpace = ECameraAnimPlaySpace::CameraLocal;
 
 	InterpGroupInst = CreateDefaultSubobject<UInterpGroupInst>(TEXT("InterpGroupInst0"));
@@ -222,16 +221,13 @@ void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRa
 			InitialCamToWorld = FTransform(OutRot, OutLoc);		// @todo, store inverted since that's how we use it?
 
 			// find FOV track if it exists, else just use the fov saved in the anim
-			if (InitialFOV <= 0.f)
+			InitialFOV = Anim->BaseFOV;
+			for (int32 Idx = 0; Idx < InterpGroupInst->TrackInst.Num(); ++Idx)
 			{
-				InitialFOV = Anim->BaseFOV;
-				for (int32 Idx = 0; Idx < InterpGroupInst->TrackInst.Num(); ++Idx)
+				UInterpTrackFloatProp* const FloatTrack = Cast<UInterpTrackFloatProp>(CamAnim->CameraInterpGroup->InterpTracks[Idx]);
+				if (FloatTrack && (FloatTrack->PropertyName == NAME_CameraComponentFieldOfViewPropertyName))
 				{
-					UInterpTrackFloatProp* const FloatTrack = Cast<UInterpTrackFloatProp>(CamAnim->CameraInterpGroup->InterpTracks[Idx]);
-					if (FloatTrack && (FloatTrack->PropertyName == NAME_CameraComponentFieldOfViewPropertyName))
-					{
-						InitialFOV = FloatTrack->EvalSub(0, 0.f);
-					}
+					InitialFOV = FloatTrack->EvalSub(0, 0.f);
 				}
 			}
 		}

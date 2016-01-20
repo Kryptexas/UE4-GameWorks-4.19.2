@@ -2651,6 +2651,7 @@ partial class GUBP
 			var LocalizationProjectNames = GetLocalizationProjectNames();
 			var LocalizationProviderName = GetLocalizationProviderName();
 			var LocalizationProviderArgs = GetLocalizationProviderArgs();
+			var AdditionalCommandletArguments = GetAdditionalCommandletArguments();
 
 			// Build the correct command line arguments.
 			var CommandLineArguments = "";
@@ -2683,6 +2684,11 @@ partial class GUBP
 			if (!String.IsNullOrEmpty(LocalizationProviderArgs))
 			{
 				CommandLineArguments += " " + LocalizationProviderArgs;
+			}
+
+			if (!String.IsNullOrEmpty(AdditionalCommandletArguments))
+			{
+				CommandLineArguments += " -AdditionalCommandletArguments=\"" + AdditionalCommandletArguments + "\"";
 			}
 
 			// Run the localise script.
@@ -2719,6 +2725,11 @@ partial class GUBP
 		}
 
 		protected virtual string GetLocalizationProviderArgs()
+		{
+			return "";
+		}
+
+		protected virtual string GetAdditionalCommandletArguments()
 		{
 			return "";
 		}

@@ -139,5 +139,10 @@ struct CORE_API FMemory
 	 * and hopefully freeing some pointers will trigger a crash.
 	 */
 	static void TestMemory();
+	/**
+	* Called once main is started and we have -purgatorymallocproxy.
+	* This uses the purgatory malloc proxy to check if things are writing to stale pointers.
+	*/
+	static void EnablePurgatoryTests();
 };
 

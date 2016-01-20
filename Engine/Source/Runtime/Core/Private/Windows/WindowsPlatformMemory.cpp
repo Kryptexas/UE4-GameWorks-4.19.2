@@ -4,9 +4,7 @@
 
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
-#if USE_MALLOC_STOMP
-	#include "MallocStomp.h"
-#endif // USE_MALLOC_STOMP
+#include "MallocStomp.h"
 #include "GenericPlatformMemoryPoolStats.h"
 #include "MemoryMisc.h"
 
@@ -170,9 +168,26 @@ const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
 	return MemoryConstants;	
 }
 
-bool FWindowsPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
+bool FWindowsPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite)
 {
 	DWORD flOldProtect;
+	uint32 ProtectMode = 0;
+	if (bCanRead && bCanWrite)
+	{
+		ProtectMode = PAGE_READWRITE;
+	}
+	else if (bCanWrite)
+	{
+		ProtectMode = PAGE_READWRITE;
+	}
+	else if (bCanRead)
+	{
+		ProtectMode = PAGE_READONLY;
+	}
+	else
+	{
+		ProtectMode = PAGE_NOACCESS;
+	}
 	return VirtualProtect(Ptr, Size, ProtectMode, &flOldProtect) != 0;
 }
 void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )

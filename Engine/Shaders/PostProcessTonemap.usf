@@ -77,9 +77,16 @@ float PseudoRandomTex(float2 xy)
 
 float SwitchVerticalAxis;
 
-
-
 float4 FringeUVParams;
+
+// @param ViewportPos in viewport -1..1 1..-1
+// @return UV in PostprocessInput
+float2 ViewportPosToUV(float2 ViewportPos)
+{
+	float2 ViewportUV = ViewportPos * float2(0.5f, -0.5f) + 0.5f;
+
+	return (ViewportUV * Frame.ViewSizeAndInvSize.xy + Frame.ViewRectMin.xy) * Frame.BufferSizeAndInvSize.zw;
+}
 
 // vertex shader entry point
 void MainVS(
@@ -101,23 +108,21 @@ void MainVS(
 	// Eye adaptation is not yet supported
 	OutExposureScaleVignette.x = 1.0f;
 #endif
+	
+	// -1..1 1..-1 in the viewport
+	float2 ViewportPos = OutPosition.xy;
 
 	// Scale vignette to always be a circle with consistent corner intensity.
-	OutExposureScaleVignette.yz = VignetteSpace(OutPosition.xy);
+	float2 VignetteSpacePos = VignetteSpace(ViewportPos);
+	OutExposureScaleVignette.yz = VignetteSpacePos;
 
 	// Grain
 	OutGrainUV.xy = OutTexCoord + PostprocessInput0Size.zw * float2(-0.5,0.5);
 	OutGrainUV.zw = OutTexCoord + GrainRandomFull.xy;
 
 	// Fringe
-	// Center of the viewport in pixels and UV
-	float2 CenterPx = float2(0.5, 0.5) * (Frame.ViewSizeAndInvSize.xy) + Frame.ViewRectMin.xy;
-	float2 CenterUV = CenterPx *  PostprocessInput0Size.zw;
-
-	// Scale FringeUVs about the view port center for fringe
-	// NB: FringUVParams.{r,g} are less than 1
-	OutFringe.xy = FringeUVParams.r * (OutTexCoord - CenterUV) + CenterUV;
-	OutFringe.zw = FringeUVParams.g * (OutTexCoord - CenterUV) + CenterUV;
+	OutFringe.xy = ViewportPosToUV(ViewportPos * FringeUVParams.r);
+	OutFringe.zw = ViewportPosToUV(ViewportPos * FringeUVParams.g);
 }
 
 // Function graphing

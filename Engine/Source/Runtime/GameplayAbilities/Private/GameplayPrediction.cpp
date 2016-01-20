@@ -5,45 +5,53 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayPrediction.h"
 
+/** The key to understanding this function is that when a key is received by the server, we note which connection gave it to us. We only serialize the key back to that client.  */
 bool FPredictionKey::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	// Read bit for server initiated first
-	uint8 ServerInitiatedByte = bIsServerInitiated;
-	Ar.SerializeBits(&ServerInitiatedByte, 1);
-	bIsServerInitiated = ServerInitiatedByte & 1;
-
-	if (Ar.IsLoading())
-	{
-		Ar << Current;
-		if (Current > 0)
-		{
-			Ar << Base;
-		}
-		if (!bIsServerInitiated)
-		{
-			PredictiveConnection = Map;
-		}
-	}
-	else
+	// First bit for valid key for this connection or not. (most keys are not valid)
+	uint8 ValidKeyForConnection = 0;
+	if (Ar.IsSaving())
 	{
 		/**
 		 *	Only serialize the payload if we have no owning connection (Client sending to server)
 		 *	or if the owning connection is this connection (Server only sends the prediction key to the client who gave it to us)
 		 *  or if this is a server initiated key (valid on all connections)
-		 */
-		
-		if (PredictiveConnection == nullptr || (Map == PredictiveConnection) || bIsServerInitiated)
+		 */		
+		ValidKeyForConnection = (PredictiveConnection == nullptr || (Map == PredictiveConnection) || bIsServerInitiated) && (Current > 0);
+	}
+	Ar.SerializeBits(&ValidKeyForConnection, 1);
+
+	// Second bit for base key (only if valid connection)
+	uint8 HasBaseKey = 0;
+	if (ValidKeyForConnection)
+	{
+		if (Ar.IsSaving())
 		{
-			Ar << Current;
-			if (Current > 0)
-			{
-				Ar << Base;
-			}
+			HasBaseKey = Base > 0;
 		}
-		else
+		Ar.SerializeBits(&HasBaseKey, 1);
+	}
+
+	// Third bit for server initiated
+	uint8 ServerInitiatedByte = bIsServerInitiated;
+	Ar.SerializeBits(&ServerInitiatedByte, 1);
+	bIsServerInitiated = ServerInitiatedByte & 1;
+
+	// Conditionally Serialize the Current and Base keys
+	if (ValidKeyForConnection)
+	{
+		Ar << Current;
+		if (HasBaseKey)
 		{
-			KeyType Payload = 0;
-			Ar << Payload;
+			Ar << Base;
+		}
+	}	
+	if (Ar.IsLoading())
+	{
+		// We are reading this key: the connection that gave us this key is the predictive connection, and we will only serialize this key back to it.
+		if (!bIsServerInitiated)
+		{
+			PredictiveConnection = Map;
 		}
 	}
 

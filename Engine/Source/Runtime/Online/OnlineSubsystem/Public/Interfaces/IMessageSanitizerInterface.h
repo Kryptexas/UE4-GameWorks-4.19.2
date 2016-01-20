@@ -2,17 +2,28 @@
 
 #pragma once
 
-DECLARE_DELEGATE_OneParam(FOnMessageProcessed, const FString& /*SanitizedMessage*/);
+DECLARE_DELEGATE_TwoParams(FOnMessageProcessed, bool /*Process success*/, const FString& /*SanitizedMessage*/);
+DECLARE_DELEGATE_TwoParams(FOnMessageArrayProcessed, bool /*Process success*/, const TArray<FString>& /*SanitizedMessages*/);
 
 struct FSanitizeMessage
 {
-	FSanitizeMessage(FString InRawMessage, FOnMessageProcessed InProcessCompleteDelegate)
+	FSanitizeMessage(const FString& InRawMessage, FOnMessageProcessed InProcessCompleteDelegate)
 		: RawMessage(InRawMessage)
 		, CompletionDelegate(InProcessCompleteDelegate)
 	{}
 
 	FString RawMessage;
 	FOnMessageProcessed CompletionDelegate;
+};
+
+struct FMultiPartMessage
+{
+	TArray<FString> AlreadyProcessedMessages;
+	TArray<int32> AlreadyProcessedIndex;
+	TArray<FString> SanitizedMessages;
+	FString MessageToSanatize;
+	bool bCompleted;
+	int32 PartNumber;
 };
 
 class IMessageSanitizer
@@ -22,7 +33,8 @@ protected:
 
 public:
 	virtual ~IMessageSanitizer() {};
-	virtual void SanitizeMessage(FString Message, FOnMessageProcessed CompletionDelegate) = 0;
+	virtual void SanitizeMessage(const FString& Message, FOnMessageProcessed CompletionDelegate) = 0;
+	virtual void SanitizeMessageArray(const TArray<FString>& MessageArray, FOnMessageArrayProcessed CompletionDelegate) = 0;
 };
 
 typedef TSharedPtr<IMessageSanitizer, ESPMode::ThreadSafe> IMessageSanitizerPtr;

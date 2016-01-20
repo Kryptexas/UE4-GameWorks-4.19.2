@@ -438,7 +438,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 				static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PS4StallsOnMarkers"));
 				int32 Value = CVar->GetInt();
 
-				if (!Value)
+				if (Value)
 				{
 					// good to get Razor aligned GPU profiling but bad for high fps
 					Warnings += TEXT(" r.PS4StallsOnMarkers");

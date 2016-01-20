@@ -119,10 +119,25 @@ public:
 	TMultiMap<FString, FLocItem> EntriesBySourceLocation;
 };
 
-typedef TMultiMap< FString, TSharedRef< FLocConflict > > TLocConflictContainer;
-
 struct FConflictReportInfo
 {
+	struct FLocConflictContainerKeyFuncs : BaseKeyFuncs<TSharedRef<FLocConflict>, FString, true>
+	{
+		static FORCEINLINE const FString& GetSetKey(const TPair<FString, TSharedRef<FLocConflict>>& Element)
+		{
+			return Element.Key;
+		}
+		static FORCEINLINE bool Matches(const FString& A, const FString& B)
+		{
+			return A.Equals(B, ESearchCase::CaseSensitive);
+		}
+		static FORCEINLINE uint32 GetKeyHash(const FString& Key)
+		{
+			return FCrc::StrCrc32<TCHAR>(*Key);
+		}
+	};
+	typedef TMultiMap<FString, TSharedRef<FLocConflict>, FDefaultSetAllocator, FLocConflictContainerKeyFuncs> TLocConflictContainer;
+
 	/**
 	 * Return the singleton instance of the report info.
 	 * @return The singleton instance.

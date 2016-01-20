@@ -129,6 +129,12 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 		}
 	}
 
+	UProperty* Property = Blueprint->ParentClass->FindPropertyByName( NewNameSlug );
+	if ( Property && Property->HasMetaData( "BindWidget" ) )
+	{
+		return true;
+	}
+
 	FKismetNameValidator Validator(Blueprint);
 
 	// For variable comparison, use the slug
@@ -151,6 +157,9 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldObjectName);
 	check(Widget);
 
+	UClass* ParentClass = Blueprint->ParentClass;
+	check( ParentClass );
+
 	bool bRenamed = false;
 
 	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint));
@@ -158,8 +167,11 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 	// Get the new FName slug from the given display name
 	const FName NewFName = MakeObjectNameFromDisplayLabel(NewDisplayName, Widget->GetFName());
 
+	UProperty* ExistingProperty = ParentClass->FindPropertyByName( NewFName );
+	const bool bBindWidget = ExistingProperty && ExistingProperty->HasMetaData( "BindWidget" );
+
 	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
-	const bool bUniqueNameForTemplate = ( EValidatorResult::Ok == NameValidator->IsValid(NewFName) );
+	const bool bUniqueNameForTemplate = ( EValidatorResult::Ok == NameValidator->IsValid( NewFName ) || bBindWidget );
 	if ( Widget && bUniqueNameForTemplate )
 	{
 		// Stringify the FNames

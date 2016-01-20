@@ -43,7 +43,7 @@ public:
 	/** @return FText suitable for localized display */
 	virtual FText GetDisplayPrice() const
 	{
-		return FText::AsCurrency(NumericPrice / 100.0, CurrencyCode);
+		return FText::AsCurrencyBase(NumericPrice, CurrencyCode);
 	}
 
 	/** @return True if offer can be purchased */

@@ -400,7 +400,7 @@ public partial class Project : CommandUtils
 
                 // diff the content
                 List<string> AllFiles = Directory.EnumerateFiles(FullCookPath, "*.uasset", System.IO.SearchOption.AllDirectories).ToList();
-                AllFiles.AddRange(Directory.EnumerateFiles(FullCookPath, "*.map", System.IO.SearchOption.AllDirectories).ToList());
+                AllFiles.AddRange(Directory.EnumerateFiles(FullCookPath, "*.umap", System.IO.SearchOption.AllDirectories).ToList());
                 foreach (string SourceFilename in AllFiles)
                 {
                     // Filename.StartsWith( CookedSandboxesPath );
@@ -408,6 +408,7 @@ public partial class Project : CommandUtils
 
                     string DestFilename = TemporaryFilesPath + RelativeFilename;
 
+                    Log("Comparing file "+ RelativeFilename);
 
                     byte[] SourceFile = null;
                     try
@@ -464,8 +465,8 @@ public partial class Project : CommandUtils
                                 {
                                     Log("Failed to create directory " + Path.GetDirectoryName(SavedDestFilename) + " Exception " + E.ToString());
                                 }
-                                File.Copy(SourceFilename, SavedSourceFilename);
-                                File.Copy(DestFilename, SavedDestFilename);
+                                File.Copy(SourceFilename, SavedSourceFilename, true);
+                                File.Copy(DestFilename, SavedDestFilename, true);
                                 Log("Content temporarily saved to " + SavedSourceFilename + " and " + SavedDestFilename + " at offset " + Index.ToString());
                                 break;
                             }

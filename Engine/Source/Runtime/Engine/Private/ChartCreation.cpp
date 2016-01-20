@@ -1144,7 +1144,10 @@ void UEngine::DumpFPSChartToAnalyticsParams(float TotalTime, float DeltaTime, in
 	FPlatformMisc::GetOSVersions(OSMajor, OSMinor);
 
 	// Get settings info
-	const Scalability::FQualityLevels& Quality = GEngine->GetGameUserSettings()->ScalabilityQuality;
+	UGameUserSettings* UserSettingsObj = GEngine->GetGameUserSettings();
+	check(UserSettingsObj);
+
+	const Scalability::FQualityLevels& Quality = UserSettingsObj->ScalabilityQuality;
 
 	// Add non-bucket params
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("ChangeList"), GetChangeListNumberForPerfTesting()));
@@ -1153,8 +1156,8 @@ void UEngine::DumpFPSChartToAnalyticsParams(float TotalTime, float DeltaTime, in
 
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), FString::Printf(TEXT("%s"), FPlatformProperties::PlatformName())));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("OS"), FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor)));
-	InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU"), FString::Printf(TEXT("%s %s"), *FPlatformMisc::GetCPUVendor(), *FPlatformMisc::GetCPUBrand())));
-	InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPU"), FPlatformMisc::GetPrimaryGPUBrand()));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU"), FString::Printf(TEXT("%s %s"), *FPlatformMisc::GetCPUVendor().Trim().TrimTrailing(), *FPlatformMisc::GetCPUBrand().Trim().TrimTrailing())));
+	InParamArray.Add(FAnalyticsEventAttribute(TEXT("GPU"), FPlatformMisc::GetPrimaryGPUBrand().Trim().TrimTrailing()));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("ResolutionQuality"), Quality.ResolutionQuality));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("ViewDistanceQuality"), Quality.ViewDistanceQuality));
 	InParamArray.Add(FAnalyticsEventAttribute(TEXT("AntiAliasingQuality"), Quality.AntiAliasingQuality));

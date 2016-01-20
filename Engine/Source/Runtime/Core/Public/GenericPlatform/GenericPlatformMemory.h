@@ -229,10 +229,11 @@ struct CORE_API FGenericPlatformMemory
 	 *
 	 * @param Ptr Address to the starting page of the region of pages whose access protection attributes are to be changed.
 	 * @param Size The size of the region whose access protection attributes are to be changed, in bytes.
-	 * @param ProtectMode The OS dependent memory protection option.
+	 * @param bCanRead Can the memory be read.
+	 * @param bCanWrite Can the memory be written to.
 	 * @return True if the specified pages' protection mode was changed.
 	 */
-	static bool PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode );
+	static bool PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite);
 
 	/**
 	 * Allocates pages from the OS.

@@ -47,9 +47,8 @@ class UGameplayCueSet;
  *	
  */
 
-/**
- *	A self contained handler of a GameplayCue. These are similar to AnimNotifies in implementation.
- */
+DECLARE_DELEGATE_OneParam(FOnGameplayCueNotifySetLoaded, TArray<FStringAssetReference>);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FShouldLoadGCNotifyDelegate, const FAssetData&);
 
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
@@ -133,9 +132,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	// Preload GameplayCue tags that we think we will need:
 	// -------------------------------------------------------------
 
-	void	BeginLoadingGameplayCueNotify(FGameplayTag GameplayCueTag);
+	void BeginLoadingGameplayCueNotify(FGameplayTag GameplayCueTag);
 
-	int32	FinishLoadingGameplayCueNotifies();
+	int32 FinishLoadingGameplayCueNotifies();
 
 	UPROPERTY(transient)
 	FStreamableManager	StreamableManager;
@@ -143,6 +142,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	TMap<FGCNotifyActorKey, TWeakObjectPtr<AGameplayCueNotify_Actor> > NotifyMapActor;
 
 	void PrintGameplayCueNotifyMap();
+
+	virtual void PrintLoadedGameplayCueNotifyClasses();
 
 	virtual class UWorld* GetWorld() const override;
 
@@ -177,19 +178,21 @@ protected:
 
 #if WITH_EDITOR
 	//This handles the case where GameplayCueNotifications have changed between sessions, which is possible in editor.
-	void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
+	virtual void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
 #endif
 
 	void LoadObjectLibrary_Internal();
 
+	void InitObjectLibraries(TArray<FString> Paths, UObjectLibrary* ActorObjectLibrary, UObjectLibrary* StaticObjectLibrary, FOnGameplayCueNotifySetLoaded OnLoaded, FShouldLoadGCNotifyDelegate ShouldLoad = FShouldLoadGCNotifyDelegate());
+
 	virtual bool ShouldAsyncLoadAtStartup() const { return true; }
 
-	void BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<struct FGameplayCueReferencePair>& OutCuesToAdd);
+	void BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<struct FGameplayCueReferencePair>& OutCuesToAdd, FOnGameplayCueNotifySetLoaded OnLoaded = FOnGameplayCueNotifySetLoaded(), FShouldLoadGCNotifyDelegate = FShouldLoadGCNotifyDelegate());
 
 	/** The cue manager has a tendency to produce a lot of RPCs. This logs out when we are attempting to fire more RPCs than will actually go off */
 	void CheckForTooManyRPCs(FName FuncName, const FGameplayCuePendingExecute& PendingCue, const FString& CueID, const FGameplayEffectContext* EffectContext);
 
-	void OnGameplayCueNotifyAsyncLoadComplete(FStringAssetReference StringRef);
+	void OnGameplayCueNotifyAsyncLoadComplete(TArray<FStringAssetReference> StringRef);
 
 	void CheckForPreallocation(UClass* GCClass);
 

@@ -2948,6 +2948,9 @@ public:
 };
 
 
+// This controls if the cmd list bypass can be toggled at runtime. It is quite expensive to have these branches in there.
+#define CAN_TOGGLE_COMMAND_LIST_BYPASS (!UE_BUILD_SHIPPING && !UE_BUILD_TEST)
+
 class RHI_API FRHICommandListExecutor
 {
 public:
@@ -2971,7 +2974,7 @@ public:
 
 	FORCEINLINE_DEBUGGABLE bool Bypass()
 	{
-#if !UE_BUILD_SHIPPING || PLATFORM_CAN_TOGGLE_RHITHREAD_IN_SHIPPING
+#if CAN_TOGGLE_COMMAND_LIST_BYPASS
 		return bLatchedBypass;
 #else
 		return !!DefaultBypass;
@@ -2979,7 +2982,7 @@ public:
 	}
 	FORCEINLINE_DEBUGGABLE bool UseParallelAlgorithms()
 	{
-#if !UE_BUILD_SHIPPING
+#if CAN_TOGGLE_COMMAND_LIST_BYPASS
 		return bLatchedUseParallelAlgorithms;
 #else
 		return  FApp::ShouldUseThreadingForPerformance() && !Bypass();

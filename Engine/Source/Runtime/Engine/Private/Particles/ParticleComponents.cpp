@@ -275,7 +275,11 @@ void UParticleLODLevel::PostLoad()
 		(GetOuter() ? (GetOuter()->GetOuter() ? *(GetOuter()->GetOuter()->GetPathName()) : *(GetOuter()->GetPathName())) : TEXT("???")));
 #endif // WITH_EDITORONLY_DATA
 
-	// Fix up emitters that have bEnabled flag set incorrectly
+	{
+		RequiredModule->ConditionalPostLoad();
+	}
+	// shouldn't ever set another UObjects serialized variable in post load
+	// this causes determinisitc cooking issues due to load order being different
 	/*if (RequiredModule)
 	{
 		RequiredModule->ConditionalPostLoad();

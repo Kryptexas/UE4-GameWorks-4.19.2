@@ -77,6 +77,9 @@ private:
 	/** The widget which holds the loading screen widget passed in via the FLoadingScreenAttributes */
 	TSharedPtr<class SBorder> LoadingScreenWidgetHolder;
 
+	/** Controls access to the sync mechanism across threads */
+	FCriticalSection SyncMechanismCriticalSection;
+
 	/** The threading mechanism with which we handle running slate on another thread */
 	class FSlateLoadingSynchronizationMechanism* SyncMechanism;
 
