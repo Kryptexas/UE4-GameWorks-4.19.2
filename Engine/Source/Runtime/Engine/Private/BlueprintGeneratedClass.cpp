@@ -184,16 +184,7 @@ struct FConditionalRecompileClassHepler
 			}
 		}
 
-		if (GeneratingBP->Status != BS_Error)
-		{
-			return ENeededAction::Recompile;
-		}
-		else
-		{
-			// don't recompile blueprints that are in the error state, doing so may clear the error state which could trigger bytecode regeneration. We 
-			// can't regenerate bytecode from a 'bad' full compile.
-			return ENeededAction::None;
-		}
+		return ENeededAction::Recompile;
 	}
 };
 

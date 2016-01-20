@@ -359,9 +359,6 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	class USimpleConstructionScript* SimpleConstructionScript;
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(transient, duplicatetransient)
-	UEdGraph* ConsolidatedEventGraph;
-
 	/** Set of pages that combine into a single uber-graph */
 	UPROPERTY()
 	TArray<class UEdGraph*> UbergraphPages;

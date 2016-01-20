@@ -30,7 +30,6 @@ public:
 
 protected:
 	// Implementation of FKismetCompilerContext interface
-	virtual void SetClassForBytecodeCompile(UClass* TargetClass) override;
 	virtual UEdGraphSchema_K2* CreateSchema() override;
 	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) override;
 	virtual void ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool bInternalFunction = false) override;
