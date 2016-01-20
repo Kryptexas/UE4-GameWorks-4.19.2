@@ -1799,12 +1799,17 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 
 void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs )
 {
-	{
-		FLineModel LineModel( Text );
+	AddLine(FNewLineData(Text, Runs));
+}
 
-		for (int32 Index = 0; Index < Runs.Num(); Index++)
+void FTextLayout::AddLine( const FNewLineData& NewLine )
+{
+	{
+		FLineModel LineModel( NewLine.Text );
+
+		for (const auto& Run : NewLine.Runs)
 		{
-			LineModel.Runs.Add( FRunModel( Runs[ Index ] ) );
+			LineModel.Runs.Add( FRunModel( Run ) );
 		}
 
 		LineModels.Add( LineModel );
@@ -1847,6 +1852,72 @@ void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSha
 		JustifyLayout();
 
 		EndLineLayout(LineModel);
+	}
+}
+
+void FTextLayout::AddLines( const TArray<FNewLineData>& NewLines )
+{
+	for (const auto& NewLine : NewLines)
+	{
+		FLineModel LineModel( NewLine.Text );
+
+		for (const auto& Run : NewLine.Runs)
+		{
+			LineModel.Runs.Add( FRunModel( Run ) );
+		}
+
+		LineModels.Add( LineModel );
+	}
+
+	// If our layout is clean, then we can add this new line immediately (and efficiently)
+	// If our layout is dirty, then we might as well wait as the next UpdateLayout call will add it
+	if (!(DirtyFlags & ETextLayoutDirtyState::Layout))
+	{
+		const int32 FirstNewLineModelIndex = LineModels.Num() - NewLines.Num();
+
+		for (int32 LineModelIndex = FirstNewLineModelIndex; LineModelIndex < LineModels.Num(); ++LineModelIndex)
+		{
+			FLineModel& LineModel = LineModels[LineModelIndex];
+			BeginLineLayout(LineModel);
+		}
+
+		for (int32 LineModelIndex = FirstNewLineModelIndex; LineModelIndex < LineModels.Num(); ++LineModelIndex)
+		{
+			FLineModel& LineModel = LineModels[LineModelIndex];
+
+			CalculateLineTextDirection(LineModel);
+			FlushLineTextShapingCache(LineModel);
+			CreateLineWrappingCache(LineModel);
+
+			TArray<TSharedRef<ILayoutBlock>> SoftLine;
+			FlowLineLayout(LineModelIndex, GetWrappingDrawWidth(), SoftLine);
+
+			// Apply the current margin to the newly added line
+			if (LineViews.Num() > 0)
+			{
+				const FVector2D MarginOffsetAdjustment = FVector2D(Margin.Left, Margin.Top) * Scale;
+
+				FLineView& LastLineView = LineViews.Last();
+				if (LastLineView.ModelIndex == LineModelIndex)
+				{
+					LastLineView.Offset += MarginOffsetAdjustment;
+				}
+
+				for (const TSharedRef< ILayoutBlock >& Block : SoftLine)
+				{
+					Block->SetLocationOffset( Block->GetLocationOffset() + MarginOffsetAdjustment );
+				}
+			}
+		}
+
+		// We need to re-justify all lines, as the new line view(s) added by this line model may have affected everything
+		JustifyLayout();
+
+		for (int32 LineModelIndex = FirstNewLineModelIndex; LineModelIndex < LineModels.Num(); ++LineModelIndex)
+		{
+			FLineModel& LineModel = LineModels[LineModelIndex];
+			EndLineLayout(LineModel);
+		}
 	}
 }
 

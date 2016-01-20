@@ -564,7 +564,7 @@ bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool 
 			TArray< TSharedRef< IRun > > Runs;
 			Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, TextStyle));
 
-			TextLayout->AddLine(LineText, Runs);
+			TextLayout->AddLine(FTextLayout::FNewLineData(MoveTemp(LineText), MoveTemp(Runs)));
 		}
 
 		{
@@ -1050,7 +1050,7 @@ void SMultiLineEditableText::DeleteSelectedText()
 				TArray< TSharedRef< IRun > > Runs;
 				Runs.Add(FSlateTextRun::Create(FRunInfo(), EmptyText, TextStyle));
 
-				TextLayout->AddLine(EmptyText, Runs);
+				TextLayout->AddLine(FTextLayout::FNewLineData(MoveTemp(EmptyText), MoveTemp(Runs)));
 			}
 		}
 

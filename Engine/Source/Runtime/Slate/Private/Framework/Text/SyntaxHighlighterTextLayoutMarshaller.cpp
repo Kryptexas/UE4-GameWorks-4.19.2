@@ -73,6 +73,9 @@ void FRichTextSyntaxHighlighterTextLayoutMarshaller::ParseTokens(const FString& 
 		LookingForNodeAttribueValueBody,
 	};
 
+	TArray<FTextLayout::FNewLineData> LinesToAdd;
+	LinesToAdd.Reserve(TokenizedLines.Num());
+
 	// Parse the tokens, generating the styled runs for each line
 	EParseState ParseState = EParseState::LookingForNode;
 	for(const FSyntaxTokenizer::FTokenizedLine& TokenizedLine : TokenizedLines)
@@ -168,8 +171,10 @@ void FRichTextSyntaxHighlighterTextLayoutMarshaller::ParseTokens(const FString& 
 			Runs.Add(Run);
 		}
 
-		TargetTextLayout.AddLine(ModelString, Runs);
+		LinesToAdd.Emplace(MoveTemp(ModelString), MoveTemp(Runs));
 	}
+
+	TargetTextLayout.AddLines(LinesToAdd);
 }
 
 FRichTextSyntaxHighlighterTextLayoutMarshaller::FRichTextSyntaxHighlighterTextLayoutMarshaller(TSharedPtr< FSyntaxTokenizer > InTokenizer, const FSyntaxTextStyle& InSyntaxTextStyle)

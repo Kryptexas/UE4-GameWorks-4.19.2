@@ -365,7 +365,24 @@ public:
 
 	void ClearLines();
 
+	struct FNewLineData
+	{
+		FNewLineData(TSharedRef<FString> InText, TArray<TSharedRef<IRun>> InRuns)
+			: Text(MoveTemp(InText))
+			, Runs(MoveTemp(InRuns))
+		{
+		}
+
+		TSharedRef<FString> Text;
+		TArray<TSharedRef<IRun>> Runs;
+	};
+
+	DEPRECATED(4.11, "Please use the version of AddLine that takes an FNewLineData parameter.")
 	void AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs );
+
+	void AddLine( const FNewLineData& NewLine );
+
+	void AddLines( const TArray<FNewLineData>& NewLines );
 
 	/**
 	* Clears all run renderers

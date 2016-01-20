@@ -551,11 +551,7 @@ FOutputLogTextLayoutMarshaller::~FOutputLogTextLayoutMarshaller()
 void FOutputLogTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout& TargetTextLayout)
 {
 	TextLayout = &TargetTextLayout;
-
-	for(const auto& Message : Messages)
-	{
-		AppendMessageToTextLayout(Message);
-	}
+	AppendMessagesToTextLayout(Messages);
 }
 
 void FOutputLogTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout& SourceTextLayout)
@@ -581,10 +577,7 @@ bool FOutputLogTextLayoutMarshaller::AppendMessage(const TCHAR* InText, const EL
 			}
 
 			// If we've already been given a text layout, then append these new messages rather than force a refresh of the entire document
-			for(const auto& Message : NewMessages)
-			{
-				AppendMessageToTextLayout(Message);
-			}
+			AppendMessagesToTextLayout(NewMessages);
 		}
 		else
 		{
@@ -597,16 +590,36 @@ bool FOutputLogTextLayoutMarshaller::AppendMessage(const TCHAR* InText, const EL
 	return false;
 }
 
-void FOutputLogTextLayoutMarshaller::AppendMessageToTextLayout(const TSharedPtr<FLogMessage>& Message)
+void FOutputLogTextLayoutMarshaller::AppendMessageToTextLayout(const TSharedPtr<FLogMessage>& InMessage)
 {
-	const FTextBlockStyle& MessageTextStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(Message->Style);
+	const FTextBlockStyle& MessageTextStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(InMessage->Style);
 
-	TSharedRef<FString> LineText = Message->Message;
+	TSharedRef<FString> LineText = InMessage->Message;
 
 	TArray<TSharedRef<IRun>> Runs;
 	Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, MessageTextStyle));
 
-	TextLayout->AddLine(LineText, Runs);
+	TextLayout->AddLine(FSlateTextLayout::FNewLineData(MoveTemp(LineText), MoveTemp(Runs)));
+}
+
+void FOutputLogTextLayoutMarshaller::AppendMessagesToTextLayout(const TArray<TSharedPtr<FLogMessage>>& InMessages)
+{
+	TArray<FTextLayout::FNewLineData> LinesToAdd;
+	LinesToAdd.Reserve(InMessages.Num());
+
+	for (const auto& CurrentMessage : InMessages)
+	{
+		const FTextBlockStyle& MessageTextStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(CurrentMessage->Style);
+
+		TSharedRef<FString> LineText = CurrentMessage->Message;
+
+		TArray<TSharedRef<IRun>> Runs;
+		Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, MessageTextStyle));
+
+		LinesToAdd.Emplace(MoveTemp(LineText), MoveTemp(Runs));
+	}
+
+	TextLayout->AddLines(LinesToAdd);
 }
 
 void FOutputLogTextLayoutMarshaller::ClearMessages()
