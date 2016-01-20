@@ -421,7 +421,7 @@ void FEdModeLandscape::Enter()
 	}
 	else
 	{
-		if (CurrentToolMode == NULL)
+		if (CurrentToolMode == nullptr || (CurrentToolMode->CurrentToolName == FName("NewLandscape")))
 		{
 			SetCurrentToolMode("ToolMode_Sculpt", false);
 			SetCurrentTool("Sculpt");
@@ -1834,13 +1834,21 @@ FEdModeLandscape::FTargetsListUpdated FEdModeLandscape::TargetsListUpdated;
 
 void FEdModeLandscape::OnWorldChange()
 {
+	bool bHadLandscape = (NewLandscapePreviewMode == ENewLandscapePreviewMode::None);
+
 	UpdateLandscapeList();
 	UpdateTargetList();
 
-	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None &&
-		CurrentToolTarget.LandscapeInfo == NULL)
+	// if the Landscape is deleted then close the landscape editor
+	if (bHadLandscape && CurrentToolTarget.LandscapeInfo == nullptr)
 	{
 		RequestDeletion();
+	}
+
+	// if a landscape is added somehow then switch to sculpt
+	if (!bHadLandscape && CurrentToolTarget.LandscapeInfo != nullptr)
+	{
+		SetCurrentTool("Sculpt");
 	}
 }
 
