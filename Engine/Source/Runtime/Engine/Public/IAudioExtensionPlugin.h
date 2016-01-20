@@ -6,39 +6,19 @@
 #include "ModuleManager.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 
-// Whether or not we are enabling the "High Quality" Version of the spatialization algorithm
-#define OCULUS_HQ_ENABLED (0) // Note: We are disabling the HQ version since the "FAST" quality seems good.
-
-enum ESpatializationEffectType
-{
-	SPATIALIZATION_TYPE_DEFAULT,
-	SPATIALIZATION_TYPE_FAST,
-#if OCULUS_HQ_ENABLED
-	SPATIALIZATION_TYPE_HIGH_QUALITY,
-#endif // #if OCULUS_HQ_ENABLED
-	SPATIALIZATION_TYPE_COUNT
-};
-
 class FAudioSpatializationParams
 {
 public:
 	FAudioSpatializationParams()
 		: EmitterPosition(0.0f)
-		, SpatializationAlgorithm(SPATIALIZATION_TYPE_FAST)
 	{}
 
 	FAudioSpatializationParams(const FVector& InEmitterPosition)
 		: EmitterPosition(InEmitterPosition)
-		, SpatializationAlgorithm(SPATIALIZATION_TYPE_FAST)
 	{}
 
-	FAudioSpatializationParams(const FVector& InEmitterPosition, ESpatializationEffectType InSpatializationAlgorithm)
-		: EmitterPosition(InEmitterPosition)
-		, SpatializationAlgorithm(InSpatializationAlgorithm)
-	{}
-
-	FVector						EmitterPosition;
-	ESpatializationEffectType	SpatializationAlgorithm;
+	// Add any more params one might need here...
+	FVector EmitterPosition;
 };
 
 /**
@@ -59,7 +39,7 @@ public:
 	}
 
 	/** Uses the given HRTF algorithm to spatialize a mono audio stream. */
-	virtual void ProcessSpatializationForVoice(ESpatializationEffectType Type, uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position)
+	virtual void ProcessSpatializationForVoice(uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position)
 	{
 
 	}

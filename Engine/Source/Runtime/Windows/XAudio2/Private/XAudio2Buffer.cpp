@@ -315,6 +315,12 @@ void FXAudio2SoundBuffer::InitXWMA( USoundWave* Wave, FXMAInfo* XMAInfo )
  */
 bool FXAudio2SoundBuffer::ReadCompressedData( uint8* Destination, bool bLooping )
 {
+	if (!DecompressionState)
+	{
+		UE_LOG(LogXAudio2, Warning, TEXT( "Attempting to read compressed data without a compression state instance for resource '%s'" ), *ResourceName );
+		return false;
+	}
+	
 	const uint32 kPCMBufferSize = MONO_PCM_BUFFER_SIZE * NumChannels;
 	if (SoundFormat == SoundFormat_Streaming)
 	{

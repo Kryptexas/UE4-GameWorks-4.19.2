@@ -477,6 +477,8 @@ protected:
 	uint32						VoiceId;
 	/** Whether or not this sound is spatializing using an HRTF spatialization algorithm. */
 	bool						bUsingHRTFSpatialization;
+	/** Whether or not we've already logged a warning on this sound about it switching algorithms after init. */
+	bool						bEditorWarnedChangedSpatialization;
 
 	friend class FXAudio2Device;
 	friend class FXAudio2SoundSourceCallback;
@@ -675,6 +677,12 @@ struct FXAudioDeviceProperties
 
 		// And make sure there's no audio remaining the voice so when it's re-used it's fresh.
 		Voice->FlushSourceBuffers();
+
+#if XAUDIO2_SUPPORTS_SENDLIST
+		// Clear out the send effects (OutputVoices). When the voice gets reused, the old internal state might be invalid 
+		// when the new send effects are applied to the voice.
+		Voice->SetOutputVoices(nullptr);
+#endif
 
 		// Release the effect chain
 		Voice->SetEffectChain(nullptr);

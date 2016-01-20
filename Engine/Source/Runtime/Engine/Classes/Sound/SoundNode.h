@@ -120,6 +120,9 @@ public:
 		return 0;
 	}
 
+	/** Returns the number of simultaneous sounds this node instance plays back. */
+	virtual int32 GetNumSounds(const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound) const;
+
 
 	/** 
 	 * Editor interface. 

@@ -161,6 +161,20 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 	}
 }
 
+int32 USoundNodeRandom::GetNumSounds(const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound) const
+{
+	RETRIEVE_SOUNDNODE_PAYLOAD(sizeof(int32));
+	DECLARE_SOUNDNODE_ELEMENT(int32, NodeIndex);
+
+	// Only return the number of soundso the chosen node. If the random node hasn't been initialized yet
+	// then there is no chosen node so return 0.
+	if (!*RequiresInitialization && NodeIndex < ChildNodes.Num() && ChildNodes[NodeIndex])
+	{
+		return ChildNodes[NodeIndex]->GetNumSounds(NodeWaveInstanceHash, ActiveSound);
+	}
+	return 0;
+}
+
 void USoundNodeRandom::CreateStartingConnectors()
 {
 	// Random Sound Nodes default with two connectors.

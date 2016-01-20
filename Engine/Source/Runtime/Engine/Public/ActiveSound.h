@@ -125,11 +125,17 @@ public:
 	/** The group of active concurrent sounds that this sound is playing in. */
 	FConcurrencyGroupID ConcurrencyGroupID;
 
+	/** The generation of this sound in the concurrency group. */
+	int32 ConcurrencyGeneration;
+
 	/** Optional USoundConcurrency to override sound */
 	USoundConcurrency* ConcurrencySettings;
 
 	/** Optional SoundClass to override Sound */
 	USoundClass* SoundClassOverride;
+
+	/** Whether or not the sound has checked if it was occluded already. Used to initialize a sound as occluded and bypassing occlusion interpolation. */
+	uint32 bHasCheckedOcclusion:1;
 
 	/** whether we were occluded the last time we checked */
 	uint32 bIsOccluded:1;
@@ -218,13 +224,22 @@ public:
 
 	FDynamicParameter CurrentOcclusionVolumeAttenuation;
 
-	/** A volume scale to apply to a sound based on the concurrency count of the active sound when it started */
+	/** A volume scale to apply to a sound based on the concurrency count of the active sound when it started. Will reduce volume of new sounds if many sounds are playing in concurrency group. */
 	float ConcurrencyVolumeScale;
+
+	/** A volume to apply to a sound based on the concurrency generation and the current generation count. Will reduce volume of older sounds as new sounds play in concurrency group. */
+	float ConcurrencyDuckingVolumeScale;
 
 	float SubtitlePriority;
 
 	/** The product of the component priority and the USoundBase priority */
 	float Priority;
+
+	/** The amount priority is scaled due to focus */
+	float FocusPriorityScale;
+
+	/** The amount distance is scaled due to focus */
+	float FocusDistanceScale;
 
 	/** Frequency with which to check for occlusion from its closest listener */
 	// The volume used to determine concurrency resolution for "quietest" active sound
@@ -352,6 +367,9 @@ public:
 	/** Applies the active sound's attenuation settings to the input parse params using the given listener */
 	void ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FAttenuationSettings* SettingsAttenuationNode = nullptr);
 
+	/** Returns the effective priority of the active sound */
+	float GetPriority() const { return Priority * FocusPriorityScale; }
+
 private:
 	
 	/** Whether or not this sound is audible */
@@ -383,22 +401,4 @@ private:
 	/** Apply the interior settings to the ambient sound as appropriate */
 	void HandleInteriorVolumes( const FListener& Listener, struct FSoundParseParameters& ParseParams );
 
-	/** Struct used to cache listener attenuation vector math results */
-	struct FAttenuationListenerData
-	{
-		FVector ListenerToSoundDir;
-		float AttenuationDistance;
-		float ListenerToSoundDistance;
-		bool bDataComputed;
-
-		FAttenuationListenerData()
-			: ListenerToSoundDir(FVector::ZeroVector)
-			, AttenuationDistance(0.0f)
-			, ListenerToSoundDistance(0.0f)
-			, bDataComputed(false)
-		{}
-	};
-
-	/** Performs listener-based calculations for spatializing and attenuating the active sound */
-	void GetAttenuationListenerData(FAttenuationListenerData& Data, const FSoundParseParameters& ParseParams, const FListener& Listener) const;
 };
