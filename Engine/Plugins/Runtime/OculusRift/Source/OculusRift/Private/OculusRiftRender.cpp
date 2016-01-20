@@ -92,7 +92,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurHeadPose, NewOrientation, NewPosition);
 	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
 
-	Delegate->ApplyLateUpdate(OldRelativeTransform, NewRelativeTransform);
+	Delegate->ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
 }
 
 void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)

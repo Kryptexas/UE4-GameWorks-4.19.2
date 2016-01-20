@@ -345,17 +345,31 @@ public:
 	virtual void SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component);
 
 	/** Apply the late update delta to the cached compeonents */
-	virtual void ApplyLateUpdate(const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform);
+	virtual void ApplyLateUpdate(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform);
 	
 private:
 
+	/*
+	 *	Late update primitive info for accessing valid scene proxy info. From the time the info is gathered
+	 *  to the time it is later accessed the render proxy can be deleted. To ensure we only access a proxy that is
+	 *  still valid we cache the primitive's scene info AND a pointer to it's own cached index. If the primitive
+	 *  is deleted or removed from the scene then attempting to access it via it's index will result in a different
+	 *  scene info than the cached scene info.
+	 */
+	struct LateUpdatePrimitiveInfo
+	{
+		const int32*			IndexAddress;
+		FPrimitiveSceneInfo*	SceneInfo;
+	};
+
+	void GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives);
+
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
 	FSlateRect PreFullScreenRect;
-
-	/** Scene proxies that need late updates */
-	FPrimitiveSceneProxy*	LateUpdateSceneProxies[16];
-	int32					LateUpdateSceneProxyCount;
+	
+	/** Primitives that need late update before rendering */
+	TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives;
 
 	/** Parent world transform used to reconstruct new world transforms for late update scene proxies */
-	FTransform				LateUpdateParentToWorld;
+	FTransform LateUpdateParentToWorld;
 };
