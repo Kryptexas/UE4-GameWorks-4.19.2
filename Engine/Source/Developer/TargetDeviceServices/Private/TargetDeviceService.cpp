@@ -192,10 +192,10 @@ void FTargetDeviceService::Stop()
 	{
 	
 		MessageEndpoint->Publish(new FTargetDeviceUnclaimed(DeviceName, FPlatformProcess::ComputerName(), FPlatformProcess::UserName(false)));
-	    // Only stop the device if we care about device claiming
+        FPlatformProcess::SleepNoStats(0.01);
 
+        // Only stop the device if we care about device claiming
 		GConfig->GetBool(TEXT("/Script/Engine.Engine"), TEXT("DisableDeviceClaiming"), Running, GEngineIni);
-		
 	}
 }
 
