@@ -2383,6 +2383,7 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 		FreezeClothSection(false);
 	}
 
+	ForceClothNextUpdateTeleportAndReset();
 }
 
 void USkeletalMeshComponent::RemoveAllClothingActors()

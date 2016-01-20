@@ -144,6 +144,11 @@ void UField::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << Next;
+	if (Ar.IsLoading())
+	{
+		// Make sure that after loading new assets we will check for new classes and generate their token stream.
+		SetTokenStreamMaybeDirty(true);
+	}
 }
 
 void UField::AddCppProperty( UProperty* Property )
@@ -3487,9 +3492,6 @@ void UClass::Serialize( FArchive& Ar )
 			};
 			Ar.Seek(InterfacesStart + sizeof(NumInterfaces) + NumInterfaces * sizeof(FSerializedInterfaceReference));
 		}
-
-		// At this point token stream is most likely dirty too
-		SetTokenStreamMaybeDirty(true);
 	}
 
 	if (!Ar.IsIgnoringClassGeneratedByRef())
@@ -3501,7 +3503,7 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		checkf(!HasAnyClassFlags(CLASS_Native), TEXT("Class %s loaded with CLASS_Native....we should not be loading any native classes."), *GetFullName());
 		checkf(!HasAnyClassFlags(CLASS_Intrinsic), TEXT("Class %s loaded with CLASS_Intrinsic....we should not be loading any intrinsic classes."), *GetFullName());
-		ClassFlags &= ~ CLASS_ShouldNeverBeLoaded;
+		ClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
 		if (!(Ar.GetPortFlags() & PPF_Duplicate))
 		{
 			Link(Ar, true);

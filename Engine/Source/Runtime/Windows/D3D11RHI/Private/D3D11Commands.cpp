@@ -715,8 +715,19 @@ void FD3D11DynamicRHI::ValidateExclusiveDepthStencilAccess(FExclusiveDepthStenci
 		const bool bDstStencilWrite = CurrentDSVAccessType.IsStencilWrite();
 
 		// requested access is not possible, fix SetRenderTarget EExclusiveDepthStencil or request a different one
-		check(!bSrcDepthWrite || bDstDepthWrite);
-		check(!bSrcStencilWrite || bDstStencilWrite);
+		ensureMsgf(
+			!bSrcDepthWrite || bDstDepthWrite, 
+			TEXT("Expected: SrcDepthWrite := false or DstDepthWrite := true. Actual: SrcDepthWrite := %s or DstDepthWrite := %s"),
+			(bSrcDepthWrite) ? TEXT("true") : TEXT("false"),
+			(bDstDepthWrite) ? TEXT("true") : TEXT("false")
+			);
+
+		ensureMsgf(
+			!bSrcStencilWrite || bDstStencilWrite,
+			TEXT("Expected: SrcStencilWrite := false or DstStencilWrite := true. Actual: SrcStencilWrite := %s or DstStencilWrite := %s"),
+			(bSrcStencilWrite) ? TEXT("true") : TEXT("false"),
+			(bDstStencilWrite) ? TEXT("true") : TEXT("false")
+			);
 	}
 }
 

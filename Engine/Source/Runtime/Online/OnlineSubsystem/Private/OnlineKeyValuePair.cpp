@@ -753,6 +753,10 @@ bool FVariantData::operator==(const FVariantData& Other) const
 				return (Value.AsBlob.BlobSize == Other.Value.AsBlob.BlobSize) && 
 						 (FMemory::Memcmp(Value.AsBlob.BlobData, Other.Value.AsBlob.BlobData, Value.AsBlob.BlobSize) == 0);
 			}
+		case EOnlineKeyValuePairDataType::Bool:
+			{
+				return Value.AsBool == Other.Value.AsBool;
+			}
 		}
 	}
 	return false;

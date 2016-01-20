@@ -601,11 +601,11 @@ struct FOnlineJsonSerializable
 	 *
 	 * @return the corresponding json string
 	 */
-	inline const FString ToJson() const
+	inline const FString ToJson(bool bPrettyPrint = true) const
 	{
 		// Strip away const, because we use a single method that can read/write which requires non-const semantics
 		// Otherwise, we'd have to have 2 separate macros for declaring const to json and non-const from json
-		return ((FOnlineJsonSerializable*)this)->ToJson();
+		return ((FOnlineJsonSerializable*)this)->ToJson(bPrettyPrint);
 	}
 	/**
 	 * Serializes this object to its JSON string form

@@ -257,7 +257,7 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 			for (FName& ParameterName : OutParameterNames)
 			{
 				// Add or retrieve TMap entry for this scalar parameter name
-				TArray<int32>& MaterialIndices = ScalarParameterMaterialIndices.Add(ParameterName);
+				TArray<int32>& MaterialIndices = ScalarParameterMaterialIndices.FindOrAdd(ParameterName);
 				// Add the corresponding material index
 				MaterialIndices.Add(MaterialIndex);
 			}
@@ -271,7 +271,7 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 			for (FName& ParameterName : OutParameterNames)
 			{
 				// Add or retrieve TMap entry for this vector parameter name
-				TArray<int32>& MaterialIndices = VectorParameterMaterialIndices.Add(ParameterName);
+				TArray<int32>& MaterialIndices = VectorParameterMaterialIndices.FindOrAdd(ParameterName);
 				// Add the corresponding material index
 				MaterialIndices.Add(MaterialIndex);
 			}

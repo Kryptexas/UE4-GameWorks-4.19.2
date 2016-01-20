@@ -1505,17 +1505,6 @@ void AActor::GetAttachedActors(TArray<class AActor*>& OutActors) const
 			const bool bAllowShrinking = false;
 			USceneComponent* SceneComp = CompsToCheck.Pop(bAllowShrinking);
 
-			//////////////////////////////////////////////////////////////////////////
-			// ORION ONLY - DO NOT INTEGRATE INTO MAIN!
-			// Tracking down https://jira.ol.epicgames.net/browse/OR-3997
-			if(!ensure(SceneComp->IsValidLowLevel()))
-			{
-				UE_LOG(LogSpawn, Error, TEXT("GetAttachedActors called for actor [%s], is accessing an invalid scene component" ), *GetFullName() );
-				continue;
-			}
-			// ORION ONLY
-			//////////////////////////////////////////////////////////////////////////
-
 			// Add it to the 'checked' set, should not already be there!
 			if (!CheckedComps.Contains(SceneComp))
 			{

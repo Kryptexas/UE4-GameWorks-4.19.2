@@ -27,31 +27,42 @@ FPropertyLocalizationDataGatherer::FPropertyLocalizationDataGatherer(TArray<FGat
 	// Iterate over each root object in the package
 	for (const UObject* Object : RootObjectsInPackage)
 	{
-		// See if we have a custom handler for this type
-		FLocalizationDataGatheringCallback* CustomCallback = nullptr;
-		for (const UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
-		{
-			CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
-			if (CustomCallback)
-			{
-				break;
-			}
-		}
+		GatherLocalizationDataFromObjectWithCallbacks(Object, EPropertyLocalizationGathererTextFlags::None);
+	}
+}
 
+void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectWithCallbacks(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+{
+	// See if we have a custom handler for this type
+	FLocalizationDataGatheringCallback* CustomCallback = nullptr;
+	for (const UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
+	{
+		CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
 		if (CustomCallback)
 		{
-			(*CustomCallback)(Object, *this, EPropertyLocalizationGathererTextFlags::None);
+			break;
 		}
-		else
-		{
-			GatherLocalizationDataFromObject(Object, EPropertyLocalizationGathererTextFlags::None);
-		}
+	}
+
+	if (CustomCallback)
+	{
+		(*CustomCallback)(Object, *this, GatherTextFlags);
+	}
+	else
+	{
+		GatherLocalizationDataFromObject(Object, GatherTextFlags);
 	}
 }
 
 void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObject(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 {
 	checkf(IsObjectValidForGather(Object), TEXT("Cannot gather for objects outside of the current package! Package: '%s'. Object: '%s'."), *Package->GetFullName(), *Object->GetFullName());
+
+	if (Object->HasAnyFlags(RF_Transient))
+	{
+		// Transient objects aren't saved, so skip them as part of the gather
+		return;
+	}
 
 	// Skip objects that we've already processed to avoid repeated work and cyclic chains
 	{
@@ -87,7 +98,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObject(const U
 
 		for (const UObject* ChildObject : ChildObjects)
 		{
-			GatherLocalizationDataFromObject(ChildObject, GatherTextFlags);
+			GatherLocalizationDataFromObjectWithCallbacks(ChildObject, GatherTextFlags);
 		}
 	}
 }
@@ -142,6 +153,12 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromStructFields(c
 
 void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextProperties(const FString& PathToParent, const UProperty* const Property, const void* const ValueAddress, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 {
+	if (Property->HasAnyPropertyFlags(CPF_Transient))
+	{
+		// Transient properties aren't saved, so skip them as part of the gather
+		return;
+	}
+
 	const UTextProperty* const TextProperty = Cast<const UTextProperty>(Property);
 	const UArrayProperty* const ArrayProperty = Cast<const UArrayProperty>(Property);
 	const UMapProperty* const MapProperty = Cast<const UMapProperty>(Property);
@@ -204,7 +221,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextPrope
 				const UObject* InnerObject = ObjectProperty->GetObjectPropertyValue(ElementValueAddress);
 				if (InnerObject && IsObjectValidForGather(InnerObject))
 				{
-					GatherLocalizationDataFromObject(InnerObject, ChildPropertyGatherTextFlags);
+					GatherLocalizationDataFromObjectWithCallbacks(InnerObject, ChildPropertyGatherTextFlags);
 				}
 			}
 		}

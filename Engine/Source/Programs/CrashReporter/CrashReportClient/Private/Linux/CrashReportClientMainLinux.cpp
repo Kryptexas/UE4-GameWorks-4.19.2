@@ -11,6 +11,8 @@ extern int32 ReportCrash(const FLinuxCrashContext& Context);	// FIXME: handle ex
  */
 void CrashReporterCrashHandler(const FGenericCrashContext& GenericContext)
 {
+	// at this point we should already be using malloc crash handler (see PlatformCrashHandler)
+
 	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
 
 	printf("CrashHandler: Signal=%d\n", Context.Signal);

@@ -479,7 +479,7 @@ void UPartyGameState::HandlePartyDataReceived(const TSharedRef<FOnlinePartyData>
 	if (ensure(PartyInt.IsValid()))
 	{
 		check(PartyStateRefDef && PartyStateRef);
-		if (FVariantDataConverter::VariantMapToUStruct(InPartyData->KeyValAttrs, PartyStateRefDef, PartyStateRefScratch, 0, CPF_Transient | CPF_RepSkip))
+		if (FVariantDataConverter::VariantMapToUStruct(InPartyData->GetKeyValAttrs(), PartyStateRefDef, PartyStateRefScratch, 0, CPF_Transient | CPF_RepSkip))
 		{
 			ComparePartyData(*PartyStateRef, *PartyStateRefScratch);
 
@@ -527,7 +527,7 @@ void UPartyGameState::HandlePartyMemberDataReceived(const FUniqueNetId& InMember
 
 			check(CurrentPartyMember->MemberStateRefDef && CurrentPartyMember->MemberStateRefScratch);
 
-			if (FVariantDataConverter::VariantMapToUStruct(InPartyMemberData->KeyValAttrs, CurrentPartyMember->MemberStateRefDef, CurrentPartyMember->MemberStateRef, 0, CPF_Transient | CPF_RepSkip))
+			if (FVariantDataConverter::VariantMapToUStruct(InPartyMemberData->GetKeyValAttrs(), CurrentPartyMember->MemberStateRefDef, CurrentPartyMember->MemberStateRef, 0, CPF_Transient | CPF_RepSkip))
 			{
 				// Broadcast property changes
 				CurrentPartyMember->ComparePartyMemberData(*CurrentPartyMember->MemberStateRefScratch);
@@ -1161,7 +1161,7 @@ void UPartyGameState::UpdatePartyData(const FUniqueNetIdRepl& InLocalUserId)
 			{
 				FOnlinePartyData PartyData;
 				ensure(PartyStateRefDef != nullptr && PartyStateRef != nullptr);
-				if (FVariantDataConverter::UStructToVariantMap(PartyStateRefDef, PartyStateRef, PartyData.KeyValAttrs, 0, CPF_Transient | CPF_RepSkip))
+				if (FVariantDataConverter::UStructToVariantMap(PartyStateRefDef, PartyStateRef, PartyData.GetKeyValAttrs(), 0, CPF_Transient | CPF_RepSkip))
 				{
 					PartyInt->UpdatePartyData(*OwningUserId, *PartyId, PartyData);
 				}
@@ -1203,7 +1203,7 @@ void UPartyGameState::UpdatePartyMemberState(const FUniqueNetIdRepl& InLocalUser
 				{
 					FOnlinePartyData PartyMemberData;
 					ensure(InPartyMemberState->MemberStateRefDef != nullptr && InPartyMemberState->MemberStateRef != nullptr);
-					if (FVariantDataConverter::UStructToVariantMap(InPartyMemberState->MemberStateRefDef, InPartyMemberState->MemberStateRef, PartyMemberData.KeyValAttrs, 0, CPF_Transient | CPF_RepSkip))
+					if (FVariantDataConverter::UStructToVariantMap(InPartyMemberState->MemberStateRefDef, InPartyMemberState->MemberStateRef, PartyMemberData.GetKeyValAttrs(), 0, CPF_Transient | CPF_RepSkip))
 					{
 						PartyInt->UpdatePartyMemberData(*InLocalUserId, *PartyId, PartyMemberData);
 					}

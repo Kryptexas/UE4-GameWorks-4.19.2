@@ -15,6 +15,7 @@ using EpicGames.Localization;
 [Help("LocalizationProjectNames", "Comma separated list of the projects to gather text from.")]
 [Help("LocalizationBranch", "Optional suffix to use when uploading the new data to the localization provider.")]
 [Help("LocalizationProvider", "Optional localization provide override (default is OneSky).")]
+[Help("AdditionalCommandletArguments", "Optional arguments to pass to the gather process.")]
 class Localise : BuildCommand
 {
 	public override void ExecuteBuild()
@@ -51,6 +52,12 @@ class Localise : BuildCommand
 		if (LocalizationProviderName == null)
 		{
 			LocalizationProviderName = "OneSky";
+		}
+
+		var AdditionalCommandletArguments = ParseParamValue("AdditionalCommandletArguments");
+		if (AdditionalCommandletArguments == null)
+		{
+			AdditionalCommandletArguments = "";
 		}
 
 		var RootWorkingDirectory = CombinePaths(CmdEnv.LocalRoot, UEProjectDirectory);
@@ -107,6 +114,11 @@ class Localise : BuildCommand
 			foreach (var LocalizationConfigFile in ProjectInfo.LocalizationConfigFiles)
 			{
 				var CommandletArguments = String.Format("-config={0}", LocalizationConfigFile) + (String.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments);
+
+				if (!String.IsNullOrEmpty(AdditionalCommandletArguments))
+				{
+					CommandletArguments += " " + AdditionalCommandletArguments;
+				}
 
 				Log("Localization for {0} {1}", EditorArguments, CommandletArguments);
 

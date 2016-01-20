@@ -142,7 +142,8 @@ void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 			}
 			else
 			{
-				UE_LOG(LogRedirectors, Warning, TEXT("String Asset Reference '%s' was not found!"), *ToLoad);
+				const FString Referencer = RefFilenameAndProperty.Property.Len() ? RefFilenameAndProperty.Property : TEXT("Unknown");
+				UE_LOG(LogRedirectors, Warning, TEXT("String Asset Reference '%s' was not found! (Referencer '%s')"), *ToLoad, *Referencer);
 			}
 		}
 	}

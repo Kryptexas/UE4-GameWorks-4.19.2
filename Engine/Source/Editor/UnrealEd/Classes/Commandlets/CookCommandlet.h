@@ -40,6 +40,8 @@ class UCookCommandlet
 	bool bUseSerializationForGeneratingPackageDependencies;
 	/** Only cook packages specified on commandline options (for debugging)*/
 	bool bCookSinglePackage;
+	/** Should we output additional verbose cooking warnings */
+	bool bVerboseCookerWarnings;
 	/** All commandline tokens */
 	TArray<FString> Tokens;
 	/** All commandline switches */

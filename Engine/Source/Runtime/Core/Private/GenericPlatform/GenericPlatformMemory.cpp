@@ -185,9 +185,9 @@ uint32 FGenericPlatformMemory::GetPhysicalGBRam()
 	return FPlatformMemory::GetConstants().TotalPhysicalGB;
 }
 
-bool FGenericPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
+bool FGenericPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite)
 {
-	UE_LOG(LogMemory, Error, TEXT("FGenericPlatformMemory::PageProtect not implemented on this platform"));
+	UE_LOG(LogMemory, Verbose, TEXT("FGenericPlatformMemory::PageProtect not implemented on this platform"));
 	return false;
 }
 

@@ -15,6 +15,7 @@
 #include "AssetRegistryInterface.h"
 #include "BlueprintSupport.h"
 
+#define FIND_MEMORY_STOMPS (1 && PLATFORM_WINDOWS && !WITH_EDITORONLY_DATA)
 
 /*-----------------------------------------------------------------------------
 	Async loading stats.
@@ -135,7 +136,9 @@ public:
 		const EInternalObjectFlags AsyncFlags = EInternalObjectFlags::Async | EInternalObjectFlags::AsyncLoading;
 		for (UObject* Obj : ReferencedObjects)
 		{
-			check(Obj);
+			// Temporary fatal messages instead of checks to find the cause for a one-time crash in shipping config
+			UE_CLOG(Obj == nullptr, LogStreaming, Fatal, TEXT("NULL object in Async Objects Referencer"));
+			UE_CLOG(!Obj->IsValidLowLevelFast(), LogStreaming, Fatal, TEXT("Invalid object in Async Objects Referencer"));
 			Obj->AtomicallyClearInternalFlags(AsyncFlags);
 			check(!Obj->HasAnyInternalFlags(AsyncFlags))
 		}
@@ -2285,6 +2288,44 @@ void ResumeAsyncLoadingInternal()
 	FArchiveAsync.
 ----------------------------------------------------------------------------*/
 
+static uint8* MallocAsyncBuffer(const SIZE_T Size, SIZE_T& OutAllocatedSize)
+{
+	uint8* Result = nullptr;
+#if FIND_MEMORY_STOMPS
+	const SIZE_T PageSize = FPlatformMemory::GetConstants().PageSize;
+	const SIZE_T Alignment = PageSize;
+	const SIZE_T AlignedSize = (Size + Alignment - 1U) & -static_cast<int32>(Alignment);
+	const SIZE_T AllocFullPageSize = AlignedSize + (PageSize - 1) & ~(PageSize - 1U);
+	check(AllocFullPageSize >= Size);
+	OutAllocatedSize = AllocFullPageSize;
+#if PLATFORM_LINUX || PLATFORM_MAC
+	Result = (uint8*)mmap(nullptr, AllocFullPageSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+#else
+	Result = (uint8*)FPlatformMemory::BinnedAllocFromOS(AllocFullPageSize);
+#endif // PLATFORM_LINUX || PLATFORM_MAC
+#else
+	OutAllocatedSize = Size;
+	Result = (uint8*)FMemory::Malloc(Size);
+#endif // FIND_MEMORY_STOMPS
+	return Result;
+}
+
+static void FreeAsyncBuffer(uint8* Buffer, const SIZE_T AllocatedSize)
+{
+	if (Buffer)
+	{
+#if FIND_MEMORY_STOMPS
+#if PLATFORM_LINUX || PLATFORM_MAC
+		munmap(Buffer, AllocatedSize);
+#else
+		FPlatformMemory::BinnedFreeToOS(Buffer);
+#endif // PLATFORM_LINUX || PLATFORM_MAC
+#else
+		FMemory::Free(Buffer);
+#endif // FIND_MEMORY_STOMPS
+	}
+}
+
 /**
  * Constructor, initializing all member variables.
  */
@@ -2308,10 +2349,14 @@ FArchiveAsync::FArchiveAsync( const TCHAR* InFileName )
 	PrecacheStartPos[CURRENT]	= 0;
 	PrecacheEndPos[CURRENT]		= 0;
 	PrecacheBuffer[CURRENT]		= nullptr;
+	PrecacheBufferSize[CURRENT] = 0;
+	PrecacheBufferProtected[CURRENT] = false;
 
 	PrecacheStartPos[NEXT]		= 0;
 	PrecacheEndPos[NEXT]		= 0;
 	PrecacheBuffer[NEXT]		= nullptr;
+	PrecacheBufferSize[NEXT] = 0;
+	PrecacheBufferProtected[NEXT] = false;
 
 	// Relies on default constructor initializing to 0.
 	check( PrecacheReadStatus[CURRENT].GetValue() == 0 );
@@ -2364,16 +2409,20 @@ void FArchiveAsync::FlushCache()
 
 	// Invalidate any precached data and free memory for current buffer.
 	Delta += PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT];
-	FMemory::Free( PrecacheBuffer[CURRENT] );
+	FreeAsyncBuffer(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT]);
 	PrecacheBuffer[CURRENT]		= nullptr;
 	PrecacheStartPos[CURRENT]	= 0;
 	PrecacheEndPos[CURRENT]		= 0;
-	
+	PrecacheBufferSize[CURRENT] = 0;
+	PrecacheBufferProtected[CURRENT] = false;
+
 	// Invalidate any precached data and free memory for next buffer.
-	FMemory::Free( PrecacheBuffer[NEXT] );
+	FreeAsyncBuffer(PrecacheBuffer[NEXT], PrecacheBufferSize[NEXT]);
 	PrecacheBuffer[NEXT]		= nullptr;
 	PrecacheStartPos[NEXT]		= 0;
 	PrecacheEndPos[NEXT]		= 0;
+	PrecacheBufferSize[NEXT] = 0;
+	PrecacheBufferProtected[NEXT] = false;
 
 	Delta += PrecacheEndPos[NEXT] - PrecacheStartPos[NEXT];
 	DEC_DWORD_STAT_BY(STAT_StreamingAllocSize, Delta);
@@ -2440,20 +2489,24 @@ bool FArchiveAsync::SetCompressionMap( TArray<FCompressedChunk>* InCompressedChu
  */
 void FArchiveAsync::BufferSwitcheroo()
 {
-	check( PrecacheReadStatus[CURRENT].GetValue() == 0 );
-	check( PrecacheReadStatus[NEXT].GetValue() == 0 );
+	check(PrecacheReadStatus[CURRENT].GetValue() == 0);
+	check(PrecacheReadStatus[NEXT].GetValue() == 0);
 
 	// Switcheroo.
 	DEC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT]);
-	FMemory::Free( PrecacheBuffer[CURRENT] );
-	PrecacheBuffer[CURRENT]		= PrecacheBuffer[NEXT];
-	PrecacheStartPos[CURRENT]	= PrecacheStartPos[NEXT];
-	PrecacheEndPos[CURRENT]		= PrecacheEndPos[NEXT];
+	FreeAsyncBuffer(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT]);
+	PrecacheBuffer[CURRENT] = PrecacheBuffer[NEXT];
+	PrecacheStartPos[CURRENT] = PrecacheStartPos[NEXT];
+	PrecacheEndPos[CURRENT] = PrecacheEndPos[NEXT];
+	PrecacheBufferSize[CURRENT] = PrecacheBufferSize[NEXT];
+	PrecacheBufferProtected[CURRENT] = PrecacheBufferProtected[NEXT];
 
 	// Next buffer is unused/ free.
 	PrecacheBuffer[NEXT]		= nullptr;
 	PrecacheStartPos[NEXT]		= 0;
 	PrecacheEndPos[NEXT]		= 0;
+	PrecacheBufferSize[NEXT] = 0;
+	PrecacheBufferProtected[NEXT] = 0;
 }
 
 /**
@@ -2525,8 +2578,9 @@ void FArchiveAsync::PrecacheCompressedChunk( int64 ChunkIndex, int64 BufferIndex
 
 	// In theory we could use FMemory::Realloc if it had a way to signal that we don't want to copy
 	// the data (implicit realloc behavior).
-	FMemory::Free( PrecacheBuffer[BufferIndex] );
-	PrecacheBuffer[BufferIndex]		= (uint8*) FMemory::Malloc( PrecacheEndPos[BufferIndex] - PrecacheStartPos[BufferIndex] );
+	FreeAsyncBuffer(PrecacheBuffer[BufferIndex], PrecacheBufferSize[BufferIndex]);
+	PrecacheBufferProtected[BufferIndex] = false;
+	PrecacheBuffer[BufferIndex] = MallocAsyncBuffer(PrecacheEndPos[BufferIndex] - PrecacheStartPos[BufferIndex], PrecacheBufferSize[BufferIndex]);
 	{
 		INC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[BufferIndex] - PrecacheStartPos[BufferIndex]);
 	}
@@ -2636,9 +2690,9 @@ bool FArchiveAsync::Precache( int64 RequestOffset, int64 RequestSize )
 			PrecacheEndPos[CURRENT]		= FMath::Min( PrecacheEndPos[CURRENT], FileSize );
 			// In theory we could use FMemory::Realloc if it had a way to signal that we don't want to copy
 			// the data (implicit realloc behavior).
-			FMemory::Free( PrecacheBuffer[CURRENT] );
-
-			PrecacheBuffer[CURRENT]		= (uint8*) FMemory::Malloc( PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT] );
+			FreeAsyncBuffer(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT]);
+			PrecacheBufferProtected[CURRENT] = false;
+			PrecacheBuffer[CURRENT] = MallocAsyncBuffer(PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT], PrecacheBufferSize[CURRENT]);
 			{
 				INC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT]);
 			}
@@ -2666,9 +2720,26 @@ bool FArchiveAsync::Precache( int64 RequestOffset, int64 RequestSize )
  * @param	Count	Number of bytes to read
  */
 void FArchiveAsync::Serialize(void* Data, int64 Count)
-{
-	// Ensure we aren't reading beyond the end of the file
-	checkf( CurrentPos + Count <= TotalSize(), TEXT("Seeked past end of file %s (%lld / %lld)"), *FileName, CurrentPos + Count, TotalSize() );
+{	
+#if PLATFORM_DESKTOP
+	// Show a message box indicating, possible, corrupt data (desktop platforms only)
+	if (CurrentPos + Count > TotalSize())
+	{
+		FText ErrorMessage, ErrorCaption;
+		GConfig->GetText(TEXT("/Script/Engine.Engine"),
+			  			 TEXT("SerializationOutOfBoundsErrorMessage"),
+						 ErrorMessage,
+						 GEngineIni);
+		GConfig->GetText(TEXT("/Script/Engine.Engine"),
+			TEXT("SerializationOutOfBoundsErrorMessageCaption"),
+			ErrorCaption,
+			GEngineIni);
+
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
+	}
+#endif
+	// Ensure we aren't reading beyond the end of the file	
+	checkf( CurrentPos + Count <= TotalSize(), TEXT("Seeked past end of file %s (%lld / %lld)"), *FileName, CurrentPos + Count, TotalSize() );	
 
 #if LOOKING_FOR_PERF_ISSUES
 	uint32 StartCycles = 0;
@@ -2735,6 +2806,16 @@ void FArchiveAsync::Serialize(void* Data, int64 Count)
 			FPlatformProcess::SleepNoStats(0.0f);
 		} while (PrecacheReadStatus[CURRENT].GetValue());
 	}
+#if FIND_MEMORY_STOMPS
+	if (!PrecacheBufferProtected[CURRENT])
+	{
+		if (!FPlatformMemory::PageProtect(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT], true, false))
+		{
+			UE_LOG(LogStreaming, Warning, TEXT("Unable to write protect async buffer %d for %s"), int32(CURRENT), *FileName);
+		}
+		PrecacheBufferProtected[CURRENT] = true;
+	}
+#endif // FIND_MEMORY_STOMPS
 
 	// Update stats if we were blocked.
 #if LOOKING_FOR_PERF_ISSUES

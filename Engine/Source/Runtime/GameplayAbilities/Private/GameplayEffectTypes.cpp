@@ -69,6 +69,19 @@ void FGameplayEffectContext::AddInstigator(class AActor *InInstigator, class AAc
 	}
 }
 
+void FGameplayEffectContext::SetAbility(const UGameplayAbility* InGameplayAbility)
+{
+	if (InGameplayAbility)
+	{
+		Ability = InGameplayAbility->GetClass();
+	}
+}
+
+UGameplayAbility* FGameplayEffectContext::GetAbility() const
+{
+	return Ability.GetDefaultObject();
+}
+
 void FGameplayEffectContext::AddActors(const TArray<TWeakObjectPtr<AActor>>& InActors, bool bReset)
 {
 	if (bReset && Actors.Num())
@@ -108,25 +121,29 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		{
 			RepBits |= 1 << 1;
 		}
-		if (SourceObject.IsValid() )
+		if (*Ability)
 		{
 			RepBits |= 1 << 2;
 		}
-		if (Actors.Num() > 0)
+		if (SourceObject.IsValid())
 		{
 			RepBits |= 1 << 3;
 		}
-		if (HitResult.IsValid())
+		if (Actors.Num() > 0)
 		{
 			RepBits |= 1 << 4;
 		}
-		if (bHasWorldOrigin)
+		if (HitResult.IsValid())
 		{
 			RepBits |= 1 << 5;
 		}
+		if (bHasWorldOrigin)
+		{
+			RepBits |= 1 << 6;
+		}
 	}
 
-	Ar.SerializeBits(&RepBits, 6);
+	Ar.SerializeBits(&RepBits, 7);
 
 	if (RepBits & (1 << 0))
 	{
@@ -138,13 +155,17 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	}
 	if (RepBits & (1 << 2))
 	{
-		Ar << SourceObject;
+		Ar << Ability;
 	}
 	if (RepBits & (1 << 3))
 	{
-		Ar << Actors;;
+		Ar << SourceObject;
 	}
 	if (RepBits & (1 << 4))
+	{
+		Ar << Actors;
+	}
+	if (RepBits & (1 << 5))
 	{
 		if (Ar.IsLoading())
 		{
@@ -155,7 +176,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 		}
 		HitResult->NetSerialize(Ar, Map, bOutSuccess);
 	}
-	if (RepBits & (1 << 5))
+	if (RepBits & (1 << 6))
 	{
 		Ar << WorldOrigin;
 		bHasWorldOrigin = true;
@@ -370,28 +391,29 @@ bool FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 		const FGameplayTag& CurTag = *CompleteTagIt;
 
 		// Get the current count of the specified tag. NOTE: Stored as a reference, so subsequent changes propogate to the map.
-		int32& TagCount = GameplayTagCountMap.FindOrAdd(CurTag);
+		int32& TagCountRef = GameplayTagCountMap.FindOrAdd(CurTag);
 
-		const int32 OldCount = TagCount;
+		const int32 OldCount = TagCountRef;
 
 		// Apply the delta to the count in the map
-		TagCount = FMath::Max(TagCount + CountDelta, 0);
+		int32 NewTagCount = FMath::Max(OldCount + CountDelta, 0);
+		TagCountRef = NewTagCount;
 
 		// If a significant change (new addition or total removal) occurred, trigger related delegates
-		bool SignificantChange = (OldCount == 0 || TagCount == 0);
+		bool SignificantChange = (OldCount == 0 || NewTagCount == 0);
 		CreatedSignificantChange |= SignificantChange;
 		if (SignificantChange)
 		{
-			OnAnyTagChangeDelegate.Broadcast(CurTag, TagCount);
+			OnAnyTagChangeDelegate.Broadcast(CurTag, NewTagCount);
 		}
 
 		FDelegateInfo* DelegateInfo = GameplayTagEventMap.Find(CurTag);
 		if (DelegateInfo)
 		{
-			DelegateInfo->OnAnyChange.Broadcast(CurTag, TagCount);
+			DelegateInfo->OnAnyChange.Broadcast(CurTag, NewTagCount);
 			if (SignificantChange)
 			{
-				DelegateInfo->OnNewOrRemove.Broadcast(CurTag, TagCount);
+				DelegateInfo->OnNewOrRemove.Broadcast(CurTag, NewTagCount);
 			}
 		}
 	}

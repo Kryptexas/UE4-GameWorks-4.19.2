@@ -55,6 +55,11 @@ public:
 	FString GetRegionId() const;
 
 	/**
+	 * Returns the lowest ping of any datacenter we queried (or MAX_int32 if none were found or the queries have not completed yet)
+	 */
+	int32 GetLowestReportedPing() const;
+
+	/**
 	 * Get the list of regions that the client can choose from (returned from search and must meet min ping requirements)
 	 *
 	 * If this list is empty, the client cannot play.
@@ -104,9 +109,14 @@ private:
 	FString GetSavedRegionId() const;
 	void SaveSelectedRegionId();
 
-	int32 MinimumPingMs;
-	FString ForceRegionId;
+	// The threshold that a region ping must be below to consider as a valid option
+	int32 MaximumPingMs;
 
+	// The best region ping we found, even if we failed all tests
+	int32 BestRegionPingMs;
+
+	FString ForceRegionId;
+	
 	TSharedPtr<FQosEvaluator> Evaluator;
 	EQosCompletionResult QosEvalResult;
 	TArray<FQosRegionInfo> RegionOptions;

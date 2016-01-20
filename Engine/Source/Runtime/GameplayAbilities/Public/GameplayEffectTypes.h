@@ -270,12 +270,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectContext()
-		: bHasWorldOrigin(false)
+	: Ability(nullptr)
+	, bHasWorldOrigin(false)
 	{
 	}
 
 	FGameplayEffectContext(AActor* InInstigator, AActor* InEffectCauser)
-		: bHasWorldOrigin(false)
+		: Ability(nullptr)
+		, bHasWorldOrigin(false)
 	{
 		AddInstigator(InInstigator, InEffectCauser);
 	}
@@ -290,11 +292,16 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Sets the instigator and effect causer. Instigator is who owns the ability that spawned this, EffectCauser is the actor that is the physical source of the effect, such as a weapon. They can be the same. */
 	virtual void AddInstigator(class AActor *InInstigator, class AActor *InEffectCauser);
 
+	/** Sets the ability that was used to spawn this */
+	virtual void SetAbility(const UGameplayAbility* InGameplayAbility);
+
 	/** Returns the immediate instigator that applied this effect */
 	virtual AActor* GetInstigator() const
 	{
 		return Instigator.Get();
 	}
+
+	virtual UGameplayAbility* GetAbility() const;
 
 	/** Returns the ability system component of the instigator of this effect */
 	virtual UAbilitySystemComponent* GetInstigatorAbilitySystemComponent() const
@@ -403,6 +410,10 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<AActor> EffectCauser;
 
+	/** the ability that is responsible for this effect context */
+	UPROPERTY()
+	TSubclassOf<UGameplayAbility> Ability;
+
 	/** Object this effect was created from, can be an actor or static object. Useful to bind an effect to a gameplay object */
 	UPROPERTY()
 	TWeakObjectPtr<UObject> SourceObject;
@@ -496,6 +507,14 @@ struct FGameplayEffectContextHandle
 		}
 	}
 
+	void SetAbility(const UGameplayAbility* InGameplayAbility)
+	{
+		if (IsValid())
+		{
+			Data->SetAbility(InGameplayAbility);
+		}
+	}
+
 	/** Returns the immediate instigator that applied this effect */
 	virtual AActor* GetInstigator() const
 	{
@@ -504,6 +523,16 @@ struct FGameplayEffectContextHandle
 			return Data->GetInstigator();
 		}
 		return NULL;
+	}
+
+	/** Returns the Ability that  */
+	virtual UGameplayAbility* GetAbility() const
+	{
+		if (IsValid())
+		{
+			return Data->GetAbility();
+		}
+		return nullptr;
 	}
 
 	/** Returns the ability system component of the instigator of this effect */

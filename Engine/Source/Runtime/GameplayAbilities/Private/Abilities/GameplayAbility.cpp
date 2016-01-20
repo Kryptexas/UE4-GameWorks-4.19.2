@@ -1334,6 +1334,10 @@ FGameplayEffectContextHandle UGameplayAbility::GetEffectContext(const FGameplayA
 	FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
 	// By default use the owner and avatar as the instigator and causer
 	Context.AddInstigator(ActorInfo->OwnerActor.Get(), ActorInfo->AvatarActor.Get());
+
+	// add in the ability tracking here.
+	Context.SetAbility(this);
+
 	return Context;
 }
 
@@ -1611,7 +1615,7 @@ void UGameplayAbility::SetRemoteInstanceHasEnded()
 			// We have a task that is waiting for player input, but the remote player has ended the ability, so he will not send it.
 			// Kill the ability to avoid getting stuck active.
 			
-			ABILITY_LOG(Warning, TEXT("Ability %s is force cancelling because Task %s is waiting on remote player input and the  remote player has just ended the ability."), *GetName(), *Task->GetDebugString());
+			ABILITY_LOG(Log, TEXT("Ability %s is force cancelling because Task %s is waiting on remote player input and the  remote player has just ended the ability."), *GetName(), *Task->GetDebugString());
 			CurrentActorInfo->AbilitySystemComponent->ForceCancelAbilityDueToReplication(this);
 			break;
 		}
@@ -1625,7 +1629,7 @@ void UGameplayAbility::NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* 
 
 	if (RemoteInstanceEnded)
 	{
-		ABILITY_LOG(Warning, TEXT("Ability %s is force cancelling because Task %s has started after the remote player has ended the ability."), *GetName(), *AbilityTask->GetDebugString());
+		ABILITY_LOG(Log, TEXT("Ability %s is force cancelling because Task %s has started after the remote player has ended the ability."), *GetName(), *AbilityTask->GetDebugString());
 		CurrentActorInfo->AbilitySystemComponent->ForceCancelAbilityDueToReplication(this);
 	}
 }

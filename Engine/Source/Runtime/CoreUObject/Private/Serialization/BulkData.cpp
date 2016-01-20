@@ -828,7 +828,6 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 				else if (BulkDataFlags & BULKDATA_PayloadInSeperateFile)
 				{
 					Filename = FPaths::ChangeExtension(Filename, TEXT(".ubulk"));
-					checkSlow(FPaths::FileExists(Filename));
 				}
 			}
 			// Serialize the bulk data right away.

@@ -448,12 +448,12 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 		bDeviceRemoved = false;
 
-		// Cleanup the D3D device.
-		CleanupD3DDevice();
-
 		// We currently don't support removed devices because FTexture2DResource can't recreate its RHI resources from scratch.
 		// We would also need to recreate the viewport swap chains from scratch.
 		UE_LOG(LogD3D11RHI, Fatal, TEXT("The Direct3D 11 device that was being used has been removed (Error: %d '%s').  Please restart the game."), hRes, Reason);
+
+		// UE4 no longer supports clean-up and recovery.
+		//CleanupD3DDevice();
 	}
 
 	// If we don't have a device yet, either because this is the first viewport, or the old device was removed, create a device.
@@ -500,6 +500,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 
 					GRHIAdapterName = AdapterDesc.Description;
 					GRHIVendorId = AdapterDesc.VendorId;
+					GRHIDeviceId = AdapterDesc.DeviceId;
 					
 					// get driver version (todo: share with other RHIs)
 					{

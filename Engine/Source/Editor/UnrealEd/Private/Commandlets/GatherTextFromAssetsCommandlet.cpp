@@ -69,7 +69,7 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 			}
 
 			// Entry already exists, check for conflict.
-			if (ExistingEntry.IsValid() && ExistingEntry->Source.Text != ( NewEntry.SourceString.IsValid() ? **(NewEntry.SourceString) : TEXT("") ))
+			if (ExistingEntry.IsValid() && !ExistingEntry->Source.Text.Equals(*NewEntry.SourceString, ESearchCase::CaseSensitive))
 			{
 				NewEntry.Status = EAssetTextGatherStatus::IdentityConflict;
 			}
@@ -79,8 +79,8 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 			{
 				if (!TextSourceSiteContext.IsEditorOnly || ShouldGatherFromEditorOnlyData)
 				{
-				ManifestInfo->AddEntry(TextSourceSiteContext.SiteDescription, GatherableTextData.NamespaceName, NewEntry.SourceString.Get() ? *(NewEntry.SourceString) : TEXT(""), Context );
-			}
+					ManifestInfo->AddEntry(TextSourceSiteContext.SiteDescription, GatherableTextData.NamespaceName, *NewEntry.SourceString, Context);
+				}
 			}
 
 			// Add to conflict tracker.
@@ -339,6 +339,8 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("No files found or none passed the include/exclude criteria."));
 	}
 
+	const bool bSkipGatherCache = FParse::Param(FCommandLine::Get(), TEXT("SkipGatherCache"));
+
 	TArray< FString > PackageFileNamesToLoad;
 	for (FString& PackageFile : PackageFileNamesToProcess)
 	{
@@ -349,7 +351,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			FPackageFileSummary PackageFileSummary;
 			(*FileReader) << PackageFileSummary;
 
-			bool MustLoadForGather = false;
+			bool MustLoadForGather = bSkipGatherCache;
 
 			// Packages not resaved since localization gathering flagging was added to packages must be loaded.
 			if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING)
@@ -430,6 +432,8 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		for( ; PackageIndex < PackageCount && PackagesInThisBatch < PackagesPerBatchCount; ++PackageIndex )
 		{
 			FString PackageFileName = PackageFileNamesToLoad[PackageIndex];
+
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Verbose, TEXT("Loading package: '%s'."), *PackageFileName);
 
 			UPackage *Package = LoadPackage( NULL, *PackageFileName, LOAD_None );
 			if( Package )

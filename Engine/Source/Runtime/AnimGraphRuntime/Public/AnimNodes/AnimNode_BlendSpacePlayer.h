@@ -50,6 +50,9 @@ protected:
 	UPROPERTY()
 	TArray<FBlendSampleData> BlendSampleDataCache;
 
+	UPROPERTY(transient)
+	UBlendSpaceBase* PreviousBlendSpace;
+
 public:	
 	FAnimNode_BlendSpacePlayer();
 
@@ -68,4 +71,7 @@ public:
 
 protected:
 	void UpdateInternal(const FAnimationUpdateContext& Context);
+
+private:
+	void Reinitialize();
 };

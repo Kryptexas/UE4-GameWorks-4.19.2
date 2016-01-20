@@ -111,7 +111,7 @@ FBestFitAllocator implementation.
 * @param	bAllowFailure	Whether to allow allocation failure or not
 * @return	Pointer to allocated memory
 */
-void* FGPUDefragAllocator::Allocate(int64 AllocationSize, int32 Alignment, bool bAllowFailure)
+void* FGPUDefragAllocator::Allocate(int64 AllocationSize, int32 Alignment, TStatId InStat, bool bAllowFailure)
 {
 	SCOPE_SECONDS_COUNTER(TimeSpentInAllocator);
 	FScopeLock Lock(&SynchronizationObject);
@@ -188,6 +188,10 @@ void* FGPUDefragAllocator::Allocate(int64 AllocationSize, int32 Alignment, bool 
 #endif
 
 	FMemoryChunk* AllocatedChunk = AllocateChunk(BestChunk, AllocationSize, false);
+	//todo: fix stats
+	//ensureMsgf(AllocatedChunk->Stat.IsNone(), TEXT("FreeChunk already has a stat."));
+	AllocatedChunk->Stat = InStat;
+
 	check(IsAligned(AllocatedChunk->Base, Alignment));
 	return AllocatedChunk->Base;
 }
@@ -247,6 +251,7 @@ void FGPUDefragAllocator::FreeChunk(FMemoryChunk* Chunk, bool bMaintainSortedFre
 {
 	// Remove the entry
 	PointerToChunkMap.Remove(Chunk->Base);
+	Chunk->Stat = TStatId();
 
 	// Update usage stats in a thread safe way.
 	FPlatformAtomics::InterlockedAdd(&AllocatedMemorySize, -Chunk->Size);
@@ -649,7 +654,7 @@ void FGPUDefragAllocator::SortFreeList(int32& NumFreeChunks, int64& LargestFreeC
 */
 FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::FindAdjacent(FMemoryChunk* UsedChunk, bool bAnyChunkType)
 {
-	if (UsedChunk && !UsedChunk->IsRelocating() && (bAnyChunkType || UsedChunk->HasReallocationRequest()))
+	if (UsedChunk && !UsedChunk->IsRelocating() && (bAnyChunkType))
 	{
 		FMemoryChunk* FreeChunkLeft = UsedChunk->PreviousChunk;
 		FMemoryChunk* FreeChunkRight = UsedChunk->NextChunk;
@@ -672,50 +677,6 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::FindAdjacent(FMemoryChun
 		}
 	}
 	return nullptr;
-}
-
-/**
-* Searches for a reallocation request that would fit within the specified free chunk.
-* Prefers allocation requests over reallocation requests.
-*
-* @param FreeChunk		Free chunk we're trying to fill up
-* @return				First reallocating chunk that could fit, or nullptr
-*/
-FGPUDefragAllocator::FRequestNode* FGPUDefragAllocator::FindAnyReallocation(FMemoryChunk* FreeChunk)
-{
-	FRequestNode* BestRequest = nullptr;
-	int64 BestFit = MAX_int64;
-	bool bFoundAllocation = false;
-
-	for (FRequestList::TIterator It(ReallocationRequests.GetHead()); It; ++It)
-	{
-		FRequestNode* RequestNode = It.GetNode();
-		FAsyncReallocationRequest* Request = RequestNode->GetValue();
-		FMemoryChunk* CurrentChunk = Request->MemoryChunk;
-		int64 CurrentFit = FreeChunk->Size - Request->GetNewSize();
-
-		// Have we started getting into reallocations, but we've already found a suitable allocation?
-		if (bFoundAllocation && Request->IsReallocation())
-		{
-			// Use the allocation first.
-			break;
-		}
-
-		// Better fit than previously?
-		if (CurrentFit >= 0 && CurrentFit < BestFit && (Request->IsAllocation() || CanRelocate(CurrentChunk)))
-		{
-			BestFit = CurrentFit;
-			BestRequest = RequestNode;
-			bFoundAllocation = Request->IsAllocation();
-
-			// Perfect fit?
-			if (CurrentFit == 0)
-			{
-				break;
-			}
-		}
-	}
-	return BestRequest;
 }
 
 /**
@@ -856,14 +817,13 @@ void FGPUDefragAllocator::CheckForErrors(bool bCheckSortedFreeList)
 */
 FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FRelocationStats& Stats, FMemoryChunk* FreeChunk, FMemoryChunk* SourceChunk)
 {
-	FRequestNode* ReallocationRequestNode = SourceChunk->ReallocationRequestNode;
-
 	// Save off important data from 'SourceChunk', since it will get modified by the call to LinkFreeChunk().
 	uint8* OldBaseAddress = SourceChunk->Base;
 	void* UserPayload = SourceChunk->UserPayload;
 	int32 OldSize = SourceChunk->Size;
 	const int32 NewSize = SourceChunk->GetFinalSize();
 	const int32 UsedSize = FMath::Min(NewSize, OldSize);
+	TStatId	SourceStat = SourceChunk->Stat;
 
 	// Are we relocating into adjacent free chunk?
 	bool bAdjacentRelocation = SourceChunk->PreviousChunk == FreeChunk || SourceChunk->NextChunk == FreeChunk;
@@ -901,26 +861,8 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FR
 	// Update our book-keeping.
 	PointerToChunkMap.Remove(OldBaseAddress);
 	PointerToChunkMap.Add(NewBaseAddress, DestinationChunk);
-
-	// Move the reallocation request into the InProgress list.
-	if (ReallocationRequestNode)
-	{
-		FAsyncReallocationRequest* ReallocationRequest = ReallocationRequestNode->GetValue();
-		check(SourceChunk == ReallocationRequest->MemoryChunk);
-
-		// Create a new node in the 'InProgress' list.
-		ReallocationRequestsInProgress.AddHead(ReallocationRequest);
-		FRequestNode* NewNode = ReallocationRequestsInProgress.GetHead();
-
-		// Swap chunk and node pointers.
-		SourceChunk->ReallocationRequestNode = nullptr;
-		DestinationChunk->ReallocationRequestNode = NewNode;
-		ReallocationRequest->MemoryChunk = DestinationChunk;
-		ReallocationRequest->NewAddress = NewBaseAddress;
-
-		// Remove from current request list.
-		ReallocationRequests.RemoveNode(ReallocationRequestNode);
-	}
+	SourceChunk->Stat = TStatId();
+	DestinationChunk->Stat = SourceStat;	
 
 	// Is there free space left over at the end of DestinationChunk?
 	FMemoryChunk* NextFreeChunk;
@@ -964,51 +906,6 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FR
 }
 
 /**
-* Allocates memory from the specified free chunk, servicing an async allocation request.
-*
-* @param Stats			[out] Stats
-* @param FreeChunk		Chunk to allocate memory from
-* @param RequestNode	List node to the allocation request
-* @return				Next Free chunk to try to fill up
-*/
-FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::AllocateIntoFreeChunk(FRelocationStats& Stats, FMemoryChunk* FreeChunk, FRequestNode* RequestNode)
-{
-	FMemoryChunk* NextFreeChunk = FreeChunk->NextFreeChunk;
-	FAsyncReallocationRequest* Request = RequestNode->GetValue();
-	check(Request->IsAllocation());
-
-	// Note: AllocateChunk() may split 'FreeChunk' and return a new chunk.
-	FMemoryChunk* AllocatedChunk = AllocateChunk(FreeChunk, Request->GetNewSize(), true);
-
-	// Create a new node in the 'InProgress' list.
-	ReallocationRequestsInProgress.AddHead(Request);
-	FRequestNode* NewNode = ReallocationRequestsInProgress.GetHead();
-
-	// Setup chunk and node variables.
-	AllocatedChunk->ReallocationRequestNode = NewNode;
-	Request->MemoryChunk = AllocatedChunk;
-	Request->NewAddress = AllocatedChunk->Base;
-
-	// Mark the chunk as "in use" during the current sync step.
-	// Note: This sync index will propagate if these chunks are involved in any merge/split in the future.
-	AllocatedChunk->SetSyncIndex(GetCurrentSyncIndex(), AllocatedChunk->Size);
-
-	// Remove from current request list.
-	ReallocationRequests.RemoveNode(RequestNode);
-
-	FPlatformAtomics::InterlockedAdd(&PendingMemoryAdjustment, -Request->GetNewSize());
-
-	if (AllocatedChunk->NextChunk && AllocatedChunk->NextChunk->bIsAvailable)
-	{
-		return AllocatedChunk->NextChunk;
-	}
-	else
-	{
-		return NextFreeChunk;
-	}
-}
-
-/**
 * Blocks the calling thread until all relocations and reallocations that were initiated by Tick() have completed.
 *
 * @return		true if there were any relocations in progress before this call
@@ -1021,46 +918,7 @@ bool FGPUDefragAllocator::FinishAllRelocations()
 	if (bWasAnyRelocationsInProgress)
 	{		
 		BlockOnFence();
-	}
-
-	// All reallocation requests have now completed.
-	int32 TotalMemoryAdjustment = 0;
-	for (FRequestList::TIterator It(ReallocationRequestsInProgress.GetHead()); It; ++It)
-	{
-		FAsyncReallocationRequest* FinishedRequest = *It;
-
-		FMemoryChunk* FinishedChunk = FinishedRequest->MemoryChunk;
-		if (!FinishedRequest->IsCanceled())
-		{
-			// Mark it complete.
-			FinishedRequest->MarkCompleted();
-
-			if (FinishedRequest->IsReallocation())
-			{
-				NumFinishedAsyncReallocations++;
-			}
-			else
-			{
-				NumFinishedAsyncAllocations++;
-			}
-
-			if (!bBenchmarkMode)
-			{
-				PlatformNotifyReallocationFinished(FinishedRequest, FinishedChunk->UserPayload);
-			}
-			TotalMemoryAdjustment += FinishedRequest->NewSize - FinishedRequest->OldSize;
-			FinishedRequest->MemoryChunk = nullptr;
-		}
-		else
-		{
-			// Delete the request, since it's our copy. The user has deleted the original already.
-			delete FinishedRequest;
-		}
-		FinishedChunk->ReallocationRequestNode = nullptr;
-	}
-	ReallocationRequestsInProgress.Empty();
-
-	check(ReallocationRequests.Num() > 0 || PendingMemoryAdjustment == 0);
+	}	
 
 	// Take the opportunity to free all chunks that couldn't be freed immediately before.
 	for (TDoubleLinkedList<FMemoryChunk*>::TIterator It(PendingFreeChunks.GetHead()); It; ++It)
@@ -1123,116 +981,6 @@ void FGPUDefragAllocator::BlockOnSyncIndex(uint32 SyncIndex)
 			InsertFence();
 			BlockOnFence();
 			FinishAllRelocations();
-		}
-	}
-}
-
-/**
-* Cancels the specified reallocation request.
-* Note that the allocator doesn't keep track of requests after it's been completed,
-* so the user must provide the current base address. This may not match any of the
-* addresses in the (old) request since the memory may have been relocated since then.
-*
-* @param Request				Request to cancel. Must be a valid request.
-* @param CurrentBaseAddress	Current baseaddress used by the allocation.
-*/
-void FGPUDefragAllocator::CancelAsyncReallocation(FAsyncReallocationRequest* Request, const void* CurrentBaseAddress)
-{
-	check(Request && !Request->IsCanceled());
-	NumCanceledAsyncRequests++;
-
-	int32 MemoryAdjustment = Request->NewSize - Request->OldSize;
-
-	// We cannot undo shrinking reallocations. The memory will be lost and gone forever.
-	check(MemoryAdjustment > 0);
-
-	// Mark it canceled.
-	Request->bIsCanceled = true;
-
-	// Make sure it's marked 'completed'.
-	bool bHasStarted = Request->HasStarted();
-	bool bHasCompleted = Request->HasCompleted();
-	if (!bHasCompleted)
-	{
-		// This will also prevent it from further relocation until it's gone completely from the system.
-		Request->MarkCompleted();
-	}
-
-	// Has it not started yet?
-	if (!bHasStarted)
-	{
-		if (Request->IsReallocation())
-		{
-			// If it hasn't started yet, just remove the request and flag it completed.
-			FMemoryChunk* MatchingChunk = Request->MemoryChunk;
-			check(MatchingChunk && CurrentBaseAddress == nullptr);
-			FRequestNode* RequestNode = MatchingChunk->ReallocationRequestNode;
-			check(RequestNode);
-
-			// Remove it from our end of the system.
-			ReallocationRequests.RemoveNode(RequestNode);
-			MatchingChunk->ReallocationRequestNode = nullptr;
-		}
-		else
-		{
-			FRequestNode* RequestNode = ReallocationRequests.FindNode(Request);
-			check(RequestNode);
-			ReallocationRequests.RemoveNode(RequestNode);
-		}
-		FPlatformAtomics::InterlockedAdd(&PendingMemoryAdjustment, -MemoryAdjustment);
-	}
-	else
-	{
-		// Is it still in progress?
-		if (!bHasCompleted)
-		{
-			FMemoryChunk* MatchingChunk = Request->MemoryChunk;
-			check(MatchingChunk && CurrentBaseAddress == nullptr);
-
-			// Make a copy of the request, since the current Request will be deleted by the user.
-			FAsyncReallocationRequest* RequestCopy = new FAsyncReallocationRequest(*Request);
-			FRequestNode* RequestNode = MatchingChunk->ReallocationRequestNode;
-			MatchingChunk->ReallocationRequestNode = nullptr;
-
-			FMemoryChunk* NewChunk;
-			if (Request->IsReallocation())
-			{
-				// Undo the 'Grow' by immediately shrinking it back to the old size (adjusting baseaddress).
-				// Allow the GPU to finish relocating into the used portion. (Any new relocations will be pipelined.)
-				NewChunk = Shrink(MatchingChunk, MemoryAdjustment);
-			}
-			else
-			{
-				// Undo the allocation by freeing it.
-				FreeChunk(MatchingChunk, false);
-				NewChunk = MatchingChunk;
-			}
-
-			// Fixup all request pointers.
-			RequestNode->GetValue() = RequestCopy;
-			NewChunk->ReallocationRequestNode = RequestNode;
-			RequestCopy->MemoryChunk = NewChunk;
-		}
-		// Is it already completed?
-		else
-		{
-			// When it's completed already, the allocator doesn't keep track of it anymore in any lists.
-			if (Request->IsReallocation())
-			{
-				FMemoryChunk* MatchingChunk = PointerToChunkMap.FindRef(CurrentBaseAddress);
-				check(MatchingChunk && MatchingChunk->ReallocationRequestNode == nullptr);
-
-				// Undo the 'Grow' by immediately shrinking it back to the old size (adjusting baseaddress).
-				FMemoryChunk* NewChunk = Shrink(MatchingChunk, MemoryAdjustment);
-			}
-			else
-			{
-				FMemoryChunk* MatchingChunk = PointerToChunkMap.FindRef(Request->GetNewBaseAddress());
-				check(MatchingChunk && MatchingChunk->ReallocationRequestNode == nullptr);
-
-				// Undo the allocation by freeing it.
-				FreeChunk(MatchingChunk, false);
-			}
 		}
 	}
 }
@@ -1305,21 +1053,15 @@ void FGPUDefragAllocator::PartialDefragmentation(FRelocationStats& Stats, double
 				BestChunk = RelocateAllowed(FreeChunk, FindAdjacent(FreeChunk->NextChunk, false));
 
 				if (!BestChunk)
-				{
-					// 3. Merge with any async request (best-fitting)
-					BestRequestNode = FindAnyReallocation(FreeChunk);
+				{					
+					// 4. Merge with a used chunk adjacent to hole (to make that hole larger).
+					BestChunk = RelocateAllowed(FreeChunk, FindAdjacentToHole(FreeChunk));
 
-					if (!BestRequestNode)
+					if (!BestChunk)
 					{
-						// 4. Merge with a used chunk adjacent to hole (to make that hole larger).
-						BestChunk = RelocateAllowed(FreeChunk, FindAdjacentToHole(FreeChunk));
-
-						if (!BestChunk)
-						{
-							// 5. Merge with chunk from the end of the pool (well-fitting)
-							BestChunk = FindAny(FreeChunk);
-						}
-					}
+						// 5. Merge with chunk from the end of the pool (well-fitting)
+						BestChunk = FindAny(FreeChunk);
+					}					
 				}
 			}
 		}
@@ -1327,23 +1069,11 @@ void FGPUDefragAllocator::PartialDefragmentation(FRelocationStats& Stats, double
 		if (BestChunk)
 		{
 			FreeChunk = RelocateIntoFreeChunk(Stats, FreeChunk, BestChunk);			
-		}
-		else if (BestRequestNode)
-		{
-			FAsyncReallocationRequest* Request = BestRequestNode->GetValue();
-			if (Request->IsReallocation())
-			{				
-				FreeChunk = RelocateIntoFreeChunk(Stats, FreeChunk, Request->MemoryChunk);				
-			}
-			else
-			{
-				FreeChunk = AllocateIntoFreeChunk(Stats, FreeChunk, BestRequestNode);
-			}
-		}
+		}		
 		else
 		{
 			// Did the free chunk fail to defrag?
-			if (FreeChunk->DefragCounter == 0 && (FreeChunk->NextFreeChunk || ReallocationRequests.Num() > 0))
+			if (FreeChunk->DefragCounter == 0 && (FreeChunk->NextFreeChunk))
 			{
 				// Don't try it again for a while.
 				if (FreeChunk->Size < DEFRAG_SMALL_CHUNK_SIZE)
@@ -1690,18 +1420,7 @@ FGPUDefragAllocator::EMemoryElementType FGPUDefragAllocator::GetChunkType(FMemor
 	else if (Chunk->bIsAvailable)
 	{
 		ChunkType = MET_Free;			// Free (dark grey)
-	}
-	else if (Chunk->HasReallocationRequest())
-	{
-		if (Chunk->ReallocationRequestNode->GetValue()->HasCompleted())
-		{
-			ChunkType = MET_Resized;	// Has been resized but not finalized yet (dark green)
-		}
-		else
-		{
-			ChunkType = MET_Resizing;	// Allocated but wants a resize (green)
-		}
-	}
+	}	
 	else if (CanRelocate(Chunk) == false)
 	{
 		ChunkType = MET_Locked;			// Allocated but can't me relocated at this time (locked) (red)

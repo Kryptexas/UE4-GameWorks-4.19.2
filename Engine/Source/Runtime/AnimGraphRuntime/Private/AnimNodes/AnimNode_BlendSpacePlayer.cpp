@@ -15,7 +15,8 @@ FAnimNode_BlendSpacePlayer::FAnimNode_BlendSpacePlayer()
 	, PlayRate(1.0f)
 	, bLoop(true)
 	, StartPosition(0.f)
-	, BlendSpace(NULL)
+	, BlendSpace(nullptr)
+	, PreviousBlendSpace(nullptr)
 {
 }
 
@@ -23,20 +24,11 @@ void FAnimNode_BlendSpacePlayer::Initialize(const FAnimationInitializeContext& C
 {
 	FAnimNode_AssetPlayerBase::Initialize(Context);
 
-	BlendSampleDataCache.Empty();
-	
 	EvaluateGraphExposedInputs.Execute(Context);
-	InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, 1.0f);
-	if(StartPosition == 0.f && PlayRate < 0.0f)
-	{
-		// Blend spaces run between 0 and 1
-		InternalTimeAccumulator = 1.0f;
-	}
 
-	if (BlendSpace != NULL)
-	{
-		BlendSpace->InitializeFilter(&BlendFilter);
-	}
+	Reinitialize();
+
+	PreviousBlendSpace = BlendSpace;
 }
 
 void FAnimNode_BlendSpacePlayer::CacheBones(const FAnimationCacheBonesContext& Context) 
@@ -60,6 +52,11 @@ void FAnimNode_BlendSpacePlayer::UpdateInternal(const FAnimationUpdateContext& C
 
 		const FVector BlendInput(X, Y, Z);
 	
+		if (PreviousBlendSpace != BlendSpace)
+		{
+			Reinitialize();
+		}
+
 		Context.AnimInstanceProxy->MakeBlendSpaceTickRecord(TickRecord, BlendSpace, BlendInput, BlendSampleDataCache, BlendFilter, bLoop, PlayRate, Context.GetFinalBlendWeight(), /*inout*/ InternalTimeAccumulator, MarkerTickRecord);
 
 		// Update the sync group if it exists
@@ -67,6 +64,8 @@ void FAnimNode_BlendSpacePlayer::UpdateInternal(const FAnimationUpdateContext& C
 		{
 			SyncGroup->TestTickRecordForLeadership(GroupRole);
 		}
+
+		PreviousBlendSpace = BlendSpace;
 	}
 }
 
@@ -111,4 +110,20 @@ float FAnimNode_BlendSpacePlayer::GetTimeFromEnd(float CurrentTime)
 UAnimationAsset* FAnimNode_BlendSpacePlayer::GetAnimAsset()
 {
 	return BlendSpace;
+}
+
+void FAnimNode_BlendSpacePlayer::Reinitialize()
+{
+	BlendSampleDataCache.Empty();
+	InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, 1.0f);
+	if (StartPosition == 0.f && PlayRate < 0.0f)
+	{
+		// Blend spaces run between 0 and 1
+		InternalTimeAccumulator = 1.0f;
+	}
+
+	if (BlendSpace != NULL)
+	{
+		BlendSpace->InitializeFilter(&BlendFilter);
+	}
 }

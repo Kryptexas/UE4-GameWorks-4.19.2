@@ -222,7 +222,8 @@ static TAutoConsoleVariable<float> CVarSceneColorFringeMax(
 	TEXT("r.SceneColorFringe.Max"),
 	-1.0f,
 	TEXT("Allows to clamp the postprocess setting (in percent, Scene chromatic aberration / color fringe to simulate an artifact that happens in real-world lens, mostly visible in the image corners)\n")
-	TEXT("-1: don't clamp (default)"),
+	TEXT("-1: don't clamp (default)\n")
+	TEXT("-2: to test extreme fringe"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarTonemapperQuality(
@@ -1529,6 +1530,10 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		if (Value >= 0.0f)
 		{
 			FinalPostProcessSettings.SceneFringeIntensity = FMath::Min(FinalPostProcessSettings.SceneFringeIntensity, Value);
+		}
+		else if (Value == -2.0f)
+		{
+			FinalPostProcessSettings.SceneFringeIntensity = 5.0f;
 		}
 
 		if(!Family->EngineShowFlags.SceneColorFringe || !Family->EngineShowFlags.CameraImperfections)

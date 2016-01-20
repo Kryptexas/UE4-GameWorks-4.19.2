@@ -527,13 +527,17 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 
 					NewPortableObject.SortEntries();
 
-					if( SourceControlInfo.IsValid() )
+					const bool DidFileExist = FPaths::FileExists(OutputFileName);
+					if (DidFileExist)
 					{
-						FText SCCErrorText;
-						if (!SourceControlInfo->CheckOutFile(OutputFileName, SCCErrorText))
+						if( SourceControlInfo.IsValid() )
 						{
-							UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Check out of file %s failed: %s"), *OutputFileName, *SCCErrorText.ToString());
-							return false;
+							FText SCCErrorText;
+							if (!SourceControlInfo->CheckOutFile(OutputFileName, SCCErrorText))
+							{
+								UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Check out of file %s failed: %s"), *OutputFileName, *SCCErrorText.ToString());
+								return false;
+							}
 						}
 					}
 
@@ -543,6 +547,20 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 					{
 						UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Could not write file %s"), *OutputFileName );
 						return false;
+					}
+
+					if (!DidFileExist)
+					{
+						// Checkout on a new file will cause it to be added
+						if( SourceControlInfo.IsValid() )
+						{
+							FText SCCErrorText;
+							if (!SourceControlInfo->CheckOutFile(OutputFileName, SCCErrorText))
+							{
+								UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Check out of file %s failed: %s"), *OutputFileName, *SCCErrorText.ToString());
+								return false;
+							}
+						}
 					}
 				}
 			}
