@@ -3243,6 +3243,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	bUpdatingSelection = false;
 	bHasAddedSceneAndBehaviorComponentSeparator = false;
 	bAllowTreeUpdates = true;
+	bIsDiffing = InArgs._IsDiffing;
 
 	CommandList = MakeShareable( new FUICommandList );
 	CommandList->MapAction( FGenericCommands::Get().Cut,
@@ -5199,22 +5200,27 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 	FSCSEditorTreeNodePtrType NewNodePtr;
 
 	check(InSCSNode != NULL);
-	check(InSCSNode->ComponentTemplate != NULL);
-	checkf(InSCSNode->ParentComponentOrVariableName == NAME_None
-		|| (!InSCSNode->bIsParentComponentNative && InParentNodePtr->GetSCSNode() != NULL && InParentNodePtr->GetSCSNode()->VariableName == InSCSNode->ParentComponentOrVariableName)
-		|| (InSCSNode->bIsParentComponentNative && InParentNodePtr->GetComponentTemplate() != NULL && InParentNodePtr->GetComponentTemplate()->GetFName() == InSCSNode->ParentComponentOrVariableName),
+
+	// During diffs, ComponentTemplates can easily be null, so prevent these checks.
+	if (!bIsDiffing)
+	{
+		check(InSCSNode->ComponentTemplate != NULL);
+		checkf(InSCSNode->ParentComponentOrVariableName == NAME_None
+			|| (!InSCSNode->bIsParentComponentNative && InParentNodePtr->GetSCSNode() != NULL && InParentNodePtr->GetSCSNode()->VariableName == InSCSNode->ParentComponentOrVariableName)
+			|| (InSCSNode->bIsParentComponentNative && InParentNodePtr->GetComponentTemplate() != NULL && InParentNodePtr->GetComponentTemplate()->GetFName() == InSCSNode->ParentComponentOrVariableName),
 			TEXT("Failed to add SCS node %s to tree:\n- bIsParentComponentNative=%d\n- Stored ParentComponentOrVariableName=%s\n- Actual ParentComponentOrVariableName=%s"),
-				*InSCSNode->VariableName.ToString(),
-				!!InSCSNode->bIsParentComponentNative,
-				*InSCSNode->ParentComponentOrVariableName.ToString(),
-				!InSCSNode->bIsParentComponentNative
-					? (InParentNodePtr->GetSCSNode() != NULL ? *InParentNodePtr->GetSCSNode()->VariableName.ToString() : TEXT("NULL"))
-					: (InParentNodePtr->GetComponentTemplate() != NULL ? *InParentNodePtr->GetComponentTemplate()->GetFName().ToString() : TEXT("NULL")));
+			*InSCSNode->VariableName.ToString(),
+			!!InSCSNode->bIsParentComponentNative,
+			*InSCSNode->ParentComponentOrVariableName.ToString(),
+			!InSCSNode->bIsParentComponentNative
+			? (InParentNodePtr->GetSCSNode() != NULL ? *InParentNodePtr->GetSCSNode()->VariableName.ToString() : TEXT("NULL"))
+			: (InParentNodePtr->GetComponentTemplate() != NULL ? *InParentNodePtr->GetComponentTemplate()->GetFName().ToString() : TEXT("NULL")));
+	}
 	
 	// Determine whether or not the given node is inherited from a parent Blueprint
 	USimpleConstructionScript* NodeSCS = InSCSNode->GetSCS();
 
-	if(InSCSNode->ComponentTemplate->IsA(USceneComponent::StaticClass()))
+	if(InSCSNode->ComponentTemplate && InSCSNode->ComponentTemplate->IsA(USceneComponent::StaticClass()))
 	{
 		FSCSEditorTreeNodePtrType ParentPtr = InParentNodePtr.IsValid() ? InParentNodePtr : SceneRootNodePtr;
 		if(ParentPtr.IsValid())

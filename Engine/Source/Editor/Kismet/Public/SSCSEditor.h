@@ -709,6 +709,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SSCSEditor )
 		:_EditorMode(EComponentEditorMode::BlueprintSCS)
+		,_IsDiffing(false)
 		,_ActorContext(nullptr)
 		,_PreviewActor(nullptr)
 		,_AllowEditing(true)
@@ -718,6 +719,7 @@ public:
 		{}
 
 		SLATE_ARGUMENT(EComponentEditorMode::Type, EditorMode)
+		SLATE_ARGUMENT(bool, IsDiffing)
 		SLATE_ATTRIBUTE(class AActor*, ActorContext)
 		SLATE_ATTRIBUTE(class AActor*, PreviewActor)
 		SLATE_ATTRIBUTE(bool, AllowEditing)
@@ -1082,4 +1084,7 @@ private:
 
 	/** Controls whether or not to allow calls to UpdateTree() */
 	bool bAllowTreeUpdates;
+
+	/** TRUE if this SCSEditor is currently the target of a diff */
+	bool bIsDiffing;
 };
