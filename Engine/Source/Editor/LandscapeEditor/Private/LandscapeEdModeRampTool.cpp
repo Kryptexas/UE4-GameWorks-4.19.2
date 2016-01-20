@@ -403,7 +403,12 @@ public:
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{
-			return true;
+			// The editor can try to render the transform widget before the landscape editor ticks and realises that the landscape has been hidden/deleted
+			const ALandscapeProxy* LandscapeProxy = EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+			if (LandscapeProxy)
+			{
+				return true;
+			}
 		}
 
 		return false;
@@ -431,9 +436,11 @@ public:
 		if (SelectedPoint != INDEX_NONE)
 		{
 			const ALandscapeProxy* LandscapeProxy = EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
-			const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
-
-			return LandscapeToWorld.TransformPosition(Points[SelectedPoint]);
+			if (LandscapeProxy)
+			{
+				const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
+				return LandscapeToWorld.TransformPosition(Points[SelectedPoint]);
+			}
 		}
 
 		return FVector::ZeroVector;
@@ -444,9 +451,11 @@ public:
 		if (SelectedPoint != INDEX_NONE)
 		{
 			const ALandscapeProxy* LandscapeProxy = EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
-			const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
-
-			return FQuatRotationTranslationMatrix(LandscapeToWorld.GetRotation(), FVector::ZeroVector);
+			if (LandscapeProxy)
+			{
+				const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
+				return FQuatRotationTranslationMatrix(LandscapeToWorld.GetRotation(), FVector::ZeroVector);
+			}
 		}
 
 		return FMatrix::Identity;
