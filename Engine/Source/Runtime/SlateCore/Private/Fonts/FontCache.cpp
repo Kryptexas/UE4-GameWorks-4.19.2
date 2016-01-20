@@ -51,17 +51,43 @@ FShapedGlyphEntryKey::FShapedGlyphEntryKey(const TSharedPtr<FShapedGlyphFaceData
 }
 
 
-FShapedGlyphSequence::FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial)
+FShapedGlyphSequence::FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const FSourceTextRange& InSourceTextRange)
 	: GlyphsToRender(MoveTemp(InGlyphsToRender))
 	, GlyphClusterBlocks(MoveTemp(InGlyphClusterBlocks))
 	, TextBaseline(InTextBaseline)
 	, MaxTextHeight(InMaxTextHeight)
 	, FontMaterial(InFontMaterial)
+	, MeasuredWidth(0)
 	, GlyphFontFaces()
+	, ClusterIndicesToGlyphData(InSourceTextRange)
 {
-	for (const FShapedGlyphEntry& CurrentGlyph : GlyphsToRender)
+	for (int32 CurrentClusterBlockIndex = 0; CurrentClusterBlockIndex < GlyphClusterBlocks.Num(); ++CurrentClusterBlockIndex)
 	{
-		GlyphFontFaces.AddUnique(CurrentGlyph.FontFaceData->FontFace);
+		const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[CurrentClusterBlockIndex];
+
+		for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
+		{
+			const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+
+			// Track unique font faces
+			GlyphFontFaces.AddUnique(CurrentGlyph.FontFaceData->FontFace);
+
+			// Update the measured width
+			MeasuredWidth += CurrentGlyph.XAdvance;
+
+			// Track reverse look-up data
+			FClusterIndexToGlyphData* ClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(CurrentGlyph.ClusterIndex);
+			checkSlow(ClusterIndexToGlyphData);
+			if (ClusterIndexToGlyphData->IsValid())
+			{
+				// If this data already exists then it means a single character produced multiple glyphs and we need to track it as an additional glyph (these are always within the same cluster block)
+				ClusterIndexToGlyphData->AdditionalGlyphIndices.Add(CurrentGlyphIndex);
+			}
+			else
+			{
+				*ClusterIndexToGlyphData = FClusterIndexToGlyphData(CurrentClusterBlockIndex, CurrentGlyphIndex);
+			}
+		}
 	}
 }
 
@@ -80,13 +106,6 @@ bool FShapedGlyphSequence::IsDirty() const
 
 int32 FShapedGlyphSequence::GetMeasuredWidth() const
 {
-	int32 MeasuredWidth = 0;
-
-	for (const FShapedGlyphEntry& CurrentGlyph : GlyphsToRender)
-	{
-		MeasuredWidth += CurrentGlyph.XAdvance;
-	}
-
 	return MeasuredWidth;
 }
 
@@ -94,61 +113,18 @@ TOptional<int32> FShapedGlyphSequence::GetMeasuredWidth(const int32 InStartIndex
 {
 	int32 MeasuredWidth = 0;
 
-	bool bFoundStartGlyph = false;
-	bool bFoundEndGlyph = false;
-
 	if (InIncludeKerningWithPrecedingGlyph && InStartIndex > 0)
 	{
 		const TOptional<int8> Kerning = GetKerning(InStartIndex - 1);
 		MeasuredWidth += Kerning.Get(0);
 	}
 
-	const TRange<int32> MeasureRange(InStartIndex, InEndIndex);
-	for (const FShapedGlyphClusterBlock& CurrentClusterBlock : GlyphClusterBlocks)
+	auto GlyphCallback = [&](const FShapedGlyphEntry& CurrentGlyph)
 	{
-		const TRange<int32> CurrentClusterBlockRange(CurrentClusterBlock.ClusterStartIndex, CurrentClusterBlock.ClusterEndIndex);
-		if (CurrentClusterBlockRange.Overlaps(MeasureRange))
-		{
-			// Measure all the in-range glyphs from this cluster block
-			for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
-			{
-				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+		MeasuredWidth += CurrentGlyph.XAdvance;
+	};
 
-				// A single character may produce multiple glyphs which must be treated as a single logic unit
-				const bool bIsWithinGlyphCluster = GlyphsToRender.IsValidIndex(CurrentGlyphIndex + 1) && CurrentGlyph.ClusterIndex == GlyphsToRender[CurrentGlyphIndex + 1].ClusterIndex;
-
-				if (!bFoundStartGlyph && CurrentGlyph.ClusterIndex == InStartIndex)
-				{
-					bFoundStartGlyph = true;
-				}
-
-				if (!bFoundEndGlyph && CurrentGlyph.ClusterIndex == InEndIndex)
-				{
-					bFoundEndGlyph = true;
-				}
-
-				if (CurrentGlyph.ClusterIndex >= InStartIndex && CurrentGlyph.ClusterIndex < InEndIndex)
-				{
-					MeasuredWidth += CurrentGlyph.XAdvance;
-				}
-
-				// If we found both our end-points (and we're not within a glyph cluster), we can bail now
-				if (bFoundStartGlyph && bFoundEndGlyph && !bIsWithinGlyphCluster)
-				{
-					break;
-				}
-			}
-
-			// The shaped glyphs don't contain the end cluster block index, so if we matched end of the cluster range, say we measured okay
-			if (CurrentClusterBlock.ClusterEndIndex == InEndIndex)
-			{
-				bFoundEndGlyph = true;
-			}
-		}
-	}
-
-	// Did we measure okay?
-	if (bFoundStartGlyph && bFoundEndGlyph)
+	if (EnumerateGlyphsInClusterRange(InStartIndex, InEndIndex, GlyphCallback))
 	{
 		return MeasuredWidth;
 	}
@@ -251,10 +227,25 @@ TOptional<FShapedGlyphSequence::FGlyphOffsetResult> FShapedGlyphSequence::GetGly
 		CurrentOffset += Kerning.Get(0);
 	}
 
+	// Try and work out which cluster block we should start measuring from
+	int32 CurrentClusterBlockIndex = 0;
+	{
+		// The given range is exclusive, but we use an inclusive range when finding the cluster block to start at
+		const FClusterIndexToGlyphData* StartClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InStartIndex);
+		const FClusterIndexToGlyphData* EndClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InEndIndex - 1);
+
+		if (StartClusterIndexToGlyphData && StartClusterIndexToGlyphData->IsValid() && EndClusterIndexToGlyphData && EndClusterIndexToGlyphData->IsValid())
+		{
+			CurrentClusterBlockIndex = FMath::Min(StartClusterIndexToGlyphData->ClusterBlockIndex, EndClusterIndexToGlyphData->ClusterBlockIndex);
+		}
+	}
+
 	const TRange<int32> SearchRange(InStartIndex, InEndIndex);
 	int32 PreviousGlyphIndex = INDEX_NONE;
-	for (const FShapedGlyphClusterBlock& CurrentClusterBlock : GlyphClusterBlocks)
+	for (; CurrentClusterBlockIndex < GlyphClusterBlocks.Num(); ++CurrentClusterBlockIndex)
 	{
+		const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[CurrentClusterBlockIndex];
+
 		const TRange<int32> CurrentClusterBlockRange(CurrentClusterBlock.ClusterStartIndex, CurrentClusterBlock.ClusterEndIndex);
 		if (CurrentClusterBlockRange.Overlaps(SearchRange))
 		{
@@ -367,24 +358,12 @@ TOptional<FShapedGlyphSequence::FGlyphOffsetResult> FShapedGlyphSequence::GetGly
 
 TOptional<int8> FShapedGlyphSequence::GetKerning(const int32 InIndex) const
 {
-	for (const FShapedGlyphClusterBlock& CurrentClusterBlock : GlyphClusterBlocks)
+	const FClusterIndexToGlyphData* ClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InIndex);
+	if (ClusterIndexToGlyphData && ClusterIndexToGlyphData->IsValid())
 	{
-		const TRange<int32> CurrentClusterBlockRange(CurrentClusterBlock.ClusterStartIndex, CurrentClusterBlock.ClusterEndIndex);
-		if (CurrentClusterBlockRange.Contains(InIndex))
-		{
-			// Find the correct glyph from this cluster block
-			for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
-			{
-				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
-
-				if (CurrentGlyph.ClusterIndex == InIndex)
-				{
-					return CurrentGlyph.Kerning;
-				}
-			}
-
-			break;
-		}
+		const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[ClusterIndexToGlyphData->GlyphIndex];
+		checkSlow(CurrentGlyph.ClusterIndex == InIndex);
+		return CurrentGlyph.Kerning;
 	}
 
 	// If we got here it means we couldn't find the glyph
@@ -399,67 +378,265 @@ FShapedGlyphSequencePtr FShapedGlyphSequence::GetSubSequence(const int32 InStart
 	TArray<FShapedGlyphClusterBlock> SubGlyphClusterBlocks;
 	SubGlyphClusterBlocks.Reserve(GlyphClusterBlocks.Num());
 
-	bool bFoundStartGlyph = false;
-	bool bFoundEndGlyph = false;
+	int32 CurrentSubClusterBlockIndex = INDEX_NONE;
 
-	const TRange<int32> MeasureRange(InStartIndex, InEndIndex);
-	for (const FShapedGlyphClusterBlock& CurrentClusterBlock : GlyphClusterBlocks)
+	auto BeginClusterBlock = [&](const FShapedGlyphClusterBlock& CurrentClusterBlock)
 	{
-		const TRange<int32> CurrentClusterBlockRange(CurrentClusterBlock.ClusterStartIndex, CurrentClusterBlock.ClusterEndIndex);
-		if (CurrentClusterBlockRange.Overlaps(MeasureRange))
+		checkSlow(CurrentSubClusterBlockIndex == INDEX_NONE);
+		CurrentSubClusterBlockIndex = SubGlyphClusterBlocks.AddDefaulted();
+
+		FShapedGlyphClusterBlock& SubClusterBlock = SubGlyphClusterBlocks[CurrentSubClusterBlockIndex];
+		SubClusterBlock = FShapedGlyphClusterBlock(CurrentClusterBlock.TextDirection, FMath::Max(CurrentClusterBlock.ClusterStartIndex, InStartIndex), FMath::Min(CurrentClusterBlock.ClusterEndIndex, InEndIndex));
+
+		SubClusterBlock.ShapedGlyphStartIndex = SubGlyphsToRender.Num();
+	};
+
+	auto EndClusterBlock = [&](const FShapedGlyphClusterBlock& CurrentClusterBlock)
+	{
+		FShapedGlyphClusterBlock& SubClusterBlock = SubGlyphClusterBlocks[CurrentSubClusterBlockIndex];
+		SubClusterBlock.ShapedGlyphEndIndex = SubGlyphsToRender.Num();
+
+		checkSlow(CurrentSubClusterBlockIndex != INDEX_NONE);
+		CurrentSubClusterBlockIndex = INDEX_NONE;
+	};
+
+	auto GlyphCallback = [&](const FShapedGlyphEntry& CurrentGlyph)
+	{
+		SubGlyphsToRender.Add(CurrentGlyph);
+	};
+
+	if (EnumerateGlyphsInClusterRange(InStartIndex, InEndIndex, BeginClusterBlock, EndClusterBlock, GlyphCallback))
+	{
+		return MakeShareable(new FShapedGlyphSequence(MoveTemp(SubGlyphsToRender), MoveTemp(SubGlyphClusterBlocks), TextBaseline, MaxTextHeight, FontMaterial, FSourceTextRange(InStartIndex, InEndIndex - InStartIndex)));
+	}
+
+	return nullptr;
+}
+
+bool FShapedGlyphSequence::EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const
+{
+	// The given range is exclusive, but we use an inclusive range when performing all the bounds testing below (as it makes things simpler)
+	const FClusterIndexToGlyphData* StartClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InStartIndex);
+	const FClusterIndexToGlyphData* EndClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InEndIndex - 1);
+
+	if (!(StartClusterIndexToGlyphData && StartClusterIndexToGlyphData->IsValid() && EndClusterIndexToGlyphData && EndClusterIndexToGlyphData->IsValid()))
+	{
+		return false;
+	}
+
+	if (StartClusterIndexToGlyphData->ClusterBlockIndex == EndClusterIndexToGlyphData->ClusterBlockIndex)
+	{
+		// The start and end point are within the same block - this is simple to enumerate
+		const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[StartClusterIndexToGlyphData->ClusterBlockIndex];
+
+		int32 StartGlyphIndex = INDEX_NONE;
+		int32 EndGlyphIndex = INDEX_NONE;
+		if (StartClusterIndexToGlyphData->GlyphIndex <= EndClusterIndexToGlyphData->GlyphIndex)
 		{
-			FShapedGlyphClusterBlock& SubClusterBlock = SubGlyphClusterBlocks[SubGlyphClusterBlocks.AddDefaulted()];
-			SubClusterBlock = FShapedGlyphClusterBlock(CurrentClusterBlock.TextDirection, FMath::Max(CurrentClusterBlock.ClusterStartIndex, InStartIndex), FMath::Min(CurrentClusterBlock.ClusterEndIndex, InEndIndex));
+			StartGlyphIndex = StartClusterIndexToGlyphData->GetLowestGlyphIndex();
+			EndGlyphIndex = EndClusterIndexToGlyphData->GetHighestGlyphIndex();
+		}
+		else
+		{
+			StartGlyphIndex = EndClusterIndexToGlyphData->GetLowestGlyphIndex();
+			EndGlyphIndex = StartClusterIndexToGlyphData->GetHighestGlyphIndex();
+		}
+		check(StartGlyphIndex <= EndGlyphIndex);
 
-			SubClusterBlock.ShapedGlyphStartIndex = SubGlyphsToRender.Num();
+		for (int32 CurrentGlyphIndex = StartGlyphIndex; CurrentGlyphIndex <= EndGlyphIndex; ++CurrentGlyphIndex)
+		{
+			const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+			InGlyphCallback(CurrentGlyph);
+		}
+	}
+	else
+	{
+		if (EndClusterIndexToGlyphData->ClusterBlockIndex < StartClusterIndexToGlyphData->ClusterBlockIndex)
+		{
+			Swap(StartClusterIndexToGlyphData, EndClusterIndexToGlyphData);
+		}
 
-			// Add all the in-range glyphs from this cluster block
+		// Enumerate everything from the start point in the start block
+		{
+			const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[StartClusterIndexToGlyphData->ClusterBlockIndex];
+
+			int32 StartGlyphIndex = INDEX_NONE;
+			int32 EndGlyphIndex = INDEX_NONE;
+			if (StartClusterIndexToGlyphData->GlyphIndex <= (CurrentClusterBlock.ShapedGlyphEndIndex - 1))
+			{
+				StartGlyphIndex = StartClusterIndexToGlyphData->GetLowestGlyphIndex();
+				EndGlyphIndex = CurrentClusterBlock.ShapedGlyphEndIndex - 1; // Inclusive bounds test in the loop below
+			}
+			else
+			{
+				StartGlyphIndex = CurrentClusterBlock.ShapedGlyphEndIndex - 1; // Inclusive bounds test in the loop below
+				EndGlyphIndex = StartClusterIndexToGlyphData->GetHighestGlyphIndex();
+			}
+			check(StartGlyphIndex <= EndGlyphIndex);
+
+			for (int32 CurrentGlyphIndex = StartGlyphIndex; CurrentGlyphIndex <= EndGlyphIndex; ++CurrentGlyphIndex)
+			{
+				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+				InGlyphCallback(CurrentGlyph);
+			}
+		}
+
+		// Enumerate everything in any middle blocks
+		for (int32 CurrentClusterBlockIndex = StartClusterIndexToGlyphData->ClusterBlockIndex + 1; CurrentClusterBlockIndex <= EndClusterIndexToGlyphData->ClusterBlockIndex - 1; ++CurrentClusterBlockIndex)
+		{
+			const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[CurrentClusterBlockIndex];
+
 			for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
 			{
 				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
-
-				// A single character may produce multiple glyphs which must be treated as a single logic unit
-				const bool bIsWithinGlyphCluster = GlyphsToRender.IsValidIndex(CurrentGlyphIndex + 1) && CurrentGlyph.ClusterIndex == GlyphsToRender[CurrentGlyphIndex + 1].ClusterIndex;
-
-				if (!bFoundStartGlyph && CurrentGlyph.ClusterIndex == InStartIndex)
-				{
-					bFoundStartGlyph = true;
-				}
-
-				if (!bFoundEndGlyph && CurrentGlyph.ClusterIndex == InEndIndex)
-				{
-					bFoundEndGlyph = true;
-				}
-
-				if (CurrentGlyph.ClusterIndex >= InStartIndex && CurrentGlyph.ClusterIndex < InEndIndex)
-				{
-					SubGlyphsToRender.Add(CurrentGlyph);
-				}
-
-				// If we found both our end-points (and we're not within a glyph cluster), we can bail now
-				if (bFoundStartGlyph && bFoundEndGlyph && !bIsWithinGlyphCluster)
-				{
-					break;
-				}
+				InGlyphCallback(CurrentGlyph);
 			}
+		}
 
-			SubClusterBlock.ShapedGlyphEndIndex = SubGlyphsToRender.Num();
+		// Enumerate everything to the end point in the end block
+		{
+			const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[EndClusterIndexToGlyphData->ClusterBlockIndex];
 
-			// The shaped glyphs don't contain the end cluster block index, so if we matched end of the cluster range, say we measured okay
-			if (CurrentClusterBlock.ClusterEndIndex == InEndIndex)
+			int32 StartGlyphIndex = INDEX_NONE;
+			int32 EndGlyphIndex = INDEX_NONE;
+			if (CurrentClusterBlock.ShapedGlyphStartIndex <= EndClusterIndexToGlyphData->GlyphIndex)
 			{
-				bFoundEndGlyph = true;
+				StartGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex;
+				EndGlyphIndex = EndClusterIndexToGlyphData->GetHighestGlyphIndex();
+			}
+			else
+			{
+				StartGlyphIndex = EndClusterIndexToGlyphData->GetLowestGlyphIndex();
+				EndGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex;
+			}
+			check(StartGlyphIndex <= EndGlyphIndex);
+
+			for (int32 CurrentGlyphIndex = StartGlyphIndex; CurrentGlyphIndex <= EndGlyphIndex; ++CurrentGlyphIndex)
+			{
+				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+				InGlyphCallback(CurrentGlyph);
 			}
 		}
 	}
 
-	// Did we measure okay?
-	if (bFoundStartGlyph && bFoundEndGlyph)
+	return true;
+}
+
+bool FShapedGlyphSequence::EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphClusterBlockCallback& InBeginClusterBlockCallback, const FForEachShapedGlyphClusterBlockCallback& InEndClusterBlockCallback, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const
+{
+	// The given range is exclusive, but we use an inclusive range when performing all the bounds testing below (as it makes things simpler)
+	const FClusterIndexToGlyphData* StartClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InStartIndex);
+	const FClusterIndexToGlyphData* EndClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InEndIndex - 1);
+
+	if (!(StartClusterIndexToGlyphData && StartClusterIndexToGlyphData->IsValid() && EndClusterIndexToGlyphData && EndClusterIndexToGlyphData->IsValid()))
 	{
-		return MakeShareable(new FShapedGlyphSequence(MoveTemp(SubGlyphsToRender), MoveTemp(SubGlyphClusterBlocks), TextBaseline, MaxTextHeight, FontMaterial));
+		return false;
 	}
 
-	return nullptr;
+	if (StartClusterIndexToGlyphData->ClusterBlockIndex == EndClusterIndexToGlyphData->ClusterBlockIndex)
+	{
+		// The start and end point are within the same block - this is simple to enumerate
+		const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[StartClusterIndexToGlyphData->ClusterBlockIndex];
+
+		int32 StartGlyphIndex = INDEX_NONE;
+		int32 EndGlyphIndex = INDEX_NONE;
+		if (StartClusterIndexToGlyphData->GlyphIndex <= EndClusterIndexToGlyphData->GlyphIndex)
+		{
+			StartGlyphIndex = StartClusterIndexToGlyphData->GetLowestGlyphIndex();
+			EndGlyphIndex = EndClusterIndexToGlyphData->GetHighestGlyphIndex();
+		}
+		else
+		{
+			StartGlyphIndex = EndClusterIndexToGlyphData->GetLowestGlyphIndex();
+			EndGlyphIndex = StartClusterIndexToGlyphData->GetHighestGlyphIndex();
+		}
+		check(StartGlyphIndex <= EndGlyphIndex);
+
+		InBeginClusterBlockCallback(CurrentClusterBlock);
+		for (int32 CurrentGlyphIndex = StartGlyphIndex; CurrentGlyphIndex <= EndGlyphIndex; ++CurrentGlyphIndex)
+		{
+			const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+			InGlyphCallback(CurrentGlyph);
+		}
+		InEndClusterBlockCallback(CurrentClusterBlock);
+	}
+	else
+	{
+		if (EndClusterIndexToGlyphData->ClusterBlockIndex < StartClusterIndexToGlyphData->ClusterBlockIndex)
+		{
+			Swap(StartClusterIndexToGlyphData, EndClusterIndexToGlyphData);
+		}
+
+		// Enumerate everything from the start point in the start block
+		{
+			const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[StartClusterIndexToGlyphData->ClusterBlockIndex];
+
+			int32 StartGlyphIndex = INDEX_NONE;
+			int32 EndGlyphIndex = INDEX_NONE;
+			if (StartClusterIndexToGlyphData->GlyphIndex <= (CurrentClusterBlock.ShapedGlyphEndIndex - 1))
+			{
+				StartGlyphIndex = StartClusterIndexToGlyphData->GetLowestGlyphIndex();
+				EndGlyphIndex = CurrentClusterBlock.ShapedGlyphEndIndex - 1; // Inclusive bounds test in the loop below
+			}
+			else
+			{
+				StartGlyphIndex = CurrentClusterBlock.ShapedGlyphEndIndex - 1; // Inclusive bounds test in the loop below
+				EndGlyphIndex = StartClusterIndexToGlyphData->GetHighestGlyphIndex();
+			}
+			check(StartGlyphIndex <= EndGlyphIndex);
+
+			InBeginClusterBlockCallback(CurrentClusterBlock);
+			for (int32 CurrentGlyphIndex = StartGlyphIndex; CurrentGlyphIndex <= EndGlyphIndex; ++CurrentGlyphIndex)
+			{
+				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+				InGlyphCallback(CurrentGlyph);
+			}
+			InEndClusterBlockCallback(CurrentClusterBlock);
+		}
+
+		// Enumerate everything in any middle blocks
+		for (int32 CurrentClusterBlockIndex = StartClusterIndexToGlyphData->ClusterBlockIndex + 1; CurrentClusterBlockIndex <= EndClusterIndexToGlyphData->ClusterBlockIndex - 1; ++CurrentClusterBlockIndex)
+		{
+			const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[CurrentClusterBlockIndex];
+
+			InBeginClusterBlockCallback(CurrentClusterBlock);
+			for (int32 CurrentGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex; CurrentGlyphIndex < CurrentClusterBlock.ShapedGlyphEndIndex; ++CurrentGlyphIndex)
+			{
+				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+				InGlyphCallback(CurrentGlyph);
+			}
+			InEndClusterBlockCallback(CurrentClusterBlock);
+		}
+
+		// Enumerate everything to the end point in the end block
+		{
+			const FShapedGlyphClusterBlock& CurrentClusterBlock = GlyphClusterBlocks[EndClusterIndexToGlyphData->ClusterBlockIndex];
+
+			int32 StartGlyphIndex = INDEX_NONE;
+			int32 EndGlyphIndex = INDEX_NONE;
+			if (CurrentClusterBlock.ShapedGlyphStartIndex <= EndClusterIndexToGlyphData->GlyphIndex)
+			{
+				StartGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex;
+				EndGlyphIndex = EndClusterIndexToGlyphData->GetHighestGlyphIndex();
+			}
+			else
+			{
+				StartGlyphIndex = EndClusterIndexToGlyphData->GetLowestGlyphIndex();
+				EndGlyphIndex = CurrentClusterBlock.ShapedGlyphStartIndex;
+			}
+			check(StartGlyphIndex <= EndGlyphIndex);
+
+			InBeginClusterBlockCallback(CurrentClusterBlock);
+			for (int32 CurrentGlyphIndex = StartGlyphIndex; CurrentGlyphIndex <= EndGlyphIndex; ++CurrentGlyphIndex)
+			{
+				const FShapedGlyphEntry& CurrentGlyph = GlyphsToRender[CurrentGlyphIndex];
+				InGlyphCallback(CurrentGlyph);
+			}
+			InEndClusterBlockCallback(CurrentClusterBlock);
+		}
+	}
+
+	return true;
 }
 
 

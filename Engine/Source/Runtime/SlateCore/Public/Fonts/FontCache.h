@@ -214,7 +214,19 @@ typedef TSharedRef<const FShapedGlyphSequence> FShapedGlyphSequenceRef;
 class SLATECORE_API FShapedGlyphSequence
 {
 public:
-	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial);
+	struct FSourceTextRange
+	{
+		FSourceTextRange(const int32 InTextStart, const int32 InTextLen)
+			: TextStart(InTextStart)
+			, TextLen(InTextLen)
+		{
+		}
+
+		int32 TextStart;
+		int32 TextLen;
+	};
+
+	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const FSourceTextRange& InSourceTextRange);
 
 	/** Get the array of glyphs in this sequence. This data will be ordered so that you can iterate and draw left-to-right, which means it will be backwards for right-to-left languages */
 	const TArray<FShapedGlyphEntry>& GetGlyphsToRender() const
@@ -321,6 +333,81 @@ public:
 	FShapedGlyphSequencePtr GetSubSequence(const int32 InStartIndex, const int32 InEndIndex) const;
 
 private:
+	/**
+	 * Enumerate all of the glyphs within the given cluster index range
+	 * @note The indices used here are relative to the start of the text we were shaped from, even if we were only shaped from a sub-section of that text
+	 * @return True if we found the start and end point and enumerated the glyphs, false otherwise (eg, because you started or ended on a merged ligature, or because the range is out-of-bounds)
+	 */
+	typedef TFunctionRef<void(const FShapedGlyphEntry&)> FForEachShapedGlyphEntryCallback;
+	typedef TFunctionRef<void(const FShapedGlyphClusterBlock&)> FForEachShapedGlyphClusterBlockCallback;
+	bool EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
+	bool EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphClusterBlockCallback& InBeginClusterBlockCallback, const FForEachShapedGlyphClusterBlockCallback& InEndClusterBlockCallback, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const;
+
+	/** Contains the information needed when performing a reverse look-up from a cluster index to the corresponding shaped glyph */
+	struct FClusterIndexToGlyphData
+	{
+		FClusterIndexToGlyphData()
+			: ClusterBlockIndex(INDEX_NONE)
+			, GlyphIndex(INDEX_NONE)
+			, AdditionalGlyphIndices()
+		{
+		}
+
+		FClusterIndexToGlyphData(const int32 InClusterBlockIndex, const int32 InGlyphIndex)
+			: ClusterBlockIndex(InClusterBlockIndex)
+			, GlyphIndex(InGlyphIndex)
+			, AdditionalGlyphIndices()
+		{
+		}
+
+		bool IsValid() const
+		{
+			return ClusterBlockIndex != INDEX_NONE && GlyphIndex != INDEX_NONE;
+		}
+
+		int32 GetLowestGlyphIndex() const
+		{
+			return GlyphIndex;
+		};
+
+		int32 GetHighestGlyphIndex() const
+		{
+			return (AdditionalGlyphIndices.Num() > 0) ? AdditionalGlyphIndices.Last() : GlyphIndex;
+		}
+
+		int32 ClusterBlockIndex;
+		int32 GlyphIndex;
+		TArray<int32> AdditionalGlyphIndices;
+	};
+
+	/** A map of character indices to their shaped glyph data indices. Stored internally as an array so we can perform a single allocation */
+	struct FClusterIndicesToGlyphData
+	{
+	public:
+		explicit FClusterIndicesToGlyphData(const FSourceTextRange& InSourceTextRange)
+			: SourceTextRange(InSourceTextRange)
+			, GlyphDataArray()
+		{
+			GlyphDataArray.SetNum(InSourceTextRange.TextLen);
+		}
+
+		FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex)
+		{
+			const int32 InternalIndex = InSourceTextIndex - SourceTextRange.TextStart;
+			return (GlyphDataArray.IsValidIndex(InternalIndex)) ? &GlyphDataArray[InternalIndex] : nullptr;
+		}
+
+		const FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex) const
+		{
+			const int32 InternalIndex = InSourceTextIndex - SourceTextRange.TextStart;
+			return (GlyphDataArray.IsValidIndex(InternalIndex)) ? &GlyphDataArray[InternalIndex] : nullptr;
+		}
+
+	private:
+		FSourceTextRange SourceTextRange;
+		TArray<FClusterIndexToGlyphData> GlyphDataArray;
+	};
+
 	/** Array of glyphs in this sequence. This data will be ordered so that you can iterate and draw left-to-right, which means it will be backwards for right-to-left languages */
 	TArray<FShapedGlyphEntry> GlyphsToRender;
 	/** Array of cluster blocks used when mapping from the source text to the shaped glyphs */
@@ -331,8 +418,12 @@ private:
 	uint16 MaxTextHeight;
 	/** The material to use when rendering these glyphs */
 	const UObject* FontMaterial;
+	/** The cached width of the entire sequence */
+	int32 MeasuredWidth;
 	/** The set of fonts being used by the glyphs within this sequence */
 	TArray<TWeakPtr<FFreeTypeFace>> GlyphFontFaces;
+	/** A map of character indices to their shaped glyph data indices - used to perform efficient reverse look-up */
+	FClusterIndicesToGlyphData ClusterIndicesToGlyphData;
 };
 
 /** Information for rendering one character */

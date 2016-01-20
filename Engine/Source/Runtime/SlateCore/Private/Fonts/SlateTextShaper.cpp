@@ -103,7 +103,7 @@ FShapedGlyphSequenceRef FSlateTextShaper::ShapeBidirectionalText(const TCHAR* In
 		PerformTextShaping(InText, TextDirectionInfo.StartIndex, TextDirectionInfo.Length, InFontInfo, InFontScale, TextDirectionInfo.TextDirection, TextShapingMethod, GlyphsToRender, GlyphClusterBlock);
 	}
 
-	return FinalizeTextShaping(MoveTemp(GlyphsToRender), MoveTemp(GlyphClusterBlocks), InFontInfo, InFontScale);
+	return FinalizeTextShaping(MoveTemp(GlyphsToRender), MoveTemp(GlyphClusterBlocks), InFontInfo, InFontScale, FShapedGlyphSequence::FSourceTextRange(InTextStart, InTextLen));
 }
 
 FShapedGlyphSequenceRef FSlateTextShaper::ShapeUnidirectionalText(const TCHAR* InText, const int32 InTextStart, const int32 InTextLen, const FSlateFontInfo &InFontInfo, const float InFontScale, const TextBiDi::ETextDirection InTextDirection, const ETextShapingMethod TextShapingMethod) const
@@ -116,7 +116,7 @@ FShapedGlyphSequenceRef FSlateTextShaper::ShapeUnidirectionalText(const TCHAR* I
 		PerformTextShaping(InText, InTextStart, InTextLen, InFontInfo, InFontScale, InTextDirection, TextShapingMethod, GlyphsToRender, GlyphClusterBlock);
 	}
 
-	return FinalizeTextShaping(MoveTemp(GlyphsToRender), MoveTemp(GlyphClusterBlocks), InFontInfo, InFontScale);
+	return FinalizeTextShaping(MoveTemp(GlyphsToRender), MoveTemp(GlyphClusterBlocks), InFontInfo, InFontScale, FShapedGlyphSequence::FSourceTextRange(InTextStart, InTextLen));
 }
 
 void FSlateTextShaper::PerformTextShaping(const TCHAR* InText, const int32 InTextStart, const int32 InTextLen, const FSlateFontInfo &InFontInfo, const float InFontScale, const TextBiDi::ETextDirection InTextDirection, const ETextShapingMethod TextShapingMethod, TArray<FShapedGlyphEntry>& OutGlyphsToRender, FShapedGlyphClusterBlock& OutGlyphClusterBlock) const
@@ -145,7 +145,7 @@ void FSlateTextShaper::PerformTextShaping(const TCHAR* InText, const int32 InTex
 	OutGlyphClusterBlock.ShapedGlyphEndIndex = OutGlyphsToRender.Num();
 }
 
-FShapedGlyphSequenceRef FSlateTextShaper::FinalizeTextShaping(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const FSlateFontInfo &InFontInfo, const float InFontScale) const
+FShapedGlyphSequenceRef FSlateTextShaper::FinalizeTextShaping(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const FSlateFontInfo &InFontInfo, const float InFontScale, const FShapedGlyphSequence::FSourceTextRange& InSourceTextRange) const
 {
 	int16 TextBaseline = 0;
 	uint16 MaxHeight = 0;
@@ -169,7 +169,7 @@ FShapedGlyphSequenceRef FSlateTextShaper::FinalizeTextShaping(TArray<FShapedGlyp
 	}
 #endif // WITH_FREETYPE
 
-	return MakeShareable(new FShapedGlyphSequence(MoveTemp(InGlyphsToRender), MoveTemp(InGlyphClusterBlocks), TextBaseline, MaxHeight, InFontInfo.FontMaterial));
+	return MakeShareable(new FShapedGlyphSequence(MoveTemp(InGlyphsToRender), MoveTemp(InGlyphClusterBlocks), TextBaseline, MaxHeight, InFontInfo.FontMaterial, InSourceTextRange));
 }
 
 #if WITH_FREETYPE
