@@ -80,6 +80,16 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 	}
 }
 
+template<typename TKeepAliveType>
+struct TKeepAliveCommand : public FRHICommand < TKeepAliveCommand<TKeepAliveType> >
+{
+	TKeepAliveType Value;
+	
+	TKeepAliveCommand(TKeepAliveType InValue) : Value(InValue) {}
+
+	void Execute(FRHICommandListBase& CmdList) {}
+};
+
 void FSlate3DRenderer::DrawWindowToTarget_RenderThread(FRHICommandListImmediate& InRHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& WindowDrawBuffer)
 {
 	SCOPED_DRAW_EVENT(InRHICmdList, SlateRenderToTarget);
@@ -141,4 +151,12 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread(FRHICommandListImmediate&
 		});
 
 	InRHICmdList.CopyToResolveTarget(RenderTargetResource->GetTextureRHI(), RTResource, true, FResolveParams());
+
+	ISlate3DRendererPtr Self = SharedThis(this);
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(SlateDrawWindows_ResourceRetainer,
+		ISlate3DRendererPtr, Renderer, Self,
+		{
+			new ( RHICmdList.AllocCommand<TKeepAliveCommand<ISlate3DRendererPtr>>() ) TKeepAliveCommand<ISlate3DRendererPtr>(Renderer);
+		});
 }
