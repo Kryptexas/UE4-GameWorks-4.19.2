@@ -16,7 +16,6 @@ public:
 	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData);
 	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle);
 
-	void ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle);
 	void ReleaseCachingResourcesFor(const ILayoutCache* Cacher);
 
 	void SetDefaultBlendMode(const FBlendStateInitializerRHI& BlendState);

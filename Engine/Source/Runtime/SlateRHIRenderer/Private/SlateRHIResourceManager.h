@@ -73,7 +73,7 @@ struct FCachedRenderBuffers
 /**
  * Stores a mapping of texture names to their RHI texture resource               
  */
-class FSlateRHIResourceManager : public ISlateAtlasProvider, public FSlateShaderResourceManager, public FGCObject
+class FSlateRHIResourceManager : public ISlateAtlasProvider, public ISlateRenderDataManager, public FSlateShaderResourceManager, public FGCObject
 {
 public:
 	FSlateRHIResourceManager();
@@ -85,6 +85,10 @@ public:
 	virtual FSlateShaderResource* GetAtlasPageResource(const int32 InIndex) const override;
 	virtual bool IsAtlasPageResourceAlphaOnly() const override;
 
+	/** ISlateRenderDataManager */
+	virtual void BeginReleasingRenderData(const FSlateRenderDataHandle* RenderHandle) override;
+
+	/** FGCObject */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	/**
@@ -158,8 +162,12 @@ public:
 	}
 
 	FCachedRenderBuffers* FindOrCreateCachedBuffersForHandle(const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle);
-	void ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle);
+
+	/**
+	 * Releases all cached buffers allocated by a given layout cacher.  This would happen when an invalidation panel is destroyed.
+	 */
 	void ReleaseCachingResourcesFor(const ILayoutCache* Cacher);
+
 	/**
 	 * Releases rendering resources
 	 */
@@ -171,6 +179,13 @@ public:
 	 * @param InExtraResources     Optional list of textures to create that aren't in the style.
 	 */
 	void ReloadTextures();
+
+private:
+	/**
+	* Releases the cached render data for a given render handle.  The layout cacher that owned the handle must also be
+	* provided, as render handle is likely no longer a valid object.
+	*/
+	void ReleaseCachedRenderData(const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher);
 
 private:
 	/**
