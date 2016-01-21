@@ -2,15 +2,10 @@
 
 #pragma once
 
-#if !defined(WITH_EDITOR)
-#error "WITH_EDITOR must be defined"
-#endif
-
-#if !WITH_EDITOR && PLATFORM_DESKTOP
-	#define USE_MALLOC_STOMP 0
-#endif
+//#define USE_MALLOC_STOMP 1
 
 #if USE_MALLOC_STOMP
+
 /**
  * Stomp memory allocator. It helps find the following errors:
  * - Read or writes off the end of an allocation.

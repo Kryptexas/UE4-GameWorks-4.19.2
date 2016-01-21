@@ -121,8 +121,6 @@
 
 #include "NativeWidgetHost.h"
 
-#include "InputKeySelector.h"
-
 // Slate
 #include "SObjectWidget.h"
 

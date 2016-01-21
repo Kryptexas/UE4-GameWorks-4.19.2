@@ -976,19 +976,6 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 		MergeInBoneIndexArrays(RequiredBones, ForceAnimatedSocketBones);
 	}
 
-	// Gather any bones referenced by shadow shapes
-	if (FSkeletalMeshSceneProxy* SkeletalMeshProxy = (FSkeletalMeshSceneProxy*)SceneProxy)
-	{
-		TArray<FBoneIndexType> ShadowShapeBones;
-		SkeletalMeshProxy->GetShadowShapeBoneIndices(ShadowShapeBones);
-
-		if (ShadowShapeBones.Num())
-		{
-			// Sort in hierarchy order then merge to required bones array
-			ShadowShapeBones.Sort();
-			MergeInBoneIndexArrays(RequiredBones, ShadowShapeBones);
-		}
-	}
 
 	// Ensure that we have a complete hierarchy down to those bones.
 	FAnimationRuntime::EnsureParentsPresent(RequiredBones, SkeletalMesh);

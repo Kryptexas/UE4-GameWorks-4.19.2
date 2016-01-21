@@ -36,7 +36,7 @@ static void TemporalRandom(FVector2D* RESTRICT const Constant, uint32 FrameNumbe
 
 static TAutoConsoleVariable<float> CVarTemporalAASharpness(
 	TEXT("r.TemporalAASharpness"),
-	1.0f,
+	0.0f,
 	TEXT("Sharpness of temporal AA (0.0 = smoother, 1.0 = sharper)."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 

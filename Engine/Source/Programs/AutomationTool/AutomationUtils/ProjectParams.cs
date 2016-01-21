@@ -1190,7 +1190,7 @@ namespace AutomationTool
         /// <summary>
         /// Cook: Do not include a version number in the cooked content
         /// </summary>
-        public bool UnversionedCookedContent = true;
+        public bool UnversionedCookedContent;
 
 
 		/// <summary>

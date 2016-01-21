@@ -445,7 +445,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 			FText AsNumberTest1 = FText::AsNumber(5.5421);
 
 			FText AsPercentTest1 = FText::AsPercent(0.925);
-			FText AsCurrencyTest1 = FText::AsCurrencyBase(10025, TEXT("USD"));
+			FText AsCurrencyTest1 = FText::AsCurrency(100.25);
 
 			FDateTime DateTimeInfo(2080, 8, 20, 9, 33, 22);
 			FText AsDateTimeTest1 = FText::AsDateTime(DateTimeInfo, EDateTimeStyle::Default, EDateTimeStyle::Default, TEXT("UTC"));
@@ -508,7 +508,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 					AddError( TEXT("Percent Output=") + AsPercentTest1.ToString() );
 				}
 
-				if(AsCurrencyTest1.CompareTo(FText::AsCurrencyBase(10025, TEXT("USD"))) != 0)
+				if(AsCurrencyTest1.CompareTo(FText::AsCurrency(100.25)) != 0)
 				{
 					AddError( TEXT("AsCurrencyTest1 did not rebuild correctly in French-Canadian") );
 					AddError( TEXT("Currency Output=") + AsCurrencyTest1.ToString() );

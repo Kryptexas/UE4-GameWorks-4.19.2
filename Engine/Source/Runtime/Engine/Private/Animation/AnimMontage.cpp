@@ -1052,16 +1052,6 @@ void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotify
 
 				MarkerTickContext.MarkersPassedThisTick = *Instance.Montage.MarkersPassedThisTick;
 
-#if DO_CHECK
-				if(MarkerTickContext.MarkersPassedThisTick.Num() == 0)
-				{
-					const FMarkerSyncAnimPosition& StartPosition = MarkerTickContext.GetMarkerSyncStartPosition();
-					const FMarkerSyncAnimPosition& EndPosition = MarkerTickContext.GetMarkerSyncEndPosition();
-					checkf(StartPosition.NextMarkerName == EndPosition.NextMarkerName, TEXT("StartPosition NextMarker = %s, EndPosition NextMarker = %s, Asset = %s"), *StartPosition.NextMarkerName.ToString(), *EndPosition.NextMarkerName.ToString(), *Instance.SourceAsset->GetFullName());
-					checkf(StartPosition.PreviousMarkerName == EndPosition.PreviousMarkerName, TEXT("StartPosition PreviousMarker = %s, EndPosition PreviousMarker = %s, Asset = %s"), *StartPosition.PreviousMarkerName.ToString(), *EndPosition.PreviousMarkerName.ToString(), *Instance.SourceAsset->GetFullName());
-				}
-#endif
-
 				UE_LOG(LogAnimMarkerSync, Log, TEXT("Montage Leading SyncGroup: %s(%s) Start [%s], End [%s]"),
 					*GetNameSafe(this), *SyncGroup.ToString(), *MarkerTickContext.GetMarkerSyncStartPosition().ToString(), *MarkerTickContext.GetMarkerSyncEndPosition().ToString());
 			}
@@ -1654,8 +1644,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 			DeltaMoved = 0.f;
 			PreviousPosition = Position;
 
-			bDidUseMarkerSyncThisTick = CanUseMarkerSync();
-			if (bDidUseMarkerSyncThisTick)
+			bool bCanUseMarkerSync = CanUseMarkerSync();
+			if (bCanUseMarkerSync)
 			{
 				MarkersPassedThisTick.Reset();
 			}
@@ -1704,7 +1694,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 					float PrevPosition = Position;
 					Position = FMath::Clamp<float>(Position + ActualDeltaPos, CurrentSection.GetTime(), CurrentSectionEndPos);
 
-					if (bDidUseMarkerSyncThisTick)
+					if (bCanUseMarkerSync)
 					{
 						Montage->MarkerData.CollectMarkersInRange(PrevPosition, Position, MarkersPassedThisTick, ActualDeltaMove);
 					}

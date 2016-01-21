@@ -158,9 +158,6 @@ void UAnimSequence::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 	}
 #endif
 
-	OutTags.Add(FAssetRegistryTag(TEXT("Compression Ratio"), FString::Printf(TEXT("%.03f"), (float)GetApproxCompressedSize() / (float)GetApproxRawSize()), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag(TEXT("Compressed Size (KB)"), FString::Printf(TEXT("%.02f"), (float)GetApproxCompressedSize() / 1024.0f), FAssetRegistryTag::TT_Numerical));
-
 	Super::GetAssetRegistryTags(OutTags);
 }
 
@@ -969,8 +966,7 @@ FTransform UAnimSequence::ExtractRootMotion(float StartTime, float DeltaTime, bo
 			const ETypeAdvanceAnim AdvanceType = FAnimationRuntime::AdvanceTime(false, DesiredDeltaMove, CurrentPosition, SequenceLength);
 
 			// Verify position assumptions
-			ensureMsgf(bPlayingBackwards ? (CurrentPosition <= PreviousPosition) : (CurrentPosition >= PreviousPosition), TEXT("in Animation %s(Skeleton %s) : bPlayingBackwards(%d), PreviousPosition(%0.2f), Current Position(%0.2f)"),
-				*GetName(), *GetNameSafe(GetSkeleton()), bPlayingBackwards, PreviousPosition, CurrentPosition);
+			check(bPlayingBackwards ? (CurrentPosition <= PreviousPosition) : (CurrentPosition >= PreviousPosition));
 
 			RootMotionParams.Accumulate(ExtractRootMotionFromRange(PreviousPosition, CurrentPosition));
 
@@ -4325,7 +4321,7 @@ void AdvanceMarkerBackwards(int32& Marker, FName MarkerToFind, bool bLooping, co
 
 	if (!AuthoredSyncMarkers.IsValidIndex(Marker) || (AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind))
 	{
-		Marker = MarkerIndexSpecialValues::AnimationBoundary;
+		Marker = INDEX_NONE;
 	}
 }
 
@@ -4342,11 +4338,7 @@ void UAnimSequence::ValidateCurrentPosition(const FMarkerSyncAnimPosition& Posit
 		if (!MarkerMatchesPosition(this, PreviousMarker.MarkerIndex, Position.PreviousMarkerName))
 		{
 			AdvanceMarkerForwards(PreviousMarker.MarkerIndex, Position.PreviousMarkerName, bLooping, AuthoredSyncMarkers);
-			NextMarker.MarkerIndex = (PreviousMarker.MarkerIndex + 1);
-			if(NextMarker.MarkerIndex >= AuthoredSyncMarkers.Num())
-			{
-				NextMarker.MarkerIndex = bLooping ? NextMarker.MarkerIndex % AuthoredSyncMarkers.Num() : MarkerIndexSpecialValues::AnimationBoundary;
-			}
+			NextMarker.MarkerIndex = (PreviousMarker.MarkerIndex + 1) % AuthoredSyncMarkers.Num();
 		}
 
 		if (!MarkerMatchesPosition(this, NextMarker.MarkerIndex, Position.NextMarkerName))
@@ -4360,14 +4352,7 @@ void UAnimSequence::ValidateCurrentPosition(const FMarkerSyncAnimPosition& Posit
 		if (!MarkerMatchesPosition(this, NextMarker.MarkerIndex, Position.NextMarkerName))
 		{
 			AdvanceMarkerBackwards(NextMarker.MarkerIndex, Position.NextMarkerName, bLooping, AuthoredSyncMarkers);
-			if(NextMarker.MarkerIndex == MarkerIndexSpecialValues::AnimationBoundary || (NextMarker.MarkerIndex == 0 && bLooping))
-			{
-				PreviousMarker.MarkerIndex = AuthoredSyncMarkers.Num() - 1;
-			}
-			else
-			{
-				PreviousMarker.MarkerIndex = NextMarker.MarkerIndex - 1;
-			}
+			PreviousMarker.MarkerIndex = (NextMarker.MarkerIndex ? NextMarker.MarkerIndex : MarkerRange) - 1;
 		}
 		if (!MarkerMatchesPosition(this, PreviousMarker.MarkerIndex, Position.PreviousMarkerName))
 		{
@@ -4571,8 +4556,6 @@ float UAnimSequence::GetCurrentTimeFromMarkers(FMarkerPair& PrevMarker, FMarkerP
 	{
 		CurrentTime += SequenceLength;
 	}
-	CurrentTime = FMath::Clamp<float>(CurrentTime, 0, SequenceLength);
-	
 	PrevMarker.TimeToMarker = PrevTime - CurrentTime;
 	NextMarker.TimeToMarker = NextTime - CurrentTime;
 	return CurrentTime;

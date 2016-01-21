@@ -25,7 +25,6 @@ enum class ECookInitializationFlags
 	UseSerializationForPackageDependencies =	0x100, // should we use the serialization code path for generating package dependencies (old method will be deprecated)
 	BuildDDCInBackground =						0x200, // build ddc content in background while the editor is running (only valid for modes which are in editor IsCookingInEditor())
 	GeneratedAssetRegistry =					0x400, // have we generated asset registry yet
-	OutputVerboseCookerWarnings =				0x800, // output additional cooker warnings about content issues
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 

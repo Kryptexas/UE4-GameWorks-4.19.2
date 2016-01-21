@@ -4757,18 +4757,7 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 
 void FSeamlessTravelHandler::CopyWorldData()
 {
-	// If we are doing seamless travel for replay playback, then make sure to transfer the replay driver over to the new world
-	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
-	{
-		UDemoNetDriver* OldDriver = CurrentWorld->DemoNetDriver;
-		CurrentWorld->DemoNetDriver = nullptr;
-		OldDriver->SetWorld( LoadedWorld );
-		LoadedWorld->DemoNetDriver = OldDriver;
-	}
-	else
-	{
-		CurrentWorld->DestroyDemoNetDriver();
-	}
+	CurrentWorld->DestroyDemoNetDriver();
 
 	UNetDriver* const NetDriver = CurrentWorld->GetNetDriver();
 	LoadedWorld->SetNetDriver(NetDriver);

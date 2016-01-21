@@ -195,6 +195,8 @@ protected:
 	bool bIgnoreAbilitySystemCosts;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
+private:
+
 	/** Holds all of the valid gameplay-related tags that can be applied to assets */
 	UPROPERTY(config)
 	FString GlobalCurveTableName;

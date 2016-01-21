@@ -334,16 +334,12 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessWordCountReport(const FSt
 		ReportData.SetEntry(NewRowIndex, CultureStr, FString::FromInt( TranslatedWords ) );
 	}
 
-	const bool DidFileExist = FPaths::FileExists(ReportFilePath);
-	if (DidFileExist)
+	if( SourceControlInfo.IsValid() )
 	{
-		if( SourceControlInfo.IsValid() )
+		FText SCCErrorText;
+		if (!SourceControlInfo->CheckOutFile(ReportFilePath, SCCErrorText))
 		{
-			FText SCCErrorText;
-			if (!SourceControlInfo->CheckOutFile(ReportFilePath, SCCErrorText))
-			{
-				UE_LOG(LogGenerateTextLocalizationReportCommandlet, Warning, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
-			}
+			UE_LOG(LogGenerateTextLocalizationReportCommandlet, Warning, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
 		}
 	}
 
@@ -352,20 +348,6 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessWordCountReport(const FSt
 		UE_LOG(LogGenerateTextLocalizationReportCommandlet, Error, TEXT("Unable to save report at %s."), *ReportFilePath);
 		return false;
 	}
-
-	if (!DidFileExist)
-	{
-		// Checkout on a new file will cause it to be added
-		if( SourceControlInfo.IsValid() )
-		{
-			FText SCCErrorText;
-			if (!SourceControlInfo->CheckOutFile(ReportFilePath, SCCErrorText))
-			{
-				UE_LOG(LogGenerateTextLocalizationReportCommandlet, Warning, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
-			}
-		}
-	}
-
 	return true;
 }
 
@@ -389,16 +371,12 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessConflictReport(const FStr
 
 	ReportStr = FConflictReportInfo::GetInstance().ToString();
 
-	const bool DidFileExist = FPaths::FileExists(ReportFilePath);
-	if (DidFileExist)
+	if( SourceControlInfo.IsValid() )
 	{
-		if( SourceControlInfo.IsValid() )
+		FText SCCErrorText;
+		if (!SourceControlInfo->CheckOutFile(ReportFilePath, SCCErrorText))
 		{
-			FText SCCErrorText;
-			if (!SourceControlInfo->CheckOutFile(ReportFilePath, SCCErrorText))
-			{
-				UE_LOG(LogGenerateTextLocalizationReportCommandlet, Warning, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
-			}
+			UE_LOG(LogGenerateTextLocalizationReportCommandlet, Warning, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
 		}
 	}
 
@@ -407,19 +385,5 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessConflictReport(const FStr
 		UE_LOG(LogGenerateTextLocalizationReportCommandlet, Error, TEXT("Unable to save report at %s."), *ReportFilePath);
 		return false;
 	}
-
-	if (!DidFileExist)
-	{
-		// Checkout on a new file will cause it to be added
-		if( SourceControlInfo.IsValid() )
-		{
-			FText SCCErrorText;
-			if (!SourceControlInfo->CheckOutFile(ReportFilePath, SCCErrorText))
-			{
-				UE_LOG(LogGenerateTextLocalizationReportCommandlet, Warning, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
-			}
-		}
-	}
-
 	return true;
 }

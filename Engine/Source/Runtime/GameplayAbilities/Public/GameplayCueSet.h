@@ -59,9 +59,6 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	/** Removes all cues from the set matching the supplied string refs */
 	virtual void RemoveCuesByStringRefs(const TArray<FStringAssetReference>& CuesToRemove);
 
-	/** Nulls reference to the loaded class. Note this doesn't remove the entire cue from the internal data structure, just the hard ref to the loaded class */
-	virtual void RemoveLoadedClass(UClass* Class);
-
 #if WITH_EDITOR
 
 	/** Updates an existing cue */

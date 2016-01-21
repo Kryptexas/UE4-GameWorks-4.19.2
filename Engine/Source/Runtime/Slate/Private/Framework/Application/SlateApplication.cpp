@@ -1312,8 +1312,6 @@ extern SLATECORE_API int32 bFoldTick;
 
 void FSlateApplication::Tick()
 {
-	FScopeLock SlateTickAccess(&SlateTickCriticalSection);
-
 	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
 
 	{

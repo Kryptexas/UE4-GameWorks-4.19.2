@@ -175,10 +175,10 @@ bool FAutomationTestFramework::RunSmokeTests()
 
 			double EndTime = FPlatformTime::Seconds();
 			double TimeForTest = static_cast<float>(EndTime - SmokeTestStartTime);
-			if (TimeForTest > 2.0f)
+			if (TimeForTest > 1.0f)
 			{
 				//force a failure if a smoke test takes too long
-				UE_LOG(LogAutomationTest, Warning, TEXT("Smoke tests took > 2s to run: %.2fs"), (float)TimeForTest);
+				UE_LOG(LogAutomationTest, Warning, TEXT("Smoke tests took > 1s to run: %.2fs"), (float)TimeForTest);
 			}
 
 			FAutomationTestFramework::DumpAutomationTestExecutionInfo( OutExecutionInfoMap );

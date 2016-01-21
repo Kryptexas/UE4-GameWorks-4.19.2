@@ -6536,10 +6536,6 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.Name" ), MainGPUName));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.VRAM" ), BucketedVRAM));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.DriverVersion" ), MainGPUDriverVer));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterName" ), SurveyResults.RHIAdpater.AdapterName));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterInternalDriverVersion" ), SurveyResults.RHIAdpater.AdapterInternalDriverVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterUserDriverVersion" ), SurveyResults.RHIAdpater.AdapterUserDriverVersion));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.RHIAdapterDriverDate" ), SurveyResults.RHIAdpater.AdapterDriverDate));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "RAM" ), BucketedRAM));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "RAM.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.RAMPerformanceIndex )));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "NumberOfMonitors" ), FString::Printf( TEXT( "%d" ), SurveyResults.DisplayCount )));
@@ -9556,9 +9552,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// may be unavailable to load the next one.
 	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand, 
 		{
-			GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+			FlushPendingDeleteRHIResources_RenderThread();
 			RHIFlushResources();
-			GRHICommandList.GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+			FlushPendingDeleteRHIResources_RenderThread();
 		}
 	);
 	FlushRenderingCommands();	  

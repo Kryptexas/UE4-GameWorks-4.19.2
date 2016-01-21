@@ -8,7 +8,6 @@
 #include "ScenePrivate.h"
 #include "SceneFilterRendering.h"
 #include "PostProcessEyeAdaptation.h"
-#include "PostProcessUpscale.h"
 #include "PostProcessTonemap.h"
 #include "PostProcessing.h"
 #include "PostProcessCombineLUTs.h"
@@ -1078,14 +1077,29 @@ IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<true>, TEXT("PostProcess
 IMPLEMENT_SHADER_TYPE(template<>, TPostProcessTonemapVS<false>, TEXT("PostProcessTonemap"), TEXT("MainVS"), SF_Vertex);
 
 
-FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& InView, bool bInDoGammaOnly, bool bInDoEyeAdaptation)
+FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly, bool bDoScreenPercentageInTonemapper, bool bInDoEyeAdaptation )
 	: bDoGammaOnly(bInDoGammaOnly)
-	, bDoScreenPercentageInTonemapper(false)
 	, bDoEyeAdaptation(bInDoEyeAdaptation)
-	, View(InView)	
+	, RenderTargetExtend(0, 0)
 {
-	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&InView, bDoGammaOnly);
+	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&View, bDoGammaOnly);
 	ConfigIndexPC = TonemapperFindLeastExpensive(TonemapperConfBitmaskPC, sizeof(TonemapperConfBitmaskPC)/4, TonemapperCostTab, ConfigBitmask);;
+
+	if(bDoScreenPercentageInTonemapper)
+	{
+		// Texture could be bigger than viewport
+		if (View.Family->RenderTarget->GetRenderTargetTexture())
+		{
+			RenderTargetExtend.X = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
+			RenderTargetExtend.Y = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
+		}
+		else
+		{
+			RenderTargetExtend = View.Family->RenderTarget->GetSizeXY();
+		}
+	}
+	
+	check(bDoScreenPercentageInTonemapper == ShouldDoScreenPercentageInTonemapper());
 }
 
 namespace PostProcessTonemapUtil
@@ -1131,14 +1145,14 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		// input is not hooked up correctly
 		return;
 	}
-
+	
+	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = bDoScreenPercentageInTonemapper ? View.UnscaledViewRect : View.ViewRect;
+	FIntRect DestRect = ShouldDoScreenPercentageInTonemapper() ? View.UnscaledViewRect : View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
-	
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d GammaOnly=%d ScreenPercentage=%d  %dx%d"),
-		ConfigIndexPC, bDoGammaOnly, bDoScreenPercentageInTonemapper, DestRect.Width(), DestRect.Height());
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessTonemap, TEXT("Tonemapper#%d%s %dx%d"), ConfigIndexPC, bDoGammaOnly ? TEXT(" GammaOnly") : TEXT(""), DestRect.Width(), DestRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	
@@ -1156,7 +1170,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
 	}
 
-	Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f );
+	Context.SetViewportAndCallRHI(DestRect.Min.X, DestRect.Min.Y, 0.0f, DestRect.Max.X + 1, DestRect.Max.Y + 1, 1.0f );
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -1217,6 +1231,11 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		// This becomes even more important with some limited VRam (XBoxOne).
 		SceneContext.SetSceneColor(0);
 	}
+
+	if(ShouldDoScreenPercentageInTonemapper())
+	{
+		Context.View.ViewRect = View.UnscaledViewRect;
+	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -1227,6 +1246,11 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
+
+	if(ShouldDoScreenPercentageInTonemapper())
+	{
+		Ret.Extent = RenderTargetExtend;
+	}
 
 	return Ret;
 }

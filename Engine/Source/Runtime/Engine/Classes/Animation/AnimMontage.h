@@ -183,9 +183,6 @@ struct FAnimMontageInstance
 	// markers that passed in this tick
 	TArray<FPassedMarker> MarkersPassedThisTick;
 
-	// Whether this in this tick's call to Advance we used marker based sync
-	bool bDidUseMarkerSyncThisTick;
-
 private:
 	// list of next sections per section - index of array is section id
 	UPROPERTY()
@@ -281,7 +278,6 @@ public:
 		: Montage(NULL)
 		, bPlaying(false)
 		, DefaultBlendTimeMultiplier(1.0f)
-		, bDidUseMarkerSyncThisTick(false)
 		, AnimInstance(NULL)
 		, Position(0.f)
 		, PlayRate(1.f)
@@ -299,7 +295,6 @@ public:
 		: Montage(NULL)
 		, bPlaying(false)
 		, DefaultBlendTimeMultiplier(1.0f)
-		, bDidUseMarkerSyncThisTick(false)
 		, AnimInstance(InAnimInstance)
 		, Position(0.f)
 		, PlayRate(1.f)

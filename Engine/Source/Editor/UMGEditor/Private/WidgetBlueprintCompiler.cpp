@@ -194,7 +194,6 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	Super::CreateClassVariablesFromBlueprint();
 
 	UWidgetBlueprint* Blueprint = WidgetBlueprint();
-	UClass* ParentClass = Blueprint->ParentClass;
 
 	ValidateWidgetNames();
 
@@ -203,7 +202,16 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	Blueprint->WidgetTree->GetAllWidgets(Widgets);
 
 	// Sort the widgets alphabetically
-	Widgets.Sort( []( const UWidget& Lhs, const UWidget& Rhs ) { return Rhs.GetFName() < Lhs.GetFName(); } );
+	{
+		struct FWidgetSorter
+		{
+			bool operator()(const UWidget& A, const UWidget& B) const
+			{
+				return B.GetFName() < A.GetFName();
+			}
+		};
+		Widgets.Sort(FWidgetSorter());
+	}
 
 	// Add widget variables
 	for ( UWidget* Widget : Widgets )
@@ -220,13 +228,6 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 		if ( UBlueprintGeneratedClass* BPWidgetClass = Cast<UBlueprintGeneratedClass>(WidgetClass) )
 		{
 			WidgetClass = BPWidgetClass->GetAuthoritativeClass();
-		}
-
-		UProperty* ExistingProperty = ParentClass->FindPropertyByName( Widget->GetFName() );
-		if ( ExistingProperty && ExistingProperty->HasMetaData( "BindWidget" ) )
-		{
-			WidgetToMemberVariableMap.Add( Widget, ExistingProperty );
-			continue;
 		}
 
 		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), WidgetClass, false, false);
@@ -306,25 +307,6 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 				BPGClass->NamedSlots.Add(Widget->GetFName());
 			}
 		});
-	}
-
-	UClass* ParentClass = Blueprint->ParentClass;
-	for ( TUObjectPropertyBase<UWidget*>* WidgetProperty : TFieldRange<TUObjectPropertyBase<UWidget*>>( ParentClass ) )
-	{
-		if ( WidgetProperty->HasMetaData( "BindWidget" ) && ( !WidgetProperty->HasMetaData( "OptionalWidget" ) || !WidgetProperty->GetBoolMetaData( "OptionalWidget" ) ) )
-		{
-			UWidget* const* Widget = WidgetToMemberVariableMap.FindKey( WidgetProperty );
-			if ( !Widget )
-			{
-				MessageLog.Error( *LOCTEXT( "RequiredWidget_NotBound", "Non-optional widget binding @@ not found." ).ToString(),
-				                    WidgetProperty );
-			}
-			else if ( !( *Widget )->IsA( WidgetProperty->PropertyClass ) )
-			{
-				MessageLog.Error( *LOCTEXT( "IncorrectWidgetTypes", "@@ is of type @@ property is of type @@." ).ToString(), *Widget,
-				                    ( *Widget )->GetClass(), WidgetProperty->PropertyClass );
-			}
-		}
 	}
 
 	Super::FinishCompilingClass(Class);

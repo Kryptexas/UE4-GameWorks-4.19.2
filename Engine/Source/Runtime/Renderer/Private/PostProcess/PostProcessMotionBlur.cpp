@@ -1043,8 +1043,8 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 
 	// clear depth
 	// Max >= Min so no need to clear on second pass
-	Context.RHICmdList.SetRenderTargetsAndClear(RTInfo);
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, TileCount.X, TileCount.Y, 1.0f);
+	Context.RHICmdList.SetRenderTargetsAndClear(RTInfo);			
 	
 	// Min,Max
 	for( int i = 0; i < 2; i++ )

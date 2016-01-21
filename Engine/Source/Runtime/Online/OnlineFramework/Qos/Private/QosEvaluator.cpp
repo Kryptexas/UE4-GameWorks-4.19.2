@@ -147,6 +147,7 @@ void FQosEvaluator::OnFindDatacentersComplete(bool bWasSuccessful, FOnQosSearchC
 		if (SessionInt.IsValid())
 		{
 			SessionInt->ClearOnFindSessionsCompleteDelegate_Handle(OnFindDatacentersCompleteDelegateHandle);
+			//OnFindDatacentersCompleteDelegateHandle.Reset();
 		}
 	}
 
@@ -355,9 +356,7 @@ void FQosEvaluator::OnQosRequestComplete(EQosResponseType QosResponse, int32 Res
 			SearchResult.PingInMs = MAX_QUERY_PING;
 		}
 
-		extern ENGINE_API float GAverageFPS;
-		extern ENGINE_API float GAverageMS;
-		UE_LOG(LogQos, Verbose, TEXT("Qos response received: %d ms FPS: %0.2f MS: %0.2f"), ResponseTime, GAverageFPS, GAverageMS);
+		UE_LOG(LogQos, Verbose, TEXT("Qos response received: %d ms"), ResponseTime);
 
 		if (QosStats.IsValid())
 		{

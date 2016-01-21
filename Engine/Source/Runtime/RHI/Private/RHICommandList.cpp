@@ -480,7 +480,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandListImmediate& CmdList)
 
 void FRHICommandListExecutor::LatchBypass()
 {
-#if CAN_TOGGLE_COMMAND_LIST_BYPASS
+#if !UE_BUILD_SHIPPING
 	if (GRHIThread)
 	{
 		if (bLatchedBypass)
@@ -522,7 +522,7 @@ void FRHICommandListExecutor::LatchBypass()
 	if (!bLatchedBypass)
 	{
 		bLatchedUseParallelAlgorithms = FApp::ShouldUseThreadingForPerformance() 
-#if CAN_TOGGLE_COMMAND_LIST_BYPASS
+#if !UE_BUILD_SHIPPING
 			&& (CVarRHICmdUseParallelAlgorithms.GetValueOnAnyThread() >= 1)
 #endif
 			;
@@ -1894,7 +1894,7 @@ void FDynamicRHI::UpdateTexture2D_RenderThread(class FRHICommandListImmediate& R
 
 void* FDynamicRHI::LockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush)
 {
-	if (bNeedsDefaultRHIFlush) 
+	if (bNeedsDefaultRHIFlush)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockTexture2D_Flush);
 		RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);

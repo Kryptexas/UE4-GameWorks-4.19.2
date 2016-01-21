@@ -140,8 +140,8 @@ void UAnimSequenceBase::GetAnimNotifies(const float& StartTime, const float& Del
 		const ETypeAdvanceAnim AdvanceType = FAnimationRuntime::AdvanceTime(false, DesiredDeltaMove, CurrentPosition, SequenceLength);
 
 		// Verify position assumptions
-		ensureMsgf(bPlayingBackwards ? (CurrentPosition <= PreviousPosition) : (CurrentPosition >= PreviousPosition), TEXT("in Animation %s(Skeleton %s) : bPlayingBackwards(%d), PreviousPosition(%0.2f), Current Position(%0.2f)"), 
-			*GetName(), *GetNameSafe(GetSkeleton()), bPlayingBackwards, PreviousPosition, CurrentPosition);
+		ensureMsgf(bPlayingBackwards ? (CurrentPosition <= PreviousPosition) : (CurrentPosition >= PreviousPosition), TEXT("in Animsequence %s : bPlayingBackwards(%d), PreviousPosition(%0.2f), Current Position(%0.2f)"), 
+			*GetName(), bPlayingBackwards, PreviousPosition, CurrentPosition);
 		
 		GetAnimNotifiesFromDeltaPositions(PreviousPosition, CurrentPosition, OutActiveNotifies);
 	

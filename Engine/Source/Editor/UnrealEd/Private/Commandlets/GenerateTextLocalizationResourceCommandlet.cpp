@@ -133,17 +133,13 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 		// Write resource.
 		const FString TextLocalizationResourcePath = DestinationPath / CultureName / ResourceName;
 
-		const bool DidFileExist = FPaths::FileExists(TextLocalizationResourcePath);
-		if (DidFileExist)
+		if( SourceControlInfo.IsValid() )
 		{
-			if( SourceControlInfo.IsValid() )
+			FText SCCErrorText;
+			if (!SourceControlInfo->CheckOutFile(TextLocalizationResourcePath, SCCErrorText))
 			{
-				FText SCCErrorText;
-				if (!SourceControlInfo->CheckOutFile(TextLocalizationResourcePath, SCCErrorText))
-				{
-					UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Check out of file %s failed: %s"), *TextLocalizationResourcePath, *SCCErrorText.ToString());
-					return -1;
-				}
+				UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Check out of file %s failed: %s"), *TextLocalizationResourcePath, *SCCErrorText.ToString());
+				return -1;
 			}
 		}
 
@@ -157,20 +153,6 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 				IFileManager::Get().Delete( *TextLocalizationResourcePath );
 			}
 			TextLocalizationResourceArchive->Close();
-		}
-
-		if (!DidFileExist)
-		{
-			// Checkout on a new file will cause it to be added
-			if( SourceControlInfo.IsValid() )
-			{
-				FText SCCErrorText;
-				if (!SourceControlInfo->CheckOutFile(TextLocalizationResourcePath, SCCErrorText))
-				{
-					UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Check out of file %s failed: %s"), *TextLocalizationResourcePath, *SCCErrorText.ToString());
-					return -1;
-				}
-			}
 		}
 	}
 

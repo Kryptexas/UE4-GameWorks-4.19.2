@@ -756,7 +756,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 					if (GrassHeights)
 					{
 						uint16& CollisionHeight = CollisionHeightData[CompVertX + CompVertY * CollisionSizeVerts];
-						const uint16& NewHeight = GrassHeights[CompVertX + CompVertY * CollisionSizeVerts];
+						const uint16& NewHeight = GrassHeights[CompVertX + CompVertY * MipSizeU];
 						CollisionHeight = NewHeight;
 					}
 					else
@@ -840,7 +840,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 						if (SimpleCollisionGrassHeights)
 						{
 							uint16& CollisionHeight = SimpleCollisionHeightData[CompVertX + CompVertY * SimpleCollisionSizeVerts];
-							const uint16& NewHeight = SimpleCollisionGrassHeights[CompVertX + CompVertY * SimpleCollisionSizeVerts];
+							const uint16& NewHeight = SimpleCollisionGrassHeights[CompVertX + CompVertY * SimpleMipSizeU];
 							CollisionHeight = NewHeight;
 						}
 						else

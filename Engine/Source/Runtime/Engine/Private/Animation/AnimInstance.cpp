@@ -307,7 +307,7 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 	// time to test sync groups
 	for (auto& MontageInstance : MontageInstances)
 	{
-		if (MontageInstance->bDidUseMarkerSyncThisTick)
+		if (MontageInstance->CanUseMarkerSync())
 		{
 			const int32 GroupIndexToUse = MontageInstance->GetSyncGroupIndex();
 

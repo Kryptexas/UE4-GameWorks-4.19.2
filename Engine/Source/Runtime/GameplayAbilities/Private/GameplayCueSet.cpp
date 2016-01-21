@@ -93,17 +93,6 @@ void UGameplayCueSet::RemoveCuesByStringRefs(const TArray<FStringAssetReference>
 	}
 }
 
-void UGameplayCueSet::RemoveLoadedClass(UClass* Class)
-{
-	for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
-	{
-		if (GameplayCueData[idx].LoadedGameplayCueClass == Class)
-		{
-			GameplayCueData[idx].LoadedGameplayCueClass = nullptr;
-		}
-	}
-}
-
 #if WITH_EDITOR
 void UGameplayCueSet::UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath)
 {

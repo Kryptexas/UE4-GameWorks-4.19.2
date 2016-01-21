@@ -2918,11 +2918,6 @@ bool FEngineLoop::AppInit( )
 
 	FPageAllocator::LatchProtectedMode();
 
-	if (FParse::Param(FCommandLine::Get(), TEXT("purgatorymallocproxy")))
-	{
-		FMemory::EnablePurgatoryTests();
-	}
-
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("BUILDMACHINE")))
 	{

@@ -43,8 +43,9 @@ FVertexShaderRHIRef FD3D11DynamicRHI::RHICreateVertexShader(const TArray<uint8>&
 	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
 
+	VERIFYD3D11RESULT( Direct3DDevice->CreateVertexShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+
 	ReadShaderOptionalData(ShaderCode, *Shader);
-	VERIFYD3D11SHADERRESULT(Direct3DDevice->CreateVertexShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ), Shader, Direct3DDevice);
 	
 	// TEMP
 	Shader->Code = Code;
@@ -65,9 +66,9 @@ FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShader(const TArray<uin
 	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
 
+	VERIFYD3D11RESULT( Direct3DDevice->CreateGeometryShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	ReadShaderOptionalData(ShaderCode, *Shader);
-	VERIFYD3D11SHADERRESULT(Direct3DDevice->CreateGeometryShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ), Shader, Direct3DDevice);
-
 
 	return Shader;
 }
@@ -102,19 +103,17 @@ FGeometryShaderRHIRef FD3D11DynamicRHI::RHICreateGeometryShaderWithStreamOutput(
 		StreamOutEntries[EntryIndex].OutputSlot = ElementList[EntryIndex].OutputSlot;
 	}
 
-	VERIFYD3D11SHADERRESULT( Direct3DDevice->CreateGeometryShaderWithStreamOutput(
-			(void*)CodePtr,
-			CodeSize,
-			StreamOutEntries,
-			ElementList.Num(),
-			Strides,
-			NumStrides,
-			D3DRasterizedStream,
-			NULL,
-			Shader->Resource.GetInitReference()
-			),
-		Shader,
-		Direct3DDevice);
+	VERIFYD3D11RESULT( Direct3DDevice->CreateGeometryShaderWithStreamOutput(
+		(void*)CodePtr,
+		CodeSize,
+		StreamOutEntries,
+		ElementList.Num(),
+		Strides,
+		NumStrides,
+		D3DRasterizedStream,
+		NULL,
+		Shader->Resource.GetInitReference()
+	) );
 	
 	auto PackedResourceCounts = ShaderCode.FindOptionalData<FShaderCodePackedResourceCounts>();
 	check(PackedResourceCounts);
@@ -138,8 +137,9 @@ FHullShaderRHIRef FD3D11DynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
 
+	VERIFYD3D11RESULT( Direct3DDevice->CreateHullShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	ReadShaderOptionalData(ShaderCode, *Shader);
-	VERIFYD3D11SHADERRESULT( Direct3DDevice->CreateHullShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ), Shader, Direct3DDevice);
 
 	return Shader;
 }
@@ -156,8 +156,9 @@ FDomainShaderRHIRef FD3D11DynamicRHI::RHICreateDomainShader(const TArray<uint8>&
 	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
 
+	VERIFYD3D11RESULT( Direct3DDevice->CreateDomainShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	ReadShaderOptionalData(ShaderCode, *Shader);
-	VERIFYD3D11SHADERRESULT( Direct3DDevice->CreateDomainShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ), Shader, Direct3DDevice);
 
 	return Shader;
 }
@@ -174,8 +175,9 @@ FPixelShaderRHIRef FD3D11DynamicRHI::RHICreatePixelShader(const TArray<uint8>& C
 	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
 
+	VERIFYD3D11RESULT( Direct3DDevice->CreatePixelShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	ReadShaderOptionalData(ShaderCode, *Shader);
-	VERIFYD3D11SHADERRESULT(Direct3DDevice->CreatePixelShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ), Shader, Direct3DDevice);
 
 	return Shader;
 }
@@ -192,8 +194,9 @@ FComputeShaderRHIRef FD3D11DynamicRHI::RHICreateComputeShader(const TArray<uint8
 	const uint8* CodePtr = Code.GetData() + Offset;
 	const size_t CodeSize = ShaderCode.GetActualShaderCodeSize() - Offset;
 
+	VERIFYD3D11RESULT( Direct3DDevice->CreateComputeShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ) );
+	
 	ReadShaderOptionalData(ShaderCode, *Shader);
-	VERIFYD3D11SHADERRESULT( Direct3DDevice->CreateComputeShader( (void*)CodePtr, CodeSize, NULL, Shader->Resource.GetInitReference() ), Shader, Direct3DDevice);
 
 	return Shader;
 }

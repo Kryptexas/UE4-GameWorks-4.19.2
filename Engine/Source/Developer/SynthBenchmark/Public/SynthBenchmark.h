@@ -17,9 +17,6 @@ public:
 	// @param >0, WorkScale 10 for normal precision and runtime of less than a second
 	virtual void Run(FSynthBenchmarkResults& Out, bool bGPUBenchmark = true, float WorkScale = 10.0f) const = 0;
 
-	// could be moved out of SynthBenchmark, it only requires the RHI, only returns valid data after the RHI started up
-	virtual void GetRHIDisplay(FGPUAdpater& Out) const = 0;
-
 	/**
 	 * Singleton-like access to this module's interface.  This is just for convenience!
 	 * Beware of calling this during the shutdown phase, though.  Your module might have been unloaded already.

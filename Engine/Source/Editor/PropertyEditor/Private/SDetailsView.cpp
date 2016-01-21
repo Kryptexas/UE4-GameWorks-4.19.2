@@ -402,12 +402,9 @@ bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > 
 
 void SDetailsView::BeginSelectingObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects)
 {
-	if( FSlateApplication::IsInitialized() )
-	{
-		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda([=](double, float) {
-			return FinishSelectingObjects(InObjects);
-		}));
-	}
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateLambda([=] (double, float) {
+		return FinishSelectingObjects(InObjects);
+	}));
 }
 
 EActiveTimerReturnType SDetailsView::FinishSelectingObjects(const TArray< TWeakObjectPtr< UObject > > InObjects)

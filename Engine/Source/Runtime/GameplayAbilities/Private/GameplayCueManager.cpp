@@ -307,22 +307,12 @@ void UGameplayCueManager::ReloadObjectLibrary(UWorld* World, const UWorld::Initi
 {
 	if (bAccelerationMapOutdated)
 	{
-		check(GlobalCueSet);
-		GlobalCueSet->Empty();
-
 		LoadObjectLibrary_Internal();
 	}
 }
 #endif
 
 void UGameplayCueManager::LoadObjectLibrary_Internal()
-{
-	FOnGameplayCueNotifySetLoaded OnLoadDelegate = FOnGameplayCueNotifySetLoaded::CreateUObject(this, &UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete);
-
-	InitObjectLibraries(LoadedPaths, GameplayCueNotifyActorObjectLibrary, GameplayCueNotifyStaticObjectLibrary, OnLoadDelegate);
-}
-
-void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibrary* ActorObjectLibrary, UObjectLibrary* StaticObjectLibrary, FOnGameplayCueNotifySetLoaded OnLoadDelegate, FShouldLoadGCNotifyDelegate ShouldLoadDelegate)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Library"), STAT_ObjectLibrary, STATGROUP_LoadTime);
 
@@ -333,9 +323,9 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 	SlowTask.MakeDialog();
 #endif
 
-	FScopeCycleCounterUObject PreloadScopeActor(ActorObjectLibrary);
-	ActorObjectLibrary->LoadBlueprintAssetDataFromPaths(Paths);
-	StaticObjectLibrary->LoadBlueprintAssetDataFromPaths(Paths);
+	FScopeCycleCounterUObject PreloadScopeActor(GameplayCueNotifyActorObjectLibrary);
+	GameplayCueNotifyActorObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);
+	GameplayCueNotifyStaticObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);
 
 	// ---------------------------------------------------------
 	// Determine loading scheme.
@@ -351,8 +341,8 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 		FString PerfMessage = FString::Printf(TEXT("Fully Loaded GameplayCueNotify object library"));
 		SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
-		ActorObjectLibrary->LoadAssetsFromAssetData();
-		StaticObjectLibrary->LoadAssetsFromAssetData();
+		GameplayCueNotifyActorObjectLibrary->LoadAssetsFromAssetData();
+		GameplayCueNotifyStaticObjectLibrary->LoadAssetsFromAssetData();
 	}
 
 	// ---------------------------------------------------------
@@ -360,34 +350,28 @@ void UGameplayCueManager::InitObjectLibraries(TArray<FString> Paths, UObjectLibr
 	// ---------------------------------------------------------
 	
 	TArray<FAssetData> ActorAssetDatas;
-	ActorObjectLibrary->GetAssetDataList(ActorAssetDatas);
+	GameplayCueNotifyActorObjectLibrary->GetAssetDataList(ActorAssetDatas);
 
 	TArray<FAssetData> StaticAssetDatas;
-	StaticObjectLibrary->GetAssetDataList(StaticAssetDatas);
+	GameplayCueNotifyStaticObjectLibrary->GetAssetDataList(StaticAssetDatas);
+
+	check(GlobalCueSet);
+	GlobalCueSet->Empty();
 
 	TArray<FGameplayCueReferencePair> CuesToAdd;
-	BuildCuesToAddToGlobalSet(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd, OnLoadDelegate, ShouldLoadDelegate);
-	BuildCuesToAddToGlobalSet(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd, OnLoadDelegate, ShouldLoadDelegate);
+	BuildCuesToAddToGlobalSet(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd);
+	BuildCuesToAddToGlobalSet(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd);
 
 	check(GlobalCueSet);
 	GlobalCueSet->AddCues(CuesToAdd);
 }
 
-void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<FGameplayCueReferencePair>& OutCuesToAdd, FOnGameplayCueNotifySetLoaded OnLoaded, FShouldLoadGCNotifyDelegate ShouldLoad)
+void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<FGameplayCueReferencePair>& OutCuesToAdd)
 {
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 
-	TArray<FStringAssetReference> AssetsToLoad;
-	AssetsToLoad.Reserve(AssetDataList.Num());
-
 	for (FAssetData Data: AssetDataList)
 	{
-		// If ShouldLoad delegate is bound and it returns false, don't load this one
-		if (ShouldLoad.IsBound() && (ShouldLoad.Execute(Data) == false))
-		{
-			continue;
-		}
-
 		const FString* FoundGameplayTag = Data.TagsAndValues.Find(TagPropertyName);
 		if (FoundGameplayTag && FoundGameplayTag->Equals(TEXT("None")) == false)
 		{
@@ -409,30 +393,15 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 
 				OutCuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
 
-				AssetsToLoad.Add(StringRef);
+				if (bAsyncLoadAfterAdd)
+				{
+					StreamableManager.RequestAsyncLoad(StringRef, FStreamableDelegate::CreateUObject(this, &UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete, StringRef));
+				}
 			}
 			else
 			{
 				ABILITY_LOG(Warning, TEXT("Found GameplayCue tag %s in asset %s but there is no corresponding tag in the GameplayTagManager."), **FoundGameplayTag, *Data.PackageName.ToString());
 			}
-		}
-	}
-
-	if (bAsyncLoadAfterAdd)
-	{
-		auto ForwardLambda = [](TArray<FStringAssetReference> AssetList, FOnGameplayCueNotifySetLoaded OnLoadedDelegate)
-		{
-			OnLoadedDelegate.ExecuteIfBound(AssetList);
-		};
-
-		if (AssetsToLoad.Num() > 0)
-		{			
-			StreamableManager.RequestAsyncLoad(AssetsToLoad, FStreamableDelegate::CreateStatic( ForwardLambda, AssetsToLoad, OnLoaded));
-		}
-		else
-		{
-			// Still fire the delegate even if nothing was found to load
-			OnLoaded.ExecuteIfBound(AssetsToLoad);
 		}
 	}
 }
@@ -480,16 +449,13 @@ void UGameplayCueManager::CheckForTooManyRPCs(FName FuncName, const FGameplayCue
 	}
 }
 
-void UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete(TArray<FStringAssetReference> AssetList)
+void UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete(FStringAssetReference StringRef)
 {
-	for (FStringAssetReference StringRef : AssetList)
+	UClass* GCClass = FindObject<UClass>(nullptr, *StringRef.ToString());
+	if (ensure(GCClass))
 	{
-		UClass* GCClass = FindObject<UClass>(nullptr, *StringRef.ToString());
-		if (ensure(GCClass))
-		{
-			LoadedGameplayCueNotifyClasses.Add(GCClass);
-			CheckForPreallocation(GCClass);
-		}
+		LoadedGameplayCueNotifyClasses.Add(GCClass);
+		CheckForPreallocation(GCClass);
 	}
 }
 
@@ -660,15 +626,6 @@ void UGameplayCueManager::PrintGameplayCueNotifyMap()
 	GlobalCueSet->PrintCues();
 }
 
-void UGameplayCueManager::PrintLoadedGameplayCueNotifyClasses()
-{
-	for (UClass* NotifyClass : LoadedGameplayCueNotifyClasses)
-	{
-		ABILITY_LOG(Display, TEXT("%s"), *GetNameSafe(NotifyClass));
-	}
-	ABILITY_LOG(Display, TEXT("%d total classes"), LoadedGameplayCueNotifyClasses.Num());
-}
-
 static void	PrintGameplayCueNotifyMapConsoleCommandFunc(UWorld* InWorld)
 {
 	UAbilitySystemGlobals::Get().GetGameplayCueManager()->PrintGameplayCueNotifyMap();
@@ -678,17 +635,6 @@ FAutoConsoleCommandWithWorld PrintGameplayCueNotifyMapConsoleCommand(
 	TEXT("GameplayCue.PrintGameplayCueNotifyMap"),
 	TEXT("Displays GameplayCue notify map"),
 	FConsoleCommandWithWorldDelegate::CreateStatic(PrintGameplayCueNotifyMapConsoleCommandFunc)
-	);
-
-static void	PrintLoadedGameplayCueNotifyClasses(UWorld* InWorld)
-{
-	UAbilitySystemGlobals::Get().GetGameplayCueManager()->PrintLoadedGameplayCueNotifyClasses();
-}
-
-FAutoConsoleCommandWithWorld PrintLoadedGameplayCueNotifyClassesCommand(
-	TEXT("GameplayCue.PrintLoadedGameplayCueNotifyClasses"),
-	TEXT("Displays GameplayCue Notify classes that are loaded"),
-	FConsoleCommandWithWorldDelegate::CreateStatic(PrintLoadedGameplayCueNotifyClasses)
 	);
 
 FScopedGameplayCueSendContext::FScopedGameplayCueSendContext()

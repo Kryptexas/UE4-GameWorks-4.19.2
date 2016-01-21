@@ -8,7 +8,9 @@
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
 #include "MallocBinned2.h"
-#include "MallocStomp.h"
+#if USE_MALLOC_STOMP
+	#include "MallocStomp.h"
+#endif // USE_MALLOC_STOMP
 
 #include <sys/param.h>
 #include <sys/mount.h>
@@ -129,25 +131,8 @@ const FPlatformMemoryConstants& FMacPlatformMemory::GetConstants()
 	return MemoryConstants;	
 }
 
-bool FMacPlatformMemory::PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite)
+bool FMacPlatformMemory::PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode )
 {
-	int32 ProtectMode;
-	if (bCanRead && bCanWrite)
-	{
-		ProtectMode = PROT_READ | PROT_WRITE;
-	}
-	else if (bCanRead)
-	{
-		ProtectMode = PROT_READ;
-	}
-	else if (bCanWrite)
-	{
-		ProtectMode = PROT_WRITE;
-	}
-	else
-	{
-		ProtectMode = PROT_NONE;
-	}
 	return mprotect(Ptr, Size, static_cast<int32>(ProtectMode)) == 0;
 }
 

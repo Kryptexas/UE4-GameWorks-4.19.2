@@ -72,7 +72,7 @@ struct CORE_API FWindowsPlatformMemory
 	static FPlatformMemoryStats GetStats();
 	static void GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats );
 	static const FPlatformMemoryConstants& GetConstants();
-	static bool PageProtect(void* const Ptr, const SIZE_T Size, const bool bCanRead, const bool bCanWrite);
+	static bool PageProtect( void* const Ptr, const SIZE_T Size, const uint32 ProtectMode );
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
 	static FSharedMemoryRegion* MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size);

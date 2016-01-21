@@ -2,10 +2,9 @@
 
 #include "CorePrivatePCH.h"
 
-#include "MallocStomp.h"
-
 #if USE_MALLOC_STOMP
 
+#include "MallocStomp.h"
 
 static void MallocStompOverrunTest()
 {
@@ -53,7 +52,7 @@ void* FMallocStomp::Malloc(SIZE_T Size, uint32 Alignment)
 		*AllocDataPtr = AllocData;
 
 		// Page protect the first page, this will cause the exception in case the is an underrun.
-		FPlatformMemory::PageProtect(FullAllocationPointer, PageSize, false, false);
+		FPlatformMemory::PageProtect(FullAllocationPointer, PageSize, NoAccessProtectMode);
 	}
 	else
 	{
@@ -64,7 +63,7 @@ void* FMallocStomp::Malloc(SIZE_T Size, uint32 Alignment)
 		*AllocDataPtr = AllocData;
 
 		// Page protect the last page, this will cause the exception in case the is an overrun.
-		FPlatformMemory::PageProtect(reinterpret_cast<void*>(reinterpret_cast<uint8*>(FullAllocationPointer) + AllocFullPageSize), PageSize, false, false);
+		FPlatformMemory::PageProtect(reinterpret_cast<void*>(reinterpret_cast<uint8*>(FullAllocationPointer) + AllocFullPageSize), PageSize, NoAccessProtectMode);
 	}
 
 	return ReturnedPointer;

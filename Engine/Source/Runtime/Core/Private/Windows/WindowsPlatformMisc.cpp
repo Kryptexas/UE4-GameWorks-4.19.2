@@ -2395,71 +2395,35 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 
 void FWindowsPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate)
 {
-	// to distinguish failed GetGPUDriverInfo() from call to GetGPUDriverInfo()
-	InternalDriverVersion = TEXT("Unknown");
-	UserDriverVersion = TEXT("Unknown");
-	DriverDate = TEXT("Unknown");
+	// to prevent bugs
+	InternalDriverVersion.Empty();
+	UserDriverVersion.Empty();
+	DriverDate.Empty();
 
 	for(uint32 i = 0;; ++i)
 	{
 		// Iterate all installed display adapters
-		const FString Key = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
-		const TCHAR* DeviceDescriptionValueName = TEXT("Device Description");
+		FString Key = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
 
 		FString LocalDeviceDescription; // e.g. "NVIDIA GeForce GTX 680" or "AMD Radeon R9 200 / HD 7900 Series"
-		bool bDevice = FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, DeviceDescriptionValueName, /*out*/ LocalDeviceDescription); // AMD and NVIDIA
+		bool bDevice = FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("Device Description"), LocalDeviceDescription);	// AMD and NVIDIA
 
-		if (!bDevice)
+		if(!bDevice)
 		{
-			// Try again in Settings subfolder
-			const FString SettingsSubKey = Key + TEXT("\\Settings");
-			bDevice = FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *SettingsSubKey, DeviceDescriptionValueName, /*out*/ LocalDeviceDescription); // AMD and NVIDIA
-
-			if (!bDevice)
-			{
-				// Neither root nor Settings subfolder contained a "Device Description" value so this is probably not a device
-				break;
-			}
+			break;
 		}
 
-		// e.g. "NVIDIA" or "Advanced Micro Devices, Inc."
-		FString LocalProviderName;
-		FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("ProviderName"), LocalProviderName);
-
 		// AMD (not the Catalyst one) and NVIDIA
-		// e.g. "15.200.1062.1004"(AMD) "9.18.13.4788"(NVIDIA)
+		// e.g. "15.200.1062.1004"(AMD) "9.18.13.4788" (NVIDIA)
 		FString LocalInternalDriverVersion;
 		FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("DriverVersion"), LocalInternalDriverVersion);
 
-		// e.g. "Catalyst 15.7.1"(AMD) or "347.88"(NVIDIA)
+		// if there is no Catalyst_Version we use the internal version
 		FString LocalUserDriverVersion = LocalInternalDriverVersion;
 
-		if(LocalProviderName == TEXT("NVIDIA"))
-		{
-			// "9.18.13.4788" -> "347.88"
-			// the following code works with the current numbering scheme, if needd we have to update that
-			if(LocalUserDriverVersion.Left(6) == TEXT("9.18.1"))
-			{
-				// e.g. 3.4788
-				FString RightPart = LocalUserDriverVersion.RightChop(6);
-
-				if(RightPart.Len() == 6 && RightPart[1] == (TCHAR)'.')
-				{
-					// e.g. 347.88
-					LocalUserDriverVersion = RightPart.Left(1) + RightPart[2] + RightPart[3] + TEXT(".") + RightPart[4] + RightPart[5];
-				}
-			}
-		}
-		else 
-		{
-			// we assume LocalProviderName == TEXT("Advanced Micro Devices, Inc.")
-
-			// e.g. 15.7.1
-			if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("Catalyst_Version"), LocalUserDriverVersion))
-			{
-				LocalUserDriverVersion = FString(TEXT("Catalyst ")) + LocalUserDriverVersion;
-			}
-		}
+		// AMD only
+		// e.g. 15.7.1
+		FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("Catalyst_Version"), LocalUserDriverVersion);
 
 		// AMD and NVIDIA
 		// e.g. 3-13-2015

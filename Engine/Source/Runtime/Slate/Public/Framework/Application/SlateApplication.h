@@ -1679,6 +1679,4 @@ private:
 
 	/** Delegate for post slate Tick */
 	FSlateTickEvent PostTickEvent;
-
-	FCriticalSection SlateTickCriticalSection;
 };

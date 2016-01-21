@@ -31,17 +31,6 @@ struct FTraceHandle
 		_Data.FrameNumber = InFrameNumber;
 		_Data.Index = InIndex;
 	}
-
-	friend inline uint32 GetTypeHash(const FTraceHandle& Handle)
-	{
-		return GetTypeHash(Handle._Handle);
-	}
-
-	bool operator==(FTraceHandle const& Other) const
-	{
-		return Other._Handle == _Handle;
-	}
-
 };
 
 /** Types of Collision Shapes that are used by Trace **/

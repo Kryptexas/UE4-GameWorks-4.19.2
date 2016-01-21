@@ -229,8 +229,8 @@ public:
 	}
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
-		// Default to false on platforms that already do platform file level caching
-		bool bResult = !PLATFORM_PS4 && !PLATFORM_WINDOWS && FPlatformProperties::RequiresCookedData();
+		// default to false on Windows since FAsyncBufferedFileReaderWindows already buffers the data
+		bool bResult = !PLATFORM_WINDOWS && FPlatformProperties::RequiresCookedData();
 
 		// Allow a choice between shorter load times or less memory on desktop platforms.
 		// Note: this cannot be in config since they aren't read at that point.

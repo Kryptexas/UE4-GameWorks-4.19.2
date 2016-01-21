@@ -22,11 +22,9 @@ extern void DLLIMPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContex
  */
 void CommonLinuxCrashHandler(const FGenericCrashContext& GenericContext)
 {
-	// at this point we should already be using malloc crash handler (see PlatformCrashHandler)
-
 	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
-	printf("CommonLinuxCrashHandler: Signal=%d\n", Context.Signal);
 
+	printf("EngineCrashHandler: Signal=%d\n", Context.Signal);
 	ReportCrash(Context);
 	if (GLog)
 	{

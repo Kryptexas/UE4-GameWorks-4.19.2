@@ -32,22 +32,18 @@ class ENGINE_API UDecalComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal)
 	float FadeScreenSize;
 
-	/**
-	* Time in seconds to wait before beginning to fade out the decal. Set fade duration and start delay to 0 to make persistent.
-	*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal)
+protected:
+	UPROPERTY()
 	float FadeStartDelay;
 
-	/**
-	* Time in seconds for the decal to fade out. Set fade duration and start delay to 0 to make persistent.
-	*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal)
+	UPROPERTY()
 	float FadeDuration;
 
+public:
 	/**
 	* Automatically destroys the owning actor after fully fading out.
 	*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Decal)
+	UPROPERTY()
 	uint8 bDestroyOwnerAfterFade : 1;
 
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Decal")

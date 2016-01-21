@@ -1764,7 +1764,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			if ( CookWarningsList.Contains(BuildFilename) == false )
 			{
 				CookWarningsList.Add( BuildFilename );
-				GOutputCookingWarnings = IsCookFlagSet(ECookInitializationFlags::OutputVerboseCookerWarnings);
+				GOutputCookingWarnings = true;
 			}
 			
 			//  if the package is already loaded then try to avoid reloading it :)
@@ -2240,13 +2240,12 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				bool bSucceededSavePackage = false;
 				{
 					SCOPE_PACKAGE_STAT(SaveCookedPackage);
-					
+
 					SCOPE_TIMER(SaveCookedPackage);
 					uint32 SaveFlags = SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0);
-					GOutputCookingWarnings = IsCookFlagSet(ECookInitializationFlags::OutputVerboseCookerWarnings);
+					GOutputCookingWarnings = true;
 					SavePackageResult = SaveCookedPackage(Package, SaveFlags, bWasUpToDate, AllTargetPlatformNames);
 					GOutputCookingWarnings = false;
-
 					if (SavePackageResult == ESavePackageResult::Success)
 					{
 						bSucceededSavePackage = true;

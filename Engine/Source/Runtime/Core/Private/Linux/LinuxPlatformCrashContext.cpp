@@ -4,7 +4,6 @@
 #include "Linux/LinuxPlatformCrashContext.h"
 #include "Misc/App.h"
 #include "EngineVersion.h"
-#include "PlatformMallocCrash.h"
 
 #include <sys/utsname.h>	// for uname()
 #include <signal.h>
@@ -74,7 +73,22 @@ void FLinuxCrashContext::InitFromSignal(int32 InSignal, siginfo_t* InInfo, void*
  */
 void GracefulTerminationHandler(int32 Signal, siginfo_t* Info, void* Context)
 {
-	// do not flush logs at this point; this can result in a deadlock if the signal was received while we were holding lock in the malloc (flushing allocates memory)
+	printf("CtrlCHandler: Signal=%d\n", Signal);
+
+	// make sure as much data is written to disk as possible
+	if (GLog)
+	{
+		GLog->Flush();
+	}
+	if (GWarn)
+	{
+		GWarn->Flush();
+	}
+	if (GError)
+	{
+		GError->Flush();
+	}
+
 	if( !GIsRequestingExit )
 	{
 		GIsRequestingExit = 1;
@@ -403,9 +417,10 @@ void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Con
  */
 void DefaultCrashHandler(const FLinuxCrashContext & Context)
 {
-	printf("DefaultCrashHandler: Signal=%d\n", Context.Signal);
+	// Switch to malloc crash.
+	//FMallocCrash::Get().SetAsGMalloc(); 
 
-	// at this point we should already be using malloc crash handler (see PlatformCrashHandler)
+	printf("DefaultCrashHandler: Signal=%d\n", Context.Signal);
 
 	ReportCrash(Context);
 	if (GLog)
@@ -432,9 +447,6 @@ void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
 void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
 {
 	fprintf(stderr, "Signal %d caught.\n", Signal);
-
-	// Switch to malloc crash.
-	FPlatformMallocCrash::Get().SetAsGMalloc();
 
 	FLinuxCrashContext CrashContext;
 	CrashContext.InitFromSignal(Signal, Info, Context);

@@ -789,6 +789,9 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
+	// temp hack: debugging a crash on exit that doesnt repro. Need to find the calling code
+	ensureMsgf(0, TEXT("Debugging graceful exit from the game during load"));
+	
 	Ar.Log( TEXT("Closing by request") );
 	FGameDelegates::Get().GetExitCommandDelegate().Broadcast();
 	FPlatformMisc::RequestExit( 0 );
@@ -865,7 +868,7 @@ float UGameEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing
 			if( NetDriver && (NetDriver->GetNetMode() == NM_DedicatedServer || (NetDriver->GetNetMode() == NM_ListenServer && NetDriver->bClampListenServerTickRate)))
 			{
 				// We're a dedicated server, use the LAN or Net tick rate.
-				MaxTickRate = FMath::Clamp( NetDriver->NetServerMaxTickRate, 1, 1000 );
+				MaxTickRate = FMath::Clamp( NetDriver->NetServerMaxTickRate, 10, 120 );
 			}
 			/*else if( NetDriver && NetDriver->ServerConnection )
 			{

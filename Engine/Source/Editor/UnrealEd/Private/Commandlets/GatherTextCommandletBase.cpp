@@ -92,7 +92,6 @@ bool UGatherTextCommandletBase::WriteJSONToTextFile(TSharedPtr<FJsonObject> Outp
 
 		if (!DidFileExist)
 		{
-			// Checkout on a new file will cause it to be added
 			if( SourceControl.IsValid() )
 			{
 				FText SCCErrorText;

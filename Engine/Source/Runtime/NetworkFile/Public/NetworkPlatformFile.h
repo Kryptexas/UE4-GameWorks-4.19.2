@@ -235,7 +235,6 @@ private:
 	class ITransport* Transport; 
 
 	static FString MP4Extension;
-	static FString BulkFileExtension;
 };
 
 class SOCKETS_API FNetworkFileHandle : public IFileHandle

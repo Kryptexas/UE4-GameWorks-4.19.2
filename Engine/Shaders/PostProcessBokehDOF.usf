@@ -442,7 +442,8 @@ void MainRecombinePS(
 
 #if RECOMBINE_METHOD == 2 || RECOMBINE_METHOD == 3
 	// sampling from pixel centers, so we need to offset if we're using lower resolution separate translucency
-	float4 SeparateTranslucency = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, PixelPosCenter * PostprocessInput2Size.zw * SeparateTranslucencyResMult.xxxx );
+	float Offset = 1.0-(1.0/SeparateTranslucencyResMult.xxxx);
+	float4 SeparateTranslucency = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, (PixelPosCenter+Offset) * PostprocessInput2Size.zw * SeparateTranslucencyResMult.xxxx );
 
 	// add RGB, darken by A (this allows to represent translucent and additive blending)
 	OutColor.rgb = OutColor.rgb * SeparateTranslucency.a + SeparateTranslucency.rgb;

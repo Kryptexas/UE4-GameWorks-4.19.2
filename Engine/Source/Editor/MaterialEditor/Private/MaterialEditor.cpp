@@ -1392,26 +1392,18 @@ void FMaterialEditor::UpdateOriginalMaterial()
 		for (int32 ExpressionIndex = 0; ExpressionIndex < MaterialFunction->ParentFunction->FunctionExpressions.Num(); ExpressionIndex++)
 		{
 			UMaterialExpression* CurrentExpression = MaterialFunction->ParentFunction->FunctionExpressions[ExpressionIndex];
-			ensureMsgf(CurrentExpression, TEXT("Invalid expression at index [%i] whilst saving material function."), ExpressionIndex);
 
 			// Link the expressions back to their function
-			if (CurrentExpression)
-			{
-				CurrentExpression->Material = NULL;
-				CurrentExpression->Function = MaterialFunction->ParentFunction;
-			}	
+			CurrentExpression->Material = NULL;
+			CurrentExpression->Function = MaterialFunction->ParentFunction;
 		}
 		for (int32 ExpressionIndex = 0; ExpressionIndex < MaterialFunction->ParentFunction->FunctionEditorComments.Num(); ExpressionIndex++)
 		{
 			UMaterialExpressionComment* CurrentExpression = MaterialFunction->ParentFunction->FunctionEditorComments[ExpressionIndex];
-			ensureMsgf(CurrentExpression, TEXT("Invalid comment at index [%i] whilst saving material function."), ExpressionIndex);
 
 			// Link the expressions back to their function
-			if (CurrentExpression)
-			{
-				CurrentExpression->Material = NULL;
-				CurrentExpression->Function = MaterialFunction->ParentFunction;
-			}
+			CurrentExpression->Material = NULL;
+			CurrentExpression->Function = MaterialFunction->ParentFunction;
 		}
 
 		// mark the parent function as changed
