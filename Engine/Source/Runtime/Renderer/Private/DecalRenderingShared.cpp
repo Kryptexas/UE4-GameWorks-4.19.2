@@ -134,12 +134,6 @@ public:
 		uint32 BindTarget1 = (RenderTargetMode == FDecalRendering::RTM_SceneColorAndGBufferNoNormal || RenderTargetMode == FDecalRendering::RTM_SceneColorAndGBufferDepthWriteNoNormal) ? 0 : 1;
 		OutEnvironment.SetDefine(TEXT("BIND_RENDERTARGET1"), BindTarget1);
 
-		// Scene texture read are not handled correctly on mobile platforms yet.
-		if (IsMobilePlatform(Platform))
-		{
-			OutEnvironment.SetDefine(TEXT("SCENE_TEXTURES_DISABLED"),TEXT("1")); 
-		}
-
 		// avoid using the index directly, better use DECALBLENDMODEID_VOLUMETRIC, DECALBLENDMODEID_STAIN, ...
 		OutEnvironment.SetDefine(TEXT("DECAL_BLEND_MODE"), (uint32)DecalBlendMode);
 		OutEnvironment.SetDefine(TEXT("DECAL_PROJECTION"), 1u);
