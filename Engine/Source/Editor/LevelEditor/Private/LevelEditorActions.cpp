@@ -2160,8 +2160,10 @@ void FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig( )
 void FLevelEditorActionCallbacks::OnShowOnlySelectedActors()
 {
 	const FScopedTransaction Transaction( NSLOCTEXT( "LevelEditorCommands", "ShowOnlySelectedActors", "Show Only Selected Actors" ) );
-	GUnrealEd->edactUnhideSelected( GetWorld() );
+	// First hide unselected as this will also hide group actor members
 	GUnrealEd->edactHideUnselected( GetWorld() );
+	// Then unhide selected to ensure that everything that's selected will be unhidden
+	GUnrealEd->edactUnhideSelected(GetWorld());
 }
 
 void FLevelEditorActionCallbacks::OnToggleTransformWidgetVisibility()
