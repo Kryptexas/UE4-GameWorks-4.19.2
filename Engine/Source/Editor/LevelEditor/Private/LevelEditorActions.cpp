@@ -1080,6 +1080,9 @@ void FLevelEditorActionCallbacks::EditAsset_Clicked( const EToolkitMode::Type To
 
 		if (bShouldOpenEditors)
 		{
+			// Clear focus so the level viewport can receive its focus lost call (and clear pending keyup events which wouldn't arrive)
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::WindowActivate);
+
 			auto LevelEditorSharedPtr = LevelEditor.Pin();
 
 			if (LevelEditorSharedPtr.IsValid())
