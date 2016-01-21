@@ -103,7 +103,7 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Componen
 	return false;
 }
 
-bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Component, FString AssetPath, FString AssetName)
+bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Component, FString const& AssetPath, FString const& AssetName)
 {
 	if (!Component || !Component->SkeletalMesh || !Component->SkeletalMesh->Skeleton)
 	{
@@ -111,19 +111,29 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Componen
 	}
 
 	// create the asset
-	UObject* Parent = AssetPath.IsEmpty() ? nullptr : CreatePackage(nullptr, *AssetPath);
+	FText InvalidPathReason;
+	bool const bValidPackageName = FPackageName::IsValidLongPackageName(AssetPath, false, &InvalidPathReason);
+	if (bValidPackageName == false)
+	{
+		UE_LOG(LogAnimation, Log, TEXT("%s is an invalid asset path, prompting user for new asset path. Reason: %s"), *AssetPath, *InvalidPathReason.ToString());
+	}
+
+	FString ValidatedAssetPath = AssetPath;
+	FString ValidatedAssetName = AssetName;
+
+	UObject* Parent = bValidPackageName ? CreatePackage(nullptr, *AssetPath) : nullptr;
 	if (Parent == nullptr)
 	{
 		// bad or no path passed in, do the popup
-		if (PromptUserForAssetPath(AssetPath, AssetName) == false)
+		if (PromptUserForAssetPath(ValidatedAssetPath, ValidatedAssetName) == false)
 		{
 			return false;
 		}
 		
-		Parent = CreatePackage(nullptr, *AssetPath);
+		Parent = CreatePackage(nullptr, *ValidatedAssetPath);
 	}
 
-	UObject* const Object = LoadObject<UObject>(Parent, *AssetName, nullptr, LOAD_None, nullptr);
+	UObject* const Object = LoadObject<UObject>(Parent, *ValidatedAssetName, nullptr, LOAD_None, nullptr);
 	// if object with same name exists, warn user
 	if (Object)
 	{
@@ -132,7 +142,7 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Componen
 	}
 
 	// If not, create new one now.
-	UAnimSequence* const NewSeq = NewObject<UAnimSequence>(Parent, *AssetName, RF_Public | RF_Standalone);
+	UAnimSequence* const NewSeq = NewObject<UAnimSequence>(Parent, *ValidatedAssetName, RF_Public | RF_Standalone);
 	if (NewSeq)
 	{
 		// set skeleton
@@ -184,7 +194,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 	// add tracks
 	AnimationObject->RawAnimationData.AddZeroed(NumTracks);
 
-	// record the first frame;
+	// record the first frame
 	Record(Component, PreviousComponentToWorld, PreviousSpacesBases, 0);
 }
 
@@ -222,17 +232,20 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 				FText::AsNumber(1.f / IntervalTime)
 				);
 
-			//This is not showing well in the Persona, so opening dialog first. 
-			//right now it will crash if you don't wait until end of the record, so it is important for users to know
-			//this is done
-					
-			FNotificationInfo Info(NotificationText);
-			Info.ExpireDuration = 5.0f;
-			Info.bUseLargeFont = false;
-			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
-			if ( Notification.IsValid() )
+			if (GIsEditor)
 			{
-				Notification->SetCompletionState( SNotificationItem::CS_Success );
+				//This is not showing well in the Persona, so opening dialog first. 
+				//right now it will crash if you don't wait until end of the record, so it is important for users to know
+				//this is done
+					
+				FNotificationInfo Info(NotificationText);
+				Info.ExpireDuration = 5.0f;
+				Info.bUseLargeFont = false;
+				TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+				if ( Notification.IsValid() )
+				{
+					Notification->SetCompletionState( SNotificationItem::CS_Success );
+				}
 			}
 
 			FAssetRegistryModule::AssetCreated(AnimationObject);
@@ -387,7 +400,7 @@ FAnimRecorderInstance::FAnimRecorderInstance()
 {
 }
 
-void FAnimRecorderInstance::Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString InAssetPath, FString InAssetName, float SampleRateHz, bool bRecordInWorldSpace)
+void FAnimRecorderInstance::Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString const& InAssetPath, FString const& InAssetName, float SampleRateHz, bool bRecordInWorldSpace)
 {
 	Actor = InActor;
 	SkelComp = InComponent;
@@ -450,39 +463,81 @@ void FAnimRecorderInstance::FinishRecording()
 	}
 }
 
-bool FAnimationRecorderManager::RecordAnimation(AActor* Actor, USkeletalMeshComponent* Component, FString AssetPath, FString AssetName)
+bool FAnimationRecorderManager::RecordAnimation(AActor* Actor, USkeletalMeshComponent* Component, FString const& AssetPath, FString const& AssetName)
 {
-	int32 const NewInstIdx = RecorderInstances.AddDefaulted();
-	
-	FAnimRecorderInstance& NewInst = RecorderInstances[NewInstIdx];
-	NewInst.Init(Actor, Component, AssetPath, AssetName, CVarAnimRecorderSampleRate.GetValueOnAnyThread(), (CVarAnimRecorderWorldSpace.GetValueOnAnyThread() != 0));
-
-	bool const bSuccess = NewInst.BeginRecording();
-	if (bSuccess == false)
+	if (Actor)
 	{
-		// failed, remove it
-		RecorderInstances.RemoveAtSwap(NewInstIdx);
+		int32 const NewInstIdx = RecorderInstances.AddDefaulted();
+	
+		FAnimRecorderInstance& NewInst = RecorderInstances[NewInstIdx];
+		NewInst.Init(Actor, Component, AssetPath, AssetName, CVarAnimRecorderSampleRate.GetValueOnAnyThread(), (CVarAnimRecorderWorldSpace.GetValueOnAnyThread() != 0));
+
+		bool const bSuccess = NewInst.BeginRecording();
+		if (bSuccess == false)
+		{
+			// failed, remove it
+			RecorderInstances.RemoveAtSwap(NewInstIdx);
+		}
+
+#if WITH_EDITOR
+		// if recording via PIE, be sure to stop recording cleanly when PIE ends
+		UWorld const* const World = Actor->GetWorld();
+		if (World && World->IsPlayInEditor())
+		{
+			FEditorDelegates::EndPIE.AddRaw(this, &FAnimationRecorderManager::HandleEndPIE);
+		}
+#endif
+
+		return bSuccess;
 	}
 
-	return bSuccess;
+	return false;
+}
+
+void FAnimationRecorderManager::HandleEndPIE(bool bSimulating)
+{
+	StopRecordingAllAnimations();
 }
 
 void FAnimationRecorderManager::StopRecordingAnimation(AActor* Actor, USkeletalMeshComponent* Component)
 {
-	FAnimRecorderInstance* InstToStop = nullptr;
-	for (int32 Idx = 0; Idx < RecorderInstances.Num(); ++Idx)
+	if (Actor && Component)
 	{
-		FAnimRecorderInstance& Inst = RecorderInstances[Idx];
-		if (Inst.Actor == Actor && Inst.SkelComp == Component)
+		FAnimRecorderInstance* InstToStop = nullptr;
+		for (int32 Idx = 0; Idx < RecorderInstances.Num(); ++Idx)
 		{
-			// stop and finalize recoded data
-			Inst.FinishRecording();
+			FAnimRecorderInstance& Inst = RecorderInstances[Idx];
+			if (Inst.Actor == Actor && Inst.SkelComp == Component)
+			{
+				// stop and finalize recoded data
+				Inst.FinishRecording();
 
-			// remove instance, which will clean itself up
-			RecorderInstances.RemoveAtSwap(Idx);
+				// remove instance, which will clean itself up
+				RecorderInstances.RemoveAtSwap(Idx);
 
-			// all done
-			break;
+				// all done
+				break;
+			}
+		}
+	}
+}
+
+void FAnimationRecorderManager::StopRecordingAnimationForActor(AActor* Actor)
+{
+	if (Actor)
+	{
+		FAnimRecorderInstance* InstToStop = nullptr;
+		for (int32 Idx = 0; Idx < RecorderInstances.Num(); ++Idx)
+		{
+			FAnimRecorderInstance& Inst = RecorderInstances[Idx];
+			if (Inst.Actor == Actor)
+			{
+				// stop and finalize recoded data
+				Inst.FinishRecording();
+
+				// remove instance, which will clean itself up
+				RecorderInstances.RemoveAtSwap(Idx);
+			}
 		}
 	}
 }

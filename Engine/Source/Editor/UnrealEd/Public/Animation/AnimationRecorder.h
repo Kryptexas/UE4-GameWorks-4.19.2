@@ -26,7 +26,7 @@ public:
 	/** Starts recording an animation. Prompts for asset path and name via dialog. */
 	bool TriggerRecordAnimation(USkeletalMeshComponent* Component);
 	/** Starts recording an animation. */
-	bool TriggerRecordAnimation(USkeletalMeshComponent* Component, FString AssetPath, FString AssetName);
+	bool TriggerRecordAnimation(USkeletalMeshComponent* Component, FString const& AssetPath, FString const& AssetName);
 
 	void StartRecord(USkeletalMeshComponent* Component, UAnimSequence* InAnimationObject);
 	UAnimSequence* StopRecord(bool bShowMessage);
@@ -58,7 +58,7 @@ public:
 	FAnimRecorderInstance();
 	~FAnimRecorderInstance();
 
-	void Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString InAssetPath, FString InAssetName, float SampleRateHz, bool bRecordInWorldSpace);
+	void Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString const& InAssetPath, FString const& InAssetName, float SampleRateHz, bool bRecordInWorldSpace);
 
 	bool BeginRecording();
 	void Update(float DeltaTime);
@@ -89,8 +89,9 @@ public:
 	virtual ~FAnimationRecorderManager();
 
 	/** Starts recording an animation. */
-	bool RecordAnimation(AActor* Actor, USkeletalMeshComponent* Component, FString AssetPath, FString AssetName);
+	bool RecordAnimation(AActor* Actor, USkeletalMeshComponent* Component, FString const& AssetPath, FString const& AssetName);
 	void StopRecordingAnimation(AActor* Actor, USkeletalMeshComponent* Component);
+	void StopRecordingAnimationForActor(AActor* Actor);
 	void StopRecordingAllAnimations();
 
 	void Tick(float DeltaTime);
@@ -100,5 +101,7 @@ private:
 	FAnimationRecorderManager();
 
 	TArray<FAnimRecorderInstance> RecorderInstances;
+	
+	void HandleEndPIE(bool bSimulating);
 };
 
