@@ -63,6 +63,8 @@ private:
 	void PerformHarfBuzzTextShaping(const TCHAR* InText, const int32 InTextStart, const int32 InTextLen, const FSlateFontInfo &InFontInfo, const float InFontScale, const TextBiDi::ETextDirection InTextDirection, TArray<FShapedGlyphEntry>& OutGlyphsToRender) const;
 #endif // WITH_HARFBUZZ
 
+	bool InsertSubstituteGlyphs(const TCHAR* InText, const int32 InCharIndex, const FSlateFontInfo &InFontInfo, const float InFontScale, const TSharedRef<FShapedGlyphFaceData>& InShapedGlyphFaceData, TArray<FShapedGlyphEntry>& OutGlyphsToRender) const;
+
 	FFreeTypeGlyphCache* FTGlyphCache;
 	FFreeTypeAdvanceCache* FTAdvanceCache;
 	FFreeTypeKerningPairCache* FTKerningPairCache;
