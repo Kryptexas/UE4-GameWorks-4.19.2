@@ -57,7 +57,7 @@ FShapedGlyphSequence::FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToR
 	, TextBaseline(InTextBaseline)
 	, MaxTextHeight(InMaxTextHeight)
 	, FontMaterial(InFontMaterial)
-	, MeasuredWidth(0)
+	, SequenceWidth(0)
 	, GlyphFontFaces()
 	, ClusterIndicesToGlyphData(InSourceTextRange)
 {
@@ -73,7 +73,7 @@ FShapedGlyphSequence::FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToR
 			GlyphFontFaces.AddUnique(CurrentGlyph.FontFaceData->FontFace);
 
 			// Update the measured width
-			MeasuredWidth += CurrentGlyph.XAdvance;
+			SequenceWidth += CurrentGlyph.XAdvance;
 
 			// Track reverse look-up data
 			FClusterIndexToGlyphData* ClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(CurrentGlyph.ClusterIndex);
@@ -106,7 +106,7 @@ bool FShapedGlyphSequence::IsDirty() const
 
 int32 FShapedGlyphSequence::GetMeasuredWidth() const
 {
-	return MeasuredWidth;
+	return SequenceWidth;
 }
 
 TOptional<int32> FShapedGlyphSequence::GetMeasuredWidth(const int32 InStartIndex, const int32 InEndIndex, const bool InIncludeKerningWithPrecedingGlyph) const

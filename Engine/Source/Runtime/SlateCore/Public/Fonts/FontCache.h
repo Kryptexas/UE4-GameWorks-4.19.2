@@ -425,7 +425,7 @@ private:
 	/** The material to use when rendering these glyphs */
 	const UObject* FontMaterial;
 	/** The cached width of the entire sequence */
-	int32 MeasuredWidth;
+	int32 SequenceWidth;
 	/** The set of fonts being used by the glyphs within this sequence */
 	TArray<TWeakPtr<FFreeTypeFace>> GlyphFontFaces;
 	/** A map of character indices to their shaped glyph data indices - used to perform efficient reverse look-up */
