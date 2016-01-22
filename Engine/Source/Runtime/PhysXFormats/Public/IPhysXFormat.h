@@ -6,6 +6,10 @@
 
 #pragma once
 
+enum ERuntimePhysxCookOptimizationFlags
+{
+	SupressFaceRemapTable = 0x1
+};
 
 /**
  * IPhysXFormat, PhysX cooking and serialization abstraction
@@ -30,23 +34,25 @@ public:
 	 * Cooks the source convex data for the platform and stores the cooked data internally.
 	 *
 	 * @param Format The desired format
+	 * @param RuntimeCookFlags Any special runtime flags we want to pass in
 	 * @param SrcBuffer The source buffer
 	 * @param OutBuffer The resulting cooked data
 	 * @param bDeformableMesh Whether this mesh is deformable and hence needs to be cooked with different parameters
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool CookConvex( FName Format, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer, bool bDeformableMesh = false ) const = 0;
+	virtual bool CookConvex( FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer, bool bDeformableMesh = false ) const = 0;
 
 	/**
 	 * Cooks the source Tri-Mesh data for the platform and stores the cooked data internally.
 	 *
 	 * @param Format The desired format.
+	 * @param RuntimeCookFlags Any special runtime flags we want to pass in
 	 * @param SrcBuffer The source buffer.
 	 * @param OutBuffer The resulting cooked data.
 	 * @param bDeformableMesh This is a very special case that requires different cooking parameters set.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool CookTriMesh( FName Format, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bDeformableMesh = false ) const = 0;
+	virtual bool CookTriMesh( FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bDeformableMesh = false ) const = 0;
 		
 	/**
 	 * Cooks the source height field data for the platform and stores the cooked data internally.

@@ -771,6 +771,7 @@ public:
 		}
 	};
 
+	virtual ~FGPUBaseSkinAPEXClothVertexFactory() {}
 
 	/** accessor */
 	FORCEINLINE ClothShaderType& GetClothShaderData()

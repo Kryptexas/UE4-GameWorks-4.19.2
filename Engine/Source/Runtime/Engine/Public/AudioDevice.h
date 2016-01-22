@@ -401,7 +401,17 @@ public:
 	void SetReverbSettings( class AAudioVolume* Volume, const FReverbSettings& ReverbSettings );
 
 	/**
-	 * Creates an audio component to handle playing a sound
+	 * Creates an audio component to handle playing a sound.
+	 * Plays a sound at the given location without creating an audio component.
+	 * @param   Sound				The USoundBase to play at the location.
+	 * @param   World				The world this sound is playing in.
+	 * @param   AActor				The optional actor with which to play the sound on.
+	 * @param   Play				Whether or not to automatically call play on the audio component after it is created.
+	 * @param	bStopWhenOwnerDestroyed Whether or not to automatically stop the audio component if its owner is destroyed.
+	 * @param	Location			The sound's location.
+	 * @param	AttenuationSettings	The sound's attenuation settings to use. Will default to the USoundBase's AttenuationSettings if not specified.
+	 * @param	USoundConcurrency	The sound's sound concurrency settings to use. Will use the USoundBase's USoundConcurrency if not specified.
+	 * @return	The created audio component if the function successfully created one or a nullptr if not successful. Note: if audio is disabled or if there were no hardware audio devices available, this will return nullptr.
 	 */
 	static class UAudioComponent* CreateComponent(class USoundBase* Sound, class UWorld* World, AActor*  AActor = nullptr, bool Play = true, bool bStopWhenOwnerDestroyed = false, const FVector* Location = nullptr, USoundAttenuation* AttenuationSettings = nullptr, USoundConcurrency* ConcurrencySettings = nullptr);
 

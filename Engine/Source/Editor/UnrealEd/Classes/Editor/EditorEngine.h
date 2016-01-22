@@ -2282,12 +2282,12 @@ public:
 	 * Gets the user-friendly, localized (if exists) name of a property
 	 *
 	 * @param	Property	the property we want to try to et the friendly name of	
-	 * @param	OwnerClass	if specified, uses this class's loc file instead of the property's owner class
+	 * @param	OwnerStruct	if specified, uses this class's loc file instead of the property's owner class
 	 *						useful for overriding the friendly name given a property inherited from a parent class.
 	 *
 	 * @return	the friendly name for the property.  localized first, then metadata, then the property's name.
 	 */
-	static FString GetFriendlyName( const UProperty* Property, UStruct* OwnerClass = NULL );
+	static FString GetFriendlyName( const UProperty* Property, UStruct* OwnerStruct = NULL );
 
 	/**
 	 * Register a client tool to receive undo events 

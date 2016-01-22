@@ -4189,27 +4189,27 @@ void UEditorEngine::SetActorLabelUnique(AActor* Actor, const FString& NewActorLa
 	FActorLabelUtilities::SetActorLabelUnique(Actor, NewActorLabel, InExistingActorLabels);
 }
 
-FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* OwnerClass/* = NULL*/ )
+FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* OwnerStruct/* = NULL*/ )
 {
 	// first, try to pull the friendly name from the loc file
 	check( Property );
-	UClass* RealOwnerClass = Property->GetOwnerClass();
-	if ( OwnerClass == NULL)
+	UStruct* RealOwnerStruct = Property->GetOwnerStruct();
+	if ( OwnerStruct == NULL)
 	{
-		OwnerClass = RealOwnerClass;
+		OwnerStruct = RealOwnerStruct;
 	}
-	checkSlow(OwnerClass);
+	checkSlow(OwnerStruct);
 
 	FText FoundText;
 	bool DidFindText = false;
-	UStruct* CurrentClass = OwnerClass;
+	UStruct* CurrentStruct = OwnerStruct;
 	do 
 	{
-		FString PropertyPathName = Property->GetPathName(CurrentClass);
+		FString PropertyPathName = Property->GetPathName(CurrentStruct);
 
-		DidFindText = FText::FindText(*CurrentClass->GetName(), *(PropertyPathName + TEXT(".FriendlyName")), /*OUT*/FoundText );
-		CurrentClass = CurrentClass->GetSuperStruct();
-	} while( CurrentClass != NULL && CurrentClass->IsChildOf(RealOwnerClass) && !DidFindText );
+		DidFindText = FText::FindText(*CurrentStruct->GetName(), *(PropertyPathName + TEXT(".FriendlyName")), /*OUT*/FoundText );
+		CurrentStruct = CurrentStruct->GetSuperStruct();
+	} while( CurrentStruct != NULL && CurrentStruct->IsChildOf(RealOwnerStruct) && !DidFindText );
 
 	if ( !DidFindText )
 	{

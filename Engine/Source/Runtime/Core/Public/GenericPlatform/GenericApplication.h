@@ -270,31 +270,31 @@ public:
 private:
 
 	/** True if the left shift key was down when this event occurred. */
-	bool bIsLeftShiftDown;
+	uint16 bIsLeftShiftDown:1;
 
 	/** True if the right shift key was down when this event occurred. */
-	bool bIsRightShiftDown;
+	uint16 bIsRightShiftDown:1;
 
 	/** True if the left control key was down when this event occurred. */
-	bool bIsLeftControlDown;
+	uint16 bIsLeftControlDown:1;
 
 	/** True if the right control key was down when this event occurred. */
-	bool bIsRightControlDown;
+	uint16 bIsRightControlDown:1;
 
 	/** True if the left alt key was down when this event occurred. */
-	bool bIsLeftAltDown;
+	uint16 bIsLeftAltDown:1;
 
 	/** True if the right alt key was down when this event occurred. */
-	bool bIsRightAltDown;
+	uint16 bIsRightAltDown:1;
 	
 	/** True if the left command key was down when this event occurred. */
-	bool bIsLeftCommandDown;
+	uint16 bIsLeftCommandDown:1;
 	
 	/** True if the right command key was down when this event occurred. */
-	bool bIsRightCommandDown;
+	uint16 bIsRightCommandDown:1;
 
 	/** True if the Caps Lock key has been toggled to the enabled state. */
-	bool bAreCapsLocked;
+	uint16 bAreCapsLocked:1;
 };
 
 

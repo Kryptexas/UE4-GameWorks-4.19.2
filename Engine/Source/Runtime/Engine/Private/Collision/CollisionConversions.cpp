@@ -430,6 +430,16 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 {
 	SCOPE_CYCLE_COUNTER(STAT_ConvertQueryImpactHit);
 
+#if WITH_EDITOR
+	if(bReturnFaceIndex && World->IsGameWorld())
+	{
+		if(!ensure(UPhysicsSettings::Get()->bSupressFaceRemapTable == false))
+		{
+			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSupressFaceRemapTable is false."));
+		}
+	}
+#endif
+
 	checkSlow(PHit.flags & PxHitFlag::eDISTANCE);
 	const bool bInitialOverlap = PHit.hadInitialOverlap();
 	if (bInitialOverlap && Geom != nullptr)

@@ -752,20 +752,25 @@ void UBodySetup::Serialize(FArchive& Ar)
 
 	if (bCooked)
 	{
+#if WITH_EDITOR
 		if (Ar.IsCooking())
 		{
 			// Make sure to reset bHasCookedCollision data to true before calling GetCookedData for cooking
 			bHasCookedCollisionData = true;
 			FName Format = Ar.CookingTarget()->GetPhysicsFormat(this);
-			bHasCookedCollisionData = GetCookedData(Format) != NULL; // Get the data from the DDC or build it
+			bool bUseRuntimeOnlyCookedData = !bSharedCookedData;	//For shared cook data we do not optimize for runtime only flags. This is only used by per poly skeletal mesh component at the moment. Might want to add support in future
+			bHasCookedCollisionData = GetCookedData(Format, bUseRuntimeOnlyCookedData) != NULL; // Get the data from the DDC or build it
 
 			TArray<FName> ActualFormatsToSave;
 			ActualFormatsToSave.Add(Format);
 
 			Ar << bHasCookedCollisionData;
-			CookedFormatData.Serialize(Ar, this, &ActualFormatsToSave, !bSharedCookedData);
+
+			FFormatContainer* UseCookedFormatData = bUseRuntimeOnlyCookedData ? &CookedFormatDataRuntimeOnlyOptimization : &CookedFormatData;
+			UseCookedFormatData->Serialize(Ar, this, &ActualFormatsToSave, !bSharedCookedData);
 		}
 		else
+#endif
 		{
 			if (Ar.UE4Ver() >= VER_UE4_STORE_HASCOOKEDDATA_FOR_BODYSETUP)
 			{
@@ -960,7 +965,30 @@ float UBodySetup::GetClosestPointAndNormal(const FVector& WorldPosition, const F
 	return GetClosestPointAndNormalImpl<true>(this, WorldPosition, LocalToWorld, &ClosestWorldPosition, &FeatureNormal);
 }
 
-FByteBulkData* UBodySetup::GetCookedData(FName Format)
+#if WITH_EDITOR
+void UBodySetup::BeginCacheForCookedPlatformData(const ITargetPlatform* TargetPlatform)
+{
+	GetCookedData(TargetPlatform->GetPhysicsFormat(this), true);
+}
+
+void UBodySetup::ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform )
+{
+	CookedFormatDataRuntimeOnlyOptimization.FlushData();
+}
+#endif
+
+int32 UBodySetup::GetRuntimeOnlyCookOptimizationFlags() const
+{
+	int32 RuntimeCookFlags = 0;
+	if(UPhysicsSettings::Get()->bSupressFaceRemapTable)
+	{
+		RuntimeCookFlags |= ERuntimePhysxCookOptimizationFlags::SupressFaceRemapTable;
+	}
+
+	return RuntimeCookFlags;
+}
+
+FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimizedVersion)
 {
 	if (IsTemplate())
 	{
@@ -976,7 +1004,12 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format)
 		return NULL;
 	}
 
+#if WITH_EDITOR
+	//We don't support runtime cook optimization for per poly skeletal mesh. This is an edge case we may want to support (only helps memory savings)
+	FFormatContainer* UseCookedData = CookedFormatDataOverride ? CookedFormatDataOverride : (bRuntimeOnlyOptimizedVersion ? &CookedFormatDataRuntimeOnlyOptimization : &CookedFormatData);
+#else
 	FFormatContainer* UseCookedData = CookedFormatDataOverride ? CookedFormatDataOverride : &CookedFormatData;
+#endif
 
 	bool bContainedData = UseCookedData->Contains(Format);
 	FByteBulkData* Result = &UseCookedData->GetFormat(Format);
@@ -993,9 +1026,17 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format)
 			return NULL;
 		}
 
+#if WITH_EDITOR
+		const bool bEligibleForRuntimeOptimization = UseCookedData == &CookedFormatDataRuntimeOnlyOptimization;
+#else
+		const bool bEligibleForRuntimeOptimization = CookedFormatDataOverride == nullptr;	//We don't support runtime cook optimization for per poly skeletal mesh. This is an edge case we may want to support (only helps memory savings)
+#endif
+
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 		TArray<uint8> OutData;
-		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, this);
+
+		const int32 CookingFlags = bEligibleForRuntimeOptimization ? GetRuntimeOnlyCookOptimizationFlags() : 0;
+		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, CookingFlags, this);
 		if (DerivedPhysXData->CanBuild())
 		{
 		#if WITH_EDITOR

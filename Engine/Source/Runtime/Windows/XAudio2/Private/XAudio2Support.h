@@ -703,10 +703,7 @@ struct FXAudioDeviceProperties
 
 		// Release the effect chain
 		Voice->SetEffectChain(nullptr);
-#if PLATFORM_WINDOWS
-		Voice->DestroyVoice();
-		return;
-#else
+
 		// See if there is an existing pool for this source voice
 		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
 		for (int32 i = 0; i < VoicePool.Num(); ++i)
@@ -732,7 +729,6 @@ struct FXAudioDeviceProperties
 			VoicePoolEntry->MaxEffectChainChannels = MaxEffectChainChannels;
 			VoicePool.Add(VoicePoolEntry);
 		}
-#endif
 	}
 };
 

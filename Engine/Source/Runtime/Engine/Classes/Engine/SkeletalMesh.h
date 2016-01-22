@@ -466,7 +466,7 @@ struct FClothPhysicsProperties
 	float SelfCollisionStiffness;
 
 	// A computation parameter for the Solver.   Along with frame rate this probably specifies the number of solver iterations
-	UPROPERTY(EditAnywhere, Category = Solver, meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "1000.0"))
+	UPROPERTY(EditAnywhere, Category = Solver, meta = (ClampMin = "1.0", UIMin = "1.0", UIMax = "1000.0"))
 	float SolverFrequency;
 
 

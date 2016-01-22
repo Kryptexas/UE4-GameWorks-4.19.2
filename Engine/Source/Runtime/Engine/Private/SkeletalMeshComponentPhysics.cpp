@@ -1458,6 +1458,14 @@ void USkeletalMeshComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingO
 	UPrimitiveComponent::UpdateOverlaps(PendingOverlaps, bDoNotifies, OverlapsAtEndLocation);
 }
 
+bool USkeletalMeshComponent::ShouldCreatePhysicsState() const
+{
+	bool bShouldCreatePhysicsState = Super::ShouldCreatePhysicsState();
+	bShouldCreatePhysicsState &= (MasterPoseComponent.IsValid() == false);
+	
+	return bShouldCreatePhysicsState;
+}
+
 void USkeletalMeshComponent::CreatePhysicsState()
 {
 	//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());

@@ -236,18 +236,16 @@ struct FGenericPlatformMath
 	*			So for example Fmod(2.8f, 2) gives .8f as you would expect, however, Fmod(-2.8f, 2) gives -.8f, NOT 1.2f 
 	* Use Floor instead when snapping positions that can be negative to a grid
 	*/
-	static FORCEINLINE_DEBUGGABLE float Fmod(float X, float Y)
+	static FORCEINLINE float Fmod(float X, float Y)
 	{
-#ifdef PLATFORM_WINDOWS
-		// There's a compiler bug on Windows, where fmodf will start returning NaNs randomly with valid inputs.
-		// Until this is resolved, we implement our own version.
-		float IntPortion = TruncToFloat(X / Y);
-		float Result = X - Y * IntPortion;
-
+		if (fabsf(Y) <= 1.e-8f)
+		{
+			FmodReportError(X, Y);
+			return 0.f;
+		}
+		const float IntPortion = TruncToFloat(X / Y);
+		const float Result = X - Y * IntPortion;
 		return Result;
-#else
-		return fmodf(X, Y);
-#endif		
 	}
 
 	static FORCEINLINE float Sin( float Value ) { return sinf(Value); }
@@ -618,6 +616,11 @@ struct FGenericPlatformMath
 
 	/** Test some of the tricky functions above **/
 	static void AutoTest();
+
+private:
+
+	/** Error reporting for Fmod. Not inlined to avoid compilation issues and avoid all the checks and error reporting at all callsites. */
+	static CORE_API void FmodReportError(float X, float Y);
 };
 
 /** Float specialization */

@@ -220,8 +220,9 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 	XAudio2Buffers[1].AudioBytes = BufferSize;
 
 	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
-	bool bSkipFirstBuffer = false;;
-	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
+	bool bSkipFirstBuffer = false;
+	bool bIsSeeking = (WaveInstance->StartTime > 0.f);
+	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && !bIsSeeking)
 	{
 		FMemory::Memcpy((uint8*)XAudio2Buffers[0].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
 		FMemory::Memcpy((uint8*)XAudio2Buffers[1].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
@@ -257,7 +258,7 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 
 	ReadMorePCMData(2, DataReadMode);
 
-	if (DataReadMode == EDataReadMode::Synchronous || (!bSkipFirstBuffer && WaveInstance->WaveData && !WaveInstance->WaveData->bCanProcessAsync))
+	if (!bIsSeeking && (DataReadMode == EDataReadMode::Synchronous || (!bSkipFirstBuffer && WaveInstance->WaveData && !WaveInstance->WaveData->bCanProcessAsync)))
 	{
 		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
 									 Source->SubmitSourceBuffer(&XAudio2Buffers[2]));
@@ -472,7 +473,7 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 
 		// Reset the LPFFrequency values
 		LPFFrequency = MAX_FILTER_FREQUENCY;
-		LastLPFFrequency = MAX_FILTER_FREQUENCY;
+		LastLPFFrequency = FLT_MAX;
 
 		// Buffer failed to be created, or there was an error with the compressed data
 		if (Buffer && Buffer->NumChannels > 0)

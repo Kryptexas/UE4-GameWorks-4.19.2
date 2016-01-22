@@ -594,10 +594,10 @@ MATHTEST_INLINE VectorRegister TestVectorNormalize_InvSqrtEst(const VectorRegist
 MATHTEST_INLINE VectorRegister TestReferenceMod(const VectorRegister& A, const VectorRegister& M)
 {
 	return MakeVectorRegister(
-		(float)fmod(VectorGetComponent(A, 0), VectorGetComponent(M, 0)),
-		(float)fmod(VectorGetComponent(A, 1), VectorGetComponent(M, 1)),
-		(float)fmod(VectorGetComponent(A, 2), VectorGetComponent(M, 2)),
-		(float)fmod(VectorGetComponent(A, 3), VectorGetComponent(M, 3)));
+		(float)fmodf(VectorGetComponent(A, 0), VectorGetComponent(M, 0)),
+		(float)fmodf(VectorGetComponent(A, 1), VectorGetComponent(M, 1)),
+		(float)fmodf(VectorGetComponent(A, 2), VectorGetComponent(M, 2)),
+		(float)fmodf(VectorGetComponent(A, 3), VectorGetComponent(M, 3)));
 }
 
 // SinCos
@@ -1367,6 +1367,62 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 		LogTest(TEXT("VectorQuaternionMultiply2"), TestVectorsEqual(V2, V3, 1e-6f));
 	}
 
+	// FMath::FMod
+	{
+		struct XYPair
+		{
+			float X, Y;
+		};
+
+		static XYPair XYArray[] =
+		{		
+			// Test normal ranges
+			{ 0.0,	 1.0},
+			{ 1.5,	 1.0},
+			{ 2.8,	 0.3},
+			{-2.8,	 0.3},
+			{ 2.8,	-0.3},
+			{-2.8,	-0.3},
+			{-0.4,	 5.5},
+			{ 0.4,	-5.5},
+			{ 2.8,	 2.0 + KINDA_SMALL_NUMBER},
+			{-2.8,	 2.0 - KINDA_SMALL_NUMBER},
+
+			// Commonly used for FRotators and angles
+			{725.2,		360.0},
+			{179.9,		 90.0},
+			{ 5.3*PI,	2.*PI},
+			{-5.3*PI,	2.*PI},
+
+			// Test extreme ranges
+			{ 1.0,			 KINDA_SMALL_NUMBER},
+			{ 1.0,			-KINDA_SMALL_NUMBER},
+			{-SMALL_NUMBER,  SMALL_NUMBER},
+			{ SMALL_NUMBER, -SMALL_NUMBER},
+			{ 1.0,			 MIN_flt},
+			{ 1.0,			-MIN_flt},
+			{ MAX_flt,		 MIN_flt},
+			{ MAX_flt,		-MIN_flt},
+
+			// We define this to be zero and not NaN.
+			// Disabled since we don't want to trigger an ensure, but left here for testing that logic.
+			//{ 1.0,	 0.0}, 
+			//{ 1.0,	-0.0},
+		};
+
+		for (auto XY : XYArray)
+		{
+			const float X = XY.X;
+			const float Y = XY.Y;
+			const float Ours = FMath::Fmod(X, Y);
+			const float Theirs = fmodf(X, Y);
+			if (!FMath::IsNearlyEqual(Ours, Theirs, 1.e-5f))
+			{
+				UE_LOG(LogUnrealMathTest, Log, TEXT("FMath::Fmod(%f, %f)=%f <-> fmodf(%f, %f)=%f: FAILED"), X, Y, Ours, X, Y, Theirs);
+				GPassing = false;
+			}
+		}
+	}
 
 	if (!GPassing)
 	{

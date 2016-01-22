@@ -122,6 +122,7 @@ bool FXAudio2Device::InitializeHardware()
 	if( DeviceCount < 1 )
 	{
 		UE_LOG(LogInit, Log, TEXT( "No audio devices found!" ) );
+		DeviceProperties->XAudio2->Release();
 		DeviceProperties->XAudio2 = nullptr;
 		return( false );		
 	}

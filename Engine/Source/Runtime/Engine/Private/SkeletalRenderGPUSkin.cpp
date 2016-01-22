@@ -322,7 +322,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 
 			FGPUBaseSkinVertexFactory::ShaderDataType& ShaderData = 
 				bClothFactory ? VertexFactoryData.ClothVertexFactories[ChunkIdx]->GetVertexFactory()->GetShaderData() :
-				(DynamicData->NumWeightedActiveVertexAnims > 0 ? VertexFactoryData.MorphVertexFactories[ChunkIdx].GetShaderData() : VertexFactoryData.VertexFactories[ChunkIdx].GetShaderData());
+				(DynamicData->NumWeightedActiveVertexAnims > 0 ? VertexFactoryData.MorphVertexFactories[ChunkIdx]->GetShaderData() : VertexFactoryData.VertexFactories[ChunkIdx]->GetShaderData());
 
 			bool bUseSkinCache = bGPUSkinCacheEnabled;
 			if (bUseSkinCache)
@@ -356,7 +356,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 			// Try to use the GPU skinning cache if possible
 			if (bUseSkinCache)
 			{
-				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, GPUSkinCacheKeys[ChunkIdx], &VertexFactoryData.VertexFactories[ChunkIdx], &VertexFactoryData.PassthroughVertexFactories[ChunkIdx], Chunk, this);
+				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, GPUSkinCacheKeys[ChunkIdx], VertexFactoryData.VertexFactories[ChunkIdx].Get(), VertexFactoryData.PassthroughVertexFactories[ChunkIdx].Get(), Chunk, this);
 				if(Key >= 0)
 				{
 					GPUSkinCacheKeys[ChunkIdx] = (int16)Key;
@@ -513,14 +513,14 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetVertexFactory(int32 LODInde
 	// cloth simulation is updated & if this ChunkIdx is for ClothVertexFactory
 	if ( DynamicData->ClothSimulUpdateData.Num() > 0 
 		&& LOD.GPUSkinVertexFactories.ClothVertexFactories.IsValidIndex(ChunkIdx)  
-		&& LOD.GPUSkinVertexFactories.ClothVertexFactories[ChunkIdx] != NULL )
+		&& LOD.GPUSkinVertexFactories.ClothVertexFactories[ChunkIdx].IsValid() )
 	{
 		return LOD.GPUSkinVertexFactories.ClothVertexFactories[ChunkIdx]->GetVertexFactory();
 	}
 	// use the morph enabled vertex factory if any active morphs are set
 	else if( DynamicData->NumWeightedActiveVertexAnims > 0 )
 	{
-		return &LOD.GPUSkinVertexFactories.MorphVertexFactories[ChunkIdx];
+		return LOD.GPUSkinVertexFactories.MorphVertexFactories[ChunkIdx].Get();
 	}
 	// use the default gpu skin vertex factory
 	else
@@ -528,11 +528,11 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetVertexFactory(int32 LODInde
 		// If the GPU skinning cache was used, return the passthrough vertex factory
 		if (GGPUSkinCache.IsElementProcessed(GPUSkinCacheKeys[ChunkIdx]))
 		{
-			return &LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx];
+			return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
 		}
 		else
 		{
-			return &LOD.GPUSkinVertexFactories.VertexFactories[ChunkIdx];
+			return LOD.GPUSkinVertexFactories.VertexFactories[ChunkIdx].Get();
 		}
 	}
 }
@@ -686,13 +686,13 @@ TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdate
  * Creates a vertex factory entry for the given type and initialize it on the render thread
  */
 template <class VertexFactoryTypeBase, class VertexFactoryType>
-static VertexFactoryType* CreateVertexFactory(TIndirectArray<VertexFactoryTypeBase>& VertexFactories,
+static VertexFactoryType* CreateVertexFactory(TArray<TUniquePtr<VertexFactoryTypeBase>>& VertexFactories,
 						 const FSkeletalMeshObjectGPUSkin::FVertexFactoryBuffers& InVertexBuffers,
 						 ERHIFeatureLevel::Type FeatureLevel
 						 )
 {
 	auto* VertexFactory = new VertexFactoryType(FeatureLevel);
-	VertexFactories.Add(VertexFactory);
+	VertexFactories.Add(TUniquePtr<VertexFactoryTypeBase>(VertexFactory));
 
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory,InVertexBuffers);
@@ -717,11 +717,11 @@ VertexFactoryType*, SourceVertexFactory, SourceVertexFactory,
 });
 
 template<typename VertexFactoryType>
-static void CreatePassthroughVertexFactory(TIndirectArray<FGPUSkinPassthroughVertexFactory>& PassthroughVertexFactories,
+static void CreatePassthroughVertexFactory(TArray<TUniquePtr<FGPUSkinPassthroughVertexFactory>>& PassthroughVertexFactories,
 	VertexFactoryType* SourceVertexFactory)
 {
 	auto* VertexFactory = new FGPUSkinPassthroughVertexFactory();
-	PassthroughVertexFactories.Add(VertexFactory);
+	PassthroughVertexFactories.Add(TUniquePtr<FGPUSkinPassthroughVertexFactory>(VertexFactory));
 
 	// update vertex factory components and sync it
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER_CREATE_TEMPLATE(
@@ -749,14 +749,14 @@ TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdate
  * Creates a vertex factory entry for the given type and initialize it on the render thread
  */
 template <class VertexFactoryTypeBase, class VertexFactoryType>
-static void CreateVertexFactoryMorph(TIndirectArray<VertexFactoryTypeBase>& VertexFactories,
+static void CreateVertexFactoryMorph(TArray<TUniquePtr<VertexFactoryTypeBase>>& VertexFactories,
 						 const FSkeletalMeshObjectGPUSkin::FVertexFactoryBuffers& InVertexBuffers,
 						 ERHIFeatureLevel::Type FeatureLevel
 						 )
 
 {
 	auto* VertexFactory = new VertexFactoryType(FeatureLevel);
-	VertexFactories.Add(VertexFactory);
+	VertexFactories.Add(TUniquePtr<VertexFactoryTypeBase>(VertexFactory));
 						
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
@@ -787,14 +787,14 @@ TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdate
  * Creates a vertex factory entry for the given type and initialize it on the render thread
  */
 template <class VertexFactoryTypeBase, class VertexFactoryType>
-static void CreateVertexFactoryCloth(TArray<VertexFactoryTypeBase*>& VertexFactories,
+static void CreateVertexFactoryCloth(TArray<TUniquePtr<VertexFactoryTypeBase>>& VertexFactories,
 						 const FSkeletalMeshObjectGPUSkin::FVertexFactoryBuffers& InVertexBuffers,
 						 ERHIFeatureLevel::Type FeatureLevel
 						 )
 
 {
 	VertexFactoryType* VertexFactory = new VertexFactoryType(FeatureLevel);
-	VertexFactories.Add(VertexFactory);
+	VertexFactories.Add(TUniquePtr<VertexFactoryTypeBase>(VertexFactory));
 						
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
@@ -864,12 +864,12 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::ReleaseVertexFactories()
 	// Default factories
 	for( int32 FactoryIdx=0; FactoryIdx < VertexFactories.Num(); FactoryIdx++)
 	{
-		BeginReleaseResource(&VertexFactories[FactoryIdx]);
+		BeginReleaseResource(VertexFactories[FactoryIdx].Get());
 	}
 
 	for (int32 FactoryIdx = 0; FactoryIdx < PassthroughVertexFactories.Num(); FactoryIdx++)
 	{
-		BeginReleaseResource(&PassthroughVertexFactories[FactoryIdx]);
+		BeginReleaseResource(PassthroughVertexFactories[FactoryIdx].Get());
 	}
 }
 
@@ -902,8 +902,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::ReleaseMorphVertexFactories
 	// Default morph factories
 	for( int32 FactoryIdx=0; FactoryIdx < MorphVertexFactories.Num(); FactoryIdx++ )
 	{
-		auto& MorphVertexFactory = MorphVertexFactories[FactoryIdx];
-		BeginReleaseResource(&MorphVertexFactory);
+		BeginReleaseResource(MorphVertexFactories[FactoryIdx].Get());
 	}
 }
 
@@ -930,7 +929,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactorie
 		}
 		else
 		{
-			ClothVertexFactories.Add(NULL);
+			ClothVertexFactories.Add(TUniquePtr<FGPUBaseSkinAPEXClothVertexFactory>(nullptr));
 		}
 	}
 }
@@ -943,7 +942,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::ReleaseAPEXClothVertexFacto
 	// Default APEX cloth factories
 	for( int32 FactoryIdx=0; FactoryIdx < ClothVertexFactories.Num(); FactoryIdx++ )
 	{
-		auto* ClothVertexFactory = ClothVertexFactories[FactoryIdx];
+		TUniquePtr<FGPUBaseSkinAPEXClothVertexFactory>& ClothVertexFactory = ClothVertexFactories[FactoryIdx];
 		if (ClothVertexFactory)
 		{
 			BeginReleaseResource(ClothVertexFactory->GetVertexFactory());

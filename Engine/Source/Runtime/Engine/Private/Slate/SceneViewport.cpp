@@ -832,9 +832,17 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 			if (IsForegroundWindow())
 			{
 				bool bIsCursorForcedVisible = false;
-				if (ViewportClient->GetWorld() && ViewportClient->GetWorld()->GetGameInstance() && ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController())
+				APlayerController* FirstLocalPC = nullptr;
+				if (UWorld* ViewportClientWorld = ViewportClient->GetWorld())
 				{
-					bIsCursorForcedVisible = ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController()->GetMouseCursor() != EMouseCursor::None;
+					if (UGameInstance* GameInstance = ViewportClientWorld->GetGameInstance())
+					{
+						FirstLocalPC = GameInstance->GetFirstLocalPlayerController();
+					}
+				}
+				if (FirstLocalPC)
+				{
+					bIsCursorForcedVisible = FirstLocalPC->GetMouseCursor() != EMouseCursor::None;
 				}
 
 				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InFocusEvent.GetCause() != EFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
@@ -857,12 +865,13 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 	}
 
 	// Update key state mappings so that the the viewport modifier states are valid upon focus.
-	KeyStateMap.Add( EKeys::LeftAlt, FSlateApplication::Get().GetModifierKeys().IsLeftAltDown() );
-	KeyStateMap.Add( EKeys::RightAlt, FSlateApplication::Get().GetModifierKeys().IsRightAltDown() );
-	KeyStateMap.Add( EKeys::LeftControl, FSlateApplication::Get().GetModifierKeys().IsLeftControlDown());
-	KeyStateMap.Add( EKeys::RightControl, FSlateApplication::Get().GetModifierKeys().IsRightControlDown());
-	KeyStateMap.Add( EKeys::LeftShift, FSlateApplication::Get().GetModifierKeys().IsLeftShiftDown());
-	KeyStateMap.Add( EKeys::RightShift, FSlateApplication::Get().GetModifierKeys().IsRightShiftDown());
+	const FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
+	KeyStateMap.Add( EKeys::LeftAlt, KeysState.IsLeftAltDown() );
+	KeyStateMap.Add( EKeys::RightAlt, KeysState.IsRightAltDown() );
+	KeyStateMap.Add( EKeys::LeftControl, KeysState.IsLeftControlDown());
+	KeyStateMap.Add( EKeys::RightControl, KeysState.IsRightControlDown());
+	KeyStateMap.Add( EKeys::LeftShift, KeysState.IsLeftShiftDown());
+	KeyStateMap.Add( EKeys::RightShift, KeysState.IsRightShiftDown());
 
 	return CurrentReplyState;
 }

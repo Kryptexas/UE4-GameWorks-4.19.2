@@ -13,6 +13,7 @@
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
+#include "AnimGraphNode_Base.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDebugging"
 
@@ -1065,6 +1066,35 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 			}
 #endif // USE_UBER_GRAPH_PERSISTENT_FRAME
 			
+			// see if our WatchPin is on a animation node & if so try to get its property info
+			UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+			if(!PropertyBase && AnimBlueprintGeneratedClass)
+			{
+				// are we linked to an anim graph node?
+				const UAnimGraphNode_Base* Node = Cast<UAnimGraphNode_Base>(WatchPin->GetOuter());
+				if(Node == nullptr && WatchPin->LinkedTo.Num() > 0)
+				{
+					Node = Cast<UAnimGraphNode_Base>(WatchPin->LinkedTo[0]->GetOuter());
+				}
+
+				if(Node)
+				{
+					UStructProperty* NodeStructProperty = Cast<UStructProperty>(FKismetDebugUtilities::FindClassPropertyForNode(Blueprint, Node));
+					if (NodeStructProperty)
+					{
+						for (UStructProperty* NodeProperty : AnimBlueprintGeneratedClass->AnimNodeProperties)
+						{
+							if (NodeProperty == NodeStructProperty)
+							{
+								void* NodePtr = NodeProperty->ContainerPtrToValuePtr<void>(ActiveObject);
+								Property->ExportText_InContainer(/*ArrayElement=*/ 0, /*inout*/ OutWatchText, NodePtr, NodePtr, /*Parent=*/ ActiveObject, PPF_PropertyWindow|PPF_BlueprintDebugView);
+								return EWTR_Valid;
+							}
+						}
+					}
+				}
+			}
+
 			// Now either print out the variable value, or that it was out-of-scope
 			if (PropertyBase != nullptr)
 			{

@@ -295,7 +295,7 @@ public:
 	UProperty* FindClassPropertyForPin(const UEdGraphPin* Pin) const
 	{
 		UProperty* PropertyPtr = DebugPinToPropertyMap.FindRef(Pin);
-		if ((PropertyPtr == nullptr) && (Pin->Direction == EGPD_Input) && (Pin->LinkedTo.Num() > 0))
+		if ((PropertyPtr == nullptr) && (Pin->LinkedTo.Num() > 0))
 		{
 			// Try checking the other side of the connection
 			PropertyPtr = DebugPinToPropertyMap.FindRef(Pin->LinkedTo[0]);

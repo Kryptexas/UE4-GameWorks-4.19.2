@@ -1100,6 +1100,7 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 	}
 
 	AllocateTransformData();
+	RecreatePhysicsState();
 	UpdateMasterBoneMap();
 }
 

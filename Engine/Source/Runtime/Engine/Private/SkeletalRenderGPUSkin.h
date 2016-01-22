@@ -271,16 +271,16 @@ private:
 		FVertexFactoryData() {}
 
 		/** one vertex factory for each chunk */
-		TIndirectArray<FGPUBaseSkinVertexFactory> VertexFactories;
+		TArray<TUniquePtr<FGPUBaseSkinVertexFactory>> VertexFactories;
 
 		/** one passthrough vertex factory for each chunk */
-		TIndirectArray<FGPUSkinPassthroughVertexFactory> PassthroughVertexFactories;
+		TArray<TUniquePtr<FGPUSkinPassthroughVertexFactory>> PassthroughVertexFactories;
 
 		/** Vertex factory defining both the base mesh as well as the morph delta vertex decals */
-		TIndirectArray<FGPUBaseSkinVertexFactory> MorphVertexFactories;
+		TArray<TUniquePtr<FGPUBaseSkinVertexFactory>> MorphVertexFactories;
 
 		/** Vertex factory defining both the base mesh as well as the APEX cloth vertex data */
-		TArray<FGPUBaseSkinAPEXClothVertexFactory*> ClothVertexFactories;
+		TArray<TUniquePtr<FGPUBaseSkinAPEXClothVertexFactory>> ClothVertexFactories;
 
 		/** 
 		 * Init default vertex factory resources for this LOD 

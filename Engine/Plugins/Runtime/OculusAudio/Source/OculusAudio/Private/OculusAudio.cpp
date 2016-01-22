@@ -213,7 +213,7 @@ private:
 	/** Helper function to convert from UE coords to OVR coords. */
 	FORCEINLINE FVector ToOVRVector(const FVector& InVec) const
 	{
-		return FVector(float(InVec.Y), float(InVec.Z), float(-InVec.X));
+		return FVector(float(InVec.Y), float(-InVec.Z), float(-InVec.X));
 	}
 
 	/* Whether or not the OVR audio context is initialized. We defer initialization until the first audio callback.*/

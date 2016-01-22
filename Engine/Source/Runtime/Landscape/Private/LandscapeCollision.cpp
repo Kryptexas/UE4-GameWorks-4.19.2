@@ -780,7 +780,7 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 	TArray<uint8> OutData;
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	const IPhysXFormat* Cooker = TPM->FindPhysXFormat(Format);
-	bool Result = Cooker->CookTriMesh(Format, Vertices, Indices, MaterialIndices, bFlipNormals, OutData);
+	bool Result = Cooker->CookTriMesh(Format, 0, Vertices, Indices, MaterialIndices, bFlipNormals, OutData);
 
 	if (Result)
 	{

@@ -268,7 +268,10 @@ public:
 	struct FRepMovement ReplicatedMovement;
 
 private:
-	/** Used for replicating attachment of this actor's RootComponent to another actor. */
+	/**
+	 * Used for replicating attachment of this actor's RootComponent to another actor.
+	 * This is filled in via GatherCurrentMovement() when the RootComponent has an AttachParent.
+	 */
 	UPROPERTY(Transient, replicatedUsing=OnRep_AttachmentReplication)
 	struct FRepAttachment AttachmentReplication;
 
