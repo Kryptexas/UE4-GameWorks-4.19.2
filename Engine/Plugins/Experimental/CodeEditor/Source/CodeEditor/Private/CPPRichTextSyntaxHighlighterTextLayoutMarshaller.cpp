@@ -205,6 +205,9 @@ void FCPPRichTextSyntaxHighlighterTextLayoutMarshaller::ParseTokens(const FStrin
 		LookingForMultiLineComment,
 	};
 
+	TArray<FTextLayout::FNewLineData> LinesToAdd;
+	LinesToAdd.Reserve(TokenizedLines.Num());
+
 	// Parse the tokens, generating the styled runs for each line
 	EParseState ParseState = EParseState::None;
 	for(const FSyntaxTokenizer::FTokenizedLine& TokenizedLine : TokenizedLines)
@@ -334,8 +337,10 @@ void FCPPRichTextSyntaxHighlighterTextLayoutMarshaller::ParseTokens(const FStrin
 			}
 		}
 
-		TargetTextLayout.AddLine(ModelString, Runs);
+		LinesToAdd.Emplace(MoveTemp(ModelString), MoveTemp(Runs));
 	}
+
+	TargetTextLayout.AddLines(LinesToAdd);
 }
 
 FCPPRichTextSyntaxHighlighterTextLayoutMarshaller::FCPPRichTextSyntaxHighlighterTextLayoutMarshaller(TSharedPtr< FSyntaxTokenizer > InTokenizer, const FSyntaxTextStyle& InSyntaxTextStyle)
