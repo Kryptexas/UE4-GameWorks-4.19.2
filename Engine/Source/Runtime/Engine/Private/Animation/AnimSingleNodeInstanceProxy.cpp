@@ -315,6 +315,12 @@ void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewA
 #if WITH_EDITORONLY_DATA
 	PreviewPoseCurrentTime = 0.0f;
 #endif
+
+	UBlendSpaceBase * BlendSpace = Cast<UBlendSpaceBase>(NewAsset);
+	if (BlendSpace)
+	{
+		BlendSpace->InitializeFilter(&BlendFilter);
+	}
 }
 
 void FAnimSingleNodeInstanceProxy::UpdateBlendspaceSamples(FVector InBlendInput)

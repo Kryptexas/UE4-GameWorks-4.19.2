@@ -47,12 +47,6 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	{
 		// otherwise stop all montages
 		StopAllMontages(0.25f);
-
-		UBlendSpaceBase * BlendSpace = Cast<UBlendSpaceBase>(NewAsset);
-		if(BlendSpace)
-		{
-			BlendSpace->InitializeFilter(&BlendFilter);
-		}
 	}
 }
 
