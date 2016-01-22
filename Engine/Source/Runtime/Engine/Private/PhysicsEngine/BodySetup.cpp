@@ -980,10 +980,12 @@ void UBodySetup::ClearCachedCookedPlatformData( const ITargetPlatform* TargetPla
 int32 UBodySetup::GetRuntimeOnlyCookOptimizationFlags() const
 {
 	int32 RuntimeCookFlags = 0;
-	if(UPhysicsSettings::Get()->bSupressFaceRemapTable)
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+	if(UPhysicsSettings::Get()->bSuppressFaceRemapTable)
 	{
-		RuntimeCookFlags |= ERuntimePhysxCookOptimizationFlags::SupressFaceRemapTable;
+		RuntimeCookFlags |= ERuntimePhysxCookOptimizationFlags::SuppressFaceRemapTable;
 	}
+#endif
 
 	return RuntimeCookFlags;
 }

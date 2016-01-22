@@ -160,7 +160,7 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	/**
 	*  If true, the internal physx face to UE face mapping will not be generated. This is a memory optimization available if you do not rely on face indices returned by scene queries. */
 	UPROPERTY(config, EditAnywhere, Category = Optimization)
-	bool bSupressFaceRemapTable;
+	bool bSuppressFaceRemapTable;
 
 	/**
 	*  If true CCD will be ignored. This is an optimization when CCD is never used which removes the need for physx to check it internally. */

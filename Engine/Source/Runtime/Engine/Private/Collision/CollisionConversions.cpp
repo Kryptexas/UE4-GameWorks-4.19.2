@@ -433,9 +433,9 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 #if WITH_EDITOR
 	if(bReturnFaceIndex && World->IsGameWorld())
 	{
-		if(!ensure(UPhysicsSettings::Get()->bSupressFaceRemapTable == false))
+		if(!ensure(UPhysicsSettings::Get()->bSuppressFaceRemapTable == false))
 		{
-			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSupressFaceRemapTable is false."));
+			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSuppressFaceRemapTable is false."));
 		}
 	}
 #endif

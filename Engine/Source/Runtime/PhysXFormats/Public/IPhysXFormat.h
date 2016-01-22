@@ -1,14 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITextureFormatModule.h: Declares the ITextureFormatModule interface.
-=============================================================================*/
-
 #pragma once
 
 enum ERuntimePhysxCookOptimizationFlags
 {
-	SupressFaceRemapTable = 0x1
+	SuppressFaceRemapTable = 0x1
 };
 
 /**
