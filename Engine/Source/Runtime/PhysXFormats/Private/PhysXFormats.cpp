@@ -109,7 +109,7 @@ public:
 		PxCookingParams NewParams = Params;
 		NewParams.targetPlatform = PhysXFormat;
 
-		if(RuntimeCookFlags & ERuntimePhysxCookOptimizationFlags::SupressFaceRemapTable)
+		if(RuntimeCookFlags & ERuntimePhysxCookOptimizationFlags::SuppressFaceRemapTable)
 		{
 			NewParams.suppressTriangleMeshRemapTable = true;
 		}
@@ -182,7 +182,7 @@ public:
 		NewParams.targetPlatform = PhysXFormat;
 		PxMeshPreprocessingFlags OldCookingFlags = NewParams.meshPreprocessParams;
 
-		if (RuntimeCookFlags & ERuntimePhysxCookOptimizationFlags::SupressFaceRemapTable)
+		if (RuntimeCookFlags & ERuntimePhysxCookOptimizationFlags::SuppressFaceRemapTable)
 		{
 			NewParams.suppressTriangleMeshRemapTable = true;
 		}
