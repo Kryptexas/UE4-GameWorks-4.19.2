@@ -1342,6 +1342,8 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 		OnWindowDeactivated.ExecuteIfBound();	// deprecated
 		WindowDeactivatedEvent.Broadcast();
 
+		FSlateApplicationBase::Get().ClearAllUserFocus(EFocusCause::SetDirectly);
+
 		const EWindowMode::Type WindowMode = GetWindowMode();
 		// If the window is not fullscreen, we do not want to automatically recapture the mouse unless an external UI such as Steam is open. Fullscreen windows we do.
 		if( WindowMode != EWindowMode::Fullscreen && WidgetToFocusOnActivate.IsValid() && WidgetToFocusOnActivate.Pin()->HasMouseCapture() && !FSlateApplicationBase::Get().IsExternalUIOpened())

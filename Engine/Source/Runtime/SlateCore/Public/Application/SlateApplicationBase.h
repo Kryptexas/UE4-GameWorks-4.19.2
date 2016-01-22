@@ -346,6 +346,21 @@ public:
 	 * @param InCause The reason that focus is changing.
 	 */
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
+	
+	/** 
+	 * Releases the users focus from whatever it currently is on.
+	 *
+	 * @param InUserIndex Index of the user that we want to change the focus of.
+	 * @param InCause The reason that focus is changing.
+	 */
+	virtual void ClearUserFocus(uint32 InUserIndex, EFocusCause InCause = EFocusCause::SetDirectly) = 0;
+
+	/** 
+	 * Releases the focus for all users from whatever it currently is on.
+	 *
+	 * @param InCause The reason that focus is changing.
+	 */
+	virtual void ClearAllUserFocus(EFocusCause InCause = EFocusCause::SetDirectly) = 0;
 
 	/**
 	 * Gets a delegate that is invoked when a global invalidate of all widgets should occur
