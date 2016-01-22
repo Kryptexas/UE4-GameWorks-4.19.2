@@ -745,10 +745,6 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 			{
 				for (int32 VertX = VertX1; VertX <= VertX2; VertX++)
 				{
-					// X/Y of the vertex we're looking indexed into the texture data
-					const int32 TexX = HeightmapOffsetX + CollisionSubsectionSizeVerts * SubsectionX + VertX;
-					const int32 TexY = HeightmapOffsetY + CollisionSubsectionSizeVerts * SubsectionY + VertY;
-
 					// this uses Quads as we don't want the duplicated vertices
 					const int32 CompVertX = CollisionSubsectionSizeQuads * SubsectionX + VertX;
 					const int32 CompVertY = CollisionSubsectionSizeQuads * SubsectionY + VertY;
@@ -761,6 +757,9 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 					}
 					else
 					{
+						// X/Y of the vertex we're looking indexed into the texture data
+						const int32 TexX = HeightmapOffsetX + CollisionSubsectionSizeVerts * SubsectionX + VertX;
+						const int32 TexY = HeightmapOffsetY + CollisionSubsectionSizeVerts * SubsectionY + VertY;
 						const FColor& TexData = HeightmapTextureMipData[TexX + TexY * MipSizeU];
 
 						// Copy collision data
@@ -772,6 +771,8 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 
 					if (XYOffsetmapTexture && XYOffsetTextureMipData && CollisionXYOffsetData)
 					{
+						const int32 TexX = CollisionSubsectionSizeVerts * SubsectionX + VertX;
+						const int32 TexY = CollisionSubsectionSizeVerts * SubsectionY + VertY;
 						const FColor& TexData = XYOffsetTextureMipData[TexX + TexY * XYMipSizeU];
 
 						// Copy collision data

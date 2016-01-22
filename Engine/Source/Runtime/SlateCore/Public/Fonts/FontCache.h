@@ -14,6 +14,7 @@ class FFreeTypeKerningPairCache;
 class FCompositeFontCache;
 class FSlateFontRenderer;
 class FSlateTextShaper;
+class FSlateFontCache;
 
 struct FCharacterRenderData;
 class FShapedGlyphFaceData;
@@ -90,7 +91,7 @@ struct FShapedGlyphEntry
 	TSharedPtr<FShapedGlyphFaceData> FontFaceData;
 	/** The index of this glyph in the FreeType face */
 	uint32 GlyphIndex;
-	/** The index of this glyph from the source text. If the glyph is a ligature, then the cluster indices of the sequence may skip characters from the source text */
+	/** The index of this glyph from the source text. The cluster indices may skip characters if the sequence contains ligatures, additionally, some characters produce multiple glyphs leading to duplicate cluster indices */
 	int32 ClusterIndex;
 	/** The amount to advance in X before drawing the next glyph in the sequence */
 	int16 XAdvance;
@@ -106,6 +107,11 @@ struct FShapedGlyphEntry
 	 * @note This value isn't strictly the kerning value - it's simply the difference between the glyphs horizontal advance, and the shaped horizontal advance (so will contain any accumulated advance added by the shaper)
 	 */
 	int8 Kerning;
+	/**
+	 * The number of source characters represented by this glyph
+	 * This is typically 1, however will be greater for ligatures, or may be 0 if a single character produces multiple glyphs
+	 */
+	uint8 NumCharactersInGlyph;
 
 	FShapedGlyphEntry()
 		: FontFaceData()
@@ -116,6 +122,7 @@ struct FShapedGlyphEntry
 		, XOffset(0)
 		, YOffset(0)
 		, Kerning(0)
+		, NumCharactersInGlyph(0)
 	{
 	}
 
@@ -249,6 +256,56 @@ public:
 	 */
 	TOptional<int32> GetMeasuredWidth(const int32 InStartIndex, const int32 InEndIndex, const bool InIncludeKerningWithPrecedingGlyph = true) const;
 
+	/** Return data used by GetGlyphAtOffset */
+	struct FGlyphOffsetResult
+	{
+		FGlyphOffsetResult()
+			: Glyph(nullptr)
+			, GlyphTextDirection(TextBiDi::ETextDirection::LeftToRight)
+			, GlyphOffset(0)
+			, CharacterIndex(0)
+		{
+		}
+
+		explicit FGlyphOffsetResult(const int32 InCharacterIndex)
+			: Glyph(nullptr)
+			, GlyphTextDirection(TextBiDi::ETextDirection::LeftToRight)
+			, GlyphOffset(0)
+			, CharacterIndex(InCharacterIndex)
+		{
+		}
+
+		FGlyphOffsetResult(const FShapedGlyphEntry* InGlyph, const TextBiDi::ETextDirection InGlyphTextDirection, const int32 InGlyphOffset)
+			: Glyph(InGlyph)
+			, GlyphTextDirection(InGlyphTextDirection)
+			, GlyphOffset(InGlyphOffset)
+			, CharacterIndex(InGlyph->ClusterIndex)
+		{
+		}
+
+		/** The glyph that was hit. May be null if we hit outside the range of any glyph */
+		const FShapedGlyphEntry* Glyph;
+		/** The reading direction of the text the glyph belongs to */
+		TextBiDi::ETextDirection GlyphTextDirection;
+		/** The offset to the left edge of the hit glyph */
+		int32 GlyphOffset;
+		/** The character index that was hit (set to the start or end index if we fail to hit a glyph) */
+		int32 CharacterIndex;
+	};
+
+	/**
+	 * Get the information for the glyph at the specified position in pixels along the string horizontally
+	 * @return The result data (see FGlyphOffsetResult)
+	 */
+	FGlyphOffsetResult GetGlyphAtOffset(FSlateFontCache& InFontCache, const int32 InHorizontalOffset) const;
+
+	/**
+	 * Get the information for the glyph at the specified position in pixels along the string horizontally
+	 * @note The indices used here are relative to the start of the text we were shaped from, even if we were only shaped from a sub-section of that text
+	 * @return The result data (see FGlyphOffsetResult), or an unset value if we couldn't find the character (eg, because you started or ended on a merged ligature, or because the range is out-of-bounds)
+	 */
+	TOptional<FGlyphOffsetResult> GetGlyphAtOffset(FSlateFontCache& InFontCache, int32 InStartIndex, int32 InEndIndex, const int32 InHorizontalOffset, const bool InIncludeKerningWithPrecedingGlyph = true) const;
+
 	/**
 	 * Get the kerning value between the given entry and the next entry in the sequence
 	 * @note The index used here is relative to the start of the text we were shaped from, even if we were only shaped from a sub-section of that text
@@ -274,6 +331,8 @@ private:
 	uint16 MaxTextHeight;
 	/** The material to use when rendering these glyphs */
 	const UObject* FontMaterial;
+	/** The set of fonts being used by the glyphs within this sequence */
+	TArray<TWeakPtr<FFreeTypeFace>> GlyphFontFaces;
 };
 
 /** Information for rendering one character */
@@ -349,9 +408,6 @@ struct SLATECORE_API FKerningPair
 	}
 };
 
-
-class FSlateFontCache;
-
 /**
  * A Kerning table for a single font key
  */
@@ -381,7 +437,7 @@ private:
 	/** Direct access kerning table for ascii chars.  Note its very important that this stays small. */
 	int8* DirectAccessTable;
 	/** Interface to freetype for accessing new kerning values */
-	const class FSlateFontCache& FontCache;
+	const FSlateFontCache& FontCache;
 };
 
 
@@ -475,7 +531,7 @@ private:
 	/** Font for this character list */
 	FSlateFontKey FontKey;
 	/** Reference to the font cache for accessing new unseen characters */
-	const class FSlateFontCache& FontCache;
+	const FSlateFontCache& FontCache;
 	/** The history revision of the cached composite font */
 	int32 CompositeFontHistoryRevision;
 	/** Number of directly indexed entries */

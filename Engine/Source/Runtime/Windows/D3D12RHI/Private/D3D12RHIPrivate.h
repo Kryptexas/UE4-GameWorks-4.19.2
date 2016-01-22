@@ -1,14 +1,20 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12RHIPrivate.h: Private D3D RHI definitions.
 	=============================================================================*/
 
-#ifndef __D3D12RHIPRIVATE_H__
-#define __D3D12RHIPRIVATE_H__
+#pragma once
 
 #define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE				1
 
+#if UE_BUILD_SHIPPING
+#define D3D12_PROFILING_ENABLED 0
+#elif UE_BUILD_TEST
+#define D3D12_PROFILING_ENABLED 1
+#else
+#define D3D12_PROFILING_ENABLED 1
+#endif
 
 // Dependencies.
 #include "Core.h"
@@ -117,13 +123,13 @@ struct FD3D12GlobalStats
 {
 	// in bytes, never change after RHI, needed to scale game features
 	static int64 GDedicatedVideoMemory;
-	
+
 	// in bytes, never change after RHI, needed to scale game features
 	static int64 GDedicatedSystemMemory;
-	
+
 	// in bytes, never change after RHI, needed to scale game features
 	static int64 GSharedSystemMemory;
-	
+
 	// In bytes. Never changed after RHI init. Our estimate of the amount of memory that we can use for graphics resources in total.
 	static int64 GTotalGraphicsMemory;
 };
@@ -154,55 +160,55 @@ static FAutoConsoleVariableRef CVarCommandListBatchingMode(
 class FD3D12QueryHeap : public FD3D12DeviceChild
 {
 private:
-    struct QueryBatch
-    {
-    private:
-        int64 BatchID;            // The unique ID for the batch
+	struct QueryBatch
+	{
+	private:
+		int64 BatchID;            // The unique ID for the batch
 
-        int64 GenerateID()
-        {
+		int64 GenerateID()
+		{
 #if WINVER >= 0x0600 // Interlock...64 functions are only available from Vista onwards
-            static int64 ID = 0;
+			static int64 ID = 0;
 #else
 			static int32 ID = 0;
 #endif
-            return FPlatformAtomics::_InterlockedIncrement(&ID);
-        }
+			return FPlatformAtomics::_InterlockedIncrement(&ID);
+		}
 
-    public:
-        uint32 StartElement;    // The first element in the batch (inclusive)
-        uint32 EndElement;      // The last element in the batch (inclusive)
-        uint32 ElementCount;    // The number of elements in the batch
-        bool bOpen;             // Is the batch still open for more begin/end queries?
+	public:
+		uint32 StartElement;    // The first element in the batch (inclusive)
+		uint32 EndElement;      // The last element in the batch (inclusive)
+		uint32 ElementCount;    // The number of elements in the batch
+		bool bOpen;             // Is the batch still open for more begin/end queries?
 
-        void Clear()
-        {
-            StartElement = 0;
-            EndElement = 0;
-            ElementCount = 0;
-            BatchID = GenerateID();
-            bOpen = false;
-        }
+		void Clear()
+		{
+			StartElement = 0;
+			EndElement = 0;
+			ElementCount = 0;
+			BatchID = GenerateID();
+			bOpen = false;
+		}
 
-        int64 GetBatchID() const { return BatchID; }
+		int64 GetBatchID() const { return BatchID; }
 
-        bool IsValidElement(uint32 Element)
-        {
-            return ((Element >= StartElement) && (Element <= EndElement));
-        }
-    };
+		bool IsValidElement(uint32 Element)
+		{
+			return ((Element >= StartElement) && (Element <= EndElement));
+		}
+	};
 
 public:
-    FD3D12QueryHeap(class FD3D12Device* InParent, const D3D12_QUERY_HEAP_TYPE &InQueryHeapType, uint32 InQueryHeapCount);
-    ~FD3D12QueryHeap();
+	FD3D12QueryHeap(class FD3D12Device* InParent, const D3D12_QUERY_HEAP_TYPE &InQueryHeapType, uint32 InQueryHeapCount);
+	~FD3D12QueryHeap();
 
-    void Init();
+	void Init();
 
-    void StartQueryBatch(FD3D12CommandContext& CmdContext);           // Start tracking a new batch of begin/end query calls that will be resolved together
-    void EndQueryBatchAndResolveQueryData(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType);  // Stop tracking the current batch of begin/end query calls that will be resolved together
+	void StartQueryBatch(FD3D12CommandContext& CmdContext);           // Start tracking a new batch of begin/end query calls that will be resolved together
+	void EndQueryBatchAndResolveQueryData(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType);  // Stop tracking the current batch of begin/end query calls that will be resolved together
 
-    uint32 BeginQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType); // Obtain a query from the store of available queries
-    void EndQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType, uint32 InElement);
+	uint32 BeginQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType); // Obtain a query from the store of available queries
+	void EndQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType, uint32 InElement);
 
 	HRESULT MapResultBufferRange(const D3D12_RANGE &InRange)
 	{
@@ -219,48 +225,48 @@ public:
 		ResultBuffer->GetResource()->Unmap(0, &emptyRange);
 	}
 
-    uint32 GetQueryHeapCount() const { return QueryHeapDesc.Count; }
+	uint32 GetQueryHeapCount() const { return QueryHeapDesc.Count; }
 	uint32 GetResultSize() const { return ResultSize; }
 
 	FD3D12CommandContext& GetOwningContext() { check(OwningContext); return *OwningContext; }
 	FD3D12CLSyncPoint GetSyncPoint() { return SyncPoint; }
 
 private:
-    uint32 GetNextElement(uint32 InElement);  // Get the next element, after the specified element. Handles overflow.
-    uint32 GetPreviousElement(uint32 InElement);  // Get the previous element, before the specified element. Handles underflow.
-    bool IsHeapFull();
-    bool IsHeapEmpty() const { return ActiveAllocatedElementCount == 0; }
+	uint32 GetNextElement(uint32 InElement);  // Get the next element, after the specified element. Handles overflow.
+	uint32 GetPreviousElement(uint32 InElement);  // Get the previous element, before the specified element. Handles underflow.
+	bool IsHeapFull();
+	bool IsHeapEmpty() const { return ActiveAllocatedElementCount == 0; }
 
-    uint32 GetNextBatchElement(uint32 InBatchElement);
-    uint32 GetPreviousBatchElement(uint32 InBatchElement);
+	uint32 GetNextBatchElement(uint32 InBatchElement);
+	uint32 GetPreviousBatchElement(uint32 InBatchElement);
 
-    uint32 AllocQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType);
-    void CreateQueryHeap();
-    void CreateResultBuffer();
+	uint32 AllocQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType);
+	void CreateQueryHeap();
+	void CreateResultBuffer();
 
-    uint64 GetResultBufferOffsetForElement(uint32 InElement) const { return ResultSize * InElement; };
+	uint64 GetResultBufferOffsetForElement(uint32 InElement) const { return ResultSize * InElement; };
 
 private:
-    QueryBatch CurrentQueryBatch;                       // The current recording batch.
+	QueryBatch CurrentQueryBatch;                       // The current recording batch.
 
-    TArray<QueryBatch> ActiveQueryBatches;              // List of active query batches. The data for these is in use.
+	TArray<QueryBatch> ActiveQueryBatches;              // List of active query batches. The data for these is in use.
 
-    static const uint32 MAX_ACTIVE_BATCHES = 5;         // The max number of query batches that will be held.
-    uint32 LastBatch;                                   // The index of the newest batch.
+	static const uint32 MAX_ACTIVE_BATCHES = 5;         // The max number of query batches that will be held.
+	uint32 LastBatch;                                   // The index of the newest batch.
 
-    uint32 HeadActiveElement;                   // The oldest element that is in use (Active). The data for this element is being used.
-    uint32 TailActiveElement;                   // The most recenet element that is in use (Active). The data for this element is being used.
-    uint32 ActiveAllocatedElementCount;         // The number of elements that are in use (Active). Between the head and the tail.
+	uint32 HeadActiveElement;                   // The oldest element that is in use (Active). The data for this element is being used.
+	uint32 TailActiveElement;                   // The most recenet element that is in use (Active). The data for this element is being used.
+	uint32 ActiveAllocatedElementCount;         // The number of elements that are in use (Active). Between the head and the tail.
 
-    uint32 LastAllocatedElement;                // The last element that was allocated for BeginQuery
-    uint32 ResultSize;                          // The byte size of a result for a single query
-    D3D12_QUERY_HEAP_DESC QueryHeapDesc;        // The description of the current query heap
-    D3D12_QUERY_TYPE QueryType;
-    TRefCountPtr<ID3D12QueryHeap> QueryHeap;    // The query heap where all elements reside
-    TRefCountPtr<FD3D12Resource> ResultBuffer;  // The buffer where all query results are stored
+	uint32 LastAllocatedElement;                // The last element that was allocated for BeginQuery
+	uint32 ResultSize;                          // The byte size of a result for a single query
+	D3D12_QUERY_HEAP_DESC QueryHeapDesc;        // The description of the current query heap
+	D3D12_QUERY_TYPE QueryType;
+	TRefCountPtr<ID3D12QueryHeap> QueryHeap;    // The query heap where all elements reside
+	TRefCountPtr<FD3D12Resource> ResultBuffer;  // The buffer where all query results are stored
 	FD3D12CommandContext* OwningContext;		// The context containing the queries
 	FD3D12CLSyncPoint SyncPoint;				// The actual command list to which the queries were written
-    void* pResultData;
+	void* pResultData;
 };
 
 // This class has multiple inheritance but really FGPUTiming is a static class
@@ -275,9 +281,9 @@ public:
 	 */
 	FD3D12BufferedGPUTiming(class FD3D12Device* InParent, int32 BufferSize);
 
-    FD3D12BufferedGPUTiming()
-    {
-    }
+	FD3D12BufferedGPUTiming()
+	{
+	}
 
 	/**
 	 * Start a GPU timing measurement.
@@ -332,8 +338,8 @@ private:
 	uint64*							EndTimestampQueryHeapBufferData;
 	/** Whether we are currently timing the GPU: between StartTiming() and EndTiming(). */
 	bool						bIsTiming;
-    /** Whether stable power state is currently enabled */
-    bool                        bStablePowerState;
+	/** Whether stable power state is currently enabled */
+	bool                        bStablePowerState;
 };
 
 /** A single perf event node, which tracks information about a appBeginDrawEvent/appEndDrawEvent range. */
@@ -342,7 +348,7 @@ class FD3D12EventNode : public FGPUProfilerEventNode, public FD3D12DeviceChild
 public:
 	FD3D12EventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent, class FD3D12Device* InParentDevice) :
 		FGPUProfilerEventNode(InName, InParent),
-        Timing(InParentDevice, 1)
+		Timing(InParentDevice, 1)
 	{
 		// Initialize Buffered timestamp queries 
 		Timing.InitDynamicRHI();
@@ -379,7 +385,7 @@ public:
 
 	FD3D12EventNodeFrame(class FD3D12Device* InParent) :
 		FGPUProfilerEventNodeFrame(),
-        RootEventTiming(InParent, 1)
+		RootEventTiming(InParent, 1)
 	{
 		RootEventTiming.InitDynamicRHI();
 	}
@@ -418,25 +424,25 @@ namespace D3D12RHI
 		/** GPU hitch profile histories */
 		TIndirectArray<FD3D12EventNodeFrame> GPUHitchEventNodeFrames;
 
-        FD3DGPUProfiler()
-        {}
+		FD3DGPUProfiler()
+		{}
 
 		//FD3DGPUProfiler(class FD3D12Device* InParent) :
 		//	FGPUProfiler(),
-        //    FrameTiming(InParent, 4),
-        //    FD3D12DeviceChild(InParent)
+		//    FrameTiming(InParent, 4),
+		//    FD3D12DeviceChild(InParent)
 		//{
 		//	// Initialize Buffered timestamp queries 
 		//	FrameTiming.InitResource();
 		//}
 
-        void Init(class FD3D12Device* InParent)
-        {
-            Parent = InParent;
-            FrameTiming = FD3D12BufferedGPUTiming(InParent, 4);
-            // Initialize Buffered timestamp queries 
-            FrameTiming.InitResource();
-        }
+		void Init(class FD3D12Device* InParent)
+		{
+			Parent = InParent;
+			FrameTiming = FD3D12BufferedGPUTiming(InParent, 4);
+			// Initialize Buffered timestamp queries 
+			FrameTiming.InitResource();
+		}
 
 		virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
 		{
@@ -526,7 +532,7 @@ public:
 	// Close the D3D command list and execute it.  Optionally wait for the GPU to finish. Returns the handle to the command list so you can wait for it later.
 	FD3D12CommandListHandle FlushCommands(bool WaitForCompletion = false);
 
-	void Finish (TArray<FD3D12CommandListHandle>& CommandLists);
+	void Finish(TArray<FD3D12CommandListHandle>& CommandLists);
 
 	void ClearState();
 	void ConditionalClearShaderResource(FD3D12ResourceLocation* Resource);
@@ -645,16 +651,16 @@ public:
 	void InitConstantBuffers();
 
 	TArray<ID3D12DescriptorHeap*> DescriptorHeaps;
-	void SetDescriptorHeaps( TArray<ID3D12DescriptorHeap*>& InHeaps )
-    { 
-        DescriptorHeaps = InHeaps;
+	void SetDescriptorHeaps(TArray<ID3D12DescriptorHeap*>& InHeaps)
+	{
+		DescriptorHeaps = InHeaps;
 
-        // Need to set the descriptor heaps on the underlying command list because they can change mid command list
-        if (CommandListHandle != nullptr)
-        {
+		// Need to set the descriptor heaps on the underlying command list because they can change mid command list
+		if (CommandListHandle != nullptr)
+		{
 			CommandListHandle->SetDescriptorHeaps(DescriptorHeaps.Num(), DescriptorHeaps.GetData());
-        }
-    }
+		}
+	}
 
 	/** needs to be called before each draw call */
 	virtual void CommitNonComputeShaderConstants();
@@ -768,7 +774,7 @@ public:
 	virtual void RHIPopEvent() final override;
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) final override;
 	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) override;
-	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) override;	
+	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) override;
 	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) override;
 
 	virtual void RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear);
@@ -776,22 +782,22 @@ public:
 
 struct FD3D12Adapter
 {
-    /** -1 if not supported or FindAdpater() wasn't called. Ideally we would store a pointer to IDXGIAdapter but it's unlikely the adpaters change during engine init. */
-    int32 AdapterIndex;
-    /** The maximum D3D11 feature level supported. 0 if not supported or FindAdpater() wasn't called */
-    D3D_FEATURE_LEVEL MaxSupportedFeatureLevel;
+	/** -1 if not supported or FindAdpater() wasn't called. Ideally we would store a pointer to IDXGIAdapter but it's unlikely the adpaters change during engine init. */
+	int32 AdapterIndex;
+	/** The maximum D3D11 feature level supported. 0 if not supported or FindAdpater() wasn't called */
+	D3D_FEATURE_LEVEL MaxSupportedFeatureLevel;
 
-    // constructor
-    FD3D12Adapter(int32 InAdapterIndex = -1, D3D_FEATURE_LEVEL InMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0)
-        : AdapterIndex(InAdapterIndex)
-        , MaxSupportedFeatureLevel(InMaxSupportedFeatureLevel)
-    {
-    }
+	// constructor
+	FD3D12Adapter(int32 InAdapterIndex = -1, D3D_FEATURE_LEVEL InMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0)
+		: AdapterIndex(InAdapterIndex)
+		, MaxSupportedFeatureLevel(InMaxSupportedFeatureLevel)
+	{
+	}
 
-    bool IsValid() const
-    {
-        return MaxSupportedFeatureLevel != (D3D_FEATURE_LEVEL)0 && AdapterIndex >= 0;
-    }
+	bool IsValid() const
+	{
+		return MaxSupportedFeatureLevel != (D3D_FEATURE_LEVEL)0 && AdapterIndex >= 0;
+	}
 };
 
 class FD3D12DynamicRHI;
@@ -803,86 +809,86 @@ class FD3D12Device
 {
 
 private:
-    FD3D12Adapter               DeviceAdapter;
-    DXGI_ADAPTER_DESC           AdapterDesc;
-    TRefCountPtr<IDXGIAdapter3> DxgiAdapter3;
-    TRefCountPtr<IDXGIFactory4> DXGIFactory;
-    TRefCountPtr<ID3D12Device>  Direct3DDevice;
-    FD3D12DynamicRHI*           OwningRHI;
+	FD3D12Adapter               DeviceAdapter;
+	DXGI_ADAPTER_DESC           AdapterDesc;
+	TRefCountPtr<IDXGIAdapter3> DxgiAdapter3;
+	TRefCountPtr<IDXGIFactory4> DXGIFactory;
+	TRefCountPtr<ID3D12Device>  Direct3DDevice;
+	FD3D12DynamicRHI*           OwningRHI;
 	D3D12_RESOURCE_HEAP_TIER    ResourceHeapTier;
 	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
 
-    /** True if the device being used has been removed. */
-    bool bDeviceRemoved;
+	/** True if the device being used has been removed. */
+	bool bDeviceRemoved;
 
 public:
 
-    FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter);
+	FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter);
 
-    /** If it hasn't been initialized yet, initializes the D3D device. */
-    virtual void InitD3DDevice();
+	/** If it hasn't been initialized yet, initializes the D3D device. */
+	virtual void InitD3DDevice();
 
-    void CreateCommandContexts();
+	void CreateCommandContexts();
 
-    /**
-    * Cleanup the D3D device.
-    * This function must be called from the main game thread.
-    */
-    virtual void CleanupD3DDevice();
+	/**
+	* Cleanup the D3D device.
+	* This function must be called from the main game thread.
+	*/
+	virtual void CleanupD3DDevice();
 
-    /**
-    * Populates a D3D query's data buffer.
-    * @param Query - The occlusion query to read data from.
-    * @param bWait - If true, it will wait for the query to finish.
-    * @return true if the query finished.
-    */
-    bool GetQueryData(FD3D12OcclusionQuery& Query, bool bWait);
+	/**
+	* Populates a D3D query's data buffer.
+	* @param Query - The occlusion query to read data from.
+	* @param bWait - If true, it will wait for the query to finish.
+	* @return true if the query finished.
+	*/
+	bool GetQueryData(FD3D12OcclusionQuery& Query, bool bWait);
 
-    FSamplerStateRHIRef CreateSamplerState(const FSamplerStateInitializerRHI& Initializer);
+	FSamplerStateRHIRef CreateSamplerState(const FSamplerStateInitializerRHI& Initializer);
 
-    inline ID3D12Device*                GetDevice()                                 { return Direct3DDevice; }
-    inline uint32                       GetAdapterIndex()                           { return DeviceAdapter.AdapterIndex; }
-    inline D3D_FEATURE_LEVEL            GetFeatureLevel()                           { return DeviceAdapter.MaxSupportedFeatureLevel; }
-    inline DXGI_ADAPTER_DESC*           GetD3DAdapterDesc()                         { return &AdapterDesc; }
-    inline void                         SetDeviceRemoved(bool value)                { bDeviceRemoved = value; }
-    inline bool                         IsDeviceRemoved()                           { return bDeviceRemoved; }
-    inline FD3D12DynamicRHI*            GetOwningRHI()                              { return OwningRHI; }
-    inline void                         SetAdapter3(IDXGIAdapter3* Adapter3)        { DxgiAdapter3 = Adapter3; }
-    inline IDXGIAdapter3*               GetAdapter3()                               { return DxgiAdapter3; }
+	inline ID3D12Device*                GetDevice() { return Direct3DDevice; }
+	inline uint32                       GetAdapterIndex() { return DeviceAdapter.AdapterIndex; }
+	inline D3D_FEATURE_LEVEL            GetFeatureLevel() { return DeviceAdapter.MaxSupportedFeatureLevel; }
+	inline DXGI_ADAPTER_DESC*           GetD3DAdapterDesc() { return &AdapterDesc; }
+	inline void                         SetDeviceRemoved(bool value) { bDeviceRemoved = value; }
+	inline bool                         IsDeviceRemoved() { return bDeviceRemoved; }
+	inline FD3D12DynamicRHI*            GetOwningRHI() { return OwningRHI; }
+	inline void                         SetAdapter3(IDXGIAdapter3* Adapter3) { DxgiAdapter3 = Adapter3; }
+	inline IDXGIAdapter3*               GetAdapter3() { return DxgiAdapter3; }
 
-    inline TArray<FD3D12Viewport*>&     GetViewports()                              { return Viewports; }
-    inline FD3D12Viewport*              GetDrawingViewport()                        { return DrawingViewport; }
-    inline void                         SetDrawingViewport(FD3D12Viewport* InViewport)  { DrawingViewport = InViewport; }
+	inline TArray<FD3D12Viewport*>&     GetViewports() { return Viewports; }
+	inline FD3D12Viewport*              GetDrawingViewport() { return DrawingViewport; }
+	inline void                         SetDrawingViewport(FD3D12Viewport* InViewport) { DrawingViewport = InViewport; }
 
-    inline FD3D12PipelineStateCache&    GetPSOCache()                               { return PipelineStateCache; }
-    inline ID3D12CommandSignature*      GetDrawIndirectCommandSignature()           { return DrawIndirectCommandSignature; }
-    inline ID3D12CommandSignature*      GetDrawIndexedIndirectCommandSignature()    { return DrawIndexedIndirectCommandSignature; }
-    inline ID3D12CommandSignature*      GetDispatchIndirectCommandSignature()       { return DispatchIndirectCommandSignature; }
-    inline FD3D12QueryHeap*             GetQueryHeap()                              { return &OcclusionQueryHeap; }
+	inline FD3D12PipelineStateCache&    GetPSOCache() { return PipelineStateCache; }
+	inline ID3D12CommandSignature*      GetDrawIndirectCommandSignature() { return DrawIndirectCommandSignature; }
+	inline ID3D12CommandSignature*      GetDrawIndexedIndirectCommandSignature() { return DrawIndexedIndirectCommandSignature; }
+	inline ID3D12CommandSignature*      GetDispatchIndirectCommandSignature() { return DispatchIndirectCommandSignature; }
+	inline FD3D12QueryHeap*             GetQueryHeap() { return &OcclusionQueryHeap; }
 
-	TRefCountPtr<ID3D12Resource>		GetCounterUploadHeap()						{ return CounterUploadHeap; }
-	uint32&								GetCounterUploadHeapIndex()					{ return CounterUploadHeapIndex; }
-	void*								GetCounterUploadHeapData()					{ return CounterUploadHeapData; }
+	TRefCountPtr<ID3D12Resource>		GetCounterUploadHeap() { return CounterUploadHeap; }
+	uint32&								GetCounterUploadHeapIndex() { return CounterUploadHeapIndex; }
+	void*								GetCounterUploadHeapData() { return CounterUploadHeapData; }
 
-    template <typename TViewDesc> FDescriptorHeapManager& GetViewDescriptorAllocator();
-    template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_SHADER_RESOURCE_VIEW_DESC>()    { return SRVAllocator; }
-    template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>()      { return RTVAllocator; }
-    template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>()      { return DSVAllocator; }
-    template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_UNORDERED_ACCESS_VIEW_DESC>()   { return UAVAllocator; }
-    template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_CONSTANT_BUFFER_VIEW_DESC>()    { return CBVAllocator; }
+	template <typename TViewDesc> FDescriptorHeapManager& GetViewDescriptorAllocator();
+	template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_SHADER_RESOURCE_VIEW_DESC>() { return SRVAllocator; }
+	template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_RENDER_TARGET_VIEW_DESC>() { return RTVAllocator; }
+	template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_DEPTH_STENCIL_VIEW_DESC>() { return DSVAllocator; }
+	template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_UNORDERED_ACCESS_VIEW_DESC>() { return UAVAllocator; }
+	template<> FDescriptorHeapManager& GetViewDescriptorAllocator<D3D12_CONSTANT_BUFFER_VIEW_DESC>() { return CBVAllocator; }
 
-    inline FDescriptorHeapManager&          GetSamplerDescriptorAllocator()                { return SamplerAllocator; }
-    inline FD3D12CommandListManager&        GetCommandListManager()                        { return CommandListManager; }
-    inline FD3D12CommandListManager&        GetCopyCommandListManager()                    { return CopyCommandListManager; }
-    inline FD3D12CommandAllocatorManager&   GetTextureStreamingCommandAllocatorManager()   { return TextureStreamingCommandAllocatorManager; }
-    inline FD3D12ResourceHelper&            GetResourceHelper()                            { return ResourceHelper; }
-    inline FD3D12DeferredDeletionQueue&     GetDeferredDeletionQueue()                     { return DeferredDeletionQueue; }
-    inline FD3D12DefaultBufferAllocator&    GetDefaultBufferAllocator()                    { return DefaultBufferAllocator; }
+	inline FDescriptorHeapManager&          GetSamplerDescriptorAllocator() { return SamplerAllocator; }
+	inline FD3D12CommandListManager&        GetCommandListManager() { return CommandListManager; }
+	inline FD3D12CommandListManager&        GetCopyCommandListManager() { return CopyCommandListManager; }
+	inline FD3D12CommandAllocatorManager&   GetTextureStreamingCommandAllocatorManager() { return TextureStreamingCommandAllocatorManager; }
+	inline FD3D12ResourceHelper&            GetResourceHelper() { return ResourceHelper; }
+	inline FD3D12DeferredDeletionQueue&     GetDeferredDeletionQueue() { return DeferredDeletionQueue; }
+	inline FD3D12DefaultBufferAllocator&    GetDefaultBufferAllocator() { return DefaultBufferAllocator; }
 
 	inline uint32 GetNumContexts() { return CommandContextArray.Num(); }
-	inline FD3D12CommandContext& GetCommandContext(uint32 i = 0) const { return *CommandContextArray[i];	}
+	inline FD3D12CommandContext& GetCommandContext(uint32 i = 0) const { return *CommandContextArray[i]; }
 
-	inline FD3D12CommandContext* ObtainCommandContext() { 
+	inline FD3D12CommandContext* ObtainCommandContext() {
 		FScopeLock Lock(&FreeContextsLock);
 		return FreeCommandContexts.Pop();
 	}
@@ -896,82 +902,82 @@ public:
 	}
 
 	inline FD3D12CommandContext& GetDefaultCommandContext() const { return GetCommandContext(0); }
-	inline FD3D12DynamicHeapAllocator& GetDefaultUploadHeapAllocator() { return GetDefaultCommandContext().GetUploadHeapAllocator();	}
+	inline FD3D12DynamicHeapAllocator& GetDefaultUploadHeapAllocator() { return GetDefaultCommandContext().GetUploadHeapAllocator(); }
 
 	inline D3D12_RESOURCE_HEAP_TIER    GetResourceHeapTier() { return ResourceHeapTier; }
 	inline D3D12_RESOURCE_BINDING_TIER GetResourceBindingTier() { return ResourceBindingTier; }
 
 	TArray<FD3D12CommandListHandle> PendingCommandLists;
-    uint32 PendingCommandListsTotalWorkCommands;
+	uint32 PendingCommandListsTotalWorkCommands;
 
 protected:
 
 
-    /** A pool of command lists we can cycle through for the global D3D device */
-    FD3D12CommandListManager CommandListManager;
-    FD3D12CommandListManager CopyCommandListManager;
+	/** A pool of command lists we can cycle through for the global D3D device */
+	FD3D12CommandListManager CommandListManager;
+	FD3D12CommandListManager CopyCommandListManager;
 
-    /** A pool of command allocators that texture streaming threads share */
-    FD3D12CommandAllocatorManager TextureStreamingCommandAllocatorManager;
+	/** A pool of command allocators that texture streaming threads share */
+	FD3D12CommandAllocatorManager TextureStreamingCommandAllocatorManager;
 
 	FD3D12RootSignatureManager RootSignatureManager;
 
-    TRefCountPtr<ID3D12CommandSignature> DrawIndirectCommandSignature;
-    TRefCountPtr<ID3D12CommandSignature> DrawIndexedIndirectCommandSignature;
-    TRefCountPtr<ID3D12CommandSignature> DispatchIndirectCommandSignature;
+	TRefCountPtr<ID3D12CommandSignature> DrawIndirectCommandSignature;
+	TRefCountPtr<ID3D12CommandSignature> DrawIndexedIndirectCommandSignature;
+	TRefCountPtr<ID3D12CommandSignature> DispatchIndirectCommandSignature;
 
 	TRefCountPtr<ID3D12Resource> CounterUploadHeap;
 	uint32                       CounterUploadHeapIndex;
 	void*                        CounterUploadHeapData;
 
-    FD3D12PipelineStateCache PipelineStateCache;
+	FD3D12PipelineStateCache PipelineStateCache;
 
-    // Must be before the StateCache so that destructor ordering is valid
-    FDescriptorHeapManager RTVAllocator;
-    FDescriptorHeapManager DSVAllocator;
-    FDescriptorHeapManager SRVAllocator;
-    FDescriptorHeapManager UAVAllocator;
-    FDescriptorHeapManager SamplerAllocator;
-    FDescriptorHeapManager CBVAllocator;
+	// Must be before the StateCache so that destructor ordering is valid
+	FDescriptorHeapManager RTVAllocator;
+	FDescriptorHeapManager DSVAllocator;
+	FDescriptorHeapManager SRVAllocator;
+	FDescriptorHeapManager UAVAllocator;
+	FDescriptorHeapManager SamplerAllocator;
+	FDescriptorHeapManager CBVAllocator;
 
-    /** The resource manager allocates resources and tracks when to release them */
-    FD3D12ResourceHelper ResourceHelper;
+	/** The resource manager allocates resources and tracks when to release them */
+	FD3D12ResourceHelper ResourceHelper;
 
-    FD3D12DeferredDeletionQueue DeferredDeletionQueue;
+	FD3D12DeferredDeletionQueue DeferredDeletionQueue;
 
-    FD3D12QueryHeap OcclusionQueryHeap;
+	FD3D12QueryHeap OcclusionQueryHeap;
 
-    FD3D12DefaultBufferAllocator DefaultBufferAllocator;
+	FD3D12DefaultBufferAllocator DefaultBufferAllocator;
 
 	TArray<FD3D12CommandContext*> CommandContextArray;
 	TArray<FD3D12CommandContext*> FreeCommandContexts;
 	FCriticalSection FreeContextsLock;
 
-    /** A list of all viewport RHIs that have been created. */
-    TArray<FD3D12Viewport*> Viewports;
+	/** A list of all viewport RHIs that have been created. */
+	TArray<FD3D12Viewport*> Viewports;
 
-    /** The viewport which is currently being drawn. */
-    TRefCountPtr<FD3D12Viewport> DrawingViewport;
+	/** The viewport which is currently being drawn. */
+	TRefCountPtr<FD3D12Viewport> DrawingViewport;
 
-    TMap< D3D12_SAMPLER_DESC, TRefCountPtr<FD3D12SamplerState> > SamplerMap;
-    uint32 SamplerID;
+	TMap< D3D12_SAMPLER_DESC, TRefCountPtr<FD3D12SamplerState> > SamplerMap;
+	uint32 SamplerID;
 
-    // set by UpdateMSAASettings(), get by GetMSAAQuality()
-    // [SampleCount] = Quality, 0xffffffff if not supported
-    uint32 AvailableMSAAQualities[DX_MAX_MSAA_COUNT + 1];
+	// set by UpdateMSAASettings(), get by GetMSAAQuality()
+	// [SampleCount] = Quality, 0xffffffff if not supported
+	uint32 AvailableMSAAQualities[DX_MAX_MSAA_COUNT + 1];
 
-    // Creates default root and execute indirect signatures
-    void CreateSignatures();
+	// Creates default root and execute indirect signatures
+	void CreateSignatures();
 
-    // shared code for different D3D11 devices (e.g. PC DirectX11 and XboxOne) called
-    // after device creation and GRHISupportsAsyncTextureCreation was set and before resource init
-    void SetupAfterDeviceCreation();
+	// shared code for different D3D11 devices (e.g. PC DirectX11 and XboxOne) called
+	// after device creation and GRHISupportsAsyncTextureCreation was set and before resource init
+	void SetupAfterDeviceCreation();
 
-    // called by SetupAfterDeviceCreation() when the device gets initialized
+	// called by SetupAfterDeviceCreation() when the device gets initialized
 
-    void UpdateMSAASettings();
+	void UpdateMSAASettings();
 
-    void ReleasePooledUniformBuffers();
+	void ReleasePooledUniformBuffers();
 
 };
 
@@ -990,7 +996,7 @@ public:
 	TMap<FD3D12LockedKey, FD3D12LockedData> OutstandingLocks;
 
 	/** Initialization constructor. */
-    FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter);
+	FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter);
 
 	/** Destructor */
 	virtual ~FD3D12DynamicRHI();
@@ -1000,11 +1006,11 @@ public:
 	virtual void PostInit() override;
 	virtual void Shutdown() override;
 
-    template<typename TRHIType>
-    static FORCEINLINE typename TD3D12ResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
-    {
-        return static_cast<typename TD3D12ResourceTraits<TRHIType>::TConcreteType*>(Resource);
-    }
+	template<typename TRHIType>
+	static FORCEINLINE typename TD3D12ResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
+	{
+		return static_cast<typename TD3D12ResourceTraits<TRHIType>::TConcreteType*>(Resource);
+	}
 
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
@@ -1026,7 +1032,7 @@ public:
 	virtual FVertexBufferRHIRef RHICreateVertexBuffer(uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo) final override;
 	virtual void* RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode) final override;
 	virtual void RHIUnlockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer) final override;
-	virtual void RHICopyVertexBuffer(FVertexBufferRHIParamRef SourceBuffer,FVertexBufferRHIParamRef DestBuffer) final override;
+	virtual void RHICopyVertexBuffer(FVertexBufferRHIParamRef SourceBuffer, FVertexBufferRHIParamRef DestBuffer) final override;
 	virtual FStructuredBufferRHIRef RHICreateStructuredBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo) final override;
 	virtual void* RHILockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode) final override;
 	virtual void RHIUnlockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBuffer) final override;
@@ -1039,7 +1045,7 @@ public:
 	virtual uint64 RHICalcTexture3DPlatformSize(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, uint32& OutAlign) final override;
 	virtual uint64 RHICalcTextureCubePlatformSize(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, uint32& OutAlign) final override;
 	virtual void RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats) final override;
-	virtual bool RHIGetTextureMemoryVisualizeData(FColor* TextureData,int32 SizeX,int32 SizeY,int32 Pitch,int32 PixelSize) final override;
+	virtual bool RHIGetTextureMemoryVisualizeData(FColor* TextureData, int32 SizeX, int32 SizeY, int32 Pitch, int32 PixelSize) final override;
 	virtual FTextureReferenceRHIRef RHICreateTextureReference(FLastRenderTimeContainer* LastRenderTime) final override;
 	virtual FTexture2DRHIRef RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo) final override;
 	virtual FTexture2DRHIRef RHIAsyncCreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, void** InitialMipData, uint32 NumInitialMips) final override;
@@ -1068,11 +1074,11 @@ public:
 	virtual void* RHILockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail) final override;
 	virtual void RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, bool bLockWithinMiptail) final override;
 	virtual void RHIBindDebugLabelName(FTextureRHIParamRef Texture, const TCHAR* Name) final override;
-	virtual void RHIReadSurfaceData(FTextureRHIParamRef Texture,FIntRect Rect,TArray<FColor>& OutData,FReadSurfaceDataFlags InFlags) final override;
-	virtual void RHIMapStagingSurface(FTextureRHIParamRef Texture,void*& OutData,int32& OutWidth,int32& OutHeight) final override;
+	virtual void RHIReadSurfaceData(FTextureRHIParamRef Texture, FIntRect Rect, TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags) final override;
+	virtual void RHIMapStagingSurface(FTextureRHIParamRef Texture, void*& OutData, int32& OutWidth, int32& OutHeight) final override;
 	virtual void RHIUnmapStagingSurface(FTextureRHIParamRef Texture) final override;
-	virtual void RHIReadSurfaceFloatData(FTextureRHIParamRef Texture,FIntRect Rect,TArray<FFloat16Color>& OutData,ECubeFace CubeFace,int32 ArrayIndex,int32 MipIndex) final override;
-	virtual void RHIRead3DSurfaceFloatData(FTextureRHIParamRef Texture,FIntRect Rect,FIntPoint ZMinMax,TArray<FFloat16Color>& OutData) final override;
+	virtual void RHIReadSurfaceFloatData(FTextureRHIParamRef Texture, FIntRect Rect, TArray<FFloat16Color>& OutData, ECubeFace CubeFace, int32 ArrayIndex, int32 MipIndex) final override;
+	virtual void RHIRead3DSurfaceFloatData(FTextureRHIParamRef Texture, FIntRect Rect, FIntPoint ZMinMax, TArray<FFloat16Color>& OutData) final override;
 	virtual FRenderQueryRHIRef RHICreateRenderQuery(ERenderQueryType QueryType) final override;
 	virtual bool RHIGetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, uint64& OutResult, bool bWait) final override;
 	virtual FTexture2DRHIRef RHIGetViewportBackBuffer(FViewportRHIParamRef Viewport) final override;
@@ -1084,8 +1090,8 @@ public:
 	virtual FViewportRHIRef RHICreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat) final override;
 	virtual void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen) final override;
 	virtual void RHITick(float DeltaTime) final override;
-	virtual void RHISetStreamOutTargets(uint32 NumTargets,const FVertexBufferRHIParamRef* VertexBuffers,const uint32* Offsets) final override;
-	virtual void RHIDiscardRenderTargets(bool Depth,bool Stencil,uint32 ColorBitMask) final override;
+	virtual void RHISetStreamOutTargets(uint32 NumTargets, const FVertexBufferRHIParamRef* VertexBuffers, const uint32* Offsets) final override;
+	virtual void RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask) final override;
 	virtual void RHIBlockUntilGPUIdle() final override;
 	virtual void RHISuspendRendering() final override;
 	virtual void RHIResumeRendering() final override;
@@ -1110,11 +1116,11 @@ public:
 		return DXGIFactory;
 	}
 
-    inline void InitD3DDevices()
-    {
+	inline void InitD3DDevices()
+	{
 		MainDevice->InitD3DDevice();
-        PerRHISetup(MainDevice);
-    }
+		PerRHISetup(MainDevice);
+	}
 
 	/** Determine if an two views intersect */
 	template <class LeftT, class RightT>
@@ -1186,7 +1192,7 @@ public:
 			break;
 		}
 	}
-	
+
 	/** Transition a resource's state based on a Depth stencil view's desc flags */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12DepthStencilView* pView)
 	{
@@ -1346,7 +1352,7 @@ public:
 	}
 
 	// Transition subresources from one state to another
-	static inline void ResourceBarrier(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource,D3D12_RESOURCE_BARRIER* BarrierDescs, uint32 numBarriers)
+	static inline void ResourceBarrier(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_BARRIER* BarrierDescs, uint32 numBarriers)
 	{
 #if SUPPORTS_MEMORY_RESIDENCY
 		pResource->UpdateResidency();
@@ -1355,7 +1361,7 @@ public:
 		check(numBarriers > 0);
 
 #if DEBUG_RESOURCE_STATES
-		if(pResource->RequiresResourceStateTracking())
+		if (pResource->RequiresResourceStateTracking())
 		{
 			LogResourceBarriers(numBarriers, BarrierDescs, hCommandList.CommandList());
 		}
@@ -1375,7 +1381,7 @@ public:
 		check(IsTransitionNeeded(before, after));
 
 		// Fill out the desc
-		D3D12_RESOURCE_BARRIER desc = {};
+		D3D12_RESOURCE_BARRIER desc ={};
 		desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		desc.Transition.pResource = pResource->GetResource();
 		desc.Transition.StateBefore = before;
@@ -1388,7 +1394,7 @@ public:
 			LogResourceBarriers(1, &desc, hCommandList.CommandList());
 		}
 #endif
-				
+
 		hCommandList.GetCurrentOwningContext()->numBarriers++;
 		hCommandList->ResourceBarrier(1, &desc);
 	};
@@ -1404,7 +1410,7 @@ public:
 			// Slow path. Want to transition the entire resource (with multiple subresources). But they aren't in the same state.
 
 			// Partially fill out the desc
-			D3D12_RESOURCE_BARRIER desc = {};
+			D3D12_RESOURCE_BARRIER desc ={};
 			desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			desc.Transition.pResource = pResource->GetResource();
 			desc.Transition.StateAfter = after;
@@ -1412,7 +1418,7 @@ public:
 #if SUPPORTS_MEMORY_RESIDENCY
 			pResource->UpdateResidency();
 #endif
-			
+
 			D3D12_RESOURCE_BARRIER* descs = hCommandList.GetResourceBarrierScratchSpace();
 			uint32 numBarriersNeeded = 0;
 			const uint8 SubresourceCount = pResource->GetSubresourceCount();
@@ -1500,7 +1506,7 @@ public:
 			// Either way, we'll need to loop over each subresource in the view...
 
 			// Partially fill out the desc
-			D3D12_RESOURCE_BARRIER desc = {};
+			D3D12_RESOURCE_BARRIER desc ={};
 			desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			desc.Transition.pResource = pResource->GetResource();
 			desc.Transition.StateAfter = after;
@@ -1508,6 +1514,7 @@ public:
 #if SUPPORTS_MEMORY_RESIDENCY
 			pResource->UpdateResidency();
 #endif
+			bool bWholeResourceWasTransitionedToSameState = bIsWholeResource;
 			D3D12_RESOURCE_BARRIER* descs = hCommandList.GetResourceBarrierScratchSpace();
 			uint32 numBarriersNeeded = 0;
 			for (CViewSubresourceSubset::CViewSubresourceIterator it = subresourceSubset.begin(); it != subresourceSubset.end(); ++it)
@@ -1533,6 +1540,14 @@ public:
 
 						ResourceState.SetSubresourceState(SubresourceIndex, after);
 					}
+					else
+					{
+						// Didn't need to transition the subresource.
+						if (before != after)
+						{
+							bWholeResourceWasTransitionedToSameState = false;
+						}
+					}
 				}
 			}
 
@@ -1542,8 +1557,11 @@ public:
 			}
 
 			// If we just transtioned every subresource to the same state, lets update it's tracking so it's on a per-resource level
-			if (bIsWholeResource)
+			if (bWholeResourceWasTransitionedToSameState)
 			{
+				// Sanity check to make sure all subresources are really in the 'after' state
+				check(ResourceState.CheckResourceState(after));
+
 				ResourceState.SetResourceState(after);
 			}
 		}
@@ -1570,7 +1588,7 @@ public:
 #if ENABLE_PLACED_RESOURCES
 		TRefCountPtr<ID3D12Heap> pHeap;
 		D3D12_RESOURCE_ALLOCATION_INFO AllocationInfo = pD3DDevice->GetResourceAllocationInfo(0, 1, &Desc);
-		D3D12_HEAP_DESC HeapDesc = {};
+		D3D12_HEAP_DESC HeapDesc ={};
 		HeapDesc.SizeInBytes = AllocationInfo.SizeInBytes;
 		HeapDesc.Alignment = AllocationInfo.Alignment;
 		HeapDesc.Properties = HeapProps;
@@ -1671,74 +1689,74 @@ public:
 	virtual bool HandleSpecialUnlock(uint32 MipIndex, uint32 Flags, void* D3DTextureResource, void* RawTextureMemory) = 0;
 #endif
 
-    inline void RegisterGPUWork(uint32 NumPrimitives = 0, uint32 NumVertices = 0)
-    {
-        GPUProfilingData.RegisterGPUWork(NumPrimitives, NumVertices);
-    }
+	inline void RegisterGPUWork(uint32 NumPrimitives = 0, uint32 NumVertices = 0)
+	{
+		GPUProfilingData.RegisterGPUWork(NumPrimitives, NumVertices);
+	}
 
     inline void PushGPUEvent(const TCHAR* Name, FColor Color)
     {
         GPUProfilingData.PushEvent(Name, Color);
     }
 
-    inline void PopGPUEvent()
-    {
-        GPUProfilingData.PopEvent();
-    }
+	inline void PopGPUEvent()
+	{
+		GPUProfilingData.PopEvent();
+	}
 
-    inline void IncrementSetShaderTextureCalls(uint32 value = 1)
-    {
-        SetShaderTextureCalls += value;
-    }
+	inline void IncrementSetShaderTextureCalls(uint32 value = 1)
+	{
+		SetShaderTextureCalls += value;
+	}
 
-    inline void IncrementSetShaderTextureCycles(uint32 value)
-    {
-        SetShaderTextureCycles += value;
-    }
+	inline void IncrementSetShaderTextureCycles(uint32 value)
+	{
+		SetShaderTextureCycles += value;
+	}
 
-    inline void IncrementCacheResourceTableCalls(uint32 value = 1)
-    {
-        CacheResourceTableCalls += value;
-    }
+	inline void IncrementCacheResourceTableCalls(uint32 value = 1)
+	{
+		CacheResourceTableCalls += value;
+	}
 
-    inline void IncrementCacheResourceTableCycles(uint32 value)
-    {
-        CacheResourceTableCycles += value;
-    }
+	inline void IncrementCacheResourceTableCycles(uint32 value)
+	{
+		CacheResourceTableCycles += value;
+	}
 
-    inline void IncrementCommitComputeResourceTables(uint32 value = 1)
-    {
-        CommitResourceTableCycles += value;
-    }
+	inline void IncrementCommitComputeResourceTables(uint32 value = 1)
+	{
+		CommitResourceTableCycles += value;
+	}
 
-    inline void AddBoundShaderState(FD3D12BoundShaderState* state)
-    {
-        BoundShaderStateHistory.Add(state);
-    }
+	inline void AddBoundShaderState(FD3D12BoundShaderState* state)
+	{
+		BoundShaderStateHistory.Add(state);
+	}
 
-    inline void IncrementSetTextureInTableCalls(uint32 value = 1)
-    {
-        SetTextureInTableCalls += value;
-    }
+	inline void IncrementSetTextureInTableCalls(uint32 value = 1)
+	{
+		SetTextureInTableCalls += value;
+	}
 
-    inline uint32 GetResourceTableFrameCounter() { return ResourceTableFrameCounter; }
+	inline uint32 GetResourceTableFrameCounter() { return ResourceTableFrameCounter; }
 
-    /** Consumes about 100ms of GPU time (depending on resolution and GPU), useful for making sure we're not CPU bound when GPU profiling. */
-    void IssueLongGPUTask();
+	/** Consumes about 100ms of GPU time (depending on resolution and GPU), useful for making sure we're not CPU bound when GPU profiling. */
+	void IssueLongGPUTask();
 
 	void ResetViewportFrameCounter() { ViewportFrameCounter = 0; }
 
 private:
-    inline void PerRHISetup(FD3D12Device* MainDevice);
+	inline void PerRHISetup(FD3D12Device* MainDevice);
 
 	/** The global D3D interface. */
 	TRefCountPtr<IDXGIFactory4> DXGIFactory;
 
-    FD3D12Device* MainDevice;
-    FD3D12Adapter MainAdapter;
+	FD3D12Device* MainDevice;
+	FD3D12Adapter MainAdapter;
 
-    /** The feature level of the device. */
-    D3D_FEATURE_LEVEL FeatureLevel;
+	/** The feature level of the device. */
+	D3D_FEATURE_LEVEL FeatureLevel;
 
 	/** A buffer in system memory containing all zeroes of the specified size. */
 	void* ZeroBuffer;
@@ -1803,11 +1821,11 @@ private:
 
 	void SetupRecursiveResources();
 
-    // This should only be called by Dynamic RHI member functions
-    inline FD3D12Device* GetRHIDevice() const
-    {
+	// This should only be called by Dynamic RHI member functions
+	inline FD3D12Device* GetRHIDevice() const
+	{
 		return MainDevice;
-    }
+	}
 };
 
 inline bool FD3D12CommandContext::IsDefaultContext() const
@@ -2120,7 +2138,7 @@ public:
 
 
 	// All resources in ESRAM must be 64KiB aligned
-	
+
 	// @param InSize >0
 	FRange AllocRange(uint32 InSize)
 	{
@@ -2316,6 +2334,3 @@ public:
 		}
 	}
 };
-
-
-#endif

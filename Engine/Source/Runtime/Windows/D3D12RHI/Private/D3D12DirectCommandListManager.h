@@ -103,10 +103,10 @@ public:
 		return D3DCommandQueue->GetTimestampFrequency(Frequency);
 	}
 
-    inline ID3D12CommandQueue* GetD3DCommandQueue()
-    {
-        return D3DCommandQueue.GetReference();
-    }
+	inline ID3D12CommandQueue* GetD3DCommandQueue()
+	{
+		return D3DCommandQueue.GetReference();
+	}
 
 	inline FD3D12Fence& GetFence(EFenceType FenceType)
 	{
@@ -124,13 +124,13 @@ private:
 	TRefCountPtr<ID3D12CommandQueue>		D3DCommandQueue;
 
 	FThreadsafeQueue<FD3D12CommandListHandle> ReadyLists;
-	
+
 	// Command allocators used exclusively for resource barrier command lists.
 	FD3D12CommandAllocatorManager ResourceBarrierCommandAllocatorManager;
 	FD3D12CommandAllocator* ResourceBarrierCommandAllocator;
 
 	FD3D12Fence Fences[FT_NumTypes];
-	
+
 #if WINVER >= 0x0600 // Interlock...64 functions are only available from Vista onwards
 	int64									NumCommandListsAllocated;
 #else

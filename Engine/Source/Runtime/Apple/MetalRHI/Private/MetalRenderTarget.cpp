@@ -435,7 +435,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 	const uint32 SizeY = Rect.Height();
 	OutData.Empty();
 	OutData.AddUninitialized(SizeX * SizeY);
-
+	
 	FColor* OutDataPtr = OutData.GetData();
 	MTLRegion Region = MTLRegionMake2D(Rect.Min.X, Rect.Min.Y, SizeX, SizeY);
     
@@ -519,7 +519,6 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		uint32 BytesPerPixel = (Surface->PixelFormat != PF_DepthStencil || !InFlags.GetOutputStencil()) ? GPixelFormats[Surface->PixelFormat].BlockBytes : 1;
 		const uint32 Stride = BytesPerPixel * SizeX;
 		const uint32 BytesPerImage = Stride * SizeY;
-
 		FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), BytesPerImage, MTLStorageModeShared));
 		{
 			// Synchronise the texture with the CPU

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Resources.h: D3D resource RHI definitions.
@@ -16,7 +16,7 @@ typedef FD3D12StateCacheBase FD3D12StateCache;
 class FD3D12PendingResourceBarrier
 {
 public:
-	
+
 	TRefCountPtr<FD3D12Resource> Resource;
 	D3D12_RESOURCE_STATES        State;
 	uint32                       SubResource;
@@ -55,7 +55,7 @@ private:
 	public:
 
 		FD3D12CommandListData(ID3D12Device* Direct3DDevice, D3D12_COMMAND_LIST_TYPE CommandListType, FD3D12CommandAllocator& CommandAllocator, FD3D12CommandListManager* InCommandListManager)
-			: CommandListManager (InCommandListManager)
+			: CommandListManager(InCommandListManager)
 			, CurrentGeneration(1)
 			, LastCompleteGeneration(0)
 			, IsClosed(false)
@@ -68,7 +68,7 @@ private:
 			// Initially start with all lists closed.  We'll open them as we allocate them.
 			Close();
 
-			PendingResourceBarriers.Reserve (256);
+			PendingResourceBarriers.Reserve(256);
 		}
 
 		virtual ~FD3D12CommandListData()
@@ -90,7 +90,7 @@ private:
 		void Reset(FD3D12CommandAllocator& CommandAllocator, ID3D12PipelineState* InitialPSO = nullptr)
 		{
 			VERIFYD3D11RESULT(CommandList->Reset(CommandAllocator.GetCommandAllocator(), InitialPSO));
-			
+
 			CurrentCommandAllocator = &CommandAllocator;
 			IsClosed = false;
 
@@ -205,7 +205,7 @@ private:
 		uint32 AddRef() const
 		{
 			int32 NewValue = NumRefs.Increment();
-			check(NewValue > 0); 
+			check(NewValue > 0);
 			return uint32(NewValue);
 		}
 
@@ -253,9 +253,9 @@ private:
 
 public:
 
-	FD3D12CommandListHandle() : CommandListData (nullptr) {}
+	FD3D12CommandListHandle() : CommandListData(nullptr) {}
 
-	FD3D12CommandListHandle (const FD3D12CommandListHandle& CL) : CommandListData (CL.CommandListData)
+	FD3D12CommandListHandle(const FD3D12CommandListHandle& CL) : CommandListData(CL.CommandListData)
 	{
 		if (CommandListData)
 			CommandListData->AddRef();
@@ -268,7 +268,7 @@ public:
 			delete CommandListData;
 		}
 	}
-	
+
 	FD3D12CommandListHandle& operator = (const FD3D12CommandListHandle* CL)
 	{
 		if (this != CL)
@@ -345,51 +345,51 @@ public:
 
 	ID3D12GraphicsCommandList* operator->() const
 	{
-		check (CommandListData && !CommandListData->IsClosed);
+		check(CommandListData && !CommandListData->IsClosed);
 
-		return CommandListData->CommandList; 
+		return CommandListData->CommandList;
 	}
 
-	void Create (ID3D12Device* Direct3DDevice, D3D12_COMMAND_LIST_TYPE CommandListType, FD3D12CommandAllocator& CommandAllocator, FD3D12CommandListManager* InCommandListManager)
+	void Create(ID3D12Device* Direct3DDevice, D3D12_COMMAND_LIST_TYPE CommandListType, FD3D12CommandAllocator& CommandAllocator, FD3D12CommandListManager* InCommandListManager)
 	{
-		check (!CommandListData);
+		check(!CommandListData);
 
 		CommandListData = new FD3D12CommandListData(Direct3DDevice, CommandListType, CommandAllocator, InCommandListManager);
 
 		CommandListData->AddRef();
 	}
 
-	void Execute (bool WaitForCompletion = false);
+	void Execute(bool WaitForCompletion = false);
 
 	void Close()
 	{
-		check (CommandListData);
+		check(CommandListData);
 		CommandListData->Close();
 	}
 
 	// Reset the command list with a specified command allocator and optional initial state.
 	// Note: Command lists can be reset immediately after they are submitted for execution.
-	void Reset (FD3D12CommandAllocator& CommandAllocator, ID3D12PipelineState* InitialPSO = nullptr)
+	void Reset(FD3D12CommandAllocator& CommandAllocator, ID3D12PipelineState* InitialPSO = nullptr)
 	{
-		check (CommandListData);
+		check(CommandListData);
 		CommandListData->Reset(CommandAllocator, InitialPSO);
 	}
 
 	ID3D12GraphicsCommandList* CommandList() const
 	{
-		check (CommandListData);
+		check(CommandListData);
 		return CommandListData->CommandList.GetReference();
 	}
 
 	uint64 CurrentGeneration() const
 	{
-		check (CommandListData);
+		check(CommandListData);
 		return CommandListData->CurrentGeneration;
 	}
 
 	FD3D12CommandAllocator* CurrentCommandAllocator()
 	{
-		check (CommandListData);
+		check(CommandListData);
 		return CommandListData->CurrentCommandAllocator;
 	}
 
@@ -421,22 +421,22 @@ public:
 	// This is only used for resources that require state tracking.
 	CResourceState& GetResourceState(FD3D12Resource* pResource)
 	{
-		check (CommandListData);
+		check(CommandListData);
 		return CommandListData->TrackedResourceState.GetResourceState(pResource);
 	}
 
-	void AddPendingResourceBarrier (FD3D12Resource* Resource, D3D12_RESOURCE_STATES State, uint32 SubResource)
+	void AddPendingResourceBarrier(FD3D12Resource* Resource, D3D12_RESOURCE_STATES State, uint32 SubResource)
 	{
-		check (CommandListData);
+		check(CommandListData);
 
-		FD3D12PendingResourceBarrier PRB = { Resource, State, SubResource };
+		FD3D12PendingResourceBarrier PRB ={Resource, State, SubResource};
 
-		CommandListData->PendingResourceBarriers.Add (PRB);
+		CommandListData->PendingResourceBarriers.Add(PRB);
 	}
 
 	TArray<FD3D12PendingResourceBarrier>& PendingResourceBarriers()
 	{
-		check (CommandListData);
+		check(CommandListData);
 		return CommandListData->PendingResourceBarriers;
 	}
 
@@ -477,11 +477,11 @@ class FD3D12CLSyncPoint
 {
 public:
 
-	FD3D12CLSyncPoint() : Generation (0) {}
+	FD3D12CLSyncPoint() : Generation(0) {}
 
-	FD3D12CLSyncPoint(FD3D12CommandListHandle& CL) : CommandList (CL), Generation (CL.CommandList() ? CL.CurrentGeneration() : 0) {}
+	FD3D12CLSyncPoint(FD3D12CommandListHandle& CL) : CommandList(CL), Generation(CL.CommandList() ? CL.CurrentGeneration() : 0) {}
 
-	FD3D12CLSyncPoint(const FD3D12CLSyncPoint& SyncPoint) : CommandList (SyncPoint.CommandList), Generation (SyncPoint.Generation) {}
+	FD3D12CLSyncPoint(const FD3D12CLSyncPoint& SyncPoint) : CommandList(SyncPoint.CommandList), Generation(SyncPoint.Generation) {}
 
 	FD3D12CLSyncPoint& operator = (FD3D12CommandListHandle& CL)
 	{
@@ -528,14 +528,14 @@ public:
 	FD3D12RefCount()
 	{
 	}
-	virtual ~FD3D12RefCount() 
-	{ 
+	virtual ~FD3D12RefCount()
+	{
 		check(NumRefs.GetValue() == 0);
 	}
 	uint32 AddRef() const
 	{
 		int32 NewValue = NumRefs.Increment();
-		check(NewValue > 0); 
+		check(NewValue > 0);
 		return uint32(NewValue);
 	}
 	uint32 Release() const
@@ -551,7 +551,7 @@ public:
 	uint32 GetRefCount() const
 	{
 		int32 CurrentValue = NumRefs.GetValue();
-		check(CurrentValue >= 0); 
+		check(CurrentValue >= 0);
 		return uint32(CurrentValue);
 	}
 private:
@@ -564,9 +564,9 @@ struct FD3D12ResidencyHandle
 	static const uint32 INVALID_INDEX = 0x7FFFFFFF;
 
 	FD3D12ResidencyHandle()
-		: LastUpdatedFence (0)
-		, IsResident (1)
-		, Index (INVALID_INDEX)
+		: LastUpdatedFence(0)
+		, IsResident(1)
+		, Index(INVALID_INDEX)
 	{}
 
 	uint32 LastUpdatedFence;
@@ -650,6 +650,7 @@ private:
 	D3D12_RESOURCE_STATES DefaultResourceState;
 	bool bRequiresResourceStateTracking;
 	D3D12_HEAP_TYPE HeapType;
+	FName DebugName;
 
 #if UE_BUILD_DEBUG
 	static int64 TotalResourceCount;
@@ -708,7 +709,7 @@ public:
 	uint16 GetArraySize() const { return (Desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D) ? 1 : Desc.DepthOrArraySize; }
 	uint8 GetPlaneCount() const { return PlaneCount; }
 	uint16 GetSubresourceCount() const { return SubresourceCount; }
-	CResourceState* GetResourceState() 
+	CResourceState* GetResourceState()
 	{
 		// This state is used as the resource's "global" state between command lists. It's only needed for resources that
 		// require state tracking.
@@ -716,6 +717,15 @@ public:
 	}
 	D3D12_RESOURCE_STATES GetDefaultResourceState() const { check(!bRequiresResourceStateTracking); return DefaultResourceState; }
 	bool RequiresResourceStateTracking() const { return bRequiresResourceStateTracking; }
+
+	void SetName(const TCHAR* Name)
+	{
+		DebugName = FName(Name);
+		if (Resource)
+		{
+			VERIFYD3D11RESULT(Resource->SetName(Name));
+		}
+	}
 
 private:
 	void InitalizeResourceState()
@@ -755,7 +765,6 @@ private:
 				DefaultResourceState = (HeapType == D3D12_HEAP_TYPE_READBACK) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
 				bRequiresResourceStateTracking = false;
 				return;
-				
 			}
 		}
 		else
@@ -784,6 +793,7 @@ public:
 		, Offset(0)
 		, Bucket(0)
 		, ResourceHeap(nullptr)
+		, FrameFence(0)
 		, Allocator(nullptr)
 	{
 	}
@@ -793,6 +803,7 @@ public:
 		, Offset(InOffset)
 		, Bucket(InBucket)
 		, ResourceHeap(Resource)
+		, FrameFence(0)
 		, Allocator(InAllocator)
 	{
 	}
@@ -828,7 +839,7 @@ public:
 		, Padding(0)
 		, EffectiveBufferSize(0)
 		, BlockInfo(nullptr)
-        , FD3D12DeviceChild(nullptr)
+		, FD3D12DeviceChild(nullptr)
 	{
 	}
 
@@ -838,16 +849,16 @@ public:
 		, Padding(0)
 		, EffectiveBufferSize(InEffectiveSize)
 		, BlockInfo(nullptr)
-        , FD3D12DeviceChild(InParent)
+		, FD3D12DeviceChild(InParent)
 	{
 	}
 
-    FD3D12ResourceLocation(FD3D12Device* InParent, FD3D12Resource* InResource, uint64 InOffset = 0)
+	FD3D12ResourceLocation(FD3D12Device* InParent, FD3D12Resource* InResource, uint64 InOffset = 0)
 		: Resource(InResource)
 		, Offset(InOffset)
 		, Padding(0)
 		, BlockInfo(nullptr)
-        , FD3D12DeviceChild(InParent)
+		, FD3D12DeviceChild(InParent)
 	{
 		check(nullptr == BlockInfo);
 		BlockInfo = nullptr;
@@ -884,17 +895,21 @@ public:
 			Resource = NewResource;
 			if (OldResource)
 			{
-                if (StateCache != nullptr)
-				    UpdateStateCache(*StateCache);
+				if (StateCache != nullptr)
+				{
+					UpdateStateCache(*StateCache);
+				}
 			}
 		}
 		else
 		{
 			if (OldOffset != Offset)
 			{
-                if (StateCache != nullptr)
-                    UpdateStateCache(*StateCache);
-            }
+				if (StateCache != nullptr)
+				{
+					UpdateStateCache(*StateCache);
+				}
+			}
 		}
 	}
 
@@ -941,7 +956,7 @@ public:
 	void Clear();
 
 	void UpdateStateCache(FD3D12StateCache& StateCache);
-    void UpdateDefaultStateCache();
+	void UpdateDefaultStateCache();
 };
 
 template<typename _Type>
@@ -1013,7 +1028,7 @@ public:
 	}
 
 	TFencedObjectPool(FD3D12Device* InParent) :
-		FD3D12DeviceChild(InParent){};
+		FD3D12DeviceChild(InParent) {};
 };
 
 class FD3D12DeferredDeletionQueue : public FD3D12DeviceChild
@@ -1034,7 +1049,7 @@ public:
 		check(bQueueIsEmpty);
 	}
 
-    FD3D12DeferredDeletionQueue(FD3D12Device* InParent);
+	FD3D12DeferredDeletionQueue(FD3D12Device* InParent);
 };
 
 // Root parameter keys grouped by visibility.
@@ -1112,7 +1127,7 @@ public:
 	ID3D12RootSignature* GetRootSignature() const { return RootSignature.GetReference(); }
 	ID3DBlob* GetRootSignatureBlob() const { return RootSignatureBlob.GetReference(); }
 
-	inline uint32 SamplerRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 SamplerRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		switch (ShaderStage)
 		{
@@ -1128,7 +1143,7 @@ public:
 		}
 	}
 
-	inline uint32 SRVRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 SRVRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		switch (ShaderStage)
 		{
@@ -1144,7 +1159,7 @@ public:
 		}
 	}
 
-	inline uint32 CBVRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 CBVRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		switch (ShaderStage)
 		{
@@ -1160,7 +1175,7 @@ public:
 		}
 	}
 
-	inline uint32 UAVRDTBindSlot(uint32 ShaderStage) const
+	inline uint32 UAVRDTBindSlot(EShaderFrequency ShaderStage) const
 	{
 		check(ShaderStage == SF_Pixel || ShaderStage == SF_Compute);
 		return BindSlotMap[ALL_UAVs];
@@ -1565,16 +1580,16 @@ public:
 	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation;
 
 public:
-    FD3D12BaseShaderResource(FD3D12ResourceLocation *InResourceLocation, FD3D12Device* InParent) :
-        FD3D12DeviceChild(InParent)
+	FD3D12BaseShaderResource(FD3D12ResourceLocation *InResourceLocation, FD3D12Device* InParent) :
+		FD3D12DeviceChild(InParent)
 	{
 		ResourceLocation = InResourceLocation;
 	}
 
 	FD3D12BaseShaderResource(FD3D12Resource *InResource, FD3D12Device* InParent) :
-        FD3D12DeviceChild(InParent)
+		FD3D12DeviceChild(InParent)
 	{
-		ResourceLocation = new FD3D12ResourceLocation(GetParentDevice(),InResource);
+		ResourceLocation = new FD3D12ResourceLocation(GetParentDevice(), InResource);
 	}
 };
 
@@ -1893,10 +1908,10 @@ class FD3D12View;
 
 class CViewSubresourceSubset : public CSubresourceSubset
 {
-	friend class FD3D12View < D3D12_SHADER_RESOURCE_VIEW_DESC > ;
-	friend class FD3D12View < D3D12_RENDER_TARGET_VIEW_DESC > ;
-	friend class FD3D12View < D3D12_DEPTH_STENCIL_VIEW_DESC > ;
-	friend class FD3D12View < D3D12_UNORDERED_ACCESS_VIEW_DESC > ;
+	friend class FD3D12View < D3D12_SHADER_RESOURCE_VIEW_DESC >;
+	friend class FD3D12View < D3D12_RENDER_TARGET_VIEW_DESC >;
+	friend class FD3D12View < D3D12_DEPTH_STENCIL_VIEW_DESC >;
+	friend class FD3D12View < D3D12_UNORDERED_ACCESS_VIEW_DESC >;
 
 public:
 	CViewSubresourceSubset() {}
@@ -1955,7 +1970,7 @@ public:
 		m_ViewArraySize = m_EndArray - m_BeginArray;
 		Reduce();
 	}
-	
+
 	inline CViewSubresourceSubset(const D3D12_UNORDERED_ACCESS_VIEW_DESC& Desc, uint8 MipLevels, uint16 ArraySize, DXGI_FORMAT ResourceFormat, ViewSubresourceSubsetFlags /*Flags*/)
 		: CSubresourceSubset(Desc)
 		, m_MipLevels(MipLevels)
@@ -1971,7 +1986,7 @@ public:
 		m_ViewArraySize = m_EndArray - m_BeginArray;
 		Reduce();
 	}
-	
+
 	inline CViewSubresourceSubset(const D3D12_DEPTH_STENCIL_VIEW_DESC& Desc, uint8 MipLevels, uint16 ArraySize, DXGI_FORMAT ResourceFormat, ViewSubresourceSubsetFlags Flags)
 		: CSubresourceSubset(Desc, ResourceFormat, Flags)
 		, m_MipLevels(MipLevels)
@@ -1982,7 +1997,7 @@ public:
 		m_ViewArraySize = m_EndArray - m_BeginArray;
 		Reduce();
 	}
-	
+
 	inline CViewSubresourceSubset(const D3D12_RENDER_TARGET_VIEW_DESC& Desc, uint8 MipLevels, uint16 ArraySize, DXGI_FORMAT ResourceFormat, ViewSubresourceSubsetFlags /*Flags*/)
 		: CSubresourceSubset(Desc)
 		, m_MipLevels(MipLevels)
@@ -2265,30 +2280,30 @@ protected:
 protected:
 	explicit FD3D12View()
 		: FD3D12ViewGeneric(nullptr)
-        , FD3D12DeviceChild(nullptr)
+		, FD3D12DeviceChild(nullptr)
 	{
 	}
 
 	explicit FD3D12View(FD3D12Device* InParent, const TDesc* InDesc, FD3D12ResourceLocation* InResourceLocation, ViewSubresourceSubsetFlags InFlags)
 		: FD3D12ViewGeneric(InResourceLocation)
-		, ViewSubresourceSubset(*InDesc, 
-			GetResource() ? GetResource()->GetMipLevels() : 0, 
-			GetResource() ? GetResource()->GetArraySize() : 0, 
+		, ViewSubresourceSubset(*InDesc,
+			GetResource() ? GetResource()->GetMipLevels() : 0,
+			GetResource() ? GetResource()->GetArraySize() : 0,
 			GetResource() ? GetResource()->GetDesc().Format : DXGI_FORMAT_UNKNOWN,
 			InFlags)
-        , FD3D12DeviceChild(InParent)
+		, FD3D12DeviceChild(InParent)
 	{
 		Init(InDesc);
 	}
 
 	explicit FD3D12View(FD3D12Device* InParent, const TDesc* InDesc, FD3D12Resource* InResource, ViewSubresourceSubsetFlags InFlags)
 		: FD3D12ViewGeneric(InResource)
-		, ViewSubresourceSubset(*InDesc, 
-			GetResource() ? GetResource()->GetMipLevels() : 0, 
-			GetResource() ? GetResource()->GetArraySize() : 0, 
+		, ViewSubresourceSubset(*InDesc,
+			GetResource() ? GetResource()->GetMipLevels() : 0,
+			GetResource() ? GetResource()->GetArraySize() : 0,
 			GetResource() ? GetResource()->GetDesc().Format : DXGI_FORMAT_UNKNOWN,
 			InFlags)
-        , FD3D12DeviceChild(InParent)
+		, FD3D12DeviceChild(InParent)
 	{
 		Init(InDesc);
 	}
@@ -2322,7 +2337,7 @@ protected:
 	{
 		if (Descriptor.ptr)
 		{
-            FDescriptorHeapManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
+			FDescriptorHeapManager& DescriptorAllocator = GetParentDevice()->GetViewDescriptorAllocator<TDesc>();
 			DescriptorAllocator.FreeHeapSlot(Descriptor, DescriptorHeapIndex);
 			Descriptor.ptr = 0;
 		}
@@ -2367,7 +2382,7 @@ public:
 		}
 
 		check(Descriptor.ptr != 0);
-        (GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
+		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
 			InResource ? InResource->GetResource() : nullptr, &Desc, Descriptor);
 	}
 
@@ -2384,7 +2399,7 @@ public:
 		}
 
 		check(Descriptor.ptr != 0);
-        (GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
+		(GetParentDevice()->GetDevice()->*TCreateViewMap<TDesc>::GetCreate()) (
 			InResource ? InResource->GetResource() : nullptr,
 			InCounterResource ? InCounterResource->GetResource() : nullptr, &Desc, Descriptor);
 	}
@@ -2409,7 +2424,7 @@ class FD3D12ShaderResourceView : public FRHIShaderResourceView, public FD3D12Vie
 	uint32 Stride;
 
 public:
-    FD3D12ShaderResourceView(FD3D12Device* InParent, D3D12_SHADER_RESOURCE_VIEW_DESC* InSRVDesc, FD3D12ResourceLocation* InResourceLocation, uint32 InStride = 1)
+	FD3D12ShaderResourceView(FD3D12Device* InParent, D3D12_SHADER_RESOURCE_VIEW_DESC* InSRVDesc, FD3D12ResourceLocation* InResourceLocation, uint32 InStride = 1)
 		: FD3D12View(InParent, InSRVDesc, InResourceLocation, ViewSubresourceSubsetFlags_None)
 		, SequenceNumber(InterlockedIncrement64(&D3D12ShaderResourceViewSequenceNumber))
 		, bIsBuffer(InSRVDesc->ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
@@ -2435,21 +2450,21 @@ public:
 
 		SequenceNumber = InterlockedIncrement64(&D3D12ShaderResourceViewSequenceNumber);
 
-        // If no descriptor and heap index were provided...
-        if(InDescriptor.ptr == 0)
-        {
+		// If no descriptor and heap index were provided...
+		if (InDescriptor.ptr == 0)
+		{
 			// Create a new view
-            CreateView();
-        }
-        else
-        {
-            // Otherwise use the provided descriptor and index
-            Descriptor.ptr = InDescriptor.ptr;
-            DescriptorHeapIndex = InDescriptorHeapIndex;
-        }
+			CreateView();
+		}
+		else
+		{
+			// Otherwise use the provided descriptor and index
+			Descriptor.ptr = InDescriptor.ptr;
+			DescriptorHeapIndex = InDescriptorHeapIndex;
+		}
 
-        ResourceLocation->UpdateDefaultStateCache();
-    }
+		ResourceLocation->UpdateDefaultStateCache();
+	}
 
 	FORCEINLINE uint64 GetSequenceNumber() { return SequenceNumber; }
 	FORCEINLINE const D3D12_SHADER_RESOURCE_VIEW_DESC& GetDesc()
@@ -2472,13 +2487,13 @@ public:
 	{
 		CreateViewWithCounter(nullptr, CounterResource);
 	}
-	
+
 };
 
 class FD3D12RenderTargetView : public FD3D12View<D3D12_RENDER_TARGET_VIEW_DESC>, public FRHIResource
 {
 public:
-    FD3D12RenderTargetView(FD3D12Device* InParent, D3D12_RENDER_TARGET_VIEW_DESC* InRTVDesc, FD3D12Resource* InResource)
+	FD3D12RenderTargetView(FD3D12Device* InParent, D3D12_RENDER_TARGET_VIEW_DESC* InRTVDesc, FD3D12Resource* InResource)
 		: FD3D12View(InParent, InRTVDesc, InResource, ViewSubresourceSubsetFlags_None)
 	{
 		CreateView();
@@ -2493,7 +2508,7 @@ class FD3D12DepthStencilView : public FD3D12View<D3D12_DEPTH_STENCIL_VIEW_DESC>,
 	CViewSubresourceSubset StencilOnlyViewSubresourceSubset;
 
 public:
-    FD3D12DepthStencilView(FD3D12Device* InParent, D3D12_DEPTH_STENCIL_VIEW_DESC* InDSVDesc, FD3D12Resource* InResource, bool InHasStencil)
+	FD3D12DepthStencilView(FD3D12Device* InParent, D3D12_DEPTH_STENCIL_VIEW_DESC* InDSVDesc, FD3D12Resource* InResource, bool InHasStencil)
 		: FD3D12View(InParent, InDSVDesc, InResource, ViewSubresourceSubsetFlags_DepthAndStencilDsv)
 		, bHasDepth(true)				// Assume all DSVs have depth bits in their format
 		, bHasStencil(InHasStencil)		// Only some DSVs have stencil bits in their format
@@ -2551,14 +2566,14 @@ class FD3D12TextureBase : public FD3D12BaseShaderResource
 public:
 
 	FD3D12TextureBase(
-	    class FD3D12Device* InParent,
+	class FD3D12Device* InParent,
 		FD3D12Resource* InResource,
 		int32 InRTVArraySize,
 		bool bInCreatedRTVsPerSlice,
 		const TArray<TRefCountPtr<FD3D12RenderTargetView> >& InRenderTargetViews,
 		TRefCountPtr<FD3D12DepthStencilView>* InDepthStencilViews
 		)
-        : FD3D12BaseShaderResource(InResource, InParent)
+		: FD3D12BaseShaderResource(InResource, InParent)
 		, MemorySize(0)
 		, BaseShaderResource(this)
 		, RTVArraySize(InRTVArraySize)
@@ -2695,23 +2710,23 @@ public:
 #endif
 		)
 		: BaseResourceType(
-		InSizeX,
-		InSizeY,
-		InSizeZ,
-		InNumMips,
-		InNumSamples,
-		InFormat,
-		InFlags,
-		InClearValue
-		)
+			InSizeX,
+			InSizeY,
+			InSizeZ,
+			InNumMips,
+			InNumSamples,
+			InFormat,
+			InFlags,
+			InClearValue
+			)
 		, FD3D12TextureBase(
-        InParent,
-		InResource,
-		InRTVArraySize,
-		bInCreatedRTVsPerSlice,
-		InRenderTargetViews,
-		InDepthStencilViews
-		)
+			InParent,
+			InResource,
+			InRTVArraySize,
+			bInCreatedRTVsPerSlice,
+			InRenderTargetViews,
+			InDepthStencilViews
+			)
 		, Flags(InFlags)
 		, bCubemap(bInCubemap)
 		, bPooled(bInPooled)
@@ -2735,12 +2750,12 @@ public:
 
 	// Accessors.
 	FD3D12Resource* GetResource() const { return (FD3D12Resource*)FD3D12TextureBase::GetResource(); }
-	const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& GetReadBackHeapDesc() const 
-	{ 
+	const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& GetReadBackHeapDesc() const
+	{
 		// This should only be called if SetReadBackHeapDesc() was called with actual contents
 		check(ReadBackHeapDesc.Footprint.Width > 0 && ReadBackHeapDesc.Footprint.Height > 0);
-		
-		return ReadBackHeapDesc; 
+
+		return ReadBackHeapDesc;
 	}
 
 	FD3D12CLSyncPoint GetReadBackSyncPoint() const { return ReadBackSyncPoint; }
@@ -2811,15 +2826,15 @@ public:
 		uint32 InFlags,
 		const FClearValueBinding& InClearValue
 		)
-		: FRHITexture3D(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InFlags,InClearValue)
+		: FRHITexture3D(InSizeX, InSizeY, InSizeZ, InNumMips, InFormat, InFlags, InClearValue)
 		, FD3D12TextureBase(
-        InParent,
-		InResource,
-		1,
-		false,
-		InRenderTargetViews,
-		NULL
-		)
+			InParent,
+			InResource,
+			1,
+			false,
+			InRenderTargetViews,
+			NULL
+			)
 	{
 	}
 
@@ -2886,7 +2901,7 @@ class FD3D12TextureReference : public FRHITextureReference, public FD3D12Texture
 public:
 	FD3D12TextureReference(class FD3D12Device* InParent, FLastRenderTimeContainer* LastRenderTime)
 		: FRHITextureReference(LastRenderTime)
-        , FD3D12TextureBase(InParent, NULL, 0, false, TArray<TRefCountPtr<FD3D12RenderTargetView> >(), NULL)
+		, FD3D12TextureBase(InParent, NULL, 0, false, TArray<TRefCountPtr<FD3D12RenderTargetView> >(), NULL)
 	{
 		BaseShaderResource = NULL;
 	}
@@ -2953,11 +2968,11 @@ class FD3D12OcclusionQuery : public FRHIRenderQuery
 public:
 
 	/** The query heap resource. */
-    TRefCountPtr<ID3D12QueryHeap> QueryHeap;
-    uint32 HeapIndex;
+	TRefCountPtr<ID3D12QueryHeap> QueryHeap;
+	uint32 HeapIndex;
 
 	/** CPU-visible buffer to store the query result **/
-    TRefCountPtr<ID3D12Resource> ResultBuffer;
+	TRefCountPtr<ID3D12Resource> ResultBuffer;
 
 	/** The cached query result. */
 	uint64 Result;
@@ -2973,21 +2988,21 @@ public:
 
 	/** Initialization constructor. */
 	FD3D12OcclusionQuery(ID3D12QueryHeap* InQueryHeap, ID3D12Resource* InQueryResultBuffer, ERenderQueryType InQueryType) :
-        QueryHeap(InQueryHeap),
-        ResultBuffer(InQueryResultBuffer),
-        Result(0),
-        Type(InQueryType)
-    {
-        Reset();
-    }
+		QueryHeap(InQueryHeap),
+		ResultBuffer(InQueryResultBuffer),
+		Result(0),
+		Type(InQueryType)
+	{
+		Reset();
+	}
 
-    void Reset()
-    {
-        HeapIndex = -1;
-        bResultIsCached = false;
-        OwningContext = nullptr;
-        OwningCommandList = nullptr;
-    }
+	void Reset()
+	{
+		HeapIndex = -1;
+		bResultIsCached = false;
+		OwningContext = nullptr;
+		OwningCommandList = nullptr;
+	}
 };
 
 /** Updates tracked stats for a buffer. */
@@ -3051,7 +3066,7 @@ public:
 		, LastCachedFrame((uint32)-1)
 		, OfflineHeapIndex(UINT_MAX)
 		, SequenceNumber(InSequenceNumber)
-        , FD3D12DeviceChild(InParent)
+		, FD3D12DeviceChild(InParent)
 	{
 		OfflineDescriptorHandle.ptr = 0;
 	}
@@ -3081,7 +3096,7 @@ public:
 
 	FD3D12IndexBuffer(FD3D12Device* InParent, FD3D12ResourceLocation* InResourceLocation, uint32 InStride, uint32 InSize, uint32 InUsage)
 		: FRHIIndexBuffer(InStride, InSize, InUsage)
-        , FD3D12BaseShaderResource(InResourceLocation, InParent)
+		, FD3D12BaseShaderResource(InResourceLocation, InParent)
 	{}
 
 	virtual ~FD3D12IndexBuffer();
@@ -3106,17 +3121,17 @@ class FD3D12StructuredBuffer : public FRHIStructuredBuffer, public FD3D12BaseSha
 {
 public:
 	TRefCountPtr<FD3D12Resource> Resource;
-   
+
 	FD3D12StructuredBuffer(FD3D12Device* InParent, FD3D12ResourceLocation* InResourceLocation, uint32 InStride, uint32 InSize, uint32 InUsage)
 		: FRHIStructuredBuffer(InStride, InSize, InUsage)
-        , FD3D12BaseShaderResource(InResourceLocation, InParent)
+		, FD3D12BaseShaderResource(InResourceLocation, InParent)
 	{
 		Resource = InResourceLocation->GetResource();
 	}
 
 	FD3D12StructuredBuffer(FD3D12Device* InParent, FD3D12Resource* InResource, uint32 InStride, uint32 InSize, uint32 InUsage)
 		: FRHIStructuredBuffer(InStride, InSize, InUsage)
-        , FD3D12BaseShaderResource(InResource, InParent)
+		, FD3D12BaseShaderResource(InResource, InParent)
 		, Resource(InResource)
 	{}
 
@@ -3166,9 +3181,9 @@ public:
 
 	FD3D12VertexBuffer(FD3D12Device* InParent, FD3D12ResourceLocation* InResourceLocation, uint32 InSize, uint32 InUsage)
 		: FRHIVertexBuffer(InSize, InUsage)
-        , FD3D12BaseShaderResource(InResourceLocation, InParent)
-        , DynamicSRV(nullptr)
-        , SRVPool(InParent)
+		, FD3D12BaseShaderResource(InResourceLocation, InParent)
+		, DynamicSRV(nullptr)
+		, SRVPool(InParent)
 	{
 	}
 
@@ -3240,9 +3255,9 @@ public:
 	void virtual ExpireBlock(FD3D12ResourceBlockInfo* Block) = 0;
 	void virtual ReleaseAllResources() = 0;
 
-    FD3D12ResourceAllocator(FD3D12Device* InParent) :
-        FD3D12DeviceChild(InParent){}
-	virtual ~FD3D12ResourceAllocator(){}
+	FD3D12ResourceAllocator(FD3D12Device* InParent) :
+		FD3D12DeviceChild(InParent) {}
+	virtual ~FD3D12ResourceAllocator() {}
 };
 
 // FD3D12DynamicHeapAllocator
@@ -3256,22 +3271,22 @@ class FD3D12DynamicHeapAllocator : public FD3D12ResourceAllocator
 	static const uint32 BucketShift = 6;
 	static const uint32 NumBuckets = 22; // bucket resource sizes range from 64 to 2^28 
 	FThreadsafeQueue<TRefCountPtr<FD3D12ResourceBlockInfo>> AvailableBlocks[NumBuckets];
-	
+
 	D3D12_HEAP_TYPE HeapType;
 
 	// Fast alloc buffer
-	const uint32 MaxFastAllocBufferSize = 65536 * 16;
+	const uint32 MaxFastAllocBufferSize = 1024 * 1024 * 4;// 4MB
 	FD3D12ResourceLocation* GetNextFastAllocBufferLocation(uint32 Size);
 	TRefCountPtr<FD3D12ResourceLocation> FastAllocBuffer;
 	uint32 NextFastAllocOffset;
 	void* FastAllocData;
 
-    // The currently paired command context.  If none is available (as with async texture loads),
-    // the current command list handle can be provided instead.  The command list handle is the
-    // critical part, but the command context can always return the current list handle.
-    // I.e. you need one but not both of these to be valid
+	// The currently paired command context.  If none is available (as with async texture loads),
+	// the current command list handle can be provided instead.  The command list handle is the
+	// critical part, but the command context can always return the current list handle.
+	// I.e. you need one but not both of these to be valid
 	class FD3D12CommandContext* CurrentCommandContext;
-    FD3D12CommandListHandle CurrentCommandListHandle;
+	FD3D12CommandListHandle CurrentCommandListHandle;
 
 #ifdef UE_BUILD_DEBUG
 	struct
@@ -3285,7 +3300,7 @@ class FD3D12DynamicHeapAllocator : public FD3D12ResourceAllocator
 	} AllocatorStats;
 #endif
 
-    static HRESULT CreateResource(FD3D12DynamicHeapAllocator* Allocator, D3D12_HEAP_TYPE heapType, uint32 size, FD3D12Resource** ppResource, void** ppBaseAddress);
+	static HRESULT CreateResource(FD3D12DynamicHeapAllocator* Allocator, D3D12_HEAP_TYPE heapType, uint32 size, FD3D12Resource** ppResource, void** ppBaseAddress);
 
 public:
 	void CleanupFreeBlocks();
@@ -3293,18 +3308,18 @@ public:
 	FD3D12DynamicHeapAllocator(FD3D12Device* InParent, D3D12_HEAP_TYPE heapType);
 	virtual ~FD3D12DynamicHeapAllocator();
 
-    // These are mutually exclusive calls!
+	// These are mutually exclusive calls!
 	inline void SetCurrentCommandContext(class FD3D12CommandContext* CmdContext)
-    {
-        CurrentCommandContext = CmdContext;
-        check(CurrentCommandListHandle == nullptr);
-    }
+	{
+		CurrentCommandContext = CmdContext;
+		check(CurrentCommandListHandle == nullptr);
+	}
 
-    inline void SetCurrentCommandListHandle(FD3D12CommandListHandle CommandListHandle)
-    {
-        check(CurrentCommandContext == nullptr);
-        CurrentCommandListHandle = CommandListHandle;
-    }
+	inline void SetCurrentCommandListHandle(FD3D12CommandListHandle CommandListHandle)
+	{
+		check(CurrentCommandContext == nullptr);
+		CurrentCommandListHandle = CommandListHandle;
+	}
 
 	// Allocates <size> bytes from the end of an available resource heap.
 	void Alloc(uint32 size, uint32 alignment, FD3D12ResourceBlockInfo** ppBlock);
@@ -3342,7 +3357,7 @@ class FD3D12DefaultBufferPool : public FD3D12ResourceAllocator
 
 public:
 	FD3D12DefaultBufferPool(FD3D12Device* InParent);
-    FD3D12DefaultBufferPool();
+	FD3D12DefaultBufferPool();
 	virtual ~FD3D12DefaultBufferPool();
 
 	// Grab a buffer from the available buffers or create a new buffer if none are available
@@ -3370,60 +3385,60 @@ public:
 	void FreeDefaultBufferPools();
 	void CleanupFreeBlocks();
 
-    FD3D12DefaultBufferAllocator(FD3D12Device* InParent) :
-        FD3D12DeviceChild(InParent)
+	FD3D12DefaultBufferAllocator(FD3D12Device* InParent) :
+		FD3D12DeviceChild(InParent)
 	{
 		for (uint32 i = 0; i < MAX_DEFAULT_POOLS; ++i)
 			DefaultBufferPools[i] = new FD3D12DefaultBufferPool(InParent);
-		}
-	};
+	}
+};
 
 #if SUPPORTS_MEMORY_RESIDENCY
 class FD3D12ResourceResidencyManager : public FD3D12DeviceChild
-	{
+{
 public:
-   
-    const static uint32 MAX_RESOURCES               = 60000;
+
+	const static uint32 MAX_RESOURCES               = 60000;
 	const static uint32 MEMORY_PRESSURE_LEVELS      = 8;
 	const static uint32 STALL_MEMORY_PRESSURE_LEVEL = 7;
-   
-    FD3D12ResourceResidencyManager()
-		: HeadIndex (0)
-		, TailIndex (0)
-    {
-        Resources.AddZeroed (MAX_RESOURCES);
-    }
-   
+
+	FD3D12ResourceResidencyManager()
+		: HeadIndex(0)
+		, TailIndex(0)
+	{
+		Resources.AddZeroed(MAX_RESOURCES);
+	}
+
 	void Init(FD3D12Device* InParent)
 	{
 		Parent = InParent;
 	}
-   
-	void ResourceFreed (FD3D12Resource* Resource);
-    void UpdateResidency (FD3D12Resource* Resource);
-    void Process(uint32 MemoryPressureLevel = 0, uint32 BytesToFree = 0);
-	void FreeMemory (uint32 BytesToFree);
+
+	void ResourceFreed(FD3D12Resource* Resource);
+	void UpdateResidency(FD3D12Resource* Resource);
+	void Process(uint32 MemoryPressureLevel = 0, uint32 BytesToFree = 0);
+	void FreeMemory(uint32 BytesToFree);
 	void MakeResident();
-   
+
 private:
-   
+
 	const static uint32 MEMORY_PRESSURE_FENCE_THRESHOLD[MEMORY_PRESSURE_LEVELS];
-   
-    struct FD3D12Element
-		{
-        uint64          LastUsedFence;
-        FD3D12Resource* Resource;
+
+	struct FD3D12Element
+	{
+		uint64          LastUsedFence;
+		FD3D12Resource* Resource;
 	};
 
 	struct FD3D12ResourceStats
-    {
+	{
 		FD3D12ResourceStats()
-			: Memory (0)
-			, ResourceCount (0)
-			, PendingMemory (0)
-			, PendingResouceCount (0)
-			, MemoryChurn (0)
-			, ResourceCountChurn (0)
+			: Memory(0)
+			, ResourceCount(0)
+			, PendingMemory(0)
+			, PendingResouceCount(0)
+			, MemoryChurn(0)
+			, ResourceCountChurn(0)
 		{}
 
 		uint64 Memory;
@@ -3432,11 +3447,11 @@ private:
 		uint64 PendingResouceCount;
 		uint64 MemoryChurn;
 		uint64 ResourceCountChurn;
-    };
+	};
 
-    uint32                  HeadIndex;
-    uint32                  TailIndex;
-    TArray<FD3D12Element>   Resources;
+	uint32                  HeadIndex;
+	uint32                  TailIndex;
+	TArray<FD3D12Element>   Resources;
 	FThreadsafeQueue<ID3D12Resource*> MakeResidentResources;
 	FCriticalSection        CS;
 	FD3D12ResourceStats		ResidentStats;

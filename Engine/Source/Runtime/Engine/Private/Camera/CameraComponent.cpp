@@ -203,34 +203,39 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	if (bLockToHmd)
-	{
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
-		{
-			ResetRelativeTransform();
-			const FTransform ParentWorld = GetComponentToWorld();
-			GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
-
-			FQuat Orientation;
-			FVector Position;
-			if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
-			{
-				FTransform Transform(Orientation, Position);
-				SetRelativeTransform(Transform);
-			}
-		}
-	}
-
+	bool bApplyPawnControlRotation = false;
+	FRotator PawnViewRotation(0.0f, 0.0f, 0.0f);
 	if (bUsePawnControlRotation)
 	{
 		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
 		{
-			const FRotator PawnViewRotation = OwningPawn->GetViewRotation();
-			if (!PawnViewRotation.Equals(GetComponentRotation()))
-			{
-				SetWorldRotation(PawnViewRotation);
-			}
+			PawnViewRotation = OwningPawn->GetViewRotation();
+			bApplyPawnControlRotation = true;
 		}
+	}
+
+	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+	{
+		ResetRelativeTransform();
+		const FTransform ParentWorld = GetComponentToWorld();
+		GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
+
+		FQuat Orientation;
+		FVector Position;
+		if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
+		{
+			FTransform PawnViewTransform(PawnViewRotation.Quaternion());
+			FTransform HmdTransform(Orientation, Position);
+			FTransform CombinedTransform = HmdTransform * PawnViewTransform;
+			SetRelativeTransform(CombinedTransform);
+
+			PawnViewRotation = CombinedTransform.GetRotation().Rotator();
+		}
+	}
+
+	if (bApplyPawnControlRotation && !PawnViewRotation.Equals(GetComponentRotation()))
+	{
+		SetWorldRotation(PawnViewRotation);
 	}
 
 	DesiredView.Location = GetComponentLocation();

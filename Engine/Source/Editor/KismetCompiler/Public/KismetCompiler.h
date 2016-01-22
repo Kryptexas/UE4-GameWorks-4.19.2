@@ -145,6 +145,7 @@ public:
 
 	FString GetGuid(const UEdGraphNode* Node) const;
 protected:
+	virtual void SetClassForBytecodeCompile(UClass* TargetClass);
 	virtual UEdGraphSchema_K2* CreateSchema();
 	virtual void PostCreateSchema();
 	virtual void SpawnNewClass(const FString& NewClassName);

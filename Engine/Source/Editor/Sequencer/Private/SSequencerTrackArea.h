@@ -97,7 +97,7 @@ private:
 	TMap<TSharedPtr<FSequencerDisplayNode>, TWeakPtr<SSequencerTrackLane>> TrackSlots;
 
 	/** Weak pointer to the sequencer widget. */
-	TSharedPtr<FSequencer> Sequencer;
+	TWeakPtr<FSequencer> Sequencer;
 
 	/** Weak pointer to the tree view (used for scrolling interactions). */
 	TWeakPtr<SSequencerTreeView> TreeView;

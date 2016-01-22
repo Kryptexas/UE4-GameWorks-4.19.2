@@ -37,7 +37,7 @@ namespace UnrealBuildTool
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeNoProgram:
+				case ModuleHostType.RuntimeAndProgram:
                 case ModuleHostType.ServerOnly:
 					return UEBuildModuleType.Runtime;
 				case ModuleHostType.Developer:
@@ -100,7 +100,7 @@ namespace UnrealBuildTool
 					return UEBuildModuleType.Program;
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeNoProgram:
+				case ModuleHostType.RuntimeAndProgram:
 					return UEBuildModuleType.Runtime;
 				default:
 					throw new BuildException("Unhandled module type {0}", Module.Type.ToString());

@@ -763,6 +763,9 @@ bool FTextRoundingTest::RunTest (const FString& Parameters)
 		DoSingleTest(1000.12451, TEXT("1000.125"), TEXT("HalfToEven"));
 		DoSingleTest(1000.1245000001, TEXT("1000.125"), TEXT("HalfToEven"));
 		DoSingleTest(1000.12450000000001, TEXT("1000.124"), TEXT("HalfToEven"));
+
+		DoSingleTest(512.9999, TEXT("513"), TEXT("HalfToEven"));
+		DoSingleTest(-512.9999, TEXT("-513"), TEXT("HalfToEven"));
 	}
 
 	// Restore original culture

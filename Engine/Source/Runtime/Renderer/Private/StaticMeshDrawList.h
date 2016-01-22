@@ -43,6 +43,12 @@ struct StereoPair
 	const TArray<uint64, SceneRenderingAllocator>* RightViewBatchVisibilityArray;
 };
 
+/** Used to statically branch between regular rendering and instanced stereo rendering. */
+enum class InstancedStereoPolicy {
+	Enabled, 
+	Disabled
+};
+
 /** Base class of the static draw list, used when comparing draw lists and the drawing policy type is not necessary. */
 class FStaticMeshDrawListBase
 {
@@ -280,6 +286,7 @@ private:
 	* @param DrawingPolicyLink - the drawing policy link
 	* @param bDrawnShared - determines whether to draw shared 
 	*/
+	template<InstancedStereoPolicy InstancedStereo>
 	void DrawElement(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const FElement& Element, uint64 BatchElementMask, FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
 
 public:
@@ -306,31 +313,39 @@ public:
 	 */
 	bool DrawVisible(const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap);
 
-	bool DrawVisibleInstancedStereo(
-		const typename DrawingPolicyType::ContextDataType PolicyContext,
-		FRHICommandList& RHICmdList,
-		const StereoPair& StereoView, 
-		int32 FirstPolicy,
-		int32 LastPolicy
-		);
-
-	inline bool DrawVisibleInstancedStereo(
-		FRHICommandList& RHICmdList,
-		const StereoPair& StereoView)
-	{
-		return DrawVisibleInstancedStereo(typename DrawingPolicyType::ContextDataType(true), RHICmdList, StereoView, 0, OrderedDrawingPolicies.Num() - 1);
-	}
-
 	/**
 	* Draws only the static meshes which are in the visibility map, limited to a range of policies
-	* @param View - The view of the meshes to render.
+	* Both StaticMeshVisibilityMap and BatchVisibilityArray should be non-null for regular rendering or StereoView should be non-null if rendering with instanced stereo
+	* @param View - The view of the meshes to render (use the left view of a stereo pair when rendering with instanced stereo)
 	* @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
 	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
+	* @param StereoView - Stereo pair to render
 	* @param FirstPolicy - First policy to render
 	* @param LastPolicy - Last policy to render
 	* @return True if any static meshes were drawn.
 	*/
-	bool DrawVisibleInner(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 FirstPolicy, int32 LastPolicy, bool bUpdateCounts);
+	template<InstancedStereoPolicy InstancedStereo>
+	bool DrawVisibleInner(FRHICommandList& RHICmdList,
+		const FViewInfo& View,
+		const typename DrawingPolicyType::ContextDataType PolicyContext,
+		const TBitArray<SceneRenderingBitArrayAllocator>* const StaticMeshVisibilityMap,
+		const TArray<uint64, SceneRenderingAllocator>* const BatchVisibilityArray,
+		const StereoPair* const StereoView,
+		int32 FirstPolicy,
+		int32 LastPolicy,
+		bool bUpdateCounts);
+
+	/**
+	* Draws only the static meshes which are in the visibility map of the stereo pair
+	* @param StereoView - The stereo pair to render.
+	* @return True if any static meshes were drawn.
+	*/
+	inline bool DrawVisibleInstancedStereo(
+		FRHICommandList& RHICmdList,
+		const StereoPair& StereoView)
+	{
+		return DrawVisibleInner<InstancedStereoPolicy::Enabled>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(true, false), nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
+	}
 
 	/**
 	 * Draws only the static meshes which are in the visibility map.
@@ -374,7 +389,7 @@ public:
 	*/
 	inline void DrawVisibleParallelInstancedStereo(const StereoPair& StereoView, FParallelCommandListSet& ParallelCommandListSet)
 	{
-		DrawVisibleParallelInternal(typename DrawingPolicyType::ContextDataType(true), nullptr, nullptr, &StereoView, ParallelCommandListSet);
+		DrawVisibleParallelInternal(typename DrawingPolicyType::ContextDataType(true, false), nullptr, nullptr, &StereoView, ParallelCommandListSet);
 	}
 
 	/**

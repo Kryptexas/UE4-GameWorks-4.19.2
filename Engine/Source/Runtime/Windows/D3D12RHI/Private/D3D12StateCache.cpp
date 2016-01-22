@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -117,9 +117,9 @@ HRESULT FD3D12DynamicHeapAllocator::CreateResource(FD3D12DynamicHeapAllocator* A
 void FD3D12DynamicHeapAllocator::ReleaseAllResources()
 {
 	TRefCountPtr<FD3D12ResourceBlockInfo> pBlock;
-	
+
 	// Empty the expired blocks list
-	while(!ExpiredBlocks.IsEmpty())
+	while (!ExpiredBlocks.IsEmpty())
 	{
 		ExpiredBlocks.Dequeue(pBlock);
 	}
@@ -194,7 +194,7 @@ void FD3D12DynamicHeapAllocator::Alloc(uint32 size, uint32 alignment, FD3D12Reso
 			// Create additional available blocks that can be sub-allocated from the same resource
 			for (uint32 Offset = BlockSize; Offset <= MIN_HEAP_SIZE - BlockSize; Offset += BlockSize)
 			{
-				void* Start = (void* )((uint8* )BaseAddress + Offset);
+				void* Start = (void*)((uint8*)BaseAddress + Offset);
 				FD3D12ResourceBlockInfo* NewBlock = new FD3D12ResourceBlockInfo(Resource, Start, Offset, bucket, this);
 
 				// Add the bucket to the available list
@@ -280,7 +280,7 @@ void* FD3D12DynamicHeapAllocator::FastAlloc(uint32 size, uint32 alignment, class
 	ResourceLocation->SetFromD3DResource(FastAllocBuffer->GetResource(), CurrentOffset, size);
 	ResourceLocation->LinkToResourceLocation(FastAllocBuffer);
 	NextFastAllocOffset = CurrentOffset + size;
-	pData = (void* )((uint8* )FastAllocData + CurrentOffset);
+	pData = (void*)((uint8*)FastAllocData + CurrentOffset);
 
 	return pData;
 }
@@ -304,8 +304,8 @@ const uint64 DefaultRetentionFrameCount = 5;
 
 struct FDequeueAlloc
 {
-	FDequeueAlloc (FD3D12CommandListManager* InCommandListManager, const uint64 InRetentionFrameCount)
-		: CommandListManager (InCommandListManager)
+	FDequeueAlloc(FD3D12CommandListManager* InCommandListManager, const uint64 InRetentionFrameCount)
+		: CommandListManager(InCommandListManager)
 		, RetentionFrameCount(InRetentionFrameCount)
 	{
 	}
@@ -324,7 +324,7 @@ void FD3D12DynamicHeapAllocator::CleanupFreeBlocks()
 	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
 
 #if SUB_ALLOCATED_DEFAULT_ALLOCATIONS
-	const static uint32 MinCleanupBucket = FMath::Max<uint32> (0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
+	const static uint32 MinCleanupBucket = FMath::Max<uint32>(0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
 #else
 	const static uint32 MinCleanupBucket = 0;
 #endif
@@ -336,19 +336,19 @@ void FD3D12DynamicHeapAllocator::CleanupFreeBlocks()
 		FDequeueAlloc DequeueAlloc(&CommandListManager, DynamicRetentionFrameCount);
 		TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
 
-		while (AvailableBlocks[bucket].Dequeue (pBlockInfo, DequeueAlloc))
+		while (AvailableBlocks[bucket].Dequeue(pBlockInfo, DequeueAlloc))
 		{
 #if UE_BUILD_DEBUG
 			AllocatorStats.AvailableAllocs[bucket]--;
 #endif
 		}
 	}
-	
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-	FDequeueAlloc DequeueAlloc (&CommandListManager, 0);
 
-	while(ExpiredBlocks.Dequeue (pBlockInfo, DequeueAlloc))
-	 {
+	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
+	FDequeueAlloc DequeueAlloc(&CommandListManager, 0);
+
+	while (ExpiredBlocks.Dequeue(pBlockInfo, DequeueAlloc))
+	{
 		check(pBlockInfo);
 		uint32 bucket = pBlockInfo->Bucket;
 		// Add the bucket to the available list
@@ -394,7 +394,7 @@ void FD3D12DefaultBufferPool::CleanupFreeBlocks()
 	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
 
 #if SUB_ALLOCATED_DEFAULT_ALLOCATIONS
-	const static uint32 MinCleanupBucket = FMath::Max<uint32> (0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
+	const static uint32 MinCleanupBucket = FMath::Max<uint32>(0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
 #else
 	const static uint32 MinCleanupBucket = 0;
 #endif
@@ -403,7 +403,7 @@ void FD3D12DefaultBufferPool::CleanupFreeBlocks()
 	// and would be fragmented by deleting blocks
 	for (uint32 bucket = MinCleanupBucket; bucket < NumBuckets; bucket++)
 	{
-		FDequeueAlloc DequeueAlloc (&CommandListManager, DefaultRetentionFrameCount);
+		FDequeueAlloc DequeueAlloc(&CommandListManager, DefaultRetentionFrameCount);
 
 		TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
 
@@ -413,9 +413,9 @@ void FD3D12DefaultBufferPool::CleanupFreeBlocks()
 	}
 
 	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-	FDequeueAlloc DequeueAlloc (&CommandListManager, 0);
+	FDequeueAlloc DequeueAlloc(&CommandListManager, 0);
 
-	while(ExpiredBlocks.Dequeue (pBlockInfo, DequeueAlloc))
+	while (ExpiredBlocks.Dequeue(pBlockInfo, DequeueAlloc))
 	{
 		check(pBlockInfo);
 		// Add the bucket to the available list if there is room
@@ -537,7 +537,7 @@ HRESULT FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC&
 				// Add the bucket to the available list
 				AvailableBuffers[bucket].Enqueue(NewBlock);
 			}
-	}
+		}
 #endif
 #endif
 	}
@@ -563,10 +563,10 @@ HRESULT FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC&
 
 		if (AlignmentMismatch != 0)
 		{
-			ResourceLocation->SetPadding (Alignment - AlignmentMismatch);
+			ResourceLocation->SetPadding(Alignment - AlignmentMismatch);
 
-			check (ResourceLocation->GetOffset() % Alignment == 0);
-			check (ResourceLocation->GetOffset() % 4         == 0);
+			check(ResourceLocation->GetOffset() % Alignment == 0);
+			check(ResourceLocation->GetOffset() % 4         == 0);
 		}
 	}
 
@@ -628,7 +628,7 @@ void FD3D12DefaultBufferPool::ReleaseAllResources()
 // Grab a buffer from the available buffers or create a new buffer if none are available
 HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* pInitialData, FD3D12ResourceLocation* ResourceLocation, uint32 Alignment)
 {
-	check ((uint32)Desc.Flags < MAX_DEFAULT_POOLS);
+	check((uint32)Desc.Flags < MAX_DEFAULT_POOLS);
 
 	return DefaultBufferPools[Desc.Flags]->AllocDefaultResource(Desc, pInitialData, ResourceLocation, Alignment);
 }
@@ -663,13 +663,13 @@ HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC&
 
 HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
 {
-	return FD3D12DynamicRHI::CreateCommittedResource (Desc, HeapProps, InitialUsage, ClearValue, ppResource);
+	return FD3D12DynamicRHI::CreateCommittedResource(Desc, HeapProps, InitialUsage, ClearValue, ppResource);
 }
 
 HRESULT FD3D12ResourceHelper::CreateDefaultResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
 {
 	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-	return FD3D12DynamicRHI::CreateCommittedResource (Desc, heapProperties, D3D12_RESOURCE_STATE_COMMON, ClearValue, ppResource);
+	return FD3D12DynamicRHI::CreateCommittedResource(Desc, heapProperties, D3D12_RESOURCE_STATE_COMMON, ClearValue, ppResource);
 }
 
 HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 initHeapSize, FD3D12Resource** ppResource)
@@ -782,10 +782,10 @@ void FD3D12StateCacheBase::ClearState()
 
 	ClearSRVs();
 
-	FMemory::Memzero(PipelineState.Common.CurrentShaderSamplerCounts, sizeof (PipelineState.Common.CurrentShaderSamplerCounts));
-	FMemory::Memzero(PipelineState.Common.CurrentShaderSRVCounts, sizeof (PipelineState.Common.CurrentShaderSRVCounts));
-	FMemory::Memzero(PipelineState.Common.CurrentShaderCBCounts, sizeof (PipelineState.Common.CurrentShaderCBCounts));
-	FMemory::Memzero(PipelineState.Common.CurrentShaderUAVCounts, sizeof (PipelineState.Common.CurrentShaderUAVCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderSamplerCounts, sizeof(PipelineState.Common.CurrentShaderSamplerCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderSRVCounts, sizeof(PipelineState.Common.CurrentShaderSRVCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderCBCounts, sizeof(PipelineState.Common.CurrentShaderCBCounts));
+	FMemory::Memzero(PipelineState.Common.CurrentShaderUAVCounts, sizeof(PipelineState.Common.CurrentShaderUAVCounts));
 
 	// Unordered Access View State Cache
 	for (int i = 0; i < D3D12_PS_CS_UAV_REGISTER_COUNT; ++i)
@@ -824,8 +824,8 @@ void FD3D12StateCacheBase::ClearState()
 	PipelineState.Graphics.CurrentPipelineStateObject = nullptr;
 	PipelineState.Compute.CurrentPipelineStateObject = nullptr;
 	PipelineState.Common.CurrentPipelineStateObject = nullptr;
-	FMemory::Memzero(PipelineState.Graphics.CurrentStreamOutTargets, sizeof (PipelineState.Graphics.CurrentStreamOutTargets));
-	FMemory::Memzero(PipelineState.Graphics.CurrentSOOffsets, sizeof (PipelineState.Graphics.CurrentSOOffsets));
+	FMemory::Memzero(PipelineState.Graphics.CurrentStreamOutTargets, sizeof(PipelineState.Graphics.CurrentStreamOutTargets));
+	FMemory::Memzero(PipelineState.Graphics.CurrentSOOffsets, sizeof(PipelineState.Graphics.CurrentSOOffsets));
 
 	FMemory::Memzero(PipelineState.Graphics.CurrentScissorRects, sizeof(PipelineState.Graphics.CurrentScissorRects));
 
@@ -944,14 +944,14 @@ void FD3D12StateCacheBase::UpdateViewportScissorRects()
 {
 	for (uint32 i = 0; i < PipelineState.Graphics.CurrentNumberOfScissorRects; ++i)
 	{
-		D3D12_VIEWPORT& Viewport		    = PipelineState.Graphics.CurrentViewport[FMath::Min (i, PipelineState.Graphics.CurrentNumberOfViewports)];
+		D3D12_VIEWPORT& Viewport		    = PipelineState.Graphics.CurrentViewport[FMath::Min(i, PipelineState.Graphics.CurrentNumberOfViewports)];
 		D3D12_RECT&     ScissorRect         = PipelineState.Graphics.CurrentScissorRects[i];
 		D3D12_RECT&     ViewportScissorRect = PipelineState.Graphics.CurrentViewportScissorRects[i];
 
-		ViewportScissorRect.top    = FMath::Max(ScissorRect.top,    (LONG)Viewport.TopLeftY);
-		ViewportScissorRect.left   = FMath::Max(ScissorRect.left,   (LONG)Viewport.TopLeftX);
+		ViewportScissorRect.top    = FMath::Max(ScissorRect.top, (LONG)Viewport.TopLeftY);
+		ViewportScissorRect.left   = FMath::Max(ScissorRect.left, (LONG)Viewport.TopLeftX);
 		ViewportScissorRect.bottom = FMath::Min(ScissorRect.bottom, (LONG)Viewport.TopLeftY + (LONG)Viewport.Height);
-		ViewportScissorRect.right  = FMath::Min(ScissorRect.right,  (LONG)Viewport.TopLeftX + (LONG)Viewport.Width);
+		ViewportScissorRect.right  = FMath::Min(ScissorRect.right, (LONG)Viewport.TopLeftX + (LONG)Viewport.Width);
 	}
 
 	bNeedSetScissorRects = true;
@@ -1022,7 +1022,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 
 	FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
 	FD3D12PipelineStateCache& PSOCache = GetParentDevice()->GetPSOCache();
-	const FD3D12RootSignature* const pRootSignature = IsCompute ? 
+	const FD3D12RootSignature* const pRootSignature = IsCompute ?
 		PipelineState.Compute.CurrentComputeShader->pRootSignature : PipelineState.Graphics.HighLevelDesc.BoundShaderState->pRootSignature;
 
 	// PSO
@@ -1038,7 +1038,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			psoDescCompute.Desc.CS = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetShaderBytecode();
 			psoDescCompute.CSHash = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetHash();
 
-			ID3D12PipelineState* psoCompute = PSOCache.FindCompute(psoDescCompute, true);
+			ID3D12PipelineState* psoCompute = PSOCache.FindCompute(psoDescCompute);
 
 			// Save the current PSO
 			PipelineState.Common.CurrentPipelineStateObject = psoCompute;
@@ -1105,7 +1105,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			{
 				const D3D12_DEPTH_STENCIL_VIEW_DESC &dsvDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc();
 				D3D12_RESOURCE_DESC const& resDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetResource()->GetDesc();
-				
+
 				psoDesc.DSVFormat = dsvDesc.Format;
 				if (psoDesc.NumRenderTargets == 0 || psoDesc.SampleDesc.Count == 0)
 				{
@@ -1114,8 +1114,8 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 				}
 			}
 
-			ID3D12PipelineState* psoGraphics = 
-				PSOCache.FindGraphics(PipelineState.Graphics.HighLevelDesc, true);
+			ID3D12PipelineState* psoGraphics =
+				PSOCache.FindGraphics(PipelineState.Graphics.HighLevelDesc);
 
 			// Save the current PSO
 			PipelineState.Common.CurrentPipelineStateObject = psoGraphics;
@@ -1219,9 +1219,9 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 	const uint32 StartStage = IsCompute ? SF_Compute : 0;
 	const uint32 EndStage = IsCompute ? SF_NumFrequencies : SF_Compute;
 	uint32 NumUAVs = 0;
-	uint32 NumSRVs[SF_NumFrequencies + 1] = {};
-	uint32 NumCBs[SF_NumFrequencies + 1] = {};
-	uint32 NumSamplers[SF_NumFrequencies + 1] = {};
+	uint32 NumSRVs[SF_NumFrequencies + 1] ={};
+	uint32 NumCBs[SF_NumFrequencies + 1] ={};
+	uint32 NumSamplers[SF_NumFrequencies + 1] ={};
 
 	uint32 ViewHeapSlot = 0;
 	uint32 SamplerHeapSlot = 0;
@@ -1659,7 +1659,7 @@ FD3D12PipelineStateCache& FD3D12PipelineStateCache::operator=(const FD3D12Pipeli
 
 void FD3D12PipelineStateCache::RebuildFromDiskCache()
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 	if (DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState() || DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 	{
 		return;
@@ -1705,7 +1705,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs, PSODesc->InputLayout.NumElements * sizeof(D3D12_INPUT_ELEMENT_DESC), true);
 			for (uint32 i = 0; i < PSODesc->InputLayout.NumElements; i++)
 			{
-			   // Get the Sematic name string
+				// Get the Sematic name string
 				uint32* stringLength = nullptr;
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&stringLength, sizeof(uint32));
 				DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->InputLayout.pInputElementDescs[i].SemanticName, *stringLength, true);
@@ -1771,11 +1771,8 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 		{
 			GraphicsPSODesc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*GraphicsPSODesc);
 
-			if (this->Add(*GraphicsPSODesc) == nullptr)
-			{
-				// The cache has failed, build PSOs at runtime
-				return;
-			}
+			FD3D12PipelineState& PSOOut = LowLevelGraphicsPipelineStateCache.Add(*GraphicsPSODesc, FD3D12PipelineState(GetParentDevice()));
+			PSOOut.CreateAsync(GraphicsPSODesc);
 		}
 		else
 		{
@@ -1836,12 +1833,8 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 		if (!DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 		{
 			ComputePSODesc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*ComputePSODesc);
-			ID3D12PipelineState* returnVal = this->Add(*ComputePSODesc);
-			if (returnVal == nullptr)
-			{
-				// The cache has failed, build PSOs at runtime
-				return;
-			}
+			FD3D12PipelineState& PSOOut = ComputePipelineStateCache.Add(*ComputePSODesc, FD3D12PipelineState(GetParentDevice()));
+			PSOOut.CreateAsync(ComputePSODesc);
 		}
 		else
 		{
@@ -1851,9 +1844,9 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 	}
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache)
+ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
 #if UE_BUILD_DEBUG
 	++GraphicsCacheRequestCount;
@@ -1873,7 +1866,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 
 	FD3D12LowLevelGraphicsPipelineStateDesc lowLevelDesc;
 	graphicsPSODesc.GetLowLevelDesc(lowLevelDesc);
-	ID3D12PipelineState* PSO = FindGraphicsLowLevel(lowLevelDesc, insertIntoDiskCache);
+	ID3D12PipelineState* PSO = FindGraphicsLowLevel(lowLevelDesc);
 
 	if (HighLevelCacheEntry)
 	{
@@ -1893,66 +1886,80 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 	return PSO;
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache)
+ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc)
 {
 	// Lock already taken by high level find
 	graphicsPSODesc.CombinedHash = FD3D12PipelineStateCache::HashPSODesc(graphicsPSODesc);
 
-	if (TRefCountPtr<ID3D12PipelineState>* PSO = LowLevelGraphicsPipelineStateCache.Find(graphicsPSODesc))
+	FD3D12PipelineState* PSO = LowLevelGraphicsPipelineStateCache.Find(graphicsPSODesc);
+
+	if (PSO)
 	{
-		return PSO->GetReference();
+		ID3D12PipelineState* APIPso = PSO->GetPipelineState();
+
+		if (APIPso)
+		{
+			return APIPso;
+		}
+		else
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("PSO re-creation failed. Most likely on disk descriptor corruption."));
+			for (uint32 i = 0; i < NUM_PSO_CACHE_TYPES; i++)
+			{
+				DiskCaches[i].ClearDiskCache();
+			}
+		}
 	}
 
-	return Add(graphicsPSODesc, insertIntoDiskCache);
+	return Add(graphicsPSODesc);
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache)
+ID3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 	computePSODesc.CombinedHash = FD3D12PipelineStateCache::HashPSODesc(computePSODesc);
 
-	if (TRefCountPtr<ID3D12PipelineState>* PSO = ComputePipelineStateCache.Find(computePSODesc))
+	FD3D12PipelineState* PSO = ComputePipelineStateCache.Find(computePSODesc);
+
+	if (PSO)
 	{
-		return PSO->GetReference();
+		ID3D12PipelineState* APIPso = PSO->GetPipelineState();
+
+		if (APIPso)
+		{
+			return APIPso;
+		}
+		else
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("PSO re-creation failed. Most likely on disk descriptor corruption."));
+			for (uint32 i = 0; i < NUM_PSO_CACHE_TYPES; i++)
+			{
+				DiskCaches[i].ClearDiskCache();
+			}
+		}
 	}
 
-	return Add(computePSODesc, insertIntoDiskCache);
+	return Add(computePSODesc);
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache)
+ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc)
 {
 	FScopeLock Lock(&CS);
 
-	TRefCountPtr<ID3D12PipelineState> PSO;
+	FD3D12PipelineState& PSOOut = LowLevelGraphicsPipelineStateCache.Add(graphicsPSODesc, FD3D12PipelineState(GetParentDevice()));
+	PSOOut.Create(&graphicsPSODesc);
+
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC &psoDesc = graphicsPSODesc.Desc;
 
-	HRESULT Hr = GetParentDevice()->GetDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(PSO.GetInitReference()));
-
-	// It is possible that the on disk descriptor gets corrupted. In that case failure is ok we'll create
-	// the PSO later at runtime. It is also possible that the user changed their graphics device and if
-	// we are using the API libraries compilation will fail because the cache is stale.
-	if (!insertIntoDiskCache && Hr != S_OK)
+	ID3D12PipelineState* APIPso = PSOOut.GetPipelineState();
+	if (APIPso == nullptr)
 	{
-		UE_LOG(LogD3D12RHI, Warning, TEXT("PSO re-creation failed. Most likely on disk descriptor corruption or change of video device/driver."));
-		for (uint32 i = 0; i < NUM_PSO_CACHE_TYPES; i++)
-		{
-			DiskCaches[i].ClearDiskCache();
-		}
-
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Runtime PSO creation failed."));
 		return nullptr;
 	}
-	VERIFYD3D11RESULT(Hr);
-
-#if UE_BUILD_DEBUG
-	// If this check fires, it's either adding a duplicate PSO to the map or
-	// it *thinks* it's adding a duplicate PSO to the map because the PSO desc has the same key.
-	check(LowLevelGraphicsPipelineStateCache.Find(graphicsPSODesc) == nullptr);
-#endif
-
-	LowLevelGraphicsPipelineStateCache.Add(graphicsPSODesc, PSO);
 
 	//TODO: Optimize by only storing unique pointers
-	if (insertIntoDiskCache && !DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState())
+	if (!DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState())
 	{
 		DiskCaches[PSO_CACHE_GRAPHICS].AppendData(&graphicsPSODesc, sizeof(graphicsPSODesc));
 
@@ -2018,7 +2025,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelin
 		if (bUseAPILibaries)
 		{
 			TRefCountPtr<ID3DBlob> cachedBlob;
-			HRESULT result = PSO->GetCachedBlob(cachedBlob.GetInitReference());
+			HRESULT result = APIPso->GetCachedBlob(cachedBlob.GetInitReference());
 			VERIFYD3D11RESULT(result);
 			if (SUCCEEDED(result))
 			{
@@ -2042,40 +2049,26 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelin
 		DiskCaches[PSO_CACHE_GRAPHICS].Flush(LowLevelGraphicsPipelineStateCache.Num());
 	}
 
-	return PSO.GetReference();
+	return APIPso;
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache)
+ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDesc &computePSODesc)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
-	TRefCountPtr<ID3D12PipelineState> PSO;
-	D3D12_COMPUTE_PIPELINE_STATE_DESC &psoDesc = computePSODesc.Desc;
+	FD3D12PipelineState& PSOOut = ComputePipelineStateCache.Add(computePSODesc, FD3D12PipelineState(GetParentDevice()));
+	PSOOut.Create(&computePSODesc);
 
-	HRESULT Hr = GetParentDevice()->GetDevice()->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(PSO.GetInitReference()));
-
-	// It is possible that the on disk descriptor gets corrupted. In that case failure is ok we'll create
-	// the PSO later at runtime.
-	if (!insertIntoDiskCache && Hr != S_OK)
+	ID3D12PipelineState* APIPso = PSOOut.GetPipelineState();
+	if (APIPso == nullptr)
 	{
-		UE_LOG(LogD3D12RHI, Warning, TEXT("PSO re-creation failed. Most likely on disk descriptor corruption."));
-		for (uint32 i = 0; i < NUM_PSO_CACHE_TYPES; i++)
-		{
-			DiskCaches[i].ClearDiskCache();
-		}
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Runtime PSO creation failed."));
 		return nullptr;
 	}
-	VERIFYD3D11RESULT(Hr);
 
-#if UE_BUILD_DEBUG
-	// If this check fires, it's either adding a duplicate PSO to the map or
-	// it *thinks* it's adding a duplicate PSO to the map because the PSO desc has the same key.
-	check(ComputePipelineStateCache.Find(computePSODesc) == nullptr);
-#endif
+	D3D12_COMPUTE_PIPELINE_STATE_DESC &psoDesc = computePSODesc.Desc;
 
-	ComputePipelineStateCache.Add(computePSODesc, PSO);
-
-	if (insertIntoDiskCache && !DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
+	if (!DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 	{
 		DiskCaches[PSO_CACHE_COMPUTE].AppendData(&computePSODesc, sizeof(computePSODesc));
 
@@ -2096,7 +2089,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 		if (bUseAPILibaries)
 		{
 			TRefCountPtr<ID3DBlob> cachedBlob;
-			HRESULT result = PSO->GetCachedBlob(cachedBlob.GetInitReference());
+			HRESULT result = APIPso->GetCachedBlob(cachedBlob.GetInitReference());
 			VERIFYD3D11RESULT(result);
 			if (SUCCEEDED(result))
 			{
@@ -2120,12 +2113,12 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 		DiskCaches[PSO_CACHE_COMPUTE].Flush(ComputePipelineStateCache.Num());
 	}
 
-	return PSO.GetReference();
+	return APIPso;
 }
 
 void FD3D12PipelineStateCache::Close()
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
 	DiskCaches[PSO_CACHE_GRAPHICS].Reset();
 	DiskCaches[PSO_CACHE_COMPUTE].Reset();
@@ -2236,7 +2229,7 @@ SIZE_T FD3D12PipelineStateCache::HashPSODesc(const FD3D12ComputePipelineStateDes
 #define SSE4_CPUID_ARRAY_INDEX 2
 void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &ComputeCacheFilename)
 {
-	FScopeLock Lock (&CS);
+	FScopeLock Lock(&CS);
 
 	DiskCaches[PSO_CACHE_GRAPHICS].Init(GraphicsCacheFilename);
 	DiskCaches[PSO_CACHE_COMPUTE].Init(ComputeCacheFilename);
@@ -2304,7 +2297,7 @@ bool FD3D12StateCacheBase::VerifyResourceStates(const bool IsCompute)
 					}
 				}
 				check(SanityCheckCount == PipelineState.Common.ShaderResourceViewsIntersectWithDepthCount);
-				
+
 				const D3D12_DEPTH_STENCIL_VIEW_DESC& desc = pCurrentView->GetDesc();
 				const bool bDepthIsReadOnly = !!(desc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH);
 				const bool bStencilIsReadOnly = !!(desc.Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL);
@@ -2343,7 +2336,7 @@ bool FD3D12StateCacheBase::VerifyResourceStates(const bool IsCompute)
 							// Stencil plane
 							expectedState = bStencilIsReadOnly ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_DEPTH_WRITE;
 						}
-						
+
 						bool bGoodState = !!pDebugCommandList->AssertResourceState(pResource->GetResource(), SubresourceIndex, expectedState);
 						if (!bGoodState)
 						{
@@ -2452,14 +2445,14 @@ void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStart
 	{
 		return;
 	}
-	
+
 	PipelineState.Common.CurrentUAVStartSlot = FMath::Min(UAVStartSlot, PipelineState.Common.CurrentUAVStartSlot);
 	PipelineState.Common.CurrentUAVStage = ShaderStage;
-	
+
 	TRefCountPtr<ID3D12Resource> CounterUploadHeap      = GetParentDevice()->GetCounterUploadHeap();
 	uint32&                      CounterUploadHeapIndex = GetParentDevice()->GetCounterUploadHeapIndex();
 	void*                        CounterUploadHeapData  = GetParentDevice()->GetCounterUploadHeapData();
-	
+
 	for (uint32 i = 0; i < NumSimultaneousUAVs; ++i)
 	{
 		PipelineState.Common.UnorderedAccessViewArray[UAVStartSlot + i] = UAVArray[i];
@@ -3055,10 +3048,10 @@ void FD3D12DescriptorCache::SetStreamOutTargets(FD3D12Resource** Buffers, uint32
 	for (uint32 i = 0; i < SlotsNeeded; i++)
 	{
 		ID3D12Resource* StreamOutBuffer = Buffers[i] ? Buffers[i]->GetResource() : nullptr;
-		
+
 		D3D12_STREAM_OUTPUT_BUFFER_VIEW &currentView = SOViews[i];
 		currentView.BufferLocation = (StreamOutBuffer != nullptr) ? StreamOutBuffer->GetGPUVirtualAddress() : 0;
-		
+
 		// MS - The following view members are not correct
 		check(0);
 		currentView.BufferFilledSizeLocation = 0;
@@ -3178,7 +3171,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 
 	// Check to see if the srv configuration is already in the srv heap
 	FD3D12SRVArrayDesc Desc = {0};
-	check (SlotsNeeded <= _countof(Desc.SRVSequenceNumber));
+	check(SlotsNeeded <= _countof(Desc.SRVSequenceNumber));
 	Desc.Count = SlotsNeeded;
 
 	for (uint32 i = 0; i < SlotsNeeded; i++)
@@ -3186,7 +3179,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 		if (SRVs[i] != NULL)
 		{
 			Desc.SRVSequenceNumber[i] = SRVs[i]->GetSequenceNumber();
-	
+
 			if (CurrentShaderResourceViewsIntersectWithDepthRT[i] == true)
 			{
 				FD3D12DynamicRHI::TransitionResource(CommandList, SRVs[i], ResourceStateFlag | D3D12_RESOURCE_STATE_DEPTH_READ);
@@ -3349,7 +3342,7 @@ void FD3D12DescriptorCache::ClearConstantBuffer(
 	if (CurrentSequenceNumber[SlotIndex] != 0)
 	{
 		GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestCPUHandle, pNullCBV, ViewHeap.Desc.Type);
-	
+
 		CurrentSequenceNumber[SlotIndex] = 0;
 	}
 }
@@ -3549,4 +3542,69 @@ uint32 GetTypeHash(const FD3D12SRVArrayDesc& Key)
 uint32 GetTypeHash(const FD3D12QuantizedBoundShaderState& Key)
 {
 	return uint32(FD3D12PipelineStateCache::HashData((void*)&Key, sizeof(Key)));
+}
+
+FD3D12PipelineState::~FD3D12PipelineState()
+{
+	if (Worker)
+	{
+		Worker->EnsureCompletion(true);
+		delete(Worker);
+		Worker = nullptr;
+	}
+}
+
+void FD3D12PipelineState::Create(FD3D12ComputePipelineStateDesc* Desc)
+{
+	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateComputePipelineState(&Desc->Desc, IID_PPV_ARGS(PipelineState.GetInitReference())));
+}
+
+void FD3D12PipelineState::CreateAsync(FD3D12ComputePipelineStateDesc* Desc)
+{
+	Worker = new FAsyncTask<FD3D12PipelineStateWorker>(GetParentDevice(), &Desc->Desc);
+	if (Worker)
+	{
+		Worker->StartBackgroundTask();
+	}
+}
+
+void FD3D12PipelineState::Create(FD3D12LowLevelGraphicsPipelineStateDesc* Desc)
+{
+	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateGraphicsPipelineState(&Desc->Desc, IID_PPV_ARGS(PipelineState.GetInitReference())));
+}
+
+void FD3D12PipelineState::CreateAsync(FD3D12LowLevelGraphicsPipelineStateDesc* Desc)
+{
+	Worker = new FAsyncTask<FD3D12PipelineStateWorker>(GetParentDevice(), &Desc->Desc);
+	if (Worker)
+	{
+		Worker->StartBackgroundTask();
+	}
+}
+
+ID3D12PipelineState* FD3D12PipelineState::GetPipelineState()
+{
+	if (Worker)
+	{
+		Worker->EnsureCompletion(true);
+
+		PipelineState = Worker->GetTask().PSO;
+
+		delete(Worker);
+		Worker = nullptr;
+	}
+
+	return PipelineState.GetReference();
+}
+
+void FD3D12PipelineStateWorker::DoWork()
+{
+	if (bIsGraphics)
+	{
+		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateGraphicsPipelineState(&Desc.GraphicsDesc, IID_PPV_ARGS(PSO.GetInitReference())));
+	}
+	else
+	{
+		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateComputePipelineState(&Desc.ComputeDesc, IID_PPV_ARGS(PSO.GetInitReference())));
+	}
 }

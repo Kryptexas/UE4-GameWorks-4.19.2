@@ -2204,9 +2204,9 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 			. BlueprintToWatch(InBlueprint)
 			. IsEnabled(!bIsInterface && !bIsMacro);
 
-			this->BlueprintProfiler =
-				SNew(SBlueprintProfilerView)
-				.ProfileViewType(PVT_LiveView);
+		this->BlueprintProfiler =
+			SNew(SBlueprintProfilerView)
+			.ProfileViewType(PVT_LiveView);
 
 		this->Palette = 
 			SNew(SBlueprintPalette, SharedThis(this))

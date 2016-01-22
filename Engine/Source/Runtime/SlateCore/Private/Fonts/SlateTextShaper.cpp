@@ -266,6 +266,7 @@ void FSlateTextShaper::PerformKerningOnlyTextShaping(const TCHAR* InText, const 
 				ShapedGlyphEntry.XOffset = 0;
 				ShapedGlyphEntry.YOffset = 0;
 				ShapedGlyphEntry.Kerning = 0;
+				ShapedGlyphEntry.NumCharactersInGlyph = 1;
 
 				// Apply the kerning against the previous entry now that we know what it is
 				if (CurrentGlyphEntryIndex > 0 && Kerning != 0)
@@ -404,6 +405,12 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 		AppendPendingTextToSequence();
 	}
 
+	if (InTextDirection == TextBiDi::ETextDirection::RightToLeft)
+	{
+		// Need to flip the sequence here to mimic what HarfBuzz would do if the text had been a single sequence of right-to-left text
+		Algo::Reverse(HarfBuzzTextSequence);
+	}
+
 	// Step 3) Now we use HarfBuzz to shape each font data sequence using its FreeType glyph
 	{
 		hb_buffer_t* HarfBuzzTextBuffer = hb_buffer_create();
@@ -437,6 +444,8 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 				hb_glyph_info_t* HarfBuzzGlyphInfos = hb_buffer_get_glyph_infos(HarfBuzzTextBuffer, &HarfBuzzGlyphCount);
 				hb_glyph_position_t* HarfBuzzGlyphPositions = hb_buffer_get_glyph_positions(HarfBuzzTextBuffer, &HarfBuzzGlyphCount);
 
+				int32 PreviousClusterIndex = HarfBuzzTextSubSequenceEntry.StartIndex + ((InTextDirection == TextBiDi::ETextDirection::LeftToRight) ? -1 : HarfBuzzTextSubSequenceEntry.Length);
+
 				OutGlyphsToRender.Reserve(OutGlyphsToRender.Num() + static_cast<int32>(HarfBuzzGlyphCount));
 				for (uint32 HarfBuzzGlyphIndex = 0; HarfBuzzGlyphIndex < HarfBuzzGlyphCount; ++HarfBuzzGlyphIndex)
 				{
@@ -453,6 +462,7 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 					ShapedGlyphEntry.XOffset = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.x_offset);
 					ShapedGlyphEntry.YOffset = FreeTypeUtils::Convert26Dot6ToRoundedPixel<int16>(HarfBuzzGlyphPosition.y_offset);
 					ShapedGlyphEntry.Kerning = 0;
+					ShapedGlyphEntry.NumCharactersInGlyph = 1;
 
 					// Apply the kerning against the previous entry
 					if (CurrentGlyphEntryIndex > 0 && bHasKerning)
@@ -467,6 +477,27 @@ void FSlateTextShaper::PerformHarfBuzzTextShaping(const TCHAR* InText, const int
 						}
 #endif // WITH_FREETYPE
 					}
+
+					// Detect the character count for this glyph
+					// For left-to-right text, the count is for the previous glyph; for right-to-left text, it's for the current glyph
+					if (CurrentGlyphEntryIndex == 0 || InTextDirection == TextBiDi::ETextDirection::RightToLeft)
+					{
+						ShapedGlyphEntry.NumCharactersInGlyph = static_cast<uint8>(FMath::Abs(ShapedGlyphEntry.ClusterIndex - PreviousClusterIndex));
+					}
+					else if (CurrentGlyphEntryIndex > 0)
+					{
+						FShapedGlyphEntry& PreviousShapedGlyphEntry = OutGlyphsToRender[CurrentGlyphEntryIndex - 1];
+						PreviousShapedGlyphEntry.NumCharactersInGlyph = static_cast<uint8>(FMath::Abs(ShapedGlyphEntry.ClusterIndex - PreviousClusterIndex));
+					}
+
+					PreviousClusterIndex = ShapedGlyphEntry.ClusterIndex;
+				}
+
+				// Need to handle the last character count for left-to-right text (right-to-left text is implicitly handled as part of the loop above)
+				if (InTextDirection == TextBiDi::ETextDirection::LeftToRight && HarfBuzzGlyphCount > 0)
+				{
+					FShapedGlyphEntry& ShapedGlyphEntry = OutGlyphsToRender.Last();
+					ShapedGlyphEntry.NumCharactersInGlyph = static_cast<uint8>(FMath::Abs((HarfBuzzTextSubSequenceEntry.StartIndex + HarfBuzzTextSubSequenceEntry.Length) - ShapedGlyphEntry.ClusterIndex));
 				}
 
 				hb_buffer_clear_contents(HarfBuzzTextBuffer);

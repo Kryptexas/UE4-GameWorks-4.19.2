@@ -351,6 +351,9 @@ public:
 	/** Timer used by RoundEnded and Inactive states to accept player input again */
 	virtual void UnFreeze();
 
+	/** Calculate minimal respawn delay */
+	virtual float GetMinRespawnDelay();
+
 	/** Set the field of view to NewFOV */ 
 	UFUNCTION(exec)
 	virtual void FOV(float NewFOV);

@@ -820,26 +820,29 @@ class FMaterialExpressionKey
 public:
 	UMaterialExpression* Expression;
 	int32 OutputIndex;
-
 	/** An index used by some expressions to send multiple values across a single connection.*/
 	int32 MultiplexIndex;
+	// Expressions are different (e.g. View.PrevWorldViewOrigin) when using previous frame's values, value if from FHLSLMaterialTranslator::bCompilingPreviousFrame
+	bool bCompilingPreviousFrameKey;
 
 	FMaterialExpressionKey(UMaterialExpression* InExpression, int32 InOutputIndex) :
 		Expression(InExpression),
 		OutputIndex(InOutputIndex),
-		MultiplexIndex(INDEX_NONE)
+		MultiplexIndex(INDEX_NONE),
+		bCompilingPreviousFrameKey(false)
 	{}
 
-	FMaterialExpressionKey(UMaterialExpression* InExpression, int32 InOutputIndex, int32 InMultiplexIndex) :
+	FMaterialExpressionKey(UMaterialExpression* InExpression, int32 InOutputIndex, int32 InMultiplexIndex, bool bInCompilingPreviousFrameKey) :
 		Expression(InExpression),
 		OutputIndex(InOutputIndex),
-		MultiplexIndex(InMultiplexIndex)
+		MultiplexIndex(InMultiplexIndex),
+		bCompilingPreviousFrameKey(bInCompilingPreviousFrameKey)
 	{}
 
 
 	friend bool operator==(const FMaterialExpressionKey& X, const FMaterialExpressionKey& Y)
 	{
-		return X.Expression == Y.Expression && X.OutputIndex == Y.OutputIndex && X.MultiplexIndex == Y.MultiplexIndex;
+		return X.Expression == Y.Expression && X.OutputIndex == Y.OutputIndex && X.MultiplexIndex == Y.MultiplexIndex && X.bCompilingPreviousFrameKey == Y.bCompilingPreviousFrameKey;
 	}
 
 	friend uint32 GetTypeHash(const FMaterialExpressionKey& ExpressionKey)

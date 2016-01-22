@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Implementation of Device Context State Caching to improve draw
 //	thread performance by removing redundant device context calls.
@@ -463,8 +463,8 @@ public:
 		void RollOver();
 		uint32 ReserveSlots(uint32 NumSlotsRequested);
 		void SetNextSlot(uint32 NextSlot);
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{ CPUBase.ptr + Slot * DescriptorSize }; }
-		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{ GPUBase.ptr + Slot * DescriptorSize }; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 Slot) const { return{CPUBase.ptr + Slot * DescriptorSize}; }
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 Slot) const { return{GPUBase.ptr + Slot * DescriptorSize}; }
 
 		void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
 	};
@@ -484,7 +484,7 @@ public:
 		CmdContext = nullptr;
 	}
 
-	~FD3D12DescriptorCache(){}
+	~FD3D12DescriptorCache() {}
 
 	inline ID3D12DescriptorHeap *GetViewDescriptorHeap()
 	{
@@ -513,7 +513,7 @@ public:
 
 	void SetIndexBuffer(FD3D12ResourceLocation* IndexBufferLocation, DXGI_FORMAT Format, uint32 Offset);
 	void SetVertexBuffers(FD3D12VertexBufferState* VertexBuffers, uint32 Count);
-	void SetUAVs(EShaderFrequency ShaderStage,uint32 UAVStartSlot, TRefCountPtr<FD3D12UnorderedAccessView>* UnorderedAccessViewArray, uint32 Count, uint32 &HeapSlot);
+	void SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, TRefCountPtr<FD3D12UnorderedAccessView>* UnorderedAccessViewArray, uint32 Count, uint32 &HeapSlot);
 	void SetRenderTargets(FD3D12RenderTargetView **RenderTargetViewArray, uint32 Count, FD3D12DepthStencilView* DepthStencilTarget, bool bDepthIsBoundAsSRV);
 	void SetSamplers(EShaderFrequency ShaderStage, FD3D12SamplerState** Samplers, uint32 Count, uint32 &HeapSlot);
 	void SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<FD3D12ShaderResourceView> * SRVs, uint32 Count, bool* CurrentShaderResourceViewsIntersectWithDepthRT, uint32 &HeapSlot);
@@ -609,6 +609,50 @@ public:
 
 static bool GCPUSupportsSSE4;
 
+struct FD3D12PipelineStateWorker : public FD3D12DeviceChild, public FNonAbandonableTask
+{
+	FD3D12PipelineStateWorker(FD3D12Device* Device, D3D12_COMPUTE_PIPELINE_STATE_DESC* _Desc)
+		: bIsGraphics(false), FD3D12DeviceChild(Device) { Desc.ComputeDesc = *_Desc; };
+
+	FD3D12PipelineStateWorker(FD3D12Device* Device, D3D12_GRAPHICS_PIPELINE_STATE_DESC* _Desc)
+		: bIsGraphics(true), FD3D12DeviceChild(Device) { Desc.GraphicsDesc = *_Desc; };
+
+	void DoWork();
+
+	FORCEINLINE TStatId GetStatId() const { RETURN_QUICK_DECLARE_CYCLE_STAT(FD3D12PipelineStateWorker, STATGROUP_ThreadPoolAsyncTasks); }
+
+	union
+	{
+		D3D12_COMPUTE_PIPELINE_STATE_DESC ComputeDesc;
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsDesc;
+	} Desc;
+
+	bool bIsGraphics;
+	TRefCountPtr<ID3D12PipelineState> PSO;
+};
+
+struct FD3D12PipelineState : public FD3D12DeviceChild
+{
+public:
+	FD3D12PipelineState() :Worker(nullptr), FD3D12DeviceChild(nullptr){};
+	FD3D12PipelineState(FD3D12Device* Parent) : Worker(nullptr), FD3D12DeviceChild(Parent){};
+
+	~FD3D12PipelineState();
+
+	void Create(FD3D12ComputePipelineStateDesc* Desc);
+	void CreateAsync(FD3D12ComputePipelineStateDesc* Desc);
+
+	void Create(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
+	void CreateAsync(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
+
+	ID3D12PipelineState* GetPipelineState();
+
+private:
+	TRefCountPtr<ID3D12PipelineState> PipelineState;
+
+	FAsyncTask<FD3D12PipelineStateWorker>*	Worker;
+};
+
 class FD3D12PipelineStateCache : public FD3D12DeviceChild
 {
 private:
@@ -639,7 +683,7 @@ private:
 		}
 	};
 
-	template <typename TDesc, typename TValue = TRefCountPtr<ID3D12PipelineState>>
+	template <typename TDesc, typename TValue = FD3D12PipelineState>
 	using TPipelineCache = TMap<TDesc, TValue, FDefaultSetAllocator, TStateCacheKeyFuncs<TDesc, TValue>>;
 
 	TPipelineCache<FD3D12HighLevelGraphicsPipelineStateDesc, TPair<ID3D12PipelineState*, uint64>> HighLevelGraphicsPipelineStateCache;
@@ -649,10 +693,10 @@ private:
 	FCriticalSection CS;
 	FDiskCacheInterface DiskCaches[NUM_PSO_CACHE_TYPES];
 
-	ID3D12PipelineState* Add(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache = false);
-	ID3D12PipelineState* Add(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache = false);
+	ID3D12PipelineState* Add(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc);
+	ID3D12PipelineState* Add(FD3D12ComputePipelineStateDesc &computePSODesc);
 
-	ID3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache = false);
+	ID3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc);
 
 #if UE_BUILD_DEBUG
 	uint64 GraphicsCacheRequestCount = 0;
@@ -664,8 +708,8 @@ private:
 public:
 	void RebuildFromDiskCache();
 
-	ID3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc, bool insertIntoDiskCache = false);
-	ID3D12PipelineState* FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc, bool insertIntoDiskCache = false);
+	ID3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc &graphicsPSODesc);
+	ID3D12PipelineState* FindCompute(FD3D12ComputePipelineStateDesc &computePSODesc);
 
 	void Close();
 
@@ -689,25 +733,25 @@ class FD3D12BitArray
 {
 public:
 
-	FD3D12BitArray() : Array (0) {}
-	FD3D12BitArray (uint32 InArray) : Array (InArray) {}
+	FD3D12BitArray() : Array(0) {}
+	FD3D12BitArray(uint32 InArray) : Array(InArray) {}
 
 	void Clear()
 	{
 		Array = 0;
 	}
 
-	void SetIndex (uint32 Index)
+	void SetIndex(uint32 Index)
 	{
 		Array |= (1 << Index);
 	}
 
-	void ClearIndex (uint32 Index)
+	void ClearIndex(uint32 Index)
 	{
 		Array &= ~(1 << Index);
 	}
 
-	void Set (uint32 Bits)
+	void Set(uint32 Bits)
 	{
 		for (uint32 i = 0; i < Bits; ++i)
 		{
@@ -722,7 +766,7 @@ public:
 
 	uint32 LastSet() const
 	{
-		return 32 - FMath::CountLeadingZeros (Array);
+		return 32 - FMath::CountLeadingZeros(Array);
 	}
 
 	uint32 GetValue() const
@@ -739,21 +783,21 @@ class FD3D12StateArray
 {
 public:
 
-	void SetIndex (uint32 Index)
+	void SetIndex(uint32 Index)
 	{
-		SetIndices.SetIndex     (Index);
-		ChangedIndices.SetIndex (Index);
+		SetIndices.SetIndex(Index);
+		ChangedIndices.SetIndex(Index);
 	}
 
-	void ClearIndex (uint32 Index)
+	void ClearIndex(uint32 Index)
 	{
-		SetIndices.ClearIndex   (Index);
-		ChangedIndices.SetIndex (Index);
+		SetIndices.ClearIndex(Index);
+		ChangedIndices.SetIndex(Index);
 	}
 
 	uint32 LastSet() const
 	{
-		FD3D12BitArray Merged (SetIndices.GetValue() | ChangedIndices.GetValue());
+		FD3D12BitArray Merged(SetIndices.GetValue() | ChangedIndices.GetValue());
 
 		return Merged.LastSet();
 	}
@@ -859,7 +903,7 @@ protected:
 			uint32 CurrentNumberOfScissorRects;
 
 			FD3D12RenderTargetView* RenderTargetArray[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-			
+
 			FD3D12DepthStencilView* CurrentDepthStencilTarget;
 		} Graphics;
 
@@ -1048,7 +1092,7 @@ protected:
 
 public:
 
-	void InheritState( const FD3D12StateCacheBase& AncestralCache )
+	void InheritState(const FD3D12StateCacheBase& AncestralCache)
 	{
 		FMemory::Memcpy(&PipelineState, &AncestralCache.PipelineState, sizeof(PipelineState));
 		RestoreState();
@@ -1066,7 +1110,7 @@ public:
 
 	FD3D12RootSignature* GetGraphicsRootSignature()
 	{
-		return PipelineState.Graphics.HighLevelDesc.BoundShaderState ? 
+		return PipelineState.Graphics.HighLevelDesc.BoundShaderState ?
 			PipelineState.Graphics.HighLevelDesc.BoundShaderState->pRootSignature : nullptr;
 	}
 

@@ -44,20 +44,25 @@ TOptional<FKey> FKeyStructCustomization::GetCurrentKey() const
 {
 	TArray<void*> StructPtrs;
 	PropertyHandle->AccessRawData(StructPtrs);
-	if (StructPtrs.Num() != 0)
+
+	if (StructPtrs.Num() > 0)
 	{
 		FKey* SelectedKey = (FKey*)StructPtrs[0];
 
-		for(int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
+		if (SelectedKey)
 		{
-			if (SelectedKey && *(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
+			for(int32 StructPtrIndex = 1; StructPtrIndex < StructPtrs.Num(); ++StructPtrIndex)
 			{
-				return TOptional<FKey>();
+				if (*(FKey*)StructPtrs[StructPtrIndex] != *SelectedKey)
+				{
+					return TOptional<FKey>();
+				}
 			}
-		}
 
-		return *SelectedKey;
+			return *SelectedKey;
+		}
 	}
+
 	return FKey();
 }
 

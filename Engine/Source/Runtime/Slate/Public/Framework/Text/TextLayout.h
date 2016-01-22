@@ -5,6 +5,7 @@
 #include "TextRunRenderer.h"
 #include "TextLineHighlight.h"
 #include "ILineHighlighter.h"
+#include "ShapedTextCacheFwd.h"
 #include "TextLayout.generated.h"
 
 #define TEXT_LAYOUT_DEBUG 0
@@ -249,7 +250,8 @@ public:
 			None = 0,
 			WrappingInformation = 1<<0,
 			TextBaseDirection = 1<<1, 
-			All = WrappingInformation | TextBaseDirection,
+			ShapingCache = 1<<2,
+			All = WrappingInformation | TextBaseDirection | ShapingCache,
 		};
 	};
 
@@ -260,6 +262,7 @@ public:
 		FLineModel( const TSharedRef< FString >& InText );
 
 		TSharedRef< FString > Text;
+		FShapedTextCacheRef ShapedTextCache;
 		TextBiDi::ETextDirection TextBaseDirection;
 		TArray< FRunModel > Runs;
 		TArray< FBreakCandidate > BreakCandidates;
@@ -409,16 +412,16 @@ public:
 
 	bool IsLayoutDirty() const;
 
-	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck);
+	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck) const;
 
 	/**
 	 * 
 	 */
-	FTextLocation GetTextLocationAt( const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr );
+	FTextLocation GetTextLocationAt( const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr ) const;
 
-	FTextLocation GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr );
+	FTextLocation GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint = nullptr ) const;
 
-	FVector2D GetLocationAt( const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck );
+	FVector2D GetLocationAt( const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck ) const;
 
 	bool SplitLineAt(const FTextLocation& Location);
 
@@ -473,6 +476,16 @@ protected:
 	* Create the wrapping cache for the given line based upon the current scale
 	*/
 	void CreateLineWrappingCache(FLineModel& LineModel);
+
+	/**
+	 * Flushes the text shaping cache for each line
+	 */
+	void FlushTextShapingCache();
+
+	/**
+	 * Flushes the text shaping cache for the given line
+	 */
+	void FlushLineTextShapingCache(FLineModel& LineModel);
 
 	/**
 	 * Set the given dirty flags on all line models in this layout

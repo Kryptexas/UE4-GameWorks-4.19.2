@@ -107,7 +107,8 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 
 			if ( DesktopPlatform != nullptr )
 			{
-				if ( DesktopPlatform->OpenLauncher(false, FString(), FString(" -silent")) )
+				FOpenLauncherOptions SilentOpen;
+				if ( DesktopPlatform->OpenLauncher(SilentOpen) )
 				{
 					CurrentState = EPluginAuthorizationState::StartLauncher_Waiting;
 				}

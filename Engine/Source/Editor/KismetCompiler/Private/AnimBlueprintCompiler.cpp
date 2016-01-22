@@ -83,6 +83,7 @@ bool FAnimBlueprintCompiler::FEffectiveConstantRecord::Apply(UObject* Object)
 
 FAnimBlueprintCompiler::FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions, TArray<UObject*>* InObjLoaded)
 	: FKismetCompilerContext(SourceSketch, InMessageLog, InCompileOptions, InObjLoaded)
+	, NewAnimBlueprintClass(nullptr)
 	, AnimBlueprint(SourceSketch)
 	, bIsDerivedAnimBlueprint(false)
 {
@@ -101,6 +102,12 @@ FAnimBlueprintCompiler::FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCo
 
 FAnimBlueprintCompiler::~FAnimBlueprintCompiler()
 {
+}
+
+void FAnimBlueprintCompiler::SetClassForBytecodeCompile(UClass* TargetClass)
+{
+	FKismetCompilerContext::SetClassForBytecodeCompile(TargetClass);
+	NewAnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(TargetClass);
 }
 
 UEdGraphSchema_K2* FAnimBlueprintCompiler::CreateSchema()

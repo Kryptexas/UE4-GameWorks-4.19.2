@@ -461,8 +461,8 @@ protected:
 	/** Actions that should be executed next tick */
 	TArray<FSimpleDelegate> DeferredActions;
 
-	/** Root tree node that needs to be destroyed when safe */
-	TSharedPtr<FComplexPropertyNode> RootNodePendingKill;
+	/** Root tree nodes that needs to be destroyed when safe */
+	TArray<TSharedPtr<FComplexPropertyNode>> RootNodesPendingKill;
 
 	/** The handler for the keyframe UI, determines if the key framing UI should be displayed. */
 	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler;

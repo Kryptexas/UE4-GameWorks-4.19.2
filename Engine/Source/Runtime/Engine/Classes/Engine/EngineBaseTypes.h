@@ -421,6 +421,8 @@ struct FActorComponentTickFunction : public FTickFunction
 
 	/**
 	 * Conditionally calls ExecuteTickFunc if bRegistered == true and a bunch of other criteria are met
+	 * @param Target - the actor component we are ticking
+	 * @param bTickInEditor - whether the target wants to tick in the editor
 	 * @param DeltaTime - The time since the last tick.
 	 * @param TickType - Type of tick that we are running
 	 * @param ExecuteTickFunc - the lambda that ultimately calls tick on the actor component
@@ -429,7 +431,7 @@ struct FActorComponentTickFunction : public FTickFunction
 	//NOTE: This already creates a UObject stat so don't double count in your own functions
 
 	template <typename ExecuteTickLambda>
-	static void ExecuteTickHelper(UActorComponent* Target, float DeltaTime, ELevelTick TickType, const ExecuteTickLambda& ExecuteTickFunc);	
+	static void ExecuteTickHelper(UActorComponent* Target, bool bTickInEditor, float DeltaTime, ELevelTick TickType, const ExecuteTickLambda& ExecuteTickFunc);	
 };
 
 

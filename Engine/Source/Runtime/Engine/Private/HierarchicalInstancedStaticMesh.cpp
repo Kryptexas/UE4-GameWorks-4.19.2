@@ -1271,10 +1271,32 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				}
 				else
 				{
-					FMatrix LocalViewProjForCulling = GetLocalToWorld() * View->ViewMatrices.GetViewProjMatrix();
+					// Instanced stereo needs to use the right plane from the right eye when constructing the frustum bounds to cull against.
+					// Otherwise we'll cull objects visible in the right eye, but not the left.
+					if (Views[0]->IsInstancedStereoPass() && ViewIndex == 0)
+					{
+						check(Views.Num() == 2);
+						
+						const FMatrix LeftEyeLocalViewProjForCulling  = GetLocalToWorld() * Views[0]->ViewMatrices.GetViewProjMatrix();
+						const FMatrix RightEyeLocalViewProjForCulling = GetLocalToWorld() * Views[1]->ViewMatrices.GetViewProjMatrix();
 
-					GetViewFrustumBounds(InstanceParams.ViewFrustumLocal, LocalViewProjForCulling, false);
-
+						FConvexVolume LeftEyeBounds, RightEyeBounds;
+						GetViewFrustumBounds(LeftEyeBounds, LeftEyeLocalViewProjForCulling, false);
+						GetViewFrustumBounds(RightEyeBounds, RightEyeLocalViewProjForCulling, false);
+						
+						InstanceParams.ViewFrustumLocal.Planes.Empty(5);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[0]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(RightEyeBounds.Planes[1]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[2]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[3]);
+						InstanceParams.ViewFrustumLocal.Planes.Add(LeftEyeBounds.Planes[4]);
+						InstanceParams.ViewFrustumLocal.Init();
+					}
+					else
+					{
+						const FMatrix LocalViewProjForCulling = GetLocalToWorld() * View->ViewMatrices.GetViewProjMatrix();
+						GetViewFrustumBounds(InstanceParams.ViewFrustumLocal, LocalViewProjForCulling, false);
+					}
 
 					if (View->ViewMatrices.IsPerspectiveProjection())
 					{
@@ -1286,7 +1308,6 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 							ThreePlanes.SetAxes(&InstanceParams.ViewFrustumLocal.Planes[0], &InstanceParams.ViewFrustumLocal.Planes[1], &InstanceParams.ViewFrustumLocal.Planes[2]);
 							FVector ProjectionOrigin = ThreePlanes.Inverse().GetTransposed().TransformVector(FVector(InstanceParams.ViewFrustumLocal.Planes[0].W, InstanceParams.ViewFrustumLocal.Planes[1].W, InstanceParams.ViewFrustumLocal.Planes[2].W));
 
-							FVector Forward = LocalViewProjForCulling.GetColumn(3).GetSafeNormal();
 							for (int32 Index = 0; Index < InstanceParams.ViewFrustumLocal.Planes.Num(); Index++)
 							{
 								FPlane Src = InstanceParams.ViewFrustumLocal.Planes[Index];

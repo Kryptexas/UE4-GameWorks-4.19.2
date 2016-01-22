@@ -188,6 +188,12 @@ namespace UnrealBuildTool
 		public static bool bAllowXGE;
 
 		/// <summary>
+		/// Whether to use the no_watchdog_thread option to prevent VS2015 toolchain stalls.
+		/// </summary>
+		[XmlConfig]
+		public static bool bXGENoWatchdogThread;
+
+		/// <summary>
 		/// Whether we should just export the XGE XML and pretend it succeeded
 		/// </summary>
 		[XmlConfig]
@@ -539,6 +545,7 @@ namespace UnrealBuildTool
 			bAllowLTCG = false;
 			bAllowRemotelyCompiledPCHs = false;
 			bAllowXGE = true;
+			bXGENoWatchdogThread = false;
 			bAllowSNDBS = true;
 
 			// Don't bother to check external (stable) headers for modification.  It slows down UBT's dependency checking.

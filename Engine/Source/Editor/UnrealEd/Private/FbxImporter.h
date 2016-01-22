@@ -75,11 +75,10 @@ class UInterpTrackMove;
 
 #include <fbxsdk.h>
 
-#include "TokenizedMessage.h"
-
-
 #pragma pack(pop)
 
+
+#include "TokenizedMessage.h"
 
 
 #ifdef TMP_UNFBX_BACKUP_O_RDONLY

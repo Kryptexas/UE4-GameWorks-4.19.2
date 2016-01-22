@@ -226,15 +226,13 @@ public class IOSPlatform : Platform
 
 		if (String.IsNullOrEmpty(Params.Provision))
 		{
-			UnrealBuildTool.IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as UnrealBuildTool.IOSPlatform;
-			UnrealBuildTool.IOSPlatformContext BuildPlatContext = (IOSPlatformContext)BuildPlat.CreateContext(Params.RawProjectPath);
+			UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
 			BuildPlatContext.SetUpProjectEnvironment();
 			Params.Provision = BuildPlatContext.MobileProvision;
 		}
 		if (String.IsNullOrEmpty(Params.Certificate))
 		{
-			UnrealBuildTool.IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as UnrealBuildTool.IOSPlatform;
-			UnrealBuildTool.IOSPlatformContext BuildPlatContext = (IOSPlatformContext)BuildPlat.CreateContext(Params.RawProjectPath);
+			UnrealBuildTool.IOSPlatformContext BuildPlatContext = new IOSPlatformContext(Params.RawProjectPath);
 			BuildPlatContext.SetUpProjectEnvironment();
 			Params.Certificate = BuildPlatContext.SigningCertificate;
 		}

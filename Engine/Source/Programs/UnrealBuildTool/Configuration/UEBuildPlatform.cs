@@ -1600,7 +1600,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void TryRegisterBuildPlatforms()
 		{
-			if (UnrealBuildTool.IsValidPlatform(TargetPlatform))
+			if (InstalledPlatformInfo.Current.IsValidPlatform(TargetPlatform))
 			{
 				RegisterBuildPlatforms();
 			}

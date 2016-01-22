@@ -32,7 +32,7 @@ struct FVertexFactoryInterpolantsVSToPS
 	float2 DummyTexCoord : TEXCOORD0;
 
 #if INSTANCED_STEREO
-	nointerpolation uint EyeIndex : EYE_INDEX;
+	nointerpolation uint PackedEyeIndex : PACKED_EYE_INDEX;
 #endif
 };
 
@@ -147,7 +147,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS( FVertexFact
 	Interpolants.DummyTexCoord = float2(0,0);
 
 #if INSTANCED_STEREO
-	Interpolants.EyeIndex = 0;
+	Interpolants.PackedEyeIndex = 0;
 #endif
 
 	return Interpolants;

@@ -184,7 +184,7 @@ void ALODActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		// If we change override settings dirty the actor
 		SetIsDirty(true);
 	}
-	
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
@@ -380,6 +380,7 @@ void ALODActor::SetIsDirty(const bool bNewState)
 		{
 			SubActor->SetLODParent(nullptr, LODDrawDistance);
 		}
+
 
 		// Broadcast actor marked dirty event
 		if (GEngine)

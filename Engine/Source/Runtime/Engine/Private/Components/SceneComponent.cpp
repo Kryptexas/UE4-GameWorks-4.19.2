@@ -765,7 +765,24 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 					}
 					if (bNeedsDetach)
 					{
-						Child->DetachFromParent();
+						if (ensure(Child->AttachParent && Child->AttachParent == this))
+						{
+							Child->DetachFromParent();
+						}
+						else
+						{
+							// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
+							// so instead of crashing output an error and gracefully handle
+							if (Child->AttachParent)
+							{
+								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
+							}
+							else
+							{
+								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
+							}
+							AttachChildren.Pop(false);
+						}
 					}
 					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
 				}
@@ -795,7 +812,24 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 					}
 					if (bNeedsDetach)
 					{
-						Child->DetachFromParent();
+						if (ensure(Child->AttachParent && Child->AttachParent == this))
+						{
+							Child->DetachFromParent();
+						}
+						else
+						{
+							// We've gotten in to a bad state where the Child's AttachParent doesn't jive with the AttachChildren array
+							// so instead of crashing output an error and gracefully handle
+							if (Child->AttachParent)
+							{
+								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
+							}
+							else
+							{
+								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
+							}
+							AttachChildren.Pop(false);
+						}
 					}
 					checkf(ChildCount > AttachChildren.Num(), TEXT("AttachChildren count increased while detaching '%s', likely caused by OnAttachmentChanged introducing new children, which could lead to an infinite loop."), *Child->GetName());
 				}

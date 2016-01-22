@@ -105,7 +105,9 @@ namespace BlueprintNodeTemplateCacheImpl
 //------------------------------------------------------------------------------
 static bool BlueprintNodeTemplateCacheImpl::IsCompatible(UEdGraphNode* NodeObj, UEdGraph* Graph)
 {
-	return NodeObj->CanCreateUnderSpecifiedSchema(Graph->GetSchema());
+	const UEdGraphSchema* Schema = Graph->GetSchema();
+	return ensureMsgf(Schema != nullptr, TEXT("PROTO_BP graph with invalid schema: %s "), *Graph->GetName()) && 
+		NodeObj->CanCreateUnderSpecifiedSchema(Schema);
 }
 
 //------------------------------------------------------------------------------
@@ -385,6 +387,8 @@ UEdGraphNode* FBlueprintNodeTemplateCache::GetNodeTemplate(UBlueprintNodeSpawner
 			if (CompatibleOuter == nullptr)
 			{
 				CompatibleOuter = AddGraph(CompatibleBlueprint, TargetGraph->Schema);
+				ensureMsgf( CompatibleOuter->Schema != nullptr, TEXT("Invalid schema for template graph (from '%s :: %s')."),
+						*TargetBlueprint->GetName(), *TargetGraph->GetName() );
 
 				if (CompatibleBlueprint != TargetBlueprint)
 				{

@@ -379,6 +379,8 @@ void UCrowdFollowingComponent::SetCrowdSimulationState(ECrowdSimulationState New
 	UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("SetCrowdSimulation: %s"), *CrowdSimulationDesc[static_cast<uint8>(NewState)]);
 
 	const bool bNeedRegistration = (NewState != ECrowdSimulationState::Disabled);
+	SimulationState = NewState;
+
 	if (bNeedRegistration != bRegisteredWithCrowdSimulation)
 	{
 		ICrowdAgentInterface* IAgent = Cast<ICrowdAgentInterface>(this);

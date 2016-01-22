@@ -627,7 +627,7 @@ NiagaraEffectRenderer(),
 DynamicDataRender(NULL)
 {
 	//check(InProps);
-	VertexFactory = new FMeshParticleVertexFactory(PVFT_Mesh, FeatureLevel, sizeof(FMeshParticleInstanceVertex), 0);
+	VertexFactory = ConstructMeshParticleVertexFactory(PVFT_Mesh, FeatureLevel, sizeof(FMeshParticleInstanceVertex), 0);
 	Properties = Cast<UNiagaraMeshRendererProperties>(InProps);
 
 

@@ -1379,6 +1379,61 @@ namespace UnrealBuildTool
 			return APL.ProcessPluginNode(Arch, "proguardAdditions", Text.ToString());
 		}
 
+		private void ValidateGooglePlay(string UE4BuildPath)
+		{
+			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			bool bEnableGooglePlaySupport;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bEnableGooglePlaySupport", out bEnableGooglePlaySupport);
+
+			if (!bEnableGooglePlaySupport)
+			{
+				// do not need to do anything; it is fine
+				return;
+			}
+
+			bool bInvalid = true;
+			String Filename = Path.Combine(UE4BuildPath, "res", "values", "GooglePlayAppID.xml");
+			if (File.Exists(Filename))
+			{
+				string[] FileContent = File.ReadAllLines(Filename);
+				foreach (string Line in FileContent)
+				{
+					int StartIndex = Line.IndexOf("\"app_id\">");
+					if (StartIndex < 0)
+						continue;
+
+					StartIndex += 9;
+					int EndIndex = Line.IndexOf("</string>");
+					if (EndIndex < 0)
+						continue;
+
+					string AppID = Line.Substring(StartIndex, EndIndex - StartIndex);
+					Int64 Value;
+					if (AppID.Length > 0 && Int64.TryParse(AppID, out Value))
+					{
+						bInvalid = false;
+					}
+
+					break;
+				}
+
+				// remove any read only flags if invalid so it can be replaced
+				if (bInvalid)
+				{
+					FileInfo DestFileInfo = new FileInfo(Filename);
+					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+				}
+			}
+
+			if (bInvalid)
+			{
+				Log.TraceWarning("\nWARNING: GooglePlay Games App ID is invalid!");
+
+				// write file with something which will fail but not cause an exception if executed
+				File.WriteAllText(Filename, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n\t<string name=\"app_id\">1</string>\n</resources>\n");
+			}
+		}
+
 		private bool FilesAreDifferent(string SourceFilename, string DestFilename)
 		{
 			// source must exist
@@ -1666,6 +1721,8 @@ namespace UnrealBuildTool
 			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);
 
+			//Now validate GooglePlay app_id if enabled
+			ValidateGooglePlay(UE4BuildPath);
 
 			//Now keep the splash screen images matching orientation requested
 			PickSplashScreenOrientation(UE4BuildPath);
@@ -1701,6 +1758,9 @@ namespace UnrealBuildTool
 				File.WriteAllText(ManifestFile, Manifest);
 				ManifestFile = Path.Combine(UE4BuildPath, "AndroidManifest.xml");
 				File.WriteAllText(ManifestFile, Manifest);
+
+				// copy prebuild plugin files
+				APL.ProcessPluginNode(NDKArch, "prebuildCopies", "");
 
 				// update metadata files (like project.properties, build.xml) if we are missing a build.xml or if we just overwrote project.properties with a bad version in it (from game/engine dir)
 				UpdateProjectProperties(ToolChain, UE4BuildPath, ProjectName);
@@ -1783,7 +1843,9 @@ namespace UnrealBuildTool
 				// copy libgnustl_shared.so to library (use 4.8 if possible, otherwise 4.6)
 				CopySTL(ToolChain, UE4BuildPath, Arch, NDKArch, bForDistribution);
 				CopyGfxDebugger(UE4BuildPath, Arch, NDKArch);
-				CopyPluginLibs(EngineDirectory, UE4BuildPath, Arch, NDKArch);
+
+				// copy postbuild plugin files
+				APL.ProcessPluginNode(NDKArch, "resourceCopies", "");
 
 				Log.TraceInformation("\n===={0}====PERFORMING FINAL APK PACKAGE OPERATION================================================", DateTime.Now.ToString());
 
@@ -1939,12 +2001,6 @@ namespace UnrealBuildTool
 			{
 				Log.TraceInformation(Line.Data);
 			}
-		}
-
-		private void CopyPluginLibs(string EngineDirectory, string UE4BuildPath, string UE4Arch, string NDKArch)
-		{
-			// allow modules to copy dependencies
-			APL.ProcessPluginNode(NDKArch, "resourceCopies", "");
 		}
 
 		private void UpdateGameActivity(string UE4Arch, string NDKArch, string EngineDir, string UE4BuildPath)

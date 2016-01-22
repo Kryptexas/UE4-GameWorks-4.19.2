@@ -61,7 +61,7 @@ namespace EHostType
 	{
 		Runtime,
 		RuntimeNoCommandlet,
-		RuntimeNoProgram,
+		RuntimeAndProgram,
 		Developer,
 		Editor,
 		EditorNoCommandlet,

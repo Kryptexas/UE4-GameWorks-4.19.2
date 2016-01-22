@@ -1230,7 +1230,7 @@ namespace HLODOutliner
 		if (!InActor->IsA<AHLODSelectionActor>() && !InActor->IsA<AWorldSettings>())
 		{
 			FullRefresh();
-		}	
+		}
 	}
 
 	void SHLODOutliner::OnLevelActorsRemoved(AActor* InActor)
@@ -1262,7 +1262,7 @@ namespace HLODOutliner
 		if (!ChangedActor->IsA<AHLODSelectionActor>())
 		{
 			FullRefresh();
-		}	
+		}
 	}
 
 	void SHLODOutliner::OnMapChange(uint32 MapFlags)
@@ -1272,7 +1272,7 @@ namespace HLODOutliner
 	}
 
 	void SHLODOutliner::OnNewCurrentLevel()
-	{	
+	{
 		ResetCachedData();
 		FullRefresh();
 	}
@@ -1323,7 +1323,7 @@ namespace HLODOutliner
 	}
 
 	void SHLODOutliner::OnHLODActorMarkedDirtyEvent(ALODActor* InActor)
-	{	
+	{
 		if (InActor->GetStaticMeshComponent()->StaticMesh)
 		{
 			InActor->GetStaticMeshComponent()->StaticMesh = nullptr;
@@ -1335,7 +1335,7 @@ namespace HLODOutliner
 	void SHLODOutliner::OnHLODTransitionScreenSizeChangedEvent()
 	{
 		if (CurrentWorld)
-		{			
+		{
 			int32 MaxLODLevel = FMath::Min(CurrentWorldSettings->HierarchicalLODSetup.Num(), LODLevelTransitionScreenSizes.Num());
 			for (int32 LODLevelIndex = 0; LODLevelIndex < MaxLODLevel; ++LODLevelIndex)
 			{
@@ -1360,7 +1360,7 @@ namespace HLODOutliner
 	{		
 		bNeedsRefresh = true;
 	}
-	
+
 	const bool SHLODOutliner::UpdateCurrentWorldAndSettings()
 	{
 		CurrentWorld = nullptr;
@@ -1382,11 +1382,11 @@ namespace HLODOutliner
 			// Retrieve current world settings
 			CurrentWorldSettings = CurrentWorld->GetWorldSettings();
 			checkf(CurrentWorldSettings != nullptr, TEXT("CurrentWorld (%s) does not contain a valid WorldSettings actor"), *CurrentWorld->GetName());
-						
+
 			// Update settings view
 			SettingsView->SetObject(CurrentWorldSettings);
 		}
-		
+
 
 		return (CurrentWorld != nullptr);
 	}
@@ -1401,7 +1401,7 @@ namespace HLODOutliner
 		if (CurrentWorldSettings)
 		{
 			// Iterate over all LOD levels (Number retrieved from world settings) and add Treeview items for them
-			const uint32 LODLevels = CurrentWorldSettings->HierarchicalLODSetup.Num();			
+			const uint32 LODLevels = CurrentWorldSettings->HierarchicalLODSetup.Num();
 			for (uint32 LODLevelIndex = 0; LODLevelIndex < LODLevels; ++LODLevelIndex)
 			{
 				FTreeItemRef LevelItem = MakeShareable(new FLODLevelItem(LODLevelIndex));
@@ -1415,7 +1415,7 @@ namespace HLODOutliner
 
 				// Initialize lod level actors/screen size and build flag
 				LODLevelBuildFlags.Add(true);
-				LODLevelActors.AddDefaulted();					
+				LODLevelActors.AddDefaulted();
 				LODLevelTransitionScreenSizes.Add(CurrentWorldSettings->HierarchicalLODSetup[LODLevelIndex].TransitionScreenSize);
 
 				TreeItemsMap.Add(LevelItem->GetID(), LevelItem);
@@ -1435,7 +1435,7 @@ namespace HLODOutliner
 						// Only handling LODActors
 						if (Actor)
 						{
-							ALODActor* LODActor = Cast<ALODActor>(Actor);							
+							ALODActor* LODActor = Cast<ALODActor>(Actor);
 							// Add LOD Actor item to the treeview
 							if (LODActor)
 							{
@@ -1471,7 +1471,7 @@ namespace HLODOutliner
 						}
 					}
 				}
-			}	
+			}
 
 			// Take empty LOD levels into account for the build flags
 			for (uint32 LODLevelIndex = 0; LODLevelIndex < LODLevels; ++LODLevelIndex)
@@ -1485,7 +1485,7 @@ namespace HLODOutliner
 
 		// Request treeview UI item to refresh
 		TreeView->RequestTreeRefresh();
-		
+
 		// Just finished refreshing
 		bNeedsRefresh = false;
 	}

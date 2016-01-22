@@ -370,7 +370,7 @@ namespace HLODOutliner
 
 		/** Retrieves and updates the current world and world settings pointers (returns whether or not a world was found) */
 		const bool UpdateCurrentWorldAndSettings();
-	
+
 		/** Populates the HLODTreeRoot array and consequently the Treeview */
 		void Populate();
 
@@ -422,6 +422,7 @@ namespace HLODOutliner
 
 		/** World instance we are currently representing/mirroring in the panel */
 		UWorld* CurrentWorld;
+
 		/** World settings found in CurrentWorld */
 		AWorldSettings* CurrentWorldSettings;
 

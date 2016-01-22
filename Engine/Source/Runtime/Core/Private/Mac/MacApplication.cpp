@@ -251,6 +251,17 @@ bool FMacApplication::IsCursorDirectlyOverSlateWindow() const
 	return Window && [Window isKindOfClass:[FCocoaWindow class]] && Window != DraggedWindow;
 }
 
+TSharedPtr<FGenericWindow> FMacApplication::GetWindowUnderCursor()
+{
+	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
+	NSWindow* const Window = [NSApp windowWithWindowNumber:WindowNumber];
+	if (Window && [Window isKindOfClass:[FCocoaWindow class]] && Window != DraggedWindow)
+	{
+		return StaticCastSharedPtr<FGenericWindow>(FindWindowByNSWindow((FCocoaWindow*)Window));
+	}
+	return TSharedPtr<FMacWindow>(nullptr);
+}
+
 void FMacApplication::SetHighPrecisionMouseMode(const bool Enable, const TSharedPtr<FGenericWindow>& InWindow)
 {
 	bUsingHighPrecisionMouseInput = Enable;

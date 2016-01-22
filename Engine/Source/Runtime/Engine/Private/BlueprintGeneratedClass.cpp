@@ -184,7 +184,16 @@ struct FConditionalRecompileClassHepler
 			}
 		}
 
-		return ENeededAction::Recompile;
+		if (GeneratingBP->Status != BS_Error)
+		{
+			return ENeededAction::Recompile;
+		}
+		else
+		{
+			// don't recompile blueprints that are in the error state, doing so may clear the error state which could trigger bytecode regeneration. We 
+			// can't regenerate bytecode from a 'bad' full compile.
+			return ENeededAction::None;
+		}
 	}
 };
 
@@ -788,14 +797,15 @@ protected:
 	virtual FArchive& operator<<(UObject*& Object) override
 	{
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-		if (Object && !Object->IsValidLowLevelFast())
+		if (!ensureMsgf( (Object == nullptr) || Object->IsValidLowLevelFast()
+			, TEXT("Invalid object referenced by the PersistentFrame: 0x%016llx (Blueprint object: %s, ReferencingProperty: %s) - If you have a reliable repro for this, please contact the development team with it.")
+			, (int64)(PTRINT)Object
+			, SerializingObject ? *SerializingObject->GetFullName() : TEXT("NULL")
+			, GetSerializedProperty() ? *GetSerializedProperty()->GetFullName() : TEXT("NULL") ))
 		{
-			UProperty* SerializingProperty = GetSerializedProperty();
-
-			UE_LOG(LogBlueprint, Fatal, TEXT("Invalid object in PersistentFrame: 0x%016llx, Blueprint object: %s, ReferencingProperty: %s"),
-				(int64)(PTRINT)Object,
-				SerializingObject   ? *SerializingObject->GetFullName()   : TEXT("NULL"),
-				SerializingProperty ? *SerializingProperty->GetFullName() : TEXT("NULL"));
+			// clear the property value (it's garbage)... the ubergraph-frame 
+			// has just lost a reference to whatever it was attempting to hold onto
+			Object = nullptr;
 		}
 #endif
 
@@ -810,7 +820,11 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 	checkSlow(InThis);
 	for (UClass* CurrentClass = InThis->GetClass(); CurrentClass; CurrentClass = CurrentClass->GetSuperClass())
 	{
-		if (auto BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
+		if (CurrentClass->HasAnyClassFlags(CLASS_NewerVersionExists))
+		{
+			break;
+		}
+		else if (auto BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
 		{
 			if (BPGC->UberGraphFramePointerProperty)
 			{

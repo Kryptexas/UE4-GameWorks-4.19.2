@@ -102,7 +102,7 @@ public:
 	void CleanSubActorArray();
 
 	/** Recalculates the drawing distance according to a fixed FOV of 90 and the transition screen size*/
-	void RecalculateDrawingDistance(const float TransitionScreenSize );
+	void RecalculateDrawingDistance(const float TransitionScreenSize);
 #endif // WITH_EDITOR
 	
 	//~ Begin UObject Interface.

@@ -397,7 +397,7 @@ public:
 			/* bInEnableReceiveDecalOutput = */ Scene != nullptr
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo, false));
 		const FMeshDrawingRenderState DrawRenderState(DitheredLODTransitionAlpha);
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
@@ -407,26 +407,22 @@ public:
 			const uint32 InstancedStereoDrawCount = (Parameters.bIsInstancedStereo && bIsInstancedMesh) ? 2 : 1;
 			for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
 			{
-				// Set the eye index explicitly
-				if (InstancedStereoDrawCount > 1)
-				{
-					DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
-				}
+				DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 
-			TDrawEvent<FRHICommandList> MeshEvent;
-			BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
+				TDrawEvent<FRHICommandList> MeshEvent;
+				BeginMeshDrawEvent(RHICmdList, Parameters.PrimitiveSceneProxy, Parameters.Mesh, MeshEvent);
 
-			DrawingPolicy.SetMeshRenderState(
-				RHICmdList, 
-				View,
-				Parameters.PrimitiveSceneProxy,
-				Parameters.Mesh,
-				BatchElementIndex,
-				bBackFace,
-				DrawRenderState,
-				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
-				typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
-				);
+				DrawingPolicy.SetMeshRenderState(
+					RHICmdList,
+					View,
+					Parameters.PrimitiveSceneProxy,
+					Parameters.Mesh,
+					BatchElementIndex,
+					bBackFace,
+					DrawRenderState,
+					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
+					typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
+					);
 				DrawingPolicy.DrawMesh(RHICmdList, Parameters.Mesh, BatchElementIndex, Parameters.bIsInstancedStereo);
 			}
 		}

@@ -238,8 +238,16 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		MTLRenderPassDescriptor* RenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
 	
 		// if we need to do queries, write to the supplied query buffer
-		VisibilityResults = QueryBuffer;
-		RenderPass.visibilityResultBuffer = QueryBuffer;
+		if (IsFeatureLevelSupported(GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4))
+		{
+			VisibilityResults = QueryBuffer;
+			RenderPass.visibilityResultBuffer = QueryBuffer;
+		}
+		else
+		{
+			VisibilityResults = NULL;
+			RenderPass.visibilityResultBuffer = NULL;
+		}
 	
 		// default to non-msaa
 	    int32 OldCount = PipelineDesc.SampleCount;

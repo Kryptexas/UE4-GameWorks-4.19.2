@@ -157,6 +157,8 @@ public:
 
 	virtual bool IsCursorDirectlyOverSlateWindow() const override;
 
+	virtual TSharedPtr<FGenericWindow> GetWindowUnderCursor() override;
+
 	virtual void SetHighPrecisionMouseMode(const bool Enable, const TSharedPtr<FGenericWindow>& InWindow) override;
 
 	virtual bool IsUsingHighPrecisionMouseMode() const override { return bUsingHighPrecisionMouseInput; }

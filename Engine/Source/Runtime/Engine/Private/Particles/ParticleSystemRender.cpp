@@ -62,7 +62,7 @@ static FParticleVertexFactoryBase* CreateParticleVertexFactory(EParticleVertexFa
 		NewVertexFactory = new FParticleBeamTrailVertexFactory(PVFT_BeamTrail, InFeatureLevel);
 		break;
 	case PVFT_Mesh:
-		NewVertexFactory = new FMeshParticleVertexFactory(PVFT_Mesh, InFeatureLevel, ParticleData->GetDynamicVertexStride(InFeatureLevel), ParticleData->GetDynamicParameterVertexStride());
+		NewVertexFactory = ConstructMeshParticleVertexFactory(PVFT_Mesh, InFeatureLevel, ParticleData->GetDynamicVertexStride(InFeatureLevel), ParticleData->GetDynamicParameterVertexStride());
 		break;
 	default:
 		break;
@@ -1481,7 +1481,7 @@ void FDynamicMeshEmitterData::CreateVertexFactory(const FSceneView *View)
 	if (VertexFactory == nullptr)
 	{
 		const int32 InstanceVertexStride = GetDynamicVertexStride(View->GetFeatureLevel());
-		VertexFactory = new FMeshParticleVertexFactory();
+		VertexFactory = ConstructMeshParticleVertexFactory();
 		VertexFactory->SetParticleFactoryType(PVFT_Mesh);
 		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
 		SetupVertexFactory(VertexFactory, StaticMesh->RenderData->LODResources[0]);

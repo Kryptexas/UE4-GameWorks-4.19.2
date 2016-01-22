@@ -41,7 +41,7 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif	//USE_DYNAMIC_PARAMETERS
 
 #if INSTANCED_STEREO
-	nointerpolation uint EyeIndex : EYE_INDEX;
+	nointerpolation uint PackedEyeIndex : PACKED_EYE_INDEX;
 #endif
 };
 
@@ -211,7 +211,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 	Interpolants.TangentToWorld2 = float4(TangentToWorld[2], sign(determinant(TangentToLocal)));
 
 #if INSTANCED_STEREO
-	Interpolants.EyeIndex = 0;
+	Interpolants.PackedEyeIndex = 0;
 #endif
 
 	return Interpolants;

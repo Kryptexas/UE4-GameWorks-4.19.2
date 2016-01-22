@@ -89,7 +89,7 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif
 
 #if INSTANCED_STEREO
-	nointerpolation uint EyeIndex : EYE_INDEX;
+	nointerpolation uint PackedEyeIndex : PACKED_EYE_INDEX;
 #endif
 };
 
@@ -401,7 +401,7 @@ float3x3 CalcTangentBasis(FVertexFactoryIntermediates Intermediates)
 #endif
 }
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && !(MAC && COMPILER_GLSL)
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 
 /** Number of vertices in each SubUV frame of CutoutGeometry. */
 uint NumCutoutVerticesPerFrame;
@@ -416,7 +416,7 @@ void ComputeBillboardUVs(FVertexFactoryInput Input, out float2 UVForPosition, ou
 	// Encoding the UV flip in the sign of the size data.
 	float2 UVFlip = sign(Input.SizeRotSubImage.xy);
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && !(MAC && COMPILER_GLSL)
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	BRANCH
 	if (NumCutoutVerticesPerFrame > 0)
 	{
@@ -625,7 +625,7 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 #endif
 
 #if INSTANCED_STEREO
-	Interpolants.EyeIndex = 0;
+	Interpolants.PackedEyeIndex = 0;
 #endif
 
 	return Interpolants;

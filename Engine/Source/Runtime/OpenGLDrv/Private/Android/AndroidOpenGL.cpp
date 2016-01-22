@@ -392,7 +392,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glDrawElementsInstanced = (PFNGLDRAWELEMENTSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawElementsInstanced"));
 		glDrawArraysInstanced = (PFNGLDRAWARRAYSINSTANCEDPROC)((void*)eglGetProcAddress("glDrawArraysInstanced"));
 		glVertexAttribDivisor = (PFNGLVERTEXATTRIBDIVISORPROC)((void*)eglGetProcAddress("glVertexAttribDivisor"));
-		
+
 		bSupportsInstancing = true;
 	}
 
@@ -426,7 +426,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	bSupportsTextureCubeLodEXT = false;
 
 	// On some Android devices with Mali GPUs textureCubeLod is not available.
-	if( RendererString.Contains(TEXT("Mali-400")) )
+	if (RendererString.Contains(TEXT("Mali-400")))
 	{
 		bSupportsShaderTextureCubeLod = false;
 	}

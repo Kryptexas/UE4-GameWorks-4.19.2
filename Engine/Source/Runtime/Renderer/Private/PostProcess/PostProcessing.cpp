@@ -1046,7 +1046,19 @@ static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRende
 
 					if (BaseFilename.Len())
 					{
-						FString MaterialFilename = BaseFilename + TEXT("_") + (*It)->GetName() + TEXT(".png");
+						// First off, allow the user to specify the pass as a format arg (using {material})
+						TMap<FString, FStringFormatArg> FormatMappings;
+						FormatMappings.Add(TEXT("material"), (*It)->GetName());
+
+						FString MaterialFilename = FString::Format(*BaseFilename, FormatMappings);
+
+						// If the format made no change to the string, we add the name of the material to ensure uniqueness
+						if (MaterialFilename == BaseFilename)
+						{
+							MaterialFilename = BaseFilename + TEXT("_") + (*It)->GetName();
+						}
+
+						MaterialFilename.Append(TEXT(".png"));
 						MaterialPass->SetOutputDumpFilename(ePId_Output0, *MaterialFilename);
 					}
 

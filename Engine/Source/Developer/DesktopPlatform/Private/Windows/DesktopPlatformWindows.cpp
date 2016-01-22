@@ -153,7 +153,7 @@ bool FDesktopPlatformWindows::CanOpenLauncher(bool Install)
 	return UriProtocolKey.Exists() || (Install && GetLauncherInstallerPath(Path));
 }
 
-bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString LauncherRelativeUrl, FString CommandLineParams)
+bool FDesktopPlatformWindows::OpenLauncher(const FOpenLauncherOptions& Options)
 {
 	FRegistryRootedKey UriProtocolKey(HKEY_CLASSES_ROOT, TEXT("com.epicgames.launcher"));
 	FString InstallerPath;
@@ -161,27 +161,14 @@ bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString LauncherRelativ
 	// Try to launch it directly
 	if (UriProtocolKey.Exists())
 	{
-		FString LauncherUriRequest;
-		if (LauncherRelativeUrl.IsEmpty())
-		{
-			LauncherUriRequest = TEXT("com.epicgames.launcher:");
-		}
-		else
-		{
-			LauncherUriRequest = FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl);
-		}
-
-		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
-		{
-			CommandLineParams += TEXT(" -noselfupdate");
-		}
+		FString LauncherUriRequest = Options.GetLauncherUriRequest();
 
 		FString Error;
-		FPlatformProcess::LaunchURL(*LauncherUriRequest, *CommandLineParams, &Error);
+		FPlatformProcess::LaunchURL(*LauncherUriRequest, nullptr, &Error);
 		return true;
 	}
 	// Otherwise see if we can install it
-	else if(Install && GetLauncherInstallerPath(InstallerPath))
+	else if(Options.bInstall && GetLauncherInstallerPath(InstallerPath))
 	{
 		FPlatformProcess::LaunchFileInDefaultExternalApplication(*InstallerPath);
 		return true;

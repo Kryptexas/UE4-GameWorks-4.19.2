@@ -18,7 +18,8 @@ static const float GTessellationDepthBias = 0.001f;
 // for non tessellation: 0.0f as the isolate code should do a good job to prevent this case (can be increased if that is not the case e.g. if the platform ignores the isolate)
 static const float GNonTessellationDepthBias = 0.0f;
 // for instanced stereo
-static const float GInstancedStereoDepthBias = 0.001f;
+// TODO: We should be able to remove this bias once the velocity pass is being rendering with instanced stereo
+static const float GInstancedStereoDepthBias = 0.0001f;
 
 struct FVelocityInterpsVSToPS
 {

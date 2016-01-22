@@ -1962,7 +1962,6 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(SimplificationDetails.DetailsPercentage/100.f);
 			ProxySettings.MaterialSettings = SimplificationDetails.StaticMeshMaterialSettings;
 
-			TArray<UObject*> OutAssets;
 			FString ProxyPackageName = FString::Printf(TEXT("PROXY_%s_LOD%d"), *FPackageName::GetShortName(TileModel->TileDetails->PackageName), TargetLODIndex + 1);
 			
 			// Generate proxy mesh and proxy material assets 
@@ -1974,17 +1973,17 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				if (AssetsToSync.Num())
 				{
 					UStaticMesh* ProxyMesh = nullptr;
-					if (OutAssets.FindItemByClass(&ProxyMesh))
+					if (AssetsToSync.FindItemByClass(&ProxyMesh))
 					{
 						new(AssetsToSpawn)FAssetToSpawnInfo(ProxyMesh, FTransform(-ActorsOffset));
 					}
 
-					GeneratedAssets.Append(OutAssets);
+					GeneratedAssets.Append(AssetsToSync);
 				}
 			});
 
 			FGuid JobGuid = FGuid::NewGuid();
-			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, ProxyPackageName, JobGuid, ProxyDelegate);
+			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, AssetsPath + ProxyPackageName, JobGuid, ProxyDelegate);
 		}
 
 		// Convert landscape actors into static meshes

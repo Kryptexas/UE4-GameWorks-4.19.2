@@ -103,7 +103,9 @@ void Main(
 	// Transformation is done in Domain shader when tessellating
 	Output.Position = WorldPos;
 	Output.FactoryInterpolants = VertexFactoryGetInterpolantsVSToDS(Input, VFIntermediates, VertexParameters);
+
 #if INSTANCED_STEREO
+	Output.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex = PackEyeIndex(EyeIndex, bIsInstancedStereo);
 	Output.FactoryInterpolants.EyeIndex = EyeIndex;
 #endif
 

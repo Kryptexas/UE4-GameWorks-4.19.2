@@ -5336,6 +5336,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 	else
 	{
 		MeshMerging->ProxyLOD(MergeData, InMeshProxySettings, FlattenedMaterials, InGuid);
+		Processor->Tick(0); // make sure caller gets merging results
 	}
 }
 

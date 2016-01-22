@@ -192,23 +192,15 @@ protected:
 					{
 						// find the subobject:
 						UObject* CurrentObject = SourceCDO->GetDefaultObject();
-						UObject* NextObject = CurrentObject->GetDefaultSubobjectByName(SubObjectHierarchyID[0]);
-
-						// Current increasing depth into sub-objects, starts at 1 to avoid the sub-object found and placed in NextObject.
-						int SubObjectDepth = 1;
-
-						// Only continue digging deeper if the current target sub-object was found
-						bool bFoundTargetSubObject = true;
-						while(NextObject && bFoundTargetSubObject)
+						bool bFoundTargetSubObject = (SubObjectHierarchyID.Num() == 0);
+						if (!bFoundTargetSubObject)
 						{
-							CurrentObject = NextObject;
-							NextObject = nullptr;
-
-							// If there is no more depth to dig for our object, we are done.
-							if (SubObjectDepth < SubObjectHierarchyID.Num())
+							// Current increasing depth into sub-objects, starts at 1 to avoid the sub-object found and placed in NextObject.
+							int SubObjectDepth = 0;
+							UObject* NextObject = CurrentObject;
+							while (NextObject != nullptr && !bFoundTargetSubObject)
 							{
-								bFoundTargetSubObject = false;
-
+								NextObject = nullptr;
 								// Look for any UObject's with the CurrentObject's outer to find the next sub-object
 								TArray<UObject*> OutDefaultSubobjects;
 								GetObjectsWithOuter(CurrentObject, OutDefaultSubobjects, false);
@@ -218,14 +210,15 @@ protected:
 									{
 										SubObjectDepth++;
 										NextObject = OutDefaultSubobjects[SubobjectIndex];
-										bFoundTargetSubObject = true;
+										bFoundTargetSubObject = SubObjectDepth == SubObjectHierarchyID.Num();
 										break;
 									}
 								}
+								CurrentObject = NextObject;
 							}
 						}
 
-						return bFoundTargetSubObject? CurrentObject : nullptr;
+						return bFoundTargetSubObject ? CurrentObject : nullptr;
 					}
 					else
 					{

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Shaders.cpp: D3D shader RHI implementation.
@@ -266,8 +266,8 @@ FD3D12BoundShaderState::FD3D12BoundShaderState(
 {
 	INC_DWORD_STAT(STAT_D3D12NumBoundShaderState);
 
-    // Warning: Input layout desc contains padding which must be zero-initialized to prevent PSO cache misses
-    FMemory::Memzero(&InputLayout, sizeof(InputLayout));
+	// Warning: Input layout desc contains padding which must be zero-initialized to prevent PSO cache misses
+	FMemory::Memzero(&InputLayout, sizeof(InputLayout));
 
 	FD3D12VertexDeclaration*  InVertexDeclaration = FD3D12DynamicRHI::ResourceCast(InVertexDeclarationRHI);
 	FD3D12VertexShader*  InVertexShader = FD3D12DynamicRHI::ResourceCast(InVertexShaderRHI);
@@ -326,7 +326,7 @@ FBoundShaderStateRHIRef FD3D12DynamicRHI::RHICreateBoundShaderState(
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12CreateBoundShaderStateTime);
 
-    checkf(GIsRHIInitialized && GetRHIDevice()->GetCommandListManager().IsReady(), (TEXT("Bound shader state RHI resource was created without initializing Direct3D first")));
+	checkf(GIsRHIInitialized && GetRHIDevice()->GetCommandListManager().IsReady(), (TEXT("Bound shader state RHI resource was created without initializing Direct3D first")));
 
 #if D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE
 	// Check for an existing bound shader state which matches the parameters
@@ -338,7 +338,7 @@ FBoundShaderStateRHIRef FD3D12DynamicRHI::RHICreateBoundShaderState(
 		DomainShaderRHI,
 		GeometryShaderRHI
 		);
-	if(CachedBoundShaderState.GetReference())
+	if (CachedBoundShaderState.GetReference())
 	{
 		// If we've already created a bound shader state with these parameters, reuse it.
 		return CachedBoundShaderState;
@@ -354,7 +354,7 @@ FBoundShaderStateRHIRef FD3D12DynamicRHI::RHICreateBoundShaderState(
 		DomainShaderRHI,
 		GeometryShaderRHI
 		);
-	if(CachedBoundShaderStateLink)
+	if (CachedBoundShaderStateLink)
 	{
 		// If we've already created a bound shader state with these parameters, reuse it.
 		return CachedBoundShaderStateLink->BoundShaderState;
@@ -363,7 +363,7 @@ FBoundShaderStateRHIRef FD3D12DynamicRHI::RHICreateBoundShaderState(
 	else
 	{
 		SCOPE_CYCLE_COUNTER(STAT_D3D12NewBoundShaderStateTime);
-		
+
 		return new FD3D12BoundShaderState(VertexDeclarationRHI, VertexShaderRHI, PixelShaderRHI, HullShaderRHI, DomainShaderRHI, GeometryShaderRHI, MainDevice);
 	}
 }
