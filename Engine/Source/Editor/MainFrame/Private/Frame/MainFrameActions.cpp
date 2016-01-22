@@ -1132,6 +1132,9 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 	UatProcess->OnCompleted().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessCompleted, NotificationItemPtr, PlatformDisplayName, TaskShortName, Data);
 	UatProcess->OnOutput().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessOutput, NotificationItemPtr, PlatformDisplayName, TaskShortName);
 
+	TWeakPtr<FMonitoredProcess> UatProcessPtr(UatProcess);
+	FEditorDelegates::OnShutdownPostPackagesSaved.Add(FSimpleDelegate::CreateStatic(&FMainFrameActionCallbacks::HandleUatCancelButtonClicked, UatProcessPtr));
+
 	if (UatProcess->Launch())
 	{
 		GEditor->PlayEditorSound(TEXT("/Engine/EditorSounds/Notifications/CompileStart_Cue.CompileStart_Cue"));
@@ -1212,6 +1215,14 @@ void FMainFrameActionCallbacks::HandleUatCancelButtonClicked( TSharedPtr<FMonito
 	}
 }
 
+void FMainFrameActionCallbacks::HandleUatCancelButtonClicked(TWeakPtr<FMonitoredProcess> PackagerProcessPtr)
+{
+	TSharedPtr<FMonitoredProcess> PackagerProcess = PackagerProcessPtr.Pin();
+	if (PackagerProcess.IsValid())
+	{
+		PackagerProcess->Cancel(true);
+	}
+}
 
 void FMainFrameActionCallbacks::HandleUatProcessCanceled( TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event )
 {
