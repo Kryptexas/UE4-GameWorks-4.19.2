@@ -2368,6 +2368,9 @@ public:
 	// Returns true if the actor contains an active camera component
 	virtual bool HasActiveCameraComponent();
 
+	// Returns true if the actor contains an active locked to HMD camera component
+	virtual bool HasActivePawnControlCameraComponent() const;
+
 	// Returns the human readable string representation of an object.
 	virtual FString GetHumanReadableName() const;
 

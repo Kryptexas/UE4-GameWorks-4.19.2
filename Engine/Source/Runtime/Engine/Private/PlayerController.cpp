@@ -913,7 +913,7 @@ void APlayerController::UpdateRotation( float DeltaTime )
 	}
 
 	AActor* ViewTarget = GetViewTarget();
-	if (!ViewTarget || !ViewTarget->HasActiveCameraComponent())
+	if (!PlayerCameraManager || !ViewTarget || !ViewTarget->HasActiveCameraComponent() || ViewTarget->HasActivePawnControlCameraComponent())
 	{
 		if (IsLocalPlayerController() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
 		{
