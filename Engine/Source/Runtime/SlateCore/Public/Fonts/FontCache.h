@@ -112,6 +112,11 @@ struct FShapedGlyphEntry
 	 * This is typically 1, however will be greater for ligatures, or may be 0 if a single character produces multiple glyphs
 	 */
 	uint8 NumCharactersInGlyph;
+	/**
+	 * True if this is a visible glyph that should be drawn.
+	 * False if the glyph is invisible (eg, whitespace or a control code) and should skip drawing, but still include its advance amount.
+	 */
+	bool bIsVisible;
 
 	FShapedGlyphEntry()
 		: FontFaceData()
@@ -123,6 +128,7 @@ struct FShapedGlyphEntry
 		, YOffset(0)
 		, Kerning(0)
 		, NumCharactersInGlyph(0)
+		, bIsVisible(false)
 	{
 	}
 
@@ -549,16 +555,15 @@ public:
 		return DirectIndexEntries.IsValidIndex( Character ) || ( Character >= MaxDirectIndexedEntries && MappedEntries.Contains( Character ) );
 	}
 
-
 	/**
 	 * Gets data about how to render and measure a character 
 	 * Caching and atlasing it if needed
 	 *
-	 * @param InFontInfo	The higher level font info (used for determining the font fallback level - FontKey does not cache this)
-	 * @param Character		The character to get
+	 * @param Character			The character to get
+	 * @param MaxFontFallback	The maximum fallback level that can be used when resolving glyphs
 	 * @return				Data about the character
 	 */
-	FCharacterEntry GetCharacter(const FSlateFontInfo& InFontInfo, TCHAR Character);
+	FCharacterEntry GetCharacter(TCHAR Character, const EFontFallback MaxFontFallback);
 
 	/** Check to see if our cached data is potentially stale for our font */
 	bool IsStale() const;
@@ -566,12 +571,12 @@ public:
 	/**
 	 * Gets a kerning value for a pair of characters
 	 *
-	 * @param InFontInfo	The higher level font info (used for determining the font fallback level - FontKey does not cache this)
-	 * @param FirstChar		The first character in the pair
-	 * @param SecondChar	The second character in the pair
+	 * @param FirstChar			The first character in the pair
+	 * @param SecondChar		The second character in the pair
+	 * @param MaxFontFallback	The maximum fallback level that can be used when resolving glyphs
 	 * @return The kerning value
 	 */
-	int8 GetKerning(const FSlateFontInfo& InFontInfo, TCHAR FirstChar, TCHAR SecondChar);
+	int8 GetKerning(TCHAR FirstChar, TCHAR SecondChar, const EFontFallback MaxFontFallback);
 
 	/**
 	 * Gets a kerning value for a pair of character entries
@@ -599,9 +604,10 @@ private:
 	/**
 	 * Returns whether the specified character is valid for caching (i.e. whether it matches the FontFallback level)
 	 *
-	 * @param Character		The character to check
+	 * @param Character			The character to check
+	 * @param MaxFontFallback	The maximum fallback level that can be used when resolving glyphs
 	 */
-	bool CanCacheCharacter(TCHAR Character);
+	bool CanCacheCharacter(TCHAR Character, const EFontFallback MaxFontFallback);
 
 	/**
 	 * Caches a new character
@@ -631,8 +637,6 @@ private:
 	mutable uint16 MaxHeight;
 	/** The offset from the bottom of the max character height to the baseline. */
 	mutable int16 Baseline;
-	/** Temporarily adjusts the font fallback level, during key functions calls */
-	EFontFallback FontFallback;
 };
 
 /**
@@ -694,9 +698,9 @@ public:
 	/** 
 	 * Gets information for how to draw all characters in the specified string. Caches characters as they are found
 	 * 
-	 * @param Text			The string to get character information for
-	 * @param InFontInfo	Information about the font that the string is drawn with
-	 * @param FontScale	The scale to apply to the font
+	 * @param Text				The string to get character information for
+	 * @param InFontInfo		Information about the font that the string is drawn with
+	 * @param FontScale			The scale to apply to the font
 	 * @param OutCharacterEntries	Populated array of character entries. Indices of characters in Text match indices in this array
 	 */
 	class FCharacterList& GetCharacterList( const FSlateFontInfo &InFontInfo, float FontScale ) const;

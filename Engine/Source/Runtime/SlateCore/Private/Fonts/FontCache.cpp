@@ -640,30 +640,6 @@ bool FShapedGlyphSequence::EnumerateGlyphsInClusterRange(const int32 InStartInde
 }
 
 
-/**
- * Helper for pop/pushing the font fallback level, within function calls
- */
-class FScopedFontFallback
-{
-public:
-	FScopedFontFallback(EFontFallback& OutFontFallback, EFontFallback SetFontFallback)
-		: FontFallback(OutFontFallback)
-		, OldFontFallback(OutFontFallback)
-	{
-		FontFallback = SetFontFallback;
-	}
-
-	~FScopedFontFallback()
-	{
-		FontFallback = OldFontFallback;
-	}
-
-private:
-	EFontFallback& FontFallback;
-	EFontFallback OldFontFallback;
-};
-
-
 FKerningTable::FKerningTable( const FSlateFontCache& InFontCache )
 	: DirectAccessTable( nullptr )
 	, FontCache( InFontCache )
@@ -753,7 +729,6 @@ FCharacterList::FCharacterList( const FSlateFontKey& InFontKey, const FSlateFont
 	, MaxDirectIndexedEntries( FontCacheConstants::DirectAccessSize )
 	, MaxHeight( 0 )
 	, Baseline( 0 )
-	, FontFallback(EFontFallback::FF_Max)
 {
 	const FCompositeFont* const CompositeFont = InFontKey.GetFontInfo().GetCompositeFont();
 	if( CompositeFont )
@@ -768,11 +743,11 @@ bool FCharacterList::IsStale() const
 	return !CompositeFont || CompositeFontHistoryRevision != CompositeFont->HistoryRevision;
 }
 
-int8 FCharacterList::GetKerning(const FSlateFontInfo& InFontInfo, TCHAR FirstChar, TCHAR SecondChar)
+int8 FCharacterList::GetKerning(TCHAR FirstChar, TCHAR SecondChar, const EFontFallback MaxFontFallback)
 {
-	const FCharacterEntry First = GetCharacter( InFontInfo, FirstChar );
-	const FCharacterEntry Second = GetCharacter( InFontInfo, SecondChar );
-	return GetKerning( First, Second );
+	const FCharacterEntry First = GetCharacter(FirstChar, MaxFontFallback);
+	const FCharacterEntry Second = GetCharacter(SecondChar, MaxFontFallback);
+	return GetKerning(First, Second);
 }
 
 int8 FCharacterList::GetKerning( const FCharacterEntry& FirstCharacterEntry, const FCharacterEntry& SecondCharacterEntry )
@@ -815,7 +790,7 @@ int16 FCharacterList::GetBaseline() const
 	return Baseline;
 }
 
-bool FCharacterList::CanCacheCharacter(TCHAR Character)
+bool FCharacterList::CanCacheCharacter(TCHAR Character, const EFontFallback MaxFontFallback)
 {
 	bool bReturnVal = false;
 
@@ -828,16 +803,14 @@ bool FCharacterList::CanCacheCharacter(TCHAR Character)
 		float SubFontScalingFactor = 1.0f;
 		const FFontData& FontData = FontCache.GetFontDataForCharacter(FontKey.GetFontInfo(), Character, SubFontScalingFactor);
 
-		bReturnVal = FontCache.FontRenderer->CanLoadCharacter(FontData, Character, FontFallback);
+		bReturnVal = FontCache.FontRenderer->CanLoadCharacter(FontData, Character, MaxFontFallback);
 	}
 
 	return bReturnVal;
 }
 
-FCharacterEntry FCharacterList::GetCharacter(const FSlateFontInfo& InFontInfo, TCHAR Character)
+FCharacterEntry FCharacterList::GetCharacter(TCHAR Character, const EFontFallback MaxFontFallback)
 {
-	FScopedFontFallback FallbackScope(FontFallback, InFontInfo.FontFallback);
-
 	const FCharacterEntry* ReturnVal = nullptr;
 	bool bDirectIndexChar = Character < MaxDirectIndexedEntries;
 
@@ -863,14 +836,14 @@ FCharacterEntry FCharacterList::GetCharacter(const FSlateFontInfo& InFontInfo, T
 		bNeedCaching = !ReturnVal->IsCached();
 
 		// If the character needs caching, but can't be cached, reject the character
-		if (bNeedCaching && !CanCacheCharacter(Character))
+		if (bNeedCaching && !CanCacheCharacter(Character, MaxFontFallback))
 		{
 			bNeedCaching = false;
 			ReturnVal = nullptr;
 		}
 	}
 	// Only map the character if it can be cached
-	else if (CanCacheCharacter(Character))
+	else if (CanCacheCharacter(Character, MaxFontFallback))
 	{
 		bNeedCaching = true;
 
@@ -893,7 +866,7 @@ FCharacterEntry FCharacterList::GetCharacter(const FSlateFontInfo& InFontInfo, T
 			ReturnVal = &(CacheCharacter(Character));
 		}
 		// For already-cached characters, reject characters that don't fall within maximum font fallback level requirements
-		else if (Character != SlateFontRendererUtils::InvalidSubChar && FontFallback < ReturnVal->FallbackLevel)
+		else if (Character != SlateFontRendererUtils::InvalidSubChar && MaxFontFallback < ReturnVal->FallbackLevel)
 		{
 			ReturnVal = nullptr;
 		}
@@ -905,7 +878,7 @@ FCharacterEntry FCharacterList::GetCharacter(const FSlateFontInfo& InFontInfo, T
 	}
 
 	// The character is not valid, replace with the invalid character substitute
-	return GetCharacter(InFontInfo, SlateFontRendererUtils::InvalidSubChar);
+	return GetCharacter(SlateFontRendererUtils::InvalidSubChar, MaxFontFallback);
 }
 
 const FCharacterEntry& FCharacterList::CacheCharacter( TCHAR Character )

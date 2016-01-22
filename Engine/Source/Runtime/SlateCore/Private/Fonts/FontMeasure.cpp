@@ -200,12 +200,12 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 		}
 		else
 		{
-			const FCharacterEntry& Entry = CharacterList.GetCharacter(InFontInfo, CurrentChar);
+			const FCharacterEntry& Entry = CharacterList.GetCharacter(CurrentChar, InFontInfo.FontFallback);
 
 			int32 Kerning = 0;
 			if( PreviousChar != 0 )
 			{
-				Kerning = CharacterList.GetKerning(CharacterList.GetCharacter(InFontInfo, PreviousChar), Entry);
+				Kerning = CharacterList.GetKerning(CharacterList.GetCharacter(PreviousChar, InFontInfo.FontFallback), Entry);
 			}
 
 			PreviousChar = CurrentChar;
@@ -313,7 +313,7 @@ uint16 FSlateFontMeasure::GetMaxCharacterHeight( const FSlateFontInfo& InFontInf
 int8 FSlateFontMeasure::GetKerning(const FSlateFontInfo& InFontInfo, float FontScale, TCHAR PreviousCharacter, TCHAR CurrentCharacter) const
 {
 	FCharacterList& CharacterList = FontCache->GetCharacterList( InFontInfo, FontScale );
-	return CharacterList.GetKerning( InFontInfo, PreviousCharacter, CurrentCharacter );
+	return CharacterList.GetKerning( PreviousCharacter, CurrentCharacter, InFontInfo.FontFallback );
 }
 
 int16 FSlateFontMeasure::GetBaseline( const FSlateFontInfo& InFontInfo, float FontScale ) const

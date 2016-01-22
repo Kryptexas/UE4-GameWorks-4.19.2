@@ -51,7 +51,7 @@ uint16 FSlateFontRenderer::GetMaxHeight(const FSlateFontInfo& InFontInfo, const 
 	// Just get info for the null character 
 	TCHAR Char = 0;
 	const FFontData& FontData = CompositeFontCache->GetDefaultFontData(InFontInfo);
-	const FFreeTypeFaceGlyphData FaceGlyphData = GetFontFaceForCharacter(FontData, Char, EFontFallback::FF_Max);
+	const FFreeTypeFaceGlyphData FaceGlyphData = GetFontFaceForCharacter(FontData, Char, InFontInfo.FontFallback);
 
 	if (FaceGlyphData.FaceAndMemory.IsValid())
 	{
@@ -74,7 +74,7 @@ int16 FSlateFontRenderer::GetBaseline(const FSlateFontInfo& InFontInfo, const fl
 	// Just get info for the null character 
 	TCHAR Char = 0;
 	const FFontData& FontData = CompositeFontCache->GetDefaultFontData(InFontInfo);
-	const FFreeTypeFaceGlyphData FaceGlyphData = GetFontFaceForCharacter(FontData, Char, EFontFallback::FF_Max);
+	const FFreeTypeFaceGlyphData FaceGlyphData = GetFontFaceForCharacter(FontData, Char, InFontInfo.FontFallback);
 
 	if (FaceGlyphData.FaceAndMemory.IsValid())
 	{

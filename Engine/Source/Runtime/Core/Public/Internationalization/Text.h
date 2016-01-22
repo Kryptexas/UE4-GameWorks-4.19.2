@@ -835,6 +835,11 @@ namespace TextBiDi
 	CORE_API ETextDirection ComputeBaseDirection(const FText& InText);
 	CORE_API ETextDirection ComputeBaseDirection(const FString& InString);
 	CORE_API ETextDirection ComputeBaseDirection(const TCHAR* InString, const int32 InStringStartIndex, const int32 InStringLen);
+
+	/**
+	 * Utility function which tests to see whether the given character is a bidirectional control character.
+	 */
+	CORE_API bool IsControlCharacter(const TCHAR InChar);
 } // namespace TextBiDi
 
 Expose_TNameOf(FText)
