@@ -30,7 +30,6 @@ protected:
 
 	// FKismetCompilerContext
 	//virtual UEdGraphSchema_K2* CreateSchema() override;
-	virtual void SetClassForBytecodeCompile(UClass* TargetClass) override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
 	virtual void PrecompileFunction(FKismetFunctionContext& Context) override;
