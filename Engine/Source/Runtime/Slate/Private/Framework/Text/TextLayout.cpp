@@ -387,6 +387,12 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 		LineView.Blocks.Append( OutSoftLine );
 
 		LineViews.Add( LineView );
+
+		// Does this new line view require justification?
+		if (CalculateLineViewVisualJustification(LineView) != ETextJustify::Left)
+		{
+			LineViewsToJustify.Add(LineViews.Num() - 1);
+		}
 	}
 
 	TextLayoutSize.DrawWidth = FMath::Max( TextLayoutSize.DrawWidth, LineSize.X ); // DrawWidth is the size of the longest line + the Margin
@@ -396,44 +402,28 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 void FTextLayout::JustifyLayout()
 {
-	if ( Justification == ETextJustify::Left && TextFlowDirection == ETextFlowDirection::LeftToRight )
+	if (LineViewsToJustify.Num() == 0)
 	{
 		return;
 	}
 
-	const float LayoutWidthNoMargin = FMath::Max(TextLayoutSize.DrawWidth, ViewSize.X * Scale) - ( Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale );
+	const float LayoutWidthNoMargin = FMath::Max(TextLayoutSize.DrawWidth, ViewSize.X * Scale) - (Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale);
 
-	for (FLineView& LineView : LineViews)
+	for (const int32 LineViewIndex : LineViewsToJustify)
 	{
-		// Work out the visual justification to use for this line
-		ETextJustify::Type VisualJustification = Justification;
-		if ( LineView.TextBaseDirection == TextBiDi::ETextDirection::RightToLeft )
-		{
-			if ( VisualJustification == ETextJustify::Left )
-			{
-				VisualJustification = ETextJustify::Right;
-			}
-			else if ( VisualJustification == ETextJustify::Right )
-			{
-				VisualJustification = ETextJustify::Left;
-			}
-		}
+		FLineView& LineView = LineViews[LineViewIndex];
 
-		if ( VisualJustification == ETextJustify::Left )
-		{
-			continue;
-		}
-
+		const ETextJustify::Type VisualJustification = CalculateLineViewVisualJustification(LineView);
 		const float ExtraSpace = LayoutWidthNoMargin - LineView.Size.X;
 
-		FVector2D OffsetAdjustment( ForceInitToZero );
-		if ( VisualJustification == ETextJustify::Center )
+		FVector2D OffsetAdjustment = FVector2D::ZeroVector;
+		if (VisualJustification == ETextJustify::Center)
 		{
-			OffsetAdjustment = FVector2D( ExtraSpace * 0.5f, 0 );
+			OffsetAdjustment.X = ExtraSpace * 0.5f;
 		}
-		else if ( VisualJustification == ETextJustify::Right )
+		else if (VisualJustification == ETextJustify::Right)
 		{
-			OffsetAdjustment = FVector2D( ExtraSpace, 0 );
+			OffsetAdjustment.X = ExtraSpace;
 		}
 
 		LineView.Offset += OffsetAdjustment;
@@ -791,6 +781,7 @@ void FTextLayout::ClearView()
 {
 	TextLayoutSize = FTextLayoutSize();
 	LineViews.Empty();
+	LineViewsToJustify.Empty();
 }
 
 void FTextLayout::CalculateTextDirection()
@@ -801,7 +792,7 @@ void FTextLayout::CalculateTextDirection()
 	}
 }
 
-void FTextLayout::CalculateLineTextDirection(FLineModel& LineModel)
+void FTextLayout::CalculateLineTextDirection(FLineModel& LineModel) const
 {
 	if (!(LineModel.DirtyFlags & ELineModelDirtyState::TextBaseDirection))
 	{
@@ -825,6 +816,24 @@ void FTextLayout::CalculateLineTextDirection(FLineModel& LineModel)
 	}
 	
 	LineModel.DirtyFlags &= ~ELineModelDirtyState::TextBaseDirection;
+}
+
+ETextJustify::Type FTextLayout::CalculateLineViewVisualJustification(const FLineView& LineView) const
+{
+	// Work out the visual justification to use for this line
+	ETextJustify::Type VisualJustification = Justification;
+	if (LineView.TextBaseDirection == TextBiDi::ETextDirection::RightToLeft)
+	{
+		if (VisualJustification == ETextJustify::Left)
+		{
+			VisualJustification = ETextJustify::Right;
+		}
+		else if (VisualJustification == ETextJustify::Right)
+		{
+			VisualJustification = ETextJustify::Left;
+		}
+	}
+	return VisualJustification;
 }
 
 void FTextLayout::CreateWrappingCache()
@@ -907,6 +916,7 @@ void FTextLayout::DirtyAllLineModels(const ELineModelDirtyState::Flags InDirtyFl
 FTextLayout::FTextLayout() 
 	: LineModels()
 	, LineViews()
+	, LineViewsToJustify()
 	, DirtyFlags( ETextLayoutDirtyState::None )
 	, TextShapingMethod( GetDefaultTextShapingMethod() )
 	, TextFlowDirection( GetDefaultTextFlowDirection() )
@@ -1776,6 +1786,7 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 				}
 
 				LineViews.RemoveAt(ViewIndex);
+				LineViewsToJustify.Remove(ViewIndex);
 				--ViewIndex;
 			}
 			else if (LineView.ModelIndex > LineIndex)
@@ -2127,8 +2138,8 @@ void FTextLayout::SetVisibleRegion( const FVector2D& InViewSize, const FVector2D
 	if (ViewSize != InViewSize)
 	{
 		ViewSize = InViewSize;
-
-		if (Justification != ETextJustify::Left)
+		
+		if (LineViewsToJustify.Num() > 0)
 		{
 			// If the view size has changed, we may need to update our positions based on our justification
 			DirtyFlags |= ETextLayoutDirtyState::Layout;
