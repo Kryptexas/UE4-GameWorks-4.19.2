@@ -1828,18 +1828,22 @@ void FTextLayout::AddLine( const FNewLineData& NewLine )
 
 		BeginLineLayout(LineModel);
 
+		const int32 FirstNewLineViewIndex = LineViews.Num() + 1;
+
 		TArray<TSharedRef<ILayoutBlock>> SoftLine;
 		FlowLineLayout(LineModelIndex, GetWrappingDrawWidth(), SoftLine);
 
-		// Apply the current margin to the newly added line
-		if (LineViews.Num() > 0)
+		// Apply the current margin to the newly added lines
 		{
 			const FVector2D MarginOffsetAdjustment = FVector2D(Margin.Left, Margin.Top) * Scale;
 
-			FLineView& LastLineView = LineViews.Last();
-			if (LastLineView.ModelIndex == LineModelIndex)
+			for (int32 LineViewIndex = FirstNewLineViewIndex; LineViewIndex < LineViews.Num(); ++LineViewIndex)
 			{
-				LastLineView.Offset += MarginOffsetAdjustment;
+				FLineView& LineView = LineViews[LineViewIndex];
+				if (LineView.ModelIndex == LineModelIndex)
+				{
+					LineView.Offset += MarginOffsetAdjustment;
+				}
 			}
 
 			for (const TSharedRef< ILayoutBlock >& Block : SoftLine)
@@ -1889,18 +1893,22 @@ void FTextLayout::AddLines( const TArray<FNewLineData>& NewLines )
 			FlushLineTextShapingCache(LineModel);
 			CreateLineWrappingCache(LineModel);
 
+			const int32 FirstNewLineViewIndex = LineViews.Num() + 1;
+
 			TArray<TSharedRef<ILayoutBlock>> SoftLine;
 			FlowLineLayout(LineModelIndex, GetWrappingDrawWidth(), SoftLine);
 
-			// Apply the current margin to the newly added line
-			if (LineViews.Num() > 0)
+			// Apply the current margin to the newly added lines
 			{
 				const FVector2D MarginOffsetAdjustment = FVector2D(Margin.Left, Margin.Top) * Scale;
 
-				FLineView& LastLineView = LineViews.Last();
-				if (LastLineView.ModelIndex == LineModelIndex)
+				for (int32 LineViewIndex = FirstNewLineViewIndex; LineViewIndex < LineViews.Num(); ++LineViewIndex)
 				{
-					LastLineView.Offset += MarginOffsetAdjustment;
+					FLineView& LineView = LineViews[LineViewIndex];
+					if (LineView.ModelIndex == LineModelIndex)
+					{
+						LineView.Offset += MarginOffsetAdjustment;
+					}
 				}
 
 				for (const TSharedRef< ILayoutBlock >& Block : SoftLine)
