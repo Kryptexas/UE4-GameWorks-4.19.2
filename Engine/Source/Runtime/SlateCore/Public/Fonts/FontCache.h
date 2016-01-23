@@ -819,6 +819,11 @@ public:
 	const TSet<FName>& GetFontAttributes( const FFontData& InFontData ) const;
 
 	/**
+	 * Get the revision index of the currently active localized fallback font.
+	 */
+	int32 GetLocalizedFallbackFontRevision() const;
+
+	/**
 	 * Issues a request to clear all cached data from the cache
 	 */
 	void RequestFlushCache();

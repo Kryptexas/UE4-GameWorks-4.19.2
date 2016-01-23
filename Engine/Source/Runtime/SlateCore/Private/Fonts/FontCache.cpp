@@ -6,6 +6,7 @@
 #include "FontCacheCompositeFont.h"
 #include "SlateFontRenderer.h"
 #include "SlateTextShaper.h"
+#include "LegacySlateFontInfoCache.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Font Atlases"), STAT_SlateNumFontAtlases, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Font Kerning Table Memory"), STAT_SlateFontKerningTableMemory, STATGROUP_SlateMemory);
@@ -1170,6 +1171,11 @@ bool FSlateFontCache::HasKerning( const FFontData& InFontData ) const
 const TSet<FName>& FSlateFontCache::GetFontAttributes( const FFontData& InFontData ) const
 {
 	return CompositeFontCache->GetFontAttributes(InFontData);
+}
+
+int32 FSlateFontCache::GetLocalizedFallbackFontRevision() const
+{
+	return FLegacySlateFontInfoCache::Get().GetLocalizedFallbackFontRevision();
 }
 
 void FSlateFontCache::RequestFlushCache()
