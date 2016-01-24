@@ -340,6 +340,10 @@ private:
 
 			return Size;
 		}	
+
+		private:
+			FVertexFactoryData(const FVertexFactoryData&);
+			FVertexFactoryData& operator=(const FVertexFactoryData&);
 	};
 
 	/** vertex data for rendering a single LOD */
