@@ -107,7 +107,7 @@ private:
 				Layout->ClearLines();
 			}
 
-			Layout->AddLine(LineText, Runs);
+			Layout->AddLine(FSlateTextLayout::FNewLineData(MoveTemp(LineText), MoveTemp(Runs)));
 		}
 
 		/**
