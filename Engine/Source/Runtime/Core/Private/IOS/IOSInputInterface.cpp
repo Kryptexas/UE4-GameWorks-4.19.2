@@ -388,6 +388,7 @@ if (Controller.Previous##Gamepad != nil && Gamepad.GCAxis.value != Controller.Pr
         }
 		
 		// motion is orthogonal to buttons
+#if 0 // will need to fix this to work with tvOS SDK 9.1 and higher
 		if (Motion != nil)
 		{
 			FVector Attitude;
@@ -432,6 +433,7 @@ if (Controller.Previous##Gamepad != nil && Gamepad.GCAxis.value != Controller.Pr
 //			NSLog(@"Grav %.2f, %.2f, %.2f\n", Gravity.X, Gravity.Y, Gravity.Z);
 //			NSLog(@"Acce %.2f, %.2f, %.2f\n", Acceleration.X, Acceleration.Y, Acceleration.Z);
 		}
+#endif
 #endif
 	}
 }
