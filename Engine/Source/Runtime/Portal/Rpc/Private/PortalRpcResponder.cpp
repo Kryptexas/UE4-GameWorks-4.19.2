@@ -27,8 +27,10 @@ public:
 private:
 
 	FPortalRpcResponderImpl(
-		const FString& InMyHostMacAddress)
+		const FString& InMyHostMacAddress,
+		const FString& InMyHostUserId)
 		: MyHostMacAddress(InMyHostMacAddress)
+		, MyHostUserId(InMyHostUserId)
 	{
 		MessageEndpoint = FMessageEndpoint::Builder("FPortalRpcResponder")
 			.Handling<FPortalRpcLocateServer>(this, &FPortalRpcResponderImpl::HandleMessage);
@@ -48,7 +50,7 @@ private:
 			return;
 		}
 
-		if (Message.HostMacAddress != MyHostMacAddress)
+		if (Message.HostMacAddress != MyHostMacAddress && Message.HostUserId != MyHostUserId)
 		{
 			return;
 		}
@@ -71,6 +73,7 @@ private:
 private:
 
 	const FString MyHostMacAddress;
+	const FString MyHostUserId;
 
 	/** A delegate that is executed when a look-up for an RPC server occurs. */
 	FOnPortalRpcLookup LookupDelegate;
@@ -86,5 +89,5 @@ private:
 
 TSharedRef<IPortalRpcResponder> FPortalRpcResponderFactory::Create()
 {
-	return MakeShareable(new FPortalRpcResponderImpl(FGenericPlatformMisc::GetMacAddressString()));
+	return MakeShareable(new FPortalRpcResponderImpl(FPlatformMisc::GetMacAddressString(), FPlatformProcess::UserName(false)));
 }
