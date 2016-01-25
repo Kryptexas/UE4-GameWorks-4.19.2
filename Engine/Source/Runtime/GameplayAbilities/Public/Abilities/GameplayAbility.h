@@ -631,6 +631,9 @@ public:
 
 	void NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* AbilityTask);
 
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	float GetCooldownTimeRemaining() const;
+
 protected:
 
 	// -----------------------------------------------	
@@ -684,9 +687,6 @@ protected:
 	/** Deprecated. Use CooldownGameplayEffectClass instead */
 	UPROPERTY(VisibleDefaultsOnly, Category=Deprecated)
 	class UGameplayEffect* CooldownGameplayEffect;
-
-	UFUNCTION(BlueprintCallable, Category = Ability)
-	float GetCooldownTimeRemaining() const; 
 	
 	// ----------------------------------------------------------------------------------------------------------------
 	//

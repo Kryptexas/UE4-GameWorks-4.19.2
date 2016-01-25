@@ -28,6 +28,7 @@
 #include "KismetNodes/SGraphNodeK2Event.h"
 #include "KismetNodes/SGraphNodeFormatText.h"
 #include "KismetNodes/SGraphNodeK2ArrayFunction.h"
+#include "KismetNodes/SGraphNodeK2Copy.h"
 
 #include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_SequencePlayer.h"
@@ -39,6 +40,7 @@
 #include "AnimStateTransitionNode.h"
 
 #include "AnimationStateMachineSchema.h"
+#include "AnimationGraphSchema.h"
 
 #include "AnimationStateNodes/SGraphNodeAnimState.h"
 #include "AnimationStateNodes/SGraphNodeAnimTransition.h"
@@ -75,6 +77,12 @@
 #include "MaterialNodes/SGraphNodeMaterialResult.h"
 
 #include "MaterialPins/SGraphPinMaterialInput.h"
+
+#include "ConnectionDrawingPolicy.h"
+#include "AnimGraphConnectionDrawingPolicy.h"
+#include "StateMachineConnectionDrawingPolicy.h"
+#include "SoundCueGraphConnectionDrawingPolicy.h"
+#include "MaterialGraphConnectionDrawingPolicy.h"
 
 #include "EdGraphUtilities.h"
 
@@ -215,6 +223,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(InNode))
 		{
 			return SNew(SGraphNodeKnot, Knot);
+		}
+		else if (UK2Node_Copy* CopyNode = Cast<UK2Node_Copy>(InNode))
+		{
+			return SNew(SGraphNodeK2Copy, CopyNode);
 		}
 		else
 		{
@@ -423,4 +435,58 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 
 	// If we didn't pick a custom pin widget, use an uncustomized basic pin
 	return SNew(SGraphPin, InPin);
+}
+
+FConnectionDrawingPolicy* FNodeFactory::CreateConnectionPolicy(const UEdGraphSchema* Schema, int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj)
+{
+    FConnectionDrawingPolicy* ConnectionDrawingPolicy;
+
+    // First give the schema a chance to provide the connection drawing policy
+    ConnectionDrawingPolicy = Schema->CreateConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+
+    // First give a shot to the registered connection factories
+    if (!ConnectionDrawingPolicy)
+    {
+        for (auto FactoryIt = FEdGraphUtilities::VisualPinConnectionFactories.CreateIterator(); FactoryIt; ++FactoryIt)
+        {
+            TSharedPtr<FGraphPanelPinConnectionFactory> FactoryPtr = *FactoryIt;
+            if (FactoryPtr.IsValid())
+            {
+                ConnectionDrawingPolicy = FactoryPtr->CreateConnectionPolicy(Schema, InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+            }
+        }
+    }
+
+    // If neither the schema nor the factory provides a policy, try the hardcoded ones
+    //@TODO: Fold all of this code into registered factories for the various schemas!
+    if (!ConnectionDrawingPolicy)
+    {
+        if (Schema->IsA(UAnimationGraphSchema::StaticClass()))
+        {
+            ConnectionDrawingPolicy = new FAnimGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+        }
+        else if (Schema->IsA(UAnimationStateMachineSchema::StaticClass()))
+        {
+            ConnectionDrawingPolicy = new FStateMachineConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+        }
+        else if (Schema->IsA(UEdGraphSchema_K2::StaticClass()))
+        {
+            ConnectionDrawingPolicy = new FKismetConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+        }
+        else if (Schema->IsA(USoundCueGraphSchema::StaticClass()))
+        {
+            ConnectionDrawingPolicy = new FSoundCueGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+        }
+        else if (Schema->IsA(UMaterialGraphSchema::StaticClass()))
+        {
+            ConnectionDrawingPolicy = new FMaterialGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+        }
+        else
+        {
+            ConnectionDrawingPolicy = new FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements);
+        }
+    }
+
+    // If we never picked a custom policy, use the uncustomized standard policy
+    return ConnectionDrawingPolicy;
 }

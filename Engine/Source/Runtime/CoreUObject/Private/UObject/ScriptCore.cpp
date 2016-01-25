@@ -14,6 +14,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogScriptCore, Log, All);
 
 DECLARE_CYCLE_STAT(TEXT("Blueprint Time"),STAT_BlueprintTime,STATGROUP_Game);
 
+#if TOTAL_OVERHEAD_SCRIPT_STATS
+COREUOBJECT_API FBlueprintEventTimer::FScopedVMTimer* FBlueprintEventTimer::ActiveVMTimer = nullptr;
+COREUOBJECT_API FBlueprintEventTimer::FPausableScopeTimer* FBlueprintEventTimer::ActiveTimer = nullptr;
+
+DEFINE_STAT(STAT_ScriptVmTime_Total);
+DEFINE_STAT(STAT_ScriptNativeTime_Total);
+#endif //TOTAL_OVERHEAD_SCRIPT_STATS
 
 /*-----------------------------------------------------------------------------
 	Globals.
@@ -214,7 +221,13 @@ FString UnicodeToCPPIdentifier(const FString& InName, bool bDeprecated, const TC
 		}
 	}
 
-	Ret = FString(Prefix) + Ret + Postfix;
+	FString PrefixStr(Prefix);
+	//fix for error C2059: syntax error : 'bad suffix on number'
+	if (!PrefixStr.Len() && Ret.Len() && FChar::IsDigit(Ret[0]))
+	{
+		Ret.InsertAt(0, TCHAR('_'));
+	}
+	Ret = PrefixStr + Ret + Postfix;
 	return bDeprecated ? Ret + TEXT("_DEPRECATED") : Ret;
 }
 
@@ -509,6 +522,16 @@ IMPLEMENT_VM_FUNCTION(EX_CallMath, execCallMathFunction);
 
 void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 {
+#if PER_FUNCTION_SCRIPT_STATS
+	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
+#endif // PER_FUNCTION_SCRIPT_STATS
+
+#if STATS
+	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
+#endif
+
 	checkSlow(Function);
 
 	if (Function->FunctionFlags & FUNC_Native)
@@ -556,8 +579,8 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 			}
 
 			// Call regular native function.
-			FScopeCycleCounterUObject ContextScope(Stack.Object);
-			FScopeCycleCounterUObject FunctionScope(Function);
+			FScopeCycleCounterUObject NativeContextScope(Stack.Object);
+			FScopeCycleCounterUObject NativeFunctionScope(Function);
 
 			Function->Invoke(this, Stack, RESULT_PARAM);
 		}
@@ -729,10 +752,22 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		return;
 	}
 
-	int32 FunctionCallspace = GetFunctionCallspace( (UFunction*)Stack.Node, Stack.Locals, NULL );
+	UFunction* Function = (UFunction*)Stack.Node;
+
+#if PER_FUNCTION_SCRIPT_STATS
+	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
+#endif // PER_FUNCTION_SCRIPT_STATS
+
+#if STATS
+	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
+#endif
+
+	int32 FunctionCallspace = GetFunctionCallspace(Function, Stack.Locals, NULL);
 	if (FunctionCallspace & FunctionCallspace::Remote)
 	{
-		CallRemoteFunction((UFunction*)Stack.Node, Stack.Locals, Stack.OutParms, NULL);
+		CallRemoteFunction(Function, Stack.Locals, Stack.OutParms, NULL);
 	}
 
 	if (FunctionCallspace & FunctionCallspace::Local)
@@ -744,7 +779,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		if(FBlueprintExceptionTracker::Get().bRanaway)
 		{
 			// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
-			UProperty* ReturnProp = ((UFunction*)Stack.Node)->GetReturnProperty();
+			UProperty* ReturnProp = (Function)->GetReturnProperty();
 			ClearReturnValue(ReturnProp, RESULT_PARAM);
 			return;
 		}
@@ -754,7 +789,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 			UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
 
 			// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
-			UProperty* ReturnProp = ((UFunction*)Stack.Node)->GetReturnProperty();
+			UProperty* ReturnProp = (Function)->GetReturnProperty();
 			ClearReturnValue(ReturnProp, RESULT_PARAM);
 
 			// Notify anyone who cares that we've had a fatal error, so we can shut down PIE, etc
@@ -769,9 +804,6 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 			return;
 		}
 #endif
-		FScopeCycleCounterUObject ContextScope(Stack.Object);
-		FScopeCycleCounterUObject FunctionScope((UFunction*)Stack.Node);
-
 		// Execute the bytecode
 		while (*Stack.Code != EX_Return)
 		{
@@ -782,7 +814,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 				UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
 
 				// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
-				UProperty* ReturnProp = ((UFunction*)Stack.Node)->GetReturnProperty();
+				UProperty* ReturnProp = (Function)->GetReturnProperty();
 				ClearReturnValue(ReturnProp, RESULT_PARAM);
 
 				// Notify anyone who cares that we've had a fatal error, so we can shut down PIE, etc
@@ -819,7 +851,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	}
 	else
 	{
-		UProperty* ReturnProp = ((UFunction*)Stack.Node)->GetReturnProperty();
+		UProperty* ReturnProp = (Function)->GetReturnProperty();
 		if (ReturnProp != NULL)
 		{
 			// destroy old value if necessary
@@ -1019,6 +1051,20 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 	}
 	checkSlow((Function->ParmsSize == 0) || (Parms != NULL));
 
+#if TOTAL_OVERHEAD_SCRIPT_STATS
+	FBlueprintEventTimer::FScopedVMTimer VMTime;
+#endif // TOTAL_OVERHEAD_SCRIPT_STATS
+
+#if PER_FUNCTION_SCRIPT_STATS
+	const bool bShouldTrackFunction = FThreadStats::IsCollectingData();
+	FScopeCycleCounterUObject FunctionScope(bShouldTrackFunction ? Function : nullptr);
+#endif // PER_FUNCTION_SCRIPT_STATS
+
+#if STATS
+	const bool bShouldTrackObject = FThreadStats::IsCollectingData();
+	FScopeCycleCounterUObject ContextScope(bShouldTrackObject ? this : nullptr);
+#endif
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetClass()->HasInstrumentation())
 	{
@@ -1128,8 +1174,6 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 		uint8* ReturnValueAdress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
 		if (Function->FunctionFlags & FUNC_Native)
 		{
-			FScopeCycleCounterUObject ContextScope(this);
-			FScopeCycleCounterUObject FunctionScope(Function);
 			Function->Invoke(this, NewStack, ReturnValueAdress);
 		}
 		else

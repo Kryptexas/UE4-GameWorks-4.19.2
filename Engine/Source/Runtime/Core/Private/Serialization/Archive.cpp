@@ -91,6 +91,8 @@ void FArchive::Reset()
 	ArMaxSerializeSize					= 0;
 	ArIsFilterEditorOnly				= false;
 	ArIsSaveGame						= false;
+	ArCustomPropertyList				= nullptr;
+	ArUseCustomPropertyList				= false;
 	CookingTargetPlatform = nullptr;
 	SerializedProperty = nullptr;
 #if WITH_EDITORONLY_DATA
@@ -135,6 +137,8 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArMaxSerializeSize                   = ArchiveToCopy.ArMaxSerializeSize;
 	ArIsFilterEditorOnly                 = ArchiveToCopy.ArIsFilterEditorOnly;
 	ArIsSaveGame                         = ArchiveToCopy.ArIsSaveGame;
+	ArCustomPropertyList				 = ArchiveToCopy.ArCustomPropertyList;
+	ArUseCustomPropertyList				 = ArchiveToCopy.ArUseCustomPropertyList;
 	CookingTargetPlatform                = ArchiveToCopy.CookingTargetPlatform;
 	SerializedProperty = ArchiveToCopy.SerializedProperty;
 #if WITH_EDITORONLY_DATA
@@ -797,7 +801,6 @@ VARARG_BODY( void, FArchive::Logf, const TCHAR*, VARARG_NONE )
 	// Free temporary buffers.
 	FMemory::SystemFree( Buffer );
 }
-
 
 /*----------------------------------------------------------------------------
 	Transparent compression/ decompression archives.

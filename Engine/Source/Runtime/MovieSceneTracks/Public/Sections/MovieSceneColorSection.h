@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "MovieSceneSection.h"
+#include "IKeyframeSection.h"
 #include "MovieSceneColorSection.generated.h"
 
 enum class EKeyColorChannel

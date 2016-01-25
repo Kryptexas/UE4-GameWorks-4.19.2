@@ -3636,17 +3636,21 @@ void FBlueprintEditor::DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin
 
 	FName VarName;
 	bool bWasSuccessful = false;
+	FEdGraphPinType NewPinType = InTargetPin->PinType;
+	NewPinType.bIsConst = false;
+	NewPinType.bIsReference = false;
+	NewPinType.bIsWeakPointer = false;
 	if (bInToMemberVariable)
 	{
 		VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewVar"));
-		bWasSuccessful = FBlueprintEditorUtils::AddMemberVariable( GetBlueprintObj(), VarName, InTargetPin->PinType, InTargetPin->GetDefaultAsString() );
+		bWasSuccessful = FBlueprintEditorUtils::AddMemberVariable( GetBlueprintObj(), VarName, NewPinType, InTargetPin->GetDefaultAsString() );
 	}
 	else
 	{
 		ensure(FBlueprintEditorUtils::DoesSupportLocalVariables(GraphObj));
 		VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"));
 		FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(GraphObj);
-		bWasSuccessful = FBlueprintEditorUtils::AddLocalVariable( GetBlueprintObj(), FunctionGraph, VarName, InTargetPin->PinType, InTargetPin->GetDefaultAsString() );
+		bWasSuccessful = FBlueprintEditorUtils::AddLocalVariable( GetBlueprintObj(), FunctionGraph, VarName, NewPinType, InTargetPin->GetDefaultAsString() );
 	}
 
 	if (bWasSuccessful)

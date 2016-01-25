@@ -4138,6 +4138,10 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 		if (IBlueprintNativeCodeGenModule::IsNativeCodeGenModuleLoaded())
 		{
 			IBlueprintNativeCodeGenModule& CodeGenModule = IBlueprintNativeCodeGenModule::Get();
+
+			CodeGenModule.GenerateFullyConvertedClasses(); // While generating fully converted classes the list of necessary stubs is created.
+			CodeGenModule.GenerateStubs();
+
 			// merge the manifest for the blueprint code generator:
 			for (int32 I = 0; I < CookByTheBookOptions->ChildCookers.Num(); ++I )
 			{

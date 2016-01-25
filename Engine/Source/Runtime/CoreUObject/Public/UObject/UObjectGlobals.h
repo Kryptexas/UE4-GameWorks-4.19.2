@@ -911,6 +911,16 @@ private:
 	 */
 	static void InitProperties(UObject* Obj, UClass* DefaultsClass, UObject* DefaultData, bool bCopyTransientsFromClassDefaults);
 
+	/**
+	 * Helper method to assist with initializing object properties from an explicit list.
+	 * 
+	 * @param	InPropertyList		only these properties will be copied from defaults
+	 * @param	InStruct			the current scope for which the given property list applies
+	 * @param	DataPtr				destination address (where to start copying values to)
+	 * @param	DefaultDataPtr		source address (where to start copying the defaults data from)
+	 */
+	static void InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr);
+
 	bool IsInstancingAllowed() const;
 
 	/**

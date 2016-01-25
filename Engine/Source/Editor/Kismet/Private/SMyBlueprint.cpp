@@ -2592,6 +2592,7 @@ void SMyBlueprint::OnDuplicateAction()
 		}
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 
+		BlueprintEditorPtr.Pin()->OpenDocument(DuplicatedGraph, FDocumentTracker::ForceOpenNewDocument);
 		DuplicateActionName = DuplicatedGraph->GetFName();
 	}
 	else if (FEdGraphSchemaAction_K2Var* VarAction = SelectionAsVar())
