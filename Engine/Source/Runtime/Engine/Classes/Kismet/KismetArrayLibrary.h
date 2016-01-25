@@ -218,9 +218,9 @@ public:
 		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
  
  		P_FINISH;
-		P_NATIVE_BEGIN;
+ 
 		*(int32*)RESULT_PARAM = GenericArray_Add(ArrayAddr, ArrayProperty, NewItemPtr);
-		P_NATIVE_END;
+ 
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -247,9 +247,9 @@ public:
 		void* NewItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
 
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		*(int32*)RESULT_PARAM = GenericArray_AddUnique(ArrayAddr, ArrayProperty, NewItemPtr);
-		P_NATIVE_END;
+
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -266,9 +266,8 @@ public:
 		}
 
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		GenericArray_Shuffle(ArrayAddr, ArrayProperty);
-		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Append)
@@ -295,9 +294,8 @@ public:
 		}
 
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		GenericArray_Append(TargetArrayAddr, TargetArrayProperty, SourceArrayAddr, SourceArrayProperty);
-		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Insert)
@@ -324,9 +322,9 @@ public:
 
 		P_GET_PROPERTY(UIntProperty, Index);
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		GenericArray_Insert(ArrayAddr, ArrayProperty, NewItemPtr, Index);
-		P_NATIVE_END;
+
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -344,9 +342,8 @@ public:
 
 		P_GET_PROPERTY(UIntProperty, Index);
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		GenericArray_Remove(ArrayAddr, ArrayProperty, Index);
-		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_RemoveItem)
@@ -374,9 +371,9 @@ public:
 
 		// Bools need to be processed internally by the property so that C++ bool value is properly set.
 		GenericArray_HandleBool(InnerProp, ItemPtr);
-		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = GenericArray_RemoveItem(ArrayAddr, ArrayProperty, ItemPtr);
-		P_NATIVE_END;
+		  
+		bool WasRemoved = GenericArray_RemoveItem(ArrayAddr, ArrayProperty, ItemPtr);
+		*(bool*)RESULT_PARAM = WasRemoved; 
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -393,9 +390,8 @@ public:
 			return;
 		}
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		GenericArray_Clear(ArrayAddr, ArrayProperty);
-		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Resize)
@@ -411,9 +407,8 @@ public:
 		}
 		P_GET_PROPERTY(UIntProperty, Size);
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		GenericArray_Resize(ArrayAddr, ArrayProperty, Size);
-		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Length)
@@ -428,9 +423,8 @@ public:
 			return;
 		}
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		*(int32*)RESULT_PARAM = GenericArray_Length(ArrayAddr, ArrayProperty);
-		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_LastIndex)
@@ -445,9 +439,8 @@ public:
 			return;
 		}
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		*(int32*)RESULT_PARAM = GenericArray_LastIndex(ArrayAddr, ArrayProperty);
-		P_NATIVE_END;
 	}
 
 	DECLARE_FUNCTION(execArray_Get)
@@ -474,9 +467,9 @@ public:
 		void* ItemPtr = (Stack.MostRecentPropertyAddress != NULL) ? Stack.MostRecentPropertyAddress : StorageSpace;
 
 		P_FINISH;
-		P_NATIVE_BEGIN;
+
 		GenericArray_Get(ArrayAddr, ArrayProperty, Index, ItemPtr);
-		P_NATIVE_END;
+
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -507,9 +500,8 @@ public:
 
 		P_FINISH;
 
-		P_NATIVE_BEGIN;
 		GenericArray_Set(ArrayAddr, ArrayProperty, Index, NewItemPtr, bSizeToFit);
-		P_NATIVE_END;
+
 		InnerProp->DestroyValue(StorageSpace);
 	}
 
@@ -539,10 +531,9 @@ public:
 		// Bools need to be processed internally by the property so that C++ bool value is properly set.
 		GenericArray_HandleBool(InnerProp, ItemToFindPtr);
 
-		P_NATIVE_BEGIN;
 		// Perform the search
-		*(int32*)RESULT_PARAM = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
-		P_NATIVE_END;
+		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
+		*(int32*)RESULT_PARAM = FoundIndex;
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -574,9 +565,8 @@ public:
 		GenericArray_HandleBool(InnerProp, ItemToFindPtr);
 
 		// Perform the search
-		P_NATIVE_BEGIN;
-		*(bool*)RESULT_PARAM = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr) >= 0;
-		P_NATIVE_END;
+		int32 FoundIndex = GenericArray_Find(ArrayAddr, ArrayProperty, ItemToFindPtr);
+		*(bool*)RESULT_PARAM = (FoundIndex >= 0);
 
 		InnerProp->DestroyValue(StorageSpace);
 	}
@@ -591,8 +581,6 @@ public:
 
 		P_FINISH;
 
-		P_NATIVE_BEGIN;
 		GenericArray_SetArrayPropertyByName(OwnerObject, ArrayPropertyName, SrcArrayAddr);
-		P_NATIVE_END;
 	}
 };

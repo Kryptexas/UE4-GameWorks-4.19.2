@@ -3417,13 +3417,6 @@ void FKismetCompilerContext::Compile()
 		CopyTermDefaultsToDefaultObject(NewCDO);
 		SetCanEverTick();
 		SetWantsBeginPlay();
-
-		// Note: The old->new CDO copy is deferred when regenerating, so we skip this step in that case.
-		if (!Blueprint->HasAnyFlags(RF_BeingRegenerated))
-		{
-			// Update the custom property list used in post construction logic to include native class properties for which the Blueprint CDO differs from the native CDO.
-			TargetClass->UpdateCustomPropertyListForPostConstruction();
-		}
 	}
 
 	// Fill out the function bodies, either with function bodies, or simple stubs if this is skeleton generation

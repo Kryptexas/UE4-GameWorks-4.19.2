@@ -1272,16 +1272,7 @@ public:
 	 * @param PinType		The pin get the icon for.
 	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
 	 */
-	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType);
-
-	/**
-	 * Generate component instancing data (for cooked builds).
-	 *
-	 * @param ComponentTemplate	The component template to generate instancing data for.
-	 * @param OutData			The generated component instancing data.
-	 * @return					TRUE if component instancing data was built, FALSE otherwise.
-	 */
-	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
+	static const struct FSlateBrush* GetIconFromPin( const FEdGraphPinType& PinType );
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones

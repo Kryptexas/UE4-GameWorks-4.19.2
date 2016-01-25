@@ -701,8 +701,7 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 			RefLinkPtr = &(*RefLinkPtr)->NextRef;
 		}
 
-		const UClass* OwnerClass = Property->GetOwnerClass();
-		bool bOwnedByNativeClass = OwnerClass && OwnerClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
+		bool bOwnedByNativeClass = Property->GetOwnerClass() && Property->GetOwnerClass()->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
 
 		if (!Property->HasAnyPropertyFlags(CPF_IsPlainOldData | CPF_NoDestructor) &&
 			!bOwnedByNativeClass) // these would be covered by the native destructor
@@ -712,8 +711,8 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 			DestructorLinkPtr = &(*DestructorLinkPtr)->DestructorLinkNext;
 		}
 
-		// Link references to properties that require their values to be initialized and/or copied from CDO post-construction. Note that this includes all non-native-class-owned properties.
-		if (OwnerClass && (!bOwnedByNativeClass || (Property->HasAnyPropertyFlags(CPF_Config) && !OwnerClass->HasAnyClassFlags(CLASS_PerObjectConfig))))
+		// Link references to properties that require their values to be copied from CDO.
+		if ((Property->HasAnyPropertyFlags(CPF_Config) && Property->GetOwnerClass() && !Property->GetOwnerClass()->HasAnyClassFlags(CLASS_PerObjectConfig)))
 		{
 			*PostConstructLinkPtr = Property;
 			PostConstructLinkPtr = &(*PostConstructLinkPtr)->PostConstructLinkNext;
@@ -723,10 +722,9 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		PropertyLinkPtr = &(*PropertyLinkPtr)->PropertyLinkNext;
 	}
 
-	*PropertyLinkPtr = nullptr;
-	*DestructorLinkPtr = nullptr;
-	*RefLinkPtr = nullptr;
-	*PostConstructLinkPtr = nullptr;
+	*PropertyLinkPtr = NULL;
+	*DestructorLinkPtr = NULL;
+	*RefLinkPtr = NULL;
 }
 
 void UStruct::InitializeStruct(void* InDest, int32 ArrayDim/* = 1*/) const
@@ -792,24 +790,6 @@ void UStruct::SerializeBin( FArchive& Ar, void* Data ) const
 		for( UProperty* RefLinkProperty=RefLink; RefLinkProperty!=NULL; RefLinkProperty=RefLinkProperty->NextRef )
 		{
 			RefLinkProperty->SerializeBinProperty( Ar, Data );
-		}
-	}
-	else if( Ar.ArUseCustomPropertyList )
-	{
-		const FCustomPropertyListNode* CustomPropertyList = Ar.ArCustomPropertyList;
-		for (auto PropertyNode = CustomPropertyList; PropertyNode; PropertyNode = PropertyNode->PropertyListNext)
-		{
-			UProperty* Property = PropertyNode->Property;
-			if( Property )
-			{
-				// Temporarily set to the sub property list, in case we're serializing a UStruct property.
-				Ar.ArCustomPropertyList = PropertyNode->SubPropertyList;
-
-				Property->SerializeBinProperty(Ar, Data, PropertyNode->ArrayIndex);
-
-				// Restore the original property list.
-				Ar.ArCustomPropertyList = CustomPropertyList;
-			}
 		}
 	}
 	else
@@ -1406,20 +1386,15 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 		// Save tagged properties.
 
 		// Iterate over properties in the order they were linked and serialize them.
-		const FCustomPropertyListNode* CustomPropertyNode = Ar.ArUseCustomPropertyList ? Ar.ArCustomPropertyList : nullptr;
-		for (UProperty* Property = Ar.ArUseCustomPropertyList ? (CustomPropertyNode ? CustomPropertyNode->Property : nullptr) : PropertyLink;
-			Property;
-			Property = Ar.ArUseCustomPropertyList ? FCustomPropertyListNode::GetNextPropertyAndAdvance(CustomPropertyNode) : Property->PropertyLinkNext)
+		for( UProperty* Property = PropertyLink; Property; Property = Property->PropertyLinkNext )
 		{
 			if( Property->ShouldSerializeValue(Ar) )
 			{
-				const int32 LoopMin = CustomPropertyNode ? CustomPropertyNode->ArrayIndex : 0;
-				const int32 LoopMax = CustomPropertyNode ? LoopMin + 1 : Property->ArrayDim;
-				for( int32 Idx = LoopMin; Idx < LoopMax; Idx++ )
+				for( int32 Idx=0; Idx<Property->ArrayDim; Idx++ )
 				{
 					uint8* DataPtr      = Property->ContainerPtrToValuePtr           <uint8>(Data, Idx);
 					uint8* DefaultValue = Property->ContainerPtrToValuePtrForDefaults<uint8>(DefaultsStruct, Defaults, Idx);
-					if( CustomPropertyNode || !Ar.DoDelta() || Ar.IsTransacting() || (!Defaults && !dynamic_cast<const UClass*>(this)) || !Property->Identical( DataPtr, DefaultValue, Ar.GetPortFlags()) )
+					if( !Ar.DoDelta() || Ar.IsTransacting() || (!Defaults && !dynamic_cast<const UClass*>(this)) || !Property->Identical( DataPtr, DefaultValue, Ar.GetPortFlags()) )
 					{
 						if (bUseAtomicSerialization)
 						{
@@ -1436,21 +1411,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						// need to know how much data this call to SerializeTaggedProperty consumes, so mark where we are
 						int32 DataOffset = Ar.Tell();
 
-						// if using it, save the current custom property list and switch to its sub property list (in case of UStruct serialization)
-						const FCustomPropertyListNode* SavedCustomPropertyList = nullptr;
-						if(Ar.ArUseCustomPropertyList && CustomPropertyNode)
-						{
-							SavedCustomPropertyList = Ar.ArCustomPropertyList;
-							Ar.ArCustomPropertyList = CustomPropertyNode->SubPropertyList;
-						}
-
 						Tag.SerializeTaggedProperty( Ar, Property, DataPtr, DefaultValue );
-
-						// restore the original custom property list after serializing
-						if (SavedCustomPropertyList)
-						{
-							Ar.ArCustomPropertyList = SavedCustomPropertyList;
-						}
 
 						// set the tag's size
 						Tag.Size = Ar.Tell() - DataOffset;
@@ -2310,7 +2271,7 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 		if (bUseBinarySerialization)
 		{
 			// Struct is already preloaded above.
-			if (!Ar.IsPersistent() && Ar.GetPortFlags() != 0 && !ShouldSerializeAtomically(Ar) && !Ar.ArUseCustomPropertyList)
+			if (!Ar.IsPersistent() && Ar.GetPortFlags() != 0 && !ShouldSerializeAtomically(Ar))
 			{
 				SerializeBinEx(Ar, Value, Defaults, this);
 			}

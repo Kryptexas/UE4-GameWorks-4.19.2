@@ -1067,10 +1067,6 @@ inline FString GetEventStructParamsName(UObject* Outer, const TCHAR* FunctionNam
 	}
 
 	FString Result = FString::Printf(TEXT("%s_event%s_Parms"), *OuterName, FunctionName);
-	if (Result.Len() && FChar::IsDigit(Result[0]))
-	{
-		Result.InsertAt(0, TCHAR('_'));
-	}
 	return Result;
 }
 
@@ -4315,7 +4311,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	}
 
 	RPCWrappers += TEXT("\t\tP_FINISH;") LINE_TERMINATOR;
-	RPCWrappers += TEXT("\t\tP_NATIVE_BEGIN;") LINE_TERMINATOR;
 
 	auto ClassRange = ClassDefinitionRange();
 	if (ClassDefinitionRanges.Contains(Function->GetOwnerClass()))
@@ -4383,7 +4378,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	{
 		RPCWrappers.Logf(TEXT("this->%s(%s);") LINE_TERMINATOR, *FunctionData.CppImplName, *ParameterList);
 	}
-	RPCWrappers += TEXT("\t\tP_NATIVE_END;") LINE_TERMINATOR;
 }
 
 FString FNativeClassHeaderGenerator::GetFunctionParameterString(UFunction* Function)

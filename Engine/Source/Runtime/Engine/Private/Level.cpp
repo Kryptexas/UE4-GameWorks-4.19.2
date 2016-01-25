@@ -1972,17 +1972,6 @@ void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
 	}
 }	
 
-void ULevel::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform)
-{
-	Super::BeginCacheForCookedPlatformData(TargetPlatform);
-
-	// Cook all level blueprints.
-	for (auto LevelBlueprint : GetLevelBlueprints())
-	{
-		LevelBlueprint->BeginCacheForCookedPlatformData(TargetPlatform);
-	}
-}
-
 #endif	//WITH_EDITOR
 
 bool ULevel::IsPersistentLevel() const

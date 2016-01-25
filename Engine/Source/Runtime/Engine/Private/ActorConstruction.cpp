@@ -17,8 +17,6 @@
 
 DEFINE_LOG_CATEGORY(LogBlueprintUserMessages);
 
-DECLARE_CYCLE_STAT(TEXT("InstanceActorComponent"), STAT_InstanceActorComponent, STATGROUP_Engine);
-
 //////////////////////////////////////////////////////////////////////////
 // AActor Blueprint Stuff
 
@@ -578,25 +576,40 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 	return CreateComponentFromTemplate(Template, FName(*InName));
 }
 
-#if !UE_BUILD_SHIPPING
-static TAutoConsoleVariable<int32> CVarLogBlueprintComponentInstanceCalls(
-	TEXT("LogBlueprintComponentInstanceCalls"),
-	0,
-	TEXT("Log Blueprint Component instance calls; debugging."));
-#endif
-
 UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, const FName InName)
 {
-	SCOPE_CYCLE_COUNTER(STAT_InstanceActorComponent);
-
-	UActorComponent* NewActorComp = nullptr;
-	if (Template != nullptr)
+	UActorComponent* NewActorComp = NULL;
+	if(Template != NULL)
 	{
-#if !UE_BUILD_SHIPPING
-		const double StartTime = FPlatformTime::Seconds();
-#endif
-		// Resolve any name conflicts.
-		CheckComponentInstanceName(InName);
+		// If there is a Component with this name already (almost certainly because it is an Instance component), we need to rename it out of the way
+		if (!InName.IsNone())
+		{
+			UObject* ConflictingObject = FindObjectFast<UObject>(this, InName);
+			if (ConflictingObject && ConflictingObject->IsA<UActorComponent>() && CastChecked<UActorComponent>(ConflictingObject)->CreationMethod == EComponentCreationMethod::Instance)
+			{		
+				// Try and pick a good name
+				FString ConflictingObjectName = ConflictingObject->GetName();
+				int32 CharIndex = ConflictingObjectName.Len()-1;
+				while (FChar::IsDigit(ConflictingObjectName[CharIndex]))
+				{
+					--CharIndex;
+				}
+				int32 Counter = 0;
+				if (CharIndex < ConflictingObjectName.Len()-1)
+				{
+					Counter = FCString::Atoi(*ConflictingObjectName.RightChop(CharIndex+1));
+					ConflictingObjectName = ConflictingObjectName.Left(CharIndex+1);
+				}
+				FString NewObjectName;
+				do
+				{
+					NewObjectName = ConflictingObjectName + FString::FromInt(++Counter);
+					
+				} while (FindObjectFast<UObject>(this, *NewObjectName) != nullptr);
+
+				ConflictingObject->Rename(*NewObjectName, this);
+			}
+		}
 
 		//Make sure, that the name of the instance is different than the name of the template. Otherwise, the template could be handled as an archetype of the instance.
 		const FName NewComponentName = (InName != NAME_None) ? InName : MakeUniqueObjectName(this, Template->GetClass(), Template->GetFName());
@@ -605,70 +618,10 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 		// Note we aren't copying the the RF_ArchetypeObject flag. Also note the result is non-transactional by default.
 		NewActorComp = (UActorComponent*)StaticDuplicateObject(Template, this, NewComponentName, RF_AllFlags & ~(RF_ArchetypeObject | RF_Transactional | RF_WasLoaded | RF_Public | RF_InheritableComponentTemplate));
 
-		// Handle post-creation tasks.
-		PostCreateBlueprintComponent(NewActorComp);
+		NewActorComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 
-#if !UE_BUILD_SHIPPING
-		if (CVarLogBlueprintComponentInstanceCalls.GetValueOnGameThread())
-		{
-			UE_LOG(LogBlueprint, Log, TEXT("%s: CreateComponentFromTemplate() - %s \'%s\' completed in %.02g ms"), *GetName(), *Template->GetClass()->GetName(), *NewComponentName.ToString(), (FPlatformTime::Seconds() - StartTime) * 1000.0);
-		}
-#endif
-	}
-	return NewActorComp;
-}
-
-UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedComponentInstancingData* TemplateData, const FName InName)
-{
-	SCOPE_CYCLE_COUNTER(STAT_InstanceActorComponent);
-
-	// Component instance data loader implementation.
-	class FBlueprintComponentInstanceDataLoader : public FObjectReader
-	{
-	public:
-		FBlueprintComponentInstanceDataLoader(const TArray<uint8>& InSrcBytes, const FCustomPropertyListNode* InPropertyList)
-			:FObjectReader(const_cast<TArray<uint8>&>(InSrcBytes))
-		{
-			ArCustomPropertyList = InPropertyList;
-			ArUseCustomPropertyList = true;
-			ArWantBinaryPropertySerialization = true;
-		}
-	};
-
-	UActorComponent* NewActorComp = nullptr;
-	if (TemplateData != nullptr)
-	{
-#if !UE_BUILD_SHIPPING
-		const double StartTime = FPlatformTime::Seconds();
-#endif
-		// Resolve any name conflicts.
-		CheckComponentInstanceName(InName);
-
-		//Make sure, that the name of the instance is different than the name of the template. Otherwise, the template could be handled as an archetype of the instance.
-		const FName NewComponentName = (InName != NAME_None) ? InName : MakeUniqueObjectName(this, TemplateData->ComponentTemplateClass, TemplateData->ComponentTemplateName);
-		ensure(NewComponentName != TemplateData->ComponentTemplateName);
-
-		// Note we aren't copying the the RF_ArchetypeObject flag. Also note the result is non-transactional by default.
-		NewActorComp = NewObject<UActorComponent>(
-			this,
-			TemplateData->ComponentTemplateClass,
-			NewComponentName,
-			EObjectFlags(TemplateData->ComponentTemplateFlags) & ~(RF_ArchetypeObject | RF_Transactional | RF_WasLoaded | RF_Public | RF_InheritableComponentTemplate)
-		);
-
-		// Load cached data into the new instance.
-		FBlueprintComponentInstanceDataLoader ComponentInstanceDataLoader(TemplateData->GetCachedPropertyDataForSerialization(), TemplateData->GetCachedPropertyListForSerialization());
-		NewActorComp->Serialize(ComponentInstanceDataLoader);
-
-		// Handle post-creation tasks.
-		PostCreateBlueprintComponent(NewActorComp);
-
-#if !UE_BUILD_SHIPPING
-		if (CVarLogBlueprintComponentInstanceCalls.GetValueOnGameThread())
-		{
-			UE_LOG(LogBlueprint, Log, TEXT("%s: CreateComponentFromTemplateData() - %s \'%s\' completed in %.02g ms"), *GetName(), *TemplateData->ComponentTemplateClass->GetName(), *NewComponentName.ToString(), (FPlatformTime::Seconds() - StartTime) * 1000.0);
-		}
-#endif
+		// Need to do this so component gets saved - Components array is not serialized
+		BlueprintCreatedComponents.Add(NewActorComp);
 	}
 	return NewActorComp;
 }
@@ -676,23 +629,13 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment, const FTransform& RelativeTransform, const UObject* ComponentTemplateContext)
 {
 	UActorComponent* Template = nullptr;
-	FBlueprintCookedComponentInstancingData* TemplateData = nullptr;
 	for (UClass* TemplateOwnerClass = (ComponentTemplateContext != nullptr) ? ComponentTemplateContext->GetClass() : GetClass()
-		; TemplateOwnerClass && !Template && !TemplateData
+		; TemplateOwnerClass && !Template
 		; TemplateOwnerClass = TemplateOwnerClass->GetSuperClass())
 	{
 		if (auto BPGC = Cast<UBlueprintGeneratedClass>(TemplateOwnerClass))
 		{
-			// Use cooked instancing data if available (fast path).
-			if (FPlatformProperties::RequiresCookedData())
-			{
-				TemplateData = BPGC->CookedComponentInstancingData.Find(TemplateName);
-			}
-			
-			if (!TemplateData || !TemplateData->bIsValid)
-			{
-				Template = BPGC->FindComponentTemplateByName(TemplateName);
-			}
+			Template = BPGC->FindComponentTemplateByName(TemplateName);
 		}
 		else if (auto DynamicClass = Cast<UDynamicClass>(TemplateOwnerClass))
 		{
@@ -705,7 +648,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 	}
 
 	bool bIsSceneComponent = false;
-	UActorComponent* NewActorComp = TemplateData ? CreateComponentFromTemplateData(TemplateData) : CreateComponentFromTemplate(Template);
+	UActorComponent* NewActorComp = CreateComponentFromTemplate(Template);
 	if(NewActorComp != nullptr)
 	{
 		// Call function to notify component it has been created
@@ -750,48 +693,5 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 	return NewActorComp;
 }
 
-void AActor::CheckComponentInstanceName(const FName InName)
-{
-	// If there is a Component with this name already (almost certainly because it is an Instance component), we need to rename it out of the way
-	if (!InName.IsNone())
-	{
-		UObject* ConflictingObject = FindObjectFast<UObject>(this, InName);
-		if (ConflictingObject && ConflictingObject->IsA<UActorComponent>() && CastChecked<UActorComponent>(ConflictingObject)->CreationMethod == EComponentCreationMethod::Instance)
-		{
-			// Try and pick a good name
-			FString ConflictingObjectName = ConflictingObject->GetName();
-			int32 CharIndex = ConflictingObjectName.Len() - 1;
-			while (FChar::IsDigit(ConflictingObjectName[CharIndex]))
-			{
-				--CharIndex;
-			}
-			int32 Counter = 0;
-			if (CharIndex < ConflictingObjectName.Len() - 1)
-			{
-				Counter = FCString::Atoi(*ConflictingObjectName.RightChop(CharIndex + 1));
-				ConflictingObjectName = ConflictingObjectName.Left(CharIndex + 1);
-			}
-			FString NewObjectName;
-			do
-			{
-				NewObjectName = ConflictingObjectName + FString::FromInt(++Counter);
-
-			} while (FindObjectFast<UObject>(this, *NewObjectName) != nullptr);
-
-			ConflictingObject->Rename(*NewObjectName, this);
-		}
-	}
-}
-
-void AActor::PostCreateBlueprintComponent(UActorComponent* NewActorComp)
-{
-	if (NewActorComp)
-	{
-		NewActorComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-
-		// Need to do this so component gets saved - Components array is not serialized
-		BlueprintCreatedComponents.Add(NewActorComp);
-	}
-}
 
 

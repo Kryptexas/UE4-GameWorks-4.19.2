@@ -482,24 +482,6 @@ public:
 		return GetTypeHash(static_cast<const TPersistentObjectPtr<FStringAssetReference>&>(Other.AssetPtr));
 	}
 
-	/**  
-	 * Synchronously load (if necessary) and return the asset object represented by this asset ptr
-	 */
-	UClass* LoadSynchronous()
-	{
-		UObject* Asset = AssetPtr.Get();
-		if (Asset == nullptr && IsPending())
-		{
-			Asset = AssetPtr.LoadSynchronous();
-		}
-		UClass* Class = dynamic_cast<UClass*>(Asset);
-		if (!Class || !Class->IsChildOf(TClass::StaticClass()))
-		{
-			return nullptr;
-		}
-		return Class;
-	}
-
 	friend FArchive& operator<<(FArchive& Ar, TAssetSubclassOf<TClass>& Other)
 	{
 		Ar << static_cast<FAssetPtr&>(Other.AssetPtr);

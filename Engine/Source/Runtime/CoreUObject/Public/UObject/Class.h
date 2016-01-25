@@ -2188,12 +2188,6 @@ public:
 	}
 
 	/**
-	 * Override to return a linked list of properties with default values that differ from the parent default object. If non-NULL, only these properties will 
-	 * be copied post-construction. Otherwise, all properties will be copied to the new instance, even if the default value matches the inherited default value.
-	 */
-	virtual const FCustomPropertyListNode* GetCustomPropertyListForPostConstruction() const { return nullptr; }
-
-	/**
 	* Get the name of the CDO for the this class
 	* @return The name of the CDO
 	*/
@@ -2370,7 +2364,7 @@ public:
 	 * @param Object the object to serialize as default
 	 * @param Ar the archive to serialize from
 	 */
-	virtual void SerializeDefaultObject(UObject* Object, FArchive& Ar);
+	void SerializeDefaultObject(UObject* Object, FArchive& Ar);
 
 	/** 
 	 * Purges out the properties of this class in preparation for it to be regenerated

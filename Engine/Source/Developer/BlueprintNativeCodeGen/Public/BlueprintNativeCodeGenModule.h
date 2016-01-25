@@ -7,8 +7,6 @@
 #include "ModuleManager.h"	// for GetModuleChecked<>
 #include "Blueprint/BlueprintSupport.h"
 
-class UBlueprint;
-
 struct FNativeCodeGenInitData
 {
 	// This is an array of pairs, the pairs are PlatformName/PlatformTargetDirectory. These
@@ -69,10 +67,6 @@ public:
 	virtual void SaveManifest(int32 Id = -1) = 0;
 	virtual void MergeManifest(int32 ManifestIdentifier) = 0;
 	virtual void FinalizeManifest() = 0;
-	virtual void GenerateStubs() = 0;
-	virtual void GenerateFullyConvertedClasses() = 0;
-	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr) = 0;
-	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() = 0;
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) = 0;
 	virtual void InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets) = 0;

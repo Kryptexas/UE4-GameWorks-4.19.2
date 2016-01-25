@@ -47,8 +47,7 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
         void* OutRowPtr = Stack.MostRecentPropertyAddress;
         
         P_FINISH;
-		P_NATIVE_BEGIN;
+        
 		*(bool*)RESULT_PARAM = Generic_GetDataTableRowFromName(Table, RowName, OutRowPtr);
-		P_NATIVE_END;
     }
 };

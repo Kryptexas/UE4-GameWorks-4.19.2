@@ -12,7 +12,6 @@
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
-#include "Editor/UnrealEd/Public/CookerSettings.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Crc.h"
 #include "MessageLog.h"
@@ -976,105 +975,6 @@ bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
 	}
 
 	return true;
-}
-
-void UBlueprint::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform)
-{
-	Super::BeginCacheForCookedPlatformData(TargetPlatform);
-
-	// Only cook component data if the setting is enabled and this is an Actor-based Blueprint class.
-	if (GeneratedClass && GeneratedClass->IsChildOf<AActor>() && GetDefault<UCookerSettings>()->bCookBlueprintComponentTemplateData)
-	{
-		int32 NumCookedComponents = 0;
-		const double StartTime = FPlatformTime::Seconds();
-
-		UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass);
-		if (BPGClass)
-		{
-			// Cook all overridden SCS component node templates inherited from the parent class hierarchy.
-			if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
-			{
-				for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
-				{
-					if (!RecordIt->CookedComponentInstancingData.bIsValid)
-					{
-						// Note: This will currently block until finished.
-						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(RecordIt->ComponentTemplate, RecordIt->CookedComponentInstancingData);
-						++NumCookedComponents;
-					}
-				}
-			}
-
-			// Cook all SCS component templates that are owned by this class.
-			if (BPGClass->SimpleConstructionScript)
-			{
-				for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
-				{
-					if (!Node->CookedComponentInstancingData.bIsValid)
-					{
-						// Note: This will currently block until finished.
-						// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-						FBlueprintEditorUtils::BuildComponentInstancingData(Node->ComponentTemplate, Node->CookedComponentInstancingData);
-						++NumCookedComponents;
-					}
-				}
-			}
-
-			// Cook all UCS/AddComponent node templates that are owned by this class.
-			for (UActorComponent* ComponentTemplate : BPGClass->ComponentTemplates)
-			{
-				FBlueprintCookedComponentInstancingData& CookedComponentInstancingData = BPGClass->CookedComponentInstancingData.FindOrAdd(ComponentTemplate->GetFName());
-				if (!CookedComponentInstancingData.bIsValid)
-				{
-					// Note: This will currently block until finished.
-					// @TODO - Make this an async task so we can potentially cook instancing data for multiple components in parallel.
-					FBlueprintEditorUtils::BuildComponentInstancingData(ComponentTemplate, CookedComponentInstancingData);
-					++NumCookedComponents;
-				}
-			}
-		}
-
-		if (NumCookedComponents > 0)
-		{
-			UE_LOG(LogBlueprint, Log, TEXT("%s: Cooked %d component(s) in %.02g ms"), *GetName(), NumCookedComponents, (FPlatformTime::Seconds() - StartTime) * 1000.0);
-		}
-	}
-}
-
-bool UBlueprint::IsCachedCookedPlatformDataLoaded(const ITargetPlatform* TargetPlatform)
-{
-	// @TODO - Check async tasks for completion. For now just return TRUE since all tasks will currently block until finished.
-	return true;
-}
-
-void UBlueprint::ClearAllCachedCookedPlatformData()
-{
-	Super::ClearAllCachedCookedPlatformData();
-
-	if (UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(*GeneratedClass))
-	{
-		// Clear cooked data for overridden SCS component node templates inherited from the parent class hierarchy.
-		if (UInheritableComponentHandler* TargetInheritableComponentHandler = BPGClass->GetInheritableComponentHandler())
-		{
-			for (auto RecordIt = TargetInheritableComponentHandler->CreateRecordIterator(); RecordIt; ++RecordIt)
-			{
-				RecordIt->CookedComponentInstancingData = FBlueprintCookedComponentInstancingData();
-			}
-		}
-
-		// Clear cooked data for SCS component node templates.
-		if (BPGClass->SimpleConstructionScript)
-		{
-			for (auto Node : BPGClass->SimpleConstructionScript->GetAllNodes())
-			{
-				Node->CookedComponentInstancingData = FBlueprintCookedComponentInstancingData();
-			}
-		}
-
-		// Clear cooked data for UCS/AddComponent node templates.
-		BPGClass->CookedComponentInstancingData.Empty();
-	}
 }
 
 #endif // WITH_EDITOR

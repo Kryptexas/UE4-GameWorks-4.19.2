@@ -360,24 +360,9 @@ namespace
 
 				case EFunctionSpecifier::BlueprintPure:
 				{
-					bool bIsPure = true;
-					if (Specifier.Values.Num() == 1)
-					{
-						FString IsPureStr = Specifier.Values[0];
-						bIsPure = IsPureStr.ToBool();
-					}
-
 					// This function can be called, and is also pure.
 					FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
-
-					if (bIsPure)
-					{
-						FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
-					}
-					else
-					{
-						FuncInfo.bForceBlueprintImpure = true;
-					}
+					FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
 				}
 				break;
 
@@ -442,11 +427,6 @@ namespace
 		if (FuncInfo.bSealedEvent && FuncInfo.FunctionFlags & FUNC_BlueprintEvent)
 		{
 			FError::Throwf(TEXT("SealedEvent cannot be used on Blueprint events"));
-		}
-
-		if (FuncInfo.bForceBlueprintImpure && (FuncInfo.FunctionFlags & FUNC_BlueprintPure) != 0)
-		{
-			FError::Throwf(TEXT("BlueprintPure (or BlueprintPure=true) and BlueprintPure=false should not both appear on the same function, they are mutually exclusive"));
 		}
 	}
 
@@ -2738,8 +2718,6 @@ FIndexRange*                    ParsedVarIndexRange
 	TArray<FPropertySpecifier> SpecifiersFound;
 
 	TMap<FName, FString> MetaDataFromNewStyle;
-	bool bNativeConst = false;
-	bool bNativeConstTemplateArg = false;
 
 	const bool bIsParamList = (VariableCategory != EVariableCategory::Member) && MatchIdentifier(TEXT("UPARAM"));
 
@@ -2759,7 +2737,6 @@ FIndexRange*                    ParsedVarIndexRange
 		if (MatchIdentifier(TEXT("const")))
 		{
 			Flags |= CPF_ConstParm;
-			bNativeConst = true;
 		}
 	}
 
@@ -3181,7 +3158,6 @@ FIndexRange*                    ParsedVarIndexRange
 	{
 		//@TODO: UCREMOVAL: Should use this to set the new (currently non-existent) CPF_Const flag appropriately!
 		bUnconsumedConstKeyword = true;
-		bNativeConst = true;
 	}
 
 	if (MatchIdentifier(TEXT("mutable")))
@@ -3313,11 +3289,6 @@ FIndexRange*                    ParsedVarIndexRange
 		if (VarProperty.ArrayType != EArrayType::None || VarProperty.MapKeyProp.IsValid())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
-		}
-
-		if (VarProperty.MetaData.Find(TEXT("NativeConst")))
-		{
-			bNativeConstTemplateArg = true;
 		}
 
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the array, we will fix them later
@@ -3527,45 +3498,7 @@ FIndexRange*                    ParsedVarIndexRange
 			bStripped = true;
 		}
 
-		auto SetDelegateType = [&](UFunction* InFunction, const FString& InIdentifierStripped)
-		{
-			bHandledType = true;
-
-			VarProperty = FPropertyBase(InFunction->HasAnyFunctionFlags(FUNC_MulticastDelegate) ? CPT_MulticastDelegate : CPT_Delegate);
-			VarProperty.DelegateName = *InIdentifierStripped;
-
-			if (!(Disallow & CPF_InstancedReference))
-			{
-				Flags |= CPF_InstancedReference;
-			}
-		};
-
-		if (!Struct && MatchSymbol(TEXT("::")))
-		{
-			FToken DelegateName;
-			if (GetIdentifier(DelegateName))
-			{
-				UClass* LocalOwnerClass = AllClasses.FindClass(*IdentifierStripped);
-				if (LocalOwnerClass)
-				{
-					TSharedRef<FScope> LocScope = FScope::GetTypeScope(LocalOwnerClass);
-					const FString DelegateIdentifierStripped = GetClassNameWithPrefixRemoved(DelegateName.Identifier);
-					if (UFunction* DelegateFunc = Cast<UFunction>(LocScope->FindTypeByName(*(DelegateIdentifierStripped + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX))))
-					{
-						SetDelegateType(DelegateFunc, DelegateIdentifierStripped);
-					}
-				}
-				else
-				{
-					FError::Throwf(TEXT("Cannot find class '%s', to resolve delegate '%s'"), *IdentifierStripped, DelegateName.Identifier);
-				}
-			}
-		}
-
-		if (bHandledType)
-		{
-		}
-		else if (Struct)
+		if (Struct)
 		{
 			if (bStripped)
 			{
@@ -3601,7 +3534,15 @@ FIndexRange*                    ParsedVarIndexRange
 		}
 		else if (UFunction* DelegateFunc = Cast<UFunction>(Scope->FindTypeByName(*(IdentifierStripped + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX))))
 		{
-			SetDelegateType(DelegateFunc, IdentifierStripped);
+			bHandledType = true;
+
+			VarProperty = FPropertyBase( DelegateFunc->HasAnyFunctionFlags(FUNC_MulticastDelegate) ? CPT_MulticastDelegate : CPT_Delegate);
+			VarProperty.DelegateName = *IdentifierStripped;
+
+			if (!(Disallow & CPF_InstancedReference))
+			{
+				Flags |= CPF_InstancedReference;
+			}
 		}
 		else
 		{
@@ -3643,7 +3584,7 @@ FIndexRange*                    ParsedVarIndexRange
 				MatchIdentifier(TEXT("class"));
 
 				// Also consume const
-				bNativeConstTemplateArg |= MatchIdentifier(TEXT("const"));
+				MatchIdentifier(TEXT("const"));
 				
 				// Find the lazy/weak class
 				FToken InnerClass;
@@ -3748,7 +3689,7 @@ FIndexRange*                    ParsedVarIndexRange
 				if (!(Flags & CPF_UObjectWrapper))
 				{
 					// Const after variable type but before pointer symbol
-					bNativeConst |= MatchIdentifier(TEXT("const"));
+					MatchIdentifier(TEXT("const"));
 
 					RequireSymbol(TEXT("*"), TEXT("Expected a pointer type"));
 
@@ -3772,7 +3713,15 @@ FIndexRange*                    ParsedVarIndexRange
 		{
 			if (UFunction* DelegateFunc = (UFunction*)StaticFindObject(UFunction::StaticClass(), ANY_PACKAGE, *(IdentifierStripped + HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX)))
 			{
-				SetDelegateType(DelegateFunc, IdentifierStripped);
+				bHandledType = true;
+
+				VarProperty = FPropertyBase( DelegateFunc->HasAnyFunctionFlags(FUNC_MulticastDelegate) ? CPT_MulticastDelegate : CPT_Delegate);
+				VarProperty.DelegateName = *IdentifierStripped;
+					
+				if (!(Disallow & CPF_InstancedReference))
+				{
+					Flags |= CPF_InstancedReference;
+				}
 			}
 
 			if (!bHandledType)
@@ -3788,7 +3737,6 @@ FIndexRange*                    ParsedVarIndexRange
 		if (MatchIdentifier(TEXT("const")))
 		{
 			Flags |= CPF_ConstParm;
-			bNativeConst = true;
 		}
 	}
 
@@ -3828,7 +3776,7 @@ FIndexRange*                    ParsedVarIndexRange
 	if (VariableCategory == EVariableCategory::Member && OwnerStruct->IsA<UClass>() && ((UClass*)OwnerStruct)->HasAnyClassFlags(CLASS_Const))
 	{
 		// Eat a 'not quite truthful' const after the type; autogenerated for member variables of const classes.
-		bNativeConst |= MatchIdentifier(TEXT("const"));
+		MatchIdentifier(TEXT("const"));
 	}
 
 	// Arrays are passed by reference but are only implicitly so; setting it explicitly could cause a problem with replicated functions
@@ -3958,15 +3906,7 @@ FIndexRange*                    ParsedVarIndexRange
 	}
 
 	VarProperty.MetaData = MetaDataFromNewStyle;
-	if (bNativeConst)
-	{
-		VarProperty.MetaData.Add(TEXT("NativeConst"), TEXT(""));
-	}
-	if (bNativeConstTemplateArg)
-	{
-		VarProperty.MetaData.Add(TEXT("NativeConstTemplateArg"), TEXT(""));
-	}
-	
+
 	if (ParsedVarIndexRange)
 	{
 		ParsedVarIndexRange->Count = InputPos - ParsedVarIndexRange->StartIndex;
@@ -5917,8 +5857,8 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		// or we could just rely on the use marking things BlueprintPure. Either way, checking the C++
 		// const identifier to determine purity is not desirable. We should remove the following logic:
 
-		// If its a const BlueprintCallable function with some sort of output and is not being marked as an BlueprintPure=false function, mark it as BlueprintPure as well
-		if ( bHasAnyOutputs && ((FuncInfo.FunctionFlags & FUNC_BlueprintCallable) != 0) && !FuncInfo.bForceBlueprintImpure)
+		// If its a const BlueprintCallable function with some sort of output, mark it as BlueprintPure as well
+		if ( bHasAnyOutputs && ((FuncInfo.FunctionFlags & FUNC_BlueprintCallable) != 0) )
 		{
 			FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
 		}

@@ -18,22 +18,13 @@ struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
 
 	void FindReferences(UObject* Object)
 	{
-		UProperty* Property = Cast<UProperty>(Object);
-		if (Property && Property->HasAnyPropertyFlags(CPF_DevelopmentAssets))
-		{
-			return;
-		}
-
 		{
 			FSimpleObjectReferenceCollectorArchive CollectorArchive(Object, *this);
 			CollectorArchive.SetSerializedProperty(nullptr);
 			CollectorArchive.SetFilterEditorOnly(true);
-			if (UClass* AsBPGC = Cast<UBlueprintGeneratedClass>(Object))
-			{
-				Object = Dependencies.FindOriginalClass(AsBPGC);
-			}
-			Object->Serialize(CollectorArchive);
+			Object->SerializeScriptProperties(CollectorArchive);
 		}
+		Object->CallAddReferencedObjects(*this);
 	}
 
 	void FindReferencesForNewObject(UObject* Object)
@@ -143,6 +134,8 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
 	{
+		const bool bIncludeMembersFromParentClass = true;
+
 		if (!InObject || InObject->IsA<UBlueprint>() || (InObject == Dependencies.GetActualStruct()))
 		{
 			return;
@@ -154,7 +147,7 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 			ObjAsField = InObject->GetClass();
 		}
 
-		if (ObjAsField && !ObjAsField->HasAnyFlags(RF_ClassDefaultObject))
+		if (ObjAsField)
 		{
 			if (ObjAsField->IsA<UProperty>())
 			{
@@ -171,8 +164,27 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 		{
 			return;
 		}
+		else if (auto ObjAsClass = Cast<UClass>(InObject))
+		{
+			if (bIncludeMembersFromParentClass && (ObjAsClass != UObject::StaticClass()) && Dependencies.GetActualStruct()->IsChildOf(ObjAsClass))
+			{
+				FindReferencesForNewObject(InObject);
+			}
+			if (ObjAsClass->HasAnyClassFlags(CLASS_Native))
+			{
+				return;
+			}
+		}
+		else if (InObject->IsA<UScriptStruct>())
+		{
+			return;
+		}
 
-		FindReferencesForNewObject(InObject);
+		if ((InObject->GetOutermost() == Dependencies.GetActualStruct()->GetOutermost()) || 
+			(bIncludeMembersFromParentClass && ObjAsField && Dependencies.GetActualStruct()->IsChildOf(ObjAsField->GetOwnerClass())))
+		{
+			FindReferencesForNewObject(InObject);
+		}
 	}
 };
 
@@ -206,7 +218,7 @@ bool FGatherConvertedClassDependencies::WillClassBeConverted(const UBlueprintGen
 		const UClass* ClassToCheck = FindOriginalClass(InClass);
 
 		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
-		const auto& WillBeConvertedQuery = BackEndModule.OnIsTargetedForConversionQuery();
+		auto& WillBeConvertedQuery = BackEndModule.OnIsTargetedForConversionQuery();
 
 		if (WillBeConvertedQuery.IsBound())
 		{
@@ -252,34 +264,14 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		{
 			if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 			{
-				auto GetFirstNativeOrConvertedClass = [](FGatherConvertedClassDependencies& Dependencies, UClass* InClass) -> UClass*
+				if (ShouldIncludeHeaderFor(ObjectProperty->PropertyClass))
 				{
-					check(InClass);
-					for (UClass* ItClass = InClass; ItClass; ItClass = ItClass->GetSuperClass())
-					{
-						auto BPGC = Cast<UBlueprintGeneratedClass>(ItClass);
-						if (ItClass->HasAnyClassFlags(CLASS_Native) || Dependencies.WillClassBeConverted(BPGC))
-						{
-							return ItClass;
-						}
-					}
-					check(false);
-					return nullptr;
-				};
-
-				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(*this, ObjectProperty->PropertyClass));
+					DeclareInHeader.Add(ObjectProperty->PropertyClass);
+				}
 			}
 			else if (auto InterfaceProperty = Cast<const UInterfaceProperty>(Property))
 			{
 				IncludeInHeader.Add(InterfaceProperty->InterfaceClass);
-			}
-			else if (auto DelegateProperty = Cast<const UDelegateProperty>(Property))
-			{
-				IncludeInHeader.Add(DelegateProperty->SignatureFunction ? DelegateProperty->SignatureFunction->GetOwnerClass() : nullptr);
-			}
-			else if (auto MulticastDelegateProperty = Cast<const UMulticastDelegateProperty>(Property))
-			{
-				IncludeInHeader.Add(MulticastDelegateProperty->SignatureFunction ? MulticastDelegateProperty->SignatureFunction->GetOwnerClass() : nullptr);
 			}
 			else
 			{
@@ -306,16 +298,6 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		if (ShouldIncludeHeaderFor(Obj))
 		{
 			IncludeInHeader.Add(CastChecked<UField>(Obj));
-		}
-	}
-
-	const UPackage* OriginalStructPackage = OriginalStruct ? OriginalStruct->GetOutermost() : nullptr;
-	for (auto Iter = IncludeInHeader.CreateIterator(); Iter; ++Iter)
-	{
-		UField* CurrentField = *Iter;
-		if (CurrentField && (CurrentField->GetOutermost() == OriginalStructPackage))
-		{
-			Iter.RemoveCurrent();
 		}
 	}
 }

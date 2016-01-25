@@ -6,7 +6,6 @@
 // THIS FILE SHOULD BE USED ONLY BY AUTOMATICALLY GENERATED CODE. 
 
 // Common includes
-#include "Runtime/Core/Public/Core.h"
 #include "UObject/Stack.h"
 #include "Blueprint/BlueprintSupport.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -96,7 +95,7 @@ public:
 	}
 
 	template<typename T>
-	static void Array_Shuffle(TArray<T>& TargetArray)
+	static void Array_Shuffle(TArray<T>& TargetArray, const UArrayProperty* ArrayProperty)
 	{
 		int32 LastIndex = TargetArray.Num() - 1;
 		for (int32 i = 0; i < LastIndex; ++i)
@@ -377,23 +376,23 @@ struct FUnconvertedWrapper
 template<typename T>
 struct TArrayCaster
 {
-	TArray<T> Val;
-	TArray<T>& ValRef;
+	TArray<T*> Val;
+	TArray<T*>& ValRef;
 
-	TArrayCaster(const TArray<T>& InArr)
+	TArrayCaster(TArray<T*>& InArr) 
 		: Val()
-		, ValRef(*(TArray<T>*)(&InArr))
+		, ValRef(InArr)
 	{}
 
-	TArrayCaster(TArray<T>&& InArr) 
+	TArrayCaster(TArray<T*>&& InArr) 
 		: Val(MoveTemp(InArr))
 		, ValRef(Val)
 	{}
 
 	template<typename U>
-	TArray<U>& Get()
+	TArray<U*>& Get()
 	{
-		static_assert(sizeof(T) == sizeof(U), "Incompatible pointers");
-		return *reinterpret_cast<TArray<U>*>(&ValRef);
+		static_assert(sizeof(T*) == sizeof(U*), "Incompatible pointers");
+		return *reinterpret_cast<TArray<U*>*>(&ValRef);
 	}
 };

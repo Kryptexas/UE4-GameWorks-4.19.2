@@ -1000,7 +1000,7 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 #endif
 		ObjClass->SerializeTaggedProperties(Ar, (uint8*)this, HasAnyFlags(RF_ClassDefaultObject) ? ObjClass->GetSuperClass() : ObjClass, (uint8*)DiffObject, bBreakSerializationRecursion ? this : NULL);
 	}
-	else if ( Ar.GetPortFlags() != 0 && !Ar.ArUseCustomPropertyList )
+	else if ( Ar.GetPortFlags() != 0 )
 	{
 		UObject* DiffObject = GetArchetype();
 		ObjClass->SerializeBinEx( Ar, const_cast<UObject *>(this), DiffObject, DiffObject ? DiffObject->GetClass() : NULL );

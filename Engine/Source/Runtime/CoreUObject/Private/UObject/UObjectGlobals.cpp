@@ -2681,19 +2681,15 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	check(DefaultsClass && Obj);
 
 	UClass* Class = Obj->GetClass();
-
 	// bool to indicate that we need to initialize any non-native properties (native ones were done when the native constructor was called by the code that created and passed in a FObjectInitializer object)
 	bool bNeedInitialize = !Class->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
-
-	// bool to indicate that we can use the faster PostConstructLink chain for initialization.
-	bool bCanUsePostConstructLink = !bCopyTransientsFromClassDefaults && DefaultsClass == Class;
 
 	if (Obj->HasAnyFlags(RF_NeedLoad))
 	{
 		bCopyTransientsFromClassDefaults = false;
 	}
 
-	if (!bNeedInitialize && bCanUsePostConstructLink)
+	if (!bNeedInitialize && !bCopyTransientsFromClassDefaults && DefaultsClass == Class)
 	{
 		// This is just a fast path for the below in the common case that we are not doing a duplicate or initializing a CDO and this is all native.
 		// We only do it if the DefaultData object is NOT a CDO of the object that's being initialized. CDO data is already initialized in the
@@ -2722,9 +2718,8 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 	else
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitProperties_Blueprint);
-
 		UObject* ClassDefaults = bCopyTransientsFromClassDefaults ? DefaultsClass->GetDefaultObject() : NULL;		
-		for (UProperty* P = bCanUsePostConstructLink ? Class->PostConstructLink : Class->PropertyLink; P; P = bCanUsePostConstructLink ? P->PostConstructLinkNext : P->PropertyLinkNext)
+		for (UProperty* P = Class->PropertyLink; P; P = P->PropertyLinkNext)
 		{
 			if (bNeedInitialize)
 			{		
@@ -2745,38 +2740,6 @@ void FObjectInitializer::InitProperties(UObject* Obj, UClass* DefaultsClass, UOb
 					P->CopyCompleteValue_InContainer(Obj, DefaultData);
 				}
 			}
-		}
-
-		// This step is only necessary if we're not iterating the full property chain.
-		if (bCanUsePostConstructLink)
-		{
-			// Initialize remaining property values from defaults using an explicit custom post-construction property list returned by the class object.
-			if (const FCustomPropertyListNode* CustomPropertyList = Class->GetCustomPropertyListForPostConstruction())
-			{
-				InitPropertiesFromCustomList(CustomPropertyList, Class, (uint8*)Obj, (uint8*)DefaultData);
-			}
-		}
-	}
-}
-
-void FObjectInitializer::InitPropertiesFromCustomList(const FCustomPropertyListNode* InPropertyList, UStruct* InStruct, uint8* DataPtr, const uint8* DefaultDataPtr)
-{
-	for (const FCustomPropertyListNode* CustomPropertyListNode = InPropertyList; CustomPropertyListNode; CustomPropertyListNode = CustomPropertyListNode->PropertyListNext)
-	{
-		uint8* PropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DataPtr, CustomPropertyListNode->ArrayIndex);
-		const uint8* DefaultPropertyValue = CustomPropertyListNode->Property->ContainerPtrToValuePtr<uint8>(DefaultDataPtr, CustomPropertyListNode->ArrayIndex);
-
-		if (const UStructProperty* StructProperty = Cast<UStructProperty>(CustomPropertyListNode->Property))
-		{
-			// This should never be NULL; we should not be recording the StructProperty without at least one sub property, but we'll verify just to be sure.
-			if (ensure(CustomPropertyListNode->SubPropertyList != nullptr))
-			{
-				InitPropertiesFromCustomList(CustomPropertyListNode->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue);
-			}
-		}
-		else
-		{
-			CustomPropertyListNode->Property->CopySingleValue(PropertyValue, DefaultPropertyValue);
 		}
 	}
 }

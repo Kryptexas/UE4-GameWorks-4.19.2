@@ -1847,10 +1847,6 @@ struct FEventGraphUtils
 		{
 			auto LinkOwnerNode = Cast<const UK2Node>(Link->GetOwningNodeUnchecked());
 			ensure(LinkOwnerNode);
-			if (Link->PinType.bIsReference)
-			{
-				return true;
-			}
 			auto EventsCallingDestination = FEventGraphUtils::FindExecutionNodes(LinkOwnerNode, OwnerNode);
 			if (0 != EventsCallingDestination.Num())
 			{
@@ -1888,16 +1884,17 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 	check(Net);
 	bool bSharedTerm = IsEventGraph();
 	static FBoolConfigValueHelper UseLocalGraphVariables(TEXT("Kismet"), TEXT("bUseLocalGraphVariables"), GEngineIni);
-	static FBoolConfigValueHelper UseLocalGraphVariablesInCpp(TEXT("BlueprintNativizationSettings"), TEXT("bUseLocalEventGraphVariables"));
-
 
 	auto PinRepresentsDelegate = [](const FEdGraphPinType& PinType) -> bool
 	{
-		return (PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate)
+		return (PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate) 
 			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate);
 	};
-	const bool bUseLocalGraphVariables = UseLocalGraphVariables 
-		|| (bGeneratingCpp && (UseLocalGraphVariablesInCpp || PinRepresentsDelegate(Net->PinType)));
+	// Local graph Variables cannot be used with persistent UberGraph frame
+	// Current implementation can change BP behavior, so it cannot be used to generate C++
+	const bool bUseLocalGraphVariables = UseLocalGraphVariables
+		//This is a workaround for UE-24210. UHT doesn't support  delegates with native type form: OtherOwnerClass::DelegateType.
+		|| (bGeneratingCpp && PinRepresentsDelegate(Net->PinType)); 
 
 	const bool OutputPin = EEdGraphPinDirection::EGPD_Output == Net->Direction;
 	if (bSharedTerm && bUseLocalGraphVariables && OutputPin)

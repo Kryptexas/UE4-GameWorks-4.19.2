@@ -183,8 +183,7 @@ FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const vo
 			| EPropertyExportCPPFlags::CPPF_NoRef
 			| EPropertyExportCPPFlags::CPPF_NoStaticArray
 			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
-		const FString ConstPrefix = Property->HasMetaData(TEXT("NativeConstTemplateArg")) ? TEXT("const ") : TEXT("");
-		const FString TypeText = ExportCppDeclaration(ArrayProperty, EExportedDeclaration::Parameter, LocalExportCPPFlags, true, FString(), ConstPrefix);
+		const FString TypeText = ExportCppDeclaration(ArrayProperty, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
 		return FString::Printf(TEXT("%s()"), *TypeText);
 	}
 
@@ -193,7 +192,7 @@ FString FEmitterLocalContext::ExportTextItem(const UProperty* Property, const vo
 	return ValueStr;
 }
 
-FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 InExportCPPFlags, bool bSkipParameterName, const FString& NamePostfix, const FString& TypePrefix) const
+FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 InExportCPPFlags, bool bSkipParameterName) const
 {
 	FString ActualCppType;
 	FString* ActualCppTypePtr = nullptr;
@@ -204,13 +203,13 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 	auto GetActualNameCPP = [&](const UObjectPropertyBase* ObjectPropertyBase, UClass* InActualClass)
 	{
 		auto BPGC = Cast<UBlueprintGeneratedClass>(InActualClass);
-		if (BPGC || !TypePrefix.IsEmpty())
+		if (BPGC )
 		{
 			const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 			const uint32 LocalExportCPPFlags = ExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
-			UClass* NativeType = GetFirstNativeOrConvertedClass(InActualClass);
+			UClass* NativeType = GetFirstNativeOrConvertedClass(BPGC);
 			check(NativeType);
-			ActualCppType = TypePrefix + ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, FEmitHelper::GetCppName(NativeType));
+			ActualCppType = ObjectPropertyBase->GetCPPTypeCustom(&ActualExtendedType, LocalExportCPPFlags, FEmitHelper::GetCppName(NativeType));
 			ActualCppTypePtr = &ActualCppType;
 			if (!ActualExtendedType.IsEmpty())
 			{
@@ -252,8 +251,31 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 			ActualCppTypePtr = &ActualCppType;
 		}
 	}
+	else if (const UByteProperty* ByteProperty = Cast<const UByteProperty>(Property))
+	{
+		if (ByteProperty->Enum != nullptr)
+		{
+			const bool bIsEnumClass  = (ByteProperty->Enum->GetCppForm() == UEnum::ECppForm::EnumClass);
+			const bool bIsNativeEnum = (ByteProperty->Enum->GetClass()   == UEnum::StaticClass()); // cannot use RF_Native flag, because in UHT the flag is not set
 
-	// TODO: TypePrefix for other properties
+			// unfortunately, we cannot tell if the native enum is typed or not 
+			// (uint8 or not); since UHT allows untyped enums to be exposed to
+			// Blueprints, but errors when they're used for a native properties, 
+			// then we need to wrap all native class enums in TEnumAsByte<> 
+			// (to take preventative measures against non uint8 enums)
+			if (bIsNativeEnum && bIsEnumClass)
+			{
+				const FString EnumAsBytePrefix = TEXT("TEnumAsByte<");
+
+				ActualCppType = ByteProperty->GetCPPType(/*ExtendedTypeText =*/nullptr, InExportCPPFlags | CPPF_BlueprintCppBackend);
+				if (!ActualCppType.StartsWith(EnumAsBytePrefix))
+				{
+					ActualCppType = FString::Printf(TEXT("%s %s >"), *EnumAsBytePrefix, *ActualCppType);
+				}
+				ActualCppTypePtr = &ActualCppType;
+			}
+		}
+	}
 
 	if (ArrayProperty)
 	{
@@ -278,7 +300,7 @@ FString FEmitterLocalContext::ExportCppDeclaration(const UProperty* Property, EE
 	}
 
 	FStringOutputDevice Out;
-	const FString ActualNativeName = bSkipParameterName ? FString() : (FEmitHelper::GetCppName(Property) + NamePostfix);
+	const FString ActualNativeName = bSkipParameterName ? FString() : FEmitHelper::GetCppName(Property);
 	Property->ExportCppDeclaration(Out, DeclarationType, nullptr, InExportCPPFlags, bSkipParameterName, ActualCppTypePtr, ActualExtendedTypePtr, &ActualNativeName);
 	return FString(Out);
 
@@ -320,7 +342,14 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 				const bool bIsUberGraphVariable = Owner->IsA<UBlueprintGeneratedClass>() && AsProperty->HasAllPropertyFlags(CPF_Transient | CPF_DuplicateTransient);
 				if (bIsUberGraphVariable)
 				{
-					int32 InheritenceLevel = GetInheritenceLevel(Owner);
+					int32 InheritenceLevel = 0;
+
+					const UStruct* StructIt = Owner->GetSuperStruct();
+					while ((StructIt != nullptr) && !StructIt->IsNative())
+					{
+						++InheritenceLevel;
+						StructIt = StructIt->GetSuperStruct();
+					}
 					VarPrefix = FString::Printf(TEXT("b%dl__"), InheritenceLevel);
 				}
 				else
@@ -339,23 +368,6 @@ FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("bpf__"));
 	}
 	return Field->GetName();
-}
-
-int32 FEmitHelper::GetInheritenceLevel(const UStruct* Struct)
-{
-	const UStruct* StructIt = Struct ? Struct->GetSuperStruct() : nullptr;
-	int32 InheritenceLevel = 0;
-	while ((StructIt != nullptr) && !StructIt->IsNative())
-	{
-		++InheritenceLevel;
-		StructIt = StructIt->GetSuperStruct();
-	}
-	return InheritenceLevel;
-}
-
-bool FEmitHelper::PropertyForConstCast(const UProperty* Property)
-{
-	return Property && !Property->IsA<UStructProperty>() && Property->HasAnyPropertyFlags(CPF_ConstParm) && !Property->HasAnyPropertyFlags(CPF_OutParm);
 }
 
 void FEmitHelper::ArrayToString(const TArray<FString>& Array, FString& OutString, const TCHAR* Separator)
@@ -816,11 +828,11 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 
 	if (UEdGraphSchema_K2::PC_String == Type.PinCategory)
 	{
-		return FString::Printf(TEXT("FString(%s)"), *UStrProperty::ExportCppHardcodedText(CustomValue, EmitterContext.DefaultTarget->Indent));
+		return FString::Printf(TEXT("TEXT(\"%s\")"), *CustomValue.ReplaceCharWithEscapedChar());
 	}
 	else if (UEdGraphSchema_K2::PC_Text == Type.PinCategory)
 	{
-		return FString::Printf(TEXT("FText::FromString(%s)"), *UStrProperty::ExportCppHardcodedText(CustomValue, EmitterContext.DefaultTarget->Indent));
+		return FString::Printf(TEXT("FText::FromString(TEXT(\"%s\"))"), *CustomValue.ReplaceCharWithEscapedChar());
 	}
 	else if (UEdGraphSchema_K2::PC_Float == Type.PinCategory)
 	{
@@ -913,15 +925,14 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			//@todo:  This needs to be more robust, since import text isn't really proper for struct construction.
 			const bool bEmptyCustomValue = CustomValue.IsEmpty() || (CustomValue == TEXT("()"));
 			const FString StructName = *FEmitHelper::GetCppName(StructType);
-			const FString LocalStructNativeName = EmitterContext.GenerateUniqueLocalName();
 			if (bEmptyCustomValue)
 			{
-				// The local variable is created to fix: "fatal error C1001: An internal error has occurred in the compiler."
-				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s%s;"), *LocalStructNativeName, *StructName, StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}")));
+				return StructName + (StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}"));
 			}
-			else
+
+			const FString LocalStructNativeName = EmitterContext.GenerateUniqueLocalName();
+			EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s{};"), *LocalStructNativeName, *StructName)); // TODO: ?? should "::GetDefaultValue()" be called here?
 			{
-				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s{};"), *LocalStructNativeName, *StructName)); // TODO: ?? should "::GetDefaultValue()" be called here?
 				FStructOnScope StructOnScope(StructType);
 
 				class FImportTextErrorContext : public FStringOutputDevice
@@ -945,7 +956,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 				const auto EndOfParsedBuff = UStructProperty::ImportText_Static(StructType, TEXT("FEmitHelper::LiteralTerm"), *CustomValue, StructOnScope.GetStructMemory(), 0, nullptr, &ImportError);
 				if (!EndOfParsedBuff || ImportError.NumErrors)
 				{
-					UE_LOG(LogK2Compiler, Error, TEXT("FEmitHelper::LiteralTerm cannot parse struct \"%s\" error: %s class: %s"), *CustomValue, *ImportError, *GetPathNameSafe(EmitterContext.GetCurrentlyGeneratedClass()));
+					UE_LOG(LogK2Compiler, Error, TEXT("FEmitHelper::LiteralTerm cannot parse struct \"%s\" error: %s"), *CustomValue, *ImportError);
 				}
 
 				for (auto LocalProperty : TFieldRange<const UProperty>(StructType))
@@ -977,6 +988,11 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	{
 		if (LiteralObject)
 		{
+			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject);
+			if (!MappedObject.IsEmpty())
+			{
+				return MappedObject;
+			}
 			return FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
 		}
 		return FString(TEXT("nullptr"));
@@ -992,8 +1008,12 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			{
 				return MappedObject;
 			}
+			return FString(TEXT("nullptr"));
 		}
-		return FString(TEXT("nullptr"));
+		else
+		{
+			return FString(TEXT("nullptr"));
+		}
 	}
 	else if (UEdGraphSchema_K2::PC_Interface == Type.PinCategory)
 	{
@@ -1038,11 +1058,8 @@ FString FEmitHelper::PinTypeToNativeType(const FEdGraphPinType& Type)
 		{
 			if (UEnum* Enum = Cast<UEnum>(InType.PinSubCategoryObject.Get()))
 			{
-				const bool bEnumClassForm = Enum->GetCppForm() == UEnum::ECppForm::EnumClass;
-				const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass();
 				FString FullyQualifiedEnumName = (!Enum->CppType.IsEmpty()) ? Enum->CppType : FEmitHelper::GetCppName(Enum);
-				// TODO: sometimes we need unwrapped type for enums without size specified. For example when native function has a raw ref param.
-				return (bEnumClassForm || bNonNativeEnum) ? FullyQualifiedEnumName : FString::Printf(TEXT("TEnumAsByte<%s>"), *FullyQualifiedEnumName);
+				return FString::Printf(TEXT("TEnumAsByte<%s>"), *FullyQualifiedEnumName);
 			}
 			return TEXT("uint8");
 		}
@@ -1222,10 +1239,10 @@ bool FEmitHelper::GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, co
 			OutCastEnd = TEXT(")");
 			return true;
 		}
-		else if (RType.bIsArray && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)) && (LClass != RClass))
+		else if (RType.bIsArray && LClass && RClass && (LClass->IsChildOf(RClass) || RClass->IsChildOf(LClass)))
 		{
-			OutCastBegin = FString::Printf(TEXT("TArrayCaster<%s*>("), *FEmitHelper::GetCppName(RClass));
-			OutCastEnd = FString::Printf(TEXT(").Get<%s*>()"), *FEmitHelper::GetCppName(LClass));
+			OutCastBegin = FString::Printf(TEXT("TArrayCaster<%s>("), *FEmitHelper::GetCppName(RClass));
+			OutCastEnd = FString::Printf(TEXT(").Get<%s>()"), *FEmitHelper::GetCppName(LClass));
 			return true;
 		}
 	}
@@ -1249,44 +1266,31 @@ FString FEmitHelper::ReplaceConvertedMetaData(UObject* Obj)
 FString FEmitHelper::GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property)
 {
 	check(Property);
+
+	const FString PropertyWeakPtrName = EmitterContext.GenerateUniqueLocalName();
+	EmitterContext.AddLine(FString::Printf(TEXT("static TWeakObjectPtr<UProperty> %s{};"), *PropertyWeakPtrName));
+
 	const FString PropertyPtrName = EmitterContext.GenerateUniqueLocalName();
+	EmitterContext.AddLine(FString::Printf(TEXT("const UProperty* %s = %s.Get();"), *PropertyPtrName, *PropertyWeakPtrName));
+	EmitterContext.AddLine(FString::Printf(TEXT("if (nullptr == %s)"), *PropertyPtrName));
+	EmitterContext.AddLine(TEXT("{"));
+	EmitterContext.IncreaseIndent();
 
-	static const FBoolConfigValueHelper UseStaticVariables(TEXT("BlueprintNativizationSettings"), TEXT("bUseStaticVariablesInClasses"));
-	const bool bUseStaticVariables = UseStaticVariables;
-	if (bUseStaticVariables)
-	{
-		const FString PropertyWeakPtrName = EmitterContext.GenerateUniqueLocalName();
-		EmitterContext.AddLine(FString::Printf(TEXT("static TWeakObjectPtr<UProperty> %s{};"), *PropertyWeakPtrName));
+	const FString PropertyOwnerStruct = EmitterContext.FindGloballyMappedObject(Property->GetOwnerStruct(), UStruct::StaticClass());
+	EmitterContext.AddLine(FString::Printf(TEXT("%s = (%s)->FindPropertyByName(FName(TEXT(\"%s\")));")
+		, *PropertyPtrName
+		, *PropertyOwnerStruct
+		, *Property->GetName()));
+	EmitterContext.AddLine(FString::Printf(TEXT("check(%s);"), *PropertyPtrName));
+	EmitterContext.AddLine(FString::Printf(TEXT("%s = %s;"), *PropertyWeakPtrName, *PropertyPtrName));
+	EmitterContext.DecreaseIndent();
+	EmitterContext.AddLine(TEXT("}"));
 
-		EmitterContext.AddLine(FString::Printf(TEXT("const UProperty* %s = %s.Get();"), *PropertyPtrName, *PropertyWeakPtrName));
-		EmitterContext.AddLine(FString::Printf(TEXT("if (nullptr == %s)"), *PropertyPtrName));
-		EmitterContext.AddLine(TEXT("{"));
-		EmitterContext.IncreaseIndent();
-
-		const FString PropertyOwnerStruct = EmitterContext.FindGloballyMappedObject(Property->GetOwnerStruct(), UStruct::StaticClass());
-		EmitterContext.AddLine(FString::Printf(TEXT("%s = (%s)->FindPropertyByName(FName(TEXT(\"%s\")));")
-			, *PropertyPtrName
-			, *PropertyOwnerStruct
-			, *Property->GetName()));
-		EmitterContext.AddLine(FString::Printf(TEXT("check(%s);"), *PropertyPtrName));
-		EmitterContext.AddLine(FString::Printf(TEXT("%s = %s;"), *PropertyWeakPtrName, *PropertyPtrName));
-		EmitterContext.DecreaseIndent();
-		EmitterContext.AddLine(TEXT("}"));
-	}
-	else 
-	{
-		const FString PropertyOwnerStruct = EmitterContext.FindGloballyMappedObject(Property->GetOwnerStruct(), UStruct::StaticClass());
-		EmitterContext.AddLine(FString::Printf(TEXT("const UProperty* %s = (%s)->FindPropertyByName(FName(TEXT(\"%s\")));")
-			, *PropertyPtrName
-			, *PropertyOwnerStruct
-			, *Property->GetName()));
-		EmitterContext.AddLine(FString::Printf(TEXT("check(%s);"), *PropertyPtrName));
-	}
 	return PropertyPtrName;
 }
 
 FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
-	, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx, bool bGetter)
+	, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx)
 {
 	check(Property);
 	const FString PropertyLocalName = GenerateGetPropertyByName(EmitterContext, Property);
@@ -1294,14 +1298,13 @@ FString FEmitHelper::AccessInaccessibleProperty(FEmitterLocalContext& EmitterCon
 		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef | EPropertyExportCPPFlags::CPPF_NoStaticArray
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
-	const FString Result = FString::Printf(TEXT("(*(%s->ContainerPtrToValuePtr<%s>(%s(%s), %d)))")
+
+	return FString::Printf(TEXT("(*(%s->ContainerPtrToValuePtr<%s>(%s(%s), %d)))")
 		, *PropertyLocalName
 		, *TypeDeclaration
 		, *ContextAdressOp
 		, *ContextStr
 		, StaticArrayIdx);
-	const UBoolProperty* BoolProperty = Cast<UBoolProperty>(Property);
-	return (bGetter && BoolProperty && !BoolProperty->IsNativeBool()) ? FString::Printf(TEXT("(0 != (%s))"), *Result) : Result;
 }
 
 namespace HelperWithoutEditorOnlyMembers

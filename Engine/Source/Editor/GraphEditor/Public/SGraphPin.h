@@ -147,6 +147,7 @@ protected:
 
 	/** Spawns a FDragConnection or similar class for the pin drag event */
 	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<class SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bShiftOperation);
+private:
 	
 	/** True if pin can be edited */
 	bool IsEditingEnabled() const;

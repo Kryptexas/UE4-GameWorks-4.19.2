@@ -847,31 +847,4 @@ void UK2Node_Variable::PostPasteNode()
 	}
 }
 
-bool UK2Node_Variable::IsDeprecated() const
-{
-	if (Super::IsDeprecated() || VariableReference.IsDeprecated())
-	{
-		return true;
-	}
-
-	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
-	if (VariableProperty 
-		&& (VariableProperty->HasAllPropertyFlags(CPF_Deprecated) || VariableProperty->HasMetaData(FBlueprintMetadata::MD_DeprecationMessage)))
-	{
-		return true;
-	}
-	return false;
-}
-
-FString UK2Node_Variable::GetDeprecationMessage() const
-{
-	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
-	if (VariableProperty && VariableProperty->HasMetaData(FBlueprintMetadata::MD_DeprecationMessage))
-	{
-		return FString::Printf(TEXT("%s %s"), *LOCTEXT("PropertyDeprecated_Warning", "@@ is deprecated;").ToString(), *VariableProperty->GetMetaData(FBlueprintMetadata::MD_DeprecationMessage));
-	}
-
-	return Super::GetDeprecationMessage();
-}
-
 #undef LOCTEXT_NAMESPACE

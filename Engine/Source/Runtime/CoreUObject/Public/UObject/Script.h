@@ -9,19 +9,6 @@
 class UStruct;
 struct FFrame;
 
-// It's best to set only one of these, but strictly speaking you could set both.
-// The results will be confusing. Native time would be included only in a coarse 
-// 'native time' timer, and all overhead would be broken up per script function
-#define TOTAL_OVERHEAD_SCRIPT_STATS (STATS && 0)
-#define PER_FUNCTION_SCRIPT_STATS (STATS && 1)
-
-DECLARE_STATS_GROUP(TEXT("Scripting"), STATGROUP_Script, STATCAT_Advanced);
-
-#if TOTAL_OVERHEAD_SCRIPT_STATS
-DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Blueprint - (All) VM Time (ms)"),     STAT_ScriptVmTime_Total,     STATGROUP_Script, COREUOBJECT_API);
-DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Blueprint - (All) Native Time (ms)"), STAT_ScriptNativeTime_Total, STATGROUP_Script, COREUOBJECT_API);
-#endif // TOTAL_OVERHEAD_SCRIPT_STATS
-
 /*-----------------------------------------------------------------------------
 	Constants & types.
 -----------------------------------------------------------------------------*/
@@ -401,101 +388,6 @@ private:
 	bool bOldGAllowScriptExecutionInEditor;
 };
 
-#if TOTAL_OVERHEAD_SCRIPT_STATS
-	// Low overhead timer used to instrument the VM (ProcessEvent and ProcessInternal):
-	struct FBlueprintEventTimer
-	{
-		struct FPausableScopeTimer;
-		COREUOBJECT_API static FPausableScopeTimer* ActiveTimer;
-
-		struct FPausableScopeTimer
-		{
-			FPausableScopeTimer() 
-			{ 
-				double CurrentTime = FPlatformTime::Seconds();
-				if (ActiveTimer)
-				{
-					ActiveTimer->Pause(CurrentTime);
-				}
-
-				PreviouslyActiveTimer = ActiveTimer;
-				StartTime = CurrentTime;
-				TotalTime = 0.0;
-
-				ActiveTimer = this;
-			}
-
-			~FPausableScopeTimer()
-			{
-				if (PreviouslyActiveTimer)
-				{
-					PreviouslyActiveTimer->Resume();
-				}
-				ActiveTimer = PreviouslyActiveTimer;
-			}
-
-			void Pause(double CurrentTime) { TotalTime += CurrentTime - StartTime; }
-			void Resume() { StartTime = FPlatformTime::Seconds();  }
-			double Stop() { return TotalTime + (FPlatformTime::Seconds() - StartTime); }
-
-		private:
-			FPausableScopeTimer* PreviouslyActiveTimer;
-			double TotalTime;
-			double StartTime;
-		};
-
-		// We need to keep track of the current VM timer because we only want to
-		// track time while 'in' the VM. We use this to detect whether we're running
-		// script or just doing RPC:
-		struct FScopedVMTimer;
-		COREUOBJECT_API static FScopedVMTimer* ActiveVMTimer;
-
-		struct FScopedVMTimer
-		{
-			FScopedVMTimer()
-				: Timer()
-				, VMParent(ActiveVMTimer)
-			{
-				ActiveVMTimer = this;
-			}
-
-			~FScopedVMTimer()
-			{
-				INC_FLOAT_STAT_BY(STAT_ScriptVmTime_Total, Timer.Stop() * 1000.0);
-				ActiveVMTimer = VMParent;
-			}
-
-			FPausableScopeTimer Timer;
-			FScopedVMTimer* VMParent;
-		};
-
-		struct FScopedNativeTimer
-		{
-			FScopedNativeTimer()
-				: Timer()
-			{
-			}
-
-			~FScopedNativeTimer()
-			{
-				// only track native time when in a VM scope, RPC time
-				// can be tracked by the online system or whatever is making RPCs:
-				if (ActiveVMTimer)
-				{
-					INC_FLOAT_STAT_BY(STAT_ScriptNativeTime_Total, Timer.Stop()* 1000.0);
-				}
-			}
-
-			FPausableScopeTimer Timer;
-		};
-	};
-
-#define SCOPED_SCRIPT_NATIVE_TIMER(VarName) \
-	FBlueprintEventTimer::FScopedNativeTimer VarName
-
-#else  // TOTAL_OVERHEAD_SCRIPT_STATS
-	#define SCOPED_SCRIPT_NATIVE_TIMER(VarName) 
-#endif // TOTAL_OVERHEAD_SCRIPT_STATS
 /** @return True if the char can be used in an identifier in c++ */
 COREUOBJECT_API bool IsValidCPPIdentifierChar(TCHAR Char);
 

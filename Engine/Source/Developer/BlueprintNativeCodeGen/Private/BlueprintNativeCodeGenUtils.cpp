@@ -131,7 +131,6 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleSourceFiles(const FBl
 
 	TArray<FString> PchIncludes;
 	PchIncludes.Add(EngineHeaderFile);
-	PchIncludes.Add(TEXT("GeneratedCodeHelpers.h"));
 
 	bool bSuccess = GameProjectUtils::GeneratePluginModuleHeaderFile(TargetPaths.RuntimeModuleFile(FBlueprintNativeCodeGenPaths::HFile), PchIncludes, FailureReason);
 

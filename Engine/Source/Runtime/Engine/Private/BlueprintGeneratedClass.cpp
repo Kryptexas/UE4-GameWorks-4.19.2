@@ -64,7 +64,6 @@ void UBlueprintGeneratedClass::PostLoad()
 			CurrObj->MarkPendingKill();
 		}
 	}
-
 #if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
@@ -76,8 +75,7 @@ void UBlueprintGeneratedClass::PostLoad()
 		}
 	}
 
-	UPackage* Package = GetOutermost();
-	if (Package != nullptr)
+	if (const UPackage* Package = GetOutermost())
 	{
 		if (Package->HasAnyPackageFlags(PKG_ForDiffing))
 		{
@@ -94,21 +92,6 @@ void UBlueprintGeneratedClass::PostLoad()
 		Pair.FunctionToPatch->EventGraphCallOffset = Pair.EventGraphCallOffset;
 	}
 #endif
-
-	// Generate "fast path" instancing data for UCS/AddComponent node templates.
-	if (CookedComponentInstancingData.Num() > 0)
-	{
-		for (int32 Index = ComponentTemplates.Num() - 1; Index >= 0; --Index)
-		{
-			if (UActorComponent* ComponentTemplate = ComponentTemplates[Index])
-			{
-				if (FBlueprintCookedComponentInstancingData* ComponentInstancingData = CookedComponentInstancingData.Find(ComponentTemplate->GetFName()))
-				{
-					ComponentInstancingData->LoadCachedPropertyDataForSerialization(ComponentTemplate);
-				}
-			}
-		}
-	}
 }
 
 void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut)
@@ -261,95 +244,6 @@ UObject* UBlueprintGeneratedClass::GetArchetypeForCDO() const
 	return Super::GetArchetypeForCDO();
 }
 #endif //WITH_EDITOR
-
-void UBlueprintGeneratedClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
-{
-	Super::SerializeDefaultObject(Object, Ar);
-
-	if (Ar.IsLoading() && !Ar.IsObjectReferenceCollector() && ClassDefaultObject)
-	{
-		// On load, build the custom property list used in post-construct initialization logic. Note that in the editor, this will be refreshed during compile-on-load.
-		// @TODO - Potentially make this serializable (or cooked data) to eliminate the slight load time cost we'll incur below to generate this list in a cooked build. For now, it's not serialized since the raw UProperty references cannot be saved out.
-		UpdateCustomPropertyListForPostConstruction();
-	}
-}
-
-void UBlueprintGeneratedClass::BuildCustomPropertyListForPostConstruction(FCustomPropertyListNode*& InPropertyList, UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr)
-{
-	const UClass* OwnerClass = Cast<UClass>(InStruct);
-	FCustomPropertyListNode** CurrentNodePtr = &InPropertyList;
-
-	for (UProperty* Property = InStruct->PropertyLink; Property; Property = Property->PropertyLinkNext)
-	{
-		const bool bIsConfigProperty = Property->HasAnyPropertyFlags(CPF_Config) && !(OwnerClass && OwnerClass->HasAnyClassFlags(CLASS_PerObjectConfig));
-		const bool bIsTransientProperty = Property->HasAnyPropertyFlags(CPF_Transient | CPF_DuplicateTransient | CPF_NonPIEDuplicateTransient);
-
-		// Skip config properties as they're already in the PostConstructLink chain. Also skip transient properties if they contain a reference to an instanced subobjects (as those should not be initialized from defaults).
-		if (!bIsConfigProperty && (!bIsTransientProperty || !Property->ContainsInstancedObjectProperty()))
-		{
-			for (int32 Idx = 0; Idx < Property->ArrayDim; Idx++)
-			{
-				const uint8* PropertyValue = Property->ContainerPtrToValuePtr<uint8>(DataPtr, Idx);
-				const uint8* DefaultPropertyValue = Property->ContainerPtrToValuePtrForDefaults<uint8>(InStruct, DefaultDataPtr, Idx);
-
-				// If this is a struct property, recurse to pull out any fields that differ from the native CDO.
-				if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
-				{
-					// Create a new node for the struct property.
-					*CurrentNodePtr = new(CustomPropertyListForPostConstruction) FCustomPropertyListNode(Property, Idx);
-
-					// Recursively gather up all struct fields that differ and assign to the current node's sub property list.
-					BuildCustomPropertyListForPostConstruction((*CurrentNodePtr)->SubPropertyList, StructProperty->Struct, PropertyValue, DefaultPropertyValue);
-
-					// This will be non-NULL if the above found at least one struct field that differs from the native CDO.
-					if ((*CurrentNodePtr)->SubPropertyList)
-					{
-						// Advance to the next node in the list.
-						CurrentNodePtr = &(*CurrentNodePtr)->PropertyListNext;
-					}
-					else
-					{
-						// Remove the node for the struct property since it does not differ from the native CDO.
-						CustomPropertyListForPostConstruction.RemoveAt(CustomPropertyListForPostConstruction.Num() - 1);
-
-						// Clear the current node ptr since the array will have freed up the memory it referenced.
-						*CurrentNodePtr = nullptr;
-					}
-				}
-				else if (!Property->Identical(PropertyValue, DefaultPropertyValue))
-				{
-					// Create a new node, link it into the chain and add it into the array.
-					*CurrentNodePtr = new(CustomPropertyListForPostConstruction) FCustomPropertyListNode(Property, Idx);
-
-					// Advance to the next node ptr.
-					CurrentNodePtr = &(*CurrentNodePtr)->PropertyListNext;
-				}
-			}
-		}
-	}
-}
-
-void UBlueprintGeneratedClass::UpdateCustomPropertyListForPostConstruction()
-{
-	// Empty the current list.
-	CustomPropertyListForPostConstruction.Empty();
-
-	// Find the first native antecedent. All non-native decendant properties are attached to the PostConstructLink chain (see UStruct::Link), so we only need to worry about properties owned by native super classes here.
-	UClass* SuperClass = GetSuperClass();
-	while (SuperClass && !SuperClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic))
-	{
-		SuperClass = SuperClass->GetSuperClass();
-	}
-
-	if (SuperClass)
-	{
-		check(ClassDefaultObject != nullptr);
-
-		// Recursively gather native class-owned property values that differ from defaults.
-		FCustomPropertyListNode* PropertyList = nullptr;
-		BuildCustomPropertyListForPostConstruction(PropertyList, SuperClass, (uint8*)ClassDefaultObject, (uint8*)SuperClass->GetDefaultObject(false));
-	}
-}
 
 bool UBlueprintGeneratedClass::IsFunctionImplementedInBlueprint(FName InFunctionName) const
 {
@@ -994,114 +888,5 @@ void UBlueprintGeneratedClass::GetLifetimeBlueprintReplicationList(TArray<FLifet
 	if (SuperBPClass != NULL)
 	{
 		SuperBPClass->GetLifetimeBlueprintReplicationList(OutLifetimeProps);
-	}
-}
-
-void FBlueprintCookedComponentInstancingData::BuildCachedPropertyList(FCustomPropertyListNode** CurrentNode, const UStruct* CurrentScope, int32* CurrentSourceIdx) const
-{
-	int32 LocalSourceIdx = 0;
-
-	if (CurrentSourceIdx == nullptr)
-	{
-		CurrentSourceIdx = &LocalSourceIdx;
-	}
-
-	// The serialized list is stored linearly, so stop iterating once we no longer match the scope (this indicates that we've finished parsing out "sub" properties for a UStruct).
-	while (*CurrentSourceIdx < ChangedPropertyList.Num() && ChangedPropertyList[*CurrentSourceIdx].PropertyScope == CurrentScope)
-	{
-		// Find changed property by name/scope.
-		const FBlueprintComponentChangedPropertyInfo& ChangedPropertyInfo = ChangedPropertyList[(*CurrentSourceIdx)++];
-		UProperty* Property = nullptr;
-		const UStruct* PropertyScope = CurrentScope;
-		while (!Property && PropertyScope)
-		{
-			Property = FindField<UProperty>(PropertyScope, ChangedPropertyInfo.PropertyName);
-			PropertyScope = PropertyScope->GetSuperStruct();
-		}
-
-		// Create a new node to hold property info.
-		FCustomPropertyListNode* NewNode = new(CachedPropertyListForSerialization) FCustomPropertyListNode(Property, ChangedPropertyInfo.ArrayIndex);
-
-		// Link the new node into the current property list.
-		if (CurrentNode)
-		{
-			*CurrentNode = NewNode;
-		}
-
-		// If this is a UStruct property, recursively build a sub-property list.
-		if (const UStructProperty* StructProperty = Cast<UStructProperty>(Property))
-		{
-			BuildCachedPropertyList(&NewNode->SubPropertyList, StructProperty->Struct, CurrentSourceIdx);
-		}
-
-		// Advance current location to the next linked node.
-		CurrentNode = &NewNode->PropertyListNext;
-	}
-}
-
-const FCustomPropertyListNode* FBlueprintCookedComponentInstancingData::GetCachedPropertyListForSerialization() const
-{
-	FCustomPropertyListNode* PropertyListRootNode = nullptr;
-
-	// Construct the list if necessary.
-	if (CachedPropertyListForSerialization.Num() == 0 && ChangedPropertyList.Num() > 0)
-	{
-		CachedPropertyListForSerialization.Reserve(ChangedPropertyList.Num());
-
-		// Kick off construction of the cached property list.
-		BuildCachedPropertyList(&PropertyListRootNode, ComponentTemplateClass);
-	}
-	else if (CachedPropertyListForSerialization.Num() > 0)
-	{
-		PropertyListRootNode = *CachedPropertyListForSerialization.GetData();
-	}
-
-	return PropertyListRootNode;
-}
-
-void FBlueprintCookedComponentInstancingData::LoadCachedPropertyDataForSerialization(UActorComponent* SourceTemplate)
-{
-	// Blueprint component instance data writer implementation.
-	class FBlueprintComponentInstanceDataWriter : public FObjectWriter
-	{
-	public:
-		FBlueprintComponentInstanceDataWriter(TArray<uint8>& InDstBytes, const FCustomPropertyListNode* InPropertyList)
-			:FObjectWriter(InDstBytes)
-		{
-			ArCustomPropertyList = InPropertyList;
-			ArUseCustomPropertyList = true;
-			ArWantBinaryPropertySerialization = true;
-		}
-	};
-
-	if (bIsValid)
-	{
-		if (SourceTemplate)
-		{
-			// Make sure the source template has been loaded.
-			if (SourceTemplate->HasAnyFlags(RF_NeedLoad))
-			{
-				if (FLinkerLoad* Linker = SourceTemplate->GetLinker())
-				{
-					Linker->Preload(SourceTemplate);
-				}
-			}
-
-			// Cache source template attributes needed for instancing.
-			ComponentTemplateName = SourceTemplate->GetFName();
-			ComponentTemplateClass = SourceTemplate->GetClass();
-			ComponentTemplateFlags = SourceTemplate->GetFlags();
-
-			// This will also load the cached property list, if necessary.
-			const FCustomPropertyListNode* PropertyList = GetCachedPropertyListForSerialization();
-
-			// Write template data out to the "fast path" buffer. All dependencies will be loaded at this point.
-			FBlueprintComponentInstanceDataWriter InstanceDataWriter(CachedPropertyDataForSerialization, PropertyList);
-			SourceTemplate->Serialize(InstanceDataWriter);
-		}
-		else
-		{
-			bIsValid = false;
-		}
 	}
 }

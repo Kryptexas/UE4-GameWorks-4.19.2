@@ -290,8 +290,7 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 		.OnContextMenuOpening(InArgs._OnContextMenuOpening)
 		.OnGetChildren(this, &SGraphActionMenu::OnGetChildrenForCategory)
 		.SelectionMode(ESelectionMode::Single)
-		.OnItemScrolledIntoView(this, &SGraphActionMenu::OnItemScrolledIntoView)
-		.OnSetExpansionRecursive(this, &SGraphActionMenu::OnSetExpansionRecursive);
+		.OnItemScrolledIntoView(this, &SGraphActionMenu::OnItemScrolledIntoView);
 
 
 	this->ChildSlot
@@ -1324,19 +1323,6 @@ bool SGraphActionMenu::HandleSelection( TSharedPtr< FGraphActionNode > &InSelect
 		}
 	}
 	return bResult;
-}
-
-void SGraphActionMenu::OnSetExpansionRecursive(TSharedPtr<FGraphActionNode> InTreeNode, bool bInIsItemExpanded)
-{
-	if (InTreeNode.IsValid() && InTreeNode->Children.Num())
-	{
-		TreeView->SetItemExpansion(InTreeNode, bInIsItemExpanded);
-
-		for (TSharedPtr<FGraphActionNode> Child : InTreeNode->Children)
-		{
-			OnSetExpansionRecursive(Child, bInIsItemExpanded);
-		}
-	}
 }
 
 /////////////////////////////////////////////////////

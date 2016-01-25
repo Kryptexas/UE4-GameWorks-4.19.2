@@ -74,7 +74,7 @@ private:
 
 	static void ConstructFunctionDeclaration(FEmitterLocalContext &EmitterContext, FKismetFunctionContext &FunctionContext, TArray<UProperty*> &ArgumentList);
 
-	static FString GenerateArgList(const FEmitterLocalContext &EmitterContext, const TArray<UProperty*> &ArgumentList, bool bOnlyParamName = false);
+	static FString GenerateArgList(const FEmitterLocalContext &EmitterContext, const TArray<UProperty*> &ArgumentList);
 
 	static FString GenerateReturnType(const FEmitterLocalContext &EmitterContext, const UFunction* Function);
 
@@ -82,7 +82,7 @@ private:
 
 	void CleanBackend();
 
-	static void EmitFileBeginning(const FString& CleanName, FEmitterLocalContext& EmitterContext, bool bIncludeGeneratedH = true, bool bIncludeCodeHelpersInHeader = false, bool bFullyIncludedDeclaration = false);
+	static void EmitFileBeginning(const FString& CleanName, FEmitterLocalContext& EmitterContext, bool bIncludeGeneratedH = true, bool bIncludeCodeHelpersInHeader = false);
 
 	static void EmitStructProperties(FEmitterLocalContext& EmitterContext, UStruct* SourceClass);
 

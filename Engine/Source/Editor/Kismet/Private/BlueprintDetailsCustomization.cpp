@@ -717,11 +717,14 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			}
 			else
 			{
-				UBlueprint* CurrPropertyOwnerBlueprint = IsVariableInheritedByBlueprint() ? GetBlueprintObj() : GetPropertyOwnerBlueprint();
 				UObject* TargetBlueprintDefaultObject = nullptr;
-				if (CurrPropertyOwnerBlueprint && CurrPropertyOwnerBlueprint->GeneratedClass)
+				if (IsVariableInheritedByBlueprint())
 				{
-					TargetBlueprintDefaultObject = CurrPropertyOwnerBlueprint->GeneratedClass->GetDefaultObject();
+					TargetBlueprintDefaultObject = GetBlueprintObj()->GeneratedClass->GetDefaultObject();
+				}
+				else if (UBlueprint* PropertyOwnerBP = GetPropertyOwnerBlueprint())
+				{
+					TargetBlueprintDefaultObject = PropertyOwnerBP->GeneratedClass->GetDefaultObject();
 				}
 				else if (CachedVariableProperty.IsValid())
 				{

@@ -78,7 +78,6 @@ protected:
 
 TArray< TSharedPtr<FGraphPanelNodeFactory> > FEdGraphUtilities::VisualNodeFactories;
 TArray< TSharedPtr<FGraphPanelPinFactory> > FEdGraphUtilities::VisualPinFactories;
-TArray< TSharedPtr<FGraphPanelPinConnectionFactory> > FEdGraphUtilities::VisualPinConnectionFactories;
 
 // Reconcile other pin links:
 //   - Links between nodes within the copied set are fine
@@ -383,16 +382,6 @@ void FEdGraphUtilities::RegisterVisualPinFactory(TSharedPtr<FGraphPanelPinFactor
 void FEdGraphUtilities::UnregisterVisualPinFactory(TSharedPtr<FGraphPanelPinFactory> OldFactory)
 {
 	VisualPinFactories.Remove(OldFactory);
-}
-
-void FEdGraphUtilities::RegisterVisualPinConnectionFactory(TSharedPtr<FGraphPanelPinConnectionFactory> NewFactory)
-{
-    VisualPinConnectionFactories.Add(NewFactory);
-}
-
-void FEdGraphUtilities::UnregisterVisualPinConnectionFactory(TSharedPtr<FGraphPanelPinConnectionFactory> OldFactory)
-{
-    VisualPinConnectionFactories.Remove(OldFactory);
 }
 
 //////////////////////////////////////////////////////////////////////////

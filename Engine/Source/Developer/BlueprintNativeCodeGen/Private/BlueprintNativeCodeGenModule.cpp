@@ -36,10 +36,6 @@ public:
 	virtual void SaveManifest(int32 Id = -1) override;
 	virtual void MergeManifest(int32 ManifestIdentifier) override;
 	virtual void FinalizeManifest() override;
-	virtual void GenerateStubs() override;
-	virtual void GenerateFullyConvertedClasses() override;
-	virtual void MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr) override;
-	virtual const TMultiMap<FName, TAssetSubclassOf<UObject>>& GetFunctionsBoundToADelegate() override;
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) override;
 	virtual void InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets) override;
@@ -51,141 +47,19 @@ protected:
 	virtual UClass* FindReplacedClass(const UClass* Class) const override;
 	//~ End FScriptCookReplacmentCoordinator interface
 private:
-	void ReadConfig();
-	void FillTargetedForReplacementQuery();
-	void FillIsFunctionUsedInADelegate();
 	FBlueprintNativeCodeGenManifest& GetManifest(const TCHAR* PlatformName);
-	void GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName);
-	void CollectBoundFunctions(UBlueprint* BP);
-	void GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName);
 
 	TMap< FString, TUniquePtr<FBlueprintNativeCodeGenManifest> > Manifests;
 
 	TArray<FString> ExcludedAssetTypes;
-	TArray<TAssetSubclassOf<UBlueprint>> ExcludedBlueprintTypes;
-	TSet<FStringAssetReference> ExcludedAssets;
+	TArray<FString> ExcludedBlueprintTypes;
 	TArray<FString> TargetPlatformNames;
-
-	// A stub-wrapper must be generated only if the BP is really accessed/required by some other generated code.
-	TSet<TAssetPtr<UBlueprint>> StubsRequiredByGeneratedCode;
-	TSet<TAssetPtr<UBlueprint>> AllPotentialStubs;
-
-	TSet<TAssetPtr<UBlueprint>> ToGenerate;
-	TMultiMap<FName, TAssetSubclassOf<UObject>> FunctionsBoundToADelegate; // is a function could be bound to a delegate, then it must have UFUNCTION macro. So we cannot optimize it.
 };
-
-void FBlueprintNativeCodeGenModule::ReadConfig()
-{
-	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedAssetTypes"), ExcludedAssetTypes, GEditorIni);
-
-	{
-		TArray<FString> ExcludedBlueprintTypesPath;
-		GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedBlueprintTypes"), ExcludedBlueprintTypesPath, GEditorIni);
-		for (FString& Path : ExcludedBlueprintTypesPath)
-		{
-			TAssetSubclassOf<UBlueprint> ClassPtr;
-			ClassPtr = FStringAssetReference(Path);
-			ClassPtr.LoadSynchronous();
-			ExcludedBlueprintTypes.Add(ClassPtr);
-		}
-	}
-
-	TArray<FString> ExcludedAssetPaths;
-	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedAssets"), ExcludedAssetPaths, GEditorIni);
-	for (FString& Path : ExcludedAssetPaths)
-	{
-		ExcludedAssets.Add(FStringAssetReference(Path));
-	}
-}
-
-void FBlueprintNativeCodeGenModule::MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr)
-{
-	StubsRequiredByGeneratedCode.Add(BPPtr);
-}
-
-void FBlueprintNativeCodeGenModule::FillTargetedForReplacementQuery()
-{
-	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
-	auto& ConversionQueryDelegate = BackEndModule.OnIsTargetedForConversionQuery();
-	auto ShouldConvert = [](const UObject* AssetObj)
-	{
-		if (ensure(IBlueprintNativeCodeGenCore::Get()))
-		{
-			EReplacementResult ReplacmentResult = IBlueprintNativeCodeGenCore::Get()->IsTargetedForReplacement(AssetObj);
-			return ReplacmentResult == EReplacementResult::ReplaceCompletely;
-		}
-		return false;
-	};
-	ConversionQueryDelegate.BindStatic(ShouldConvert);
-
-	auto LocalMarkUnconvertedBlueprintAsNecessary = [](TAssetPtr<UBlueprint> BPPtr)
-	{
-		IBlueprintNativeCodeGenModule::Get().MarkUnconvertedBlueprintAsNecessary(BPPtr);
-	};
-	BackEndModule.OnIncludingUnconvertedBP().BindStatic(LocalMarkUnconvertedBlueprintAsNecessary);
-}
-
-namespace 
-{
-	void GetFieldFormPackage(UPackage* Package, UStruct*& OutStruct, UEnum*& OutEnum)
-	{
-		TArray<UObject*> Objects;
-		GetObjectsWithOuter(Package, Objects, false);
-		for (auto Entry : Objects)
-		{
-			if (Entry->HasAnyFlags(RF_Transient))
-			{
-				continue;
-			}
-
-			OutStruct = Cast<UStruct>(Entry);
-			if (OutStruct)
-			{
-				break;
-			}
-
-			OutEnum = Cast<UEnum>(Entry);
-			if (OutEnum)
-			{
-				break;
-			}
-		}
-	}
-}
-
-void FBlueprintNativeCodeGenModule::CollectBoundFunctions(UBlueprint* BP)
-{
-	TArray<UFunction*> Functions = IBlueprintCompilerCppBackendModule::CollectBoundFunctions(BP);
-	for (UFunction* Func : Functions)
-	{
-		if (Func)
-		{
-			FunctionsBoundToADelegate.AddUnique(Func->GetFName(), Func->GetOwnerClass());
-		}
-	}
-}
-
-const TMultiMap<FName, TAssetSubclassOf<UObject>>& FBlueprintNativeCodeGenModule::GetFunctionsBoundToADelegate()
-{
-	return FunctionsBoundToADelegate;
-}
-
-void FBlueprintNativeCodeGenModule::FillIsFunctionUsedInADelegate()
-{
-	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
-
-	auto IsFunctionUsed = [](const UFunction* InFunction) -> bool
-	{
-		auto& TargetFunctionsBoundToADelegate = IBlueprintNativeCodeGenModule::Get().GetFunctionsBoundToADelegate();
-		return InFunction && (nullptr != TargetFunctionsBoundToADelegate.FindPair(InFunction->GetFName(), InFunction->GetOwnerClass()));
-	};
-
-	BackEndModule.GetIsFunctionUsedInADelegateCallback().BindStatic(IsFunctionUsed);
-}
 
 void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& InitData)
 {
-	ReadConfig();
+	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedAssetTypes"), ExcludedAssetTypes, GEditorIni);
+	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedBlueprintTypes"), ExcludedBlueprintTypes, GEditorIni);
 
 	IBlueprintNativeCodeGenCore::Register(this);
 
@@ -200,18 +74,22 @@ void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& Ini
 		TargetPlatformNames.Add(Platform.Key);
 	}
 
-	FillTargetedForReplacementQuery();
-
-	FillIsFunctionUsedInADelegate();
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	auto& ConversionQueryDelegate = BackEndModule.OnIsTargetedForConversionQuery();
+	auto ShouldConvert = [](const UObject* AssetObj)
+	{
+		if (IBlueprintNativeCodeGenCore::Get())
+		{
+			EReplacementResult ReplacmentResult = IBlueprintNativeCodeGenCore::Get()->IsTargetedForReplacement(AssetObj);
+			return ReplacmentResult == EReplacementResult::ReplaceCompletely;
+		}
+		return false;
+	};
+	ConversionQueryDelegate.BindStatic(ShouldConvert);
 }
 
 void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets)
 {
-	ReadConfig();
-	IBlueprintNativeCodeGenCore::Register(this);
-	FillTargetedForReplacementQuery();
-	FillIsFunctionUsedInADelegate();
-
 	for (const auto& Platform : CodegenTargets)
 	{
 		// load the old manifest:
@@ -225,13 +103,7 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TP
 			// load the package:
 			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Value.TargetObjPath, LOAD_None);
 
-			if (!Package)
-			{
-				UE_LOG(LogBlueprintCodeGen, Error, TEXT("Unable to load the package: %s"), *ConversionTarget.Value.TargetObjPath);
-				continue;
-			}
-
-			// reconvert it
+			// reconvert it:
 			Convert(Package, ESavePackageResult::ReplaceCompletely, *Platform.Key);
 		}
 
@@ -241,41 +113,11 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TP
 			// load the package:
 			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Key.GetPlainNameString(), LOAD_None);
 
-			UStruct* Struct = nullptr;
-			UEnum* Enum = nullptr;
-			GetFieldFormPackage(Package, Struct, Enum);
-			UBlueprint* BP = Cast<UBlueprint>(CastChecked<UClass>(Struct)->ClassGeneratedBy);
-			if (ensure(BP))
-			{
-				CollectBoundFunctions(BP);
-				GenerateSingleStub(BP, *Platform.Key);
-			}
-		}
-
-		for (TAssetPtr<UBlueprint>& BPPtr : ToGenerate)
-		{
-			UBlueprint* BP = BPPtr.LoadSynchronous();
-			if (ensure(BP))
-			{
-				GenerateSingleAsset(BP->GeneratedClass, *Platform.Key);
-			}
+			// reconvert it:
+			Convert(Package, ESavePackageResult::GenerateStub, *Platform.Key);
 		}
 	}
-}
 
-void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
-{
-	for (TAssetPtr<UBlueprint>& BPPtr : ToGenerate)
-	{
-		UBlueprint* BP = BPPtr.LoadSynchronous();
-		if (ensure(BP))
-		{
-			for (const FString& PlatformName : TargetPlatformNames)
-			{
-				GenerateSingleAsset(BP->GeneratedClass, *PlatformName);
-			}
-		}
-	}
 }
 
 FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(const TCHAR* PlatformName)
@@ -286,40 +128,47 @@ FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(cons
 	return **Result;
 }
 
-void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName)
+void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResult CookResult, const TCHAR* PlatformName)
 {
-	UClass* Class = BP ? BP->GeneratedClass : nullptr;
-	if (!ensure(Class))
+	if (CookResult != ESavePackageResult::ReplaceCompletely && CookResult != ESavePackageResult::GenerateStub)
 	{
+		// nothing to convert
 		return;
 	}
 
-	// no PCHFilename should be necessary
-	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-	FAssetData AssetInfo = Registry.GetAssetByObjectPath(*Class->GetPathName());
-	FString FileContents;
-	TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-	// Apparently we can only generate wrappers for classes, so any logic that results in non classes requesting
-	// wrappers will fail here:
-
-	FileContents = Backend_CPP->GenerateWrapperForClass(Class);
-
-	if (!FileContents.IsEmpty())
+	// Find the struct/enum to convert:
+	UStruct* Struct = nullptr;
+	UEnum* Enum = nullptr;
+	TArray<UObject*> Objects;
+	GetObjectsWithOuter(Package, Objects, false);
+	for (auto Entry : Objects)
 	{
-		FFileHelper::SaveStringToFile(FileContents, *(GetManifest(PlatformName).CreateUnconvertedDependencyRecord(AssetInfo.PackageName, AssetInfo).GeneratedWrapperPath));
-	}
-	// The stub we generate still may have dependencies on other modules, so make sure the module dependencies are 
-	// still recorded so that the .build.cs is generated correctly. Without this you'll get include related errors 
-	// (or possibly linker errors) in stub headers:
-	GetManifest(PlatformName).GatherModuleDependencies(BP->GetOutermost());
-}
+		if (Entry->HasAnyFlags(RF_Transient))
+		{
+			continue;
+		}
 
-void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName)
-{
+		Struct = Cast<UStruct>(Entry);
+		if (Struct)
+		{
+			break;
+		}
+
+		Enum = Cast<UEnum>(Entry);
+		if (Enum)
+		{
+			break;
+		}
+	}
+
+	if (Struct == nullptr && Enum == nullptr)
+	{
+		check(false);
+		return;
+	}
+
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	auto& BackendPCHQuery = BackEndModule.OnPCHFilenameQuery();
-	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-	FAssetData AssetInfo = Registry.GetAssetByObjectPath(*ForConversion->GetPathName());
 
 	FBlueprintNativeCodeGenPaths TargetPaths = GetManifest(PlatformName).GetTargetPaths();
 	BackendPCHQuery.BindLambda([TargetPaths]()->FString
@@ -327,134 +176,81 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 		return TargetPaths.RuntimePCHFilename();
 	});
 
-	FConvertedAssetRecord& ConversionRecord = GetManifest(PlatformName).CreateConversionRecord(*ForConversion->GetPathName(), AssetInfo);
-	TSharedPtr<FString> HeaderSource(new FString());
-	TSharedPtr<FString> CppSource(new FString());
-
-	FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource);
-	bool bSuccess = !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
-	// Run the cpp first, because we cue off of the presence of a header for a valid conversion record (see
-	// FConvertedAssetRecord::IsValid)
-	if (!CppSource->IsEmpty())
-	{
-		if (!FFileHelper::SaveStringToFile(*CppSource, *ConversionRecord.GeneratedCppPath))
-		{
-			bSuccess &= false;
-			ConversionRecord.GeneratedCppPath.Empty();
-		}
-		CppSource->Empty(CppSource->Len());
-	}
-	else
-	{
-		ConversionRecord.GeneratedCppPath.Empty();
-	}
-
-	if (bSuccess && !HeaderSource->IsEmpty())
-	{
-		if (!FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath))
-		{
-			bSuccess &= false;
-			ConversionRecord.GeneratedHeaderPath.Empty();
-		}
-		HeaderSource->Empty(HeaderSource->Len());
-	}
-	else
-	{
-		ConversionRecord.GeneratedHeaderPath.Empty();
-	}
-
-	check(bSuccess);
-	if (bSuccess)
-	{
-		GetManifest(PlatformName).GatherModuleDependencies(ForConversion->GetOutermost());
-	}
-
-	BackendPCHQuery.Unbind();
-}
-
-void FBlueprintNativeCodeGenModule::GenerateStubs()
-{
-	TSet<TAssetPtr<UBlueprint>> AlreadyGenerated;
-	while (AlreadyGenerated.Num() < StubsRequiredByGeneratedCode.Num())
-	{
-		const int32 OldGeneratedNum = AlreadyGenerated.Num();
-		for (TAssetPtr<UBlueprint>& BPPtr : StubsRequiredByGeneratedCode)
-		{
-			bool bAlreadyGenerated = false;
-			AlreadyGenerated.Add(BPPtr, &bAlreadyGenerated);
-			if (bAlreadyGenerated)
-			{
-				continue;
-			}
-
-			ensure(AllPotentialStubs.Contains(BPPtr));
-			for (auto& PlatformName : TargetPlatformNames)
-			{
-				GenerateSingleStub(BPPtr.LoadSynchronous(), *PlatformName);
-			}
-		}
-
-		if (!ensure(OldGeneratedNum != AlreadyGenerated.Num()))
-		{
-			break;
-		}
-	}
-
-	UE_LOG(LogBlueprintCodeGen, Log, TEXT("GenerateStubs - all unconverted bp: %d, generated wrapers: %d"), AllPotentialStubs.Num(), StubsRequiredByGeneratedCode.Num());
-}
-
-void FBlueprintNativeCodeGenModule::Convert(UPackage* Package, ESavePackageResult CookResult, const TCHAR* PlatformName)
-{
-	// Find the struct/enum to convert:
-	UStruct* Struct = nullptr;
-	UEnum* Enum = nullptr;
-	GetFieldFormPackage(Package, Struct, Enum);
-
-	// First we gather information about bound functions.
-	UClass* AsClass = Cast<UClass>(Struct);
-	UBlueprint* BP = AsClass ? Cast<UBlueprint>(AsClass->ClassGeneratedBy) : nullptr;
-	if (BP)
-	{
-		CollectBoundFunctions(BP);
-	}
-
-	if (CookResult != ESavePackageResult::ReplaceCompletely && CookResult != ESavePackageResult::GenerateStub)
-	{
-		// nothing to convert
-		return;
-	}
-
-	if (Struct == nullptr && Enum == nullptr)
-	{
-		ensure(false);
-		return;
-	}
+	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
 
 	if (CookResult == ESavePackageResult::GenerateStub)
 	{
-		if (ensure(BP))
+		FAssetData AssetInfo = Registry.GetAssetByObjectPath(*Struct->GetPathName());
+		FString FileContents;
+		TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
+		// Apparently we can only generate wrappers for classes, so any logic that results in non classes requesting
+		// wrappers will fail here:
+
+		FileContents = Backend_CPP->GenerateWrapperForClass(CastChecked<UClass>(Struct));
+		if (!FileContents.IsEmpty())
 		{
-			ensure(!ToGenerate.Contains(BP));
-			AllPotentialStubs.Add(BP);
+			FFileHelper::SaveStringToFile(FileContents, *(GetManifest(PlatformName).CreateUnconvertedDependencyRecord(AssetInfo.PackageName, AssetInfo).GeneratedWrapperPath));
 		}
+		// The stub we generate still may have dependencies on other modules, so make sure the module dependencies are 
+		// still recorded so that the .build.cs is generated correctly. Without this you'll get include related errors 
+		// (or possibly linker errors) in stub headers:
+		GetManifest(PlatformName).GatherModuleDependencies(Package);
 	}
 	else
 	{
 		check(CookResult == ESavePackageResult::ReplaceCompletely);
-		if (AsClass)
+		// convert:
+		UField* ForConversion = Enum;
+		if (ForConversion == nullptr)
 		{
-			if (ensure(BP))
+			ForConversion = Struct;
+		}
+
+		FAssetData AssetInfo = Registry.GetAssetByObjectPath(*ForConversion->GetPathName());
+		FConvertedAssetRecord& ConversionRecord = GetManifest(PlatformName).CreateConversionRecord(*ForConversion->GetPathName(), AssetInfo);
+		TSharedPtr<FString> HeaderSource(new FString());
+		TSharedPtr<FString> CppSource(new FString());
+
+		FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource);
+		bool bSuccess = !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
+		// Run the cpp first, because we cue off of the presence of a header for a valid conversion record (see
+		// FConvertedAssetRecord::IsValid)
+		if (!CppSource->IsEmpty())
+		{
+			if (!FFileHelper::SaveStringToFile(*CppSource, *ConversionRecord.GeneratedCppPath))
 			{
-				ensure(!AllPotentialStubs.Contains(BP));
-				ToGenerate.Add(BP);
+				bSuccess &= false;
+				ConversionRecord.GeneratedCppPath.Empty();
 			}
+			CppSource->Empty(CppSource->Len());
 		}
 		else
 		{
-			UField* ForConversion = Struct ? (UField*)Struct : (UField*)Enum;
-			GenerateSingleAsset(ForConversion, PlatformName);
+			ConversionRecord.GeneratedCppPath.Empty();
+		}
+
+		if (bSuccess && !HeaderSource->IsEmpty())
+		{
+			if (!FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath))
+			{
+				bSuccess &= false;
+				ConversionRecord.GeneratedHeaderPath.Empty();
+			}
+			HeaderSource->Empty(HeaderSource->Len());
+		}
+		else
+		{
+			ConversionRecord.GeneratedHeaderPath.Empty();
+		}
+
+		check(bSuccess);
+		if (bSuccess)
+		{
+			GetManifest(PlatformName).GatherModuleDependencies(Package);
 		}
 	}
+
+	BackendPCHQuery.Unbind();
 }
 
 void FBlueprintNativeCodeGenModule::SaveManifest(int32 Id )
@@ -543,7 +339,6 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 		return EReplacementResult::DontReplace;
 	}
 
-	EReplacementResult Result = EReplacementResult::ReplaceCompletely;
 	if (const UClass* BlueprintClass = Cast<UClass>(Struct))
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
@@ -560,18 +355,6 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 				if (BlueprintType == UnconvertableBlueprintTypes[TypeIndex])
 				{
 					return EReplacementResult::DontReplace;
-				}
-			}
-			for (TAssetSubclassOf<UBlueprint> ExcludedBlueprintTypeAsset : ExcludedBlueprintTypes)
-			{
-				UClass* ExcludedBPClass = ExcludedBlueprintTypeAsset.Get();
-				if (!ExcludedBPClass)
-				{
-					ExcludedBPClass = ExcludedBlueprintTypeAsset.LoadSynchronous();
-				}
-				if (ExcludedBPClass && Blueprint->IsA(ExcludedBPClass))
-				{
-					Result = EReplacementResult::GenerateStub;
 				}
 			}
 		}
@@ -610,23 +393,27 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 	// check blacklists:
 	// we can't use FindObject, because we may be converting a type while saving
-	if (Enum && ExcludedAssetTypes.Find(Enum->GetPathName()) != INDEX_NONE)
+	if ((Struct && ExcludedAssetTypes.Find(Struct->GetPathName()) != INDEX_NONE) ||
+		(Enum && ExcludedAssetTypes.Find(Enum->GetPathName()) != INDEX_NONE))
 	{
-		Result = EReplacementResult::GenerateStub;
+		return EReplacementResult::GenerateStub;
 	}
 
+	EReplacementResult Result = EReplacementResult::ReplaceCompletely;
 	while (Struct)
 	{
-		if (ExcludedAssetTypes.Find(Struct->GetPathName()) != INDEX_NONE)
+		// This happens because the cooker incorrectly cooks editor only packages. Specifically happens for the blackjack sample
+		// project due to a FStringAssetReference in BaseEditor.ini:
+		if (Struct->RootPackageHasAnyFlags(PKG_EditorOnly))
+		{
+			return EReplacementResult::DontReplace;
+		}
+
+		if (ExcludedBlueprintTypes.Find(Struct->GetPathName()) != INDEX_NONE)
 		{
 			Result = EReplacementResult::GenerateStub;
 		}
 		Struct = Struct->GetSuperStruct();
-	}
-
-	if (ExcludedAssets.Contains(Object->GetOutermost()))
-	{
-		Result = EReplacementResult::GenerateStub;
 	}
 
 	return Result;

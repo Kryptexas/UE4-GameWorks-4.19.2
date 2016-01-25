@@ -2227,7 +2227,6 @@ public:
 
 	/**  Util to create a component based on a template	 */
 	UActorComponent* CreateComponentFromTemplate(UActorComponent* Template, const FName InName = NAME_None );
-	UActorComponent* CreateComponentFromTemplateData(const struct FBlueprintCookedComponentInstancingData* TemplateData, const FName InName = NAME_None);
 
 	DEPRECATED(4.11, "Use CreateComponentFromTemplate that takes a FName instead of a FString")
 	UActorComponent* CreateComponentFromTemplate(UActorComponent* Template, const FString& InName);
@@ -2258,12 +2257,6 @@ protected:
 	* Checks components for validity, implemented in AActor
 	*/
 	bool CheckActorComponents();
-
-	/** Checks for and resolve any name conflicts prior to instancing a new Blueprint Component. */
-	void CheckComponentInstanceName(const FName InName);
-
-	/** Called after instancing a new Blueprint Component from either a template or cooked data. */
-	void PostCreateBlueprintComponent(UActorComponent* NewActorComp);
 
 public:
 
