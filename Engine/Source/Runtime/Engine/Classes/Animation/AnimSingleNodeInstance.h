@@ -136,6 +136,8 @@ public:
 	/** Get the currently playing vertex animation. Can return NULL */
 	UVertexAnimation* GetCurrentVertexAnimation();
 
+	/** Get the last filter output */
+	FVector GetFilterLastOutput();
 protected:
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
 };

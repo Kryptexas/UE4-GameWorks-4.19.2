@@ -1356,7 +1356,7 @@ FVector SBlendSpaceEditorBase::GetPreviewBlendInput() const
 			UAnimSingleNodeInstance * SingleNodeInstance = Mesh->GetSingleNodeInstance();
 			if ( SingleNodeInstance )
 			{
-				return SingleNodeInstance->BlendFilter.GetFilterLastOutput();
+				return SingleNodeInstance->GetFilterLastOutput();
 			}
 		}
 	}	
