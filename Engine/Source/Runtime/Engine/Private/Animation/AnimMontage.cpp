@@ -20,7 +20,6 @@ DEFINE_LOG_CATEGORY(LogAnimMontage);
 UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bAnimBranchingPointNeedsSort = true;
 	BlendIn.SetBlendTime(0.25f);
 	BlendOut.SetBlendTime(0.25f);
 	BlendOutTriggerTime = -1.f;
@@ -586,7 +585,14 @@ void UAnimMontage::RefreshBranchingPointMarkers()
 
 		BranchingPointMarkers.Sort(FCompareNotifyTickMarkersTime());
 	}
-	bAnimBranchingPointNeedsSort = false;
+}
+
+void UAnimMontage::RefreshCacheData()
+{
+	Super::RefreshCacheData();
+
+	// This gets called whenever notifies are modified in the editor, so refresh our branch list
+	RefreshBranchingPointMarkers();
 }
 
 void UAnimMontage::AddBranchingPointMarker(FBranchingPointMarker TickMarker, TMap<float, FAnimNotifyEvent*>& TriggerTimes)
@@ -611,9 +617,8 @@ void UAnimMontage::AddBranchingPointMarker(FBranchingPointMarker TickMarker, TMa
 const FBranchingPointMarker* UAnimMontage::FindFirstBranchingPointMarker(float StartTrackPos, float EndTrackPos)
 {
 	// Auto refresh this in editor to catch changes being made to AnimNotifies.
-	// PostEditChangeProperty does not get triggered for some reason when editing notifies.
-	// we need to come up with something better.
-	if (bAnimBranchingPointNeedsSort || (GIsEditor && (!GetWorld() || !GetWorld()->IsPlayInEditor())))
+	// RefreshCacheData should handle this but I'm not 100% sure it will cover all existing cases
+	if (GIsEditor && (!GetWorld() || !GetWorld()->IsPlayInEditor()))
 	{
 		RefreshBranchingPointMarkers();
 	}
@@ -672,14 +677,7 @@ void UAnimMontage::FilterOutNotifyBranchingPoints(TArray<const FAnimNotifyEvent*
 void UAnimMontage::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	// fixme laurent - this doesn't get triggered at all when editing notifies :(
-	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if( PropertyName == FName(TEXT("Notifies")))
-	{
-		bAnimBranchingPointNeedsSort = true;
-	}
-
+	// It is unclear if CollectMarkers should be here or in RefreshCacheData
 	if (SyncGroup != NAME_None)
 	{
 		CollectMarkers();
