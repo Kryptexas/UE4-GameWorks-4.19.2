@@ -229,7 +229,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 , Viewport(nullptr)
 , IB(nullptr)
 {
-//	check(!Source.MSAATexture);
+	check(!Source.MSAATexture);
 	
 	MTLPixelFormat MetalFormat = (MTLPixelFormat)GPixelFormats[PixelFormat].PlatformFormat;
 	
