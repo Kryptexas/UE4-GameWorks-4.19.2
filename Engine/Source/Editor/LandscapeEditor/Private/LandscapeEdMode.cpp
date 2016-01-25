@@ -536,10 +536,26 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 		return;
 	}
 
+	FViewport* const Viewport = ViewportClient->Viewport;
+
+	if (bToolActive && ensure(CurrentTool))
+	{
+		// Require Ctrl or not as per user preference
+		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
+
+		if (!Viewport->KeyState(EKeys::LeftMouseButton) ||
+			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && !IsCtrlDown(Viewport)))
+		{
+			CurrentTool->EndTool(ViewportClient);
+			Viewport->CaptureMouse(false);
+			bToolActive = false;
+		}
+	}
+
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		bool bStaleTargetLandscapeInfo = CurrentToolTarget.LandscapeInfo.IsStale();
-		bool bStaleTargetLandscape = CurrentToolTarget.LandscapeInfo.IsValid() && (CurrentToolTarget.LandscapeInfo->GetLandscapeProxy() != nullptr);
+		const bool bStaleTargetLandscapeInfo = CurrentToolTarget.LandscapeInfo.IsStale();
+		const bool bStaleTargetLandscape = CurrentToolTarget.LandscapeInfo.IsValid() && (CurrentToolTarget.LandscapeInfo->GetLandscapeProxy() != nullptr);
 
 		if (bStaleTargetLandscapeInfo || bStaleTargetLandscape)
 		{
@@ -580,9 +596,13 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 /** FEdMode: Called when the mouse is moved over the viewport */
 bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
-	if (bToolActive && !Viewport->KeyState(EKeys::LeftMouseButton))
+	if (bToolActive && ensure(CurrentTool))
 	{
-		if (CurrentTool)
+		// Require Ctrl or not as per user preference
+		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
+
+		if (!Viewport->KeyState(EKeys::LeftMouseButton) ||
+			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && !IsCtrlDown(Viewport)))
 		{
 			CurrentTool->EndTool(ViewportClient);
 			Viewport->CaptureMouse(false);
