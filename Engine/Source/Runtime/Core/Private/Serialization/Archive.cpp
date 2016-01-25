@@ -125,6 +125,7 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArIgnoreArchetypeRef                 = ArchiveToCopy.ArIgnoreArchetypeRef;
 	ArNoDelta                            = ArchiveToCopy.ArNoDelta;
 	ArIgnoreOuterRef                     = ArchiveToCopy.ArIgnoreOuterRef;
+	ArIgnoreClassGeneratedByRef			 = ArchiveToCopy.ArIgnoreClassGeneratedByRef;
 	ArIgnoreClassRef                     = ArchiveToCopy.ArIgnoreClassRef;
 	ArAllowLazyLoading                   = ArchiveToCopy.ArAllowLazyLoading;
 	ArIsObjectReferenceCollector         = ArchiveToCopy.ArIsObjectReferenceCollector;
