@@ -175,42 +175,16 @@ static void PromoteInterfaceImplementationToOverride(FBPInterfaceDescription con
 		{
 			check(InterfaceGraph != NULL);
 
-			TArray<UK2Node_FunctionEntry*> EntryNodes;
-			InterfaceGraph->GetNodesOfClass(EntryNodes);
-			check(EntryNodes.Num() == 1); 
-			UK2Node_FunctionEntry* OldEntryNode = EntryNodes[0];
+			// The graph can be deleted now that it is a simple function override
+			InterfaceGraph->bAllowDeletion = true;
 
-			TArray<UK2Node_FunctionResult*> ExitNodes;
-			InterfaceGraph->GetNodesOfClass(ExitNodes);
-			check(ExitNodes.Num() == 1);
-			UK2Node_FunctionResult* OldExitNode = ExitNodes[0];
+			// Interface functions are ready to be a function graph outside the box, 
+			// there will be no auto-call to parent though to maintain current functionality
+			// in the graph
+			BlueprintObj->FunctionGraphs.Add(InterfaceGraph);
 
-			// this will create its own entry and exit nodes
-			FBlueprintEditorUtils::AddFunctionGraph(BlueprintObj, InterfaceGraph, /* bIsUserCreated =*/ false, ParentClass);
-
-			InterfaceGraph->GetNodesOfClass(EntryNodes);
-			for (UK2Node_FunctionEntry* EntryNode : EntryNodes)
-			{
-				if (EntryNode == OldEntryNode)
-				{
-					continue;
-				}
-				
-				ReplaceNode(OldEntryNode, EntryNode);
-				break;
-			}
-
-			InterfaceGraph->GetNodesOfClass(ExitNodes);
-			for (UK2Node_FunctionResult* ExitNode : ExitNodes)
-			{
-				if (ExitNode == OldExitNode)
-				{
-					continue;
-				}
-
-				ReplaceNode(OldExitNode, ExitNode);
-				break;
-			}
+			// Potentially adjust variable names for any child blueprints
+			FBlueprintEditorUtils::ValidateBlueprintChildVariables(BlueprintObj, InterfaceGraph->GetFName());
 		}
 
 		// if any graphs were moved
