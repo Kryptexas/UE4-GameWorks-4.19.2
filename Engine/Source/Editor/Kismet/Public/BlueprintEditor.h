@@ -990,11 +990,6 @@ private:
 	/** Attempt to match the given enabled state for currently-selected nodes */
 	ECheckBoxState CheckEnabledStateForSelectedNodes(ENodeEnabledState CheckState);
 
-	/** Fixes SubObject references of the passed object so they match up to sub-object UProperty references */
-	void FixSubObjectReferencesPostUndoRedo(UObject* InObject);
-
-
-
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 
