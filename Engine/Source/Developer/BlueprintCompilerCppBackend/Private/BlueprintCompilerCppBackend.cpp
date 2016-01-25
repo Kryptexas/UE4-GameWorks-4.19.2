@@ -322,10 +322,10 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 
 	check(IndexTerm && IndexTerm->AssociatedVarProperty);
-	const FString IndexDeclaration = EmitterContext.ExportCppDeclaration(IndexTerm->AssociatedVarProperty, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
+	const FString IndexDeclaration = EmitterContext.ExportCppDeclaration(IndexTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, true);
 
 	check(DefaultValueTerm && DefaultValueTerm->AssociatedVarProperty);
-	const FString ValueDeclaration = EmitterContext.ExportCppDeclaration(DefaultValueTerm->AssociatedVarProperty, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
+	const FString ValueDeclaration = EmitterContext.ExportCppDeclaration(DefaultValueTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, true);
 
 	FString Result = FString::Printf(TEXT("TSwitchValue<%s, %s>(%s, %s, %d")
 		, *IndexDeclaration
@@ -562,14 +562,15 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		}
 
 		FString ResultPath;
-
+		const bool bNativeConst = Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasMetaData(FName(TEXT("NativeConst")));
+		bool bIsAccessible = bGetter || !bNativeConst;
 		if (Term->Context && Term->Context->IsStructContextType())
 		{
 			check(Term->AssociatedVarProperty);
-			const bool bIsAccessible = !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate | CPF_NativeAccessSpecifierProtected);
+			bIsAccessible &= !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate | CPF_NativeAccessSpecifierProtected);
 			if (!bIsAccessible)
 			{
-				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, TEXT("&"));
+				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, TEXT("&"), 0, bGetter);
 			}
 			else
 			{
@@ -580,7 +581,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		{
 			const bool bSelfContext = (!Term->Context) || (Term->Context->Name == PSC_Self);
 			const bool bPropertyOfParent = EmitterContext.Dependencies.GetActualStruct()->IsChildOf(Term->AssociatedVarProperty->GetOwnerStruct());
-			const bool bIsAccessible = !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate)
+			bIsAccessible &= !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate)
 				&& ((bPropertyOfParent && bSelfContext) || !Term->AssociatedVarProperty->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected));
 
 			auto MinimalClass = Term->AssociatedVarProperty->GetOwnerClass();
@@ -605,7 +606,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 					ensure(ContextStr.IsEmpty());
 					ContextStr = TEXT("this");
 				}
-				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, FString());
+				ResultPath = FEmitHelper::AccessInaccessibleProperty(EmitterContext, Term->AssociatedVarProperty, ContextStr, FString(), 0, bGetter);
 			}
 			else
 			{
@@ -625,6 +626,24 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		if (Term->Type.bIsWeakPointer && bGetter)
 		{
 			ResultPath += TEXT(".Get()");
+		}
+
+		const bool bNativeConstTemplateArg = Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasMetaData(FName(TEXT("NativeConstTemplateArg")));
+		if ((bNativeConst || bNativeConstTemplateArg) && bIsAccessible && bGetter)
+		{
+			if (Term->Type.bIsArray && bNativeConstTemplateArg)
+			{
+				FEdGraphPinType InnerType = Term->Type;
+				InnerType.bIsArray = false;
+				InnerType.bIsConst = false;
+				const FString CppType = FEmitHelper::PinTypeToNativeType(InnerType);
+				ResultPath = FString::Printf(TEXT("TArrayCaster<const %s>(%s).Get<%s>()"), *CppType, *ResultPath, *CppType);
+			}
+			else
+			{
+				const FString CppType = FEmitHelper::PinTypeToNativeType(Term->Type);
+				ResultPath = FString::Printf(TEXT("const_cast<%s>(%s)"), *CppType, *ResultPath);
+			}
 		}
 
 		FString Conditions;
@@ -748,7 +767,7 @@ void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 				EmitEndOfThreadStatement(EmitterContext, FunctionContext);
 				break;
 			case KCST_Comment:
-				EmitterContext.AddLine(FString::Printf(TEXT("// %s"), *Statement.Comment));
+				EmitterContext.AddLine(FString::Printf(TEXT("// %s"), *Statement.Comment.Replace(TEXT("\n"), TEXT(" "))));
 				break;
 			case KCST_DebugSite:
 				break;

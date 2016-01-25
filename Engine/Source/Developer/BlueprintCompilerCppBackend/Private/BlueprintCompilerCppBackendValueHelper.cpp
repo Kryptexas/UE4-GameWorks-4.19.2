@@ -68,7 +68,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 				const FString ContainerStr = (EPropertyAccessOperator::None == AccessOperator) ? TEXT("this") : OuterPath;
 				const FString GetPtrStr = bNoexportProperty
 					? FEmitHelper::AccessInaccessiblePropertyUsingOffset(Context, Property, ContainerStr, OperatorStr, ArrayIndex)
-					: FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, ArrayIndex);
+					: FEmitHelper::AccessInaccessibleProperty(Context, Property, ContainerStr, OperatorStr, ArrayIndex, false);
 				PathToMember = Context.GenerateUniqueLocalName();
 				Context.AddLine(FString::Printf(TEXT("auto& %s = %s;"), *PathToMember, *GetPtrStr));
 			}

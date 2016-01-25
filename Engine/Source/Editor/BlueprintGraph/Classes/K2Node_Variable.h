@@ -66,6 +66,8 @@ public:
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	virtual void PostPasteNode() override;
+	virtual bool IsDeprecated() const;
+	virtual FString GetDeprecationMessage() const;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin K2Node Interface

@@ -157,7 +157,7 @@ public:
 	FString FindGloballyMappedObject(const UObject* Object, const UClass* ExpectedClass = nullptr, bool bLoadIfNotFound = false, bool bTryUsedAssetsList = true);
 
 	// Functions needed for Unconverted classes
-	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, bool bSkipParameterName = false) const;
+	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, bool bSkipParameterName = false, const FString& NamePostfix = FString(), const FString& TypePrefix = FString()) const;
 	FString ExportTextItem(const UProperty* Property, const void* PropertyValue) const;
 
 	// AS FCodeText
@@ -184,6 +184,11 @@ struct FEmitHelper
 {
 	// bUInterface - use interface with "U" prefix, by default there is "I" prefix
 	static FString GetCppName(const UField* Field, bool bUInterface = false);
+
+	// returns an unique number for a structure in structures hierarchy
+	static int32 GetInheritenceLevel(const UStruct* Struct);
+
+	static bool PropertyForConstCast(const UProperty* Property);
 
 	static void ArrayToString(const TArray<FString>& Array, FString& OutString, const TCHAR* Separator);
 
@@ -244,7 +249,7 @@ struct FEmitHelper
 	static FString GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property);
 
 	static FString AccessInaccessibleProperty(FEmitterLocalContext& EmitterContext, const UProperty* Property
-		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx = 0);
+		, const FString& ContextStr, const FString& ContextAdressOp, int32 StaticArrayIdx, bool bGetter);
 
 	// This code works properly as long, as all fields in structures are UProperties!
 	static FString AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext& EmitterContext, const UProperty* Property

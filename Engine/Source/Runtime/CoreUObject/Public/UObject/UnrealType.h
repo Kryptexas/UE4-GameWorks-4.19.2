@@ -216,13 +216,16 @@ public:
 	 *
 	 * @param	Ar				the archive to use for serialization
 	 * @param	Data			pointer to the location of the beginning of the struct's property data
+	 * @param	ArrayIdx		if not -1 (default), only this array slot will be serialized
 	 */
-	void SerializeBinProperty( FArchive& Ar, void* Data )
+	void SerializeBinProperty( FArchive& Ar, void* Data, int32 ArrayIdx = -1 )
 	{
 		if( ShouldSerializeValue(Ar) )
 		{
 			FSerializedPropertyScope SerializedProperty(Ar, this);
-			for (int32 Idx = 0; Idx < ArrayDim; Idx++)
+			const int32 LoopMin = ArrayIdx < 0 ? 0 : ArrayIdx;
+			const int32 LoopMax = ArrayIdx < 0 ? ArrayDim : ArrayIdx + 1;
+			for (int32 Idx = LoopMin; Idx < LoopMax; Idx++)
 			{
 				// Keep setting the property in case something inside of SerializeItem changes it
 				Ar.SetSerializedProperty(this);
@@ -2366,6 +2369,9 @@ public:
 		return GetTypeHash(*(const FString*)Src);
 	}
 	// End of UProperty interface
+
+	// Necessary to fix Compiler Error C2026
+	static FString ExportCppHardcodedText(const FString& InSource, const FString& Indent);
 };
 
 /*-----------------------------------------------------------------------------
@@ -3387,6 +3393,43 @@ protected:
 
 	const TCHAR* ImportText_Add( const TCHAR* Buffer, void* PropertyValue, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const;
 	const TCHAR* ImportText_Remove( const TCHAR* Buffer, void* PropertyValue, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const;
+};
+
+
+/** Describes a single node in a custom property list. */
+struct COREUOBJECT_API FCustomPropertyListNode
+{
+	/** The property that's being referenced at this node. */
+	UProperty* Property;
+
+	/** Used to identify which array index is specifically being referenced if this is an array property. Defaults to 0. */
+	int32 ArrayIndex;
+
+	/** If this node represents a struct property, this may contain a "sub" property list for the struct itself. */
+	struct FCustomPropertyListNode* SubPropertyList;
+
+	/** Points to the next node in the list. */
+	struct FCustomPropertyListNode* PropertyListNext;
+
+	/** Default constructor. */
+	FCustomPropertyListNode(UProperty* InProperty = nullptr, int32 InArrayIndex = 0)
+		:Property(InProperty)
+		, ArrayIndex(InArrayIndex)
+		, SubPropertyList(nullptr)
+		, PropertyListNext(nullptr)
+	{
+	}
+
+	/** Convenience method to return the next property in the list and advance the given ptr. */
+	FORCEINLINE static UProperty* GetNextPropertyAndAdvance(const FCustomPropertyListNode*& Node)
+	{
+		if (Node)
+		{
+			Node = Node->PropertyListNext;
+		}
+
+		return Node ? Node->Property : nullptr;
+	}
 };
 
 

@@ -23,6 +23,7 @@
 #include "K2Node_DoOnceMultiInput.h"
 #include "K2Node_ComponentBoundEvent.h"
 #include "K2Node_Composite.h"
+#include "K2Node_Copy.h"
 #include "K2Node_CreateDelegate.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_DelegateSet.h"

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
+#include "IKeyframeSection.h"
 #include "MovieSceneFloatSection.generated.h"
 
 /**

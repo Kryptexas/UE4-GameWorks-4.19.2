@@ -1688,6 +1688,12 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 						PatchCDOSubobjectsIntoExport(PreviousCDO, NewCDO);
 						// We purposefully do not call post load here, it happens later on in the normal flow
 					}
+
+					// Update the custom property list used in post construction logic to include native class properties for which the regenerated Blueprint CDO now differs from the native CDO.
+					if (UBlueprintGeneratedClass* BPGClass = Cast<UBlueprintGeneratedClass>(AuthoritativeClass))
+					{
+						BPGClass->UpdateCustomPropertyListForPostConstruction();
+					}
 				}
 
 				Blueprint->PRIVATE_InnermostPreviousCDO = NULL;
@@ -8349,6 +8355,58 @@ void FBlueprintEditorUtils::HandleDisableEditableWhenInherited(UObject* Modified
 				ICH->RemoveOverridenComponentTemplate(ICH->FindKey(CastChecked<UActorComponent>(ArchetypeInstance)));
 			}
 		}
+	}
+}
+
+void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData)
+{
+	// Recursively gathers properties that differ from class/struct defaults, and fills out the cooked property list structure.
+	TFunction<void(UStruct*, const uint8*, const uint8*)> RecursivePropertyGatherLambda = [&](UStruct* InStruct, const uint8* DataPtr, const uint8* DefaultDataPtr)
+	{
+		for (UProperty* Property = InStruct->PropertyLink; Property; Property = Property->PropertyLinkNext)
+		{
+			if (!Property->IsEditorOnlyProperty())
+			{
+				for (int32 Idx = 0; Idx < Property->ArrayDim; Idx++)
+				{
+					const uint8* PropertyValue = Property->ContainerPtrToValuePtr<uint8>(DataPtr, Idx);
+					const uint8* DefaultPropertyValue = Property->ContainerPtrToValuePtrForDefaults<uint8>(InStruct, DefaultDataPtr, Idx);
+
+					FBlueprintComponentChangedPropertyInfo ChangedPropertyInfo;
+					ChangedPropertyInfo.PropertyName = Property->GetFName();
+					ChangedPropertyInfo.ArrayIndex = Idx;
+					ChangedPropertyInfo.PropertyScope = InStruct;
+
+					if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
+					{
+						int32 NumChangedProperties = OutData.ChangedPropertyList.Num();
+
+						RecursivePropertyGatherLambda(StructProperty->Struct, PropertyValue, DefaultPropertyValue);
+
+						if (NumChangedProperties < OutData.ChangedPropertyList.Num())
+						{
+							OutData.ChangedPropertyList.Insert(ChangedPropertyInfo, NumChangedProperties);
+						}
+					}
+					else if (!Property->Identical(PropertyValue, DefaultPropertyValue, PPF_None))
+					{
+						OutData.ChangedPropertyList.Add(ChangedPropertyInfo);
+					}
+				}
+			}
+		}
+	};
+
+	if (ComponentTemplate)
+	{
+		UClass* ComponentTemplateClass = ComponentTemplate->GetClass();
+
+		// Gather the set of properties that differ from the template CDO.
+		OutData.ChangedPropertyList.Empty();
+		RecursivePropertyGatherLambda(ComponentTemplateClass, (uint8*)ComponentTemplate, (uint8*)ComponentTemplateClass->GetDefaultObject(false));
+
+		// Flag that cooked data has been built and is now considered to be valid.
+		OutData.bIsValid = true;
 	}
 }
 

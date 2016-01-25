@@ -612,8 +612,9 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 		void* SrcStructAddr = Stack.MostRecentPropertyAddress;
 
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		Generic_SetStructurePropertyByName(OwnerObject, StructPropertyName, SrcStructAddr);
+		P_NATIVE_END;
 	}
 
 	/** Set a custom structure property by name */
@@ -632,8 +633,9 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 		void* SrcStructAddr = Stack.MostRecentPropertyAddress;
 
 		P_FINISH;
-
+		P_NATIVE_BEGIN;
 		Generic_SetStructurePropertyByName(OwnerObject, StructPropertyName, SrcStructAddr);
+		P_NATIVE_END;
 	}
 
 	// --- Collision functions ------------------------------

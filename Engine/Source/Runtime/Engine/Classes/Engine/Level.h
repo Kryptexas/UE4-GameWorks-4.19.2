@@ -550,6 +550,7 @@ public:
 #if	WITH_EDITOR
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;	
+	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
 	virtual void PreSave() override;
