@@ -768,7 +768,7 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 
 	const FPDBCacheConfigEntry ConfigEntry = FCrashDebugHelperConfig::Get().GetCacheConfigEntryForBranch( CrashInfo.DepotName );
 	FString ExecutablePathPattern = ConfigEntry.ExecutablePathPattern;
-	FString SymbolPathPattern = ConfigEntry.ExecutablePathPattern;
+	FString SymbolPathPattern = ConfigEntry.SymbolPathPattern;
 
 	if (!ExecutablePathPattern.IsEmpty() || !SymbolPathPattern.IsEmpty())
 	{
