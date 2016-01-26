@@ -157,20 +157,26 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, FLandscapeBrus
 	int32 FFTWidth = X2 - X1 - 1;
 	int32 FFTHeight = Y2 - Y1 - 1;
 
+	if (FFTWidth <= 1 && FFTHeight <= 1)
+	{
+		// nothing to do
+		return;
+	}
+
 	const int32 NDims = 2;
-	const int32 Dims[NDims] = { FFTHeight - FFTHeight % 2, FFTWidth - FFTWidth % 2 };
+	const int32 Dims[NDims] = { FFTHeight, FFTWidth };
 	kiss_fftnd_cfg stf = kiss_fftnd_alloc(Dims, NDims, 0, NULL, NULL),
 		sti = kiss_fftnd_alloc(Dims, NDims, 1, NULL, NULL);
 
 	kiss_fft_cpx *buf = (kiss_fft_cpx *)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * Dims[0] * Dims[1]);
 	kiss_fft_cpx *out = (kiss_fft_cpx *)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * Dims[0] * Dims[1]);
 
-	for (int32 Y = Y1 + 1; Y <= Y2 - 1 - FFTHeight % 2; Y++)
+	for (int32 Y = Y1 + 1; Y <= Y2 - 1; Y++)
 	{
 		auto* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 		auto* bufScanline = buf + (Y - (Y1 + 1)) * Dims[1] + (0 - (X1 + 1));
 
-		for (int32 X = X1 + 1; X <= X2 - 1 - FFTWidth % 2; X++)
+		for (int32 X = X1 + 1; X <= X2 - 1; X++)
 		{
 			bufScanline[X].r = DataScanline[X];
 			bufScanline[X].i = 0;
@@ -227,8 +233,8 @@ inline void LowPassFilter(int32 X1, int32 Y1, int32 X2, int32 Y2, FLandscapeBrus
 	float Scale = Dims[0] * Dims[1];
 	const int32 BrushX1 = FMath::Max<int32>(BrushInfo.GetBounds().Min.X, X1 + 1);
 	const int32 BrushY1 = FMath::Max<int32>(BrushInfo.GetBounds().Min.Y, Y1 + 1);
-	const int32 BrushX2 = FMath::Min<int32>(BrushInfo.GetBounds().Max.X, X2 - FFTWidth % 2);
-	const int32 BrushY2 = FMath::Min<int32>(BrushInfo.GetBounds().Max.Y, Y2 - FFTHeight % 2);
+	const int32 BrushX2 = FMath::Min<int32>(BrushInfo.GetBounds().Max.X, X2);
+	const int32 BrushY2 = FMath::Min<int32>(BrushInfo.GetBounds().Max.Y, Y2);
 	for (int32 Y = BrushY1; Y < BrushY2; Y++)
 	{
 		const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
