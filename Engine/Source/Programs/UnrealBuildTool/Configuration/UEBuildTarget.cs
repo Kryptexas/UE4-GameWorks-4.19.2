@@ -1964,6 +1964,42 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// We generate new version manifests with a unique build id for every build by default, which prevents the engine opportunistically trying to load stale modules
+		/// discovered through directory searches. If we're not updating any files in the engine folder, we can safely recycle the existing build id without requiring a 
+		/// new UBT invocation to update it when switching between projects.
+		/// </summary>
+		public void RecycleVersionManifests(bool bModifyingEngineFiles)
+		{
+			if (FileReferenceToVersionManifestPairs != null)
+			{
+				if (bModifyingEngineFiles)
+				{
+					// Delete all the existing manifests, so we don't try to recycle partial builds in future (the current build may fail after modifying engine files, 
+					// causing bModifyingEngineFiles to be incorrect on the next invocation).
+					foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
+					{
+						FileNameToVersionManifest.Key.Delete();
+					}
+				}
+				else if(OutputPaths.Count == 1 && OutputPaths[0].IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				{
+					// Get the path to the manifest for the base executable. AppBinaries may have precompiled binaries removed, so we use the target's output path for the executable instead.
+					FileReference ManifestFileName = FileReference.Combine(OutputPaths[0].Directory, VersionManifest.GetStandardFileName(AppName, Platform, Configuration, PlatformContext.GetActiveArchitecture(), false));
+
+					// Try to read it and update all the other manifests with the same build id
+					VersionManifest BaseManifest;
+					if (VersionManifest.TryRead(ManifestFileName.FullName, out BaseManifest))
+					{
+						foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
+						{
+							FileNameToVersionManifest.Value.BuildId = BaseManifest.BuildId;
+						}
+					}
+				}
+			}
+		}
+
+		/// <summary>
 		/// Writes out the version manifest
 		/// </summary>
 		public void WriteReceipts()
