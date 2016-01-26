@@ -1388,6 +1388,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 							}
 						}
 
+						UWorld* RegisteredWorld = nullptr;
 						bool bWasRegistered = false;
 						if (bIsComponent)
 						{
@@ -1395,6 +1396,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 							if (OldComponent->IsRegistered())
 							{
 								bWasRegistered = true;
+								RegisteredWorld = OldComponent->GetWorld();
 								OldComponent->UnregisterComponent();
 							}
 						}
@@ -1431,7 +1433,28 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 
 							if (bWasRegistered)
 							{
-								Component->RegisterComponent();
+								if (RegisteredWorld && OwningActor == nullptr)
+								{
+									// Thumbnail components are added to a World without an actor, so we must special case their
+									// REINST to register them with the world again.
+									// The old thumbnail component is GC'd and will ensure if all it's attachments are not released
+									// @TODO: This special case can breakdown if the nature of thumbnail components changes and could
+									// use a cleanup later.
+									if (OldObject->GetOutermost() == GetTransientPackage())
+									{
+										if (USceneComponent* SceneComponent = Cast<USceneComponent>(OldObject))
+										{
+											SceneComponent->AttachChildren.Empty();
+											SceneComponent->AttachParent = nullptr;
+										}
+									}
+
+									Component->RegisterComponentWithWorld(RegisteredWorld);
+								}
+								else
+								{
+									Component->RegisterComponent();
+								}
 							}
 						}
 					}
