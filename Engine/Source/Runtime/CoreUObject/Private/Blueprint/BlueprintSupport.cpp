@@ -481,7 +481,7 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(FObjectImport& InImport)
 	}
 	return bResult;
 }
-#endif WITH_EDITOR
+#endif // WITH_EDITOR
 
 /** 
  * A helper utility for tracking exports whose classes we're currently running
