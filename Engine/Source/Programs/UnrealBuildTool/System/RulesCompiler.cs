@@ -866,6 +866,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Target">The target information, such as platform and configuration</param>
 		/// <param name="ModuleNames">List which receives module names to precompile</param>
+		[Obsolete("GetModulesToPrecompile() is deprecated in the 4.11 release. The -precompile option to UBT now automatically compiles all engine modules compatible with the current target.")]
 		public virtual void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
 		{
 		}

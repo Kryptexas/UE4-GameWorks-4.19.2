@@ -33,33 +33,6 @@ public class UE4EditorTarget : TargetRules
 		return true;
 	}
 
-	public override void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
-	{
-		ModuleNames.Add("Launch");
-		ModuleNames.Add("GameMenuBuilder");
-		ModuleNames.Add("JsonUtilities");
-		ModuleNames.Add("RuntimeAssetCache");
-		ModuleNames.Add("UnrealCodeAnalyzerTests");
-		if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
-		{
-			ModuleNames.Add("OnlineSubsystemNull");
-			ModuleNames.Add("OnlineSubsystemAmazon");
-			if (UEBuildConfiguration.bCompileSteamOSS == true)
-			{
-				ModuleNames.Add("OnlineSubsystemSteam");
-			}
-			ModuleNames.Add("OnlineSubsystemFacebook");
-		}
-		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
-		{
-			ModuleNames.Add("OnlineSubsystemNull");
-			if (UEBuildConfiguration.bCompileSteamOSS == true)
-			{
-				ModuleNames.Add("OnlineSubsystemSteam");
-			}
-		}
-	}
-
     public override GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
     {
         var Result = new GUBPProjectOptions();
