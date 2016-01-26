@@ -16,7 +16,7 @@ namespace UnrealBuildTool.Rules
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
-					"Developer/SynthBenchmark/Private",
+					"Runtime/SynthBenchmark/Private",
 					// ... add other private include paths required here ...
 				}
 				);

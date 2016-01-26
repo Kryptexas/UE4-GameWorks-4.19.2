@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
+#if WITH_EDITOR
 #include "ISettingsModule.h"
 #include "ISettingsSection.h"
+#endif
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
 
@@ -166,6 +168,7 @@ public:
 			return;
 		}
 
+#if WITH_EDITOR
 		// register settings
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
@@ -182,6 +185,7 @@ public:
 				SettingsSection->OnModified().BindRaw(this, &FUdpMessagingModule::HandleSettingsSaved);
 			}
 		}
+#endif // WITH_EDITOR
 
 		// register application events
 		FCoreDelegates::ApplicationHasReactivatedDelegate.AddRaw(this, &FUdpMessagingModule::HandleApplicationHasReactivated);
@@ -196,6 +200,7 @@ public:
 		FCoreDelegates::ApplicationHasReactivatedDelegate.RemoveAll(this);
 		FCoreDelegates::ApplicationWillDeactivateDelegate.RemoveAll(this);
 
+#if WITH_EDITOR
 		// unregister settings
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
@@ -203,6 +208,7 @@ public:
 		{
 			SettingsModule->UnregisterSettings("Project", "Plugins", "UdpMessaging");
 		}
+#endif
 
 		// shut down services
 		ShutdownBridge();

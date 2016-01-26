@@ -2270,7 +2270,7 @@ namespace UnrealBuildTool
 		{
 			string EULAViolationWarning = null;
 
-			if (TargetType != TargetRules.TargetType.Editor && TargetType != TargetRules.TargetType.Program &&
+			if (TargetType != TargetRules.TargetType.Editor && TargetType != TargetRules.TargetType.Program && Configuration == UnrealTargetConfiguration.Shipping &&
 				BuildConfiguration.bCheckLicenseViolations)
 			{
 				var RedistributionErrorMessageBuilder = new StringBuilder();

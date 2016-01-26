@@ -21,7 +21,7 @@ static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
 //
 // Cooking Stats
 // 
-#define MATERIAL_COOKING_STATS 1
+#define MATERIAL_COOKING_STATS (1 && WITH_EDITORONLY_DATA)
 
 #if MATERIAL_COOKING_STATS
 
@@ -148,9 +148,11 @@ namespace MaterialStats
 
 
 #else
-#endif
 
+#define COOKING_STAT_START(...)
+#define COOKING_STAT_STOP(...)
 
+#endif // MATERIAL_COOKING_STATS
 
 //
 // Globals

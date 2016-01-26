@@ -37,7 +37,7 @@ public class Core : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"Developer/DerivedDataCache/Public",
-				"Developer/SynthBenchmark/Public",
+				"Runtime/SynthBenchmark/Public",
 				"Runtime/Core/Private",
 				"Runtime/Core/Private/Misc",
 				"Runtime/Core/Private/Serialization/Json",
