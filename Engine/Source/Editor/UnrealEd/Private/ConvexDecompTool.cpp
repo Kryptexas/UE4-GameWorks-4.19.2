@@ -83,13 +83,26 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 
 	bool bSuccess = false;
 
+	// Validate input by checking bounding box
+	FBox VertBox(0);
+	for (FVector Vert : InVertices)
+	{
+		VertBox += Vert;
+	}
+
+	// If box is invalid, or the largest dimension is less than 1 unit, or smallest is less than 0.1, skip trying to generate collision (V-HACD often crashes...)
+	if (VertBox.IsValid == 0 || VertBox.GetSize().GetMax() < 1.f || VertBox.GetSize().GetMin() < 0.1f)
+	{
+		return;
+	}
+
 #if USE_VHACD
 	FVHACDProgressCallback VHACD_Callback;
 
 	IVHACD::Parameters VHACD_Params;
-	VHACD_Params.m_resolution = 1000000;
-	VHACD_Params.m_maxNumVerticesPerCH = InMaxHullVerts;
-	VHACD_Params.m_concavity = 0.3f * (1.f - FMath::Clamp(InAccuracy, 0.f, 1.f));
+	VHACD_Params.m_resolution = 1000000; // Maximum number of voxels generated during the voxelization stage (default=100,000, range=10,000-16,000,000)
+	VHACD_Params.m_maxNumVerticesPerCH = InMaxHullVerts; // Controls the maximum number of triangles per convex-hull (default=64, range=4-1024)
+	VHACD_Params.m_concavity = 0.3f * (1.f - FMath::Clamp(InAccuracy, 0.f, 1.f)); // Maximum allowed concavity (default=0.0025, range=0.0-1.0)
 	VHACD_Params.m_callback = &VHACD_Callback;
 	VHACD_Params.m_oclAcceleration = false;
 
