@@ -2205,7 +2205,7 @@ void GlobalBeginCompileShader(
 	// Set instanced stereo define
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-		const bool bIsInstancedStereo = CVar ? (CVar->GetValueOnGameThread() != false) : false;
+		const bool bIsInstancedStereo = (EShaderPlatform(Target.Platform) == EShaderPlatform::SP_PCD3D_SM5 || EShaderPlatform(Target.Platform) == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnGameThread() != false) : false) : false;
 		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo ? 1 : 0);
 	}
 

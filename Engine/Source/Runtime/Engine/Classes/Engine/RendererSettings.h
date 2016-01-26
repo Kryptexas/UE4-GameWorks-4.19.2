@@ -268,7 +268,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category=VR, meta=(
 		ConsoleVariable="vr.InstancedStereo", DisplayName="Instanced Stereo",
-		ToolTip="Enable instanced stereo rendering.",
+		ToolTip="Enable instanced stereo rendering (only available for D3D SM5 or PS4).",
 		ConfigRestartRequired=true))
 	uint32 bInstancedStereo:1;
 
