@@ -1993,6 +1993,16 @@ private:
 	 */
 	bool DeferPotentialCircularImport(const int32 ImportIndex);
 	
+#if WITH_EDITOR
+	/**
+	* Determines if the Object Import error should be suppressed
+	*
+	* @param  InImport    Import to check for suppression.
+	* @return True if the import error should be suppressed
+	*/
+	bool IsSuppressableBlueprintImportError(FObjectImport& InImport);
+#endif // WITH_EDITOR
+
 	/**
 	 * Stubs in a ULinkerPlaceholderExportObject for the specified export (if 
 	 * one is required, meaning: the export's LoadClass is not fully formed). 

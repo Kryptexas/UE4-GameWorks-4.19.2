@@ -449,6 +449,40 @@ bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
+#if WITH_EDITOR
+bool FLinkerLoad::IsSuppressableBlueprintImportError(FObjectImport& InImport)
+{
+	// We want to suppress any import errors that target a BlueprintGeneratedClass
+	// since these issues can occur when an externally referenced Blueprint is saved 
+	// without compiling. This should not be a problem because all Blueprints are
+	// compiled-on-load.
+	static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
+	FObjectImport& TestImport = InImport;
+	bool bResult = false;
+	// We will look at each outer of the Import to see if any of them are a BPGC
+	while (1)
+	{
+		if (TestImport.ClassName == NAME_BlueprintGeneratedClass)
+		{
+			// The import is a BPGC, suppress errors
+			bResult = true;
+			break;
+		}
+
+		if (!TestImport.OuterIndex.IsNull() && TestImport.OuterIndex.IsImport())
+		{
+			TestImport = Imp(TestImport.OuterIndex);
+		}
+		else
+		{
+			// It's not an import, we are done
+			break;
+		}
+	}
+	return bResult;
+}
+#endif WITH_EDITOR
+
 /** 
  * A helper utility for tracking exports whose classes we're currently running
  * through ForceRegenerateClass(). This is primarily relied upon to help prevent
