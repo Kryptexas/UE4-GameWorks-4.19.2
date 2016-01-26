@@ -2294,6 +2294,32 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 		{
 			// put us back the way we were and peace out
 			Import = OriginalImport;
+
+			bool bSupressLinkerError = false;
+			// We want to suppress any import errors that target a BlueprintGeneratedClass
+			// We will look at each outer of the Import to see if any of them are a BPGC
+			static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
+			FObjectImport& TestImport = Import;
+			while (1)
+			{
+				if (TestImport.ClassName == NAME_BlueprintGeneratedClass)
+				{
+					// The import is a BPGC, suppress errors
+					bSupressLinkerError = true;
+					break;
+				}
+
+				if (!Import.OuterIndex.IsNull() && Import.OuterIndex.IsImport())
+				{
+					TestImport = Imp(TestImport.OuterIndex);
+				}
+				else
+				{
+					// It's not an import, we are done
+					break;
+				}
+			}
+
 			// if the original VerifyImportInner told us that we need to throw an exception if we weren't redirected,
 			// then do the throw here
 			if (bCrashOnFail)
@@ -2302,7 +2328,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				return Result;
 			}
 			// otherwise just printout warnings, and if in the editor, popup the EdLoadWarnings box
-			else
+			else if (!bSupressLinkerError)
 			{
 				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
 				UObject* ClassPackage = FindObject<UPackage>( NULL, *Import.ClassPackage.ToString() );
