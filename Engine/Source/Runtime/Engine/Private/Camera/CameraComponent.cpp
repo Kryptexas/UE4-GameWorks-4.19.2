@@ -219,8 +219,9 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 
 	if (bUsePawnControlRotation)
 	{
-		APawn* OwningPawn = Cast<APawn>(GetOwner());
-		if (OwningPawn && OwningPawn->GetController()->IsLocalPlayerController())
+		const APawn* OwningPawn = Cast<APawn>(GetOwner());
+		const AController* OwningController = OwningPawn ? OwningPawn->GetController() : nullptr;
+		if (OwningController && OwningController->IsLocalPlayerController())
 		{
 			const FRotator PawnViewRotation = OwningPawn->GetViewRotation();
 			if (!PawnViewRotation.Equals(GetComponentRotation()))
