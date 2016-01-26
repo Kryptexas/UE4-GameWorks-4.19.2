@@ -2951,7 +2951,7 @@ namespace UnrealBuildTool
 						if (Directories.Any(x => ModuleFileName.IsUnderDirectory(x)))
 						{
 							string RelativeFileName = ModuleFileName.MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory);
-							if (!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleName))
+							if (ExcludeFolders.All(x => RelativeFileName.IndexOf(x, StringComparison.InvariantCultureIgnoreCase) == -1) && !PrecompiledModules.Any(x => x.Name == ModuleName))
 							{
 								FilteredModuleNames.Add(ModuleName);
 							}
