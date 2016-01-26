@@ -82,11 +82,10 @@ float4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
 	// Inputs might require texcoords, so fill them in first
 	FillTexCoords( Parameters, InVertex, MeshUV );
 
-	FPixelMaterialInputs PixelMaterialInputs;
-	CalcMaterialParameters( Parameters, PixelMaterialInputs, InVertex.Position, true );
-
 	Parameters.VertexColor = InVertex.Color;
 
+	FPixelMaterialInputs PixelMaterialInputs;
+	CalcMaterialParameters( Parameters, PixelMaterialInputs, InVertex.Position, true );
 
 	// Clip if masked
 	GetMaterialCoverageAndClipping( Parameters, PixelMaterialInputs );
