@@ -247,7 +247,7 @@ int32 UParticleModuleSpawn::GetMaximumBurstCount()
 float UParticleModuleSpawn::GetGlobalRateScale()const
 {
 	static const auto EmitterRateScaleCVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.EmitterSpawnRateScale"));
-	return bApplyGlobalSpawnRateScale ? EmitterRateScaleCVar->GetValueOnAnyThread() : 1.0f;
+	return (bApplyGlobalSpawnRateScale && EmitterRateScaleCVar) ? EmitterRateScaleCVar->GetValueOnAnyThread() : 1.0f;
 }
 
 /*-----------------------------------------------------------------------------
