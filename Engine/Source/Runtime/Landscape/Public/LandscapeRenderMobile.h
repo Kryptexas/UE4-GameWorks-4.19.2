@@ -28,7 +28,7 @@ class FLandscapeVertexFactoryMobile : public FLandscapeVertexFactory
 	typedef FLandscapeVertexFactory Super;
 public:
 
-	struct DataType : FLandscapeVertexFactory::DataType
+	struct FDataType : FLandscapeVertexFactory::FDataType
 	{
 		/** stream which has heights of each LOD levels */
 		TArray<FVertexStreamComponent,TFixedAllocator<LANDSCAPE_MAX_ES_LOD_COMP> > LODHeightsComponent;
@@ -67,7 +67,7 @@ public:
 	/**
 	 * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
 	 */
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		MobileData = InData;
 		UpdateRHI();
@@ -75,7 +75,7 @@ public:
 
 private:
 	/** stream component data bound to this vertex factory */
-	DataType MobileData; 
+	FDataType MobileData; 
 
 	friend class FLandscapeComponentSceneProxyMobile;
 };

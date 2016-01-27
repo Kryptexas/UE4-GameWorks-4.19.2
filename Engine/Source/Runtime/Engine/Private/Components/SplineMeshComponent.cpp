@@ -98,7 +98,7 @@ void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, in
 		UStaticMesh*, Parent, InComponent->StaticMesh,
 		FColorVertexBuffer*, OverridenColorVertexBuffer, InOverrideColorVertexBuffer,
 		{
-		FLocalVertexFactory::DataType Data;
+		FLocalVertexFactory::FDataType Data;
 
 		Data.PositionComponent = FVertexStreamComponent(
 			&RenderData->PositionVertexBuffer,

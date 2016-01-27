@@ -42,7 +42,7 @@ public:
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			FSplineMeshVertexFactoryCopyData,
 			FSplineMeshVertexFactory*, VertexFactory, this,
-			const DataType*, DataCopy, &Other.Data,
+			const FDataType*, DataCopy, &Other.Data,
 			{
 			VertexFactory->Data = *DataCopy;
 		});

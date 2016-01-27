@@ -10,28 +10,44 @@
 
 // prior frame's eye adaptation exposure scale
 Texture2D EyeAdaptationTexture;
+uint2 EyeAdaptionSrcExtent;
 
 
 // Compute the average alpha stored in a 2D texture.
-float ComputeTextureAverageAlpha(Texture2D InBuffer)
+float ComputeWeightedTextureAverageAlpha(Texture2D InBuffer, float slope)
 {
-	uint Imax;
-	uint Jmax;
-	InBuffer.GetDimensions(Imax, Jmax);
+	uint Xmax = EyeAdaptionSrcExtent.x;
+	uint Ymax = EyeAdaptionSrcExtent.y;
+
+	float InvXmax = 1.f / float(Xmax);
+	float InvYmax = 1.f / float(Ymax);
+
+	// use product of linear weight in x and y.  
 
 	float Average = 0.0f;
-	for (uint i = 0; i < Imax; ++i)
+	float WeightTotal = 0.0f;
+
+
+	for (uint i = 0; i < Xmax; ++i)
 	{
-		for (uint j = 0; j < Jmax; ++j)
+		float IWeight = AdaptationWeight( i * InvXmax, slope);  
+		for (uint j = 0; j < Ymax; ++j)
 		{
+			float JWeight = AdaptationWeight( j * InvYmax, slope);
+			float Weight = max(IWeight * JWeight, 0.05f);
+			
+			WeightTotal += Weight;
+
 			//accumulate values from alpha channel
-			Average += InBuffer.Load(int3(i, j, 0)).w;
+			float Sample = InBuffer.Load(int3(i, j, 0)).w;
+			Average += Weight * Sample;
 		}
 	}
 
-	Average /= float(Imax * Jmax);
+	Average /= WeightTotal;
 	return Average;
 }
+
 
 // @param FrameTime in seconds
 // @return smoothed exposure
@@ -39,7 +55,7 @@ float ComputeEyeAdaptation(float OldExposure, float TargetExposure, float FrameT
 {
 	float Diff = TargetExposure - OldExposure;
 
-	const float EyeAdaptionSpeedUp = EyeAdaptationParams[1].z;
+	const float EyeAdaptionSpeedUp   = EyeAdaptationParams[1].z;
 	const float EyeAdaptionSpeedDown = EyeAdaptationParams[1].w;
 
     float AdaptionSpeed = (Diff > 0) ? EyeAdaptionSpeedUp : EyeAdaptionSpeedDown;
@@ -117,9 +133,16 @@ void MainLogLuminance2ExposureScalePS(
 	)
 {
 	float2 UV = UVAndScreenPos.xy;
-
+	
+	// Weighting is a triangle function focused at the center of the screen
+	// with the product of linear decay in x and y.  
+	// WeightSlope: 0 is uniform weighting.
+	//              1 decays to the edges.
+	//              >1 focuses more in the center of the screen.
+	float WeightSlope = EyeAdaptationParams[2].w;
+	
 	// Compute scaled Log Luminance Average 
-	float LogLumAve = ComputeTextureAverageAlpha(PostprocessInput0);
+	float LogLumAve = ComputeWeightedTextureAverageAlpha(PostprocessInput0, WeightSlope);
 
 	// Correct for [0,1] scaling
 	LogLumAve = (LogLumAve - EyeAdaptationParams[2].y) / EyeAdaptationParams[2].x;

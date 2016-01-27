@@ -320,7 +320,7 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 
 			bool bClothFactory = (FeatureLevel >= ERHIFeatureLevel::SM4) && (DynamicData->ClothSimulUpdateData.Num() > 0) && Chunk.HasApexClothData();
 
-			FGPUBaseSkinVertexFactory::ShaderDataType& ShaderData = 
+			FGPUBaseSkinVertexFactory::FShaderDataType& ShaderData = 
 				bClothFactory ? VertexFactoryData.ClothVertexFactories[ChunkIdx]->GetVertexFactory()->GetShaderData() :
 				(DynamicData->NumWeightedActiveVertexAnims > 0 ? VertexFactoryData.MorphVertexFactories[ChunkIdx]->GetShaderData() : VertexFactoryData.VertexFactories[ChunkIdx]->GetShaderData());
 
@@ -392,11 +392,12 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 	}
 }
 
+TArray<FVector> FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::MorphDeltaTangentZAccumulationArray;
+TArray<float> FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::MorphAccumulatedWeightArray;
+
 void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer(const TArray<FActiveVertexAnim>& ActiveVertexAnims)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Update);
-	static TArray<FVector> DeltaTangentZAccumulationArray;
-	static TArray<float> AccumulatedWeightArray;
 
 	if( IsValidRef(MorphVertexBuffer.VertexBufferRHI) )
 	{
@@ -410,16 +411,16 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Init);
 
 			// zero everything
-			int32 vertsToAdd = static_cast<int32>(LodModel.NumVertices) - DeltaTangentZAccumulationArray.Num();
+			int32 vertsToAdd = static_cast<int32>(LodModel.NumVertices) - MorphDeltaTangentZAccumulationArray.Num();
 			if(vertsToAdd > 0) 
 			{
 				// we're memzero-ing afterwards anyway, so add uninitalized
-				DeltaTangentZAccumulationArray.AddUninitialized(vertsToAdd);
-				AccumulatedWeightArray.AddUninitialized(vertsToAdd);
+				MorphDeltaTangentZAccumulationArray.AddUninitialized(vertsToAdd);
+				MorphAccumulatedWeightArray.AddUninitialized(vertsToAdd);
 			}
 
-			FMemory::Memzero(DeltaTangentZAccumulationArray.GetData(), sizeof(FVector)*LodModel.NumVertices);
-			FMemory::Memzero(AccumulatedWeightArray.GetData(), sizeof(float)*LodModel.NumVertices);
+			FMemory::Memzero(MorphDeltaTangentZAccumulationArray.GetData(), sizeof(FVector)*LodModel.NumVertices);
+			FMemory::Memzero(MorphAccumulatedWeightArray.GetData(), sizeof(float)*LodModel.NumVertices);
 
 			// PackedNormals will be wrong init with 0, but they'll be overwritten later
 			FMemory::Memzero(&Buffer[0], sizeof(FMorphGPUSkinVertex)*LodModel.NumVertices);
@@ -457,9 +458,9 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 
 						DestVertex.DeltaPosition += MorphVertex.PositionDelta * VertAnim.Weight;
 						// add to accumulated tangent Z
-						DeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
+						MorphDeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
 						// accumulate the weight so we can normalized it later
-						AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnimAbsWeight;
+						MorphAccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnimAbsWeight;
 					}
 				} // for all vertices
 
@@ -470,14 +471,14 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 			for(uint32 iVertex = 0; iVertex < LodModel.NumVertices; ++iVertex) 
 			{
 				FMorphGPUSkinVertex& DestVertex = Buffer[iVertex];
-				float AccumulatedWeight = AccumulatedWeightArray[iVertex];
+				float AccumulatedWeight = MorphAccumulatedWeightArray[iVertex];
 
 				if (AccumulatedWeight > MinVertexAnimBlendWeight)
 				{
 					// when copy back, make sure to normalize by accumulated weight
 					// since delta diff of normal is (-2, 2), we divide by 2 to packed into packed normal
 					// when we unpack, we'll apply *2. 
-					DestVertex.DeltaTangentZ = (DeltaTangentZAccumulationArray[iVertex] / AccumulatedWeight)/2;
+					DestVertex.DeltaTangentZ = (MorphDeltaTangentZAccumulationArray[iVertex] / AccumulatedWeight)/2;
 					// we now add W as how much alpha of DeltaTangentZ we're apply to the original tangent
 					DestVertex.DeltaTangentZ.Vector.W = FMath::Min(1.0f, AccumulatedWeight) * 255.9999f;
 				}
@@ -545,7 +546,7 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetVertexFactory(int32 LODInde
  * @param bUseInstancedVertexWeights - use instanced influence weights instead of default weights
  */
 template<class VertexFactoryType>
-void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::DataType* VertexFactoryData, 
+void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::FDataType* VertexFactoryData, 
 										const FSkeletalMeshObjectGPUSkin::FVertexFactoryBuffers& VertexBuffers)
 {
 	typedef TGPUSkinVertexBase<VertexFactoryType::HasExtraBoneInfluences> BaseVertexType;
@@ -617,7 +618,7 @@ void InitGPUSkinVertexFactoryComponents(typename VertexFactoryType::DataType* Ve
  * @param bUseInstancedVertexWeights - use instanced influence weights instead of default weights
  */
 template<class VertexFactoryType>
-void InitMorphVertexFactoryComponents(typename VertexFactoryType::DataType* VertexFactoryData, 
+void InitMorphVertexFactoryComponents(typename VertexFactoryType::FDataType* VertexFactoryData, 
 										const FSkeletalMeshObjectGPUSkin::FVertexFactoryBuffers& VertexBuffers)
 {
 	// delta positions
@@ -636,7 +637,7 @@ void InitMorphVertexFactoryComponents(typename VertexFactoryType::DataType* Vert
  * @param bUseInstancedVertexWeights - use instanced influence weights instead of default weights
  */
 template<class VertexFactoryType>
-void InitAPEXClothVertexFactoryComponents(typename VertexFactoryType::DataType* VertexFactoryData, 
+void InitAPEXClothVertexFactoryComponents(typename VertexFactoryType::FDataType* VertexFactoryData, 
 										const FSkeletalMeshObjectGPUSkin::FVertexFactoryBuffers& VertexBuffers)
 {
 	// barycentric coord for positions
@@ -675,7 +676,7 @@ ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_DECLARE_TEMPLATE(
 InitGPUSkinVertexFactory,VertexFactoryType,
 TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdateData,
 {
-	typename VertexFactoryType::DataType Data;
+	typename VertexFactoryType::FDataType Data;
 	InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
 	VertexUpdateData.VertexFactory->SetData(Data);
 	VertexUpdateData.VertexFactory->GetShaderData().MeshOrigin = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshOrigin();
@@ -737,7 +738,7 @@ ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_DECLARE_TEMPLATE(
 InitGPUSkinVertexFactoryMorph,VertexFactoryType,
 TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdateData,
 {
-	typename VertexFactoryType::DataType Data;
+	typename VertexFactoryType::FDataType Data;
 	InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
 	InitMorphVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
 	VertexUpdateData.VertexFactory->SetData(Data);
@@ -749,7 +750,7 @@ TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdate
  * Creates a vertex factory entry for the given type and initialize it on the render thread
  */
 template <class VertexFactoryTypeBase, class VertexFactoryType>
-static void CreateVertexFactoryMorph(TArray<TUniquePtr<VertexFactoryTypeBase>>& VertexFactories,
+static VertexFactoryType* CreateVertexFactoryMorph(TArray<TUniquePtr<VertexFactoryTypeBase>>& VertexFactories,
 						 const FSkeletalMeshObjectGPUSkin::FVertexFactoryBuffers& InVertexBuffers,
 						 ERHIFeatureLevel::Type FeatureLevel
 						 )
@@ -768,6 +769,8 @@ static void CreateVertexFactoryMorph(TArray<TUniquePtr<VertexFactoryTypeBase>>& 
 
 	// init rendering resource	
 	BeginInitResource(VertexFactory);
+
+	return VertexFactory;
 }
 
 // APEX cloth
@@ -775,7 +778,7 @@ ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_DECLARE_TEMPLATE(
 InitGPUSkinAPEXClothVertexFactory,VertexFactoryType,
 TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdateData,
 {
-	typename VertexFactoryType::DataType Data;
+	typename VertexFactoryType::FDataType Data;
 	InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
 	InitAPEXClothVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
 	VertexUpdateData.VertexFactory->SetData(Data);
@@ -911,7 +914,6 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitAPEXClothVertexFactorie
 	const TArray<FSkelMeshChunk>& Chunks,
 	ERHIFeatureLevel::Type InFeatureLevel)
 {
-
 	// clear existing factories (resources assumed to have been released already)
 	ClothVertexFactories.Empty(Chunks.Num());
 	for( int32 FactoryIdx=0; FactoryIdx < Chunks.Num(); FactoryIdx++ )
@@ -1053,7 +1055,7 @@ const FTwoVectors& FSkeletalMeshObjectGPUSkin::GetCustomLeftRightVectors(int32 S
 FDynamicSkelMeshObjectDataGPUSkin
 -----------------------------------------------------------------------------*/
 
-static TLockFreePointerListUnordered<FDynamicSkelMeshObjectDataGPUSkin>	FreeDynamicSkelMeshObjectDataGPUSkins;
+static TLockFreePointerListUnordered<FDynamicSkelMeshObjectDataGPUSkin, PLATFORM_CACHE_LINE_SIZE>	FreeDynamicSkelMeshObjectDataGPUSkins;
 
 void FDynamicSkelMeshObjectDataGPUSkin::Clear()
 {

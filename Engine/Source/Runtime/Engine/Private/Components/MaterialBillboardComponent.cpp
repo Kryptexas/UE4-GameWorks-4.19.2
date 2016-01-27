@@ -35,7 +35,7 @@ public:
 
 	FMaterialSpriteVertexFactory()
 	{
-		FLocalVertexFactory::DataType Data;
+		FLocalVertexFactory::FDataType Data;
 
 		Data.PositionComponent = FVertexStreamComponent(
 			&GDummyMaterialSpriteVertexBuffer,

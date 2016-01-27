@@ -106,14 +106,6 @@ static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
 	ECVF_RenderThreadSafe
 	);
 
-static int32 GOcclusionCullParallelPrimFetchHiPri = 1;
-static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetchHiPri(
-	TEXT("r.OcclusionCullParallelPrimFetchHiPri"),
-	GOcclusionCullParallelPrimFetchHiPri,
-	TEXT("When using r.OcclusionCullParallelPrimFetch, setting this to 1 uses hi priority tasks."),
-	ECVF_RenderThreadSafe
-	);
-
 static int32 GILCUpdatePrimTaskEnabled = 0;
 static FAutoConsoleVariableRef CVarILCUpdatePrimitivesTask(
 	TEXT("r.Cache.UpdatePrimsTaskEnabled"),
@@ -943,6 +935,14 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 	Params.NumOccludedPrims = NumOccludedPrimitives;	
 }
 
+FAutoConsoleTaskPriority CPrio_FetchVisibilityForPrimitivesTask(
+	TEXT("TaskGraph.TaskPriorities.FetchVisibilityForPrimitivesTask"),
+	TEXT("Task and thread priority for FetchVisibilityForPrimitivesTask."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
 class FetchVisibilityForPrimitivesTask
 {
 	FVisForPrimParams& Params;
@@ -961,7 +961,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return GOcclusionCullParallelPrimFetchHiPri ? ENamedThreads::HiPri(ENamedThreads::AnyThread) : ENamedThreads::AnyThread;
+		return CPrio_FetchVisibilityForPrimitivesTask.Get();
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -1071,7 +1071,7 @@ static int32 FetchVisibilityForPrimitives(const FScene* Scene, FViewInfo& View, 
 				&SubIsOccluded
 				);
 
-			TaskRefArray[i] = TGraphTask<FetchVisibilityForPrimitivesTask>::CreateTask(nullptr, ENamedThreads::AnyThread).ConstructAndDispatchWhenReady(Params[i]);			
+			TaskRefArray[i] = TGraphTask<FetchVisibilityForPrimitivesTask>::CreateTask().ConstructAndDispatchWhenReady(Params[i]);			
 			TaskWaitArray.Add(TaskRefArray[i]);
 
 			StartIndex += NumToProcess;
@@ -1555,6 +1555,7 @@ struct FRelevancePacket
 		// using a local counter to reduce memory traffic
 		int32 NumVisibleStaticMeshElements = 0;
 		FViewInfo& WriteView = const_cast<FViewInfo&>(View);
+		FFrozenSceneViewMatricesGuard FrozenMatricesGuard(WriteView);
 
 		const bool bHLODActive = Scene->SceneLODHierarchy.IsActive();
 

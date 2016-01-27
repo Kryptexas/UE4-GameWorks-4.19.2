@@ -56,6 +56,38 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncTickDispatch(
 	0,
 	TEXT("If true, ticks are dispatched in a task thread."));
 
+FAutoConsoleTaskPriority CPrio_DispatchTaskPriority(
+	TEXT("TaskGraph.TaskPriorities.TickDispatchTaskPriority"),
+	TEXT("Task and thread priority for tick tasks dispatch."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
+FAutoConsoleTaskPriority CPrio_CleanupTaskPriority(
+	TEXT("TaskGraph.TaskPriorities.TickCleanupTaskPriority"),
+	TEXT("Task and thread priority for tick cleanup."),
+	ENamedThreads::BackgroundThreadPriority, // if we have background priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::NormalTaskPriority // if we don't have background threads, then use normal priority threads at normal task priority instead
+	);
+
+FAutoConsoleTaskPriority CPrio_NormalAsyncTickTaskPriority(
+	TEXT("TaskGraph.TaskPriorities.NormalAsyncTickTaskPriority"),
+	TEXT("Task and thread priority for async ticks that are not high priority."),
+	ENamedThreads::NormalThreadPriority, 
+	ENamedThreads::NormalTaskPriority
+	);
+
+FAutoConsoleTaskPriority CPrio_HiPriAsyncTickTaskPriority(
+	TEXT("TaskGraph.TaskPriorities.HiPriAsyncTickTaskPriority"),
+	TEXT("Task and thread priority for async ticks that are high priority."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
+
 FORCEINLINE bool CanDemoteIntoTickGroup(ETickingGroup TickGroup)
 {
 	switch (TickGroup)
@@ -192,20 +224,16 @@ public:
 	, bLogTicksShowPrerequistes(bInLogTicksShowPrerequistes)
 	{
 	}
-	FORCEINLINE TStatId GetStatId() const
+	static FORCEINLINE TStatId GetStatId()
 	{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FTickFunctionTask, STATGROUP_TaskGraphTasks);
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FTickFunctionTask, STATGROUP_TaskGraphTasks);
 	}
 	/** return the thread for this task **/
 	FORCEINLINE ENamedThreads::Type GetDesiredThread()
 	{
-		if (Target->bHighPriority)
-		{
-			return ENamedThreads::HiPri(Context.Thread);
-		}
 		return Context.Thread;
 	}
-	FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
 	{ 
 		return ESubsequentsMode::TrackSubsequents; 
 	}
@@ -255,15 +283,15 @@ class FTickTaskSequencer
 			, WorldTickGroup(InWorldTickGroup)
 		{
 		}
-		FORCEINLINE TStatId GetStatId() const
+		static FORCEINLINE TStatId GetStatId()
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FDipatchTickGroupTask, STATGROUP_TaskGraphTasks);
 		}
-		FORCEINLINE ENamedThreads::Type GetDesiredThread()
+		static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 		{
-			return ENamedThreads::HiPri(ENamedThreads::AnyThread);
+			return CPrio_DispatchTaskPriority.Get();
 		}
-		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
+		static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
 		{ 
 			return ESubsequentsMode::TrackSubsequents; 
 		}
@@ -291,13 +319,13 @@ class FTickTaskSequencer
 			, WorldTickGroup(InWorldTickGroup)
 		{
 		}
-		FORCEINLINE TStatId GetStatId() const
+		static FORCEINLINE TStatId GetStatId()
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FResetTickGroupTask, STATGROUP_TaskGraphTasks);
 		}
-		FORCEINLINE ENamedThreads::Type GetDesiredThread()
+		static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 		{
-			return ENamedThreads::AnyThread;
+			return CPrio_CleanupTaskPriority.Get();
 		}
 		FORCEINLINE static ESubsequentsMode::Type GetSubsequentsMode() 
 		{ 
@@ -369,10 +397,20 @@ public:
 	   
 		bool bIsOriginalTickGroup = (TickFunction->ActualStartTickGroup == TickFunction->TickGroup);
 
-		UseContext.Thread = ENamedThreads::GameThread;
 		if (TickFunction->bRunOnAnyThread && bAllowConcurrentTicks && bIsOriginalTickGroup)
 		{
-			UseContext.Thread = ENamedThreads::HiPri(ENamedThreads::AnyThread);
+			if (TickFunction->bHighPriority)
+			{
+				UseContext.Thread = CPrio_HiPriAsyncTickTaskPriority.Get();
+			}
+			else
+			{
+				UseContext.Thread = CPrio_NormalAsyncTickTaskPriority.Get();
+			}
+		}
+		else
+		{
+			UseContext.Thread = ENamedThreads::SetTaskPriority(ENamedThreads::GameThread, TickFunction->bHighPriority ? ENamedThreads::HighTaskPriority : ENamedThreads::NormalTaskPriority);
 		}
 
 		TickFunction->TaskPointer = TGraphTask<FTickFunctionTask>::CreateTask(Prerequisites, TickContext.Thread).ConstructAndHold(TickFunction, &UseContext, bLogTicks, bLogTicksShowPrerequistes);

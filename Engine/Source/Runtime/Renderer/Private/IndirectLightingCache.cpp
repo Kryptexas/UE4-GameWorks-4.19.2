@@ -371,6 +371,13 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::FindPrimitiveAllocatio
 	return PrimitiveAllocations.FindRef(PrimitiveId);
 }
 
+FAutoConsoleTaskPriority CPrio_FUpdateCachePrimitivesTask(
+	TEXT("TaskGraph.TaskPriorities.UpdateCachePrimitivesTask"),
+	TEXT("Task and thread priority for FUpdateCachePrimitivesTask."),
+	ENamedThreads::NormalThreadPriority,
+	ENamedThreads::NormalTaskPriority
+	);
+
 class FUpdateCachePrimitivesTask
 {
 	FIndirectLightingCache* ILC;
@@ -399,7 +406,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return CPrio_FUpdateCachePrimitivesTask.Get();
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -418,7 +425,7 @@ void FIndirectLightingCache::StartUpdateCachePrimitivesTask(FScene* Scene, FScen
 void FIndirectLightingCache::FinalizeCacheUpdates(FScene* Scene, FSceneRenderer& Renderer, FILCUpdatePrimTaskData& TaskData)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateIndirectLightingCacheFinalize);	
-	FTaskGraphInterface::Get().WaitUntilTaskCompletes(TaskData.TaskRef, ENamedThreads::AnyThread);
+	FTaskGraphInterface::Get().WaitUntilTaskCompletes(TaskData.TaskRef, ENamedThreads::RenderThread_Local);
 	FinalizeUpdateInternal_RenderThread(Scene, Renderer, TaskData.OutBlocksToUpdate, TaskData.OutTransitionsOverTimeToUpdate);
 }
 

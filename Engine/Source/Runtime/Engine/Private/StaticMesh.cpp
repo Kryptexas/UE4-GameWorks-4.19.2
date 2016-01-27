@@ -384,7 +384,7 @@ void FStaticMeshLODResources::InitVertexFactory(
 		InitStaticMeshVertexFactory,
 		InitStaticMeshVertexFactoryParams,Params,Params,
 		{
-			FLocalVertexFactory::DataType Data;
+			FLocalVertexFactory::FDataType Data;
 			Data.PositionComponent = FVertexStreamComponent(
 				&Params.LODResources->PositionVertexBuffer,
 				STRUCT_OFFSET(FPositionVertex,Position),

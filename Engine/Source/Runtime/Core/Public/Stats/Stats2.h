@@ -1163,7 +1163,7 @@ private:
 	};
 
 	/** Lock free pool of FThreadStats instances. */
-	TLockFreePointerListUnordered<FThreadStats> Pool;
+	TLockFreePointerListUnordered<FThreadStats, 0> Pool;
 
 public:
 	/** Default constructor. */

@@ -708,7 +708,7 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdates(
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdatesDuringGamethreadUpdates(
 	TEXT("AllowAsyncRenderThreadUpdatesDuringGamethreadUpdates"),
-	0,
+	1,
 	TEXT("If > 0 then we do the gamethread updates _while_ doing parallel updates."));
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdatesEditor(

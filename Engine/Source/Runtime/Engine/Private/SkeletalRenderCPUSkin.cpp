@@ -293,7 +293,7 @@ void FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectLOD::InitResources()
 		FLocalVertexFactory*,VertexFactory,&VertexFactory,
 		FVertexBuffer*,VertexBuffer,&VertexBuffer,
 		{
-			FLocalVertexFactory::DataType Data;
+			FLocalVertexFactory::FDataType Data;
 
 			// position
 			Data.PositionComponent = FVertexStreamComponent(

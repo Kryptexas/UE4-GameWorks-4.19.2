@@ -92,6 +92,11 @@ void SkyLightDiffusePS(
 			DiffuseColor = PI * HairShading( GBuffer, L, V, N, 1, 0, 0.2, uint2(0,0) );
 		}
 
+		BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_CLOTH )
+		{
+			DiffuseColor +=  GBuffer.CustomData.rgb * GBuffer.CustomData.a;
+		}
+
 		// Compute the preconvolved incoming lighting with the bent normal direction
 		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * Frame.SkyLightColor.rgb;
 

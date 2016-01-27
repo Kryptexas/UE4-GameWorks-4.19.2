@@ -50,7 +50,7 @@ namespace FXConsoleVariables
 	int32 bAllowCulling = true;
 	int32 bFreezeGPUSimulation = false;
 	int32 bFreezeParticleSimulation = false;
-	int32 bAllowAsyncTick = false;
+	int32 bAllowAsyncTick = !WITH_EDITOR;
 	float ParticleSlackGPU = 0.02f;
 	int32 MaxParticleTilePreAllocation = 100;
 	int32 MaxCPUParticlesPerEmitter = 1000;

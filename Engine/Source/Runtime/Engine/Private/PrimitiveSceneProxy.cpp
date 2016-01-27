@@ -202,8 +202,8 @@ void FPrimitiveSceneProxy::UpdateActorPosition(FVector InActorPosition)
 
 static TAutoConsoleVariable<int32> CVarDeferUniformBufferUpdatesUntilVisible(
 	TEXT("r.DeferUniformBufferUpdatesUntilVisible"),
-	0,
-	TEXT("If > 0, then don't update the primitive uniform buffer until it is visible. Experimental option."));
+	!WITH_EDITOR,
+	TEXT("If > 0, then don't update the primitive uniform buffer until it is visible."));
 
 void FPrimitiveSceneProxy::UpdateUniformBufferMaybeLazy()
 {

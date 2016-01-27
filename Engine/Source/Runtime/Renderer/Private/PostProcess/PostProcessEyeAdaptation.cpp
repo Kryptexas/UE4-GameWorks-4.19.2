@@ -89,9 +89,20 @@ static ERHIFeatureLevel::Type BasicEyeAdaptationMinFeatureLevel = ERHIFeatureLev
 TAutoConsoleVariable<int32> CVarEyeAdaptationMethodOveride(
 	TEXT("r.EyeAdaptation.MethodOveride"),
 	-1,
+	TEXT("Overide the eye adapation method set in post processing volumes\n")
+	TEXT("-2: override with custom settings (for testing Basic Mode)\n")
 	TEXT("-1: no override\n")
-	TEXT("1: Histogram-based. \n")
-	TEXT("2: Basic \n"),
+	TEXT(" 1: Histogram-based\n")
+	TEXT(" 2: Basic"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+// Initialize the static CVar used in computing the weighting focus in basic eye-adaptation
+TAutoConsoleVariable<float> CVarEyeAdaptationFocus(
+	TEXT("r.EyeAdaptation.Focus"),
+	1.0f,
+	TEXT("Applies to basic adapation mode only\n")
+	TEXT(" 0: Uniform weighting\n")
+	TEXT(">0: Center focus, 1 is a good number (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 /** Encapsulates the histogram-based post processing eye adaptation pixel shader. */
@@ -384,6 +395,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		EyeAdaptationTexture.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationTexture"));
 		EyeAdaptationParams.Bind(Initializer.ParameterMap, TEXT("EyeAdaptationParams"));
+		EyeAdaptationExtent.Bind(Initializer.ParameterMap, TEXT("EyeAdaptionSrcExtent"));
 	}
 
 public:
@@ -401,7 +413,7 @@ public:
 	}
 
 
-	void SetPS(const FRenderingCompositePassContext& Context, IPooledRenderTarget* EyeAdaptationLastFrameRT)
+	void SetPS(const FRenderingCompositePassContext& Context, const FIntPoint SrcSize, IPooledRenderTarget* EyeAdaptationLastFrameRT)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -428,15 +440,22 @@ public:
 			ComputeEyeAdaptationValues(BasicEyeAdaptationMinFeatureLevel, Context.View, Temp);
 			// Log-based computation of the exposure scale has a built in scaling.
 			//Temp[1].X *= 0.16;  
+			//Encode the eye-focus slope
+			// Get the focus value for the eye-focus weighting
+			Temp[2].W = GetBasicAutoExposureFocus();
 			SetShaderValueArray(Context.RHICmdList, ShaderRHI, EyeAdaptationParams, Temp, 3);
 		}
+
+		// Set the src extent for the shader
+		SetShaderValue(Context.RHICmdList, ShaderRHI, EyeAdaptationExtent, SrcSize);
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << EyeAdaptationTexture << EyeAdaptationParams;
+		Ar << PostprocessParameter << EyeAdaptationTexture 
+			<< EyeAdaptationParams << EyeAdaptationExtent;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -444,6 +463,7 @@ private:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptationTexture;
 	FShaderParameter EyeAdaptationParams;
+	FShaderParameter EyeAdaptationExtent;
 };
 
 IMPLEMENT_SHADER_TYPE(, FPostProcessLogLuminance2ExposureScalePS, TEXT("PostProcessEyeAdaptation"), TEXT("MainLogLuminance2ExposureScalePS"), SF_Pixel);
@@ -463,6 +483,9 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 	check(EyeAdaptationThisFrameRT && EyeAdaptationLastFrameRT);
 
 	FIntPoint DestSize = EyeAdaptationThisFrameRT->GetDesc().Extent;
+
+	// The input texture sample size.  Averaged in the pixel shader.
+	const FIntPoint SrcSize = GetInputDesc(ePId_Input0)->Extent;
 
 	// we render to our own output render target, not the intermediate one created by the compositing system
 	// Set the view family's render target/viewport.
@@ -484,7 +507,7 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 
 	// Set the parameters used by the pixel shader.
 
-	PixelShader->SetPS(Context, EyeAdaptationLastFrameRT);
+	PixelShader->SetPS(Context, SrcSize, EyeAdaptationLastFrameRT);
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

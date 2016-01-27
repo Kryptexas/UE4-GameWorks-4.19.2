@@ -53,7 +53,7 @@ bool FLocalVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMat
 	return true; 
 }
 
-void FLocalVertexFactory::SetData(const DataType& InData)
+void FLocalVertexFactory::SetData(const FDataType& InData)
 {
 	check(IsInRenderingThread());
 
@@ -74,7 +74,7 @@ void FLocalVertexFactory::Copy(const FLocalVertexFactory& Other)
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FLocalVertexFactoryCopyData,
 		FLocalVertexFactory*,VertexFactory,this,
-		const DataType*,DataCopy,&Other.Data,
+		const FDataType*,DataCopy,&Other.Data,
 	{
 		VertexFactory->Data = *DataCopy;
 	});
@@ -152,7 +152,7 @@ void FLocalVertexFactory::InitRHI()
 
 	check(Streams.Num() > 0);
 
-	InitDeclaration(Elements,Data);
+	InitDeclaration(Elements);
 
 	check(IsValidRef(GetDeclaration()));
 }

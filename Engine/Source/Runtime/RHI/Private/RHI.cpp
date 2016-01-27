@@ -81,7 +81,7 @@ const FClearValueBinding FClearValueBinding::DepthNear((float)ERHIZBuffer::NearP
 const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPlane, 0);
 
 
-TLockFreePointerListUnordered<FRHIResource> FRHIResource::PendingDeletes;
+TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
 TQueue<FRHIResource::ResourceToDelete> FRHIResource::DeferredDeletionQueue;
 uint32 FRHIResource::CurrentFrame = 0;

@@ -148,14 +148,14 @@ static TAutoConsoleVariable<int32> CVarMotionBlurNew(
 static TAutoConsoleVariable<int32> CVarMotionBlurScatter(
 	TEXT("r.MotionBlurScatter"),
 	0,
-	TEXT(""),
+	TEXT("Forces scatter based max velocity method (slower)."),
 	ECVF_RenderThreadSafe
 );
 
 static TAutoConsoleVariable<int32> CVarMotionBlurSeparable(
 	TEXT("r.MotionBlurSeparable"),
 	0,
-	TEXT(""),
+	TEXT("Adds a second motion blur pass that smooths noise for a higher quality blur."),
 	ECVF_RenderThreadSafe
 );
 
@@ -196,27 +196,27 @@ public:
 	TBloomDownSampleArray(FPostprocessContext& InContext, FRenderingCompositeOutputRef SourceDownsample, bool bGenerateLog2Alpha) :
 		bHasLog2Alpha(bGenerateLog2Alpha), Context(InContext)
 	{
-		// Optionally encode log2 data in the alpha channel. Used for EyeAdaptation.
-		if (bHasLog2Alpha) {
-			FRenderingCompositePass* BasicEyeSetupPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasicEyeAdaptationSetUp());
-			BasicEyeSetupPass->SetInput(ePId_Input0, SourceDownsample);
-			PostProcessDownsamples[0] = FRenderingCompositeOutputRef(BasicEyeSetupPass); 
-		}
-		else
-		{
-			// The source becomes the 0th down sample.
-			PostProcessDownsamples[0] = SourceDownsample;
-		}
 
-		// Queue the additional down samples.  T
+		static const TCHAR* PassLabels[] =
+		{ NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4"), TEXT("BloomDownsample5") };
+		static_assert(ARRAY_COUNT(PassLabels) == DownSampleStages, "PassLabel count must be equal to DownSampleStages.");
+
+		// The first down sample is the input
+		PostProcessDownsamples[0] = SourceDownsample;
+
+		// Queue the down samples. 
 		for (int i = 1; i < DownSampleStages; i++)
 		{
-			static const TCHAR* PassLabels[] =
-			{ NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4"), TEXT("BloomDownsample5") };
-			static_assert(ARRAY_COUNT(PassLabels) == DownSampleStages, "PassLabel count must be equal to DownSampleStages.");
 			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 1, PassLabels[i]));
 			Pass->SetInput(ePId_Input0, PostProcessDownsamples[i - 1]);
 			PostProcessDownsamples[i] = FRenderingCompositeOutputRef(Pass);
+
+			// Add log2 data to the alpha channel after doing the 1st (i==1) down sample pass
+			if (bHasLog2Alpha && i == 1 ) {
+				FRenderingCompositePass* BasicEyeSetupPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasicEyeAdaptationSetUp());
+				BasicEyeSetupPass->SetInput(ePId_Input0, PostProcessDownsamples[i]);
+				PostProcessDownsamples[i] = FRenderingCompositeOutputRef(BasicEyeSetupPass);
+			}
 		}
 	}
 
@@ -379,7 +379,7 @@ static FRenderingCompositeOutputRef AddPostProcessBasicEyeAdaptation(FViewInfo& 
 	// Extract the last (i.e. smallest) down sample
 	static const int32 FinalDSIdx = FBloomDownSampleArray::Num() - 1;
 	FRenderingCompositeOutputRef PostProcessPriorReduction = BloomAndEyeDownSamples.PostProcessDownsamples[FinalDSIdx];
-	
+
 	// Compute the eye adaptation value based on average luminance from log2 luminance buffer, history, and specific shader parameters.
 	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasicEyeAdaptation());
 	Node->SetInput(ePId_Input0, PostProcessPriorReduction);
@@ -1158,12 +1158,12 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		{
 		public:
 			FAutoExposure(const FViewInfo& InView) : 
-				MethodId(GetAutoExposureMethod(InView)) 
+				MethodId(GetAutoExposureMethod(InView))
 			{}
 			// distinguish between Basic and Histogram-based
 			EAutoExposureMethod          MethodId;
 			// not always valid
-			FRenderingCompositeOutputRef EyeAdaptation;			
+			FRenderingCompositeOutputRef EyeAdaptation;
 		} AutoExposure(View);
 	
 		// not always valid
@@ -1709,7 +1709,22 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		else
 		{
 			check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
-			AddGammaOnlyTonemapper(Context);
+
+			if (SeparateTranslucency.IsValid())
+			{
+				// separate translucency is done here or in AddPostProcessDepthOfFieldBokeh()
+				FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBokehDOFRecombine());
+				NodeRecombined->SetInput(ePId_Input0, Context.FinalOutput);
+				NodeRecombined->SetInput(ePId_Input2, SeparateTranslucency);
+
+				Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
+			}
+
+			const EDebugViewShaderMode DebugViewShaderMode = View.Family->GetDebugViewShaderMode();
+			if (DebugViewShaderMode == DVSM_None)
+			{
+				AddGammaOnlyTonemapper(Context);
+			}
 		}
 		
 		if(View.Family->EngineShowFlags.StationaryLightOverlap)
@@ -1724,14 +1739,14 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		{
 			float ComplexityScale = 1.f / (float)(GEngine->QuadComplexityColors.Num() - 1) / NormalizedQuadComplexityValue; // .1f comes from the values used in LightAccumulator_GetResult
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->QuadComplexityColors, FVisualizeComplexityApplyPS::CS_STAIR, ComplexityScale, true));
-			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
 		if(DebugViewShaderMode == DVSM_ShaderComplexity || DebugViewShaderMode == DVSM_ShaderComplexityContainedQuadOverhead || DebugViewShaderMode == DVSM_ShaderComplexityBleedingQuadOverhead)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->ShaderComplexityColors, FVisualizeComplexityApplyPS::CS_RAMP, 1.f, true));
-			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 

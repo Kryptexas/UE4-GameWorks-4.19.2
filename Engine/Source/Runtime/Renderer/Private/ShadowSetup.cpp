@@ -442,7 +442,8 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 		}
 		else
 		{
-			ProjectedBoundsPoints.Add(FVector(FLT_MAX, FLT_MAX, FLT_MAX));
+			//ProjectedBoundsPoints.Add(FVector(FLT_MAX, FLT_MAX, FLT_MAX));
+			return false;
 		}
 	}
 
@@ -1589,13 +1590,15 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 				// Try to reuse a preshadow from the cache
 				TRefCountPtr<FProjectedShadowInfo> ProjectedPreShadowInfo = GetCachedPreshadow(Interaction, ShadowInitializer, OriginalBounds, PreshadowSizeX);
 
+				bool bOk = true;
+
 				if(!ProjectedPreShadowInfo)
 				{
 					// Create a new projected shadow for this interaction's preshadow
 					// Not using the scene rendering mem stack because this shadow info may need to persist for multiple frames if it gets cached
 					ProjectedPreShadowInfo = new FProjectedShadowInfo;
 
-					ProjectedPreShadowInfo->SetupPerObjectProjection(
+					bOk = ProjectedPreShadowInfo->SetupPerObjectProjection(
 						LightSceneInfo,
 						PrimitiveSceneInfo,
 						ShadowInitializer,
@@ -1606,23 +1609,28 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 						false				// not translucent shadow
 						);
 				}
-				// Update fade alpha on the cached preshadow
-				ProjectedPreShadowInfo->FadeAlphas = ResolutionPreShadowFadeAlphas;
 
-				VisibleLightInfo.AllProjectedShadows.Add(ProjectedPreShadowInfo);
-				VisibleLightInfo.ProjectedPreShadows.Add(ProjectedPreShadowInfo);
-
-				// Only add to OutPreShadows if the preshadow doesn't already have depths cached, 
-				// Since OutPreShadows is used to generate information only used when rendering the shadow depths.
-				if (!ProjectedPreShadowInfo->bDepthsCached && ProjectedPreShadowInfo->CasterFrustum.PermutedPlanes.Num())
+				if (bOk)
 				{
-					OutPreShadows.Add(ProjectedPreShadowInfo);
-				}
 
-				for (int32 ChildIndex = 0; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
-				{
-					FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-					ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+					// Update fade alpha on the cached preshadow
+					ProjectedPreShadowInfo->FadeAlphas = ResolutionPreShadowFadeAlphas;
+
+					VisibleLightInfo.AllProjectedShadows.Add(ProjectedPreShadowInfo);
+					VisibleLightInfo.ProjectedPreShadows.Add(ProjectedPreShadowInfo);
+
+					// Only add to OutPreShadows if the preshadow doesn't already have depths cached, 
+					// Since OutPreShadows is used to generate information only used when rendering the shadow depths.
+					if (!ProjectedPreShadowInfo->bDepthsCached && ProjectedPreShadowInfo->CasterFrustum.PermutedPlanes.Num())
+					{
+						OutPreShadows.Add(ProjectedPreShadowInfo);
+					}
+
+					for (int32 ChildIndex = 0; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
+					{
+						FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
+						ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+					}
 				}
 			}
 		}

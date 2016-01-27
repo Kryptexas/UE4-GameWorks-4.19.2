@@ -129,6 +129,11 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 	float LuminanceVal = max(SceneColor.r, max(SceneColor.g, SceneColor.b));
 	OutColor = float4(Colorize(ComputeHistogramPositionFromLuminance(LuminanceVal)), 1.0f);
 
+	// Compute and apply weight value at this location 
+	float WeightSlope = EyeAdaptationParams[2].w;
+	float2 NdPos = ViewportSize.zw * (PixelPos.xy - ViewportRect.xy);
+	float weight = AdaptationWeight(NdPos.x, WeightSlope) * AdaptationWeight(NdPos.y, WeightSlope);
+	OutColor *= max(weight, 0.05f);  
 
 	// crosshair
 	{

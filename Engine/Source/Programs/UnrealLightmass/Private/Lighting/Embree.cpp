@@ -429,12 +429,13 @@ bool EmbreeMemoryMonitor(const ssize_t bytes, const bool post)
 FEmbreeAggregateMesh::FEmbreeAggregateMesh(const FScene& InScene):
 	FStaticLightingAggregateMesh(InScene),
 	EmbreeDevice(NULL),
-	EmbreeScene(NULL)
+	EmbreeScene(NULL),
+	TotalNumTriangles(0)
 {
 	rtcDeviceSetMemoryMonitorFunction(InScene.EmbreeDevice, EmbreeMemoryMonitor);
 
 	EmbreeDevice = InScene.EmbreeDevice;
-	EmbreeScene = rtcDeviceNewScene(InScene.EmbreeDevice, RTC_SCENE_STATIC | RTC_SCENE_COHERENT, RTC_INTERSECT1);
+	EmbreeScene = rtcDeviceNewScene(InScene.EmbreeDevice, RTC_SCENE_STATIC, RTC_INTERSECT1);
 	check(rtcDeviceGetError(EmbreeDevice) == RTC_NO_ERROR);
 }
 
@@ -470,6 +471,8 @@ void FEmbreeAggregateMesh::AddMesh(const FStaticLightingMesh* Mesh, const FStati
 		// Sum the total triangle area of everything in the aggregate mesh
 		SceneSurfaceArea += Geo->SurfaceArea;
 		SceneSurfaceAreaWithinImportanceVolume += Geo->SurfaceAreaWithinImportanceVolume;
+
+		TotalNumTriangles += Mesh->NumTriangles;
 	}
 }
 
@@ -492,10 +495,14 @@ void FEmbreeAggregateMesh::DumpStats() const
 		LightmapUV += Geo->LightmapUVs.GetAllocatedSize();
 	}
 
-	UE_LOG(LogLightmass, Log, TEXT("Embree MeshInfos      : %7.1fMb"), MeshInfoSize / 1048576.0f);
-	UE_LOG(LogLightmass, Log, TEXT("Embree UVs            : %7.1fMb"), UVSize / 1048576.0f);
-	UE_LOG(LogLightmass, Log, TEXT("Embree LightmapUVs    : %7.1fMb"), LightmapUV / 1048576.0f);
-	UE_LOG(LogLightmass, Log, TEXT("Embree Allocations    : %7.1fMb"), GEmbreeAllocatedSpace / 1048576.0f);
+	UE_LOG(LogLightmass, Log, TEXT("\n"));
+	UE_LOG(LogLightmass, Log, TEXT("Collision Mesh Overview:"));
+	UE_LOG(LogLightmass, Log, TEXT("Num Triangles         : %d"), TotalNumTriangles);
+	UE_LOG(LogLightmass, Log, TEXT("MeshInfos             : %7.1fMb"), MeshInfoSize / 1048576.0f);
+	UE_LOG(LogLightmass, Log, TEXT("UVs                   : %7.1fMb"), UVSize / 1048576.0f);
+	UE_LOG(LogLightmass, Log, TEXT("LightmapUVs           : %7.1fMb"), LightmapUV / 1048576.0f);
+	UE_LOG(LogLightmass, Log, TEXT("Embree Used Memory    : %7.1fMb"), GEmbreeAllocatedSpace / 1048576.0f);
+	UE_LOG(LogLightmass, Log, TEXT("\n"));
 }
 
 bool FEmbreeAggregateMesh::IntersectLightRay(

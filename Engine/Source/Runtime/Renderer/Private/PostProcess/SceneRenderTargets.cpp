@@ -1124,7 +1124,7 @@ void FSceneRenderTargets::BeginRenderingPrePass(FRHICommandList& RHICmdList, boo
 	{
 		// Set the scene depth surface and a DUMMY buffer as color buffer
 		// (as long as it's the same dimension as the depth buffer),	
-		SetRenderTarget(RHICmdList, FTextureRHIRef(), GetSceneDepthSurface());
+		SetRenderTarget(RHICmdList, FTextureRHIRef(), DepthTarget);
 		RHICmdList.BindClearMRTValues(false, true, true);
 	}
 }
@@ -1440,7 +1440,7 @@ bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) co
 	int32 Value = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
 
 	return (Value != 0) && CurrentFeatureLevel >= ERHIFeatureLevel::SM4
-		&& View.Family->EngineShowFlags.PostProcessing
+		&& (View.Family->EngineShowFlags.PostProcessing || View.Family->EngineShowFlags.ShaderComplexity)
 		&& View.Family->EngineShowFlags.SeparateTranslucency;
 }
 

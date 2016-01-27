@@ -124,7 +124,7 @@ public:
 
 	const int32 GetUsedMemory() const;
 	void QueueAsyncCommandListSubmit(FGraphEventRef& AnyThreadCompletionEvent, class FRHICommandList* CmdList);
-	void QueueParallelAsyncCommandListSubmit(FGraphEventRef* AnyThreadCompletionEvents, class FRHICommandList** CmdLists, int32* NumDrawsIfKnown, int32 Num, int32 MinDrawsPerTranslate, bool bSpewMerge);
+	void QueueParallelAsyncCommandListSubmit(FGraphEventRef* AnyThreadCompletionEvents, bool bIsPrepass, class FRHICommandList** CmdLists, int32* NumDrawsIfKnown, int32 Num, int32 MinDrawsPerTranslate, bool bSpewMerge);
 	void QueueRenderThreadCommandListSubmit(FGraphEventRef& RenderThreadCompletionEvent, class FRHICommandList* CmdList);
 	void QueueCommandListSubmit(class FRHICommandList* CmdList);
 	void WaitForTasks(bool bKnownToBeComplete = false);
@@ -134,13 +134,14 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void* Alloc(int32 AllocSize, int32 Alignment)
 	{
+		checkSlow(!Bypass());
 		return MemManager.Alloc(AllocSize, Alignment);
 	}
 
 	template <typename T>
 	FORCEINLINE_DEBUGGABLE void* Alloc()
 	{
-		return MemManager.Alloc(sizeof(T), ALIGNOF(T));
+		return Alloc(sizeof(T), ALIGNOF(T));
 	}
 
 	template <typename TCmd>
@@ -251,6 +252,7 @@ private:
 	friend class FRHICommandListIterator;
 
 public:
+	TStatId	ExecuteStat;
 	enum class ERenderThreadContext
 	{
 		SceneRenderTargets,
@@ -3008,6 +3010,18 @@ private:
 };
 
 extern RHI_API FRHICommandListExecutor GRHICommandList;
+
+extern RHI_API FAutoConsoleTaskPriority CPrio_SceneRenderingTask;
+
+class FRenderTask
+{
+public:
+	FORCEINLINE static ENamedThreads::Type GetDesiredThread()
+	{
+		return CPrio_SceneRenderingTask.Get();
+	}
+};
+
 
 FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetImmediateCommandList()
 {

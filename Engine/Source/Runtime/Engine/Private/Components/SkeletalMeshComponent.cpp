@@ -51,6 +51,14 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Instance Spawn Time"), STAT_AnimSpawnTime, 
 DEFINE_STAT(STAT_AnimSpawnTime);
 DEFINE_STAT(STAT_PostAnimEvaluation);
 
+FAutoConsoleTaskPriority CPrio_ParallelAnimationEvaluationTask(
+	TEXT("TaskGraph.TaskPriorities.ParallelAnimationEvaluationTask"),
+	TEXT("Task and thread priority for FParallelAnimationEvaluationTask"),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
 class FParallelAnimationEvaluationTask
 {
 	TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
@@ -65,11 +73,11 @@ public:
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FParallelAnimationEvaluationTask, STATGROUP_TaskGraphTasks);
 	}
-	static ENamedThreads::Type GetDesiredThread()
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return CPrio_ParallelAnimationEvaluationTask.Get();
 	}
-	static ESubsequentsMode::Type GetSubsequentsMode()
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
 	{
 		return ESubsequentsMode::TrackSubsequents;
 	}
@@ -79,11 +87,13 @@ public:
 		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
 		{
 			FScopeCycleCounterUObject ContextScope(Comp);
+#if !UE_BUILD_TEST && !UE_BUILD_SHIPPING
 			float Stall = CVarStallParallelAnimation.GetValueOnAnyThread();
 			if (Stall > 0.0f)
 			{
 				FPlatformProcess::Sleep(Stall / 1000.0f);
 			}
+#endif
 			Comp->ParallelAnimationEvaluation();
 		}
 	}

@@ -177,7 +177,7 @@ void FMeshParticleVertexFactory::InitRHI()
 
 		if(Streams.Num() > 0)
 		{
-			InitDeclaration(Elements,Data);
+			InitDeclaration(Elements);
 			check(IsValidRef(GetDeclaration()));
 		}
 	}
@@ -211,7 +211,7 @@ bool FMeshParticleVertexFactory::ShouldCache(EShaderPlatform Platform, const cla
 	return (Material->IsUsedWithMeshParticles() || Material->IsSpecialEngineMaterial());
 }
 
-void FMeshParticleVertexFactory::SetData(const DataType& InData)
+void FMeshParticleVertexFactory::SetData(const FDataType& InData)
 {
 	check(IsInRenderingThread());
 	Data = InData;

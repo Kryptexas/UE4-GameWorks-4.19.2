@@ -972,23 +972,18 @@ public:
 
 
 
-void FDynamicSpriteEmitterData::CreateVertexFactory(const FSceneView *View)
+FParticleVertexFactoryBase *FDynamicSpriteEmitterData::CreateVertexFactory()
 {
-	if (VertexFactory == nullptr)
-	{
-		VertexFactory = new FParticleSpriteVertexFactory();
+	FParticleSpriteVertexFactory *VertexFactory = new FParticleSpriteVertexFactory();
 		VertexFactory->SetParticleFactoryType(PVFT_Sprite);
-		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
 		const USubUVAnimation* SubUVAnimation = GetSourceData()->SubUVAnimation;
 		VertexFactory->SetNumVertsInInstanceBuffer(SubUVAnimation ? SubUVAnimation->GetNumBoundingVertices() : 4);
 		VertexFactory->InitResource();
-	}
-
-	VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
+	return VertexFactory;
 }
 
 
-void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const
+void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SpriteRenderingTime);
 
@@ -1022,7 +1017,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 			FDynamicSpriteCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicSpriteCollectorResources>();
 			VertexFactory->SetFeatureLevel(FeatureLevel);
-			CollectorResources.VertexFactory = VertexFactory;
+			CollectorResources.VertexFactory = static_cast<FParticleSpriteVertexFactory*>(VertexFactory);
 
 			if (SourceData->bUseLocalSpace == false)
 			{
@@ -1313,7 +1308,6 @@ FDynamicMeshEmitterData::FDynamicMeshEmitterData(const UParticleModuleRequired* 
 	, bUseCameraFacing(false)
 	, bApplyParticleRotationAsSpin(false)
 	, CameraFacingOption(0)
-	, VertexFactory(nullptr)
 {
 	// only update motion blur transforms if we are not paused
 	// bPlayersOnlyPending allows us to keep the particle transforms 
@@ -1322,11 +1316,6 @@ FDynamicMeshEmitterData::FDynamicMeshEmitterData(const UParticleModuleRequired* 
 
 FDynamicMeshEmitterData::~FDynamicMeshEmitterData()
 {
-	if (VertexFactory)
-	{
-		VertexFactory->ReleaseResource();
-		delete VertexFactory;
-	}
 }
 
 /** Initialize this emitter's dynamic rendering data, called after source data has been filled in */
@@ -1464,7 +1453,6 @@ public:
 
 	virtual ~FDynamicMeshEmitterCollectorResources()
 	{
-		//VertexFactory.ReleaseResource();
 	}
 };
 
@@ -1476,31 +1464,28 @@ public:
 };
 
 
-void FDynamicMeshEmitterData::CreateVertexFactory(const FSceneView *View)
+FParticleVertexFactoryBase *FDynamicMeshEmitterData::CreateVertexFactory()
 {
-	if (VertexFactory == nullptr)
-	{
-		const int32 InstanceVertexStride = GetDynamicVertexStride(View->GetFeatureLevel());
-		VertexFactory = ConstructMeshParticleVertexFactory();
+		FMeshParticleVertexFactory *VertexFactory = ConstructMeshParticleVertexFactory();
 		VertexFactory->SetParticleFactoryType(PVFT_Mesh);
-		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
 		SetupVertexFactory(VertexFactory, StaticMesh->RenderData->LODResources[0]);
+		const int32 InstanceVertexStride = GetDynamicVertexStride(ERHIFeatureLevel::Type::SM5);	// featurelevel is ignored
+		const int32 DynamicParameterVertexStride = GetDynamicParameterVertexStride();
 		VertexFactory->SetStrides(InstanceVertexStride, GetDynamicParameterVertexStride());
 		VertexFactory->InitResource();
-	}
+		return VertexFactory;
 
-	VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
 }
 
 
 
-void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const
+void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MeshRenderingTime);
 
 	const bool bInstanced = GRHISupportsInstancing;
 
-	if (bValid)
+	if (bValid && VertexFactory)
 	{
 		if (Source.EmitterRenderMode == ERM_Normal)
 		{
@@ -1517,7 +1502,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			const int32 DynamicParameterVertexStride  = GetDynamicParameterVertexStride();
 
 			FDynamicMeshEmitterCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicMeshEmitterCollectorResources>();
-			CollectorResources.VertexFactory = VertexFactory;
+			CollectorResources.VertexFactory = static_cast<FMeshParticleVertexFactory*>(VertexFactory);
 
 			// Setup the vertex factory.
 			FMeshParticleVertexFactory* MeshVertexFactory = CollectorResources.VertexFactory;
@@ -2167,7 +2152,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 
 void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* InVertexFactory, FStaticMeshLODResources& LODResources) const
 {
-		FMeshParticleVertexFactory::DataType Data;
+		FMeshParticleVertexFactory::FDataType Data;
 
 		Data.PositionComponent = FVertexStreamComponent(
 			&LODResources.PositionVertexBuffer,
@@ -2286,11 +2271,6 @@ void FDynamicMeshEmitterData::SetupVertexFactory( FMeshParticleVertexFactory* In
 
 FDynamicBeam2EmitterData::~FDynamicBeam2EmitterData()
 {
-	if (VertexFactory)
-	{
-		VertexFactory->ReleaseResource();
-		delete VertexFactory;
-	}
 }
 
 
@@ -2383,21 +2363,16 @@ public:
 };
 
 
-void FDynamicBeam2EmitterData::CreateVertexFactory(const FSceneView *View)
-{
-	if (VertexFactory == nullptr)
+FParticleVertexFactoryBase *FDynamicBeam2EmitterData::CreateVertexFactory()
 	{
-		VertexFactory = new FParticleBeamTrailVertexFactory();
+		FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory();
 		VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
-		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
 		VertexFactory->InitResource();
+		return VertexFactory;
 	}
 
-	VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
-}
 
-
-void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const
+void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_BeamRenderingTime);
 	INC_DWORD_STAT(STAT_BeamParticlesRenderCalls);
@@ -2430,7 +2405,8 @@ void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSyst
 	if (Data.OutTriangleCount > 0)
 	{
 		FDynamicBeamTrailCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicBeamTrailCollectorResources>();
-		CollectorResources.VertexFactory = VertexFactory;
+		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
+		CollectorResources.VertexFactory = static_cast<FParticleBeamTrailVertexFactory*>(VertexFactory);
 
 		// Create and set the uniform buffer for this emitter.
 		FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = CollectorResources.VertexFactory;
@@ -5089,11 +5065,6 @@ int32 FDynamicBeam2EmitterData::FillData_InterpolatedNoise(FAsyncBufferFillData&
 
 FDynamicTrailsEmitterData::~FDynamicTrailsEmitterData()
 {
-	if (VertexFactory)
-	{
-		VertexFactory->ReleaseResource();
-		delete VertexFactory;
-	}
 }
 
 
@@ -5123,26 +5094,21 @@ FParticleVertexFactoryBase* FDynamicTrailsEmitterData::BuildVertexFactory(const 
 
 
 
-void FDynamicTrailsEmitterData::CreateVertexFactory(const FSceneView *View)
+FParticleVertexFactoryBase *FDynamicTrailsEmitterData::CreateVertexFactory()
 {
-	if (VertexFactory == nullptr)
-	{
-		VertexFactory = new FParticleBeamTrailVertexFactory();
+	FParticleBeamTrailVertexFactory *VertexFactory = new FParticleBeamTrailVertexFactory();
 		VertexFactory->SetParticleFactoryType(PVFT_BeamTrail);
-		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
 		VertexFactory->InitResource();
-	}
-
-	VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
+		return VertexFactory;
 }
 
 
-void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const
+void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *VertexFactory) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_TrailRenderingTime);
 	INC_DWORD_STAT(STAT_TrailParticlesRenderCalls);
 
-	if (bValid == false)
+	if (bValid == false || !VertexFactory)
 	{
 		return;
 	}
@@ -5175,7 +5141,8 @@ void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 	{
 		FDynamicBeamTrailCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicBeamTrailCollectorResources>();
 
-		CollectorResources.VertexFactory = VertexFactory;
+		VertexFactory->SetFeatureLevel(View->GetFeatureLevel());
+		CollectorResources.VertexFactory = static_cast<FParticleBeamTrailVertexFactory*>(VertexFactory);
 
 		// Create and set the uniform buffer for this emitter.
 		FParticleBeamTrailVertexFactory* BeamTrailVertexFactory = CollectorResources.VertexFactory;
@@ -6481,12 +6448,14 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 	, VisualizeLODIndex(Component->GetCurrentLODIndex())
 	, LastFramePreRendered(-1)
 	, FirstFreeMeshBatch(0)
+	, bVertexFactoriesDirty(false)
 {
 	WireframeColor = FLinearColor(1.0f, 0.0f, 0.0f);
 	LevelColor = FLinearColor(1.0f, 1.0f, 0.0f);
 	PropertyColor = FLinearColor(1.0f, 1.0f, 1.0f);
 
 	LODMethod = Component->LODMethod;
+
 }
 
 FParticleSystemSceneProxy::~FParticleSystemSceneProxy()
@@ -6495,6 +6464,8 @@ FParticleSystemSceneProxy::~FParticleSystemSceneProxy()
 
 	delete DynamicData;
 	DynamicData = NULL;
+
+	ClearVertexFactories();
 }
 
 FMeshBatch* FParticleSystemSceneProxy::GetPooledMeshBatch()
@@ -6550,6 +6521,8 @@ void FParticleSystemSceneProxy::GetDynamicMeshElements(const TArray<const FScene
 				}
 				FScopeCycleCounter AdditionalScope(Data->StatID);
 
+				FParticleVertexFactoryBase *VertexFactory = EmitterVertexFactoryArray[Data->EmitterIndex];
+
 				//hold on to the emitter index in case we need to access any of its properties
 				DynamicData->EmitterIndex = Index;
 
@@ -6559,8 +6532,9 @@ void FParticleSystemSceneProxy::GetDynamicMeshElements(const TArray<const FScene
 					{
 
 						const FSceneView* View = Views[ViewIndex];
-						Data->CreateVertexFactory(View);
-						Data->GetDynamicMeshElementsEmitter(this, View, ViewFamily, ViewIndex, Collector);
+
+
+						Data->GetDynamicMeshElementsEmitter(this, View, ViewFamily, ViewIndex, Collector, VertexFactory);
 						NumDraws++;
 					}
 				}
@@ -6611,6 +6585,8 @@ void FParticleSystemSceneProxy::CreateRenderThreadResourcesForEmitterData()
 			}
 		}
 	}
+	ClearVertexFactoriesIfDirty();
+	UpdateVertexFactories();
 }
 
 void FParticleSystemSceneProxy::ReleaseRenderThreadResourcesForEmitterData()
@@ -6774,6 +6750,7 @@ FPrimitiveViewRelevance FParticleSystemSceneProxy::GetViewRelevance(const FScene
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Particles;
 	Result.bShadowRelevance = IsShadowCast(View);
+	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
 	Result.bUsesLightingChannels = GetLightingChannelMask() != GetDefaultLightingChannelMask();
 	Result.bDynamicRelevance = true;
@@ -6895,6 +6872,13 @@ FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 			NewProxy = ::new FParticleSystemOcclusionSceneProxy(this,ParticleDynamicData);
 		}
 		check (NewProxy);
+		if (ParticleDynamicData)
+		{
+			for (int32 Index = 0; Index < ParticleDynamicData->DynamicEmitterDataArray.Num(); Index++)
+			{
+				NewProxy->QueueVertexFactoryCreation(ParticleDynamicData->DynamicEmitterDataArray[Index]);
+			}
+		}
 	}
 	
 	// 

@@ -1575,7 +1575,7 @@ void FProjectedShadowInfo::RenderDepthDynamic(FRHICommandList& RHICmdList, FScen
 	}
 }
 
-class FDrawShadowMeshElementsThreadTask
+class FDrawShadowMeshElementsThreadTask : public FRenderTask
 {
 	FProjectedShadowInfo& ThisShadow;
 	FRHICommandList& RHICmdList;
@@ -1602,11 +1602,6 @@ public:
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawShadowMeshElementsThreadTask, STATGROUP_TaskGraphTasks);
 	}
 
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -1627,7 +1622,7 @@ public:
 	}
 };
 
-class FRenderDepthDynamicThreadTask
+class FRenderDepthDynamicThreadTask : public FRenderTask
 {
 	FProjectedShadowInfo& ThisShadow;
 	FRHICommandList& RHICmdList;
@@ -1652,11 +1647,6 @@ public:
 	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderDepthDynamicThreadTask, STATGROUP_TaskGraphTasks);
-	}
-
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -1771,6 +1761,8 @@ static TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasksShadowPass(
 	0,
 	TEXT("Wait for completion of parallel render thread tasks at the end of each shadow pass.  A more granular version of r.RHICmdFlushRenderThreadTasks. If either r.RHICmdFlushRenderThreadTasks or r.RHICmdFlushRenderThreadTasksShadowPass is > 0 we will flush."));
 
+DECLARE_CYCLE_STAT(TEXT("Shadow"), STAT_CLP_Shadow, STATGROUP_ParallelCommandListMarkers);
+
 class FShadowParallelCommandListSet : public FParallelCommandListSet
 {
 	FProjectedShadowInfo& ProjectedShadowInfo;
@@ -1779,7 +1771,7 @@ class FShadowParallelCommandListSet : public FParallelCommandListSet
 
 public:
 	FShadowParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, FProjectedShadowInfo& InProjectedShadowInfo, TFunctionRef<void (FRHICommandList& RHICmdList)> InSetShadowRenderTargets, EShadowDepthRenderMode RenderModeIn )
-		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Shadow), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, ProjectedShadowInfo(InProjectedShadowInfo)
 		, SetShadowRenderTargets(InSetShadowRenderTargets)
 		, RenderMode(RenderModeIn)

@@ -23,7 +23,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
 
 	{
-		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShaderModelDebug"));
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShaderModelDebug"));
 		if(CVar->GetInt())
 		{
 			UE_LOG(LogEngine, Log, TEXT("r.ShaderModelDebug: SetPrimitiveViewRelevance %x = %x"),

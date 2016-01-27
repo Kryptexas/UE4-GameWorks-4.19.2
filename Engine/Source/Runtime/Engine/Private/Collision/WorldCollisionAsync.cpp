@@ -161,6 +161,15 @@ namespace
 
 	#if RUN_ASYNC_TRACE
 
+	FAutoConsoleTaskPriority CPrio_FAsyncTraceTask(
+		TEXT("TaskGraph.TaskPriorities.AsyncTraceTask"),
+		TEXT("Task and thread priority for async traces."),
+		ENamedThreads::BackgroundThreadPriority, // if we have background priority task threads, then use them...
+		ENamedThreads::HighTaskPriority, // .. at normal task priority
+		ENamedThreads::NormalTaskPriority // if we don't have background threads, then use normal priority threads at normal task priority instead
+		);
+
+
 	/** Helper class define the task of Async Trace running**/
 	class FAsyncTraceTask
 	{
@@ -193,16 +202,16 @@ namespace
 			DataCount   = InDataCount;
 		}
 
-		FORCEINLINE TStatId GetStatId() const
+		static FORCEINLINE TStatId GetStatId()
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncTraceTask, STATGROUP_TaskGraphTasks);
 		}
 		/** return the thread for this task **/
-		static ENamedThreads::Type GetDesiredThread()
+		static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 		{
-			return ENamedThreads::AnyThread;
+			return CPrio_FAsyncTraceTask.Get();
 		}
-		static ESubsequentsMode::Type GetSubsequentsMode() 
+		static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
 		{ 
 			return ESubsequentsMode::TrackSubsequents; 
 		}

@@ -1033,6 +1033,15 @@ void UNavigationSystem::AbortAsyncFindPathRequest(uint32 AsynPathQueryID)
 	}
 }
 
+FAutoConsoleTaskPriority CPrio_TriggerAsyncQueries(
+	TEXT("TaskGraph.TaskPriorities.NavTriggerAsyncQueries"),
+	TEXT("Task and thread priority for UNavigationSystem::PerformAsyncQueries."),
+	ENamedThreads::BackgroundThreadPriority, // if we have background priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::NormalTaskPriority // if we don't have background threads, then use normal priority threads at normal task priority instead
+	);
+
+
 void UNavigationSystem::TriggerAsyncQueries(TArray<FAsyncPathFindingQuery>& PathFindingQueries)
 {
 	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.NavigationSystem batched async queries"),
@@ -1041,7 +1050,7 @@ void UNavigationSystem::TriggerAsyncQueries(TArray<FAsyncPathFindingQuery>& Path
 
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationSystem::PerformAsyncQueries, PathFindingQueries),
-		GET_STATID(STAT_FSimpleDelegateGraphTask_NavigationSystemBatchedAsyncQueries));
+		GET_STATID(STAT_FSimpleDelegateGraphTask_NavigationSystemBatchedAsyncQueries), nullptr, CPrio_TriggerAsyncQueries.Get());
 }
 
 static void AsyncQueryDone(FAsyncPathFindingQuery Query)

@@ -26,6 +26,14 @@ public:
 		PageSize = 64 * 1024,
 		SmallPageSize = 1024
 	};
+#if UE_BUILD_SHIPPING
+	typedef TLockFreeFixedSizeAllocator<PageSize, PLATFORM_CACHE_LINE_SIZE, FNoopCounter> TPageAllocator;
+	typedef TLockFreeFixedSizeAllocator<SmallPageSize, PLATFORM_CACHE_LINE_SIZE, FNoopCounter> TSmallPageAllocator;
+#else
+	typedef TLockFreeFixedSizeAllocator<PageSize, PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> TPageAllocator;
+	typedef TLockFreeFixedSizeAllocator<SmallPageSize, PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> TSmallPageAllocator;
+#endif
+
 	static void *Alloc();
 	static void Free(void *Mem);
 	static void *AllocSmall();
@@ -38,8 +46,8 @@ private:
 #if STATS
 	static void UpdateStats();
 #endif
-	static TLockFreeFixedSizeAllocator<PageSize, FThreadSafeCounter> TheAllocator;
-	static TLockFreeFixedSizeAllocator<SmallPageSize, FThreadSafeCounter> TheSmallAllocator;
+	static TPageAllocator TheAllocator;
+	static TSmallPageAllocator TheSmallAllocator;
 };
 
 

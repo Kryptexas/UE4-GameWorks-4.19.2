@@ -173,6 +173,13 @@ static TAutoConsoleVariable<int32> CVarDefaultAutoExposure(
 	TEXT(" 0: off, sets AutoExposureMinBrightness and AutoExposureMaxBrightness to 1\n")
 	TEXT(" 1: on (default)"));
 
+static TAutoConsoleVariable<int32> CVarDefaultAutoExposureMethod(
+	TEXT("r.DefaultFeature.AutoExposure.Method"),
+	0,
+	TEXT("Engine default (project setting) for AutoExposure Method (postprocess volume/camera/game setting still can override)\n")
+	TEXT(" 0: Histogram based (requires compute shader, default)\n")
+	TEXT(" 1: Basic AutoExposure"));
+
 static TAutoConsoleVariable<int32> CVarDefaultMotionBlur(
 	TEXT("r.DefaultFeature.MotionBlur"),
 	1,
@@ -1241,6 +1248,15 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 			FinalPostProcessSettings.AutoExposureMinBrightness = 1;
 			FinalPostProcessSettings.AutoExposureMaxBrightness = 1;
 		}
+		else 
+		{
+			int32 Value = CVarDefaultAutoExposureMethod.GetValueOnGameThread();
+			if (Value >= 0 && Value < AEM_MAX)
+			{
+				FinalPostProcessSettings.AutoExposureMethod = (EAutoExposureMethod)Value;
+			}
+		}
+
 		if (!CVarDefaultMotionBlur.GetValueOnGameThread())
 		{
 			FinalPostProcessSettings.MotionBlurAmount = 0;
@@ -1288,6 +1304,20 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewInitOptions)
 {
 	const auto SceneViewFeatureLevel = GetFeatureLevel();
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EyeAdaptation.MethodOveride"));
+	if (CVar->GetValueOnGameThread() == -2)
+	{
+		// seemed to be good setting for Paragon, we might want to remove or adjust this later on
+		FinalPostProcessSettings.AutoExposureMethod = AEM_Basic;
+		FinalPostProcessSettings.AutoExposureBias = -0.6f;
+		FinalPostProcessSettings.AutoExposureMaxBrightness = 2.f;
+		FinalPostProcessSettings.AutoExposureMinBrightness = 0.05;
+		FinalPostProcessSettings.AutoExposureSpeedDown = 1.f;
+		FinalPostProcessSettings.AutoExposureSpeedUp = 3.f;
+	}
+#endif
 
 	// will be deprecated soon, use the new asset LightPropagationVolumeBlendable instead
 	{

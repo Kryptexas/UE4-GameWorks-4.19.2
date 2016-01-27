@@ -335,13 +335,6 @@ public:
 class SHADERCORE_API FVertexFactory : public FRenderResource
 {
 public:
-
-	struct DataType
-	{
-		/** Initialization constructor. */
-		DataType() {}
-	};
-
 	/**
 	 * Default constructor 
 	 */
@@ -447,9 +440,7 @@ protected:
 	 * Initializes the vertex declaration.
 	 * @param Elements - The elements of the vertex declaration.
 	 */
-	void InitDeclaration(
-		FVertexDeclarationElementList& Elements, 
-		const DataType& Data);
+	void InitDeclaration(FVertexDeclarationElementList& Elements);
 
 	/**
 	 * Initializes the position-only vertex declaration.
@@ -496,9 +487,6 @@ private:
 
 	/** The RHI vertex declaration used to render the factory during depth only passes. */
 	FVertexDeclarationRHIRef PositionDeclaration;
-
-	/** The vertex factory's data. */
-	DataType Data;
 };
 
 /**

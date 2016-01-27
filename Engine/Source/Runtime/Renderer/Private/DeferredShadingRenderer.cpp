@@ -71,6 +71,13 @@ static TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasksBasePass(
 	0,
 	TEXT("Wait for completion of parallel render thread tasks at the end of the base pass. A more granular version of r.RHICmdFlushRenderThreadTasks. If either r.RHICmdFlushRenderThreadTasks or r.RHICmdFlushRenderThreadTasksBasePass is > 0 we will flush."));
 
+static TAutoConsoleVariable<int32> CVarFXSystemPreRenderAfterPrepass(
+	TEXT("r.FXSystemPreRenderAfterPrepass"),
+	0,
+	TEXT("If > 0, then do the FX prerender after the prepass. This improves pipelining for greater performance. Experiemental option."),
+	ECVF_RenderThreadSafe
+	);
+
 DECLARE_CYCLE_STAT(TEXT("PostInitViews FlushDel"), STAT_PostInitViews_FlushDel, STATGROUP_InitViews);
 DECLARE_CYCLE_STAT(TEXT("InitViews Intentional Stall"), STAT_InitViews_Intentional_Stall, STATGROUP_InitViews);
 
@@ -300,6 +307,14 @@ void FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefaultParallel(FPar
 	}
 }
 
+FAutoConsoleTaskPriority CPrio_FSortFrontToBackTask(
+	TEXT("TaskGraph.TaskPriorities.SortFrontToBackTask"),
+	TEXT("Task and thread priority for FSortFrontToBackTask."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
 template<typename StaticMeshDrawList>
 class FSortFrontToBackTask
 {
@@ -322,7 +337,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return CPrio_FSortFrontToBackTask.Get();
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -450,7 +465,7 @@ void FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FRHICommandList& R
 	}
 }
 
-class FRenderBasePassDynamicDataThreadTask
+class FRenderBasePassDynamicDataThreadTask : public FRenderTask
 {
 	FDeferredShadingSceneRenderer& ThisRenderer;
 	FRHICommandList& RHICmdList;
@@ -472,11 +487,6 @@ public:
 	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderBasePassDynamicDataThreadTask, STATGROUP_TaskGraphTasks);
-	}
-
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -537,13 +547,15 @@ static void SetupBasePassView(FRHICommandList& RHICmdList, const FViewInfo& View
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 }
 
+DECLARE_CYCLE_STAT(TEXT("Basepass"), STAT_CLP_Basepass, STATGROUP_ParallelCommandListMarkers);
+
 class FBasePassParallelCommandListSet : public FParallelCommandListSet
 {
 public:
 	const FSceneViewFamily& ViewFamily;
 
 	FBasePassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, const FSceneViewFamily& InViewFamily)
-		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Basepass), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, ViewFamily(InViewFamily)
 	{
 		SetStateOnCommandList(ParentCmdList);
@@ -986,7 +998,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Notify the FX system that the scene is about to be rendered.
-	if (Scene->FXSystem && Views.IsValidIndex(0))
+	bool bLateFXPrerender = CVarFXSystemPreRenderAfterPrepass.GetValueOnRenderThread() > 0;
+	bool bDoFXPrerender = Scene->FXSystem && Views.IsValidIndex(0);
+	if (!bLateFXPrerender && bDoFXPrerender)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_FXSystem_PreRender);
 		Scene->FXSystem->PreRender(RHICmdList, &Views[0].GlobalDistanceFieldInfo.ParameterData);
@@ -1000,14 +1014,17 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
-	bool bDepthWasCleared = RenderPrePassHMD(RHICmdList);
+	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
 	const bool bNeedsPrePass = NeedsPrePass(this);
+	bool bDepthWasCleared;
 	if (bNeedsPrePass)
 	{
-		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
-		RenderPrePass(RHICmdList, bDepthWasCleared);
-		// at this point, the depth was cleared
-		bDepthWasCleared = true;
+		bDepthWasCleared = RenderPrePass(bLateFXPrerender && bDoFXPrerender, RHICmdList);
+	}
+	else
+	{
+		// we didn't do the prepass, but we still want the HMD mask if there is one
+		bDepthWasCleared = RenderPrePassHMD(RHICmdList);
 	}
 
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
@@ -1581,7 +1598,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 	return bDirty;
 }
 
-class FRenderPrepassDynamicDataThreadTask
+class FRenderPrepassDynamicDataThreadTask : public FRenderTask
 {
 	FDeferredShadingSceneRenderer& ThisRenderer;
 	FRHICommandList& RHICmdList;
@@ -1605,11 +1622,6 @@ public:
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FRenderPrepassDynamicDataThreadTask, STATGROUP_TaskGraphTasks);
 	}
 
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -1619,18 +1631,22 @@ public:
 	}
 };
 
+DECLARE_CYCLE_STAT(TEXT("Prepass"), STAT_CLP_Prepass, STATGROUP_ParallelCommandListMarkers);
+
 class FPrePassParallelCommandListSet : public FParallelCommandListSet
 {
 public:
 	FPrePassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
-		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Prepass), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 	{
-		SetStateOnCommandList(ParentCmdList);
+		// Do not copy-paste. this is a very unusual FParallelCommandListSet because it is a prepass and we want to do some work after starting some tasks
 	}
 
 	virtual ~FPrePassParallelCommandListSet()
 	{
-		Dispatch();
+		// Do not copy-paste. this is a very unusual FParallelCommandListSet because it is a prepass and we want to do some work after starting some tasks
+		SetStateOnCommandList(ParentCmdList);
+		Dispatch(true);
 	}
 
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
@@ -1655,9 +1671,10 @@ static TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasksPrePass(
 	0,
 	TEXT("Wait for completion of parallel render thread tasks at the end of the pre pass.  A more granular version of r.RHICmdFlushRenderThreadTasks. If either r.RHICmdFlushRenderThreadTasks or r.RHICmdFlushRenderThreadTasksPrePass is > 0 we will flush."));
 
-void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList)
+bool FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList, bool bDoFXPrerender)
 {
-	FPrePassParallelCommandListSet ParallelCommandListSet(View, ParentCmdList, 
+	bool bDepthWasCleared = false;
+	FPrePassParallelCommandListSet ParallelCommandListSet(View, ParentCmdList,
 		CVarRHICmdPrePassDeferredContexts.GetValueOnRenderThread() > 0, 
 		CVarRHICmdFlushRenderThreadTasksPrePass.GetValueOnRenderThread() == 0  && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0);
 
@@ -1691,6 +1708,12 @@ void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 		}
 	}
 
+	// we do this step here (awkwardly) so that the above tasks can be in flight while we get the particles (which must be dynamic) setup.
+	if (bDoFXPrerender)
+	{
+		bDepthWasCleared = PreRenderPrePass(ParentCmdList, bDoFXPrerender);
+	}
+
 	// Dynamic
 	FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
@@ -1698,6 +1721,8 @@ void FDeferredShadingSceneRenderer::RenderPrePassViewParallel(const FViewInfo& V
 		.ConstructAndDispatchWhenReady(*this, *CmdList, View);
 
 	ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
+
+	return bDepthWasCleared;
 }
 
 /** A pixel shader used to fill the stencil buffer with the current dithered transition mask. */
@@ -1742,24 +1767,29 @@ public:
 IMPLEMENT_SHADER_TYPE(, FDitheredTransitionStencilPS, TEXT("DitheredTransitionStencil"), TEXT("Main"), SF_Pixel);
 FGlobalBoundShaderState DitheredTransitionStencilBoundShaderState;
 
-/** Renders the scene's prepass and occlusion queries */
-bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHICmdList, bool bDepthWasCleared)
+/** Possibly do the FX prerender and setup the prepass*/
+bool FDeferredShadingSceneRenderer::PreRenderPrePass(FRHICommandListImmediate& RHICmdList, bool bDoFXPrerender)
 {
-	SCOPED_DRAW_EVENT(RHICmdList, PrePass);
-	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
+	if (bDoFXPrerender)
+	{
+		check(Scene->FXSystem && Views.IsValidIndex(0));
+		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_FXSystem_PreRender);
+		Scene->FXSystem->PreRender(RHICmdList, &Views[0].GlobalDistanceFieldInfo.ParameterData);
+	}
+	bool bDepthWasCleared = RenderPrePassHMD(RHICmdList);
 
-	bool bDirty = false;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	SceneContext.BeginRenderingPrePass(RHICmdList, !bDepthWasCleared);
-	
+	bDepthWasCleared = true;
+
 	// Dithered transition stencil mask fill
-	if(bDitheredLODTransitionsUseStencil)
+	if (bDitheredLODTransitionsUseStencil)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, DitheredStencilPrePass);
 		FIntPoint BufferSizeXY = SceneContext.GetBufferSizeXY();
-		
-		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
+
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
@@ -1780,7 +1810,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
 				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI(), STENCIL_SANDBOX_MASK);
-			
+
 			DrawRectangle(
 				RHICmdList,
 				0, 0,
@@ -1793,28 +1823,55 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 				EDRF_UseTriangleOptimization);
 		}
 	}
+	return bDepthWasCleared;
+}
+
+bool FDeferredShadingSceneRenderer::RenderPrePass(bool bDoFXPrerender, FRHICommandListImmediate& RHICmdList)
+{
+	bool bDepthWasCleared = false;
+	SCOPED_DRAW_EVENT(RHICmdList, PrePass);
+	SCOPE_CYCLE_COUNTER(STAT_DepthDrawTime);
+
+	bool bDirty = false;
+	bool bDidPrePre = false;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
+	bool bParallel = GRHICommandList.UseParallelAlgorithms() && CVarParallelPrePass.GetValueOnRenderThread();
+
+	if (!bDoFXPrerender || !bParallel)
+	{
+		// nothing to be gained by delaying this.
+		bDepthWasCleared = PreRenderPrePass(RHICmdList, bDoFXPrerender);
+		bDidPrePre = true;
+		bDoFXPrerender = false; // only need to do this once
+	}
+	else
+	{
+		SceneContext.GetSceneDepthSurface(); // this probably isn't needed, but if there was some lazy allocation of the depth surface going on, we want it allocated now before we go wide. We may not have called BeginRenderingPrePass yet if bDoFXPrerender is true
+	}
 
 	// Draw a depth pass to avoid overdraw in the other passes.
 	if(EarlyZPassMode != DDM_None)
 	{
-		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelPrePass.GetValueOnRenderThread())
+		if (bParallel)
 		{
 			FScopedCommandListWaitForTasks Flusher(CVarRHICmdFlushRenderThreadTasksPrePass.GetValueOnRenderThread() > 0 || CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() > 0, RHICmdList);
-
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
 				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 				const FViewInfo& View = Views[ViewIndex];
 				if (View.ShouldRenderView())
 				{
-					RenderPrePassViewParallel(View, RHICmdList);
+					bDepthWasCleared = RenderPrePassViewParallel(View, RHICmdList, bDoFXPrerender) || bDepthWasCleared;
 					bDirty = true; // assume dirty since we are not going to wait
+					bDidPrePre = true;
+					bDoFXPrerender = false; // only need to do this once even if we have multiple views
 				}
 			}
 		}
 		else
 		{
-			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 			{
 				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 				const FViewInfo& View = Views[ViewIndex];
@@ -1825,6 +1882,12 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 			}
 		}
 	}
+	if (!bDidPrePre)
+	{
+		// For some reason we haven't done this yet. Best do it now for consistency with the old code.
+		bDepthWasCleared = PreRenderPrePass(RHICmdList, bDoFXPrerender);
+		bDidPrePre = true;
+	}
 
 	// Dithered transition stencil mask clear
 	if(bDitheredLODTransitionsUseStencil)
@@ -1834,7 +1897,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);
 
-	return bDirty;
+	return bDepthWasCleared;
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassHMD(FRHICommandListImmediate& RHICmdList)

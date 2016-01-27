@@ -156,7 +156,7 @@ public:
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
-	struct DataType
+	struct FDataType
 	{
 		/** The stream to read the vertex position from. */
 		FVertexStreamComponent PositionComponent;
@@ -192,7 +192,7 @@ public:
 	/**
 	 * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
 	 */
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		Data = InData;
 		UpdateRHI();
@@ -201,7 +201,7 @@ public:
 	virtual uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const override;
 
 	/** stream component data bound to this vertex factory */
-	DataType Data;
+	FDataType Data;
 };
 
 

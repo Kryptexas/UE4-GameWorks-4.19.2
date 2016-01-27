@@ -471,13 +471,19 @@ public:
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Are we currently in the state of freezing rendering? (1 frame where we gather what was rendered) */
-	bool bIsFreezing;
+	uint32 bIsFreezing : 1;
 
 	/** Is rendering currently frozen? */
-	bool bIsFrozen;
+	uint32 bIsFrozen : 1;
+
+	/** True if the CachedViewMatrices is holding frozen view matrices, otherwise false */
+	uint32 bIsFrozenViewMatricesCached : 1;
 
 	/** The set of primitives that were rendered the frame that we froze rendering */
 	TSet<FPrimitiveComponentId> FrozenPrimitives;
+
+	/** The cache view matrices at the time of freezing or the cached debug fly cam's view matrices. */
+	FViewMatrices CachedViewMatrices;
 #endif
 
 private:
@@ -694,6 +700,13 @@ public:
 	 */
 	void UpdateTemporalLODTransition(const FViewInfo& View)
 	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (bIsFrozen)
+		{
+			return;
+		}
+#endif
+
 		TemporalLODState.UpdateTemporalLODTransition(View, LastRenderTime);
 	}
 
@@ -894,28 +907,56 @@ public:
 		return NewMID;
 	}
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	virtual void ActivateFrozenViewMatrices(FSceneView& SceneView) override
+	{
+		auto* ViewState = static_cast<FSceneViewState*>(SceneView.State);
+		if (ViewState->bIsFrozen)
+		{
+			check(ViewState->bIsFrozenViewMatricesCached);
+
+			Swap(SceneView.ViewMatrices, ViewState->CachedViewMatrices);
+			ViewState->bIsFrozenViewMatricesCached = false;
+		}
+	}
+
+	virtual void RestoreUnfrozenViewMatrices(FSceneView& SceneView) override
+	{
+		auto* ViewState = static_cast<FSceneViewState*>(SceneView.State);
+		if (ViewState->bIsFrozen)
+		{
+			check(!ViewState->bIsFrozenViewMatricesCached);
+
+			Swap(SceneView.ViewMatrices, ViewState->CachedViewMatrices);
+			ViewState->bIsFrozenViewMatricesCached = true;
+		}
+	}
+#endif
+
 	virtual FTemporalLODState& GetTemporalLODState() override
 	{
 		return TemporalLODState;
 	}
+
 	virtual const FTemporalLODState& GetTemporalLODState() const override
 	{
 		return TemporalLODState;
 	}
+
 	float GetTemporalLODTransition() const override
 	{
 		return TemporalLODState.GetTemporalLODTransition(LastRenderTime);
 	}
+
 	uint32 GetViewKey() const override
 	{
 		return UniqueID;
 	}
+
 	uint32 GetOcclusionFrameCounter() const
 	{
 		return OcclusionFrameCounter;
 	}
-
-
 
 	// FDeferredCleanupInterface
 	virtual void FinishCleanup() override

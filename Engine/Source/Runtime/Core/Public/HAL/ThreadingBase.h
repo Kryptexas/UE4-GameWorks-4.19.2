@@ -12,17 +12,12 @@ class FRunnableThread;
  */
 enum EThreadPriority
 {
-	/** Normal priority. */
 	TPri_Normal,
-
-	/** Above normal priority. */
 	TPri_AboveNormal,
-
-	/** Below normal priority. */
 	TPri_BelowNormal,
-	
-	/** Highest priority. */
-	TPri_Highest
+	TPri_Highest,
+	TPri_Lowest,
+	TPri_SlightlyBelowNormal,
 };
 
 

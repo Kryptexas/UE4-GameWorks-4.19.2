@@ -85,5 +85,5 @@ public:
 private:
 
 	/** Holds the collection of recycled events. */
-	TLockFreePointerListUnordered<FEvent> Pool;
+	TLockFreePointerListUnordered<FEvent, PLATFORM_CACHE_LINE_SIZE> Pool;
 };

@@ -291,7 +291,7 @@ public:
 		// Initialize the vertex factory's stream components.
 		if(IsInRenderingThread())
 		{
-			DataType TheData;
+			FDataType TheData;
 			TheData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
 			TheData.TextureCoordinates.Add(
 				FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
@@ -308,7 +308,7 @@ public:
 			    FLocalVertexFactory*,VertexFactory,this,
 			    const FDynamicMeshVertexBuffer*,VertexBuffer,VertexBuffer,
 			    {
-				    DataType TheData;
+				    FDataType TheData;
 				    TheData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
 				    TheData.TextureCoordinates.Add(
 					    FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)

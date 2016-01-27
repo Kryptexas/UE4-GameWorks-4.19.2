@@ -2560,7 +2560,7 @@ void FLandscapeVertexFactory::InitRHI()
 	Elements.Add(AccessStreamComponent(Data.PositionComponent, 0));
 
 	// create the actual device decls
-	InitDeclaration(Elements, FVertexFactory::DataType());
+	InitDeclaration(Elements);
 }
 
 FVertexFactoryShaderParameters* FLandscapeVertexFactory::ConstructShaderParameters(EShaderFrequency ShaderFrequency)
@@ -2596,7 +2596,7 @@ void FLandscapeVertexFactory::Copy(const FLandscapeVertexFactory& Other)
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FLandscapeVertexFactoryCopyData,
 		FLandscapeVertexFactory*, VertexFactory, this,
-		const DataType*, DataCopy, &Other.Data,
+		const FDataType*, DataCopy, &Other.Data,
 		{
 			VertexFactory->Data = *DataCopy;
 		});

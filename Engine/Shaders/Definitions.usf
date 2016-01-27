@@ -208,6 +208,9 @@
 #ifndef FLATTEN
 #define FLATTEN
 #endif
+#ifndef ALLOW_UAV_CONDITION	
+#define ALLOW_UAV_CONDITION	
+#endif
 #endif
 
 #define ISOLATE

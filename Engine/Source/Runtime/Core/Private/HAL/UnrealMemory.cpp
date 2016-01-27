@@ -29,7 +29,7 @@ class FMallocPurgatoryProxy : public FMalloc
 	uint32 LastCheckFrame; // unitialized; won't matter
 	FThreadSafeCounter OutstandingSizeInKB;
 	FThreadSafeCounter NextOversizeClear;
-	TLockFreePointerListUnordered<void> Purgatory[PURGATORY_STOMP_CHECKS_FRAMES];
+	TLockFreePointerListUnordered<void, PLATFORM_CACHE_LINE_SIZE> Purgatory[PURGATORY_STOMP_CHECKS_FRAMES];
 
 public:
 	/**

@@ -139,25 +139,39 @@ public:
 
 	/** Resets pool for GetReusableMID() */
 	virtual void OnStartPostProcessing(FSceneView& CurrentView) = 0;
+
 	/**
 	 * Allows MIDs being created and released during view rendering without the overhead of creating and releasing objects
 	 * As MID are not allowed to be parent of MID this gets fixed up by parenting it to the next Material or MIC
 	 * @param InSource can be Material, MIC or MID, must not be 0
 	 */
 	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* InSource) = 0;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** If frozen view matrices are available, set those as active on the SceneView */
+	virtual void ActivateFrozenViewMatrices(FSceneView& SceneView) = 0;
+
+	/** If frozen view matrices were set, restore the previous view matrices */
+	virtual void RestoreUnfrozenViewMatrices(FSceneView& SceneView) = 0;
+#endif
+
 	/** Returns the temporal LOD struct from the viewstate */
 	virtual FTemporalLODState& GetTemporalLODState() = 0;
 	virtual const FTemporalLODState& GetTemporalLODState() const = 0;
+
 	/** 
 	 * Returns the blend factor between the last two LOD samples
 	 */
 	virtual float GetTemporalLODTransition() const = 0;
+
 	/** 
 	 * returns a unique key for the view state, non-zero
 	 */
 	virtual uint32 GetViewKey() const = 0;
+
 	//
 	virtual uint32 GetCurrentTemporalAASampleIndex() const = 0;
+
 	/** 
 	 * returns the occlusion frame counter 
 	 */
@@ -173,7 +187,33 @@ private:
 	int32							NumChildren;
 };
 
+class FFrozenSceneViewMatricesGuard
+{
+public:
+	FFrozenSceneViewMatricesGuard(FSceneView& SV)
+		: SceneView(SV)
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (SceneView.State)
+		{
+			SceneView.State->ActivateFrozenViewMatrices(SceneView);
+		}
+#endif
+	}
 
+	~FFrozenSceneViewMatricesGuard()
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (SceneView.State)
+		{
+			SceneView.State->RestoreUnfrozenViewMatrices(SceneView);
+		}
+#endif
+	}
+
+private:
+	FSceneView& SceneView;
+};
 
 /**
  * The types of interactions between a light and a primitive.

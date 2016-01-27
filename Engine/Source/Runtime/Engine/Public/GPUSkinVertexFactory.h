@@ -22,8 +22,7 @@
 
 =============================================================================*/
 
-#ifndef __GPUSKINVERTEXFACTORY_H__
-#define __GPUSKINVERTEXFACTORY_H__
+#pragma once
 
 #include "GPUSkinPublicDefs.h"
 #include "ResourcePool.h"
@@ -278,9 +277,9 @@ private: // -------------------------------------------------------
 class FGPUBaseSkinVertexFactory : public FVertexFactory
 {
 public:
-	struct ShaderDataType
+	struct FShaderDataType
 	{
-		ShaderDataType()
+		FShaderDataType()
 			: CurrentBuffer(0)
 			, PreviousFrameNumber(0)
 			, CurrentFrameNumber(0)
@@ -351,7 +350,7 @@ public:
 		// @return IsValid() can fail, then you have to create the buffers first (or if the size changes)
 		FVertexBufferAndSRV& GetBoneBufferForWriting(bool bPrevious, uint32 FrameNumber)
 		{
-			const ShaderDataType* This = (const ShaderDataType*)this;
+			const FShaderDataType* This = (const FShaderDataType*)this;
 
 			// non const version maps to const version
 			return (FVertexBufferAndSRV&)This->GetBoneBufferInternal(bPrevious, FrameNumber);
@@ -398,12 +397,12 @@ public:
 	{}
 
 	/** accessor */
-	FORCEINLINE ShaderDataType& GetShaderData()
+	FORCEINLINE FShaderDataType& GetShaderData()
 	{
 		return ShaderData;
 	}
 
-	FORCEINLINE const ShaderDataType& GetShaderData() const
+	FORCEINLINE const FShaderDataType& GetShaderData() const
 	{
 		return ShaderData;
 	}
@@ -419,7 +418,7 @@ public:
 
 protected:
 	/** dynamic data need for setting the shader */ 
-	ShaderDataType ShaderData;
+	FShaderDataType ShaderData;
 	/** Pool of buffers for bone matrices. */
 	static TGlobalResource<FBoneBufferPool> BoneBufferPool;
 };
@@ -437,7 +436,7 @@ public:
 		HasExtraBoneInfluences = bExtraBoneInfluencesT,
 	};
 
-	struct DataType
+	struct FDataType
 	{
 		/** The stream to read the vertex position from. */
 		FVertexStreamComponent PositionComponent;
@@ -486,7 +485,7 @@ public:
 	* update the resource with new data from the game thread.
 	* @param	InData - new stream component data
 	*/
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		Data = InData;
 		FGPUBaseSkinVertexFactory::UpdateRHI();
@@ -507,13 +506,13 @@ protected:
 	* @param InData - type with stream components
 	* @param OutElements - vertex decl list to modify
 	*/
-	void AddVertexElements(DataType& InData, FVertexDeclarationElementList& OutElements);
+	void AddVertexElements(FDataType& InData, FVertexDeclarationElementList& OutElements);
 
-	inline const DataType& GetData() const { return Data; }
+	inline const FDataType& GetData() const { return Data; }
 
 private:
 	/** stream component data bound to this vertex factory */
-	DataType Data;  
+	FDataType Data;  
 };
 
 /** 
@@ -567,7 +566,7 @@ class TGPUSkinMorphVertexFactory : public TGPUSkinVertexFactory<bExtraBoneInflue
 	typedef TGPUSkinVertexFactory<bExtraBoneInfluencesT> Super;
 public:
 
-	struct DataType : TGPUSkinVertexFactory<bExtraBoneInfluencesT>::DataType
+	struct FDataType : TGPUSkinVertexFactory<bExtraBoneInfluencesT>::FDataType
 	{
 		/** stream which has the position deltas to add to the vertex position */
 		FVertexStreamComponent DeltaPositionComponent;
@@ -592,7 +591,7 @@ public:
 	* update the resource with new data from the game thread.
 	* @param	InData - new stream component data
 	*/
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		MorphData = InData;
 		FGPUBaseSkinVertexFactory::UpdateRHI();
@@ -614,11 +613,11 @@ protected:
 	* @param InData - type with stream components
 	* @param OutElements - vertex decl list to modify
 	*/
-	void AddVertexElements(DataType& InData, FVertexDeclarationElementList& OutElements);
+	void AddVertexElements(FDataType& InData, FVertexDeclarationElementList& OutElements);
 
 private:
 	/** stream component data bound to this vertex factory */
-	DataType MorphData; 
+	FDataType MorphData; 
 
 };
 
@@ -804,7 +803,7 @@ class TGPUSkinAPEXClothVertexFactory : public FGPUBaseSkinAPEXClothVertexFactory
 
 public:
 
-	struct DataType : TGPUSkinVertexFactory<bExtraBoneInfluencesT>::DataType
+	struct FDataType : TGPUSkinVertexFactory<bExtraBoneInfluencesT>::FDataType
 	{
 		/** stream which has the physical mesh position + height offset */
 		FVertexStreamComponent CoordPositionComponent;
@@ -833,7 +832,7 @@ public:
 	* update the resource with new data from the game thread.
 	* @param	InData - new stream component data
 	*/
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		MeshMappingData = InData;
 		FGPUBaseSkinVertexFactory::UpdateRHI();
@@ -866,11 +865,10 @@ protected:
 	* @param InData - type with stream components
 	* @param OutElements - vertex decl list to modify
 	*/
-	void AddVertexElements(DataType& InData, FVertexDeclarationElementList& OutElements);
+	void AddVertexElements(FDataType& InData, FVertexDeclarationElementList& OutElements);
 
 private:
 	/** stream component data bound to this vertex factory */
-	DataType MeshMappingData; 
+	FDataType MeshMappingData; 
 };
 
-#endif // __GPUSKINVERTEXFACTORY_H__

@@ -10,5 +10,9 @@ class UParticleModuleSubUVBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()
 
+	// Begin UParticleModule Interface
+	virtual EModuleType	GetModuleType() const override { return EPMT_SubUV; }
+	//End UParticleModule Interface
+
 };
 

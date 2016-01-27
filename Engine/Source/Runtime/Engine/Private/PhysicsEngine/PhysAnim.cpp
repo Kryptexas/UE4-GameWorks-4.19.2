@@ -27,6 +27,13 @@ struct FAssetWorldBoneTM
 };
 
 
+FAutoConsoleTaskPriority CPrio_FParallelBlendPhysicsTask(
+	TEXT("TaskGraph.TaskPriorities.ParallelBlendPhysicsTask"),
+	TEXT("Task and thread priority for FParallelBlendPhysicsTask."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
 
 class FParallelBlendPhysicsTask
 {
@@ -38,15 +45,15 @@ public:
 	{
 	}
 
-	FORCEINLINE TStatId GetStatId() const
+	static FORCEINLINE TStatId GetStatId()
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FParallelBlendPhysicsTask, STATGROUP_TaskGraphTasks);
 	}
-	static ENamedThreads::Type GetDesiredThread()
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return CPrio_FParallelBlendPhysicsTask.Get();
 	}
-	static ESubsequentsMode::Type GetSubsequentsMode()
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
 	{
 		return ESubsequentsMode::TrackSubsequents;
 	}

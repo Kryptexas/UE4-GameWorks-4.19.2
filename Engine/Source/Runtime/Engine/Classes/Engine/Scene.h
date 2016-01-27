@@ -1084,6 +1084,8 @@ struct FPostProcessSettings
 		LPVVplInjectionBias = 0.64f;
 		LPVGeometryVolumeBias = 0.384f;
 		LPVEmissiveInjectionIntensity = 1.0f;
+		// next value might get overwritten by r.DefaultFeature.AutoExposure.Method
+		AutoExposureMethod = AEM_Histogram;
 		AutoExposureLowPercent = 80.0f;
 		AutoExposureHighPercent = 98.3f;
 		// next value might get overwritten by r.DefaultFeature.AutoExposure

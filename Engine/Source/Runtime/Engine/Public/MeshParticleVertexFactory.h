@@ -28,7 +28,7 @@ class FMeshParticleVertexFactory : public FParticleVertexFactoryBase
 	DECLARE_VERTEX_FACTORY_TYPE(FMeshParticleVertexFactory);
 public:
 
-	struct DataType : public FVertexFactory::DataType
+	struct FDataType
 	{
 		/** The stream to read the vertex position from. */
 		FVertexStreamComponent PositionComponent;
@@ -60,7 +60,7 @@ public:
 		/** Flag to mark as initialized */
 		bool bInitialized;
 
-		DataType()
+		FDataType()
 		: bInitialized(false)
 		{
 
@@ -109,7 +109,7 @@ public:
 	/**
 	 * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
 	 */
-	ENGINE_API void SetData(const DataType& InData);
+	ENGINE_API void SetData(const FDataType& InData);
 
 	/**
 	 * Set the uniform buffer for this vertex factory.
@@ -160,14 +160,14 @@ public:
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
 protected:
-	DataType Data;
+	FDataType Data;
 	
 	/** Stride information for instanced mesh particles */
 	int32 DynamicVertexStride;
 	int32 DynamicParameterVertexStride;
 	
 
-	/** Uniform buffer with mesh particle paramters. */
+	/** Uniform buffer with mesh particle parameters. */
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;
 };
 

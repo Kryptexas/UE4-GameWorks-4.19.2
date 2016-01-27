@@ -866,7 +866,7 @@ void AddFrameRenderPrerequisite(const FGraphEventRef& TaskToAdd)
 void AdvanceFrameRenderPrerequisite()
 {
 	checkSlow(IsInGameThread()); 
-	FGraphEventRef PendingComplete = FrameRenderPrerequisites.CreatePrerequisiteCompletionHandle();
+	FGraphEventRef PendingComplete = FrameRenderPrerequisites.CreatePrerequisiteCompletionHandle(ENamedThreads::GameThread);
 	if (PendingComplete.GetReference())
 	{
 		GameThreadWaitForTask(PendingComplete);
@@ -927,7 +927,7 @@ FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand()
 }
 
 /** The set of deferred cleanup objects which are pending cleanup. */
-static TLockFreePointerListUnordered<FDeferredCleanupInterface>	PendingCleanupObjectsList;
+static TLockFreePointerListUnordered<FDeferredCleanupInterface, PLATFORM_CACHE_LINE_SIZE>	PendingCleanupObjectsList;
 
 FPendingCleanupObjects::FPendingCleanupObjects()
 {

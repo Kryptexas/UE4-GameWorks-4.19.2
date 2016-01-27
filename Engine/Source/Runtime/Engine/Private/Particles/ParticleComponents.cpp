@@ -1536,8 +1536,8 @@ void UParticleEmitter::Build()
 		if (HighLODLevel->TypeDataModule != nullptr)
 		{
 			if(HighLODLevel->TypeDataModule->RequiresBuild())
-			{
-				FParticleEmitterBuildInfo EmitterBuildInfo;
+		{
+			FParticleEmitterBuildInfo EmitterBuildInfo;
 				HighLODLevel->CompileModules( EmitterBuildInfo );
 				HighLODLevel->TypeDataModule->Build( EmitterBuildInfo );
 			}
@@ -3655,7 +3655,8 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 				// Fill the emitter dynamic buffers with data from our replay
 				ParticleDynamicData->DynamicEmitterDataArray.Reset();
 				ParticleDynamicData->DynamicEmitterDataArray.Reserve(CurReplayFrame.Emitters.Num());
-				for( int32 CurEmitterIndex = 0; CurEmitterIndex < CurReplayFrame.Emitters.Num(); ++CurEmitterIndex )
+
+				for (int32 CurEmitterIndex = 0; CurEmitterIndex < CurReplayFrame.Emitters.Num(); ++CurEmitterIndex)
 				{
 					const FParticleEmitterReplayFrame& CurEmitter = CurReplayFrame.Emitters[ CurEmitterIndex ];
 
@@ -3670,9 +3671,11 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 						FDynamicEmitterDataBase* NewDynamicEmitterData =
 							CreateDynamicDataFromReplay( EmitterInstances[ CurEmitter.OriginalEmitterIndex ], CurEmitterReplay, IsOwnerSelected() );
 
+
 						if( NewDynamicEmitterData != NULL )
 						{
-							ParticleDynamicData->DynamicEmitterDataArray.Add( NewDynamicEmitterData );
+							ParticleDynamicData->DynamicEmitterDataArray.Add(NewDynamicEmitterData);
+							NewDynamicEmitterData->EmitterIndex = CurEmitterIndex;
 						}
 					}
 				}
@@ -3751,6 +3754,8 @@ FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 #endif
 						NewDynamicEmitterData->bValid = true;
 						ParticleDynamicData->DynamicEmitterDataArray.Add( NewDynamicEmitterData );
+						NewDynamicEmitterData->EmitterIndex = EmitterIndex;
+
 						// Are we current capturing particle state?
 						if( ReplayState == PRS_Capturing )
 						{
@@ -3848,6 +3853,13 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 	{
 		// Create the dynamic data for rendering this particle system
 		FParticleDynamicData* ParticleDynamicData = CreateDynamicData();
+		if (ParticleDynamicData)
+		{
+			for (int32 Index = 0; Index < ParticleDynamicData->DynamicEmitterDataArray.Num(); Index++)
+			{
+				static_cast<FParticleSystemSceneProxy*>(SceneProxy)->QueueVertexFactoryCreation(ParticleDynamicData->DynamicEmitterDataArray[Index]);
+			}
+		}
 
 		// Render the particles
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -4083,6 +4095,15 @@ public:
 	}
 };
 
+FAutoConsoleTaskPriority CPrio_ParticleAsyncTask(
+	TEXT("TaskGraph.TaskPriorities.ParticleAsyncTask"),
+	TEXT("Task and thread priority for FParticleAsyncTask."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
+
 class FParticleAsyncTask
 {
 	UParticleSystemComponent* Target;
@@ -4100,7 +4121,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::HiPri(ENamedThreads::AnyThread);
+		return CPrio_ParticleAsyncTask.Get();
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -4479,21 +4500,21 @@ void UParticleSystemComponent::FinalizeTickComponent()
 			FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
 			if (Instance && Instance->bEnabled)
 			{
-			if (EmitterIndex + 1 < EmitterInstances.Num())
-			{
+				if (EmitterIndex + 1 < EmitterInstances.Num())
+				{
 				FParticleEmitterInstance* NextInstance = EmitterInstances[EmitterIndex+1];
-				FPlatformMisc::Prefetch(NextInstance);
-			}
+					FPlatformMisc::Prefetch(NextInstance);
+				}
 
 				if (Instance->SpriteTemplate)
-			{
-				UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-				if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 				{
-					Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
+					UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+					if (SpriteLODLevel && SpriteLODLevel->bEnabled)
+					{
+						Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
+					}
 				}
 			}
-		}
 		}
 
 		AParticleEventManager* EventManager = (World ? World->MyParticleEventManager : NULL);
@@ -4673,13 +4694,13 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 			const bool bIsSignificant = (int32)Emitter->SignificanceLevel >= (int32)RequiredSignificance;
 			bool bFailedOnlyOnSignificance = false;
 			if (bShouldCreateAndOrInit && !bIsSignificant)
-				{
+			{
 				bFailedOnlyOnSignificance = true;
 				bShouldCreateAndOrInit = false;
-					}
+			}
 
 			if (bShouldCreateAndOrInit)
-					{
+			{
 				if (Instance)
 				{
 					Instance->SetHaltSpawning(false);
@@ -4688,10 +4709,10 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 				{
 					Instance = Emitter->CreateInstance(this);
 					EmitterInstances[Idx] = Instance;
-			}
+				}
 
 				if (Instance)
-			{
+				{
 					Instance->bEnabled = true;
 					if (bReInitExistingEmitters)
 					{
@@ -4701,10 +4722,10 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 						PreferredLODLevel = FMath::Min(PreferredLODLevel, Emitter->LODLevels.Num());
 						bSetLodLevels |= !bIsFirstCreate;//Only set lod levels if we init any instances and it's not the first creation time.
 					}
-						}
-					}
-					else
-					{
+				}
+			}
+			else
+			{
 				if (Instance)
 				{
 					if(!bFailedOnlyOnSignificance)
@@ -4717,20 +4738,20 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 						EmitterInstances[Idx] = NULL;
 						bClearDynamicData = true;
 					}
-				else
-				{
+					else
+					{
 						//otherwise, we just disable it.
 						Instance->bEnabled = false;
 					}
-					}
-				bMissingEmittersDueToSignificance |= bFailedOnlyOnSignificance;
 				}
+				bMissingEmittersDueToSignificance |= bFailedOnlyOnSignificance;
 			}
+		}
 
-			if (bClearDynamicData)
-			{
-				ClearDynamicData();
-			}
+		if (bClearDynamicData)
+		{
+			ClearDynamicData();
+		}
 
 		if (bSetLodLevels)
 		{
@@ -4760,6 +4781,7 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 			}
 		}
 	}
+
 }
 
 void UParticleSystemComponent::ResetParticles(bool bEmptyInstances)
@@ -4913,7 +4935,10 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 			Instance->CurrentLODLevelIndex = 0;
 		}
 	}
-
+	if (SceneProxy)
+	{
+		static_cast<FParticleSystemSceneProxy*>(SceneProxy)->MarkVertexFactoriesDirty();
+	}
 }
 
 void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
@@ -5385,6 +5410,11 @@ bool UParticleSystemComponent::HasCompleted()
 
 		if (Instance && Instance->CurrentLODLevel)
 		{
+			if (!Instance->bEmitterIsDone)
+			{
+				bCanBeDeactivated = false;
+			}
+
 			if (Instance->CurrentLODLevel->bEnabled)
 			{
 				if (Instance->CurrentLODLevel->RequiredModule->EmitterLoops > 0 || Instance->IsTrailEmitter())
@@ -5438,12 +5468,6 @@ bool UParticleSystemComponent::HasCompleted()
 						bHasCompleted = false;
 					}
 				}
-
-				if (!Instance->bEmitterIsDone)
-				{
-					bCanBeDeactivated = false;
-				}
-
 			}
 			else
 			{
@@ -5452,15 +5476,11 @@ bool UParticleSystemComponent::HasCompleted()
 				{
 					bHasCompleted = false;
 				}
-				else if (!Instance->bEmitterIsDone)
-				{
-					bCanBeDeactivated = false;
-				}
 			}
 		}
 	}
 
-	if (bCanBeDeactivated && bAutoActivate)
+	if (bCanBeDeactivated && Template && Template->bAutoDeactivate)
 	{
 		DeactivateSystem();
 	}

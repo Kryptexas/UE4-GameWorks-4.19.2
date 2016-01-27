@@ -115,7 +115,7 @@ class FChunkCacheWorker : public FRunnable
 	/** Stops this thread */
 	FThreadSafeCounter StopTaskCounter;
 	/** Available chunk requests */
-	TLockFreePointerListUnordered<FChunkRequest> FreeChunkRequests;
+	TLockFreePointerListUnordered<FChunkRequest, PLATFORM_CACHE_LINE_SIZE> FreeChunkRequests;
 	/** Public decryption key */
 	FEncryptionKey DecryptionKey;
 

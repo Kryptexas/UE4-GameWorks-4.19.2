@@ -3622,6 +3622,13 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 	}
 }
 
+FAutoConsoleTaskPriority CPrio_FParallelClothTask(
+	TEXT("TaskGraph.TaskPriorities.ParallelClothTask"),
+	TEXT("Task and thread priority for parallel cloth."),
+	ENamedThreads::NormalThreadPriority,
+	ENamedThreads::NormalTaskPriority
+	);
+
 class FParallelClothTask
 {
 	const USkeletalMeshComponent& SkeletalMeshComponent;
@@ -3642,7 +3649,7 @@ public:
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return CPrio_FParallelClothTask.Get();
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{

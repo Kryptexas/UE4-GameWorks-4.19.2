@@ -95,7 +95,8 @@ FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCa
 													EditorOptions->ModuleColor_Spawn_Unselected,
 													EditorOptions->ModuleColor_Required_Unselected,
 													EditorOptions->ModuleColor_Event_Unselected,
-													EditorOptions->ModuleColor_Light_Unselected
+													EditorOptions->ModuleColor_Light_Unselected,
+													EditorOptions->ModuleColor_SubUV_Unselected
 												};
 
 	FColor ColorOptionsSelected[EPMT_MAX] =	{	EditorOptions->ModuleColor_General_Selected, 
@@ -105,7 +106,8 @@ FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCa
 												EditorOptions->ModuleColor_Spawn_Selected,
 												EditorOptions->ModuleColor_Required_Selected,
 												EditorOptions->ModuleColor_Event_Selected,
-												EditorOptions->ModuleColor_Light_Selected
+												EditorOptions->ModuleColor_Light_Selected,
+												EditorOptions->ModuleColor_SubUV_Selected
 											};
 
 	for (int32 i = 0; i < EPMT_MAX; ++i)

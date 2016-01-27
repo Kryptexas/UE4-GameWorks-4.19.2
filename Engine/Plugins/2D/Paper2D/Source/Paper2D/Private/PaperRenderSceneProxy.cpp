@@ -80,7 +80,7 @@ void FPaperSpriteVertexFactory::Init(const FPaperSpriteVertexBuffer* InVertexBuf
 	if (IsInRenderingThread())
 	{
 		// Initialize the vertex factory's stream components.
-		DataType NewData;
+		FDataType NewData;
 		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FPaperSpriteVertex, Position, VET_Float3);
 		NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FPaperSpriteVertex, TangentX, VET_PackedNormal);
 		NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(InVertexBuffer, FPaperSpriteVertex, TangentZ, VET_PackedNormal);
@@ -120,7 +120,7 @@ class FPaperSpriteVertexFactoryDummy : public FLocalVertexFactory
 public:
 	void AllocateStuff()
 	{
-		FLocalVertexFactory::DataType VertData;
+		FLocalVertexFactory::FDataType VertData;
 
 		VertData.PositionComponent = FVertexStreamComponent(
 			&GDummyMaterialSpriteVertexBuffer,

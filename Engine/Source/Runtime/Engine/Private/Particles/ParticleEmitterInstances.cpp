@@ -148,13 +148,13 @@ DECLARE_CYCLE_STAT(TEXT("EmitterInstance Resize"), STAT_ParticleEmitterInstance_
 	Fast allocators for small block data being sent to the render thread
 -----------------------------------------------------------------------------*/
 
-static TLockFreeFixedSizeAllocator<256> FastParticleSmallBlockAlloc256;
-static TLockFreeFixedSizeAllocator<384> FastParticleSmallBlockAlloc384;
-static TLockFreeFixedSizeAllocator<512> FastParticleSmallBlockAlloc512;
-static TLockFreeFixedSizeAllocator<768> FastParticleSmallBlockAlloc768;
-static TLockFreeFixedSizeAllocator<1024> FastParticleSmallBlockAlloc1024;
-static TLockFreeFixedSizeAllocator<1792> FastParticleSmallBlockAlloc1792;
-static TLockFreeFixedSizeAllocator<2048> FastParticleSmallBlockAlloc2048;
+static TLockFreeFixedSizeAllocator<256, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc256;
+static TLockFreeFixedSizeAllocator<384, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc384;
+static TLockFreeFixedSizeAllocator<512, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc512;
+static TLockFreeFixedSizeAllocator<768, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc768;
+static TLockFreeFixedSizeAllocator<1024, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc1024;
+static TLockFreeFixedSizeAllocator<1792, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc1792;
+static TLockFreeFixedSizeAllocator<2048, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc2048;
 
 FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
 {
@@ -3657,7 +3657,7 @@ void FDynamicEmitterDataBase::operator delete(void *RawMemory, size_t AllocSize)
 	FastParticleSmallBlockFree(RawMemory, AllocSize);
 }	
 
-static TLockFreeFixedSizeAllocator<sizeof(FParticleDynamicData)> ParticleDynamicDataAllocator;
+static TLockFreeFixedSizeAllocator<sizeof(FParticleDynamicData), PLATFORM_CACHE_LINE_SIZE> ParticleDynamicDataAllocator;
 
 void* FParticleDynamicData::operator new(size_t AllocSize)
 {
@@ -3676,6 +3676,7 @@ void FParticleDynamicData::operator delete(void *RawMemory, size_t AllocSize)
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)
 	: bSelected(false)
 	, ParticleVertexFactory(nullptr)
+	, EmitterIndex(INDEX_NONE)
 {
 }
 

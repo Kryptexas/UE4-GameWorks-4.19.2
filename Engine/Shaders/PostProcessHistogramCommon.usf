@@ -132,3 +132,13 @@ float ComputeEyeAdaptationExposure(Texture2D HistogramTexture)
 
 	return ClampedAdaptedLuminance;
 }
+
+// Computation of triangle function on normalized space
+// used in Basic EyeAdaptation in weighting the center of the screen
+// @return range of 0..1 with 1 nx = 0.5
+// @param nx in 0..1 
+// @param slope assumed possitive
+float AdaptationWeight(float nx, float slope)
+{
+	return max(1.f - 2. * slope * abs(nx - 0.5f), 0.0f);
+}

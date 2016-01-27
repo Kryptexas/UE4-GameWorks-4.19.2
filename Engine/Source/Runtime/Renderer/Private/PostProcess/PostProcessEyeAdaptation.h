@@ -107,6 +107,15 @@ static inline bool IsAutoExposureMethodSupported(const ERHIFeatureLevel::Type& F
 	return Result;
 }
 
+extern TAutoConsoleVariable<float> CVarEyeAdaptationFocus;
+static inline float GetBasicAutoExposureFocus()
+{
+	// Hard coded value camp.
+	static float clampValue = 10.f;
+	float FocusValue = CVarEyeAdaptationFocus.GetValueOnRenderThread();
+	
+	return FMath::Max(FMath::Min(FocusValue, clampValue), 0.0f);
+}
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: Color input

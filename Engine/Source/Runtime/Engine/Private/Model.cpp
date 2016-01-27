@@ -712,7 +712,7 @@ void UModel::UpdateVertices()
 			FLocalVertexFactory*,VertexFactory,&VertexFactory,
 			FVertexBuffer*,VertexBuffer,&VertexBuffer,
 			{
-				FLocalVertexFactory::DataType Data;
+				FLocalVertexFactory::FDataType Data;
 				Data.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,Position,VET_Float3);
 				Data.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,TangentX,VET_PackedNormal);
 				Data.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FModelVertex,TangentZ,VET_PackedNormal);

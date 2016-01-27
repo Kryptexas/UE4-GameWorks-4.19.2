@@ -604,7 +604,7 @@ TGlobalResource<FGPUSpriteVertexDeclaration> GGPUSpriteVertexDeclaration;
 /**
  * Vertex factory for render sprites from GPU simulated particles.
  */
-class FGPUSpriteVertexFactory : public FVertexFactory
+class FGPUSpriteVertexFactory : public FParticleVertexFactoryBase
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FGPUSpriteVertexFactory);
 
@@ -624,6 +624,12 @@ public:
 	FTexture2DRHIParamRef VelocityTextureRHI;
 	/** Texture containint attributes for all particles. */
 	FTexture2DRHIParamRef AttributesTextureRHI;
+
+
+	FGPUSpriteVertexFactory()
+		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+		, ParticleIndicesOffset(0)
+	{}
 
 	/**
 	 * Constructs render resources for this vertex factory.
@@ -2668,18 +2674,17 @@ public:
 class FGPUSpriteCollectorResources : public FOneFrameResource
 {
 public:
-	FGPUSpriteVertexFactory VertexFactory;
+	FGPUSpriteVertexFactory *VertexFactory;
 
 	~FGPUSpriteCollectorResources()
 	{
-		VertexFactory.ReleaseResource();
 	}
 };
 
 struct FNewParticleAlloc
 {
-	TLockFreeFixedSizeAllocator<sizeof(TArray<FNewParticle>), FThreadSafeCounter> FreeTArrayFNewParticleArrays;
-	TLockFreePointerListUnordered<TArray<FNewParticle>>	FreeTArrayFNewParticle;
+	TLockFreeFixedSizeAllocator<sizeof(TArray<FNewParticle>), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> FreeTArrayFNewParticleArrays;
+	TLockFreePointerListUnordered<TArray<FNewParticle>, PLATFORM_CACHE_LINE_SIZE>	FreeTArrayFNewParticle;
 	~FNewParticleAlloc()
 	{
 		while (true)
@@ -2875,7 +2880,14 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	{		
 	}
 
-	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const override
+	virtual FParticleVertexFactoryBase *CreateVertexFactory() override
+	{
+		FGPUSpriteVertexFactory *VertexFactory = new FGPUSpriteVertexFactory();
+		VertexFactory->InitResource();
+		return VertexFactory;
+	}
+
+	virtual void GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector, FParticleVertexFactoryBase *InVertexFactory) const override
 	{
 		auto FeatureLevel = ViewFamily.GetFeatureLevel();
 
@@ -2917,9 +2929,10 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 				// Iterate over views and assign parameters for each.
 				FParticleSimulationResources* SimulationResources = FXSystem->GetParticleSimulationResources();
 				FGPUSpriteCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FGPUSpriteCollectorResources>();
-				CollectorResources.VertexFactory.SetFeatureLevel(FeatureLevel);
-				CollectorResources.VertexFactory.InitResource();
-				FGPUSpriteVertexFactory& VertexFactory = CollectorResources.VertexFactory;
+				//CollectorResources.VertexFactory.InitResource();
+				CollectorResources.VertexFactory = static_cast<FGPUSpriteVertexFactory*>(InVertexFactory);
+				CollectorResources.VertexFactory->SetFeatureLevel(FeatureLevel);
+				FGPUSpriteVertexFactory& VertexFactory = *CollectorResources.VertexFactory;
 
 				if (bAllowSorting && SortMode == PSORTMODE_DistanceToView)
 				{

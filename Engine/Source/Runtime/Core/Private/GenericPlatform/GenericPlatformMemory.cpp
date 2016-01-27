@@ -30,7 +30,7 @@ struct FGenericStatsUpdater
 	/** Called once per second, enqueues stats update. */
 	static bool EnqueueUpdateStats( float /*InDeltaTime*/ )
 	{
-		AsyncTask( ENamedThreads::AnyThread, []()
+		AsyncTask( ENamedThreads::AnyBackgroundThreadNormalTask, []()
 		{
 			DoUpdateStats();
 		} );

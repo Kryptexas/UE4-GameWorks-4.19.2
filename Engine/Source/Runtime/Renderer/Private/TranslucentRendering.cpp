@@ -811,7 +811,7 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 
 	if (bUseSeparateTranslucency
 		&& ViewInfo.Family->EngineShowFlags.SeparateTranslucency
-		&& ViewInfo.Family->EngineShowFlags.PostProcessing
+		&& (ViewInfo.Family->EngineShowFlags.PostProcessing || ViewInfo.Family->EngineShowFlags.ShaderComplexity)
 		&& FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		// add to list of translucent prims that use scene color
@@ -865,7 +865,7 @@ bool FSceneRenderer::ShouldRenderTranslucency() const
 	return bRender;
 }
 
-class FDrawSortedTransAnyThreadTask
+class FDrawSortedTransAnyThreadTask : public FRenderTask
 {
 	FDeferredShadingSceneRenderer& Renderer;
 	FRHICommandList& RHICmdList;
@@ -899,19 +899,18 @@ public:
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawSortedTransAnyThreadTask, STATGROUP_TaskGraphTasks);
 	}
 
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		FScopeCycleCounter ScopeOuter(RHICmdList.ExecuteStat);
 		View.TranslucentPrimSet.DrawPrimitivesParallel(RHICmdList, View, Renderer, TranslucenyPassType, FirstIndex, LastIndex);
 		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
+
+DECLARE_CYCLE_STAT(TEXT("Translucency"), STAT_CLP_Translucency, STATGROUP_ParallelCommandListMarkers);
+
 
 class FTranslucencyPassParallelCommandListSet : public FParallelCommandListSet
 {
@@ -919,7 +918,7 @@ class FTranslucencyPassParallelCommandListSet : public FParallelCommandListSet
 	bool bFirstTimeThisFrame;
 public:
 	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPassType InTranslucenyPassType)
-		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
+		: FParallelCommandListSet(GET_STATID(STAT_CLP_Translucency), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, TranslucenyPassType(InTranslucenyPassType)
 		, bFirstTimeThisFrame(InTranslucenyPassType == TPT_SeparateTransluceny)
 	{

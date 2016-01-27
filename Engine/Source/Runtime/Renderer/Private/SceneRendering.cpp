@@ -130,6 +130,33 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 	ECVF_RenderThreadSafe);
 
 /*-----------------------------------------------------------------------------
+BitCounting
+-----------------------------------------------------------------------------*/
+
+MS_ALIGN(64) uint8 CountBitsTable[64] GCC_ALIGN(64) = { 0 };
+
+static struct FInitBitCounts
+{
+	FInitBitCounts()
+	{
+		for (uint32 Index = 0; Index < 64; Index++)
+		{
+			uint32 LocalIndex = Index;
+			uint8 Result = 0;
+			while (LocalIndex)
+			{
+				if (LocalIndex & 1)
+				{
+					Result++;
+				}
+				LocalIndex >>= 1;
+			}
+			CountBitsTable[Index] = Result;
+		}
+	}
+} GInitBitCounts;
+
+/*-----------------------------------------------------------------------------
 	FParallelCommandListSet
 -----------------------------------------------------------------------------*/
 
@@ -143,7 +170,7 @@ static TAutoConsoleVariable<int32> CVarRHICmdSpewParallelListBalance(
 
 static TAutoConsoleVariable<int32> CVarRHICmdBalanceParallelLists(
 	TEXT("r.RHICmdBalanceParallelLists"),
-	1,
+	2,
 	TEXT("Allows to enable a preprocess of the drawlists to try to balance the load equally among the command lists.\n")
 	TEXT(" 0: off \n")
 	TEXT(" 1: enabled")
@@ -156,13 +183,14 @@ static TAutoConsoleVariable<int32> CVarRHICmdMinCmdlistForParallelSubmit(
 
 static TAutoConsoleVariable<int32> CVarRHICmdMinDrawsPerParallelCmdList(
 	TEXT("r.RHICmdMinDrawsPerParallelCmdList"),
-	32,
+	64,
 	TEXT("The minimum number of draws per cmdlist. If the total number of draws is less than this, then no parallel work will be done at all. This can't always be honored or done correctly. More effective with RHICmdBalanceParallelLists."));
 
-FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
+FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
 	: View(InView)
 	, ParentCmdList(InParentCmdList)
 	, Snapshot(nullptr)
+	, ExecuteStat(InExecuteStat)
 	, NumAlloc(0)
 	, bParallelExecute(GRHISupportsParallelRHIExecute && bInParallelExecute)
 	, bCreateSceneContext(bInCreateSceneContext)
@@ -184,7 +212,7 @@ FRHICommandList* FParallelCommandListSet::AllocCommandList()
 	return new FRHICommandList;
 }
 
-void FParallelCommandListSet::Dispatch()
+void FParallelCommandListSet::Dispatch(bool bHighPriority)
 {
 	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
 	check(CommandLists.Num() == Events.Num());
@@ -230,7 +258,7 @@ void FParallelCommandListSet::Dispatch()
 		UE_CLOG(bSpewBalance, LogTemp, Display, TEXT("%d cmdlists for parallel translate"), CommandLists.Num());
 		check(GRHISupportsParallelRHIExecute);
 		NumAlloc -= CommandLists.Num();
-		ParentCmdList.QueueParallelAsyncCommandListSubmit(&Events[0], &CommandLists[0], &NumDrawsIfKnown[0], CommandLists.Num(), (MinDrawsPerCommandList * 4) / 3, bSpewBalance);
+		ParentCmdList.QueueParallelAsyncCommandListSubmit(&Events[0], bHighPriority, &CommandLists[0], &NumDrawsIfKnown[0], CommandLists.Num(), (MinDrawsPerCommandList * 4) / 3, bSpewBalance);
 		SetStateOnCommandList(ParentCmdList);
 	}
 	else
@@ -259,7 +287,8 @@ FParallelCommandListSet::~FParallelCommandListSet()
 FRHICommandList* FParallelCommandListSet::NewParallelCommandList()
 {
 	FRHICommandList* Result = AllocCommandList();
-	SetStateOnCommandList(*Result); 
+	Result->ExecuteStat = ExecuteStat;
+	SetStateOnCommandList(*Result);
 	if (bCreateSceneContext)
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(ParentCmdList);
@@ -1454,25 +1483,18 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 			{
 				ViewState->bIsFreezing = false;
 				ViewState->bIsFrozen = true;
+				ViewState->bIsFrozenViewMatricesCached = true;
+				ViewState->CachedViewMatrices = View.ViewMatrices;
 			}
 
 			// handle freeze toggle request
 			if (bHasRequestedToggleFreeze)
 			{
-				// do we want to start freezing?
-				if (!ViewState->bIsFrozen)
-				{
-					ViewState->bIsFrozen = false;
-					ViewState->bIsFreezing = true;
-					ViewState->FrozenPrimitives.Empty();
-				}
-				// or stop?
-				else
-				{
-					ViewState->bIsFrozen = false;
-					ViewState->bIsFreezing = false;
-					ViewState->FrozenPrimitives.Empty();
-				}
+				// do we want to start freezing or stop?
+				ViewState->bIsFreezing = !ViewState->bIsFrozen;
+				ViewState->bIsFrozen = false;
+				ViewState->bIsFrozenViewMatricesCached = false;
+				ViewState->FrozenPrimitives.Empty();
 			}
 		}
 #endif

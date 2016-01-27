@@ -704,7 +704,7 @@ public:
 	 * @param NumInitialMips - how many mips are provided in InitialMipData
 	 * @returns a reference to a 2D texture resource
 	 */
-	// FlushType: Wait RHI Thread
+	// FlushType: Thread safe
 	virtual FTexture2DRHIRef RHIAsyncCreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, void** InitialMipData, uint32 NumInitialMips) = 0;
 
 	/**

@@ -125,6 +125,23 @@ struct FPendingApexDamageManager
 
 #if WITH_PHYSX
 
+FAutoConsoleTaskPriority CPrio_FPhysXTask(
+	TEXT("TaskGraph.TaskPriorities.PhysXTask"),
+	TEXT("Task and thread priority for FPhysXTask."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
+FAutoConsoleTaskPriority CPrio_FPhysXTask_Cloth(
+	TEXT("TaskGraph.TaskPriorities.PhysXTask.Cloth"),
+	TEXT("Task and thread priority for FPhysXTask (cloth)."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
+
 template <bool IsCloth>
 class FPhysXTask
 {
@@ -141,7 +158,7 @@ public:
 		Task.release();
 	}
 
-	FORCEINLINE TStatId GetStatId() const
+	static FORCEINLINE TStatId GetStatId()
 	{
 		if (!IsCloth)
 		{
@@ -153,11 +170,18 @@ public:
 		}
 
 	}
-	static ENamedThreads::Type GetDesiredThread()
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::HiPri(ENamedThreads::AnyThread);
+		if (!IsCloth)
+		{
+			return CPrio_FPhysXTask.Get();
+		}
+		else
+		{
+			return CPrio_FPhysXTask_Cloth.Get();
+		}
 	}
-	static ESubsequentsMode::Type GetSubsequentsMode()
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode()
 	{
 		return ESubsequentsMode::TrackSubsequents;
 	}
@@ -538,6 +562,14 @@ void FPhysScene::AddPendingDamageEvent(UDestructibleComponent* DestructibleCompo
 }
 #endif
 
+FAutoConsoleTaskPriority CPrio_PhysXStepSimulation(
+	TEXT("TaskGraph.TaskPriorities.PhysXStepSimulation"),
+	TEXT("Task and thread priority for FPhysSubstepTask::StepSimulation."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
 bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutCompletionEvent)
 {
 #if WITH_PHYSX
@@ -552,7 +584,7 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 	{
 		//we have valid scene and subtime so enqueue task
 		PhysXCompletionTask* Task = new PhysXCompletionTask(InOutCompletionEvent, SceneType, PScene->getTaskManager());
-		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::HiPri(ENamedThreads::AnyThread);
+		ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : CPrio_PhysXStepSimulation.Get();
 
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SubstepSimulationImp"),
 			STAT_FSimpleDelegateGraphTask_SubstepSimulationImp,
@@ -1237,6 +1269,16 @@ void FPhysScene::SetUpForFrame(const FVector* NewGrav, float InDeltaSeconds, flo
 #endif
 }
 
+FAutoConsoleTaskPriority CPrio_PhyXSceneCompletion(
+	TEXT("TaskGraph.TaskPriorities.PhyXSceneCompletion"),
+	TEXT("Task and thread priority for PhysicsSceneCompletion."),
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::HighTaskPriority, // .. at high task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
+	);
+
+
+
 void FPhysScene::StartFrame()
 {
 	FGraphEventArray FinishPrerequisites;
@@ -1307,7 +1349,7 @@ void FPhysScene::StartFrame()
 				STATGROUP_TaskGraphTasks);
 
 			PhysicsSceneCompletion = TGraphTask<FNullGraphTask>::CreateTask(&FinishPrerequisites, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
-				GET_STATID(STAT_FNullGraphTask_ProcessPhysScene_Join), PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::HiPri(ENamedThreads::AnyThread));
+				GET_STATID(STAT_FNullGraphTask_ProcessPhysScene_Join), PhysSingleThreadedMode() ? ENamedThreads::GameThread : CPrio_PhyXSceneCompletion.Get());
 		}
 		else
 		{

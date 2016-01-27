@@ -147,7 +147,7 @@ public:
 	}
 };
 
-static TLockFreeFixedSizeAllocator<sizeof(FD3D12CommandContextContainer), FThreadSafeCounter> FD3D12CommandContextContainerAllocator;
+static TLockFreeFixedSizeAllocator<sizeof(FD3D12CommandContextContainer), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> FD3D12CommandContextContainerAllocator;
 
 void* FD3D12CommandContextContainer::operator new(size_t Size)
 {

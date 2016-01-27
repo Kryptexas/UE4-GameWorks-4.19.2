@@ -12,12 +12,16 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 
+
+extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
+extern ENGINE_API int32 GEnableGPUSkinCache;
+
 class FSkeletalMeshObjectGPUSkin;
 
 class FGPUSkinCache : public FRenderResource
 {
 public:
-	enum SkinCacheInitSettings
+	enum ESkinCacheInitSettings
 	{
 		// max 256 bones as we use a byte to index
 		MaxUniformBufferBones = 256,
@@ -42,7 +46,15 @@ public:
 	void Initialize(FRHICommandListImmediate& RHICmdList);
 	void Cleanup();
 
-	bool IsElementProcessed(int32 Key) const;
+	inline bool IsElementProcessed(int32 Key) const
+	{
+		if (!GEnableGPUSkinCache)
+		{
+			return false;
+		}
+
+		return InternalIsElementProcessed(Key);
+	}
 
 	// For each SkeletalMeshObject:
 	//	Call Begin*
@@ -130,6 +142,7 @@ private:
 	bool	bInitialized : 1;
 
 	void TransitionAllToWriteable(FRHICommandList& RHICmdList);
+	bool InternalIsElementProcessed(int32 Key) const;
 
 	uint32	FrameCounter;
 
@@ -152,8 +165,6 @@ BEGIN_UNIFORM_BUFFER_STRUCT(GPUSkinCacheBonesUniformShaderParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoneVectors,[FGPUSkinCache::MaxUniformBufferBones*3])
 END_UNIFORM_BUFFER_STRUCT(GPUSkinCacheBonesUniformShaderParameters)
 
-extern ENGINE_API int32 GEnableGPUSkinCache;
-extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
 extern ENGINE_API TGlobalResource<FGPUSkinCache> GGPUSkinCache;
 
 DECLARE_STATS_GROUP(TEXT("GPU Skin Cache"), STATGROUP_GPUSkinCache, STATCAT_Advanced);

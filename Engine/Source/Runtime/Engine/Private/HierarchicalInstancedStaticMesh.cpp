@@ -2349,7 +2349,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 		bIsAsyncBuilding = true;
 
 		FGraphEventRef BuildTreeAsyncResult(
-			FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(&Builder.Get(), &FClusterBuilder::BuildAsync), GET_STATID(STAT_FoliageBuildTime), NULL, ENamedThreads::GameThread, ENamedThreads::AnyThread));
+			FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(&Builder.Get(), &FClusterBuilder::BuildAsync), GET_STATID(STAT_FoliageBuildTime), NULL, ENamedThreads::GameThread, ENamedThreads::AnyBackgroundThreadNormalTask));
 
 		// add a dependent task to run on the main thread when build is complete
 		FGraphEventRef UnusedAsyncResult(

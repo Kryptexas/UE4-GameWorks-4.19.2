@@ -697,7 +697,7 @@ private:
 	/** Synchronization object for all live objects.											*/
 	FCriticalSection ObjObjectsCritical;
 	/** Available object indices.											*/
-	TLockFreePointerListUnordered<int32> ObjAvailableList;
+	TLockFreePointerListUnordered<int32, PLATFORM_CACHE_LINE_SIZE> ObjAvailableList;
 #if UE_GC_TRACK_OBJ_AVAILABLE
 	/** Available object index count.										*/
 	FThreadSafeCounter ObjAvailableCount;

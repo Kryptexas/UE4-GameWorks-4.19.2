@@ -213,7 +213,7 @@ void FInstancedStaticMeshVertexFactory::Copy(const FInstancedStaticMeshVertexFac
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FInstancedStaticMeshVertexFactoryCopyData,
 		FInstancedStaticMeshVertexFactory*,VertexFactory,this,
-		const DataType*,DataCopy,&Other.Data,
+		const FDataType*,DataCopy,&Other.Data,
 	{
 		VertexFactory->Data = *DataCopy;
 	});
@@ -313,7 +313,7 @@ void FInstancedStaticMeshVertexFactory::InitRHI()
 	}
 
 	// we don't need per-vertex shadow or lightmap rendering
-	InitDeclaration(Elements,Data);
+	InitDeclaration(Elements);
 }
 
 
@@ -336,7 +336,7 @@ void FInstancedStaticMeshRenderData::InitStaticMeshVertexFactories(
 	{
 		const FStaticMeshLODResources* RenderData = &InstancedRenderData->LODModels[LODIndex];
 						
-		FInstancedStaticMeshVertexFactory::DataType Data;
+		FInstancedStaticMeshVertexFactory::FDataType Data;
 		Data.PositionComponent = FVertexStreamComponent(
 			&RenderData->PositionVertexBuffer,
 			STRUCT_OFFSET(FPositionVertex,Position),

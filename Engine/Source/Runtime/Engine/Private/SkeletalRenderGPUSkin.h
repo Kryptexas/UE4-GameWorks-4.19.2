@@ -422,6 +422,10 @@ private:
 		 * @param OutVertexBuffers output vertex buffers
 		 */
 		void GetVertexBuffers(FVertexFactoryBuffers& OutVertexBuffers,FStaticLODModel& LODModel,const FSkelMeshObjectLODInfo& MeshLODInfo);
+
+		// Temporary arrays used on UpdateMorphVertexBuffer(); these grow to the max and are not thread safe.
+		static TArray<FVector> MorphDeltaTangentZAccumulationArray;
+		static TArray<float> MorphAccumulatedWeightArray;
 	};
 
 	/** 

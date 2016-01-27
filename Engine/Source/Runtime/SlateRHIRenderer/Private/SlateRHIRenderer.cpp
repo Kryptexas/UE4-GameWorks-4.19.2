@@ -1338,5 +1338,13 @@ void FSlateEndDrawingWindowsCommand::Execute(FRHICommandListBase& CmdList)
 
 void FSlateEndDrawingWindowsCommand::EndDrawingWindows(FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy)
 {
-	new ( RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>() ) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
+	if (!RHICmdList.Bypass())
+	{
+		new (RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>()) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
+	}
+	else
+	{
+		FSlateEndDrawingWindowsCommand Cmd(Policy, DrawBuffer);
+		Cmd.Execute(RHICmdList);
+	}
 }

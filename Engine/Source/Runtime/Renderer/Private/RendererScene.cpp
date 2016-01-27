@@ -67,6 +67,7 @@ FSceneViewState::FSceneViewState()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bIsFreezing = false;
 	bIsFrozen = false;
+	bIsFrozenViewMatricesCached = false;
 #endif
 	// Register this object as a resource, so it will receive device reset notifications.
 	if ( IsInGameThread() )

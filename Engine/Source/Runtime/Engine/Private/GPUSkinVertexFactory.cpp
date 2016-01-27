@@ -141,8 +141,8 @@ TStatId FClothBufferPool::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FClothBufferPool, STATGROUP_Tickables);
 }
 
-TConsoleVariableData<int32>* FGPUBaseSkinVertexFactory::ShaderDataType::MaxBonesVar = NULL;
-uint32 FGPUBaseSkinVertexFactory::ShaderDataType::MaxGPUSkinBones = 0;
+TConsoleVariableData<int32>* FGPUBaseSkinVertexFactory::FShaderDataType::MaxBonesVar = NULL;
+uint32 FGPUBaseSkinVertexFactory::FShaderDataType::MaxGPUSkinBones = 0;
 
 static TAutoConsoleVariable<int32> CVarRHICmdDeferSkeletalLockAndFillToRHIThread(
 	TEXT("r.RHICmdDeferSkeletalLockAndFillToRHIThread"),
@@ -195,14 +195,14 @@ struct FRHICommandUpdateBoneBuffer : public FRHICommand<FRHICommandUpdateBoneBuf
 	}
 };
 
-void FGPUBaseSkinVertexFactory::ShaderDataType::GoToNextFrame(uint32 FrameNumber)
+void FGPUBaseSkinVertexFactory::FShaderDataType::GoToNextFrame(uint32 FrameNumber)
 {
 	PreviousFrameNumber = CurrentFrameNumber;
 	CurrentFrameNumber = FrameNumber;
 	CurrentBuffer = 1 - CurrentBuffer;
 }
 
-bool FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
+bool FGPUBaseSkinVertexFactory::FShaderDataType::UpdateBoneData(FRHICommandListImmediate& RHICmdList, const TArray<FMatrix>& ReferenceToLocalMatrices,
 	const TArray<FBoneIndexType>& BoneMap, uint32 FrameNumber, ERHIFeatureLevel::Type FeatureLevel, bool bUseSkinCache)
 {
 	const uint32 NumBones = BoneMap.Num();
@@ -356,7 +356,7 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::ModifyCompilationEnvironment(
 template<bool bExtraBoneInfluencesT>
 void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::CopyDataTypeForPassthroughFactory(FGPUSkinPassthroughVertexFactory* PassthroughVertexFactory)
 {
-	FGPUSkinPassthroughVertexFactory::DataType DestDataType;
+	FGPUSkinPassthroughVertexFactory::FDataType DestDataType;
 	DestDataType.PositionComponent = Data.PositionComponent;
 	DestDataType.TangentBasisComponents[0] = Data.TangentBasisComponents[0];
 	DestDataType.TangentBasisComponents[1] = Data.TangentBasisComponents[1];
@@ -371,7 +371,7 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::CopyDataTypeForPassthroughFac
 * @param OutElements - vertex decl list to modify
 */
 template <bool bExtraBoneInfluencesT>
-void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(DataType& InData, FVertexDeclarationElementList& OutElements)
+void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& InData, FVertexDeclarationElementList& OutElements)
 {
 	// position decls
 	OutElements.Add(AccessStreamComponent(InData.PositionComponent,0));
@@ -440,7 +440,7 @@ void TGPUSkinVertexFactory<bExtraBoneInfluencesT>::InitRHI()
 	AddVertexElements(Data,Elements);	
 
 	// create the actual device decls
-	InitDeclaration(Elements,FVertexFactory::DataType());
+	InitDeclaration(Elements);
 }
 
 template <bool bExtraBoneInfluencesT>
@@ -510,7 +510,7 @@ public:
 
 		if(ShaderRHI)
 		{
-			const FGPUBaseSkinVertexFactory::ShaderDataType& ShaderData = ((const FGPUBaseSkinVertexFactory*)VertexFactory)->GetShaderData();
+			const FGPUBaseSkinVertexFactory::FShaderDataType& ShaderData = ((const FGPUBaseSkinVertexFactory*)VertexFactory)->GetShaderData();
 
 			SetShaderValue(RHICmdList, ShaderRHI, MeshOriginParameter, ShaderData.MeshOrigin);
 			SetShaderValue(RHICmdList, ShaderRHI, MeshExtensionParameter, ShaderData.MeshExtension);
@@ -705,7 +705,7 @@ bool TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderPlatf
 * @param OutElements - vertex decl list to modify
 */
 template <bool bExtraBoneInfluencesT>
-void TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(DataType& InData, FVertexDeclarationElementList& OutElements)
+void TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& InData, FVertexDeclarationElementList& OutElements)
 {
 	// add the base gpu skin elements
 	TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(InData,OutElements);
@@ -726,7 +726,7 @@ void TGPUSkinMorphVertexFactory<bExtraBoneInfluencesT>::InitRHI()
 	AddVertexElements(MorphData,Elements);
 
 	// create the actual device decls
-	FVertexFactory::InitDeclaration(Elements,FVertexFactory::DataType());
+	FVertexFactory::InitDeclaration(Elements);
 }
 
 template <bool bExtraBoneInfluencesT>
@@ -972,7 +972,7 @@ bool TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::ShouldCache(EShaderP
 * @param OutElements - vertex decl list to modify
 */
 template <bool bExtraBoneInfluencesT>
-void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(DataType& InData, FVertexDeclarationElementList& OutElements)
+void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(FDataType& InData, FVertexDeclarationElementList& OutElements)
 {
 	// add the base gpu skin elements
 	TGPUSkinVertexFactory<bExtraBoneInfluencesT>::AddVertexElements(InData,OutElements);
@@ -999,7 +999,7 @@ void TGPUSkinAPEXClothVertexFactory<bExtraBoneInfluencesT>::InitRHI()
 	AddVertexElements(MeshMappingData,Elements);
 
 	// create the actual device decls
-	FVertexFactory::InitDeclaration(Elements,FVertexFactory::DataType());
+	FVertexFactory::InitDeclaration(Elements);
 }
 
 template <bool bExtraBoneInfluencesT>

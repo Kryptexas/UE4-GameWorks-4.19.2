@@ -162,7 +162,7 @@ public:
 	/** Default constructor. */
 	FMeshVertexFactory()
 	{
-		FLocalVertexFactory::DataType Data;
+		FLocalVertexFactory::FDataType Data;
 
 		// position
 		Data.PositionComponent = FVertexStreamComponent(
@@ -218,7 +218,7 @@ public:
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			FMeshVertexFactoryConstructor,
 			FMeshVertexFactory*, FactoryParam, this,
-			FLocalVertexFactory::DataType, DataParam, Data,
+			FLocalVertexFactory::FDataType, DataParam, Data,
 			{
 				FactoryParam->SetData(DataParam);
 			}

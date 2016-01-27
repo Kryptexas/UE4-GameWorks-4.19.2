@@ -84,6 +84,19 @@ namespace EAntiAliasingMethodUI
 	};
 }
 
+/** used by FPostProcessSettings AutoExposure*/
+UENUM()
+namespace EAutoExposureMethodUI
+{
+	enum Type
+	{
+		/** Not supported on mobile, requires compute shader to construct 64 bin histogram */
+		AEM_Histogram  UMETA(DisplayName = "Auto Exposure Histogram"),
+		/** Not supported on mobile, faster method that computes single value by downsampling */
+		AEM_Basic      UMETA(DisplayName = "Auto Exposure Basic"),
+		AEM_MAX,
+	};
+}
 
 /**
  * Rendering settings.
@@ -218,6 +231,11 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable = "r.DefaultFeature.AutoExposure", DisplayName = "Auto Exposure",
 		ToolTip = "Whether the default for AutoExposure is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureAutoExposure : 1;
+	
+	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+		ConsoleVariable = "r.DefaultFeature.AutoExposure.Method", DisplayName = "Auto Exposure",
+		ToolTip = "The default method for AutoExposure(postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+	TEnumAsByte<EAutoExposureMethodUI::Type> DefaultFeatureAutoExposure; 
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.MotionBlur", DisplayName = "Motion Blur",

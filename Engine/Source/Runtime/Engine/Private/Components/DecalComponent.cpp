@@ -8,6 +8,12 @@
 #include "LevelUtils.h"
 #include "Components/DecalComponent.h"
 
+static TAutoConsoleVariable<float> CVarDecalFadeDurationScale(
+	TEXT("r.Decal.FadeDurationScale"),
+	1.0f,
+	TEXT("Scales the per decal fade durations. Lower values shortens lifetime and fade duration. Default is 1.0f.")
+	);
+
 FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)
 	: InvFadeDuration(0.0f)
 	, FadeStartDelayNormalized(1.0f)
@@ -102,8 +108,11 @@ float UDecalComponent::GetFadeDuration() const
 
 void UDecalComponent::SetFadeOut(float StartDelay, float Duration, bool DestroyOwnerAfterFade /*= true*/)
 {
-	FadeStartDelay = StartDelay;
-	FadeDuration = Duration;
+	float FadeDurationScale = CVarDecalFadeDurationScale.GetValueOnGameThread();
+	FadeDurationScale = (FadeDurationScale <= SMALL_NUMBER) ? 0.0f : FadeDurationScale;
+
+	FadeStartDelay = StartDelay * FadeDurationScale;
+	FadeDuration = Duration * FadeDurationScale;
 	bDestroyOwnerAfterFade = DestroyOwnerAfterFade;
 	SetLifeSpan(FadeStartDelay + FadeDuration);
 

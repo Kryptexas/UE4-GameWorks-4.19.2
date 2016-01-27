@@ -315,12 +315,15 @@ private:
 	uint32 ValidFrameNumber;
 };
 
+DECLARE_STATS_GROUP(TEXT("Parallel Command List Markers"), STATGROUP_ParallelCommandListMarkers, STATCAT_Advanced);
+
 class FParallelCommandListSet
 {
 public:
 	const FViewInfo& View;
 	FRHICommandListImmediate& ParentCmdList;
 	FSceneRenderTargets* Snapshot;
+	TStatId	ExecuteStat;
 	int32 Width;
 	int32 NumAlloc;
 	int32 MinDrawsPerCommandList;
@@ -337,12 +340,12 @@ public:
 protected:
 	//this must be called by deriving classes virtual destructor because it calls the virtual SetStateOnCommandList.
 	//C++ will not do dynamic dispatch of virtual calls from destructors so we can't call it in the base class.
-	void Dispatch();
+	void Dispatch(bool bHighPriority = false);
 	FRHICommandList* AllocCommandList();
 	bool bParallelExecute;
 	bool bCreateSceneContext;
 public:
-	FParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext);
+	FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext);
 	virtual ~FParallelCommandListSet();
 	int32 NumParallelCommandLists() const
 	{

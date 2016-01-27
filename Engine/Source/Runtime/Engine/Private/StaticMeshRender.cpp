@@ -762,6 +762,8 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 		{
 			if (VisibilityMap & (1 << ViewIndex))
 			{
+				FFrozenSceneViewMatricesGuard FrozenMatricesGuard(*const_cast<FSceneView*>(Views[ViewIndex]));
+
 				const FSceneView* View = Views[ViewIndex];
 				FLODMask LODMask = GetLODMask(View);
 

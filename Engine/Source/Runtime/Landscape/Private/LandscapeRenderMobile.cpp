@@ -28,7 +28,7 @@ void FLandscapeVertexFactoryMobile::InitRHI()
 	}
 
 	// create the actual device decls
-	InitDeclaration(Elements,FVertexFactory::DataType());
+	InitDeclaration(Elements);
 }
 
 /** Shader parameters for use with FLandscapeVertexFactory */

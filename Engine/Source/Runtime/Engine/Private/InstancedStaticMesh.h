@@ -178,7 +178,7 @@ struct FInstancedStaticMeshVertexFactory : public FLocalVertexFactory
 {
 	DECLARE_VERTEX_FACTORY_TYPE(FInstancedStaticMeshVertexFactory);
 public:
-	struct DataType : public FLocalVertexFactory::DataType
+	struct FDataType : public FLocalVertexFactory::FDataType
 	{
 		/** The stream to read the mesh transform from. */
 		FVertexStreamComponent InstanceOriginComponent;
@@ -209,7 +209,7 @@ public:
 	/**
 	 * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
 	 */
-	void SetData(const DataType& InData)
+	void SetData(const FDataType& InData)
 	{
 		Data = InData;
 		UpdateRHI();
@@ -245,7 +245,7 @@ public:
 #endif
 
 private:
-	DataType Data;
+	FDataType Data;
 };
 
 

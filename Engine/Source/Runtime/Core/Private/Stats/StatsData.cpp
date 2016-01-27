@@ -439,9 +439,9 @@ void FRawStatStackNode::Encode(TArray<FStatMessage>& OutStats) const
 	}
 }
 
-TLockFreeFixedSizeAllocator<sizeof(FRawStatStackNode)>& GetRawStatStackNodeAllocator()
+TLockFreeFixedSizeAllocator<sizeof(FRawStatStackNode), PLATFORM_CACHE_LINE_SIZE>& GetRawStatStackNodeAllocator()
 {
-	static TLockFreeFixedSizeAllocator<sizeof(FRawStatStackNode)> TheAllocator;
+	static TLockFreeFixedSizeAllocator<sizeof(FRawStatStackNode), PLATFORM_CACHE_LINE_SIZE> TheAllocator;
 	return TheAllocator;
 }
 
@@ -460,9 +460,9 @@ void FRawStatStackNode::operator delete(void *RawMemory)
 	FComplexRawStatStackNode
 -----------------------------------------------------------------------------*/
 
-TLockFreeFixedSizeAllocator<sizeof(FComplexRawStatStackNode)>& GetRawStatStackNodeAllocatorEx()
+TLockFreeFixedSizeAllocator<sizeof(FComplexRawStatStackNode), PLATFORM_CACHE_LINE_SIZE>& GetRawStatStackNodeAllocatorEx()
 {	
-	static TLockFreeFixedSizeAllocator<sizeof(FComplexRawStatStackNode)> TheAllocatorComplex;
+	static TLockFreeFixedSizeAllocator<sizeof(FComplexRawStatStackNode), PLATFORM_CACHE_LINE_SIZE> TheAllocatorComplex;
 	return TheAllocatorComplex;
 }
 

@@ -59,7 +59,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 
 template<typename DrawingPolicyType>
 template<InstancedStereoPolicy InstancedStereo>
-void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
+int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const typename DrawingPolicyType::ContextDataType PolicyContext,
@@ -91,6 +91,8 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	uint32 BackFaceEnd = DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1;
 	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(*Element.Mesh, View.bAllowStencilDither));
 
+	int32 DrawCount = 0;
+
 	int32 BatchElementIndex = 0;
 	do
 	{
@@ -99,16 +101,16 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 			const FPrimitiveSceneProxy* Proxy = Element.Mesh->PrimitiveSceneInfo->Proxy;			
 			if (InstancedStereo == InstancedStereoPolicy::Enabled)
 			{
-				// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
-				const bool bIsInstancedMesh = Element.Mesh->Elements[BatchElementIndex].bIsInstancedMesh;
+			    // We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
+			    const bool bIsInstancedMesh = Element.Mesh->Elements[BatchElementIndex].bIsInstancedMesh;
 				const uint32 InstancedStereoDrawCount = bIsInstancedMesh ? 2 : 1;
-				for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
-				{
+			    for (uint32 DrawCountIter = 0; DrawCountIter < InstancedStereoDrawCount; ++DrawCountIter)
+			    {
 					DrawingPolicyLink->DrawingPolicy.SetInstancedEyeIndex(RHICmdList, DrawCountIter);
 
 					for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
 					{
-						INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
+						DrawCount++;
 
 						TDrawEvent<FRHICommandList> MeshEvent;
 						BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
@@ -130,25 +132,25 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 			}
 			else
 			{
-				for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
-				{
-					INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
-
-					TDrawEvent<FRHICommandList> MeshEvent;
-					BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
-
-					DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
-						RHICmdList,
-						View,
-						Proxy,
-						*Element.Mesh,
-						BatchElementIndex,
-						!!BackFace,
-						DrawRenderState,
-						Element.PolicyData,
-						PolicyContext
-						);
-					DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh, BatchElementIndex, false);
+			    for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
+			    {
+				    DrawCount++;
+    
+				    TDrawEvent<FRHICommandList> MeshEvent;
+				    BeginMeshDrawEvent(RHICmdList, Proxy, *Element.Mesh, MeshEvent);
+    
+				    DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
+					    RHICmdList, 
+					    View,
+					    Proxy,
+					    *Element.Mesh,
+					    BatchElementIndex,
+					    !!BackFace,
+					    DrawRenderState,
+					    Element.PolicyData,
+					    PolicyContext
+					    );
+					    DrawingPolicyLink->DrawingPolicy.DrawMesh(RHICmdList, *Element.Mesh, BatchElementIndex, false);
 				}
 			}
 		}
@@ -156,6 +158,8 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		BatchElementMask >>= 1;
 		BatchElementIndex++;
 	} while(BatchElementMask);
+	INC_DWORD_STAT_BY(STAT_StaticDrawListMeshDrawCalls, DrawCount);
+	return DrawCount;
 }
 
 template<typename DrawingPolicyType>
@@ -327,10 +331,9 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 					const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
 					int32 SubCount = Element.Mesh->Elements.Num();
-					Count += SubCount;
 					// Avoid the cache miss looking up batch visibility if there is only one element.
 					uint64 BatchElementMask = SubCount == 1 ? 1 : (*BatchVisibilityArray)[Element.Mesh->Id];
-					DrawElement<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+					Count += DrawElement<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				}
 			}
 
@@ -350,13 +353,12 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 
 				if (ResolvedVisiblityArray != nullptr)
 				{
-					const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
-					int32 SubCount = Element.Mesh->Elements.Num();
-					Count += SubCount;
-					// Avoid the cache miss looking up batch visibility if there is only one element.
+				    const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
+					    STAT(StatInc += Element.Mesh->GetNumPrimitives();)
+				    int32 SubCount = Element.Mesh->Elements.Num();
+				    // Avoid the cache miss looking up batch visibility if there is only one element.
 					uint64 BatchElementMask = SubCount == 1 ? 1 : (*ResolvedVisiblityArray)[Element.Mesh->Id];
-					DrawElement<InstancedStereoPolicy::Enabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+					Count += DrawElement<InstancedStereoPolicy::Enabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				}
 			}
 		}
@@ -383,7 +385,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 }
 
 template<typename DrawingPolicyType>
-class FDrawVisibleAnyThreadTask
+class FDrawVisibleAnyThreadTask : public FRenderTask
 {
 	TStaticMeshDrawList<DrawingPolicyType>& Caller;
 	FRHICommandList& RHICmdList;
@@ -431,15 +433,11 @@ public:
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawVisibleAnyThreadTask, STATGROUP_TaskGraphTasks);
 	}
 
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
+		FScopeCycleCounter ScopeOuter(RHICmdList.ExecuteStat);
 		if (this->PerDrawingPolicyCounts)
 		{
 			int32 Start = this->FirstPolicy;
@@ -484,6 +482,24 @@ public:
 		this->RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
+
+ 
+extern MS_ALIGN(64) uint8 CountBitsTable[64] GCC_ALIGN(64);
+
+static FORCEINLINE int32 CountBits(uint64 Bits)
+{
+	int32 Count = 0;
+	while (true)
+	{
+		Count += CountBitsTable[Bits & 63];
+		if (!(Bits & ~63))
+		{
+			break;
+		}
+		Bits >>= 6;
+	}
+	return Count;
+}
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
@@ -563,7 +579,9 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
 							if (bIsVisible)
 							{
 								const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-								Count += Element.Mesh->Elements.Num();
+								int32 SubCount = Element.Mesh->Elements.Num();
+								// Avoid the cache miss looking up batch visibility if there is only one element.
+								Count += (SubCount == 1) ? 1 : CountBits((*BatchVisibilityArray)[Element.Mesh->Id]);
 							}
 						}
 						if (Count)

@@ -647,7 +647,7 @@ DynamicDataRender(NULL)
 
 void NiagaraEffectRendererMeshes::SetupVertexFactory(FMeshParticleVertexFactory *InVertexFactory, const FStaticMeshLODResources& LODResources) const
 {
-	FMeshParticleVertexFactory::DataType Data;
+	FMeshParticleVertexFactory::FDataType Data;
 
 	Data.PositionComponent = FVertexStreamComponent(
 		&LODResources.PositionVertexBuffer,
