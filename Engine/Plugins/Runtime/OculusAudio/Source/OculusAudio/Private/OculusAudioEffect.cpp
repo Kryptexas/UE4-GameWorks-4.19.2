@@ -78,11 +78,9 @@ void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_P
 	AudioDevice->SpatializeProcessor->GetSpatializationParameters(VoiceId, CurrentParameters);
 
 	FVector& EmitterPosition = CurrentParameters.EmitterPosition;
-	ESpatializationEffectType SpatializationAlgorithm = CurrentParameters.SpatializationAlgorithm;
 
 	// We better not have default set at this point because default means "no HRTF processing". We also
 	// better thave the plugin because this XAPO code is inside the plugin
-	check(SpatializationAlgorithm != SPATIALIZATION_TYPE_DEFAULT);
 	check(AudioDevice->SpatializationPlugin != nullptr);
 
 	XAPO_BUFFER_FLAGS InFlags = pInputProcessParameters[0].BufferFlags;
@@ -122,7 +120,6 @@ void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_P
 
 				// Spatialize the audio stream with the current algorithm
 				AudioDevice->SpatializeProcessor->ProcessSpatializationForVoice(
-					SpatializationAlgorithm, 
 					VoiceId, 
 					InputSamples, 
 					OutputSamples, 

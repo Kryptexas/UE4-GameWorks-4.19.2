@@ -15,6 +15,7 @@
 #include "Engine/SCS_Node.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Components/ChildActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
@@ -764,7 +765,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 					}
 					if (bNeedsDetach)
 					{
-						if (ensure(Child->AttachParent && Child->AttachParent == this))
+						if (Child->AttachParent && Child->AttachParent == this)
 						{
 							Child->DetachFromParent();
 						}
@@ -775,9 +776,11 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 							if (Child->AttachParent)
 							{
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
+								ensure(Child->AttachParent == this);
 							}
-							else
+							else if (!ensure(IsPendingKill()))
 							{
+								// If we are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
 							}
 							AttachChildren.Pop(false);
@@ -811,7 +814,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 					}
 					if (bNeedsDetach)
 					{
-						if (ensure(Child->AttachParent && Child->AttachParent == this))
+						if (Child->AttachParent && Child->AttachParent == this)
 						{
 							Child->DetachFromParent();
 						}
@@ -822,9 +825,11 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 							if (Child->AttachParent)
 							{
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
+								ensure(Child->AttachParent == this);
 							}
-							else
+							else if (!ensure(IsPendingKill()))
 							{
+								// If we are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
 							}
 							AttachChildren.Pop(false);
@@ -2303,6 +2308,18 @@ bool USceneComponent::IsVisibleInEditor() const
 bool USceneComponent::ShouldRender() const
 {
 	AActor* Owner = GetOwner();
+
+	if (Owner)
+	{
+		if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+		{
+			if (!ParentComponent->ShouldRender())
+			{
+				return false;
+			}
+		}
+	}
+	
 	const bool bShowInEditor = 
 #if WITH_EDITOR
 		GIsEditor ? (!Owner || !Owner->IsHiddenEd()) : false;
@@ -2319,6 +2336,18 @@ bool USceneComponent::ShouldRender() const
 bool USceneComponent::CanEverRender() const
 {
 	AActor* Owner = GetOwner();
+
+	if (Owner)
+	{
+		if (UChildActorComponent* ParentComponent = Owner->GetParentComponent())
+		{
+			if (!ParentComponent->CanEverRender())
+			{
+				return false;
+			}
+		}
+	}
+
 	const bool bShowInEditor =
 #if WITH_EDITOR
 		GIsEditor ? (!Owner || !Owner->IsHiddenEd()) : false;

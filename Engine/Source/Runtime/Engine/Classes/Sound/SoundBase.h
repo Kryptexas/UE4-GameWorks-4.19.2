@@ -6,6 +6,7 @@
  * The base class for a playable sound object 
  */
 
+#include "Audio.h"
 #include "Sound/SoundConcurrency.h"
 #include "SoundBase.generated.h"
 
@@ -84,19 +85,6 @@ public:
 	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const;
 
 	/**
-	 * Checks to see if a location is audible
-	 */
-	bool IsAudible( const FVector& SourceLocation, const FVector& ListenerLocation, AActor* SourceActor, bool& bIsOccluded, bool bCheckOcclusion );
-
-	/** 
-	 * Does a simple range check to all listeners to test hearability
-	 *
-	 * @param Location				Location to check against
-	 * @param AttenuationSettings	Optional Attenuation override if not using settings from the sound
-	 */
-	bool IsAudibleSimple( class FAudioDevice* AudioDevice, const FVector Location, USoundAttenuation* InAttenuationSettings = NULL );
-
-	/** 
 	 * Returns the farthest distance at which the sound could be heard
 	 */
 	virtual float GetMaxAudibleDistance();
@@ -108,6 +96,9 @@ public:
 
 	virtual float GetVolumeMultiplier();
 	virtual float GetPitchMultiplier();
+
+	/** Returns whether or not this sound is looping. */
+	bool IsLooping();
 
 	/** 
 	 * Parses the Sound to generate the WaveInstances to play

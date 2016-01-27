@@ -165,9 +165,6 @@ void SAnimBlueprintParentPlayerList::RefreshDetailView()
 	{
 		UEditorParentPlayerListObj* EditorObject = Cast<UEditorParentPlayerListObj>(ObjectTracker.GetEditorObjectForClass(UEditorParentPlayerListObj::StaticClass()));
 		EditorObject->InitialiseFromBlueprint(CurrentBlueprint);
-
-		// Set the object as observed by the details view and immediately flush old widgets.
 		DetailView->SetObject(EditorObject, true);
-		DetailView->ImmdiatelyUpdate();
 	}
 }

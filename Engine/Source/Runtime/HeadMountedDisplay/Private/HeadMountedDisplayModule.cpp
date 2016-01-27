@@ -1,15 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HeadMountedDisplayPrivate.h"
+#include "PrimitiveSceneInfo.h"
 
-void GatherSceneProxies(USceneComponent* Component, FPrimitiveSceneProxy* SceneProxies[], int32& SceneProxyCount, int32 MaxSceneProxyCount)
+void IHeadMountedDisplay::GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives)
 {
 	// If a scene proxy is present, cache it
 	UPrimitiveComponent* PrimitiveComponent = dynamic_cast<UPrimitiveComponent*>(Component);
 	if (PrimitiveComponent && PrimitiveComponent->SceneProxy)
 	{
-		check(SceneProxyCount < MaxSceneProxyCount);
-		SceneProxies[SceneProxyCount++] = PrimitiveComponent->SceneProxy;
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveComponent->SceneProxy->GetPrimitiveSceneInfo();
+		if (PrimitiveSceneInfo)
+		{
+			LateUpdatePrimitiveInfo PrimitiveInfo;
+			PrimitiveInfo.IndexAddress = PrimitiveSceneInfo->GetIndexAddress();
+			PrimitiveInfo.SceneInfo = PrimitiveSceneInfo;
+			Primitives.Add(PrimitiveInfo);
+		}
 	}
 
 	// Gather children proxies
@@ -22,7 +29,7 @@ void GatherSceneProxies(USceneComponent* Component, FPrimitiveSceneProxy* SceneP
 			continue;
 		}
 
-		GatherSceneProxies(ChildComponent, SceneProxies, SceneProxyCount, MaxSceneProxyCount);
+		GatherLateUpdatePrimitives(ChildComponent, Primitives);
 	}
 }
 
@@ -52,7 +59,6 @@ class FHeadMountedDisplayModule : public IHeadMountedDisplayModule
 IMPLEMENT_MODULE( FHeadMountedDisplayModule, HeadMountedDisplay );
 
 IHeadMountedDisplay::IHeadMountedDisplay()
-	: LateUpdateSceneProxyCount(0)
 {
 	PreFullScreenRect = FSlateRect(-1.f, -1.f, -1.f, -1.f);
 }
@@ -71,13 +77,13 @@ void IHeadMountedDisplay::PopPreFullScreenRect(FSlateRect& OutPreFullScreenRect)
 void IHeadMountedDisplay::SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component)
 {
 	LateUpdateParentToWorld = ParentToWorld;
-	LateUpdateSceneProxyCount = 0;
-	GatherSceneProxies(Component, LateUpdateSceneProxies, LateUpdateSceneProxyCount, ARRAY_COUNT(LateUpdateSceneProxies));
+	LateUpdatePrimitives.Reset();
+	GatherLateUpdatePrimitives(Component, LateUpdatePrimitives);
 }
 
-void IHeadMountedDisplay::ApplyLateUpdate(const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform)
+void IHeadMountedDisplay::ApplyLateUpdate(FSceneInterface* Scene, const FTransform& OldRelativeTransform, const FTransform& NewRelativeTransform)
 {
-	if (!LateUpdateSceneProxyCount)
+	if (!LateUpdatePrimitives.Num())
 	{
 		return;
 	}
@@ -87,9 +93,15 @@ void IHeadMountedDisplay::ApplyLateUpdate(const FTransform& OldRelativeTransform
 	const FMatrix LateUpdateTransform = (OldCameraTransform.Inverse() * NewCameraTransform).ToMatrixWithScale();
 
 	// Apply delta to the affected scene proxies
-	for (int32 ProxyIndex = 0; ProxyIndex < LateUpdateSceneProxyCount; ++ProxyIndex)
+	for (auto PrimitiveInfo : LateUpdatePrimitives)
 	{
-		LateUpdateSceneProxies[ProxyIndex]->ApplyLateUpdateTransform(LateUpdateTransform);
+		FPrimitiveSceneInfo* RetrievedSceneInfo = Scene->GetPrimitiveSceneInfo(*PrimitiveInfo.IndexAddress);
+		FPrimitiveSceneInfo* CachedSceneInfo = PrimitiveInfo.SceneInfo;
+		// If the retrieved scene info is different than our cached scene info then the primitive was removed from the scene
+		if (CachedSceneInfo == RetrievedSceneInfo && CachedSceneInfo->Proxy)
+		{
+			CachedSceneInfo->Proxy->ApplyLateUpdateTransform(LateUpdateTransform);
+		}
 	}
-	LateUpdateSceneProxyCount = 0;
+	LateUpdatePrimitives.Reset();
 }

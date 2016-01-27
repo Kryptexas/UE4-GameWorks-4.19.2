@@ -387,6 +387,12 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 		LineView.Blocks.Append( OutSoftLine );
 
 		LineViews.Add( LineView );
+
+		// Does this new line view require justification?
+		if (CalculateLineViewVisualJustification(LineView) != ETextJustify::Left)
+		{
+			LineViewsToJustify.Add(LineViews.Num() - 1);
+		}
 	}
 
 	TextLayoutSize.DrawWidth = FMath::Max( TextLayoutSize.DrawWidth, LineSize.X ); // DrawWidth is the size of the longest line + the Margin
@@ -396,44 +402,28 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 void FTextLayout::JustifyLayout()
 {
-	if ( Justification == ETextJustify::Left && TextFlowDirection == ETextFlowDirection::LeftToRight )
+	if (LineViewsToJustify.Num() == 0)
 	{
 		return;
 	}
 
-	const float LayoutWidthNoMargin = FMath::Max(TextLayoutSize.DrawWidth, ViewSize.X * Scale) - ( Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale );
+	const float LayoutWidthNoMargin = FMath::Max(TextLayoutSize.DrawWidth, ViewSize.X * Scale) - (Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale);
 
-	for (FLineView& LineView : LineViews)
+	for (const int32 LineViewIndex : LineViewsToJustify)
 	{
-		// Work out the visual justification to use for this line
-		ETextJustify::Type VisualJustification = Justification;
-		if ( LineView.TextBaseDirection == TextBiDi::ETextDirection::RightToLeft )
-		{
-			if ( VisualJustification == ETextJustify::Left )
-			{
-				VisualJustification = ETextJustify::Right;
-			}
-			else if ( VisualJustification == ETextJustify::Right )
-			{
-				VisualJustification = ETextJustify::Left;
-			}
-		}
+		FLineView& LineView = LineViews[LineViewIndex];
 
-		if ( VisualJustification == ETextJustify::Left )
-		{
-			continue;
-		}
-
+		const ETextJustify::Type VisualJustification = CalculateLineViewVisualJustification(LineView);
 		const float ExtraSpace = LayoutWidthNoMargin - LineView.Size.X;
 
-		FVector2D OffsetAdjustment( ForceInitToZero );
-		if ( VisualJustification == ETextJustify::Center )
+		FVector2D OffsetAdjustment = FVector2D::ZeroVector;
+		if (VisualJustification == ETextJustify::Center)
 		{
-			OffsetAdjustment = FVector2D( ExtraSpace * 0.5f, 0 );
+			OffsetAdjustment.X = ExtraSpace * 0.5f;
 		}
-		else if ( VisualJustification == ETextJustify::Right )
+		else if (VisualJustification == ETextJustify::Right)
 		{
-			OffsetAdjustment = FVector2D( ExtraSpace, 0 );
+			OffsetAdjustment.X = ExtraSpace;
 		}
 
 		LineView.Offset += OffsetAdjustment;
@@ -791,6 +781,7 @@ void FTextLayout::ClearView()
 {
 	TextLayoutSize = FTextLayoutSize();
 	LineViews.Empty();
+	LineViewsToJustify.Empty();
 }
 
 void FTextLayout::CalculateTextDirection()
@@ -801,7 +792,7 @@ void FTextLayout::CalculateTextDirection()
 	}
 }
 
-void FTextLayout::CalculateLineTextDirection(FLineModel& LineModel)
+void FTextLayout::CalculateLineTextDirection(FLineModel& LineModel) const
 {
 	if (!(LineModel.DirtyFlags & ELineModelDirtyState::TextBaseDirection))
 	{
@@ -825,6 +816,24 @@ void FTextLayout::CalculateLineTextDirection(FLineModel& LineModel)
 	}
 	
 	LineModel.DirtyFlags &= ~ELineModelDirtyState::TextBaseDirection;
+}
+
+ETextJustify::Type FTextLayout::CalculateLineViewVisualJustification(const FLineView& LineView) const
+{
+	// Work out the visual justification to use for this line
+	ETextJustify::Type VisualJustification = Justification;
+	if (LineView.TextBaseDirection == TextBiDi::ETextDirection::RightToLeft)
+	{
+		if (VisualJustification == ETextJustify::Left)
+		{
+			VisualJustification = ETextJustify::Right;
+		}
+		else if (VisualJustification == ETextJustify::Right)
+		{
+			VisualJustification = ETextJustify::Left;
+		}
+	}
+	return VisualJustification;
 }
 
 void FTextLayout::CreateWrappingCache()
@@ -907,6 +916,7 @@ void FTextLayout::DirtyAllLineModels(const ELineModelDirtyState::Flags InDirtyFl
 FTextLayout::FTextLayout() 
 	: LineModels()
 	, LineViews()
+	, LineViewsToJustify()
 	, DirtyFlags( ETextLayoutDirtyState::None )
 	, TextShapingMethod( GetDefaultTextShapingMethod() )
 	, TextFlowDirection( GetDefaultTextFlowDirection() )
@@ -1776,6 +1786,7 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 				}
 
 				LineViews.RemoveAt(ViewIndex);
+				LineViewsToJustify.Remove(ViewIndex);
 				--ViewIndex;
 			}
 			else if (LineView.ModelIndex > LineIndex)
@@ -1799,12 +1810,17 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 
 void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs )
 {
-	{
-		FLineModel LineModel( Text );
+	AddLine(FNewLineData(Text, Runs));
+}
 
-		for (int32 Index = 0; Index < Runs.Num(); Index++)
+void FTextLayout::AddLine( const FNewLineData& NewLine )
+{
+	{
+		FLineModel LineModel( NewLine.Text );
+
+		for (const auto& Run : NewLine.Runs)
 		{
-			LineModel.Runs.Add( FRunModel( Runs[ Index ] ) );
+			LineModel.Runs.Add( FRunModel( Run ) );
 		}
 
 		LineModels.Add( LineModel );
@@ -1823,18 +1839,22 @@ void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSha
 
 		BeginLineLayout(LineModel);
 
+		const int32 FirstNewLineViewIndex = LineViews.Num() + 1;
+
 		TArray<TSharedRef<ILayoutBlock>> SoftLine;
 		FlowLineLayout(LineModelIndex, GetWrappingDrawWidth(), SoftLine);
 
-		// Apply the current margin to the newly added line
-		if (LineViews.Num() > 0)
+		// Apply the current margin to the newly added lines
 		{
 			const FVector2D MarginOffsetAdjustment = FVector2D(Margin.Left, Margin.Top) * Scale;
 
-			FLineView& LastLineView = LineViews.Last();
-			if (LastLineView.ModelIndex == LineModelIndex)
+			for (int32 LineViewIndex = FirstNewLineViewIndex; LineViewIndex < LineViews.Num(); ++LineViewIndex)
 			{
-				LastLineView.Offset += MarginOffsetAdjustment;
+				FLineView& LineView = LineViews[LineViewIndex];
+				if (LineView.ModelIndex == LineModelIndex)
+				{
+					LineView.Offset += MarginOffsetAdjustment;
+				}
 			}
 
 			for (const TSharedRef< ILayoutBlock >& Block : SoftLine)
@@ -1847,6 +1867,76 @@ void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSha
 		JustifyLayout();
 
 		EndLineLayout(LineModel);
+	}
+}
+
+void FTextLayout::AddLines( const TArray<FNewLineData>& NewLines )
+{
+	for (const auto& NewLine : NewLines)
+	{
+		FLineModel LineModel( NewLine.Text );
+
+		for (const auto& Run : NewLine.Runs)
+		{
+			LineModel.Runs.Add( FRunModel( Run ) );
+		}
+
+		LineModels.Add( LineModel );
+	}
+
+	// If our layout is clean, then we can add this new line immediately (and efficiently)
+	// If our layout is dirty, then we might as well wait as the next UpdateLayout call will add it
+	if (!(DirtyFlags & ETextLayoutDirtyState::Layout))
+	{
+		const int32 FirstNewLineModelIndex = LineModels.Num() - NewLines.Num();
+
+		for (int32 LineModelIndex = FirstNewLineModelIndex; LineModelIndex < LineModels.Num(); ++LineModelIndex)
+		{
+			FLineModel& LineModel = LineModels[LineModelIndex];
+			BeginLineLayout(LineModel);
+		}
+
+		for (int32 LineModelIndex = FirstNewLineModelIndex; LineModelIndex < LineModels.Num(); ++LineModelIndex)
+		{
+			FLineModel& LineModel = LineModels[LineModelIndex];
+
+			CalculateLineTextDirection(LineModel);
+			FlushLineTextShapingCache(LineModel);
+			CreateLineWrappingCache(LineModel);
+
+			const int32 FirstNewLineViewIndex = LineViews.Num() + 1;
+
+			TArray<TSharedRef<ILayoutBlock>> SoftLine;
+			FlowLineLayout(LineModelIndex, GetWrappingDrawWidth(), SoftLine);
+
+			// Apply the current margin to the newly added lines
+			{
+				const FVector2D MarginOffsetAdjustment = FVector2D(Margin.Left, Margin.Top) * Scale;
+
+				for (int32 LineViewIndex = FirstNewLineViewIndex; LineViewIndex < LineViews.Num(); ++LineViewIndex)
+				{
+					FLineView& LineView = LineViews[LineViewIndex];
+					if (LineView.ModelIndex == LineModelIndex)
+					{
+						LineView.Offset += MarginOffsetAdjustment;
+					}
+				}
+
+				for (const TSharedRef< ILayoutBlock >& Block : SoftLine)
+				{
+					Block->SetLocationOffset( Block->GetLocationOffset() + MarginOffsetAdjustment );
+				}
+			}
+		}
+
+		// We need to re-justify all lines, as the new line view(s) added by this line model may have affected everything
+		JustifyLayout();
+
+		for (int32 LineModelIndex = FirstNewLineModelIndex; LineModelIndex < LineModels.Num(); ++LineModelIndex)
+		{
+			FLineModel& LineModel = LineModels[LineModelIndex];
+			EndLineLayout(LineModel);
+		}
 	}
 }
 
@@ -2048,8 +2138,8 @@ void FTextLayout::SetVisibleRegion( const FVector2D& InViewSize, const FVector2D
 	if (ViewSize != InViewSize)
 	{
 		ViewSize = InViewSize;
-
-		if (Justification != ETextJustify::Left)
+		
+		if (LineViewsToJustify.Num() > 0)
 		{
 			// If the view size has changed, we may need to update our positions based on our justification
 			DirtyFlags |= ETextLayoutDirtyState::Layout;

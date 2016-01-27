@@ -148,7 +148,7 @@ struct FD3D12QuantizedBoundShaderState
 
 	friend uint32 GetTypeHash(const FD3D12QuantizedBoundShaderState& Key);
 
-	static void InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader);
+	static void InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader, bool bAllowUAVs = false);
 };
 
 /**

@@ -416,7 +416,10 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 
 		// Move pin links from Get node we are expanding, to the new pure one we've created
 		CompilerContext.MovePinLinksToIntermediate(*ValuePin, *VariableGetNode->GetValuePin());
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(Schema->PN_Self), *VariableGetNode->FindPin(Schema->PN_Self));
+		if (!VariableReference.IsLocalScope())
+		{
+			CompilerContext.MovePinLinksToIntermediate(*FindPin(Schema->PN_Self), *VariableGetNode->FindPin(Schema->PN_Self));
+		}
 
 		// Create the IsValid node
 		UK2Node_CallFunction* IsValidFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);

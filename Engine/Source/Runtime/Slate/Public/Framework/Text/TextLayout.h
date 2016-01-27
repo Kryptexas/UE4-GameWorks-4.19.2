@@ -365,7 +365,24 @@ public:
 
 	void ClearLines();
 
+	struct FNewLineData
+	{
+		FNewLineData(TSharedRef<FString> InText, TArray<TSharedRef<IRun>> InRuns)
+			: Text(MoveTemp(InText))
+			, Runs(MoveTemp(InRuns))
+		{
+		}
+
+		TSharedRef<FString> Text;
+		TArray<TSharedRef<IRun>> Runs;
+	};
+
+	DEPRECATED(4.11, "Please use the version of AddLine that takes an FNewLineData parameter.")
 	void AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs );
+
+	void AddLine( const FNewLineData& NewLine );
+
+	void AddLines( const TArray<FNewLineData>& NewLines );
 
 	/**
 	* Clears all run renderers
@@ -463,7 +480,12 @@ protected:
 	/**
 	 * Calculates the text direction for the given line based upon the current shaping method and document flow direction
 	 */
-	void CalculateLineTextDirection(FLineModel& LineModel);
+	void CalculateLineTextDirection(FLineModel& LineModel) const;
+
+	/**
+	 * Calculates the visual justification for the given line view
+	 */
+	ETextJustify::Type CalculateLineViewVisualJustification(const FLineView& LineView) const;
 
 	/**
 	* Create the wrapping cache for the current text based upon the current scale
@@ -589,6 +611,9 @@ protected:
 
 	/** The views for the lines of text. A LineView represents a single visual line of text. Multiple LineViews can map to the same LineModel, if for example wrapping occurs. */
 	TArray< FLineView > LineViews;
+
+	/** The indices for all of the line views that require justification. */
+	TSet< int32 > LineViewsToJustify;
 
 	/** Whether parameters on the layout have changed which requires the view be updated. */
 	ETextLayoutDirtyState::Flags DirtyFlags;

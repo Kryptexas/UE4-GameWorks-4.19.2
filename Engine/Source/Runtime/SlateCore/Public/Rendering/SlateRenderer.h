@@ -408,9 +408,6 @@ public:
 	virtual void MapVirtualScreenBuffer(FMappedTextureBuffer* OutImageData) {}
 	virtual void UnmapVirtualScreenBuffer() {}
 
-protected:
-	virtual void ReleaseCachedRenderData(FSlateRenderDataHandle* RenderHandle) { }
-
 private:
 
 	// Non-copyable

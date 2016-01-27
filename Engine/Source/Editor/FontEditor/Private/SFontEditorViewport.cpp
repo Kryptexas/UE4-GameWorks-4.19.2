@@ -235,7 +235,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 						for (const TCHAR Char : PreviewText.ToString())
 						{
-							const FCharacterEntry Entry = CharacterList.GetCharacter(FontInfo, Char);
+							const FCharacterEntry Entry = CharacterList.GetCharacter(Char, FontInfo.FontFallback);
 
 							const bool bIsWhitespace = FChar::IsWhitespace(Char);
 
@@ -268,7 +268,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 					// Draw the baseline
 					{
-						const FCharacterEntry Entry = CharacterList.GetCharacter(FontInfo, 0);
+						const FCharacterEntry Entry = CharacterList.GetCharacter(0, FontInfo.FontFallback);
 						const float Y = CurPos.Y /*- Entry.VerticalOffset*/ + Entry.GlobalDescender + MaxCharHeight;
 
 						FCanvasLineItem BaseLineItem(FVector2D(CurPos.X, Y), FVector2D(CurPos.X + MeasuredText.X, Y));

@@ -8,6 +8,13 @@
 
 #define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE				1
 
+#if UE_BUILD_SHIPPING
+#define D3D12_PROFILING_ENABLED 0
+#elif UE_BUILD_TEST
+#define D3D12_PROFILING_ENABLED 1
+#else
+#define D3D12_PROFILING_ENABLED 1
+#endif
 
 // Dependencies.
 #include "Core.h"
@@ -1507,6 +1514,7 @@ public:
 #if SUPPORTS_MEMORY_RESIDENCY
 			pResource->UpdateResidency();
 #endif
+			bool bWholeResourceWasTransitionedToSameState = bIsWholeResource;
 			D3D12_RESOURCE_BARRIER* descs = hCommandList.GetResourceBarrierScratchSpace();
 			uint32 numBarriersNeeded = 0;
 			for (CViewSubresourceSubset::CViewSubresourceIterator it = subresourceSubset.begin(); it != subresourceSubset.end(); ++it)
@@ -1532,6 +1540,14 @@ public:
 
 						ResourceState.SetSubresourceState(SubresourceIndex, after);
 					}
+					else
+					{
+						// Didn't need to transition the subresource.
+						if (before != after)
+						{
+							bWholeResourceWasTransitionedToSameState = false;
+						}
+					}
 				}
 			}
 
@@ -1541,8 +1557,11 @@ public:
 			}
 
 			// If we just transtioned every subresource to the same state, lets update it's tracking so it's on a per-resource level
-			if (bIsWholeResource)
+			if (bWholeResourceWasTransitionedToSameState)
 			{
+				// Sanity check to make sure all subresources are really in the 'after' state
+				check(ResourceState.CheckResourceState(after));
+
 				ResourceState.SetResourceState(after);
 			}
 		}

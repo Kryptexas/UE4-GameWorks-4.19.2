@@ -4317,6 +4317,9 @@ protected:
 
 		return AddInlinedCodeChunk(Type, TEXT("Primitive.%s"), HLSLName);
 	}
+
+	// The compiler can run in a different state and this affects caching of sub expression, Expressions are different (e.g. View.PrevWorldViewOrigin) when using previous frame's values
+	virtual bool IsCurrentlyCompilingForPreviousFrame() const { return bCompilingPreviousFrame; }
 };
 
 #endif

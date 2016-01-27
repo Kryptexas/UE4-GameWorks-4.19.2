@@ -37,7 +37,11 @@ FSlateRHIRenderingPolicy::~FSlateRHIRenderingPolicy()
 {
 	// Delete released resources.  Note this MUST NOT be called before the rendering resources have been released
 	ReleaseResources();
-	FlushRenderingCommands();
+
+	if ( IsInGameThread() )
+	{
+		FlushRenderingCommands();
+	}
 }
 
 void FSlateRHIRenderingPolicy::InitResources()
@@ -128,11 +132,6 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	FCachedRenderBuffers* Buffers = ResourceManager->FindOrCreateCachedBuffersForHandle(RenderHandle);
 
 	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, Buffers->VertexBuffer, Buffers->IndexBuffer);
-}
-
-void FSlateRHIRenderingPolicy::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
-{
-	ResourceManager->ReleaseCachedRenderData(InRenderHandle);
 }
 
 void FSlateRHIRenderingPolicy::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)

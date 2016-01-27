@@ -521,8 +521,10 @@ public:
 					else
 					{
 						// feature is disabled
-						SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(), 0);
-						SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, 0);
+						FForwardLightData LocalForwardLightData;
+						FMemory::Memzero(LocalForwardLightData);
+						SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(), TUniformBufferRef<FForwardLightData>::CreateUniformBufferImmediate(LocalForwardLightData, UniformBuffer_SingleDraw));
+						SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, GLightGridVertexBuffer.VertexBufferSRV);
 					}
 				}
 			}

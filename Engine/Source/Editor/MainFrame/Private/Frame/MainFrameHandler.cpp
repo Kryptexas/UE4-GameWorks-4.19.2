@@ -17,6 +17,9 @@ void FMainFrameHandler::ShutDownEditor()
 	// End any play on console/PC games still happening
 	GEditor->EndPlayOnLocalPc();
 
+	// Cancel any current Launch On in progress
+	GEditor->CancelPlayingViaLauncher();
+
 	TSharedPtr<SWindow> RootWindow = RootWindowPtr.Pin();
 
 	// Save root window placement so we can restore it.

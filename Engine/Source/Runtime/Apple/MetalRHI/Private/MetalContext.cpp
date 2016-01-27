@@ -119,7 +119,7 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalComman
 	NSOperatingSystemVersion Vers = [[NSProcessInfo processInfo] operatingSystemVersion];
 	if(Vers.majorVersion >= 9)
 	{
-		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions;
+		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
 #if !PLATFORM_TVOS
 		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1])
 #endif
@@ -132,7 +132,7 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalComman
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset;
 	}
 #else // Assume that Mac & other platforms all support these from the start. They can diverge later.
-	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions;
+	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
 #endif
 	
 	// Hook into the ios framepacer, if it's enabled for this platform.

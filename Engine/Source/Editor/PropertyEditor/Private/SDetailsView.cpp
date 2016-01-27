@@ -288,7 +288,7 @@ void SDetailsView::ForceRefresh()
 		}
 	}
 
-	BeginSelectingObjects(NewObjectList);
+	SetObjectArrayPrivate( NewObjectList );
 }
 
 
@@ -305,7 +305,7 @@ void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRef
 
 		if( bForceRefresh || ShouldSetNewObjects( ObjectWeakPtrs ) )
 		{
-			BeginSelectingObjects(ObjectWeakPtrs);
+			SetObjectArrayPrivate( ObjectWeakPtrs );
 		}
 	}
 }
@@ -316,7 +316,7 @@ void SDetailsView::SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObje
 	{
 		if( bForceRefresh || ShouldSetNewObjects( InObjects ) )
 		{
-			BeginSelectingObjects(InObjects);
+			SetObjectArrayPrivate( InObjects );
 		}
 	}
 }
@@ -350,16 +350,7 @@ void SDetailsView::RemoveInvalidObjects()
 
 	if (!bAllFound)
 	{
-		BeginSelectingObjects(ResetArray);
-	}
-}
-
-void SDetailsView::ImmdiatelyUpdate()
-{
-	if ( PendingUpdateHandle.IsValid() )
-	{
-		PendingUpdateDelegate.Execute(0, 0);
-		UnRegisterActiveTimer(PendingUpdateHandle.ToSharedRef());
+		SetObjectArrayPrivate(ResetArray);
 	}
 }
 
@@ -409,21 +400,7 @@ bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > 
 	return bShouldSetObjects;
 }
 
-void SDetailsView::BeginSelectingObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects)
-{
-	if ( PendingUpdateHandle.IsValid() )
-	{
-		UnRegisterActiveTimer(PendingUpdateHandle.ToSharedRef());
-	}
-
-	PendingUpdateDelegate = FWidgetActiveTimerDelegate::CreateLambda([=] (double, float) {
-		return FinishSelectingObjects(InObjects);
-	});
-
-	PendingUpdateHandle = RegisterActiveTimer(0.f, PendingUpdateDelegate);
-}
-
-EActiveTimerReturnType SDetailsView::FinishSelectingObjects(const TArray< TWeakObjectPtr< UObject > > InObjects)
+void SDetailsView::SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject > >& InObjects )
 {
 	double StartTime = FPlatformTime::Seconds();
 
@@ -518,8 +495,6 @@ EActiveTimerReturnType SDetailsView::FinishSelectingObjects(const TArray< TWeakO
 	OnObjectArrayChanged.ExecuteIfBound(Title, InObjects);
 
 	double ElapsedTime = FPlatformTime::Seconds() - StartTime;
-
-	return EActiveTimerReturnType::Stop;
 }
 
 void SDetailsView::ReplaceObjects( const TMap<UObject*, UObject*>& OldToNewObjectMap )
@@ -558,8 +533,9 @@ void SDetailsView::ReplaceObjects( const TMap<UObject*, UObject*>& OldToNewObjec
 
 	if( bObjectsReplaced )
 	{
-		BeginSelectingObjects(NewObjectList);
+		SetObjectArrayPrivate( NewObjectList );
 	}
+
 }
 
 void SDetailsView::RemoveDeletedObjects( const TArray<UObject*>& DeletedObjects )
@@ -585,7 +561,7 @@ void SDetailsView::RemoveDeletedObjects( const TArray<UObject*>& DeletedObjects 
 	// if any objects were replaced update the observed objects
 	if( bObjectsRemoved )
 	{
-		BeginSelectingObjects(NewObjectList);
+		SetObjectArrayPrivate( NewObjectList );
 	}
 }
 
@@ -608,7 +584,7 @@ void SDetailsView::PreSetObject()
 
 	ExternalRootPropertyNodes.Empty();
 
-	RootNodePendingKill = RootPropertyNode;
+	RootNodesPendingKill.Add(RootPropertyNode);
 
 	RootPropertyNode = MakeShareable(new FObjectPropertyNode);
 

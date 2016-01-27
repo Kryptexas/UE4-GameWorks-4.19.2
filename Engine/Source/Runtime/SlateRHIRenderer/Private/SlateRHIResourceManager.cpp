@@ -881,16 +881,37 @@ FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHand
 	return Buffers;
 }
 
-void FSlateRHIResourceManager::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
+void FSlateRHIResourceManager::BeginReleasingRenderData(const FSlateRenderDataHandle* RenderHandle)
+{
+	struct FReleaseCachedRenderDataContext
+	{
+		FSlateRHIResourceManager* ResourceManager;
+		const FSlateRenderDataHandle* RenderDataHandle;
+		const ILayoutCache* LayoutCacher;
+	};
+	FReleaseCachedRenderDataContext ReleaseCachedRenderDataContext =
+	{
+		this,
+		RenderHandle,
+		RenderHandle->GetCacher()
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		ReleaseCachedRenderData,
+		FReleaseCachedRenderDataContext, Context, ReleaseCachedRenderDataContext,
+		{
+			Context.ResourceManager->ReleaseCachedRenderData(Context.RenderDataHandle, Context.LayoutCacher);
+		});
+}
+
+void FSlateRHIResourceManager::ReleaseCachedRenderData(const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher)
 {
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
-	check(InRenderHandle);
+	check(RenderHandle);
 
-	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(InRenderHandle);
+	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(RenderHandle);
 	if ( ensure(PooledBuffer != nullptr) )
 	{
-		const ILayoutCache* LayoutCacher = InRenderHandle->GetCacher();
 		TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(LayoutCacher);
 		if ( Pool )
 		{
@@ -904,7 +925,7 @@ void FSlateRHIResourceManager::ReleaseCachedRenderData(FSlateRenderDataHandle* I
 			delete PooledBuffer;
 		}
 
-		CachedBuffers.Remove(InRenderHandle);
+		CachedBuffers.Remove(RenderHandle);
 	}
 }
 

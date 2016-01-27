@@ -1408,8 +1408,8 @@ namespace UnrealBuildTool
 						continue;
 
 					string AppID = Line.Substring(StartIndex, EndIndex - StartIndex);
-					int Value;
-					if (AppID.Length > 0 && int.TryParse(AppID, out Value))
+					Int64 Value;
+					if (AppID.Length > 0 && Int64.TryParse(AppID, out Value))
 					{
 						bInvalid = false;
 					}

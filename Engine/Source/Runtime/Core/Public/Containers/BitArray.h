@@ -797,7 +797,8 @@ private:
 	void FindFirstSetBit()
 	{
 		const uint32* ArrayData      = Array.GetData();
-		const int32   LastDWORDIndex = (Array.Num() - 1) / NumBitsPerDWORD;
+		const int32   ArrayNum       = Array.Num();
+		const int32   LastDWORDIndex = (ArrayNum - 1) / NumBitsPerDWORD;
 
 		// Advance to the next non-zero uint32.
 		uint32 RemainingBitMask = ArrayData[this->DWORDIndex] & UnvisitedBitMask;
@@ -808,7 +809,7 @@ private:
 			if (this->DWORDIndex > LastDWORDIndex)
 			{
 				// We've advanced past the end of the array.
-				CurrentBitIndex = Array.Num();
+				CurrentBitIndex = ArrayNum;
 				return;
 			}
 
@@ -825,6 +826,13 @@ private:
 
 		// If the Nth bit was the lowest set bit of BitMask, then this gives us N
 		CurrentBitIndex = BaseBitIndex + NumBitsPerDWORD - 1 - FMath::CountLeadingZeros(this->Mask);
+
+		// If we've accidentally iterated off the end of an array but still within the same DWORD
+		// then set the index to the last index of the array
+		if (CurrentBitIndex > ArrayNum)
+		{
+			CurrentBitIndex = ArrayNum;
+		}
 	}
 };
 

@@ -1221,6 +1221,7 @@ void FKismetEditorUtilities::AddComponentsToBlueprint(UBlueprint* Blueprint, con
 			if (AsSceneComponent != nullptr)
 			{
 				NewSceneComponents.Add(AsSceneComponent, NewSCSNode);
+				Cast<USceneComponent>(NewSCSNode->ComponentTemplate)->SetMobility(EComponentMobility::Movable);
 			}
 			return NewSCSNode;
 		}

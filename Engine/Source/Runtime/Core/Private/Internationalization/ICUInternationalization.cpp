@@ -247,6 +247,15 @@ bool FICUInternationalization::SetCurrentCulture(const FString& Name)
 			UErrorCode ICUStatus = U_ZERO_ERROR;
 			uloc_setDefault(StringCast<char>(*Name).Get(), &ICUStatus);
 
+			// Update the cached display names in any existing cultures
+			{
+				FScopeLock Lock(&CachedCulturesCS);
+				for (const auto& CachedCulturePair : CachedCultures)
+				{
+					CachedCulturePair.Value->HandleCultureChanged();
+				}
+			}
+
 			FInternationalization::Get().BroadcastCultureChanged();
 		}
 	}
@@ -278,7 +287,11 @@ FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, con
 	const FString CanonicalName = FCulture::GetCanonicalName(Name);
 
 	// Find the cached culture.
-	FCultureRef* FoundCulture = CachedCultures.Find(CanonicalName);
+	FCultureRef* FoundCulture = nullptr;
+	{
+		FScopeLock Lock(&CachedCulturesCS);
+		FoundCulture = CachedCultures.Find(CanonicalName);
+	}
 
 	// If no cached culture is found, try to make one.
 	if (!FoundCulture)
@@ -294,6 +307,7 @@ FCulturePtr FICUInternationalization::FindOrMakeCulture(const FString& Name, con
 				FCulturePtr NewCulture = FCulture::Create(CanonicalName);
 				if (NewCulture.IsValid())
 				{
+					FScopeLock Lock(&CachedCulturesCS);
 					FoundCulture = &(CachedCultures.Add(CanonicalName, NewCulture.ToSharedRef()));
 				}
 			}

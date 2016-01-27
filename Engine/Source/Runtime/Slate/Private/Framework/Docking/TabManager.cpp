@@ -846,22 +846,25 @@ void FTabManager::DrawAttention( const TSharedRef<SDockTab>& TabToHighlight )
 {
 	// Bring the tab to front.
 	const TSharedPtr<SDockingArea> DockingArea = TabToHighlight->GetDockArea();
-	const TSharedRef<FTabManager> ManagerOfTabToHighlight = DockingArea->GetTabManager();
-	
-	if (ManagerOfTabToHighlight != FGlobalTabmanager::Get())
+	if ( DockingArea.IsValid() )
 	{
-		FGlobalTabmanager::Get()->DrawAttentionToTabManager( ManagerOfTabToHighlight );
-	}
-	
-	TSharedPtr<SWindow> OwnerWindow = DockingArea->GetParentWindow();
-	if (OwnerWindow.IsValid())
-	{
-		OwnerWindow->BringToFront();
-	}
-	TabToHighlight->GetParentDockTabStack()->BringToFront(TabToHighlight);
-	TabToHighlight->FlashTab();
+		const TSharedRef<FTabManager> ManagerOfTabToHighlight = DockingArea->GetTabManager();
 
-	FGlobalTabmanager::Get()->UpdateMainMenu(TabToHighlight, true);
+		if ( ManagerOfTabToHighlight != FGlobalTabmanager::Get() )
+		{
+			FGlobalTabmanager::Get()->DrawAttentionToTabManager(ManagerOfTabToHighlight);
+		}
+
+		TSharedPtr<SWindow> OwnerWindow = DockingArea->GetParentWindow();
+		if ( OwnerWindow.IsValid() )
+		{
+			OwnerWindow->BringToFront();
+		}
+		TabToHighlight->GetParentDockTabStack()->BringToFront(TabToHighlight);
+		TabToHighlight->FlashTab();
+
+		FGlobalTabmanager::Get()->UpdateMainMenu(TabToHighlight, true);
+	}
 }
 
 void FTabManager::InsertNewDocumentTab( FName PlaceholderId, ESearchPreference::Type SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab )

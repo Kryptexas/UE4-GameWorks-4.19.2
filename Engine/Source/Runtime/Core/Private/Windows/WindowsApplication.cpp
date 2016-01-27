@@ -352,31 +352,8 @@ void FWindowsApplication::SetHighPrecisionMouseMode( const bool Enable, const TS
 	::RegisterRawInputDevices( &RawInputDevice, 1, sizeof( RAWINPUTDEVICE ) );
 }
 
-typedef BOOL(*pWin32CalculatePopupWindowPosition)( const POINT* /*anchorPoint*/, const SIZE* /*windowSize*/, UINT /*flags*/, RECT* /*excludeRect*/, RECT* /*popupWindowPosition*/ );
-static pWin32CalculatePopupWindowPosition GetCalculatePopupWindowPosition()
-{
-	static pWin32CalculatePopupWindowPosition Function = (pWin32CalculatePopupWindowPosition)(void*)GetProcAddress(GetModuleHandle(TEXT("User32.dll")), "CalculatePopupWindowPosition");
-	return Function;
-}
-
 bool FWindowsApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
 {
-	if ( pWin32CalculatePopupWindowPosition LinkedCalculatePopupWindowPosition = GetCalculatePopupWindowPosition() )
-	{
-		SIZE WindowSize = { FMath::TruncToInt(InSize.X), FMath::TruncToInt(InSize.Y) };
-		RECT ExcludeRect  = { InAnchor.Left, InAnchor.Top, InAnchor.Right, InAnchor.Bottom };
-
-		POINT AnchorPoint = ( Orientation == EPopUpOrientation::Vertical ) ? POINT({ InAnchor.Left, InAnchor.Bottom }) : POINT({ InAnchor.Right, InAnchor.Top });
-
-		RECT WindowPos;
-		BOOL Success = LinkedCalculatePopupWindowPosition(&AnchorPoint, &WindowSize, TPM_LEFTALIGN | TPM_TOPALIGN, &ExcludeRect, &WindowPos);
-		if ( Success )
-		{
-			CalculatedPopUpPosition->Set(WindowPos.left, WindowPos.top);
-			return true;
-		}
-	}
-
 	return false;
 }
 

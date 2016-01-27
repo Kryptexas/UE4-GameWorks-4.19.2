@@ -1117,6 +1117,24 @@ protected:
 			expr->operands[1]->accept(this);
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][2]);
 		}
+		else if (op == ir_unop_lsb && numOps == 1)
+		{
+			ralloc_asprintf_append(buffer, "ctz(");
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, ")");
+		}
+		else if (op == ir_unop_msb && numOps == 1)
+		{
+			ralloc_asprintf_append(buffer, "clz(");
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, ")");
+		}
+		else if (op == ir_unop_bitcount && numOps == 1)
+		{
+			ralloc_asprintf_append(buffer, "popcount(");
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, ")");
+		}
 		else if (numOps < 4)
 		{
 			ralloc_asprintf_append(buffer, MetalExpressionTable[op][0]);
@@ -1207,7 +1225,7 @@ protected:
 				tex->shadow_comparitor->accept(this);
 			}
 
-			if (tex->op == ir_txl)
+			if (tex->op == ir_txl && (!tex->shadow_comparitor || !tex->lod_info.lod->is_zero()))
 			{
 				ralloc_asprintf_append(buffer, ", level(");
 				tex->lod_info.lod->accept(this);

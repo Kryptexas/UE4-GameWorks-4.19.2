@@ -1262,7 +1262,7 @@ void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, IViewportRe
 
 TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList)
 {
-	TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle = MakeShareable(new FSlateRenderDataHandle(Cacher, this));
+	TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle = MakeShareable(new FSlateRenderDataHandle(Cacher, ResourceManager.Get()));
 
 	checkSlow(ElementList.GetChildDrawLayers().Num() == 0);
 
@@ -1317,26 +1317,6 @@ void FSlateRHIRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 		{
 			Context.RenderPolicy->ReleaseCachingResourcesFor(Context.Cacher);
 		});
-}
-
-void FSlateRHIRenderer::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
-{
-	struct FReleaseCachedRenderDataContext
-	{
-		FSlateRHIRenderingPolicy* RenderPolicy;
-		FSlateRenderDataHandle* RenderDataHandle;
-	};
-	FReleaseCachedRenderDataContext ReleaseCachedRenderDataContext =
-	{
-		RenderingPolicy.Get(),
-		InRenderHandle,
-	};
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		ReleaseCachedRenderData,
-		FReleaseCachedRenderDataContext, Context, ReleaseCachedRenderDataContext,
-	{
-		Context.RenderPolicy->ReleaseCachedRenderData(Context.RenderDataHandle);
-	});
 }
 
 FSlateEndDrawingWindowsCommand::FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer)

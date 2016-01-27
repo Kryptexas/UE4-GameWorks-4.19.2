@@ -60,7 +60,7 @@ FString FIOSHttpRequest::GetURLParameter(const FString& ParameterName)
 		NSString* Key = [KeyValue objectAtIndex:0];
 		if ([Key compare:ParameterNameStr] == NSOrderedSame)
 		{
-			return FString([[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]);
+			return FString([[KeyValue objectAtIndex:1] stringByRemovingPercentEncoding]);
 		}
 	}
 	return FString();
@@ -215,6 +215,7 @@ bool FIOSHttpRequest::StartRequest()
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::StartRequest()"));
 	bool bStarted = false;
 
+#if !PLATFORM_TVOS
 	// set the content-length and user-agent
 	if(GetContentLength() > 0)
 	{
@@ -247,7 +248,8 @@ bool FIOSHttpRequest::StartRequest()
 	StartRequestTime = FPlatformTime::Seconds();
 	// reset the elapsed time.
 	ElapsedTime = 0.0f;
-
+#endif
+    
 	return bStarted;
 }
 
@@ -440,7 +442,7 @@ FString FIOSHttpResponse::GetURLParameter(const FString& ParameterName)
 		NSString* Key = [KeyValue objectAtIndex:0];
 		if ([Key compare:ParameterNameStr] == NSOrderedSame)
 		{
-			return FString([[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]);
+			return FString([[KeyValue objectAtIndex:1] stringByRemovingPercentEncoding]);
 		}
 	}
 	return FString();

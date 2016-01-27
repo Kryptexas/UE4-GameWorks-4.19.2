@@ -4580,6 +4580,13 @@ bool FBodyInstance::ValidateTransform(const FTransform &Transform, const FString
 #if WITH_PHYSX
 void FBodyInstance::InitDynamicProperties_AssumesLocked()
 {
+	if (!BodySetup.IsValid())
+	{
+		// This may be invalid following an undo if the BodySetup was a transient object (e.g. in Mesh Paint mode)
+		// Just exit gracefully if so.
+		return;
+	}
+
 	//QueryOnly bodies cannot become simulated at runtime. To do this they must change their CollisionEnabled which recreates the physics state
 	//So early out to save a lot of useless work
 	if (GetCollisionEnabled() == ECollisionEnabled::QueryOnly)

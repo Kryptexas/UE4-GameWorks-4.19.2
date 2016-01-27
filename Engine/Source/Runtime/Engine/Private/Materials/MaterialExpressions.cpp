@@ -1001,7 +1001,7 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 		FExpressionInput* Input = Inputs[Index];
 		if (Input->Expression)
 		{
-			FMaterialExpressionKey InputExpressionKey(Input->Expression, Input->OutputIndex, INDEX_NONE);
+			FMaterialExpressionKey InputExpressionKey(Input->Expression, Input->OutputIndex);
 			if (ExpressionStack.Contains(InputExpressionKey))
 			{
 				return true;

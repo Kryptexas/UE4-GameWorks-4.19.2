@@ -33,12 +33,6 @@ public:
 	virtual void RemoveInvalidObjects() override;
 
 	/**
-	 * Immediately resolves any update requests, only do this if you need the internal state of the details panel to change 
-	 * right now.  Never call while getting callbacks from the details panel.
-	 */
-	virtual void ImmdiatelyUpdate() override;
-
-	/**
 	 * Replaces objects being observed by the view with new objects
 	 *
 	 * @param OldToNewObjectMap	Mapping from objects to replace to their replacement
@@ -106,13 +100,10 @@ public:
 	{ 
 		return false; 
 	}
-
 private:
 	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate ) override;
 	void UnregisterInstancedCustomPropertyLayout( UClass* Class ) override;
-	
-	void BeginSelectingObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects);
-	EActiveTimerReturnType FinishSelectingObjects(const TArray< TWeakObjectPtr< UObject > > InObjects);
+	void SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject > >& InObjects );
 
 	TSharedRef<SDetailTree> ConstructTreeView( TSharedRef<SScrollBar>& ScrollBar );
 
@@ -164,8 +155,4 @@ private:
 	FOnObjectArrayChanged OnObjectArrayChanged;
 	/** True if at least one viewed object is a CDO (blueprint editing) */
 	bool bViewingClassDefaultObject;
-	/** The pending update handle. */
-	TSharedPtr<FActiveTimerHandle> PendingUpdateHandle;
-	/** Pending update delegate */
-	FWidgetActiveTimerDelegate PendingUpdateDelegate;
 };

@@ -22,6 +22,9 @@ void FPlainTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayou
 	TArray<FTextRange> LineRanges;
 	FTextRange::CalculateLineRangesFromString(SourceString, LineRanges);
 
+	TArray<FTextLayout::FNewLineData> LinesToAdd;
+	LinesToAdd.Reserve(LineRanges.Num());
+
 	for(const FTextRange& LineRange : LineRanges)
 	{
 		TSharedRef<FString> LineText = MakeShareable(new FString(SourceString.Mid(LineRange.BeginIndex, LineRange.Len())));
@@ -29,8 +32,10 @@ void FPlainTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayou
 		TArray<TSharedRef<IRun>> Runs;
 		Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, DefaultTextStyle));
 
-		TargetTextLayout.AddLine(LineText, Runs);
+		LinesToAdd.Emplace(MoveTemp(LineText), MoveTemp(Runs));
 	}
+
+	TargetTextLayout.AddLines(LinesToAdd);
 }
 
 void FPlainTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout& SourceTextLayout)

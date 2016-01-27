@@ -68,6 +68,30 @@ float FAttenuationSettings::GetMaxDimension() const
 	return MaxDimension;
 }
 
+float FAttenuationSettings::GetFocusPriorityScale(float FocusFactor) const
+{
+	float Focus = FocusPriorityScale;
+	float NonFocus = NonFocusPriorityScale;
+	float Result = FMath::Lerp(Focus, NonFocus, FocusFactor);
+	return FMath::Max(0.0f, Result);
+}
+
+float FAttenuationSettings::GetFocusAttenuation(float FocusFactor) const
+{
+	float Focus = FocusVolumeAttenuation;
+	float NonFocus = NonFocusVolumeAttenuation;
+	float Result = FMath::Lerp(Focus, NonFocus, FocusFactor);
+	return FMath::Max(0.0f, Result);
+}
+
+float FAttenuationSettings::GetFocusDistanceScale(float FocusFactor) const
+{
+	float Focus = FocusDistanceScale;
+	float NonFocus = NonFocusDistanceScale;
+	float Result = FMath::Lerp(Focus, NonFocus, FocusFactor);
+	return FMath::Max(0.0f, Result);
+}
+
 /**
  * Calculate the attenuation value.
  * @param DistanceModel - Which math model of attenuation is used
@@ -85,7 +109,9 @@ float FAttenuationSettings::AttenuationEval(const float Distance, const float Fa
 	// is greater than the falloff value, it'll use the algorithm/curve value evaluated at Falloff distance,
 	// which could be 1.0 (and not 0.0f).
 
-	float DistanceCopy = FMath::Clamp(Distance, 0.0f, Falloff);
+	float FalloffCopy = FMath::Max(Falloff, 1.0f);
+	float DistanceCopy = FMath::Clamp(Distance, 0.0f, FalloffCopy);
+
 	DistanceCopy *= DistanceScale;
 
 	float Result = 0.0f;
@@ -93,34 +119,34 @@ float FAttenuationSettings::AttenuationEval(const float Distance, const float Fa
 	{
 		case ATTENUATION_Linear:
 
-			Result = (1.0f - (DistanceCopy / Falloff));
+			Result = (1.0f - (DistanceCopy / FalloffCopy));
 			break;
 
 		case ATTENUATION_Logarithmic:
 
-			Result = 0.5f * -FMath::Loge(DistanceCopy / Falloff);
+			Result = 0.5f * -FMath::Loge(DistanceCopy / FalloffCopy);
 			break;
 
 		case ATTENUATION_Inverse:
 
-			Result = 0.02f / (DistanceCopy / Falloff);
+			Result = 0.02f / (DistanceCopy / FalloffCopy);
 			break;
 
 		case ATTENUATION_LogReverse:
 
-			Result = 1.0f + 0.5f * FMath::Loge(1.0f - (DistanceCopy / Falloff));
+			Result = 1.0f + 0.5f * FMath::Loge(1.0f - (DistanceCopy / FalloffCopy));
 			break;
 
 		case ATTENUATION_NaturalSound:
 		{
 			check( dBAttenuationAtMax <= 0.0f );
-			Result = FMath::Pow(10.0f, ((DistanceCopy / Falloff) * dBAttenuationAtMax) / 20.0f);
+			Result = FMath::Pow(10.0f, ((DistanceCopy / FalloffCopy) * dBAttenuationAtMax) / 20.0f);
 			break;
 		}
 
 		case ATTENUATION_Custom:
 
-			Result = CustomAttenuationCurve.GetRichCurveConst()->Eval(DistanceCopy / Falloff);
+			Result = CustomAttenuationCurve.GetRichCurveConst()->Eval(DistanceCopy / FalloffCopy);
 			break;
 
 		default:
@@ -210,6 +236,7 @@ bool FAttenuationSettings::operator==(const FAttenuationSettings& Other) const
 			&& FocusDistanceScale		== Other.FocusDistanceScale
 			&& FocusPriorityScale		== Other.FocusPriorityScale
 			&& NonFocusPriorityScale	== Other.NonFocusPriorityScale
+			&& FocusVolumeAttenuation	== Other.FocusVolumeAttenuation
 			&& NonFocusVolumeAttenuation == Other.NonFocusVolumeAttenuation);
 }
 

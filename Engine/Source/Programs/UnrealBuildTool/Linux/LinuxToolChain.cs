@@ -1046,6 +1046,46 @@ namespace UnrealBuildTool
 				Writer.WriteLine("         _ZdaPvRKSt9nothrow_t;");
 				Writer.WriteLine("         _ZdlPv;");
 				Writer.WriteLine("         _ZdlPvRKSt9nothrow_t;");
+				
+				// Hide OpenSSL symbols as they can collide with Steam runtime.
+				// @todo: hide all Steam runtime symbols
+				Writer.WriteLine("         DH_OpenSSL;");
+				Writer.WriteLine("         DSA_OpenSSL;");
+				Writer.WriteLine("         DSO_METHOD_openssl;");
+				Writer.WriteLine("         ECDH_OpenSSL;");
+				Writer.WriteLine("         ECDSA_OpenSSL;");
+				Writer.WriteLine("         OPENSSL_add_all_algorithms_noconf;");
+				Writer.WriteLine("         OpenSSL_add_all_ciphers;");
+				Writer.WriteLine("         OpenSSL_add_all_digests;");
+				Writer.WriteLine("         OPENSSL_asc2uni;");
+				Writer.WriteLine("         OPENSSL_atomic_add;");
+				Writer.WriteLine("         OPENSSL_cleanse;");
+				Writer.WriteLine("         OPENSSL_DIR_end;");
+				Writer.WriteLine("         OPENSSL_DIR_read;");
+				Writer.WriteLine("         openssl_dsa_meth;");
+				Writer.WriteLine("         openssl_ecdh_meth;");
+				Writer.WriteLine("         openssl_ecdsa_meth;");
+				Writer.WriteLine("         OPENSSL_gmtime;");
+				Writer.WriteLine("         OPENSSL_gmtime_adj;");
+				Writer.WriteLine("         OPENSSL_gmtime_diff;");
+				Writer.WriteLine("         OPENSSL_ia32_cpuid;");
+				Writer.WriteLine("         OPENSSL_ia32_rdrand;");
+				Writer.WriteLine("         OPENSSL_ia32_rdseed;");
+				Writer.WriteLine("         OPENSSL_ia32cap_loc;");
+				Writer.WriteLine("         OPENSSL_ia32cap_P;");
+				Writer.WriteLine("         OPENSSL_init;");
+				Writer.WriteLine("         OPENSSL_isservice;");
+				Writer.WriteLine("         OPENSSL_issetugid;");
+				Writer.WriteLine("         OPENSSL_load_builtin_modules;");
+				Writer.WriteLine("         OPENSSL_NONPIC_relocated;");
+				Writer.WriteLine("         OPENSSL_rdtsc;");
+				Writer.WriteLine("         OPENSSL_showfatal;");
+				Writer.WriteLine("         OPENSSL_stderr;");
+				Writer.WriteLine("         OPENSSL_uni2asc;");
+				Writer.WriteLine("         OPENSSL_wipe_cpu;");
+				Writer.WriteLine("         OpenSSLDie;");
+				Writer.WriteLine("         ui_openssl;");
+				Writer.WriteLine("         UI_OpenSSL;");
 				Writer.WriteLine("};");
 			};
 

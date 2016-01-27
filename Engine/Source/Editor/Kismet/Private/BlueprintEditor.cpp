@@ -100,7 +100,6 @@
 #include "Engine/LevelStreamingKismet.h"
 
 #include "IMenu.h"
-#include "InstancedReferenceSubobjectHelper.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -2839,54 +2838,6 @@ bool FBlueprintEditor::CanNavigateToChildGraph() const
 	return FocusedGraphEdPtr.IsValid() && (FocusedGraphEdPtr.Pin()->GetCurrentGraph()->SubGraphs.Num() > 0);
 }
 
-void FBlueprintEditor::FixSubObjectReferencesPostUndoRedo(UObject* InObject)
-{
-	// Post undo/redo, these may have the correct Outer but are not referenced by the CDO's UProperties
-	TArray<UObject*> SubObjects;
-	GetObjectsWithOuter(InObject, SubObjects, false);
-
-	// Post undo/redo, these may have the in-correct Outer but are incorrectly referenced by the CDO's UProperties
-	TSet<UObject*> PropertySubObjectReferences;
-	UClass* ObjectClass = InObject->GetClass();
-	FFindInstancedReferenceSubobjectHelper::Get(ObjectClass, reinterpret_cast<uint8*>(InObject), PropertySubObjectReferences);
-
-	TMap<UObject*, UObject*> OldToNewInstanceMap;
-	for (UObject* PropertySubObject : PropertySubObjectReferences)
-	{
-		bool bFoundMatchingSubObject = false;
-		for (UObject* SubObject : SubObjects)
-		{
-			// The property and sub-objects should have the same name.
-			if (PropertySubObject->GetFName() == SubObject->GetFName())
-			{
-				// We found a matching property, we do not want to re-make the property
-				bFoundMatchingSubObject = true;
-
-				// Check if the properties have different outers so we can map old-to-new
-				if (PropertySubObject->GetOuter() != InObject)
-				{
-					OldToNewInstanceMap.Add(PropertySubObject, SubObject);
-				}
-				// Recurse on the SubObject to correct any sub-object/property references
-				FixSubObjectReferencesPostUndoRedo(SubObject);
-				break;
-			}
-		}
-
-		// If the property referenced does not exist in the current context as a subobject, we need to duplicate it and fix up references
-		// This will occur during post-undo/redo of deletions
-		if (!bFoundMatchingSubObject)
-		{
-			UObject* NewSubObject = DuplicateObject(PropertySubObject, InObject, PropertySubObject->GetFName());
-
-			// Don't forget to fix up all references and sub-object references
-			OldToNewInstanceMap.Add(PropertySubObject, NewSubObject);
-		}
-	}
-
-	FArchiveReplaceObjectRef<UObject> Replacer(InObject, OldToNewInstanceMap, false, false, false, false);
-}
-
 void FBlueprintEditor::PostUndo(bool bSuccess)
 {	
 	// Clear selection, to avoid holding refs to nodes that go away
@@ -2915,11 +2866,6 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 		if (bAffectsBlueprint)
 		{
 			SetUISelectionState(NAME_None);
-
-			FixSubObjectReferencesPostUndoRedo(GetBlueprintObj()->GeneratedClass->GetDefaultObject());
-
-			// Will cause a call to RefreshEditors()
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 
 			FSlateApplication::Get().DismissAllMenus();
 		}
@@ -2950,11 +2896,6 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		// Transaction affects the Blueprint this editor handles, so react as necessary
 		if (bAffectsBlueprint)
 		{
-			FixSubObjectReferencesPostUndoRedo(GetBlueprintObj()->GeneratedClass->GetDefaultObject());
-
-			// Will cause a call to RefreshEditors()
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( BlueprintObj );
-
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}

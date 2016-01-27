@@ -375,9 +375,6 @@ void FSlateBatchData::FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* Index
 				FMemory::Memcpy(VertexBuffer + VertexOffset, Vertices.GetData(), RequiredVertexSize);
 				FMemory::Memcpy(IndexBuffer + IndexOffset, Indices.GetData(), RequiredIndexSize);
 
-				VertexArrayFreeList.Add(Batch.VertexArrayIndex);
-				IndexArrayFreeList.Add(Batch.IndexArrayIndex);
-
 				IndexOffset += ( Indices.Num()*sizeof(SlateIndex) );
 				VertexOffset += ( Vertices.Num()*sizeof(FSlateVertex) );
 
@@ -395,6 +392,9 @@ void FSlateBatchData::FillVertexAndIndexBuffer(uint8* VertexBuffer, uint8* Index
 					Indices.Reserve(MAX_INDEX_ARRAY_RECYCLE);
 				}
 			}
+
+			VertexArrayFreeList.Add(Batch.VertexArrayIndex);
+			IndexArrayFreeList.Add(Batch.IndexArrayIndex);
 		}
 	}
 }
@@ -664,9 +664,9 @@ void FSlateWindowElementList::EndLogicalLayer()
 	DrawStack.Pop();
 }
 
-FSlateRenderDataHandle::FSlateRenderDataHandle(const ILayoutCache* InCacher, FSlateRenderer* InRenderer)
+FSlateRenderDataHandle::FSlateRenderDataHandle(const ILayoutCache* InCacher, ISlateRenderDataManager* InManager)
 	: Cacher(InCacher)
-	, Renderer(InRenderer)
+	, Manager(InManager)
 	, RenderBatches(nullptr)
 	, UsageCount(0)
 {
@@ -674,15 +674,15 @@ FSlateRenderDataHandle::FSlateRenderDataHandle(const ILayoutCache* InCacher, FSl
 
 FSlateRenderDataHandle::~FSlateRenderDataHandle()
 {
-	if ( Renderer )
+	if ( Manager )
 	{
-		Renderer->ReleaseCachedRenderData(this);
+		Manager->BeginReleasingRenderData(this);
 	}
 }
 
 void FSlateRenderDataHandle::Disconnect()
 {
-	Renderer = nullptr;
+	Manager = nullptr;
 	RenderBatches = nullptr;
 }
 

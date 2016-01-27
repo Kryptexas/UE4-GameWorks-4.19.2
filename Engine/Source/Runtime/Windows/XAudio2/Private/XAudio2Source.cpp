@@ -44,7 +44,9 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 	, bResourcesNeedFreeing(false)
 	, VoiceId(-1)
 	, bUsingHRTFSpatialization(false)
+	, bEditorWarnedChangedSpatialization(false)
 {
+
 	AudioDevice = ( FXAudio2Device* )InAudioDevice;
 	check( AudioDevice );
 	Effects = (FXAudio2EffectsManager*)AudioDevice->Effects;
@@ -134,6 +136,18 @@ void FXAudio2SoundSource::SubmitPCMBuffers( void )
 	XAudio2Buffers[0].AudioBytes = XAudio2Buffer->PCM.PCMDataSize;
 	XAudio2Buffers[0].pContext = this;
 
+	if (!AudioDevice)
+	{
+		UE_LOG(LogXAudio2, Error, TEXT("SubmitPCMBuffers: Audio Device is nullptr"));
+		return;
+	}
+
+	if (!Source)
+	{
+		UE_LOG(LogXAudio2, Error, TEXT("SubmitPCMBuffers: Source (IXAudio2SourceVoice is nullptr"));
+		return;
+	}
+
 	if( WaveInstance->LoopingMode == LOOP_Never )
 	{
 		XAudio2Buffers[0].Flags = XAUDIO2_END_OF_STREAM;
@@ -208,8 +222,9 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 	XAudio2Buffers[1].AudioBytes = BufferSize;
 
 	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
-	bool bSkipFirstBuffer = false;;
-	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
+	bool bSkipFirstBuffer = false;
+	bool bIsSeeking = (WaveInstance->StartTime > 0.f);
+	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && !bIsSeeking)
 	{
 		FMemory::Memcpy((uint8*)XAudio2Buffers[0].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
 		FMemory::Memcpy((uint8*)XAudio2Buffers[1].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
@@ -245,7 +260,7 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 
 	ReadMorePCMData(2, DataReadMode);
 
-	if (DataReadMode == EDataReadMode::Synchronous)
+	if (!bIsSeeking && (DataReadMode == EDataReadMode::Synchronous || (!bSkipFirstBuffer && WaveInstance->WaveData && !WaveInstance->WaveData->bCanProcessAsync)))
 	{
 		AudioDevice->ValidateAPICall(TEXT("SubmitSourceBuffer - PCMRT"),
 									 Source->SubmitSourceBuffer(&XAudio2Buffers[2]));
@@ -373,6 +388,9 @@ bool FXAudio2SoundSource::CreateSource( void )
 	bUsingHRTFSpatialization = false;
 	bool bCreatedWithSpatializationEffect = false;
 	MaxEffectChainChannels = 0;
+	
+	// Set to nullptr in case the voice is not successfully created, the source won't be garbage
+	Source = nullptr;
 
 	if (CreateWithSpatializationEffect())
 	{
@@ -438,6 +456,9 @@ bool FXAudio2SoundSource::CreateSource( void )
  */
 bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 {
+	// Reset so next instance will warn if algorithm changes inflight
+	bEditorWarnedChangedSpatialization = false;
+
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
@@ -454,6 +475,10 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 
 		XAudio2Buffer = FXAudio2SoundBuffer::Init(BestAudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
 		Buffer = XAudio2Buffer;
+
+		// Reset the LPFFrequency values
+		LPFFrequency = MAX_FILTER_FREQUENCY;
+		LastLPFFrequency = FLT_MAX;
 
 		// Buffer failed to be created, or there was an error with the compressed data
 		if (Buffer && Buffer->NumChannels > 0)
@@ -597,10 +622,14 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 		// If we are using a HRTF spatializer, we are going to be using an XAPO effect that takes a mono stream and splits it into stereo
 		// So in th at case we will just set the emitter position as a parameter to the XAPO plugin and then treat the
 		// sound as if it was a non-spatialized stereo asset
-		check(WaveInstance->SpatializationAlgorithm == SPATIALIZATION_HRTF);
+		if (WaveInstance->SpatializationAlgorithm != SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
+		{
+			bEditorWarnedChangedSpatialization = true;
+			UE_LOG(LogXAudio2, Warning, TEXT("Changing the spatialization algorithm on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
+		}
 		check(AudioDevice->SpatializeProcessor != nullptr);
 
-		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, FAudioSpatializationParams(SpatializationParams.EmitterPosition, (ESpatializationEffectType)WaveInstance->SpatializationAlgorithm));
+		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, FAudioSpatializationParams(SpatializationParams.EmitterPosition));
 		GetStereoChannelVolumes(ChannelVolumes, AttenuatedVolume);
 	}
 	else // Spatialize the mono stream using the normal 3d audio algorithm
@@ -739,7 +768,7 @@ void FXAudio2SoundSource::GetStereoChannelVolumes(float ChannelVolumes[CHANNEL_M
 		ChannelVolumes[CHANNELOUT_RADIO] = 0.0f;
 		if (WaveInstance->bApplyRadioFilter)
 		{
-			ChannelVolumes[CHANNELOUT_RADIO] = WaveInstance->RadioFilterVolume;
+			ChannelVolumes[CHANNELOUT_RADIO] = AttenuatedVolume * WaveInstance->RadioFilterVolume;
 		}
 	}
 }
@@ -1729,8 +1758,10 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 	OrientFront.DiagnosticCheckNaN(TEXT("FSpatializationHelper: OrientFront"));
 	ListenerPosition.DiagnosticCheckNaN(TEXT("FSpatializationHelper: ListenerPosition"));
 	EmitterPosition.DiagnosticCheckNaN(TEXT("FSpatializationHelper: EmitterPosition"));
-	if (!FMath::IsFinite(OmniRadius))
+	static bool bLoggedOmniRadius = false;
+	if (!FMath::IsFinite(OmniRadius) && !bLoggedOmniRadius)
 	{
+		bLoggedOmniRadius = true;
 		const FString NaNorINF = FMath::IsNaN(OmniRadius) ? TEXT("NaN") : TEXT("INF");
 		UE_LOG(LogXAudio2, Warning, TEXT("OmniRadius generated a %s: %f"), *NaNorINF, OmniRadius);
 	}
@@ -1757,9 +1788,11 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 		OutVolumes[SpeakerIndex] *= DSPSettings.pMatrixCoefficients[SpeakerIndex];
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		static bool bLoggedDSPSettings = false;
 		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
-		if (!FMath::IsFinite(OutVolumes[SpeakerIndex]))
+		if (!FMath::IsFinite(OutVolumes[SpeakerIndex]) && !bLoggedDSPSettings)
 		{
+			bLoggedDSPSettings = true;
 			const FString NaNorINF = FMath::IsNaN(OutVolumes[SpeakerIndex]) ? TEXT("NaN") : TEXT("INF");
 			UE_LOG(LogXAudio2, Warning, TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
 				*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);

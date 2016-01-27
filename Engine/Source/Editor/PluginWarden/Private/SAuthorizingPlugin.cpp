@@ -28,23 +28,40 @@ void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SW
 			SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
-				SNew(SHorizontalBox)
+				SNew(SVerticalBox)
 
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
+				.Padding(10, 30, 10, 20)
 				[
-					SNew(SThrobber)
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SThrobber)
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(10, 0)
+					[
+						SNew(STextBlock)
+						.Text(this, &SAuthorizingPlugin::GetWaitingText)
+						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12))
+					]
 				]
 
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(10, 0)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.HAlign(HAlign_Right)
+				.Padding(10)
 				[
-					SNew(STextBlock)
-					.Text(this, &SAuthorizingPlugin::GetWaitingText)
-					.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 12))
+					SNew(SButton)
+					.Text(LOCTEXT("CancelText", "Cancel"))
+					.OnClicked(this, &SAuthorizingPlugin::OnCancel)
 				]
 			]
 		]
@@ -74,6 +91,8 @@ FText SAuthorizingPlugin::GetWaitingText() const
 	case EPluginAuthorizationState::SigninRequired:
 	case EPluginAuthorizationState::SigninRequired_Waiting:
 		return LOCTEXT("NeedUserToLoginToCheck", "Authorization failed, Sign-in required...");
+	case EPluginAuthorizationState::Signin_Waiting:
+		return LOCTEXT("WaitingForSignin", "Waiting for Sign-in...");
 	}
 
 	return LOCTEXT("Processing", "Processing...");
@@ -90,7 +109,8 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 	{
 		case EPluginAuthorizationState::Initializing:
 		{
-			if ( PortalWindowService->IsAvailable() )
+			WaitingTime = 0;
+			if ( PortalWindowService->IsAvailable() && PortalUserService->IsAvailable() )
 			{
 				CurrentState = EPluginAuthorizationState::AuthorizePlugin;
 			}
@@ -107,14 +127,23 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 
 			if ( DesktopPlatform != nullptr )
 			{
-				FOpenLauncherOptions SilentOpen;
-				if ( DesktopPlatform->OpenLauncher(SilentOpen) )
+				if ( !FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher")) &&
+					 !FPlatformProcess::IsApplicationRunning(TEXT("EpicGamesLauncher-Mac-Shipping")) )
 				{
-					CurrentState = EPluginAuthorizationState::StartLauncher_Waiting;
+					FOpenLauncherOptions SilentOpen;
+					if ( DesktopPlatform->OpenLauncher(SilentOpen) )
+					{
+						CurrentState = EPluginAuthorizationState::StartLauncher_Waiting;
+					}
+					else
+					{
+						CurrentState = EPluginAuthorizationState::LauncherStartFailed;
+					}
 				}
 				else
 				{
-					CurrentState = EPluginAuthorizationState::LauncherStartFailed;
+					// If the process is found to be running already, move into the next state.
+					CurrentState = EPluginAuthorizationState::StartLauncher_Waiting;
 				}
 			}
 			else
@@ -213,12 +242,37 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 				bool IsUserSignedIn = UserSigninResult.GetFuture().Get();
 				if ( IsUserSignedIn )
 				{
+					UserDetailsResult = PortalUserService->GetUserDetails();
+					CurrentState = EPluginAuthorizationState::Signin_Waiting;
+				}
+				else
+				{
+					CurrentState = EPluginAuthorizationState::Unauthorized;
+				}
+			}
+
+			break;
+		}
+		// We stay in the Signin_Waiting state until the user is signed in or until they cancel the
+		// authorizing plug-in UI.  It would be nice to be able to know if the user closes the sign-in
+		// dialog and cancel out of this dialog automatically.
+		case EPluginAuthorizationState::Signin_Waiting:
+		{
+			WaitingTime = 0;
+
+			check(UserDetailsResult.GetFuture().IsValid());
+			if ( UserDetailsResult.GetFuture().IsReady() )
+			{
+				FPortalUserDetails UserDetails = UserDetailsResult.GetFuture().Get();
+
+				if ( UserDetails.IsSignedIn )
+				{
 					// if the user is signed in, and we're at this stage, we know they are unauthorized.
 					CurrentState = EPluginAuthorizationState::AuthorizePlugin;
 				}
 				else
 				{
-					CurrentState = EPluginAuthorizationState::Unauthorized;
+					UserDetailsResult = PortalUserService->GetUserDetails();
 				}
 			}
 
@@ -253,7 +307,8 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 		case EPluginAuthorizationState::StartLauncher_Waiting:
 		case EPluginAuthorizationState::AuthorizePlugin_Waiting:
 		case EPluginAuthorizationState::IsUserSignedIn_Waiting:
-		// We Ignore EPluginAuthorizationState::SigninRequired_Waiting, that state could take forever, the user needs to sign-in or close the dialog.
+		case EPluginAuthorizationState::SigninRequired_Waiting:
+		// We Ignore EPluginAuthorizationState::Signin_Waiting, that state could take forever, the user needs to sign-in or close the dialog.
 		{
 			const float TimeoutSeconds = 15;
 			if ( WaitingTime > TimeoutSeconds )
@@ -266,6 +321,14 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 	}
 
 	return EActiveTimerReturnType::Continue;
+}
+
+FReply SAuthorizingPlugin::OnCancel()
+{
+	bUserInterrupted = true;
+	ParentWindow.Pin()->RequestDestroyWindow();
+
+	return FReply::Handled();
 }
 
 void SAuthorizingPlugin::OnWindowClosed(const TSharedRef<SWindow>& InWindow)
@@ -318,7 +381,13 @@ void SAuthorizingPlugin::OnWindowClosed(const TSharedRef<SWindow>& InWindow)
 
 void SAuthorizingPlugin::ShowStorePageForPlugin()
 {
-	TAsyncResult<bool> Result = PortalWindowService->NavigateTo(FString(TEXT("/ue/marketplace/offers/")) + PluginGuid);
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+	if ( DesktopPlatform != nullptr )
+	{
+		FOpenLauncherOptions StorePageOpen(FString(TEXT("/ue/marketplace/offers/")) + PluginGuid);
+		DesktopPlatform->OpenLauncher(StorePageOpen);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1080,6 +1080,9 @@ void FLevelEditorActionCallbacks::EditAsset_Clicked( const EToolkitMode::Type To
 
 		if (bShouldOpenEditors)
 		{
+			// Clear focus so the level viewport can receive its focus lost call (and clear pending keyup events which wouldn't arrive)
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::WindowActivate);
+
 			auto LevelEditorSharedPtr = LevelEditor.Pin();
 
 			if (LevelEditorSharedPtr.IsValid())
@@ -2160,8 +2163,10 @@ void FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig( )
 void FLevelEditorActionCallbacks::OnShowOnlySelectedActors()
 {
 	const FScopedTransaction Transaction( NSLOCTEXT( "LevelEditorCommands", "ShowOnlySelectedActors", "Show Only Selected Actors" ) );
-	GUnrealEd->edactUnhideSelected( GetWorld() );
+	// First hide unselected as this will also hide group actor members
 	GUnrealEd->edactHideUnselected( GetWorld() );
+	// Then unhide selected to ensure that everything that's selected will be unhidden
+	GUnrealEd->edactUnhideSelected(GetWorld());
 }
 
 void FLevelEditorActionCallbacks::OnToggleTransformWidgetVisibility()

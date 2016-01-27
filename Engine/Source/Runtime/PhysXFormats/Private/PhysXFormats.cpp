@@ -105,7 +105,7 @@ public:
 		}
 
 		// Set up cooking
-		const PxCookingParams& Params = PhysXCooking->getParams();
+		const PxCookingParams Params = PhysXCooking->getParams();
 		PxCookingParams NewParams = Params;
 		NewParams.targetPlatform = PhysXFormat;
 		if (bDeformableMesh)
@@ -113,11 +113,15 @@ public:
 			// Meshes which can be deformed need different cooking parameters to inhibit vertex welding and add an extra skin around the collision mesh for safety.
 			// We need to set the meshWeldTolerance to zero, even when disabling 'clean mesh' as PhysX will attempt to perform mesh cleaning anyway according to this meshWeldTolerance
 			// if the convex hull is not well formed.
-			NewParams.meshPreprocessParams = PxMeshPreprocessingFlags(PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH | PxMeshPreprocessingFlag::eREMOVE_UNREFERENCED_VERTICES | PxMeshPreprocessingFlag::eREMOVE_DUPLICATED_TRIANGLES);
+			// Set the skin thickness as a proportion of the overall size of the mesh as PhysX's internal tolerances also use the overall size to calculate the epsilon used.
+			const FBox Bounds(SrcBuffer);
+			const float MaxExtent = (Bounds.Max - Bounds.Min).Size();
+			NewParams.skinWidth = MaxExtent / 512.0f;
+			NewParams.meshPreprocessParams = PxMeshPreprocessingFlags(PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH);
 			NewParams.areaTestEpsilon = 0.0f;
 			NewParams.meshWeldTolerance = 0.0f;
+			PhysXCooking->setParams(NewParams);
 		}
-		PhysXCooking->setParams(NewParams);
 
 		// Cook the convex mesh to a temp buffer
 		TArray<uint8> CookedMeshBuffer;
@@ -127,9 +131,7 @@ public:
 		// Return default cooking params to normal
 		if (bDeformableMesh)
 		{
-			NewParams.meshPreprocessParams = Params.meshPreprocessParams;
-			NewParams.areaTestEpsilon = Params.areaTestEpsilon;
-			NewParams.meshWeldTolerance = Params.meshWeldTolerance;
+			PhysXCooking->setParams(Params);
 		}
 
 		if( Result && CookedMeshBuffer.Num() > 0 )

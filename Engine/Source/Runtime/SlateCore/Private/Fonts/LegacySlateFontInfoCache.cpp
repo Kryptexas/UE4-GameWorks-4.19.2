@@ -17,7 +17,8 @@ FLegacySlateFontInfoCache& FLegacySlateFontInfoCache::Get()
 }
 
 FLegacySlateFontInfoCache::FLegacySlateFontInfoCache()
-	: LocalizedFallbackFontDataHistoryVersion(INDEX_NONE)
+	: LocalizedFallbackFontRevision(INDEX_NONE)
+	, LocalizedFallbackFontDataHistoryVersion(INDEX_NONE)
 	, LocalizedFallbackFontFrameCounter(0)
 {
 }
@@ -102,6 +103,8 @@ const FFontData& FLegacySlateFontInfoCache::GetLocalizedFallbackFontData()
 		LocalizedFallbackFontDataHistoryVersion = CurrentHistoryVersion;
 		LocalizedFallbackFontFrameCounter = CurrentFrameCounter;
 
+		TSharedPtr<const FFontData> PreviousLocalizedFallbackFontData = LocalizedFallbackFontData;
+
 		const FString FallbackFontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/") / (NSLOCTEXT("Slate", "FallbackFont", "DroidSansFallback").ToString() + TEXT(".ttf"));
 		LocalizedFallbackFontData = AllLocalizedFallbackFontData.FindRef(FallbackFontPath);
 
@@ -113,9 +116,20 @@ const FFontData& FLegacySlateFontInfoCache::GetLocalizedFallbackFontData()
 
 			AllLocalizedFallbackFontData.Add(FallbackFontPath, LocalizedFallbackFontData);
 		}
+
+		if (LocalizedFallbackFontData != PreviousLocalizedFallbackFontData)
+		{
+			// Only bump the revision if the font has actually changed
+			++LocalizedFallbackFontRevision;
+		}
 	}
 
 	return *LocalizedFallbackFontData;
+}
+
+int32 FLegacySlateFontInfoCache::GetLocalizedFallbackFontRevision() const
+{
+	return LocalizedFallbackFontRevision;
 }
 
 TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetLastResortFont()

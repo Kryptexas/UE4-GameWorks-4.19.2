@@ -6,7 +6,12 @@ D3D12Device.cpp: D3D device RHI implementation.
 
 #include "D3D12RHIPrivate.h"
 #include "AllowWindowsPlatformTypes.h"
-#include <delayimp.h>
+	#include <delayimp.h>
+
+	#if D3D12_PROFILING_ENABLED
+		#define USE_PIX 1
+		#include "pix.h"
+	#endif
 #include "HideWindowsPlatformTypes.h"
 
 namespace D3D12RHI
@@ -471,11 +476,17 @@ void FD3D12DynamicRHI::Shutdown()
 void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name)
 {
 	OwningRHI.PushGPUEvent(Name);
+#if USE_PIX
+	PIXBeginEvent(CommandListHandle.CommandList(), PIX_COLOR_DEFAULT, Name);
+#endif
 }
 
 void FD3D12CommandContext::RHIPopEvent()
 {
 	OwningRHI.PopGPUEvent();
+#if USE_PIX
+	PIXEndEvent(CommandListHandle.CommandList());
+#endif
 }
 
 /**

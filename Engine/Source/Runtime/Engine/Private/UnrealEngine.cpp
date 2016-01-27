@@ -5963,7 +5963,7 @@ bool UEngine::HandleRecordAnimationCommand(UWorld* InWorld, const TCHAR* InStr, 
 			TCHAR AssetPath[256];
 			FParse::Token(Str, AssetPath, ARRAY_COUNT(AssetPath), 0);
 			FString const AssetName = FPackageName::GetLongPackageAssetName(AssetPath);
-			return FAnimationRecorderManager::Get().RecordAnimation(FoundActor, SkelComp, AssetPath, AssetName);
+			return FAnimationRecorderManager::Get().RecordAnimation(FoundActor, SkelComp, FString(AssetPath), AssetName);
 		}
 	}
 #endif		// WITH_EDITOR

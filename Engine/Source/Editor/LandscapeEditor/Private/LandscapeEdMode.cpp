@@ -421,7 +421,7 @@ void FEdModeLandscape::Enter()
 	}
 	else
 	{
-		if (CurrentToolMode == NULL)
+		if (CurrentToolMode == nullptr || (CurrentToolMode->CurrentToolName == FName("NewLandscape")))
 		{
 			SetCurrentToolMode("ToolMode_Sculpt", false);
 			SetCurrentTool("Sculpt");
@@ -536,10 +536,26 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 		return;
 	}
 
+	FViewport* const Viewport = ViewportClient->Viewport;
+
+	if (bToolActive && ensure(CurrentTool))
+	{
+		// Require Ctrl or not as per user preference
+		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
+
+		if (!Viewport->KeyState(EKeys::LeftMouseButton) ||
+			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && !IsCtrlDown(Viewport)))
+		{
+			CurrentTool->EndTool(ViewportClient);
+			Viewport->CaptureMouse(false);
+			bToolActive = false;
+		}
+	}
+
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		bool bStaleTargetLandscapeInfo = CurrentToolTarget.LandscapeInfo.IsStale();
-		bool bStaleTargetLandscape = CurrentToolTarget.LandscapeInfo.IsValid() && (CurrentToolTarget.LandscapeInfo->GetLandscapeProxy() != nullptr);
+		const bool bStaleTargetLandscapeInfo = CurrentToolTarget.LandscapeInfo.IsStale();
+		const bool bStaleTargetLandscape = CurrentToolTarget.LandscapeInfo.IsValid() && (CurrentToolTarget.LandscapeInfo->GetLandscapeProxy() != nullptr);
 
 		if (bStaleTargetLandscapeInfo || bStaleTargetLandscape)
 		{
@@ -580,9 +596,13 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 /** FEdMode: Called when the mouse is moved over the viewport */
 bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
-	if (bToolActive && !Viewport->KeyState(EKeys::LeftMouseButton))
+	if (bToolActive && ensure(CurrentTool))
 	{
-		if (CurrentTool)
+		// Require Ctrl or not as per user preference
+		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
+
+		if (!Viewport->KeyState(EKeys::LeftMouseButton) ||
+			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && !IsCtrlDown(Viewport)))
 		{
 			CurrentTool->EndTool(ViewportClient);
 			Viewport->CaptureMouse(false);
@@ -1834,13 +1854,21 @@ FEdModeLandscape::FTargetsListUpdated FEdModeLandscape::TargetsListUpdated;
 
 void FEdModeLandscape::OnWorldChange()
 {
+	bool bHadLandscape = (NewLandscapePreviewMode == ENewLandscapePreviewMode::None);
+
 	UpdateLandscapeList();
 	UpdateTargetList();
 
-	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None &&
-		CurrentToolTarget.LandscapeInfo == NULL)
+	// if the Landscape is deleted then close the landscape editor
+	if (bHadLandscape && CurrentToolTarget.LandscapeInfo == nullptr)
 	{
 		RequestDeletion();
+	}
+
+	// if a landscape is added somehow then switch to sculpt
+	if (!bHadLandscape && CurrentToolTarget.LandscapeInfo != nullptr)
+	{
+		SetCurrentTool("Sculpt");
 	}
 }
 

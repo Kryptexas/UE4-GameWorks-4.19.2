@@ -679,11 +679,16 @@ void SDetailsViewBase::Tick( const FGeometry& AllottedGeometry, const double InC
 		ensure(CustomizationClassInstancesPendingDelete[i].IsUnique());
 	}
 
-	if (RootNodePendingKill.IsValid())
+	// Release any pending kill nodes.
+	for ( TSharedPtr<FComplexPropertyNode>& PendingKillNode : RootNodesPendingKill )
 	{
-		RootNodePendingKill->Disconnect();
-		RootNodePendingKill.Reset();
+		if ( PendingKillNode.IsValid() )
+		{
+			PendingKillNode->Disconnect();
+			PendingKillNode.Reset();
+		}
 	}
+	RootNodesPendingKill.Reset();
 
 	// Empty all the customization instances that need to be deleted
 	CustomizationClassInstancesPendingDelete.Empty();
@@ -711,8 +716,14 @@ void SDetailsViewBase::Tick( const FGeometry& AllottedGeometry, const double InC
 		DeferredActions.Empty();
 	}
 
-	if( RootPropertyNode == RootNodePendingKill )
+	TSharedPtr<FComplexPropertyNode> LastRootPendingKill;
+	if ( RootNodesPendingKill.Num() > 0 )
 	{
+		LastRootPendingKill = RootNodesPendingKill.Last();
+	}
+
+	if ( RootPropertyNode == LastRootPendingKill )
+	{ 
 		// Reaquire the root property node.  It may have been changed by the deferred actions if something like a blueprint editor forcefully resets a details panel during a posteditchange
 		RootPropertyNode = GetRootNode();
 

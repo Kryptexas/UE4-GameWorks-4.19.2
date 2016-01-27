@@ -535,7 +535,7 @@ void InstallSignalHandlers()
 #endif
 
 	NSString* EncdodedURLString = [url absoluteString];
-	NSString* URLString = [EncdodedURLString stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+	NSString* URLString = [EncdodedURLString stringByRemovingPercentEncoding];
 	FString CommandLineParameters(URLString);
 
 	// Strip the "URL" part of the URL before treating this like args. It comes in looking like so:
@@ -639,6 +639,7 @@ void InstallSignalHandlers()
 	FPlatformMisc::HandleLowMemoryWarning();
 }
 
+#if !PLATFORM_TVOS
 #ifdef __IPHONE_8_0
 - (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings
 {
@@ -675,6 +676,7 @@ void InstallSignalHandlers()
 
 	FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast(FString(JsonString));
 }
+#endif
 
 /**
  * Shows the given Game Center supplied controller on the screen

@@ -136,7 +136,7 @@ ISlateAtlasProvider* FSlateRenderer::GetFontAtlasProvider()
 
 TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRenderer::CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList)
 {
-	return MakeShareable(new FSlateRenderDataHandle(Cacher, this));
+	return MakeShareable(new FSlateRenderDataHandle(Cacher, nullptr));
 }
 
 void FSlateRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)

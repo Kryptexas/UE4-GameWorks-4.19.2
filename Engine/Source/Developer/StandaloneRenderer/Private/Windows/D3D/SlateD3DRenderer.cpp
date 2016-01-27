@@ -352,9 +352,6 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 {
 	const TSharedRef<FSlateFontCache> FontCache = SlateFontServices->GetFontCache();
 
-	// Update the font cache with new text before elements are batched
-	FontCache->UpdateCache();
-
 	// Iterate through each element list and set up an RHI window for it if needed
 	TArray< TSharedPtr<FSlateWindowElementList> >& WindowElementLists = InWindowDrawBuffer.GetWindowElementLists();
 	for( int32 ListIndex = 0; ListIndex < WindowElementLists.Num(); ++ListIndex )
@@ -368,6 +365,9 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 
 			// Add all elements for this window to the element batcher
 			ElementBatcher->AddElements( ElementList );
+
+			// Update the font cache with new text before elements are batched
+			FontCache->UpdateCache();
 
 			FVector2D WindowSize = WindowToDraw->GetSizeInScreen();
 

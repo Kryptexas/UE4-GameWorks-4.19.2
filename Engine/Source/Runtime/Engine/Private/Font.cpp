@@ -216,7 +216,7 @@ void UFont::GetCharSize(TCHAR InCh, float& Width, float& Height) const
 				const float FontScale = 1.0f;
 				const FSlateFontInfo LegacyFontInfo = GetLegacySlateFontInfo();
 				FCharacterList& CharacterList = FontCache->GetCharacterList(LegacyFontInfo, FontScale);
-				const FCharacterEntry& Entry = CharacterList.GetCharacter(LegacyFontInfo, InCh);
+				const FCharacterEntry& Entry = CharacterList.GetCharacter(InCh, LegacyFontInfo.FontFallback);
 
 				Width = Entry.XAdvance;
 
@@ -251,7 +251,7 @@ int8 UFont::GetCharKerning(TCHAR First, TCHAR Second) const
 				const FSlateFontInfo LegacyFontInfo = GetLegacySlateFontInfo();
 				FCharacterList& CharacterList = FontCache->GetCharacterList(LegacyFontInfo, FontScale);
 
-				return CharacterList.GetKerning(LegacyFontInfo, First, Second);
+				return CharacterList.GetKerning(First, Second, LegacyFontInfo.FontFallback);
 			}
 		}
 		break;
@@ -274,7 +274,7 @@ int16 UFont::GetCharHorizontalOffset(TCHAR InCh) const
 			const float FontScale = 1.0f;
 			const FSlateFontInfo LegacyFontInfo = GetLegacySlateFontInfo();
 			FCharacterList& CharacterList = FontCache->GetCharacterList(LegacyFontInfo, FontScale);
-			const FCharacterEntry& Entry = CharacterList.GetCharacter(LegacyFontInfo, InCh);
+			const FCharacterEntry& Entry = CharacterList.GetCharacter(InCh, LegacyFontInfo.FontFallback);
 
 			return Entry.HorizontalOffset;
 		}

@@ -32,6 +32,7 @@ FSCSDiff::FSCSDiff(const UBlueprint* InBlueprint)
 				.HideComponentClassCombo(true)
 				.OnSelectionUpdated(SSCSEditor::FOnSelectionUpdated::CreateRaw(this, &FSCSDiff::OnSCSEditorUpdateSelectionFromNodes))
 				.OnHighlightPropertyInDetailsView(SSCSEditor::FOnHighlightPropertyInDetailsView::CreateRaw(this, &FSCSDiff::OnSCSEditorHighlightPropertyInDetailsView))
+				.IsDiffing(true)
 		]
 		+ SSplitter::Slot()
 		[

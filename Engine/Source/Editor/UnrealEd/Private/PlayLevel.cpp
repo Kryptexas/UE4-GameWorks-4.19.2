@@ -1810,14 +1810,6 @@ void UEditorEngine::PlayUsingLauncher()
 
 		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
 
-        // TODO: remove below once instruments has been fixed to run from the terminal again
-        if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS"))
-        {
-            PlayUsingLauncherDeviceName = DummyDeviceName;
-            LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DoNotLaunch);
-        }
-        // TODO: remove above once instruments has been fixed to run from the terminal again
-
 		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) != TEXT("IOS") || !PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
 		{
 			LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DefaultRole);

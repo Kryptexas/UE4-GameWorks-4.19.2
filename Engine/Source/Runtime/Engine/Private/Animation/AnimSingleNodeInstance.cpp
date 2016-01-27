@@ -47,12 +47,6 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	{
 		// otherwise stop all montages
 		StopAllMontages(0.25f);
-
-		UBlendSpaceBase * BlendSpace = Cast<UBlendSpaceBase>(NewAsset);
-		if(BlendSpace)
-		{
-			BlendSpace->InitializeFilter(&BlendFilter);
-		}
 	}
 }
 
@@ -353,4 +347,15 @@ void UAnimSingleNodeInstance::StepBackward()
 FAnimInstanceProxy* UAnimSingleNodeInstance::CreateAnimInstanceProxy()
 {
 	return new FAnimSingleNodeInstanceProxy(this);
+}
+
+FVector UAnimSingleNodeInstance::GetFilterLastOutput()
+{
+	if (UBlendSpaceBase* Blendspace = Cast<UBlendSpaceBase>(GetCurrentAsset()))
+	{
+		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+		return Proxy.GetFilterLastOutput();
+	}
+
+	return FVector::ZeroVector;
 }

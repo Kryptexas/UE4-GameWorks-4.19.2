@@ -46,10 +46,7 @@ public:
 	FHrtfSpatializationAlgorithm(class FAudioDevice * AudioDevice)
 		: bOvrContextInitialized(false)
 		, AudioDevice(AudioDevice)
-		, OvrAudioContextFast(nullptr)
-#if OCULUS_HQ_ENABLED
-		, OvrAudioContextHighQuality(0)
-#endif
+		, OvrAudioContext(nullptr)
 	{
 		// XAudio2's buffer lengths are always 1 percent of sample rate
 		uint32 BufferLength = AudioDevice->SampleRate / 100;
@@ -83,18 +80,12 @@ public:
 		// Destroy the contexts if we created them
 		if (bOvrContextInitialized)
 		{
-			if (OvrAudioContextFast != nullptr)
+			if (OvrAudioContext != nullptr)
 			{
-				ovrAudio_DestroyContext(OvrAudioContextFast);
-				OvrAudioContextFast = nullptr;
+				ovrAudio_DestroyContext(OvrAudioContext);
+				OvrAudioContext = nullptr;
 			}
 
-#if OCULUS_HQ_ENABLED
-			if (OvrAudioContextHighQuality != nullptr)
-			{
-				ovrAudio_DestroyContext(OvrAudioContextHighQuality);
-			}
-#endif
 			bOvrContextInitialized = false;
 		}
 	}
@@ -118,41 +109,26 @@ public:
 		ContextConfig.acc_Size = sizeof(ovrAudioContextConfiguration);
 
 		// First initialize the Fast algorithm context
-		ContextConfig.acc_Provider = ovrAudioSpatializationProvider_OVR_Simple;
+		ContextConfig.acc_Provider = ovrAudioSpatializationProvider_OVR_OculusHQ;
 		ContextConfig.acc_MaxNumSources = MaxNumSources;
 		ContextConfig.acc_SampleRate = SampleRate;
 		ContextConfig.acc_BufferLength = BufferLength;
 
-		check(OvrAudioContextFast == nullptr);
+		check(OvrAudioContext == nullptr);
 		// Create the OVR Audio Context with a given quality
-		ovrResult Result = ovrAudio_CreateContext(&OvrAudioContextFast, &ContextConfig);
+		ovrResult Result = ovrAudio_CreateContext(&OvrAudioContext, &ContextConfig);
 		OVR_AUDIO_CHECK(Result, "Failed to create simple context");
 
 		// Now initialize the high quality algorithm context
-#if OCULUS_HQ_ENABLED
-		ContextConfig.acc_Provider = ovrAudioSpatializationProvider_OVR_HQ;
-		check(OvrAudioContextHighQuality == nullptr);
-		// Create the OVR Audio Context with a given quality
-		Result = ovrAudio_CreateContext(&OvrAudioContextHighQuality, &ContextConfig);
-		OVR_AUDIO_CHECK(Result, "Failed to create high-quality context");
-#endif // #if OCULUS_HQ_ENABLED
-
 		bOvrContextInitialized = true;
 	}
 
-	void ProcessSpatializationForVoice(ESpatializationEffectType Type, uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position) override
+	void ProcessSpatializationForVoice(uint32 VoiceIndex, float* InSamples, float* OutSamples, const FVector& Position) override
 	{
-		if (Type == SPATIALIZATION_TYPE_FAST && OvrAudioContextFast)
+		if (OvrAudioContext)
 		{
-			ProcessAudio(OvrAudioContextFast, VoiceIndex, InSamples, OutSamples, Position);
+			ProcessAudio(OvrAudioContext, VoiceIndex, InSamples, OutSamples, Position);
 		}
-#if OCULUS_HQ_ENABLED
-		else
-		{
-			check(Type == SPATIALIZATION_TYPE_HIGH_QUALITY);
-			ProcessAudio(OvrAudioContextHighQuality, VoiceIndex, InSamples, OutSamples, Position);
-		}
-#endif // #if OCULUS_HQ_ENABLED
 	}
 
 	virtual bool CreateSpatializationEffect(uint32 VoiceId) override
@@ -213,7 +189,7 @@ private:
 	/** Helper function to convert from UE coords to OVR coords. */
 	FORCEINLINE FVector ToOVRVector(const FVector& InVec) const
 	{
-		return FVector(float(InVec.Y), float(InVec.Z), float(-InVec.X));
+		return FVector(float(InVec.Y), float(-InVec.Z), float(-InVec.X));
 	}
 
 	/* Whether or not the OVR audio context is initialized. We defer initialization until the first audio callback.*/
@@ -223,12 +199,7 @@ private:
 	FAudioDevice* AudioDevice;
 
 	/** The OVR Audio context initialized to "Fast" algorithm. */
-	ovrAudioContext OvrAudioContextFast;
-
-#if OCULUS_HQ_ENABLED
-	/** The OVR Audio context initialized to "High Quality" algorithm. */
-	ovrAudioContext OvrAudioContextHighQuality;
-#endif
+	ovrAudioContext OvrAudioContext;
 
 	/** Xaudio2 effects for the oculus plugin */
 	TArray<class FXAudio2HRTFEffect*> HRTFEffects;
@@ -281,8 +252,11 @@ public:
 
 	void Shutdown() override
 	{
-		// Better have more than 0 instances here
-		check(FOculusAudioPlugin::NumInstances > 0);
+		if (FOculusAudioPlugin::NumInstances == 0)
+		{
+			// This means we failed to load the OVR Audio module during initialization and there's nothing to shutdown.
+			return;
+		}
 
 		FOculusAudioPlugin::NumInstances--;
 

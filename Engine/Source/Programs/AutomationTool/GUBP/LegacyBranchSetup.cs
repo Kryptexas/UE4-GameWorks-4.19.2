@@ -681,7 +681,7 @@ partial class GUBP
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", Branch.BaseEngineProject.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
-                            if (bNoIOSOnPC && Plat == UnrealTargetPlatform.IOS && HostPlatform == UnrealTargetPlatform.Win64)
+                            if (bNoIOSOnPC && (Plat == UnrealTargetPlatform.IOS || Plat == UnrealTargetPlatform.TVOS) && HostPlatform == UnrealTargetPlatform.Win64)
                             {
                                 continue;
                             }
@@ -737,7 +737,7 @@ partial class GUBP
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", Branch.BaseEngineProject.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
-                            if (bNoIOSOnPC && Plat == UnrealTargetPlatform.IOS && HostPlatform == UnrealTargetPlatform.Win64)
+                            if (bNoIOSOnPC && (Plat == UnrealTargetPlatform.IOS || Plat == UnrealTargetPlatform.TVOS) && HostPlatform == UnrealTargetPlatform.Win64)
                             {
                                 continue;
                             }
@@ -969,7 +969,7 @@ partial class GUBP
                             {
                                 throw new AutomationException("Project {0} asked for platform {1} with host {2}, but the host platform cannot build that platform.", CodeProj.GameName, Plat.ToString(), HostPlatform.ToString());
                             }
-                            if (bNoIOSOnPC && Plat == UnrealTargetPlatform.IOS && HostPlatform == UnrealTargetPlatform.Win64)
+                            if (bNoIOSOnPC && (Plat == UnrealTargetPlatform.IOS || Plat == UnrealTargetPlatform.TVOS) && HostPlatform == UnrealTargetPlatform.Win64)
                             {
                                 continue;
                             }

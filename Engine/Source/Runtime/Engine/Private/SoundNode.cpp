@@ -152,6 +152,22 @@ float USoundNode::GetDuration()
 	return MaxDuration;
 }
 
+int32 USoundNode::GetNumSounds(const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound) const
+{
+	// Default implementation loops through all child nodes and sums the number of sounds.
+	// For most nodes this will result in 1, for node mixers, this will result in multiple sounds.
+	int32 NumSounds = 0;
+	for (USoundNode* ChildNode : ChildNodes)
+	{
+		if (ChildNode)
+		{
+			NumSounds += ChildNode->GetNumSounds(NodeWaveInstanceHash, ActiveSound);
+		}
+	}
+
+	return NumSounds;
+}
+
 #if WITH_EDITOR
 void USoundNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

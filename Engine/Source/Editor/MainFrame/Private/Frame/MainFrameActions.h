@@ -285,6 +285,8 @@ private:
 	// Handles clicking the packager notification item's Cancel button.
 	static void HandleUatCancelButtonClicked( TSharedPtr<FMonitoredProcess> PackagerProcess );
 
+	static void HandleUatCancelButtonClicked(TWeakPtr<FMonitoredProcess> PackagerProcess);
+
 	// Handles clicking the hyper link on a packager notification item.
 	static void HandleUatHyperlinkNavigate( );
 

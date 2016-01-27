@@ -122,105 +122,138 @@ FChildren* SSequencerTrackArea::GetChildren()
 
 int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	// give track editors a chance to paint
-	auto TrackEditors = Sequencer->GetTrackEditors();
-
-	for (const auto& TrackEditor : TrackEditors)
+	if ( Sequencer.IsValid() )
 	{
-		LayerId = TrackEditor->PaintTrackArea(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle);
+		// give track editors a chance to paint
+		auto TrackEditors = Sequencer.Pin()->GetTrackEditors();
+
+		for (const auto& TrackEditor : TrackEditors)
+		{
+			LayerId = TrackEditor->PaintTrackArea(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1, InWidgetStyle);
+		}
+
+		// paint the child widgets
+		FArrangedChildren ArrangedChildren(EVisibility::Visible);
+		ArrangeChildren(AllottedGeometry, ArrangedChildren);
+
+		const FPaintArgs NewArgs = Args.WithNewParent(this);
+
+		for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
+		{
+			FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
+			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
+			const int32 ThisWidgetLayerId = CurWidget.Widget->Paint( NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId + 2, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+
+			LayerId = FMath::Max(LayerId, ThisWidgetLayerId);
+		}
+
+		return Sequencer.Pin()->GetEditTool().OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 2);
 	}
-
-	// paint the child widgets
-	FArrangedChildren ArrangedChildren(EVisibility::Visible);
-	ArrangeChildren(AllottedGeometry, ArrangedChildren);
-
-	const FPaintArgs NewArgs = Args.WithNewParent(this);
-
-	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
-	{
-		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
-		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-		const int32 ThisWidgetLayerId = CurWidget.Widget->Paint( NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, LayerId + 2, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
-
-		LayerId = FMath::Max(LayerId, ThisWidgetLayerId);
-	}
-
-	return Sequencer->GetEditTool().OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 2);
+	return LayerId;
 }
 
 
 FReply SSequencerTrackArea::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	// Always ensure the edit tool is set up
-	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
-	return InputStack.HandleMouseButtonDown(*this, MyGeometry, MouseEvent);
+	if ( Sequencer.IsValid() )
+	{
+		// Always ensure the edit tool is set up
+		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
+		return InputStack.HandleMouseButtonDown(*this, MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
 }
 
 
 FReply SSequencerTrackArea::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	FContextMenuSuppressor SuppressContextMenus(TimeSliderController.ToSharedRef());
+	if ( Sequencer.IsValid() )
+	{
+		FContextMenuSuppressor SuppressContextMenus(TimeSliderController.ToSharedRef());
 
-	// Always ensure the edit tool is set up
-	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
-	return InputStack.HandleMouseButtonUp(*this, MyGeometry, MouseEvent);
+		// Always ensure the edit tool is set up
+		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
+		return InputStack.HandleMouseButtonUp(*this, MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
 }
 
 
 FReply SSequencerTrackArea::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	// Always ensure the edit tool is set up
-	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
-
-	FReply Reply = InputStack.HandleMouseMove(*this, MyGeometry, MouseEvent);
-
-	// Handle right click scrolling on the track area, if the captured index is that of the time slider
-	if (Reply.IsEventHandled() && InputStack.GetCapturedIndex() == 1)
+	if ( Sequencer.IsValid() )
 	{
-		if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
-		{
-			TreeView.Pin()->ScrollByDelta(-MouseEvent.GetCursorDelta().Y);
-		}
-	}
+		// Always ensure the edit tool is set up
+		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
 
-	return Reply;
+		FReply Reply = InputStack.HandleMouseMove(*this, MyGeometry, MouseEvent);
+
+		// Handle right click scrolling on the track area, if the captured index is that of the time slider
+		if (Reply.IsEventHandled() && InputStack.GetCapturedIndex() == 1)
+		{
+			if (MouseEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
+			{
+				TreeView.Pin()->ScrollByDelta(-MouseEvent.GetCursorDelta().Y);
+			}
+		}
+
+		return Reply;
+	}
+	return FReply::Unhandled();
 }
 
 
 FReply SSequencerTrackArea::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	// Always ensure the edit tool is set up
-	InputStack.SetHandlerAt(0, &Sequencer->GetEditTool());
-	return InputStack.HandleMouseWheel(*this, MyGeometry, MouseEvent);
+	if ( Sequencer.IsValid() )
+	{
+		// Always ensure the edit tool is set up
+		InputStack.SetHandlerAt(0, &Sequencer.Pin()->GetEditTool());
+		return InputStack.HandleMouseWheel(*this, MyGeometry, MouseEvent);
+	}
+	return FReply::Unhandled();
 }
 
 
 void SSequencerTrackArea::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	Sequencer->GetEditTool().OnMouseEnter(*this, MyGeometry, MouseEvent);
+	if ( Sequencer.IsValid() )
+	{
+		Sequencer.Pin()->GetEditTool().OnMouseEnter(*this, MyGeometry, MouseEvent);
+	}
 }
 
 
 void SSequencerTrackArea::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
-	Sequencer->GetEditTool().OnMouseLeave(*this, MouseEvent);
+	if ( Sequencer.IsValid() )
+	{
+		Sequencer.Pin()->GetEditTool().OnMouseLeave(*this, MouseEvent);
+	}
 }
 
 
 void SSequencerTrackArea::OnMouseCaptureLost()
 {
-	Sequencer->GetEditTool().OnMouseCaptureLost();
+	if ( Sequencer.IsValid() )
+	{
+		Sequencer.Pin()->GetEditTool().OnMouseCaptureLost();
+	}
 }
 
 
 FCursorReply SSequencerTrackArea::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const
 {
-	if (CursorEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
+	if ( Sequencer.IsValid() )
 	{
-		return FCursorReply::Cursor(EMouseCursor::GrabHandClosed);
-	}
+		if (CursorEvent.IsMouseButtonDown(EKeys::RightMouseButton) && HasMouseCapture())
+		{
+			return FCursorReply::Cursor(EMouseCursor::GrabHandClosed);
+		}
 
-	return Sequencer->GetEditTool().OnCursorQuery(MyGeometry, CursorEvent);
+		return Sequencer.Pin()->GetEditTool().OnCursorQuery(MyGeometry, CursorEvent);
+	}
+	return FCursorReply::Unhandled();
 }
 
 
@@ -228,7 +261,10 @@ void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double 
 {
 	CachedGeometry = AllottedGeometry;
 
-	Sequencer->GetEditTool().Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	if ( Sequencer.IsValid() )
+	{
+		Sequencer.Pin()->GetEditTool().Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	}
 
 	FVector2D Size = AllottedGeometry.GetLocalSize();
 

@@ -94,6 +94,10 @@ public:
 		PlayRate = InPlayRate;
 	}
 
+	FVector GetFilterLastOutput()
+	{
+		return BlendFilter.GetFilterLastOutput();
+	}
 	void SetVertexAnimation(UVertexAnimation * NewVertexAnim, bool bIsLooping, float InPlayRate);
 
 	void SetReverse(bool bInReverse);

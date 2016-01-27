@@ -29,10 +29,6 @@ public:
 
 	UStruct* GetBaseScriptStruct() const;
 
-	virtual void ImmdiatelyUpdate() override
-	{
-	}
-
 	virtual bool IsConnected() const override;
 
 	virtual bool DontUpdateValueWhileEditing() const override

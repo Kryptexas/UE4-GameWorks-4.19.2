@@ -20,6 +20,7 @@ void MainPS(
 	out float4 OutColor : SV_Target0
 	)
 {
+	ResolvedView = ResolveView();
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
 	FPixelMaterialInputs PixelMaterialInputs;
 

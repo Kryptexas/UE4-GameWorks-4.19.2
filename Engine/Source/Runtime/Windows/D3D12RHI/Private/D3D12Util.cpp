@@ -274,7 +274,7 @@ namespace D3D12RHI
 	}
 }
 
-void FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader)
+void FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader, bool bAllowUAVs)
 {
 	static const uint32 MaxSamplerCount = D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
 	static const uint32 MaxConstantBufferCount = MAX_CBS;
@@ -283,6 +283,10 @@ void FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(const D3D12_RESOU
 
 	// Round up and clamp values to their max
 	// Note: Rounding and setting counts based on binding tier allows us to create fewer root signatures.
+
+	// To reduce the size of the root signature, we only allow UAVs for certain shaders. 
+	// This code makes the assumption that the engine only uses UAVs at the PS or CS shader stages.
+	check(bAllowUAVs || (!bAllowUAVs && Counts.NumUAVs == 0));
 
 	if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1)
 	{
@@ -298,12 +302,12 @@ void FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(const D3D12_RESOU
 	if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2)
 	{
 		Shader.ConstantBufferCount = (Counts.NumCBs > 0) ? FMath::Min(MaxConstantBufferCount, FMath::RoundUpToPowerOfTwo(Counts.NumCBs)) : 0;
-		Shader.UnorderedAccessCount = (Counts.NumUAVs > 0) ? FMath::Min(MaxUnorderedAccessCount, FMath::RoundUpToPowerOfTwo(Counts.NumUAVs)) : 0;
+		Shader.UnorderedAccessCount = (Counts.NumUAVs > 0 && bAllowUAVs) ? FMath::Min(MaxUnorderedAccessCount, FMath::RoundUpToPowerOfTwo(Counts.NumUAVs)) : 0;
 	}
 	else
 	{
 		Shader.ConstantBufferCount = MaxConstantBufferCount;
-		Shader.UnorderedAccessCount = MaxUnorderedAccessCount;
+		Shader.UnorderedAccessCount = (bAllowUAVs) ? MaxUnorderedAccessCount : 0;
 	}
 }
 
@@ -325,7 +329,7 @@ void QuantizeBoundShaderState(
 	const FD3D12DomainShader* const DomainShader = BSS->GetDomainShader();
 	const FD3D12GeometryShader* const GeometryShader = BSS->GetGeometryShader();
 	if (VertexShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, VertexShader->ResourceCounts, QBSS.RegisterCounts[SV_Vertex]);
-	if (PixelShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, PixelShader->ResourceCounts, QBSS.RegisterCounts[SV_Pixel]);
+	if (PixelShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, PixelShader->ResourceCounts, QBSS.RegisterCounts[SV_Pixel], true);
 	if (HullShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, HullShader->ResourceCounts, QBSS.RegisterCounts[SV_Hull]);
 	if (DomainShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, DomainShader->ResourceCounts, QBSS.RegisterCounts[SV_Domain]);
 	if (GeometryShader) FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, GeometryShader->ResourceCounts, QBSS.RegisterCounts[SV_Geometry]);
@@ -343,7 +347,7 @@ void QuantizeBoundShaderState(
 	FMemory::Memzero(&QBSS, sizeof(QBSS));
 	check(QBSS.bAllowIAInputLayout == false);	// No access to vertex buffers needed
 	check(ComputeShader);
-	FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, ComputeShader->ResourceCounts, QBSS.RegisterCounts[SV_All]);
+	FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(ResourceBindingTier, ComputeShader->ResourceCounts, QBSS.RegisterCounts[SV_All], true);
 }
 
 FD3D12BoundRenderTargets::FD3D12BoundRenderTargets(FD3D12RenderTargetView** RTArray, uint32 NumActiveRTs, FD3D12DepthStencilView* DSView)
