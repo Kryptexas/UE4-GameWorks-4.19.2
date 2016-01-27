@@ -816,16 +816,18 @@ private:
 	 */
 	ECheckBoxState GetVisibilityToggleState() const
 	{
-		TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
-		UProperty* VariableProperty = VarAction->GetProperty();
-		if (VariableProperty != NULL)
+		TSharedPtr<FEdGraphSchemaAction> PaletteAction = ActionPtr.Pin();
+		if ( PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId() )
 		{
-			return VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
+			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(PaletteAction);
+			UProperty* VariableProperty = VarAction->GetProperty();
+			if ( VariableProperty != NULL )
+			{
+				return VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
+			}
 		}
-		else
-		{
-			return ECheckBoxState::Unchecked;
-		}
+
+		return ECheckBoxState::Unchecked;
 	}
 
 	/**
@@ -842,12 +844,16 @@ private:
 			return;
 		}
 
-		TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
+		TSharedPtr<FEdGraphSchemaAction> PaletteAction = ActionPtr.Pin();
+		if ( PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId() )
+		{
+			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(PaletteAction);
 
-		// Toggle the flag on the blueprint's version of the variable description, based on state
-		const bool bVariableIsExposed = (InNewState == ECheckBoxState::Checked);
+			// Toggle the flag on the blueprint's version of the variable description, based on state
+			const bool bVariableIsExposed = ( InNewState == ECheckBoxState::Checked );
 
-		FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(BlueprintObj, VarAction->GetVariableName(), !bVariableIsExposed);
+			FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(BlueprintObj, VarAction->GetVariableName(), !bVariableIsExposed);
+		}
 	}
 
 	/**
@@ -872,24 +878,24 @@ private:
 	 */
 	FLinearColor GetVisibilityToggleColor() const 
 	{
-		if(GetVisibilityToggleState() != ECheckBoxState::Checked)
+		if ( GetVisibilityToggleState() != ECheckBoxState::Checked )
 		{
-			return FColor(64,64,64).ReinterpretAsLinear();
+			return FColor(64, 64, 64).ReinterpretAsLinear();
 		}
 		else
 		{
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
 
-			if(!Result.IsEmpty())
+			if ( !Result.IsEmpty() )
 			{
-				return FColor(130,219,119).ReinterpretAsLinear(); //pastel green when tooltip exists
+				return FColor(130, 219, 119).ReinterpretAsLinear(); //pastel green when tooltip exists
 			}
 			else
 			{
-				return FColor(215,219,119).ReinterpretAsLinear(); //pastel yellow if no tooltip to alert designer 
+				return FColor(215, 219, 119).ReinterpretAsLinear(); //pastel yellow if no tooltip to alert designer 
 			}
 		}
 	}
@@ -904,7 +910,7 @@ private:
 	FText GetVisibilityToggleToolTip() const
 	{
 		FText ToolTip = FText::GetEmpty();
-		if(GetVisibilityToggleState() != ECheckBoxState::Checked)
+		if ( GetVisibilityToggleState() != ECheckBoxState::Checked )
 		{
 			ToolTip = LOCTEXT("VariablePrivacy_not_public_Tooltip", "Variable is not public and will not be editable on an instance of this Blueprint.");
 		}
@@ -913,8 +919,8 @@ private:
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
-			if(!Result.IsEmpty())
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintObj, VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
+			if ( !Result.IsEmpty() )
 			{
 				ToolTip = LOCTEXT("VariablePrivacy_is_public_Tooltip", "Variable is public and is editable on each instance of this Blueprint.");
 			}
