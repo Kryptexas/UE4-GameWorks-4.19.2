@@ -458,6 +458,12 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		FStringClassReference GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
 		UClass* GameInstanceClass = (GameInstanceClassName.IsValid() ? LoadObject<UClass>(NULL, *GameInstanceClassName.ToString()) : UGameInstance::StaticClass());
 		
+		if (GameInstanceClass == nullptr)
+		{
+			UE_LOG(LogEngine, Error, TEXT("Unable to load GameInstance Class '%s'. Falling back to generic UGameInstance."), *GameInstanceClassName.ToString());
+			GameInstanceClass = UGameInstance::StaticClass();
+		}
+
 		GameInstance = NewObject<UGameInstance>(this, GameInstanceClass);
 
 		GameInstance->InitializeStandalone();
