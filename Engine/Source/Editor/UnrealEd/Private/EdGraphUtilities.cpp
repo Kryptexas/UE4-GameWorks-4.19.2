@@ -61,6 +61,7 @@ protected:
 			{
 				// Move the old node into the transient package so that it is GC'd
 				CreatedObject->Rename(NULL, GetTransientPackage());
+				CreatedObject->MarkPendingKill();
 			}
 
 			if(Node)
