@@ -2068,6 +2068,8 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 		return; // Nothing to do
 	}
 
+	FMemMark Mark(FMemStack::Get());
+
 	// Length of one frame.
 	float const IntervalTime = SequenceLength / ((float)NumFrames - 1);
 
