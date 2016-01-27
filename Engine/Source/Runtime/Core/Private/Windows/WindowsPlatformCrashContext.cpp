@@ -31,7 +31,7 @@ static int32 ReportCrashCallCount = 0;
  * @return Success or failure
  */
 
-// @TODO yrx 2014-10-08 Move to FWindowsPlatformCrashContext
+// #CrashReport: 2014-10-08 Move to FWindowsPlatformCrashContext
 bool WriteMinidump( const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo, bool bIsEnsure )
 {
 	// Try to create file for minidump.
@@ -379,7 +379,7 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 static FCriticalSection EnsureLock;
 static bool bReentranceGuard = false;
 
-// #YRX_Crash: 2015-05-28 This should be named EngineEnsureHandler
+// #CrashReport: 2015-05-28 This should be named EngineEnsureHandler
 /** 
  * Report an ensure to the crash reporting system
  */
@@ -433,7 +433,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 #include "AllowWindowsPlatformTypes.h"
 void CreateExceptionInfoString(EXCEPTION_RECORD* ExceptionRecord)
 {
-	// @TODO yrx 2014-08-18 Fix FString usage?
+	// #CrashReport: 2014-08-18 Fix FString usage?
 	FString ErrorString = TEXT("Unhandled Exception: ");
 
 #define HANDLE_CASE(x) case x: ErrorString += TEXT(#x); break;
@@ -471,7 +471,7 @@ void CreateExceptionInfoString(EXCEPTION_RECORD* ExceptionRecord)
 }
 #include "HideWindowsPlatformTypes.h"
 
-// #YRX_Crash: 2015-05-28 THis should be named EngineCrashHandler
+// #CrashReport: 2015-05-28 THis should be named EngineCrashHandler
 int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
 	// Only create a minidump the first time this function is called.

@@ -97,7 +97,7 @@ struct FManifest
 	TArray<FManifestModule> Modules;
 
 	/**
-	 * Loads an UnrealHeaderTool.manifest from the specified filename.
+	 * Loads a *.uhtmanifest from the specified filename.
 	 *
 	 * @param Filename The filename of the manifest to load.
 	 * @return The loaded module info.

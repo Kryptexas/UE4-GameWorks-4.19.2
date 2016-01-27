@@ -1000,7 +1000,7 @@ protected:
 	virtual void ProcessSpecialMessageMarkerOperation( const FStatMessage& Message, const FStackState& StackState )
 	{}
 
-	// #YRX_Stats: 2015-07-13 Not implemented yet.
+	// #Stats: 2015-07-13 Not implemented yet.
 // 	/** Processes set operation. */
 // 	virtual void ProcessSetOperation( const FStatMessage& Message, const FStackState& StackState )
 // 	{}

@@ -13,7 +13,7 @@
 #if MALLOC_VERIFY
 
 /**
-/* Maintains a list of all pointers to currently allocated memory.
+ * Maintains a list of all pointers to currently allocated memory.
  */
 class FMallocVerify
 {
@@ -31,12 +31,83 @@ public:
 
 	/** Removes allocated pointer from list */
 	void Free(void* Ptr);
+};
 
-	/** Returns singleton object */
-	static FMallocVerify& Get()
+/**
+ * A verifying proxy malloc that takes a malloc to be used and checks that the caller
+ * is passing valid pointers.
+ */
+class FMallocVerifyProxy : public FMalloc
+{
+private:
+	/** Malloc we're based on, aka using under the hood */
+	FMalloc* UsedMalloc;
+
+	/* Verifier object */
+	FMallocVerify Verify;
+
+public:
+	explicit FMallocVerifyProxy(FMalloc* InMalloc)
+		: UsedMalloc(InMalloc)
 	{
-		static FMallocVerify Instance;
-		return Instance;
+	}
+
+	virtual void* Malloc(SIZE_T Size, uint32 Alignment) override
+	{
+		void* Result = UsedMalloc->Malloc(Size, Alignment);
+		Verify.Malloc(Result);
+		return Result;
+	}
+
+	virtual void* Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment) override
+	{
+		void* Result = UsedMalloc->Realloc(Ptr, NewSize, Alignment);
+		Verify.Realloc(Ptr, Result);
+		return Result;
+	}
+
+	virtual void Free(void* Ptr) override
+	{
+		if (Ptr)
+		{
+			Verify.Free(Ptr);
+			UsedMalloc->Free(Ptr);
+		}
+	}
+
+	virtual void InitializeStatsMetadata() override
+	{
+		UsedMalloc->InitializeStatsMetadata();
+	}
+
+	virtual void GetAllocatorStats(FGenericMemoryStats& OutStats) override
+	{
+		UsedMalloc->GetAllocatorStats(OutStats);
+	}
+
+	virtual void DumpAllocatorStats(FOutputDevice& Ar) override
+	{
+		UsedMalloc->DumpAllocatorStats(Ar);
+	}
+
+	virtual bool ValidateHeap() override
+	{
+		return UsedMalloc->ValidateHeap();
+	}
+
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
+	{
+		return UsedMalloc->Exec(InWorld, Cmd, Ar);
+	}
+
+	virtual bool GetAllocationSize(void* Original, SIZE_T& OutSize) override
+	{
+		return UsedMalloc->GetAllocationSize(Original, OutSize);
+	}
+
+	virtual const TCHAR* GetDescriptiveName() override
+	{ 
+		return UsedMalloc->GetDescriptiveName();
 	}
 };
 

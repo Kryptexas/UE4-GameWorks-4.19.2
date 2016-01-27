@@ -99,7 +99,7 @@ void FProfilerManager::PostConstructor()
 {
 	// Register tick functions.
 	OnTick = FTickerDelegate::CreateSP( this, &FProfilerManager::Tick );
-	OnTickHandle = FTicker::GetCoreTicker().AddTicker( OnTick );
+	OnTickHandle = FTicker::GetCoreTicker().AddTicker( OnTick, 1.0f );
 
 	// Create profiler client.
 	ProfilerClient = FModuleManager::GetModuleChecked<IProfilerClientModule>("ProfilerClient").CreateProfilerClient();
@@ -221,7 +221,7 @@ void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepa
 
 void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 {
-	// #YRX_Rework 2015-11-30 
+	// #Profiler: Rework
 #if	0
 	if (ActiveSession.IsValid())
 	{
@@ -260,15 +260,23 @@ bool FProfilerManager::Tick( float DeltaTime )
 {
 	SCOPE_CYCLE_COUNTER(STAT_PM_Tick);
 
-#if	0
-	static int32 NumIdleTicks = 0;
-	NumIdleTicks++;
-	if( NumIdleTicks > 60 )
+	if (ProfilerSession.IsValid() && !bHasCaptureFileFullyProcessed)
 	{
-		LoadRawStatsFile( TEXT( "U:/P4EPIC2/UE4/QAGame/Saved/Profiling/UnrealStats/RenderTestMap-Windows-03.19-13.49.04/RenderTestMap-Windows-19-13.52.19.ue4statsraw" ) );
-		return false;
+		static SIZE_T StartUsedPhysical = FPlatformMemory::GetStats().UsedPhysical;
+
+		const double MBInv = 1.0 / 1024.0 / 1024.0;
+		const SIZE_T DiffPhys = FPlatformMemory::GetStats().UsedPhysical - StartUsedPhysical;
+
+		const double SessionMemory = MBInv*ProfilerSession->GetMemoryUsage();
+		const double PhysMemory = MBInv*DiffPhys;
+
+		UE_LOG( LogStats, Log, TEXT( "ProfilerSession: %6.2f MB (%6.2f MB) # (%6.2f MB) / %7u -> %4u" ), 
+			SessionMemory,
+			PhysMemory,
+			PhysMemory - SessionMemory,
+			ProfilerSession->GetDataProvider()->GetNumSamples(),
+			ProfilerSession->GetDataProvider()->GetNumFrames() );
 	}
-#endif // 0
 
 	return true;
 }
@@ -601,13 +609,12 @@ void FProfilerManager::CloseAllEventGraphTabs()
 
 void FProfilerManager::DataGraph_OnSelectionChangedForIndex( uint32 FrameStartIndex, uint32 FrameEndIndex )
 {
-	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerManager::DataGraph_OnSelectionChangedForIndex" ), nullptr );
+//	SCOPE_LOG_TIME_FUNC();
 
 	if (ProfilerSession.IsValid())
 	{
-		FEventGraphDataRef EventGraphDataAverage = ProfilerSession->CreateEventGraphData( FrameStartIndex, FrameEndIndex, EEventGraphTypes::Average );
-		FEventGraphDataRef EventGraphDataMaximum = ProfilerSession->CreateEventGraphData( FrameStartIndex, FrameEndIndex, EEventGraphTypes::Maximum );
-		GetProfilerWindow()->UpdateEventGraph( ProfilerSession->GetInstanceID(), EventGraphDataAverage, EventGraphDataMaximum, false );
+		FEventGraphContainer EventGraphContainer = ProfilerSession->CreateEventGraphData( FrameStartIndex, FrameEndIndex );
+		GetProfilerWindow()->UpdateEventGraph( ProfilerSession->GetInstanceID(), EventGraphContainer.Average, EventGraphContainer.Maximum, false );
 	}
 }
 

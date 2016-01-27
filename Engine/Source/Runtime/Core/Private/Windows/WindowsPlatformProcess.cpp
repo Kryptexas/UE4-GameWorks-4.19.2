@@ -42,7 +42,7 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
 	check(Filename);
 
-	// In order to load the DLL and resolve its imports correctly, we update the PATH environment variable before the load, and restore it when we're done.
+	// In order to load the DLL and resolve its imports correctly, we update the PATH environment variable before the load, and restore it when we're done. 
 	TArray<TCHAR> InitialPathVariable;
 	InitialPathVariable.AddUninitialized(::GetEnvironmentVariable(TEXT("PATH"), NULL, 0));
 	if (::GetEnvironmentVariable(TEXT("PATH"), InitialPathVariable.GetData(), InitialPathVariable.Num()) == 0)

@@ -45,36 +45,44 @@ FGraphDataSource::FGraphDataSource( const FProfilerSessionRef& InProfilerSession
 	}
 }
 
-const TGraphDataType FGraphDataSource::GetUncachedValueFromIndex( const uint32 Index ) const
+const TGraphDataType FGraphDataSource::GetUncachedValueFromIndex( const uint32 FrameIndex ) const
 {
-	check( Index < ProfilerSession->GetDataProvider()->GetNumFrames() );
+	check( FrameIndex < ProfilerSession->GetDataProvider()->GetNumFrames() );
 	double Result = 0.0;
 
-	const IDataProviderRef DataProvider = ProfilerSession->GetDataProvider();
-
-	const FIntPoint& IndicesForFrame = DataProvider->GetSamplesIndicesForFrame( Index );
-	const uint32 SampleStartIndex = IndicesForFrame.X;
-	const uint32 SampleEndIndex = IndicesForFrame.Y;
-
-	const FProfilerSampleArray& Collection = DataProvider->GetCollection();
-
-	for( uint32 SampleIndex = SampleStartIndex; SampleIndex < SampleEndIndex; SampleIndex++ )
+	// Hierarchical samples are stored in different location.
+	// We skip hierarchical samples to ignore misleading recursion which would be counted twice etc.
+	if (GetSampleType() == EProfilerSampleTypes::HierarchicalTime)
 	{
-		const FProfilerSample& ProfilerSample = Collection[ SampleIndex ];
-		const bool bValidStat = ProfilerSample.StatID() == GetStatID();
+		const TMap<uint32, FInclusiveTime>& InclusiveAggregates = ProfilerSession->GetInclusiveAggregateStackStats( FrameIndex );
+		const FInclusiveTime* InclusiveTime = InclusiveAggregates.Find( GetStatID() );
 
-		if( bValidStat )
+		if (InclusiveTime)
 		{
-			if( GetSampleType() == EProfilerSampleTypes::HierarchicalTime )
+			Result = ProfilerSession->GetMetaData()->ConvertCyclesToMS( InclusiveTime->DurationCycles ) * Scale;
+		}
+	}
+	else
+	{
+		const IDataProviderRef DataProvider = ProfilerSession->GetDataProvider();
+
+		const FIntPoint& IndicesForFrame = DataProvider->GetSamplesIndicesForFrame( FrameIndex );
+		const uint32 SampleStartIndex = IndicesForFrame.X;
+		const uint32 SampleEndIndex = IndicesForFrame.Y;
+
+		const FProfilerSampleArray& Collection = DataProvider->GetCollection();
+
+		for (uint32 SampleIndex = SampleStartIndex; SampleIndex < SampleEndIndex; SampleIndex++)
+		{
+			const FProfilerSample& ProfilerSample = Collection[SampleIndex];
+			const bool bValidStat = ProfilerSample.StatID() == GetStatID();
+
+			if (bValidStat)
 			{
-				Result += ProfilerSample.DurationMS() * Scale;
-			}
-			else 
-			{
-				Result += ProfilerSample.CounterAsFloat() * Scale;
+				Result += ProfilerSample.GetDoubleValue() * Scale;
 			}
 		}
-	}	
+	}
 
 	return (TGraphDataType)Result;
 }
@@ -229,7 +237,6 @@ FEventProperty FEventGraphSample::Properties[ EEventPropertyIndex::InvalidOrMax 
 	FEventProperty( EEventPropertyIndex::ThreadPct, TEXT( "ThreadPct" ), STRUCT_OFFSET( FEventGraphSample, _ThreadPct ), EEventPropertyFormatters::TimePct ),
 	FEventProperty( EEventPropertyIndex::FramePct, TEXT( "FramePct" ), STRUCT_OFFSET( FEventGraphSample, _FramePct ), EEventPropertyFormatters::TimePct ),
 	FEventProperty( EEventPropertyIndex::ThreadToFramePct, TEXT( "ThreadToFramePct" ), STRUCT_OFFSET( FEventGraphSample, _ThreadToFramePct ), EEventPropertyFormatters::TimePct ),
-	FEventProperty( EEventPropertyIndex::StartTimeMS, TEXT( "StartTimeMS" ), STRUCT_OFFSET( FEventGraphSample, _StartTimeMS ), EEventPropertyFormatters::TimeMS ),
 	FEventProperty( EEventPropertyIndex::GroupName, TEXT( "GroupName" ), STRUCT_OFFSET( FEventGraphSample, _GroupName ), EEventPropertyFormatters::Name ),
 
 	// Booleans
@@ -274,7 +281,6 @@ void FEventGraphSample::InitializePropertyManagement()
 			.Add( TEXT( "ThreadPct" ), &Properties[EEventPropertyIndex::ThreadPct] )
 			.Add( TEXT( "FramePct" ), &Properties[EEventPropertyIndex::FramePct] )
 			.Add( TEXT( "ThreadToFramePct" ), &Properties[EEventPropertyIndex::ThreadToFramePct] )
-			.Add( TEXT( "StartTimeMS" ), &Properties[EEventPropertyIndex::StartTimeMS] )
 			.Add( TEXT( "GroupName" ), &Properties[EEventPropertyIndex::GroupName] )
 
 			// Booleans
@@ -399,10 +405,9 @@ FEventGraphData::FEventGraphData()
 	, FrameEndIndex( 0 )
 {}
 
-FEventGraphData::FEventGraphData( const FProfilerSessionRef& InProfilerSession, const uint32 InFrameIndex )
+FEventGraphData::FEventGraphData( const FProfilerSession * const InProfilerSession, const uint32 InFrameIndex )
 	: FrameStartIndex( InFrameIndex )
 	, FrameEndIndex( InFrameIndex+1 )
-	, ProfilerSessionPtr( InProfilerSession )
 {
 	static FTotalTimeAndCount Current(0.0f, 0);
 	PROFILER_SCOPE_LOG_TIME( TEXT( "FEventGraphData::FEventGraphData" ), &Current );
@@ -421,7 +426,8 @@ FEventGraphData::FEventGraphData( const FProfilerSessionRef& InProfilerSession, 
 	PopulateHierarchy_Recurrent( InProfilerSession, RootEvent, RootProfilerSample, DataProvider );
 
 	// Root sample contains FrameDurationMS
-	RootEvent->_InclusiveTimeMS = RootProfilerSample.DurationMS();
+	const FProfilerStatMetaDataRef& MetaData = InProfilerSession->GetMetaData();
+	RootEvent->_InclusiveTimeMS = MetaData->ConvertCyclesToMS( RootProfilerSample.GetDurationCycles() );
 	RootEvent->_MaxInclusiveTimeMS = RootEvent->_MinInclusiveTimeMS = RootEvent->_AvgInclusiveTimeMS = RootEvent->_InclusiveTimeMS;
 	RootEvent->_InclusiveTimePct = 100.0f;
 
@@ -436,13 +442,13 @@ FEventGraphData::FEventGraphData( const FProfilerSessionRef& InProfilerSession, 
 
 void FEventGraphData::PopulateHierarchy_Recurrent
 ( 
-	const FProfilerSessionRef& ProfilerSession,
+	const FProfilerSession * const ProfilerSession,
 	const FEventGraphSamplePtr ParentEvent, 
 	const FProfilerSample& ParentSample, 
 	const IDataProviderRef DataProvider
 )
 {
-	const FProfilerStatMetaDataRef MetaData = ProfilerSession->GetMetaData();
+	const FProfilerStatMetaDataRef& MetaData = ProfilerSession->GetMetaData();
 
 	for( int32 ChildIndex = 0; ChildIndex < ParentSample.ChildrenIndices().Num(); ChildIndex++ )
 	{
@@ -458,7 +464,7 @@ void FEventGraphData::PopulateHierarchy_Recurrent
 		FEventGraphSample* ChildEvent = new FEventGraphSample
 		(
 			ThreadName,	GroupName, ChildSample.StatID(), StatName, 
-			ChildSample.StartMS(), ChildSample.DurationMS(), ChildSample.CounterAsFloat(),
+			MetaData->ConvertCyclesToMS( ChildSample.GetDurationCycles() ), (double)ChildSample.GetCallCount(),
 			ParentEvent
 		);
 

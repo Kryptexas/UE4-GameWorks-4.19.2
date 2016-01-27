@@ -168,7 +168,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "Misc.OSVersionMinor" ), *NCachedCrashContextProperties::OsSubVersion );
 
 
-	// #YRX_Crash: 2015-07-21 Move to the crash report client.
+	// #CrashReport: 2015-07-21 Move to the crash report client.
 	/*{
 		uint64 AppDiskTotalNumberOfBytes = 0;
 		uint64 AppDiskNumberOfFreeBytes = 0;

@@ -725,6 +725,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			//NewCrash.HasDiagnosticsFile = true;		
 			//NewCrash.HasMetaData = true;
 
+			NewCrash.UserActivityHint = NewCrashInfo.UserActivityHint;
+
 			// Add the crash to the database
 			Context.Crashes.InsertOnSubmit( NewCrash );
 			SubmitChanges();

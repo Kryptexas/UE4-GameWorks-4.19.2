@@ -448,7 +448,7 @@ namespace UnrealBuildTool
 		public static bool bUseUBTMakefiles;
 
         /// <summary>
-        /// Enables support for fast UHT parsing by caching results of previous UHT runs. If a module or UnrealHeaderTool.manifest
+        /// Enables support for fast UHT parsing by caching results of previous UHT runs. If a module or *.uhtmanifest
         /// gets changed, all modules up to first changed one get loaded from makefile and the rest is parsed regularly.
         /// </summary>
         [XmlConfig]

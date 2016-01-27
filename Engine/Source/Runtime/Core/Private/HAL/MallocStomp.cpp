@@ -6,7 +6,6 @@
 
 #if USE_MALLOC_STOMP
 
-
 static void MallocStompOverrunTest()
 {
 	const uint32 ArraySize = 4;

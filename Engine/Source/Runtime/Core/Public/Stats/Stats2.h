@@ -1557,7 +1557,6 @@ public:
 };
 
 /** Manages startup messages, usually to update the metadata. */
-// @TODO yrx 2014-11-18 Eventually add startup messages for memory profiling?
 class FStartupMessages
 {
 	friend class FStatsThread;

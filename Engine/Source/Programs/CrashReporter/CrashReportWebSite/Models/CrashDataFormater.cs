@@ -350,16 +350,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						FuncName += "()";
 
 						// Grab the source file
-						if( OpenBracketOffset > CloseFuncSymbol && CloseBracketOffset > OpenBracketOffset && bWindows )
+						if( OpenBracketOffset > CloseFuncSymbol && CloseBracketOffset > OpenBracketOffset && (bWindows || bLinux) )
 						{
 							string FileLinePath = CurrentLine.Substring( OpenBracketOffset + 1, CloseBracketOffset - OpenBracketOffset - 1 ).Trim();
 
 							FilePath = FileLinePath.TrimEnd( "0123456789:".ToCharArray() );
-							int SourceLine = 0;
-							Debug.Assert( FilePath.Length < FileLinePath.Length, "WRONG SIZE" );
-							if( int.TryParse( FileLinePath.Substring( FilePath.Length + 1 ), out SourceLine ) )
+
+							if (FileLinePath.Length > FilePath.Length + 1)
 							{
-								LineNumber = SourceLine;
+								int SourceLine = 0;
+								if (int.TryParse(FileLinePath.Substring(FilePath.Length + 1), out SourceLine))
+								{
+									LineNumber = SourceLine;
+								}
 							}
 						}
 					}

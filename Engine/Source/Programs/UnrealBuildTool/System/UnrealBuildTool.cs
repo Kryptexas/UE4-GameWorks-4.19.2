@@ -1958,7 +1958,7 @@ namespace UnrealBuildTool
 									if (TargetUObjectModules.Count > 0)
 									{
 										// Execute the header tool
-										FileReference ModuleInfoFileName = FileReference.Combine(Target.ProjectIntermediateDirectory, "UnrealHeaderTool.manifest");
+										FileReference ModuleInfoFileName = FileReference.Combine(Target.ProjectIntermediateDirectory, Target.GetTargetName() + ".uhtmanifest");
 										ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
 										if (!ExternalExecution.ExecuteHeaderToolIfNecessary(ToolChain, Target, GlobalCompileEnvironment: null, UObjectModules: TargetUObjectModules, ModuleInfoFileName: ModuleInfoFileName, UHTResult: ref UHTResult))
 										{

@@ -2659,7 +2659,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 	return Results;
 }
 
-// @TODO yrx 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
+// #UObject: 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
 bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	const TCHAR *Str = Cmd;

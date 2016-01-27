@@ -77,7 +77,14 @@ void FOutputDeviceWindowsError::Serialize( const TCHAR* Msg, ELogVerbosity::Type
 		ErrorBuffer[0] = 0;
 
 		// Windows error.
-		UE_LOG( LogWindows, Error, TEXT( "Windows GetLastError: %s (%i)" ), FPlatformMisc::GetSystemErrorMessage( ErrorBuffer, 1024, LastError ), LastError );
+		if (LastError == 0)
+		{
+			UE_LOG(LogWindows, Log, TEXT("Windows GetLastError: %s (%i)"), FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, LastError), LastError);
+		}
+		else
+		{
+			UE_LOG(LogWindows, Error, TEXT("Windows GetLastError: %s (%i)"), FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, LastError), LastError);
+		}
 	}
 	else
 	{

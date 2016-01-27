@@ -35,12 +35,6 @@ typedef TSharedPtr<class FProfilerSession> FProfilerSessionPtr;
 /** Type definition for shared references to instances of FProfilerSession. */
 typedef TSharedRef<class FProfilerSession> FProfilerSessionRef;
 
-/** Type definition for shared references to const instances of FProfilerSession. */
-typedef TSharedRef<const class FProfilerSession> FProfilerSessionRefConst;
-
-/** Type definition for weak references to instances of FProfilerSession. */
-typedef TWeakPtr<class FProfilerSession> FProfilerSessionWeak;
-
 /** Type definition for shared pointers to instances of FProfilerStatMetaData. */
 typedef TSharedPtr<class FProfilerStatMetaData> FProfilerStatMetaDataPtr;
 

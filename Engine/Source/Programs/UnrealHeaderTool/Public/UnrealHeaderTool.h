@@ -11,4 +11,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCompile, Log, All);
 
+extern bool GUHTWarningLogged;
+
+#define UE_LOG_WARNING_UHT(Format, ...) { GUHTWarningLogged = true; UE_LOG(LogCompile, Warning, Format, ##__VA_ARGS__); }
+
 #endif		// __UnrealHeaderTool_h__

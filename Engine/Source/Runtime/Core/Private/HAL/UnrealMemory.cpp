@@ -13,6 +13,7 @@
 #include "MallocDebug.h"
 #include "MallocProfiler.h"
 #include "MallocThreadSafeProxy.h"
+#include "MallocVerify.h"
 #include "PlatformMallocCrash.h"
 
 
@@ -238,6 +239,11 @@ void GCreateMalloc()
 	{
 		GMalloc = new FMallocThreadSafeProxy( GMalloc );
 	}
+
+#if MALLOC_VERIFY
+	// Add the verifier
+	GMalloc = new FMallocVerifyProxy( GMalloc );
+#endif
 }
 
 

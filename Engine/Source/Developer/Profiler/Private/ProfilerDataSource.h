@@ -21,12 +21,6 @@ typedef TSharedPtr<class FEventGraphData, ESPMode::ThreadSafe> FEventGraphDataPt
 /** Type definition for shared references to instances of FEventGraphData. */
 typedef TSharedRef<class FEventGraphData, ESPMode::ThreadSafe> FEventGraphDataRef;
 
-/** Type definition for shared pointers to instances of FEventGraphDataHandler. */
-typedef TSharedPtr<class FEventGraphDataHandler> FEventGraphDataHandlerPtr;
-
-/** Type definition for shared references to instances of FEventGraphDataHandler. */
-typedef TSharedRef<class FEventGraphDataHandler> FEventGraphDataHandlerRef;
-
 /** Scratch buffers for multithreaded usage. */
 struct FProfilerScratchArea : public TThreadSingleton<FProfilerScratchArea>
 {
@@ -527,7 +521,7 @@ public:
 
 protected:
 	/* @return a sample value for the specified frame index from the data provider. */
-	const TGraphDataType GetUncachedValueFromIndex( const uint32 Index ) const;
+	const TGraphDataType GetUncachedValueFromIndex( const uint32 FrameIndex ) const;
 
 	/* @return an approximated sample value for the specified time range from the data provider. */
 	const TGraphDataType GetUncachedValueFromTimeRange( const float StartTimeMS, const float EndTimeMS ) const;
@@ -712,7 +706,6 @@ namespace EEventPropertyIndex
 		ThreadPct,
 		FramePct,
 		ThreadToFramePct,
-		StartTimeMS,
 		GroupName,
 		
 		// Booleans
@@ -986,7 +979,6 @@ public:
 		, _GroupName( InName )
 		, _StatName( InName )
 		, _StatID( 0 )
-		, _StartTimeMS( 0.0 )
 		, _InclusiveTimeMS( 0.0 )
 		, _InclusiveTimePct( 0.0 )
 		, _MinInclusiveTimeMS( TNumericLimits<double>::Max() )
@@ -1028,7 +1020,6 @@ protected:
 		const uint32 InStatID,
 		const FName InStatName,
 
-		const double InStartTimeMS,
 		const double InInclusiveTimeMS,
 		const double InNumCallsPerFrame,
 
@@ -1041,7 +1032,6 @@ protected:
 		, _GroupName( InGroupName )
 		, _StatName( InStatName )
 		, _StatID( InStatID )
-		, _StartTimeMS( InStartTimeMS )
 		, _InclusiveTimeMS( InInclusiveTimeMS )
 		, _InclusiveTimePct( 0.0f )
 		, _MinInclusiveTimeMS( InInclusiveTimeMS )
@@ -1073,7 +1063,6 @@ protected:
 		, _GroupName( SourceEvent._GroupName )
 		, _StatName( SourceEvent._StatName )
 		, _StatID( SourceEvent._StatID )
-		, _StartTimeMS( SourceEvent._StartTimeMS )
 		, _InclusiveTimeMS( SourceEvent._InclusiveTimeMS )
 		, _InclusiveTimePct( SourceEvent._InclusiveTimePct )
 		, _MinInclusiveTimeMS( SourceEvent._MinInclusiveTimeMS )
@@ -1118,11 +1107,11 @@ public:
 		//_ExclusiveTimeMS += Other->_ExclusiveTimeMS;
 
 		// Min/Max
-		_MinInclusiveTimeMS = FMath::Min( _MinInclusiveTimeMS, Other->_InclusiveTimeMS );
-		_MaxInclusiveTimeMS = FMath::Max( _MaxInclusiveTimeMS, Other->_InclusiveTimeMS );
+		_MinInclusiveTimeMS = FMath::Min( _MinInclusiveTimeMS, Other->_MinInclusiveTimeMS );
+		_MaxInclusiveTimeMS = FMath::Max( _MaxInclusiveTimeMS, Other->_MaxInclusiveTimeMS );
 
-		_MinNumCallsPerFrame = FMath::Min( _MinNumCallsPerFrame, Other->_NumCallsPerFrame );
-		_MaxNumCallsPerFrame = FMath::Max( _MaxNumCallsPerFrame, Other->_NumCallsPerFrame );
+		_MinNumCallsPerFrame = FMath::Min( _MinNumCallsPerFrame, Other->_MinNumCallsPerFrame );
+		_MaxNumCallsPerFrame = FMath::Max( _MaxNumCallsPerFrame, Other->_MaxNumCallsPerFrame );
 	}
 
 protected:
@@ -1738,10 +1727,6 @@ public:
 	/** Stat ID of the event. */ // TODO: Not needed, move to _statname if meta data is not available
 	uint32 _StatID;
 
-	/** Start time of this event, in milliseconds. */
-	double _StartTimeMS;
-
-
 	/** Duration of this event and its children, in milliseconds. */
 	double _InclusiveTimeMS;
 
@@ -2091,37 +2076,23 @@ struct EEventGraphTypes
 	static FString ToDescription( const EEventGraphTypes::Type EventGraphType );
 };
 
-/** POD helper class for storing information like type and frame indices about the event graph. */
-class FEventGraphDataProperties
+/** Simple struct used to return a result. */
+struct FEventGraphContainer
 {
-public:
-	FEventGraphDataProperties( uint32 InFrameStartIndex, uint32 InFrameEndIndex, const EEventGraphTypes::Type InEventGraphType )
+	/** Initialization constructor. */
+	FEventGraphContainer( uint32 InFrameStartIndex, uint32 InFrameEndIndex, const FEventGraphDataRef& InAverage, const FEventGraphDataRef& InMaximum, const FEventGraphDataRef& InTotal )
 		: FrameStartIndex( InFrameStartIndex )
 		, FrameEndIndex( InFrameEndIndex )
-		, EventGraphType( InEventGraphType )
+		, Average( InAverage )
+		, Maximum( InMaximum )
+		, Total( InTotal )
 	{}
 
-	uint32 FrameStartIndex;
-	uint32 FrameEndIndex;
-	EEventGraphTypes::Type EventGraphType;
-};
-
-template<> struct TIsPODType<FEventGraphDataProperties> { enum { Value = true }; };
-
-/** Helper class used to initialize event graph samples. */
-class FEventGraphDataHandler : public TSharedFromThis<FEventGraphDataHandler>
-{
-public:
-	FEventGraphDataHandler()
-	{}
-
-	FEventGraphDataHandler( const FGuid SessionInstanceID, const uint32 FrameStartIndex, const uint32 FrameEndIndex, const EEventGraphTypes::Type EventGraphType )
-	{
-		EventGraphProperties.Add( SessionInstanceID, FEventGraphDataProperties(FrameStartIndex,FrameEndIndex,EventGraphType) );
-	}
-
-	/** Contains information about frames that require opening an event graphs, stored as SessionInstanceID -> StartIndex. */
-	TMap<FGuid,FEventGraphDataProperties> EventGraphProperties;
+	const uint32 FrameStartIndex;
+	const uint32 FrameEndIndex;
+	FEventGraphDataRef Average;
+	FEventGraphDataRef Maximum;
+	FEventGraphDataRef Total;
 };
 
 /** 
@@ -2138,22 +2109,17 @@ public:
 
 	/** Destructor, for debugging purpose only. */
 	FORCEINLINE_DEBUGGABLE ~FEventGraphData()
-	{
-#if	_DEBUG
-		int k=0;k++;
-		RootEvent;
-#endif // _DEBUG
-	}
+	{}
 
 protected:
 	/**
 	 * Initialization constructor, hidden on purpose, may be only called from the FProfilerSession class.
 	 * 
-	 * @param InProfilerSession	- a const reference to the profiler session that will be used to generate this event graph data 
+	 * @param InProfilerSession	- a const pointer to the profiler session that will be used to generate this event graph data 
 	 * @param InFrameIndex		- the frame number from which to generate this event graph data
 	 *
 	 */
-	FEventGraphData( const FProfilerSessionRef& InProfilerSession, const uint32 InFrameIndex );
+	FEventGraphData( const FProfilerSession * const InProfilerSession, const uint32 InFrameIndex );
 
 	/** Copy constructor, create a full duplication of the source event graph data. */
 	FEventGraphData( const FEventGraphData& Source );
@@ -2171,7 +2137,7 @@ protected:
 	 */
 	void PopulateHierarchy_Recurrent
 	( 
-		const FProfilerSessionRef& ProfilerSession,
+		const FProfilerSession * const ProfilerSession,
 		const FEventGraphSamplePtr ParentEvent, 
 		const FProfilerSample& ParentSample, 
 		const IDataProviderRef DataProvider
@@ -2238,14 +2204,6 @@ public:
 		return Description;
 	}
 
-	/**
-	 * @return the profiler session that was used to generate this event graph data, may be null.
-	 */
-	FProfilerSessionPtr GetProfilerSession() const
-	{
-		return ProfilerSessionPtr.Pin();
-	}
-
 protected:
 	// TODO: FEventGraphSamplePtr -> FEventGraphSampleRef
 
@@ -2260,9 +2218,6 @@ protected:
 
 	/** The frame end index this event graph data was generated from. */
 	uint32 FrameEndIndex;
-
-	/** A weak pointer to the profiler session that was used to generate this event graph data. */
-	FProfilerSessionWeak ProfilerSessionPtr;
 };
 
 //}//namespace FEventGraphSample

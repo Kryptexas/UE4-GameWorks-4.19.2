@@ -13,45 +13,71 @@ using Tools.DotNETCommon.CaselessDictionary;
 namespace UnrealBuildTool
 {
 	/// <summary>
-	/// Type of module. Mirrored in UHT as EBuildModuleType
+	/// Type of module. Mirrored in UHT as EBuildModuleType.
+	/// This should be sorted by the order in which we expect modules to be built.
 	/// </summary>
 	public enum UEBuildModuleType
 	{
-		Unknown,
-		Runtime,
-		Developer,
-		Editor,
-		ThirdParty,
 		Program,
-		Game,
+		EngineRuntime,
+		EngineDeveloper,
+		EngineEditor,
+		EngineThirdParty,
+		GameRuntime,
+		GameDeveloper,
+		GameEditor,
+		GameThirdParty,
 	}
 	public static class UEBuildModuleTypeExtensions
 	{
+		public static bool IsProgramModule(this UEBuildModuleType ModuleType)
+		{
+			return ModuleType == UEBuildModuleType.Program;
+		}
 		public static bool IsEngineModule(this UEBuildModuleType ModuleType)
 		{
-			return ModuleType != UEBuildModuleType.Game;
+			return ModuleType == UEBuildModuleType.EngineRuntime || ModuleType == UEBuildModuleType.EngineDeveloper || ModuleType == UEBuildModuleType.EngineEditor || ModuleType == UEBuildModuleType.EngineThirdParty;
 		}
-		public static UEBuildModuleType FromHostType(ModuleHostType ModuleType)
+		public static bool IsGameModule(this UEBuildModuleType ModuleType)
+		{
+			return ModuleType == UEBuildModuleType.GameRuntime || ModuleType == UEBuildModuleType.GameDeveloper || ModuleType == UEBuildModuleType.GameEditor || ModuleType == UEBuildModuleType.GameThirdParty;
+		}
+		public static UEBuildModuleType? EngineModuleTypeFromHostType(ModuleHostType ModuleType)
 		{
 			switch (ModuleType)
 			{
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
 				case ModuleHostType.RuntimeAndProgram:
-                case ModuleHostType.ServerOnly:
-					return UEBuildModuleType.Runtime;
+				case ModuleHostType.ServerOnly:
+					return UEBuildModuleType.EngineRuntime;
 				case ModuleHostType.Developer:
-					return UEBuildModuleType.Developer;
+					return UEBuildModuleType.EngineDeveloper;
 				case ModuleHostType.Editor:
 				case ModuleHostType.EditorNoCommandlet:
-					return UEBuildModuleType.Editor;
-				case ModuleHostType.Program:
-					return UEBuildModuleType.Program;
+					return UEBuildModuleType.EngineEditor;
 				default:
-					return UEBuildModuleType.Unknown;
+					return null;
 			}
 		}
-
+		public static UEBuildModuleType? GameModuleTypeFromHostType(ModuleHostType ModuleType)
+		{
+			switch (ModuleType)
+			{
+				case ModuleHostType.Runtime:
+				case ModuleHostType.RuntimeNoCommandlet:
+				case ModuleHostType.RuntimeAndProgram:
+				case ModuleHostType.ServerOnly:
+					return UEBuildModuleType.GameRuntime;
+				case ModuleHostType.Developer:
+					return UEBuildModuleType.GameDeveloper;
+				case ModuleHostType.Editor:
+				case ModuleHostType.EditorNoCommandlet:
+					return UEBuildModuleType.GameEditor;
+				default:
+					return null;
+			}
+		}
 	}
 	/// <summary>
 	/// Distribution level of module.
@@ -87,50 +113,71 @@ namespace UnrealBuildTool
 		public static readonly string ProgramsFolder = String.Format("{0}Programs{0}", Path.DirectorySeparatorChar);
 		public static readonly string ThirdPartyFolder = String.Format("{0}ThirdParty{0}", Path.DirectorySeparatorChar);
 
-		public static UEBuildModuleType GetModuleTypeFromDescriptor(ModuleDescriptor Module)
+		public static UEBuildModuleType GetEngineModuleTypeFromDescriptor(ModuleDescriptor Module)
 		{
 			switch (Module.Type)
 			{
 				case ModuleHostType.Developer:
-					return UEBuildModuleType.Developer;
+					return UEBuildModuleType.EngineDeveloper;
 				case ModuleHostType.Editor:
 				case ModuleHostType.EditorNoCommandlet:
-					return UEBuildModuleType.Editor;
-				case ModuleHostType.Program:
-					return UEBuildModuleType.Program;
+					return UEBuildModuleType.EngineEditor;
 				case ModuleHostType.Runtime:
 				case ModuleHostType.RuntimeNoCommandlet:
 				case ModuleHostType.RuntimeAndProgram:
-					return UEBuildModuleType.Runtime;
+					return UEBuildModuleType.EngineRuntime;
 				default:
-					throw new BuildException("Unhandled module type {0}", Module.Type.ToString());
+					throw new BuildException("Unhandled engine module type {0}", Module.Type.ToString());
 			}
 		}
 
-		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(string ModuleName, UEBuildModuleType ModuleType, FileReference ModuleFileName)
+		public static UEBuildModuleType GetGameModuleTypeFromDescriptor(ModuleDescriptor Module)
+		{
+			switch (Module.Type)
+			{
+				case ModuleHostType.Developer:
+					return UEBuildModuleType.GameDeveloper;
+				case ModuleHostType.Editor:
+				case ModuleHostType.EditorNoCommandlet:
+					return UEBuildModuleType.GameEditor;
+				case ModuleHostType.Runtime:
+				case ModuleHostType.RuntimeNoCommandlet:
+				case ModuleHostType.RuntimeAndProgram:
+					return UEBuildModuleType.GameRuntime;
+				default:
+					throw new BuildException("Unhandled game module type {0}", Module.Type.ToString());
+			}
+		}
+
+		public static UEBuildModuleType? GetEngineModuleTypeBasedOnLocation(string ModuleName, FileReference ModuleFileName)
 		{
 			string ModuleFileRelativeToEngineDirectory = ModuleFileName.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
 			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.RuntimeFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
-				ModuleType = UEBuildModuleType.Runtime;
+				return UEBuildModuleType.EngineRuntime;
 			}
-			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.DeveloperFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+
+			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.DeveloperFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
-				ModuleType = UEBuildModuleType.Developer;
+				return UEBuildModuleType.EngineDeveloper;
 			}
-			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.EditorFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+
+			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.EditorFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
-				ModuleType = UEBuildModuleType.Editor;
+				return UEBuildModuleType.EngineEditor;
 			}
-			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ProgramsFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+	
+			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ProgramsFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
-				ModuleType = UEBuildModuleType.Program;
+				return UEBuildModuleType.Program;
 			}
-			else if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ThirdPartyFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
+
+			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.ThirdPartyFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
-				ModuleType = UEBuildModuleType.ThirdParty;
+				return UEBuildModuleType.EngineThirdParty;
 			}
-			return ModuleType;
+
+			return null;
 		}
 
 		/// <summary>
@@ -243,7 +290,7 @@ namespace UnrealBuildTool
 		{
 			return IsRedistributableOverride.HasValue
 				? IsRedistributableOverride.Value
-				: (Type != UEBuildModuleType.Developer && Type != UEBuildModuleType.Editor);
+				: (Type != UEBuildModuleType.EngineDeveloper && Type != UEBuildModuleType.EngineEditor);
 		}
 
 		/// <summary>
@@ -312,6 +359,15 @@ namespace UnrealBuildTool
 		/// Files which this module depends on at runtime.
 		/// </summary>
 		public List<RuntimeDependency> RuntimeDependencies;
+
+		/// <summary>
+		/// Returns a list of this module's immediate dependencies.
+		/// </summary>
+		/// <returns>An enumerable containing the dependencies of the module.</returns>
+		public IEnumerable<UEBuildModule> GetAllDependencyModules()
+		{
+			return PublicDependencyModules.Concat(PrivateDependencyModules).Concat(DynamicallyLoadedModules).Concat(PlatformSpecificDynamicallyLoadedModules);
+		}
 
 		public UEBuildModule(
 			UEBuildTarget InTarget,
@@ -515,7 +571,7 @@ namespace UnrealBuildTool
 		{
 			HashSet<UEBuildModule> VisitedModules = new HashSet<UEBuildModule>();
 
-			if (this.Type == UEBuildModuleType.Game)
+			if (this.Type.IsGameModule())
 			{
 				Definitions.Add("DEPRECATED_FORGAME=DEPRECATED");
 			}

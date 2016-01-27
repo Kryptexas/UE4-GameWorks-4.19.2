@@ -82,11 +82,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <remarks>All exceptions are caught and written to the event log.</remarks>
 		private void ProcessNewReports()
 		{
-			// Use the latest MinidumpDiagnostics from the main branch.
-			string Win64BinariesDirectory = Path.Combine( Properties.Settings.Default.DepotRoot, "UE4", "Engine", "Binaries", "Win64" );
 #if !DEBUG
-			string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics*");
-			if (!SyncRequiredFiles(MinidumpDiagnosticsName))
+			if (!SyncRequiredFiles())
 			{
 				return;
 			}
@@ -317,7 +314,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				NewCrash.SourceContext = NewContext.PrimaryCrashProperties.GetSourceContext();
 				NewCrash.ErrorMessage = NewContext.PrimaryCrashProperties.GetErrorMessage();
 				NewCrash.UserDescription = NewContext.PrimaryCrashProperties.GetUserDescription();
-				
+				NewCrash.UserActivityHint = NewContext.PrimaryCrashProperties.UserActivityHint;
+
 				// Iterate through all files and find a file with the earliest date.
 				DateTime TimeOfCrash = DateTime.UtcNow;
 				foreach( var File in DirInfo.GetFiles() )
@@ -433,6 +431,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 				if (ReportID <= 0)
 				{
 					CrashReporterProcessServicer.WriteFailure( "! NoUpload: Path=" + NewContext.CrashDirectory );
+					string PayloadFailedFileName = Path.Combine(DirInfo.FullName, "PayloadFailed.xml");
+					File.WriteAllText(PayloadFailedFileName, CrashDetails);
 					return false;
 				}
 
@@ -518,39 +518,37 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <summary>
 		/// Sync the MinidumpDiagnostics binary and the engine config files to #head.
 		/// </summary>
-		/// <param name="MinidumpDiagnosticsName">The name of the binary to sync to process the minidump.</param>
 		/// <returns>true if all the files synced without issue, false otherwise.</returns>
 		/// <remarks>As MinidumpDiagnostics is synced to #head, it requires the engine config files that match to run properly.</remarks>
-		private bool SyncRequiredFiles(string MinidumpDiagnosticsName)
+		private bool SyncRequiredFiles()
 		{
-			using( var MDDSyncProc = new LaunchProcess( PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", MinidumpDiagnosticsName ) )
+			// Use the latest MinidumpDiagnostics from the main branch.
+			string SyncBinariesString = Path.Combine(Properties.Settings.Default.DepotRoot, Properties.Settings.Default.SyncBinariesFromDepot);
+			using (var MDDSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", SyncBinariesString))
 			{
 				if( MDDSyncProc.WaitForExit( SyncTimeoutSeconds * 1000 ) == EWaitResult.TimedOut )
 				{
-					CrashReporterProcessServicer.WriteFailure( "Failed to sync MinidumpDiagnostics " + MinidumpDiagnosticsName );
-
+					CrashReporterProcessServicer.WriteFailure("Failed to sync MinidumpDiagnostics " + SyncBinariesString);
 					return false;
 				}
 			}
-			
-			string ConfigFiles = Path.Combine(Properties.Settings.Default.DepotRoot, "UE4", "Engine/Config/...");
-			using (var ConfigSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", ConfigFiles))
+
+			string SyncConfigString = Path.Combine(Properties.Settings.Default.DepotRoot, Properties.Settings.Default.SyncConfigFromDepot);
+			using (var ConfigSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", SyncConfigString))
 			{
 				if (ConfigSyncProc.WaitForExit(SyncTimeoutSeconds * 1000) == EWaitResult.TimedOut)
 				{
-					CrashReporterProcessServicer.WriteFailure( "Failed to sync config files " + ConfigFiles );
-
+					CrashReporterProcessServicer.WriteFailure("Failed to sync config files " + SyncConfigString);
 					return false;
 				}
 			}
 
-			string SSLFiles = Path.Combine(Properties.Settings.Default.DepotRoot, "UE4", "Engine/Binaries/ThirdParty/OpenSSL/..."); // Required by Perforce
-			using (var MiscSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", SSLFiles))
+			string SyncThirdPartyString = Path.Combine(Properties.Settings.Default.DepotRoot, Properties.Settings.Default.SyncThirdPartyFromDepot); // Required by Perforce
+			using (var MiscSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, "sync", SyncThirdPartyString))
 			{
 				if (MiscSyncProc.WaitForExit(SyncTimeoutSeconds * 1000) == EWaitResult.TimedOut)
 				{
-					CrashReporterProcessServicer.WriteFailure( "Failed to sync OpenSSL files " + SSLFiles );
-
+					CrashReporterProcessServicer.WriteFailure("Failed to sync OpenSSL files " + SyncThirdPartyString);
 					return false;
 				}
 			}
@@ -628,7 +626,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						break;
 
 					case ".txt":
-						if( Info.Name == CrashReporterConstants.DiagnosticsFileName )
+						if (string.Compare( Info.Name, CrashReporterConstants.DiagnosticsFileName, true ) == 0)
 						{
 							DiagnosticsFileName = Info.Name;
 							ReadDiagnosticsFile( NewContext );				
@@ -698,11 +696,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 		void ProcessDumpFile( string DiagnosticsPath, FGenericCrashContext NewContext )
 		{
 			// Use the latest MinidumpDiagnostics from the main branch.
-			string Win64BinariesDirectory = Path.Combine(Properties.Settings.Default.DepotRoot, "UE4", "Engine", "Binaries", "Win64");
+			string Win64BinariesDirectory = Path.Combine(Properties.Settings.Default.DepotRoot, Properties.Settings.Default.MDDBinariesFolderInDepot);
 #if DEBUG
 			// Note: the debug executable must be built locally or synced from Perforce manually
 			string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics-Win64-Debug.exe");
-			//string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics.exe");
 #else
 			string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics.exe");
 #endif

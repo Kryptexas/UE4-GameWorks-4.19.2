@@ -132,6 +132,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		[XmlElement]
 		public string[] UserDescription = null;
 
+		/// <summary>A string representing the user activity hint text from the application.</summary>
+		[XmlElement]
+		public string UserActivityHint = "";
+
 		/// <summary>The error message, can be assertion message, ensure message or message from the fatal error.</summary>
 		[XmlElement]
 		public string[] ErrorMessage = null;

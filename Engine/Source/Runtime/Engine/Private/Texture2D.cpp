@@ -2115,6 +2115,14 @@ void FTexture2DResource::FinalizeMipCount()
 		// We're done.
 		Owner->PendingMipChangeRequestStatus.Decrement();
 
+		// @todo: make it smarter, close only when we know we won't be streaming anymore or at least for a while
+		if (FPlatformProperties::RequiresCookedData())
+		{
+			const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
+			const FTexture2DMipMap& MipMap = OwnerMips[0];
+			FIOSystem::Get().HintDoneWithFile(MipMap.BulkData.GetFilename());
+		}
+
 		return;
 	}
 

@@ -138,7 +138,7 @@ struct FStatParams
 	 *	Maximum number of frames to be included in the history. 
 	 *	-maxhistoryframes=[20:20-120]
 	 */
-	// #YRX_STATS 2014-08-21 Replace with TParsedValueWithDefaultAndRange
+	// #Stats: 2014-08-21 Replace with TParsedValueWithDefaultAndRange
 	TParsedValueWithDefault<int32> MaxHistoryFrames;
 
 	/**

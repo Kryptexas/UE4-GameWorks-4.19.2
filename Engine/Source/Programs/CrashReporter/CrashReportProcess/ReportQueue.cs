@@ -401,7 +401,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				string BranchName = EngineVersion.Branch;
 				if (string.IsNullOrEmpty( BranchName ))
 				{
-					CrashReporterProcessServicer.WriteFailure( "% NoBranch: BuiltFromCL=" + string.Format( "{0,7}", BuiltFromCL ) + " Path=" + NewReportPath );
+					CrashReporterProcessServicer.WriteFailure("% NoBranch: BuiltFromCL=" + string.Format("{0,7}", BuiltFromCL) + " Path=" + NewReportPath + " EngineVersion=" + Context.PrimaryCrashProperties.EngineVersion);
 					ReportProcessor.MoveReportToInvalid( NewReportPath, Context.GetAsFilename() );
 					return;
 				}

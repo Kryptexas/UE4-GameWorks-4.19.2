@@ -211,7 +211,7 @@ private:
 	TArray<FGuid> PendingInstances;
 
 	/** Service connections */
-	// #YRX_tag 2015-11-19 should be only one active connection.
+	// #Profiler: 2015-11-19 should be only one active connection.
 	TMap<FGuid, FServiceConnection> Connections;
 
 	struct FReceivedFileInfo

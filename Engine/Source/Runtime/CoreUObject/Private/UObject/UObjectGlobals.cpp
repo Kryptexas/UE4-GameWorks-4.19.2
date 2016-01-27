@@ -814,7 +814,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 				Result = StaticFindObjectFast(ObjectClass, InOuter, *StrName);
 
 				// If the object was not found, check for a redirector and follow it if the class matches
-				if (!Result)
+				if (!Result && !(LoadFlags & LOAD_NoRedirects))
 				{
 					UObjectRedirector* Redirector = FindObjectFast<UObjectRedirector>(InOuter, *StrName);
 					if (Redirector && Redirector->DestinationObject && Redirector->DestinationObject->IsA(ObjectClass))
@@ -3191,7 +3191,7 @@ bool IsReferenced(UObject*& Obj, EObjectFlags KeepFlags, EInternalObjectFlags In
 	bool bIsReferenced = false;
 	if (FoundReferences)
 	{
-		bIsReferenced = FoundReferences->ExternalReferences.Num() > 0 || !Obj->IsUnreachable();
+		bool bReferencedByOuters = false;		
 		// Move some from external to internal before returning
 		for (int32 i = 0; i < FoundReferences->ExternalReferences.Num(); i++)
 		{
@@ -3203,11 +3203,13 @@ bool IsReferenced(UObject*& Obj, EObjectFlags KeepFlags, EInternalObjectFlags In
 			}
 			else if (OldRef->Referencer->IsIn(Obj))
 			{
+				bReferencedByOuters = true;
 				FReferencerInformation *NewRef = new(FoundReferences->InternalReferences) FReferencerInformation(OldRef->Referencer, OldRef->TotalReferences, OldRef->ReferencingProperties);
 				FoundReferences->ExternalReferences.RemoveAt(i);
 				i--;
 			}
 		}
+		bIsReferenced = FoundReferences->ExternalReferences.Num() > 0 || bReferencedByOuters || !Obj->IsUnreachable();
 	}
 	else
 	{

@@ -42,9 +42,6 @@ namespace EDataGraphMultiModes
 /** The delegate to be invoked when the frame offset has been changed. */
 DECLARE_DELEGATE_OneParam( FGraphOffsetChangedDelegate, int /*InFrameOffset*/ );
 
-/** The delegate to be invoked when the user clicked on the data graph. */
-DECLARE_DELEGATE_OneParam( FDataGraphClickedDelegate, FEventGraphDataHandlerRef /*EventGraphDataHandler*/ );
-
 /** The delegate to be invoked when the data graph summary widget wants to know index of the frame currently being hovered by the mouse. */
 DECLARE_DELEGATE_RetVal( int32, FGetHoveredFrameIndexDelegate );
 
@@ -300,8 +297,6 @@ protected:
 	void BindCommands();
 
 	void UpdateState();
-
-	const FEventGraphDataHandlerRef PrepareEventGraphDataHandler( const FVector2D& ScreenSpacePosition );
 
 	/** Handles FExecuteAction for ViewMode_SetIndexBased. */
 	void ViewMode_SetIndexBased_Execute();

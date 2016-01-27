@@ -65,6 +65,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		"CallStack"
 		"SourceContext"
 		"UserDescription"
+		"UserActivityHint" 
 		"ErrorMessage"
 		"CrashDumpMode"
 		"Misc.NumberOfCores"
@@ -457,6 +458,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 			string UnescapedValue = FGenericCrashContext.UnescapeXMLString( CallStack );
 			return UnescapedValue.Split( new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries );
 		}
+
+		/// <summary></summary>
+		[XmlElement]
+		public string UserActivityHint;
 
 		/// <summary></summary>
 		[XmlElement]

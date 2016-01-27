@@ -394,7 +394,7 @@ void FStatsWriteFile::SetDataDelegate( bool bSet )
 
 void FStatsWriteFile::WriteFrame( int64 TargetFrame )
 {
-	// #YRX_STATS: 2015-06-17 Add stat startfile -num=number of frames to capture
+	// #Stats: 2015-06-17 Add stat startfile -num=number of frames to capture
 
 	SCOPE_CYCLE_COUNTER( STAT_StreamFile );
 

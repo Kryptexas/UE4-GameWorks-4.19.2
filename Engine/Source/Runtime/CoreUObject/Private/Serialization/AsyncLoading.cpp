@@ -341,8 +341,10 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 #if THREADSAFE_UOBJECTS
 		FScopeLock QueueLock(&QueueCritical);
 #endif
+		const EAsyncLoadingResult::Type Result = EAsyncLoadingResult::Canceled;
 		for (FAsyncPackageDesc* PackageDesc : QueuedPackages)
 		{
+			PackageDesc->PackageLoadedDelegate.ExecuteIfBound(PackageDesc->Name, nullptr, Result);
 			delete PackageDesc;
 		}
 		QueuedPackages.Reset();
@@ -2041,6 +2043,14 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	#endif		// WITH_ENGINE
 	}
 
+	if (Linker)
+	{
+		// Flush linker cache now to reduce peak memory usage (5.5-10x)
+		// We shouldn't need it anyway at this point and even if something attempts to read in PostLoad, 
+		// we're just going to re-cache then.
+		Linker->FlushCache();
+	}
+
 	{
 		const bool bInternalCallbacks = true;
 		CallCompletionCallbacks(bInternalCallbacks, LoadingResult);
@@ -2415,7 +2425,7 @@ void FArchiveAsync::FlushCache()
 	PrecacheEndPos[CURRENT]		= 0;
 	PrecacheBufferSize[CURRENT] = 0;
 	PrecacheBufferProtected[CURRENT] = false;
-
+	
 	// Invalidate any precached data and free memory for next buffer.
 	FreeAsyncBuffer(PrecacheBuffer[NEXT], PrecacheBufferSize[NEXT]);
 	PrecacheBuffer[NEXT]		= nullptr;
@@ -2489,15 +2499,15 @@ bool FArchiveAsync::SetCompressionMap( TArray<FCompressedChunk>* InCompressedChu
  */
 void FArchiveAsync::BufferSwitcheroo()
 {
-	check(PrecacheReadStatus[CURRENT].GetValue() == 0);
-	check(PrecacheReadStatus[NEXT].GetValue() == 0);
+	check( PrecacheReadStatus[CURRENT].GetValue() == 0 );
+	check( PrecacheReadStatus[NEXT].GetValue() == 0 );
 
 	// Switcheroo.
 	DEC_DWORD_STAT_BY(STAT_StreamingAllocSize, PrecacheEndPos[CURRENT] - PrecacheStartPos[CURRENT]);
 	FreeAsyncBuffer(PrecacheBuffer[CURRENT], PrecacheBufferSize[CURRENT]);
-	PrecacheBuffer[CURRENT] = PrecacheBuffer[NEXT];
-	PrecacheStartPos[CURRENT] = PrecacheStartPos[NEXT];
-	PrecacheEndPos[CURRENT] = PrecacheEndPos[NEXT];
+	PrecacheBuffer[CURRENT]		= PrecacheBuffer[NEXT];
+	PrecacheStartPos[CURRENT]	= PrecacheStartPos[NEXT];
+	PrecacheEndPos[CURRENT]		= PrecacheEndPos[NEXT];
 	PrecacheBufferSize[CURRENT] = PrecacheBufferSize[NEXT];
 	PrecacheBufferProtected[CURRENT] = PrecacheBufferProtected[NEXT];
 
@@ -2720,7 +2730,7 @@ bool FArchiveAsync::Precache( int64 RequestOffset, int64 RequestSize )
  * @param	Count	Number of bytes to read
  */
 void FArchiveAsync::Serialize(void* Data, int64 Count)
-{	
+{
 #if PLATFORM_DESKTOP
 	// Show a message box indicating, possible, corrupt data (desktop platforms only)
 	if (CurrentPos + Count > TotalSize())
@@ -2738,8 +2748,8 @@ void FArchiveAsync::Serialize(void* Data, int64 Count)
 		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
 	}
 #endif
-	// Ensure we aren't reading beyond the end of the file	
-	checkf( CurrentPos + Count <= TotalSize(), TEXT("Seeked past end of file %s (%lld / %lld)"), *FileName, CurrentPos + Count, TotalSize() );	
+	// Ensure we aren't reading beyond the end of the file
+	checkf( CurrentPos + Count <= TotalSize(), TEXT("Seeked past end of file %s (%lld / %lld)"), *FileName, CurrentPos + Count, TotalSize() );
 
 #if LOOKING_FOR_PERF_ISSUES
 	uint32 StartCycles = 0;

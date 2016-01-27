@@ -28,6 +28,19 @@ inline CONSTEXPR T Align( const T Ptr, int32 Alignment )
 }
 
 /**
+ * Aligns a value to the nearest lower multiple of 'Alignment', which must be a power of two.
+ *
+ * @param Ptr			Value to align
+ * @param Alignment		Alignment, must be a power of two
+ * @return				Aligned value
+ */
+template <typename T>
+inline CONSTEXPR T AlignDown( const T Ptr, int32 Alignment )
+{
+	return (T)(((PTRINT)Ptr) & ~(Alignment-1));
+}
+
+/**
  * Checks if a pointer is aligned to the specified alignment.
  *
  * @param Ptr - The pointer to check.
@@ -367,7 +380,7 @@ FORCEINLINE T&& Forward(typename TRemoveReference<T>::Type&& Obj)
 }
 
 /**
- * Swap two values, using moves if possible
+ * Swap two values.  Assumes the types are trivially relocatable.
  */
 template <typename T>
 inline void Swap(T& A, T& B)

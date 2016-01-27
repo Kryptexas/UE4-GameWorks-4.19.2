@@ -101,7 +101,8 @@ void ConsoleCommandLibrary_DumpLibrary(UWorld* InWorld, FExec& SubSystem, const 
 
 void ConsoleCommandLibrary_DumpLibraryHTML(UWorld* InWorld, FExec& SubSystem, const FString& OutPath)
 {
-	ConsoleCommandLibrary LocalConsoleCommandLibrary(FString(TEXT("*")));
+	const FString& Pattern(TEXT("*"));
+	ConsoleCommandLibrary LocalConsoleCommandLibrary(Pattern);
 
 	FOutputDeviceNull Null;
 

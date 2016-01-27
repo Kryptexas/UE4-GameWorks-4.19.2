@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrashReportProcess", "CrashReportProcess\CrashReportProcess.csproj", "{AE49361C-2EC7-4462-B617-FA363ADD71A6}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -69,13 +69,14 @@ Global
 		{5D7D66E8-8C76-4AF9-B3EC-2EF03421D730}.Development|Mixed Platforms.ActiveCfg = Development|Any CPU
 		{5D7D66E8-8C76-4AF9-B3EC-2EF03421D730}.Development|Mixed Platforms.Build.0 = Development|Any CPU
 		{5D7D66E8-8C76-4AF9-B3EC-2EF03421D730}.Development|x64.ActiveCfg = Development|Any CPU
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Any CPU.ActiveCfg = Release|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Any CPU.Build.0 = Release|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Mixed Platforms.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|Mixed Platforms.Build.0 = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|x64.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Debug|x64.Build.0 = Debug|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.ActiveCfg = Release|x64
-		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.Build.0 = Release|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.ActiveCfg = Debug|x64
+		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Any CPU.Build.0 = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Mixed Platforms.ActiveCfg = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|Mixed Platforms.Build.0 = Debug|x64
 		{CD5C5FA6-795B-4E05-87E0-1FE61514BB7A}.Development|x64.ActiveCfg = Debug|x64

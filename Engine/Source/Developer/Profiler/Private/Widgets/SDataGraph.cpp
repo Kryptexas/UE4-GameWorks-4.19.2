@@ -1156,32 +1156,6 @@ FReply SDataGraph::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 	return FReply::Handled();
 }
 
-const FEventGraphDataHandlerRef SDataGraph::PrepareEventGraphDataHandler( const FVector2D& ScreenSpacePosition )
-{
-	const FTrackedStatPtr FirstTrackedStat = GetFirstGraph();
-	if (FirstTrackedStat.IsValid())
-	{
-		if( ViewMode == EDataGraphViewModes::Time )
-		{
-			TMap<FGuid,uint32> StartIndices;
-			const float TimeAccuracyMS = FTimeAccuracy::AsFrameTime( TimeBasedAccuracy );
-			// #YRX_ProfilerFix? 2015-12-08 
-			//GraphDescription->GraphDataSource->GetStartIndicesFromTimeRange( FrameTimesMS[0], FrameTimesMS[1], StartIndices );
-
-			const FEventGraphDataHandlerRef Params = MakeShareable( new FEventGraphDataHandler( /*StartIndices*/ ) ); 
-			return Params;
-		}
-		else if( ViewMode == EDataGraphViewModes::Index )
-		{
-			const FGraphDataSourceRefConst& GraphDataSource = FirstTrackedStat->GraphDataSource;
-			const FEventGraphDataHandlerRef Params = MakeShareable( new FEventGraphDataHandler( GraphDataSource->GetSessionInstanceID(), FrameIndices[0], FrameIndices[1], EEventGraphTypes::Maximum ) ); 
-			return Params;
-		}
-	}
-
-	return MakeShareable( new FEventGraphDataHandler() );
-}
-
 FReply SDataGraph::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	return FReply::Unhandled();
@@ -1259,8 +1233,6 @@ void SDataGraph::ShowContextMenu(const FVector2D& ScreenSpacePosition, const FPo
 	const FProfilerActionManager& ProfilerActionManager = FProfilerManager::GetActionManager();
 
 	// Build data required for opening event graph(s).
-	const FEventGraphDataHandlerRef EventGraphDataHandler = PrepareEventGraphDataHandler( ScreenSpacePosition );
-
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, ProfilerCommandList );
 	

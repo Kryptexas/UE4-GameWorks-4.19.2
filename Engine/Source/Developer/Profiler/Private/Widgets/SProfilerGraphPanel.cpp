@@ -2,7 +2,6 @@
 
 #include "ProfilerPrivatePCH.h"
 
-// @TODO yrx 2014-04-18 Move SProfilerWindow later
 #define LOCTEXT_NAMESPACE "SProfilerGraphPanel"
 
 SProfilerGraphPanel::SProfilerGraphPanel()
@@ -133,14 +132,12 @@ void SProfilerGraphPanel::HorizontalScrollBar_OnUserScrolled( float ScrollOffset
 
 void SProfilerGraphPanel::VerticalScrollBar_OnUserScrolled( float ScrollOffset )
 {
-	// @TODO yrx 2014-04-24 Broadcast?
 	if( ViewMode == EProfilerViewMode::LineIndexBased )
 	{
 
 	}
 	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
 	{
-		// @TODO yrx 2014-04-23 
 		ThreadView->SetPositonYTo( ScrollOffset );
 	}
 }
@@ -257,7 +254,6 @@ void SProfilerGraphPanel::UpdateInternals()
 	}
 	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
 	{
-		// @TODO yrx 2014-04-23 
 	}
 }
 

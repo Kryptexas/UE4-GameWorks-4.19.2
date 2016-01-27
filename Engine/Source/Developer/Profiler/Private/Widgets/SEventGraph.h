@@ -60,13 +60,17 @@ namespace EEventGraphViewModes
 	FName ToBrushName( const Type EventGraphViewMode );
 }
 
-// @TODO: Sort properties by size.
-
 /** Holds information about a column in the event graph widget. */
-class FEventGraphColumn /*: public FNoncopyable*/
+class FEventGraphColumn
 {
-public:
+	friend struct FEventGraphColumns;
 
+protected:
+	/** Default constructor, only used in FEventGraphColumns  */
+	FEventGraphColumn()
+	{}
+
+	/** Initialization constructor, only used in FEventGraphColumns. */
 	FEventGraphColumn
 	(
 		const EEventPropertyIndex::Type InIndex,

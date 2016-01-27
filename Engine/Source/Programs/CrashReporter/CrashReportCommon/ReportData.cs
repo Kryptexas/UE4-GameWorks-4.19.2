@@ -16,6 +16,13 @@ namespace Tools.CrashReporter.CrashReportCommon
 			int MinusPos = StringEngineVersion.IndexOf( '-' );
 			int PlusPos = StringEngineVersion.IndexOf( '+' );
 
+			if (MinusPos < 0 || PlusPos < 0 || PlusPos < MinusPos)
+			{
+				VersionNumber = string.Empty;
+				Branch = string.Empty;
+				return;
+			}
+
 			VersionNumber = StringEngineVersion.Substring( 0, MinusPos );
 			string ChangelistSring = StringEngineVersion.Substring( MinusPos + 1, PlusPos - MinusPos - 1 );
 			uint.TryParse( ChangelistSring, out Changelist );

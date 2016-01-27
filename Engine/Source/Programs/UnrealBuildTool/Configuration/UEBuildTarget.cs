@@ -1992,6 +1992,130 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Holds a cache of dependency tests between nodes.
+		/// </summary>
+		/// <typeparam name="NodeType">The type of node to be tested for dependencies.</typeparam>
+		class NodeDependencyCache<NodeType>
+		{
+			public NodeDependencyCache(Func<NodeType, IEnumerable<NodeType>> InNodeDependencies)
+			{
+				NodeDependencies = InNodeDependencies;
+				PreviousResults  = new Dictionary<NodeType, Dictionary<NodeType, bool>>();
+			}
+
+			/// <summary>
+			/// Tests if NodeA is dependent on NodeB.
+			/// </summary>
+			/// <param name="NodeA">The dependent to test.</param>
+			/// <param name="NodeB">The dependency to test.</param>
+			/// <returns>true if NodeA is dependent on NodeB, false otherwise.</returns>
+			public bool DependsOn(NodeType NodeA, NodeType NodeB)
+			{
+				// Return any previous result, if there is one.
+				bool Result;
+				Dictionary<NodeType, bool> InnerDictionary;
+				if (PreviousResults.TryGetValue(NodeA, out InnerDictionary))
+				{
+					if (InnerDictionary.TryGetValue(NodeB, out Result))
+					{
+						return Result;
+					}
+				}
+				else
+				{
+					InnerDictionary = new Dictionary<NodeType, bool>();
+					PreviousResults.Add(NodeA, InnerDictionary);
+				}
+
+				Result = DependsOnRecursive(NodeA, NodeB, new HashSet<NodeType>(), InnerDictionary);
+				InnerDictionary.Add(NodeB, Result);
+				return Result;
+			}
+
+			private bool DependsOnRecursive(NodeType NodeA, NodeType NodeB, HashSet<NodeType> Visited, Dictionary<NodeType, bool> InnerDictionary)
+			{
+				if (Visited.Contains(NodeA))
+				{
+					// Nodes are not dependent on themselves
+					return false;
+				}
+
+				Visited.Add(NodeA);
+
+				IEnumerable<NodeType> Deps = NodeDependencies(NodeA);
+
+				if (Deps.Contains(NodeB))
+				{
+					// NodeB is an immediate dependent of NodeA
+					return true;
+				}
+
+				foreach (var i in Deps)
+				{
+					bool Result;
+					if (InnerDictionary.TryGetValue(NodeB, out Result) && Result)
+					{
+						// We've calculated this result before
+						return true;
+					}
+
+					if (DependsOnRecursive(i, NodeB, Visited, InnerDictionary))
+					{
+						return true;
+					}
+				}
+
+				// Didn't find any dependency
+				return false;
+			}
+
+			private Func<NodeType, IEnumerable<NodeType>>            NodeDependencies;
+			private Dictionary<NodeType, Dictionary<NodeType, bool>> PreviousResults;
+		}
+
+		/// <summary>
+		/// Returns a copy of Nodes sorted by dependency.  Independent or circularly-dependent nodes should
+		/// remain in their same relative order within the original Nodes sequence.
+		/// </summary>
+		/// <typeparam name="NodeType">The type of node to sort.</typeparam>
+		/// <param name="Nodes">The sequence of nodes to sort.</param>
+		/// <param name="NodeDependencies">A function which returns a node's immediate dependencies.</param>
+		/// <returns>A copy of Nodes sorted by NodeDependencies, with circular references remaining in the same relative order.</returns>
+		public static IEnumerable<NodeType> StableTopologicalSort<NodeType>(IEnumerable<NodeType> Nodes, Func<NodeType, IEnumerable<NodeType>> NodeDependencies)
+		{
+			List<NodeType> NodeList  = Nodes.ToList();
+			int            NodeCount = NodeList.Count;
+
+			var Cache = new NodeDependencyCache<NodeType>(NodeDependencies);
+			for (int Index1 = 0; Index1 != NodeCount; ++Index1)
+			{
+				var Node1 = NodeList[Index1];
+
+				for (int Index2 = 0; Index2 != Index1; ++Index2)
+				{
+					var Node2 = NodeList[Index2];
+
+					if (Cache.DependsOn(Node2, Node1) && !Cache.DependsOn(Node1, Node2))
+					{
+						// Rotate element at Index1 into position at Index2
+						for (int Index3 = Index1; Index3 != Index2; )
+						{
+							--Index3;
+							NodeList[Index3 + 1] = NodeList[Index3];
+						}
+						NodeList[Index2] = Node1;
+
+						// Break out of this loop, because this iteration must have covered all existing cases
+						// involving the node formerly at position Index1
+						break;
+					}
+				}
+			}
+
+			return NodeList;
+		}
+
+		/// <summary>
 		/// Gathers dependency modules for given binaries list.
 		/// </summary>
 		/// <param name="Binaries">Binaries list.</param>
@@ -2012,7 +2136,10 @@ namespace UnrealBuildTool
 				}
 			}
 
-			return Output;
+			// Sort modules by type, then by dependency
+			var ModulesSortedByType        = Output.OrderBy(c => c.Type).ToList();
+			var ModulesTopologicallySorted = StableTopologicalSort(ModulesSortedByType, x => x.GetAllDependencyModules().OfType<UEBuildModuleCPP>());
+			return new HashSet<UEBuildModuleCPP>(ModulesTopologicallySorted.AsEnumerable());
 		}
 
 		/// <summary>
@@ -2189,7 +2316,7 @@ namespace UnrealBuildTool
 				if (UObjectModules.Count > 0)
 				{
 					// Execute the header tool
-					FileReference ModuleInfoFileName = FileReference.Combine(ProjectIntermediateDirectory, "UnrealHeaderTool.manifest");
+					FileReference ModuleInfoFileName = FileReference.Combine(ProjectIntermediateDirectory, GetTargetName() + ".uhtmanifest");
 					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
 					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(TargetToolChain, this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult))
 					{
@@ -2728,7 +2855,7 @@ namespace UnrealBuildTool
 			return new UEBuildModuleCPP(
 				InTarget: this,
 				InName: Name,
-				InType: UEBuildModuleType.Game,
+				InType: UEBuildModuleType.GameRuntime,
 				InModuleDirectory: Directory,
 				InGeneratedCodeDirectory: null,
 				InIntelliSenseGatherer: null,
@@ -3725,67 +3852,81 @@ namespace UnrealBuildTool
 				ModuleRules RulesObject = CreateModuleRulesAndSetDefaults(ModuleName, out ModuleFileName);
 				DirectoryReference ModuleDirectory = ModuleFileName.Directory;
 
+				// Get the type of module we're creating
+				UEBuildModuleType? ModuleType = null;
+
 				// Get the plugin for this module
 				PluginInfo Plugin;
 				RulesAssembly.TryGetPluginForModule(ModuleFileName, out Plugin);
 
-				// Get the type of module we're creating
-				var ModuleType = UEBuildModuleType.Unknown;
-
-				// see if it's external
-				if (RulesObject.Type == ModuleRules.ModuleType.External)
+				// Get the module descriptor for this module if it's a plugin
+				ModuleDescriptor PluginModuleDesc = null;
+				if (Plugin != null)
 				{
-					ModuleType = UEBuildModuleType.ThirdParty;
+					PluginModuleDesc = Plugin.Descriptor.Modules.FirstOrDefault(x => x.Name == ModuleName);
+					if (PluginModuleDesc != null && PluginModuleDesc.Type == ModuleHostType.Program)
+					{
+						ModuleType = UEBuildModuleType.Program;
+					}
+				}
+
+				if (ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+				{
+					if (RulesObject.Type == ModuleRules.ModuleType.External)
+					{
+						ModuleType = UEBuildModuleType.EngineThirdParty;
+					}
+					else
+					{
+						if (!ModuleType.HasValue && PluginModuleDesc != null)
+						{
+							ModuleType = UEBuildModule.GetEngineModuleTypeFromDescriptor(PluginModuleDesc);
+						}
+
+						if (!ModuleType.HasValue)
+						{
+							ModuleType = UEBuildModule.GetEngineModuleTypeBasedOnLocation(ModuleName, ModuleFileName);
+						}
+					}
 				}
 				else
 				{
-					// Check if it's a plugin
-					if (Plugin != null)
+					if (RulesObject.Type == ModuleRules.ModuleType.External)
 					{
-						ModuleDescriptor Descriptor = Plugin.Descriptor.Modules.FirstOrDefault(x => x.Name == ModuleName);
-						if (Descriptor != null)
-						{
-							ModuleType = UEBuildModule.GetModuleTypeFromDescriptor(Descriptor);
-						}
+						ModuleType = UEBuildModuleType.GameThirdParty;
 					}
-					if (ModuleType == UEBuildModuleType.Unknown)
+					else
 					{
-						// not a plugin, see if it is a game module 
-						if (!ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory))
+						if (!ModuleType.HasValue && PluginModuleDesc != null)
+						{
+							ModuleType = UEBuildModule.GetGameModuleTypeFromDescriptor(PluginModuleDesc);
+						}
+
+						if (!ModuleType.HasValue)
 						{
 							if (ProjectDescriptor != null && ProjectDescriptor.Modules != null)
 							{
-								foreach (ModuleDescriptor ProjectModule in ProjectDescriptor.Modules)
+								ModuleDescriptor ProjectModule = ProjectDescriptor.Modules.FirstOrDefault(x => x.Name == ModuleName);
+								if (ProjectModule != null)
 								{
-									if (ProjectModule.Name == ModuleName)
-									{
-										ModuleType = UEBuildModuleTypeExtensions.FromHostType(ProjectModule.Type);
-										if (ModuleType == UEBuildModuleType.Runtime)
-										{
-											// We expect game runtime modules to be marked as Game module type.
-											ModuleType = UEBuildModuleType.Game;
-										}
-									}
+									ModuleType = UEBuildModuleTypeExtensions.GameModuleTypeFromHostType(ProjectModule.Type);
 								}
-							}
-							if (ModuleType == UEBuildModuleType.Unknown)
-							{
-								// No descriptor file or module was not on the list
-								ModuleType = UEBuildModuleType.Game;
-							}						
-						}
-						else
-						{
-							ModuleType = UEBuildModule.GetEngineModuleTypeBasedOnLocation(ModuleName, ModuleType, ModuleFileName);
-							if (ModuleType == UEBuildModuleType.Unknown)
-							{
-								throw new BuildException("Unable to determine module type for {0}", ModuleFileName);
+								else
+								{
+									// No descriptor file or module was not on the list
+									ModuleType = UEBuildModuleType.GameRuntime;
+								}
 							}
 						}
 					}
 				}
 
-				var IsGameModule = !ModuleType.IsEngineModule();
+				if (!ModuleType.HasValue)
+				{
+					throw new BuildException("Unable to determine module type for {0}", ModuleFileName);
+				}
+
+				bool bIsGameModuleOrProgram = ModuleType.Value.IsGameModule() || ModuleType.Value.IsProgramModule();
 
 				// Get the base directory for paths referenced by the module. If the module's under the UProject source directory use that, otherwise leave it relative to the Engine source directory.
 				if (ProjectFile != null)
@@ -3824,7 +3965,7 @@ namespace UnrealBuildTool
 				if (RulesObject.Type != ModuleRules.ModuleType.External && ModuleName != "Core")
 				{
 					// Add the default include paths to the module rules, if they exist.
-					AddDefaultIncludePathsToModuleRules(ModuleFileName, IsGameModule, Plugin, RulesObject);
+					AddDefaultIncludePathsToModuleRules(ModuleFileName, bIsGameModuleOrProgram, Plugin, RulesObject);
 
 					// Add the path to the generated headers 
 					if (GeneratedCodeDirectory != null)
@@ -3885,7 +4026,7 @@ namespace UnrealBuildTool
 				UEBuildPlatform.PlatformModifyHostModuleRules(ModuleName, RulesObject, TargetInfo, Only);
 
 				// Now, go ahead and create the module builder instance
-				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, GeneratedCodeDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles, ModuleFileName);
+				Module = InstantiateModule(RulesObject, ModuleName, ModuleType.Value, ModuleDirectory, GeneratedCodeDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles, ModuleFileName);
 			}
 			return Module;
 		}

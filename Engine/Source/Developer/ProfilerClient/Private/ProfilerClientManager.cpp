@@ -598,7 +598,7 @@ bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 				break;
 			}
 
-			FScopeLogTime SLT( "HandleMessagesTicker" );
+			//FScopeLogTime SLT( "HandleMessagesTicker" );
 
 			const int64 FrameNum = Frames[Index];
 			const TArray<uint8>* const Data = Connection.ReceivedData.FindChecked( FrameNum );
@@ -734,7 +734,6 @@ void FProfilerClientManager::SendDataToGame( TArray<uint8>* DataToGame, int64 Fr
 	}
 }
 
-// #YRX_tag 2015-11-19 Convert to thread safe pointers?
 void FProfilerClientManager::SendProfilerDataFrameToGame( FProfilerDataFrame* NewData, FStatMetaData* MetaDataPtr )
 {
 	if (MetaDataPtr)

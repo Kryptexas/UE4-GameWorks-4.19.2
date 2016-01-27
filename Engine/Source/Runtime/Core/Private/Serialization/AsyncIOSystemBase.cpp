@@ -483,7 +483,7 @@ int32 FAsyncIOSystemBase::CancelRequests( uint64* RequestIndices, int32 NumIndic
 		for( int32 TheRequestIndex=0; TheRequestIndex<NumIndices; TheRequestIndex++ )
 		{
 			// Look for matching request index in queue.
-			const FAsyncIORequest IORequest = OutstandingRequests[OutstandingIndex];
+			const FAsyncIORequest& IORequest = OutstandingRequests[OutstandingIndex];
 			if( IORequest.RequestIndex == RequestIndices[TheRequestIndex] )
 			{
 				INC_DWORD_STAT( STAT_AsyncIO_CanceledReadCount );

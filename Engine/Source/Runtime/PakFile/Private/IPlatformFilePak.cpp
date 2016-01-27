@@ -301,15 +301,15 @@ void FPakFile::Initialize(FArchive* Reader)
 {
 	if (Reader->TotalSize() < Info.GetSerializedSize())
 	{
-		UE_LOG(LogPakFile, Fatal, TEXT("Corrupted pak file (too short)."));
+		UE_LOG(LogPakFile, Fatal, TEXT("Corrupted pak file (too short). Verify your installation."));
 	}
 	else
 	{
 		// Serialize trailer and check if everything is as expected.
 		Reader->Seek(Reader->TotalSize() - Info.GetSerializedSize());
 		Info.Serialize(*Reader);
-		check(Info.Magic == FPakInfo::PakFile_Magic);
-		check(Info.Version >= FPakInfo::PakFile_Version_Initial && Info.Version <= FPakInfo::PakFile_Version_Latest);
+		UE_CLOG(Info.Magic != FPakInfo::PakFile_Magic, LogPakFile, Fatal, TEXT("Trailing magic number (%ud) is different than the expected one. Verify your installation."), Info.Magic);
+		UE_CLOG(!(Info.Version >= FPakInfo::PakFile_Version_Initial && Info.Version <= FPakInfo::PakFile_Version_Latest), LogPakFile, Fatal, TEXT("Invalid pak file version (%d). Verify your installation."), Info.Version);
 
 		LoadIndex(Reader);
 		// LoadIndex should crash in case of an error, so just assume everything is ok if we got here.

@@ -252,7 +252,7 @@ bool ICrashDebugHelper::SyncModules()
 		return false;
 	}
 
-	// @TODO yrx 2015-02-23 Obsolete, remove after 4.8
+	// #CrashReport: 2015-02-23 Obsolete, remove after 4.8
 	const TCHAR* UESymbols = TEXT( "Rocket/Symbols/" );
 	const bool bHasExecutable = !CrashInfo.ExecutablesPath.IsEmpty();
 	const bool bHasSymbols = !CrashInfo.SymbolsPath.IsEmpty();

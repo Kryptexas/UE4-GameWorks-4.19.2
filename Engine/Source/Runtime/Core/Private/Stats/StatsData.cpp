@@ -540,7 +540,6 @@ void FComplexRawStatStackNode::CullByCycles( int64 MinCycles )
 			// Don't accumulate if we have just one child.
 			if (NumChildren > 1)
 			{	
-				// #YRX_STATS: 2015-06-09 Accumulate over complex stats
 				delete Child;
 				It.RemoveCurrent();
 			}

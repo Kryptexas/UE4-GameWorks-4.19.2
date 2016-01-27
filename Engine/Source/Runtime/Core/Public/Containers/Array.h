@@ -1673,8 +1673,8 @@ public:
 		// only reallocate if we need to, I don't trust realloc to the same size to work
 		if (ArrayMax != Slack)
 		{
+			AllocatorInstance.ResizeAllocation(0, Slack, sizeof(ElementType));
 			ArrayMax = Slack;
-			AllocatorInstance.ResizeAllocation(0, ArrayMax, sizeof(ElementType));
 		}
 	}
 
@@ -2468,7 +2468,7 @@ public:
 	/** 
 	 * Adds a new element to the heap.
 	 *
-	 * @param InIntem Item to be added.
+	 * @param InItem Item to be added.
 	 * @param Predicate Predicate class instance.
 	 *
 	 * @return The index of the new element.
@@ -2492,7 +2492,7 @@ public:
 	 * Adds a new element to the heap. Assumes < operator is defined for the
 	 * template type.
 	 *
-	 * @param InIntem Item to be added.
+	 * @param InItem Item to be added.
 	 *
 	 * @return The index of the new element.
 	 */
@@ -3428,7 +3428,7 @@ public:
 	 *
 	 * @returns Number of bytes allocated by this container.
 	 */
-	uint32 GetAllocatedSize() const
+	SIZE_T GetAllocatedSize() const
 	{
 		return Array.Max() * sizeof(T*) + Array.Num() * sizeof(T);
 	}

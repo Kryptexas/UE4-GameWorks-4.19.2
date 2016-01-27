@@ -470,7 +470,7 @@ struct IItemFiler
 };
 
 
-// #YRX_STATS 2014-03-21 Move metadata functionality into a separate class
+// #Stats: 2014-03-21 Move metadata functionality into a separate class
 // 
 /**
  * Tracks stat state and history

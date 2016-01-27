@@ -6,7 +6,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealNames, Log, All);
 
 /*-----------------------------------------------------------------------------
-	FName helpers.
+	FName helpers. 
 -----------------------------------------------------------------------------*/
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	void CallNameCreationHook();

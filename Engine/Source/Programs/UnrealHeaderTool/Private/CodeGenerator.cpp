@@ -5138,7 +5138,7 @@ bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, c
 		IFileManager::Get().Delete( *TmpHeaderFilename, false, true );
 		if ( !FFileHelper::SaveStringToFile(NewHeaderContents, *TmpHeaderFilename) )
 		{
-			UE_LOG(LogCompile, Warning, TEXT("Failed to save header export preview: '%s'"), *TmpHeaderFilename);
+			UE_LOG_WARNING_UHT(TEXT("Failed to save header export preview: '%s'"), *TmpHeaderFilename);
 		}
 
 		TempHeaderPaths.Add(TmpHeaderFilename);
@@ -5539,12 +5539,12 @@ ECompilationResult::Type PreparseModules(FUHTMakefile& UHTMakefile, const FStrin
 		//       want to make sure our flags get set
 		Package->SetPackageFlags(PKG_ContainsScript | PKG_Compiling);
 		Package->ClearPackageFlags(PKG_ClientOptional | PKG_ServerSideOnly);
-		if (Module.ModuleType == EBuildModuleType::Editor)
+		if (Module.ModuleType == EBuildModuleType::GameEditor || Module.ModuleType == EBuildModuleType::EngineEditor)
 		{
 			Package->SetPackageFlags(PKG_EditorOnly);
 		}
 
-		if (Module.ModuleType == EBuildModuleType::Developer)
+		if (Module.ModuleType == EBuildModuleType::GameDeveloper || Module.ModuleType == EBuildModuleType::EngineDeveloper)
 		{
 			Package->SetPackageFlags(Package->GetPackageFlags() | PKG_Developer);
 		}
@@ -5715,11 +5715,6 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 	check(GIsUCCMakeStandaloneHeaderGenerator);
 	ECompilationResult::Type Result = ECompilationResult::Succeeded;
 	
-	if ( !FParse::Param( FCommandLine::Get(), TEXT("IgnoreWarnings")) )
-	{
-		GWarn->TreatWarningsAsErrors = true;
-	}
-
 	FString ModuleInfoPath = FPaths::GetPath(ModuleInfoFilename);
 
 	// Load the manifest file, giving a list of all modules to be processed, pre-sorted by dependency ordering
@@ -5842,8 +5837,13 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 						bool bUseVTableConstructors;
 					} UseVTableConstructorsCache;
 
-					Result = FHeaderParser::ParseAllHeadersInside(AllClasses, GWarn, Package, Module, ScriptPlugins,
-						Module.ModuleType != EBuildModuleType::Game || UseVTableConstructorsCache.bUseVTableConstructors, UHTMakefile);
+					bool bModuleIsGame =
+						   Module.ModuleType == EBuildModuleType::GameDeveloper
+						|| Module.ModuleType == EBuildModuleType::GameEditor
+						|| Module.ModuleType == EBuildModuleType::GameRuntime
+						|| Module.ModuleType == EBuildModuleType::GameThirdParty;
+
+					Result = FHeaderParser::ParseAllHeadersInside(AllClasses, GWarn, Package, Module, ScriptPlugins, bModuleIsGame || UseVTableConstructorsCache.bUseVTableConstructors, UHTMakefile);
 #else // WITH_HOT_RELOAD_CTORS
 					Result = FHeaderParser::ParseAllHeadersInside(AllClasses, GWarn, Package, Module, ScriptPlugins, UHTMakefile);
 #endif // WITH_HOT_RELOAD_CTORS
@@ -5971,7 +5971,7 @@ UClass* ProcessParsedClass(bool bClassIsAnInterface, TArray<FHeaderProvider> &De
 			UClass* ConflictingClass = FindObject<UClass>(ANY_PACKAGE, *ClassNameStripped, true);
 			if (ConflictingClass != nullptr)
 			{
-				UE_LOG(LogCompile, Warning, TEXT("Duplicate class name: %s also exists in file %s"), *ClassName, *ConflictingClass->GetOutermost()->GetName());
+				UE_LOG_WARNING_UHT(TEXT("Duplicate class name: %s also exists in file %s"), *ClassName, *ConflictingClass->GetOutermost()->GetName());
 			}
 		}
 

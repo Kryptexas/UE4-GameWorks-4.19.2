@@ -9,6 +9,8 @@ IMPLEMENT_APPLICATION(UnrealHeaderTool, "UnrealHeaderTool");
 
 DEFINE_LOG_CATEGORY(LogCompile);
 
+bool GUHTWarningLogged = false;
+
 /**
  * Application entry point
  *
@@ -84,6 +86,11 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 	FEngineLoop::AppPreExit();
 	FEngineLoop::AppExit();
+
+	if (Result == ECompilationResult::Succeeded && GUHTWarningLogged && GWarn->TreatWarningsAsErrors)
+	{
+		Result = ECompilationResult::OtherCompilationError;
+	}
 
 	return Result;
 }
