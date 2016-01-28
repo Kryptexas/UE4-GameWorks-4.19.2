@@ -312,6 +312,16 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 					
 					Source.StencilTexture = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
 					Source.StencilTexture.label = [NSString stringWithFormat:@"%@StencilSRV", Source.Texture.label];
+					
+					id<MTLBlitCommandEncoder> BlitEncoder = GetMetalDeviceContext().GetBlitContext();
+					
+					uint32 SizePerImage = Source.Texture.width * Source.Texture.height;
+					FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), SizePerImage, MTLStorageModeShared));
+					[Buf.Buffer retain];
+					
+					[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Source.Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Source.Texture.width, Source.Texture.height, 1) toTexture:Source.StencilTexture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+					
+					SafeReleasePooledBuffer(Buf.Buffer);
 				}
 				//fallthrough to assign the stencil texture
 			}
