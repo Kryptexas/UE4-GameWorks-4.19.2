@@ -1478,6 +1478,7 @@ struct FRelevancePacket
 				}
 			}
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			{
 				extern int32 GShaderModelDebug;
 				if(GShaderModelDebug)
@@ -1489,6 +1490,7 @@ struct FRelevancePacket
 						CombinedShadingModelMask | ViewRelevance.ShadingModelMaskRelevance);
 				}
 			}
+#endif
 
 			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;			
 			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
@@ -1676,6 +1678,7 @@ struct FRelevancePacket
 			WriteView.PrimitiveVisibilityMap[NotDrawRelevant.Prims[Index]] = false;
 		}
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		{
 			extern int32 GShaderModelDebug;
 			if(GShaderModelDebug)
@@ -1687,6 +1690,7 @@ struct FRelevancePacket
 					WriteView.ShadingModelMaskInView | CombinedShadingModelMask);
 			}
 		}
+#endif
 
 		WriteView.ShadingModelMaskInView |= CombinedShadingModelMask;
 

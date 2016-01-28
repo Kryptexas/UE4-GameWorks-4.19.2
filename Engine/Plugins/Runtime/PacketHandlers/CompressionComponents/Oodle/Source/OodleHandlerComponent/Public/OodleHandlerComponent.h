@@ -10,6 +10,15 @@
 DECLARE_LOG_CATEGORY_EXTERN(OodleHandlerComponentLog, Log, All);
 
 
+/**
+ * Whether or not to enable Oodle dev code (packet capturing, dictionary training, and automatic dictionary finding) in shipping mode.
+ *
+ * This may be useful for multiplayer game mod authors, to optimize netcode compression for their mod (not officially supported).
+ * However, Oodle compression makes the games network protocol harder to reverse-engineer - enabling this removes that slight benefit.
+ */
+#define OODLE_DEV_SHIPPING	FALSE
+
+
 #if HAS_OODLE_SDK
 #include "OodleArchives.h"
 
@@ -50,6 +59,8 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Oodle In Rate Raw (bytes)"), STAT_Oo
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Oodle In Rate Compressed (bytes)"), STAT_Oodle_InCompressed, STATGROUP_Oodle, );
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Oodle In Rate Savings %"), STAT_Oodle_InSavings, STATGROUP_Oodle, );
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Oodle In Total Savings %"), STAT_Oodle_InTotalSavings, STATGROUP_Oodle, );
+
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Oodle Packet Overhead (bits)"), STAT_Oodle_PacketOverhead, STATGROUP_Oodle, );
 
 #if !UE_BUILD_SHIPPING
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Oodle Out Compress Time"), STAT_Oodle_OutCompressTime, STATGROUP_Oodle, );
@@ -291,7 +302,7 @@ public:
 	 */
 	bool GetDictionaryPaths(FString& OutServerDictionary, FString& OutClientDictionary, bool bFailFatal=true);
 
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 	/**
 	 * Searches the game directory for alternate/fallback dictionary files, using the *.udic file extension.
 	 * NOTE: This is non-shipping-only, as release games MUST have well-determined dictionary files (for net-binary-compatibility)
@@ -316,18 +327,19 @@ public:
 	/* Handles any outgoing packets */
 	virtual void Outgoing(FBitWriter& Packet) override;
 
+	virtual int32 GetPacketOverheadBits() override;
+
 protected:
+	/** Whether or not Oodle is enabled */
+	bool bEnableOodle;
+
+#if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 	/* File to log input packets to */
 	FPacketCaptureArchive* InPacketLog;
 
 	/* File to log output packets to */
 	FPacketCaptureArchive* OutPacketLog;
 
-
-	/** Whether or not Oodle is enabled */
-	bool bEnableOodle;
-
-#if !UE_BUILD_SHIPPING
 	/** Search for dictionary files and use them if present - switching mode to Release in process - don't use in shipping */
 	bool bUseDictionaryIfPresent;
 #endif

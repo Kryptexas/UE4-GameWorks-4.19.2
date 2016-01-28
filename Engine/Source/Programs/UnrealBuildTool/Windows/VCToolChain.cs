@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Microsoft.Win32;
 using System.Text;
 
@@ -1650,15 +1651,16 @@ namespace UnrealBuildTool
 					}
 
 					// Write the MAP file to the output directory.			
-#if false					
-					if (true)
+					if (BuildConfiguration.bCreateMapFile)
 					{
 						FileReference MAPFilePath = FileReference.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".map");
 						FileItem MAPFile = FileItem.GetItemByFileReference(MAPFilePath);
 						Arguments.AppendFormat(" /MAP:\"{0}\"", MAPFilePath);
-						LinkAction.ProducedItems.Add(MAPFile);
+						ProducedItems.Add(MAPFile);
+
+						// Export a list of object file paths, so we can locate the object files referenced by the map file
+						ExportObjectFilePaths(LinkEnvironment, Path.ChangeExtension(MAPFilePath.FullName, ".objpaths"));
 					}
-#endif
 				}
 
 				// Add the additional arguments specified by the environment.
@@ -1697,6 +1699,33 @@ namespace UnrealBuildTool
 			Log.TraceVerbose("     Command: " + LinkAction.CommandArguments);
 
 			return OutputFile;
+		}
+
+		private void ExportObjectFilePaths(LinkEnvironment LinkEnvironment, string FileName)
+		{
+			// Write the list of object file directories
+			HashSet<DirectoryReference> ObjectFileDirectories = new HashSet<DirectoryReference>();
+			foreach(FileItem InputFile in LinkEnvironment.InputFiles)
+			{
+				ObjectFileDirectories.Add(InputFile.Reference.Directory);
+			}
+			foreach(FileItem InputLibrary in LinkEnvironment.InputLibraries)
+			{
+				ObjectFileDirectories.Add(InputLibrary.Reference.Directory);
+			}
+			foreach(string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries.Where(x => Path.IsPathRooted(x)))
+			{
+				ObjectFileDirectories.Add(new FileReference(AdditionalLibrary).Directory);
+			}
+			foreach(string LibraryPath in LinkEnvironment.Config.LibraryPaths)
+			{
+				ObjectFileDirectories.Add(new DirectoryReference(LibraryPath));
+			}
+			foreach(string LibraryPath in (Environment.GetEnvironmentVariable("LIB") ?? "").Split(new char[]{ ';' }, StringSplitOptions.RemoveEmptyEntries))
+			{
+				ObjectFileDirectories.Add(new DirectoryReference(LibraryPath));
+			}
+			File.WriteAllLines(FileName, ObjectFileDirectories.Select(x => x.FullName).OrderBy(x => x).ToArray());
 		}
 
 		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile)

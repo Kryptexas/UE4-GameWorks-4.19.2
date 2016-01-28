@@ -23,6 +23,7 @@
 #include <SetupApi.h>
 #include <devguid.h>
 #include <dwmapi.h>
+#include <cfgmgr32.h>
 
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
@@ -487,19 +488,26 @@ inline bool GetSizeForDevID(const FString& TargetDevID, int32& Width, int32& Hei
 
 		if (SetupDiEnumDeviceInfo(DevInfo, MonitorIndex, &DevInfoData) == TRUE)
 		{
-			HKEY hDevRegKey = SetupDiOpenDevRegKey(DevInfo, &DevInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
-
-			if(!hDevRegKey || (hDevRegKey == INVALID_HANDLE_VALUE))
+			TCHAR Buffer[MAX_DEVICE_ID_LEN];
+			if (CM_Get_Device_ID(DevInfoData.DevInst, Buffer, MAX_DEVICE_ID_LEN, 0) == CR_SUCCESS)
 			{
-				continue;
+				FString DevID(Buffer);
+				DevID = DevID.Mid(8, DevID.Find(TEXT("\\"), ESearchCase::CaseSensitive, ESearchDir::FromStart, 9) - 8);
+				if (DevID == TargetDevID)
+				{
+					HKEY hDevRegKey = SetupDiOpenDevRegKey(DevInfo, &DevInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
+
+					if (hDevRegKey && hDevRegKey != INVALID_HANDLE_VALUE)
+					{
+						bRes = GetMonitorSizeFromEDID(hDevRegKey, Width, Height);
+						RegCloseKey(hDevRegKey);
+						break;
+					}
+				}
 			}
-
-			bRes = GetMonitorSizeFromEDID(hDevRegKey, Width, Height);
-
-			RegCloseKey(hDevRegKey);
 		}
 	}
-	
+
 	if (SetupDiDestroyDeviceInfoList(DevInfo) == FALSE)
 	{
 		bRes = false;

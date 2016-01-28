@@ -5475,7 +5475,7 @@ bool UParticleSystemComponent::HasCompleted()
 				if (Em && Em->bDisabledLODsKeepEmitterAlive)
 				{
 					bHasCompleted = false;
-				}
+				}				
 			}
 		}
 	}

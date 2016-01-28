@@ -109,9 +109,19 @@ void XInputInterface::SendControllerEvents()
 			ControllerState.bIsConnected = ( XInputGetState( ControllerIndex, &XInputState ) == ERROR_SUCCESS ) ? true : false;
 			
 			// If the controller is connected send events or if the controller was connected send a final event with default states so that 
-			// the game doesnt think that controller buttons are still held down
+			// the game doesn't think that controller buttons are still held down
 			if( ControllerState.bIsConnected || bWasConnected )
 			{
+				// If the controller is connected now but was not before, refresh the information
+				if (!bWasConnected && ControllerState.bIsConnected)
+				{
+					FCoreDelegates::OnControllerConnectionChange.Broadcast(true, -1, ControllerIndex);
+				}
+				else if (bWasConnected && !ControllerState.bIsConnected)
+				{
+					FCoreDelegates::OnControllerConnectionChange.Broadcast(false, -1, ControllerIndex);
+				}
+			
 				bool CurrentStates[MAX_NUM_CONTROLLER_BUTTONS] = {0};
 		
 				// Get the current state of all buttons

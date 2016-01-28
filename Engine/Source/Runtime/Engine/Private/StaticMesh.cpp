@@ -1856,6 +1856,7 @@ FUObjectAnnotationSparseBool GStaticMeshesThatNeedMaterialFixup;
 COREUOBJECT_API extern bool GOutputCookingWarnings;
 #endif
 
+
 /**
  *	UStaticMesh::Serialize
  */
@@ -1887,9 +1888,9 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			bHasNavigationData && 
 			(NavCollision == nullptr))
 		{
-			if (Ar.IsPersistent() && Ar.IsLoading() && GOutputCookingWarnings)
+			if (Ar.IsPersistent() && Ar.IsLoading() && (Ar.GetDebugSerializationFlags() & DSF_EnableCookerWarnings))
 			{
-					UE_LOG(LogStaticMesh, Warning, TEXT("Serialized NavCollision but it was null (%s) NavCollision will be created dynamicaly at cook time.  Please resave pacage %s."), *GetName(), *GetOutermost()->GetPathName())
+				UE_LOG(LogStaticMesh, Warning, TEXT("Serialized NavCollision but it was null (%s) NavCollision will be created dynamicaly at cook time.  Please resave package %s."), *GetName(), *GetOutermost()->GetPathName());
 			}
 		}
 #endif

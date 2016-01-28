@@ -167,6 +167,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Force owning actor to update it's replication, to make sure that gameplay cues get sent down quickly. Override to change how aggressive this is */
 	virtual void ForceReplication();
 
+	/** Forces avatar actor to update it's replication. Useful for things like needing to replication for movement / locations reasons. */
+	virtual void ForceAvatarReplication();
+
 	void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs) override;
@@ -1329,6 +1332,12 @@ public:
 	// UGameplayTasksComponent
 	// -
 	virtual AActor* GetAvatarActor(const UGameplayTask* Task) const override;
+
+	/** Suppress all ability granting through GEs on this component */
+	bool bSuppressGrantAbility;
+
+	/** Suppress all GameplayCues on this component */
+	bool bSuppressGameplayCues;
 
 protected:
 

@@ -35,6 +35,7 @@ DEFINE_STAT(STAT_Ping);
 DEFINE_STAT(STAT_Channels);
 DEFINE_STAT(STAT_InRate);
 DEFINE_STAT(STAT_OutRate);
+DEFINE_STAT(STAT_OutSaturation);
 DEFINE_STAT(STAT_InRateClientMax);
 DEFINE_STAT(STAT_InRateClientMin);
 DEFINE_STAT(STAT_InRateClientAvg);
@@ -194,7 +195,7 @@ void UNetDriver::AssertValid()
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
 #if USE_SERVER_PERF_COUNTERS
-	float ServerReplicateActorsTimeMs = 0.0f;
+	double ServerReplicateActorsTimeMs = 0.0f;
 #endif // USE_SERVER_PERF_COUNTERS
 
 	if ( IsServer() && ClientConnections.Num() > 0 && ClientConnections[0]->InternalAck == false )
@@ -203,13 +204,13 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 #if WITH_SERVER_CODE
 
 #if USE_SERVER_PERF_COUNTERS
-		float ServerReplicateActorsTimeStart = FPlatformTime::Seconds();
+		double ServerReplicateActorsTimeStart = FPlatformTime::Seconds();
 #endif // USE_SERVER_PERF_COUNTERS
 
 		int32 Updated = ServerReplicateActors( DeltaSeconds );
 
 #if USE_SERVER_PERF_COUNTERS
-		ServerReplicateActorsTimeMs = (FPlatformTime::Seconds() - ServerReplicateActorsTimeStart) * 1000.0f;
+		ServerReplicateActorsTimeMs = (FPlatformTime::Seconds() - ServerReplicateActorsTimeStart) * 1000.0;
 #endif // USE_SERVER_PERF_COUNTERS
 
 		static int32 LastUpdateCount = 0;
@@ -230,7 +231,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 
 	// Update network stats (only main game net driver for now) if stats or perf counters are used
 	if (NetDriverName == NAME_GameNetDriver && 
-		 CurrentRealtimeSeconds - StatUpdateTime > StatPeriod && ( ClientConnections.Num() > 0 || ServerConnection != NULL ) )
+		 CurrentRealtimeSeconds - StatUpdateTime > StatPeriod)
 	{
 		int32 ClientInBytesMax = 0;
 		int32 ClientInBytesMin = 0;
@@ -280,6 +281,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		int32 UnAckCount = 0;
 		int32 PendingCount = 0;
 		int32 NetSaturated = 0;
+		float RemoteSaturationMax = 0.0f;
 
 		if (FThreadStats::IsCollectingData())
 		{
@@ -312,10 +314,13 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			if (ServerConnection != NULL)
 			{
 				NumOpenChannels = ServerConnection->OpenChannels.Num();
+				RemoteSaturationMax = FMath::Max( RemoteSaturationMax, ServerConnection->RemoteSaturation );
 			}
+
 			for (int32 i = 0; i < ClientConnections.Num(); i++)
 			{
 				NumOpenChannels += ClientConnections[i]->OpenChannels.Num();
+				RemoteSaturationMax = FMath::Max( RemoteSaturationMax, ClientConnections[i]->RemoteSaturation );
 			}
 
 			// Use the elapsed time to keep things scaled to one measured unit
@@ -365,6 +370,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
 		SET_DWORD_STAT(STAT_InRate, InBytes);
 		SET_DWORD_STAT(STAT_OutRate, OutBytes);
+		SET_DWORD_STAT(STAT_OutSaturation, RemoteSaturationMax);
 		SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
 		SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
 		SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
@@ -461,8 +467,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			}
 			else
 			{
-				PerfCounters->Set(TEXT("NumConnections"), 0);
-
 				PerfCounters->Set(TEXT("AvgPing"), 0.0f, IPerfCounters::Flags::Transient);
 				PerfCounters->Set(TEXT("MaxPing"), -FLT_MAX, IPerfCounters::Flags::Transient);
 				PerfCounters->Set(TEXT("MinPing"), FLT_MAX, IPerfCounters::Flags::Transient);

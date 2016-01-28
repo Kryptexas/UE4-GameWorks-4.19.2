@@ -163,7 +163,7 @@ void UAITask_MoveTo::Pause()
 
 void UAITask_MoveTo::Resume()
 {
-	Activate();
+	PerformMove();
 	Super::Resume();
 }
 

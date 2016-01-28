@@ -947,8 +947,9 @@ void FAsyncLoadingThread::CancelAsyncLoading()
 
 void FAsyncLoadingThread::SuspendLoading()
 {
-	check(IsInGameThread());
+	UE_CLOG(!IsInGameThread(), LogStreaming, Fatal, TEXT("Async loading can only be suspended from the main thread"));
 	const int32 SuspendCount = IsLoadingSuspended.Increment();
+	UE_LOG(LogStreaming, Display, TEXT("Suspending async loading (%d)"), SuspendCount);
 	if (IsMultithreaded() && SuspendCount == 1)
 	{
 		ThreadSuspendedEvent->Wait();
@@ -959,6 +960,7 @@ void FAsyncLoadingThread::ResumeLoading()
 {
 	check(IsInGameThread());
 	const int32 SuspendCount = IsLoadingSuspended.Decrement();
+	UE_LOG(LogStreaming, Display, TEXT("Resuming async loading (%d)"), SuspendCount);
 	UE_CLOG(SuspendCount < 0, LogStreaming, Fatal, TEXT("ResumeAsyncLoadingThread: Async loading was resumed more times than it was suspended."));
 	if (IsMultithreaded() && SuspendCount == 0)
 	{
@@ -1377,10 +1379,10 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 		{
 			const FString NameToLoad = Desc.NameToLoad.ToString();
 			const FGuid* const Guid = Desc.Guid.IsValid() ? &Desc.Guid : nullptr;
-			FString NativeFilename;
-			const bool DoesNativePackageExist = FPackageName::DoesPackageExist(NameToLoad, Guid, &NativeFilename, false);
-			FString LocalizedFilename;
-			const bool DoesLocalizedPackageExist = FPackageName::DoesPackageExist(NameToLoad, Guid, &LocalizedFilename, true);
+			FString NativeFilename, LocalizedFilename;
+			FPackageName::DoesPackageExistWithLocalization(NameToLoad, Guid, &NativeFilename, &LocalizedFilename);
+			const bool DoesNativePackageExist = NativeFilename.Len() > 0;
+			const bool DoesLocalizedPackageExist = LocalizedFilename.Len() > 0;
 
 			FString PackageFileName;
 			bool DoesPackageExist = false;
@@ -2217,7 +2219,7 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 	{
 		FAsyncLoadingThread& AsyncThread = FAsyncLoadingThread::Get();
 		// Flushing async loading while loading is suspend will result in infinite stall
-		UE_CLOG(AsyncThread.IsAsyncLoadingSuspended(), LogStreaming, Fatal, TEXT("Cannot Flush Async Loading while async loading is suspended."));
+		UE_CLOG(AsyncThread.IsAsyncLoadingSuspended(), LogStreaming, Fatal, TEXT("Cannot Flush Async Loading while async loading is suspended (%d)"), AsyncThread.GetAsyncLoadingSuspendedCount());
 
 		SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_FlushAsyncLoadingGameThread);
 
@@ -2225,6 +2227,8 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 		{
 			return;
 		}
+
+		FCoreDelegates::OnAsyncLoadingFlush.Broadcast();
 
 		// Disallow low priority requests like texture streaming while we are flushing streaming
 		// in order to avoid excessive seeking.

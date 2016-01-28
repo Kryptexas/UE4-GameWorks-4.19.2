@@ -127,6 +127,7 @@ FString FQoSReporter::GetQoSReporterInstanceId()
 
 double FQoSReporter::ModuleInitializationTime = FPlatformTime::Seconds();
 bool FQoSReporter::bStartupEventReported = false;
+bool FQoSReporter::bCountHitches = false;
 
 void FQoSReporter::ReportStartupCompleteEvent()
 {
@@ -169,6 +170,12 @@ void FQoSReporter::SetBackendDeploymentName(const FString & InDeploymentName)
 	}
 }
 
+void FQoSReporter::EnableCountingHitches(bool bEnable)
+{
+	bCountHitches = bEnable;
+	UE_LOG(LogQoSReporter, Verbose, TEXT("Counting hitches in QoSReporter has been %s."), bCountHitches ? TEXT("enabled") : TEXT("disabled"));
+}
+
 double FQoSReporter::HeartbeatInterval = 300;
 double FQoSReporter::LastHeartbeatTimestamp = 0;
 extern ENGINE_API float GAverageFPS;
@@ -190,19 +197,24 @@ void FQoSReporter::Tick()
 	}
 
 	// detect too long pauses between ticks, unless configured to ignore them or running under debugger
-	if (!QOS_IGNORE_HITCHES && !FPlatformMisc::IsDebuggerPresent())
+	if (!QOS_IGNORE_HITCHES && bCountHitches && !FPlatformMisc::IsDebuggerPresent())
 	{
-		const double kTooLongPauseBetweenTicksInSeconds = 0.25f;	// 4 fps	- correct perfcounter name below if changing this value and make sure analytics is on the same page
 		const double DeltaBetweenTicks = CurrentTime - PreviousTickTime;
-		static int TimesHappened = 0;
-		if (DeltaBetweenTicks > kTooLongPauseBetweenTicksInSeconds)
+
+		if (DeltaBetweenTicks > 0.1)
 		{
-			++TimesHappened;
+#if USE_SERVER_PERF_COUNTERS
+			PerfCountersIncrement(TEXT("HitchesAbove100msec"), 0, IPerfCounters::Flags::Transient);
 
-			PerfCountersIncrement(TEXT("HitchesAbove250msec"));
+			// count 250 ms
+			if (DeltaBetweenTicks > 0.25)
+			{
+				PerfCountersIncrement(TEXT("HitchesAbove250msec"), 0, IPerfCounters::Flags::Transient);
+			}
+#endif // USE_SERVER_PERF_COUNTERS
 
-			UE_LOG(LogQoSReporter, Warning, TEXT("QoS reporter could not tick for %f sec (longer than threshold of %f sec) - happened %d time(s), average FPS is %f. Sending heartbeats might have been affected"),
-				DeltaBetweenTicks, kTooLongPauseBetweenTicksInSeconds, TimesHappened, GAverageFPS);
+			UE_LOG(LogQoSReporter, Warning, TEXT("QoS reporter could not tick for %f sec, average FPS is %f."),
+				DeltaBetweenTicks, GAverageFPS);
 		}
 	}
 

@@ -50,6 +50,7 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 
 	// We need to consider the Runs when detecting and measuring the text lengths of Lines because
 	// the font style used makes a difference.
+	const int32 FirstRunIndexChecked = OutRunIndex;
 	for (; OutRunIndex < Line.Runs.Num(); OutRunIndex++)
 	{
 		FRunModel& Run = Line.Runs[ OutRunIndex ];
@@ -124,7 +125,18 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 			break;
 		}
 	}
-	check( SuccessfullyMeasuredSlice == true );
+	if (!SuccessfullyMeasuredSlice)
+	{
+		FString RunDebugData;
+		for (int32 RunIndex = 0; RunIndex < Line.Runs.Num(); ++RunIndex)
+		{
+			const FRunModel& Run = Line.Runs[RunIndex];
+			const FTextRange RunRange = Run.GetTextRange();
+			RunDebugData.Append(FString::Printf(TEXT("\t\t[%d] - Range: {%d, %d}\n"), RunIndex, RunRange.BeginIndex, RunRange.EndIndex));
+		}
+
+		checkf( SuccessfullyMeasuredSlice, TEXT("Failed to measure a slice of text!\n\tStart Index: %d\n\tEnd Index: %d\n\tStart Run Index: %d\n\tLine Runs:\n%s"), PreviousBreak, CurrentBreak, FirstRunIndexChecked, *RunDebugData );
+	}
 
 	BreakSize.Y = BreakSizeWithoutTrailingWhitespace.Y = MaxAboveBaseline + MaxBelowBaseline;
 

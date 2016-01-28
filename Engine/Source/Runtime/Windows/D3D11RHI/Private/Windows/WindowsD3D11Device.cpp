@@ -22,7 +22,7 @@ static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("User request to pick a specific graphics adapter (e.g. when using a integrated graphics card with a descrete one)\n")
 	TEXT("At the moment this only works on Direct3D 11.\n")
 	TEXT(" -2: Take the first one that fulfills the criteria\n")
-	TEXT(" -1: Favour non integrated because there are usually faster\n")
+	TEXT(" -1: Favour non integrated because there are usually faster (default)\n")
 	TEXT("  0: Adpater #0\n")
 	TEXT("  1: Adpater #1, ..."),
 	ECVF_RenderThreadSafe);
@@ -501,7 +501,10 @@ void FD3D11DynamicRHI::InitD3DDevice()
 					GRHIAdapterName = AdapterDesc.Description;
 					GRHIVendorId = AdapterDesc.VendorId;
 					GRHIDeviceId = AdapterDesc.DeviceId;
-					
+
+					UE_LOG(LogD3D11RHI, Log, TEXT("    GPU DeviceId: 0x%x (for the marketing name, search the web for \"GPU Device Id\")"), 
+						AdapterDesc.DeviceId);
+
 					// get driver version (todo: share with other RHIs)
 					{
 						FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
@@ -791,22 +794,44 @@ bool FD3D11DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 
 		// TODO: GetDisplayModeList is a terribly SLOW call.  It can take up to a second per invocation.
 		//  We might want to work around some DXGI badness here.
-		DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		uint32 NumModes = 0;
-		HResult = Output->GetDisplayModeList(Format, 0, &NumModes, NULL);
-		if(HResult == DXGI_ERROR_NOT_FOUND)
+		const DXGI_FORMAT DisplayFormats[] = {DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_B8G8R8A8_UNORM};
+		DXGI_FORMAT Format = DisplayFormats[0];
+		uint32 NumModes = 0;	
+
+		for (DXGI_FORMAT CurrentFormat : DisplayFormats)
 		{
-			continue;
-		}
-		else if(HResult == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
-		{
-			UE_LOG(LogD3D11RHI, Warning,
-				TEXT("RHIGetAvailableResolutions does not return results when running under remote desktop.")
-				);
-			return false;
+			HResult = Output->GetDisplayModeList(CurrentFormat, 0, &NumModes, NULL);
+
+			if(FAILED(HResult))
+			{
+				if (HResult == DXGI_ERROR_NOT_FOUND)
+				{
+					continue;
+				}
+				else if (HResult == DXGI_ERROR_MORE_DATA)
+				{
+					UE_LOG(LogD3D11RHI, Warning, TEXT("RHIGetAvailableResolutions failed trying to return too much data."));
+					continue;
+				}
+				else if (HResult == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
+				{
+					UE_LOG(LogD3D11RHI, Warning, TEXT("RHIGetAvailableResolutions does not return results when running under remote desktop."));
+					return false;
+				}
+				else
+				{
+					UE_LOG(LogD3D11RHI, Warning, TEXT("RHIGetAvailableResolutions failed with unknown error (0x%x)."), HResult);
+					return false;
+				}
+			}
+			else if(NumModes)
+			{
+				Format = CurrentFormat;
+				break;
+			}
 		}
 
-		checkf(NumModes > 0, TEXT("No display modes found for the standard format DXGI_FORMAT_R8G8B8A8_UNORM!"));
+		checkf(NumModes > 0, TEXT("No display modes found for DXGI_FORMAT_R8G8B8A8_UNORM or DXGI_FORMAT_B8G8R8A8_UNORM formats!"));
 
 		DXGI_MODE_DESC* ModeList = new DXGI_MODE_DESC[ NumModes ];
 		VERIFYD3D11RESULT(Output->GetDisplayModeList(Format, 0, &NumModes, ModeList));

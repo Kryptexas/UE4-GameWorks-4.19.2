@@ -4,6 +4,8 @@
 
 #include "CameraAnim.generated.h"
 
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogCameraAnim, Log, All);
+
 /**
  * A predefined animation to be played on a camera
  */

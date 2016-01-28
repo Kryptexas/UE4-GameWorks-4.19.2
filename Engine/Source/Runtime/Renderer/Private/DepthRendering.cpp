@@ -428,7 +428,7 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 	const EBlendMode BlendMode = Material->GetBlendMode();
 	const auto FeatureLevel = Scene->GetFeatureLevel();
 
-	if (!Material->WritesEveryPixel())
+	if (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected())
 	{
 		// only draw if required
 		Scene->MaskedDepthDrawList.AddMesh(

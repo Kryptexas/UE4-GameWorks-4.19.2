@@ -126,6 +126,7 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 	UE_LOG(LogSynthBenchmark, Display, TEXT("  Adapter Name: '%s'"), *GRHIAdapterName);
 	UE_LOG(LogSynthBenchmark, Display, TEXT("  (On Optimus the name might be wrong, memory should be ok)"));
 	UE_LOG(LogSynthBenchmark, Display, TEXT("  Vendor Id: 0x%x"), GRHIVendorId);
+	UE_LOG(LogSynthBenchmark, Display, TEXT("  Device Id: 0x%x"), GRHIDeviceId);
 
 	{
 		FTextureMemoryStats Stats;

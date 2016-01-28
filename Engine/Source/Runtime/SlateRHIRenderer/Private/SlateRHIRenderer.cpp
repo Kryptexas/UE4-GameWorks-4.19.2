@@ -1236,18 +1236,10 @@ void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32
 
 	FViewportInfo* ViewInfo = WindowToViewportInfo.FindRef( Window.Get() );
 
-	if( ViewInfo )
+	if (ViewInfo)
 	{
-		if (ViewInfo->DesiredWidth != NewWidth || ViewInfo->DesiredHeight != NewHeight)
-		{
-			ViewInfo->DesiredWidth = NewWidth;
-			ViewInfo->DesiredHeight = NewHeight;
-
-			if (Window->GetWindowMode() == EWindowMode::Windowed)
-			{
-				FSystemResolution::RequestResolutionChange(NewWidth, NewHeight, Window->GetWindowMode());
-			}
-		}
+		ViewInfo->DesiredWidth = NewWidth;
+		ViewInfo->DesiredHeight = NewHeight;
 	}
 }
 

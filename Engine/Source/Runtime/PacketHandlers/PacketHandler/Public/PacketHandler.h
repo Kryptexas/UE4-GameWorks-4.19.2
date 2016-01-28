@@ -98,8 +98,15 @@ public:
 	/* Queue's a packet to be sent when the handler is ticked */
 	void QueuePacketForSending(BufferedPacket* PacketToQueue);
 
-	/* Gets a packet from the the buffered packet queue for sending */
+	/* Gets a packet from the buffered packet queue for sending */
 	BufferedPacket* GetQueuedPacket();
+
+	/**
+	 * Gets the combined packet/protocol overhead from all handlers, for reserving space in the parent connections packets
+	 *
+	 * @return	The combined packet/protocol overhead
+	 */
+	int32 GetTotalPacketOverheadBits();
 
 
 	/** Whether or not the PacketHandler system is enabled */
@@ -182,11 +189,18 @@ public:
 	/* Tick functionality should be placed here */
 	virtual void Tick(float DeltaTime){};
 
-	/* The manager of the handler, set in initialization */
-	PacketHandler* Handler; 
-
 	/* Whether this handler is active */
 	virtual void SetActive(bool Active);
+
+	/**
+	 * Returns the amount of packet/protocol overhead expected from this handler.
+	 *
+	 * IMPORTANT: This MUST be accurate, and should represent the worst-case overhead expected from the handler.
+	 *				If this is inaccurate, packets will randomly fail to send, in rare cases which are extremely hard to trace.
+	 *
+	 * @return	The worst-case packet overhead for the handler
+	 */
+	virtual int32 GetPacketOverheadBits() PURE_VIRTUAL(Handler::Component::GetPacketOverheadBits, return -1;);
 
 protected:
 
@@ -196,6 +210,12 @@ protected:
 	/* Should be called when the handler is fully initialized on both remote and local */
 	void Initialized();
 
+
+public:
+	/* The manager of the handler, set in initialization */
+	PacketHandler* Handler; 
+
+protected:
 	/* The state of this handler */
 	Handler::Component::State State;
 

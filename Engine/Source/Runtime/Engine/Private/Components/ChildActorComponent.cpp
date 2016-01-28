@@ -336,7 +336,8 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 
 				// We would like to make certain that our name is not going to accidentally get taken from us while we're destroyed
 				// so we increment ClassUnique beyond our index to be certain of it.  This is ... a bit hacky.
-				ChildClass->ClassUnique = FMath::Max(ChildClass->ClassUnique, ChildActor->GetFName().GetNumber());
+				int32& ClassUnique = ChildActor->GetOutermost()->ClassUniqueNameIndexMap.FindOrAdd(ChildClass->GetFName());
+				ClassUnique = FMath::Max(ClassUnique, ChildActor->GetFName().GetNumber());
 
 				if (bRequiresRename)
 				{

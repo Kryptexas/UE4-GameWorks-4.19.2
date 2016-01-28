@@ -148,6 +148,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	virtual class UWorld* GetWorld() const override;
 
 #if WITH_EDITOR
+	/** Called from editor to soft load all gameplay cue notifies for the GameplayCueEditor */
+	void LoadAllGameplayCueNotifiesForEditor();
+
 	bool IsAssetInLoadedPaths(UObject *Object) const;
 
 	/** Handles updating an object library when a new asset is created */
@@ -160,6 +163,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	void HandleAssetRenamed(const FAssetData& Data, const FString& String);
 
 	void VerifyNotifyAssetIsInValidPath(FString Path);
+
+	/** returns list of valid gameplay cue paths. Subclasses may override this to specify locations that aren't part of the "always loaded" LoadedPaths array */
+	virtual TArray<FString>	GetValidGameplayCuePaths() { return LoadedPaths; }
 
 	bool RegisteredEditorCallbacks;
 

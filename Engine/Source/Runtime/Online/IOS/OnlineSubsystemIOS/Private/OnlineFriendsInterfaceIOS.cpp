@@ -17,7 +17,7 @@ FString FOnlineFriendIOS::GetRealName() const
 	return Result;
 }
 
-FString FOnlineFriendIOS::GetDisplayName() const
+FString FOnlineFriendIOS::GetDisplayName(const FString& Platform) const
 {
 	FString Result;
 	GetAccountData(TEXT("nickname"), Result);

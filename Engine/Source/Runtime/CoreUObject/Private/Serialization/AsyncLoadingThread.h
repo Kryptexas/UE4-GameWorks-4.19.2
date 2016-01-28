@@ -195,6 +195,12 @@ public:
 		return IsLoadingSuspended.GetValue() != 0;
 	}
 
+	FORCEINLINE int32 GetAsyncLoadingSuspendedCount()
+	{
+		FPlatformMisc::MemoryBarrier();
+		return IsLoadingSuspended.GetValue();
+	}
+
 	/** Returns the number of async packages that are currently being processed */
 	FORCEINLINE int32 GetAsyncPackagesCount()
 	{

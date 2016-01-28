@@ -1838,7 +1838,7 @@ struct FStat_##StatName\
 	DECLARE_STAT_GROUP(GroupDesc, GroupId, GroupCat, false, CompileIn);
 
 #if UE_BUILD_DEBUG
-	#define SCOPE_CYCLE_COUNTER_GUARD { const char* ReadTheText = "SCOPE_CYCLE_COUNTER can't be used in the global scope."; static_cast<void const*>(ReadTheText); }
+	#define SCOPE_CYCLE_COUNTER_GUARD { const char* ReadTheText = "SCOPE_CYCLE_COUNTER can't be used in the global scope."; (void)ReadTheText; }
 #else
 	#define SCOPE_CYCLE_COUNTER_GUARD
 #endif // UE_BUILD_DEBUG

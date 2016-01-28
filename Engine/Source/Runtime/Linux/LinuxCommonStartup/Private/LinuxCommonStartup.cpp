@@ -230,6 +230,13 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 		}
 	}
 
+	// check if a specific return code has been set
+	uint8 OverriddenErrorLevel = 0;
+	if (FPlatformMisc::HasOverriddenReturnCode(&OverriddenErrorLevel))
+	{
+		ErrorLevel = OverriddenErrorLevel;
+	}
+
 	if (ErrorLevel)
 	{
 		printf("Exiting abnormally (error code: %d)\n", ErrorLevel);

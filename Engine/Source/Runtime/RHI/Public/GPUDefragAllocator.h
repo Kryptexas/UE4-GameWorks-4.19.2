@@ -6,6 +6,7 @@
 
 #define LOG_EVERY_ALLOCATION			0
 #define DUMP_ALLOC_FREQUENCY			0 // 100
+#define VALIDATE_SYNC_SIZE				0
 
 
 /*-----------------------------------------------------------------------------
@@ -145,6 +146,7 @@ public:
 			, SyncSize(0)
 			, UserPayload(0)			
 			, Stat(InStat)
+			, bTail(false)
 		{
 			Link(ChunkToInsertAfter);
 			// This is going to change bIsAvailable.
@@ -281,7 +283,7 @@ public:
 		/**
 		*	Returns the current size (in uint8s), or the final size if it has a reallocating request.
 		*/
-		int32		GetFinalSize() const;
+		int64		GetFinalSize() const;
 
 		/**
 		* Sets the relocation sync index.
@@ -289,7 +291,7 @@ public:
 		* @param InSyncSize	Number of uint8s that require GPU synchronization (starting from the beginning of the chunk)
 		*/
 		void	SetSyncIndex(uint32 InSyncIndex, int32 InSyncSize)
-		{
+		{			
 			SyncIndex = InSyncIndex;
 			SyncSize = InSyncSize;
 		}
@@ -348,6 +350,7 @@ public:
 
 		//stat associated with this allocation
 		TStatId Stat;
+		bool bTail;
 	};
 
 	/** Constructor, zero initializing all member variables */
@@ -643,6 +646,28 @@ public:
 
 protected:
 
+#if VALIDATE_SYNC_SIZE
+	struct FRelocationEntry
+	{
+		FRelocationEntry(const uint8* InOldBase, const uint8* InNewBase, uint64 InSize, uint64 InSyncIndex)
+		: OldBase(InOldBase)
+		, NewBase(InNewBase)
+		, Size(InSize)
+		, SyncIndex(InSyncIndex)
+		{
+			printf("Relocation: 0x%p to 0x%p, %i, %i\n", OldBase, NewBase, (int32)Size, (int32)SyncIndex);
+		}
+
+		const uint8* OldBase;
+		const uint8* NewBase;
+		uint64 Size;
+		uint64 SyncIndex;
+	};
+
+	void ValidateRelocations(uint8* UsedBaseAddress, uint64 Size);
+	TArray<FRelocationEntry> Relocations;
+#endif
+
 	/**
 	* Copy memory from one location to another. If it returns false, the defragmentation
 	* process will assume the memory is not relocatable and keep it in place.
@@ -837,6 +862,7 @@ protected:
 			int32 SecondSyncSize = BaseChunk->SyncSize - FirstSize;
 			NewFreeChunk->SetSyncIndex(BaseChunk->SyncIndex, SecondSyncSize);
 		}
+		BaseChunk->SetSyncIndex(BaseChunk->SyncIndex, FMath::Min((int64)FirstSize, BaseChunk->SyncSize));
 
 		// Resize base chunk.
 		BaseChunk->Size = FirstSize;
@@ -851,7 +877,7 @@ protected:
 	* @param bAsync			If true, allows allocating from relocating chunks and maint32ains the free-list sort order.
 	* @return					The memory chunk that was allocated (the original chunk could've been split).
 	*/
-	FMemoryChunk*	AllocateChunk(FMemoryChunk* FreeChunk, int32 AllocationSize, bool bAsync);
+	FMemoryChunk*	AllocateChunk(FMemoryChunk* FreeChunk, int32 AllocationSize, bool bAsync, bool bDoValidation = true);
 
 	/**
 	* Marks the specified chunk as 'free' and updates tracking variables.
@@ -867,7 +893,7 @@ protected:
 	* Maint32ains the free-list order if bSortedFreeList is true.
 	*
 	* @param Chunk				Chunk to mark as available.
-	* @param bSortedFreeList	If true, maint32ains the free-list sort order
+	* @param bSortedFreeList	If true, maintains the free-list sort order
 	*/
 	void			LinkFreeChunk(FMemoryChunk* Chunk, bool bSortedFreeList)
 	{
@@ -974,9 +1000,9 @@ protected:
 	FSettings		Settings;
 
 	/** Ever-increasing index to synchronize all relocations initiated by Tick(). */
-	uint32			CurrentSyncIndex;
+	uint64			CurrentSyncIndex;
 	/** Sync index that has been completed, so far.					*/
-	uint32			CompletedSyncIndex;
+	uint64			CompletedSyncIndex;
 
 	/** Number of async relocations that are currently in progress.	*/
 	int32				NumRelocationsInProgress;
@@ -1015,6 +1041,7 @@ protected:
 	friend FScopedGPUDefragLock;
 };
 
+//FScopedGPUDefragLock can't cover any scope that will add dcb commands or we might deadlock with a master reserve failure.
 class FScopedGPUDefragLock
 {
 public:
@@ -1161,7 +1188,7 @@ private:
 /**
 *	Returns the current size (in uint8s), or the final size if it has a reallocating request.
 */
-FORCEINLINE int32 FGPUDefragAllocator::FMemoryChunk::GetFinalSize() const
+FORCEINLINE int64 FGPUDefragAllocator::FMemoryChunk::GetFinalSize() const
 {
 	return Size;
 }

@@ -341,6 +341,8 @@ namespace PartySystemPermissions
 		Friends,
 		/** Available to anyone */
 		Anyone,
+		/** Noone can send invites */
+		Noone, 
 	};
 }
 

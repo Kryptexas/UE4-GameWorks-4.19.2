@@ -31,7 +31,8 @@ UOnlineHotfixManager::UOnlineHotfixManager() :
 	TotalBytes(0),
 	NumBytes(0),
 	bHotfixingInProgress(false),
-	bHotfixNeedsReload(false)
+	bHotfixNeedsMapReload(false),
+	ChangedOrRemovedPakCount(0)
 {
 	OnEnumerateFilesCompleteDelegate = FOnEnumerateFilesCompleteDelegate::CreateUObject(this, &UOnlineHotfixManager::OnEnumerateFilesComplete);
 	OnReadFileProgressDelegate = FOnReadFileProgressDelegate::CreateUObject(this, &UOnlineHotfixManager::OnReadFileProgress);
@@ -84,11 +85,12 @@ void UOnlineHotfixManager::PostInitProperties()
 void UOnlineHotfixManager::Init()
 {
 	bHotfixingInProgress = true;
-	bHotfixNeedsReload = false;
+	bHotfixNeedsMapReload = false;
 	TotalFiles = 0;
 	NumDownloaded = 0;
 	TotalBytes = 0;
 	NumBytes = 0;
+	ChangedOrRemovedPakCount = 0;
 	// Build the name of the loc file that we'll care about
 	// It can change at runtime so build it just before fetching the data
 	GameLocName = DebugPrefix + FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName() + TEXT("_Game.locres");
@@ -371,9 +373,6 @@ void UOnlineHotfixManager::UpdateProgress(uint32 FileCount, uint64 UpdateSize)
 	NumBytes += UpdateSize;
 	// Update our progress
 	TriggerOnHotfixProgressDelegates(NumDownloaded, TotalFiles, NumBytes, TotalBytes);
-
-	UE_LOG(LogHotfixManager, Display, TEXT("NumFiles (%d), TotalFiles (%d), NumBytes (%d), TotalBytes(%d)"),
-		NumDownloaded, TotalFiles, NumBytes, TotalBytes);
 }
 
 void UOnlineHotfixManager::ApplyHotfix()
@@ -390,7 +389,18 @@ void UOnlineHotfixManager::ApplyHotfix()
 		TriggerOnHotfixProcessedFileDelegates(FileHeader.FileName, GetCachedDirectory() / FileHeader.DLName);
 	}
 	UE_LOG(LogHotfixManager, Display, TEXT("Hotfix data has been successfully applied"));
-	TriggerHotfixComplete((!bHotfixNeedsReload) ? EHotfixResult::Success : EHotfixResult::SuccessNeedsReload);
+	EHotfixResult Result = EHotfixResult::Success;
+	if (ChangedOrRemovedPakCount > 0)
+	{
+		UE_LOG(LogHotfixManager, Display, TEXT("Hotfix has changed or removed PAK files so a relaunch of the app is needed"));
+		Result = EHotfixResult::SuccessNeedsRelaunch;
+	}
+	else if (bHotfixNeedsMapReload)
+	{
+		UE_LOG(LogHotfixManager, Display, TEXT("Hotfix has detected PAK files containing currently loaded maps, so a level load is needed"));
+		Result = EHotfixResult::SuccessNeedsReload;
+	}
+	TriggerHotfixComplete(Result);
 }
 
 void UOnlineHotfixManager::TriggerHotfixComplete(EHotfixResult HotfixResult)
@@ -620,9 +630,9 @@ bool UOnlineHotfixManager::HotfixPakFile(const FCloudFileHeader& FileHeader)
 			{
 				IniList.Add(InternalPakFileName);
 			}
-			else if (!bHotfixNeedsReload && InternalPakFileName.EndsWith(FPackageName::GetMapPackageExtension()))
+			else if (!bHotfixNeedsMapReload && InternalPakFileName.EndsWith(FPackageName::GetMapPackageExtension()))
 			{
-				bHotfixNeedsReload = IsMapLoaded(InternalPakFileName);
+				bHotfixNeedsMapReload = IsMapLoaded(InternalPakFileName);
 			}
 		}
 		// Sort the INIs so they are processed consistently
@@ -718,6 +728,7 @@ void UOnlineHotfixManager::UnmountHotfixFiles()
 			{
 				FCoreDelegates::OnUnmountPak.Execute(MountedPakFiles[Index]);
 				MountedPakFiles.RemoveAt(Index);
+				ChangedOrRemovedPakCount++;
 				UE_LOG(LogHotfixManager, Log, TEXT("Hotfix unmounted PAK file (%s) so it can be redownloaded"), *FileHeader.FileName);
 				break;
 			}
@@ -732,6 +743,7 @@ void UOnlineHotfixManager::UnmountHotfixFiles()
 			{
 				FCoreDelegates::OnUnmountPak.Execute(MountedPakFiles[Index]);
 				MountedPakFiles.RemoveAt(Index);
+				ChangedOrRemovedPakCount++;
 				UE_LOG(LogHotfixManager, Log, TEXT("Hotfix unmounted PAK file (%s) since it was removed from the hotfix set"), *FileHeader.FileName);
 				break;
 			}

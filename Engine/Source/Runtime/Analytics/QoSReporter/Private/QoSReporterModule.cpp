@@ -14,7 +14,7 @@ DEFINE_LOG_CATEGORY(LogQoSReporter);
 IMPLEMENT_MODULE(FQoSReporterModule, QoSReporter);
 
 // helps to version QoS events (date*10 to allow for 10 revisions per day)
-#define QOS_EVENTS_REVISION					201512170
+#define QOS_EVENTS_REVISION					201601200
 
 FString FQoSReporterModule::Config::GetDefaultAppVersion()
 { 

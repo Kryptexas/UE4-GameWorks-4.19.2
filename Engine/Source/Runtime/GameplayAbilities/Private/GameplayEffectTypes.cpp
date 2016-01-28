@@ -410,10 +410,14 @@ bool FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 		FDelegateInfo* DelegateInfo = GameplayTagEventMap.Find(CurTag);
 		if (DelegateInfo)
 		{
+			// Prior to calling OnAnyChange delegate, copy our OnNewOrRemove delegate, since things listening to OnAnyChange could add or remove 
+			// to this map causing our pointer to become invalid.
+			FOnGameplayEffectTagCountChanged OnNewOrRemoveLocalCopy = DelegateInfo->OnNewOrRemove;
+
 			DelegateInfo->OnAnyChange.Broadcast(CurTag, NewTagCount);
 			if (SignificantChange)
 			{
-				DelegateInfo->OnNewOrRemove.Broadcast(CurTag, NewTagCount);
+				OnNewOrRemoveLocalCopy.Broadcast(CurTag, NewTagCount);
 			}
 		}
 	}

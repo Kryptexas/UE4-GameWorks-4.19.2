@@ -749,6 +749,9 @@ void FPImplRecastNavMesh::Raycast(const FVector& StartLoc, const FVector& EndLoc
 		NavQuery.findNearestContainingPoly(&RecastStart.X, Extent, QueryFilter, &StartNode, NULL);
 	}
 
+	NavNodeRef EndNode = INVALID_NAVNODEREF;
+	NavQuery.findNearestContainingPoly(&RecastEnd.X, Extent, QueryFilter, &EndNode, NULL);
+
 	if (StartNode != INVALID_NAVNODEREF)
 	{
 		float RecastHitNormal[3];
@@ -758,20 +761,7 @@ void FPImplRecastNavMesh::Raycast(const FVector& StartLoc, const FVector& EndLoc
 			, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
 
 		RaycastResult.HitNormal = Recast2UnrVector(RecastHitNormal);
-
-		if (dtStatusSucceed(RaycastStatus) == false && !RaycastResult.HasHit())
-		{
-			NavNodeRef EndNode = INVALID_NAVNODEREF;
-			NavQuery.findNearestPoly(&RecastEnd.X, Extent, QueryFilter, &EndNode, NULL);
-
-			// if raycast corridor ends in different poly, ray was probably stopped by 2D edge check
-			// return blocking hit at end
-			if (EndNode != RaycastResult.GetLastNodeRef())
-			{
-				RaycastResult.HitTime = 1.f;
-				RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
-			}
-		}
+		RaycastResult.bIsRaycastEndInCorridor = dtStatusSucceed(RaycastStatus) && (RaycastResult.GetLastNodeRef() == EndNode);
 	}
 	else
 	{

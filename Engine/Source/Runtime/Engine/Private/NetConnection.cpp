@@ -45,6 +45,7 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,   OwningActor			( NULL )
 ,	MaxPacket			( 0 )
 ,	InternalAck			( false )
+,	MaxPacketHandlerBits ( 0 )
 ,	State				( USOCK_Invalid )
 ,	PacketOverhead		( 0 )
 ,	ResponseId			( 0 )
@@ -93,7 +94,7 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
  * @param InMaxPacket the max packet size that will be used for sending
  * @param InPacketOverhead the packet overhead for this connection type
  */
-void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, const FURL& InURL, EConnectionState InState,int32 InMaxPacket,int32 InPacketOverhead)
+void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
 {
 	// Owning net driver
 	Driver = InDriver;
@@ -101,13 +102,7 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	// Reset Handler
 	Handler.Reset(NULL);
 
-	Handler = MakeUnique<PacketHandler>();
-
-	if(Handler.IsValid())
-	{
-		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
-		Handler->Initialize(Mode);
-	}
+	InitHandler();
 
 	// Stats
 	StatUpdateTime			= Driver->Time;
@@ -128,7 +123,8 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	// Use the passed in values
 	MaxPacket = InMaxPacket;
 	PacketOverhead = InPacketOverhead;
-	check(MaxPacket && PacketOverhead);
+
+	check(MaxPacket > 0 && PacketOverhead > 0);
 
 #if DO_ENABLE_NET_TEST
 	// Copy the command line settings from the net driver
@@ -168,10 +164,7 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 {
 	Driver = InDriver;
 
-	if (!Handler.IsValid())
-	{
-		Handler = MakeUnique<PacketHandler>();
-	}
+	// NOTE: If Handler assignment is added, it must be initialized, and GetPacketOverhead must be factored into MaxPacketHandlerBits
 
 	// We won't be sending any packets, so use a default size
 	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket;
@@ -206,6 +199,21 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 	auto PackageMapClient = NewObject<UPackageMapClient>(this);
 	PackageMapClient->Initialize(this, Driver->GuidCache);
 	PackageMap = PackageMapClient;
+}
+
+void UNetConnection::InitHandler()
+{
+	check(!Handler.IsValid());
+
+	Handler = MakeUnique<PacketHandler>();
+
+	if (Handler.IsValid())
+	{
+		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
+		Handler->Initialize(Mode);
+
+		MaxPacketHandlerBits = Handler->GetTotalPacketOverheadBits();
+	}
 }
 
 void UNetConnection::Serialize( FArchive& Ar )
@@ -474,7 +482,7 @@ void UNetConnection::InitSendBuffer()
 	else
 	{
 		// First time initialization needs to allocate the buffer
-		SendBuffer = FBitWriter(MaxPacket * 8);
+		SendBuffer = FBitWriter((MaxPacket * 8) - MaxPacketHandlerBits);
 	}
 
 	ResetPacketBitCounts();
@@ -487,7 +495,7 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 	uint8* Data = (uint8*)InData;
 
 	// UnProcess the packet
-	if(Handler.IsValid())
+	if (Handler.IsValid())
 	{
 		const ProcessedPacket UnProcessedPacket = Handler->Incoming(Data, Count);
 
@@ -635,8 +643,9 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		const int32 Index = OutPacketId & (ARRAY_COUNT(OutLagPacketId)-1);
 
 		// Remember the actual time this packet was sent out, so we can compute ping when the ack comes back
-		OutLagPacketId[Index]	= OutPacketId;
-		OutLagTime[Index]		= FPlatformTime::Seconds();
+		OutLagPacketId[Index]			= OutPacketId;
+		OutLagTime[Index]				= FPlatformTime::Seconds();
+		OutBytesPerSecondHistory[Index]	= OutBytesPerSecond / 1024;
 
 		OutPacketId++;
 		Driver->OutPackets++;
@@ -777,6 +786,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				bLastHasServerFrameTime = bHasServerFrameTime;
 			}
 #endif
+			uint32 RemoteInKBytesPerSecond = 0;
+			Reader.SerializeIntPacked( RemoteInKBytesPerSecond );
 
 			// Resend any old reliable packets that the receiver hasn't acknowledged.
 			if( AckPacketId>OutAckPacketId )
@@ -813,6 +824,17 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 #else
 				const float NewLag		= FPlatformTime::Seconds() - OutLagTime[Index];
 #endif
+
+				if ( OutBytesPerSecondHistory[Index] > 0 )
+				{
+					RemoteSaturation = ( 1.0f - FMath::Min( ( float )RemoteInKBytesPerSecond / ( float )OutBytesPerSecondHistory[Index], 1.0f ) ) * 100.0f;
+				}
+				else
+				{
+					RemoteSaturation = 0.0f;
+				}
+
+				//UE_LOG( LogNet, Warning, TEXT( "Out: %i, InRemote: %i, Saturation: %f" ), OutBytesPerSecondHistory[Index], RemoteInKBytesPerSecond, RemoteSaturation );
 
 				LagAcc += NewLag;
 				LagCount++;
@@ -950,7 +972,9 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				// Can't handle other channels until control channel exists.
 				if ( Channels[0] == NULL )
 				{
-					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType);
+					//CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType);
+					UE_LOG( LogNetTraffic, Log, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
+					Close();
 					return;
 				}
 				// on the server, if we receive bunch data for a channel that doesn't exist while we're still logging in,
@@ -965,10 +989,11 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			// ignore control channel close if it hasn't been opened yet
 			if ( Bunch.ChIndex == 0 && Channels[0] == NULL && Bunch.bClose && Bunch.ChType == CHTYPE_Control )
 			{
-				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ));
+				//CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ));
+				UE_LOG( LogNetTraffic, Log, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ) );
+				Close();
 				return;
 			}
-
 
 			// Receiving data.
 			UChannel* Channel = Channels[Bunch.ChIndex];
@@ -1208,6 +1233,10 @@ void UNetConnection::SendAck(int32 AckPacketId, bool FirstTime/*=1*/)
 		// We still write the bit in shipping to keep the format the same
 		AckData.WriteBit( 0 );
 #endif
+
+		// Notify server of our current rate per second at this time
+		uint32 InKBytesPerSecond = InBytesPerSecond / 1024;
+		AckData.SerializeIntPacked( InKBytesPerSecond );
 
 		NETWORK_PROFILER( GNetworkProfiler.TrackSendAck( AckData.GetNumBits(), this ) );
 
@@ -1577,7 +1606,7 @@ void UNetConnection::Tick()
 	}
 
 	// Tick Handler
-	if(Handler.IsValid())
+	if (Handler.IsValid())
 	{
 		Handler->Tick(FrameTime);
 		BufferedPacket* QueuedPacket = Handler->GetQueuedPacket();

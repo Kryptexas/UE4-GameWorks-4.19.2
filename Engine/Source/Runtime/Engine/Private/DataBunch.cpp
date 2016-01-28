@@ -88,7 +88,7 @@ FOutBunch::FOutBunch()
 : FNetBitWriter( 0 )
 {}
 FOutBunch::FOutBunch( UChannel* InChannel, bool bInClose )
-:	FNetBitWriter	( InChannel->Connection->PackageMap, InChannel->Connection->MaxPacket*8-MAX_BUNCH_HEADER_BITS-MAX_PACKET_TRAILER_BITS-MAX_PACKET_HEADER_BITS )
+:	FNetBitWriter	( InChannel->Connection->PackageMap, InChannel->Connection->GetMaxSingleBunchSizeBits())
 ,	Next		( NULL )
 ,	Channel		( InChannel )
 ,	Time		( 0 )

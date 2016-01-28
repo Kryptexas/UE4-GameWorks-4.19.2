@@ -644,11 +644,13 @@ public:
 		int32 CorridorPolysCount;
 		float HitTime;
 		FVector HitNormal;
+		uint32 bIsRaycastEndInCorridor : 1;
 
 		FRaycastResult()
 			: CorridorPolysCount(0)
 			, HitTime(FLT_MAX)
 			, HitNormal(0.f)
+			, bIsRaycastEndInCorridor(false)
 		{
 			FMemory::Memzero(CorridorPolys);
 			FMemory::Memzero(CorridorCost);

@@ -21,7 +21,7 @@ FString FOnlineUserInfoFacebook::GetRealName() const
 	return Result;
 }
 
-FString FOnlineUserInfoFacebook::GetDisplayName() const
+FString FOnlineUserInfoFacebook::GetDisplayName(const FString& Platform) const
 {
 	FString Result;
 	GetAccountData(TEXT("username"), Result);

@@ -1597,7 +1597,18 @@ FName MakeUniqueObjectName( UObject* Parent, UClass* Class, FName InBaseName/*=N
 				}
 				else
 				{
-					TestName = FName(BaseName, ++Class->ClassUnique);
+					int32 NameNumber = 0;
+					if (Parent && (Parent != ANY_PACKAGE) )
+					{
+						UPackage* ParentPackage = Parent->GetOutermost();
+						int32& ClassUnique = ParentPackage->ClassUniqueNameIndexMap.FindOrAdd(Class->GetFName());
+						NameNumber = ++ClassUnique;
+					}
+					else
+					{
+						NameNumber = ++Class->ClassUnique;
+					}
+					TestName = FName(BaseName, NameNumber);
 				}
 
 				if (Parent == ANY_PACKAGE)

@@ -164,6 +164,8 @@ public:
 	// World browser information
 	TScopedPointer< FWorldTileInfo > WorldTileInfo;
 
+	TMap<FName, int32> ClassUniqueNameIndexMap;
+
 #if WITH_EDITOR
 	/** Editor only: PIE instance ID this package belongs to, INDEX_NONE otherwise */
 	int32 PIEInstanceID;

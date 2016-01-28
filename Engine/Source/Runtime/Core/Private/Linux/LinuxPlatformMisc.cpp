@@ -368,6 +368,29 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint3
 	return NumMappings;
 }
 
+uint8 GOverriddenReturnCode = 0;
+bool GHasOverriddenReturnCode = false;
+
+void FLinuxPlatformMisc::RequestExitWithStatus(bool Force, uint8 ReturnCode)
+{
+	UE_LOG(LogLinux, Log, TEXT("FLinuxPlatformMisc::RequestExit(bForce=%s, ReturnCode=%d)"), Force ? TEXT("true") : TEXT("false"), ReturnCode);
+
+	GOverriddenReturnCode = ReturnCode;
+	GHasOverriddenReturnCode = true;
+
+	return FPlatformMisc::RequestExit(Force);
+}
+
+bool FLinuxPlatformMisc::HasOverriddenReturnCode(uint8 * OverriddenReturnCodeToUsePtr)
+{
+	if (GHasOverriddenReturnCode && OverriddenReturnCodeToUsePtr != nullptr)
+	{
+		*OverriddenReturnCodeToUsePtr = GOverriddenReturnCode;
+	}
+
+	return GHasOverriddenReturnCode;
+}
+
 const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
 	check(OutBuffer && BufferCount);

@@ -48,6 +48,11 @@ struct FGameplayAbilitySpecHandle
 		return ::GetTypeHash(SpecHandle.Handle);
 	}
 
+	FString ToString() const
+	{
+		return IsValid() ? FString::FromInt(Handle) : TEXT("Invalid");
+	}
+
 private:
 
 	UPROPERTY()

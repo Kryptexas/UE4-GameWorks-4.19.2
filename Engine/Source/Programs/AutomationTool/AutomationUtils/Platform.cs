@@ -452,7 +452,7 @@ namespace AutomationTool
 		/// of current data against a shipped pak file.
 		/// </summary>
 		/// <returns></returns>
-		public virtual bool GetPlatformPatchesWithDiffPak()
+        public virtual bool GetPlatformPatchesWithDiffPak(ProjectParams Params, DeploymentContext SC)
 		{
 			return true;
 		}

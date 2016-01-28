@@ -296,6 +296,10 @@ protected:
 	UPROPERTY(config)
 	int32 LastConfirmedFullscreenMode;
 
+	/** Fullscreen mode to use when toggling between windowed and fullscreen. Same values as r.FullScreenMode. */
+	UPROPERTY(config)
+	int32 PreferredFullscreenMode;
+
 	/** All settings will be wiped and set to default if the serialized version differs from UE_GAMEUSERSETTINGS_VERSION. */
 	UPROPERTY(config)
 	uint32 Version;
@@ -322,4 +326,6 @@ protected:
 private:
 
 	void UpdateMinResolutionScaling();
+
+	void SetPreferredFullscreenMode(int32 Mode);
 };

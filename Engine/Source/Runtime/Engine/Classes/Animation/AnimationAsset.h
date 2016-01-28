@@ -53,6 +53,9 @@ struct FBlendSampleData
 	int32 SampleDataIndex;
 
 	UPROPERTY()
+	class UAnimSequence* Animation;
+
+	UPROPERTY()
 	float TotalWeight;
 
 	UPROPERTY()
@@ -74,6 +77,7 @@ struct FBlendSampleData
 	{}
 	FBlendSampleData(int32 Index)
 		:	SampleDataIndex(Index)
+		,	Animation(nullptr)
 		,	TotalWeight(0.f)
 		,	Time(0.f)
 		,	PreviousTime(0.f)

@@ -7,3 +7,9 @@ FUserActivityTracking::FOnActivityChanged FUserActivityTracking::OnActivityChang
 
 FUserActivity FUserActivityTracking::UserActivity;
 
+void FUserActivityTracking::SetActivity(const FUserActivity& InUserActivity)
+{ 
+	UserActivity = InUserActivity;
+	OnActivityChanged.Broadcast(UserActivity);
+	FCoreDelegates::UserActivityStringChanged.Broadcast(UserActivity.ActionName);
+}

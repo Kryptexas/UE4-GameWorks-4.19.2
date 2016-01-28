@@ -13,6 +13,7 @@
 
 IMPLEMENT_MODULE( FAnalyticsET, AnalyticsET );
 DEFINE_LOG_CATEGORY(LogAnalytics);
+DEFINE_LOG_CATEGORY_STATIC(LogAnalyticsDumpEventPayload, Display, All);
 
 class FAnalyticsProviderET : 
 	public IAnalyticsProvider,
@@ -347,7 +348,7 @@ void FAnalyticsProviderET::FlushEvents()
 
 			// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
 			// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...
-			UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:datarouter/api/v1/public/data?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&AppEnvironment=%s&UploadType=%s. Payload:%s"),
+			FString LogString = FString::Printf(TEXT("[%s] AnalyticsET URL:datarouter/api/v1/public/data?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&AppEnvironment=%s&UploadType=%s. Payload:%s"),
 				*APIKey,
 				*SessionID,
 				*APIKey,
@@ -356,6 +357,11 @@ void FAnalyticsProviderET::FlushEvents()
 				*AppEnvironment,
 				*UploadType,
 				*Payload);
+			UE_LOG(LogAnalytics, VeryVerbose, TEXT("%s"), *LogString);
+
+			// Duplicate the same log message with a separate category. This is used as an "last chance" backup on the servers in the unlikely case 
+			// if the backend lost the events due to overload - then we can scrape the logs manually for them.
+			UE_LOG(LogAnalyticsDumpEventPayload, Log, TEXT("%s"), *LogString);
 
 			// Create/send Http request for an event
 			TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();

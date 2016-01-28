@@ -308,6 +308,18 @@ public:
 	}
 
 	/**
+	 * Checks whether this application should run with the null RHI.
+	 *
+	 * Distinct from GUsingNullRHI which tells you whether the engine has actually initialized and is running a null RHI.
+	 *
+	 * @return true if the application should use null RHI.
+	 */
+	FORCEINLINE static bool ShouldUseNullRHI()
+	{
+		return (USE_NULL_RHI || FParse::Param(FCommandLine::Get(), TEXT("nullrhi")) || !CanEverRender());
+	}
+
+	/**
 	 * Checks whether this application has been installed.
 	 *
 	 * Non-server desktop shipping builds are assumed to be installed.

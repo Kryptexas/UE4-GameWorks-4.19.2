@@ -856,7 +856,7 @@ bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject* Obje
 		{
 			check( ExportNetGUIDCount == 0 );
 
-			CurrentExportBunch = new FOutBunch(this, Connection->MaxPacket*8-MAX_BUNCH_HEADER_BITS-MAX_PACKET_TRAILER_BITS-MAX_PACKET_HEADER_BITS );
+			CurrentExportBunch = new FOutBunch(this, Connection->GetMaxSingleBunchSizeBits());
 			CurrentExportBunch->SetAllowResize(false);
 			CurrentExportBunch->bHasGUIDs = true;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

@@ -1449,6 +1449,13 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 
 				Result = CreatePakFile(*PakFilename, FilesToAdd, CmdLineParameters) ? 0 : 1;
+
+				if (CmdLineParameters.GeneratePatch)
+				{
+					FString OutputPath = FPaths::GetPath(PakFilename) / FString(TEXT("TempFiles"));
+					// delete the temporary directory
+					IFileManager::Get().DeleteDirectory(*OutputPath, false, true);
+				}
 			}
 		}
 	}

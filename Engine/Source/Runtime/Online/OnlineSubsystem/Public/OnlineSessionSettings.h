@@ -570,7 +570,11 @@ public:
 
 	/** Constructor */
 	FOnlineSessionSearch() :
-		SearchState(EOnlineAsyncTaskState::NotStarted)
+		SearchState(EOnlineAsyncTaskState::NotStarted),
+		MaxSearchResults(0),
+		bIsLanQuery(false),
+		PingBucketSize(0),
+		TimeoutInSeconds(0.0f)
 	{
 		QuerySettings.Set(SETTING_MAPNAME, FString(TEXT("")), EOnlineComparisonOp::Equals);
 		QuerySettings.Set(SEARCH_DEDICATED_ONLY, false, EOnlineComparisonOp::Equals);

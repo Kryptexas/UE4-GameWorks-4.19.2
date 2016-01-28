@@ -34,7 +34,7 @@ FString FUserOnlineAccountFacebook::GetRealName() const
 	return FString();
 }
 
-FString FUserOnlineAccountFacebook::GetDisplayName() const
+FString FUserOnlineAccountFacebook::GetDisplayName(const FString& Platform) const
 {
 	//@todo samz - implement
 	return FString();

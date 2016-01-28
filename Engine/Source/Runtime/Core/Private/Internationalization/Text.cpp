@@ -1057,10 +1057,15 @@ CORE_API FArchive& operator<<(FArchive& Ar, FText& Value)
 		Value.TextData->PersistText(); // We always need to do this when saving so that we can save the history correctly
 		if(Ar.IsPersistent())
 		{
-			Value.Flags &= ~(ETextFlag::ConvertedProperty); // Remove conversion flag before saving.
+			Value.Flags &= ~(ETextFlag::ConvertedProperty | ETextFlag::InitializedFromString); // Remove conversion flag before saving.
 		}
 	}
 	Ar << Value.Flags;
+
+	if (Ar.IsLoading() && Ar.ArIsPersistent)
+	{
+		Value.Flags &= ~(ETextFlag::ConvertedProperty | ETextFlag::InitializedFromString); // Remove conversion flag before saving.
+	}
 
 	if (Ar.IsSaving())
 	{

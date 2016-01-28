@@ -2694,9 +2694,25 @@ partial class GUBP
 			// Run the localise script.
 			CommandUtils.RunUAT(CommandUtils.CmdEnv, "Localise" + CommandLineArguments);
 
-			// Don't pass on any build products to other build nodes at the moment.
 			BuildProducts = new List<string>();
-			SaveRecordOfSuccessAndAddToBuildProducts();
+
+			var SuccessMessage = "Updated the following localization build products:\n";
+			try
+			{
+				// Just add all of the localization content as a build product, since UAT should have updated all of it
+				var LocalizationContentDirectory = CombinePaths(CommandUtils.CmdEnv.LocalRoot, UEProjectDirectory, "Content", "Localization");
+				foreach (string FilePath in Directory.EnumerateFiles(LocalizationContentDirectory, "*", SearchOption.AllDirectories))
+				{
+					AddBuildProduct(FilePath);
+					SuccessMessage += "    " + FilePath + "\n";
+				}
+			}
+			catch (Exception e)
+			{
+				LogWarning("Failed to add build products for localization node. The follow exception was raised '%s'", e);
+			}
+
+			SaveRecordOfSuccessAndAddToBuildProducts(SuccessMessage);
 		}
 
 		public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)

@@ -37,6 +37,7 @@ struct FPrimaryCrashProperties;
 	"CallStack"
 	"SourceContext"
 	"UserDescription"
+	"UserActivityHint"
 	"ErrorMessage"
 	"CrashDumpMode"
 	"Misc.NumberOfCores"
@@ -274,6 +275,13 @@ struct FPrimaryCrashProperties
 	 * 
 	 */
 	FCrashProperty UserDescription;
+
+	/**
+	 * An FString representing the user activity, if known, when the error occurred.
+	 * @UserActivityHint varchar(512)
+	 *
+	 */
+	FCrashProperty UserActivityHint;
 
 	/**
 	 * The error message, can be assertion message, ensure message or message from the fatal error.

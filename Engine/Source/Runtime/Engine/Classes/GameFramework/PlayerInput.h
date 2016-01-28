@@ -510,6 +510,8 @@ public:
 	/** Returns the list of keys mapped to the specified Action Name */
 	const TArray<FInputActionKeyMapping>& GetKeysForAction(const FName ActionName);
 
+	static const TArray<FInputActionKeyMapping>& GetEngineDefinedActionMappings() { return EngineDefinedActionMappings; }
+
 private:
 	/** 
 	 * Given raw keystate value, returns the "massaged" value. Override for any custom behavior,

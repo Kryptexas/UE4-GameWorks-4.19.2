@@ -48,6 +48,7 @@ namespace NCachedCrashContextProperties
 	static int32 CrashDumpMode;
 	static int32 SecondsSinceStart;
 	static FString CrashGUID;
+	static FString UserActivityHint;
 }
 
 void FGenericCrashContext::Initialize()
@@ -101,6 +102,11 @@ void FGenericCrashContext::Initialize()
 		return true;
 	} ), PollingInterval );
 
+	FCoreDelegates::UserActivityStringChanged.AddLambda([](const FString& InUserActivity)
+	{
+		NCachedCrashContextProperties::UserActivityHint = InUserActivity;
+	});
+
 	bIsInitialized = true;
 }
 
@@ -153,6 +159,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "CallStack" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "SourceContext" ), TEXT( "" ) );
 	AddCrashProperty( TEXT( "UserDescription" ), TEXT( "" ) );
+	AddCrashProperty( TEXT( "UserActivityHint" ), *NCachedCrashContextProperties::UserActivityHint );
 	AddCrashProperty( TEXT( "ErrorMessage" ), (const TCHAR*)GErrorMessage ); // GErrorMessage may be broken.
 	AddCrashProperty( TEXT( "CrashDumpMode" ), NCachedCrashContextProperties::CrashDumpMode );
 

@@ -408,7 +408,7 @@ bool IsEditorOnlyObject(const UObject* InObject)
 	{
 		return false;
 	}
-
+	
 	if (InObject->HasAnyMarks(OBJECTMARK_EditorOnly))
 	{
 		return true;
@@ -3205,8 +3205,19 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 #if WITH_EDITORONLY_DATA
 		if (bIsCooking)
 		{
+			static struct FCanSkipEditorReferencedPackagesWhenCooking
+			{
+				bool bCanSkipEditorReferencedPackagesWhenCooking;
+				FCanSkipEditorReferencedPackagesWhenCooking()
+					: bCanSkipEditorReferencedPackagesWhenCooking(true)
+				{
+					GConfig->GetBool(TEXT("Core.System"), TEXT("CanSkipEditorReferencedPackagesWhenCooking"), bCanSkipEditorReferencedPackagesWhenCooking, GEngineIni);
+				}
+				FORCEINLINE operator bool() const { return bCanSkipEditorReferencedPackagesWhenCooking; }
+			} CanSkipEditorReferencedPackagesWhenCooking;
+
 			// Don't save packages marked as editor-only.
-			if (InOuter->IsLoadedByEditorPropertiesOnly())
+			if (CanSkipEditorReferencedPackagesWhenCooking && InOuter->IsLoadedByEditorPropertiesOnly())
 			{				
 				UE_CLOG(!(SaveFlags & SAVE_NoError), LogSavePackage, Display, TEXT("Package loaded by editor-only properties: %s. Package will not be saved."), *InOuter->GetName());
 				return ESavePackageResult::ReferencedOnlyByEditorOnlyData;

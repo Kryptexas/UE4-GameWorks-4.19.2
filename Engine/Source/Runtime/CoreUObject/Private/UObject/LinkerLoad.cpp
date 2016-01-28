@@ -4127,17 +4127,77 @@ UObject* FLinkerLoad::IndexToObject( FPackageIndex Index )
 {
 	if( Index.IsExport() )
 	{
-		check(ExportMap.IsValidIndex( Index.ToExport() ) );
+		#if PLATFORM_DESKTOP
+			// Show a message box indicating, possible, corrupt data (desktop platforms only)
+			if ( !ExportMap.IsValidIndex( Index.ToExport() ) )
+			{
+				FText ErrorMessage, ErrorCaption;
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+									TEXT("SerializationOutOfBoundsErrorMessage"),
+									ErrorMessage,
+									GEngineIni);
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+					TEXT("SerializationOutOfBoundsErrorMessageCaption"),
+					ErrorCaption,
+					GEngineIni);
+
+				UE_LOG( LogLinker, Error, TEXT("Invalid export object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToExport(), *Filename );
+
+				if (GLog)
+				{
+					GLog->Flush();
+				}
+
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
+
+				check(false);
+			}
+		#else
+			{
+				UE_CLOG( !ExportMap.IsValidIndex( Index.ToExport() ), LogLinker, Fatal, TEXT("Invalid export object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToExport(), *Filename );
+			}
+		#endif
+
 		return CreateExport( Index.ToExport() );
 	}
 	else if( Index.IsImport() )
 	{
-		check(ImportMap.IsValidIndex( Index.ToImport() ) );
+		#if PLATFORM_DESKTOP
+			// Show a message box indicating, possible, corrupt data (desktop platforms only)
+			if ( !ImportMap.IsValidIndex( Index.ToImport() ) )
+			{
+				FText ErrorMessage, ErrorCaption;
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+									TEXT("SerializationOutOfBoundsErrorMessage"),
+									ErrorMessage,
+									GEngineIni);
+				GConfig->GetText(TEXT("/Script/Engine.Engine"),
+					TEXT("SerializationOutOfBoundsErrorMessageCaption"),
+					ErrorCaption,
+					GEngineIni);
+
+				UE_LOG( LogLinker, Error, TEXT("Invalid import object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToImport(), *Filename );
+
+				if (GLog)
+				{
+					GLog->Flush();
+				}
+
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage.ToString(), *ErrorCaption.ToString());
+
+				check(false);
+			}
+		#else
+			{
+				UE_CLOG( !ImportMap.IsValidIndex( Index.ToImport() ), LogLinker, Fatal, TEXT("Invalid import object index=%d while reading %s. File is most likely corrupted. Please verify your installation."), Index.ToImport(), *Filename );
+			}
+		#endif
+
 		return CreateImport( Index.ToImport() );
 	}
 	else 
 	{
-		return NULL;
+		return nullptr;
 	}
 }
 

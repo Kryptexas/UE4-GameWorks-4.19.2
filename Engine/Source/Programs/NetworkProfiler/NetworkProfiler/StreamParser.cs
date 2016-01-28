@@ -88,6 +88,12 @@ namespace NetworkProfiler
 
 			// Parse stream till we reach the end, marked by special token.
 			bool bHasReachedEndOfStream = false;
+
+			List<TokenBase> TokenList = new List<TokenBase>();
+
+			float FrameStartTime = -1.0f;
+			float FrameEndTime = -1.0f;
+
 			while( bHasReachedEndOfStream == false )
 			{
 				if ( Count++ % 1000 == 0 )
@@ -134,9 +140,44 @@ namespace NetworkProfiler
 
 				if ( Token.TokenType == ETokenTypes.ConnectionChange )
 				{
+					// We need to setup CurrentConnectionIndex, since it's used in ReadNextToken
 					NetworkStream.CurrentConnectionIndex = ( Token as TokenConnectionChanged ).AddressIndex;
 					continue;
 				}
+
+				TokenList.Add( Token );
+
+				// Track frame start/end times manually so we can bail out when we hit the amount of time we want to load
+				if ( Token.TokenType == ETokenTypes.FrameMarker )
+				{
+					var TokenFrameMarker = ( TokenFrameMarker )Token;
+
+					if ( FrameStartTime < 0 )
+					{
+						FrameStartTime = TokenFrameMarker.RelativeTime;
+						FrameEndTime = TokenFrameMarker.RelativeTime;
+					}
+					else
+					{
+						FrameEndTime = TokenFrameMarker.RelativeTime;
+					}
+				}
+
+				if ( EarlyOutMinutes > 0 && ( ( FrameEndTime - FrameStartTime ) > 60 * EarlyOutMinutes ) )
+				{
+					break;
+				}
+			}
+
+			for ( int i = 0; i < TokenList.Count; i++ )
+			{
+				if ( i % 1000 == 0 )
+				{
+					float Percent = ( float )( i + 1 ) / ( float )( TokenList.Count );
+					InMainWindow.UpdateProgress( ( int )( Percent * 100 ) );
+				}
+
+				TokenBase Token = TokenList[i];
 
 				// Convert current tokens to frame if we reach a frame boundary or the end of the stream.
 				if( ((Token.TokenType == ETokenTypes.FrameMarker) || (Token.TokenType == ETokenTypes.EndOfStreamMarker))
@@ -219,11 +260,6 @@ namespace NetworkProfiler
 					{
 						CurrentFrameTokens.Add(Token);
 					}
-				}
-
-				if ( EarlyOutMinutes > 0 && ( ( AllFrames.EndTime - AllFrames.StartTime  ) > 60 * EarlyOutMinutes ) )
-				{
-					break;
 				}
 			}
 

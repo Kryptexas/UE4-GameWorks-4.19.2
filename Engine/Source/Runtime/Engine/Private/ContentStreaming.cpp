@@ -49,6 +49,7 @@ DEFINE_STAT(STAT_TotalForcedHeuristicSize);
 DEFINE_STAT(STAT_LightmapMemorySize);
 DEFINE_STAT(STAT_LightmapDiskSize);
 DEFINE_STAT(STAT_HLODTextureMemorySize);
+DEFINE_STAT(STAT_HLODTextureDiskSize);
 DEFINE_STAT(STAT_IntermediateTexturesSize);
 DEFINE_STAT(STAT_RequestSizeCurrentFrame);
 DEFINE_STAT(STAT_RequestSizeTotal);
@@ -71,7 +72,6 @@ DEFINE_STAT(STAT_DynamicStreamingTotal);
 
 /** Accumulated total time spent on dynamic primitives, in seconds. */
 double GStreamingDynamicPrimitivesTime = 0.0;
-
 
 /*-----------------------------------------------------------------------------
 	Globals.
@@ -177,6 +177,32 @@ ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseAABB(
 	0,
 	TEXT("If non-zero, will use AABB to compute distance."),
 	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarStreamingHLODStrategy(
+	TEXT("r.Streaming.HLODStrategy"),
+	0,
+	TEXT("Define the HLOD streaming strategy.\n")
+	TEXT("0: stream\n")
+	TEXT("1: stream only mip 0\n")
+	TEXT("2: disable streaming"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarStreamingHLODPriorityScale(
+	TEXT("r.Streaming.HLODPriorityScale"),
+	1.5,
+	TEXT("Define the streaming priority to apply to HLOD textures\n"),
+	ECVF_Default
+	);
+
+static TAutoConsoleVariable<float> CVarStreamingHiddenPrimitiveScale(
+	TEXT("r.Streaming.HiddenPrimitiveScale"),
+	0.5,
+	TEXT("Define the resolution scale to apply when not in range.\n")
+	TEXT(".5: drop one mip\n")
+	TEXT("1: ignore visiblity"),
+	ECVF_Default
+	);
+
 
 /** Streaming priority: Linear distance factor from 0 to MAX_STREAMINGDISTANCE. */
 #define MAX_STREAMINGDISTANCE	10000.0f
@@ -289,6 +315,7 @@ struct FStreamingTexture
 		NumNonStreamingMips = InTexture->GetNumNonStreamingMips();
 		ForceLoadRefCount = 0;
 		bIsStreamingLightmap = IsStreamingLightmap( Texture );
+		bIsLightmap = bIsStreamingLightmap || LODGroup == TEXTUREGROUP_Lightmap || LODGroup == TEXTUREGROUP_Shadowmap;
 		bUsesStaticHeuristics = false;
 		bUsesDynamicHeuristics = false;
 		bUsesLastRenderHeuristics = false;
@@ -423,6 +450,13 @@ struct FStreamingTexture
 			float MipFactor = float(WantedMips) / float(MAX_TEXTURE_MIP_COUNT);
 			float TimeFactor = GStreamWithTimeFactor ? (FMath::Clamp( LastRenderTime, 1.0f, MAX_LASTRENDERTIME ) / MAX_LASTRENDERTIME) : 0.0f;
 			float Priority = MipFactor + DistanceFactor * (1.0f - TimeFactor * 0.5f) + bForceFullyLoad * 100.0f;
+
+			// Custom priority control for HLOD textures.
+			if (bIsHLODTexture)
+			{
+				Priority *= CVarStreamingHLODPriorityScale.GetValueOnAnyThread();
+			}
+
 			return Priority;
 		}
 		else
@@ -508,6 +542,8 @@ struct FStreamingTexture
 	uint32			bInFlight : 1;
 	/** Whether this is a streaming lightmap or shadowmap (cached from IsStreamingLightmap()). */
 	uint32			bIsStreamingLightmap : 1;
+	/** Whether this is a lightmap or shadowmap. */
+	uint32			bIsLightmap : 1;
 	/** Whether this texture uses StaticTexture heuristics. */
 	uint32			bUsesStaticHeuristics : 1;
 	/** Whether this texture uses DynamicTexture heuristics. */
@@ -952,6 +988,7 @@ struct FStreamingContext
 		ThisFrameTotalLightmapMemorySize				= 0;
 		ThisFrameTotalLightmapDiskSize					= 0;
 		ThisFrameTotalHLODMemorySize					= 0;
+		ThisFrameTotalHLODDiskSize						= 0;
 		ThisFrameTotalMipCountIncreaseRequestsInFlight	= 0;
 		ThisFrameOptimalWantedSize						= 0;
 		ThisFrameTotalStaticTextureHeuristicSize		= 0;
@@ -1012,6 +1049,7 @@ struct FStreamingContext
 		ThisFrameTotalLightmapMemorySize				+= Other.ThisFrameTotalLightmapMemorySize;
 		ThisFrameTotalLightmapDiskSize					+= Other.ThisFrameTotalLightmapDiskSize;
 		ThisFrameTotalHLODMemorySize					+= Other.ThisFrameTotalHLODMemorySize;
+		ThisFrameTotalHLODDiskSize						+= Other.ThisFrameTotalHLODDiskSize;
 		ThisFrameTotalMipCountIncreaseRequestsInFlight	+= Other.ThisFrameTotalMipCountIncreaseRequestsInFlight;
 		ThisFrameOptimalWantedSize						+= Other.ThisFrameOptimalWantedSize;
 		ThisFrameTotalStaticTextureHeuristicSize		+= Other.ThisFrameTotalStaticTextureHeuristicSize;
@@ -1052,6 +1090,7 @@ struct FStreamingContext
 	uint64 ThisFrameTotalLightmapMemorySize;
 	uint64 ThisFrameTotalLightmapDiskSize;
 	uint64 ThisFrameTotalHLODMemorySize;
+	uint64 ThisFrameTotalHLODDiskSize;
 	uint64 ThisFrameTotalMipCountIncreaseRequestsInFlight;
 	uint64 ThisFrameOptimalWantedSize;
 	/** Number of bytes using StaticTexture heuristics this frame, currently in memory. */
@@ -2123,7 +2162,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	MaxTempMemoryUsed( 5*1024*1024 )
 ,	bUseDynamicStreaming( false )
 ,	BoostPlayerTextures( 3.0f )
-,	RangePrefetchDistance(400.f)
+,	RangePrefetchDistance(1000.f)
 ,	MemoryMargin(0)
 ,	MinEvictSize(0)
 ,	IndividualStreamingTexture(NULL)
@@ -2138,6 +2177,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	TotalLightmapMemorySize(0)
 ,	TotalLightmapDiskSize(0)
 ,	TotalHLODMemorySize(0)
+,	TotalHLODDiskSize(0)
 ,	TotalMipCountIncreaseRequestsInFlight(0)
 ,	TotalOptimalWantedSize(0)
 ,	TotalStaticTextureHeuristicSize(0)
@@ -3223,6 +3263,7 @@ void FStreamingManagerTexture::ResetStreamingStats()
 	TotalLightmapMemorySize								= 0;
 	TotalLightmapDiskSize								= 0;
 	TotalHLODMemorySize									= 0;
+	TotalHLODDiskSize									= 0;
 	TotalMipCountIncreaseRequestsInFlight				= 0;
 	TotalOptimalWantedSize								= 0;
 	TotalStaticTextureHeuristicSize						= 0;
@@ -3251,6 +3292,7 @@ void FStreamingManagerTexture::UpdateStreamingStats( const FStreamingContext& Co
 	TotalLightmapMemorySize					+= Context.ThisFrameTotalLightmapMemorySize;
 	TotalLightmapDiskSize					+= Context.ThisFrameTotalLightmapDiskSize;
 	TotalHLODMemorySize						+= Context.ThisFrameTotalHLODMemorySize;
+	TotalHLODDiskSize						+= Context.ThisFrameTotalHLODDiskSize;
 	TotalMipCountIncreaseRequestsInFlight	+= Context.ThisFrameTotalMipCountIncreaseRequestsInFlight;
 	TotalOptimalWantedSize					+= Context.ThisFrameOptimalWantedSize;
 	TotalStaticTextureHeuristicSize			+= Context.ThisFrameTotalStaticTextureHeuristicSize;
@@ -3275,6 +3317,8 @@ void FStreamingManagerTexture::UpdateStreamingStats( const FStreamingContext& Co
 		SET_DWORD_STAT( STAT_LightmapMemorySize,			TotalLightmapMemorySize			);
 		SET_DWORD_STAT( STAT_LightmapDiskSize,				TotalLightmapDiskSize			);
 		SET_DWORD_STAT( STAT_HLODTextureMemorySize,			TotalHLODMemorySize				);
+		SET_DWORD_STAT( STAT_HLODTextureDiskSize,			TotalHLODDiskSize				);
+		
 		SET_FLOAT_STAT( STAT_StreamingBandwidth,			BandwidthAverage/1024.0f/1024.0f);
 		SET_FLOAT_STAT( STAT_StreamingLatency,				LatencyAverage					);
 		SET_MEMORY_STAT( STAT_StreamingTexturesSize,		TotalStreamingTexturesSize		);
@@ -4082,6 +4126,12 @@ void FStreamingManagerTexture::CalcMinMaxMips( FStreamingTexture& StreamingTextu
 		}
 	}
 
+	const int32 HLODStategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
+	if (StreamingTexture.bIsHLODTexture && HLODStategy == 2) // disable streaming
+	{
+		StreamingTexture.bForceFullyLoad = true;
+	}
+
 	// Calculate the min/max allowed mips.
 	UTexture2D::CalcAllowedMips(
 		StreamingTexture.MipCount,
@@ -4107,6 +4157,11 @@ void FStreamingManagerTexture::CalcMinMaxMips( FStreamingTexture& StreamingTextu
 	else if ( ThreadSettings.NumStreamedMips[StreamingTexture.LODGroup] >= 0 )
 	{
 		StreamingTexture.MinAllowedMips = FMath::Clamp( StreamingTexture.MipCount - ThreadSettings.NumStreamedMips[StreamingTexture.LODGroup], StreamingTexture.MinAllowedMips, StreamingTexture.MaxAllowedMips );
+	}
+
+	if ( StreamingTexture.bIsHLODTexture && HLODStategy == 1 && StreamingTexture.MaxAllowedMips > StreamingTexture.MinAllowedMips ) // stream only mip 0
+	{
+		StreamingTexture.MinAllowedMips = StreamingTexture.MaxAllowedMips - 1;
 	}
 
 	check( StreamingTexture.MinAllowedMips > 0 && StreamingTexture.MinAllowedMips <= StreamingTexture.MipCount );
@@ -4158,9 +4213,10 @@ void FStreamingManagerTexture::UpdateFrameStats( FStreamingContext& Context, FSt
 	}
 	Context.ThisFrameNumStreamingTextures++;
 	Context.ThisFrameTotalStreamingTexturesMaxSize += PotentialSize;
-	Context.ThisFrameTotalLightmapMemorySize += (StreamingTexture.bIsStreamingLightmap || StreamingTexture.LODGroup == TEXTUREGROUP_Lightmap || StreamingTexture.LODGroup == TEXTUREGROUP_Shadowmap) ? ResidentSize : 0;
-	Context.ThisFrameTotalLightmapDiskSize += StreamingTexture.bIsStreamingLightmap ? PotentialSize : 0;
+	Context.ThisFrameTotalLightmapMemorySize += StreamingTexture.bIsLightmap ? ResidentSize : 0;
+	Context.ThisFrameTotalLightmapDiskSize += StreamingTexture.bIsLightmap ? PotentialSize : 0;
 	Context.ThisFrameTotalHLODMemorySize += StreamingTexture.bIsHLODTexture ? ResidentSize : 0;
+	Context.ThisFrameTotalHLODDiskSize += StreamingTexture.bIsHLODTexture ? PotentialSize : 0;
 #endif
 }
 
@@ -5383,6 +5439,8 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 	bool bEntryFound = false; // True an entry for this texture exists­.
 
 	const bool bUseAABB = CVarStreamingUseAABB.GetValueOnAnyThread() > 0;
+	const float HiddenScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
+	const float MaxResolution = (float)(0x1 << (StreamingTexture.MaxAllowedMips - 1));
 
 	// Nothing do to if there are no views or instances.
 	if( StreamingManager.ThreadNumViews() /*&& StreamingTexture.Instances.Num() > 0*/ )
@@ -5448,16 +5506,11 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 						Temp = VectorSubtract( ViewOriginZ, CenterZ );
 						DistSq = VectorMultiplyAdd( Temp, Temp, DistSq );
 
-						// If distance is not in range, replace it with FLT_MAX
-						{
-							// ClampedDistSq = clamp(DistSq, TextureInstance.MinDistanceSq, TextureInstance.MaxDistanceSq);
-							VectorRegister ClampedDistSq = VectorMax( VectorLoadAligned( &TextureInstance.MinDistanceSq ), DistSq );
-							ClampedDistSq = VectorMin( VectorLoadAligned( &TextureInstance.MaxDistanceSq ), ClampedDistSq );
-
-							// DistSq = (DistSq == ClampedDistSq) ? DistSq : FLT_MAX
-							const VectorRegister InRangeMask = VectorCompareEQ(DistSq, ClampedDistSq);
-							DistSq = VectorSelect(InRangeMask, DistSq, MaxFloat4);
-						}
+						// The range is handle as the distance to the center of the bounds (and not to the bounds), 
+						// because it needs to match how HLOD visibility is handled.
+						VectorRegister ClampedDistSq = VectorMax( VectorLoadAligned( &TextureInstance.MinDistanceSq ), DistSq );
+						ClampedDistSq = VectorMin( VectorLoadAligned( &TextureInstance.MaxDistanceSq ), ClampedDistSq );
+						const VectorRegister InRangeMask = VectorCompareEQ(DistSq, ClampedDistSq);
 
 						VectorRegister DistSqMinusRadiusSq = VectorZero();
 						if (bUseAABB)
@@ -5488,6 +5541,10 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 							DistSqMinusRadiusSq = VectorMultiply( DistSqMinusRadiusSq, DistSqMinusRadiusSq );
 							DistSqMinusRadiusSq = VectorSubtract( DistSq, DistSqMinusRadiusSq );
 						}
+						// Force at least distance of 2 for entry not in their range, in order to enter in next conditional block.
+						// Also required in order to not enter in the final block computing the WantedMipCount.
+						DistSqMinusRadiusSq = VectorSelect( InRangeMask, DistSqMinusRadiusSq, VectorMax(DistSqMinusRadiusSq, VectorSet(2.f, 2.f, 2.f, 2.f) ) );
+
 						MinDistanceSq4 = VectorMin( MinDistanceSq4, DistSqMinusRadiusSq );
 
 						if ( VectorAllGreaterThan( DistSqMinusRadiusSq, VectorOne() ) )
@@ -5499,6 +5556,12 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 								DistSqMinusRadiusSq = VectorMax( DistSqMinusRadiusSq, VectorOne() );
 								VectorRegister Texels = VectorMultiply( VectorLoadAligned( &TextureInstance.TexelFactor ), VectorReciprocalSqrt(DistSqMinusRadiusSq) );
 								Texels = VectorMultiply( Texels, ScreenSize );
+
+								// Clamp to max resolution before actually scaling, otherwise this could have not effect.
+								Texels = VectorMin(VectorSet(MaxResolution, MaxResolution, MaxResolution, MaxResolution), Texels);
+								VectorRegister VisibilityScale = VectorSelect( InRangeMask, VectorOne(), VectorSet(HiddenScale, HiddenScale, HiddenScale, HiddenScale) );
+								Texels = VectorMultiply(Texels, VisibilityScale);
+
 								MaxTexels = VectorMax( MaxTexels, Texels );
 							}
 							else

@@ -3762,6 +3762,10 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 	ClassUnique = 0;
 	ClassReps.Empty();
 	NetFields.Empty();
+	for (TObjectIterator<UPackage> PackageIt; PackageIt; ++PackageIt)
+	{
+		PackageIt->ClassUniqueNameIndexMap.Remove(GetFName());
+	}
 
 #if WITH_EDITOR
 	if (!bRecompilingOnLoad)

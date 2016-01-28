@@ -31,6 +31,8 @@ public:
 	FText Description;
 	/** Full description for display */
 	FText LongDescription;
+	/** Full pricing info as text for display */
+	FText PriceText;
 	
 	/** Price in numeric form for comparison/sorting */
 	int32 NumericPrice;
@@ -43,7 +45,15 @@ public:
 	/** @return FText suitable for localized display */
 	virtual FText GetDisplayPrice() const
 	{
-		return FText::AsCurrencyBase(NumericPrice, CurrencyCode);
+		if (!PriceText.IsEmpty())
+		{
+			return PriceText;			
+		}
+		else
+		{
+			return FText::AsCurrencyBase(NumericPrice, CurrencyCode);
+		}
+		
 	}
 
 	/** @return True if offer can be purchased */

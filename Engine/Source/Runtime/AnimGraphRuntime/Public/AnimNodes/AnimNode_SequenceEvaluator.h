@@ -24,9 +24,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))
 	bool bShouldLoopWhenInSyncGroup;
 
+	/** If true, teleport to explicit time, does NOT advance time (does not trigger notifies, does not extract Root Motion, etc.)
+	If false, will advance time (will trigger notifies, extract root motion if applicable, etc.)
+	Note: using a sync group forces advancing time regardless of what this option is set to. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))
+	bool bTeleportToExplicitTime;
+
 public:	
 	FAnimNode_SequenceEvaluator()
 		: ExplicitTime(0.0f)
+		, bTeleportToExplicitTime(true)
 	{
 	}
 

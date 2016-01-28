@@ -388,7 +388,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 		if (GetHitResult())
 		{
 			// Does a deep copy of the hit result
-			NewContext->AddHitResult(*GetHitResult());
+			NewContext->AddHitResult(*GetHitResult(), true);
 		}
 		return NewContext;
 	}

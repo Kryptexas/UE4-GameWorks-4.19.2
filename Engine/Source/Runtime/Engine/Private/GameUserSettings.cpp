@@ -159,9 +159,15 @@ void UGameUserSettings::SetToDefaults()
 	FrameRateLimit = 0.0f;
 	MinResolutionScale = Scalability::MinResolutionScale;
 
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
+	PreferredFullscreenMode = CVar->GetValueOnGameThread();
+
 	ScalabilityQuality.SetDefaults();
 
-	UpdateMinResolutionScaling();
+	if (!IsRunningDedicatedServer())
+	{
+		UpdateMinResolutionScaling();
+	}
 }
 
 bool UGameUserSettings::IsVersionValid()
@@ -176,10 +182,21 @@ void UGameUserSettings::UpdateVersion()
 
 void UGameUserSettings::UpdateMinResolutionScaling()
 {
-	const int32 MinHeight = UKismetSystemLibrary::GetMinYResolutionForUI();
+	const int32 MinHeight = UKismetSystemLibrary::GetMinYResolutionFor3DView();
 	const int32 ScreenHeight = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution().Y : ResolutionSizeY;
 	MinResolutionScale = FMath::Max<int32>(Scalability::MinResolutionScale, ((float)MinHeight / (float)ScreenHeight) * 100);
 	ScalabilityQuality.ResolutionQuality = FMath::Max(ScalabilityQuality.ResolutionQuality, MinResolutionScale);
+}
+
+void UGameUserSettings::SetPreferredFullscreenMode(int32 Mode)
+{
+	PreferredFullscreenMode = Mode;
+
+	auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
+	if (CVar)
+	{
+		CVar->Set(Mode, ECVF_SetByGameSetting);
+	}
 }
 
 void UGameUserSettings::ValidateSettings()
@@ -273,6 +290,12 @@ void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrid
 
 	// Request a resolution change
 	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewFullscreenMode, bCheckForCommandLineOverrides);
+
+	if (NewFullscreenMode == EWindowMode::Fullscreen || NewFullscreenMode == EWindowMode::WindowedFullscreen)
+	{
+		SetPreferredFullscreenMode(NewFullscreenMode == EWindowMode::Fullscreen ? 0 : 1);
+	}
+
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }
 
@@ -304,6 +327,9 @@ void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 	{
 		ConfirmVideoMode();
 	}
+
+	// Update r.FullScreenMode CVar
+	SetPreferredFullscreenMode(PreferredFullscreenMode);
 }
 
 void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode, bool bInDoOverrides /* = true */)

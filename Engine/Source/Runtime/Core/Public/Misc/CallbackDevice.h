@@ -83,6 +83,10 @@ public:
 	// second param is UserID, third is UserIndex / ControllerId.
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerConnectionChange, bool, int32, int32);
 
+	// Callback for platform handling when flushing async loads.
+	DECLARE_MULTICAST_DELEGATE(FOnAsyncLoadingFlush);
+	static FOnAsyncLoadingFlush OnAsyncLoadingFlush;
+
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
 
@@ -217,6 +221,11 @@ public:
 	/** Sent when the platform requests a low-level VR recentering */
 	DECLARE_MULTICAST_DELEGATE(FVRHeadsetRecenter);
 	static FVRHeadsetRecenter VRHeadsetRecenter;
+
+	/** Sent when application code changes the user activity hint string for analytics, crash reports, etc */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserActivityStringChanged, const FString&);
+	static FOnUserActivityStringChanged UserActivityStringChanged;
+
 
 private:
 

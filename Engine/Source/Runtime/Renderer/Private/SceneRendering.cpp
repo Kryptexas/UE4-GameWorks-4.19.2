@@ -351,6 +351,7 @@ void FViewInfo::Init()
 	bDisableDistanceBasedFadeTransitions = false;	
 	ShadingModelMaskInView = 0;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		extern int32 GShaderModelDebug;
 		if(GShaderModelDebug)
@@ -358,6 +359,7 @@ void FViewInfo::Init()
 			UE_LOG(LogRenderer, Log, TEXT("r.ShaderModelDebug: FViewInfo::Init %x"), ShadingModelMaskInView);
 		}
 	}
+#endif
 
 	NumVisibleStaticMeshElements = 0;
 	PrecomputedVisibilityData = 0;
@@ -1224,7 +1226,7 @@ IPooledRenderTarget* FViewInfo::GetLastEyeAdaptationRT(FRHICommandList& RHICmdLi
 	return result;
 }
 
-void FViewInfo::SwapEyeAdaptationRTs()
+void FViewInfo::SwapEyeAdaptationRTs() const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
 	if (EffectiveViewState)
@@ -1244,7 +1246,7 @@ bool FViewInfo::HasValidEyeAdaptation() const
 	return false;
 }
 
-void FViewInfo::SetValidEyeAdaptation()
+void FViewInfo::SetValidEyeAdaptation() const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();	
 

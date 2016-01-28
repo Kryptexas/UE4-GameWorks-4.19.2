@@ -833,6 +833,10 @@ namespace UnrealBuildTool
 				{
 					BuildConfiguration.bUseFastPDBLinking = true;
 				}
+				else if(LowercaseArg == "-mapfile")
+				{
+					BuildConfiguration.bCreateMapFile = true;
+				}
 			}
 		}
 

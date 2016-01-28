@@ -77,7 +77,7 @@ void GracefulTerminationHandler(int32 Signal, siginfo_t* Info, void* Context)
 	// do not flush logs at this point; this can result in a deadlock if the signal was received while we were holding lock in the malloc (flushing allocates memory)
 	if( !GIsRequestingExit )
 	{
-		GIsRequestingExit = 1;
+		FPlatformMisc::RequestExitWithStatus(false, 128 + Signal);	// Keeping the established shell practice of returning 128 + signal for terminations by signal. Allows to distinguish SIGINT/SIGTERM/SIGHUP.
 	}
 	else
 	{
@@ -395,7 +395,16 @@ void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Con
 
 #endif
 
-	FPlatformMisc::RequestExit(true);
+	// remove the handler for this signal and re-raise it (which should generate the proper core dump)
+	UE_LOG(LogLinux, Log, TEXT("Engine crash handling finished; re-raising signal %d for the default handler. Good bye."), Context.Signal);
+
+	struct sigaction ResetToDefaultAction;
+	FMemory::Memzero(ResetToDefaultAction);
+	ResetToDefaultAction.sa_handler = SIG_DFL;
+	sigemptyset(&ResetToDefaultAction.sa_mask);
+	sigaction(Context.Signal, &ResetToDefaultAction, nullptr);
+
+	raise(Context.Signal);
 }
 
 /**

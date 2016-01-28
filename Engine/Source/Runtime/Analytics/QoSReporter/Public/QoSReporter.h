@@ -169,6 +169,13 @@ public:
 	 */
 	static void QOSREPORTER_API SetBackendDeploymentName(const FString & InDeploymentName);
 
+	/**
+	 * Whether or not hitches should be counted
+	 *
+	 * @param bEnable true if yes, false if no (default)
+	 */
+	static void QOSREPORTER_API EnableCountingHitches(bool bEnable);
+
 private:
 
 	/**
@@ -206,4 +213,7 @@ private:
 
 	/** Whether startup event was reported. */
 	static bool bStartupEventReported;
+
+	/** Whether or not counting hitches has been suppressed. */
+	static bool bCountHitches;
 };

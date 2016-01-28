@@ -579,7 +579,8 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 			}
 		}
 
-		World->ServerTravel( DemoHeader.LevelName, true, false );
+		// FIXME: Test for failure!!!
+		World->SeamlessTravel( DemoHeader.LevelName, true );
 	}
 	else
 	{

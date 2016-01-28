@@ -217,13 +217,13 @@ bool FHttpRetrySystem::FManager::Update(uint32* FileCount, uint32* FailingCount,
 				// Save these for failure case retry checks if we hit a completion state
 				bool bShouldRetry = false;
 				bool bCanRetry = false;
-				if (RequestStatus == EHttpRequestStatus::Failed || RequestStatus == EHttpRequestStatus::Succeeded)
+				if (RequestStatus == EHttpRequestStatus::Failed || RequestStatus == EHttpRequestStatus::Failed_ConnectionError || RequestStatus == EHttpRequestStatus::Succeeded)
 				{
 					bShouldRetry = ShouldRetry(HttpRetryRequestEntry);
 					bCanRetry = CanRetry(HttpRetryRequestEntry);
 				}
 
-				if (RequestStatus == EHttpRequestStatus::Failed || forceFail || (bShouldRetry && bCanRetry))
+				if (RequestStatus == EHttpRequestStatus::Failed || RequestStatus == EHttpRequestStatus::Failed_ConnectionError || forceFail || (bShouldRetry && bCanRetry))
 				{
 					bIsGreen = false;
                     if(HttpRetryRequestEntry.bShouldCancel == false)

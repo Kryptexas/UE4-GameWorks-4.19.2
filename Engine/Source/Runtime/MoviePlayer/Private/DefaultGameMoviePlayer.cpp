@@ -89,8 +89,17 @@ FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
 	{
 		// This should not happen if initialize was called correctly.  This is a fallback to ensure that the movie player rendering tickable gets unregistered on the rendering thread correctly
 		Shutdown();
-		FlushRenderingCommands();
 	}
+	else
+	{
+		// Even when uninitialized we must safely unregister the movie player on the render thread
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UnregisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
+		{
+			MoviePlayer->Unregister();
+		});
+	}
+
+	FlushRenderingCommands();
 }
 
 void FDefaultGameMoviePlayer::RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer)
@@ -383,9 +392,9 @@ void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 	check(IsInRenderingThread());
 	if (LoadingScreenWindowPtr.IsValid() && RendererPtr.IsValid())
 	{
+		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
 		if (!IsLoadingFinished() && SyncMechanism)
 		{
-			FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
 			if (SyncMechanism->IsSlateDrawPassEnqueued())
 			{
 				GFrameNumberRenderThread++;

@@ -586,8 +586,6 @@ void FHttpNetworkReplayStreamer::HttpRequestEventDataFinished(FHttpRequestPtr Ht
 {
 	RequestFinished(StreamerState, EQueuedHttpRequestType::RequestEventData, HttpRequest);
 
-	check(RequestEventDataCompleteDelegate.IsBound());
-
 	if (bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok)
 	{
 		RequestEventDataCompleteDelegate.ExecuteIfBound(HttpResponse->GetContent(), true);

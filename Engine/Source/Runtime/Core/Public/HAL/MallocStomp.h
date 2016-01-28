@@ -6,9 +6,16 @@
 #error "WITH_EDITOR must be defined"
 #endif
 
-#if !WITH_EDITOR && PLATFORM_DESKTOP
+#ifndef USE_MALLOC_STOMP
+	#if !WITH_EDITOR && PLATFORM_DESKTOP
 	#define USE_MALLOC_STOMP 0
+	#endif
 #endif
+
+#ifndef USE_MALLOC_STOMP
+#define USE_MALLOC_STOMP 0
+#endif
+
 
 #if USE_MALLOC_STOMP
 /**

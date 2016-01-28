@@ -1571,7 +1571,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 		if (EarlyZPassMode >= DDM_AllOccluders)
 		{
 			// Draw opaque occluders with masked materials
-			SCOPED_DRAW_EVENT(RHICmdList, Opaque);
+			SCOPED_DRAW_EVENT(RHICmdList, Masked);
 			bDirty |= Scene->MaskedDepthDrawList.DrawVisible(RHICmdList, View, View.StaticMeshOccluderMap, View.StaticMeshBatchVisibility);
 		}
 	}
@@ -1589,12 +1589,16 @@ bool FDeferredShadingSceneRenderer::RenderPrePassView(FRHICommandList& RHICmdLis
 
 		if (EarlyZPassMode >= DDM_AllOccluders)
 		{
-			SCOPED_DRAW_EVENT(RHICmdList, Opaque);
+			SCOPED_DRAW_EVENT(RHICmdList, Masked);
 			bDirty |= Scene->MaskedDepthDrawList.DrawVisibleInstancedStereo(RHICmdList, StereoView);
 		}
 	}
+	
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
+		bDirty |= RenderPrePassViewDynamic(RHICmdList, View);
+	}
 
-	bDirty |= RenderPrePassViewDynamic(RHICmdList, View);
 	return bDirty;
 }
 

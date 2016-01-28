@@ -52,6 +52,7 @@ void FGPUDefragAllocator::FMemoryChunk::LinkFree(bool bMaintainSortOrder, FMemor
 	bIsAvailable = true;
 	DefragCounter = 0;
 	UserPayload = 0;
+	bTail = false;
 
 	if (bMaintainSortOrder == false)
 	{
@@ -205,15 +206,23 @@ void* FGPUDefragAllocator::Allocate(int64 AllocationSize, int32 Alignment, TStat
 * @param bAsync			If true, allows allocating from relocating chunks and maintains the free-list sort order.
 * @return					The memory chunk that was allocated (the original chunk could've been split).
 */
-FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::AllocateChunk(FMemoryChunk* FreeChunk, int32 AllocationSize, bool bAsync)
+FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::AllocateChunk(FMemoryChunk* FreeChunk, int32 AllocationSize, bool bAsync, bool bDoValidation)
 {
 	check(FreeChunk);
 	check(FreeChunk->GetAvailableSize() >= AllocationSize);
+	check(!FreeChunk->IsLocked());
+
+#if VALIDATE_SYNC_SIZE
+	printf("allocate before splits: 0x%p, %i, %i, %i, SyncSize: %i\n", FreeChunk->Base, (int32)FreeChunk->Size, (int32)AllocationSize, (int32)GetCurrentSyncIndex(), (int32)FreeChunk->SyncSize);
+#endif
 
 	// If this is an immediate allocation (i.e. the CPU will start accessing the memory right away)
 	// and the beginning of the chunk is currently being relocated by the GPU, split that part off and allocate from the rest.
 	if (!bAsync && FreeChunk->IsRelocating() && FreeChunk->SyncSize > 0 && FreeChunk->SyncSize < FreeChunk->Size)
 	{
+#if VALIDATE_SYNC_SIZE
+		printf("splitting:\n");
+#endif
 		Split(FreeChunk, FreeChunk->SyncSize, bAsync);
 		FreeChunk = FreeChunk->NextChunk;
 	}
@@ -224,6 +233,9 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::AllocateChunk(FMemoryChu
 	// Split chunk to avoid waste.
 	if (FreeChunk->Size > AllocationSize)
 	{
+#if VALIDATE_SYNC_SIZE
+		printf("splitting again:\n");
+#endif
 		Split(FreeChunk, AllocationSize, bAsync);
 	}
 
@@ -234,6 +246,14 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::AllocateChunk(FMemoryChu
 	// Update usage stats in a thread safe way.
 	FPlatformAtomics::InterlockedAdd(&AllocatedMemorySize, FreeChunk->Size);
 	FPlatformAtomics::InterlockedAdd(&AvailableMemorySize, -FreeChunk->Size);
+
+#if VALIDATE_SYNC_SIZE
+	printf("allocate: 0x%p, %i, %i\n", FreeChunk->Base, (int32)AllocationSize, (int32)GetCurrentSyncIndex());
+	if (bDoValidation)
+	{
+		ValidateRelocations(FreeChunk->Base, AllocationSize);
+	}
+#endif
 
 	// Keep track of mapping and return pointer.
 	PointerToChunkMap.Add(FreeChunk->Base, FreeChunk);
@@ -249,6 +269,10 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::AllocateChunk(FMemoryChu
 */
 void FGPUDefragAllocator::FreeChunk(FMemoryChunk* Chunk, bool bMaintainSortedFreelist)
 {
+#if VALIDATE_SYNC_SIZE
+	printf("FreeChunk: 0x%p, %i, %i, %i\n", Chunk->Base, (int32)Chunk->Size, (int32)Chunk->SyncSize, (int32)Chunk->SyncIndex);
+#endif
+
 	// Remove the entry
 	PointerToChunkMap.Remove(Chunk->Base);
 	Chunk->Stat = TStatId();
@@ -306,7 +330,7 @@ void FGPUDefragAllocator::Lock(const void* Pointer)
 {
 	FScopeLock Lock(&SynchronizationObject);
 	FMemoryChunk* MatchingChunk = PointerToChunkMap.FindRef(Pointer);
-	check(MatchingChunk);
+	checkf(MatchingChunk, TEXT("Couldn't find chunk for address: 0x%p"), Pointer);
 
 	// Is this chunk is currently being relocated asynchronously (by the GPU)?
 	if (MatchingChunk->IsRelocating())
@@ -315,6 +339,7 @@ void FGPUDefragAllocator::Lock(const void* Pointer)
 		FinishAllRelocations();
 	}
 
+	check(MatchingChunk->LockCount >= 0);
 	++MatchingChunk->LockCount;
 	++NumLockedChunks;
 }
@@ -329,7 +354,7 @@ void FGPUDefragAllocator::Unlock(const void* Pointer)
 	FScopeLock Lock(&SynchronizationObject);
 	FMemoryChunk* MatchingChunk = PointerToChunkMap.FindRef(Pointer);
 	check(MatchingChunk && MatchingChunk->IsRelocating() == false);
-
+	check(MatchingChunk->LockCount > 0);
 	--MatchingChunk->LockCount;
 	--NumLockedChunks;
 }
@@ -504,6 +529,9 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::Shrink(FMemoryChunk* Chu
 
 		// Make the original chunk "free memory".
 		NewFreeChunk = Chunk->PreviousChunk;
+#if VALIDATE_SYNC_SIZE
+		printf("shrink free chunk\n");
+#endif
 		LinkFreeChunk(NewFreeChunk, false);
 	}
 
@@ -613,6 +641,9 @@ void FGPUDefragAllocator::SortFreeList(int32& NumFreeChunks, int64& LargestFreeC
 		FMemoryChunk* ChunkToSort = FirstFreeChunk->NextFreeChunk;
 		while (ChunkToSort)
 		{
+			//chunk to sort will be properly sorted.  Thus the next correct chunk to sort is the next one we haven't sorted.
+			//this ensures we get the proper chunk count also.
+			FMemoryChunk* NextChunkToSort = ChunkToSort->NextFreeChunk;
 			LargestFreeChunk = FMath::Max(LargestFreeChunk, ChunkToSort->Size);
 
 			// Out of order?
@@ -638,7 +669,7 @@ void FGPUDefragAllocator::SortFreeList(int32& NumFreeChunks, int64& LargestFreeC
 				}
 			}
 			LastSortedChunk = ChunkToSort;
-			ChunkToSort = ChunkToSort->NextFreeChunk;
+			ChunkToSort = NextChunkToSort;
 			NumFreeChunks++;
 		}
 	}
@@ -806,6 +837,28 @@ void FGPUDefragAllocator::CheckForErrors(bool bCheckSortedFreeList)
 	check(TotalFreeMem == AvailableMemorySize);
 }
 
+#if VALIDATE_SYNC_SIZE
+void FGPUDefragAllocator::ValidateRelocations(uint8* UsedBaseAddress, uint64 Size)
+{
+
+	FScopeLock SyncLock(&SynchronizationObject);
+
+	for (int32 i = 0; i < Relocations.Num(); ++i)
+	{
+		const FRelocationEntry& Relocation = Relocations[i];
+
+		bool bBeforeOrig = (UsedBaseAddress + Size) <= Relocation.OldBase;
+		bool bAfterOrig = (UsedBaseAddress) >= (Relocation.OldBase + Relocation.Size);
+
+		bool bBeforeNew = (UsedBaseAddress + Size) <= Relocation.NewBase;
+		bool bAfterNew = (UsedBaseAddress) >= (Relocation.NewBase + Relocation.Size);
+
+		bool bAfterSync = Relocation.SyncIndex <= CompletedSyncIndex;
+		checkf(((bBeforeOrig || bAfterOrig) && (bBeforeNew || bAfterNew)) || bAfterSync, TEXT("Corruption Hazard, Allocation not protected by sync size."));
+	}
+}
+#endif
+
 /**
 * Initiates an async relocation of an allocated chunk into a free chunk.
 * Takes potential reallocation request into account.
@@ -817,21 +870,32 @@ void FGPUDefragAllocator::CheckForErrors(bool bCheckSortedFreeList)
 */
 FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FRelocationStats& Stats, FMemoryChunk* FreeChunk, FMemoryChunk* SourceChunk)
 {
-	// Save off important data from 'SourceChunk', since it will get modified by the call to LinkFreeChunk().
-	uint8* OldBaseAddress = SourceChunk->Base;
+	check(!FreeChunk->IsLocked());
+	check(!SourceChunk->IsLocked());
+	check(FreeChunk->bIsAvailable);
+	check(!SourceChunk->bIsAvailable);
+
+	// Save off important data from 'SourceChunk', since it will get modified by the call to LinkFreeChunk().	
 	void* UserPayload = SourceChunk->UserPayload;
-	int32 OldSize = SourceChunk->Size;
-	const int32 NewSize = SourceChunk->GetFinalSize();
-	const int32 UsedSize = FMath::Min(NewSize, OldSize);
+	const int64 OldSize = SourceChunk->Size;
+	const uint8* SourceOldBase = SourceChunk->Base;
+	const uint8* DestNewBase = FreeChunk->Base;
+	const int64 NewSize = SourceChunk->GetFinalSize();
+	const int64 UsedSize = FMath::Min(NewSize, OldSize);
 	TStatId	SourceStat = SourceChunk->Stat;
 
 	// Are we relocating into adjacent free chunk?
-	bool bAdjacentRelocation = SourceChunk->PreviousChunk == FreeChunk || SourceChunk->NextChunk == FreeChunk;
+	const bool bFreeChunkPreviousAdjacent = SourceChunk->PreviousChunk == FreeChunk;
+	const bool bFreeChunkNextAdjacent = SourceChunk->NextChunk == FreeChunk;
+	const bool bAdjacentRelocation = bFreeChunkPreviousAdjacent || bFreeChunkNextAdjacent;
 
 	// Enable for debugging:
 	// CheckForErrors( true );
 
 	// Merge adjacent free chunks into SourceChunk to make a single free chunk.
+#if VALIDATE_SYNC_SIZE
+	printf("relocate link free chunk\n");
+#endif
 	LinkFreeChunk(SourceChunk, true);
 
 	FMemoryChunk* DestinationChunk;
@@ -847,19 +911,21 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FR
 	FreeChunk = nullptr;
 
 	// Leave room for new mips to stream in.
-	int32 DestinationOffset = FMath::Max(NewSize - OldSize, 0);
+	int64 DestinationOffset = FMath::Max((NewSize - OldSize), (int64)0);
 
 	// Relocate the memory if needed
+	bool bRelocated = false;
 	uint8* NewBaseAddress = DestinationChunk->Base;
-	if (OldBaseAddress != (NewBaseAddress + DestinationOffset))
+	if (SourceOldBase != (NewBaseAddress + DestinationOffset))
 	{
-		Relocate(Stats, DestinationChunk, DestinationOffset, OldBaseAddress, UsedSize, UserPayload);
+		Relocate(Stats, DestinationChunk, DestinationOffset, SourceOldBase, UsedSize, UserPayload);
+		bRelocated = true;
 	}
 	// Make sure the destination chunk keeps the UserPayload, no matter what. :)
 	DestinationChunk->UserPayload = UserPayload;
 
 	// Update our book-keeping.
-	PointerToChunkMap.Remove(OldBaseAddress);
+	PointerToChunkMap.Remove(SourceOldBase);
 	PointerToChunkMap.Add(NewBaseAddress, DestinationChunk);
 	SourceChunk->Stat = TStatId();
 	DestinationChunk->Stat = SourceStat;	
@@ -871,6 +937,65 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FR
 		// Split the DestinationChunk into a used chunk and a free chunk.
 		Split(DestinationChunk, NewSize, true);
 		NextFreeChunk = DestinationChunk->NextChunk;
+		NextFreeChunk->bTail = bAdjacentRelocation;
+
+		if (bAdjacentRelocation)
+		{
+			//if the free chunk was on the right
+			if (bFreeChunkNextAdjacent)
+			{
+				ensureMsgf(!bRelocated, TEXT("free chunk was on the right, why did we relocate?"));
+			}
+			else
+			{
+				//if the free chunk was adjacent on the left then we need to make sure the tail where the source chunk used to reside is not allocated and written to before the GPU
+				//finishes moving it to its new location.
+				//Original Layout                   |xxxxxxxxxxxxx|uuuu|xxxx -> 
+				//Layout after move                 |uuuu|xxxxxxxxxxxxxxxxx| ->
+
+				//Layout after move                 |uuuu|ssssssssstttt| ->
+				//									|uuuu|sssssssss|tttt|
+
+
+				//Layout after tail safety split    |uuuu|xxxxxxxx|tttt|xxxx
+
+				//									|xxxx|uuuuuuuuuuuuu| ->
+				//									|uuuuuuuuuuuuu|xxxx| ->											
+
+				//to compute the relocatable size properly we need to account for any righthand coalescing that may have made the chunk bigger.
+				//right hand coalesce will be added into the tail.
+				int64 LeftShiftSize = (SourceOldBase - SourceChunk->Base);
+				int64 RightAddSize = (NextFreeChunk->Size - LeftShiftSize);
+				int64 RelocatableSize = FMath::Max((int64)((NextFreeChunk->Size - NewSize - RightAddSize)), (int64)0);				
+				if ((RelocatableSize > 0) && NextFreeChunk->GetAvailableSize())
+				{
+					Split(NextFreeChunk, RelocatableSize, true);
+					FMemoryChunk* InFlightTailChunk = NextFreeChunk->NextFreeChunk;					
+
+					//if the tail has right coalesced memory afterwards, split the right coalesce back off into its own chunk for re-use.
+					if (InFlightTailChunk->Size > OldSize)
+					{
+						Split(InFlightTailChunk, OldSize, true);
+					}
+					//defragger code assumes free chunks are not adjacent (they would have been coalesced)
+					//so mark this as 'used' so it can't be allocated while the tail is being moved by the GPU and put it on the deferred free list
+					//hack to avoid internal checks on the hack allocate
+					InFlightTailChunk->SetSyncIndex(CompletedSyncIndex, 0);
+					AllocateChunk(InFlightTailChunk, InFlightTailChunk->Size, false, false);
+					InFlightTailChunk->SetSyncIndex(GetCurrentSyncIndex(), InFlightTailChunk->Size);
+					PendingFreeChunks.AddTail(InFlightTailChunk);
+				}
+				else
+				{
+					//in this case there was no tail and we need to protect the existing sync size, or just the old size.
+					//maxing with the existing sync size keeps any sync-size from the right-coalesce from going away.
+					//should be a case like this:
+					// |xxx|uuuuuuuuuuuuu|fffffff|
+					// |uuuuuuuuuuuuu|sssffffffff|
+					NextFreeChunk->SetSyncIndex(GetCurrentSyncIndex(), FMath::Max(NextFreeChunk->SyncSize, OldSize));
+				}
+			}
+		}
 	}
 	else
 	{
@@ -880,10 +1005,35 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FR
 	}
 	DestinationChunk->UnlinkFree();
 
+	//if source chunk did not coalesce with another free chunk when it was 'freed' or if it coalesced with a freechunk on its right side then we only need
+	//to protect up to the OldSize of the SourceChunk.
+	int64 SourceChunkSyncSize = OldSize;
+
+	const bool bSourceCoalescedOnLeft = SourceChunk->Base < SourceOldBase;
+	if (bSourceCoalescedOnLeft)
+	{
+		//if source chunk coalesced with a free chunk on the left, then protecting with OldSize does not suffice
+		//Orig. uuuu is being relocated by the GPU    |xx|uuuu|sssxxxxxxxxxxxx ->
+		//                                            |xx|rrrr| ->
+		//We must protect up to the full relocation.  |pp|pppp|ssssxxxxxxxxxxxxxx		
+		SourceChunkSyncSize += (SourceOldBase - SourceChunk->Base);		
+	}
+
+	//if the source chunk coalesced with a right chunk that HAD a sync size, then the coalense function would have
+	//set an appropriate syncsize to cover up to the right side's required protection.  However we are about to override that so it needs to be taken into account here.		
+	SourceChunkSyncSize = FMath::Max(SourceChunkSyncSize, SourceChunk->SyncSize);
+
 	// Mark both chunks as "in use" during the current sync step.
-	// Note: This sync index will propagate if these chunks are involved in any merge/split in the future.
-	SourceChunk->SetSyncIndex(GetCurrentSyncIndex(), OldSize);
-	DestinationChunk->SetSyncIndex(GetCurrentSyncIndex(), NewSize);
+	// Note: This sync index will propagate if these chunks are involved in any merge/split in the future.	
+	SourceChunk->SetSyncIndex(GetCurrentSyncIndex(), SourceChunkSyncSize);
+
+	//if the destination is already relocation a larger size than we are moving, we still need to protect the larger size so allocations don't split off an end that's still moving.
+	int64 DestinationSyncSize = NewSize;
+	if (DestinationChunk->IsRelocating())
+	{
+		DestinationSyncSize = FMath::Max(DestinationChunk->SyncSize, NewSize);
+	}
+	DestinationChunk->SetSyncIndex(GetCurrentSyncIndex(), DestinationSyncSize);
 
 	if (NewSize != OldSize)
 	{
@@ -893,11 +1043,16 @@ FGPUDefragAllocator::FMemoryChunk* FGPUDefragAllocator::RelocateIntoFreeChunk(FR
 		FPlatformAtomics::InterlockedAdd(&PendingMemoryAdjustment, -MemoryAdjustment);
 	}
 
+#if VALIDATE_SYNC_SIZE
+	Relocations.Add(FRelocationEntry(SourceOldBase, DestNewBase, OldSize, GetCurrentSyncIndex()));
+	printf("bFreeAdjOnLeft %i, bFreeAdjOnRight %i\n", bFreeChunkPreviousAdjacent, bFreeChunkNextAdjacent);
+#endif
+
 	// Enable for debugging:
 	// CheckForErrors( true );
 
 	// Did we free up a chunk to the left of NextFreeChunk?
-	if (!bAdjacentRelocation && OldBaseAddress < NewBaseAddress)
+	if (!bAdjacentRelocation && SourceOldBase < NewBaseAddress)
 	{
 		// Use that one for the next defrag step!
 		return SourceChunk;
@@ -1193,6 +1348,7 @@ void FGPUDefragAllocator::FullDefragmentation(FRelocationStats& Stats)
 
 int32 FGPUDefragAllocator::Tick(FRelocationStats& Stats, bool bPanicDefrag)
 {
+	FScopeLock SyncLock(&SynchronizationObject);
 	SET_CYCLE_COUNTER(STAT_TexturePool_Blocked, BlockedCycles);
 	double StartTime = FPlatformTime::Seconds();
 	BlockedCycles = 0;
@@ -1200,6 +1356,10 @@ int32 FGPUDefragAllocator::Tick(FRelocationStats& Stats, bool bPanicDefrag)
 	// Block until all relocations that were kicked of from last call have been completed.
 	// There may still be chunks being flagged as 'IsRelocating' due to immediate shrinks between calls.
 	FinishAllRelocations();
+
+#if VALIDATE_SYNC_SIZE	
+	Relocations.Empty();
+#endif
 
 	// Sort the Free chunks.
 	SortFreeList(Stats.NumHoles, Stats.LargestHoleSize);
@@ -1231,6 +1391,24 @@ int32 FGPUDefragAllocator::Tick(FRelocationStats& Stats, bool bPanicDefrag)
 	MinLargestHole = FMath::Min(MinLargestHole, Stats.LargestHoleSize);
 	CurrentLargestHole = Stats.LargestHoleSize;
 	CurrentNumHoles = Stats.NumHoles;
+
+#if GPU_DEFRAG_SANITYCHECK
+	FMemoryChunk* TestChunk = FirstChunk;
+	while (TestChunk)
+	{		
+		FMemoryChunk* TestAgainstChunk = FirstChunk->NextChunk;
+		while (TestAgainstChunk)
+		{			
+			bool bBefore = (TestChunk->Base + TestChunk->Size) <= TestAgainstChunk->Base;
+			bool bAfter = TestChunk->Base >= (TestAgainstChunk->Base + TestAgainstChunk->Size);
+
+			checkf(bBefore || bAfter, TEXT("%i, %i"), (int32)bBefore, (int32)bAfter);
+			check(TestChunk->Base != TestAgainstChunk->Base);
+			TestAgainstChunk = TestAgainstChunk->NextChunk;
+		}
+		TestChunk = TestChunk->NextChunk;
+	}	
+#endif
 
 	return Stats.NumBytesRelocated;
 }
@@ -1497,6 +1675,7 @@ void FGPUDefragAllocator::DefragmentMemory(FRelocationStats& Stats)
 void FGPUDefragAllocator::Coalesce(FMemoryChunk* FreedChunk)
 {
 	check(FreedChunk);
+	check(!FreedChunk->IsLocked())
 
 	uint32 LatestSyncIndex = 0;
 	int32 LatestSyncSize = 0;
@@ -1507,11 +1686,12 @@ void FGPUDefragAllocator::Coalesce(FMemoryChunk* FreedChunk)
 	FMemoryChunk* LeftChunk = FreedChunk->PreviousChunk;
 	if (LeftChunk && LeftChunk->bIsAvailable)
 	{
+		check(!LeftChunk->IsLocked());
 		LeftSize = LeftChunk->Size;
 
 		// Update relocation data for the left chunk.
 		if (LeftChunk->IsRelocating())
-		{
+		{			
 			LatestSyncIndex = LeftChunk->SyncIndex;
 			LatestSyncSize = LeftChunk->SyncSize;
 		}
@@ -1531,6 +1711,7 @@ void FGPUDefragAllocator::Coalesce(FMemoryChunk* FreedChunk)
 	FMemoryChunk* RightChunk = FreedChunk->NextChunk;
 	if (RightChunk && RightChunk->bIsAvailable)
 	{
+		check(!RightChunk->IsLocked());
 		RightSize = RightChunk->Size;
 
 		// Update relocation data for the right chunk.
@@ -1544,10 +1725,18 @@ void FGPUDefragAllocator::Coalesce(FMemoryChunk* FreedChunk)
 		delete RightChunk;
 	}
 
+#if VALIDATE_SYNC_SIZE
+	printf("FreeChunk Before Coalesce: 0x%p, %i, %i, %i\n", FreedChunk->Base, (int32)FreedChunk->Size, (int32)FreedChunk->SyncSize, (int32)FreedChunk->SyncIndex);
+#endif
+
 	// Merge.
 	FreedChunk->Base -= LeftSize;
 	FreedChunk->Size += LeftSize + RightSize;
 	FreedChunk->SetSyncIndex(LatestSyncIndex, LatestSyncSize);
+
+#if VALIDATE_SYNC_SIZE
+	printf("FreeChunk AFter Coalesce: 0x%p, %i, %i, %i\n", FreedChunk->Base, (int32)FreedChunk->Size, (int32)FreedChunk->SyncSize, (int32)FreedChunk->SyncIndex);
+#endif
 }
 
 /**

@@ -1136,9 +1136,71 @@ void PumpABTest()
 #endif
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+struct FTimedMemReport
+{
+	FTimedMemReport()
+	: TotalTime(0.f)
+	, DumpDelayTime(-1.f)
+	{
+		if(const TCHAR* CommandLine = FCommandLine::Get())
+		{
+			FParse::Value(CommandLine, TEXT("TimedMemoryReport="), DumpDelayTime);
+		}
+	}
+
+	static FTimedMemReport& Get()
+	{
+		static FTimedMemReport Singleton;
+		return Singleton;
+	}
+
+	static void SetDumpDelayParse(const TArray<FString>& Args)
+	{
+		if(Args.Num())
+		{
+			float DumpDelay = FCString::Atof(*Args[0]);
+			Get().SetDumpDelay(DumpDelay);
+		}
+	}
+
+	void SetDumpDelay(float InDumpDelay)
+	{
+		DumpDelayTime = InDumpDelay;
+		TotalTime = 0.f;	//reset time
+	}
+
+	void PumpTimedMemoryReports()
+	{
+		if (DumpDelayTime > 0)
+		{
+			TotalTime += FApp::GetDeltaTime();
+			if (TotalTime > DumpDelayTime)
+			{
+				GEngine->Exec(nullptr, TEXT("memreport"), *GLog);
+				TotalTime = 0.f;
+			}
+		}
+	}
+
+private:
+	float TotalTime;
+	float DumpDelayTime;
+};
+
+static FAutoConsoleCommand SetTimedMemReport(TEXT("TimedMemReport.Delay"), TEXT("Determines how long to wait before getting a memreport. < 0 is off"), FConsoleCommandWithArgsDelegate::CreateStatic(&FTimedMemReport::SetDumpDelayParse), ECVF_Cheat);
+
+
+
+#endif
+
 void UEngine::UpdateTimeAndHandleMaxTickRate()
 {
 	PumpABTest();
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FTimedMemReport::Get().PumpTimedMemoryReports();
+#endif
 
 	// start at now minus a bit so we don't get a zero delta.
 	static double LastTime = FPlatformTime::Seconds() - 0.0001;
@@ -6967,26 +7029,29 @@ void UEngine::LogPerformanceCapture(UWorld* World, const FString& CaptureName)
 
 	extern ENGINE_API float GAverageFPS;
 
-	const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
-//	const FStatHitchesData* StatHitchesData = World->GetGameViewport->GetStatHitchesData();
+	if ((World != nullptr) && (World->GetGameViewport() != nullptr))
+	{
+		const FStatUnitData* StatUnitData = World->GetGameViewport()->GetStatUnitData();
+		//	const FStatHitchesData* StatHitchesData = World->GetGameViewport->GetStatHitchesData();
 
-	FAutomationPerformanceSnapshot PerfSnapshot;
-	PerfSnapshot.Changelist = FString::FromInt( ChangeList );
-	PerfSnapshot.BuildConfiguration = EBuildConfigurations::ToString( FApp::GetBuildConfiguration() );
-	PerfSnapshot.MapName = MapName;
-	PerfSnapshot.MatineeName = MatineeName;
-	PerfSnapshot.AverageFPS = FString::Printf( TEXT( "%0.2f" ), GAverageFPS );
-	PerfSnapshot.AverageFrameTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->FrameTime );
-	PerfSnapshot.AverageGameThreadTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->GameThreadTime );
-	PerfSnapshot.AverageRenderThreadTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->RenderThreadTime );
-	PerfSnapshot.AverageGPUTime = FString::Printf( TEXT( "%0.2f" ), StatUnitData->GPUFrameTime );
-	// PerfSnapshot.PercentOfFramesAtLeast60FPS = ???;	// @todo
-	// PerfSnapshot.PercentOfFramesAtLeast60FPS = ???;	// @todo
-		
-	const FString PerfSnapshotAsCommaDelimitedString = PerfSnapshot.ToCommaDelimetedString();
-	
-	FAutomationTestFramework::GetInstance().AddAnalyticsItemToCurrentTest( 
-		FString::Printf( TEXT( "%s,%s" ), *PerfSnapshotAsCommaDelimitedString, *EventType ) );
+		FAutomationPerformanceSnapshot PerfSnapshot;
+		PerfSnapshot.Changelist = FString::FromInt(ChangeList);
+		PerfSnapshot.BuildConfiguration = EBuildConfigurations::ToString(FApp::GetBuildConfiguration());
+		PerfSnapshot.MapName = MapName;
+		PerfSnapshot.MatineeName = MatineeName;
+		PerfSnapshot.AverageFPS = FString::Printf(TEXT("%0.2f"), GAverageFPS);
+		PerfSnapshot.AverageFrameTime = FString::Printf(TEXT("%0.2f"), StatUnitData->FrameTime);
+		PerfSnapshot.AverageGameThreadTime = FString::Printf(TEXT("%0.2f"), StatUnitData->GameThreadTime);
+		PerfSnapshot.AverageRenderThreadTime = FString::Printf(TEXT("%0.2f"), StatUnitData->RenderThreadTime);
+		PerfSnapshot.AverageGPUTime = FString::Printf(TEXT("%0.2f"), StatUnitData->GPUFrameTime);
+		// PerfSnapshot.PercentOfFramesAtLeast60FPS = ???;	// @todo
+		// PerfSnapshot.PercentOfFramesAtLeast60FPS = ???;	// @todo
+
+		const FString PerfSnapshotAsCommaDelimitedString = PerfSnapshot.ToCommaDelimetedString();
+
+		FAutomationTestFramework::GetInstance().AddAnalyticsItemToCurrentTest(
+			FString::Printf(TEXT("%s,%s"), *PerfSnapshotAsCommaDelimitedString, *EventType));
+	}
 }
 #endif	// UE_BUILD_SHIPPING
 

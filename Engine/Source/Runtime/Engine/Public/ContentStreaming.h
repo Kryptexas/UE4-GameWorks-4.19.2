@@ -24,6 +24,7 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Textures On Disk"),STAT_StreamingTexturesM
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Lightmaps In Memory"),STAT_LightmapMemorySize,STATGROUP_StreamingDetails,FPlatformMemory::MCR_TexturePool, );
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Lightmaps On Disk"),STAT_LightmapDiskSize,STATGROUP_StreamingDetails,FPlatformMemory::MCR_TexturePool, );
 DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("HLOD Textures In Memory"), STAT_HLODTextureMemorySize, STATGROUP_StreamingDetails, FPlatformMemory::MCR_TexturePool, );
+DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("HLOD Textures On Disk"), STAT_HLODTextureDiskSize, STATGROUP_StreamingDetails, FPlatformMemory::MCR_TexturePool, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Requests In Cancelation Phase"),STAT_RequestsInCancelationPhase,STATGROUP_StreamingDetails, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Requests In Update Phase"),STAT_RequestsInUpdatePhase,STATGROUP_StreamingDetails, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Requests in Finalize Phase"),STAT_RequestsInFinalizePhase,STATGROUP_StreamingDetails, );
@@ -483,6 +484,9 @@ struct ITextureStreamingManager : public IStreamingManager
 
 	/** Resets the max ever required textures.  For possibly when changing resolutions or screen pct. */
 	virtual void ResetMaxEverRequired() = 0;
+
+	/** Set current pause state for texture streaming */
+	virtual void PauseTextureStreaming(bool bInShouldPause) = 0;
 };
 
 /**
@@ -1094,6 +1098,11 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	static float BandwidthMinimum;
 #endif
 
+	/** Set current pause state for texture streaming */
+	virtual void PauseTextureStreaming(bool bInShouldPause) override
+	{
+		bPauseTextureStreaming = bInShouldPause;
+	}
 
 protected:
 //BEGIN: Thread-safe functions and data
@@ -1351,6 +1360,8 @@ protected:
 	uint64 TotalLightmapDiskSize;
 	/** Total number of bytes in memory, for all HLOD textures. */
 	uint64 TotalHLODMemorySize;
+	/** Total number of bytes on disk, for all HLOD textures. */
+	uint64 TotalHLODDiskSize;
 	/** Number of mip count increase requests in flight. */
 	uint32 TotalMipCountIncreaseRequestsInFlight;
 	/** Total number of bytes in memory, if all textures were streamed perfectly with a 1.0 fudge factor. */

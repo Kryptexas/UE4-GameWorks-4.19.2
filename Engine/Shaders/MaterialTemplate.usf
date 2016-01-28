@@ -470,7 +470,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	}
 #endif //DECAL_RENDERSTAGE
 
-#if DECAL_RENDERSTAGE && DECAL_PRIMITIVE
+#if DECAL_PRIMITIVE
 	float DecalLifetimeOpacity()
 	{
 		return DecalParams.y;
@@ -480,7 +480,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	{
 		return 0.0f;
 	}
-#endif // DECAL_RENDERSTAGE && DECAL_PRIMITIVE
+#endif // DECAL_PRIMITIVE
 
 /** Transforms a vector from tangent space to world space, prescaling by an amount calculated previously */
 MaterialFloat3 TransformTangentVectorToWorld_PreScaled(FMaterialTessellationParameters Parameters, MaterialFloat3 InTangentVector)

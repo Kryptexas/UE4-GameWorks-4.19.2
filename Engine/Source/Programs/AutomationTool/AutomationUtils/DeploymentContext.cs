@@ -634,7 +634,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public int ArchiveFiles(string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null)
+	public int ArchiveFiles(string InPath, string Wildcard = "*", bool bRecursive = true, string[] ExcludeWildcard = null, string NewPath = null)
 	{
 		int FilesAdded = 0;
 
@@ -710,7 +710,22 @@ public class DeploymentContext //: ProjectParams
 				{
 					throw new AutomationException("Can't archive {0}; it was supposed to start with {1}", FileToCopy, InPath);
 				}
-				Dest = FileToCopy.Substring(InPath.Length);
+
+				// If the specified a new directory, first we deal with that, then apply the other things
+				// this is used to collapse the sandbox, among other things
+				if (NewPath != null)
+				{
+					Dest = FileToCopy.Substring(InPath.Length);
+					if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
+					{
+						Dest = Dest.Substring(1);
+					}
+					Dest = CommandUtils.CombinePaths(NewPath, Dest);
+				}
+				else
+				{
+					Dest = FileToCopy.Substring(InPath.Length);
+				}
 
 				if (Dest.StartsWith("/") || Dest.StartsWith("\\"))
 				{

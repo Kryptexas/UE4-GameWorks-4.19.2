@@ -303,10 +303,28 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 	StructPropertyHandle->GetNumChildren(NumChildren);
 
 	ValueProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Value));
+	if (ValueProperty.IsValid() == false)
+	{
+		return;
+	}
+
 	CurveTableHandleProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Curve));
+	if (CurveTableHandleProperty.IsValid() == false)
+	{
+		return;
+	}
 
 	RowNameProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, RowName));
+	if (RowNameProperty.IsValid() == false)
+	{
+		return;
+	}
+
 	CurveTableProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, CurveTable));
+	if (CurveTableProperty.IsValid() == false)
+	{
+		return;
+	}
 
 	CurrentSelectedItem = InitWidgetContent();
 

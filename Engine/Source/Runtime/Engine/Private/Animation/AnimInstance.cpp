@@ -326,6 +326,7 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 					SyncGroup->TestMontageTickRecordForLeadership();
 				}
 			}
+			MontageInstance->bDidUseMarkerSyncThisTick = false;
 		}
 	}
 
@@ -473,10 +474,15 @@ void UAnimInstance::ParallelUpdateAnimation()
 
 bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 {
-	const bool bUseParallelUpdateAnimation = bCanUseParallelUpdateAnimation || CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0;
+	// If Evaluation Phase is skipped, PostUpdateAnimation() will not get called, so we can't use ParallelUpdateAnimation then.
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
+	const bool bEvaluationPhaseSkipped = SkelMeshComp && !SkelMeshComp->bRecentlyRendered && (SkelMeshComp->MeshComponentUpdateFlag > EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones);
+
+	const bool bUseParallelUpdateAnimation = bCanUseParallelUpdateAnimation || (CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0);
 
 	return
 		GIntraFrameDebuggingGameThread ||
+		bEvaluationPhaseSkipped || 
 		CVarUseParallelAnimUpdate.GetValueOnGameThread() == 0 ||
 		CVarUseParallelAnimationEvaluation.GetValueOnGameThread() == 0 ||
 		GetWorld()->IsServer() ||

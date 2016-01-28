@@ -1012,6 +1012,11 @@ ENGINE_API void UAnimMontage::UpdateLinkableElements(int32 SlotIdx, int32 Segmen
 
 #endif
 
+FString MakePositionMessage(const FMarkerSyncAnimPosition& Position)
+{
+	return FString::Printf(TEXT("Names(PrevName: %s | NextName: %s) PosBetweenMarkers: %.2f"), *Position.PreviousMarkerName.ToString(), *Position.NextMarkerName.ToString(), Position.PositionBetweenMarkers);
+}
+
 void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const
 {
 	// nothing has to happen here
@@ -1057,8 +1062,8 @@ void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotify
 				{
 					const FMarkerSyncAnimPosition& StartPosition = MarkerTickContext.GetMarkerSyncStartPosition();
 					const FMarkerSyncAnimPosition& EndPosition = MarkerTickContext.GetMarkerSyncEndPosition();
-					checkf(StartPosition.NextMarkerName == EndPosition.NextMarkerName, TEXT("StartPosition NextMarker = %s, EndPosition NextMarker = %s, Asset = %s"), *StartPosition.NextMarkerName.ToString(), *EndPosition.NextMarkerName.ToString(), *Instance.SourceAsset->GetFullName());
-					checkf(StartPosition.PreviousMarkerName == EndPosition.PreviousMarkerName, TEXT("StartPosition PreviousMarker = %s, EndPosition PreviousMarker = %s, Asset = %s"), *StartPosition.PreviousMarkerName.ToString(), *EndPosition.PreviousMarkerName.ToString(), *Instance.SourceAsset->GetFullName());
+					checkf(StartPosition.NextMarkerName == EndPosition.NextMarkerName, TEXT("StartPosition %s\nEndPosition %s\nPrevTime to CurrentTimeAsset: %.3f - %.3f Delta: %.3f\nAsset = %s"), *MakePositionMessage(StartPosition), *MakePositionMessage(EndPosition), PreviousTime, CurrentTime, MoveDelta, *Instance.SourceAsset->GetFullName());
+					checkf(StartPosition.PreviousMarkerName == EndPosition.PreviousMarkerName, TEXT("StartPosition %s\nEndPosition %s\nPrevTime - CurrentTimeAsset: %.3f - %.3f Delta: %.3f\nAsset = %s"), *MakePositionMessage(StartPosition), *MakePositionMessage(EndPosition), PreviousTime, CurrentTime, MoveDelta, *Instance.SourceAsset->GetFullName());
 				}
 #endif
 

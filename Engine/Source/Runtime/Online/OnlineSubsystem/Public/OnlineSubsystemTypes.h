@@ -1112,7 +1112,7 @@ public:
 	/**
 	 * @return the nickname of the user if known
 	 */
-	virtual FString GetDisplayName() const = 0;
+	virtual FString GetDisplayName(const FString& Platform = FString()) const = 0;
 	/** 
 	 * @return Any additional user data associated with a registered user
 	 */

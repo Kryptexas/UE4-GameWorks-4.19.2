@@ -11,30 +11,36 @@ DEFINE_LOG_CATEGORY(PacketHandlerLog);
 // @todo #JohnB: For the moment, disable the reliability handler, while it is causing network trouble
 #define DISABLE_RELIABILITY_HANDLER 1
 
-// BUFFERED PACKET
+/**
+ * BufferedPacket
+ */
+
 BufferedPacket::BufferedPacket()
-: Data(nullptr)
-, BytesCount(0)
-, SendTime(0.f)
-, Id(0)
+	: Data(nullptr)
+	, BytesCount(0)
+	, SendTime(0.f)
+	, Id(0)
 {
 }
 
 BufferedPacket::~BufferedPacket()
 {
-	if(Data != nullptr)
+	if (Data != nullptr)
 	{
 		delete Data;
 	}
 }
 
-// PACKET HANDLER
+/**
+ * PacketHandler
+ */
 PacketHandler::PacketHandler()
-: bEnabled(false)
-, Time(0.f)
-, State(Handler::State::Uninitialized)
-, ReliabilityComponent(NULL)
+	: Time(0.f)
+	, State(Handler::State::Uninitialized)
+	, ReliabilityComponent(nullptr)
 {
+	GConfig->GetBool(TEXT("PacketHandlerComponents"), TEXT("bEnabled"), bEnabled, GEngineIni);
+
 	OutgoingPacket.SetAllowResize(true);
 	OutgoingPacket.AllowAppend(true);
 }
@@ -55,7 +61,7 @@ void PacketHandler::Tick(float DeltaTime)
 		}
 	}
 
-	for (int32 i = 0; i < HandlerComponents.Num(); ++i)
+	for (int32 i=0; i<HandlerComponents.Num(); ++i)
 	{
 		HandlerComponents[i]->Tick(DeltaTime);
 	}
@@ -63,8 +69,6 @@ void PacketHandler::Tick(float DeltaTime)
 
 void PacketHandler::Initialize(Handler::Mode InMode)
 {
-	GConfig->GetBool(TEXT("PacketHandlerComponents"), TEXT("bEnabled"), bEnabled, GEngineIni);
-
 	if (!bEnabled && FParse::Param(FCommandLine::Get(), TEXT("PacketHandler")))
 	{
 		UE_LOG(PacketHandlerLog, Log, TEXT("Force-enabling packet handler from commandline."));
@@ -161,11 +165,16 @@ void PacketHandler::Initialize(Handler::Mode InMode)
 				UE_LOG(PacketHandlerLog, Warning, TEXT("Unable to Load Module: %s"), *ComponentsArray[i].ComponentName);
 			}
 		}
+
+
+		// Called early, to ensure that all handlers report a valid packet overhead (triggers an assert if not)
+		GetTotalPacketOverheadBits();
 	}
 }
 
 void PacketHandler::Add(TSharedPtr<HandlerComponent> NewHandler)
 {
+	// This is never valid. Can end up silently changing maximum allow packet size, which could cause failure to send packets.
 	if (State != Handler::State::Uninitialized)
 	{
 		LowLevelFatalError(TEXT("Handler added during runtime."));
@@ -243,13 +252,13 @@ const ProcessedPacket PacketHandler::Outgoing(uint8* Packet, int32 Count)
 	}
 
 	// Queue packet for resending before handling
-	if(Count > 0 && ReliabilityComponent.IsValid())
+	if (Count > 0 && ReliabilityComponent.IsValid())
 	{
 		ReliabilityComponent->QueuePacketForResending(Packet, Count);
 	}
 
 	// Handle
-	for (int32 i = 0; i < HandlerComponents.Num(); ++i)
+	for (int32 i=0; i<HandlerComponents.Num(); ++i)
 	{
 		if (HandlerComponents[i]->IsActive())
 		{
@@ -300,7 +309,7 @@ const ProcessedPacket PacketHandler::Incoming(uint8* Packet, int32 Count)
 	}
 
 	// Handle
-	for (int32 i = HandlerComponents.Num() - 1; i >= 0; --i)
+	for (int32 i=HandlerComponents.Num() - 1; i>=0; --i)
 	{
 		if (HandlerComponents[i]->IsActive() && ProcessedPacketReader.GetNumBytes() > 0)
 		{
@@ -328,7 +337,7 @@ void PacketHandler::SetState(Handler::State InState)
 void PacketHandler::HandlerInitialized()
 {
 	// If any buffered packets, add to queue
-	for (int32 i = 0; i < BufferedPackets.Num(); ++i)
+	for (int32 i=0; i<BufferedPackets.Num(); ++i)
 	{
 		QueuedPackets.Enqueue(BufferedPackets[i]);
 		BufferedPackets[i] = nullptr;
@@ -342,7 +351,7 @@ void PacketHandler::HandlerComponentInitialized()
 	// Check if all handlers are initialized
 	if (State != Handler::State::Initialized)
 	{
-		for (int32 i = 0; i < HandlerComponents.Num(); ++i)
+		for (int32 i=0; i<HandlerComponents.Num(); ++i)
 		{
 			if (HandlerComponents[i]->IsInitialized() == false)
 			{
@@ -357,7 +366,9 @@ void PacketHandler::HandlerComponentInitialized()
 BufferedPacket* PacketHandler::GetQueuedPacket()
 {
 	BufferedPacket* QueuedPacket = nullptr;
+
 	QueuedPackets.Dequeue(QueuedPacket);
+
 	return QueuedPacket;
 }
 
@@ -366,13 +377,37 @@ void PacketHandler::QueuePacketForSending(BufferedPacket* PacketToQueue)
 
 }
 
-// HANDLER COMPONENT
-HandlerComponent::HandlerComponent()
-: State(Handler::Component::State::UnInitialized)
-, bActive(false)
-, bInitialized(false)
+int32 PacketHandler::GetTotalPacketOverheadBits()
 {
+	int32 ReturnVal = 0;
 
+	for (int32 i=0; i<HandlerComponents.Num(); i++)
+	{
+		int32 CurOverhead = HandlerComponents[i]->GetPacketOverheadBits();
+
+		// Specifying the packet overhead is mandatory, even if no overhead (as accidentally forgetting, leads to hard to trace issues).
+		if (CurOverhead == -1)
+		{
+			LowLevelFatalError(TEXT("Handler returned invalid 'GetPacketOverhead' value."));
+			continue;
+		}
+
+		ReturnVal += CurOverhead;
+	}
+
+	return ReturnVal;
+}
+
+
+/**
+ * HandlerComponent
+ */
+
+HandlerComponent::HandlerComponent()
+	: State(Handler::Component::State::UnInitialized)
+	, bActive(false)
+	, bInitialized(false)
+{
 }
 
 bool HandlerComponent::IsActive() const
@@ -401,7 +436,11 @@ bool HandlerComponent::IsInitialized() const
 	return bInitialized;
 }
 
-// PROCESSED PACKET
+
+/**
+ * ProcessedPacket
+ */
+
 ProcessedPacket::ProcessedPacket(uint8* InData, int32 InCount)
 {
 	Data = InData;

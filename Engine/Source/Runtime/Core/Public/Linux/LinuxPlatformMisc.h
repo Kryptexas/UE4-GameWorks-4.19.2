@@ -70,6 +70,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static bool ControlScreensaver(EScreenSaverAction Action);
 
+	static void RequestExitWithStatus(bool Force, uint8 ReturnCode);
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
@@ -167,6 +168,15 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 * Returns whether the program has been started remotely (e.g. over SSH)
 	 */
 	static bool HasBeenStartedRemotely();
+
+	/**
+	 * Determines if return code has been overriden and returns it.
+	 *
+	 * @param OverriddenReturnCodeToUsePtr pointer to an variable that will hold an overriden return code, if any. Can be null.
+	 *
+	 * @return true if the error code has been overriden, false if not
+	 */
+	static bool HasOverriddenReturnCode(uint8 * OverriddenReturnCodeToUsePtr);
 };
 
 typedef FLinuxPlatformMisc FPlatformMisc;

@@ -71,3 +71,7 @@ FCoreDelegates::FPlatformChangedLaptopMode FCoreDelegates::PlatformChangedLaptop
 FCoreDelegates::FLoadStringAssetReferenceInCook FCoreDelegates::LoadStringAssetReferenceInCook;
 
 FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetRecenter;
+
+FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringChanged;
+
+FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;

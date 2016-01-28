@@ -1983,7 +1983,7 @@ void ARecastNavMesh::BatchRaycast(TArray<FNavigationRaycastWork>& Workload, FSha
 	const FVector NavExtent = GetModifiedQueryExtent(GetDefaultQueryExtent());
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
-	for (auto& WorkItem : Workload)
+	for (FNavigationRaycastWork& WorkItem : Workload)
 	{
 		ARecastNavMesh::FRaycastResult RaycastResult;
 
@@ -2001,18 +2001,10 @@ void ARecastNavMesh::BatchRaycast(TArray<FNavigationRaycastWork>& Workload, FSha
 				, QueryFilter, &RaycastResult.HitTime, RecastHitNormal
 				, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
 
-			RaycastResult.HitNormal = Recast2UnrealPoint(RecastHitNormal);
-
 			if (dtStatusSucceed(RaycastStatus) && RaycastResult.HasHit())
 			{
-				NavNodeRef ExpectedEndNode = INVALID_NAVNODEREF;
-				NavQuery.findNearestPoly(&RecastEnd.X, Extent, QueryFilter, &ExpectedEndNode, NULL);
-
-				if (ExpectedEndNode == RaycastResult.GetLastNodeRef())
-				{
-					WorkItem.bDidHit = true;
-					WorkItem.HitLocation = FNavLocation(WorkItem.RayStart + (WorkItem.RayEnd - WorkItem.RayStart) * RaycastResult.HitTime, ExpectedEndNode);
-				}
+				WorkItem.bDidHit = true;
+				WorkItem.HitLocation = FNavLocation(WorkItem.RayStart + (WorkItem.RayEnd - WorkItem.RayStart) * RaycastResult.HitTime, RaycastResult.GetLastNodeRef());
 			}
 		}
 	}
@@ -2028,7 +2020,7 @@ bool ARecastNavMesh::IsSegmentOnNavmesh(const FVector& SegmentStart, const FVect
 	FRaycastResult Result;
 	RecastNavMeshImpl->Raycast(SegmentStart, SegmentEnd, GetRightFilterRef(Filter), QueryOwner, Result);
 
-	return Result.HasHit() == false;
+	return Result.bIsRaycastEndInCorridor && !Result.HasHit();
 }
 
 bool ARecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks) const

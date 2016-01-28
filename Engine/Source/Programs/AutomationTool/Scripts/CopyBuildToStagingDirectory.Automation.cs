@@ -490,6 +490,9 @@ public partial class Project : CommandUtils
                 SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, !Params.UsePak(SC.StageTargetPlatform));
             }
 
+			// if we have oodle stuff 
+			SC.StageFiles( StagedFileType.UFS, CombinePaths( SC.ProjectRoot, "Content/Oodle" ), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths( SC.RelativeProjectRootForStage, "Content/Oodle" ), true, !Params.UsePak( SC.StageTargetPlatform ) );
+			
             // eliminate the sand box
             SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
 
@@ -847,8 +850,15 @@ public partial class Project : CommandUtils
 	/// <param name="PakName"></param>
 	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName)
 	{
+        bool bShouldGeneratePatch = Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak(Params, SC);
+
+        if (bShouldGeneratePatch && !Params.HasBasedOnReleaseVersion)
+        {
+            Log("Generating patch required a based on release version flag");
+        }
+
         string PostFix = "";
-		if (Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak())
+		if (bShouldGeneratePatch)
         {
             PostFix += "_P";
         }
@@ -905,22 +915,11 @@ public partial class Project : CommandUtils
 		}
 
         string PatchSourceContentPath = null;
-		if (Params.HasBasedOnReleaseVersion && Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak())
+		if (bShouldGeneratePatch)
         {
             // don't include the post fix in this filename because we are looking for the source pak path
             string PakFilename = PakName + "-" + SC.FinalCookPlatform + ".pak";
             PatchSourceContentPath = GetReleasePakFilePath(SC, Params, PakFilename);
-            
-
-            /*PatchSourceContentPath = Params.BasedOnReleaseVersion;
-            if (PatchSourceContentPath.EndsWith(PakName) == false)
-            {
-                string Temp = Path.GetDirectoryName(PatchSourceContentPath) + PakName;
-                if ( File.Exists(Temp))
-                {
-                    PatchSourceContentPath = Temp;
-                }
-            }*/
         }
 
 		if (!bCopiedExistingPak)

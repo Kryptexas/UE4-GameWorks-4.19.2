@@ -336,6 +336,8 @@ struct INPUTCORE_API EKeys
 	static const FKey Gamepad_LeftThumbstick;
 	static const FKey Gamepad_RightThumbstick;
 	static const FKey Gamepad_Special_Left;
+	static const FKey Gamepad_Special_Left_X;
+	static const FKey Gamepad_Special_Left_Y;
 	static const FKey Gamepad_Special_Right;
 	static const FKey Gamepad_FaceButton_Bottom;
 	static const FKey Gamepad_FaceButton_Right;

@@ -53,6 +53,7 @@
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 int32 GShaderModelDebug = 0;
 static FAutoConsoleVariableRef CVarShaderModelDebug(
 	TEXT("r.ShaderModelDebug"),
@@ -62,6 +63,7 @@ static FAutoConsoleVariableRef CVarShaderModelDebug(
 	TEXT(" 1: logging is enabled\n")
 	TEXT("-1: logging is enabled for one frame only"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+#endif
 
 static TAutoConsoleVariable<int32> CVarUseMobileBloom(
 	TEXT("r.UseMobileBloom"),

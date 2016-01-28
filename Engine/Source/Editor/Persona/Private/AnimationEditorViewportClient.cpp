@@ -350,7 +350,6 @@ void FAnimationViewportClient::SetPreviewMeshComponent(UDebugSkelMeshComponent* 
 
 		// Set to block all to enable tracing.
 		PreviewSkelMeshComp->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-		PreviewSkelMeshComp->RefreshBoneTransforms();
 	}
 }
 

@@ -3,7 +3,6 @@
 #pragma once
 
 namespace EOnlineServerConnectionStatus { enum Type; }
-typedef TSharedPtr<class IHttpResponse, ESPMode::ThreadSafe> FHttpResponsePtr;
 
 /** Generic Error response for OSS calls */
 struct ONLINESUBSYSTEM_API FOnlineError

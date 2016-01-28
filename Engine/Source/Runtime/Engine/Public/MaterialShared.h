@@ -1148,9 +1148,9 @@ public:
 	ENGINE_API bool GetMaterialExpressionSource(FString& OutSource);
 
 	/* Helper function to look at both IsMasked and IsDitheredLODTransition to determine if it writes every pixel */
-	ENGINE_API bool WritesEveryPixel() const
+	ENGINE_API bool WritesEveryPixel( bool bShadowPass = true ) const
 	{
-		return !IsMasked() && !IsDitheredLODTransition() && !IsWireframe();
+		return !IsMasked() && !( IsDitheredLODTransition() && bShadowPass ) && !IsWireframe();
 	}
 
 	/** 

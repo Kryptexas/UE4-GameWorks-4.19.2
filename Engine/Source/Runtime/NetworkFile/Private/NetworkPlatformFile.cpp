@@ -116,7 +116,15 @@ bool FNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, const TCHAR*
 	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Logs"));
 	LocalDirectories.Add(FPaths::GameSavedDir() / TEXT("Sandboxes"));
 
-	InnerPlatformFile->GetLowerLevel()->AddLocalDirectories(LocalDirectories);
+	if (InnerPlatformFile->GetLowerLevel())
+	{
+		InnerPlatformFile->GetLowerLevel()->AddLocalDirectories(LocalDirectories);
+	}
+	else
+	{
+		InnerPlatformFile->AddLocalDirectories(LocalDirectories);
+	}
+	
 
 	FNetworkFileArchive Payload(NFS_Messages::Heartbeat); 
 	FArrayReader Out;

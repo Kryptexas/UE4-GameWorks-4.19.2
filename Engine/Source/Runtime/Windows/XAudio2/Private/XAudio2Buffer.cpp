@@ -349,6 +349,9 @@ void FXAudio2SoundBuffer::Seek( const float SeekTime )
  */
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave )
 {
+	check(XAudio2Device);
+	check(Wave);
+
 	// Check to see if thread has finished decompressing on the other thread
 	if( Wave->AudioDecompressor != nullptr )
 	{

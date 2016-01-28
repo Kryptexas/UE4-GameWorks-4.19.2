@@ -183,7 +183,9 @@ DXGI_MODE_DESC FD3D11Viewport::SetupDXGI_MODE_DESC() const
 void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 {
 	// Unbind any dangling references to resources
+	D3DRHI->RHISetRenderTargets(0, nullptr, nullptr, 0, nullptr);
 	D3DRHI->ClearState();
+	D3DRHI->GetDeviceContext()->Flush(); // Potential perf hit
 
 	if (IsValidRef(CustomPresent))
 	{

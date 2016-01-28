@@ -1371,6 +1371,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Rendering", meta=(UnsafeDuringActorConstruction = "true"))
 	static int32 GetMinYResolutionForUI();
 
+	/**
+	* Gets the smallest Y resolution we want to support in the 3D view, clamped within reasons
+	* @return value in pixels
+	*/
+	UFUNCTION(BlueprintPure, Category = "Rendering", meta = (UnsafeDuringActorConstruction = "true"))
+	static int32 GetMinYResolutionFor3DView();
+
 	// Opens the specified URL in the platform's web browser of choice
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void LaunchURL(const FString& URL);

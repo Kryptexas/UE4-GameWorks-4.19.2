@@ -83,6 +83,8 @@ FVorbisAudioInfo::FVorbisAudioInfo( void )
 	,	SrcBufferDataSize(0)
 	,	BufferOffset(0)
 { 
+	// Make sure we have properly allocated a VFWrapper
+	check(VFWrapper != NULL);
 }
 
 FVorbisAudioInfo::~FVorbisAudioInfo( void ) 
@@ -94,6 +96,7 @@ FVorbisAudioInfo::~FVorbisAudioInfo( void )
 /** Emulate read from memory functionality */
 size_t FVorbisAudioInfo::Read( void *Ptr, uint32 Size )
 {
+	check(Ptr);
 	size_t BytesToRead = FMath::Min( Size, SrcBufferDataSize - BufferOffset );
 	FMemory::Memcpy( Ptr, SrcBufferData + BufferOffset, BytesToRead );
 	BufferOffset += BytesToRead;
@@ -102,7 +105,9 @@ size_t FVorbisAudioInfo::Read( void *Ptr, uint32 Size )
 
 static size_t OggRead( void *ptr, size_t size, size_t nmemb, void *datasource )
 {
-	FVorbisAudioInfo* OggInfo = ( FVorbisAudioInfo* )datasource;
+	check(ptr);
+	check(datasource);
+	FVorbisAudioInfo* OggInfo = (FVorbisAudioInfo*)datasource;
 	return( OggInfo->Read( ptr, size * nmemb ) );
 }
 
@@ -120,6 +125,9 @@ int FVorbisAudioInfo::Seek( uint32 offset, int whence )
 
 	case SEEK_END:
 		BufferOffset = SrcBufferDataSize - offset;
+		break;
+	default:
+		checkf(false, TEXT("Uknown seek type"));
 		break;
 	}
 
@@ -176,9 +184,11 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 	Callbacks.tell_func = OggTell;
 
 	// Set up the read from memory variables
-	if (ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, Callbacks) < 0)
+	int Result = ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, Callbacks);
+	if (Result < 0)
 	{
-		return( false );
+		UE_LOG(LogAudio, Error, TEXT("FVorbisAudioInfo::ReadCompressedInfo, ov_open_callbacks error code: %d"), Result);
+		return false;
 	}
 
 	if( QualityInfo )

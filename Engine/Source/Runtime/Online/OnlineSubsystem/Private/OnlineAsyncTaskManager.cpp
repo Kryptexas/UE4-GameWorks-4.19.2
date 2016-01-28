@@ -5,6 +5,19 @@
 
 int32 FOnlineAsyncTaskManager::InvocationCount = 0;
 
+#if !UE_BUILD_SHIPPING
+namespace OSSConsoleVariables
+{
+	/** Time to delay finalization of a task in the out queue */
+	TAutoConsoleVariable<float> CVarDelayAsyncTaskOutQueue(
+		TEXT("OSS.DelayAsyncTaskOutQueue"),
+		0.0f,
+		TEXT("Min total async task time\n")
+		TEXT("Time in secs"),
+		ECVF_Default);
+}
+#endif
+
 /** The default value for the polling interval when not set by config */
 #define POLLING_INTERVAL_MS 50
 
@@ -181,6 +194,10 @@ void FOnlineAsyncTaskManager::GameTick()
 	FOnlineAsyncItem* Item = NULL;
 	int32 CurrentQueueSize = 0;
 
+#if !UE_BUILD_SHIPPING
+	const float TimeToWait = OSSConsoleVariables::CVarDelayAsyncTaskOutQueue.GetValueOnGameThread();
+#endif
+
 	do 
 	{
 		Item = NULL;
@@ -191,12 +208,33 @@ void FOnlineAsyncTaskManager::GameTick()
 			if (CurrentQueueSize > 0)
 			{
 				Item = OutQueue[0];
-				OutQueue.RemoveAt(0);
+
+#if !UE_BUILD_SHIPPING
+				if (Item && Item->GetElapsedTime() >= TimeToWait)
+				{
+					OutQueue.RemoveAt(0);
+				}
+				else
+				{
+					Item = nullptr;
+				}
+#else
+				OutQueue.RemoveAt(0);	
+#endif
 			}
 		}
 
 		if (Item)
 		{
+#if !UE_BUILD_SHIPPING
+			if (TimeToWait > 0.0f)
+			{
+				UE_LOG(LogOnline, Verbose, TEXT("Async task '%s' finalizing after %f seconds"),
+					*Item->ToString(),
+					Item->GetElapsedTime());
+			}
+#endif
+
 			// Finish work and trigger delegates
 			Item->Finalize();
 			Item->TriggerDelegates();

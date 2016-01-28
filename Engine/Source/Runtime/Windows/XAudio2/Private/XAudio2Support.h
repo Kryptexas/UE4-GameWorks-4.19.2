@@ -588,22 +588,31 @@ struct FXAudioDeviceProperties
 	/** The array of voice pools. Each pool is according to the sound format (and max effect chain channels) */
 	TArray<FSourceVoicePoolEntry*> VoicePool;
 
+	/** Number of non-free active voices */
+	int32 NumActiveVoices;
+
 	FXAudioDeviceProperties()
 		: XAudio2(nullptr)
 		, MasteringVoice(nullptr)
 		, XAudio2Dll(nullptr)
+		, NumActiveVoices(0)
 	{
 	}
 	
 	~FXAudioDeviceProperties()
 	{
+		// Make sure we've free'd all of our active voices at this point!
+		check(NumActiveVoices == 0);
+
 		// Destroy all the xaudio2 voices allocated in our pools
 		for (int32 i = 0; i < VoicePool.Num(); ++i)
 		{
 			for (int32 j = 0; j < VoicePool[i]->FreeVoices.Num(); ++j)
 			{
-				IXAudio2SourceVoice* Voice = VoicePool[i]->FreeVoices[j];
-				Voice->DestroyVoice();
+				IXAudio2SourceVoice** Voice = &VoicePool[i]->FreeVoices[j];
+				check(*Voice != nullptr);
+				(*Voice)->DestroyVoice();
+				*Voice = nullptr;
 			}
 		}
 
@@ -618,14 +627,15 @@ struct FXAudioDeviceProperties
 		if (MasteringVoice)
 		{
 			MasteringVoice->DestroyVoice();
-			MasteringVoice = NULL;
+			MasteringVoice = nullptr;
 		}
 
 		if (XAudio2)
 		{
 			// Force the hardware to release all references
-			XAudio2->Release();
-			XAudio2 = NULL;
+			Validate(TEXT("~FXAudioDeviceProperties: XAudio2->Release()"),
+					 XAudio2->Release());
+			XAudio2 = nullptr;
 		}
 
 #if PLATFORM_WINDOWS && PLATFORM_64BITS
@@ -639,6 +649,40 @@ struct FXAudioDeviceProperties
 #endif
 	}
 
+	bool Validate(const TCHAR* Function, uint32 ErrorCode) const
+	{
+		if (ErrorCode != S_OK)
+		{
+			switch (ErrorCode)
+			{
+				case XAUDIO2_E_INVALID_CALL:
+				UE_LOG(LogAudio, Error, TEXT("%s error: Invalid Call"), Function);
+				break;
+
+				case XAUDIO2_E_XMA_DECODER_ERROR:
+				UE_LOG(LogAudio, Error, TEXT("%s error: XMA Decoder Error"), Function);
+				break;
+
+				case XAUDIO2_E_XAPO_CREATION_FAILED:
+				UE_LOG(LogAudio, Error, TEXT("%s error: XAPO Creation Failed"), Function);
+				break;
+
+				case XAUDIO2_E_DEVICE_INVALIDATED:
+				UE_LOG(LogAudio, Error, TEXT("%s error: Device Invalidated"), Function);
+				break;
+
+				default:
+				UE_LOG(LogAudio, Error, TEXT("%s error: Unhandled error code %d"), Function, ErrorCode);
+				break;
+			};
+
+			return false;
+		}
+
+		return true;
+	}
+
+
 	void GetAudioDeviceList(TArray<FString>& OutAudioDeviceList) const
 	{
 		OutAudioDeviceList.Reset();
@@ -647,12 +691,18 @@ struct FXAudioDeviceProperties
 		uint32 NumDevices = 0;
 		if (XAudio2)
 		{
-			XAudio2->GetDeviceCount(&NumDevices);
-			for (uint32 i = 0; i < NumDevices; ++i)
+			if (Validate( TEXT("GetAudioDeviceList: XAudio2->GetDeviceCount"),
+				XAudio2->GetDeviceCount(&NumDevices)))
 			{
-				XAUDIO2_DEVICE_DETAILS Details;
-				XAudio2->GetDeviceDetails(i, &Details);
-				OutAudioDeviceList.Add(FString(Details.DisplayName));
+				for (uint32 i = 0; i < NumDevices; ++i)
+				{
+					XAUDIO2_DEVICE_DETAILS Details;
+					if (Validate(TEXT("GetAudioDeviceList: XAudio2->GetDeviceDetails"),
+						XAudio2->GetDeviceDetails(i, &Details)))
+					{
+						OutAudioDeviceList.Add(FString(Details.DisplayName));
+					}
+				}
 			}
 		}
 #endif
@@ -661,6 +711,8 @@ struct FXAudioDeviceProperties
 	/** Returns either a new IXAudio2SourceVoice or a recycled IXAudio2SourceVoice according to the sound format and max channel count in the voice's effect chain*/
 	void GetFreeSourceVoice(IXAudio2SourceVoice** Voice, const FPCMBufferInfo& BufferInfo, const XAUDIO2_EFFECT_CHAIN* EffectChain = nullptr, int32 MaxEffectChainChannels = 0)
 	{
+		bool bSuccess = false;
+
 		// First find the pool for the given format
 		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
 		for (int32 i = 0; i < VoicePool.Num(); ++i)
@@ -668,6 +720,8 @@ struct FXAudioDeviceProperties
 			if (VoicePool[i]->Format == BufferInfo.PCMFormat && VoicePool[i]->MaxEffectChainChannels == MaxEffectChainChannels)
 			{
 				VoicePoolEntry = VoicePool[i];
+				check(VoicePoolEntry);
+				bSuccess = true;
 				break;
 			}
 		}
@@ -677,32 +731,50 @@ struct FXAudioDeviceProperties
 		if (VoicePoolEntry && VoicePoolEntry->FreeVoices.Num() > 0)
 		{
 			*Voice = VoicePoolEntry->FreeVoices.Pop(false);
-			(*Voice)->SetEffectChain(EffectChain);
+			check(*Voice);
+
+			bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
+								(*Voice)->SetEffectChain(EffectChain));
 		}
 		else
 		{
 			// Create a brand new source voice with this format.
-			XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, nullptr, EffectChain);
+			check(XAudio2 != nullptr);
+			bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
+								XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, nullptr, EffectChain));
+		}
+
+		if (bSuccess)
+		{
+			// Track the number of source voices out in the world
+			++NumActiveVoices;
+		}
+		else
+		{
+			// If something failed, make sure we null the voice ptr output
+			*Voice = nullptr;
 		}
 	}
 
 	/** Releases the voice into a pool of free voices according to the voice format and the max effect chain channels */
 	void ReleaseSourceVoice(IXAudio2SourceVoice* Voice, const FPCMBufferInfo& BufferInfo, const int32 MaxEffectChainChannels)
 	{
+		check(Voice != nullptr);
+
 		// Make sure the voice is stopped
-		Voice->Stop();
+		Validate(TEXT("ReleaseSourceVoice, Voice->Stop()"), Voice->Stop());
 
 		// And make sure there's no audio remaining the voice so when it's re-used it's fresh.
-		Voice->FlushSourceBuffers();
+		Validate(TEXT("ReleaseSourceVoice, Voice->FlushSourceBuffers()"), Voice->FlushSourceBuffers());
 
 #if XAUDIO2_SUPPORTS_SENDLIST
 		// Clear out the send effects (OutputVoices). When the voice gets reused, the old internal state might be invalid 
 		// when the new send effects are applied to the voice.
-		Voice->SetOutputVoices(nullptr);
+		Validate(TEXT("ReleaseSourceVoice, Voice->SetOutputVoices(nullptr)"), Voice->SetOutputVoices(nullptr));
 #endif
 
 		// Release the effect chain
-		Voice->SetEffectChain(nullptr);
+		Validate(TEXT("ReleaseSourceVoice, Voice->SetEffectChain(nullptr);"), Voice->SetEffectChain(nullptr));
 
 		// See if there is an existing pool for this source voice
 		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
@@ -724,11 +796,21 @@ struct FXAudioDeviceProperties
 		{
 			// Otherwise We need to make a new voice pool entry with this format and max effect chain channels
 			VoicePoolEntry = new FSourceVoicePoolEntry();
-			VoicePoolEntry->Format = BufferInfo.PCMFormat;
-			VoicePoolEntry->FreeVoices.Add(Voice);
-			VoicePoolEntry->MaxEffectChainChannels = MaxEffectChainChannels;
-			VoicePool.Add(VoicePoolEntry);
+			if (VoicePoolEntry)
+			{
+				VoicePoolEntry->Format = BufferInfo.PCMFormat;
+				VoicePoolEntry->FreeVoices.Add(Voice);
+				VoicePoolEntry->MaxEffectChainChannels = MaxEffectChainChannels;
+				VoicePool.Add(VoicePoolEntry);
+			}
+			else
+			{
+				// If we failed to create a new voice pool entry, then destroy the voice
+				Voice->DestroyVoice();
+			}
 		}
+
+		--NumActiveVoices;
 	}
 };
 

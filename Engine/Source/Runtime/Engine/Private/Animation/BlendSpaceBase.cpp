@@ -301,9 +301,11 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 				{
 					for (FBlendSampleData& CurrentBlendSampleItem : SampleDataList)
 					{
-						if (PrevBlendSampleItem.SampleDataIndex == CurrentBlendSampleItem.SampleDataIndex)
+						// it only can have one animation in the sample, make sure to copy Time
+						if (PrevBlendSampleItem.Animation && PrevBlendSampleItem.Animation == CurrentBlendSampleItem.Animation)
 						{
 							CurrentBlendSampleItem.Time = PrevBlendSampleItem.Time;
+							CurrentBlendSampleItem.PreviousTime = PrevBlendSampleItem.PreviousTime;
 							CurrentBlendSampleItem.MarkerTickRecord = PrevBlendSampleItem.MarkerTickRecord;
 						}
 					}
@@ -508,12 +510,14 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 		float GridWeight = GridSample.BlendWeight;
 		FEditorElement& GridElement = GridSample.GridElement;
 
-		for(int Ind = 0; Ind < GridElement.MAX_VERTICES; ++Ind)
+		for(int32 Ind = 0; Ind < GridElement.MAX_VERTICES; ++Ind)
 		{
-			if(GridElement.Indices[Ind] != INDEX_NONE)
+			const int32 SampleDataIndex = GridElement.Indices[Ind];		
+			if(SampleDataIndex != INDEX_NONE)
 			{
-				int32 Index = OutSampleDataList.AddUnique(GridElement.Indices[Ind]);
+				int32 Index = OutSampleDataList.AddUnique(SampleDataIndex);
 				OutSampleDataList[Index].AddWeight(GridElement.Weights[Ind]*GridWeight);
+				OutSampleDataList[Index].Animation = SampleData[SampleDataIndex].Animation;
 			}
 		}
 	}
@@ -521,9 +525,26 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 	/** Used to sort by  Weight. */
 	struct FCompareFBlendSampleData
 	{
-		FORCEINLINE bool operator()( const FBlendSampleData& A, const FBlendSampleData& B ) const { return B.TotalWeight < A.TotalWeight; }
+		FORCEINLINE bool operator()(const FBlendSampleData& A, const FBlendSampleData& B) const { return B.TotalWeight < A.TotalWeight; }
 	};
-	OutSampleDataList.Sort( FCompareFBlendSampleData() );
+	OutSampleDataList.Sort(FCompareFBlendSampleData());
+
+	// go through merge down to first sample 
+	for (int32 Index1 = 0; Index1 < OutSampleDataList.Num(); ++Index1)
+	{
+		for (int32 Index2 = Index1 + 1; Index2 < OutSampleDataList.Num(); ++Index2)
+		{
+			// if they have sample sample, remove the Index2, and get out
+			if (OutSampleDataList[Index1].Animation == OutSampleDataList[Index2].Animation)
+			{
+				// add weight
+				OutSampleDataList[Index1].AddWeight(OutSampleDataList[Index2].GetWeight());
+				// as for time or previous time will be the master one(Index1)
+				OutSampleDataList.RemoveAtSwap(Index2, 1, false);
+				--Index2;
+			}
+		}
+	}
 
 	// remove noisy ones
 	int32 TotalSample = OutSampleDataList.Num();

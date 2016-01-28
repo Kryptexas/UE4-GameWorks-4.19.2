@@ -55,7 +55,7 @@ bool FOodleArchiveBase::SerializeOodleCompressData(FOodleCompressedData& OutData
 			uint32 OffsetPos = InnerArchive.Tell();
 			OutDataInfo.Offset.Set(*this, OffsetPos);
 
-			InnerArchive.Serialize(CompressBuffer, OodleLen);
+			InnerArchive.Serialize((void*)CompressBuffer, OodleLen);
 		}
 
 
@@ -87,7 +87,7 @@ bool FOodleArchiveBase::SerializeOodleDecompressData(FOodleCompressedData& DataI
 
 		InnerArchive.Serialize(CompressedData, CompressedLength);
 
-		SINTa OodleLen = OodleLZ_Decompress(CompressedData, CompressedLength, DecompressedData, DecompressedLength);
+		SINTa OodleLen = OodleLZ_Decompress((void*)CompressedData, CompressedLength, (void*)DecompressedData, DecompressedLength);
 
 		bSuccess = OodleLen != 0;
 
@@ -112,6 +112,7 @@ bool FOodleArchiveBase::SerializeOodleDecompressData(FOodleCompressedData& DataI
 }
 
 
+#if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 /**
  * FCaptureHeader
  */
@@ -303,6 +304,7 @@ uint32 FPacketCaptureArchive::GetPacketCount()
 
 	return ReturnVal;
 }
+#endif
 
 
 /**

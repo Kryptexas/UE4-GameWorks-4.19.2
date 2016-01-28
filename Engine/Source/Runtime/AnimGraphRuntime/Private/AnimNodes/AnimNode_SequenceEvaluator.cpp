@@ -25,7 +25,7 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 		// Clamp input to a valid position on this sequence's time line.
 		ExplicitTime = FMath::Clamp(ExplicitTime, 0.f, Sequence->SequenceLength);
 
-		if ((GroupIndex != INDEX_NONE) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
+		if ((!bTeleportToExplicitTime || (GroupIndex != INDEX_NONE)) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 		{
 			InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
 			float TimeJump = ExplicitTime - InternalTimeAccumulator;

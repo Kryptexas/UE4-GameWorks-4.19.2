@@ -538,6 +538,12 @@ namespace UnrealBuildTool
 		public static bool bUseFastPDBLinking;
 
 		/// <summary>
+		/// Whether to request the linker create a map file as part of the build
+		/// </summary>
+		[XmlConfig]
+		public static bool bCreateMapFile;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -700,6 +706,9 @@ namespace UnrealBuildTool
 			// Use Fast PDB linking by default in projects but not all builds
 			bAddFastPDBToProjects = false;
 			bUseFastPDBLinking = false;
+
+			// Don't create a map file by default
+			bCreateMapFile = false;
 
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)

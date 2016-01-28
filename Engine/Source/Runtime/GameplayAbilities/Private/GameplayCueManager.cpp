@@ -318,7 +318,6 @@ void UGameplayCueManager::ReloadObjectLibrary(UWorld* World, const UWorld::Initi
 void UGameplayCueManager::LoadObjectLibrary_Internal()
 {
 	FOnGameplayCueNotifySetLoaded OnLoadDelegate = FOnGameplayCueNotifySetLoaded::CreateUObject(this, &UGameplayCueManager::OnGameplayCueNotifyAsyncLoadComplete);
-
 	InitObjectLibraries(LoadedPaths, GameplayCueNotifyActorObjectLibrary, GameplayCueNotifyStaticObjectLibrary, OnLoadDelegate);
 }
 
@@ -437,40 +436,46 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 	}
 }
 
+int32 GameplayCueCheckForTooManyRPCs = 1;
+static FAutoConsoleVariableRef CVarGameplayCueCheckForTooManyRPCs(TEXT("AbilitySystem.GameplayCueCheckForTooManyRPCs"), GameplayCueCheckForTooManyRPCs, TEXT("Warns if gameplay cues are being throttled by network code"), ECVF_Default );
+
 void UGameplayCueManager::CheckForTooManyRPCs(FName FuncName, const FGameplayCuePendingExecute& PendingCue, const FString& CueID, const FGameplayEffectContext* EffectContext)
 {
-	static IConsoleVariable* MaxRPCPerNetUpdateCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.MaxRPCPerNetUpdate"));
-	if (MaxRPCPerNetUpdateCVar)
+	if (GameplayCueCheckForTooManyRPCs)
 	{
-		AActor* Owner = PendingCue.OwningComponent ? PendingCue.OwningComponent->GetOwner() : nullptr;
-		UWorld* World = Owner ? Owner->GetWorld() : nullptr;
-		UNetDriver* NetDriver = World ? World->GetNetDriver() : nullptr;
-		if (NetDriver)
+		static IConsoleVariable* MaxRPCPerNetUpdateCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.MaxRPCPerNetUpdate"));
+		if (MaxRPCPerNetUpdateCVar)
 		{
-			const int32 MaxRPCs = MaxRPCPerNetUpdateCVar->GetInt();
-			for (UNetConnection* ClientConnection : NetDriver->ClientConnections)
+			AActor* Owner = PendingCue.OwningComponent ? PendingCue.OwningComponent->GetOwner() : nullptr;
+			UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+			UNetDriver* NetDriver = World ? World->GetNetDriver() : nullptr;
+			if (NetDriver)
 			{
-				if (ClientConnection)
+				const int32 MaxRPCs = MaxRPCPerNetUpdateCVar->GetInt();
+				for (UNetConnection* ClientConnection : NetDriver->ClientConnections)
 				{
-					UActorChannel** OwningActorChannelPtr = ClientConnection->ActorChannels.Find(Owner);
-					TSharedRef<FObjectReplicator>* ComponentReplicatorPtr = (OwningActorChannelPtr && *OwningActorChannelPtr) ? (*OwningActorChannelPtr)->ReplicationMap.Find(PendingCue.OwningComponent) : nullptr;
-					if (ComponentReplicatorPtr)
+					if (ClientConnection)
 					{
-						const TArray<FObjectReplicator::FRPCCallInfo>& RemoteFuncInfo = (*ComponentReplicatorPtr)->RemoteFuncInfo;
-						for (const FObjectReplicator::FRPCCallInfo& CallInfo : RemoteFuncInfo)
+						UActorChannel** OwningActorChannelPtr = ClientConnection->ActorChannels.Find(Owner);
+						TSharedRef<FObjectReplicator>* ComponentReplicatorPtr = (OwningActorChannelPtr && *OwningActorChannelPtr) ? (*OwningActorChannelPtr)->ReplicationMap.Find(PendingCue.OwningComponent) : nullptr;
+						if (ComponentReplicatorPtr)
 						{
-							if (CallInfo.FuncName == FuncName)
+							const TArray<FObjectReplicator::FRPCCallInfo>& RemoteFuncInfo = (*ComponentReplicatorPtr)->RemoteFuncInfo;
+							for (const FObjectReplicator::FRPCCallInfo& CallInfo : RemoteFuncInfo)
 							{
-								if (CallInfo.Calls > MaxRPCs)
+								if (CallInfo.FuncName == FuncName)
 								{
-									const FString Instigator = EffectContext ? EffectContext->ToString() : TEXT("None");
-									ABILITY_LOG(Warning, TEXT("Attempted to fire %s when no more RPCs are allowed this net update. Max:%d Cue:%s Instigator:%s Component:%s"), *FuncName.ToString(), MaxRPCs, *CueID, *Instigator, *GetPathNameSafe(PendingCue.OwningComponent));
+									if (CallInfo.Calls > MaxRPCs)
+									{
+										const FString Instigator = EffectContext ? EffectContext->ToString() : TEXT("None");
+										ABILITY_LOG(Warning, TEXT("Attempted to fire %s when no more RPCs are allowed this net update. Max:%d Cue:%s Instigator:%s Component:%s"), *FuncName.ToString(), MaxRPCs, *CueID, *Instigator, *GetPathNameSafe(PendingCue.OwningComponent));
 									
-									// Returning here to only log once per offending RPC.
-									return;
-								}
+										// Returning here to only log once per offending RPC.
+										return;
+									}
 
-								break;
+									break;
+								}
 							}
 						}
 					}
@@ -612,7 +617,7 @@ void UGameplayCueManager::HandleAssetRenamed(const FAssetData& Data, const FStri
 void UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
 {
 	bool ValidPath = false;
-	for (FString& str: LoadedPaths)
+	for (FString& str: GetValidGameplayCuePaths())
 	{
 		if (Path.Contains(str))
 		{
@@ -627,7 +632,7 @@ void UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
 
 		ABILITY_LOG(Warning, TEXT("Warning: Invalid GameplayCuePath: %s"), *Path);
 		ABILITY_LOG(Warning, TEXT("Valid Paths: "));
-		for (FString& str: LoadedPaths)
+		for (FString& str: GetValidGameplayCuePaths())
 		{
 			ABILITY_LOG(Warning, TEXT("  %s"), *str);
 			MessageTry += FString::Printf(TEXT("\n  %s"), *str);
@@ -641,6 +646,14 @@ void UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
 	}
 }
 
+void UGameplayCueManager::LoadAllGameplayCueNotifiesForEditor()
+{
+	// Spft load all valid paths
+	TArray<FString> ValidPaths = GetValidGameplayCuePaths();
+
+	GlobalCueSet->Empty();
+	InitObjectLibraries(ValidPaths, GameplayCueNotifyActorObjectLibrary, GameplayCueNotifyStaticObjectLibrary, FOnGameplayCueNotifySetLoaded());
+}
 #endif
 
 

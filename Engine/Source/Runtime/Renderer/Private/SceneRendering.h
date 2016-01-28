@@ -625,13 +625,13 @@ public:
 	IPooledRenderTarget* GetLastEyeAdaptationRT(FRHICommandList& RHICmdList) const;
 
 	/**Swap the order of the two eye adaptation targets in the double buffer system */
-	void SwapEyeAdaptationRTs();
+	void SwapEyeAdaptationRTs() const;
 
 	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
 	bool HasValidEyeAdaptation() const;
 
 	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
-	void SetValidEyeAdaptation();
+	void SetValidEyeAdaptation() const;
 
 	/** Create acceleration data structure and information to do forward lighting with dynamic branching. */
 	void CreateLightGrid();

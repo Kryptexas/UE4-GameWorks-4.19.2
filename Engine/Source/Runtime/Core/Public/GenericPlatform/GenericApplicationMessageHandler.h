@@ -40,6 +40,8 @@ struct CORE_API FGamepadKeyNames
 	static const FName LeftThumb;
 	static const FName RightThumb;
 	static const FName SpecialLeft;
+	static const FName SpecialLeft_X;
+	static const FName SpecialLeft_Y;
 	static const FName SpecialRight;
 	static const FName FaceButtonBottom;
 	static const FName FaceButtonRight;

@@ -246,6 +246,7 @@ public:
 };
 
 
+#if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 /**
  * Archive for handling packet capture (.ucap) files
  */
@@ -346,6 +347,7 @@ public:
 	 */
 	uint32 GetPacketCount();
 };
+#endif
 
 
 /**

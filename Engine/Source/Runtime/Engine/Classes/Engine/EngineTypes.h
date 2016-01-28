@@ -4056,13 +4056,13 @@ struct FMaterialMergeData
 /**
  * The description of a user activity
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FUserActivity
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Describes the user's activity */
-	UPROPERTY(EditAnywhere, Category = "Activity")
+	UPROPERTY(BlueprintReadWrite, Category = "Activity")
 	FString ActionName;
 
 	/** Default constructor. */

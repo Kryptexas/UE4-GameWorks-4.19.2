@@ -190,7 +190,6 @@ private:
 public:
 	// UObject interface
 	virtual void PostInitProperties() override;
-	virtual void BeginDestroy() override;
 	virtual void FinishDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
@@ -227,14 +226,6 @@ protected:
 
 	/** @todo document */
 	void ExecMacro( const TCHAR* Filename, FOutputDevice& Ar );
-
-	/**
-	 * Handle controller connection events from the platform
-	 * @param bConnected - determines connection or disconnection event
-	 * @param UserId - platform specfic UserId
-	 * @param UserIndex - Engine level UserIndex.
-	 */
-	void HandleControllerConnectionChange(bool bConnected, int32 InUserId, int32 InControllerId);
 
 	/** FReply used to defer some slate operations. */
 	FReply SlateOperations;

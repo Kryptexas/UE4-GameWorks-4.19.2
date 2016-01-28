@@ -400,6 +400,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapNormal);
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.ReflectiveShadowMapDepth);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		extern int32 GShaderModelDebug;
 		if(GShaderModelDebug)
@@ -414,6 +415,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 			}
 		}
 	}
+#endif
 
 	{
 		FMemMark Mark(FMemStack::Get());

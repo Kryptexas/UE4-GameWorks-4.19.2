@@ -38,6 +38,7 @@ void* FCachedOSPageAllocator::AllocateImpl(SIZE_T Size, FFreePageBlock* First, F
 		if (Found)
 		{
 			void* Result = Found->Ptr;
+			UE_CLOG(!Result, LogMemory, Fatal, TEXT("OS memory allocation cache has been corrupted!"));
 			CachedTotal -= Found->ByteSize;
 			if (Found + 1 != Last)
 			{

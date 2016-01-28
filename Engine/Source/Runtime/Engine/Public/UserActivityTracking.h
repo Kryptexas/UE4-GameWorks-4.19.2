@@ -7,7 +7,7 @@ class ENGINE_API FUserActivityTracking : FNoncopyable
 public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnActivityChanged, const FUserActivity&);
 
-	static void SetActivity(const FUserActivity& InUserActivity) { UserActivity = InUserActivity; }
+	static void SetActivity(const FUserActivity& InUserActivity);
 	static const FUserActivity& GetUserActivity() { return UserActivity; }
 
 	// Called when the UserActivity changes

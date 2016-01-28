@@ -413,6 +413,14 @@ void FGenericPlatformMisc::RequestExit( bool Force )
 	}
 }
 
+void FGenericPlatformMisc::RequestExitWithStatus(bool Force, uint8 ReturnCode)
+{
+	// Generic implementation will ignore the return code - this may be important, so warn.
+	UE_LOG(LogGenericPlatformMisc, Warning, TEXT("FPlatformMisc::RequestExitWithStatus(%i, %d) - return code will be ignored by the generic implementation."), Force, ReturnCode);
+
+	return FPlatformMisc::RequestExit(Force);
+}
+
 const TCHAR* FGenericPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
 	const TCHAR* Message = TEXT("No system errors available on this platform.");

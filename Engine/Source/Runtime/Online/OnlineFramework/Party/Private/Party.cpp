@@ -93,19 +93,29 @@ void UParty::OnLoginStatusChanged(int32 LocalUserNum, ELoginStatus::Type OldStat
 		if (JoinedParties.Num())
 		{
 			UE_LOG(LogParty, Log, TEXT("Party cleanup on logout"));
+			TArray<FOnlinePartyTypeId> PartiesToRemove;
 			for (const auto& PartyKeyValue : JoinedParties)
 			{
-				UPartyGameState* Party = PartyKeyValue.Value;
-				if (Party)
+				PartiesToRemove.Add(PartyKeyValue.Key);
+			}
+			for (const auto& PartyKey : PartiesToRemove)
+			{
+				UPartyGameState** FoundParty = JoinedParties.Find(PartyKey);
+				if (FoundParty)
 				{
-					TSharedPtr<const FOnlinePartyId> PartyId = Party->GetPartyId();
-					FString PartyIdString = PartyId.IsValid() ? PartyId->ToDebugString() : TEXT("");
-					UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *PartyIdString);
-					Party->HandleRemovedFromParty(EMemberExitedReason::Left);
+					UPartyGameState* Party = *FoundParty;
+					if (Party)
+					{
+						TSharedPtr<const FOnlinePartyId> PartyId = Party->GetPartyId();
+						FString PartyIdString = PartyId.IsValid() ? PartyId->ToDebugString() : TEXT("");
+						UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *PartyIdString);
+						Party->HandleRemovedFromParty(EMemberExitedReason::Left);
+					}
+					JoinedParties.Remove(PartyKey);
 				}
 			}
 
-			JoinedParties.Empty();
+			ensure(JoinedParties.Num() == 0);
 		}
 	}
 

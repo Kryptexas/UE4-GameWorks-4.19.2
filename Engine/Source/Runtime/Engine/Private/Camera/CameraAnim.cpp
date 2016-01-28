@@ -12,6 +12,7 @@
 #include "Matinee/InterpGroupCamera.h"
 #include "Matinee/InterpTrackMove.h"
 
+DEFINE_LOG_CATEGORY(LogCameraAnim);
 
 //////////////////////////////////////////////////////////////////////////
 // UCameraAnim

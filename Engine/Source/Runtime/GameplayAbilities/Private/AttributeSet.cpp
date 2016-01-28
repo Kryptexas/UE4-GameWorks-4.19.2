@@ -232,7 +232,30 @@ bool FScalableFloat::SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchiv
 
 		return true;
 	}
+	else if (Tag.Type == NAME_IntProperty)
+	{
+		int32 OldValue;
+		Ar << OldValue;
+		*this = FScalableFloat((float)OldValue);
 
+		return true;
+	}
+	else if (Tag.Type == NAME_Int8Property)
+	{
+		int8 OldValue;
+		Ar << OldValue;
+		*this = FScalableFloat((float)OldValue);
+
+		return true;
+	}
+	else if (Tag.Type == NAME_Int16Property)
+	{
+		int16 OldValue;
+		Ar << OldValue;
+		*this = FScalableFloat((float)OldValue);
+
+		return true;
+	}
 	return false;
 }
 

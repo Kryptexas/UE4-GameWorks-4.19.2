@@ -229,7 +229,7 @@ public:
 	//copy operator to prevent duplicate handles
 	void operator=(const FScalableFloat& Src);
 
-	/* Used to upgrade a float property into an FScalableFloat */
+	/* Used to upgrade a float or int8/int16/int32 property into an FScalableFloat */
 	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
 private:

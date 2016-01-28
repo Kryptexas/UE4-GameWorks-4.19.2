@@ -18,7 +18,6 @@ UCameraAnimInst::UCameraAnimInst(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bFinished = true;
-	bAutoReleaseWhenFinished = true;
 	PlayRate = 1.0f;
 	TransientScaleModifier = 1.0f;
 	PlaySpace = ECameraAnimPlaySpace::CameraLocal;
@@ -93,13 +92,16 @@ void UCameraAnimInst::AdvanceAnim(float DeltaTime, bool bJump)
 		
 		// calculate blend weight. calculating separately and taking the minimum handles overlapping blends nicely.
 		{
-			float BlendInWeight = (bBlendingIn) ? (CurBlendInTime / BlendInTime) : 1.f;
-			float BlendOutWeight = (bBlendingOut) ? (1.f - CurBlendOutTime / BlendOutTime) : 1.f;
+			float const BlendInWeight = (bBlendingIn) ? (CurBlendInTime / BlendInTime) : 1.f;
+			float const BlendOutWeight = (bBlendingOut) ? (1.f - CurBlendOutTime / BlendOutTime) : 1.f;
 			CurrentBlendWeight = FMath::Min(BlendInWeight, BlendOutWeight) * BasePlayScale * TransientScaleModifier;
 		}
 
 		// this will update tracks and apply the effects to the group actor (except move tracks)
-		InterpGroupInst->Group->UpdateGroup(CurTime, InterpGroupInst, false, bJump);
+		if (InterpGroupInst->Group)
+		{
+			InterpGroupInst->Group->UpdateGroup(CurTime, InterpGroupInst, false, bJump);
+		}
 
 		if (bAnimJustFinished)
 		{
@@ -121,40 +123,48 @@ void UCameraAnimInst::AdvanceAnim(float DeltaTime, bool bJump)
 
 void UCameraAnimInst::Update(float NewRate, float NewScale, float NewBlendInTime, float NewBlendOutTime, float NewDuration)
 {
-	if (bBlendingOut)
+	if (bFinished == false)
 	{
-		bBlendingOut = false;
-		CurBlendOutTime = 0.f;
+		if (bBlendingOut)
+		{
+			bBlendingOut = false;
+			CurBlendOutTime = 0.f;
 
-		// stop any blendout and reverse it to a blendin
-		bBlendingIn = true;
-		CurBlendInTime = NewBlendInTime * (1.f - CurBlendOutTime / BlendOutTime);
+			// stop any blendout and reverse it to a blendin
+			bBlendingIn = true;
+			CurBlendInTime = NewBlendInTime * (1.f - CurBlendOutTime / BlendOutTime);
+		}
+
+		PlayRate = NewRate;
+		BasePlayScale = NewScale;
+		BlendInTime = NewBlendInTime;
+		BlendOutTime = NewBlendOutTime;
+		RemainingTime = (NewDuration > 0.f) ? (NewDuration - BlendOutTime) : 0.f;
 	}
-
-	PlayRate = NewRate;
-	BasePlayScale = NewScale;
-	BlendInTime = NewBlendInTime;
-	BlendOutTime = NewBlendOutTime;
-	RemainingTime = (NewDuration > 0.f) ? (NewDuration - BlendOutTime) : 0.f;
-	bFinished = false;
 }
 
 void UCameraAnimInst::SetDuration(float NewDuration)
 {
-	// setting a new duration will reset the play timer back to 0 but maintain current playback position
-	// if blending out, stop it and blend back in to reverse it so it's smooth
-	if (bBlendingOut)
+	if (bFinished == false)
 	{
-		bBlendingOut = false;
-		CurBlendOutTime = 0.f;
+		// setting a new duration will reset the play timer back to 0 but maintain current playback position
+		// if blending out, stop it and blend back in to reverse it so it's smooth
+		if (bBlendingOut)
+		{
+			bBlendingOut = false;
+			CurBlendOutTime = 0.f;
 
-		// stop any blendout and reverse it to a blendin
-		bBlendingIn = true;
-		CurBlendInTime = BlendInTime * (1.f - CurBlendOutTime / BlendOutTime);
+			// stop any blendout and reverse it to a blendin
+			bBlendingIn = true;
+			CurBlendInTime = BlendInTime * (1.f - CurBlendOutTime / BlendOutTime);
+		}
+
+		RemainingTime = (NewDuration > 0.f) ? (NewDuration - BlendOutTime) : 0.f;
 	}
-
-	RemainingTime = (NewDuration > 0.f) ? (NewDuration - BlendOutTime) : 0.f;
-	bFinished = false;
+	else
+	{
+		UE_LOG(LogCameraAnim, Warning, TEXT("SetDuration called for CameraAnim %s after it finished. Ignored."), *GetNameSafe(CamAnim));
+	}
 }
 
 void UCameraAnimInst::SetScale(float NewScale)
@@ -246,13 +256,13 @@ void UCameraAnimInst::Stop(bool bImmediate)
 
 	if ( bImmediate || (BlendOutTime <= 0.f) )
 	{
-		if (InterpGroupInst->Group != NULL)
+		if (InterpGroupInst->Group != nullptr)
 		{
 			InterpGroupInst->TermGroupInst(true);
 			InterpGroupInst->Group = nullptr;
 		}
-		MoveTrack = NULL;
-		MoveInst = NULL;
+		MoveTrack = nullptr;
+		MoveInst = nullptr;
 		bFinished = true;
  	}
 	else

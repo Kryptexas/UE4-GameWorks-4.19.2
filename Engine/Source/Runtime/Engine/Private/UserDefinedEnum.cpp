@@ -68,7 +68,11 @@ void UUserDefinedEnum::PostLoad()
 {
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
-	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
+
+	if (GIsEditor && !IsRunningCommandlet())
+	{
+		FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
+	}
 }
 
 void UUserDefinedEnum::PostEditUndo()

@@ -458,6 +458,7 @@ void UPathFollowingComponent::OnPathUpdated()
 void UPathFollowingComponent::Initialize()
 {
 	UpdateCachedComponents();
+	LocationSamples.Reserve(BlockDetectionSampleCount);
 }
 
 void UPathFollowingComponent::Cleanup()
@@ -1211,6 +1212,8 @@ bool UPathFollowingComponent::IsBlocked() const
 
 	if (LocationSamples.Num() == BlockDetectionSampleCount && BlockDetectionSampleCount > 0)
 	{
+		const float BlockDetectionDistanceSq = FMath::Square(BlockDetectionDistance);
+
 		FVector Center = FVector::ZeroVector;
 		for (int32 SampleIndex = 0; SampleIndex < LocationSamples.Num(); SampleIndex++)
 		{
@@ -1222,8 +1225,8 @@ bool UPathFollowingComponent::IsBlocked() const
 
 		for (int32 SampleIndex = 0; SampleIndex < LocationSamples.Num(); SampleIndex++)
 		{
-			const float TestDistance = FVector::DistSquared(*LocationSamples[SampleIndex], Center);
-			if (TestDistance > BlockDetectionDistance)
+			const float TestDistanceSq = FVector::DistSquared(*LocationSamples[SampleIndex], Center);
+			if (TestDistanceSq > BlockDetectionDistanceSq)
 			{
 				bBlocked = false;
 				break;
@@ -1487,6 +1490,7 @@ void UPathFollowingComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) co
 		(Path->CastPath<FNavMeshPath>() != NULL) ? TEXT("navmesh") :
 		(Path->CastPath<FAbstractNavigationPath>() != NULL) ? TEXT("direct") :
 		TEXT("unknown"));
+	Category.Add(TEXT("Block detection"), bUseBlockDetection ? FString::Printf(TEXT("last sample time %.2f"), LastSampleTime) : TEXT("Disabled"));
 	
 	UObject* CustomNavLinkOb = CurrentCustomLinkOb.Get();
 	if (CustomNavLinkOb)

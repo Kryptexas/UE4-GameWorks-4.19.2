@@ -2,6 +2,8 @@
 
 #pragma once
 
+#define TRACK_CONSOLE_FIND_COUNT !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 
 /**
  * Console variable usage guide:
@@ -129,6 +131,12 @@ class IConsoleObject
 
 public:
 
+	IConsoleObject()
+#if TRACK_CONSOLE_FIND_COUNT
+		: FindCallCount(0)
+#endif
+	{}
+
 	virtual ~IConsoleObject() {}
 
 	/**
@@ -200,6 +208,11 @@ public:
 
 private: // -----------------------------------------
 
+#if TRACK_CONSOLE_FIND_COUNT
+	// no longer pure visual, if that causes problems we can change the interface
+	// to track down FindConsoleObject/FindConsoleVariable calls without static
+	uint32 FindCallCount;
+#endif
 
 	/**
 	 *  should only be called by the manager, needs to be implemented for each instance

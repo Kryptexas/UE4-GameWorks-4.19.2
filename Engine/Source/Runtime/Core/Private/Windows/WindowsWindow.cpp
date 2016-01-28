@@ -4,13 +4,13 @@
 #include "WindowsWindow.h"
 #include "WindowsApplication.h"
 
-
 #include "AllowWindowsPlatformTypes.h"
 #if WINVER > 0x502	// Windows Vista or better required for DWM
 	#include "Dwmapi.h"
 #endif
-	#include <ShlObj.h>
+#include <ShlObj.h>
 #include "HideWindowsPlatformTypes.h"
+
 
 FWindowsWindow::~FWindowsWindow()
 {
@@ -476,10 +476,11 @@ void FWindowsWindow::HACK_ForceToFront()
 /** Native windows should implement this function by asking the OS to destroy OS-specific resource associated with the window (e.g. Win32 window handle) */
 void FWindowsWindow::Destroy()
 {
-	if (OLEReferenceCount > 0)
+	if (OLEReferenceCount > 0 && IsWindow(HWnd))
 	{
-		RevokeDragDrop( HWnd );
-		check( OLEReferenceCount == 0 );
+		HRESULT Result = RevokeDragDrop(HWnd);
+		checkf(Result == S_OK, TEXT("Failed in RevokeDragDrop, error-code: %i"), Result);
+		checkf(OLEReferenceCount == 0, TEXT("Not all references to window are released, %i left"), OLEReferenceCount);
 	}
 
 	::DestroyWindow( HWnd );

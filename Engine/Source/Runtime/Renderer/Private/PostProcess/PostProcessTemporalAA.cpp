@@ -551,7 +551,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	}
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
-	FViewInfo& View = Context.View;
+	const FViewInfo& View = Context.View;
 	FSceneViewState* ViewState = Context.ViewState;
 
 	FIntPoint TexSize = InputDesc->Extent;
@@ -739,22 +739,25 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
 	}
 
-#if WITH_EDITOR
-	FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+	if (FSceneRenderer::ShouldCompositeEditorPrimitives(Context.View))
+	{
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+		// because of the flush it's ok to remove the const, this is not ideal as the flush can cost performance
+		FViewInfo& NonConstView = (FViewInfo&)Context.View;
 
-	// Remove jitter
-	View.ViewMatrices.RemoveTemporalJitter();
+		// Remove jitter
+		NonConstView.ViewMatrices.RemoveTemporalJitter();
 
-	// Compute the view projection matrix and its inverse.
-	View.ViewProjectionMatrix = View.ViewMatrices.ViewMatrix * View.ViewMatrices.ProjMatrix;
-	View.InvViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.InvViewMatrix;
+		// Compute the view projection matrix and its inverse.
+		NonConstView.ViewProjectionMatrix = NonConstView.ViewMatrices.ViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
+		NonConstView.InvViewProjectionMatrix = NonConstView.ViewMatrices.GetInvProjMatrix() * NonConstView.InvViewMatrix;
 
-	// Compute a transform from view origin centered world-space to clip space.
-	View.ViewMatrices.TranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
-	View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.ViewMatrices.TranslatedViewMatrix.Inverse();
+		// Compute a transform from view origin centered world-space to clip space.
+		NonConstView.ViewMatrices.TranslatedViewProjectionMatrix = NonConstView.ViewMatrices.TranslatedViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
+		NonConstView.ViewMatrices.InvTranslatedViewProjectionMatrix = NonConstView.ViewMatrices.GetInvProjMatrix() * NonConstView.ViewMatrices.TranslatedViewMatrix.Inverse();
 
-	View.InitRHIResources(nullptr);
-#endif
+		NonConstView.InitRHIResources(nullptr);
+	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOutputId InPassOutputId) const

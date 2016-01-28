@@ -246,7 +246,7 @@ class FPhysXAllocator : public PxAllocatorCallback
 		:	AllocationTypeName(InAllocationTypeName)
 		,	AllocationSize(InAllocationSize)
 		{
-			static_assert(sizeof(FPhysXAllocationHeader) == 32, "FPhysXAllocationHeader size must be 32 bytes.");
+			static_assert((sizeof(FPhysXAllocationHeader) % 16) == 0, "FPhysXAllocationHeader size must multiple of bytes.");
 			MagicPadding();
 		}
 
@@ -272,6 +272,7 @@ class FPhysXAllocator : public PxAllocatorCallback
 		FName AllocationTypeName;
 		size_t	AllocationSize;
 		uint8 Padding[8];	//physx needs 16 byte alignment. Additionally we fill padding with a pattern to see if there's any memory stomps
+		uint8 Padding2[(sizeof(FName) + sizeof(size_t) + sizeof(Padding)) % 16];
 
 		void Validate() const
 		{

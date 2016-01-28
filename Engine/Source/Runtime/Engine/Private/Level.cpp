@@ -281,12 +281,27 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 {
 	ULevel* This = CastChecked<ULevel>(InThis);
 
+	// List of textures to remove
+	TArray< UTexture2D*, TInlineAllocator<32> > TexturesToRemove;
+
 	// Let GC know that we're referencing some UTexture2D objects
-	for( auto& It : This->TextureToInstancesMap )
+	for (auto& It : This->TextureToInstancesMap)
 	{
 		UTexture2D* Texture2D = It.Key;
-		Collector.AddReferencedObject( Texture2D, This );
+		TexturesToRemove.Add(Texture2D);
+		Collector.AddReferencedObject(Texture2D, This);
+		if (!Texture2D)
+		{
+			// The texture has been probably marked as pending kill and has been removed by GC
+			// We need to remove it after we exit this loop.
+			TexturesToRemove.Add(It.Key);
+		}
 	}
+	for (UTexture2D* Texture : TexturesToRemove)
+	{
+		This->TextureToInstancesMap.Remove(Texture);
+	}
+	TexturesToRemove.Reset();
 
 	// Let GC know that we're referencing some UTexture2D objects
 	for( auto& It : This->DynamicTextureInstances )
@@ -301,11 +316,22 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	}
 
 	// Let GC know that we're referencing some UTexture2D objects
-	for( auto& It : This->ForceStreamTextures )
+	for (auto& It : This->ForceStreamTextures)
 	{
 		UTexture2D* Texture2D = It.Key;
-		Collector.AddReferencedObject( Texture2D, This );
+		Collector.AddReferencedObject(Texture2D, This);
+		if (!Texture2D)
+		{
+			// The texture has been probably marked as pending kill and has been removed by GC
+			// We need to remove it after we exit this loop.
+			TexturesToRemove.Add(It.Key);
+		}
 	}
+	for (UTexture2D* Texture : TexturesToRemove)
+	{
+		This->ForceStreamTextures.Remove(Texture);
+	}
+	TexturesToRemove.Reset();
 
 	// Let GC know that we're referencing some AActor objects
 	for (auto& Actor : This->Actors)

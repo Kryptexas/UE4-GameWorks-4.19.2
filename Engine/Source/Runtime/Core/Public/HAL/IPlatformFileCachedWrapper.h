@@ -234,7 +234,7 @@ public:
 
 		// Allow a choice between shorter load times or less memory on desktop platforms.
 		// Note: this cannot be in config since they aren't read at that point.
-		if (PLATFORM_DESKTOP)
+#if (PLATFORM_DESKTOP || PLATFORM_PS4)
 		{
 			if (FParse::Param(CmdLine, TEXT("NoCachedReadFile")))
 			{
@@ -247,7 +247,7 @@ public:
 
 			UE_LOG(LogPlatformFile, Log, TEXT("%s cached read wrapper"), bResult ? TEXT("Using") : TEXT("Not using"));
 		}
-
+#endif
 		return bResult;
 	}
 	IPlatformFile* GetLowerLevel() override

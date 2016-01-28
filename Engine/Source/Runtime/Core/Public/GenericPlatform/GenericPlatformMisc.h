@@ -477,6 +477,15 @@ public:
 	static void RequestExit( bool Force );
 
 	/**
+	 * Requests application exit with a specified return code. Name is different from RequestExit() so overloads of just one of functions are possible.
+	 *
+	 * @param	Force 	   If true, perform immediate exit (dangerous because config code isn't flushed, etc).
+	 *                     If false, request clean main-loop exit from the platform specific code.
+	 * @param   ReturnCode This value will be returned from the program (on the platforms where it's possible). Limited to 0-255 to conform with POSIX.
+	 */
+	static void RequestExitWithStatus( bool Force, uint8 ReturnCode );
+
+	/**
 	 * Returns the last system error code in string form.  NOTE: Only one return value is valid at a time!
 	 *
 	 * @param OutBuffer the buffer to be filled with the error message

@@ -124,7 +124,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 					FString PackageFile;
 					if (FPackageName::SearchForPackageOnDisk(Line, NULL, &PackageFile, false))
 					{
-						PackageNames.Add(*PackageFile);
+						PackageNames.AddUnique(*PackageFile);
 					}
 					else
 					{

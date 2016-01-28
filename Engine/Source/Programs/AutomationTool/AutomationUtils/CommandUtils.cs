@@ -1412,7 +1412,7 @@ namespace AutomationTool
 			}
 			foreach (var SourceSubDirectory in Directory.GetDirectories(Source))
 			{
-				string DestPath = Dest + GetPathSeparatorChar(PathSeparator.Default) + GetLastDirectoryName(SourceSubDirectory);
+				string DestPath = Dest + GetPathSeparatorChar(PathSeparator.Default) + GetLastDirectoryName(SourceSubDirectory + GetPathSeparatorChar(PathSeparator.Default));
 				if (!CopyDirectory_NoExceptions(SourceSubDirectory, DestPath, bQuiet))
 				{
 					return false;

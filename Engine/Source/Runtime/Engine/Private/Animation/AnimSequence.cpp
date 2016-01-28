@@ -606,8 +606,23 @@ void UAnimSequence::PostLoad()
 		}
 	}
 
+	USkeleton* CurrentSkeleton = GetSkeleton();
+
+	// if valid additive, but if base additive isn't 
+	// this seems to happen from retargeting sometimes, which we still have to investigate why, 
+	// but this causes issue since once this happens this is unrecoverable until you delete from outside of editor
+	if (IsValidAdditive())
+	{
+		if (RefPoseSeq && RefPoseSeq->GetSkeleton() != CurrentSkeleton)
+		{
+			// if this happens, there was a issue with retargeting, 
+			UE_LOG(LogAnimation, Warning, TEXT("Animation %s - Invalid additive animation base animation (%s)"), *GetName(), *RefPoseSeq->GetName());
+			RefPoseSeq = nullptr;
+		}
+	}
+
 #if WITH_EDITOR
-	if (USkeleton * CurrentSkeleton = GetSkeleton())
+	if (CurrentSkeleton)
 	{
 		// Get the name mapping object for curves
 		const FSmartNameMapping* NameMapping = CurrentSkeleton->GetSmartNameContainer(USkeleton::AnimTrackCurveMappingName);

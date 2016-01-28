@@ -137,11 +137,16 @@ protected:
 	/** Some title file interfaces aren't re-entrant so handle it ourselves */
 	bool bHotfixingInProgress;
 	/** Set to true if any PAK file contains an update to a level that is currently loaded */
-	bool bHotfixNeedsReload;
+	bool bHotfixNeedsMapReload;
 #if !UE_BUILD_SHIPPING
 	/** Whether we want to log all of the files that are in a mounted pak file or not */
 	bool bLogMountedPakContents;
 #endif
+	/**
+	 * If we have removed or changed a currently mounted PAK file, then we'll need to restart the app
+	 * because there's no simple undo for objects that were loaded and possibly rooted
+	 */
+	uint32 ChangedOrRemovedPakCount;
 
 	void Init();
 	void Cleanup();

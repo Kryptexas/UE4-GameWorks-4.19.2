@@ -807,6 +807,33 @@ IConsoleObject* FConsoleManager::FindConsoleObject(const TCHAR* Name) const
 {
 	IConsoleObject* CVar = FindConsoleObjectUnfiltered(Name);
 
+#if TRACK_CONSOLE_FIND_COUNT
+	{
+		const bool bEarlyAppPhase = GFrameCounter < 1000;
+		if(CVar)
+		{
+			++CVar->FindCallCount;
+
+			// we test for equal to avoid log spam
+			if(bEarlyAppPhase && CVar->FindCallCount == 500)
+			{
+				UE_LOG(LogConsoleManager, Warning, TEXT("Performance warning: Console object named '%s' shows many (%d) FindConsoleObject() calls (consider caching e.g. using static)"), Name, CVar->FindCallCount);
+			}
+		}
+		else
+		{
+			static uint32 NullFindCallCount = 0;
+		
+			++NullFindCallCount;
+
+			if(bEarlyAppPhase && NullFindCallCount == 500)
+			{
+				UE_LOG(LogConsoleManager, Warning, TEXT( "Performance warning: Many (%d) failed FindConsoleObject() e.g. '%s' (consider caching, is the name referencing an existing object)"), NullFindCallCount, Name);
+			}
+		}
+	}
+#endif
+
 	if(CVar && CVar->TestFlags(ECVF_CreatedFromIni))
 	{
 		return 0;

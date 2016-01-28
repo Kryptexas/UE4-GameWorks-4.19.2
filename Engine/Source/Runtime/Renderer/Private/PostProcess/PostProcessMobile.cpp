@@ -2781,24 +2781,27 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
-	auto& View = Context.View;
-	if (FSceneRenderer::ShouldCompositeEditorPrimitives(View))
+	if (FSceneRenderer::ShouldCompositeEditorPrimitives(Context.View))
 	{
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+		// because of the flush it's ok to remove the const, this is not ideal as the flush can cost performance
+		FViewInfo& NonConstView = (FViewInfo&)Context.View;
+
 		// Remove jitter (ensures editor prims are stable.)
-		View.ViewMatrices.RemoveTemporalJitter();
+		NonConstView.ViewMatrices.RemoveTemporalJitter();
 
 		// Compute the view projection matrix and its inverse.
-		View.ViewProjectionMatrix = View.ViewMatrices.ViewMatrix * View.ViewMatrices.ProjMatrix;
-		View.InvViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.InvViewMatrix;
+		NonConstView.ViewProjectionMatrix = NonConstView.ViewMatrices.ViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
+		NonConstView.InvViewProjectionMatrix = NonConstView.ViewMatrices.GetInvProjMatrix() * NonConstView.InvViewMatrix;
 
 		/** The view transform, starting from world-space points translated by -ViewOrigin. */
-		FMatrix TranslatedViewMatrix = FTranslationMatrix(-View.ViewMatrices.PreViewTranslation) * View.ViewMatrices.ViewMatrix;
+		FMatrix TranslatedViewMatrix = FTranslationMatrix(-NonConstView.ViewMatrices.PreViewTranslation) * NonConstView.ViewMatrices.ViewMatrix;
 
 		// Compute a transform from view origin centered world-space to clip space.
-		View.ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
-		View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+		NonConstView.ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * NonConstView.ViewMatrices.ProjMatrix;
+		NonConstView.ViewMatrices.InvTranslatedViewProjectionMatrix = NonConstView.ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 
-		View.InitRHIResources(nullptr);
+		NonConstView.InitRHIResources(nullptr);
 	}
 }
 

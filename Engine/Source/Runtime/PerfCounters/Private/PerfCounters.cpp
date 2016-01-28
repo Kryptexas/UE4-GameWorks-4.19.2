@@ -11,6 +11,7 @@
 
 FPerfCounters::FPerfCounters(const FString& InUniqueInstanceId)
 : UniqueInstanceId(InUniqueInstanceId)
+, InternalCountersUpdateInterval(60)
 , Socket(nullptr)
 {
 }
@@ -30,6 +31,13 @@ FPerfCounters::~FPerfCounters()
 
 bool FPerfCounters::Initialize()
 {
+	float ConfigInternalCountersUpdateInterval = 60.0;
+	if (GConfig->GetFloat(TEXT("PerfCounters"), TEXT("InternalCountersUpdateInterval"), ConfigInternalCountersUpdateInterval, GEngineIni))
+	{
+		InternalCountersUpdateInterval = ConfigInternalCountersUpdateInterval;
+	}
+	LastTimeInternalCountersUpdated = FPlatformTime::Seconds() - InternalCountersUpdateInterval * FMath::FRand();	// randomize between servers
+
 	// get the requested port from the command line (if specified)
 	int32 StatsPort = -1;
 	FParse::Value(FCommandLine::Get(), TEXT("statsPort="), StatsPort);
@@ -231,11 +239,9 @@ bool FPerfCounters::Tick(float DeltaTime)
 		}
 	}
 
-	// set some internal perf stats ([RCL] FIXME 2015-12-08: move to a better place and make configurable)
-	const float kInternalStatsUpdateInterval = 60.0;	// 60 seconds
-	static float LastTimeStatsUpdated = FPlatformTime::Seconds() - kInternalStatsUpdateInterval * FMath::FRand();
+	// set some internal perf stats ([RCL] FIXME 2015-12-08: move to a better place)
 	float CurrentTime = FPlatformTime::Seconds();
-	if (CurrentTime - LastTimeStatsUpdated > kInternalStatsUpdateInterval)
+	if (CurrentTime - LastTimeInternalCountersUpdated > InternalCountersUpdateInterval)
 	{
 		FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
 		Set(TEXT("AvailablePhysicalMemoryMB"), static_cast<uint64>(Stats.AvailablePhysical / (1024 * 1024)));
@@ -248,7 +254,7 @@ bool FPerfCounters::Tick(float DeltaTime)
 			Set(TEXT("FreeSpaceOnLogFileDiskInMB"), static_cast<uint64>(FreeBytesOnLogDrive / (1024 * 1024)));
 		}
 
-		LastTimeStatsUpdated = CurrentTime;
+		LastTimeInternalCountersUpdated = CurrentTime;
 	}
 
 	// keep ticking

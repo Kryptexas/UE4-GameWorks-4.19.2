@@ -807,7 +807,7 @@ void APartyBeaconHost::ProcessCancelReservationRequest(APartyBeaconClient* Clien
 			DumpReservations();
 		}
 
-		Client->ClientReservationResponse(Result);
+		Client->ClientCancelReservationResponse(Result);
 	}
 }
 

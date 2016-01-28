@@ -22,9 +22,10 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShaderModelDebug"));
-		if(CVar->GetInt())
+		if(CVar && CVar->GetInt())
 		{
 			UE_LOG(LogEngine, Log, TEXT("r.ShaderModelDebug: SetPrimitiveViewRelevance %x = %x"),
 				OutViewRelevance.ShadingModelMaskRelevance,
@@ -32,6 +33,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 			ensure(ShadingModelMask);
 		}
 	}
+#endif
 
 	OutViewRelevance.ShadingModelMaskRelevance = ShadingModelMask;
 	OutViewRelevance.bUsesGlobalDistanceField = bUsesGlobalDistanceField;

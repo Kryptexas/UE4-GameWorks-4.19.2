@@ -17,7 +17,7 @@ public:
 	
 	virtual TSharedRef<const FUniqueNetId> GetUserId() const override { return UserIdPtr; }
 	virtual FString GetRealName() const override { return TEXT("DummyRealName"); }
-	virtual FString GetDisplayName() const override  { return TEXT("DummyDisplayName"); }
+	virtual FString GetDisplayName(const FString& Platform = FString()) const override  { return TEXT("DummyDisplayName"); }
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 	virtual bool SetUserAttribute(const FString& AttrName, const FString& AttrValue) override;
 

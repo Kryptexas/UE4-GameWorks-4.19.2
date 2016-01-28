@@ -695,13 +695,20 @@ private:
 		FString PerfMessage = FString::Printf(TEXT("SGameplayCueEditor::UpdateGameplayCueListItems"));
 		SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
+		UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
+		if (!CueManager)
+		{
+			return;
+		}
 
 		GameplayCueListItems.Reset();
 		IGameplayTagsModule& GameplayTagModule = IGameplayTagsModule::Get();
-		UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
+		
 		TSharedPtr<FCueItem> SelectItem;
 
 		FString SearchString = SearchText.ToString();
+
+		CueManager->LoadAllGameplayCueNotifiesForEditor();
 
 		FGameplayTagContainer AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(UGameplayCueSet::BaseGameplayCueTag());
 		for (FGameplayTag ThisGameplayCueTag : AllGameplayCueTags)

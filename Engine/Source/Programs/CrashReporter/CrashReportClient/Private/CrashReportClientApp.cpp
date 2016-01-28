@@ -82,7 +82,7 @@ void ParseCommandLine(const TCHAR* CommandLine)
 			ReportDirectoryAbsolutePath = Tokens[0];
 		}
 
-		GameNameFromCmd = Params.FindRef("AppName=");
+		GameNameFromCmd = Params.FindRef("AppName");
 	}
 
 	if (ReportDirectoryAbsolutePath.IsEmpty())
@@ -163,7 +163,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
 	
-	if (ErrorReport.HasFilesToUpload())
+	if (ErrorReport.HasFilesToUpload() && FPrimaryCrashProperties::Get() != nullptr)
 	{
 		if (bUnattended)
 		{

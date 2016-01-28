@@ -3062,16 +3062,30 @@ bool UKismetSystemLibrary::GetSupportedFullscreenResolutions(TArray<FIntPoint>& 
 	return false;
 }
 
-static TAutoConsoleVariable<int32> CVarMinYResolution(
-	TEXT("r.MinYResolution"),
+static TAutoConsoleVariable<int32> CVarMinYResolutionForUI(
+	TEXT("r.MinYResolutionForUI"),
 	720,
-	TEXT("Defines the smallest Y resolution we want to support in the UI"),
+	TEXT("Defines the smallest Y resolution we want to support in the UI (default is 720)"),
+	ECVF_RenderThreadSafe
+	);
+
+static TAutoConsoleVariable<int32> CVarMinYResolutionFor3DView(
+	TEXT("r.MinYResolutionFor3DView"),
+	360,
+	TEXT("Defines the smallest Y resolution we want to support in the 3D view"),
 	ECVF_RenderThreadSafe
 	);
 
 int32 UKismetSystemLibrary::GetMinYResolutionForUI()
 {
-	int32 Value = FMath::Clamp(CVarMinYResolution.GetValueOnGameThread(), 200, 8 * 1024);
+	int32 Value = FMath::Clamp(CVarMinYResolutionForUI.GetValueOnGameThread(), 200, 8 * 1024);
+
+	return Value;
+}
+
+int32 UKismetSystemLibrary::GetMinYResolutionFor3DView()
+{
+	int32 Value = FMath::Clamp(CVarMinYResolutionFor3DView.GetValueOnGameThread(), 200, 8 * 1024);
 
 	return Value;
 }

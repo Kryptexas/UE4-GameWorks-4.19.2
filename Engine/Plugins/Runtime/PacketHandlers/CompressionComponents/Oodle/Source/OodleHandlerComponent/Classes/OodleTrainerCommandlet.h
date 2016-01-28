@@ -64,6 +64,7 @@ public:
 	 */
 	static bool HandleEnable();
 
+#if !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 	/**
 	 * Handles the 'MergePackets' command, which is used to merge multiple packet capture files
 	 *
@@ -109,11 +110,12 @@ public:
 	 * @return				Whether or not OutputFile is a valid path
 	 */
 	static bool VerifyOutputFile(FString OutputFile);
-#endif
+#endif // HAS_OODLE_SDK
+#endif // !UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING
 };
 
 
-#if HAS_OODLE_SDK
+#if HAS_OODLE_SDK && (!UE_BUILD_SHIPPING || OODLE_DEV_SHIPPING)
 /**
  * FOodleDictionaryGenerator
  *

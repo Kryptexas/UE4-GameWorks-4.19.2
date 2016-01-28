@@ -217,21 +217,34 @@ void FQosEvaluator::OnEvaluateForDatacenterComplete(EQosCompletionResult Result,
 				}
 			}
 
+			//@TODO: This is a temporary measure to reduce the effect of framerate on data center ping estimation
+			// (due to the use of beacons that are ticked on the game thread for the estimation)
+			// This value can be 0 to disable discounting or something like 1 or 2
+			const float FractionOfFrameTimeToDiscount = 2.0f;
+
+			extern ENGINE_API float GAverageMS;
+			const int32 TimeToDiscount = (int32)(FractionOfFrameTimeToDiscount * GAverageMS);
+
 			for (auto& QosResult : RegionAggregates)
 			{
+				int32 RawAvgPing = MAX_QUERY_PING;
+				int32 AdjustedAvgPing = RawAvgPing;
 				if (QosResult.Value.NumResults > 0)
 				{
+					RawAvgPing = QosResult.Value.TotalPingInMs / QosResult.Value.NumResults;
+					AdjustedAvgPing = FMath::Max<int32>(RawAvgPing - TimeToDiscount, 1);
+
 					FQosRegionInfo Region;
 					Region.RegionId = QosResult.Key;
-					Region.PingMs = QosResult.Value.TotalPingInMs / QosResult.Value.NumResults;
+					Region.PingMs = AdjustedAvgPing;
 					RegionInfo.Add(Region);
 				}
 
-				UE_LOG(LogQos, Verbose, TEXT("Region[%s] Avg: %d Num: %d"), *QosResult.Key, QosResult.Value.AvgPing, QosResult.Value.NumResults);
+				UE_LOG(LogQos, Verbose, TEXT("Region[%s] Avg: %d Num: %d; Adjusted: %d"), *QosResult.Key, RawAvgPing, QosResult.Value.NumResults, AdjustedAvgPing);
 
 				if (QosStats.IsValid())
 				{
-					QosStats->RecordRegionInfo(QosResult.Key, QosResult.Value.AvgPing, QosResult.Value.NumResults);
+					QosStats->RecordRegionInfo(QosResult.Key, AdjustedAvgPing, QosResult.Value.NumResults);
 				}
 			}
 		}
@@ -355,9 +368,12 @@ void FQosEvaluator::OnQosRequestComplete(EQosResponseType QosResponse, int32 Res
 			SearchResult.PingInMs = MAX_QUERY_PING;
 		}
 
+		FString QosRegion;
+		SearchResult.Session.SessionSettings.Get(SETTING_REGION, QosRegion);
+
 		extern ENGINE_API float GAverageFPS;
 		extern ENGINE_API float GAverageMS;
-		UE_LOG(LogQos, Verbose, TEXT("Qos response received: %d ms FPS: %0.2f MS: %0.2f"), ResponseTime, GAverageFPS, GAverageMS);
+		UE_LOG(LogQos, Verbose, TEXT("Qos response received for region %s: %d ms FPS: %0.2f MS: %0.2f"), *QosRegion, ResponseTime, GAverageFPS, GAverageMS);
 
 		if (QosStats.IsValid())
 		{

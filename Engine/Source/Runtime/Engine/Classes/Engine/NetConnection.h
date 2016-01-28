@@ -179,6 +179,9 @@ class UNetConnection : public UPlayer
 	/** Number of bits used for padding in the current packet. */
 	int NumPaddingBits;
 
+	/** The maximum number of bits all packet handlers will reserve */
+	int32 MaxPacketHandlerBits;
+
 	/** Sets all of the bit-tracking variables to zero. */
 	void ResetPacketBitCounts();
 
@@ -268,12 +271,14 @@ public:
 	int32 InPacketsLost, OutPacketsLost;
 
 	// Packet.
-	FBitWriter		SendBuffer;				// Queued up bits waiting to send
-	double			OutLagTime[256];		// For lag measuring.
-	int32			OutLagPacketId[256];	// For lag measuring.
-	int32			InPacketId;				// Full incoming packet index.
-	int32			OutPacketId;			// Most recently sent packet.
-	int32 			OutAckPacketId;			// Most recently acked outgoing packet.
+	FBitWriter		SendBuffer;						// Queued up bits waiting to send
+	double			OutLagTime[256];				// For lag measuring.
+	int32			OutLagPacketId[256];			// For lag measuring.
+	int32			OutBytesPerSecondHistory[256];	// For saturation measuring.
+	float			RemoteSaturation;
+	int32			InPacketId;						// Full incoming packet index.
+	int32			OutPacketId;					// Most recently sent packet.
+	int32 			OutAckPacketId;					// Most recently acked outgoing packet.
 
 	bool			bLastHasServerFrameTime;
 
@@ -515,6 +520,12 @@ public:
 	ENGINE_API virtual void InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed=0, int32 InMaxPacket=0);
 
 
+	/**
+	 * Initializes the PacketHandler
+	 */
+	ENGINE_API virtual void InitHandler();
+
+
 	/** 
 	* Gets a unique ID for the connection, this ID depends on the underlying connection
 	* For IP connections this is an IP Address and port, for steam this is a SteamID
@@ -567,6 +578,12 @@ public:
 
 	/** Send a raw bunch. */
 	ENGINE_API int32 SendRawBunch( FOutBunch& Bunch, bool InAllowMerge );
+
+	/** The maximum number of bits allowed within a single bunch. */
+	FORCEINLINE int32 GetMaxSingleBunchSizeBits() const
+	{
+		return (MaxPacket * 8) - MAX_BUNCH_HEADER_BITS - MAX_PACKET_TRAILER_BITS - MAX_PACKET_HEADER_BITS - MaxPacketHandlerBits;
+	}
 
 	/** @return The driver object */
 	UNetDriver* GetDriver() {return Driver;}

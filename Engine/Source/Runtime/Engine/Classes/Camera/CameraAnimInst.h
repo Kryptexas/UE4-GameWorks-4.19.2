@@ -29,29 +29,24 @@ public:
 	/** Current time for the animation */
 	float CurTime;
 
+	/** True if the animation has finished, false otherwise. */
+	uint32 bFinished : 1;
+
 protected:
 	/** True if the animation should loop, false otherwise. */
 	uint32 bLooping:1;
 
-public:
-	/** True if the animation has finished, false otherwise. */
-	uint32 bFinished:1;
+	/** True if currently blending in. */
+	uint32 bBlendingIn : 1;
 
-	/** True if it's ok for the system to auto-release this instance upon completion. */
-	uint32 bAutoReleaseWhenFinished:1;
+	/** True if currently blending out. */
+	uint32 bBlendingOut : 1;
 
-protected:
 	/** Time to interpolate in from zero, for smooth starts. */
 	float BlendInTime;
 
 	/** Time to interpolate out to zero, for smooth finishes. */
 	float BlendOutTime;
-
-	/** True if currently blending in. */
-	uint32 bBlendingIn:1;
-
-	/** True if currently blending out. */
-	uint32 bBlendingOut:1;
 
 	/** Current time for the blend-in.  I.e. how long we have been blending. */
 	float CurBlendInTime;
@@ -76,7 +71,6 @@ public:
 protected:
 	/** How much longer to play the anim, if a specific duration is desired.  Has no effect if 0.  */
 	float RemainingTime;
-
 
 public:
 	/** cached movement track from the currently playing anim so we don't have to go find it every frame */
@@ -139,7 +133,6 @@ public:
 	/** Changes the scale of the animation while playing.*/
 	UFUNCTION(BlueprintCallable, Category = CameraAnimInst)
 	void SetScale(float NewDuration);
-
 
 protected:
 	/** Returns InterpGroupInst subobject **/

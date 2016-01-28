@@ -240,15 +240,15 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 			}
 		}
 
+		// changes to this are good for a single update, so reset this to 1.f after processing
+		AnimInst->TransientScaleModifier = 1.f;
+
 		// handle animations that have finished
-		if (AnimInst->bFinished && AnimInst->bAutoReleaseWhenFinished)
+		if (AnimInst->bFinished)
 		{
 			ReleaseCameraAnimInst(AnimInst);
 			Idx--;		// we removed this from the ActiveAnims array
 		}
-
-		// changes to this are good for a single update, so reset this to 1.f after processing
-		AnimInst->TransientScaleModifier = 1.f;
 	}
 
 	// need to zero this when we are done with it.  playing another animation

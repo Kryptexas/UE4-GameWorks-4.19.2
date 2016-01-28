@@ -2583,7 +2583,7 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 	ApplicationImmunityGameplayTagCountContainer.UpdateTagCount(Effect.Spec.Def->GrantedApplicationImmunityTags.IgnoreTags, 1);
 
 	// Grant abilities
-	if (IsNetAuthority())
+	if (IsNetAuthority() && !Owner->bSuppressGrantAbility)
 	{
 		for (FGameplayAbilitySpecDef& AbilitySpecDef : Effect.Spec.GrantedAbilitySpecs)
 		{
@@ -2597,24 +2597,27 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 	}
 
 	// Update GameplayCue tags and events
-	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
+	if (!Owner->bSuppressGameplayCues)
 	{
-		Owner->UpdateTagMap(Cue.GameplayCueTags, 1);
-
-		if (bInvokeGameplayCueEvents)
+		for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 		{
-			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::OnActive);
-			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
-		}
+			Owner->UpdateTagMap(Cue.GameplayCueTags, 1);
 
-		if (IsNetAuthority() && Owner->bMinimalReplication)
-		{
-			for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
+			if (bInvokeGameplayCueEvents)
 			{
-				// Note: minimal replication does not replicate the effect context with the gameplay cue parameters.
-				// This is just a choice right now. If needed, it may be better to convert the effect context to GC parameters *here*
-				// and pass those into this function
-				Owner->AddGameplayCue_MinimalReplication(CueTag);
+				Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::OnActive);
+				Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
+			}
+
+			if (IsNetAuthority() && Owner->bMinimalReplication)
+			{
+				for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
+				{
+					// Note: minimal replication does not replicate the effect context with the gameplay cue parameters.
+					// This is just a choice right now. If needed, it may be better to convert the effect context to GC parameters *here*
+					// and pass those into this function
+					Owner->AddGameplayCue_MinimalReplication(CueTag);
+				}
 			}
 		}
 	}
@@ -2834,20 +2837,23 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	}
 
 	// Update GameplayCue tags and events
-	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
+	if (!Owner->bSuppressGameplayCues)
 	{
-		Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
-
-		if (bInvokeGameplayCueEvents)
+		for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
 		{
-			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::Removed);			
-		}
+			Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
 
-		if (IsNetAuthority() && Owner->bMinimalReplication)
-		{
-			for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
+			if (bInvokeGameplayCueEvents)
 			{
-				Owner->RemoveGameplayCue_MinimalReplication(CueTag);
+				Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::Removed);			
+			}
+
+			if (IsNetAuthority() && Owner->bMinimalReplication)
+			{
+				for (const FGameplayTag& CueTag : Cue.GameplayCueTags)
+				{
+					Owner->RemoveGameplayCue_MinimalReplication(CueTag);
+				}
 			}
 		}
 	}
@@ -3658,6 +3664,14 @@ void FActiveGameplayEffectsContainer::CloneFrom(const FActiveGameplayEffectsCont
 				}
 			}
 		}
+	}
+
+	// Broadcast dirty on everything so that the UAttributeSet properties get updated
+	for (auto& It : AttributeAggregatorMap)
+	{
+		FAggregatorRef& AggregatorRef = It.Value;
+		AggregatorRef.Get()->BroadcastOnDirty();
+
 	}
 }
 

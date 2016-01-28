@@ -38,6 +38,9 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 
 	GenericConfirmInputID = INDEX_NONE;
 	GenericCancelInputID = INDEX_NONE;
+
+	bSuppressGrantAbility = false;
+	bSuppressGameplayCues = false;
 }
 
 UAbilitySystemComponent::~UAbilitySystemComponent()
@@ -634,7 +637,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	
 
 	// We still probably want to apply tags and stuff even if instant?
-	if (bInvokeGameplayCueApplied && AppliedEffect && !AppliedEffect->bIsInhibited)
+	if (!bSuppressGameplayCues && bInvokeGameplayCueApplied && AppliedEffect && !AppliedEffect->bIsInhibited)
 	{
 		// We both added and activated the GameplayCue here.
 		// On the client, who will invoke the gameplay cue from an OnRep, he will need to look at the StartTime to determine
@@ -665,7 +668,10 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		// This is an instant application but we are treating it as an infinite duration for prediction. We should still predict the execute GameplayCUE.
 		// (in non predictive case, this will happen inside ::ExecuteGameplayEffect)
 
-		UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_FromSpec(this, *OurCopyOfSpec, PredictionKey);
+		if (!bSuppressGameplayCues)
+		{
+			UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_FromSpec(this, *OurCopyOfSpec, PredictionKey);
+		}
 	}
 	else if (Spec.Def->DurationPolicy == EGameplayEffectDurationType::Instant)
 	{
@@ -889,7 +895,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
-	if (ActorAvatar == nullptr)
+	if (ActorAvatar == nullptr && !bSuppressGameplayCues)
 	{
 		// No avatar actor to call this gameplaycue on.
 		return;
@@ -943,7 +949,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag Gameplay
 {
 	AActor* ActorAvatar = AbilityActorInfo->AvatarActor.Get();
 	
-	if (ActorAvatar != nullptr)
+	if (ActorAvatar != nullptr && !bSuppressGameplayCues)
 	{
 		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, GameplayCueTag, EventType, GameplayCueParameters);
 	}
@@ -1233,6 +1239,14 @@ void UAbilitySystemComponent::ForceReplication()
 	if (OwningActor && OwningActor->Role == ROLE_Authority)
 	{
 		OwningActor->ForceNetUpdate();
+	}
+}
+
+void UAbilitySystemComponent::ForceAvatarReplication()
+{
+	if (AvatarActor && AvatarActor->Role == ROLE_Authority)
+	{
+		AvatarActor->ForceNetUpdate();
 	}
 }
 
