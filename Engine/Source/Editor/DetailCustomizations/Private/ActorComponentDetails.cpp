@@ -19,7 +19,7 @@ void FActorComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	TSharedPtr<IPropertyHandle> PrimaryTickProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UActorComponent, PrimaryComponentTick));
 
 	// Defaults only show tick properties
-	if (DetailBuilder.GetDetailsView().HasClassDefaultObject())
+	if (PrimaryTickProperty->IsValidHandle() && DetailBuilder.GetDetailsView().HasClassDefaultObject())
 	{
 		IDetailCategoryBuilder& TickCategory = DetailBuilder.EditCategory("ComponentTick");
 
