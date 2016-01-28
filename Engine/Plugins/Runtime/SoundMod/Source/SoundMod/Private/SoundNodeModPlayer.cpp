@@ -16,6 +16,7 @@ void USoundNodeModPlayer::LoadAsset()
 			const FString LongPackageName = SoundModAssetPtr.GetLongPackageName();
 			if (!LongPackageName.IsEmpty())
 			{
+				bAsyncLoading = true;
 				LoadPackageAsync(LongPackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeModPlayer::OnSoundModLoaded));
 			}
 		}
@@ -32,6 +33,7 @@ void USoundNodeModPlayer::OnSoundModLoaded(const FName& PackageName, UPackage * 
 	{
 		SoundMod = SoundModAssetPtr.Get();
 	}
+	bAsyncLoading = false;
 }
 
 void USoundNodeModPlayer::SetSoundMod(USoundMod* InSoundMod)
@@ -52,6 +54,11 @@ void USoundNodeModPlayer::PostEditChangeProperty(FPropertyChangedEvent& Property
 
 void USoundNodeModPlayer::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
 {
+	if (bAsyncLoading)
+	{
+		SoundMod = SoundModAssetPtr.LoadSynchronous();
+		bAsyncLoading = false;
+	}
 	if (SoundMod)
 	{
 		// The SoundWave's bLooping is only for if it is directly referenced, so clear it
