@@ -3675,8 +3675,8 @@ void FParticleDynamicData::operator delete(void *RawMemory, size_t AllocSize)
 
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)
 	: bSelected(false)
-	, ParticleVertexFactory(nullptr)
 	, EmitterIndex(INDEX_NONE)
+	, ParticleVertexFactory(nullptr)
 {
 }
 
