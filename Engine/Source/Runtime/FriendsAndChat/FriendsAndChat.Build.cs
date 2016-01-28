@@ -25,14 +25,14 @@ public class FriendsAndChat : ModuleRules
 		PrivateIncludePaths.AddRange(
 			new string[]
 			{
-				"Developer/FriendsAndChat/Private",
+				"Runtime/FriendsAndChat/Private",
 			}
 		);
 
 		PublicIncludePaths.AddRange(
 			new string[]
 			{
-				"Developer/FriendsAndChat/Public",
+				"Runtime/FriendsAndChat/Public",
 			}
 		);
 	}
