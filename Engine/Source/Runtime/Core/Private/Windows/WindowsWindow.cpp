@@ -5,12 +5,12 @@
 #include "WindowsApplication.h"
 
 
+#include "AllowWindowsPlatformTypes.h"
 #if WINVER > 0x502	// Windows Vista or better required for DWM
-	#include "AllowWindowsPlatformTypes.h"
 	#include "Dwmapi.h"
-	#include <ShlObj.h>
-	#include "HideWindowsPlatformTypes.h"
 #endif
+	#include <ShlObj.h>
+#include "HideWindowsPlatformTypes.h"
 
 FWindowsWindow::~FWindowsWindow()
 {
