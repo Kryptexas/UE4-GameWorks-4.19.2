@@ -5,5 +5,8 @@
 
 FEditorUndoClient::~FEditorUndoClient()
 {
-	GEditor->UnregisterForUndo(this);
+	if (GEditor)
+	{
+		GEditor->UnregisterForUndo(this);
+	}
 }
