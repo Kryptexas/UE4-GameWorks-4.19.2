@@ -175,13 +175,13 @@ namespace UnrealBuildTool
 		{
 			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture, false);
 
+			// suppress link time warnings
+			Result += " -Wno-ignored-attributes"; // function alias that always gets resolved
+			Result += " -Wno-parentheses"; // precedence order
+			Result += " -Wno-shift-count-overflow"; // 64bit is more than enough for shift 32
+
 			if (LinkEnvironment.Config.Target.Architecture != "-win32")
 			{
-				// suppress link time warnings
-				Result += " -Wno-ignored-attributes"; // function alias that always gets resolved
-				Result += " -Wno-parentheses"; // precedence order
-				Result += " -Wno-shift-count-overflow"; // 64bit is more than enough for shift 32
-
 				// enable verbose mode
 				Result += " -v";
 
