@@ -1692,11 +1692,14 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 float UParticleEmitter::GetQualityLevelSpawnRateMult()
 {
 	static IConsoleVariable* EffectsQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("sg.EffectsQuality"));
-	float Level = (1 - EffectsQuality->GetInt());
 	float Q = 1;
-	for (int i = 0; i < Level + 1; i++)
+	if (EffectsQuality)
 	{
-		Q = Q*QualityLevelSpawnRateScale;
+		float Level = (1 - EffectsQuality->GetInt());
+		for (int i = 0; i < Level + 1; i++)
+		{
+			Q = Q*QualityLevelSpawnRateScale;
+		}
 	}
 	return Q;
 }
