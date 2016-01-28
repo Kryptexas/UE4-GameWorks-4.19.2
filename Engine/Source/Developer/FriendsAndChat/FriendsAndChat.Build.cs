@@ -35,17 +35,5 @@ public class FriendsAndChat : ModuleRules
 				"Developer/FriendsAndChat/Public",
 			}
 		);
-
-		DynamicallyLoadedModuleNames.AddRange(
-		new string[] {
-				"EditorStyle",
-			}
-		);
-
-		PrivateIncludePathModuleNames.AddRange(
-			new string[] {
-				"EditorStyle",
-			}
-		);
 	}
 }
