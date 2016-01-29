@@ -181,7 +181,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	TAttribute<bool> IsEnabledAttribute(this, &SPropertyEditorAsset::CanEdit);
 	TAttribute<FText> TooltipAttribute(this, &SPropertyEditorAsset::OnGetToolTip);
 
-	if (Property->HasAllPropertyFlags(CPF_DisableEditOnTemplate))
+	if (Property && Property->HasAllPropertyFlags(CPF_DisableEditOnTemplate))
 	{
 		// There are some cases where editing an Actor Property is not allowed, such as when it is contained within a struct or a CDO
 		TArray<UObject*> ObjectList;
