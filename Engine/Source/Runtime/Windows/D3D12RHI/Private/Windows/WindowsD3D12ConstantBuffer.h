@@ -19,18 +19,8 @@ public:
 	virtual void	ReleaseDynamicRHI() override;
 
 	/**
-	* Get the current buffer
-	*/
-	FD3D12ResourceLocation* GetConstantBufferLocation() const
-	{
-		return CurrentBuffer.GetReference();
-	}
-
-	/**
 	* Unlocks the constant buffer so the data can be transmitted to the device
 	*/
-	bool CommitConstantsToDevice(FD3D12DynamicHeapAllocator& UploadHeap, bool bDiscardSharedConstants);
+	bool CommitConstantsToDevice(FD3D12FastAllocator& Allocator, FD3D12ResourceLocation& Location, bool bDiscardSharedConstants);
 
-private:
-	TRefCountPtr<FD3D12ResourceLocation> CurrentBuffer;
 };

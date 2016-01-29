@@ -268,10 +268,6 @@ void FD3D12Viewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 	if (bResizeBuffers)
 	{
 		DXGI_SWAP_CHAIN_FLAG swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		if (bIsBenchmarkMode)
-		{
-			swapChainFlags = static_cast<DXGI_SWAP_CHAIN_FLAG>(static_cast<uint32>(swapChainFlags) | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
-		}
 
 		// Resize the swap chain.
 		VERIFYD3D11RESULT_EX(SwapChain3->ResizeBuffers(NumBackBuffers, SizeX, SizeY, GetRenderTargetFormat(PixelFormat), swapChainFlags), GetParentDevice()->GetDevice());

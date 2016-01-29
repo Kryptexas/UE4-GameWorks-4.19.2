@@ -93,11 +93,9 @@ private:
 	bool bIsValid;
 	TRefCountPtr<IDXGISwapChain3> SwapChain3;
 
-	static const uint32 MaxNumBackBuffers = 6;
 	static const uint32 DefaultNumBackBuffers = 3;
-	TRefCountPtr<FD3D12Texture2D> BackBuffers[MaxNumBackBuffers];
+	TRefCountPtr<FD3D12Texture2D> BackBuffers[DefaultNumBackBuffers];
 	uint32 NumBackBuffers;
-	bool bIsBenchmarkMode;
 
 	FCustomPresentRHIRef CustomPresent;
 

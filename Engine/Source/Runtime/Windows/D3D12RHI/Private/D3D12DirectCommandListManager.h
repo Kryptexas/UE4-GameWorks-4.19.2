@@ -84,7 +84,10 @@ public:
 		return D3DCommandQueue.GetReference() != nullptr;
 	}
 
-	FD3D12CommandListHandle ObtainCommandList(FD3D12CommandAllocator& CommandAllocator, ID3D12PipelineState* InitialPSO = nullptr);
+	// This use to also take an optional PSO parameter so that we could pass this directly to Create/Reset command lists,
+	// however this was removed as we generally can't actually predict what PSO we'll need until draw due to frequent
+	// state changes. We leave PSOs to always be resolved in ApplyState().
+	FD3D12CommandListHandle ObtainCommandList(FD3D12CommandAllocator& CommandAllocator);
 	void ReleaseCommandList(FD3D12CommandListHandle& hList);
 
 	void ExecuteCommandList(FD3D12CommandListHandle& hList, bool WaitForCompletion = false);

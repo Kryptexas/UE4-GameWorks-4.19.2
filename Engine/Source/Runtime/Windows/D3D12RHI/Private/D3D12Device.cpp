@@ -9,7 +9,7 @@ D3D12Device.cpp: D3D device RHI implementation.
 	#include <delayimp.h>
 
 	#if D3D12_PROFILING_ENABLED
-		#define USE_PIX 1
+		#define USE_PIX 0
 		#include "pix.h"
 	#endif
 #include "HideWindowsPlatformTypes.h"
@@ -168,9 +168,8 @@ IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer()
 
 #endif // D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE
 
-FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent) :
+FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc) :
 	OwningRHI(*InParent->GetOwningRHI()),
-	UploadHeapAllocator(InParent, D3D12_HEAP_TYPE_UPLOAD),
 	bUsingTessellation(false),
 	PendingNumVertices(0),
 	PendingVertexDataStride(0),
@@ -187,20 +186,20 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent) :
 	CommandListHandle(),
 	CommandAllocator(nullptr),
 	CommandAllocatorManager(InParent, D3D12_COMMAND_LIST_TYPE_DIRECT),
+	FastAllocatorPagePool(InParent, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
+	FastAllocator(InParent, &FastAllocatorPagePool),
 	FD3D12DeviceChild(InParent)
 {
 	FMemory::Memzero(DirtyUniformBuffers, sizeof(DirtyUniformBuffers));
-
-	UploadHeapAllocator.SetCurrentCommandContext(this);
 
 	// Initialize the constant buffers.
 	InitConstantBuffers();
 
 	// Create the dynamic vertex and index buffers used for Draw[Indexed]PrimitiveUP.
-	DynamicVB = new FD3D12DynamicBuffer(GetParentDevice(), UploadHeapAllocator);
-	DynamicIB = new FD3D12DynamicBuffer(GetParentDevice(), UploadHeapAllocator);
+	DynamicVB = new FD3D12DynamicBuffer(GetParentDevice(), FastAllocator);
+	DynamicIB = new FD3D12DynamicBuffer(GetParentDevice(), FastAllocator);
 
-	StateCache.Init(GetParentDevice(), this, nullptr);
+	StateCache.Init(GetParentDevice(), this, nullptr, SubHeapDesc);
 }
 
 FD3D12CommandContext::~FD3D12CommandContext()
@@ -219,9 +218,6 @@ FD3D12CommandContext::~FD3D12CommandContext()
 			BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
 		}
 	}
-
-	// Release allocators last because when other objects are deleted, they may be returned to an allocator
-	UploadHeapAllocator.ReleaseAllResources();
 }
 
 FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter) :
@@ -247,11 +243,19 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
 	RootSignatureManager(this),
 	CommandListManager(this, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	CopyCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
-	TextureStreamingCommandAllocatorManager(this, GEnableMultiEngine ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT)
+	TextureStreamingCommandAllocatorManager(this, GEnableMultiEngine ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT),
+	GlobalSamplerHeap(this),
+	GlobalViewHeap(this),
+	FirstFrameSeen(false),
+	DefaultFastAllocatorPagePool(this, D3D12_HEAP_TYPE_UPLOAD, 1024 * 1024 * 4),
+	DefaultFastAllocator(this, &DefaultFastAllocatorPagePool),
+	BufferInitializerFastAllocatorPagePool(this, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
+	BufferInitializerFastAllocator(this, &BufferInitializerFastAllocatorPagePool),
+	DefaultUploadHeapAllocator(this, kManualSubAllocationStrategy, DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT)
 {
 }
 
-FD3D12DynamicHeapAllocator* FD3D12DynamicRHI::HelperThreadDynamicHeapAllocator = nullptr;
+FD3D12ThreadSafeFastAllocator* FD3D12DynamicRHI::HelperThreadDynamicHeapAllocator = nullptr;
 
 TAutoConsoleVariable<int32> CVarD3D12ZeroBufferSizeInMB(
 	TEXT("d3d12.ZeroBufferSizeInMB"),
@@ -429,9 +433,15 @@ void FD3D12Device::CreateCommandContexts()
 	CommandContextArray.Reserve(NumContexts);
 	FreeCommandContexts.Reserve(NumContexts - 1);
 
+	const uint32 DescriptorSuballocationPerContext = GlobalViewHeap.GetTotalSize() / NumContexts;
+	uint32 CurrentGlobalHeapOffset = 0;
+
 	for (uint32 i = 0; i < NumContexts; ++i)
 	{
-		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this);
+		FD3D12SubAllocatedOnlineHeap::SubAllocationDesc SubHeapDesc(&GlobalViewHeap, CurrentGlobalHeapOffset, DescriptorSuballocationPerContext);
+
+		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this, SubHeapDesc);
+		CurrentGlobalHeapOffset += DescriptorSuballocationPerContext;
 
 		// without that the first RHIClear would get a scissor rect of (0,0)-(0,0) which means we get a draw call clear 
 		NewCmdContext->RHISetScissorRect(false, 0, 0, 0, 0);
@@ -446,6 +456,8 @@ void FD3D12Device::CreateCommandContexts()
 	}
 
 	CommandContextArray[0]->OpenCommandList();
+
+	DefaultUploadHeapAllocator.SetCurrentCommandContext(CommandContextArray[0]);
 }
 
 FD3D12DynamicRHI::~FD3D12DynamicRHI()
@@ -761,6 +773,7 @@ void FD3D12Device::CleanupD3DDevice()
 		// Delete array index 0 (the default context) last
 		for (int32 i = CommandContextArray.Num() - 1; i > 0; i--)
 		{
+			CommandContextArray[i]->FastAllocatorPagePool.CleanUpPages(0, true);
 			delete CommandContextArray[i];
 			CommandContextArray[i] = nullptr;
 		}
@@ -775,6 +788,11 @@ void FD3D12Device::CleanupD3DDevice()
 
 		// Cleanup the allocator near the end, as some resources may be returned to the allocator
 		DefaultBufferAllocator.FreeDefaultBufferPools();
+
+		DefaultFastAllocatorPagePool.CleanUpPages(0, true);
+		BufferInitializerFastAllocatorPagePool.CleanUpPages(0, true);
+
+		DefaultUploadHeapAllocator.CleanUpAllocations();
 		/*
 		// Cleanup thread resources
 		for (uint32 index; (index = InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != (uint32)-1;)

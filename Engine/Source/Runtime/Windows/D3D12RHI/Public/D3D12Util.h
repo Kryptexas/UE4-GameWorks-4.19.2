@@ -401,7 +401,7 @@ class FD3D12DynamicBuffer : public FRenderResource, public FRHIResource, public 
 {
 public:
 	/** Initialization constructor. */
-	FD3D12DynamicBuffer(FD3D12Device* InParent, class FD3D12DynamicHeapAllocator& UploadHeap);
+	FD3D12DynamicBuffer(FD3D12Device* InParent, class FD3D12FastAllocator& Allocator);
 	/** Destructor. */
 	~FD3D12DynamicBuffer();
 
@@ -415,9 +415,11 @@ public:
 	virtual void ReleaseRHI() override;
 	// End FRenderResource interface.
 
+	void ReleaseResourceLocation() { ResourceLocation = nullptr; }
+
 private:
 	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation;
-	class FD3D12DynamicHeapAllocator& UploadHeapAllocator;
+	class FD3D12FastAllocator& FastAllocator;
 };
 
 static D3D12_DESCRIPTOR_HEAP_DESC CreateDHD(D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32 NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAGS Flags)
@@ -754,6 +756,32 @@ public:
 		}
 
 		return false;
+	}
+
+	template <typename CompareFunc>
+	bool BatchDequeue(TQueue<Type>* Result, CompareFunc Func, uint32 MaxItems)
+	{
+		FScopeLock ScopeLock(&SynchronizationObject);
+
+		uint32 i = 0;
+		Type Item;
+		while (Items.Peek(Item) && i <= MaxItems)
+		{
+			if (Func(Item))
+			{
+				Items.Dequeue(Item);
+
+				Result->Enqueue(Item);
+
+				i++;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return i > 0;
 	}
 
 	bool Peek(Type& Result)

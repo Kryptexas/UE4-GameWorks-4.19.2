@@ -21,12 +21,83 @@ void FD3D12CommandAllocator::Init(ID3D12Device* InDevice, const D3D12_COMMAND_LI
 FD3D12DeferredDeletionQueue::FD3D12DeferredDeletionQueue(FD3D12Device* InParent) :
 	FD3D12DeviceChild(InParent) {}
 
-bool FD3D12DeferredDeletionQueue::ReleaseResources()
+FD3D12DeferredDeletionQueue::~FD3D12DeferredDeletionQueue()
+{
+	FAsyncTask<FD3D12AsyncDeletionWorker>* DeleteTask = nullptr;
+	while (DeleteTasks.Peek(DeleteTask))
+	{
+		DeleteTasks.Dequeue(DeleteTask);
+		DeleteTask->EnsureCompletion(true);
+		delete(DeleteTask);
+	}
+}
+
+bool FD3D12DeferredDeletionQueue::ReleaseResources(bool DeleteImmediately)
+{
+	if (DeleteImmediately)
+	{
+		FAsyncTask<FD3D12AsyncDeletionWorker>* DeleteTask = nullptr;
+		// Call back all threads
+		while (DeleteTasks.Peek(DeleteTask))
+		{
+			DeleteTasks.Dequeue(DeleteTask);
+			DeleteTask->EnsureCompletion(true);
+			delete(DeleteTask);
+		}
+
+		struct FDequeueFenceObject
+		{
+			FDequeueFenceObject(FD3D12CommandListManager* InCommandListManager)
+				: CommandListManager(InCommandListManager)
+			{
+			}
+
+			bool operator() (FencedObjectType FenceObject)
+			{
+				return CommandListManager->GetFence(FT_Frame).IsFenceComplete(FenceObject.Value);
+			}
+
+			FD3D12CommandListManager* CommandListManager;
+		};
+
+		FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
+
+		FencedObjectType FenceObject;
+		FDequeueFenceObject DequeueFenceObject(&CommandListManager);
+
+		const uint64 LastCompletedFrameFence = CommandListManager.GetFence(EFenceType::FT_Frame).GetLastCompletedFence();
+		while (DeferredReleaseQueue.Dequeue(FenceObject, DequeueFenceObject))
+		{
+			FenceObject.Key->Release();
+		}
+
+		return DeferredReleaseQueue.IsEmpty();
+	}
+	else
+	{
+		FAsyncTask<FD3D12AsyncDeletionWorker>* DeleteTask = nullptr;
+		while (DeleteTasks.Peek(DeleteTask) && DeleteTask->IsDone())
+		{
+			DeleteTasks.Dequeue(DeleteTask);
+			delete(DeleteTask);
+		}
+
+		DeleteTask = new FAsyncTask<FD3D12AsyncDeletionWorker>(GetParentDevice(), &DeferredReleaseQueue);
+
+		DeleteTask->StartBackgroundTask();
+		DeleteTasks.Enqueue(DeleteTask);
+
+		return false;
+	}
+}
+
+FD3D12DeferredDeletionQueue::FD3D12AsyncDeletionWorker::FD3D12AsyncDeletionWorker(FD3D12Device* Device, FThreadsafeQueue<FencedObjectType>* DeletionQueue) :
+	FD3D12DeviceChild(Device)
 {
 	struct FDequeueFenceObject
 	{
 		FDequeueFenceObject(FD3D12CommandListManager* InCommandListManager)
-		: CommandListManager(InCommandListManager)
+			: CommandListManager(InCommandListManager)
 		{
 		}
 
@@ -43,13 +114,18 @@ bool FD3D12DeferredDeletionQueue::ReleaseResources()
 	FencedObjectType FenceObject;
 	FDequeueFenceObject DequeueFenceObject(&CommandListManager);
 
-	const uint64 LastCompletedFrameFence = CommandListManager.GetFence(EFenceType::FT_Frame).GetLastCompletedFence();
-	while (DeferredReleaseQueue.Dequeue(FenceObject, DequeueFenceObject))
-	{
-		FenceObject.Key->Release();
-	}
+	DeletionQueue->BatchDequeue(&Queue, DequeueFenceObject, 4096);
+}
 
-	return DeferredReleaseQueue.IsEmpty();
+void FD3D12DeferredDeletionQueue::FD3D12AsyncDeletionWorker::DoWork()
+{
+	FencedObjectType ResourceToDelete;
+
+	while (Queue.Dequeue(ResourceToDelete))
+	{
+		check(ResourceToDelete.Key->GetRefCount() == 1);
+		ResourceToDelete.Key->Release();
+	}
 }
 
 #if UE_BUILD_DEBUG
@@ -276,6 +352,9 @@ FD3D12RootSignatureManager::~FD3D12RootSignatureManager()
 
 FD3D12RootSignature* FD3D12RootSignatureManager::GetRootSignature(const FD3D12QuantizedBoundShaderState& QBSS)
 {
+	// Creating bound shader states happens in parallel, so this must be thread safe.
+	FScopeLock Lock(&CS);
+
 	FD3D12RootSignature** ppRootSignature = RootSignatureMap.Find(QBSS);
 	if (ppRootSignature == nullptr)
 	{

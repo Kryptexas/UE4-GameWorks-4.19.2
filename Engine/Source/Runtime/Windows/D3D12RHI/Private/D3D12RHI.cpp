@@ -60,7 +60,7 @@ void FD3D12CommandContext::OpenCommandList(bool bRestoreState)
 	ConditionalObtainCommandAllocator();
 
 	// Get a new command list
-	CommandListHandle = CommandListManager.ObtainCommandList(*CommandAllocator, StateCache.GetPipelineStateObject());
+	CommandListHandle = CommandListManager.ObtainCommandList(*CommandAllocator);
 
 	CommandListHandle->SetDescriptorHeaps(DescriptorHeaps.Num(), DescriptorHeaps.GetData());
 	StateCache.ForceSetGraphicsRootSignature();
@@ -166,6 +166,24 @@ void FD3D12CommandContext::RHIBeginFrame()
 {
 	check(IsDefaultContext());
 	RHIPrivateBeginFrame();
+
+	FD3D12Device* Device = GetParentDevice();
+	FD3D12GlobalOnlineHeap& SamplerHeap = Device->GetGlobalSamplerHeap();
+	const uint32 NumContexts = Device->GetNumContexts();
+
+	if (SamplerHeap.DescriptorTablesDirty())
+	{
+		//Rearrange the set for better look-up performance
+		SamplerHeap.GetUniqueDescriptorTables().Compact();
+	}
+
+	for (uint32 i = 0; i < NumContexts; ++i)
+	{
+		Device->GetCommandContext(i).StateCache.GetDescriptorCache()->BeginFrame();
+	}
+
+	Device->GetGlobalSamplerHeap().ToggleDescriptorTablesDirtyFlag(false);
+
 	UniformBufferBeginFrame();
 	OwningRHI.GPUProfilingData.BeginFrame(&OwningRHI);
 }
@@ -232,8 +250,6 @@ void FD3D12CommandContext::ClearState()
 
 	CurrentComputeShader = nullptr;
 	CurrentBoundShaderState = nullptr;
-
-	UploadHeapAllocator.CleanupFreeBlocks();
 }
 
 void FD3D12CommandContext::CheckIfSRVIsResolved(FD3D12ShaderResourceView* SRV)
@@ -419,6 +435,9 @@ void FD3D12CommandContext::RHIEndFrame()
 	OwningRHI.GPUProfilingData.EndFrame();
 
 	FD3D12Device* Device = GetParentDevice();
+
+	Device->FirstFrameSeen = true;
+
 	Device->GetDeferredDeletionQueue().ReleaseResources();
 	Device->GetDefaultBufferAllocator().CleanupFreeBlocks();
 
@@ -428,11 +447,27 @@ void FD3D12CommandContext::RHIEndFrame()
 		Device->GetCommandContext(i).EndFrame();
 	}
 
-	for (uint32 i = 0; i < FD3D12DynamicRHI::GetD3DRHI()->NumThreadDynamicHeapAllocators; ++i)
+	Device->GetDefaultUploadHeapAllocator().CleanUpAllocations();
+
+	Device->GetDefaultFastAllocatorPool().CleanUpPages(10);
 	{
-		FD3D12DynamicHeapAllocator* pCurrentHelperThreadDynamicHeapAllocator = FD3D12DynamicRHI::GetD3DRHI()->ThreadDynamicHeapAllocatorArray[i];
-		check(pCurrentHelperThreadDynamicHeapAllocator != nullptr);
-		pCurrentHelperThreadDynamicHeapAllocator->CleanupFreeBlocks();
+		FScopeLock Lock(Device->GetBufferInitFastAllocator().GetCriticalSection());
+		Device->GetBufferInitFastAllocatorPool().CleanUpPages(10);
+	}
+
+	// The Texture streaming threads share a pool
+	{
+		FD3D12ThreadSafeFastAllocator* pCurrentHelperThreadDynamicHeapAllocator = nullptr;
+		for (uint32 i = 0; i < FD3D12DynamicRHI::GetD3DRHI()->NumThreadDynamicHeapAllocators; ++i)
+		{
+			pCurrentHelperThreadDynamicHeapAllocator = FD3D12DynamicRHI::GetD3DRHI()->ThreadDynamicHeapAllocatorArray[i];
+			if (pCurrentHelperThreadDynamicHeapAllocator)
+			{
+				FScopeLock Lock(pCurrentHelperThreadDynamicHeapAllocator->GetCriticalSection());
+				pCurrentHelperThreadDynamicHeapAllocator->GetPool()->CleanUpPages(10);
+				break;
+			}
+		}
 	}
 
 #if SUPPORTS_MEMORY_RESIDENCY
@@ -709,24 +744,20 @@ FD3D12ResourceLocation::~FD3D12ResourceLocation()
 
 void FD3D12ResourceLocation::InternalReleaseResource()
 {
-	if (LinkedResourceLocation.GetReference() != nullptr)
+	if (IsSubAllocatedFastAlloc)
 	{
-		// This is a FastAlloc resource location object
-		check(BlockInfo.GetReference() == nullptr);
-
-		// Dereference linked resource
-		LinkedResourceLocation = nullptr;
+		Resource = nullptr;
 		return;
 	}
 
-	if (BlockInfo.GetReference() != nullptr)
+	if (BlockInfo != nullptr)
 	{
 		Resource = nullptr;
 
 		FD3D12ResourceAllocator* Allocator = BlockInfo->Allocator;
 		check(!!Allocator);
 
-		Allocator->ExpireBlock(BlockInfo);
+		Allocator->Deallocate(BlockInfo);
 		BlockInfo = nullptr;
 	}
 	else
@@ -754,6 +785,11 @@ void FD3D12ResourceLocation::Clear()
 {
 	InternalReleaseResource();
 
+	ClearNoUpdate();
+}
+
+void FD3D12ResourceLocation::ClearNoUpdate()
+{
 	EffectiveBufferSize = 0;
 	Resource = nullptr;
 	Offset = 0;

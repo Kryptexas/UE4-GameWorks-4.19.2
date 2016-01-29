@@ -43,11 +43,11 @@ FStructuredBufferRHIRef FD3D12DynamicRHI::RHICreateStructuredBuffer(uint32 Strid
 		pInitData = &InitData;
 	}
 
-	TRefCountPtr<FD3D12ResourceLocation> StructuredBufferResource;
+	TRefCountPtr<FD3D12ResourceLocation> StructuredBufferResource = new FD3D12ResourceLocation(GetRHIDevice());
 	if (bIsDynamic)
 	{
 		// Use an upload heap for dynamic resources and map its memory for writing.
-		void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().Alloc(Desc.Width, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, StructuredBufferResource.GetInitReference());
+		void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().AllocUploadResource(Desc.Width, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT, StructuredBufferResource);
 
 		// Add the lock to the lock map.
 		FD3D12LockedKey LockedKey(StructuredBufferResource.GetReference());
@@ -153,8 +153,8 @@ void* FD3D12DynamicRHI::RHILockStructuredBuffer(FStructuredBufferRHIParamRef Str
 			check(StructuredBuffer->ResourceLocation->GetEffectiveBufferSize() >= Size);
 
 			// Use an upload heap to copy data to a default resource.
-			TRefCountPtr<FD3D12ResourceLocation> UploadBuffer = new FD3D12ResourceLocation();
-			void *pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().FastAlloc(Offset + Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, UploadBuffer);
+			TRefCountPtr<FD3D12ResourceLocation> UploadBuffer = new FD3D12ResourceLocation(GetRHIDevice());
+			void *pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate(Offset + Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, UploadBuffer);
 
 			// Add the lock to the lock map.
 			FD3D12LockedKey LockedKey(UploadBuffer);

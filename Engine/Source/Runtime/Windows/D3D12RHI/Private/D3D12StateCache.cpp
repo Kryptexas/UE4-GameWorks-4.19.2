@@ -51,594 +51,273 @@ static FD3D12ToggleStateCacheExecHelper GD3D12ToggleStateCacheExecHelper;
 #endif	// D3D12_STATE_CACHE_RUNTIME_TOGGLE
 
 // FD3D12DynamicHeapAllocator
-FD3D12DynamicHeapAllocator::FD3D12DynamicHeapAllocator(FD3D12Device* InParent, D3D12_HEAP_TYPE InHeapType)
-	: HeapType(InHeapType)
-	, FastAllocBuffer(nullptr)
-	, FastAllocData(nullptr)
-	, NextFastAllocOffset(0UL - 1)
-	, CurrentCommandContext(nullptr)
-	, FD3D12ResourceAllocator(InParent)
+FD3D12DynamicHeapAllocator::FD3D12DynamicHeapAllocator(FD3D12Device* InParent, eBuddyAllocationStrategy allocationStrategy,
+		uint32 MaxSizeForPooling,
+		uint32 maxBlockSize,
+		uint32 minBlockSize)
+	: CurrentCommandContext(nullptr)
+	, FD3D12ResourceAllocator(InParent, allocationStrategy, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_FLAG_NONE, MaxSizeForPooling,maxBlockSize, minBlockSize)
 {
-#if UE_BUILD_DEBUG
-	FMemory::Memzero(&AllocatorStats, sizeof(AllocatorStats));
-#endif
 }
 
-FD3D12DynamicHeapAllocator::~FD3D12DynamicHeapAllocator()
+void* FD3D12DynamicHeapAllocator::AllocUploadResource(uint32 size, uint32 alignment, FD3D12ResourceLocation* ResourceLocation)
 {
-	// Ensures there are no lingering resource locations with a pointer to this allocator
-	FRHIResource::FlushPendingDeletes();
-
-#if DO_CHECK
-	for (uint32 i = 0; i < NumBuckets; ++i)
+	//TODO: For some reason 0 sized buffers are being created and then expected to have a resource
+	if (size == 0)
 	{
-		check(AvailableBlocks[i].IsEmpty());
+		size = 16;
 	}
-#endif
 
-#if UE_BUILD_DEBUG
-	FOutputDeviceRedirector* pOutputDevice = FOutputDeviceRedirector::Get();
-	DumpAllocatorStats(*pOutputDevice);
-#endif
+	//Work loads like infiltrator create enourmous amounts of buffer space in setup
+	//clean up as we go as it can even run out of memory before the first frame.
+	if (GetParentDevice()->FirstFrameSeen == false)
+	{
+		GetParentDevice()->GetDeferredDeletionQueue().ReleaseResources(true);
+		CleanUpAllocations();
+	}
+
+	bool poolResource = size <= MaximumAllocationSizeForPooling;
+	bool canAllocate = (poolResource) ? CanAllocate(size) : true;
+	if (poolResource == true && canAllocate == false)
+	{
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Buffer Allocation Pool ran out of space. Consider enlarging it"));
+	}
+
+	if (poolResource == false || canAllocate == false)
+	{
+		ResourceLocation->Clear();
+
+		//Allocations are 64k aligned
+		if(alignment)
+			alignment = (D3D_BUFFER_ALIGNMENT % alignment) == 0 ? 0 : alignment;
+
+		const uint64 BufferSize = size + alignment;
+	
+		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(D3D12_HEAP_TYPE_UPLOAD, BufferSize, ResourceLocation->Resource.GetInitReference()));
+		void* Data = nullptr;
+		VERIFYD3D11RESULT(ResourceLocation->Resource->GetResource()->Map(0, nullptr, &Data));
+	
+		ResourceLocation->EffectiveBufferSize = size;
+		ResourceLocation->Offset = alignment;
+
+		return Data;
+	}
+	else
+	{	
+		FD3D12ResourceBlockInfo* OldBlock = ResourceLocation->GetBlockInfo();
+	
+		if (OldBlock)
+		{
+			// Expire the old block
+			Deallocate(OldBlock);
+		}
+	
+		FD3D12ResourceBlockInfo* Block = Allocate(size, alignment);
+		check(Block);
+	
+		FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
+		Block->FrameFence = CommandListManager.GetFence(FT_Frame).GetCurrentFence();
+		check(Block->FrameFence);
+	
+		FD3D12StateCache* pStateCache = CurrentCommandContext ? &CurrentCommandContext->StateCache : nullptr;
+		ResourceLocation->SetBlockInfo(Block, pStateCache);
+		ResourceLocation->EffectiveBufferSize = size;
+	
+		check(Block->Address);
+		check(Block->ResourceHeap);
+	
+		return Block->Address;
+	}
 }
 
-HRESULT FD3D12DynamicHeapAllocator::CreateResource(FD3D12DynamicHeapAllocator* Allocator, D3D12_HEAP_TYPE heapType, uint32 size, FD3D12Resource** ppResource, void** ppBaseAddress)
+void* FD3D12FastAllocator::Allocate(uint32 size, uint32 alignment, class FD3D12ResourceLocation* ResourceLocation)
 {
-	HRESULT hr = S_OK;
-	TRefCountPtr<FD3D12Resource> Buffer;
+	return AllocateInternal(size, alignment, ResourceLocation);
+}
 
-	VERIFYD3D11RESULT(hr = Allocator->GetParentDevice()->GetResourceHelper().CreateBuffer(heapType, size, Buffer.GetInitReference()));
-	if (FAILED(hr))
+void* FD3D12FastAllocator::AllocateInternal(uint32 size, uint32 alignment, class FD3D12ResourceLocation* ResourceLocation)
+{
+	if (size > PagePool->GetPageSize())
 	{
-		return hr;
+		ResourceLocation->Clear();
+
+		//Allocations are 64k aligned
+		if(alignment)
+			alignment = (D3D_BUFFER_ALIGNMENT % alignment) == 0 ? 0 : alignment;
+
+		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(PagePool->GetHeapType(), size + alignment, ResourceLocation->Resource.GetInitReference()));
+		void* Data = nullptr;
+
+		if (PagePool->GetHeapType() == D3D12_HEAP_TYPE_UPLOAD)
+		{
+			VERIFYD3D11RESULT(ResourceLocation->Resource->GetResource()->Map(0, nullptr, &Data));
+		}
+
+		ResourceLocation->EffectiveBufferSize = size;
+		ResourceLocation->Offset = alignment;
+
+		return Data;
+	}
+	else
+	{
+		void* Data = nullptr;
+
+		const uint32 Offset = (CurrentAllocatorPage) ? CurrentAllocatorPage->NextFastAllocOffset : 0;
+		uint32 CurrentOffset = Align(Offset, alignment);
+
+		// See if there is room in the current pool
+		if (CurrentAllocatorPage == nullptr || PagePool->GetPageSize() < CurrentOffset + size)
+		{
+			if (CurrentAllocatorPage)
+			{
+				PagePool->ReturnFastAllocatorPage(CurrentAllocatorPage);
+			}
+			CurrentAllocatorPage = PagePool->RequestFastAllocatorPage();
+
+			CurrentOffset = Align(CurrentAllocatorPage->NextFastAllocOffset, alignment);
+		}
+
+		check(PagePool->GetPageSize() - size >= CurrentOffset);
+
+		// Create a FD3D12ResourceLocation representing a sub-section of the pool resource
+		ResourceLocation->SetFromD3DResource(CurrentAllocatorPage->FastAllocBuffer.GetReference(), CurrentOffset, size);
+		ResourceLocation->SetAsFastAllocatedSubresource();
+
+		CurrentAllocatorPage->NextFastAllocOffset = CurrentOffset + size;
+
+		if (PagePool->GetHeapType() == D3D12_HEAP_TYPE_UPLOAD)
+		{
+			Data = (void*)((uint8*)CurrentAllocatorPage->FastAllocData + CurrentOffset);
+		}
+
+		check(Data);
+		return Data;
+	}
+}
+
+void* FD3D12ThreadSafeFastAllocator::Allocate(uint32 size, uint32 alignment, class FD3D12ResourceLocation* ResourceLocation)
+{
+	FScopeLock Lock(&CS);
+	return AllocateInternal(size, alignment, ResourceLocation);
+}
+
+FD3D12DefaultBufferPool::FD3D12DefaultBufferPool(FD3D12Device* InParent, eBuddyAllocationStrategy allocationStrategy,
+		uint32 MaxSizeForPooling,
+		D3D12_RESOURCE_FLAGS flags,
+		uint32 maxBlockSize,
+		uint32 minBlockSize) :
+	FD3D12ResourceAllocator(InParent, allocationStrategy, D3D12_HEAP_TYPE_DEFAULT, flags, MaxSizeForPooling, maxBlockSize, minBlockSize)
+{
+}
+
+FD3D12DefaultBufferPool::FD3D12DefaultBufferPool()
+	: FD3D12ResourceAllocator(nullptr, kManualSubAllocationStrategy, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_FLAG_NONE, 0, 0)
+{
+}
+
+// Grab a buffer from the available buffers or create a new buffer if none are available
+void FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* InitialData, FD3D12ResourceLocation* ResourceLocation, uint32 Alignment)
+{
+	if (Desc.Width == 0) return;
+
+	const void* Data = (InitialData) ? InitialData->pData : nullptr;
+
+	bool PoolResource = Desc.Width < MaximumAllocationSizeForPooling &&
+		((Desc.Width % (1024 * 64)) != 0) ;
+
+	bool canAllocate = CanAllocate(uint32(Desc.Width));
+	if (PoolResource == true && canAllocate == false)
+	{
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Buffer Allocation Pool ran out of space. Consider enlarging it"));
 	}
 
-	void* pData;
-	switch (heapType)
+	if (PoolResource == false || canAllocate == false)
 	{
-	case D3D12_HEAP_TYPE_UPLOAD:
-	case D3D12_HEAP_TYPE_READBACK:
-		VERIFYD3D11RESULT(Buffer->GetResource()->Map(0, nullptr, &pData));
-		break;
-	default:
-		// Only upload and readback heaps are supported by FD3D12DynamicHeapAllocator
-		return E_INVALIDARG;
-		break;
+		ResourceLocation->Clear();
+
+		//Allocations are 64k aligned
+		if(Alignment)
+			Alignment = (D3D_BUFFER_ALIGNMENT % Alignment) == 0 ? 0 : Alignment;
+
+		const uint64 Size = (Desc.Width + Alignment);
+		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(D3D12_HEAP_TYPE_DEFAULT, Size, ResourceLocation->Resource.GetInitReference(), ResourceFlags));
+
+		ResourceLocation->EffectiveBufferSize = Desc.Width;
+		ResourceLocation->Offset = Alignment;
+
+		if (Data)
+		{
+			InitializeDefaultBuffer(ResourceLocation->Resource.GetReference(), ResourceLocation->Offset, Data, InitialData->RowPitch);
+		}
+
+	}
+	else
+	{
+		FD3D12ResourceBlockInfo* OldBlock = ResourceLocation->GetBlockInfo();
+
+		if (OldBlock)
+		{
+			// Expire the old block
+			Deallocate(OldBlock);
+		}
+		FD3D12ResourceBlockInfo* Block = nullptr;
+
+		// Ensure we're allocating from the correct pool
+		check(Desc.Flags == ResourceFlags);
+
+		// Cleanup the pool
+		CleanUpAllocations();
+
+		Block = Allocate(Desc.Width, Alignment, Data);
+
+		// Grab a buffer from the front of the available bucket
+		check(Block != nullptr);
+
+		ResourceLocation->SetBlockInfo(Block, &GetParentDevice()->GetDefaultCommandContext().StateCache);
+
+		ResourceLocation->EffectiveBufferSize = Desc.Width;
+
+		if (Alignment > 0)
+		{
+			uint32 AlignmentMismatch = ResourceLocation->GetOffset() % Alignment;
+
+			if (AlignmentMismatch != 0)
+			{
+				ResourceLocation->SetPadding(Alignment - AlignmentMismatch);
+
+				check(ResourceLocation->GetOffset() % Alignment == 0);
+				check(ResourceLocation->GetOffset() % 4 == 0);
+			}
+		}
+	}
+}
+
+// Grab a buffer from the available buffers or create a new buffer if none are available
+HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* InitialData, FD3D12ResourceLocation* ResourceLocation, uint32 Alignment)
+{
+	//NOTE: Indexing based on the resource flags looks weird but is necessary e.g. the flags dictate if the resource
+	//      can be used as a UAV. So each type of buffer has to come from a separate pool.
+
+	check ((uint32)Desc.Flags < MAX_DEFAULT_POOLS);
+	if (DefaultBufferPools[Desc.Flags] == nullptr)
+	{
+		// D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE are used much more frequently
+		uint32 HeapSize = (Desc.Flags == D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) ? DEFAULT_BUFFER_POOL_SIZE : 2 * 1024 * 1024;
+		uint32 MaxAllocSize = (Desc.Flags == D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) ? DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE : 1024 * 64;
+		DefaultBufferPools[Desc.Flags] = new FD3D12DefaultBufferPool(GetParentDevice(), kManualSubAllocationStrategy, MaxAllocSize,Desc.Flags, HeapSize, 32);
 	}
 
-	*ppResource = Buffer;
-	Buffer->AddRef();
-
-	*ppBaseAddress = pData;
+	DefaultBufferPools[Desc.Flags]->AllocDefaultResource(Desc, InitialData, ResourceLocation, Alignment);
 
 	return S_OK;
 }
 
-void FD3D12DynamicHeapAllocator::ReleaseAllResources()
-{
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlock;
-
-	// Empty the expired blocks list
-	while (!ExpiredBlocks.IsEmpty())
-	{
-		ExpiredBlocks.Dequeue(pBlock);
-	}
-
-	// Empty all available blocks queues
-	for (uint32 i = 0; i < NumBuckets; ++i)
-	{
-		for (; AvailableBlocks[i].Dequeue(pBlock);)
-		{
-#if UE_BUILD_DEBUG
-			AllocatorStats.AvailableAllocs[i]--;
-#endif
-		}
-	}
-}
-
-void FD3D12DynamicHeapAllocator::Alloc(uint32 size, uint32 alignment, FD3D12ResourceBlockInfo** ppBlock)
-{
-	// Size cannot be smaller than the requested alignment
-	size = FMath::Max(size, alignment);
-
-	uint32 bucket = BucketFromSize(size, BucketShift);
-	check(bucket < NumBuckets);
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlock;
-
-	// See if a block is already available in the bucket
-	if (AvailableBlocks[bucket].Dequeue(pBlock))
-	{
-#if UE_BUILD_DEBUG
-		AllocatorStats.AvailableAllocs[bucket]--;
-#endif
-		check(pBlock.GetReference());
-		check(pBlock->Address);
-		check(pBlock->ResourceHeap);
-	}
-	else
-	{
-		// No blocks of the requested size are available so make one
-		TRefCountPtr<FD3D12Resource> Resource;
-		void* BaseAddress;
-
-		// Allocate a block
-		uint32 BlockSize = BlockSizeFromBufferSize(size, BucketShift);
-
-		check(BlockSize >= size);
-		if (FAILED(CreateResource(this, HeapType, BlockSize < MIN_HEAP_SIZE ? MIN_HEAP_SIZE : BlockSize, Resource.GetInitReference(), &BaseAddress)))
-		{
-			*ppBlock = nullptr;
-			return;
-		}
-
-#if UE_BUILD_DEBUG
-		AllocatorStats.NumCreatedResources[bucket]++;
-
-		const uint32 allocatedSize = BlockSize < MIN_HEAP_SIZE ? MIN_HEAP_SIZE : BlockSize;
-		AllocatorStats.BucketSize[bucket] += allocatedSize;
-
-		if (AllocatorStats.BlockSize[bucket] == 0)
-		{
-			AllocatorStats.BlockSize[bucket] = BlockSize;
-		}
-		check(AllocatorStats.BlockSize[bucket] == BlockSize);
-#endif
-
-		check(BaseAddress == (uint8*)(((uint64)BaseAddress + alignment - 1) & ~((uint64)alignment - 1)));
-
-		pBlock = new FD3D12ResourceBlockInfo(Resource, BaseAddress, 0, bucket, this);
-
-		// If bucket blocks are less than 65536 bytes then use FDynamicResourcePool
-		if (BlockSize < MIN_HEAP_SIZE)
-		{
-			// Create additional available blocks that can be sub-allocated from the same resource
-			for (uint32 Offset = BlockSize; Offset <= MIN_HEAP_SIZE - BlockSize; Offset += BlockSize)
-			{
-				void* Start = (void*)((uint8*)BaseAddress + Offset);
-				FD3D12ResourceBlockInfo* NewBlock = new FD3D12ResourceBlockInfo(Resource, Start, Offset, bucket, this);
-
-				// Add the bucket to the available list
-				AvailableBlocks[bucket].Enqueue(NewBlock);
-
-#if UE_BUILD_DEBUG
-				AllocatorStats.AvailableAllocs[bucket]++;
-#endif
-			}
-		}
-	}
-
-#if UE_BUILD_DEBUG
-	AllocatorStats.CurAllocs[bucket]++;
-	AllocatorStats.TotalAllocs[bucket]++;
-#endif
-
-	// Check the returned block matches the requested alignment
-	check(((size_t)(pBlock->Address) % alignment) == 0);
-
-	pBlock->AddRef();
-	*ppBlock = pBlock;
-}
-
-void* FD3D12DynamicHeapAllocator::Alloc(uint32 size, uint32 alignment, FD3D12ResourceLocation** ResourceLocation)
-{
-	*ResourceLocation = new FD3D12ResourceLocation(GetParentDevice(), size);
-	(*ResourceLocation)->AddRef();
-
-	return Alloc(size, alignment, *ResourceLocation);
-}
-
-void* FD3D12DynamicHeapAllocator::Alloc(uint32 size, uint32 alignment, FD3D12ResourceLocation* ResourceLocation)
-{
-	FD3D12ResourceBlockInfo* pOldBlock = ResourceLocation->GetBlockInfo();
-
-	if (pOldBlock)
-	{
-		// Expire the old block
-		ExpireBlock(pOldBlock);
-	}
-
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlock;
-	Alloc(size, alignment, pBlock.GetInitReference());
-	check(pBlock);
-
-	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
-	pBlock->FrameFence = CommandListManager.GetFence(FT_Frame).GetCurrentFence();
-	check(pBlock->FrameFence);
-
-	FD3D12StateCache* pStateCache = CurrentCommandContext ? &CurrentCommandContext->StateCache : nullptr;
-	ResourceLocation->SetBlockInfo(pBlock, pStateCache);
-	ResourceLocation->EffectiveBufferSize = size;
-
-	check(pBlock->Address);
-	check(pBlock->ResourceHeap);
-
-	return pBlock->Address;
-}
-
-void* FD3D12DynamicHeapAllocator::FastAlloc(uint32 size, uint32 alignment, class FD3D12ResourceLocation* ResourceLocation)
-{
-	void* pData = nullptr;
-	if (size > MaxFastAllocBufferSize)
-	{
-		return Alloc(size, alignment, ResourceLocation);
-	}
-
-	uint32 CurrentOffset = Align(NextFastAllocOffset, alignment);
-
-	// See if there is room in the current pool
-	if (FastAllocBuffer.GetReference() == nullptr || MaxFastAllocBufferSize < CurrentOffset + size)
-	{
-		// No room so allocate a new pool
-		FastAllocBuffer = new FD3D12ResourceLocation();
-		FastAllocData = Alloc(MaxFastAllocBufferSize, 4, FastAllocBuffer);
-		CurrentOffset = 0;
-	}
-
-	check(MaxFastAllocBufferSize - size >= CurrentOffset);
-
-	// Create a FD3D12ResourceLocation representing a sub-section of the pool resource
-	ResourceLocation->SetFromD3DResource(FastAllocBuffer->GetResource(), CurrentOffset, size);
-	ResourceLocation->LinkToResourceLocation(FastAllocBuffer);
-	NextFastAllocOffset = CurrentOffset + size;
-	pData = (void*)((uint8*)FastAllocData + CurrentOffset);
-
-	return pData;
-}
-
-
-
-void FD3D12DynamicHeapAllocator::ExpireBlock(FD3D12ResourceBlockInfo* BlockInfo)
-{
-	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
-	BlockInfo->FrameFence = CommandListManager.GetFence(FT_Frame).GetCurrentFence();
-
-	ExpiredBlocks.Enqueue(BlockInfo);
-}
-
-// This frame count value helps makes sure that we don't delete resources too soon. If resources are deleted too soon,
-// we can get in a loop the heap allocator will be constantly deleting and creating resources every frame which
-// results in CPU stutters. DynamicRetentionFrameCount was tested and set to a value that appears to be adequate for
-// creating a stable state on the Infiltrator demo.
-const uint64 DynamicRetentionFrameCount = 10;
-const uint64 DefaultRetentionFrameCount = 5;
-
-struct FDequeueAlloc
-{
-	FDequeueAlloc(FD3D12CommandListManager* InCommandListManager, const uint64 InRetentionFrameCount)
-		: CommandListManager(InCommandListManager)
-		, RetentionFrameCount(InRetentionFrameCount)
-	{
-	}
-
-	bool operator() (FD3D12ResourceBlockInfo* pBlockInfo)
-	{
-		return CommandListManager->GetFence(FT_Frame).IsFenceComplete(pBlockInfo->FrameFence + RetentionFrameCount);
-	}
-
-	FD3D12CommandListManager* CommandListManager;
-	const uint64              RetentionFrameCount;
-};
-
-void FD3D12DynamicHeapAllocator::CleanupFreeBlocks()
-{
-	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
-
-#if SUB_ALLOCATED_DEFAULT_ALLOCATIONS
-	const static uint32 MinCleanupBucket = FMath::Max<uint32>(0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
-#else
-	const static uint32 MinCleanupBucket = 0;
-#endif
-
-	// Start at bucket 8 since smaller buckets are sub-allocated resources
-	// and would be fragmented by deleting blocks
-	for (uint32 bucket = MinCleanupBucket; bucket < NumBuckets; bucket++)
-	{
-		FDequeueAlloc DequeueAlloc(&CommandListManager, DynamicRetentionFrameCount);
-		TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-
-		while (AvailableBlocks[bucket].Dequeue(pBlockInfo, DequeueAlloc))
-		{
-#if UE_BUILD_DEBUG
-			AllocatorStats.AvailableAllocs[bucket]--;
-#endif
-		}
-	}
-
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-	FDequeueAlloc DequeueAlloc(&CommandListManager, 0);
-
-	while (ExpiredBlocks.Dequeue(pBlockInfo, DequeueAlloc))
-	{
-		check(pBlockInfo);
-		uint32 bucket = pBlockInfo->Bucket;
-		// Add the bucket to the available list
-		AvailableBlocks[bucket].Enqueue(pBlockInfo);
-#if UE_BUILD_DEBUG
-		AllocatorStats.AvailableAllocs[bucket]++;
-#endif
-	}
-}
-
-void FD3D12DynamicHeapAllocator::DumpAllocatorStats(class FOutputDevice& Ar)
-{
-#if 0//UE_BUILD_DEBUG
-	FBufferedOutputDevice BufferedOutput;
-	{
-		// This is the memory tracked inside individual allocation pools
-		FD3D12DynamicRHI* D3DRHI = FD3D12DynamicRHI::GetD3DRHI();
-		FName categoryName(L"DynamicHeapAllocator");
-
-		BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT(""));
-		BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT("Block Size Last Fence Cur Allocs Available Allocs Total Allocs Num Resources Mem Used"));
-		BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT("---------- ---------- ---------- ---------------- ------------ ------------- --------"));
-
-		for (uint32 i = 0; i < NumBuckets; i++)
-		{
-			BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT("% 10i % 10i % 16i % 12i % 13i % 8iK"),
-				AllocatorStats.BlockSize[i],
-				AllocatorStats.CurAllocs[i],
-				AllocatorStats.AvailableAllocs[i],
-				AllocatorStats.TotalAllocs[i],
-				AllocatorStats.NumCreatedResources[i],
-				AllocatorStats.BucketSize[i] / 1024);
-		}
-	}
-
-	BufferedOutput.RedirectTo(Ar);
-#endif
-}
-
-// FD3D12DefaultBufferPool
-void FD3D12DefaultBufferPool::CleanupFreeBlocks()
-{
-	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
-
-#if SUB_ALLOCATED_DEFAULT_ALLOCATIONS
-	const static uint32 MinCleanupBucket = FMath::Max<uint32>(0, BucketFromSize(MIN_HEAP_SIZE, BucketShift));
-#else
-	const static uint32 MinCleanupBucket = 0;
-#endif
-
-	// Start at bucket 8 since smaller buckets are sub-allocated resources
-	// and would be fragmented by deleting blocks
-	for (uint32 bucket = MinCleanupBucket; bucket < NumBuckets; bucket++)
-	{
-		FDequeueAlloc DequeueAlloc(&CommandListManager, DefaultRetentionFrameCount);
-
-		TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-
-		while (AvailableBuffers[bucket].Dequeue(pBlockInfo, DequeueAlloc))
-		{
-		}
-	}
-
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlockInfo;
-	FDequeueAlloc DequeueAlloc(&CommandListManager, 0);
-
-	while (ExpiredBlocks.Dequeue(pBlockInfo, DequeueAlloc))
-	{
-		check(pBlockInfo);
-		// Add the bucket to the available list if there is room
-		AvailableBuffers[pBlockInfo->Bucket].Enqueue(pBlockInfo);
-	}
-}
-
-FD3D12DefaultBufferPool::FD3D12DefaultBufferPool(FD3D12Device* InParent)
-	: bFirstAllocFromPool(true),
-	FD3D12ResourceAllocator(InParent)
-{
-#if UE_BUILD_DEBUG
-	FMemory::Memzero(&NumCreatedResources, sizeof(NumCreatedResources));
-	FMemory::Memzero(&BucketSize, sizeof(BucketSize));
-#endif
-}
-
-FD3D12DefaultBufferPool::FD3D12DefaultBufferPool()
-	: bFirstAllocFromPool(true),
-	FD3D12ResourceAllocator(nullptr)
-{
-#if UE_BUILD_DEBUG
-	FMemory::Memzero(&NumCreatedResources, sizeof(NumCreatedResources));
-	FMemory::Memzero(&BucketSize, sizeof(BucketSize));
-#endif
-}
-
-FD3D12DefaultBufferPool::~FD3D12DefaultBufferPool()
-{
-	ReleaseAllResources();
-}
-
-
-// Grab a buffer from the available buffers or create a new buffer if none are available
-HRESULT FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* pInitialData, FD3D12ResourceLocation* ResourceLocation, uint32 Alignment)
-{
-	FD3D12ResourceBlockInfo* pOldBlock = ResourceLocation->GetBlockInfo();
-
-	if (pOldBlock)
-	{
-		// Expire the old block
-		ExpireBlock(pOldBlock);
-	}
-
-	// MS: Used for debug purposes
-#define D3D12_DEFAULT_BUFFER_POOL_ALWAYS_CREATE_NEW_RESOURCE 0
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlock = nullptr;
-
-#if D3D12_DEFAULT_BUFFER_POOL_ALWAYS_CREATE_NEW_RESOURCE
-	uint32 requestedSize = Desc.Width;
-	Alignment = 0;
-#else
-	uint32 requestedSize = Desc.Width + Alignment;
-#endif
-
-	const uint32 bucket = BucketFromSize(requestedSize, BucketShift);
-	check(bucket < NumBuckets);
-	HRESULT hr = S_OK;
-
-	// Copy the resource desc so we can track it for all other allocations in this pool
-	if (bFirstAllocFromPool)
-	{
-		resourceDesc = Desc;
-		bFirstAllocFromPool = false;
-	}
-
-	// Ensure we're allocating from the correct pool
-	check(Desc.Flags == resourceDesc.Flags);
-
-#if D3D12_DEFAULT_BUFFER_POOL_ALWAYS_CREATE_NEW_RESOURCE
-	check(AvailableBuffers[bucket].IsEmpty());
-#endif
-
-	// Cleanup the pool
-	CleanupFreeBlocks();
-
-	// Check if there are any available buffers in the requested bucket
-	if (!AvailableBuffers[bucket].Dequeue(pBlock))
-	{
-		// No buffers are available in the requested bucket size, so make one
-		TRefCountPtr<FD3D12Resource> pBuffer = nullptr;
-		auto &ResourceHelper = GetParentDevice()->GetResourceHelper();
-		uint32 BlockSize = BlockSizeFromBufferSize(requestedSize, BucketShift);
-
-		// Use the nearest bucket size
-		resourceDesc.Width = BlockSize < MIN_HEAP_SIZE ? MIN_HEAP_SIZE : BlockSize;
-
-		check(BlockSize >= requestedSize);
-#if D3D12_DEFAULT_BUFFER_POOL_ALWAYS_CREATE_NEW_RESOURCE
-		resourceDesc.Width = requestedSize;
-#endif
-
-		VERIFYD3D11RESULT(hr = ResourceHelper.CreateDefaultResource(resourceDesc, nullptr, pBuffer.GetInitReference()));
-
-#if UE_BUILD_DEBUG
-		const uint32 allocatedSize = resourceDesc.Width;
-		NumCreatedResources[bucket]++;
-		if (BucketSize[bucket] == 0)
-		{
-			BucketSize[bucket] = allocatedSize;
-		}
-#if !D3D12_DEFAULT_BUFFER_POOL_ALWAYS_CREATE_NEW_RESOURCE
-		check(BucketSize[bucket] == allocatedSize);
-#endif
-#endif
-
-		pBlock = new FD3D12ResourceBlockInfo(pBuffer, 0, 0, bucket, this);
-
-#if !D3D12_DEFAULT_BUFFER_POOL_ALWAYS_CREATE_NEW_RESOURCE
-#if SUB_ALLOCATED_DEFAULT_ALLOCATIONS
-		// Suballocate default resources if they are below the min heap size.
-		if (BlockSize < MIN_HEAP_SIZE)
-		{
-			// Create additional available blocks that can be sub-allocated from the same resource
-			for (uint32 Offset = BlockSize; Offset <= MIN_HEAP_SIZE - BlockSize; Offset += BlockSize)
-			{
-				FD3D12ResourceBlockInfo* NewBlock = new FD3D12ResourceBlockInfo(pBuffer, 0, Offset, bucket, this);
-
-				// Add the bucket to the available list
-				AvailableBuffers[bucket].Enqueue(NewBlock);
-			}
-		}
-#endif
-#endif
-	}
-
-	check(BlockSizeFromBufferSize(requestedSize, BucketShift) >= requestedSize);
-
-	// Grab a buffer from the front of the available bucket
-	check(pBlock != nullptr);
-
-	// Pass the resource location back to the caller
-#if D3D12_DEFAULT_BUFFER_POOL_ALWAYS_CREATE_NEW_RESOURCE
-	ResourceLocation->SetBlockInfo(pBlock, &GetParentDevice()->GetDefaultCommandContext().StateCache);	// Don't assign an allocator
-#else
-	ResourceLocation->SetBlockInfo(pBlock, &GetParentDevice()->GetDefaultCommandContext().StateCache);
-#endif
-	requestedSize -= Alignment;
-
-	ResourceLocation->EffectiveBufferSize = requestedSize;
-
-	if (Alignment > 0)
-	{
-		uint32 AlignmentMismatch = ResourceLocation->GetOffset() % Alignment;
-
-		if (AlignmentMismatch != 0)
-		{
-			ResourceLocation->SetPadding(Alignment - AlignmentMismatch);
-
-			check(ResourceLocation->GetOffset() % Alignment == 0);
-			check(ResourceLocation->GetOffset() % 4         == 0);
-		}
-	}
-
-	if (pInitialData)
-	{
-		FD3D12CommandListHandle& hCommandList = GetParentDevice()->GetDefaultCommandContext().CommandListHandle;
-		// Queue up a CopySubresource() to handle initial data...
-
-		// Get an upload heap and initialize data
-		FD3D12ResourceLocation SrcResourceLoc;
-		void* pData = GetParentDevice()->GetDefaultUploadHeapAllocator().FastAlloc(requestedSize, 4UL, &SrcResourceLoc);
-		check(pData);
-		FMemory::Memcpy(pData, pInitialData->pData, requestedSize);
-
-		// Copy from the temporary upload heap to the default resource
-		{
-			// Writable structured bufferes are sometimes initialized with inital data which means they sometimes need tracking.
-			FConditionalScopeResourceBarrier ConditionalScopeResourceBarrier(hCommandList, pBlock->ResourceHeap, D3D12_RESOURCE_STATE_COPY_DEST, 0);
-
-			GetParentDevice()->GetDefaultCommandContext().numCopies++;
-			hCommandList->CopyBufferRegion(
-				pBlock->ResourceHeap->GetResource(),
-				ResourceLocation->GetOffset(),
-				SrcResourceLoc.GetResource()->GetResource(),
-				SrcResourceLoc.GetOffset(), requestedSize);
-		}
-	}
-
-	return hr;
-}
-
-// Move the specified resources to the available pool
-void FD3D12DefaultBufferPool::ExpireBlock(FD3D12ResourceBlockInfo* Block)
-{
-	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
-	Block->FrameFence = CommandListManager.GetFence(FT_Frame).GetCurrentFence();
-	ExpiredBlocks.Enqueue(Block);
-}
-
-// Release all resources in the pool
-void FD3D12DefaultBufferPool::ReleaseAllResources()
-{
-	TRefCountPtr<FD3D12ResourceBlockInfo> pBlock;
-
-	// Empty the expired blocks list
-	while (ExpiredBlocks.Dequeue(pBlock))
-	{
-	}
-
-	// Empty all available blocks queues
-	for (uint32 i = 0; i < NumBuckets; ++i)
-	{
-		while (AvailableBuffers[i].Dequeue(pBlock))
-		{
-		}
-	}
-}
-
-// Grab a buffer from the available buffers or create a new buffer if none are available
-HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* pInitialData, FD3D12ResourceLocation* ResourceLocation, uint32 Alignment)
-{
-	check((uint32)Desc.Flags < MAX_DEFAULT_POOLS);
-
-	return DefaultBufferPools[Desc.Flags]->AllocDefaultResource(Desc, pInitialData, ResourceLocation, Alignment);
-}
-
-HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* pInitialData, FD3D12ResourceLocation** ResourceLocation, uint32 Alignment)
+HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_DESC& Desc, D3D12_SUBRESOURCE_DATA* InitialData, FD3D12ResourceLocation** ResourceLocation, uint32 Alignment)
 {
 	*ResourceLocation = new FD3D12ResourceLocation(GetParentDevice(), Desc.Width);
 	(*ResourceLocation)->AddRef();
 
-	return AllocDefaultResource(Desc, pInitialData, *ResourceLocation, Alignment);
+	return AllocDefaultResource(Desc, InitialData, *ResourceLocation, Alignment);
 }
 
 void FD3D12DefaultBufferAllocator::FreeDefaultBufferPools()
@@ -653,7 +332,12 @@ void FD3D12DefaultBufferAllocator::FreeDefaultBufferPools()
 void FD3D12DefaultBufferAllocator::CleanupFreeBlocks()
 {
 	for (uint32 i = 0; i < MAX_DEFAULT_POOLS; ++i)
-		DefaultBufferPools[i]->CleanupFreeBlocks();
+	{
+		if (DefaultBufferPools[i])
+		{
+			DefaultBufferPools[i]->CleanUpAllocations();
+		}
+	}
 }
 
 HRESULT FD3D12ResourceHelper::CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
@@ -672,12 +356,14 @@ HRESULT FD3D12ResourceHelper::CreateDefaultResource(const D3D12_RESOURCE_DESC& D
 	return FD3D12DynamicRHI::CreateCommittedResource(Desc, heapProperties, D3D12_RESOURCE_STATE_COMMON, ClearValue, ppResource);
 }
 
-HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 initHeapSize, FD3D12Resource** ppResource)
+HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 initHeapSize, FD3D12Resource** ppResource, D3D12_RESOURCE_FLAGS flags)
 {
 	TRefCountPtr<ID3D12Resource> pResource;
 	ID3D12Device* pD3DDevice = GetParentDevice()->GetDevice();
 
 	D3D12_RESOURCE_DESC BufDesc = CD3DX12_RESOURCE_DESC::Buffer(initHeapSize);
+	BufDesc.Flags = flags;
+
 	D3D12_RESOURCE_STATES InitialState = (heapType == D3D12_HEAP_TYPE_UPLOAD) ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COPY_DEST;
 
 	if (!ppResource)
@@ -690,11 +376,30 @@ HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 init
 	return FD3D12DynamicRHI::CreateCommittedResource(BufDesc, Props, InitialState, nullptr, ppResource);
 }
 
+HRESULT FD3D12ResourceHelper::CreatePlacedBuffer(ID3D12Heap* BackingHeap, uint64 HeapOffset,D3D12_HEAP_TYPE HeapType, uint64 BufferSize, FD3D12Resource** ppOutResource, D3D12_RESOURCE_FLAGS flags)
+{
+	TRefCountPtr<ID3D12Resource> pResource;
+	ID3D12Device* pD3DDevice = GetParentDevice()->GetDevice();
+
+	D3D12_RESOURCE_DESC BufDesc = CD3DX12_RESOURCE_DESC::Buffer(BufferSize);
+	BufDesc.Flags = flags;
+
+	D3D12_RESOURCE_STATES InitialState = (HeapType == D3D12_HEAP_TYPE_UPLOAD) ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COPY_DEST;
+
+	if (!ppOutResource)
+	{
+		return E_POINTER;
+	}
+
+	return FD3D12DynamicRHI::CreatePlacedResource(BufDesc, BackingHeap, HeapOffset, InitialState, nullptr, ppOutResource);
+}
+
+
 FD3D12ResourceHelper::FD3D12ResourceHelper(FD3D12Device* InParent) :
 	FD3D12DeviceChild(InParent)
 {}
 
-void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, const FD3D12StateCacheBase* AncestralState, bool bInAlwaysSetIndexBuffers)
+void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, const FD3D12StateCacheBase* AncestralState, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc, bool bInAlwaysSetIndexBuffers)
 {
 	Parent = InParent;
 	CmdContext = InCmdContext;
@@ -703,9 +408,11 @@ void FD3D12StateCacheBase::Init(FD3D12Device* InParent, FD3D12CommandContext* In
 	ResourceBindingTier = GetParentDevice()->GetResourceBindingTier();
 
 	// Init the descriptor heaps
-	const uint32 NumViewDescriptors = (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_TIER_1 : NUM_VIEW_DESCRIPTORS_TIER_2;
+	const uint32 NumViewDescriptors = (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1) ? NUM_VIEW_DESCRIPTORS_PER_CONTEXT_TIER_1 : 
+		NUM_VIEW_DESCRIPTORS_PER_CONTEXT_TIER_2;
+
 	const uint32 NumSamplerDescriptors = NUM_SAMPLER_DESCRIPTORS;
-	DescriptorCache.Init(InParent, InCmdContext, NumViewDescriptors, NumSamplerDescriptors);
+	DescriptorCache.Init(InParent, InCmdContext, NumViewDescriptors, NumSamplerDescriptors, SubHeapDesc);
 
 	if (AncestralState)
 	{
@@ -1221,10 +928,14 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 	uint32 NumUAVs = 0;
 	uint32 NumSRVs[SF_NumFrequencies + 1] ={};
 	uint32 NumCBs[SF_NumFrequencies + 1] ={};
-	uint32 NumSamplers[SF_NumFrequencies + 1] ={};
+
 
 	uint32 ViewHeapSlot = 0;
-	uint32 SamplerHeapSlot = 0;
+
+	if (bNeedSetSamplers || bForceState)
+	{
+		ApplySamplers(pRootSignature, StartStage, EndStage);
+	}
 
 	for (uint32 iTries = 0; iTries < 2; ++iTries)
 	{
@@ -1271,45 +982,14 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 		}
 
 		const uint32 NumViews = NumUAVs + NumSRVs[SF_NumFrequencies] + NumCBs[SF_NumFrequencies];
-		if (!DescriptorCache.ViewHeap.CanReserveSlots(NumViews))
+		if (!DescriptorCache.GetCurrentViewHeap()->CanReserveSlots(NumViews))
 		{
-			DescriptorCache.ViewHeap.RollOver();
+			DescriptorCache.GetCurrentViewHeap()->RollOver();
 			NumSRVs[SF_NumFrequencies] = 0;
 			NumCBs[SF_NumFrequencies] = 0;
 			continue;
 		}
-		ViewHeapSlot = DescriptorCache.ViewHeap.ReserveSlots(NumViews);
-		break;
-	}
-
-	for (uint32 iTries = 0; iTries < 2; ++iTries)
-	{
-		if (bNeedSetSamplers)
-		{
-			for (uint32 Stage = StartStage; Stage < EndStage; ++Stage)
-			{
-				if (bNeedSetSamplersPerShaderStage[Stage] || bForceState)
-				{
-					if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
-					{
-						// Tier 1 HW requires the full number of sampler descriptors defined in the root signature.
-						NumSamplers[Stage] = pRootSignature->MaxSamplerCount(Stage);
-					}
-					else
-					{
-						NumSamplers[Stage] = PipelineState.Common.CurrentShaderSamplerCounts[Stage];
-					}
-				}
-				NumSamplers[SF_NumFrequencies] += NumSamplers[Stage];
-			}
-		}
-		if (!DescriptorCache.SamplerHeap.CanReserveSlots(NumSamplers[SF_NumFrequencies]))
-		{
-			DescriptorCache.SamplerHeap.RollOver();
-			NumSamplers[SF_NumFrequencies] = 0;
-			continue;
-		}
-		SamplerHeapSlot = DescriptorCache.SamplerHeap.ReserveSlots(NumSamplers[SF_NumFrequencies]);
+		ViewHeapSlot = DescriptorCache.GetCurrentViewHeap()->ReserveSlots(NumViews);
 		break;
 	}
 
@@ -1318,20 +998,6 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 		SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetUAVTime);
 		DescriptorCache.SetUAVs(PipelineState.Common.CurrentUAVStage, PipelineState.Common.CurrentUAVStartSlot, PipelineState.Common.UnorderedAccessViewArray, NumUAVs, ViewHeapSlot);
 		bNeedSetUAVs = false;
-	}
-	if (bNeedSetSamplers || bForceState)
-	{
-		for (uint32 i = StartStage; i < EndStage; i++)
-		{
-			if (bNeedSetSamplersPerShaderStage[i] || bForceState)
-			{
-				DescriptorCache.SetSamplers((EShaderFrequency)i, PipelineState.Common.CurrentSamplerStates[i], NumSamplers[i], SamplerHeapSlot);
-				bNeedSetSamplersPerShaderStage[i] = false;
-			}
-		}
-		bNeedSetSamplers = false;
-
-		DescriptorCache.SamplerHeap.SetNextSlot(SamplerHeapSlot);
 	}
 
 	// Shader resource views
@@ -1368,6 +1034,128 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 	bool bSucceeded = VerifyResourceStates(IsCompute);
 	check(bSucceeded);
 #endif
+}
+
+void FD3D12StateCacheBase::ApplySamplers(const FD3D12RootSignature* const pRootSignature, uint32 StartStage, uint32 EndStage)
+{
+	const bool bForceState = false;
+	bool HighLevelCacheMiss = false;
+
+	uint32 NumSamplers[SF_NumFrequencies + 1] = {};
+	uint32 SamplerHeapSlot = 0;
+
+	auto pfnCalcSamplersNeeded = [&]()
+	{
+		NumSamplers[SF_NumFrequencies] = 0;
+
+		for (uint32 Stage = StartStage; Stage < EndStage; ++Stage)
+		{
+			if (bNeedSetSamplersPerShaderStage[Stage] || bForceState)
+			{
+				if (ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
+				{
+					// Tier 1 HW requires the full number of sampler descriptors defined in the root signature.
+					NumSamplers[Stage] = pRootSignature->MaxSamplerCount(Stage);
+				}
+				else
+				{
+					NumSamplers[Stage] = PipelineState.Common.CurrentShaderSamplerCounts[Stage];
+				}
+			}
+			NumSamplers[SF_NumFrequencies] += NumSamplers[Stage];
+		}
+	};
+
+	pfnCalcSamplersNeeded();
+
+	if (DescriptorCache.UsingGlobalSamplerHeap())
+	{
+		auto& GlobalSamplerSet = DescriptorCache.GetLocalSamplerSet();
+
+		FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
+
+		for (uint32 Stage = StartStage; Stage < EndStage; Stage++)
+		{
+			if ((bNeedSetSamplersPerShaderStage[Stage] && NumSamplers[Stage]) || bForceState)
+			{
+				FD3D12SamplerState** Samplers = PipelineState.Common.CurrentSamplerStates[Stage];
+
+				FD3D12UniqueSamplerTable Table;
+				Table.Key.Count = NumSamplers[Stage];
+
+				for (uint32 i = 0; i < NumSamplers[Stage]; i++)
+				{
+					Table.Key.SamplerID[i] = Samplers[i] ? Samplers[i]->ID : 0;
+				}
+
+				FD3D12UniqueSamplerTable* CachedTable = GlobalSamplerSet.Find(Table);
+				if (CachedTable)
+				{
+					check(CmdContext->DescriptorHeaps[1] == GetParentDevice()->GetGlobalSamplerHeap().GetHeap());
+					check(CachedTable->GPUHandle.ptr);
+					if (Stage == SF_Compute)
+					{
+						const uint32 RDTIndex = CmdContext->StateCache.GetComputeRootSignature()->SamplerRDTBindSlot(EShaderFrequency(Stage));
+						CommandList->SetComputeRootDescriptorTable(RDTIndex, CachedTable->GPUHandle);
+					}
+					else
+					{
+						const uint32 RDTIndex = CmdContext->StateCache.GetGraphicsRootSignature()->SamplerRDTBindSlot(EShaderFrequency(Stage));
+						CommandList->SetGraphicsRootDescriptorTable(RDTIndex, CachedTable->GPUHandle);
+					}
+				}
+				else
+				{
+					HighLevelCacheMiss = true;
+					break;
+				}
+			}
+		}
+
+		if (!HighLevelCacheMiss)
+		{
+			// Success, all the tables were found in the high level heap
+			bNeedSetSamplers = false;
+			return;
+		}
+	}
+
+	if (HighLevelCacheMiss)
+	{
+		//Move to per context heap strategy
+		DescriptorCache.SwitchToContextLocalSamplerHeap();
+
+		DirtySamplerDescriptorTables();
+
+		pfnCalcSamplersNeeded();
+	}
+
+	FD3D12OnlineHeap* SamplerHeap = DescriptorCache.GetCurrentSamplerHeap();
+	check(DescriptorCache.UsingGlobalSamplerHeap() == false);
+	check(SamplerHeap != &GetParentDevice()->GetGlobalSamplerHeap());
+	check(SamplerHeap->GetHeap() == CmdContext->DescriptorHeaps[1]);
+
+	if (!SamplerHeap->CanReserveSlots(NumSamplers[SF_NumFrequencies]))
+	{
+		SamplerHeap->RollOver();
+		NumSamplers[SF_NumFrequencies] = 0;
+
+		//Redo the calculation now that the heap has changed as we may have to reset some tables.
+		pfnCalcSamplersNeeded();
+	}
+	SamplerHeapSlot = SamplerHeap->ReserveSlots(NumSamplers[SF_NumFrequencies]);
+
+	for (uint32 i = StartStage; i < EndStage; i++)
+	{
+		if ((bNeedSetSamplersPerShaderStage[i] && NumSamplers[i]) || bForceState)
+		{
+			DescriptorCache.SetSamplers((EShaderFrequency)i, PipelineState.Common.CurrentSamplerStates[i], NumSamplers[i], SamplerHeapSlot);
+			bNeedSetSamplersPerShaderStage[i] = false;
+		}
+	}
+	bNeedSetSamplers = false;
+
+	SamplerHeap->SetNextSlot(SamplerHeapSlot);
 }
 
 inline bool FDiskCacheInterface::IsInErrorState() const
@@ -2649,10 +2437,15 @@ void FD3D12StateCacheBase::SetStreamOutTargets(uint32 NumSimultaneousStreamOutTa
 
 void FD3D12DescriptorCache::HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type)
 {
-	TArray<ID3D12DescriptorHeap*> Heaps;
-	Heaps.Add(ViewHeap.Heap);
-	Heaps.Add(SamplerHeap.Heap);
-	CmdContext->SetDescriptorHeaps(Heaps);
+	// When using sub-allocation a heap roll over doesn't require resetting the heap, unless
+	// the sampler heap has rolled over.
+	if (CurrentViewHeap != &SubAllocatedViewHeap || Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+	{
+		TArray<ID3D12DescriptorHeap*> Heaps;
+		Heaps.Add(CurrentViewHeap->GetHeap());
+		Heaps.Add(CurrentSamplerHeap->GetHeap());
+		CmdContext->SetDescriptorHeaps(Heaps);
+	}
 
 	if (Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 	{
@@ -2686,38 +2479,32 @@ void FD3D12DescriptorCache::HeapLoopedAround(D3D12_DESCRIPTOR_HEAP_TYPE Type)
 	}
 }
 
-void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, uint32 InNumViewDescriptors, uint32 InNumSamplerDescriptors)
+void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, uint32 InNumViewDescriptors, uint32 InNumSamplerDescriptors, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc)
 {
 	Parent = InParent;
 	CmdContext = InCmdContext;
-	ViewHeap.SetParent(this);
-	SamplerHeap.SetParent(this);
+	SubAllocatedViewHeap.SetParent(this);
+	LocalSamplerHeap.SetParent(this);
 
-	D3D12_DESCRIPTOR_HEAP_FLAGS HeapFlags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	SubAllocatedViewHeap.SetParentDevice(InParent);
+	LocalSamplerHeap.SetParentDevice(InParent);
 
-	ViewHeap.Desc.Flags = HeapFlags;
-	SamplerHeap.Desc.Flags = HeapFlags;
-	ViewHeap.Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	SamplerHeap.Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+	SubAllocatedViewHeap.Init(SubHeapDesc);
 
-	ViewHeap.Desc.NumDescriptors = InNumViewDescriptors;
-	SamplerHeap.Desc.NumDescriptors = InNumSamplerDescriptors;
+	// Always Init a local sampler heap as the high level cache will always miss initialy
+	// so we need something to fall back on (The view heap never rolls over so we init that one
+	// lazily as a backup to save memory)
+	LocalSamplerHeap.Init(InNumSamplerDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&ViewHeap.Desc, IID_PPV_ARGS(ViewHeap.Heap.GetInitReference())));
-	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&SamplerHeap.Desc, IID_PPV_ARGS(SamplerHeap.Heap.GetInitReference())));
-	ViewHeap.Entry.Heap = ViewHeap.Heap;
-	SamplerHeap.Entry.Heap = SamplerHeap.Heap;
+	NumLocalViewDescriptors = InNumViewDescriptors;
 
-	ViewHeap.CPUBase = ViewHeap.Heap->GetCPUDescriptorHandleForHeapStart();
-	ViewHeap.GPUBase = ViewHeap.Heap->GetGPUDescriptorHandleForHeapStart();
-	ViewHeap.DescriptorSize = GetParentDevice()->GetDevice()->GetDescriptorHandleIncrementSize(ViewHeap.Desc.Type);
-	SamplerHeap.CPUBase = SamplerHeap.Heap->GetCPUDescriptorHandleForHeapStart();
-	SamplerHeap.GPUBase = SamplerHeap.Heap->GetGPUDescriptorHandleForHeapStart();
-	SamplerHeap.DescriptorSize = GetParentDevice()->GetDevice()->GetDescriptorHandleIncrementSize(SamplerHeap.Desc.Type);
+	CurrentViewHeap = &SubAllocatedViewHeap; //Begin with the global heap
+	CurrentSamplerHeap = &LocalSamplerHeap;
+	bUsingGlobalSamplerHeap = false;
 
 	TArray<ID3D12DescriptorHeap*> Heaps;
-	Heaps.Add(ViewHeap.Heap);
-	Heaps.Add(SamplerHeap.Heap);
+	Heaps.Add(CurrentViewHeap->GetHeap());
+	Heaps.Add(CurrentSamplerHeap->GetHeap());
 	InCmdContext->SetDescriptorHeaps(Heaps);
 
 	// Create default views
@@ -2795,24 +2582,24 @@ void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* I
 		// The next 128 are for SRVs
 		OfflineHeap[ShaderFrequency].CBVBaseHandle = HeapBase;
 
-		OfflineHeap[ShaderFrequency].SRVBaseHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(HeapBase, D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, ViewHeap.DescriptorSize);
+		OfflineHeap[ShaderFrequency].SRVBaseHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(HeapBase, D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT, CurrentViewHeap->GetDescriptorSize());
 
 		// Fill the offline heap with null descriptors
 		for (uint32 i = 0; i < D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineDescriptor(OfflineHeap[ShaderFrequency].CBVBaseHandle, i, ViewHeap.DescriptorSize);
+			CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineDescriptor(OfflineHeap[ShaderFrequency].CBVBaseHandle, i, CurrentViewHeap->GetDescriptorSize());
 
 			CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptor = pNullCBV;
 
-			GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, ViewHeap.Desc.Type);
+			GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 
 		for (uint32 i = 0; i < D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
 		{
-			CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineDescriptor(OfflineHeap[ShaderFrequency].SRVBaseHandle, i, ViewHeap.DescriptorSize);
+			CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineDescriptor(OfflineHeap[ShaderFrequency].SRVBaseHandle, i, CurrentViewHeap->GetDescriptorSize());
 			CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptor = pNullSRV->GetView();
 
-			GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, ViewHeap.Desc.Type);
+			GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 	}
 }
@@ -2824,29 +2611,72 @@ void FD3D12DescriptorCache::Clear()
 	pNullRTV = nullptr;
 }
 
+void FD3D12DescriptorCache::BeginFrame()
+{
+	FD3D12GlobalOnlineHeap& DeviceSamplerHeap = GetParentDevice()->GetGlobalSamplerHeap();
+
+	{
+		FScopeLock Lock(&DeviceSamplerHeap.GetCriticalSection());
+		if (DeviceSamplerHeap.DescriptorTablesDirty())
+		{
+			LocalSamplerSet = DeviceSamplerHeap.GetUniqueDescriptorTables();
+		}
+	}
+
+	SwitchToGlobalSamplerHeap();
+}
+
 void FD3D12DescriptorCache::EndFrame()
 {
 	SRVMap.Reset();
-#if UE_BUILD_DEBUG
-	uint32 SlotsPerFrame = ViewHeap.NextSlotIndex >= ViewHeap.StartSlotPerFrame ?
-		ViewHeap.NextSlotIndex - ViewHeap.StartSlotPerFrame :
-		ViewHeap.NextSlotIndex + ViewHeap.Desc.NumDescriptors - ViewHeap.StartSlotPerFrame;
 
-	if (SlotsPerFrame > ViewHeap.MaxSlotsPerFrame)
+	if (UniqueTables.Num())
 	{
-		ViewHeap.MaxSlotsPerFrame = SlotsPerFrame;
-		//UE_LOG(LogD3D12RHI, Log, TEXT("Descriptor heap %X016: Uses a max of %u descriptor slots/frame. You can use this info to tune the size of the descriptor heap."), this, ViewHeap.MaxSlotsPerFrame);
+		GatherUniqueSamplerTables();
+	}
+}
+
+void FD3D12DescriptorCache::GatherUniqueSamplerTables()
+{
+	FD3D12GlobalOnlineHeap& deviceSamplerHeap = GetParentDevice()->GetGlobalSamplerHeap();
+
+	FScopeLock Lock(&deviceSamplerHeap.GetCriticalSection());
+
+	auto& TableSet = deviceSamplerHeap.GetUniqueDescriptorTables();
+
+	for (auto& Table : UniqueTables)
+	{
+		if (TableSet.Contains(Table) == false)
+		{
+			uint32 HeapSlot = deviceSamplerHeap.ReserveSlots(Table.Key.Count);
+
+			if (HeapSlot != FD3D12GlobalOnlineHeap::HeapExhaustedValue)
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = deviceSamplerHeap.GetCPUSlotHandle(HeapSlot);
+
+				GetParentDevice()->GetDevice()->CopyDescriptors(
+					1, &DestDescriptor, &Table.Key.Count,
+					Table.Key.Count, Table.CPUTable, nullptr /* sizes */,
+					D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+				Table.GPUHandle = deviceSamplerHeap.GetGPUSlotHandle(HeapSlot);
+				TableSet.Add(Table);
+
+				deviceSamplerHeap.ToggleDescriptorTablesDirtyFlag(true);
+			}
+		}
 	}
 
-	// Update the start slot for the next frame.
-	ViewHeap.StartSlotPerFrame = ViewHeap.NextSlotIndex;
-#endif
+	// Reset the tables as the next frame should inherit them from the global heap
+	UniqueTables.Empty();
 }
 
 void FD3D12DescriptorCache::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)
 {
-	ViewHeap.NotifyCurrentCommandList(CommandListHandle);
-	SamplerHeap.NotifyCurrentCommandList(CommandListHandle);
+	CurrentViewHeap->NotifyCurrentCommandList(CommandListHandle);
+
+	// The global sampler heap doesn't care about the current command list
+	LocalSamplerHeap.NotifyCurrentCommandList(CommandListHandle);
 }
 
 void FD3D12DescriptorCache::SetIndexBuffer(FD3D12ResourceLocation* IndexBufferLocation, DXGI_FORMAT Format, uint32 Offset)
@@ -2904,8 +2734,8 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 	// Reserve heap slots
 	uint32 FirstSlotIndex = HeapSlot;
 	HeapSlot += SlotsNeeded;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE DestDescriptor(ViewHeap.GetCPUSlotHandle(FirstSlotIndex));
-	CD3DX12_GPU_DESCRIPTOR_HANDLE BindDescriptor(ViewHeap.GetGPUSlotHandle(FirstSlotIndex));
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DestDescriptor(CurrentViewHeap->GetCPUSlotHandle(FirstSlotIndex));
+	CD3DX12_GPU_DESCRIPTOR_HANDLE BindDescriptor(CurrentViewHeap->GetGPUSlotHandle(FirstSlotIndex));
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptors[D3D12_PS_CS_UAV_REGISTER_COUNT];
 
@@ -2934,7 +2764,7 @@ void FD3D12DescriptorCache::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStar
 	GetParentDevice()->GetDevice()->CopyDescriptors(
 		1, &DestDescriptor, &NumCopySlots,
 		NumCopySlots, SrcDescriptors, nullptr /* sizes */,
-		ViewHeap.Desc.Type);
+		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	if (ShaderStage == SF_Pixel)
 	{
@@ -3068,6 +2898,9 @@ void FD3D12DescriptorCache::SetStreamOutTargets(FD3D12Resource** Buffers, uint32
 
 void FD3D12DescriptorCache::SetSamplers(EShaderFrequency ShaderStage, FD3D12SamplerState** Samplers, uint32 SlotsNeeded, uint32 &HeapSlot)
 {
+	check(CurrentSamplerHeap != &GetParentDevice()->GetGlobalSamplerHeap());
+	check(bUsingGlobalSamplerHeap == false);
+
 	if (0 == SlotsNeeded)
 	{
 		return; // No-op
@@ -3077,7 +2910,7 @@ void FD3D12DescriptorCache::SetSamplers(EShaderFrequency ShaderStage, FD3D12Samp
 	bool CacheHit = false;
 
 	// Check to see if the sampler configuration is already in the sampler heap
-	FD3D12SamplerArrayDesc Desc;
+	FD3D12SamplerArrayDesc Desc = {};
 	if (SlotsNeeded <= _countof(Desc.SamplerID))
 	{
 		Desc.Count = SlotsNeeded;
@@ -3102,15 +2935,16 @@ void FD3D12DescriptorCache::SetSamplers(EShaderFrequency ShaderStage, FD3D12Samp
 		}
 	}
 
+	CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptors[D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT];
+
 	if (!CacheHit)
 	{
 		// Reserve heap slots
 		uint32 FirstSlotIndex = HeapSlot;
 		HeapSlot += SlotsNeeded;
-		D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = SamplerHeap.GetCPUSlotHandle(FirstSlotIndex);
-		BindDescriptor = SamplerHeap.GetGPUSlotHandle(FirstSlotIndex);
+		D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = CurrentSamplerHeap->GetCPUSlotHandle(FirstSlotIndex);
+		BindDescriptor = CurrentSamplerHeap->GetGPUSlotHandle(FirstSlotIndex);
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE SrcDescriptors[D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT];
 		// Fill heap slots
 		for (uint32 i = 0; i < SlotsNeeded; i++)
 		{
@@ -3127,11 +2961,13 @@ void FD3D12DescriptorCache::SetSamplers(EShaderFrequency ShaderStage, FD3D12Samp
 		GetParentDevice()->GetDevice()->CopyDescriptors(
 			1, &DestDescriptor, &SlotsNeeded,
 			SlotsNeeded, SrcDescriptors, nullptr /* sizes */,
-			SamplerHeap.Desc.Type);
+			D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 		// Remember the locations of the samplers in the sampler map
 		if (SlotsNeeded <= _countof(Desc.SamplerID))
 		{
+			UniqueTables.Add(FD3D12UniqueSamplerTable(Desc, SrcDescriptors));
+
 			SamplerMap.Add(Desc, BindDescriptor);
 		}
 	}
@@ -3206,7 +3042,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 		TArray<uint64>& CurrentSequenceNumber = OfflineHeap[ShaderStage].CurrentSRVSequenceNumber;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE OfflineBase = OfflineHeap[ShaderStage].SRVBaseHandle;
 
-		uint32 DescriptorSize = ViewHeap.DescriptorSize;
+		uint32 DescriptorSize = CurrentViewHeap->GetDescriptorSize();
 		ID3D12Device *pDevice = GetParentDevice()->GetDevice();
 
 		// Copy to offline heap (only those descriptors which have changed)
@@ -3230,7 +3066,7 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 
 			if (SequenceNumber != CurrentSequenceNumber[i])
 			{
-				pDevice->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, ViewHeap.Desc.Type);
+				pDevice->CopyDescriptorsSimple(1, OfflineDescriptor, SrcDescriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 				CurrentSequenceNumber[i] = SequenceNumber;
 			}
@@ -3239,12 +3075,12 @@ void FD3D12DescriptorCache::SetSRVs(EShaderFrequency ShaderStage, TRefCountPtr<F
 		}
 
 		// Copy from offline heap to online heap
-		D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = ViewHeap.GetCPUSlotHandle(FirstSlotIndex);
+		D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor = CurrentViewHeap->GetCPUSlotHandle(FirstSlotIndex);
 
 		// Copy the descriptors from the offline heaps to the online heap
-		pDevice->CopyDescriptorsSimple(SlotsNeeded, DestDescriptor, OfflineBase, ViewHeap.Desc.Type);
+		pDevice->CopyDescriptorsSimple(SlotsNeeded, DestDescriptor, OfflineBase, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-		BindDescriptor = ViewHeap.GetGPUSlotHandle(FirstSlotIndex);
+		BindDescriptor = CurrentViewHeap->GetGPUSlotHandle(FirstSlotIndex);
 
 		// Remember the locations of the srvs in the map
 		SRVMap.Add(Desc, BindDescriptor);
@@ -3287,14 +3123,14 @@ void FD3D12DescriptorCache::SetConstantBuffer(
 	check(UniformBuffer);
 	check(UniformBuffer->OfflineDescriptorHandle.ptr != 0);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE DestCPUHandle(OfflineHeap[ShaderStage].CBVBaseHandle, SlotIndex, ViewHeap.DescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DestCPUHandle(OfflineHeap[ShaderStage].CBVBaseHandle, SlotIndex, CurrentViewHeap->GetDescriptorSize());
 
 	TArray<uint64>& CurrentSequenceNumber = OfflineHeap[ShaderStage].CurrentUniformBufferSequenceNumber;
 
 	// Only call CopyDescriptors if this is a new uniform buffer for this slot
 	if (CurrentSequenceNumber[SlotIndex] != UniformBuffer->SequenceNumber)
 	{
-		GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestCPUHandle, UniformBuffer->OfflineDescriptorHandle, ViewHeap.Desc.Type);
+		GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestCPUHandle, UniformBuffer->OfflineDescriptorHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		CurrentSequenceNumber[SlotIndex] = UniformBuffer->SequenceNumber;
 	}
@@ -3311,7 +3147,7 @@ void FD3D12DescriptorCache::SetConstantBuffer(
 	check(SlotIndex < D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
 	check(Resource);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE DestCPUHandle(OfflineHeap[ShaderStage].CBVBaseHandle, SlotIndex, ViewHeap.DescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DestCPUHandle(OfflineHeap[ShaderStage].CBVBaseHandle, SlotIndex, CurrentViewHeap->GetDescriptorSize());
 
 	TArray<uint64>& CurrentSequenceNumber = OfflineHeap[ShaderStage].CurrentUniformBufferSequenceNumber;
 
@@ -3334,14 +3170,14 @@ void FD3D12DescriptorCache::ClearConstantBuffer(
 {
 	check(SlotIndex < D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE DestCPUHandle(OfflineHeap[ShaderStage].CBVBaseHandle, SlotIndex, ViewHeap.DescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE DestCPUHandle(OfflineHeap[ShaderStage].CBVBaseHandle, SlotIndex, CurrentViewHeap->GetDescriptorSize());
 
 	TArray<uint64>& CurrentSequenceNumber = OfflineHeap[ShaderStage].CurrentUniformBufferSequenceNumber;
 
 	// Only call CopyDescriptors if this is a new uniform buffer for this slot
 	if (CurrentSequenceNumber[SlotIndex] != 0)
 	{
-		GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestCPUHandle, pNullCBV, ViewHeap.Desc.Type);
+		GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestCPUHandle, pNullCBV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		CurrentSequenceNumber[SlotIndex] = 0;
 	}
@@ -3360,13 +3196,13 @@ void FD3D12DescriptorCache::SetConstantBuffers(EShaderFrequency ShaderStage, uin
 
 	// Copy from offline heap to online heap
 
-	D3D12_CPU_DESCRIPTOR_HANDLE OnlineHeapHandle = ViewHeap.GetCPUSlotHandle(FirstSlotIndex);
+	D3D12_CPU_DESCRIPTOR_HANDLE OnlineHeapHandle = CurrentViewHeap->GetCPUSlotHandle(FirstSlotIndex);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE OfflineHeapHandle = OfflineHeap[ShaderStage].CBVBaseHandle;
 
-	GetParentDevice()->GetDevice()->CopyDescriptorsSimple(SlotsNeeded, OnlineHeapHandle, OfflineHeapHandle, ViewHeap.Desc.Type);
+	GetParentDevice()->GetDevice()->CopyDescriptorsSimple(SlotsNeeded, OnlineHeapHandle, OfflineHeapHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	D3D12_GPU_DESCRIPTOR_HANDLE BindDescriptor = ViewHeap.GetGPUSlotHandle(FirstSlotIndex);
+	D3D12_GPU_DESCRIPTOR_HANDLE BindDescriptor = CurrentViewHeap->GetGPUSlotHandle(FirstSlotIndex);
 
 	FD3D12CommandListHandle& CommandList = CmdContext->CommandListHandle;
 
@@ -3386,9 +3222,100 @@ void FD3D12DescriptorCache::SetConstantBuffers(EShaderFrequency ShaderStage, uin
 #endif
 }
 
-bool FD3D12DescriptorCache::OnlineHeap::CanReserveSlots(uint32 NumSlots)
+void FD3D12ThreadLocalOnlineHeap::RollOver()
 {
-	const uint32 HeapSize = Desc.NumDescriptors;
+	// Enqueue the current entry
+	ReclaimPool.Enqueue(Entry);
+
+	if (ReclaimPool.Peek(Entry) && Entry.SyncPoint.IsComplete())
+	{
+		ReclaimPool.Dequeue(Entry);
+
+		Heap = Entry.Heap;
+	}
+	else
+	{
+		UE_LOG(LogD3D12RHI, Warning, TEXT("OnlineHeap RollOver Detected. Increase the heap size to prevent creation of additional heaps"));
+		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+
+		Entry.Heap = Heap;
+	}
+
+	Entry.SyncPoint = CurrentCommandList;
+
+	NextSlotIndex = 0;
+	FirstUsedSlot = 0;
+
+	// Notify other layers of heap change
+	CPUBase = Heap->GetCPUDescriptorHandleForHeapStart();
+	GPUBase = Heap->GetGPUDescriptorHandleForHeapStart();
+	Parent->HeapRolledOver(Desc.Type);
+}
+
+void FD3D12ThreadLocalOnlineHeap::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)
+{
+	if (CurrentCommandList != nullptr && NextSlotIndex > 0)
+	{
+		// Track the previous command list
+		SyncPointEntry SyncPoint;
+		SyncPoint.SyncPoint = CurrentCommandList;
+		SyncPoint.LastSlotInUse = NextSlotIndex - 1;
+		SyncPoints.Enqueue(SyncPoint);
+
+		Entry.SyncPoint = CurrentCommandList;
+
+		// Free up slots for finished command lists
+		while (SyncPoints.Peek(SyncPoint) && SyncPoint.SyncPoint.IsComplete())
+		{
+			SyncPoints.Dequeue(SyncPoint);
+			FirstUsedSlot = SyncPoint.LastSlotInUse + 1;
+		}
+	}
+
+	// Update the current command list
+	CurrentCommandList = CommandListHandle;
+}
+
+uint32 GetTypeHash(const FD3D12SamplerArrayDesc& Key)
+{
+	return uint32(FD3D12PipelineStateCache::HashData((void*)Key.SamplerID, Key.Count * sizeof(Key.SamplerID[0])));
+}
+
+uint32 GetTypeHash(const FD3D12SRVArrayDesc& Key)
+{
+	return uint32(FD3D12PipelineStateCache::HashData((void*)Key.SRVSequenceNumber, Key.Count * sizeof(Key.SRVSequenceNumber[0])));
+}
+
+uint32 GetTypeHash(const FD3D12QuantizedBoundShaderState& Key)
+{
+	return uint32(FD3D12PipelineStateCache::HashData((void*)&Key, sizeof(Key)));
+}
+
+void FD3D12GlobalOnlineHeap::Init(uint32 TotalSize, D3D12_DESCRIPTOR_HEAP_TYPE Type)
+{
+	D3D12_DESCRIPTOR_HEAP_FLAGS HeapFlags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	Desc = {};
+	Desc.Flags = HeapFlags;
+	Desc.Type = Type;
+	Desc.NumDescriptors = TotalSize;
+
+	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+
+	CPUBase = Heap->GetCPUDescriptorHandleForHeapStart();
+	GPUBase = Heap->GetGPUDescriptorHandleForHeapStart();
+	DescriptorSize = GetParentDevice()->GetDevice()->GetDescriptorHandleIncrementSize(Desc.Type);
+
+	if (Desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+	{
+		// Reserve the whole heap for sub allocation
+		ReserveSlots(TotalSize);
+	}
+}
+
+bool FD3D12OnlineHeap::CanReserveSlots(uint32 NumSlots)
+{
+	const uint32 HeapSize = GetTotalSize();
 
 	// Sanity checks
 	if (0 == NumSlots)
@@ -3427,49 +3354,20 @@ bool FD3D12DescriptorCache::OnlineHeap::CanReserveSlots(uint32 NumSlots)
 	//return false;
 }
 
-void FD3D12DescriptorCache::OnlineHeap::RollOver()
-{
-	// Enqueue the current entry
-	ReclaimPool.Enqueue(Entry);
-
-	if (ReclaimPool.Peek(Entry) && Entry.SyncPoint.IsComplete())
-	{
-		ReclaimPool.Dequeue(Entry);
-
-		Heap = Entry.Heap;
-	}
-	else
-	{
-		UE_LOG(LogD3D12RHI, Warning, TEXT("OnlineHeap RollOver Detected. Increase the heap size to prevent creation of additional heaps"));
-		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
-
-		Entry.Heap = Heap;
-	}
-
-	Entry.SyncPoint = CurrentCommandList;
-
-	NextSlotIndex = 0;
-	FirstUsedSlot = 0;
-
-	// Notify other layers of heap change
-	CPUBase = Heap->GetCPUDescriptorHandleForHeapStart();
-	GPUBase = Heap->GetGPUDescriptorHandleForHeapStart();
-	Parent->HeapRolledOver(Desc.Type);
-}
-
-uint32 FD3D12DescriptorCache::OnlineHeap::ReserveSlots(uint32 NumSlotsRequested)
+uint32 FD3D12OnlineHeap::ReserveSlots(uint32 NumSlotsRequested)
 {
 #ifdef VERBOSE_DESCRIPTOR_HEAP_DEBUG
 	FMsg::Logf(__FILE__, __LINE__, TEXT("DescriptorCache"), ELogVerbosity::Log, TEXT("Requesting reservation [TYPE %d] with %d slots, required fence is %d"),
 		(int32)Desc.Type, NumSlotsRequested, RequiredFenceForCurrentCL);
 #endif
 
-	const uint32 HeapSize = Desc.NumDescriptors;
+	const uint32 HeapSize = GetTotalSize();
 
 	// Sanity checks
 	if (NumSlotsRequested > HeapSize)
 	{
 		throw E_OUTOFMEMORY;
+		return HeapExhaustedValue;
 	}
 
 	// CanReserveSlots should have been called first
@@ -3480,7 +3378,7 @@ uint32 FD3D12DescriptorCache::OnlineHeap::ReserveSlots(uint32 NumSlotsRequested)
 	uint32 SlotAfterReservation = NextSlotIndex + NumSlotsRequested;
 
 	// Loop around if the end of the heap has been reached
-	if (SlotAfterReservation > HeapSize)
+	if (bCanLoopAround && SlotAfterReservation > HeapSize)
 	{
 		FirstRequestedSlot = 0;
 		SlotAfterReservation = NumSlotsRequested;
@@ -3496,7 +3394,13 @@ uint32 FD3D12DescriptorCache::OnlineHeap::ReserveSlots(uint32 NumSlotsRequested)
 	return FirstRequestedSlot;
 }
 
-void FD3D12DescriptorCache::OnlineHeap::SetNextSlot(uint32 NextSlot)
+void FD3D12GlobalOnlineHeap::RollOver()
+{
+	check(false);
+	UE_LOG(LogD3D12RHI, Warning, TEXT("Global Descriptor heaps can't roll over!"));
+}
+
+void FD3D12OnlineHeap::SetNextSlot(uint32 NextSlot)
 {
 	// For samplers, ReserveSlots will be called with a conservative estimate
 	// This is used to correct for the actual number of heap slots used
@@ -3505,43 +3409,146 @@ void FD3D12DescriptorCache::OnlineHeap::SetNextSlot(uint32 NextSlot)
 	NextSlotIndex = NextSlot;
 }
 
-void FD3D12DescriptorCache::OnlineHeap::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)
+void FD3D12ThreadLocalOnlineHeap::Init(uint32 NumDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE Type)
 {
-	if (CurrentCommandList != nullptr && NextSlotIndex > 0)
+	Desc = {};
+	Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	Desc.Type = Type;
+	Desc.NumDescriptors = NumDescriptors;
+
+	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+
+	Entry.Heap = Heap;
+
+	CPUBase = Heap->GetCPUDescriptorHandleForHeapStart();
+	GPUBase = Heap->GetGPUDescriptorHandleForHeapStart();
+	DescriptorSize = GetParentDevice()->GetDevice()->GetDescriptorHandleIncrementSize(Type);
+}
+
+void FD3D12OnlineHeap::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)
+{
+	//Specialization should be called
+	check(false);
+}
+
+uint32 FD3D12OnlineHeap::GetTotalSize()
+{
+	return Desc.NumDescriptors;
+}
+
+uint32 FD3D12SubAllocatedOnlineHeap::GetTotalSize()
+{
+	return CurrentSubAllocation.Size;
+}
+
+void FD3D12SubAllocatedOnlineHeap::Init(SubAllocationDesc _Desc)
+{
+	SubDesc = _Desc;
+
+	const uint32 Blocks = SubDesc.Size / DESCRIPTOR_HEAP_BLOCK_SIZE;
+	check(Blocks > 0);
+	check(SubDesc.Size >= DESCRIPTOR_HEAP_BLOCK_SIZE);
+
+	uint32 BaseSlot = SubDesc.BaseSlot;
+	for (uint32 i = 0; i < Blocks; i++)
 	{
-		// Track the previous command list
-		SyncPointEntry SyncPoint;
-		SyncPoint.SyncPoint = CurrentCommandList;
-		SyncPoint.LastSlotInUse = NextSlotIndex - 1;
-		SyncPoints.Enqueue(SyncPoint);
-
-		Entry.SyncPoint = CurrentCommandList;
-
-		// Free up slots for finished command lists
-		while (SyncPoints.Peek(SyncPoint) && SyncPoint.SyncPoint.IsComplete())
-		{
-			SyncPoints.Dequeue(SyncPoint);
-			FirstUsedSlot = SyncPoint.LastSlotInUse + 1;
-		}
+		DescriptorBlockPool.Enqueue(FD3D12OnlineHeapBlock(BaseSlot, DESCRIPTOR_HEAP_BLOCK_SIZE));
+		check(BaseSlot + DESCRIPTOR_HEAP_BLOCK_SIZE <= SubDesc.ParentHeap->GetTotalSize());
+		BaseSlot += DESCRIPTOR_HEAP_BLOCK_SIZE;
 	}
 
+	Heap = SubDesc.ParentHeap->GetHeap();
+	DescriptorSize = SubDesc.ParentHeap->GetDescriptorSize();
+	Desc = SubDesc.ParentHeap->GetDesc();
+
+	DescriptorBlockPool.Dequeue(CurrentSubAllocation);
+
+	CPUBase = SubDesc.ParentHeap->GetCPUSlotHandle(CurrentSubAllocation.BaseSlot);
+	GPUBase = SubDesc.ParentHeap->GetGPUSlotHandle(CurrentSubAllocation.BaseSlot);
+}
+
+void FD3D12SubAllocatedOnlineHeap::RollOver()
+{
+	// Enqueue the current entry
+	CurrentSubAllocation.SyncPoint = CurrentCommandList;
+	CurrentSubAllocation.bFresh = false;
+	DescriptorBlockPool.Enqueue(CurrentSubAllocation);
+
+	if (DescriptorBlockPool.Peek(CurrentSubAllocation) && 
+		(CurrentSubAllocation.bFresh|| CurrentSubAllocation.SyncPoint.IsComplete()))
+	{
+		DescriptorBlockPool.Dequeue(CurrentSubAllocation);
+	}
+	else
+	{
+		//Notify parent that we have run out of sub allocations
+		//This should *never* happen but we will handle it and revert to local heaps to be safe
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Descriptor cache ran out of sub allocated descriptor blocks! Moving to Context local View heap strategy"));
+		Parent->SwitchToContextLocalViewHeap();
+		return;
+	}
+
+	NextSlotIndex = 0;
+	FirstUsedSlot = 0;
+
+	// Notify other layers of heap change
+	CPUBase = SubDesc.ParentHeap->GetCPUSlotHandle(CurrentSubAllocation.BaseSlot);
+	GPUBase = SubDesc.ParentHeap->GetGPUSlotHandle(CurrentSubAllocation.BaseSlot);
+	Parent->HeapRolledOver(Desc.Type);
+}
+
+void FD3D12SubAllocatedOnlineHeap::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)
+{
 	// Update the current command list
 	CurrentCommandList = CommandListHandle;
 }
 
-uint32 GetTypeHash(const FD3D12SamplerArrayDesc& Key)
+void FD3D12DescriptorCache::SwitchToContextLocalViewHeap()
 {
-	return uint32(FD3D12PipelineStateCache::HashData((void*)Key.SamplerID, Key.Count * sizeof(Key.SamplerID[0])));
+	if (LocalViewHeap == nullptr)
+	{
+		//Allocate the heap lazily
+		LocalViewHeap = new FD3D12ThreadLocalOnlineHeap(GetParentDevice(), this);
+		if (LocalViewHeap)
+		{
+			check(NumLocalViewDescriptors);
+			LocalViewHeap->Init(NumLocalViewDescriptors, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
+		else
+		{
+			check(false);
+			return;
+		}
+	}
+
+	CurrentViewHeap = LocalViewHeap;
+
+	// Reset State as appropriate
+	HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
-uint32 GetTypeHash(const FD3D12SRVArrayDesc& Key)
+void FD3D12DescriptorCache::SwitchToContextLocalSamplerHeap()
 {
-	return uint32(FD3D12PipelineStateCache::HashData((void*)Key.SRVSequenceNumber, Key.Count * sizeof(Key.SRVSequenceNumber[0])));
+	DisableGlobalSamplerHeap();
+
+	CurrentSamplerHeap = &LocalSamplerHeap;
+
+	TArray<ID3D12DescriptorHeap*> Heaps;
+	Heaps.Add(GetViewDescriptorHeap());
+	Heaps.Add(GetSamplerDescriptorHeap());
+	CmdContext->SetDescriptorHeaps(Heaps);
 }
 
-uint32 GetTypeHash(const FD3D12QuantizedBoundShaderState& Key)
+void FD3D12DescriptorCache::SwitchToGlobalSamplerHeap()
 {
-	return uint32(FD3D12PipelineStateCache::HashData((void*)&Key, sizeof(Key)));
+	bUsingGlobalSamplerHeap = true;
+
+	CurrentSamplerHeap = &GetParentDevice()->GetGlobalSamplerHeap();
+
+	TArray<ID3D12DescriptorHeap*> Heaps;
+	Heaps.Add(GetViewDescriptorHeap());
+	Heaps.Add(GetSamplerDescriptorHeap());
+	CmdContext->SetDescriptorHeaps(Heaps);
 }
 
 FD3D12PipelineState::~FD3D12PipelineState()
@@ -3606,5 +3613,454 @@ void FD3D12PipelineStateWorker::DoWork()
 	else
 	{
 		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateComputePipelineState(&Desc.ComputeDesc, IID_PPV_ARGS(PSO.GetInitReference())));
+	}
+}
+
+void FD3D12ResourceBlockInfo::Destroy()
+{
+	ResourceHeap->Release();
+	ResourceHeap = nullptr;
+}
+
+FD3D12ResourceAllocator::FD3D12ResourceAllocator(FD3D12Device* ParentDevice, eBuddyAllocationStrategy allocationStrategy, D3D12_HEAP_TYPE heapType, 
+	D3D12_RESOURCE_FLAGS flags, uint32 MaxSizeForPooling, uint32 maxBlockSize, uint32 MinBlockSize)
+	: AllocationStrategy(allocationStrategy)
+	, HeapType(heapType)
+	, ResourceFlags(flags)
+	, MaxBlockSize(maxBlockSize)
+	, MinBlockSize(MinBlockSize)
+	, BackingHeap(nullptr)
+	, BaseAddress(nullptr)
+	, Initialized(false)
+	, MaximumAllocationSizeForPooling(MaxSizeForPooling)
+#if defined(UE_BUILD_DEBUG)
+	, PeakUsage(0)
+	, SpaceUsed(0)
+	, InternalFragmentation(0)
+	, NumBlocksInDeferredDeletionQueue(0)
+#endif
+	, FD3D12DeviceChild(ParentDevice)
+{
+	// maxBlockSize should be evenly dividable by MinBlockSize and  
+	// maxBlockSize / MinBlockSize should be a power of two  
+	check((maxBlockSize / MinBlockSize) * MinBlockSize == maxBlockSize); // Evenly dividable  
+	check(0 == ((maxBlockSize / MinBlockSize) & ((maxBlockSize / MinBlockSize) - 1))); // Power of two  
+
+	MaxOrder = UnitSizeToOrder(SizeToUnitSize(maxBlockSize));
+
+	Reset();
+}
+
+FD3D12ResourceAllocator::~FD3D12ResourceAllocator()
+{
+	// Ensures there are no lingering resource locations with a pointer to this allocator
+	FRHIResource::FlushPendingDeletes();
+
+#if UE_BUILD_DEBUG
+	FOutputDeviceRedirector* pOutputDevice = FOutputDeviceRedirector::Get();
+	DumpAllocatorStats(*pOutputDevice);
+#endif
+}
+
+void FD3D12ResourceAllocator::Initialize()
+{
+	if (AllocationStrategy == eBuddyAllocationStrategy::kPlacedResourceStrategy)
+	{
+		D3D12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(HeapType);
+
+		D3D12_HEAP_DESC desc = {};
+		desc.SizeInBytes = MaxBlockSize;
+		desc.Properties = heapProps;
+		desc.Alignment = MIN_PLACED_BUFFER_SIZE;
+		desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+
+		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateHeap(&desc, IID_PPV_ARGS(BackingHeap.GetInitReference())));
+	}
+	else
+	{
+		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(HeapType, MaxBlockSize, BackingResource.GetInitReference(), ResourceFlags));
+
+		if (HeapType == D3D12_HEAP_TYPE_UPLOAD)
+		{
+			BackingResource->GetResource()->Map(0, nullptr, &BaseAddress);
+		}
+	}
+}
+
+void FD3D12ResourceAllocator::Destroy()
+{
+	if (AllocationStrategy == eBuddyAllocationStrategy::kPlacedResourceStrategy)
+	{
+		BackingHeap->Release();
+	}
+	else
+	{
+		BackingResource->Release();
+	}
+}
+
+uint32 FD3D12ResourceAllocator::AllocateBlock(uint32 order)
+{
+	uint32 offset;
+
+	if (order > MaxOrder)
+	{
+		check(false); // Can't allocate a block that large  
+	}
+
+	if (FreeBlocks[order].Num() == 0)
+	{
+		// No free nodes in the requested pool.  Try to find a higher-order block and split it.  
+		uint32 left = AllocateBlock(order + 1);
+
+		uint32 size = OrderToUnitSize(order);
+
+		uint32 right = left + size;
+
+		FreeBlocks[order].Add(right); // Add the right block to the free pool  
+
+		offset = left; // Return the left block  
+	}
+
+	else
+	{
+		TSet<uint32>::TConstIterator it(FreeBlocks[order]);
+		offset = *it;
+
+		// Remove the block from the free list
+		FreeBlocks[order].Remove(*it);
+	}
+
+	return offset;
+}
+
+void FD3D12ResourceAllocator::DeallocateBlock(uint32 offset, uint32 order)
+{
+	// See if the buddy block is free  
+	uint32 size = OrderToUnitSize(order);
+
+	uint32 buddy = GetBuddyOffset(offset, size);
+
+	uint32* it = FreeBlocks[order].Find(buddy);
+
+	if (it != nullptr)
+	{
+		// Deallocate merged blocks
+		DeallocateBlock(FMath::Min(offset, buddy), order + 1);
+		// Remove the buddy from the free list  
+		FreeBlocks[order].Remove(*it);
+	}
+	else
+	{
+		// Add the block to the free list
+		FreeBlocks[order].Add(offset);
+	}
+}
+
+FD3D12ResourceBlockInfo* FD3D12ResourceAllocator::Allocate(uint32 SizeInBytes, uint32 Alignment, const void* InitialData)
+{
+	FScopeLock Lock(&CS);
+
+	if (Initialized == false)
+	{
+		Initialize();
+		Initialized = true;
+	}
+
+	// Work out what size block is needed and allocate one
+	uint32 unitSize = SizeToUnitSize(SizeInBytes);
+	uint32 order = UnitSizeToOrder(unitSize);
+	uint32 offset = AllocateBlock(order); // This is the offset in MinBlockSize units
+
+	FD3D12ResourceBlockInfo::AllocationTrackingValues alloc = {};
+	alloc.Size = uint32(OrderToUnitSize(order) * MinBlockSize);
+	alloc.AllocationBlockOffset = uint32(offset * MinBlockSize);
+	alloc.UnpaddedSize = SizeInBytes;
+
+#if UE_BUILD_DEBUG
+	if(Alignment)
+		check(MinBlockSize % Alignment == 0);
+#endif
+
+	INCREASE_ALLOC_COUNTER(SpaceUsed, alloc.Size);
+	INCREASE_ALLOC_COUNTER(InternalFragmentation, alloc.Size - SizeInBytes);
+#if UE_BUILD_DEBUG
+	if (SpaceUsed > PeakUsage)
+	{
+		PeakUsage = SpaceUsed;
+	}
+#endif
+
+	FD3D12ResourceBlockInfo* Block = new FD3D12ResourceBlockInfo(this, alloc.AllocationBlockOffset, alloc);
+
+	uint64 InitialDataOffset = 0;
+	if (AllocationStrategy == eBuddyAllocationStrategy::kPlacedResourceStrategy)
+	{
+		GetParentDevice()->GetResourceHelper().CreatePlacedBuffer(BackingHeap, alloc.AllocationBlockOffset, HeapType, alloc.Size, &Block->ResourceHeap, ResourceFlags);
+		check(Block->ResourceHeap);
+
+		if (HeapType == D3D12_HEAP_TYPE_UPLOAD)
+		{
+			VERIFYD3D11RESULT(Block->ResourceHeap->GetResource()->Map(0, nullptr, &Block->Address));
+		}
+	}
+	else
+	{
+		Block->ResourceHeap = BackingResource;
+		InitialDataOffset = alloc.AllocationBlockOffset;
+
+		if (HeapType == D3D12_HEAP_TYPE_UPLOAD)
+		{
+			Block->Address = (byte*)BaseAddress + alloc.AllocationBlockOffset;
+		}
+	}
+
+	if (InitialData)
+	{
+		InitializeDefaultBuffer(Block->ResourceHeap, InitialDataOffset, InitialData, SizeInBytes);
+	}
+
+	return Block;
+}
+
+void FD3D12ResourceAllocator::InitializeDefaultBuffer(FD3D12Resource* Destination, uint64 DestinationOffset, const void* Data, uint64 DataSize)
+{
+	check(HeapType == D3D12_HEAP_TYPE_DEFAULT);
+	FD3D12CommandListHandle& hCommandList = GetParentDevice()->GetDefaultCommandContext().CommandListHandle;
+	// Queue up a CopySubresource() to handle initial data...
+
+	// Get an upload heap and initialize data
+	FD3D12ResourceLocation SrcResourceLoc(GetParentDevice());
+	void* pData = GetParentDevice()->GetBufferInitFastAllocator().Allocate(DataSize, 4UL, &SrcResourceLoc);
+	check(pData);
+	FMemory::Memcpy(pData, Data, DataSize);
+
+	// Copy from the temporary upload heap to the default resource
+	{
+		// Writable structured bufferes are sometimes initialized with inital data which means they sometimes need tracking.
+		FConditionalScopeResourceBarrier ConditionalScopeResourceBarrier(hCommandList, Destination, D3D12_RESOURCE_STATE_COPY_DEST, 0);
+
+		GetParentDevice()->GetDefaultCommandContext().numCopies++;
+		hCommandList->CopyBufferRegion(
+			Destination->GetResource(),
+			DestinationOffset,
+			SrcResourceLoc.GetResource()->GetResource(),
+			SrcResourceLoc.GetOffset(), DataSize);
+	}
+}
+
+void FD3D12ResourceAllocator::Deallocate(FD3D12ResourceBlockInfo* Block)
+{
+	FScopeLock Lock(&CS);
+
+	Block->FrameFence = GetParentDevice()->GetCommandListManager().GetFence(EFenceType::FT_Frame).GetCurrentFence();
+	DeferredDeletionQueue.Enqueue(Block);
+	INCREASE_ALLOC_COUNTER(NumBlocksInDeferredDeletionQueue, 1);
+}
+
+void FD3D12ResourceAllocator::DeallocateInternal(FD3D12ResourceBlockInfo* Block)
+{
+	check(IsOwner(*Block));
+
+	uint32 offset = SizeToUnitSize(Block->GetOffset());
+
+	uint32 size = SizeToUnitSize(Block->GetSize());
+
+	uint32 order = UnitSizeToOrder(size);
+
+	// Blocks are cleaned up async so need a lock
+
+	DeallocateBlock(offset, order);
+
+	DECREASE_ALLOC_COUNTER(SpaceUsed, Block->GetSize());
+	DECREASE_ALLOC_COUNTER(InternalFragmentation, Block->AllocatorValues.Size - Block->AllocatorValues.UnpaddedSize);
+
+	if (AllocationStrategy == eBuddyAllocationStrategy::kPlacedResourceStrategy)
+	{
+		// Release the resource
+		Block->Destroy();
+	}
+
+	delete Block;
+};
+
+void FD3D12ResourceAllocator::CleanUpAllocations()
+{
+	FScopeLock Lock(&CS);
+
+	FD3D12CommandListManager& manager = GetParentDevice()->GetCommandListManager();
+
+	FD3D12ResourceBlockInfo* Block = nullptr;
+
+	while (DeferredDeletionQueue.IsEmpty() == false &&
+		DeferredDeletionQueue.Peek(Block) &&
+		manager.GetFence(FT_Frame).IsFenceComplete(Block->FrameFence))
+	{
+		DeferredDeletionQueue.Dequeue(Block);
+		DeallocateInternal(Block);
+		DECREASE_ALLOC_COUNTER(NumBlocksInDeferredDeletionQueue, 1);
+	}
+}
+
+void FD3D12ResourceAllocator::ReleaseAllResources()
+{
+	if (BackingResource)
+	{
+		BackingResource->Release();
+		BackingResource = nullptr;
+	}
+
+	if (BackingHeap)
+	{
+		BackingHeap->Release();
+		BackingHeap = nullptr;
+	}
+
+	FD3D12ResourceBlockInfo* Block = nullptr;
+
+	while (DeferredDeletionQueue.IsEmpty() == false &&
+		DeferredDeletionQueue.Peek(Block))
+	{
+		DeferredDeletionQueue.Dequeue(Block);
+		DeallocateInternal(Block);
+		DECREASE_ALLOC_COUNTER(NumBlocksInDeferredDeletionQueue, 1);
+	}
+}
+
+void FD3D12ResourceAllocator::DumpAllocatorStats(class FOutputDevice& Ar)
+{
+#if 0//UE_BUILD_DEBUG
+	FBufferedOutputDevice BufferedOutput;
+	{
+		// This is the memory tracked inside individual allocation pools
+		FD3D12DynamicRHI* D3DRHI = FD3D12DynamicRHI::GetD3DRHI();
+		FName categoryName(L"DynamicHeapAllocator");
+
+		BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT(""));
+		BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT("Block Size Last Fence Cur Allocs Available Allocs Total Allocs Num Resources Mem Used"));
+		BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT("---------- ---------- ---------- ---------------- ------------ ------------- --------"));
+
+		for (uint32 i = 0; i < NumBuckets; i++)
+		{
+			BufferedOutput.CategorizedLogf(categoryName, ELogVerbosity::Log, TEXT("% 10i % 10i % 16i % 12i % 13i % 8iK"),
+				AllocatorStats.BlockSize[i],
+				AllocatorStats.CurAllocs[i],
+				AllocatorStats.AvailableAllocs[i],
+				AllocatorStats.TotalAllocs[i],
+				AllocatorStats.NumCreatedResources[i],
+				AllocatorStats.BucketSize[i] / 1024);
+		}
+	}
+
+	BufferedOutput.RedirectTo(Ar);
+#endif
+}
+
+bool FD3D12ResourceAllocator::CanAllocate(uint32 size)
+{
+	uint32 blockSize = MaxBlockSize;
+
+	for (int32 i = FreeBlocks.Num() - 1; i >= 0; i--)
+	{
+		if (FreeBlocks[i].Num() && blockSize >= size)
+		{
+			return true;
+		}
+
+		// Halve the block size;
+		blockSize = blockSize >> 1;
+
+		if (blockSize < size) return false;
+	}
+	return false;
+}
+
+FD3D12FastAllocatorPage* FD3D12FastAllocatorPagePool::RequestFastAllocatorPage()
+{
+	return RequestFastAllocatorPageInternal();
+}
+
+void FD3D12FastAllocatorPagePool::ReturnFastAllocatorPage(FD3D12FastAllocatorPage* Page)
+{
+	return ReturnFastAllocatorPageInternal(Page);
+}
+
+void FD3D12FastAllocatorPagePool::CleanUpPages(uint64 frameLag, bool force)
+{
+	return CleanUpPagesInternal(frameLag, force);
+}
+
+FD3D12FastAllocatorPage* FD3D12ThreadSafeFastAllocatorPagePool::RequestFastAllocatorPage()
+{
+	FScopeLock Lock(&CS);
+	return RequestFastAllocatorPageInternal();
+}
+
+void FD3D12ThreadSafeFastAllocatorPagePool::ReturnFastAllocatorPage(FD3D12FastAllocatorPage* Page)
+{
+	FScopeLock Lock(&CS);
+	return ReturnFastAllocatorPageInternal(Page);
+}
+
+void FD3D12ThreadSafeFastAllocatorPagePool::CleanUpPages(uint64 frameLag, bool force)
+{
+	FScopeLock Lock(&CS);
+	return CleanUpPagesInternal(frameLag, force);
+}
+
+FD3D12FastAllocatorPage* FD3D12FastAllocatorPagePool::RequestFastAllocatorPageInternal()
+{
+	FD3D12FastAllocatorPage* Page = nullptr;
+
+	uint64 currentFence = GetParentDevice()->GetCommandListManager().GetFence(EFenceType::FT_Frame).GetLastCompletedFence();
+
+	for (int32 Index = 0; Index < Pool.Num(); Index++)
+	{
+		//If the GPU is done with it and no-one has a lock on it
+		if (Pool[Index]->FastAllocBuffer->GetRefCount() == 1 &&
+			Pool[Index]->FrameFence <= currentFence)
+		{
+			Page = Pool[Index];
+			Page->Reset();
+			Pool.RemoveAt(Index);
+			return Page;
+		}
+	}
+
+	check(Page == nullptr);
+	Page = new FD3D12FastAllocatorPage(PageSize);
+
+	VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(HeapType, PageSize, Page->FastAllocBuffer.GetInitReference()));
+	VERIFYD3D11RESULT(Page->FastAllocBuffer->GetResource()->Map(0, nullptr, &Page->FastAllocData));
+
+	return Page;
+
+}
+
+void FD3D12FastAllocatorPagePool::ReturnFastAllocatorPageInternal(FD3D12FastAllocatorPage* Page)
+{
+	Page->FrameFence = GetParentDevice()->GetCommandListManager().GetFence(EFenceType::FT_Frame).GetCurrentFence();
+	Pool.Add(Page);
+}
+
+void FD3D12FastAllocatorPagePool::CleanUpPagesInternal(uint64 frameLag, bool force)
+{
+	uint64 currentFence = GetParentDevice()->GetCommandListManager().GetFence(EFenceType::FT_Frame).GetLastCompletedFence();
+	
+	FD3D12FastAllocatorPage* Page = nullptr;
+	
+	int32 Index = Pool.Num() - 1;
+	while (Index >= 0)
+	{
+		//If the GPU is done with it and no-one has a lock on it
+		if (Pool[Index]->FastAllocBuffer->GetRefCount() == 1 &&
+			Pool[Index]->FrameFence + frameLag <= currentFence)
+		{
+			Page = Pool[Index];
+			Pool.RemoveAt(Index);
+			delete(Page);
+		}
+	
+		Index--;
 	}
 }
