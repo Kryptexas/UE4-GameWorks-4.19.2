@@ -6145,8 +6145,8 @@ void FBlueprintEditorUtils::UpdateComponentTemplates(UBlueprint* Blueprint)
 		{
 			ensure(Blueprint->ComponentTemplates.Contains(ActorComp));
 
-			// fix up existing content to be sure these are flagged as archetypes
-			ActorComp->SetFlags(RF_ArchetypeObject);	
+			// fix up existing content to be sure these are flagged as archetypes and are transactional
+			ActorComp->SetFlags(RF_ArchetypeObject|RF_Transactional);	
 			ReferencedTemplates.Add(ActorComp);
 		}
 	}
