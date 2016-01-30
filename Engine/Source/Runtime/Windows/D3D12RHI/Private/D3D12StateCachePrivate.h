@@ -1029,7 +1029,7 @@ protected:
 
 	bool bNeedSetVB;
 	bool bNeedSetIB;
-	bool bNeedSetUAVs;
+	bool bNeedSetUAVsPerShaderStage[SF_NumFrequencies];
 	bool bNeedSetRTs;
 	bool bNeedSetSOs;
 	bool bNeedSetSamplersPerShaderStage[SF_NumFrequencies];
@@ -1114,10 +1114,8 @@ protected:
 		struct
 		{
 			// UAVs
-			TRefCountPtr<FD3D12UnorderedAccessView> UnorderedAccessViewArray[D3D12_PS_CS_UAV_REGISTER_COUNT];
-			EShaderFrequency CurrentUAVStage;
-			uint32	CurrentUAVStartSlot;
-			uint32	CurrentNumberOfSimultaneousUAVs;
+			TRefCountPtr<FD3D12UnorderedAccessView> UnorderedAccessViewArray[SF_NumFrequencies][D3D12_PS_CS_UAV_REGISTER_COUNT];
+			uint32	CurrentUAVStartSlot[SF_NumFrequencies];
 
 			// Shader Resource Views Cache
 			TRefCountPtr<FD3D12ShaderResourceView> CurrentShaderResourceViews[SF_NumFrequencies][D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
@@ -1707,22 +1705,6 @@ public:
 
 	void SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, uint32 NumSimultaneousUAVs, FD3D12UnorderedAccessView** UAVArray, uint32 *UAVInitialCountArray);
 
-	D3D12_STATE_CACHE_INLINE void GetUAVs(FD3D12UnorderedAccessView** UAVArray, uint32* UAVStartSlot, uint32* NumSimultaneousUAVs)
-	{
-		if (UAVArray)
-		{
-			FMemory::Memcpy(UAVArray, PipelineState.Common.UnorderedAccessViewArray, sizeof(FD3D12UnorderedAccessView*) * PipelineState.Common.CurrentNumberOfSimultaneousUAVs);
-			*UAVStartSlot = PipelineState.Common.CurrentUAVStartSlot;
-			*NumSimultaneousUAVs = PipelineState.Common.CurrentNumberOfSimultaneousUAVs;
-		}
-	}
-
-	D3D12_STATE_CACHE_INLINE FD3D12UnorderedAccessView* GetUAV(const uint32 &UAVIndex)
-	{
-		check(UAVIndex < _countof(PipelineState.Common.UnorderedAccessViewArray));
-		return PipelineState.Common.UnorderedAccessViewArray[UAVIndex];
-	}
-
 	D3D12_STATE_CACHE_INLINE void AutoFlushComputeShaderCache(bool bEnable)
 	{
 		bAutoFlushComputeShaderCache = bEnable;
@@ -1746,7 +1728,6 @@ public:
 	void ForceSetComputeRootSignature() { PipelineState.Compute.bNeedSetRootSignature = true; }
 	void ForceSetVB() { bNeedSetVB = true; }
 	void ForceSetIB() { bNeedSetIB = true; }
-	void ForceSetUAVs() { bNeedSetUAVs = true; }
 	void ForceSetRTs() { bNeedSetRTs = true; }
 	void ForceSetSOs() { bNeedSetSOs = true; }
 	void ForceSetSamplersPerShaderStage(uint32 Frequency) { bNeedSetSamplersPerShaderStage[Frequency] = true; }
@@ -1764,7 +1745,6 @@ public:
 	bool GetForceRebuildComputePSO() const { return PipelineState.Compute.bNeedRebuildPSO; }
 	bool GetForceSetVB() const { return bNeedSetVB; }
 	bool GetForceSetIB() const { return bNeedSetIB; }
-	bool GetForceSetUAVs() const { return bNeedSetUAVs; }
 	bool GetForceSetRTs() const { return bNeedSetRTs; }
 	bool GetForceSetSOs() const { return bNeedSetSOs; }
 	bool GetForceSetSamplersPerShaderStage(uint32 Frequency) const { return bNeedSetSamplersPerShaderStage[Frequency]; }

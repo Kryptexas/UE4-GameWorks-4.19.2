@@ -810,10 +810,11 @@ public:
 	void* Address;
 	uint64 Offset;// Offset from the start of the resource (including alignment)
 	uint64 FrameFence;
+	bool IsPlacedResource;
 
 	class FD3D12ResourceAllocator *Allocator;
 
-	FD3D12ResourceBlockInfo() :Allocator(nullptr), ResourceHeap(nullptr), Address(nullptr), Offset(0), FrameFence(0) {};
+	FD3D12ResourceBlockInfo() :Allocator(nullptr), ResourceHeap(nullptr), Address(nullptr), Offset(0), FrameFence(0), IsPlacedResource(false){};
 
 	FD3D12ResourceBlockInfo(FD3D12ResourceAllocator* Parent, uint32 InOffset, AllocationTrackingValues TrackingValues) :
 		Allocator(Parent)
@@ -822,6 +823,7 @@ public:
 		, Offset(InOffset)
 		, FrameFence(0)
 		, AllocatorValues(TrackingValues)
+		, IsPlacedResource(false)
 	{};
 
 	// Should only be called when the placed resource strategy is in use (i.e. when this owns the resource)
@@ -2618,7 +2620,7 @@ public:
 
 	FD3D12TextureBase(
 	class FD3D12Device* InParent,
-		FD3D12Resource* InResource,
+		FD3D12ResourceLocation* InResource,
 		int32 InRTVArraySize,
 		bool bInCreatedRTVsPerSlice,
 		const TArray<TRefCountPtr<FD3D12RenderTargetView> >& InRenderTargetViews,
@@ -2741,7 +2743,7 @@ public:
 	/** Initialization constructor. */
 	TD3D12Texture2D(
 	class FD3D12Device* InParent,
-		FD3D12Resource* InResource,
+		FD3D12ResourceLocation* InResource,
 		bool bInCreatedRTVsPerSlice,
 		int32 InRTVArraySize,
 		const TArray<TRefCountPtr<FD3D12RenderTargetView> >& InRenderTargetViews,
@@ -2867,7 +2869,7 @@ public:
 	/** Initialization constructor. */
 	FD3D12Texture3D(
 	class FD3D12Device* InParent,
-		FD3D12Resource* InResource,
+		FD3D12ResourceLocation* InResource,
 		const TArray<TRefCountPtr<FD3D12RenderTargetView> >& InRenderTargetViews,
 		uint32 InSizeX,
 		uint32 InSizeY,
@@ -3292,6 +3294,7 @@ public:
 	FD3D12ResourceAllocator(FD3D12Device* ParentDevice,
 		eBuddyAllocationStrategy allocationStrategy,
 		D3D12_HEAP_TYPE heapType,
+		D3D12_HEAP_FLAGS heapFlags,
 		D3D12_RESOURCE_FLAGS flags,
 		uint32 MaxSizeForPooling,
 		uint32 maxBlockSize,
@@ -3329,13 +3332,13 @@ public:
 	bool CanAllocate(uint32 size);
 
 private:
-	TRefCountPtr<ID3D12Heap> BackingHeap;
 	TRefCountPtr<FD3D12Resource> BackingResource;
 	void* BaseAddress;
 
 	bool Initialized;
 
 	const D3D12_HEAP_TYPE HeapType;
+	const D3D12_HEAP_FLAGS HeapFlags;
 
 	TQueue<FD3D12ResourceBlockInfo*> DeferredDeletionQueue;
 	TArray<TSet<uint32>> FreeBlocks;
@@ -3368,6 +3371,7 @@ private:
 	void DeallocateBlock(uint32 offset, uint32 order);
 
 protected:
+	TRefCountPtr<ID3D12Heap> BackingHeap;
 
 	// Any allocation larger than this just gets straight up allocated (i.e. not pooled).
 	// These large allocations should be infrequent so the CPU overhead should be minimal
@@ -3571,6 +3575,40 @@ public:
 	{
 		FMemory::Memset(DefaultBufferPools, 0);
 	}
+};
+
+class FD3D12TextureAllocator : public FD3D12ResourceAllocator
+{
+public:
+	FD3D12TextureAllocator(FD3D12Device* Device, uint32 HeapSize, D3D12_HEAP_FLAGS Flags) :
+		FD3D12ResourceAllocator(Device,
+			kPlacedResourceStrategy,
+			D3D12_HEAP_TYPE_DEFAULT,
+			Flags | D3D12_HEAP_FLAG_DENY_BUFFERS,
+			D3D12_RESOURCE_FLAG_NONE,
+			D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+			HeapSize,
+			D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT) {}
+
+	HRESULT AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12ResourceLocation* TextureLocation);
+};
+
+#define TEXTURE_POOL_SIZE_READABLE (64 * 1024 * 1024)
+
+class FD3D12TextureAllocatorPool : public FD3D12DeviceChild
+{
+public:
+	FD3D12TextureAllocatorPool(FD3D12Device* Device) :
+		ReadOnlyTexturePool(Device, TEXTURE_POOL_SIZE_READABLE, D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES),
+		FD3D12DeviceChild(Device)
+	{};
+
+	HRESULT AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint64 FormatSize, FD3D12ResourceLocation* TextureLocation);
+
+	void CleanUpAllocations() { ReadOnlyTexturePool.CleanUpAllocations(); }
+
+private:
+		FD3D12TextureAllocator ReadOnlyTexturePool;
 };
 
 #if SUPPORTS_MEMORY_RESIDENCY

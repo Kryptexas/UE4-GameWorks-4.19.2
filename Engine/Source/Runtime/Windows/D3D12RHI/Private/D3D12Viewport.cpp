@@ -137,9 +137,12 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.Texture2D.MipLevels = 1;
 
+	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation = new FD3D12ResourceLocation(Parent);
+	ResourceLocation->SetFromD3DResource(BackBufferWrappedResource, 0, 0);
+
 	FD3D12Texture2D* NewTexture = new FD3D12Texture2D(
 		Parent,
-		BackBufferWrappedResource,
+		ResourceLocation,
 		false,
 		1,
 		RenderTargetViews,

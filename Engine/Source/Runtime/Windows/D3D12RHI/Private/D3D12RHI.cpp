@@ -449,6 +449,8 @@ void FD3D12CommandContext::RHIEndFrame()
 
 	Device->GetDefaultUploadHeapAllocator().CleanUpAllocations();
 
+	Device->GetTextureAllocator().CleanUpAllocations();
+
 	Device->GetDefaultFastAllocatorPool().CleanUpPages(10);
 	{
 		FScopeLock Lock(Device->GetBufferInitFastAllocator().GetCriticalSection());
@@ -752,6 +754,11 @@ void FD3D12ResourceLocation::InternalReleaseResource()
 
 	if (BlockInfo != nullptr)
 	{
+		if (BlockInfo->IsPlacedResource)
+		{
+			// Make sure we release the placed resource at the correct time
+			Resource->AddRef();
+		}
 		Resource = nullptr;
 
 		FD3D12ResourceAllocator* Allocator = BlockInfo->Allocator;

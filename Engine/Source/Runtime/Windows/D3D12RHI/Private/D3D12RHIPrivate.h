@@ -915,6 +915,7 @@ public:
 	inline FD3D12ThreadSafeFastAllocator& GetBufferInitFastAllocator() { return BufferInitializerFastAllocator; }
 	inline FD3D12FastAllocatorPagePool& GetDefaultFastAllocatorPool() { return DefaultFastAllocatorPagePool; }
 	inline FD3D12FastAllocatorPagePool& GetBufferInitFastAllocatorPool() { return BufferInitializerFastAllocatorPagePool; }
+	inline FD3D12TextureAllocatorPool& GetTextureAllocator() { return TextureAllocator; }
 
 	inline D3D12_RESOURCE_HEAP_TIER    GetResourceHeapTier() { return ResourceHeapTier; }
 	inline D3D12_RESOURCE_BINDING_TIER GetResourceBindingTier() { return ResourceBindingTier; }
@@ -1007,6 +1008,8 @@ protected:
 	FD3D12ThreadSafeFastAllocator BufferInitializerFastAllocator;
 
 	FD3D12DynamicHeapAllocator	DefaultUploadHeapAllocator;
+
+	FD3D12TextureAllocatorPool TextureAllocator;
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */

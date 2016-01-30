@@ -56,7 +56,14 @@ FD3D12DynamicHeapAllocator::FD3D12DynamicHeapAllocator(FD3D12Device* InParent, e
 		uint32 maxBlockSize,
 		uint32 minBlockSize)
 	: CurrentCommandContext(nullptr)
-	, FD3D12ResourceAllocator(InParent, allocationStrategy, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_FLAG_NONE, MaxSizeForPooling,maxBlockSize, minBlockSize)
+	, FD3D12ResourceAllocator(InParent, 
+		allocationStrategy, 
+		D3D12_HEAP_TYPE_UPLOAD, 
+		D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
+		D3D12_RESOURCE_FLAG_NONE,
+		MaxSizeForPooling,
+		maxBlockSize, 
+		minBlockSize)
 {
 }
 
@@ -206,12 +213,24 @@ FD3D12DefaultBufferPool::FD3D12DefaultBufferPool(FD3D12Device* InParent, eBuddyA
 		D3D12_RESOURCE_FLAGS flags,
 		uint32 maxBlockSize,
 		uint32 minBlockSize) :
-	FD3D12ResourceAllocator(InParent, allocationStrategy, D3D12_HEAP_TYPE_DEFAULT, flags, MaxSizeForPooling, maxBlockSize, minBlockSize)
+	FD3D12ResourceAllocator(InParent, 
+		allocationStrategy, 
+		D3D12_HEAP_TYPE_DEFAULT,
+		D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
+		flags, MaxSizeForPooling, 
+		maxBlockSize,
+		minBlockSize)
 {
 }
 
 FD3D12DefaultBufferPool::FD3D12DefaultBufferPool()
-	: FD3D12ResourceAllocator(nullptr, kManualSubAllocationStrategy, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_FLAG_NONE, 0, 0)
+	: FD3D12ResourceAllocator(nullptr,
+		kManualSubAllocationStrategy,
+		D3D12_HEAP_TYPE_DEFAULT,
+		D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS,
+		D3D12_RESOURCE_FLAG_NONE,
+		0, 
+		0)
 {
 }
 
@@ -302,7 +321,7 @@ HRESULT FD3D12DefaultBufferAllocator::AllocDefaultResource(const D3D12_RESOURCE_
 	if (DefaultBufferPools[Desc.Flags] == nullptr)
 	{
 		// D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE are used much more frequently
-		uint32 HeapSize = (Desc.Flags == D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) ? DEFAULT_BUFFER_POOL_SIZE : 2 * 1024 * 1024;
+		uint32 HeapSize = (Desc.Flags == D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) ? DEFAULT_BUFFER_POOL_SIZE : 4 * 1024 * 1024;
 		uint32 MaxAllocSize = (Desc.Flags == D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) ? DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE : 1024 * 64;
 		DefaultBufferPools[Desc.Flags] = new FD3D12DefaultBufferPool(GetParentDevice(), kManualSubAllocationStrategy, MaxAllocSize,Desc.Flags, HeapSize, 32);
 	}
@@ -496,12 +515,14 @@ void FD3D12StateCacheBase::ClearState()
 
 	// Unordered Access View State Cache
 	for (int i = 0; i < D3D12_PS_CS_UAV_REGISTER_COUNT; ++i)
-		PipelineState.Common.UnorderedAccessViewArray[i] = nullptr;
-	PipelineState.Common.CurrentNumberOfSimultaneousUAVs = 0;
-
+	{
+		PipelineState.Common.UnorderedAccessViewArray[SF_Pixel][i] = nullptr;
+		PipelineState.Common.UnorderedAccessViewArray[SF_Compute][i] = nullptr;
+	}
+	PipelineState.Common.CurrentUAVStartSlot[SF_Pixel] = -1;
+	PipelineState.Common.CurrentUAVStartSlot[SF_Compute] = -1;
+	
 	PipelineState.Graphics.HighLevelDesc.NumRenderTargets = 0;
-	PipelineState.Common.CurrentUAVStage = SF_Vertex;
-	PipelineState.Common.CurrentUAVStartSlot = -1;
 	PipelineState.Graphics.CurrentNumberOfStreamOutTargets = 0;
 	PipelineState.Graphics.CurrentNumberOfScissorRects = 0;
 
@@ -572,7 +593,6 @@ void FD3D12StateCacheBase::RestoreState()
 	bNeedSetVB = true;
 	bNeedSetIB = true;
 	bNeedSetSOs = true;
-	bNeedSetUAVs = true;
 	bNeedSetRTs = true;
 	bNeedSetViewports = true;
 	bNeedSetScissorRects = true;
@@ -587,6 +607,7 @@ void FD3D12StateCacheBase::RestoreState()
 		bNeedSetSamplersPerShaderStage[i] = true;
 		bNeedSetSRVsPerShaderStage[i] = true;
 		bNeedSetConstantBuffersPerShaderStage[i] = true;
+		bNeedSetUAVsPerShaderStage[i] = true;
 	}
 }
 
@@ -598,13 +619,13 @@ void FD3D12StateCacheBase::DirtyViewDescriptorTables()
 
 	// Could optimize here by only setting dirty flags for things that are valid with the current root signature.
 	{
-		bNeedSetUAVs = true;
 		bNeedSetSRVs = true;
 		bNeedSetConstantBuffers = true;
 		for (int i = 0; i < SF_NumFrequencies; i++)
 		{
 			bNeedSetSRVsPerShaderStage[i] = true;
 			bNeedSetConstantBuffersPerShaderStage[i] = true;
+			bNeedSetUAVsPerShaderStage[i] = true;
 		}
 	}
 }
@@ -763,7 +784,6 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			PipelineState.Compute.bNeedSetRootSignature = false;
 
 			// After setting a root signature, all root parameters are undefined and must be set again.
-			bNeedSetUAVs = pRootSignature->HasUAVs();
 			bNeedSetSRVs = pRootSignature->HasSRVs();
 			bNeedSetConstantBuffers = pRootSignature->HasCBVs();
 			bNeedSetSamplers = pRootSignature->HasSamplers();
@@ -771,6 +791,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			bNeedSetSamplersPerShaderStage[SF_Compute] = pRootSignature->MaxSamplerCount(SF_Compute) > 0;
 			bNeedSetSRVsPerShaderStage[SF_Compute] = pRootSignature->MaxSRVCount(SF_Compute) > 0;
 			bNeedSetConstantBuffersPerShaderStage[SF_Compute] = pRootSignature->MaxCBVCount(SF_Compute) > 0;
+			bNeedSetUAVsPerShaderStage[SF_Compute] = pRootSignature->MaxUAVCount(SF_Compute) > 0;
 		}
 	}
 	else
@@ -840,7 +861,6 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 			PipelineState.Graphics.bNeedSetRootSignature = false;
 
 			// After setting a root signature, all root parameters are undefined and must be set again.
-			bNeedSetUAVs = pRootSignature->HasUAVs();
 			bNeedSetSRVs = pRootSignature->HasSRVs();
 			bNeedSetConstantBuffers = pRootSignature->HasCBVs();
 			bNeedSetSamplers = pRootSignature->HasSamplers();
@@ -850,6 +870,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 				bNeedSetSamplersPerShaderStage[Stage] = pRootSignature->MaxSamplerCount(static_cast<EShaderFrequency>(Stage)) > 0;
 				bNeedSetSRVsPerShaderStage[Stage] = pRootSignature->MaxSRVCount(static_cast<EShaderFrequency>(Stage)) > 0;
 				bNeedSetConstantBuffersPerShaderStage[Stage] = pRootSignature->MaxCBVCount(static_cast<EShaderFrequency>(Stage)) > 0;
+				bNeedSetUAVsPerShaderStage[Stage] = pRootSignature->MaxUAVCount(static_cast<EShaderFrequency>(Stage)) > 0;
 			}
 		}
 	}
@@ -925,6 +946,7 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 	// Since this can cause heap rollover (which causes old bindings to become invalid), the reserve must be done atomically
 	const uint32 StartStage = IsCompute ? SF_Compute : 0;
 	const uint32 EndStage = IsCompute ? SF_NumFrequencies : SF_Compute;
+	const EShaderFrequency UAVStage = IsCompute ? SF_Compute : SF_Pixel;
 	uint32 NumUAVs = 0;
 	uint32 NumSRVs[SF_NumFrequencies + 1] ={};
 	uint32 NumCBs[SF_NumFrequencies + 1] ={};
@@ -939,16 +961,16 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 
 	for (uint32 iTries = 0; iTries < 2; ++iTries)
 	{
-		if (bNeedSetUAVs || bForceState)
+		if (bNeedSetUAVsPerShaderStage[UAVStage] || bForceState)
 		{
 			if (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2)
 			{
 				// Tier 1 and 2 HW requires the full number of UAV descriptors defined in the root signature.
-				NumUAVs = pRootSignature->MaxUAVCount(IsCompute ? SF_Compute : SF_Pixel);
+				NumUAVs = pRootSignature->MaxUAVCount(UAVStage);
 			}
 			else
 			{
-				NumUAVs = PipelineState.Common.CurrentNumberOfSimultaneousUAVs;
+				NumUAVs = PipelineState.Common.CurrentShaderUAVCounts[UAVStage];
 			}
 		}
 		for (uint32 Stage = StartStage; Stage < EndStage; ++Stage)
@@ -993,11 +1015,13 @@ void FD3D12StateCacheBase::ApplyState(bool IsCompute)
 		break;
 	}
 
-	if ((bNeedSetUAVs || bForceState) && PipelineState.Common.CurrentNumberOfSimultaneousUAVs > 0)
+	// Unordered access views
+	if ((bNeedSetUAVsPerShaderStage[UAVStage] || bForceState) && NumUAVs > 0)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateSetUAVTime);
-		DescriptorCache.SetUAVs(PipelineState.Common.CurrentUAVStage, PipelineState.Common.CurrentUAVStartSlot, PipelineState.Common.UnorderedAccessViewArray, NumUAVs, ViewHeapSlot);
-		bNeedSetUAVs = false;
+		check(pRootSignature->HasUAVs());
+		DescriptorCache.SetUAVs(UAVStage, PipelineState.Common.CurrentUAVStartSlot[UAVStage], PipelineState.Common.UnorderedAccessViewArray[UAVStage], NumUAVs, ViewHeapSlot);
+		bNeedSetUAVsPerShaderStage[UAVStage] = false;
 	}
 
 	// Shader resource views
@@ -2234,8 +2258,9 @@ void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStart
 		return;
 	}
 
-	PipelineState.Common.CurrentUAVStartSlot = FMath::Min(UAVStartSlot, PipelineState.Common.CurrentUAVStartSlot);
-	PipelineState.Common.CurrentUAVStage = ShaderStage;
+	// When setting UAV's for Graphics, it wipes out all existing bound resources.
+	const bool bIsCompute = ShaderStage == SF_Compute;
+	PipelineState.Common.CurrentUAVStartSlot[ShaderStage] = bIsCompute ? FMath::Min(UAVStartSlot, PipelineState.Common.CurrentUAVStartSlot[ShaderStage]) : UAVStartSlot;
 
 	TRefCountPtr<ID3D12Resource> CounterUploadHeap      = GetParentDevice()->GetCounterUploadHeap();
 	uint32&                      CounterUploadHeapIndex = GetParentDevice()->GetCounterUploadHeapIndex();
@@ -2243,7 +2268,7 @@ void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStart
 
 	for (uint32 i = 0; i < NumSimultaneousUAVs; ++i)
 	{
-		PipelineState.Common.UnorderedAccessViewArray[UAVStartSlot + i] = UAVArray[i];
+		PipelineState.Common.UnorderedAccessViewArray[ShaderStage][UAVStartSlot + i] = UAVArray[i];
 
 		if (UAVArray[i] && UAVArray[i]->CounterResource && (!UAVArray[i]->CounterResourceInitialized || UAVInitialCountArray[i] != -1))
 		{
@@ -2269,17 +2294,7 @@ void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStart
 		}
 	}
 
-	PipelineState.Common.CurrentNumberOfSimultaneousUAVs = 0;
-	for (int i = D3D12_PS_CS_UAV_REGISTER_COUNT - 1; i >= 0; --i)
-	{
-		if (PipelineState.Common.UnorderedAccessViewArray[i])
-		{
-			PipelineState.Common.CurrentNumberOfSimultaneousUAVs = i + 1;
-			break;
-		}
-	}
-
-	bNeedSetUAVs = true;
+	bNeedSetUAVsPerShaderStage[ShaderStage] = true;
 }
 
 void FD3D12StateCacheBase::SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY PrimitiveTopology)
@@ -3623,10 +3638,11 @@ void FD3D12ResourceBlockInfo::Destroy()
 }
 
 FD3D12ResourceAllocator::FD3D12ResourceAllocator(FD3D12Device* ParentDevice, eBuddyAllocationStrategy allocationStrategy, D3D12_HEAP_TYPE heapType, 
-	D3D12_RESOURCE_FLAGS flags, uint32 MaxSizeForPooling, uint32 maxBlockSize, uint32 MinBlockSize)
+	D3D12_HEAP_FLAGS heapFlags, D3D12_RESOURCE_FLAGS flags, uint32 MaxSizeForPooling, uint32 maxBlockSize, uint32 MinBlockSize)
 	: AllocationStrategy(allocationStrategy)
 	, HeapType(heapType)
 	, ResourceFlags(flags)
+	, HeapFlags(heapFlags)
 	, MaxBlockSize(maxBlockSize)
 	, MinBlockSize(MinBlockSize)
 	, BackingHeap(nullptr)
@@ -3671,8 +3687,8 @@ void FD3D12ResourceAllocator::Initialize()
 		D3D12_HEAP_DESC desc = {};
 		desc.SizeInBytes = MaxBlockSize;
 		desc.Properties = heapProps;
-		desc.Alignment = MIN_PLACED_BUFFER_SIZE;
-		desc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+		desc.Alignment = 0;
+		desc.Flags = HeapFlags;
 
 		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateHeap(&desc, IID_PPV_ARGS(BackingHeap.GetInitReference())));
 	}
@@ -3796,6 +3812,7 @@ FD3D12ResourceBlockInfo* FD3D12ResourceAllocator::Allocate(uint32 SizeInBytes, u
 	uint64 InitialDataOffset = 0;
 	if (AllocationStrategy == eBuddyAllocationStrategy::kPlacedResourceStrategy)
 	{
+#if 0 //TODO: Need to change this path as this should be supporting textures
 		GetParentDevice()->GetResourceHelper().CreatePlacedBuffer(BackingHeap, alloc.AllocationBlockOffset, HeapType, alloc.Size, &Block->ResourceHeap, ResourceFlags);
 		check(Block->ResourceHeap);
 
@@ -3803,6 +3820,7 @@ FD3D12ResourceBlockInfo* FD3D12ResourceAllocator::Allocate(uint32 SizeInBytes, u
 		{
 			VERIFYD3D11RESULT(Block->ResourceHeap->GetResource()->Map(0, nullptr, &Block->Address));
 		}
+#endif
 	}
 	else
 	{

@@ -504,10 +504,74 @@ void InitializeTexture2DData(
 	}
 }
 
+HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12ResourceLocation* TextureLocation)
+{
+	FD3D12Device* Device = GetParentDevice();
+	FD3D12ResourceHelper& ResourceHelper = Device->GetResourceHelper();
+	TRefCountPtr<FD3D12Resource> Resource;
+	HRESULT hr = S_OK;
+
+	D3D12_RESOURCE_ALLOCATION_INFO Info = Device->GetDevice()->GetResourceAllocationInfo(0, 1, &Desc);
+
+	if (Info.SizeInBytes < D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)
+	{
+		if (CanAllocate(Info.SizeInBytes))
+		{
+			FD3D12ResourceBlockInfo* Block = Allocate(Info.SizeInBytes, Info.Alignment, nullptr);
+
+			hr = FD3D12DynamicRHI::CreatePlacedResource(Desc, BackingHeap, Block->Offset, D3D12_RESOURCE_STATE_COMMON, ClearValue, Resource.GetInitReference());
+
+			Block->ResourceHeap = Resource.GetReference();
+			Block->IsPlacedResource = true;
+			TextureLocation->SetBlockInfo(Block, &Device->GetDefaultCommandContext().StateCache);
+
+			return hr;
+		}
+		else
+		{
+			UE_LOG(LogD3D12RHI, Warning, TEXT("Texture Allocation Pool ran out of space. Consider enlarging it"));
+		}
+	}
+
+	// Request default alignment for stand alone textures
+	Desc.Alignment = 0;
+	hr = ResourceHelper.CreateDefaultResource(Desc, ClearValue, Resource.GetInitReference());
+
+	TextureLocation->SetFromD3DResource(Resource, 0, 0);
+
+	return hr;
+}
+
+HRESULT FD3D12TextureAllocatorPool::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint64 FormatSize, FD3D12ResourceLocation* TextureLocation)
+{
+	// Multi-Sample texures have much larger alignment requirements (4MB vs 64KB)
+	check(Desc.SampleDesc.Count == 1)
+
+	// 4KB alignment is only available for read only textures
+	if ((Desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ||
+		Desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL ||
+		Desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == false)
+	{
+		// The top mip level must be less than 64k
+		if ((Desc.Width * Desc.Height * Desc.DepthOrArraySize * FormatSize) <= D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)
+		{
+			Desc.Alignment = D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT; // request 4k alignment
+			return ReadOnlyTexturePool.AllocateTexture(Desc, ClearValue, TextureLocation);
+		}
+	}
+
+	TRefCountPtr<FD3D12Resource> Resource = nullptr;
+
+	HRESULT hr = GetParentDevice()->GetResourceHelper().CreateDefaultResource(Desc, ClearValue, Resource.GetInitReference());
+	TextureLocation->SetFromD3DResource(Resource, 0, 0);
+
+	return hr;
+}
+
 /**
  * Creates a 2D texture optionally guarded by a structured exception handler.
  */
-void SafeCreateTexture2D(FD3D12Device* pDevice, const D3D12_RESOURCE_DESC& TextureDesc, D3D12_SUBRESOURCE_DATA* SubResourceData, const D3D12_CLEAR_VALUE* ClearValue, FD3D12CommandListHandle& hCommandList, FD3D12FastAllocator* Allocator, FD3D12Resource** OutTexture2D, uint8 Format, uint32 Flags)
+void SafeCreateTexture2D(FD3D12Device* pDevice, const D3D12_RESOURCE_DESC& TextureDesc, D3D12_SUBRESOURCE_DATA* SubResourceData, const D3D12_CLEAR_VALUE* ClearValue, FD3D12CommandListHandle& hCommandList, FD3D12FastAllocator* Allocator, FD3D12ResourceLocation* OutTexture2D, uint8 Format, uint32 Flags)
 {
 #if GUARDED_TEXTURE_CREATES
 	bool bDriverCrash = true;
@@ -531,21 +595,24 @@ void SafeCreateTexture2D(FD3D12Device* pDevice, const D3D12_RESOURCE_DESC& Textu
 		switch (heapType)
 		{
 		case D3D12_HEAP_TYPE_READBACK:
-			VERIFYD3D11CREATETEXTURERESULT(
-				pDevice->GetResourceHelper().CreateBuffer(heapType, MipBytesAligned, OutTexture2D),
-				TextureDesc.Width,
-				TextureDesc.Height,
-				TextureDesc.DepthOrArraySize,
-				TextureDesc.Format,
-				TextureDesc.MipLevels,
-				TextureDesc.Flags
-				);
-
+			{
+				FD3D12Resource* Resource = nullptr;
+				VERIFYD3D11CREATETEXTURERESULT(
+					pDevice->GetResourceHelper().CreateBuffer(heapType, MipBytesAligned, &Resource),
+					TextureDesc.Width,
+					TextureDesc.Height,
+					TextureDesc.DepthOrArraySize,
+					TextureDesc.Format,
+					TextureDesc.MipLevels,
+					TextureDesc.Flags
+					);
+				OutTexture2D->SetFromD3DResource(Resource, 0, 0);
+			}
 			break;
 
 		case D3D12_HEAP_TYPE_DEFAULT:
 			VERIFYD3D11CREATETEXTURERESULT(
-				pDevice->GetResourceHelper().CreateDefaultResource(TextureDesc, ClearValue, OutTexture2D),
+				pDevice->GetTextureAllocator().AllocateTexture(TextureDesc, ClearValue, BlockBytes, OutTexture2D),
 				TextureDesc.Width,
 				TextureDesc.Height,
 				TextureDesc.DepthOrArraySize,
@@ -566,7 +633,6 @@ void SafeCreateTexture2D(FD3D12Device* pDevice, const D3D12_RESOURCE_DESC& Textu
 			// its 'default state', which is what the rest of the RHI (including InitializeTexture2DData) expects for SRV-only resources.
 
 			check((TextureDesc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0);
-			FD3D12Resource* pDestTexture2D = (*OutTexture2D);
 			InitializeTexture2DData(
 				TextureDesc,
 				SubResourceData,
@@ -577,7 +643,7 @@ void SafeCreateTexture2D(FD3D12Device* pDevice, const D3D12_RESOURCE_DESC& Textu
 				BlockSizeY,
 				NumBlocksX,
 				NumBlocksY,
-				pDestTexture2D);
+				OutTexture2D->GetResource());
 		}
 
 #if GUARDED_TEXTURE_CREATES
@@ -756,7 +822,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D11Texture2D(uint32
 		}
 	}
 
-	TRefCountPtr<FD3D12Resource> TextureResource;
+	TRefCountPtr<FD3D12ResourceLocation> TextureResource = new FD3D12ResourceLocation(GetRHIDevice());
 	TArray<TRefCountPtr<FD3D12RenderTargetView> > RenderTargetViews;
 	TRefCountPtr<FD3D12DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
 
@@ -771,16 +837,18 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D11Texture2D(uint32
 	Flags &= ~TexCreate_Virtual;
 #endif
 
+	bool FoundPooledTexture = false;
 	if (bPooledTexture)
 	{
 		FPooledTexture2D PooledTexture;
 		if (GetPooledTexture2D(NumMips, (EPixelFormat)Format, &PooledTexture))
 		{
-			TextureResource = PooledTexture.Resource;
+			TextureResource->SetFromD3DResource(PooledTexture.Resource, 0, 0);
+			FoundPooledTexture = true;
 		}
 	}
 
-	if (!IsValidRef(TextureResource))
+	if (!FoundPooledTexture)
 	{
 		TArray<D3D12_SUBRESOURCE_DATA> SubResourceData;
 
@@ -835,21 +903,23 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D11Texture2D(uint32
 				ClearValue = CD3DX12_CLEAR_VALUE(PlatformRenderTargetFormat, CreateInfo.ClearValueBinding.Value.Color);
 				ClearValuePtr = &ClearValue;
 			}
-			SafeCreateTexture2D(GetRHIDevice(), TextureDesc, nullptr, ClearValuePtr, hCommandList, &FastAllocator, TextureResource.GetInitReference(), Format, Flags);
+			SafeCreateTexture2D(GetRHIDevice(), TextureDesc, nullptr, ClearValuePtr, hCommandList, &FastAllocator, TextureResource, Format, Flags);
+
+			FD3D12Resource* Resource = TextureResource->GetResource();
 
 			if (CreateInfo.BulkData != NULL)
 			{
-				uint64 Size = GetRequiredIntermediateSize(TextureResource->GetResource(), 0, NumMips * SizeZ);
+				uint64 Size = GetRequiredIntermediateSize(Resource->GetResource(), 0, NumMips * SizeZ);
 
 				FD3D12ResourceLocation TempResourceLocation(FastAllocator.GetParentDevice());
 				void* pData = FastAllocator.Allocate(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &TempResourceLocation);
 
 				{
-					FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, TextureResource, TextureResource->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+					FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Resource, Resource->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
 					hCommandList.GetCurrentOwningContext()->numCopies++;
 					UpdateSubresources(hCommandList.CommandList(),
-						TextureResource->GetResource(),
+						Resource->GetResource(),
 						TempResourceLocation.GetResource()->GetResource(),
 						TempResourceLocation.GetOffset(),
 						0, NumMips * SizeZ,
@@ -857,6 +927,8 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D11Texture2D(uint32
 				}
 			}
 		}
+
+		FD3D12Resource* Resource = TextureResource->GetResource();
 
 		if (bCreateRTV)
 		{
@@ -878,7 +950,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D11Texture2D(uint32
 						RTVDesc.Texture2DArray.MipSlice = MipIndex;
 						RTVDesc.Texture2DArray.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 
-						TRefCountPtr<FD3D12RenderTargetView> RenderTargetView = new FD3D12RenderTargetView(GetRHIDevice(), &RTVDesc, TextureResource);
+						TRefCountPtr<FD3D12RenderTargetView> RenderTargetView = new FD3D12RenderTargetView(GetRHIDevice(), &RTVDesc, Resource);
 						RenderTargetViews.Add(RenderTargetView);
 					}
 				}
@@ -902,7 +974,7 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D11Texture2D(uint32
 						RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
 					}
 
-					TRefCountPtr<FD3D12RenderTargetView> RenderTargetView = new FD3D12RenderTargetView(GetRHIDevice(), &RTVDesc, TextureResource);
+					TRefCountPtr<FD3D12RenderTargetView> RenderTargetView = new FD3D12RenderTargetView(GetRHIDevice(), &RTVDesc, Resource);
 					RenderTargetViews.Add(RenderTargetView);
 				}
 			}
@@ -936,11 +1008,11 @@ TD3D12Texture2D<BaseResourceType>* FD3D12DynamicRHI::CreateD3D11Texture2D(uint32
 				{
 					DSVDesc.Flags |= (AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) ? D3D12_DSV_FLAG_READ_ONLY_STENCIL : D3D12_DSV_FLAG_NONE;
 				}
-				DepthStencilViews[AccessType] = new FD3D12DepthStencilView(GetRHIDevice(), &DSVDesc, TextureResource, HasStencil);
+				DepthStencilViews[AccessType] = new FD3D12DepthStencilView(GetRHIDevice(), &DSVDesc, Resource, HasStencil);
 			}
 		}
 	}
-	check(IsValidRef(TextureResource));
+	check(IsValidRef(TextureResource->GetResource()));
 
 	// Create a shader resource view for the texture.
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc ={};
@@ -1109,9 +1181,11 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D11Texture3D(uint32 SizeX, uint32 Siz
 
 	FD3D12CommandListHandle& hCommandList = GetRHIDevice()->GetDefaultCommandContext().CommandListHandle;
 
-	TRefCountPtr<FD3D12Resource> TextureResource;
+	const uint64 BlockBytes = GPixelFormats[Format].BlockBytes;
+
+	TRefCountPtr<FD3D12ResourceLocation> TextureResource = new FD3D12ResourceLocation(GetRHIDevice());
 	VERIFYD3D11CREATETEXTURERESULT(
-		GetRHIDevice()->GetResourceHelper().CreateDefaultResource(TextureDesc, ClearValuePtr, TextureResource.GetInitReference()),
+		GetRHIDevice()->GetTextureAllocator().AllocateTexture(TextureDesc, ClearValuePtr, BlockBytes, TextureResource),
 		SizeX,
 		SizeY,
 		SizeZ,
@@ -1119,21 +1193,23 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D11Texture3D(uint32 SizeX, uint32 Siz
 		NumMips,
 		TextureDesc.Flags
 		);
-	D3D12_RESOURCE_DESC const& Desc12 = TextureResource->GetDesc();
+
+	FD3D12Resource* Resource = TextureResource->GetResource();
+	D3D12_RESOURCE_DESC const& Desc12 = Resource->GetDesc();
 	if (CreateInfo.BulkData != NULL)
 	{
-		uint64 Size = GetRequiredIntermediateSize(TextureResource->GetResource(), 0, NumMips);
+		uint64 Size = GetRequiredIntermediateSize(Resource->GetResource(), 0, NumMips);
 
 		FD3D12ResourceLocation TempResourceLocation(GetRHIDevice());
 		void* pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &TempResourceLocation);
 
 		{
-			FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, TextureResource, TextureResource->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+			FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Resource, Resource->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
 			hCommandList.GetCurrentOwningContext()->numCopies++;
 			UpdateSubresources(
 				hCommandList.CommandList(),
-				TextureResource->GetResource(),
+				Resource->GetResource(),
 				TempResourceLocation.GetResource()->GetResource(),
 				TempResourceLocation.GetOffset(),
 				0, NumMips,
@@ -1161,7 +1237,7 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D11Texture3D(uint32 SizeX, uint32 Siz
 		RTVDesc.Texture3D.FirstWSlice = 0;
 		RTVDesc.Texture3D.WSize = SizeZ;
 
-		RenderTargetView = new FD3D12RenderTargetView(GetRHIDevice(), &RTVDesc, TextureResource);
+		RenderTargetView = new FD3D12RenderTargetView(GetRHIDevice(), &RTVDesc, Resource);
 	}
 
 	TArray<TRefCountPtr<FD3D12RenderTargetView> > RenderTargetViews;
@@ -1191,7 +1267,6 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2D(uint32 SizeX, uint32 SizeY
 FTexture2DRHIRef FD3D12DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, void** InitialMipData, uint32 NumInitialMips)
 {
 	FD3D12Texture2D* NewTexture = NULL;
-	TRefCountPtr<FD3D12Resource> TextureResource;
 	D3D12_RESOURCE_DESC TextureDesc;
 	FMemory::Memset(&TextureDesc, 0, sizeof(TextureDesc));
 	D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc ={};
@@ -1259,13 +1334,15 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 
 	FD3D12CommandAllocatorManager& CommandAllocatorManager = GetRHIDevice()->GetTextureStreamingCommandAllocatorManager();
 	FD3D12CommandAllocator* CurrentCommandAllocator = CommandAllocatorManager.ObtainCommandAllocator();
 
+	TRefCountPtr<FD3D12ResourceLocation> TextureResource = new FD3D12ResourceLocation(GetRHIDevice());
+
 	if (!GEnableMultiEngine)
 	{
 		FD3D12CommandListHandle hCommandList = GetRHIDevice()->GetCommandListManager().ObtainCommandList(*CurrentCommandAllocator);
 
 		hCommandList.SetCurrentOwningContext(&GetRHIDevice()->GetDefaultCommandContext());
 
-		SafeCreateTexture2D(GetRHIDevice(), TextureDesc, SubResourceData, nullptr, hCommandList, &FastAllocator, TextureResource.GetInitReference(), Format, Flags);
+		SafeCreateTexture2D(GetRHIDevice(), TextureDesc, SubResourceData, nullptr, hCommandList, &FastAllocator, TextureResource, Format, Flags);
 
 		// Wait for the copy context to finish before continuing as this function is only expected to return once all the texture streaming has finished.
 		// Execute command list which contains CopySubresourceRegion call to upload initial texture data.
@@ -1279,7 +1356,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX, uint32 
 
 		hCopyCommandList.SetCurrentOwningContext(&GetRHIDevice()->GetDefaultCommandContext());
 
-		SafeCreateTexture2D(GetRHIDevice(), TextureDesc, SubResourceData, nullptr, hCopyCommandList, &FastAllocator, TextureResource.GetInitReference(), Format, Flags);
+		SafeCreateTexture2D(GetRHIDevice(), TextureDesc, SubResourceData, nullptr, hCopyCommandList, &FastAllocator, TextureResource, Format, Flags);
 
 		// Wait for the copy context to finish before continuing as this function is only expected to return once all the texture streaming has finished.
 		hCopyCommandList.Close();
