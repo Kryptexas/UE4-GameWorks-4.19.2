@@ -126,7 +126,7 @@ namespace UnrealBuildTool
 			Environment.SetEnvironmentVariable("PATH", NODE_ROOT + ";" + LLVM_ROOT + ";" + PYTHON_ROOT + ";" + EMSCRIPTEN_ROOT + ";" + PATH_SAVE);
 			Environment.SetEnvironmentVariable("USERPROFILE", HTML5Intermediatory);
 			// --------------------------------------------------
-				string cmd = Path.Combine(EMSCRIPTEN_ROOT, "emcc");
+				string cmd = "\"" + Path.Combine(EMSCRIPTEN_ROOT, "emcc") + "\"";
 				ProcessStartInfo processInfo = new ProcessStartInfo(PYTHON, cmd + " -v");
 				processInfo.CreateNoWindow = true;
 				processInfo.UseShellExecute = false;
