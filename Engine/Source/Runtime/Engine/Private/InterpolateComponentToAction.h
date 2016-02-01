@@ -109,7 +109,7 @@ public:
 				TargetComponent->SetRelativeLocation(NewLocation, false);
 			}
 
-			if(bInterpRotation)
+			if(bInterpRotation && TargetComponent.IsValid())
 			{
 				FRotator NewRotation = bComplete ? TargetRotation : FMath::Lerp(InitialRotation, TargetRotation, BlendPct);
 				TargetComponent->SetRelativeRotation(NewRotation, false);
