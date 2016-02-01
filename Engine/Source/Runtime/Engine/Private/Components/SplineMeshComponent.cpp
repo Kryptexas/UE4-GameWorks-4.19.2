@@ -6,6 +6,7 @@
 #include "ShaderParameterUtils.h"
 #include "NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
+#include "Engine/StaticMeshSocket.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -696,6 +697,42 @@ FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	return FBoxSphereBounds(BoundingBox.TransformBy(LocalToWorld));
 }
 
+FTransform USplineMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
+{
+	if (InSocketName != NAME_None)
+	{
+		UStaticMeshSocket const* const Socket = GetSocketByName(InSocketName);
+		if (Socket)
+		{
+			FTransform SocketTransform;
+			SocketTransform = FTransform(Socket->RelativeRotation, Socket->RelativeLocation * GetAxisMask(ForwardAxis), Socket->RelativeScale);
+			SocketTransform = SocketTransform * CalcSliceTransform(GetAxisValue(Socket->RelativeLocation, ForwardAxis));
+
+			switch (TransformSpace)
+			{
+			case RTS_World:
+			{
+				return SocketTransform * GetComponentToWorld();
+			}
+			case RTS_Actor:
+			{
+				if (const AActor* Actor = GetOwner())
+				{
+					return (SocketTransform * GetComponentToWorld()).GetRelativeTransform(GetOwner()->GetTransform());
+				}
+				break;
+			}
+			case RTS_Component:
+			{
+				return SocketTransform;
+			}
+			}
+		}
+	}
+
+	return Super::GetSocketTransform(InSocketName, TransformSpace);
+}
+
 
 FTransform USplineMeshComponent::CalcSliceTransform(const float DistanceAlong) const
 {
@@ -982,7 +1019,7 @@ void USplineMeshComponent::RecreateCollision()
 			{
 				FKConvexElem& ConvexElem = *new(BodySetup->AggGeom.ConvexElems) FKConvexElem();
 
-				const FVector Radii = FVector(BoxElem.X / 2, BoxElem.Y / 2, BoxElem.Z / 2);
+				const FVector Radii = FVector(BoxElem.X / 2, BoxElem.Y / 2, BoxElem.Z / 2).ComponentMax(FVector(1.0f));
 				const FTransform ElementTM = BoxElem.GetTransform();
 				ConvexElem.VertexData.Empty(8);
 				ConvexElem.VertexData.Add(ElementTM.TransformPosition(Radii * FVector(-1,-1,-1)));

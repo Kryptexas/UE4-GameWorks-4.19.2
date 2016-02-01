@@ -5,6 +5,7 @@
 #include "Core.h"
 #include "OnlineFriendsInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 /**
  * Class used to test the friends interface
  */
@@ -152,3 +153,5 @@
 	 */
 	void Test(class UWorld* InWorld, const TArray<FString>& Invites);
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

@@ -6,6 +6,8 @@
 
 #include "AutomationCommon.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 DEFINE_LOG_CATEGORY_STATIC(LogHackAutomationTests, Log, All);
 
 
@@ -285,5 +287,7 @@ bool FNullAchievementsTest::RunTest(const FString& Parameters)
 	return true;
 }
 */
+
+#endif //WITH_DEV_AUTOMATION_TESTS
 
 #endif

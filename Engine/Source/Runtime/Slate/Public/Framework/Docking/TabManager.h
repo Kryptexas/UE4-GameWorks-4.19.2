@@ -619,6 +619,12 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		/** Provide a tab that will be the main tab and cannot be closed. */
 		void SetMainTab(const TSharedRef<const SDockTab>& InTab);
 
+		/* Prevent or allow all tabs to be drag */
+		void SetCanDoDragOperation(bool CanDoDragOperation) { bCanDoDragOperation = CanDoDragOperation; }
+		
+		/* Return true if we can do drag operation */
+		bool GetCanDoDragOperation() { return bCanDoDragOperation; }
+
 		/** @return if the provided tab can be closed. */
 		bool IsTabCloseable(const TSharedRef<const SDockTab>& InTab) const;
 
@@ -751,6 +757,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		/** The main tab, this tab cannot be closed. */
 		TWeakPtr<const SDockTab> MainNonCloseableTab;
+
+		/* Prevent or allow Drag operation. */
+		bool bCanDoDragOperation;
 };
 
 

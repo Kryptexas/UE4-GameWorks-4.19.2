@@ -298,10 +298,7 @@ private:
 	void HandleReflectorTreeGetChildren( TSharedRef<FWidgetReflectorNodeBase> InReflectorNode, TArray<TSharedRef<FWidgetReflectorNodeBase>>& OutChildren );
 
 	/** Callback for when the selection in the reflector tree has changed. */
-	void HandleReflectorTreeSelectionChanged( TSharedPtr<FWidgetReflectorNodeBase>, ESelectInfo::Type /*SelectInfo*/ )
-	{
-		SelectedNodes = ReflectorTree->GetSelectedItems();
-	}
+	void HandleReflectorTreeSelectionChanged( TSharedPtr<FWidgetReflectorNodeBase>, ESelectInfo::Type /*SelectInfo*/ );
 
 	TSharedRef<ITableRow> GenerateEventLogRow( TSharedRef<FLoggedEvent> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
 
@@ -1633,6 +1630,17 @@ TSharedRef<ITableRow> SWidgetReflector::HandleReflectorTreeGenerateRow( TSharedR
 void SWidgetReflector::HandleReflectorTreeGetChildren(TSharedRef<FWidgetReflectorNodeBase> InReflectorNode, TArray<TSharedRef<FWidgetReflectorNodeBase>>& OutChildren)
 {
 	OutChildren = InReflectorNode->GetChildNodes();
+}
+
+
+void SWidgetReflector::HandleReflectorTreeSelectionChanged( TSharedPtr<FWidgetReflectorNodeBase>, ESelectInfo::Type /*SelectInfo*/ )
+{
+	SelectedNodes = ReflectorTree->GetSelectedItems();
+
+	if (CurrentUIMode == EWidgetReflectorUIMode::Snapshot)
+	{
+		WidgetSnapshotVisualizer->SetSelectedWidgets(SelectedNodes);
+	}
 }
 
 

@@ -525,7 +525,8 @@ public:
 							Prop->ExportText_InContainer(ArrayIter, NewTerm.Name, StructData, StructData, NULL, PPF_None);
 							if (Prop->IsA(UTextProperty::StaticClass()))
 							{
-								NewTerm.TextLiteral = FText::FromString(NewTerm.Name);
+								NewTerm.TextLiteral = Cast<UTextProperty>(Prop)->GetPropertyValue_InContainer(StructData, ArrayIter);
+								NewTerm.Name = NewTerm.TextLiteral.ToString();
 							}
 							else if (Prop->IsA(UObjectProperty::StaticClass()))
 							{
@@ -560,7 +561,8 @@ public:
 					InnerProp->ExportText_Direct(NewTerm.Name, RawElemData, RawElemData, NULL, PPF_None);
 					if (InnerProp->IsA(UTextProperty::StaticClass()))
 					{
-						NewTerm.TextLiteral = FText::FromString(NewTerm.Name);
+						NewTerm.TextLiteral = Cast<UTextProperty>(InnerProp)->GetPropertyValue(RawElemData);
+						NewTerm.Name = NewTerm.TextLiteral.ToString();
 					}
 					else if (InnerProp->IsA(UObjectPropertyBase::StaticClass()))
 					{

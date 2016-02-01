@@ -5740,11 +5740,24 @@ bool UReimportFbxSkeletalMeshFactory::FactoryCanImport(const FString& Filename)
 }
 
 bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
-{	
+{
 	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Obj);
-	if(SkeletalMesh && !Obj->IsA( UDestructibleMesh::StaticClass() ))
+	if (SkeletalMesh && !Obj->IsA(UDestructibleMesh::StaticClass()))
 	{
-		SkeletalMesh->AssetImportData->ExtractFilenames(OutFilenames);
+		if (SkeletalMesh->AssetImportData)
+		{
+			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(SkeletalMesh->AssetImportData);
+			if (FbxAssetImportData != nullptr && FbxAssetImportData->bImportAsScene)
+			{
+				//This skeletal mesh was import with a scene import, we cannot reimport it here
+				return false;
+			}
+			SkeletalMesh->AssetImportData->ExtractFilenames(OutFilenames);
+		}
+		else
+		{
+			OutFilenames.Add(TEXT(""));
+		}
 		return true;
 	}
 	return false;

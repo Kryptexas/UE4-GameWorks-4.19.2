@@ -77,6 +77,7 @@ void FGenericPlatformMath::FmodReportError(float X, float Y)
 	ensureMsgf(Y != 0, TEXT("FMath::FMod(X=%f, Y=%f) : Y is zero, this is invalid and would result in NaN!"), X, Y);
 }
 
+#if WITH_DEV_AUTOMATION_TESTS
 extern float TheCompilerDoesntKnowThisIsAlwaysZero;
 
 void FGenericPlatformMath::AutoTest() 
@@ -139,3 +140,5 @@ void FGenericPlatformMath::AutoTest()
 		check(Value.ToInt() == 1LL);
 	}
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

@@ -353,6 +353,13 @@ public:
 
 	bool ShouldGatherForLocalization() const;
 
+#if WITH_EDITOR
+	/**
+	 * Constructs a new FText with the SourceString of the specified text but with the specified namespace and key
+	 */
+	static FText ChangeKey( FString Namespace, FString Key, const FText& Text );
+#endif
+
 private:
 
 	/** Special constructor used to create StaticEmptyText without also allocating a history object */
@@ -366,13 +373,6 @@ private:
 	FText( FString InSourceString, const FString& InNamespace, const FString& InKey, uint32 InFlags=0 );
 
 	friend CORE_API FArchive& operator<<( FArchive& Ar, FText& Value );
-
-#if WITH_EDITOR
-	/**
-	 * Constructs a new FText with the SourceString of the specified text but with the specified namespace and key
-	 */
-	static FText ChangeKey( FString Namespace, FString Key, const FText& Text );
-#endif
 
 	/**
 	 * Generate an FText for a string formatted numerically.
@@ -430,8 +430,6 @@ public:
 	friend class FTextInspector;
 	friend class UStruct;
 	friend class UGatherTextFromAssetsCommandlet;
-	friend class UEdGraphSchema;
-	friend class UEdGraphSchema_K2;
 	friend class FTextHistory_NamedFormat;
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
@@ -645,6 +643,37 @@ public:
 	static const FString& GetDisplayString(const FText& Text);
 	static const FTextDisplayStringRef GetSharedDisplayString(const FText& Text);
 	static uint32 GetFlags(const FText& Text);
+};
+
+class CORE_API FTextStringHelper
+{
+public:
+	/**
+	 * Attempt to extract an FText instance from the given stream of text.
+	 *
+	 * @param Buffer			The buffer of text to read from.
+	 * @param OutValue			The text value to fill with the read text.
+	 * @param Namespace			An optional namespace to use when parsing texts that use LOCTEXT (default is an empty namespace).
+	 * @param OutNumCharsRead	An optional output parameter to fill with the number of characters we read from the given buffer.
+	 * @param bRequiresQuotes	True if the read text literal must be surrounded by quotes (eg, when loading from a delimited list)
+	 *
+	 * @return True if we read a valid FText instance into OutValue, false otherwise
+	 */
+	static bool ReadFromString(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace = nullptr, int32* OutNumCharsRead = nullptr, const bool bRequiresQuotes = false);
+
+	/**
+	 * Write the given FText instance to a stream of text
+	 *
+	 * @param Buffer			The buffer of text to write to.
+	 * @param Value				The text value to write into the buffer.
+	 * @param bRequiresQuotes	True if the written text literal must be surrounded by quotes (eg, when saving as a delimited list)
+	 *
+	 * @return True if we read a valid FText instance into OutValue, false otherwise
+	 */
+	static bool WriteToString(FString& Buffer, const FText& Value, const bool bRequiresQuotes = false);
+
+private:
+	static bool ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead);
 };
 
 class CORE_API FTextBuilder

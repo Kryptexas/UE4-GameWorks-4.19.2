@@ -12,6 +12,32 @@ UFbxSceneImportOptionsSkeletalMesh::UFbxSceneImportOptionsSkeletalMesh(const FOb
 	, bImportMeshesInBoneHierarchy(true)
 	, bImportMorphTargets(false)
 	, bKeepOverlappingVertices(false)
+	, bImportAnimations(true)
+	, AnimationLength(EFbxSceneVertexColorImportOption::Replace)
+	, FrameImportRange(0, 0)
+	, bUseDefaultSampleRate(false)
+	, bImportCustomAttribute(true)
+	, bPreserveLocalTransform(false)
+	, bDeleteExistingMorphTargetCurves(false)
 {
 }
 
+void UFbxSceneImportOptionsSkeletalMesh::FillSkeletalMeshInmportData(UFbxSkeletalMeshImportData* SkeletalMeshImportData, UFbxAnimSequenceImportData* AnimSequenceImportData)
+{
+	check(SkeletalMeshImportData != nullptr);
+	SkeletalMeshImportData->bImportMeshesInBoneHierarchy = bImportMeshesInBoneHierarchy;
+	SkeletalMeshImportData->bImportMorphTargets = bImportMorphTargets;
+	SkeletalMeshImportData->bKeepOverlappingVertices = bKeepOverlappingVertices;
+	SkeletalMeshImportData->bPreserveSmoothingGroups = bPreserveSmoothingGroups;
+	SkeletalMeshImportData->bUpdateSkeletonReferencePose = bUpdateSkeletonReferencePose;
+	SkeletalMeshImportData->bUseT0AsRefPose = bUseT0AsRefPose;
+	
+	SkeletalMeshImportData->bImportAsScene = true;
+
+	AnimSequenceImportData->AnimationLength = AnimationLength;
+	AnimSequenceImportData->bDeleteExistingMorphTargetCurves = bDeleteExistingMorphTargetCurves;
+	AnimSequenceImportData->bImportCustomAttribute = bImportCustomAttribute;
+	AnimSequenceImportData->bPreserveLocalTransform = bPreserveLocalTransform;
+	AnimSequenceImportData->bUseDefaultSampleRate = bUseDefaultSampleRate;
+	AnimSequenceImportData->FrameImportRange = FrameImportRange;
+}

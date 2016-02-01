@@ -231,6 +231,9 @@ void SWindow::Construct(const FArguments& InArgs)
 	// If the window has no OS border, simulate it ourselves, enlarging window by the size that OS border would have.
 	FVector2D WindowSize = GetWindowSizeFromClientSize(InArgs._ClientSize);
 
+	// Get change in size resulting from the above call
+	const FVector2D DeltaSize = WindowSize - InArgs._ClientSize;
+
 	// calculate initial window position
 	FVector2D WindowPosition = InArgs._ScreenPosition;
 
@@ -302,9 +305,12 @@ void SWindow::Construct(const FArguments& InArgs)
 			break;
 		}
 
-		// Clamp window size to be no greater than the work area size
-		WindowSize.X = FMath::Min(WindowSize.X, AutoCenterRect.GetSize().X);
-		WindowSize.Y = FMath::Min(WindowSize.Y, AutoCenterRect.GetSize().Y);
+		if (InArgs._SaneWindowPlacement)
+		{
+			// Clamp window size to be no greater than the work area size
+			WindowSize.X = FMath::Min(WindowSize.X, AutoCenterRect.GetSize().X);
+			WindowSize.Y = FMath::Min(WindowSize.Y, AutoCenterRect.GetSize().Y);
+		}
 
 		// Setup a position and size for the main frame window that's centered in the desktop work area
 		const FVector2D DisplayTopLeft( AutoCenterRect.Left, AutoCenterRect.Top );
@@ -320,7 +326,8 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->InitialDesiredScreenPosition = WindowPosition;
 	this->InitialDesiredSize = WindowSize;
 
-	Resize(WindowSize);
+	// Resize adds extra borders / title bar if necessary, but this is already taken into account in WindowSize, so subtract them again first
+	Resize(WindowSize -DeltaSize);
 
 	// Window visibility is currently driven by whether the window is interactive.
 	this->Visibility = TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateRaw(this, &SWindow::GetWindowVisibility) );

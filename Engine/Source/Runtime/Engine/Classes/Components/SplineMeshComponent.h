@@ -152,6 +152,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	//Begin USceneComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
 	//End USceneComponent Interface
 
 	//Begin UPrimitiveComponent Interface

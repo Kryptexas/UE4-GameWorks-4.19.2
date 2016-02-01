@@ -4,7 +4,7 @@
 #include "UnrealAudioModule.h"
 #include "UnrealAudioTestGenerators.h"
 
-#if ENABLE_UNREAL_AUDIO
+#if ENABLE_UNREAL_AUDIO & WITH_DEV_AUTOMATION_TESTS
 
 #ifndef TWO_PI
 #define TWO_PI	6.28318530718
@@ -956,4 +956,4 @@ namespace Test
 } // namespace Test
 } // namespace UAudio
 
-#endif // #if ENABLE_UNREAL_AUDIO
+#endif // #if ENABLE_UNREAL_AUDIO & WITH_DEV_AUTOMATION_TESTS

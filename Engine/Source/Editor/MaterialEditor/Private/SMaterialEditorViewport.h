@@ -111,6 +111,7 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, UMaterialInterface* PreviewMaterial );
+	void SetPreviewMaterial(UMaterialInterface* InMaterialInterface);
 
 private:
 	void OnPreviewXChanged( int32 NewValue );

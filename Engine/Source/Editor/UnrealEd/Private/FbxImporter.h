@@ -120,6 +120,7 @@ struct FBXImportOptions
 	EFBXNormalImportMethod NormalImportMethod;
 	EFBXNormalGenerationMethod::Type NormalGenerationMethod;
 	bool bTransformVertexToAbsolute;
+	bool bBakePivotInVertex;
 	// Static Mesh options
 	bool bCombineToSingle;
 	EVertexColorImportOption::Type VertexColorImportOption;
@@ -159,7 +160,7 @@ struct FBXImportOptions
 	*   This prefix can modify the package path for materials (i.e. TEXT("/Materials/")).
 	*   Or both (i.e. TEXT("/Materials/Mat"))
 	*/
-	FName MaterialPrefixName;
+	FName MaterialBasePath;
 
 	//This data allow to override some fbx Material(point by the uint64 id) with existing unreal material asset
 	TMap<uint64, class UMaterialInterface*> OverrideMaterials;
@@ -203,6 +204,8 @@ struct FbxNodeInfo
 	const char* ObjectName;
 	uint64 UniqueId;
 	FbxAMatrix Transform;
+	FbxVector4 RotationPivot;
+	FbxVector4 ScalePivot;
 	
 	const char* AttributeName;
 	uint64 AttributeUniqueId;
@@ -307,7 +310,7 @@ public:
 	 * @param SceneInfo return the scene info
 	 * @return bool true if get scene info successfully
 	 */
-	bool GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo);
+	bool GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo, bool bPreventMaterialNameClash = false);
 
 	/**
 	 * Initialize Fbx file for import.
@@ -324,7 +327,7 @@ public:
 	 * @param Filename
 	 * @return bool
 	 */
-	bool ImportFile(FString Filename);
+	bool ImportFile(FString Filename, bool bPreventMaterialNameClash = false);
 	
 	/**
 	 * Attempt to load an FBX scene from a given filename.
@@ -332,7 +335,7 @@ public:
 	 * @param Filename FBX file name to import.
 	 * @returns true on success.
 	 */
-	UNREALED_API bool ImportFromFile(const FString& Filename, const FString& Type);
+	UNREALED_API bool ImportFromFile(const FString& Filename, const FString& Type, bool bPreventMaterialNameClash = false);
 
 	/**
 	 * Retrieve the FBX loader's error message explaining its failure to read a given FBX file.
@@ -353,6 +356,21 @@ public:
 	 * @return FbxNode*	Fbx object node
 	 */
 	FbxNode* RetrieveObjectFromName(const TCHAR* ObjectName, FbxNode* Root = NULL);
+
+	/**
+	* Find the first node containing a mesh attribute for the specified LOD index.
+	*
+	* @param NodeLodGroup	The LOD group fbx node
+	* @param LodIndex		The index of the LOD we search the mesh node
+	*/
+	FbxNode* FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex);
+
+	/**
+	* Find the first parent node containing a eLODGroup attribute.
+	*
+	* @param ParentNode		The node where to start the search.
+	*/
+	FbxNode *RecursiveFindParentLodGroup(FbxNode *ParentNode);
 
 	/**
 	 * Creates a static mesh with the given name and flags, imported from within the FBX scene.
@@ -399,7 +417,7 @@ public:
 	* @param Mesh the original Unreal static mesh object
 	* @return UObject* the new Unreal mesh object
 	*/
-	UStaticMesh* ReimportSceneStaticMesh(uint64 FbxUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData);
+	UStaticMesh* ReimportSceneStaticMesh(uint64 FbxNodeUniqueId, uint64 FbxMeshUniqueId, UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData);
 	
 	/**
 	* re-import Unreal skeletal mesh from updated Fbx file
@@ -410,7 +428,7 @@ public:
 	* @param Mesh the original Unreal skeletal mesh object
 	* @return UObject* the new Unreal mesh object
 	*/
-	USkeletalMesh* ReimportSkeletalMesh(USkeletalMesh* Mesh, UFbxSkeletalMeshImportData* TemplateImportData);
+	USkeletalMesh* ReimportSkeletalMesh(USkeletalMesh* Mesh, UFbxSkeletalMeshImportData* TemplateImportData, uint64 SkeletalMeshFbxUID = 0xFFFFFFFFFFFFFFFF, TArray<FbxNode*> *OutSkeletalMeshArray = nullptr);
 
 	/**
 	 * Creates a skeletal mesh from Fbx Nodes with the given name and flags, imported from within the FBX scene.
@@ -624,6 +642,19 @@ public:
 
 private:
 	/**
+	* Verify that all meshes are also reference by a fbx hierarchy node. If it found some Geometry
+	* not reference it will add a tokenized error.
+	*/
+	void ValidateAllMeshesAreReferenceByNodeAttribute();
+
+	/**
+	* Recursive search for a node having a mesh attribute
+	*
+	* @param Node	The node from which we start the search for the first node containing a mesh attribute
+	*/
+	FbxNode *RecursiveGetFirstMeshNode(FbxNode* Node);
+
+	/**
 	 * ActorX plug-in can export mesh and dummy as skeleton.
 	 * For the mesh and dummy in the skeleton hierarchy, convert them to FBX skeleton.
 	 *
@@ -676,6 +707,12 @@ private:
 	* @param StaticMesh - The imported static mesh which we'd like to verify
 	*/
 	void VerifyGeometry(UStaticMesh* StaticMesh);
+
+	/**
+	* When there is some materials with the same name we add a clash suffixe _ncl1_x.
+	* Example, if we have 3 materials name shader we will get (shader, shader_ncl1_1, shader_ncl1_2).
+	*/
+	void FixMaterialClashName();
 
 public:
 	// current Fbx scene we are importing. Make sure to release it after import

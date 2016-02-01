@@ -3,6 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "AutomationTest.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTimespanTest, "System.Core.Misc.Timespan", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
@@ -60,3 +61,5 @@ bool FTimespanTest::RunTest( const FString& Parameters )
 
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

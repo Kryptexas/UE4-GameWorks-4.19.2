@@ -2901,6 +2901,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					.ClientSize(FVector2D( NewWindowWidth, NewWindowHeight ))
 					.AutoCenter(CenterNewWindow ? EAutoCenter::PreferredWorkArea : EAutoCenter::None)
 					.UseOSWindowBorder(bUseOSWndBorder)
+					.SaneWindowPlacement(!CenterNewWindow)
 					.SizingRule(ESizingRule::UserSized);
 				}
 
@@ -3008,7 +3009,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 				// Create a new viewport that the viewport widget will use to render the game
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport = MakeShareable( new FSceneViewport( ViewportClient, PieViewportWidget ) );
-				PieViewportWidget->SetViewportInterface( SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.ToSharedRef() );
+				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->SetPlayInEditorGetsMouseControl(GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl);
+				PieViewportWidget->SetViewportInterface(SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.ToSharedRef());
 
 				SlatePlayInEditorSession.SlatePlayInEditorWindow = PieWindow;
 
@@ -3091,6 +3093,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 	// Clean up any editor actors being referenced 
 	GEngine->BroadcastLevelActorListChanged();
+
+	// Set an undo barrier so that transactions prior to PIE can't be undone
+	GUnrealEd->ResetTransaction(NSLOCTEXT("UnrealEd", "PIEStarted", "PIE Started"));
 
 	return GameInstance;
 }

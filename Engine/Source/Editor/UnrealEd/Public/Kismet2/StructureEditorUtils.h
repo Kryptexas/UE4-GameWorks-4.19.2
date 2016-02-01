@@ -107,14 +107,28 @@ public:
 
 	static const TArray<FStructVariableDescription>& GetVarDesc(const UUserDefinedStruct* Struct);
 
+	static TArray<FStructVariableDescription>* GetVarDescPtr(UUserDefinedStruct* Struct);
+
+	static const TArray<FStructVariableDescription>* GetVarDescPtr(const UUserDefinedStruct* Struct);
+
 	static FStructVariableDescription* GetVarDescByGuid(UUserDefinedStruct* Struct, FGuid VarGuid)
 	{
-		return Struct ? GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : NULL;
+		if (Struct)
+		{
+			auto VarDescArray = GetVarDescPtr(Struct);
+			return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
+		}
+		return nullptr;
 	}
 
 	static const FStructVariableDescription* GetVarDescByGuid(const UUserDefinedStruct* Struct, FGuid VarGuid)
 	{
-		return Struct ? GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : NULL;
+		if (Struct)
+		{
+			auto VarDescArray = GetVarDescPtr(Struct);
+			return VarDescArray ? VarDescArray->FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : nullptr;
+		}
+		return nullptr;
 	}
 
 	static FGuid GetGuidForProperty(const UProperty* Property);

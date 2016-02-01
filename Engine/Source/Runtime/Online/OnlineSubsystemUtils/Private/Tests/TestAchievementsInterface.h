@@ -7,6 +7,7 @@
 #include "Core.h"
 #include "OnlineAchievementsInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 /**
  * Class used to test the Achievements interface
@@ -106,3 +107,5 @@
 	 */
 	void Test(class UWorld* InWorld);
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

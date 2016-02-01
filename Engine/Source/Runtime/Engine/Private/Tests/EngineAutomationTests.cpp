@@ -13,6 +13,7 @@
 #include "PlatformFeatures.h"
 #include "SaveGameSystem.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 namespace
 {
@@ -479,10 +480,12 @@ bool FAutomationLogAddError::RunTest(const FString& Parameters)
 	return true;
 }
 
-/* UAutomationTestSettings interface
- *****************************************************************************/
+#endif //WITH_DEV_AUTOMATION_TESTS
 
-UAutomationTestSettings::UAutomationTestSettings( const FObjectInitializer& ObjectInitializer )
+/* UAutomationTestSettings interface
+*****************************************************************************/
+
+UAutomationTestSettings::UAutomationTestSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }

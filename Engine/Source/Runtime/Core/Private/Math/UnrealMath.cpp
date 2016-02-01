@@ -1186,20 +1186,25 @@ FQuat FQuat::SlerpFullPath_NotNormalized(const FQuat &quat1, const FQuat &quat2,
 
 FQuat FQuat::Squad(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha)
 {
-	const FQuat Q1 = FQuat::SlerpFullPath_NotNormalized(quat1, quat2, Alpha);
-	//UE_LOG(LogUnrealMath, Log, TEXT("Q1: %f %f %f %f"), Q1.X, Q1.Y, Q1.Z, Q1.W);
-
+	// Always slerp along the short path from quat1 to quat2 to prevent axis flipping.
+	// This approach is taken by OGRE engine, amongst others.
+	const FQuat Q1 = FQuat::Slerp_NotNormalized(quat1, quat2, Alpha);
 	const FQuat Q2 = FQuat::SlerpFullPath_NotNormalized(tang1, tang2, Alpha);
-	//UE_LOG(LogUnrealMath, Log, TEXT("Q2: %f %f %f %f"), Q2.X, Q2.Y, Q2.Z, Q2.W);
-
 	const FQuat Result = FQuat::SlerpFullPath(Q1, Q2, 2.f * Alpha * (1.f - Alpha));
-	//FQuat Result = FQuat::Slerp(Q1, Q2, 2.f * Alpha * (1.f - Alpha));
-	//UE_LOG(LogUnrealMath, Log, TEXT("Result: %f %f %f %f"), Result.X, Result.Y, Result.Z, Result.W);
 
 	return Result;
 }
 
-void FQuat::CalcTangents( const FQuat& PrevP, const FQuat& P, const FQuat& NextP, float Tension, FQuat& OutTan )
+FQuat FQuat::SquadFullPath(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha)
+{
+	const FQuat Q1 = FQuat::SlerpFullPath_NotNormalized(quat1, quat2, Alpha);
+	const FQuat Q2 = FQuat::SlerpFullPath_NotNormalized(tang1, tang2, Alpha);
+	const FQuat Result = FQuat::SlerpFullPath(Q1, Q2, 2.f * Alpha * (1.f - Alpha));
+
+	return Result;
+}
+
+void FQuat::CalcTangents(const FQuat& PrevP, const FQuat& P, const FQuat& NextP, float Tension, FQuat& OutTan)
 {
 	const FQuat InvP = P.Inverse();
 	const FQuat Part1 = (InvP * PrevP).Log();

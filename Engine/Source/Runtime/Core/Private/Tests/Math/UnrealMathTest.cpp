@@ -2,6 +2,7 @@
 
 #include "CorePrivatePCH.h" 
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealMathTest, Log, All);
 
@@ -1519,3 +1520,4 @@ bool FInterpolationFunctionTests::RunTest(const FString&)
 	return true;
 }
 
+#endif //WITH_DEV_AUTOMATION_TESTS

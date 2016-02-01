@@ -35,4 +35,7 @@ public:
 		return FString();
 	}
 	// End of UProperty interface
+
+	/** Generate the correct C++ code for the given text value */
+	static FString GenerateCppCodeForTextValue(const FText& InValue, const FString& Indent);
 };

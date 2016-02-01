@@ -1615,9 +1615,6 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 		UArrayProperty* Array = dynamic_cast<UArrayProperty*>( Property );
 		if( Array == NULL )
 		{
-			// todo: UE-22989 - This special case handling for FText properties can be removed when UE-22989 is fixed so that Import/ExportText on an FText property doesn't lose the namespace/key data
-			UTextProperty* TextProp = dynamic_cast<UTextProperty*>( Property );
-
 			for( int32 i=0; i<Property->ArrayDim; i++ )
 			{
 				if( Property->ArrayDim!=1 )
@@ -1625,27 +1622,14 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 					Key = FString::Printf(TEXT("%s[%i]"), *Property->GetName(), i);
 				}
 
-				bool bFoundValue = false;
-				if (TextProp)
+				FString Value;
+				const bool bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
+				if (bFoundValue)
 				{
-					FText Value;
-					bFoundValue = GConfig->GetText( *ClassSection, *Key, Value, *PropFileName );
-					if (bFoundValue)
+					if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
 					{
-						TextProp->SetPropertyValue_InContainer(this, Value, i);
-					}
-				}
-				else
-				{
-					FString Value;
-					bFoundValue = GConfig->GetString( *ClassSection, *Key, Value, *PropFileName );
-					if (bFoundValue)
-					{
-						if (Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(this, i), PortFlags, this) == NULL)
-						{
-							// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
-							UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
-						}
+						// this should be an error as the properties from the .ini / .int file are not correctly being read in and probably are affecting things in subtle ways
+						UE_LOG(LogObj, Error, TEXT("LoadConfig (%s): import failed for %s in: %s"), *GetPathName(), *Property->GetName(), *Value);
 					}
 				}
 
@@ -1678,30 +1662,10 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 				// Only override default properties if there is something to override them with.
 				if ( List.Num() > 0 )
 				{
-					// todo: UE-22989 - This special case handling for FText properties can be removed when UE-22989 is fixed so that Import/ExportText on an FText property doesn't lose the namespace/key data
-					UTextProperty* TextProp = dynamic_cast<UTextProperty*>( Array->Inner );
-
 					ArrayHelper.EmptyAndAddValues(List.Num());
-
-					if (TextProp)
+					for( int32 i=List.Num()-1,c=0; i>=0; i--,c++ )
 					{
-						for( int32 i=List.Num()-1,c=0; i>=0; i--,c++ )
-						{
-							FText Value;
-							if (!FParse::Text(*List[i], Value, *ClassSection))
-							{
-								Value = FText::FromString(*List[i]);
-							}
-
-							TextProp->SetPropertyValue(ArrayHelper.GetRawPtr(c), Value);
-						}
-					}
-					else
-					{
-						for( int32 i=List.Num()-1,c=0; i>=0; i--,c++ )
-						{
-							Array->Inner->ImportText( *List[i], ArrayHelper.GetRawPtr(c), PortFlags, this );
-						}
+						Array->Inner->ImportText( *List[i], ArrayHelper.GetRawPtr(c), PortFlags, this );
 					}
 				}
 				else
@@ -1854,78 +1818,12 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 					// Default ini's require the array syntax to be applied to the property name
 					FString CompleteKey = FString::Printf(TEXT("%s%s"), bIsADefaultIniWrite ? TEXT("+") : TEXT(""), *Key);
 
-					// todo: UE-22989 - This special case handling for FText properties can be removed when UE-22989 is fixed so that Import/ExportText on an FText property doesn't lose the namespace/key data
-					UTextProperty* TextProp = dynamic_cast<UTextProperty*>( Array->Inner );
-
 					FScriptArrayHelper_InContainer ArrayHelper(Array, this);
-
-					if (TextProp)
+					for( int32 i=0; i<ArrayHelper.Num(); i++ )
 					{
-						auto TextToConfigString = [](const FText& InText) -> FString
-						{
-							if (InText.IsTransient())
-							{
-								UE_LOG(LogConfig, Warning, TEXT( "UObject::SaveConfig() Transient FText"));
-								return FString(TEXT("Error: Transient FText"));
-							}
-
-							if (InText.IsCultureInvariant())
-							{
-								// todo: UE-22989 - This isn't really the correct way to handle culture invariant strings, but it mirrors the logic in FTextFriendHelper
-								return FString::Printf(
-									TEXT("NSLOCTEXT(\"\",\"\",\"%s\")" ), 
-									*InText.ToString().ReplaceCharWithEscapedChar().ReplaceQuotesWithEscapedQuotes()
-									);
-							}
-							else
-							{
-								const FString* SourceString = FTextInspector::GetSourceString(InText);
-								if (SourceString)
-								{
-									FTextDisplayStringRef DisplayString = FTextInspector::GetSharedDisplayString(InText);
-
-									FString LocNamespace;
-									FString LocKey;
-									const bool FoundNamespaceAndKey = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(DisplayString, LocNamespace, LocKey);
-
-									// If this has no namespace or key, attempt to give it a GUID for a key and register it.
-									if (!FoundNamespaceAndKey && GIsEditor)
-									{
-										LocKey = FGuid::NewGuid().ToString();
-										if (!FTextLocalizationManager::Get().AddDisplayString(DisplayString, LocNamespace, LocKey))
-										{
-											// Could not add display string, reset namespace and key.
-											LocNamespace.Empty();
-											LocKey.Empty();
-										}
-									}
-
-									return FString::Printf(
-										TEXT("NSLOCTEXT(\"%s\",\"%s\",\"%s\")" ), 
-										*LocNamespace, 
-										*LocKey, 
-										*InText.ToString().ReplaceCharWithEscapedChar().ReplaceQuotesWithEscapedQuotes()
-										);
-								}
-							}
-
-							return InText.ToString();
-						};
-
-						for( int32 i=0; i<ArrayHelper.Num(); i++ )
-						{
-							const FText* TextValuePtr = TextProp->GetPropertyValuePtr(ArrayHelper.GetRawPtr(i));
-							Sec->Add(*CompleteKey, TextToConfigString(*TextValuePtr));
-						}
-					}
-					else
-					{
-						for( int32 i=0; i<ArrayHelper.Num(); i++ )
-						{
-							FString	Buffer;
-							Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
-							Sec->Add(*CompleteKey, *Buffer);
-						}
+						FString	Buffer;
+						Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
+						Sec->Add(*CompleteKey, *Buffer);
 					}
 				}
 				else if( Property->Identical_InContainer(this, SuperClassDefaultObject) )
@@ -1952,20 +1850,9 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 							Key = TempKey;
 						}
 
-						// todo: UE-22989 - This special case handling for FText properties can be removed when UE-22989 is fixed so that Import/ExportText on an FText property doesn't lose the namespace/key data
-						UTextProperty* TextProp = dynamic_cast<UTextProperty*>( Property );
-
-						if (TextProp)
-						{
-							const FText* TextValuePtr = TextProp->GetPropertyValuePtr_InContainer(this, Index);
-							Config->SetText( *Section, *Key, *TextValuePtr, *PropFileName );
-						}
-						else
-						{
-							FString	Value;
-							Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
-							Config->SetString( *Section, *Key, *Value, *PropFileName );
-						}
+						FString	Value;
+						Property->ExportText_InContainer( Index, Value, this, this, this, PortFlags );
+						Config->SetString( *Section, *Key, *Value, *PropFileName );
 					}
 					else if( Property->Identical_InContainer(this, SuperClassDefaultObject, Index) )
 					{

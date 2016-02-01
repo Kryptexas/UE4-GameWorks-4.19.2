@@ -235,6 +235,22 @@ private:
 	void ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR* MeshName, FbxNode* FbxActor, bool bSelectedOnly);
 
 	/**
+	* Fill an fbx light with from a unreal light component
+	*@param ParentNode			The parent FbxNode the one over the light node
+	* @param Camera				Fbx light object
+	* @param CameraComponent	Unreal light component
+	*/
+	void FillFbxLightAttribute(FbxLight* Light, FbxNode* FbxParentNode, ULightComponent* BaseLight);
+
+	/**
+	* Fill an fbx camera with from a unreal camera component
+	* @param ParentNode			The parent FbxNode the one over the camera node
+	* @param Camera				Fbx camera object
+	* @param CameraComponent	Unreal camera component
+	*/
+	void FillFbxCameraAttribute(FbxNode* ParentNode, FbxCamera* Camera, UCameraComponent *CameraComponent);
+
+	/**
 	 * Adds FBX skeleton nodes to the FbxScene based on the skeleton in the given USkeletalMesh, and fills
 	 * the given array with the nodes created
 	 */
@@ -312,6 +328,7 @@ private:
 	/** recursively get skeleton */
 	void GetSkeleton(FbxNode* RootNode, TArray<FbxNode*>& BoneNodes);
 
+	bool FillFbxTextureProperty(const char *PropertyName, const FExpressionInput& MaterialInput, FbxSurfaceMaterial* FbxMaterial);
 	/**
 	 * Exports the profile_COMMON information for a material.
 	 */

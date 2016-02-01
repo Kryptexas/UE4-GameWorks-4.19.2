@@ -4,6 +4,8 @@
 #include "ModuleManager.h"
 #include "TestTimeInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 void FTestTimeInterface::Test(UWorld* InWorld)
 {
 	OnlineTime = Online::GetTimeInterface(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
@@ -40,3 +42,5 @@ void FTestTimeInterface::OnQueryServerUtcTimeComplete(bool bWasSuccessful, const
 	// done with the test
 	delete this;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

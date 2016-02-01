@@ -2,9 +2,9 @@
 
 #include "CorePrivatePCH.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 float TheCompilerDoesntKnowThisIsAlwaysZero = 0.0f;
-
 
 struct TestA
 {
@@ -100,3 +100,5 @@ bool FPlatformVerificationTest::RunTest (const FString& Parameters)
 
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

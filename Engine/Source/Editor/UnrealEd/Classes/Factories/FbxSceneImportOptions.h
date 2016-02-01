@@ -51,6 +51,14 @@ class UFbxSceneImportOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Transform)
 	float ImportUniformScale;
 
+	/** If this option is true the node absolute transform (transform, offset and pivot) will be apply to the mesh vertices. */
+	UPROPERTY()
+	bool bTransformVertexToAbsolute;
+
+	/** - Experimental - If this option is true the inverse node pivot will be apply to the mesh vertices. The pivot from the DCC will then be the origin of the mesh. */
+	UPROPERTY(EditAnywhere, config, category = Meshes)
+	bool bBakePivotInVertex;
+
 	/** If enabled, creates LOD models for Unreal static meshes from LODs in the import file; If not enabled, only the base static mesh from the LOD group is imported. */
 	UPROPERTY(EditAnywhere, config, category = Meshes)
 	uint32 bImportStaticMeshLODs : 1;
@@ -59,13 +67,9 @@ class UFbxSceneImportOptions : public UObject
 	UPROPERTY(EditAnywhere, config, category = Meshes)
 	uint32 bImportSkeletalMeshLODs : 1;
 
-	/** TODO - Name of the parent actor or the blueprint. This is ignore if the user choose to create level actors or an existing blueprint */
-	//UPROPERTY()
-	//FString ParentName;
-
-	/** TODO - If user choose existing blueprint, this is the path of the blueprint asset */
-	//UPROPERTY()
-	//FString ExistingBlueprintPath
+	/** If either importing of textures (or materials) is enabled, this option will cause normal map values to be inverted */
+	UPROPERTY(EditAnywhere, config, Category = Textures)
+	uint32 bInvertNormalMaps : 1;
 };
 
 

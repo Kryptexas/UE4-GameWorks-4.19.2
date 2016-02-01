@@ -263,7 +263,12 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 			
 			if (Property->GetClass() == UTextProperty::StaticClass())
 			{
-				return SetPropertyValue<UTextProperty, FText>(Property, Outer, Data, ArrayIndex, FText::FromString(StringValue));
+				FText TextValue;
+				if (!FTextStringHelper::ReadFromString(*StringValue, TextValue))
+				{
+					TextValue = FText::FromString(StringValue);
+				}
+				return SetPropertyValue<UTextProperty, FText>(Property, Outer, Data, ArrayIndex, TextValue);
 			}
 
 			if (Property->GetClass() == UByteProperty::StaticClass())

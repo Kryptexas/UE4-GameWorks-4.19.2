@@ -63,6 +63,8 @@ ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
 			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Decals;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Decals;
 			SpriteComponent->AttachParent = Decal;
 			SpriteComponent->bIsScreenSizeScaled = true;
 			SpriteComponent->bAbsoluteScale = true;

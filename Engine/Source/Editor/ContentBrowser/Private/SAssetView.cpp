@@ -3496,6 +3496,14 @@ bool SAssetView::AssetVerifyRenameCommit(const TSharedPtr<FAssetViewItem>& Item,
 			return true;
 		}
 	}
+	else
+	{
+		const TSharedPtr<FAssetViewFolder>& ItemAsFolder = StaticCastSharedPtr<FAssetViewFolder>(Item);
+		if (NewNameString == ItemAsFolder->FolderName.ToString())
+		{
+			return true;
+		}
+	}
 
 	if ( bIsAssetType )
 	{

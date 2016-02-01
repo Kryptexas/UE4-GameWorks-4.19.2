@@ -380,6 +380,9 @@ void UAudioComponent::UpdateSpriteTexture()
 {
 	if (SpriteComponent)
 	{
+		SpriteComponent->SpriteInfo.Category = TEXT("Sounds");
+		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Sounds", "Sounds");
+
 		if (bAutoActivate)
 		{
 			SpriteComponent->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent_AutoActivate.S_AudioComponent_AutoActivate")));

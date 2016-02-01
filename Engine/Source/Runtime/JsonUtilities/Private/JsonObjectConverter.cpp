@@ -49,6 +49,10 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 	{
 		return MakeShareable(new FJsonValueString(StringProperty->GetPropertyValue(Value)));
 	}
+	else if (UTextProperty *TextProperty = Cast<UTextProperty>(Property))
+	{
+		return MakeShareable(new FJsonValueString(TextProperty->GetPropertyValue(Value).ToString()));
+	}
 	else if (UArrayProperty *ArrayProperty = Cast<UArrayProperty>(Property))
 	{
 		TArray< TSharedPtr<FJsonValue> > Out;

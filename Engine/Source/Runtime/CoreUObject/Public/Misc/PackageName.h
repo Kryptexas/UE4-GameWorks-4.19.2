@@ -100,6 +100,13 @@ public:
 	 */
 	static bool IsValidLongPackageName(const FString& InLongPackageName, bool bIncludeReadOnlyRoots = false, FText* OutReason = NULL);
 	/**
+	 * Returns whether the specified long package name is an engine package.
+	 *
+	 * @param InLongPackageName Long Package Name
+	 * @return true if it is an Engine package.
+	 */
+	static bool IsEnginePackageName(const FString& InLongPackageName);
+	/**
 	 * Checks if the given string is a long package name or not.
 	 *
 	 * @param PossiblyLongName Package name.

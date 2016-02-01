@@ -132,15 +132,65 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 
 		// Find any static mesh components that use this mesh and fixup their override colors if necessary.
 		// Also invalidate lighting. *** WARNING components may be reattached here! ***
-		for( TObjectIterator<UStaticMeshComponent> It; It; ++It )
+		const uint32 NumLODs = RenderData->LODResources.Num();
+		for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
 		{
 			if ( It->StaticMesh == this )
 			{
-				It->FixupOverrideColorsIfNecessary( true );
+				// Initialize override vertex colors on any new LODs which have just been created
+				It->SetLODDataCount(NumLODs, It->LODData.Num());
+
+				FStaticMeshComponentLODInfo& LOD0Info = It->LODData[0];
+				if (LOD0Info.OverrideVertexColors)
+				{
+					for (uint32 LODIndex = 1; LODIndex < NumLODs; ++LODIndex)
+					{
+						FStaticMeshComponentLODInfo& LODInfo = It->LODData[LODIndex];
+
+						if (LODInfo.OverrideVertexColors == nullptr && LODInfo.PaintedVertices.Num() == 0)
+						{
+							LODInfo.OverrideVertexColors = new FColorVertexBuffer;
+
+							FStaticMeshLODResources& CurRenderData = RenderData->LODResources[LODIndex];
+
+							TArray<FColor> NewOverrideColors;
+
+							if (LOD0Info.PaintedVertices.Num() > 0)
+							{
+								// Build override colors for LOD, based on LOD0
+								RemapPaintedVertexColors(
+									LOD0Info.PaintedVertices,
+									*LOD0Info.OverrideVertexColors,
+									CurRenderData.PositionVertexBuffer,
+									&CurRenderData.VertexBuffer,
+									NewOverrideColors
+									);
+							}
+							if (NewOverrideColors.Num())
+							{
+								LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
+
+								// Update the PaintedVertices array
+								const int32 NumVerts = CurRenderData.GetNumVertices();
+								check(NumVerts == NewOverrideColors.Num());
+
+								LODInfo.PaintedVertices.Reserve(NumVerts);
+								for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+								{
+									FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
+									Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
+									Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
+									Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
+								}
+							}
+						}
+					}
+				}
+
+				It->FixupOverrideColorsIfNecessary(true);
 				It->InvalidateLightingCache();
 			}
 		}
-
 	}
 
 	// Calculate extended bounds

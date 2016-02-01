@@ -485,10 +485,19 @@ public:
 		return SlerpFullPath_NotNormalized(quat1, quat2, Alpha).GetNormalized();
 	}
 	
-	/** Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized. */
+	/**
+	 * Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized.
+	 * This will correct alignment by ensuring that the shortest path is taken.
+	 */
 	static CORE_API FQuat Squad( const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha );
 
-	/** 
+	/**
+	 * Simpler Squad that doesn't do any checks for 'shortest distance' etc.
+	 * Given start and end quaternions of quat1 and quat2, and tangents at those points tang1 and tang2, calculate the point at Alpha (between 0 and 1) between them. Result is normalized.
+	 */
+	static CORE_API FQuat SquadFullPath(const FQuat& quat1, const FQuat& tang1, const FQuat& quat2, const FQuat& tang2, float Alpha);
+
+	/**
 	 * Calculate tangents between given points
 	 *
 	 * @param PrevP quaternion at P-1

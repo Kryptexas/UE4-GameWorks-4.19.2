@@ -8,6 +8,7 @@
 // Module includes
 #include "OnlineUserInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 /**
  * Class used to test the User interface
@@ -67,3 +68,5 @@ public:
 	 */
 	void Test(class UWorld* InWorld, const TArray<FString>& InUserIds);
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

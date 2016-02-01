@@ -254,50 +254,13 @@ const TCHAR* UPropertyHelpers::ReadToken( const TCHAR* Buffer, FString& String, 
 {
 	if( *Buffer == TCHAR('"') )
 	{
-		// Get quoted string.
-		Buffer++;
-		while( *Buffer && *Buffer!=TCHAR('"') && *Buffer!=TCHAR('\n') && *Buffer!=TCHAR('\r') )
-		{
-			if( *Buffer != TCHAR('\\') ) // unescaped character
-			{
-				String += *Buffer++;
-			}
-			else if( *++Buffer==TCHAR('\\') ) // escaped backslash "\\"
-			{
-				String += TEXT("\\");
-				Buffer++;
-			}
-			else if ( *Buffer == TCHAR('\"') ) // escaped double quote "\""
-			{
-				String += TCHAR('"');
-				Buffer++;
-			}
-			else if (*Buffer == TCHAR('\'')) // escaped single quote "\'"
-			{
-				String += TCHAR('\'');
-				Buffer++;
-			}
-			else if ( *Buffer == TCHAR('n') ) // escaped newline
-			{
-				String += TCHAR('\n');
-				Buffer++;
-			}
-			else if ( *Buffer == TCHAR('r') ) // escaped carriage return
-			{
-				String += TCHAR('\r');
-				Buffer++;
-			}
-			else // some other escape sequence, assume it's a hex character value
-			{
-				String = FString::Printf(TEXT("%s%c"), *String, FParse::HexDigit(Buffer[0])*16 + FParse::HexDigit(Buffer[1]));
-				Buffer += 2;
-			}
-		}
-		if( *Buffer++ != TCHAR('"') )
+		int32 NumCharsRead = 0;
+		if (!FParse::QuotedString(Buffer, String, &NumCharsRead))
 		{
 			UE_LOG(LogProperty, Warning, TEXT("ReadToken: Bad quoted string") );
-			return NULL;
+			return nullptr;
 		}
+		Buffer += NumCharsRead;
 	}
 	else if( FChar::IsAlnum( *Buffer ) || (DottedNames && (*Buffer==TCHAR('/'))) || (*Buffer > 255) )
 	{

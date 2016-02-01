@@ -1814,6 +1814,9 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 			{
 				if(!CurrentString.StartsWith(TEXT("Graphs=(")))
 				{
+					// The interfaces end with ' because of the path reference, so remove it.
+					InterfaceName.RemoveFromEnd("'");
+
 					UnloadedBlueprintData->AddImplementedInterfaces(InterfaceName);
 				}
 			}

@@ -1269,6 +1269,11 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 			bScreenshotSuccessful = FSlateApplication::Get().TakeScreenshot( WindowRef, Bitmap, Size);
 			GScreenshotResolutionX = Size.X;
 			GScreenshotResolutionY = Size.Y;
+
+			if (Size.X == 0 || Size.Y == 0)
+			{
+				bScreenshotSuccessful = false;
+			}
 		}
 		else
 		{
@@ -1311,8 +1316,6 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 				TArray<uint8> CompressedBitmap;
 				FImageUtils::CompressImageArray(Size.X, Size.Y, Bitmap, CompressedBitmap);
 				FFileHelper::SaveArrayToFile(CompressedBitmap, *ScreenShotName);
-
-//				FFileHelper::CreateBitmap(*ScreenShotName, InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, Bitmap.GetData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
 			}
 		}
 

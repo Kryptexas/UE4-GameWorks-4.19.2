@@ -5,6 +5,12 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_Distance.h"
 
+#if !WITH_DEV_AUTOMATION_TESTS
+
+UEnvQueryTest_Distance::UEnvQueryTest_Distance(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
+
+#else
+
 namespace
 {
 	FORCEINLINE float CalcDistance3D(const FVector& PosA, const FVector& PosB)
@@ -142,3 +148,5 @@ FText UEnvQueryTest_Distance::GetDescriptionDetails() const
 {
 	return DescribeFloatTestParams();
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

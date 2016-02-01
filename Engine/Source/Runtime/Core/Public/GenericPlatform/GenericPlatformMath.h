@@ -614,8 +614,10 @@ struct FGenericPlatformMath
 		return CurMax;
 	}
 
+#if WITH_DEV_AUTOMATION_TESTS
 	/** Test some of the tricky functions above **/
 	static void AutoTest();
+#endif
 
 private:
 

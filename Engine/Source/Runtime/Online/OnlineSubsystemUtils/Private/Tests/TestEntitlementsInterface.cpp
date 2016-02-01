@@ -4,6 +4,8 @@
 #include "ModuleManager.h"
 #include "TestEntitlementsInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 void FTestEntitlementsInterface::Test(UWorld* InWorld)
 {
 	IOnlineSubsystem* OSS = Online::GetSubsystem(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
@@ -87,3 +89,5 @@ void FTestEntitlementsInterface::OnQueryEntitlementsComplete(bool bWasSuccessful
 	bQueryEntitlements = false;
 	StartNextTest();
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

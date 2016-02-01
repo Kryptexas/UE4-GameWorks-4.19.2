@@ -5,6 +5,8 @@
 #include "OnlineIdentityInterface.h"
 #include "ModuleManager.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  *	Example of a leaderboard write object
  */
@@ -146,3 +148,5 @@ bool FTestLeaderboardInterface::Tick( float DeltaTime )
 	}
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

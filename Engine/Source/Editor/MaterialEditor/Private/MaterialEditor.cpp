@@ -1086,9 +1086,19 @@ bool FMaterialEditor::SetPreviewAssetByName(const TCHAR* InAssetName)
 
 void FMaterialEditor::SetPreviewMaterial(UMaterialInterface* InMaterialInterface)
 {
-	if (PreviewViewport.IsValid())
+	if (Material->IsUIMaterial())
 	{
-		PreviewViewport->SetPreviewMaterial(InMaterialInterface);
+		if (PreviewUIViewport.IsValid())
+		{
+			PreviewUIViewport->SetPreviewMaterial(InMaterialInterface);
+		}
+	}
+	else
+	{
+		if (PreviewViewport.IsValid())
+		{
+			PreviewViewport->SetPreviewMaterial(InMaterialInterface);
+		}
 	}
 }
 
@@ -2308,6 +2318,7 @@ void FMaterialEditor::OnPreviewNode()
 			UMaterialGraphNode* GraphNode = Cast<UMaterialGraphNode>(*NodeIt);
 			if (GraphNode)
 			{
+				GraphEditor->NotifyGraphChanged();
 				SetPreviewExpression(GraphNode->MaterialExpression);
 			}
 		}
@@ -2830,8 +2841,12 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 		if( ExpressionPreviewMaterial == NULL )
 		{
 			// Create the expression preview material if it hasnt already been created
-			ExpressionPreviewMaterial = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Public);
+			ExpressionPreviewMaterial = NewObject<UPreviewMaterial>(GetTransientPackage(), NAME_None, RF_Public);
 			ExpressionPreviewMaterial->bIsPreviewMaterial = true;
+			if (Material->IsUIMaterial())
+			{
+				ExpressionPreviewMaterial->MaterialDomain = MD_UI;
+			}
 		}
 
 		if (FunctionOutput)
@@ -3375,6 +3390,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 			}
 
 			NewExpression->UpdateParameterGuid(true, true);
+			Material->AddExpressionParameter(NewExpression, Material->EditorParameters);
 
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>( NewExpression );
 			if( FunctionInput )
@@ -3561,6 +3577,20 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			Material->MaterialGraph->RebuildGraph();
 			TArray<TWeakObjectPtr<UObject>> SelectedObjects = MaterialDetailsView->GetSelectedObjects();
 			MaterialDetailsView->SetObjects( SelectedObjects, true );
+
+			if (ExpressionPreviewMaterial)
+			{
+				if (Material->IsUIMaterial())
+				{
+					ExpressionPreviewMaterial->MaterialDomain = MD_UI;
+				}
+				else
+				{
+					ExpressionPreviewMaterial->MaterialDomain = MD_Surface;
+				}
+
+				SetPreviewMaterial(ExpressionPreviewMaterial);
+			}
 
 			UpdatePreviewViewportsVisibility();
 		}

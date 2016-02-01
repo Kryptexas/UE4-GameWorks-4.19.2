@@ -198,8 +198,6 @@
 #include "Classes/Factories/FbxImportUI.h"
 #include "Classes/Factories/FbxSceneImportData.h"
 #include "Classes/Factories/FbxSceneImportOptions.h"
-#include "Classes/Factories/FbxSceneImportOptionsAnimation.h"
-#include "Classes/Factories/FbxSceneImportOptionsMaterial.h"
 #include "Classes/Factories/FbxSceneImportOptionsSkeletalMesh.h"
 #include "Classes/Factories/FbxSceneImportOptionsStaticMesh.h"
 #include "Classes/Commandlets/FileServerCommandlet.h"

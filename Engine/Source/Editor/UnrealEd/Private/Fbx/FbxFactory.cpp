@@ -369,11 +369,15 @@ UObject* UFbxFactory::FactoryCreateBinary
 								{
 									if (Node->GetChildCount() > LODIndex)
 									{
-										SkelMeshNodeArray.Add(Node->GetChild(LODIndex));
+										FbxNode *MeshNode = FbxImporter->FindLODGroupNode(Node, LODIndex);
+										if(MeshNode != nullptr)
+											SkelMeshNodeArray.Add(MeshNode);
 									}
 									else // in less some LODGroups have less level, use the last level
 									{
-										SkelMeshNodeArray.Add(Node->GetChild(Node->GetChildCount() - 1));
+										FbxNode *MeshNode = FbxImporter->FindLODGroupNode(Node, Node->GetChildCount() - 1);
+										if(MeshNode != nullptr)
+											SkelMeshNodeArray.Add(MeshNode);
 									}
 								}
 								else
@@ -505,12 +509,14 @@ UObject* UFbxFactory::FactoryCreateBinary
 UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode, UObject* InParent, FName InName, EObjectFlags Flags, int32& NodeIndex, int32 Total, TArray<UObject*>& OutNewAssets)
 {
 	UObject* NewObject = NULL;
-
+	UnFbx::FFbxImporter *FbxImporter = (UnFbx::FFbxImporter *)VoidFbxImporter;
 	FbxNode* Node = (FbxNode*)VoidNode;
 	if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup && Node->GetChildCount() > 0 )
 	{
 		// import base mesh
-		NewObject = ImportANode(VoidFbxImporter, Node->GetChild(0), InParent, InName, Flags, NodeIndex, Total);
+		FbxNode *MeshNode = FbxImporter->FindLODGroupNode(Node, 0);
+		if(MeshNode != nullptr)
+			NewObject = ImportANode(VoidFbxImporter, MeshNode, InParent, InName, Flags, NodeIndex, Total);
 
 		if ( NewObject )
 		{
@@ -536,8 +542,9 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 			// import LOD meshes
 			for (int32 LODIndex = 1; LODIndex < Node->GetChildCount(); LODIndex++)
 			{
-				FbxNode* ChildNode = Node->GetChild(LODIndex);
-				ImportANode(VoidFbxImporter, ChildNode, InParent, InName, Flags, NodeIndex, Total, NewObject, LODIndex);
+				FbxNode* ChildNode = FbxImporter->FindLODGroupNode(Node, LODIndex);
+				if(ChildNode != nullptr)
+					ImportANode(VoidFbxImporter, ChildNode, InParent, InName, Flags, NodeIndex, Total, NewObject, LODIndex);
 			}
 		}
 	}

@@ -5503,7 +5503,10 @@ void UEditorEngine::NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*
 		PropertyEditorModule.ReplaceViewedObjects( OldToNewInstanceMap );
 	}
 
-	// Check to see if any selected components were reinstanced
+	// Allow any other observers to act upon the object replacement
+	BroadcastObjectsReplaced(OldToNewInstanceMap);
+
+	// Check to see if any selected components were reinstanced, as a final step.
 	USelection* ComponentSelection = GetSelectedComponents();
 	if (ComponentSelection)
 	{
@@ -5527,8 +5530,6 @@ void UEditorEngine::NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*
 		}
 		ComponentSelection->EndBatchSelectOperation();
 	}
-	
-	BroadcastObjectsReplaced(OldToNewInstanceMap);
 }
 
 void UEditorEngine::DisableRealtimeViewports()

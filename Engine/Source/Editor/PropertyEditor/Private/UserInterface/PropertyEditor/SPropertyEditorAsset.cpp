@@ -513,6 +513,44 @@ FText SPropertyEditorAsset::OnGetToolTip() const
 	return ToolTip;
 }
 
+bool SPropertyEditorAsset::HasEngineOuterObject() const
+{
+	if (PropertyEditor.IsValid())
+	{
+		// Determine whether any outer object is an Engine asset
+		TArray<UObject*> OuterObjects;
+		PropertyEditor->GetPropertyHandle()->GetOuterObjects(OuterObjects);
+		for (UObject* OuterObject : OuterObjects)
+		{
+			const FAssetData AssetData(OuterObject);
+			const FString AssetPath = AssetData.ObjectPath.ToString();
+			if (FPackageName::IsEnginePackageName(AssetPath))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool SPropertyEditorAsset::CanAssetBeAssigned(const FAssetData& AssetData) const
+{
+	// Prevent Engine assets being assigned non-Engine asset properties
+	const bool bHasEngineOuterObject = HasEngineOuterObject();
+	const FString AssetPath = AssetData.ObjectPath.ToString();
+	if (bHasEngineOuterObject && !FPackageName::IsEnginePackageName(AssetPath))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+			LOCTEXT("ObjectAssignmentToEngineFailed", "Cannot assign a Project object {0} to an Engine property."),
+			FText::FromString(AssetPath)));
+
+		return false;
+	}
+
+	return true;
+}
+
 void SPropertyEditorAsset::SetValue( const FAssetData& AssetData )
 {
 	AssetComboButton->SetIsOpen(false);
@@ -523,7 +561,10 @@ void SPropertyEditorAsset::SetValue( const FAssetData& AssetData )
 	{
 		if(PropertyEditor.IsValid())
 		{
-			PropertyEditor->GetPropertyHandle()->SetValue(AssetData);
+			if (CanAssetBeAssigned(AssetData))
+			{
+				PropertyEditor->GetPropertyHandle()->SetValue(AssetData);
+			}
 		}
 
 		OnSetObject.ExecuteIfBound(AssetData);
@@ -708,27 +749,30 @@ FText SPropertyEditorAsset::GetOnBrowseToolTip() const
 
 void SPropertyEditorAsset::OnUse()
 {
-	if(PropertyEditor.IsValid())
+	// Load selected assets
+	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
+
+	// try to get a selected object of our class
+	UObject* Selection = NULL;
+	if (ObjectClass && ObjectClass->IsChildOf(AActor::StaticClass()))
 	{
-		PropertyEditor->GetPropertyHandle()->SetObjectValueFromSelection();
+		Selection = GEditor->GetSelectedActors()->GetTop(ObjectClass);
+	}
+	else if (ObjectClass)
+	{
+		// Get the first material selected
+		Selection = GEditor->GetSelectedObjects()->GetTop(ObjectClass);
+	}
+
+	if (PropertyEditor.IsValid())
+	{
+		if (Selection && CanAssetBeAssigned(Selection))
+		{
+			PropertyEditor->GetPropertyHandle()->SetObjectValueFromSelection();
+		}
 	}
 	else
 	{
-		// Load selected assets
-		FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-
-		// try to get a selected object of our class
-		UObject* Selection = NULL;
-		if( ObjectClass && ObjectClass->IsChildOf( AActor::StaticClass() ) )
-		{
-			Selection = GEditor->GetSelectedActors()->GetTop( ObjectClass );
-		}
-		else if( ObjectClass )
-		{
-			// Get the first material selected
-			Selection = GEditor->GetSelectedObjects()->GetTop( ObjectClass );
-		}
-
 		// Check against custom asset filter
 		if (Selection != NULL
 			&& OnShouldFilterAsset.IsBound()

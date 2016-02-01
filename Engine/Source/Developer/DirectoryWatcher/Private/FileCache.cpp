@@ -564,9 +564,6 @@ TOptional<FString> FFileCache::GetTransactionPath(const FString& InAbsolutePath)
 
 void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FFileData>& InDirtyFiles, TArray<FUpdateCacheTransaction>& OutTransactions, const FDirectoryState* InFileSystemState) const
 {
-	TArray<uint8> ScratchBuffer;
-	ScratchBuffer.SetNumUninitialized(1024*1024);
-
 	TMap<FImmutableString, FFileData> AddedFiles, ModifiedFiles;
 	TSet<FImmutableString> RemovedFiles, InvalidDirtyFiles;
 

@@ -11,6 +11,8 @@
 
 #include "Matinee/MatineeActor.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationLatentCommand, Log, All);
 DEFINE_LOG_CATEGORY(LogEditorAutomationTests);
 DEFINE_LOG_CATEGORY(LogEngineAutomationTests);
@@ -256,3 +258,5 @@ bool FExecWorldStringLatentCommand::Update()
 	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *ExecCommand);
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

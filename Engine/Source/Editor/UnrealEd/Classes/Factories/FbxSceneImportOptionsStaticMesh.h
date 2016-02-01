@@ -53,10 +53,6 @@ class UFbxSceneImportOptionsStaticMesh : public UObject
 	//////////////////////////////////////////////////////////////////////////
 	// Static Mesh section
 
-	/** If this option is true the staticmesh absolute transform will be apply to the staticmesh vertices. */
-	UPROPERTY()
-	bool bTransformVertexToAbsolute;
-
 	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */
 	UPROPERTY()
 	FName StaticMeshLODGroup;

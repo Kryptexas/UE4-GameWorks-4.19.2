@@ -9,6 +9,8 @@
 #include "Voice.h"
 #include "Runtime/Engine/Classes/Sound/SoundWaveProcedural.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 FTestVoice::FTestVoice() :
 	VoiceComp(NULL),
 	VoiceCapture(NULL),
@@ -215,3 +217,5 @@ bool FTestVoice::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 	}
 	return bWasHandled;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

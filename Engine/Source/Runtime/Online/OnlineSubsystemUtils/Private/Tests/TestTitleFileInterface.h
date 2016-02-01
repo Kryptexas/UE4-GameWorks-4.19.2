@@ -4,6 +4,8 @@
 
 #include "OnlineTitleFileInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 class FTestTitleFileInterface
 {
 public:
@@ -41,3 +43,5 @@ private:
 	/** Async file reads still pending completion */
 	int32 NumPendingFileReads;
 };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

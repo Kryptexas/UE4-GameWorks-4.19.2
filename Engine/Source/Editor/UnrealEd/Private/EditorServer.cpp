@@ -3403,12 +3403,30 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 				// List of group actors in the selection
 				TArray<AGroupActor*> GroupActors;
 
-				// Move the actors.
+				struct FAttachData
+				{
+					FAttachData(AActor* InParentActor, FName InSocketName)
+						: ParentActor(InParentActor)
+						, SocketName(InSocketName)
+					{}
+
+					AActor* ParentActor;
+					FName SocketName;
+				};
+
+				TArray<FAttachData, TInlineAllocator<8>> AttachData;
+				AttachData.Reserve(NumActorsToMove);
+
+				// Break any parent attachments and move the actors.
 				AActor* SingleActor = NULL;
 				for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 				{
 					AActor* Actor = static_cast<AActor*>( *It );
-					checkSlow( Actor->IsA(AActor::StaticClass()) );
+
+					AActor* ParentActor = Actor->GetAttachParentActor();
+					FName SocketName = Actor->GetAttachParentSocketName();
+					Actor->DetachRootComponentFromParent(true);
+					AttachData.Emplace(ParentActor, SocketName);
 
 					// If this actor is in a group, add it to the list
 					if (GEditor->bGroupingActive)
@@ -3422,7 +3440,16 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 
 					SingleActor = Actor;
 					Actor->SetActorLocation(Actor->GetActorLocation() + Adjust, false);
+				}
+
+				// Restore attachments
+				int Index = 0;
+				for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+				{
+					AActor* Actor = static_cast<AActor*>(*It);
+					Actor->AttachRootComponentToActor(AttachData[Index].ParentActor, AttachData[Index].SocketName, EAttachLocation::KeepWorldPosition);
 					Actor->PostEditMove(true);
+					Index++;
 				}
 
 				// Update the pivot location.

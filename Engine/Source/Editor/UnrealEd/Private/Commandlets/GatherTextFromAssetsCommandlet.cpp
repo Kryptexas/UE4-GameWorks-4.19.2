@@ -10,6 +10,7 @@
 #include "Sound/DialogueWave.h"
 #include "Sound/DialogueVoice.h"
 #include "Engine/DataTable.h"
+#include "EditorObjectVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromAssetsCommandlet, Log, All);
 
@@ -450,6 +451,8 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			(*FileReader) << PackageFileSummary;
 
 			bool MustLoadForGather = bSkipGatherCache;
+
+			const FCustomVersion* const EditorVersion = PackageFileSummary.GetCustomVersionContainer().GetVersion(FEditorObjectVersion::GUID);
 
 			// Packages not resaved since localization gathering flagging was added to packages must be loaded.
 			if (PackageFileSummary.GetFileVersionUE4() < VER_UE4_PACKAGE_REQUIRES_LOCALIZATION_GATHER_FLAGGING)

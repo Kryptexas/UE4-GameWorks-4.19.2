@@ -9,6 +9,12 @@
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
+#if !WITH_DEV_AUTOMATION_TESTS
+
+UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
+
+#else
+
 UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Context = UEnvQueryContext_Querier::StaticClass();
@@ -229,3 +235,5 @@ ANavigationData* UEnvQueryTest_Pathfinding::FindNavigationData(UNavigationSystem
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //WITH_DEV_AUTOMATION_TESTS

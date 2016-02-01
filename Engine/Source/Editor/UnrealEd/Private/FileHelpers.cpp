@@ -1464,7 +1464,7 @@ ECommandResult::Type FEditorFileUtils::CheckoutPackages(const TArray<UPackage*>&
 	}
 
 	// If any packages failed the check out process, report them to the user so they know
-	if ( CheckOutResult == ECommandResult::Failed )
+	if ( !PkgsWhichFailedCheckout.IsEmpty() )
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Packages"), FText::FromString( PkgsWhichFailedCheckout ));
@@ -3349,14 +3349,26 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 	}
 }
 
-void FEditorFileUtils::FindAllConfigFiles(TArray<FString>& OutConfigFiles)
+static void FindAllConfigFilesRecursive(TArray<FString>& OutConfigFiles, const FString& ParentDirectory)
 {
 	TArray<FString> IniFilenames;
-	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::GameConfigDir() / TEXT("*.ini")), true, false);
+	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::GameConfigDir() / ParentDirectory / TEXT("*.ini")), true, false);
 	for (const FString& IniFilename : IniFilenames)
 	{
-		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir() / IniFilename));
+		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir() / ParentDirectory / IniFilename));
 	}
+
+	TArray<FString> Subdirectories;
+	IFileManager::Get().FindFiles(Subdirectories, *(FPaths::GameConfigDir() / ParentDirectory / TEXT("*")), false, true);
+	for (const FString& Subdirectory : Subdirectories)
+	{
+		FindAllConfigFilesRecursive(OutConfigFiles, ParentDirectory / Subdirectory);
+	}
+}
+
+void FEditorFileUtils::FindAllConfigFiles(TArray<FString>& OutConfigFiles)
+{
+	FindAllConfigFilesRecursive(OutConfigFiles, FString());
 }
 
 void FEditorFileUtils::FindAllSubmittableConfigFiles(TMap<FString, TSharedPtr<class ISourceControlState, ESPMode::ThreadSafe> >& OutConfigFiles)

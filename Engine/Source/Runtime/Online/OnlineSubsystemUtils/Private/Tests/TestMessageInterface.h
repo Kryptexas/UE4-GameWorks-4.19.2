@@ -5,6 +5,8 @@
 #include "Core.h"
 #include "OnlineMessageInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  * Class used to test the online messaging interface
  */
@@ -84,3 +86,5 @@ public:
 	 */
 	void Test(class UWorld* InWorld, const TArray<FString>& InRecipients);
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

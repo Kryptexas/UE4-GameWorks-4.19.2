@@ -39,6 +39,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Dot)
 	bool bAbsoluteValue;
 
+#if WITH_DEV_AUTOMATION_TESTS
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
@@ -59,4 +60,5 @@ protected:
 
 	/** helper function: check if contexts are updated per item */
 	bool RequiresPerItemUpdates(TSubclassOf<UEnvQueryContext> LineFrom, TSubclassOf<UEnvQueryContext> LineTo, TSubclassOf<UEnvQueryContext> LineDirection, bool bUseDirectionContext) const;
+#endif
 };

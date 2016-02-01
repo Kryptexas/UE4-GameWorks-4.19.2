@@ -1536,7 +1536,7 @@ void UnFbx::FFbxImporter::SetupAnimationDataFromMesh(USkeletalMesh* SkeletalMesh
 	}
 }
 
-USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UFbxSkeletalMeshImportData* TemplateImportData)
+USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UFbxSkeletalMeshImportData* TemplateImportData, uint64 SkeletalMeshFbxUID, TArray<FbxNode*> *OutSkeletalMeshArray)
 {
 	if ( !ensure(Mesh) )
 	{
@@ -1555,6 +1555,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 	TArray<FbxNode*>* FbxNodes = NULL;
 	USkeletalMesh* NewMesh = NULL;
 
+	bool Old_ImportRigidMesh = ImportOptions->bImportRigidMesh;
+	bool Old_ImportMaterials = ImportOptions->bImportMaterials;
+	bool Old_ImportTextures = ImportOptions->bImportTextures;
+	bool Old_ImportAnimations = ImportOptions->bImportAnimations;
+
 	// support to update rigid animation mesh
 	ImportOptions->bImportRigidMesh = true;
 
@@ -1563,16 +1568,52 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 	TArray< TArray<FbxNode*>* > FbxSkelMeshArray;
 	FillFbxSkelMeshArrayInScene(Scene->GetRootNode(), FbxSkelMeshArray, false);
 
-	// if there is only one mesh, use it without name checking 
-	// (because the "Used As Full Name" option enables users name the Unreal mesh by themselves
-	if (FbxSkelMeshArray.Num() > 0 )
+	if(SkeletalMeshFbxUID != 0xFFFFFFFFFFFFFFFF)
 	{
-		FbxNodes = FbxSkelMeshArray[0];
+		//Scene reimport know which skeletal mesh we want to reimport
+		for (TArray<FbxNode*>*SkeletalMeshNodes : FbxSkelMeshArray)
+		{
+			if (SkeletalMeshNodes->Num() > 0)
+			{
+				FbxNode *Node = (*SkeletalMeshNodes)[0];
+				FbxNode *SkeletalMeshNode = Node;
+				if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+				{
+					SkeletalMeshNode = FindLODGroupNode(Node, 0);
+				}
+
+				if (SkeletalMeshNode != nullptr && SkeletalMeshNode->GetNodeAttribute() && SkeletalMeshNode->GetNodeAttribute()->GetUniqueID() == SkeletalMeshFbxUID)
+				{
+					FbxNodes = SkeletalMeshNodes;
+					if (OutSkeletalMeshArray != nullptr)
+					{
+						for (FbxNode *NodeReimport : (*SkeletalMeshNodes))
+						{
+							OutSkeletalMeshArray->Add(NodeReimport);
+						}
+					}
+					break;
+				}
+			}
+			if (FbxNodes != nullptr)
+				break;
+		}
+		if (FbxNodes == nullptr)
+			return nullptr;
 	}
 	else
 	{
-		// @todo - FBX Importing - We need proper support for reimport if the file contains more than one skeletal mesh. 
+		// if there is only one mesh, use it without name checking 
+		// (because the "Used As Full Name" option enables users name the Unreal mesh by themselves
+		if (FbxSkelMeshArray.Num() > 0)
+		{
+			FbxNodes = FbxSkelMeshArray[0];
+		}
+		else
+		{
+			// @todo - FBX Importing - We need proper support for reimport if the file contains more than one skeletal mesh. 
 
+		}
 	}
 
 	if (FbxNodes)
@@ -1609,11 +1650,15 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 				{
 					if (Node->GetChildCount() > LODIndex)
 					{
-						SkelMeshNodeArray.Add(Node->GetChild(LODIndex));
+						FbxNode *MeshNode = FindLODGroupNode(Node, LODIndex);
+						if(MeshNode != nullptr)
+							SkelMeshNodeArray.Add(MeshNode);
 					}
 					else // in less some LODGroups have less level, use the last level
 					{
-						SkelMeshNodeArray.Add(Node->GetChild(Node->GetChildCount() - 1));
+						FbxNode *MeshNode = FindLODGroupNode(Node, Node->GetChildCount() - 1);
+						if (MeshNode != nullptr)
+							SkelMeshNodeArray.Add(MeshNode);
 					}
 				}
 				else
@@ -1654,6 +1699,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 		// no mesh found in the FBX file
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_NoFBXMeshMatch", "No FBX mesh matches the Unreal mesh '{0}'."), FText::FromString(Mesh->GetName()))), FFbxErrors::Generic_Mesh_MeshNotFound);
 	}
+
+	ImportOptions->bImportRigidMesh = Old_ImportRigidMesh;
+	ImportOptions->bImportMaterials = Old_ImportMaterials;
+	ImportOptions->bImportTextures = Old_ImportTextures;
+	ImportOptions->bImportAnimations = Old_ImportAnimations;
 
 	return NewMesh;
 }
@@ -1805,6 +1855,16 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	if (ImportOptions->bImportMaterials)
 	{
 		CreateNodeMaterials(Node, Materials, UVSets);
+		//Make sure all material use by skeletal mesh are flag to be use by skeletal mesh
+		for (UMaterialInterface *MaterialInterface : Materials)
+		{
+			if (MaterialInterface == nullptr || MaterialInterface->GetMaterial() == nullptr)
+			{
+				continue;
+			}
+			bool bNeedRecompile = false;
+			MaterialInterface->GetMaterial()->SetMaterialUsage(bNeedRecompile, EMaterialUsage::MATUSAGE_SkeletalMesh);
+		}
 	}
 	else if (ImportOptions->bImportTextures)
 	{

@@ -238,6 +238,12 @@ FString FPropertyValueImpl::GetPropertyValueArray() const
 
 bool FPropertyValueImpl::SendTextToObjectProperty( const FString& Text, EPropertyValueSetFlags::Type Flags )
 {
+	if (IsAnyOuterObjectFromEngine() && !FPackageName::IsEnginePackageName(Text))
+	{
+		UE_LOG(LogPropertyNode, Log, TEXT("Cannot assign a Project object %s to an Engine property."), *Text);
+		return false;
+	}
+
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
 	{
@@ -657,6 +663,28 @@ FPropertyAccess::Result FPropertyValueImpl::GetValueAsDisplayText( FText& OutTex
 	return Res;
 }
 
+bool FPropertyValueImpl::IsAnyOuterObjectFromEngine() const
+{
+	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
+	if (PropertyNodePin.IsValid())
+	{
+		FObjectPropertyNode* ObjectNode = PropertyNodePin->FindObjectItemParent();
+		if (ObjectNode)
+		{
+			for (int32 ObjectIndex = 0; ObjectIndex < ObjectNode->GetNumObjects(); ++ObjectIndex)
+			{
+				const FAssetData AssetData(ObjectNode->GetUObject(ObjectIndex));
+				if (FPackageName::IsEnginePackageName(AssetData.ObjectPath.ToString()))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 FPropertyAccess::Result FPropertyValueImpl::SetValueAsString( const FString& InValue, EPropertyValueSetFlags::Type Flags )
 {
 	FPropertyAccess::Result Result = FPropertyAccess::Fail;
@@ -798,6 +826,7 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 				if (!InterfaceThatMustBeImplemented || SelectedClass->ImplementsInterface(InterfaceThatMustBeImplemented))
 				{
 					FString const ClassPathName = SelectedClass->GetPathName();
+					const bool bIsEngineClass = FPackageName::IsEnginePackageName(ClassPathName);
 
 					TArray<FText> RestrictReasons;
 					if (PropertyNodePin->IsRestricted(ClassPathName, RestrictReasons))
@@ -805,7 +834,13 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 						check(RestrictReasons.Num() > 0);
 						FMessageDialog::Open(EAppMsgType::Ok, RestrictReasons[0]);
 					}
-					else 
+					else if (IsAnyOuterObjectFromEngine() && !bIsEngineClass)
+					{
+						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
+							NSLOCTEXT("UnrealEd", "ClassAssignmentsFailed", "Cannot assign Project class {0} to an Engine property."),
+							FText::FromString(ClassPathName)));
+					}
+					else
 					{
 						
 						Res = SetValueAsString(ClassPathName, EPropertyValueSetFlags::DefaultFlags);

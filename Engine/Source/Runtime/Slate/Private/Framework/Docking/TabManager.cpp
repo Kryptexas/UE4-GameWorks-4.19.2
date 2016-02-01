@@ -392,7 +392,7 @@ void FTabManager::FPrivateApi::OnTabManagerClosing()
 
 bool FTabManager::FPrivateApi::CanTabLeaveTabWell(const TSharedRef<const SDockTab>& TabToTest) const
 {
-	return TabToTest != TabManager.MainNonCloseableTab.Pin();
+	return TabManager.bCanDoDragOperation && TabToTest != TabManager.MainNonCloseableTab.Pin();
 }
 
 const TArray< TWeakPtr<SDockingArea> >& FTabManager::FPrivateApi::GetLiveDockAreas() const
@@ -1037,6 +1037,7 @@ FTabManager::FTabManager( const TSharedPtr<SDockTab>& InOwnerTab, const TSharedR
 , PrivateApi( MakeShareable(new FPrivateApi(*this)) )
 , LastDocumentUID( 0 )
 , bIsSavingVisualState( false )
+, bCanDoDragOperation( true )
 {
 	LocalWorkspaceMenuRoot = FWorkspaceItem::NewGroup(LOCTEXT("LocalWorkspaceRoot", "Local Workspace Root"));
 }

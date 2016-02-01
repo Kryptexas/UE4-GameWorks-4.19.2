@@ -29,13 +29,26 @@ ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Supe
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
 	{
-		static ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/Engine/EditorResources/AI/S_NavLink"));
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture;
+			FName ID_Decals;
+			FText NAME_Decals;
+			FConstructorStatics()
+				: SpriteTexture(TEXT("/Engine/EditorResources/AI/S_NavLink"))
+				, ID_Decals(TEXT("Navigation"))
+				, NAME_Decals(NSLOCTEXT("SpriteCategory", "Navigation", "Navigation"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
 
-		SpriteComponent->Sprite = SpriteTexture.Get();
+		SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bVisible = true;
-
+		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Decals;
+		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Decals;
 		SpriteComponent->AttachParent = RootComponent;
 		SpriteComponent->SetAbsolute(false, false, true);
 		SpriteComponent->bIsScreenSizeScaled = true;

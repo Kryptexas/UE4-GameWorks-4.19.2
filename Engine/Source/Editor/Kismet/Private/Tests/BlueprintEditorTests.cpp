@@ -22,6 +22,8 @@
 #include "AutomationEditorCommon.h"
 #include "AutomationEditorPromotionCommon.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 #define LOCTEXT_NAMESPACE "BlueprintEditorPromotionTests"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintEditorPromotionTests, Log, All);
@@ -1427,3 +1429,5 @@ bool FBlueprintEditorPromotionTest::RunTest(const FString& Parameters)
 
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //WITH_DEV_AUTOMATION_TESTS

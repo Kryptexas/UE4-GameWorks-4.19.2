@@ -3589,6 +3589,21 @@ namespace UnrealBuildTool
 				}
 			}
 
+            if(Configuration == UnrealTargetConfiguration.Shipping)
+            {
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=0");
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=0");
+            }
+            else if (Configuration == UnrealTargetConfiguration.Test)
+            {
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=0");
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=1");
+            }
+            else
+            {
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=1");
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=1");
+            }
 			// By default, shadow source files for this target in the root OutputDirectory
 			GlobalCompileEnvironment.Config.LocalShadowDirectory = GlobalCompileEnvironment.Config.OutputDirectory;
 

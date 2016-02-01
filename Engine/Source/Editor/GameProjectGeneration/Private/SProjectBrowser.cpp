@@ -259,7 +259,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 
 				// Auto-load project
 				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
+				.AutoWidth()
 				.VAlign(VAlign_Center)
 				[
 					SNew(SCheckBox)			
@@ -271,6 +271,11 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 					]
 				]
 
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNullWidget::NullWidget
+				]
 				// Browse Button
 				+SHorizontalBox::Slot()
 				.AutoWidth()

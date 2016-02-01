@@ -12,6 +12,7 @@
 #include "STextComboBox.h"
 #include "SEditableTextBox.h"
 #include "../FbxImporter.h"
+#include "Dialogs/DlgPickPath.h"
 
 #define LOCTEXT_NAMESPACE "FBXOption"
 
@@ -25,22 +26,23 @@ SFbxSceneOptionWindow::SFbxSceneOptionWindow()
 	SceneImportOptionsStaticMeshDisplay = nullptr;
 	OverrideNameOptionsMap = nullptr;
 	SceneImportOptionsSkeletalMeshDisplay = nullptr;
-	SceneImportOptionsAnimationDisplay = nullptr;
-	SceneImportOptionsMaterialDisplay = nullptr;
 	OwnerWindow = nullptr;
 	FbxSceneImportTabManager = nullptr;
 	Layout = nullptr;
 	bShouldImport = false;
 	SceneTabTreeview = nullptr;
 	SceneTabDetailsView = nullptr;
+	OverrideNameOptions.Empty();
 	StaticMeshTabListView = nullptr;
 	StaticMeshTabDetailsView = nullptr;
+	SkeletalMeshTabListView = nullptr;
+	SkeletalMeshTabDetailsView = nullptr;
 	SceneReimportTreeview = nullptr;
 	StaticMeshReimportListView = nullptr;
 	StaticMeshReimportDetailsView = nullptr;
 	MaterialsTabListView = nullptr;
 	TexturesArray.Reset();
-	MaterialPrefixName.Empty();
+	MaterialBasePath.Empty();
 }
 
 SFbxSceneOptionWindow::~SFbxSceneOptionWindow()
@@ -57,8 +59,6 @@ SFbxSceneOptionWindow::~SFbxSceneOptionWindow()
 	SceneImportOptionsStaticMeshDisplay = nullptr;
 	OverrideNameOptionsMap = nullptr;
 	SceneImportOptionsSkeletalMeshDisplay = nullptr;
-	SceneImportOptionsAnimationDisplay = nullptr;
-	SceneImportOptionsMaterialDisplay = nullptr;
 	OwnerWindow = nullptr;
 	FbxSceneImportTabManager = nullptr;
 	Layout = nullptr;
@@ -67,12 +67,14 @@ SFbxSceneOptionWindow::~SFbxSceneOptionWindow()
 	SceneTabDetailsView = nullptr;
 	StaticMeshTabListView = nullptr;
 	StaticMeshTabDetailsView = nullptr;
+	SkeletalMeshTabListView = nullptr;
+	SkeletalMeshTabDetailsView = nullptr;
 	SceneReimportTreeview = nullptr;
 	StaticMeshReimportListView = nullptr;
 	StaticMeshReimportDetailsView = nullptr;
 	MaterialsTabListView = nullptr;
 	TexturesArray.Reset();
-	MaterialPrefixName.Empty();
+	MaterialBasePath.Empty();
 }
 
 TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneTab(const FSpawnTabArgs& Args)
@@ -83,7 +85,7 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneTab(const FSpawnTabArgs& A
 
 	TSharedPtr<SBox> InspectorBox;
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
+		.TabRole(ETabRole::PanelTab)
 		.Label(LOCTEXT("WidgetFbxSceneActorTab", "Scene"))
 		.ToolTipText(LOCTEXT("WidgetFbxSceneActorTabTextToolTip", "Switch to the scene tab."))
 		[
@@ -148,6 +150,9 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneTab(const FSpawnTabArgs& A
 				SAssignNew(InspectorBox, SBox)
 			]
 		];
+	//Prevent user to close the tab
+	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs DetailsViewArgs;
 	DetailsViewArgs.bAllowSearch = false;
@@ -159,14 +164,22 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneTab(const FSpawnTabArgs& A
 	return DockTab;
 }
 
+bool SFbxSceneOptionWindow::CanCloseTab()
+{
+	return false;
+}
+
 void SFbxSceneOptionWindow::OnFinishedChangingPropertiesSceneTabDetailView(const FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (!SceneInfoOriginal.IsValid())
 	{
 		MaterialsTabListView->SetCreateContentFolderHierarchy(SceneImportOptionsDisplay->bCreateContentFolderHierarchy);
 		//Update the MaterialList
-		MaterialsTabListView->UpdateMaterialPrefixName();
+		MaterialsTabListView->UpdateMaterialBasePath();
 	}
+	//Set the Global Import setting
+	GlobalImportSettings->bBakePivotInVertex = SceneImportOptionsDisplay->bBakePivotInVertex;
+	GlobalImportSettings->bInvertNormalMap = SceneImportOptionsDisplay->bInvertNormalMaps;
 }
 
 TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshTab(const FSpawnTabArgs& Args)
@@ -175,81 +188,76 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshTab(const FSpawnTabAr
 	StaticMeshTabListView = SNew(SFbxSceneStaticMeshListView)
 		.SceneInfo(SceneInfo)
 		.GlobalImportSettings(GlobalImportSettings)
+		.OverrideNameOptions(&OverrideNameOptions)
 		.OverrideNameOptionsMap(OverrideNameOptionsMap)
 		.SceneImportOptionsStaticMeshDisplay(SceneImportOptionsStaticMeshDisplay);
 
 	TSharedPtr<SBox> InspectorBox;
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
+		.TabRole(ETabRole::PanelTab)
 		.Label(LOCTEXT("WidgetFbxSceneStaticMeshTab", "Static Meshes"))
 		.ToolTipText(LOCTEXT("WidgetFbxSceneStaticMeshTabTextToolTip", "Switch to the static meshes tab."))
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
+			SNew(SSplitter)
+			.Orientation(Orient_Horizontal)
+			+ SSplitter::Slot()
+			.Value(0.4f)
 			[
-				SNew(SSplitter)
-				.Orientation(Orient_Horizontal)
-				+ SSplitter::Slot()
-				.Value(0.4f)
+				SNew(SBox)
 				[
-					SNew(SBox)
-					[
-						StaticMeshTabListView.ToSharedRef()
-					]
-				]
-				+ SSplitter::Slot()
-				.Value(0.6f)
-				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							StaticMeshTabListView->CreateOverrideOptionComboBox().ToSharedRef()
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SButton)
-							.Text(LOCTEXT("FbxOptionWindow_SM_CreateOverride", "Create Override"))
-							.OnClicked(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::OnCreateOverrideOptions)
-						]
-					]
-					+ SVerticalBox::Slot()
-					.FillHeight(1.0f)
-					[
-						SAssignNew(InspectorBox, SBox)
-					]
+					StaticMeshTabListView.ToSharedRef()
 				]
 			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.HAlign(HAlign_Right)
-			.Padding(2)
+			+ SSplitter::Slot()
+			.Value(0.6f)
 			[
-				SNew(SUniformGridPanel)
-				.SlotPadding(2)
-				+ SUniformGridPanel::Slot(0, 0)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
 				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("FbxOptionWindow_SM_Select_asset_using", "Select Asset Using"))
-					.OnClicked(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::OnSelectAssetUsing)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						StaticMeshTabListView->CreateOverrideOptionComboBox().ToSharedRef()
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("FbxOptionWindow_SM_Select_asset_using", "Select Asset Using"))
+						.OnClicked(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::OnSelectAssetUsing)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.Text(LOCTEXT("FbxOptionWindow_SM_CreateOverride", "Create Override"))
+						.ToolTipText(LOCTEXT("FbxOptionWindow_SM_CreateOverrideTooltip", "Create Override to specify custom import options for some static meshes.\nTo assign options use context menu on static meshes."))
+						.OnClicked(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::OnCreateOverrideOptions)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("FbxOptionWindow_SM_Delete", "Delete"))
+						.IsEnabled(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::CanDeleteOverride)
+						.OnClicked(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::OnDeleteOverride)
+					]
 				]
-				+ SUniformGridPanel::Slot(1, 0)
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
 				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("FbxOptionWindow_SM_Delete", "Delete"))
-					.IsEnabled(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::CanDeleteOverride)
-					.OnClicked(StaticMeshTabListView.Get(), &SFbxSceneStaticMeshListView::OnDeleteOverride)
+					SAssignNew(InspectorBox, SBox)
 				]
 			]
 		];
+
+	//Prevent user to close the tab
+	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs DetailsViewArgs;
 	DetailsViewArgs.bAllowSearch = false;
@@ -261,36 +269,359 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshTab(const FSpawnTabAr
 	return DockTab;
 }
 
+TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSkeletalMeshReimportTab(const FSpawnTabArgs& Args)
+{
+
+	//Create the Skeletal mesh listview
+	SkeletalMeshReimportListView = SNew(SFbxSceneSkeletalMeshReimportListView)
+		.SceneInfo(SceneInfo)
+		.SceneInfoOriginal(SceneInfoOriginal)
+		.GlobalImportSettings(GlobalImportSettings)
+		.OverrideNameOptions(&OverrideNameOptions)
+		.OverrideNameOptionsMap(OverrideNameOptionsMap)
+		.SceneImportOptionsSkeletalMeshDisplay(SceneImportOptionsSkeletalMeshDisplay)
+		.MeshStatusMap(MeshStatusMap);
+
+	TSharedPtr<SBox> InspectorBox;
+	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
+		.TabRole(ETabRole::PanelTab)
+		.Label(LOCTEXT("WidgetFbxSceneReimportSkeletalMeshTab", "Skeletal Meshes"))
+		.ToolTipText(LOCTEXT("WidgetFbxSceneReimportSkeletalMeshTabTextToolTip", "Switch to the reimport Skeletal meshes tab."))
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Left)
+					.AutoHeight()
+					[
+						SNew(SUniformGridPanel)
+						.SlotPadding(2)
+						+ SUniformGridPanel::Slot(0, 0)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Left)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("FbxOptionWindow_Scene_Filters_Label", "Filters:"))
+						]
+						+ SUniformGridPanel::Slot(1, 0)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							[
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SCheckBox)
+									.HAlign(HAlign_Center)
+									.OnCheckStateChanged(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnToggleFilterAddContent)
+									.IsChecked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::IsFilterAddContentChecked)
+								]
+								+ SHorizontalBox::Slot()
+								.FillWidth(1.0f)
+								.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+								.VAlign(VAlign_Center)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_Filter_Add_Content", "Add"))
+								]
+							]
+						]
+						+ SUniformGridPanel::Slot(2, 0)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							[
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SCheckBox)
+									.HAlign(HAlign_Center)
+									.OnCheckStateChanged(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnToggleFilterDeleteContent)
+									.IsChecked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::IsFilterDeleteContentChecked)
+								]
+								+ SHorizontalBox::Slot()
+								.FillWidth(1.0f)
+								.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+								.VAlign(VAlign_Center)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_Filter_Delete_Content", "Delete"))
+								]
+							]
+						]
+						+ SUniformGridPanel::Slot(3, 0)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							[
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SCheckBox)
+									.HAlign(HAlign_Center)
+									.OnCheckStateChanged(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnToggleFilterOverwriteContent)
+									.IsChecked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::IsFilterOverwriteContentChecked)
+								]
+								+ SHorizontalBox::Slot()
+								.FillWidth(1.0f)
+								.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+								.VAlign(VAlign_Center)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_Filter_Overwrite_Content", "Overwrite"))
+								]
+							]
+						]
+						+ SUniformGridPanel::Slot(4, 0)
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							[
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SCheckBox)
+									.HAlign(HAlign_Center)
+									.OnCheckStateChanged(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnToggleFilterDiff)
+									.IsChecked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::IsFilterDiffChecked)
+								]
+								+ SHorizontalBox::Slot()
+								.FillWidth(1.0f)
+								.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+								.VAlign(VAlign_Center)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_Filter_Diff", "Diff"))
+									.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_Reimport_Filter_Diff_Tooltip", "Show every reimport item that dont match between the original fbx and the new one."))
+								]
+							]
+						]
+					]
+					+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					[
+						SNew(SSplitter)
+						.Orientation(Orient_Vertical)
+						+ SSplitter::Slot()
+						.Value(0.4f)
+						[
+							SNew(SBox)
+							[
+								SkeletalMeshReimportListView.ToSharedRef()
+							]
+						]
+						+ SSplitter::Slot()
+						.Value(0.6f)
+						[
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SkeletalMeshReimportListView->CreateOverrideOptionComboBox().ToSharedRef()
+								]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.HAlign(HAlign_Center)
+									.Text(LOCTEXT("FbxOptionWindow_SM_Select_asset_using", "Select Asset Using"))
+									.OnClicked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnSelectAssetUsing)
+								]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.Text(LOCTEXT("FbxOptionWindow_SM_CreateOverride", "Create Override"))
+									.ToolTipText(LOCTEXT("FbxOptionWindow_SM_CreateOverrideTooltip", "Create Override to specify custom import options for some Skeletal meshes.\nTo assign options use context menu on Skeletal meshes."))
+									.OnClicked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnCreateOverrideOptions)
+								]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.HAlign(HAlign_Center)
+									.Text(LOCTEXT("FbxOptionWindow_SM_Delete", "Delete"))
+									.IsEnabled(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::CanDeleteOverride)
+									.OnClicked(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnDeleteOverride)
+								]
+							]
+							+ SVerticalBox::Slot()
+							.FillHeight(1.0f)
+							[
+								SAssignNew(InspectorBox, SBox)
+							]
+						]
+					]
+				]
+			]
+		];
+	
+	//Prevent user to close the tab
+	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	FDetailsViewArgs DetailsViewArgs;
+	DetailsViewArgs.bAllowSearch = false;
+	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+	SkeletalMeshReimportDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+	InspectorBox->SetContent(SkeletalMeshReimportDetailsView->AsShared());
+	SkeletalMeshReimportDetailsView->SetObject(SceneImportOptionsSkeletalMeshDisplay);
+	SkeletalMeshReimportDetailsView->OnFinishedChangingProperties().AddSP(SkeletalMeshReimportListView.Get(), &SFbxSceneSkeletalMeshReimportListView::OnFinishedChangingProperties);
+	return DockTab;
+}
+
 TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSkeletalMeshTab(const FSpawnTabArgs& Args)
 {
-	return SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
+	//Create the static mesh listview
+	SkeletalMeshTabListView = SNew(SFbxSceneSkeletalMeshListView)
+		.SceneInfo(SceneInfo)
+		.GlobalImportSettings(GlobalImportSettings)
+		.OverrideNameOptions(&OverrideNameOptions)
+		.OverrideNameOptionsMap(OverrideNameOptionsMap)
+		.SceneImportOptionsSkeletalMeshDisplay(SceneImportOptionsSkeletalMeshDisplay);
+
+	TSharedPtr<SBox> InspectorBox;
+	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
+		.TabRole(ETabRole::PanelTab)
 		.Label(LOCTEXT("WidgetFbxSceneSkeletalMeshTab", "Skeletal Meshes"))
 		.ToolTipText(LOCTEXT("WidgetFbxSceneSkeletalMeshTabTextToolTip", "Switch to the skeletal meshes tab."))
 		[
-			SNew(STextBlock).Text(LOCTEXT("SkeletalMeshTextBoxPlaceHolder", "Skeletal Mesh Import options placeholder"))
+			SNew(SSplitter)
+			.Orientation(Orient_Horizontal)
+			+ SSplitter::Slot()
+			.Value(0.4f)
+			[
+				SNew(SBox)
+				[
+					SkeletalMeshTabListView.ToSharedRef()
+				]
+			]
+			+ SSplitter::Slot()
+			.Value(0.6f)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SkeletalMeshTabListView->CreateOverrideOptionComboBox().ToSharedRef()
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("FbxOptionWindow_SM_Select_asset_using", "Select Asset Using"))
+						.OnClicked(SkeletalMeshTabListView.Get(), &SFbxSceneSkeletalMeshListView::OnSelectAssetUsing)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.Text(LOCTEXT("FbxOptionWindow_SM_CreateOverride", "Create Override"))
+						.ToolTipText(LOCTEXT("FbxOptionWindow_SM_CreateOverrideTooltip", "Create Override to specify custom import options for some static meshes.\nTo assign options use context menu on static meshes."))
+						.OnClicked(SkeletalMeshTabListView.Get(), &SFbxSceneSkeletalMeshListView::OnCreateOverrideOptions)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("FbxOptionWindow_SM_Delete", "Delete"))
+						.IsEnabled(SkeletalMeshTabListView.Get(), &SFbxSceneSkeletalMeshListView::CanDeleteOverride)
+						.OnClicked(SkeletalMeshTabListView.Get(), &SFbxSceneSkeletalMeshListView::OnDeleteOverride)
+					]
+				]
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
+				[
+					SAssignNew(InspectorBox, SBox)
+				]
+			]
 		];
+	
+	//Prevent user to close the tab
+	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	FDetailsViewArgs DetailsViewArgs;
+	DetailsViewArgs.bAllowSearch = false;
+	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+	SkeletalMeshTabDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+	InspectorBox->SetContent(SkeletalMeshTabDetailsView->AsShared());
+	SkeletalMeshTabDetailsView->SetObject(SceneImportOptionsSkeletalMeshDisplay);
+	SkeletalMeshTabDetailsView->OnFinishedChangingProperties().AddSP(SkeletalMeshTabListView.Get(), &SFbxSceneSkeletalMeshListView::OnFinishedChangingProperties);
+	return DockTab;
 }
 
-FText SFbxSceneOptionWindow::GetMaterialPrefixName() const
+FText SFbxSceneOptionWindow::GetMaterialBasePath() const
 {
-	return FText::FromString(MaterialPrefixName);
+	return FText::FromString(MaterialBasePath);
 }
 
-void SFbxSceneOptionWindow::OnMaterialPrefixCommited(const FText& InText, ETextCommit::Type InCommitType)
+void SFbxSceneOptionWindow::OnMaterialBasePathCommited(const FText& InText, ETextCommit::Type InCommitType)
 {
-	MaterialPrefixName = InText.ToString();
+	MaterialBasePath = InText.ToString();
 	//Commit only if all the rules are respected
-	if (MaterialPrefixName.StartsWith(TEXT("/")) && MaterialPrefixName.EndsWith(TEXT("/")))
+	if (MaterialBasePath.StartsWith(TEXT("/")) && MaterialBasePath.EndsWith(TEXT("/")))
 	{
-		GlobalImportSettings->MaterialPrefixName = FName(*MaterialPrefixName);
-		MaterialsTabListView->UpdateMaterialPrefixName();
+		GlobalImportSettings->MaterialBasePath = FName(*MaterialBasePath);
+		MaterialsTabListView->UpdateMaterialBasePath();
 	}
 }
 
-FSlateColor SFbxSceneOptionWindow::GetMaterialPrefixTextColor() const
+FReply SFbxSceneOptionWindow::OnMaterialBasePathBrowse()
 {
-	if (MaterialPrefixName.StartsWith(TEXT("/")) && MaterialPrefixName.EndsWith(TEXT("/")))
+	TSharedRef<SDlgPickPath> PickContentPathDlg =
+		SNew(SDlgPickPath)
+		.Title(LOCTEXT("FbxChooseImportOverrideMaterialPath", "Choose Location path for importing all materials"));
+
+	if (PickContentPathDlg->ShowModal() == EAppReturnType::Cancel)
+	{
+		return FReply::Handled();
+	}
+	MaterialBasePath = PickContentPathDlg->GetPath().ToString();
+	
+	if (MaterialBasePath.IsEmpty())
+	{
+		return FReply::Handled();
+	}
+	//Make sure it start and end with a slash
+	if (!MaterialBasePath.EndsWith(TEXT("/")))
+	{
+		MaterialBasePath += TEXT("/");
+	}
+	if (!MaterialBasePath.StartsWith(TEXT("/")))
+	{
+		MaterialBasePath.InsertAt(0, TEXT("/"));
+	}
+	GlobalImportSettings->MaterialBasePath = FName(*MaterialBasePath);
+	MaterialsTabListView->UpdateMaterialBasePath();
+
+	return FReply::Handled();
+}
+
+FSlateColor SFbxSceneOptionWindow::GetMaterialBasePathTextColor() const
+{
+	if (MaterialBasePath.IsEmpty() || (MaterialBasePath.StartsWith(TEXT("/")) && MaterialBasePath.EndsWith(TEXT("/"))))
 	{
 		return FSlateColor::UseForeground();
 	}
@@ -313,7 +644,7 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnMaterialTab(const FSpawnTabArgs
 		.CreateContentFolderHierarchy(SceneImportOptionsDisplay->bCreateContentFolderHierarchy != 0);
 
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
+		.TabRole(ETabRole::PanelTab)
 		.Label(LOCTEXT("WidgetFbxSceneMaterialsTab", "Materials"))
 		.ToolTipText(LOCTEXT("WidgetFbxSceneMaterialsTabTextToolTip", "Switch to the materials tab."))
 		[
@@ -328,10 +659,10 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnMaterialTab(const FSpawnTabArgs
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("FbxOptionWindow_Scene_Material_Prefix", "Material name prefix path: "))
+					.Text(LOCTEXT("FbxOptionWindow_Scene_Material_Prefix", "Material override base path: "))
 				]
 				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
+				.AutoWidth()
 				.Padding(5.0f, 3.0f, 6.0f, 3.0f)
 				.VAlign(VAlign_Center)
 				[
@@ -340,12 +671,21 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnMaterialTab(const FSpawnTabArgs
 					[
 						SNew(SEditableText)
 						.SelectAllTextWhenFocused(true)
-						.Text(this, &SFbxSceneOptionWindow::GetMaterialPrefixName)
-						.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_MaterialPrefixName_tooltip", "The prefix must be start and end by '/' use this prefix to add a folder to all material (i.e. /Materials/)"))
-						.OnTextCommitted(this, &SFbxSceneOptionWindow::OnMaterialPrefixCommited)
-						.OnTextChanged(this, &SFbxSceneOptionWindow::OnMaterialPrefixCommited, ETextCommit::Default)
-						.ColorAndOpacity(this, &SFbxSceneOptionWindow::GetMaterialPrefixTextColor)
+						.Text(this, &SFbxSceneOptionWindow::GetMaterialBasePath)
+						.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_MaterialBasePath_tooltip", "The override path must start and end by '/' use this to import all material to a different base path(i.e. /Game/Materials/)"))
+						.OnTextCommitted(this, &SFbxSceneOptionWindow::OnMaterialBasePathCommited)
+						.OnTextChanged(this, &SFbxSceneOptionWindow::OnMaterialBasePathCommited, ETextCommit::Default)
+						.ColorAndOpacity(this, &SFbxSceneOptionWindow::GetMaterialBasePathTextColor)
 					]
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("FbxOptionWindow_Scene_Material_Browse", "Browse..."))
+					.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_MaterialBasePath_Browse_tooltip", "Select a path where to save all materials"))
+					.OnClicked(this, &SFbxSceneOptionWindow::OnMaterialBasePathBrowse)
 				]
 			]
 			+ SVerticalBox::Slot()
@@ -359,7 +699,8 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnMaterialTab(const FSpawnTabArgs
 					+ SVerticalBox::Slot()
 					.FillHeight(1.0f)
 					[
-						SNew(SSplitter)
+						MaterialsTabListView.ToSharedRef()
+						/*SNew(SSplitter)
 						.Orientation(Orient_Vertical)
 						+ SSplitter::Slot()
 						.Value(0.4f)
@@ -379,11 +720,15 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnMaterialTab(const FSpawnTabArgs
 								SNew(STextBlock)
 								.Text(LOCTEXT("FbxOptionWindow_Scene_Texture_Slot", "Put the texture array here"))
 							]
-						]
+						]*/
 					]
 				]
 			]
 		];
+	
+	//Prevent user to close the tab
+	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
 	return DockTab;
 }
 
@@ -396,7 +741,7 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneReimportTab(const FSpawnTa
 		.NodeStatusMap(NodeStatusMap);
 
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
+		.TabRole(ETabRole::PanelTab)
 		.Label(LOCTEXT("WidgetFbxSceneActorTab", "Scene"))
 		.ToolTipText(LOCTEXT("WidgetFbxSceneActorTabTextToolTip", "Switch to the scene tab."))
 		[
@@ -458,29 +803,91 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneReimportTab(const FSpawnTa
 			+ SSplitter::Slot()
 			.Value(0.4f)
 			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Top)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
 				.HAlign(HAlign_Left)
+				.AutoHeight()
 				[
-					SNew(SCheckBox)
-					.HAlign(HAlign_Center)
-					.OnCheckStateChanged(this, &SFbxSceneOptionWindow::OnToggleReimportHierarchy)
-					.IsChecked(this, &SFbxSceneOptionWindow::IsReimportHierarchyChecked)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					[
+						SNew(SCheckBox)
+						.HAlign(HAlign_Center)
+						.OnCheckStateChanged(this, &SFbxSceneOptionWindow::OnToggleReimportHierarchy)
+						.IsChecked(this, &SFbxSceneOptionWindow::IsReimportHierarchyChecked)
+					]
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_ImportHierarchy", "Reimport Hierarchy"))
+						.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_Reimport_ImportHierarchy_Tooltip", "If Check and the original import was done in a blueprint, the blueprint hierarchy will be revisited to include the fbx changes"))
+					]
 				]
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.Padding(0.0f, 3.0f, 6.0f, 3.0f)
-				.VAlign(VAlign_Top)
+				+ SVerticalBox::Slot()
 				.HAlign(HAlign_Left)
+				.AutoHeight()
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_ImportHierarchy", "Reimport Hierarchy"))
-					.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_Reimport_ImportHierarchy_Tooltip", "If Check and the original import was done in a blueprint, the blueprint hierarchy will be revisited to include the fbx changes"))
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					[
+						SNew(SCheckBox)
+						.HAlign(HAlign_Center)
+						.OnCheckStateChanged(this, &SFbxSceneOptionWindow::OnToggleBakePivotInVertex)
+						.IsChecked(this, &SFbxSceneOptionWindow::IsBakePivotInVertexChecked)
+					]
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_BakePivotInVertex", "Bake Pivot In Vertex"))
+						.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_Reimport_BakePivotInVertex_Tooltip", "- Experimental - If this option is true the inverse node pivot will be apply to the mesh vertices. The pivot from the DCC will then be the origin of the mesh."))
+					]
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Left)
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					[
+						SNew(SCheckBox)
+						.HAlign(HAlign_Center)
+						.OnCheckStateChanged(this, &SFbxSceneOptionWindow::OnToggleInvertNormalMap)
+						.IsChecked(this, &SFbxSceneOptionWindow::IsInvertNormalMapChecked)
+					]
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(0.0f, 3.0f, 6.0f, 3.0f)
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_InvertNormalMap", "Invert Normal Map"))
+						.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_Reimport_InvertNormalMap_Tooltip", "If either importing of textures (or materials) is enabled, this option will cause normal map values to be inverted."))
+					]
 				]
 			]
 		];
+
+	//Prevent user to close the tab
+	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
 	return DockTab;
 }
 
@@ -497,6 +904,32 @@ ECheckBoxState SFbxSceneOptionWindow::IsReimportHierarchyChecked() const
 	return  GlobalImportSettings->bImportScene ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
+void SFbxSceneOptionWindow::OnToggleBakePivotInVertex(ECheckBoxState CheckType)
+{
+	if (GlobalImportSettings != nullptr)
+	{
+		GlobalImportSettings->bBakePivotInVertex = CheckType == ECheckBoxState::Checked;
+	}
+}
+
+ECheckBoxState SFbxSceneOptionWindow::IsBakePivotInVertexChecked() const
+{
+	return  GlobalImportSettings->bBakePivotInVertex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SFbxSceneOptionWindow::OnToggleInvertNormalMap(ECheckBoxState CheckType)
+{
+	if (GlobalImportSettings != nullptr)
+	{
+		GlobalImportSettings->bInvertNormalMap = CheckType == ECheckBoxState::Checked;
+	}
+}
+
+ECheckBoxState SFbxSceneOptionWindow::IsInvertNormalMapChecked() const
+{
+	return  GlobalImportSettings->bInvertNormalMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
 TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshReimportTab(const FSpawnTabArgs& Args)
 {
 	//Create the static mesh listview
@@ -504,14 +937,15 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshReimportTab(const FSp
 		.SceneInfo(SceneInfo)
 		.SceneInfoOriginal(SceneInfoOriginal)
 		.GlobalImportSettings(GlobalImportSettings)
+		.OverrideNameOptions(&OverrideNameOptions)
 		.OverrideNameOptionsMap(OverrideNameOptionsMap)
 		.SceneImportOptionsStaticMeshDisplay(SceneImportOptionsStaticMeshDisplay)
 		.MeshStatusMap(MeshStatusMap);
 
 	TSharedPtr<SBox> InspectorBox;
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
-		.Label(LOCTEXT("WidgetFbxSceneReimportStaticMeshTab", "Reimport Static Meshes"))
+		.TabRole(ETabRole::PanelTab)
+		.Label(LOCTEXT("WidgetFbxSceneReimportStaticMeshTab", "Static Meshes"))
 		.ToolTipText(LOCTEXT("WidgetFbxSceneReimportStaticMeshTabTextToolTip", "Switch to the reimport static meshes tab."))
 		[
 			SNew(SVerticalBox)
@@ -664,8 +1098,26 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshReimportTab(const FSp
 								.AutoWidth()
 								[
 									SNew(SButton)
+									.HAlign(HAlign_Center)
+									.Text(LOCTEXT("FbxOptionWindow_SM_Select_asset_using", "Select Asset Using"))
+									.OnClicked(StaticMeshReimportListView.Get(), &SFbxSceneStaticMeshReimportListView::OnSelectAssetUsing)
+								]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SButton)
 									.Text(LOCTEXT("FbxOptionWindow_SM_CreateOverride", "Create Override"))
+									.ToolTipText(LOCTEXT("FbxOptionWindow_SM_CreateOverrideTooltip", "Create Override to specify custom import options for some static meshes.\nTo assign options use context menu on static meshes."))
 									.OnClicked(StaticMeshReimportListView.Get(), &SFbxSceneStaticMeshReimportListView::OnCreateOverrideOptions)
+								]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.HAlign(HAlign_Center)
+									.Text(LOCTEXT("FbxOptionWindow_SM_Delete", "Delete"))
+									.IsEnabled(StaticMeshReimportListView.Get(), &SFbxSceneStaticMeshReimportListView::CanDeleteOverride)
+									.OnClicked(StaticMeshReimportListView.Get(), &SFbxSceneStaticMeshReimportListView::OnDeleteOverride)
 								]
 							]
 							+ SVerticalBox::Slot()
@@ -679,6 +1131,9 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshReimportTab(const FSp
 			]
 		];
 	
+	//Prevent user to close the tab
+	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs DetailsViewArgs;
 	DetailsViewArgs.bAllowSearch = false;
@@ -714,14 +1169,14 @@ void SFbxSceneOptionWindow::InitAllTabs()
 					FTabManager::NewStack()
 					->AddTab("Scene", ETabState::OpenedTab)
 					->AddTab("StaticMeshes", ETabState::OpenedTab)
+					->AddTab("SkeletalMeshes", ETabState::OpenedTab)
 					->AddTab("Materials", ETabState::OpenedTab)
 				)
 			);
-		//					->AddTab("SkeletalMeshes", ETabState::OpenedTab)
-							
+
 		FbxSceneImportTabManager->RegisterTabSpawner("Scene", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnSceneTab));
 		FbxSceneImportTabManager->RegisterTabSpawner("StaticMeshes", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnStaticMeshTab));
-		//FbxSceneImportTabManager->RegisterTabSpawner("SkeletalMeshes", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnSkeletalMeshTab));
+		FbxSceneImportTabManager->RegisterTabSpawner("SkeletalMeshes", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnSkeletalMeshTab));
 		FbxSceneImportTabManager->RegisterTabSpawner("Materials", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnMaterialTab));
 	}
 	else
@@ -737,6 +1192,7 @@ void SFbxSceneOptionWindow::InitAllTabs()
 						FTabManager::NewStack()
 						->AddTab("SceneReImport", ETabState::OpenedTab)
 						->AddTab("StaticMeshesReImport", ETabState::OpenedTab)
+						->AddTab("SkeletalMeshesReImport", ETabState::OpenedTab)
 						->AddTab("Materials", ETabState::OpenedTab)
 					)
 				);
@@ -753,13 +1209,18 @@ void SFbxSceneOptionWindow::InitAllTabs()
 					(
 						FTabManager::NewStack()
 						->AddTab("StaticMeshesReImport", ETabState::OpenedTab)
+						->AddTab("SkeletalMeshesReImport", ETabState::OpenedTab)
 						->AddTab("Materials", ETabState::OpenedTab)
 					)
 				);
 		}
 		FbxSceneImportTabManager->RegisterTabSpawner("StaticMeshesReimport", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnStaticMeshReimportTab));
+		FbxSceneImportTabManager->RegisterTabSpawner("SkeletalMeshesReimport", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnSkeletalMeshReimportTab));
 		FbxSceneImportTabManager->RegisterTabSpawner("Materials", FOnSpawnTab::CreateSP(this, &SFbxSceneOptionWindow::SpawnMaterialTab));
 	}
+
+	//Prevent Docking the tab outside of the dialog well
+	FbxSceneImportTabManager->SetCanDoDragOperation(false);
 }
 
 void SFbxSceneOptionWindow::Construct(const FArguments& InArgs)
@@ -774,8 +1235,6 @@ void SFbxSceneOptionWindow::Construct(const FArguments& InArgs)
 	SceneImportOptionsStaticMeshDisplay = InArgs._SceneImportOptionsStaticMeshDisplay;
 	OverrideNameOptionsMap = InArgs._OverrideNameOptionsMap;
 	SceneImportOptionsSkeletalMeshDisplay = InArgs._SceneImportOptionsSkeletalMeshDisplay;
-	SceneImportOptionsAnimationDisplay = InArgs._SceneImportOptionsAnimationDisplay;
-	SceneImportOptionsMaterialDisplay = InArgs._SceneImportOptionsMaterialDisplay;
 	OwnerWindow = InArgs._OwnerWindow;
 	FullPath = InArgs._FullPath;
 
@@ -783,15 +1242,10 @@ void SFbxSceneOptionWindow::Construct(const FArguments& InArgs)
 	check(GlobalImportSettings != nullptr);
 	check(SceneImportOptionsDisplay != nullptr);
 	check(SceneImportOptionsStaticMeshDisplay != nullptr);
+	check(SceneImportOptionsSkeletalMeshDisplay != nullptr);
 	check(OverrideNameOptionsMap != nullptr);
 
-	if (!SceneInfoOriginal.IsValid())
-	{
-		check(SceneImportOptionsSkeletalMeshDisplay != nullptr);
-		check(SceneImportOptionsAnimationDisplay != nullptr);
-		check(SceneImportOptionsMaterialDisplay != nullptr);
-	}
-	else
+	if (SceneInfoOriginal.IsValid())
 	{
 		check(MeshStatusMap != nullptr);
 		check(NodeStatusMap);
@@ -799,80 +1253,99 @@ void SFbxSceneOptionWindow::Construct(const FArguments& InArgs)
 
 	check(OwnerWindow.IsValid());
 
-	MaterialPrefixName = GlobalImportSettings->MaterialPrefixName.ToString();
+	MaterialBasePath = GlobalImportSettings->MaterialBasePath == NAME_None ? TEXT("") : GlobalImportSettings->MaterialBasePath.ToString();
 
 	InitAllTabs();
 
-	FText SubmitText = SceneInfoOriginal.IsValid() ? LOCTEXT("FbxOptionWindow_Import", "Reimport") : LOCTEXT("FbxOptionWindow_Import", "Import");
+	FText SubmitText = SceneInfoOriginal.IsValid() ? LOCTEXT("FbxSceneOptionWindow_ReImport", "Reimport") : LOCTEXT("FbxSceneOptionWindow_Import", "Import");
 
 	this->ChildSlot
 	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(2)
+		SNew(SBorder)
+		.Padding(FMargin(10.0f, 3.0f))
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder"))
 		[
-			SNew(SBorder)
-			.Padding(FMargin(3))
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
+				SNew(SBorder)
+				.Padding(FMargin(3))
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 				[
-					SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
-					.Text(LOCTEXT("FbxSceneImport_CurrentPath", "Import Asset Path: "))
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
+						.Text(LOCTEXT("FbxSceneImport_CurrentPath", "Import Asset Path: "))
+					]
+					+SHorizontalBox::Slot()
+					.Padding(5, 0, 0, 0)
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+						.Text(FText::FromString(FullPath))
+					]
 				]
-				+SHorizontalBox::Slot()
-				.Padding(5, 0, 0, 0)
-				.AutoWidth()
-				.VAlign(VAlign_Center)
+			]
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			.Padding(2)
+			[
+				SpawnDockTab().ToSharedRef()
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Right)
+			.Padding(2)
+			[
+				SNew(SUniformGridPanel)
+				.SlotPadding(2)
+				+ SUniformGridPanel::Slot(0, 0)
 				[
-					SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
-					.Text(FText::FromString(FullPath))
+					IDocumentation::Get()->CreateAnchor(FString("Engine/Content/FBX/ImportOptions"))
 				]
-			]
-		]
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		.Padding(2)
-		[
-			SpawnDockTab().ToSharedRef()
-		]
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.HAlign(HAlign_Right)
-		.Padding(2)
-		[
-			SNew(SUniformGridPanel)
-			.SlotPadding(2)
-			+ SUniformGridPanel::Slot(0, 0)
-			[
-				IDocumentation::Get()->CreateAnchor(FString("Engine/Content/FBX/ImportOptions"))
-			]
-			+ SUniformGridPanel::Slot(1, 0)
-			[
-				SNew(SButton)
-				.HAlign(HAlign_Center)
-				.Text(SubmitText)
-				.IsEnabled(this, &SFbxSceneOptionWindow::CanImport)
-				.OnClicked(this, &SFbxSceneOptionWindow::OnImport)
-			]
-			+ SUniformGridPanel::Slot(2, 0)
-			[
-				SNew(SButton)
-				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("FbxOptionWindow_Cancel", "Cancel"))
-				.ToolTipText(LOCTEXT("FbxOptionWindow_Cancel_ToolTip", "Cancels importing this FBX file"))
-				.OnClicked(this, &SFbxSceneOptionWindow::OnCancel)
+				+ SUniformGridPanel::Slot(1, 0)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(SubmitText)
+					.IsEnabled(this, &SFbxSceneOptionWindow::CanImport)
+					.OnClicked(this, &SFbxSceneOptionWindow::OnImport)
+				]
+				+ SUniformGridPanel::Slot(2, 0)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("FbxOptionWindow_Cancel", "Cancel"))
+					.ToolTipText(LOCTEXT("FbxOptionWindow_Cancel_ToolTip", "Cancels importing this FBX file"))
+					.OnClicked(this, &SFbxSceneOptionWindow::OnCancel)
+				]
 			]
 		]
 	];
 
 	//By default we want to see the Scene tab
-	FbxSceneImportTabManager->InvokeTab(FTabId("Scene"));
+	if (!SceneInfoOriginal.IsValid())
+	{
+		FbxSceneImportTabManager->InvokeTab(FTabId("Scene"));
+	}
+	else
+	{
+		if (bCanReimportHierarchy)
+		{
+			FbxSceneImportTabManager->InvokeTab(FTabId("SceneReImport"));
+		}
+		else
+		{
+			FbxSceneImportTabManager->InvokeTab(FTabId("StaticMeshesReimport"));
+		}
+	}
 }
 
 void SFbxSceneOptionWindow::CloseFbxSceneOption()
@@ -894,6 +1367,8 @@ void SFbxSceneOptionWindow::CloseFbxSceneOption()
 	StaticMeshTabListView = nullptr;
 	StaticMeshTabDetailsView = nullptr;
 
+	SkeletalMeshTabListView = nullptr;
+
 	SceneReimportTreeview = nullptr;
 
 	StaticMeshReimportListView = nullptr;
@@ -901,7 +1376,7 @@ void SFbxSceneOptionWindow::CloseFbxSceneOption()
 
 	MaterialsTabListView = nullptr;
 	TexturesArray.Reset();
-	MaterialPrefixName.Empty();
+	MaterialBasePath.Empty();
 
 	SceneInfo = nullptr;
 	SceneInfoOriginal = nullptr;
@@ -911,8 +1386,6 @@ void SFbxSceneOptionWindow::CloseFbxSceneOption()
 	SceneImportOptionsStaticMeshDisplay = nullptr;
 	OverrideNameOptionsMap = nullptr;
 	SceneImportOptionsSkeletalMeshDisplay = nullptr;
-	SceneImportOptionsAnimationDisplay = nullptr;
-	SceneImportOptionsMaterialDisplay = nullptr;
 
 	MeshStatusMap = nullptr;
 	NodeStatusMap = nullptr;
@@ -943,7 +1416,6 @@ void SFbxSceneOptionWindow::CopyStaticMeshOptionsToFbxOptions(UnFbx::FBXImportOp
 	ImportSettings->bGenerateLightmapUVs = StaticMeshOptions->bGenerateLightmapUVs;
 	ImportSettings->bOneConvexHullPerUCX = StaticMeshOptions->bOneConvexHullPerUCX;
 	ImportSettings->bRemoveDegenerates = StaticMeshOptions->bRemoveDegenerates;
-	ImportSettings->bTransformVertexToAbsolute = StaticMeshOptions->bTransformVertexToAbsolute;
 	ImportSettings->StaticMeshLODGroup = StaticMeshOptions->StaticMeshLODGroup;
 	switch (StaticMeshOptions->VertexColorImportOption)
 	{
@@ -991,7 +1463,6 @@ void SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(UnFbx::FBXImportOp
 	StaticMeshOptions->bGenerateLightmapUVs = ImportSettings->bGenerateLightmapUVs;
 	StaticMeshOptions->bOneConvexHullPerUCX = ImportSettings->bOneConvexHullPerUCX;
 	StaticMeshOptions->bRemoveDegenerates = ImportSettings->bRemoveDegenerates;
-	StaticMeshOptions->bTransformVertexToAbsolute = ImportSettings->bTransformVertexToAbsolute;
 	StaticMeshOptions->StaticMeshLODGroup = ImportSettings->StaticMeshLODGroup;
 	switch (ImportSettings->VertexColorImportOption)
 	{
@@ -1033,26 +1504,42 @@ void SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(UnFbx::FBXImportOp
 
 void SFbxSceneOptionWindow::CopySkeletalMeshOptionsToFbxOptions(UnFbx::FBXImportOptions *ImportSettings, UFbxSceneImportOptionsSkeletalMesh* SkeletalMeshOptions)
 {
+	ImportSettings->bCreatePhysicsAsset = SkeletalMeshOptions->bCreatePhysicsAsset;
+	ImportSettings->bImportMeshesInBoneHierarchy = SkeletalMeshOptions->bImportMeshesInBoneHierarchy;
+	ImportSettings->bImportMorph = SkeletalMeshOptions->bImportMorphTargets;
+	ImportSettings->bKeepOverlappingVertices = SkeletalMeshOptions->bKeepOverlappingVertices;
+	ImportSettings->bPreserveSmoothingGroups = SkeletalMeshOptions->bPreserveSmoothingGroups;
+	ImportSettings->bUpdateSkeletonReferencePose = SkeletalMeshOptions->bUpdateSkeletonReferencePose;
+	ImportSettings->bUseT0AsRefPose = SkeletalMeshOptions->bUseT0AsRefPose;
+
+	ImportSettings->bImportAnimations = SkeletalMeshOptions->bImportAnimations;
+	ImportSettings->AnimationLengthImportType = SkeletalMeshOptions->AnimationLength;
+	ImportSettings->bDeleteExistingMorphTargetCurves = SkeletalMeshOptions->bDeleteExistingMorphTargetCurves;
+	ImportSettings->bImportCustomAttribute = SkeletalMeshOptions->bImportCustomAttribute;
+	ImportSettings->bPreserveLocalTransform = SkeletalMeshOptions->bPreserveLocalTransform;
+	ImportSettings->bResample = SkeletalMeshOptions->bUseDefaultSampleRate;
+	ImportSettings->AnimationRange.X = SkeletalMeshOptions->FrameImportRange.Min;
+	ImportSettings->AnimationRange.Y = SkeletalMeshOptions->FrameImportRange.Max;
 }
 
 void SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsSkeletalMesh* SkeletalMeshOptions)
 {
-}
+	SkeletalMeshOptions->bCreatePhysicsAsset = ImportSettings->bCreatePhysicsAsset;
+	SkeletalMeshOptions->bImportMeshesInBoneHierarchy = ImportSettings->bImportMeshesInBoneHierarchy;
+	SkeletalMeshOptions->bImportMorphTargets = ImportSettings->bImportMorph;
+	SkeletalMeshOptions->bKeepOverlappingVertices = ImportSettings->bKeepOverlappingVertices;
+	SkeletalMeshOptions->bPreserveSmoothingGroups = ImportSettings->bPreserveSmoothingGroups;
+	SkeletalMeshOptions->bUpdateSkeletonReferencePose = ImportSettings->bUpdateSkeletonReferencePose;
+	SkeletalMeshOptions->bUseT0AsRefPose = ImportSettings->bUseT0AsRefPose;
 
-void SFbxSceneOptionWindow::CopyAnimationOptionsToFbxOptions(UnFbx::FBXImportOptions *ImportSettings, UFbxSceneImportOptionsAnimation* AnimationOptions)
-{
-}
-
-void SFbxSceneOptionWindow::CopyFbxOptionsToAnimationOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsAnimation* AnimationOptions)
-{
-}
-
-void SFbxSceneOptionWindow::CopyMaterialOptionsToFbxOptions(UnFbx::FBXImportOptions *ImportSettings, UFbxSceneImportOptionsMaterial* MaterialOptions)
-{
-}
-
-void SFbxSceneOptionWindow::CopyFbxOptionsToMaterialOptions(UnFbx::FBXImportOptions *ImportSettings, class UFbxSceneImportOptionsMaterial* MaterialOptions)
-{
+	SkeletalMeshOptions->bImportAnimations = ImportSettings->bImportAnimations;
+	SkeletalMeshOptions->AnimationLength = ImportSettings->AnimationLengthImportType;
+	SkeletalMeshOptions->bDeleteExistingMorphTargetCurves = ImportSettings->bDeleteExistingMorphTargetCurves;
+	SkeletalMeshOptions->bImportCustomAttribute = ImportSettings->bImportCustomAttribute;
+	SkeletalMeshOptions->bPreserveLocalTransform = ImportSettings->bPreserveLocalTransform;
+	SkeletalMeshOptions->bUseDefaultSampleRate = ImportSettings->bResample;
+	SkeletalMeshOptions->FrameImportRange.Min = ImportSettings->AnimationRange.X;
+	SkeletalMeshOptions->FrameImportRange.Max = ImportSettings->AnimationRange.Y;
 }
 
 #undef LOCTEXT_NAMESPACE

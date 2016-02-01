@@ -4,6 +4,7 @@
 #include "AutomationTest.h"
 #include "TaskGraphInterfaces.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTaskGraphTest, "System.Core.Async.TaskGraph", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)
 
@@ -67,3 +68,5 @@ bool FTaskGraphTest::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

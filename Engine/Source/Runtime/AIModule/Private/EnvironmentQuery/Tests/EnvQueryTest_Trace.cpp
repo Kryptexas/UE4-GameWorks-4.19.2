@@ -5,6 +5,12 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_Trace.h"
 
+#if !WITH_DEV_AUTOMATION_TESTS
+
+UEnvQueryTest_Trace::UEnvQueryTest_Trace(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
+
+#else
+
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
 UEnvQueryTest_Trace::UEnvQueryTest_Trace(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -186,3 +192,5 @@ bool UEnvQueryTest_Trace::RunCapsuleTraceFrom(const FVector& ItemPos, const FVec
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //WITH_DEV_AUTOMATION_TESTS

@@ -91,6 +91,7 @@ void SMessageLog::Construct( const FArguments& InArgs, const TSharedRef<FMessage
 	}
 
 	ViewModel->OnSelectionChanged().AddSP(this, &SMessageLog::HandleSelectionUpdated);
+	ViewModel->OnChanged().AddSP(this, &SMessageLog::RefreshCategoryList);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -102,6 +103,11 @@ void SMessageLog::HandleSelectionUpdated()
 	{
 		CategoriesListView->SetSelection(LogListingViewModel, ESelectInfo::Direct);
 	}
+}
+
+void SMessageLog::RefreshCategoryList()
+{
+	CategoriesListView->RequestListRefresh();
 }
 
 /* SWidget overrides

@@ -27,8 +27,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	float Period;
 
-	/** The radius of the circle */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	/** The radius of the circle. If the throbber is a child of Canvas Panel, the 'Size to Content' option must be enabled in order to set Radius. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, meta=(EditCondition="bEnableRadius"))
 	float Radius;
 
 	/** Image to use for each segment of the throbber */
@@ -75,6 +75,10 @@ protected:
 	//~ End UWidget Interface
 
 private:
+
+	UPROPERTY(Transient)
+	bool bEnableRadius;
+
 	/** The CircularThrobber widget managed by this object. */
 	TSharedPtr<SCircularThrobber> MyCircularThrobber;
 };

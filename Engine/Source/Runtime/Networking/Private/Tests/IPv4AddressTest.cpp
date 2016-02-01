@@ -3,6 +3,7 @@
 #include "NetworkingPrivatePCH.h"
 #include "AutomationTest.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FIPv4AddressTest, "System.Engine.Networking.IPv4.IPv4Address", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
@@ -99,3 +100,5 @@ bool FIPv4AddressTest::RunTest( const FString& Parameters )
 
 	return true;
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

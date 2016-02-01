@@ -7580,7 +7580,9 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 		}
 		else if( Property->IsA(UTextProperty::StaticClass()) )
 		{
-			CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(DefaultObject, FText::FromString(Value));
+			FStringOutputDevice ImportError;
+			const auto EndOfParsedBuff = Property->ImportText(*Value, Property->ContainerPtrToValuePtr<uint8>(DefaultObject), 0, nullptr, &ImportError);
+			bParseSucceeded = EndOfParsedBuff && ImportError.IsEmpty();
 		}
 		else
 		{

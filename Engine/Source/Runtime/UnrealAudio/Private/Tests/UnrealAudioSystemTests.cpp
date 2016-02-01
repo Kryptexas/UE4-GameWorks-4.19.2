@@ -4,7 +4,7 @@
 #include "UnrealAudioModule.h"
 #include "UnrealAudioEmitterInternal.h"
 
-#if ENABLE_UNREAL_AUDIO
+#if ENABLE_UNREAL_AUDIO & WITH_DEV_AUTOMATION_TESTS
 
 namespace UAudio
 {
@@ -378,4 +378,4 @@ namespace UAudio
 
 }
 
-#endif // #if ENABLE_UNREAL_AUDIO
+#endif // #if ENABLE_UNREAL_AUDIO & WITH_DEV_AUTOMATION_TESTS

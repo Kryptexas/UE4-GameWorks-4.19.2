@@ -342,6 +342,7 @@ FReply FSCSRowDragDropOp::DroppedOnPanel(const TSharedRef< class SWidget >& Pane
 FSCSEditorTreeNode::FSCSEditorTreeNode(FSCSEditorTreeNode::ENodeType InNodeType)
 	: NodeType(InNodeType)
 	, bNonTransactionalRename(false)
+	, ComponentTemplate(nullptr)
 {
 }
 
@@ -375,11 +376,6 @@ FText FSCSEditorTreeNode::GetDisplayName() const
 }
 
 class USCS_Node* FSCSEditorTreeNode::GetSCSNode() const
-{
-	return nullptr;
-}
-
-UActorComponent* FSCSEditorTreeNode::GetComponentTemplate() const
 {
 	return nullptr;
 }
@@ -419,6 +415,16 @@ UBlueprint* FSCSEditorTreeNode::GetBlueprint() const
 FSCSEditorTreeNode::ENodeType FSCSEditorTreeNode::GetNodeType() const
 {
 	return NodeType;
+}
+
+UActorComponent* FSCSEditorTreeNode::GetComponentTemplate(bool bEvenIfPendingKill) const
+{
+	return ComponentTemplate.Get(bEvenIfPendingKill);
+}
+
+void FSCSEditorTreeNode::SetComponentTemplate(UActorComponent* Component)
+{
+	ComponentTemplate = Component;
 }
 
 bool FSCSEditorTreeNode::IsAttachedTo(FSCSEditorTreeNodePtrType InNodePtr) const
@@ -820,6 +826,20 @@ FSCSEditorTreeNodeInstancedInheritedComponent::FSCSEditorTreeNodeInstancedInheri
 	check(InstancedComponentName != NAME_None);	// ...otherwise IsRootActor() can return a false positive.
 
 	InstancedComponentOwnerPtr = Owner;
+
+	TInlineComponentArray<UActorComponent*> Components;
+	Owner->GetComponents(Components);
+
+	ComponentTemplate = nullptr;
+	for (auto It = Components.CreateConstIterator(); It; ++It)
+	{
+		UActorComponent* ComponentInstance = *It;
+		if (ComponentInstance->GetFName() == InstancedComponentName)
+		{
+			ComponentTemplate = ComponentInstance;
+			break;
+		}
+	}
 }
 
 bool FSCSEditorTreeNodeInstancedInheritedComponent::IsNative() const
@@ -836,11 +856,11 @@ bool FSCSEditorTreeNodeInstancedInheritedComponent::IsNative() const
 
 bool FSCSEditorTreeNodeInstancedInheritedComponent::IsRootComponent() const
 {
-	UActorComponent* ComponentTemplate = GetComponentTemplate();
+	UActorComponent* Template = GetComponentTemplate();
 
 	if (AActor* OwnerActor = InstancedComponentOwnerPtr.Get())
 	{
-		if (OwnerActor->GetRootComponent() == ComponentTemplate)
+		if (OwnerActor->GetRootComponent() == Template)
 		{
 			return true;
 		}
@@ -861,8 +881,8 @@ bool FSCSEditorTreeNodeInstancedInheritedComponent::IsDefaultSceneRoot() const
 
 bool FSCSEditorTreeNodeInstancedInheritedComponent::CanEditDefaults() const
 {
-	UActorComponent* ComponentTemplate = GetComponentTemplate();
-	return (ComponentTemplate ? ComponentTemplate->IsEditableWhenInherited() : false);
+	UActorComponent* Template = GetComponentTemplate();
+	return (Template ? Template->IsEditableWhenInherited() : false);
 }
 
 FText FSCSEditorTreeNodeInstancedInheritedComponent::GetDisplayName() const
@@ -874,26 +894,6 @@ FText FSCSEditorTreeNodeInstancedInheritedComponent::GetDisplayName() const
 	}
 
 	return FText::GetEmpty();
-}
-
-UActorComponent* FSCSEditorTreeNodeInstancedInheritedComponent::GetComponentTemplate() const
-{
-	if (InstancedComponentOwnerPtr.IsValid())
-	{
-		TInlineComponentArray<UActorComponent*> Components;
-		InstancedComponentOwnerPtr.Get()->GetComponents(Components);
-
-		for (auto It = Components.CreateConstIterator(); It; ++It)
-		{
-			UActorComponent* ComponentInstance = *It;
-			if (ComponentInstance->GetFName() == InstancedComponentName)
-			{
-				return ComponentInstance;
-			}
-		}
-	}
-
-	return nullptr;
 }
 
 UActorComponent* FSCSEditorTreeNodeInstancedInheritedComponent::GetEditableComponentTemplate(UBlueprint* ActualEditedBlueprint)
@@ -915,20 +915,34 @@ FSCSEditorTreeNodeInstanceAddedComponent::FSCSEditorTreeNodeInstanceAddedCompone
 	check(InstancedComponentName != NAME_None);	// ...otherwise IsRootActor() can return a false positive.
 
 	InstancedComponentOwnerPtr = Owner;
+
+	TInlineComponentArray<UActorComponent*> Components;
+	Owner->GetComponents(Components);
+
+	ComponentTemplate = nullptr;
+	for (auto It = Components.CreateConstIterator(); It; ++It)
+	{
+		UActorComponent* ComponentInstance = *It;
+		if (ComponentInstance->GetFName() == InstancedComponentName)
+		{
+			ComponentTemplate = ComponentInstance;
+			break;
+		}
+	}
 }
 
 bool FSCSEditorTreeNodeInstanceAddedComponent::IsRootComponent() const
 {
 	bool bIsRoot = true;
-	UActorComponent* ComponentTemplate = GetComponentTemplate();
+	UActorComponent* Template = GetComponentTemplate();
 
-	if (ComponentTemplate != NULL)
+	if (Template != NULL)
 	{
-		AActor* CDO = ComponentTemplate->GetOwner();
+		AActor* CDO = Template->GetOwner();
 		if (CDO != NULL)
 		{
 			// Evaluate to TRUE if we have a valid component reference that matches the native root component
-			bIsRoot = (ComponentTemplate == CDO->GetRootComponent());
+			bIsRoot = (Template == CDO->GetRootComponent());
 		}
 	}
 
@@ -953,26 +967,6 @@ FString FSCSEditorTreeNodeInstanceAddedComponent::GetDisplayString() const
 FText FSCSEditorTreeNodeInstanceAddedComponent::GetDisplayName() const
 {
 	return FText::FromName(InstancedComponentName);
-}
-
-UActorComponent* FSCSEditorTreeNodeInstanceAddedComponent::GetComponentTemplate() const
-{
-	if (InstancedComponentOwnerPtr.IsValid())
-	{
-		TInlineComponentArray<UActorComponent*> Components;
-		InstancedComponentOwnerPtr.Get()->GetComponents(Components);
-
-		for (auto It = Components.CreateConstIterator(); It; ++It)
-		{
-			UActorComponent* ComponentInstance = *It;
-			if (ComponentInstance->GetFName() == InstancedComponentName)
-			{
-				return ComponentInstance;
-			}
-		}
-	}
-
-	return nullptr;
 }
 
 UActorComponent* FSCSEditorTreeNodeInstanceAddedComponent::GetEditableComponentTemplate(UBlueprint* ActualEditedBlueprint)
@@ -1022,17 +1016,17 @@ void FSCSEditorTreeNodeInstanceAddedComponent::OnCompleteRename(const FText& InN
 FSCSEditorTreeNodeComponent::FSCSEditorTreeNodeComponent(USCS_Node* InSCSNode, bool bInIsInheritedSCS)
 	: bIsInheritedSCS(bInIsInheritedSCS)
 	, SCSNodePtr(InSCSNode)
-	, ComponentTemplatePtr((InSCSNode != nullptr) ? InSCSNode->ComponentTemplate : nullptr)
 {
+	ComponentTemplate = (InSCSNode != nullptr) ? InSCSNode->ComponentTemplate : nullptr;
 }
 
 FSCSEditorTreeNodeComponent::FSCSEditorTreeNodeComponent(UActorComponent* InComponentTemplate)
 	: bIsInheritedSCS(false)
 	, SCSNodePtr(nullptr)
-	, ComponentTemplatePtr(InComponentTemplate)
 {
 	check(InComponentTemplate != nullptr);
 
+	ComponentTemplate = InComponentTemplate;
 	AActor* Owner = InComponentTemplate->GetOwner();
 	if (Owner != nullptr)
 	{
@@ -1122,11 +1116,6 @@ FText FSCSEditorTreeNodeComponent::GetDisplayName() const
 class USCS_Node* FSCSEditorTreeNodeComponent::GetSCSNode() const
 {
 	return SCSNodePtr.Get();
-}
-
-UActorComponent* FSCSEditorTreeNodeComponent::GetComponentTemplate() const
-{
-	return ComponentTemplatePtr.Get();
 }
 
 UActorComponent* FSCSEditorTreeNodeComponent::GetEditableComponentTemplate(UBlueprint* ActualEditedBlueprint)
@@ -3492,6 +3481,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	if (EditorMode == EComponentEditorMode::ActorInstance)
 	{
 		GEngine->OnLevelComponentRequestRename().AddSP(this, &SSCSEditor::OnLevelComponentRequestRename);
+		GEditor->OnObjectsReplaced().AddSP(this, &SSCSEditor::OnObjectsReplaced);
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -3508,6 +3498,37 @@ void SSCSEditor::OnLevelComponentRequestRename(const UActorComponent* InComponen
 	}
 }
 
+void SSCSEditor::OnObjectsReplaced(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+{
+	ReplaceComponentReferencesInTree(GetRootComponentNodes(), OldToNewInstanceMap);
+}
+
+void SSCSEditor::ReplaceComponentReferencesInTree(const TArray<FSCSEditorTreeNodePtrType>& Nodes, const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+{
+	for (const FSCSEditorTreeNodePtrType& Node : Nodes)
+	{
+		if (Node.IsValid())
+		{
+			// We need to get the actual pointer to the old component which will be marked for pending kill, as these are the references which need updating
+			const bool bEvenIfPendingKill = true;
+			UActorComponent* ComponentTemplate = Node->GetComponentTemplate(bEvenIfPendingKill);
+			if (ComponentTemplate)
+			{
+				UObject* const* NewComponentTemplatePtr = OldToNewInstanceMap.Find(ComponentTemplate);
+				if (NewComponentTemplatePtr)
+				{
+					if (UActorComponent* NewComponentTemplate = Cast<UActorComponent>(*NewComponentTemplatePtr))
+					{
+						Node->SetComponentTemplate(NewComponentTemplate);
+					}
+				}
+			}
+
+			ReplaceComponentReferencesInTree(Node->GetChildren(), OldToNewInstanceMap);
+		}
+	}
+}
+
 UBlueprint* SSCSEditor::GetBlueprint() const
 {
 	if (AActor* Actor = GetActorContext())
@@ -3519,82 +3540,6 @@ UBlueprint* SSCSEditor::GetBlueprint() const
 	}
 
 	return nullptr;
-}
-
-void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	TFunction<bool (const TArray<FSCSEditorTreeNodePtrType>&, int32&)> AreAnyNodesInvalidLambda = [&](const TArray<FSCSEditorTreeNodePtrType>& InNodes, int32& OutNumValidNodes) -> bool
-	{
-		bool bFoundInvalidNode = false;
-		for(auto NodeIt = InNodes.CreateConstIterator(); NodeIt && !bFoundInvalidNode && !AreAnyNodesInvalidLambda((*NodeIt)->GetChildren(), OutNumValidNodes); ++NodeIt)
-		{
-			const FSCSEditorTreeNodePtrType Node = *NodeIt;
-			bool bIsComponent = Node->GetNodeType() == FSCSEditorTreeNode::ComponentNode;
-			if (bIsComponent)
-			{
-				// A component node is considered to be invalid if one of the following conditions holds true:
-				//	(a) The component instance is invalid (i.e. NULL).
-				//	(b) The component instance is pending garbage collection.
-				//	(c) The component instance is a USceneComponent derivative and either is not the scene "root" node or otherwise is not contained within the scene component node hierarchy.
-				//	(d) The component instance is not a USceneComponent derivative and either matches the scene "root" node or is otherwise contained within the scene component node hierarchy.
-				//		=> (c) and (d) could happen if the user changes the parent class of a custom component's Blueprint class, for example.
-				//
-				FSCSEditorTreeNodePtrType ParentNodePtr = Node->GetParent();
-				const UActorComponent* InstancedComponent = Node->GetComponentTemplate();
-				bFoundInvalidNode = !InstancedComponent
-					|| InstancedComponent->IsPendingKill()
-					|| (InstancedComponent->IsA<USceneComponent>() && (Node != SceneRootNodePtr && (!ParentNodePtr.IsValid() || ParentNodePtr->GetNodeType() != FSCSEditorTreeNode::ComponentNode)))
-					|| (!InstancedComponent->IsA<USceneComponent>() && (Node == SceneRootNodePtr || (ParentNodePtr.IsValid() && ParentNodePtr->GetNodeType() == FSCSEditorTreeNode::ComponentNode)));
-					
-				if(!bFoundInvalidNode)
-				{
-					++OutNumValidNodes;
-				}
-			}
-		}
-
-		return bFoundInvalidNode;
-	};
-
-	// Only run this in "instanced" mode or otherwise only when the option to show UCS-instanced components is enabled
-	const bool bShowInstancedUCSComponents = !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView;
-	if(EditorMode == EComponentEditorMode::ActorInstance || bShowInstancedUCSComponents)
-	{
-		const AActor* ActorInstance = (EditorMode == EComponentEditorMode::ActorInstance) ? GetActorContext() : PreviewActor.Get(nullptr);
-		if (ActorInstance)
-		{
-			int32 NumComponentInstances = 0;
-			for (auto CompIt = ActorInstance->GetComponents().CreateConstIterator(); CompIt; ++CompIt)
-			{
-				// Don't count editor-only components in instanced mode (unless it's the root component), because we don't show them there. Also, don't count UCS-added components if the option to hide them is enabled, and don't count components that are based on the CDO in the BP editor context (i.e. preview world).
-				const UActorComponent* CompInst = *CompIt;
-				if ((!CompInst->IsEditorOnly() || EditorMode != EComponentEditorMode::ActorInstance || CompInst == ActorInstance->GetRootComponent())
-					&& (CompInst->CreationMethod != EComponentCreationMethod::UserConstructionScript || bShowInstancedUCSComponents)
-					&& (EditorMode != EComponentEditorMode::BlueprintSCS || CompInst->GetArchetype() != CompInst->GetClass()->GetDefaultObject()))
-				{
-					++NumComponentInstances;
-				}
-			}
-
-			int32 NumComponentNodes = 0;
-			static int32 UpdateCounter = 0;
-			if (AreAnyNodesInvalidLambda(GetRootNodes(), NumComponentNodes) || NumComponentNodes != NumComponentInstances)
-			{
-				if(++UpdateCounter % 60)
-				{
-					UE_LOG(LogSCSEditor, Warning, TEXT("Calling UpdateTree() from Tick() more frequently than expected due to invalid tree node state. This might be a performance issue."));
-				}
-
-				UpdateTree();
-			}
-			else
-			{
-				UpdateCounter = 0;
-			}
-		}
-	}
 }
 
 FReply SSCSEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )

@@ -6,6 +6,8 @@
 #include "OnlineUserCloudInterface.h"
 #include "OnlineSharedCloudInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 /**
  * Class used to test the friends interface
  */
@@ -208,3 +210,5 @@
 	 */
 	void Test(class UWorld* InWorld);
  };
+
+#endif //WITH_DEV_AUTOMATION_TESTS

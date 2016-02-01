@@ -6,6 +6,12 @@
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_Dot.h"
 
+#if !WITH_DEV_AUTOMATION_TESTS
+
+UEnvQueryTest_Dot::UEnvQueryTest_Dot(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
+
+#else
+
 UEnvQueryTest_Dot::UEnvQueryTest_Dot(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Cost = EEnvTestCost::Low;
@@ -216,3 +222,5 @@ FText UEnvQueryTest_Dot::GetDescriptionDetails() const
 {
 	return DescribeFloatTestParams();
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

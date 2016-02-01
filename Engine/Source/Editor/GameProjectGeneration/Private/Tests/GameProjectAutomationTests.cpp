@@ -11,6 +11,8 @@
 #include "../TemplateCategory.h"
 #include "../TemplateItem.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+
 DEFINE_LOG_CATEGORY_STATIC(LogGameProjectGenerationTests, Log, All);
 
 namespace GameProjectAutomationUtils
@@ -377,3 +379,5 @@ bool FCreateCPPTemplateProjectAutomationTests::RunTest(const FString& Parameters
 	return (OutMatchedProjectsDesk == OutCreatedProjectsDesk) && (OutMatchedProjectsMob == OutCreatedProjectsMob);
 
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

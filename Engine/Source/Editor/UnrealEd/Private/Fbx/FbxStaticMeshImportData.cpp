@@ -14,6 +14,7 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const FObjectInitializer& Obj
 	bOneConvexHullPerUCX = true;
 	bAutoGenerateCollision = true;
 	bTransformVertexToAbsolute = true;
+	bBakePivotInVertex = false;
 	VertexOverrideColor = FColor(255, 255, 255, 255);
 }
 

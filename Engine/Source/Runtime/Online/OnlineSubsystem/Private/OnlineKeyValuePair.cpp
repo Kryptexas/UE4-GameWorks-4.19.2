@@ -1109,6 +1109,11 @@ bool FVariantDataConverter::ConvertScalarUPropertyToVariant(UProperty* Property,
 		FString StringValue = StringProperty->GetPropertyValue(Value);
 		OutVariantData.SetValue(StringValue);
 	}
+	else if (UTextProperty *TextProperty = Cast<UTextProperty>(Property))
+	{
+		FText TextValue = TextProperty->GetPropertyValue(Value);
+		OutVariantData.SetValue(TextValue.ToString());
+	}
 	else if (UArrayProperty *ArrayProperty = Cast<UArrayProperty>(Property))
 	{
 		TSharedPtr<FJsonValue> Json = FJsonObjectConverter::UPropertyToJsonValue(Property, Value, 0, 0);

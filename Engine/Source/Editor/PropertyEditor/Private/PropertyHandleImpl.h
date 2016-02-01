@@ -317,6 +317,8 @@ protected:
 	 */
 	FPropertyAccess::Result GetPropertyValueText( FText& OutText, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const;
 
+	bool IsAnyOuterObjectFromEngine() const;
+
 protected:
 	/** Property node used to access UProperty and address of object to change */
 	TWeakPtr<FPropertyNode> PropertyNode;

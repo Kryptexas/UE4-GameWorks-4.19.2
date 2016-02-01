@@ -8,8 +8,8 @@ struct CORE_API FEditorObjectVersion
 	{
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
-
-
+		// Localizble text gathered and stored in packages is now flagged with a localizable text gathering process version
+		GatheredTextProcessVersionFlagging,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

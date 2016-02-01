@@ -229,6 +229,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bKeepOverlappingVertices = ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
 	InOutImportOptions.bCombineToSingle = ImportUI->bCombineMeshes;
 	InOutImportOptions.bTransformVertexToAbsolute = ImportUI->StaticMeshImportData->bTransformVertexToAbsolute;
+	InOutImportOptions.bBakePivotInVertex = ImportUI->StaticMeshImportData->bBakePivotInVertex;
 	InOutImportOptions.VertexColorImportOption = ImportUI->StaticMeshImportData->VertexColorImportOption;
 	InOutImportOptions.VertexOverrideColor = ImportUI->StaticMeshImportData->VertexOverrideColor;
 	InOutImportOptions.bRemoveDegenerates = ImportUI->StaticMeshImportData->bRemoveDegenerates;
@@ -299,7 +300,7 @@ FFbxImporter::FFbxImporter()
 	
 	ImportOptions = new FBXImportOptions();
 	FMemory::Memzero(*ImportOptions);
-	ImportOptions->MaterialPrefixName = NAME_None;
+	ImportOptions->MaterialBasePath = NAME_None;
 	
 	CurPhase = NOTSTARTED;
 }
@@ -444,7 +445,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 	return Result; 
 }
 
-bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
+bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo, bool bPreventMaterialNameClash /*= false*/)
 {
 	bool Result = true;
 	GWarn->BeginSlowTask( NSLOCTEXT("FbxImporter", "BeginGetSceneInfoTask", "Parse FBX file to get scene info"), true );
@@ -460,7 +461,7 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 		}
 		GWarn->UpdateProgress( 40, 100 );
 	case FILEOPENED:
-		if (!ImportFile(Filename))
+		if (!ImportFile(Filename, bPreventMaterialNameClash))
 		{
 			Result = false;
 			break;
@@ -505,14 +506,15 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 				MeshInfo.LODGroup = NULL;
 				if (GeoNode)
 				{
-					FbxNode* ParentNode = GeoNode->GetParent();
-					if (ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+					FbxNode* ParentNode = RecursiveFindParentLodGroup(GeoNode->GetParent());
+					if (ParentNode != nullptr && ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 					{
 						FbxNodeAttribute* LODGroup = ParentNode->GetNodeAttribute();
 						MeshInfo.LODGroup = MakeString(ParentNode->GetName());
 						for (int32 LODIndex = 0; LODIndex < ParentNode->GetChildCount(); LODIndex++)
 						{
-							if (GeoNode == ParentNode->GetChild(LODIndex))
+							FbxNode *MeshNode = FindLODGroupNode(ParentNode, LODIndex);
+							if (GeoNode == MeshNode)
 							{
 								MeshInfo.LODLevel = LODIndex;
 								break;
@@ -626,6 +628,8 @@ void FFbxImporter::TraverseHierarchyNodeRecursively(FbxSceneInfo& SceneInfo, Fbx
 		ChildInfo.UniqueId = ChildNode->GetUniqueID();
 		ChildInfo.ParentName = ParentInfo.ObjectName;
 		ChildInfo.ParentUniqueId = ParentInfo.UniqueId;
+		ChildInfo.RotationPivot = ChildNode->RotationPivot.Get();
+		ChildInfo.ScalePivot = ChildNode->ScalingPivot.Get();
 		ChildInfo.Transform = ChildNode->EvaluateLocalTransform();
 		if (ChildNode->GetNodeAttribute())
 		{
@@ -800,12 +804,44 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 	return Result;
 }
 
+void FFbxImporter::FixMaterialClashName()
+{
+	FbxArray<FbxSurfaceMaterial*> MaterialArray;
+	Scene->FillMaterialArray(MaterialArray);
+	TSet<FString> AllMaterialName;
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialArray.Size(); ++MaterialIndex)
+	{
+		FbxSurfaceMaterial *Material = MaterialArray[MaterialIndex];
+		FString MaterialName = UTF8_TO_TCHAR(Material->GetName());
+		if (AllMaterialName.Contains(MaterialName))
+		{
+			FString OriginalMaterialName = MaterialName;
+			//Use the fbx nameclash 1 convention: NAMECLASH1_KEY
+			//This will add _ncl1_
+			FString MaterialBaseName = MaterialName + TEXT(NAMECLASH1_KEY);
+			int32 NameIndex = 1;
+			MaterialName = MaterialBaseName + FString::FromInt(NameIndex++);
+			while (AllMaterialName.Contains(MaterialName))
+			{
+				MaterialName = MaterialBaseName + FString::FromInt(NameIndex++);
+			}
+			//Rename the Material
+			Material->SetName(TCHAR_TO_UTF8(*MaterialName));
+			AddTokenizedErrorMessage(
+				FTokenizedMessage::Create(EMessageSeverity::Warning,
+										  FText::Format(LOCTEXT("FbxImport_MaterialNameClash", "FBX Scene Loading: Found material name clash, name clash can be wrongly reassign at reimport , material '{0}' was rename '{1}'"), FText::FromString(OriginalMaterialName), FText::FromString(MaterialName))),
+										  FFbxErrors::Generic_LoadingSceneFailed);
+		}
+		AllMaterialName.Add(MaterialName);
+	}
+}
+
 #ifdef IOS_REF
 #undef  IOS_REF
 #define IOS_REF (*(SdkManager->GetIOSettings()))
 #endif
 
-bool FFbxImporter::ImportFile(FString Filename)
+bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /*=false*/)
 {
 	bool Result = true;
 	
@@ -832,6 +868,12 @@ bool FFbxImporter::ImportFile(FString Filename)
 
 	// Import the scene.
 	bStatus = Importer->Import(Scene);
+
+	//Make sure we don't have name clash for materials
+	if (bPreventMaterialNameClash)
+	{
+		FixMaterialClashName();
+	}
 
 	// Get the version number of the FBX file format.
 	Importer->GetFileVersion(FileMajor, FileMinor, FileRevision);
@@ -861,7 +903,7 @@ bool FFbxImporter::ImportFile(FString Filename)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
+bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, bool bPreventMaterialNameClash /*= false*/)
 {
 	bool Result = true;
 
@@ -875,7 +917,7 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
 			break;
 		}
 	case FILEOPENED:
-		if (!ImportFile(FString(Filename)))
+		if (!ImportFile(FString(Filename), bPreventMaterialNameClash))
 		{
 			Result = false;
 			CurPhase = NOTSTARTED;
@@ -947,6 +989,9 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
 			//{
 			//	KFbxSystemUnit::cm.ConvertScene( FbxScene );
 			//}
+
+			//Warn the user if there is some geometry that cannot be imported because they are not reference by any scene node attribute
+			ValidateAllMeshesAreReferenceByNodeAttribute();
 		}
 		
 	default:
@@ -1074,8 +1119,17 @@ FbxAMatrix FFbxImporter::ComputeTotalMatrix(FbxNode* Node)
 	//For Single Matrix situation, obtain transfrom matrix from eDESTINATION_SET, which include pivot offsets and pre/post rotations.
 	FbxAMatrix& GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(Node);
 	
-	FbxAMatrix TotalMatrix;
-	TotalMatrix = GlobalTransform * Geometry;
+	FbxAMatrix PivotGeometry;
+	if (ImportOptions->bBakePivotInVertex)
+	{
+		FbxVector4 RotationPivot = Node->GetRotationPivot(FbxNode::eSourcePivot);
+		FbxVector4 FullPivot;
+		FullPivot[0] = -RotationPivot[0];
+		FullPivot[1] = -RotationPivot[1];
+		FullPivot[2] = -RotationPivot[2];
+		PivotGeometry.SetT(FullPivot);
+	}
+	FbxAMatrix TotalMatrix = ImportOptions->bTransformVertexToAbsolute ? GlobalTransform * Geometry * PivotGeometry : PivotGeometry;
 
 	return TotalMatrix;
 }
@@ -1198,6 +1252,62 @@ void FillFbxSkelMeshArray(FbxNode* Node, TArray<FbxNode*>& outSkelMeshArray)
 	{
 		FillFbxSkelMeshArray(Node->GetChild(ChildIndex), outSkelMeshArray);
 	}
+}
+
+void FFbxImporter::ValidateAllMeshesAreReferenceByNodeAttribute()
+{
+	for (int GeoIndex = 0; GeoIndex < Scene->GetGeometryCount(); ++GeoIndex)
+	{
+		bool FoundOneGeometryLinkToANode = false;
+		FbxGeometry *Geometry = Scene->GetGeometry(GeoIndex);
+		for (int NodeIndex = 0; NodeIndex < Scene->GetNodeCount(); ++NodeIndex)
+		{
+			FbxNode *SceneNode = Scene->GetNode(NodeIndex);
+			FbxGeometry *NodeGeometry = static_cast<FbxGeometry*>(SceneNode->GetMesh());
+			if (NodeGeometry && NodeGeometry->GetUniqueID() == Geometry->GetUniqueID())
+			{
+				FoundOneGeometryLinkToANode = true;
+				break;
+			}
+		}
+		if (!FoundOneGeometryLinkToANode)
+		{
+			FString GeometryName = (Geometry->GetName() && Geometry->GetName()[0] != '\0') ? UTF8_TO_TCHAR(Geometry->GetName()) : TEXT("[Geometry have no name]");
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning,
+				FText::Format(LOCTEXT("FailedToImport_NoObjectLinkToNode", "Mesh {0} in the fbx file is not reference by any hierarchy node."), FText::FromString(GeometryName))),
+				FFbxErrors::Generic_ImportingNewObjectFailed);
+		}
+	}
+}
+
+FbxNode *FFbxImporter::RecursiveGetFirstMeshNode(FbxNode* Node)
+{
+	if (Node->GetMesh() != nullptr)
+		return Node;
+	for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+	{
+		FbxNode *MeshNode = RecursiveGetFirstMeshNode(Node->GetChild(ChildIndex));
+		if (MeshNode != nullptr)
+			return MeshNode;
+	}
+	return nullptr;
+}
+
+FbxNode* FFbxImporter::FindLODGroupNode(FbxNode* NodeLodGroup, int32 LodIndex)
+{
+	check(NodeLodGroup->GetChildCount() >= LodIndex);
+	FbxNode *ChildNode = NodeLodGroup->GetChild(LodIndex);
+
+	return RecursiveGetFirstMeshNode(ChildNode);
+}
+
+FbxNode *FFbxImporter::RecursiveFindParentLodGroup(FbxNode *ParentNode)
+{
+	if (ParentNode == nullptr)
+		return nullptr;
+	if (ParentNode->GetNodeAttribute() && ParentNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
+		return ParentNode;
+	return RecursiveFindParentLodGroup(ParentNode->GetParent());
 }
 
 void FFbxImporter::RecursiveFixSkeleton(FbxNode* Node, TArray<FbxNode*> &SkelMeshes, bool bImportNestedMeshes )
@@ -1426,7 +1536,7 @@ void FFbxImporter::BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxA
 */
 void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNode*>* >& outSkelMeshArray, TArray<FbxNode*>& SkeletonArray, bool ExpandLOD)
 {
-	FbxNode* SkelMeshNode = NULL;
+	FbxNode* SkelMeshNode = nullptr;
 	FbxNode* NodeToAdd = Node;
 
 	DumpFBXNode(Node);
@@ -1438,11 +1548,11 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 	else if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 	{
 		// for LODgroup, add the LODgroup to OutSkelMeshArray according to the skeleton that the first child bind to
-		SkelMeshNode = Node->GetChild(0);
+		SkelMeshNode = FindLODGroupNode(Node, 0);
 		// check if the first child is skeletal mesh
-		if (!(SkelMeshNode->GetMesh() && SkelMeshNode->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) > 0))
+		if (SkelMeshNode != nullptr && !(SkelMeshNode->GetMesh() && SkelMeshNode->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) > 0))
 		{
-			SkelMeshNode = NULL;
+			SkelMeshNode = nullptr;
 		}
 		else if (ExpandLOD)
 		{
@@ -1456,7 +1566,7 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 	{
 		// find root skeleton
 
-		check(SkelMeshNode->GetMesh() != NULL);
+		check(SkelMeshNode->GetMesh() != nullptr);
 		const int32 fbxDeformerCount = SkelMeshNode->GetMesh()->GetDeformerCount();
 		FbxSkin* Deformer = static_cast<FbxSkin*>( SkelMeshNode->GetMesh()->GetDeformer(0, FbxDeformer::eSkin) );
 		
@@ -1540,9 +1650,9 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 	else if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 	{
 		// for LODgroup, add the LODgroup to OutSkelMeshArray according to the skeleton that the first child bind to
-		FbxNode* FirstLOD = Node->GetChild(0);
+		FbxNode* FirstLOD = FindLODGroupNode(Node, 0);
 		// check if the first child is skeletal mesh
-		if (FirstLOD->GetMesh())
+		if (FirstLOD != nullptr && FirstLOD->GetMesh())
 		{
 			if (FirstLOD->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) == 0 )
 			{
@@ -1598,7 +1708,9 @@ void FFbxImporter::RecursiveFindRigidMesh(FbxNode* Node, TArray< TArray<FbxNode*
 		int32 ChildIndex;
 		for (ChildIndex=0; ChildIndex<Node->GetChildCount(); ++ChildIndex)
 		{
-			RecursiveFindRigidMesh(Node->GetChild(ChildIndex), outSkelMeshArray, SkeletonArray, ExpandLOD);
+			FbxNode* MeshNode = FindLODGroupNode(Node, ChildIndex);
+			if(MeshNode != nullptr)
+				RecursiveFindRigidMesh(MeshNode, outSkelMeshArray, SkeletonArray, ExpandLOD);
 		}
 	}
 }
@@ -1723,7 +1835,7 @@ FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName& RootBoneName, bool bExpa
 			FbxNode* Node = (*SkelMeshArray[SkelMeshIndex])[0];
 			if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 			{
-				MeshNode = Node->GetChild(0);
+				MeshNode = FindLODGroupNode(Node, 0);
 			}
 			else
 			{
@@ -1755,7 +1867,9 @@ FbxNode* FFbxImporter::FindFBXMeshesByBone(const FName& RootBoneName, bool bExpa
 						FbxNode* Node = SkelMeshes[NodeIndex];
 						if (Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup)
 						{
-							OutFBXMeshNodeArray.Add(Node->GetChild(0));
+							FbxNode *InnerMeshNode = FindLODGroupNode(Node, 0);
+							if(InnerMeshNode != nullptr)
+								OutFBXMeshNodeArray.Add(InnerMeshNode);
 						}
 						else
 						{

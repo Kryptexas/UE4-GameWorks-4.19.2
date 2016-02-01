@@ -205,6 +205,91 @@ void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 	}
 }
 
+@interface NSAutoReadPipe : NSObject
+
+/** The pipe itself */
+@property (readonly) NSPipe*			Pipe;
+/** A file associated with the pipe from which we shall read data */
+@property (readonly) NSFileHandle*		File;
+/** Buffer that stores the output from the pipe */
+@property (readonly) NSMutableData*		PipeOutput;
+
+/** Initialization function */
+-(id)init;
+
+/** Deallocation function */
+-(void)dealloc;
+
+/** Callback function that is invoked when data is pushed onto the pipe */
+-(void)readData: (NSNotification *)Notification;
+
+/** Shutdown the background reader, and copy all the data from the pipe as a UTF8 encoded string */
+-(void)copyPipeData: (FString&)OutString;
+
+@end
+
+@implementation NSAutoReadPipe
+
+-(id)init
+{
+	[super init];
+	
+	_PipeOutput = [NSMutableData new];
+	_Pipe = [NSPipe new];
+	_File = [_Pipe fileHandleForReading];
+	
+	[[NSNotificationCenter defaultCenter] addObserver: self
+											selector: @selector(readData:)
+											name: NSFileHandleDataAvailableNotification
+											object: _File];
+	
+	[_File waitForDataInBackgroundAndNotify];
+	return self;
+}
+
+-(void)dealloc
+{
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	
+	[_Pipe release];
+	[_PipeOutput release];
+	
+	[super dealloc];
+}
+
+-(void)readData: (NSNotification *)Notification
+{
+	NSFileHandle* FileHandle = (NSFileHandle*)Notification.object;
+	
+	// Ensure we're reading from the right file
+	if (ensure(FileHandle == _File))
+	{
+		[_PipeOutput appendData: [FileHandle availableData]];
+		[FileHandle waitForDataInBackgroundAndNotify];
+	}
+}
+
+-(void)copyPipeData: (FString&)OutString
+{
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	
+	// Read any remaining data in from the pipe
+	NSData* Data = [_File readDataToEndOfFile];
+	if (Data && [Data length])
+	{
+		[_PipeOutput appendData: Data];
+	}
+	
+	// Encode the data as a string
+	NSString* String = [[NSString alloc] initWithData:_PipeOutput encoding:NSUTF8StringEncoding];
+	
+	OutString = FString(String);
+	
+	[String release];
+}
+
+@end // NSAutoReadPipe
+
 bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
 {
 	SCOPED_AUTORELEASE_POOL;
@@ -306,53 +391,14 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 		
 		[ProcessHandle setArguments: Arguments];
 		
-		NSPipe* StdOutPipe = [[NSPipe new] autorelease];
+		NSAutoReadPipe* StdOutPipe = [[NSAutoReadPipe new] autorelease];
+		[ProcessHandle setStandardOutput: (id)[StdOutPipe Pipe]];
 		
-		[ProcessHandle setStandardOutput: (id)StdOutPipe];
-		
-		NSPipe* StdErrPipe = [[NSPipe new] autorelease];
-		
-		[ProcessHandle setStandardError: (id)StdErrPipe];
+		NSAutoReadPipe* StdErrPipe = [[NSAutoReadPipe new] autorelease];
+		[ProcessHandle setStandardError: (id)[StdErrPipe Pipe]];
 		
 		@try
 		{
-			NSMutableString* StdOutString = [NSMutableString new];
-			NSMutableString* StdErrString = [NSMutableString new];
-			NSFileHandle* StdOutFile = nil;
-			NSFileHandle* StdErrFile = nil;
-			
-			if(OutStdOut)
-			{
-				StdOutFile = [StdOutPipe fileHandleForReading];
-				if(StdOutFile)
-				{
-					StdOutFile.readabilityHandler = ^(NSFileHandle* Handle){
-						NSData* FileData = Handle.availableData;
-						if (FileData.length > 0)
-						{
-							NSString* NewString = (NSString*)[[[NSString alloc] initWithData:FileData encoding:NSUTF8StringEncoding] autorelease];
-							[StdOutString appendString:NewString];
-						}
-					};
-				}
-			}
-			
-			if(OutStdErr)
-			{
-				StdErrFile = [StdErrPipe fileHandleForReading];
-				if(StdErrFile)
-				{
-					StdErrFile.readabilityHandler = ^(NSFileHandle* Handle){
-						NSData* FileData = Handle.availableData;
-						if (FileData.length > 0)
-						{
-							NSString* NewString = (NSString*)[[[NSString alloc] initWithData:FileData encoding:NSUTF8StringEncoding] autorelease];
-							[StdErrString appendString:NewString];
-						}
-					};
-				}
-			}
-
 			[ProcessHandle launch];
 			
 			[ProcessHandle waitUntilExit];
@@ -362,34 +408,15 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 				*OutReturnCode = [ProcessHandle terminationStatus];
 			}
 			
-			if (OutStdOut && StdOutFile)
+			if (OutStdOut)
 			{
-				StdOutFile.readabilityHandler = nil;
-				NSData* StdOutData = [StdOutFile readDataToEndOfFile];
-				if (StdOutData.length > 0)
-				{
-					NSString* NewString = (NSString*)[[[NSString alloc] initWithData:StdOutData encoding:NSUTF8StringEncoding] autorelease];
-					[StdOutString appendString:NewString];
-				}
-				
-				*OutStdOut = FString(StdOutString);
+				[StdOutPipe copyPipeData: *OutStdOut];
 			}
 			
-			if (OutStdErr && StdErrFile)
+			if (OutStdErr)
 			{
-				StdErrFile.readabilityHandler = nil;
-				NSData* StdErrData = [StdErrFile readDataToEndOfFile];
-				if (StdErrData.length > 0)
-				{
-					NSString* NewString = (NSString*)[[[NSString alloc] initWithData:StdErrData encoding:NSUTF8StringEncoding] autorelease];
-					[StdErrString appendString:NewString];
-				}
-				
-				*OutStdErr = FString(StdErrString);
+				[StdErrPipe copyPipeData: *OutStdErr];
 			}
-			
-			[StdOutString release];
-			[StdErrString release];
 			
 			return true;
 		}

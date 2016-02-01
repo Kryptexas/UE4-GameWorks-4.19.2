@@ -4,6 +4,7 @@
 #include "ModuleManager.h"
 #include "TestAchievementsInterface.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
 
 /**
  * The process of this test is:
@@ -202,3 +203,5 @@ void FTestAchievementsInterface::OnAchievementsUnlocked(const FUniqueNetId& Play
 {
 	UE_LOG(LogOnline, Display, TEXT("Achievement Unlocked - %s"), *AchievementId);
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

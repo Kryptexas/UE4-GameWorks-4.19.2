@@ -50,85 +50,6 @@ namespace
 #endif
 }
 
-class FTextFriendHelper
-{
-	friend class FConfigFile;
-	friend class FConfigCacheIni;
-
-	static FString AsString( const FText& Text )
-	{
-		if( Text.IsTransient() )
-		{
-			UE_LOG( LogConfig, Warning, TEXT( "FTextFriendHelper::AsString() Transient FText") );
-			return FString(TEXT("Error: Transient FText"));
-		}
-
-		FString Str;
-		if( FTextInspector::GetSourceString(Text) )
-		{
-			FString SourceString( *FTextInspector::GetSourceString(Text) );
-			for( auto Iter( SourceString.CreateConstIterator()); Iter; ++Iter )
-			{
-				const TCHAR Ch = *Iter;
-				if( Ch == '\"' )
-				{
-					Str += TEXT("\\\"");
-				}
-				else if( Ch == '\t' )
-				{
-					Str += TEXT("\\t");
-				}
-				else if( Ch == '\r' )
-				{
-					Str += TEXT("\\r");
-				}
-				else if( Ch == '\n' )
-				{
-					Str += TEXT("\\n");
-				}
-				else if( Ch == '\\' )
-				{
-					Str += TEXT("\\\\");
-				}
-				else
-				{
-					Str += Ch;
-				}
-			}
-		}
-
-		//this prevents our source code text gatherer from trying to gather the following messages
-#define LOC_DEFINE_REGION
-		if( Text.IsCultureInvariant() )
-		{
-			return FString::Printf( TEXT( "NSLOCTEXT(\"\",\"\",\"%s\")" ), *Str );
-		}
-		else
-		{
-			FTextDisplayStringRef DisplayString = FTextInspector::GetSharedDisplayString(Text);
-
-			FString Namespace;
-			FString Key;
-			const bool FoundNamespaceAndKey = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(DisplayString, Namespace, Key);
-
-			// If this has no namespace or key, attempt to give it a GUID for a key and register it.
-			if (!FoundNamespaceAndKey && GIsEditor)
-			{
-				Key = FGuid::NewGuid().ToString();
-				if (!FTextLocalizationManager::Get().AddDisplayString(DisplayString, Namespace, Key))
-				{
-					// Could not add display string, reset namespace and key.
-					Namespace.Empty();
-					Key.Empty();
-				}
-			}
-
-			return FString::Printf( TEXT( "NSLOCTEXT(\"%s\",\"%s\",\"%s\")" ), *Namespace, *Key, *Str );
-		}
-#undef LOC_DEFINE_REGION
-	}
-};
-
 /*-----------------------------------------------------------------------------
 	FConfigSection
 -----------------------------------------------------------------------------*/
@@ -1132,20 +1053,8 @@ bool FConfigFile::GetString( const TCHAR* Section, const TCHAR* Key, FString& Va
 	{
 		return false;
 	}
-
-	//this prevents our source code text gatherer from trying to gather the following messages
-#define LOC_DEFINE_REGION
-	if( FCString::Strstr( **PairString, TEXT("LOCTEXT") ) )
-	{
-		UE_LOG( LogConfig, Warning, TEXT( "FConfigFile::GetString( %s, %s ) contains LOCTEXT"), Section, Key );
-		return false;
-	}
-	else
-	{
-		Value = **PairString;
-		return true;
-	}
-#undef LOC_DEFINE_REGION
+	Value = **PairString;
+	return true;
 }
 
 bool FConfigFile::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value ) const
@@ -1160,11 +1069,7 @@ bool FConfigFile::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value 
 	{
 		return false;
 	}
-	if( !FParse::Text( **PairString, Value, Section ) )
-	{
-		Value = FText::FromString( **PairString );
-	}
-	return true;
+	return FTextStringHelper::ReadFromString( **PairString, Value, Section );
 }
 
 bool FConfigFile::GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const
@@ -1209,9 +1114,10 @@ void FConfigFile::SetText( const TCHAR* Section, const TCHAR* Key, const FText& 
 		Sec = &Add( Section, FConfigSection() );
 	}
 
-	FString* Str = Sec->Find( Key );
-	const FString StrValue = FTextFriendHelper::AsString( Value );
+	FString StrValue;
+	FTextStringHelper::WriteToString(StrValue, Value);
 
+	FString* Str = Sec->Find( Key );
 	if( Str == NULL )
 	{
 		Sec->Add( Key, StrValue );
@@ -1691,20 +1597,8 @@ bool FConfigCacheIni::GetString( const TCHAR* Section, const TCHAR* Key, FString
 	{
 		return false;
 	}
-
-	//this prevents our source code text gatherer from trying to gather the following messages
-#define LOC_DEFINE_REGION
-	if( FCString::Strstr( **PairString, TEXT("LOCTEXT") ) )
-	{
-		UE_LOG( LogConfig, Warning, TEXT( "FConfigCacheIni::GetString( %s, %s, %s ) contains LOCTEXT"), Section, Key, *Filename );
-		return false;
-	}
-	else
-	{
-		Value = **PairString;
-		return true;
-	}
-#undef LOC_DEFINE_REGION
+	Value = **PairString;
+	return true;
 }
 
 bool FConfigCacheIni::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value, const FString& Filename )
@@ -1728,11 +1622,7 @@ bool FConfigCacheIni::GetText( const TCHAR* Section, const TCHAR* Key, FText& Va
 	{
 		return false;
 	}
-	if( !FParse::Text( **PairString, Value, Section ) )
-	{
-		Value = FText::FromString( **PairString );
-	}
-	return true;
+	return FTextStringHelper::ReadFromString( **PairString, Value, Section );
 }
 
 bool FConfigCacheIni::GetSection( const TCHAR* Section, TArray<FString>& Result, const FString& Filename )
@@ -1816,9 +1706,10 @@ void FConfigCacheIni::SetText( const TCHAR* Section, const TCHAR* Key, const FTe
 		Sec = &File->Add( Section, FConfigSection() );
 	}
 
-	FString* Str = Sec->Find( Key );
-	const FString StrValue = FTextFriendHelper::AsString( Value );
+	FString StrValue;
+	FTextStringHelper::WriteToString(StrValue, Value);
 
+	FString* Str = Sec->Find( Key );
 	if( !Str )
 	{
 		Sec->Add( Key, StrValue );

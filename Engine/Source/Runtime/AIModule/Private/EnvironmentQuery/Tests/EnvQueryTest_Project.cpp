@@ -5,6 +5,12 @@
 #include "EnvironmentQuery/Tests/EnvQueryTest_Project.h"
 #include "EnvironmentQuery/EnvQueryTraceHelpers.h"
 
+#if !WITH_DEV_AUTOMATION_TESTS
+
+UEnvQueryTest_Project::UEnvQueryTest_Project(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
+
+#else
+
 UEnvQueryTest_Project::UEnvQueryTest_Project(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Cost = EEnvTestCost::Medium;
@@ -100,3 +106,5 @@ FText UEnvQueryTest_Project::GetDescriptionDetails() const
 {
 	return DescribeBoolTestParams(TEXT("projected"));
 }
+
+#endif //WITH_DEV_AUTOMATION_TESTS

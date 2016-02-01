@@ -604,7 +604,7 @@ public:
 	/**
 	 * Number of gatherable text data items in this package
 	 */
-	int32		GatherableTextDataCount;
+	int32	GatherableTextDataCount;
 
 	/**
 	 * Location into the file on disk for the gatherable text data items
