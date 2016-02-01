@@ -30,6 +30,7 @@ struct FAnimPreviewInstanceProxy : public FAnimSingleNodeInstanceProxy
 public:
 	FAnimPreviewInstanceProxy()
 	{
+		bCanProcessAdditiveAnimations = true;
 	}
 
 	FAnimPreviewInstanceProxy(UAnimInstance* InAnimInstance)
@@ -41,6 +42,7 @@ public:
 		, bEnableControllers(true)
 		, bSetKey(false)
 	{
+		bCanProcessAdditiveAnimations = true;
 	}
 
 	virtual void Initialize(UAnimInstance* InAnimInstance) override;

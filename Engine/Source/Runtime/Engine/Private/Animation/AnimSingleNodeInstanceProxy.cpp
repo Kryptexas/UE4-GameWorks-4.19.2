@@ -24,6 +24,13 @@ void FAnimSingleNodeInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 
 bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 {
+const bool bCanProcessAdditiveAnimationsLocal
+#if WITH_EDITOR
+		= bCanProcessAdditiveAnimations;
+#else
+		= false;
+#endif
+
 	if (CurrentAsset != NULL)
 	{
 		//@TODO: animrefactor: Seems like more code duplication than we need
@@ -37,7 +44,14 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 			{
 				FAnimExtractContext ExtractionContext(CurrentTime, Sequence->bEnableRootMotion);
 
-				Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
+				if (bCanProcessAdditiveAnimationsLocal)
+				{
+					Sequence->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
+				}
+				else
+				{
+					Output.ResetToRefPose();
+				}
 
 				FCompactPose AdditivePose;
 				FBlendedCurve AdditiveCurve;
@@ -63,7 +77,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 			if (AnimTrack.IsAdditive())
 			{
 #if WITH_EDITORONLY_DATA
-				if (Composite->PreviewBasePose)
+				if (bCanProcessAdditiveAnimationsLocal && Composite->PreviewBasePose)
 				{
 					Composite->PreviewBasePose->GetAdditiveBasePose(Output.Pose, Output.Curve, ExtractionContext);
 				}
@@ -105,7 +119,7 @@ bool FAnimSingleNodeInstanceProxy::Evaluate(FPoseContext& Output)
 				{
 #if WITH_EDITORONLY_DATA
 					// if montage is additive, we need to have base pose for the slot pose evaluate
-					if (Montage->PreviewBasePose && Montage->SequenceLength > 0.f)
+					if (bCanProcessAdditiveAnimationsLocal && Montage->PreviewBasePose && Montage->SequenceLength > 0.f)
 					{
 						Montage->PreviewBasePose->GetBonePose(SourcePose, SourceCurve, FAnimExtractContext(CurrentTime));
 					}
@@ -285,6 +299,15 @@ void FAnimSingleNodeInstanceProxy::SetAnimationAsset(class UAnimationAsset* NewA
 	if (NewAsset != CurrentAsset)
 	{
 		CurrentAsset = NewAsset;
+	}
+
+	if (
+#if WITH_EDITOR
+		!bCanProcessAdditiveAnimations &&
+#endif
+		NewAsset && NewAsset->IsValidAdditive())
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("Setting an additve animation (%s) on an AnimSingleNodeInstance is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName());
 	}
 
 	if (MeshComponent)
