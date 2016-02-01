@@ -36,12 +36,12 @@ class Cache:
       if shortname.endswith(('.bc', '.so', '.a')): what = 'system library'
       else: what = 'system asset'
     message = 'generating ' + what + ': ' + shortname + '...'
-    logging.warn(message)
+    logging.info(message)
     self.ensure()
     temp = creator()
     if temp != cachename:
       shutil.copyfile(temp, cachename)
-    logging.warn(' '*len(message) + 'ok')
+    logging.info(' '*len(message) + 'ok')
     return cachename
 
 # Given a set of functions of form (ident, text), and a preferred chunk size,
