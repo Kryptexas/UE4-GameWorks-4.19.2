@@ -229,8 +229,10 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 , Viewport(nullptr)
 , IB(nullptr)
 {
-	check(!Source.MSAATexture);
-	
+	// You can't format convert an MSAA texture in Metal, so you can't create an SRV via this API for that.
+	// Nor can you access the stencil component of an MSAA packed depth-stencil surface, but separate MSAA depth & stencil will be fine.
+	check(!Source.MSAATexture || (Format == PF_X24_G8 && Source.Texture != Source.StencilTexture));
+
 	MTLPixelFormat MetalFormat = (MTLPixelFormat)GPixelFormats[PixelFormat].PlatformFormat;
 	
 #if PLATFORM_MAC // Recreate the texture to enable MTLTextureUsagePixelFormatView which must be off unless we definitely use this feature or we are throwing ~4% performance vs. Windows on the floor.
