@@ -174,7 +174,7 @@ public:
 	{
 		// Set up the mapping from VertexFactory.usf to the vertex factory type's source code.
 		FString VertexFactoryIncludeString = FString::Printf( TEXT("#include \"%s.usf\""), GetShaderFilename() );
-		OutEnvironment.IncludeFileNameToContentsMap.Add(TEXT("VertexFactory.usf"), VertexFactoryIncludeString);
+		OutEnvironment.IncludeFileNameToContentsMap.Add(TEXT("VertexFactory.usf"), StringToArray<ANSICHAR>(*VertexFactoryIncludeString, VertexFactoryIncludeString.Len() + 1));
 
 		OutEnvironment.SetDefine(TEXT("HAS_PRIMITIVE_UNIFORM_BUFFER"), 1);
 

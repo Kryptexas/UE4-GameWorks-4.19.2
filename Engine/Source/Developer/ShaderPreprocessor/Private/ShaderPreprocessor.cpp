@@ -76,7 +76,7 @@ private:
 			FString FileContents;
 			if (This->ShaderInput.Environment.IncludeFileNameToContentsMap.Contains(Filename))
 			{
-				FileContents = This->ShaderInput.Environment.IncludeFileNameToContentsMap.FindRef(Filename);
+				FileContents = FString(UTF8_TO_TCHAR(This->ShaderInput.Environment.IncludeFileNameToContentsMap.FindRef(Filename).GetData()));
 			}
 			else
 			{

@@ -1489,7 +1489,7 @@ bool FMaterial::BeginCompileShaderMap(
 		const FString MaterialShaderCode = MaterialTranslator.GetMaterialShaderCode();
 		const bool bSynchronousCompile = RequiresSynchronousCompilation() || !GShaderCompilingManager->AllowAsynchronousShaderCompiling();
 
-		MaterialEnvironment->IncludeFileNameToContentsMap.Add(TEXT("Material.usf"), MaterialShaderCode);
+		MaterialEnvironment->IncludeFileNameToContentsMap.Add(TEXT("Material.usf"), StringToArray<ANSICHAR>(*MaterialShaderCode, MaterialShaderCode.Len() + 1));
 
 		// Compile the shaders for the material.
 		NewShaderMap->Compile(this, ShaderMapId, MaterialEnvironment, NewCompilationOutput, Platform, bSynchronousCompile, bApplyCompletedShaderMapForRendering);

@@ -318,7 +318,7 @@ inline FArchive& operator<<(FArchive& Ar, FResourceTableEntry& Entry)
 /** The environment used to compile a shader. */
 struct FShaderCompilerEnvironment : public FRefCountedObject
 {
-	TMap<FString,FString> IncludeFileNameToContentsMap;
+	TMap<FString,TArray<ANSICHAR>> IncludeFileNameToContentsMap;
 	TArray<uint32> CompilerFlags;
 	TMap<uint32,uint8> RenderTargetOutputFormatsMap;
 	TMap<FString,FResourceTableEntry> ResourceTableMap;
@@ -384,13 +384,17 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	{
 		// Merge the include maps
 		// Merge the values of any existing keys
-		for (TMap<FString,FString>::TConstIterator It(Other.IncludeFileNameToContentsMap); It; ++It )
+		for (TMap<FString,TArray<ANSICHAR>>::TConstIterator It(Other.IncludeFileNameToContentsMap); It; ++It )
 		{
-			FString* ExistingContents = IncludeFileNameToContentsMap.Find(It.Key());
+			TArray<ANSICHAR>* ExistingContents = IncludeFileNameToContentsMap.Find(It.Key());
 
 			if (ExistingContents)
 			{
-				(*ExistingContents) += It.Value();
+				if (ExistingContents->Num() > 0)
+				{
+					ExistingContents->RemoveAt(ExistingContents->Num() - 1);
+				}
+				ExistingContents->Append(It.Value());
 			}
 			else
 			{
