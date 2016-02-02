@@ -273,7 +273,7 @@ protected:
 	}
 
 	// Component template represented by this node, if it's a component node, otherwise invalid
-	TWeakObjectPtr<UActorComponent> ComponentTemplate;
+	TWeakObjectPtr<UActorComponent> ComponentTemplatePtr;
 
 private:
 	// The type of component tree node
