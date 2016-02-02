@@ -1263,7 +1263,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 		{
 			FD3D12ConstantBuffer* ConstantBuffer = VSConstantBuffers[i];
-			FD3DRHIUtil::CommitConstants<SF_Vertex>(FastAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+			FD3DRHIUtil::CommitConstants<SF_Vertex>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 		}
 	}
 
@@ -1279,7 +1279,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 			{
 				FD3D12ConstantBuffer* ConstantBuffer = HSConstantBuffers[i];
-				FD3DRHIUtil::CommitConstants<SF_Hull>(FastAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+				FD3DRHIUtil::CommitConstants<SF_Hull>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 			}
 		}
 
@@ -1289,7 +1289,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 			{
 				FD3D12ConstantBuffer* ConstantBuffer = DSConstantBuffers[i];
-				FD3DRHIUtil::CommitConstants<SF_Domain>(FastAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+				FD3DRHIUtil::CommitConstants<SF_Domain>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 			}
 		}
 	}
@@ -1300,7 +1300,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 		{
 			FD3D12ConstantBuffer* ConstantBuffer = GSConstantBuffers[i];
-			FD3DRHIUtil::CommitConstants<SF_Geometry>(FastAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+			FD3DRHIUtil::CommitConstants<SF_Geometry>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 		}
 	}
 
@@ -1310,7 +1310,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 		{
 			FD3D12ConstantBuffer* ConstantBuffer = PSConstantBuffers[i];
-			FD3DRHIUtil::CommitConstants<SF_Pixel>(FastAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+			FD3DRHIUtil::CommitConstants<SF_Pixel>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 		}
 	}
 
@@ -1325,7 +1325,7 @@ void FD3D12CommandContext::CommitComputeShaderConstants()
 	for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 	{
 		FD3D12ConstantBuffer* ConstantBuffer = CSConstantBuffers[i];
-		FD3DRHIUtil::CommitConstants<SF_Compute>(FastAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+		FD3DRHIUtil::CommitConstants<SF_Compute>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 	}
 }
 

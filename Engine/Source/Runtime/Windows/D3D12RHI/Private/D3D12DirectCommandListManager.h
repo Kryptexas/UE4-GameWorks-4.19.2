@@ -55,7 +55,6 @@ public:
 		for (auto Iter = CommandAllocators.CreateIterator(); Iter; ++Iter)
 		{
 			FD3D12CommandAllocator* pCommandAllocator = *Iter;
-			check(pCommandAllocator->IsReady());
 			delete pCommandAllocator;
 		}
 	}

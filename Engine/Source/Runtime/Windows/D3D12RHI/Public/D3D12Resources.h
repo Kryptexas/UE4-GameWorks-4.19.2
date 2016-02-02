@@ -3391,6 +3391,8 @@ protected:
 	uint32 PeakUsage;
 #endif
 
+	bool HeapFullMessageDisplayed;
+
 };
 
 struct FD3D12FastAllocatorPage
@@ -3425,6 +3427,14 @@ public:
 	FD3D12FastAllocatorPagePool(FD3D12Device* Parent, D3D12_HEAP_TYPE InHeapType, uint32 Size) : 
 		PageSize(Size)
 		, HeapType(InHeapType)
+		, FD3D12DeviceChild(Parent)
+		, HeapProperties(CD3DX12_HEAP_PROPERTIES(InHeapType))
+		{};
+
+	FD3D12FastAllocatorPagePool(FD3D12Device* Parent, const D3D12_HEAP_PROPERTIES &InHeapProperties, uint32 Size) :
+		PageSize(Size)
+		, HeapType(InHeapProperties.Type)
+		, HeapProperties(InHeapProperties)
 		, FD3D12DeviceChild(Parent) {};
 
 	virtual FD3D12FastAllocatorPage* RequestFastAllocatorPage();
@@ -3434,6 +3444,9 @@ public:
 	inline uint32 GetPageSize() { return PageSize; }
 
 	inline D3D12_HEAP_TYPE GetHeapType() { return HeapType; }
+	bool IsCPUWritable() { return ::IsCPUWritable(GetHeapType(), &HeapProperties); }
+
+	void Destroy();
 
 protected:
 	FD3D12FastAllocatorPage* RequestFastAllocatorPageInternal();
@@ -3442,6 +3455,7 @@ protected:
 
 	const uint32 PageSize;
 	const D3D12_HEAP_TYPE HeapType;
+	const D3D12_HEAP_PROPERTIES HeapProperties;
 
 	TArray<FD3D12FastAllocatorPage*> Pool;
 	
@@ -3603,9 +3617,11 @@ public:
 		FD3D12DeviceChild(Device)
 	{};
 
-	HRESULT AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint64 FormatSize, FD3D12ResourceLocation* TextureLocation);
+	HRESULT AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint8 UEFormat, FD3D12ResourceLocation* TextureLocation);
 
 	void CleanUpAllocations() { ReadOnlyTexturePool.CleanUpAllocations(); }
+
+	void Destroy() { ReadOnlyTexturePool.Destroy(); }
 
 private:
 		FD3D12TextureAllocator ReadOnlyTexturePool;

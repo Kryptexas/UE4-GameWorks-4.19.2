@@ -188,6 +188,8 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	CommandAllocatorManager(InParent, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	FastAllocatorPagePool(InParent, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
 	FastAllocator(InParent, &FastAllocatorPagePool),
+	ConstantsAllocatorPagePool(InParent, InParent->GetConstantBufferPageProperties(), 1024 * 512),
+	ConstantsAllocator(InParent, &ConstantsAllocatorPagePool),
 	FD3D12DeviceChild(InParent)
 {
 	FMemory::Memzero(DirtyUniformBuffers, sizeof(DirtyUniformBuffers));
@@ -689,6 +691,12 @@ void FD3D12Device::CreateSignatures()
 
 void FD3D12Device::SetupAfterDeviceCreation()
 {
+	DXGI_ADAPTER_DESC* AdapterDesc = GetD3DAdapterDesc();
+
+	// Need to get these early to make vendor-specific decisions in initialization
+	GRHIAdapterName = AdapterDesc->Description;
+	GRHIVendorId = AdapterDesc->VendorId;
+
 	CreateSignatures();
 
 	PipelineStateCache = FD3D12PipelineStateCache(this);
@@ -697,6 +705,9 @@ void FD3D12Device::SetupAfterDeviceCreation()
 
 	PipelineStateCache.Init(GraphicsCacheFile, ComputeCacheFile);
 	PipelineStateCache.RebuildFromDiskCache();
+
+	// Needs to be called before creating command contexts
+	UpdateConstantBufferPageProperties();
 
 	CreateCommandContexts();
 
@@ -710,6 +721,22 @@ void FD3D12Device::SetupAfterDeviceCreation()
 	{
 		UE_LOG(LogD3D12RHI, Log, TEXT("Async texture creation disabled: %s"),
 			D3D12RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
+	}
+}
+
+void FD3D12Device::UpdateConstantBufferPageProperties()
+{
+	//In genera, constant buffers should use write-combine memory (i.e. upload heaps) for optimal performance
+	bool bForceWriteBackConstantBuffers = false;
+
+	if (bForceWriteBackConstantBuffers)
+	{
+		ConstantBufferPageProperties = GetDevice()->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_UPLOAD);
+		ConstantBufferPageProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+	}
+	else
+	{
+		ConstantBufferPageProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	}
 }
 
@@ -775,6 +802,10 @@ void FD3D12Device::CleanupD3DDevice()
 		for (int32 i = CommandContextArray.Num() - 1; i > 0; i--)
 		{
 			CommandContextArray[i]->FastAllocatorPagePool.CleanUpPages(0, true);
+			CommandContextArray[i]->FastAllocatorPagePool.Destroy();
+			CommandContextArray[i]->ConstantsAllocatorPagePool.CleanUpPages(0, true);
+			CommandContextArray[i]->ConstantsAllocatorPagePool.Destroy();
+
 			delete CommandContextArray[i];
 			CommandContextArray[i] = nullptr;
 		}
@@ -784,16 +815,19 @@ void FD3D12Device::CleanupD3DDevice()
 		// after the above signal frame
 		GetCommandListManager().SignalFrameComplete(true);
 
-		// Cleanup resources
-		DeferredDeletionQueue.Clear();
-
 		// Cleanup the allocator near the end, as some resources may be returned to the allocator
 		DefaultBufferAllocator.FreeDefaultBufferPools();
 
 		DefaultFastAllocatorPagePool.CleanUpPages(0, true);
+		DefaultFastAllocatorPagePool.Destroy();
 		BufferInitializerFastAllocatorPagePool.CleanUpPages(0, true);
+		BufferInitializerFastAllocatorPagePool.Destroy();
 
 		DefaultUploadHeapAllocator.CleanUpAllocations();
+		DefaultUploadHeapAllocator.Destroy();
+
+		TextureAllocator.CleanUpAllocations();
+		TextureAllocator.Destroy();
 		/*
 		// Cleanup thread resources
 		for (uint32 index; (index = InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != (uint32)-1;)
@@ -804,18 +838,27 @@ void FD3D12Device::CleanupD3DDevice()
 		}
 		*/
 
-		// enable the code below to view detailed resource leaks report
-		//TRefCountPtr<ID3D11Debug> d3dDebug;
-		//if (SUCCEEDED(Direct3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)d3dDebug.GetInitReference())))
-		//{
-		//          d3dDebug->ReportLiveDeviceObjects((D3D11_RLDO_FLAGS)0x2);
-		//}
+		// Cleanup resources
+		DeferredDeletionQueue.Clear();
 
 		CommandListManager.Destroy();
 		CopyCommandListManager.Destroy();
 
 		// Flush all pending deletes before destroying the device.
 		FRHIResource::FlushPendingDeletes();
+
+		const bool bWithD3DDebug = D3D12RHI_ShouldCreateWithD3DDebug();
+		if (bWithD3DDebug)
+		{
+			TRefCountPtr<ID3D12DebugDevice> Debug;
+
+			if (SUCCEEDED(Direct3DDevice->QueryInterface(IID_PPV_ARGS(Debug.GetInitReference()))))
+			{
+				D3D12_RLDO_FLAGS rldoFlags = D3D12_RLDO_DETAIL;
+
+				Debug->ReportLiveDeviceObjects(rldoFlags);
+			}
+		}
 
 		Direct3DDevice = nullptr;
 	}

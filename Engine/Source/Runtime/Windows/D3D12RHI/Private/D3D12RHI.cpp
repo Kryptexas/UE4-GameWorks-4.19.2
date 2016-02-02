@@ -754,18 +754,12 @@ void FD3D12ResourceLocation::InternalReleaseResource()
 
 	if (BlockInfo != nullptr)
 	{
-		if (BlockInfo->IsPlacedResource)
-		{
-			// Make sure we release the placed resource at the correct time
-			Resource->AddRef();
-		}
-		Resource = nullptr;
-
 		FD3D12ResourceAllocator* Allocator = BlockInfo->Allocator;
 		check(!!Allocator);
 
 		Allocator->Deallocate(BlockInfo);
 		BlockInfo = nullptr;
+		Resource = nullptr;
 	}
 	else
 	{

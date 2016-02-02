@@ -399,10 +399,6 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 
 	GTexturePoolSize = 0;
 
-	// TODO MS: We need to do this after CreateDevice due to a bug in QueryVideoMemoryInfo
-	GRHIAdapterName = AdapterDesc->Description;
-	GRHIVendorId = AdapterDesc->VendorId;
-
 	// Issue: 32bit windows doesn't report 64bit value, we take what we get.
 	FD3D12GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc->DedicatedVideoMemory);
 	FD3D12GlobalStats::GDedicatedSystemMemory = int64(AdapterDesc->DedicatedSystemMemory);

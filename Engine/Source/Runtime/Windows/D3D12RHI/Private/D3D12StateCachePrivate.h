@@ -342,7 +342,7 @@ public:
 	HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppOutResource);
 	HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppOutResource);
 	HRESULT CreateDefaultResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppOutResource);
-	HRESULT CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 heapSize, FD3D12Resource** ppOutResource, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
+	HRESULT CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 heapSize, FD3D12Resource** ppOutResource, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE, const D3D12_HEAP_PROPERTIES *pCustomHeapProperties = nullptr);
 	HRESULT CreatePlacedBuffer(ID3D12Heap* BackingHeap, uint64 HeapOffset, D3D12_HEAP_TYPE HeapType, uint64 BufferSize, FD3D12Resource** ppOutResource, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
 	FD3D12ResourceHelper(FD3D12Device* InParent);

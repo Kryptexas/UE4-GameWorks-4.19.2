@@ -547,6 +547,9 @@ public:
 	FD3D12FastAllocatorPagePool FastAllocatorPagePool;
 	FD3D12FastAllocator FastAllocator;
 
+	FD3D12FastAllocatorPagePool ConstantsAllocatorPagePool;
+	FD3D12FastAllocator ConstantsAllocator;
+
 	// Handles to the command list and direct command allocator this context owns (granted by the command list manager/command allocator manager), and a direct pointer to the D3D command list/command allocator.
 	FD3D12CommandListHandle CommandListHandle;
 	FD3D12CommandAllocator* CommandAllocator;
@@ -893,6 +896,8 @@ public:
 	inline FD3D12GlobalOnlineHeap&          GetGlobalSamplerHeap() { return GlobalSamplerHeap; }
 	inline FD3D12GlobalOnlineHeap&          GetGlobalViewHeap() { return GlobalViewHeap; }
 
+	inline const D3D12_HEAP_PROPERTIES &GetConstantBufferPageProperties() { return ConstantBufferPageProperties; }
+
 	inline uint32 GetNumContexts() { return CommandContextArray.Num(); }
 	inline FD3D12CommandContext& GetCommandContext(uint32 i = 0) const { return *CommandContextArray[i]; }
 
@@ -984,6 +989,9 @@ protected:
 	// [SampleCount] = Quality, 0xffffffff if not supported
 	uint32 AvailableMSAAQualities[DX_MAX_MSAA_COUNT + 1];
 
+	// set by UpdateConstantBufferPageProperties, get by GetConstantBufferPageProperties
+	D3D12_HEAP_PROPERTIES ConstantBufferPageProperties;
+
 	// Creates default root and execute indirect signatures
 	void CreateSignatures();
 
@@ -994,6 +1002,8 @@ protected:
 	// called by SetupAfterDeviceCreation() when the device gets initialized
 
 	void UpdateMSAASettings();
+
+	void UpdateConstantBufferPageProperties();
 
 	void ReleasePooledUniformBuffers();
 
@@ -1667,7 +1677,7 @@ public:
 		HeapDesc.SizeInBytes = AllocationInfo.SizeInBytes;
 		HeapDesc.Alignment = AllocationInfo.Alignment;
 		HeapDesc.Properties = HeapProps;
-		if (HeapProps.Type == D3D12_HEAP_TYPE_READBACK || HeapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+		if (HeapProps.Type == D3D12_HEAP_TYPE_READBACK || IsCPUWritable(HeapProps.Type))
 		{
 			HeapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 		}

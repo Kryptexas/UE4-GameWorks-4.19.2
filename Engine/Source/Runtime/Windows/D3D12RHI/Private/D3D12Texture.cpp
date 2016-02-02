@@ -529,7 +529,11 @@ HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const 
 		}
 		else
 		{
-			UE_LOG(LogD3D12RHI, Warning, TEXT("Texture Allocation Pool ran out of space. Consider enlarging it"));
+			if (HeapFullMessageDisplayed == false)
+			{
+				UE_LOG(LogD3D12RHI, Warning, TEXT("Placed Texture Pool ran out of space. This is ok as the allocation will still succeed, it will just take up more space."));
+				HeapFullMessageDisplayed = true;
+			}
 		}
 	}
 
@@ -542,7 +546,7 @@ HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const 
 	return hr;
 }
 
-HRESULT FD3D12TextureAllocatorPool::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint64 FormatSize, FD3D12ResourceLocation* TextureLocation)
+HRESULT FD3D12TextureAllocatorPool::AllocateTexture(D3D12_RESOURCE_DESC Desc, const D3D12_CLEAR_VALUE* ClearValue, uint8 UEFormat, FD3D12ResourceLocation* TextureLocation)
 {
 	// Multi-Sample texures have much larger alignment requirements (4MB vs 64KB)
 	check(Desc.SampleDesc.Count == 1)
@@ -553,7 +557,7 @@ HRESULT FD3D12TextureAllocatorPool::AllocateTexture(D3D12_RESOURCE_DESC Desc, co
 		Desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) == false)
 	{
 		// The top mip level must be less than 64k
-		if ((Desc.Width * Desc.Height * Desc.DepthOrArraySize * FormatSize) <= D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)
+		if (TextureCanBe4KAligned(Desc, UEFormat))
 		{
 			Desc.Alignment = D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT; // request 4k alignment
 			return ReadOnlyTexturePool.AllocateTexture(Desc, ClearValue, TextureLocation);
@@ -612,7 +616,7 @@ void SafeCreateTexture2D(FD3D12Device* pDevice, const D3D12_RESOURCE_DESC& Textu
 
 		case D3D12_HEAP_TYPE_DEFAULT:
 			VERIFYD3D11CREATETEXTURERESULT(
-				pDevice->GetTextureAllocator().AllocateTexture(TextureDesc, ClearValue, BlockBytes, OutTexture2D),
+				pDevice->GetTextureAllocator().AllocateTexture(TextureDesc, ClearValue, Format, OutTexture2D),
 				TextureDesc.Width,
 				TextureDesc.Height,
 				TextureDesc.DepthOrArraySize,
@@ -1181,11 +1185,9 @@ FD3D12Texture3D* FD3D12DynamicRHI::CreateD3D11Texture3D(uint32 SizeX, uint32 Siz
 
 	FD3D12CommandListHandle& hCommandList = GetRHIDevice()->GetDefaultCommandContext().CommandListHandle;
 
-	const uint64 BlockBytes = GPixelFormats[Format].BlockBytes;
-
 	TRefCountPtr<FD3D12ResourceLocation> TextureResource = new FD3D12ResourceLocation(GetRHIDevice());
 	VERIFYD3D11CREATETEXTURERESULT(
-		GetRHIDevice()->GetTextureAllocator().AllocateTexture(TextureDesc, ClearValuePtr, BlockBytes, TextureResource),
+		GetRHIDevice()->GetTextureAllocator().AllocateTexture(TextureDesc, ClearValuePtr, Format, TextureResource),
 		SizeX,
 		SizeY,
 		SizeZ,

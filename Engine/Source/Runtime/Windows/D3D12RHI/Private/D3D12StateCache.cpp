@@ -85,9 +85,10 @@ void* FD3D12DynamicHeapAllocator::AllocUploadResource(uint32 size, uint32 alignm
 
 	bool poolResource = size <= MaximumAllocationSizeForPooling;
 	bool canAllocate = (poolResource) ? CanAllocate(size) : true;
-	if (poolResource == true && canAllocate == false)
+	if (HeapFullMessageDisplayed == false && poolResource == true && canAllocate == false)
 	{
-		UE_LOG(LogD3D12RHI, Warning, TEXT("Buffer Allocation Pool ran out of space. Consider enlarging it"));
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Upload Buffer Pool ran out of space. This is ok as the allocation will still succeed, it will just take up more space."));
+		HeapFullMessageDisplayed = true;
 	}
 
 	if (poolResource == false || canAllocate == false)
@@ -155,7 +156,7 @@ void* FD3D12FastAllocator::AllocateInternal(uint32 size, uint32 alignment, class
 		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(PagePool->GetHeapType(), size + alignment, ResourceLocation->Resource.GetInitReference()));
 		void* Data = nullptr;
 
-		if (PagePool->GetHeapType() == D3D12_HEAP_TYPE_UPLOAD)
+		if (PagePool->IsCPUWritable())
 		{
 			VERIFYD3D11RESULT(ResourceLocation->Resource->GetResource()->Map(0, nullptr, &Data));
 		}
@@ -192,7 +193,7 @@ void* FD3D12FastAllocator::AllocateInternal(uint32 size, uint32 alignment, class
 
 		CurrentAllocatorPage->NextFastAllocOffset = CurrentOffset + size;
 
-		if (PagePool->GetHeapType() == D3D12_HEAP_TYPE_UPLOAD)
+		if (PagePool->IsCPUWritable())
 		{
 			Data = (void*)((uint8*)CurrentAllocatorPage->FastAllocData + CurrentOffset);
 		}
@@ -245,9 +246,10 @@ void FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC& De
 		((Desc.Width % (1024 * 64)) != 0) ;
 
 	bool canAllocate = CanAllocate(uint32(Desc.Width));
-	if (PoolResource == true && canAllocate == false)
+	if (HeapFullMessageDisplayed == false && PoolResource == true && canAllocate == false)
 	{
-		UE_LOG(LogD3D12RHI, Warning, TEXT("Buffer Allocation Pool ran out of space. Consider enlarging it"));
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Default Buffer Pool ran out of space. This is ok as the allocation will still succeed, it will just take up more space."));
+		HeapFullMessageDisplayed = true;
 	}
 
 	if (PoolResource == false || canAllocate == false)
@@ -343,6 +345,10 @@ void FD3D12DefaultBufferAllocator::FreeDefaultBufferPools()
 {
 	for (uint32 i = 0; i < MAX_DEFAULT_POOLS; ++i)
 	{
+		if (DefaultBufferPools[i])
+		{
+			DefaultBufferPools[i]->CleanUpAllocations();
+		}
 		delete DefaultBufferPools[i];
 		DefaultBufferPools[i] = nullptr;
 	}
@@ -375,7 +381,7 @@ HRESULT FD3D12ResourceHelper::CreateDefaultResource(const D3D12_RESOURCE_DESC& D
 	return FD3D12DynamicRHI::CreateCommittedResource(Desc, heapProperties, D3D12_RESOURCE_STATE_COMMON, ClearValue, ppResource);
 }
 
-HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 initHeapSize, FD3D12Resource** ppResource, D3D12_RESOURCE_FLAGS flags)
+HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 initHeapSize, FD3D12Resource** ppResource, D3D12_RESOURCE_FLAGS flags, const D3D12_HEAP_PROPERTIES *pCustomHeapProperties)
 {
 	TRefCountPtr<ID3D12Resource> pResource;
 	ID3D12Device* pD3DDevice = GetParentDevice()->GetDevice();
@@ -383,16 +389,20 @@ HRESULT FD3D12ResourceHelper::CreateBuffer(D3D12_HEAP_TYPE heapType, uint64 init
 	D3D12_RESOURCE_DESC BufDesc = CD3DX12_RESOURCE_DESC::Buffer(initHeapSize);
 	BufDesc.Flags = flags;
 
-	D3D12_RESOURCE_STATES InitialState = (heapType == D3D12_HEAP_TYPE_UPLOAD) ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COPY_DEST;
+	D3D12_RESOURCE_STATES InitialState = IsCPUWritable(heapType, pCustomHeapProperties) ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COPY_DEST;
 
 	if (!ppResource)
 	{
 		return E_POINTER;
 	}
 
-	CD3DX12_HEAP_PROPERTIES Props(heapType);
-
-	return FD3D12DynamicRHI::CreateCommittedResource(BufDesc, Props, InitialState, nullptr, ppResource);
+	check(pCustomHeapProperties != nullptr ? pCustomHeapProperties->Type == heapType: true);
+	return FD3D12DynamicRHI::CreateCommittedResource(
+		BufDesc, 
+		(pCustomHeapProperties != nullptr) ? *pCustomHeapProperties : CD3DX12_HEAP_PROPERTIES(heapType),
+		InitialState, 
+		nullptr, 
+		ppResource);
 }
 
 HRESULT FD3D12ResourceHelper::CreatePlacedBuffer(ID3D12Heap* BackingHeap, uint64 HeapOffset,D3D12_HEAP_TYPE HeapType, uint64 BufferSize, FD3D12Resource** ppOutResource, D3D12_RESOURCE_FLAGS flags)
@@ -403,7 +413,7 @@ HRESULT FD3D12ResourceHelper::CreatePlacedBuffer(ID3D12Heap* BackingHeap, uint64
 	D3D12_RESOURCE_DESC BufDesc = CD3DX12_RESOURCE_DESC::Buffer(BufferSize);
 	BufDesc.Flags = flags;
 
-	D3D12_RESOURCE_STATES InitialState = (HeapType == D3D12_HEAP_TYPE_UPLOAD) ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COPY_DEST;
+	D3D12_RESOURCE_STATES InitialState = IsCPUWritable(HeapType) ? D3D12_RESOURCE_STATE_GENERIC_READ : D3D12_RESOURCE_STATE_COPY_DEST;
 
 	if (!ppOutResource)
 	{
@@ -3655,6 +3665,7 @@ FD3D12ResourceAllocator::FD3D12ResourceAllocator(FD3D12Device* ParentDevice, eBu
 	, InternalFragmentation(0)
 	, NumBlocksInDeferredDeletionQueue(0)
 #endif
+	, HeapFullMessageDisplayed(false)
 	, FD3D12DeviceChild(ParentDevice)
 {
 	// maxBlockSize should be evenly dividable by MinBlockSize and  
@@ -3696,7 +3707,7 @@ void FD3D12ResourceAllocator::Initialize()
 	{
 		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(HeapType, MaxBlockSize, BackingResource.GetInitReference(), ResourceFlags));
 
-		if (HeapType == D3D12_HEAP_TYPE_UPLOAD)
+		if (IsCPUWritable(HeapType))
 		{
 			BackingResource->GetResource()->Map(0, nullptr, &BaseAddress);
 		}
@@ -3810,24 +3821,12 @@ FD3D12ResourceBlockInfo* FD3D12ResourceAllocator::Allocate(uint32 SizeInBytes, u
 	FD3D12ResourceBlockInfo* Block = new FD3D12ResourceBlockInfo(this, alloc.AllocationBlockOffset, alloc);
 
 	uint64 InitialDataOffset = 0;
-	if (AllocationStrategy == eBuddyAllocationStrategy::kPlacedResourceStrategy)
-	{
-#if 0 //TODO: Need to change this path as this should be supporting textures
-		GetParentDevice()->GetResourceHelper().CreatePlacedBuffer(BackingHeap, alloc.AllocationBlockOffset, HeapType, alloc.Size, &Block->ResourceHeap, ResourceFlags);
-		check(Block->ResourceHeap);
-
-		if (HeapType == D3D12_HEAP_TYPE_UPLOAD)
-		{
-			VERIFYD3D11RESULT(Block->ResourceHeap->GetResource()->Map(0, nullptr, &Block->Address));
-		}
-#endif
-	}
-	else
+	if (AllocationStrategy == eBuddyAllocationStrategy::kManualSubAllocationStrategy)
 	{
 		Block->ResourceHeap = BackingResource;
 		InitialDataOffset = alloc.AllocationBlockOffset;
 
-		if (HeapType == D3D12_HEAP_TYPE_UPLOAD)
+		if (IsCPUWritable(HeapType))
 		{
 			Block->Address = (byte*)BaseAddress + alloc.AllocationBlockOffset;
 		}
@@ -3872,6 +3871,13 @@ void FD3D12ResourceAllocator::Deallocate(FD3D12ResourceBlockInfo* Block)
 	FScopeLock Lock(&CS);
 
 	Block->FrameFence = GetParentDevice()->GetCommandListManager().GetFence(EFenceType::FT_Frame).GetCurrentFence();
+
+	if (Block->IsPlacedResource)
+	{
+		// Blocks don't have ref counted pointers to their resources so add a ref for the deletion queue
+		// (Otherwise the resource may be deleted before the GPU is finished with it)
+		Block->ResourceHeap->AddRef();
+	}
 	DeferredDeletionQueue.Enqueue(Block);
 	INCREASE_ALLOC_COUNTER(NumBlocksInDeferredDeletionQueue, 1);
 }
@@ -4026,6 +4032,20 @@ void FD3D12ThreadSafeFastAllocatorPagePool::CleanUpPages(uint64 frameLag, bool f
 	return CleanUpPagesInternal(frameLag, force);
 }
 
+void FD3D12FastAllocatorPagePool::Destroy()
+{
+	for (int32 i = 0; i <  Pool.Num(); i++)
+	{
+		check(Pool[i]->FastAllocBuffer->GetRefCount() == 1);
+		{
+			FD3D12FastAllocatorPage *Page = Pool[i];
+			delete(Page);
+		}
+	}
+
+	Pool.Empty();
+}
+
 FD3D12FastAllocatorPage* FD3D12FastAllocatorPagePool::RequestFastAllocatorPageInternal()
 {
 	FD3D12FastAllocatorPage* Page = nullptr;
@@ -4048,7 +4068,7 @@ FD3D12FastAllocatorPage* FD3D12FastAllocatorPagePool::RequestFastAllocatorPageIn
 	check(Page == nullptr);
 	Page = new FD3D12FastAllocatorPage(PageSize);
 
-	VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(HeapType, PageSize, Page->FastAllocBuffer.GetInitReference()));
+	VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(HeapType, PageSize, Page->FastAllocBuffer.GetInitReference(), D3D12_RESOURCE_FLAG_NONE, &HeapProperties));
 	VERIFYD3D11RESULT(Page->FastAllocBuffer->GetResource()->Map(0, nullptr, &Page->FastAllocData));
 
 	return Page;
