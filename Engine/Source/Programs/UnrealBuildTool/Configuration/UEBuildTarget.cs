@@ -3589,21 +3589,41 @@ namespace UnrealBuildTool
 				}
 			}
 
-            if(Configuration == UnrealTargetConfiguration.Shipping)
+            if (UEBuildConfiguration.bForceCompileDevelopmentAutomationTests)
             {
-                GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=0");
-                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=0");
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=1");
             }
-            else if (Configuration == UnrealTargetConfiguration.Test)
+            else
             {
-                GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=0");
+                switch(Configuration)
+                {
+                    case UnrealTargetConfiguration.Test:
+                    case UnrealTargetConfiguration.Shipping:
+                        GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=0");
+                        break;
+                    default:
+                        GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=1");
+                        break;
+                }
+            }
+
+            if (UEBuildConfiguration.bForceCompilePerformanceAutomationTests)
+            {
                 GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=1");
             }
             else
             {
-                GlobalCompileEnvironment.Config.Definitions.Add("WITH_DEV_AUTOMATION_TESTS=1");
-                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=1");
+                switch (Configuration)
+                {
+                    case UnrealTargetConfiguration.Shipping:
+                        GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=0");
+                        break;
+                    default:
+                        GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERF_AUTOMATION_TESTS=1");
+                        break;
+                }
             }
+
 			// By default, shadow source files for this target in the root OutputDirectory
 			GlobalCompileEnvironment.Config.LocalShadowDirectory = GlobalCompileEnvironment.Config.OutputDirectory;
 

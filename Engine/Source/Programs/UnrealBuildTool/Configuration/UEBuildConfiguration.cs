@@ -304,6 +304,18 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bEditorDependsOnShaderCompileWorker;
 
+        /// <summary>
+        /// Whether to compile development automation tests.
+        /// </summary>
+        [XmlConfig]
+        public static bool bForceCompileDevelopmentAutomationTests;
+
+        /// <summary>
+        /// Whether to compile performance automation tests.
+        /// </summary>
+        [XmlConfig]
+        public static bool bForceCompilePerformanceAutomationTests;
+
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
@@ -347,6 +359,8 @@ namespace UnrealBuildTool
 			bCompileCEF3 = true;
 			PreferredSubPlatform = "";
 			bEditorDependsOnShaderCompileWorker = true;
+            bForceCompileDevelopmentAutomationTests = false;
+            bForceCompilePerformanceAutomationTests = false;
 		}
 
 		/// <summary>
