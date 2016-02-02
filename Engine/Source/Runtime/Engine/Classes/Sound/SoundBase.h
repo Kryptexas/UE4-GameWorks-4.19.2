@@ -66,7 +66,7 @@ public:
 	USoundAttenuation* AttenuationSettings;
 
 	/** Sound priority (higher value is higher priority) used for concurrency resolution. This priority value is weighted against the final volume of the sound. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Concurrency, meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float Priority;
 
 public:	

@@ -90,7 +90,7 @@ const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply(
 
 float USoundBase::GetPriority() const
 {
-	return Priority;
+	return FMath::Max(Priority, 1.0f);
 }
 
 uint32 USoundBase::GetSoundConcurrencyObjectID() const
