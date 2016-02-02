@@ -346,7 +346,10 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		// Programs can also define the list of enabled plugins in ini
 		GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
 #endif
-		FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+		if (!FParse::Param(FCommandLine::Get(), TEXT("NoEnginePlugins")))
+		{
+			FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+		}
 
 		// Build a set from the array
 		TSet< FString > AllEnabledPlugins;

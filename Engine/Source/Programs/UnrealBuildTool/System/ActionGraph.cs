@@ -1206,6 +1206,7 @@ namespace UnrealBuildTool
 		private static bool IsCPPIncludeFile(FileItem FileItem)
 		{
 			return (FileItem.AbsolutePath.EndsWith(".h", StringComparison.InvariantCultureIgnoreCase) ||
+					FileItem.AbsolutePath.EndsWith(".hpp", StringComparison.InvariantCultureIgnoreCase) ||
 					FileItem.AbsolutePath.EndsWith(".inl", StringComparison.InvariantCultureIgnoreCase));
 		}
 
