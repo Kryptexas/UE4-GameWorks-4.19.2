@@ -293,6 +293,9 @@ struct ENGINE_API FWaveInstance
 	void AddReferencedObjects( FReferenceCollector& Collector );
 
 	/** Returns the actual volume the wave instance will play at */
+	bool ShouldStopDueToMaxConcurrency() const;
+
+	/** Returns the actual volume the wave instance will play at */
 	float GetActualVolume() const;
 
 	/** Returns the weighted priority of the wave instance. */

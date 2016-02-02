@@ -71,13 +71,6 @@ void FDynamicParameter::Update(float DeltaTime)
 	FAudioDevice implementation.
 -----------------------------------------------------------------------------*/
 
-/**
-* Number of ticks an inaudible source remains alive before being stopped
-*/
-#define AUDIOSOURCE_TICK_LONGEVITY		600
-
-
-
 FAudioDevice::FAudioDevice()
 	: CommonAudioPool(nullptr)
 	, CommonAudioPoolFreeBytes(0)
@@ -1852,26 +1845,23 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		ConcurrencyManager.StopQuietSoundsDueToMaxConcurrency();
 	}
 
-	// Helper function for "Sort" (higher priority sorts last).
-	struct FCompareFWaveInstanceByPlayPriority
+	int FirstActiveIndex = 0;
+	if (WaveInstances.Num() >= MaxChannels)
 	{
-		FORCEINLINE bool operator()( const FWaveInstance& A, const FWaveInstance& B) const
+		// Helper function for "Sort" (higher priority sorts last).
+		struct FCompareFWaveInstanceByPlayPriority
 		{
-			return A.GetVolumeWeightedPriority() < B.GetVolumeWeightedPriority();
-		}
-	};
+			FORCEINLINE bool operator()(const FWaveInstance& A, const FWaveInstance& B) const
+			{
+				return A.GetVolumeWeightedPriority() < B.GetVolumeWeightedPriority();
+			}
+		};
 
-	// Sort by priority (lowest priority first).
-	WaveInstances.Sort( FCompareFWaveInstanceByPlayPriority() );
+		// Sort by priority (lowest priority first).
+		WaveInstances.Sort(FCompareFWaveInstanceByPlayPriority());
 
-	// Return the first audible waveinstance
-	int32 FirstActiveIndex = FMath::Max( WaveInstances.Num() - MaxChannels, 0 );
-	for( ; FirstActiveIndex < WaveInstances.Num(); FirstActiveIndex++ )
-	{
-		if (WaveInstances[FirstActiveIndex]->GetVolumeWeightedPriority() > KINDA_SMALL_NUMBER)
-		{
-			break;
-		}
+		// Get the first index that will result in a active source voice
+		FirstActiveIndex = FMath::Max(WaveInstances.Num() - MaxChannels, 0);
 	}
 	return( FirstActiveIndex );
 }
@@ -1880,7 +1870,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 void FAudioDevice::StopSources( TArray<FWaveInstance*>& WaveInstances, int32 FirstActiveIndex )
 {
 	// Touch sources that are high enough priority to play
-	for( int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++ )
+	for (int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++)
 	{
 		FWaveInstance* WaveInstance = WaveInstances[ InstanceIndex ];
 		FSoundSource* Source = WaveInstanceSourceMap.FindRef( WaveInstance );
@@ -1889,8 +1879,8 @@ void FAudioDevice::StopSources( TArray<FWaveInstance*>& WaveInstances, int32 Fir
 			Source->LastUpdate = CurrentTick;
 
 			// If they are still audible, mark them as such
-			float VolumeWeightedPriority = WaveInstance->GetVolumeWeightedPriority();
-			if (VolumeWeightedPriority > KINDA_SMALL_NUMBER)
+			float VolumeWeightedPriority = WaveInstance->GetActualVolume();
+			if (VolumeWeightedPriority > 0.0f)
 			{
 				Source->LastHeardUpdate = CurrentTick;
 			}
@@ -1899,11 +1889,11 @@ void FAudioDevice::StopSources( TArray<FWaveInstance*>& WaveInstances, int32 Fir
 
 	// Stop inactive sources, sources that no longer have a WaveInstance associated
 	// or sources that need to be reset because Stop & Play were called in the same frame.
-	for( int32 SourceIndex = 0; SourceIndex < Sources.Num(); SourceIndex++ )
+	for (int32 SourceIndex = 0; SourceIndex < Sources.Num(); SourceIndex++)
 	{
 		FSoundSource* Source = Sources[ SourceIndex ];
 
-		if( Source->WaveInstance )
+		if (Source->WaveInstance)
 		{
 #if STATS && WITH_EDITORONLY_DATA
 			if( Source->UsesCPUDecompression() )
@@ -1911,20 +1901,20 @@ void FAudioDevice::StopSources( TArray<FWaveInstance*>& WaveInstances, int32 Fir
 				INC_DWORD_STAT( STAT_OggWaveInstances );
 			}
 #endif
+			// If we need to stop this sound due to max concurrency (i.e. it was quietest in a concurrency group)
+			if (Source->WaveInstance->ShouldStopDueToMaxConcurrency())
+			{
+				Source->Stop();
+			}
 			// Source was not one of the active sounds this tick so needs to be stopped
-			if (Source->LastUpdate != CurrentTick)
+			else if (Source->LastUpdate != CurrentTick)
 			{
 				Source->Stop();
 			}
-			// Source has been inaudible for several ticks
-			else if (Source->LastHeardUpdate + AUDIOSOURCE_TICK_LONGEVITY < CurrentTick)
-			{
-				Source->Stop();
-			}
-			// Need to update the source still so that it gets any volume settings applied to
-			// otherwise the source may play at a very quiet volume and not actually set to 0.0
 			else
 			{
+				// Need to update the source still so that it gets any volume settings applied to
+				// otherwise the source may play at a very quiet volume and not actually set to 0.0
 				Source->Update();
 			}
 		}
@@ -1937,7 +1927,6 @@ void FAudioDevice::StopSources( TArray<FWaveInstance*>& WaveInstances, int32 Fir
 	{
 		FWaveInstance* WaveInstance = WaveInstances[ InstanceIndex ];
 		WaveInstance->StopWithoutNotification();
-		// UE_LOG(LogAudio, Log, TEXT( "SoundStoppedWithoutNotification due to priority reasons: %s" ), *WaveInstance->WaveData->GetName() );
 	}
 
 #if STATS
@@ -2057,22 +2046,22 @@ void FAudioDevice::Update( bool bGameTicking )
 		}
 
 		// Poll audio components for active wave instances (== paths in node tree that end in a USoundWave)
-		TArray<FWaveInstance*> WaveInstances;
-		int32 FirstActiveIndex = GetSortedActiveWaveInstances( WaveInstances, (bGameTicking ? ESortedActiveWaveGetType::FullUpdate : ESortedActiveWaveGetType::PausedUpdate));
+		ActiveWaveInstances.Reset();
+		int32 FirstActiveIndex = GetSortedActiveWaveInstances(ActiveWaveInstances, (bGameTicking ? ESortedActiveWaveGetType::FullUpdate : ESortedActiveWaveGetType::PausedUpdate));
 
 		// Stop sources that need to be stopped, and touch the ones that need to be kept alive
-		StopSources( WaveInstances, FirstActiveIndex );
+		StopSources(ActiveWaveInstances, FirstActiveIndex);
 
 		// Start and/or update any sources that have a high enough priority to play
-		StartSources( WaveInstances, FirstActiveIndex, bGameTicking );
+		StartSources(ActiveWaveInstances, FirstActiveIndex, bGameTicking);
 
 		// Check which sounds are active from these wave instances and update passive SoundMixes
-		UpdatePassiveSoundMixModifiers( WaveInstances, FirstActiveIndex );
+		UpdatePassiveSoundMixModifiers(ActiveWaveInstances, FirstActiveIndex);
 
-		INC_DWORD_STAT_BY( STAT_WaveInstances, WaveInstances.Num() );
-		INC_DWORD_STAT_BY( STAT_AudioSources, MaxChannels - FreeSources.Num() );
-		INC_DWORD_STAT_BY( STAT_WavesDroppedDueToPriority, FMath::Max( WaveInstances.Num() - MaxChannels, 0 ) );
-		INC_DWORD_STAT_BY( STAT_ActiveSounds, ActiveSounds.Num() );
+		INC_DWORD_STAT_BY(STAT_WaveInstances, ActiveWaveInstances.Num());
+		INC_DWORD_STAT_BY(STAT_AudioSources, MaxChannels - FreeSources.Num());
+		INC_DWORD_STAT_BY(STAT_WavesDroppedDueToPriority, FMath::Max(ActiveWaveInstances.Num() - MaxChannels, 0));
+		INC_DWORD_STAT_BY(STAT_ActiveSounds, ActiveSounds.Num());
 	}
 
 	UpdateListenerTransform();
