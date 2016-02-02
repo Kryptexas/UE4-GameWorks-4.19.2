@@ -174,11 +174,12 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("MorphTargets", DesktopPlats);
         NonCodeProjectNames.Add("PostProcessMatinee", DesktopPlats);
         NonCodeProjectNames.Add("SciFiHallway", DesktopPlats);
+		NonCodeProjectNames.Add("ShowdownDemo", DesktopPlats);
 
-        NonCodeProjectNames.Add("BlackJack", DesktopAndMobilePlats);
-        NonCodeProjectNames.Add("MemoryGame", DesktopAndMobilePlats);
-        NonCodeProjectNames.Add("TappyChicken", TappyChickenPlats);
-        NonCodeProjectNames.Add("SwingNinja", TappyChickenPlats);
+        //NonCodeProjectNames.Add("BlackJack", DesktopAndMobilePlats);
+        //NonCodeProjectNames.Add("MemoryGame", DesktopAndMobilePlats);
+        //NonCodeProjectNames.Add("TappyChicken", TappyChickenPlats);
+        //NonCodeProjectNames.Add("SwingNinja", TappyChickenPlats);
         NonCodeProjectNames.Add("SunTemple", DesktopAndMobilePlats);
 
         NonCodeProjectNames.Add("FP_FirstPersonBP", AllSupportedPlats);
@@ -207,17 +208,17 @@ public class UE4EditorTarget : TargetRules
                     new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, false, true),
             };
 
-        var TappyChickenBuildSettings = new List<GUBPFormalBuild>
+        /*var TappyChickenBuildSettings = new List<GUBPFormalBuild>
             {                    
                     new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Test, false, true),
                     new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, false, true),
-            };
+            };*/
         #endregion
 
         var NonCodeProjectNames = new Dictionary<string, List<GUBPFormalBuild>>();
 
         //Add Samples to the list with its corresponding settings
-        NonCodeProjectNames.Add("TappyChicken", TappyChickenBuildSettings);
+        //NonCodeProjectNames.Add("TappyChicken", TappyChickenBuildSettings);
         NonCodeProjectNames.Add("SunTemple", SunTempleBuildSettings);
         return NonCodeProjectNames;
     }
