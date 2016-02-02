@@ -103,7 +103,7 @@ public class UE4EditorTarget : TargetRules
         }
 
         //TAPPY CHICKEN
-        List<UnrealTargetPlatform> TappyChickenPlats = null;
+        /*List<UnrealTargetPlatform> TappyChickenPlats = null;
         if (HostPlatform == UnrealTargetPlatform.Mac)
         {
             TappyChickenPlats = new List<UnrealTargetPlatform> { UnrealTargetPlatform.IOS };
@@ -111,7 +111,7 @@ public class UE4EditorTarget : TargetRules
         else
         {
             TappyChickenPlats = new List<UnrealTargetPlatform> { UnrealTargetPlatform.Android };
-        }
+        }*/
 
 		List<UnrealTargetPlatform> TP_2DSideScrollerPlats = null;
 		if (HostPlatform == UnrealTargetPlatform.Mac)
