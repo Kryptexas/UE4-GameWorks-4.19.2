@@ -166,6 +166,30 @@ bool ICrashDebugHelper::Init()
 		CrashInfo.EngineVersion = EngineVersion.ToString();
 	}
 
+	FString PlatformName;
+	const bool bHasPlatformName = FParse::Value(FCommandLine::Get(), TEXT("PlatformName="), PlatformName);
+	if (bHasPlatformName)
+	{
+		CrashInfo.PlatformName = PlatformName;
+	}
+	else
+	{
+		// Use the current values.
+		CrashInfo.PlatformName = FPlatformProperties::PlatformName();
+	}
+
+	FString PlatformVariantName;
+	const bool bHasPlatformVariantName = FParse::Value(FCommandLine::Get(), TEXT("PlatformVariantName="), PlatformVariantName);
+	if (bHasPlatformVariantName)
+	{
+		CrashInfo.PlatformVariantName = PlatformVariantName;
+	}
+	else
+	{
+		// Use the basic platform name.
+		CrashInfo.PlatformVariantName = CrashInfo.PlatformName;
+	}
+
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "DepotName: %s" ), *CrashInfo.DepotName );
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "BuiltFromCL: %i" ), CrashInfo.BuiltFromCL );
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "EngineVersion: %s" ), *CrashInfo.EngineVersion );
@@ -781,18 +805,21 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 	}
 	
 	const FString StrENGINE_VERSION = CrashInfo.EngineVersion;
-	const FString StrPLATFORM_NAME = TEXT( "" ); // Not implemented yet
+	const FString StrPLATFORM_NAME = CrashInfo.PlatformName;
+	const FString StrPLATFORM_VARIANT = CrashInfo.PlatformVariantName;
 	const FString StrOLD_ENGINE_VERSION = FString::Printf( TEXT( "%s-CL-%i" ), *CrashInfo.DepotName.Replace( TEXT( "+" ), TEXT( "/" ) ), CrashInfo.BuiltFromCL )
 		.Replace( TEXT("/"), TEXT("+") );
 
 	const FString TestExecutablesPath = ExecutablePathPattern
 		.Replace( TEXT( "%ENGINE_VERSION%" ), *StrENGINE_VERSION )
 		.Replace( TEXT( "%PLATFORM_NAME%" ), *StrPLATFORM_NAME )
+		.Replace( TEXT( "%PLATFORM_VARIANT%" ), *StrPLATFORM_VARIANT )
 		.Replace( TEXT( "%OLD_ENGINE_VERSION%" ), *StrOLD_ENGINE_VERSION );
 
 	const FString TestSymbolsPath = SymbolPathPattern
 		.Replace( TEXT( "%ENGINE_VERSION%" ), *StrENGINE_VERSION )
 		.Replace( TEXT( "%PLATFORM_NAME%" ), *StrPLATFORM_NAME )
+		.Replace( TEXT( "%PLATFORM_VARIANT%" ), *StrPLATFORM_VARIANT )
 		.Replace( TEXT( "%OLD_ENGINE_VERSION%" ), *StrOLD_ENGINE_VERSION );
 
 	// Try to find the network path by using the pattern supplied via ini.
