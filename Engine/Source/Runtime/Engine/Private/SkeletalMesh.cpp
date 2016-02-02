@@ -4950,14 +4950,6 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	}
 #endif
 
-	if (Ar.IsSaving() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
-	{
-		if ((nullptr != AnimBlueprintGeneratedClass) && (nullptr == AnimClass))
-		{
-			AnimClass = AnimBlueprintGeneratedClass;
-		}
-	}
-
 	Super::Serialize(Ar);
 			
 	// to count memory : TODO: REMOVE?
@@ -4995,9 +4987,9 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 	}
 #endif
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE)
+	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE))
 	{
-		if ((nullptr != AnimBlueprintGeneratedClass) && (nullptr == AnimClass))
+		if (nullptr != AnimBlueprintGeneratedClass)
 		{
 			AnimClass = AnimBlueprintGeneratedClass;
 		}
