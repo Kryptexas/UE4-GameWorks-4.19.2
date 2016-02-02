@@ -590,8 +590,16 @@ bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 
 float FWaveInstance::GetVolumeWeightedPriority() const
 {
-	// This will result in zero-volume sounds still able to be sorted due to priority but give non-zero volumes higher priority
-	return (GetActualVolume() + 1.0f) * Priority;
+	// This will result in zero-volume sounds still able to be sorted due to priority but give non-zero volumes higher priority than 0 volumes
+	float ActualVolume = GetActualVolume();
+	if (ActualVolume > 0.0f)
+	{
+		return GetActualVolume() * Priority;
+	}
+	else
+	{
+		return Priority - MAX_SOUND_PRIORITY - 1;
+	}
 }
 
 bool FWaveInstance::IsStreaming() const
