@@ -73,8 +73,8 @@ using namespace D3D12RHI;
 
 class FD3D12Resource;
 
-void inline SetName(ID3D12Object* const Object, const TCHAR* const Name);
-void inline SetName(FD3D12Resource* const Resource, const TCHAR* const Name);
+void SetName(ID3D12Object* const Object, const TCHAR* const Name);
+void SetName(FD3D12Resource* const Resource, const TCHAR* const Name);
 
 enum EShaderVisibility
 {
