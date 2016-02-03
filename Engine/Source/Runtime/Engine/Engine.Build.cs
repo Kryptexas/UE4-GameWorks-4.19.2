@@ -301,7 +301,7 @@ public class Engine : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			AddThirdPartyPrivateStaticDependencies(Target,
+			AddEngineThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",
@@ -310,7 +310,7 @@ public class Engine : ModuleRules
 
 			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
 			{
-				AddThirdPartyPrivateStaticDependencies(Target, "DirectShow");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "DirectShow");
 			}
 
             // Head Mounted Display support
@@ -320,7 +320,7 @@ public class Engine : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
         {
-			AddThirdPartyPrivateStaticDependencies(Target, 
+			AddEngineThirdPartyPrivateStaticDependencies(Target, 
                     "UEOgg",
                     "Vorbis",
                     "VorbisFile"
@@ -333,7 +333,7 @@ public class Engine : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, 
+			AddEngineThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
 				"Vorbis",
 				"libOpus"
@@ -343,7 +343,7 @@ public class Engine : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Android)
         {
-			AddThirdPartyPrivateStaticDependencies(Target,
+			AddEngineThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile"
@@ -352,7 +352,7 @@ public class Engine : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target,
+			AddEngineThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",

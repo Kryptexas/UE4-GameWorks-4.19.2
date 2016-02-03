@@ -106,9 +106,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		public override void ValidateUEBuildConfiguration()
 		{
-			if (ProjectFileGenerator.bGenerateProjectFiles && !UnrealBuildTool.RunningRocket())
+			if (ProjectFileGenerator.bGenerateProjectFiles)
 			{
-				// When generating non-Rocket project files we need intellisense generator to include info from all modules,
+				// When generating project files we need intellisense generator to include info from all modules,
 				// including editor-only third party libs
 				UEBuildConfiguration.bCompileLeanAndMeanUE = false;
 			}

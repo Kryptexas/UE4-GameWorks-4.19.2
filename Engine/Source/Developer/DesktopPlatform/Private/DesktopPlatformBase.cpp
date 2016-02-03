@@ -620,6 +620,12 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 			{
 				Arguments += TEXT(" -engine");
 			}
+			else
+			{
+				// If this is used within UnrealVersionSelector then we still need to pass
+				// -rocket to deal with old versions that don't use Rocket.txt file
+				Arguments += TEXT(" -rocket");
+			}
 		}
 	}
 	Arguments += TEXT(" -progress");

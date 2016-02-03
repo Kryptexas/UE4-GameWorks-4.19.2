@@ -56,7 +56,7 @@ public class LandscapeEditor : ModuleRules
 		if (UEBuildConfiguration.bCompileLeanAndMeanUE == false &&
 			(Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux))
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "Kiss_FFT");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "Kiss_FFT");
 		}
 		else
 		{

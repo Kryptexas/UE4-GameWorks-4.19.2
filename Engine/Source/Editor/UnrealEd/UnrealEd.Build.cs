@@ -257,7 +257,7 @@ public class UnrealEd : ModuleRules
 			PublicDependencyModuleNames.Add("XAudio2");
 			PublicDependencyModuleNames.Add("UnrealAudioXAudio2");
 
-			AddThirdPartyPrivateStaticDependencies(Target, 
+			AddEngineThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
 				"Vorbis",
 				"VorbisFile",
@@ -277,7 +277,7 @@ public class UnrealEd : ModuleRules
 			PublicDependencyModuleNames.Add("ALAudio");
         }
 
-		AddThirdPartyPrivateStaticDependencies(Target,
+		AddEngineThirdPartyPrivateStaticDependencies(Target,
             "HACD",
             "VHACD",
 			"FBX",

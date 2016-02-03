@@ -18,12 +18,12 @@ public class PerforceSourceControl : ModuleRules
 			}
 		);
 
-		AddThirdPartyPrivateStaticDependencies(Target, "Perforce");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "Perforce");
 		Definitions.Add("USE_P4_API=1");
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 		}
 	}
 }

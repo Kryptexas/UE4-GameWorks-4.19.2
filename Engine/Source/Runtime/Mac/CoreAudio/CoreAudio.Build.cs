@@ -17,7 +17,7 @@ public class CoreAudio : ModuleRules
 			}
 			);
 
-		AddThirdPartyPrivateStaticDependencies(Target, 
+		AddEngineThirdPartyPrivateStaticDependencies(Target, 
 			"UEOgg",
 			"Vorbis",
 			"VorbisFile"

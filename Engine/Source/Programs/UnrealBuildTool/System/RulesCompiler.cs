@@ -443,30 +443,50 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Add the given ThirdParty modules as static private dependencies
+		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
+		/// </summary>
+		/// <param name="ModuleNames">The names of the modules to add</param>
+		[Obsolete("Use AddEngineThirdPartyPrivateStaticDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
+		public void AddThirdPartyPrivateStaticDependencies(TargetInfo Target, params string[] InModuleNames)
+		{
+			AddEngineThirdPartyPrivateStaticDependencies(Target, InModuleNames);
+		}
+
+		/// <summary>
+		/// Add the given Engine ThirdParty modules as static private dependencies
 		///	Statically linked to this module, meaning they utilize exports from the other module
 		///	Private, meaning the include paths for the included modules will not be exposed when giving this modules include paths
 		///	NOTE: There is no AddThirdPartyPublicStaticDependencies function.
 		/// </summary>
 		/// <param name="ModuleNames">The names of the modules to add</param>
-		public void AddThirdPartyPrivateStaticDependencies(TargetInfo Target, params string[] InModuleNames)
+		public void AddEngineThirdPartyPrivateStaticDependencies(TargetInfo Target, params string[] InModuleNames)
 		{
-			if (UnrealBuildTool.RunningRocket() == false || Target.bIsMonolithic.Value == true)
+			if (!UnrealBuildTool.IsEngineInstalled() || Target.IsMonolithic)
 			{
 				PrivateDependencyModuleNames.AddRange(InModuleNames);
 			}
 		}
 
 		/// <summary>
-		/// Add the given ThirdParty modules as dynamic private dependencies
+		/// Made Obsolete so that we can more clearly show that this should be used for third party modules within the Engine directory
+		/// </summary>
+		/// <param name="ModuleNames">The names of the modules to add</param>
+		[Obsolete("Use AddEngineThirdPartyPrivateDynamicDependencies to add dependencies on ThirdParty modules within the Engine Directory")]
+		public void AddThirdPartyPrivateDynamicDependencies(TargetInfo Target, params string[] InModuleNames)
+		{
+			AddEngineThirdPartyPrivateDynamicDependencies(Target, InModuleNames);
+		}
+
+		/// <summary>
+		/// Add the given Engine ThirdParty modules as dynamic private dependencies
 		///	Dynamically linked to this module, meaning they do not utilize exports from the other module
 		///	Private, meaning the include paths for the included modules will not be exposed when giving this modules include paths
 		///	NOTE: There is no AddThirdPartyPublicDynamicDependencies function.
 		/// </summary>
 		/// <param name="ModuleNames">The names of the modules to add</param>
-		public void AddThirdPartyPrivateDynamicDependencies(TargetInfo Target, params string[] InModuleNames)
+		public void AddEngineThirdPartyPrivateDynamicDependencies(TargetInfo Target, params string[] InModuleNames)
 		{
-			if (UnrealBuildTool.RunningRocket() == false || Target.bIsMonolithic.Value == true)
+			if (!UnrealBuildTool.IsEngineInstalled() || Target.IsMonolithic)
 			{
 				PrivateIncludePathModuleNames.AddRange(InModuleNames);
 				DynamicallyLoadedModuleNames.AddRange(InModuleNames);
@@ -480,11 +500,11 @@ namespace UnrealBuildTool
 		{
 			if (UEBuildConfiguration.bCompilePhysX == true)
 			{
-				AddThirdPartyPrivateStaticDependencies(Target, "PhysX");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "PhysX");
 				Definitions.Add("WITH_PHYSX=1");
 				if (UEBuildConfiguration.bCompileAPEX == true)
 				{
-					AddThirdPartyPrivateStaticDependencies(Target, "APEX");
+					AddEngineThirdPartyPrivateStaticDependencies(Target, "APEX");
 					Definitions.Add("WITH_APEX=1");
 				}
 				else
@@ -520,7 +540,7 @@ namespace UnrealBuildTool
 
 			if (bSupported)
 			{
-				AddThirdPartyPrivateStaticDependencies(Target, "Box2D");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "Box2D");
 			}
 
 			// Box2D included define (required because pointer types may be in public exported structures)

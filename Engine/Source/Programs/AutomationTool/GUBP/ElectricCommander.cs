@@ -283,6 +283,21 @@ namespace AutomationTool
 
 			// Write all the job setup
 			WriteJobSteps(OrderedToDo, bSkipTriggers);
+		}
+
+		public static void DoNewCommanderSetup(List<BuildNode> OrderedToDo, List<BuildNode> SortedNodes, TriggerNode ExplicitTrigger, bool bSkipTriggers)
+		{
+			// Make sure everything before the explicit trigger is completed.
+			if (ExplicitTrigger != null)
+			{
+				foreach (BuildNode NodeToDo in OrderedToDo)
+				{
+					if (!NodeToDo.IsComplete && NodeToDo != ExplicitTrigger && !NodeToDo.DependsOn(ExplicitTrigger)) // if something is already finished, we don't put it into EC
+					{
+						throw new AutomationException("We are being asked to process node {0}, however, this is an explicit trigger {1}, so everything before it should already be handled. It seems likely that you waited too long to run the trigger. You will have to do a new build from scratch.", NodeToDo.Name, ExplicitTrigger.Name);
+					}
+				}
+			}
 
 			// Export it as JSON too
 			Dictionary<BuildNode, int> FullNodeListSortKey = GetDisplayOrder(SortedNodes);
@@ -349,53 +364,88 @@ namespace AutomationTool
 			return AgentGroup;
 		}
 
-		private void WriteJson(List<BuildNode> OrderedToDo, bool bSkipTriggers, TriggerNode ExplicitTrigger, List<BuildNode> AllNodes)
+		private static void WriteJson(List<BuildNode> OrderedToDo, bool bSkipTriggers, TriggerNode ExplicitTrigger, List<BuildNode> AllNodes)
 		{
-			using(JsonWriter JsonWriter = new JsonWriter(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "JobSteps.json")))
+			// Split the list of nodes to build into agent groups
+			List<string> GroupNames = new List<string>();
+			Dictionary<string, List<BuildNode>> GroupNameToNodes = new Dictionary<string,List<BuildNode>>();
+			foreach (BuildNode NodeToDo in OrderedToDo)
+			{
+				if (!NodeToDo.IsComplete && (!(NodeToDo is TriggerNode) || NodeToDo == ExplicitTrigger)) // if something is already finished, we don't put it into EC  
+				{
+					// Write the agent group object
+					string AgentGroup = GetAgentGroupOrSticky(NodeToDo);
+					if(String.IsNullOrEmpty(AgentGroup))
+					{
+						AgentGroup = NodeToDo.Name + "_Agent";
+					}
+
+					// Add it to the matching group
+					List<BuildNode> Nodes;
+					if(!GroupNameToNodes.TryGetValue(AgentGroup, out Nodes))
+					{
+						GroupNames.Add(AgentGroup);
+						Nodes = new List<BuildNode>();
+						GroupNameToNodes.Add(AgentGroup, Nodes);
+					}
+					Nodes.Add(NodeToDo);
+				}
+			}
+
+			// Write out the json
+			using(JsonWriter JsonWriter = new JsonWriter(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "job.json")))
 			{
 				JsonWriter.WriteObjectStart();
 				JsonWriter.WriteArrayStart("Groups");
-
-				string CurrentAgentGroup = "";
-				foreach (BuildNode NodeToDo in OrderedToDo)
+				foreach(string GroupName in GroupNames)
 				{
-					if (!NodeToDo.IsComplete && (!(NodeToDo is TriggerNode) || NodeToDo == ExplicitTrigger)) // if something is already finished, we don't put it into EC  
-					{
-						// Write the agent group object
-						string AgentGroup = GetAgentGroupOrSticky(NodeToDo);
-						if(String.IsNullOrEmpty(AgentGroup))
-						{
-							AgentGroup = NodeToDo.Name + "_Agent";
-						}
-						if(AgentGroup != CurrentAgentGroup)
-						{
-							if(CurrentAgentGroup != "")
-							{
-								JsonWriter.WriteArrayEnd();
-								JsonWriter.WriteObjectEnd();
-							}
-							CurrentAgentGroup = AgentGroup;
-							if(CurrentAgentGroup != "")
-							{
-								JsonWriter.WriteObjectStart();
-								JsonWriter.WriteValue("Name", AgentGroup);
-								JsonWriter.WriteArrayStart("Agent Types");
-								JsonWriter.WriteValue(NodeToDo.AgentPlatform.ToString());
-								JsonWriter.WriteArrayEnd();
-								JsonWriter.WriteArrayStart("Nodes");
-							}
-						}
+					List<BuildNode> Nodes = GroupNameToNodes[GroupName];
 
-						// Add this node
+					List<string> GroupAgentTypes = null;
+					foreach(BuildNode NodeToDo in Nodes)
+					{
+						string[] NodeAgentTypes = NodeToDo.AgentTypes;
+						if(NodeAgentTypes != null && NodeAgentTypes.Length > 0)
+						{
+							if(GroupAgentTypes == null)
+							{
+								GroupAgentTypes = new List<string>(NodeAgentTypes);
+							}
+							else
+							{
+								GroupAgentTypes.RemoveAll(x => !NodeAgentTypes.Contains(x, StringComparer.InvariantCultureIgnoreCase));
+							}
+						}
+					}
+					if(GroupAgentTypes == null)
+					{
+						GroupAgentTypes = new List<string>{ UnrealTargetPlatform.Win64.ToString(), UnrealTargetPlatform.Mac.ToString() };
+					}
+
+					JsonWriter.WriteObjectStart();
+					JsonWriter.WriteValue("Name", GroupName);
+					JsonWriter.WriteArrayStart("Agent Types");
+					foreach(string GroupAgentType in GroupAgentTypes)
+					{
+						JsonWriter.WriteValue(GroupAgentType);
+					}
+					JsonWriter.WriteArrayEnd();
+					JsonWriter.WriteArrayStart("Nodes");
+
+					foreach(BuildNode NodeToDo in Nodes)
+					{
 						JsonWriter.WriteObjectStart();
 						JsonWriter.WriteValue("Name", NodeToDo.Name);
 						JsonWriter.WriteValue("DependsOn", GetDirectDependencyList(NodeToDo, OrderedToDo));
 						JsonWriter.WriteValue("CopyToSharedStorage", NodeToDo.CopyToSharedStorage);
+						JsonWriter.WriteObjectStart("Notify");
+						JsonWriter.WriteValue("Default", String.Join(";", NodeToDo.RecipientsForFailureEmails));
+						JsonWriter.WriteValue("Submitters", NodeToDo.AddSubmittersToFailureEmails? ".../Build/...;.../Source/..." : "");
+						JsonWriter.WriteValue("Warnings", NodeToDo.NotifyOnWarnings);
+						JsonWriter.WriteObjectEnd();
 						JsonWriter.WriteObjectEnd();
 					}
-				}
-				if(CurrentAgentGroup != "")
-				{
+
 					JsonWriter.WriteArrayEnd();
 					JsonWriter.WriteObjectEnd();
 				}
@@ -404,12 +454,12 @@ namespace AutomationTool
 				JsonWriter.WriteArrayStart("Triggers");
 				foreach (TriggerNode NodeToDo in OrderedToDo.OfType<TriggerNode>())
 				{
-					if(NodeToDo != ExplicitTrigger)
+					if(NodeToDo.ControllingTrigger == ExplicitTrigger)
 					{
 						JsonWriter.WriteObjectStart();
 						JsonWriter.WriteValue("Name", NodeToDo.Name);
 						JsonWriter.WriteValue("DirectDependencies", GetDirectDependencyList(NodeToDo, OrderedToDo));
-						JsonWriter.WriteValue("AllDependencies", GetCompleteDependencyList(NodeToDo, OrderedToDo));
+						JsonWriter.WriteValue("AllDependencies", GetCompleteDependencyList(NodeToDo, ExplicitTrigger, OrderedToDo));
 						JsonWriter.WriteValue("ActionText", NodeToDo.ActionText);
 						JsonWriter.WriteValue("DescriptionText", NodeToDo.DescriptionText);
 						if (NodeToDo.RecipientsForFailureEmails.Length > 0)
@@ -424,7 +474,7 @@ namespace AutomationTool
 				JsonWriter.WriteArrayStart("NodesInGraph");
 				foreach(BuildNode NodeToDo in AllNodes)
 				{
-					if(NodeToDo.ControllingTriggers.Length == 0 && !(NodeToDo is TriggerNode))
+					if(NodeToDo.ControllingTrigger == ExplicitTrigger && !(NodeToDo is TriggerNode))
 					{
 						JsonWriter.WriteValue(NodeToDo.Name);
 					}
@@ -435,7 +485,7 @@ namespace AutomationTool
 			}
 		}
 
-		private string GetDirectDependencyList(BuildNode NodeToDo, List<BuildNode> OrderedToDo)
+		private static string GetDirectDependencyList(BuildNode NodeToDo, List<BuildNode> OrderedToDo)
 		{
 			HashSet<BuildNode> DirectDependencies = FindDirectOrderDependencies(NodeToDo);
 
@@ -458,7 +508,7 @@ namespace AutomationTool
 			return DependsOnList.ToString();
 		}
 
-		private static string GetCompleteDependencyList(BuildNode NodeToDo, List<BuildNode> OrderedToDo)
+		private static string GetCompleteDependencyList(BuildNode NodeToDo, TriggerNode ExplicitTrigger, List<BuildNode> OrderedToDo)
 		{
 			List<BuildNode> Nodes = new List<BuildNode>(NodeToDo.OrderDependencies);
 			for(int Idx = 0; Idx < Nodes.Count; Idx++)
@@ -471,6 +521,11 @@ namespace AutomationTool
 						Nodes.Add(DependencyNode);
 					}
 				}
+			}
+			if(ExplicitTrigger != null)
+			{
+				// Remove all the nodes which aren't behind this trigger
+				Nodes.RemoveAll(x => x != ExplicitTrigger && (x.ControllingTriggers.Length == 0 || x.ControllingTriggers.Last() != ExplicitTrigger));
 			}
 			return String.Join(";", Nodes.Where(x => OrderedToDo.Contains(x)).OrderBy(x => OrderedToDo.IndexOf(x)).Select(x => x.Name));
 		}

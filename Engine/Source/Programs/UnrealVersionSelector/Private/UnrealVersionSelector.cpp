@@ -172,13 +172,6 @@ bool GenerateProjectFiles(const FString& ProjectFileName)
 		return false;
 	}
 
-	// Build the argument list
-	FString Arguments = TEXT("-game");
-	if (FDesktopPlatformModule::Get()->IsSourceDistribution(RootDir))
-	{
-		Arguments += TEXT(" -engine");
-	}
-
 	// Start capturing the log output
 	FStringOutputDevice LogCapture;
 	LogCapture.SetAutoEmitLineTerminator(true);

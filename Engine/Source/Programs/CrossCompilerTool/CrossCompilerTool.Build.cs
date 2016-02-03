@@ -26,7 +26,7 @@ public class CrossCompilerTool : ModuleRules
 				"ShaderCore",
 			});
 
-		AddThirdPartyPrivateStaticDependencies(Target,
+		AddEngineThirdPartyPrivateStaticDependencies(Target,
 			"HLSLCC"
 		);
 	}

@@ -18,6 +18,6 @@ public class ShaderFormatD3D : ModuleRules
 			}
 			);
 
-		AddThirdPartyPrivateStaticDependencies(Target, "DX11");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
 	}
 }

@@ -60,6 +60,10 @@ partial class GUBP
         {
             return false;
         }
+		public virtual bool NotifyOnWarnings()
+		{
+			return true;
+		}
 		public virtual bool IsTest()
 		{
 			return false;
@@ -76,6 +80,7 @@ partial class GUBP
         {
             return 90;
         }
+		public abstract string[] GetAgentTypes();
 
         /// <summary>
         /// When triggered by CIS (instead of a person) this dictates how often this node runs.
@@ -196,6 +201,11 @@ partial class GUBP
             return StaticGetFullName();
         }
 
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ };
+		}
+
         public override void DoBuild(GUBP bp)
         {
 			if (CommandUtils.P4Enabled && CommandUtils.AllowSubmit)
@@ -227,6 +237,10 @@ partial class GUBP
 			string Name = GetFullName();
 			string Suffix = GetHostPlatformSuffix();
 			return Name.EndsWith(Suffix)? Name.Substring(0, Name.Length - Suffix.Length) : Name;
+		}
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ HostPlatform.ToString() };
 		}
         public static string StaticGetHostPlatformSuffix(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InAgentPlatform = UnrealTargetPlatform.Unknown)
         {
@@ -297,6 +311,10 @@ partial class GUBP
         {
             return false;
         }
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ "Compile" + HostPlatform.ToString(), HostPlatform.ToString() };
+		}
         public override void DoBuild(GUBP bp)
         {
             BuildProducts = new List<string>();
@@ -1351,6 +1369,12 @@ partial class GUBP
         public SuccessNode()
         {
         }
+
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ };
+		}
+
         public override void DoBuild(GUBP bp)
         {
             BuildProducts = new List<string>();
@@ -1482,6 +1506,10 @@ partial class GUBP
         {
         }
 
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ };
+		}
         public override void DoBuild(GUBP bp)
         {
             BuildProducts = new List<string>();
@@ -1665,6 +1693,10 @@ partial class GUBP
         {
             return bIsMassive ? 240 : base.TimeoutInMinutes();
         }
+		public override bool NotifyOnWarnings()
+		{
+			return false;
+		}
 
 		public string RootForCook()
 		{
@@ -2842,6 +2874,11 @@ partial class GUBP
         {
             return -1E15f;
         }
+
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ "CompileWin64", "Win64" };
+		}
 
         public static string StaticGetFullName()
         {

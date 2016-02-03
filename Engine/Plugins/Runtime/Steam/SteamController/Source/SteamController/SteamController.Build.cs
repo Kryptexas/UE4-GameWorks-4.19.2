@@ -16,7 +16,7 @@ public class SteamController : ModuleRules
 			"InputDevice",
 		});
 
-        AddThirdPartyPrivateStaticDependencies(Target,
+        AddEngineThirdPartyPrivateStaticDependencies(Target,
             "Steamworks"
         );
     }

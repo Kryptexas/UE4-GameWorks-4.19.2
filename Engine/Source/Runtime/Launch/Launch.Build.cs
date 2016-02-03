@@ -198,7 +198,7 @@ public class Launch : ModuleRules
                 PrivateDependencyModuleNames.Add("HTML5Win32");
                 PublicIncludePathModuleNames.Add("HTML5Win32");
 			}
-            AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
+            AddEngineThirdPartyPrivateStaticDependencies(Target, "SDL2");
         }
 
 		// @todo ps4 clang bug: this works around a PS4/clang compiler bug (optimizations)

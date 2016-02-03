@@ -21,11 +21,13 @@ namespace AutomationTool
 
 			// Copy the definition from the node
 			Name = Node.GetFullName();
+			AgentTypes = String.Join(";", Node.GetAgentTypes());
 			AgentRequirements = Node.ECAgentString();
 			AgentSharingGroup = Node.AgentSharingGroup;
 			AgentMemoryRequirement = Node.AgentMemoryRequirement();
 			TimeoutInMinutes = Node.TimeoutInMinutes();
 			SendSuccessEmail = Node.SendSuccessEmail();
+			NotifyOnWarnings = Node.NotifyOnWarnings();
 			Priority = Node.Priority();
 			IsSticky = Node.IsSticky();
 			DependsOn = String.Join(";", Node.FullNamesOfDependencies);

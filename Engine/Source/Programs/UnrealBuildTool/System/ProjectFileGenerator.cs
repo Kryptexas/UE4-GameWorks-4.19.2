@@ -305,20 +305,20 @@ namespace UnrealBuildTool
 			bool IncludeAllPlatforms = true;
 			ConfigureProjectFileGeneration( Arguments, ref IncludeAllPlatforms);
 
-			if( bGeneratingGameProjectFiles )
+			if (OnlyGameProject != null)
 			{
-				Log.TraceInformation("Discovering modules, targets and source code for game...");
+				Log.TraceInformation("Discovering modules, targets and source code for project...");
 
 				MasterProjectPath = OnlyGameProject.Directory;
 					
 				// Set the project file name
-				MasterProjectName = Path.GetFileNameWithoutExtension(OnlyGameProject.FullName);
+				MasterProjectName = OnlyGameProject.GetFileNameWithoutExtension();
 
 				if (!DirectoryReference.Combine(MasterProjectPath, "Source").Exists())
 				{
 					if (!DirectoryReference.Combine(MasterProjectPath, "Intermediate", "Source").Exists())
 					{
-						if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+						if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac && !UnrealBuildTool.IsEngineInstalled())
 						{
 							MasterProjectPath = UnrealBuildTool.EngineDirectory;
 							GameProjectName = "UE4Game";
@@ -330,24 +330,6 @@ namespace UnrealBuildTool
 					}
 				}
 				IntermediateProjectFilesPath = DirectoryReference.Combine(MasterProjectPath, "Intermediate", "ProjectFiles");
-			}
-			else if( UnrealBuildTool.RunningRocket() )
-			{
-				Log.TraceInformation("Discovering modules, targets and source code for project...");
-
-				MasterProjectPath = OnlyGameProject.Directory;
-				IntermediateProjectFilesPath = DirectoryReference.Combine( MasterProjectPath, "Intermediate", "ProjectFiles" );
-
-				// Set the project file name
-				MasterProjectName = OnlyGameProject.GetFileNameWithoutExtension();
-
-				if (!DirectoryReference.Combine(MasterProjectPath, "Source").Exists())
-				{
-					if (!DirectoryReference.Combine(MasterProjectPath, "Intermediate", "Source").Exists())
-					{
-						throw new BuildException("Directory '{0}' is missing 'Source' folder.", MasterProjectPath);
-					}
-				}
 			}
 
 			// Modify the name if specific platforms were given
@@ -780,26 +762,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if( UnrealBuildTool.RunningRocket() )
-			{
-				// Make sure we can get a valid game name out of this project
-				var GameName = OnlyGameProject.GetFileNameWithoutExtension();
-				if( String.IsNullOrEmpty( GameName ) )
-				{
-					throw new BuildException("A valid Rocket game project was not found in the specified location (" + OnlyGameProject.Directory.FullName + ")");
-				}
-
-				bIncludeTestAndShippingConfigs = true;
-
-				IncludeEngineSource = true;
-				IncludeDocumentation = false;
-				IncludeBuildSystemFiles = false;
-				IncludeShaderSource = false;
-				IncludeTemplateFiles = false;
-				IncludeConfigFiles = true;
-				IncludeEnginePrograms = false;
-			}
-			else if( bGeneratingGameProjectFiles )
+			if( OnlyGameProject != null )
 			{
 				GameProjectName = OnlyGameProject.GetFileNameWithoutExtension();
 				if (String.IsNullOrEmpty(GameProjectName))
@@ -807,7 +770,9 @@ namespace UnrealBuildTool
 					throw new BuildException("A valid game project was not found in the specified location (" + OnlyGameProject.Directory.FullName + ")");
 				}
 
-				IncludeEngineSource = bAlwaysIncludeEngineModules;
+				bool bInstalledEngineWithSource = UnrealBuildTool.IsEngineInstalled() && UnrealBuildTool.EngineSourceDirectory.Exists();
+
+				IncludeEngineSource = bAlwaysIncludeEngineModules || bInstalledEngineWithSource;
 				IncludeDocumentation = false;
 				IncludeBuildSystemFiles = false;
 				IncludeShaderSource = true;
@@ -1651,144 +1616,140 @@ namespace UnrealBuildTool
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					var TargetRulesObject = RulesAssembly.CreateTargetRules(TargetName, new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development, ""), false);
 
-					// Exclude client and server targets under binary Rocket; it's impossible to build without precompiled engine binaries
-					if (!UnrealBuildTool.RunningRocket() || (TargetRulesObject.Type != TargetRules.TargetType.Client && TargetRulesObject.Type != TargetRules.TargetType.Server))
+					bool IsProgramTarget = false;
+
+					DirectoryReference GameFolder = null;
+					string ProjectFileNameBase = null;
+					if (TargetRulesObject.Type == TargetRules.TargetType.Program)
 					{
-						bool IsProgramTarget = false;
-
-						DirectoryReference GameFolder = null;
-						string ProjectFileNameBase = null;
-						if (TargetRulesObject.Type == TargetRules.TargetType.Program)
-						{
-							IsProgramTarget = true;
-							ProjectFileNameBase = TargetName;
-						}
-						else if (IsEngineTarget)
-						{
-							ProjectFileNameBase = EngineProjectFileNameBase;
-						}
-						else
-						{
-							// Figure out which game project this target belongs to
-							UProjectInfo ProjectInfo = FindGameContainingFile(AllGames, TargetFilePath);
-							if (ProjectInfo == null)
-							{
-								throw new BuildException("Found a non-engine target file (" + TargetFilePath + ") that did not exist within any of the known game folders");
-							}
-							GameFolder = ProjectInfo.Folder;
-							ProjectFileNameBase = ProjectInfo.GameName;
-						}
-
-						// @todo projectfiles: We should move all of the Target.cs files out of sub-folders to clean up the project directories a bit (e.g. GameUncooked folder)
-
-						FileReference ProjectFilePath = FileReference.Combine(IntermediateProjectFilesPath, ProjectFileNameBase + ProjectFileExtension);
-
-						if (TargetRules.IsGameType(TargetRulesObject.Type) &&
-							(TargetRules.IsEditorType(TargetRulesObject.Type) == false))
-						{
-							// Allow platforms to generate stub projects here...
-							UEPlatformProjectGenerator.GenerateGameProjectStubs(
-								InGenerator: this,
-								InTargetName: TargetName,
-								InTargetFilepath: TargetFilePath.FullName,
-								InTargetRules: TargetRulesObject,
-								InPlatforms: SupportedPlatforms,
-								InConfigurations: SupportedConfigurations);
-						}
-
-						bool bProjectAlreadyExisted;
-						var ProjectFile = FindOrAddProject(ProjectFilePath, IncludeInGeneratedProjects: true, bAlreadyExisted: out bProjectAlreadyExisted);
-						ProjectFile.IsForeignProject = bGeneratingGameProjectFiles && OnlyGameProject != null && TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory);
-						ProjectFile.IsGeneratedProject = true;
-						ProjectFile.IsStubProject = false;
-
-						// Check to see if this is a template target.  That is, the target is located under the "Templates" folder
-						bool IsTemplateTarget = TargetFilePath.IsUnderDirectory(TemplatesDirectory);
-
-						DirectoryReference BaseFolder = null;
-						if (IsProgramTarget)
-						{
-							ProgramProjects[TargetName] = ProjectFile;
-							BaseFolder = TargetFilePath.Directory;
-						}
-						else if (IsEngineTarget)
-						{
-							EngineProject = ProjectFile;
-							BaseFolder = UnrealBuildTool.EngineDirectory;
-							if (UnrealBuildTool.IsEngineInstalled())
-							{
-								// Allow engine projects to be created but not built for Installed Engine builds
-								EngineProject.IsForeignProject = false;
-								EngineProject.IsGeneratedProject = true;
-								EngineProject.IsStubProject = true;
-							}
-						}
-						else
-						{
-							GameProjects[GameFolder] = ProjectFile;
-							if (IsTemplateTarget)
-							{
-								TemplateGameProjects.Add(ProjectFile);
-							}
-							BaseFolder = GameFolder;
-
-							if (!bProjectAlreadyExisted)
-							{
-								// Add the .uproject file for this game/template
-								var UProjectFilePath = FileReference.Combine(BaseFolder, ProjectFileNameBase + ".uproject");
-								if (UProjectFilePath.Exists())
-								{
-									ProjectFile.AddFileToProject(UProjectFilePath, BaseFolder);
-								}
-								else
-								{
-									throw new BuildException("Not expecting to find a game with no .uproject file.  File '{0}' doesn't exist", UProjectFilePath);
-								}
-							}
-
-						}
-
-						foreach (var ExistingProjectTarget in ProjectFile.ProjectTargets)
-						{
-							if (ExistingProjectTarget.TargetRules.ConfigurationName.Equals(TargetRulesObject.ConfigurationName, StringComparison.InvariantCultureIgnoreCase))
-							{
-								throw new BuildException("Not expecting project {0} to already have a target rules of with configuration name {1} ({2}) while trying to add: {3}", ProjectFilePath, TargetRulesObject.ConfigurationName, ExistingProjectTarget.TargetRules.ToString(), TargetRulesObject.ToString());
-							}
-
-							// Not expecting to have both a game and a program in the same project.  These would alias because we share the project and solution configuration names (just because it makes sense to)
-							if (ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Game && ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Program ||
-								ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Program && ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Game)
-							{
-								throw new BuildException("Not expecting project {0} to already have a Game/Program target ({1}) associated with it while trying to add: {2}", ProjectFilePath, ExistingProjectTarget.TargetRules.ToString(), TargetRulesObject.ToString());
-							}
-						}
-
-						var ProjectTarget = new ProjectTarget()
-							{
-								TargetRules = TargetRulesObject,
-								TargetFilePath = TargetFilePath,
-								ProjectFilePath = ProjectFilePath
-                            };
-
-                        if (TargetName == "UnrealCodeAnalyzer")
-                        {
-                            ProjectFile.ShouldBuildByDefaultForSolutionTargets = false;
-                        }
-
-						if (TargetName == "ShaderCompileWorker")		// @todo projectfiles: Ideally, the target rules file should set this
-						{
-							ProjectTarget.ForceDevelopmentConfiguration = true;
-						}
-
-						ProjectFile.ProjectTargets.Add(ProjectTarget);
-
-						// Make sure the *.Target.cs file is in the project.
-						ProjectFile.AddFileToProject(TargetFilePath, BaseFolder);
-
-
-						// We special case ShaderCompileWorker.  It needs to always be compiled in Development mode.
-						Log.TraceVerbose("Generating target {0} for {1}", TargetRulesObject.Type.ToString(), ProjectFilePath);
+						IsProgramTarget = true;
+						ProjectFileNameBase = TargetName;
 					}
+					else if (IsEngineTarget)
+					{
+						ProjectFileNameBase = EngineProjectFileNameBase;
+					}
+					else
+					{
+						// Figure out which game project this target belongs to
+						UProjectInfo ProjectInfo = FindGameContainingFile(AllGames, TargetFilePath);
+						if (ProjectInfo == null)
+						{
+							throw new BuildException("Found a non-engine target file (" + TargetFilePath + ") that did not exist within any of the known game folders");
+						}
+						GameFolder = ProjectInfo.Folder;
+						ProjectFileNameBase = ProjectInfo.GameName;
+					}
+
+					// @todo projectfiles: We should move all of the Target.cs files out of sub-folders to clean up the project directories a bit (e.g. GameUncooked folder)
+
+					FileReference ProjectFilePath = FileReference.Combine(IntermediateProjectFilesPath, ProjectFileNameBase + ProjectFileExtension);
+
+					if (TargetRules.IsGameType(TargetRulesObject.Type) &&
+						(TargetRules.IsEditorType(TargetRulesObject.Type) == false))
+					{
+						// Allow platforms to generate stub projects here...
+						UEPlatformProjectGenerator.GenerateGameProjectStubs(
+							InGenerator: this,
+							InTargetName: TargetName,
+							InTargetFilepath: TargetFilePath.FullName,
+							InTargetRules: TargetRulesObject,
+							InPlatforms: SupportedPlatforms,
+							InConfigurations: SupportedConfigurations);
+					}
+
+					bool bProjectAlreadyExisted;
+					var ProjectFile = FindOrAddProject(ProjectFilePath, IncludeInGeneratedProjects: true, bAlreadyExisted: out bProjectAlreadyExisted);
+					ProjectFile.IsForeignProject = bGeneratingGameProjectFiles && OnlyGameProject != null && TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory);
+					ProjectFile.IsGeneratedProject = true;
+					ProjectFile.IsStubProject = false;
+
+					// Check to see if this is a template target.  That is, the target is located under the "Templates" folder
+					bool IsTemplateTarget = TargetFilePath.IsUnderDirectory(TemplatesDirectory);
+
+					DirectoryReference BaseFolder = null;
+					if (IsProgramTarget)
+					{
+						ProgramProjects[TargetName] = ProjectFile;
+						BaseFolder = TargetFilePath.Directory;
+					}
+					else if (IsEngineTarget)
+					{
+						EngineProject = ProjectFile;
+						BaseFolder = UnrealBuildTool.EngineDirectory;
+						if (UnrealBuildTool.IsEngineInstalled())
+						{
+							// Allow engine projects to be created but not built for Installed Engine builds
+							EngineProject.IsForeignProject = false;
+							EngineProject.IsGeneratedProject = true;
+							EngineProject.IsStubProject = true;
+						}
+					}
+					else
+					{
+						GameProjects[GameFolder] = ProjectFile;
+						if (IsTemplateTarget)
+						{
+							TemplateGameProjects.Add(ProjectFile);
+						}
+						BaseFolder = GameFolder;
+
+						if (!bProjectAlreadyExisted)
+						{
+							// Add the .uproject file for this game/template
+							var UProjectFilePath = FileReference.Combine(BaseFolder, ProjectFileNameBase + ".uproject");
+							if (UProjectFilePath.Exists())
+							{
+								ProjectFile.AddFileToProject(UProjectFilePath, BaseFolder);
+							}
+							else
+							{
+								throw new BuildException("Not expecting to find a game with no .uproject file.  File '{0}' doesn't exist", UProjectFilePath);
+							}
+						}
+
+					}
+
+					foreach (var ExistingProjectTarget in ProjectFile.ProjectTargets)
+					{
+						if (ExistingProjectTarget.TargetRules.ConfigurationName.Equals(TargetRulesObject.ConfigurationName, StringComparison.InvariantCultureIgnoreCase))
+						{
+							throw new BuildException("Not expecting project {0} to already have a target rules of with configuration name {1} ({2}) while trying to add: {3}", ProjectFilePath, TargetRulesObject.ConfigurationName, ExistingProjectTarget.TargetRules.ToString(), TargetRulesObject.ToString());
+						}
+
+						// Not expecting to have both a game and a program in the same project.  These would alias because we share the project and solution configuration names (just because it makes sense to)
+						if (ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Game && ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Program ||
+							ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Program && ExistingProjectTarget.TargetRules.Type == TargetRules.TargetType.Game)
+						{
+							throw new BuildException("Not expecting project {0} to already have a Game/Program target ({1}) associated with it while trying to add: {2}", ProjectFilePath, ExistingProjectTarget.TargetRules.ToString(), TargetRulesObject.ToString());
+						}
+					}
+
+					var ProjectTarget = new ProjectTarget()
+						{
+							TargetRules = TargetRulesObject,
+							TargetFilePath = TargetFilePath,
+							ProjectFilePath = ProjectFilePath
+                        };
+
+                    if (TargetName == "UnrealCodeAnalyzer")
+                    {
+                        ProjectFile.ShouldBuildByDefaultForSolutionTargets = false;
+                    }
+
+					if (TargetName == "ShaderCompileWorker")		// @todo projectfiles: Ideally, the target rules file should set this
+					{
+						ProjectTarget.ForceDevelopmentConfiguration = true;
+					}
+
+					ProjectFile.ProjectTargets.Add(ProjectTarget);
+
+					// Make sure the *.Target.cs file is in the project.
+					ProjectFile.AddFileToProject(TargetFilePath, BaseFolder);
+
+
+					// We special case ShaderCompileWorker.  It needs to always be compiled in Development mode.
+					Log.TraceVerbose("Generating target {0} for {1}", TargetRulesObject.Type.ToString(), ProjectFilePath);
 				}
 			}
 		}

@@ -22,7 +22,7 @@ public class AudioFormatOpus : ModuleRules
             //(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
             )
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, 
+			AddEngineThirdPartyPrivateStaticDependencies(Target, 
 				"libOpus"
 				);
 		}

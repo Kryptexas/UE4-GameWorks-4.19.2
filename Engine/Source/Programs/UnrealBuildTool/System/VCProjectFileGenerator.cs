@@ -389,16 +389,29 @@ namespace UnrealBuildTool
 				throw new BuildException("Unexpected ProjectFileFormat");
 			}
 
-			// Find the project for ShaderCompileWorker
+			// Find the projects for ShaderCompileWorker and UnrealLightmass
 			ProjectFile ShaderCompileWorkerProject = null;
+			ProjectFile UnrealLightmassProject = null;
 			foreach (ProjectFile Project in AllProjectFiles)
 			{
 				if (Project.ProjectTargets.Count == 1)
 				{
 					FileReference TargetFilePath = Project.ProjectTargets[0].TargetFilePath;
-					if (TargetFilePath != null && TargetFilePath.GetFileNameWithoutAnyExtensions().Equals("ShaderCompileWorker", StringComparison.InvariantCultureIgnoreCase))
+					if (TargetFilePath != null)
 					{
-						ShaderCompileWorkerProject = Project;
+						string TargetFileName = TargetFilePath.GetFileNameWithoutAnyExtensions();
+						if (TargetFileName.Equals("ShaderCompileWorker", StringComparison.InvariantCultureIgnoreCase))
+						{
+							ShaderCompileWorkerProject = Project;
+						}
+						else if (TargetFileName.Equals("UnrealLightmass", StringComparison.InvariantCultureIgnoreCase))
+						{
+							UnrealLightmassProject = Project;
+						}
+					}
+					if (ShaderCompileWorkerProject != null
+						&& UnrealLightmassProject != null)
+					{
 						break;
 					}
 				}
@@ -736,12 +749,16 @@ namespace UnrealBuildTool
 											}
 										}
 
-										// Always allow SCW to build in editor configurations
-										if (MatchingProjectTarget == null && CurProject == ShaderCompileWorkerProject)
+										// Always allow SCW and UnrealLighmass to build in editor configurations
+										if (MatchingProjectTarget == null && SolutionConfigCombination.TargetConfigurationName == TargetRules.TargetType.Editor.ToString() && SolutionConfigCombination.Platform == UnrealTargetPlatform.Win64)
 										{
-											if (SolutionConfigCombination.TargetConfigurationName == TargetRules.TargetType.Editor.ToString() && SolutionConfigCombination.Platform == UnrealTargetPlatform.Win64)
+											if (CurProject == ShaderCompileWorkerProject)
 											{
 												MatchingProjectTarget = ShaderCompileWorkerProject.ProjectTargets[0];
+											}
+											else if (CurProject == UnrealLightmassProject)
+											{
+												MatchingProjectTarget = UnrealLightmassProject.ProjectTargets[0];
 											}
 										}
 

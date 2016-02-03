@@ -1708,7 +1708,7 @@ public partial class Project : CommandUtils
 				ExecutablesToStage,
 				InDedicatedServer,
 				Params.Cook || Params.CookOnTheFly,
-				Params.CrashReporter && !(StagePlatform == UnrealTargetPlatform.Linux && Automation.RunningRocket()), // can't include the crash reporter from binary Linux builds
+				Params.CrashReporter,
 				Params.Stage,
 				Params.CookOnTheFly,
 				Params.Archive,

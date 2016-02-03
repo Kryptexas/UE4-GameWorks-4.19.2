@@ -35,7 +35,7 @@ public class SoundModImporter : ModuleRules
 		);
 
 		// Link with managed Perforce wrapper assemblies
-		AddThirdPartyPrivateStaticDependencies(Target, "coremod");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "coremod");
 	
 	}
 }

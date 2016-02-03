@@ -381,6 +381,11 @@ namespace Rocket
 			StrippedDir = InStrippedDir;
 		}
 
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ "Compile" + HostPlatform.ToString(), HostPlatform.ToString() };
+		}
+
 		public override abstract string GetFullName();
 
 		public void AddNodeToStrip(string NodeName)
@@ -550,6 +555,11 @@ namespace Rocket
 			BranchConfig = InBranchConfig;
 			TargetPlatform = InTargetPlatform;
 			SignedDir = InSignedDir;
+		}
+
+		public override string[] GetAgentTypes()
+		{
+			return new string[]{ "Compile" + HostPlatform.ToString(), HostPlatform.ToString() };
 		}
 
 		public override abstract string GetFullName();

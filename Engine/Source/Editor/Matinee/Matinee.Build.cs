@@ -46,7 +46,7 @@ public class Matinee : ModuleRules
 			}
 			);
 
-		AddThirdPartyPrivateStaticDependencies(Target, "FBX");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "FBX");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {

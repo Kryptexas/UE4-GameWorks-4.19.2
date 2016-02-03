@@ -53,7 +53,7 @@ public class Slate : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "XInput");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "XInput");
 		}
 	}
 }

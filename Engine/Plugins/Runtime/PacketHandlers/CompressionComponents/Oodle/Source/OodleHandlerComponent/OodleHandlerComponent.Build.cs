@@ -57,7 +57,7 @@ public class OodleHandlerComponent : ModuleRules
 
 		if ( bHaveOodleSDK )
 		{
-	        AddThirdPartyPrivateStaticDependencies(Target, "Oodle");
+	        AddEngineThirdPartyPrivateStaticDependencies(Target, "Oodle");
 	        PublicIncludePathModuleNames.Add("Oodle");
 			Definitions.Add( "HAS_OODLE_SDK=1" );
 		}

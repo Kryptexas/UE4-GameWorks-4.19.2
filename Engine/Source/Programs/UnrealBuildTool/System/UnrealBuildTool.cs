@@ -76,11 +76,6 @@ namespace UnrealBuildTool
 		static UnrealTargetPlatform OnlyPlatformSpecificFor = UnrealTargetPlatform.Unknown;
 
 		/// <summary>
-		/// Are we running for Rocket
-		/// </summary>
-		static public bool? bRunningRocket;
-
-		/// <summary>
 		/// Whether we're running with engine installed
 		/// </summary>
 		static private bool? bIsEngineInstalled;
@@ -187,21 +182,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Returns true if UnrealBuildTool is running with Rocket mode enabled
-		/// </summary>
-		/// <returns>True if running with Rocket mode</returns>
-		static public bool RunningRocket()
-		{
-			if (!bRunningRocket.HasValue)
-			{
-				FileReference RocketFile = FileReference.Combine(RootDirectory, "Engine", "Build", "Rocket.txt");
-				bRunningRocket = RocketFile.Exists();
-			}
-
-			return bRunningRocket.Value;
-		}
-
-		/// <summary>
 		/// Returns true if UnrealBuildTool is running using installed Engine components
 		/// </summary>
 		/// <returns>True if running using installed Engine components</returns>
@@ -209,10 +189,17 @@ namespace UnrealBuildTool
 		{
 			if (!bIsEngineInstalled.HasValue)
 			{
-				bIsEngineInstalled = UnrealBuildTool.CommandLineContains("-Installed")
-					|| (RunningRocket() ? !UnrealBuildTool.CommandLineContains("-NotInstalledEngine") : UnrealBuildTool.CommandLineContains("-InstalledEngine"));
+				bIsEngineInstalled = UnrealBuildTool.CommandLineContains("-Installed");
 				FileReference InstalledBuildFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt");
 				bIsEngineInstalled |= InstalledBuildFile.Exists();
+				if (bIsEngineInstalled.Value)
+				{
+					bIsEngineInstalled = !UnrealBuildTool.CommandLineContains("-NotInstalledEngine");
+				}
+				else
+				{
+					bIsEngineInstalled = UnrealBuildTool.CommandLineContains("-InstalledEngine");
+				}
 			}
 
 			return bIsEngineInstalled.Value;
@@ -485,12 +472,7 @@ namespace UnrealBuildTool
 			string LowercaseArg = InArg.ToLowerInvariant();
 
 			string ProjectArg = null;
-			if (LowercaseArg == "-rocket")
-			{
-				Log.TraceWarning("Use of -rocket argument on command-line to test Rocket behavior is deprecated, please ensure that you've built a true Rocket build.");
-				bRunningRocket = true;
-			}
-			else if (LowercaseArg.StartsWith("-project="))
+			if (LowercaseArg.StartsWith("-project="))
 			{
 				if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
 				{
@@ -1159,11 +1141,6 @@ namespace UnrealBuildTool
 							// "Engine" is not a valid game name.
 							if (LowercaseArg != "engine" && Arg.IndexOfAny(Path.GetInvalidPathChars()) == -1 && Arg.IndexOfAny(new char[]{ ':', Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}) == -1 &&
 								Directory.Exists(Path.Combine(ProjectFileGenerator.RootRelativePath, Arg, "Config")))
-							{
-								GameName = Arg;
-								Log.TraceVerbose("CommandLine: Found game name '{0}'", GameName);
-							}
-							else if (LowercaseArg == "rocket")
 							{
 								GameName = Arg;
 								Log.TraceVerbose("CommandLine: Found game name '{0}'", GameName);

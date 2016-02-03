@@ -19,8 +19,8 @@ public class D3D11RHI : ModuleRules
 			}
 			);
 
-		AddThirdPartyPrivateStaticDependencies(Target, "DX11");
-        AddThirdPartyPrivateStaticDependencies(Target, "NVAPI");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{

@@ -2067,6 +2067,19 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class ConfigCacheIni_APL
 	{
+		/// <summary>
+		/// Exception when parsing ini files
+		/// </summary>
+		public class IniParsingException : Exception
+		{
+			public IniParsingException(string Message)
+				: base(Message)
+			{ }
+			public IniParsingException(string Format, params object[] Args)
+				: base(String.Format(Format, Args))
+			{ }
+		}
+
 
 		// command class for being able to create config caches over and over without needing to read the ini files
 		public class Command

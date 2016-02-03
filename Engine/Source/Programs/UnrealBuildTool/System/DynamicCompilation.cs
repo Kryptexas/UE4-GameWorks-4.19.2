@@ -22,12 +22,6 @@ namespace UnrealBuildTool
 		 */
 		private static bool RequiresCompilation(List<FileReference> SourceFileNames, FileReference AssemblySourceListFilePath, FileReference OutputAssemblyPath)
 		{
-			if (UnrealBuildTool.RunningRocket() && ProjectFileGenerator.bGenerateProjectFiles)
-			{
-				// @todo rocket Do we need a better way to determine if project generation rules modules need to be compiled?
-				return true;
-			}
-
 			// Check to see if we already have a compiled assembly file on disk
 			FileInfo OutputAssemblyInfo = new FileInfo(OutputAssemblyPath.FullName);
 			if (OutputAssemblyInfo.Exists)
@@ -144,6 +138,10 @@ namespace UnrealBuildTool
 				// Never fail compiles for warnings
 				CompileParams.TreatWarningsAsErrors = false;
 
+				// Set the warning level so that we will actually receive warnings -
+				// doesn't abort compilation as stated in documentation!
+				CompileParams.WarningLevel = 4;
+
 				// Always generate debug information as it takes minimal time
 				CompileParams.IncludeDebugInformation = true;
 #if !DEBUG
@@ -225,9 +223,16 @@ namespace UnrealBuildTool
 			if (CompileResults.Errors.Count > 0)
 			{
 				Log.TraceInformation("Messages while compiling {0}:", OutputAssemblyPath);
-				foreach (var CurError in CompileResults.Errors)
+				foreach (CompilerError CurError in CompileResults.Errors)
 				{
-					Log.TraceInformation(CurError.ToString());
+					if (CurError.IsWarning)
+					{
+						Log.TraceWarning(CurError.ToString());
+					}
+					else
+					{
+						Log.TraceError(CurError.ToString());
+					}
 				}
 				if(CompileResults.Errors.HasErrors || TreatWarningsAsErrors)
 				{

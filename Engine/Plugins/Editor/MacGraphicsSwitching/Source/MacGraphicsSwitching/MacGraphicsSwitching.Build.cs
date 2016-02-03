@@ -44,7 +44,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenGL");
 		}
 	}
 }

@@ -30,14 +30,14 @@ public class MeshUtilities : ModuleRules
 			}
 		);
 
-        AddThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
-		AddThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
-		AddThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
-		AddThirdPartyPrivateStaticDependencies(Target, "MikkTSpace");
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "MikkTSpace");
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "DX9");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "DX9");
 		}
 
 		if (UEBuildConfiguration.bCompileSimplygon == true)
@@ -48,7 +48,7 @@ public class MeshUtilities : ModuleRules
             }
 			);
 
-			AddThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
+			AddEngineThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
 		}
 	}
 }

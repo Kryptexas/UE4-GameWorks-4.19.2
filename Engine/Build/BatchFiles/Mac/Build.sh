@@ -13,10 +13,6 @@ if [ $1 == "clean" ]
 fi 
 
 
-echo Building UBT... 
-
-xbuild /property:Configuration=Development  /nologo Engine/Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj| grep -i error  
-
 case $ACTION in
 	"")
 		echo Building $1...

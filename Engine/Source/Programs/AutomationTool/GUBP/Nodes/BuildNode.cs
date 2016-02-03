@@ -31,6 +31,9 @@ namespace AutomationTool
 		[XmlAttribute, DefaultValue("")]
 		public string DependsOn = "";
 
+		[XmlAttribute, DefaultValue("")]
+		public string AgentTypes = "";
+
 		[XmlAttribute, DefaultValue(0)]
 		public int FrequencyShift;
 
@@ -45,6 +48,9 @@ namespace AutomationTool
 
 		[XmlAttribute, DefaultValue(true)]
 		public bool EmailSubmitters = true;
+
+		[XmlAttribute, DefaultValue(true)]
+		public bool NotifyOnWarnings = true;
 
 		[XmlAttribute, DefaultValue(UnrealTargetPlatform.Win64)]
 		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
@@ -92,6 +98,7 @@ namespace AutomationTool
 
 		public readonly string Name;
 		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
+		public string[] AgentTypes;
 		public string AgentRequirements;
 		public string AgentSharingGroup;
 		public int FrequencyShift;
@@ -105,6 +112,7 @@ namespace AutomationTool
 		public bool IsComplete;
 		public string[] RecipientsForFailureEmails;
 		public bool AddSubmittersToFailureEmails;
+		public bool NotifyOnWarnings;
 		public bool SendSuccessEmail;
 		public bool IsParallelAgentShareEditor;
 		public bool IsSticky;
@@ -117,6 +125,7 @@ namespace AutomationTool
 		public BuildNode(BuildNodeDefinition Definition)
 		{
 			Name = Definition.Name;
+			AgentTypes = Definition.AgentTypes.Split(new char[]{ ';' }, StringSplitOptions.RemoveEmptyEntries);
 			AgentPlatform = Definition.AgentPlatform;
 			AgentRequirements = Definition.AgentRequirements;
 			AgentSharingGroup = Definition.AgentSharingGroup;
@@ -126,6 +135,7 @@ namespace AutomationTool
 			Priority = Definition.Priority;
 			RecipientsForFailureEmails = Definition.Notify.Split(';');
 			AddSubmittersToFailureEmails = Definition.AddSubmittersToFailureEmails;
+			NotifyOnWarnings = Definition.NotifyOnWarnings;
 			SendSuccessEmail = Definition.SendSuccessEmail;
 			IsParallelAgentShareEditor = Definition.IsParallelAgentShareEditor;
 			IsSticky = Definition.IsSticky;
@@ -154,6 +164,11 @@ namespace AutomationTool
 		public abstract bool DoBuild();
 
 		public abstract bool DoFakeBuild();
+
+		public TriggerNode ControllingTrigger
+		{
+			get { return (ControllingTriggers.Length == 0)? null : ControllingTriggers[ControllingTriggers.Length - 1]; }
+		}
 
 		public string ControllingTriggerDotName
 		{

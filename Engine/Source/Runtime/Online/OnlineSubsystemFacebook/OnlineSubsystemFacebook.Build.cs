@@ -22,7 +22,7 @@ public class OnlineSubsystemFacebook : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.IOS || Target.Platform == UnrealTargetPlatform.TVOS)
         {
-			AddThirdPartyPrivateStaticDependencies(Target, "Facebook");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "Facebook");
 
             PrivateIncludePaths.Add("Runtime/Online/OnlineSubsystemFacebook/Private/IOS");
         }

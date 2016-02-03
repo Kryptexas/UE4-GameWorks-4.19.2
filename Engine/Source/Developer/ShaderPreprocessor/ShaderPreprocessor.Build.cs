@@ -13,6 +13,6 @@ public class ShaderPreprocessor : ModuleRules
 			}
 			);
 
-		AddThirdPartyPrivateStaticDependencies(Target, "MCPP");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "MCPP");
 	}
 }

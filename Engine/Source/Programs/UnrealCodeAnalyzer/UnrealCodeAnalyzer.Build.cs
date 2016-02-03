@@ -8,7 +8,7 @@ public class UnrealCodeAnalyzer : ModuleRules
 	{
 		bEnableExceptions = false;
 
-		AddThirdPartyPrivateStaticDependencies(Target, "llvm");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "llvm");
 
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",

@@ -39,7 +39,7 @@ public class SlateCore : ModuleRules
 		{
 			if (UEBuildConfiguration.bCompileFreeType)
 			{
-				AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 				Definitions.Add("WITH_FREETYPE=1");
 			}
 			else
@@ -49,10 +49,10 @@ public class SlateCore : ModuleRules
 
 			if (UEBuildConfiguration.bCompileICU)
 			{
-				AddThirdPartyPrivateStaticDependencies(Target, "ICU");
+				AddEngineThirdPartyPrivateStaticDependencies(Target, "ICU");
 			}
 
-			AddThirdPartyPrivateStaticDependencies(Target, "HarfBuzz");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "HarfBuzz");
 		}
 		else
 		{
@@ -63,7 +63,7 @@ public class SlateCore : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "XInput");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "XInput");
 		}
 	}
 }

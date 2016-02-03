@@ -45,9 +45,9 @@ class ToolsForDocumentationNode : GUBP.CompileNode
     }
 }
 	
-class DocumentationNode : GUBP.GUBPNode
+class DocumentationNode : GUBP.HostPlatformNode
 {
-	public DocumentationNode(UnrealTargetPlatform InHostPlatform)
+	public DocumentationNode(UnrealTargetPlatform InHostPlatform) : base(InHostPlatform)
 	{
 		AgentSharingGroup = "Documentation" + GUBP.HostPlatformNode.StaticGetHostPlatformSuffix(InHostPlatform);
 		AddDependency(ToolsForDocumentationNode.StaticGetFullName(InHostPlatform));
