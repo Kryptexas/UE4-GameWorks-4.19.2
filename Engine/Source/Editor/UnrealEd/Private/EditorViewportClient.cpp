@@ -3474,7 +3474,7 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 	const FRotator& ViewRotation = GetViewRotation();
 
 	const bool LeftMouseButtonDown = InViewport->KeyState(EKeys::LeftMouseButton);
-	const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
+	const bool RightMouseButtonDown = InViewport->KeyState(EKeys::RightMouseButton);
 
 	const ELevelViewportType LevelViewportType = GetViewportType();
 
@@ -3491,7 +3491,7 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 		{
 			if (GestureType == EGestureEvent::Scroll && !LeftMouseButtonDown && !RightMouseButtonDown)
 			{
-				const float UnitsPerPixel = GetOrthoUnitsPerPixel(Viewport);
+				const float UnitsPerPixel = GetOrthoUnitsPerPixel(InViewport);
 				
 				// GestureDelta is in window pixel coords.  Adjust for ortho units.
 				FVector2D AdjustedGestureDelta = GestureDelta * UnitsPerPixel;
