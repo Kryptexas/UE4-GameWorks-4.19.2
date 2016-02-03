@@ -2099,10 +2099,7 @@ void FD3D12DynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, con
 	FName DebugName(Name);
 	TextureRHI->SetName(DebugName);
 	FD3D12Resource* Resource = reinterpret_cast<FD3D12Resource*>(TextureRHI->GetNativeResource());
-	if (Resource)
-	{
-		Resource->SetName(Name);
-	}
+	SetName(Resource, Name);
 }
 
 void FD3D12DynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)

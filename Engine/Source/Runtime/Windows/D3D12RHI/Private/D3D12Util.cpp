@@ -27,6 +27,23 @@ D3D12Util.h: D3D RHI utility implementation.
 #endif//D3DERR_WASSTILLDRAWING
 #endif
 
+void SetName(ID3D12Object* const Object, const TCHAR* const Name)
+{
+	if (Object)
+	{
+		VERIFYD3D11RESULT(Object->SetName(Name));
+	}
+}
+
+void SetName(FD3D12Resource* const Resource, const TCHAR* const Name)
+{
+	// Special case for FD3D12Resources because we also store the name as a member in FD3D12Resource
+	if (Resource)
+	{
+		Resource->SetName(Name);
+	}
+}
+
 static FString GetD3D11DeviceHungErrorString(HRESULT ErrorCode)
 {
 	FString ErrorCodeText;

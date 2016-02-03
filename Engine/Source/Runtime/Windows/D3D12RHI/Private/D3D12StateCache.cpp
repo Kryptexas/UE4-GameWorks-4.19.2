@@ -102,6 +102,8 @@ void* FD3D12DynamicHeapAllocator::AllocUploadResource(uint32 size, uint32 alignm
 		const uint64 BufferSize = size + alignment;
 	
 		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(D3D12_HEAP_TYPE_UPLOAD, BufferSize, ResourceLocation->Resource.GetInitReference()));
+		SetName(ResourceLocation->Resource, L"Stand Alone Upload Buffer");
+
 		void* Data = nullptr;
 		VERIFYD3D11RESULT(ResourceLocation->Resource->GetResource()->Map(0, nullptr, &Data));
 	
@@ -143,6 +145,15 @@ void* FD3D12FastAllocator::Allocate(uint32 size, uint32 alignment, class FD3D12R
 	return AllocateInternal(size, alignment, ResourceLocation);
 }
 
+void FD3D12FastAllocator::Destroy()
+{
+	if (CurrentAllocatorPage)
+	{
+		PagePool->ReturnFastAllocatorPage(CurrentAllocatorPage);
+		CurrentAllocatorPage = nullptr;
+	}
+}
+
 void* FD3D12FastAllocator::AllocateInternal(uint32 size, uint32 alignment, class FD3D12ResourceLocation* ResourceLocation)
 {
 	if (size > PagePool->GetPageSize())
@@ -154,8 +165,9 @@ void* FD3D12FastAllocator::AllocateInternal(uint32 size, uint32 alignment, class
 			alignment = (D3D_BUFFER_ALIGNMENT % alignment) == 0 ? 0 : alignment;
 
 		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(PagePool->GetHeapType(), size + alignment, ResourceLocation->Resource.GetInitReference()));
-		void* Data = nullptr;
+		SetName(ResourceLocation->Resource, L"Stand Alone Fast Allocation");
 
+		void* Data = nullptr;
 		if (PagePool->IsCPUWritable())
 		{
 			VERIFYD3D11RESULT(ResourceLocation->Resource->GetResource()->Map(0, nullptr, &Data));
@@ -262,6 +274,7 @@ void FD3D12DefaultBufferPool::AllocDefaultResource(const D3D12_RESOURCE_DESC& De
 
 		const uint64 Size = (Desc.Width + Alignment);
 		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(D3D12_HEAP_TYPE_DEFAULT, Size, ResourceLocation->Resource.GetInitReference(), ResourceFlags));
+		SetName(ResourceLocation->Resource, L"Stand Alone Default Buffer");
 
 		ResourceLocation->EffectiveBufferSize = Desc.Width;
 		ResourceLocation->Offset = Alignment;
@@ -2272,7 +2285,7 @@ void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStart
 	const bool bIsCompute = ShaderStage == SF_Compute;
 	PipelineState.Common.CurrentUAVStartSlot[ShaderStage] = bIsCompute ? FMath::Min(UAVStartSlot, PipelineState.Common.CurrentUAVStartSlot[ShaderStage]) : UAVStartSlot;
 
-	TRefCountPtr<ID3D12Resource> CounterUploadHeap      = GetParentDevice()->GetCounterUploadHeap();
+	ID3D12Resource*              CounterUploadHeap      = GetParentDevice()->GetCounterUploadHeap();
 	uint32&                      CounterUploadHeapIndex = GetParentDevice()->GetCounterUploadHeapIndex();
 	void*                        CounterUploadHeapData  = GetParentDevice()->GetCounterUploadHeapData();
 
@@ -2600,6 +2613,7 @@ void FD3D12DescriptorCache::Init(FD3D12Device* InParent, FD3D12CommandContext* I
 			&HeapDesc,
 			IID_PPV_ARGS(OfflineHeap[ShaderFrequency].Heap.GetInitReference())
 			));
+		SetName(OfflineHeap[ShaderFrequency].Heap, L"Offline View Heap");
 
 		D3D12_CPU_DESCRIPTOR_HANDLE HeapBase = OfflineHeap[ShaderFrequency].Heap->GetCPUDescriptorHandleForHeapStart();
 
@@ -3262,6 +3276,7 @@ void FD3D12ThreadLocalOnlineHeap::RollOver()
 	{
 		UE_LOG(LogD3D12RHI, Warning, TEXT("OnlineHeap RollOver Detected. Increase the heap size to prevent creation of additional heaps"));
 		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+		SetName(Heap, Desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ? L"Thread Local - Online View Heap" : L"Thread Local - Online Sampler Heap");
 
 		Entry.Heap = Heap;
 	}
@@ -3326,6 +3341,7 @@ void FD3D12GlobalOnlineHeap::Init(uint32 TotalSize, D3D12_DESCRIPTOR_HEAP_TYPE T
 	Desc.NumDescriptors = TotalSize;
 
 	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+	SetName(Heap, Desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ? L"Device Global - Online View Heap" : L"Device Global - Online Sampler Heap");
 
 	CPUBase = Heap->GetCPUDescriptorHandleForHeapStart();
 	GPUBase = Heap->GetGPUDescriptorHandleForHeapStart();
@@ -3442,6 +3458,7 @@ void FD3D12ThreadLocalOnlineHeap::Init(uint32 NumDescriptors, D3D12_DESCRIPTOR_H
 	Desc.NumDescriptors = NumDescriptors;
 
 	VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+	SetName(Heap, Desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV ? L"Thread Local - Online View Heap" : L"Thread Local - Online Sampler Heap");
 
 	Entry.Heap = Heap;
 
@@ -3483,6 +3500,7 @@ void FD3D12SubAllocatedOnlineHeap::Init(SubAllocationDesc _Desc)
 	}
 
 	Heap = SubDesc.ParentHeap->GetHeap();
+
 	DescriptorSize = SubDesc.ParentHeap->GetDescriptorSize();
 	Desc = SubDesc.ParentHeap->GetDesc();
 
@@ -3680,13 +3698,6 @@ FD3D12ResourceAllocator::FD3D12ResourceAllocator(FD3D12Device* ParentDevice, eBu
 
 FD3D12ResourceAllocator::~FD3D12ResourceAllocator()
 {
-	// Ensures there are no lingering resource locations with a pointer to this allocator
-	FRHIResource::FlushPendingDeletes();
-
-#if UE_BUILD_DEBUG
-	FOutputDeviceRedirector* pOutputDevice = FOutputDeviceRedirector::Get();
-	DumpAllocatorStats(*pOutputDevice);
-#endif
 }
 
 void FD3D12ResourceAllocator::Initialize()
@@ -3702,10 +3713,12 @@ void FD3D12ResourceAllocator::Initialize()
 		desc.Flags = HeapFlags;
 
 		VERIFYD3D11RESULT(GetParentDevice()->GetDevice()->CreateHeap(&desc, IID_PPV_ARGS(BackingHeap.GetInitReference())));
+		SetName(BackingHeap, L"Placed Resource Allocator Backing Heap");
 	}
 	else
 	{
 		VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(HeapType, MaxBlockSize, BackingResource.GetInitReference(), ResourceFlags));
+		SetName(BackingResource, L"Resource Allocator Underlying Buffer");
 
 		if (IsCPUWritable(HeapType))
 		{
@@ -3716,14 +3729,7 @@ void FD3D12ResourceAllocator::Initialize()
 
 void FD3D12ResourceAllocator::Destroy()
 {
-	if (AllocationStrategy == eBuddyAllocationStrategy::kPlacedResourceStrategy)
-	{
-		BackingHeap->Release();
-	}
-	else
-	{
-		BackingResource->Release();
-	}
+	ReleaseAllResources();
 }
 
 uint32 FD3D12ResourceAllocator::AllocateBlock(uint32 order)
@@ -3928,18 +3934,6 @@ void FD3D12ResourceAllocator::CleanUpAllocations()
 
 void FD3D12ResourceAllocator::ReleaseAllResources()
 {
-	if (BackingResource)
-	{
-		BackingResource->Release();
-		BackingResource = nullptr;
-	}
-
-	if (BackingHeap)
-	{
-		BackingHeap->Release();
-		BackingHeap = nullptr;
-	}
-
 	FD3D12ResourceBlockInfo* Block = nullptr;
 
 	while (DeferredDeletionQueue.IsEmpty() == false &&
@@ -3948,6 +3942,17 @@ void FD3D12ResourceAllocator::ReleaseAllResources()
 		DeferredDeletionQueue.Dequeue(Block);
 		DeallocateInternal(Block);
 		DECREASE_ALLOC_COUNTER(NumBlocksInDeferredDeletionQueue, 1);
+	}
+
+	if (BackingResource)
+	{
+		check(BackingResource->GetRefCount() == 1);
+		BackingResource = nullptr;
+	}
+
+	if (BackingHeap)
+	{
+		BackingHeap = nullptr;
 	}
 }
 
@@ -4069,10 +4074,10 @@ FD3D12FastAllocatorPage* FD3D12FastAllocatorPagePool::RequestFastAllocatorPageIn
 	Page = new FD3D12FastAllocatorPage(PageSize);
 
 	VERIFYD3D11RESULT(GetParentDevice()->GetResourceHelper().CreateBuffer(HeapType, PageSize, Page->FastAllocBuffer.GetInitReference(), D3D12_RESOURCE_FLAG_NONE, &HeapProperties));
+	SetName(Page->FastAllocBuffer, L"Fast Allocator Page");
+
 	VERIFYD3D11RESULT(Page->FastAllocBuffer->GetResource()->Map(0, nullptr, &Page->FastAllocData));
-
 	return Page;
-
 }
 
 void FD3D12FastAllocatorPagePool::ReturnFastAllocatorPageInternal(FD3D12FastAllocatorPage* Page)

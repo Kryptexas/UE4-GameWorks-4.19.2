@@ -599,8 +599,8 @@ public:
 	}
 
 	/** Dynamic vertex and index buffers. */
-	TRefCountPtr<FD3D12DynamicBuffer> DynamicVB;
-	TRefCountPtr<FD3D12DynamicBuffer> DynamicIB;
+	FD3D12DynamicBuffer DynamicVB;
+	FD3D12DynamicBuffer DynamicIB;
 
 	// State for begin/end draw primitive UP interface.
 	uint32 PendingNumVertices;
@@ -875,7 +875,7 @@ public:
 	inline ID3D12CommandSignature*      GetDispatchIndirectCommandSignature() { return DispatchIndirectCommandSignature; }
 	inline FD3D12QueryHeap*             GetQueryHeap() { return &OcclusionQueryHeap; }
 
-	TRefCountPtr<ID3D12Resource>		GetCounterUploadHeap() { return CounterUploadHeap; }
+	ID3D12Resource*						GetCounterUploadHeap() { return CounterUploadHeap.GetReference(); }
 	uint32&								GetCounterUploadHeapIndex() { return CounterUploadHeapIndex; }
 	void*								GetCounterUploadHeapData() { return CounterUploadHeapData; }
 

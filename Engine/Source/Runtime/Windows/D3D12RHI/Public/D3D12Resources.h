@@ -723,10 +723,7 @@ public:
 	void SetName(const TCHAR* Name)
 	{
 		DebugName = FName(Name);
-		if (Resource)
-		{
-			VERIFYD3D11RESULT(Resource->SetName(Name));
-		}
+		::SetName(Resource, Name);
 	}
 
 private:
@@ -914,6 +911,15 @@ public:
 	{
 		const FD3D12Resource* OldResource = Resource;
 		FD3D12Resource* NewResource = InBlockInfo->ResourceHeap;
+
+		// There is an edge case in which a ResourceLocation can get allocated
+		// as a stand-alone allocation and then later on get pooled. In that case
+		// we must defer delete the stand alone allocation.
+		if (BlockInfo == nullptr && OldResource != nullptr)
+		{
+			InternalReleaseResource();
+		}
+
 		BlockInfo = InBlockInfo;
 
 		uint64 OldOffset = Offset;
@@ -3482,6 +3488,8 @@ public:
 	virtual void* Allocate(uint32 size, uint32 alignment, class FD3D12ResourceLocation* ResourceLocation);
 
 	FD3D12FastAllocatorPagePool* GetPool() { return PagePool; }
+
+	void Destroy();
 
 protected:
 	FD3D12FastAllocatorPagePool* PagePool;

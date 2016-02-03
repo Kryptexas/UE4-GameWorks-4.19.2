@@ -190,16 +190,14 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	FastAllocator(InParent, &FastAllocatorPagePool),
 	ConstantsAllocatorPagePool(InParent, InParent->GetConstantBufferPageProperties(), 1024 * 512),
 	ConstantsAllocator(InParent, &ConstantsAllocatorPagePool),
+	DynamicVB(InParent, FastAllocator),
+	DynamicIB(InParent, FastAllocator),
 	FD3D12DeviceChild(InParent)
 {
 	FMemory::Memzero(DirtyUniformBuffers, sizeof(DirtyUniformBuffers));
 
 	// Initialize the constant buffers.
 	InitConstantBuffers();
-
-	// Create the dynamic vertex and index buffers used for Draw[Indexed]PrimitiveUP.
-	DynamicVB = new FD3D12DynamicBuffer(GetParentDevice(), FastAllocator);
-	DynamicIB = new FD3D12DynamicBuffer(GetParentDevice(), FastAllocator);
 
 	StateCache.Init(GetParentDevice(), this, nullptr, SubHeapDesc);
 }
@@ -208,9 +206,6 @@ FD3D12CommandContext::~FD3D12CommandContext()
 {
 	ClearState();
 	StateCache.Clear();	// Clears its descriptor cache too
-
-	DynamicVB = nullptr;
-	DynamicIB = nullptr;
 
 	// Release references to bound uniform buffers.
 	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
@@ -476,7 +471,30 @@ void FD3D12DynamicRHI::Shutdown()
 
 	// Cleanup the D3D devices.
 	MainDevice->CleanupD3DDevice();
+
+	// Take a reference on the ID3D12Device so that we can delete the FD3D12Device
+	// and have it's children correctly release ID3D12* objects via RAII
+	TRefCountPtr<ID3D12Device> Direct3DDevice = MainDevice->GetDevice();
+
 	delete(MainDevice);
+
+	const bool bWithD3DDebug = D3D12RHI_ShouldCreateWithD3DDebug();
+	if (bWithD3DDebug)
+	{
+		TRefCountPtr<ID3D12DebugDevice> Debug;
+
+		if (SUCCEEDED(Direct3DDevice->QueryInterface(IID_PPV_ARGS(Debug.GetInitReference()))))
+		{
+			D3D12_RLDO_FLAGS rldoFlags = D3D12_RLDO_DETAIL;
+
+			Debug->ReportLiveDeviceObjects(rldoFlags);
+		}
+	}
+
+	// Finally remove the ID3D12Device
+	Direct3DDevice = nullptr;
+
+
 	MainDevice = nullptr;
 
 	// Release buffered timestamp queries
@@ -762,10 +780,19 @@ void FD3D12Device::CleanupD3DDevice()
 {
 	if (GIsRHIInitialized)
 	{
+		// Execute
+		FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+
 		// Ensure any pending rendering is finished
 		GetCommandListManager().SignalFrameComplete(true);
 
+		// Flush all pending deletes before destroying the device.
+		FRHIResource::FlushPendingDeletes();
+
 		check(Direct3DDevice);
+
+		OwningRHI->OutstandingLocks.Empty();
 
 		PipelineStateCache.Close();
 
@@ -799,11 +826,11 @@ void FD3D12Device::CleanupD3DDevice()
 		CopyCommandListManager.WaitForCommandQueueFlush();
 
 		// Delete array index 0 (the default context) last
-		for (int32 i = CommandContextArray.Num() - 1; i > 0; i--)
+		for (int32 i = CommandContextArray.Num() - 1; i >= 0; i--)
 		{
-			CommandContextArray[i]->FastAllocatorPagePool.CleanUpPages(0, true);
+			CommandContextArray[i]->FastAllocator.Destroy();
 			CommandContextArray[i]->FastAllocatorPagePool.Destroy();
-			CommandContextArray[i]->ConstantsAllocatorPagePool.CleanUpPages(0, true);
+			CommandContextArray[i]->ConstantsAllocator.Destroy();
 			CommandContextArray[i]->ConstantsAllocatorPagePool.Destroy();
 
 			delete CommandContextArray[i];
@@ -818,13 +845,26 @@ void FD3D12Device::CleanupD3DDevice()
 		// Cleanup the allocator near the end, as some resources may be returned to the allocator
 		DefaultBufferAllocator.FreeDefaultBufferPools();
 
-		DefaultFastAllocatorPagePool.CleanUpPages(0, true);
+		DefaultFastAllocator.Destroy();
 		DefaultFastAllocatorPagePool.Destroy();
-		BufferInitializerFastAllocatorPagePool.CleanUpPages(0, true);
+		BufferInitializerFastAllocator.Destroy();
 		BufferInitializerFastAllocatorPagePool.Destroy();
 
 		DefaultUploadHeapAllocator.CleanUpAllocations();
 		DefaultUploadHeapAllocator.Destroy();
+
+		// Clean up the asnyc texture thread allocators
+		for (uint32 i = 0; i < GetOwningRHI()->NumThreadDynamicHeapAllocators; i++)
+		{
+			GetOwningRHI()->ThreadDynamicHeapAllocatorArray[i]->Destroy();
+			delete(GetOwningRHI()->ThreadDynamicHeapAllocatorArray[i]);
+		}
+
+		if (GetOwningRHI()->SharedFastAllocPool)
+		{
+			GetOwningRHI()->SharedFastAllocPool->Destroy();
+			delete(GetOwningRHI()->SharedFastAllocPool);
+		}
 
 		TextureAllocator.CleanUpAllocations();
 		TextureAllocator.Destroy();
@@ -844,23 +884,7 @@ void FD3D12Device::CleanupD3DDevice()
 		CommandListManager.Destroy();
 		CopyCommandListManager.Destroy();
 
-		// Flush all pending deletes before destroying the device.
-		FRHIResource::FlushPendingDeletes();
 
-		const bool bWithD3DDebug = D3D12RHI_ShouldCreateWithD3DDebug();
-		if (bWithD3DDebug)
-		{
-			TRefCountPtr<ID3D12DebugDevice> Debug;
-
-			if (SUCCEEDED(Direct3DDevice->QueryInterface(IID_PPV_ARGS(Debug.GetInitReference()))))
-			{
-				D3D12_RLDO_FLAGS rldoFlags = D3D12_RLDO_DETAIL;
-
-				Debug->ReportLiveDeviceObjects(rldoFlags);
-			}
-		}
-
-		Direct3DDevice = nullptr;
 	}
 }
 
