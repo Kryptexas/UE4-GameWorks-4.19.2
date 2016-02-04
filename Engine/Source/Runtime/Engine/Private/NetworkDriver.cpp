@@ -256,10 +256,10 @@ void UNetDriver::CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor)
 	{
 		if (AActor* Actor = InNetworkActor.Actor)
 		{
-			if (UWorld* World = Actor->GetWorld())
+			if (UWorld* ActorWorld = Actor->GetWorld())
 			{
 				const float ExpectedNetDelay = (1.0f / Actor->NetUpdateFrequency);
-				Actor->SetNetUpdateTime(FMath::Min(Actor->NetUpdateTime, World->GetTimeSeconds() + FMath::FRandRange(0.5f, 1.0f) * ExpectedNetDelay));
+				Actor->SetNetUpdateTime(FMath::Min(Actor->NetUpdateTime, ActorWorld->GetTimeSeconds() + FMath::FRandRange(0.5f, 1.0f) * ExpectedNetDelay));
 				InNetworkActor.OptimalNetUpdateDelta = ExpectedNetDelay;
 				// TODO: we really need a way to cancel the throttling completely. OptimalNetUpdateDelta is going to be recalculated based on LastNetReplicateTime.
 			}
