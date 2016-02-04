@@ -1,5 +1,15 @@
 # These are patterns we want to ignore
 @::gExcludePatterns = (
+	# UAT spam that just adds noise
+	".*Exception in AutomationTool: BUILD FAILED.*",
+	"RunUAT ERROR: AutomationTool was unable to run successfully.",
+
+	# Linux error caused by linking against libfbx
+	".*the use of `tempnam' is dangerous.*",
+
+	# Warning about object files not definining any public symbols in non-unity builds
+	".*warning LNK4221:.*",
+
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",
@@ -17,11 +27,8 @@
 #	".*xgConsole: BuildSystem failed to start with error code 217.*",
 #	".*error: Unhandled error code.*",
 #	".*621InnerException.*",
-	".*Exception in AutomationTool: BUILD FAILED.*",
-	"RunUAT ERROR: AutomationTool was unable to run successfully.",
 #	".* GUBP.PrintDetailedChanges:.*",
 #	".* Failed to produce item:.*",
-#	".*the use of `tempnam' is dangerous.*",
 #	".*major version 51 is newer than 50.*",
 #	"Cannot find project '.+' in branch",
 #	".*==== Writing to template target file.*",
@@ -33,6 +40,10 @@
 #	".*SignTool Error: The specified timestamp server either could not be reached or.*",
 #	".*SignTool Error: An error occurred while attempting to sign:.*",
 ); 
+
+# TCL rules match any lines beginning with '====', which are output by Android toolchain.
+$::gDontCheck .= "," if $::gDontCheck;
+$::gDontCheck .= "tclTestFail,tclClusterTestTimeout";
 
 # These are patterns we want to process
 # NOTE: order is important because the file is processed line by line 
