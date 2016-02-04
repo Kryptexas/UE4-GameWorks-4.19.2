@@ -293,8 +293,7 @@ void UObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 
 void UObject::PreEditChange( FEditPropertyChain& PropertyAboutToChange )
 {
-	const bool bIsEditingArchetypeProperty = HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && 
-		(PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead()) && !FApp::IsGame();
+	const bool bIsEditingArchetypeProperty = HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && !FApp::IsGame();
 
 	if (bIsEditingArchetypeProperty)
 	{
