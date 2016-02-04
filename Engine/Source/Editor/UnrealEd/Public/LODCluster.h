@@ -4,6 +4,7 @@
 
 class ULevel;
 class AActor;
+class ALODActor;
 
 /**
  *
