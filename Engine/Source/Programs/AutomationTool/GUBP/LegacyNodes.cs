@@ -1500,6 +1500,26 @@ partial class GUBP
 		}
 	}
 
+	public class GenericAggregateNode : GUBPAggregateNode
+	{
+		string Name;
+
+		public GenericAggregateNode(string InName, IEnumerable<string> NodeNames)
+		{
+			Name = InName;
+
+			foreach(string NodeName in NodeNames)
+			{
+				AddDependency(NodeName);
+			}
+		}
+
+		public override string GetFullName()
+		{
+			return Name;
+		}
+	}
+
     public class WaitForUserInput : GUBPNode
     {
         public WaitForUserInput()
