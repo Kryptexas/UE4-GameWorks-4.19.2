@@ -9,7 +9,13 @@
 
 	# Warning about object files not definining any public symbols in non-unity builds
 	".*warning LNK4221:.*",
+	
+	# Warning about static libraries missing PDB files for XboxOne
+	".*warning LNK4099:.*",
 
+	# Warning from Android monolithic builds about the javac version 
+	".*major version 51 is newer than 50.*",
+	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",
@@ -29,7 +35,6 @@
 #	".*621InnerException.*",
 #	".* GUBP.PrintDetailedChanges:.*",
 #	".* Failed to produce item:.*",
-#	".*major version 51 is newer than 50.*",
 #	"Cannot find project '.+' in branch",
 #	".*==== Writing to template target file.*",
 #	".*==== Writing to OBB data file.*",
@@ -44,6 +49,9 @@
 # TCL rules match any lines beginning with '====', which are output by Android toolchain.
 $::gDontCheck .= "," if $::gDontCheck;
 $::gDontCheck .= "tclTestFail,tclClusterTestTimeout";
+
+# We don't compile clean for Android, so ignore javac notices for now
+$::gDontCheck .= ",javacNote";
 
 # These are patterns we want to process
 # NOTE: order is important because the file is processed line by line 
