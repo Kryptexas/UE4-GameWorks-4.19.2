@@ -57,7 +57,7 @@ void FShadowMap::FinishCleanup()
 
 struct FShadowMapAllocation
 {
-	FShadowMap2D*				ShadowMap;
+	TRefCountPtr<FShadowMap2D>	ShadowMap;
 
 	UObject*					Primitive;
 	int32						InstanceIndex;
@@ -423,7 +423,7 @@ bool FShadowMap2D::bUpdateStatus = true;
 
 #endif 
 
-FShadowMap2D* FShadowMap2D::AllocateShadowMap(
+TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateShadowMap(
 	UObject* Outer, 
 	const TMap<ULightComponent*,FShadowMapData2D*>& ShadowMapData,
 	const FBoxSphereBounds& Bounds, 
@@ -443,7 +443,7 @@ FShadowMap2D* FShadowMap2D::AllocateShadowMap(
 	}
 
 	// Create a new shadow-map.
-	FShadowMap2D* ShadowMap = new FShadowMap2D(ShadowMapData);
+	TRefCountPtr<FShadowMap2D> ShadowMap = TRefCountPtr<FShadowMap2D>(new FShadowMap2D(ShadowMapData));
 
 	// Calculate Shadowmap size
 	int32 SizeX = -1;
@@ -595,7 +595,7 @@ FShadowMapInteraction FShadowMap2D::GetInteraction() const
 }
 
 
-FShadowMap2D* FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshComponent* Component, TArray<TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>>> InstancedShadowMapData,
+TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshComponent* Component, TArray<TMap<ULightComponent*, TUniquePtr<FShadowMapData2D>>> InstancedShadowMapData,
 	const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, EShadowMapFlags InShadowmapFlags)
 {
 #if WITH_EDITOR
@@ -653,7 +653,7 @@ FShadowMap2D* FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshCompo
 		AllocationGroup.ShadowmapFlags = EShadowMapFlags(AllocationGroup.ShadowmapFlags & ~SMF_Streamed);
 	}
 
-	FShadowMap2D* BaseShadowmap = nullptr;
+	TRefCountPtr<FShadowMap2D> BaseShadowmap = nullptr;
 
 	for (int32 InstanceIndex = 0; InstanceIndex < InstancedShadowMapData.Num(); ++InstanceIndex)
 	{
@@ -661,7 +661,7 @@ FShadowMap2D* FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshCompo
 		check(ShadowMapData.Num() > 0);
 
 		// Create a new shadow-map.
-		FShadowMap2D* ShadowMap = new FShadowMap2D(LightGuids);
+		TRefCountPtr<FShadowMap2D> ShadowMap = TRefCountPtr<FShadowMap2D>(new FShadowMap2D(LightGuids));
 
 		if (InstanceIndex == 0)
 		{
@@ -671,7 +671,7 @@ FShadowMap2D* FShadowMap2D::AllocateInstancedShadowMap(UInstancedStaticMeshCompo
 		// Add a pending allocation for this shadow-map.
 		TUniquePtr<FShadowMapAllocation> Allocation = MakeUnique<FShadowMapAllocation>();
 		Allocation->PaddingType = InPaddingType;
-		Allocation->ShadowMap = ShadowMap;
+		Allocation->ShadowMap = MoveTemp(ShadowMap);
 		Allocation->TotalSizeX = SizeX;
 		Allocation->TotalSizeY = SizeY;
 		Allocation->MappedRect = FIntRect(0, 0, SizeX, SizeY);
