@@ -265,9 +265,9 @@ void UCameraAnimInst::Stop(bool bImmediate)
 		MoveInst = nullptr;
 		bFinished = true;
  	}
-	else
+	else if (bBlendingOut == false)
 	{
-		// start blend out
+		// start blend out if not already blending out
 		bBlendingOut = true;
 		CurBlendOutTime = 0.f;
 	}

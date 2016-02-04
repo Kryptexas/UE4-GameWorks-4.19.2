@@ -431,11 +431,13 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 	SCOPE_CYCLE_COUNTER(STAT_ConvertQueryImpactHit);
 
 #if WITH_EDITOR
+	bool bIgnoreFaceIndexForPIE = false;
 	if(bReturnFaceIndex && World->IsGameWorld())
 	{
 		if(!ensure(UPhysicsSettings::Get()->bSuppressFaceRemapTable == false))
 		{
 			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSuppressFaceRemapTable is false."));
+			bIgnoreFaceIndexForPIE = true;
 		}
 	}
 #endif
@@ -530,6 +532,12 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 			PHit.faceIndex < PTriMeshGeom.triangleMesh->getNbTriangles() )
 		{
 			OutResult.FaceIndex	= PTriMeshGeom.triangleMesh->getTrianglesRemap()[PHit.faceIndex];
+#if WITH_EDITOR
+			if(bIgnoreFaceIndexForPIE)
+			{
+				OutResult.FaceIndex = INDEX_NONE;	//if we need to ignore face index in PIE it's because at runtime we don't have the info. We want to make sure PIE is consistent with cooked version
+			}
+#endif
 		}
 	}
 

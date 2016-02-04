@@ -394,7 +394,10 @@ void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArra
 	SCOPE_CYCLE_COUNTER(STAT_ProcMesh_CreateMeshSection);
 
 	// Ensure sections array is long enough
-	ProcMeshSections.SetNum(SectionIndex + 1, false);
+	if (SectionIndex >= ProcMeshSections.Num())
+	{
+		ProcMeshSections.SetNum(SectionIndex + 1, false);
+	}
 
 	// Reset this section (in case it already existed)
 	FProcMeshSection& NewSection = ProcMeshSections[SectionIndex];

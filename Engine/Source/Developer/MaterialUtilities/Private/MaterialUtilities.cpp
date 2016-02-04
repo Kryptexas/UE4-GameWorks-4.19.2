@@ -821,7 +821,7 @@ bool FMaterialUtilities::ExportLandscapeMaterial(ALandscapeProxy* InLandscape, c
 	return true;
 }
 
-UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets)
+UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets, const TextureGroup& InTextureGroup /*= TEXTUREGROUP_World*/)
 {
 	// Base name for a new assets
 	// In case outer is null BaseName has to be long package name
@@ -859,7 +859,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_D");
 		const FString AssetLongName = AssetBasePath + AssetName;
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetLongName, InFlattenMaterial.DiffuseSize, InFlattenMaterial.DiffuseSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetLongName, InFlattenMaterial.DiffuseSize, InFlattenMaterial.DiffuseSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 			
 		auto BasecolorExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -937,7 +937,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_MRS");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, MergedSize, MergedSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, MergedSize, MergedSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		auto MergedExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -989,7 +989,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_M");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto MetallicExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -1008,7 +1008,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto SpecularExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -1027,7 +1027,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_R");
 			const bool bSRGB = true;
-			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 
 			auto RoughnessExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -1085,7 +1085,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_N");
 		const bool bSRGB = false;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, TEXTUREGROUP_WorldNormalMap, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.NormalSize, InFlattenMaterial.NormalSamples, TC_Normalmap, (InTextureGroup != TEXTUREGROUP_World) ? InTextureGroup : TEXTUREGROUP_WorldNormalMap, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 			
 		auto NormalExpression = NewObject<UMaterialExpressionTextureSample>(Material);
@@ -1120,7 +1120,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_E");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.EmissiveSize, InFlattenMaterial.EmissiveSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.EmissiveSize, InFlattenMaterial.EmissiveSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		//Assign emissive color to the material
@@ -1159,7 +1159,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_O");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.OpacitySize, InFlattenMaterial.OpacitySamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.OpacitySize, InFlattenMaterial.OpacitySamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		//Assign opacity to the material
@@ -1198,7 +1198,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 	{
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_SSC");
 		const bool bSRGB = true;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SubSurfaceSize, InFlattenMaterial.SubSurfaceSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SubSurfaceSize, InFlattenMaterial.SubSurfaceSamples, TC_Default, InTextureGroup, Flags, bSRGB);
 		OutGeneratedAssets.Add(Texture);
 
 		//Assign emissive color to the material
@@ -1239,7 +1239,7 @@ UTexture2D* FMaterialUtilities::CreateTexture(UPackage* Outer, const FString& As
 	UTexture2D* Texture = FImageUtils::CreateTexture2D(Size.X, Size.Y, Samples, Outer, FPackageName::GetShortName(AssetLongName), Flags, TexParams);
 	Texture->LODGroup = LODGroup;
 	Texture->PostEditChange();
-		
+			
 	return Texture;
 }
 
@@ -1521,7 +1521,7 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 					// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
 					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
 					{
-						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
+						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
 						int32 Index = MeshMaterialData.Add(Data);
 						NewMeshMaterialMap.Add(Index);
 					}
@@ -1710,10 +1710,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 		// Purpose of the following line: use compiled material cached from previous call.
 		Exchange(ProxyCache, InMaterialData.ProxyCache);
 	}
-
-	// Make sure all the materials are loaded
-	FullyLoadMaterialStatic(Material);
-
+	
 	// Precache all used textures, otherwise could get everything rendered with low-res textures.
 	TArray<UTexture*> MaterialTextures;
 	Material->GetUsedTextures(MaterialTextures, EMaterialQualityLevel::Num, true, GMaxRHIFeatureLevel, true);
@@ -1828,8 +1825,8 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 	check(CurrentlyRendering == false);
 	CurrentlyRendering = true;
 
-	UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(bInForceLinearGamma, InPixelFormat, OutSampleSize);
-	
+	const bool bNormalMap = (InMaterialProperty == MP_Normal);
+	UTextureRenderTarget2D* RenderTarget = CreateRenderTarget(bInForceLinearGamma, bNormalMap, InPixelFormat, OutSampleSize);
 	OutSamples.Empty(InTargetSize.X * InTargetSize.Y);
 	bool bResult = FMeshRenderer::RenderMaterial(
 		InMaterialData,
@@ -1890,8 +1887,10 @@ bool FMaterialUtilities::RenderMaterialPropertyToTexture(struct FMaterialMergeDa
 	return bResult;
 }
 
-UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLinearGamma, EPixelFormat InPixelFormat, FIntPoint& InTargetSize)
+UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLinearGamma, bool bNormalMap, EPixelFormat InPixelFormat, FIntPoint& InTargetSize)
 {
+	const FLinearColor ClearColour = bNormalMap ? FLinearColor(0.0f, 0.0f, 0.0f, 0.0f) : FLinearColor(1.0f, 0.0f, 1.0f, 0.0f);
+	
 	// Find any pooled render target with suitable properties.
 	for (int32 RTIndex = 0; RTIndex < RenderTargetPool.Num(); RTIndex++)
 	{
@@ -1899,7 +1898,8 @@ UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLine
 		if (RenderTarget->SizeX == InTargetSize.X &&
 			RenderTarget->SizeY == InTargetSize.Y &&
 			RenderTarget->OverrideFormat == InPixelFormat &&
-			RenderTarget->bForceLinearGamma == bInForceLinearGamma)
+			RenderTarget->bForceLinearGamma == bInForceLinearGamma &&
+			RenderTarget->ClearColor == RenderTarget->ClearColor )
 		{
 			return RenderTarget;
 		}
@@ -1909,7 +1909,7 @@ UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLine
 	UTextureRenderTarget2D* NewRenderTarget = NewObject<UTextureRenderTarget2D>();
 	check(NewRenderTarget);
 	NewRenderTarget->AddToRoot();
-	NewRenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	NewRenderTarget->ClearColor = ClearColour;
 	NewRenderTarget->TargetGamma = 0.0f;
 	NewRenderTarget->InitCustomFormat(InTargetSize.X, InTargetSize.Y, InPixelFormat, bInForceLinearGamma);
 

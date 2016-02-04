@@ -107,7 +107,7 @@ FSequencerTimeSliderController::FSequencerTimeSliderController( const FTimeSlide
 	ScrubHandleUp = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleUp" ) ); 
 	ScrubHandleDown = FEditorStyle::GetBrush( TEXT( "Sequencer.Timeline.ScrubHandleDown" ) );
 	ScrubHandleSize = 13.f;
-	ContextMenuSupression = 0;
+	ContextMenuSuppression = 0;
 }
 
 struct FDrawTickArgs
@@ -472,7 +472,7 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 		if (!bPanning)
 		{
 			// Open a context menu if allowed
-			if (ContextMenuSupression == 0 && TimeSliderArgs.PlaybackRange.IsSet())
+			if (ContextMenuSuppression == 0 && TimeSliderArgs.PlaybackRange.IsSet())
 			{
 				FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.Size );
 				FVector2D CursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );

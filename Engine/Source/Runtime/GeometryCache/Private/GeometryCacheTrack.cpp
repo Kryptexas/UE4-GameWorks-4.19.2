@@ -73,7 +73,7 @@ const uint32 UGeometryCacheTrack::FindSampleIndexFromTime(const TArray<float>& S
 	float SampleTime = Time;
 	if (bLooping)
 	{
-		SampleTime = fmod(Time, SampleTimes[SampleTimes.Num() - 1]);
+		SampleTime = FMath::Fmod(Time, SampleTimes[SampleTimes.Num() - 1]);
 	}
 
 	// Binary searching for closest (floored) SampleIndex 

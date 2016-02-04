@@ -55,6 +55,23 @@ namespace EEasingFunc
 	};
 }
 
+/** Different methods for interpolating rotation between transforms */
+UENUM(BlueprintType)
+namespace ELerpInterpolationMode
+{
+	enum Type
+	{
+		/** Shortest Path or Quaternion interpolation for the rotation. */
+		QuatInterp,
+
+		/** Rotor or Euler Angle interpolation. */
+		EulerInterp,
+
+		/** Dual quaternion interpolation, follows helix or screw-motion path between keyframes.   */
+		DualQuatInterp
+	};
+}
+
 UCLASS()
 class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
@@ -1546,8 +1563,8 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FTransform InvertTransform(const FTransform& T);
 
 	/** Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1). */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Lerp (Transform)"), Category="Math|Transform")
-	static FTransform TLerp(const FTransform& A, const FTransform& B, float Alpha);
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Lerp (Transform)", AdvancedDisplay = "3"), Category="Math|Transform")
+	static FTransform TLerp(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<ELerpInterpolationMode::Type> InterpMode = ELerpInterpolationMode::QuatInterp);
 
 	/** Ease between A and B using a specified easing function. */
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Ease (Transform)", BlueprintInternalUseOnly = "true"), Category = "Math|Interpolation")

@@ -90,6 +90,9 @@ public:
 	/** Returns a reference to the set of tracked actors. */
 	FNetworkObjectSet& GetObjects() { return NetworkObjects; }
 
+	/** Returns a const reference to the set of tracked actors. */
+	const FNetworkObjectSet& GetObjects() const { return NetworkObjects; }
+
 private:
 	FNetworkObjectSet NetworkObjects;
 };

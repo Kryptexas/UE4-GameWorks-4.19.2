@@ -16,6 +16,9 @@ private:
 	 * @return Whether or not override lightmap res is enabled
 	 */
 	bool IsOverrideLightmapResEnabled() const;
+
+	bool IsDefaultCollisionSupported() const;
 private:
 	TSharedPtr<IPropertyHandle> EnableOverrideLightmapRes;
+	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 };

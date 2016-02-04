@@ -15,7 +15,7 @@ UPostProcessComponent::UPostProcessComponent(const FObjectInitializer& ObjectIni
 
 bool UPostProcessComponent::EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint)
 {
-	UShapeComponent* ParentShape = Cast<UShapeComponent>(AttachParent);
+	UShapeComponent* ParentShape = Cast<UShapeComponent>(GetAttachParent());
 	if (ParentShape != nullptr)
 	{
 #if WITH_PHYSX

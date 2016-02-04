@@ -76,7 +76,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;
 
-	bShowCollision = true;
+	bShowCollision = false;
 	bShowSockets = true;
 	bDrawUVs = false;
 	bDrawNormals = false;
@@ -792,8 +792,8 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 		FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.Y * 2.0f)),
 		FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.Z * 2.0f)))));
 
-	// Show the number of collision primitives if we are drawing collision.
-	if(bShowCollision && StaticMesh->BodySetup)
+	// Show the number of collision primitives
+	if(StaticMesh->BodySetup)
 	{
 		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
 			FText::Format(NSLOCTEXT("UnrealEd", "NumPrimitives_F", "Num Collision Primitives:  {0}"), FText::AsNumber(StaticMesh->BodySetup->AggGeom.GetElementCount()))));
@@ -1187,6 +1187,12 @@ void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, 
 	StaticMesh = InStaticMesh;
 	StaticMeshComponent = InStaticMeshComponent;
 
+	if(StaticMeshComponent != nullptr)
+	{
+		StaticMeshComponent->bDrawMeshCollisionWireframe = bShowCollision;
+		StaticMeshComponent->MarkRenderStateDirty();
+	}
+
 	// If we have a thumbnail transform, we will favor that over the camera position as the user may have customized this for a nice view
 	// If we have neither a custom thumbnail nor a valid camera position, then we'll just use the default thumbnail transform 
 	const USceneThumbnailInfo* const AssetThumbnailInfo = Cast<USceneThumbnailInfo>(StaticMesh->ThumbnailInfo);
@@ -1305,6 +1311,13 @@ bool FStaticMeshEditorViewportClient::IsSetDrawVerticesChecked() const
 void FStaticMeshEditorViewportClient::SetShowWireframeCollision()
 {
 	bShowCollision = !bShowCollision;
+
+	if(StaticMeshComponent != nullptr)
+	{
+		StaticMeshComponent->bDrawMeshCollisionWireframe = bShowCollision;
+		StaticMeshComponent->MarkRenderStateDirty();
+	}
+
 	if (FEngineAnalytics::IsAvailable())
 	{
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("bShowCollision"), bShowCollision ? TEXT("True") : TEXT("False"));

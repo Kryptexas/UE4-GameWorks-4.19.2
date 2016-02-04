@@ -883,6 +883,9 @@ protected:
 
 	const FDistanceFieldVolumeData* DistanceFieldData;	
 
+	/** Hierarchical LOD Index used for rendering */
+	uint8 HierarchicalLODIndex;
+
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component
 	 */
@@ -910,6 +913,11 @@ protected:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Texture streaming factor used for lightmap textures */
 	float WorldLightmapFactor;
+
+	/** LOD used for collision */
+	int32 LODForCollision;
+	/** If we want to draw the mesh collision for debugging */
+	uint32 bDrawMeshCollisionWireframe : 1;
 #endif
 
 	/**

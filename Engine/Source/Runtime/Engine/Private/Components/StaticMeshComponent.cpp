@@ -468,6 +468,8 @@ void UStaticMeshComponent::RemoveSpeedTreeWind()
 
 void UStaticMeshComponent::OnRegister()
 {
+	UpdateCollisionFromStaticMesh();
+	
 	if(StaticMesh != NULL && StaticMesh->RenderData)
 	{
 		// Check that the static-mesh hasn't been changed to be incompatible with the cached light-map.
@@ -1209,6 +1211,21 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 }
 #endif // WITH_EDITOR
 
+bool UStaticMeshComponent::SupportsDefaultCollision()
+{
+	return StaticMesh && GetBodySetup() == StaticMesh->BodySetup;
+}
+
+void UStaticMeshComponent::UpdateCollisionFromStaticMesh()
+{
+	if(bUseDefaultCollision && SupportsDefaultCollision())
+	{
+		if (UBodySetup* BodySetup = GetBodySetup())
+		{
+			BodyInstance.UseExternalCollisionProfile(BodySetup);	//static mesh component by default uses the same collision profile as its static mesh
+		}
+	}
+}
 
 void UStaticMeshComponent::PostLoad()
 {
@@ -1335,6 +1352,12 @@ void UStaticMeshComponent::GetLocalBounds(FVector& Min, FVector& Max) const
 		Min = MeshBounds.Origin - MeshBounds.BoxExtent;
 		Max = MeshBounds.Origin + MeshBounds.BoxExtent;
 	}
+}
+
+void UStaticMeshComponent::SetCollisionProfileName(FName InCollisionProfileName)
+{
+	Super::SetCollisionProfileName(InCollisionProfileName);
+	bUseDefaultCollision = false;
 }
 
 bool UStaticMeshComponent::UsesOnlyUnlitMaterials() const

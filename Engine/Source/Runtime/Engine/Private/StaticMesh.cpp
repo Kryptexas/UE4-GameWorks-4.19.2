@@ -14,6 +14,7 @@
 #include "TargetPlatform.h"
 #include "SpeedTreeWind.h"
 #include "DistanceFieldAtlas.h"
+#include "UObject/DevObjectVersion.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
@@ -1576,12 +1577,14 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	int32 NumTriangles = 0;
 	int32 NumVertices = 0;
 	int32 NumUVChannels = 0;
+	int32 NumLODs = 0;
 	if (RenderData && RenderData->LODResources.Num() > 0)
 	{
 		const FStaticMeshLODResources& LOD = RenderData->LODResources[0];
 		NumTriangles = LOD.IndexBuffer.GetNumIndices() / 3;
 		NumVertices = LOD.VertexBuffer.GetNumVertices();
 		NumUVChannels = LOD.VertexBuffer.GetNumTexCoords();
+		NumLODs = RenderData->LODResources.Num();
 	}
 
 	int32 NumCollisionPrims = 0;
@@ -1602,7 +1605,8 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	OutTags.Add( FAssetRegistryTag("UVChannels", FString::FromInt(NumUVChannels), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("Materials", FString::FromInt(Materials.Num()), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("ApproxSize", ApproxSizeStr, FAssetRegistryTag::TT_Dimensional) );
-	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical) );
+	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add( FAssetRegistryTag("LODs", FString::FromInt(NumLODs), FAssetRegistryTag::TT_Numerical));
 
 #if WITH_EDITORONLY_DATA
 	if (AssetImportData)
@@ -1902,6 +1906,13 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 #endif
 
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if(Ar.IsLoading() && Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::UseBodySetupCollisionProfile && BodySetup)
+	{
+		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	}
+
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )
 	{
@@ -2165,7 +2176,11 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 #if WITH_EDITORONLY_DATA
 	check(HasValidRenderData());
 
-	FStaticMeshLODResources& LOD = RenderData->LODResources[0];
+	// Get the LOD level to use for collision
+	// Always use 0 if asking for 'all tri data'
+	const int32 UseLODIndex = bInUseAllTriData ? 0 : FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num()-1);
+
+	FStaticMeshLODResources& LOD = RenderData->LODResources[UseLODIndex];
 
 	// Scale all verts into temporary vertex buffer.
 	const uint32 NumVerts = LOD.PositionVertexBuffer.GetNumVertices();
@@ -2213,16 +2228,24 @@ bool UStaticMesh::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionD
 
 bool UStaticMesh::ContainsPhysicsTriMeshData(bool bInUseAllTriData) const 
 {
-	if (RenderData
-		&& RenderData->LODResources.Num() > 0
-		&& RenderData->LODResources[0].PositionVertexBuffer.GetNumVertices() > 0)
+	if(RenderData == nullptr || RenderData->LODResources.Num() == 0)
+	{
+		return false;
+	}
+
+	// Get the LOD level to use for collision
+	// Always use 0 if asking for 'all tri data'
+	const int32 UseLODIndex = bInUseAllTriData ? 0 : FMath::Clamp(LODForCollision, 0, RenderData->LODResources.Num() - 1);
+
+	if (RenderData->LODResources[UseLODIndex].PositionVertexBuffer.GetNumVertices() > 0)
 	{
 		// In non-cooked builds we need to look at the section info map to get
 		// accurate per-section info.
 #if WITH_EDITORONLY_DATA
 		return bInUseAllTriData || SectionInfoMap.AnySectionHasCollision();
 #else
-		FStaticMeshLODResources& LOD = RenderData->LODResources[0];
+		// Get the LOD level to use for collision
+		FStaticMeshLODResources& LOD = RenderData->LODResources[UseLODIndex];
 		for (int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
 		{
 			const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
@@ -2298,6 +2321,7 @@ void UStaticMesh::CreateBodySetup()
 	if (BodySetup==NULL)
 	{
 		BodySetup = NewObject<UBodySetup>(this);
+		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	}
 }
 

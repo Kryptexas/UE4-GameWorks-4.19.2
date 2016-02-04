@@ -1039,13 +1039,13 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	LogTest( TEXT("VectorReciprocalSqrtAccurate"), TestVectorsEqual( VectorOne(), V3, 1e-6f ) );
 
 	// VectorMod
-	V0 = MakeVectorRegister(0.0f, 3.2f, 2.8f, 10.0f);
+	V0 = MakeVectorRegister(0.0f, 3.2f, 2.8f,  1.5f);
 	V1 = MakeVectorRegister(2.0f, 1.2f, 2.0f,  3.0f);
 	V2 = TestReferenceMod(V0, V1);
 	V3 = VectorMod(V0, V1);
 	LogTest( TEXT("VectorMod positive"), TestVectorsEqual(V2, V3));
 
-	V0 = MakeVectorRegister(-2.0f,  3.2f, -2.8f, -10.0f);
+	V0 = MakeVectorRegister(-2.0f,  3.2f, -2.8f,  -1.5f);
 	V1 = MakeVectorRegister(-1.5f, -1.2f,  2.0f,   3.0f);
 	V2 = TestReferenceMod(V0, V1);
 	V3 = VectorMod(V0, V1);
@@ -1389,6 +1389,10 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 			{ 2.8,	 2.0 + KINDA_SMALL_NUMBER},
 			{-2.8,	 2.0 - KINDA_SMALL_NUMBER},
 
+			// Analytically should be zero but floating point precision can cause results close to Y (or erroneously negative) depending on the method used.
+			{55.8,	 9.3},
+			{1234.1234, 0.1234},
+
 			// Commonly used for FRotators and angles
 			{725.2,		360.0},
 			{179.9,		 90.0},
@@ -1417,10 +1421,24 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 			const float Y = XY.Y;
 			const float Ours = FMath::Fmod(X, Y);
 			const float Theirs = fmodf(X, Y);
-			if (!FMath::IsNearlyEqual(Ours, Theirs, 1.e-5f))
+			
+			// A compiler bug causes stock fmodf() to rarely return NaN for valid input, we don't want to report this as a fatal error.
+			if (Y != 0 && FMath::IsNaN(Theirs))
 			{
-				UE_LOG(LogUnrealMathTest, Log, TEXT("FMath::Fmod(%f, %f)=%f <-> fmodf(%f, %f)=%f: FAILED"), X, Y, Ours, X, Y, Theirs);
-				GPassing = false;
+				UE_LOG(LogUnrealMathTest, Warning, TEXT("fmodf(%f, %f) with valid input resulted in NaN!"), X, Y);
+				continue;
+			}
+
+			const float Delta = FMath::Abs(Ours - Theirs);
+			if (Delta > 1e-5f)
+			{
+				// If we differ significantly, that is likely due to rounding and the difference should be nearly equal to Y.
+				const float FractionalDelta = FMath::Abs(Delta - FMath::Abs(Y));
+				if (FractionalDelta > 1e-4f)
+				{
+					UE_LOG(LogUnrealMathTest, Log, TEXT("FMath::Fmod(%f, %f)=%f <-> fmodf(%f, %f)=%f: FAILED"), X, Y, Ours, X, Y, Theirs);
+					GPassing = false;
+				}
 			}
 		}
 	}

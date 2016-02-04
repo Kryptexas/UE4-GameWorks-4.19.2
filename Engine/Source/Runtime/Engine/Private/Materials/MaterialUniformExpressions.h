@@ -1282,10 +1282,10 @@ public:
 		A->GetNumberValue(Context, ValueA);
 		B->GetNumberValue(Context, ValueB);
 
-		OutValue.R = fmod(ValueA.R, ValueB.R);
-		OutValue.G = fmod(ValueA.G, ValueB.G);
-		OutValue.B = fmod(ValueA.B, ValueB.B);
-		OutValue.A = fmod(ValueA.A, ValueB.A);
+		OutValue.R = FMath::Fmod(ValueA.R, ValueB.R);
+		OutValue.G = FMath::Fmod(ValueA.G, ValueB.G);
+		OutValue.B = FMath::Fmod(ValueA.B, ValueB.B);
+		OutValue.A = FMath::Fmod(ValueA.A, ValueB.A);
 	}
 	virtual bool IsConstant() const
 	{

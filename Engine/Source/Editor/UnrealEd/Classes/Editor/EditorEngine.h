@@ -635,6 +635,63 @@ public:
 	DECLARE_EVENT_OneParam( UEditorEngine, FGetActorRecordingState, bool& /* bIsRecordingActive */ );
 	FGetActorRecordingState& GetActorRecordingState() { return GetActorRecordingStateEvent; }
 
+
+
+
+
+
+	/** Editor-only event triggered when a HLOD Actor is moved between clusters */
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorMovedEvent, const AActor*, const AActor*);
+	FHLODActorMovedEvent& OnHLODActorMoved() { return HLODActorMovedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is moved between clusters */
+	void BroadcastHLODActorMoved(const AActor* InActor, const AActor* ParentActor) { HLODActorMovedEvent.Broadcast(InActor, ParentActor); }
+
+	/** Editor-only event triggered when a HLOD Actor's mesh is build */
+	DECLARE_EVENT_OneParam(UEngine, FHLODMeshBuildEvent, const class ALODActor*);
+	FHLODMeshBuildEvent& OnHLODMeshBuild() { return HLODMeshBuildEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor's mesh is build */
+	void BroadcastHLODMeshBuild(const class ALODActor* InActor) { HLODMeshBuildEvent.Broadcast(InActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is added to a cluster */
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorAddedEvent, const AActor*, const AActor*);
+	FHLODActorAddedEvent& OnHLODActorAdded() { return HLODActorAddedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is added to a cluster */
+	void BroadcastHLODActorAdded(const AActor* InActor, const AActor* ParentActor) { HLODActorAddedEvent.Broadcast(InActor, ParentActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is marked dirty */
+	DECLARE_EVENT_OneParam(UEngine, FHLODActorMarkedDirtyEvent, class ALODActor*);
+	FHLODActorMarkedDirtyEvent& OnHLODActorMarkedDirty() { return HLODActorMarkedDirtyEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODActorMarkedDirty(class ALODActor* InActor) { HLODActorMarkedDirtyEvent.Broadcast(InActor); }
+
+	/** Editor-only event triggered when a HLOD Actor is marked dirty */
+	DECLARE_EVENT(UEngine, FHLODTransitionScreenSizeChangedEvent);
+	FHLODTransitionScreenSizeChangedEvent& OnHLODTransitionScreenSizeChanged() { return HLODTransitionScreenSizeChangedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODTransitionScreenSizeChanged() { HLODTransitionScreenSizeChangedEvent.Broadcast(); }
+
+	/** Editor-only event triggered when a HLOD level is added or removed */
+	DECLARE_EVENT(UEngine, FHLODLevelsArrayChangedEvent);
+	FHLODLevelsArrayChangedEvent& OnHLODLevelsArrayChanged() { return HLODLevelsArrayChangedEvent; }
+
+	/** Called by internal engine systems after a HLOD Actor is marked dirty */
+	void BroadcastHLODLevelsArrayChanged() { HLODLevelsArrayChangedEvent.Broadcast(); }
+
+	DECLARE_EVENT_TwoParams(UEngine, FHLODActorRemovedFromClusterEvent, const AActor*, const AActor*);
+	FHLODActorRemovedFromClusterEvent& OnHLODActorRemovedFromCluster() { return HLODActorRemovedFromClusterEvent; }
+
+	/** Called by internal engine systems after an Actor is removed from a cluster */
+	void BroadcastHLODActorRemovedFromCluster(const AActor* InActor, const AActor* ParentActor) { HLODActorRemovedFromClusterEvent.Broadcast(InActor, ParentActor); }
+
+
+
+
+
 	/**
 	* Called before an actor or component is about to be translated, rotated, or scaled by the editor
 	*
@@ -2595,6 +2652,27 @@ private:
 
 	/** Delegate broadcast when the camera viewed through the viewport has been moved */
 	FOnEndTransformCamera OnEndCameraTransformEvent;
+	
+	/** Broadcasts after an HLOD actor has been moved between clusters */
+	FHLODActorMovedEvent HLODActorMovedEvent;
+
+	/** Broadcasts after an HLOD actor's mesh is build*/
+	FHLODMeshBuildEvent HLODMeshBuildEvent;
+
+	/** Broadcasts after an HLOD actor has added to a cluster */
+	FHLODActorAddedEvent HLODActorAddedEvent;
+
+	/** Broadcasts after an HLOD actor has been marked dirty */
+	FHLODActorMarkedDirtyEvent HLODActorMarkedDirtyEvent;
+
+	/** Broadcasts after a Draw distance value (World settings) is changed */
+	FHLODTransitionScreenSizeChangedEvent HLODTransitionScreenSizeChangedEvent;
+
+	/** Broadcasts after the HLOD levels array is changed */
+	FHLODLevelsArrayChangedEvent HLODLevelsArrayChangedEvent;
+
+	/** Broadcasts after an Actor is removed from a cluster */
+	FHLODActorRemovedFromClusterEvent HLODActorRemovedFromClusterEvent;
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features) */

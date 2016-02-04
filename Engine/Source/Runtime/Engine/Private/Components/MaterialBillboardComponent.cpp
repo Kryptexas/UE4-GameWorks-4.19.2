@@ -303,6 +303,16 @@ void UMaterialBillboardComponent::AddElement(
 	MarkRenderStateDirty();
 }
 
+void UMaterialBillboardComponent::SetElements(const TArray<FMaterialSpriteElement>& NewElements)
+{
+	// Replace existing array
+	Elements = NewElements;
+
+	// Indicate scene proxy needs to be updated
+	MarkRenderStateDirty();
+}
+
+
 UMaterialInterface* UMaterialBillboardComponent::GetMaterial(int32 Index) const
 {
 	UMaterialInterface* ResultMI = nullptr;

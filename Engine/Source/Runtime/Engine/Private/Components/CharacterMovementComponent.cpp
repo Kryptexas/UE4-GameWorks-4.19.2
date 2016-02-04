@@ -23,6 +23,7 @@
 #include "Components/DestructibleComponent.h"
 
 #include "Engine/DemoNetDriver.h"
+#include "Engine/NetworkObjectList.h"
 
 #include "PerfCountersHelpers.h"
 
@@ -250,6 +251,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	bJustTeleported = true;
 	CrouchedHalfHeight = 40.0f;
 	Buoyancy = 1.0f;
+	LastUpdateRotation = FQuat::Identity;
 	LastUpdateVelocity = FVector::ZeroVector;
 	PendingImpulseToApply = FVector::ZeroVector;
 	PendingLaunchVelocity = FVector::ZeroVector;
@@ -269,6 +271,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	InitialPushForceFactor = 500.0f;
 	PushForceFactor = 750000.0f;
 	PushForcePointZOffsetFactor = -0.75f;
+	bPushForceUsingZOffset = false;
 	bPushForceScaledToMass = false;
 	bScalePushForceToVelocity = true;
 	
@@ -1441,6 +1444,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	bJustTeleported = false;
 
 	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+	LastUpdateRotation = UpdatedComponent ? UpdatedComponent->GetComponentQuat() : FQuat::Identity;
 	LastUpdateVelocity = Velocity;
 }
 
@@ -1875,8 +1879,41 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	SaveBaseLocation();
 	UpdateComponentVelocity();
 
+	// If we move we want to avoid a long delay before replication catches up to notice this change, especially if it's throttling our rate.
+	if (UNetDriver::IsAdaptiveNetUpdateFrequencyEnabled() && UpdatedComponent && CharacterOwner && CharacterOwner->HasAuthority())
+	{
+		const UWorld* MyWorld = GetWorld();
+		if (MyWorld && MyWorld->GetTimeSeconds() <= CharacterOwner->NetUpdateTime)
+		{
+			UNetDriver* NetDriver = MyWorld->GetNetDriver();
+			if (NetDriver && NetDriver->IsServer())
+			{
+				FNetworkObjectInfo* NetActor = NetDriver->GetNetworkActor(CharacterOwner);
+				if (NetActor && NetDriver->IsNetworkActorUpdateFrequencyThrottled(*NetActor))
+				{
+					if (ShouldCancelAdaptiveReplication())
+					{
+						NetDriver->CancelAdaptiveReplication(*NetActor);
+					}
+				}
+			}
+		}
+	}
+
 	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+	LastUpdateRotation = UpdatedComponent ? UpdatedComponent->GetComponentQuat() : FQuat::Identity;
 	LastUpdateVelocity = Velocity;
+}
+
+
+bool UCharacterMovementComponent::ShouldCancelAdaptiveReplication() const
+{
+	// Update sooner if important properties changed.
+	const bool bVelocityChanged = (Velocity != LastUpdateVelocity);
+	const bool bLocationChanged = (UpdatedComponent->GetComponentLocation() != LastUpdateLocation);
+	const bool bRotationChanged = (UpdatedComponent->GetComponentQuat() != LastUpdateRotation);
+
+	return (bVelocityChanged || bLocationChanged || bRotationChanged);
 }
 
 
@@ -5798,14 +5835,17 @@ void UCharacterMovementComponent::ApplyImpactPhysicsForces(const FHitResult& Imp
 			{
 				BodyMass = FMath::Max(BI->GetBodyMass(), 1.0f);
 
-				FBox Bounds = BI->GetBodyBounds();
-
-				FVector Center, Extents;
-				Bounds.GetCenterAndExtents(Center, Extents);
-
-				if (!Extents.IsNearlyZero())
+				if(bPushForceUsingZOffset)
 				{
-					ForcePoint.Z = Center.Z + Extents.Z * PushForcePointZOffsetFactor;
+					FBox Bounds = BI->GetBodyBounds();
+
+					FVector Center, Extents;
+					Bounds.GetCenterAndExtents(Center, Extents);
+
+					if (!Extents.IsNearlyZero())
+					{
+						ForcePoint.Z = Center.Z + Extents.Z * PushForcePointZOffsetFactor;
+					}
 				}
 			}
 

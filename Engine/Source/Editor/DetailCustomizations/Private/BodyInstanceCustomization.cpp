@@ -75,43 +75,63 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 	]
 	.ValueContent()
 	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(0.f, 0.f, 10.f, 0.f)
 		[
-			SAssignNew(CollsionProfileComboBox, SComboBox< TSharedPtr<FString> >)
-			.OptionsSource(&CollisionProfileComboList)
-			.OnGenerateWidget(this, &FBodyInstanceCustomization::MakeCollisionProfileComboWidget)
-			.OnSelectionChanged(this, &FBodyInstanceCustomization::OnCollisionProfileChanged, &CollisionGroup )
-			.OnComboBoxOpening(this, &FBodyInstanceCustomization::OnCollisionProfileComboOpening)
-			.InitiallySelectedItem(DisplayName)
-			.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-			.ContentPadding(2)
-			.Content()
+			SNew(SHorizontalBox)
+			.Visibility(this, &FBodyInstanceCustomization::IsCollisionPresetVisible)
+			.IsEnabled(this, &FBodyInstanceCustomization::IsCollisionEnabled)
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
 			[
-				SNew( STextBlock )
-				.Text(this, &FBodyInstanceCustomization::GetCollisionProfileComboBoxContent)
-				.Font( IDetailLayoutBuilder::GetDetailFont() )
-				.ToolTipText(this, &FBodyInstanceCustomization::GetCollisionProfileComboBoxToolTip)
+				SAssignNew(CollsionProfileComboBox, SComboBox< TSharedPtr<FString> >)
+				.OptionsSource(&CollisionProfileComboList)
+				.OnGenerateWidget(this, &FBodyInstanceCustomization::MakeCollisionProfileComboWidget)
+				.OnSelectionChanged(this, &FBodyInstanceCustomization::OnCollisionProfileChanged, &CollisionGroup)
+				.OnComboBoxOpening(this, &FBodyInstanceCustomization::OnCollisionProfileComboOpening)
+				.InitiallySelectedItem(DisplayName)
+				.ContentPadding(2)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(this, &FBodyInstanceCustomization::GetCollisionProfileComboBoxContent)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.ToolTipText(this, &FBodyInstanceCustomization::GetCollisionProfileComboBoxToolTip)
+				]
 			]
+
+			+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.Padding(2.0f)
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.OnClicked(this, &FBodyInstanceCustomization::SetToDefaultProfile)
+					.ContentPadding(0.f)
+					.ToolTipText(LOCTEXT("ResetToDefaultToolTip", "Reset to Default"))
+					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+					.IsEnabled(this, &FBodyInstanceCustomization::IsCollisionEnabled)
+					.Content()
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+					]
+				]
 		]
-		+SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.Padding( 2.0f )
-		.AutoWidth()
-		[
-			SNew(SButton)
-			.OnClicked(this, &FBodyInstanceCustomization::SetToDefaultProfile)
-			.Visibility(this, &FBodyInstanceCustomization::ShouldShowResetToDefaultProfile)
-			.ContentPadding(0.f)
-			.ToolTipText(LOCTEXT("ResetToDefaultToolTip", "Reset to Default"))
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.Content()
+
+		+ SVerticalBox::Slot()
+			.Padding(0.f, 0.f, 10.f, 0.f)
 			[
-				SNew(SImage)
-				.Image( FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault") )
+				SNew(STextBlock)
+				.Text(LOCTEXT("DefaultCollision", "Default Collision"))
+				.Visibility(this, &FBodyInstanceCustomization::IsDefaultCollisionVisible)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ToolTipText(LOCTEXT("DefaultCollisionToolTip", "Default Collision. See the StaticMesh asset to find out collision settings"))
 			]
-		]
+
+
+		
 	];
 
 	CollisionGroup.ToggleExpansion(bDisplayAdvancedCollisionSettings);
@@ -122,6 +142,8 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
+	BodyInstanceHandle = StructPropertyHandle;
+
 	// copy all bodyinstances I'm accessing right now
 	TArray<void*> StructPtrs;
 	StructPropertyHandle->AccessRawData(StructPtrs);
@@ -133,6 +155,31 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 		check(*Iter);
 		BodyInstances[Iter.GetIndex()] = (FBodyInstance*)(*Iter);
 	}
+
+	
+	// get all parent instances
+	TSharedPtr<IPropertyHandle> ParentPropertyHandle = StructPropertyHandle->GetParentHandle();
+	bool bFoundValidProperty = false;	//Need to go up root until we find a valid property. This is a bad hack but is needed because GetChildHandle assumes property is always non-null
+	while(ParentPropertyHandle.IsValid() && !bFoundValidProperty)
+	{
+		if(ParentPropertyHandle->GetProperty())
+		{
+			bFoundValidProperty = true;
+		}
+		else
+		{
+			ParentPropertyHandle = ParentPropertyHandle->GetParentHandle();
+		}
+	}
+
+
+	if(ParentPropertyHandle.IsValid())
+	{
+		
+		UseDefaultCollisionHandle = ParentPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, bUseDefaultCollision));
+		StaticMeshHandle = ParentPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, StaticMesh));
+	}
+	
 
 	AddCollisionCategory(StructPropertyHandle, StructBuilder, StructCustomizationUtils);
 }
@@ -259,6 +306,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 	}
 
 	int32 TotalNumChildren = ValidCollisionChannels.Num();
+	TAttribute<bool> CollisionEnabled(this, &FBodyInstanceCustomization::IsCollisionEnabled );
 	TAttribute<bool> CustomCollisionEnabled( this, &FBodyInstanceCustomization::ShouldEnableCustomCollisionSetup );
 	TAttribute<EVisibility> CustomCollisionVisibility(this, &FBodyInstanceCustomization::ShouldShowCustomCollisionSetup);
 
@@ -273,7 +321,6 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 	if (!StructPropertyHandle->GetProperty()->GetBoolMetaData(TEXT("HideObjectType")))
 	{
 		CollisionGroup.AddWidgetRow()
-		.IsEnabled(CustomCollisionEnabled)
 		.Visibility(CustomCollisionVisibility)
 		.NameContent()
 		[
@@ -286,7 +333,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 			.OnGenerateWidget(this, &FBodyInstanceCustomization::MakeObjectTypeComboWidget)
 			.OnSelectionChanged(this, &FBodyInstanceCustomization::OnObjectTypeChanged)
 			.InitiallySelectedItem(ObjectTypeComboList[IndexSelected])
-			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+			.IsEnabled(CustomCollisionEnabled)
 			.ContentPadding(2)
 			.Content()
 			[
@@ -804,12 +851,56 @@ EVisibility FBodyInstanceCustomization::ShouldShowResetToDefaultResponse(int32 V
 	return EVisibility::Hidden;
 }
 
+bool FBodyInstanceCustomization::AreAllCollisionUsingDefault() const
+{
+	if(UseDefaultCollisionHandle.IsValid())
+	{
+		bool bUseDefaultCollision = false;
+		if (UseDefaultCollisionHandle->GetValue(bUseDefaultCollision) == FPropertyAccess::Result::Success && bUseDefaultCollision)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+EVisibility FBodyInstanceCustomization::IsCollisionPresetVisible() const
+{
+	if (StaticMeshHandle.IsValid())
+	{
+		UObject* StaticMesh = nullptr;
+		if (StaticMeshHandle->GetValue(StaticMesh) == FPropertyAccess::Result::Success && StaticMesh)
+		{
+			return AreAllCollisionUsingDefault() ? EVisibility::Collapsed : EVisibility::Visible;
+		}
+	}
+
+	return EVisibility::Visible;
+}
+
+EVisibility FBodyInstanceCustomization::IsDefaultCollisionVisible() const
+{
+	return IsCollisionPresetVisible()  == EVisibility::Visible ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+bool FBodyInstanceCustomization::IsCollisionEnabled() const
+{
+	bool bEnabled = false;
+	if(BodyInstanceHandle.IsValid())
+	{
+		bEnabled = !BodyInstanceHandle->IsEditConst() && FSlateApplication::Get().GetNormalExecutionAttribute().Get();
+	}
+
+	return bEnabled;
+}
+
 bool FBodyInstanceCustomization::ShouldEnableCustomCollisionSetup() const
 {
 	FName ProfileName;
 	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) == false)
 	{
-		return true;
+		return IsCollisionEnabled();
 	}
 
 	return false;
@@ -817,7 +908,7 @@ bool FBodyInstanceCustomization::ShouldEnableCustomCollisionSetup() const
 
 EVisibility FBodyInstanceCustomization::ShouldShowCustomCollisionSetup() const
 {
-	return EVisibility::Visible;//return (bDisplayAdvancedCollisionSettings)? EVisibility::Visible : EVisibility::Hidden;
+	return AreAllCollisionUsingDefault() ? EVisibility::Hidden : EVisibility::Visible;
 }
 
 FText FBodyInstanceCustomization::GetCollisionProfileComboBoxContent() const
@@ -1226,6 +1317,26 @@ EVisibility FBodyInstanceCustomizationHelper::IsAutoWeldVisible() const
 	return EVisibility::Visible;
 }
 
+void FBodyInstanceCustomizationHelper::OnSetBodyMass(float BodyMass, ETextCommit::Type Commit)
+{
+	UPrimitiveComponent* Comp = nullptr;
+	UBodySetup* BS = nullptr;
+
+	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	{
+		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
+		{
+			Comp = Cast<UPrimitiveComponent>(ObjectIt->Get());
+			Comp->SetMassOverrideInKg(NAME_None, BodyMass);
+		}
+		else if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UBodySetup::StaticClass()))
+		{
+			BS = Cast<UBodySetup>(ObjectIt->Get());
+			BS->DefaultInstance.SetMassOverride(BodyMass);
+		}
+	}
+}
+
 
 TOptional<float> FBodyInstanceCustomizationHelper::OnGetBodyMass() const
 {
@@ -1237,36 +1348,27 @@ TOptional<float> FBodyInstanceCustomizationHelper::OnGetBodyMass() const
 
 	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
 	{
+		float NewMass = 0.f;
 		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
 		{
 			Comp = Cast<UPrimitiveComponent>(ObjectIt->Get());
-
-			float CompMass = Comp->CalculateMass();
-			Comp->BodyInstance.MassInKg = CompMass;	//update the component's override mass to be the calculated one
-			if (Mass == 0.0f || FMath::Abs(Mass - CompMass) < 0.1f)
-			{
-				Mass = CompMass;
-			}
-			else
-			{
-				bMultipleValue = true;
-				break;
-			}
+			NewMass = Comp->CalculateMass();
 		}
 		else if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UBodySetup::StaticClass()))
 		{
 			BS = Cast<UBodySetup>(ObjectIt->Get());
 
-			float BSMass = BS->CalculateMass();
-			if (Mass == 0.0f || FMath::Abs(Mass - BSMass) < 0.1f)
-			{
-				Mass = BSMass;
-			}
-			else
-			{
-				bMultipleValue = true;
-				break;
-			}
+			NewMass = BS->CalculateMass();
+		}
+
+		if (Mass == 0.0f || FMath::Abs(Mass - NewMass) < SMALL_NUMBER)
+		{
+			Mass = NewMass;
+		}
+		else
+		{
+			bMultipleValue = true;
+			break;
 		}
 	}
 
@@ -1299,12 +1401,12 @@ void FBodyInstanceCustomizationHelper::AddMassInKg(IDetailCategoryBuilder& Physi
 {
 	if (bDisplayMass)
 	{
-		TSharedRef<IPropertyHandle> MassInKGHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKg)).ToSharedRef();
-
-		PhysicsCategory.AddProperty(MassInKGHandle).CustomWidget()
+		TSharedRef<IPropertyHandle> MassInKgOverrideHandle = BodyInstanceHandler->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKgOverride)).ToSharedRef();
+		
+		PhysicsCategory.AddProperty(MassInKgOverrideHandle).CustomWidget()
 		.NameContent()
 		[
-			MassInKGHandle->CreatePropertyNameWidget()
+			MassInKgOverrideHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
 		[
@@ -1313,22 +1415,10 @@ void FBodyInstanceCustomizationHelper::AddMassInKg(IDetailCategoryBuilder& Physi
 			.Padding(0.f, 0.f, 10.f, 0.f)
 			[
 				SNew(SNumericEntryBox<float>)
-				.IsEnabled(false)
+				.IsEnabled(&FBodyInstanceCustomizationHelper::IsBodyMassEnabled)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.Value(this, &FBodyInstanceCustomizationHelper::OnGetBodyMass)
-				.Visibility(this, &FBodyInstanceCustomizationHelper::IsMassVisible, false)
-			]
-
-			+ SVerticalBox::Slot()
-			.Padding(0.f, 0.f, 10.f, 0.f)
-			[
-				SNew(SVerticalBox)
-				.Visibility(this, &FBodyInstanceCustomizationHelper::IsMassVisible, true)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					MassInKGHandle->CreatePropertyValueWidget()
-				]
+				.OnValueCommitted(this, &FBodyInstanceCustomizationHelper::OnSetBodyMass)
 			]
 		];
 	}

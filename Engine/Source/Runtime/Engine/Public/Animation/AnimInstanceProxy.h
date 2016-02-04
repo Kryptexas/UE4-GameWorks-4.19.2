@@ -208,7 +208,7 @@ public:
 
 	/** Register a named slot */
 	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
-	
+
 	/** Check whether we have a valid root node */
 	bool HasRootNode() const
 	{ 
@@ -250,7 +250,8 @@ public:
 	 */
 	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
 
-
+	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex);
+	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
 	/** Only restricted classes can access the protected interface */
 	friend class UAnimInstance;
@@ -500,6 +501,12 @@ private:
 
 	/** The set of tick groups for this anim instance */
 	TArray<FAnimGroupInstance> SyncGroupArrays[2];
+
+	/** Buffers containing read/write buffers for all current state weights */
+	TArray<float> StateWeightArrays[2];
+
+	/** Map that transforms state class indices to base offsets into the weight array */
+	TMap<int32, int32> StateMachineClassIndexToWeightOffset;
 
 	// Current sync group buffer index
 	int32 SyncGroupWriteIndex;

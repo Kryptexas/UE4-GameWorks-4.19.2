@@ -964,27 +964,20 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRei
 		return;
 	}
 
-	// Destroy render state, swap skeletal mesh and recreate
-	const bool bWasRenderStateCreated = bRenderStateCreated;
-	if (bWasRenderStateCreated)
 	{
-		DestroyRenderState_Concurrent();
-	}
+		//Handle destroying and recreating the renderstate
+		FRenderStateRecreator RenderStateRecreator(this);
 
-	SkeletalMesh = InSkelMesh;
+		SkeletalMesh = InSkelMesh;
 
-	// Don't init anim state if not registered
-	if (IsRegistered())
-	{
-		AllocateTransformData();
-		UpdateMasterBoneMap();
-		UpdateLODStatus();
-		InvalidateCachedBounds();
-	}
-
-	if (bWasRenderStateCreated)
-	{
-		CreateRenderState_Concurrent();
+		// Don't init anim state if not registered
+		if (IsRegistered())
+		{
+			AllocateTransformData();
+			UpdateMasterBoneMap();
+			UpdateLODStatus();
+			InvalidateCachedBounds();
+		}
 	}
 	
 	// TODO: (LH) find better way to call this 

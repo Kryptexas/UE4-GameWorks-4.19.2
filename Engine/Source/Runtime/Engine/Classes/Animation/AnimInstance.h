@@ -1184,6 +1184,9 @@ public:
 	/** Pass-thru function to proxy - only call on the game thread */
 	void UpdateComponentsMaterialParameters(UPrimitiveComponent* Component);
 
+	/** Given a machine and state index, record a state weight for this frame */
+	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
+
 protected:
 	/** 
 	 * Add curve float data, using a curve name. External values should all be added using

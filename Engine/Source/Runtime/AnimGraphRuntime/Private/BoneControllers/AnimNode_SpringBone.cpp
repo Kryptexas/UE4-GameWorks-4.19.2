@@ -97,9 +97,9 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 	FVector const TargetPos = BoneTransformInWorldSpace.GetLocation();
 
 	AActor* SkelOwner = (SkelComp != NULL) ? SkelComp->GetOwner() : NULL;
-	if ((SkelComp != NULL) && (SkelComp->AttachParent != NULL) && (SkelOwner == NULL))
+	if ((SkelComp != NULL) && (SkelComp->GetAttachParent() != NULL) && (SkelOwner == NULL))
 	{
-		SkelOwner = SkelComp->AttachParent->GetOwner();
+		SkelOwner = SkelComp->GetAttachParent()->GetOwner();
 	}
 
 	// Init values first time

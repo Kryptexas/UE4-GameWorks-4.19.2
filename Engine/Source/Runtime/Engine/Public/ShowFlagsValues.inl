@@ -292,6 +292,8 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, VisualizeBloom, SFG_Visualize, LOCTEXT("VisualizeB
 SHOWFLAG_FIXED_IN_SHIPPING(0, VertexDensities, SFG_Hidden, LOCTEXT("VisualizeVertexDensities", "Visualize Vertex Densities"))
 /** Visualize LOD Coloration */
 SHOWFLAG_FIXED_IN_SHIPPING(0, LODColoration, SFG_Hidden, LOCTEXT("VisualizeLODColoration", "Visualize LOD Coloration"))
+/** Visualize HLOD Coloration */
+SHOWFLAG_FIXED_IN_SHIPPING(0, HLODColoration, SFG_Hidden, LOCTEXT("VisualizeHLODColoration", "Visualize HLOD Coloration"))
 /** Visualize screen quads */
 SHOWFLAG_FIXED_IN_SHIPPING(0, QuadComplexity, SFG_Hidden, LOCTEXT("QuadComplexitySF", "Quad Complexity"))
 /** Visualize the overhead of material quads */

@@ -47,15 +47,15 @@ SAnimationSequenceBrowser::~SAnimationSequenceBrowser()
 {
 	if(PreviewComponent)
 	{
-		for(int32 ComponentIdx = PreviewComponent->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
+		for(int32 ComponentIdx = PreviewComponent->GetAttachChildren().Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
 		{
-			USceneComponent* Component = PreviewComponent->AttachChildren[ComponentIdx];
+			USceneComponent* Component = PreviewComponent->GetAttachChildren()[ComponentIdx];
 			if(Component)
 			{
 				CleanupPreviewSceneComponent(Component);
 			}
 		}
-		PreviewComponent->AttachChildren.Empty();
+		check(PreviewComponent->GetAttachChildren().Num() == 0);
 	}
 
 	if(ViewportClient.IsValid())
@@ -985,12 +985,12 @@ void SAnimationSequenceBrowser::CleanupPreviewSceneComponent(USceneComponent* Co
 {
 	if(Component)
 	{
-		for(int32 ComponentIdx = Component->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
+		for(int32 ComponentIdx = Component->GetAttachChildren().Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
 		{
-			USceneComponent* ChildComponent = Component->AttachChildren[ComponentIdx];
+			USceneComponent* ChildComponent = Component->GetAttachChildren()[ComponentIdx];
 			CleanupPreviewSceneComponent(ChildComponent);
 		}
-		Component->AttachChildren.Empty();
+		check(Component->GetAttachChildren().Num() == 0);
 		Component->DestroyComponent();
 	}
 }

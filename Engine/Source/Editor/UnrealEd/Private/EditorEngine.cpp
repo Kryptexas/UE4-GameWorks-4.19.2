@@ -3568,9 +3568,9 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		ParentActor->Modify();
 
 		// If child is already attached to something, modify the old parent and detach
-		if(ChildRoot->AttachParent != NULL)
+		if(ChildRoot->GetAttachParent() != nullptr)
 		{
-			AActor* OldParentActor = ChildRoot->AttachParent->GetOwner();
+			AActor* OldParentActor = ChildRoot->GetAttachParent()->GetOwner();
 			OldParentActor->Modify();
 			ChildRoot->DetachFromParent(true);
 
@@ -3580,7 +3580,7 @@ void UEditorEngine::ParentActors( AActor* ParentActor, AActor* ChildActor, const
 		// If the parent is already attached to this child, modify its parent and detach so we can allow the attachment
 		if(ParentRoot->IsAttachedTo(ChildRoot))
 		{
-			ParentRoot->AttachParent->GetOwner()->Modify();
+			ParentRoot->GetAttachParent()->GetOwner()->Modify();
 			ParentRoot->DetachFromParent(true);
 		}
 
@@ -3604,9 +3604,9 @@ bool UEditorEngine::DetachSelectedActors()
 		checkSlow( Actor );
 
 		USceneComponent* RootComp = Actor->GetRootComponent();
-		if( RootComp != NULL && RootComp->AttachParent != NULL)
+		if( RootComp != nullptr && RootComp->GetAttachParent() != nullptr)
 		{
-			AActor* OldParentActor = RootComp->AttachParent->GetOwner();
+			AActor* OldParentActor = RootComp->GetAttachParent()->GetOwner();
 			OldParentActor->Modify();
 			RootComp->DetachFromParent(true);
 			bDetachOccurred = true;
@@ -6149,7 +6149,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6196,7 +6196,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UnsupportedGPUWarning_Body","The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."), LOCTEXT("UnsupportedGPUWarning_Title","Unsupported Graphics Card"), TEXT("UnsupportedGPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6243,7 +6243,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowGPUWarning_Body","The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."), LOCTEXT("SlowGPUWarning_Title","Slow Graphics Card"), TEXT("SlowGPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6260,7 +6260,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("LowRAMWarning_Body","For best performance install at least 8GB of RAM."), LOCTEXT("LowRAMWarning_Title","Low RAM"), TEXT("LowRAMWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}
@@ -6277,7 +6277,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			{
 				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowCPUWarning_Body","For best performance a Quad-core Intel or AMD processor, 2.5 GHz or faster is recommended."), LOCTEXT("SlowCPUWarning_Title","CPU Performance Warning"), TEXT("SlowCPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
-				Info.bDefaultToSupressInTheFuture = true;
+				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
 				OSUpdateWarning.ShowModal();
 			}

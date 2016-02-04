@@ -1951,10 +1951,11 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	return false;
 }
 
+static const FName NAME_ClickableTrace("ClickableTrace");
 
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
-	FCollisionQueryParams CollisionQueryParams( "ClickableTrace", bTraceComplex );
+	FCollisionQueryParams CollisionQueryParams( NAME_ClickableTrace, bTraceComplex );
 	return GetHitResultAtScreenPosition( ScreenPosition, TraceChannel, CollisionQueryParams, HitResult );
 }
 
@@ -4608,9 +4609,9 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 				{
 					HiddenComponents.Add(PrimitiveComponent->ComponentId);
 
-					for (int32 AttachChildrenIndex = 0; AttachChildrenIndex < PrimitiveComponent->AttachChildren.Num(); AttachChildrenIndex++)
+					for (USceneComponent* AttachedChild : PrimitiveComponent->GetAttachChildren())
 					{						
-						UPrimitiveComponent* AttachChildPC = Cast<UPrimitiveComponent>(PrimitiveComponent->AttachChildren[AttachChildrenIndex]);
+						UPrimitiveComponent* AttachChildPC = Cast<UPrimitiveComponent>(AttachedChild);
 						if (AttachChildPC && AttachChildPC->IsRegistered())
 						{
 							HiddenComponents.Add(AttachChildPC->ComponentId);

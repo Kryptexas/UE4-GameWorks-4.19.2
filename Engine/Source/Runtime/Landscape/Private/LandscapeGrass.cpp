@@ -1447,7 +1447,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 			Component->DestroyComponent();
 		}
 
-		TArray<USceneComponent*> AttachedFoliageComponents = RootComponent->AttachChildren.FilterByPredicate(
+		TArray<USceneComponent*> AttachedFoliageComponents = RootComponent->GetAttachChildren().FilterByPredicate(
 			[](USceneComponent* Component)
 		{
 			return Cast<UHierarchicalInstancedStaticMeshComponent>(Component);

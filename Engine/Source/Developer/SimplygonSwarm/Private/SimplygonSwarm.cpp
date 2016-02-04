@@ -43,7 +43,7 @@
  #endif
 
 
- static const TCHAR* SPL_TEMPLATE_REMESHING = TEXT("{\"Header\":{\"SPLVersion\":\"7.0\",\"ClientName\":\"UE4\",\"ClientVersion\":\"UE4.9\",\"SimplygonVersion\":\"7.0\"},\"ProcessGraph\":{\"Type\":\"ContainerNode\",\"Name\":\"Node\",\"Children\":[{\"Processor\":{\"RemeshingSettings\":{\"CuttingPlaneSelectionSetName\":0,\"EmptySpaceOverride\":0.0,\"MaxTriangleSize\":32,\"OnScreenSize\":%d,\"ProcessSelectionSetName\":\"\",\"SurfaceTransferMode\":1,\"TransferColors\":false,\"TransferNormals\":false,\"UseCuttingPlanes\":%s,\"UseEmptySpaceOverride\":false,\"Enabled\":true%s},\"MappingImageSettings\":{\"AutomaticTextureSizeMultiplier\":1.0,\"ChartAggregatorMode\":0,\"ChartAggregatorOriginalTexCoordLevel\":0,\"ChartAggregatorUseAreaWeighting\":true,\"ChartAggregatorKeepOriginalChartProportions\":true,\"ChartAggregatorKeepOriginalChartProportionsFromChannel\":\"\",\"ChartAggregatorKeepOriginalChartSizes\":false,\"ChartAggregatorSeparateOverlappingCharts\":true,\"ForcePower2Texture\":true,\"GenerateMappingImage\":true,\"GenerateTangents\":true,\"GenerateTexCoords\":true,\"GutterSpace\":4,\"Height\":%d,\"MaximumLayers\":3,\"MultisamplingLevel\":3,\"ParameterizerMaxStretch\":6.0,\"ParameterizerUseVertexWeights\":false,\"ParameterizerUseVisibilityWeights\":false,\"TexCoordGeneratorType\":0,\"TexCoordLevel\":255,\"UseAutomaticTextureSize\":false,\"UseFullRetexturing\":false,\"Width\":%d,\"Enabled\":true},%s\"Type\":\"RemeshingProcessor\"},\"MaterialCaster\":[%s],\"DefaultTBNType\":2,\"AllowGPUAcceleration\":false,\"Type\":\"ProcessNode\",\"Name\":\"Node\",\"Children\":[{\"Format\":\"ssf\",\"Type\":\"WriteNode\",\"Name\":\"outputlod_0\",\"Children\":[]}]}]}}");
+ static const TCHAR* SPL_TEMPLATE_REMESHING = TEXT("{\"Header\":{\"SPLVersion\":\"7.0\",\"ClientName\":\"UE4\",\"ClientVersion\":\"UE4.9\",\"SimplygonVersion\":\"7.0\"},\"ProcessGraph\":{\"Type\":\"ContainerNode\",\"Name\":\"Node\",\"Children\":[{\"Processor\":{\"RemeshingSettings\":{\"CuttingPlaneSelectionSetName\":0,\"EmptySpaceOverride\":0.0,\"MaxTriangleSize\":32,\"OnScreenSize\":%d,\"ProcessSelectionSetName\":\"\",\"SurfaceTransferMode\":1,\"TransferColors\":false,\"TransferNormals\":false,\"UseCuttingPlanes\":false,\"UseEmptySpaceOverride\":false,\"Enabled\":true%s},\"MappingImageSettings\":{\"AutomaticTextureSizeMultiplier\":1.0,\"ChartAggregatorMode\":0,\"ChartAggregatorOriginalTexCoordLevel\":0,\"ChartAggregatorUseAreaWeighting\":true,\"ChartAggregatorKeepOriginalChartProportions\":true,\"ChartAggregatorKeepOriginalChartProportionsFromChannel\":\"\",\"ChartAggregatorKeepOriginalChartSizes\":false,\"ChartAggregatorSeparateOverlappingCharts\":true,\"ForcePower2Texture\":true,\"GenerateMappingImage\":true,\"GenerateTangents\":true,\"GenerateTexCoords\":true,\"GutterSpace\":4,\"Height\":%d,\"MaximumLayers\":3,\"MultisamplingLevel\":3,\"ParameterizerMaxStretch\":6.0,\"ParameterizerUseVertexWeights\":false,\"ParameterizerUseVisibilityWeights\":false,\"TexCoordGeneratorType\":0,\"TexCoordLevel\":255,\"UseAutomaticTextureSize\":false,\"UseFullRetexturing\":false,\"Width\":%d,\"Enabled\":true},\"Type\":\"RemeshingProcessor\"},\"MaterialCaster\":[%s],\"DefaultTBNType\":2,\"AllowGPUAcceleration\":false,\"Type\":\"ProcessNode\",\"Name\":\"Node\",\"Children\":[{\"Format\":\"ssf\",\"Type\":\"WriteNode\",\"Name\":\"outputlod_0\",\"Children\":[]}]}]}}");
 
 
  static const TCHAR* SPL_TEMPLATE_COLORCASTER = TEXT("{\"BakeOpacityInAlpha\":false,\"ColorType\":\"%s\",\"Dilation\":8,\"FillMode\":2,\"IsSRGB\":true,\"OutputChannelBitDepth\":8,\"OutputChannels\":4,\"Type\":\"ColorCaster\",\"Name\":\"%s\",\"Channel\":\"%s\",\"DitherType\":0}");
@@ -431,53 +431,11 @@
 
 		 if (InProxySettings.bRecalculateNormals)
 			 AdditionalSettings = FString::Printf(TEXT("%s,%s"), *AdditionalSettings, *RecalNormals);
-
-		 //Note : The Simplygon API now supports multiple clipping planes. SPL has recently added support for this.
-		 // 
-		 FString CuttingPlaneSetting;
-
-		 if (InProxySettings.bUseClippingPlane)
-		 {
-			 // Note : An arbitary plane can be define using a point (position) and a normal (direction)
-			 // Since UE  currently only has axis aligned plane. We need to convert values for SPL
-
-			 FVector OutPoint, OutNormal;
-
-			 GetAxisAlignedVectorsForCuttingPlanes(InProxySettings, OutPoint, OutNormal);
-
-			 FString CuttingPlane = FString::Printf(CUTTING_PLANE, OutPoint.X, OutPoint.Y, OutPoint.Z, OutNormal.X, OutNormal.Y, OutNormal.Z);
-			 CuttingPlaneSetting = FString::Printf(CUTTING_PLANE_SETTINGS, *CuttingPlane);
-		 }
-		 
-		 OutSplText = FString::Printf(SPL_TEMPLATE_REMESHING, InProxySettings.ScreenSize, InProxySettings.bUseClippingPlane ? TEXT("true") :TEXT("false"), *AdditionalSettings, ImageSizes.X, ImageSizes.Y, *CuttingPlaneSetting, *CasterSPLTempalte);
-
+		 		 
+		 OutSplText = FString::Printf(SPL_TEMPLATE_REMESHING, InProxySettings.ScreenSize, *AdditionalSettings, ImageSizes.X, ImageSizes.Y, *CasterSPLTempalte);
 	 }
 	 
-
-	 void GetAxisAlignedVectorsForCuttingPlanes(const struct FMeshProxySettings& InProxySettings, 
-		 FVector& OutPoint, 
-		 FVector& OutNormal)
-	 {
-		 
-		 // 0 -> X , 1 -> Y, 2 -> Z
-		 if (InProxySettings.AxisIndex == 0)
-		 {
-			 OutNormal.X = InProxySettings.bPlaneNegativeHalfspace ? -1 : 1 ;
-			 OutPoint.X = InProxySettings.ClippingLevel;
-			 
-		 }
-		 else if (InProxySettings.AxisIndex == 1)
-		 {
-			 OutNormal.Y = InProxySettings.bPlaneNegativeHalfspace ? -1 : 1;
-			 OutPoint.Y = InProxySettings.ClippingLevel;
-		 }
-		 else
-		 {
-			 OutNormal.Z = InProxySettings.bPlaneNegativeHalfspace ? -1 : 1;
-			 OutPoint.Z = InProxySettings.ClippingLevel;
-			 //default to z up 
-		 }
-	 }
+	
 	 /*
 	 Write the SPL string to file
 	 */

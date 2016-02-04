@@ -743,7 +743,7 @@ void FScene::UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive)
 				UpdatePrimitiveLightingAttachmentRoot(CurrentPrimitive);
 			}
 
-			ProcessStack.Append(Current->AttachChildren);
+			ProcessStack.Append(Current->GetAttachChildren());
 		}
 	}
 }

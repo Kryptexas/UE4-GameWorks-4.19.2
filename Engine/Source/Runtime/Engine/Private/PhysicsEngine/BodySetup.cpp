@@ -1510,7 +1510,7 @@ class UPhysicalMaterial* UBodySetup::GetPhysMaterial() const
 float UBodySetup::CalculateMass(const UPrimitiveComponent* Component) const
 {
 	FVector ComponentScale(1.0f, 1.0f, 1.0f);
-	const FBodyInstance* BodyInstance = NULL;
+	const FBodyInstance* BodyInstance = &DefaultInstance;
 	float MassScale = DefaultInstance.MassScale;
 
 	const UPrimitiveComponent* OuterComp = Component != NULL ? Component : Cast<UPrimitiveComponent>(GetOuter());
@@ -1531,9 +1531,10 @@ float UBodySetup::CalculateMass(const UPrimitiveComponent* Component) const
 			}
 		}
 	}
-	else
+
+	if(BodyInstance->bOverrideMass)
 	{
-		BodyInstance = &DefaultInstance;
+		return BodyInstance->GetMassOverride();
 	}
 
 	UPhysicalMaterial* PhysMat = BodyInstance->GetSimplePhysicalMaterial();

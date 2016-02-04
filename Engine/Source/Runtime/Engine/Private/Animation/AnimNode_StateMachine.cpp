@@ -508,6 +508,8 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 		}
 
 		StatePoseLinks[CurrentState].Update(Context);
+
+		Context.AnimInstanceProxy->RecordStateWeight(StateMachineIndexInClass, CurrentState, GetStateWeight(CurrentState));
 	}
 
 	ElapsedTime += Context.GetDeltaTime();
@@ -978,6 +980,8 @@ void FAnimNode_StateMachine::UpdateState(int32 StateIndex, const FAnimationUpdat
 	{
 		StatesUpdated.Add(StateIndex);
 		StatePoseLinks[StateIndex].Update(Context);
+
+		Context.AnimInstanceProxy->RecordStateWeight(StateMachineIndexInClass, StateIndex, GetStateWeight(StateIndex));
 	}
 }
 

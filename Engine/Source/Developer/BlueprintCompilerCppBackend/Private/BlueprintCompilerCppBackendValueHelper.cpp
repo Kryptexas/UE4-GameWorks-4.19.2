@@ -681,7 +681,7 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 					if (NativeRootComponentFallback.IsEmpty())
 					{
 						USceneComponent* SceneComponent = Cast<USceneComponent>(DSO);
-						if (SceneComponent && !SceneComponent->AttachParent && SceneComponent->CreationMethod == EComponentCreationMethod::Native)
+						if (SceneComponent && !SceneComponent->GetAttachParent() && SceneComponent->CreationMethod == EComponentCreationMethod::Native)
 						{
 							NativeRootComponentFallback = VariableName;
 						}

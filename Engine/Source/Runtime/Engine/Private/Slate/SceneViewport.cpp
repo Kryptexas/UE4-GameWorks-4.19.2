@@ -740,18 +740,25 @@ FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& 
 	CurrentReplyState = FReply::Handled(); 
 
 	FKey Key = InKeyEvent.GetKey();
-	KeyStateMap.Add( Key, true );
-
-	//@todo Slate Viewports: FWindowsViewport checks for Alt+Enter or F11 and toggles fullscreen.  Unknown if fullscreen via this method will be needed for slate viewports. 
-	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
+	if (Key.IsValid())
 	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
+		KeyStateMap.Add(Key, true);
 
-		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed, 1.0f, Key.IsGamepadKey()))
+		//@todo Slate Viewports: FWindowsViewport checks for Alt+Enter or F11 and toggles fullscreen.  Unknown if fullscreen via this method will be needed for slate viewports. 
+		if (ViewportClient && GetSizeXY() != FIntPoint::ZeroValue)
 		{
-			CurrentReplyState = FReply::Unhandled();
+			// Switch to the viewport clients world before processing input
+			FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+
+			if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed, 1.0f, Key.IsGamepadKey()))
+			{
+				CurrentReplyState = FReply::Unhandled();
+			}
 		}
+	}
+	else
+	{
+		CurrentReplyState = FReply::Unhandled();
 	}
 	return CurrentReplyState;
 }
@@ -762,17 +769,24 @@ FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& In
 	CurrentReplyState = FReply::Handled(); 
 
 	FKey Key = InKeyEvent.GetKey();
-	KeyStateMap.Add( Key, false );
-	
-	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue  )
+	if (Key.IsValid())
 	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
+		KeyStateMap.Add(Key, false);
 
-		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, IE_Released, 1.0f, Key.IsGamepadKey()))
+		if (ViewportClient && GetSizeXY() != FIntPoint::ZeroValue)
 		{
-			CurrentReplyState = FReply::Unhandled();
+			// Switch to the viewport clients world before processing input
+			FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+
+			if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, IE_Released, 1.0f, Key.IsGamepadKey()))
+			{
+				CurrentReplyState = FReply::Unhandled();
+			}
 		}
+	}
+	else
+	{
+		CurrentReplyState = FReply::Unhandled();
 	}
 
 	return CurrentReplyState;
@@ -784,17 +798,24 @@ FReply FSceneViewport::OnAnalogValueChanged(const FGeometry& MyGeometry, const F
 	CurrentReplyState = FReply::Handled();
 
 	FKey Key = InAnalogInputEvent.GetKey();
-	KeyStateMap.Add(Key, true);
-
-	if (ViewportClient)
+	if (Key.IsValid())
 	{
-		// Switch to the viewport clients world before processing input
-		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+		KeyStateMap.Add(Key, true);
 
-		if (!ViewportClient->InputAxis(this, InAnalogInputEvent.GetUserIndex(), Key, Key == EKeys::Gamepad_RightY ? -InAnalogInputEvent.GetAnalogValue() : InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, Key.IsGamepadKey()))
+		if (ViewportClient)
 		{
-			CurrentReplyState = FReply::Unhandled();
+			// Switch to the viewport clients world before processing input
+			FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+
+			if (!ViewportClient->InputAxis(this, InAnalogInputEvent.GetUserIndex(), Key, Key == EKeys::Gamepad_RightY ? -InAnalogInputEvent.GetAnalogValue() : InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, Key.IsGamepadKey()))
+			{
+				CurrentReplyState = FReply::Unhandled();
+			}
 		}
+	}
+	else
+	{
+		CurrentReplyState = FReply::Unhandled();
 	}
 
 	return CurrentReplyState;

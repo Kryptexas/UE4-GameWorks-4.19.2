@@ -2693,6 +2693,11 @@ struct FMeshProxySettings
 	UPROPERTY()
 	FMaterialSimplificationSettings Material_DEPRECATED;
 
+
+	/** Determines whether or not the correct LOD models should be calculated given the source meshes and transition size */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	bool bCalculateLODSourceModels;
+
 	/** Distance at which meshes should be merged together */
 	UPROPERTY(EditAnywhere, Category = ProxySettings)
 	float MergeDistance;
@@ -2709,22 +2714,6 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bRecalculateNormals;
 		
-	/** Set to true to cap the mesh with a ground plane */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bUseClippingPlane;
-
-	/* Ground plane level */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	float ClippingLevel;
-
-	/** Set the axis index for the ground plane (0:X-Axis, 1:Y-Axis, 2:Z-Axis) */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 AxisIndex;
-
-	/** Set to true to use negative halfspace for model, and reject the positive halfspace */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bPlaneNegativeHalfspace;
-
 	UPROPERTY()
 	bool bBakeVertexData_DEPRECATED;
 
@@ -2741,10 +2730,6 @@ struct FMeshProxySettings
 		, HardAngleThreshold(80.0f)
 		, LightMapResolution(256)
 		, bRecalculateNormals(true)
-		, bUseClippingPlane(false)
-		, ClippingLevel(0.0)
-		, AxisIndex(0)
-		, bPlaneNegativeHalfspace(false)
 	{ }
 
 	/** Equality operator. */

@@ -69,8 +69,8 @@ void FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent()
 
 TSharedRef<SWidget> FHierarchicalLODOutlinerModule::CreateHLODOutlinerWidget()
 {
-	TSharedRef<HLODOutliner::SHLODOutliner> HLODWindow = SNew(HLODOutliner::SHLODOutliner);
-	return HLODWindow;
+	SAssignNew(HLODWindow, HLODOutliner::SHLODOutliner);		
+	return HLODWindow->AsShared();
 }
 
 IMPLEMENT_MODULE(FHierarchicalLODOutlinerModule, HLODPluginModule);

@@ -61,44 +61,34 @@ USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
 	Volume = 1.0;
 	Pitch = 1.0;
 	CompressionQuality = 40;
+	SubtitlePriority = 10000.f;
 }
 
 SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 {
-	int32 CalculatedResourceSize = 0;
-	
-	FAudioDevice* AudioDevice = nullptr;
-	
-	if (GEngine)
+	if (!GEngine)
 	{
-		AudioDevice = GEngine->GetMainAudioDevice();
+		return 0;
 	}
 
-	if (AudioDevice && AudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
+	if (FAudioDevice* LocalAudioDevice = GEngine->GetMainAudioDevice())
 	{
-		// If we've been decompressed, need to account for decompressed and also compressed
-		CalculatedResourceSize += RawPCMDataSize;
-	}
-	else if (DecompressionType == DTYPE_RealTime)
-	{
-		if (CachedRealtimeFirstBuffer)
+		if (LocalAudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
 		{
-			CalculatedResourceSize += MONO_PCM_BUFFER_SIZE * NumChannels;
+			check(ResourceSize == 0);
+			return RawPCMDataSize;
+		}
+		else if (DecompressionType == DTYPE_RealTime && CachedRealtimeFirstBuffer)
+		{
+			return MONO_PCM_BUFFER_SIZE * NumChannels;
+		}
+		else if ((!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
+		{
+			return GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this));
 		}
 	}
 
-	// Don't add compressed data to size of streaming sounds
-	if (AudioDevice && (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
-	{
-		// Only add the compressed data size of the asset from DDC in editor builds otherwise use ResourceSize (which may be 0)
-#if WITH_EDITOR
-		CalculatedResourceSize += GetCompressedDataSize(AudioDevice->GetRuntimeFormat(this));
-#else
-		CalculatedResourceSize += ResourceSize;
-#endif
-	}
-
-	return CalculatedResourceSize;
+	return 0;
 }
 
 int32 USoundWave::GetResourceSizeForFormat(FName Format)
@@ -269,6 +259,11 @@ void USoundWave::LogSubtitle( FOutputDevice& Ar )
 #endif // WITH_EDITORONLY_DATA
 	Ar.Logf( bMature ? TEXT( "Mature:    Yes" ) : TEXT( "Mature:    No" ) );
 }
+
+float USoundWave::GetSubtitlePriority() const
+{ 
+	return SubtitlePriority;
+};
 
 void USoundWave::PostInitProperties()
 {
@@ -687,10 +682,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		}
 
 		// Don't add wave instances that are not going to be played at this point.
-		if( WaveInstance->Volume > KINDA_SMALL_NUMBER )
-		{
-			WaveInstances.Add( WaveInstance );
-		}
+		WaveInstances.Add( WaveInstance );
 
 		// We're still alive.
 		ActiveSound.bFinished = false;

@@ -452,6 +452,10 @@ public:
 	UPROPERTY(Category="Character Movement: Physics Interaction", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bEnablePhysicsInteraction"))
 	bool bPushForceScaledToMass;
 
+	/** If enabled, the PushForce location is moved using PushForcePointZOffsetFactor. Otherwise simply use the impact point. */
+	UPROPERTY(Category = "Character Movement: Physics Interaction", EditAnywhere, BlueprintReadWrite, meta = (editcondition = "bEnablePhysicsInteraction"))
+	bool bPushForceUsingZOffset;
+
 	/** If enabled, the applied push force will try to get the physics object to the same velocity than the player, not faster. This will only
 		scale the force down, it will never apply more force than defined by PushForceFactor. */
 	UPROPERTY(Category="Character Movement: Physics Interaction", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bEnablePhysicsInteraction"))
@@ -513,13 +517,19 @@ protected:
 	FVector Acceleration;
 
 	/**
-	 * Location after last PerformMovement update. Used internally to detect changes in position from outside character movement to try to validate the current floor.
+	 * Location after last PerformMovement or SimulateMovement update. Used internally to detect changes in position from outside character movement to try to validate the current floor.
 	 */
 	UPROPERTY()
 	FVector LastUpdateLocation;
 
 	/**
-	 * Velocity after last PerformMovement update. Used internally to detect changes in velocity from external sources.
+	 * Rotation after last PerformMovement or SimulateMovement update.
+	 */
+	UPROPERTY()
+	FQuat LastUpdateRotation;
+
+	/**
+	 * Velocity after last PerformMovement or SimulateMovement update. Used internally to detect changes in velocity from external sources.
 	 */
 	UPROPERTY()
 	FVector LastUpdateVelocity;
@@ -1839,6 +1849,9 @@ protected:
 
 	/** Ticks the characters pose and accumulates root motion */
 	void TickCharacterPose(float DeltaTime);
+
+	/** On the server if we know we are having our replication rate throttled, this method checks if important replicated properties have changed that should cause us to return to the normal replication rate. */
+	virtual bool ShouldCancelAdaptiveReplication() const;
 
 public:
 

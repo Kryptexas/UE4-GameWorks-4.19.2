@@ -30,8 +30,8 @@ namespace
 			if(InstancedSceneComponent != nullptr)
 			{
 				// Make a copy of the array here in case something alters the AttachChildren array during registration (e.g. Physics)
-				TArray<USceneComponent*> AttachChildren = InstancedSceneComponent->AttachChildren;
-				for(auto InstancedChildComponent : AttachChildren)
+				TArray<USceneComponent*> AttachChildren = InstancedSceneComponent->GetAttachChildren();
+				for (USceneComponent* InstancedChildComponent : AttachChildren)
 				{
 					RegisterInstancedComponent(InstancedChildComponent);
 				}

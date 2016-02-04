@@ -58,6 +58,13 @@ private:
 	bool ShouldEnableCustomCollisionSetup() const;
 	EVisibility ShouldShowCustomCollisionSetup() const;
 
+	bool IsCollisionEnabled() const;
+
+	// whether we can edit collision or if we're getting it from a default
+	EVisibility IsCollisionPresetVisible() const;
+	EVisibility IsDefaultCollisionVisible() const;
+	bool AreAllCollisionUsingDefault() const;
+
 	// utility functions between property and struct
 	void CreateCustomCollisionSetup( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailGroup& CollisionGroup );
 	void SetCollisionResponseContainer(const FCollisionResponseContainer& ResponseContainer);
@@ -72,10 +79,13 @@ private:
 
 private:
 	// property handles
+	TSharedPtr<IPropertyHandle> BodyInstanceHandle;
 	TSharedPtr<IPropertyHandle> CollisionProfileNameHandle;
 	TSharedPtr<IPropertyHandle> CollisionEnabledHandle;
 	TSharedPtr<IPropertyHandle> ObjectTypeHandle;
 	TSharedPtr<IPropertyHandle> CollisionResponsesHandle;
+	TSharedPtr<IPropertyHandle> UseDefaultCollisionHandle;
+	TSharedPtr<IPropertyHandle> StaticMeshHandle;
 
 	// widget related variables
 	TSharedPtr<class SComboBox< TSharedPtr<FString> > > CollsionProfileComboBox;
@@ -109,6 +119,7 @@ private:
 	bool IsUseAsyncEditable() const;
 
 	TOptional<float> OnGetBodyMass() const;
+	void OnSetBodyMass(float InBodyMass, ETextCommit::Type Commit);
 	bool IsBodyMassReadOnly() const;
 	EVisibility IsMassVisible(bool bOverrideMass) const;
 	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }

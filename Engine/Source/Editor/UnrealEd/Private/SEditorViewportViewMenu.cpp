@@ -110,6 +110,9 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 			case VMI_LODColoration:
 				Label = LOCTEXT("ViewMenuTitle_LODColoration", "LOD Coloration");
 				break;
+			case VMI_HLODColoration:
+				Label = LOCTEXT("ViewMenuTitle_HLODColoration", "HLOD Coloration");
+				break;
 		}
 	}
 
@@ -214,6 +217,14 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 				break;
 
 			case VMI_LODColoration:
+				Icon = LODColorationIcon;
+				break;
+
+			case VMI_HLODColoration:
+				Icon = LODColorationIcon;
+				break;
+
+			case VMI_GroupLODColoration:
 				Icon = LODColorationIcon;
 				break;
 		}

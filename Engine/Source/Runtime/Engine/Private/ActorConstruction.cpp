@@ -104,7 +104,7 @@ void AActor::DestroyConstructedComponents()
 	{
 		if (USceneComponent* BSC = Cast<USceneComponent>(&B))
 		{
-			if (BSC->AttachParent == &A)
+			if (BSC->GetAttachParent() == &A)
 			{
 				return false;
 			}
@@ -266,12 +266,12 @@ void AActor::RerunConstructionScripts()
 				{
 					USceneComponent* EachRoot = AttachedActor->GetRootComponent();
 					// If the component we are attached to is about to go away...
-					if (EachRoot && EachRoot->AttachParent && EachRoot->AttachParent->IsCreatedByConstructionScript())
+					if (EachRoot && EachRoot->GetAttachParent() && EachRoot->GetAttachParent()->IsCreatedByConstructionScript())
 					{
 						// Save info about actor to reattach
 						FAttachedActorInfo Info;
 						Info.AttachedActor = AttachedActor;
-						Info.AttachedToSocket = EachRoot->AttachSocketName;
+						Info.AttachedToSocket = EachRoot->GetAttachSocketName();
 						Info.bSetRelativeTransform = false;
 						AttachedActorInfos.Add(Info);
 
@@ -290,17 +290,17 @@ void AActor::RerunConstructionScripts()
 		if (bUseRootComponentProperties && RootComponent != nullptr)
 		{
 			// Do not need to detach if root component is not going away
-			if (RootComponent->AttachParent != NULL && RootComponent->IsCreatedByConstructionScript())
+			if (RootComponent->GetAttachParent() != NULL && RootComponent->IsCreatedByConstructionScript())
 			{
-				Parent = RootComponent->AttachParent->GetOwner();
+				Parent = RootComponent->GetAttachParent()->GetOwner();
 				// Root component should never be attached to another component in the same actor!
 				if (Parent == this)
 				{
 					UE_LOG(LogActor, Warning, TEXT("RerunConstructionScripts: RootComponent (%s) attached to another component in this Actor (%s)."), *RootComponent->GetPathName(), *Parent->GetPathName());
 					Parent = NULL;
 				}
-				AttachParentComponent = RootComponent->AttachParent;
-				SocketName = RootComponent->AttachSocketName;
+				AttachParentComponent = RootComponent->GetAttachParent();
+				SocketName = RootComponent->GetAttachSocketName();
 				//detach it to remove any scaling 
 				RootComponent->DetachFromParent(true);
 			}
@@ -376,7 +376,7 @@ void AActor::RerunConstructionScripts()
 			if (!Info.AttachedActor->IsPendingKill() && Info.AttachedActor->GetAttachParentActor() == nullptr)
 			{
 				USceneComponent* ChildRoot = Info.AttachedActor->GetRootComponent();
-				if (ChildRoot && ChildRoot->AttachParent != RootComponent)
+				if (ChildRoot && ChildRoot->GetAttachParent() != RootComponent)
 				{
 					ChildRoot->AttachTo(RootComponent, Info.AttachedToSocket, EAttachLocation::KeepWorldPosition);
 					if (Info.bSetRelativeTransform)
@@ -551,7 +551,7 @@ void AActor::ProcessUserConstructionScript()
 	for (auto SceneComponent : SceneComponents)
 	{
 		// A parent component can't be more mobile than its children, so we check for that here and adjust as needed.
-		if(SceneComponent != RootComponent && SceneComponent->AttachParent != nullptr && SceneComponent->AttachParent->Mobility > SceneComponent->Mobility)
+		if(SceneComponent != RootComponent && SceneComponent->GetAttachParent() != nullptr && SceneComponent->GetAttachParent()->Mobility > SceneComponent->Mobility)
 		{
 			if(SceneComponent->IsA<UStaticMeshComponent>())
 			{
@@ -561,7 +561,7 @@ void AActor::ProcessUserConstructionScript()
 			else
 			{
 				// Set the new component (and any children) to be at least as mobile as its parent
-				SceneComponent->SetMobility(SceneComponent->AttachParent->Mobility);
+				SceneComponent->SetMobility(SceneComponent->GetAttachParent()->Mobility);
 			}
 		}
 	}

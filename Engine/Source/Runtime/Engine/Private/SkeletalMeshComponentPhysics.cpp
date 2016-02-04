@@ -798,7 +798,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	}
 
 	FVector Scale3D = ComponentToWorld.GetScale3D();
-	float Scale = Scale3D.X;
+	const float Scale = Scale3D.GetAbsMin();
 
 	// Find root physics body
 	int32 RootBodyIndex = INDEX_NONE;
@@ -860,6 +860,8 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			BodyInst->InstanceBodyIndex = i; // Set body index 
 			BodyInst->InstanceBoneIndex = BoneIndex; // Set bone index
 
+			BodyInst->bStartAwake = BodyInstance.bStartAwake;	//We don't allow customization here. Just use whatever the component is set to
+
 			if (i == RootBodyIndex)
 			{
 				BodyInst->DOFMode = BodyInstance.DOFMode;
@@ -906,7 +908,6 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	SetRootBodyIndex(RootBodyIndex);
 
 #if WITH_PHYSX
-
 	if (PhysScene)
 	{
 		// Get the scene type from the SkeletalMeshComponent's BodyInstance
@@ -917,23 +918,6 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		if (Aggregate && Aggregate->getNbActors() > 0)
 		{
 			PScene->addAggregate(*Aggregate);
-
-			// If we've used an aggregate, InitBody would not be able to set awake status as we *must* have a scene
-			// to do that, so we reconcile this here.
-			AActor* Owner = GetOwner();
-			bool bShouldSleep = !BodyInstance.bStartAwake && (Owner && Owner->GetVelocity().SizeSquared() <= KINDA_SMALL_NUMBER);
-
-			for (FBodyInstance* Body : Bodies)
-			{
-				// Creates a DOF constraint if necessary for the body - also requires the scene to exist within the actor
-				Body->CreateDOFLock();
-
-				// Set to sleep if necessary
-				if (bShouldSleep  && Body->GetPxRigidDynamic_AssumesLocked())
-				{
-					Body->GetPxRigidDynamic_AssumesLocked()->putToSleep();
-				}
-			}
 		}
 	}
 

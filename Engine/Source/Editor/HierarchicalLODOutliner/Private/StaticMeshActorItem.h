@@ -33,7 +33,7 @@ namespace HLODOutliner
 		/** TreeItem's ID */
 		mutable FTreeItemID ID;
 
-		FStaticMeshActorItem(AActor* InStaticMeshActor);
+		FStaticMeshActorItem(const AActor* InStaticMeshActor);
 
 		//~ Begin ITreeItem Interface.
 		virtual bool CanInteract() const override;

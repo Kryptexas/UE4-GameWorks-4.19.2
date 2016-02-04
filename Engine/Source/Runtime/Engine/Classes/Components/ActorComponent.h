@@ -278,7 +278,7 @@ public:
 	/** IsSupportedForNetworking means an object can be referenced over the network */
 	virtual bool IsSupportedForNetworking() const override;
 
-	/** Enable or disable replication. This is the equivelent of RemoteRole for actors (only a bool is required for components) */
+	/** Enable or disable replication. This is the equivalent of RemoteRole for actors (only a bool is required for components) */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	void SetIsReplicated(bool ShouldReplicate);
 

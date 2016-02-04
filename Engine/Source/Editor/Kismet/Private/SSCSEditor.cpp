@@ -536,7 +536,7 @@ void FSCSEditorTreeNode::AddChild(FSCSEditorTreeNodePtrType InChildNodePtr)
 			if (ensure(ParentInstance != nullptr))
 			{
 				// Handle attachment at the instance level
-				if (ChildInstance->AttachParent != ParentInstance)
+				if (ChildInstance->GetAttachParent() != ParentInstance)
 				{
 					AActor* Owner = ParentInstance->GetOwner();
 					if (Owner->GetRootComponent() == ChildInstance)
@@ -2404,7 +2404,7 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 				{
 					// If we find a match, calculate its new position relative to the scene root component instance in its current scene
 					FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
-					FTransform ParentToWorld = SceneComponentTemplate->AttachSocketName != NAME_None ? ParentSceneComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName, RTS_World) : ParentSceneComponent->GetComponentToWorld();
+					FTransform ParentToWorld = SceneComponentTemplate->GetAttachSocketName() != NAME_None ? ParentSceneComponent->GetSocketTransform(SceneComponentTemplate->GetAttachSocketName(), RTS_World) : ParentSceneComponent->GetComponentToWorld();
 					FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
 
 					// Store new relative location value (if not set to absolute)
@@ -2539,7 +2539,7 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 			{
 				// If we find a match, calculate its new position relative to the scene root component instance in the preview scene
 				FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
-				FTransform ParentToWorld = SceneComponentTemplate->AttachSocketName != NAME_None ? InstancedSceneRootComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName, RTS_World) : InstancedSceneRootComponent->GetComponentToWorld();
+				FTransform ParentToWorld = SceneComponentTemplate->GetAttachSocketName() != NAME_None ? InstancedSceneRootComponent->GetSocketTransform(SceneComponentTemplate->GetAttachSocketName(), RTS_World) : InstancedSceneRootComponent->GetComponentToWorld();
 				FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
 
 				// Store new relative location value (if not set to absolute)
@@ -4022,9 +4022,9 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 		if(!NodePtr.IsValid() && bIncludeAttachedComponents)
 		{
 			const USceneComponent* SceneComponent = Cast<const USceneComponent>(ActorComponent);
-			if(SceneComponent && SceneComponent->AttachParent)
+			if(SceneComponent && SceneComponent->GetAttachParent())
 			{
-				return GetNodeFromActorComponent(SceneComponent->AttachParent, bIncludeAttachedComponents);
+				return GetNodeFromActorComponent(SceneComponent->GetAttachParent(), bIncludeAttachedComponents);
 			}
 		}
 	}
@@ -5261,21 +5261,21 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNodeFromComponent(USceneComponent* 
 	ensure(!InSceneComponent->IsPendingKill());
 
 	// If the given component has a parent, and if we're not in "instance" mode OR the owner of the parent matches the Actor instance we're editing
-	if(InSceneComponent->AttachParent != NULL
-		&& (EditorMode != EComponentEditorMode::ActorInstance || InSceneComponent->AttachParent->GetOwner() == GetActorContext()))
+	if(InSceneComponent->GetAttachParent() != NULL
+		&& (EditorMode != EComponentEditorMode::ActorInstance || InSceneComponent->GetAttachParent()->GetOwner() == GetActorContext()))
 	{
 		// Attempt to find the parent node in the current tree
-		FSCSEditorTreeNodePtrType ParentNodePtr = FindTreeNode(InSceneComponent->AttachParent);
+		FSCSEditorTreeNodePtrType ParentNodePtr = FindTreeNode(InSceneComponent->GetAttachParent());
 		if(!ParentNodePtr.IsValid())
 		{
 			// If the actual attach parent wasn't found, attempt to find its archetype.
 			// This handles the BP editor case where we might add UCS component nodes taken
 			// from the preview actor instance, which are not themselves template objects.
-			ParentNodePtr = FindTreeNode(Cast<USceneComponent>(InSceneComponent->AttachParent->GetArchetype()));
+			ParentNodePtr = FindTreeNode(Cast<USceneComponent>(InSceneComponent->GetAttachParent()->GetArchetype()));
 			if(!ParentNodePtr.IsValid())
 			{
 				// Recursively add the parent node to the tree if it does not exist yet
-				ParentNodePtr = AddTreeNodeFromComponent(InSceneComponent->AttachParent);
+				ParentNodePtr = AddTreeNodeFromComponent(InSceneComponent->GetAttachParent());
 			}
 		}
 

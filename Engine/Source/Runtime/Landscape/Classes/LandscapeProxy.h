@@ -493,6 +493,10 @@ public:
 	int32 MaxPaintedLayersPerComponent; // 0 = disabled
 #endif
 
+	/** Flag whether or not this Landscape's surface can be used for culling hidden triangles **/
+	UPROPERTY(EditAnywhere, Category = HLOD)
+	bool bUseLandscapeForCullingInvisibleHLODVertices;
+
 public:
 
 #if WITH_EDITOR

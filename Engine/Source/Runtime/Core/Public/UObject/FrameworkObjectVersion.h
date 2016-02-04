@@ -9,6 +9,8 @@ struct CORE_API FFrameworkObjectVersion
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
 
+		// BodySetup's default instance collision profile is used by default when creating a new instance.
+		UseBodySetupCollisionProfile,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

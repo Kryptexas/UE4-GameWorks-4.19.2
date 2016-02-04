@@ -283,6 +283,7 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 			bPostProcessing = false;
 			break;
 		case VMI_LODColoration:
+		case VMI_HLODColoration:
 			bPostProcessing = true;
 			break;
 	}
@@ -315,6 +316,7 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 	EngineShowFlags.SetCollisionVisibility(ViewModeIndex == VMI_CollisionVisibility);
 	EngineShowFlags.SetVertexDensities(ViewModeIndex == VMI_VertexDensities);
 	EngineShowFlags.SetLODColoration(ViewModeIndex == VMI_LODColoration);
+	EngineShowFlags.SetHLODColoration(ViewModeIndex == VMI_HLODColoration);
 }
 
 void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex ViewModeIndex, FEngineShowFlags& EngineShowFlags, FName CurrentBufferVisualizationMode, bool bIsSplitScreen)
@@ -442,7 +444,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			EngineShowFlags.AtmosphericFog = 0;
 		}
 
-		if( ViewModeIndex == VMI_LODColoration )
+		if (ViewModeIndex == VMI_LODColoration || ViewModeIndex == VMI_HLODColoration)
 		{
 			EngineShowFlags.SetLighting(true);	// Best currently otherwise the image becomes hard to read.
 			EngineShowFlags.Fog = 0;			// Removed fog to improve color readability.
@@ -616,6 +618,10 @@ EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags)
 	{
 		return VMI_LODColoration;
 	}
+	else if (EngineShowFlags.HLODColoration)
+	{
+		return VMI_HLODColoration;
+	}
 
 	return EngineShowFlags.Lighting ? VMI_Lit : VMI_Unlit;
 }
@@ -645,6 +651,7 @@ const TCHAR* GetViewModeName(EViewModeIndex ViewModeIndex)
 		case VMI_CollisionVisibility:		return TEXT("CollisionVis");
 		case VMI_VertexDensities:			return TEXT("VertexDensity");
 		case VMI_LODColoration:				return TEXT("LODColoration");
+		case VMI_HLODColoration:				return TEXT("HLODColoration");
 	}
 	return TEXT("");
 }

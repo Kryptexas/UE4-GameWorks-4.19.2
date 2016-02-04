@@ -179,7 +179,7 @@ private:
 	/** Range stack */
 	TArray<FVector2D> RangeStack;
 	/** When > 0, we should not show context menus */
-	int32 ContextMenuSupression;
+	int32 ContextMenuSuppression;
 	friend FContextMenuSuppressor;
 };
 
@@ -188,11 +188,11 @@ struct FContextMenuSuppressor
 	FContextMenuSuppressor(TSharedRef<FSequencerTimeSliderController> InTimeSliderController)
 		: TimeSliderController(InTimeSliderController)
 	{
-		++TimeSliderController->ContextMenuSupression;
+		++TimeSliderController->ContextMenuSuppression;
 	}
 	~FContextMenuSuppressor()
 	{
-		--TimeSliderController->ContextMenuSupression;
+		--TimeSliderController->ContextMenuSuppression;
 	}
 
 private:

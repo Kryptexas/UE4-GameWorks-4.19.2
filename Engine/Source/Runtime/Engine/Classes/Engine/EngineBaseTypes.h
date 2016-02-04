@@ -872,13 +872,17 @@ enum EViewModeIndex
 	VMI_CollisionVisibility = 16, 
 	VMI_VertexDensities = 17,
 	/** Colored according to the current LOD index. */
-	VMI_LODColoration = 18,
+	VMI_LODColoration = 18,	
 	/** Colored according to the quad coverage. */
 	VMI_QuadComplexity = 19,
 	/** Colored according to the accuracy of the texture streamer wanted mips computation. */
 	VMI_WantedMipsAccuracy = 20,
 	/** Colored according to the texel factor accuracy. */
 	VMI_TexelFactorAccuracy = 21,
+	/** Colored according to the current HLOD index. */
+	VMI_HLODColoration = 22,
+	/** Group item for LOD and HLOD coloration*/
+	VMI_GroupLODColoration = 23,
 
 	VMI_Max UMETA(Hidden),
 

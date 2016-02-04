@@ -3316,7 +3316,7 @@ void ALandscapeProxy::RecreateCollisionComponents()
 		Component->DestroyComponent();
 	}
 
-	TArray<USceneComponent*> AttachedCollisionComponents = RootComponent->AttachChildren.FilterByPredicate(
+	TArray<USceneComponent*> AttachedCollisionComponents = RootComponent->GetAttachChildren().FilterByPredicate(
 		[](USceneComponent* Component)
 	{
 		return Cast<ULandscapeHeightfieldCollisionComponent>(Component);

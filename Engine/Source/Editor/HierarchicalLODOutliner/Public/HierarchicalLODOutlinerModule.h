@@ -3,6 +3,9 @@
 #include "ModuleInterface.h"
 #include "UnrealEd.h"
 
+
+namespace HLODOutliner { class SHLODOutliner; };
+
 /**
 * The module holding all of the UI related pieces for HLOD Outliner
 */
@@ -26,4 +29,5 @@ public:
 
 private:
 	FDelegateHandle ArrayChangedDelegate;
+	TSharedPtr<HLODOutliner::SHLODOutliner> HLODWindow;
 };

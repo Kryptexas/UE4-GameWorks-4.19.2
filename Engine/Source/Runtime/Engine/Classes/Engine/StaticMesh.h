@@ -347,6 +347,14 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, transient, duplicatetransient, Instanced, Category = StaticMesh)
 	class UBodySetup* BodySetup;
 
+	/** 
+	 *	Specifies which mesh LOD to use for complex (per-poly) collision. 
+	 *	Sometimes it can be desirable to use a lower poly representation for collision to reduce memory usage, improve performance and behaviour.
+	 *	Collision representation does not change based on distance to camera.
+	 */
+	UPROPERTY(EditAnywhere,  Category = StaticMesh)
+	int32 LODForCollision;
+
 	/** True if mesh should use a less-conservative method of mip LOD texture factor computation.
 		requires mesh to be resaved to take effect as algorithm is applied on save. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ToolTip="If true, use a less-conservative method of mip LOD texture factor computation.  Requires mesh to be resaved to take effect as algorithm is applied on save"))

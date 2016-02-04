@@ -184,9 +184,18 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(transient)
 	uint32 bForceNavigationObstacle : 1;
 
+	/** Use the collision profile specified in the StaticMesh asset.*/
+	UPROPERTY(EditAnywhere, Category = Collision)
+	uint32 bUseDefaultCollision : 1;
+
 	/** If true, mesh painting is disallowed on this instance. Set if vertex colors are overridden in a construction script. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Rendering)
 	uint32 bDisallowMeshPaintPerInstance : 1;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** Option to draw mesh collision in wireframe */
+	uint32 bDrawMeshCollisionWireframe : 1;
+#endif
 
 	/**
 	 *	Ignore this instance of this static mesh when calculating streaming information.
@@ -252,6 +261,8 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")
 	void GetLocalBounds(FVector& Min, FVector& Max) const;
+
+	virtual void SetCollisionProfileName(FName InCollisionProfileName) override;
 
 public:
 
@@ -436,6 +447,12 @@ public:
 	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
 	*/
 	void SetSectionPreview(int32 InSectionIndexPreview);
+	
+	/** Sets the BodyInstance to use the mesh's body setup for external collision information*/
+	void UpdateCollisionFromStaticMesh();
+
+	/** Whether or not the component supports default collision from its static mesh asset */
+	virtual bool SupportsDefaultCollision();
 
 private:
 	/** Initializes the resources used by the static mesh component. */

@@ -192,6 +192,81 @@ void UNetDriver::AssertValid()
 {
 }
 
+/*static*/ bool UNetDriver::IsAdaptiveNetUpdateFrequencyEnabled()
+{
+	const bool bUseAdapativeNetFrequency = CVarUseAdaptiveNetUpdateFrequency.GetValueOnGameThread() > 0;
+	return bUseAdapativeNetFrequency;
+}
+
+FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor)
+{
+	FNetworkObjectInfo* NetActor = nullptr;
+	if (InActor)
+	{
+		// TODO: this Find() operation is implicitly creating a TSharedPtr and causing a malloc.
+		// note: const_cast<> required because the set keys are not const.
+		TSharedPtr<FNetworkObjectInfo>* NetActorInfo = GetNetworkObjectList().GetObjects().Find(const_cast<AActor*>(InActor));
+		NetActor = (NetActorInfo ? NetActorInfo->Get() : nullptr);
+	}
+	return NetActor;
+}
+
+const FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor) const
+{
+	return const_cast<UNetDriver*>(this)->GetNetworkActor(InActor);
+}
+
+bool UNetDriver::IsNetworkActorUpdateFrequencyThrottled(const FNetworkObjectInfo& InNetworkActor) const
+{
+	bool bThrottled = false;
+	if (IsAdaptiveNetUpdateFrequencyEnabled())
+	{
+		// Must have been replicated once for this to happen (and for OptimalNetUpdateDelta to have been set)
+		const AActor* Actor = InNetworkActor.Actor;
+		if (Actor && InNetworkActor.LastNetReplicateTime != 0)
+		{
+			const float ExpectedNetDelay = (1.0f / Actor->NetUpdateFrequency);
+			if (InNetworkActor.OptimalNetUpdateDelta > ExpectedNetDelay)
+			{
+				bThrottled = true;
+			}
+		}
+	}
+
+	return bThrottled;
+}
+
+bool UNetDriver::IsNetworkActorUpdateFrequencyThrottled(const AActor* InActor) const
+{
+	bool bThrottled = false;
+	if (InActor && IsAdaptiveNetUpdateFrequencyEnabled())
+	{
+		if (const FNetworkObjectInfo* NetActor = GetNetworkActor(InActor))
+		{
+			bThrottled = IsNetworkActorUpdateFrequencyThrottled(*NetActor);
+		}
+	}
+
+	return bThrottled;
+}
+
+void UNetDriver::CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor)
+{
+	if (IsAdaptiveNetUpdateFrequencyEnabled())
+	{
+		if (AActor* Actor = InNetworkActor.Actor)
+		{
+			if (UWorld* World = Actor->GetWorld())
+			{
+				const float ExpectedNetDelay = (1.0f / Actor->NetUpdateFrequency);
+				Actor->SetNetUpdateTime(FMath::Min(Actor->NetUpdateTime, World->GetTimeSeconds() + FMath::FRandRange(0.5f, 1.0f) * ExpectedNetDelay));
+				InNetworkActor.OptimalNetUpdateDelta = ExpectedNetDelay;
+				// TODO: we really need a way to cancel the throttling completely. OptimalNetUpdateDelta is going to be recalculated based on LastNetReplicateTime.
+			}
+		}
+	}
+}
+
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
 #if USE_SERVER_PERF_COUNTERS
@@ -2140,7 +2215,7 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 
 	int32 NumInitiallyDormant = 0;
 
-	const bool bUseAdapativeNetFrequency = CVarUseAdaptiveNetUpdateFrequency.GetValueOnGameThread() > 0;
+	const bool bUseAdapativeNetFrequency = IsAdaptiveNetUpdateFrequencyEnabled();
 
 	for ( auto ActorIt = GetNetworkObjectList().GetObjects().CreateIterator(); ActorIt; ++ActorIt )
 	{

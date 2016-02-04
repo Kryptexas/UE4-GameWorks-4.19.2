@@ -281,7 +281,7 @@ static void SortActorsHierarchy(TArray<AActor*>& Actors)
 			Depth = 0;
 			if (InActor->GetRootComponent())
 			{
-				for (const USceneComponent* Test = InActor->GetRootComponent()->AttachParent; Test != nullptr; Test = Test->AttachParent, Depth++);
+				for (const USceneComponent* Test = InActor->GetRootComponent()->GetAttachParent(); Test != nullptr; Test = Test->GetAttachParent(), Depth++);
 			}
 		}
 		return Depth;

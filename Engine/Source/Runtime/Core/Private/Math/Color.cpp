@@ -235,9 +235,9 @@ FLinearColor FLinearColor::LinearRGBToHSV() const
 	const float RGBRange = RGBMax - RGBMin;
 
 	const float Hue = (RGBMax == RGBMin ? 0.0f :
-					   RGBMax == R    ? fmod((((G - B) / RGBRange) * 60.0f) + 360.0f, 360.0f) :
-					   RGBMax == G    ?      (((B - R) / RGBRange) * 60.0f) + 120.0f :
-					   RGBMax == B    ?      (((R - G) / RGBRange) * 60.0f) + 240.0f :
+					   RGBMax == R    ? FMath::Fmod((((G - B) / RGBRange) * 60.0f) + 360.0f, 360.0f) :
+					   RGBMax == G    ?             (((B - R) / RGBRange) * 60.0f) + 120.0f :
+					   RGBMax == B    ?             (((R - G) / RGBRange) * 60.0f) + 240.0f :
 					   0.0f);
 	
 	const float Saturation = (RGBMax == 0.0f ? 0.0f : RGBRange / RGBMax);

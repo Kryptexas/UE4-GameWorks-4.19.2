@@ -582,12 +582,23 @@ float FWaveInstance::GetActualVolume() const
 	return Volume * VolumeMultiplier;
 }
 
+bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
+{
+	return ActiveSound->bShouldStopDueToMaxConcurrency;
+}
+
 float FWaveInstance::GetVolumeWeightedPriority() const
 {
-	check(ActiveSound);
-	// If this wave instance's active sound should stop due to max concurrency, return a large negative weighted priority so 
-	// that it will always be sorted to the bottom of the WaveInstance list and stopped.
-	return ActiveSound->bShouldStopDueToMaxConcurrency ? -100.0f : GetActualVolume() * Priority;
+	// This will result in zero-volume sounds still able to be sorted due to priority but give non-zero volumes higher priority than 0 volumes
+	float ActualVolume = GetActualVolume();
+	if (ActualVolume > 0.0f)
+	{
+		return GetActualVolume() * Priority;
+	}
+	else
+	{
+		return Priority - MAX_SOUND_PRIORITY - 1;
+	}
 }
 
 bool FWaveInstance::IsStreaming() const

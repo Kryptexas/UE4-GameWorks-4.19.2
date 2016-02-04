@@ -7,6 +7,9 @@
 /** Structure holding intermediate mesh merging data that is used throughout the mesh merging and proxy creation processes */
 struct FMeshMergeData
 {
+	FMeshMergeData()
+		: SourceStaticMesh(nullptr)
+	{}
 	/** Raw mesh data from the source static mesh */
 	FRawMesh RawMesh;	
 	/** Contains the original texture bounds, if the material requires baking down per-vertex data */

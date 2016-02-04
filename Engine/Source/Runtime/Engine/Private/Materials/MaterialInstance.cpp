@@ -2640,7 +2640,7 @@ bool UMaterialInstance::IsPropertyActive(EMaterialProperty InProperty) const
 {
 	if(InProperty == MP_DiffuseColor || InProperty == MP_SpecularColor)
 	{
-		// to supress some CompilePropertyEx calls
+		// to suppress some CompilePropertyEx calls
 		return false;
 	}
 

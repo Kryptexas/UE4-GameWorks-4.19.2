@@ -198,7 +198,7 @@ bool UUnrealEdEngine::WarnIfDestinationLevelIsHidden( UWorld* InWorld )
 {
 	bool result = false;
 	//prepare the warning dialog
-	FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT( "Warning_PasteWarningBody","You are trying to paste to a hidden level.\nSupressing this will default to Do Not Paste" ), LOCTEXT( "Warning_PasteWarningHeader","Pasting To Hidden Level" ), "PasteHiddenWarning" );
+	FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT( "Warning_PasteWarningBody","You are trying to paste to a hidden level.\nSuppressing this will default to Do Not Paste" ), LOCTEXT( "Warning_PasteWarningHeader","Pasting To Hidden Level" ), "PasteHiddenWarning" );
 	Info.ConfirmText = LOCTEXT( "Warning_PasteContinue","Unhide Level and paste" );
 	Info.CancelText = LOCTEXT( "Warning_PasteCancel","Do not paste" );
 	FSuppressableWarningDialog PasteHiddenWarning( Info );

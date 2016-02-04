@@ -2813,6 +2813,10 @@ FORCEINLINE_DEBUGGABLE ENetRole AActor::GetRemoteRole() const
 	return RemoteRole;
 }
 
+FORCEINLINE_DEBUGGABLE void AActor::SetNetUpdateTime(float NewUpdateTime)
+{
+	NetUpdateTime = NewUpdateTime;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Macro to hide common Transform functions in native code for classes where they don't make sense.

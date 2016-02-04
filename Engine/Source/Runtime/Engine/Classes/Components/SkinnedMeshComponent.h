@@ -954,4 +954,32 @@ public:
 	virtual bool IsPlayingRootMotionFromEverything(){ return false; }
 
 	bool ShouldUseUpdateRateOptimizations() const;
+
+	friend class FRenderStateRecreator;
+};
+
+class FRenderStateRecreator
+{
+	bool bWasRenderStateCreated;
+	USkinnedMeshComponent* Component;
+
+public:
+
+	FRenderStateRecreator(USkinnedMeshComponent* InActorComponent)
+	{
+		Component = InActorComponent;
+		bWasRenderStateCreated = Component->IsRenderStateCreated();
+		if (bWasRenderStateCreated)
+		{
+			Component->DestroyRenderState_Concurrent();
+		}
+	}
+
+	~FRenderStateRecreator()
+	{
+		if (bWasRenderStateCreated)
+		{
+			Component->CreateRenderState_Concurrent();
+		}
+	}
 };

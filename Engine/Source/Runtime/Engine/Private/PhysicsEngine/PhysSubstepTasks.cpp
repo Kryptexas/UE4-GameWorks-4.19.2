@@ -4,8 +4,6 @@
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
-#if WITH_SUBSTEPPING
-
 #if WITH_PHYSX
 #include "PhysXSupport.h"
 #include "../Vehicles/PhysXVehicleManager.h"
@@ -457,5 +455,3 @@ void FPhysSubstepTask::SetVehicleManager(FPhysXVehicleManager * InVehicleManager
 {
 	VehicleManager = InVehicleManager;
 }
-
-#endif //if WITH_SUBSTEPPING

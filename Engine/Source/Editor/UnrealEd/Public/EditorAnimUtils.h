@@ -156,6 +156,59 @@ namespace EditorAnimUtils
 		return ReturnMap;
 	}
 
+	void GetBlueprintAssetVariableProperties(UAnimBlueprint* InBlueprint, TArray<UProperty*>& OutSimpleProperties, TArray<UProperty*>& OutComplexProperties);
+
+	template<class AssetType>
+	void GetAssetsFromProperties(TArray<UProperty*> InProperties, UObject* Scope, TArray<AssetType*>& OutAssets)
+	{
+		check(Scope);
+
+		OutAssets.Empty();
+		for(UProperty* Prop : InProperties)
+		{
+			if(Prop)
+			{
+				if(UArrayProperty* ArrayProp = Cast<UArrayProperty>(Prop))
+				{
+					// Blueprint array
+					FScriptArrayHelper Helper(ArrayProp, Prop->ContainerPtrToValuePtr<uint8>(Scope));
+					const int32 ArrayNum = Helper.Num();
+					for(int32 Idx = 0; Idx < ArrayNum; ++Idx)
+					{
+						// These were gathered from UObject types so we know this should succeed
+						UObject** Object = (UObject**)Helper.GetRawPtr(Idx);
+						if(AssetType* Asset = Cast<AssetType>(*Object))
+						{
+							OutAssets.Add(Asset);
+						}
+					}
+				}
+				else if(Prop->ArrayDim > 1)
+				{
+					// Native array
+					for(int32 Idx = 0; Idx < Prop->ArrayDim; ++Idx)
+					{
+						if(UObject** ResolvedObject = Prop->ContainerPtrToValuePtr<UObject*>(Scope, Idx))
+						{
+							if(AssetType* Asset = Cast<AssetType>(*ResolvedObject))
+							{
+								OutAssets.Add(Asset);
+							}
+						}
+					}
+				}
+				else if(UObject** ResolvedObject = Prop->ContainerPtrToValuePtr<UObject*>(Scope))
+				{
+					// Normal property
+					if(AssetType* Asset = Cast<AssetType>(*ResolvedObject))
+					{
+						OutAssets.Add(Asset);
+					}
+				}
+			}
+		}
+	}
+
 	// utility functions
 	UNREALED_API void CopyAnimCurves(USkeleton* OldSkeleton, USkeleton* NewSkeleton, UAnimSequenceBase *SequenceBase, const FName ContainerName, FRawCurveTracks::ESupportedCurveType CurveType );
 } // namespace EditorAnimUtils

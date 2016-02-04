@@ -275,5 +275,8 @@ protected:
 
 	/** Routes the FConstraint callback to the dynamic delegate */
 	void OnConstraintBrokenHandler(FConstraintInstance* BrokenConstraint);
+
+	/** Returns the scale of the constraint as it will be passed into the ConstraintInstance*/
+	float GetConstraintScale() const;
 };
 

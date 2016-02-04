@@ -3136,7 +3136,7 @@ void FParticleAnimTrailEmitterInstance::SpawnParticle( int32& StartParticleIndex
 //	}
 //	else
 	{
-		UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->AttachParent);
+		UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->GetAttachParent());
 		check(TrailTypeData);
 		check(MeshComp);
 
@@ -3427,7 +3427,7 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	bool bTilingTrail = !FMath::IsNearlyZero(TrailTypeData->TilingDistance);
 
 	//The mesh we're sampline socket locations from.
-	UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->AttachParent);
+	UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->GetAttachParent());
 
 	check(TrailTypeData);
 	// Don't allow new spawning if the emitter is finished

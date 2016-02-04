@@ -78,6 +78,9 @@ struct FMeshBatch
 	/** Conceptual LOD index used for the LOD Coloration visualization. */
 	int8 VisualizeLODIndex;
 
+	/** Conceptual HLOD index used for the HLOD Coloration visualization. */
+	int8 VisualizeHLODIndex;
+
 	uint32 UseDynamicData : 1;
 	uint32 ReverseCulling : 1;
 	uint32 bDisableBackfaceCulling : 1;
@@ -203,6 +206,7 @@ struct FMeshBatch
 	:	DynamicVertexStride(0)
 	,	LODIndex(INDEX_NONE)
 	,	VisualizeLODIndex(INDEX_NONE)
+	,	VisualizeHLODIndex(INDEX_NONE)
 	,	UseDynamicData(false)
 	,	ReverseCulling(false)
 	,	bDisableBackfaceCulling(false)

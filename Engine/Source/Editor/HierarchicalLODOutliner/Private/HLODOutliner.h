@@ -203,13 +203,6 @@ namespace HLODOutliner
 		void RemoveLODActorFromCluster();
 		
 		/**
-		* Destroys an LODActor instance
-		*
-		* @param InActor - ALODActor to destroy
-		*/
-		void DestroyLODActor(ALODActor* InActor);
-
-		/**
 		* Updates the DrawDistance value for all the LODActors with the given LODLevelIndex
 		*
 		* @param LODLevelIndex -
@@ -289,12 +282,20 @@ namespace HLODOutliner
 		void SelectActorInViewport(AActor* Actor, const uint32 SelectionDepth = 0);
 
 		/**
-		* Selects actors and sub-actors for the given LODActor
+		* Selects actors and sub-actors and the given LODActor
 		*
 		* @param LODActor - Actor to select + subactors
 		* @param SelectionDepth - (recursive)
 		*/
 		void SelectLODActorAndContainedActorsInViewport(ALODActor* LODActor, const uint32 SelectionDepth = 0);
+
+		/**
+		* Selects actors and sub-actors for the given LODActor
+		*
+		* @param LODActor - Actor to select + subactors
+		* @param SelectionDepth - (recursive)
+		*/
+		void SelectContainedActorsInViewport(ALODActor* LODActor, const uint32 SelectionDepth = 0);
 
 		/**
 		* Creates a ASelectionActor for the given actor, "procedurally" drawing its bounds
@@ -304,16 +305,8 @@ namespace HLODOutliner
 		*/
 		UDrawSphereComponent* CreateBoundingSphereForActor(AActor* Actor);
 
-		/**
-		* Extracts all the Static Mesh Actors from the given LODActor's SubActors array
-		*
-		* @param LODActor - LODActors to check the SubActors array for
-		* @param InOutActors - Array to fill with Static Mesh Actors
-		*/
-		void ExtractStaticMeshActorsFromLODActor(ALODActor* LODActor, TArray<AActor*> &InOutActors);
-	
-		/** Ends the Editor selection batch */
-		void EndSelection();
+		/** Ends the Editor selection batch, bChange determines whether or not there was an actual change and call NoteSelectionChange */
+		void EndSelection(const bool bChange);
 
 	protected:
 		/** Broadcast event delegates */
@@ -342,6 +335,9 @@ namespace HLODOutliner
 		/** Called when the current level has changed */
 		void OnNewCurrentLevel();
 
+		/** Called when a new map is being loaded */
+		void OnMapLoaded(const FString&  Filename, bool bAsTemplate);
+
 		/** Called when a HLODActor is moved between clusters */
 		void OnHLODActorMovedEvent(const AActor* InActor, const AActor* ParentActor);
 
@@ -360,10 +356,13 @@ namespace HLODOutliner
 		/** Called when the HLOD Levels array within WorldSettings changed */
 		void OnHLODLevelsArrayChangedEvent();
 
+		/** Called when an Actor is removed from a cluster */
+		void OnHLODActorRemovedFromClusterEvent(const AActor* InActor, const AActor* ParentActor);
+
 		/** End of Broadcast event delegates */
 
 		/** Callback function used to check if Hierarchical LOD functionality is enabled in the current world settings */
-		bool IsHLODEnabledInWorldSettings();
+		bool IsHLODEnabledInWorldSettings() const;
 	private:
 		/** Tells the scene outliner that it should do a full refresh, which will clear the entire tree and rebuild it from scratch. */
 		void FullRefresh();
@@ -440,7 +439,7 @@ namespace HLODOutliner
 		TAttribute<bool> EnabledAttribute;
 	
 		/** Map containing all the nodes with their corresponding keys */
-		TMap<FTreeItemID, FTreeItemPtr> TreeItemsMap;
+		TMultiMap<FTreeItemID, FTreeItemPtr> TreeItemsMap;
 
 		/** Array of pending OutlinerActions */
 		TArray<FOutlinerAction> PendingActions;

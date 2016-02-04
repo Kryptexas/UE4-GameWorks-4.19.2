@@ -152,9 +152,9 @@ void FFolderDropTarget::OnDrop(FDragDropPayload& DraggedObjects, UWorld& World, 
 			auto* RootComp = Parent->GetRootComponent();
 
 			// We don't detach if it's a child of another that's been dragged
-			if (RootComp && RootComp->AttachParent && !ChildActors.Contains(Parent))
+			if (RootComp && RootComp->GetAttachParent() && !ChildActors.Contains(Parent))
 			{
-				if (AActor* OldParentActor = RootComp->AttachParent->GetOwner())
+				if (AActor* OldParentActor = RootComp->GetAttachParent()->GetOwner())
 				{
 					OldParentActor->Modify();
 				}

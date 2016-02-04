@@ -45,7 +45,7 @@ FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 	OverlapInfo.Item = InBodyIndex;
 }
 
-const FName& USceneComponent::GetDefaultSceneRootVariableName()
+FName USceneComponent::GetDefaultSceneRootVariableName()
 {
 	return SceneComponentStatics::DefaultSceneRootVariableName;
 }
@@ -177,15 +177,26 @@ static int32 SetAncestorMobility(USceneComponent const* SceneComponentObject, EC
 		if (ShouldOverrideMobility.Execute(AttachedParent->Mobility))
 		{
 			// USceneComponents shouldn't be set Stationary 
-			if ((NewMobilityType == EComponentMobility::Stationary) && AttachedParent->IsA(UStaticMeshComponent::StaticClass()))
+			switch(NewMobilityType)
 			{
-				// make it Static (because it is acceptable for Stationary children to have Static parents)
-				AttachedParent->Mobility = EComponentMobility::Static;
-			}
-			else
-			{
+			case EComponentMobility::Stationary:
+				if (UStaticMeshComponent* StaticMeshParent = Cast<UStaticMeshComponent>(AttachedParent))
+				{
+					// make it Static (because it is acceptable for Stationary children to have Static parents)
+					StaticMeshParent->Mobility = EComponentMobility::Static;
+					StaticMeshParent->SetSimulatePhysics(false);
+				}
+				break;
+			case EComponentMobility::Static:
+				if (UPrimitiveComponent* PrimitiveComponentParent = Cast<UPrimitiveComponent>(AttachedParent))
+				{
+					PrimitiveComponentParent->SetSimulatePhysics(false);
+				}
+				//FALLTHROUGH: we still want to set mobility
+			default:
 				AttachedParent->Mobility = NewMobilityType;
 			}
+
 			++MobilityAlteredCount;
 		}
 		SceneComponentObject = AttachedParent;
@@ -1338,9 +1349,9 @@ void USceneComponent::AppendDescendants(TArray<USceneComponent*>& Children) cons
 }
 
 //This function is used for giving AttachTo different bWeldSimulatedBodies default, but only when called from BP
-void USceneComponent::K2_AttachTo(class USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType, bool bWeldSimulatedBodies /*= true*/)
+bool USceneComponent::K2_AttachTo(class USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType, bool bWeldSimulatedBodies /*= true*/)
 {
-	AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
+	return AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
 }
 
 bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName, EAttachLocation::Type AttachType /*= EAttachLocation::KeepRelativeOffset */, bool bWeldSimulatedBodies /*= false*/)
@@ -1610,9 +1621,9 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 	return false;
 }
 
-void USceneComponent::SnapTo(class USceneComponent* Parent, FName InSocketName)
+bool USceneComponent::SnapTo(class USceneComponent* Parent, FName InSocketName)
 {
-	AttachTo(Parent, InSocketName, EAttachLocation::SnapToTarget);
+	return AttachTo(Parent, InSocketName, EAttachLocation::SnapToTarget);
 }
 
 void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallModify)

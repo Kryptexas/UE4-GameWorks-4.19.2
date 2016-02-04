@@ -104,12 +104,12 @@ public:
 struct FMorphGPUSkinVertex
 {
 	FVector			DeltaPosition;
-	FPackedNormal	DeltaTangentZ;
+	FVector			DeltaTangentZ;
 
 	FMorphGPUSkinVertex() {};
 	
 	/** Construct for special case **/
-	FMorphGPUSkinVertex(const FVector& InDeltaPosition, const FPackedNormal& InDeltaTangentZ)
+	FMorphGPUSkinVertex(const FVector& InDeltaPosition, const FVector& InDeltaTangentZ)
 	{
 		DeltaPosition = InDeltaPosition;
 		DeltaTangentZ = InDeltaTangentZ;

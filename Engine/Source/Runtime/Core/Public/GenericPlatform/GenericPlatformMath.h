@@ -243,8 +243,17 @@ struct FGenericPlatformMath
 			FmodReportError(X, Y);
 			return 0.f;
 		}
-		const float IntPortion = TruncToFloat(X / Y);
-		const float Result = X - Y * IntPortion;
+		const float Quotient = TruncToFloat(X / Y);
+		float IntPortion = Y * Quotient;
+
+		// Rounding and imprecision could cause IntPortion to exceed X and cause the result to be outside the expected range.
+		// For example Fmod(55.8, 9.3) would result in a very small negative value!
+		if (fabsf(IntPortion) > fabsf(X))
+		{
+			IntPortion = X;
+		}
+
+		const float Result = X - IntPortion;
 		return Result;
 	}
 

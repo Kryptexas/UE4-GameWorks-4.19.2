@@ -3231,7 +3231,7 @@ bool UKismetSystemLibrary::IsControllerAssignedToGamepad(int32 ControllerId)
 	return FPlatformMisc::IsControllerAssignedToGamepad(ControllerId);
 }
 
-void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState)
+void UKismetSystemLibrary::SetSuppressViewportTransitionMessage(UObject* WorldContextObject, bool bState)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World && World->GetFirstLocalPlayerFromController() != nullptr && World->GetFirstLocalPlayerFromController()->ViewportClient != nullptr )

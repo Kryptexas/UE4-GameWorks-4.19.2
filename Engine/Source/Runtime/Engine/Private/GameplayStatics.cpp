@@ -905,7 +905,7 @@ UAudioComponent* UGameplayStatics::CreateSound2D(UObject* WorldContextObject, cl
 		AudioComponent->bAllowSpatialization = false;
 		AudioComponent->bIsUISound = true;
 		AudioComponent->bAutoDestroy = true;
-		AudioComponent->SubtitlePriority = 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?		
+		AudioComponent->SubtitlePriority = Sound->GetSubtitlePriority();
 	}
 	return AudioComponent;
 }
@@ -988,7 +988,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 	FVector TestLocation = Location;
 	if (LocationType != EAttachLocation::KeepWorldPosition)
 	{
-		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+		TestLocation = AttachToComponent->GetComponentTransform().TransformPosition(Location);
 	}
 
 	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings, ConcurrencySettings);

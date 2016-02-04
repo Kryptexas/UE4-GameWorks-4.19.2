@@ -579,9 +579,9 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 
 	// Detach from anything we were attached to
 	USceneComponent* RootComp = ThisActor->GetRootComponent();
-	if( RootComp != NULL && RootComp->AttachParent != NULL)
+	if( RootComp != nullptr && RootComp->GetAttachParent() != nullptr)
 	{
-		AActor* OldParentActor = RootComp->AttachParent->GetOwner();
+		AActor* OldParentActor = RootComp->GetAttachParent()->GetOwner();
 		if (OldParentActor)
 		{
 			OldParentActor->Modify();

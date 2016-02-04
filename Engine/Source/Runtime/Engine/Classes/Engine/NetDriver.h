@@ -583,10 +583,32 @@ public:
 	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const { return nullptr; }
 
 	/** Returns the object that manages the list of replicated UObjects. */
-	ENGINE_API virtual FNetworkObjectList& GetNetworkObjectList() { return *NetworkObjects; }
+	ENGINE_API FNetworkObjectList& GetNetworkObjectList() { return *NetworkObjects; }
 
 	/** Returns the object that manages the list of replicated UObjects. */
-	ENGINE_API virtual const FNetworkObjectList& GetNetworkObjectList() const { return *NetworkObjects; }
+	ENGINE_API const FNetworkObjectList& GetNetworkObjectList() const { return *NetworkObjects; }
+
+	/** Get the network object matching the given Actor, or null if not found. */
+	ENGINE_API const FNetworkObjectInfo* GetNetworkActor(const AActor* InActor) const;
+
+	/** Get the network object matching the given Actor, or null if not found. */
+	ENGINE_API FNetworkObjectInfo* GetNetworkActor(const AActor* InActor);
+
+	/**
+	 * Returns whether adaptive net frequency is enabled. If enabled, update frequency is allowed to ramp down to MinNetUpdateFrequency for an actor when no replicated properties have changed.
+	 * This is currently controlled by the CVar "net.UseAdaptiveNetUpdateFrequency".
+	 */
+	ENGINE_API static bool IsAdaptiveNetUpdateFrequencyEnabled();
+
+	/** Returns true if adaptive net update frequency is enabled and the given actor is having its update rate lowered from its standard rate. */
+	ENGINE_API bool IsNetworkActorUpdateFrequencyThrottled(const AActor* InActor) const;
+
+	/** Returns true if adaptive net update frequency is enabled and the given actor is having its update rate lowered from its standard rate. */
+	ENGINE_API bool IsNetworkActorUpdateFrequencyThrottled(const FNetworkObjectInfo& InNetworkActor) const;
+
+	/** Stop adaptive replication for the given actor if it's currently throttled. It maybe be allowed to throttle again later. */
+	ENGINE_API void CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor);
+
 
 protected:
 

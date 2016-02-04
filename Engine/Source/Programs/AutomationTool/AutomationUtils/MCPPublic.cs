@@ -771,7 +771,7 @@ namespace EpicGames.MCP.Automation
 		/// </summary>
 		/// <param name="Container">The name of the folder or container from which contains the file being checked.</param>
 		/// <param name="Identifier">The identifier or filename of the file to check.</param>
-        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+        	/// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
 		/// <returns>True if the file exists in cloud storage, false otherwise.</returns>
 		abstract public bool FileExists(string Container, string Identifier, bool bQuiet = false);
 
@@ -793,7 +793,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
 		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+        	/// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
 		public PostFileResult PostFile(string Container, string Identifier, byte[] Contents, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false)
 		{
 			return PostFileAsync(Container, Identifier, Contents, ContentType, bOverwrite, bMakePublic, bQuiet).Result;
@@ -808,7 +808,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
 		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+        	/// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
 		abstract public Task<PostFileResult> PostFileAsync(string Container, string Identifier, byte[] Contents, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false);
 
 		/// <summary>
@@ -820,7 +820,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
 		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+	        /// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
 		public PostFileResult PostFile(string Container, string Identifier, string SourceFilePath, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false)
 		{
 			return PostFileAsync(Container, Identifier, SourceFilePath, ContentType, bOverwrite, bMakePublic, bQuiet).Result;
@@ -835,7 +835,7 @@ namespace EpicGames.MCP.Automation
 		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
 		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
 		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
-        /// <param name="bQuiet">If set to true, all log output for the operation is supressed.</param>
+	        /// <param name="bQuiet">If set to true, all log output for the operation is suppressed.</param>
 		abstract public Task<PostFileResult> PostFileAsync(string Container, string Identifier, string SourceFilePath, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false, bool bQuiet = false);
 
 		/// <summary>

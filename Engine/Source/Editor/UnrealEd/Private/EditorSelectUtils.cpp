@@ -675,7 +675,7 @@ bool UUnrealEdEngine::IsComponentSelected(const UPrimitiveComponent* PrimCompone
 	bool bIsSelected = false;
 	if (GetSelectedComponentCount() > 0)
 	{
-		bIsSelected = GetSelectedComponents()->IsSelected(PrimComponent->IsEditorOnly() ? PrimComponent->AttachParent : PrimComponent);
+		bIsSelected = GetSelectedComponents()->IsSelected(PrimComponent->IsEditorOnly() ? PrimComponent->GetAttachParent() : PrimComponent);
 	}
 
 	return bIsSelected;

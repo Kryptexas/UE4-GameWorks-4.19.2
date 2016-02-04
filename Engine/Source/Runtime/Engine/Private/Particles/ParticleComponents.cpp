@@ -3303,24 +3303,24 @@ void UParticleSystemComponent::OnRegister()
 	if (bAutoManageAttachment && !IsActive())
 	{
 		// Detach from current parent, we are supposed to wait for activation.
-		if (AttachParent)
+		if (GetAttachParent())
 		{
 			// If no auto attach parent override, use the current parent when we activate
 			if (!AutoAttachParent.IsValid())
 			{
-				AutoAttachParent = AttachParent;
+				AutoAttachParent = GetAttachParent();
 			}
 			// If no auto attach socket override, use current socket when we activate
 			if (AutoAttachSocketName == NAME_None)
 			{
-				AutoAttachSocketName = AttachSocketName;
+				AutoAttachSocketName = GetAttachSocketName();
 			}
 
 			// Prevent attachment before Super::OnRegister() tries to attach us, since we only attach when activated.
-			if (AttachParent->AttachChildren.Contains(this))
+			if (GetAttachParent()->GetAttachChildren().Contains(this))
 			{
 				// Only detach if we are not about to auto attach to the same target, that would be wasteful.
-				if (!bAutoActivate || (AutoAttachLocationType != EAttachLocation::KeepRelativeOffset) || (AutoAttachSocketName != AttachSocketName) || (AutoAttachParent != AttachParent))
+				if (!bAutoActivate || (AutoAttachLocationType != EAttachLocation::KeepRelativeOffset) || (AutoAttachSocketName != GetAttachSocketName()) || (AutoAttachParent != GetAttachParent()))
 				{
 					DetachFromParent(/*bMaintainWorldPosition=*/ false, /*bCallModify=*/ false);
 				}
@@ -5003,7 +5003,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 			USceneComponent* NewParent = AutoAttachParent.Get();
 			if (NewParent)
 			{
-				const bool bAlreadyAttached = GetAttachParent() && (GetAttachParent() == NewParent) && (GetAttachSocketName() == AutoAttachSocketName) && GetAttachParent()->AttachChildren.Contains(this);
+				const bool bAlreadyAttached = GetAttachParent() && (GetAttachParent() == NewParent) && (GetAttachSocketName() == AutoAttachSocketName) && GetAttachParent()->GetAttachChildren().Contains(this);
 				if (!bAlreadyAttached)
 				{
 					bDidAutoAttach = bWasAutoAttached;

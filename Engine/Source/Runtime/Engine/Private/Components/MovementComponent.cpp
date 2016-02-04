@@ -120,7 +120,11 @@ void UMovementComponent::OnRegister()
 		SetPlaneConstraintAxisSetting(PlaneConstraintAxisSetting);
 	}
 
-	PlaneConstraintNormal = PlaneConstraintNormal.GetSafeNormal();
+	const UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld->IsGameWorld())
+	{
+		PlaneConstraintNormal = PlaneConstraintNormal.GetSafeNormal();
+	}
 
 	if (bSnapToPlaneAtStart)
 	{

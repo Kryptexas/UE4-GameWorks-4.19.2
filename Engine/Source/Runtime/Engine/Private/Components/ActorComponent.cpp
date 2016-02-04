@@ -1463,12 +1463,21 @@ bool UActorComponent::IsSupportedForNetworking() const
 
 void UActorComponent::SetIsReplicated(bool ShouldReplicate)
 {
-	check(GetComponentClassCanReplicate()); // Only certain component classes can replicate!
-	bReplicates = ShouldReplicate;
-
-	if (AActor* MyOwner = GetOwner())
+	if (bReplicates != ShouldReplicate)
 	{
-		MyOwner->UpdateReplicatedComponent( this );
+		if (GetComponentClassCanReplicate())
+		{
+			bReplicates = ShouldReplicate;
+
+			if (AActor* MyOwner = GetOwner())
+			{
+				MyOwner->UpdateReplicatedComponent( this );
+			}
+		}
+		else
+		{
+			UE_LOG(LogActorComponent, Error, TEXT("Calling SetIsReplicated on component of Class '%s' which cannot replicate."), *GetClass()->GetName());
+		}
 	}
 }
 

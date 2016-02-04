@@ -99,9 +99,9 @@ FTransform GetRefFrame(const UObject* InObject)
 	FTransform RefTM = FTransform::Identity;
 
 	const AActor* Actor = Cast<AActor>(InObject);
-	if (Actor != nullptr && Actor->GetRootComponent() != nullptr && Actor->GetRootComponent()->AttachParent != nullptr)
+	if (Actor != nullptr && Actor->GetRootComponent() != nullptr && Actor->GetRootComponent()->GetAttachParent() != nullptr)
 	{
-		RefTM = Actor->GetRootComponent()->AttachParent->GetSocketTransform(Actor->GetRootComponent()->AttachSocketName);
+		RefTM = Actor->GetRootComponent()->GetAttachParent()->GetSocketTransform(Actor->GetRootComponent()->GetAttachSocketName());
 	}
 
 	return RefTM;

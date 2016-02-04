@@ -57,6 +57,10 @@ void UInputSettings::PostInitProperties()
 			DefaultConsoleKey = EKeys::Caret;
 			break;
 
+		case LANG_ITALIAN:
+			DefaultConsoleKey = EKeys::Backslash;
+			break;
+
 		case LANG_SPANISH:
 			DefaultConsoleKey = FInputKeyManager::Get().GetKeyFromCodes(VK_OEM_5, 0);
 			break;

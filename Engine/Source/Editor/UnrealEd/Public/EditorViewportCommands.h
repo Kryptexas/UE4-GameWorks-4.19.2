@@ -83,8 +83,14 @@ public:
 	/** Changes the viewport to vertex densities mode */
 	TSharedPtr< FUICommandInfo > VertexDensitiesMode;
 
+	/** Shows the group menu item for LOD and HLOD coloration modes */
+	TSharedPtr< FUICommandInfo > GroupLODColorationMode;
+
 	/** Changes the viewport to LOD index coloration mode */
 	TSharedPtr< FUICommandInfo > LODColorationMode;
+
+	/** Changes the viewport to HLOD index coloration mode */
+	TSharedPtr< FUICommandInfo > HLODColorationMode;
 
 	/** Changes the viewport to visualize the buffer content */
 	TSharedPtr< FUICommandInfo > VisualizeBufferMode;

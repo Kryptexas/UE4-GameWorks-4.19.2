@@ -64,7 +64,7 @@ public:
 	SCulturePicker()
 	: DisplayNameFormat(ECultureDisplayFormat::ActiveCultureDisplayName)
 	, CanSelectNone(false)
-	, SupressSelectionCallback(false)
+	, SuppressSelectionCallback(false)
 	{}
 
 	void Construct( const FArguments& InArgs );
@@ -109,5 +109,5 @@ private:
 	bool CanSelectNone;
 
 	/* Flags that the selection callback shouldn't be called when selecting - useful for initial selection, for instance. */
-	bool SupressSelectionCallback;
+	bool SuppressSelectionCallback;
 };

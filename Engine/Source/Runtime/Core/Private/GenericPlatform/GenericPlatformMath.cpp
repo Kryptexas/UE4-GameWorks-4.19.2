@@ -74,7 +74,10 @@ float FGenericPlatformMath::Atan2(float Y, float X)
 
 void FGenericPlatformMath::FmodReportError(float X, float Y)
 {
-	ensureMsgf(Y != 0, TEXT("FMath::FMod(X=%f, Y=%f) : Y is zero, this is invalid and would result in NaN!"), X, Y);
+	if (Y == 0)
+	{
+		ensureMsgf(Y != 0, TEXT("FMath::FMod(X=%f, Y=%f) : Y is zero, this is invalid and would result in NaN!"), X, Y);
+	}
 }
 
 #if WITH_DEV_AUTOMATION_TESTS

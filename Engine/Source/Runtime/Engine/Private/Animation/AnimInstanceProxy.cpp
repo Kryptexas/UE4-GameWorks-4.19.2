@@ -69,6 +69,24 @@ void FAnimInstanceProxy::Initialize(UAnimInstance* InAnimInstance)
 			Skeleton = AnimClassInterface->GetTargetSkeleton();
 		}
 
+		// Initialize state buffers
+		int32 NumStates = 0;
+		if(IAnimClassInterface* Interface = GetAnimClassInterface())
+		{
+			const TArray<FBakedAnimationStateMachine>& BakedMachines = Interface->GetBakedStateMachines();
+			const int32 NumMachines = BakedMachines.Num();
+			for(int32 MachineClassIndex = 0; MachineClassIndex < NumMachines; ++MachineClassIndex)
+			{
+				const FBakedAnimationStateMachine& Machine = BakedMachines[MachineClassIndex];
+				StateMachineClassIndexToWeightOffset.Add(MachineClassIndex, NumStates);
+				NumStates += Machine.States.Num();
+			}
+			StateWeightArrays[0].Reset(NumStates);
+			StateWeightArrays[0].AddZeroed(NumStates);
+			StateWeightArrays[1].Reset(NumStates);
+			StateWeightArrays[1].AddZeroed(NumStates);
+		}
+
 #if WITH_EDITORONLY_DATA
 		if (UAnimBlueprint* Blueprint = Cast<UAnimBlueprint>(InAnimInstance->GetClass()->ClassGeneratedBy))
 		{
@@ -152,6 +170,9 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	{
 		SyncGroups[GroupIndex].Reset();
 	}
+
+	TArray<float>& StateWeights = StateWeightArrays[GetSyncGroupWriteIndex()];
+	FMemory::Memset(StateWeights.GetData(), 0, StateWeights.Num() * sizeof(float));
 
 #if WITH_EDITORONLY_DATA
 	bIsBeingDebugged = false;
@@ -1007,7 +1028,7 @@ float FAnimInstanceProxy::GetInstanceStateWeight(int32 MachineIndex, int32 State
 {
 	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
 	{
-		return MachineInstance->GetStateWeight(StateIndex);
+		return GetRecordedStateWeight(MachineInstance->StateMachineIndexInClass, StateIndex);
 	}
 	
 	return 0.0f;
@@ -1448,6 +1469,30 @@ int32 FAnimInstanceProxy::GetInstanceAssetPlayerIndex(FName MachineName, FName S
 	}
 
 	return INDEX_NONE;
+}
+
+float FAnimInstanceProxy::GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex)
+{
+	const int32* BaseIndexPtr = StateMachineClassIndexToWeightOffset.Find(InMachineClassIndex);
+
+	if(BaseIndexPtr)
+	{
+		const int32 StateIndex = *BaseIndexPtr + InStateIndex;
+		return StateWeightArrays[GetSyncGroupReadIndex()][StateIndex];
+	}
+
+	return 0.0f;
+}
+
+void FAnimInstanceProxy::RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight)
+{
+	const int32* BaseIndexPtr = StateMachineClassIndexToWeightOffset.Find(InMachineClassIndex);
+
+	if(BaseIndexPtr)
+	{
+		const int32 StateIndex = *BaseIndexPtr + InStateIndex;
+		StateWeightArrays[GetSyncGroupWriteIndex()][StateIndex] = InStateWeight;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

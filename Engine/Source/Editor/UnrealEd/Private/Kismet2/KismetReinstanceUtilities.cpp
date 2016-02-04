@@ -950,9 +950,9 @@ void FActorReplacementHelper::CacheAttachInfo(const AActor* OldActor)
 
 	if (USceneComponent* OldRootComponent = OldActor->GetRootComponent())
 	{
-		if (OldRootComponent->AttachParent != nullptr)
+		if (OldRootComponent->GetAttachParent() != nullptr)
 		{
-			TargetAttachParent = OldRootComponent->AttachParent->GetOwner();
+			TargetAttachParent = OldRootComponent->GetAttachParent()->GetOwner();
 			// Root component should never be attached to another component in the same actor!
 			if (TargetAttachParent == OldActor)
 			{
@@ -960,8 +960,8 @@ void FActorReplacementHelper::CacheAttachInfo(const AActor* OldActor)
 				TargetAttachParent = nullptr;
 			}
 
-			TargetAttachSocket    = OldRootComponent->AttachSocketName;
-			TargetParentComponent = OldRootComponent->AttachParent;
+			TargetAttachSocket    = OldRootComponent->GetAttachSocketName();
+			TargetParentComponent = OldRootComponent->GetAttachParent();
 			
 			// detach it to remove any scaling
 			OldRootComponent->DetachFromParent(/*bMaintainWorldPosition =*/true);
@@ -982,12 +982,12 @@ void FActorReplacementHelper::CacheChildAttachments(const AActor* OldActor)
 	for (AActor* AttachedActor : AttachedActors)
 	{
 		USceneComponent* AttachedActorRoot = AttachedActor->GetRootComponent();
-		if (AttachedActorRoot && AttachedActorRoot->AttachParent)
+		if (AttachedActorRoot && AttachedActorRoot->GetAttachParent())
 		{
 			// Save info about actor to reattach
 			FAttachedActorInfo Info;
 			Info.AttachedActor = AttachedActor;
-			Info.AttachedToSocket = AttachedActorRoot->AttachSocketName;
+			Info.AttachedToSocket = AttachedActorRoot->GetAttachSocketName();
 			PendingChildAttachments.Add(Info);
 
 			// Now detach it
@@ -1035,7 +1035,7 @@ void FActorReplacementHelper::AttachChildActors(USceneComponent* RootComponent, 
 		if (!Info.AttachedActor->IsPendingKill() && Info.AttachedActor->GetAttachParentActor() == nullptr)
 		{
 			USceneComponent* ChildRoot = Info.AttachedActor->GetRootComponent();
-			if (ChildRoot && ChildRoot->AttachParent != RootComponent)
+			if (ChildRoot && ChildRoot->GetAttachParent() != RootComponent)
 			{
 				ChildRoot->AttachTo(RootComponent, Info.AttachedToSocket, EAttachLocation::KeepWorldPosition);
 				ChildRoot->UpdateComponentToWorld();

@@ -3500,35 +3500,6 @@ bool UWorld::AreActorsInitialized() const
 	return PersistentLevel && PersistentLevel->Actors.Num() && bActorsInitialized;
 }
 
-float UWorld::GetTimeSeconds() const
-{
-	return TimeSeconds;
-}
-
-
-float UWorld::GetRealTimeSeconds() const
-{
-	checkSlow(IsInGameThread());
-	return RealTimeSeconds;
-}
-
-
-float UWorld::GetAudioTimeSeconds() const
-{
-	return AudioTimeSeconds;
-}
-
-
-float UWorld::GetDeltaSeconds() const
-{
-	return DeltaTimeSeconds;
-}
-
-float UWorld::TimeSince( float Time ) const
-{
-	return GetTimeSeconds() - Time;
-}
-
 void UWorld::CreatePhysicsScene()
 {
 	SetPhysicsScene(new FPhysScene());
@@ -4262,12 +4233,12 @@ bool UWorld::Listen( FURL& InURL )
 #endif // WITH_SERVER_CODE
 }
 
-bool UWorld::IsClient()
+bool UWorld::IsClient() const
 {
 	return GIsClient;
 }
 
-bool UWorld::IsServer()
+bool UWorld::IsServer() const
 {
 	if ( NetDriver != NULL )
 	{

@@ -1413,20 +1413,23 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 
 	UPhysicsAsset* OldPhysAsset = GetPhysicsAsset();
 
-	Super::SetSkeletalMesh(InSkelMesh, bReinitPose);
-
-#if WITH_EDITOR
-	ValidateAnimation();
-#endif
-
-	if (GetPhysicsAsset() != OldPhysAsset && IsPhysicsStateCreated())
 	{
-		RecreatePhysicsState();
+		FRenderStateRecreator RenderStateRecreator(this);
+		Super::SetSkeletalMesh(InSkelMesh, bReinitPose);
+		
+#if WITH_EDITOR
+		ValidateAnimation();
+#endif
+	
+		if (GetPhysicsAsset() != OldPhysAsset && IsPhysicsStateCreated())
+		{
+			RecreatePhysicsState();
+		}
+
+		UpdateHasValidBodies();
+
+		InitAnim(bReinitPose);
 	}
-
-	UpdateHasValidBodies();
-
-	InitAnim(bReinitPose);
 
 #if WITH_APEX_CLOTHING
 	RecreateClothingActors();
@@ -1723,7 +1726,7 @@ FVector USkeletalMeshComponent::GetClosestCollidingRigidBodyLocation(const FVect
 
 SIZE_T USkeletalMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
 {
-	SIZE_T ResSize = 0;
+	SIZE_T ResSize = Super::GetResourceSize(Mode);
 
 	for (int32 i=0; i < Bodies.Num(); ++i)
 	{

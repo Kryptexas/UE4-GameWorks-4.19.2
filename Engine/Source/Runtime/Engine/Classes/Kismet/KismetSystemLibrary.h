@@ -1484,10 +1484,10 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * Sets the state of the transition message rendered by the viewport. (The blue text displayed when the game is paused and so forth.)
 	 *
 	 * @param WorldContextObject	World context
-	 * @param State					set true to supress transition message
+	 * @param State					set true to suppress transition message
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities", meta = (WorldContext="WorldContextObject"))
-	static void SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState);
+	static void SetSuppressViewportTransitionMessage(UObject* WorldContextObject, bool bState);
 
 	/**
 	 * Returns an array of the user's preferred languages in order of preference

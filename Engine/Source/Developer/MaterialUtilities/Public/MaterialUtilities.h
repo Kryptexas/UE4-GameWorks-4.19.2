@@ -269,7 +269,7 @@ public:
 	 * @param OutGeneratedAssets	List of generated assets - material, textures
 	 * @return						Returns a pointer to the constructed UMaterial object.
 	 */
-	static UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets);
+	static UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter, const FString& BaseName, EObjectFlags Flags, const struct FMaterialProxySettings& MaterialProxySettings, TArray<UObject*>& OutGeneratedAssets, const TextureGroup& InTextureGroup = TEXTUREGROUP_World);
 	
 	/**
 	* Creates bakes textures for a ULandscapeComponent
@@ -358,7 +358,7 @@ private:
 	* @param InTargetSize			Dimensions of the render target
 	* @return						Created render target
 	*/
-	static UTextureRenderTarget2D* CreateRenderTarget(bool bInForceLinearGamma, EPixelFormat InPixelFormat, FIntPoint& InTargetSize);
+	static UTextureRenderTarget2D* CreateRenderTarget(bool bInForceLinearGamma, bool bNormalMap, EPixelFormat InPixelFormat, FIntPoint& InTargetSize );
 	
 	/** Clears the pool with available render targets */
 	static void ClearRenderTargetPool();	

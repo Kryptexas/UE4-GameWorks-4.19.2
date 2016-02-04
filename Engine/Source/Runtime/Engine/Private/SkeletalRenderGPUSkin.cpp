@@ -67,14 +67,7 @@ void FMorphVertexBuffer::InitDynamicRHI()
 
 	// Lock the buffer.
 	FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)BufferData;
-
-	// zero all deltas (NOTE: DeltaTangentZ is FPackedNormal, so we can't just FMemory::Memzero)
-	for (uint32 VertIndex=0; VertIndex < LodModel.NumVertices; ++VertIndex)
-	{
-		Buffer[VertIndex].DeltaPosition = FVector::ZeroVector;
-		Buffer[VertIndex].DeltaTangentZ = FPackedNormal::ZeroNormal;
-	}
-
+	FMemory::Memzero(&Buffer[0], sizeof(FMorphGPUSkinVertex)*LodModel.NumVertices);
 	// Unlock the buffer.
 	RHIUnlockVertexBuffer(VertexBufferRHI);
 	
@@ -411,15 +404,12 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Init);
 
 			// zero everything
-			int32 vertsToAdd = static_cast<int32>(LodModel.NumVertices) - MorphDeltaTangentZAccumulationArray.Num();
+			int32 vertsToAdd = static_cast<int32>(LodModel.NumVertices) - MorphAccumulatedWeightArray.Num();
 			if(vertsToAdd > 0) 
 			{
-				// we're memzero-ing afterwards anyway, so add uninitalized
-				MorphDeltaTangentZAccumulationArray.AddUninitialized(vertsToAdd);
 				MorphAccumulatedWeightArray.AddUninitialized(vertsToAdd);
 			}
 
-			FMemory::Memzero(MorphDeltaTangentZAccumulationArray.GetData(), sizeof(FVector)*LodModel.NumVertices);
 			FMemory::Memzero(MorphAccumulatedWeightArray.GetData(), sizeof(float)*LodModel.NumVertices);
 
 			// PackedNormals will be wrong init with 0, but they'll be overwritten later
@@ -457,8 +447,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 						FMorphGPUSkinVertex& DestVertex = Buffer[MorphVertex.SourceIdx];
 
 						DestVertex.DeltaPosition += MorphVertex.PositionDelta * VertAnim.Weight;
-						// add to accumulated tangent Z
-						MorphDeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
+						DestVertex.DeltaTangentZ += MorphVertex.TangentZDelta * VertAnim.Weight;
 						// accumulate the weight so we can normalized it later
 						MorphAccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnimAbsWeight;
 					}
@@ -473,20 +462,13 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				FMorphGPUSkinVertex& DestVertex = Buffer[iVertex];
 				float AccumulatedWeight = MorphAccumulatedWeightArray[iVertex];
 
-				if (AccumulatedWeight > MinVertexAnimBlendWeight)
+				// if accumualated weight is >1.f
+				// previous code was applying the weight again in GPU if less than 1, but it doesn't make sense to do so
+				// so instead, we just divide by AccumulatedWeight if it's more than 1.
+				// now DeltaTangentZ isn't FPackedNormal, so you can apply any value to it. 
+				if (AccumulatedWeight > 1.f)
 				{
-					// when copy back, make sure to normalize by accumulated weight
-					// since delta diff of normal is (-2, 2), we divide by 2 to packed into packed normal
-					// when we unpack, we'll apply *2. 
-					DestVertex.DeltaTangentZ = (MorphDeltaTangentZAccumulationArray[iVertex] / AccumulatedWeight)/2;
-					// we now add W as how much alpha of DeltaTangentZ we're apply to the original tangent
-					DestVertex.DeltaTangentZ.Vector.W = FMath::Min(1.0f, AccumulatedWeight) * 255.9999f;
-				}
-				else
-				{
-					DestVertex.DeltaTangentZ = FPackedNormal::ZeroNormal;
-					// we now add W as how much alpha of DeltaTangentZ we're apply to the original tangent					
-					DestVertex.DeltaTangentZ.Vector.W = 0;
+					DestVertex.DeltaTangentZ /= AccumulatedWeight;
 				}
 			}
 		} // ApplyDelta
@@ -626,7 +608,7 @@ void InitMorphVertexFactoryComponents(typename VertexFactoryType::FDataType* Ver
 		VertexBuffers.MorphVertexBuffer,STRUCT_OFFSET(FMorphGPUSkinVertex,DeltaPosition),sizeof(FMorphGPUSkinVertex),VET_Float3);
 	// delta normals
 	VertexFactoryData->DeltaTangentZComponent = FVertexStreamComponent(
-		VertexBuffers.MorphVertexBuffer,STRUCT_OFFSET(FMorphGPUSkinVertex,DeltaTangentZ),sizeof(FMorphGPUSkinVertex),VET_PackedNormal);
+		VertexBuffers.MorphVertexBuffer, STRUCT_OFFSET(FMorphGPUSkinVertex, DeltaTangentZ), sizeof(FMorphGPUSkinVertex), VET_Float3);
 }
 
 /** 

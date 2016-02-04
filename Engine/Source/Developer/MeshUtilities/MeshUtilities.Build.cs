@@ -26,7 +26,8 @@ public class MeshUtilities : ModuleRules
                 "MeshBoneReduction",		
                 "UnrealEd",
                 "RHI",                
-                "HierarchicalLODUtilities"
+                "HierarchicalLODUtilities",
+                "Landscape"
 			}
 		);
 

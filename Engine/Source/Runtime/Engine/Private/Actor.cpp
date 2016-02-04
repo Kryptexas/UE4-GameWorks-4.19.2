@@ -305,7 +305,7 @@ FVector AActor::GetVelocity() const
 
 void AActor::ClearCrossLevelReferences()
 {
-	if(RootComponent && GetRootComponent()->AttachParent && (GetOutermost() != GetRootComponent()->AttachParent->GetOutermost()))
+	if(RootComponent && GetRootComponent()->GetAttachParent() && (GetOutermost() != GetRootComponent()->GetAttachParent()->GetOutermost()))
 	{
 		GetRootComponent()->DetachFromParent();
 	}
@@ -582,9 +582,9 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 		GetRootComponent()->RelativeScale3D = OldScale;
 		
 		// Migrate any attachment to the new root
-		if(OldRoot->AttachParent)
+		if(OldRoot->GetAttachParent())
 		{
-			RootComponent->AttachTo(OldRoot->AttachParent);
+			RootComponent->AttachTo(OldRoot->GetAttachParent());
 			OldRoot->DetachFromParent();
 		}
 
@@ -620,7 +620,7 @@ void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 void AActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
 	// Attached components will be shifted by parents, will shift only USceneComponents derived components
-	if (RootComponent != nullptr && RootComponent->AttachParent == nullptr)
+	if (RootComponent != nullptr && RootComponent->GetAttachParent() == nullptr)
 	{
 		RootComponent->ApplyWorldOffset(InOffset, bWorldShift);
 	}
@@ -854,7 +854,7 @@ void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker
 	// Attachment replication gets filled in by GatherCurrentMovement(), but in the case of a detached root we need to trigger remote detachment.
 	AttachmentReplication.AttachParent = nullptr;
 
-	if ( bReplicateMovement || (RootComponent && RootComponent->AttachParent) )
+	if ( bReplicateMovement || (RootComponent && RootComponent->GetAttachParent()) )
 	{
 		GatherCurrentMovement();
 	}
@@ -1442,7 +1442,7 @@ AActor* AActor::GetAttachParentActor() const
 {
 	if(RootComponent != NULL)
 	{
-		for( const USceneComponent* Test=GetRootComponent()->AttachParent; Test!=NULL; Test=Test->AttachParent )
+		for( const USceneComponent* Test=GetRootComponent()->GetAttachParent(); Test!=NULL; Test=Test->GetAttachParent())
 		{
 			AActor* TestOwner = Test->GetOwner();
 			if( TestOwner != this )
@@ -1459,12 +1459,12 @@ FName AActor::GetAttachParentSocketName() const
 {
 	if(RootComponent != NULL)
 	{
-		for( const USceneComponent* Test=GetRootComponent(); Test!=NULL; Test=Test->AttachParent )
+		for( const USceneComponent* Test=GetRootComponent(); Test!=NULL; Test=Test->GetAttachParent() )
 		{
 			AActor* TestOwner = Test->GetOwner();
 			if( TestOwner != this )
 			{
-				return Test->AttachSocketName;
+				return Test->GetAttachSocketName();
 			}
 		}
 	}
@@ -1508,10 +1508,8 @@ void AActor::GetAttachedActors(TArray<class AActor*>& OutActors) const
 					else
 					{
 						// This component is owned by us, we need to add its children
-						for (int32 i = 0; i < SceneComp->AttachChildren.Num(); ++i)
+						for (USceneComponent* ChildComp : SceneComp->GetAttachChildren())
 						{
-							USceneComponent* ChildComp = SceneComp->AttachChildren[i];
-
 							// Add any we have not explored yet to the set to check
 							if ((ChildComp != NULL) && !CheckedComps.Contains(ChildComp))
 							{
@@ -1600,11 +1598,6 @@ FVector AActor::GetTargetLocation(AActor* RequestedBy) const
 bool AActor::IsRelevancyOwnerFor(const AActor* ReplicatedActor, const AActor* ActorOwner, const AActor* ConnectionActor) const
 {
 	return (ActorOwner == this);
-}
-
-void AActor::SetNetUpdateTime(float NewUpdateTime)
-{
-	NetUpdateTime = NewUpdateTime;
 }
 
 void AActor::ForceNetUpdate()
@@ -2486,7 +2479,7 @@ static USceneComponent* FixupNativeActorComponents(AActor* Actor)
 		for (USceneComponent* Component : SceneComponents)
 		{
 			if ((Component == nullptr) ||
-				(Component->AttachParent != nullptr) ||
+				(Component->GetAttachParent() != nullptr) ||
 				(Component->CreationMethod != EComponentCreationMethod::Native))
 			{
 				continue;
@@ -3378,13 +3371,13 @@ AWorldSettings * AActor::GetWorldSettings() const
 ENetMode AActor::GetNetMode() const
 {
 	UNetDriver *NetDriver = GetNetDriver();
-	if (NetDriver != NULL)
+	if (NetDriver != nullptr)
 	{
 		return NetDriver->GetNetMode();
 	}
 
 	UWorld* World = GetWorld();
-	if (World != NULL && World->DemoNetDriver != NULL)
+	if (World != nullptr && World->DemoNetDriver != nullptr)
 	{
 		return World->DemoNetDriver->GetNetMode();
 	}
@@ -3397,8 +3390,7 @@ UNetDriver* AActor::GetNetDriver() const
 	UWorld *World = GetWorld();
 	if (NetDriverName == NAME_GameNetDriver)
 	{
-		check(World);
-		return World->GetNetDriver();
+		return (World ? World->GetNetDriver() : nullptr);
 	}
 
 	return GEngine->FindNamedNetDriver(World, NetDriverName);
@@ -3713,11 +3705,11 @@ static USceneComponent* GetUnregisteredParent(UActorComponent* Component)
 	USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
 	
 	while (	SceneComponent && 
-			SceneComponent->AttachParent && 
-			SceneComponent->AttachParent->GetOwner() == Component->GetOwner() && 
-			!SceneComponent->AttachParent->IsRegistered())
+			SceneComponent->GetAttachParent() &&
+			SceneComponent->GetAttachParent()->GetOwner() == Component->GetOwner() &&
+			!SceneComponent->GetAttachParent()->IsRegistered())
 	{
-		SceneComponent = SceneComponent->AttachParent;
+		SceneComponent = SceneComponent->GetAttachParent();
 		if (SceneComponent->bAutoRegister && !SceneComponent->IsPendingKill())
 		{
 			// We found unregistered parent that should be registered
@@ -3930,9 +3922,9 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 		DrawDebugCoordinateSystem(MyWorld, Loc, Rot, 10.f);
 
 		// draw line from me to my parent
-		if (Component->AttachParent)
+		if (Component->GetAttachParent())
 		{
-			DrawDebugLine(MyWorld, Component->AttachParent->GetComponentLocation(), Loc, BaseColor);
+			DrawDebugLine(MyWorld, Component->GetAttachParent()->GetComponentLocation(), Loc, BaseColor);
 		}
 
 		// draw component name

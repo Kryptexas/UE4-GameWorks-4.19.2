@@ -557,8 +557,9 @@ void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 	TArray<UK2Node_TransitionRuleGetter*> Getters;
 	ConsolidatedEventGraph->GetNodesOfClass<UK2Node_TransitionRuleGetter>(/*out*/ Getters);
 
-	TArray<UK2Node_AnimGetter*> AnimGetters;
-	ConsolidatedEventGraph->GetNodesOfClass<UK2Node_AnimGetter>(AnimGetters);
+	// Get anim getters from the root anim graph (processing the nodes below will collect them in nested graphs)
+	TArray<UK2Node_AnimGetter*> RootGraphAnimGetters;
+	ConsolidatedEventGraph->GetNodesOfClass<UK2Node_AnimGetter>(RootGraphAnimGetters);
 
 	// Find the root node
 	UAnimGraphNode_Root* PrePhysicsRoot = NULL;
@@ -605,9 +606,16 @@ void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 			ProcessTransitionGetter(*GetterIt, NULL); // transition nodes should not appear at top-level
 		}
 
-		for(auto AnimGetterIt = AnimGetters.CreateIterator(); AnimGetterIt; ++AnimGetterIt)
+		// Wire root getters
+		for(UK2Node_AnimGetter* RootGraphGetter : RootGraphAnimGetters)
 		{
-			AutoWireAnimGetter(*AnimGetterIt, NULL);
+			AutoWireAnimGetter(RootGraphGetter, nullptr);
+		}
+
+		// Wire nested getters
+		for(UK2Node_AnimGetter* Getter : FoundGetterNodes)
+		{
+			AutoWireAnimGetter(Getter, nullptr);
 		}
 
 		NewAnimBlueprintClass->RootAnimNodeIndex = GetAllocationIndexOfNode(PrePhysicsRoot);
@@ -677,9 +685,9 @@ int32 FAnimBlueprintCompiler::ExpandGraphAndProcessNodes(UEdGraph* SourceGraph, 
 	}
 
 	// Wire anim getter nodes
-	for(auto AnimGetterIt = AnimGetterNodes.CreateIterator(); AnimGetterIt; ++AnimGetterIt)
+	for(UK2Node_AnimGetter* GetterNode : AnimGetterNodes)
 	{
-		AutoWireAnimGetter(*AnimGetterIt, TransitionNode);
+		FoundGetterNodes.Add(GetterNode);
 	}
 
 	// Returns the index of the processed cloned version of SourceRootNode

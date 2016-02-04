@@ -51,6 +51,8 @@ enum TextureGroup
 	TEXTUREGROUP_IESLightProfile UMETA(DisplayName="IESLightProfile"),
 	/** Non-filtered, useful for 2D rendering. */
 	TEXTUREGROUP_Pixels2D UMETA(DisplayName="2D Pixels (unfiltered)"),
+	/** Hierarchical LOD generated textures*/
+	TEXTUREGROUP_HierarchicalLOD UMETA(DisplayName = "Hierarchical LOD"),
 	TEXTUREGROUP_MAX,
 };
 

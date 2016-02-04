@@ -66,7 +66,7 @@ void FHierarchicalLODBuilder::Build()
 	// Fire map check warnings for hidden levels 
 	if (bVisibleLevelsWarning)
 	{
-		FMessageLog MapCheck("MapCheck");
+		FMessageLog MapCheck("HLODResults");
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(WorldSetting))
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be build for hidden levels.")));
@@ -96,7 +96,7 @@ void FHierarchicalLODBuilder::PreviewBuild()
 	// Fire map check warnings for hidden levels 
 	if (bVisibleLevelsWarning)
 	{
-		FMessageLog MapCheck("MapCheck");
+		FMessageLog MapCheck("HLODResults");
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(WorldSetting))
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_PreviewBuild_HLODHiddenLevels", "Certain levels are marked as hidden, Hierarchical LODs will not be built for hidden levels.")));
@@ -174,7 +174,7 @@ void FHierarchicalLODBuilder::BuildClusters(ULevel* InLevel, const bool bCreateM
 	else
 	{
 		// Fire map check warnings if HLOD System is not enabled
-		FMessageLog MapCheck("MapCheck");
+		FMessageLog MapCheck("HLODResults");
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(InLevel->GetWorld()->GetWorldSettings()))
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_HLODSystemNotEnabled", "Hierarchical LOD System is disabled, unable to build LOD actors.")))
@@ -456,7 +456,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 			continue;
 		}
 
-		FScopedSlowTask SlowTask(100, (LOCTEXT("HierarchicalLOD_BuildLODActorMeshes", "Building LODActor meshes")));
+		FScopedSlowTask SlowTask(105, (LOCTEXT("HierarchicalLOD_BuildLODActorMeshes", "Building LODActor meshes")));
 		SlowTask.MakeDialog();
 
 		TArray<TArray<ALODActor*>> LODLevelActors;
@@ -475,7 +475,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 					if (Actor && Actor->IsA<ALODActor>())
 					{
 						ALODActor* LODActor = CastChecked<ALODActor>(Actor);
-
+						
 						if (LODActor->IsDirty() && LODActor->SubActors.Num() > 1)
 						{
 							LODLevelActors[LODActor->LODLevel - 1].Add(LODActor);
@@ -486,14 +486,17 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 			
 				bool bBuildSuccesfull = true;
 				const int32 NumLODLevels = LODLevelActors.Num();
+				
 				for (int32 LODIndex = 0; LODIndex < NumLODLevels; ++LODIndex)
 				{
 					int32 CurrentLODLevel = LODIndex;
-					TArray<ALODActor*>& LODLevel = LODLevelActors[CurrentLODLevel];
+					int32 LODActorIndex = 0;
+					TArray<ALODActor*>& LODLevel = LODLevelActors[CurrentLODLevel];					
 					for (ALODActor* Actor : LODLevel)
 					{
 						bBuildSuccesfull &= FHierarchicalLODUtilities::BuildStaticMeshForLODActor(Actor, AssetsOuter, BuildLODLevelSettings[CurrentLODLevel], CurrentLODLevel);
-						SlowTask.EnterProgressFrame(100.0f / (float)NumLODActors);
+						SlowTask.EnterProgressFrame(100.0f / (float)NumLODActors, FText::Format(LOCTEXT("HierarchicalLOD_BuildLODActorMeshesProgress", "Building LODActor Mesh {1} / {2} in LOD Level {0}"), FText::AsNumber(LODIndex), FText::AsNumber(LODActorIndex), FText::AsNumber(LODLevelActors[CurrentLODLevel].Num())));
+						++LODActorIndex;
 					}
 				}
 				
@@ -552,8 +555,15 @@ void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const ui
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
 	UPackage* AssetsOuter = LODActor->GetLevel()->GetOutermost();
 
-	const bool bResult = FHierarchicalLODUtilities::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);	
-	check(bResult);
+	const bool bResult = FHierarchicalLODUtilities::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);
+
+	if (bResult == false)
+	{
+		FMessageLog("HLODResults").Error()
+			->AddToken(FTextToken::Create(LOCTEXT("HLODError_MeshNotBuildOne", "Cannot create proxy mesh for ")))
+			->AddToken(FUObjectToken::Create(LODActor))
+			->AddToken(FTextToken::Create(LOCTEXT("HLODError_MeshNotBuildTwo", " this could be caused by incorrect mesh components in the sub actors")));			
+	}
 }
 
 void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const int32 LODIdx, float HighestCost, int32 MinNumActors, const bool bCreateMeshes)

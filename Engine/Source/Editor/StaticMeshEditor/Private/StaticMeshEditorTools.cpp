@@ -56,7 +56,7 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 
 	if( HiddenBodyInstanceProps.Num() == 0 )
 	{
-		HiddenBodyInstanceProps.Add("DefaultInstance");
+		//HiddenBodyInstanceProps.Add("DefaultInstance");
 		HiddenBodyInstanceProps.Add("BoneName");
 		HiddenBodyInstanceProps.Add("PhysicsType");
 		HiddenBodyInstanceProps.Add("bConsiderForBounds");
@@ -1370,6 +1370,8 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial(UMa
 			.Padding(0,2,0,0)
 		[
 			SNew(SCheckBox)
+				.IsEnabled(this, &FMeshSectionSettingsLayout::SectionCollisionEnabled)
+				.ToolTipText(this, &FMeshSectionSettingsLayout::GetCollisionEnabledToolTip)
 				.IsChecked(this, &FMeshSectionSettingsLayout::DoesSectionCollide, SlotIndex)
 				.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionCollisionChanged, SlotIndex)
 			[
@@ -1410,6 +1412,29 @@ void FMeshSectionSettingsLayout::OnSectionCastShadowChanged(ECheckBoxState NewSt
 	Info.bCastShadow = (NewState == ECheckBoxState::Checked) ? true : false;
 	StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
 	CallPostEditChange();
+}
+
+bool FMeshSectionSettingsLayout::SectionCollisionEnabled() const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	// Only enable 'Enable Collision' check box if this LOD is used for collision
+	return (StaticMesh.LODForCollision == LODIndex);
+}
+
+FText FMeshSectionSettingsLayout::GetCollisionEnabledToolTip() const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	
+	// If using a different LOD for collision, disable the check box
+	if (StaticMesh.LODForCollision != LODIndex)
+	{
+		return LOCTEXT("EnableCollisionToolTipDisabled", "This LOD is not used for collision, see the LODForCollision setting.");
+	}
+	// This LOD is used for collision, give info on what flag does
+	else
+	{
+		return LOCTEXT("EnableCollisionToolTipEnabled", "Controls whether this section ever has per-poly collision. Disabling this where possible will lower memory usage for this mesh.");
+	}
 }
 
 ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCollide(int32 SectionIndex) const

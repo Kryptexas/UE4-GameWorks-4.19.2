@@ -2728,13 +2728,13 @@ public:
 	bool Listen( FURL& InURL );
 
 	/** @return true if this level is a client */
-	bool IsClient();
+	bool IsClient() const;
 
 	/** @return true if this level is a server */
-	bool IsServer();
+	bool IsServer() const;
 
 	/** @return true if the world is in the paused state */
-	bool IsPaused();
+	bool IsPaused() const;
 
 	/**
 	 * Wrapper for DestroyActor() that should be called in the editor.
@@ -3374,6 +3374,32 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 // UWorld inlines:
+
+FORCEINLINE_DEBUGGABLE float UWorld::GetTimeSeconds() const
+{
+	return TimeSeconds;
+}
+
+FORCEINLINE_DEBUGGABLE float UWorld::GetRealTimeSeconds() const
+{
+	checkSlow(IsInGameThread());
+	return RealTimeSeconds;
+}
+
+FORCEINLINE_DEBUGGABLE float UWorld::GetAudioTimeSeconds() const
+{
+	return AudioTimeSeconds;
+}
+
+FORCEINLINE_DEBUGGABLE float UWorld::GetDeltaSeconds() const
+{
+	return DeltaTimeSeconds;
+}
+
+FORCEINLINE_DEBUGGABLE float UWorld::TimeSince(float Time) const
+{
+	return GetTimeSeconds() - Time;
+}
 
 FORCEINLINE_DEBUGGABLE bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {

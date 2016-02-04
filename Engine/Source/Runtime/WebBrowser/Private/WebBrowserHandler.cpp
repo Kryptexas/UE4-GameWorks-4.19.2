@@ -147,16 +147,16 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 	bool* NoJavascriptAccess )
 {
 	// By default, we ignore any popup requests unless they are handled by us in some way.
-	bool bSupressCEFWindowCreation = true;
+	bool bSuppressCEFWindowCreation = true;
 	if (CefCurrentlyOn(TID_UI))
 	{
 		TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
 
 		if (BrowserWindow.IsValid())
 		{
-			bSupressCEFWindowCreation = BrowserWindow->OnCefBeforePopup(TargetUrl, TargetFrameName);
+			bSuppressCEFWindowCreation = BrowserWindow->OnCefBeforePopup(TargetUrl, TargetFrameName);
 
-			if(!bSupressCEFWindowCreation)
+			if(!bSuppressCEFWindowCreation)
 			{
 				if(BrowserWindow->SupportsNewWindows())
 				{
@@ -174,11 +174,11 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 					WindowInfo.SetAsWindowless(nullptr, bUseTransparency);
 
 					// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
-					bSupressCEFWindowCreation = false;
+					bSuppressCEFWindowCreation = false;
 				}
 				else
 				{
-					bSupressCEFWindowCreation = true;
+					bSuppressCEFWindowCreation = true;
 				}
 			}
 		}
@@ -189,14 +189,14 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 		FEvent* Done = FPlatformProcess::GetSynchEventFromPool(true);
 		CefPostTask(TID_UI, new FWebBrowserClosureTask(this, [&]()
 		{
-			bSupressCEFWindowCreation = OnBeforePopup(Browser, Frame, TargetUrl, TargetFrameName, PopupFeatures, WindowInfo, Client, Settings, NoJavascriptAccess);
+			bSuppressCEFWindowCreation = OnBeforePopup(Browser, Frame, TargetUrl, TargetFrameName, PopupFeatures, WindowInfo, Client, Settings, NoJavascriptAccess);
 			Done->Trigger();
 		}));
 		Done->Wait();
 		FPlatformProcess::ReturnSynchEventToPool(Done);
 	}
 
-	return bSupressCEFWindowCreation; 
+	return bSuppressCEFWindowCreation;
 }
 
 bool FWebBrowserHandler::OnCertificateError(CefRefPtr<CefBrowser> Browser,

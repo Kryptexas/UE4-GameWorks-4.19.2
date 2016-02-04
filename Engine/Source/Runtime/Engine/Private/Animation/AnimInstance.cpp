@@ -2592,6 +2592,11 @@ void UAnimInstance::UpdateComponentsMaterialParameters(UPrimitiveComponent* Comp
 	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateComponentsMaterialParameters(Component);
 }
 
+void UAnimInstance::RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight)
+{
+	GetProxyOnAnyThread<FAnimInstanceProxy>().RecordStateWeight(InMachineClassIndex, InStateIndex, InStateWeight);
+}
+
 TArray<FActiveVertexAnim> UAnimInstance::UpdateActiveVertexAnims(const USkeletalMesh* SkeletalMesh)
 {
 	FAnimInstanceProxy& Proxy = GetProxyOnAnyThread<FAnimInstanceProxy>();	// this can be called from CreateRenderState_Concurrent

@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "CoreStats.h"
+#include "Math/DualQuat.h"
 
 /** Interpolate a linear alpha value using an ease mode and function. */
 float EaseAlpha(float InAlpha, uint8 EasingFunc, float BlendExp, int32 Steps)
@@ -1138,16 +1139,40 @@ FTransform UKismetMathLibrary::InvertTransform(const FTransform& T)
 	return T.Inverse();
 }
 
-FTransform UKismetMathLibrary::TLerp(const FTransform& A, const FTransform& B, float Alpha)
+
+
+FTransform UKismetMathLibrary::TLerp(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<ELerpInterpolationMode::Type> LerpInterpolationMode)
 {
 	FTransform Result;
-	
+
 	FTransform NA = A;
 	FTransform NB = B;
 	NA.NormalizeRotation();
 	NB.NormalizeRotation();
-	Result.Blend(NA, NB, Alpha);
-	return Result;
+
+	// Quaternion interpolation
+	if (LerpInterpolationMode == ELerpInterpolationMode::QuatInterp)
+	{
+		Result.Blend(NA, NB, Alpha);
+		return Result;
+	}
+	// Euler Angle interpolation
+	else if (LerpInterpolationMode == ELerpInterpolationMode::EulerInterp)
+	{
+		Result.SetTranslation(FMath::Lerp(NA.GetTranslation(), NB.GetTranslation(), Alpha));
+		Result.SetScale3D(FMath::Lerp(NA.GetScale3D(), NB.GetScale3D(), Alpha));
+		Result.SetRotation(FQuat(RLerp(NA.Rotator(), NB.Rotator(), Alpha, false)));
+		return Result;
+	}
+	// Dual quaternion interpolation
+	else
+	{
+		if ((NB.GetRotation() | NA.GetRotation()) < 0.0f)
+		{
+			NB.SetRotation(NB.GetRotation()*-1.0f);
+		}
+		return (FDualQuat(NA)*(1 - Alpha) + FDualQuat(NB)*Alpha).Normalized().AsFTransform(FMath::Lerp(NA.GetScale3D(), NB.GetScale3D(), Alpha));
+	}
 }
 
 FTransform UKismetMathLibrary::TEase(const FTransform& A, const FTransform& B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)

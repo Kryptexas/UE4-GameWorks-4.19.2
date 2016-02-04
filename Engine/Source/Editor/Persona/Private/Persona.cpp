@@ -2405,17 +2405,17 @@ void FPersona::RemoveAttachedObjectFromPreviewComponent(UObject* Object, FName A
 		PreviewComponent->SetFlags(RF_Transactional);
 		PreviewComponent->Modify();
 
-		for (int32 I=PreviewComponent->AttachChildren.Num()-1; I >= 0; --I) // Iterate backwards because Cleancomponent will remove from AttachChildren
+		for (int32 I=PreviewComponent->GetAttachChildren().Num()-1; I >= 0; --I) // Iterate backwards because CleanupComponent will remove from AttachChildren
 		{
-			USceneComponent* ChildComponent = PreviewComponent->AttachChildren[I];
+			USceneComponent* ChildComponent = PreviewComponent->GetAttachChildren()[I];
 			UObject* Asset = FComponentAssetBrokerage::GetAssetFromComponent(ChildComponent);
 
-			if( Asset == Object && ChildComponent->AttachSocketName == AttachedTo)
+			if( Asset == Object && ChildComponent->GetAttachSocketName() == AttachedTo)
 			{
 				// PreviewComponet will be cleaned up by PreviewScene, 
 				// but if anything is attached, it won't be cleaned up, 
 				// so we'll need to clean them up manually
-				CleanupComponent(PreviewComponent->AttachChildren[I]);
+				CleanupComponent(PreviewComponent->GetAttachChildren()[I]);
 				break;
 			}
 		}
@@ -2426,12 +2426,11 @@ USceneComponent* FPersona::GetComponentForAttachedObject(UObject* Object, FName 
 {
 	if (PreviewComponent)
 	{
-		for (int32 I=0; I < PreviewComponent->AttachChildren.Num(); ++I)
+		for (USceneComponent* ChildComponent : PreviewComponent->GetAttachChildren())
 		{
-			USceneComponent* ChildComponent = PreviewComponent->AttachChildren[I];
 			UObject* Asset = FComponentAssetBrokerage::GetAssetFromComponent(ChildComponent);
 
-			if( Asset == Object && ChildComponent->AttachSocketName == AttachedTo)
+			if( Asset == Object && ChildComponent->GetAttachSocketName() == AttachedTo)
 			{
 				return ChildComponent;
 			}
@@ -2463,9 +2462,9 @@ void FPersona::RemoveAttachedComponent( bool bRemovePreviewAttached /* = true */
 	// clean up components	
 	if (PreviewComponent)
 	{
-		for (int32 I=PreviewComponent->AttachChildren.Num()-1; I >= 0; --I) // Iterate backwards because Cleancomponent will remove from AttachChildren
+		for (int32 I=PreviewComponent->GetAttachChildren().Num()-1; I >= 0; --I) // Iterate backwards because CleanupComponent will remove from AttachChildren
 		{
-			USceneComponent* ChildComponent = PreviewComponent->AttachChildren[I];
+			USceneComponent* ChildComponent = PreviewComponent->GetAttachChildren()[I];
 			UObject* Asset = FComponentAssetBrokerage::GetAssetFromComponent(ChildComponent);
 
 			bool bRemove = true;
@@ -2476,7 +2475,7 @@ void FPersona::RemoveAttachedComponent( bool bRemovePreviewAttached /* = true */
 				//could this asset have come from the skeleton
 				if(PreviewAttachedObjects.Contains(Asset))
 				{
-					if(PreviewAttachedObjects.Find(Asset)->Contains(ChildComponent->AttachSocketName))
+					if(PreviewAttachedObjects.Find(Asset)->Contains(ChildComponent->GetAttachSocketName()))
 					{
 						bRemove = false;
 					}
@@ -2488,13 +2487,13 @@ void FPersona::RemoveAttachedComponent( bool bRemovePreviewAttached /* = true */
 				// PreviewComponet will be cleaned up by PreviewScene, 
 				// but if anything is attached, it won't be cleaned up, 
 				// so we'll need to clean them up manually
-				CleanupComponent(PreviewComponent->AttachChildren[I]);
+				CleanupComponent(PreviewComponent->GetAttachChildren()[I]);
 			}
 		}
 
 		if( bRemovePreviewAttached )
 		{
-			PreviewComponent->AttachChildren.Empty();
+			check(PreviewComponent->GetAttachChildren().Num() == 0);
 		}
 	}
 }
@@ -2503,12 +2502,12 @@ void FPersona::CleanupComponent(USceneComponent* Component)
 {
 	if (Component)
 	{
-		for (int32 I=0; I<Component->AttachChildren.Num(); ++I)
+		for (int32 I = Component->GetAttachChildren().Num() - 1; I >= 0; --I) // Iterate backwards because CleanupComponent will remove from AttachChildren
 		{
-			CleanupComponent(Component->AttachChildren[I]);
+			CleanupComponent(Component->GetAttachChildren()[I]);
 		}
 
-		Component->AttachChildren.Empty();
+		check(Component->GetAttachChildren().Num() == 0);
 		Component->DestroyComponent();
 	}
 }

@@ -10947,9 +10947,9 @@ void UEngine::AddNewPendingStreamingLevel(UWorld *InWorld, FName PackageName, bo
 	new(Context.PendingLevelStreamingStatusUpdates) FLevelStreamingStatus(PackageName, bNewShouldBeLoaded, bNewShouldBeVisible, LODIndex);
 }
 
-bool UEngine::ShouldCommitPendingMapChange(UWorld *InWorld)
+bool UEngine::ShouldCommitPendingMapChange(const UWorld *InWorld) const
 {
-	FWorldContext* WorldContext = GetWorldContextFromWorld(InWorld);
+	const FWorldContext* WorldContext = GetWorldContextFromWorld(InWorld);
 	return (WorldContext ? WorldContext->bShouldCommitPendingMapChange : false);
 }
 

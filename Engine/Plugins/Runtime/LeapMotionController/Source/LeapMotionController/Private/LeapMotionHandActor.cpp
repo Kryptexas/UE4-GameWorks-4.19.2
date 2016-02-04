@@ -22,7 +22,7 @@ ALeapMotionHandActor::ALeapMotionHandActor(const class FObjectInitializer& Objec
 
 ULeapMotionControllerComponent* ALeapMotionHandActor::GetParentingControllerComponent() const
 {
-	return Cast<ULeapMotionControllerComponent>(RootComponent->AttachParent);
+	return Cast<ULeapMotionControllerComponent>(RootComponent->GetAttachParent());
 }
 
 ALeapMotionBoneActor* ALeapMotionHandActor::GetBoneActor(ELeapBone LeapBone) const

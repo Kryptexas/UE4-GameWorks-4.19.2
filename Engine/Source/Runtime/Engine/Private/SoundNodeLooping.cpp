@@ -124,6 +124,29 @@ bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstanc
 
 float USoundNodeLooping::GetDuration()
 {
-	return INDEFINITELY_LOOPING_DURATION;
+	// Assume no duration (i.e. no input node)
+	float Duration = 0.0f;
+
+	// If we have any child nodes
+	if (ChildNodes.Num() > 0)
+	{
+		// If we're told to loop indefinitely, then the duration will be "infinite"
+		if (bLoopIndefinitely)
+		{
+			Duration = INDEFINITELY_LOOPING_DURATION;
+		}
+		else
+		{
+			// Looping nodes can only have one child node
+			check(ChildNodes.Num() == 1);
+			if (USoundNode* Child = ChildNodes[0])
+			{
+				// Duration will be the loop count times the child node duration
+				Duration = LoopCount * Child->GetDuration();
+			}
+		}
+	}
+	
+	return Duration;
 }
 

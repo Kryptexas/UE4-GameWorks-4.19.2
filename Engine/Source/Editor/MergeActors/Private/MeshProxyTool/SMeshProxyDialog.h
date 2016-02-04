@@ -37,14 +37,6 @@ protected:
 	TOptional<int32> GetMergeDistance() const;
 	void MergeDistanceChanged(int32 NewValue);
 
-	/** Clipping Plane accessors */
-	ECheckBoxState GetUseClippingPlane() const;
-	void SetUseClippingPlane(ECheckBoxState NewValue);
-	bool UseClippingPlaneEnabled() const;
-	void SetClippingAxis(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-	TOptional<float> GetClippingLevel() const;
-	void ClippingLevelChanged(float NewValue);
-
 	/** TextureResolution accessors */
 	void SetTextureResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	void SetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);

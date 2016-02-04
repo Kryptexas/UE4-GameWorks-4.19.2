@@ -295,6 +295,7 @@ private:
 		SetLightMapDensity(false);
 		SetVertexDensities(false);
 		SetLODColoration(false);
+		SetHLODColoration(false);
 		SetVisualizeLPV(false);
 		SetStreamingBounds(false);
 		SetConstraints(false);

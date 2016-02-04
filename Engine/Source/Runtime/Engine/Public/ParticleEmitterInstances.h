@@ -351,7 +351,7 @@ public:
 	 *
 	 *	@param	DeltaTime			The current time slice
 	 *	@param	CurrentLODLevel		The current LOD level for the instance
-	 *	@param	bSuppressSpawning	true if spawning has been supressed on the owning particle system component
+	 *	@param	bSuppressSpawning	true if spawning has been suppressed on the owning particle system component
 	 *	@param	bFirstTime			true if this is the first time the instance has been ticked
 	 *
 	 *	@return	float				The SpawnFraction remaining

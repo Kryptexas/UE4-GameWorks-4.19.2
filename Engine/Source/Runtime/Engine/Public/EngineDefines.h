@@ -33,10 +33,6 @@
 	#define WITH_PHYSICS_COOKING (WITH_EDITOR || WITH_APEX)		//APEX currently relies on cooking even at runtime
 #endif
 
-#ifndef WITH_SUBSTEPPING
-#define WITH_SUBSTEPPING 1
-#endif
-
 #if WITH_APEX
 #ifndef WITH_APEX_CLOTHING
 	#define WITH_APEX_CLOTHING	(1 && WITH_APEX)

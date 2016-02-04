@@ -243,6 +243,8 @@ private:
 	ECheckBoxState DoesSectionCastShadow(int32 SectionIndex) const;
 	void OnSectionCastShadowChanged(ECheckBoxState NewState, int32 SectionIndex);
 	ECheckBoxState DoesSectionCollide(int32 SectionIndex) const;
+	bool SectionCollisionEnabled() const;
+	FText GetCollisionEnabledToolTip() const;
 	void OnSectionCollisionChanged(ECheckBoxState NewState, int32 SectionIndex);
 	ECheckBoxState IsSectionHighlighted(int32 SectionIndex) const;
 	void OnSectionHighlightedChanged(ECheckBoxState NewState, int32 SectionIndex);
