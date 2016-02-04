@@ -3497,6 +3497,9 @@ void FKismetCompilerContext::Compile()
 		}
 
 		NewClass->SetFlags(RF_Transient);
+
+		check(NewClass->ClassDefaultObject != nullptr);
+		NewClass->ClassDefaultObject->SetFlags(RF_Transient);
 	}
 
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
