@@ -193,11 +193,8 @@ void FTransaction::DumpObjectMap(FOutputDevice& Ar) const
 
 FArchive& operator<<( FArchive& Ar, FTransaction::FObjectRecord& R )
 {
-	UObject* Object = R.Object.Get();
-	check(Object);
 	FMemMark Mark(FMemStack::Get());
-	Ar << Object;
-	R.Object = Object;
+	Ar << R.Object;
 	Ar << R.Data;
 	Ar << R.ReferencedObjects;
 	Ar << R.ReferencedNames;
