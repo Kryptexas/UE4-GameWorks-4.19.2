@@ -886,7 +886,7 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::ReleaseMorphVertexFactories
 {
 	// Default morph factories
 	for( int32 FactoryIdx=0; FactoryIdx < MorphVertexFactories.Num(); FactoryIdx++ )
-	{
+	{		
 		BeginReleaseResource(MorphVertexFactories[FactoryIdx].Get());
 	}
 }

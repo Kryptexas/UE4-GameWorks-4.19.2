@@ -93,8 +93,9 @@ struct FMath : public FPlatformMath
 	/** Helper function for rand implementations. Returns a random number in [0..A) */
 	static FORCEINLINE int32 RandHelper(int32 A)
 	{
-		// RAND_MAX+1 give interval [0..A) with even distribution.
-		return A>0 ? TruncToInt(Rand()/(float)((uint32)RAND_MAX+1) * A) : 0;
+		// Note that on some platforms RAND_MAX is a large number so we cannot do ((rand()/(RAND_MAX+1)) * A)
+		// or else we may include the upper bound results, which should be excluded.
+		return A > 0 ? Min(TruncToInt(FRand() * A), A - 1) : 0;
 	}
 
 	/** Helper function for rand implementations. Returns a random number >= Min and <= Max */

@@ -385,7 +385,7 @@ void FAnalyticsProviderET::FlushEvents()
 				FString EventParams;
 				if (Event.Attributes.Num() > 0)
 				{
-					for (int Ndx = 0; Ndx<FMath::Min(Event.Attributes.Num(), 10); ++Ndx)
+					for (int Ndx = 0; Ndx<FMath::Min(Event.Attributes.Num(), 40); ++Ndx)
 					{
 						EventParams += FString::Printf(TEXT("&AttributeName%d=%s&AttributeValue%d=%s"), 
 							Ndx, 

@@ -198,6 +198,18 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
+	// check if we have to clear the whole surface.
+	// Otherwise perform the clear when the dest rectangle has been computed.
+	auto FeatureLevel = Context.View.GetFeatureLevel();
+	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
+	{
+		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
+	}
+	else
+	{
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);
+	}
+
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -224,25 +236,9 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 			SetShader<1>(Context, InputDesc);
 			InflateSize = 2;
 		}
-	}
-
-	bool bHasCleared = false;
-
-	// check if we have to clear the whole surface.
-	// Otherwise perform the clear when the dest rectangle has been computed.
-	auto FeatureLevel = Context.View.GetFeatureLevel();
-	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
-	{
-		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
-		bHasCleared = true;
-	}
+	}	
 
 	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(Context.GetShaderMap());
-
-	if (!bHasCleared)
-	{
-		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
-	}
 
 	DrawPostProcessPass(
 		Context.RHICmdList,

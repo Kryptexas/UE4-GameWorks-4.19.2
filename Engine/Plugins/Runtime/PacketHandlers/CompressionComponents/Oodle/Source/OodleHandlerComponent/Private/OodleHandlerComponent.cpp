@@ -572,6 +572,8 @@ bool OodleHandlerComponent::GetDictionaryPaths(FString& OutServerDictionary, FSt
 		FPaths::CollapseRelativeDirectories(ServerDictionaryPath);
 		FPaths::CollapseRelativeDirectories(ClientDictionaryPath);
 
+		FPaths::NormalizeDirectoryName(ServerDictionaryPath);
+		FPaths::NormalizeDirectoryName(ClientDictionaryPath);
 
 		// Don't allow directory traversal to escape the game directory
 		if (!ServerDictionaryPath.StartsWith(FPaths::GameDir()) || !ClientDictionaryPath.StartsWith(FPaths::GameDir()))

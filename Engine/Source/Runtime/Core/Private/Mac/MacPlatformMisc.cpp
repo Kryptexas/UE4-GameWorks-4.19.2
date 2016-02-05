@@ -1564,6 +1564,8 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 		WriteUTF16String(ReportFile, TEXT("\t\t<Parameter2>"));
 		WriteUTF16String(ReportFile, *GMacAppInfo.LCID);
 		WriteLine(ReportFile, TEXT("</Parameter2>"));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
+
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 		
 		WriteLine(ReportFile, TEXT("\t<SystemInformation>"));

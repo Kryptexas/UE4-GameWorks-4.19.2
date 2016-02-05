@@ -570,7 +570,15 @@ void UPartyGameState::HandleLockoutPromotionStateChange(bool bNewLockoutState)
 
 EApprovalAction UPartyGameState::ProcessJoinRequest(const FUniqueNetId& RecipientId, const FUniqueNetId& SenderId, EJoinPartyDenialReason& DenialReason)
 {
-	return EApprovalAction::Approve;
+	if (IsInJoinableGameState())
+	{
+		return EApprovalAction::Approve;
+	}
+	else
+	{
+		DenialReason = EJoinPartyDenialReason::GameFull;
+		return EApprovalAction::Deny;
+	}
 }
 
 void UPartyGameState::HandlePartyJoinRequestReceived(const FUniqueNetId& RecipientId, const FUniqueNetId& SenderId)
@@ -594,15 +602,8 @@ void UPartyGameState::HandlePartyJoinRequestReceived(const FUniqueNetId& Recipie
 		int32 MaxPartyMembers = CurrentConfig.MaxMembers;
 		if (NumPartyMembers < MaxPartyMembers)
 		{
-			if (IsInJoinableGameState())
-			{
-				ApprovalAction = ProcessJoinRequest(RecipientId, SenderId, DenialReason);
-			}
-			else
-			{
-				// Game is full
-				DenialReason = EJoinPartyDenialReason::GameFull;
-			}
+			// Give the game a chance to accept or deny this player
+			ApprovalAction = ProcessJoinRequest(RecipientId, SenderId, DenialReason);
 		}
 		else
 		{

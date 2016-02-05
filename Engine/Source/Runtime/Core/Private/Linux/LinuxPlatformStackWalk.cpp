@@ -759,6 +759,32 @@ void FLinuxPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 M
 	}
 }
 
-void NewReportEnsure( const TCHAR* ErrorMessage )
+static FCriticalSection EnsureLock;
+static bool bReentranceGuard = false;
+
+void NewReportEnsure(const TCHAR* ErrorMessage)
 {
+	// Simple re-entrance guard.
+	EnsureLock.Lock();
+
+	if (bReentranceGuard)
+	{
+		EnsureLock.Unlock();
+		return;
+	}
+
+	bReentranceGuard = true;
+
+	siginfo_t Signal;
+	Signal.si_signo = SIGTRAP;
+	Signal.si_code = TRAP_TRACE;
+	Signal.si_addr = __builtin_return_address(0);
+
+	FLinuxCrashContext EnsureContext;
+	EnsureContext.InitFromSignal(SIGTRAP, &Signal, nullptr);
+	EnsureContext.CaptureStackTrace();
+	EnsureContext.GenerateCrashInfoAndLaunchReporter(true);
+
+	bReentranceGuard = false;
+	EnsureLock.Unlock();
 }

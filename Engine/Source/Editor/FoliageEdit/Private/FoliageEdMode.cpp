@@ -143,38 +143,21 @@ public:
 //
 // Painting filtering options
 //
-struct FFoliagePaintingGeometryFilter
+bool FFoliagePaintingGeometryFilter::operator() (const UPrimitiveComponent* Component) const
 {
-	bool bAllowLandscape;
-	bool bAllowStaticMesh;
-	bool bAllowBSP;
-	bool bAllowTranslucent;
-
-	FFoliagePaintingGeometryFilter(const FFoliageUISettings& InUISettings)
-		: bAllowLandscape(InUISettings.bFilterLandscape)
-		, bAllowStaticMesh(InUISettings.bFilterStaticMesh)
-		, bAllowBSP(InUISettings.bFilterBSP)
-		, bAllowTranslucent(InUISettings.bFilterTranslucent)
+	if (Component)
 	{
+		bool bShallNotPass =
+			(!bAllowLandscape	&& Component->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
+			(!bAllowStaticMesh	&& Component->IsA(UStaticMeshComponent::StaticClass())) ||
+			(!bAllowBSP			&& Component->IsA(UModelComponent::StaticClass())) ||
+			(!bAllowTranslucent	&& Component->GetMaterial(0) && IsTranslucentBlendMode(Component->GetMaterial(0)->GetBlendMode()));
+
+		return !bShallNotPass;
 	}
 
-	bool operator() (const UPrimitiveComponent* Component) const
-	{
-		if (Component)
-		{
-			bool bShallNotPass = 
-				(!bAllowLandscape	&& Component->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
-				(!bAllowStaticMesh	&& Component->IsA(UStaticMeshComponent::StaticClass())) ||
-				(!bAllowBSP			&& Component->IsA(UModelComponent::StaticClass())) ||
-				(!bAllowTranslucent	&& Component->GetMaterial(0) && IsTranslucentBlendMode(Component->GetMaterial(0)->GetBlendMode()));
-			
-			return !bShallNotPass;
-		}
-		
-		return false;		
-	}
-};
-
+	return false;
+}
 
 //
 // FEdModeFoliage
@@ -887,7 +870,7 @@ bool LandscapeLayerCheck(const FHitResult& Hit, const UFoliageType* Settings, FE
 	return true;
 }
 
-void FEdModeFoliage::CalculatePotentialInstances_ThreadSafe(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>* DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], const FFoliageUISettings* UISettings, const int32 StartIdx, const int32 LastIdx)
+void FEdModeFoliage::CalculatePotentialInstances_ThreadSafe(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>* DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], const FFoliageUISettings* UISettings, const int32 StartIdx, const int32 LastIdx, const FFoliagePaintingGeometryFilter* OverrideGeometryFilter)
 {
 	LandscapeLayerCacheData LocalCache;
 
@@ -910,6 +893,11 @@ void FEdModeFoliage::CalculatePotentialInstances_ThreadSafe(const UWorld* InWorl
 			// Enable geometry filters when painting foliage manually
 			TraceFilterFunc = FFoliagePaintingGeometryFilter(*UISettings);
 		}
+
+		if(OverrideGeometryFilter)
+		{
+			TraceFilterFunc = *OverrideGeometryFilter;
+		}
 		
 		if (AInstancedFoliageActor::FoliageTrace(InWorld, Hit, DesiredInst, NAME_AddFoliageInstances, true, TraceFilterFunc))
 		{
@@ -927,7 +915,7 @@ void FEdModeFoliage::CalculatePotentialInstances_ThreadSafe(const UWorld* InWorl
 	}
 }
 
-void FEdModeFoliage::CalculatePotentialInstances(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings)
+void FEdModeFoliage::CalculatePotentialInstances(const UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, TArray<FPotentialInstance> OutPotentialInstances[NUM_INSTANCE_BUCKETS], LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings, const FFoliagePaintingGeometryFilter* OverrideGeometryFilter)
 {
 	LandscapeLayerCacheData LocalCache;
 	LandscapeLayerCachesPtr = LandscapeLayerCachesPtr ? LandscapeLayerCachesPtr : &LocalCache;
@@ -951,6 +939,11 @@ void FEdModeFoliage::CalculatePotentialInstances(const UWorld* InWorld, const UF
 		{
 			// Enable geometry filters when painting foliage manually
 			TraceFilterFunc = FFoliagePaintingGeometryFilter(*UISettings);
+		}
+
+		if(OverrideGeometryFilter)
+		{
+			TraceFilterFunc = *OverrideGeometryFilter;
 		}
 				
 		FHitResult Hit;
@@ -981,7 +974,7 @@ void FEdModeFoliage::CalculatePotentialInstances(const UWorld* InWorld, const UF
 	}
 }
 
-void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances)
+void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances, const FFoliagePaintingGeometryFilter& OverrideGeometryFilter)
 {
 	TMap<const UFoliageType*, TArray<FDesiredFoliageInstance>> SettingsInstancesMap;
 	for (const FDesiredFoliageInstance& DesiredInst : DesiredInstances)
@@ -995,7 +988,7 @@ void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageI
 		const UFoliageType* FoliageType = It.Key();
 
 		const TArray<FDesiredFoliageInstance>& Instances = It.Value();
-		AddInstancesImp(InWorld, FoliageType, Instances);
+		AddInstancesImp(InWorld, FoliageType, Instances, TArray<int32>(), 1.f, nullptr, nullptr, &OverrideGeometryFilter);
 	}
 }
 
@@ -1011,7 +1004,7 @@ static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, 
 	MeshInfo->AddInstance(IFA, FoliageSettings, Instance, BaseComponent);
 }
 
-void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const TArray<int32>& ExistingInstanceBuckets, const float Pressure, LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings)
+void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const TArray<int32>& ExistingInstanceBuckets, const float Pressure, LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings, const FFoliagePaintingGeometryFilter* OverrideGeometryFilter)
 {
 	if (DesiredInstances.Num() == 0)
 	{
@@ -1021,12 +1014,12 @@ void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settin
 	TArray<FPotentialInstance> PotentialInstanceBuckets[NUM_INSTANCE_BUCKETS];
 	if (DesiredInstances[0].PlacementMode == EFoliagePlacementMode::Manual)
 	{
-		CalculatePotentialInstances(InWorld, Settings, DesiredInstances, PotentialInstanceBuckets, LandscapeLayerCachesPtr, UISettings);
+		CalculatePotentialInstances(InWorld, Settings, DesiredInstances, PotentialInstanceBuckets, LandscapeLayerCachesPtr, UISettings, OverrideGeometryFilter);
 	}
 	else
 	{
 		//@TODO: actual threaded part coming, need parts of this refactor sooner for content team
-		CalculatePotentialInstances_ThreadSafe(InWorld, Settings, &DesiredInstances, PotentialInstanceBuckets, nullptr, 0, DesiredInstances.Num() - 1);
+		CalculatePotentialInstances_ThreadSafe(InWorld, Settings, &DesiredInstances, PotentialInstanceBuckets, nullptr, 0, DesiredInstances.Num() - 1, OverrideGeometryFilter);
 
 		// Existing foliage types in the palette  we want to override any existing mesh settings with the procedural settings.
 		TMap<AInstancedFoliageActor*, TArray<const UFoliageType*>> UpdatedTypesByIFA;

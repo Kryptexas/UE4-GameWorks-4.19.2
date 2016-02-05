@@ -537,9 +537,6 @@ void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, 
 		VirtualKeyboardTextCommitType = CommitType;
 		bTextCommittedByVirtualKeyboard = true;
 	}
-
-	// Clear focus so that virtual keyboard can be reopened again my clicking on the text box
-	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
 }
 
 bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool bForce)
@@ -2428,6 +2425,11 @@ void SMultiLineEditableText::MakeUndoState(SMultiLineEditableText::FUndoState& O
 TSharedRef< SWidget > SMultiLineEditableText::GetWidget()
 {
 	return SharedThis( this );
+}
+
+TSharedRef< IVirtualKeyboardEntry > SMultiLineEditableText::GetVirtualKeyboardEntry()
+{
+	return SharedThis(this);
 }
 
 void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath)

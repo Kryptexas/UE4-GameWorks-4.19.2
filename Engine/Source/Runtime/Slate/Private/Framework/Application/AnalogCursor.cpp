@@ -172,7 +172,7 @@ bool FAnalogCursor::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEven
 			SlateApp.GetPlatformApplication()->GetModifierKeys()
 			);
 
-		SlateApp.ProcessMouseButtonUpEvent(MouseEvent);
+		return SlateApp.ProcessMouseButtonUpEvent(MouseEvent);
 	}
 	
 	return false;

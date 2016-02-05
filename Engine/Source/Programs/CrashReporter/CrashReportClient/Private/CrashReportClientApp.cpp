@@ -171,6 +171,12 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 			FCrashReportClientUnattended CrashReportClient(ErrorReport);
 			ErrorReport.SetUserComment(NSLOCTEXT("CrashReportClient", "UnattendedMode", "Sent in the unattended mode"));
 
+			if (ErrorReport.HasFilesToUpload())
+			{
+				// Send analytics.
+				FPrimaryCrashProperties::Get()->SendAnalytics();
+			}
+
 			// loop until the app is ready to quit
 			while (!GIsRequestingExit)
 			{

@@ -9,7 +9,9 @@
 #if WITH_PERFCOUNTERS
 	#include "PerfCountersModule.h"
 #endif // WITH_PERFCOUNTERS
-#include "PerfCountersHelpers.h"
+#if WITH_ENGINE
+	#include "PerfCountersHelpers.h"
+#endif // WITH_ENGINE
 
 #ifndef WITH_QOSREPORTER
 	#error "WITH_QOSREPORTER should be defined in Build.cs file"
@@ -144,6 +146,9 @@ void FQoSReporter::ReportStartupCompleteEvent()
 	ParamArray.Add(FAnalyticsEventAttribute(EQoSEvents::ToString(EQoSEventParam::StartupTime), Difference));
 	Analytics->RecordEvent(EQoSEvents::ToString(EQoSEventParam::StartupTime), ParamArray);
 
+	// log it so we can do basic analysis by log scraping
+	UE_LOG(LogQoSReporter, Log, TEXT("Startup complete, took %f seconds."), Difference);
+
 	bStartupEventReported = true;
 }
 
@@ -178,7 +183,11 @@ void FQoSReporter::EnableCountingHitches(bool bEnable)
 
 double FQoSReporter::HeartbeatInterval = 300;
 double FQoSReporter::LastHeartbeatTimestamp = 0;
+#if WITH_ENGINE
 extern ENGINE_API float GAverageFPS;
+#else
+float GAverageFPS = 0.0f;	// fake
+#endif // WITH_ENGINE
 
 void FQoSReporter::Tick()
 {

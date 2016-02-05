@@ -277,15 +277,18 @@ static const TCHAR* GStreamTypeNames[] =
 
 struct FTexturePriority
 {
-	FTexturePriority( float InPriority, int32 InTextureIndex )
+	FTexturePriority( float InPriority, int32 InTextureIndex, const UTexture2D* InTexture)
 	:	Priority( InPriority )
 	,	TextureIndex( InTextureIndex )
+	,	Texture( InTexture )
 	{
 	}
 	/** Texture priority, higher value means more important. */
 	float Priority;
 	/** Index into the FStreamingManagerTexture::StreamingTextures array. */
 	int32 TextureIndex;
+	/** The texture to stream. Only used for validation. */
+	const UTexture2D* Texture;
 };
 
 /** Self-contained structure to manage a streaming texture, possibly on a separate thread. */
@@ -1239,7 +1242,11 @@ private:
 				// Add to sort list, if it wants to stream in or could potentially stream out.
 				if ( StreamingTexture.WantedMips > StreamingTexture.ResidentMips || StreamingTexture.ResidentMips > StreamingTexture.MinAllowedMips )
 				{
-					FTexturePriority* TexturePriority = new (PrioritizedTextures) FTexturePriority( StreamingTexture.CalcPriority(), Index );
+					const UTexture2D* Texture = StreamingTexture.Texture; // This needs to go on the stack in case the main thread updates it at the same time (for the condition consistency).
+					if (Texture)
+					{
+						FTexturePriority* TexturePriority = new (PrioritizedTextures) FTexturePriority( StreamingTexture.CalcPriority(), Index, Texture );
+					}
 				}
 
 				// Accumulate streaming numbers.
@@ -3547,12 +3554,13 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 		while ( HighPrioIndex <= LowPrioIndex && TempMemoryUsed < MaxTempMemoryUsed )
 		{
 			const FTexturePriority& TexturePriority = PrioritizedTextures[ HighPrioIndex ];
-			FStreamingTexture& HighPrioTexture = StreamingTextures[ TexturePriority.TextureIndex ];
-			bool bStreamInTexture = false;
 
-			// Check that texture hasn't been marked for removal.
-			if ( HighPrioTexture.Texture != NULL )
+			// Because deleted textures can shrink StreamingTextures, we need to check that the index is in range.
+			// Even if it is, because of the RemoveSwap logic, it could refer to the wrong texture now.
+			if (TexturePriority.TextureIndex < StreamingTextures.Num() && TexturePriority.Texture == StreamingTextures[TexturePriority.TextureIndex].Texture)
 			{
+				FStreamingTexture& HighPrioTexture = StreamingTextures[TexturePriority.TextureIndex];
+
 				// Do we want to cancel unload? Do we want more mips than requested?
 				if ( HighPrioTexture.bInFlight && HighPrioTexture.RequestedMips < HighPrioTexture.ResidentMips && HighPrioTexture.RequestedMips < HighPrioTexture.WantedMips )
 				{

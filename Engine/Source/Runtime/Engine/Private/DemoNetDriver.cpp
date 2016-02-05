@@ -305,6 +305,8 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		bIsFastForwarding				= false;
 		bIsFastForwardingForCheckpoint	= false;
 		bWasStartStreamingSuccessful	= true;
+		SavedReplicatedWorldTimeSeconds	= 0.0f;
+		SavedSecondsToSkip				= 0.0f;
 
 		ResetDemoState();
 
@@ -1172,6 +1174,21 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	const double StartCheckpointTime = FPlatformTime::Seconds();
 
+	// Save the replicated server time so we can restore it after the checkpoint has been serialized.
+	// This preserves the existing behavior and prevents clients from receiving updated server time
+	// more often than the normal update rate.
+	float SavedReplicatedServerTimeSeconds = -1.0f;
+
+	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
+
+	// Normally AGameState::ReplicatedWorldTimeSeconds is only updated periodically,
+	// but we want to make sure it's accurate for the checkpoint.
+	if (GameState != nullptr)
+	{
+		SavedReplicatedServerTimeSeconds = GameState->ReplicatedWorldTimeSeconds;
+		GameState->UpdateServerTimeSeconds();
+	}
+
 	// First, save the current guid cache
 	SerializeGuidCache( GuidCache, CheckpointArchive );
 
@@ -1243,6 +1260,12 @@ void UDemoNetDriver::SaveCheckpoint()
 	if ( CheckpointArchive->TotalSize() > 0 )
 	{
 		ReplayStreamer->FlushCheckpoint( SavedAbsTimeMS );
+	}
+
+	// Restore the game state's replicated world time
+	if (GameState != nullptr)
+	{
+		GameState->ReplicatedWorldTimeSeconds = SavedReplicatedServerTimeSeconds;
 	}
 
 	const double EndCheckpointTime = FPlatformTime::Seconds();
@@ -1655,6 +1678,7 @@ void UDemoNetDriver::SkipTimeInternal( const float SecondsToSkip, const bool InF
 	check( !bIsFastForwarding );				// Can only do one of these at a time (use tasks to gate this)
 	check( !bIsFastForwardingForCheckpoint );	// Can only do one of these at a time (use tasks to gate this)
 
+	SavedSecondsToSkip = SecondsToSkip;
 	DemoCurrentTime += SecondsToSkip;
 
 	bIsFastForwarding				= InFastForward;
@@ -1775,11 +1799,8 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 
 void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 {
+	// This must be set before we CallRepNotifies or they might be skipped again
 	bIsFastForwarding = false;
-
-	// We may have been fast-forwarding immediately after loading a checkpoint
-	// for fine-grained scrubbing. If so, at this point we are no longer loading a checkpoint.
-	bIsFastForwardingForCheckpoint = false;
 
 	// Flush all pending RepNotifies that were built up during the fast-forward.
 	if ( ServerConnection != nullptr )
@@ -1795,6 +1816,28 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 			}
 		}
 	}
+
+	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
+
+	// Correct server world time for fast-forwarding after a checkpoint
+	if (GameState != nullptr)
+	{
+		if (bIsFastForwardingForCheckpoint)
+		{
+			const float PostCheckpointServerTime = SavedReplicatedWorldTimeSeconds + SavedSecondsToSkip;
+			GameState->ReplicatedWorldTimeSeconds = PostCheckpointServerTime;
+		}
+
+		// Correct client world time for any fast-forward, checkpoint or not
+		World->TimeSeconds += SavedSecondsToSkip;
+
+		// Correct the ServerWorldTimeSecondsDelta
+		GameState->OnRep_ReplicatedWorldTimeSeconds();
+	}
+
+	// We may have been fast-forwarding immediately after loading a checkpoint
+	// for fine-grained scrubbing. If so, at this point we are no longer loading a checkpoint.
+	bIsFastForwardingForCheckpoint = false;
 
 	// Reset the never-queue GUID list, we'll rebuild it
 	NonQueuedGUIDsForScrubbing.Reset();
@@ -2113,6 +2156,16 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	ReadDemoFrame( GotoCheckpointArchive );
 
 	bDemoPlaybackDone = false;
+
+	// Save the replicated server time here
+	if (World != nullptr)
+	{
+		const AGameState* const GameState = World->GetGameState();
+		if (GameState != nullptr)
+		{
+			SavedReplicatedWorldTimeSeconds = GameState->ReplicatedWorldTimeSeconds;
+		}
+	}
 
 	if ( SpectatorController && ViewTargetGUID.IsValid() )
 	{

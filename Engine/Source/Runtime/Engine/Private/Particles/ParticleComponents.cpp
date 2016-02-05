@@ -3044,6 +3044,7 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 #if WITH_EDITORONLY_DATA
 	EditorDetailMode = -1;
 #endif // WITH_EDITORONLY_DATA
+	LastCheckedDetailMode = -1;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bGenerateOverlapEvents = false;
 
@@ -4202,7 +4203,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	}
 
 	// System settings may have been lowered. Support late deactivation.
-	int32 DetailModeCVar = GetCachedScalabilityCVars().DetailMode;
+	int32 DetailModeCVar = GetCurrentDetailMode();
 	const bool bDetailModeAllowsRendering	= DetailMode <= DetailModeCVar;
 	if ( bDetailModeAllowsRendering == false )
 	{
@@ -4233,8 +4234,16 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 		if (bRequiresReset)
 		{
+			bool bOldActive = bIsActive;
 			ResetParticles(true);
-			InitializeSystem();
+			if (bOldActive)
+			{
+				ActivateSystem();
+			}
+			else
+			{
+				InitializeSystem();
+			}
 		}
 
 		// Save the detail mode we just checked
@@ -4244,30 +4253,35 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	// Bail out if MaxSecondsBeforeInactive > 0 and we haven't been rendered the last MaxSecondsBeforeInactive seconds.
 	if (bWarmingUp == false)
 	{
-		const float MaxSecondsBeforeInactive = FMath::Max( SecondsBeforeInactive, Template->SecondsBeforeInactive );
-
-		// Clamp MaxSecondsBeforeInactive to be at least twice the maximum
-		// smoothed frame time (45.45ms) because the rendering thread runs one 
-		// frame behind the game thread and so smaller time differences cannot 
-		// be reliably detected.
-		const float ClampedMaxSecondsBeforeInactive = MaxSecondsBeforeInactive > 0 ? FMath::Max(MaxSecondsBeforeInactive, 0.1f) : 0;
-
-		if( ClampedMaxSecondsBeforeInactive > 0 
-			&&	AccumTickTime > ClampedMaxSecondsBeforeInactive//SecondsBeforeInactive
-			&&	GetWorld()->IsGameWorld() )
+		//For now, we're only allowing the SecondsBeforeInactive optimization on looping emitters as it can cause leaks with non-looping effects.
+		//Longer term, there is likely a better solution.
+		if (Template->IsLooping())
 		{
-			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD_Inactive);
-			const float CurrentTimeSeconds = World->GetTimeSeconds();
-			if( CurrentTimeSeconds > (LastRenderTime + ClampedMaxSecondsBeforeInactive) )
+			const float MaxSecondsBeforeInactive = FMath::Max(SecondsBeforeInactive, Template->SecondsBeforeInactive);
+
+			// Clamp MaxSecondsBeforeInactive to be at least twice the maximum
+			// smoothed frame time (45.45ms) because the rendering thread runs one 
+			// frame behind the game thread and so smaller time differences cannot 
+			// be reliably detected.
+			const float ClampedMaxSecondsBeforeInactive = MaxSecondsBeforeInactive > 0 ? FMath::Max(MaxSecondsBeforeInactive, 0.1f) : 0;
+
+			if (ClampedMaxSecondsBeforeInactive > 0
+				&& AccumTickTime > ClampedMaxSecondsBeforeInactive//SecondsBeforeInactive
+				&&	GetWorld()->IsGameWorld())
 			{
-				bForcedInActive = true;
+				SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD_Inactive);
+				const float CurrentTimeSeconds = World->GetTimeSeconds();
+				if (CurrentTimeSeconds > (LastRenderTime + ClampedMaxSecondsBeforeInactive))
+				{
+					bForcedInActive = true;
 
-				SpawnEvents.Empty();
-				DeathEvents.Empty();
-				CollisionEvents.Empty();
-				KismetEvents.Empty();
+					SpawnEvents.Empty();
+					DeathEvents.Empty();
+					CollisionEvents.Empty();
+					KismetEvents.Empty();
 
-				return;
+					return;
+				}
 			}
 		}
 
@@ -4671,7 +4685,7 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 		WarmupTime = Template->WarmupTime;
 		WarmupTickRate = Template->WarmupTickRate;
 		bIsViewRelevanceDirty = true;
-		const int32 GlobalDetailMode = GetCachedScalabilityCVars().DetailMode;
+		const int32 GlobalDetailMode = GetCurrentDetailMode();;
 		const bool bCanEverRender = CanEverRender();
 
 		//simplified version.
@@ -4988,7 +5002,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	}
 
 	// System settings may have been lowered. Support late deactivation.
-	const bool bDetailModeAllowsRendering	= DetailMode <= GetCachedScalabilityCVars().DetailMode;
+	const bool bDetailModeAllowsRendering	= DetailMode <= GetCurrentDetailMode();
 
 	//Assume significant initially.
 	LastSignificantTime = GetWorld()->GetTimeSeconds();
@@ -5523,7 +5537,7 @@ void UParticleSystemComponent::InitializeSystem()
 		Template != NULL ? *Template->GetName() : TEXT("NULL"), this, FXSystem);
 
 	// System settings may have been lowered. Support late deactivation.
-	const bool bDetailModeAllowsRendering	= DetailMode <= GetCachedScalabilityCVars().DetailMode;
+	const bool bDetailModeAllowsRendering	= DetailMode <= GetCurrentDetailMode();
 
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{

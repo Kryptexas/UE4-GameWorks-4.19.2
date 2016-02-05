@@ -17,6 +17,10 @@ UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitialize
 	TileOverlap = 0.f;
 	ProceduralGuid = FGuid::NewGuid();
 #if WITH_EDITORONLY_DATA
+	bAllowLandscape = true;
+	bAllowBSP = true;
+	bAllowStaticMesh = true;
+	bAllowTranslucent = true;
 	bShowDebugTiles = false;
 #endif
 }

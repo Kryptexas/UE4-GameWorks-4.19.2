@@ -674,25 +674,50 @@ void FWidgetBlueprintEditorUtils::CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetR
 
 void FWidgetBlueprintEditorUtils::CopyWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
 {
-	TArray<UWidget*> CopyableWidgets;
+	TSet<UWidget*> TemplateWidgets;
+
+	// Convert the set of widget references into the list of widget templates we're going to copy.
 	for ( const FWidgetReference& Widget : Widgets )
 	{
-		UWidget* ParentWidget = Widget.GetTemplate();
-		CopyableWidgets.Add(ParentWidget);
-
-		// When copying a widget users expect all sub widgets to be copied as well, so we need to ensure that
-		// we gather all the child widgets and copy them as well.
-		UWidgetTree::GetChildWidgets(ParentWidget, CopyableWidgets);
+		UWidget* TemplateWidget = Widget.GetTemplate();
+		TemplateWidgets.Add(TemplateWidget);
 	}
 
-	TSet<UWidget*> CopyableWidgetsSet(CopyableWidgets);
+	TArray<UWidget*> FinalWidgets;
+
+	// Pair down copied widgets to the legitimate root widgets, if they're parent is not already
+	// in the set we're planning to copy, then keep them in the list, otherwise remove widgets that
+	// will already be handled when their parent copies into the array.
+	for ( UWidget* TemplateWidget : TemplateWidgets )
+	{
+		bool bFoundParent = false;
+
+		// See if the widget already has a parent in the set we're copying.
+		for ( UWidget* PossibleParent : TemplateWidgets )
+		{
+			if ( PossibleParent != TemplateWidget )
+			{
+				if ( TemplateWidget->IsChildOf(PossibleParent) )
+				{
+					bFoundParent = true;
+					break;
+				}
+			}
+		}
+
+		if ( !bFoundParent )
+		{
+			FinalWidgets.Add(TemplateWidget);
+			UWidgetTree::GetChildWidgets(TemplateWidget, FinalWidgets);
+		}
+	}
 
 	FString ExportedText;
-	FWidgetBlueprintEditorUtils::ExportWidgetsToText(CopyableWidgetsSet, /*out*/ ExportedText);
+	FWidgetBlueprintEditorUtils::ExportWidgetsToText(FinalWidgets, /*out*/ ExportedText);
 	FPlatformMisc::ClipboardCopy(*ExportedText);
 }
 
-void FWidgetBlueprintEditorUtils::ExportWidgetsToText(TSet<UWidget*> WidgetsToExport, /*out*/ FString& ExportedText)
+void FWidgetBlueprintEditorUtils::ExportWidgetsToText(TArray<UWidget*> WidgetsToExport, /*out*/ FString& ExportedText)
 {
 	// Clear the mark state for saving.
 	UnMarkAllObjects(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp));

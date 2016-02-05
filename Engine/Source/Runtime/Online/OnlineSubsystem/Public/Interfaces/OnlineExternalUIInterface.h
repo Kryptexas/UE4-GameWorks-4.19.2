@@ -86,7 +86,8 @@ struct FShowWebUrlParams
  */
 enum class EPlatformMessageType
 {
-	EmptyStore
+	EmptyStore,
+	ChatRestricted
 };
 
 /** 

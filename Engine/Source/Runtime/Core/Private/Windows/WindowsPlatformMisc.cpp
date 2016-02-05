@@ -8,6 +8,7 @@
 #include "WindowsPlatformCrashContext.h"
 
 #include "GenericPlatformChunkInstall.h"
+#include "GenericPlatformDriver.h"			// FGPUDriverInfo
 
 // Resource includes.
 #include "Runtime/Launch/Resources/Windows/Resource.h"
@@ -45,6 +46,18 @@
 #ifndef SM_CONVERTIBLESLATEMODE
 #define SM_CONVERTIBLESLATEMODE			0x2003
 #endif
+
+// this cvar can be removed once we have a single method that works well
+static TAutoConsoleVariable<int32> CVarDriverDetectionMethod(
+	TEXT("r.DriverDetectionMethod"),
+	4,
+	TEXT("Defined which implementation is used to detect the GPU driver (to check for old drivers and for logs and statistics)\n")
+	TEXT("  0: Iterate available drivers in registry and choose the one with the same name, if in question use next method (happens)\n")
+	TEXT("  1: Get the driver of the primary adpater (might not be correct when dealing with multiple adapters)\n")
+	TEXT("  2: Use DirectX LUID (would be the best, not yet implemented)\n")
+	TEXT("  3: Use Windows functions, use the primary device (might be wrong when API is using another adapter)\n")
+	TEXT("  4: Use Windows functions, use the one names like the DirectX Device (newest, most promising)"),
+	ECVF_RenderThreadSafe);
 
 namespace
 {
@@ -2421,39 +2434,51 @@ static void GetVideoDriverDetails(const FString& Key, FGPUDriverInfo& Out)
 		}
 	}
 
+	// some key/value pairs explained: http://www.helpdoc-online.com/SCDMS01EN1A330P306~Windows-NT-Workstation-3.51-Resource-Kit-Help-en~Video-Device-Driver-Entries.htm
+
 	FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("ProviderName"), Out.ProviderName);
 
-	// AMD (not the Catalyst one) and NVIDIA
+	if (!Out.ProviderName.IsEmpty())
+	{
+		if (Out.ProviderName.Find(TEXT("NVIDIA")) != INDEX_NONE)
+		{
+			Out.SetNVIDIA();
+		}
+		else if (Out.ProviderName.Find(TEXT("Advanced Micro Devices")) != INDEX_NONE)
+		{
+			Out.SetAMD();
+		}
+		else if (Out.ProviderName.Find(TEXT("Intel")) != INDEX_NONE)	// usually TEXT("Intel Corporation")
+		{
+			Out.SetIntel();
+		}
+	}
+
+	// technical driver version, AMD and NVIDIA
 	FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("DriverVersion"), Out.InternalDriverVersion);
 
 	Out.UserDriverVersion = Out.InternalDriverVersion;
 
-	if(Out.ProviderName == TEXT("NVIDIA"))
+	if(Out.IsNVIDIA())
 	{
-		// https://forums.geforce.com/default/topic/378546/confusion-over-driver-version-numbers/
-		// we don't care about the windows version so we don't look at the front part of the driver version
-		// "9.18.13.4788" -> "347.88"
-		// "10.18.13.4788" -> "347.88"
-		// the following code works with the current numbering scheme, if needed we have to update that
-		{
-			// e.g. 3.4788
-			FString RightPart = Out.UserDriverVersion.Right(6);
-
-			if(RightPart.Len() == 6 && RightPart[1] == (TCHAR)'.')
-			{
-				// e.g. 347.88
-				Out.UserDriverVersion = RightPart.Left(1) + RightPart[2] + RightPart[3] + TEXT(".") + RightPart[4] + RightPart[5];
-			}
-		}
+		Out.UserDriverVersion = Out.GetUnifiedDriverVersion();
 	}
-	else 
+	else if(Out.IsAMD())
 	{
-		// we assume Out.ProviderName == TEXT("Advanced Micro Devices, Inc.")
-
-		// e.g. 15.7.1
 		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("Catalyst_Version"), Out.UserDriverVersion))
 		{
 			Out.UserDriverVersion = FString(TEXT("Catalyst ")) + Out.UserDriverVersion;
+		}
+
+		FString Edition;
+		if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("RadeonSoftwareEdition"), Edition))
+		{
+			FString Version;
+			if(FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("RadeonSoftwareVersion"), Version))
+			{
+				// e.g. TEXT("Crimson 15.12") or TEXT("Catalyst 14.1")
+				Out.UserDriverVersion = Edition + TEXT(" ") + Version;
+			}
 		}
 	}
 
@@ -2461,43 +2486,137 @@ static void GetVideoDriverDetails(const FString& Key, FGPUDriverInfo& Out)
 	FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("DriverDate"), Out.DriverDate);
 }
 
-void FWindowsPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate)
+FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescription)
 {
 	// to distinguish failed GetGPUDriverInfo() from call to GetGPUDriverInfo()
-	InternalDriverVersion = TEXT("Unknown");
-	UserDriverVersion = TEXT("Unknown");
-	DriverDate = TEXT("Unknown");
+	FGPUDriverInfo Ret;
+
+	Ret.InternalDriverVersion = TEXT("Unknown");
+	Ret.UserDriverVersion = TEXT("Unknown");
+	Ret.DriverDate = TEXT("Unknown");
 
 	// for debugging, useful even in shipping to see what went wrong
-	FString ErrorString;
+	FString DebugString;
 
 	uint32 FoundDriverCount = 0;
 
-	for(uint32 i = 0;; ++i)
-	{
-		// Iterate all installed display adapters
-		const FString Key = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
-		
-		FGPUDriverInfo Local;
-		GetVideoDriverDetails(Key, Local);
+	int32 Method = CVarDriverDetectionMethod.GetValueOnGameThread();
 
-		if(!Local.IsValid())
+	if(Method == 3 || Method == 4)
+	{
+		UE_LOG(LogWindows, Log, TEXT("EnumDisplayDevices:"));
+
+		for(uint32 i = 0; i < 256; ++i)
 		{
-			ErrorString += TEXT("GetVideoDriverDetailsInvalid ");
+			DISPLAY_DEVICE Device;
+			
+			ZeroMemory(&Device, sizeof(Device));
+			Device.cb = sizeof(Device);
+			
+			// see https://msdn.microsoft.com/en-us/library/windows/desktop/dd162609(v=vs.85).aspx
+			if(EnumDisplayDevices(0, i, &Device, EDD_GET_DEVICE_INTERFACE_NAME) == 0)
+			{
+				// last device or error
+				break;
+			}
+
+			UE_LOG(LogWindows, Log, TEXT("   %d. '%s' (P:%d D:%d)"),
+				i,
+				Device.DeviceString,
+				(Device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) != 0,
+				(Device.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) != 0
+				);
+
+			if(Method == 3)
+			{
+				if (!(Device.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE))
+				{
+					// see http://www.vistaheads.com/forums/microsoft-public-windows-vista-hardware-devices/286017-find-out-active-graphics-device-programmatically-registry-key.html
+					DebugString += TEXT("JumpOverNonPrimary ");
+					// we want the primary device
+					continue;
+				}
+			}
+
+			FString DriverLocation = Device.DeviceKey;
+
+			if(DriverLocation.Left(18) == TEXT("\\Registry\\Machine\\"))		// not case sensitive
+			{
+				DriverLocation = FString(TEXT("\\HKEY_LOCAL_MACHINE\\")) + DriverLocation.RightChop(18);
+			}
+			if(DriverLocation.Left(20) == TEXT("\\HKEY_LOCAL_MACHINE\\"))		// not case sensitive
+			{
+				FString Key = DriverLocation.RightChop(20);
+				
+				FGPUDriverInfo Local;
+				GetVideoDriverDetails(Key, Local);
+
+				if(!Local.IsValid())
+				{
+					DebugString += TEXT("GetVideoDriverDetailsInvalid ");
+				}
+
+				if((Method == 3) || (Local.DeviceDescription == DeviceDescription))
+				{
+					if(!FoundDriverCount)
+					{
+						Ret = Local;
+					}
+					++FoundDriverCount;
+				}
+				else
+				{
+					DebugString += TEXT("PrimaryIsNotTheChoosenAdapter ");
+				}
+			}
+			else
+			{
+				DebugString += TEXT("PrimaryDriverLocationFailed ");
+			}
+		}
+		
+		if(FoundDriverCount != 1)
+		{
+			// We assume if multiple entries are found they are all the same driver. If that is correct - this is no error.
+			DebugString += FString::Printf(TEXT("FoundDriverCount:%d "), FoundDriverCount);
 		}
 
-		if(Local.DeviceDescription == DeviceDescription)
+		if(!DebugString.IsEmpty())
 		{
-			// found the one we are searching for
-			InternalDriverVersion = Local.InternalDriverVersion;
-			UserDriverVersion = Local.UserDriverVersion;
-			DriverDate = Local.DriverDate;
-			++FoundDriverCount;
-			break;
+			UE_LOG(LogWindows, Log, TEXT("DebugString: %s"), *DebugString);
+		}
+
+		return Ret;
+	}
+
+	const bool bIterateAvailableAndChoose = Method == 0;
+
+	if(bIterateAvailableAndChoose)
+	{
+		for(uint32 i = 0;; ++i)
+		{
+			// Iterate all installed display adapters
+			const FString Key = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
+		
+			FGPUDriverInfo Local;
+			GetVideoDriverDetails(Key, Local);
+
+			if(!Local.IsValid())
+			{
+				DebugString += TEXT("GetVideoDriverDetailsInvalid ");
+			}
+
+			if(Local.DeviceDescription == DeviceDescription)
+			{
+				// found the one we are searching for
+				Ret = Local;
+				++FoundDriverCount;
+				break;
+			}
 		}
 	}
 
-	// should be 1 after the code but we've seen it >1 and the code needs to be improved (seems it was from upgrading a machine to a new windows version)
+	// FoundDriverCount can be != 1, we take the primary adapater (can be from upgrading a machine to a new OS or old drivers) which also might be wrong
 	// see: http://win7settings.blogspot.com/2014/10/how-to-extract-installed-drivers-from.html
 	// https://support.microsoft.com/en-us/kb/200435
 	// http://www.experts-exchange.com/questions/10198207/Windows-NT-Display-adapter-information.html
@@ -2505,16 +2624,20 @@ void FWindowsPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FSt
 	if(FoundDriverCount != 1)
 	{
 		// we start again, this time we only look at the primary adapter
-		InternalDriverVersion = TEXT("Unknown");
-		UserDriverVersion = TEXT("Unknown");
-		DriverDate = TEXT("Unknown");
+		Ret.InternalDriverVersion = TEXT("Unknown");
+		Ret.UserDriverVersion = TEXT("Unknown");
+		Ret.DriverDate = TEXT("Unknown");
 
-		ErrorString += FString::Printf(TEXT("FoundDriverCount:%d FallbackToPrimary "), FoundDriverCount);
+		if(bIterateAvailableAndChoose)
+		{
+			DebugString += FString::Printf(TEXT("FoundDriverCount:%d FallbackToPrimary "), FoundDriverCount);
+		}
 	
 		// Iterate all installed display adapters
 		const FString Key = TEXT("HARDWARE\\DEVICEMAP\\VIDEO");
 
 		FString DriverLocation; // e.g. HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\<videodriver>\Device0
+		// Video0 is the first logical one, not neccesarily the primary, would have to iterate multiple to get the right one (see https://support.microsoft.com/en-us/kb/102992)
 		bool bOk = FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, *Key, TEXT("\\Device\\Video0"), /*out*/ DriverLocation);
 
 		if(bOk)
@@ -2532,36 +2655,36 @@ void FWindowsPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FSt
 
 				if(!Local.IsValid())
 				{
-					ErrorString += TEXT("GetVideoDriverDetailsInvalid ");
+					DebugString += TEXT("GetVideoDriverDetailsInvalid ");
 				}
 
 				if(Local.DeviceDescription == DeviceDescription)
 				{
-					InternalDriverVersion = Local.InternalDriverVersion;
-					UserDriverVersion = Local.UserDriverVersion;
-					DriverDate = Local.DriverDate;
+					Ret = Local;
 					FoundDriverCount = 1;
 				}
 				else
 				{
-					ErrorString += TEXT("PrimaryIsNotTheChoosenAdapter ");
+					DebugString += TEXT("PrimaryIsNotTheChoosenAdapter ");
 				}
 			}
 			else
 			{
-				ErrorString += TEXT("PrimaryDriverLocationFailed ");
+				DebugString += TEXT("PrimaryDriverLocationFailed ");
 			}
 		}
 		else
 		{
-			ErrorString += TEXT("QueryForPrimaryFailed ");
+			DebugString += TEXT("QueryForPrimaryFailed ");
 		}
 	}
 
-	if(!ErrorString.IsEmpty())
+	if(!DebugString.IsEmpty())
 	{
-		UE_LOG(LogWindows, Error, TEXT("Error: %s"), *ErrorString);
+		UE_LOG(LogWindows, Log, TEXT("DebugString: %s"), *DebugString);
 	}
+
+	return Ret;
 }
 
 #include "HideWindowsPlatformTypes.h"

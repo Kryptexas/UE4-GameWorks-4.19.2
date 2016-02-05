@@ -1028,7 +1028,7 @@ void UGameplayCueManager::CheckForPreallocation(UClass* GCClass)
 {
 	if (AGameplayCueNotify_Actor* InstancedCue = Cast<AGameplayCueNotify_Actor>(GCClass->ClassDefaultObject))
 	{
-		if (InstancedCue->NumPreallocatedInstances > 0)
+		if (InstancedCue->NumPreallocatedInstances > 0 && GameplayCueClassesForPreallocation.Contains(InstancedCue) == false)
 		{
 			// Add this to the global list
 			GameplayCueClassesForPreallocation.Add(InstancedCue);

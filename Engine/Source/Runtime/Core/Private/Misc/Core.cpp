@@ -145,6 +145,7 @@ FString				GEditorPerProjectIni;										/* Editor User Settings ini filename *
 FString				GCompatIni;
 FString				GLightmassIni;												/* Lightmass settings ini filename */
 FString				GScalabilityIni;											/* Scalability settings ini filename */
+FString				GHardwareIni;												/* Hardware ini filename */
 FString				GInputIni;													/* Input ini filename */
 FString				GGameIni;													/* Game ini filename */
 FString				GGameUserSettingsIni;										/* User Game Settings ini filename */

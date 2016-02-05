@@ -13,10 +13,6 @@ static FString GSavedCommandLine;
 extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
 
-// FIXME: handle expose it someplace else?
-extern int32 DLLIMPORT ReportCrash(const FLinuxCrashContext& Context);
-extern void DLLIMPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext& Context);
-
 /**
  * Game-specific crash reporter
  */
@@ -27,7 +23,8 @@ void CommonLinuxCrashHandler(const FGenericCrashContext& GenericContext)
 	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
 	printf("CommonLinuxCrashHandler: Signal=%d\n", Context.Signal);
 
-	ReportCrash(Context);
+	// better than having mutable fields?
+	const_cast< FLinuxCrashContext& >(Context).CaptureStackTrace();
 	if (GLog)
 	{
 		GLog->Flush();
@@ -42,7 +39,7 @@ void CommonLinuxCrashHandler(const FGenericCrashContext& GenericContext)
 		GError->HandleError();
 	}
 
-	return GenerateCrashInfoAndLaunchReporter(Context);
+	return Context.GenerateCrashInfoAndLaunchReporter();
 }
 
 

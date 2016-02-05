@@ -374,6 +374,7 @@ public:
 	virtual void Undo() override;
 	virtual void Redo() override;
 	virtual TSharedRef< SWidget > GetWidget() override;
+	virtual TSharedRef<IVirtualKeyboardEntry> GetVirtualKeyboardEntry() override;
 	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath) override;
 	virtual void LoadText() override;
 	//~ End ITextEditorWidget Interface

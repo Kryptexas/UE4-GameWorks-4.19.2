@@ -251,6 +251,7 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));
 		WriteLine(ReportFile, TEXT("\t\t<Parameter1>6.1.7601.2.1.0.256.48</Parameter1>"));
 		WriteLine(ReportFile, TEXT("\t\t<Parameter2>1033</Parameter2>"));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 
 		WriteLine(ReportFile, TEXT("\t<SystemInformation>"));
@@ -286,34 +287,26 @@ void GenerateMinidump(const FString & Path)
 }
 
 
-int32 DLLEXPORT ReportCrash(const FLinuxCrashContext & Context)
+void FLinuxCrashContext::CaptureStackTrace()
 {
-	static bool GAlreadyCreatedMinidump = false;
-	// Only create a minidump the first time this function is called.
-	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
-	if ( GAlreadyCreatedMinidump == false )
+	// Only do work the first time this function is called - this is mainly a carry over from Windows where it can be called multiple times, left intact for extra safety.
+	if (!bCapturedBacktrace)
 	{
-		GAlreadyCreatedMinidump = true;
-
 		const SIZE_T StackTraceSize = 65535;
 		ANSICHAR* StackTrace = (ANSICHAR*) FMemory::Malloc( StackTraceSize );
 		StackTrace[0] = 0;
 		// Walk the stack and dump it to the allocated memory (ignore first 2 callstack lines as those are in stack walking code)
-		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 2, const_cast< FLinuxCrashContext* >( &Context ) );
+		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 2, this);
 
 		FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1 );
-		CreateExceptionInfoString(Context.Signal, Context.Info);
+		CreateExceptionInfoString(Signal, Info);
 
 		FMemory::Free( StackTrace );
+		bCapturedBacktrace = true;
 	}
-
-	return 0;
 }
 
-/**
- * Generates information for crash reporter
- */
-void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
+void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCrash) const
 {
 	// do not report crashes for tools (particularly for crash reporter itself)
 #if !IS_PROGRAM
@@ -325,12 +318,12 @@ void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Con
 		CrashGuid = FGuid::NewGuid().ToString();
 	}
 
-	FString CrashInfoFolder = FString::Printf(TEXT("crashinfo-%s-pid-%d-%s"), FApp::GetGameName(), getpid(), *CrashGuid);
+	FString CrashInfoFolder = FString::Printf(TEXT("%sinfo-%s-pid-%d-%s"), bReportingNonCrash ? TEXT("ensure") : TEXT("crash"), FApp::GetGameName(), getpid(), *CrashGuid);
 	FString CrashInfoAbsolute = FPaths::ConvertRelativePathToFull(CrashInfoFolder);
 	if (IFileManager::Get().MakeDirectory(*CrashInfoFolder))
 	{
 		// generate "minidump"
-		Context.GenerateReport(FPaths::Combine(*CrashInfoFolder, TEXT("Diagnostics.txt")));
+		GenerateReport(FPaths::Combine(*CrashInfoFolder, TEXT("Diagnostics.txt")));
 
 		// generate "WER"
 		GenerateWindowsErrorReport(FPaths::Combine(*CrashInfoFolder, TEXT("wermeta.xml")));
@@ -368,8 +361,6 @@ void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Con
 
 		CrashReportClientArguments += CrashInfoAbsolute + TEXT("/");
 
-		// show on the console
-		printf("Starting %s\n", StringCast<ANSICHAR>(RelativePathToCrashReporter).Get());
 		FProcHandle RunningProc = FPlatformProcess::CreateProc(RelativePathToCrashReporter, *CrashReportClientArguments, true, false, false, NULL, 0, NULL, NULL);
 		if (FPlatformProcess::IsProcRunning(RunningProc))
 		{
@@ -395,16 +386,19 @@ void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Con
 
 #endif
 
-	// remove the handler for this signal and re-raise it (which should generate the proper core dump)
-	UE_LOG(LogLinux, Log, TEXT("Engine crash handling finished; re-raising signal %d for the default handler. Good bye."), Context.Signal);
+	if (!bReportingNonCrash)
+	{
+		// remove the handler for this signal and re-raise it (which should generate the proper core dump)
+		UE_LOG(LogLinux, Log, TEXT("Engine crash handling finished; re-raising signal %d for the default handler. Good bye."), Signal);
 
-	struct sigaction ResetToDefaultAction;
-	FMemory::Memzero(ResetToDefaultAction);
-	ResetToDefaultAction.sa_handler = SIG_DFL;
-	sigemptyset(&ResetToDefaultAction.sa_mask);
-	sigaction(Context.Signal, &ResetToDefaultAction, nullptr);
+		struct sigaction ResetToDefaultAction;
+		FMemory::Memzero(ResetToDefaultAction);
+		ResetToDefaultAction.sa_handler = SIG_DFL;
+		sigemptyset(&ResetToDefaultAction.sa_mask);
+		sigaction(Signal, &ResetToDefaultAction, nullptr);
 
-	raise(Context.Signal);
+		raise(Signal);
+	}
 }
 
 /**
@@ -416,7 +410,7 @@ void DefaultCrashHandler(const FLinuxCrashContext & Context)
 
 	// at this point we should already be using malloc crash handler (see PlatformCrashHandler)
 
-	ReportCrash(Context);
+	const_cast<FLinuxCrashContext&>(Context).CaptureStackTrace();
 	if (GLog)
 	{
 		GLog->Flush();
@@ -431,7 +425,7 @@ void DefaultCrashHandler(const FLinuxCrashContext & Context)
 		GError->HandleError();
 	}
 
-	return GenerateCrashInfoAndLaunchReporter(Context);
+	return Context.GenerateCrashInfoAndLaunchReporter();
 }
 
 /** Global pointer to crash handler */

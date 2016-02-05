@@ -18,9 +18,11 @@ UAbilityTask_ApplyRootMotionMoveToForce::UAbilityTask_ApplyRootMotionMoveToForce
 	MovementComponent = nullptr;
 	bRestrictSpeedToExpected = false;
 	PathOffsetCurve = nullptr;
+	VelocityOnFinishMode = EOrionRootMotionFinishVelocityMode::MaintainLastRootMotionVelocity;
+	SetVelocityOnFinish = FVector::ZeroVector;
 }
 
-UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce::ApplyRootMotionMoveToForce(UObject* WorldContextObject, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve)
+UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce::ApplyRootMotionMoveToForce(UObject* WorldContextObject, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, EOrionRootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish)
 {
 	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionMoveToForce>(WorldContextObject, TaskInstanceName);
 
@@ -31,6 +33,8 @@ UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce
 	MyTask->NewMovementMode = MovementMode;
 	MyTask->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
 	MyTask->PathOffsetCurve = PathOffsetCurve;
+	MyTask->VelocityOnFinishMode = VelocityOnFinishMode;
+	MyTask->SetVelocityOnFinish = SetVelocityOnFinish;
 	if (MyTask->GetAvatarActor() != nullptr)
 	{
 		MyTask->StartLocation = MyTask->GetAvatarActor()->GetActorLocation();
@@ -153,6 +157,8 @@ void UAbilityTask_ApplyRootMotionMoveToForce::GetLifetimeReplicatedProps(TArray<
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, NewMovementMode);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, bRestrictSpeedToExpected);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, PathOffsetCurve);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, VelocityOnFinishMode);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionMoveToForce, SetVelocityOnFinish);
 }
 
 void UAbilityTask_ApplyRootMotionMoveToForce::PreDestroyFromReplication()
@@ -170,6 +176,19 @@ void UAbilityTask_ApplyRootMotionMoveToForce::OnDestroy(bool AbilityIsEnding)
 		if (bSetNewMovementMode)
 		{
 			MovementComponent->SetMovementMode(EMovementMode::MOVE_Falling);
+		}
+
+		if (VelocityOnFinishMode == EOrionRootMotionFinishVelocityMode::SetVelocity)
+		{
+			ACharacter* Character = MovementComponent->GetCharacterOwner();
+			if (Character)
+			{
+				MovementComponent->Velocity = Character->GetActorRotation().RotateVector(SetVelocityOnFinish);
+			}
+			else
+			{
+				MovementComponent->Velocity = SetVelocityOnFinish;
+			}
 		}
 	}
 

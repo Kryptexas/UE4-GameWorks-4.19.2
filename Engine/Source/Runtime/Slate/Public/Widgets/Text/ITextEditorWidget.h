@@ -315,6 +315,8 @@ class SLATE_API ITextEditorWidget
 
 	virtual TSharedRef< SWidget > GetWidget() = 0;
 
+	virtual TSharedRef<IVirtualKeyboardEntry> GetVirtualKeyboardEntry() = 0;
+
 	DEPRECATED(4.9, "SummonContextMenu() without a FWidgetPath parameter is deprecated. Use the new version of SummonContextMenu().")
 	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow = TSharedPtr<SWindow>())
 	{

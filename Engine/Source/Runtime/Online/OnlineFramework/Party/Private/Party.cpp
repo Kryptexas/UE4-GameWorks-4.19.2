@@ -65,23 +65,34 @@ void UParty::OnLogoutComplete(int32 LocalUserNum, bool bWasSuccessful)
 	if (JoinedParties.Num())
 	{
 		UE_LOG(LogParty, Log, TEXT("Party cleanup on logout"));
+		TArray<FOnlinePartyTypeId> PartiesToRemove;
 		for (const auto& PartyKeyValue : JoinedParties)
 		{
-			UPartyGameState* Party = PartyKeyValue.Value;
-			if (Party && Party->GetPartyId().IsValid())
+			PartiesToRemove.Add(PartyKeyValue.Key);
+		}
+		for (const auto& PartyKey : PartiesToRemove)
+		{
+			UPartyGameState** FoundParty = JoinedParties.Find(PartyKey);
+			if (FoundParty)
 			{
-				if (Party->GetPartyId().IsValid())
+				UPartyGameState* Party = *FoundParty;
+				if (Party && Party->GetPartyId().IsValid())
 				{
-					UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *(Party->GetPartyId()->ToDebugString()));
+					if (Party->GetPartyId().IsValid())
+					{
+						UE_LOG(LogParty, Log, TEXT("[%s] Removed"), *(Party->GetPartyId()->ToDebugString()));
+					}
+					else
+					{
+						UE_LOG(LogParty, Log, TEXT("[%s] Removed - Invalid party Id"));
+					}
+					Party->HandleRemovedFromParty(EMemberExitedReason::Left);
 				}
-				else
-				{
-					UE_LOG(LogParty, Log, TEXT("[%s] Removed - Invalid party Id"));
-				}
-				Party->HandleRemovedFromParty(EMemberExitedReason::Left);
+				JoinedParties.Remove(PartyKey);
 			}
 		}
 
+		ensure(JoinedParties.Num() == 0);
 		JoinedParties.Empty();
 	}
 }
@@ -116,6 +127,7 @@ void UParty::OnLoginStatusChanged(int32 LocalUserNum, ELoginStatus::Type OldStat
 			}
 
 			ensure(JoinedParties.Num() == 0);
+			JoinedParties.Empty();
 		}
 	}
 
@@ -799,11 +811,12 @@ void UParty::OnLeavePartyComplete(const FUniqueNetId& LocalUserId, const ELeaveP
 	InCompletionDelegate.ExecuteIfBound(LocalUserId, Result);
 }
 
-void UParty::GetDefaultPersistentPartySettings(EPartyType& PartyType, bool& bLeaderFriendsOnly, bool& bLeaderInvitesOnly)
+void UParty::GetDefaultPersistentPartySettings(EPartyType& PartyType, bool& bLeaderFriendsOnly, bool& bLeaderInvitesOnly, bool& bAllowInvites)
 {
 	PartyType = EPartyType::Public;
 	bLeaderInvitesOnly = false;
 	bLeaderFriendsOnly = false;
+	bAllowInvites = true;
 }
 
 void UParty::GetPersistentPartyConfiguration(FPartyConfiguration& PartyConfig)
@@ -811,7 +824,8 @@ void UParty::GetPersistentPartyConfiguration(FPartyConfiguration& PartyConfig)
 	EPartyType PartyType = EPartyType::Public;
 	bool bLeaderInvitesOnly = false;
 	bool bLeaderFriendsOnly = false;
-	GetDefaultPersistentPartySettings(PartyType, bLeaderFriendsOnly, bLeaderInvitesOnly);
+	bool bAllowInvites = true;
+	GetDefaultPersistentPartySettings(PartyType, bLeaderFriendsOnly, bLeaderInvitesOnly, bAllowInvites);
 
 	bool bIsPrivate = (PartyType == EPartyType::Private);
 
@@ -843,7 +857,7 @@ void UParty::GetPersistentPartyConfiguration(FPartyConfiguration& PartyConfig)
 	PartyConfig.bIsAcceptingMembers = bIsPrivate ? false : true;
 	PartyConfig.bShouldRemoveOnDisconnection = true;
 	PartyConfig.PresencePermissions = PresencePermissions;
-	PartyConfig.InvitePermissions = bLeaderInvitesOnly ? PartySystemPermissions::EInvitePermissions::Leader : PartySystemPermissions::EInvitePermissions::Anyone;
+	PartyConfig.InvitePermissions = bAllowInvites ? (bLeaderInvitesOnly ? PartySystemPermissions::EInvitePermissions::Leader : PartySystemPermissions::EInvitePermissions::Anyone) : PartySystemPermissions::EInvitePermissions::Noone;
 
 	PartyConfig.MaxMembers = DefaultMaxPartySize;
 }
@@ -899,9 +913,11 @@ void UParty::OnCreatePesistentPartyCompletedCommon(const FUniqueNetId& LocalUser
 	EPartyType PartyType = EPartyType::Public;
 	bool bLeaderInvitesOnly = false;
 	bool bLeaderFriendsOnly = false;
-	GetDefaultPersistentPartySettings(PartyType, bLeaderFriendsOnly, bLeaderInvitesOnly);
+	bool bAllowInvites = true;
+	GetDefaultPersistentPartySettings(PartyType, bLeaderFriendsOnly, bLeaderInvitesOnly, bAllowInvites);
 
 	PersistentParty->SetPartyType(PartyType, bLeaderFriendsOnly, bLeaderInvitesOnly);
+	PersistentParty->SetInvitesDisabled(!bAllowInvites);
 
 	TSharedPtr<const FUniqueNetId> PartyLeaderPtr = PersistentParty->GetPartyLeader();
 	ensure(PartyLeaderPtr.IsValid());

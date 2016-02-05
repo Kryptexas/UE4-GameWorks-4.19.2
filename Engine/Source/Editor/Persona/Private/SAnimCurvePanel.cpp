@@ -318,6 +318,7 @@ const FSlateBrush* SCurveEdTrack::GetExpandContent() const
 	}
 
 }
+
 void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type CommitInfo )
 {
 	if(CommitInfo == ETextCommit::OnEnter || CommitInfo == ETextCommit::OnUserMovedFocus)
@@ -327,8 +328,38 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 			// Check that the name doesn't already exist
 			FName RequestedName = FName(*NewText.ToString());
 			const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
-			if(!NameMapping->Exists(RequestedName))
+
+			// If requested name exists, make sure it's not currently in use in this sequence.
+			const FSmartNameMapping::UID* RequestedNameUID = NameMapping->FindUID(RequestedName);
+			if (RequestedNameUID != nullptr)
 			{
+				// Already in use in this sequence, skip
+				if (CurveInterface->BaseSequence->RawCurveData.GetCurveData(*RequestedNameUID) != nullptr)
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("DestinationName"), FText::FromName(RequestedName));
+					const FText DialogMessage = FText::Format(LOCTEXT("CurveEditor_RenameCurve_AlreadyExists", "ERROR: A curve named '{DestinationName}' already exists in this Sequence."), Args);
+					FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
+					return;
+				}
+
+				// Not in use in this sequence, switch it to the other curve name.
+				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
+				CurveInterface->BaseSequence->Modify(true);
+
+				CurveInterface->CurveData->CurveUid = *RequestedNameUID;
+				CurveInterface->CurveData->LastObservedName = RequestedName;
+
+				// 2. refresh panel
+				TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
+				if (SharedPanel.IsValid())
+				{
+					SharedPanel.Get()->UpdatePanel();
+				}
+			}
+			else
+			{
+				// If it doesn't exist, rename Curve.
 				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
 				Skeleton->RenameSmartnameAndModify(USkeleton::AnimCurveMappingName, CurveInterface->CurveData->CurveUid, FName(*NewText.ToString()));
 			}

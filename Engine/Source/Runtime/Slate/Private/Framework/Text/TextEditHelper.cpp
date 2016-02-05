@@ -323,6 +323,18 @@ FReply FTextEditHelper::OnMouseButtonDown( const FGeometry& MyGeometry, const FP
 				// should reset the selection range to the caret's position.
 				TextEditor->SetWasFocusedByLastMouseDown( true );
 			}
+			else
+			{
+				// On platforms using a virtual keyboard open the virtual keyboard again 
+				FSlateApplication& SlateApplication = FSlateApplication::Get();
+				if (FPlatformMisc::GetRequiresVirtualKeyboard())
+				{
+					if (!TextEditor->GetIsReadOnly())
+					{
+						SlateApplication.ShowVirtualKeyboard(true, InMouseEvent.GetUserIndex(), TextEditor->GetVirtualKeyboardEntry());
+					}
+				}
+			}
 
 			if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 			{

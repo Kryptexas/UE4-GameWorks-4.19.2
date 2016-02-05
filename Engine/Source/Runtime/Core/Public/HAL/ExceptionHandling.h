@@ -27,6 +27,5 @@ extern CORE_API void NewReportEnsure( const TCHAR* ErrorMessage );
 extern CORE_API int32 ReportCrash( ucontext_t *Context, int32 Signal, struct __siginfo* Info );
 extern CORE_API void NewReportEnsure( const TCHAR* ErrorMessage );
 #elif PLATFORM_LINUX
-extern CORE_API int32 ReportCrash( ucontext_t *Context, int32 Signal, siginfo_t* Info );
 extern CORE_API void NewReportEnsure( const TCHAR* ErrorMessage );
 #endif

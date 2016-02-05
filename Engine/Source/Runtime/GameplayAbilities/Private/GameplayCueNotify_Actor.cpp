@@ -16,8 +16,13 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 	AutoDestroyDelay = 0.f;
 	bUniqueInstancePerSourceObject = false;
 	bUniqueInstancePerInstigator = false;
+	bAllowMultipleOnActiveEvents = true;
+	bAllowMultipleWhileActiveEvents = true;
 
 	NumPreallocatedInstances = 0;
+
+	bHasHandledOnActiveEvent = false;
+	bHasHandledWhileActiveEvent = false;
 }
 
 #if WITH_EDITOR
@@ -89,6 +94,19 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 		ABILITY_LOG(Warning, TEXT("GameplayCue parameter is none for %s"), *GetNameSafe(this));
 	}
 
+	// Handle multiple event gating
+	{
+		if (EventType == EGameplayCueEvent::OnActive && !bAllowMultipleOnActiveEvents && bHasHandledOnActiveEvent)
+		{
+			return;
+		}
+
+		if (EventType == EGameplayCueEvent::WhileActive && !bAllowMultipleWhileActiveEvents && bHasHandledWhileActiveEvent)
+		{
+			return;
+		}
+	}
+
 	// If cvar is enabled, check that the target no longer has the matched tag before doing remove logic. This is a simple way of supporting stacking, such that if an actor has two sources giving him the same GC tag, it will not be removed when the first one is removed.
 	if (GameplayCueNotifyTagCheckOnRemove > 0 && EventType == EGameplayCueEvent::Removed)
 	{
@@ -112,10 +130,12 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 		{
 		case EGameplayCueEvent::OnActive:
 			OnActive(MyTarget, Parameters);
+			bHasHandledOnActiveEvent = true;
 			break;
 
 		case EGameplayCueEvent::WhileActive:
 			WhileActive(MyTarget, Parameters);
+			bHasHandledWhileActiveEvent = true;
 			break;
 
 		case EGameplayCueEvent::Executed:
@@ -193,5 +213,7 @@ bool AGameplayCueNotify_Actor::GameplayCuePendingRemove()
 
 bool AGameplayCueNotify_Actor::Recycle()
 {
+	bHasHandledOnActiveEvent = false;
+	bHasHandledWhileActiveEvent = false;
 	return false;
 }

@@ -29,6 +29,15 @@ public:
 	static EBuildConfigurations::Type GetBuildConfiguration();
 
 	/**
+	 * Gets the deployment name (also known as "EpicApp" in the launcher), e.g. DevPlaytest, PublicTest, Live etc.
+	 *
+	 * Does not return FString because it can be used during crash handling, so it should avoid memory allocation.
+	 *
+	 * @return The branch name (guaranteed not to be nullptr).
+	 */
+	static const TCHAR * GetDeploymentName();
+
+	/**
 	 * Gets the date at which this application was built.
 	 *
 	 * @return Build date string.

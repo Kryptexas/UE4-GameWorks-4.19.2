@@ -147,6 +147,7 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,	OutOutOfOrderPackets(0)
 ,	StatUpdateTime(0.0)
 ,	StatPeriod(1.f)
+,	LastCleanupTime(0.0)
 ,	NetTag(0)
 ,	DebugRelevantActors(false)
 ,	ProcessQueuedBunchesCurrentFrameMilliseconds(0.0f)
@@ -301,9 +302,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	// Reset queued bunch amortization timer
 	ProcessQueuedBunchesCurrentFrameMilliseconds = 0.0f;
 
-#if USE_SERVER_PERF_COUNTERS || STATS
 	const double CurrentRealtimeSeconds = FPlatformTime::Seconds();
 
+#if USE_SERVER_PERF_COUNTERS || STATS
 	// Update network stats (only main game net driver for now) if stats or perf counters are used
 	if (NetDriverName == NAME_GameNetDriver && 
 		 CurrentRealtimeSeconds - StatUpdateTime > StatPeriod)
@@ -315,6 +316,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		int32 ClientOutBytesMin = 0;
 		int32 ClientOutBytesAvg = 0;
 		int NumClients = 0;
+		float RemoteSaturationMax = 0.0f;
 
 		// these need to be updated even if we are not collecting stats, since they get reported to analytics/QoS
 		for (UNetConnection * Client : ClientConnections)
@@ -356,7 +358,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		int32 UnAckCount = 0;
 		int32 PendingCount = 0;
 		int32 NetSaturated = 0;
-		float RemoteSaturationMax = 0.0f;
 
 		if (FThreadStats::IsCollectingData())
 		{
@@ -563,6 +564,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			PerfCounters->Set(TEXT("OutRateClientAvg"), ClientOutBytesAvg);
 
 			PerfCounters->Set(TEXT("ServerReplicateActorsTimeMs"), ServerReplicateActorsTimeMs);
+			PerfCounters->Set(TEXT("OutSaturationMax"), RemoteSaturationMax);
 		}
 #endif // USE_SERVER_PERF_COUNTERS
 
@@ -629,6 +631,24 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			// If there are no more unmapped objects, we can also stop checking
 			It.RemoveCurrent();
 		}
+	}
+
+	// Go over RepChangedPropertyTrackerMap periodicallly, and remove entries that no longer have valid objects
+	// Unfortunately if you mark an object as pending kill, it will no longer find itself in this map,
+	// so we do this as a fail safe to make sure we never leak memory from this map
+	const double CleanupTimeSeconds = 10.0;
+
+	if ( CurrentRealtimeSeconds - LastCleanupTime > CleanupTimeSeconds )
+	{
+		for ( auto It = RepChangedPropertyTrackerMap.CreateIterator(); It; ++It )
+		{
+			if ( !It.Key().IsValid() )
+			{
+				It.RemoveCurrent();
+			}
+		}
+
+		LastCleanupTime = CurrentRealtimeSeconds;
 	}
 
 	// Update the lag state

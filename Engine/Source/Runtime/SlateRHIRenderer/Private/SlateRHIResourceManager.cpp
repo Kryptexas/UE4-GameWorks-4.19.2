@@ -687,8 +687,6 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 	}
 	else
 	{
-		// Keep the resource up to date
-		MaterialResource->UpdateRenderResource(Material->GetRenderProxy(false, false));
 		MaterialResource->SlateProxy->ActualSize = ImageSize.IntPoint();
 	}
 
@@ -748,6 +746,7 @@ void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrus
 
 				if (MaterialResource.IsValid())
 				{
+					MaterialResource->ResetMaterial();
 					MaterialResourceFreeList.Add( MaterialResource );
 				}
 			}

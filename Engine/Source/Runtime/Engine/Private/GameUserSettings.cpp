@@ -42,7 +42,16 @@ FIntPoint UGameUserSettings::GetDesktopResolution() const
 	}
 	else
 	{
-		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		if (FApp::CanEverRender())
+		{
+			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		}
+		else
+		{
+			// assume headless
+			DisplayMetrics.PrimaryDisplayWidth = 0;
+			DisplayMetrics.PrimaryDisplayHeight = 0;
+		}
 	}
 	return FIntPoint(DisplayMetrics.PrimaryDisplayWidth, DisplayMetrics.PrimaryDisplayHeight);
 }

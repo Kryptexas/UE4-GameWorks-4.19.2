@@ -187,6 +187,11 @@ class ENGINE_API UMaterialExpression : public UObject
 
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
 	virtual void Serialize( FArchive& Ar ) override;
+	virtual bool NeedsLoadForServer() const override
+	{
+		// [RCL] FIXME 2016-02-01: should not be loaded for servers, but currently causes problems with GC clusters (see OR-14209).
+		return Super::NeedsLoadForServer();
+	}
 	//~ End UObject Interface.
 
 	/**

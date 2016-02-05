@@ -44,7 +44,12 @@ enum class ERootMotionSourceSettingsFlags : uint8
 	// Source will switch character to Falling mode with any "Z up" velocity added.
 	// Use this for jump-like root motion. If not enabled, uses default jump impulse
 	// detection (which keeps you stuck on ground in Walking fairly strongly)
-	UseSensitiveLiftoffCheck	= 0x01
+	UseSensitiveLiftoffCheck	= 0x01,
+	// If Duration of Source would end partway through the last tick it is active,
+	// do not reduce SimulationTime. Disabling this is useful for sources that
+	// are more about providing velocity (like jumps), vs. sources that need
+	// the precision of partial ticks for say ending up at an exact location (MoveTo)
+	DisablePartialEndTick		= 0x02
 };
 
 enum class ERootMotionSourceID : uint16 { Invalid = 0 };

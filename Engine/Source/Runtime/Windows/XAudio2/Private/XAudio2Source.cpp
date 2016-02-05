@@ -93,8 +93,6 @@ void FXAudio2SoundSource::FreeResources( void )
 	// Release voice.
 	if (Source)
 	{
-		// Because XAudio2's DestroyVoice source is blocking and can be slow on some processors (e.g. AMD), we're creating
-		// a task that destroys the voice on a separate thread to avoid blocking or hitching.
 		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels);
 		Source = nullptr;
 	}
@@ -440,7 +438,6 @@ bool FXAudio2SoundSource::CreateSource( void )
 #if XAUDIO2_SUPPORTS_SENDLIST
 		Source->SetOutputVoices(&SourceSendList);
 #endif
-		Source->SetEffectChain(nullptr);
 	}
 
 	return true;

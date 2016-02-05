@@ -352,8 +352,9 @@ protected:
 	 * @param PartyType party visibility setting
 	 * @param bLeaderFriendsOnly can only the leader send invites
 	 * @param bLeaderInvitesOnly can only the leader have friends join via presence
+	 * @param bAllowInvites are invites currently allowed
 	 */
-	virtual void GetDefaultPersistentPartySettings(EPartyType& PartyType, bool& bLeaderFriendsOnly, bool& bLeaderInvitesOnly);
+	virtual void GetDefaultPersistentPartySettings(EPartyType& PartyType, bool& bLeaderFriendsOnly, bool& bLeaderInvitesOnly, bool& bAllowInvites);
 
 	/**
 	 * Get the default configuration used for persistent party creation

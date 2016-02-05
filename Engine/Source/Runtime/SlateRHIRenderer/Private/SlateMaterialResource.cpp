@@ -6,7 +6,6 @@
 
 FSlateMaterialResource::FSlateMaterialResource(const UMaterialInterface& InMaterial, const FVector2D& InImageSize, FSlateShaderResource* InTextureMask )
 	: MaterialObject( &InMaterial )
-	, RenderProxy( InMaterial.GetRenderProxy(false) )
 	, SlateProxy( new FSlateShaderResourceProxy )
 	, TextureMaskResource( InTextureMask )
 	, Width(FMath::RoundToInt(InImageSize.X))
@@ -27,7 +26,6 @@ FSlateMaterialResource::~FSlateMaterialResource()
 void FSlateMaterialResource::UpdateMaterial(const UMaterialInterface& InMaterialResource, const FVector2D& InImageSize, FSlateShaderResource* InTextureMask )
 {
 	MaterialObject = &InMaterialResource;
-	RenderProxy = InMaterialResource.GetRenderProxy(false);
 	if( !SlateProxy )
 	{
 		SlateProxy = new FSlateShaderResourceProxy;
@@ -42,3 +40,15 @@ void FSlateMaterialResource::UpdateMaterial(const UMaterialInterface& InMaterial
 	Height = FMath::RoundToInt(InImageSize.Y);
 }
 
+void FSlateMaterialResource::ResetMaterial()
+{
+	MaterialObject = nullptr;
+	TextureMaskResource = nullptr;
+	if (SlateProxy)
+	{
+		delete SlateProxy;
+	}
+	SlateProxy = nullptr;
+	Width = 0;
+	Height = 0;
+}

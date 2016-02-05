@@ -1363,7 +1363,7 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 	}
 	else
 	{
-		if (SupportsKeyboardFocus())
+		if (SupportsKeyboardFocus() && ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_Activate)
 		{
 			TArray< TSharedRef<SWindow> > JustThisWindow;
 			JustThisWindow.Add( SharedThis(this) );

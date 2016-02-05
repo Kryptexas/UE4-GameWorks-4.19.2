@@ -737,7 +737,7 @@ struct FSpawnedTextureInstance
  */
 struct FStreamMemoryTracker
 {
-#if WINVER < 0x0600
+#if PLATFORM_WINDOWS && (WINVER < 0x0600)
 	// Windows XP does not have InterlockedIncrement64
 	typedef int32 TSize;
 #else

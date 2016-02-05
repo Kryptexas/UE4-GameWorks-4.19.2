@@ -4,6 +4,13 @@
 
 DEFINE_LOG_CATEGORY_STATIC( LogHttpReplay, Log, All );
 
+DECLARE_STATS_GROUP( TEXT( "HttpReplay" ), STATGROUP_HttpReplay, STATCAT_Advanced )
+
+DECLARE_DWORD_ACCUMULATOR_STAT( TEXT( "Http replay raw bytes" ), STAT_HttpReplay_Raw, STATGROUP_HttpReplay );
+DECLARE_DWORD_ACCUMULATOR_STAT( TEXT( "Http replay compressed bytes" ), STAT_HttpReplay_Compressed, STATGROUP_HttpReplay );
+DECLARE_CYCLE_STAT( TEXT( "Http replay compress time" ), STAT_HttpReplay_CompressTime, STATGROUP_HttpReplay );
+DECLARE_CYCLE_STAT( TEXT( "Http replay decompress time" ), STAT_HttpReplay_DecompressTime, STATGROUP_HttpReplay );
+
 static TAutoConsoleVariable<FString> CVarMetaFilterOverride( TEXT( "httpReplay.MetaFilterOverride" ), TEXT( "" ), TEXT( "" ) );
 
 class FNetworkReplayListItem : public FOnlineJsonSerializable
@@ -224,6 +231,8 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 	StreamTimeRangeStart	= 0;
 	StreamTimeRangeEnd		= 0;
 
+	EventGroupSet.Empty();
+
 	// Create the Http request and add to pending request list
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
@@ -286,13 +295,14 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 
 		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpStartUploadingFinished );
 
+		HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/json" ) );
+
 		if ( UserNames.Num() > 0 )
 		{
 			FNetworkReplayUserList UserList;
 
 			UserList.Users = UserNames;
 			HttpRequest->SetContentAsString( UserList.ToJson() );
-			HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/json" ) );
 		}
 
 		AddRequestToQueue( EQueuedHttpRequestType::StartUploading, HttpRequest );
@@ -428,7 +438,30 @@ void FHttpNetworkReplayStreamer::FlushStream()
 	HttpRequest->SetURL(FString::Printf(TEXT("%sreplay/%s/file/stream.%i?numChunks=%i&time=%i&mTime1=%i&mTime2=%i"), *ServerURL, *SessionName, StreamChunkIndex, StreamChunkIndex + 1, TotalDemoTimeInMS, StreamTimeRangeStart, StreamTimeRangeEnd));
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
-	HttpRequest->SetContent( StreamArchive.Buffer );
+
+	if ( SupportsCompression() )
+	{
+		SCOPE_CYCLE_COUNTER( STAT_HttpReplay_CompressTime );
+
+		const double StartTime = FPlatformTime::Seconds();
+		FHttpStreamFArchive Compressed;
+
+		if ( !CompressBuffer( StreamArchive.Buffer, Compressed ) )
+		{
+			SetLastError( ENetworkReplayError::ServiceUnavailable );
+			return;
+		}
+
+		const double EndTime = FPlatformTime::Seconds();
+
+		UE_LOG( LogHttpReplay, VeryVerbose, TEXT( "Compressed stream. Original: %i, Compressed: %i, Time: %2.2f MS" ), StreamArchive.Buffer.Num(), Compressed.Buffer.Num(), ( EndTime - StartTime ) * 1000.0f );
+
+		HttpRequest->SetContent( Compressed.Buffer );
+	}
+	else
+	{
+		HttpRequest->SetContent( StreamArchive.Buffer );
+	}
 
 	StreamArchive.Buffer.Empty();
 	StreamArchive.Pos = 0;
@@ -672,7 +705,27 @@ void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
 	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=checkpoint&time1=%i&time2=%i&meta=%i" ), *ServerURL, *SessionName, TimeInMS, TimeInMS, StreamChunkIndex ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
-	HttpRequest->SetContent( CheckpointArchive.Buffer );
+
+	if ( SupportsCompression() )
+	{
+		SCOPE_CYCLE_COUNTER( STAT_HttpReplay_CompressTime );
+
+		const double StartTime = FPlatformTime::Seconds();
+		FHttpStreamFArchive Compressed;
+		if ( !CompressBuffer( CheckpointArchive.Buffer, Compressed ) )
+		{
+			SetLastError( ENetworkReplayError::ServiceUnavailable );
+			return;
+		}
+		const double EndTime = FPlatformTime::Seconds();
+		HttpRequest->SetContent( Compressed.Buffer );
+
+		UE_LOG( LogHttpReplay, VeryVerbose, TEXT( "Compressed checkpoint. Original: %i, Compressed: %i, Time: %2.2f MS" ), CheckpointArchive.Buffer.Num(), Compressed.Buffer.Num(), ( EndTime - StartTime ) * 1000.0f );
+	}
+	else
+	{
+		HttpRequest->SetContent( CheckpointArchive.Buffer );
+	}
 
 	CheckpointArchive.Buffer.Empty();
 	CheckpointArchive.Pos = 0;
@@ -744,6 +797,13 @@ void FHttpNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString&
 	{
 		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::AddEvent. Not streaming." ) );
 		return;
+	}
+
+	if ( StreamerState == EStreamerState::StreamingUp && !EventGroupSet.Contains( Group ) )
+	{
+		// Add the group as a user, so we can quickly find replays that have these event types in them
+		EventGroupSet.Add( Group );
+		AddUserToReplay( Group );
 	}
 
 	AddOrUpdateEvent( TEXT( "" ), TimeInMS, Group, Meta, Data );
@@ -1117,6 +1177,35 @@ void FHttpNetworkReplayStreamer::EnumerateRecentStreams( const FNetworkReplayVer
 	AddRequestToQueue( EQueuedHttpRequestType::EnumeratingSessions, HttpRequest );
 }
 
+FQueuedHttpRequestAddUser::FQueuedHttpRequestAddUser( const FString& InUserName, TSharedRef< class IHttpRequest > InHttpRequest ) : FQueuedHttpRequest( EQueuedHttpRequestType::AddingUser, InHttpRequest )
+{
+	FNetworkReplayUserList UserList;
+
+	UserList.Users.Add( InUserName );
+	FString JsonString = UserList.ToJson();
+
+	Request->SetVerb( TEXT( "POST" ) );
+	Request->SetContentAsString( JsonString );
+	Request->SetHeader( TEXT( "Content-Type" ), TEXT( "application/json" ) );
+}
+
+bool FQueuedHttpRequestAddUser::PreProcess( FHttpNetworkReplayStreamer* Streamer, const FString& ServerURL, const FString& SessionName )
+{
+	if ( SessionName.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FQueuedHttpRequestAddUser::PreProcess. SessionName is empty." ) );
+		return false;
+	}
+
+	//
+	// Now that we have the session name, we can set the URL
+	//
+
+	Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/users" ), *ServerURL, *SessionName ) );
+
+	return true;
+}
+
 void FHttpNetworkReplayStreamer::AddUserToReplay(const FString& UserString)
 {
 	if ( StreamerState != EStreamerState::StreamingUp )
@@ -1130,21 +1219,13 @@ void FHttpNetworkReplayStreamer::AddUserToReplay(const FString& UserString)
 		return;
 	}
 
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
-
-	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/users" ), *ServerURL, *SessionName ) );
-	HttpRequest->SetVerb( TEXT( "POST" ) );
-
-	FNetworkReplayUserList UserList;
-
-	UserList.Users.Add(UserString);
-	FString JsonString = UserList.ToJson();
-	HttpRequest->SetContentAsString( JsonString );
-	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/json" ) );
+	// Create the Http request and add to pending request list
+	TSharedRef< class IHttpRequest > HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpAddUserFinished );
 
-	AddRequestToQueue( EQueuedHttpRequestType::AddingUser, HttpRequest );
+	// Add it as a custom event so we can snag the session name at the time of send (which we should have by then)
+	AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequestAddUser( UserString, HttpRequest ) ) );
 }
 
 void FHttpNetworkReplayStreamer::EnumerateCheckpoints()
@@ -1498,7 +1579,29 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 		{
 			if ( HttpResponse->GetContent().Num() > 0 )
 			{
-				StreamArchive.Buffer.Append( HttpResponse->GetContent() );
+				if ( SupportsCompression() )
+				{
+					SCOPE_CYCLE_COUNTER( STAT_HttpReplay_DecompressTime );
+
+					FHttpStreamFArchive Compressed;
+					Compressed.Buffer = HttpResponse->GetContent();
+					TArray< uint8 > Uncompressed;
+
+					if ( !DecompressBuffer( Compressed, Uncompressed ) )
+					{
+						StreamArchive.Buffer.Empty();
+						UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. DecompressBuffer FAILED." ) );
+						SetLastError( ENetworkReplayError::ServiceUnavailable );
+						return;
+					}
+
+					StreamArchive.Buffer.Append( Uncompressed );
+				}
+				else
+				{
+					StreamArchive.Buffer.Append( HttpResponse->GetContent() );
+				}
+
 				StreamChunkIndex++;
 			}
 
@@ -1560,8 +1663,29 @@ void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr
 		}
 
 		// Get the checkpoint data
-		CheckpointArchive.Buffer	= HttpResponse->GetContent();
-		CheckpointArchive.Pos		= 0;
+		if ( SupportsCompression() )
+		{
+			SCOPE_CYCLE_COUNTER( STAT_HttpReplay_DecompressTime );
+
+			FHttpStreamFArchive Compressed;
+			Compressed.Buffer = HttpResponse->GetContent();
+
+			if ( !DecompressBuffer( Compressed, CheckpointArchive.Buffer ) )
+			{
+				UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished. DecompressBuffer FAILED." ) );
+				GotoCheckpointDelegate.ExecuteIfBound( false, -1 );
+				GotoCheckpointDelegate	= FOnCheckpointReadyDelegate();
+				DownloadCheckpointIndex = -1;
+				LastGotoTimeInMS		= -1;
+				return;
+			}
+		}
+		else
+		{
+			CheckpointArchive.Buffer = HttpResponse->GetContent();
+		}
+
+		CheckpointArchive.Pos = 0;
 
 		// Completely reset our stream (we're going to start downloading from the start of the checkpoint)
 		StreamArchive.Buffer.Empty();

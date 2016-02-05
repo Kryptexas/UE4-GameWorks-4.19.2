@@ -48,6 +48,17 @@
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
+// How slow must a frame be (in seconds) to be logged out (<= 0 to disable)
+ENGINE_API float GSlowFrameLoggingThreshold = 0.0f;
+
+static FAutoConsoleVariableRef CvarSlowFrameLoggingThreshold(
+	TEXT("t.SlowFrameLoggingThreshold"),
+	GSlowFrameLoggingThreshold,
+	TEXT("How slow must a frame be (in seconds) to be logged out (<= 0 to disable)."),
+	ECVF_Default
+	);
+
+
 /** Benchmark results to the log */
 static void RunSynthBenchmark(const TArray<FString>& Args)
 {
@@ -913,6 +924,11 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		// Send developers to the support list thread.
 		UE_LOG(LogEngine, Fatal,TEXT("Negative delta time! Please see https://udn.epicgames.com/lists/showpost.php?list=ue3bugs&id=4364"));
 #endif
+	}
+
+	if ((GSlowFrameLoggingThreshold > 0.0f) && (DeltaSeconds > GSlowFrameLoggingThreshold))
+	{
+		UE_LOG(LogEngine, Log, TEXT("Slow GT frame detected (GT frame %u, delta time %f s)"), GFrameCounter - 1, DeltaSeconds);
 	}
 
 	// Tick the module manager

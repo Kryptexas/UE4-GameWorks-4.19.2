@@ -11,6 +11,7 @@
 #include "ExceptionHandling.h"
 #include "Containers/Map.h"
 #include "GenericPlatformCrashContext.h"
+#include "GenericPlatformDriver.h"
 
 #include "UProjectInfo.h"
 
@@ -247,12 +248,9 @@ FString FGenericPlatformMisc::GetPrimaryGPUBrand()
 	return FString( TEXT( "GenericGPUBrand" ) );
 }
 
-void FGenericPlatformMisc::GetGPUDriverInfo(const FString DeviceDescription, FString& InternalDriverVersion, FString& UserDriverVersion, FString& DriverDate)
+FGPUDriverInfo FGenericPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescription)
 {
-	// to prevent bugs
-	InternalDriverVersion.Empty();
-	UserDriverVersion.Empty();
-	DriverDate.Empty();
+	return FGPUDriverInfo();
 }
 
 void FGenericPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )

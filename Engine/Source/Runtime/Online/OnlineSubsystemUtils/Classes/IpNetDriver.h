@@ -70,4 +70,9 @@ class ONLINESUBSYSTEMUTILS_API UIpNetDriver : public UNetDriver
 
 	/** @return TCPIP connection to server */
 	class UIpConnection* GetServerConnection();
+
+	// Callback for platform handling when networking is taking a long time in a single frame (by default over 1 second).
+	// It may get called multiple times in a single frame if additional processing after a previous alert exceeds the threshold again
+	DECLARE_MULTICAST_DELEGATE(FOnNetworkProcessingCausingSlowFrame);
+	static FOnNetworkProcessingCausingSlowFrame OnNetworkProcessingCausingSlowFrame;
 };

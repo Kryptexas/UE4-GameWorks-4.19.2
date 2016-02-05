@@ -5,6 +5,7 @@
 #include "Containers/UnrealString.h"
 #include "HAL/Platform.h"
 #include "GenericApplicationMessageHandler.h"
+#include "StaticArray.h"
 
 
 #ifndef ALPHA_BLENDED_WINDOWS
@@ -102,38 +103,4 @@ struct CORE_API FGenericWindowDefinition
 	int32 CornerRadius;
 
 	FWindowSizeLimits SizeLimits;
-};
-
-// video driver details
-struct FGPUDriverInfo
-{
-	FGPUDriverInfo()
-		: VendorId(0)
-	{
-	}
-
-	// DirectX vendor Id, use functions below
-	uint32 VendorId;
-	// e.g. "NVIDIA GeForce GTX 680" or "AMD Radeon R9 200 / HD 7900 Series"
-	FString DeviceDescription;
-	// e.g. "NVIDIA" or "Advanced Micro Devices, Inc."
-	FString ProviderName;
-	// e.g. "15.200.1062.1004"(AMD)
-	// e.g. "9.18.13.4788"(NVIDIA) first number is Windows version (e.g. 7:Vista, 6:XP, 4:Me, 9:Win8(1), 10:Win7), last 5 have the UserDriver version encoded
-	FString InternalDriverVersion;	
-	// e.g. "Catalyst 15.7.1"(AMD) or "347.88"(NVIDIA)
-	FString UserDriverVersion;
-	// e.g. 3-13-2015
-	FString DriverDate;
-
-	bool IsValid() const
-	{
-		return !DeviceDescription.IsEmpty();
-	}
-	
-	bool IsAMD() const { return VendorId == 0x1002; }
-
-	bool IsIntel() const { return VendorId == 0x8086; }
-
-	bool IsNVIDIA() const { return VendorId == 0x10DE; }
 };

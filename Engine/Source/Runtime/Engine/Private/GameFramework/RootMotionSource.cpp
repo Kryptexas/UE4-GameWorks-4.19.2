@@ -734,6 +734,11 @@ FRootMotionSource_JumpForce::FRootMotionSource_JumpForce()
 	, TimeMappingCurve(nullptr)
 	, SavedHalfwayLocation(FVector::ZeroVector)
 {
+	// Don't allow partial end ticks. Jump forces are meant to provide velocity that
+	// carries through to the end of the jump, and if we do partial ticks at the very end,
+	// it means the provided velocity can be significantly reduced on the very last tick,
+	// resulting in lost momentum. This is not desirable for jumps.
+	Settings.SetFlag(ERootMotionSourceSettingsFlags::DisablePartialEndTick);
 }
 
 bool FRootMotionSource_JumpForce::IsTimeOutEnabled() const
@@ -1180,7 +1185,7 @@ void FRootMotionSourceGroup::PrepareRootMotion(float DeltaTime, const ACharacter
 						}
 
 						// End of root motion
-						if (RootMotionSource->IsTimeOutEnabled())
+						if (RootMotionSource->IsTimeOutEnabled() && !RootMotionSource->Settings.HasFlag(ERootMotionSourceSettingsFlags::DisablePartialEndTick))
 						{
 							const float Duration = RootMotionSource->GetDuration();
 							if (RootMotionSource->GetTime() + SimulationTime >= Duration)

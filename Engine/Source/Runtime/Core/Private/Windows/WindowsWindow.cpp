@@ -479,8 +479,11 @@ void FWindowsWindow::Destroy()
 	if (OLEReferenceCount > 0 && IsWindow(HWnd))
 	{
 		HRESULT Result = RevokeDragDrop(HWnd);
-		checkf(Result == S_OK, TEXT("Failed in RevokeDragDrop, error-code: %i"), Result);
-		checkf(OLEReferenceCount == 0, TEXT("Not all references to window are released, %i left"), OLEReferenceCount);
+		// If we decremented OLEReferenceCount check it for being null (shutdown)
+		if (Result == S_OK)
+		{
+			checkf(OLEReferenceCount == 0, TEXT("Not all references to window are released, %i left"), OLEReferenceCount);
+		}		
 	}
 
 	::DestroyWindow( HWnd );

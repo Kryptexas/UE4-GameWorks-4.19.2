@@ -178,9 +178,6 @@ void SEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, ESetTextT
 		// fired on the game thread in Tick.
 		bTextChangedByVirtualKeyboard = true;
 	}
-
-	// Clear focus so that virtual keyboard can be reopened again my clicking on the text box
-	FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
 }
 
 void SEditableText::RestoreOriginalText()
@@ -1162,6 +1159,11 @@ void SEditableText::Redo()
 TSharedRef< SWidget > SEditableText::GetWidget()
 {
 	return SharedThis( this );
+}
+
+TSharedRef<IVirtualKeyboardEntry> SEditableText::GetVirtualKeyboardEntry()
+{
+	return SharedThis(this);
 }
 
 FVector2D SEditableText::ComputeDesiredSize(float LayoutScaleMultiplier) const

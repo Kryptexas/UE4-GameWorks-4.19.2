@@ -24,6 +24,15 @@ void ENGINE_API PerfCountersSet(const FString& Name, int32 Val, uint32 Flags)
 	}
 }
 
+void ENGINE_API PerfCountersSet(const FString& Name, const FString& Val, uint32 Flags)
+{
+	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+	if (PerfCounters)
+	{
+		PerfCounters->Set(Name, Val, Flags);
+	}
+}
+
 int32 ENGINE_API PerfCountersIncrement(const FString & Name, int32 Add, int32 DefaultValue, uint32 Flags)
 {
 	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();

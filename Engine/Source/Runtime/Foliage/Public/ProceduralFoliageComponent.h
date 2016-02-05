@@ -47,6 +47,23 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	float TileOverlap;
 
 #if WITH_EDITORONLY_DATA
+
+	/** Whether to place foliage on landscape */
+	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
+	bool bAllowLandscape;
+
+	/** Whether to place foliage on BSP */
+	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
+	bool bAllowBSP;
+
+	/** Whether to place foliage on StaticMesh */
+	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
+	bool bAllowStaticMesh;
+
+	/** Whether to place foliage on translucent geometry */
+	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
+	bool bAllowTranslucent;
+
 	/** Whether to visualize the tiles used for the foliage spawner simulation */
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
 	bool bShowDebugTiles;

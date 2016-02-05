@@ -17,6 +17,26 @@ Notes:
 	Declarations.
 -----------------------------------------------------------------------------*/
 
+UIpNetDriver::FOnNetworkProcessingCausingSlowFrame UIpNetDriver::OnNetworkProcessingCausingSlowFrame;
+
+// Time before the alarm delegate is called (in seconds)
+float GIpNetDriverMaxDesiredTimeSliceBeforeAlarmSecs = 1.0f;
+
+FAutoConsoleVariableRef GIpNetDriverMaxDesiredTimeSliceBeforeAlarmSecsCVar(
+	TEXT("n.IpNetDriverMaxFrameTimeBeforeAlert"),
+	GIpNetDriverMaxDesiredTimeSliceBeforeAlarmSecs,
+	TEXT("Time to spend processing networking data in a single frame before an alert is raised (in seconds)\n")
+	TEXT("It may get called multiple times in a single frame if additional processing after a previous alert exceeds the threshold again\n")
+	TEXT(" default: 1 s"));
+
+// Time before the time taken in a single frame is printed out (in seconds)
+float GIpNetDriverLongFramePrintoutThresholdSecs = 10.0f;
+
+FAutoConsoleVariableRef GIpNetDriverLongFramePrintoutThresholdSecsCVar(
+	TEXT("n.IpNetDriverMaxFrameTimeBeforeLogging"),
+	GIpNetDriverLongFramePrintoutThresholdSecs,
+	TEXT("Time to spend processing networking data in a single frame before an output log warning is printed (in seconds)\n")
+	TEXT(" default: 10 s"));
 
 UIpNetDriver::UIpNetDriver(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -169,12 +189,23 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	ISocketSubsystem* SocketSubsystem = GetSocketSubsystem();
 
 	const double StartReceiveTime = FPlatformTime::Seconds();
+	double AlarmTime = StartReceiveTime + GIpNetDriverMaxDesiredTimeSliceBeforeAlarmSecs;
 
 	// Process all incoming packets.
 	uint8 Data[MAX_PACKET_SIZE];
 	TSharedRef<FInternetAddr> FromAddr = SocketSubsystem->CreateInternetAddr();
 	for( ; Socket != NULL; )
 	{
+		{
+			const double CurrentTime = FPlatformTime::Seconds();
+			if (CurrentTime > AlarmTime)
+			{
+				OnNetworkProcessingCausingSlowFrame.Broadcast();
+
+				AlarmTime = CurrentTime + GIpNetDriverMaxDesiredTimeSliceBeforeAlarmSecs;
+			}
+		}
+
 		int32 BytesRead = 0;
 		// Get data, if any.
 		CLOCK_CYCLES(RecvCycles);
@@ -306,11 +337,10 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 		}
 	}
 
-	const double EndReceiveTime		= FPlatformTime::Seconds();
-	const float DeltaReceiveTime	= EndReceiveTime - StartReceiveTime;
-	const float Threshold			= 10.0f;
+	const double EndReceiveTime = FPlatformTime::Seconds();
+	const float DeltaReceiveTime = EndReceiveTime - StartReceiveTime;
 
-	if ( DeltaReceiveTime > Threshold )
+	if (DeltaReceiveTime > GIpNetDriverLongFramePrintoutThresholdSecs)
 	{
 		UE_LOG( LogNet, Warning, TEXT( "UIpNetDriver::TickDispatch: Took too long to receive packets. Time: %2.2f %s" ), DeltaReceiveTime, *GetName() );
 	}

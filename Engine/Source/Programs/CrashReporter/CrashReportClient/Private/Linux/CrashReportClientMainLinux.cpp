@@ -16,7 +16,7 @@ void CrashReporterCrashHandler(const FGenericCrashContext& GenericContext)
 	const FLinuxCrashContext& Context = static_cast< const FLinuxCrashContext& >( GenericContext );
 
 	printf("CrashHandler: Signal=%d\n", Context.Signal);
-	ReportCrash(Context);
+	const_cast< FLinuxCrashContext& >(Context).CaptureStackTrace();
 	if (GLog)
 	{
 		GLog->Flush();

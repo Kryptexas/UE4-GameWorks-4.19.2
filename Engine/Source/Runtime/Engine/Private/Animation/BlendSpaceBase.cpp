@@ -522,13 +522,6 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 		}
 	}
 
-	/** Used to sort by  Weight. */
-	struct FCompareFBlendSampleData
-	{
-		FORCEINLINE bool operator()(const FBlendSampleData& A, const FBlendSampleData& B) const { return B.TotalWeight < A.TotalWeight; }
-	};
-	OutSampleDataList.Sort(FCompareFBlendSampleData());
-
 	// go through merge down to first sample 
 	for (int32 Index1 = 0; Index1 < OutSampleDataList.Num(); ++Index1)
 	{
@@ -545,6 +538,13 @@ bool UBlendSpaceBase::GetSamplesFromBlendInput(const FVector &BlendInput, TArray
 			}
 		}
 	}
+
+	/** Used to sort by  Weight. */
+	struct FCompareFBlendSampleData
+	{
+		FORCEINLINE bool operator()(const FBlendSampleData& A, const FBlendSampleData& B) const { return B.TotalWeight < A.TotalWeight; }
+	};
+	OutSampleDataList.Sort(FCompareFBlendSampleData());
 
 	// remove noisy ones
 	int32 TotalSample = OutSampleDataList.Num();

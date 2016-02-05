@@ -105,6 +105,12 @@ private:
 	/** Set via GotoTimeInSeconds, only fired once (at most). Called for successful or failed scrub. */
 	FOnGotoTimeDelegate OnGotoTimeDelegate_Transient;
 	
+	/** Saved server time after loading a checkpoint, so that we can set the server time as accurately as possible after the fast-forward */
+	float SavedReplicatedWorldTimeSeconds;
+
+	/** Saved fast-forward time, used for correcting world time after the fast-forward is complete */
+	float SavedSecondsToSkip;
+
 public:
 
 	// UNetDriver interface.

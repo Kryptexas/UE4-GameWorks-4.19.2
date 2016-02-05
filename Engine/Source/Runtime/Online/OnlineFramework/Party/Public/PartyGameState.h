@@ -314,6 +314,9 @@ public:
 		}
 	}
 
+	/** @return Unique ID of the user who created or joined this room (not the party leader) */
+	const FUniqueNetIdRepl& GetOwningUserId() const { return OwningUserId; }
+
 	/** @return delegate fired when global party data has changed */
 	FOnPartyDataChanged& OnPartyDataChanged() { return PartyDataChanged; }
 	/** @return delegate fired when an individual party member's data has changed */

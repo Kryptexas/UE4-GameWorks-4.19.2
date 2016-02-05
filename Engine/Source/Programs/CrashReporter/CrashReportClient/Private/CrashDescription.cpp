@@ -10,6 +10,7 @@
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineBuildSettings.h"
+#include "QoSReporter.h"
 
 // #CrashReport: 2015-07-23 Move crashes from C:\Users\[USER]\AppData\Local\Microsoft\Windows\WER\ReportQueue to C:\Users\[USER]\AppData\Local\CrashReportClient\Saved
 
@@ -213,9 +214,18 @@ void FPrimaryCrashProperties::SendAnalytics()
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "UserActivityHint" ), UserActivityHint.AsString() ) );
 
 	Analytics.RecordEvent( TEXT( "CrashReportClient.ReportCrash" ), CrashAttributes );
-
 	// Shutdown analytics.
 	FCrashReportAnalytics::Shutdown();
+
+	// duplicate the event to QoS Reporter
+	FQoSReporter::Initialize();
+	FQoSReporter::SetBackendDeploymentName(DeploymentName);
+
+	if (FQoSReporter::IsAvailable())
+	{
+		FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
+	}
+	FQoSReporter::Shutdown();
 }
 
 void FPrimaryCrashProperties::Save()
@@ -265,6 +275,7 @@ FCrashContext::FCrashContext( const FString& CrashContextFilepath )
 		}
 
 		GetCrashProperty( EngineMode, FGenericCrashContext::RuntimePropertiesTag, TEXT( "EngineMode" ) );
+		GetCrashProperty( DeploymentName, FGenericCrashContext::RuntimePropertiesTag, TEXT( "DeploymentName" ) );
 		GetCrashProperty( AppDefaultLocale, FGenericCrashContext::RuntimePropertiesTag, TEXT( "AppDefaultLocale" ) );
 
 		if (CrashDumpMode == ECrashDumpMode::FullDump)
@@ -383,6 +394,8 @@ FCrashWERContext::FCrashWERContext( const FString& WERXMLFilepath )
 		{
 			InitializeEngineVersion( BuildVersion, BranchName, BuiltFromCL );
 		}
+
+		GetCrashProperty(DeploymentName, TEXT("DynamicSignatures"), TEXT("DeploymentName"));
 
 		bHasPrimaryData = true;
 	}

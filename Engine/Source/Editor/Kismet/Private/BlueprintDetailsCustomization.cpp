@@ -729,7 +729,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 					TargetBlueprintDefaultObject = CachedVariableProperty->GetOwnerClass()->GetDefaultObject();
 				}
 
-				if (TargetBlueprintDefaultObject)
+				if (TargetBlueprintDefaultObject != nullptr)
 				{
 					// Things are in order, show the property and allow it to be edited
 					TArray<UObject*> ObjectList;

@@ -704,13 +704,10 @@ bool FObjectReplicator::ReceivedBunch( FInBunch& Bunch, const FReplicationFlags&
 			}
 
 			// Destroy the parameters.
-			//warning: highly dependent on UObject::ProcessEvent freeing of parms!
-			for ( UProperty * Destruct=Function->DestructorLink; Destruct; Destruct=Destruct->DestructorLinkNext )
+			// warning: highly dependent on UObject::ProcessEvent freeing of parms!
+			for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It )
 			{
-				if( Destruct->IsInContainer(Function->ParmsSize) )
-				{
-					Destruct->DestroyValue_InContainer(Parms);
-				}
+				It->DestroyValue_InContainer(Parms);
 			}
 
 			Mark.Pop();

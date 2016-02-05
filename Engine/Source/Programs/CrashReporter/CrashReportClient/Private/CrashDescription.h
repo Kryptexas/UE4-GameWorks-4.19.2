@@ -166,6 +166,12 @@ struct FPrimaryCrashProperties
 	FString EngineMode;
 
 	/**
+	 * Deployment (also known as "EpicApp"), e.g. DevPlaytest, PublicTest, Live
+	 * @DeploymentName varchar(64)
+	 */
+	FString DeploymentName;
+
+	/**
 	 * The platform that crashed e.g. Win64.
 	 * @PlatformName	varchar(64)	
 	 * 

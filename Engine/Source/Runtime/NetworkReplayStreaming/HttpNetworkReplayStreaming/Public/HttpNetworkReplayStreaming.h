@@ -9,7 +9,7 @@
 /**
  * Archive used to buffer stream over http
  */
-class FHttpStreamFArchive : public FArchive
+class HTTPNETWORKREPLAYSTREAMING_API FHttpStreamFArchive : public FArchive
 {
 public:
 	FHttpStreamFArchive() : Pos( 0 ), bAtEndOfReplay( false ) {}
@@ -142,6 +142,22 @@ public:
 };
 
 /**
+* FQueuedHttpRequestAddUser
+* Custom event so that we can defer the need to knowing SessionName until we actually send it (which we should have it by then, since requests are executed in order)
+*/
+class FQueuedHttpRequestAddUser : public FQueuedHttpRequest
+{
+public:
+	FQueuedHttpRequestAddUser( const FString& InUser, TSharedRef< class IHttpRequest > InHttpRequest );
+
+	virtual ~FQueuedHttpRequestAddUser()
+	{
+	}
+
+	virtual bool PreProcess( FHttpNetworkReplayStreamer* Streamer, const FString& ServerURL, const FString& SessionName ) override;
+};
+
+/**
 * FQueuedGotoFakeCheckpoint
 */
 class FQueuedGotoFakeCheckpoint : public FQueuedHttpRequest
@@ -192,6 +208,7 @@ public:
 	virtual void		SearchEvents(const FString& EventGroup, const FOnEnumerateStreamsComplete& Delegate) override;
 	virtual void		KeepReplay( const FString& ReplayName, const bool bKeep ) override;
 	virtual ENetworkReplayError::Type GetLastError() const override;
+	virtual FString		GetReplayID() const override { return SessionName; }
 
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
@@ -215,6 +232,9 @@ public:
 	void ConditionallyEnumerateCheckpoints();
 
 	virtual void ProcessRequestInternal( TSharedPtr< class IHttpRequest > Request );
+	virtual bool SupportsCompression() const { return false; }
+	virtual bool CompressBuffer( const TArray< uint8 >& InBuffer, FHttpStreamFArchive& OutCompressed ) const { return false; }
+	virtual bool DecompressBuffer(FHttpStreamFArchive& InCompressed, TArray< uint8 >& OutBuffer) const { return false; }
 
 	/** EStreamerState - Overall state of the streamer */
 	enum class EStreamerState
@@ -283,6 +303,8 @@ public:
 
 	TArray< TSharedPtr< FQueuedHttpRequest > >	QueuedHttpRequests;
 	TSharedPtr< FQueuedHttpRequest >			InFlightHttpRequest;
+
+	TSet< FString >					EventGroupSet;
 };
 
 class HTTPNETWORKREPLAYSTREAMING_API FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject

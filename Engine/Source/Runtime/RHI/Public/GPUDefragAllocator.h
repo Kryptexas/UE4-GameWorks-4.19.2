@@ -6,7 +6,7 @@
 
 #define LOG_EVERY_ALLOCATION			0
 #define DUMP_ALLOC_FREQUENCY			0 // 100
-#define VALIDATE_SYNC_SIZE				0
+#define VALIDATE_SYNC_SIZE				(!(UE_BUILD_TEST || UE_BUILD_SHIPPING))
 
 
 /*-----------------------------------------------------------------------------
@@ -69,9 +69,9 @@ public:
 		, Type(MET_Allocated)
 		{
 		}
-		FMemoryLayoutElement(int32 InSize, EMemoryElementType int32ype)
+		FMemoryLayoutElement(int32 InSize, EMemoryElementType InType)
 			: Size(InSize)
-			, Type(int32ype)
+			, Type(InType)
 		{
 		}
 		int32				Size;
@@ -80,9 +80,9 @@ public:
 		friend FArchive& operator<<(FArchive& Ar, FMemoryLayoutElement& Element)
 		{
 			Ar << Element.Size;
-			uint32 Typeuint32 = Element.Type;
-			Ar << Typeuint32;
-			Element.Type = EMemoryElementType(Typeuint32);
+			uint32 ElementType = Element.Type;
+			Ar << ElementType;
+			Element.Type = EMemoryElementType(ElementType);
 			return Ar;
 		}
 	};
@@ -135,9 +135,10 @@ public:
 		* @param	ChunkToInsertAfter		Chunk to insert this after.
 		* @param	FirstFreeChunk			Reference to first free chunk Pointer.
 		*/
-		FMemoryChunk(uint8* InBase, int32 InSize, FGPUDefragAllocator& InBestFitAllocator, FMemoryChunk*& ChunkToInsertAfter, TStatId InStat, bool bSortedFreeList)
+		FMemoryChunk(uint8* InBase, int64 InSize, FGPUDefragAllocator& InBestFitAllocator, FMemoryChunk*& ChunkToInsertAfter, TStatId InStat)
 			: Base(InBase)
 			, Size(InSize)
+			, OrigSize(0)
 			, bIsAvailable(false)
 			, LockCount(0)
 			, DefragCounter(0)
@@ -150,7 +151,7 @@ public:
 		{
 			Link(ChunkToInsertAfter);
 			// This is going to change bIsAvailable.
-			LinkFree(bSortedFreeList, ChunkToInsertAfter);
+			LinkFree(ChunkToInsertAfter);
 		}
 
 		/**
@@ -202,7 +203,7 @@ public:
 		/**
 		* Inserts this chunk at the head of the free chunk list.
 		*/
-		void	LinkFree(bool bMaint32ainSortOrder, FMemoryChunk* FirstFreeChunkToSearch);
+		void	LinkFree(FMemoryChunk* FirstFreeChunkToSearch);
 
 		/**
 		* Removes itself for linked list.
@@ -290,7 +291,7 @@ public:
 		* @param InSyncIndex	GPU synchronization identifier that can be compared with BestFitAllocator::CompletedSyncIndex
 		* @param InSyncSize	Number of uint8s that require GPU synchronization (starting from the beginning of the chunk)
 		*/
-		void	SetSyncIndex(uint32 InSyncIndex, int32 InSyncSize)
+		void	SetSyncIndex(uint32 InSyncIndex, int64 InSyncSize)
 		{			
 			SyncIndex = InSyncIndex;
 			SyncSize = InSyncSize;
@@ -322,6 +323,7 @@ public:
 		uint8*					Base;
 		/** Size of chunk.								*/
 		int64					Size;
+		int64					OrigSize;
 		/** Whether the chunk is available.				*/
 		bool					bIsAvailable;
 		/** Whether the chunk has been locked.			*/		
@@ -362,6 +364,7 @@ public:
 		, LastChunk(nullptr)
 		, FirstFreeChunk(nullptr)
 		, TimeSpentInAllocator(0.0)
+		, PaddingWasteSize(0)
 		, AllocatedMemorySize(0)
 		, AvailableMemorySize(0)
 		, PendingMemoryAdjustment(0)
@@ -401,7 +404,7 @@ public:
 		// Update stats in a thread safe way.
 		FPlatformAtomics::InterlockedExchange(&AvailableMemorySize, MemorySize);
 		// Allocate initial chunk.
-		FirstChunk = new FMemoryChunk(MemoryBase, MemorySize, *this, FirstChunk, TStatId(), false);
+		FirstChunk = new FMemoryChunk(MemoryBase, MemorySize, *this, FirstChunk, TStatId());
 		LastChunk = FirstChunk;
 	}
 
@@ -490,7 +493,7 @@ public:
 	* @param Pointer		Pointer to check.
 	* @return				Number of uint8s allocated
 	*/
-	int32		GetAllocatedSize(void* Pointer);
+	int64		GetAllocatedSize(void* Pointer);
 
 	/**
 	* Tries to reallocate texture memory in-place (without relocating),
@@ -531,11 +534,12 @@ public:
 	* @param	OutAvailableMemorySize		[out] Size of available memory
 	* @param	OutPendingMemoryAdjustment	[out] Size of pending allocation change (due to async reallocation)
 	*/
-	virtual void	GetMemoryStats(int64& OutAllocatedMemorySize, int64& OutAvailableMemorySize, int64& OutPendingMemoryAdjustment)
+	virtual void	GetMemoryStats(int64& OutAllocatedMemorySize, int64& OutAvailableMemorySize, int64& OutPendingMemoryAdjustment, int64& OutPaddingWasteSize)
 	{
 		OutAllocatedMemorySize = AllocatedMemorySize;
 		OutAvailableMemorySize = AvailableMemorySize;
 		OutPendingMemoryAdjustment = PendingMemoryAdjustment;
+		OutPaddingWasteSize = PaddingWasteSize;
 	}
 
 	int64 GetTotalSize() const
@@ -644,6 +648,11 @@ public:
 		return !(UPTRINT(Ptr) & (Alignment - 1));
 	}
 
+	int32 GetAllocationAlignment() const
+	{
+		return AllocationAlignment;
+	}
+
 protected:
 
 #if VALIDATE_SYNC_SIZE
@@ -678,7 +687,7 @@ protected:
 	* @param Size			Number of uint8s to copy
 	* @param UserPayload	User payload for this allocation
 	*/
-	virtual void	PlatformRelocate(void* Dest, const void* Source, int32 Size, void* UserPayload) = 0;
+	virtual void	PlatformRelocate(void* Dest, const void* Source, int64 Size, void* UserPayload) = 0;
 
 	/**
 	* Inserts a fence to synchronize relocations.
@@ -726,7 +735,7 @@ protected:
 	* @param Size			Number of uint8s to copy
 	* @param UserPayload	User payload for the allocation
 	*/
-	void Relocate(FRelocationStats& Stats, FMemoryChunk* Dest, int32 DestOffset, const void* Source, int32 Size, void* UserPayload)
+	void Relocate(FRelocationStats& Stats, FMemoryChunk* Dest, int64 DestOffset, const void* Source, int64 Size, void* UserPayload)
 	{
 		uint8* DestAddr = Dest->Base + DestOffset;
 		int64 MemDistance = (int64)(Dest)-(int64)(Source);
@@ -737,7 +746,7 @@ protected:
 		{
 			PlatformRelocate(DestAddr, Source, Size, UserPayload);
 		}
-		int32 RelocateSize = bOverlappedMove ? (Size * Settings.MaxDefragRelocations) : Size;
+		int64 RelocateSize = bOverlappedMove ? (Size * Settings.MaxDefragRelocations) : Size;
 		Dest->UserPayload = UserPayload;
 		Stats.NumBytesRelocated += RelocateSize;
 		Stats.NumRelocations++;		
@@ -752,12 +761,21 @@ protected:
 	}
 
 	/**
-	* Performs a partial defrag while trying to process any pending async reallocation requests.
+	* Performs a partial defrag doing fast checks only. Adjacency and freelist walk.
 	*
 	* @param Stats			[out] Stats
 	* @param StartTime		Start time, used for limiting the Tick() time
 	*/
-	void			PartialDefragmentation(FRelocationStats& Stats, double StartTime);
+	void			PartialDefragmentationFast(FRelocationStats& Stats, double StartTime);
+
+	/**
+	* Performs a partial defrag doing slow all chunk search to find used chunks to move that are surrounded by other used chunks
+	* That a freechunk walk won't find.
+	*
+	* @param Stats			[out] Stats
+	* @param StartTime		Start time, used for limiting the Tick() time
+	*/
+	void			PartialDefragmentationSlow(FRelocationStats& Stats, double StartTime);
 
 	/**
 	* Performs a partial defrag by shifting down memory to fill holes, in a brute-force manner.
@@ -782,7 +800,7 @@ protected:
 	* @param GrowAmount	Number of uint8s to grow by
 	* @return				nullptr if it failed, otherwise the new grown chunk
 	*/
-	FMemoryChunk*	Grow(FMemoryChunk* Chunk, int32 GrowAmount);
+	FMemoryChunk*	Grow(FMemoryChunk* Chunk, int64 GrowAmount);
 
 	/**
 	* Immediately shrinks a memory chunk by moving the base address, without relocating any memory.
@@ -792,7 +810,7 @@ protected:
 	* @param ShrinkAmount	Number of uint8s to shrink by
 	* @return				The new shrunken chunk
 	*/
-	FMemoryChunk*	Shrink(FMemoryChunk* Chunk, int32 ShrinkAmount);
+	FMemoryChunk*	Shrink(FMemoryChunk* Chunk, int64 ShrinkAmount);
 
 	/**
 	* Checks the int32ernal state for errors. (Slow)
@@ -835,7 +853,7 @@ protected:
 	* @param FirstSize			New size of first chunk
 	* @param bSortedFreeList	If true, maint32ains the free-list order
 	*/
-	void			Split(FMemoryChunk* BaseChunk, int32 FirstSize, bool bSortedFreeList)
+	void			Split(FMemoryChunk* BaseChunk, int64 FirstSize)
 	{
 		check(BaseChunk);
 		check(FirstSize < BaseChunk->Size);
@@ -849,17 +867,17 @@ protected:
 		// 		check( !BaseChunk->PreviousChunk || !BaseChunk->PreviousChunk->bIsAvailable || !BaseChunk->bIsAvailable );
 
 		// Calculate size of second chunk...
-		int32 SecondSize = BaseChunk->Size - FirstSize;
+		int64 SecondSize = BaseChunk->Size - FirstSize;
 		// ... and create it.
 
 		//todo: fix stats
 		//ensureMsgf(BaseChunk->Stat.IsNone(), TEXT("Free chunk has stat"));
-		FMemoryChunk* NewFreeChunk = new FMemoryChunk(BaseChunk->Base + FirstSize, SecondSize, *this, BaseChunk, TStatId(), bSortedFreeList);
+		FMemoryChunk* NewFreeChunk = new FMemoryChunk(BaseChunk->Base + FirstSize, SecondSize, *this, BaseChunk, TStatId());
 
 		// Keep the original sync index for the new chunk if necessary.
 		if (BaseChunk->IsRelocating() && BaseChunk->SyncSize > FirstSize)
 		{
-			int32 SecondSyncSize = BaseChunk->SyncSize - FirstSize;
+			int64 SecondSyncSize = BaseChunk->SyncSize - FirstSize;
 			NewFreeChunk->SetSyncIndex(BaseChunk->SyncIndex, SecondSyncSize);
 		}
 		BaseChunk->SetSyncIndex(BaseChunk->SyncIndex, FMath::Min((int64)FirstSize, BaseChunk->SyncSize));
@@ -877,16 +895,15 @@ protected:
 	* @param bAsync			If true, allows allocating from relocating chunks and maint32ains the free-list sort order.
 	* @return					The memory chunk that was allocated (the original chunk could've been split).
 	*/
-	FMemoryChunk*	AllocateChunk(FMemoryChunk* FreeChunk, int32 AllocationSize, bool bAsync, bool bDoValidation = true);
+	FMemoryChunk*	AllocateChunk(FMemoryChunk* FreeChunk, int64 AllocationSize, bool bAsync, bool bDoValidation = true);
 
 	/**
 	* Marks the specified chunk as 'free' and updates tracking variables.
 	* Calls LinkFreeChunk() to coalesce adjacent free memory.
 	*
-	* @param Chunk						Chunk to free
-	* @param bMaint32ainSortedFreelist	If true, maint32ains the free-list sort order
+	* @param Chunk						Chunk to free	
 	*/
-	void			FreeChunk(FMemoryChunk* Chunk, bool bMaint32ainSortedFreelist);
+	void			FreeChunk(FMemoryChunk* Chunk);
 
 	/**
 	* Frees the passed in chunk and coalesces adjacent free chunks into 'Chunk' if possible.
@@ -895,11 +912,11 @@ protected:
 	* @param Chunk				Chunk to mark as available.
 	* @param bSortedFreeList	If true, maintains the free-list sort order
 	*/
-	void			LinkFreeChunk(FMemoryChunk* Chunk, bool bSortedFreeList)
+	void			LinkFreeChunk(FMemoryChunk* Chunk)
 	{
 		check(Chunk);
 		// Mark chunk as available.
-		Chunk->LinkFree(bSortedFreeList, nullptr);
+		Chunk->LinkFree(nullptr);
 		// Kick of merge pass.
 		Coalesce(Chunk);
 	}
@@ -922,7 +939,7 @@ protected:
 
 	/**
 	* Defrag helper function. Checks if the specified allocation fits within
-	* the adjacent free chunk(s), accounting for potential reallocation request.
+	* the adjacent free chunk(s).
 	*
 	* @param UsedChunk		Allocated chunk to check for a fit
 	* @param bAnyChunkType	If false, only succeeds if 'UsedChunk' has a reallocation request and fits
@@ -981,12 +998,15 @@ protected:
 	/** Cumulative time spent in allocator.							*/
 	double			TimeSpentInAllocator;
 	/** Allocated memory in uint8s.									*/
-#if WINVER < 0x0600
+#if PLATFORM_WINDOWS && (WINVER < 0x0600)
 	// Interlock...64 functions are only available from Vista onwards
 	typedef int32 memsize_t;
 #else
 	typedef int64 memsize_t;
 #endif
+
+	volatile memsize_t	PaddingWasteSize;
+
 	volatile memsize_t	AllocatedMemorySize;
 	/** Available memory in uint8s.									*/
 	volatile memsize_t	AvailableMemorySize;

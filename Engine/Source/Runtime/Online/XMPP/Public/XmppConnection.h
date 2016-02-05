@@ -77,12 +77,26 @@ public:
 	/**
 	 * Get the components that comprise the resource
 	 *
+	 * @param InResource The resource to parse
 	 * @param OutAppId The app id the user is using
 	 * @param OutPlatform The platform the user is using
 	 *
 	 * @return Whether the Resource was successfully parsed or not
 	 */
-	bool ParseResource(FString& OutAppId, FString& OutPlatform) const;
+	static bool ParseResource(const FString& InResource, FString& OutAppId, FString& OutPlatform);
+
+	/** 
+	 * Get the components that comprise the resource
+	 *
+	 * @param OutAppId The app id the user is using
+	 * @param OutPlatform The platform the user is using
+	 *
+	 * @return Whether the Resource was successfully parsed or not
+	 */
+	bool ParseResource(FString& OutAppId, FString& OutPlatform) const
+	{
+		return ParseResource(Resource, OutAppId, OutPlatform);
+	}
 
 	bool operator==(const FXmppUserJid& Other)
 	{

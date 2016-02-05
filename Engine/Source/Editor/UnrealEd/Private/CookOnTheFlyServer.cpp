@@ -3031,6 +3031,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 	IniFiles.Add(FString(TEXT("Compat")));
 	IniFiles.Add(FString(TEXT("Lightmass")));
 	IniFiles.Add(FString(TEXT("Scalability")));
+	IniFiles.Add(FString(TEXT("Hardware")));
 	IniFiles.Add(FString(TEXT("Input")));
 	IniFiles.Add(FString(TEXT("GameUserSettings")));
 	IniFiles.Add(FString(TEXT("Game")));

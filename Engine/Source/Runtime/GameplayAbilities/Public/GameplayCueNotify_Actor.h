@@ -99,6 +99,20 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	bool bUniqueInstancePerSourceObject;
 
+	/**
+	 *	Does this cue trigger its OnActive event if it's already been triggered?
+	 *  This can occur when the associated tag is triggered by multiple sources and there is no unique instancing.
+	 */ 	 
+	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
+	bool bAllowMultipleOnActiveEvents;
+
+	/**
+	 *	Does this cue trigger its WhileActive event if it's already been triggered?
+	 *  This can occur when the associated tag is triggered by multiple sources and there is no unique instancing.
+	 */ 	 
+	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
+	bool bAllowMultipleWhileActiveEvents;
+
 	/** How many instances of the gameplay cue to preallocate */
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	int32 NumPreallocatedInstances;
@@ -107,6 +121,9 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	
 protected:
 	FTimerHandle FinishTimerHandle;
+
+	bool bHasHandledOnActiveEvent;
+	bool bHasHandledWhileActiveEvent;
 
 private:
 	virtual void DeriveGameplayCueTagFromAssetName();

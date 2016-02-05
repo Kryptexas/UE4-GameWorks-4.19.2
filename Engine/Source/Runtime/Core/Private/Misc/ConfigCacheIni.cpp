@@ -2823,6 +2823,8 @@ void FConfigCacheIni::InitializeConfigSystem()
 
 	// Load scalability settings.
 	FConfigCacheIni::LoadGlobalIniFile(GScalabilityIni, TEXT("Scalability"));
+	// Load driver blacklist
+	FConfigCacheIni::LoadGlobalIniFile(GHardwareIni, TEXT("Hardware"));
 	
 	// Load user game settings .ini, allowing merging. This also updates the user .ini if necessary.
 	FConfigCacheIni::LoadGlobalIniFile(GGameUserSettingsIni, TEXT("GameUserSettings"));

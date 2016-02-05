@@ -44,6 +44,21 @@ FString FApp::GetEpicProductIdentifier()
 	return FString(TEXT(EPIC_PRODUCT_IDENTIFIER));
 }
 
+const TCHAR * FApp::GetDeploymentName()
+{
+	static TCHAR StaticDeploymentName[64] = {0};
+	static bool bHaveDeployment = false;
+
+	if (!bHaveDeployment)
+	{
+		// use -epicapp value from the commandline. Default deployment is not captured by this,
+		// but this may not be a problem as that would be the case only during the development
+		FParse::Value(FCommandLine::Get(), TEXT("EPICAPP="), StaticDeploymentName, ARRAY_COUNT(StaticDeploymentName) - 1);
+		bHaveDeployment = true;
+	}
+
+	return StaticDeploymentName;
+}
 
 EBuildConfigurations::Type FApp::GetBuildConfiguration()
 {

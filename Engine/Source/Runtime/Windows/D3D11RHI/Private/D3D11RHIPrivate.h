@@ -288,7 +288,7 @@ public:
 	TMap<FD3D11LockedKey,FD3D11LockedData> OutstandingLocks;
 
 	/** Initialization constructor. */
-	FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEVEL InFeatureLevel,int32 InChosenAdapter);
+	FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEVEL InFeatureLevel,int32 InChosenAdapter, const DXGI_ADAPTER_DESC& ChosenDescription);
 
 	/** Destructor */
 	virtual ~FD3D11DynamicRHI();
@@ -690,6 +690,8 @@ protected:
 	FD3DGPUProfiler GPUProfilingData;
 	// >= 0, was computed before, unless hardware was changed during engine init it should be the same
 	int32 ChosenAdapter;
+	// we don't use AdapterDesc.Description as there is a bug with Optimus where it can report the wrong name
+	DXGI_ADAPTER_DESC ChosenDescription;
 
 	template<typename BaseResourceType>
 	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,
@@ -813,6 +815,8 @@ public:
 
 private:
 	FD3D11Adapter ChosenAdapter;
+	// we don't use GetDesc().Description as there is a bug with Optimus where it can report the wrong name
+	DXGI_ADAPTER_DESC ChosenDescription;
 
 	// set MaxSupportedFeatureLevel and ChosenAdapter
 	void FindAdapter();

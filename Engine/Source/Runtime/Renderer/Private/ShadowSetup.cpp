@@ -494,20 +494,28 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 
 		ResolutionY = FMath::Min<uint32>(FMath::TruncToInt(InResolutionX / AspectRatio), MaxShadowResolutionY);
 
-		// Store the view matrix
-		// Reorder the vectors to match the main view, since ShadowViewMatrix will be used to override the main view's view matrix during shadow depth rendering
-		ShadowViewMatrix = Initializer.WorldToLight * 
-			FMatrix(
-				FPlane(0,	0,	1,	0),
-				FPlane(1,	0,	0,	0),
-				FPlane(0,	1,	0,	0),
-				FPlane(0,	0,	0,	1));
+		if (ResolutionX == 0 || ResolutionY == 0)
+		{
+			checkfSlow(0, TEXT("Tried to create shadow with invalid resolution [%d * %d]."), ResolutionX, ResolutionY);
+			bRet = false;
+		}
+		else
+		{
+			// Store the view matrix
+			// Reorder the vectors to match the main view, since ShadowViewMatrix will be used to override the main view's view matrix during shadow depth rendering
+			ShadowViewMatrix = Initializer.WorldToLight *
+				FMatrix(
+				FPlane(0, 0, 1, 0),
+				FPlane(1, 0, 0, 0),
+				FPlane(0, 1, 0, 0),
+				FPlane(0, 0, 0, 1));
 
-		GetViewFrustumBounds(CasterFrustum,SubjectAndReceiverMatrix,true);
+			GetViewFrustumBounds(CasterFrustum, SubjectAndReceiverMatrix, true);
 
-		InvReceiverMatrix = ReceiverMatrix.InverseFast();
-		GetViewFrustumBounds(ReceiverFrustum,ReceiverMatrix,true);
-		UpdateShaderDepthBias();
+			InvReceiverMatrix = ReceiverMatrix.InverseFast();
+			GetViewFrustumBounds(ReceiverFrustum, ReceiverMatrix, true);
+			UpdateShaderDepthBias();
+		}
 	}
 
 	return bRet;

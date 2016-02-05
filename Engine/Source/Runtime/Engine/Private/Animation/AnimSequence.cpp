@@ -433,7 +433,16 @@ bool UAnimSequence::IsValidToPlay() const
 
 void UAnimSequence::SortSyncMarkers()
 {
+	// First make sure all SyncMarkers are within a valid range
+	for (auto& SyncMarker : AuthoredSyncMarkers)
+	{
+		SyncMarker.Time = FMath::Clamp(SyncMarker.Time, 0.f, SequenceLength);
+	}
+
+	// Then sort
 	AuthoredSyncMarkers.Sort();
+
+	// Then refresh data
 	RefreshSyncMarkerDataFromAuthored();
 }
 

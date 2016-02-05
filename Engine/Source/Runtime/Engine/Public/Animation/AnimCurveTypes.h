@@ -462,6 +462,7 @@ struct FBaseBlendedCurve
 	template <typename OtherAllocator>
 	void CopyFrom(const FBaseBlendedCurve<OtherAllocator>& CurveToCopyFrom)
 	{
+		checkf(CurveToCopyFrom.IsValid(), TEXT("Copying data from an invalid curve UIDList: 0x%x  (Sizes %i/%i)"), CurveToCopyFrom.UIDList, (CurveToCopyFrom.UIDList ? CurveToCopyFrom.UIDList->Num() : -1), CurveToCopyFrom.Elements.Num());
 		UIDList = CurveToCopyFrom.UIDList;
 		Elements.Reset();
 		Elements.Append(CurveToCopyFrom.Elements);
@@ -472,6 +473,7 @@ struct FBaseBlendedCurve
 	{
 		if (&CurveToCopyFrom != this)
 		{
+			checkf(CurveToCopyFrom.IsValid(), TEXT("Copying data from an invalid curve UIDList: 0x%x  (Sizes %i/%i)"), CurveToCopyFrom.UIDList, (CurveToCopyFrom.UIDList ? CurveToCopyFrom.UIDList->Num() : -1), CurveToCopyFrom.Elements.Num());
 			UIDList = CurveToCopyFrom.UIDList;
 			Elements.Reset();
 			Elements.Append(CurveToCopyFrom.Elements);
@@ -494,6 +496,13 @@ struct FBaseBlendedCurve
 	{
 		Elements.Reset();
 		Elements.Reserve(Count);
+	}
+
+	// Only checks bare minimal validity. (namely that we have a UID list and that it 
+	// is the same size as our element list
+	bool IsValid() const
+	{
+		return UIDList && (Elements.Num() == UIDList->Num());
 	}
 };
 

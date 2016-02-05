@@ -2011,15 +2011,21 @@ void FDisplayDebugManager::DrawString(const FString& InDebugString, const float&
 {
 	if (Canvas)
 	{
+		const float TextScale = GetTextScale();
+		DebugTextItem.Scale = FVector2D(TextScale, TextScale);
+
 		DebugTextItem.Text = FText::FromString(InDebugString);
 		Canvas->DrawItem(DebugTextItem, FVector2D(CurrentPos.X + OptionalXOffset, CurrentPos.Y));
 
 		NextColumXPos = FMath::Max(NextColumXPos, CurrentPos.X + OptionalXOffset + DebugTextItem.DrawnSize.X);
-		MaxCharHeight = FMath::Max(MaxCharHeight, DebugTextItem.DrawnSize.Y);
-
-		CurrentPos.Y += GetYStep();
+		CurrentPos.Y += FMath::Max(GetYStep(), DebugTextItem.DrawnSize.Y);
 		AddColumnIfNeeded();
 	}
+}
+
+float FDisplayDebugManager::GetTextScale() const
+{
+	return Canvas ? FMath::Max(Canvas->SizeX / 1920.f, 1.f) : 1.f;
 }
 
 void FDisplayDebugManager::AddColumnIfNeeded()

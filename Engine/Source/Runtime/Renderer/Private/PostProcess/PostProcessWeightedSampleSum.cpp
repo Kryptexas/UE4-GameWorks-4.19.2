@@ -560,6 +560,21 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
+	bool bRequiresClear = true;
+	// check if we have to clear the whole surface.
+	// Otherwise perform the clear when the dest rectangle has been computed.
+	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
+	{
+		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
+		bRequiresClear = false;
+	}
+
+	FIntRect SrcRect = FIntRect::DivideAndRoundUp(View.ViewRect, SrcScaleFactor);
+	if (bRequiresClear)
+	{
+		DrawClear(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize);
+	}
+
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -620,20 +635,9 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		BlurWeights,
 		NumSamples,
 		&VertexShader
-		);
+		);	
 
-	bool bRequiresClear = true;
-	// check if we have to clear the whole surface.
-	// Otherwise perform the clear when the dest rectangle has been computed.
-	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
-	{
-		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
-		bRequiresClear = false;
-	}
-
-	FIntRect SrcRect =  FIntRect::DivideAndRoundUp(View.ViewRect, SrcScaleFactor);
-
-	DrawQuad(Context.RHICmdList, bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
+	DrawQuad(Context.RHICmdList, FeatureLevel, bDoFastBlur, SrcRect, DestRect, DestSize, SrcSize, VertexShader);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
@@ -721,26 +725,36 @@ bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 	return bRet;
 }
 
-void FRCPassPostProcessWeightedSampleSum::DrawQuad(FRHICommandListImmediate& RHICmdList, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const
+void FRCPassPostProcessWeightedSampleSum::AdjustRectsForFastBlur(FIntRect& SrcRect, FIntRect& DestRect) const
+{	
+	if (FilterShape == EFS_Horiz)
+	{
+		SrcRect.Min.X = DestRect.Min.X * 2;
+		SrcRect.Max.X = DestRect.Max.X * 2;
+	}
+	else
+	{
+		DestRect.Min.X = SrcRect.Min.X * 2;
+		DestRect.Max.X = SrcRect.Max.X * 2;
+	}	
+}
+
+void FRCPassPostProcessWeightedSampleSum::DrawClear(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, FIntPoint DestSize) const
 {
 	if (bDoFastBlur)
 	{
-		if (FilterShape == EFS_Horiz)
-		{
-			SrcRect.Min.X = DestRect.Min.X * 2;
-			SrcRect.Max.X = DestRect.Max.X * 2;
-		}
-		else
-		{
-			DestRect.Min.X = SrcRect.Min.X * 2;
-			DestRect.Max.X = SrcRect.Max.X * 2;
-		}
+		AdjustRectsForFastBlur(SrcRect, DestRect);
 	}
 
-	if (bRequiresClear)
+	DrawClearQuad(RHICmdList, FeatureLevel, true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestSize, DestRect);	
+}
+
+void FRCPassPostProcessWeightedSampleSum::DrawQuad(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const
+{	
+	if (bDoFastBlur)
 	{
-		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, DestRect);
-	}
+		AdjustRectsForFastBlur(SrcRect, DestRect);
+	}	
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(

@@ -1515,6 +1515,12 @@ void UActorChannel::DestroyActorAndComponents()
 		if ( CreateSubObjects[i].IsValid() )
 		{
 			UObject *SubObject = CreateSubObjects[i].Get();
+
+			if ( Connection != nullptr && Connection->Driver != nullptr )
+			{
+				Connection->Driver->RepChangedPropertyTrackerMap.Remove( SubObject );
+			}
+
 			Actor->OnSubobjectDestroyFromReplication(SubObject);
 			SubObject->PreDestroyFromReplication();
 			SubObject->MarkPendingKill();
@@ -2614,6 +2620,11 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 		{
 			// Stop tracking this sub-object
 			CreateSubObjects.Remove( SubObj );
+
+			if ( Connection != nullptr && Connection->Driver != nullptr )
+			{
+				Connection->Driver->RepChangedPropertyTrackerMap.Remove( SubObj );
+			}
 
 			Actor->OnSubobjectDestroyFromReplication( SubObj );
 

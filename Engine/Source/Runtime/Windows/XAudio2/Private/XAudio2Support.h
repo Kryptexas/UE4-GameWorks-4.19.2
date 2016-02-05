@@ -21,6 +21,11 @@
 #ifndef XAUDIO2_SUPPORTS_SENDLIST
 	#define XAUDIO2_SUPPORTS_SENDLIST			1
 #endif	//XAUDIO2_SUPPORTS_SENDLIST
+#ifndef XAUDIO2_SUPPORTS_VOICE_POOL
+	#define XAUDIO2_SUPPORTS_VOICE_POOL			0
+#endif	//XAUDIO2_SUPPORTS_VOICE_POOL
+
+
 
 /*------------------------------------------------------------------------------------
 	XAudio2 system headers
@@ -713,6 +718,7 @@ struct FXAudioDeviceProperties
 	{
 		bool bSuccess = false;
 
+#if XAUDIO2_SUPPORTS_VOICE_POOL
 		// First find the pool for the given format
 		FSourceVoicePoolEntry* VoicePoolEntry = nullptr;
 		for (int32 i = 0; i < VoicePool.Num(); ++i)
@@ -743,6 +749,11 @@ struct FXAudioDeviceProperties
 			bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
 								XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, nullptr, EffectChain));
 		}
+#else // XAUDIO2_SUPPORTS_VOICE_POOL
+		check(XAudio2 != nullptr);
+		bSuccess = Validate(TEXT("GetFreeSourceVoice, XAudio2->CreateSourceVoice"),
+							XAudio2->CreateSourceVoice(Voice, &BufferInfo.PCMFormat, XAUDIO2_VOICE_USEFILTER, MAX_PITCH, &SourceCallback, nullptr, EffectChain));
+#endif // XAUDIO2_SUPPORTS_VOICE_POOL
 
 		if (bSuccess)
 		{
@@ -759,6 +770,8 @@ struct FXAudioDeviceProperties
 	/** Releases the voice into a pool of free voices according to the voice format and the max effect chain channels */
 	void ReleaseSourceVoice(IXAudio2SourceVoice* Voice, const FPCMBufferInfo& BufferInfo, const int32 MaxEffectChainChannels)
 	{
+#if XAUDIO2_SUPPORTS_VOICE_POOL
+
 		check(Voice != nullptr);
 
 		// Make sure the voice is stopped
@@ -809,6 +822,9 @@ struct FXAudioDeviceProperties
 				Voice->DestroyVoice();
 			}
 		}
+#else // XAUDIO2_SUPPORTS_VOICE_POOL
+		Voice->DestroyVoice();
+#endif // XAUDIO2_SUPPORTS_VOICE_POOL
 
 		--NumActiveVoices;
 	}

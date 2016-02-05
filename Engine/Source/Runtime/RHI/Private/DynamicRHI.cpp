@@ -6,6 +6,7 @@
 
 #include "RHI.h"
 #include "ModuleManager.h"
+#include "GenericPlatformDriver.h" // FGPUDriverInfo
 
 #ifndef PLATFORM_ALLOW_NULL_RHI
 	#define PLATFORM_ALLOW_NULL_RHI		0
@@ -14,14 +15,17 @@
 // Globals.
 FDynamicRHI* GDynamicRHI = NULL;
 
-static TAutoConsoleVariable<int32> CVarDetectAndWarnOfBadDrivers(
-	TEXT("r.DetectAndWarnOfBadDrivers"),
+static TAutoConsoleVariable<int32> CVarWarnOfBadDrivers(
+	TEXT("r.WarnOfBadDrivers"),
 	1,
 	TEXT("On engine startup we can check the current GPU driver and warn the user about issues and suggest a specific version\n")
 	TEXT("The test is fast so this should not cost any performance.\n")
 	TEXT(" 0: off\n")
 	TEXT(" 1: a message on startup might appear (default)\n")
-	TEXT(" 2: Test by pretending the driver has issues"),
+	TEXT(" 2: Simulating the system has a blacklisted NVIDIA driver (UI should appear)\n")
+	TEXT(" 3: Simulating the system has a blacklisted AMD driver (UI should appear)\n")
+	TEXT(" 4: Simulating the system has a not blacklisted AMD driver (no UI should appear)\n")
+	TEXT(" 5: Simulating the system has a Indel driver (no UI should appear)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -45,40 +49,10 @@ void InitNullRHI()
 	GRHISupportsTextureStreaming = false;
 }
 
-// e.g. 36143 for the NVIDIA driver 361.43
-// no floating point to avoid precision issues
-// @return -1 if the version is unknown
-static int32 ExtractGPUDriverVersionInt(const FGPUDriverInfo& DriverInfo)
-{
-	int32 Ret = -1;
-
-	// we use the internal version, not the user version to avoid problem where the name was altered 
-	const FString& InternalVersion = DriverInfo.InternalDriverVersion;
-
-	if(DriverInfo.IsNVIDIA())
-	{
-		// we don't care about the windows version so we don't look at the front part of the driver version
-		// e.g. 36.143
-		FString RightPart = InternalVersion.Right(6);
-		// e.g. 36143
-		FString CompactNumber = RightPart.Replace(TEXT("."), TEXT(""));
-
-		if(FCString::IsNumeric(*CompactNumber))
-		{
-			Ret = FCString::Atoi(*CompactNumber);
-		}
-	}
-	else
-	{
-		// examples for AMD: "13.12" "15.101.1007" "13.351"
-		// todo: need to decide on what part we extract, maybe make the return argument multiple ints
-	}
-	return Ret;
-}
 
 void RHIDetectAndWarnOfBadDrivers()
 {
-	int32 CVarValue = CVarDetectAndWarnOfBadDrivers.GetValueOnGameThread();
+	int32 CVarValue = CVarWarnOfBadDrivers.GetValueOnGameThread();
 
 	if(!GIsRHIInitialized || !CVarValue || GRHIVendorId == 0)
 	{
@@ -95,61 +69,68 @@ void RHIDetectAndWarnOfBadDrivers()
 	DriverInfo.UserDriverVersion = GRHIAdapterUserDriverVersion;
 	DriverInfo.DriverDate = GRHIAdapterDriverDate;
 
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// for testing
 	if(CVarValue == 2)
 	{
-		DriverInfo.VendorId = 0x10DE;
-		DriverInfo.DeviceDescription = TEXT("Test NVIDIA");
+		DriverInfo.SetNVIDIA();
+		DriverInfo.DeviceDescription = TEXT("Test NVIDIA (bad)");
 		DriverInfo.UserDriverVersion = TEXT("361.43");
 		DriverInfo.InternalDriverVersion = TEXT("9.18.136.143");
 		DriverInfo.DriverDate = TEXT("01-01-1900");
 	}
-
-	int32 VersionInt = ExtractGPUDriverVersionInt(DriverInfo);
-
-	if(VersionInt < 0)
+	else if(CVarValue == 3)
 	{
-		// no valid version
-		return;
+		DriverInfo.SetAMD();
+		DriverInfo.DeviceDescription = TEXT("Test AMD (bad)");
+		DriverInfo.UserDriverVersion = TEXT("Test Catalyst Version");
+		DriverInfo.InternalDriverVersion = TEXT("13.152.1.1000");
+		DriverInfo.DriverDate = TEXT("09-10-13");
 	}
-
-	// can be made data driven:
-	if(DriverInfo.IsNVIDIA())
+	else if(CVarValue == 4)
 	{
-		// todo: make this data driven
-		FString SuggestedVersion = TEXT("359.06");
+		DriverInfo.SetAMD();
+		DriverInfo.DeviceDescription = TEXT("Test AMD (good)");
+		DriverInfo.UserDriverVersion = TEXT("Test Catalyst Version");
+		DriverInfo.InternalDriverVersion = TEXT("15.30.1025.1001");
+		DriverInfo.DriverDate = TEXT("01-01-16");
+	}
+	else if(CVarValue == 5)
+	{
+		DriverInfo.SetIntel();
+		DriverInfo.DeviceDescription = TEXT("Test Intel (good)");
+		DriverInfo.UserDriverVersion = TEXT("Test Intel Version");
+		DriverInfo.InternalDriverVersion = TEXT("8.15.10.2302");
+		DriverInfo.DriverDate = TEXT("01-01-15");
+	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-		// todo: make this data driven
-		if(VersionInt == 36143	// 361.43 "UE-25096 Viewport flashes black and white when moving in the scene on latest Nvidia drivers", at that time that was the latest driver
-		|| VersionInt <= 34709)	// 347.09 "old NVIDIA driver version we've seen driver crashes with Paragon content", we might have to adjust that further
+	FGPUHardware DetectedGPUHardware(DriverInfo);
+
+	if (DriverInfo.IsValid())
+	{
+		FBlackListEntry BlackListEntry = DetectedGPUHardware.FindDriverBlacklistEntry();
+
+		if (BlackListEntry.IsValid())
 		{
+			// format message box UI
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("AdapterName"), FText::FromString(DriverInfo.DeviceDescription));
 			Args.Add(TEXT("UserDriverVersion"), FText::FromString(DriverInfo.UserDriverVersion));
 			Args.Add(TEXT("InternalDriverVersion"), FText::FromString(DriverInfo.InternalDriverVersion));
 			Args.Add(TEXT("DriverDate"), FText::FromString(DriverInfo.DriverDate));
-			Args.Add(TEXT("SuggestedVersion"), FText::FromString(SuggestedVersion));
+			Args.Add(TEXT("SuggestedVersion"), FText::FromString(DetectedGPUHardware.GetSuggestedDriverVersion()));
 
+			// this message can be suppressed with r.WarnOfBadDrivers=0
 			FText LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "VideoCardDriverIssueReport",
-				"Your current video card driver version might cause problems.\n(reduced performance, artifacts, stalls, crashes, restarts)\n\nYour current driver:\n  Name:\t{AdapterName}\n  Version:\t{UserDriverVersion} (internal {InternalDriverVersion})\n  Date:\t{DriverDate}\n\nSuggested driver:\n  Version:\t{SuggestedVersion}\n\n"),
+				"Your current video card driver version might cause problems.\n(reduced performance, artifacts, stalls, crashes, restarts)\n\nYour current driver:\n  Name:\t{AdapterName}\n  Version:\t{UserDriverVersion} (internal {InternalDriverVersion})\n  Date:\t{DriverDate}\n\nSuggested driver:\n  Version:\t{SuggestedVersion}"),
 				Args);
 
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, 
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,
 				*LocalizedMsg.ToString(),
 				*NSLOCTEXT("MessageDialog", "TitleVideoCardDriverIssue", "WARNING: Video card driver").ToString());
 		}
-	}
-	else if(DriverInfo.IsAMD())
-	{
-		// so far we don't have any data on issues
-	}
-	else if(DriverInfo.IsIntel())
-	{
-		// so far we don't have any data on issues
-	}
-	else
-	{
-		// so far we don't have any data on issues
 	}
 }
 

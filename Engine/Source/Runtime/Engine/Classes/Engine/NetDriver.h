@@ -266,7 +266,8 @@ public:
 	double						StatUpdateTime;
 	/** Interval between gathering stats */
 	float						StatPeriod;
-
+	/** Time of last netdriver cleanup pass */
+	double						LastCleanupTime;
 	/** Used to determine if checking for standby cheats should occur */
 	bool						bIsStandbyCheckingEnabled;
 	/** Used to determine whether we've already caught a cheat or not */
