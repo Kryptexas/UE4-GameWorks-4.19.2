@@ -17,6 +17,7 @@ TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaul
 FSlateTextLayout::FSlateTextLayout(FTextBlockStyle InDefaultTextStyle)
 	: Children()
 	, DefaultTextStyle(MoveTemp(InDefaultTextStyle))
+	, LocalizedFallbackFontRevision(INDEX_NONE)
 {
 
 }
@@ -132,6 +133,24 @@ void FSlateTextLayout::EndLayout()
 {
 	FTextLayout::EndLayout();
 	AggregateChildren();
+}
+
+void FSlateTextLayout::UpdateIfNeeded()
+{
+	const int32 CurrentLocalizedFallbackFontRevision = FSlateApplication::Get().GetRenderer()->GetFontCache()->GetLocalizedFallbackFontRevision();
+	if (CurrentLocalizedFallbackFontRevision != LocalizedFallbackFontRevision)
+	{
+		if (LocalizedFallbackFontRevision != INDEX_NONE)
+		{
+			// If the localized fallback font has changed, we need to purge the current layout data as things may need to be re-measured
+			DirtyFlags |= ETextLayoutDirtyState::Layout;
+			DirtyAllLineModels(ELineModelDirtyState::WrappingInformation | ELineModelDirtyState::ShapingCache);
+		}
+
+		LocalizedFallbackFontRevision = CurrentLocalizedFallbackFontRevision;
+	}
+
+	FTextLayout::UpdateIfNeeded();
 }
 
 void FSlateTextLayout::SetDefaultTextStyle(FTextBlockStyle InDefaultTextStyle)

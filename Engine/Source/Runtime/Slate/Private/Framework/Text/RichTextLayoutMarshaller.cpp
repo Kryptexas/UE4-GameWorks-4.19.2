@@ -29,6 +29,9 @@ void FRichTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout
 	FString ProcessedString;
 	Parser->Process(LineParseResultsArray, SourceString, ProcessedString);
 
+	TArray<FTextLayout::FNewLineData> LinesToAdd;
+	LinesToAdd.Reserve(LineParseResultsArray.Num());
+
 	// Iterate through parsed line results and create processed lines with runs.
 	for (const FTextLineParseResults& LineParseResults : LineParseResultsArray)
 	{
@@ -76,8 +79,10 @@ void FRichTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout
 			Runs.Add( Run.ToSharedRef() );
 		}
 
-		TargetTextLayout.AddLine(ModelString, Runs);
+		LinesToAdd.Emplace(MoveTemp(ModelString), MoveTemp(Runs));
 	}
+
+	TargetTextLayout.AddLines(LinesToAdd);
 }
 
 void FRichTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayout& SourceTextLayout)

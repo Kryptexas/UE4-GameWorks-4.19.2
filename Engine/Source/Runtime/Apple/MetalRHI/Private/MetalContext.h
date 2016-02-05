@@ -30,7 +30,7 @@ enum EMetalFeatures
 	/** Support for specifying resource usage & memory options */
 	EMetalFeaturesResourceOptions = 1 << 3,
 	/** Supports texture->buffer blit options for depth/stencil blitting */
-	EMetalFeaturesDepthStencilBlitOptions = 1 >> 4
+	EMetalFeaturesDepthStencilBlitOptions = 1 << 4
 };
 
 

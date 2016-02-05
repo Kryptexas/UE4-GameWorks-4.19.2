@@ -2,7 +2,7 @@
 
 #pragma once
 
-class ISlate3DRenderer 
+class ISlate3DRenderer : public TSharedFromThis<ISlate3DRenderer, ESPMode::ThreadSafe>
 {
 public:
 	virtual ~ISlate3DRenderer() {}
@@ -27,3 +27,5 @@ public:
 	 */
 	virtual void DrawWindowToTarget_RenderThread(FRHICommandListImmediate& RHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& InDrawBuffer) = 0;
 };
+
+typedef TSharedPtr<ISlate3DRenderer, ESPMode::ThreadSafe> ISlate3DRendererPtr;

@@ -482,6 +482,8 @@ protected:
 	uint32						VoiceId;
 	/** Whether or not this sound is spatializing using an HRTF spatialization algorithm. */
 	bool						bUsingHRTFSpatialization;
+	/** Whether or not we've already logged a warning on this sound about it switching algorithms after init. */
+	bool						bEditorWarnedChangedSpatialization;
 
 	friend class FXAudio2Device;
 	friend class FXAudio2SoundSourceCallback;

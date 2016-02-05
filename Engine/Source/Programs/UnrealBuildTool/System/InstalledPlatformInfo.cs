@@ -36,12 +36,16 @@ namespace UnrealBuildTool
 			/// Type of project this configuration can be used for
 			public EProjectType ProjectType;
 
-			public InstalledPlatformConfiguration(UnrealTargetConfiguration InConfiguration, UnrealTargetPlatform InPlatform, string InRequiredFile, EProjectType InProjectType)
+			/// Whether to display this platform as an option even if it is not valid
+			public bool bCanBeDisplayed;
+
+			public InstalledPlatformConfiguration(UnrealTargetConfiguration InConfiguration, UnrealTargetPlatform InPlatform, string InRequiredFile, EProjectType InProjectType, bool bInCanBeDisplayed)
 			{
 				Configuration = InConfiguration;
 				Platform = InPlatform;
 				RequiredFile = InRequiredFile;
 				ProjectType = InProjectType;
+				bCanBeDisplayed = bInCanBeDisplayed;
 			}
 		}
 
@@ -127,9 +131,16 @@ namespace UnrealBuildTool
 				bCanCreateEntry = false;
 			}
 
+			string CanBeDisplayedString;
+			bool bCanBeDisplayed = false;
+			if (ParseSubValue(PlatformConfiguration, "bCanBeDisplayed=", out CanBeDisplayedString))
+			{
+				bCanBeDisplayed = Convert.ToBoolean(CanBeDisplayedString);
+			}
+
 			if (bCanCreateEntry)
 			{
-				InstalledPlatformConfigurations.Add(new InstalledPlatformConfiguration(Configuration, Platform, RequiredFile, ProjectType));
+				InstalledPlatformConfigurations.Add(new InstalledPlatformConfiguration(Configuration, Platform, RequiredFile, ProjectType,bCanBeDisplayed));
 			}
 		}
 

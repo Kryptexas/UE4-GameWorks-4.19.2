@@ -719,7 +719,7 @@ public class IOSPlatform : Platform
 				int EndPos = Contents.IndexOf("</string>", Pos);
 				BundleIdentifier = Contents.Substring(Pos, EndPos - Pos);
 			}
-			RunAndLog(CmdEnv, DeployServer, "Backup -file \"" + CombinePaths(Params.BaseStageDirectory, "IOS", SC.UFSDeployedManifestFileName) + "\" -file \"" + CombinePaths(Params.BaseStageDirectory, "IOS", SC.NonUFSDeployedManifestFileName) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + " -bundle " + BundleIdentifier);
+			RunAndLog(CmdEnv, DeployServer, "Backup -file \"" + CombinePaths(Params.BaseStageDirectory, "IOS", SC.UFSDeployedManifestFileName) + "\" -file \"" + CombinePaths(Params.BaseStageDirectory, "IOS", SC.NonUFSDeployedManifestFileName) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(Params.Device.IndexOf("@") + 1)) + " -bundle " + BundleIdentifier);
 
 			string[] ManifestFiles = Directory.GetFiles(CombinePaths(Params.BaseStageDirectory, "IOS"), "*_Manifest_UFS*.txt");
 			UFSManifests.AddRange(ManifestFiles);
@@ -800,12 +800,12 @@ public class IOSPlatform : Platform
 		Directory.SetCurrentDirectory(CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/"));
 		if (!Params.IterativeDeploy || bCreatedIPA || bNeedsIPA)
 		{
-			RunAndLog(CmdEnv, DeployServer, "Install -ipa \"" + Path.GetFullPath(StagedIPA) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + AdditionalCommandline);
+			RunAndLog(CmdEnv, DeployServer, "Install -ipa \"" + Path.GetFullPath(StagedIPA) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(Params.Device.IndexOf("@") + 1)) + AdditionalCommandline);
 		}
 		if (Params.IterativeDeploy)
 		{
 			// push over the changed files
-			RunAndLog(CmdEnv, DeployServer, "Deploy -manifest \"" + CombinePaths(Params.BaseStageDirectory, PlatformName, DeploymentContext.UFSDeployDeltaFileName) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(4)) + AdditionalCommandline + " -bundle " + BundleIdentifier);
+			RunAndLog(CmdEnv, DeployServer, "Deploy -manifest \"" + CombinePaths(Params.BaseStageDirectory, PlatformName, DeploymentContext.UFSDeployDeltaFileName) + "\"" + (String.IsNullOrEmpty(Params.Device) ? "" : " -device " + Params.Device.Substring(Params.Device.IndexOf("@") + 1)) + AdditionalCommandline + " -bundle " + BundleIdentifier);
 		}
 		Directory.SetCurrentDirectory (CurrentDir);
         PrintRunTime();
@@ -873,7 +873,7 @@ public class IOSPlatform : Platform
 			Arguments += GameName;
 			Arguments += " - iOS'";
 			Arguments += " -configuration " + Params.ClientConfigsToBuild [0].ToString();
-			Arguments += " -destination 'platform=iOS,id=" + Params.Device.Substring(4) + "'";
+			Arguments += " -destination 'platform=iOS,id=" + Params.Device.Substring(Params.Device.IndexOf("@")+1) + "'";
 			Arguments += " TEST_HOST=\"";
 			Arguments += GameApp;
 			Arguments += "\" BUNDLE_LOADER=\"";
@@ -888,7 +888,7 @@ public class IOSPlatform : Platform
 				BundleIdentifier = Contents.Substring(Pos, EndPos - Pos);
 			}
 			string Arguments = "/usr/bin/instruments";
-			Arguments += " -w '" + Params.Device.Substring (4) + "'";
+			Arguments += " -w '" + Params.Device.Substring(Params.Device.IndexOf("@") + 1) + "'";
 			Arguments += " -t 'Activity Monitor'";
 			Arguments += " -D \"" + Params.BaseStageDirectory + "/" + PlatformName + "/launch.trace\"";
 			Arguments += " '" + BundleIdentifier + "'";

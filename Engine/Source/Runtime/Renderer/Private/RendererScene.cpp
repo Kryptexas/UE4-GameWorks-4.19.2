@@ -748,6 +748,15 @@ void FScene::UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive)
 	}
 }
 
+FPrimitiveSceneInfo* FScene::GetPrimitiveSceneInfo(int32 PrimitiveIndex)
+{
+	if(Primitives.IsValidIndex(PrimitiveIndex))
+	{
+		return Primitives[PrimitiveIndex];
+	}
+	return NULL;
+}
+
 void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RemoveScenePrimitiveTime);
@@ -768,6 +777,9 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 	{
 		FPrimitiveSceneInfo* OtherPrimitive = Primitives[PrimitiveIndex];
 		OtherPrimitive->PackedIndex = PrimitiveIndex;
+
+		// Invalidate the scene info's PackedIndex now that it is used by another primitive
+		PrimitiveSceneInfo->PackedIndex = MAX_int32;
 	}
 	
 	CheckPrimitiveArrays();
@@ -2340,6 +2352,7 @@ public:
 	virtual void AddPrimitive(UPrimitiveComponent* Primitive) override {}
 	virtual void RemovePrimitive(UPrimitiveComponent* Primitive) override {}
 	virtual void ReleasePrimitive(UPrimitiveComponent* Primitive) override {}
+	virtual FPrimitiveSceneInfo* GetPrimitiveSceneInfo(int32 PrimiteIndex) override { return NULL; }
 
 	/** Updates the transform of a primitive which has already been added to the scene. */
 	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive) override {}

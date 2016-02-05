@@ -9,6 +9,7 @@ class ULightComponent;
 class USkyLightComponent;
 class FAtmosphericFogSceneInfo;
 class FPrimitiveComponentId;
+class FPrimitiveSceneInfo;
 
 /**
  * An interface to the private scene manager implementation of a scene.  Use GetRendererModule().AllocateScene to create.
@@ -42,6 +43,8 @@ public:
 	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive) = 0;
 	/** Updates primitive attachment state. */
 	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) = 0;
+	/** Finds the  primitive with the associated component id. */
+	virtual FPrimitiveSceneInfo* GetPrimitiveSceneInfo(int32 PrimitiveIndex) = 0;
 	/** 
 	 * Adds a new light component to the scene
 	 * 

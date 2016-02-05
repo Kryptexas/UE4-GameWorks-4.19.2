@@ -206,8 +206,6 @@ namespace UnrealBuildTool
 
 			Result += " -m" +  PlatformContext.GetXcodeMinVersionParam() + "=" + PlatformContext.GetRunTimeVersion();
 
-			Result += " " + PlatformContext.GetAdditionalLinkerFlags(CompileEnvironment.Config.Target.Configuration);
-
 			// Optimize non- debug builds.
 			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
 			{
@@ -374,6 +372,8 @@ namespace UnrealBuildTool
 			Result += " -Wl,-no_pie";
 			Result += " -stdlib=libc++";
 			//			Result += " -v";
+
+			Result += " " + PlatformContext.GetAdditionalLinkerFlags(LinkEnvironment.Config.Target.Configuration);
 
 			// link in the frameworks
 			foreach (string Framework in LinkEnvironment.Config.Frameworks)
@@ -553,7 +553,7 @@ namespace UnrealBuildTool
 				string AllArgs = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				string SourceText = System.IO.File.ReadAllText(SourceFile.AbsolutePath);
 				if (UEBuildConfiguration.bCompileForSize && (SourceFile.AbsolutePath.Contains("ElementBatcher.cpp") || SourceText.Contains("ElementBatcher.cpp") || SourceFile.AbsolutePath.Contains("AnimationRuntime.cpp") || SourceText.Contains("AnimationRuntime.cpp")
-					|| SourceFile.AbsolutePath.Contains("AnimEncoding.cpp") || SourceText.Contains("AnimEncoding.cpp")))
+					|| SourceFile.AbsolutePath.Contains("AnimEncoding.cpp") || SourceText.Contains("AnimEncoding.cpp") || SourceFile.AbsolutePath.Contains("TextRenderComponent.cpp") || SourceText.Contains("TextRenderComponent.cpp")))
 				{
 					Console.WriteLine("Forcing {0} to --O3!", SourceFile.AbsolutePath);
 

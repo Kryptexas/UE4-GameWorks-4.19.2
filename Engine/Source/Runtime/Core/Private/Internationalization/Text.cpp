@@ -1437,6 +1437,22 @@ FScopedTextIdentityPreserver::~FScopedTextIdentityPreserver()
 	}
 }
 
+bool TextBiDi::IsControlCharacter(const TCHAR InChar)
+{
+	return InChar == TEXT('\u061C')  // ARABIC LETTER MARK
+		|| InChar == TEXT('\u200E')  // LEFT-TO-RIGHT MARK
+		|| InChar == TEXT('\u200F')  // RIGHT-TO-LEFT MARK
+		|| InChar == TEXT('\u202A')  // LEFT-TO-RIGHT EMBEDDING
+		|| InChar == TEXT('\u202B')  // RIGHT-TO-LEFT EMBEDDING
+		|| InChar == TEXT('\u202C')  // POP DIRECTIONAL FORMATTING
+		|| InChar == TEXT('\u202D')  // LEFT-TO-RIGHT OVERRIDE
+		|| InChar == TEXT('\u202E')  // RIGHT-TO-LEFT OVERRIDE
+		|| InChar == TEXT('\u2066')  // LEFT-TO-RIGHT ISOLATE
+		|| InChar == TEXT('\u2067')  // RIGHT-TO-LEFT ISOLATE
+		|| InChar == TEXT('\u2068')  // FIRST STRONG ISOLATE
+		|| InChar == TEXT('\u2068'); // POP DIRECTIONAL ISOLATE
+}
+
 bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& OutValue, const TCHAR* Namespace, int32* OutNumCharsRead)
 {
 #define LOC_DEFINE_REGION

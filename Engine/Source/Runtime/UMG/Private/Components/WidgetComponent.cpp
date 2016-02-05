@@ -245,7 +245,7 @@ public:
 
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View) && bVisible;
-		Result.bOpaqueRelevance = BlendMode == EWidgetBlendMode::Opaque;
+		Result.bOpaqueRelevance = ( BlendMode == EWidgetBlendMode::Opaque || BlendMode == EWidgetBlendMode::Masked );
 		Result.bMaskedRelevance = BlendMode == EWidgetBlendMode::Masked;
 		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
 		Result.bSeparateTranslucencyRelevance = Result.bSeparateTranslucencyRelevance = (BlendMode == EWidgetBlendMode::Transparent);

@@ -81,9 +81,11 @@ int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 	for (int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex)
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren[ChildIndex];
-		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
 
-		if ( !ChildClipRect.IsEmpty() )
+		bool bWereOverlapping;
+		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect(), bWereOverlapping );
+
+		if ( bWereOverlapping )
 		{
 			const int32 CurWidgetsMaxLayerId = 
 				CurWidget.Widget->Paint(

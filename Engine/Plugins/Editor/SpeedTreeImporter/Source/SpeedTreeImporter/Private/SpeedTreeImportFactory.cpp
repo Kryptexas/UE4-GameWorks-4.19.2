@@ -450,6 +450,7 @@ UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filename, bool
 	NewPackageName = PackageTools::SanitizePackageName(NewPackageName);
 	UPackage* Package = CreatePackage(NULL, *NewPackageName);
 
+#if 0
 	// find existing texture
 	UnrealTexture = FindObject<UTexture>(Package, *TextureName);
 	if (UnrealTexture != NULL)
@@ -465,6 +466,7 @@ UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filename, bool
 
 		return UnrealTexture;
 	}
+#endif
 
 	// try opening from absolute path
 	Filename = FPaths::GetPath(UFactory::GetCurrentFilename()) + "/" + Filename;

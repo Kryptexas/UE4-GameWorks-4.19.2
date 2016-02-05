@@ -1132,9 +1132,9 @@ protected:
 		}
 		else if (op == ir_unop_bitcount && numOps == 1)
 		{
-			ralloc_asprintf_append(buffer, "ctz(");
-			print_type_pre(expr->operands[0]->variable_referenced()->type);
-			ralloc_asprintf_append(buffer, "(0))");
+			ralloc_asprintf_append(buffer, "popcount(");
+			expr->operands[0]->accept(this);
+			ralloc_asprintf_append(buffer, ")");
 		}
 		else if (numOps < 4)
 		{

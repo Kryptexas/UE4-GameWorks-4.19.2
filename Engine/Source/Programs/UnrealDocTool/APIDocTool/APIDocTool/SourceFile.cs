@@ -219,7 +219,7 @@ namespace APIDocTool
 			for (int Idx = 1; Idx < LineOffsets.Count; Idx++)
 			{
 				int TokenIdx = LineToToken[Idx - 1];
-				while(TokenIdx < Tokens.Count && Tokens[TokenIdx].Offset < LineOffsets[Idx])
+				while (TokenIdx < Tokens.Count && Tokens[TokenIdx].Offset < LineOffsets[Idx])
 				{
 					TokenIdx++;
 				}

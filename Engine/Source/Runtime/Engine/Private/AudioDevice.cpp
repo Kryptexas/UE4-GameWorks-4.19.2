@@ -71,10 +71,6 @@ void FDynamicParameter::Update(float DeltaTime)
 	FAudioDevice implementation.
 -----------------------------------------------------------------------------*/
 
-/**
-* Number of ticks an inaudible source remains alive before being stopped
-*/
-
 FAudioDevice::FAudioDevice()
 	: CommonAudioPool(nullptr)
 	, CommonAudioPoolFreeBytes(0)
@@ -2282,22 +2278,22 @@ void FAudioDevice::Update( bool bGameTicking )
 		}
 
 		// Poll audio components for active wave instances (== paths in node tree that end in a USoundWave)
-		TArray<FWaveInstance*> WaveInstances;
-		int32 FirstActiveIndex = GetSortedActiveWaveInstances( WaveInstances, (bGameTicking ? ESortedActiveWaveGetType::FullUpdate : ESortedActiveWaveGetType::PausedUpdate));
+		ActiveWaveInstances.Reset();
+		int32 FirstActiveIndex = GetSortedActiveWaveInstances(ActiveWaveInstances, (bGameTicking ? ESortedActiveWaveGetType::FullUpdate : ESortedActiveWaveGetType::PausedUpdate));
 
 		// Stop sources that need to be stopped, and touch the ones that need to be kept alive
-		StopSources( WaveInstances, FirstActiveIndex );
+		StopSources(ActiveWaveInstances, FirstActiveIndex);
 
 		// Start and/or update any sources that have a high enough priority to play
-		StartSources( WaveInstances, FirstActiveIndex, bGameTicking );
+		StartSources(ActiveWaveInstances, FirstActiveIndex, bGameTicking);
 
 		// Check which sounds are active from these wave instances and update passive SoundMixes
-		UpdatePassiveSoundMixModifiers( WaveInstances, FirstActiveIndex );
+		UpdatePassiveSoundMixModifiers(ActiveWaveInstances, FirstActiveIndex);
 
-		INC_DWORD_STAT_BY( STAT_WaveInstances, WaveInstances.Num() );
-		INC_DWORD_STAT_BY( STAT_AudioSources, MaxChannels - FreeSources.Num() );
-		INC_DWORD_STAT_BY( STAT_WavesDroppedDueToPriority, FMath::Max( WaveInstances.Num() - MaxChannels, 0 ) );
-		INC_DWORD_STAT_BY( STAT_ActiveSounds, ActiveSounds.Num() );
+		INC_DWORD_STAT_BY(STAT_WaveInstances, ActiveWaveInstances.Num());
+		INC_DWORD_STAT_BY(STAT_AudioSources, MaxChannels - FreeSources.Num());
+		INC_DWORD_STAT_BY(STAT_WavesDroppedDueToPriority, FMath::Max(ActiveWaveInstances.Num() - MaxChannels, 0));
+		INC_DWORD_STAT_BY(STAT_ActiveSounds, ActiveSounds.Num());
 	}
 
 	UpdateListenerTransform();

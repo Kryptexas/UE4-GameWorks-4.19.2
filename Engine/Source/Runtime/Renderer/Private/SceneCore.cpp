@@ -100,7 +100,7 @@ void FLightPrimitiveInteraction::Create(FLightSceneInfo* LightSceneInfo,FPrimiti
 	bool bShadowMapped = false;
 
 	// Determine the light's relevance to the primitive.
-	check(PrimitiveSceneInfo->Proxy);
+	check(PrimitiveSceneInfo->Proxy && LightSceneInfo->Proxy);
 	PrimitiveSceneInfo->Proxy->GetLightRelevance(LightSceneInfo->Proxy, bDynamic, bRelevant, bLightMapped, bShadowMapped);
 
 	if (bRelevant && bDynamic

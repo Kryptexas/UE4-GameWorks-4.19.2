@@ -587,7 +587,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	// Query instanced stereo state
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-	bIsInstancedStereoEnabled = CVar ? (CVar->GetValueOnAnyThread() != false) : false;
+	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
 }
 
 static TAutoConsoleVariable<int32> CVarCompensateForFOV(

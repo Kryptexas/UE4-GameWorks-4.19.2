@@ -1213,6 +1213,8 @@ namespace Rocket
 						ProjectType = EProjectType.Any;
 					}
 				}
+				// Allow Content only platforms to be shown as options in all projects
+				bool bCanBeDisplayed = ProjectType == EProjectType.Content;
 				foreach (UnrealTargetConfiguration CodeTargetConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
 				{
 					// Need to check for development receipt as we use that for the Engine code in DebugGame
@@ -1230,8 +1232,8 @@ namespace Rocket
 					{
 						// Strip the output folder so that this can be used on any machine
 						ReceiptFileName = new FileReference(ReceiptFileName).MakeRelativeTo(new DirectoryReference(OutputDir));
-						IniLines.Add(string.Format("+InstalledPlatformConfigurations=(PlatformName=\"{0}\", Configuration=\"{1}\", RequiredFile=\"{2}\", ProjectType=\"{3}\")",
-													CodeTargetPlatform.ToString(), CodeTargetConfiguration.ToString(), ReceiptFileName, ProjectType.ToString()));
+						IniLines.Add(string.Format("+InstalledPlatformConfigurations=(PlatformName=\"{0}\", Configuration=\"{1}\", RequiredFile=\"{2}\", ProjectType=\"{3}\", bCanBeDisplayed={4})",
+													CodeTargetPlatform.ToString(), CodeTargetConfiguration.ToString(), ReceiptFileName, ProjectType.ToString(), bCanBeDisplayed.ToString()));
 					}
 				}
 			}

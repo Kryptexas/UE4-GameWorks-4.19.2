@@ -458,7 +458,7 @@ void UCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdate
 		UpdatedPrimitive->OnComponentBeginOverlap.AddUniqueDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
 	}
 
-	if (bUseRVOAvoidance)
+	if (bUseRVOAvoidance && IsValid(NewUpdatedComponent))
 	{
 		UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
 		if (AvoidanceManager)

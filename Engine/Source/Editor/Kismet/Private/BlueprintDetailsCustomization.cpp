@@ -637,28 +637,6 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				ErrorMessage = LOCTEXT("VariableMissing_CleanBlueprint", "Failed to find variable property");
 			}
 		}
-		else if (VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnTemplate))
-		{
-			if (VariableClass->ClassGeneratedBy != Blueprint)
-			{
-				ErrorMessage = LOCTEXT("VariableHasDisableEditOnTemplate", "Editing this value is not allowed");
-			}
-			else
-			{
-				// determine if the variable is an object type
-				const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(VariableProperty);
-				const UProperty* TestProperty = ArrayProperty ? ArrayProperty->Inner : VariableProperty;
-				const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>(TestProperty);
-
-				// if this is variable is an Actor
-				if ((ObjectProperty != NULL) && ObjectProperty->PropertyClass->IsChildOf(AActor::StaticClass()))
-				{
-					// Actor variables can't have default values (because Blueprint templates are library elements that can 
-					// bridge multiple levels and different levels might not have the actor that the default is referencing).
-					ErrorMessage = LOCTEXT("VariableHasDisableEditOnTemplate", "Editing this value is not allowed");
-				}
-			}
-		}
 
 		// Show the error message if something went wrong
 		if (!ErrorMessage.IsEmpty())

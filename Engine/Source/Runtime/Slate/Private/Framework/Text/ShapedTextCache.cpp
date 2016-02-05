@@ -132,11 +132,11 @@ int32 ShapedTextCacheUtil::FindCharacterIndexAtOffset(const FShapedTextCacheRef&
 
 		auto TestAndUpdateForCharacter = [&](const int32 InCurrentCharIndex) -> bool
 		{
-			FCharacterEntry CurrentCharEntry = CharacterList.GetCharacter(InRunKey.FontInfo, InText[InCurrentCharIndex]);
+			FCharacterEntry CurrentCharEntry = CharacterList.GetCharacter(InText[InCurrentCharIndex], InRunKey.FontInfo.FontFallback);
 
 			if (PrevCharIndex != INDEX_NONE)
 			{
-				CurrentOffset += CharacterList.GetKerning(CharacterList.GetCharacter(InRunKey.FontInfo, InText[PrevCharIndex]), CurrentCharEntry);
+				CurrentOffset += CharacterList.GetKerning(CharacterList.GetCharacter(InText[PrevCharIndex], InRunKey.FontInfo.FontFallback), CurrentCharEntry);
 			}
 
 			const int32 TotalCharSpacing = CurrentCharEntry.HorizontalOffset + CurrentCharEntry.XAdvance;

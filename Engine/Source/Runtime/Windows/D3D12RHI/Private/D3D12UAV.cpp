@@ -220,14 +220,14 @@ void FD3D12CommandContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef Unordered
 	FD3D12UnorderedAccessView*  UnorderedAccessView = FD3D12DynamicRHI::ResourceCast(UnorderedAccessViewRHI);
 
 	// Check if the view heap is full and needs to rollover.
-	if (!StateCache.GetDescriptorCache()->ViewHeap.CanReserveSlots(1))
+	if (!StateCache.GetDescriptorCache()->GetCurrentViewHeap()->CanReserveSlots(1))
 	{
-		StateCache.GetDescriptorCache()->ViewHeap.RollOver();
+		StateCache.GetDescriptorCache()->GetCurrentViewHeap()->RollOver();
 	}
-	uint32 ReservedSlot = StateCache.GetDescriptorCache()->ViewHeap.ReserveSlots(1);
+	uint32 ReservedSlot = StateCache.GetDescriptorCache()->GetCurrentViewHeap()->ReserveSlots(1);
 	D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle = UnorderedAccessView->GetView();
-	D3D12_CPU_DESCRIPTOR_HANDLE DestSlot = StateCache.GetDescriptorCache()->ViewHeap.GetCPUSlotHandle(ReservedSlot);
-	D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle = StateCache.GetDescriptorCache()->ViewHeap.GetGPUSlotHandle(ReservedSlot);
+	D3D12_CPU_DESCRIPTOR_HANDLE DestSlot = StateCache.GetDescriptorCache()->GetCurrentViewHeap()->GetCPUSlotHandle(ReservedSlot);
+	D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle = StateCache.GetDescriptorCache()->GetCurrentViewHeap()->GetGPUSlotHandle(ReservedSlot);
 	GetParentDevice()->GetDevice()->CopyDescriptorsSimple(1, DestSlot, CPUHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	FD3D12DynamicRHI::TransitionResource(CommandListHandle, UnorderedAccessView, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	numClears++;

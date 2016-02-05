@@ -3680,6 +3680,12 @@ bool UAnimSequence::ConvertRiggingDataToAnimationData(FAnimSequenceTrackContaine
 		RawAnimationData.Empty(ValidNumNodes);
 		RawAnimationData.AddZeroed(ValidNumNodes);
 
+		// if source animation exists, clear it, it won't matter anymore
+		if (SourceRawAnimationData.Num() > 0)
+		{
+			ClearBakedTransformData();
+		}
+
 		const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 		const URig* Rig = Skeleton->GetRig();
 		for (int32 NodeIndex = 0; NodeIndex < ValidNumNodes; ++NodeIndex)
@@ -3743,6 +3749,14 @@ bool UAnimSequence::ConvertRiggingDataToAnimationData(FAnimSequenceTrackContaine
 	}
 
 	return false;
+}
+
+void UAnimSequence::ClearBakedTransformData()
+{
+	UE_LOG(LogAnimation, Warning, TEXT("[%s] Detected previous edited data is invalidated. Clearing transform curve data and Source Data. This can happen if you do retarget another animation to this. If not, please report back to Epic. "), *GetName());
+	SourceRawAnimationData.Empty();
+	//Clear Transform curve data
+	RawCurveData.DeleteAllCurveData(FRawCurveTracks::TransformType);
 }
 
 void UAnimSequence::BakeTrackCurvesToRawAnimation()
@@ -3910,6 +3924,15 @@ bool UAnimSequence::DoesContainTransformCurves() const
 
 void UAnimSequence::AddKeyToSequence(float Time, const FName& BoneName, const FTransform& AdditiveTransform)
 {
+	// if source animation exists, but doesn't match with raw animation number, it's possible this has been retargetted
+	// or for any other reason, track has been modified. Just log here. 
+	if (SourceRawAnimationData.Num()>0 && SourceRawAnimationData.Num() != RawAnimationData.Num())
+	{
+		// currently it contains invalid data to edit
+		// clear and start over
+		ClearBakedTransformData();
+	}
+
 	// find if this already exists, then just add curve data only
 	FName CurveName = BoneName;
 	USkeleton * CurrentSkeleton = GetSkeleton();
@@ -4325,7 +4348,7 @@ void AdvanceMarkerForwards(int32& Marker, FName MarkerToFind, bool bLooping, con
 
 	if (!AuthoredSyncMarkers.IsValidIndex(Marker) || (AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind))
 	{
-		Marker = INDEX_NONE;
+		Marker = MarkerIndexSpecialValues::AnimationBoundary;
 	}
 }
 

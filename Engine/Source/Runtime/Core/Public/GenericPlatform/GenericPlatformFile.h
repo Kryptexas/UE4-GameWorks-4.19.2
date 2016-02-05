@@ -170,7 +170,13 @@ public:
 	/**
 	 * Identifies any platform specific paths that are guaranteed to be local (i.e. cache, scratch space)
 	 */
-	virtual void		AddLocalDirectories(TArray<FString> &LocalDirectories) { }
+	virtual void		AddLocalDirectories(TArray<FString> &LocalDirectories)
+	{
+		if (GetLowerLevel())
+		{
+			GetLowerLevel()->AddLocalDirectories(LocalDirectories);
+		}
+	}
 
 	/** Gets the platform file wrapped by this file. */
 	virtual IPlatformFile* GetLowerLevel() = 0;

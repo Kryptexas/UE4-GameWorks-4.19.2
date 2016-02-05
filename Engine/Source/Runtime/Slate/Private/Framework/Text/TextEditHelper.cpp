@@ -129,7 +129,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyEvent& InKeyEvent, const TSharedRef
 	else if ( Key == EKeys::Up )
 	{
 		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
-			InKeyEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
+			ECursorMoveGranularity::Character,
 			// Move up
 			FIntPoint( 0, -1 ),
 			// Shift selects text.	
@@ -139,7 +139,7 @@ FReply FTextEditHelper::OnKeyDown( const FKeyEvent& InKeyEvent, const TSharedRef
 	else if ( Key == EKeys::Down )
 	{
 		return TextEditor->MoveCursor( FMoveCursor::Cardinal(
-			InKeyEvent.IsControlDown( ) ? ECursorMoveGranularity::Word : ECursorMoveGranularity::Character,
+			ECursorMoveGranularity::Character,
 			// Move down
 			FIntPoint( 0, +1 ),
 			// Shift selects text.	

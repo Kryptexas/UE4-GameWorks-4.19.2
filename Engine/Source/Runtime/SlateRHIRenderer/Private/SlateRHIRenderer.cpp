@@ -1311,7 +1311,6 @@ void FSlateRHIRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 		});
 }
 
-
 FSlateEndDrawingWindowsCommand::FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer)
 	: Policy(InPolicy)
 	, DrawBuffer(InDrawBuffer)

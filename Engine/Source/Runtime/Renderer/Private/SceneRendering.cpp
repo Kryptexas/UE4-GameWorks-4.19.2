@@ -1117,6 +1117,12 @@ void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRender
 	{
 		CreateLightGrid();
 	}
+	else
+	{
+		FForwardLightData LocalForwardLightData;
+		FMemory::Memzero(LocalForwardLightData);
+		ForwardLightData = TUniformBufferRef<FForwardLightData>::CreateUniformBufferImmediate(LocalForwardLightData, UniformBuffer_SingleFrame);
+	}
 }
 
 // These are not real view infos, just dumb memory blocks

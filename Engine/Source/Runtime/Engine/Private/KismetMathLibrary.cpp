@@ -1244,6 +1244,15 @@ FVector2D UKismetMathLibrary::Subtract_Vector2DFloat(FVector2D A, float B)
 	return A-B;
 }
 
+bool UKismetMathLibrary::EqualEqual_Vector2DVector2D(FVector2D A, FVector2D B, float ErrorTolerance)
+{ 
+    return A.Equals(B,ErrorTolerance);
+}
+
+bool UKismetMathLibrary::NotEqual_Vector2DVector2D(FVector2D A, FVector2D B, float ErrorTolerance)
+{
+    return !A.Equals(B,ErrorTolerance);
+}
 
 bool UKismetMathLibrary::EqualEqual_NameName(FName A, FName B)
 {

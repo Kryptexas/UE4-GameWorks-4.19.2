@@ -2334,7 +2334,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 			OldTagAssets->Remove(AssetData);
 		}
 
-		for (auto TagIt = AssetData->TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
+		for (auto TagIt = NewAssetData.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
 			auto& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);

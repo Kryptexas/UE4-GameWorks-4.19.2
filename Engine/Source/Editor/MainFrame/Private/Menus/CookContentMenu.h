@@ -44,7 +44,7 @@ public:
 			check(VanillaPlatform.PlatformInfo->IsVanilla());
 
 			// Only care about game targets
-			if (VanillaPlatform.PlatformInfo->PlatformType != PlatformInfo::EPlatformType::Game || !VanillaPlatform.PlatformInfo->bEnabledForUse || !FInstalledPlatformInfo::Get().IsValidPlatform(VanillaPlatform.PlatformInfo->BinaryFolderName, ProjectType))
+			if (VanillaPlatform.PlatformInfo->PlatformType != PlatformInfo::EPlatformType::Game || !VanillaPlatform.PlatformInfo->bEnabledForUse || !FInstalledPlatformInfo::Get().CanDisplayPlatform(VanillaPlatform.PlatformInfo->BinaryFolderName, ProjectType))
 			{
 				continue;
 			}
@@ -83,8 +83,8 @@ protected:
 	{
 		EProjectType ProjectType = FGameProjectGenerationModule::Get().ProjectHasCodeFiles() ? EProjectType::Code : EProjectType::Content;
 
-		// don't add sub-platforms that are aren't valid in an installed build
-		if (!FInstalledPlatformInfo::Get().IsValidPlatform(PlatformInfo.BinaryFolderName, ProjectType))
+		// don't add sub-platforms that can't be displayed in an installed build
+		if (!FInstalledPlatformInfo::Get().CanDisplayPlatform(PlatformInfo.BinaryFolderName, ProjectType))
 		{
 			return;
 		}

@@ -22,6 +22,7 @@ private:
 
 	void OnSoundWaveLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
 
+	uint32 bAsyncLoading:1;
 public:	
 
 	UPROPERTY(EditAnywhere, Category=WavePlayer)

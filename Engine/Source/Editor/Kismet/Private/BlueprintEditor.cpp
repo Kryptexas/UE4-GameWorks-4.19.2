@@ -100,7 +100,6 @@
 #include "Engine/LevelStreamingKismet.h"
 
 #include "IMenu.h"
-#include "InstancedReferenceSubobjectHelper.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -2842,54 +2841,6 @@ bool FBlueprintEditor::CanNavigateToChildGraph() const
 	return FocusedGraphEdPtr.IsValid() && (FocusedGraphEdPtr.Pin()->GetCurrentGraph()->SubGraphs.Num() > 0);
 }
 
-void FBlueprintEditor::FixSubObjectReferencesPostUndoRedo(UObject* InObject)
-{
-	// Post undo/redo, these may have the correct Outer but are not referenced by the CDO's UProperties
-	TArray<UObject*> SubObjects;
-	GetObjectsWithOuter(InObject, SubObjects, false);
-
-	// Post undo/redo, these may have the in-correct Outer but are incorrectly referenced by the CDO's UProperties
-	TSet<UObject*> PropertySubObjectReferences;
-	UClass* ObjectClass = InObject->GetClass();
-	FFindInstancedReferenceSubobjectHelper::Get(ObjectClass, reinterpret_cast<uint8*>(InObject), PropertySubObjectReferences);
-
-	TMap<UObject*, UObject*> OldToNewInstanceMap;
-	for (UObject* PropertySubObject : PropertySubObjectReferences)
-	{
-		bool bFoundMatchingSubObject = false;
-		for (UObject* SubObject : SubObjects)
-		{
-			// The property and sub-objects should have the same name.
-			if (PropertySubObject->GetFName() == SubObject->GetFName())
-			{
-				// We found a matching property, we do not want to re-make the property
-				bFoundMatchingSubObject = true;
-
-				// Check if the properties have different outers so we can map old-to-new
-				if (PropertySubObject->GetOuter() != InObject)
-				{
-					OldToNewInstanceMap.Add(PropertySubObject, SubObject);
-				}
-				// Recurse on the SubObject to correct any sub-object/property references
-				FixSubObjectReferencesPostUndoRedo(SubObject);
-				break;
-			}
-		}
-
-		// If the property referenced does not exist in the current context as a subobject, we need to duplicate it and fix up references
-		// This will occur during post-undo/redo of deletions
-		if (!bFoundMatchingSubObject)
-		{
-			UObject* NewSubObject = DuplicateObject(PropertySubObject, InObject, PropertySubObject->GetFName());
-
-			// Don't forget to fix up all references and sub-object references
-			OldToNewInstanceMap.Add(PropertySubObject, NewSubObject);
-		}
-	}
-
-	FArchiveReplaceObjectRef<UObject> Replacer(InObject, OldToNewInstanceMap, false, false, false, false);
-}
-
 void FBlueprintEditor::PostUndo(bool bSuccess)
 {	
 	// Clear selection, to avoid holding refs to nodes that go away
@@ -2918,11 +2869,6 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 		if (bAffectsBlueprint)
 		{
 			SetUISelectionState(NAME_None);
-
-			FixSubObjectReferencesPostUndoRedo(GetBlueprintObj()->GeneratedClass->GetDefaultObject());
-
-			// Will cause a call to RefreshEditors()
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 
 			FSlateApplication::Get().DismissAllMenus();
 		}
@@ -2953,11 +2899,6 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		// Transaction affects the Blueprint this editor handles, so react as necessary
 		if (bAffectsBlueprint)
 		{
-			FixSubObjectReferencesPostUndoRedo(GetBlueprintObj()->GeneratedClass->GetDefaultObject());
-
-			// Will cause a call to RefreshEditors()
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( BlueprintObj );
-
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}
@@ -5706,94 +5647,95 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 	{
 		return;
 	}
-	const FScopedTransaction Transaction( FGenericCommands::Get().Paste->GetDescription() );
-	DestinationGraph->Modify();
-
-	// Clear the selection set (newly pasted stuff will be selected)
-	SetUISelectionState(NAME_None);
-
-	// Grab the text to paste from the clipboard.
-	FString TextToImport;
-	FPlatformMisc::ClipboardPaste(TextToImport);
-
-	// Import the nodes
-	TSet<UEdGraphNode*> PastedNodes;
-	FEdGraphUtilities::ImportNodesFromText(DestinationGraph, TextToImport, /*out*/ PastedNodes);
-
-	// Update Paste Analytics
-	AnalyticsStats.NodePasteCreateCount += PastedNodes.Num();
-
-	{
-		auto Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(DestinationGraph);
-		auto CurrentClass = Blueprint ? Blueprint->GeneratedClass : NULL;
-		if (CurrentClass)
-		{
-			FUpdatePastedNodes ReplaceNodes(CurrentClass, PastedNodes, DestinationGraph);
-			ReplaceNodes.ReplaceAll();
-		}
-	}
-
 	// Select the newly pasted stuff
 	bool bNeedToModifyStructurally = false;
-
-	//Average position of nodes so we can move them while still maintaining relative distances to each other
-	FVector2D AvgNodePosition(0.0f,0.0f);
-
-	for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
 	{
-		UEdGraphNode* Node = *It;
-		AvgNodePosition.X += Node->NodePosX;
-		AvgNodePosition.Y += Node->NodePosY;
-	}
+		const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
+		DestinationGraph->Modify();
 
-	float InvNumNodes = 1.0f/float(PastedNodes.Num());
-	AvgNodePosition.X *= InvNumNodes;
-	AvgNodePosition.Y *= InvNumNodes;
+		// Clear the selection set (newly pasted stuff will be selected)
+		SetUISelectionState(NAME_None);
 
-	for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
-	{
-		UEdGraphNode* Node = *It;
-		FocusedGraphEd->SetNodeSelection(Node, true);
+		// Grab the text to paste from the clipboard.
+		FString TextToImport;
+		FPlatformMisc::ClipboardPaste(TextToImport);
 
-		Node->NodePosX = (Node->NodePosX - AvgNodePosition.X) + GraphLocation.X ;
-		Node->NodePosY = (Node->NodePosY - AvgNodePosition.Y) + GraphLocation.Y ;
+		// Import the nodes
+		TSet<UEdGraphNode*> PastedNodes;
+		FEdGraphUtilities::ImportNodesFromText(DestinationGraph, TextToImport, /*out*/ PastedNodes);
 
-		Node->SnapToGrid(SNodePanel::GetSnapGridSize());
+		// Update Paste Analytics
+		AnalyticsStats.NodePasteCreateCount += PastedNodes.Num();
 
-		// Give new node a different Guid from the old one
-		Node->CreateNewGuid();
-
-		UK2Node* K2Node = Cast<UK2Node>(Node);
-		if ((K2Node != NULL) && K2Node->NodeCausesStructuralBlueprintChange())
 		{
-			bNeedToModifyStructurally = true;
-		}
-
-		// For pasted Event nodes, we need to see if there is an already existing node in a disabled state that needs to be cleaned up
-		if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
-		{
-			// Gather all existing event nodes
-			TArray<UK2Node_Event*> ExistingEventNodes;
-			FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(GetBlueprintObj(), ExistingEventNodes);
-
-			for (UK2Node_Event* ExistingEventNode : ExistingEventNodes)
+			auto Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(DestinationGraph);
+			auto CurrentClass = Blueprint ? Blueprint->GeneratedClass : NULL;
+			if (CurrentClass)
 			{
-				bool bIdenticalNode = EventNode != ExistingEventNode && ExistingEventNode->bOverrideFunction && UK2Node_Event::AreEventNodesIdentical(EventNode, ExistingEventNode);
-
-				// Check if the nodes are identical, if they are we need to delete the original because it is disabled. Identical nodes that are in an enabled state will never make it this far and still be enabled.
-				if(bIdenticalNode)
-				{
-					// Should not have made it to being a pasted node if the pre-existing node wasn't disabled or was otherwise explicitly disabled by the user.
-					ensure(!ExistingEventNode->IsNodeEnabled());
-					ensure(!ExistingEventNode->bUserSetEnabledState);
-
-					// Destroy the pre-existing node, we do not need it.
-					ExistingEventNode->DestroyNode();
-				}
+				FUpdatePastedNodes ReplaceNodes(CurrentClass, PastedNodes, DestinationGraph);
+				ReplaceNodes.ReplaceAll();
 			}
 		}
-		// Log new node created to analytics
-		AnalyticsTrackNodeEvent( GetBlueprintObj(), Node, false );
+
+		//Average position of nodes so we can move them while still maintaining relative distances to each other
+		FVector2D AvgNodePosition(0.0f, 0.0f);
+
+		for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
+		{
+			UEdGraphNode* Node = *It;
+			AvgNodePosition.X += Node->NodePosX;
+			AvgNodePosition.Y += Node->NodePosY;
+		}
+
+		float InvNumNodes = 1.0f / float(PastedNodes.Num());
+		AvgNodePosition.X *= InvNumNodes;
+		AvgNodePosition.Y *= InvNumNodes;
+
+		for (TSet<UEdGraphNode*>::TIterator It(PastedNodes); It; ++It)
+		{
+			UEdGraphNode* Node = *It;
+			FocusedGraphEd->SetNodeSelection(Node, true);
+
+			Node->NodePosX = (Node->NodePosX - AvgNodePosition.X) + GraphLocation.X;
+			Node->NodePosY = (Node->NodePosY - AvgNodePosition.Y) + GraphLocation.Y;
+
+			Node->SnapToGrid(SNodePanel::GetSnapGridSize());
+
+			// Give new node a different Guid from the old one
+			Node->CreateNewGuid();
+
+			UK2Node* K2Node = Cast<UK2Node>(Node);
+			if ((K2Node != NULL) && K2Node->NodeCausesStructuralBlueprintChange())
+			{
+				bNeedToModifyStructurally = true;
+			}
+
+			// For pasted Event nodes, we need to see if there is an already existing node in a disabled state that needs to be cleaned up
+			if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
+			{
+				// Gather all existing event nodes
+				TArray<UK2Node_Event*> ExistingEventNodes;
+				FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(GetBlueprintObj(), ExistingEventNodes);
+
+				for (UK2Node_Event* ExistingEventNode : ExistingEventNodes)
+				{
+					bool bIdenticalNode = EventNode != ExistingEventNode && ExistingEventNode->bOverrideFunction && UK2Node_Event::AreEventNodesIdentical(EventNode, ExistingEventNode);
+
+					// Check if the nodes are identical, if they are we need to delete the original because it is disabled. Identical nodes that are in an enabled state will never make it this far and still be enabled.
+					if (bIdenticalNode)
+					{
+						// Should not have made it to being a pasted node if the pre-existing node wasn't disabled or was otherwise explicitly disabled by the user.
+						ensure(!ExistingEventNode->IsNodeEnabled());
+						ensure(!ExistingEventNode->bUserSetEnabledState);
+
+						// Destroy the pre-existing node, we do not need it.
+						ExistingEventNode->DestroyNode();
+					}
+				}
+			}
+			// Log new node created to analytics
+			AnalyticsTrackNodeEvent(GetBlueprintObj(), Node, false);
+		}
 	}
 
 	if (bNeedToModifyStructurally)

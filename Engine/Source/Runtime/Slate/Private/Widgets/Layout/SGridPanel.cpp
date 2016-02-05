@@ -73,9 +73,10 @@ int32 SGridPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 		{
 			const FSlot& CurSlot = Slots[ChildIndex];
 
-			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
+			bool bWereOverlapping;
+			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect(), bWereOverlapping);
 
-			if ( !ChildClipRect.IsEmpty() )
+			if ( bWereOverlapping )
 			{
 				if ( LastGridLayer != CurSlot.LayerParam )
 				{

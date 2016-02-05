@@ -16,14 +16,13 @@ public class Engine : ModuleRules
 				"Developer/DerivedDataCache/Public",
 				"Runtime/Online/OnlineSubsystem/Public",
 				"Runtime/Online/OnlineSubsystemUtils/Public",
-                "Developer/SynthBenchmark/Public",
+                "Runtime/SynthBenchmark/Public",
                 "Runtime/Engine/Private",
 			}
 		);
 
 		PrivateIncludePathModuleNames.AddRange(
-			new string[] {
-				"CrashTracker",
+			new string[] {				
 				"OnlineSubsystem",
 				"TargetPlatform",
 				"ImageWrapper",
@@ -72,7 +71,6 @@ public class Engine : ModuleRules
 				"RHI",
 				"ShaderCore",
 				"AssetRegistry", // Here until FAssetData is moved to engine
-                "CookingStats",
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",
@@ -80,6 +78,18 @@ public class Engine : ModuleRules
 				"DatabaseSupport",
 			}
 		);
+
+		if (Target.Type == TargetRules.TargetType.Editor)
+		{
+			PrivateIncludePathModuleNames.AddRange(new string[] { "CrashTracker" });
+			DynamicallyLoadedModuleNames.AddRange(new string[] { "CrashTracker" });
+			PublicDependencyModuleNames.AddRange(
+				new string[] {
+                "CookingStats",
+			}
+			);
+		}
+
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -249,7 +259,6 @@ public class Engine : ModuleRules
         {
 		    DynamicallyLoadedModuleNames.AddRange(
 			    new string[] {
-				    "CrashTracker",
 				    "ImageWrapper",
 					"GameLiveStreaming"
 			    }

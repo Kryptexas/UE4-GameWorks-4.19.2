@@ -37,7 +37,11 @@ FSlateRHIRenderingPolicy::~FSlateRHIRenderingPolicy()
 {
 	// Delete released resources.  Note this MUST NOT be called before the rendering resources have been released
 	ReleaseResources();
-	FlushRenderingCommands();
+
+	if ( IsInGameThread() )
+	{
+		FlushRenderingCommands();
+	}
 }
 
 void FSlateRHIRenderingPolicy::InitResources()

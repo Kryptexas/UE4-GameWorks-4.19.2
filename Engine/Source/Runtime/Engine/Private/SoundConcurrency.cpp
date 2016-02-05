@@ -238,18 +238,29 @@ FActiveSound* FSoundConcurrencyManager::ResolveConcurrency(const FActiveSound& N
 			case EMaxConcurrentResolutionRule::StopLowestPriority:
 			{
 				// Find the current lowest priority sound.
+				FActiveSound* Oldest = nullptr;
 				for (FActiveSound* CurrSound : ActiveSounds)
 				{
 					if (SoundToStop == nullptr || CurrSound->GetPriority() < SoundToStop->GetPriority())
 					{
 						SoundToStop = CurrSound;
+						
+					}
+					if (Oldest == nullptr || CurrSound->PlaybackTime > SoundToStop->PlaybackTime)
+					{
+						Oldest = CurrSound;
 					}
 				}
 
 				// Only stop any sounds if the *lowest* priority is lower than the incoming NewActiveSound
-				if (SoundToStop->GetPriority() >= NewActiveSound.GetPriority())
+				if (SoundToStop->GetPriority() > NewActiveSound.GetPriority())
 				{
 					SoundToStop = nullptr;
+				}
+				// If all sounds are the same priority, then stop the oldest sound
+				else if (SoundToStop->GetPriority() == NewActiveSound.GetPriority())
+				{
+					SoundToStop = Oldest;
 				}
 			}
 			break;

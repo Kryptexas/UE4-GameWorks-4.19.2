@@ -19,6 +19,7 @@ enum class EPluginAuthorizationState
 	IsUserSignedIn_Waiting,
 	SigninRequired,
 	SigninRequired_Waiting,
+	Signin_Waiting,
 	Authorized,
 	Unauthorized,
 	LauncherStartFailed,
@@ -43,6 +44,9 @@ private:
 	FText GetWaitingText() const;
 
 	EActiveTimerReturnType RefreshStatus(double InCurrentTime, float InDeltaTime);
+
+	/** Called when the user presses the Cancel button. */
+	FReply OnCancel();
 
 	void OnWindowClosed(const TSharedRef<SWindow>& InWindow);
 

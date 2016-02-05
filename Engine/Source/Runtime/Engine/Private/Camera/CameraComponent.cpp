@@ -203,17 +203,6 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	bool bApplyPawnControlRotation = false;
-	FRotator PawnViewRotation(0.0f, 0.0f, 0.0f);
-	if (bUsePawnControlRotation)
-	{
-		if (APawn* OwningPawn = Cast<APawn>(GetOwner()))
-		{
-			PawnViewRotation = OwningPawn->GetViewRotation();
-			bApplyPawnControlRotation = true;
-		}
-	}
-
 	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
 	{
 		ResetRelativeTransform();
@@ -224,18 +213,22 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		FVector Position;
 		if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
 		{
-			FTransform PawnViewTransform(PawnViewRotation.Quaternion());
-			FTransform HmdTransform(Orientation, Position);
-			FTransform CombinedTransform = HmdTransform * PawnViewTransform;
-			SetRelativeTransform(CombinedTransform);
-
-			PawnViewRotation = CombinedTransform.GetRotation().Rotator();
+			SetRelativeTransform(FTransform(Orientation, Position));
 		}
 	}
 
-	if (bApplyPawnControlRotation && !PawnViewRotation.Equals(GetComponentRotation()))
+	if (bUsePawnControlRotation)
 	{
-		SetWorldRotation(PawnViewRotation);
+		const APawn* OwningPawn = Cast<APawn>(GetOwner());
+		const AController* OwningController = OwningPawn ? OwningPawn->GetController() : nullptr;
+		if (OwningController && OwningController->IsLocalPlayerController())
+		{
+			const FRotator PawnViewRotation = OwningPawn->GetViewRotation();
+			if (!PawnViewRotation.Equals(GetComponentRotation()))
+			{
+				SetWorldRotation(PawnViewRotation);
+			}
+		}
 	}
 
 	DesiredView.Location = GetComponentLocation();

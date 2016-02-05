@@ -401,7 +401,7 @@ class FD3D12DynamicBuffer : public FRenderResource, public FRHIResource, public 
 {
 public:
 	/** Initialization constructor. */
-	FD3D12DynamicBuffer(FD3D12Device* InParent, class FD3D12DynamicHeapAllocator& UploadHeap);
+	FD3D12DynamicBuffer(FD3D12Device* InParent, class FD3D12FastAllocator& Allocator);
 	/** Destructor. */
 	~FD3D12DynamicBuffer();
 
@@ -415,9 +415,11 @@ public:
 	virtual void ReleaseRHI() override;
 	// End FRenderResource interface.
 
+	void ReleaseResourceLocation() { ResourceLocation = nullptr; }
+
 private:
 	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation;
-	class FD3D12DynamicHeapAllocator& UploadHeapAllocator;
+	class FD3D12FastAllocator& FastAllocator;
 };
 
 static D3D12_DESCRIPTOR_HEAP_DESC CreateDHD(D3D12_DESCRIPTOR_HEAP_TYPE Type, uint32 NumDescriptorsPerHeap, D3D12_DESCRIPTOR_HEAP_FLAGS Flags)
@@ -756,6 +758,32 @@ public:
 		return false;
 	}
 
+	template <typename CompareFunc>
+	bool BatchDequeue(TQueue<Type>* Result, CompareFunc Func, uint32 MaxItems)
+	{
+		FScopeLock ScopeLock(&SynchronizationObject);
+
+		uint32 i = 0;
+		Type Item;
+		while (Items.Peek(Item) && i <= MaxItems)
+		{
+			if (Func(Item))
+			{
+				Items.Dequeue(Item);
+
+				Result->Enqueue(Item);
+
+				i++;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return i > 0;
+	}
+
 	bool Peek(Type& Result)
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
@@ -776,6 +804,15 @@ public:
 		while (Items.Dequeue(Result)) {}
 	}
 };
+
+inline bool IsCPUWritable(D3D12_HEAP_TYPE HeapType, const D3D12_HEAP_PROPERTIES *pCustomHeapProperties = nullptr)
+{
+	check(HeapType == D3D12_HEAP_TYPE_CUSTOM ? pCustomHeapProperties != nullptr : true);
+	return HeapType == D3D12_HEAP_TYPE_UPLOAD ||
+		(HeapType == D3D12_HEAP_TYPE_CUSTOM && 
+			(pCustomHeapProperties->CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE || pCustomHeapProperties->CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK));
+}
+
 class FD3D12Fence;
 class FD3D12SyncPoint
 {
@@ -799,3 +836,268 @@ private:
 	FD3D12Fence* Fence;
 	uint64 Value;
 };
+
+
+static bool IsBlockCompressFormat(DXGI_FORMAT Format)
+{
+	// Returns true if BC1, BC2, BC3, BC4, BC5, BC6, BC7
+	return (Format >= DXGI_FORMAT_BC1_TYPELESS && Format <= DXGI_FORMAT_BC5_SNORM) ||
+		(Format >= DXGI_FORMAT_BC6H_TYPELESS && Format <= DXGI_FORMAT_BC7_UNORM_SRGB);
+}
+
+static inline uint64 GetTilesNeeded(uint32 Width, uint32 Height, uint32 Depth, const D3D12_TILE_SHAPE& Shape)
+{
+	return uint64((Width + Shape.WidthInTexels - 1) / Shape.WidthInTexels) *
+		((Height + Shape.HeightInTexels - 1) / Shape.HeightInTexels) *
+		((Depth + Shape.DepthInTexels - 1) / Shape.DepthInTexels);
+}
+
+static uint32 GetWidthAlignment(DXGI_FORMAT Format)
+{
+	switch (Format)
+	{
+	case DXGI_FORMAT_R8G8_B8G8_UNORM: return 2;
+	case DXGI_FORMAT_G8R8_G8B8_UNORM: return 2;
+	case DXGI_FORMAT_NV12: return 2;
+	case DXGI_FORMAT_P010: return 2;
+	case DXGI_FORMAT_P016: return 2;
+	case DXGI_FORMAT_420_OPAQUE: return 2;
+	case DXGI_FORMAT_YUY2: return 2;
+	case DXGI_FORMAT_Y210: return 2;
+	case DXGI_FORMAT_Y216: return 2;
+	case DXGI_FORMAT_BC1_TYPELESS: return 4;
+	case DXGI_FORMAT_BC1_UNORM: return 4;
+	case DXGI_FORMAT_BC1_UNORM_SRGB: return 4;
+	case DXGI_FORMAT_BC2_TYPELESS: return 4;
+	case DXGI_FORMAT_BC2_UNORM: return 4;
+	case DXGI_FORMAT_BC2_UNORM_SRGB: return 4;
+	case DXGI_FORMAT_BC3_TYPELESS: return 4;
+	case DXGI_FORMAT_BC3_UNORM: return 4;
+	case DXGI_FORMAT_BC3_UNORM_SRGB: return 4;
+	case DXGI_FORMAT_BC4_TYPELESS: return 4;
+	case DXGI_FORMAT_BC4_UNORM: return 4;
+	case DXGI_FORMAT_BC4_SNORM: return 4;
+	case DXGI_FORMAT_BC5_TYPELESS: return 4;
+	case DXGI_FORMAT_BC5_UNORM: return 4;
+	case DXGI_FORMAT_BC5_SNORM: return 4;
+	case DXGI_FORMAT_BC6H_TYPELESS: return 4;
+	case DXGI_FORMAT_BC6H_UF16: return 4;
+	case DXGI_FORMAT_BC6H_SF16: return 4;
+	case DXGI_FORMAT_BC7_TYPELESS: return 4;
+	case DXGI_FORMAT_BC7_UNORM: return 4;
+	case DXGI_FORMAT_BC7_UNORM_SRGB: return 4;
+	case DXGI_FORMAT_NV11: return 4;
+	case DXGI_FORMAT_R1_UNORM: return 8;
+	default: return 1;
+	}
+}
+
+static uint32 GetHeightAlignment(DXGI_FORMAT Format)
+{
+	switch (Format)
+	{
+	case DXGI_FORMAT_NV12: return 2;
+	case DXGI_FORMAT_P010: return 2;
+	case DXGI_FORMAT_P016: return 2;
+	case DXGI_FORMAT_420_OPAQUE: return 2;
+	case DXGI_FORMAT_BC1_TYPELESS: return 4;
+	case DXGI_FORMAT_BC1_UNORM: return 4;
+	case DXGI_FORMAT_BC1_UNORM_SRGB: return 4;
+	case DXGI_FORMAT_BC2_TYPELESS: return 4;
+	case DXGI_FORMAT_BC2_UNORM: return 4;
+	case DXGI_FORMAT_BC2_UNORM_SRGB: return 4;
+	case DXGI_FORMAT_BC3_TYPELESS: return 4;
+	case DXGI_FORMAT_BC3_UNORM: return 4;
+	case DXGI_FORMAT_BC3_UNORM_SRGB: return 4;
+	case DXGI_FORMAT_BC4_TYPELESS: return 4;
+	case DXGI_FORMAT_BC4_UNORM: return 4;
+	case DXGI_FORMAT_BC4_SNORM: return 4;
+	case DXGI_FORMAT_BC5_TYPELESS: return 4;
+	case DXGI_FORMAT_BC5_UNORM: return 4;
+	case DXGI_FORMAT_BC5_SNORM: return 4;
+	case DXGI_FORMAT_BC6H_TYPELESS: return 4;
+	case DXGI_FORMAT_BC6H_UF16: return 4;
+	case DXGI_FORMAT_BC6H_SF16: return 4;
+	case DXGI_FORMAT_BC7_TYPELESS: return 4;
+	case DXGI_FORMAT_BC7_UNORM: return 4;
+	case DXGI_FORMAT_BC7_UNORM_SRGB: return 4;
+	default: return 1;
+	}
+}
+
+static void Get4KTileShape(D3D12_TILE_SHAPE* pTileShape, DXGI_FORMAT Format, uint8 UEFormat, D3D12_RESOURCE_DIMENSION Dimension, uint32 SampleCount)
+{
+	//Bits per unit
+	uint32 BPU = GPixelFormats[UEFormat].BlockBytes * 8;
+
+	switch (Dimension)
+	{
+	case D3D12_RESOURCE_DIMENSION_BUFFER:
+	case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+	{
+		check(!IsBlockCompressFormat(Format));
+		pTileShape->WidthInTexels = (BPU == 0) ? 4096 : 4096 * 8 / BPU;
+		pTileShape->HeightInTexels = 1;
+		pTileShape->DepthInTexels = 1;
+	}
+	break;
+	case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+	{
+		pTileShape->DepthInTexels = 1;
+		if (IsBlockCompressFormat(Format))
+		{
+			// Currently only supported block sizes are 64 and 128.
+			// These equations calculate the size in texels for a tile. It relies on the fact that 16*16*16 blocks fit in a tile if the block size is 128 bits.
+			check(BPU == 64 || BPU == 128);
+			pTileShape->WidthInTexels = 16 * GetWidthAlignment(Format);
+			pTileShape->HeightInTexels = 16 * GetHeightAlignment(Format);
+			if (BPU == 64)
+			{
+				// If bits per block are 64 we double width so it takes up the full tile size.
+				// This is only true for BC1 and BC4
+				check((Format >= DXGI_FORMAT_BC1_TYPELESS && Format <= DXGI_FORMAT_BC1_UNORM_SRGB) ||
+					(Format >= DXGI_FORMAT_BC4_TYPELESS && Format <= DXGI_FORMAT_BC4_SNORM));
+				pTileShape->WidthInTexels *= 2;
+			}
+		}
+		else
+		{
+			if (BPU <= 8)
+			{
+				pTileShape->WidthInTexels = 64;
+				pTileShape->HeightInTexels = 64;
+			}
+			else if (BPU <= 16)
+			{
+				pTileShape->WidthInTexels = 64;
+				pTileShape->HeightInTexels = 32;
+			}
+			else if (BPU <= 32)
+			{
+				pTileShape->WidthInTexels = 32;
+				pTileShape->HeightInTexels = 32;
+			}
+			else if (BPU <= 64)
+			{
+				pTileShape->WidthInTexels = 32;
+				pTileShape->HeightInTexels = 16;
+			}
+			else if (BPU <= 128)
+			{
+				pTileShape->WidthInTexels = 16;
+				pTileShape->HeightInTexels = 16;
+			}
+			else
+			{
+				check(false);
+			}
+
+			if (SampleCount <= 1)
+			{ /* Do nothing */
+			}
+			else if (SampleCount <= 2)
+			{
+				pTileShape->WidthInTexels /= 2;
+				pTileShape->HeightInTexels /= 1;
+			}
+			else if (SampleCount <= 4)
+			{
+				pTileShape->WidthInTexels /= 2;
+				pTileShape->HeightInTexels /= 2;
+			}
+			else if (SampleCount <= 8)
+			{
+				pTileShape->WidthInTexels /= 4;
+				pTileShape->HeightInTexels /= 2;
+			}
+			else if (SampleCount <= 16)
+			{
+				pTileShape->WidthInTexels /= 4;
+				pTileShape->HeightInTexels /= 4;
+			}
+			else
+			{
+				check(false);
+			}
+
+			check(GetWidthAlignment(Format) == 1);
+			check(GetHeightAlignment(Format) == 1);
+		}
+
+		break;
+	}
+	case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+	{
+		if (IsBlockCompressFormat(Format))
+		{
+			// Currently only supported block sizes are 64 and 128.
+			// These equations calculate the size in texels for a tile. It relies on the fact that 16*16*16 blocks fit in a tile if the block size is 128 bits.
+			check(BPU == 64 || BPU == 128);
+			pTileShape->WidthInTexels = 8 * GetWidthAlignment(Format);
+			pTileShape->HeightInTexels = 8 * GetHeightAlignment(Format);
+			pTileShape->DepthInTexels = 4;
+			if (BPU == 64)
+			{
+				// If bits per block are 64 we double width so it takes up the full tile size.
+				// This is only true for BC1 and BC4
+				check((Format >= DXGI_FORMAT_BC1_TYPELESS && Format <= DXGI_FORMAT_BC1_UNORM_SRGB) ||
+					(Format >= DXGI_FORMAT_BC4_TYPELESS && Format <= DXGI_FORMAT_BC4_SNORM));
+				pTileShape->DepthInTexels *= 2;
+			}
+		}
+		else
+		{
+			if (BPU <= 8)
+			{
+				pTileShape->WidthInTexels = 16;
+				pTileShape->HeightInTexels = 16;
+				pTileShape->DepthInTexels = 16;
+			}
+			else if (BPU <= 16)
+			{
+				pTileShape->WidthInTexels = 16;
+				pTileShape->HeightInTexels = 16;
+				pTileShape->DepthInTexels = 8;
+			}
+			else if (BPU <= 32)
+			{
+				pTileShape->WidthInTexels = 16;
+				pTileShape->HeightInTexels = 8;
+				pTileShape->DepthInTexels = 8;
+			}
+			else if (BPU <= 64)
+			{
+				pTileShape->WidthInTexels = 8;
+				pTileShape->HeightInTexels = 8;
+				pTileShape->DepthInTexels = 8;
+			}
+			else if (BPU <= 128)
+			{
+				pTileShape->WidthInTexels = 8;
+				pTileShape->HeightInTexels = 8;
+				pTileShape->DepthInTexels = 4;
+			}
+			else
+			{
+				check(false);
+			}
+
+			check(GetWidthAlignment(Format) == 1);
+			check(GetHeightAlignment(Format) == 1);
+		}
+	}
+	break;
+	}
+}
+
+#define NUM_4K_BLOCKS_PER_64K_PAGE (16)
+
+static bool TextureCanBe4KAligned(D3D12_RESOURCE_DESC& Desc, uint8 UEFormat)
+{
+	D3D12_TILE_SHAPE Tile = {};
+	Get4KTileShape(&Tile, Desc.Format, UEFormat, Desc.Dimension, Desc.SampleDesc.Count);
+
+	uint32 TilesNeeded = GetTilesNeeded(Desc.Width, Desc.Height, Desc.DepthOrArraySize, Tile);
+
+	return TilesNeeded <= NUM_4K_BLOCKS_PER_64K_PAGE;
+}

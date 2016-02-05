@@ -582,6 +582,7 @@ float FWaveInstance::GetActualVolume() const
 	return Volume * VolumeMultiplier;
 }
 
+
 bool FWaveInstance::ShouldStopDueToMaxConcurrency() const
 {
 	return ActiveSound->bShouldStopDueToMaxConcurrency;

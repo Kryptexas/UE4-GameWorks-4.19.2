@@ -363,6 +363,7 @@ void InstallSignalHandlers()
 	}
 	else
 	{
+        FIOSPlatformRHIFramePacer::Resume();
 		FAppEntry::Resume();
 	}
     
@@ -371,6 +372,7 @@ void InstallSignalHandlers()
 	{
 		while(!self.bHasSuspended)
 		{
+            FIOSPlatformRHIFramePacer::Suspend();
 			FPlatformProcess::Sleep(0.05f);
 		}
 	}

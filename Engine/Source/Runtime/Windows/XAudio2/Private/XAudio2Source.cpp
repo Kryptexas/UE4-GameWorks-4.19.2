@@ -44,7 +44,9 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 	, bResourcesNeedFreeing(false)
 	, VoiceId(-1)
 	, bUsingHRTFSpatialization(false)
+	, bEditorWarnedChangedSpatialization(false)
 {
+
 	AudioDevice = ( FXAudio2Device* )InAudioDevice;
 	check( AudioDevice );
 	Effects = (FXAudio2EffectsManager*)AudioDevice->Effects;
@@ -451,6 +453,9 @@ bool FXAudio2SoundSource::CreateSource( void )
  */
 bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 {
+	// Reset so next instance will warn if algorithm changes inflight
+	bEditorWarnedChangedSpatialization = false;
+
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
@@ -614,10 +619,14 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 		// If we are using a HRTF spatializer, we are going to be using an XAPO effect that takes a mono stream and splits it into stereo
 		// So in th at case we will just set the emitter position as a parameter to the XAPO plugin and then treat the
 		// sound as if it was a non-spatialized stereo asset
-		check(WaveInstance->SpatializationAlgorithm == SPATIALIZATION_HRTF);
+		if (WaveInstance->SpatializationAlgorithm != SPATIALIZATION_HRTF && !bEditorWarnedChangedSpatialization)
+		{
+			bEditorWarnedChangedSpatialization = true;
+			UE_LOG(LogXAudio2, Warning, TEXT("Changing the spatialization algorithm on a playing sound is not supported (WaveInstance: %s)"), *WaveInstance->WaveData->GetFullName());
+		}
 		check(AudioDevice->SpatializeProcessor != nullptr);
 
-		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, FAudioSpatializationParams(SpatializationParams.EmitterPosition, (ESpatializationEffectType)WaveInstance->SpatializationAlgorithm));
+		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, FAudioSpatializationParams(SpatializationParams.EmitterPosition));
 		GetStereoChannelVolumes(ChannelVolumes, AttenuatedVolume);
 	}
 	else // Spatialize the mono stream using the normal 3d audio algorithm

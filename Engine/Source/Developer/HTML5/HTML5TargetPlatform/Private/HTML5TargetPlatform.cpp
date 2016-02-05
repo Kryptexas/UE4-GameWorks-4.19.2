@@ -328,7 +328,7 @@ void FHTML5TargetPlatform::RefreshHTML5Setup()
 		{ TEXT("Nightly(64bit)"), TEXT("C:/Program Files/Nightly/firefox.exe") },
 		{ TEXT("Nightly"), TEXT("C:/Program Files (x86)/Nightly/firefox.exe") },
 		{ TEXT("Firefox"), TEXT("C:/Program Files (x86)/Mozilla Firefox/firefox.exe") },
-	//	{ TEXT("Chrome"), TEXT("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe") },
+		{ TEXT("Chrome"), TEXT("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe") },
 #elif PLATFORM_MAC
 		{ TEXT("Safari"), TEXT("/Applications/Safari.app") },
 		{ TEXT("Firefox"), TEXT("/Applications/Firefox.app") },

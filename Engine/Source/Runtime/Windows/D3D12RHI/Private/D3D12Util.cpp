@@ -362,9 +362,9 @@ FD3D12BoundRenderTargets::~FD3D12BoundRenderTargets()
 }
 
 
-FD3D12DynamicBuffer::FD3D12DynamicBuffer(FD3D12Device* InParent, FD3D12DynamicHeapAllocator& UploadHeap)
-	: UploadHeapAllocator(UploadHeap),
-	FD3D12DeviceChild(InParent)
+FD3D12DynamicBuffer::FD3D12DynamicBuffer(FD3D12Device* InParent, FD3D12FastAllocator& Allocator)
+: FastAllocator(Allocator),
+ FD3D12DeviceChild(InParent)
 {
 	InitResource();
 }
@@ -384,9 +384,9 @@ void FD3D12DynamicBuffer::ReleaseRHI()
 
 void* FD3D12DynamicBuffer::Lock(uint32 Size)
 {
-	FD3D12ResourceLocation* NewResourceLocation = new FD3D12ResourceLocation();
+	FD3D12ResourceLocation* NewResourceLocation = new FD3D12ResourceLocation(FastAllocator.GetParentDevice());
 	ResourceLocation = NewResourceLocation;
-	return UploadHeapAllocator.FastAlloc(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, NewResourceLocation);
+	return FastAllocator.Allocate(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, NewResourceLocation);
 }
 
 FD3D12ResourceLocation* FD3D12DynamicBuffer::Unlock()

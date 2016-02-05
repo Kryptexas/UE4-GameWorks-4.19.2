@@ -83,9 +83,12 @@ void FInstalledPlatformInfo::ParsePlatformConfiguration(FString PlatformConfigur
 		bCanCreateEntry = false;
 	}
 
+	bool bCanBeDisplayed = false;
+	FParse::Bool(*PlatformConfiguration, TEXT("bCanBeDisplayed="), bCanBeDisplayed);
+	
 	if (bCanCreateEntry)
 	{
-		FInstalledPlatformConfiguration NewConfig = {Configuration, PlatformName, RequiredFile, ProjectType};
+		FInstalledPlatformConfiguration NewConfig = {Configuration, PlatformName, RequiredFile, ProjectType, bCanBeDisplayed};
 		InstalledPlatformConfigurations.Add(NewConfig);
 	}
 }
@@ -115,7 +118,7 @@ bool FInstalledPlatformInfo::IsValidConfiguration(const EBuildConfigurations::Ty
 	return true;
 }
 
-bool FInstalledPlatformInfo::IsValidPlatform(const FString PlatformName, EProjectType ProjectType) const
+bool FInstalledPlatformInfo::IsValidPlatform(const FString& PlatformName, EProjectType ProjectType) const
 {
 	if (FApp::IsEngineInstalled())
 	{
@@ -140,7 +143,7 @@ bool FInstalledPlatformInfo::IsValidPlatform(const FString PlatformName, EProjec
 	return true;
 }
 
-bool FInstalledPlatformInfo::IsValidPlatformAndConfiguration(const EBuildConfigurations::Type Configuration, const FString PlatformName, EProjectType ProjectType) const
+bool FInstalledPlatformInfo::IsValidPlatformAndConfiguration(const EBuildConfigurations::Type Configuration, const FString& PlatformName, EProjectType ProjectType) const
 {
 	if (FApp::IsEngineInstalled())
 	{
@@ -157,6 +160,28 @@ bool FInstalledPlatformInfo::IsValidPlatformAndConfiguration(const EBuildConfigu
 					{
 						return true;
 					}
+				}
+			}
+		}
+
+		return false;
+	}
+	return true;
+}
+
+bool FInstalledPlatformInfo::CanDisplayPlatform(const FString& PlatformName, EProjectType ProjectType) const
+{
+	if (FApp::IsEngineInstalled())
+	{
+		for (const FInstalledPlatformConfiguration& PlatformConfiguration : InstalledPlatformConfigurations)
+		{
+			if (PlatformConfiguration.PlatformName == PlatformName)
+			{
+				if ( PlatformConfiguration.bCanBeDisplayed
+					|| ProjectType == EProjectType::Any || PlatformConfiguration.ProjectType == EProjectType::Any
+					|| PlatformConfiguration.ProjectType == ProjectType )
+				{
+					return true;
 				}
 			}
 		}

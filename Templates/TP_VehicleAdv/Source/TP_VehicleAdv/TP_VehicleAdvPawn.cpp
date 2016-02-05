@@ -131,12 +131,15 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 
 	// Create In-Car camera component 
 	InternalCameraOrigin = FVector(-34.0f, 0.0f, 50.0f);
+	InternalCameraBase = CreateDefaultSubobject<USceneComponent>(TEXT("InternalCameraBase"));
+	InternalCameraBase->SetRelativeLocation(InternalCameraOrigin);
+	InternalCameraBase->AttachTo(GetMesh());
+
 	InternalCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("InternalCamera"));
 	//InternalCamera->AttachTo(SpringArm, USpringArmComponent::SocketName);
 	InternalCamera->bUsePawnControlRotation = false;
 	InternalCamera->FieldOfView = 90.f;
-	InternalCamera->SetRelativeLocation(InternalCameraOrigin);
-	InternalCamera->AttachTo(GetMesh());
+	InternalCamera->AttachTo(InternalCameraBase);
 
 	// In car HUD
 	// Create text render component for in car speed display

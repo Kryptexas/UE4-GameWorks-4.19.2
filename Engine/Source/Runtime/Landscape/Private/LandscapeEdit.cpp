@@ -224,40 +224,21 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 			Proxy->MaterialInstanceConstantMap.Add(*LayerKey, CombinationMaterialInstance);
 			CombinationMaterialInstance->SetParentEditorOnly(MaterialToUse);
 
-			FStaticParameterSet StaticParameters;
-			CombinationMaterialInstance->GetStaticParameterValues(StaticParameters);
-
-			// Find weightmap mapping for each layer parameter, or disable if the layer is not used in this component.
-			for (int32 LayerParameterIdx = 0; LayerParameterIdx < StaticParameters.TerrainLayerWeightParameters.Num(); LayerParameterIdx++)
-			{
-				FStaticTerrainLayerWeightParameter& LayerParameter = StaticParameters.TerrainLayerWeightParameters[LayerParameterIdx];
-				LayerParameter.WeightmapIndex = INDEX_NONE;
-
-				// Look through our allocations to see if we need this layer.
-				// If not found, this component doesn't use the layer, and WeightmapIndex remains as INDEX_NONE.
-				for (int32 AllocIdx = 0; AllocIdx < WeightmapLayerAllocations.Num(); AllocIdx++)
-				{
-					FWeightmapLayerAllocationInfo& Allocation = WeightmapLayerAllocations[AllocIdx];
-					if (Allocation.LayerInfo != NULL)
-					{
-						FName ThisLayerName = (Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer) ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
-						if (ThisLayerName == LayerParameter.ParameterName)
-						{
-							LayerParameter.WeightmapIndex = Allocation.WeightmapTextureIndex;
-							LayerParameter.bOverride = true;
-							// UE_LOG(LogLandscape, Log, TEXT(" Layer %s channel %d"), *LayerParameter.ParameterName.ToString(), LayerParameter.WeightmapIndex);
-							break;
-						}
-					}
-				}
-			}
-
 			CombinationMaterialInstance->BasePropertyOverrides.bOverride_BlendMode = bOverrideBlendMode;
 			if (bOverrideBlendMode)
 			{
 				CombinationMaterialInstance->BasePropertyOverrides.BlendMode = bComponentHasHoles ? BLEND_Masked : BLEND_Opaque;
 			}
 
+			FStaticParameterSet StaticParameters;
+			for (const FWeightmapLayerAllocationInfo& Allocation : WeightmapLayerAllocations)
+			{
+				if (Allocation.LayerInfo)
+				{
+					const FName LayerParameter = (Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer) ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
+					StaticParameters.TerrainLayerWeightParameters.Add(FStaticTerrainLayerWeightParameter(LayerParameter, Allocation.WeightmapTextureIndex, true, FGuid()));
+				}
+			}
 			CombinationMaterialInstance->UpdateStaticPermutation(StaticParameters);
 
 			CombinationMaterialInstance->PostEditChange();
@@ -318,6 +299,9 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		// Set the weightmaps
 		for (int32 i = 0; i < WeightmapTextures.Num(); i++)
 		{
+			// gmartin: Trying to locate UE-23902
+			checkf(!WeightmapTextures[i] || WeightmapTextures[i]->IsValidLowLevel(), TEXT("Texture not valid! UE-23902! Parameter (Weightmap%d)"), i);
+
 			// UE_LOG(LogLandscape, Log, TEXT("Setting Weightmap%d = %s"), i, *WeightmapTextures(i)->GetName());
 			MaterialInstance->SetTextureParameterValueEditorOnly(FName(*FString::Printf(TEXT("Weightmap%d"), i)), WeightmapTextures[i]);
 		}

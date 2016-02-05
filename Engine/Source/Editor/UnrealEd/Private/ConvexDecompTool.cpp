@@ -85,17 +85,16 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 
 	// Validate input by checking bounding box
 	FBox VertBox(0);
-	for(FVector Vert : InVertices)
+	for (FVector Vert : InVertices)
 	{
 		VertBox += Vert;
 	}
 
-	// If the largest dimension is less than 1 unit, skip trying to generate collision
-	if(VertBox.IsValid != 0 && VertBox.GetSize().GetMax() < 1.f)
+	// If box is invalid, or the largest dimension is less than 1 unit, or smallest is less than 0.1, skip trying to generate collision (V-HACD often crashes...)
+	if (VertBox.IsValid == 0 || VertBox.GetSize().GetMax() < 1.f || VertBox.GetSize().GetMin() < 0.1f)
 	{
 		return;
 	}
-
 
 #if USE_VHACD
 	FVHACDProgressCallback VHACD_Callback;

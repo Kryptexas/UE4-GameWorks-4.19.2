@@ -787,7 +787,7 @@ void UPrimitiveComponent::UnWeldFromParent()
 
 	FBodyInstance* NewRootBI = GetBodyInstance(NAME_None, false);
 	UWorld* CurrentWorld = GetWorld();
-	if (NewRootBI == NULL || NewRootBI->bWelded == false || CurrentWorld == nullptr || IsPendingKill())
+	if (NewRootBI == NULL || NewRootBI->bWelded == false || CurrentWorld == nullptr || CurrentWorld->GetPhysicsScene() == nullptr || IsPendingKill())
 	{
 		return;
 	}

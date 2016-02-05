@@ -2294,6 +2294,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 		{
 			// put us back the way we were and peace out
 			Import = OriginalImport;
+
 			// if the original VerifyImportInner told us that we need to throw an exception if we weren't redirected,
 			// then do the throw here
 			if (bCrashOnFail)
@@ -2304,53 +2305,35 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 			// otherwise just printout warnings, and if in the editor, popup the EdLoadWarnings box
 			else
 			{
-#if UE_BUILD_DEBUG
-				bool bSkipClassWarningCheck = false;
-#endif
-				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
-				UObject* ClassPackage = FindObject<UPackage>( NULL, *Import.ClassPackage.ToString() );
-				UClass* FindClass = ClassPackage ? FindObject<UClass>( ClassPackage, *OriginalImport.ClassName.ToString() ) : NULL;
+				bool bSupressLinkerError = false;
+#if WITH_EDITOR
 				if( GIsEditor && !IsRunningCommandlet())
 				{
-					static const FName NAME_BlueprintGeneratedClass(TEXT("BlueprintGeneratedClass"));
-					static const UClass* ActorComponentClass = FindObjectChecked<UClass>(ANY_PACKAGE, TEXT("ActorComponent"), true);
-
-					FDeferredMessageLog LoadErrors(NAME_LoadErrors);
-					// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
-					TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
-					TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
-
-					if (Import.OuterIndex.IsImport() && GetImportClassName(Import.OuterIndex) == NAME_BlueprintGeneratedClass && FindClass && FindClass->IsChildOf(ActorComponentClass))
+					bSupressLinkerError = IsSuppressableBlueprintImportError(Import);
+					if (!bSupressLinkerError)
 					{
-						static const FString BPComponentArchetypePostfix(TEXT("_GEN_VARIABLE"));
-#if UE_BUILD_DEBUG
-						bSkipClassWarningCheck = true;
-#endif
-						FString ComponentVariableNameString = Import.ObjectName.ToString();
-						ComponentVariableNameString.RemoveFromEnd(BPComponentArchetypePostfix);
-						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed to import {ImportClass} '{ComponentVariableName}' from"),
-							FText::FromName(GetImportClassName(ImportIndex)),
-							FText::FromString(ComponentVariableNameString))));
-						TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(Import.OuterIndex.ToImport())));
-						TokenizedMessage->AddToken(FTextToken::Create(LOCTEXT("ImportFailureComponentEpilogue", "- it may have been removed or renamed. Re-saving the level may resolve this issue.")));
-					}
-					else
-					{
+						FDeferredMessageLog LoadErrors(NAME_LoadErrors);
+						// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
+						TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
+						TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
 						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex)))));
-						TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));	
-					}				
+						TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));
 
-					if (!WarningAppend.IsEmpty())
-					{
-						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{0} in {1}"),
-							FText::FromString(WarningAppend),
-							FText::FromString(LinkerRoot->GetName())))
-						);
+						if (!WarningAppend.IsEmpty())
+						{
+							TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{0} in {1}"),
+								FText::FromString(WarningAppend),
+								FText::FromString(LinkerRoot->GetName())))
+								);
+						}
 					}
 				}
-
+#endif // WITH_EDITOR
 #if UE_BUILD_DEBUG
-				if( !bSkipClassWarningCheck && !IgnoreMissingReferencedClass( Import.ObjectName ) )
+				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
+				UObject* ClassPackage = FindObject<UPackage>(NULL, *Import.ClassPackage.ToString());
+				UClass* FindClass = ClassPackage ? FindObject<UClass>(ClassPackage, *OriginalImport.ClassName.ToString()) : NULL;
+				if( !bSupressLinkerError && !IgnoreMissingReferencedClass( Import.ObjectName ) )
 				{
 					FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 					// failure to load a class, most likely deleted instead of deprecated

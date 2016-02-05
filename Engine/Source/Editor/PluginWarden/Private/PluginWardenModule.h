@@ -28,7 +28,7 @@ public:
 	 * callback will only be called if the user is authorized to use the plug-in.
 	 * 
 	 * FPluginWardenModule& PluginWarden = FModuleManager::LoadModuleChecked<FPluginWardenModule>("PluginWarden");
-	 * PluginWarden.CheckEntitlementForPlugin(LOCTEXT("AwesomePluginName", "My Awesome Plugin"), TEXT("1a4ad2a06f174a26af8a29728241ce42"), [&] () {
+	 * PluginWarden.CheckEntitlementForPlugin(LOCTEXT("AwesomePluginName", "My Awesome Plugin"), TEXT("PLUGIN_MARKETPLACE_GUID"), [&] () {
 	 *		// Authorized Code Here
 	 * });
 	 * 

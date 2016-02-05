@@ -244,8 +244,10 @@ public:
 						if ( ControllerState.TouchPadYAnalog != VRControllerState.rAxis[TOUCHPAD_AXIS].y)
 						{
 							const FGamepadKeyNames::Type AxisButton = (HandToUse == EControllerHand::Left) ? FGamepadKeyNames::MotionController_Left_Thumbstick_Y : FGamepadKeyNames::MotionController_Right_Thumbstick_Y;
-							MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, VRControllerState.rAxis[TOUCHPAD_AXIS].y);
-							ControllerState.TouchPadYAnalog = VRControllerState.rAxis[TOUCHPAD_AXIS].y;
+							// Invert the y to match UE4 convention
+							const float Value = -VRControllerState.rAxis[TOUCHPAD_AXIS].y;
+							MessageHandler->OnControllerAnalog(AxisButton, ControllerIndex, Value);
+							ControllerState.TouchPadYAnalog = Value;
 						}
 
 						if ( ControllerState.TriggerAnalog != VRControllerState.rAxis[TRIGGER_AXIS].x)

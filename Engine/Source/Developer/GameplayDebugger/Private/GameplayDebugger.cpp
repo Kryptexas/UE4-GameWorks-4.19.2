@@ -55,7 +55,7 @@ private:
 
 	bool DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController);
 
-	TMap<TWeakObjectPtr<UWorld>, TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> > > AllReplilcatorsPerWorlds;
+	TMap<TWeakObjectPtr<UWorld>, TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> > > AllReplicatorsPerWorlds;
 
 #if WITH_EDITOR
 	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
@@ -255,13 +255,10 @@ bool FGameplayDebugger::DoesGameplayDebuggingReplicatorExistForPlayerController(
 
 	for (auto It = GetAllReplicators(World).CreateConstIterator(); It; ++It)
 	{
-		TWeakObjectPtr<AGameplayDebuggingReplicator> Replicator = *It;
-		if (Replicator.IsValid())
+		AGameplayDebuggingReplicator* Replicator = It->Get();
+		if (Replicator && Replicator->GetLocalPlayerOwner() == PlayerController)
 		{
-			if (Replicator->GetLocalPlayerOwner() == PlayerController)
-			{
-				return true;
-			}
+			return true;
 		}
 	}
 #endif
@@ -337,13 +334,10 @@ bool FGameplayDebugger::IsGameplayDebuggerActiveForPlayerController(APlayerContr
 
 	for (auto It = GetAllReplicators(World).CreateConstIterator(); It; ++It)
 	{
-		TWeakObjectPtr<AGameplayDebuggingReplicator> Replicator = *It;
-		if (Replicator.IsValid())
+		AGameplayDebuggingReplicator* Replicator = It->Get();
+		if (Replicator && Replicator->GetLocalPlayerOwner() == PlayerController)
 		{
-			if (Replicator->GetLocalPlayerOwner() == PlayerController)
-			{
-				return Replicator->IsDrawEnabled();
-			}
+			return Replicator->IsDrawEnabled();
 		}
 	}
 #endif
@@ -353,7 +347,7 @@ bool FGameplayDebugger::IsGameplayDebuggerActiveForPlayerController(APlayerContr
 
 TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& FGameplayDebugger::GetAllReplicators(UWorld* InWorld)
 {
-	return AllReplilcatorsPerWorlds.FindOrAdd(InWorld);
+	return AllReplicatorsPerWorlds.FindOrAdd(InWorld);
 }
 
 void FGameplayDebugger::AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
@@ -382,8 +376,8 @@ void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 
 	for (auto It = GetAllReplicators(InWorld).CreateConstIterator(); It; ++It)
 	{
-		TWeakObjectPtr<AGameplayDebuggingReplicator> Replicator = *It;
-		if (Replicator.IsValid() && Replicator->IsGlobalInWorld())
+		AGameplayDebuggingReplicator* Replicator = It->Get();
+		if (Replicator && Replicator->IsGlobalInWorld())
 		{
 			// Ok, we have global replicator on level
 			return;
@@ -417,7 +411,7 @@ void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 	}
 
 	// remove global replicator from level
-	AllReplilcatorsPerWorlds.Remove(InWorld);
+	AllReplicatorsPerWorlds.Remove(InWorld);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -443,28 +437,37 @@ void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	APlayerController* PC = Cast<APlayerController>(InActor);
-	if (!PC)
+	if (!InActor)
 	{
 		return;
 	}
 
-	UWorld* World = PC->GetWorld();
+	UWorld* World = InActor->GetWorld();
 	if (!World)
 	{
 		return;
 	}
 
-	for (auto It = GetAllReplicators(World).CreateConstIterator(); It; ++It)
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(InActor);
+	if (Replicator)
 	{
-		TWeakObjectPtr<AGameplayDebuggingReplicator> Replicator = *It;
-		if (Replicator != NULL)
+		RemoveReplicator(World, Replicator);
+	}
+	else
+	{
+		APlayerController* PC = Cast<APlayerController>(InActor);
+		if (PC)
 		{
-			if (Replicator->GetLocalPlayerOwner() == PC)
+			// Take a copy because the destroy could lead to removes on the replicator array
+			TArray<TWeakObjectPtr<AGameplayDebuggingReplicator>> ReplicatorsForWorld = GetAllReplicators(World);
+			for (TWeakObjectPtr<AGameplayDebuggingReplicator> ReplicatorPtr : ReplicatorsForWorld)
 			{
-				RemoveReplicator(World, Replicator.Get());
-				Replicator->MarkPendingKill();
-				//World->DestroyActor(Replicator.Get());
+				AGameplayDebuggingReplicator* ReplicatorInWorld = ReplicatorPtr.Get();
+				if (ReplicatorInWorld && ReplicatorInWorld->GetLocalPlayerOwner() == PC)
+				{
+					ReplicatorInWorld->Destroy();
+					break;
+				}
 			}
 		}
 	}

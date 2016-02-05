@@ -2176,6 +2176,25 @@ bool AActor::HasActiveCameraComponent()
 	return false;
 }
 
+bool AActor::HasActivePawnControlCameraComponent() const
+{
+	if (bFindCameraComponentWhenViewTarget)
+	{
+		// Look for the first active camera component and use that for the view
+		TInlineComponentArray<UCameraComponent*> Cameras;
+		GetComponents<UCameraComponent>(Cameras);
+
+		for (UCameraComponent* CameraComponent : Cameras)
+		{
+			if (CameraComponent->bIsActive && CameraComponent->bUsePawnControlRotation)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 void AActor::ForceNetRelevant()
 {
 	if ( !NeedsLoadForClient() )

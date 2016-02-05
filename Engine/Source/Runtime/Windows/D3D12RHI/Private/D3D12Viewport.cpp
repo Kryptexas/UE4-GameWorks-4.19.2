@@ -137,9 +137,12 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	SRVDesc.Texture2D.MostDetailedMip = 0;
 	SRVDesc.Texture2D.MipLevels = 1;
 
+	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation = new FD3D12ResourceLocation(Parent);
+	ResourceLocation->SetFromD3DResource(BackBufferWrappedResource, 0, 0);
+
 	FD3D12Texture2D* NewTexture = new FD3D12Texture2D(
 		Parent,
-		BackBufferWrappedResource,
+		ResourceLocation,
 		false,
 		1,
 		RenderTargetViews,
@@ -268,10 +271,6 @@ void FD3D12Viewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 	if (bResizeBuffers)
 	{
 		DXGI_SWAP_CHAIN_FLAG swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		if (bIsBenchmarkMode)
-		{
-			swapChainFlags = static_cast<DXGI_SWAP_CHAIN_FLAG>(static_cast<uint32>(swapChainFlags) | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
-		}
 
 		// Resize the swap chain.
 		VERIFYD3D11RESULT_EX(SwapChain3->ResizeBuffers(NumBackBuffers, SizeX, SizeY, GetRenderTargetFormat(PixelFormat), swapChainFlags), GetParentDevice()->GetDevice());

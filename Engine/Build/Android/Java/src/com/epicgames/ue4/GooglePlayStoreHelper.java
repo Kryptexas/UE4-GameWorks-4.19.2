@@ -23,6 +23,20 @@ import org.json.JSONObject;
 
 public class GooglePlayStoreHelper implements StoreHelper
 {
+	private class InAppPurchase
+	{
+		public String ProductId;
+		public boolean bConsumable;
+
+		public InAppPurchase(String InProductId, boolean InConsumable)
+		{
+			ProductId = InProductId;
+			bConsumable = InConsumable;
+		}
+	}
+
+	private ArrayList<InAppPurchase> InProgressPurchases;
+
 	// Our IAB helper interface provided by google.
 	private IInAppBillingService mService;
 
@@ -52,6 +66,8 @@ public class GooglePlayStoreHelper implements StoreHelper
 		Intent serviceIntent = new Intent("com.android.vending.billing.InAppBillingService.BIND");
 		serviceIntent.setPackage("com.android.vending");
 		gameActivity.bindService(serviceIntent, mServiceConn, Context.BIND_AUTO_CREATE);
+
+		InProgressPurchases = new ArrayList<InAppPurchase>();
 	}
 
 	
@@ -152,6 +168,8 @@ public class GooglePlayStoreHelper implements StoreHelper
 				Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::BeginPurchase - Starting Intent to buy " + ProductID);
 				PendingIntent pendingIntent = buyIntentBundle.getParcelable("BUY_INTENT");
 				gameActivity.startIntentSenderForResult(pendingIntent.getIntentSender(), purchaseIntentIdentifier, new Intent(), Integer.valueOf(0), Integer.valueOf(0), Integer.valueOf(0));
+				
+				InProgressPurchases.add(new InAppPurchase(ProductID, bConsumable));
 			}
 			else
 			{
@@ -205,19 +223,26 @@ public class GooglePlayStoreHelper implements StoreHelper
 							String dataSignature = f_signatureList.get(Idx);
 							Purchase purchase = new Purchase("inapp", purchaseData, dataSignature);
 							
-							Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - Attempting to consume " + purchase.getSku());
-							int consumeResponse = mService.consumePurchase(3, gameActivity.getPackageName(), purchase.getToken());
-							if (consumeResponse == 0)
-							{
-								Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - consumePurchase succeeded for " + purchase.getSku());
+							// This is assuming that all purchases should be consumed. Consuming a purchase that is meant to be a one-time purchase makes it so the
+							// user is able to buy it again. Also, it makes it so the purchase will not be able to be restored again in the future.
+
+							// @todo : If we do want to be able to consume purchases that are restored that may have been missed, a configurable list of InAppPurchases
+							// with product Ids and consumable flags will need to be loaded and checked against here so we know whether or not to consume a particular product
+							// - jwaldron
+
+							//Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - Attempting to consume " + purchase.getSku());
+							//int consumeResponse = mService.consumePurchase(3, gameActivity.getPackageName(), purchase.getToken());
+							//if (consumeResponse == 0)
+							//{
+							//	Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - consumePurchase succeeded for " + purchase.getSku());
 								String receipt = Base64.encode(purchase.getOriginalJson().getBytes());
 								receipts.add(receipt);
-							}
-							else
-							{
-								Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - consumePurchase failed for " + purchase.getSku() + " with error " + consumeResponse);
-								receipts.add("");
-							}
+							//}
+							//else
+							//{
+							//	Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - consumePurchase failed for " + purchase.getSku() + " with error " + consumeResponse);
+							//	receipts.add("");
+							//}
 						}
 						Log.debug("[GooglePlayStoreHelper] - GooglePlayStoreHelper::RestorePurchases - Success!");
 						nativeRestorePurchasesComplete(true, f_ownedSkus.toArray(new String[f_ownedSkus.size()]), receipts.toArray(new String[receipts.size()]));
@@ -313,10 +338,30 @@ public class GooglePlayStoreHelper implements StoreHelper
 							{
 								try
 								{
-									int consumeResponse = mService.consumePurchase(3, gameActivity.getPackageName(), purchaseToken);
+									boolean bTryToConsume = true;
+									int consumeResponse = 0;
+
+									Log.debug("sku = " + sku + " InProgressPurchases.size() = " + InProgressPurchases.size());
+
+									for(int Idx = 0; Idx < InProgressPurchases.size(); ++Idx)
+									{
+										Log.debug("InProgressPurchases.get(Idx).ProductId = " + InProgressPurchases.get(Idx).ProductId);
+										if( sku.equals( InProgressPurchases.get(Idx).ProductId ) )
+										{
+											bTryToConsume = InProgressPurchases.get(Idx).bConsumable;
+											InProgressPurchases.remove(Idx);
+											Log.debug("Found InProgressPurchase for Product " + sku + " bConsumable = " + bTryToConsume);
+											break;
+										}
+									}
+
+									if(bTryToConsume)
+									{
+										mService.consumePurchase(3, gameActivity.getPackageName(), purchaseToken);
+									}
+
 									if (consumeResponse == 0)
 									{
-										Log.debug("[GooglePlayStoreHelper] - consumePurchase succeeded for" + sku);
 										Purchase purchase = new Purchase("inapp", purchaseData, dataSignature);
 										String receipt = Base64.encode(purchase.getOriginalJson().getBytes());
 										nativePurchaseComplete(true, sku, receipt);
@@ -437,10 +482,10 @@ public class GooglePlayStoreHelper implements StoreHelper
 					inOwnedSkus.add(sku);
 
 					String purchaseData = purchaseDataList.get(Idx);
-					purchaseDataList.add(purchaseData);
+					inPurchaseDataList.add(purchaseData);
 
 					String signature = signatureList.get(Idx);
-					signatureList.add(signature);
+					inSignatureList.add(signature);
 				}
 
 				// if continuationToken != null, call getPurchases again

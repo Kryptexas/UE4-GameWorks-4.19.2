@@ -590,7 +590,7 @@ namespace UnrealBuildTool
 				DirectoryInfo IncludeDir = new DirectoryInfo(Path.Combine(UniversalCRTDir, "include"));
 				if (IncludeDir.Exists)
 				{
-					DirectoryInfo LatestIncludeDir = IncludeDir.EnumerateDirectories().OrderBy(x => x.Name).LastOrDefault();
+					DirectoryInfo LatestIncludeDir = IncludeDir.EnumerateDirectories().OrderBy(x => x.Name).LastOrDefault(n => n.Name.All(s => (s >= '0' && s <= '9') || s == '.') && Directory.Exists(n.FullName + "\\ucrt"));
 					if (LatestIncludeDir != null)
 					{
 						UniversalCRTVersion = LatestIncludeDir.Name;

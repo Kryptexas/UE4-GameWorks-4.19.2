@@ -968,6 +968,7 @@ public:
 private:
 
 	TArray<struct FActiveSound*> ActiveSounds;
+	TArray<FWaveInstance*> ActiveWaveInstances;
 	TSet<struct FActiveSound*> PendingSoundsToStop;
 
 	TMap<UPTRINT, struct FActiveSound*> AudioComponentToActiveSoundMap;

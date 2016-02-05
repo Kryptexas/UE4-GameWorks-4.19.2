@@ -482,6 +482,7 @@ public:
 	virtual FMarkerSyncAnimPosition GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const override;
 	virtual void TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotifyQueue& NotifyQueue, FAnimAssetTickContext& Context) const override;
 	virtual TArray<FName>* GetUniqueMarkerNames() override { return &MarkerData.UniqueMarkerNames; }
+	virtual void RefreshCacheData() override;
 	//~ End AnimSequenceBase Interface
 
 #if WITH_EDITOR
@@ -621,11 +622,6 @@ private:
 	/** Cached list of Branching Point markers */
 	UPROPERTY()
 	TArray<FBranchingPointMarker> BranchingPointMarkers;
-
-	UPROPERTY(Transient)
-	// @remove me: temporary variable to do sort while property window changed
-	// this should be fixed when we have tool to do so.
-	bool bAnimBranchingPointNeedsSort;
 
 public:
 

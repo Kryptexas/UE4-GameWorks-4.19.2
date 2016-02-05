@@ -669,7 +669,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 			{
 				while ( !ChainState.Profile->OnIsCookFinished().Execute() )
 				{
-					if (GetStatus() == ELauncherTaskStatus::Canceling)
+					if (IsCancelling())
 					{
 						ChainState.Profile->OnCookCanceled().Execute();
 						return false;
@@ -712,7 +712,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 			{
 				while (FPlatformProcess::IsProcRunning(ProcessHandle) && !EndTextFound)
 				{
-					if (GetStatus() == ELauncherTaskStatus::Canceling)
+					if (IsCancelling())
 					{
 						FPlatformProcess::TerminateProc(ProcessHandle, true);
 						return false;

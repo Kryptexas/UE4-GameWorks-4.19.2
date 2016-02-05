@@ -357,6 +357,11 @@ public:
 	 * the scene!
 	 */
 	inline int32 GetIndex() const { return PackedIndex; }
+	/** 
+	 * Retrieves the address of the primitives index into in the scene's primitives array.
+	 * This address is only for reference purposes
+	 */
+	inline const int32* GetIndexAddress() const { return &PackedIndex; }
 
 	/* @return true if the object needs to be rendered in the velocity pass (is not moving like the world, needed for motionblur and TemporalAA) */
 	bool ShouldRenderVelocity(const FViewInfo& View, bool bCheckVisibility = true) const;

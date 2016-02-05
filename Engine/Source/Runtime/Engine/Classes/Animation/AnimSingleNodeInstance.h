@@ -38,7 +38,7 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	TArray<FBlendSampleData> BlendSampleData;
 
 	/** Random cached values to play each asset **/
-	UPROPERTY(transient)
+	DEPRECATED(4.11, "Please use FAnimSingleNodeInstanceProxy::BlendFilter")
 	FBlendFilter BlendFilter;
 
 	/** Shared parameters for previewing blendspace or animsequence **/
@@ -136,6 +136,8 @@ public:
 	/** Get the currently playing vertex animation. Can return NULL */
 	UVertexAnimation* GetCurrentVertexAnimation();
 
+	/** Get the last filter output */
+	FVector GetFilterLastOutput();
 protected:
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
 };

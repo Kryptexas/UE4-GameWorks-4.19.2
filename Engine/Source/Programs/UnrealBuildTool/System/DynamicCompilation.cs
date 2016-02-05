@@ -234,7 +234,7 @@ namespace UnrealBuildTool
 						Log.TraceError(CurError.ToString());
 					}
 				}
-				if(CompileResults.Errors.HasErrors || TreatWarningsAsErrors)
+				if (CompileResults.Errors.HasErrors || TreatWarningsAsErrors)
 				{
 					throw new BuildException("UnrealBuildTool encountered an error while compiling source files");
 				}

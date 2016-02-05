@@ -168,16 +168,40 @@ public:
 		return FSlateRect( FMath::Min( Left, Other.Left ), FMath::Min( Top, Other.Top ), FMath::Max( Right, Other.Right ), FMath::Max( Bottom, Other.Bottom ) );
 	}
 
-	FSlateRect IntersectionWith( const FSlateRect& Other ) const 
+
+	/**
+	 * Returns the rectangle that is the intersection of this rectangle and Other.
+	 * 
+	 * @param	Other	The other rectangle
+	 *
+	 * @return	Rectangle over intersection.
+	 */
+	FSlateRect IntersectionWith(const FSlateRect& Other) const
+	{
+		bool DummyOverlapping;
+		return IntersectionWith(Other, DummyOverlapping);
+	}
+
+	/**
+	 * Returns the rectangle that is the intersection of this rectangle and Other, as well as if they were overlapping at all.
+	 * 
+	 * @param	Other	The other rectangle
+	 * @param	OutOverlapping	[Out] Was there any overlap with the other rectangle.
+	 *
+	 * @return	Rectangle over intersection.
+	 */
+	FSlateRect IntersectionWith(const FSlateRect& Other, bool& OutOverlapping) const
 	{
 		FSlateRect Intersected( FMath::Max( this->Left, Other.Left ), FMath::Max(this->Top, Other.Top), FMath::Min( this->Right, Other.Right ), FMath::Min( this->Bottom, Other.Bottom ) );
 		if ( (Intersected.Bottom < Intersected.Top) || (Intersected.Right < Intersected.Left) )
 		{
+			OutOverlapping = false;
 			// The intersection has 0 area and should not be rendered at all.
 			return FSlateRect(0,0,0,0);
 		}
 		else
 		{
+			OutOverlapping = true;
 			return Intersected;
 		}
 	}

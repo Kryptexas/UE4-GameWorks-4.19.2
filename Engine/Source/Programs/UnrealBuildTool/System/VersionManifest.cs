@@ -19,8 +19,8 @@ namespace UnrealBuildTool
 	[Serializable]
 	class VersionManifest
 	{
-		public readonly int Changelist;
-		public readonly string BuildId;
+		public int Changelist;
+		public string BuildId;
 		public Dictionary<string, string> ModuleNameToFileName = new Dictionary<string, string>();
 
 		/// <summary>

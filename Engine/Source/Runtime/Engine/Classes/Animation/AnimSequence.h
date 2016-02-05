@@ -759,6 +759,12 @@ public:
 	void BakeTrackCurvesToRawAnimation();
 
 	/**
+	 * Sometimes baked data gets invalidated. For example, if you retarget this from another animation
+	 * It won't matter anymore, so in any case, when the data is not valid anymore
+	 * We clear Source Raw Animation Data as well as Transform Curve
+	 */
+	void ClearBakedTransformData();
+	/**
 	 * Add Key to Transform Curves
 	 */
 	void AddKeyToSequence(float Time, const FName& BoneName, const FTransform& AdditiveTransform);
