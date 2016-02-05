@@ -916,7 +916,7 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 		if (bSubQueries)
 		{
 			FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
-			Proxy->AcceptOcclusionResults(&View, &SubIsOccluded[SubIsOccludedStart], SubIsOccluded.Num() - SubIsOccludedStart);
+			Proxy->AcceptOcclusionResults(&View, &SubIsOccluded, SubIsOccludedStart, SubIsOccluded.Num() - SubIsOccludedStart);
 			if (bAllSubOccluded)
 			{
 				View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
