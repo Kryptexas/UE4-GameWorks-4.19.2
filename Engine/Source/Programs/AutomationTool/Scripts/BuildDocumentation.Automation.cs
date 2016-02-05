@@ -65,6 +65,11 @@ class DocumentationNode : GUBP.HostPlatformNode
 		CommandUtils.RunAndLog(CommandUtils.CmdEnv, ApiDocToolPath, ApiToolCommandLine, LogName);
 	}
 
+	public override bool NotifyOnWarnings()
+	{
+		return false;
+	}
+
 	public static void SubmitOutputs(string Description, params string[] FileSpecs)
 	{
 		if (CommandUtils.P4Enabled)
