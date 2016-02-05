@@ -70,12 +70,31 @@ int32 USoundNodeRandom::ChooseNodeIndex(FActiveSound& ActiveSound)
 	int32 NodeIndex = 0;
 	float WeightSum = 0.0f;
 
+#if WITH_EDITOR
+	bool bIsPIESound = (GEditor != nullptr) && ((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL) && ActiveSound.World != NULL);
+
+	if (bIsPIESound)
+	{
+		// Find the first available index - needed if there is only one
+		while (PIEHiddenNodes.Contains(NodeIndex))
+		{
+			NodeIndex++;
+		}
+	}
+#endif //WITH_EDITOR
+
+
 	// only calculate the weights that have not been used and use that set for the random choice
 	for (int32 i = 0; i < Weights.Num(); ++i)
 	{
-		if (!bRandomizeWithoutReplacement || !HasBeenUsed[i])
+#if WITH_EDITOR
+		if (!bIsPIESound || !PIEHiddenNodes.Contains(i))
+#endif //WITH_EDITOR
 		{
-			WeightSum += Weights[i];
+			if (!bRandomizeWithoutReplacement || !HasBeenUsed[i])
+			{
+				WeightSum += Weights[i];
+			}
 		}
 	}
 
@@ -83,17 +102,22 @@ int32 USoundNodeRandom::ChooseNodeIndex(FActiveSound& ActiveSound)
 	WeightSum = 0.0f;
 	for (int32 i = 0; i < ChildNodes.Num() && i < Weights.Num(); ++i)
 	{
-		if (bRandomizeWithoutReplacement && HasBeenUsed[i])
+#if WITH_EDITOR
+		if (!bIsPIESound || !PIEHiddenNodes.Contains(i))
+#endif //WITH_EDITOR
 		{
-			continue;
-		}
-		WeightSum += Weights[i];
-		if (Choice < WeightSum)
-		{
-			NodeIndex = i;
-			HasBeenUsed[i] = true;
-			NumRandomUsed++;
-			break;
+			if (bRandomizeWithoutReplacement && HasBeenUsed[i])
+			{
+				continue;
+			}
+			WeightSum += Weights[i];
+			if (Choice < WeightSum)
+			{
+				NodeIndex = i;
+				HasBeenUsed[i] = true;
+				NumRandomUsed++;
+				break;
+			}
 		}
 	}
 
@@ -128,7 +152,10 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 		// reset all of the children nodes
 		for (int32 i = 0; i < HasBeenUsed.Num(); ++i)
 		{
-			HasBeenUsed[i] = false;
+			if (HasBeenUsed.Num() > NodeIndex)
+			{
+				HasBeenUsed[i] = false;
+			}
 		}
 
 		// set the node that has JUST played to be true so we don't repeat it
