@@ -31,6 +31,51 @@ struct FUndoSessionContext
 	UObject* PrimaryObject;
 };
 
+
+inline bool OuterIsCDO(const UObject* Obj, UObject*& OutCDO)
+{
+	bool bOuterIsCDO = false;
+	UObject* Iter = Obj->GetOuter();
+	while (Iter)
+	{
+		if (Iter->HasAllFlags(RF_ClassDefaultObject))
+		{
+			bOuterIsCDO = true;
+			OutCDO = Iter;
+			break;
+		}
+		Iter = Iter->GetOuter();
+	}
+	return bOuterIsCDO;
+}
+
+inline bool OuterIsCDO(const UObject* Obj, UObject*& OutCDO, TArray<FName>& OutHierarchyNames)
+{
+	bool bOuterIsCDO = false;
+	UObject* Iter = Obj->GetOuter();
+	while (Iter)
+	{
+		if (Iter->HasAllFlags(RF_ClassDefaultObject))
+		{
+			bOuterIsCDO = true;
+			OutCDO = Iter;
+			break;
+		}
+		else
+		{
+			OutHierarchyNames.Add(Iter->GetFName());
+		}
+		Iter = Iter->GetOuter();
+	}
+
+	// If the outer is not a CDO, clear the hierarchy of names, they will not be used
+	if (bOuterIsCDO == false)
+	{
+		OutHierarchyNames.Empty();
+	}
+	return bOuterIsCDO;
+}
+
 /*-----------------------------------------------------------------------------
 	FTransaction.
 -----------------------------------------------------------------------------*/
@@ -77,48 +122,122 @@ protected:
 		struct FPersistentObjectRef
 		{
 		private:
-			// This enum represents all of the different special cases
-			// we are handling with this type:
-			enum class EReferenceType : uint8
-			{
-				SubObject,
-				RootObject,
-
-				Unknown
-			};
-
-			EReferenceType ReferenceType;
 			UObject* Object;
+			UClass* SourceCDO;
 			TArray<FName> SubObjectHierarchyID;
-			FName ComponentName;
-
-			friend FArchive& operator<<(FArchive& Ar, FPersistentObjectRef& ReferencedObject)
-			{
-				Ar << (uint8&)ReferencedObject.ReferenceType;
-				Ar << ReferencedObject.Object;
-				Ar << ReferencedObject.SubObjectHierarchyID;
-				return Ar;
-			}
 		public:
 			FPersistentObjectRef()
-				: ReferenceType(EReferenceType::Unknown)
-				, Object(nullptr)
+				: Object(nullptr)
+				, SourceCDO(nullptr)
 			{}
 
-			FPersistentObjectRef(UObject* InObject);
+			FPersistentObjectRef(UObject* InObject)
+			{
+				// we want to reference CDOs and default sub-objects in a unique 
+				// way... Blueprints can delete and reconstruct CDOs and their
+				// sub-objects during compilation; when undoing, we want changes 
+				// to be reverted for the most recent version of the CDO/sub-
+				// object (not one that has since been thrown out); therefore, 
+				// we record the CDO's class (which remains static) and sub-
+				// objects' names so we can look them up later in Get() 
+				const bool bIsCDO = InObject && InObject->HasAllFlags(RF_ClassDefaultObject);
+				UObject* CDO = bIsCDO ? InObject : nullptr;
+				const bool bIsSubobjectOfCDO = OuterIsCDO(InObject, CDO, SubObjectHierarchyID);
+				
+				// we have to be careful though, Blueprints also duplicate CDOs 
+				// and their sub-objects; we don't want changes to the 
+				// duplicated CDO/sub-object to be applied back to the original 
+				// (the original would most likely be destroyed when we attempt 
+				// to undo the duplication)... here we check that the class
+				// recognizes this CDO as its own (if not, then we're most 
+				// likely in the middle of a duplicate)
+				const bool bIsClassCDO = (CDO != nullptr) ? (CDO->GetClass()->ClassDefaultObject == CDO) : false;
+				const bool bRefObjectsByClass = (bIsCDO || bIsSubobjectOfCDO) && bIsClassCDO;
+
+				if (bRefObjectsByClass)
+				{
+					Object = nullptr;
+					SourceCDO = CDO->GetClass();
+
+					if (bIsSubobjectOfCDO)
+					{
+						SubObjectHierarchyID.Add(InObject->GetFName());
+					}
+				}
+				else
+				{
+					// @TODO: if bIsCDO/bIsSubobjectOfCDO is true, but bRefObjectsByClass is not,
+					//        then we end up here and the transaction buffer ends up most likely 
+					//        referencing an intermediate REINST/TRASH class (keeping it from being GC'd)     
+					Object = InObject;
+					SourceCDO = nullptr;
+				}
+
+				// can be used to verify that this struct is referencing the object correctly
+				//ensure(Get() == InObject);
+			}
 
 			/** Returns TRUE if the recorded object is part of the CDO */
 			bool IsPartOfCDO() const
 			{
-				return false;
+				return SourceCDO != nullptr;
 			}
 
-			UObject* Get() const;
+			UObject* Get() const
+			{
+				checkSlow(!SourceCDO || !Object);
+				if (SourceCDO)
+				{
+					if (SubObjectHierarchyID.Num() > 0)
+					{
+						// find the subobject:
+						UObject* CurrentObject = SourceCDO->GetDefaultObject();
+						bool bFoundTargetSubObject = (SubObjectHierarchyID.Num() == 0);
+						if (!bFoundTargetSubObject)
+						{
+							// Current increasing depth into sub-objects, starts at 1 to avoid the sub-object found and placed in NextObject.
+							int SubObjectDepth = 0;
+							UObject* NextObject = CurrentObject;
+							while (NextObject != nullptr && !bFoundTargetSubObject)
+							{
+								NextObject = nullptr;
+								// Look for any UObject's with the CurrentObject's outer to find the next sub-object
+								TArray<UObject*> OutDefaultSubobjects;
+								GetObjectsWithOuter(CurrentObject, OutDefaultSubobjects, false);
+								for (int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++)
+								{
+									if (OutDefaultSubobjects[SubobjectIndex]->GetFName() == SubObjectHierarchyID[SubObjectDepth])
+									{
+										SubObjectDepth++;
+										NextObject = OutDefaultSubobjects[SubobjectIndex];
+										bFoundTargetSubObject = SubObjectDepth == SubObjectHierarchyID.Num();
+										break;
+									}
+								}
+								CurrentObject = NextObject;
+							}
+						}
 
-			UObject* GetRoot() const { return Object;  }
+						return bFoundTargetSubObject ? CurrentObject : nullptr;
+					}
+					else
+					{
+						return SourceCDO->GetDefaultObject(false);
+					}
+				}
+				return Object;
+			}
 
 			/** Determines if the object referenced by this struct, needs to be kept from garbage collection */
-			bool ShouldAddReference() const;
+			bool ShouldAddReference() const
+			{
+				// if the object is being referenced through SourceCDO (instead 
+				// of a direct Object pointer), then we don't need keep it from 
+				// garbage collection, this will continue to reference its 
+				// replacement post GC... we only need to keep hard Object 
+				// references from getting GC'd
+				return (Object != nullptr);
+			}
 
 			UObject* operator->() const
 			{
@@ -128,11 +247,34 @@ protected:
 			}
 		};
 
+		// Structure to store information about a referenced object
+		// If ObjectName is set, it will represent the name of a blueprint constructed component 
+		// and Object will be the Outer of that Component, otherwise Object will be
+		// a direct reference to the object in question
+		struct FReferencedObject
+		{
+		private:
+			UObject* Object;
+			FName ComponentName;
+		public:
+			FReferencedObject() : Object(nullptr) { }
+			FReferencedObject(UObject* InObject);
+			UObject* GetObject() const;
+			void AddReferencedObjects( FReferenceCollector& Collector );
+
+			friend FArchive& operator<<( FArchive& Ar, FReferencedObject& ReferencedObject )
+			{
+				Ar << ReferencedObject.Object;
+				Ar << ReferencedObject.ComponentName;
+				return Ar;
+			}
+		};
+
 		// Variables.
 		/** The data stream used to serialize/deserialize record */
 		TArray<uint8>		Data;
 		/** External objects referenced in the transaction */
-		TArray<FPersistentObjectRef>	ReferencedObjects;
+		TArray<FReferencedObject>	ReferencedObjects;
 		/** FNames referenced in the object record */
 		TArray<FName>		ReferencedNames;
 		/** The object to track */
@@ -183,7 +325,7 @@ protected:
 			FReader(
 				FTransaction* InOwner,
 				const TArray<uint8>& InData,
-				const TArray<FPersistentObjectRef>& InReferencedObjects,
+				const TArray<FReferencedObject>& InReferencedObjects,
 				const TArray<FName>& InReferencedNames,
 				bool bWantBinarySerialization
 				):
@@ -221,14 +363,7 @@ protected:
 			{
 				int32 ObjectIndex = 0;
 				(FArchive&)*this << ObjectIndex;
-				if (ObjectIndex != INDEX_NONE)
-				{
-					Res = ReferencedObjects[ObjectIndex].Get();
-				}
-				else
-				{
-					Res = nullptr;
-				}
+				Res = ReferencedObjects[ObjectIndex].GetObject();
 				return *this;
 			}
 			void Preload( UObject* InObject ) override
@@ -249,7 +384,7 @@ protected:
 			}
 			FTransaction* Owner;
 			const TArray<uint8>& Data;
-			const TArray<FPersistentObjectRef>& ReferencedObjects;
+			const TArray<FReferencedObject>& ReferencedObjects;
 			const TArray<FName>& ReferencedNames;
 			int64 Offset;
 		};
@@ -262,7 +397,7 @@ protected:
 		public:
 			FWriter(
 				TArray<uint8>& InData,
-				TArray<FPersistentObjectRef>& InReferencedObjects,
+				TArray<FReferencedObject>& InReferencedObjects,
 				TArray<FName>& InReferencedNames,
 				bool bWantBinarySerialization
 				):
@@ -273,7 +408,7 @@ protected:
 			{
 				for(int32 ObjIndex = 0; ObjIndex < InReferencedObjects.Num(); ++ObjIndex)
 				{
-					ObjectMap.Add(InReferencedObjects[ObjIndex].Get(), ObjIndex);
+					ObjectMap.Add(InReferencedObjects[ObjIndex].GetObject(), ObjIndex);
 				}
 
 				ArWantBinaryPropertySerialization = bWantBinarySerialization;
@@ -307,22 +442,22 @@ protected:
 			}
 			FArchive& operator<<( class UObject*& Res ) override
 			{
-				int32 ObjectIndex = INDEX_NONE;
+				int32 ObjectIndex = 0;
 				int32* ObjIndexPtr = ObjectMap.Find(Res);
 				if(ObjIndexPtr)
 				{
 					ObjectIndex = *ObjIndexPtr;
 				}
-				else if(Res)
+				else
 				{
-					ObjectIndex = ReferencedObjects.Add(FPersistentObjectRef(Res));
+					ObjectIndex = ReferencedObjects.Add(FReferencedObject(Res));
 					ObjectMap.Add(Res, ObjectIndex);
 				}
 				return (FArchive&)*this << ObjectIndex;
 			}
 			TArray<uint8>& Data;
 			ObjectMapType ObjectMap;
-			TArray<FPersistentObjectRef>& ReferencedObjects;
+			TArray<FReferencedObject>& ReferencedObjects;
 			TArray<FName>& ReferencedNames;
 			int64 Offset;
 		};

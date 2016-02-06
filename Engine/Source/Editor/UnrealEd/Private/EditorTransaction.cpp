@@ -7,25 +7,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorTransaction, Log, All);
 
-inline UObject* BuildSubobjectKey(UObject* Obj, TArray<FName>& OutHierarchyNames)
-{
-	UObject* Outermost = nullptr;
-
-	UObject* Iter = Obj;
-	// If somethings Outermost is the transient package assume that the 
-	// outer immediately before that is the stable object, this is the
-	// case for objects in the PersistantLevel, for instance.
-	UPackage* TransientPackage = GetTransientPackage();
-	while (Iter->GetOuter() && Iter->GetOuter() != TransientPackage)
-	{
-		OutHierarchyNames.Add(Iter->GetFName());
-		Iter = Iter->GetOuter();
-		Outermost = Iter;
-	}
-
-	return Outermost;
-}
-
 /*-----------------------------------------------------------------------------
 	A single transaction.
 -----------------------------------------------------------------------------*/
@@ -57,7 +38,11 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 {
 	// Cache to restore at the end
 	bool bWasArIgnoreOuterRef = Ar.ArIgnoreOuterRef;
-	Ar.ArIgnoreOuterRef = true;
+
+	if (Object.IsPartOfCDO())
+	{
+		Ar.ArIgnoreOuterRef = true;
+	}
 
 	if( Array )
 	{
@@ -112,6 +97,7 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 		check(Serializer==NULL);
 		Object->Serialize( Ar );
 	}
+
 	Ar.ArIgnoreOuterRef = bWasArIgnoreOuterRef;
 }
 
@@ -121,7 +107,7 @@ void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
 	{
 		bRestored = true;
 		TArray<uint8> FlipData;
-		TArray<FPersistentObjectRef> FlipReferencedObjects;
+		TArray<FReferencedObject> FlipReferencedObjects;
 		TArray<FName> FlipReferencedNames;
 		TSharedPtr<ITransactionObjectAnnotation> FlipObjectAnnotation;
 		if( Owner->bFlip )
@@ -193,90 +179,49 @@ void FTransaction::DumpObjectMap(FOutputDevice& Ar) const
 
 FArchive& operator<<( FArchive& Ar, FTransaction::FObjectRecord& R )
 {
-	UObject* Object = R.Object.Get();
-	check(Object);
-	FMemMark Mark(FMemStack::Get());
-	Ar << Object;
-	R.Object = Object;
-	Ar << R.Data;
-	Ar << R.ReferencedObjects;
-	Ar << R.ReferencedNames;
-	Mark.Pop();
+	if (!Ar.IsObjectReferenceCollector() || (Ar.IsObjectReferenceCollector() && !R.Object.IsPartOfCDO()))
+	{
+		UObject* Object = R.Object.Get();
+		check(Object);
+		FMemMark Mark(FMemStack::Get());
+		Ar << Object;
+		R.Object = Object;
+		Ar << R.Data;
+		Ar << R.ReferencedObjects;
+		Ar << R.ReferencedNames;
+		Mark.Pop();
+	}
 	return Ar;
 }
 
-FTransaction::FObjectRecord::FPersistentObjectRef::FPersistentObjectRef(UObject* InObject)
-	: ReferenceType(EReferenceType::Unknown)
-	, Object(nullptr)
+FTransaction::FObjectRecord::FReferencedObject::FReferencedObject(UObject* InObject)
 {
-	check(InObject);
-	UObject* Outermost = BuildSubobjectKey(InObject, SubObjectHierarchyID);
-
-	// Blueprints duplicate CDOs  and their sub-objects; we don't want changes 
-	// to the duplicated CDO/sub-object to be applied back to the original 
-	// (the original would most likely be destroyed when we attempt 
-	// to undo the duplication)... here we check that the class
-	// recognizes this CDO as its own (if not, then we're most 
-	// likely in the middle of a duplicate)
-	const bool bIsCDO = InObject->HasAllFlags(RF_ClassDefaultObject);
-	UObject* CDO = bIsCDO ? InObject : nullptr;
-	const bool bIsClassCDO = (CDO != nullptr) ? (CDO->GetClass()->ClassDefaultObject == CDO) : false;
-	check(bIsCDO && bIsClassCDO || (!bIsCDO && !bIsClassCDO));
-	UActorComponent* AsComponent = Cast<UActorComponent>(InObject);
-	const bool bIsDSO = InObject->HasAnyFlags(RF_DefaultSubObject);
-	const bool bIsSCSComponent = AsComponent && (AsComponent->IsCreatedByConstructionScript() || (!bIsDSO && AsComponent->HasAnyFlags(RF_ArchetypeObject)));
-	const bool bRefObjectByOuter = (bIsCDO && bIsClassCDO) || bIsDSO || bIsSCSComponent;
-
-	if (bRefObjectByOuter)
+	UActorComponent* Component = Cast<UActorComponent>(InObject);
+	UObject* CDO = nullptr;
+	if (Component && OuterIsCDO(Component, CDO))
 	{
-		ReferenceType = EReferenceType::SubObject;
-		check(SubObjectHierarchyID.Num() > 0 && Outermost);
-		Object = Outermost;
-		check(Object != GetTransientPackage());
+		Object = CDO;
+		ComponentName = Component->GetFName();
+	}
+	else if (Component && Component->IsCreatedByConstructionScript())
+	{
+		Object = Component->GetOuter();
+		ComponentName = Component->GetFName();
 	}
 	else
 	{
-		SubObjectHierarchyID.Empty();
-		ReferenceType = EReferenceType::RootObject;
 		Object = InObject;
 	}
-
-	// Make sure that when we look up the object we find the same thing:
-	checkSlow(Get() == InObject);
 }
 
-UObject* FTransaction::FObjectRecord::FPersistentObjectRef::Get() const
+UObject* FTransaction::FObjectRecord::FReferencedObject::GetObject() const
 {
-	if (ReferenceType == EReferenceType::SubObject)
-	{
-		check (SubObjectHierarchyID.Num() > 0)
-		// find the subobject:
-		UObject* CurrentObject = Object;
-		bool bFoundTargetSubObject = (SubObjectHierarchyID.Num() == 0);
-		if (!bFoundTargetSubObject)
-		{
-			// Current increasing depth into sub-objects, starts at 1 to avoid the sub-object found and placed in NextObject.
-			int SubObjectDepth = SubObjectHierarchyID.Num() - 1;
-			UObject* NextObject = CurrentObject;
-			while (NextObject != nullptr && !bFoundTargetSubObject)
-			{
-				// Look for any UObject with the CurrentObject's outer to find the next sub-object:
-				NextObject = StaticFindObjectFast(UObject::StaticClass(), CurrentObject, SubObjectHierarchyID[SubObjectDepth]);
-				bFoundTargetSubObject = SubObjectDepth == 0;
-				--SubObjectDepth;
-				CurrentObject = NextObject;
-			}
-		}
-
-		return bFoundTargetSubObject ? CurrentObject : nullptr;
-	}
-
-	return Object;
+	return (ComponentName.IsNone() ? Object : FindObjectFast<UActorComponent>(Object, ComponentName));
 }
 
-bool FTransaction::FObjectRecord::FPersistentObjectRef::ShouldAddReference() const
+void FTransaction::FObjectRecord::FReferencedObject::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	return ReferenceType == EReferenceType::RootObject;
+	Collector.AddReferencedObject(Object);
 }
 
 void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Collector )
@@ -287,13 +232,9 @@ void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Col
 		Collector.AddReferencedObject(Obj);
 		Object = Obj;
 	}
-	for (FPersistentObjectRef& ReferencedObject : ReferencedObjects)
+	for( FReferencedObject& ReferencedObject : ReferencedObjects )
 	{
-		if (ReferencedObject.ShouldAddReference())
-		{
-			UObject* Obj = ReferencedObject.Get();
-			Collector.AddReferencedObject(Obj);
-		}
+		ReferencedObject.AddReferencedObjects(Collector);
 	}
 	if (ObjectAnnotation.IsValid())
 	{
@@ -312,9 +253,9 @@ bool FTransaction::FObjectRecord::ContainsPieObject() const
 		}
 	}
 
-	for (const FPersistentObjectRef& ReferencedObject : ReferencedObjects)
+	for( const FReferencedObject& ReferencedObject : ReferencedObjects )
 	{
-		const UObject* Obj = ReferencedObject.Get();
+		const UObject* Obj = ReferencedObject.GetObject();
 		if( Obj && Obj->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor))
 		{
 			return true;
