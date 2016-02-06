@@ -419,7 +419,7 @@ public class DeploymentContext //: ProjectParams
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
 			// allow missing files if needed
-			if (RequireDependenciesToExist == false && File.Exists(RuntimeDependency.Path) == false)
+			if ((RequireDependenciesToExist == false || RuntimeDependency.bIgnoreIfMissing) && File.Exists(RuntimeDependency.Path) == false)
 			{
 				continue;
 			}
