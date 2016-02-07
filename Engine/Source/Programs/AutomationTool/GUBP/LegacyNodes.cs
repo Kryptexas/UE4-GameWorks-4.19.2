@@ -2703,6 +2703,11 @@ partial class GUBP
             AddDependency(ToolsNode.StaticGetFullName(HostPlatform));
 		}
 
+		public override bool NotifyOnWarnings()
+		{
+			return false;
+		}
+
 		public override void DoBuild(GUBP bp)
 		{
 			var UEProjectDirectory = GetUEProjectDirectory();
