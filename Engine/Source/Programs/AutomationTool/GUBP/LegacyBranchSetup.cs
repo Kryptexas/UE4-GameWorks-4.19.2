@@ -188,6 +188,10 @@ partial class GUBP
 			/// </summary>
 			public bool bBuildEngineLocalization = false;
 			public string EngineLocalizationBranchSuffix = "";
+			/// <summary>
+			/// Whether to build all target platforms in parallel, or serialize them to avoid saturating the farm.
+			/// </summary>
+			public bool bTargetPlatformsInParallel = true;
         }
         public virtual void ModifyOptions(GUBP bp, ref BranchOptions Options, string Branch)
         {

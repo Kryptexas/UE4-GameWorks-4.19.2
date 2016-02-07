@@ -1096,9 +1096,11 @@ partial class GUBP
 				AddDependency(ToolsNode.StaticGetFullName(InHostPlatform));
 			}
 
+			bool bBehindTrigger = false;
 			if(IsSample(BranchConfig, InGameProj))
 			{
 				AddPseudodependency(WaitToPackageSamplesNode.StaticGetFullName());
+				bBehindTrigger = true;
 			}
 
             if (InGameProj.GameName != BranchConfig.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
@@ -1122,8 +1124,13 @@ partial class GUBP
             if (InGameProj.Options(InHostPlatform).bTestWithShared)  /// compiling templates is only for testing purposes, and we will group them to avoid saturating the farm
             {
                 AddPseudodependency(WaitForTestShared.StaticGetFullName());
+				bBehindTrigger = true;
                 //AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
             }
+			if(!InBranchConfig.BranchOptions.bTargetPlatformsInParallel && !bBehindTrigger)
+			{
+				AgentSharingGroup = "TargetPlatforms" + StaticGetHostPlatformSuffix(InHostPlatform);
+			}
         }
 
 		public static bool IsSample(GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject GameProj)
