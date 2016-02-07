@@ -521,6 +521,11 @@ namespace Rocket
 			AgentSharingGroup = Node.AgentSharingGroup;
 		}
 
+		public override float Priority()
+		{
+			return 1000000.0f;
+		}
+
 		public override string GetDisplayGroupName()
 		{
 			return Project.GameName + "_Monolithics" + (bIsCodeTargetPlatform? "_Precompiled" : "");
@@ -710,6 +715,11 @@ namespace Rocket
 			AddDependency(StripNode);
 
 			AgentSharingGroup = Node.AgentSharingGroup;
+		}
+
+		public override float Priority()
+		{
+			return 1000000.0f;
 		}
 
 		public override string GetDisplayGroupName()
