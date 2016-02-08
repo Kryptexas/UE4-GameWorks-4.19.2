@@ -101,6 +101,47 @@ TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::Cre
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 
+void FSteamVRHMD::Tick(float TimeDeltaSeconds)
+{
+	if (VRSystem == nullptr)
+	{
+		return;
+	}
+
+	// Poll SteamVR events
+	vr::VREvent_t VREvent;
+	while (VRSystem->PollNextEvent(&VREvent))
+	{
+		switch (VREvent.eventType)
+		{
+		case vr::VREvent_Quit:
+			FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
+			bIsQuitting = true;
+			break;
+		case vr::VREvent_InputFocusCaptured:
+			FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Broadcast();
+			break;
+		case vr::VREvent_InputFocusReleased:
+			FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Broadcast();
+			break;
+		}
+	}
+
+	// SteamVR gives 5 seconds from VREvent_Quit till it's process is killed
+	if (bIsQuitting)
+	{
+		QuitTimeElapsed += TimeDeltaSeconds;
+		if (QuitTimeElapsed > 4.0f)
+		{
+			FPlatformMisc::RequestExit(true);
+			bIsQuitting = false;
+		}
+		else if (QuitTimeElapsed > 3.0f)
+		{
+			FPlatformMisc::RequestExit(false);
+		}
+	}
+}
 
 bool FSteamVRHMD::IsHMDEnabled() const
 {
@@ -905,6 +946,8 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	LastHmdOrientation(FQuat::Identity),
 	BaseOrientation(FQuat::Identity),
 	BaseOffset(FVector::ZeroVector),
+	bIsQuitting(false),
+	QuitTimeElapsed(0.0f),
 	DeltaControlRotation(FRotator::ZeroRotator),
 	DeltaControlOrientation(FQuat::Identity),
 	CurHmdPosition(FVector::ZeroVector),

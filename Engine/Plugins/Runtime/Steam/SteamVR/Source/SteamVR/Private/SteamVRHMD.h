@@ -38,6 +38,7 @@ class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, publ
 {
 public:
 	/** IHeadMountedDisplay interface */
+	virtual void Tick(float TimeDeltaSeconds) override;
 	virtual bool IsHMDConnected() override { return true; }
 	virtual bool IsHMDEnabled() const override;
 	virtual void EnableHMD(bool allow = true) override;
@@ -352,6 +353,10 @@ private:
 	// HMD base values, specify forward orientation and zero pos offset
 	FQuat					BaseOrientation;	// base orientation
 	FVector					BaseOffset;
+
+	// State for tracking quit operation
+	bool					bIsQuitting;
+	float					QuitTimeElapsed;
 
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 	float WorldToMetersScale;
