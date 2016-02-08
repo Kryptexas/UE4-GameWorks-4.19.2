@@ -48,9 +48,7 @@ void UMovieSceneEventSection::TriggerEvents(ALevelScriptActor* LevelScriptActor,
 			if ((Key.Time >= Position) && (Key.Time <= LastPosition))
 			{
 				TriggerEvent(Key.Value, LevelScriptActor);
-			}
-
-			
+			}		
 		}
 	}
 }

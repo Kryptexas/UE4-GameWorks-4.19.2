@@ -59,6 +59,12 @@ ERichCurveExtrapolation FIntegralCurveKeyAreaBase::GetExtrapolationMode(bool bPr
 }
 
 
+TSharedPtr<FStructOnScope> FIntegralCurveKeyAreaBase::GetKeyStruct(FKeyHandle KeyHandle)
+{
+	return MakeShareable(new FStructOnScope(FIntegralKey::StaticStruct(), (uint8*)&Curve.GetKey(KeyHandle)));
+}
+
+
 ERichCurveTangentMode FIntegralCurveKeyAreaBase::GetKeyTangentMode(FKeyHandle KeyHandle) const
 {
 	return RCTM_None;

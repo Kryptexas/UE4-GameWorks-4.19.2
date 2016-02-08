@@ -86,6 +86,7 @@ struct FSceneViewExtension : ISceneViewExtension
 			PostProcessingMaterial->OverrideBlendableSettings(InView, 1.f);
 		}
 		
+
 		// Ensure we're rendering at full size
 		InView.ViewRect = InView.UnscaledViewRect;
 
@@ -126,6 +127,18 @@ bool FCompositionGraphCaptureProtocol::Initialize(const FCaptureProtocolInitSett
 		RenderPasses = ProtocolSettings->IncludeRenderPasses.Value;
 		bCaptureFramesInHDR = ProtocolSettings->bCaptureFramesInHDR;
 		PostProcessingMaterial = Cast<UMaterialInterface>(ProtocolSettings->PostProcessingMaterial.TryLoad());
+
+		FString OverrideRenderPasses;
+		if( FParse::Value( FCommandLine::Get(), TEXT( "-CustomRenderPasses=" ), OverrideRenderPasses ) )
+		{
+			OverrideRenderPasses.ParseIntoArray(RenderPasses, TEXT(","), true);
+		}
+
+		bool bOverrideCaptureFramesInHDR;
+		if( FParse::Bool( FCommandLine::Get(), TEXT( "-CaptureFramesInHDR=" ), bOverrideCaptureFramesInHDR ) )
+		{
+			bCaptureFramesInHDR = bOverrideCaptureFramesInHDR;
+		}
 	}
 
 	ViewExtension = MakeShareable(new FSceneViewExtension(RenderPasses, bCaptureFramesInHDR, PostProcessingMaterial));

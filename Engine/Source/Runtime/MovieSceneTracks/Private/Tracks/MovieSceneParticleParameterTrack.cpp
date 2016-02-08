@@ -67,7 +67,7 @@ const TArray<UMovieSceneSection*>& UMovieSceneParticleParameterTrack::GetAllSect
 
 
 #if WITH_EDITORONLY_DATA
-FText UMovieSceneParticleParameterTrack::GetDisplayName() const
+FText UMovieSceneParticleParameterTrack::GetDefaultDisplayName() const
 {
 	return LOCTEXT("DisplayName", "Particle Parameter");
 }

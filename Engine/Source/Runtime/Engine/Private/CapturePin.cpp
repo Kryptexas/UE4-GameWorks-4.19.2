@@ -326,7 +326,6 @@ HRESULT FCapturePin::DoBufferProcessingLoop(void)
 		}
 	}
 
-	static_cast<FCaptureSource*>(m_pFilter)->OnFinishedCapturing();
 	return S_FALSE;
 }
 

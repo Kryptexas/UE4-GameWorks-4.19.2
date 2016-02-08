@@ -45,7 +45,6 @@ public:
 	// End of UWidget interface
 
 #if WITH_EDITOR
-	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 	virtual void OnDescendantSelected(UWidget* DescendantWidget) override;
 	virtual void OnDescendantDeselected(UWidget* DescendantWidget) override;

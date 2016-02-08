@@ -6,11 +6,13 @@
 #include "LevelSequenceEditorStyle.h"
 #include "ModuleInterface.h"
 #include "PropertyEditorModule.h"
-#include "ISettingsModule.h"
-#include "LevelSequenceProjectSettings.h"
+#include "CinematicLevelViewportLayout.h"
+#include "IPlacementModeModule.h"
+#include "Camera/CineCameraActor.h"
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
+TSharedPtr<FLevelSequenceEditorStyle> FLevelSequenceEditorStyle::Singleton;
 
 class FLevelSequenceExtensionCommands
 	: public TCommands<FLevelSequenceExtensionCommands>
@@ -44,41 +46,61 @@ public:
 
 	virtual void StartupModule() override
 	{
-		Style = MakeShareable(new FLevelSequenceEditorStyle());
-
-		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-		{
-			SettingsModule->RegisterSettings("Project", "Editor", "Level Sequences",
-				LOCTEXT("RuntimeSettingsName", "Level Sequences"),
-				LOCTEXT("RuntimeSettingsDescription", "Configure project settings relating to Level Sequences"),
-				GetMutableDefault<ULevelSequenceProjectSettings>()
-			);
-		}
+		FLevelSequenceEditorStyle::Get();
 
 		RegisterAssetTools();
 		RegisterCustomizations();
 		RegisterMenuExtensions();
+		RegisterLevelEditorExtensions();
+		RegisterPlacementModeExtensions();
 	}
 	
 	virtual void ShutdownModule() override
 	{
-		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
-		{
-			SettingsModule->UnregisterSettings("Project", "Editor", "Level Sequences");
-		}
-
 		UnregisterAssetTools();
 		UnregisterCustomizations();
 		UnregisterMenuExtensions();
+		UnregisterLevelEditorExtensions();
+		UnregisterPlacementModeExtensions();
 	}
 
 protected:
+
+	/** Registers level editor extensions. */
+	void RegisterLevelEditorExtensions()
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+
+		FCustomViewportLayoutDefinition TwoPaneDefinition = FCustomViewportLayoutDefinition::FromType<FCinematicLevelViewportLayout_OnePane>();
+		TwoPaneDefinition.DisplayName = LOCTEXT("OnePaneCinematicLayoutName", "Cinematic");
+		TwoPaneDefinition.Description = LOCTEXT("OnePaneCinematicLayoutDesc", "A viewport layout tailored to cinematic preview");
+		TwoPaneDefinition.Icon = FSlateIcon("LevelSequenceEditorStyle", "LevelSequenceEditor.OnePaneCinematicViewportLayout");
+		LevelEditorModule.RegisterCustomViewportLayout("OnePaneCinematic", TwoPaneDefinition);
+
+		FCustomViewportLayoutDefinition OnePaneDefinition = FCustomViewportLayoutDefinition::FromType<FCinematicLevelViewportLayout_TwoPane>();
+		OnePaneDefinition.DisplayName = LOCTEXT("TwoPaneCinematicLayoutName", "Two Pane Cinematic");
+		OnePaneDefinition.Description = LOCTEXT("TwoPaneCinematicLayoutDesc", "A viewport layout comprising an edit viewport, and a cinematic preview viewport");
+		OnePaneDefinition.Icon = FSlateIcon("LevelSequenceEditorStyle", "LevelSequenceEditor.TwoPaneCinematicViewportLayout");
+		LevelEditorModule.RegisterCustomViewportLayout("TwoPaneCinematic", OnePaneDefinition);
+	}
 
 	/** Registers asset tool actions. */
 	void RegisterAssetTools()
 	{
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FLevelSequenceActions(Style.ToSharedRef())));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FLevelSequenceActions(FLevelSequenceEditorStyle::Get())));
+	}
+
+	/** Registers placement mode extensions. */
+	void RegisterPlacementModeExtensions()
+	{
+		FPlacementCategoryInfo Info(
+			LOCTEXT("CinematicCategoryName", "Cinematic"),
+			"Cinematic",
+			TEXT("PMCinematic"),
+			25);
+		IPlacementModeModule::Get().RegisterPlacementCategory(Info);
+		IPlacementModeModule::Get().RegisterPlaceableItem(Info.UniqueHandle, MakeShareable( new FPlaceableItem(nullptr, FAssetData(ACineCameraActor::StaticClass())) ));
 	}
 
 	/**
@@ -109,6 +131,25 @@ protected:
 		}
 	}
 
+	/** Unregisters level editor extensions. */
+	void UnregisterLevelEditorExtensions()
+	{
+		FLevelEditorModule* LevelEditorModule = FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor");
+		if (LevelEditorModule)
+		{
+			LevelEditorModule->UnRegisterCustomViewportLayout("Cinematic");
+		}
+	}
+
+	/** Unregisters placement mode extensions. */
+	void UnregisterPlacementModeExtensions()
+	{
+		if (IPlacementModeModule::IsAvailable())
+		{
+			IPlacementModeModule::Get().UnregisterPlacementCategory("Cinematic");
+		}
+	}
+
 protected:
 
 	/** Register details view customizations. */
@@ -121,8 +162,11 @@ protected:
 	/** Unregister details view customizations. */
 	void UnregisterCustomizations()
 	{
-		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.UnregisterCustomPropertyTypeLayout(FLevelSequencePlaybackSettings::StaticStruct()->GetFName());
+		FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor");
+		if (PropertyModule)
+		{
+			PropertyModule->UnregisterCustomPropertyTypeLayout(FLevelSequencePlaybackSettings::StaticStruct()->GetFName());
+		}
 	}
 
 protected:
@@ -197,7 +241,7 @@ protected:
 		}
 
 		ALevelSequenceActor* NewActor = CastChecked<ALevelSequenceActor>(GEditor->UseActorFactory(ActorFactory, FAssetData(NewAsset), &FTransform::Identity));
-		if (GCurrentLevelEditingViewportClient->IsPerspective())
+		if (GCurrentLevelEditingViewportClient != nullptr && GCurrentLevelEditingViewportClient->IsPerspective())
 		{
 			GEditor->MoveActorInFrontOfCamera(*NewActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector());
 		}
@@ -213,9 +257,6 @@ private:
 
 	/** The collection of registered asset type actions. */
 	TArray<TSharedRef<IAssetTypeActions>> RegisteredAssetTypeActions;
-
-	/** Holds the plug-ins style set. */
-	TSharedPtr<ISlateStyle> Style;
 
 	/** Extender for the cinematics menu */
 	TSharedPtr<FExtender> CinematicsMenuExtender;

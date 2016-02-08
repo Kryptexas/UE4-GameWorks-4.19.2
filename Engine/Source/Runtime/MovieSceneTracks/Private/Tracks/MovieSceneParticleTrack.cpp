@@ -87,7 +87,7 @@ UMovieSceneSection* UMovieSceneParticleTrack::CreateNewSection()
 }
 
 #if WITH_EDITORONLY_DATA
-FText UMovieSceneParticleTrack::GetDisplayName() const
+FText UMovieSceneParticleTrack::GetDefaultDisplayName() const
 {
 	return LOCTEXT("DisplayName", "Particle System");
 }

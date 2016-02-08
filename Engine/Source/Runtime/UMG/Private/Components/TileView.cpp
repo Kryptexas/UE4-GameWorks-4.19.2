@@ -85,11 +85,6 @@ void UTileView::ReleaseSlateResources(bool bReleaseChildren)
 
 #if WITH_EDITOR
 
-const FSlateBrush* UTileView::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.TileView");
-}
-
 const FText UTileView::GetPaletteCategory()
 {
 	return LOCTEXT("Misc", "Misc");

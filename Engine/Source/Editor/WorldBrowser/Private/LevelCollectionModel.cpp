@@ -1391,7 +1391,7 @@ void FLevelCollectionModel::SaveSelectedLevelAs_Executed()
 		ULevel* Level = SelectedLevelsList[0]->GetLevelObject();
 		if (Level)
 		{
-			FEditorFileUtils::SaveAs(Level);
+			FEditorFileUtils::SaveLevelAs(Level);
 		}
 	}
 }

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IWmfMediaResolverCallbacks.h"
 #include "AllowWindowsPlatformTypes.h"
 
 
@@ -11,6 +12,7 @@
 class FWmfMediaPlayer
 	: public IMediaInfo
 	, public IMediaPlayer
+	, protected IWmfMediaResolverCallbacks
 {
 public:
 
@@ -57,6 +59,13 @@ public:
 	{
 		return MediaEvent;
 	}
+
+protected:
+
+	// IWmfMediaResolverCallbacks interface
+
+	virtual void ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FString ResolvedUrl) override;
+	virtual void ProcessResolveFailed(FString FailedUrl) override;
 
 protected:
 

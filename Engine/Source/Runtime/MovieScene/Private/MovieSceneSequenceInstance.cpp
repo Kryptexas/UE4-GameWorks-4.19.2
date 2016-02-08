@@ -46,21 +46,27 @@ FGuid FMovieSceneSequenceInstance::FindParentObjectId(UObject& Object) const
 UObject* FMovieSceneSequenceInstance::FindObject(const FGuid& ObjectId, const IMovieScenePlayer& Player) const
 {
 	// Attempt to find a possessable first
-	FMovieScenePossessable* Possessable = MovieSceneSequence->GetMovieScene()->FindPossessable(ObjectId);
-	if (Possessable)
+	UMovieScene* MovieScene = MovieSceneSequence->GetMovieScene();
+	if (MovieScene != nullptr)
 	{
-		UObject* ParentObject = Player.GetPlaybackContext();
-		if (Possessable->GetParent().IsValid())
+		FMovieScenePossessable* Possessable = MovieScene->FindPossessable(ObjectId);
+		if (Possessable)
 		{
-			ParentObject = FindObject(Possessable->GetParent(), Player);
-		}
+			UObject* ParentObject = Player.GetPlaybackContext();
+			if (Possessable->GetParent().IsValid())
+			{
+				ParentObject = FindObject(Possessable->GetParent(), Player);
+			}
 
-		return MovieSceneSequence->FindPossessableObject(ObjectId, ParentObject);
+			return MovieSceneSequence->FindPossessableObject(ObjectId, ParentObject);
+		}
+		else
+		{
+			return FindSpawnedObject(ObjectId);
+		}
 	}
-	else
-	{
-		return FindSpawnedObject(ObjectId);
-	}
+
+	return nullptr;
 }
 
 UObject* FMovieSceneSequenceInstance::FindSpawnedObject(const FGuid& ObjectId) const
@@ -72,9 +78,9 @@ UObject* FMovieSceneSequenceInstance::FindSpawnedObject(const FGuid& ObjectId) c
 void FMovieSceneSequenceInstance::SaveState(class IMovieScenePlayer& Player)
 {
 	TArray<UObject*> NoObjects;
-	if (ShotTrackInstance.IsValid())
+	if (CameraCutTrackInstance.IsValid())
 	{
-		ShotTrackInstance->SaveState(NoObjects, Player, *this);
+		CameraCutTrackInstance->SaveState(NoObjects, Player, *this);
 	}
 
 	for (auto& Pair : MasterTrackInstances)
@@ -121,9 +127,9 @@ void FMovieSceneSequenceInstance::RestoreState(class IMovieScenePlayer& Player)
 	}
 
 	TArray<UObject*> NoObjects;
-	if (ShotTrackInstance.IsValid())
+	if (CameraCutTrackInstance.IsValid())
 	{
-		ShotTrackInstance->RestoreState(NoObjects, Player, *this);
+		CameraCutTrackInstance->RestoreState(NoObjects, Player, *this);
 	}
 
 	for (auto& Pair : MasterTrackInstances)
@@ -133,7 +139,7 @@ void FMovieSceneSequenceInstance::RestoreState(class IMovieScenePlayer& Player)
 }
 
 
-void FMovieSceneSequenceInstance::Update( float Position, float LastPosition, class IMovieScenePlayer& Player )
+void FMovieSceneSequenceInstance::Update( EMovieSceneUpdateData& UpdateData, class IMovieScenePlayer& Player )
 {
 	// Remove any stale runtime objects
 	TMap<FGuid, FMovieSceneObjectBindingInstance>::TIterator ObjectIt = ObjectBindingInstances.CreateIterator();
@@ -156,14 +162,17 @@ void FMovieSceneSequenceInstance::Update( float Position, float LastPosition, cl
 
 	Player.GetSpawnRegister().PreUpdateSequenceInstance(*this, Player);
 
-	UpdateInternal(Position, LastPosition, Player, MSUP_PreUpdate);
-	UpdateInternal(Position, LastPosition, Player, MSUP_Update);
-	UpdateInternal(Position, LastPosition, Player, MSUP_PostUpdate);
+	UpdateData.UpdatePass = MSUP_PreUpdate;
+	UpdateInternal(UpdateData, Player);
+	UpdateData.UpdatePass = MSUP_Update;
+	UpdateInternal(UpdateData, Player);
+	UpdateData.UpdatePass = MSUP_PostUpdate;
+	UpdateInternal(UpdateData, Player);
 
 	Player.GetSpawnRegister().PostUpdateSequenceInstance(*this, Player);
 }
 
-void FMovieSceneSequenceInstance::UpdateInternal( float Position, float LastPosition, class IMovieScenePlayer& Player, EMovieSceneUpdatePass UpdatePass )
+void FMovieSceneSequenceInstance::UpdateInternal( EMovieSceneUpdateData& UpdateData, class IMovieScenePlayer& Player )
 {
 	// Refresh time range so that spawnables can be created if they fall within the playback range, or destroyed if not
 	UMovieScene* MovieScene = MovieSceneSequence->GetMovieScene();
@@ -174,9 +183,9 @@ void FMovieSceneSequenceInstance::UpdateInternal( float Position, float LastPosi
 	// update each master track
 	for( FMovieSceneInstanceMap::TIterator It( MasterTrackInstances ); It; ++It )
 	{
-		if (It.Value()->HasUpdatePasses() & UpdatePass)
+		if (It.Value()->HasUpdatePasses() & UpdateData.UpdatePass)
 		{
-			It.Value()->Update( Position, LastPosition, NoObjects, Player, *this, UpdatePass);
+			It.Value()->Update( UpdateData, NoObjects, Player, *this);
 		}
 	}
 
@@ -188,19 +197,19 @@ void FMovieSceneSequenceInstance::UpdateInternal( float Position, float LastPosi
 		
 		for( FMovieSceneInstanceMap::TIterator It = ObjectBindingInstance.TrackInstances.CreateIterator(); It; ++It )
 		{
-			if (It.Value()->HasUpdatePasses() & UpdatePass)
+			if (It.Value()->HasUpdatePasses() & UpdateData.UpdatePass)
 			{
-				It.Value()->Update( Position, LastPosition, ObjectBindingInstance.RuntimeObjects, Player, *this, UpdatePass );
+				It.Value()->Update( UpdateData, ObjectBindingInstance.RuntimeObjects, Player, *this );
 			}
 		}
 	}
 
-	// update shot track last to make sure spawnable cameras are there, and to override sub-shots
-	if (ShotTrackInstance.IsValid())
+	// update camera cut track last to make sure spawnable cameras are there, and to override sub-shots
+	if (CameraCutTrackInstance.IsValid())
 	{
-		if (ShotTrackInstance->HasUpdatePasses() & UpdatePass)
+		if (CameraCutTrackInstance->HasUpdatePasses() & UpdateData.UpdatePass)
 		{
-			ShotTrackInstance->Update(Position, LastPosition, NoObjects, Player, *this, UpdatePass );
+			CameraCutTrackInstance->Update(UpdateData, NoObjects, Player, *this );
 		}
 	}
 }
@@ -211,28 +220,28 @@ void FMovieSceneSequenceInstance::RefreshInstance( IMovieScenePlayer& Player )
 	UMovieScene* MovieScene = MovieSceneSequence->GetMovieScene();
 	TimeRange = MovieScene->GetPlaybackRange();
 
-	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
+	UMovieSceneTrack* CameraCutTrack = MovieScene->GetCameraCutTrack();
 
-	if (ShotTrack != nullptr)
+	if (CameraCutTrack != nullptr)
 	{
-		FMovieSceneInstanceMap ShotTrackInstanceMap;
+		FMovieSceneInstanceMap CameraCutTrackInstanceMap;
 
-		if (ShotTrackInstance.IsValid())
+		if (CameraCutTrackInstance.IsValid())
 		{
-			ShotTrackInstanceMap.Add(ShotTrack, ShotTrackInstance);
+			CameraCutTrackInstanceMap.Add(CameraCutTrack, CameraCutTrackInstance);
 		}
 
 		TArray<UObject*> Objects;
 		TArray<UMovieSceneTrack*> Tracks;
-		Tracks.Add(ShotTrack);
-		RefreshInstanceMap(Tracks, Objects, ShotTrackInstanceMap, Player);
+		Tracks.Add(CameraCutTrack);
+		RefreshInstanceMap(Tracks, Objects, CameraCutTrackInstanceMap, Player);
 
-		ShotTrackInstance = ShotTrackInstanceMap.FindRef(ShotTrack);
+		CameraCutTrackInstance = CameraCutTrackInstanceMap.FindRef(CameraCutTrack);
 	}
-	else if(ShotTrackInstance.IsValid())
+	else if(CameraCutTrackInstance.IsValid())
 	{
-		ShotTrackInstance->ClearInstance(Player, *this);
-		ShotTrackInstance.Reset();
+		CameraCutTrackInstance->ClearInstance(Player, *this);
+		CameraCutTrackInstance.Reset();
 	}
 
 	// Get all the master tracks and create instances for them if needed

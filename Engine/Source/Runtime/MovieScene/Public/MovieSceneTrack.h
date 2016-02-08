@@ -51,6 +51,14 @@ public:
 		return false;
 	}
 
+	/**
+	 * @return Whether or not this track's section bounds should be added to the play range
+	 */
+	virtual bool AddsSectionBoundsToPlayRange() const
+	{
+		return false;
+	}
+
 public:
 
 	/**

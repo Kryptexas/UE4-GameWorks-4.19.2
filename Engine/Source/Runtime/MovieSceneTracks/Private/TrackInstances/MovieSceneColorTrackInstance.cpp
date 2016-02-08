@@ -91,7 +91,7 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 }
 
 
-void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneColorTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	for(UObject* Object : RuntimeObjects)
 	{
@@ -99,7 +99,7 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 		{
 			FSlateColor ColorValue = PropertyBindings->GetCurrentValue<FSlateColor>(Object);
 			FLinearColor LinearColor = ColorValue.GetSpecifiedColor();
-			if(ColorTrack->Eval(Position, LastPosition, LinearColor))
+			if(ColorTrack->Eval(UpdateData.Position, UpdateData.LastPosition, LinearColor))
 			{
 				FSlateColor NewColor(LinearColor);
 				PropertyBindings->CallFunction<FSlateColor>(Object, &NewColor);
@@ -108,7 +108,7 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 		else
 		{
 			FLinearColor ColorValue = ColorType == EColorType::Linear ? PropertyBindings->GetCurrentValue<FLinearColor>(Object) : PropertyBindings->GetCurrentValue<FColor>(Object).ReinterpretAsLinear();
-			if(ColorTrack->Eval(Position, LastPosition, ColorValue))
+			if(ColorTrack->Eval(UpdateData.Position, UpdateData.LastPosition, ColorValue))
 			{
 				// LightComponent's SetLightColor applies an sRGB conversion by default, so invert it here before applying the value 
 				if (ColorType == EColorType::RegularColor)

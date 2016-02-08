@@ -120,7 +120,7 @@ void FLevelViewportLayoutFourPanes::ReplaceWidget( TSharedRef< SWidget > Source,
 // FLevelViewportLayoutFourPanesLeft /////////////////////////////
 
 TSharedRef<SWidget> FLevelViewportLayoutFourPanesLeft::MakeFourPanelWidget(
-	TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+	TMap<FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 	const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2, const FString& ViewportKey3,
 	float PrimarySplitterPercentage, float SecondarySplitterPercentage0, float SecondarySplitterPercentage1)
 {
@@ -176,10 +176,10 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanesLeft::MakeFourPanelWidget(
 			]
 		];
 
-	ViewportWidgets.Add( ViewportWidget0 );
-	ViewportWidgets.Add( ViewportWidget1 );
-	ViewportWidgets.Add( ViewportWidget2 );
-	ViewportWidgets.Add( ViewportWidget3 );
+	ViewportWidgets.Add( *ViewportKey0, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget0.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey1, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget1.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey2, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget2.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey3, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget3.ToSharedRef()) ) );
 
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget0->GetLevelViewportClient();
@@ -191,7 +191,7 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanesLeft::MakeFourPanelWidget(
 // FLevelViewportLayoutFourPanesRight /////////////////////////////
 
 TSharedRef<SWidget> FLevelViewportLayoutFourPanesRight::MakeFourPanelWidget(
-	TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+	TMap<FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 	const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2, const FString& ViewportKey3,
 	float PrimarySplitterPercentage, float SecondarySplitterPercentage0, float SecondarySplitterPercentage1)
 {
@@ -247,10 +247,10 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanesRight::MakeFourPanelWidget(
 			.ConfigKey( ViewportKey0 )
 		];
 
-	ViewportWidgets.Add( ViewportWidget0 );
-	ViewportWidgets.Add( ViewportWidget1 );
-	ViewportWidgets.Add( ViewportWidget2 );
-	ViewportWidgets.Add( ViewportWidget3 );
+	ViewportWidgets.Add( *ViewportKey0, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget0.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey1, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget1.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey2, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget2.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey3, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget3.ToSharedRef()) ) );
 
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget0->GetLevelViewportClient();
@@ -262,7 +262,7 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanesRight::MakeFourPanelWidget(
 // FLevelViewportLayoutFourPanesTop /////////////////////////////
 
 TSharedRef<SWidget> FLevelViewportLayoutFourPanesTop::MakeFourPanelWidget(
-	TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+	TMap<FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 	const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2, const FString& ViewportKey3,
 	float PrimarySplitterPercentage, float SecondarySplitterPercentage0, float SecondarySplitterPercentage1)
 {
@@ -318,10 +318,10 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanesTop::MakeFourPanelWidget(
 			]
 		];
 
-	ViewportWidgets.Add( ViewportWidget0 );
-	ViewportWidgets.Add( ViewportWidget1 );
-	ViewportWidgets.Add( ViewportWidget2 );
-	ViewportWidgets.Add( ViewportWidget3 );
+	ViewportWidgets.Add( *ViewportKey0, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget0.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey1, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget1.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey2, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget2.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey3, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget3.ToSharedRef()) ) );
 
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget0->GetLevelViewportClient();
@@ -333,7 +333,7 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanesTop::MakeFourPanelWidget(
 // FLevelViewportLayoutFourPanesBottom /////////////////////////////
 
 TSharedRef<SWidget> FLevelViewportLayoutFourPanesBottom::MakeFourPanelWidget(
-	TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+	TMap<FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 	const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2, const FString& ViewportKey3,
 	float PrimarySplitterPercentage, float SecondarySplitterPercentage0, float SecondarySplitterPercentage1)
 {
@@ -389,10 +389,10 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanesBottom::MakeFourPanelWidget(
 			.ConfigKey( ViewportKey0 )
 		];
 
-	ViewportWidgets.Add( ViewportWidget0 );
-	ViewportWidgets.Add( ViewportWidget1 );
-	ViewportWidgets.Add( ViewportWidget2 );
-	ViewportWidgets.Add( ViewportWidget3 );
+	ViewportWidgets.Add( *ViewportKey0, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget0.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey1, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget1.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey2, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget2.ToSharedRef()) ) );
+	ViewportWidgets.Add( *ViewportKey3, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget3.ToSharedRef()) ) );
 
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget0->GetLevelViewportClient();

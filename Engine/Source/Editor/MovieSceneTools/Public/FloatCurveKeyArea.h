@@ -44,6 +44,7 @@ public:
 	virtual FLinearColor GetColor() override;
 	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override;
 	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const override;
+	virtual TSharedPtr<FStructOnScope> GetKeyStruct(FKeyHandle KeyHandle) override;
 	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const override;
 	virtual float GetKeyTime(FKeyHandle KeyHandle) const override;
 	virtual UMovieSceneSection* GetOwningSection() override;
@@ -51,6 +52,7 @@ public:
 	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const override;
 	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, float DeltaPosition) override;
 	virtual void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override;
+	virtual bool CanSetExtrapolationMode() const override;
 	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override;
 	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override;
 	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override;

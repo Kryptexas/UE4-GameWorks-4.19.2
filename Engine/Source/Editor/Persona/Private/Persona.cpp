@@ -2617,7 +2617,7 @@ void FPersona::RedoAction()
 
 FSlateIcon FPersona::GetRecordStatusImage() const
 {
-	if (Recorder.InRecording())
+	if (IsRecording())
 	{
 		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StopRecordAnimation");
 	}
@@ -2627,7 +2627,7 @@ FSlateIcon FPersona::GetRecordStatusImage() const
 
 FText FPersona::GetRecordMenuLabel() const
 {
-	if(Recorder.InRecording())
+	if(IsRecording())
 	{
 		return LOCTEXT("Persona_StopRecordAnimationMenuLabel", "Stop Record Animation");
 	}
@@ -2637,7 +2637,12 @@ FText FPersona::GetRecordMenuLabel() const
 
 FText FPersona::GetRecordStatusLabel() const
 {
-	if (Recorder.InRecording())
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>(TEXT("Persona"));
+
+	bool bInRecording = false;
+	PersonaModule.OnIsRecordingActive().ExecuteIfBound(PreviewComponent, bInRecording);
+
+	if (bInRecording)
 	{
 		return LOCTEXT("Persona_StopRecordAnimationLabel", "Stop");
 	}
@@ -2647,7 +2652,12 @@ FText FPersona::GetRecordStatusLabel() const
 
 FText FPersona::GetRecordStatusTooltip() const
 {
-	if (Recorder.InRecording())
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>(TEXT("Persona"));
+
+	bool bInRecording = false;
+	PersonaModule.OnIsRecordingActive().ExecuteIfBound(PreviewComponent, bInRecording);
+
+	if (bInRecording)
 	{
 		return LOCTEXT("Persona_StopRecordAnimation", "Stop Record Animation");
 	}
@@ -2663,13 +2673,18 @@ void FPersona::RecordAnimation()
 		return;
 	}
 
-	if (Recorder.InRecording())
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>(TEXT("Persona"));
+
+	bool bInRecording = false;
+	PersonaModule.OnIsRecordingActive().ExecuteIfBound(PreviewComponent, bInRecording);
+
+	if (bInRecording)
 	{
-		Recorder.StopRecord(true);
+		PersonaModule.OnStopRecording().ExecuteIfBound(PreviewComponent);
 	}
 	else
 	{
-		Recorder.TriggerRecordAnimation(PreviewComponent);
+		PersonaModule.OnRecord().ExecuteIfBound(PreviewComponent);
 	}
 }
 
@@ -3043,10 +3058,11 @@ void FPersona::Tick(float DeltaTime)
 		Viewport.Pin()->RefreshViewport();
 	}
 
-	if (Recorder.InRecording())
+	if (IsRecording())
 	{
 		// make sure you don't allow switch previewcomponent
-		Recorder.UpdateRecord(PreviewComponent, DeltaTime);
+		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
+		PersonaModule.OnTickRecording().ExecuteIfBound(PreviewComponent, DeltaTime);
 	}
 
 	if (PreviewComponent && LastCachedLODForPreviewComponent != PreviewComponent->PredictedLODLevel)
@@ -3325,6 +3341,38 @@ FText FPersona::GetPreviewAssetTooltip() const
 void FPersona::SetSelectedBlendProfile(UBlendProfile* InBlendProfile)
 {
 	OnBlendProfileSelected.Broadcast(InBlendProfile);
+}
+
+bool FPersona::IsRecording() const
+{
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
+
+	bool bInRecording = false;
+	PersonaModule.OnIsRecordingActive().ExecuteIfBound(PreviewComponent, bInRecording);
+
+	return bInRecording;
+}
+
+void FPersona::StopRecording()
+{
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
+	PersonaModule.OnStopRecording().ExecuteIfBound(PreviewComponent);
+}
+
+UAnimSequence* FPersona::GetCurrentRecording() const
+{
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
+	UAnimSequence* Recording = nullptr;
+	PersonaModule.OnGetCurrentRecording().ExecuteIfBound(PreviewComponent, Recording);
+	return Recording;
+}
+
+float FPersona::GetCurrentRecordingTime() const
+{
+	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
+	float RecordingTime = 0.0f;
+	PersonaModule.OnGetCurrentRecordingTime().ExecuteIfBound(PreviewComponent, RecordingTime);
+	return RecordingTime;
 }
 
 static class FMeshHierarchyCmd : private FSelfRegisteringExec

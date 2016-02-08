@@ -16,7 +16,7 @@ FMovieSceneAudioTrackInstance::FMovieSceneAudioTrackInstance( UMovieSceneAudioTr
 }
 
 
-void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneAudioTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	const TArray<UMovieSceneSection*>& AudioSections = AudioTrack->GetAudioSections();
 
@@ -24,7 +24,7 @@ void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, 
 
 	if (Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
 	{
-		if (Position > LastPosition)
+		if (UpdateData.Position > UpdateData.LastPosition)
 		{
 			TMap<int32, TArray<UMovieSceneAudioSection*> > AudioSectionsBySectionIndex;
 			for (int32 i = 0; i < AudioSections.Num(); ++i)
@@ -52,11 +52,11 @@ void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, 
 						for (int32 i = 0; i < MovieSceneAudioSections.Num(); ++i)
 						{
 							UMovieSceneAudioSection* AudioSection = MovieSceneAudioSections[i];
-							if (AudioSection->IsTimeWithinAudioRange(Position))
+							if (AudioSection->IsTimeWithinAudioRange(UpdateData.Position))
 							{
-								if (!AudioSection->IsTimeWithinAudioRange(LastPosition) || !Component->IsPlaying())
+								if (!AudioSection->IsTimeWithinAudioRange(UpdateData.LastPosition) || !Component->IsPlaying())
 								{
-									PlaySound(AudioSection, Component, Position);
+									PlaySound(AudioSection, Component, UpdateData.Position);
 								}
 								bComponentIsPlaying = true;
 							}
@@ -78,7 +78,7 @@ void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, 
 	else if (Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Scrubbing)
 	{
 		// handle scrubbing
-		if (!FMath::IsNearlyEqual(Position, LastPosition))
+		if (!FMath::IsNearlyEqual(UpdateData.Position, UpdateData.LastPosition))
 		{
 			for (int32 i = 0; i < AudioSections.Num(); ++i)
 			{
@@ -92,9 +92,9 @@ void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, 
 						TWeakObjectPtr<UAudioComponent> Component = GetAudioComponent(Actors[ActorIndex], RowIndex);
 						if (Component.IsValid())
 						{
-							if (AudioSection->IsTimeWithinAudioRange(Position) && !Component->IsPlaying())
+							if (AudioSection->IsTimeWithinAudioRange(UpdateData.Position) && !Component->IsPlaying())
 							{
-								PlaySound(AudioSection, Component, Position);
+								PlaySound(AudioSection, Component, UpdateData.Position);
 								// Fade out the sound at the same volume in order to simply
 								// set a short duration on the sound, far from ideal soln
 								Component->FadeOut(AudioTrackConstants::ScrubDuration, 1.f);

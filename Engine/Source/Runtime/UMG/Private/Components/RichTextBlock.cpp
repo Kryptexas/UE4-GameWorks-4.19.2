@@ -70,11 +70,6 @@ void URichTextBlock::SynchronizeProperties()
 
 #if WITH_EDITOR
 
-const FSlateBrush* URichTextBlock::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.RichTextBlock");
-}
-
 const FText URichTextBlock::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");

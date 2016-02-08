@@ -21,6 +21,8 @@ class FSequencerInputHandlerStack
 {
 public:
 
+	FSequencerInputHandlerStack() : CapturedIndex(INDEX_NONE) {}
+
 	/** Add a handler to the stack */
 	void AddHandler(ISequencerInputHandler* Handler) { Handlers.Add(Handler); }
 

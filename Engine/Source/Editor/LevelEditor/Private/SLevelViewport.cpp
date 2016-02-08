@@ -124,7 +124,11 @@ bool SLevelViewport::IsVisible() const
 
 bool SLevelViewport::IsInForegroundTab() const
 {
-	return ViewportWidget.IsValid() && (!ParentLayout.IsValid() || ParentLayout.Pin()->IsLevelViewportVisible(*this));
+	if (ViewportWidget.IsValid() && ParentLayout.IsValid() && !ConfigKey.IsEmpty())
+	{
+		return ParentLayout.Pin()->IsLevelViewportVisible(*ConfigKey);
+	}
+	return false;
 }
 
 void SLevelViewport::Construct(const FArguments& InArgs)
@@ -1530,9 +1534,9 @@ EVisibility SLevelViewport::GetTransformToolbarVisibility() const
 
 bool SLevelViewport::IsMaximized() const
 {
-	if( ParentLayout.IsValid() )
+	if( ParentLayout.IsValid() && !ConfigKey.IsEmpty() )
 	{
-		return ParentLayout.Pin()->IsViewportMaximized( *this );
+		return ParentLayout.Pin()->IsViewportMaximized( *ConfigKey );
 	}
 
 	// Assume the viewport is always maximized if we have no layout for some reason
@@ -1609,15 +1613,19 @@ void SLevelViewport::OnToggleImmersive()
 		// We always want to animate in response to user-interactive toggling of maximized state
 		const bool bAllowAnimation = true;
 
-		ParentLayout.Pin()->RequestMaximizeViewport( SharedThis( this ), bWantMaximize, bWantImmersive, bAllowAnimation );
+		FName ViewportName = *ConfigKey;
+		if (!ViewportName.IsNone())
+		{
+			ParentLayout.Pin()->RequestMaximizeViewport( ViewportName, bWantMaximize, bWantImmersive, bAllowAnimation );
+		}
 	}
 }
 
 bool SLevelViewport::IsImmersive() const
 {
-	if( ParentLayout.IsValid() )
+	if( ParentLayout.IsValid() && !ConfigKey.IsEmpty() )
 	{
-		return ParentLayout.Pin()->IsViewportImmersive( *this );
+		return ParentLayout.Pin()->IsViewportImmersive( *ConfigKey );
 	}
 
 	// Assume the viewport is not immersive if we have no layout for some reason
@@ -2395,7 +2403,12 @@ FReply SLevelViewport::OnToggleMaximize()
 		// We always want to animate in response to user-interactive toggling of maximized state
 		const bool bAllowAnimation = true;
 
-		ParentLayoutPinned->RequestMaximizeViewport(SharedThis(this), bWantMaximize, bWantImmersive, bAllowAnimation);
+
+		FName ViewportName = *ConfigKey;
+		if (!ViewportName.IsNone())
+		{
+			ParentLayout.Pin()->RequestMaximizeViewport( ViewportName, bWantMaximize, bWantImmersive, bAllowAnimation );
+		}
 	}
 	return FReply::Handled();
 }
@@ -2406,7 +2419,12 @@ void SLevelViewport::MakeImmersive( const bool bWantImmersive, const bool bAllow
 	if( ensure( ParentLayout.IsValid() ) ) 
 	{
 		const bool bWantMaximize = IsMaximized();
-		ParentLayout.Pin()->RequestMaximizeViewport( SharedThis( this ), bWantMaximize, bWantImmersive, bAllowAnimation );
+
+		FName ViewportName = *ConfigKey;
+		if (!ViewportName.IsNone())
+		{
+			ParentLayout.Pin()->RequestMaximizeViewport( ViewportName, bWantMaximize, bWantImmersive, bAllowAnimation );
+		}
 	}
 }
 
@@ -3274,9 +3292,9 @@ void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)
 		TSharedPtr<FLevelViewportTabContent> ViewportTabPinned = LayoutPinned->GetParentTabContent().Pin();
 		if (ViewportTabPinned.IsValid())
 		{
-			ViewportTabPinned->SetViewportConfiguration(ConfigurationName);
 			// Viewport clients are going away.  Any current one is invalid.
 			GCurrentLevelEditingViewportClient = nullptr;
+			ViewportTabPinned->SetViewportConfiguration(ConfigurationName);
 			FSlateApplication::Get().DismissAllMenus();
 		}
 	}

@@ -9,6 +9,7 @@ class FSequencerTimeSliderController;
 class FSequencer;
 
 #include "SequencerInputHandlerStack.h"
+#include "ISequencerEditTool.h"
 
 /**
  * Structure representing a slot in the track area.
@@ -83,6 +84,18 @@ public:
 	virtual FVector2D ComputeDesiredSize(float) const override;
 	virtual FChildren* GetChildren() override;
 
+protected:
+
+	/** Check whether it's possible to activate the specified tool */
+	bool CanActivateEditTool(FName Identifier) const;
+
+	/** Attempt to activate the tool specified by the template parameter */
+	template<typename EditToolType>
+	bool AttemptToActivateTool();
+
+	/** Update any hover state required for the track area */
+	void UpdateHoverStates( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+
 private:
 
 	/** The track area's children. */
@@ -107,6 +120,9 @@ private:
 
 	/** Keep a hold of the size of the area so we can maintain zoom levels. */
 	TOptional<FVector2D> SizeLastFrame;
+
+	/** The currently actuve edit tool on this track area */
+	TUniquePtr<ISequencerEditTool> EditTool;
 
 private:
 

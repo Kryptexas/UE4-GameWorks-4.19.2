@@ -103,11 +103,6 @@ void UCircularThrobber::PostLoad()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UCircularThrobber::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.CircularThrobber");
-}
-
 const FText UCircularThrobber::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

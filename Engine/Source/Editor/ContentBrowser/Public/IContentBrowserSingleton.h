@@ -8,6 +8,7 @@
 #include "IFilter.h"
 #include "FilterCollection.h"
 #include "AssetThumbnail.h"
+#include "UnrealClient.h"
 
 typedef const FAssetData& FAssetFilterType;
 typedef TFilterCollection<FAssetFilterType> FAssetFilterCollectionType;
@@ -367,4 +368,12 @@ public:
 
 	/** Generates a list of assets that are selected in the primary content browser */
 	virtual void GetSelectedAssets(TArray<FAssetData>& SelectedAssets) = 0;
+
+	/**
+	 * Capture active viewport to thumbnail and assigns that thumbnail to incoming assets
+	 *
+	 * @param InViewport - viewport to sample from
+	 * @param InAssetsToAssign - assets that should receive the new thumbnail ONLY if they are assets that use GenericThumbnails
+	 */
+	virtual void CaptureThumbnailFromViewport(FViewport* InViewport, TArray<FAssetData>& SelectedAssets) = 0;
 };

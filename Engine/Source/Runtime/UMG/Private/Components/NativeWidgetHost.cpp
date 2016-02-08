@@ -65,11 +65,6 @@ TSharedRef<SWidget> UNativeWidgetHost::GetDefaultContent()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UNativeWidgetHost::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.NativeWidgetHost");
-}
-
 const FText UNativeWidgetHost::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

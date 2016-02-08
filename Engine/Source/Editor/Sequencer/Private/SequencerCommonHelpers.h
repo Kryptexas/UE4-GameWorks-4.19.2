@@ -39,6 +39,16 @@ public:
 	* Convert frame to time
 	*/
 	static float FrameToTime(int32 Frame, float FrameRate);
+
+	/**
+	 * Perform default selection for the specified mouse event, based on the current hotspot
+	 */
+	static void PerformDefaultSelection(FSequencer& Sequencer, const FPointerEvent& MouseEvent);
+	
+	/**
+	 * Attempt to summon a context menu for the current hotspot
+	 */
+	static TSharedPtr<SWidget> SummonContextMenu(FSequencer& Sequencer, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 };
 
 

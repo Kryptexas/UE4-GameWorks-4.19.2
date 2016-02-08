@@ -851,6 +851,44 @@ void SLevelViewportToolBar::GenerateViewportConfigsMenu(FMenuBuilder& MenuBuilde
 			);
 	}
 	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("LevelViewportSpecializedConfigs", LOCTEXT("SpecializedConfigHeader", "Specialized") );
+	{
+		FToolBarBuilder SpecializedButtons(CommandList, FMultiBoxCustomization::None);
+		SpecializedButtons.SetLabelVisibility(EVisibility::Collapsed);
+		SpecializedButtons.SetStyle(&FEditorStyle::Get(), "ViewportLayoutToolbar");
+
+
+		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>("LevelEditor");
+		LevelEditorModule.IterateCustomViewportLayouts([&](FName InName, const FCustomViewportLayoutDefinition& Definition){
+
+			SpecializedButtons.AddToolBarButton(
+				FExecuteAction::CreateSP(Viewport.Pin().Get(), &SLevelViewport::OnSetViewportConfiguration, InName ),
+				NAME_None,
+				Definition.DisplayName,
+				Definition.Description,
+				Definition.Icon
+			);
+
+		});
+
+		MenuBuilder.AddWidget(
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SpecializedButtons.MakeWidget()
+			]
+			+SHorizontalBox::Slot()
+			.FillWidth(1)
+			[
+				SNullWidget::NullWidget
+			],
+			FText::GetEmpty(),
+			true
+		);
+	}
+	MenuBuilder.EndSection();
 }
 
 

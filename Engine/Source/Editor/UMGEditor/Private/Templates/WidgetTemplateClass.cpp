@@ -40,10 +40,14 @@ UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)
 	return CreateNamed(Tree, NAME_None);
 }
 
+const FSlateBrush* GetEditorIcon_Deprecated(UWidget* Widget);
+
 const FSlateBrush* FWidgetTemplateClass::GetIcon() const
 {
-	UWidget* DefaultWidget = WidgetClass->GetDefaultObject<UWidget>();
-	return DefaultWidget->GetEditorIcon();
+	// @todo UMG: remove after 4.12
+	auto DefaultUserWidget = WidgetClass->GetDefaultObject<UUserWidget>();
+	return GetEditorIcon_Deprecated(DefaultUserWidget);
+	// return FClassIconFinder::FindIconForClass(WidgetClass);
 }
 
 TSharedRef<IToolTip> FWidgetTemplateClass::GetToolTip() const

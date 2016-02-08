@@ -42,10 +42,6 @@
 #include "Engine/CoreSettings.h"
 #include "EngineAnalytics.h"
 
-#if WITH_EDITOR
-#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
-#endif
-
 ENGINE_API bool GDisallowNetworkTravel = false;
 
 // How slow must a frame be (in seconds) to be logged out (<= 0 to disable)
@@ -1154,11 +1150,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 #if WITH_EDITOR
-	// tick animation recorder. available only in editor builds
-	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
-	{
-		FAnimationRecorderManager::Get().Tick(DeltaSeconds);
-	}
+	BroadcastPostEditorTick(DeltaSeconds);
 #endif
 }
 

@@ -17,6 +17,13 @@ enum class ETreeRecursion
 	Recursive, NonRecursive
 };
 
+/** Structure to represent the top/bottom bounds of a highlight region */
+struct FHighlightRegion
+{
+	FHighlightRegion(float InTop, float InBottom) : Top(InTop), Bottom(InBottom) {}
+	float Top, Bottom;
+};
+
 /** Structure used to define a column in the tree view */
 struct FSequencerTreeViewColumn
 {
@@ -44,9 +51,13 @@ public:
 	/** Construct this widget */
 	void Construct(const FArguments& InArgs, const TSharedRef<FSequencerNodeTree>& InNodeTree, const TSharedRef<SSequencerTrackArea>& InTrackArea);
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	/** Access the underlying tree data */
 	TSharedPtr<FSequencerNodeTree> GetNodeTree() { return SequencerNodeTree; }
+
+	/** @return an optional region specifying the vertical bounds in which a highlight should be drawn */
+	const TOptional<FHighlightRegion>& GetHighlightRegion() const { return HighlightRegion; }
 
 public:
 
@@ -123,6 +134,9 @@ public:
 	/** Retrieve the last reported physical geometry for the specified node, if available */
 	TOptional<FCachedGeometry> GetPhysicalGeometryForNode(const FDisplayNodeRef& InNode) const;
 
+	/** Attempt to compute the physical position of the specified node */
+	TOptional<float> ComputeNodePosition(const FDisplayNodeRef& InNode) const;
+
 	/** Report geometry for a child row */
 	void ReportChildRowGeometry(const FDisplayNodeRef& InNode, const FGeometry& InGeometry);
 
@@ -161,6 +175,9 @@ private:
 
 	/** Strong pointer to the track area so we can generate track lanes as we need them */
 	TSharedPtr<SSequencerTrackArea> TrackArea;
+
+	/** A global highlight for the currently hovered tree node hierarchy */
+	TOptional<FHighlightRegion> HighlightRegion;
 };
 
 /** Widget that represents a row in the sequencer's tree control. */

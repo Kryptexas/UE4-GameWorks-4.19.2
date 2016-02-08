@@ -5,8 +5,12 @@
 #include "ISequencerObjectChangeListener.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "LevelSequenceEditorSpawnRegister.h"
+#include "MovieScene.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "AssetSelection.h"
 
-
+#define LOCTEXT_NAMESPACE "LevelSequenceEditorSpawnRegister"
 
 /* FLevelSequenceEditorSpawnRegister structors
  *****************************************************************************/
@@ -169,3 +173,88 @@ void FLevelSequenceEditorSpawnRegister::HandleAnyPropertyChanged(UObject& Spawne
 		DefaultRootComponent->RelativeScale3D = RootComponent->RelativeScale3D;
 	}
 }
+
+
+#if WITH_EDITOR
+
+TValueOrError<FNewSpawnable, FText> FLevelSequenceEditorSpawnRegister::CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene)
+{
+	FNewSpawnable NewSpawnable(nullptr, FName::NameToDisplayString(SourceObject.GetName(), false));
+
+	const FName BlueprintName = MakeUniqueObjectName(&OwnerMovieScene, UBlueprint::StaticClass(), SourceObject.GetFName());
+
+	// First off, deal with creating a spawnable from a class
+	if (UClass* InClass = Cast<UClass>(&SourceObject))
+	{
+		if (!InClass->IsChildOf(AActor::StaticClass()))
+		{
+			FText ErrorText = FText::Format(LOCTEXT("NotAnActorClass", "Unable to add spawnable for class of type '{0}' since it is not a valid actor class."), FText::FromString(InClass->GetName()));
+			return MakeError(ErrorText);
+		}
+
+		NewSpawnable.Blueprint = FKismetEditorUtilities::CreateBlueprint( InClass, &OwnerMovieScene, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass() );
+	}
+
+	// Deal with creating a spawnable from an instance of an actor
+	else if (AActor* Actor = Cast<AActor>(&SourceObject))
+	{
+		using namespace EditorUtilities;
+
+		UBlueprint* ActorBlueprint = Cast<UBlueprint>(Actor->GetClass()->ClassGeneratedBy);
+		if (ActorBlueprint)
+		{
+			// Create a new blueprint out of this actor's parent blueprint
+			NewSpawnable.Blueprint = FKismetEditorUtilities::CreateBlueprint(ActorBlueprint->GeneratedClass, &OwnerMovieScene, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+		}
+		else
+		{
+			NewSpawnable.Blueprint = FKismetEditorUtilities::CreateBlueprint(Actor->GetClass(), &OwnerMovieScene, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor"));
+		}
+
+		// Use the actor name
+		NewSpawnable.Name = Actor->GetActorLabel();
+	}
+
+	// If it's a blueprint, we need some special handling
+	else if (UBlueprint* SourceBlueprint = Cast<UBlueprint>(&SourceObject))
+	{
+		UClass* SourceParentClass = SourceBlueprint->GeneratedClass;
+
+		if (!FKismetEditorUtilities::CanCreateBlueprintOfClass(SourceParentClass))
+		{
+			FText ErrorText = FText::Format(LOCTEXT("UnableToAddSpawnableBlueprint", "Unable to add spawnable for class of type '{0}' since it is not a valid blueprint parent class."), FText::FromString(SourceParentClass->GetName()));
+			return MakeError(ErrorText);
+		}
+
+		NewSpawnable.Blueprint = FKismetEditorUtilities::CreateBlueprint(SourceParentClass, &OwnerMovieScene, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+	}
+
+	// At this point we have to assume it's an asset
+	else
+	{
+		// @todo sequencer: Add support for forcing specific factories for an asset?
+		UActorFactory* FactoryToUse = FActorFactoryAssetProxy::GetFactoryForAssetObject(&SourceObject);
+		if (!FactoryToUse)
+		{
+			FText ErrorText = FText::Format(LOCTEXT("CouldNotFindFactory", "Unable to create spawnable from  asset '{0}' - no valid factory could be found."), FText::FromString(SourceObject.GetName()));
+			return MakeError(ErrorText);
+		}
+
+		NewSpawnable.Blueprint = FactoryToUse->CreateBlueprint( &SourceObject, &OwnerMovieScene, BlueprintName );
+	}
+
+
+	if (!NewSpawnable.Blueprint)
+	{
+		FText ErrorText = FText::Format(LOCTEXT("UnknownClassError", "Unable to create a new spawnable object from {0}."), FText::FromString(SourceObject.GetName()));
+		return MakeError(ErrorText);
+	}
+
+	FKismetEditorUtilities::CompileBlueprint(NewSpawnable.Blueprint);
+	return MakeValue(NewSpawnable);
+}
+
+#endif
+
+
+#undef LOCTEXT_NAMESPACE

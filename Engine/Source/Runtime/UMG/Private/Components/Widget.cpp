@@ -678,7 +678,7 @@ const FText UWidget::GetPaletteCategory()
 
 const FSlateBrush* UWidget::GetEditorIcon()
 {
-	return FUMGStyle::Get().GetBrush("Widget");
+	return nullptr;
 }
 
 EVisibility UWidget::GetVisibilityInDesigner() const

@@ -423,7 +423,7 @@ int32 FSequencerTimeSliderController::DrawPlaybackRange(const FGeometry& Allotte
 		FEditorStyle::GetBrush("WhiteBrush"),
 		MyClippingRect,
 		ESlateDrawEffect::None,
-		FLinearColor::Black.CopyWithNewOpacity(0.2f)
+		FLinearColor::Black.CopyWithNewOpacity(0.3f)
 	);
 
 	FSlateDrawElement::MakeBox(
@@ -433,7 +433,7 @@ int32 FSequencerTimeSliderController::DrawPlaybackRange(const FGeometry& Allotte
 		FEditorStyle::GetBrush("WhiteBrush"),
 		MyClippingRect,
 		ESlateDrawEffect::None,
-		FLinearColor::Black.CopyWithNewOpacity(0.2f)
+		FLinearColor::Black.CopyWithNewOpacity(0.3f)
 	);
 	return LayerId + 1;
 }
@@ -533,10 +533,12 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 			}
 
 			// Zoom in
+			bool bDoSetRange = false;
 			if (NewValue > DownValue)
 			{
 				// push the current value onto the stack
 				RangeStack.Add(FVector2D(TimeSliderArgs.ViewRange.Get().GetLowerBoundValue(), TimeSliderArgs.ViewRange.Get().GetUpperBoundValue()));
+				bDoSetRange = true;
 			}
 			// Zoom out
 			else if (RangeStack.Num())
@@ -545,14 +547,18 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( SWidget& WidgetOwner, co
 				FVector2D LastRange = RangeStack.Pop();
 				DownValue = LastRange[0];
 				NewValue = LastRange[1];
+				bDoSetRange = true;
 			}
 
-			TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(DownValue, NewValue), EViewRangeInterpolation::Immediate);
+			if (bDoSetRange)
+			{
+				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(DownValue, NewValue), EViewRangeInterpolation::Immediate);
 					
-			if( !TimeSliderArgs.ViewRange.IsBound() )
-			{	
-				// The output is not bound to a delegate so we'll manage the value ourselves
-				TimeSliderArgs.ViewRange.Set( TRange<float>( DownValue, NewValue ) );
+				if( !TimeSliderArgs.ViewRange.IsBound() )
+				{	
+					// The output is not bound to a delegate so we'll manage the value ourselves
+					TimeSliderArgs.ViewRange.Set( TRange<float>( DownValue, NewValue ) );
+				}
 			}
 		}
 		else

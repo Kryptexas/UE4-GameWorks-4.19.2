@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "SequencerEditTool_Default.h"
+#include "SequencerEditTool.h"
 #include "DelayedDrag.h"
 
 
@@ -10,12 +10,15 @@ class ISequencerEditToolDragOperation;
 
 
 class FSequencerEditTool_Movement
-	: public FSequencerEditTool_Default
+	: public FSequencerEditTool
 {
 public:
 
+	/** Static identifier for this edit tool */
+	static const FName Identifier;
+
 	/** Create and initialize a new instance. */
-	FSequencerEditTool_Movement(TSharedPtr<FSequencer> InSequencer, TSharedPtr<SSequencer> InSequencerWidget);
+	FSequencerEditTool_Movement(FSequencer& InSequencer);
 
 public:
 
@@ -27,14 +30,11 @@ public:
 	virtual void OnMouseCaptureLost() override;
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	virtual FName GetIdentifier() const override;
-	virtual ISequencer& GetSequencer() const override;
+	virtual bool CanDeactivate() const override;
 
 private:
 
 	TSharedPtr<ISequencerEditToolDragOperation> CreateDrag(const FPointerEvent& MouseEvent);
-
-	/** The sequencer itself */
-	TWeakPtr<FSequencer> Sequencer;
 
 	/** Sequencer widget */
 	TWeakPtr<SSequencer> SequencerWidget;

@@ -227,11 +227,6 @@ void UComboBoxString::HandleOpening()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UComboBoxString::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.ComboBox");
-}
-
 const FText UComboBoxString::GetPaletteCategory()
 {
 	return LOCTEXT("Input", "Input");

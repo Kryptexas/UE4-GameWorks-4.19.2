@@ -7,6 +7,12 @@ class ISequencerSection;
 class UMovieSceneSection;
 class UMovieSceneTrack;
 
+/** Data structure containing information required to build an edit widget */
+struct FBuildEditWidgetParams
+{
+	/** Attribute that specifies when the node relating to this edit widget is hovered */
+	TAttribute<bool> NodeIsHovered;
+};
 
 /**
  * Interface for sequencer track editors.
@@ -63,9 +69,10 @@ public:
 	 * Builds an edit widget for the outliner nodes which represent tracks which are edited by this editor.
 	 * @param ObjectBinding The object binding associated with the track being edited by this editor.
 	 * @param Track The track being edited by this editor.
+	 * @param Params Parameter struct containing data relevant to the edit widget
 	 * @returns The the widget to display in the outliner, or an empty shared ptr if not widget is to be displayed.
 	 */
-	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track) = 0;
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) = 0;
 
 	/**
 	 * Builds the context menu for the track.
@@ -96,6 +103,12 @@ public:
 	 * @param Track The track that owns the section.
 	 */
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) = 0;
+
+	/** Gets an icon brush for this track editor */
+	virtual const FSlateBrush* GetIconBrush() const { return nullptr; }
+
+	/** Called when the instance of this track editor is initialized */
+	virtual void OnInitialize() = 0;
 
 	/** Called when the instance of this track editor is released */
 	virtual void OnRelease() = 0;

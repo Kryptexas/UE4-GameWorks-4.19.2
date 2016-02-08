@@ -79,9 +79,9 @@ void FMovieScene3DTransformTrackInstance::UpdateRuntimeMobility(const TArray<UOb
 	}
 }
 
-void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieScene3DTransformTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
-	if (UpdatePass == MSUP_PreUpdate)
+	if (UpdateData.UpdatePass == MSUP_PreUpdate)
 	{
 		UpdateRuntimeMobility(RuntimeObjects);
 	}
@@ -90,7 +90,7 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 	FRotator Rotation;
 	FVector Scale;
 
-	if( TransformTrack->Eval( Position, LastPosition, Translation, Rotation, Scale ) )
+	if( TransformTrack->Eval( UpdateData.Position, UpdateData.LastPosition, Translation, Rotation, Scale ) )
 	{
 		for( int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex )
 		{
@@ -98,11 +98,11 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 
 			if (SceneComponent != nullptr)
 			{
-				if (UpdatePass == MSUP_PreUpdate)
+				if (UpdateData.UpdatePass == MSUP_PreUpdate)
 				{
 					SceneComponent->ResetRelativeTransform();
 				}
-				else if (UpdatePass == MSUP_Update)
+				else if (UpdateData.UpdatePass == MSUP_Update)
 				{
 					SceneComponent->AddRelativeLocation(Translation);
 					SceneComponent->AddRelativeRotation(Rotation);

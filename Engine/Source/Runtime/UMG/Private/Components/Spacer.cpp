@@ -51,11 +51,6 @@ void USpacer::SynchronizeProperties()
 
 #if WITH_EDITOR
 
-const FSlateBrush* USpacer::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Spacer");
-}
-
 const FText USpacer::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

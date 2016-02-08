@@ -4,7 +4,7 @@
 #include "MovieSceneSection.h"
 
 
-UMovieSceneSection::UMovieSceneSection( const FObjectInitializer& ObjectInitializer )
+UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializer)
 	: Super( ObjectInitializer )
 	, StartTime(0.0f)
 	, EndTime(0.0f)
@@ -15,15 +15,17 @@ UMovieSceneSection::UMovieSceneSection( const FObjectInitializer& ObjectInitiali
 	, bIsInfinite(false)
 { }
 
-bool
-UMovieSceneSection::TryModify(bool bAlwaysMarkDirty)
+
+bool UMovieSceneSection::TryModify(bool bAlwaysMarkDirty)
 {
 	if (IsLocked())
 	{
 		return false;
 	}
 
-	return Modify(bAlwaysMarkDirty);
+	Modify(bAlwaysMarkDirty);
+
+	return true;
 }
 
 
@@ -133,6 +135,7 @@ void UMovieSceneSection::TrimSection(float TrimTime, bool bTrimLeft)
 	}
 }
 
+
 void UMovieSceneSection::AddKeyToCurve(FRichCurve& InCurve, float Time, float Value, EMovieSceneKeyInterpolation Interpolation, const bool bUnwindRotation)
 {
 	if (IsTimeWithinSection(Time))
@@ -140,7 +143,6 @@ void UMovieSceneSection::AddKeyToCurve(FRichCurve& InCurve, float Time, float Va
 		if (TryModify())
 		{
 			FKeyHandle ExistingKeyHandle = InCurve.FindKey(Time);
-				
 			FKeyHandle NewKeyHandle = InCurve.UpdateOrAddKey(Time, Value, bUnwindRotation);
 
 			if (!InCurve.IsKeyHandleValid(ExistingKeyHandle) && InCurve.IsKeyHandleValid(NewKeyHandle))
@@ -151,6 +153,7 @@ void UMovieSceneSection::AddKeyToCurve(FRichCurve& InCurve, float Time, float Va
 	}
 }
 
+
 void UMovieSceneSection::SetCurveDefault(FRichCurve& InCurve, float Value)
 {
 	if (TryModify())
@@ -158,4 +161,3 @@ void UMovieSceneSection::SetCurveDefault(FRichCurve& InCurve, float Value)
 		InCurve.SetDefaultValue(Value);
 	}
 }
-

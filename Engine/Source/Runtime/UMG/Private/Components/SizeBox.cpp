@@ -232,11 +232,6 @@ void USizeBox::OnSlotRemoved(UPanelSlot* Slot)
 
 #if WITH_EDITOR
 
-const FSlateBrush* USizeBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.SizeBox");
-}
-
 const FText USizeBox::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

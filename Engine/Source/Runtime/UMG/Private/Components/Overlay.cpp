@@ -73,11 +73,6 @@ TSharedRef<SWidget> UOverlay::RebuildWidget()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UOverlay::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Overlay");
-}
-
 const FText UOverlay::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

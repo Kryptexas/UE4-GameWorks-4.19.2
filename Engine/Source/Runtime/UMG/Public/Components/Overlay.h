@@ -19,7 +19,6 @@ class UMG_API UOverlay : public UPanelWidget
 	UOverlaySlot* AddChildToOverlay(UWidget* Content);
 
 #if WITH_EDITOR
-	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 #endif
 

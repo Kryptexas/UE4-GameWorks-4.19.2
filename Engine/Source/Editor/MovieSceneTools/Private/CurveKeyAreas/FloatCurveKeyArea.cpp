@@ -133,6 +133,12 @@ ERichCurveInterpMode FFloatCurveKeyArea::GetKeyInterpMode(FKeyHandle KeyHandle) 
 }
 
 
+TSharedPtr<FStructOnScope> FFloatCurveKeyArea::GetKeyStruct(FKeyHandle KeyHandle)
+{
+	return MakeShareable(new FStructOnScope(FRichCurveKey::StaticStruct(), (uint8*)&Curve->GetKey(KeyHandle)));
+}
+
+
 ERichCurveTangentMode FFloatCurveKeyArea::GetKeyTangentMode(FKeyHandle KeyHandle) const
 {
 	if (Curve->IsKeyHandleValid(KeyHandle))
@@ -193,6 +199,10 @@ void FFloatCurveKeyArea::SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode
 	}
 }
 
+bool FFloatCurveKeyArea::CanSetExtrapolationMode() const
+{
+	return true;
+}
 
 void FFloatCurveKeyArea::SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode)
 {

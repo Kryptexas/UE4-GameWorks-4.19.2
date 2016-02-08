@@ -39,9 +39,9 @@ void FSectionHotspot::PopulateContextMenu(FMenuBuilder& MenuBuilder, ISequencer&
 		}
 	}
 
-	SectionInterface->BuildSectionContextMenu(MenuBuilder, ObjectBinding);
-
 	FSectionContextMenu::BuildMenu(MenuBuilder, Sequencer, MouseDownTime);
+
+	SectionInterface->BuildSectionContextMenu(MenuBuilder, ObjectBinding);
 }
 
 TSharedPtr<ISequencerEditToolDragOperation> FSectionResizeHotspot::InitiateDrag(ISequencer& Sequencer)

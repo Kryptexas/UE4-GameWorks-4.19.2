@@ -145,11 +145,6 @@ void USlider::SetSliderBarColor(FLinearColor InValue)
 
 #if WITH_EDITOR
 
-const FSlateBrush* USlider::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Slider");
-}
-
 const FText USlider::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");

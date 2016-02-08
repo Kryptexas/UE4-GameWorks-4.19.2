@@ -21,4 +21,5 @@
 
 #include "LevelSequenceActions.h"
 #include "LevelSequenceEditorToolkit.h"
+#include "LevelSequenceEditorStyle.h"
 #include "LevelSequencePlaybackSettingsCustomization.h"

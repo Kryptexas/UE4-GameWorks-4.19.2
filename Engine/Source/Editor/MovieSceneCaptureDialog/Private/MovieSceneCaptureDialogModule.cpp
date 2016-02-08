@@ -661,9 +661,14 @@ class FMovieSceneCaptureDialogModule : public IMovieSceneCaptureDialogModule
 		FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, nullptr, 0, nullptr, nullptr);
 
-		// @todo: progress reporting, UI feedback
 		if (ProcessHandle.IsValid())
 		{
+			if (CaptureObject->bCloseEditorWhenCaptureStarts)
+			{
+				FPlatformMisc::RequestExit(false);
+				return FText();
+			}
+
 			TSharedRef<FProcHandle> SharedProcHandle = MakeShareable(new FProcHandle(ProcessHandle));
 			auto GetCaptureStatus = [=]{
 				if (!FPlatformProcess::IsProcRunning(*SharedProcHandle))

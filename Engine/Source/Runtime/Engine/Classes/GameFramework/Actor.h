@@ -1513,7 +1513,7 @@ public:
 	FORCEINLINE class USceneComponent* GetRootComponent() const { return RootComponent; }
 
 	/**
-	 * Returns this actor's default attacjment component for attaching children to
+	 * Returns this actor's default attachment component for attaching children to
 	 * @return The scene component to be used as parent
 	 */
 	virtual class USceneComponent* GetDefaultAttachComponent() const { return GetRootComponent(); }

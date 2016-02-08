@@ -63,6 +63,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=General, AdvancedDisplay)
 	bool bUseSeparateProcess;
 
+	/** When enabled, the editor will shutdown when the capture starts */
+	UPROPERTY(EditAnywhere, config, Category=General, AdvancedDisplay, meta=(EditCondition=bUseSeparateProcess))
+	bool bCloseEditorWhenCaptureStarts;
+
 	/** Additional command line arguments to pass to the external process when capturing */
 	UPROPERTY(EditAnywhere, config, Category=General, AdvancedDisplay, meta=(EditCondition=bUseSeparateProcess))
 	FString AdditionalCommandLineArguments;

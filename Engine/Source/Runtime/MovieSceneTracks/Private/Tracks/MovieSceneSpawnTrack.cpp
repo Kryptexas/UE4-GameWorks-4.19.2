@@ -51,11 +51,11 @@ UMovieSceneSection* UMovieSceneSpawnTrack::CreateNewSection()
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneSpawnTrack::CreateInstance()
 {
-	return MakeShareable( new FMovieSceneSpawnTrackInstance( *this ) );
+	return MakeShareable(new FMovieSceneSpawnTrackInstance(*this));
 }
 
 
-bool UMovieSceneSpawnTrack::HasSection(const UMovieSceneSection& Section ) const
+bool UMovieSceneSpawnTrack::HasSection(const UMovieSceneSection& Section) const
 {
 	return Sections.ContainsByPredicate([&](const UMovieSceneSection* In){ return In == &Section; });
 }
@@ -93,7 +93,7 @@ const TArray<UMovieSceneSection*>& UMovieSceneSpawnTrack::GetAllSections() const
 
 #if WITH_EDITORONLY_DATA
 
-FText UMovieSceneSpawnTrack::GetDisplayName() const
+FText UMovieSceneSpawnTrack::GetDefaultDisplayName() const
 {
 	return LOCTEXT("TrackName", "Spawned");
 }

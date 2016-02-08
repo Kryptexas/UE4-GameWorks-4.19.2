@@ -12,7 +12,7 @@ class SGameLayerManager;
 /**
  * Encapsulates an SViewport and an SLevelViewportToolBar
  */
-class SLevelViewport : public SEditorViewport, public ILevelViewport
+class LEVELEDITOR_API SLevelViewport : public SEditorViewport, public ILevelViewport
 {
 public:
 	SLATE_BEGIN_ARGS( SLevelViewport )

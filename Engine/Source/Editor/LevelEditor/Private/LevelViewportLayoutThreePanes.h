@@ -22,7 +22,7 @@ protected:
 	virtual TSharedRef<SWidget> MakeViewportLayout(const FString& LayoutString) override;
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
-		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) = 0;
 
@@ -44,7 +44,7 @@ public:
 	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::ThreePanesLeft; }
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
-		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
@@ -58,7 +58,7 @@ public:
 	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::ThreePanesRight; }
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
-		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
@@ -72,7 +72,7 @@ public:
 	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::ThreePanesTop; }
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
-		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };
@@ -86,7 +86,7 @@ public:
 	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::ThreePanesBottom; }
 
 	virtual TSharedRef<SWidget> MakeThreePanelWidget(
-		TArray<TSharedPtr< SLevelViewport >>& ViewportWidgets,
+		TMap< FName, TSharedPtr< IViewportLayoutEntity >>& ViewportWidgets,
 		const FString& ViewportKey0, const FString& ViewportKey1, const FString& ViewportKey2,
 		float PrimarySplitterPercentage, float SecondarySplitterPercentage) override;
 };

@@ -141,11 +141,14 @@ void SSequencerObjectTrack::AddKeyTime(float NewTime, TArray<float>& OutKeyTimes
 
 
 FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
-	: ParentNode( InParentNode )
+	: VirtualTop( 0.f )
+	, VirtualBottom( 0.f )
+	, ParentNode( InParentNode )
 	, ParentTree( InParentTree )
 	, NodeName( InNodeName )
 	, bExpanded( false )
-{ }
+{
+}
 
 
 void FSequencerDisplayNode::Initialize(float InVirtualTop, float InVirtualBottom)
@@ -242,7 +245,6 @@ bool FSequencerDisplayNode::TraverseVisible_ParentFirst(const TFunctionRef<bool(
 	return true;
 }
 
-
 TSharedRef<FSequencerSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FText& DisplayLabel )
 {
 	TSharedPtr<FSequencerSectionCategoryNode> CategoryNode;
@@ -331,18 +333,37 @@ void FSequencerDisplayNode::AddKeyAreaNode(FName KeyAreaName, const FText& Displ
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner(const TSharedRef<SSequencerTreeViewRow>& InRow)
 {
-	auto NewWidget = SNew(SAnimationOutlinerTreeNode, SharedThis(this), InRow);
-	TreeNodeWidgetPtr = NewWidget;
+	auto NewWidget = SNew(SAnimationOutlinerTreeNode, SharedThis(this), InRow)
+	.IconBrush(this, &FSequencerDisplayNode::GetIconBrush)
+	.IconOverlayBrush(this, &FSequencerDisplayNode::GetIconOverlayBrush)
+	.IconToolTipText(this, &FSequencerDisplayNode::GetIconToolTipText)
+	.CustomContent()
+	[
+		GetCustomOutlinerContent()
+	];
 
 	return NewWidget;
 }
 
-
-TSharedRef<SWidget> FSequencerDisplayNode::GenerateEditWidgetForOutliner()
+TSharedRef<SWidget> FSequencerDisplayNode::GetCustomOutlinerContent()
 {
 	return SNew(SSpacer);
 }
 
+const FSlateBrush* FSequencerDisplayNode::GetIconBrush() const
+{
+	return nullptr;
+}
+
+const FSlateBrush* FSequencerDisplayNode::GetIconOverlayBrush() const
+{
+	return nullptr;
+}
+
+FText FSequencerDisplayNode::GetIconToolTipText() const
+{
+	return FText();
+}
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForSectionArea(const TAttribute< TRange<float> >& ViewRange)
 {
@@ -404,7 +425,7 @@ TSharedPtr<SWidget> FSequencerDisplayNode::OnSummonContextMenu(const FGeometry& 
 {
 	// @todo sequencer replace with UI Commands instead of faking it
 	const bool bShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, nullptr);
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, GetSequencer().GetCommandBindings());
 
 	BuildContextMenu(MenuBuilder);
 
@@ -456,8 +477,8 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			LOCTEXT("RenameNodeTooltip", "Rename this track"),
 			FSlateIcon(),
 			FUIAction(
-				FExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeExecute, ThisNode),
-				FCanExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute, ThisNode)
+				FExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeExecute),
+				FCanExecuteAction::CreateSP(this, &FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute)
 			)
 		);
 	}
@@ -502,9 +523,8 @@ bool FSequencerDisplayNode::IsHidden() const
 
 bool FSequencerDisplayNode::IsHovered() const
 {
-	return TreeNodeWidgetPtr.IsValid() && TreeNodeWidgetPtr.Pin()->IsHovered();
+	return ParentTree.GetHoveredNode().Get() == this;
 }
-
 
 TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(int32 InSectionIndex)
 {
@@ -546,20 +566,15 @@ TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::UpdateKeyGrouping(int32 InSec
 }
 
 
-void FSequencerDisplayNode::HandleContextMenuRenameNodeExecute(TSharedRef<FSequencerDisplayNode> NodeToBeRenamed)
+void FSequencerDisplayNode::HandleContextMenuRenameNodeExecute()
 {
-	TSharedPtr<SAnimationOutlinerTreeNode> TreeNodeWidget = TreeNodeWidgetPtr.Pin();
-
-	if (TreeNodeWidget.IsValid())
-	{
-		TreeNodeWidget->EnterRenameMode();
-	}
+	RenameRequestedEvent.Broadcast();
 }
 
 
-bool FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute(TSharedRef<FSequencerDisplayNode> NodeToBeRenamed) const
+bool FSequencerDisplayNode::HandleContextMenuRenameNodeCanExecute() const
 {
-	return NodeToBeRenamed->CanRenameNode();
+	return CanRenameNode();
 }
 
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "MovieSceneTrack.h"
+#include "MovieSceneNameableTrack.h"
 #include "MovieScene3DConstraintTrack.generated.h"
 
 
@@ -14,7 +14,7 @@ class UMovieSceneSection;
  */
 UCLASS( MinimalAPI )
 class UMovieScene3DConstraintTrack
-	: public UMovieSceneTrack
+	: public UMovieSceneNameableTrack
 {
 	GENERATED_UCLASS_BODY()
 
@@ -43,7 +43,7 @@ public:
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 
 #if WITH_EDITORONLY_DATA
-	virtual FText GetDisplayName() const override;
+	virtual FText GetDefaultDisplayName() const override;
 #endif
 
 protected:

@@ -43,6 +43,6 @@ class UMovieSceneParticleSection
 
 private:
 	/** Curve containing the particle keys. */
-	UPROPERTY(EditAnywhere, Category="Particles")
+	UPROPERTY()
 	FIntegralCurve ParticleKeys;
 };

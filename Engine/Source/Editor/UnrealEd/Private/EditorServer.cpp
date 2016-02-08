@@ -70,7 +70,6 @@
 #include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 #include "PhysicsPublic.h"
-#include "AnimationRecorder.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
 #include "KismetReinstanceUtilities.h"
 
@@ -4892,6 +4891,15 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 		{
 			RebuildAlteredBSP();
 		}
+
+		TArray<FEdMode*> ActiveModes; 
+		GCurrentLevelEditingViewportClient->GetModeTools()->GetActiveModes(ActiveModes);
+		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
+		{
+			// Notify active modes
+			ActiveModes[ModeIndex]->ActorMoveNotify();
+		}
+
 		return true;
 	}
 

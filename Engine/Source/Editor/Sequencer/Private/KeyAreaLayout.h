@@ -11,7 +11,10 @@ struct FKeyAreaLayoutElement
 	enum EType { Single, Group };
 
 	/** Construct this element from a grouped key area */
-	static FKeyAreaLayoutElement FromGroup(const TSharedRef<FGroupedKeyArea>& InKeyAreaGroup, float InOffset, TOptional<float> InHeight = TOptional<float>());
+	static FKeyAreaLayoutElement FromNonKeyArea(const TSharedRef<FSequencerDisplayNode>& InNode, float InOffset, TOptional<float> InHeight);
+
+	/** Construct this element from a grouped key area */
+	static FKeyAreaLayoutElement FromGroup(const TSharedRef<FSequencerDisplayNode>& InNode, const TSharedRef<FGroupedKeyArea>& InKeyAreaGroup, float InOffset, TOptional<float> InHeight = TOptional<float>());
 
 	/** Construct this element from a single Key area node */
 	static FKeyAreaLayoutElement FromKeyAreaNode(const TSharedRef<FSequencerSectionKeyAreaNode>& InKeyAreaNode, int32 SectionIndex, float InOffset);
@@ -28,10 +31,16 @@ struct FKeyAreaLayoutElement
 	/** Access the key area that this layout element was generated for */
 	TSharedRef<IKeyArea> GetKeyArea() const;
 
+	/** Access the display node that this layout element was generated for */
+	TSharedPtr<FSequencerDisplayNode> GetDisplayNode() const;
+
 private:
 
 	/** Pointer to the key area that we were generated from */
 	TSharedPtr<IKeyArea> KeyArea;
+
+	/** The specific node that this key area relates to */
+	TSharedPtr<FSequencerDisplayNode> DisplayNode;
 
 	/** The type of this layout element */
 	EType Type;

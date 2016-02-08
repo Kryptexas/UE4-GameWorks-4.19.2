@@ -30,6 +30,7 @@ public:
 	// UMovieSceneTrack interface
 
 	MOVIESCENE_API virtual FText GetDisplayName() const override;
+	MOVIESCENE_API virtual FText GetDefaultDisplayName() const;
 
 private:
 

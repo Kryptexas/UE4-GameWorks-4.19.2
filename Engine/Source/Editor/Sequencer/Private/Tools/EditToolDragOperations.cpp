@@ -9,7 +9,6 @@
 #include "CommonMovieSceneTools.h"
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneShotTrack.h"
 #include "VirtualTrackArea.h"
 
 struct FDefaultKeySnappingCandidates : ISequencerSnapCandidate

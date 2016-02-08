@@ -181,11 +181,6 @@ void UEditableTextBox::PostLoad()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UEditableTextBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.EditableTextBox");
-}
-
 const FText UEditableTextBox::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");

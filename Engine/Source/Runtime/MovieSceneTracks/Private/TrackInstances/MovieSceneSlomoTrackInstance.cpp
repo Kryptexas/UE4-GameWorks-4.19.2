@@ -41,7 +41,7 @@ void FMovieSceneSlomoTrackInstance::SaveState(const TArray<UObject*>& RuntimeObj
 /* IMovieSceneTrackInstance interface
  *****************************************************************************/
 
-void FMovieSceneSlomoTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass)
+void FMovieSceneSlomoTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	if (!ShouldBeApplied())
 	{
@@ -57,7 +57,7 @@ void FMovieSceneSlomoTrackInstance::Update(float Position, float LastPosition, c
 
 	float FloatValue = 0.0f;
 
-	if (SlomoTrack->Eval(Position, LastPosition, FloatValue))
+	if (SlomoTrack->Eval(UpdateData.Position, UpdateData.LastPosition, FloatValue))
 	{
 		WorldSettings->MatineeTimeDilation = FloatValue;
 		WorldSettings->ForceNetUpdate();

@@ -104,10 +104,75 @@ void FMovieSceneSubTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjec
 }
 
 
-void FMovieSceneSubTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass) 
+TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetAllTraversedSectionsWithPreroll( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )
+{
+	TArray<UMovieSceneSection*> TraversedSections;
+
+	bool bPlayingBackwards = CurrentTime - PreviousTime < 0.0f;
+	float MaxTime = bPlayingBackwards ? PreviousTime : CurrentTime;
+	float MinTime = bPlayingBackwards ? CurrentTime : PreviousTime;
+
+	TRange<float> TraversedRange(MinTime, TRangeBound<float>::Inclusive(MaxTime));
+
+	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+	{
+		UMovieSceneSection* Section = Sections[SectionIndex];
+
+		float PrerollTime = 0.0f;
+		UMovieSceneSubSection* SubSection = CastChecked<UMovieSceneSubSection>(Section);
+		if (SubSection != nullptr)
+		{
+			PrerollTime = SubSection->PrerollTime;
+		}
+
+		if ((Section->GetStartTime()-PrerollTime == CurrentTime) || TraversedRange.Overlaps(TRange<float>(Section->GetRange().GetLowerBoundValue()-PrerollTime, Section->GetRange().GetUpperBoundValue())))
+		{
+			TraversedSections.Add(Section);
+		}
+	}
+
+	return TraversedSections;
+}
+
+TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetTraversedSectionsWithPreroll( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )
+{
+	TArray<UMovieSceneSection*> TraversedSections = GetAllTraversedSectionsWithPreroll(Sections, CurrentTime, PreviousTime);
+
+	// Remove any overlaps that are underneath another
+	for (int32 RemoveAt = 0; RemoveAt < TraversedSections.Num(); )
+	{
+		UMovieSceneSection* Section = TraversedSections[RemoveAt];
+		
+		const bool bShouldRemove = TraversedSections.ContainsByPredicate([=](UMovieSceneSection* OtherSection){
+			if (Section->GetRowIndex() == OtherSection->GetRowIndex() &&
+				Section->GetRange().Overlaps(OtherSection->GetRange()) &&
+				Section->GetOverlapPriority() < OtherSection->GetOverlapPriority())
+			{
+				return true;
+			}
+			return false;
+		});
+		
+		if (bShouldRemove)
+		{
+			TraversedSections.RemoveAt(RemoveAt, 1, false);
+		}
+		else
+		{
+			++RemoveAt;
+		}
+	}
+
+	return TraversedSections;
+}
+
+
+void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubTrack->GetAllSections();
-	TArray<UMovieSceneSection*> TraversedSections = MovieSceneHelpers::GetTraversedSections(AllSections, Position, LastPosition);
+	TArray<UMovieSceneSection*> TraversedSections = GetTraversedSectionsWithPreroll(AllSections, UpdateData.Position, UpdateData.LastPosition);
+
+	const float InitialUpdatePosition = UpdateData.Position;
 
 	for (const auto Section : TraversedSections)
 	{
@@ -128,11 +193,15 @@ void FMovieSceneSubTrackInstance::Update(float Position, float LastPosition, con
 		}
 
 		// calculate section's local time
-		const float InstanceOffset = SubSection->StartOffset + Instance->GetTimeRange().GetLowerBoundValue();
-		const float InstanceLastPosition = InstanceOffset + (LastPosition - SubSection->GetStartTime()) / SubSection->TimeScale;
-		const float InstancePosition = InstanceOffset + (Position - SubSection->GetStartTime()) / SubSection->TimeScale;
+		const float InstanceOffset = SubSection->StartOffset + Instance->GetTimeRange().GetLowerBoundValue() - SubSection->PrerollTime;
+		const float InstanceLastPosition = InstanceOffset + (UpdateData.LastPosition - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+		const float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
+
+		EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
+		SubUpdateData.UpdatePass = UpdateData.UpdatePass;
+		SubUpdateData.bPreroll = InitialUpdatePosition < SubSection->GetStartTime();
 
 		// update section
-		Instance->Update(InstancePosition, InstanceLastPosition, Player);
+		Instance->Update(SubUpdateData, Player);
 	}
 }

@@ -34,6 +34,20 @@ public:
 	 */
 	static UMovieSceneSection* FindNearestSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
 
+	/*
+	 * Fix up consecutive sections so that there are no gaps
+	 * 
+	 * @param Sections All the sections
+	 * @param Section The section that was modified 
+	 * @param bDelete Was this a deletion?
+	 */
+	static void FixupConsecutiveSections(TArray<UMovieSceneSection*>& Sections, UMovieSceneSection& Section, bool bDelete);
+
+	/*
+ 	 * Sort consecutive sections so that they are in order based on start time
+ 	 */
+	static void SortConsecutiveSections(TArray<UMovieSceneSection*>& Sections);
+
 	/**
 	 * Get the scene component from the runtime object
 	 *

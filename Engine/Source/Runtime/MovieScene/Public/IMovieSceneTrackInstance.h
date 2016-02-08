@@ -13,6 +13,29 @@ enum EMovieSceneUpdatePass
 	MSUP_PostUpdate = 0x00000004
 };
 
+struct EMovieSceneUpdateData
+{
+	float Position;
+	float LastPosition;
+	bool bPreroll;
+	EMovieSceneUpdatePass UpdatePass;
+
+	EMovieSceneUpdateData()
+	{
+		Position = 0.0f;
+		LastPosition = 0.0f;
+		bPreroll = false;
+		UpdatePass = MSUP_PreUpdate;
+	}
+	EMovieSceneUpdateData(float InPosition, float InLastPosition)
+	{
+		Position = InPosition;
+		LastPosition = InLastPosition;
+		bPreroll = false;
+		UpdatePass = MSUP_PreUpdate;
+	}
+};
+
 /**
  * A track instance holds the live objects for a track.  
  */
@@ -38,13 +61,11 @@ public:
 	/**
 	 * Main update function for track instances.  Called in game and in editor when we update a moviescene.
 	 *
-	 * @param Position			The current position of the moviescene that is playing
-	 * @param LastPosition		The previous playback position
+	 * @param UpdateData		The current and previous position of the moviescene that is playing. The update pass.
 	 * @param RuntimeObjects	Runtime objects bound to this instance (if any)
 	 * @param Player			The playback interface.  Contains state and some other functionality for runtime playback
-	 * @param UpdatePass        Which update pass
 	 */
-	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass) = 0;
+	virtual void Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) = 0;
 	
 	/*
 	 * Which update passes does this track instance evaluate in?

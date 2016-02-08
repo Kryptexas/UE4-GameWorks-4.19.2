@@ -46,10 +46,10 @@ void FMovieSceneByteTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 }
 
 
-void FMovieSceneByteTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneByteTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	uint8 ByteValue = 0;
-	if( ByteTrack->Eval( Position, LastPosition, ByteValue ) )
+	if( ByteTrack->Eval( UpdateData.Position, UpdateData.LastPosition, ByteValue ) )
 	{
 		for( UObject* Object : RuntimeObjects )
 		{

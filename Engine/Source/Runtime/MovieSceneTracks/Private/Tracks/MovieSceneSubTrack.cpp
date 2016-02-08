@@ -14,18 +14,82 @@
 /* UMovieSceneSubTrack interface
  *****************************************************************************/
 
-void UMovieSceneSubTrack::AddSequence(UMovieSceneSequence& Sequence, float Time)
+UMovieSceneSubSection* UMovieSceneSubTrack::AddSequence(UMovieSceneSequence* Sequence, float StartTime, float Duration, const bool& bInsertSequence)
 {
 	Modify();
+
+	// If inserting, push all existing sections out to make space for the new one
+	if (bInsertSequence)
+	{
+		// If there's a shot that starts at the same time as this new shot, push the shots forward to make space for this one
+		bool bPushShotsForward = false;
+		for (auto Section : Sections)
+		{
+			float SectionStartTime = Section->GetStartTime();
+			if (FMath::IsNearlyEqual(SectionStartTime, StartTime))
+			{
+				bPushShotsForward = true;
+				break;
+			}
+		}
+		if (bPushShotsForward)
+		{
+			for (auto Section : Sections)
+			{
+				float SectionStartTime = Section->GetStartTime();
+				if (SectionStartTime >= StartTime)
+				{
+					Section->SetStartTime(SectionStartTime + Duration);
+					Section->SetEndTime(Section->GetEndTime() + Duration);
+				}
+			}
+		}
+		// Otherwise, see if there's a shot after the start time and clamp the duration to that next shot
+		else
+		{
+			bool bFoundAfterShot = false;
+			float MinDiff = FLT_MAX;
+			for (auto Section : Sections)
+			{
+				float SectionStartTime = Section->GetStartTime();
+				if (SectionStartTime > StartTime)
+				{
+					bFoundAfterShot = true;
+					float Diff = SectionStartTime - StartTime;
+					MinDiff = FMath::Min(MinDiff, Diff);
+				}
+			}
+
+			if (MinDiff != FLT_MAX)
+			{
+				Duration = MinDiff;
+			}
+		}
+	}
+	// Otherwise, append this to the end of the existing sequences
+	else
+	{
+		if (Sections.Num())
+		{
+			StartTime = Sections[0]->GetEndTime();
+
+			for (const auto& Section : Sections)
+			{
+				StartTime = FMath::Max(StartTime, Section->GetEndTime());
+			}
+		}
+	}
 
 	UMovieSceneSubSection* NewSection = CastChecked<UMovieSceneSubSection>(CreateNewSection());
 	{
 		NewSection->SetSequence(Sequence);
-		NewSection->SetStartTime(Time);
-		NewSection->SetEndTime(Time + Sequence.GetMovieScene()->GetPlaybackRange().Size<float>());
+		NewSection->SetStartTime(StartTime);
+		NewSection->SetEndTime(StartTime + Duration);
 	}
 
 	Sections.Add(NewSection);
+
+	return NewSection;
 }
 
 
@@ -141,7 +205,7 @@ bool UMovieSceneSubTrack::SupportsMultipleRows() const
 }
 
 #if WITH_EDITORONLY_DATA
-FText UMovieSceneSubTrack::GetDisplayName() const
+FText UMovieSceneSubTrack::GetDefaultDisplayName() const
 {
 	return LOCTEXT("TrackName", "Subscenes");
 }

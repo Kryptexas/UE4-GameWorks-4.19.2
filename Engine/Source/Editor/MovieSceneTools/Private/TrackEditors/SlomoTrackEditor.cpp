@@ -54,6 +54,11 @@ bool FSlomoTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 	return (Type == UMovieSceneSlomoTrack::StaticClass());
 }
 
+const FSlateBrush* FSlomoTrackEditor::GetIconBrush() const
+{
+	return FEditorStyle::GetBrush("Sequencer.Tracks.Slomo");
+}
+
 
 /* FSlomoTrackEditor callbacks
  *****************************************************************************/

@@ -13,12 +13,12 @@ FMovieSceneParticleTrackInstance::~FMovieSceneParticleTrackInstance()
 }
 
 
-void FMovieSceneParticleTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	// @todo Sequencer We need something analagous to Matinee 1's particle replay tracks
 	// What we have here is simple toggling/triggering
 
-	if (Position > LastPosition && Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
+	if (UpdateData.Position > UpdateData.LastPosition && Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing)
 	{
 		const TArray<UMovieSceneSection*> Sections = ParticleTrack->GetAllParticleSections();
 		EParticleKey::Type ParticleKey = EParticleKey::Deactivate;
@@ -30,11 +30,11 @@ void FMovieSceneParticleTrackInstance::Update( float Position, float LastPositio
 			if (Section->IsActive())
 			{
 				FIntegralCurve& ParticleKeyCurve = Section->GetParticleCurve();
-				FKeyHandle PreviousHandle = ParticleKeyCurve.FindKeyBeforeOrAt( Position );
+				FKeyHandle PreviousHandle = ParticleKeyCurve.FindKeyBeforeOrAt( UpdateData.Position );
 				if ( ParticleKeyCurve.IsKeyHandleValid( PreviousHandle ) )
 				{
 					FIntegralKey& PreviousKey = ParticleKeyCurve.GetKey( PreviousHandle );
-					if ( PreviousKey.Time > LastPosition )
+					if ( PreviousKey.Time > UpdateData.LastPosition )
 					{
 						ParticleKey = (EParticleKey::Type)PreviousKey.Value;
 						bKeyFound = true;

@@ -155,11 +155,6 @@ bool UMenuAnchor::HasOpenSubMenus() const
 
 #if WITH_EDITOR
 
-const FSlateBrush* UMenuAnchor::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MenuAnchor");
-}
-
 const FText UMenuAnchor::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

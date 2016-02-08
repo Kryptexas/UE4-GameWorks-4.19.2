@@ -34,6 +34,25 @@ namespace SequencerDefs
 }
 
 
+static TArray<FLevelSequenceEditorToolkit*> OpenToolkits;
+
+void FLevelSequenceEditorToolkit::IterateOpenToolkits(TFunctionRef<bool(FLevelSequenceEditorToolkit&)> Iter)
+{
+	for (FLevelSequenceEditorToolkit* Toolkit : OpenToolkits)
+	{
+		if (!Iter(*Toolkit))
+		{
+			return;
+		}
+	}
+}
+
+FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkitOpened& FLevelSequenceEditorToolkit::OnOpened()
+{
+	static FLevelSequenceEditorToolkitOpened OnOpenedEvent;
+	return OnOpenedEvent;
+}
+
 /* FLevelSequenceEditorToolkit structors
  *****************************************************************************/
 
@@ -45,6 +64,8 @@ FLevelSequenceEditorToolkit::FLevelSequenceEditorToolkit(const TSharedRef<ISlate
 	int32 NewIndex = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates().Add(
 		FAssetEditorExtender::CreateRaw(this, &FLevelSequenceEditorToolkit::HandleMenuExtensibilityGetExtender));
 	SequencerExtenderHandle = SequencerModule.GetMenuExtensibilityManager()->GetExtenderDelegates()[NewIndex].GetHandle();
+
+	OpenToolkits.Add(this);
 }
 
 
@@ -136,6 +157,8 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 		// when previewing a MovieScene
 		LevelEditorModule.OnMapChanged().AddRaw(this, &FLevelSequenceEditorToolkit::HandleMapChanged);
 	}
+
+	FLevelSequenceEditorToolkit::OnOpened().Broadcast(*this);
 }
 
 
@@ -433,5 +456,11 @@ void FLevelSequenceEditorToolkit::HandleTrackMenuExtensionAddTrack(FMenuBuilder&
 	}
 }
 
+bool FLevelSequenceEditorToolkit::OnRequestClose()
+{
+	OpenToolkits.Remove(this);
+	OnClosedEvent.Broadcast();
+	return true;
+}
 
 #undef LOCTEXT_NAMESPACE

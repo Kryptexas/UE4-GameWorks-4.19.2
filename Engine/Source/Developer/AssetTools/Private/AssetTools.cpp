@@ -391,27 +391,58 @@ UObject* FAssetTools::CreateAsset(UClass* AssetClass, UFactory* Factory, FName C
 		FString AssetName;
 		CreateUniqueAssetName(AssetPath / Factory->GetDefaultNewAssetName(), TEXT(""), PackageName, AssetName);
 
-		FSaveAssetDialogConfig SaveAssetDialogConfig;
-		SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("SaveAssetDialogTitle", "Save Asset As");
-		SaveAssetDialogConfig.DefaultPath = AssetPath;
-		SaveAssetDialogConfig.DefaultAssetName = AssetName;
-		SaveAssetDialogConfig.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::AllowButWarn;
+		return CreateAssetWithDialog(AssetName, AssetPath, AssetClass, Factory, CallingContext);
+	}
 
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(SaveAssetDialogConfig);
-		if (!SaveObjectPath.IsEmpty())
+	return nullptr;
+}
+
+
+UObject* FAssetTools::CreateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext)
+{
+	FSaveAssetDialogConfig SaveAssetDialogConfig;
+	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("SaveAssetDialogTitle", "Save Asset As");
+	SaveAssetDialogConfig.DefaultPath = PackagePath;
+	SaveAssetDialogConfig.DefaultAssetName = AssetName;
+	SaveAssetDialogConfig.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::AllowButWarn;
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(SaveAssetDialogConfig);
+	if (!SaveObjectPath.IsEmpty())
+	{
+		FEditorDelegates::OnConfigureNewAssetProperties.Broadcast(Factory);
+		if (Factory->ConfigureProperties())
 		{
-			FEditorDelegates::OnConfigureNewAssetProperties.Broadcast(Factory);
-			if (Factory->ConfigureProperties())
-			{
-				const FString SavePackageName = FPackageName::ObjectPathToPackageName(SaveObjectPath);
-				const FString SaveAssetPath = FPaths::GetPath(SavePackageName);
-				const FString SaveAssetName = FPaths::GetBaseFilename(SavePackageName);
-				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::NEW_ASSET, SaveAssetPath);
+			const FString SavePackageName = FPackageName::ObjectPathToPackageName(SaveObjectPath);
+			const FString SavePackagePath = FPaths::GetPath(SavePackageName);
+			const FString SaveAssetName = FPaths::GetBaseFilename(SavePackageName);
+			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::NEW_ASSET, PackagePath);
 
-				return CreateAsset(SaveAssetName, SaveAssetPath, AssetClass, Factory, CallingContext);
-			}
+			return CreateAsset(SaveAssetName, SavePackagePath, AssetClass, Factory, CallingContext);
 		}
+	}
+
+	return nullptr;
+}
+
+UObject* FAssetTools::DuplicateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject)
+{
+	FSaveAssetDialogConfig SaveAssetDialogConfig;
+	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("DuplicateAssetDialogTitle", "Duplicate Asset As");
+	SaveAssetDialogConfig.DefaultPath = PackagePath;
+	SaveAssetDialogConfig.DefaultAssetName = AssetName;
+	SaveAssetDialogConfig.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::AllowButWarn;
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(SaveAssetDialogConfig);
+	if (!SaveObjectPath.IsEmpty())
+	{
+		const FString SavePackageName = FPackageName::ObjectPathToPackageName(SaveObjectPath);
+		const FString SavePackagePath = FPaths::GetPath(SavePackageName);
+		const FString SaveAssetName = FPaths::GetBaseFilename(SavePackageName);
+		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::NEW_ASSET, PackagePath);
+
+		return DuplicateAsset(SaveAssetName, SavePackagePath, OriginalObject);
 	}
 
 	return nullptr;

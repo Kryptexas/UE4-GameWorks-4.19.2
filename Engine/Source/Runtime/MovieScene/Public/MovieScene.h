@@ -124,6 +124,14 @@ public:
 	FMovieSceneSpawnable* FindSpawnable(const FGuid& Guid);
 
 	/**
+	 * Grabs a reference to a specific spawnable by index.
+	 *
+	 * @param Index of spawnable to return. Must be between 0 and GetSpawnableCount()
+	 * @return Returns the specified spawnable by index.
+	 */
+	FMovieSceneSpawnable& GetSpawnable(int32 Index);
+
+	/**
 	 * Get the number of spawnable objects in this scene.
 	 *
 	 * @return Spawnable object count.
@@ -324,20 +332,20 @@ public:
 	// @todo sequencer: the following methods really shouldn't be here
 
 	/**
-	 * Adds a new shot track if it doesn't exist 
-	 * A shot track is a special kind of sub-movie scene track that allows for cutting between camera views
+	 * Adds a new camera cut track if it doesn't exist 
+	 * A camera cut track allows for cutting between camera views
 	 * There is only one per movie scene. 
 	 *
-	 * @param TrackClass  The shot track class type
-	 * @return The created shot track
+	 * @param TrackClass  The camera cut track class type
+	 * @return The created camera cut track
 	 */
-	UMovieSceneTrack* AddShotTrack( TSubclassOf<UMovieSceneTrack> TrackClass );
+	UMovieSceneTrack* AddCameraCutTrack( TSubclassOf<UMovieSceneTrack> TrackClass );
 	
-	/** @return The shot track if it exists. */
-	UMovieSceneTrack* GetShotTrack();
+	/** @return The camera cut track if it exists. */
+	UMovieSceneTrack* GetCameraCutTrack();
 
-	/** Removes the shot track if it exists. */
-	void RemoveShotTrack();
+	/** Removes the camera cut track if it exists. */
+	void RemoveCameraCutTrack();
 
 public:
 
@@ -453,9 +461,9 @@ private:
 	UPROPERTY()
 	TArray<UMovieSceneTrack*> MasterTracks;
 
-	/** The shot track is a specialized track for switching between cameras on a cinematic */
+	/** The camera cut track is a specialized track for switching between cameras on a cinematic */
 	UPROPERTY()
-	UMovieSceneTrack* ShotTrack;
+	UMovieSceneTrack* CameraCutTrack;
 
 #if WITH_EDITORONLY_DATA
 	/** Maps object GUIDs to user defined display names. */

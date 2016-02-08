@@ -180,12 +180,6 @@ public:
 	/** Access the tree view for this sequencer */
 	TSharedPtr<SSequencerTreeView> GetTreeView() const;
 
-	/** Access the currently active edit tool */
-	ISequencerEditTool& GetEditTool() const
-	{
-		return *EditTool;
-	}
-
 	/** Generate a helper structure that can be used to transform between phsyical space and virtual space in the track area */
 	FVirtualTrackArea GetVirtualTrackArea() const;
 
@@ -195,16 +189,14 @@ public:
 	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
 	TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface();
 
+	/** @return a numeric type interface that will parse and display numbers as frames and times correctly, including any zero padding, if necessary */
+	TSharedRef<INumericTypeInterface<float>> GetZeroPadNumericTypeInterface();
+
 public:
 
 	// FNotifyHook overrides
 
 	void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged);
-
-protected:
-
-	/** Update the details view from the currently selected keys and sections. */
-	void UpdateDetailsView();
 
 protected:
 
@@ -219,15 +211,6 @@ protected:
 
 private:
 	
-	/** Handles checking whether the details view is enabled. */
-	bool HandleDetailsViewEnabled() const;
-
-	/** Handles determining the visibility of the details view selection tip. */
-	EVisibility HandleDetailsViewTipVisibility() const;
-
-	/** Handles determining the visibility of the details view. */
-	EVisibility HandleDetailsViewVisibility() const;
-
 	/** Handles key selection changes. */
 	void HandleKeySelectionChanged();
 
@@ -240,14 +223,14 @@ private:
 	/** Handles section selection changes. */
 	void HandleSectionSelectionChanged();
 
-	/** Check whether the specified edit tool is enabled */
-	bool IsEditToolEnabled(FName InIdentifier);
-
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
 
 	/** Makes the toolbar. */
 	TSharedRef<SWidget> MakeToolBar();
+
+	/** Makes add button. */
+	TSharedRef<SWidget> MakeAddButton();
 
 	/** Makes the add menu for the toolbar. */
 	TSharedRef<SWidget> MakeAddMenu();
@@ -261,9 +244,13 @@ private:
 	/** Makes the auto-key menu for the toolbar. */
 	TSharedRef<SWidget> MakeAutoKeyMenu();
 
+public:
+
 	/** Makes and configures a set of the standard UE transport controls. */
 	TSharedRef<SWidget> MakeTransportControls();
 
+private:
+	
 	/**
 	* @return The value of the current time snap interval.
 	*/
@@ -350,9 +337,6 @@ private:
 	/** Gets the root movie scene name */
 	FText GetRootAnimationName() const;
 
-	/** Gets the title of the passed in shot section */
-	FText GetShotSectionTitle(UMovieSceneSection* ShotSection) const;
-
 	/** Gets whether or not the breadcrumb trail should be visible. */
 	EVisibility GetBreadcrumbTrailVisibility() const;
 
@@ -388,11 +372,10 @@ public:
 	/** Generate a paste menu args structure */
 	struct FPasteContextMenuArgs GeneratePasteArgs(float PasteAtTime, TSharedPtr<FMovieSceneClipboard> Clipboard = nullptr);
 
-
 private:
 
-	/** Holds the details view. */
-	TSharedPtr<IDetailsView> DetailsView;
+	/** Goto box widget. */
+	TSharedPtr<SWidget> GotoBox;
 
 	/** Section area widget */
 	TSharedPtr<SSequencerTrackArea> TrackArea;
@@ -419,7 +402,7 @@ private:
 	TSharedPtr<SSequencerTreeView> TreeView;
 
 	/** The main sequencer interface */
-	TWeakPtr<FSequencer> Sequencer;
+	TWeakPtr<FSequencer> SequencerPtr;
 
 	/** Cached settings provided to the sequencer itself on creation */
 	USequencerSettings* Settings;
@@ -433,14 +416,12 @@ private:
 	/** Whether the user is selecting. Ignore selection changes from the level when the user is selecting. */
 	bool bUserIsSelecting;
 
-	/** The current edit tool */
-	TUniquePtr<ISequencerEditTool> EditTool;
-
 	/** Extender to use for the 'add' menu */
 	TSharedPtr<FExtender> AddMenuExtender;
 
 	/** Numeric type interface used for converting parsing and generating strings from numbers */
 	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;
+	TSharedPtr<INumericTypeInterface<float>> ZeroPadNumericTypeInterface;
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
 	/** Called when the user has begun dragging the playback range */

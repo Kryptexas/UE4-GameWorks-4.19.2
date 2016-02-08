@@ -3,9 +3,24 @@
 #pragma once
 
 #include "MovieSceneSequenceInstance.h"
+#include "ValueOrError.h"
 
 class IMovieScenePlayer;
 class FMovieSceneSequenceInstance;
+class UMovieScene;
+
+/** Struct used for defining a new spawnable type */
+struct FNewSpawnable
+{
+	FNewSpawnable() : Blueprint(nullptr) {}
+	FNewSpawnable(UBlueprint* InBlueprint, FString InName) : Blueprint(InBlueprint), Name(MoveTemp(InName)) {}
+
+	/** The blueprint that defines the spawnable */
+	UBlueprint* Blueprint;
+
+	/** The desired name of the new spawnable */
+	FString Name;
+};
 
 /**
  * Class responsible for managing spawnables in a movie scene
@@ -87,6 +102,17 @@ public:
 	 * @param Player 		The player that is playing the movie scene
 	 */
 	virtual void PostUpdateSequenceInstance(FMovieSceneSequenceInstance& Instance, IMovieScenePlayer& Player) { }
+
+#if WITH_EDITOR
+	/**
+	 * Create a new spawnable type from the given source object
+	 *
+	 * @param SourceObject		The source object to create the spawnable from
+	 * @param OwnerMovieScene	The owner movie scene that this spawnable type should reside in
+	 * @return the new spawnable type, or nullptr
+	 */
+	virtual TValueOrError<FNewSpawnable, FText> CreateNewSpawnableType(UObject& SourceObject, UMovieScene& OwnerMovieScene) { return MakeError(NSLOCTEXT("SpawnRegister", "NotSupported", "Not supported")); }
+#endif
 };
 
 

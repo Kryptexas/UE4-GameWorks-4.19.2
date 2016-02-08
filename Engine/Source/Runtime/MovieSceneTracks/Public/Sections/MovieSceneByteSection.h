@@ -41,6 +41,6 @@ private:
 	/** Ordered curve data */
 	// @todo Sequencer This could be optimized by packing the bytes separately
 	// but that may not be worth the effort
-	UPROPERTY(EditAnywhere, Category="Curve")
+	UPROPERTY()
 	FIntegralCurve ByteCurve;
 };

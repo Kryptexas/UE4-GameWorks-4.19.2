@@ -488,8 +488,9 @@ public:
 	virtual void OnCreationFromPalette() { }
 
 	/** Gets the editor icon */
+	DEPRECATED(4.12, "GetEditorIcon is deprecated. Please define widget icons in your style set in the form ClassIcon.MyWidget, and register your style through FClassIconFinder::(Un)RegisterIconSource")
 	virtual const FSlateBrush* GetEditorIcon();
-	
+
 	/** Allows general fixups and connections only used at editor time. */
 	virtual void ConnectEditorData() { }
 

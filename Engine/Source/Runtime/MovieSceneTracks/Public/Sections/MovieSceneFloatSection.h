@@ -43,6 +43,6 @@ public:
 	FRichCurve& GetFloatCurve() { return FloatCurve; }
 private:
 	/** Curve data */
-	UPROPERTY(EditAnywhere, Category="Curve")
+	UPROPERTY()
 	FRichCurve FloatCurve;
 };

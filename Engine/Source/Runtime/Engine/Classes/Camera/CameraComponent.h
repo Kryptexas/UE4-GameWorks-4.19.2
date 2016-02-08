@@ -15,7 +15,7 @@ class ENGINE_API UCameraComponent : public USceneComponent
 	GENERATED_UCLASS_BODY()
 
 	/** The horizontal field of view (in degrees) in perspective mode (ignored in Orthographic mode) */
-	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0"))
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0", Units = deg))
 	float FieldOfView;
 	UFUNCTION(BlueprintCallable, Category=Camera)
 	void SetFieldOfView(float InFieldOfView) { FieldOfView = InFieldOfView; }
@@ -57,7 +57,7 @@ class ENGINE_API UCameraComponent : public USceneComponent
 	void SetUseFieldOfViewForLOD(bool bInUseFieldOfViewForLOD) { bUseFieldOfViewForLOD = bInUseFieldOfViewForLOD; }
 
 	/** True if the camera's orientation and position should be locked to the HMD */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bLockToHmd:1;
 
 	/**
@@ -74,13 +74,13 @@ class ENGINE_API UCameraComponent : public USceneComponent
 	void SetProjectionMode(ECameraProjectionMode::Type InProjectionMode) { ProjectionMode = InProjectionMode; }
 
 	/** Indicates if PostProcessSettings should be used when using this Camera to view through. */
-	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=PostProcess, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float PostProcessBlendWeight;
 	UFUNCTION(BlueprintCallable, Category=Camera)
 	void SetPostProcessBlendWeight(float InPostProcessBlendWeight) { PostProcessBlendWeight = InPostProcessBlendWeight; }
 
 	/** Post process settings to use for this camera. Don't forget to check the properties you want to override */
-	UPROPERTY(Interp, BlueprintReadWrite, Category=CameraSettings)
+	UPROPERTY(Interp, BlueprintReadWrite, Category = PostProcess)
 	struct FPostProcessSettings PostProcessSettings;
 
 	// UActorComponent interface

@@ -2,8 +2,6 @@
 
 #include "WebBrowserPrivatePCH.h"
 
-#define LOCTEXT_NAMESPACE "WebBrowserHandler"
-
 #if WITH_CEF3
 
 #include "WebBrowserHandler.h"
@@ -16,6 +14,10 @@
 #include "WebBrowserByteResource.h"
 #include "SlateApplication.h"
 #include "ThreadingBase.h"
+
+
+#define LOCTEXT_NAMESPACE "WebBrowserHandler"
+
 
 // Used to force returning custom content instead of performing a request.
 const FString CustomContentHeader(TEXT("X-UE-Content"));
@@ -584,6 +586,7 @@ void FWebBrowserHandler::OnResetDialogState(CefRefPtr<CefBrowser> Browser)
 	}
 }
 
-#endif // WITH_CEF
 
 #undef LOCTEXT_NAMESPACE
+
+#endif // WITH_CEF

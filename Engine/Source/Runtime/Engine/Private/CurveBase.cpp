@@ -572,6 +572,21 @@ FRichCurveKey FRichCurve::GetLastKey() const
 }
 
 
+FRichCurveKey& FRichCurve::GetFirstMatchingKey(const TArray<FKeyHandle>& KeyHandles)
+{
+	for (const auto& KeyHandle : KeyHandles)
+	{
+		if (IsKeyHandleValid(KeyHandle))
+		{
+			return GetKey(KeyHandle);
+		}
+	}
+
+	checkf(false, TEXT("No matching rich curve key found."));
+	return Keys[INDEX_NONE];
+}
+
+
 FKeyHandle FRichCurve::GetNextKey(FKeyHandle KeyHandle) const
 {
 	int32 KeyIndex = GetIndex(KeyHandle);
@@ -1189,6 +1204,34 @@ void FRichCurve::ReadjustTimeRange(float NewMinTimeRange, float NewMaxTimeRange,
 	}
 }
 
+void FRichCurve::RemoveRedundantKeys(float Tolerance)
+{
+	for(int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex)
+	{
+		// copy the key
+		FRichCurveKey OriginalKey = Keys[KeyIndex];
+
+		FKeyHandle KeyHandle = GetKeyHandle(KeyIndex);
+
+		// remove it
+		DeleteKey(KeyHandle);
+
+		// eval to check validity
+		float NewValue = Eval(OriginalKey.Time, DefaultValue);
+			
+		// outside tolerance? re-add the key.
+		if(FMath::Abs(NewValue - OriginalKey.Value) > Tolerance)
+		{
+			FKeyHandle NewKeyHandle = AddKey(OriginalKey.Time, OriginalKey.Value, false, KeyHandle);
+			FRichCurveKey& NewKey = GetKey(NewKeyHandle);
+			NewKey = OriginalKey;
+		}
+		else
+		{
+			KeyIndex--;
+		}
+	}
+}
 
 /** Util to find float value on bezier defined by 4 control points */ 
 static float BezierInterp(float P0, float P1, float P2, float P3, float Alpha)

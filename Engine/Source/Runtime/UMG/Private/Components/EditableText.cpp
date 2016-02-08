@@ -183,11 +183,6 @@ void UEditableText::PostLoad()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UEditableText::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.EditableText");
-}
-
 const FText UEditableText::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

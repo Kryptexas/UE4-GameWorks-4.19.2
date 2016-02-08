@@ -128,11 +128,6 @@ void UWidgetSwitcher::SynchronizeProperties()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UWidgetSwitcher::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.WidgetSwitcher");
-}
-
 const FText UWidgetSwitcher::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

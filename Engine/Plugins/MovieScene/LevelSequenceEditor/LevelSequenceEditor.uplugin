@@ -19,7 +19,7 @@
 		{
 			"Name" : "LevelSequenceEditor",
 			"Type" : "Editor",
-			"LoadingPhase" : "Default"
+			"LoadingPhase" : "PostEngineInit"
 		}
 	]
 }

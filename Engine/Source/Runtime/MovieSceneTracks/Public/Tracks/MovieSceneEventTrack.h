@@ -58,6 +58,10 @@ public:
 	virtual void RemoveAllAnimationData() override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;
 
+#if WITH_EDITORONLY_DATA
+	virtual FText GetDefaultDisplayName() const override;
+#endif
+
 private:
 
 	/** If events should be fired when passed playing the sequence forwards. */

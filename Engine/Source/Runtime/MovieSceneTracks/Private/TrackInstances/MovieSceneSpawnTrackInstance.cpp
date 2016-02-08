@@ -13,7 +13,7 @@ FMovieSceneSpawnTrackInstance::FMovieSceneSpawnTrackInstance(UMovieSceneSpawnTra
 	Track = &InTrack;
 }
 
-void FMovieSceneSpawnTrackInstance::Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass)
+void FMovieSceneSpawnTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	IMovieSceneSpawnRegister& SpawnRegister = Player.GetSpawnRegister();
 	FMovieSceneSpawnable* Spawnable = SequenceInstance.GetSequence()->GetMovieScene()->FindSpawnable(Track->GetObjectId());
@@ -21,14 +21,14 @@ void FMovieSceneSpawnTrackInstance::Update(float Position, float LastPosition, c
 	TRange<float> Range = SequenceInstance.GetTimeRange();
 
 	// If we're evaluating outside of the instance's time range, and the sequence owns the spawnable, there's no reason to evaluate - it should already be destroyed
-	if (Spawnable && Spawnable->GetSpawnOwnership() == ESpawnOwnership::InnerSequence && !Range.Contains(Position) && !Range.Contains(LastPosition))
+	if (Spawnable && Spawnable->GetSpawnOwnership() == ESpawnOwnership::InnerSequence && !Range.Contains(UpdateData.Position) && !Range.Contains(UpdateData.LastPosition))
 	{
 		SpawnRegister.DestroySpawnedObject(Track->GetObjectId(), SequenceInstance, Player);
 		return;
 	}
 
 	bool bIsSpawned = false;
-	if (Track->Eval(Position, LastPosition, bIsSpawned))
+	if (Track->Eval(UpdateData.Position, UpdateData.LastPosition, bIsSpawned))
 	{
 		// Spawn the object if needed
 		if (bIsSpawned && RuntimeObjects.Num() == 0)

@@ -144,6 +144,9 @@ protected:
 	virtual void InitializeNewTrack( TrackType* NewTrack, FPropertyChangedParams PropertyChangedParams )
 	{
 		NewTrack->SetPropertyNameAndPath( PropertyChangedParams.PropertyPath.Last()->GetFName(), PropertyChangedParams.GetPropertyPathString() );
+#if WITH_EDITORONLY_DATA
+		NewTrack->SetDisplayName(PropertyChangedParams.PropertyPath.Last()->GetDisplayNameText());
+#endif
 	}
 
 private:

@@ -73,11 +73,6 @@ TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UHorizontalBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.HorizontalBox");
-}
-
 const FText UHorizontalBox::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

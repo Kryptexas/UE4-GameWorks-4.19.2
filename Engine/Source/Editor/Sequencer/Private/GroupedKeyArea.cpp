@@ -343,6 +343,18 @@ ERichCurveExtrapolation FGroupedKeyArea::GetExtrapolationMode(bool bPreInfinity)
 	return ExtrapMode;
 }
 
+bool FGroupedKeyArea::CanSetExtrapolationMode() const
+{
+	for (auto& Area : KeyAreas)
+	{
+		if (Area->CanSetExtrapolationMode())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 TArray<FKeyHandle> FGroupedKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
 {
 	TArray<FKeyHandle> AddedKeyHandles;
@@ -468,6 +480,26 @@ TSharedRef<SWidget> FGroupedKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 FLinearColor FGroupedKeyArea::GetColor()
 {
 	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
+}
+
+
+TSharedPtr<FStructOnScope> FGroupedKeyArea::GetKeyStruct(FKeyHandle KeyHandle)
+{
+	FKeyGrouping* Group = FindGroup(KeyHandle);
+	
+	if (Group == nullptr)
+	{
+		return nullptr;
+	}
+
+	TArray<FKeyHandle> KeyHandles;
+
+	for (auto& Key : Group->Keys)
+	{
+		KeyHandles.Add(Key.KeyHandle);
+	}
+
+	return Section->GetKeyStruct(KeyHandles);
 }
 
 

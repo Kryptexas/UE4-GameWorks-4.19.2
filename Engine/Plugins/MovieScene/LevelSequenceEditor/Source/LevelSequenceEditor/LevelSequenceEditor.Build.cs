@@ -10,11 +10,13 @@ public class LevelSequenceEditor : ModuleRules
             new string[] {
 				"AssetTools",
 				"SceneOutliner",
+				"PlacementMode",
 			}
         );
         
         PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"AppFramework",
                 "LevelSequence",
 				"BlueprintGraph",
 				"Core",
@@ -24,6 +26,7 @@ public class LevelSequenceEditor : ModuleRules
                 "InputCore",
 				"LevelEditor",
 				"MovieScene",
+                "MovieSceneTools",
 				"MovieSceneTracks",
                 "PropertyEditor",
 				"Sequencer",
@@ -36,7 +39,9 @@ public class LevelSequenceEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
+                "MovieSceneTools",
 				"SceneOutliner",
+				"PlacementMode",
 			}
 		);
 

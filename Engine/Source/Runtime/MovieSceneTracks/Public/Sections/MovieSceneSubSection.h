@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
 #include "MovieSceneSubSection.generated.h"
 
 class UMovieSceneSequence;
@@ -16,10 +17,10 @@ class MOVIESCENETRACKS_API UMovieSceneSubSection
 {
 	GENERATED_BODY()
 
+public:
+
 	/** Default constructor. */
 	UMovieSceneSubSection();
-
-public:
 
 	/**
 	 * Get the sequence that is assigned to this section.
@@ -38,9 +39,9 @@ public:
 	 * @param Sequence The sequence to play.
 	 * @see GetSequence
 	 */
-	void SetSequence(UMovieSceneSequence& Sequence)
+	void SetSequence(UMovieSceneSequence* Sequence)
 	{
-		SubSequence = &Sequence;
+		SubSequence = Sequence;
 	}
 
 public:
@@ -53,7 +54,11 @@ public:
 	UPROPERTY(EditAnywhere, Category="Timing")
 	float TimeScale;
 
-private:
+	/** Preroll time. */
+	UPROPERTY(EditAnywhere, Category="Timing")
+	float PrerollTime;
+
+protected:
 
 	/**
 	 * Movie scene being played by this section.

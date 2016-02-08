@@ -234,6 +234,6 @@ ANavigationData* UEnvQueryTest_Pathfinding::FindNavigationData(UNavigationSystem
 	return NavSys.GetMainNavData(FNavigationSystem::DontCreate);
 }
 
-#undef LOCTEXT_NAMESPACE
-
 #endif //WITH_DEV_AUTOMATION_TESTS
+
+#undef LOCTEXT_NAMESPACE

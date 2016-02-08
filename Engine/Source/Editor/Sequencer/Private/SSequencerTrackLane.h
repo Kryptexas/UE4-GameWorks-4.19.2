@@ -23,7 +23,10 @@ public:
 
 	/** Get the desired physical vertical position of this track lane */
 	float GetPhysicalPosition() const;
-	
+
+protected:
+	virtual FVector2D ComputeDesiredSize(float LayoutScale) const override;
+
 private:
 	/** The authoritative display node that created us */
 	TSharedPtr<FSequencerDisplayNode> DisplayNode;

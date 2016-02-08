@@ -53,7 +53,7 @@ void FMovieScene3DConstraintTrackInstance::RestoreState(const TArray<UObject*>& 
 }
 
 
-void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieScene3DConstraintTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	UMovieScene3DConstraintSection* FirstConstraintSection = nullptr;
 
@@ -63,7 +63,7 @@ void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPos
 	{
 		UMovieScene3DConstraintSection* ConstraintSection = CastChecked<UMovieScene3DConstraintSection>(ConstraintSections[ConstraintIndex]);
 
-		if (ConstraintSection->IsTimeWithinSection(Position) &&
+		if (ConstraintSection->IsTimeWithinSection(UpdateData.Position) &&
 			(FirstConstraintSection == nullptr || FirstConstraintSection->GetRowIndex() > ConstraintSection->GetRowIndex()))
 		{
 			TArray<UObject*> ConstraintObjects;
@@ -78,7 +78,7 @@ void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPos
 					AActor* Actor = Cast<AActor>(ConstraintObjects[ConstraintObjectIndex]);
 					if (Actor)
 					{
-						UpdateConstraint(Position, RuntimeObjects, Actor, ConstraintSection);
+						UpdateConstraint(UpdateData.Position, RuntimeObjects, Actor, ConstraintSection);
 					}	
 				}
 			}

@@ -423,6 +423,11 @@ void F3DTransformTrackEditor::BindCommands(TSharedRef<FUICommandList> SequencerC
 
 void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectGuid, const UClass* ObjectClass)
 {
+	if (!ObjectClass->IsChildOf<ACameraActor>() && !ObjectClass->IsChildOf<UCameraComponent>())
+	{
+		return;
+	}
+
 	// If this is a camera track, add a button to lock the viewport to the camera
 	EditBox.Get()->AddSlot()
 		.VAlign(VAlign_Center)

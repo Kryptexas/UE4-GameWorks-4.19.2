@@ -65,7 +65,7 @@ TRange<float> UMovieScene3DConstraintTrack::GetSectionBoundaries() const
 
 
 #if WITH_EDITORONLY_DATA
-FText UMovieScene3DConstraintTrack::GetDisplayName() const
+FText UMovieScene3DConstraintTrack::GetDefaultDisplayName() const
 {
 	return LOCTEXT("TrackName", "Constraint");
 }

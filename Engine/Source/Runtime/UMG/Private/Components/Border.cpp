@@ -326,11 +326,6 @@ void UBorder::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChang
 	}
 }
 
-const FSlateBrush* UBorder::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Border");
-}
-
 const FText UBorder::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");

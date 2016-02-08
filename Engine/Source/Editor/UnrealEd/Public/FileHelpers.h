@@ -129,7 +129,7 @@ public:
 	 * @param	Level		The Level to be SaveAs'd.
 	 * @return				true if the world was saved.
 	 */
-	UNREALED_API static bool SaveAs(ULevel* Level);
+	UNREALED_API static bool SaveLevelAs(ULevel* Level);
 
 	/**
 	 * Saves all levels to the specified directory.

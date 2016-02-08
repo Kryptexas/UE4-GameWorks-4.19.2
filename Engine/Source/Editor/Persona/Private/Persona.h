@@ -9,7 +9,6 @@
 #include "PersonaModule.h"
 #include "PersonaCommands.h"
 
-#include "AnimationRecorder.h"
 //////////////////////////////////////////////////////////////////////////
 // FPersona
 
@@ -177,6 +176,18 @@ public:
 	/** Called when the blend profile tab selects a profile */
 	void SetSelectedBlendProfile(UBlendProfile* InBlendProfile);
 
+	/** Check whether this Persona instance is recording */
+	bool IsRecording() const;
+
+	/** Stop recording in this Persona instance */
+	void StopRecording();
+
+	/** Get the currently recording animation */
+	UAnimSequence* GetCurrentRecording() const;
+
+	/** Get the currently recording animation time */
+	float GetCurrentRecordingTime() const;
+
 public:
 	//~ Begin IToolkit Interface
 	virtual FName GetToolkitContextFName() const override;
@@ -299,9 +310,6 @@ public:
 	// The animation document currently being edited
 	mutable TWeakObjectPtr<UObject> SharedAnimAssetBeingEdited;
 	TWeakPtr<SDockTab> SharedAnimDocumentTab;
-
-	/** Animation recorder **/
-	FAnimationRecorder Recorder;
 
 public:
 	/** Viewport widget */

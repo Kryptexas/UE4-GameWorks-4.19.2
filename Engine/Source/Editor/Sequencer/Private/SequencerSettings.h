@@ -84,6 +84,11 @@ public:
 	/** Sets whether or not to show frame numbers. */
 	void SetShowFrameNumbers(bool InbShowFrameNumbers);
 
+	/** Gets whether or not to show the goto box. */
+	bool GetShowGotoBox() const;
+	/** Sets whether or not to show the goto box. */
+	void SetShowGotoBox(bool InbShowGotoBox);
+
 	/** Gets whether or not to show the time range slider. */
 	bool GetShowRangeSlider() const;
 	/** Sets whether or not to show frame numbers. */
@@ -128,6 +133,11 @@ public:
 	bool GetSnapPlayTimeToDraggedKey() const;
 	/** Sets whether or not to snap the play time to the dragged key. */
 	void SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDraggedKey);
+
+	/** Gets whether to lock the play rate to the frame rate. */
+	bool GetFixedTimeStepPlayback() const;
+	/** Sets whether or not to lock the play rate to the frame rate. */
+	void SetFixedTimeStepPlayback(bool InbFTixedTimeStepPlayback);
 
 	/** Gets the snapping interval for curve values. */
 	float GetCurveValueSnapInterval() const;
@@ -181,6 +191,11 @@ public:
 	/** Set whether or not the playback range should be synced to the section bounds */
 	void SetKeepPlayRangeInSectionBounds(bool bInKeepPlayRangeInSectionBounds);
 
+	/** Get the number of digits we should zero-pad to when showing frame numbers in sequencer */
+	uint8 GetZeroPadFrames() const;
+	/** Set the number of digits we should zero-pad to when showing frame numbers in sequencer */
+	void SetZeroPadFrames(uint8 InZeroPadFrames);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
@@ -205,6 +220,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bShowFrameNumbers;
+
+	UPROPERTY( config )
+	bool bShowGotoBox;
 
 	UPROPERTY( config )
 	bool bShowRangeSlider;
@@ -232,6 +250,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bSnapPlayTimeToDraggedKey;
+
+	UPROPERTY( config )
+	bool bFixedTimeStepPlayback;
 
 	UPROPERTY( config )
 	float CurveValueSnapInterval;
@@ -262,6 +283,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bKeepPlayRangeInSectionBounds;
+
+	UPROPERTY( config )
+	uint8 ZeroPadFrames;
 
 	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

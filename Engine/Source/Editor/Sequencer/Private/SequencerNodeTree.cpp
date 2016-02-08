@@ -4,6 +4,7 @@
 #include "MovieSceneSequence.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneTrack.h"
+#include "MovieSceneCinematicShotTrack.h"
 #include "SequencerNodeTree.h"
 #include "Sequencer.h"
 #include "ScopedTransaction.h"
@@ -12,7 +13,7 @@
 #include "SequencerSectionLayoutBuilder.h"
 #include "ISequencerSection.h"
 #include "ISequencerTrackEditor.h"
-
+#include "SequencerSpacerNode.h"
 
 void FSequencerNodeTree::Empty()
 {
@@ -26,10 +27,14 @@ void FSequencerNodeTree::Empty()
 
 void FSequencerNodeTree::Update()
 {
+	HoveredNode = nullptr;
+
 	// @todo Sequencer - This update pass is too aggressive.  Some nodes may still be valid
 	Empty();
 
 	UMovieScene* MovieScene = Sequencer.GetFocusedMovieSceneSequence()->GetMovieScene();
+	UMovieSceneCinematicShotTrack* CinematicShotTrack = MovieScene->FindMasterTrack<UMovieSceneCinematicShotTrack>();
+
 	TArray<TSharedRef<FSequencerDisplayNode>> NewRootNodes;
 
 	// Get the master tracks  so we can get sections from them
@@ -37,12 +42,15 @@ void FSequencerNodeTree::Update()
 
 	for (UMovieSceneTrack* Track : MasterTracks)
 	{
-		UMovieSceneTrack& TrackRef = *Track;
+		if (Track != CinematicShotTrack)
+		{
+			UMovieSceneTrack& TrackRef = *Track;
 
-		TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(TrackRef, *FindOrAddTypeEditor(TrackRef), nullptr, *this));
-		NewRootNodes.Add(SectionNode);
+			TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(TrackRef, *FindOrAddTypeEditor(TrackRef), nullptr, *this));
+			NewRootNodes.Add(SectionNode);
 	
-		MakeSectionInterfaces(TrackRef, SectionNode);
+			MakeSectionInterfaces(TrackRef, SectionNode);
+		}
 	}
 
 	const TArray<FMovieSceneBinding>& Bindings = MovieScene->GetBindings();
@@ -102,33 +110,51 @@ void FSequencerNodeTree::Update()
 
 	NewRootNodes.Append(NewObjectNodes);
 
-	// Look for a shot track.  It will always come first if it exists
-	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
-	
-	if(ShotTrack)
+	// Cinematic shot track always comes first
+	if (CinematicShotTrack)
 	{
-		TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(*ShotTrack, *FindOrAddTypeEditor(*ShotTrack), nullptr, *this));
+		TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(*CinematicShotTrack, *FindOrAddTypeEditor(*CinematicShotTrack), nullptr, *this));
 
-		// Shot track always comes first
 		RootNodes.Add(SectionNode);
-		MakeSectionInterfaces(*ShotTrack, SectionNode);
+		MakeSectionInterfaces(*CinematicShotTrack, SectionNode);
 	}
 
-	// Add all other nodes after the shot track
+	// Then comes the camera cut track
+	UMovieSceneTrack* CameraCutTrack = MovieScene->GetCameraCutTrack();
+	
+	if (CameraCutTrack)
+	{
+		TSharedRef<FSequencerTrackNode> SectionNode = MakeShareable(new FSequencerTrackNode(*CameraCutTrack, *FindOrAddTypeEditor(*CameraCutTrack), nullptr, *this));
+
+		RootNodes.Add(SectionNode);
+		MakeSectionInterfaces(*CameraCutTrack, SectionNode);
+	}
+
+	// Add all other nodes after the camera cut track
 	RootNodes.Append(NewRootNodes);
 
-	// Set up virtual offsets, and expansion states
+
+	RootNodes.Reserve(RootNodes.Num()*2);
+	for (int32 Index = 0; Index < RootNodes.Num(); Index += 2)
+	{
+		RootNodes.Insert(MakeShareable(new FSequencerSpacerNode(2.f, nullptr, *this)), Index);
+	}
+	RootNodes.Add(MakeShareable(new FSequencerSpacerNode(2.f, nullptr, *this)));
+
+	// Set up virtual offsets, expansion states, and tints
 	float VerticalOffset = 0.f;
 
-	for (auto& Node : RootNodes)
+	for (TSharedRef<FSequencerDisplayNode>& Node : RootNodes)
 	{
 		Node->Traverse_ParentFirst([&](FSequencerDisplayNode& InNode) {
+
+			// Set up the virtual node position
 			float VerticalTop = VerticalOffset;
 			VerticalOffset += InNode.GetNodeHeight() + InNode.GetNodePadding().Combined();
 			InNode.Initialize(VerticalTop, VerticalOffset);
+
 			return true;
 		});
-
 	}
 
 	// Re-filter the tree after updating 
@@ -307,6 +333,18 @@ bool FSequencerNodeTree::IsNodeFiltered( const TSharedRef<const FSequencerDispla
 	return FilteredNodes.Contains( Node );
 }
 
+void FSequencerNodeTree::SetHoveredNode(const TSharedPtr<FSequencerDisplayNode>& InHoveredNode)
+{
+	if (InHoveredNode != HoveredNode)
+	{
+		HoveredNode = InHoveredNode;
+	}
+}
+
+const TSharedPtr<FSequencerDisplayNode>& FSequencerNodeTree::GetHoveredNode() const
+{
+	return HoveredNode;
+}
 
 /**
  * Recursively filters nodes

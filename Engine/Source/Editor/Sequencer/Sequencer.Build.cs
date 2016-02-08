@@ -37,6 +37,7 @@ public class Sequencer : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
+                "ContentBrowser",
 				"PropertyEditor",
 				"Kismet",
 				"SceneOutliner"

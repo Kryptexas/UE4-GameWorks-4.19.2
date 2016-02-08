@@ -306,16 +306,23 @@ FString STimeRange::ToString(const float& Value) const
 	return FString::Printf(TEXT("%.2f"), Value);
 }
 
-TOptional<float> STimeRange::FromString(const FString& InString)
+TOptional<float> STimeRange::FromString(const FString& InString, const float& ExistingValue)
 {
 	bool bShowFrameNumbers = ShowFrameNumbers.IsBound() ? ShowFrameNumbers.Get() : false;
 	if (bShowFrameNumbers && TimeSliderController.IsValid())
 	{
-		int32 NewEndFrame = FCString::Atoi(*InString);
-		return float(TimeSliderController.Get()->FrameToTime(NewEndFrame));
-	}
+		// Convert existing value to frames
+		float ExistingValueInFrames = TimeSliderController.Get()->TimeToFrame(ExistingValue);
+		TOptional<float> Result = TDefaultNumericTypeInterface<float>::FromString(InString, ExistingValueInFrames);
 
-	return FCString::Atof(*InString);
+		if (Result.IsSet())
+		{
+			int32 NewEndFrame = FMath::RoundToInt(Result.GetValue());
+			return float(TimeSliderController.Get()->FrameToTime(NewEndFrame));
+		}
+	}
+		
+	return TDefaultNumericTypeInterface<float>::FromString(InString, ExistingValue);
 }
 
 

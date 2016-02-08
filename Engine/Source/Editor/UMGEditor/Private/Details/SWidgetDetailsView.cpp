@@ -339,6 +339,8 @@ FText SWidgetDetailsView::GetCategoryText() const
 	return FText::GetEmpty();
 }
 
+const FSlateBrush* GetEditorIcon_Deprecated(UWidget* Widget);
+
 const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 {
 	if ( SelectedObjects.Num() == 1 )
@@ -346,7 +348,9 @@ const FSlateBrush* SWidgetDetailsView::GetNameIcon() const
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		if ( Widget )
 		{
-			return Widget->GetEditorIcon();
+			// @todo UMG: remove after 4.12
+			return GetEditorIcon_Deprecated(Widget);
+			// return FClassIconFinder::FindIconForClass(Widget->GetClass());
 		}
 	}
 

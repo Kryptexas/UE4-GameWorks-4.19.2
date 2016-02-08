@@ -73,11 +73,6 @@ void UScaleBox::OnSlotRemoved(UPanelSlot* Slot)
 
 #if WITH_EDITOR
 
-const FSlateBrush* UScaleBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.ScaleBox");
-}
-
 const FText UScaleBox::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

@@ -125,6 +125,45 @@ UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UM
 }
 
 
+void MovieSceneHelpers::SortConsecutiveSections(TArray<UMovieSceneSection*>& Sections)
+{
+	Sections.Sort([](const UMovieSceneSection& A, const UMovieSceneSection& B)
+		{
+			return A.GetStartTime() < B.GetStartTime();
+		}
+	);
+}
+
+void MovieSceneHelpers::FixupConsecutiveSections(TArray<UMovieSceneSection*>& Sections, UMovieSceneSection& Section, bool bDelete)
+{
+	// Find the previous section and extend it to take the place of the section being deleted
+	int32 SectionIndex = INDEX_NONE;
+
+	if (Sections.Find(&Section, SectionIndex))
+	{
+		int32 PrevSectionIndex = SectionIndex - 1;
+		if( Sections.IsValidIndex( PrevSectionIndex ) )
+		{
+			// Extend the previous section
+			Sections[PrevSectionIndex]->SetEndTime( bDelete ? Section.GetEndTime() : Section.GetStartTime() );
+		}
+
+		if( !bDelete )
+		{
+			int32 NextSectionIndex = SectionIndex + 1;
+			if(Sections.IsValidIndex(NextSectionIndex))
+			{
+				// Shift the next CameraCut's start time so that it starts when the new CameraCut ends
+				Sections[NextSectionIndex]->SetStartTime(Section.GetEndTime());
+			}
+		}
+	}
+
+	SortConsecutiveSections(Sections);
+}
+
+
+
 USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Object)
 {
 	AActor* Actor = Cast<AActor>(Object);

@@ -4,7 +4,10 @@
 #include "MovieSceneSubSection.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneSubTrack.h"
+#include "MovieSceneCinematicShotTrack.h"
 #include "SubTrackEditor.h"
+#include "ContentBrowserModule.h"
+#include "SequencerUtilities.h"
 
 
 namespace SubTrackEditorConstants
@@ -244,6 +247,20 @@ void FSubTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 	);
 }
 
+TSharedPtr<SWidget> FSubTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
+{
+	// Create a container edit box
+	return SNew(SHorizontalBox)
+
+	// Add the sub sequence combo box
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.VAlign(VAlign_Center)
+	[
+		FSequencerUtilities::MakeAddButton(LOCTEXT("SubText", "Sequence"), FOnGetContent::CreateSP(this, &FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuContent), Params.NodeIsHovered)
+	];
+}
+
 
 TSharedRef<ISequencerTrackEditor> FSubTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
@@ -266,12 +283,22 @@ bool FSubTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObject
 		return false;
 	}
 
+	//@todo If there's already a cinematic shot track, allow that track to handle this asset
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
+
+	if (FocusedMovieScene != nullptr && FocusedMovieScene->FindMasterTrack<UMovieSceneCinematicShotTrack>() != nullptr)
+	{
+		return false;
+	}
+
 	if (CanAddSubSequence(*Sequence))
 	{
 		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FSubTrackEditor::HandleSequenceAdded, Sequence));
+
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 
@@ -279,6 +306,11 @@ bool FSubTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {
 	// We support sub movie scenes
 	return Type == UMovieSceneSubTrack::StaticClass();
+}
+
+const FSlateBrush* FSubTrackEditor::GetIconBrush() const
+{
+	return FEditorStyle::GetBrush("Sequencer.Tracks.Sub");
 }
 
 
@@ -338,11 +370,65 @@ void FSubTrackEditor::HandleAddSubTrackMenuEntryExecute()
 }
 
 
+TSharedRef<SWidget> FSubTrackEditor::HandleAddSubSequenceComboButtonGetMenuContent()
+{
+	FMenuBuilder MenuBuilder(true, nullptr);
+
+	FAssetPickerConfig AssetPickerConfig;
+	{
+		AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw( this, &FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute);
+		AssetPickerConfig.bAllowNullSelection = false;
+		AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
+		AssetPickerConfig.Filter.ClassNames.Add(TEXT("LevelSequence"));
+	}
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+	TSharedPtr<SBox> MenuEntry = SNew(SBox)
+		.WidthOverride(300.0f)
+		.HeightOverride(300.f)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		];
+
+	MenuBuilder.AddWidget(MenuEntry.ToSharedRef(), FText::GetEmpty(), true);
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FSubTrackEditor::HandleAddSubSequenceComboButtonMenuEntryExecute(const FAssetData& AssetData)
+{
+	FSlateApplication::Get().DismissAllMenus();
+
+	UObject* SelectedObject = AssetData.GetAsset();
+
+	if (SelectedObject && SelectedObject->IsA(UMovieSceneSequence::StaticClass()))
+	{
+		UMovieSceneSequence* MovieSceneSequence = CastChecked<UMovieSceneSequence>(AssetData.GetAsset());
+
+		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &FSubTrackEditor::AddKeyInternal, MovieSceneSequence) );
+	}
+}
+
+bool FSubTrackEditor::AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence)
+{	
+	if (CanAddSubSequence(*InMovieSceneSequence))
+	{
+		auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
+		float Duration = InMovieSceneSequence->GetMovieScene()->GetPlaybackRange().Size<float>();
+		SubTrack->AddSequence(InMovieSceneSequence, KeyTime, Duration);
+
+		return true;
+	}
+
+	return false;
+}
+
 bool FSubTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence)
 {
 	auto SubTrack = FindOrCreateMasterTrack<UMovieSceneSubTrack>().Track;
-	SubTrack->AddSequence(*Sequence, KeyTime);
-	SubTrack->SetDisplayName(LOCTEXT("SubTrackName", "Sequences"));
+	float Duration = Sequence->GetMovieScene()->GetPlaybackRange().Size<float>();
+	SubTrack->AddSequence(Sequence, KeyTime, Duration);
 
 	return true;
 }

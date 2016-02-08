@@ -291,6 +291,12 @@ void FContentBrowserSingleton::GetSelectedAssets(TArray<FAssetData>& SelectedAss
 	}
 }
 
+void FContentBrowserSingleton::CaptureThumbnailFromViewport(FViewport* InViewport, TArray<FAssetData>& SelectedAssets)
+{
+	ContentBrowserUtils::CaptureThumbnailFromViewport(InViewport, SelectedAssets);
+}
+
+
 void FContentBrowserSingleton::OnEditorLoadSelectedAssetsIfNeeded()
 {
 	if ( PrimaryContentBrowser.IsValid() )

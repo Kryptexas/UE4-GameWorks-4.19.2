@@ -9,42 +9,6 @@ class ALevelScriptActor;
 
 
 /**
- * Structure for event section keys.
- */
-USTRUCT()
-struct FMovieSceneEventSectionKey
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** The names of the events to be triggered. */
-	UPROPERTY(EditAnywhere, Category=EventTrackKey)
-	TArray<FName> EventNames;
-
-	/** The time at which the event should be triggered. */
-	UPROPERTY()
-	float Time;
-
-	/** Default constructor. */
-	FMovieSceneEventSectionKey()
-		: Time(0.0f)
-	{ }
-
-	/** Creates and initializes a new instance. */
-	FMovieSceneEventSectionKey(const FName& InEventName, float InTime)
-		: Time(InTime)
-	{
-		EventNames.Add(InEventName);
-	}
-
-	/** Operator less, used to sort the heap based on time until execution. */
-	bool operator<(const FMovieSceneEventSectionKey& Other) const
-	{
-		return Time < Other.Time;
-	}
-};
-
-
-/**
  * Implements a section in movie scene event tracks.
  */
 UCLASS( MinimalAPI )
@@ -105,6 +69,6 @@ protected:
 private:
 
 	/** The section's keys. */
-	UPROPERTY(EditAnywhere, Category="Events")
+	UPROPERTY()
 	FNameCurve Events;
 };

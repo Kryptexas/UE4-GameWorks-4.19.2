@@ -97,10 +97,10 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 }
 
 
-void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneVectorTrackInstance::Update( EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
 	FVector4 Vector;
-	if( VectorTrack->Eval( Position, LastPosition, Vector ) )
+	if( VectorTrack->Eval( UpdateData.Position, UpdateData.LastPosition, Vector ) )
 	{
 		int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
 		switch( NumChannelsUsed )

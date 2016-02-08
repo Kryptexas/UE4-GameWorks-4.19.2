@@ -79,6 +79,16 @@ public:
 	 */
 	bool GetDefaultExpansionState( const FSequencerDisplayNode& Node ) const;
 
+	/**
+	 * Set the single hovered node in the tree
+	 */
+	void SetHoveredNode(const TSharedPtr<FSequencerDisplayNode>& InHoveredNode);
+
+	/**
+	 * Get the single hovered node in the tree, possibly nullptr
+	 */
+	const TSharedPtr<FSequencerDisplayNode>& GetHoveredNode() const;
+
 private:
 	/**
 	 * Finds or adds a type editor for the track
@@ -109,6 +119,8 @@ private:
 	TMap< FGuid, TSharedPtr<FSequencerObjectBindingNode> > ObjectBindingMap;
 	/** Set of all filtered nodes */
 	TSet< TSharedRef<const FSequencerDisplayNode> > FilteredNodes;
+	/** Cardinal hovered node */
+	TSharedPtr<FSequencerDisplayNode> HoveredNode;
 	/** Active filter string if any */
 	FString FilterString;
 	/** Sequencer interface */

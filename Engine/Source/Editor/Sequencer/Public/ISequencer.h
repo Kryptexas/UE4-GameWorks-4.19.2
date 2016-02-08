@@ -88,6 +88,11 @@ public:
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const = 0;
 
 	/**
+	 * @return Whether the section has a sequence instance
+	 */
+	virtual bool HasSequenceInstanceForSection(UMovieSceneSection& Section) const = 0;
+
+	/**
 	 * Adds a movie scene as a section inside the current movie scene
 	 * 
 	 * @param Sequence The sequence to add.
@@ -140,15 +145,23 @@ public:
 	 * Sets the global position to the time.
 	 *
 	 * @param Time The global time to set.
+	 * @param bAllowSnappingToFrames Whether or not to allow snapping to frames if.
 	 * @see GetGlobalTime
 	 */
-	virtual void SetGlobalTime(float Time) = 0;
+	virtual void SetGlobalTime(float Time, const bool& bAllowSnappingToFrames = false) = 0;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const
 	{
 		return FAnimatedRange();
 	}
+
+	/**
+	 * Set the view range, growing the working range to accomodate, if necessary
+	 * @param NewViewRange The new view range. Must be a finite range
+	 * @param Interpolation How to interpolate to the new view range
+	 */
+	virtual void SetViewRange(TRange<float> NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated) = 0;
 
 	/**
 	 * Sets whether perspective viewport hijacking is enabled.
@@ -173,6 +186,9 @@ public:
 	 * Gets whether perspective viewport hijacking is enabled.
 	 */ 
 	virtual bool IsPerspectiveViewportCameraCutEnabled() const { return true; }
+
+	DECLARE_EVENT_OneParam(ISequencer, FOnCameraCut, UObject*)
+	virtual FOnCameraCut& OnCameraCut() = 0;
 
 	/**
 	 * Gets a handle to runtime information about the object being manipulated by a movie scene
@@ -210,4 +226,16 @@ public:
 
 	/** Gets a multicast delegate which is executed whenever the global time changes. */
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() = 0;
+
+	/** @return a numeric type interface that will parse and display numbers as frames and times correctly */
+	virtual TSharedRef<INumericTypeInterface<float>> GetNumericTypeInterface() = 0;
+
+	/** @return a numeric type interface that will parse and display numbers as frames and times correctly (including zero-pad, if applicable) */
+	virtual TSharedRef<INumericTypeInterface<float>> GetZeroPadNumericTypeInterface() = 0;
+
+	/** @return the command bindings for this sequencer */
+	virtual TSharedPtr<FUICommandList> GetCommandBindings() const = 0;
+
+	/** @return Returns a widget containing the sequencer's playback controls */
+	virtual TSharedRef<SWidget> MakeTransportControls() = 0;
 };

@@ -6,6 +6,8 @@
 #include "MovieSceneEventTrackInstance.h"
 
 
+#define LOCTEXT_NAMESPACE "MovieSceneEventTrack"
+
 /* UMovieSceneEventTrack interface
  *****************************************************************************/
 
@@ -140,3 +142,15 @@ void UMovieSceneEventTrack::RemoveSection(UMovieSceneSection& Section)
 {
 	Sections.Remove(&Section);
 }
+
+#if WITH_EDITORONLY_DATA
+
+FText UMovieSceneEventTrack::GetDefaultDisplayName() const
+{ 
+	return LOCTEXT("TrackName", "Events"); 
+}
+
+#endif
+
+
+#undef LOCTEXT_NAMESPACE

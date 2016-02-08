@@ -61,7 +61,6 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/Light.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 #include "EditorProjectSettings.h"
 #include "HierarchicalLODUtilities.h"
@@ -362,7 +361,7 @@ void FLevelEditorActionCallbacks::Save()
 
 void FLevelEditorActionCallbacks::SaveAs()
 {
-	FEditorFileUtils::SaveAs( GetWorld()->PersistentLevel );
+	FEditorFileUtils::SaveLevelAs( GetWorld()->PersistentLevel );
 }
 
 void FLevelEditorActionCallbacks::SaveAllLevels()
@@ -1773,6 +1772,8 @@ bool FLevelEditorActionCallbacks::ScaleGridSnap_IsChecked()
 
 bool FLevelEditorActionCallbacks::SaveAnimationFromSkeletalMeshComponent(AActor * EditorActor, AActor * SimActor, TArray<class USkeletalMeshComponent*> & OutEditorComponents)
 {
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+
 	// currently blueprint actors don't work because their property can't get copied over. 
 	if (Cast<UBlueprintGeneratedClass>(EditorActor->GetClass()) != nullptr)
 	{
@@ -1806,28 +1807,23 @@ bool FLevelEditorActionCallbacks::SaveAnimationFromSkeletalMeshComponent(AActor 
 					if (Comp->SkeletalMesh && Comp->SkeletalMesh->Skeleton && Comp->IsSimulatingPhysics())
 					{
 						// now record to animation
-						FAnimationRecorder Recorder;
-						if(Recorder.TriggerRecordAnimation(Comp))
+						class UAnimSequence* Sequence = LevelEditorModule.OnCaptureSingleFrameAnimSequence().IsBound() ? LevelEditorModule.OnCaptureSingleFrameAnimSequence().Execute(Comp) : nullptr;
+						if(Sequence)
 						{
-							class UAnimSequence * Sequence = Recorder.GetAnimationObject();
-							if(Sequence)
-							{
-								Recorder.StopRecord(false);
-								Comp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-								Comp->AnimationData.AnimToPlay = Sequence;
-								Comp->SetAnimation(Sequence);
-								Comp->SetSimulatePhysics(false);
+							Comp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+							Comp->AnimationData.AnimToPlay = Sequence;
+							Comp->SetAnimation(Sequence);
+							Comp->SetSimulatePhysics(false);
 
-								// add the matching component to EditorCompoennts
-								class USkeletalMeshComponent * MatchingComponent = Cast<USkeletalMeshComponent>(EditorUtilities::FindMatchingComponentInstance(Comp, EditorActor));
-								if (MatchingComponent)
-								{
-									OutEditorComponents.Add(MatchingComponent);
-								}
-								else
-								{
-									UE_LOG( LevelEditorActions, Warning, TEXT("Matching component could not be found %s(%s)"), *GetNameSafe(Comp), *GetNameSafe(EditorActor) );
-								}
+							// add the matching component to EditorCompoennts
+							class USkeletalMeshComponent * MatchingComponent = Cast<USkeletalMeshComponent>(EditorUtilities::FindMatchingComponentInstance(Comp, EditorActor));
+							if (MatchingComponent)
+							{
+								OutEditorComponents.Add(MatchingComponent);
+							}
+							else
+							{
+								UE_LOG(LevelEditorActions, Warning, TEXT("Matching component could not be found %s(%s)"), *GetNameSafe(Comp), *GetNameSafe(EditorActor));
 							}
 						}
 					}

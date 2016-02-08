@@ -339,7 +339,8 @@ void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float
 {
 	if(RootMovieSceneInstance.IsValid())
 	{
-		RootMovieSceneInstance->Update(CurrentPosition + StartTime, PreviousPosition + StartTime, *this);
+		EMovieSceneUpdateData UpdateData(CurrentPosition + StartTime, PreviousPosition + StartTime);
+		RootMovieSceneInstance->Update(UpdateData, *this);
 #if WITH_EDITOR
 		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
 #endif

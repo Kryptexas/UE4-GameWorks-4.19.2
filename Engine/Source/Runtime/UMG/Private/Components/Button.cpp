@@ -180,11 +180,6 @@ void UButton::SlateHandleUnhovered()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UButton::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Button");
-}
-
 const FText UButton::GetPaletteCategory()
 {
 	return LOCTEXT("Common", "Common");

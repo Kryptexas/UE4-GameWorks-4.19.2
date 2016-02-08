@@ -122,6 +122,65 @@ void SSequencerTreeView::Tick(const FGeometry& AllottedGeometry, const double In
 	PhysicalNodes.Sort([](const FCachedGeometry& A, const FCachedGeometry& B){
 		return A.PhysicalTop < B.PhysicalTop;
 	});
+
+	HighlightRegion = TOptional<FHighlightRegion>();
+
+	if (SequencerNodeTree->GetHoveredNode().IsValid())
+	{
+		TSharedRef<FSequencerDisplayNode> OutermostParent = SequencerNodeTree->GetHoveredNode()->GetOutermostParent();
+		if (OutermostParent->GetType() == ESequencerNode::Spacer)
+		{
+			return;
+		}
+
+		TOptional<float> PhysicalTop = ComputeNodePosition(OutermostParent);
+
+		if (PhysicalTop.IsSet())
+		{
+			// Compute total height of the highlight
+			float TotalHeight = 0.f;
+			OutermostParent->TraverseVisible_ParentFirst([&](FSequencerDisplayNode& InNode){
+				TotalHeight += InNode.GetNodeHeight() + InNode.GetNodePadding().Combined();
+				return true;
+			});
+
+			HighlightRegion = FHighlightRegion(PhysicalTop.GetValue(), PhysicalTop.GetValue() + TotalHeight);
+		}
+	}
+}
+
+int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	LayerId = STreeView::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if (HighlightRegion.IsSet())
+	{
+		static const FName SelectionColorPressedName("SelectionColor");
+		FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorPressedName).GetColor(InWidgetStyle).CopyWithNewOpacity(0.3f);
+
+		// Black tint for unhighlighted regions
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			LayerId+1,
+			AllottedGeometry.ToPaintGeometry(FVector2D(2.f, HighlightRegion->Top - 4.f), FVector2D(AllottedGeometry.Size.X - 4.f, 4.f)),
+			FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Top"),
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			SelectionColor
+		);
+		
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			LayerId+1,
+			AllottedGeometry.ToPaintGeometry(FVector2D(2.f, HighlightRegion->Bottom), FVector2D(AllottedGeometry.Size.X - 4.f, 4.f)),
+			FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Bottom"),
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			SelectionColor
+		);
+	}
+
+	return LayerId + 1;
 }
 
 TOptional<SSequencerTreeView::FCachedGeometry> SSequencerTreeView::GetPhysicalGeometryForNode(const FDisplayNodeRef& InNode) const
@@ -132,6 +191,38 @@ TOptional<SSequencerTreeView::FCachedGeometry> SSequencerTreeView::GetPhysicalGe
 	}
 
 	return TOptional<FCachedGeometry>();
+}
+
+TOptional<float> SSequencerTreeView::ComputeNodePosition(const FDisplayNodeRef& InNode) const
+{
+	// Positioning strategy:
+	// Attempt to root out any visible node in the specified node's sub-hierarchy, and compute the node's offset from that
+	float NegativeOffset = 0.f;
+	TOptional<float> Top;
+	
+	// Iterate parent first until we find a tree view row we can use for the offset height
+	auto Iter = [&](FSequencerDisplayNode& InDisplayNode){
+		
+		TOptional<FCachedGeometry> ChildRowGeometry = GetPhysicalGeometryForNode(InDisplayNode.AsShared());
+		if (ChildRowGeometry.IsSet())
+		{
+			Top = ChildRowGeometry->PhysicalTop;
+			// Stop iterating
+			return false;
+		}
+
+		NegativeOffset -= InDisplayNode.GetNodeHeight() + InDisplayNode.GetNodePadding().Combined();
+		return true;
+	};
+
+	InNode->TraverseVisible_ParentFirst(Iter);
+
+	if (Top.IsSet())
+	{
+		return NegativeOffset + Top.GetValue();
+	}
+
+	return Top;
 }
 
 void SSequencerTreeView::ReportChildRowGeometry(const FDisplayNodeRef& InNode, const FGeometry& InGeometry)

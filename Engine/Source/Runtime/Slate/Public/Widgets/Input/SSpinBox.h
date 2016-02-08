@@ -542,7 +542,7 @@ protected:
 			ExitTextMode();
 		}
 
-		TOptional<NumericType> NewValue = Interface->FromString(NewText.ToString());
+		TOptional<NumericType> NewValue = Interface->FromString(NewText.ToString(), ValueAttribute.Get());
 		if (NewValue.IsSet())
 		{
 			CommitValue( NewValue.GetValue(), CommittedViaTypeIn, CommitInfo );

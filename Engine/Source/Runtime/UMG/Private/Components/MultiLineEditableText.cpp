@@ -114,11 +114,6 @@ void UMultiLineEditableText::PostLoad()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UMultiLineEditableText::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MultiLineEditableText");
-}
-
 const FText UMultiLineEditableText::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

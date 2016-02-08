@@ -91,11 +91,6 @@ void UWrapBox::SetInnerSlotPadding(FVector2D InPadding)
 
 #if WITH_EDITOR
 
-const FSlateBrush* UWrapBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.WrapBox");
-}
-
 const FText UWrapBox::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

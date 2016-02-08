@@ -77,6 +77,12 @@ ERichCurveInterpMode FNameCurveKeyArea::GetKeyInterpMode(FKeyHandle Keyhandle) c
 }
 
 
+TSharedPtr<FStructOnScope> FNameCurveKeyArea::GetKeyStruct(FKeyHandle KeyHandle)
+{
+	return MakeShareable(new FStructOnScope(FNameCurveKey::StaticStruct(), (uint8*)&Curve.GetKey(KeyHandle)));
+}
+
+
 ERichCurveTangentMode FNameCurveKeyArea::GetKeyTangentMode(FKeyHandle KeyHandle) const
 {
 	return RCTM_None;

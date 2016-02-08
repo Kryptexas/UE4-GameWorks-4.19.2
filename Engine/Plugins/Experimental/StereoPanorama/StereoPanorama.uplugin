@@ -4,7 +4,7 @@
 	"VersionName" : "Alpha",
 	"FriendlyName" : "Stereo Panoramic Movie Capture",
 	"Description" : "A plugin to capture a sequence of panoramic images",
-	"Category" : "Recording",
+	"Category" : "Movie Capture",
 	"CreatedBy" : "Kite & Lightning",
 	"CreatedByURL" : "http://kiteandlightning.la/",
 	"DocsURL" : "",

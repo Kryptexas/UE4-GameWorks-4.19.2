@@ -110,11 +110,6 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 
 #if WITH_EDITOR
 
-const FSlateBrush* UCanvasPanel::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Canvas");
-}
-
 const FText UCanvasPanel::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

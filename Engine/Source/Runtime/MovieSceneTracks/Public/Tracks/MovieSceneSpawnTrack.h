@@ -6,13 +6,14 @@
 #include "MovieSceneSpawnTrack.generated.h"
 
 
+class IMovieSceneTrackInstance;
 class UMovieSceneSection;
 
 
 /**
  * Handles when a spawnable should be spawned and destroyed
  */
-UCLASS( MinimalAPI )
+UCLASS(MinimalAPI)
 class UMovieSceneSpawnTrack
 	: public UMovieSceneNameableTrack
 {
@@ -44,7 +45,7 @@ public:
 
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
-	virtual bool HasSection(const UMovieSceneSection& Section ) const override;
+	virtual bool HasSection(const UMovieSceneSection& Section) const override;
 	virtual void AddSection(UMovieSceneSection& Section) override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;
 	virtual bool IsEmpty() const override;
@@ -52,7 +53,7 @@ public:
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 
 #if WITH_EDITORONLY_DATA
-	virtual FText GetDisplayName() const override;
+	virtual FText GetDefaultDisplayName() const override;
 #endif
 
 protected:

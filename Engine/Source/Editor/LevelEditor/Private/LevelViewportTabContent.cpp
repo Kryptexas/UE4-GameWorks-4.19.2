@@ -30,8 +30,16 @@ TSharedPtr< class FLevelViewportLayout > FLevelViewportTabContent::ConstructView
 	else if (TypeName == LevelViewportConfigurationNames::FourPanesBottom) ViewportLayout = MakeShareable(new FLevelViewportLayoutFourPanesBottom);
 	else if (TypeName == LevelViewportConfigurationNames::FourPanesTop) ViewportLayout = MakeShareable(new FLevelViewportLayoutFourPanesTop);
 	else if (TypeName == LevelViewportConfigurationNames::OnePane) ViewportLayout = MakeShareable(new FLevelViewportLayoutOnePane);
+	else
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>("LevelEditor");
+		ViewportLayout = LevelEditorModule.FactoryCustomViewportLayout(TypeName);
+	}
 
-	check (ViewportLayout.IsValid());
+	if (!ensure(ViewportLayout.IsValid()))
+	{
+		ViewportLayout = MakeShareable(new FLevelViewportLayoutOnePane);
+	}
 	ViewportLayout->SetIsReplacement(bSwitchingLayouts);
 	return ViewportLayout;
 }
@@ -65,7 +73,7 @@ bool FLevelViewportTabContent::IsVisible() const
 	return false;
 }
 
-const TArray< TSharedPtr< SLevelViewport > >* FLevelViewportTabContent::GetViewports() const
+const TMap< FName, TSharedPtr< IViewportLayoutEntity > >* FLevelViewportTabContent::GetViewports() const
 {
 	if (ActiveLevelViewportLayout.IsValid())
 	{

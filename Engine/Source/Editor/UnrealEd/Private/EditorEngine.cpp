@@ -122,8 +122,6 @@
 #include "Engine/CoreSettings.h"
 #include "ShaderCompiler.h"
 
-#include "AnimationRecorder.h"
-
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
@@ -1589,8 +1587,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	FUnrealEdMisc::Get().TickPerformanceAnalytics();
 
-	FAnimationRecorderManager::Get().Tick(DeltaSeconds);
-	
+	BroadcastPostEditorTick(DeltaSeconds);
+
 	// If the fadeout animation has completed for the undo/redo notification item, allow it to be deleted
 	if(UndoRedoNotificationItem.IsValid() && UndoRedoNotificationItem->GetCompletionState() == SNotificationItem::CS_None)
 	{

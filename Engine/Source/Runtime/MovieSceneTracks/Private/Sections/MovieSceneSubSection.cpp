@@ -12,4 +12,5 @@
 UMovieSceneSubSection::UMovieSceneSubSection()
 	: StartOffset(0.0f)
 	, TimeScale(1.0f)
+	, PrerollTime(0.0f)
 { }

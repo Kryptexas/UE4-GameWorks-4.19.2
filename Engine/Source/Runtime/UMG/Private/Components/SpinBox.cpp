@@ -304,11 +304,6 @@ void USpinBox::PostLoad()
 
 #if WITH_EDITOR
 
-const FSlateBrush* USpinBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.SpinBox");
-}
-
 const FText USpinBox::GetPaletteCategory()
 {
 	return LOCTEXT("Input", "Input");

@@ -47,11 +47,11 @@ void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 }
 
 
-void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneBoolTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	bool BoolValue = false;
 
-	if( BoolTrack->Eval( Position, LastPosition, BoolValue ) )
+	if( BoolTrack->Eval( UpdateData.Position, UpdateData.LastPosition, BoolValue ) )
 	{
 		for( UObject* Object : RuntimeObjects )
 		{

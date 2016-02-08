@@ -161,11 +161,6 @@ void UMultiLineEditableTextBox::PostLoad()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UMultiLineEditableTextBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MultiLineEditableTextBox");
-}
-
 const FText UMultiLineEditableTextBox::GetPaletteCategory()
 {
 	return LOCTEXT("Input", "Input");

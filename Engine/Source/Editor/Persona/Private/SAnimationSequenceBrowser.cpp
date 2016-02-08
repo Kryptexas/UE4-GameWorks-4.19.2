@@ -1016,7 +1016,7 @@ bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
 {
 	bool bVisible = false;
 	// during persona recording, disable this
-	if( PersonaPtr.IsValid() && PersonaPtr.Pin()->Recorder.InRecording() == false 
+	if( PersonaPtr.IsValid() && PersonaPtr.Pin()->IsRecording() == false 
 		&& ViewportWidget.IsValid())
 	{
 		bVisible = ViewportWidget->GetVisibility() == EVisibility::Visible;

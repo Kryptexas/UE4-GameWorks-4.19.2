@@ -46,10 +46,10 @@ void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 }
 
 
-void FMovieSceneFloatTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneFloatTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
 	float FloatValue = 0.0f;
-	if( FloatTrack->Eval( Position, LastPosition, FloatValue ) )
+	if( FloatTrack->Eval( UpdateData.Position, UpdateData.LastPosition, FloatValue ) )
 	{
 		for(UObject* Object : RuntimeObjects)
 		{

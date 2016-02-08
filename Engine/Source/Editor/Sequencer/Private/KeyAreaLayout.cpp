@@ -3,13 +3,14 @@
 #include "SequencerPrivatePCH.h"
 #include "KeyAreaLayout.h"
 
-FKeyAreaLayoutElement FKeyAreaLayoutElement::FromGroup(const TSharedRef<FGroupedKeyArea>& InKeyAreaGroup, float InOffset, TOptional<float> InHeight)
+FKeyAreaLayoutElement FKeyAreaLayoutElement::FromGroup(const TSharedRef<FSequencerDisplayNode>& InNode, const TSharedRef<FGroupedKeyArea>& InKeyAreaGroup, float InOffset, TOptional<float> InHeight)
 {
 	FKeyAreaLayoutElement Tmp;
 	Tmp.Type = Group;
 	Tmp.KeyArea = InKeyAreaGroup;
 	Tmp.LocalOffset = InOffset;
 	Tmp.Height = InHeight;
+	Tmp.DisplayNode = InNode;
 	return Tmp;
 }
 
@@ -19,7 +20,7 @@ FKeyAreaLayoutElement FKeyAreaLayoutElement::FromKeyAreaNode(const TSharedRef<FS
 	Tmp.Type = Single;
 	Tmp.KeyArea = InKeyAreaNode->GetKeyArea(SectionIndex);
 	Tmp.LocalOffset = InOffset;
-
+	Tmp.DisplayNode = InKeyAreaNode;
 	if (!InKeyAreaNode->IsTopLevel())
 	{
 		Tmp.Height = InKeyAreaNode->GetNodeHeight();
@@ -47,6 +48,11 @@ TSharedRef<IKeyArea> FKeyAreaLayoutElement::GetKeyArea() const
 	return KeyArea.ToSharedRef();
 }
 
+TSharedPtr<FSequencerDisplayNode> FKeyAreaLayoutElement::GetDisplayNode() const
+{
+	return DisplayNode;
+}
+
 FKeyAreaLayout::FKeyAreaLayout(FSequencerDisplayNode& InNode, int32 InSectionIndex)
 {
 	TotalHeight = 0.f;
@@ -61,7 +67,7 @@ FKeyAreaLayout::FKeyAreaLayout(FSequencerDisplayNode& InNode, int32 InSectionInd
 		}
 		else if (!Node.IsExpanded())
 		{
-			Elements.Add(FKeyAreaLayoutElement::FromGroup(Node.UpdateKeyGrouping(InSectionIndex), TotalHeight, Node.GetNodeHeight()));
+			Elements.Add(FKeyAreaLayoutElement::FromGroup(Node.AsShared(), Node.UpdateKeyGrouping(InSectionIndex), TotalHeight, Node.GetNodeHeight()));
 		}
 
 	};

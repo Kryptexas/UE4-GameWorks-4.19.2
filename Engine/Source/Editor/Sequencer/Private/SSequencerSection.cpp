@@ -6,7 +6,6 @@
 #include "IKeyArea.h"
 #include "ISequencerSection.h"
 #include "MovieSceneSection.h"
-#include "MovieSceneShotSection.h"
 #include "MovieSceneToolHelpers.h"
 #include "CommonMovieSceneTools.h"
 #include "SequencerHotspots.h"
@@ -193,11 +192,11 @@ void SSequencerSection::CheckForEdgeInteraction( const FPointerEvent& MouseEvent
 
 	if( SectionRectLeft.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
 	{
-		GetSequencer().GetEditTool().SetHotspot(MakeShareable( new FSectionResizeHotspot(FSectionResizeHotspot::Left, FSectionHandle(ParentSectionArea, SectionIndex))) );
+		GetSequencer().SetHotspot(MakeShareable( new FSectionResizeHotspot(FSectionResizeHotspot::Left, FSectionHandle(ParentSectionArea, SectionIndex))) );
 	}
 	else if( SectionRectRight.IsUnderLocation( MouseEvent.GetScreenSpacePosition() ) )
 	{
-		GetSequencer().GetEditTool().SetHotspot(MakeShareable( new FSectionResizeHotspot(FSectionResizeHotspot::Right, FSectionHandle(ParentSectionArea, SectionIndex))) );
+		GetSequencer().SetHotspot(MakeShareable( new FSectionResizeHotspot(FSectionResizeHotspot::Right, FSectionHandle(ParentSectionArea, SectionIndex))) );
 	}
 }
 
@@ -279,6 +278,8 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	static const FName HighlightBrushName("Sequencer.AnimationOutliner.DefaultBorder");
+
 	static const FName BackgroundBrushName("Sequencer.SectionArea.Background");
 	static const FName CircleKeyBrushName("Sequencer.KeyCircle");
 	static const FName DiamondKeyBrushName("Sequencer.KeyDiamond");
@@ -295,7 +296,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor( InWidgetStyle );
 	FLinearColor SelectedKeyColor = SelectionColor;
 	FSequencer& Sequencer = ParentSectionArea->GetSequencer();
-	TSharedPtr<ISequencerHotspot> Hotspot = Sequencer.GetEditTool().GetHotspot();
+	TSharedPtr<ISequencerHotspot> Hotspot = Sequencer.GetHotspot();
 
 	// get hovered key
 	FSequencerSelectedKey HoveredKey;
@@ -320,6 +321,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 	// draw all keys in each key area
 	UMovieSceneSection& SectionObject = *SectionInterface->GetSectionObject();
 
+	const FSlateBrush* HighlightBrush = FEditorStyle::GetBrush(HighlightBrushName);
 	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush(BackgroundBrushName);
 	const FSlateBrush* CircleKeyBrush = FEditorStyle::GetBrush(CircleKeyBrushName);
 	const FSlateBrush* DiamondKeyBrush = FEditorStyle::GetBrush(DiamondKeyBrushName);
@@ -353,6 +355,19 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 				MyClippingRect,
 				DrawEffects,
 				KeyArea->GetColor()
+			); 
+		}
+
+		if (LayoutElement.GetDisplayNode().IsValid() && LayoutElement.GetDisplayNode()->IsHovered())
+		{
+			FSlateDrawElement::MakeBox( 
+				OutDrawElements,
+				LayerId + 1,
+				KeyAreaGeometry.ToPaintGeometry(),
+				HighlightBrush,
+				MyClippingRect,
+				DrawEffects,
+				FLinearColor(1.f, 1.f, 1.f, 0.2f)
 			); 
 		}
 
@@ -537,7 +552,7 @@ void SSequencerSection::DrawSectionHandles( const FGeometry& AllottedGeometry, c
 	bool bRightHandleActive = false;
 
 	// Get the hovered/selected state for the section handles from the hotspot
-	TSharedPtr<ISequencerHotspot> Hotspot = GetSequencer().GetEditTool().GetHotspot();
+	TSharedPtr<ISequencerHotspot> Hotspot = GetSequencer().GetHotspot();
 
 	if (Hotspot.IsValid() && (
 		Hotspot->GetType() == ESequencerHotspot::SectionResize_L ||
@@ -644,7 +659,7 @@ FReply SSequencerSection::OnMouseButtonDown( const FGeometry& MyGeometry, const 
 	FSequencerSelectedKey HoveredKey;
 	
 	// The hovered key is defined from the sequencer hotspot
-	TSharedPtr<ISequencerHotspot> Hotspot = GetSequencer().GetEditTool().GetHotspot();
+	TSharedPtr<ISequencerHotspot> Hotspot = GetSequencer().GetHotspot();
 	if (Hotspot.IsValid() && Hotspot->GetType() == ESequencerHotspot::Key)
 	{
 		HoveredKey = static_cast<FKeyHotspot*>(Hotspot.Get())->Key;
@@ -663,8 +678,7 @@ FReply SSequencerSection::OnMouseButtonDown( const FGeometry& MyGeometry, const 
 			Sequencer.GetSelection().AddToSelection(NewKey);
 
 			// Pass the event to the tool to copy the hovered key and move it
-			auto& EditTool = GetSequencer().GetEditTool();
-			EditTool.SetHotspot( MakeShareable( new FKeyHotspot(NewKey, ParentSectionArea) ) );
+			GetSequencer().SetHotspot( MakeShareable( new FKeyHotspot(NewKey) ) );
 
 			// Return unhandled so that the EditTool can handle the mouse down based on the newly created keyframe and prepare to move it
 			return FReply::Unhandled();
@@ -706,17 +720,15 @@ FReply SSequencerSection::OnMouseButtonDoubleClick( const FGeometry& MyGeometry,
 
 FReply SSequencerSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	auto& EditTool = GetSequencer().GetEditTool();
-
 	// Checked for hovered key
 	FSequencerSelectedKey KeyUnderMouse = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
 	if ( KeyUnderMouse.IsValid() )
 	{
-		EditTool.SetHotspot( MakeShareable( new FKeyHotspot(KeyUnderMouse, ParentSectionArea) ) );
+		GetSequencer().SetHotspot( MakeShareable( new FKeyHotspot(KeyUnderMouse) ) );
 	}
 	else
 	{
-		EditTool.SetHotspot( MakeShareable( new FSectionHotspot(FSectionHandle(ParentSectionArea, SectionIndex))) );
+		GetSequencer().SetHotspot( MakeShareable( new FSectionHotspot(FSectionHandle(ParentSectionArea, SectionIndex))) );
 
 		// Only check for edge interaction if not hovering over a key
 		CheckForEdgeInteraction( MouseEvent, MyGeometry );
@@ -729,7 +741,7 @@ FReply SSequencerSection::OnMouseMove( const FGeometry& MyGeometry, const FPoint
 void SSequencerSection::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	SCompoundWidget::OnMouseLeave( MouseEvent );
-	GetSequencer().GetEditTool().SetHotspot(nullptr);
+	GetSequencer().SetHotspot(nullptr);
 }
 
 static float ThrobDurationSeconds = .5f;

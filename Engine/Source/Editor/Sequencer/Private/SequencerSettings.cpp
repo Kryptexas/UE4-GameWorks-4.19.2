@@ -20,6 +20,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapSectionTimesToSections = true;
 	bSnapPlayTimeToInterval = true;
 	bSnapPlayTimeToDraggedKey = false;
+	bFixedTimeStepPlayback = false;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bDetailsViewVisible = false;
@@ -30,6 +31,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bLooping = false;
 	bKeepCursorInPlayRange = true;
 	bKeepPlayRangeInSectionBounds = true;
+	ZeroPadFrames = 0;
 }
 
 EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
@@ -112,6 +114,20 @@ void USequencerSettings::SetShowFrameNumbers(bool InbShowFrameNumbers)
 	if ( bShowFrameNumbers != InbShowFrameNumbers )
 	{
 		bShowFrameNumbers = InbShowFrameNumbers;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetShowGotoBox() const
+{
+	return bShowGotoBox;
+}
+
+void USequencerSettings::SetShowGotoBox(bool InbShowGotoBox)
+{
+	if ( bShowGotoBox != InbShowGotoBox )
+	{
+		bShowGotoBox = InbShowGotoBox;
 		SaveConfig();
 	}
 }
@@ -238,6 +254,20 @@ void USequencerSettings::SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDragg
 	if ( bSnapPlayTimeToDraggedKey != InbSnapPlayTimeToDraggedKey )
 	{
 		bSnapPlayTimeToDraggedKey = InbSnapPlayTimeToDraggedKey;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetFixedTimeStepPlayback() const
+{
+	return bFixedTimeStepPlayback;
+}
+
+void USequencerSettings::SetFixedTimeStepPlayback(bool InbFixedTimeStepPlayback)
+{
+	if ( bFixedTimeStepPlayback != InbFixedTimeStepPlayback )
+	{
+		bFixedTimeStepPlayback = InbFixedTimeStepPlayback;
 		SaveConfig();
 	}
 }
@@ -384,6 +414,21 @@ void USequencerSettings::SetShowCurveEditorCurveToolTips(bool InbShowCurveEditor
 	}
 }
 
+
+uint8 USequencerSettings::GetZeroPadFrames() const
+{
+	return ZeroPadFrames;
+}
+
+void USequencerSettings::SetZeroPadFrames(uint8 InZeroPadFrames)
+{
+	if (ZeroPadFrames != InZeroPadFrames)
+	{
+		ZeroPadFrames = InZeroPadFrames;
+		SaveConfig();
+	}
+}
+
 float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 {
 	return TimeSnapInterval > 0
@@ -404,4 +449,5 @@ ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectIniti
 	TimeSnapInterval = 0.033334f;
 	bShowRangeSlider = true;
 	bKeepPlayRangeInSectionBounds = false;
+	ZeroPadFrames = 4;
 }

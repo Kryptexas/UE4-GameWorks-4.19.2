@@ -49,7 +49,7 @@ TSharedRef<SWidget> FLevelViewportLayoutOnePane::MakeViewportLayout(const FStrin
 			.ConfigKey(ViewportKey)
 		];
 
-	Viewports.Add(ViewportWidget);
+	Viewports.Add( *ViewportKey, MakeShareable(new FLevelViewportLayoutEntity(ViewportWidget.ToSharedRef())));
 
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget->GetLevelViewportClient();

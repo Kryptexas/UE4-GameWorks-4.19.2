@@ -1963,14 +1963,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 	if (FPlatformProcess::SupportsMultithreading())
 	{
 		FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
-
-		if (!IsRunningCommandlet())
-		{
-			SessionService = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionService();
-			SessionService->Start();
-		}
-
-		EngineService = new FEngineService();
 	}
 
 	SlowTask.EnterProgressFrame(10);
@@ -2195,6 +2187,18 @@ int32 FEngineLoop::Init()
 	GEngine->Init(this);
 
 	SlowTask.EnterProgressFrame(30);
+
+	// initialize engine instance discovery
+	if (FPlatformProcess::SupportsMultithreading())
+	{
+		if (!IsRunningCommandlet())
+		{
+			SessionService = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionService();
+			SessionService->Start();
+		}
+
+		EngineService = new FEngineService();
+	}
 
 	// Load all the post-engine init modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit))

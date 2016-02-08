@@ -99,8 +99,9 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 		}
 
 		if (RootMovieSceneInstance.IsValid())
-		{
-			RootMovieSceneInstance->Update(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset, *this);
+		{			
+			EMovieSceneUpdateData UpdateData(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset);
+			RootMovieSceneInstance->Update(UpdateData, *this);
 		}
 	}
 }

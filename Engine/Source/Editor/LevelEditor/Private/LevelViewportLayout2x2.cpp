@@ -86,10 +86,10 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 		.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 	];
 
-	Viewports.Add( ViewportWidgetTL );
-	Viewports.Add( ViewportWidgetBL );
-	Viewports.Add( ViewportWidgetTR );
-	Viewports.Add( ViewportWidgetBR );
+	Viewports.Add( *TopLeftKey, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidgetTL.ToSharedRef()) ) );
+	Viewports.Add( *BottomLeftKey, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidgetBL.ToSharedRef()) ) );
+	Viewports.Add( *TopRightKey, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidgetTR.ToSharedRef()) ) );
+	Viewports.Add( *BottomRightKey, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidgetBR.ToSharedRef()) ) );
 
 	
 	// Make newly-created perspective viewports active by default

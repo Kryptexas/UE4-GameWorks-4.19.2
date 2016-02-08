@@ -8,7 +8,7 @@
 #include "MovieSceneNameableTrack.h"
 #include "Sequencer.h"
 #include "ISequencerTrackEditor.h"
-
+#include "SKeyNavigationButtons.h"
 
 namespace SequencerNodeConstants
 {
@@ -114,11 +114,9 @@ bool FSequencerTrackNode::CanRenameNode() const
 	return (Track != nullptr) && Track->IsA(UMovieSceneNameableTrack::StaticClass());
 }
 
-
-TSharedRef<SWidget> FSequencerTrackNode::GenerateEditWidgetForOutliner()
+TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 {
 	TSharedPtr<FSequencerSectionKeyAreaNode> KeyAreaNode = GetTopLevelKeyNode();
-
 	if (KeyAreaNode.IsValid())
 	{
 		// @todo - Sequencer - Support multiple sections/key areas?
@@ -126,10 +124,44 @@ TSharedRef<SWidget> FSequencerTrackNode::GenerateEditWidgetForOutliner()
 
 		if (KeyAreas.Num() > 0)
 		{
+			// Create the widgets for the key editor and key navigation buttons
+			TSharedRef<SHorizontalBox> BoxPanel = SNew(SHorizontalBox);
+
 			if (KeyAreas[0]->CanCreateKeyEditor())
 			{
-				return KeyAreas[0]->CreateKeyEditor(&GetSequencer());
+				BoxPanel->AddSlot()
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SBox)
+					.WidthOverride(100)
+					.HAlign(HAlign_Left)
+					[
+						KeyAreas[0]->CreateKeyEditor(&GetSequencer())
+					]
+				];
 			}
+			else
+			{
+				BoxPanel->AddSlot()
+				[
+					SNew(SSpacer)
+				];
+			}
+
+			BoxPanel->AddSlot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SKeyNavigationButtons, AsShared())
+			];
+
+			return SNew(SBox)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Right)
+				[
+					BoxPanel
+				];
 		}
 	}
 	else
@@ -141,15 +173,30 @@ TSharedRef<SWidget> FSequencerTrackNode::GenerateEditWidgetForOutliner()
 		{
 			ObjectBinding = StaticCastSharedPtr<FSequencerObjectBindingNode>(ParentNode)->GetObjectBinding();
 		}
+		FBuildEditWidgetParams Params;
+		Params.NodeIsHovered = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FSequencerDisplayNode::IsHovered));
 
-		TSharedPtr<SWidget> EditWidget = AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedTrack.Get());
-		if (EditWidget.IsValid())
+		TSharedPtr<SWidget> Widget = AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedTrack.Get(), Params);
+
+		if (Widget.IsValid())
 		{
-			return EditWidget.ToSharedRef();
+			return SNew(SBox)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Right)
+				[
+					Widget.ToSharedRef()
+				];
 		}
 	}
 
-	return FSequencerDisplayNode::GenerateEditWidgetForOutliner();
+
+	return SNew(SSpacer);
+}
+
+
+const FSlateBrush* FSequencerTrackNode::GetIconBrush() const
+{
+	return AssociatedEditor.GetIconBrush();
 }
 
 

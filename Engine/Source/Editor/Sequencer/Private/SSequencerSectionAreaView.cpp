@@ -8,7 +8,6 @@
 #include "SequencerDisplayNode.h"
 #include "SSequencer.h"
 #include "Sequencer.h"
-#include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 
 namespace SequencerSectionAreaConstants
@@ -83,11 +82,18 @@ FVector2D SSequencerSectionAreaView::ComputeDesiredSize(float) const
 {
 	// Note: X Size is not used
 	FVector2D Size(100, 0.f);
-	for (int32 Index = 0; Index < Children.Num(); ++Index)
+	if (Children.Num())
 	{
-		Size.Y = FMath::Max(Size.Y, Children[Index]->GetDesiredSize().Y);
+		for (int32 Index = 0; Index < Children.Num(); ++Index)
+		{
+			Size.Y = FMath::Max(Size.Y, Children[Index]->GetDesiredSize().Y);
+		}
 	}
-	return Size + SectionAreaNode->GetNodePadding().Bottom;
+	else
+	{
+		Size.Y = SectionAreaNode->GetNodeHeight();
+	}
+	return Size;
 }
 
 void SSequencerSectionAreaView::GenerateSectionWidgets()
@@ -159,7 +165,6 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 	int32 MaxTracks = MaxRowIndex + 1;
 
 
-	float SectionHeight = AllottedGeometry.GetLocalSize().Y - SectionAreaNode->GetNodePadding().Bottom;
 
 	FTimeToPixel TimeToPixelConverter = GetTimeToPixel( AllottedGeometry );
 
@@ -171,7 +176,7 @@ void SSequencerSectionAreaView::OnArrangeChildren( const FGeometry& AllottedGeom
 
 		int32 RowIndex = SectionInterface->GetSectionObject()->GetRowIndex();
 
-		FGeometry SectionGeometry = SequencerSectionUtils::GetSectionGeometry( AllottedGeometry, RowIndex, MaxTracks, SectionHeight, SectionInterface, TimeToPixelConverter );
+		FGeometry SectionGeometry = SequencerSectionUtils::GetSectionGeometry( AllottedGeometry, RowIndex, MaxTracks, Widget->GetDesiredSize().Y, SectionInterface, TimeToPixelConverter );
 
 		EVisibility Visibility = Widget->GetVisibility();
 		if( ArrangedChildren.Accepts( Visibility ) )

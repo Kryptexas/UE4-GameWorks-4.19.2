@@ -2,19 +2,27 @@
 
 #pragma once
 
-class FContentBrowserCommands : public TCommands<FContentBrowserCommands>
+
+class FContentBrowserCommands
+	: public TCommands<FContentBrowserCommands>
 {
 public:
+
+	/** Default constructor. */
 	FContentBrowserCommands()
 		: TCommands<FContentBrowserCommands>(TEXT("ContentBrowser"), NSLOCTEXT( "ContentBrowser", "ContentBrowser", "Content Browser" ), NAME_None, FEditorStyle::GetStyleSetName() )
-	{
-	}
+	{ }
+
+public:
+
+	//~ TCommands interface
 
 	virtual void RegisterCommands() override;
 
 public:
 
-	TSharedPtr< FUICommandInfo > OpenAssetsOrFolders;
-	TSharedPtr< FUICommandInfo > PreviewAssets;
-	TSharedPtr< FUICommandInfo > DirectoryUp;
+	TSharedPtr<FUICommandInfo> CreateNewFolder;
+	TSharedPtr<FUICommandInfo> DirectoryUp;
+	TSharedPtr<FUICommandInfo> OpenAssetsOrFolders;
+	TSharedPtr<FUICommandInfo> PreviewAssets;
 };

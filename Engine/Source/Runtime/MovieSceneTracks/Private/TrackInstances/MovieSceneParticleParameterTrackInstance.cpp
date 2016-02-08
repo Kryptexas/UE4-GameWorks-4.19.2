@@ -110,12 +110,12 @@ void FMovieSceneParticleParameterTrackInstance::RestoreState(const TArray<UObjec
 	ObjectToInitialParameterValuesMap.Empty();
 }
 
-void FMovieSceneParticleParameterTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass )
+void FMovieSceneParticleParameterTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	TArray<FScalarParameterNameAndValue> ScalarNamesAndValues;
 	TArray<FVectorParameterNameAndValue> VectorNamesAndValues;
 	TArray<FColorParameterNameAndValue> ColorNamesAndValues;
-	ParticleParameterTrack->Eval( Position, ScalarNamesAndValues, VectorNamesAndValues, ColorNamesAndValues);
+	ParticleParameterTrack->Eval( UpdateData.Position, ScalarNamesAndValues, VectorNamesAndValues, ColorNamesAndValues);
 	for ( UParticleSystemComponent* ParticleSystemComponent : ParticleSystemComponents )
 	{
 		for ( const FScalarParameterNameAndValue& ScalarNameAndValue : ScalarNamesAndValues )

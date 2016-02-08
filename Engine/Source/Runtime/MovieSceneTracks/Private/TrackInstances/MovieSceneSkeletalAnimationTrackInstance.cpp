@@ -55,7 +55,7 @@ FMovieSceneSkeletalAnimationTrackInstance::~FMovieSceneSkeletalAnimationTrackIns
 	// @todo Sequencer Need to find some way to call PreviewFinishAnimControl (needs the runtime objects)
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	// @todo Sequencer gameplay update has a different code path than editor update for animation
 
@@ -64,13 +64,13 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 		IMatineeAnimInterface* AnimInterface = Cast<IMatineeAnimInterface>(RuntimeObjects[i]);
 		if (AnimInterface) 
 		{
-			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(Position));
+			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(UpdateData.Position));
 			
 			// cbb: If there is no overlapping section, evaluate the closest section only if the current time is before it.
 			if (AnimSection == nullptr)
 			{
-				AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(MovieSceneHelpers::FindNearestSectionAtTime(AnimationTrack->GetAllSections(), Position));
-				if (AnimSection != nullptr && (Position >= AnimSection->GetStartTime() || Position <= AnimSection->GetEndTime()))
+				AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(MovieSceneHelpers::FindNearestSectionAtTime(AnimationTrack->GetAllSections(), UpdateData.Position));
+				if (AnimSection != nullptr && (UpdateData.Position >= AnimSection->GetStartTime() || UpdateData.Position <= AnimSection->GetEndTime()))
 				{
 					AnimSection = nullptr;
 				}
@@ -78,7 +78,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 
 			if (AnimSection && AnimSection->IsActive())
 			{
-				const FAnimEvalTimes EvalTimes = FAnimEvalTimes::MapTimesToAnimation(Position, LastPosition, AnimSection);
+				const FAnimEvalTimes EvalTimes = FAnimEvalTimes::MapTimesToAnimation(UpdateData.Position, UpdateData.LastPosition, AnimSection);
 
 				int32 ChannelIndex = 0;
 				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();

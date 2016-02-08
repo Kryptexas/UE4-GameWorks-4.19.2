@@ -483,11 +483,6 @@ AActor* UViewport::Spawn(TSubclassOf<AActor> ActorClass)
 
 #if WITH_EDITOR
 
-const FSlateBrush* UViewport::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.Viewport");
-}
-
 const FText UViewport::GetPaletteCategory()
 {
 	return LOCTEXT("Primitive", "Primitive");

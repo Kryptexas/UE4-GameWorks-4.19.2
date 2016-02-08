@@ -84,6 +84,11 @@ FMovieSceneSpawnable* UMovieScene::FindSpawnable( const TFunctionRef<bool(FMovie
 #endif //WITH_EDITOR
 
 
+FMovieSceneSpawnable& UMovieScene::GetSpawnable(int32 Index)
+{
+	return Spawnables[Index];
+}
+
 int32 UMovieScene::GetSpawnableCount() const
 {
 	return Spawnables.Num();
@@ -392,30 +397,30 @@ class UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrac
 }
 
 
-UMovieSceneTrack* UMovieScene::AddShotTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
+UMovieSceneTrack* UMovieScene::AddCameraCutTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 {
-	if( !ShotTrack )
+	if( !CameraCutTrack )
 	{
 		Modify();
-		ShotTrack = NewObject<UMovieSceneTrack>(this, TrackClass, FName("Shots"), RF_Transactional);
+		CameraCutTrack = NewObject<UMovieSceneTrack>(this, TrackClass, FName("Camera Cuts"), RF_Transactional);
 	}
 
-	return ShotTrack;
+	return CameraCutTrack;
 }
 
 
-UMovieSceneTrack* UMovieScene::GetShotTrack()
+UMovieSceneTrack* UMovieScene::GetCameraCutTrack()
 {
-	return ShotTrack;
+	return CameraCutTrack;
 }
 
 
-void UMovieScene::RemoveShotTrack()
+void UMovieScene::RemoveCameraCutTrack()
 {
-	if( ShotTrack )
+	if( CameraCutTrack )
 	{
 		Modify();
-		ShotTrack = nullptr;
+		CameraCutTrack = nullptr;
 	}
 }
 

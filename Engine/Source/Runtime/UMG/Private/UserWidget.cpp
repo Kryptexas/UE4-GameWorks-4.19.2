@@ -799,11 +799,6 @@ void UUserWidget::PreSave()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UUserWidget::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.UserWidget");
-}
-
 const FText UUserWidget::GetPaletteCategory()
 {
 	return PaletteCategory;

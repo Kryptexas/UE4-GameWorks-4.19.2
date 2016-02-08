@@ -96,6 +96,8 @@ public:
 
 	void OnFocusSelection();
 
+	bool IsRecording() const;
+
 private:
 
 	enum EPhatHierarchyFilterMode

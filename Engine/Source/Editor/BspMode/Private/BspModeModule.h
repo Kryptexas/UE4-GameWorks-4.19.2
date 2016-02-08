@@ -36,7 +36,6 @@ public:
 	virtual void ShutdownModule() override;
 
 	/** IBspModeModule interface */
-	virtual TSharedRef< SWidget > CreateBspModeWidget() const override;
 	virtual void RegisterBspBuilderType( class UClass* InBuilderClass, const FText& InBuilderName, const FText& InBuilderTooltip, const FSlateBrush* InBuilderIcon ) override;
 	virtual void UnregisterBspBuilderType( class UClass* InBuilderClass ) override;
 

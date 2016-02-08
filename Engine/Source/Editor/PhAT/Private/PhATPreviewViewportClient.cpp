@@ -18,6 +18,7 @@
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "DrawDebugHelpers.h"
+#include "PersonaModule.h"
 
 FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data, const TSharedRef<SPhATPreviewViewport>& InPhATPreviewViewport)
 	: FEditorViewportClient(nullptr, &Data->PreviewScene, StaticCastSharedRef<SEditorViewport>(InPhATPreviewViewport))
@@ -684,10 +685,10 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 
 	World->Tick(LEVELTICK_All, DeltaSeconds * SharedData->EditorSimOptions->TimeDilation);
 
-	if(SharedData->Recorder.InRecording())
+	if (PhATPtr.Pin()->IsRecording())
 	{
-		// make sure you don't allow switch SharedData->EditorSkelComp
-		SharedData->Recorder.UpdateRecord(SharedData->EditorSkelComp, DeltaSeconds);
+		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
+		PersonaModule.OnTickRecording().ExecuteIfBound(SharedData->EditorSkelComp, DeltaSeconds);
 	}
 }
 

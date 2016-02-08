@@ -37,10 +37,12 @@ public:
 	// ISequencerTrackEditor interface
 
 	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) override;
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override;
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
-
+	virtual const FSlateBrush* GetIconBrush() const override;
+	
 protected:
 
 	/**
@@ -58,6 +60,15 @@ private:
 
 	/** Callback for executing the "Add Event Track" menu entry. */
 	void HandleAddSubTrackMenuEntryExecute();
+
+	/** Callback for generating the menu of the "Add Sequence" combo button. */
+	TSharedRef<SWidget> HandleAddSubSequenceComboButtonGetMenuContent();
+
+	/** Callback for executing a menu entry in the "Add Sequence" combo button. */
+	void HandleAddSubSequenceComboButtonMenuEntryExecute(const FAssetData& AssetData);
+
+	/** Delegate for AnimatablePropertyChanged in AddKey */
+	bool AddKeyInternal(float KeyTime, UMovieSceneSequence* InMovieSceneSequence);
 
 	/** Callback for AnimatablePropertyChanged in HandleAssetAdded. */
 	bool HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);

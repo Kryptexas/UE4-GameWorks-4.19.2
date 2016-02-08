@@ -30,7 +30,7 @@ public:
 	/** FMovieSceneSpawnable default constructor */
 	FMovieSceneSpawnable() { }
 
-/** FMovieSceneSpawnable initialization constructor */
+	/** FMovieSceneSpawnable initialization constructor */
 	FMovieSceneSpawnable(const FString& InitName, UClass* InitClass)
 		: Guid(FGuid::NewGuid())
 		, Name(InitName)
@@ -60,6 +60,17 @@ public:
 	const FGuid& GetGuid() const
 	{
 		return Guid;
+	}
+
+	/**
+	 * Set the unique identifier of this spawnable object
+	 * @param InGuid The new GUID for this spawnable
+	 * @note Be careful - this guid may be referenced by spawnable/possessable child-parent relationships.
+	 * @see GetGuid
+	 */
+	void SetGuid(const FGuid& InGuid)
+	{
+		Guid = InGuid;
 	}
 
 	/**

@@ -15,21 +15,30 @@
 
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
 
+SAnimationOutlinerTreeNode::~SAnimationOutlinerTreeNode()
+{
+	DisplayNode->OnRenameRequested().RemoveAll(this);
+}
 
 void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node, const TSharedRef<SSequencerTreeViewRow>& InTableRow )
 {
 	DisplayNode = Node;
+	bIsTopLevelNode = !Node->GetParent().IsValid();
 
-	HoveredBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.SelectionBorderHover" );
-	SelectedBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.SelectionBorder" );
-	SelectedBrushInactive = FEditorStyle::GetBrush("Sequencer.AnimationOutliner.SelectionBorderInactive");
-	NotSelectedBrush = FEditorStyle::GetBrush( "NoBorder" );
+	if (bIsTopLevelNode)
+	{
+		ExpandedBackgroundBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.TopLevelBorder_Expanded" );
+		CollapsedBackgroundBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.TopLevelBorder_Collapsed" );
+	}
+	else
+	{
+		ExpandedBackgroundBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.DefaultBorder" );
+		CollapsedBackgroundBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.DefaultBorder" );
+	}
+
 	TableRowStyle = &FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.Row");
 
-	// Choose the font.  If the node is a root node or an object node, we show a larger font for it.
-	FSlateFontInfo NodeFont = Node->GetParent().IsValid() && Node->GetType() != ESequencerNode::Object ? 
-		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont") :
-		FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.BoldFont");
+	FSlateFontInfo NodeFont = FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont");
 
 	EditableLabel = SNew(SEditableLabel)
 		.CanEdit(this, &SAnimationOutlinerTreeNode::HandleNodeLabelCanEdit)
@@ -37,122 +46,78 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		.OnTextChanged(this, &SAnimationOutlinerTreeNode::HandleNodeLabelTextChanged)
 		.Text(this, &SAnimationOutlinerTreeNode::GetDisplayName);
 
+
+	Node->OnRenameRequested().AddRaw(this, &SAnimationOutlinerTreeNode::EnterRenameMode);
+
 	auto NodeHeight = [=]() -> FOptionalSize { return DisplayNode->GetNodeHeight(); };
 
-	TAttribute<FLinearColor> HoverTint(this, &SAnimationOutlinerTreeNode::GetHoverTint);
 	ForegroundColor.Bind(this, &SAnimationOutlinerTreeNode::GetForegroundBasedOnSelection);
 
 	TSharedRef<SWidget>	FinalWidget = 
 		SNew( SBorder )
 		.VAlign( VAlign_Center )
 		.BorderImage( this, &SAnimationOutlinerTreeNode::GetNodeBorderImage )
+		.BorderBackgroundColor( this, &SAnimationOutlinerTreeNode::GetNodeBackgroundTint )
 		.Padding(FMargin(0, Node->GetNodePadding().Combined() / 2))
 		[
 			SNew(SBox)
 			.HeightOverride_Lambda(NodeHeight)
-			.Padding(FMargin(0.0f, 0.0f, 10.0f, 0.0f))
+			.Padding(FMargin(5.0f, 0.0f))
 			[
 				SNew( SHorizontalBox )
 
 				// Expand track lanes button
 				+ SHorizontalBox::Slot()
-				.Padding(FMargin(2.f, 0.f))
+				.Padding(FMargin(2.f, 0.f, 4.f, 0.f))
 				.VAlign( VAlign_Center )
 				.AutoWidth()
 				[
 					SNew(SExpanderArrow, InTableRow).IndentAmount(SequencerLayoutConstants::IndentAmount)
 				]
 
+				// Icon
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SOverlay)
+
+					+ SOverlay::Slot()
+					[
+						SNew(SImage)
+						.Image(InArgs._IconBrush)
+					]
+
+					+ SOverlay::Slot()
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Right)
+					[
+						SNew(SImage)
+						.Image(InArgs._IconOverlayBrush)
+					]
+
+					+ SOverlay::Slot()
+					[
+						SNew(SSpacer)
+						.Visibility(EVisibility::Visible)
+						.ToolTipText(InArgs._IconToolTipText)
+					]
+				]
+
 				// Label Slot
 				+ SHorizontalBox::Slot()
-				.VAlign( VAlign_Center )
-				.FillWidth(3)
+				.VAlign(VAlign_Center)
+				.Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+				.AutoWidth()
 				[
 					EditableLabel.ToSharedRef()
 				]
 
-				// Editor slot
+				// Arbitrary customization slot
 				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
 				[
-					// @todo Sequencer - Remove this box and width override.
-					SNew(SBox)
-					.HAlign(HAlign_Left)
-					.WidthOverride(100)
-					[
-						DisplayNode->GenerateEditWidgetForOutliner()
-					]
-				]
-				// Previous key slot
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(3, 0, 0, 0)
-				[
-					SNew(SBorder)
-					.Padding(0)
-					.BorderImage(NotSelectedBrush)
-					.ColorAndOpacity(HoverTint)
-					[
-						SNew(SButton)
-						.ButtonStyle(FEditorStyle::Get(), "FlatButton")
-						.ToolTipText(LOCTEXT("PreviousKeyButton", "Set the time to the previous key"))
-						.OnClicked(this, &SAnimationOutlinerTreeNode::OnPreviousKeyClicked)
-						.ForegroundColor( FSlateColor::UseForeground() )
-						.ContentPadding(0)
-						[
-							SNew(STextBlock)
-							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
-							.Text(FText::FromString(FString(TEXT("\xf060"))) /*fa-arrow-left*/)
-						]
-					]
-				]
-				// Add key slot
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SBorder)
-					.Padding(0)
-					.BorderImage(NotSelectedBrush)
-					.ColorAndOpacity(HoverTint)
-					[
-						SNew(SButton)
-						.ButtonStyle(FEditorStyle::Get(), "FlatButton")
-						.ToolTipText(LOCTEXT("AddKeyButton", "Add a new key at the current time"))
-						.OnClicked(this, &SAnimationOutlinerTreeNode::OnAddKeyClicked)
-						.ForegroundColor( FSlateColor::UseForeground() )
-						.ContentPadding(0)
-						[
-							SNew(STextBlock)
-							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
-							.Text(FText::FromString(FString(TEXT("\xf055"))) /*fa-plus-circle*/)
-						]
-					]
-				]
-				// Next key slot
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SBorder)
-					.Padding(0)
-					.BorderImage(NotSelectedBrush)
-					.ColorAndOpacity(HoverTint)
-					[
-						SNew(SButton)
-						.ButtonStyle(FEditorStyle::Get(), "FlatButton")
-						.ToolTipText(LOCTEXT("NextKeyButton", "Set the time to the next key"))
-						.OnClicked(this, &SAnimationOutlinerTreeNode::OnNextKeyClicked)
-						.ContentPadding(0)
-						.ForegroundColor( FSlateColor::UseForeground() )
-						[
-							SNew(STextBlock)
-							.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
-							.Text(FText::FromString(FString(TEXT("\xf061"))) /*fa-arrow-right*/)
-						]
-					]
+					InArgs._CustomContent.Widget
 				]
 			]
 		];
@@ -168,117 +133,6 @@ void SAnimationOutlinerTreeNode::EnterRenameMode()
 {
 	EditableLabel->EnterTextMode();
 }
-
-
-FLinearColor SAnimationOutlinerTreeNode::GetHoverTint() const
-{
-	return IsHovered() ? FLinearColor(1,1,1,0.9f) : FLinearColor(1,1,1,0.4f);
-}
-
-
-FReply SAnimationOutlinerTreeNode::OnPreviousKeyClicked()
-{
-	FSequencer& Sequencer = DisplayNode->GetSequencer();
-	float ClosestPreviousKeyDistance = MAX_FLT;
-	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieSceneSequence());
-	float PreviousTime = 0;
-	bool PreviousKeyFound = false;
-
-	TSet<TSharedPtr<IKeyArea>> KeyAreas;
-	SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
-	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
-	{
-		for (FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
-		{
-			float KeyTime = KeyArea->GetKeyTime(KeyHandle);
-			if (KeyTime < CurrentTime && CurrentTime - KeyTime < ClosestPreviousKeyDistance)
-			{
-				PreviousTime = KeyTime;
-				ClosestPreviousKeyDistance = CurrentTime - KeyTime;
-				PreviousKeyFound = true;
-			}
-		}
-	}
-
-	if (PreviousKeyFound)
-	{
-		Sequencer.SetGlobalTime(PreviousTime);
-	}
-	return FReply::Handled();
-}
-
-
-FReply SAnimationOutlinerTreeNode::OnNextKeyClicked()
-{
-	FSequencer& Sequencer = DisplayNode->GetSequencer();
-	float ClosestNextKeyDistance = MAX_FLT;
-	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieSceneSequence());
-	float NextTime = 0;
-	bool NextKeyFound = false;
-
-	TSet<TSharedPtr<IKeyArea>> KeyAreas;
-	SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
-	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
-	{
-		for (FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
-		{
-			float KeyTime = KeyArea->GetKeyTime(KeyHandle);
-			if (KeyTime > CurrentTime && KeyTime - CurrentTime < ClosestNextKeyDistance)
-			{
-				NextTime = KeyTime;
-				ClosestNextKeyDistance = KeyTime - CurrentTime;
-				NextKeyFound = true;
-			}
-		}
-	}
-
-	if (NextKeyFound)
-	{
-		Sequencer.SetGlobalTime(NextTime);
-	}
-
-	return FReply::Handled();
-}
-
-
-FReply SAnimationOutlinerTreeNode::OnAddKeyClicked()
-{
-	FSequencer& Sequencer = DisplayNode->GetSequencer();
-	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieSceneSequence());
-
-	TSet<TSharedPtr<IKeyArea>> KeyAreas;
-	SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
-
-	TArray<UMovieSceneSection*> KeyAreaSections;
-	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
-	{
-		UMovieSceneSection* OwningSection = KeyArea->GetOwningSection();
-		KeyAreaSections.Add(OwningSection);
-	}
-
-	UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(KeyAreaSections, CurrentTime);
-	if (!NearestSection)
-	{
-		return FReply::Unhandled();
-	}
-
-	FScopedTransaction Transaction(LOCTEXT("AddKeys", "Add keys at current time"));
-	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
-	{
-		UMovieSceneSection* OwningSection = KeyArea->GetOwningSection();
-		if (OwningSection == NearestSection)
-		{
-			OwningSection->SetFlags(RF_Transactional);
-			if (OwningSection->TryModify())
-			{
-				KeyArea->AddKeyUnique(CurrentTime, Sequencer.GetKeyInterpolation());
-			}
-		}
-	}
-
-	return FReply::Handled();
-}
-
 
 TSharedPtr<FSequencerDisplayNode> SAnimationOutlinerTreeNode::GetRootNode(TSharedPtr<FSequencerDisplayNode> ObjectNode)
 {
@@ -391,7 +245,7 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 			Sequencer.GetSelection().AddToSelection(DisplayNode.ToSharedRef());
 		}
 	}
-	else
+	else if (MouseEvent.GetEffectingButton() != EKeys::RightMouseButton || !bSelected)
 	{
 		// Deselect the other nodes and select this node.
 		Sequencer.GetSelection().EmptySelectedOutlinerNodes();
@@ -434,30 +288,49 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonUp( const FGeometry& MyGeometry,
 	return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
+void SAnimationOutlinerTreeNode::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	DisplayNode->GetParentTree().SetHoveredNode(DisplayNode);
+	SWidget::OnMouseEnter(MyGeometry, MouseEvent);
+}
+
+void SAnimationOutlinerTreeNode::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	DisplayNode->GetParentTree().SetHoveredNode(nullptr);
+	SWidget::OnMouseLeave(MouseEvent);
+}
 
 const FSlateBrush* SAnimationOutlinerTreeNode::GetNodeBorderImage() const
 {
-	FSequencer& Sequencer = DisplayNode->GetSequencer();
-	const bool bIsSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
-
-	if (!bIsSelected)
-	{
-		if (DisplayNode->IsHovered())
-		{
-			return HoveredBrush;
-		}
-
-		return NotSelectedBrush;
-	}
-
-	if (Sequencer.GetSelection().GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
-	{
-		return SelectedBrush;
-	}
-
-	return SelectedBrushInactive;
+	return DisplayNode->IsExpanded() ? ExpandedBackgroundBrush : CollapsedBackgroundBrush;
 }
 
+FSlateColor SAnimationOutlinerTreeNode::GetNodeBackgroundTint() const
+{
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	const bool bIsSelected = Sequencer.GetSelection().IsSelected(DisplayNode.ToSharedRef());
+	const bool bIsSelectionActive = Sequencer.GetSelection().GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode;
+
+	if (bIsSelected)
+	{
+		if (bIsSelectionActive)
+		{
+			return FEditorStyle::GetSlateColor("SelectionColor_Pressed");
+		}
+		else
+		{
+			return FEditorStyle::GetSlateColor("SelectionColor_Inactive");
+		}
+	}
+	else if (DisplayNode->IsHovered())
+	{
+		return bIsTopLevelNode ? FLinearColor(FColor(52, 52, 52, 255)) : FLinearColor(FColor(72, 72, 72, 255));
+	}
+	else
+	{
+		return bIsTopLevelNode ? FLinearColor(FColor(48, 48, 48, 255)) : FLinearColor(FColor(62, 62, 62, 255));
+	}
+}
 
 FSlateColor SAnimationOutlinerTreeNode::GetForegroundBasedOnSelection() const
 {

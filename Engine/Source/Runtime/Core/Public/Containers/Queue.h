@@ -3,20 +3,17 @@
 #pragma once
 
 
-namespace EQueueMode
+/**
+ * Enumerates concurrent queue modes.
+ */
+enum class EQueueMode
 {
-	/**
-	 * Enumerates concurrent queue modes.
-	 */
-	enum Type
-	{
-		/** Multiple-producers, single-consumer queue. */
-		Mpsc,
+	/** Multiple-producers, single-consumer queue. */
+	Mpsc,
 
-		/** Single-producer, single-consumer queue. */
-		Spsc
-	};
-}
+	/** Single-producer, single-consumer queue. */
+	Spsc
+};
 
 
 /**
@@ -34,7 +31,7 @@ namespace EQueueMode
  * @param Mode The queue mode (single-producer, single-consumer by default).
  * @todo gmp: Implement node pooling.
  */
-template<typename ItemType, EQueueMode::Type Mode = EQueueMode::Spsc>
+template<typename ItemType, EQueueMode Mode = EQueueMode::Spsc>
 class TQueue
 {
 public:

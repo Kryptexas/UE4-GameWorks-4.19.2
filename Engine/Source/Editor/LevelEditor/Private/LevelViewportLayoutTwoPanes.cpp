@@ -69,8 +69,8 @@ TSharedRef<SWidget> TLevelViewportLayoutTwoPanes<TOrientation>::MakeViewportLayo
 			.ConfigKey( ViewportKey1 )
 		];
 
-	Viewports.Add( ViewportWidget0 );
-	Viewports.Add( ViewportWidget1 );
+	Viewports.Add( *ViewportKey0, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget0.ToSharedRef()) ) );
+	Viewports.Add( *ViewportKey1, MakeShareable( new FLevelViewportLayoutEntity(ViewportWidget1.ToSharedRef()) ) );
 
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget1->GetLevelViewportClient();

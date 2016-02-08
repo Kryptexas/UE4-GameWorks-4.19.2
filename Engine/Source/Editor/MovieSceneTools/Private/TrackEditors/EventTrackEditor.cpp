@@ -70,6 +70,10 @@ bool FEventTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 	return (Type == UMovieSceneEventTrack::StaticClass());
 }
 
+const FSlateBrush* FEventTrackEditor::GetIconBrush() const
+{
+	return FEditorStyle::GetBrush("Sequencer.Tracks.Event");
+}
 
 /* FEventTrackEditor callbacks
  *****************************************************************************/

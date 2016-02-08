@@ -105,11 +105,6 @@ void URetainerBox::OnSlotRemoved(UPanelSlot* Slot)
 
 #if WITH_EDITOR
 
-const FSlateBrush* URetainerBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.MenuAnchor");
-}
-
 const FText URetainerBox::GetPaletteCategory()
 {
 	return LOCTEXT("Optimization", "Optimization");

@@ -124,10 +124,6 @@
 #include "ABTesting.h"
 #include "Performance/EnginePerformanceTargets.h"
 
-#if WITH_EDITOR
-#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
-#endif
-
 #include "InstancedReferenceSubobjectHelper.h"
 #include "Engine/EndUserSettings.h"
 #include "ABTesting.h"
@@ -137,10 +133,6 @@
 #include "AutomationTest.h"
 #include "IAutomationWorkerModule.h"
 #endif	// UE_BUILD_SHIPPING
-
-#if WITH_EDITOR
-#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
-#endif
 
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
@@ -2815,16 +2807,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		GNetworkProfiler.Exec( InWorld, Cmd, Ar );
 	}
 #endif
-#if WITH_EDITOR
-	else if (FParse::Command(&Cmd, TEXT("RecordAnimation")))
-	{
-		return HandleRecordAnimationCommand(InWorld, Cmd, Ar);
-	}
-	else if (FParse::Command(&Cmd, TEXT("StopRecordingAnimation")))
-	{
-		return HandleStopRecordAnimationCommand(InWorld, Cmd, Ar);
-	}
-#endif
 	else 
 	{
 		return false;
@@ -2963,110 +2945,6 @@ bool UEngine::HandleGammaCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	DisplayGamma = (*Cmd != 0) ? FMath::Clamp<float>( FCString::Atof( *FParse::Token( Cmd, false ) ), 0.5f, 5.0f ) : 2.2f;
 	return true;
-}
-
-bool UEngine::HandleRecordAnimationCommand( UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar )
-{
-#if WITH_EDITOR
-	const TCHAR* Str = InStr;
-	// parse actor name
-	TCHAR ActorName[128];
-	AActor* FoundActor = nullptr;
-	if (FParse::Token( Str, ActorName, ARRAY_COUNT( ActorName ), 0 ))
-	{
-		FString const ActorNameStr = FString( ActorName );
-		for (ULevel const* Level : InWorld->GetLevels())
-		{
-			if (Level)
-			{
-				for (AActor* Actor : Level->Actors)
-				{
-					if (Actor)
-					{
-						if (Actor->GetName() == ActorNameStr)
-						{
-							FoundActor = Actor;
-							break;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (FoundActor)
-	{
-		USkeletalMeshComponent* const SkelComp = FoundActor->FindComponentByClass<USkeletalMeshComponent>();
-		if (SkelComp)
-		{
-			TCHAR AssetPath[256];
-			FParse::Token( Str, AssetPath, ARRAY_COUNT( AssetPath ), 0 );
-			FString const AssetName = FPackageName::GetLongPackageAssetName( AssetPath );
-			return FAnimationRecorderManager::Get().RecordAnimation( FoundActor, SkelComp, AssetPath, AssetName );
-		}
-	}
-#endif		// WITH_EDITOR
-
-	return false;
-}
-
-bool UEngine::HandleStopRecordAnimationCommand( UWorld* InWorld, const TCHAR* InStr, FOutputDevice& Ar )
-{
-#if WITH_EDITOR
-	const TCHAR* Str = InStr;
-
-	// parse actor name
-	TCHAR ActorName[128];
-	AActor* FoundActor = nullptr;
-	bool bStopAll = false;
-	if (FParse::Token( Str, ActorName, ARRAY_COUNT( ActorName ), 0 ))
-	{
-		FString const ActorNameStr = FString( ActorName );
-
-		if (ActorNameStr.ToLower() == TEXT( "all" ))
-		{
-			bStopAll = true;
-		}
-		else if (InWorld)
-		{
-			// search for the actor by name
-			for (ULevel* Level : InWorld->GetLevels())
-			{
-				if (Level)
-				{
-					for (AActor* Actor : Level->Actors)
-					{
-						if (Actor)
-						{
-							if (Actor->GetName() == ActorNameStr)
-							{
-								FoundActor = Actor;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (bStopAll)
-	{
-		FAnimationRecorderManager::Get().StopRecordingAllAnimations();
-		return true;
-	}
-	else if (FoundActor)
-	{
-		USkeletalMeshComponent* const SkelComp = FoundActor->FindComponentByClass<USkeletalMeshComponent>();
-		if (SkelComp)
-		{
-			FAnimationRecorderManager::Get().StopRecordingAnimation( FoundActor, SkelComp );
-			return true;
-		}
-	}
-#endif		// WITH_EDITOR
-
-	return false;
 }
 
 bool UEngine::HandleShowLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )

@@ -8,6 +8,7 @@
 #include "ModuleInterface.h"
 #include "SEditorViewport.h"
 #include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
+#include "CustomViewportLayout.h"
 
 extern const FName LevelEditorApp;
 
@@ -223,6 +224,45 @@ public:
 	DECLARE_EVENT( FLevelEditorModule, FTakeHighResScreenShotsEvent );
 	virtual FTakeHighResScreenShotsEvent& OnTakeHighResScreenShots() { return TakeHighResScreenShotsEvent; }
 
+	/** Delegate used to capture skeltal meshes to single-frame animations when 'keeping simulation changes' */
+	DECLARE_DELEGATE_RetVal_OneParam(UAnimSequence*, FCaptureSingleFrameAnimSequence, USkeletalMeshComponent* /*Component*/);
+	virtual FCaptureSingleFrameAnimSequence& OnCaptureSingleFrameAnimSequence() { return CaptureSingleFrameAnimSequenceDelegate; }
+
+public:
+	
+	/** Register a custom viewport layout for the level editor */
+	void RegisterCustomViewportLayout(FName InLayoutName, const FCustomViewportLayoutDefinition& InDefinition)
+	{
+		CustomViewportLayouts.Add(InLayoutName, InDefinition);
+	}
+
+	/** Unregister a previously registered custom viewport layout */
+	void UnRegisterCustomViewportLayout(FName InLayoutName)
+	{
+		CustomViewportLayouts.Remove(InLayoutName);
+	}
+
+	/** Iterate all registered custom viewport layouts */
+	void IterateCustomViewportLayouts(TFunctionRef<void(FName, const FCustomViewportLayoutDefinition&)> Iter)
+	{
+		for (auto& Pair : CustomViewportLayouts)
+		{
+			Iter(Pair.Key, Pair.Value);
+		}
+	}
+
+	/** Create an instanceof a custom viewport layout from the specified layout name */
+	TSharedPtr<FLevelViewportLayout> FactoryCustomViewportLayout(FName InLayoutName) const
+	{
+		const FCustomViewportLayoutDefinition* Definition = CustomViewportLayouts.Find(InLayoutName);
+		if (Definition)
+		{
+			return Definition->FactoryFunction();
+		}
+		
+		return nullptr;
+	}
+
 private:
 	/**
 	 * Binds all global level editor commands to delegates
@@ -272,6 +312,9 @@ private:
 	/** Multicast delegate executed when a map is changed (loaded,saved,new map, etc) */
 	FMapChangedEvent MapChangedEvent;
 
+	/** Delegate used to capture skeltal meshes to single-frame animations when 'keeping simulation changes' */
+	FCaptureSingleFrameAnimSequence CaptureSingleFrameAnimSequenceDelegate;
+
 	/** All extender delegates for the level viewport menus */
 	TArray<FLevelViewportMenuExtender_SelectedObjects> LevelViewportDragDropContextMenuExtenders;
 	TArray<FLevelViewportMenuExtender_SelectedActors> LevelViewportContextMenuExtenders;
@@ -292,6 +335,9 @@ private:
 
 	/* Holds the Editor's tab manager */
 	TSharedPtr<FTabManager> LevelEditorTabManager;
+
+	/** Map of named viewport layouts to factory functions */
+	TMap<FName, FCustomViewportLayoutDefinition> CustomViewportLayouts;
 };
 
 #endif // __LevelEditor_h__

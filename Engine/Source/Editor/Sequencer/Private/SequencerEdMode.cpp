@@ -150,6 +150,8 @@ void DrawTransformTrack(const FSceneView* View, FPrimitiveDrawInterface* PDI, UM
 			KeyTimes.Add(KeyTime);
 		}
 
+		KeyTimes.Sort([](const float& A, const float& B ) { return A < B; });
+
 		FVector OldKeyPos(0);
 		float OldKeyTime = 0.f;
 		int KeyTimeIndex = 0;

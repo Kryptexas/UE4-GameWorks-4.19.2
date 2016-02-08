@@ -73,11 +73,6 @@ TSharedRef<SWidget> UVerticalBox::RebuildWidget()
 
 #if WITH_EDITOR
 
-const FSlateBrush* UVerticalBox::GetEditorIcon()
-{
-	return FUMGStyle::Get().GetBrush("Widget.VerticalBox");
-}
-
 const FText UVerticalBox::GetPaletteCategory()
 {
 	return LOCTEXT("Panel", "Panel");

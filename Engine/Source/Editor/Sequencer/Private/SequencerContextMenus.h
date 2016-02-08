@@ -33,9 +33,17 @@ private:
 	/** Add extrapolation menu for pre and post infinity */
 	void AddExtrapolationMenu(FMenuBuilder& MenuBuilder, bool bPreInfinity);
 
+	/** Add the Properties sub-menu. */
+	void AddPropertiesMenu(FMenuBuilder& MenuBuilder);
+
+	/** Add the Order sub-menu. */
+	void AddOrderMenu(FMenuBuilder& MenuBuilder);
+
 	void SelectAllKeys();
 
 	bool CanSelectAllKeys() const;
+
+	bool CanSetExtrapolationMode() const;
 
 	void TrimSection(bool bTrimLeft);
 
@@ -190,6 +198,9 @@ private:
 
 	/** Hidden AsShared() methods to discourage CreateSP delegate use. */
 	using TSharedFromThis::AsShared;
+
+	/** Add the Properties sub-menu. */
+	void AddPropertiesMenu(FMenuBuilder& MenuBuilder);
 
 	void PopulateMenu(FMenuBuilder& MenuBuilder);
 

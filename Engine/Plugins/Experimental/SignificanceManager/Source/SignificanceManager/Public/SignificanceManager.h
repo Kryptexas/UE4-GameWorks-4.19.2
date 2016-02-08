@@ -86,6 +86,8 @@ public:
 		const UObject* GetObject() const { return Object; }
 		FName GetTag() const { return Tag; }
 		float GetSignificance() const { return Significance; }
+		FSignificanceFunction GetSignificanceFunction() const { return SignificanceFunction; }
+		FSignificanceNotify GetSignificanceNotifyDelegate() const { return SignificanceNotifyDelegate; }	
 
 	private:
 		const UObject* Object;
@@ -126,6 +128,9 @@ public:
 
 	// Returns all managed objects regardless of tag
 	void GetManagedObjects(TArray<const FManagedObjectInfo*>& OutManagedObjects, bool bInSignificanceOrder = false) const;
+
+	// Returns the managed object for the passed-in object, if any. Otherwise returns nullptr
+	USignificanceManager::FManagedObjectInfo* GetManagedObject(UObject* Object) const;
 
 	// Returns the significance value for a given object, returns 0 if object is not managed
 	float GetSignificance(const UObject* Object) const;

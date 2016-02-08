@@ -16,7 +16,14 @@ class SAnimationOutlinerTreeNode
 {
 public:
 
+	SAnimationOutlinerTreeNode(){}
+	~SAnimationOutlinerTreeNode();
+	
 	SLATE_BEGIN_ARGS(SAnimationOutlinerTreeNode){}
+		SLATE_ATTRIBUTE(const FSlateBrush*, IconBrush)
+		SLATE_ATTRIBUTE(const FSlateBrush*, IconOverlayBrush)
+		SLATE_ATTRIBUTE(FText, IconToolTipText)
+		SLATE_NAMED_SLOT(FArguments, CustomContent)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> Node, const TSharedRef<SSequencerTreeViewRow>& InTableRow );
@@ -34,17 +41,15 @@ public:
 		return DisplayNode;
 	}
 
-	/**
-	 * Gets a tint to apply buttons on hover.
-	 */
-	FLinearColor GetHoverTint() const;
-
 private:
 
 	// SWidget interface
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
+	void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
 	FSlateColor GetForegroundBasedOnSelection() const;
 
@@ -53,6 +58,11 @@ private:
 	 */
 	const FSlateBrush* GetNodeBorderImage() const;
 	
+	/**
+	 * @return The tint to apply to the border image
+	 */
+	FSlateColor GetNodeBackgroundTint() const;
+
 	/**
 	 * @return The expander visibility of this node.
 	 */
@@ -68,15 +78,6 @@ private:
 
 	/** Callback for when the node label text has changed. */
 	void HandleNodeLabelTextChanged(const FText& NewLabel);
-
-	/** Handles the previous key button being clicked. */
-	FReply OnPreviousKeyClicked();
-
-	/** Handles the next key button being clicked. */
-	FReply OnNextKeyClicked();
-
-	/** Handles the add key button being clicked. */
-	FReply OnAddKeyClicked();
 
 	/** Get all descendant nodes from the given root node. */
 	void GetAllDescendantNodes(TSharedPtr<FSequencerDisplayNode> RootNode, TArray<TSharedRef<FSequencerDisplayNode> >& AllNodes);
@@ -95,17 +96,14 @@ private:
 	/** Holds the editable text label widget. */
 	TSharedPtr<SEditableLabel> EditableLabel;
 
-	/** Brush to use if the node is hovered. */
-	const FSlateBrush* HoveredBrush;
+	/** True if this node is a top level node, false otherwise */
+	bool bIsTopLevelNode;
 
-	/** Brush to display a border around the widget when it is selected. */
-	const FSlateBrush* SelectedBrush;
+	/** Default background brush for this node when expanded */
+	const FSlateBrush* ExpandedBackgroundBrush;
 
-	/** Brush to display a border around the widget when it is selected but inactive. */
-	const FSlateBrush* SelectedBrushInactive;
-
-	/** Brush to use if the node is not selected. */
-	const FSlateBrush* NotSelectedBrush;
+	/** Default background brush for this node when collapsed */
+	const FSlateBrush* CollapsedBackgroundBrush;
 
 	/** The table row style used for nodes in the tree. This is required as we don't actually use the tree for selection. */
 	const FTableRowStyle* TableRowStyle;

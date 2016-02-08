@@ -60,7 +60,7 @@ protected:
 
 	/** Convert the type to/from a string */
 	virtual FString ToString(const float& Value) const override;
-	virtual TOptional<float> FromString(const FString& InString) override;
+	virtual TOptional<float> FromString(const FString& InString, const float& ExistingValue) override;
 
 private:
 	TSharedPtr<ITimeSliderController> TimeSliderController;

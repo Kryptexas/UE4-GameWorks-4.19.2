@@ -22,7 +22,7 @@ void FMovieSceneVisibilityTrackInstance::SaveState(const TArray<UObject*>& Runti
 		if (Actor != nullptr)
 		{
 #if WITH_EDITOR
-			if (GIsEditor && !Actor->GetWorld()->IsPlayInEditor())
+			if (GIsEditor && Actor->GetWorld() != nullptr && !Actor->GetWorld()->IsPlayInEditor())
 			{
 				if (InitHiddenInEditorMap.Find(Actor) == nullptr)
 				{
@@ -68,7 +68,7 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 			}
 
 #if WITH_EDITOR
-			if (GIsEditor && !Actor->GetWorld()->IsPlayInEditor())
+			if (GIsEditor && Actor->GetWorld() != nullptr && !Actor->GetWorld()->IsPlayInEditor())
 			{
 				bool *HiddenInEditorValue = InitHiddenInEditorMap.Find(Object);
 				if (HiddenInEditorValue != nullptr)
@@ -98,10 +98,10 @@ void FMovieSceneVisibilityTrackInstance::RestoreState(const TArray<UObject*>& Ru
 }
 
 
-void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance, EMovieSceneUpdatePass UpdatePass ) 
+void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
  	bool Visible = false;
- 	if( VisibilityTrack->Eval( Position, LastPosition, Visible ) )
+ 	if( VisibilityTrack->Eval( UpdateData.Position, UpdateData.LastPosition, Visible ) )
  	{
 		// Invert this evaluation since the property is "bHiddenInGame" and we want the visualization to be the inverse of that. Green means visible.
 		Visible = !Visible;
@@ -115,7 +115,7 @@ void FMovieSceneVisibilityTrackInstance::Update( float Position, float LastPosit
 				Actor->SetActorHiddenInGame(Visible);
 
 #if WITH_EDITOR
-				if (GIsEditor && !Actor->GetWorld()->IsPlayInEditor())
+				if (GIsEditor && Actor->GetWorld() != nullptr && !Actor->GetWorld()->IsPlayInEditor())
 				{
 					// In editor HiddenGame flag is not respected so set bHiddenEdTemporary too.
 					// It will be restored just like HiddenGame flag when Matinee is closed.

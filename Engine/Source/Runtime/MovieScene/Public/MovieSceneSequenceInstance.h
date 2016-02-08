@@ -71,10 +71,10 @@ public:
 	/**
 	 * Updates this movie scene.
 	 *
-	 * @param Position The local playback position.
+	 * @param UpdateData The current and previous position of the moviescene that is playing. The update pass.
 	 * @param Player Movie scene player interface for interaction with runtime data.
 	 */
-	MOVIESCENE_API void Update(float Position, float LastPosition, IMovieScenePlayer& Player);
+	MOVIESCENE_API void Update(EMovieSceneUpdateData& UpdateData, IMovieScenePlayer& Player);
 
 	/**
 	 * Refreshes the existing instance.
@@ -128,7 +128,7 @@ protected:
 
 	void RefreshInstanceMap(const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, IMovieScenePlayer& Player);
 
-	void UpdateInternal(float Position, float LastPosition, IMovieScenePlayer& Player, EMovieSceneUpdatePass UpdatePass);
+	void UpdateInternal(EMovieSceneUpdateData& UpdateData, IMovieScenePlayer& Player);
 
 	/** Update the object binding instance for the specified object */
 	void UpdateObjectBinding(const FGuid& ObjectId, IMovieScenePlayer& Player);
@@ -152,8 +152,8 @@ private:
 	/** MovieScene that is instanced */
 	const TWeakObjectPtr<UMovieSceneSequence> MovieSceneSequence;
 
-	/** The shot track instance map */
-	TSharedPtr<IMovieSceneTrackInstance> ShotTrackInstance;
+	/** The camera cut track instance map */
+	TSharedPtr<IMovieSceneTrackInstance> CameraCutTrackInstance;
 
 	/** All Master track instances */
 	FMovieSceneInstanceMap MasterTrackInstances;

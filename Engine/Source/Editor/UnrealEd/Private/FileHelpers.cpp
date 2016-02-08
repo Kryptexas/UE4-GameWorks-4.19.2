@@ -598,9 +598,10 @@ bool RenameStreamingLevel( FString& LevelToRename, const FString& OldBaseLevelNa
 	return false;
 }
 
-static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& InNewNameSuggestion, FString& OutPackageName)
+static bool OpenSaveAsDialog(UClass* SavedClass, const FString& InDefaultPath, const FString& InNewNameSuggestion, FString& OutPackageName)
 {
 	FString DefaultPath = InDefaultPath;
+
 	if (DefaultPath.IsEmpty())
 	{
 		DefaultPath = TEXT("/Game/Maps");
@@ -610,14 +611,19 @@ static bool OpenLevelSaveAsDialog(const FString& InDefaultPath, const FString& I
 	check(!NewNameSuggestion.IsEmpty());
 
 	FSaveAssetDialogConfig SaveAssetDialogConfig;
-	SaveAssetDialogConfig.DialogTitleOverride = LOCTEXT("SaveLevelDialogTitle", "Save Level As");
-	SaveAssetDialogConfig.DefaultPath = DefaultPath;
-	SaveAssetDialogConfig.DefaultAssetName = NewNameSuggestion;
-	SaveAssetDialogConfig.AssetClassNames.Add(UWorld::StaticClass()->GetFName());
-	SaveAssetDialogConfig.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::AllowButWarn;
+	{
+		SaveAssetDialogConfig.DefaultPath = DefaultPath;
+		SaveAssetDialogConfig.DefaultAssetName = NewNameSuggestion;
+		SaveAssetDialogConfig.AssetClassNames.Add(SavedClass->GetFName());
+		SaveAssetDialogConfig.ExistingAssetPolicy = ESaveAssetDialogExistingAssetPolicy::AllowButWarn;
+		SaveAssetDialogConfig.DialogTitleOverride = (SavedClass == UWorld::StaticClass())
+			? LOCTEXT("SaveLevelDialogTitle", "Save Level As")
+			: LOCTEXT("SaveAssetDialogTitle", "Save Asset As");
+	}
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 	FString SaveObjectPath = ContentBrowserModule.Get().CreateModalSaveAssetDialog(SaveAssetDialogConfig);
+	
 	if ( !SaveObjectPath.IsEmpty() )
 	{
 		OutPackageName = FPackageName::ObjectPathToPackageName(SaveObjectPath);
@@ -673,7 +679,8 @@ static bool SaveAsImplementation( UWorld* InWorld, const FString& DefaultFilenam
 			FPackageName::TryConvertFilenameToLongPackageName(DefaultDirectory / Filename, DefaultPackagePath);
 
 			FString PackageName;
-			bSaveFileLocationSelected = OpenLevelSaveAsDialog(
+			bSaveFileLocationSelected = OpenSaveAsDialog(
+				UWorld::StaticClass(),
 				FPackageName::GetLongPackagePath(DefaultPackagePath),
 				FPaths::GetBaseFilename(Filename),
 				PackageName);
@@ -895,7 +902,7 @@ static bool IsWorldDirty()
  * @param	InLevel		The level to be SaveAs'd.
  * @return				true if the world was saved.
  */
-bool FEditorFileUtils::SaveAs(ULevel* InLevel)
+bool FEditorFileUtils::SaveLevelAs(ULevel* InLevel)
 {
 	FString DefaultFilename;
 
@@ -2454,7 +2461,8 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 				}
 
 				FString SaveAsPackageName;
-				bSaveFile = OpenLevelSaveAsDialog(
+				bSaveFile = OpenSaveAsDialog(
+					UWorld::StaticClass(),
 					FPackageName::GetLongPackagePath(DefaultPackagePath),
 					FPaths::GetBaseFilename(FinalPackageFilename),
 					SaveAsPackageName);
