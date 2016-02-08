@@ -155,7 +155,7 @@ public class UE4EditorTarget : TargetRules
         #endregion
 
         NonCodeProjectNames.Add("ElementalDemo", ElementalDemoSupportedPlats);
-        //NonCodeProjectNames.Add("InfiltratorDemo", DesktopPlats);
+        NonCodeProjectNames.Add("InfiltratorDemo", DesktopPlats);
         NonCodeProjectNames.Add("HoverShip", DesktopPlats);
         NonCodeProjectNames.Add("BlueprintOffice", DesktopPlats);
         NonCodeProjectNames.Add("ReflectionsSubway", DesktopPlats);
