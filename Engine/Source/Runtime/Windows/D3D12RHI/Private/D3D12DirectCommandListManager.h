@@ -20,23 +20,26 @@ enum EFenceType
 	FT_NumTypes
 };
 
-class FD3D12Fence
+class FD3D12Fence : public FRHIComputeFence, public FNoncopyable
 {
 public:
-	FD3D12Fence();
+	FD3D12Fence(const FName& Name = L"<unnamed>");
 	~FD3D12Fence();
 
 	void CreateFence(ID3D12Device* pDirect3DDevice, uint64 InitialValue = 0);
 	uint64 Signal(ID3D12CommandQueue* pCommandQueue);
+	void GpuWait(ID3D12CommandQueue* pCommandQueue, uint64 FenceValue);
 	bool IsFenceComplete(uint64 FenceValue);
 	void WaitForFence(uint64 FenceValue);
 
 	uint64 GetCurrentFence() const { return CurrentFence; }
+	uint64 GetSignalFence() const { return SignalFence; }
 	uint64 GetLastCompletedFence();
 
 private:
 	TRefCountPtr<ID3D12Fence> Fence;
 	uint64 CurrentFence;
+	uint64 SignalFence;
 	uint64 LastCompletedFence;
 	HANDLE hFenceCompleteEvent;
 };
@@ -97,8 +100,12 @@ public:
 	void SignalFrameComplete(bool WaitForCompletion = false);
 
 	CommandListState GetCommandListState(const FD3D12CLSyncPoint& hSyncPoint);
+
 	bool IsComplete(const FD3D12CLSyncPoint& hSyncPoint, uint64 FenceOffset = 0);
-	void WaitForCompletion(const FD3D12CLSyncPoint& hSyncPoint);
+	void WaitForCompletion(const FD3D12CLSyncPoint& hSyncPoint)
+	{
+		hSyncPoint.WaitForCompletion();
+	}
 
 	inline HRESULT GetTimestampFrequency(uint64* Frequency)
 	{

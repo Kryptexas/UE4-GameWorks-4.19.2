@@ -814,8 +814,21 @@ inline bool IsCPUWritable(D3D12_HEAP_TYPE HeapType, const D3D12_HEAP_PROPERTIES 
 {
 	check(HeapType == D3D12_HEAP_TYPE_CUSTOM ? pCustomHeapProperties != nullptr : true);
 	return HeapType == D3D12_HEAP_TYPE_UPLOAD ||
-		(HeapType == D3D12_HEAP_TYPE_CUSTOM && 
+		(HeapType == D3D12_HEAP_TYPE_CUSTOM &&
 			(pCustomHeapProperties->CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE || pCustomHeapProperties->CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK));
+}
+
+inline D3D12_RESOURCE_STATES DetermineInitialResourceState(D3D12_HEAP_TYPE HeapType, const D3D12_HEAP_PROPERTIES *pCustomHeapProperties = nullptr)
+{
+	if (HeapType == D3D12_HEAP_TYPE_DEFAULT || IsCPUWritable(HeapType, pCustomHeapProperties))
+	{
+		return D3D12_RESOURCE_STATE_GENERIC_READ;
+	}
+	else
+	{
+		check(HeapType == D3D12_HEAP_TYPE_READBACK);
+		return D3D12_RESOURCE_STATE_COPY_DEST;
+	}
 }
 
 class FD3D12Fence;

@@ -29,8 +29,6 @@
 //#define VERBOSE_DESCRIPTOR_HEAP_DEBUG 1
 
 // The number of view descriptors available per (online) descriptor heap, depending on hardware tier
-#define NUM_VIEW_DESCRIPTORS_PER_CONTEXT_TIER_1 250000
-#define NUM_VIEW_DESCRIPTORS_PER_CONTEXT_TIER_2 150000
 #define NUM_SAMPLER_DESCRIPTORS D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE
 #define DESCRIPTOR_HEAP_BLOCK_SIZE 10000
 
@@ -38,6 +36,11 @@
 #define NUM_VIEW_DESCRIPTORS_TIER_2 D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2
 // Tier 3 Hardware is essentially bounded by available memory
 #define NUM_VIEW_DESCRIPTORS_TIER_3 1500000
+
+// This value defines how many descriptors will be in the device global view heap which
+// is shared across contexts to allow the driver to eliminate redundant descriptor heap sets.
+// This should be tweaked for each title as heaps require VRAM. The default value of 320k takes up ~10MB
+#define GLOBAL_VIEW_HEAP_SIZE (1024 * 320)
 
 // Heap for updating UAV counter values.
 #define COUNTER_HEAP_SIZE 1024 * 64

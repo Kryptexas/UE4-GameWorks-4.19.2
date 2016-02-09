@@ -41,7 +41,20 @@ FD3D12DynamicRHI* FD3D12DynamicRHI::SingleD3DRHI = nullptr;
 
 IRHICommandContext* FD3D12DynamicRHI::RHIGetDefaultContext()
 {
-	return static_cast<IRHICommandContext*>(&GetRHIDevice()->GetDefaultCommandContext());
+	static IRHICommandContext* DefaultCommandContext = static_cast<IRHICommandContext*>(&GetRHIDevice()->GetDefaultCommandContext());
+
+	check(DefaultCommandContext);
+	return DefaultCommandContext;
+}
+
+IRHIComputeContext* FD3D12DynamicRHI::RHIGetDefaultAsyncComputeContext()
+{
+	static IRHIComputeContext* DefaultAsyncComputeContext = GEnableAsyncCompute ?
+		static_cast<IRHIComputeContext*>(&GetRHIDevice()->GetDefaultAsyncComputeContext()) :
+		static_cast<IRHIComputeContext*>(&GetRHIDevice()->GetDefaultCommandContext());
+
+	check(DefaultAsyncComputeContext);
+	return DefaultAsyncComputeContext;
 }
 
 #if D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE
@@ -168,7 +181,7 @@ IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer()
 
 #endif // D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE
 
-FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc) :
+FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc, bool InIsAsyncComputeContext) :
 	OwningRHI(*InParent->GetOwningRHI()),
 	bUsingTessellation(false),
 	PendingNumVertices(0),
@@ -183,9 +196,10 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	NumUAVs(0),
 	CurrentDSVAccessType(FExclusiveDepthStencil::DepthWrite_StencilWrite),
 	bDiscardSharedConstants(false),
+	bIsAsyncComputeContext(InIsAsyncComputeContext),
 	CommandListHandle(),
 	CommandAllocator(nullptr),
-	CommandAllocatorManager(InParent, D3D12_COMMAND_LIST_TYPE_DIRECT),
+	CommandAllocatorManager(InParent, InIsAsyncComputeContext ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT),
 	FastAllocatorPagePool(InParent, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
 	FastAllocator(InParent, &FastAllocatorPagePool),
 	ConstantsAllocatorPagePool(InParent, InParent->GetConstantBufferPageProperties(), 1024 * 512),
@@ -240,6 +254,7 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
 	RootSignatureManager(this),
 	CommandListManager(this, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	CopyCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
+	AsyncCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COMPUTE),
 	TextureStreamingCommandAllocatorManager(this, GEnableMultiEngine ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT),
 	GlobalSamplerHeap(this),
 	GlobalViewHeap(this),
@@ -248,7 +263,7 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
 	DefaultFastAllocator(this, &DefaultFastAllocatorPagePool),
 	BufferInitializerFastAllocatorPagePool(this, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
 	BufferInitializerFastAllocator(this, &BufferInitializerFastAllocatorPagePool),
-	DefaultUploadHeapAllocator(this, kManualSubAllocationStrategy, DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT),
+	DefaultUploadHeapAllocator(this, FString(L"Upload Buffer Allocator"),kManualSubAllocationStrategy, DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT),
 	TextureAllocator(this)
 {
 }
@@ -419,19 +434,26 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 		GRHISupportsRHIThread = true;
 	}
 	GRHISupportsParallelRHIExecute = D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE;
+
+	// Disable Async compute by default for now.
+	GEnableAsyncCompute = false;
 }
 
 void FD3D12Device::CreateCommandContexts()
 {
 	check(CommandContextArray.Num() == 0);
+	check(AsyncComputeContextArray.Num() == 0);
 
 	const uint32 NumContexts = FTaskGraphInterface::Get().GetNumWorkerThreads() + 1;
-
+	const uint32 NumAsyncComputeContexts = GEnableAsyncCompute ? 1 : 0;
+	const uint32 TotalContexts = NumContexts + NumAsyncComputeContexts;
+	
 	// We never make the default context free for allocation by the context containers
 	CommandContextArray.Reserve(NumContexts);
 	FreeCommandContexts.Reserve(NumContexts - 1);
+	AsyncComputeContextArray.Reserve(NumAsyncComputeContexts);
 
-	const uint32 DescriptorSuballocationPerContext = GlobalViewHeap.GetTotalSize() / NumContexts;
+	const uint32 DescriptorSuballocationPerContext = GlobalViewHeap.GetTotalSize() / TotalContexts;
 	uint32 CurrentGlobalHeapOffset = 0;
 
 	for (uint32 i = 0; i < NumContexts; ++i)
@@ -453,7 +475,22 @@ void FD3D12Device::CreateCommandContexts()
 		}
 	}
 
+	for (uint32 i = 0; i < NumAsyncComputeContexts; ++i)
+	{
+		FD3D12SubAllocatedOnlineHeap::SubAllocationDesc SubHeapDesc(&GlobalViewHeap, CurrentGlobalHeapOffset, DescriptorSuballocationPerContext);
+
+		const bool bIsAsyncComputeContext = true;
+		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this, SubHeapDesc, bIsAsyncComputeContext);
+		CurrentGlobalHeapOffset += DescriptorSuballocationPerContext;
+
+		AsyncComputeContextArray.Add(NewCmdContext);
+	}
+
 	CommandContextArray[0]->OpenCommandList();
+	if (GEnableAsyncCompute)
+	{
+		AsyncComputeContextArray[0]->OpenCommandList();
+	}
 
 	DefaultUploadHeapAllocator.SetCurrentCommandContext(CommandContextArray[0]);
 }
@@ -824,6 +861,7 @@ void FD3D12Device::CleanupD3DDevice()
 		// Wait for the command queues to flush
 		CommandListManager.WaitForCommandQueueFlush();
 		CopyCommandListManager.WaitForCommandQueueFlush();
+		AsyncCommandListManager.WaitForCommandQueueFlush();
 
 		// Delete array index 0 (the default context) last
 		for (int32 i = CommandContextArray.Num() - 1; i >= 0; i--)
@@ -883,6 +921,7 @@ void FD3D12Device::CleanupD3DDevice()
 
 		CommandListManager.Destroy();
 		CopyCommandListManager.Destroy();
+		AsyncCommandListManager.Destroy();
 
 
 	}

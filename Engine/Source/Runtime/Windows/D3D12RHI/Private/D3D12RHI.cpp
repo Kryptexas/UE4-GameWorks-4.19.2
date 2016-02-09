@@ -31,6 +31,11 @@ namespace D3D12RHI
 }
 using namespace D3D12RHI;
 
+FD3D12CommandListManager& FD3D12CommandContext::GetCommandListManager()
+{
+	return bIsAsyncComputeContext ? GetParentDevice()->GetAsyncCommandListManager() : GetParentDevice()->GetCommandListManager();
+}
+
 void FD3D12CommandContext::ConditionalObtainCommandAllocator()
 {
 	if (CommandAllocator == nullptr)
@@ -53,7 +58,7 @@ void FD3D12CommandContext::ReleaseCommandAllocator()
 
 void FD3D12CommandContext::OpenCommandList(bool bRestoreState)
 {
-	FD3D12CommandListManager& CommandListManager = GetParentDevice()->GetCommandListManager();
+	FD3D12CommandListManager& CommandListManager = GetCommandListManager();
 
 	// Conditionally get a new command allocator.
 	// Each command context uses a new allocator for all command lists with a single frame.
@@ -103,6 +108,18 @@ void FD3D12CommandContext::ExecuteCommandList(bool WaitForCompletion)
 	}
 }
 
+bool FD3D12CommandContext::IsDefaultContext() const
+{
+	if (bIsAsyncComputeContext)
+	{
+		return this == &GetParentDevice()->GetDefaultAsyncComputeContext();
+	}
+	else
+	{
+		return this == &GetParentDevice()->GetDefaultCommandContext();
+	}
+}
+
 FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompletion)
 {
 	// We should only be flushing the default context
@@ -126,7 +143,7 @@ FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompleti
 		{
 			// Submit all pending command lists and the current command list
 			Device->PendingCommandLists.Add(CommandListHandle);
-			Device->GetCommandListManager().ExecuteCommandLists(Device->PendingCommandLists, WaitForCompletion);
+			GetCommandListManager().ExecuteCommandLists(Device->PendingCommandLists, WaitForCompletion);
 			Device->PendingCommandLists.Reset();
 			Device->PendingCommandListsTotalWorkCommands = 0;
 		}
@@ -155,7 +172,7 @@ void FD3D12CommandContext::Finish(TArray<FD3D12CommandListHandle>& CommandLists)
 	else
 	{
 		// Release the unused command list.
-		GetParentDevice()->GetCommandListManager().ReleaseCommandList(CommandListHandle);
+		GetCommandListManager().ReleaseCommandList(CommandListHandle);
 	}
 
 	// The context is done with this command list handle.
@@ -192,6 +209,8 @@ void FD3D12CommandContext::ClearState()
 {
 	StateCache.ClearState();
 
+	bDiscardSharedConstants = false;
+
 	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; Frequency++)
 	{
 		DirtyUniformBuffers[Frequency] = 0;
@@ -201,55 +220,59 @@ void FD3D12CommandContext::ClearState()
 		}
 	}
 
-	for (int32 Index = 0; Index < _countof(CurrentRenderTargets); ++Index)
-	{
-		CurrentRenderTargets[Index] = nullptr;
-	}
 	for (int32 Index = 0; Index < _countof(CurrentUAVs); ++Index)
 	{
 		CurrentUAVs[Index] = nullptr;
 	}
-
-	CurrentDepthStencilTarget = nullptr;
-	CurrentDepthTexture = nullptr;
-
-	NumSimultaneousRenderTargets = 0;
 	NumUAVs = 0;
 
-	CurrentDSVAccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
+	if (!bIsAsyncComputeContext)
+	{
+		for (int32 Index = 0; Index < _countof(CurrentRenderTargets); ++Index)
+		{
+			CurrentRenderTargets[Index] = nullptr;
+		}
+		NumSimultaneousRenderTargets = 0;
 
-	bDiscardSharedConstants = false;
+		CurrentDepthStencilTarget = nullptr;
+		CurrentDepthTexture = nullptr;
 
-	bUsingTessellation = false;
+		CurrentDSVAccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
+
+		bUsingTessellation = false;
+
+		CurrentBoundShaderState = nullptr;
+	}
 
 	// MSFT: Need to do anything with the constant buffers?
-	/*for (int32 BufferIndex = 0; BufferIndex < VSConstantBuffers.Num(); BufferIndex++)
+	/*
+	for (int32 BufferIndex = 0; BufferIndex < VSConstantBuffers.Num(); BufferIndex++)
 	{
-		VSConstantBuffers[BufferIndex]->ClearConstantBuffer();
+	VSConstantBuffers[BufferIndex]->ClearConstantBuffer();
 	}
 	for (int32 BufferIndex = 0; BufferIndex < PSConstantBuffers.Num(); BufferIndex++)
 	{
-		PSConstantBuffers[BufferIndex]->ClearConstantBuffer();
+	PSConstantBuffers[BufferIndex]->ClearConstantBuffer();
 	}
 	for (int32 BufferIndex = 0; BufferIndex < HSConstantBuffers.Num(); BufferIndex++)
 	{
-		HSConstantBuffers[BufferIndex]->ClearConstantBuffer();
+	HSConstantBuffers[BufferIndex]->ClearConstantBuffer();
 	}
 	for (int32 BufferIndex = 0; BufferIndex < DSConstantBuffers.Num(); BufferIndex++)
 	{
-		DSConstantBuffers[BufferIndex]->ClearConstantBuffer();
+	DSConstantBuffers[BufferIndex]->ClearConstantBuffer();
 	}
 	for (int32 BufferIndex = 0; BufferIndex < GSConstantBuffers.Num(); BufferIndex++)
 	{
-		GSConstantBuffers[BufferIndex]->ClearConstantBuffer();
+	GSConstantBuffers[BufferIndex]->ClearConstantBuffer();
 	}
 	for (int32 BufferIndex = 0; BufferIndex < CSConstantBuffers.Num(); BufferIndex++)
 	{
 		CSConstantBuffers[BufferIndex]->ClearConstantBuffer();
-	}*/
+	}
+	*/
 
 	CurrentComputeShader = nullptr;
-	CurrentBoundShaderState = nullptr;
 }
 
 void FD3D12CommandContext::CheckIfSRVIsResolved(FD3D12ShaderResourceView* SRV)
@@ -448,8 +471,8 @@ void FD3D12CommandContext::RHIEndFrame()
 	}
 
 	Device->GetDefaultUploadHeapAllocator().CleanUpAllocations();
-
 	Device->GetTextureAllocator().CleanUpAllocations();
+	Device->GetDefaultBufferAllocator().CleanupFreeBlocks();
 
 	Device->GetDefaultFastAllocatorPool().CleanUpPages(10);
 	{
