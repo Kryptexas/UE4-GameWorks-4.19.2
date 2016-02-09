@@ -88,12 +88,12 @@ void ACameraActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	}
 }
 
+#endif
+
 USceneComponent* ACameraActor::GetDefaultAttachComponent() const
 {
 	return CameraComponent;
 }
-#endif
-
 
 int32 ACameraActor::GetAutoActivatePlayerIndex() const
 {
