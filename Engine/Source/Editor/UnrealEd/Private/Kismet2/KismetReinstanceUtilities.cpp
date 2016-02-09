@@ -1299,11 +1299,13 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						SpawnInfo.Template = NewArchetype;
 						SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 						SpawnInfo.bDeferConstruction = true;
+						SpawnInfo.Name = OldActor->GetFName();
 
 						// Temporarily remove the deprecated flag so we can respawn the Blueprint in the level
 						const bool bIsClassDeprecated = SpawnClass->HasAnyClassFlags(CLASS_Deprecated);
 						SpawnClass->ClassFlags &= ~CLASS_Deprecated;
 
+						OldActor->UObject::Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
 						AActor* NewActor = World->SpawnActor(SpawnClass, &Location, &Rotation, SpawnInfo);
 						
 						if (OldActor->CurrentTransactionAnnotation.IsValid())
