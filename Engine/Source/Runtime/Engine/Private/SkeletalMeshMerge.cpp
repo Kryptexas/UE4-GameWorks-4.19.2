@@ -91,6 +91,12 @@ void FSkeletalMeshMerge::MergeSkeleton(const TArray<FRefPoseOverride>* RefPoseOv
 	// Assign new referencer skeleton.
 
 	MergeMesh->RefSkeleton = NewRefSkeleton;
+
+	// Rebuild inverse ref pose matrices here as some access patterns 
+	// may need to access these matrices before FinalizeMesh is called
+	// (which would *normally* rebuild the inv ref matrices).
+	MergeMesh->RefBasesInvMatrix.Empty();
+	MergeMesh->CalculateInvRefMatrices();
 }
 
 bool FSkeletalMeshMerge::FinalizeMesh()
