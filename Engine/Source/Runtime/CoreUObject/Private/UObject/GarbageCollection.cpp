@@ -14,7 +14,7 @@
    Garbage collection.
 -----------------------------------------------------------------------------*/
 
-#define PERF_DETAILED_PER_CLASS_GC_STATS				(LOOKING_FOR_PERF_ISSUES)
+#define PERF_DETAILED_PER_CLASS_GC_STATS				(LOOKING_FOR_PERF_ISSUES || 0) 
 
 // FastReferenceCollector uses PERF_DETAILED_PER_CLASS_GC_STATS
 #include "UObject/FastReferenceCollector.h"
@@ -338,10 +338,35 @@ public:
 #endif
 	}
 
+	/** Marks all objects that can't be directly in a cluster but are referenced by it as reachable */
 	template <bool bParallel>
-	FORCEINLINE void MarkReferencedClustersAsReachable(int32 ClusterRootIndex)
+	FORCEINLINE void MarkClusterMutableObjectsAsReachable(FUObjectCluster* Cluster, TArray<UObject*>& ObjectsToSerialize)
+	{
+		for (int32 ReferencedMutableObjectIndex : Cluster->MutableObjects)
+		{
+			FUObjectItem* ReferencedMutableObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferencedMutableObjectIndex);
+			if (bParallel)
+			{
+				if (ReferencedMutableObjectItem->IsUnreachable() && ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+				{
+					ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+				}
+			}
+			else if (ReferencedMutableObjectItem->IsUnreachable())
+			{
+				ReferencedMutableObjectItem->ClearUnreachable();
+				ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
+			}
+		}
+	}
+
+	/** Marks all clusters referenced by another cluster as rechable */
+	template <bool bParallel>
+	FORCEINLINE void MarkReferencedClustersAsReachable(int32 ClusterRootIndex, TArray<UObject*>& ObjectsToSerialize)
 	{
 		FUObjectCluster* Cluster = GUObjectClusters.FindChecked(ClusterRootIndex);
+		// Also mark all referenced objects from outside of the cluster as reachable
+		MarkClusterMutableObjectsAsReachable<bParallel>(Cluster, ObjectsToSerialize);
 		for (int32 ReferncedClusterIndex : Cluster->ReferencedClusters)
 		{
 			FUObjectItem* ReferencedClusterRootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ReferncedClusterIndex);
@@ -354,7 +379,9 @@ public:
 			{
 				ReferencedClusterRootObjectItem->ClearUnreachable();
 			}
-		}
+			FUObjectCluster* ReferencedCluster = GUObjectClusters.FindChecked(ReferncedClusterIndex);
+			MarkClusterMutableObjectsAsReachable<bParallel>(ReferencedCluster, ObjectsToSerialize);
+		}		
 	}
 
 	/**
@@ -409,7 +436,7 @@ public:
 					{
 						// This is a cluster root reference so mark all referenced clusters as reachable
 						const int32 ObjectIndex = GUObjectArray.ObjectToIndex(Object);
-						MarkReferencedClustersAsReachable<true>(ObjectIndex);
+						MarkReferencedClustersAsReachable<true>(ObjectIndex, ObjectsToSerialize);
 					}
 				}
 			}
@@ -440,7 +467,7 @@ public:
 				{
 					// This is a cluster root reference so mark all referenced clusters as reachable
 					const int32 ObjectIndex = GUObjectArray.ObjectToIndex(Object);
-					MarkReferencedClustersAsReachable<false>(ObjectIndex);
+					MarkReferencedClustersAsReachable<false>(ObjectIndex, ObjectsToSerialize);
 				}
 			}
 		}
@@ -456,20 +483,21 @@ public:
 				if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 				{
 					// Make sure all referenced clusters are marked as reachable too
-					MarkReferencedClustersAsReachable<true>(OwnerIndex);
+					MarkReferencedClustersAsReachable<true>(OwnerIndex, ObjectsToSerialize);
 				}
 			}
 			else if (RootObjectItem->IsUnreachable())
 			{
 				RootObjectItem->ClearUnreachable();
 				// Make sure all referenced clusters are marked as reachable too
-				MarkReferencedClustersAsReachable<false>(OwnerIndex);
+				MarkReferencedClustersAsReachable<false>(OwnerIndex, ObjectsToSerialize);
 			}
 		}
 
-		if (bStrongReference)
+		// The second condition seems to improve perf for multithreaded GC
+		if (bStrongReference && ObjectItem->HasAnyFlags(EInternalObjectFlags::NoStrongReference))
 		{
-			ObjectItem->ClearNoStrongReference();
+			ObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 		}
 #if PERF_DETAILED_PER_CLASS_GC_STATS
 		GCurrentObjectRegularObjectRefs++;
@@ -660,7 +688,7 @@ bool IsTokenStreamDirty();
  * interface doesn't make sense to implement for.
  */
 class FRealtimeGC
-	{
+{
 public:
 	/** Default constructor, initializing all members. */
 	FRealtimeGC()
@@ -733,15 +761,15 @@ public:
 			{
 				// Compile will strip this out when we don't need to update the token stream since this is a template.
 				// Otherwise the GC will suffer a big performance hit.
-			if (UClass* Class = dynamic_cast<UClass*>(Object))
-			{
-				if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+				if (UClass* Class = dynamic_cast<UClass*>(Object))
 				{
-					Class->AssembleReferenceTokenStream();
-					check(Class->HasAnyClassFlags(CLASS_TokenStreamAssembled));
+					if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+					{
+						Class->AssembleReferenceTokenStream();
+						check(Class->HasAnyClassFlags(CLASS_TokenStreamAssembled));
+					}
 				}
 			}
-		}
 		}
 	}
 
@@ -752,7 +780,7 @@ public:
 	 */
 	void PerformReachabilityAnalysis(EObjectFlags KeepFlags, bool bForceSingleThreaded = false)
 	{		
-		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FRealtimeGC::PerformReachabilityAnalysis" ), STAT_FArchiveRealtimeGC_PerformReachabilityAnalysis, STATGROUP_GC );
+		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FRealtimeGC::PerformReachabilityAnalysis"), STAT_FArchiveRealtimeGC_PerformReachabilityAnalysis, STATGROUP_GC);
 
 		/** Growing array of objects that require serialization */
 		TArray<UObject*>& ObjectsToSerialize = *FGCArrayPool::Get().GetArrayFromPool();
@@ -1173,7 +1201,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 					{
 						UE_LOG(LogGarbage, Warning, TEXT("Disregard for GC object %s referencing %s which is not part of root set"),
 							*Object->GetFullName(),
-							*ReferencedObject->GetFullName());
+							*ReferencedObject->GetFullName());						
 						bShouldAssert = true;
 					}
 				}

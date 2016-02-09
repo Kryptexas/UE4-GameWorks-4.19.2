@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Allocators/CachedOSPageAllocator.h"
+#include "Function.h"
 
 #define BINNED2_MAX_CACHED_OS_FREES (64)
 #if PLATFORM_64BITS
@@ -27,24 +28,38 @@ private:
 	enum { MAX_LARGE_POOLED_PAGE_FRACTIONS  = 2 };
 
 	// Forward declares.
-	struct FFreeMem;
-	struct FPoolTable;
+	struct FFreeBlock;
 	struct FPoolInfo;
+	struct FPoolTable;
 	struct PoolHashBucket;
+
+	struct FPoolList
+	{
+		FPoolList();
+
+		bool IsEmpty() const;
+
+		      FPoolInfo& GetFrontPool();
+		const FPoolInfo& GetFrontPool() const;
+
+		void LinkToFront(FPoolInfo* Pool);
+
+		FPoolInfo& PushNewPoolToFront(FMallocBinned2& Allocator, uint32 InBytes);
+
+		void Validate(TFunctionRef<void(FPoolInfo&)>);
+
+	private:
+		FPoolInfo* Front;
+	};
 
 	/** Pool table. */
 	struct FPoolTable
 	{
-		FPoolInfo* FirstPool;
-		FPoolInfo* ExhaustedPool;
-		uint32     BlockSize;
+		FPoolList ActivePools;
+		FPoolList ExhaustedPools;
+		uint32    BlockSize;
 
-		FPoolTable()
-			: FirstPool(nullptr)
-			, ExhaustedPool(nullptr)
-			, BlockSize(0)
-		{
-		}
+		FPoolTable();
 	};
 
 	const uint32 PageSize;
@@ -115,7 +130,7 @@ public:
 	/** 
 	 * Malloc
 	 */
-	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override;
+	virtual void* Malloc(SIZE_T Size, uint32 Alignment) override;
 
 	/** 
 	 * Realloc

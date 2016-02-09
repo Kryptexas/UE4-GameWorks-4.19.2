@@ -1460,6 +1460,20 @@ void EndLoad()
 				}
 			}
 
+			// Create clusters after all objects have been loaded
+			extern int32 GCreateGCClusters;
+			if (FPlatformProperties::RequiresCookedData() && !GIsInitialLoad && GCreateGCClusters && !GUObjectArray.IsOpenForDisregardForGC())
+			{
+				for (UObject* Obj : ObjLoaded)
+				{
+					check(Obj);
+					if (Obj->CanBeClusterRoot())
+					{
+						Obj->CreateCluster();
+					}
+				}
+			}
+
 #if WITH_EDITOR
 			// Send global notification for each object that was loaded.
 			// Useful for updating UI such as ContentBrowser's loaded status.
@@ -2833,7 +2847,8 @@ UObject* StaticConstructObject_Internal
 
 	// Subobjects are always created in the constructor, no need to re-create them unless their archetype != CDO or they're blueprint generated.
 	// If the existing subobject is to be re-used it can't have BeginDestroy called on it so we need to pass this information to StaticAllocateObject.	
-	const bool bIsNativeFromCDO = InClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic) && 
+	const bool bIsNativeClass = InClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
+	const bool bIsNativeFromCDO = bIsNativeClass &&
 		(
 			!InTemplate || 
 			(InName != NAME_None && InTemplate == UObject::GetArchetypeFromRequiredInfo(InClass, InOuter, InName, InFlags))

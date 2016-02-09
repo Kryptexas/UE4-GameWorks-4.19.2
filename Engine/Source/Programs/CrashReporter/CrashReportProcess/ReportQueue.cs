@@ -112,30 +112,33 @@ namespace Tools.CrashReporter.CrashReportProcess
 		}
 
 		/// <summary> Converts WER metadata xml file to the crash context. </summary>
-		private FGenericCrashContext ConvertMetadataToCrashContext( WERReportMetadata Metadata, string NewReportPath )
+		private void ConvertMetadataToCrashContext(WERReportMetadata Metadata, string NewReportPath, ref FGenericCrashContext OutCrashContext)
 		{
-			FGenericCrashContext CrashContext = new FGenericCrashContext();
+			if (OutCrashContext == null)
+			{
+				OutCrashContext = new FGenericCrashContext();
+			}
 
 			FReportData ReportData = new FReportData( Metadata, NewReportPath );
 
-			CrashContext.PrimaryCrashProperties.CrashVersion = (int)ECrashDescVersions.VER_1_NewCrashFormat;
+			OutCrashContext.PrimaryCrashProperties.CrashVersion = (int)ECrashDescVersions.VER_1_NewCrashFormat;
 
-			CrashContext.PrimaryCrashProperties.ProcessId = 0;
-			CrashContext.PrimaryCrashProperties.CrashGUID = new DirectoryInfo( NewReportPath ).Name;  
-// 			CrashContext.PrimaryCrashProperties.IsInternalBuild
-// 			CrashContext.PrimaryCrashProperties.IsPerforceBuild
-// 			CrashContext.PrimaryCrashProperties.IsSourceDistribution
-// 			CrashContext.PrimaryCrashProperties.SecondsSinceStart
-			CrashContext.PrimaryCrashProperties.GameName = ReportData.GameName;
-// 			CrashContext.PrimaryCrashProperties.ExecutableName
-// 			CrashContext.PrimaryCrashProperties.BuildConfiguration
-// 			CrashContext.PrimaryCrashProperties.PlatformName
-// 			CrashContext.PrimaryCrashProperties.PlatformNameIni
-			CrashContext.PrimaryCrashProperties.PlatformFullName = ReportData.Platform;
-			CrashContext.PrimaryCrashProperties.EngineMode = ReportData.EngineMode;
-			CrashContext.PrimaryCrashProperties.EngineVersion = ReportData.GetEngineVersion();
-			CrashContext.PrimaryCrashProperties.CommandLine = ReportData.CommandLine;
-// 			CrashContext.PrimaryCrashProperties.LanguageLCID
+			//OutCrashContext.PrimaryCrashProperties.ProcessId = 0; don't overwrite valid ids, zero is default anyway
+			OutCrashContext.PrimaryCrashProperties.CrashGUID = new DirectoryInfo( NewReportPath ).Name;  
+// 			OutCrashContext.PrimaryCrashProperties.IsInternalBuild
+// 			OutCrashContext.PrimaryCrashProperties.IsPerforceBuild
+// 			OutCrashContext.PrimaryCrashProperties.IsSourceDistribution
+// 			OutCrashContext.PrimaryCrashProperties.SecondsSinceStart
+			OutCrashContext.PrimaryCrashProperties.GameName = ReportData.GameName;
+// 			OutCrashContext.PrimaryCrashProperties.ExecutableName
+// 			OutCrashContext.PrimaryCrashProperties.BuildConfiguration
+// 			OutCrashContext.PrimaryCrashProperties.PlatformName
+// 			OutCrashContext.PrimaryCrashProperties.PlatformNameIni
+			OutCrashContext.PrimaryCrashProperties.PlatformFullName = ReportData.Platform;
+			OutCrashContext.PrimaryCrashProperties.EngineMode = ReportData.EngineMode;
+			OutCrashContext.PrimaryCrashProperties.EngineVersion = ReportData.GetEngineVersion();
+			OutCrashContext.PrimaryCrashProperties.CommandLine = ReportData.CommandLine;
+// 			OutCrashContext.PrimaryCrashProperties.LanguageLCID
 
 			// Create a locate and get the language.
 			int LanguageCode = 0;
@@ -145,54 +148,66 @@ namespace Tools.CrashReporter.CrashReportProcess
 				if (LanguageCode > 0)
 				{
 					CultureInfo LanguageCI = new CultureInfo( LanguageCode );
-					CrashContext.PrimaryCrashProperties.AppDefaultLocale = LanguageCI.Name;
+					OutCrashContext.PrimaryCrashProperties.AppDefaultLocale = LanguageCI.Name;
 				}
 			}
-			catch (System.Exception)
+			catch (Exception)
 			{
-				// Default to en-US
-				CrashContext.PrimaryCrashProperties.AppDefaultLocale = "en-US";
+				OutCrashContext.PrimaryCrashProperties.AppDefaultLocale = null;
 			}
 
+			if (string.IsNullOrEmpty(OutCrashContext.PrimaryCrashProperties.AppDefaultLocale))
+			{
+				// Default to en-US
+				OutCrashContext.PrimaryCrashProperties.AppDefaultLocale = "en-US";				
+			}
 
-// 			CrashContext.PrimaryCrashProperties.IsUE4Release
-			CrashContext.PrimaryCrashProperties.UserName = ReportData.UserName;
-			CrashContext.PrimaryCrashProperties.BaseDir = ReportData.BaseDir;
-// 			CrashContext.PrimaryCrashProperties.RootDir
-			CrashContext.PrimaryCrashProperties.MachineId = ReportData.MachineId;
-			CrashContext.PrimaryCrashProperties.EpicAccountId = ReportData.EpicAccountId;
-// 			CrashContext.PrimaryCrashProperties.CallStack
-// 			CrashContext.PrimaryCrashProperties.SourceContext
-			CrashContext.PrimaryCrashProperties.UserDescription = string.Join( "\n", ReportData.UserDescription );
-			CrashContext.PrimaryCrashProperties.ErrorMessage = string.Join( "\n", ReportData.ErrorMessage );
-// 			CrashContext.PrimaryCrashProperties.CrashDumpMode
-// 			CrashContext.PrimaryCrashProperties.Misc.NumberOfCores
-// 			CrashContext.PrimaryCrashProperties.Misc.NumberOfCoresIncludingHyperthreads
-// 			CrashContext.PrimaryCrashProperties.Misc.Is64bitOperatingSystem
-// 			CrashContext.PrimaryCrashProperties.Misc.CPUVendor
-// 			CrashContext.PrimaryCrashProperties.Misc.CPUBrand
-// 			CrashContext.PrimaryCrashProperties.Misc.PrimaryGPUBrand
-// 			CrashContext.PrimaryCrashProperties.Misc.OSVersionMajor
-// 			CrashContext.PrimaryCrashProperties.Misc.OSVersionMinor
-// 			CrashContext.PrimaryCrashProperties.Misc.AppDiskTotalNumberOfBytes
-// 			CrashContext.PrimaryCrashProperties.Misc.AppDiskNumberOfFreeBytes
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.TotalPhysical
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.TotalVirtual
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.PageSize
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.TotalPhysicalGB
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.AvailablePhysical
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.AvailableVirtual
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.UsedPhysical
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.PeakUsedPhysical
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.UsedVirtual
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.PeakUsedVirtual
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.bIsOOM
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.OOMAllocationSize
-// 			CrashContext.PrimaryCrashProperties.MemoryStats.OOMAllocationAlignment
-			CrashContext.PrimaryCrashProperties.TimeofCrash = new DateTime( ReportData.Ticks );
-			CrashContext.PrimaryCrashProperties.bAllowToBeContacted = ReportData.AllowToBeContacted;
+// 			OutCrashContext.PrimaryCrashProperties.IsUE4Release
+			string WERUserName = ReportData.UserName;
+			if (!string.IsNullOrEmpty(WERUserName) || string.IsNullOrEmpty(OutCrashContext.PrimaryCrashProperties.UserName))
+			{
+				OutCrashContext.PrimaryCrashProperties.UserName = WERUserName;
+			}
 
-			return CrashContext;
+			OutCrashContext.PrimaryCrashProperties.BaseDir = ReportData.BaseDir;
+// 			OutCrashContext.PrimaryCrashProperties.RootDir
+			OutCrashContext.PrimaryCrashProperties.MachineId = ReportData.MachineId;
+			OutCrashContext.PrimaryCrashProperties.EpicAccountId = ReportData.EpicAccountId;
+// 			OutCrashContext.PrimaryCrashProperties.CallStack
+// 			OutCrashContext.PrimaryCrashProperties.SourceContext
+			OutCrashContext.PrimaryCrashProperties.UserDescription = string.Join( "\n", ReportData.UserDescription );
+
+			if (string.IsNullOrEmpty(OutCrashContext.PrimaryCrashProperties.ErrorMessage))
+			{
+				OutCrashContext.PrimaryCrashProperties.ErrorMessage = string.Join("\n", ReportData.ErrorMessage);
+			}
+
+			// 			OutCrashContext.PrimaryCrashProperties.CrashDumpMode
+// 			OutCrashContext.PrimaryCrashProperties.Misc.NumberOfCores
+// 			OutCrashContext.PrimaryCrashProperties.Misc.NumberOfCoresIncludingHyperthreads
+// 			OutCrashContext.PrimaryCrashProperties.Misc.Is64bitOperatingSystem
+// 			OutCrashContext.PrimaryCrashProperties.Misc.CPUVendor
+// 			OutCrashContext.PrimaryCrashProperties.Misc.CPUBrand
+// 			OutCrashContext.PrimaryCrashProperties.Misc.PrimaryGPUBrand
+// 			OutCrashContext.PrimaryCrashProperties.Misc.OSVersionMajor
+// 			OutCrashContext.PrimaryCrashProperties.Misc.OSVersionMinor
+// 			OutCrashContext.PrimaryCrashProperties.Misc.AppDiskTotalNumberOfBytes
+// 			OutCrashContext.PrimaryCrashProperties.Misc.AppDiskNumberOfFreeBytes
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.TotalPhysical
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.TotalVirtual
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.PageSize
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.TotalPhysicalGB
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.AvailablePhysical
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.AvailableVirtual
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.UsedPhysical
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.PeakUsedPhysical
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.UsedVirtual
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.PeakUsedVirtual
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.bIsOOM
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.OOMAllocationSize
+// 			OutCrashContext.PrimaryCrashProperties.MemoryStats.OOMAllocationAlignment
+			OutCrashContext.PrimaryCrashProperties.TimeofCrash = new DateTime( ReportData.Ticks );
+			OutCrashContext.PrimaryCrashProperties.bAllowToBeContacted = ReportData.AllowToBeContacted;
 		}
 
 		/// <summary> Looks for the WER metadata xml file, if found, will return a new instance of the WERReportMetadata. </summary>
@@ -367,7 +382,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				if (MetaData != null)
 				{
 					FReportData ReportData = new FReportData( MetaData, NewReportPath );
-					Context = ConvertMetadataToCrashContext( MetaData, NewReportPath );
+					ConvertMetadataToCrashContext(MetaData, NewReportPath, ref Context);
 					bFromWER = true;
 				}
 			}
@@ -379,17 +394,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			else
 			{
-				if (GenericContext != null && GenericContext.PrimaryCrashProperties.ErrorMessage.Length > 0)
-				{
-					// Get error message from the crash context and fix value in the metadata.
-					Context.PrimaryCrashProperties.ErrorMessage = GenericContext.PrimaryCrashProperties.ErrorMessage;
-				}
-
 				Context.CrashDirectory = NewReportPath;
 				Context.PrimaryCrashProperties.SetPlatformFullName();
 
-				// If based on WER, save to the file.
-				if (bFromWER && GenericContext == null)
+				// Added data from WER, save to the crash context file.
+				if (bFromWER)
 				{
 					Context.ToFile();
 				}

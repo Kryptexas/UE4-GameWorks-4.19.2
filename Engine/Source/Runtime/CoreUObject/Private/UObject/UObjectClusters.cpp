@@ -8,6 +8,7 @@
 #include "Interface.h"
 #include "ModuleManager.h"
 #include "FastReferenceCollector.h"
+#include "GarbageCollection.h"
 
 int32 GCreateGCClusters = 1;
 static FAutoConsoleVariableRef CCreateGCClusters(
@@ -226,9 +227,10 @@ public:
 	 */
 	void AddObjectToCluster(int32 ObjectIndex, FUObjectItem* ObjectItem, UObject* Obj, TArray<UObject*>& ObjectsToSerialize, bool bOuterAndClass)
 	{
-		if (ObjectItem->GetOwnerIndex() == 0 && !ObjectItem->IsRootSet() && !GUObjectArray.IsDisregardForGC(Obj) && Obj->CanBeInCluster())
+		if (ObjectIndex != ClusterRootIndex && ObjectItem->GetOwnerIndex() == 0 && !ObjectItem->IsRootSet() && !GUObjectArray.IsDisregardForGC(Obj) && Obj->CanBeInCluster())
 		{
 			ObjectsToSerialize.Add(Obj);
+			check(!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
 			ObjectItem->SetOwnerIndex(ClusterRootIndex);
 			Cluster.Objects.Add(ObjectIndex);
 
@@ -242,11 +244,10 @@ public:
 				}
 				if (!Obj->GetClass()->HasAllClassFlags(CLASS_Native))
 				{
-					int32 ClassIndex = GUObjectArray.ObjectToIndex(Obj->GetClass());
-					AddObjectToCluster(ClassIndex, GUObjectArray.IndexToObjectUnsafeForGC(ClassIndex), Obj->GetClass(), ObjectsToSerialize, false);
-
-					int32 ClassOuterIndex = GUObjectArray.ObjectToIndex(Obj->GetClass()->GetOuter());
-					AddObjectToCluster(ClassOuterIndex, GUObjectArray.IndexToObjectUnsafeForGC(ClassOuterIndex), Obj->GetClass()->GetOuter(), ObjectsToSerialize, false);
+					UObject* ObjectClass = Obj->GetClass();
+					HandleTokenStreamObjectReference(ObjectsToSerialize, Obj, ObjectClass, INDEX_NONE, true);
+					UObject* ObjectClassOuter = Obj->GetClass()->GetOuter();
+					HandleTokenStreamObjectReference(ObjectsToSerialize, Obj, ObjectClassOuter, INDEX_NONE, true);
 				}
 			}
 		}		
@@ -329,12 +330,24 @@ public:
 							check(OtherClusterReferencedCluster != ClusterRootIndex);
 							Cluster.ReferencedClusters.AddUnique(OtherClusterReferencedCluster);
 						}
+						for (int32 OtherClusterReferencedMutableObjectIndex : OtherCluster->MutableObjects)
+						{
+							Cluster.MutableObjects.AddUnique(OtherClusterReferencedMutableObjectIndex);
+						}
 					}
 				}
-				else if (ObjectItem->GetOwnerIndex() == 0 && !ObjectItem->IsRootSet() && !GUObjectArray.IsDisregardForGC(Object) && Object->CanBeInCluster())
+				else if (ObjectItem->GetOwnerIndex() == 0 && !ObjectItem->IsRootSet() && !GUObjectArray.IsDisregardForGC(Object) &&
+					!(Object->CanBeClusterRoot() && Object->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))) // Objects that can create clusters themselves and haven't been postloaded yet should be excluded
 				{
 					// New object, add it to the cluster.
-					AddObjectToCluster(GUObjectArray.ObjectToIndex(Object), ObjectItem, Object, ObjectsToSerialize, true);
+					if (Object->CanBeInCluster())
+					{
+						AddObjectToCluster(GUObjectArray.ObjectToIndex(Object), ObjectItem, Object, ObjectsToSerialize, true);
+					}
+					else
+					{
+						Cluster.MutableObjects.AddUnique(GUObjectArray.ObjectToIndex(Object));
+					}
 				}
 			}
 		}
@@ -378,13 +391,70 @@ public:
 	}
 };
 
+/** Looks through objects loaded with a package and creates clusters from them */
+void CreateClustersFromPackage(FLinkerLoad* PackageLinker)
+{	
+	if (FPlatformProperties::RequiresCookedData() && !GIsInitialLoad && GCreateGCClusters && !GUObjectArray.IsOpenForDisregardForGC())
+	{
+		check(PackageLinker);
+
+		for (FObjectExport& Export : PackageLinker->ExportMap)
+		{
+			if (Export.Object && Export.Object->CanBeClusterRoot())
+			{
+				Export.Object->CreateCluster();
+			}
+		}
+	}
+}
+
+void UObjectBaseUtility::AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster)
+{
+	check(ClusterRootOrObjectFromCluster);
+
+	const int32 OuterIndex = GUObjectArray.ObjectToIndex(ClusterRootOrObjectFromCluster);
+	FUObjectItem* OuterItem = GUObjectArray.IndexToObjectUnsafeForGC(OuterIndex);
+	int32 ClusterRootIndex = 0;
+	if (OuterItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+	{
+		ClusterRootIndex = OuterIndex;
+	}
+	else
+	{
+		ClusterRootIndex = OuterItem->GetOwnerIndex();
+	}
+	if (ClusterRootIndex != 0)
+	{
+		FUObjectCluster* Cluster = GUObjectClusters.FindChecked(ClusterRootIndex);
+		FClusterReferenceProcessor Processor(ClusterRootIndex, *Cluster);			
+		TFastReferenceCollector<FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FClusterArrayPool, true> ReferenceCollector(Processor, FClusterArrayPool::Get());
+		TArray<UObject*> ObjectsToProcess;
+		UObject* ThisObject = static_cast<UObject*>(this);
+		Processor.HandleTokenStreamObjectReference(ObjectsToProcess, static_cast<UObject*>(ClusterRootOrObjectFromCluster), ThisObject, INDEX_NONE, true);
+		if (ObjectsToProcess.Num())
+		{
+			ReferenceCollector.CollectReferences(ObjectsToProcess, true);
+		}
+	}
+}
+
+bool UObjectBaseUtility::CanBeInCluster() const
+{
+	return true;
+}
+
 void UObjectBaseUtility::CreateCluster()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UObjectBaseUtility::CreateCluster"), STAT_FArchiveRealtimeGC_CreateCluster, STATGROUP_GC);
+
 	FUObjectItem* RootItem = GUObjectArray.IndexToObject(InternalIndex);
-	if (RootItem->GetOwnerIndex() != 0)
+	if (RootItem->GetOwnerIndex() != 0 || RootItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
 	{
 		return;
 	}
+
+	// If we haven't finished loading, we can't be sure we know all the references
+	check(!HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad));
 
 	// Create a new cluster, reserve an arbitrary amount of memory for it.
 	FUObjectCluster* Cluster = new FUObjectCluster;
@@ -392,7 +462,7 @@ void UObjectBaseUtility::CreateCluster()
 
 	// Collect all objects referenced by cluster root and by all objects it's referencing
 	FClusterReferenceProcessor Processor(InternalIndex, *Cluster);
-	TFastReferenceCollector<FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FClusterArrayPool> ReferenceCollector(Processor, FClusterArrayPool::Get());
+	TFastReferenceCollector<FClusterReferenceProcessor, TClusterCollector<FClusterReferenceProcessor>, FClusterArrayPool, true> ReferenceCollector(Processor, FClusterArrayPool::Get());
 	TArray<UObject*> ObjectsToProcess;
 	ObjectsToProcess.Add(static_cast<UObject*>(this));
 	ReferenceCollector.CollectReferences(ObjectsToProcess, true);
@@ -404,6 +474,7 @@ void UObjectBaseUtility::CreateCluster()
 	{
 		// Add new cluster to the global cluster map.
 		GUObjectClusters.Add(InternalIndex, Cluster);
+		check(RootItem->GetOwnerIndex() == 0);
 		RootItem->SetFlags(EInternalObjectFlags::ClusterRoot);
 	}
 	else
@@ -420,6 +491,7 @@ class FClusterVerifyReferenceProcessor
 {	
 	const UObject* const ClusterRootObject;
 	const int32 ClusterRootIndex;
+	const FUObjectCluster& Cluster;
 	volatile bool bIsRunningMultithreaded;
 	bool bFailed;
 	TSet<UObject*> ProcessedObjects;
@@ -429,6 +501,7 @@ public:
 	FClusterVerifyReferenceProcessor(UObject* InClusterRootObject)		
 		: ClusterRootObject(InClusterRootObject)
 		, ClusterRootIndex(GUObjectArray.ObjectToIndex(InClusterRootObject))
+		, Cluster(*GUObjectClusters.FindChecked(ClusterRootIndex)) // This can't fail otherwise there's something wrong with cluster creation code
 		, bIsRunningMultithreaded(false)
 		, bFailed(false)
 	{
@@ -475,25 +548,78 @@ public:
 	*/
 	FORCEINLINE void HandleTokenStreamObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, const int32 TokenIndex, bool bAllowReferenceElimination)
 	{
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+		if (Object && !Object->IsValidLowLevelFast())
+		{
+			FString TokenDebugInfo;
+			if (UClass *Class = (ReferencingObject ? ReferencingObject->GetClass() : nullptr))
+			{
+				const FTokenInfo& TokenInfo = Class->DebugTokenMap.GetTokenInfo(TokenIndex);
+				TokenDebugInfo = FString::Printf(TEXT("ReferencingObjectClass: %s, Property Name: %s, Offset: %d"),
+					*Class->GetFullName(), *TokenInfo.Name.GetPlainNameString(), TokenInfo.Offset);
+			}
+			else
+			{
+				// This means this objects is most likely being referenced by AddReferencedObjects
+				TokenDebugInfo = TEXT("Native Reference");
+			}
+
+			UE_LOG(LogObj, Fatal, TEXT("Invalid object while verifying cluster assumptions: 0x%016llx, ReferencingObject: %s, %s, TokenIndex: %d"),
+				(int64)(PTRINT)Object,
+				ReferencingObject ? *ReferencingObject->GetFullName() : TEXT("NULL"),
+				*TokenDebugInfo, TokenIndex);
+		}
+#endif
 		if (Object && !ProcessedObjects.Contains(Object))
 		{
 			ProcessedObjects.Add(Object);
 			FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(Object);
 			if (ObjectItem->GetOwnerIndex() == 0)
 			{
-				if (!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot|EInternalObjectFlags::RootSet) && !GUObjectArray.IsDisregardForGC(Object))
+				// We are allowed to reference other clusters, root set objects and objects from diregard for GC pool
+				if (!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot|EInternalObjectFlags::RootSet) && !GUObjectArray.IsDisregardForGC(Object) && Object->CanBeInCluster())
 				{
-					UE_LOG(LogObj, Warning, TEXT("Object %s from cluster %s is referencing %s which is not part of root set or cluster."),
+					UE_LOG(LogObj, Warning, TEXT("Object %s from cluster %s is referencing 0x%016llx %s which is not part of root set or cluster."),
 						*ReferencingObject->GetFullName(),
 						*ClusterRootObject->GetFullName(),
+						(int64)(PTRINT)Object,
 						*Object->GetFullName());
 					bFailed = true;
+#if UE_BUILD_DEBUG
+					FReferenceChainSearch RefChainSearch(Object, FReferenceChainSearch::ESearchMode::Shortest | FReferenceChainSearch::ESearchMode::PrintResults);
+#endif
+				}
+				else if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+				{
+					// However, clusters need to be referenced by the current cluster otherwise they can also get GC'd too early.
+					const int32 OtherClusterRootIndex = GUObjectArray.ObjectToIndex(Object);
+					UE_CLOG(OtherClusterRootIndex != ClusterRootIndex && !Cluster.ReferencedClusters.Contains(OtherClusterRootIndex), LogObj, Fatal,
+						TEXT("Object %s from source cluster %s is referencing cluster root object 0x%016llx %s which is not referenced by the source cluster."),
+						*ReferencingObject->GetFullName(),
+						*ClusterRootObject->GetFullName(),
+						(int64)(PTRINT)Object,
+						*Object->GetFullName());
 				}
 			}
 			else if (ObjectItem->GetOwnerIndex() == ClusterRootIndex)
 			{
 				// If this object belongs to the current cluster, keep processing its references. Otherwise ignore it as it will be processed by its cluster
 				ObjectsToSerialize.Add(Object);
+			}
+			else
+			{
+				// If we're referencing an object from another cluster, make sure the other cluster is actually referenced by this cluster
+				const int32 OtherClusterRootIndex = ObjectItem->GetOwnerIndex();
+				const FUObjectItem* OtherClusterRootItem = GUObjectArray.IndexToObjectUnsafeForGC(OtherClusterRootIndex);				
+				check(OtherClusterRootItem && OtherClusterRootItem->Object);
+				UObject* OtherClusterRootObject = static_cast<UObject*>(OtherClusterRootItem->Object);
+				UE_CLOG(OtherClusterRootIndex != ClusterRootIndex && !Cluster.ReferencedClusters.Contains(OtherClusterRootIndex), LogObj, Fatal,
+					TEXT("Object %s from source cluster %s is referencing cluster %d object 0x%016llx %s which is not referenced by the source cluster."),
+					*ReferencingObject->GetFullName(),
+					*ClusterRootObject->GetFullName(),
+					*OtherClusterRootObject->GetFullName(),
+					(int64)(PTRINT)Object,
+					*Object->GetFullName());
 			}
 		}
 	}

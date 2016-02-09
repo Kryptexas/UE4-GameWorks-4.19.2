@@ -7,7 +7,7 @@
 #include "CorePrivatePCH.h"
 #include "MallocAnsi.h"
 #include "MallocJemalloc.h"
-#include "MallocBinned2.h"
+#include "MallocBinned.h"
 #include <sys/sysinfo.h>
 #include <sys/file.h>
 #include <sys/mman.h>
@@ -105,7 +105,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 
 		default:	// intentional fall-through
 		case Binned:
-			Allocator = new FMallocBinned2(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
+			Allocator = new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
 			break;
 	}
 

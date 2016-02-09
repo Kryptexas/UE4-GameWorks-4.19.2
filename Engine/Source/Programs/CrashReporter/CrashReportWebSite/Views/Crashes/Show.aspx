@@ -225,7 +225,7 @@
 				<dd ><%=Html.DisplayFor(m => Model.Crash.Module) %></dd>
 			
 			<dt>User Activity</dt>
-				<dd ><%=Html.DisplayFor(m => Model.Crash.UserActivityHint) %></dd>
+				<%--<dd ><%=Html.DisplayFor(m => Model.Crash.UserActivityHint) %></dd>--%>
 		</dl>
 	</div>
 

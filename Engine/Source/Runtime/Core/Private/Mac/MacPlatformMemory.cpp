@@ -7,7 +7,7 @@
 #include "CorePrivatePCH.h"
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
-#include "MallocBinned2.h"
+#include "MallocBinned.h"
 #include "MallocStomp.h"
 
 #include <sys/param.h>
@@ -53,7 +53,7 @@ FMalloc* FMacPlatformMemory::BaseAllocator()
 #elif (WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED
 		return new FMallocTBB();
 #else
-		return new FMallocBinned2((uint32)(GetConstants().PageSize&MAX_uint32), 0x100000000);
+		return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), 0x100000000);
 #endif
 	}
 }

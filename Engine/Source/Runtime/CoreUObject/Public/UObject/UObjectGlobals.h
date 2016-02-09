@@ -277,7 +277,6 @@ COREUOBJECT_API void PreInitUObject();
 /** 
  *   Iterate over all objects considered part of the root to setup GC optimizations
  */
-COREUOBJECT_API void MarkObjectsToDisregardForGC();
 COREUOBJECT_API bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
 COREUOBJECT_API void StaticTick( float DeltaTime, bool bUseFullTimeLimit = true, float AsyncLoadingTime = 0.005f );
 

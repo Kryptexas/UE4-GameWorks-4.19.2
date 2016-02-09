@@ -59,6 +59,11 @@ struct FUObjectItem
 		ClusterAndFlags &= ~int32(FlagsToClear);
 	}
 
+	/**
+	 * Uses atomics to clear the specified flag(s).
+	 * @param FlagsToClear
+	 * @return True if this call cleared the flag, false if it has been cleared by another thread.
+	 */
 	FORCEINLINE bool ThisThreadAtomicallyClearedFlag(EInternalObjectFlags FlagToClear)
 	{
 		static_assert(sizeof(int32) == sizeof(ClusterAndFlags), "Flags must be 32-bit for atomics.");
@@ -71,14 +76,20 @@ struct FUObjectItem
 				break;
 			}
 			int32 OldValue = (int32)FPlatformAtomics::InterlockedCompareExchange((int32*)&ClusterAndFlags, StartValue & ~int32(FlagToClear), StartValue);
-			if (OldValue == StartValue)
+			// We know the flag was set when we entered this iteration,
+			// so if the old value returned by atomics had the flag set, we must have cleared it.
+			// (there is always a chance that another thread cleared some other flag and the above function did nothing)
+			// But we only care about the flags we want to clear
+			if (!(ClusterAndFlags & int32(FlagToClear)) && (OldValue & int32(FlagToClear)) == (StartValue & int32(FlagToClear)))
 			{
+				// if (the flag has actually been cleared) && (the previous value had the flag set) we must have cleared it
 				bIChangedIt = true;
 				break;
 			}
-			// Remove later.
-			checkSlow(OldValue == (StartValue & ~int32(FlagToClear)));
+			// We didn't clear the flag, probably because some other thread changed flags in the meantime (either the one we want to clear or some other). Try again.
 		}
+		// Make sure the flag was actually cleared
+		checkSlow((ClusterAndFlags & int32(FlagToClear)) == 0);
 		return bIChangedIt;
 	}
 
@@ -193,6 +204,17 @@ public:
 		checkf(NumElements + 1 <= MaxElements, TEXT("Maximum number of Objects exceeded, make sure you update MaxObjectsInGame/MaxObjectsInEditor in project settings."));
 		check(Result == NumElements);
 		++NumElements;
+		FPlatformMisc::MemoryBarrier();
+		check(Objects[Result].Object == nullptr);
+		return Result;
+	}
+
+	int32 AddRange(int32 Count)
+	{
+		int32 Result = NumElements + Count - 1;
+		checkf(NumElements + Count <= MaxElements, TEXT("Maximum number of Objects exceeded, make sure you update MaxObjectsInGame/MaxObjectsInEditor in project settings."));
+		check(Result == (NumElements + Count - 1));
+		NumElements += Count;
 		FPlatformMisc::MemoryBarrier();
 		check(Objects[Result].Object == nullptr);
 		return Result;
@@ -328,19 +350,29 @@ public:
 	}
 
 	/**
+	* If there's enough slack in the disregard pool, we can re-open it and keep adding objects to it
+	*/
+	void OpenDisregardForGC();
+
+	/**
 	 * After the initial load, this closes the disregard pool so that new object are GC-able
-	 *
 	 */
 	void CloseDisregardForGC();
+
+	/** Returns true if the disregard for GC pool is open */
+	bool IsOpenForDisregardForGC() const
+	{
+		return OpenForDisregardForGC;
+	}
 
 	/**
 	 * indicates if the disregard for GC optimization is active
 	 *
-	 * @return true if the first GC index is greater than zero; this indicates that the disregard for GC optimization is enabled
+	 * @return true if MaxObjectsNotConsideredByGC is greater than zero; this indicates that the disregard for GC optimization is enabled
 	 */
 	bool DisregardForGCEnabled() const 
 	{ 
-		return ObjFirstGCIndex > 0; 
+		return MaxObjectsNotConsideredByGC > 0;
 	}
 
 	/**
@@ -690,8 +722,11 @@ private:
 	int32 ObjFirstGCIndex;
 	/** Index pointing to last object created in range disregarded for GC.					*/
 	int32 ObjLastNonGCIndex;
+	/** Maximum number of objects in the disregard for GC Pool */
+	int32 MaxObjectsNotConsideredByGC;
+
 	/** If true this is the intial load and we should load objects int the disregarded for GC range.	*/
-	int32 OpenForDisregardForGC;
+	bool OpenForDisregardForGC;
 	/** Array of all live objects.											*/
 	TUObjectArray ObjObjects;
 	/** Synchronization object for all live objects.											*/
@@ -718,10 +753,15 @@ private:
 	FThreadSafeCounter	MasterSerialNumber;
 };
 
+/** UObject cluster. Groups UObjects into a single unit for GC. */
 struct FUObjectCluster
 {
+	/** Objects that belong to this cluster */
 	TArray<int32> Objects;
+	/** Other clusters referenced by this cluster */
 	TArray<int32> ReferencedClusters;
+	/** Objects that could not be added to the cluster but still need to be referenced by it */
+	TArray<int32> MutableObjects;
 };
 
 /** Global UObject allocator							*/

@@ -379,19 +379,28 @@ namespace Tools.CrashReporter.CrashReportProcess
 						RequestString = "http://localhost:80/Crashes/AddCrash/-1"; 
 					}
 
-					string ResponseString = SimpleWebRequest.GetWebServiceResponse( RequestString, Payload );
-					if( ResponseString.Length > 0 )
+					string ErrorMessage = string.Empty;
+
+					for (int Retry = 0; Retry < 3; ++Retry)
 					{
-						// Convert response into a string
-						CrashReporterResult Result = XmlHandler.FromXmlString<CrashReporterResult>( ResponseString );
-						if( Result.ID > 0 )
+						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload);
+						if (ResponseString.Length > 0)
 						{
-							NewID = Result.ID;
+							// Convert response into a string
+							CrashReporterResult Result = XmlHandler.FromXmlString<CrashReporterResult>(ResponseString);
+							if (Result.ID > 0)
+							{
+								NewID = Result.ID;
+								break;
+							}
+							ErrorMessage = Result.Message;
 						}
-						else
-						{
-							CrashReporterProcessServicer.WriteFailure("UploadCrash: " + Result.Message);
-						}
+						Thread.Sleep(200);
+					}
+
+					if (NewID == -1)
+					{
+						CrashReporterProcessServicer.WriteFailure("UploadCrash: " + ErrorMessage);
 					}
 				}
 			}
@@ -706,7 +715,23 @@ namespace Tools.CrashReporter.CrashReportProcess
 			// Purge logs every 2048 processed crashes
 			string PurgeLogsDays = ProcessedReports % 2048 == 0 ? "2" : "-1";
 
-			FEngineVersion EngineVersion = new FEngineVersion( NewContext.PrimaryCrashProperties.EngineVersion ); 
+			FEngineVersion EngineVersion = new FEngineVersion( NewContext.PrimaryCrashProperties.EngineVersion );
+
+			// Pass Windows variants (Win32/64) to MinidumpDiagnostics
+			string PlatformVariant = NewContext.PrimaryCrashProperties.PlatformName;
+			if (PlatformVariant != null && NewContext.PrimaryCrashProperties.PlatformFullName != null && PlatformVariant.ToUpper().Contains("WINDOWS"))
+			{
+				if (NewContext.PrimaryCrashProperties.PlatformFullName.Contains("Win32") ||
+				    NewContext.PrimaryCrashProperties.PlatformFullName.Contains("32b"))
+				{
+					PlatformVariant = "Win32";
+				}
+				else if (NewContext.PrimaryCrashProperties.PlatformFullName.Contains("Win64") ||
+						NewContext.PrimaryCrashProperties.PlatformFullName.Contains("64b"))
+				{
+					PlatformVariant = "Win64";
+				}
+			}
 
 			List<string> MinidumpDiagnosticsParams = new List<string>
 			(
@@ -717,6 +742,8 @@ namespace Tools.CrashReporter.CrashReportProcess
 					"-BuiltFromCL=" + EngineVersion.Changelist,		// Backward compatibility
 					"-GameName=" + NewContext.PrimaryCrashProperties.GameName,
 					"-EngineVersion=" + NewContext.PrimaryCrashProperties.EngineVersion,
+					"-PlatformName=" + NewContext.PrimaryCrashProperties.PlatformName,
+					"-PlatformVariantName=" + PlatformVariant,
 					"-bUsePDBCache=true",
 					"-Annotate",
 					"-SyncSymbols",

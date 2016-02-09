@@ -54,13 +54,16 @@
 		<span class="SearchTextTitle">To:</span>
 		<input id="dateToVisible" type="text" class="date" autocomplete="OFF" style="width:80px" />
 		<input id="dateTo" name="dateTo" type="hidden" value="<%=Model.DateTo %>"autocomplete="OFF"  />
+        
 	</p>
+    <p class="SearchTextTitle">Filter by Branch</p>
+    <p id="BranchFilter"><%=Html.DropDownListFor( m=>m.BranchName, Model.BranchNames )%></p>
 
-	 <p>
-		 <input type="submit" value="Search" class='SearchButton' />
-	 </p>
+	<p>
+		<input type="submit" value="Search" class='SearchButton' />
+	</p>
 	
-	<%} %>
+<%} %>
 
 </div>
 </asp:Content>

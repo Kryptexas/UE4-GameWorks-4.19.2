@@ -727,12 +727,6 @@ void UObject::ConditionalPostLoad()
 			PostLoad();
 		}
 
-		extern int32 GCreateGCClusters;
-		if (GCreateGCClusters && FPlatformProperties::RequiresCookedData() && !GIsInitialLoad && CanBeClusterRoot())
-		{
-			CreateCluster();
-		}
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (ThreadContext.DebugPostLoad.Contains(this))
 		{
@@ -3772,50 +3766,6 @@ void StaticExit()
 
 	UE_LOG(LogExit, Log, TEXT("Object subsystem successfully closed.") );
 }
-
-void MarkObjectsToDisregardForGC()
-{
-	// Iterate over all class objects and force the default objects to be created. Additionally also
-	// assembles the token reference stream at this point. This is required for class objects that are
-	// not taken into account for garbage collection but have instances that are.
-	
-	// Workaround for Visual Studio 2013 analyzer bug. Using a temporary directly in the range-for
-	// errors if the analyzer is enabled.
-	TObjectRange<UClass> Range;
-	for( auto* Class : Range )
-	{
-		// Force the default object to be created.
-		Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
-		// Assemble reference token stream for garbage collection/ RTGC.
-		Class->AssembleReferenceTokenStream();
-	}
-
-	// Iterate over all objects and mark them to be part of root set.
-	int32 NumAlwaysLoadedObjects = 0;
-	int32 NumRootObjects = 0;
-	for( FObjectIterator It; It; ++It )
-	{
-		UObject* Object = *It;
-		if (Object->IsSafeForRootSet())
-		{
-			NumRootObjects++;
-			Object->AddToRoot();
-		}
-		else if (Object->IsRooted())
-		{
-			Object->RemoveFromRoot();
-		}
-		NumAlwaysLoadedObjects++;
-	}
-
-	UE_LOG(LogObj, Log, TEXT("%i objects as part of root set at end of initial load."), NumAlwaysLoadedObjects);
-	if (GUObjectArray.DisregardForGCEnabled())
-	{
-		UE_LOG(LogObj, Log, TEXT("%i objects are not in the root set, but can never be destroyed because they are in the DisregardForGC set."), NumAlwaysLoadedObjects - NumRootObjects);
-	}
-	GUObjectAllocator.BootMessage();
-}					
-
 
 
 /*-----------------------------------------------------------------------------

@@ -41,7 +41,7 @@
 		 void ReturnToPool(TArray<UObject*>* Array);
 	 };
  */
-template <typename ReferenceProcessorType, typename CollectorType, typename ArrayPoolType>
+template <typename ReferenceProcessorType, typename CollectorType, typename ArrayPoolType, bool bAutoGenerateTokenStream = false>
 class TFastReferenceCollector
 {
 private:
@@ -210,6 +210,14 @@ private:
 				//@todo rtgc: we need to handle object references in struct defaults
 
 				// Make sure that token stream has been assembled at this point as the below code relies on it.
+				if (bAutoGenerateTokenStream && !ReferenceProcessor.IsRunningMultithreaded())
+				{
+					UClass* ObjectClass = CurrentObject->GetClass();
+					if (!ObjectClass->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+					{
+						ObjectClass->AssembleReferenceTokenStream();
+					}
+				}
 				checkSlow(CurrentObject->GetClass()->HasAnyClassFlags(CLASS_TokenStreamAssembled));
 
 				// Get pointer to token stream and jump to the start.

@@ -949,7 +949,9 @@ void FAsyncLoadingThread::SuspendLoading()
 {
 	UE_CLOG(!IsInGameThread(), LogStreaming, Fatal, TEXT("Async loading can only be suspended from the main thread"));
 	const int32 SuspendCount = IsLoadingSuspended.Increment();
+#if !WITH_EDITORONLY_DATA
 	UE_LOG(LogStreaming, Display, TEXT("Suspending async loading (%d)"), SuspendCount);
+#endif
 	if (IsMultithreaded() && SuspendCount == 1)
 	{
 		ThreadSuspendedEvent->Wait();
@@ -1907,6 +1909,8 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 	return Result;
 }
 
+void CreateClustersFromPackage(FLinkerLoad* PackageLinker);
+
 EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickStartTime, bool bInUseTimeLimit, float& InOutTimeLimit)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_PostLoadObjectsGameThread);
@@ -1982,11 +1986,13 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 		if (LinkerRoot && !bLoadHasFailed)
 		{
 			LinkerRoot->AtomicallyClearInternalFlags(EInternalObjectFlags::AsyncLoading);
-			LinkerRoot->MarkAsFullyLoaded();
+			LinkerRoot->MarkAsFullyLoaded();			
 			LinkerRoot->SetLoadTime(FPlatformTime::Seconds() - LoadStartTime);
 
 			if (Linker)
 			{
+				CreateClustersFromPackage(Linker);
+
 				// give a hint to the IO system that we are done with this file for now
 				FIOSystem::Get().HintDoneWithFile(Linker->Filename);
 			}

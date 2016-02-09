@@ -286,6 +286,8 @@ public:
 	 */
 	FString GetPathName( const UObject* StopOuter=NULL ) const;
 
+public:
+
 	/**
 	* Called after load to determine if the object can be a cluster root
 	*
@@ -301,22 +303,28 @@ public:
 	*
 	* @return	true if this object can be inside of a cluster
 	*/
-	virtual bool CanBeInCluster() const
-	{
-		return true;
-	}
-
-protected:
-
-	/**
-	 * Internal version of GetPathName() that eliminates lots of copies.
-	 */
-	void GetPathName( const UObject* StopOuter, FString& ResultString ) const;
+	virtual bool CanBeInCluster() const;
 
 	/**
 	* Called during PostLoad to create UObject cluster
 	*/
 	virtual void CreateCluster();
+
+	/** 
+	 * Adds this objects to a GC cluster that already exists 
+	 * @param ClusterRootOrObjectFromCluster Object that belongs to the cluster we want to add this object to.
+	 */
+	virtual void AddToCluster(UObjectBaseUtility* ClusterRootOrObjectFromCluster);
+
+protected:
+
+	/** Helper function to create a cluster from UObject */
+	static void CreateClusterFromObject(UObjectBaseUtility* ClusterRootObject, UObjectBaseUtility* ReferencingObject);
+
+	/**
+	 * Internal version of GetPathName() that eliminates lots of copies.
+	 */
+	void GetPathName( const UObject* StopOuter, FString& ResultString ) const;
 
 public:
 	/**

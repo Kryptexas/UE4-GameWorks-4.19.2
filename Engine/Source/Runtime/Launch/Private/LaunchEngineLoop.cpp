@@ -1465,13 +1465,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
 	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
-	// load up the seek-free startup packages
-	if ( !FStartupPackages::LoadAll() )
-	{
-		// At least one startup package failed to load, return 1 to indicate an error
-		return 1;
-	}
-
 	// Setup GC optimizations
 	if (bIsSeekFreeDedicatedServer || bHasEditorToken)
 	{
@@ -1566,7 +1559,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 
-	MarkObjectsToDisregardForGC(); 
+	// load up the seek-free startup packages
+	if ( !FStartupPackages::LoadAll() )
+	{
+		// At least one startup package failed to load, return 1 to indicate an error
+		return 1;
+	}
+
 	GUObjectArray.CloseDisregardForGC();
 
 	if (IOnlineSubsystem::IsLoaded())

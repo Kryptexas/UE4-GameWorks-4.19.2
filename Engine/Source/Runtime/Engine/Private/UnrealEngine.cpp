@@ -5419,12 +5419,13 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			&&	(InsidePackage	||	!FCString::Strfind(Cmd,TEXT("PACKAGE="))) 
 			&&	(InsideObject	||	!FCString::Strfind(Cmd,TEXT("INSIDE=")))))
 		{
-			const bool bTrackDetailedObjectInfo		= bAll || (CheckType != NULL && CheckType != UObject::StaticClass()) || CheckOuter != NULL || InsideObject != NULL || InsidePackage != NULL || !ObjectName.IsEmpty();
-			const bool bOnlyListGCObjects				= FParse::Param( Cmd, TEXT("GCONLY") );
-			const bool bOnlyListRootObjects				= FParse::Param( Cmd, TEXT("ROOTONLY") );
-			const bool bShouldIncludeDefaultObjects	= FParse::Param( Cmd, TEXT("INCLUDEDEFAULTS") );
-			const bool bOnlyListDefaultObjects			= FParse::Param( Cmd, TEXT("DEFAULTSONLY") );
-			const bool bShowDetailedObjectInfo			= FParse::Param( Cmd, TEXT("NODETAILEDINFO") ) == false && bTrackDetailedObjectInfo;
+			const bool bTrackDetailedObjectInfo = bAll || (CheckType != NULL && CheckType != UObject::StaticClass()) || CheckOuter != NULL || InsideObject != NULL || InsidePackage != NULL || !ObjectName.IsEmpty();
+			const bool bOnlyListGCObjects = FParse::Param(Cmd, TEXT("GCONLY"));
+			const bool bOnlyListGCObjectsNoClusters = FParse::Param(Cmd, TEXT("GCNOCLUSTERS"));
+			const bool bOnlyListRootObjects = FParse::Param(Cmd, TEXT("ROOTONLY"));
+			const bool bShouldIncludeDefaultObjects = FParse::Param(Cmd, TEXT("INCLUDEDEFAULTS"));
+			const bool bOnlyListDefaultObjects = FParse::Param(Cmd, TEXT("DEFAULTSONLY"));
+			const bool bShowDetailedObjectInfo = FParse::Param(Cmd, TEXT("NODETAILEDINFO")) == false && bTrackDetailedObjectInfo;
 
 			for( FObjectIterator It; It; ++It )
 			{
@@ -5443,6 +5444,19 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				if ( bOnlyListGCObjects && GUObjectArray.IsDisregardForGC(*It) )
 				{
 					continue;
+				}
+
+				if (bOnlyListGCObjectsNoClusters)
+				{
+					if (GUObjectArray.IsDisregardForGC(*It))
+					{
+						continue;
+					}
+					FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(*It);
+					if (ObjectItem->GetOwnerIndex())
+					{
+						continue;
+					}
 				}
 
 				if ( bOnlyListRootObjects && !It->IsRooted() )

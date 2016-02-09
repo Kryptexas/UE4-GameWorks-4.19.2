@@ -178,6 +178,18 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 			ObjectReachability += TEXT("(NeverGCed) ");
 		}
 
+		FUObjectItem* ReferencedByObjectItem = GUObjectArray.ObjectToObjectItem(RefInfo.ReferencedBy);
+		bool bClusterRoot = false;
+		if (ReferencedByObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+		{
+			ObjectReachability += TEXT("(ClusterRoot) ");
+			bClusterRoot = true;
+		}
+		if (ReferencedByObjectItem->GetOwnerIndex())
+		{
+			ObjectReachability += TEXT("(Clustered) ");
+		}
+
 		FString Indent; Indent = Indent.LeftPad(RefLevel*2);
 		UE_LOG(LogReferenceChain, Log, TEXT("%s%s%s->%s"), *Indent, *ObjectReachability, *RefInfo.ReferencedBy->GetFullName(), *ReferencedThrough);
 
