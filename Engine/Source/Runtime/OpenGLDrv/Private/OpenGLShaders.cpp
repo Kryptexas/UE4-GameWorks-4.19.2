@@ -5,6 +5,7 @@
 =============================================================================*/
  
 #include "OpenGLDrvPrivate.h"
+#include "OpenGLShaders.h"
 #include "Shader.h"
 #include "GlobalShader.h"
 #include "ShaderCache.h"
@@ -352,8 +353,6 @@ namespace
 	}
 }
 
-typedef TArray<ANSICHAR> FAnsiCharArray;
-
 inline uint32 GetTypeHash(FAnsiCharArray const& CharArray)
 {
 	return FCrc::MemCrc32(CharArray.GetData(), CharArray.Num() * sizeof(ANSICHAR));
@@ -528,208 +527,12 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 
 		Resource = FOpenGL::CreateShader(TypeEnum);
 
-#if (PLATFORM_ANDROID || PLATFORM_HTML5)
-		if (IsES2Platform(GMaxRHIShaderPlatform))
-		{
-			// #version NNN has to be the first line in the file, so it has to be added before anything else.
-			if (FOpenGL::UseES30ShadingLanguage())
-			{
-				AppendCString(GlslCode, "#version 300 es\n");
-			}
-			else 
-			{
-				AppendCString(GlslCode, "#version 100\n");
-			}
-			ReplaceCString(GlslCodeOriginal, "#version 100", "");
-		}
-#endif
+		// get a modified version of the shader based on device capabilities to compile (destructive to GlslCodeOriginal copy)
+		FOpenGLShaderDeviceCapabilities Capabilities;
+		GetCurrentOpenGLShaderDeviceCapabilities(Capabilities);
+		GLSLToDeviceCompatibleGLSL(GlslCodeOriginal, Header.ShaderName, TypeEnum, Capabilities, GlslCode);
 
-		// Only desktop with separable shader platform can use GL_ARB_separate_shader_objects for reduced shader compile/link hitches
-		// however ES3.1 relies on layout(location=) support
-		bool const bNeedsBindLocation = OpenGLShaderPlatformNeedsBindLocation(GMaxRHIShaderPlatform);
-		if(OpenGLShaderPlatformSeparable(GMaxRHIShaderPlatform) || !bNeedsBindLocation)
-		{
-			// Move version tag & extensions before beginning all other operations
-			MoveHashLines(GlslCode, GlslCodeOriginal);
-			
-			// OpenGL SM5 shader platforms require location declarations for the layout, but don't necessarily use SSOs
-			if (FOpenGL::SupportsSeparateShaderObjects() || !bNeedsBindLocation)
-			{
-#if PLATFORM_DESKTOP
-				AppendCString(GlslCode, "#extension GL_ARB_separate_shader_objects : enable\n");
-				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
-				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Interp Modifiers struct { PreType PostType; }\n");
-#else
-				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
-				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Modifiers Semantic { PreType PostType; }\n");
-#endif
-			}
-			else
-			{
-				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) \n");
-				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) Modifiers Semantic { Interp PreType PostType; }\n");
-			}
-			
-			if(Header.ShaderName.IsEmpty() == false)
-			{
-				AppendCString(GlslCode, "// ");
-				AppendCString(GlslCode, TCHAR_TO_ANSI(Header.ShaderName.GetCharArray().GetData()));
-				AppendCString(GlslCode, "\n");
-			}
-		}
-
-#if PLATFORM_ANDROID 
-		// Temporary patch to remove #extension GL_OES_standard_derivaties if not supported
-		if (!FOpenGL::SupportsStandardDerivativesExtension())
-		{
-			const ANSICHAR * FoundPointer = FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "#extension GL_OES_standard_derivatives");
-			if (FoundPointer != nullptr)
-			{
-				// Replace the extension enable with dFdx, dFdy, and fwidth definitions so shader will compile.
-				// Currently SimpleElementPixelShader.usf is the most likely place this will come from for mobile
-				// as it is used for distance field text rendering (GammaDistanceFieldMain) so use a constant
-				// for the texture step rate of 1/512.  This will not work for other use cases.
-				ReplaceCString(GlslCodeOriginal, "#extension GL_OES_standard_derivatives : enable",
-					"#define dFdx(a) (0.001953125)\n"
-					"#define dFdy(a) (0.001953125)\n"
-					"#define fwidth(a) (0.00390625)\n");
-			}
-		}
-
-		if (IsES2Platform(GMaxRHIShaderPlatform))
-		{
-			if (GSupportsRenderTargetFormat_PF_FloatRGBA)
-			{
-				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
-			}
-			else
-			{
-				if (!FOpenGL::SupportsShaderFramebufferFetch())
-				{
-					// mosaic
-					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 1.0\n");
-				}
-				else
-				{
-					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 2.0\n");
-				}
-			}
-
-			if (!GSupportsShaderFramebufferFetch && TypeEnum == GL_FRAGMENT_SHADER)
-			{
-				// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
-				// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
-				AppendCString(GlslCode, "#undef GL_EXT_shader_framebuffer_fetch\n");
-			}
-
-			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
-			if (FOpenGL::UseES30ShadingLanguage())
-			{
-				if (TypeEnum == GL_VERTEX_SHADER)
-				{
-					AppendCString(GlslCode,
-						"#define texture2D texture \n"
-						"#define texture2DProj textureProj \n"
-						"#define texture2DLod textureLod \n"
-						"#define texture2DProjLod textureProjLod \n"
-						"#define textureCube texture \n"
-						"#define textureCubeLod textureLod \n"
-						"#define textureCubeLodEXT textureLod \n");
-
-					ReplaceCString(GlslCodeOriginal, "attribute", "in");
-					ReplaceCString(GlslCodeOriginal, "varying", "out");
-				} 
-				else if (TypeEnum == GL_FRAGMENT_SHADER)
-				{
-					// #extension directives have to come before any non-# directives. Because
-					// we add non-# stuff below and the #extension directives
-					// get added to the incoming shader source we move any # directives
-					// to be right after the #version to ensure they are always correct.
-					MoveHashLines(GlslCode, GlslCodeOriginal);
-
-					AppendCString(GlslCode,
-						"#define texture2D texture \n"
-						"#define texture2DProj textureProj \n"
-						"#define texture2DLod textureLod \n"
-						"#define texture2DLodEXT textureLod \n"
-						"#define texture2DProjLod textureProjLod \n"
-						"#define textureCube texture \n"
-						"#define textureCubeLod textureLod \n"
-						"#define textureCubeLodEXT textureLod \n"
-						"\n"
-						"#define gl_FragColor out_FragColor \n"
-						"#ifdef EXT_shader_framebuffer_fetch_enabled \n"
-						"inout mediump vec4 out_FragColor; \n"
-						"#else \n"
-						"out mediump vec4 out_FragColor; \n"
-						"#endif \n");
-
-					ReplaceCString(GlslCodeOriginal, "varying", "in");
-				}
-			}
-			else 
-			{
-				if ((TypeEnum == GL_FRAGMENT_SHADER))
-				{
-					// Apply #defines to deal with incompatible sections of code
-
-					if (FOpenGL::RequiresDontEmitPrecisionForTextureSamplers())
-					{
-						AppendCString(GlslCode,
-							"#define DONTEMITSAMPLERDEFAULTPRECISION \n");
-					}
-
-					if (!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
-					{
-						AppendCString(GlslCode,
-							"#define DONTEMITEXTENSIONSHADERTEXTURELODENABLE \n"
-							"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
-							"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n");
-					}
-					else if (FOpenGL::RequiresTextureCubeLodEXTToTextureCubeLodDefine())
-					{
-						AppendCString(GlslCode,
-							"#define textureCubeLodEXT textureCubeLod \n");
-					}
-
-					// Deal with gl_FragCoord using one of the varying vectors and shader possibly exceeding the limit
-					if (FOpenGL::RequiresGLFragCoordVaryingLimitHack())
-					{
-						if (CStringCountOccurances(GlslCodeOriginal, "vec4 var_TEXCOORD") >= FOpenGL::GetMaxVaryingVectors())
-						{
-							// It is likely gl_FragCoord is used for mosaic color output so use an appropriate constant
-							ReplaceCString(GlslCodeOriginal, "gl_FragCoord.xy", "vec2(400.5,240.5)");
-						}
-					}
-
-					if (FOpenGL::RequiresTexture2DPrecisionHack())
-					{
-						AppendCString(GlslCode,	"#define TEXCOORDPRECISIONWORKAROUND \n");
-					}
-
-				}
-			}
-		}
-
-#elif PLATFORM_HTML5
-
-		// HTML5 use case is much simpler, use a separate chunk of code from android. 
-		if (!FOpenGL::SupportsShaderTextureLod())
-		{
-			AppendCString(GlslCode,
-				"#define DONTEMITEXTENSIONSHADERTEXTURELODENABLE \n"
-				"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
-				"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n");
-		}
-
-#endif
-
-		// Append the possibly edited shader to the one we will compile.
-		// This is to make it easier to debug as we can see the whole
-		// shader source.
-		AppendCString(GlslCode, "\n\n");
-		AppendCString(GlslCode, GlslCodeOriginal.GetData());
-
+		// compile it
 		const ANSICHAR * GlslCodeString = GlslCode.GetData();
 		int32 GlslCodeLength = GlslCode.Num() - 1;
 		glShaderSource(Resource, 1, (const GLchar**)&GlslCodeString, &GlslCodeLength);
@@ -743,7 +546,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 			glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		}
 #endif
-#if (PLATFORM_HTML5 || PLATFORM_ANDROID) && !UE_BUILD_SHIPPING
+#if (PLATFORM_HTML5) && !UE_BUILD_SHIPPING
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		if (CompileStatus == GL_FALSE)
 		{
@@ -755,7 +558,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 
 		if ( CompileStatus == GL_TRUE )
 		{
-			if ( FOpenGL::SupportsSeparateShaderObjects() )
+			if (Capabilities.bSupportsSeparateShaderObjects)
 			{
 				ANSICHAR Buf[32] = {0};
 				// Create separate shader program
@@ -803,6 +606,246 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 #endif
 
 	return Shader;
+}
+
+void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceCapabilities& Capabilities)
+{
+	FMemory::Memzero(Capabilities);
+
+#if PLATFORM_DESKTOP
+	Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_Desktop;
+#elif PLATFORM_ANDROID
+	Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_Android;
+	Capabilities.bUseES30ShadingLanguage = FOpenGL::UseES30ShadingLanguage();
+	Capabilities.bSupportsStandardDerivativesExtension = FOpenGL::SupportsStandardDerivativesExtension();
+	Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA = GSupportsRenderTargetFormat_PF_FloatRGBA;
+	Capabilities.bSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
+	Capabilities.bRequiresDontEmitPrecisionForTextureSamplers = FOpenGL::RequiresDontEmitPrecisionForTextureSamplers();
+	Capabilities.bSupportsShaderTextureLod = FOpenGL::SupportsShaderTextureLod();
+	Capabilities.bSupportsShaderTextureCubeLod = FOpenGL::SupportsShaderTextureCubeLod();
+	Capabilities.bRequiresTextureCubeLodEXTToTextureCubeLodDefine = FOpenGL::RequiresTextureCubeLodEXTToTextureCubeLodDefine();
+	Capabilities.bRequiresGLFragCoordVaryingLimitHack = FOpenGL::RequiresGLFragCoordVaryingLimitHack();
+	Capabilities.MaxVaryingVectors = FOpenGL::GetMaxVaryingVectors();
+	Capabilities.bRequiresTexture2DPrecisionHack = FOpenGL::RequiresTexture2DPrecisionHack();
+#elif PLATFORM_HTML5
+	Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_HTML5;
+	Capabilities.bUseES30ShadingLanguage = FOpenGL::UseES30ShadingLanguage();
+	Capabilities.bSupportsShaderTextureLod = FOpenGL::SupportsShaderTextureLod();
+#elif PLATFORM_IOS
+	Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_iOS;
+#else
+	Capabilities.TargetPlatform = EOpenGLShaderTargetPlatform::OGLSTP_Unknown;
+#endif
+	Capabilities.MaxRHIShaderPlatform = GMaxRHIShaderPlatform;
+	Capabilities.bSupportsSeparateShaderObjects = FOpenGL::SupportsSeparateShaderObjects();
+}
+
+void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, const FString& ShaderName, GLenum TypeEnum, const FOpenGLShaderDeviceCapabilities& Capabilities, FAnsiCharArray& GlslCode)
+{
+	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android || Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
+	{
+		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform))
+		{
+			// #version NNN has to be the first line in the file, so it has to be added before anything else.
+			if (Capabilities.bUseES30ShadingLanguage)
+			{
+				AppendCString(GlslCode, "#version 300 es\n");
+			}
+			else
+			{
+				AppendCString(GlslCode, "#version 100\n");
+			}
+			ReplaceCString(GlslCodeOriginal, "#version 100", "");
+		}
+	}
+
+	// Only desktop with separable shader platform can use GL_ARB_separate_shader_objects for reduced shader compile/link hitches
+	// however ES3.1 relies on layout(location=) support
+	bool const bNeedsBindLocation = OpenGLShaderPlatformNeedsBindLocation(Capabilities.MaxRHIShaderPlatform);
+	if (OpenGLShaderPlatformSeparable(Capabilities.MaxRHIShaderPlatform) || !bNeedsBindLocation)
+	{
+		// Move version tag & extensions before beginning all other operations
+		MoveHashLines(GlslCode, GlslCodeOriginal);
+
+		// OpenGL SM5 shader platforms require location declarations for the layout, but don't necessarily use SSOs
+		if (Capabilities.bSupportsSeparateShaderObjects || !bNeedsBindLocation)
+		{
+			if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Desktop)
+			{
+				AppendCString(GlslCode, "#extension GL_ARB_separate_shader_objects : enable\n");
+				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
+				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Interp Modifiers struct { PreType PostType; }\n");
+			}
+			else
+			{
+				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
+				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Modifiers Semantic { PreType PostType; }\n");
+			}
+		}
+		else
+		{
+			AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) \n");
+			AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) Modifiers Semantic { Interp PreType PostType; }\n");
+		}
+	}
+
+	if (ShaderName.IsEmpty() == false)
+	{
+		AppendCString(GlslCode, "// ");
+		AppendCString(GlslCode, TCHAR_TO_ANSI(ShaderName.GetCharArray().GetData()));
+		AppendCString(GlslCode, "\n");
+	}
+
+	if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_Android)
+	{
+		// Temporary patch to remove #extension GL_OES_standard_derivaties if not supported
+		if (Capabilities.bSupportsStandardDerivativesExtension)
+		{
+			const ANSICHAR * FoundPointer = FCStringAnsi::Strstr(GlslCodeOriginal.GetData(), "#extension GL_OES_standard_derivatives");
+			if (FoundPointer != nullptr)
+			{
+				// Replace the extension enable with dFdx, dFdy, and fwidth definitions so shader will compile.
+				// Currently SimpleElementPixelShader.usf is the most likely place this will come from for mobile
+				// as it is used for distance field text rendering (GammaDistanceFieldMain) so use a constant
+				// for the texture step rate of 1/512.  This will not work for other use cases.
+				ReplaceCString(GlslCodeOriginal, "#extension GL_OES_standard_derivatives : enable",
+					"#define dFdx(a) (0.001953125)\n"
+					"#define dFdy(a) (0.001953125)\n"
+					"#define fwidth(a) (0.00390625)\n");
+			}
+		}
+
+		if (IsES2Platform(Capabilities.MaxRHIShaderPlatform))
+		{
+			if (Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA)
+			{
+				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
+			}
+			else
+			{
+				if (!Capabilities.bSupportsShaderFramebufferFetch)
+				{
+					// mosaic
+					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 1.0\n");
+				}
+				else
+				{
+					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 2.0\n");
+				}
+			}
+
+			if (!Capabilities.bSupportsShaderFramebufferFetch && TypeEnum == GL_FRAGMENT_SHADER)
+			{
+				// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
+				// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
+				AppendCString(GlslCode, "#undef GL_EXT_shader_framebuffer_fetch\n");
+			}
+
+			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
+			if (Capabilities.bUseES30ShadingLanguage)
+			{
+				if (TypeEnum == GL_VERTEX_SHADER)
+				{
+					AppendCString(GlslCode,
+						"#define texture2D texture \n"
+						"#define texture2DProj textureProj \n"
+						"#define texture2DLod textureLod \n"
+						"#define texture2DProjLod textureProjLod \n"
+						"#define textureCube texture \n"
+						"#define textureCubeLod textureLod \n"
+						"#define textureCubeLodEXT textureLod \n");
+
+					ReplaceCString(GlslCodeOriginal, "attribute", "in");
+					ReplaceCString(GlslCodeOriginal, "varying", "out");
+				}
+				else if (TypeEnum == GL_FRAGMENT_SHADER)
+				{
+					// #extension directives have to come before any non-# directives. Because
+					// we add non-# stuff below and the #extension directives
+					// get added to the incoming shader source we move any # directives
+					// to be right after the #version to ensure they are always correct.
+					MoveHashLines(GlslCode, GlslCodeOriginal);
+
+					AppendCString(GlslCode,
+						"#define texture2D texture \n"
+						"#define texture2DProj textureProj \n"
+						"#define texture2DLod textureLod \n"
+						"#define texture2DLodEXT textureLod \n"
+						"#define texture2DProjLod textureProjLod \n"
+						"#define textureCube texture \n"
+						"#define textureCubeLod textureLod \n"
+						"#define textureCubeLodEXT textureLod \n"
+						"\n"
+						"#define gl_FragColor out_FragColor \n"
+						"#ifdef EXT_shader_framebuffer_fetch_enabled \n"
+						"inout mediump vec4 out_FragColor; \n"
+						"#else \n"
+						"out mediump vec4 out_FragColor; \n"
+						"#endif \n");
+
+					ReplaceCString(GlslCodeOriginal, "varying", "in");
+				}
+			}
+			else
+			{
+				if (TypeEnum == GL_FRAGMENT_SHADER)
+				{
+					// Apply #defines to deal with incompatible sections of code
+
+					if (Capabilities.bRequiresDontEmitPrecisionForTextureSamplers)
+					{
+						AppendCString(GlslCode,
+							"#define DONTEMITSAMPLERDEFAULTPRECISION \n");
+					}
+
+					if (!Capabilities.bSupportsShaderTextureLod || !Capabilities.bSupportsShaderTextureCubeLod)
+					{
+						AppendCString(GlslCode,
+							"#define DONTEMITEXTENSIONSHADERTEXTURELODENABLE \n"
+							"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
+							"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n");
+					}
+					else if (Capabilities.bRequiresTextureCubeLodEXTToTextureCubeLodDefine)
+					{
+						AppendCString(GlslCode,
+							"#define textureCubeLodEXT textureCubeLod \n");
+					}
+
+					// Deal with gl_FragCoord using one of the varying vectors and shader possibly exceeding the limit
+					if (Capabilities.bRequiresGLFragCoordVaryingLimitHack)
+					{
+						if (CStringCountOccurances(GlslCodeOriginal, "vec4 var_TEXCOORD") >= Capabilities.MaxVaryingVectors)
+						{
+							// It is likely gl_FragCoord is used for mosaic color output so use an appropriate constant
+							ReplaceCString(GlslCodeOriginal, "gl_FragCoord.xy", "vec2(400.5,240.5)");
+						}
+					}
+
+					if (Capabilities.bRequiresTexture2DPrecisionHack)
+					{
+						AppendCString(GlslCode, "#define TEXCOORDPRECISIONWORKAROUND \n");
+					}
+				}
+			}
+		}
+	}
+	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_HTML5)
+	{
+		// HTML5 use case is much simpler, use a separate chunk of code from android. 
+		if (!Capabilities.bSupportsShaderTextureLod)
+		{
+			AppendCString(GlslCode,
+				"#define DONTEMITEXTENSIONSHADERTEXTURELODENABLE \n"
+				"#define texture2DLodEXT(a, b, c) texture2D(a, b) \n"
+				"#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n");
+		}
+	}
+
+	// Append the possibly edited shader to the one we will compile.
+	// This is to make it easier to debug as we can see the whole
+	// shader source.
+	AppendCString(GlslCode, "\n\n");
+	AppendCString(GlslCode, GlslCodeOriginal.GetData());
 }
 
 /**
