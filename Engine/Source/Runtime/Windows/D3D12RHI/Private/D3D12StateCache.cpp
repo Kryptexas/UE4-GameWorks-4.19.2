@@ -1235,6 +1235,7 @@ void FDiskCacheInterface::Init(FString &filename)
 	{
 		mHeader.mHeaderVersion = mCurrentHeaderVersion;
 		mHeader.mNumPsos = 0;
+		mHeader.mSizeInBytes = 0;
 		mHeader.mUsesAPILibraries = FD3D12PipelineStateCache::bUseAPILibaries;
 	}
 }
@@ -1377,15 +1378,23 @@ bool FDiskCacheInterface::SetPointerAndAdvanceFilePosition(void** pDest, size_t 
 	return true;
 }
 
-void FDiskCacheInterface::Reset()
+void FDiskCacheInterface::Reset(RESET_TYPE type)
 {
 	mCurrentOffset = sizeof(FDiskCacheHeader);
+
+	if (type == RESET_TO_AFTER_LAST_OBJECT)
+	{
+		mCurrentOffset += mHeader.mSizeInBytes;
+	}
 }
 
 void FDiskCacheInterface::Close(uint32 numberOfPSOs)
 {
 	mHeader.mNumPsos = numberOfPSOs;
 	mHeader.mUsesAPILibraries = FD3D12PipelineStateCache::bUseAPILibaries;
+
+	check(mCurrentOffset >= sizeof(FDiskCacheHeader));
+	mHeader.mSizeInBytes = mCurrentOffset - sizeof(FDiskCacheHeader);
 
 	if (!IsInErrorState())
 	{
@@ -1444,11 +1453,22 @@ void FDiskCacheInterface::Flush(uint32 numberOfPSOs)
 	mHeader.mNumPsos = numberOfPSOs;
 	mHeader.mUsesAPILibraries = FD3D12PipelineStateCache::bUseAPILibaries;
 
+	check(mCurrentOffset >= sizeof(FDiskCacheHeader));
+	mHeader.mSizeInBytes = mCurrentOffset - sizeof(FDiskCacheHeader);
+
 	if (hMapAddress && !IsInErrorState())
 	{
 		*(FDiskCacheHeader*)mFileStart = mHeader;
 		FlushViewOfFile(hMapAddress, mCurrentOffset);
 	}
+}
+
+void* FDiskCacheInterface::GetDataAt(SIZE_T Offset) const
+{ 
+	void* data = mFileStart + Offset;
+
+	check(data <= (mFileStart + mCurrentFileMapSize));
+	return data;
 }
 
 FD3D12PipelineStateCache& FD3D12PipelineStateCache::operator=(const FD3D12PipelineStateCache& In)
@@ -1476,7 +1496,8 @@ FD3D12PipelineStateCache& FD3D12PipelineStateCache::operator=(const FD3D12Pipeli
 void FD3D12PipelineStateCache::RebuildFromDiskCache()
 {
 	FScopeLock Lock(&CS);
-	if (DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState() || DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
+	if (DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState() || DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState() ||
+		(bUseAPILibaries && DiskBinaryCache.IsInErrorState()))
 	{
 		return;
 	}
@@ -1489,8 +1510,9 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 	static const bool bBackShadersWithSystemMemory = false;
 #endif
 
-	DiskCaches[PSO_CACHE_GRAPHICS].Reset();
-	DiskCaches[PSO_CACHE_COMPUTE].Reset();
+	DiskCaches[PSO_CACHE_GRAPHICS].Reset(FDiskCacheInterface::RESET_TO_FIRST_OBJECT);
+	DiskCaches[PSO_CACHE_COMPUTE].Reset(FDiskCacheInterface::RESET_TO_FIRST_OBJECT);
+	DiskBinaryCache.Reset(FDiskCacheInterface::RESET_TO_AFTER_LAST_OBJECT); // Reset this one to the end as we always append
 
 	uint32 NumGraphicsPSOs = DiskCaches[PSO_CACHE_GRAPHICS].GetNumPSOs();
 
@@ -1563,25 +1585,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&PSODesc->GS.pShaderBytecode, PSODesc->GS.BytecodeLength, bBackShadersWithSystemMemory);
 		}
 
-		SIZE_T* cachedBlobSize = nullptr;
-		DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&cachedBlobSize, sizeof(SIZE_T));
-
-		check(cachedBlobSize);
-		if (bUseAPILibaries && cachedBlobSize)
-		{
-			check(*cachedBlobSize);
-		}
-
-		if (bUseAPILibaries && cachedBlobSize &&*cachedBlobSize)
-		{
-			GraphicsPSODesc->Desc.CachedPSO.CachedBlobSizeInBytes = *cachedBlobSize;
-			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&GraphicsPSODesc->Desc.CachedPSO.pCachedBlob, *cachedBlobSize);
-		}
-		else
-		{
-			GraphicsPSODesc->Desc.CachedPSO.CachedBlobSizeInBytes = 0;
-			GraphicsPSODesc->Desc.CachedPSO.pCachedBlob = nullptr;
-		}
+		ReadBackShaderBlob(*PSODesc, PSO_CACHE_GRAPHICS);
 
 		if (!DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState())
 		{
@@ -1626,25 +1630,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache()
 			DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&PSODesc->CS.pShaderBytecode, PSODesc->CS.BytecodeLength, bBackShadersWithSystemMemory);
 		}
 
-		SIZE_T* cachedBlobSize = nullptr;
-		DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&cachedBlobSize, sizeof(SIZE_T));
-
-		check(cachedBlobSize);
-		if (bUseAPILibaries && cachedBlobSize)
-		{
-			check(*cachedBlobSize);
-		}
-
-		if (bUseAPILibaries && cachedBlobSize &&*cachedBlobSize)
-		{
-			ComputePSODesc->Desc.CachedPSO.CachedBlobSizeInBytes = *cachedBlobSize;
-			DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&ComputePSODesc->Desc.CachedPSO.pCachedBlob, *cachedBlobSize);
-		}
-		else
-		{
-			ComputePSODesc->Desc.CachedPSO.CachedBlobSizeInBytes = 0;
-			ComputePSODesc->Desc.CachedPSO.pCachedBlob = nullptr;
-		}
+		ReadBackShaderBlob(*PSODesc, PSO_CACHE_COMPUTE);
 
 		if (!DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 		{
@@ -1838,29 +1824,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12LowLevelGraphicsPipelin
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.GS.pShaderBytecode, psoDesc.GS.BytecodeLength);
 		}
 
-		if (bUseAPILibaries)
-		{
-			TRefCountPtr<ID3DBlob> cachedBlob;
-			HRESULT result = APIPso->GetCachedBlob(cachedBlob.GetInitReference());
-			VERIFYD3D11RESULT(result);
-			if (SUCCEEDED(result))
-			{
-				SIZE_T bufferSize = cachedBlob->GetBufferSize();
-				DiskCaches[PSO_CACHE_GRAPHICS].AppendData(&bufferSize, sizeof(bufferSize));
-				DiskCaches[PSO_CACHE_GRAPHICS].AppendData(cachedBlob->GetBufferPointer(), bufferSize);
-			}
-			else
-			{
-				check(false);
-				SIZE_T bufferSize = 0;
-				DiskCaches[PSO_CACHE_GRAPHICS].AppendData(&bufferSize, sizeof(bufferSize));
-			}
-		}
-		else
-		{
-			SIZE_T bufferSize = 0;
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData(&bufferSize, sizeof(bufferSize));
-		}
+		WriteOutShaderBlob(PSO_CACHE_GRAPHICS, APIPso);
 
 		DiskCaches[PSO_CACHE_GRAPHICS].Flush(LowLevelGraphicsPipelineStateCache.Num());
 	}
@@ -1902,29 +1866,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 			DiskCaches[PSO_CACHE_COMPUTE].AppendData((void*)psoDesc.CS.pShaderBytecode, psoDesc.CS.BytecodeLength);
 		}
 
-		if (bUseAPILibaries)
-		{
-			TRefCountPtr<ID3DBlob> cachedBlob;
-			HRESULT result = APIPso->GetCachedBlob(cachedBlob.GetInitReference());
-			VERIFYD3D11RESULT(result);
-			if (SUCCEEDED(result))
-			{
-				SIZE_T bufferSize = cachedBlob->GetBufferSize();
-				DiskCaches[PSO_CACHE_COMPUTE].AppendData(&bufferSize, sizeof(bufferSize));
-				DiskCaches[PSO_CACHE_COMPUTE].AppendData(cachedBlob->GetBufferPointer(), bufferSize);
-			}
-			else
-			{
-				check(false);
-				SIZE_T bufferSize = 0;
-				DiskCaches[PSO_CACHE_COMPUTE].AppendData(&bufferSize, sizeof(bufferSize));
-			}
-		}
-		else
-		{
-			SIZE_T bufferSize = 0;
-			DiskCaches[PSO_CACHE_COMPUTE].AppendData(&bufferSize, sizeof(bufferSize));
-		}
+		WriteOutShaderBlob(PSO_CACHE_COMPUTE, APIPso);
 
 		DiskCaches[PSO_CACHE_COMPUTE].Flush(ComputePipelineStateCache.Num());
 	}
@@ -1932,15 +1874,55 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(FD3D12ComputePipelineStateDes
 	return APIPso;
 }
 
+void FD3D12PipelineStateCache::WriteOutShaderBlob(PSO_CACHE_TYPE Cache, ID3D12PipelineState* APIPso)
+{
+	if (bUseAPILibaries)
+	{
+		TRefCountPtr<ID3DBlob> cachedBlob;
+		HRESULT result = APIPso->GetCachedBlob(cachedBlob.GetInitReference());
+		VERIFYD3D11RESULT(result);
+		if (SUCCEEDED(result))
+		{
+			SIZE_T bufferSize = cachedBlob->GetBufferSize();
+
+			SIZE_T currentOffset = DiskBinaryCache.GetCurrentOffset();
+			DiskBinaryCache.AppendData(cachedBlob->GetBufferPointer(), bufferSize);
+
+			DiskCaches[Cache].AppendData(&currentOffset, sizeof(currentOffset));
+			DiskCaches[Cache].AppendData(&bufferSize, sizeof(bufferSize));
+
+			DriverShaderBlobs++;
+
+			DiskBinaryCache.Flush(DriverShaderBlobs);
+		}
+		else
+		{
+			check(false);
+			SIZE_T bufferSize = 0;
+			DiskCaches[Cache].AppendData(&bufferSize, sizeof(bufferSize));
+			DiskCaches[Cache].AppendData(&bufferSize, sizeof(bufferSize));
+		}
+	}
+	else
+	{
+		SIZE_T bufferSize = 0;
+		DiskCaches[Cache].AppendData(&bufferSize, sizeof(bufferSize));
+		DiskCaches[Cache].AppendData(&bufferSize, sizeof(bufferSize));
+	}
+}
+
 void FD3D12PipelineStateCache::Close()
 {
 	FScopeLock Lock(&CS);
 
-	DiskCaches[PSO_CACHE_GRAPHICS].Reset();
-	DiskCaches[PSO_CACHE_COMPUTE].Reset();
+	DiskCaches[PSO_CACHE_GRAPHICS].Reset(FDiskCacheInterface::RESET_TO_FIRST_OBJECT);
+	DiskCaches[PSO_CACHE_COMPUTE].Reset(FDiskCacheInterface::RESET_TO_FIRST_OBJECT);
+	DiskBinaryCache.Reset(FDiskCacheInterface::RESET_TO_AFTER_LAST_OBJECT);
+
 
 	DiskCaches[PSO_CACHE_GRAPHICS].Close(LowLevelGraphicsPipelineStateCache.Num());
 	DiskCaches[PSO_CACHE_COMPUTE].Close(ComputePipelineStateCache.Num());
+	DiskBinaryCache.Close(DriverShaderBlobs);
 
 	HighLevelGraphicsPipelineStateCache.Empty();
 	LowLevelGraphicsPipelineStateCache.Empty();
@@ -2043,12 +2025,19 @@ SIZE_T FD3D12PipelineStateCache::HashPSODesc(const FD3D12ComputePipelineStateDes
 
 #define SSE4_2     0x100000 
 #define SSE4_CPUID_ARRAY_INDEX 2
-void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &ComputeCacheFilename)
+void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &ComputeCacheFilename, FString &DriverBlobFilename)
 {
 	FScopeLock Lock(&CS);
 
 	DiskCaches[PSO_CACHE_GRAPHICS].Init(GraphicsCacheFilename);
 	DiskCaches[PSO_CACHE_COMPUTE].Init(ComputeCacheFilename);
+	DiskBinaryCache.Init(DriverBlobFilename);
+
+	DiskCaches[PSO_CACHE_GRAPHICS].Reset(FDiskCacheInterface::RESET_TO_FIRST_OBJECT);
+	DiskCaches[PSO_CACHE_COMPUTE].Reset(FDiskCacheInterface::RESET_TO_FIRST_OBJECT);
+	DiskBinaryCache.Reset(FDiskCacheInterface::RESET_TO_AFTER_LAST_OBJECT);
+
+	DriverShaderBlobs = DiskBinaryCache.GetNumPSOs();
 
 	// Check for SSE4 support see: https://msdn.microsoft.com/en-us/library/vstudio/hskdteyh(v=vs.100).aspx
 	{
@@ -2060,7 +2049,8 @@ void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &Com
 }
 
 FD3D12PipelineStateCache::FD3D12PipelineStateCache(FD3D12Device* InParent) :
-	FD3D12DeviceChild(InParent)
+	DriverShaderBlobs(0)
+	, FD3D12DeviceChild(InParent)
 {
 
 }

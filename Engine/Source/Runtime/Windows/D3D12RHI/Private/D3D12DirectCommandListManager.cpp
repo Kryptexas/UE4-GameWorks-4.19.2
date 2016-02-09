@@ -294,8 +294,8 @@ void FD3D12CommandListManager::ExecuteCommandLists(TArray<FD3D12CommandListHandl
 
 	FD3D12Fence& Fence = Fences[FT_CommandList];
 
-	uint64 SignaledFenceValue;
-	uint64 BarrierFenceValue;
+	uint64 SignaledFenceValue = -1;
+	uint64 BarrierFenceValue = -1;
 	FD3D12SyncPoint SyncPoint;
 	FD3D12SyncPoint BarrierSyncPoint;
 

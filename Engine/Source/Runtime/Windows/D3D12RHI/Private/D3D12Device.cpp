@@ -757,8 +757,9 @@ void FD3D12Device::SetupAfterDeviceCreation()
 	PipelineStateCache = FD3D12PipelineStateCache(this);
 	FString GraphicsCacheFile = FPaths::GameSavedDir() / TEXT("D3DGraphics.ushaderprecache");
 	FString ComputeCacheFile = FPaths::GameSavedDir() / TEXT("D3DCompute.ushaderprecache");
+	FString DriverBlobFilename = FPaths::GameSavedDir() / TEXT("D3DDriverByteCodeBlob.ushaderprecache");
 
-	PipelineStateCache.Init(GraphicsCacheFile, ComputeCacheFile);
+	PipelineStateCache.Init(GraphicsCacheFile, ComputeCacheFile, DriverBlobFilename);
 	PipelineStateCache.RebuildFromDiskCache();
 
 	// Needs to be called before creating command contexts

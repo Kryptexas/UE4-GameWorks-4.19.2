@@ -745,11 +745,12 @@ class FDiskCacheInterface
 {
 	// Increment this if changes are made to the
 	// disk caches so stale caches get updated correctly
-	static const uint32 mCurrentHeaderVersion = 3;
+	static const uint32 mCurrentHeaderVersion = 4;
 	struct FDiskCacheHeader
 	{
 		uint32 mHeaderVersion;
 		uint32 mNumPsos;
+		uint32 mSizeInBytes; // The number of bytes after the header
 		bool   mUsesAPILibraries;
 	};
 
@@ -776,9 +777,15 @@ private:
 	void GrowMapping(SIZE_T size, bool firstrun);
 
 public:
+	enum RESET_TYPE
+	{
+		RESET_TO_FIRST_OBJECT,
+		RESET_TO_AFTER_LAST_OBJECT
+	};
+
 	bool AppendData(void* pData, size_t size);
 	bool SetPointerAndAdvanceFilePosition(void** pDest, size_t size, bool backWithSystemMemory = false);
-	void Reset();
+	void Reset(RESET_TYPE type);
 	void Init(FString &filename);
 	void Close(uint32 numberOfPSOs);
 	void Flush(uint32 numberOfPSOs);
@@ -788,6 +795,10 @@ public:
 		return mHeader.mNumPsos;
 	}
 	bool IsInErrorState() const;
+
+	SIZE_T GetCurrentOffset() const { return mCurrentOffset; }
+
+	void* GetDataAt(SIZE_T Offset) const;
 
 	~FDiskCacheInterface()
 	{
@@ -886,6 +897,7 @@ private:
 
 	FCriticalSection CS;
 	FDiskCacheInterface DiskCaches[NUM_PSO_CACHE_TYPES];
+	FDiskCacheInterface DiskBinaryCache;
 
 	ID3D12PipelineState* Add(FD3D12LowLevelGraphicsPipelineStateDesc &graphicsPSODesc);
 	ID3D12PipelineState* Add(FD3D12ComputePipelineStateDesc &computePSODesc);
@@ -899,6 +911,35 @@ private:
 	uint64 HighLevelCacheMissCount = 0;
 #endif
 
+	void WriteOutShaderBlob(PSO_CACHE_TYPE Cache, ID3D12PipelineState* APIPso);
+
+	template<typename PipelineStateDescType>
+	void ReadBackShaderBlob(PipelineStateDescType& Desc, PSO_CACHE_TYPE Cache)
+	{
+		SIZE_T* cachedBlobOffset = nullptr;
+		DiskCaches[Cache].SetPointerAndAdvanceFilePosition((void**)&cachedBlobOffset, sizeof(SIZE_T));
+
+		SIZE_T* cachedBlobSize = nullptr;
+		DiskCaches[Cache].SetPointerAndAdvanceFilePosition((void**)&cachedBlobSize, sizeof(SIZE_T));
+
+		check(cachedBlobSize);
+		if (bUseAPILibaries && cachedBlobSize)
+		{
+			check(*cachedBlobSize);
+		}
+
+		if (bUseAPILibaries && cachedBlobSize &&*cachedBlobSize && cachedBlobOffset )
+		{
+			Desc.CachedPSO.CachedBlobSizeInBytes = *cachedBlobSize;
+			Desc.CachedPSO.pCachedBlob = DiskBinaryCache.GetDataAt(*cachedBlobOffset);
+		}
+		else
+		{
+			Desc.CachedPSO.CachedBlobSizeInBytes = 0;
+			Desc.CachedPSO.pCachedBlob = nullptr;
+		}
+	}
+
 public:
 	void RebuildFromDiskCache();
 
@@ -907,7 +948,7 @@ public:
 
 	void Close();
 
-	void Init(FString &GraphicsCacheFilename, FString &ComputeCacheFilename);
+	void Init(FString &GraphicsCacheFilename, FString &ComputeCacheFilename, FString &DriverBlobFilename);
 
 	static SIZE_T HashPSODesc(const FD3D12HighLevelGraphicsPipelineStateDesc &psoDesc);
 	static SIZE_T HashPSODesc(const FD3D12LowLevelGraphicsPipelineStateDesc &psoDesc);
@@ -920,7 +961,8 @@ public:
 
 	FD3D12PipelineStateCache& operator=(const FD3D12PipelineStateCache&);
 
-	static const bool bUseAPILibaries = false;
+	static const bool bUseAPILibaries = true;
+	uint32 DriverShaderBlobs;
 };
 
 class FD3D12BitArray
