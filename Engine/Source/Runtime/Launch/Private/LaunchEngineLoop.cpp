@@ -2579,10 +2579,12 @@ void FEngineLoop::Tick()
 		// Update memory allocator stats.
 		GMalloc->UpdateStats();
 
+#if WITH_ENGINE && !UE_SERVER
 		if (GEngine->HMDDevice.IsValid())
 		{
 			GEngine->HMDDevice->Tick(FApp::GetDeltaTime());
 		}
+#endif
 	} 
 
 	FStats::AdvanceFrame( false, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
