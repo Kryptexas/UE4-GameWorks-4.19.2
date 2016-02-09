@@ -7,7 +7,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorTransaction, Log, All);
 
-inline UObject* BuildSubobjectKey(UObject* Obj, TArray<FName>& OutHierarchyNames)
+inline UObject* BuildSubobjectKey(UObject* InObj, TArray<FName>& OutHierarchyNames)
 {
 	auto UseOuter = [](const UObject* Obj)
 	{
@@ -28,7 +28,7 @@ inline UObject* BuildSubobjectKey(UObject* Obj, TArray<FName>& OutHierarchyNames
 	
 	UObject* Outermost = nullptr;
 
-	UObject* Iter = Obj;
+	UObject* Iter = InObj;
 	while (UseOuter(Iter))
 	{
 		OutHierarchyNames.Add(Iter->GetFName());
@@ -282,9 +282,9 @@ void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Col
 
 	for (FPersistentObjectRef& ReferencedObject : ReferencedObjects)
 	{
-		UObject* Obj = ReferencedObject.Object;
-		Collector.AddReferencedObject(Obj);
-		ReferencedObject.Object = Obj;
+		UObject* RefObj = ReferencedObject.Object;
+		Collector.AddReferencedObject(RefObj);
+		ReferencedObject.Object = RefObj;
 	}
 
 	if (ObjectAnnotation.IsValid())
