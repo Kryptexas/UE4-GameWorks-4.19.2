@@ -257,12 +257,6 @@ UObject* FTransaction::FObjectRecord::FPersistentObjectRef::Get() const
 			{
 				// Look for any UObject with the CurrentObject's outer to find the next sub-object:
 				NextObject = StaticFindObjectFast(UObject::StaticClass(), CurrentObject, SubObjectHierarchyID[SubObjectDepth]);
-				if (!NextObject)
-				{
-					TArray<UObject*> Objects;
-					GetObjectsWithOuter(CurrentObject, Objects, false);
-					(void)Objects;
-				}
 				bFoundTargetSubObject = SubObjectDepth == 0;
 				--SubObjectDepth;
 				CurrentObject = NextObject;
