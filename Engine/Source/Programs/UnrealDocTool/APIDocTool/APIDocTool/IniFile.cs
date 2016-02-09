@@ -94,7 +94,13 @@ namespace APIDocTool
 
 		public static IniFile Read(string InputPath)
 		{
-			IniFile File = new IniFile();
+			if (!File.Exists(InputPath))
+			{
+				Console.WriteLine("Ini File %s not found!", InputPath);
+				return new IniFile();
+			}
+
+			IniFile InputIniFile = new IniFile();
 			using (StreamReader Reader = new StreamReader(InputPath))
 			{
 				IniSection CurrentSection = null;
@@ -111,12 +117,12 @@ namespace APIDocTool
 							string Name = Line.Substring(1, Line.Length - 2);
 							CurrentSection = new IniSection(Name);
 
-							File.Sections.Add(CurrentSection);
-							if(File.NameToSection.ContainsKey(Name.ToLowerInvariant()))
+							InputIniFile.Sections.Add(CurrentSection);
+							if(InputIniFile.NameToSection.ContainsKey(Name.ToLowerInvariant()))
 							{
 								Console.WriteLine("{0} has already been added", Name);
 							}
-							File.NameToSection.Add(Name.ToLowerInvariant(), CurrentSection);
+							InputIniFile.NameToSection.Add(Name.ToLowerInvariant(), CurrentSection);
 						}
 						else
 						{
@@ -148,7 +154,7 @@ namespace APIDocTool
 					}
 				}
 			}
-			return File;
+			return InputIniFile;
 		}
 	}
 }
