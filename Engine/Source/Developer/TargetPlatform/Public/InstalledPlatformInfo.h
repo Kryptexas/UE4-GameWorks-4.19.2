@@ -28,6 +28,9 @@ struct FInstalledPlatformConfiguration
 
 	/** Type of project this configuration can be used for */
 	EProjectType ProjectType;
+
+	/** Whether to display this platform as an option even if it is not valid */
+	bool bCanBeDisplayed;
 };
 
 /**
@@ -53,12 +56,14 @@ public:
 	/**
 	 * Queries whether a platform has any valid configurations
 	 */
-	bool IsValidPlatform(const FString PlatformName, EProjectType ProjectType = EProjectType::Any) const;
+	bool IsValidPlatform(const FString& PlatformName, EProjectType ProjectType = EProjectType::Any) const;
 
 	/**
 	 * Queries whether a platform and configuration combination is valid
 	 */
-	bool IsValidPlatformAndConfiguration(const EBuildConfigurations::Type Configuration, const FString PlatformName, EProjectType ProjectType = EProjectType::Any) const;
+	bool IsValidPlatformAndConfiguration(const EBuildConfigurations::Type Configuration, const FString& PlatformName, EProjectType ProjectType = EProjectType::Any) const;
+
+	bool CanDisplayPlatform(const FString& PlatformName, EProjectType ProjectType) const;
 
 private:
 	/**

@@ -4877,7 +4877,7 @@ bool SSCSEditor::CanPasteNodes() const
 		return false;
 	}
 
-	return FComponentEditorUtils::CanPasteComponents(Cast<USceneComponent>(SceneRootNodePtr->GetComponentTemplate()), SceneRootNodePtr->IsDefaultSceneRoot(), true);
+	return SceneRootNodePtr.IsValid() && FComponentEditorUtils::CanPasteComponents(Cast<USceneComponent>(SceneRootNodePtr->GetComponentTemplate()), SceneRootNodePtr->IsDefaultSceneRoot(), true);
 }
 
 void SSCSEditor::PasteNodes()

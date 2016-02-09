@@ -338,7 +338,7 @@ public class MacPlatform : Platform
 				string InfoPlistPath = CombinePaths(BundlePath, "Contents", "Info.plist");
 				string InfoPlistContents = File.ReadAllText(InfoPlistPath);
 				InfoPlistContents = InfoPlistContents.Replace(ExeName, SC.ShortProjectName);
-				InfoPlistContents = InfoPlistContents.Replace("<string>UE4</string>", "<string>" + SC.ShortProjectName + "</string>");
+				InfoPlistContents = InfoPlistContents.Replace("<string>UE4Game</string>", "<string>" + SC.ShortProjectName + "</string>");
 				File.Delete(InfoPlistPath);
 				File.WriteAllText(InfoPlistPath, InfoPlistContents);
 			}

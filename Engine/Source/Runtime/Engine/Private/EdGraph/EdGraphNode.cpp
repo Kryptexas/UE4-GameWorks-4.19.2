@@ -170,7 +170,7 @@ void UEdGraphNode::SnapToGrid(float GridSnapSize)
 class UEdGraph* UEdGraphNode::GetGraph() const
 {
 	UEdGraph* Graph = Cast<UEdGraph>(GetOuter());
-	if (Graph == NULL)
+	if (Graph == NULL && !IsPendingKill())
 	{
 		ensureMsgf(false, TEXT("EdGraphNode::GetGraph : '%s' does not have a UEdGraph as an Outer."), *GetPathName());
 	}

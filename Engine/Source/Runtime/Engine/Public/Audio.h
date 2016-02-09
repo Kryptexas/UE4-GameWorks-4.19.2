@@ -39,6 +39,9 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 #define MIN_PITCH						0.4f
 #define MAX_PITCH						2.0f
 
+#define MIN_SOUND_PRIORITY				0.0f
+#define MAX_SOUND_PRIORITY				100.0f
+
 /**
  * Some filters don't work properly with extreme values, so these are the limits 
  */
@@ -291,6 +294,9 @@ struct ENGINE_API FWaveInstance
 	 * Function used by the GC.
 	 */
 	void AddReferencedObjects( FReferenceCollector& Collector );
+
+	/** Returns the actual volume the wave instance will play at */
+	bool ShouldStopDueToMaxConcurrency() const;
 
 	/** Returns the actual volume the wave instance will play at */
 	float GetActualVolume() const;

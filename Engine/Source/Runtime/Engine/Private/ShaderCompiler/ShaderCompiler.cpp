@@ -2205,8 +2205,16 @@ void GlobalBeginCompileShader(
 	// Set instanced stereo define
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-		const bool bIsInstancedStereo = CVar ? (CVar->GetValueOnGameThread() != false) : false;
+		const EShaderPlatform ShaderPlatform = static_cast<EShaderPlatform>(Target.Platform);
+		const bool bIsInstancedStereoCVar = CVar ? (CVar->GetValueOnGameThread() != false) : false;
+		const bool bIsInstancedStereo = bIsInstancedStereoCVar && (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4);
 		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo ? 1 : 0);
+
+		// Throw a warning if we are silently disabling ISR due to missing platform support.
+		if (bIsInstancedStereoCVar && !bIsInstancedStereo)
+		{
+			UE_LOG(LogShaderCompilers, Warning, TEXT("Instanced stereo rendering is not supported on this platform."));
+		}
 	}
 
 	ShaderType->AddReferencedUniformBufferIncludes(Input.Environment, Input.SourceFilePrefix, (EShaderPlatform)Target.Platform);

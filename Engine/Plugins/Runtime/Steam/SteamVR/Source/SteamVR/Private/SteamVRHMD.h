@@ -23,11 +23,12 @@ struct FBoundingQuad
 };
 
 //@todo steamvr: remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
-typedef vr::IVRSystem*(VR_CALLTYPE *pVRInit)(vr::HmdError* peError);
+typedef vr::IVRSystem*(VR_CALLTYPE *pVRInit)(vr::HmdError* peError, vr::EVRApplicationType eApplicationType);
 typedef void(VR_CALLTYPE *pVRShutdown)();
 typedef bool(VR_CALLTYPE *pVRIsHmdPresent)();
 typedef const char*(VR_CALLTYPE *pVRGetStringForHmdError)(vr::HmdError error);
 typedef void*(VR_CALLTYPE *pVRGetGenericInterface)(const char* pchInterfaceVersion, vr::HmdError* peError);
+typedef vr::IVRExtendedDisplay *(VR_CALLTYPE *pVRExtendedDisplay)();
 
 
 /**
@@ -42,7 +43,7 @@ public:
 	virtual void EnableHMD(bool allow = true) override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;
-
+	
 	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
 
 	virtual bool DoesSupportPositionalTracking() const override;
@@ -183,14 +184,11 @@ public:
 
 
 	/** Chaperone */
-	/** Returns whether or not the player is currently inside the soft bounds */
-	bool IsInsideSoftBounds();
+	/** Returns whether or not the player is currently inside the bounds */
+	bool IsInsideBounds();
 
-	/** Returns an array of the soft bounds as Unreal-scaled vectors, relative to the HMD calibration point (0,0,0).  The Z will always be at 0.f */
-	TArray<FVector> GetSoftBounds() const;
-
-	/** Returns an array of the hard bounds as Unreal-scaled vectors, relative to the HMD calibration point (0,0,0).  Every four entries will represent one quad of the bounding box */
-	TArray<FVector> GetHardBounds() const;
+	/** Returns an array of the bounds as Unreal-scaled vectors, relative to the HMD calibration point (0,0,0).  The Z will always be at 0.f */
+	TArray<FVector> GetBounds() const;
 
 	/** Get the windowed mirror mode.  @todo steamvr: thread safe flags */
 	int32 GetWindowMirrorMode() const { return WindowMirrorMode; }
@@ -234,6 +232,8 @@ private:
 
 	void PoseToOrientationAndPosition(const vr::HmdMatrix34_t& Pose, FQuat& OutOrientation, FVector& OutPosition) const;
 	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceID = vr::k_unTrackedDeviceIndex_Hmd, bool bForceRefresh=false);
+
+	void GetWindowBounds(int32* X, int32* Y, uint32* Width, uint32* Height);
 
 	FORCEINLINE FMatrix ToFMatrix(const vr::HmdMatrix34_t& tm) const
 	{
@@ -312,49 +312,22 @@ private:
 	/** Chaperone Support */
 	struct FChaperoneBounds
 	{
-		/** Stores the soft bounds in SteamVR HMD space, for fast checking.  These will need to be converted to Unreal HMD-calibrated space before being used in the world */
-		FBoundingQuad			SoftBounds;
-
-		/** Stores the hard bounds in SteamVR HMD space, for fast checking.  These will need to be converted to Unreal HMD-calibrated space before being used in the world */
-		TArray<FBoundingQuad>	HardBounds;
-
-		uint32 NumHardBounds;
+		/** Stores the bounds in SteamVR HMD space, for fast checking.  These will need to be converted to Unreal HMD-calibrated space before being used in the world */
+		FBoundingQuad			Bounds;
 
 	public:
 		FChaperoneBounds()
-			: NumHardBounds(0)
 		{}
 
 		FChaperoneBounds(vr::IVRChaperone* Chaperone)
 			: FChaperoneBounds()
 		{
-			vr::ChaperoneSoftBoundsInfo_t	VRSoftBounds;
-			Chaperone->GetSoftBoundsInfo(&VRSoftBounds);
+			vr::HmdQuad_t VRBounds;
+			Chaperone->GetPlayAreaRect(&VRBounds);
 			for (uint8 i = 0; i < 4; ++i)
 			{
-				const vr::HmdVector3_t Corner = VRSoftBounds.quadCorners.vCorners[i];
-				SoftBounds.Corners[i] = RAW_STEAMVECTOR_TO_FVECTOR(Corner);
-			}
-
-			// Check to see if we have any bounds specified.  This MUST be called before actually getting buffer info
-			Chaperone->GetHardBoundsInfo(NULL, &NumHardBounds);
-			if (NumHardBounds > 0)
-			{
-				vr::HmdQuad_t* HardBoundsBuf = (vr::HmdQuad_t*)FMemory_Alloca(NumHardBounds * sizeof(vr::HmdQuad_t));
-				FMemory::Memzero(HardBoundsBuf, NumHardBounds * sizeof(vr::HmdQuad_t));
-
-				// Actually grab the bounds from the buffer
-				Chaperone->GetHardBoundsInfo(HardBoundsBuf, &NumHardBounds);
-				for (uint32 i = 0; i < NumHardBounds; ++i)
-				{
-					FBoundingQuad Quad;
-					Quad.Corners[0] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[0]);
-					Quad.Corners[1] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[1]);
-					Quad.Corners[2] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[2]);
-					Quad.Corners[3] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[3]);
-
-					HardBounds.Add(Quad);
-				}
+				const vr::HmdVector3_t Corner = VRBounds.vCorners[i];
+				Bounds.Corners[i] = RAW_STEAMVECTOR_TO_FVECTOR(Corner);
 			}
 		}
 	};
@@ -362,6 +335,8 @@ private:
 	
 	float IPD;
 	int32 WindowMirrorMode;		// how to mirror the display contents to the desktop window: 0 - no mirroring, 1 - single eye, 2 - stereo pair
+	uint32 WindowMirrorBoundsWidth;
+	uint32 WindowMirrorBoundsHeight;
 
 	/** Player's orientation tracking */
 	mutable FQuat			CurHmdOrientation;
@@ -399,6 +374,7 @@ private:
 	pVRIsHmdPresent VRIsHmdPresentFn;
 	pVRGetStringForHmdError VRGetStringForHmdErrorFn;
 	pVRGetGenericInterface VRGetGenericInterfaceFn;
+	pVRExtendedDisplay VRExtendedDisplayFn;
 	
 	FString DisplayId;
 

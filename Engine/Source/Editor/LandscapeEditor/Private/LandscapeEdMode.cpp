@@ -1206,6 +1206,14 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 
 		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
+			// When debugging it's possible to miss the "mouse released" event, if we get a "mouse pressed" event when we think it's already pressed then treat it as release first
+			if (bToolActive)
+			{
+				CurrentTool->EndTool(ViewportClient);
+				Viewport->CaptureMouse(false);
+				bToolActive = false;
+			}
+
 			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
 			// Not using "if (!ViewportClient->IsMovingCamera())" because it's wrong in ortho viewports :D
 			bool bMovingCamera = Viewport->KeyState(EKeys::MiddleMouseButton) || Viewport->KeyState(EKeys::RightMouseButton) || IsAltDown(Viewport);

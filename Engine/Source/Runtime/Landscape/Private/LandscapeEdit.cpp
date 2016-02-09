@@ -296,6 +296,9 @@ void ULandscapeComponent::UpdateMaterialInstances()
 		// Set the weightmaps
 		for (int32 i = 0; i < WeightmapTextures.Num(); i++)
 		{
+			// gmartin: Trying to locate UE-23902
+			checkf(!WeightmapTextures[i] || WeightmapTextures[i]->IsValidLowLevel(), TEXT("Texture not valid! UE-23902! Parameter (Weightmap%d)"), i);
+
 			// UE_LOG(LogLandscape, Log, TEXT("Setting Weightmap%d = %s"), i, *WeightmapTextures(i)->GetName());
 			MaterialInstance->SetTextureParameterValueEditorOnly(FName(*FString::Printf(TEXT("Weightmap%d"), i)), WeightmapTextures[i]);
 		}

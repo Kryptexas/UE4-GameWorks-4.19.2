@@ -52,10 +52,10 @@ FVertexBufferRHIRef FD3D12DynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 
 		pInitData = &InitData;
 	}
 
-	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation;
+	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation = new FD3D12ResourceLocation(GetRHIDevice());
 	if (bIsDynamic)
 	{
-		void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().Alloc(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, ResourceLocation.GetInitReference());
+		void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().AllocUploadResource(Size, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT, ResourceLocation);
 
 		if (pInitData)
 		{
@@ -82,17 +82,6 @@ FVertexBufferRHIRef FD3D12DynamicRHI::RHICreateVertexBuffer(uint32 Size, uint32 
 
 FD3D12VertexBuffer::~FD3D12VertexBuffer()
 {
-	// Delete blocks from the SRV pool by allocating each object from the pool and 
-	// manually deleting them
-	ResourceViewHandleDesc ViewHandleDesc;
-	while (SRVPool.TryAllocate(ViewHandleDesc))
-	{
-		FD3D12ResourceAllocator* Allocator = ViewHandleDesc.BlockInfo->Allocator;
-		check(!!Allocator);
-
-		Allocator->ExpireBlock(ViewHandleDesc.BlockInfo);
-	}
-
 	if (ResourceLocation->GetResource() != nullptr)
 	{
 		UpdateBufferStats(ResourceLocation, false, D3D12_BUFFER_TYPE_VERTEX);
@@ -111,48 +100,15 @@ void* FD3D12VertexBuffer::DynamicLock()
 	void* pData = nullptr;
 	check((GetUsage() & BUF_AnyDynamic) ? true : false);
 
+	FD3D12DynamicHeapAllocator &Allocator = GetParentDevice()->GetDefaultUploadHeapAllocator();
+	pData = Allocator.AllocUploadResource(ResourceLocation->GetEffectiveBufferSize(), DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT, ResourceLocation);
+
 	if (DynamicSRV != nullptr)
 	{
-		// Place current resource location and SRV handle into the pool
-		FD3D12ResourceBlockInfo* pBlockInfo = ResourceLocation->GetBlockInfo();
-		if (pBlockInfo)
-		{
-			ResourceViewHandleDesc ViewHandleDesc(pBlockInfo, DynamicSRV->GetView(), DynamicSRV->GetDescriptorHeapIndex());
-			SRVPool.AddFencedObject(ViewHandleDesc, GetParentDevice()->GetDefaultCommandContext().CommandListHandle);
-		}
-
-		// Prune old allocations.
-		ResourceViewHandleDesc PruneViewHandleDesc;
-		while (SRVPool.TryAllocate(PruneViewHandleDesc))
-		{
-			FD3D12ResourceAllocator* Allocator = PruneViewHandleDesc.BlockInfo->Allocator;
-			check(!!Allocator);
-
-			Allocator->ExpireBlock(PruneViewHandleDesc.BlockInfo);
-		}
-
-		// Try grabbing a free SRV handle from the pool
-		ResourceViewHandleDesc ViewHandleDesc;
-		if (SRVPool.TryAllocate(ViewHandleDesc))
-		{
-			pData = ViewHandleDesc.BlockInfo->Address;
-			ResourceLocation->SetBlockInfoNoUpdate(ViewHandleDesc.BlockInfo);
-			DynamicSRV->Rename(ResourceLocation, ViewHandleDesc.SRVHandle, ViewHandleDesc.DescriptorHeapIndex);
-		}
-		else
-		{
-			FD3D12DynamicHeapAllocator &Allocator = GetParentDevice()->GetDefaultUploadHeapAllocator();
-			TRefCountPtr<FD3D12ResourceBlockInfo> pBlock;
-			Allocator.Alloc(ResourceLocation->GetEffectiveBufferSize(), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, pBlock.GetInitReference());
-			pData = pBlock->Address;
-			ResourceLocation->SetBlockInfoNoUpdate(pBlock);
-			DynamicSRV->Rename(ResourceLocation, ViewHandleDesc.SRVHandle, ViewHandleDesc.DescriptorHeapIndex);
-		}
-	}
-	else
-	{
-		FD3D12DynamicHeapAllocator &Allocator = GetParentDevice()->GetDefaultUploadHeapAllocator();
-		pData = Allocator.Alloc(ResourceLocation->GetEffectiveBufferSize(), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, ResourceLocation);
+		// This will force a new descriptor to be created
+		CD3DX12_CPU_DESCRIPTOR_HANDLE Desc;
+		Desc.ptr = 0;
+		DynamicSRV->Rename(ResourceLocation, Desc, 0);
 	}
 
 	check(pData);
@@ -232,8 +188,8 @@ void* FD3D12DynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBuffe
 			// Use an upload heap to copy data to a default resource.
 
 			// Use an upload heap for dynamic resources and map its memory for writing.
-			TRefCountPtr<FD3D12ResourceLocation> pUploadBufferLocation = new FD3D12ResourceLocation();
-			void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().FastAlloc(Offset + Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, pUploadBufferLocation);
+			TRefCountPtr<FD3D12ResourceLocation> pUploadBufferLocation = new FD3D12ResourceLocation(GetRHIDevice());
+			void* pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate(Offset + Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, pUploadBufferLocation);
 
 			if (nullptr == pData)
 			{

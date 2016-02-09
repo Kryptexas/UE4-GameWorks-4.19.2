@@ -85,6 +85,9 @@ public:
 #if WITH_EDITOR
 	void UpdatePIEHiddenNodes();
 #endif //WITH_EDITOR
+
+	int32 ChooseNodeIndex(FActiveSound& ActiveSound);
+
 };
 
 

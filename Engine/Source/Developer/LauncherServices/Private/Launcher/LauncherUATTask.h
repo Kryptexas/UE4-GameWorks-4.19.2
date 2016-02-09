@@ -85,7 +85,7 @@ protected:
 		while (FPlatformProcess::IsProcRunning(ProcessHandle) && !EndTextFound)
 		{
 
-			if (GetStatus() == ELauncherTaskStatus::Canceling)
+			if (IsCancelling())
 			{
 				FPlatformProcess::TerminateProc(ProcessHandle, true);
 				return false;

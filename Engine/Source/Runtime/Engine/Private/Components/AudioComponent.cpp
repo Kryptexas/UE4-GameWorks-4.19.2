@@ -167,6 +167,8 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 	// Bump ActiveCount... this is used to determine if an audio component is still active after "finishing"
 	++ActiveCount;
 
+	// Whether or not we managed to actually try to play the sound
+	bool bPlayedSound = false;
 	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
 	{
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
@@ -248,8 +250,16 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 				AudioDevice->AddNewActiveSound(NewActiveSound);
 
 				bIsActive = true;
+				bPlayedSound = true;
 			}
 		}
+	}
+
+	// Failed to actually try and play the sound so notify that the sound is complete.
+	// This will destroy the audio component if this is the last active sound on the audio component
+	if (!bPlayedSound)
+	{
+		PlaybackCompleted(true);
 	}
 }
 

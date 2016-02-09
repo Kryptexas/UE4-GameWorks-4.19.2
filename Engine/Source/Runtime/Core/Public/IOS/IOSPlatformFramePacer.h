@@ -28,6 +28,12 @@ struct FIOSPlatformRHIFramePacer : public FGenericPlatformRHIFramePacer
     
     /** Number of frames before the CADisplayLink triggers it's readied callback */
     static uint32 FrameInterval;
+    
+    /** Suspend the frame pacer so we can enter the background state */
+    static void Suspend();
+    
+    /** Resume the frame pacer so we can enter the foreground state */
+    static void Resume();
 };
 
 

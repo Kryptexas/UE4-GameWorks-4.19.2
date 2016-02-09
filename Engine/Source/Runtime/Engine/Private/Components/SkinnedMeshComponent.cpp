@@ -344,6 +344,10 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 
 		if(MeshObject)
 		{
+			// verifies vertex animations are valid
+			RefreshActiveVertexAnims();
+
+			// Identify current LOD
 			int32 UseLOD;
 			if(MasterPoseComponent.IsValid())
 			{
@@ -354,18 +358,20 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 				UseLOD = FMath::Clamp(PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
 			}
 
-			// verifies vertex animations are valid
-			RefreshActiveVertexAnims();
-
-			const bool bMorphTargetsAllowed = CVarEnableMorphTargets.GetValueOnAnyThread(true) != 0;
-
-			// Are morph targets disabled for this LOD?
-			if (SkeletalMesh->LODInfo[UseLOD].bHasBeenSimplified || bDisableMorphTarget || !bMorphTargetsAllowed)
+			// If we have a valid LOD, set up required data, during reimport we may try to create data before we have all the LODs
+			// imported, in that case we skip until we have all the LODs
+			if(SkeletalMesh->LODInfo.IsValidIndex(UseLOD))
 			{
-				ActiveVertexAnims.Empty();
-			}
+				const bool bMorphTargetsAllowed = CVarEnableMorphTargets.GetValueOnAnyThread(true) != 0;
 
-			MeshObject->Update(UseLOD,this,ActiveVertexAnims);  // send to rendering thread
+				// Are morph targets disabled for this LOD?
+				if(SkeletalMesh->LODInfo[UseLOD].bHasBeenSimplified || bDisableMorphTarget || !bMorphTargetsAllowed)
+				{
+					ActiveVertexAnims.Empty();
+				}
+
+				MeshObject->Update(UseLOD, this, ActiveVertexAnims);  // send to rendering thread
+			}
 		}
 
 		// scene proxy update of material usage based on active morphs

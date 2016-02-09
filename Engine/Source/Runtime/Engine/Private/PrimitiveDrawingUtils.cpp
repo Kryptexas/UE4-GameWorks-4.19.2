@@ -1256,10 +1256,10 @@ FLinearColor GetViewSelectionColor(const FLinearColor& BaseColor, const FSceneVi
 		FinalColor = GEngine->GetSubduedSelectionOutlineColor();
 	}
 	else if( bSelected )
-#endif
 	{
 		FinalColor = GEngine->GetSelectedMaterialColor();
 	}
+#endif
 
 	return ApplySelectionIntensity(FinalColor, bSelected, bHovered, bUseOverlayIntensity );
 }

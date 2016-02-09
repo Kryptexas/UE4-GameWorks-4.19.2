@@ -14,7 +14,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 ATP_FirstPersonCharacter::ATP_FirstPersonCharacter()
 {
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize(55.f, 96.0f);
 
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
@@ -23,7 +23,7 @@ ATP_FirstPersonCharacter::ATP_FirstPersonCharacter()
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
-	FirstPersonCameraComponent->RelativeLocation = FVector(0, 0, 64.f); // Position the camera
+	FirstPersonCameraComponent->RelativeLocation = FVector(-39.56f, 1.75f, 64.f); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
@@ -32,6 +32,8 @@ ATP_FirstPersonCharacter::ATP_FirstPersonCharacter()
 	Mesh1P->AttachParent = FirstPersonCameraComponent;
 	Mesh1P->bCastDynamicShadow = false;
 	Mesh1P->CastShadow = false;
+	Mesh1P->RelativeRotation = FRotator(1.9f, -19.19f, 5.2f);
+	Mesh1P->RelativeLocation = FVector(-0.5f, -4.4f, -155.7f);
 
 	// Create a gun mesh component
 	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
@@ -49,8 +51,6 @@ ATP_FirstPersonCharacter::ATP_FirstPersonCharacter()
 
 	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P are set in the
 	// derived blueprint asset named MyCharacter (to avoid direct content references in C++)
-
-	
 }
 
 void ATP_FirstPersonCharacter::BeginPlay()

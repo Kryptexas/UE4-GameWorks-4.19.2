@@ -180,7 +180,7 @@ void FD3D12CommandListManager::Create(uint32 NumCommandLists)
 	}
 }
 
-FD3D12CommandListHandle FD3D12CommandListManager::ObtainCommandList(FD3D12CommandAllocator& CommandAllocator, ID3D12PipelineState* InitialPSO)
+FD3D12CommandListHandle FD3D12CommandListManager::ObtainCommandList(FD3D12CommandAllocator& CommandAllocator)
 {
 	FD3D12CommandListHandle List;
 	if (!ReadyLists.Dequeue(List))
@@ -189,7 +189,7 @@ FD3D12CommandListHandle FD3D12CommandListManager::ObtainCommandList(FD3D12Comman
 		List = CreateCommandListHandle(CommandAllocator);
 	}
 
-	List.Reset(CommandAllocator, InitialPSO);
+	List.Reset(CommandAllocator);
 	return List;
 }
 
@@ -419,7 +419,7 @@ uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandList
 				ResourceBarrierCommandAllocator = ResourceBarrierCommandAllocatorManager.ObtainCommandAllocator();
 			}
 
-			hResourceBarrierList = ObtainCommandList(*ResourceBarrierCommandAllocator, nullptr);
+			hResourceBarrierList = ObtainCommandList(*ResourceBarrierCommandAllocator);
 
 #if DEBUG_RESOURCE_STATES
 			LogResourceBarriers(BarrierDescs.Num(), BarrierDescs.GetData(), hResourceBarrierList.CommandList());

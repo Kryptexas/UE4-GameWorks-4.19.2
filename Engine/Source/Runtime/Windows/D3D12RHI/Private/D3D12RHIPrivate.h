@@ -57,6 +57,13 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 #define ENABLE_PLACED_RESOURCES 0 // Disabled due to a couple of NVidia bugs related to placed resources. Works fine on Intel
 #define REMOVE_OLD_QUERY_BATCHES 1  // D3D12: MSFT: TODO: Works around a suspected UE4 InfiltratorDemo bug where a query is never released
 
+#define DEFAULT_BUFFER_POOL_SIZE (128 * 1024 * 1024)
+#define DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE (128 * 1024)
+#define DEFAULT_CONTEXT_UPLOAD_POOL_SIZE (64 * 1024 * 1024)
+#define DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE (1024 * 1024 * 4)
+#define DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT (D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
+
+
 #if DEBUG_RESOURCE_STATES
 #define LOG_EXECUTE_COMMAND_LISTS 1
 #else
@@ -464,7 +471,7 @@ class FD3D12CommandContext : public IRHICommandContext, public FD3D12DeviceChild
 {
 public:
 
-	FD3D12CommandContext(class FD3D12Device* InParent);
+	FD3D12CommandContext(class FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc);
 	virtual ~FD3D12CommandContext();
 
 	template<typename TRHIType>
@@ -511,7 +518,6 @@ public:
 	void EndFrame()
 	{
 		StateCache.GetDescriptorCache()->EndFrame();
-		UploadHeapAllocator.CleanupFreeBlocks();
 
 		// Return the current command allocator to the pool so it can be reused for a future frame
 		// Note: the default context releases it's command allocator before Present.
@@ -538,8 +544,11 @@ public:
 	void ConditionalClearShaderResource(FD3D12ResourceLocation* Resource);
 	void ClearAllShaderResources();
 
-	FD3D12DynamicHeapAllocator	UploadHeapAllocator;
-	FD3D12DynamicHeapAllocator& GetUploadHeapAllocator() { return UploadHeapAllocator; }
+	FD3D12FastAllocatorPagePool FastAllocatorPagePool;
+	FD3D12FastAllocator FastAllocator;
+
+	FD3D12FastAllocatorPagePool ConstantsAllocatorPagePool;
+	FD3D12FastAllocator ConstantsAllocator;
 
 	// Handles to the command list and direct command allocator this context owns (granted by the command list manager/command allocator manager), and a direct pointer to the D3D command list/command allocator.
 	FD3D12CommandListHandle CommandListHandle;
@@ -590,8 +599,8 @@ public:
 	}
 
 	/** Dynamic vertex and index buffers. */
-	TRefCountPtr<FD3D12DynamicBuffer> DynamicVB;
-	TRefCountPtr<FD3D12DynamicBuffer> DynamicIB;
+	FD3D12DynamicBuffer DynamicVB;
+	FD3D12DynamicBuffer DynamicIB;
 
 	// State for begin/end draw primitive UP interface.
 	uint32 PendingNumVertices;
@@ -866,7 +875,7 @@ public:
 	inline ID3D12CommandSignature*      GetDispatchIndirectCommandSignature() { return DispatchIndirectCommandSignature; }
 	inline FD3D12QueryHeap*             GetQueryHeap() { return &OcclusionQueryHeap; }
 
-	TRefCountPtr<ID3D12Resource>		GetCounterUploadHeap() { return CounterUploadHeap; }
+	ID3D12Resource*						GetCounterUploadHeap() { return CounterUploadHeap.GetReference(); }
 	uint32&								GetCounterUploadHeapIndex() { return CounterUploadHeapIndex; }
 	void*								GetCounterUploadHeapData() { return CounterUploadHeapData; }
 
@@ -884,6 +893,10 @@ public:
 	inline FD3D12ResourceHelper&            GetResourceHelper() { return ResourceHelper; }
 	inline FD3D12DeferredDeletionQueue&     GetDeferredDeletionQueue() { return DeferredDeletionQueue; }
 	inline FD3D12DefaultBufferAllocator&    GetDefaultBufferAllocator() { return DefaultBufferAllocator; }
+	inline FD3D12GlobalOnlineHeap&          GetGlobalSamplerHeap() { return GlobalSamplerHeap; }
+	inline FD3D12GlobalOnlineHeap&          GetGlobalViewHeap() { return GlobalViewHeap; }
+
+	inline const D3D12_HEAP_PROPERTIES &GetConstantBufferPageProperties() { return ConstantBufferPageProperties; }
 
 	inline uint32 GetNumContexts() { return CommandContextArray.Num(); }
 	inline FD3D12CommandContext& GetCommandContext(uint32 i = 0) const { return *CommandContextArray[i]; }
@@ -902,13 +915,20 @@ public:
 	}
 
 	inline FD3D12CommandContext& GetDefaultCommandContext() const { return GetCommandContext(0); }
-	inline FD3D12DynamicHeapAllocator& GetDefaultUploadHeapAllocator() { return GetDefaultCommandContext().GetUploadHeapAllocator(); }
+	inline FD3D12DynamicHeapAllocator& GetDefaultUploadHeapAllocator() { return DefaultUploadHeapAllocator; }
+	inline FD3D12FastAllocator& GetDefaultFastAllocator() { return DefaultFastAllocator; }
+	inline FD3D12ThreadSafeFastAllocator& GetBufferInitFastAllocator() { return BufferInitializerFastAllocator; }
+	inline FD3D12FastAllocatorPagePool& GetDefaultFastAllocatorPool() { return DefaultFastAllocatorPagePool; }
+	inline FD3D12FastAllocatorPagePool& GetBufferInitFastAllocatorPool() { return BufferInitializerFastAllocatorPagePool; }
+	inline FD3D12TextureAllocatorPool& GetTextureAllocator() { return TextureAllocator; }
 
 	inline D3D12_RESOURCE_HEAP_TIER    GetResourceHeapTier() { return ResourceHeapTier; }
 	inline D3D12_RESOURCE_BINDING_TIER GetResourceBindingTier() { return ResourceBindingTier; }
 
 	TArray<FD3D12CommandListHandle> PendingCommandLists;
 	uint32 PendingCommandListsTotalWorkCommands;
+
+	bool FirstFrameSeen;
 
 protected:
 
@@ -943,6 +963,9 @@ protected:
 	/** The resource manager allocates resources and tracks when to release them */
 	FD3D12ResourceHelper ResourceHelper;
 
+	FD3D12GlobalOnlineHeap GlobalSamplerHeap;
+	FD3D12GlobalOnlineHeap GlobalViewHeap;
+
 	FD3D12DeferredDeletionQueue DeferredDeletionQueue;
 
 	FD3D12QueryHeap OcclusionQueryHeap;
@@ -966,6 +989,9 @@ protected:
 	// [SampleCount] = Quality, 0xffffffff if not supported
 	uint32 AvailableMSAAQualities[DX_MAX_MSAA_COUNT + 1];
 
+	// set by UpdateConstantBufferPageProperties, get by GetConstantBufferPageProperties
+	D3D12_HEAP_PROPERTIES ConstantBufferPageProperties;
+
 	// Creates default root and execute indirect signatures
 	void CreateSignatures();
 
@@ -977,8 +1003,23 @@ protected:
 
 	void UpdateMSAASettings();
 
+	void UpdateConstantBufferPageProperties();
+
 	void ReleasePooledUniformBuffers();
 
+	// Used for Locking and unlocking dynamic VBs and IBs. These functions only occur on the default
+	// context so no thread sync is required
+	FD3D12FastAllocatorPagePool DefaultFastAllocatorPagePool;
+	FD3D12FastAllocator DefaultFastAllocator;
+
+	// Buffers Get Initialized on multiple threads so access to the allocator
+	// must be guarded by a lock
+	FD3D12FastAllocatorPagePool  BufferInitializerFastAllocatorPagePool;
+	FD3D12ThreadSafeFastAllocator BufferInitializerFastAllocator;
+
+	FD3D12DynamicHeapAllocator	DefaultUploadHeapAllocator;
+
+	FD3D12TextureAllocatorPool TextureAllocator;
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */
@@ -1569,6 +1610,50 @@ public:
 
 	void GetLocalVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO* LocalVideoMemoryInfo);
 
+	static HRESULT CreatePlacedResource(const D3D12_RESOURCE_DESC& Desc, ID3D12Heap* BackingHeap, uint64 HeapOffset, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
+	{
+		HRESULT hresult = S_OK;
+		D3D12_RESOURCE_HEAP_TIER ResourceHeapTier = SingleD3DRHI->GetRHIDevice()->GetResourceHeapTier();
+		TRefCountPtr<ID3D12Resource> pResource;
+
+		D3D12_HEAP_DESC heapDesc = BackingHeap->GetDesc();
+
+		ID3D12Device* pD3DDevice = SingleD3DRHI->GetRHIDevice()->GetDevice();
+
+		if (!ppResource)
+		{
+			return E_POINTER;
+		}
+
+		hresult = pD3DDevice->CreatePlacedResource(BackingHeap, HeapOffset, &Desc, InitialUsage, nullptr, IID_PPV_ARGS(pResource.GetInitReference()));
+		VERIFYD3D11RESULT(hresult);
+
+		// Set the output pointer
+		*ppResource = new FD3D12Resource(pResource, Desc, BackingHeap, heapDesc.Properties.Type);
+
+#if SUPPORTS_MEMORY_RESIDENCY
+		if (hresult == E_OUTOFMEMORY)
+		{
+			for (uint32 MemoryPressureLevel = 1; MemoryPressureLevel < FD3D12ResourceResidencyManager::MEMORY_PRESSURE_LEVELS; ++MemoryPressureLevel)
+			{
+				SingleD3DRHI->GetResourceResidencyManager().Process(MemoryPressureLevel);
+
+				ID3D12Resource* pD3DResource = pResource.GetReference();
+				hresult = pD3DDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &Desc, InitialUsage, nullptr, IID_PPV_ARGS(&pD3DResource));
+
+				if (hresult != E_OUTOFMEMORY)
+					break;
+			}
+		}
+#endif
+		VERIFYD3D11RESULT(hresult);
+
+
+		(*ppResource)->AddRef();
+
+		return S_OK;
+	}
+
 	static HRESULT CreateCommittedResource(const D3D12_RESOURCE_DESC& Desc, const D3D12_HEAP_PROPERTIES& HeapProps, const D3D12_RESOURCE_STATES& InitialUsage, const D3D12_CLEAR_VALUE* ClearValue, FD3D12Resource** ppResource)
 	{
 		HRESULT hresult = S_OK;
@@ -1592,7 +1677,7 @@ public:
 		HeapDesc.SizeInBytes = AllocationInfo.SizeInBytes;
 		HeapDesc.Alignment = AllocationInfo.Alignment;
 		HeapDesc.Properties = HeapProps;
-		if (HeapProps.Type == D3D12_HEAP_TYPE_READBACK || HeapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+		if (HeapProps.Type == D3D12_HEAP_TYPE_READBACK || IsCPUWritable(HeapProps.Type))
 		{
 			HeapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 		}
@@ -1661,23 +1746,35 @@ private:
 
 public:
 
-	inline FD3D12DynamicHeapAllocator& GetHelperThreadDynamicUploadHeapAllocator()
+	inline FD3D12ThreadSafeFastAllocator& GetHelperThreadDynamicUploadHeapAllocator()
 	{
 		check(!IsInActualRenderingThread());
 
+		static const uint32 AsyncTexturePoolSize = 1024 * 512;
+
 		if (HelperThreadDynamicHeapAllocator == nullptr)
 		{
+			if (SharedFastAllocPool == nullptr)
+			{
+				SharedFastAllocPool = new FD3D12ThreadSafeFastAllocatorPagePool(GetRHIDevice(), D3D12_HEAP_TYPE_UPLOAD, AsyncTexturePoolSize);
+			}
+
 			uint32 NextIndex = InterlockedIncrement(&NumThreadDynamicHeapAllocators) - 1;
 			check(NextIndex < _countof(ThreadDynamicHeapAllocatorArray));
-			HelperThreadDynamicHeapAllocator = new FD3D12DynamicHeapAllocator(GetRHIDevice(), D3D12_HEAP_TYPE_UPLOAD);
+			HelperThreadDynamicHeapAllocator = new FD3D12ThreadSafeFastAllocator(GetRHIDevice(), SharedFastAllocPool);
+
 			ThreadDynamicHeapAllocatorArray[NextIndex] = HelperThreadDynamicHeapAllocator;
 		}
 
 		return *HelperThreadDynamicHeapAllocator;
 	}
-	FD3D12DynamicHeapAllocator* ThreadDynamicHeapAllocatorArray[16];
+
+	// The texture streaming threads can all share a pool of buffers to save on memory
+	// (it doesn't really matter if they take a lock as they are async and low priority)
+	FD3D12ThreadSafeFastAllocatorPagePool* SharedFastAllocPool = nullptr;
+	FD3D12ThreadSafeFastAllocator* ThreadDynamicHeapAllocatorArray[16];
 	uint32 NumThreadDynamicHeapAllocators;
-	static __declspec(thread) FD3D12DynamicHeapAllocator* HelperThreadDynamicHeapAllocator;
+	static __declspec(thread) FD3D12ThreadSafeFastAllocator* HelperThreadDynamicHeapAllocator;
 
 	static DXGI_FORMAT GetPlatformTextureResourceFormat(DXGI_FORMAT InFormat, uint32 InFlags);
 

@@ -2847,6 +2847,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_framebuffer_fetch : enable\n");
+			ralloc_asprintf_append(buffer, "#define EXT_shader_framebuffer_fetch_enabled 1\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_ARM_shader_framebuffer_fetch\n");
 			ralloc_asprintf_append(buffer, "#extension GL_ARM_shader_framebuffer_fetch : enable\n");
@@ -2960,7 +2961,11 @@ public:
 		if (bUsesFramebufferFetchES2)
 		{
 			ralloc_asprintf_append(buffer, "\n#ifdef GL_EXT_shader_framebuffer_fetch\n");
-			ralloc_asprintf_append(buffer, "	vec4 FramebufferFetchES2() { return gl_LastFragData[0]; }\n");
+			ralloc_asprintf_append(buffer, "	#if (__VERSION__ >= 300)\n");
+			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return gl_FragColor; }\n");
+			ralloc_asprintf_append(buffer, "	#else\n");
+			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return gl_LastFragData[0]; }\n");
+			ralloc_asprintf_append(buffer, "	#endif\n");
 			ralloc_asprintf_append(buffer, "#else\n");
 			ralloc_asprintf_append(buffer, "	#ifdef GL_ARM_shader_framebuffer_fetch\n");
 			ralloc_asprintf_append(buffer, "		vec4 FramebufferFetchES2() { return gl_LastFragColorARM; }\n");

@@ -778,9 +778,9 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
 								ensure(Child->AttachParent == this);
 							}
-							else if (!ensure(IsPendingKill()))
+							else if (!ensure(IsPendingKill() || Child->IsPendingKill()))
 							{
-								// If we are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
+								// If we (or child) are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
 							}
 							AttachChildren.Pop(false);
@@ -827,7 +827,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
 								ensure(Child->AttachParent == this);
 							}
-							else if (!ensure(IsPendingKill()))
+							else if (!ensure(IsPendingKill() || Child->IsPendingKill()))
 							{
 								// If we are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());

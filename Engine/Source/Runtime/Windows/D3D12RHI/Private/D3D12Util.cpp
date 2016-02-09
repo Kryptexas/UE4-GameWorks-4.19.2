@@ -27,6 +27,23 @@ D3D12Util.h: D3D RHI utility implementation.
 #endif//D3DERR_WASSTILLDRAWING
 #endif
 
+void SetName(ID3D12Object* const Object, const TCHAR* const Name)
+{
+	if (Object)
+	{
+		VERIFYD3D11RESULT(Object->SetName(Name));
+	}
+}
+
+void SetName(FD3D12Resource* const Resource, const TCHAR* const Name)
+{
+	// Special case for FD3D12Resources because we also store the name as a member in FD3D12Resource
+	if (Resource)
+	{
+		Resource->SetName(Name);
+	}
+}
+
 static FString GetD3D11DeviceHungErrorString(HRESULT ErrorCode)
 {
 	FString ErrorCodeText;
@@ -362,9 +379,9 @@ FD3D12BoundRenderTargets::~FD3D12BoundRenderTargets()
 }
 
 
-FD3D12DynamicBuffer::FD3D12DynamicBuffer(FD3D12Device* InParent, FD3D12DynamicHeapAllocator& UploadHeap)
-	: UploadHeapAllocator(UploadHeap),
-	FD3D12DeviceChild(InParent)
+FD3D12DynamicBuffer::FD3D12DynamicBuffer(FD3D12Device* InParent, FD3D12FastAllocator& Allocator)
+: FastAllocator(Allocator),
+ FD3D12DeviceChild(InParent)
 {
 	InitResource();
 }
@@ -384,9 +401,9 @@ void FD3D12DynamicBuffer::ReleaseRHI()
 
 void* FD3D12DynamicBuffer::Lock(uint32 Size)
 {
-	FD3D12ResourceLocation* NewResourceLocation = new FD3D12ResourceLocation();
+	FD3D12ResourceLocation* NewResourceLocation = new FD3D12ResourceLocation(FastAllocator.GetParentDevice());
 	ResourceLocation = NewResourceLocation;
-	return UploadHeapAllocator.FastAlloc(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, NewResourceLocation);
+	return FastAllocator.Allocate(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, NewResourceLocation);
 }
 
 FD3D12ResourceLocation* FD3D12DynamicBuffer::Unlock()

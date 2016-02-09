@@ -117,6 +117,7 @@ private:
 	void RemoveMissingPlayerLayers(const TArray<ULocalPlayer*>& GamePlayers);
 	void RemovePlayerWidgets(ULocalPlayer* LocalPlayer);
 	void AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometry, UGameViewportClient* ViewportClient, const TArray<ULocalPlayer*>& GamePlayers);
+	FVector2D GetAspectRatioInset(ULocalPlayer* LocalPlayer) const;
 
 private:
 	FGeometry CachedGeometry;

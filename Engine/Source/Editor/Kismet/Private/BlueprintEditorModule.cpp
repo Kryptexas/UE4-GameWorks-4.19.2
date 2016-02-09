@@ -122,12 +122,11 @@ void FixSubObjectReferencesPostUndoRedo(UObject* InObject)
 	FArchiveReplaceObjectRef<UObject> Replacer(InObject, OldToNewInstanceMap, false, false, false, false);
 }
 
-void FixSubObjectReferencesPostUndoRedo()
+void FixSubObjectReferencesPostUndoRedo(const FTransaction* Transaction)
 {
 	UBlueprint* Blueprint = nullptr;
 
 	// Look at the transaction this function is responding to, see if any object in it has an outermost of the Blueprint
-	const FTransaction* Transaction = GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount());
 	if (Transaction != nullptr)
 	{
 		TArray<UObject*> TransactionObjects;
@@ -153,12 +152,13 @@ void FixSubObjectReferencesPostUndoRedo()
 
 void FBlueprintUndoRedoHandler::PostUndo(bool bSuccess)
 {
-	FixSubObjectReferencesPostUndoRedo();
+	FixSubObjectReferencesPostUndoRedo(GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - GEditor->Trans->GetUndoCount()));
 }
 
 void FBlueprintUndoRedoHandler::PostRedo(bool bSuccess)
 {
-	FixSubObjectReferencesPostUndoRedo();
+	// Note: We add 1 to get the correct slot, because the transaction buffer will have decremented the UndoCount prior to getting here.
+	FixSubObjectReferencesPostUndoRedo(GEditor->Trans->GetTransaction(GEditor->Trans->GetQueueLength() - (GEditor->Trans->GetUndoCount() + 1)));
 }
 
 void FBlueprintEditorModule::StartupModule()

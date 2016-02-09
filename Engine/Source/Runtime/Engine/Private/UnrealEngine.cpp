@@ -28,7 +28,9 @@
 #include "OnlineExternalUIInterface.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#if WITH_EDITOR
 #include "CrashTracker.h"
+#endif
 #include "TickTaskManagerInterface.h"
 #include "TargetPlatform.h"
 #include "AudioEffect.h"

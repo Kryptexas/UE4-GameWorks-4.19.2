@@ -175,7 +175,7 @@ public:
 		int64 start, int64 length)
 		: File(base.File)
 		, Start(base.Start + start), Length(length)
-		, CurrentOffset(0)
+		, CurrentOffset(base.Start + start)
 	{
 		CheckValid();
 		LogInfo();

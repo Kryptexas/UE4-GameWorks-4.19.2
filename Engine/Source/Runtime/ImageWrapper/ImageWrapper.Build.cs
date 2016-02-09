@@ -6,7 +6,7 @@ public class ImageWrapper : ModuleRules
 {
 	public ImageWrapper(TargetInfo Target)
 	{
-		PrivateIncludePaths.Add("Developer/ImageWrapper/Private");
+		PrivateIncludePaths.Add("Runtime/ImageWrapper/Private");
 
 		Definitions.Add("WITH_UNREALPNG=1");
         Definitions.Add("WITH_UNREALJPEG=1");

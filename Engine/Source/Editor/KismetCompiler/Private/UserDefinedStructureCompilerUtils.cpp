@@ -214,6 +214,23 @@ struct FUserDefinedStructureCompilerInner
 			{
 				Struct->StructFlags = EStructFlags(Struct->StructFlags | STRUCT_HasInstancedReference);
 			}
+
+			if (VarType.PinSubCategoryObject.IsValid())
+			{
+				const UClass* ClassObject = Cast<UClass>(VarType.PinSubCategoryObject.Get());
+
+				if (ClassObject && ClassObject->IsChildOf(AActor::StaticClass()))
+				{
+					// prevent Actor variables from having default values (because Blueprint templates are library elements that can 
+					// bridge multiple levels and different levels might not have the actor that the default is referencing).
+					NewProperty->PropertyFlags |= CPF_DisableEditOnTemplate;
+				}
+				else
+				{
+					// clear the disable-default-value flag that might have been present (if this was an AActor variable before)
+					NewProperty->PropertyFlags &= ~(CPF_DisableEditOnTemplate);
+				}
+			}
 		}
 	}
 

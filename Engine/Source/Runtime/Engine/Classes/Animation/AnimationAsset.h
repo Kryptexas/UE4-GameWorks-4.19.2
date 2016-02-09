@@ -751,6 +751,12 @@ public:
 	/** Return a list of unique marker names for blending compatibility */
 	ENGINE_API virtual TArray<FName>* GetUniqueMarkerNames() { return NULL; }
 
+	/**
+	* return true if this is valid additive animation
+	* false otherwise
+	*/
+	virtual bool IsValidAdditive() const { return false; }
+
 #if WITH_EDITORONLY_DATA
 	/** Information for thumbnail rendering */
 	UPROPERTY(VisibleAnywhere, Instanced, Category = Thumbnail)

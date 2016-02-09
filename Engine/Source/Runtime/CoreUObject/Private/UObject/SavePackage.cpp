@@ -165,11 +165,12 @@ static void CheckObjectPriorToSave(FArchiveUObject& Ar, UObject* InObj, UPackage
 		InObj->SetFlags(RF_Transient);
 	}
 
-	if ( InObj->HasAnyFlags(RF_ClassDefaultObject) )
+	if ( InObj->HasAnyFlags(RF_ClassDefaultObject)
+		&& (InObj->GetClass()->ClassGeneratedBy == nullptr || !InObj->GetClass()->HasAnyFlags(RF_Transient)) )
 	{
 		// if this is the class default object, make sure it's not
 		// marked transient for any reason, as we need it to be saved
-		// to disk
+		// to disk (unless it's associated with a transient generated class)
 		InObj->ClearFlags(RF_Transient);
 	}
 

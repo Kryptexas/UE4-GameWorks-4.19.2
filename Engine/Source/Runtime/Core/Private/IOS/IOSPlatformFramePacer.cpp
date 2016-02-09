@@ -96,6 +96,19 @@ void FIOSPlatformRHIFramePacer::InitWithEvent(FEvent* TriggeredEvent)
     ListeningEvents.Add( TriggeredEvent );
 }
 
+void FIOSPlatformRHIFramePacer::Suspend()
+{
+    // send a signal to the events if we are enabled
+    if (IsEnabled())
+    {
+        [FramePacer signal:0];
+    }
+}
+
+void FIOSPlatformRHIFramePacer::Resume()
+{
+    
+}
 
 void FIOSPlatformRHIFramePacer::Destroy()
 {

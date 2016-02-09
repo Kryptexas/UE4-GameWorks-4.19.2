@@ -2295,31 +2295,6 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 			// put us back the way we were and peace out
 			Import = OriginalImport;
 
-			bool bSupressLinkerError = false;
-			// We want to suppress any import errors that target a BlueprintGeneratedClass
-			// We will look at each outer of the Import to see if any of them are a BPGC
-			static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
-			FObjectImport& TestImport = Import;
-			while (1)
-			{
-				if (TestImport.ClassName == NAME_BlueprintGeneratedClass)
-				{
-					// The import is a BPGC, suppress errors
-					bSupressLinkerError = true;
-					break;
-				}
-
-				if (!Import.OuterIndex.IsNull() && Import.OuterIndex.IsImport())
-				{
-					TestImport = Imp(TestImport.OuterIndex);
-				}
-				else
-				{
-					// It's not an import, we are done
-					break;
-				}
-			}
-
 			// if the original VerifyImportInner told us that we need to throw an exception if we weren't redirected,
 			// then do the throw here
 			if (bCrashOnFail)
@@ -2328,30 +2303,36 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				return Result;
 			}
 			// otherwise just printout warnings, and if in the editor, popup the EdLoadWarnings box
-			else if (!bSupressLinkerError)
+			else
 			{
-				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
-				UObject* ClassPackage = FindObject<UPackage>( NULL, *Import.ClassPackage.ToString() );
-				UClass* FindClass = ClassPackage ? FindObject<UClass>( ClassPackage, *OriginalImport.ClassName.ToString() ) : NULL;
+#if WITH_EDITOR
 				if( GIsEditor && !IsRunningCommandlet())
 				{
-					FDeferredMessageLog LoadErrors(NAME_LoadErrors);
-					// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
-					TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
-					TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
-					TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex)))));
-					TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));					
-
-					if (!WarningAppend.IsEmpty())
+					bool bSupressLinkerError = false;
+					bSupressLinkerError = IsSuppressableBlueprintImportError(Import);
+					if (!bSupressLinkerError)
 					{
-						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{0} in {1}"),
-							FText::FromString(WarningAppend),
-							FText::FromString(LinkerRoot->GetName())))
-						);
+						FDeferredMessageLog LoadErrors(NAME_LoadErrors);
+						// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
+						TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
+						TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
+						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex)))));
+						TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));
+
+						if (!WarningAppend.IsEmpty())
+						{
+							TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{0} in {1}"),
+								FText::FromString(WarningAppend),
+								FText::FromString(LinkerRoot->GetName())))
+								);
+						}
 					}
 				}
-
+#endif // WITH_EDITOR
 #if UE_BUILD_DEBUG
+				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
+				UObject* ClassPackage = FindObject<UPackage>(NULL, *Import.ClassPackage.ToString());
+				UClass* FindClass = ClassPackage ? FindObject<UClass>(ClassPackage, *OriginalImport.ClassName.ToString()) : NULL;
 				if( !IgnoreMissingReferencedClass( Import.ObjectName ) )
 				{
 					FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
@@ -2745,7 +2726,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 				UObject* FindObject = FindImport(FindClass, FindOuter, *Import.ObjectName.ToString());
 				// Reference to in memory-only package's object, native transient class or CDO of such a class.
-				bool bIsInMemoryOnlyOrNativeTransient = bCameFromMemoryOnlyPackage || (FindObject != NULL && (FindObject->HasAllFlags(EObjectFlags(RF_Public | RF_MarkAsNative | RF_Transient)) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public | RF_MarkAsNative | RF_Transient)))));
+				bool bIsInMemoryOnlyOrNativeTransient = bCameFromMemoryOnlyPackage || (FindObject != NULL && ((FindObject->IsNative() && FindObject->HasAllFlags(RF_Public | RF_Transient)) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->IsNative() && FindObject->GetClass()->HasAllFlags(RF_Public | RF_Transient))));
 				// Check for structs which have been moved to another header (within the same class package).
 				if (!FindObject && bIsInMemoryOnlyOrNativeTransient && FindClass == UScriptStruct::StaticClass())
 				{

@@ -45,8 +45,7 @@ FIndexBufferRHIRef FD3D12DynamicRHI::RHICreateIndexBuffer(uint32 Stride, uint32 
 
 		if (pInitData)
 		{
-			// Handle initial data
-			void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().Alloc(Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, ResourceLocation);
+			void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().AllocUploadResource(Size, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT, ResourceLocation);
 			FMemory::Memcpy(pData, InitData.pData, Size);
 		}
 	}
@@ -100,7 +99,7 @@ void* FD3D12DynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRH
 		check(LockMode == RLM_WriteOnly);
 
 		// Use an upload heap for dynamic resources and map its memory for writing.
-		void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().Alloc(Offset + Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, IndexBuffer->ResourceLocation.GetReference());
+		void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().AllocUploadResource(Offset + Size, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT, IndexBuffer->ResourceLocation.GetReference());
 		check(pData);
 
 		// Add the lock to the lock map.
@@ -141,8 +140,8 @@ void* FD3D12DynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRH
 			// If the static buffer is being locked for writing, allocate memory for the contents to be written to.
 
 			// Use an upload heap to copy data to a default resource.
-			TRefCountPtr<FD3D12ResourceLocation> UploadBuffer = new FD3D12ResourceLocation();
-			void* pData = GetRHIDevice()->GetDefaultUploadHeapAllocator().FastAlloc(Offset + Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, UploadBuffer);
+			TRefCountPtr<FD3D12ResourceLocation> UploadBuffer = new FD3D12ResourceLocation(GetRHIDevice());
+			void* pData = GetRHIDevice()->GetDefaultFastAllocator().Allocate(Offset + Size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, UploadBuffer);
 
 			// Add the lock to the lock map.
 			LockedData.SetData(pData);

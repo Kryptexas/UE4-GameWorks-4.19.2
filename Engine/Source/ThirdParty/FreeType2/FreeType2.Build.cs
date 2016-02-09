@@ -13,8 +13,10 @@ public class FreeType2 : ModuleRules
 		string FreeType2Path;
 		string FreeType2LibPath;
 
-		if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Linux ||
-		  (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+		if (Target.Platform == UnrealTargetPlatform.Win32 ||
+            Target.Platform == UnrealTargetPlatform.Win64 ||
+            Target.Platform == UnrealTargetPlatform.Linux ||
+		    Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.6/";
 		}
@@ -27,8 +29,10 @@ public class FreeType2 : ModuleRules
 
 		PublicSystemIncludePaths.Add(FreeType2Path + "include");
 
-        if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 ||
-			(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+        if (Target.Platform == UnrealTargetPlatform.Win32 ||
+            Target.Platform == UnrealTargetPlatform.Win64 ||
+           (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") // simulator
+        )
 		{
 	
             FreeType2LibPath += (Target.Platform == UnrealTargetPlatform.Win64) ? "Win64/" : "Win32/";
@@ -106,7 +110,23 @@ public class FreeType2 : ModuleRules
        else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
             PublicLibraryPaths.Add(FreeType2Path + "Lib/HTML5");
-            PublicAdditionalLibraries.Add(FreeType2Path + "Lib/HTML5/libfreetype2412.bc");
+            string OpimizationSuffix = "";
+            if (UEBuildConfiguration.bCompileForSize)
+            {
+                OpimizationSuffix = "_Oz";
+            }
+            else
+            {
+                if (Target.Configuration == UnrealTargetConfiguration.Development)
+                {
+                    OpimizationSuffix = "_O2";
+                }
+                else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+                {
+                    OpimizationSuffix = "_O3";
+                }
+            }
+            PublicAdditionalLibraries.Add(FreeType2Path + "Lib/HTML5/libfreetype260" + OpimizationSuffix + ".bc");
         } 
 	}
 }

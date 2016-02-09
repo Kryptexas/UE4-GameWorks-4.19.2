@@ -510,22 +510,8 @@ public:
 				{
 					check(GetUniformBufferParameter<FForwardLightData>().IsInitialized());
 
-					static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardLighting"));
-					bool bForwardLighting = CVar->GetValueOnRenderThread() != 0;
-
-					if(bForwardLighting)
-					{
-						SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(),View->ForwardLightData);
-						SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, GLightGridVertexBuffer.VertexBufferSRV);
-					}
-					else
-					{
-						// feature is disabled
-						FForwardLightData LocalForwardLightData;
-						FMemory::Memzero(LocalForwardLightData);
-						SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(), TUniformBufferRef<FForwardLightData>::CreateUniformBufferImmediate(LocalForwardLightData, UniformBuffer_SingleDraw));
-						SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, GLightGridVertexBuffer.VertexBufferSRV);
-					}
+					SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(),View->ForwardLightData);
+					SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, GLightGridVertexBuffer.VertexBufferSRV);
 				}
 			}
 		}

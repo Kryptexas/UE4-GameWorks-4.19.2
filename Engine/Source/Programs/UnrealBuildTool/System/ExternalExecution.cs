@@ -743,13 +743,13 @@ namespace UnrealBuildTool
 						}
 
 						// Add UHT plugins to UBT command line as external plugins
-						if (Target.UnrealHeaderToolPlugins != null)
+						if (Target.UnrealHeaderToolPlugins != null && Target.UnrealHeaderToolPlugins.Count > 0)
 						{
 							foreach (PluginInfo Plugin in Target.UnrealHeaderToolPlugins)
 							{
 								UBTArguments.Append(" -PLUGIN \"" + Plugin.File + "\"");
 							}
-						}
+						}						
 
 						if (RunExternalExecutable(UnrealBuildTool.GetUBTPath(), UBTArguments.ToString()) != 0)
 						{
@@ -788,6 +788,11 @@ namespace UnrealBuildTool
                     {
                         CmdLine += " -UseMakefiles";
                     }
+
+					if (!UEBuildConfiguration.bCompileAgainstEngine)
+					{
+						CmdLine += " -NoEnginePlugins";
+					}
 
 					Log.TraceInformation("  Running UnrealHeaderTool {0}", CmdLine);
 

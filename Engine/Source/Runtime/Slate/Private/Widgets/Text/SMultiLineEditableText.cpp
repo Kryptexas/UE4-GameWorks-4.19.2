@@ -1127,7 +1127,9 @@ FReply SMultiLineEditableText::MoveCursor( FMoveCursor Args )
 			}
 			else
 			{
+				checkSlow( Args.IsHorizontalMovement() );
 				checkSlow( Args.GetGranularity() == ECursorMoveGranularity::Word );
+				checkSlow( Args.GetMoveDirection().X != 0 );
 				NewCursorPosition = ScanForWordBoundary( CursorPosition, Args.GetMoveDirection().X );
 				bUpdatePreferredCursorScreenOffsetInLine = true;
 			}

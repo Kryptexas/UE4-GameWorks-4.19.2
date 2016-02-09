@@ -144,6 +144,10 @@ namespace UnrealBuildTool
 				// Never fail compiles for warnings
 				CompileParams.TreatWarningsAsErrors = false;
 
+				// Set the warning level so that we will actually receive warnings -
+				// doesn't abort compilation as stated in documentation!
+				CompileParams.WarningLevel = 4;
+
 				// Always generate debug information as it takes minimal time
 				CompileParams.IncludeDebugInformation = true;
 #if !DEBUG
@@ -225,11 +229,18 @@ namespace UnrealBuildTool
 			if (CompileResults.Errors.Count > 0)
 			{
 				Log.TraceInformation("Messages while compiling {0}:", OutputAssemblyPath);
-				foreach (var CurError in CompileResults.Errors)
+				foreach (CompilerError CurError in CompileResults.Errors)
 				{
-					Log.TraceInformation(CurError.ToString());
+					if (CurError.IsWarning)
+					{
+						Log.TraceWarning(CurError.ToString());
+					}
+					else
+					{
+						Log.TraceError(CurError.ToString());
+					}
 				}
-				if(CompileResults.Errors.HasErrors || TreatWarningsAsErrors)
+				if (CompileResults.Errors.HasErrors || TreatWarningsAsErrors)
 				{
 					throw new BuildException("UnrealBuildTool encountered an error while compiling source files");
 				}

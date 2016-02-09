@@ -399,10 +399,6 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 
 	GTexturePoolSize = 0;
 
-	// TODO MS: We need to do this after CreateDevice due to a bug in QueryVideoMemoryInfo
-	GRHIAdapterName = AdapterDesc->Description;
-	GRHIVendorId = AdapterDesc->VendorId;
-
 	// Issue: 32bit windows doesn't report 64bit value, we take what we get.
 	FD3D12GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc->DedicatedVideoMemory);
 	FD3D12GlobalStats::GDedicatedSystemMemory = int64(AdapterDesc->DedicatedSystemMemory);
@@ -668,6 +664,26 @@ void FD3D12Device::InitD3DDevice()
 		UAVAllocator.Init(GetDevice());
 		SamplerAllocator.Init(GetDevice());
 		CBVAllocator.Init(GetDevice());
+		GlobalSamplerHeap.Init(NUM_SAMPLER_DESCRIPTORS, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+		// This value can be tuned on a per app basis. I.e. most apps will never run into descriptor heap pressure so
+		// can make this global heap smaller
+		uint32 NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_1;
+		switch (ResourceBindingTier)
+		{
+		case D3D12_RESOURCE_BINDING_TIER_1:
+			NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_1;
+			break;
+		case D3D12_RESOURCE_BINDING_TIER_2:
+			NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_2;
+			break;
+		case D3D12_RESOURCE_BINDING_TIER_3:
+		default:
+			NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_3;
+			break;
+		}
+		
+		GlobalViewHeap.Init(NumGlobalViewDesc, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 		// Init the occlusion query heap
 		OcclusionQueryHeap.Init();

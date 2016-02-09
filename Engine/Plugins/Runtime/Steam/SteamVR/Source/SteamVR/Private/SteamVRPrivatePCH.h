@@ -3,7 +3,7 @@
 #pragma once
 
 /** Name of the current OpenVR SDK version in use (matches directory name) */
-#define OPENVR_SDK_VER TEXT("OpenVRv000")
+#define OPENVR_SDK_VER TEXT("OpenVRv0_9_12")
 
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"

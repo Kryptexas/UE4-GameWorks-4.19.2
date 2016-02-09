@@ -25,7 +25,6 @@ FD3D12Viewport::FD3D12Viewport(class FD3D12Device* InParent, HWND InWindowHandle
 	bIsFullscreen(bInIsFullscreen),
 	PixelFormat(InPreferredPixelFormat),
 	bIsValid(true),
-	bIsBenchmarkMode(false),
 	NumBackBuffers(DefaultNumBackBuffers),
 	FD3D12DeviceChild(InParent)
 {
@@ -40,14 +39,7 @@ void FD3D12Viewport::Init(IDXGIFactory4* Factory, bool AssociateWindow)
 	// TODO: is this really necessary?
 	//D3DRHI->InitD3DDevices();
 
-	bIsBenchmarkMode = FParse::Param(FCommandLine::Get(), TEXT("benchmark"));
-
 	DXGI_SWAP_CHAIN_FLAG swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	if (bIsBenchmarkMode)
-	{
-		swapChainFlags = static_cast<DXGI_SWAP_CHAIN_FLAG>(static_cast<uint32>(swapChainFlags) | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT);
-		NumBackBuffers = MaxNumBackBuffers;
-	}
 
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc;
 	FMemory::Memzero(&SwapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
@@ -72,11 +64,6 @@ void FD3D12Viewport::Init(IDXGIFactory4* Factory, bool AssociateWindow)
 		VERIFYD3D11RESULT(Factory->CreateSwapChain(CommandQueue, &SwapChainDesc, SwapChain.GetInitReference()));
 
 		VERIFYD3D11RESULT(SwapChain->QueryInterface(IID_PPV_ARGS(SwapChain3.GetInitReference())));
-	}
-
-	if (bIsBenchmarkMode)
-	{
-		VERIFYD3D11RESULT(SwapChain3->SetMaximumFrameLatency(NumBackBuffers - 1));
 	}
 
 	if (AssociateWindow)

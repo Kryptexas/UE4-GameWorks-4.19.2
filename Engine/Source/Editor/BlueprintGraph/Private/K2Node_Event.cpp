@@ -50,8 +50,9 @@ void UK2Node_Event::Serialize(FArchive& Ar)
 			EventReference.SetExternalMember(EventSignatureName_DEPRECATED, EventSignatureClass_DEPRECATED);
 		}
 
-		// @TODO: Dev-BP=>Main; gate this with a version check once it makes its way into main
-		//if (Ar.UE4Ver() < VER_UE4_OVERRIDDEN_EVENT_REFERENCE_FIXUP)
+		// @TODO: Ar.IsTransacting() is no longer needed after the version bump done in Dev-BP
+		//if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::OverridenEventReferenceFixup)
+		if (!Ar.IsTransacting())
 		{
 			FixupEventReference();
 		}

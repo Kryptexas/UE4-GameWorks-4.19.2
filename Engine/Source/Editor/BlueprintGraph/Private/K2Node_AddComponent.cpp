@@ -207,6 +207,9 @@ void UK2Node_AddComponent::DestroyNode()
 	UActorComponent* Template = GetTemplateFromNode();
 	if (Template != NULL)
 	{
+		// Save current template state - this is needed in order to ensure that we restore to the correct Outer in the case of a compile prior to the undo/redo action.
+		Template->Modify();
+
 		// Get the blueprint so we can remove it from it
 		UBlueprint* BlueprintObj = GetBlueprint();
 

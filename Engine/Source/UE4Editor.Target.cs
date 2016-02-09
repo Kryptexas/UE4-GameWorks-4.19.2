@@ -33,33 +33,6 @@ public class UE4EditorTarget : TargetRules
 		return true;
 	}
 
-	public override void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
-	{
-		ModuleNames.Add("Launch");
-		ModuleNames.Add("GameMenuBuilder");
-		ModuleNames.Add("JsonUtilities");
-		ModuleNames.Add("RuntimeAssetCache");
-		ModuleNames.Add("UnrealCodeAnalyzerTests");
-		if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
-		{
-			ModuleNames.Add("OnlineSubsystemNull");
-			ModuleNames.Add("OnlineSubsystemAmazon");
-			if (UEBuildConfiguration.bCompileSteamOSS == true)
-			{
-				ModuleNames.Add("OnlineSubsystemSteam");
-			}
-			ModuleNames.Add("OnlineSubsystemFacebook");
-		}
-		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
-		{
-			ModuleNames.Add("OnlineSubsystemNull");
-			if (UEBuildConfiguration.bCompileSteamOSS == true)
-			{
-				ModuleNames.Add("OnlineSubsystemSteam");
-			}
-		}
-	}
-
     public override GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
     {
         var Result = new GUBPProjectOptions();
@@ -130,7 +103,7 @@ public class UE4EditorTarget : TargetRules
         }
 
         //TAPPY CHICKEN
-        List<UnrealTargetPlatform> TappyChickenPlats = null;
+        /*List<UnrealTargetPlatform> TappyChickenPlats = null;
         if (HostPlatform == UnrealTargetPlatform.Mac)
         {
             TappyChickenPlats = new List<UnrealTargetPlatform> { UnrealTargetPlatform.IOS };
@@ -138,7 +111,7 @@ public class UE4EditorTarget : TargetRules
         else
         {
             TappyChickenPlats = new List<UnrealTargetPlatform> { UnrealTargetPlatform.Android };
-        }
+        }*/
 
 		List<UnrealTargetPlatform> TP_2DSideScrollerPlats = null;
 		if (HostPlatform == UnrealTargetPlatform.Mac)
@@ -201,11 +174,12 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("MorphTargets", DesktopPlats);
         NonCodeProjectNames.Add("PostProcessMatinee", DesktopPlats);
         NonCodeProjectNames.Add("SciFiHallway", DesktopPlats);
+		NonCodeProjectNames.Add("ShowdownDemo", DesktopPlats);
 
-        NonCodeProjectNames.Add("BlackJack", DesktopAndMobilePlats);
-        NonCodeProjectNames.Add("MemoryGame", DesktopAndMobilePlats);
-        NonCodeProjectNames.Add("TappyChicken", TappyChickenPlats);
-        NonCodeProjectNames.Add("SwingNinja", TappyChickenPlats);
+        //NonCodeProjectNames.Add("BlackJack", DesktopAndMobilePlats);
+        //NonCodeProjectNames.Add("MemoryGame", DesktopAndMobilePlats);
+        //NonCodeProjectNames.Add("TappyChicken", TappyChickenPlats);
+        //NonCodeProjectNames.Add("SwingNinja", TappyChickenPlats);
         NonCodeProjectNames.Add("SunTemple", DesktopAndMobilePlats);
 
         NonCodeProjectNames.Add("FP_FirstPersonBP", AllSupportedPlats);
@@ -234,17 +208,17 @@ public class UE4EditorTarget : TargetRules
                     new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, false, true),
             };
 
-        var TappyChickenBuildSettings = new List<GUBPFormalBuild>
+        /*var TappyChickenBuildSettings = new List<GUBPFormalBuild>
             {                    
                     new GUBPFormalBuild(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Test, false, true),
                     new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, false, true),
-            };
+            };*/
         #endregion
 
         var NonCodeProjectNames = new Dictionary<string, List<GUBPFormalBuild>>();
 
         //Add Samples to the list with its corresponding settings
-        NonCodeProjectNames.Add("TappyChicken", TappyChickenBuildSettings);
+        //NonCodeProjectNames.Add("TappyChicken", TappyChickenBuildSettings);
         NonCodeProjectNames.Add("SunTemple", SunTempleBuildSettings);
         return NonCodeProjectNames;
     }

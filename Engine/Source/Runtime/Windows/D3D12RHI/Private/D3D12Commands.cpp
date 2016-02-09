@@ -1263,7 +1263,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 		{
 			FD3D12ConstantBuffer* ConstantBuffer = VSConstantBuffers[i];
-			FD3DRHIUtil::CommitConstants<SF_Vertex>(UploadHeapAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+			FD3DRHIUtil::CommitConstants<SF_Vertex>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 		}
 	}
 
@@ -1279,7 +1279,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 			{
 				FD3D12ConstantBuffer* ConstantBuffer = HSConstantBuffers[i];
-				FD3DRHIUtil::CommitConstants<SF_Hull>(UploadHeapAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+				FD3DRHIUtil::CommitConstants<SF_Hull>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 			}
 		}
 
@@ -1289,7 +1289,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 			for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 			{
 				FD3D12ConstantBuffer* ConstantBuffer = DSConstantBuffers[i];
-				FD3DRHIUtil::CommitConstants<SF_Domain>(UploadHeapAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+				FD3DRHIUtil::CommitConstants<SF_Domain>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 			}
 		}
 	}
@@ -1300,7 +1300,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 		{
 			FD3D12ConstantBuffer* ConstantBuffer = GSConstantBuffers[i];
-			FD3DRHIUtil::CommitConstants<SF_Geometry>(UploadHeapAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+			FD3DRHIUtil::CommitConstants<SF_Geometry>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 		}
 	}
 
@@ -1310,7 +1310,7 @@ void FD3D12CommandContext::CommitNonComputeShaderConstants()
 		for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 		{
 			FD3D12ConstantBuffer* ConstantBuffer = PSConstantBuffers[i];
-			FD3DRHIUtil::CommitConstants<SF_Pixel>(UploadHeapAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+			FD3DRHIUtil::CommitConstants<SF_Pixel>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 		}
 	}
 
@@ -1325,7 +1325,7 @@ void FD3D12CommandContext::CommitComputeShaderConstants()
 	for (uint32 i=0;i<MAX_CONSTANT_BUFFER_SLOTS; i++)
 	{
 		FD3D12ConstantBuffer* ConstantBuffer = CSConstantBuffers[i];
-		FD3DRHIUtil::CommitConstants<SF_Compute>(UploadHeapAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
+		FD3DRHIUtil::CommitConstants<SF_Compute>(ConstantsAllocator, ConstantBuffer, StateCache, i, bDiscardSharedConstants);
 	}
 }
 
@@ -1631,7 +1631,7 @@ void FD3D12CommandContext::RHIBeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 
 	PendingVertexDataStride = VertexDataStride;
 
 	// Map the dynamic buffer.
-	OutVertexData = DynamicVB->Lock(NumVertices * VertexDataStride);
+	OutVertexData = DynamicVB.Lock(NumVertices * VertexDataStride);
 }
 
 /**
@@ -1646,7 +1646,7 @@ void FD3D12CommandContext::RHIEndDrawPrimitiveUP()
 	OwningRHI.RegisterGPUWork(PendingNumPrimitives, PendingNumVertices);
 
 	// Unmap the dynamic vertex buffer.
-	FD3D12ResourceLocation* BufferLocation = DynamicVB->Unlock();
+	FD3D12ResourceLocation* BufferLocation = DynamicVB.Unlock();
 	uint32 VBOffset = 0;
 
 	// Issue the draw call.
@@ -1695,8 +1695,8 @@ void FD3D12CommandContext::RHIBeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, 
 	PendingVertexDataStride = VertexDataStride;
 
 	// Map dynamic vertex and index buffers.
-	OutVertexData = DynamicVB->Lock(NumVertices * VertexDataStride);
-	OutIndexData = DynamicIB->Lock(NumIndices * IndexDataStride);
+	OutVertexData = DynamicVB.Lock(NumVertices * VertexDataStride);
+	OutIndexData = DynamicIB.Lock(NumIndices * IndexDataStride);
 }
 
 /**
@@ -1712,8 +1712,8 @@ void FD3D12CommandContext::RHIEndDrawIndexedPrimitiveUP()
 	OwningRHI.RegisterGPUWork(PendingNumPrimitives, PendingNumVertices);
 
 	// Unmap the dynamic buffers.
-	FD3D12ResourceLocation* VertexBufferLocation = DynamicVB->Unlock();
-	FD3D12ResourceLocation* IndexBufferLocation = DynamicIB->Unlock();
+	FD3D12ResourceLocation* VertexBufferLocation = DynamicVB.Unlock();
+	FD3D12ResourceLocation* IndexBufferLocation = DynamicIB.Unlock();
 	uint32 VBOffset = 0;
 
 	// Issue the draw call.
@@ -1730,6 +1730,10 @@ void FD3D12CommandContext::RHIEndDrawIndexedPrimitiveUP()
 	OwningRHI.DrawCount++;
 #endif
 	DEBUG_EXECUTE_COMMAND_LIST(this);
+
+	//It's important to release the locations so the fast alloc page can be freed
+	DynamicVB.ReleaseResourceLocation();
+	DynamicIB.ReleaseResourceLocation();
 
 	// Clear these parameters.
 	PendingPrimitiveType = 0;

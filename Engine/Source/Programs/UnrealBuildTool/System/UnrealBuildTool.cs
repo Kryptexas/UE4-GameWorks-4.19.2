@@ -2008,6 +2008,13 @@ namespace UnrealBuildTool
 								CPPIncludesThread.Start();
 							}
 
+							// If we're not touching any shared files (ie. anything under Engine), allow the build ids to be recycled between applications.
+							bool bModifiedEngineFiles = ActionsToExecute.Any(x => x.ProducedItems.Any(y => y.Reference.IsUnderDirectory(EngineDirectory)));
+							foreach (UEBuildTarget Target in Targets)
+							{
+								Target.RecycleVersionManifests(bModifiedEngineFiles);
+							}
+
 							// Execute the actions.
 							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, BuildConfiguration.bUseUnityBuild? "" : " NonUnity")));
 							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry);

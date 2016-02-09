@@ -9,7 +9,7 @@ D3D12Device.cpp: D3D device RHI implementation.
 	#include <delayimp.h>
 
 	#if D3D12_PROFILING_ENABLED
-		#define USE_PIX 1
+		#define USE_PIX 0
 		#include "pix.h"
 	#endif
 #include "HideWindowsPlatformTypes.h"
@@ -168,9 +168,8 @@ IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer()
 
 #endif // D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE
 
-FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent) :
+FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc) :
 	OwningRHI(*InParent->GetOwningRHI()),
-	UploadHeapAllocator(InParent, D3D12_HEAP_TYPE_UPLOAD),
 	bUsingTessellation(false),
 	PendingNumVertices(0),
 	PendingVertexDataStride(0),
@@ -187,29 +186,26 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent) :
 	CommandListHandle(),
 	CommandAllocator(nullptr),
 	CommandAllocatorManager(InParent, D3D12_COMMAND_LIST_TYPE_DIRECT),
+	FastAllocatorPagePool(InParent, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
+	FastAllocator(InParent, &FastAllocatorPagePool),
+	ConstantsAllocatorPagePool(InParent, InParent->GetConstantBufferPageProperties(), 1024 * 512),
+	ConstantsAllocator(InParent, &ConstantsAllocatorPagePool),
+	DynamicVB(InParent, FastAllocator),
+	DynamicIB(InParent, FastAllocator),
 	FD3D12DeviceChild(InParent)
 {
 	FMemory::Memzero(DirtyUniformBuffers, sizeof(DirtyUniformBuffers));
 
-	UploadHeapAllocator.SetCurrentCommandContext(this);
-
 	// Initialize the constant buffers.
 	InitConstantBuffers();
 
-	// Create the dynamic vertex and index buffers used for Draw[Indexed]PrimitiveUP.
-	DynamicVB = new FD3D12DynamicBuffer(GetParentDevice(), UploadHeapAllocator);
-	DynamicIB = new FD3D12DynamicBuffer(GetParentDevice(), UploadHeapAllocator);
-
-	StateCache.Init(GetParentDevice(), this, nullptr);
+	StateCache.Init(GetParentDevice(), this, nullptr, SubHeapDesc);
 }
 
 FD3D12CommandContext::~FD3D12CommandContext()
 {
 	ClearState();
 	StateCache.Clear();	// Clears its descriptor cache too
-
-	DynamicVB = nullptr;
-	DynamicIB = nullptr;
 
 	// Release references to bound uniform buffers.
 	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
@@ -219,9 +215,6 @@ FD3D12CommandContext::~FD3D12CommandContext()
 			BoundUniformBuffers[Frequency][BindIndex].SafeRelease();
 		}
 	}
-
-	// Release allocators last because when other objects are deleted, they may be returned to an allocator
-	UploadHeapAllocator.ReleaseAllResources();
 }
 
 FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter) :
@@ -247,11 +240,20 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
 	RootSignatureManager(this),
 	CommandListManager(this, D3D12_COMMAND_LIST_TYPE_DIRECT),
 	CopyCommandListManager(this, D3D12_COMMAND_LIST_TYPE_COPY),
-	TextureStreamingCommandAllocatorManager(this, GEnableMultiEngine ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT)
+	TextureStreamingCommandAllocatorManager(this, GEnableMultiEngine ? D3D12_COMMAND_LIST_TYPE_COPY : D3D12_COMMAND_LIST_TYPE_DIRECT),
+	GlobalSamplerHeap(this),
+	GlobalViewHeap(this),
+	FirstFrameSeen(false),
+	DefaultFastAllocatorPagePool(this, D3D12_HEAP_TYPE_UPLOAD, 1024 * 1024 * 4),
+	DefaultFastAllocator(this, &DefaultFastAllocatorPagePool),
+	BufferInitializerFastAllocatorPagePool(this, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
+	BufferInitializerFastAllocator(this, &BufferInitializerFastAllocatorPagePool),
+	DefaultUploadHeapAllocator(this, kManualSubAllocationStrategy, DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT),
+	TextureAllocator(this)
 {
 }
 
-FD3D12DynamicHeapAllocator* FD3D12DynamicRHI::HelperThreadDynamicHeapAllocator = nullptr;
+FD3D12ThreadSafeFastAllocator* FD3D12DynamicRHI::HelperThreadDynamicHeapAllocator = nullptr;
 
 TAutoConsoleVariable<int32> CVarD3D12ZeroBufferSizeInMB(
 	TEXT("d3d12.ZeroBufferSizeInMB"),
@@ -429,9 +431,15 @@ void FD3D12Device::CreateCommandContexts()
 	CommandContextArray.Reserve(NumContexts);
 	FreeCommandContexts.Reserve(NumContexts - 1);
 
+	const uint32 DescriptorSuballocationPerContext = GlobalViewHeap.GetTotalSize() / NumContexts;
+	uint32 CurrentGlobalHeapOffset = 0;
+
 	for (uint32 i = 0; i < NumContexts; ++i)
 	{
-		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this);
+		FD3D12SubAllocatedOnlineHeap::SubAllocationDesc SubHeapDesc(&GlobalViewHeap, CurrentGlobalHeapOffset, DescriptorSuballocationPerContext);
+
+		FD3D12CommandContext* NewCmdContext = new FD3D12CommandContext(this, SubHeapDesc);
+		CurrentGlobalHeapOffset += DescriptorSuballocationPerContext;
 
 		// without that the first RHIClear would get a scissor rect of (0,0)-(0,0) which means we get a draw call clear 
 		NewCmdContext->RHISetScissorRect(false, 0, 0, 0, 0);
@@ -446,6 +454,8 @@ void FD3D12Device::CreateCommandContexts()
 	}
 
 	CommandContextArray[0]->OpenCommandList();
+
+	DefaultUploadHeapAllocator.SetCurrentCommandContext(CommandContextArray[0]);
 }
 
 FD3D12DynamicRHI::~FD3D12DynamicRHI()
@@ -461,7 +471,30 @@ void FD3D12DynamicRHI::Shutdown()
 
 	// Cleanup the D3D devices.
 	MainDevice->CleanupD3DDevice();
+
+	// Take a reference on the ID3D12Device so that we can delete the FD3D12Device
+	// and have it's children correctly release ID3D12* objects via RAII
+	TRefCountPtr<ID3D12Device> Direct3DDevice = MainDevice->GetDevice();
+
 	delete(MainDevice);
+
+	const bool bWithD3DDebug = D3D12RHI_ShouldCreateWithD3DDebug();
+	if (bWithD3DDebug)
+	{
+		TRefCountPtr<ID3D12DebugDevice> Debug;
+
+		if (SUCCEEDED(Direct3DDevice->QueryInterface(IID_PPV_ARGS(Debug.GetInitReference()))))
+		{
+			D3D12_RLDO_FLAGS rldoFlags = D3D12_RLDO_DETAIL;
+
+			Debug->ReportLiveDeviceObjects(rldoFlags);
+		}
+	}
+
+	// Finally remove the ID3D12Device
+	Direct3DDevice = nullptr;
+
+
 	MainDevice = nullptr;
 
 	// Release buffered timestamp queries
@@ -676,6 +709,12 @@ void FD3D12Device::CreateSignatures()
 
 void FD3D12Device::SetupAfterDeviceCreation()
 {
+	DXGI_ADAPTER_DESC* AdapterDesc = GetD3DAdapterDesc();
+
+	// Need to get these early to make vendor-specific decisions in initialization
+	GRHIAdapterName = AdapterDesc->Description;
+	GRHIVendorId = AdapterDesc->VendorId;
+
 	CreateSignatures();
 
 	PipelineStateCache = FD3D12PipelineStateCache(this);
@@ -684,6 +723,9 @@ void FD3D12Device::SetupAfterDeviceCreation()
 
 	PipelineStateCache.Init(GraphicsCacheFile, ComputeCacheFile);
 	PipelineStateCache.RebuildFromDiskCache();
+
+	// Needs to be called before creating command contexts
+	UpdateConstantBufferPageProperties();
 
 	CreateCommandContexts();
 
@@ -697,6 +739,22 @@ void FD3D12Device::SetupAfterDeviceCreation()
 	{
 		UE_LOG(LogD3D12RHI, Log, TEXT("Async texture creation disabled: %s"),
 			D3D12RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
+	}
+}
+
+void FD3D12Device::UpdateConstantBufferPageProperties()
+{
+	//In genera, constant buffers should use write-combine memory (i.e. upload heaps) for optimal performance
+	bool bForceWriteBackConstantBuffers = false;
+
+	if (bForceWriteBackConstantBuffers)
+	{
+		ConstantBufferPageProperties = GetDevice()->GetCustomHeapProperties(0, D3D12_HEAP_TYPE_UPLOAD);
+		ConstantBufferPageProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+	}
+	else
+	{
+		ConstantBufferPageProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	}
 }
 
@@ -722,10 +780,19 @@ void FD3D12Device::CleanupD3DDevice()
 {
 	if (GIsRHIInitialized)
 	{
+		// Execute
+		FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+
 		// Ensure any pending rendering is finished
 		GetCommandListManager().SignalFrameComplete(true);
 
+		// Flush all pending deletes before destroying the device.
+		FRHIResource::FlushPendingDeletes();
+
 		check(Direct3DDevice);
+
+		OwningRHI->OutstandingLocks.Empty();
 
 		PipelineStateCache.Close();
 
@@ -759,8 +826,13 @@ void FD3D12Device::CleanupD3DDevice()
 		CopyCommandListManager.WaitForCommandQueueFlush();
 
 		// Delete array index 0 (the default context) last
-		for (int32 i = CommandContextArray.Num() - 1; i > 0; i--)
+		for (int32 i = CommandContextArray.Num() - 1; i >= 0; i--)
 		{
+			CommandContextArray[i]->FastAllocator.Destroy();
+			CommandContextArray[i]->FastAllocatorPagePool.Destroy();
+			CommandContextArray[i]->ConstantsAllocator.Destroy();
+			CommandContextArray[i]->ConstantsAllocatorPagePool.Destroy();
+
 			delete CommandContextArray[i];
 			CommandContextArray[i] = nullptr;
 		}
@@ -770,11 +842,32 @@ void FD3D12Device::CleanupD3DDevice()
 		// after the above signal frame
 		GetCommandListManager().SignalFrameComplete(true);
 
-		// Cleanup resources
-		DeferredDeletionQueue.Clear();
-
 		// Cleanup the allocator near the end, as some resources may be returned to the allocator
 		DefaultBufferAllocator.FreeDefaultBufferPools();
+
+		DefaultFastAllocator.Destroy();
+		DefaultFastAllocatorPagePool.Destroy();
+		BufferInitializerFastAllocator.Destroy();
+		BufferInitializerFastAllocatorPagePool.Destroy();
+
+		DefaultUploadHeapAllocator.CleanUpAllocations();
+		DefaultUploadHeapAllocator.Destroy();
+
+		// Clean up the asnyc texture thread allocators
+		for (uint32 i = 0; i < GetOwningRHI()->NumThreadDynamicHeapAllocators; i++)
+		{
+			GetOwningRHI()->ThreadDynamicHeapAllocatorArray[i]->Destroy();
+			delete(GetOwningRHI()->ThreadDynamicHeapAllocatorArray[i]);
+		}
+
+		if (GetOwningRHI()->SharedFastAllocPool)
+		{
+			GetOwningRHI()->SharedFastAllocPool->Destroy();
+			delete(GetOwningRHI()->SharedFastAllocPool);
+		}
+
+		TextureAllocator.CleanUpAllocations();
+		TextureAllocator.Destroy();
 		/*
 		// Cleanup thread resources
 		for (uint32 index; (index = InterlockedDecrement(&NumThreadDynamicHeapAllocators)) != (uint32)-1;)
@@ -785,20 +878,13 @@ void FD3D12Device::CleanupD3DDevice()
 		}
 		*/
 
-		// enable the code below to view detailed resource leaks report
-		//TRefCountPtr<ID3D11Debug> d3dDebug;
-		//if (SUCCEEDED(Direct3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)d3dDebug.GetInitReference())))
-		//{
-		//          d3dDebug->ReportLiveDeviceObjects((D3D11_RLDO_FLAGS)0x2);
-		//}
+		// Cleanup resources
+		DeferredDeletionQueue.Clear();
 
 		CommandListManager.Destroy();
 		CopyCommandListManager.Destroy();
 
-		// Flush all pending deletes before destroying the device.
-		FRHIResource::FlushPendingDeletes();
 
-		Direct3DDevice = nullptr;
 	}
 }
 

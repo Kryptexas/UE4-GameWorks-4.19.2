@@ -1574,7 +1574,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-		if (CVar && CVar->GetValueOnGameThread() != 0)
+		if ((Platform == EShaderPlatform::SP_PCD3D_SM5 || Platform == EShaderPlatform::SP_PS4) && (CVar && CVar->GetValueOnGameThread() != 0))
 		{
 			KeyString += TEXT("_VRIS");
 		}

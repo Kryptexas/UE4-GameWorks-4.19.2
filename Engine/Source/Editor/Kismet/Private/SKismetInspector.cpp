@@ -669,6 +669,19 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	}
 
 	bool bEditOnTemplateDisabled = Property.HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
+	if (bEditOnTemplateDisabled)
+	{
+		// Only hide properties if we are editing a CDO
+		for (const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects)
+		{
+			UObject* Object = Cast<UObject>(SelectedObject.Get());
+			if (!Object->HasAllFlags(RF_ClassDefaultObject))
+			{
+				bEditOnTemplateDisabled = false;
+				break;
+			}
+		}
+	}
 
 	if(const UClass* OwningClass = Cast<UClass>(Property.GetOuter()))
 	{

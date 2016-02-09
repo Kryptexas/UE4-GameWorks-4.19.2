@@ -130,7 +130,7 @@ public class APEX : ModuleRules
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
 				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb"));
+				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb", true));
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
@@ -154,7 +154,7 @@ public class APEX : ModuleRules
 			{
 				string FileName = ApexBinariesDir + String.Format(RuntimeDependency, LibrarySuffix);
 				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb"));
+				RuntimeDependencies.Add(new RuntimeDependency(FileName + ".pdb", true));
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
