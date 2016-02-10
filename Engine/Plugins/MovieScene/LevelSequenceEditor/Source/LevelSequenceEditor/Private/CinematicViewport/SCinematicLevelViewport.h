@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "LevelEditorViewport.h"
 #include "SEditorViewport.h"
+
 
 class FLevelSequenceEditorToolkit;
 class ISequencer;
@@ -10,12 +12,14 @@ class SCinematicTransportRange;
 class FLevelViewportLayout;
 struct FTypeInterfaceProxy;
 
+
 /** Overridden level viewport client for this viewport */
 struct FCinematicViewportClient : FLevelEditorViewportClient
 {
 	FCinematicViewportClient();
 	virtual bool IsLevelEditorClient() const override { return true; }
 };
+
 
 /** struct containing UI data - populated once per frame */
 struct FUIData
@@ -34,6 +38,7 @@ struct FUIData
 	FText MasterEndText;
 };
 
+
 /** Enum specifying different camera modes */
 enum class ECinematicCameraMode
 {
@@ -41,6 +46,7 @@ enum class ECinematicCameraMode
 	Auto,
 	SpecificCamera
 };
+
 
 class SCinematicLevelViewport : public SCompoundWidget
 {
