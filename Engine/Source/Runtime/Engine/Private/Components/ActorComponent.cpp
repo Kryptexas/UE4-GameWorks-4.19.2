@@ -147,9 +147,6 @@ void UActorComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	// This prevents unneccesary child actor reconstruction during PIE.
-	bHasBeenCreated = true;
-
 	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
 		if (IsTemplate())
@@ -1620,6 +1617,16 @@ void UActorComponent::HandleCanEverAffectNavigationChange(bool bForceUpdate)
 		{
 			UNavigationSystem::OnComponentUnregistered(this);
 		}
+	}
+}
+
+void UActorComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && (Ar.HasAnyPortFlags(PPF_DuplicateForPIE)||!Ar.HasAnyPortFlags(PPF_Duplicate)))
+	{
+		bHasBeenCreated = true;
 	}
 }
 
