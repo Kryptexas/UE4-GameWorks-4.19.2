@@ -147,6 +147,9 @@ void UActorComponent::PostLoad()
 {
 	Super::PostLoad();
 
+	// This prevents unneccesary child actor reconstruction during PIE.
+	bHasBeenCreated = true;
+
 	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
 		if (IsTemplate())

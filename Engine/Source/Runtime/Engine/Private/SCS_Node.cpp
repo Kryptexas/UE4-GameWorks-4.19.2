@@ -86,7 +86,10 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 		}
 
 		// Call function to notify component it has been created
-		NewActorComp->OnComponentCreated();
+		if (!NewActorComp->HasBeenCreated())
+		{
+			NewActorComp->OnComponentCreated();
+		}
 
 		if (NewActorComp->GetIsReplicated())
 		{
