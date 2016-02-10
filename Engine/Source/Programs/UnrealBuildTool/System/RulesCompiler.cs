@@ -225,6 +225,11 @@ namespace UnrealBuildTool
 			/// Any editor targets.
 			/// </summary>
 			Editor,
+
+			/// <summary>
+			/// Any targets.
+			/// </summary>
+			Any,
 		}
 
 		/// <summary>

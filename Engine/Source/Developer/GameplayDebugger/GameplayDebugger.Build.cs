@@ -64,7 +64,7 @@ namespace UnrealBuildTool.Rules
                 PrivateDependencyModuleNames.Add("Navmesh");
             }
 
-			PrecompileForTargets = PrecompileTargetsType.Editor;
+			PrecompileForTargets = PrecompileTargetsType.Any;
         }
     }
 }
