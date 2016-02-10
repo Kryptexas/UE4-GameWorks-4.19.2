@@ -998,10 +998,14 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 
 		if (ResourceObjectProperty.IsValid() && ResourceObjectProperty->GetProperty())
 		{
-		ResourceObjectProperty->AccessRawData(RawData);
+			ResourceObjectProperty->AccessRawData(RawData);
 
-		check(RawData[0] != NULL);
-			TemporaryBrush = *static_cast<FSlateBrush*>(RawData[0]);
+			// RawData will be empty when creating a new Data Table, an idiosyncrasy
+			// of the Data Table Editor...
+			if (RawData.Num() > 0)
+			{
+				TemporaryBrush = *static_cast<FSlateBrush*>(RawData[0]);
+			}
 		}
 	}
 
