@@ -667,10 +667,17 @@ void FBlueprintEditorUtils::PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Lin
 			EObjectFlags OldObjectFlags = OldCDO->GetFlags();
 			OldCDO->ClearFlags(RF_NeedLoad|RF_NeedPostLoad);
 			OldCDO->SetLinker(NULL, INDEX_NONE);
+			
 			// Copy flags from the old CDO.
 			CDO->SetFlags(OldObjectFlags);
-			// Make sure the new CDO gets PostLoad called on it so add it to ObjLoaded list.
-			if (OldObjectFlags & RF_NeedPostLoad)
+
+			// Make sure the new CDO gets PostLoad called on it, so either add it to ObjLoaded list, or replace it if already present.
+			int32 ObjLoadedIdx = ObjLoaded.Find(OldCDO);
+			if (ObjLoadedIdx != INDEX_NONE)
+			{
+				ObjLoaded[ObjLoadedIdx] = CDO;
+			}
+			else if (OldObjectFlags & RF_NeedPostLoad)
 			{
 				ObjLoaded.Add(CDO);
 			}
