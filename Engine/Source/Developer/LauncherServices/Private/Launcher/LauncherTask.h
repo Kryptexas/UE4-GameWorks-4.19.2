@@ -197,7 +197,7 @@ public:
 		// this can be called by anyone
 		bCancelling = true;
 
-		if (Status == ELauncherTaskStatus::Pending)
+		if (Status == ELauncherTaskStatus::Pending || Status == ELauncherTaskStatus::Completed)
 		{
 			Status = ELauncherTaskStatus::Canceled;
 			CancelContinuations();
