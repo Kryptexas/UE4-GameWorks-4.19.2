@@ -679,7 +679,14 @@ public:
 		: Super  (NoInit)
 		, Storage(MoveTemp(Other.Storage))
 	{
-		Super::CopyAndReseat(Other, Storage.GetBoundObject()->GetAddress());
+		if (UE4Function_Private::IFunction_OwnedObject* Func = Storage.GetBoundObject())
+		{
+			Super::CopyAndReseat(Other, Func->GetAddress());
+		}
+		else
+		{
+			Super::Unset();
+		}
 
 		Other.Unset();
 	}
