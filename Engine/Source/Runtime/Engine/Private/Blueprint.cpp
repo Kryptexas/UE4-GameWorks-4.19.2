@@ -425,7 +425,9 @@ bool UBlueprint::RenameGeneratedClasses( const TCHAR* InName, UObject* NewOuter,
 
 bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
-	// Move generated class to the new package, to create redirector
+	const FName OldName = GetFName();
+
+	// Move generated class/CDO to the new package, to create redirectors
 	if ( !RenameGeneratedClasses(InName, NewOuter, Flags) )
 	{
 		return false;
@@ -433,8 +435,8 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
 
-	// Finally, do a compile 
-	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty))
+	// Finally, do a compile, but only if the new name differs from before
+	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty) && InName != OldName)
 	{
 		// Gather all blueprints that currently depend on this one.
 		TArray<UBlueprint*> Dependents;

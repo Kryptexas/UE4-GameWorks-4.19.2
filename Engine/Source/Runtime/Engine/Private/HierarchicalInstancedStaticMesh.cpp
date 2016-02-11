@@ -620,12 +620,14 @@ static FAutoConsoleCommand UnFreezeFoliageCullingCmd(
 
 struct FFoliageOcclusionResults
 {
-	const bool* Results;
+	TArray<bool>* Results;
+	int32 ResultsStart;
 	int32 NumResults;
 	uint32 FrameNumberRenderThread;
 
-	FFoliageOcclusionResults(const bool* InResults, int32 InNumResults)
+	FFoliageOcclusionResults(TArray<bool>* InResults, int32 InResultsStart, int32 InNumResults)
 		: Results(InResults)
+		, ResultsStart(InResultsStart)
 		, NumResults(InNumResults)
 		, FrameNumberRenderThread(GFrameNumberRenderThread)
 	{
@@ -767,7 +769,7 @@ public:
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 
 	virtual const TArray<FBoxSphereBounds>* GetOcclusionQueries(const FSceneView* View) const override;
-	virtual void AcceptOcclusionResults(const FSceneView* View, const bool* Results, int32 NumResults) override;
+	virtual void AcceptOcclusionResults(const FSceneView* View, TArray<bool>* Results, int32 ResultsStart, int32 NumResults) override;
 	virtual bool HasSubprimitiveOcclusionQueries() const override
 	{
 		return FirstOcclusionNode > 0;
@@ -853,7 +855,8 @@ struct FFoliageCullInstanceParams : public FFoliageRenderInstanceParams
 	float LODPlanesMin[MAX_STATIC_MESH_LODS];
 	int32 FirstOcclusionNode;
 	int32 LastOcclusionNode;
-	const bool* OcclusionResults;
+	TArray<bool>* OcclusionResults;
+	int32 OcclusionResultsStart;
 
 
 
@@ -863,6 +866,7 @@ struct FFoliageCullInstanceParams : public FFoliageRenderInstanceParams
 	,	FirstOcclusionNode(-1)
 	,	LastOcclusionNode(-1)
 	,	OcclusionResults(nullptr)
+	,	OcclusionResultsStart(0)
 	{
 	}
 };
@@ -1001,7 +1005,9 @@ void FHierarchicalStaticMeshSceneProxy::Traverse(const FFoliageCullInstanceParam
 	}
 	if (Index >= Params.FirstOcclusionNode && Index <= Params.LastOcclusionNode)
 	{
-		if (Params.OcclusionResults[Index - Params.FirstOcclusionNode])
+		check(Params.OcclusionResults != NULL);
+		TArray<bool>& OcclusionResultsArray = *Params.OcclusionResults;
+		if (OcclusionResultsArray[Params.OcclusionResultsStart + Index - Params.FirstOcclusionNode])
 		{
 			INC_DWORD_STAT_BY(STAT_OcclusionCulledFoliageInstances, 1 + Node.LastInstance - Node.FirstInstance);
 			return;
@@ -1403,6 +1409,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 						InstanceParams.FirstOcclusionNode = FirstOcclusionNode;
 						InstanceParams.LastOcclusionNode = LastOcclusionNode;
 						InstanceParams.OcclusionResults = OldResults->Results;
+						InstanceParams.OcclusionResultsStart = OldResults->ResultsStart;
 					}
 				}
 
@@ -1589,8 +1596,8 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 	}
 }
 
-void FHierarchicalStaticMeshSceneProxy::AcceptOcclusionResults(const FSceneView* View, const bool* Results, int32 NumResults)
-{
+void FHierarchicalStaticMeshSceneProxy::AcceptOcclusionResults(const FSceneView* View, TArray<bool>* Results, int32 ResultsStart, int32 NumResults)
+{ 
 	// Don't accept subprimitive occlusion results from a previously-created sceneproxy - the tree may have been different
 	if (OcclusionBounds.Num() == NumResults && SceneProxyCreatedFrameNumberRenderThread < GFrameNumberRenderThread)
 	{
@@ -1600,6 +1607,7 @@ void FHierarchicalStaticMeshSceneProxy::AcceptOcclusionResults(const FSceneView*
 		{
 			OldResults->FrameNumberRenderThread = GFrameNumberRenderThread;
 			OldResults->Results = Results;
+			OldResults->ResultsStart = ResultsStart;
 			OldResults->NumResults = NumResults;
 		}
 		else
@@ -1612,7 +1620,7 @@ void FHierarchicalStaticMeshSceneProxy::AcceptOcclusionResults(const FSceneView*
 					Iter.RemoveCurrent();
 				}
 			}
-			OcclusionResults.Add(ViewId, FFoliageOcclusionResults(Results, NumResults));
+			OcclusionResults.Add(ViewId, FFoliageOcclusionResults(Results, ResultsStart, NumResults));
 		}
 	}
 }

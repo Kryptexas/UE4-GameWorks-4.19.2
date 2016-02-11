@@ -992,14 +992,14 @@ namespace UnrealBuildTool
 					// generate the dummy project so signing works
 					if (AppName == "UE4Game" || AppName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + AppName + ".uproject", Path.GetFullPath("../..")))
 					{
-						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk" });
-						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcworkspace";
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms=" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS"), "-NoIntellIsense", "-iosdeployonly", "-ignorejunk" });
+						Project = Path.GetFullPath("../..") + "/UE4_" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + ".xcworkspace";
 						SchemeName = "UE4";
 					}
 					else
 					{
-						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk", "-project=\"" + Target.ProjectDirectory + "/" + AppName + ".uproject\"", "-game"});
-						Project = Target.ProjectDirectory + "/" + AppName + "_IOS.xcworkspace";
+						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(Target.ProjectFile), new string[] { "-platforms" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS"), "-NoIntellIsense", "-iosdeployonly", "-ignorejunk", "-project=\"" + Target.ProjectDirectory + "/" + AppName + ".uproject\"", "-game" });
+						Project = Target.ProjectDirectory + "/" + AppName + "_" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + ".xcworkspace";
 					}
 
 					if (Directory.Exists(Project))
@@ -1020,7 +1020,7 @@ namespace UnrealBuildTool
 										" -configuration \"" + ConfigName + "\"" +
 										" -scheme '" + SchemeName + "'" +
 										" -sdk " + PlatformContext.GetCodesignPlatformName() +
-										" -destination generic/platform=iOS" +
+										" -destination generic/platform=" + (CppPlatform == CPPTargetPlatform.IOS ? "iOS" : "tvOS") +
 										" CODE_SIGN_IDENTITY=\"iPhone Developer\"";
 
 						Console.WriteLine("Code signing with command line: " + CmdLine);
@@ -1037,7 +1037,7 @@ namespace UnrealBuildTool
 						Utils.RunLocalProcess(SignProcess);
 
 						// delete the temp project
-						if (Project.Contains("_IOS.xcodeproj"))
+						if (Project.Contains("_" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + ".xcodeproj"))
 						{
 							Directory.Delete(Project, true);
 						}
@@ -1054,7 +1054,7 @@ namespace UnrealBuildTool
 
 				{
 					// Copy bundled assets from additional frameworks to the intermediate assets directory (so they can get picked up during staging)
-					String LocalFrameworkAssets = Path.GetFullPath(Target.ProjectDirectory + "/Intermediate/IOS/FrameworkAssets");
+					String LocalFrameworkAssets = Path.GetFullPath(Target.ProjectDirectory + "/Intermediate/" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + "/FrameworkAssets");
 
 					// Clean the local dest directory if it exists
 					CleanIntermediateDirectory(LocalFrameworkAssets);
@@ -1137,7 +1137,7 @@ namespace UnrealBuildTool
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
 					// ensure the plist, entitlements, and provision files are properly copied
-					var DeployHandler = new UEDeployIOS();
+					var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
 					DeployHandler.PrepTargetForDeployment(Target);
 
 					if (!bUseDangerouslyFastMode)
@@ -1258,7 +1258,7 @@ namespace UnrealBuildTool
 
 				{
 					// Copy bundled assets from additional frameworks to the intermediate assets directory (so they can get picked up during staging)
-					String LocalFrameworkAssets = Path.GetFullPath(Target.ProjectDirectory + "/Intermediate/IOS/FrameworkAssets");
+					String LocalFrameworkAssets = Path.GetFullPath(Target.ProjectDirectory + "/Intermediate/" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + "/FrameworkAssets");
 					String RemoteFrameworkAssets = ConvertPath(LocalFrameworkAssets);
 
 					CleanIntermediateDirectory(RemoteFrameworkAssets);
@@ -1314,7 +1314,7 @@ namespace UnrealBuildTool
 					try
 					{
 						string BinaryDir = Path.GetDirectoryName(Target.OutputPath.FullName) + "\\";
-						if (BinaryDir.EndsWith(Target.AppName + "\\Binaries\\IOS\\") && Target.TargetType != TargetRules.TargetType.Game)
+						if (BinaryDir.EndsWith(Target.AppName + "\\Binaries\\" + (CppPlatform == CPPTargetPlatform.IOS ? "IOS" : "TVOS") + "\\") && Target.TargetType != TargetRules.TargetType.Game)
 						{
 							BinaryDir = BinaryDir.Replace(Target.TargetType.ToString(), "Game");
 						}

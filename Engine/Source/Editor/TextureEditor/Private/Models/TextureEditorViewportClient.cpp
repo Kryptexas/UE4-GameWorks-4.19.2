@@ -154,6 +154,22 @@ bool FTextureEditorViewportClient::InputKey(FViewport* Viewport, int32 Controlle
 }
 
 
+bool FTextureEditorViewportClient::InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta)
+{
+	const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton);
+	const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
+
+	if (GestureType == EGestureEvent::Scroll && !LeftMouseButtonDown && !RightMouseButtonDown)
+	{
+		double CurrentZoom = TextureEditorPtr.Pin()->GetZoom();
+		TextureEditorPtr.Pin()->SetZoom(CurrentZoom + GestureDelta.Y * 0.01);
+		return true;
+	}
+
+	return false;
+}
+
+
 void FTextureEditorViewportClient::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject(CheckerboardTexture);

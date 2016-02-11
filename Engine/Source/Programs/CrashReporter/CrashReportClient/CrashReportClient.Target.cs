@@ -89,6 +89,9 @@ public class CrashReportClientTarget : TargetRules
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 
 		UEBuildConfiguration.bUseChecksInShipping = true;
+
+		// Epic Games Launcher needs to run on OS X 10.9, so CrashReportClient needs this as well
+		OutCPPEnvironmentConfiguration.bEnableOSX109Support = true;
 	}
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
 	{

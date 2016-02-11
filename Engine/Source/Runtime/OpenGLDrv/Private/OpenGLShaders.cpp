@@ -615,6 +615,13 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 				}
 			}
 
+			if (!GSupportsShaderFramebufferFetch && TypeEnum == GL_FRAGMENT_SHADER)
+			{
+				// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
+				// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
+				AppendCString(GlslCode, "#undef GL_EXT_shader_framebuffer_fetch\n");
+			}
+
 			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
 			if (FOpenGL::UseES30ShadingLanguage())
 			{
@@ -651,7 +658,11 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 						"#define textureCubeLodEXT textureLod \n"
 						"\n"
 						"#define gl_FragColor out_FragColor \n"
-						"out mediump vec4 out_FragColor; \n");
+						"#ifdef EXT_shader_framebuffer_fetch_enabled \n"
+						"inout mediump vec4 out_FragColor; \n"
+						"#else \n"
+						"out mediump vec4 out_FragColor; \n"
+						"#endif \n");
 
 					ReplaceCString(GlslCodeOriginal, "varying", "in");
 				}
@@ -732,7 +743,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 			glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		}
 #endif
-#if PLATFORM_HTML5 && !UE_BUILD_SHIPPING
+#if (PLATFORM_HTML5 || PLATFORM_ANDROID) && !UE_BUILD_SHIPPING
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 		if (CompileStatus == GL_FALSE)
 		{

@@ -71,6 +71,11 @@ namespace D3D12RHI
 
 using namespace D3D12RHI;
 
+class FD3D12Resource;
+
+void SetName(ID3D12Object* const Object, const TCHAR* const Name);
+void SetName(FD3D12Resource* const Resource, const TCHAR* const Name);
+
 enum EShaderVisibility
 {
 	SV_Vertex,
@@ -268,8 +273,6 @@ FORCEINLINE uint32 CalcSubresource(uint32 MipSlice, uint32 ArraySlice, uint32 Mi
 {
 	return MipSlice + ArraySlice * MipLevels;
 }
-
-class FD3D12Resource;
 
 /**
  * Keeps track of Locks for D3D11 objects
@@ -543,6 +546,8 @@ private: // Methods
 	{
 		TRefCountPtr<ID3D12DescriptorHeap> Heap;
 		VERIFYD3D11RESULT(m_pDevice->CreateDescriptorHeap(&m_Desc, IID_PPV_ARGS(Heap.GetInitReference())));
+		SetName(Heap, L"FDescriptorHeapManager Descriptor Heap");
+
 		HeapOffset HeapBase = Heap->GetCPUDescriptorHandleForHeapStart();
 		check(HeapBase.ptr != 0);
 
@@ -836,7 +841,6 @@ private:
 	FD3D12Fence* Fence;
 	uint64 Value;
 };
-
 
 static bool IsBlockCompressFormat(DXGI_FORMAT Format)
 {

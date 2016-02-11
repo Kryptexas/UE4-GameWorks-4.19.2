@@ -271,7 +271,7 @@ struct FLightMapAllocation
 		}
 	}
 
-	FLightMap2D*	LightMap;
+	TRefCountPtr<FLightMap2D> LightMap;
 
 	UObject*		Primitive;
 	int32			InstanceIndex;
@@ -1578,7 +1578,7 @@ static uint32 PendingLightMapSize = 0;
 /** If true, update the status when encoding light maps */
 bool FLightMap2D::bUpdateStatus = true;
 
-FLightMap2D* FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLightmapData*& SourceQuantizedData, const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags)
+TRefCountPtr<FLightMap2D> FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLightmapData*& SourceQuantizedData, const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags)
 {
 	// If the light-map has no lights in it, return NULL.
 	if (!SourceQuantizedData)
@@ -1597,7 +1597,7 @@ FLightMap2D* FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLig
 	}
 
 	// Create a new light-map.
-	FLightMap2D* LightMap = new FLightMap2D(SourceQuantizedData->LightGuids);
+	TRefCountPtr<FLightMap2D> LightMap = TRefCountPtr<FLightMap2D>(new FLightMap2D(SourceQuantizedData->LightGuids));
 
 	// Create allocation and add it to the group
 	{
@@ -1641,7 +1641,7 @@ FLightMap2D* FLightMap2D::AllocateLightMap(UObject* LightMapOuter, FQuantizedLig
 #endif // WITH_EDITOR
 }
 
-FLightMap2D* FLightMap2D::AllocateInstancedLightMap(UInstancedStaticMeshComponent* Component, TArray<TUniquePtr<FQuantizedLightmapData>> InstancedSourceQuantizedData,
+TRefCountPtr<FLightMap2D> FLightMap2D::AllocateInstancedLightMap(UInstancedStaticMeshComponent* Component, TArray<TUniquePtr<FQuantizedLightmapData>> InstancedSourceQuantizedData,
 	const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags InLightmapFlags)
 {
 #if WITH_EDITOR
@@ -1775,14 +1775,14 @@ FLightMap2D* FLightMap2D::AllocateInstancedLightMap(UInstancedStaticMeshComponen
 		AllocationGroup.LightmapFlags = ELightMapFlags(AllocationGroup.LightmapFlags & ~LMF_Streamed);
 	}
 
-	FLightMap2D* BaseLightmap = nullptr;
+	TRefCountPtr<FLightMap2D> BaseLightmap = nullptr;
 
 	for (int32 InstanceIndex = 0; InstanceIndex < InstancedSourceQuantizedData.Num(); ++InstanceIndex)
 	{
 		auto& SourceQuantizedData = InstancedSourceQuantizedData[InstanceIndex];
 
 		// Create a new light-map.
-		FLightMap2D* LightMap = new FLightMap2D(SourceQuantizedData->LightGuids);
+		TRefCountPtr<FLightMap2D> LightMap = TRefCountPtr<FLightMap2D>(new FLightMap2D(SourceQuantizedData->LightGuids));
 
 		if (InstanceIndex == 0)
 		{
@@ -1799,7 +1799,7 @@ FLightMap2D* FLightMap2D::AllocateInstancedLightMap(UInstancedStaticMeshComponen
 
 		TUniquePtr<FLightMapAllocation> Allocation = MakeUnique<FLightMapAllocation>(MoveTemp(*SourceQuantizedData));
 		Allocation->PaddingType = InPaddingType;
-		Allocation->LightMap = LightMap;
+		Allocation->LightMap = MoveTemp(LightMap);
 		Allocation->Primitive = Component;
 		Allocation->InstanceIndex = InstanceIndex;
 

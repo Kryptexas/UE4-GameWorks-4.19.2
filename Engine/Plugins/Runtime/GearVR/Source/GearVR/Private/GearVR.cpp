@@ -1271,8 +1271,8 @@ bool FGearVRPlugin::IsInLoadingIconMode() const
 
 		return OculusHMD->IsInLoadingIconMode();
 	}
-	return false;
 #endif //GEARVR_SUPPORTED_PLATFORMS
+	return false;
 }
 
 #if GEARVR_SUPPORTED_PLATFORMS

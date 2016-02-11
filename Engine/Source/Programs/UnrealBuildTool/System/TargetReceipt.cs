@@ -64,25 +64,33 @@ namespace UnrealBuildTool
 		/// </summary>
 		public string StagePath;
 
+		/// <summary>
+		/// Whether we should ignore this file if missing. Typically useful for optional support files, such as PDBs.
+		/// </summary>
+		public bool bIgnoreIfMissing;
+
 		private RuntimeDependency()
 		{
 		}
 
-		public RuntimeDependency(string InPath)
+		public RuntimeDependency(string InPath, bool bInIgnoreIfMissing = false)
 		{
 			Path = InPath;
+			bIgnoreIfMissing = bInIgnoreIfMissing;
 		}
 
-		public RuntimeDependency(string InPath, string InStagePath)
+		public RuntimeDependency(string InPath, string InStagePath, bool bInIgnoreIfMissing = false)
 		{
 			Path = InPath;
 			StagePath = InStagePath;
+			bIgnoreIfMissing = bInIgnoreIfMissing;
 		}
 
 		public RuntimeDependency(RuntimeDependency InOther)
 		{
 			Path = InOther.Path;
 			StagePath = InOther.StagePath;
+			bIgnoreIfMissing = InOther.bIgnoreIfMissing;
 		}
 
 		public override string ToString()
@@ -210,10 +218,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Path">Source path for the dependency</param>
 		/// <param name="StagePath">Location for the dependency in the staged build</param>
+		/// <param name="bIgnoreIfMissing">Whether to ignore this dependency if the source file is not present</param>
 		/// <returns>The RuntimeDependency object that was created</returns>
-		public RuntimeDependency AddRuntimeDependency(string Path, string StagePath)
+		public RuntimeDependency AddRuntimeDependency(string Path, string StagePath, bool bIgnoreIfMissing = false)
 		{
-			RuntimeDependency NewRuntimeDependency = new RuntimeDependency(Path, StagePath);
+			RuntimeDependency NewRuntimeDependency = new RuntimeDependency(Path, StagePath, bIgnoreIfMissing);
 			RuntimeDependencies.Add(NewRuntimeDependency);
 			return NewRuntimeDependency;
 		}
@@ -396,7 +405,12 @@ namespace UnrealBuildTool
 						{
 							StagePath = null;
 						}
-						Receipt.AddRuntimeDependency(Path, StagePath);
+						bool bIgnoreIfMissing;
+						if(!RuntimeDependencyObject.TryGetBoolField("IgnoreIfMissing", out bIgnoreIfMissing))
+						{
+							bIgnoreIfMissing = false;
+						}
+						Receipt.AddRuntimeDependency(Path, StagePath, bIgnoreIfMissing);
 					}
 				}
 			}
@@ -486,6 +500,10 @@ namespace UnrealBuildTool
 					if (RuntimeDependency.StagePath != null)
 					{
 						Writer.WriteValue("StagePath", RuntimeDependency.StagePath);
+					}
+					if (RuntimeDependency.bIgnoreIfMissing)
+					{
+						Writer.WriteValue("IgnoreIfMissing", RuntimeDependency.bIgnoreIfMissing);
 					}
 					Writer.WriteObjectEnd();
 				}

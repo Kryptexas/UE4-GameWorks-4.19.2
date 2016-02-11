@@ -32,7 +32,7 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 	PrimaryComponentTick.bCanEverTick = false;
 	PostPhysicsComponentTick.bCanEverTick = false;
 
-	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::EvenIfNotCollidable;
+	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
 	BodyInstance.SetUseAsyncScene(true);
 	static FName CollisionProfileName(TEXT("Destructible"));

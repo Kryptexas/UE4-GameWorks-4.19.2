@@ -68,6 +68,9 @@ public class UnrealCEFSubProcessTarget : TargetRules
 
 		// Disable logging, as the sub processes are spawned often and logging will just slow them down
 		OutCPPEnvironmentConfiguration.Definitions.Add("ALLOW_LOG_FILE=0");
+
+		// Epic Games Launcher needs to run on OS X 10.9, so CEFSubProcess needs this as well
+		OutCPPEnvironmentConfiguration.bEnableOSX109Support = true;
 	}
 
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)

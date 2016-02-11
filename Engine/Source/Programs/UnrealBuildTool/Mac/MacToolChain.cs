@@ -38,14 +38,9 @@ namespace UnrealBuildTool
 		public static string MacOSVersion = "10.9";
 
 		/// <summary>
-		/// Minimum version of Mac OS X for games to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
+		/// Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
 		/// </summary>
-		public static string MinMacOSVersionGame = "10.9.5";
-
-		/// <summary>
-		/// Minimum version of Mac OS X for the editor to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
-		/// </summary>
-		public static string MinMacOSVersionEditor = "10.10.5";
+		public static string MinMacOSVersion = "10.10.5";
 
 		/// <summary>
 		/// Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode
@@ -159,7 +154,7 @@ namespace UnrealBuildTool
 
 			Result += " -arch x86_64";
 			Result += " -isysroot " + BaseSDKDir + "/MacOSX" + MacOSSDKVersion + ".sdk";
-			Result += " -mmacosx-version-min=" + MacOSVersion;
+			Result += " -mmacosx-version-min=" + (CompileEnvironment.Config.bEnableOSX109Support ? "10.9" : MacOSVersion);
 
 			// Optimize non- debug builds.
             // Don't optimise if using AddressSanitizer or you'll get false positive errors due to erroneous optimisation of necessary AddressSanitizer instrumentation.
@@ -1098,7 +1093,7 @@ namespace UnrealBuildTool
 					// Fix contents of Info.plist
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{1}.app/Contents/Info.plist\"", "{EXECUTABLE_NAME}", ExeName);
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{APP_NAME}", GameName, ExeName);
-					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", bBuildingEditor ? MinMacOSVersionEditor : MinMacOSVersionGame, ExeName);
+					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", MinMacOSVersion, ExeName);
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{ICON_NAME}", GameName, ExeName);
 					AppendMacLine(FinalizeAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{BUNDLE_VERSION}", BundleVersion, ExeName);
 

@@ -204,7 +204,7 @@ public:
 	 * @param Results - visibility results, allocated from the scene allocator, so valid until the end of the frame
 	 * @param NumResults - number of visibility bools
 	 */
-	virtual void AcceptOcclusionResults(const FSceneView* View, const bool* Results, int32 NumResults) {}
+	virtual void AcceptOcclusionResults(const FSceneView* View, TArray<bool>* Results, int32 ResultsStart, int32 NumResults) {}
 
 	/**
 	 * Determines the relevance of this primitive's elements to the given view.
