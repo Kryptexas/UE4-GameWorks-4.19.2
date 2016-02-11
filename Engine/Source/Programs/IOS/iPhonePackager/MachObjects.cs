@@ -1374,6 +1374,125 @@ namespace MachObjectHandling
 		}
 	}
 
+	public class RequirementBlob : OpaqueBlob
+	{
+		const int kReqExpression = 1;
+
+		const int kOpIdent = 2;
+		const int kOpAnd = 6;
+		const int kOpCertField = 11;
+		const int kOpCertGeneric = 14;
+		const int kOpGenericAnchor = 15;
+	
+		const int kMatchExists = 0;
+		const int kMatchEqual = 1;
+
+		string BundleIdentifier = "";
+		string CertificateName = "";
+		int CertificateIndex = 0;
+		byte[] OID = new byte[] { 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x63, 0x64, 0x06, 0x02, 0x01 };
+		int OIDIndex = 1;
+
+		const string FieldName = "subject.CN";
+
+		public RequirementBlob()
+		{
+			MyMagic = CSMAGIC_REQUIREMENT;
+		}
+
+		public static RequirementBlob CreateFromCertificate(X509Certificate2 SigningCert, string Bundle)
+		{
+			RequirementBlob Blob = new RequirementBlob();
+			Blob.InitializeFromCert(SigningCert, Bundle);
+			return Blob;
+		}
+
+		protected void InitializeFromCert(X509Certificate2 SigningCert, string Bundle)
+		{
+			BundleIdentifier = Bundle;
+			CertificateName = SigningCert.FriendlyName;
+		}
+
+		protected override void PackageData(WritingContext SW)
+		{
+			SW.Write(kReqExpression);									// it's a requirement expression
+			SW.Write(kOpAnd);											// AND operation
+			SW.Write(kOpIdent);											// requires bundle identifier
+			SW.Write(BundleIdentifier.Length);							// bundle identifier length
+			SW.Write(Utilities.CreateASCIIZ(BundleIdentifier));			// bundle identifier string
+			int Count = (BundleIdentifier.Length+1) % 4;					// may need to pad to alignment of 4 bytes
+			if (Count > 0 && Count < 4)
+				SW.WriteZeros(4 - Count);
+
+			SW.Write(kOpAnd);											// AND operation
+			SW.Write(kOpGenericAnchor);									// requires Apple certificate somewhere in the signing data
+			SW.Write(kOpAnd);											// AND operation
+			SW.Write(kOpCertField);										// requires a signing certificate where the subject.cn matches the certificate name
+			SW.Write(CertificateIndex);									// index in the mobile provision certificate list (always 0 for now)
+			SW.Write(FieldName.Length);									// field name length
+			SW.Write(Utilities.CreateASCIIZ(FieldName));				// field name to match
+			Count = (FieldName.Length+1) % 4;								// may need to pad to alignment of 4 bytes
+			if (Count > 0 && Count < 4)
+				SW.WriteZeros(4 - Count);
+			
+			// may need to pad to alignment of 4 bytes
+			SW.Write(kMatchEqual);										// must equal
+			SW.Write(CertificateName.Length);							// length of certficate name
+			SW.Write(Utilities.CreateASCIIZ(CertificateName));			// certificate name to match
+			Count = (CertificateName.Length+1) % 4;							// may need to pad to alignment of 4 bytes
+			if (Count > 0 && Count < 4)
+				SW.WriteZeros(4 - Count);
+			
+			// may need to pad to alignment of 4 bytes
+			SW.Write(kOpCertGeneric);
+			SW.Write(OIDIndex);											// index of the OID value (always 1)
+			SW.Write(OID.Length);										// length of OID
+			SW.Write(OID);						// OID to match
+			Count = OID.Length % 4;										// may need to pad to alignment of 4 bytes
+			if (Count > 0 && Count < 4)
+				SW.WriteZeros(4 - Count);
+
+			// may need to pad to alignment of 4 bytes
+			SW.Write(kMatchExists);										// OID must exist
+		}
+
+		protected override void UnpackageData(ReadingContext SR, UInt32 Length)
+		{
+			SR.ReadUInt32();
+			SR.ReadUInt32();
+			SR.ReadUInt32();
+			UInt32 Count = SR.ReadUInt32();
+			BundleIdentifier = SR.ReadFixedASCII((int)Count);
+			Count = 4 - Count % 4;
+			SR.ReadBytes(Count);
+
+			SR.ReadUInt32();											// AND operation
+			SR.ReadUInt32();											// requires Apple certificate somewhere in the signing data
+			SR.ReadUInt32();											// AND operation
+			SR.ReadUInt32();											// requires a signing certificate where the subject.cn matches the certificate name
+			CertificateIndex = (int)SR.ReadUInt32();					// index in the mobile provision certificate list (always 0 for now)
+			Count = SR.ReadUInt32();
+			SR.ReadFixedASCII((int)Count);
+			Count = 4 - Count % 4;
+			SR.ReadBytes(Count);
+
+			SR.ReadUInt32();											// must equal
+			Count = SR.ReadUInt32();
+			CertificateName = SR.ReadFixedASCII((int)Count);
+			Count = 4 - Count % 4;
+			SR.ReadBytes(Count);
+			
+			SR.ReadUInt32();
+			OIDIndex = (int)SR.ReadUInt32();							// index of the OID value (always 1)
+			Count = SR.ReadUInt32();
+			OID = SR.ReadBytes((int)Count);
+			Count = 4 - Count % 4;
+			SR.ReadBytes(Count);
+
+			SR.ReadUInt32();											// OID must exist
+		}
+	}
+
 	public class CodeSigningTableBlob : SuperBlob
 	{
 		public CodeSigningTableBlob()
@@ -1443,6 +1562,8 @@ namespace MachObjectHandling
 					Result = new CodeSigningTableBlob();
 					break;
 				case CSMAGIC_REQUIREMENT:
+					Result = new RequirementBlob();
+					break;
 				default:
 					Result = new OpaqueBlob();
 					break;
@@ -1714,7 +1835,7 @@ namespace MachObjectHandling
 			CmsSigner Signer = new CmsSigner(SigningCert);
 			Signer.IncludeOption = X509IncludeOption.WholeChain;
 			Signer.SignerIdentifierType = SubjectIdentifierType.IssuerAndSerialNumber;
-			Signer.DigestAlgorithm = new Oid(CryptoConfig.MapNameToOID("SHA1"), "SHA1");
+			Signer.DigestAlgorithm = new Oid(CryptoConfig.MapNameToOID("sha256"), "sha256");
 
 			// A Pkcs9ContentType and Pkcs9MessageDigest will automatically be added, and it fails to
 			// compute a signature if they are added manually, so only the signing time needs to be added
@@ -1759,6 +1880,8 @@ namespace MachObjectHandling
 		UInt32 Spare2;
 		UInt32 ScatterCount;
 
+		string Team;
+
 		// Special slot index for Info.plist
 		public const int cdInfoSlot = 1;
 
@@ -1799,10 +1922,16 @@ namespace MachObjectHandling
 			LogPageSize = SR.ReadByte();
 			Spare2 = SR.ReadUInt32();
 			ScatterCount = SR.ReadUInt32();
+			UInt32 TeamStringOffset = SR.ReadUInt32();
 
 			// Read the identifier string
 			SR.PushPositionAndJump(StartOfBlob + IdentifierStringOffset);
 			Identifier = SR.ReadASCIIZ();
+			SR.PopPosition();
+
+			// Read the team string
+			SR.PushPositionAndJump(StartOfBlob + TeamStringOffset);
+			Team = SR.ReadASCIIZ();
 			SR.PopPosition();
 
 			// Read the hashes
@@ -1856,11 +1985,17 @@ namespace MachObjectHandling
 			SW.Write(Spare2);
 			SW.Write(ScatterCount);
 
+			OffsetFieldU32or64 TeamStringOffset = SW.WriteDeferredOffsetFrom(StartPos, Bits.Num._32);
+
 			// Write the identifier
 			SW.CommitDeferredField(IdentifierStringOffset);
-
 			byte[] IdentifierOutput = Utilities.CreateASCIIZ(Identifier);
 			SW.Write(IdentifierOutput);
+
+			// Write the team identifier
+			SW.CommitDeferredField(TeamStringOffset);
+			byte[] TeamOutput = Utilities.CreateASCIIZ(Team);
+			SW.Write(TeamOutput);
 
 			// Write the hashes
 			SW.CommitDeferredField(HashOffset);
@@ -1905,19 +2040,20 @@ namespace MachObjectHandling
 			}
 		}
 
-		public static CodeDirectoryBlob Create(string ApplicationID, int SignedFileLength)
+		public static CodeDirectoryBlob Create(string ApplicationID, string TeamID, int SignedFileLength)
 		{
 			CodeDirectoryBlob Blob = new CodeDirectoryBlob();
-			Blob.Allocate(ApplicationID, SignedFileLength);
+			Blob.Allocate(ApplicationID, TeamID, SignedFileLength);
 
 			return Blob;
 		}
 
-		public void Allocate(string ApplicationID, int SignedFileLength)
+		public void Allocate(string ApplicationID, string TeamID, int SignedFileLength)
 		{
 			Identifier = ApplicationID;
+			Team = TeamID;
 
-			Version = 0x20100;
+			Version = 0x20200;
 			Flags = 0;
 			Spare1 = 0;
 			Spare2 = 0;
