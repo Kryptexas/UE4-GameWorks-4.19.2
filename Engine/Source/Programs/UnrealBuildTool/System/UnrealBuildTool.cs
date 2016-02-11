@@ -233,6 +233,11 @@ namespace UnrealBuildTool
 			return RemoteIniPath;
 		}
 
+		static public void SetRemoteIniPath(string Path)
+		{
+			RemoteIniPath = Path;
+		}
+
 		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
 		/// <summary>
 		/// IsDesktopPlatform
