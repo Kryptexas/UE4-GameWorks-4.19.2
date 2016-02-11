@@ -376,7 +376,8 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			TArray<FPluginReferenceDescriptor> PluginsCopy = Project->Plugins;
 			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
-				if ((Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional) &&
+				bool bShouldBeEnabled = Plugin.bEnabled && Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget());
+				if ((bShouldBeEnabled && !FindPluginInstance(Plugin.Name).IsValid() && !Plugin.bOptional) &&
 					 (!IS_PROGRAM || AllEnabledPlugins.Contains(Plugin.Name))) // skip if this is a program and the plugin is not enabled
 				{
 					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));

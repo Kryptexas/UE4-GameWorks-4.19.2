@@ -461,6 +461,11 @@ public:
 	/** Prints string to the default output */
 	static void LocalPrint( const TCHAR* Str );
 
+	/** 
+	 * Whether the platform has a separate debug channel to stdout (eg. OutputDebugString on Windows). Used to suppress messages being output twice 
+	 * if both go to the same place.
+	 */
+	static bool HasSeparateChannelForDebugOutput();
 
 	/** Request application to minimize (goto background). **/
 	static void RequestMinimize();
@@ -664,6 +669,8 @@ public:
 	}
 
 	static const TCHAR* GetUBTPlatform();
+
+	static const TCHAR* GetUBTTarget();
 
 	/** 
 	 * Determines the shader format for the plarform

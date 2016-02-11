@@ -85,6 +85,7 @@ struct CORE_API FWindowsPlatformMisc
 	static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static void SetUTF8Output();
 	static void LocalPrint(const TCHAR *Message);
+	static bool HasSeparateChannelForDebugOutput();
 	static void RequestExit(bool Force);
 	static void RequestMinimize();
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);

@@ -396,7 +396,7 @@ public partial class Project : CommandUtils
 			foreach (PluginInfo Plugin in AvailablePlugins)
 			{
 				LogLog("Considering Plugin for Stage: " + Plugin.File.FullName);
-				if (UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType))
+				if (UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType, TargetRules.TargetType.Game))
 				{
 					LogLog("EnabledPlugin: " + Plugin.File.FullName);
 					SC.StageFiles(StagedFileType.UFS, Plugin.Directory.FullName, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);

@@ -23,6 +23,10 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
 	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
+		Descriptor->Save("D:\\P4 Streams\\Templates\\TP_Flying\\Out.json", FailureReason);
+
+
+
 		// Create the project
 		CurrentProject = Descriptor;
 		return true;
@@ -248,7 +252,7 @@ void FProjectManager::GetEnabledPlugins(TArray<FString>& OutPluginNames) const
 	{
 		for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
 		{
-			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()))
+			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()) && Plugin.IsEnabledForTarget(FPlatformMisc::GetUBTTarget()))
 			{
 				OutPluginNames.AddUnique(Plugin.Name);
 			}

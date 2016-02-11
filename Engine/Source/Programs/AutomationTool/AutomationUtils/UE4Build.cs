@@ -1535,6 +1535,30 @@ namespace AutomationTool
 		/// <summary>
 		/// Copy the UAT files to their precompiled location, and add them as build products
 		/// </summary>
+		public void AddUATLauncherFilesToBuildProducts()
+		{
+            var DotNetOutputLocation = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET");
+
+			var UATFiles = new List<string>(new string[] 
+					{
+						"AutomationToolLauncher.exe",
+						"AutomationToolLauncher.exe.config",
+					});
+
+			foreach (var UATFile in UATFiles)
+			{
+				var OutputFile = CombinePaths(DotNetOutputLocation, UATFile);
+				if (!FileExists_NoExceptions(OutputFile))
+				{
+					throw new AutomationException("Cannot add UAT to the build products because {0} does not exist.", OutputFile);
+				}
+				AddBuildProduct(OutputFile);
+			}
+		}
+
+		/// <summary>
+		/// Copy the UAT files to their precompiled location, and add them as build products
+		/// </summary>
 		public void AddUATFilesToBuildProducts()
 		{
 			// Find all DLLs (scripts and their dependencies)

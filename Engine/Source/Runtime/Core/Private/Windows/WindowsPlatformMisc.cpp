@@ -1062,6 +1062,11 @@ void FWindowsPlatformMisc::LocalPrint( const TCHAR *Message )
 	OutputDebugString(Message);
 }
 
+bool FWindowsPlatformMisc::HasSeparateChannelForDebugOutput()
+{
+	return true;
+}
+
 void FWindowsPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogWindows, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );

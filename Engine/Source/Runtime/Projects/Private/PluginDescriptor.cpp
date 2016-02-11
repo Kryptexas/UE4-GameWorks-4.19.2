@@ -108,6 +108,9 @@ bool FPluginDescriptor::Read(const FString& Text, FText& OutFailReason)
 		bRequiresBuildPlatform = true;
 	}
 
+	PreBuildSteps.Read(Object, TEXT("PreBuildSteps"));
+	PostBuildSteps.Read(Object, TEXT("PostBuildSteps"));
+
 	return true;
 }
 
@@ -156,6 +159,16 @@ FString FPluginDescriptor::ToString() const
 		Writer.WriteValue(TEXT("RequiresBuildPlatform"), bRequiresBuildPlatform);
 	}
 
+	if(!PreBuildSteps.IsEmpty())
+	{
+		PreBuildSteps.Write(Writer, TEXT("PreBuildSteps"));
+	}
+
+	if(!PostBuildSteps.IsEmpty())
+	{
+		PostBuildSteps.Write(Writer, TEXT("PostBuildSteps"));
+	}
+
 	Writer.WriteObjectEnd();
 	Writer.Close();
 
@@ -195,6 +208,28 @@ bool FPluginReferenceDescriptor::IsEnabledForPlatform( const FString& Platform )
 	return true;
 }
 
+bool FPluginReferenceDescriptor::IsEnabledForTarget(const FString& Target) const
+{
+    // If it's not enabled at all, return false
+    if (!bEnabled)
+    {
+        return false;
+    }
+
+    // If there is a list of whitelisted platforms, and this isn't one of them, return false
+    if (WhitelistTargets.Num() > 0 && !WhitelistTargets.Contains(Target))
+    {
+        return false;
+    }
+
+    // If this platform is blacklisted, also return false
+    if (BlacklistTargets.Contains(Target))
+    {
+        return false;
+    }
+
+    return true;
+}
 
 bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFailReason )
 {
@@ -222,6 +257,10 @@ bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFail
 	// Get the platform lists
 	Object.TryGetStringArrayField(TEXT("WhitelistPlatforms"), WhitelistPlatforms);
 	Object.TryGetStringArrayField(TEXT("BlacklistPlatforms"), BlacklistPlatforms);
+
+	// Get the target lists
+	Object.TryGetStringArrayField(TEXT("WhitelistTargets"), WhitelistTargets);
+	Object.TryGetStringArrayField(TEXT("BlacklistTargets"), BlacklistTargets);
 
 	return true;
 }
@@ -295,6 +334,30 @@ void FPluginReferenceDescriptor::Write( TJsonWriter<>& Writer ) const
 		for (int Idx = 0; Idx < BlacklistPlatforms.Num(); Idx++)
 		{
 			Writer.WriteValue(BlacklistPlatforms[Idx]);
+		}
+
+		Writer.WriteArrayEnd();
+	}
+
+	if (WhitelistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("WhitelistTargets"));
+
+		for (int Idx = 0; Idx < WhitelistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(WhitelistTargets[Idx]);
+		}
+
+		Writer.WriteArrayEnd();
+	}
+
+	if (BlacklistTargets.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("BlacklistTargets"));
+
+		for (int Idx = 0; Idx < BlacklistTargets.Num(); Idx++)
+		{
+			Writer.WriteValue(BlacklistTargets[Idx]);
 		}
 
 		Writer.WriteArrayEnd();

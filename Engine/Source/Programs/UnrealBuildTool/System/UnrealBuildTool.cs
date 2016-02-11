@@ -1912,7 +1912,7 @@ namespace UnrealBuildTool
 					if (UnrealBuildTool.IsAssemblingBuild)
 					{
 						// If we didn't build the graph in this session, then we'll need to load a cached one
-						if (!UnrealBuildTool.IsGatheringBuild)
+						if (!UnrealBuildTool.IsGatheringBuild && BuildResult.Succeeded())
 						{
 							ActionGraph.AllActions = UBTMakefile.AllActions;
 
@@ -1930,22 +1930,35 @@ namespace UnrealBuildTool
 								Environment.SetEnvironmentVariable(EnvironmentVariable.Item1, EnvironmentVariable.Item2);
 							}
 
-							// If any of the targets need UHT to be run, we'll go ahead and do that now
-							foreach (var Target in Targets)
+							// Execute all the pre-build steps
+							foreach(UEBuildTarget Target in Targets)
 							{
-								List<UHTModuleInfo> TargetUObjectModules;
-								if (UBTMakefile.TargetNameToUObjectModules.TryGetValue(Target.GetTargetName(), out TargetUObjectModules))
+								if(!Target.ExecuteCustomPreBuildSteps())
 								{
-									if (TargetUObjectModules.Count > 0)
+									BuildResult = ECompilationResult.OtherCompilationError;
+									break;
+								}
+							}
+
+							// If any of the targets need UHT to be run, we'll go ahead and do that now
+							if(BuildResult.Succeeded())
+							{
+								foreach (var Target in Targets)
+								{
+									List<UHTModuleInfo> TargetUObjectModules;
+									if (UBTMakefile.TargetNameToUObjectModules.TryGetValue(Target.GetTargetName(), out TargetUObjectModules))
 									{
-										// Execute the header tool
-										FileReference ModuleInfoFileName = FileReference.Combine(Target.ProjectIntermediateDirectory, Target.GetTargetName() + ".uhtmanifest");
-										ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
-										if (!ExternalExecution.ExecuteHeaderToolIfNecessary(ToolChain, Target, GlobalCompileEnvironment: null, UObjectModules: TargetUObjectModules, ModuleInfoFileName: ModuleInfoFileName, UHTResult: ref UHTResult))
+										if (TargetUObjectModules.Count > 0)
 										{
-											Log.TraceInformation("UnrealHeaderTool failed for target '" + Target.GetTargetName() + "' (platform: " + Target.Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
-											BuildResult = UHTResult;
-											break;
+											// Execute the header tool
+											FileReference ModuleInfoFileName = FileReference.Combine(Target.ProjectIntermediateDirectory, Target.GetTargetName() + ".uhtmanifest");
+											ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
+											if (!ExternalExecution.ExecuteHeaderToolIfNecessary(ToolChain, Target, GlobalCompileEnvironment: null, UObjectModules: TargetUObjectModules, ModuleInfoFileName: ModuleInfoFileName, UHTResult: ref UHTResult))
+											{
+												Log.TraceInformation("UnrealHeaderTool failed for target '" + Target.GetTargetName() + "' (platform: " + Target.Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
+												BuildResult = UHTResult;
+												break;
+											}
 										}
 									}
 								}
@@ -2016,6 +2029,19 @@ namespace UnrealBuildTool
 							else
 							{
 								BuildResult = ECompilationResult.OtherCompilationError;
+							}
+						}
+
+						// Execute all the post-build steps
+						if(BuildResult.Succeeded())
+						{
+							foreach(UEBuildTarget Target in Targets)
+							{
+								if(!Target.ExecuteCustomPostBuildSteps())
+								{
+									BuildResult = ECompilationResult.OtherCompilationError;
+									break;
+								}
 							}
 						}
 					}

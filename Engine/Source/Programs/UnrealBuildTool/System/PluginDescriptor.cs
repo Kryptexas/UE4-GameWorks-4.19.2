@@ -24,62 +24,109 @@ namespace UnrealBuildTool
 
 	public class PluginDescriptor
 	{
-		// Descriptor version number
+
+		/// <summary>
+		/// Descriptor version number
+		/// </summary>
 		public int FileVersion;
 
-		// Version number for the plugin.  The version number must increase with every version of the plugin, so that the system 
-		// can determine whether one version of a plugin is newer than another, or to enforce other requirements.  This version
-		// number is not displayed in front-facing UI.  Use the VersionName for that.
+		/// <summary>
+		/// Version number for the plugin.  The version number must increase with every version of the plugin, so that the system 
+		/// can determine whether one version of a plugin is newer than another, or to enforce other requirements.  This version
+		/// number is not displayed in front-facing UI.  Use the VersionName for that.
+		/// </summary>
 		public int Version;
 
-		// Name of the version for this plugin.  This is the front-facing part of the version number.  It doesn't need to match
-		// the version number numerically, but should be updated when the version number is increased accordingly.
+		/// <summary>
+		/// Name of the version for this plugin.  This is the front-facing part of the version number.  It doesn't need to match
+		/// the version number numerically, but should be updated when the version number is increased accordingly.
+		/// </summary>
 		public string VersionName;
 
-		// Friendly name of the plugin
+		/// <summary>
+		/// Friendly name of the plugin
+		/// </summary>
 		public string FriendlyName;
 
-		// Description of the plugin
+		/// <summary>
+		/// Description of the plugin
+		/// </summary>
 		public string Description;
 
-		// The name of the category this plugin
+		/// <summary>
+		/// The name of the category this plugin
+		/// </summary>
 		public string Category;
 
-		// The company or individual who created this plugin.  This is an optional field that may be displayed in the user interface.
+		/// <summary>
+		/// The company or individual who created this plugin.  This is an optional field that may be displayed in the user interface.
+		/// </summary>
 		public string CreatedBy;
 
-		// Hyperlink URL string for the company or individual who created this plugin.  This is optional.
+		/// <summary>
+		/// Hyperlink URL string for the company or individual who created this plugin.  This is optional.
+		/// </summary>
 		public string CreatedByURL;
 
-		// Documentation URL string.
+		/// <summary>
+		/// Documentation URL string.
+		/// </summary>
 		public string DocsURL;
 
-		// Marketplace URL for this plugin. This URL will be embedded into projects that enable this plugin, so we can redirect to the marketplace if a user doesn't have it installed.
+		/// <summary>
+		/// Marketplace URL for this plugin. This URL will be embedded into projects that enable this plugin, so we can redirect to the marketplace if a user doesn't have it installed.
+		/// </summary>
 		public string MarketplaceURL;
 
-		// Support URL/email for this plugin.
+		/// <summary>
+		/// Support URL/email for this plugin.
+		/// </summary>
 		public string SupportURL;
 
-		// List of all modules associated with this plugin
+		/// <summary>
+		/// List of all modules associated with this plugin
+		/// </summary>
 		public ModuleDescriptor[] Modules;
 
-		// Whether this plugin should be enabled by default for all projects
+		/// <summary>
+		/// Whether this plugin should be enabled by default for all projects
+		/// </summary>
 		public bool bEnabledByDefault;
 
-		// Can this plugin contain content?
+		/// <summary>
+		/// Can this plugin contain content?
+		/// </summary>
 		public bool bCanContainContent;
 
-		// Marks the plugin as beta in the UI
+		/// </summary>
+		/// Marks the plugin as beta in the UI
+		/// </summary>
 		public bool bIsBetaVersion;
 
-		// Whether this plugin can be used by UnrealHeaderTool
+		/// <summary>
+		/// Whether this plugin can be used by UnrealHeaderTool
+		/// </summary>
 		public bool bCanBeUsedWithUnrealHeaderTool;
 
-		// Set for plugins which are installed
+		/// <summary>
+		/// Set for plugins which are installed
+		/// </summary>
 		public bool bInstalled;
 
-		// For plugins that are under a platform folder (eg. /PS4/), determines whether compiling the plugin requires the build platform and/or SDK to be available
+		/// <summary>
+		/// For plugins that are under a platform folder (eg. /PS4/), determines whether compiling the plugin requires the build platform and/or SDK to be available
+		/// </summary>
 		public bool bRequiresBuildPlatform;
+
+		/// <summary>
+		/// Set of pre-build steps to execute, keyed by host platform name.
+		/// </summary>
+		public CustomBuildSteps PreBuildSteps;
+
+		/// <summary>
+		/// Set of post-build steps to execute, keyed by host platform name.
+		/// </summary>
+		public CustomBuildSteps PostBuildSteps;
 
 		/// <summary>
 		/// Private constructor. This object should not be created directly; read it from disk using FromFile() instead.
@@ -155,6 +202,9 @@ namespace UnrealBuildTool
 				RawObject.TryGetBoolField("CanBeUsedWithUnrealHeaderTool", out Descriptor.bCanBeUsedWithUnrealHeaderTool);
 				RawObject.TryGetBoolField("RequiresBuildPlatform", out Descriptor.bRequiresBuildPlatform);
 
+				CustomBuildSteps.TryRead(RawObject, "PreBuildSteps", out Descriptor.PreBuildSteps);
+				CustomBuildSteps.TryRead(RawObject, "PostBuildSteps", out Descriptor.PostBuildSteps);
+
 				return Descriptor;
 			}
 			catch (JsonParseException ParseException)
@@ -192,6 +242,16 @@ namespace UnrealBuildTool
 
 				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
 
+				if(PreBuildSteps != null)
+				{
+					PreBuildSteps.Write(Writer, "PreBuildSteps");
+				}
+
+				if(PostBuildSteps != null)
+				{
+					PostBuildSteps.Write(Writer, "PostBuildSteps");
+				}
+
 				Writer.WriteObjectEnd();
 			}
 		}
@@ -221,6 +281,12 @@ namespace UnrealBuildTool
 		// If enabled, list of platforms for which the plugin should be disabled.
 		UnrealTargetPlatform[] BlacklistPlatforms;
 
+		// If enabled, list of targets for which the plugin should be enabled (or all targets if blank).
+		TargetRules.TargetType[] WhitelistTargets;
+
+		// If enabled, list of targets for which the plugin should be disabled.
+		TargetRules.TargetType[] BlacklistTargets;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -246,6 +312,8 @@ namespace UnrealBuildTool
 			RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("WhitelistPlatforms", out Descriptor.WhitelistPlatforms);
 			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("BlacklistPlatforms", out Descriptor.BlacklistPlatforms);
+			RawObject.TryGetEnumArrayField<TargetRules.TargetType>("WhitelistTargets", out Descriptor.WhitelistTargets);
+			RawObject.TryGetEnumArrayField<TargetRules.TargetType>("BlacklistTargets", out Descriptor.BlacklistTargets);
 			return Descriptor;
 		}
 
@@ -265,6 +333,28 @@ namespace UnrealBuildTool
 				return false;
 			}
 			if (BlacklistPlatforms != null && BlacklistPlatforms.Contains(Platform))
+			{
+				return false;
+			}
+			return true;
+		}
+
+		/// <summary>
+		/// Determines if this reference enables the plugin for a given target
+		/// </summary>
+		/// <param name="Target">The target to check</param>
+		/// <returns>True if the plugin should be enabled</returns>
+		public bool IsEnabledForTarget(TargetRules.TargetType Target)
+		{
+			if (!bEnabled)
+			{
+				return false;
+			}
+			if (WhitelistTargets != null && WhitelistTargets.Length > 0 && !WhitelistTargets.Contains(Target))
+			{
+				return false;
+			}
+			if (BlacklistTargets != null && BlacklistTargets.Contains(Target))
 			{
 				return false;
 			}

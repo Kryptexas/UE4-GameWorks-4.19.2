@@ -118,6 +118,7 @@
     <Compile Include="Mac\UEBuildMac.cs" />
     <Compile Include="Mac\MacProjectGenerator.cs" />
     <Compile Include="Mac\UEDeployMac.cs" />
+    <Compile Include="System\CustomBuildSteps.cs" />
     <Compile Include="System\FileSystemReference.cs" />
     <Compile Include="System\InstalledPlatformInfo.cs" />
     <Compile Include="System\TargetReceipt.cs" />

@@ -233,7 +233,7 @@ namespace AutomationTool
 				// find if there are any plugins enabled or disabled which differ from the default
 				foreach(PluginInfo Plugin in AvailablePlugins)
 				{
-					bool bPluginEnabledForProject = UProjectInfo.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType);
+					bool bPluginEnabledForProject = UProjectInfo.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType, TargetRules.TargetType.Game);
 					if ((bPluginEnabledForProject && !Plugin.Descriptor.bEnabledByDefault) || (bPluginEnabledForProject && Plugin.Descriptor.bInstalled))
 					{
 						if(Plugin.Descriptor.Modules.Any(Module => Module.IsCompiledInConfiguration(TargetPlatformType, TargetRules.TargetType.Game, bBuildDeveloperTools: false, bBuildEditor: false)))

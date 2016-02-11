@@ -305,7 +305,7 @@ namespace UnrealBuildTool
 		/// <param name="Plugin">Information about the plugin</param>
 		/// <param name="Platform">The target platform</param>
 		/// <returns>True if the plugin should be enabled for this project</returns>
-		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform)
+		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform, TargetRules.TargetType Target)
 		{
 			bool bEnabled = Plugin.Descriptor.bEnabledByDefault || Plugin.LoadedFrom == PluginLoadedFrom.GameProject;
 			if (Project != null && Project.Plugins != null)
@@ -314,7 +314,7 @@ namespace UnrealBuildTool
 				{
 					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
 					{
-						bEnabled = PluginReference.IsEnabledForPlatform(Platform);
+						bEnabled = PluginReference.IsEnabledForPlatform(Platform) && PluginReference.IsEnabledForTarget(Target);
 					}
 				}
 			}

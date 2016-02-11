@@ -1003,6 +1003,16 @@ namespace UnrealBuildTool
 		UEBuildPlatformContext PlatformContext;
 
 		/// <summary>
+		/// List of scripts to run before building
+		/// </summary>
+		FileReference[] PreBuildStepScripts;
+
+		/// <summary>
+		/// List of scripts to run after building
+		/// </summary>
+		FileReference[] PostBuildStepScripts;
+
+		/// <summary>
 		/// A list of the module filenames which were used to build this target.
 		/// </summary>
 		/// <returns></returns>
@@ -1060,6 +1070,8 @@ namespace UnrealBuildTool
 			FileReferenceToVersionManifestPairs = (KeyValuePair<FileReference, VersionManifest>[])Info.GetValue("vm", typeof(KeyValuePair<FileReference, VersionManifest>[]));
 			TargetCsFilenameField = (FileReference)Info.GetValue("tc", typeof(FileReference));
 			PlatformContext = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(ProjectFile);
+			PreBuildStepScripts = (FileReference[])Info.GetValue("pr", typeof(FileReference[]));
+			PostBuildStepScripts = (FileReference[])Info.GetValue("po", typeof(FileReference[]));
 		}
 
 		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
@@ -1088,6 +1100,8 @@ namespace UnrealBuildTool
 			Info.AddValue("rf", ReceiptFileName);
 			Info.AddValue("vm", FileReferenceToVersionManifestPairs);
 			Info.AddValue("tc", TargetCsFilenameField);
+			Info.AddValue("pr", PreBuildStepScripts);
+			Info.AddValue("po", PostBuildStepScripts);
 		}
 
 		/// <summary>
@@ -2192,6 +2206,12 @@ namespace UnrealBuildTool
 				? CheckForEULAViolation()
 				: null;
 
+			// Execute the pre-build steps
+			if(!ExecuteCustomPreBuildSteps())
+			{
+				return ECompilationResult.OtherCompilationError;
+			}
+
 			// If we're compiling monolithic, make sure the executable knows about all referenced modules
 			if (ShouldCompileMonolithic())
 			{
@@ -2448,6 +2468,9 @@ namespace UnrealBuildTool
 			// Setup the target's plugins
 			SetupPlugins();
 
+			// Setup the custom build steps for this target
+			SetupCustomBuildSteps();
+
 			// Create all the modules for each binary
 			foreach (UEBuildBinary Binary in AppBinaries)
 			{
@@ -2673,6 +2696,148 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// <summary>
+		/// Writes scripts for all the custom build steps
+		/// </summary>
+		private void SetupCustomBuildSteps()
+		{
+			// Make sure the intermediate directory exists
+			DirectoryReference ScriptDirectory = ProjectIntermediateDirectory;
+			if(!ScriptDirectory.Exists())
+			{
+				ScriptDirectory.CreateDirectory();
+			}
+
+			// Find all the pre-build steps
+			List<Tuple<CustomBuildSteps, PluginInfo>> PreBuildSteps = new List<Tuple<CustomBuildSteps,PluginInfo>>();
+			if(ProjectDescriptor != null && ProjectDescriptor.PreBuildSteps != null)
+			{
+				PreBuildSteps.Add(Tuple.Create(ProjectDescriptor.PreBuildSteps, (PluginInfo)null));
+			}
+			foreach(PluginInfo EnabledPlugin in EnabledPlugins.Where(x => x.Descriptor.PreBuildSteps != null))
+			{
+				PreBuildSteps.Add(Tuple.Create(EnabledPlugin.Descriptor.PreBuildSteps, EnabledPlugin));
+			}
+			PreBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PreBuild", PreBuildSteps);
+
+			// Find all the post-build steps
+			List<Tuple<CustomBuildSteps, PluginInfo>> PostBuildSteps = new List<Tuple<CustomBuildSteps,PluginInfo>>();
+			if(ProjectDescriptor != null && ProjectDescriptor.PostBuildSteps != null)
+			{
+				PostBuildSteps.Add(Tuple.Create(ProjectDescriptor.PostBuildSteps, (PluginInfo)null));
+			}
+			foreach(PluginInfo EnabledPlugin in EnabledPlugins.Where(x => x.Descriptor.PostBuildSteps != null))
+			{
+				PostBuildSteps.Add(Tuple.Create(EnabledPlugin.Descriptor.PostBuildSteps, EnabledPlugin));
+			}
+			PostBuildStepScripts = WriteCustomBuildStepScripts(BuildHostPlatform.Current.Platform, ScriptDirectory, "PostBuild", PostBuildSteps);
+		}
+
+		/// <summary>
+		/// Write scripts containing the custom build steps for the given host platform
+		/// </summary>
+		/// <param name="HostPlatform">The current host platform</param>
+		/// <param name="Directory">The output directory for the scripts</param>
+		/// <param name="FilePrefix">Bare prefix for all the created script files</param>
+		/// <param name="BuildStepsAndPluginInfo">List of custom build steps, and their matching PluginInfo (if appropriate)</param>
+		/// <returns>List of created script files</returns>
+		private FileReference[] WriteCustomBuildStepScripts(UnrealTargetPlatform HostPlatform, DirectoryReference Directory, string FilePrefix, List<Tuple<CustomBuildSteps, PluginInfo>> BuildStepsAndPluginInfo)
+		{
+			List<FileReference> ScriptFiles = new List<FileReference>();
+			foreach(Tuple<CustomBuildSteps, PluginInfo> Pair in BuildStepsAndPluginInfo)
+			{
+				CustomBuildSteps BuildSteps = Pair.Item1;
+				if(BuildSteps.HasHostPlatform(HostPlatform))
+				{
+					// Find all the standard variables
+					Dictionary<string, string> Variables = new Dictionary<string,string>();
+					Variables.Add("EngineDir", UnrealBuildTool.EngineDirectory.FullName);
+					Variables.Add("ProjectDir", ProjectDirectory.FullName);
+					Variables.Add("TargetName", TargetName);
+					Variables.Add("TargetPlatform", Platform.ToString());
+					Variables.Add("TargetConfiguration", Configuration.ToString());
+					Variables.Add("TargetType", TargetType.ToString());
+					if(ProjectFile != null)
+					{
+						Variables.Add("ProjectFile", ProjectFile.FullName);
+					}
+					if(Pair.Item2 != null)
+					{
+						Variables.Add("PluginDir", Pair.Item2.Directory.FullName);
+					}
+
+					// Get the commands to execute
+					string[] Commands;
+					if(BuildSteps.TryGetCommands(HostPlatform, Variables, out Commands))
+					{
+						// Get the output path to the script
+						string ScriptExtension = (HostPlatform == UnrealTargetPlatform.Win64)? ".bat" : ".sh";
+						FileReference ScriptFile = FileReference.Combine(Directory, String.Format("{0}-{1}{2}", FilePrefix, ScriptFiles.Count + 1, ScriptExtension));
+
+						// Write it to disk
+						List<string> AllCommands = new List<string>(Commands);
+						if(HostPlatform == UnrealTargetPlatform.Win64)
+						{
+							AllCommands.Insert(0, "@echo off");
+						}
+						File.WriteAllLines(ScriptFile.FullName, AllCommands);
+
+						// Add the output file to the list of generated scripts
+						ScriptFiles.Add(ScriptFile);
+					}
+				}
+			}
+			return ScriptFiles.ToArray();
+		}
+
+		/// <summary>
+		/// Executes the custom pre-build steps
+		/// </summary>
+		public bool ExecuteCustomPreBuildSteps()
+		{
+			return ExecuteCustomBuildSteps(PreBuildStepScripts);
+		}
+
+		/// <summary>
+		/// Executes the custom post-build steps
+		/// </summary>
+		public bool ExecuteCustomPostBuildSteps()
+		{
+			return ExecuteCustomBuildSteps(PostBuildStepScripts);
+		}
+
+		/// <summary>
+		/// Executes a list of custom build step scripts
+		/// </summary>
+		/// <param name="ScriptFiles">List of script files to execute</param>
+		/// <returns>True if the steps succeeded, false otherwise</returns>
+		private bool ExecuteCustomBuildSteps(FileReference[] ScriptFiles)
+		{
+			UnrealTargetPlatform HostPlatform = BuildHostPlatform.Current.Platform;
+			foreach(FileReference ScriptFile in ScriptFiles)
+			{
+				ProcessStartInfo StartInfo = new ProcessStartInfo();
+				if(HostPlatform == UnrealTargetPlatform.Win64)
+				{
+					StartInfo.FileName = "cmd.exe";
+					StartInfo.Arguments = String.Format("/C \"{0}\"", ScriptFile.FullName);
+				}
+				else
+				{
+					StartInfo.FileName = "/bin/sh";
+					StartInfo.Arguments = String.Format("\"{0}\"", ScriptFile.FullName);
+				}
+
+				int ReturnCode = Utils.RunLocalProcessAndLogOutput(StartInfo);
+				if(ReturnCode != 0)
+				{
+					Log.TraceError("Custom build step terminated with exit code {0}", ReturnCode);
+					return false;
+				}
+			}
+			return true;
+		}
+
 		private static FileReference AddModuleFilenameSuffix(string ModuleName, FileReference FilePath, string Suffix)
 		{
 			var MatchPos = FilePath.FullName.LastIndexOf(ModuleName, StringComparison.InvariantCultureIgnoreCase);
@@ -2779,6 +2944,7 @@ namespace UnrealBuildTool
 
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
 				NewModule.bSkipDefinitionsForCompileEnvironment = true;
+				NewModule.Rules.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
 				NewModule.RecursivelyCreateModules();
 				BindArtificialModuleToBinary(NewModule, ExecutableBinary);
 
@@ -3426,7 +3592,7 @@ namespace UnrealBuildTool
 				ProjectDescriptor Project = (UEBuildConfiguration.bCompileAgainstEngine && ProjectFile != null) ? ProjectDescriptor.FromFile(ProjectFile.FullName) : null;
 				foreach (PluginInfo ValidPlugin in ValidPlugins)
 				{
-					if (UProjectInfo.IsPluginEnabledForProject(ValidPlugin, Project, Platform))
+					if(UProjectInfo.IsPluginEnabledForProject(ValidPlugin, Project, Platform, TargetType))
 					{
 						if (ValidPlugin.Descriptor.bCanBeUsedWithUnrealHeaderTool)
 						{
@@ -3780,6 +3946,7 @@ namespace UnrealBuildTool
 
 			// tell the compiled code the name of the UBT platform (this affects folder on disk, etc that the game may need to know)
 			GlobalCompileEnvironment.Config.Definitions.Add("UBT_COMPILED_PLATFORM=" + Platform.ToString());
+			GlobalCompileEnvironment.Config.Definitions.Add("UBT_COMPILED_TARGET=" + TargetType.ToString());
 
 			// Initialize the compile and link environments for the platform, configuration, and project.
 			SetUpPlatformEnvironment();

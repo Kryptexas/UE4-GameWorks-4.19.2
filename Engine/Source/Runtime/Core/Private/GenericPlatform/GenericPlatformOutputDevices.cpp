@@ -21,7 +21,11 @@ void FGenericPlatformOutputDevices::SetupOutputDevices()
 	// A shipping build with logging explicitly enabled will fail the IsDebuggerPresent() check, but we still need to add the debug output device for logging purposes
 	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || (UE_BUILD_SHIPPING && !NO_LOGGING) || GIsBuildMachine)
 	{
-		GLog->AddOutputDevice(new FOutputDeviceDebug());
+		// Only need to do this if it's actually going to go to a different place than GLogConsole
+		if(FPlatformMisc::HasSeparateChannelForDebugOutput())
+		{
+			GLog->AddOutputDevice(new FOutputDeviceDebug());
+		}
 	}
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetEventLog());

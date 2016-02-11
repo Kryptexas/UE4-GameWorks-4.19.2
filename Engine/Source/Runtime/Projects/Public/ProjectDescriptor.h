@@ -4,6 +4,7 @@
 
 #include "ModuleDescriptor.h"
 #include "PluginDescriptor.h"
+#include "CustomBuildSteps.h"
 
 /**
  * Version numbers for project descriptors.
@@ -80,6 +81,12 @@ struct PROJECTS_API FProjectDescriptor
 
 	/** A hash that is used to determine if the project was forked from a sample */
 	uint32 EpicSampleNameHash;
+
+	/** Custom steps to execute before building targets in this project */
+	FCustomBuildSteps PreBuildSteps;
+
+	/** Custom steps to execute after building targets in this project */
+	FCustomBuildSteps PostBuildSteps;
 
 	/** Constructor. */
 	FProjectDescriptor();

@@ -2731,9 +2731,15 @@ namespace AutomationTool
 					{
 						return Line.Substring(CopyPrefix.Length, Line.LastIndexOf('#') - CopyPrefix.Length);
 					}
+
+					const string EditPrefix = "... ... edit from ";
+					if (Line.StartsWith(EditPrefix))
+					{
+						return Line.Substring(EditPrefix.Length, Line.LastIndexOf('#') - EditPrefix.Length);
+					}
 				}
 			}
-			throw new AutomationException("Failed to get integration source for {0}", DepotPath);
+			return null;
 		}
 
 		#region Utilities

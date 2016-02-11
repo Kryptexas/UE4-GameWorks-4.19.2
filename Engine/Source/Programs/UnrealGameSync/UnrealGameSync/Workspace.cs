@@ -342,6 +342,7 @@ namespace UnrealGameSync
 						{
 							Dictionary<string, string> BuildVersionStrings = new Dictionary<string,string>();
 							BuildVersionStrings["\"Changelist\":"] = String.Format(" {0},", VersionChangeNumber);
+							BuildVersionStrings["\"BranchName\":"] = String.Format(" \"{0}\"", BranchOrStreamName.Replace('/', '+'));
 							if(!UpdateVersionFile(ClientRootPath + BuildVersionFileName, BuildVersionStrings))
 							{
 								StatusMessage = String.Format("Failed to update {0}.", BuildVersionFileName);

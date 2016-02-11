@@ -390,6 +390,11 @@ void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 #endif
 }
 
+bool FGenericPlatformMisc::HasSeparateChannelForDebugOutput()
+{
+	return false;
+}
+
 void FGenericPlatformMisc::RequestMinimize()
 {
 }
@@ -862,6 +867,11 @@ uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FStrin
 const TCHAR* FGenericPlatformMisc::GetUBTPlatform()
 {
 	return TEXT( PREPROCESSOR_TO_STRING(UBT_COMPILED_PLATFORM) );
+}
+
+const TCHAR* FGenericPlatformMisc::GetUBTTarget()
+{
+    return TEXT(PREPROCESSOR_TO_STRING(UBT_COMPILED_TARGET));
 }
 
 const TCHAR* FGenericPlatformMisc::GetDefaultDeviceProfileName()
