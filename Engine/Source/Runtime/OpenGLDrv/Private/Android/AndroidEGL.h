@@ -68,7 +68,10 @@ public:
 	void InitSurface(bool bUseSmallSurface);
 
 	void GetDimensions(uint32& OutWidth, uint32& OutHeight);
-	EGLDisplay GetDisplay();
+	
+	EGLDisplay GetDisplay() const;
+	ANativeWindow* GetNativeWindow() const;
+
 	EGLContext CreateContext(EGLContext InSharedContext = EGL_NO_CONTEXT);
 	int32 GetError();
 	EGLBoolean SetCurrentContext(EGLContext InContext, EGLSurface InSurface);
@@ -92,7 +95,7 @@ private:
 	void InitEGL(APIVariant API);
 	void TerminateEGL();
 
-	void CreateEGLSurface(ANativeWindow* InWindow);
+	void CreateEGLSurface(ANativeWindow* InWindow, bool bCreateWndSurface);
 	void DestroySurface();
 
 	bool InitContexts();

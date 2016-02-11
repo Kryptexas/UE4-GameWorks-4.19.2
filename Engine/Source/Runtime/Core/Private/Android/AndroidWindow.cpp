@@ -96,11 +96,15 @@ void FAndroidWindow::ReleaseWindowRef(ANativeWindow* InWindow)
 	ANativeWindow_release(InWindow);
 }
 
+extern bool AndroidThunkCpp_IsGearVRApplication();
+
 FPlatformRect FAndroidWindow::GetScreenRect()
 {
 	// CSF is a multiplier to 1280x720
 	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileContentScaleFactor"));
-	float RequestedContentScaleFactor = CVar->GetFloat();
+	const bool bIsGearVRApp = AndroidThunkCpp_IsGearVRApplication();
+	// If the app is for GearVR then always use 0 as ScaleFactor (to match window size).
+	float RequestedContentScaleFactor = (!bIsGearVRApp) ? CVar->GetFloat() : 0;
 
 	ANativeWindow* Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
 	check(Window != NULL);

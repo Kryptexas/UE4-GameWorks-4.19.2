@@ -2289,10 +2289,12 @@ void FEngineLoop::Exit()
 	// close all windows
 	FSlateApplication::Shutdown();
 
+#if !PLATFORM_ANDROID 	// AppPreExit doesn't work on Android
 	AppPreExit();
 
 	TermGamePhys();
 	ParticleVertexFactoryPool_FreePool();
+#endif // !ANDROID
 
 	// Stop the rendering thread.
 	StopRenderingThread();
@@ -2300,6 +2302,7 @@ void FEngineLoop::Exit()
 	// Tear down the RHI.
 	RHIExitAndStopRHIThread();
 
+#if !PLATFORM_ANDROID // UnloadModules doesn't work on Android
 #if WITH_ENGINE
 	// Save the hot reload state
 	IHotReloadInterface* HotReload = IHotReloadInterface::GetPtr();
@@ -2315,6 +2318,7 @@ void FEngineLoop::Exit()
 	// process exit by the OS), but it does call ShutdownModule() on all loaded modules in the reverse
 	// order they were loaded in, so that systems can unregister and perform general clean up.
 	FModuleManager::Get().UnloadModulesAtShutdown();
+#endif // !ANDROID
 
 	// Move earlier?
 #if STATS

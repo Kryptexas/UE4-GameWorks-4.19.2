@@ -123,7 +123,7 @@ static FEvent* EventHandlerEvent = NULL;
 
 // Wait for Java onCreate to complete before resume main init
 static volatile bool GResumeMainInit = false;
-static volatile bool GEventHandlerInitialized = false;
+volatile bool GEventHandlerInitialized = false;
 extern "C" void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
 {
 	GResumeMainInit = true;
@@ -295,6 +295,8 @@ int32 AndroidMain(struct android_app* state)
 
 	AndroidThunkCpp_DismissSplashScreen();
 
+	FAppEventManager::GetInstance()->SetEmptyQueueHandlerEvent(FPlatformProcess::GetSynchEventFromPool(false));
+
 	// tick until done
 	while (!GIsRequestingExit)
 	{
@@ -316,12 +318,16 @@ int32 AndroidMain(struct android_app* state)
 		}
 #endif
 	}
+	FAppEventManager::GetInstance()->TriggerEmptyQueue();
 
 	UE_LOG(LogAndroid, Log, TEXT("Exiting"));
 
 	// exit out!
 	GEngineLoop.Exit();
 
+	UE_LOG(LogAndroid, Log, TEXT("Exiting is over"));
+
+	FPlatformMisc::RequestExit(1);
 	return 0;
 }
 
@@ -651,7 +657,8 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 //Called from the event process thread
 static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 {
-	FPlatformMisc::LowLevelOutputDebugStringf(L"OnAppCommandCB cmd: %u", cmd);
+	bool bNeedToSync = false;
+	//FPlatformMisc::LowLevelOutputDebugStringf(L"OnAppCommandCB cmd: %u, tid = %d", cmd, gettid());
 
 	switch (cmd)
 	{
@@ -674,8 +681,11 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		 * surface.
 		 */
 		// get the window ready for showing
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Case APP_CMD_INIT_WINDOW"));
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_INIT_WINDOW"));
 		FAppEventManager::GetInstance()->HandleWindowCreated(app->pendingWindow);
+
+		bNeedToSync = true;
 		break;
 	case APP_CMD_TERM_WINDOW:
 		/**
@@ -684,10 +694,12 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		 * contains the existing window; after calling android_app_exec_cmd
 		 * it will be set to NULL.
 		 */
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Case APP_CMD_TERM_WINDOW, tid = %d"), gettid());
 		// clean up the window because it is being hidden/closed
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_TERM_WINDOW"));
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
 		
+		bNeedToSync = true;
 		break;
 	case APP_CMD_LOST_FOCUS:
 		/**
@@ -788,6 +800,7 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		/**
 		 * Command from main thread: the app's activity has been resumed.
 		 */
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Case APP_CMD_RESUME"));
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_RESUME"));
 
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_ON_RESUME);
@@ -797,9 +810,11 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		/**
 		 * Command from main thread: the app's activity has been paused.
 		 */
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Case APP_CMD_PAUSE"));
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_PAUSE"));
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_ON_PAUSE);
 
+		bNeedToSync = true;
 		break;
 	case APP_CMD_STOP:
 		/**
@@ -807,6 +822,7 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 		 */
 		UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_STOP"));
 		FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_ON_STOP);
+
 		break;
 	case APP_CMD_DESTROY:
 		/**
@@ -820,6 +836,10 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 
 	if ( EventHandlerEvent )
 		EventHandlerEvent->Trigger();
+
+	if (bNeedToSync)
+		FAppEventManager::GetInstance()->WaitForEmptyQueue();
+	//FPlatformMisc::LowLevelOutputDebugStringf(L"#### END OF OnAppCommandCB cmd: %u, tid = %d", cmd, gettid());
 }
 
 static int HandleSensorEvents(int fd, int events, void* data)
