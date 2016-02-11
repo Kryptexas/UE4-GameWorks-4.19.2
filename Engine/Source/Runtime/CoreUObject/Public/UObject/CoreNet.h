@@ -218,7 +218,8 @@ enum ELifetimeCondition
 	COND_InitialOrOwner		= 7,		// This property will send on the initial packet, or to the actors owner
 	COND_Custom				= 8,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
 	COND_ReplayOrOwner		= 9,		// This property will only send to the replay connection, or to the actors owner
-	COND_Max				= 10,
+	COND_ReplayOnly			= 10,		// This property will only send to the replay connection
+	COND_Max				= 11,
 };
 
 

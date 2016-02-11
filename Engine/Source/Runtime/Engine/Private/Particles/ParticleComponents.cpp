@@ -81,6 +81,7 @@ DECLARE_CYCLE_STAT(TEXT("ParticleComponent QueueAsync"), STAT_UParticleSystemCom
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent WaitForAsyncAndFinalize"), STAT_UParticleSystemComponent_WaitForAsyncAndFinalize, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("ParticleComponent CreateRenderState Concurrent"), STAT_ParticleSystemComponent_CreateRenderState_Concurrent, STATGROUP_Particles);
 
+#include "InGamePerformanceTracker.h"
 
 #define LOCTEXT_NAMESPACE "ParticleComponents"
 
@@ -1733,6 +1734,12 @@ void UParticleEmitter::CreateStatID() const
 }
 #endif
 
+bool UParticleEmitter::IsSignificant(EParticleSignificanceLevel RequiredSignificance)
+{
+	UParticleSystem* PSysOuter = CastChecked<UParticleSystem>(GetOuter());
+	EParticleSignificanceLevel Significance = FMath::Min(PSysOuter->MaxSignificanceLevel, SignificanceLevel);
+	return Significance >= RequiredSignificance;
+}
 
 /*-----------------------------------------------------------------------------
 	UParticleSpriteEmitter implementation.
@@ -1908,6 +1915,9 @@ void UParticleSpriteEmitter::SetToSensibleDefaults()
 
 UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, OcclusionBoundsMethod(EPSOBM_ParticleBounds)
+	, HighestSignificance(EParticleSignificanceLevel::Critical)
+	, LowestSignificance(EParticleSignificanceLevel::Low)
 	, bAnyEmitterLoopsForever(false)
 {
 #if WITH_EDITORONLY_DATA
@@ -1942,8 +1952,10 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	MacroUVRadius = 200.0f;
 	bAutoDeactivate = true;
 	MinTimeBetweenTicks = 0;
-	InsignificantTimeTillDeactivate = 5.0f;
+	InsignificantReaction = EParticleSystemInsignificanceReaction::Auto;
+	InsignificanceDelay = 0.0f;
 	MaxSignificanceLevel = EParticleSignificanceLevel::Critical;
+	bShouldManageSignificance = false;
 }
 
 
@@ -2024,6 +2036,8 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 
 	// Recompute the looping flag
 	bAnyEmitterLoopsForever = false;
+	HighestSignificance = EParticleSignificanceLevel::Low;
+	LowestSignificance = EParticleSignificanceLevel::Critical;
 	for (UParticleEmitter* Emitter : Emitters)
 	{
 		if (Emitter != nullptr)
@@ -2042,8 +2056,20 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 					}
 				}
 			}
+
+			EParticleSignificanceLevel EmitterSignificance = FMath::Min(MaxSignificanceLevel, Emitter->SignificanceLevel);
+			if (EmitterSignificance > HighestSignificance)
+			{
+				HighestSignificance = EmitterSignificance;
+			}
+			if (EmitterSignificance < LowestSignificance)
+			{
+				LowestSignificance = EmitterSignificance;
+			}
 		}
 	}
+
+	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass());
 
 	//cap the WarmupTickRate to realistic values
 	if (WarmupTickRate <= 0)
@@ -2092,6 +2118,8 @@ void UParticleSystem::PostLoad()
 	// Run thru all of the emitters, load them up and compute some flags based on them
 	bHasPhysics = false;
 	bAnyEmitterLoopsForever = false;
+	HighestSignificance = EParticleSignificanceLevel::Low;
+	LowestSignificance = EParticleSignificanceLevel::Critical;
 	for (int32 i = Emitters.Num() - 1; i >= 0; i--)
 	{
 		// Remove any old emitters
@@ -2151,9 +2179,21 @@ void UParticleSystem::PostLoad()
 					}
 				}
 			}
+
+			EParticleSignificanceLevel EmitterSignificance = FMath::Min(MaxSignificanceLevel, Emitter->SignificanceLevel);
+			if (EmitterSignificance > HighestSignificance)
+			{
+				HighestSignificance = EmitterSignificance;
+			}
+			if (EmitterSignificance < LowestSignificance)
+			{
+				LowestSignificance = EmitterSignificance;
+			}
 		}
 	}
 
+	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass());
+	
 	if (LODSettings.Num() == 0)
 	{
 		if (Emitters.Num() > 0)
@@ -2340,6 +2380,20 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	OutTags.Add(FAssetRegistryTag("CPUCollision", UsesCPUCollision() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 	OutTags.Add(FAssetRegistryTag("Looping", bAnyEmitterLoopsForever ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 	OutTags.Add(FAssetRegistryTag("Immortal", IsPotentiallyImmortal() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add(FAssetRegistryTag("CanBeOccluded", OcclusionBoundsMethod == EParticleSystemOcclusionBoundsMethod::EPSOBM_None ? TEXT("False") : TEXT("True"), FAssetRegistryTag::TT_Alphabetical));
+
+	uint32 NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Num] = { 0, 0, 0, 0 };
+	for (UParticleEmitter* Emitter : Emitters)
+	{
+		if (Emitter)
+		{
+			++NumEmittersAtEachSig[(int32)Emitter->SignificanceLevel];			
+		}
+	}
+	OutTags.Add(FAssetRegistryTag("Critical Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Critical]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("High Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::High]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Medium Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Medium]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Low Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Low]), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);
 }
@@ -3018,6 +3072,8 @@ bool UParticleSystem::HasGPUEmitter() const
 	return false;
 }
 
+FOnSystemPreActivationChange UParticleSystemComponent::OnSystemPreActivationChange;
+
 UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer), FXSystem(NULL), ReleaseResourcesFence(NULL)
 {
@@ -3034,6 +3090,7 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 	WarmupTime = 0.0f;
 	SecondsBeforeInactive = 1.0f;
+	bAllowSecondsBeforeInactive = true;
 	bIsTransformDirty = false;
 	bSkipUpdateDynamicDataDuringTick = false;
 	bIsViewRelevanceDirty = true;
@@ -3060,104 +3117,129 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 	TimeSinceLastTick = 0;
 
 	RequiredSignificance = EParticleSignificanceLevel::Low;
-	bMissingEmittersDueToSignificance = false;
-	InitRequiredSignificanceLevel = EParticleSignificanceLevel::Critical;
 	LastSignificantTime = 0.0f;
+	bIsSignificant = 1;
 }
 
-static float GParticleEmitterSignificanceThreshold_Low = .6666f;
-static FAutoConsoleVariableRef ParticleEmitterSignificanceThreshold_Low(
-	TEXT("fx.Significance.EmitterLevel_Low"),
-	GParticleEmitterSignificanceThreshold_Low,
-	TEXT("The significance value (0.0 to 1.0) to use as the Low Significance Level in particle emitter. \n"),
-	ECVF_Default
-	);
-static float GParticleEmitterSignificanceThreshold_Medium = .3333f;
-static FAutoConsoleVariableRef ParticleEmitterSignificanceThreshold_Medium(
-	TEXT("fx.Significance.EmitterLevel_Medium"),
-	GParticleEmitterSignificanceThreshold_Medium,
-	TEXT("The significance value (0.0 to 1.0) to use as the Medium Significance Level in particle emitter. \n"),
-	ECVF_Default
-	);
-static float GParticleEmitterSignificanceThreshold_High = 0.0f;
-static FAutoConsoleVariableRef ParticleEmitterSignificanceThreshold_High(
-	TEXT("fx.Significance.EmitterLevel_High"),
-	GParticleEmitterSignificanceThreshold_High,
-	TEXT("The significance value (0.0 to 1.0) to use as the High Significance Level in particle emitter. \n"),
-	ECVF_Default
-	);
-
-void UParticleSystemComponent::SetSignificance(float OldSignificance, float NewSignificance)
+void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance)
 {
 	check(Template);
-	check(!bAutoDestroy);//We can't use significance with systems that will auto destroy.
 
-	float SignificanceLevels[(int32)EParticleSignificanceLevel::Num] =
-	{
-		GParticleEmitterSignificanceThreshold_Low/*EParticleRequiredSignificanceLevel::Low*/,
-		GParticleEmitterSignificanceThreshold_Medium/*EParticleRequiredSignificanceLevel::Medium*/,
-		GParticleEmitterSignificanceThreshold_High/*EParticleRequiredSignificanceLevel::High*/,
-		0.0f
-	};
+	RequiredSignificance = NewRequiredSignificance;
 
-	if (NewSignificance > SignificanceLevels[(int32)EParticleSignificanceLevel::Low])
+	EParticleSystemInsignificanceReaction Reaction = Template->InsignificantReaction;
+	if (Template->InsignificantReaction == EParticleSystemInsignificanceReaction::Auto)
 	{
-		RequiredSignificance = EParticleSignificanceLevel::Low;
+		Reaction = Template->IsLooping() ? EParticleSystemInsignificanceReaction::DisableTick : EParticleSystemInsignificanceReaction::Complete;
 	}
-	else if (NewSignificance > SignificanceLevels[(int32)EParticleSignificanceLevel::Medium])
+
+	//If our tick is disabled we need to work out if we should re-enable it based on this new significance
+	if (!IsComponentTickEnabled() && Reaction == EParticleSystemInsignificanceReaction::DisableTick && Template->GetHighestSignificance() >= NewRequiredSignificance)
 	{
-		RequiredSignificance = EParticleSignificanceLevel::Medium;
+		//Set us to be significant again.
+		OnSignificanceChanged(true, true);
 	}
-	else if (NewSignificance > SignificanceLevels[(int32)EParticleSignificanceLevel::High])
+}
+
+void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters)
+{
+	int32 LocalNumSignificantEmitters = 0;
+	if (bSignificant)
 	{
-		RequiredSignificance = EParticleSignificanceLevel::High;
+		SetComponentTickEnabled(true);
+		bIsSignificant = true;
+		if (bApplyToEmitters && EmitterInstances.Num() > 0)
+		{
+			//Mark any emitters as significant if needed.
+			for (FParticleEmitterInstance* Inst : EmitterInstances)
+			{
+				if (Inst)					
+				{
+					if (Inst->SpriteTemplate->IsSignificant(RequiredSignificance))
+					{
+						Inst->bEnabled = true;
+						Inst->SetHaltSpawning(false);
+						Inst->SetFakeBurstWhenSpawningSupressed(false);
+						++LocalNumSignificantEmitters;
+					}
+				}
+				else
+				{
+					++LocalNumSignificantEmitters;//Set significant for missing emitters due to other reasons such as detail mode.
+				}
+			}
+
+			if (LocalNumSignificantEmitters == 0)
+			{
+				UE_LOG(LogParticles, Warning, TEXT("Setting PSC as significant but it has no significant emitters. %s Template: %s"), *GetFullName(), *Template->GetFullName());
+			}
+			NumSignificantEmitters = LocalNumSignificantEmitters;
+		}
 	}
 	else
 	{
-		RequiredSignificance = EParticleSignificanceLevel::Critical;
-	}
-
-	bool bNeedsInit = false;
-	// We need to re-init. Some emitters are missing due to significance that may now be significant.
-	if (bIsActive && ((int32)RequiredSignificance < (int32)InitRequiredSignificanceLevel))
-	{
-		InitParticles(false);
-	}
-
-	bool bHasAnyEmittersEnabled = false;
-	for (FParticleEmitterInstance* Inst : EmitterInstances)
-	{
-		if (Inst)
+		SetComponentTickEnabled(false);
+		bIsSignificant = false;
+		if (bApplyToEmitters && EmitterInstances.Num() > 0)
 		{
-			if ((int32)Inst->SpriteTemplate->SignificanceLevel >= (int32)RequiredSignificance)
+			//Mark any emitters as significant if needed.
+			for (FParticleEmitterInstance* Inst : EmitterInstances)
 			{
-				bHasAnyEmittersEnabled = true;
-				Inst->bEnabled = true;
-				Inst->SetHaltSpawning(false);
-				//TODO: Warm up if was previously disabled emitters? How does this all interact with LODs?
+				if (Inst)
+				{
+					if(Inst->SpriteTemplate->IsSignificant(RequiredSignificance))
+					{
+						++LocalNumSignificantEmitters;
+					}
+					else
+					{
+						Inst->bEnabled = false;
+						Inst->SetHaltSpawning(true);
+						Inst->SetFakeBurstWhenSpawningSupressed(true);
+					}
+				}
 			}
-			else
+
+			if (LocalNumSignificantEmitters > 0)
 			{
-				Inst->bEnabled = Inst->SpriteTemplate->bDisableWhenInsignficant ? false : true;
-				Inst->SetHaltSpawning(true);
-				//Inst->DisabledSince = GetWorld()->GetTimeSeconds();//Allows us to warm back up if we ever re-enable?
+				UE_LOG(LogParticles, Warning, TEXT("Setting PSC as not significant but it has some significant emitters. %s Template: %s"), *GetFullName(), *Template->GetFullName());
 			}
+
+			NumSignificantEmitters = LocalNumSignificantEmitters;
+		}
+
+		EParticleSystemInsignificanceReaction Reaction = Template->InsignificantReaction;
+		if (Template->InsignificantReaction == EParticleSystemInsignificanceReaction::Auto)
+		{
+			Reaction = Template->IsLooping() ? EParticleSystemInsignificanceReaction::DisableTick : EParticleSystemInsignificanceReaction::Complete;
+		}
+
+		switch (Reaction)
+		{
+		case EParticleSystemInsignificanceReaction::Complete:
+		{
+			Complete();
+		}
+			break;
+		case EParticleSystemInsignificanceReaction::DisableTick:
+		{
+			SetComponentTickEnabled(false);
+		}
+			break;
+		case EParticleSystemInsignificanceReaction::DisableTickAndKill:
+		{
+			KillParticlesForced();//TODO: Make this actually free memory.
+			SetComponentTickEnabled(false);
+		}
+			break;
 		}
 	}
+	MarkRenderStateDirty();
+}
 
-	if (bHasAnyEmittersEnabled)
-	{
-		LastSignificantTime = GetWorld()->GetTimeSeconds();
-		Activate();
-	}
-	else
-	{
-		float CurrentTime = GetWorld()->GetTimeSeconds();
-		if (Template->InsignificantTimeTillDeactivate > 0.0f && CurrentTime >= LastSignificantTime + Template->InsignificantTimeTillDeactivate)
-		{
-			Deactivate();
-		}
-	}
+bool UParticleSystemComponent::ShouldManageSignificance() const
+{
+	return Template ? Template->ShouldManageSignificance() : false;
 }
 
 #if WITH_EDITOR
@@ -3857,13 +3939,6 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 	{
 		// Create the dynamic data for rendering this particle system
 		FParticleDynamicData* ParticleDynamicData = CreateDynamicData();
-		if (ParticleDynamicData)
-		{
-			for (int32 Index = 0; Index < ParticleDynamicData->DynamicEmitterDataArray.Num(); Index++)
-			{
-				static_cast<FParticleSystemSceneProxy*>(SceneProxy)->QueueVertexFactoryCreation(ParticleDynamicData->DynamicEmitterDataArray[Index]);
-			}
-		}
 
 		// Render the particles
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -4149,6 +4224,9 @@ DECLARE_CYCLE_STAT(TEXT("PSys Comp Marshall Time"),STAT_UParticleSystemComponent
 
 void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	bool bManagingSignificance = ShouldManageSignificance();
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
+
 	if( Template == nullptr)
 	{
 		return;
@@ -4255,7 +4333,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	{
 		//For now, we're only allowing the SecondsBeforeInactive optimization on looping emitters as it can cause leaks with non-looping effects.
 		//Longer term, there is likely a better solution.
-		if (Template->IsLooping())
+		if (bAllowSecondsBeforeInactive && Template->IsLooping())
 		{
 			const float MaxSecondsBeforeInactive = FMath::Max(SecondsBeforeInactive, Template->SecondsBeforeInactive);
 
@@ -4442,10 +4520,14 @@ int32 UParticleSystemComponent::GetCurrentDetailMode() const
 
 void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 {
+	bool bLocalShouldManageSignificance = ShouldManageSignificance();
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, IsInGameThread() ? EInGamePerfTrackerThreads::GameThread : EInGamePerfTrackerThreads::OtherThread, bLocalShouldManageSignificance);
+
 	SCOPE_CYCLE_COUNTER(STAT_ParticleComputeTickTime);
 	FScopeCycleCounterUObject AdditionalScope(AdditionalStatObject(), GET_STATID(STAT_ParticleComputeTickTime));
 	// Tick Subemitters.
 	int32 EmitterIndex;
+	NumSignificantEmitters = 0;
 	for (EmitterIndex = 0; EmitterIndex < EmitterInstances.Num(); EmitterIndex++)
 	{
 		FParticleEmitterInstance* Instance = EmitterInstances[EmitterIndex];
@@ -4457,13 +4539,38 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 			FPlatformMisc::Prefetch(NextInstance);
 		}
 
-		if (Instance && Instance->SpriteTemplate && Instance->bEnabled)
+		if (Instance && Instance->SpriteTemplate)
 		{
 			check(Instance->SpriteTemplate->LODLevels.Num() > 0);
 
 			UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
 			if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 			{
+				if (bLocalShouldManageSignificance)
+				{
+					bool bEmitterIsSignificant = Instance->SpriteTemplate->IsSignificant(RequiredSignificance);
+					if (bEmitterIsSignificant)
+					{
+						++NumSignificantEmitters;
+						Instance->SetHaltSpawning(false);
+						Instance->SetFakeBurstWhenSpawningSupressed(false);
+						Instance->bEnabled = true;
+					}
+					else
+					{
+						Instance->SetHaltSpawning(true);
+						Instance->SetFakeBurstWhenSpawningSupressed(true);
+						if (Instance->SpriteTemplate->bDisableWhenInsignficant)
+						{
+							Instance->bEnabled = false;
+						}
+					}
+				}
+				else
+				{
+					++NumSignificantEmitters;
+				}
+
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
 
 				if (!Instance->Tick_MaterialOverrides())
@@ -4489,6 +4596,9 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 
 void UParticleSystemComponent::FinalizeTickComponent()
 {
+	bool bLocalShouldManageSignificance = ShouldManageSignificance();
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bLocalShouldManageSignificance);
+
 	SCOPE_CYCLE_COUNTER(STAT_ParticleFinalizeTickTime);
 
 	if(bAsyncDataCopyIsValid)
@@ -4548,35 +4658,28 @@ void UParticleSystemComponent::FinalizeTickComponent()
 
 	// Indicate that we have been ticked since being registered.
 	bJustRegistered = false;
+	
+	float CurrTime = GetWorld()->GetTimeSeconds();
 
-	// If component has just totally finished, call script event.
-	const bool bIsCompleted = HasCompleted(); 
-	if (bIsCompleted && !bWasCompleted)
+	//Are we still significant?
+	if ((bIsActive && !bWasDeactivated) && bLocalShouldManageSignificance && NumSignificantEmitters == 0 && CurrTime >= LastSignificantTime + Template->InsignificanceDelay)
 	{
-		UE_LOG(LogParticles,Verbose,
-			TEXT("HasCompleted()==true @ %fs %s"), World->TimeSeconds,
-			Template != NULL ? *Template->GetName() : TEXT("NULL"));
-
-		OnSystemFinished.Broadcast(this);
-
-		// When system is done - destroy all subemitters etc. We don't need them any more.
-		ResetParticles();
-		bIsActive = false;
-		SetComponentTickEnabled(false);
-
-		if (bAutoDestroy)
-		{
-			DestroyComponent();
-		}
-		else if (bAutoManageAttachment)
-		{
-			CancelAutoAttachment(/*bDetachFromParent=*/ true);
-		}
+		OnSignificanceChanged(false, false);
 	}
-	bWasCompleted = bIsCompleted;
+	else
+	{
+		LastSignificantTime = CurrTime;
+		// If component has just totally finished, call script event.
+		const bool bIsCompleted = HasCompleted();
+		if (bIsCompleted && !bWasCompleted)
+		{
+			Complete();
+		}
+		bWasCompleted = bIsCompleted;
+	}
 
 	// Update bounding box.
-	if (!bWarmingUp && !bIsCompleted && !Template->bUseFixedRelativeBoundingBox && !bIsTransformDirty)
+	if (!bWarmingUp && !bWasCompleted && !Template->bUseFixedRelativeBoundingBox && !bIsTransformDirty)
 	{
 		// Force an update every once in a while to shrink the bounds.
 		TimeSinceLastForceUpdateTransform += DeltaTimeTick;
@@ -4663,7 +4766,7 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 	}
 }
 
-void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
+void UParticleSystemComponent::InitParticles()
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_InitParticles);
 
@@ -4680,12 +4783,10 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 
 	if (Template != NULL)
 	{
-		InitRequiredSignificanceLevel = RequiredSignificance;
-
 		WarmupTime = Template->WarmupTime;
 		WarmupTickRate = Template->WarmupTickRate;
 		bIsViewRelevanceDirty = true;
-		const int32 GlobalDetailMode = GetCurrentDetailMode();;
+		const int32 GlobalDetailMode = GetCurrentDetailMode();
 		const bool bCanEverRender = CanEverRender();
 
 		//simplified version.
@@ -4706,15 +4807,8 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 			UParticleEmitter* Emitter = Template->Emitters[Idx];
 			FParticleEmitterInstance* Instance = NumInstances == 0 ? NULL : EmitterInstances[Idx];
 			
-			const bool bDetailModeAllowsRendering	= DetailMode <= GlobalDetailMode;
-			bool bShouldCreateAndOrInit = bDetailModeAllowsRendering && Emitter->HasAnyEnabledLODs() && bCanEverRender;
-			const bool bIsSignificant = (int32)Emitter->SignificanceLevel >= (int32)RequiredSignificance;
-			bool bFailedOnlyOnSignificance = false;
-			if (bShouldCreateAndOrInit && !bIsSignificant)
-			{
-				bFailedOnlyOnSignificance = true;
-				bShouldCreateAndOrInit = false;
-			}
+			const bool bDetailModeAllowsRendering = DetailMode <= GlobalDetailMode && Emitter->DetailMode <= GlobalDetailMode;
+			const bool bShouldCreateAndOrInit = bDetailModeAllowsRendering && Emitter->HasAnyEnabledLODs() && bCanEverRender;
 
 			if (bShouldCreateAndOrInit)
 			{
@@ -4731,37 +4825,24 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 				if (Instance)
 				{
 					Instance->bEnabled = true;
-					if (bReInitExistingEmitters)
-					{
-						Instance->InitParameters(Emitter, this);
-						Instance->Init();
+					Instance->InitParameters(Emitter, this);
+					Instance->Init();
 
-						PreferredLODLevel = FMath::Min(PreferredLODLevel, Emitter->LODLevels.Num());
-						bSetLodLevels |= !bIsFirstCreate;//Only set lod levels if we init any instances and it's not the first creation time.
-					}
+					PreferredLODLevel = FMath::Min(PreferredLODLevel, Emitter->LODLevels.Num());
+					bSetLodLevels |= !bIsFirstCreate;//Only set lod levels if we init any instances and it's not the first creation time.
 				}
 			}
 			else
 			{
 				if (Instance)
 				{
-					if(!bFailedOnlyOnSignificance)
-					{
-						//If the instance exists already and we failed for something other than significance then destroy this emitter.
 #if STATS
-						Instance->PreDestructorCall();
+					Instance->PreDestructorCall();
 #endif
-						delete Instance;
-						EmitterInstances[Idx] = NULL;
-						bClearDynamicData = true;
-					}
-					else
-					{
-						//otherwise, we just disable it.
-						Instance->bEnabled = false;
-					}
+					delete Instance;
+					EmitterInstances[Idx] = NULL;
+					bClearDynamicData = true;
 				}
-				bMissingEmittersDueToSignificance |= bFailedOnlyOnSignificance;
 			}
 		}
 
@@ -4793,7 +4874,7 @@ void UParticleSystemComponent::InitParticles(bool bReInitExistingEmitters)
 						Instance->CurrentLODLevelIndex = Instance->SpriteTemplate->LODLevels.Num()-1;
 						ensureMsgf(false, TEXT("LOD access out of bounds (OR-11322). Please let olaf.piesche or simon.tovey know."));
 					}
-					Instance->CurrentLODLevel		= Instance->SpriteTemplate->LODLevels[Instance->CurrentLODLevelIndex];
+					Instance->CurrentLODLevel = Instance->SpriteTemplate->LODLevels[Instance->CurrentLODLevelIndex];
 				}
 			}
 		}
@@ -4809,6 +4890,12 @@ void UParticleSystemComponent::ResetParticles(bool bEmptyInstances)
 		Template != NULL ? *Template->GetName() : TEXT("NULL"), bEmptyInstances ? TEXT("true") : TEXT("false"));
 
 	UWorld* OwningWorld = GetWorld();
+
+	//Also consider this deactivation.
+	if (bIsActive)
+	{
+		OnSystemPreActivationChange.Broadcast(this, false);
+	}
 
 	const bool bIsGameWorld = OwningWorld ? OwningWorld->IsGameWorld() : !GIsEditor;
 
@@ -4831,9 +4918,6 @@ void UParticleSystemComponent::ResetParticles(bool bEmptyInstances)
 
 	// Set the system as inactive
 	bIsActive	= false;
-
-	
-	bMissingEmittersDueToSignificance = false;
 
 	// Remove instances if we're not running gameplay.ww
 	if (!bIsGameWorld || bEmptyInstances)
@@ -4960,6 +5044,9 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 
 void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 {
+	bool bManagingSignificance = ShouldManageSignificance();
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
+
 	SCOPE_CYCLE_COUNTER(STAT_ParticleActivateTime);
 	ForceAsyncWorkCompletion(STALL);
 
@@ -5002,11 +5089,8 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	}
 
 	// System settings may have been lowered. Support late deactivation.
-	const bool bDetailModeAllowsRendering	= DetailMode <= GetCurrentDetailMode();
-
-	//Assume significant initially.
-	LastSignificantTime = GetWorld()->GetTimeSeconds();
-
+	const bool bDetailModeAllowsRendering = DetailMode <= GetCurrentDetailMode();
+	
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{
 		// Auto attach if requested
@@ -5037,8 +5121,15 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 			}
 		}
 
-		//Call this now after any attachment has happened.
-		OnSystemPreActivate.Broadcast(this);
+		if (!bIsActive)
+		{
+			LastSignificantTime = GetWorld()->GetTimeSeconds();
+			bIsSignificant = true;
+			RequiredSignificance = EParticleSignificanceLevel::Low;
+
+			//Call this now after any attachment has happened.
+			OnSystemPreActivationChange.Broadcast(this, true);
+		}
 
 		if (bFlagAsJustAttached)
 		{
@@ -5152,11 +5243,42 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	{
 		LastRenderTime = GetWorld()->GetTimeSeconds();
 	}
+
+	//We are definitely insignificant already so set insignificant before we ever begin ticking.
+	if (bManagingSignificance && Template->GetHighestSignificance() < RequiredSignificance && Template->InsignificanceDelay == 0.0f)
+	{
+		OnSignificanceChanged(false, true);
+	}
 }
 
+void UParticleSystemComponent::Complete()
+{
+	UE_LOG(LogParticles, Verbose,
+		TEXT("HasCompleted()==true @ %fs %s"), World->TimeSeconds,
+		Template != NULL ? *Template->GetName() : TEXT("NULL"));
+
+	OnSystemFinished.Broadcast(this);
+
+	// When system is done - destroy all subemitters etc. We don't need them any more.
+	ResetParticles();
+	bIsActive = false;
+	SetComponentTickEnabled(false);
+
+	if (bAutoDestroy)
+	{
+		DestroyComponent();
+	}
+	else if (bAutoManageAttachment)
+	{
+		CancelAutoAttachment(/*bDetachFromParent=*/ true);
+	}
+}
 
 void UParticleSystemComponent::DeactivateSystem()
 {
+	bool bManagingSignificance = ShouldManageSignificance();
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
+
 	if (IsTemplate() == true)
 	{
 		return;
@@ -5167,6 +5289,11 @@ void UParticleSystemComponent::DeactivateSystem()
 	UE_LOG(LogParticles,Verbose,
 		TEXT("DeactivateSystem @ %fs %s"), GetWorld()->TimeSeconds,
 		Template != NULL ? *Template->GetName() : TEXT("NULL"));
+
+	if (bIsActive)
+	{
+		OnSystemPreActivationChange.Broadcast(this, false);
+	}
 
 	bSuppressSpawning = true;
 	bWasDeactivated = true;
@@ -5207,6 +5334,10 @@ void UParticleSystemComponent::DeactivateSystem()
 		ClearDynamicData();
 		MarkRenderStateDirty();
 	}
+
+	//We have to ensure ticking is enabled so that this component completes and is can be destroyed etc correctly.
+	//TODO: What if there are immortal particles but bKillOnDeactivate is false? Need to mark emitters with currently immortal particles, kill them and warn the user.
+	SetComponentTickEnabled(true);
 
 	LastRenderTime = GetWorld()->GetTimeSeconds();
 }
@@ -5250,7 +5381,8 @@ bool UParticleSystemComponent::ShouldActivate() const
 void UParticleSystemComponent::Activate(bool bReset) 
 {
 	// If the particle system can't ever render (ie on dedicated server or in a commandlet) than do not activate...
-	if (FApp::CanEverRender())
+	// Occasionaly we can arrive here with no template so check that here too.
+	if (FApp::CanEverRender() && Template)
 	{
 		ForceAsyncWorkCompletion(STALL);
 		if (bReset || ShouldActivate()==true)
@@ -5425,7 +5557,7 @@ bool UParticleSystemComponent::HasCompleted()
 	{
 		FParticleEmitterInstance* Instance = EmitterInstances[i];
 
-		if (Instance && Instance->CurrentLODLevel)
+		if (Instance && Instance->CurrentLODLevel && Instance->bEnabled)
 		{
 			if (!Instance->bEmitterIsDone)
 			{
@@ -5537,7 +5669,7 @@ void UParticleSystemComponent::InitializeSystem()
 		Template != NULL ? *Template->GetName() : TEXT("NULL"), this, FXSystem);
 
 	// System settings may have been lowered. Support late deactivation.
-	const bool bDetailModeAllowsRendering	= DetailMode <= GetCurrentDetailMode();
+	const bool bDetailModeAllowsRendering = DetailMode <= GetCurrentDetailMode();
 
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{

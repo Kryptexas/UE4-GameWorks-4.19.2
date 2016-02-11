@@ -1843,8 +1843,8 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 					int32 MsgCount = 0;
 					for (FAbilityTaskDebugMessage& Msg : Instance->TaskDebugMessages)
 					{
-						// Cap finished task msgs to 5 per ability unless dumping to log
-						if ( ++MsgCount > 5 || Info.bPrintToLog)
+						// Cap finished task msgs to 5 per ability if we are printing to screen (else things will scroll off)
+						if ( Info.Canvas && ++MsgCount > 5 )
 						{
 							break;
 						}

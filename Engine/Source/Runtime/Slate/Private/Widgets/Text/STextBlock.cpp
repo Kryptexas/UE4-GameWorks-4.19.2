@@ -3,6 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "PlainTextLayoutMarshaller.h"
 #include "TextBlockLayout.h"
+#include "ReflectionMetadata.h"
 
 DECLARE_CYCLE_STAT(TEXT("STextBlock::SetText Time"), Stat_SlateTextBlockSetText, STATGROUP_SlateVerbose)
 DECLARE_CYCLE_STAT(TEXT("STextBlock::OnPaint Time"), Stat_SlateTextBlockOnPaint, STATGROUP_SlateVerbose)
@@ -36,6 +37,7 @@ void STextBlock::Construct( const FArguments& InArgs )
 
 	// We use a dummy style here (as it may not be safe to call the delegates used to compute the style), but the correct style is set by ComputeDesiredSize
 	TextLayoutCache = FTextBlockLayout::Create(FTextBlockStyle::GetDefault(), InArgs._TextShapingMethod, InArgs._TextFlowDirection, FPlainTextLayoutMarshaller::Create(), InArgs._LineBreakPolicy);
+	TextLayoutCache->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 
 #endif//WITH_FANCY_TEXT
 }

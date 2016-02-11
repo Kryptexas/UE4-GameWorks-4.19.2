@@ -16,6 +16,7 @@ public:
 		, _HighlightText()
 		, _WrapTextAt( 0.0f )
 		, _AutoWrapText(false)
+		, _Marshaller()
 		, _DecoratorStyleSet( &FCoreStyle::Get() )
 		, _TextStyle( &FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>( "NormalText" ) )
 		, _Margin( FMargin() )
@@ -39,6 +40,9 @@ public:
 		    in visual artifacts, as the the wrapped size will computed be at least one frame late!  Consider using WrapTextAt instead.  The initial 
 			desired size will not be clamped.  This works best in cases where the text block's size is not affecting other widget's layout. */
 		SLATE_ATTRIBUTE( bool, AutoWrapText )
+
+		/** The marshaller used to get/set the raw text to/from the text layout. */
+		SLATE_ARGUMENT(TSharedPtr<class FRichTextLayoutMarshaller>, Marshaller)
 
 		/** The style set used for looking up styles used by decorators*/
 		SLATE_ARGUMENT( const ISlateStyle*, DecoratorStyleSet )

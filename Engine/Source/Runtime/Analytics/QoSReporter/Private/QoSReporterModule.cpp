@@ -9,12 +9,16 @@
 #include "EngineVersion.h"
 #include "QoSReporter.h"
 
+#if USE_SERVER_PERF_COUNTERS
+	#include "PerfCountersHelpers.h"
+#endif
+
 DEFINE_LOG_CATEGORY(LogQoSReporter);
 
 IMPLEMENT_MODULE(FQoSReporterModule, QoSReporter);
 
 // helps to version QoS events (date*10 to allow for 10 revisions per day)
-#define QOS_EVENTS_REVISION					201601280
+#define QOS_EVENTS_REVISION					201602080
 
 FString FQoSReporterModule::Config::GetDefaultAppVersion()
 { 
@@ -51,7 +55,7 @@ public:
 	/** We're (ab)using this API to set DeploymentName */
 	virtual void SetLocation(const FString& InLocation) override { DeploymentName = InLocation; };
 
-	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
+	virtual void RecordEvent(const FString& InEventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
 	virtual ~FAnalyticsProviderQoSReporter();
 
 	FString GetAPIKey() const { return APIKey; }
@@ -170,19 +174,25 @@ FAnalyticsProviderQoSReporter::~FAnalyticsProviderQoSReporter()
 	EndSession();
 }
 
-void FAnalyticsProviderQoSReporter::RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& InAttributes)
+void FAnalyticsProviderQoSReporter::RecordEvent(const FString& InEventName, const TArray<FAnalyticsEventAttribute>& InAttributes)
 {
 	if (APIKey.IsEmpty() || APIServer.IsEmpty())
 	{
 		return;
 	}
 
+	// for data router, it is actually preferable to have different events than attach more attributes, so
+	// append application role to the event name instead
+	FString EventName = InEventName;
+	EventName += TEXT(".");
+	EventName += GetApplicationRole();
+
 	// add attributes common to each QoS event first
 	TArray<FAnalyticsEventAttribute> Attributes;
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("QoSRevision"), QOS_EVENTS_REVISION));
-	Attributes.Add(FAnalyticsEventAttribute(TEXT("Role"), GetApplicationRole()));
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("SystemId"), FPlatformMisc::GetOperatingSystemId()));
 	Attributes.Add(FAnalyticsEventAttribute(TEXT("InstanceId"), InstanceId.ToString()));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("Platform"), FString(FPlatformProperties::PlatformName())));
 	if (LIKELY(DeploymentName.Len() > 0))
 	{
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("Deployment"), DeploymentName));
@@ -258,6 +268,8 @@ void FAnalyticsProviderQoSReporter::RecordEvent(const FString& EventName, const 
 
 void FAnalyticsProviderQoSReporter::EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
 {
+	bool bCountTowardsFailedAttempts = true;
+
 	if (bSucceeded && HttpResponse.IsValid())
 	{
 		// normal operation is silent, but any problems are reported as warnings
@@ -265,6 +277,8 @@ void FAnalyticsProviderQoSReporter::EventRequestComplete(FHttpRequestPtr HttpReq
 		{
 			UE_LOG(LogQoSReporter, VeryVerbose, TEXT("QoS response for [%s]. Code: %d. Payload: %s"),
 				*HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *HttpResponse->GetContentAsString());
+
+			bCountTowardsFailedAttempts = false;
 		}
 		else
 		{
@@ -276,6 +290,14 @@ void FAnalyticsProviderQoSReporter::EventRequestComplete(FHttpRequestPtr HttpReq
 	{
 		// if we cannot report QoS metrics this is pretty bad; report at least a warning
 		UE_LOG(LogQoSReporter, Warning, TEXT("QoS response for [%s]. No response"), *HttpRequest->GetURL());
+	}
+
+	if (bCountTowardsFailedAttempts)
+	{
+		// FIXME: should use retrial with exponential backoff here
+#if USE_SERVER_PERF_COUNTERS
+		PerfCountersIncrement(TEXT("FailedQoSRequests"), 0, IPerfCounters::Flags::Transient);
+#endif // USE_SERVER_PERF_COUNTERS
 	}
 }
 

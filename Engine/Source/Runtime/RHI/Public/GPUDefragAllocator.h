@@ -7,7 +7,7 @@
 #define LOG_EVERY_ALLOCATION			0
 #define DUMP_ALLOC_FREQUENCY			0 // 100
 #define VALIDATE_SYNC_SIZE				(!(UE_BUILD_TEST || UE_BUILD_SHIPPING))
-
+#define VALIDATE_MEMORY_PROTECTION		1 //(!(UE_BUILD_TEST || UE_BUILD_SHIPPING))
 
 /*-----------------------------------------------------------------------------
 Custom fixed size pool best fit texture memory allocator
@@ -677,6 +677,30 @@ protected:
 	TArray<FRelocationEntry> Relocations;
 #endif
 
+#if VALIDATE_MEMORY_PROTECTION
+	struct FMemProtectTracker
+	{
+		FMemProtectTracker(const void* InMemory, uint64 InBlockSize, uint32 InSyncIndex)
+		: Memory(InMemory)
+		, BlockSize(InBlockSize)
+		, SyncIndex(InSyncIndex)
+		{
+
+		}
+		const void* Memory;
+		uint64 BlockSize;
+		uint32 SyncIndex;
+	};
+
+	TArray<FMemProtectTracker> BlocksToProtect;
+	TArray<FMemProtectTracker> BlocksToUnProtect;
+
+	void AllowCPUAccessToBlocks();
+	virtual void	PlatformAllowCPUAccessToBlock(const FMemProtectTracker& BlocksToAllow) {};
+	virtual void	PlatformRemoveCPUAccessTo(const TArray<FMemProtectTracker>& BlocksToRemove) {};
+#endif
+
+
 	/**
 	* Copy memory from one location to another. If it returns false, the defragmentation
 	* process will assume the memory is not relocatable and keep it in place.
@@ -688,6 +712,8 @@ protected:
 	* @param UserPayload	User payload for this allocation
 	*/
 	virtual void	PlatformRelocate(void* Dest, const void* Source, int64 Size, void* UserPayload) = 0;
+
+	
 
 	/**
 	* Inserts a fence to synchronize relocations.
@@ -744,6 +770,10 @@ protected:
 
 		if (!bBenchmarkMode)
 		{
+#if VALIDATE_MEMORY_PROTECTION
+			BlocksToProtect.Emplace(DestAddr, Size, CurrentSyncIndex);
+			BlocksToProtect.Emplace(Source, Size, CurrentSyncIndex);
+#endif
 			PlatformRelocate(DestAddr, Source, Size, UserPayload);
 		}
 		int64 RelocateSize = bOverlappedMove ? (Size * Settings.MaxDefragRelocations) : Size;
@@ -1054,6 +1084,10 @@ protected:
 	uint32			BlockedCycles;
 
 	int32 NumLockedChunks;
+
+#if VALIDATE_MEMORY_PROTECTION
+	double TimeInMemProtect;
+#endif
 
 	/** When in benchmark mode, don't call any Platform functions.	*/
 	bool			bBenchmarkMode;

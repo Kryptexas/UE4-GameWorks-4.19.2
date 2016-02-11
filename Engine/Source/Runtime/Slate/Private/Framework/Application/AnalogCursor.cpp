@@ -44,7 +44,7 @@ void FAnalogCursor::Tick(const float DeltaTime, FSlateApplication& SlateApp, TSh
 		for(const FArrangedWidget& ArrangedWidget : AllArrangedWidgets)
 		{
 			TSharedRef<SWidget> Widget = ArrangedWidget.Widget;
-			if (Widget->SupportsKeyboardFocus() && Widget->IsInteractable())
+			if (Widget->IsInteractable())
 			{
 				SpeedMult = StickySlowdown;
 				//FVector2D Adjustment = WidgetsAndCursors.Last().Geometry.Position - OldPosition; // example of calculating distance from cursor to widget center

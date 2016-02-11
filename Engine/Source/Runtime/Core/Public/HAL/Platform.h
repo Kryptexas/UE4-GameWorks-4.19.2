@@ -95,7 +95,7 @@
 
 //@port Identify the platform here and include the platform header to setup the platform types, etc
 #if PLATFORM_WINDOWS
-	#include "Windows/WIndowsPlatform.h"
+	#include "Windows/WindowsPlatform.h"
 #elif PLATFORM_PS4
 	#include "PS4/PS4Platform.h"
 #elif PLATFORM_XBOXONE
@@ -280,6 +280,10 @@
 
 #ifndef PLATFORM_SUPPORTS_STACK_SYMBOLS
 	#define PLATFORM_SUPPORTS_STACK_SYMBOLS 0
+#endif
+
+#ifndef PLATFORM_HAS_64BIT_ATOMICS
+	#define PLATFORM_HAS_64BIT_ATOMICS 1
 #endif
 
 #ifndef PLATFORM_HAS_128BIT_ATOMICS

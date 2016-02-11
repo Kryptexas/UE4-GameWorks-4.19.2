@@ -76,8 +76,8 @@ void RHIDetectAndWarnOfBadDrivers()
 	{
 		DriverInfo.SetNVIDIA();
 		DriverInfo.DeviceDescription = TEXT("Test NVIDIA (bad)");
-		DriverInfo.UserDriverVersion = TEXT("361.43");
-		DriverInfo.InternalDriverVersion = TEXT("9.18.136.143");
+		DriverInfo.UserDriverVersion = TEXT("346.43");
+		DriverInfo.InternalDriverVersion = TEXT("9.18.134.643");
 		DriverInfo.DriverDate = TEXT("01-01-1900");
 	}
 	else if(CVarValue == 3)
@@ -114,22 +114,44 @@ void RHIDetectAndWarnOfBadDrivers()
 
 		if (BlackListEntry.IsValid())
 		{
+			bool bLatestBlacklisted = DetectedGPUHardware.IsLatestBlacklisted();
+
+			// Note: we don't localize the vendor's name.
+			FString VendorString = DriverInfo.ProviderName;
+			if (DriverInfo.IsNVIDIA())
+			{
+				VendorString = TEXT("NVIDIA");
+			}
+			else if (DriverInfo.IsAMD())
+			{
+				VendorString = TEXT("AMD");
+			}
+			else if (DriverInfo.IsIntel())
+			{
+				VendorString = TEXT("Intel");
+			}
+
 			// format message box UI
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("AdapterName"), FText::FromString(DriverInfo.DeviceDescription));
-			Args.Add(TEXT("UserDriverVersion"), FText::FromString(DriverInfo.UserDriverVersion));
-			Args.Add(TEXT("InternalDriverVersion"), FText::FromString(DriverInfo.InternalDriverVersion));
-			Args.Add(TEXT("DriverDate"), FText::FromString(DriverInfo.DriverDate));
-			Args.Add(TEXT("SuggestedVersion"), FText::FromString(DetectedGPUHardware.GetSuggestedDriverVersion()));
+			Args.Add(TEXT("Vendor"), FText::FromString(VendorString));
+			Args.Add(TEXT("RecommendedVer"), FText::FromString(DetectedGPUHardware.GetSuggestedDriverVersion()));
+			Args.Add(TEXT("InstalledVer"), FText::FromString(DriverInfo.UserDriverVersion));
 
 			// this message can be suppressed with r.WarnOfBadDrivers=0
-			FText LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "VideoCardDriverIssueReport",
-				"Your current video card driver version might cause problems.\n(reduced performance, artifacts, stalls, crashes, restarts)\n\nYour current driver:\n  Name:\t{AdapterName}\n  Version:\t{UserDriverVersion} (internal {InternalDriverVersion})\n  Date:\t{DriverDate}\n\nSuggested driver:\n  Version:\t{SuggestedVersion}"),
-				Args);
+			FText LocalizedMsg;
+			if (bLatestBlacklisted)
+			{
+				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "LatestVideoCardDriverIssueReport","The latest version of the {Vendor} graphics driver has known issues.\n\nPlease install the last known good driver version.\n\n{AdapterName}\n{RecommendedVer} is the last known good\n{InstalledVer} is installed"),Args);
+			}
+			else
+			{
+				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "VideoCardDriverIssueReport","Your {Vendor} graphics driver has known issues.\n\nPlease update to the latest driver version.\n\n{AdapterName}\n{RecommendedVer} is recommended\n{InstalledVer} is installed"),Args);
+			}
 
 			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,
 				*LocalizedMsg.ToString(),
-				*NSLOCTEXT("MessageDialog", "TitleVideoCardDriverIssue", "WARNING: Video card driver").ToString());
+				*NSLOCTEXT("MessageDialog", "TitleVideoCardDriverIssue", "WARNING: Known issues with graphics driver").ToString());
 		}
 	}
 }

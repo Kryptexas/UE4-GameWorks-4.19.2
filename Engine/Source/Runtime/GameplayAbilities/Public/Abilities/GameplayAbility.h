@@ -629,7 +629,12 @@ public:
 	/** Called by ability system component to inform this ability instance the remote instance was ended */
 	void SetRemoteInstanceHasEnded();
 
+	/** Called to inform the ability that the AvatarActor has been replaced. If the ability is dependant on avatar state, it may want to end itself. */
+	void NotifyAvatarDestroyed();
+
 	void NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* AbilityTask);
+
+	void NotifyAbilityTaskWaitingOnAvatar(class UAbilityTask* AbilityTask);
 
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	float GetCooldownTimeRemaining() const;

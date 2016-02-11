@@ -45,9 +45,6 @@ private:
 	static TSubclassOf<USignificanceManager>  SignificanceManagerClass;
 };
 
-DECLARE_DELEGATE_TwoParams(FSignificanceNotify, float, float);
-extern SIGNIFICANCEMANAGER_API const FSignificanceNotify GDummySignificanceNotify;
-
 /* The significance manager provides a framework for registering objects by tag to each have a significance
  * value calculated from which a game specific subclass and game logic can make decisions about what level
  * of detail objects should be at, tick frequency, whether to spawn effects, and other such functionality
@@ -64,39 +61,40 @@ class SIGNIFICANCEMANAGER_API USignificanceManager : public UObject
 	GENERATED_BODY()
 
 public:
-	typedef TFunction<float(const UObject*,const FTransform&)> FSignificanceFunction;
+	typedef TFunction<float(UObject*, const FTransform&)> FSignificanceFunction;
+	typedef TFunction<void(UObject*, float, float)> FPostSignificanceFunction;
 
 	struct FManagedObjectInfo
 	{
 		FManagedObjectInfo()
 			: Object(nullptr)
-			, Significance(0.f)
+			, Significance(-1.0f)
 		{
 		}
 
-		FManagedObjectInfo(const UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction, const FSignificanceNotify& Notify)
+		FManagedObjectInfo(UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction, FPostSignificanceFunction InPostSignificanceFunction)
 			: Object(InObject)
 			, Tag(InTag)
-			, Significance(0.f)
+			, Significance(-1.0f)
 			, SignificanceFunction(InSignificanceFunction)
-			, SignificanceNotifyDelegate(Notify)
+			, PostSignificanceFunction(InPostSignificanceFunction)
 		{
 		}
 
-		const UObject* GetObject() const { return Object; }
+		UObject* GetObject() const { return Object; }
 		FName GetTag() const { return Tag; }
 		float GetSignificance() const { return Significance; }
 		FSignificanceFunction GetSignificanceFunction() const { return SignificanceFunction; }
-		FSignificanceNotify GetSignificanceNotifyDelegate() const { return SignificanceNotifyDelegate; }	
+		FPostSignificanceFunction GetPostSignificanceNotifyDelegate() const { return PostSignificanceFunction; }
 
 	private:
-		const UObject* Object;
+		UObject* Object;
 		FName Tag;
 		float Significance;
 
 		FSignificanceFunction SignificanceFunction;
 
-		FSignificanceNotify SignificanceNotifyDelegate;
+		FPostSignificanceFunction PostSignificanceFunction;
 
 		void UpdateSignificance(const TArray<FTransform>& ViewPoints);
 
@@ -114,11 +112,10 @@ public:
 	virtual void Update(const TArray<FTransform>& Viewpoints);
 
 	// Overridable function used to register an object as managed by the significance manager
-	virtual void RegisterObject(const UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction);
-	virtual void RegisterObject(const UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction, const FSignificanceNotify& SignificanceNotifyDelegate);
+	virtual void RegisterObject(UObject* Object, FName Tag, FSignificanceFunction SignificanceFunction, FPostSignificanceFunction InPostSignificanceFunction);
 	
 	// Overridable function used to unregister an object as managed by the significance manager
-	virtual void UnregisterObject(const UObject* Object);
+	virtual void UnregisterObject(UObject* Object);
 
 	// Unregisters all objects with the specified tag.
 	void UnregisterAll(FName Tag);
@@ -174,7 +171,7 @@ private:
 	TMap<FName, TArray<const FManagedObjectInfo*>> ManagedObjectsByTag;
 
 	// Reverse lookup map to find the tag for a given object
-	TMap<const UObject*, FManagedObjectInfo*> ManagedObjects;
+	TMap<UObject*, FManagedObjectInfo*> ManagedObjects;
 
 	// Game specific significance class to instantiate
 	UPROPERTY(globalconfig, noclear, EditAnywhere, Category=DefaultClasses, meta=(MetaClass="SignificanceManager", DisplayName="Significance Manager Class"))

@@ -85,6 +85,14 @@ public:
 	void TickSyncGroupWriteIndex()
 	{ 
 		SyncGroupWriteIndex = GetSyncGroupReadIndex();
+
+		// Reset 'write' SyncGroups for next frame.
+		TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[SyncGroupWriteIndex];
+		for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
+		{
+			FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
+			SyncGroup = FAnimGroupInstance();
+		}
 	}
 
 	/** Get the sync group we are currently reading from */

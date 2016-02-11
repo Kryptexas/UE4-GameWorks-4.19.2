@@ -352,6 +352,16 @@ struct FDisplayMetrics
 
 	/** Logs out display metrics */
 	CORE_API void PrintToLog() const;
+
+protected:
+	// The title safe zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone
+	static float GetDebugTitleSafeZoneRatio();
+
+	// The action safe zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone
+	static float GetDebugActionSafeZoneRatio();
+
+	// Apply the debug/default safe zones
+	void ApplyDefaultSafeZones();
 };
 
 

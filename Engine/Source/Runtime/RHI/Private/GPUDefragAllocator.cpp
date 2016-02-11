@@ -5,7 +5,7 @@ Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "RHI.h"
 #include "GPUDefragAllocator.h"
-
+#include "ScopedTimers.h"
 
 DECLARE_STATS_GROUP(TEXT("TexturePool"), STATGROUP_TexturePool, STATCAT_ADVANCED);
 
@@ -1139,6 +1139,23 @@ void FGPUDefragAllocator::InsertFence()
 	CurrentSyncIndex++;
 }
 
+#if VALIDATE_MEMORY_PROTECTION
+void FGPUDefragAllocator::AllowCPUAccessToBlocks()
+{
+	FScopedDurationTimer Timer(TimeInMemProtect);
+	const int32 Count = BlocksToUnProtect.Num();
+	for (int32 i = Count - 1; i >= 0; --i)
+	{
+		const FMemProtectTracker& Block = BlocksToUnProtect[i];
+		if (Block.SyncIndex >= CompletedSyncIndex)
+		{
+			PlatformAllowCPUAccessToBlock(Block);
+			BlocksToUnProtect.RemoveAtSwap(i, 1, false);
+		}
+	}	
+}
+#endif
+
 /**
 * Blocks the calling thread until the current sync fence has been completed.
 */
@@ -1154,6 +1171,10 @@ void FGPUDefragAllocator::BlockOnFence()
 		}
 		CompletedSyncIndex = CurrentSyncIndex - 1;
 		BlockedCycles += FPlatformTime::Cycles() - StartTime;
+
+#if VALIDATE_MEMORY_PROTECTION
+		AllowCPUAccessToBlocks();
+#endif
 	}
 }
 
@@ -1438,6 +1459,11 @@ void FGPUDefragAllocator::FullDefragmentation(FRelocationStats& Stats)
 int32 FGPUDefragAllocator::Tick(FRelocationStats& Stats, bool bPanicDefrag)
 {
 	FScopeLock SyncLock(&SynchronizationObject);
+
+#if VALIDATE_MEMORY_PROTECTION
+	TimeInMemProtect = 0;
+#endif
+
 	SET_CYCLE_COUNTER(STAT_TexturePool_Blocked, BlockedCycles);
 	double StartTime = FPlatformTime::Seconds();
 	BlockedCycles = 0;
@@ -1474,6 +1500,14 @@ int32 FGPUDefragAllocator::Tick(FRelocationStats& Stats, bool bPanicDefrag)
 		}
 	}
 
+#if VALIDATE_MEMORY_PROTECTION
+	{
+		FScopedDurationTimer MemProtectTimer(TimeInMemProtect);
+		PlatformRemoveCPUAccessTo(BlocksToProtect);
+		BlocksToUnProtect.Append(BlocksToProtect);
+		BlocksToProtect.Reset();
+	}
+#endif
 	NumRelocationsInProgress = Stats.NumRelocations;
 
 	// Start a new sync point.
@@ -1490,7 +1524,7 @@ int32 FGPUDefragAllocator::Tick(FRelocationStats& Stats, bool bPanicDefrag)
 	FMemoryChunk* TestChunk = FirstChunk;
 	while (TestChunk)
 	{		
-		FMemoryChunk* TestAgainstChunk = FirstChunk->NextChunk;
+		FMemoryChunk* TestAgainstChunk = TestChunk->NextChunk;
 		while (TestAgainstChunk)
 		{			
 			bool bBefore = (TestChunk->Base + TestChunk->Size) <= TestAgainstChunk->Base;

@@ -78,6 +78,21 @@ struct CORE_API FGenericPlatformStackWalk
 {
 	typedef FGenericPlatformStackWalk Base;
 
+	struct EStackWalkFlags
+	{
+		enum
+		{
+			/** Default value (empty set of flags). */
+			AccurateStackWalk				=	0,
+
+			/** Used when preferring speed over more information. Platform-specific, may be ignored, or may result in non-symbolicated callstacks or missing some other information. */
+			FastStackWalk					=	(1 << 0),
+
+			/** This is a set of flags that will be passed when unwinding the callstack for ensure(). */
+			FlagsUsedWhenHandlingEnsure		=	(FastStackWalk)
+		};
+	};
+
 	/**
 	* Initializes options related to stack walking from ini, i.e. how detailed the stack walking should be, performance settings etc.
 	*/
@@ -166,6 +181,18 @@ struct CORE_API FGenericPlatformStackWalk
 	 * @param	Context				Optional thread context information
 	 */ 
 	static void StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context = nullptr );
+
+	/**
+	 * Walks the stack and appends the human readable string to the passed in one.
+	 * @warning: The code assumes that HumanReadableString is large enough to contain the information.
+	 *
+	 * @param	HumanReadableString	String to concatenate information with
+	 * @param	HumanReadableStringSize size of string in characters
+	 * @param	IgnoreCount			Number of stack entries to ignore (some are guaranteed to be in the stack walking code)
+	 * @param   Flags				Used to pass additional information (see StackWalkFlags)
+	 * @param	Context				Optional thread context information
+	 */ 
+	static void StackWalkAndDumpEx( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 Flags, void* Context = nullptr );
 
 	/**
 	 * Returns the number of modules loaded by the currently running process.

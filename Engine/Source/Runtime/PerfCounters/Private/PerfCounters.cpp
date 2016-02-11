@@ -243,10 +243,18 @@ bool FPerfCounters::Tick(float DeltaTime)
 	float CurrentTime = FPlatformTime::Seconds();
 	if (CurrentTime - LastTimeInternalCountersUpdated > InternalCountersUpdateInterval)
 	{
+		// get CPU stats first
+		FCPUTime CPUStats = FPlatformTime::GetCPUTime();
+		Set(TEXT("ProcessCPUUsageRelativeToCore"), CPUStats.CPUTimePctRelative);
+
+		// memory
 		FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
 		Set(TEXT("AvailablePhysicalMemoryMB"), static_cast<uint64>(Stats.AvailablePhysical / (1024 * 1024)));
 		Set(TEXT("AvailableVirtualMemoryMB"), static_cast<uint64>(Stats.AvailableVirtual / (1024 * 1024)));
+		Set(TEXT("ProcessPhysicalMemoryMB"), static_cast<uint64>(Stats.UsedPhysical/ (1024 * 1024)));
+		Set(TEXT("ProcessVirtualMemoryMB"), static_cast<uint64>(Stats.UsedVirtual / (1024 * 1024)));
 
+		// disk space
 		const FString LogFilename = FPlatformOutputDevices::GetAbsoluteLogFilename();
 		uint64 TotalBytesOnLogDrive = 0, FreeBytesOnLogDrive = 0;
 		if (FPlatformMisc::GetDiskTotalAndFreeSpace(LogFilename, TotalBytesOnLogDrive, FreeBytesOnLogDrive))

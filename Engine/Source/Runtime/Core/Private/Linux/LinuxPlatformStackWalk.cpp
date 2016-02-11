@@ -694,7 +694,8 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 				{
 					const char * SourceFilename = NULL;
 					int LineNumber;
-					if (LinuxStackWalkHelpers::GetBacktraceSymbols()->GetInfoForAddress(reinterpret_cast< void* >( ProgramCounter ), NULL, &SourceFilename, &LineNumber) && FunctionName != NULL)
+					// do not symbolicate if we're handling ensure()
+					if (!LinuxContext->bHandlingEnsure && LinuxStackWalkHelpers::GetBacktraceSymbols()->GetInfoForAddress(reinterpret_cast< void* >( ProgramCounter ), NULL, &SourceFilename, &LineNumber) && FunctionName != nullptr)
 					{
 						FCStringAnsi::Sprintf(TempArray, " [%s, line %d]", SourceFilename, LineNumber);
 						LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, TempArray);
@@ -724,7 +725,7 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 
 void FLinuxPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, void* Context )
 {
-	if ( Context == nullptr )
+	if (Context == nullptr)
 	{
 		FLinuxCrashContext CrashContext;
 		CrashContext.InitFromSignal(0, nullptr, nullptr);
@@ -733,6 +734,23 @@ void FLinuxPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString, S
 	else
 	{
 		FGenericPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, Context);
+	}
+}
+
+void FLinuxPlatformStackWalk::StackWalkAndDumpEx(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 Flags, void* Context)
+{
+	const bool bHandlingEnsure = (Flags & EStackWalkFlags::FlagsUsedWhenHandlingEnsure) == EStackWalkFlags::FlagsUsedWhenHandlingEnsure;
+	if (Context == nullptr)
+	{
+		FLinuxCrashContext CrashContext;
+		CrashContext.InitFromSignal(0, nullptr, nullptr);
+		CrashContext.bHandlingEnsure = bHandlingEnsure;
+		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, &CrashContext);
+	}
+	else
+	{
+		TGuardValue<bool> Guard(reinterpret_cast<FLinuxCrashContext *>(Context)->bHandlingEnsure, bHandlingEnsure);
+		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, Context);
 	}
 }
 
@@ -782,6 +800,7 @@ void NewReportEnsure(const TCHAR* ErrorMessage)
 
 	FLinuxCrashContext EnsureContext;
 	EnsureContext.InitFromSignal(SIGTRAP, &Signal, nullptr);
+	EnsureContext.bHandlingEnsure = true;
 	EnsureContext.CaptureStackTrace();
 	EnsureContext.GenerateCrashInfoAndLaunchReporter(true);
 

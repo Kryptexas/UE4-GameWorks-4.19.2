@@ -29,6 +29,7 @@ class USoundCueGraphNode : public USoundCueGraphNode_Base
 	/** Checks whether an input can be added to this node */
 	UNREALED_API bool CanAddInputPin() const;
 
+
 	// USoundCueGraphNode_Base interface
 	virtual void CreateInputPins() override;
 	// End of USoundCueGraphNode_Base interface

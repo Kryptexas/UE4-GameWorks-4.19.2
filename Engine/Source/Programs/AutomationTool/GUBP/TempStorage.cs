@@ -283,7 +283,7 @@ namespace AutomationTool
 			{
 				if (IsEmptyManifest(Directories))
 				{
-					throw new AutomationException("Attempt to save empty manifest.");
+					throw new AutomationException("Attempt to save empty manifest file {0}.", Filename);
 				}
 
 				new XElement(RootElementName,

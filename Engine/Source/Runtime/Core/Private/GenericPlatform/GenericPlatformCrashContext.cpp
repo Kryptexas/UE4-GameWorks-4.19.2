@@ -49,6 +49,7 @@ namespace NCachedCrashContextProperties
 	static int32 SecondsSinceStart;
 	static FString CrashGUID;
 	static FString UserActivityHint;
+	static FString GameSessionID;
 	static FString CommandLine;
 }
 
@@ -109,6 +110,11 @@ void FGenericCrashContext::Initialize()
 		NCachedCrashContextProperties::UserActivityHint = InUserActivity;
 	});
 
+	FCoreDelegates::GameSessionIDChanged.AddLambda([](const FString& InGameSessionID)
+	{
+		NCachedCrashContextProperties::GameSessionID = InGameSessionID;
+	});
+
 	bIsInitialized = true;
 }
 
@@ -137,6 +143,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "GameName" ), *NCachedCrashContextProperties::GameName );
 	AddCrashProperty( TEXT( "ExecutableName" ), *NCachedCrashContextProperties::ExecutableName );
 	AddCrashProperty( TEXT( "BuildConfiguration" ), EBuildConfigurations::ToString( FApp::GetBuildConfiguration() ) );
+	AddCrashProperty( TEXT( "GameSessionID" ), *NCachedCrashContextProperties::GameSessionID );
 
 	AddCrashProperty( TEXT( "PlatformName" ), *NCachedCrashContextProperties::PlatformName );
 	AddCrashProperty( TEXT( "PlatformNameIni" ), *NCachedCrashContextProperties::PlatformNameIni );

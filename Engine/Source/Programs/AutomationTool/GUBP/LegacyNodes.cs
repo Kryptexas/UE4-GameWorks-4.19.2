@@ -1685,6 +1685,7 @@ partial class GUBP
 			{
 				ExtraArgsForCook += " -WarningsAsErrors";
 			}
+            ExtraArgsForCook += " " + BranchConfig.BranchOptions.AdditionalCookArgs;
 
 			if(GamePlatformMonolithicsNode.IsSample(BranchConfig, GameProj))
 			{

@@ -106,6 +106,7 @@ FPrimaryCrashProperties::FPrimaryCrashProperties()
 	, UserName( FGenericCrashContext::RuntimePropertiesTag, TEXT("UserName"), this )
 	, MachineId( FGenericCrashContext::RuntimePropertiesTag, TEXT( "MachineId" ), this )
 	, EpicAccountId( FGenericCrashContext::RuntimePropertiesTag, TEXT( "EpicAccountId" ), this )
+	, GameSessionID( FGenericCrashContext::RuntimePropertiesTag, TEXT( "GameSessionID" ), this )
 	// Multiline properties
 	, CallStack( FGenericCrashContext::RuntimePropertiesTag, TEXT( "CallStack" ), this )
 	, SourceContext( FGenericCrashContext::RuntimePropertiesTag, TEXT( "SourceContext" ), this )
@@ -212,6 +213,8 @@ void FPrimaryCrashProperties::SendAnalytics()
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "AppDefaultLocale" ), AppDefaultLocale ) );
 
 	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "UserActivityHint" ), UserActivityHint.AsString() ) );
+	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "GameSessionID" ), GameSessionID.AsString() ) );
+	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "DeploymentName" ), DeploymentName ) );
 
 	Analytics.RecordEvent( TEXT( "CrashReportClient.ReportCrash" ), CrashAttributes );
 	// Shutdown analytics.

@@ -328,6 +328,7 @@ FParticleEmitterInstance::FParticleEmitterInstance() :
 	, bIgnoreComponentScale(0)
 	, bIsBeam(0)
 	, bAxisLockEnabled(0)
+	, bFakeBurstsWhenSpawningSupressed(0)
 	, LockAxisFlags(EPAL_NONE)
 	, SortMode(PSORTMODE_None)
     , ParticleData(NULL)
@@ -708,45 +709,51 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 	// Handle EmitterTime setup, looping, etc.
 	float EmitterDelay = Tick_EmitterTimeSetup(DeltaTime, LODLevel);
 
-	// Kill off any dead particles
-	KillParticles();
-
-	// Reset particle parameters.
-	ResetParticleParameters(DeltaTime);
-
-	// Update the particles
-	SCOPE_CYCLE_COUNTER(STAT_SpriteUpdateTime);
-	CurrentMaterial = LODLevel->RequiredModule->Material;
-	Tick_ModuleUpdate(DeltaTime, LODLevel);
-
-	// Spawn new particles.
-	SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
-
-	// PostUpdate (beams only)
-	Tick_ModulePostUpdate(DeltaTime, LODLevel);
-
-	if (ActiveParticles > 0)
+	if (bEnabled)
 	{
-		// Update the orbit data...
-		UpdateOrbitData(DeltaTime);
-		// Calculate bounding box and simulate velocity.
-		UpdateBoundingBox(DeltaTime);
+		// Kill off any dead particles
+		KillParticles();
+
+		// Reset particle parameters.
+		ResetParticleParameters(DeltaTime);
+
+		// Update the particles
+		SCOPE_CYCLE_COUNTER(STAT_SpriteUpdateTime);
+		CurrentMaterial = LODLevel->RequiredModule->Material;
+		Tick_ModuleUpdate(DeltaTime, LODLevel);
+
+		// Spawn new particles.
+		SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
+
+		// PostUpdate (beams only)
+		Tick_ModulePostUpdate(DeltaTime, LODLevel);
+
+		if (ActiveParticles > 0)
+		{
+			// Update the orbit data...
+			UpdateOrbitData(DeltaTime);
+			// Calculate bounding box and simulate velocity.
+			UpdateBoundingBox(DeltaTime);
+		}
+
+		Tick_ModuleFinalUpdate(DeltaTime, LODLevel);
+
+		CheckEmitterFinished();
+
+		// Invalidate the contents of the vertex/index buffer.
+		IsRenderDataDirty = 1;
 	}
-
-	Tick_ModuleFinalUpdate(DeltaTime, LODLevel);
-
-
-	CheckEmitterFinished();
-
-	// Invalidate the contents of the vertex/index buffer.
-	IsRenderDataDirty = 1;
+	else
+	{
+		FakeBursts();
+	}
 
 	// 'Reset' the emitter time so that the delay functions correctly
 	EmitterTime += EmitterDelay;
 
 	// Store the last delta time.
 	LastDeltaTime = DeltaTime;
-	
+
 	// Reset particles position offset
 	PositionOffsetThisTick = FVector::ZeroVector;
 
@@ -931,6 +938,10 @@ float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLO
 			SpawnFraction = Spawn(DeltaTime);
 		}
 	}
+	else if (bFakeBurstsWhenSpawningSupressed)
+	{
+		FakeBursts();
+	}
 	
 	return SpawnFraction;
 }
@@ -1089,6 +1100,7 @@ void FParticleEmitterInstance::Rewind()
 	EmitterTime = 0;
 	LoopCount = 0;
 	ParticleCounter = 0;
+	bEnabled = 1;
 	ResetBurstList();
 }
 
@@ -2277,6 +2289,31 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 	}
 }
 
+void FParticleEmitterInstance::FakeBursts()
+{
+	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+	if (LODLevel->SpawnModule->BurstList.Num() > 0)
+	{
+		// For each burst in the list
+		for (int32 BurstIdx = 0; BurstIdx < LODLevel->SpawnModule->BurstList.Num(); BurstIdx++)
+		{
+			FParticleBurst* BurstEntry = &(LODLevel->SpawnModule->BurstList[BurstIdx]);
+			// If it hasn't been fired
+			if (LODLevel->Level < BurstFired.Num())
+			{
+				FLODBurstFired& LocalBurstFired = BurstFired[LODLevel->Level];
+				if (BurstIdx < LocalBurstFired.Fired.Num())
+				{
+					if (EmitterTime >= BurstEntry->Time)
+					{
+						LocalBurstFired.Fired[BurstIdx] = true;
+					}
+				}
+			}
+		}
+	}
+}
+
 /**
  *	This is used to force "kill" particles irrespective of their duration.
  *	Basically, this takes all particles and moves them to the 'end' of the 
@@ -2505,14 +2542,14 @@ bool FParticleEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase& Ou
 	// NOTE: This the base class implementation that should ONLY be called by derived classes' FillReplayData()!
 
 	// Make sure there is a template present
-	if (!SpriteTemplate || !bEnabled)
+	if (!SpriteTemplate)
 	{
 		return false;
 	}
 
 	// Allocate it for now, but we will want to change this to do some form
 	// of caching
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -2732,7 +2769,7 @@ FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData(bool bSe
 
 	// It is valid for the LOD level to be NULL here!
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -2771,7 +2808,7 @@ bool FParticleSpriteEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* 
 
 	checkf((DynamicData->GetSource().eEmitterType == DET_Sprite), TEXT("Sprite::UpdateDynamicData> Invalid DynamicData type!"));
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -2801,7 +2838,7 @@ bool FParticleSpriteEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* 
  */
 FDynamicEmitterReplayDataBase* FParticleSpriteEmitterInstance::GetReplayData()
 {
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return NULL;
 	}
@@ -2998,7 +3035,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
 	// See if we are handling mesh rotation
-	if (MeshRotationActive)
+	if (MeshRotationActive && bEnabled)
 	{
 		// Update the rotation for each particle
 		for (int32 i = 0; i < ActiveParticles; i++)
@@ -3067,7 +3104,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 	// Call the standard tick
 	FParticleEmitterInstance::Tick(DeltaTime, bSuppressSpawning);
 	
-	if (MeshRotationActive)
+	if (MeshRotationActive && bEnabled)
 	{
 		//Must do this (at least) after module update other wise the reset value of RotationRate is used.
 		//Probably the other stuff before the module tick should be brought down here too and just leave the RotationRate reset before.
@@ -3323,7 +3360,7 @@ FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData(bool bSele
 
 	// It is safe for LOD level to be NULL here!
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -3365,7 +3402,7 @@ bool FParticleMeshEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* Dy
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleMeshEmitterInstance_UpdateDynamicData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -3402,7 +3439,7 @@ bool FParticleMeshEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* Dy
  */
 FDynamicEmitterReplayDataBase* FParticleMeshEmitterInstance::GetReplayData()
 {
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return NULL;
 	}

@@ -560,6 +560,7 @@ bool FCommandLine::bIsInitialized = false;
 TCHAR FCommandLine::CmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
 TCHAR FCommandLine::OriginalCmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
 TCHAR FCommandLine::LoggingCmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
+TCHAR FCommandLine::LoggingOriginalCmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
 FString FCommandLine::SubprocessCommandLine(TEXT(" -Multiprocess"));
 
 bool FCommandLine::IsInitialized()
@@ -585,11 +586,18 @@ const TCHAR* FCommandLine::GetOriginal()
 	return OriginalCmdLine;
 }
 
+const TCHAR* FCommandLine::GetOriginalForLogging()
+{
+	UE_CLOG(!bIsInitialized, LogInit, Fatal, TEXT("Attempting to get the command line but it hasn't been initialized yet."));
+	return LoggingOriginalCmdLine;
+}
+
 bool FCommandLine::Set(const TCHAR* NewCommandLine)
 {
 	if (!bIsInitialized)
 	{
-		FCString::Strncpy(OriginalCmdLine, NewCommandLine, ARRAY_COUNT(CmdLine));
+		FCString::Strncpy(OriginalCmdLine, NewCommandLine, ARRAY_COUNT(OriginalCmdLine));
+		FCString::Strncpy(LoggingOriginalCmdLine, NewCommandLine, ARRAY_COUNT(LoggingOriginalCmdLine));
 	}
 
 	FCString::Strncpy( CmdLine, NewCommandLine, ARRAY_COUNT(CmdLine) );
@@ -673,6 +681,9 @@ void FCommandLine::WhitelistCommandLines()
 	// Process the command line for logging purposes
 	TArray<FString> LoggingCmdList = FilterCommandLineForLogging(LoggingCmdLine);
 	BuildWhitelistCommandLine(LoggingCmdLine, ARRAY_COUNT(LoggingCmdLine), LoggingCmdList);
+	// Process the original command line for logging purposes
+	TArray<FString> LoggingOriginalCmdList = FilterCommandLineForLogging(LoggingOriginalCmdLine);
+	BuildWhitelistCommandLine(LoggingOriginalCmdLine, ARRAY_COUNT(LoggingOriginalCmdLine), LoggingOriginalCmdList);
 }
 
 TArray<FString> FCommandLine::FilterCommandLine(TCHAR* CommandLine)

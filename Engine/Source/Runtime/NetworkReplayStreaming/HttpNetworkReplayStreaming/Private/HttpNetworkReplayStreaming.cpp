@@ -305,18 +305,18 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 			HttpRequest->SetContentAsString( UserList.ToJson() );
 		}
 
-		AddRequestToQueue( EQueuedHttpRequestType::StartUploading, HttpRequest );
+		AddRequestToQueue( EQueuedHttpRequestType::StartUploading, HttpRequest, 3, 2.0f );
 		
 		// We need to upload the header AFTER StartUploading is done (so we have session name)
 		AddRequestToQueue( EQueuedHttpRequestType::UploadHeader, nullptr );
 	}
 }
 
-void FHttpNetworkReplayStreamer::AddRequestToQueue( const EQueuedHttpRequestType::Type Type, TSharedPtr< class IHttpRequest > Request )
+void FHttpNetworkReplayStreamer::AddRequestToQueue( const EQueuedHttpRequestType::Type Type, TSharedPtr< class IHttpRequest > Request, const int32 InMaxRetries, const float InRetryDelay )
 {
 	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::AddRequestToQueue. Type: %s" ), EQueuedHttpRequestType::ToString( Type ) );
 
-	QueuedHttpRequests.Add( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequest( Type, Request ) ) );
+	QueuedHttpRequests.Add( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequest( Type, Request, InMaxRetries, InRetryDelay ) ) );
 }
 
 void FHttpNetworkReplayStreamer::AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest > Request )
@@ -324,6 +324,73 @@ void FHttpNetworkReplayStreamer::AddCustomRequestToQueue( TSharedPtr< FQueuedHtt
 	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::AddCustomRequestToQueue. Type: %s" ), EQueuedHttpRequestType::ToString( Request->Type ) );
 
 	QueuedHttpRequests.Add( Request );
+}
+
+static FString BuildRequestErrorString( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse )
+{
+	FString ExtraInfo;
+
+	if ( HttpRequest.IsValid() )
+	{
+		ExtraInfo += FString::Printf( TEXT( "URL: %s" ), *HttpRequest->GetURL() );
+		ExtraInfo += FString::Printf( TEXT( ", Verb: %s" ), *HttpRequest->GetVerb() );
+
+		const TArray< FString > AllHeaders = HttpRequest->GetAllHeaders();
+
+		for ( int i = 0; i < AllHeaders.Num(); i++ )
+		{
+			ExtraInfo += TEXT( ", " );
+			ExtraInfo += AllHeaders[i];
+		}
+	}
+	else
+	{
+		ExtraInfo = TEXT( "HttpRequest NULL." );
+	}
+
+	return FString::Printf( TEXT( "Response code: %d, Extra info: %s" ), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0, *ExtraInfo );
+}
+
+bool FHttpNetworkReplayStreamer::RetryRequest( TSharedPtr< FQueuedHttpRequest > Request, FHttpResponsePtr HttpResponse )
+{
+	if ( !Request.IsValid() )
+	{
+		return false;
+	}
+
+	if ( Request->MaxRetries == 0 || Request->RetryProgress >= Request->MaxRetries )
+	{
+		return false;
+	}
+	
+	if ( !HttpResponse.IsValid() )
+	{
+		return false;
+	}
+
+	if ( HttpResponse->GetResponseCode() < 500 || HttpResponse->GetResponseCode() >= 600 )
+	{
+		return false;		// Only retry on 5xx return codes
+	}
+
+	Request->RetryProgress++;
+
+	if ( Request->RetryDelay == 0.0f )
+	{
+		// Re-process it immediately if it's not on a delay
+		Request->Request->ProcessRequest();
+	}
+	else
+	{
+		Request->NextRetryTime = FPlatformTime::Seconds() + Request->RetryDelay;
+	}
+
+	// Put request back on InFlightRequest
+	InFlightHttpRequest = Request;
+
+	UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::RetryRequest. Retrying: %i, %s" ), Request->RetryProgress, *BuildRequestErrorString( Request->Request, HttpResponse ) );
+
+	return true;
 }
 
 void FHttpNetworkReplayStreamer::StopStreaming()
@@ -405,7 +472,7 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 	HeaderArchive.Buffer.Empty();
 	HeaderArchive.Pos = 0;
 
-	AddRequestToQueue( EQueuedHttpRequestType::UploadingHeader, HttpRequest );
+	AddRequestToQueue( EQueuedHttpRequestType::UploadingHeader, HttpRequest, 3, 2.0f );
 
 	LastChunkTime = FPlatformTime::Seconds();
 }
@@ -471,7 +538,7 @@ void FHttpNetworkReplayStreamer::FlushStream()
 
 	StreamChunkIndex++;
 
-	AddRequestToQueue( EQueuedHttpRequestType::UploadingStream, HttpRequest );
+	AddRequestToQueue( EQueuedHttpRequestType::UploadingStream, HttpRequest, 2, 2.0f );
 
 	LastChunkTime = FPlatformTime::Seconds();
 }
@@ -502,7 +569,7 @@ void FHttpNetworkReplayStreamer::StopUploading()
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 
-	AddRequestToQueue( EQueuedHttpRequestType::StopUploading, HttpRequest );
+	AddRequestToQueue( EQueuedHttpRequestType::StopUploading, HttpRequest, 3, 2.0f );
 };
 
 void FHttpNetworkReplayStreamer::FlushCheckpoint( const uint32 TimeInMS )
@@ -730,7 +797,7 @@ void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
 	CheckpointArchive.Buffer.Empty();
 	CheckpointArchive.Pos = 0;
 
-	AddRequestToQueue( EQueuedHttpRequestType::UploadingCheckpoint, HttpRequest );
+	AddRequestToQueue( EQueuedHttpRequestType::UploadingCheckpoint, HttpRequest, 2, 2.0f );
 }
 
 FQueuedHttpRequestAddEvent::FQueuedHttpRequestAddEvent( const FString& InName, const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest ) : FQueuedHttpRequest( EQueuedHttpRequestType::UploadingCustomEvent, InHttpRequest )
@@ -1293,33 +1360,10 @@ void FHttpNetworkReplayStreamer::RequestFinished( EStreamerState ExpectedStreame
 	InFlightHttpRequest = NULL;
 };
 
-static FString BuildRequestErrorString( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse )
-{
-	FString ExtraInfo;
-
-	if ( HttpRequest.IsValid() )
-	{
-		ExtraInfo += FString::Printf( TEXT( "URL: %s" ), *HttpRequest->GetURL() );
-		ExtraInfo += FString::Printf( TEXT( ", Verb: %s" ), *HttpRequest->GetVerb() );
-
-		const TArray< FString > AllHeaders = HttpRequest->GetAllHeaders();
-
-		for ( int i = 0; i < AllHeaders.Num(); i++ )
-		{
-			ExtraInfo += TEXT( ", " );
-			ExtraInfo += AllHeaders[i];
-		}
-	}
-	else
-	{
-		ExtraInfo = TEXT( "HttpRequest NULL." );
-	}
-
-	return FString::Printf( TEXT( "Response code: %d, Extra info: %s" ), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0, *ExtraInfo );
-}
-
 void FHttpNetworkReplayStreamer::HttpStartUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	TSharedPtr< FQueuedHttpRequest > SavedFlightHttpRequest = InFlightHttpRequest;
+
 	RequestFinished( EStreamerState::StreamingUp, EQueuedHttpRequestType::StartUploading, HttpRequest );
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
@@ -1341,6 +1385,11 @@ void FHttpNetworkReplayStreamer::HttpStartUploadingFinished( FHttpRequestPtr Htt
 	}
 	else
 	{
+		if ( RetryRequest( SavedFlightHttpRequest, HttpResponse ) )
+		{
+			return;
+		}
+
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpStartUploadingFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
@@ -1348,6 +1397,8 @@ void FHttpNetworkReplayStreamer::HttpStartUploadingFinished( FHttpRequestPtr Htt
 
 void FHttpNetworkReplayStreamer::HttpStopUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	TSharedPtr< FQueuedHttpRequest > SavedFlightHttpRequest = InFlightHttpRequest;
+
 	RequestFinished( EStreamerState::StreamingUp, EQueuedHttpRequestType::StopUploading, HttpRequest );
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::NoContent )
@@ -1356,6 +1407,11 @@ void FHttpNetworkReplayStreamer::HttpStopUploadingFinished( FHttpRequestPtr Http
 	}
 	else
 	{
+		if ( RetryRequest( SavedFlightHttpRequest, HttpResponse ) )
+		{
+			return;
+		}
+
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpStopUploadingFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
@@ -1370,6 +1426,8 @@ void FHttpNetworkReplayStreamer::HttpStopUploadingFinished( FHttpRequestPtr Http
 
 void FHttpNetworkReplayStreamer::HttpHeaderUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	TSharedPtr< FQueuedHttpRequest > SavedFlightHttpRequest = InFlightHttpRequest;
+
 	RequestFinished( EStreamerState::StreamingUp, EQueuedHttpRequestType::UploadingHeader, HttpRequest );
 
 	check( StartStreamingDelegate.IsBound() );
@@ -1382,6 +1440,11 @@ void FHttpNetworkReplayStreamer::HttpHeaderUploadFinished( FHttpRequestPtr HttpR
 	}
 	else
 	{
+		if ( RetryRequest( SavedFlightHttpRequest, HttpResponse ) )
+		{
+			return;
+		}
+
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 		StartStreamingDelegate.ExecuteIfBound( false, true );
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
@@ -1393,6 +1456,8 @@ void FHttpNetworkReplayStreamer::HttpHeaderUploadFinished( FHttpRequestPtr HttpR
 
 void FHttpNetworkReplayStreamer::HttpUploadStreamFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	TSharedPtr< FQueuedHttpRequest > SavedFlightHttpRequest = InFlightHttpRequest;
+
 	RequestFinished( EStreamerState::StreamingUp, EQueuedHttpRequestType::UploadingStream, HttpRequest );
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::NoContent )
@@ -1401,6 +1466,11 @@ void FHttpNetworkReplayStreamer::HttpUploadStreamFinished( FHttpRequestPtr HttpR
 	}
 	else
 	{
+		if ( RetryRequest( SavedFlightHttpRequest, HttpResponse ) )
+		{
+			return;
+		}
+
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpUploadStreamFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
@@ -1408,6 +1478,8 @@ void FHttpNetworkReplayStreamer::HttpUploadStreamFinished( FHttpRequestPtr HttpR
 
 void FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	TSharedPtr< FQueuedHttpRequest > SavedFlightHttpRequest = InFlightHttpRequest;
+
 	RequestFinished( EStreamerState::StreamingUp, EQueuedHttpRequestType::UploadingCheckpoint, HttpRequest );
 
 	if ( bSucceeded && ( HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok || HttpResponse->GetResponseCode() == EHttpResponseCodes::NoContent ) )
@@ -1416,7 +1488,12 @@ void FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished( FHttpRequestPtr H
 	}
 	else
 	{
-		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
+		if ( RetryRequest( SavedFlightHttpRequest, HttpResponse ) )
+		{
+			return;
+		}
+
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 }
@@ -1431,29 +1508,7 @@ void FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished(FHttpRequestPtr H
 	}
 	else
 	{
-		FString ExtraInfo;
-
-		if ( HttpRequest.IsValid() )
-		{
-			ExtraInfo += FString::Printf( TEXT( "URL: %s" ),	*HttpRequest->GetURL() );
-			ExtraInfo += FString::Printf( TEXT( ", Verb: %s" ), *HttpRequest->GetVerb() );
-
-			const TArray< FString > AllHeaders = HttpRequest->GetAllHeaders();
-
-			for ( int i = 0; i < AllHeaders.Num(); i++ )
-			{
-				ExtraInfo += TEXT( ", " );
-				ExtraInfo += AllHeaders[i];
-			}
-		}
-		else
-		{
-			ExtraInfo = TEXT( "HttpRequest NULL." );
-		}
-
-		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished. FAILED. Response code: %d, Extra info: %s" ), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0, *ExtraInfo );
-		// Don't disconect service here, just report the failure
-		//SetLastError(ENetworkReplayError::ServiceUnavailable);
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished. FAILED. Extra info: %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 	}
 }
 
@@ -1906,6 +1961,15 @@ bool FHttpNetworkReplayStreamer::ProcessNextHttpRequest()
 {
 	if ( IsHttpRequestInFlight() )
 	{
+		if ( InFlightHttpRequest->NextRetryTime > 0.0f )
+		{
+			if ( FPlatformTime::Seconds() > InFlightHttpRequest->NextRetryTime )
+			{
+				InFlightHttpRequest->NextRetryTime = 0.0f;
+				InFlightHttpRequest->Request->ProcessRequest();
+			}
+		}
+
 		// We only process one http request at a time to keep things simple
 		return false;
 	}

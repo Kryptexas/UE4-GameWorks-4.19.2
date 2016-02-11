@@ -464,6 +464,15 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		Canvas->DrawItem( TextItem,  5.0f, Viewport->GetSizeXY().Y - 105.0f );		
 	}
 
+	EParticleSignificanceLevel ReqSignificance = CascadePtr.Pin()->GetRequiredSignificance();
+	if (ReqSignificance != EParticleSignificanceLevel::Low)
+	{
+		FString ReqSigOutput = FString::Printf(TEXT("REQUIRED SIGNIFICANCE: %s"), (ReqSignificance == EParticleSignificanceLevel::Medium) ? TEXT("MEDIUM") : ((ReqSignificance == EParticleSignificanceLevel::High) ? TEXT("HIGH") : TEXT("CRITICAL")));
+		TextItem.SetColor(FLinearColor::Red);
+		TextItem.Text = FText::FromString(ReqSigOutput);
+		Canvas->DrawItem(TextItem, 5.0f, Viewport->GetSizeXY().Y - 120.0f);
+	}
+
 	if (bCaptureScreenShot)
 	{
 		UParticleSystem* ParticleSystem = CascadePtr.Pin()->GetParticleSystem();

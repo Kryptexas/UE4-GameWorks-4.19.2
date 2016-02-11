@@ -348,6 +348,22 @@ struct FBlackListEntry
 	{
 		return !DriverVersionString.IsEmpty();
 	}
+
+	/**
+	 * Returns true if the latest version of the driver is blacklisted by this entry,
+	 * i.e. the comparison op is > or >=.
+	 */
+	bool IsLatestBlacklisted() const
+	{
+		bool bLatestBlacklisted = false;
+		if (IsValid())
+		{
+			const TCHAR* DriverVersionTchar = *DriverVersionString;
+			EComparisonOp ComparisonOp = ParseComparisonOp(DriverVersionTchar);
+			bLatestBlacklisted = (ComparisonOp == ECO_Larger) || (ComparisonOp == ECO_LargerThan);
+		}
+		return bLatestBlacklisted;
+	}
 };
 
 struct FGPUHardware
@@ -483,6 +499,35 @@ struct FGPUHardware
 		}
 
 		return FBlackListEntry();
+	}
+
+	/**
+	 * Returns true if the latest version of the driver has been blacklisted.
+	 */
+	bool IsLatestBlacklisted() const
+	{
+		bool bLatestBlacklisted = false;
+		const TCHAR* Section = GetVendorSectionName();
+
+		if(Section)
+		{
+			TArray<FString> BlacklistStrings;
+			GConfig->GetArray(GetVendorSectionName(), TEXT("Blacklist"), BlacklistStrings, GHardwareIni);
+
+			for(int32 i = 0; !bLatestBlacklisted && i < BlacklistStrings.Num(); ++i)
+			{
+				FBlackListEntry Entry;
+
+				const TCHAR* Line = *BlacklistStrings[i];
+			
+				ensure(Line[0] == TCHAR('('));
+
+				Entry.LoadFromINIString(&Line[1]);
+
+				bLatestBlacklisted |= Entry.IsLatestBlacklisted();
+			}
+		}
+		return bLatestBlacklisted;
 	}
 
 	// to get a section name in the Hardware.ini file

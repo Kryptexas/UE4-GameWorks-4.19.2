@@ -187,13 +187,6 @@ static TAutoConsoleVariable<int32> CVarStreamingHLODStrategy(
 	TEXT("2: disable streaming"),
 	ECVF_Default);
 
-static TAutoConsoleVariable<float> CVarStreamingHLODPriorityScale(
-	TEXT("r.Streaming.HLODPriorityScale"),
-	1.5,
-	TEXT("Define the streaming priority to apply to HLOD textures\n"),
-	ECVF_Default
-	);
-
 static TAutoConsoleVariable<float> CVarStreamingHiddenPrimitiveScale(
 	TEXT("r.Streaming.HiddenPrimitiveScale"),
 	0.5,
@@ -203,6 +196,12 @@ static TAutoConsoleVariable<float> CVarStreamingHiddenPrimitiveScale(
 	ECVF_Default
 	);
 
+static TAutoConsoleVariable<int32> CVarStreamingAllowRetentionLogic(
+	TEXT("r.Streaming.AllowRetentionLogic"),
+	1,
+	TEXT("Define if to handle overbudget situations with retention logic.\n"),
+	ECVF_Default
+	);
 
 /** Streaming priority: Linear distance factor from 0 to MAX_STREAMINGDISTANCE. */
 #define MAX_STREAMINGDISTANCE	10000.0f
@@ -440,33 +439,54 @@ struct FStreamingTexture
 	}
 
 	/**
-	 * Calculates a priority value for the texture. Higher value means more important.
+	 * Calculates a retention priority value for the textures. Higher value means more important.
+	 * Retention is used determine which texture to drop when out of texture pool memory.
+	 * The retention value must be stable, meaning it must not depend on the current state of the streamer.
+	 * Not doing so could make the streamer go into a loop where is never stops dropping and loading different textures when out of budget.
 	 * @return		Priority value
 	 */
-	float CalcPriority( )
+	float CalcRetentionPriority( )
 	{
-		if (LODGroup != TEXTUREGROUP_Terrain_Heightmap)
-		{
-	//		float DistanceFactor = 1.0f - FMath::Clamp( MinDistance, 1.0f, MAX_STREAMINGDISTANCE ) / MAX_STREAMINGDISTANCE;
-			float DistanceFactor = 1 - FMath::Sqrt( FMath::Clamp( MinDistance, 1.0f, MAX_STREAMINGDISTANCE ) / MAX_STREAMINGDISTANCE );
-	//		float MipFactor = WantedMips - ResidentMips;
-			float MipFactor = float(WantedMips) / float(MAX_TEXTURE_MIP_COUNT);
-			float TimeFactor = GStreamWithTimeFactor ? (FMath::Clamp( LastRenderTime, 1.0f, MAX_LASTRENDERTIME ) / MAX_LASTRENDERTIME) : 0.0f;
-			float Priority = MipFactor + DistanceFactor * (1.0f - TimeFactor * 0.5f) + bForceFullyLoad * 100.0f;
+		bool bCanBeDropped = (LODGroup != TEXTUREGROUP_Terrain_Heightmap) && WantedMips > MinAllowedMips && !bForceFullyLoad;
 
-			// Custom priority control for HLOD textures.
-			if (bIsHLODTexture)
-			{
-				Priority *= CVarStreamingHLODPriorityScale.GetValueOnAnyThread();
-			}
+		bool bIsVisible = GStreamWithTimeFactor && LastRenderTime < 5.f && LastRenderTime != MAX_FLT;
 
-			return Priority;
-		}
-		else
-		{
-			// Because heightmaps are technically geometry, it is absolutely imperative that they are streamed in
-			return 1000.0f;
-		}
+		// Usually HLODTexture and Lightmaps are already low rez.
+		bool bAlreadyLowRez = /*(PixelPerTexel > 1.5 && Distance > 1) ||*/ bIsHLODTexture || bIsLightmap;
+		
+		// Don't consider dropping mips that give nothing. This is because streaming time has a high cost per texture.
+		// Dropping many textures for not so much memory would affect the time it takes the streamer to recover.
+		// We also don't want to prioritize by size, since bigger wanted mips are expected to have move visual impact.
+		int32 Threshold = 256;
+		bool bGivesOffMemory = WantedMips > MinAllowedMips && GetSize(WantedMips) - GetSize(WantedMips - 1) >= 256 * 1024; 
+
+		float Priority = 0;
+		if (!bCanBeDropped)		Priority += 1024.f;
+		if (bAlreadyLowRez)		Priority += 512.f;
+		if (!bGivesOffMemory)	Priority += 256.f;
+		if (bIsVisible)			Priority += 128.f;
+
+		return Priority;
+	}
+
+	/**
+	 * Calculates a load order priority value for the texture. Higher value means more important.
+	 * Load Order can depend on the current state of resident mips, because it will not affect the streamer stability.
+	 * @return		Priority value
+	 */
+	float CalcLoadOrderPriority()
+	{
+		bool bMustLoadFirst = LODGroup == TEXTUREGROUP_Terrain_Heightmap;
+		bool bIsVisible = GStreamWithTimeFactor && LastRenderTime < 5.f && LastRenderTime != MAX_FLT;
+		bool bFarFromTargetMips = WantedMips - ResidentMips > 2.f;
+		bool bBigOnScreen = WantedMips > 9.f || bIsHLODTexture;
+
+		float Priority = 0;
+		if (bMustLoadFirst)		Priority += 1024.f;
+		if (bIsVisible)			Priority += 512.f;
+		if (bFarFromTargetMips)	Priority += 256.f;
+		if (bBigOnScreen)		Priority += 128.f;
+		return Priority;
 	}
 
 	/**
@@ -1126,7 +1146,8 @@ public:
 		bAbort = false;
 		ThreadContext.Reset( false, NULL, bCollectTextureStats );
 		ThreadStats.Reset();
-		PrioritizedTextures.Empty( StreamingManager.StreamingTextures.Num() );
+		PrioritizedTexturesByRetention.Empty( StreamingManager.StreamingTextures.Num() );
+		PrioritizedTexturesByLoadOrder.Empty( StreamingManager.StreamingTextures.Num() );
 	}
 
 	/** Notifies the async work that it should abort the thread ASAP. */
@@ -1179,9 +1200,15 @@ public:
 	};
 
 	/** Returns the resulting priorities, matching the FStreamingManagerTexture::StreamingTextures array. */
-	const TArray<FTexturePriority>& GetPrioritizedTextures() const
+	const TArray<FTexturePriority>& GetPrioritizedTexturesByRentention() const
 	{
-		return PrioritizedTextures;
+		return PrioritizedTexturesByRetention;
+	}
+
+		/** Returns the resulting priorities, matching the FStreamingManagerTexture::StreamingTextures array. */
+	const TArray<FTexturePriority>& GetPrioritizedTexturesByLoadOrder() const
+	{
+		return PrioritizedTexturesByLoadOrder;
 	}
 
 	/** Returns the context (temporary info) used for the async work. */
@@ -1202,7 +1229,8 @@ private:
 	void DoWork()
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FAsyncTextureStreaming::DoWork"), STAT_AsyncTextureStreaming_DoWork, STATGROUP_StreamingDetails);
-		PrioritizedTextures.Empty( StreamingManager.StreamingTextures.Num() );
+		PrioritizedTexturesByRetention.Empty( StreamingManager.StreamingTextures.Num() );
+		PrioritizedTexturesByLoadOrder.Empty( StreamingManager.StreamingTextures.Num() );
 
 		// Calculate DynamicWantedMips and DynamicMinDistanceSq for all dynamic textures.
 		//@TODO: This is not thread-safe because it looks up UTexture2D to get to the FStreamingTexture...
@@ -1240,12 +1268,13 @@ private:
 				bool bTrackedTexture = TrackTextureEvent( &StreamingTexture, StreamingTexture.Texture, StreamingTexture.bForceFullyLoad, &StreamingManager );
 
 				// Add to sort list, if it wants to stream in or could potentially stream out.
-				if ( StreamingTexture.WantedMips > StreamingTexture.ResidentMips || StreamingTexture.ResidentMips > StreamingTexture.MinAllowedMips )
+				if ( StreamingTexture.WantedMips != StreamingTexture.MinAllowedMips || StreamingTexture.RequestedMips != StreamingTexture.MinAllowedMips || StreamingTexture.ResidentMips != StreamingTexture.MinAllowedMips)
 				{
 					const UTexture2D* Texture = StreamingTexture.Texture; // This needs to go on the stack in case the main thread updates it at the same time (for the condition consistency).
 					if (Texture)
 					{
-						FTexturePriority* TexturePriority = new (PrioritizedTextures) FTexturePriority( StreamingTexture.CalcPriority(), Index, Texture );
+						new (PrioritizedTexturesByRetention) FTexturePriority( StreamingTexture.CalcRetentionPriority(), Index, Texture );
+						new (PrioritizedTexturesByLoadOrder) FTexturePriority( StreamingTexture.CalcLoadOrderPriority(), Index, Texture );
 					}
 				}
 
@@ -1302,7 +1331,8 @@ private:
 				return false;
 			}
 		};
-		PrioritizedTextures.Sort( FCompareTexturePriority() );
+		PrioritizedTexturesByRetention.Sort( FCompareTexturePriority() );
+		PrioritizedTexturesByLoadOrder.Sort( FCompareTexturePriority() );
 	}
 
 	FORCEINLINE TStatId GetStatId() const
@@ -1312,8 +1342,10 @@ private:
 
 	/** Reference to the owning streaming manager, for accessing the thread-safe data. */
 	FStreamingManagerTexture&	StreamingManager;
-	/** Resulting priorities, matching the FStreamingManagerTexture::StreamingTextures array. */
-	TArray<FTexturePriority>	PrioritizedTextures;
+	/** Resulting priorities for keeping textures in memory, matching the FStreamingManagerTexture::StreamingTextures array. */
+	TArray<FTexturePriority>	PrioritizedTexturesByRetention;
+	/** Resulting priorities for loading order, matching the FStreamingManagerTexture::StreamingTextures array. */
+	TArray<FTexturePriority>	PrioritizedTexturesByLoadOrder;
 	/** Context (temporary info) used for the async work. */
 	FStreamingContext			ThreadContext;
 	/** Thread statistics. */
@@ -3414,7 +3446,7 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 	// Setup a context for this run.
 	FStreamingContext Context( bProcessEverything, IndividualStreamingTexture, bCollectTextureStats );
 
-	const TArray<FTexturePriority>& PrioritizedTextures = AsyncWork->GetTask().GetPrioritizedTextures();
+	const TArray<FTexturePriority>& PrioritizedTextures = AsyncWork->GetTask().GetPrioritizedTexturesByLoadOrder();
 	FAsyncTextureStreaming::FAsyncStats ThreadStats = AsyncWork->GetTask().GetStats();
 	Context.AddStats( AsyncWork->GetTask().GetContext() );
 
@@ -3542,6 +3574,49 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 
 	if ( Stats.IsUsingLimitedPoolSize() && !bPauseTextureStreaming )
 	{
+		bool bAllowStreamout = true;
+
+		// Check if the current wanted mips fit within the budget. Otherwise drop on wanted mip for some texture.
+		// This must be done before the next "while" loop because the retention texture lists is not sorted in the same order.
+		if (CVarStreamingAllowRetentionLogic.GetValueOnGameThread())
+		{
+			const TArray<FTexturePriority>& PrioritizedTexturesByRetention = AsyncWork->GetTask().GetPrioritizedTexturesByRentention();
+			int64 ExpectedAvailableLater = AvailableLater;
+
+			// At this point AvailableLater represents the available space when all requested mips will be done.
+			for (int32 RetentionIndex = 0; RetentionIndex < PrioritizedTexturesByRetention.Num(); ++RetentionIndex)
+			{
+				const FTexturePriority& TexturePriority = PrioritizedTexturesByRetention[ RetentionIndex ];
+				if (TexturePriority.TextureIndex < StreamingTextures.Num())
+				{
+					FStreamingTexture& StreamingTexture = StreamingTextures[TexturePriority.TextureIndex];
+					if (TexturePriority.Texture == StreamingTexture.Texture && StreamingTexture.WantedMips != StreamingTexture.RequestedMips)
+					{
+						ExpectedAvailableLater -= StreamingTexture.GetSize( StreamingTexture.WantedMips ) - StreamingTexture.GetSize( StreamingTexture.RequestedMips );
+					}
+				}
+			}
+			// Here ExpectedAvailableLater contains the memory cost for have all WantedMips, but also only the WantedMips.
+			// To have this memory, StreamoutTextures( StreamOut_UnwantedMips ) would be required.
+			// If the streamout is not enough, then we need to drop the last mips for some of the textures.
+			for (int32 RetentionIndex = PrioritizedTexturesByRetention.Num() - 1; RetentionIndex > 0 && ExpectedAvailableLater < 0; --RetentionIndex)
+			{
+				const FTexturePriority& TexturePriority = PrioritizedTexturesByRetention[ RetentionIndex ];
+				if (TexturePriority.TextureIndex < StreamingTextures.Num())
+				{
+					FStreamingTexture& StreamingTexture = StreamingTextures[TexturePriority.TextureIndex];
+					if (TexturePriority.Texture == StreamingTexture.Texture && StreamingTexture.WantedMips > StreamingTexture.MinAllowedMips)
+					{
+						// Drop last mip.
+						ExpectedAvailableLater += StreamingTexture.GetSize( StreamingTexture.WantedMips ) - StreamingTexture.GetSize( StreamingTexture.WantedMips - 1);
+						--StreamingTexture.WantedMips;
+					}
+				}
+			}
+
+			bAllowStreamout = ExpectedAvailableLater < 0;
+		}
+
 		// Stream in high-priority textures if possible, and stream out as many low-priority textures as we need.
 		// Keep track of how much temp memory we use separately, not letting it go over a certain threshold.
 		int32 HighPrioIndex = 0;
@@ -3605,7 +3680,7 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 			}
 
 			// Do we STILL need to stream something out?
-			if ( AvailableLater < 0 )
+			if ( AvailableLater < 0  && bAllowStreamout)
 			{
 				// Try streaming out all mips, from LowPrioIndex to HighPrioIndex.
 				// Note: AvailableLater, TempMemoryUsed, LowPriorityIndex and StreamingRequests may be altered by this call.
@@ -4216,7 +4291,7 @@ void FStreamingManagerTexture::UpdateFrameStats( FStreamingContext& Context, FSt
 		FString TextureName = StreamingTexture.Texture->GetFullName();
 		if ( CollectTextureStatsName.Len() == 0 || TextureName.Contains( CollectTextureStatsName) )
 		{
-			new (Context.TextureStats) FTextureStreamingStats( StreamingTexture.Texture, StreamType, StreamingTexture.ResidentMips, PerfectWantedMips, StreamingTexture.MostResidentMips, ResidentSize, PerfectWantedSize, PotentialSize, MostResidentSize, StreamingTexture.BoostFactor, StreamingTexture.CalcPriority(), TextureIndex );
+			new (Context.TextureStats) FTextureStreamingStats( StreamingTexture.Texture, StreamType, StreamingTexture.ResidentMips, PerfectWantedMips, StreamingTexture.MostResidentMips, ResidentSize, PerfectWantedSize, PotentialSize, MostResidentSize, StreamingTexture.BoostFactor, StreamingTexture.CalcLoadOrderPriority(), TextureIndex );
 		}
 	}
 	Context.ThisFrameNumStreamingTextures++;
@@ -5221,7 +5296,8 @@ void FStreamingManagerTexture::InvestigateTexture( const FString& InInvestigateT
 			UE_LOG(LogContentStreaming, Log,  TEXT("  Current size:    %dx%d"), Texture2D->PlatformData->Mips[CurrentMipIndex].SizeX, Texture2D->PlatformData->Mips[CurrentMipIndex].SizeY );
 			UE_LOG(LogContentStreaming, Log,  TEXT("  Wanted size:     %dx%d"), Texture2D->PlatformData->Mips[WantedMipIndex].SizeX, Texture2D->PlatformData->Mips[WantedMipIndex].SizeY );
 			UE_LOG(LogContentStreaming, Log,  TEXT("  Max size:        %dx%d"), Texture2D->PlatformData->Mips[MaxMipIndex].SizeX, Texture2D->PlatformData->Mips[MaxMipIndex].SizeY );
-			UE_LOG(LogContentStreaming, Log,  TEXT("  Priority:        %.3f"), StreamingTexture.CalcPriority() );
+			UE_LOG(LogContentStreaming, Log,  TEXT("  LoadOrder Priority: %.3f"), StreamingTexture.CalcLoadOrderPriority() );
+			UE_LOG(LogContentStreaming, Log,  TEXT("  Retention Priority: %.3f"), StreamingTexture.CalcRetentionPriority() );
 			UE_LOG(LogContentStreaming, Log,  TEXT("  Boost factor:    %.1f"), StreamingTexture.BoostFactor );
 			UE_LOG(LogContentStreaming, Log,  TEXT("  Allowed mips:    %d-%d"), StreamingTexture.MinAllowedMips, StreamingTexture.MaxAllowedMips );
 			UE_LOG(LogContentStreaming, Log,  TEXT("  Global mip bias: %.1f"), ThreadSettings.MipBias );

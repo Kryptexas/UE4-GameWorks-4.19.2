@@ -30,6 +30,16 @@ public:
 	 */
 	static void CreateWaveContainers(TArray<class USoundWave*>& SelectedWaves, class USoundCue* SoundCue, TArray<class USoundNode*>& OutPlayers, FVector2D Location);
 
+	/** Adds USoundNodeDialoguePlayer nodes based on selected objects
+	 *
+	 * @param SelectedDialogues List of selected DialogueWaves to create player nodes for
+	 * @param SoundCue The SoundCue that the nodes will be part of
+	 * @param OutPlayers Stores all created nodes
+	 * @param Location Position of first created node
+	 */
+	static void CreateDialogueContainers(TArray<class UDialogueWave*>& SelectedDialogues, USoundCue* SoundCue, TArray<class USoundNode*>& OutPlayers, FVector2D Location);
+
+
 	/** Get the bounding area for the currently selected nodes
 	 *
 	 * @param Graph The Graph we are finding bounds for

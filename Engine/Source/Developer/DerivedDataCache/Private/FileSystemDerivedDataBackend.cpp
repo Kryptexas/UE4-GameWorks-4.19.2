@@ -6,8 +6,6 @@
 #include "DerivedDataBackendInterface.h"
 #include "DDCCleanup.h"
 
-#include "DDCStatsHelper.h"
-
 #define MAX_BACKEND_KEY_LENGTH (120)
 #define MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH (9)
 #if PLATFORM_LINUX	// PATH_MAX on Linux is 4096 (getconf PATH_MAX /, also see limits.h), so this value can be larger (note that it is still arbitrary).

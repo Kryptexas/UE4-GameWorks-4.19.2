@@ -194,6 +194,12 @@ static void AddDeviceToLaunchCommand(const FString& DeviceId, ITargetDeviceProxy
 			RoleCommands += *(TEXT(" ") + Roles[RoleIndex]->GetUATCommandLine());
 		}
 	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("nomcp")))
+	{
+		// if our editor has nomcp then pass it through the launched game
+		RoleCommands += TEXT(" -nomcp");
+	}
 }
 
 FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile, const TArray<FString>& InPlatforms, TArray<FCommandDesc>& OutCommands, FString& CommandStart )

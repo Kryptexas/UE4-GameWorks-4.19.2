@@ -86,7 +86,7 @@ class Localise : BuildCommand
 			ProjectInfos.Add(GenerateProjectInfo(RootWorkingDirectory, ProjectName));
 		}
 
-		// Export all text from OneSky
+		// Export all text from our localization provider
 		foreach (var ProjectInfo in ProjectInfos)
 		{
 			LocProvider.DownloadProjectFromLocalizationProvider(ProjectInfo.ProjectName, ProjectInfo.ImportInfo);
@@ -109,6 +109,7 @@ class Localise : BuildCommand
 		if (!AllowSubmit) { CommandletSCCArguments += (String.IsNullOrEmpty(CommandletSCCArguments) ? "" : " ") + "-DisableSCCSubmit"; }
 
 		// Execute commandlet for each config in each project.
+		bool bLocCommandletFailed = false;
 		foreach (var ProjectInfo in ProjectInfos)
 		{
 			foreach (var LocalizationConfigFile in ProjectInfo.LocalizationConfigFiles)
@@ -120,24 +121,33 @@ class Localise : BuildCommand
 					CommandletArguments += " " + AdditionalCommandletArguments;
 				}
 
-				Log("Localization for {0} {1}", EditorArguments, CommandletArguments);
-
-				Log("Running UE4Editor to generate localization data");
-
 				string Arguments = String.Format("{0} -run=GatherText {1} {2}", UEProjectName, EditorArguments, CommandletArguments);
-				var RunResult = Run(EditorExe, Arguments);
+				Log("Running localization commandlet: {0}", Arguments);
+				var StartTime = DateTime.UtcNow;
+				var RunResult = Run(EditorExe, Arguments, null, ERunOptions.Default | ERunOptions.NoLoggingOfRunCommand); // Disable logging of the run command as it will print the exit code which GUBP can pick up as an error (we do that ourselves below)
+				var RunDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
+				Log("Localization commandlet finished in {0}s", RunDuration / 1000);
 
 				if (RunResult.ExitCode != 0)
 				{
-					Console.WriteLine("[ERROR] Error while executing localization commandlet '{0}'", Arguments);
+					LogWarning("The localization commandlet exited with code {0} which likely indicates a crash. It ran with the following arguments: '{1}'", RunResult.ExitCode, Arguments);
+					bLocCommandletFailed = true;
+					break; // We failed a step, so don't process any other steps in this config chain
 				}
 			}
 		}
 
-		// Upload all text to OneSky
-		foreach (var ProjectInfo in ProjectInfos)
+		if (bLocCommandletFailed)
 		{
-			LocProvider.UploadProjectToLocalizationProvider(ProjectInfo.ProjectName, ProjectInfo.ExportInfo);
+			LogWarning("Skipping upload to the localization provider due to an earlier commandlet failure.");
+		}
+		else
+		{
+			// Upload all text to our localization provider
+			foreach (var ProjectInfo in ProjectInfos)
+			{
+				LocProvider.UploadProjectToLocalizationProvider(ProjectInfo.ProjectName, ProjectInfo.ExportInfo);
+			}
 		}
 	}
 

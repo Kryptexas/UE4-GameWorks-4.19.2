@@ -181,23 +181,26 @@ void FRHIAsyncComputeCommandListImmediate::ImmediateDispatch(FRHIAsyncComputeCom
 	//queue a final command to submit all the async compute commands up to this point to the GPU.
 	RHIComputeCmdList.SubmitCommandsHint();
 
-	FRHIAsyncComputeCommandListImmediate* SwapCmdList;
+	if (!RHIComputeCmdList.Bypass())
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FRHICommandListExecutor_SwapCmdLists);
-		SwapCmdList = new FRHIAsyncComputeCommandListImmediate();
+		FRHIAsyncComputeCommandListImmediate* SwapCmdList;
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FRHICommandListExecutor_SwapCmdLists);
+			SwapCmdList = new FRHIAsyncComputeCommandListImmediate();
 
-		//hack stolen from Gfx commandlist.  transfer
-		static_assert(sizeof(FRHICommandList) == sizeof(FRHIAsyncComputeCommandListImmediate), "We are memswapping FRHICommandList and FRHICommandListImmediate; they need to be swappable.");
-		check(RHIComputeCmdList.IsImmediateAsyncCompute());
-		SwapCmdList->ExchangeCmdList(RHIComputeCmdList);
+			//hack stolen from Gfx commandlist.  transfer
+			static_assert(sizeof(FRHICommandList) == sizeof(FRHIAsyncComputeCommandListImmediate), "We are memswapping FRHICommandList and FRHICommandListImmediate; they need to be swappable.");
+			check(RHIComputeCmdList.IsImmediateAsyncCompute());
+			SwapCmdList->ExchangeCmdList(RHIComputeCmdList);
 
-		//queue the execution of this async commandlist amongst other commands in the immediate gfx list.
-		//this guarantees resource update commands made on the gfx commandlist will be executed before the async compute.
-		FRHICommandListImmediate& RHIImmCmdList = FRHICommandListExecutor::GetImmediateCommandList();		
-		RHIImmCmdList.QueueAsyncCompute(*SwapCmdList);
+			//queue the execution of this async commandlist amongst other commands in the immediate gfx list.
+			//this guarantees resource update commands made on the gfx commandlist will be executed before the async compute.
+			FRHICommandListImmediate& RHIImmCmdList = FRHICommandListExecutor::GetImmediateCommandList();
+			RHIImmCmdList.QueueAsyncCompute(*SwapCmdList);
 
-		//dispatch immediately to RHI Thread so we can get the async compute on the GPU ASAP.
-		RHIImmCmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+			//dispatch immediately to RHI Thread so we can get the async compute on the GPU ASAP.
+			RHIImmCmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
+		}
 	}
 }
 

@@ -62,6 +62,7 @@ public:
 	FEditorCommonDrawHelper& GetDrawHelper();
 	float& GetWireSphereRadius();
 
+	FCascade* GetCascade(){ return CascadePtr.Pin().Get(); }
 private:
 	/** Pointer back to the ParticleSystem editor tool that owns us */
 	TWeakPtr<FCascade> CascadePtr;

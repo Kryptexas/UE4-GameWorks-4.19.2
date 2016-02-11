@@ -174,6 +174,19 @@ FCascade::~FCascade()
 	CascadeModule->CascadeClosed(this);
 }
 
+void FCascade::OnComponentActivationChange(UParticleSystemComponent* PSC, bool bActivated)
+{
+	check(PSC);
+
+	if (UCascadeParticleSystemComponent* CPSC = Cast<UCascadeParticleSystemComponent>(PSC))
+	{
+		if (FCascade* Cascade = CPSC->CascadePreviewViewportPtr->GetCascade())
+		{
+			PSC->SetRequiredSignificance(Cascade->GetRequiredSignificance());
+		}
+	}
+}
+
 void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit)
 {
 	ParticleSystem = CastChecked<UParticleSystem>(ObjectToEdit);
@@ -253,6 +266,7 @@ void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< clas
 
 	CurveToReplace = NULL;
 	DetailMode = GlobalDetailMode = GetCachedScalabilityCVars().DetailMode;
+	RequiredSignificance = EParticleSignificanceLevel::Low;
 
 	bIsToggleMotion = false;
 	MotionModeRadius = EditorOptions->MotionModeRadius;
@@ -474,6 +488,11 @@ void FCascade::SetIsSoloing(bool bInIsSoloing)
 int32 FCascade::GetDetailMode() const
 {
 	return DetailMode;
+}
+
+EParticleSignificanceLevel FCascade::GetRequiredSignificance() const
+{
+	return RequiredSignificance;
 }
 
 bool FCascade::GetIsModuleShared(UParticleModule* Module)
@@ -1537,7 +1556,10 @@ void FCascade::Tick(float DeltaTime)
 			ParticleSystemComponent->ComponentToWorld = FTransform(Position);
 		}
 
-		ParticleSystemComponent->CascadeTickComponent(CurrDeltaTime, LEVELTICK_All);
+		if (ParticleSystemComponent->IsComponentTickEnabled())
+		{
+			ParticleSystemComponent->CascadeTickComponent(CurrDeltaTime, LEVELTICK_All);
+		}
 		ParticleSystemComponent->DoDeferredRenderUpdates_Concurrent();
 		GetFXSystem()->Tick(CurrDeltaTime);
 		TotalTime += CurrDeltaTime;
@@ -2314,6 +2336,30 @@ void FCascade::BindCommands()
 		FIsActionChecked::CreateSP(this, &FCascade::IsDetailModeChecked, DM_High));
 
 	ToolkitCommands->MapAction(
+		Commands.Significance_Critical,
+		FExecuteAction::CreateSP(this, &FCascade::OnSignificance, EParticleSignificanceLevel::Critical),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FCascade::IsSignificanceChecked, EParticleSignificanceLevel::Critical));
+
+	ToolkitCommands->MapAction(
+		Commands.Significance_High,
+		FExecuteAction::CreateSP(this, &FCascade::OnSignificance, EParticleSignificanceLevel::High),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FCascade::IsSignificanceChecked, EParticleSignificanceLevel::High));
+
+	ToolkitCommands->MapAction(
+		Commands.Significance_Medium,
+		FExecuteAction::CreateSP(this, &FCascade::OnSignificance, EParticleSignificanceLevel::Medium),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FCascade::IsSignificanceChecked, EParticleSignificanceLevel::Medium));
+
+	ToolkitCommands->MapAction(
+		Commands.Significance_Low,
+		FExecuteAction::CreateSP(this, &FCascade::OnSignificance, EParticleSignificanceLevel::Low),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FCascade::IsSignificanceChecked, EParticleSignificanceLevel::Low));
+
+	ToolkitCommands->MapAction(
 		Commands.RegenerateLowestLODDuplicatingHighest,
 		FExecuteAction::CreateSP(this, &FCascade::OnRegenerateLowestLODDuplicatingHighest));
 
@@ -2580,6 +2626,7 @@ void FCascade::RestartParticleSystem()
 	if (ParticleSystemComponent)
 	{
 		ParticleSystemComponent->ResetParticles();
+		ParticleSystemComponent->SetRequiredSignificance(RequiredSignificance);
 		ParticleSystemComponent->ActivateSystem();
 		if (ParticleSystemComponent->Template)
 		{
@@ -3687,6 +3734,7 @@ void FCascade::OnRestartInLevel()
 				PSysComp->ActivateSystem();
 				PSysComp->ConditionalCacheViewRelevanceFlags();
 				PSysComp->MarkRenderStateDirty();
+				PSysComp->SetRequiredSignificance(RequiredSignificance);
 			}
 		}
 	}
@@ -4029,6 +4077,33 @@ void FCascade::OnDetailMode(EDetailMode InDetailMode)
 bool FCascade::IsDetailModeChecked(EDetailMode InDetailMode) const
 {
 	return DetailMode == InDetailMode;
+}
+
+void FCascade::OnSignificance(EParticleSignificanceLevel InSignificance)
+{
+	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
+	{
+		if (RequiredSignificance == InSignificance)
+		{
+			return;
+		}
+
+		// Set the detail mode values on in-level particle systems
+		for (TObjectIterator<UParticleSystemComponent> It; It; ++It)
+		{
+			if (It->Template == ParticleSystemComponent->Template)
+			{
+				It->SetRequiredSignificance(InSignificance);
+			}
+		}
+
+		RequiredSignificance = InSignificance;
+	}
+}
+
+bool FCascade::IsSignificanceChecked(EParticleSignificanceLevel InSignificance) const
+{
+	return RequiredSignificance == InSignificance;
 }
 
 void FCascade::OnJumpToLowestLOD()

@@ -312,8 +312,8 @@ void FAnimInstanceProxy::TickAssetPlayerInstances(float DeltaSeconds)
 					// if this leader contains correct position, break
 					SyncGroup.MarkerTickContext = TickContext.MarkerTickContext;
 					SyncGroup.GroupLeaderIndex = GroupLeaderIndex;
-					UE_LOG(LogAnimMarkerSync, Log, TEXT("Previous Sync Group Makrer Tick Context :\n%s"), *SyncGroup.MarkerTickContext.ToString());
-					UE_LOG(LogAnimMarkerSync, Log, TEXT("New Sync Group Makrer Tick Context :\n%s"), *TickContext.MarkerTickContext.ToString());
+					UE_LOG(LogAnimMarkerSync, Log, TEXT("Previous Sync Group Marker Tick Context :\n%s"), *SyncGroup.MarkerTickContext.ToString());
+					UE_LOG(LogAnimMarkerSync, Log, TEXT("New Sync Group Marker Tick Context :\n%s"), *TickContext.MarkerTickContext.ToString());
 					break;
 				}
 				else
@@ -484,7 +484,7 @@ FMarkerSyncAnimPosition FAnimInstanceProxy::GetSyncGroupPosition(FName InSyncGro
 	if (SyncGroups.IsValidIndex(SyncGroupIndex))
 	{
 		const FAnimGroupInstance& SyncGroupInstance = SyncGroups[SyncGroupIndex];
-		if (SyncGroupInstance.bCanUseMarkerSync)
+		if (SyncGroupInstance.bCanUseMarkerSync && SyncGroupInstance.MarkerTickContext.IsMarkerSyncEndValid())
 		{
 			return SyncGroupInstance.MarkerTickContext.GetMarkerSyncEndPosition();
 		}

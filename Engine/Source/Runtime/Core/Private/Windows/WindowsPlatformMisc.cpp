@@ -2851,13 +2851,21 @@ IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 	if (!ChunkInstall)
 	{
 #if !(WITH_EDITORONLY_DATA || IS_PROGRAM)
-		static IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
-		if (PlatformChunkInstallModule != NULL)
+
+		IPlatformChunkInstallModule* PlatformChunkInstallModule = nullptr;
+
+		FModuleStatus Status;
+		if (FModuleManager::Get().QueryModule("HTTPChunkInstaller", Status))
 		{
-			// Attempt to grab the platform installer
-			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+			PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+			if (PlatformChunkInstallModule != nullptr)
+			{
+				// Attempt to grab the platform installer
+				ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+			}
 		}
-		else
+
+		if (PlatformChunkInstallModule == nullptr)
 #endif
 		{
 			// Placeholder instance

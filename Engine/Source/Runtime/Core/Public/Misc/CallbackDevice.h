@@ -226,6 +226,10 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserActivityStringChanged, const FString&);
 	static FOnUserActivityStringChanged UserActivityStringChanged;
 
+	/** Sent when application code changes the currently active game session. The exact semantics of this will vary between games but it is useful for analytics, crash reports, etc  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameSessionIDChange, const FString&);
+	static FOnGameSessionIDChange GameSessionIDChanged;
+	
 
 private:
 

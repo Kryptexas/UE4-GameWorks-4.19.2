@@ -7,6 +7,7 @@
 #include "TextEditHelper.h"
 #include "PlainTextLayoutMarshaller.h"
 #include "TextBlockLayout.h"
+#include "ReflectionMetadata.h"
 #include "GenericCommands.h"
 #include "IMenu.h"
 
@@ -328,6 +329,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	TextCompositionHighlighter = FTextCompositionHighlighter::Create();
 	TextSelectionRunRenderer = FTextSelectionRunRenderer::Create();
 	TextLayout = FSlateTextLayout::Create(TextStyle);
+	TextLayout->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 
 	if (InArgs._TextShapingMethod.IsSet())
 	{
@@ -365,6 +367,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	{
 		HintTextStyle = MakeShareable(new FTextBlockStyle(TextStyle));
 		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), Marshaller.ToSharedRef(), nullptr);
+		HintTextLayout->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 	}
 
 	// Map UI commands to delegates which are called when the command should be executed
@@ -457,6 +460,7 @@ void SMultiLineEditableText::SetHintText(const TAttribute< FText >& InHintText)
 	{
 		HintTextStyle = MakeShareable(new FTextBlockStyle(TextStyle));
 		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, TextLayout->GetTextShapingMethod(), TextLayout->GetTextFlowDirection(), Marshaller.ToSharedRef(), nullptr);
+		HintTextLayout->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 	}
 	else
 	{

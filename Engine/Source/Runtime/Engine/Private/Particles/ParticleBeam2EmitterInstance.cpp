@@ -334,79 +334,89 @@ void FParticleBeam2EmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning
 		// Handle EmitterTime setup, looping, etc.
 		float EmitterDelay = Tick_EmitterTimeSetup(DeltaTime, LODLevel);
 
-		// Kill before the spawn... Otherwise, we can get 'flashing'
-		KillParticles();
-
-		// If not suppressing spawning...
-		if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
+		if (bEnabled)
 		{
-			if ((LODLevel->RequiredModule->EmitterLoops == 0) || 
-				(LoopCount < LODLevel->RequiredModule->EmitterLoops) ||
-				(SecondsSinceCreation < (EmitterDuration * LODLevel->RequiredModule->EmitterLoops)))
+			// Kill before the spawn... Otherwise, we can get 'flashing'
+			KillParticles();
+
+			// If not suppressing spawning...
+			if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
 			{
-				// For beams, we probably want to ignore the SpawnRate distribution,
-				// and focus strictly on the BurstList...
-				float SpawnRate = 0.0f;
-				// Figure out spawn rate for this tick.
-				SpawnRate = LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component);
-				// Take Bursts into account as well...
-				int32		Burst		= 0;
-				float	BurstTime	= GetCurrentBurstRateOffset(DeltaTime, Burst);
-				SpawnRate += BurstTime;
-
-				// Spawn new particles...
-
-				//@todo. Fix the issue of 'blanking' beams when the count drops...
-				// This is a temporary hack!
-				const float InvDeltaTime = (DeltaTime > 0.0f) ? 1.0f / DeltaTime : 0.0f;
-				if ((ActiveParticles < BeamCount) && (SpawnRate <= 0.0f))
+				if ((LODLevel->RequiredModule->EmitterLoops == 0) ||
+					(LoopCount < LODLevel->RequiredModule->EmitterLoops) ||
+					(SecondsSinceCreation < (EmitterDuration * LODLevel->RequiredModule->EmitterLoops)))
 				{
-					// Force the spawn of a single beam...
-					SpawnRate = 1.0f * InvDeltaTime;
-				}
+					// For beams, we probably want to ignore the SpawnRate distribution,
+					// and focus strictly on the BurstList...
+					float SpawnRate = 0.0f;
+					// Figure out spawn rate for this tick.
+					SpawnRate = LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component);
+					// Take Bursts into account as well...
+					int32		Burst = 0;
+					float	BurstTime = GetCurrentBurstRateOffset(DeltaTime, Burst);
+					SpawnRate += BurstTime;
 
-				// Force beams if the emitter is marked "AlwaysOn"
-				if ((ActiveParticles < BeamCount) && BeamTypeData->bAlwaysOn)
-				{
-					Burst		= BeamCount;
-					if (DeltaTime > KINDA_SMALL_NUMBER)
+					// Spawn new particles...
+
+					//@todo. Fix the issue of 'blanking' beams when the count drops...
+					// This is a temporary hack!
+					const float InvDeltaTime = (DeltaTime > 0.0f) ? 1.0f / DeltaTime : 0.0f;
+					if ((ActiveParticles < BeamCount) && (SpawnRate <= 0.0f))
 					{
-						BurstTime	 = Burst * InvDeltaTime;
-						SpawnRate	+= BurstTime;
+						// Force the spawn of a single beam...
+						SpawnRate = 1.0f * InvDeltaTime;
+					}
+
+					// Force beams if the emitter is marked "AlwaysOn"
+					if ((ActiveParticles < BeamCount) && BeamTypeData->bAlwaysOn)
+					{
+						Burst = BeamCount;
+						if (DeltaTime > KINDA_SMALL_NUMBER)
+						{
+							BurstTime = Burst * InvDeltaTime;
+							SpawnRate += BurstTime;
+						}
+					}
+
+					if (SpawnRate > 0.f)
+					{
+						SpawnFraction = SpawnBeamParticles(SpawnFraction, SpawnRate, DeltaTime, Burst, BurstTime);
 					}
 				}
-
-				if (SpawnRate > 0.f)
-				{
-					SpawnFraction = SpawnBeamParticles(SpawnFraction, SpawnRate, DeltaTime, Burst, BurstTime);
-				}
 			}
+			else if (bFakeBurstsWhenSpawningSupressed)
+			{
+				FakeBursts();
+			}
+
+			// Reset particle data
+			ResetParticleParameters(DeltaTime);
+
+			// Not really necessary as beams do not LOD at the moment, but for consistency...
+			CurrentMaterial = LODLevel->RequiredModule->Material;
+
+			Tick_ModuleUpdate(DeltaTime, LODLevel);
+			Tick_ModulePostUpdate(DeltaTime, LODLevel);
+
+			// Calculate bounding box and simulate velocity.
+			UpdateBoundingBox(DeltaTime);
+
+			if (!bSuppressSpawning)
+			{
+				// Ensure that we flip the 'FirstEmission' flag
+				FirstEmission = false;
+			}
+
+			// Invalidate the contents of the vertex/index buffer.
+			IsRenderDataDirty = 1;
+
+			// Bump the tick count
+			TickCount++;
 		}
-
-		// Reset particle data
-		ResetParticleParameters(DeltaTime);
-
-		// Not really necessary as beams do not LOD at the moment, but for consistency...
-		CurrentMaterial = LODLevel->RequiredModule->Material;
-
-		Tick_ModuleUpdate(DeltaTime, LODLevel);
-		Tick_ModulePostUpdate(DeltaTime, LODLevel);
-
-		// Calculate bounding box and simulate velocity.
-		UpdateBoundingBox(DeltaTime);
-
-		if (!bSuppressSpawning)
+		else
 		{
-			// Ensure that we flip the 'FirstEmission' flag
-			FirstEmission = false;
+			FakeBursts();
 		}
-
-		// Invalidate the contents of the vertex/index buffer.
-		IsRenderDataDirty = 1;
-
-		// Bump the tick count
-		TickCount++;
-
 		// 'Reset' the emitter time so that the delay functions correctly
 		EmitterTime += CurrentDelay;
 		
@@ -1005,7 +1015,7 @@ FDynamicEmitterDataBase* FParticleBeam2EmitterInstance::GetDynamicData(bool bSel
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleBeam2EmitterInstance_GetDynamicData);
 
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -1069,7 +1079,7 @@ bool FParticleBeam2EmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* D
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleBeam2EmitterInstance_UpdateDynamicData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}

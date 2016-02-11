@@ -2345,11 +2345,26 @@ struct FSubItem
 
 MSVC_PRAGMA(warning(push))
 MSVC_PRAGMA(warning(disable : 4717))
-static void InfiniteRecursionFunction(bool B)
+
+#if defined (__clang__) 
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Winfinite-recursion"
+#endif
+
+
+// clang can optimize this out (http://stackoverflow.com/questions/18478078/clang-infinite-tail-recursion-optimization), make the function do some useful work
+
+volatile int GInfiniteRecursionCount = 0;
+static int InfiniteRecursionFunction(int B)
 {
-	if(B)
-		InfiniteRecursionFunction(B);
+	GInfiniteRecursionCount += InfiniteRecursionFunction(B + 1);
+	return GInfiniteRecursionCount;
 }
+
+#if defined (__clang__) 
+	#pragma clang diagnostic pop
+#endif
+
 MSVC_PRAGMA(warning(pop))
 
 /** DEBUG used for exe "DEBUG BUFFEROVERFLOW" */
@@ -4739,14 +4754,14 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		UE_LOG(LogEngine, Log, TEXT("This is going to be a really long log message to test the code to resize the buffer used to log with. %02048s"), TEXT("HAHA, this isn't really a long string, but it sure has a lot of zeros!"));
 	}
-#if 0
 	else if( FParse::Command( &Cmd, TEXT("RECURSE") ) )
 	{
 		Ar.Logf( TEXT("Recursing") );
+		GLog->Flush();
 		InfiniteRecursionFunction(1);
+		Ar.Logf(TEXT("You will never see this log line."));
 		return true;
 	}
-#endif
 	else if( FParse::Command( &Cmd, TEXT("EATMEM") ) )
 	{
 		Ar.Log( TEXT("Eating up all available memory") );
@@ -9832,7 +9847,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	double StopTime = FPlatformTime::Seconds();
 
-	UE_LOG(LogEngine, Log, TEXT("Took %f seconds to LoadMap(%s)"), StopTime - StartTime, *URL.Map);
+	UE_LOG(LogLoad, Log, TEXT("Took %f seconds to LoadMap(%s)"), StopTime - StartTime, *URL.Map);
 
 	// Successfully started local level.
 	return true;

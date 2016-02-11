@@ -9,6 +9,7 @@
 #include "IRichTextMarkupParser.h"
 #include "RichTextMarkupProcessing.h"
 #include "RichTextLayoutMarshaller.h"
+#include "ReflectionMetadata.h"
 
 void SRichTextBlock::Construct( const FArguments& InArgs )
 {
@@ -29,13 +30,19 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 			Parser = FDefaultRichTextMarkupParser::Create();
 		}
 
-		TSharedRef<FRichTextLayoutMarshaller> Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet);
-		for ( const TSharedRef< ITextDecorator >& Decorator : InArgs.InlineDecorators )
+		TSharedPtr<FRichTextLayoutMarshaller> Marshaller = InArgs._Marshaller;
+		if (!Marshaller.IsValid())
 		{
-			Marshaller->AppendInlineDecorator( Decorator );
+			Marshaller = FRichTextLayoutMarshaller::Create(Parser, nullptr, InArgs._Decorators, InArgs._DecoratorStyleSet);
+		}
+		
+		for (const TSharedRef< ITextDecorator >& Decorator : InArgs.InlineDecorators)
+		{
+			Marshaller->AppendInlineDecorator(Decorator);
 		}
 
-		TextLayoutCache = FTextBlockLayout::Create(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller, nullptr);
+		TextLayoutCache = FTextBlockLayout::Create(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller.ToSharedRef(), nullptr);
+		TextLayoutCache->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 	}
 }
 

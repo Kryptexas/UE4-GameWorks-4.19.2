@@ -3122,13 +3122,12 @@ bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep, FHit
 	// happens, and if so, something else is giving NAN as output
 	if (RootComponent)
 	{
-		if (ensure(!NewTransform.ContainsNaN()))
+		if (ensureMsgf(!NewTransform.ContainsNaN(), TEXT("SetActorTransform: Get NAN Transform data for %s: %s"), *GetNameSafe(this), *NewTransform.ToString()))
 		{
 			RootComponent->SetWorldTransform(NewTransform, bSweep, OutSweepHitResult, Teleport);
 		}
 		else
 		{
-			UE_LOG(LogScript, Warning, TEXT("SetActorTransform: Get NAN Transform data for %s: %s"), *GetNameSafe(this), *NewTransform.ToString());
 			if (OutSweepHitResult)
 			{
 				*OutSweepHitResult = FHitResult();

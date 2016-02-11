@@ -122,6 +122,10 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GameHyperlinkChatColor);
 
+	const FTextBlockStyle TeamChatFont = FTextBlockStyle(DefaultText)
+		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.TeamHyperlinkChatColor);
+
 	const FTextBlockStyle PartyChatFont = FTextBlockStyle(DefaultText)
 		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyHyperlinkChatColor);
@@ -145,6 +149,11 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 		.SetTextStyle(GameChatFont)
 		.SetPadding(FMargin(0.0f));
 
+	const FHyperlinkStyle TeamChatHyperlink = FHyperlinkStyle()
+		.SetUnderlineStyle(UserNameButton)
+		.SetTextStyle(TeamChatFont)
+		.SetPadding(FMargin(0.0f));
+
 	const FHyperlinkStyle PartyChatHyperlink = FHyperlinkStyle()
 		.SetUnderlineStyle(UserNameButton)
 		.SetTextStyle(PartyChatFont)
@@ -164,11 +173,13 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 
 	Style->Set("UserNameTextStyle.GlobalHyperlink", GlobalChatHyperlink);
 	Style->Set("UserNameTextStyle.GameHyperlink", GameChatHyperlink);
+	Style->Set("UserNameTextStyle.GameHyperlink", TeamChatHyperlink);
 	Style->Set("UserNameTextStyle.PartyHyperlink", PartyChatHyperlink);
 	Style->Set("UserNameTextStyle.Whisperlink", WhisperChatHyperlink);
 	Style->Set("UserNameTextStyle.DefaultHyperlink", DefaultChatHyperlink);
 	Style->Set("UserNameTextStyle.GlobalTextStyle", GlobalChatFont);
 	Style->Set("UserNameTextStyle.GameTextStyle", GameChatFont);
+	Style->Set("UserNameTextStyle.TeamTextStyle", TeamChatFont);
 	Style->Set("UserNameTextStyle.PartyTextStyle", PartyChatFont);
 	Style->Set("UserNameTextStyle.WhisperTextStyle", WhisperChatFont);
 

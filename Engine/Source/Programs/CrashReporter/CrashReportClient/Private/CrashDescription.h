@@ -255,6 +255,13 @@ struct FPrimaryCrashProperties
 	 */
 	FCrashProperty EpicAccountId;
 
+	/** 
+	 * The last game session id set by the application. Application specific meaning. Some might not set this.
+	 * @EpicAccountId	varchar(64)
+	 * 
+	 */
+	FCrashProperty GameSessionID;
+
 	/**
 	 * An array of FStrings representing the callstack of the crash.
 	 * @RawCallStack	varchar(MAX)

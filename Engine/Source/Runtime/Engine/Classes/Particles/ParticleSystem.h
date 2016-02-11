@@ -106,6 +106,12 @@ class UParticleSystem : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+	UParticleSystem()
+	:OcclusionBoundsMethod(EPSOBM_ParticleBounds)
+	{
+
+	}
+
 	UPROPERTY(EditAnywhere, Category=ParticleSystem, AssetRegistrySearchable)
 	TEnumAsByte<enum EParticleSystemUpdateMode> SystemUpdateMode;
 
@@ -298,8 +304,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Minimum duration between ticks; 33=tick at max. 30FPS, 16=60FPS, 8=120FPS"))
 	uint32 MinTimeBetweenTicks;
 
-	UPROPERTY(EditAnywhere, Category = Performance, meta = (ToolTip = "Time this system can be deemed insignificant before it deactivates. "))
-	float InsignificantTimeTillDeactivate;
+	/** The reaction this system takes when all emitters are insignificant. */
+	UPROPERTY(EditAnywhere, Category = Performance)
+	EParticleSystemInsignificanceReaction InsignificantReaction;
+
+	/** Time delay between all emitters becoming insignificant and the systems insignificant reaction. */
+	UPROPERTY(EditAnywhere, Category = Performance)
+	float InsignificanceDelay;
 
 	/** The maximum level of significance for emitters in this system. Any emitters with a higher significance will be capped at this significance level. */
 	UPROPERTY(EditAnywhere, Category = Performance)
@@ -482,9 +493,20 @@ public:
 	/** Returns true if the particle system is looping (contains one or more looping emitters) */
 	bool IsLooping() const { return bAnyEmitterLoopsForever; }
 
+	EParticleSignificanceLevel GetHighestSignificance()const { return HighestSignificance; }
+	EParticleSignificanceLevel GetLowestSignificance()const { return LowestSignificance; }
+	bool ShouldManageSignificance()const { return bShouldManageSignificance; }
 private:
+
+	/** The highest significance of any emitter. Clamped by MaxSignificanceLevel.*/
+	EParticleSignificanceLevel HighestSignificance;
+	/** The lowest significance of any emitter. Clamped by MaxSignificanceLevel.*/
+	EParticleSignificanceLevel LowestSignificance;
+	
+	uint32 bShouldManageSignificance : 1;
+
 	/** Does any emitter loop forever (computed during load and when emitters are built) */
-	bool bAnyEmitterLoopsForever;
+	uint32 bAnyEmitterLoopsForever : 1;
 };
 
 

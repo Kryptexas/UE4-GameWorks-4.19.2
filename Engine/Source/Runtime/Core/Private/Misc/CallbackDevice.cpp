@@ -74,4 +74,6 @@ FCoreDelegates::FVRHeadsetRecenter FCoreDelegates::VRHeadsetRecenter;
 
 FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringChanged;
 
+FCoreDelegates::FOnGameSessionIDChange FCoreDelegates::GameSessionIDChanged;
+
 FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;

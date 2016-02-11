@@ -44,6 +44,7 @@ void UAbilityTask_ApplyRootMotionJumpForce::Activate()
 	{
 		Character->LandedDelegate.AddDynamic(this, &UAbilityTask_ApplyRootMotionJumpForce::OnLandedCallback);
 	}
+	SetWaitingOnAvatar();
 }
 
 void UAbilityTask_ApplyRootMotionJumpForce::OnLandedCallback(const FHitResult& Hit)

@@ -79,6 +79,10 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FLinearColor GameChatColor;
 	FFriendsChatStyle& SetGameChatColor(const FLinearColor& InFontColor);
 
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor TeamChatColor;
+	FFriendsChatStyle& SetTeamChatColor(const FLinearColor& InFontColor);
+
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FLinearColor PartyChatColor;
 	FFriendsChatStyle& SetPartyChatColor(const FLinearColor& InFontColor);
@@ -86,6 +90,10 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor AdminChatColor;
 	FFriendsChatStyle& SetAdminChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor GameAdminChatColor;
+	FFriendsChatStyle& SetGameAdminChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor WhisperHyperlinkChatColor;
@@ -99,9 +107,21 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FLinearColor GameHyperlinkChatColor;
 	FFriendsChatStyle& SetGameHyperlinkChatColor(const FLinearColor& InFontColor);
 
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor TeamHyperlinkChatColor;
+	FFriendsChatStyle& SetTeamHyperlinkChatColor(const FLinearColor& InFontColor);
+
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FLinearColor PartyHyperlinkChatColor;
 	FFriendsChatStyle& SetPartyHyperlinkChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor EnemyColor;
+	FFriendsChatStyle& SetEnemyColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor FriendlyColor;
+	FFriendsChatStyle& SetFriendlyColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FEditableTextBoxStyle ChatEntryTextStyle;

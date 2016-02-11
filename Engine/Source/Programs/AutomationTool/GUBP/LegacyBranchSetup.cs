@@ -142,6 +142,7 @@ partial class GUBP
         public class BranchOptions
         {            
             public List<UnrealTargetPlatform> PlatformsToRemove = new List<UnrealTargetPlatform>();
+			public List<TargetRules.TargetType> MonolithicsToRemove = new List<TargetRules.TargetType>();
 			public List<string> ExcludeNodes = new List<string>();
 			public List<UnrealTargetPlatform> ExcludePlatformsForEditor = new List<UnrealTargetPlatform>();
             public List<UnrealTargetPlatform> RemovePlatformFromPromotable = new List<UnrealTargetPlatform>();
@@ -154,7 +155,7 @@ partial class GUBP
 			/// </summary>
 			public bool bGameBuildsBehindTriggers = false;
             /// <summary>
-            /// This turns off ALL automatedtesting in ALL branches by default.
+            /// This turns off ALL automated testing in ALL branches by default.
             /// A branch hacker must set this value to false explicitly to use automated testing.
             /// </summary>
 			public bool bNoAutomatedTesting = true;
@@ -188,7 +189,7 @@ partial class GUBP
 			/// </summary>
 			public bool bBuildEngineLocalization = false;
 			public string EngineLocalizationBranchSuffix = "";
-			/// <summary>
+            public string AdditionalCookArgs = "";
 			/// Whether to build all target platforms in parallel, or serialize them to avoid saturating the farm.
 			/// </summary>
 			public bool bTargetPlatformsInParallel = true;

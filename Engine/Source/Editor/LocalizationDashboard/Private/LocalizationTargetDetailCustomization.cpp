@@ -353,6 +353,7 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 		DetailWidgetRow.NameContent()
 			[
 				SNew(STextBlock)
+				.Font(DetailBuilder.GetDetailFont())
 				.Text(LOCTEXT("LocalizationTargetLoadingPolicyRowName", "Loading Policy"))
 			];
 		DetailWidgetRow.ValueContent()

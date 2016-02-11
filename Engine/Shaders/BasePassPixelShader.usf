@@ -823,6 +823,7 @@ void Main(
 		GBuffer.ShadingModelID = SHADINGMODELID_CLOTH;
 		GBuffer.CustomData.rgb = SubsurfaceColor;
 		GBuffer.CustomData.a = saturate( GetMaterialCustomData0(MaterialParameters) );	// Cloth
+		GBuffer.IndirectIrradiance *= 1 - GBuffer.CustomData.a;
 	#elif MATERIAL_SHADINGMODEL_EYE
 		GBuffer.ShadingModelID = SHADINGMODELID_EYE;
 		#if NUM_MATERIAL_OUTPUTS_GETTANGENTOUTPUT > 0

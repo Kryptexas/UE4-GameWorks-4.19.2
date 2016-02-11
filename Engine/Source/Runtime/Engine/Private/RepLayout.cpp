@@ -2560,6 +2560,7 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 
 	ConditionMap[COND_InitialOrOwner]		= bIsInitial || bIsOwner;
 	ConditionMap[COND_ReplayOrOwner]		= bIsReplay || bIsOwner;
+	ConditionMap[COND_ReplayOnly]			= bIsReplay;
 
 	ConditionMap[COND_Custom]				= true;
 

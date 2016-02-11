@@ -36,6 +36,8 @@ struct FDialogueContextMapping
 bool operator==(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
 bool operator!=(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
 
+class UDialogueWaveFactory;
+
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
 class UDialogueWave : public UObject
 {
@@ -84,6 +86,10 @@ public:
 	ENGINE_API FString GetContextLocalizationKey( const FDialogueContext& Context ) const;
 	//~ End UDialogueWave Interface.
 
+	ENGINE_API void UpdateContext(FDialogueContextMapping& ContextMapping, USoundWave* SoundWave, UDialogueVoice* Speaker, const TArray<UDialogueVoice*>& Targets);
+
 protected:
+
 	void UpdateMappingProxy(FDialogueContextMapping& ContextMapping);
+
 };

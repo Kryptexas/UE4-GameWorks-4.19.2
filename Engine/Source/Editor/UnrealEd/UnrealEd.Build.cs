@@ -25,7 +25,6 @@ public class UnrealEd : ModuleRules
 			{
 				"Analytics",
 				"AssetRegistry",
-                "CookingStats",
 				"AssetTools",
                 "BehaviorTreeEditor",
 				"ClassViewer",

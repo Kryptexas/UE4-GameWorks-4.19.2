@@ -545,6 +545,11 @@ float4 VertexFactoryGetRasterizedWorldPosition(FVertexFactoryInput Input, FVerte
 #endif
 }
 
+float3 VertexFactoryGetPositionForVertexLighting(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 TranslatedWorldPosition)
+{
+	return TranslatedWorldPosition;
+}
+
 /**
  * Computes the tangent basis for this vertex in world space.
  * @param Input - Vertex attributes.

@@ -77,6 +77,11 @@ public:
 	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
 
 	/**
+	 * Set the information used to help identify who owns this text layout in the case of an error
+	 */
+	void SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo);
+
+	/**
 	 * Get the child widgets of this layout
 	 */
 	FChildren* GetChildren();

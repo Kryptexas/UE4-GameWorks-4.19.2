@@ -107,6 +107,10 @@ public:
 	UPROPERTY()
 	uint32 bWantsPlayerState:1;
 
+	/** Copy Pawn rotation to ControlRotation, if there is no focus point. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+	uint32 bSetControlRotationFromPawnOrientation:1;
+
 private_subobject:
 
 	/** Component used for moving along a path. */

@@ -11,7 +11,10 @@ class UAbilityTask_PlayMontageAndWait : public UAbilityTask
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
-	FMontageWaitSimpleDelegate	OnComplete;
+	FMontageWaitSimpleDelegate	OnCompleted;
+
+	UPROPERTY(BlueprintAssignable)
+	FMontageWaitSimpleDelegate	OnBlendOut;
 
 	UPROPERTY(BlueprintAssignable)
 	FMontageWaitSimpleDelegate	OnInterrupted;
@@ -24,6 +27,9 @@ class UAbilityTask_PlayMontageAndWait : public UAbilityTask
 
 	UFUNCTION()
 	void OnMontageInterrupted();
+
+	UFUNCTION()
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (DisplayName="PlayMontageAndWait",
 		HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
@@ -45,6 +51,7 @@ private:
 	bool StopPlayingMontage();
 
 	FOnMontageBlendingOutStarted BlendingOutDelegate;
+	FOnMontageEnded MontageEndedDelegate;
 	FDelegateHandle InterruptedHandle;
 
 	UAnimMontage* MontageToPlay;

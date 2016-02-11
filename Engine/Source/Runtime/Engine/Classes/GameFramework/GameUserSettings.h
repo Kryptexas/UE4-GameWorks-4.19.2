@@ -26,6 +26,8 @@ namespace EWindowMode
 
 #endif
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameUserSettingsUINeedsUpdate);
+
 /**
  * Stores user settings for a game (for example graphics and sound settings), with the ability to save and load to and from a file.
  */
@@ -314,6 +316,10 @@ protected:
 	/** Min resolution scale we allow in current display mode */
 	int32 MinResolutionScale;
 
+	/** Desired screen height used to calculate the resolution scale when user changes display mode */
+	UPROPERTY(config)
+	int32 DesiredScreenHeight;
+
 	/**
 	 * Check if the current version of the game user settings is valid. Sub-classes can override this to provide game-specific versioning as necessary.
 	 * @return True if the current version is valid, false if it is not
@@ -323,9 +329,14 @@ protected:
 	/** Update the version of the game user settings to the current version */
 	virtual void UpdateVersion();
 
+	int32 FindResolutionQualityForScreenHeight(int32 ScreenHeight);
+
 private:
 
-	void UpdateMinResolutionScaling();
+	UPROPERTY(BlueprintAssignable, meta = (AllowPrivateAccess = "true"))
+	FOnGameUserSettingsUINeedsUpdate OnGameUserSettingsUINeedsUpdate;
+
+	void UpdateResolutionQuality();
 
 	void SetPreferredFullscreenMode(int32 Mode);
 };

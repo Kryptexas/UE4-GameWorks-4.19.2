@@ -4,6 +4,7 @@
 #include "ActiveSound.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundWave.h"
+#include "AssetData.h"
 
 #define LOCTEXT_NAMESPACE "SoundNodeWavePlayer"
 

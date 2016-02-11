@@ -205,6 +205,9 @@ private:
 	/** Timestamp when we sent the last heartbeat */
 	static double LastHeartbeatTimestamp;
 
+	/** Time when Tick() was called previously */
+	static double PreviousTickTime;
+
 	/**
 	 * Event-specific variables
 	 */

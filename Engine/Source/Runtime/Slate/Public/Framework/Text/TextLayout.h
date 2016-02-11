@@ -363,6 +363,9 @@ public:
 	/** Set the iterator to use to detect appropriate soft-wrapping points for lines (or null to go back to using the default) */
 	void SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIterator );
 
+	/** Set the information used to help identify who owns this text layout in the case of an error */
+	void SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo);
+
 	void ClearLines();
 
 	struct FNewLineData
@@ -656,4 +659,7 @@ protected:
 
 	/** Unicode BiDi text detection */
 	TUniquePtr<TextBiDi::ITextBiDi> TextBiDiDetection;
+
+	/** Information given to use by our an external source (typically our owner widget) to help identify who owns this text layout in the case of an error */
+	TAttribute<FString> DebugSourceInfo;
 };

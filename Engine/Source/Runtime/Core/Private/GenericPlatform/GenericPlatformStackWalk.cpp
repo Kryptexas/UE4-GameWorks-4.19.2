@@ -151,3 +151,8 @@ void FGenericPlatformStackWalk::StackWalkAndDump( ANSICHAR* HumanReadableString,
 	}
 }
 
+void FGenericPlatformStackWalk::StackWalkAndDumpEx(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 Flags, void* Context)
+{
+	// generic implementation ignores extra flags
+	return StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount, Context);
+}

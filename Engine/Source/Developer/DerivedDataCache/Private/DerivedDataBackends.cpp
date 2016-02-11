@@ -4,7 +4,6 @@
 #include "SecureHash.h"
 #include "DerivedDataBackendInterface.h"
 #include "DerivedDataCacheInterface.h"
-#include "DDCStatsHelper.h"
 #include "MemoryDerivedDataBackend.h"
 #include "DerivedDataBackendAsyncPutWrapper.h"
 #include "PakFileDerivedDataBackend.h"

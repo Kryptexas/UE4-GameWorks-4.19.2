@@ -8,6 +8,7 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "AssetData.h"
 
 /*-----------------------------------------------------------------------------
 	USoundNode implementation.
@@ -183,4 +184,5 @@ void USoundNode::PlaceNode( int32 NodeColumn, int32 NodeRow, int32 RowCount )
 	GraphNode->NodePosX = (-150 * NodeColumn) - 100;
 	GraphNode->NodePosY = (100 * NodeRow) - (50 * RowCount);
 }
+
 #endif //WITH_EDITOR

@@ -483,7 +483,7 @@ void FWindowsWindow::Destroy()
 		if (Result == S_OK)
 		{
 			checkf(OLEReferenceCount == 0, TEXT("Not all references to window are released, %i left"), OLEReferenceCount);
-		}		
+		}
 	}
 
 	::DestroyWindow( HWnd );

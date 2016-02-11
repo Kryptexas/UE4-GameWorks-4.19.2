@@ -52,6 +52,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetGameChatColor(const FLinearColor& InFon
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetTeamChatColor(const FLinearColor& InFontColor)
+{
+	TeamChatColor = InFontColor;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetPartyChatColor(const FLinearColor& InFontColor)
 {
 	PartyChatColor = InFontColor;
@@ -61,6 +67,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetPartyChatColor(const FLinearColor& InFo
 FFriendsChatStyle& FFriendsChatStyle::SetAdminChatColor(const FLinearColor& InFontColor)
 {
 	AdminChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetGameAdminChatColor(const FLinearColor& InFontColor)
+{
+	GameAdminChatColor = InFontColor;
 	return *this;
 }
 
@@ -82,9 +94,27 @@ FFriendsChatStyle& FFriendsChatStyle::SetGameHyperlinkChatColor(const FLinearCol
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetTeamHyperlinkChatColor(const FLinearColor& InFontColor)
+{
+	TeamHyperlinkChatColor = InFontColor;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetPartyHyperlinkChatColor(const FLinearColor& InFontColor)
 {
 	PartyHyperlinkChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetEnemyColor(const FLinearColor& InFontColor)
+{
+	EnemyColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetFriendlyColor(const FLinearColor& InFontColor)
+{
+	FriendlyColor = InFontColor;
 	return *this;
 }
 

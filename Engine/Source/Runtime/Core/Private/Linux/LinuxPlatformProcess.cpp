@@ -981,7 +981,7 @@ bool FProcState::IsRunning()
 		// which is a dubious, but valid behavior. We don't want to keep zombie around though.
 		if (!bIsRunning)
 		{
-			UE_LOG(LogHAL, Log, TEXT("Child %d is no more running (zombie), Wait()ing immediately."), GetProcessId() );
+			UE_LOG(LogHAL, Log, TEXT("Child %d is no longer running (zombie), Wait()ing immediately."), GetProcessId() );
 			Wait();
 		}
 	}

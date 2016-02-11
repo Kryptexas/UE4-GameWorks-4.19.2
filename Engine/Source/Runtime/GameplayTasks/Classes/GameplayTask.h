@@ -258,6 +258,8 @@ public:
 
 	virtual bool IsWaitingOnRemotePlayerdata() const { return false; }
 
+	virtual bool IsWaitingOnAvatar() const { return false; }
+
 protected:
 	/** End and CleanUp the task - may be called by the task itself or by the task owner if the owner is ending. 
 	 *	IMPORTANT! Do NOT call directly! Call EndTask() or TaskOwnerEnded() 

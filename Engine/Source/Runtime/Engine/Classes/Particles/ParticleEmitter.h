@@ -394,6 +394,9 @@ class UParticleEmitter : public UObject
 #if STATS
 	void CreateStatID() const;
 #endif
+
+	/** Returns if this emitter is considered significant for the passed requirement. */
+	ENGINE_API bool IsSignificant(EParticleSignificanceLevel RequiredSignificance);
 };
 
 

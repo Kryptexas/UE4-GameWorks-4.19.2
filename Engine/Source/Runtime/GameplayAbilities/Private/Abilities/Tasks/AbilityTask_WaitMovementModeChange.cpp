@@ -24,6 +24,8 @@ void UAbilityTask_WaitMovementModeChange::Activate()
 		Character->MovementModeChangedDelegate.AddDynamic(this, &UAbilityTask_WaitMovementModeChange::OnMovementModeChange);
 		MyCharacter = Character;
 	}
+
+	SetWaitingOnAvatar();
 }
 
 void UAbilityTask_WaitMovementModeChange::OnMovementModeChange(ACharacter * Character, EMovementMode PrevMovementMode, uint8 PreviousCustomMode)

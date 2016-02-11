@@ -466,7 +466,7 @@ FString UOnlineHotfixManager::GetStrippedConfigFileName(const FString& IniName)
 	}
 	else if (StrippedIniName.StartsWith(DefaultPrefix))
 	{
-		StrippedIniName = IniName.Right(StrippedIniName.Len() - 7);
+		StrippedIniName = IniName.Right(StrippedIniName.Len() - DefaultPrefix.Len());
 	}
 	else if (StrippedIniName.StartsWith(DebugPrefix))
 	{

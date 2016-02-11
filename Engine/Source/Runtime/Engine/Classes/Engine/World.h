@@ -30,6 +30,7 @@ class AMatineeActor;
 class AWorldSettings;
 class ACameraActor;
 class FUniqueNetId;
+class FWorldInGamePerformanceTrackers;
 
 template<typename,typename> class TOctree;
 
@@ -1032,6 +1033,9 @@ public:
 	/** List of DDC async requests we need to wait on before we register components. Game thread only. */
 	TArray<TSharedPtr<FAsyncPreRegisterDDCRequest>> AsyncPreRegisterDDCRequests;
 #endif
+
+	//Experimental: In game performance tracking.
+	FWorldInGamePerformanceTrackers* PerfTrackers;
 
 	/**
 	 * UWorld default constructor

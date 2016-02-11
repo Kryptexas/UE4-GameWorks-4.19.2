@@ -1622,6 +1622,28 @@ void UGameplayAbility::SetRemoteInstanceHasEnded()
 	}
 }
 
+void UGameplayAbility::NotifyAvatarDestroyed()
+{
+	// This could potentially happen in shutdown corner cases
+	if (IsPendingKill() || CurrentActorInfo == nullptr || CurrentActorInfo->AbilitySystemComponent.IsValid() == false)
+	{
+		return;
+	}
+
+	RemoteInstanceEnded = true;
+	for (UGameplayTask* Task : ActiveTasks)
+	{
+		if (Task && Task->IsPendingKill() == false && Task->IsWaitingOnAvatar())
+		{
+			// We have a task waiting on some Avatar state but the avatar is destroyed, so force end the ability to avoid getting stuck on.
+			
+			ABILITY_LOG(Log, TEXT("Ability %s is force cancelling because Task %s is waiting on avatar data avatar has been destroyed."), *GetName(), *Task->GetDebugString());
+			CurrentActorInfo->AbilitySystemComponent->ForceCancelAbilityDueToReplication(this);
+			break;
+		}
+	}
+}
+
 void UGameplayAbility::NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* AbilityTask)
 {
 	// This should never happen since it will only be called from actively running ability tasks
@@ -1630,6 +1652,15 @@ void UGameplayAbility::NotifyAbilityTaskWaitingOnPlayerData(class UAbilityTask* 
 	if (RemoteInstanceEnded)
 	{
 		ABILITY_LOG(Log, TEXT("Ability %s is force cancelling because Task %s has started after the remote player has ended the ability."), *GetName(), *AbilityTask->GetDebugString());
+		CurrentActorInfo->AbilitySystemComponent->ForceCancelAbilityDueToReplication(this);
+	}
+}
+
+void UGameplayAbility::NotifyAbilityTaskWaitingOnAvatar(class UAbilityTask* AbilityTask)
+{
+	if (!CurrentActorInfo || CurrentActorInfo->AvatarActor.IsValid() == false)
+	{
+		ABILITY_LOG(Log, TEXT("Ability %s is force cancelling because Task %s has started while there is no valid AvatarActor"), *GetName(), *AbilityTask->GetDebugString());
 		CurrentActorInfo->AbilitySystemComponent->ForceCancelAbilityDueToReplication(this);
 	}
 }

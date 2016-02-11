@@ -35,9 +35,17 @@ public:
 
 protected:
 
+	FRichTextLayoutMarshaller(TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet);
 	FRichTextLayoutMarshaller(TSharedPtr< IRichTextMarkupParser > InParser, TSharedPtr< IRichTextMarkupWriter > InWriter, TArray< TSharedRef< ITextDecorator > > InDecorators, const ISlateStyle* const InDecoratorStyleSet);
 
 	TSharedPtr< ITextDecorator > TryGetDecorator(const FString& Line, const FTextRunParseResults& TextRun) const;
+
+	virtual void AppendRunsForText(const FTextRunParseResults& TextRun, 
+		const FString& ProcessedString, 
+		const FTextBlockStyle& DefaultTextStyle,
+		const TSharedRef<FString>& InOutModelText, 
+		FTextLayout& TargetTextLayout,
+		TArray<TSharedRef<IRun>>& Runs);
 
 	/** The parser used to resolve any markup used in the provided string. */
 	TSharedPtr< IRichTextMarkupParser > Parser;

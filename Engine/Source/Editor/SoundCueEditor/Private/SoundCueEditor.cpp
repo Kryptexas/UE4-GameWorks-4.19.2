@@ -19,6 +19,7 @@
 #include "SDockTab.h"
 #include "GenericCommands.h"
 #include "Sound/SoundCue.h"
+#include "Sound/SoundNodeDialoguePlayer.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueEditor"
 
@@ -392,7 +393,12 @@ void FSoundCueEditor::SyncInBrowser()
 			{
 				ObjectsToSync.AddUnique(SelectedWave->GetSoundWave());
 			}
-			//ObjectsToSync.AddUnique(SelectedNode->SoundNode);
+
+			USoundNodeDialoguePlayer* SelectedDialogue = Cast<USoundNodeDialoguePlayer>(SelectedNode->SoundNode);
+			if (SelectedDialogue && SelectedDialogue->GetDialogueWave())
+			{
+				ObjectsToSync.AddUnique(SelectedDialogue->GetDialogueWave());
+			}
 		}
 	}
 
@@ -415,6 +421,12 @@ bool FSoundCueEditor::CanSyncInBrowser() const
 			USoundNodeWavePlayer* WavePlayer = Cast<USoundNodeWavePlayer>(SelectedNode->SoundNode);
 
 			if (WavePlayer && WavePlayer->GetSoundWave())
+			{
+				return true;
+			}
+
+			USoundNodeDialoguePlayer* SelectedDialogue = Cast<USoundNodeDialoguePlayer>(SelectedNode->SoundNode);
+			if (SelectedDialogue && SelectedDialogue->GetDialogueWave())
 			{
 				return true;
 			}

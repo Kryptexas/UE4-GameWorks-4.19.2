@@ -223,7 +223,7 @@ void SCheckBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 bool SCheckBox::IsInteractable() const
 {
-	return IsEnabled() && SupportsKeyboardFocus();
+	return IsEnabled();
 }
 
 /**

@@ -285,6 +285,11 @@ int32 UKismetStringLibrary::FindSubstring(const FString& SearchIn, const FString
 	return SearchIn.Find(Substring, Case, Dir, StartPosition);
 }
 
+bool UKismetStringLibrary::Contains(const FString& SearchIn, const FString& Substring, bool bUseCase, bool bSearchFromEnd)
+{
+	return FindSubstring(SearchIn, Substring, bUseCase, bSearchFromEnd) != -1;
+}
+
 int32 UKismetStringLibrary::GetCharacterAsNumber(const FString& SourceString, int32 Index)
 {
 	if ((Index >= 0) && (Index < SourceString.Len()))

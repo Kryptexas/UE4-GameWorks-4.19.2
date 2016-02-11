@@ -828,19 +828,6 @@ public partial class Project : CommandUtils
 	}
 
 
-    private static string GetReleasePakFilePath(DeploymentContext SC, ProjectParams Params, string PakName)
-    {
-		if (Params.IsGeneratingPatch)
-		{
-			return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
-		}
-		else
-		{
-			return CombinePaths(Params.GetCreateReleaseVersionPath(SC), PakName);
-		}        
-    }
-
-
 	/// <summary>
 	/// Creates a pak file using response file.
 	/// </summary>
@@ -919,7 +906,7 @@ public partial class Project : CommandUtils
         {
             // don't include the post fix in this filename because we are looking for the source pak path
             string PakFilename = PakName + "-" + SC.FinalCookPlatform + ".pak";
-            PatchSourceContentPath = GetReleasePakFilePath(SC, Params, PakFilename);
+            PatchSourceContentPath = SC.StageTargetPlatform.GetReleasePakFilePath(SC, Params, PakFilename);
         }
 
 		if (!bCopiedExistingPak)
@@ -943,7 +930,7 @@ public partial class Project : CommandUtils
         {
             // copy the created pak to the release version directory we might need this later if we want to generate patches
             //string ReleaseVersionPath = CombinePaths( SC.ProjectRoot, "Releases", Params.CreateReleaseVersion, SC.StageTargetPlatform.GetCookPlatform(Params.DedicatedServer, false, Params.CookFlavor), Path.GetFileName(OutputLocation) );
-            string ReleaseVersionPath = GetReleasePakFilePath(SC, Params, Path.GetFileName(OutputLocation));
+            string ReleaseVersionPath = SC.StageTargetPlatform.GetReleasePakFilePath(SC, Params, Path.GetFileName(OutputLocation));
 
 			InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(ReleaseVersionPath));
 			InternalUtils.SafeCopyFile(OutputLocation, ReleaseVersionPath);

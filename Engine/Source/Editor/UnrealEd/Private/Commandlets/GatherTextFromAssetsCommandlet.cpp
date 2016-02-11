@@ -138,54 +138,27 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 	{
 		for (const FTextSourceSiteContext& TextSourceSiteContext : GatherableTextData.SourceSiteContexts)
 		{
-			const FString KeyName = TextSourceSiteContext.KeyName;
-
-			// Find existing entry from manifest or manifest dependencies.
-			FContext Context;
-			Context.Key = TextSourceSiteContext.KeyName;
-			const FLocMetadataObject DefaultMetadataObject;
-			Context.KeyMetadataObj = !(FLocMetadataObject::IsMetadataExactMatch(&TextSourceSiteContext.KeyMetaData, &DefaultMetadataObject)) ? MakeShareable(new FLocMetadataObject(TextSourceSiteContext.KeyMetaData)) : nullptr;
-			Context.InfoMetadataObj = !(FLocMetadataObject::IsMetadataExactMatch(&TextSourceSiteContext.InfoMetaData, &DefaultMetadataObject)) ? MakeShareable(new FLocMetadataObject(TextSourceSiteContext.InfoMetaData)) : nullptr;
-			Context.bIsOptional = TextSourceSiteContext.IsOptional;
-			Context.SourceLocation = TextSourceSiteContext.SiteDescription;
-
-			TSharedPtr< FManifestEntry > ExistingEntry = ManifestInfo->GetManifest()->FindEntryByContext( GatherableTextData.NamespaceName, Context );
-
-			if (!ExistingEntry.IsValid())
+			if (!TextSourceSiteContext.IsEditorOnly || ShouldGatherFromEditorOnlyData)
 			{
-				FString FileInfo;
-				ExistingEntry = ManifestInfo->FindDependencyEntryByContext( GatherableTextData.NamespaceName, Context, FileInfo );
-			}
-
-			FConflictTracker::FEntry NewEntry;
-			NewEntry.PathToSourceString = TextSourceSiteContext.SiteDescription;
-			NewEntry.SourceString = MakeShareable(new FString(GatherableTextData.SourceData.SourceString));
-			NewEntry.Status = EAssetTextGatherStatus::None;
-
-			if (TextSourceSiteContext.KeyName.IsEmpty())
-			{
-				NewEntry.Status = EAssetTextGatherStatus::MissingKey;
-			}
-
-			// Entry already exists, check for conflict.
-			if (ExistingEntry.IsValid() && !ExistingEntry->Source.Text.Equals(*NewEntry.SourceString, ESearchCase::CaseSensitive))
-			{
-				NewEntry.Status = EAssetTextGatherStatus::IdentityConflict;
-			}
-
-			// Gather if it requires gathering and isn't in a bad state.
-			if ((NewEntry.Status & EAssetTextGatherStatus::BadBitMask) == false)
-			{
-				if (!TextSourceSiteContext.IsEditorOnly || ShouldGatherFromEditorOnlyData)
+				if (TextSourceSiteContext.KeyName.IsEmpty())
 				{
-					ManifestInfo->AddEntry(TextSourceSiteContext.SiteDescription, GatherableTextData.NamespaceName, *NewEntry.SourceString, Context);
+					UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Detected missing key on asset \"%s\"."), *TextSourceSiteContext.SiteDescription);
+					continue;
 				}
-			}
 
-			// Add to conflict tracker.
-			FConflictTracker::FKeyTable& KeyTable = ConflictTracker.Namespaces.FindOrAdd(GatherableTextData.NamespaceName);
-			FConflictTracker::FEntryArray& EntryArray = KeyTable.FindOrAdd(TextSourceSiteContext.KeyName);
-			EntryArray.Add(NewEntry);
+				static const FLocMetadataObject DefaultMetadataObject;
+
+				FContext Context;
+				Context.Key = TextSourceSiteContext.KeyName;
+				Context.KeyMetadataObj = !(FLocMetadataObject::IsMetadataExactMatch(&TextSourceSiteContext.KeyMetaData, &DefaultMetadataObject)) ? MakeShareable(new FLocMetadataObject(TextSourceSiteContext.KeyMetaData)) : nullptr;
+				Context.InfoMetadataObj = !(FLocMetadataObject::IsMetadataExactMatch(&TextSourceSiteContext.InfoMetaData, &DefaultMetadataObject)) ? MakeShareable(new FLocMetadataObject(TextSourceSiteContext.InfoMetaData)) : nullptr;
+				Context.bIsOptional = TextSourceSiteContext.IsOptional;
+				Context.SourceLocation = TextSourceSiteContext.SiteDescription;
+
+				FLocItem Source(GatherableTextData.SourceData.SourceString);
+
+				ManifestInfo->AddEntry(TextSourceSiteContext.SiteDescription, GatherableTextData.NamespaceName, Source, Context);
+			}
 		}
 	}
 }
@@ -438,7 +411,12 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("No files found or none passed the include/exclude criteria."));
 	}
 
-	const bool bSkipGatherCache = FParse::Param(FCommandLine::Get(), TEXT("SkipGatherCache"));
+	bool bSkipGatherCache = FParse::Param(FCommandLine::Get(), TEXT("SkipGatherCache"));
+	if (!bSkipGatherCache)
+	{
+		GetBoolFromConfig(*SectionName, TEXT("SkipGatherCache"), bSkipGatherCache, GatherTextConfigPath);
+	}
+	UE_LOG(LogGatherTextFromAssetsCommandlet, Log, TEXT("SkipGatherCache: %s"), bSkipGatherCache ? TEXT("true") : TEXT("false"));
 
 	TArray< FString > PackageFileNamesToLoad;
 	for (FString& PackageFile : PackageFileNamesToProcess)
@@ -450,7 +428,17 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			FPackageFileSummary PackageFileSummary;
 			(*FileReader) << PackageFileSummary;
 
-			bool MustLoadForGather = bSkipGatherCache;
+			bool MustLoadForGather = false;
+
+			// Have we been asked to skip the cache of text that exists in the header of newer packages?
+			if (bSkipGatherCache && PackageFileSummary.GetFileVersionUE4() >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+			{
+				// Fallback on the old package flag check.
+				if (PackageFileSummary.PackageFlags & PKG_RequiresLocalizationGather)
+				{
+					MustLoadForGather = true;
+				}
+			}
 
 			const FCustomVersion* const EditorVersion = PackageFileSummary.GetCustomVersionContainer().GetVersion(FEditorObjectVersion::GUID);
 
@@ -488,22 +476,19 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 				PackageFileNamesToLoad.Add(PackageFile);
 			}
 			// Process immediately packages that don't require loading to process.
-			else
+			else if (PackageFileSummary.GatherableTextDataOffset > 0)
 			{
+				FileReader->Seek(PackageFileSummary.GatherableTextDataOffset);
+
 				TArray<FGatherableTextData> GatherableTextDataArray;
+				GatherableTextDataArray.SetNum(PackageFileSummary.GatherableTextDataCount);
 
-				if (PackageFileSummary.GatherableTextDataOffset > 0)
+				for (int32 GatherableTextDataIndex = 0; GatherableTextDataIndex < PackageFileSummary.GatherableTextDataCount; ++GatherableTextDataIndex)
 				{
-					FileReader->Seek(PackageFileSummary.GatherableTextDataOffset);
-
-					for(int32 i = 0; i < PackageFileSummary.GatherableTextDataCount; ++i)
-					{
-						FGatherableTextData* GatherableTextData = new(GatherableTextDataArray) FGatherableTextData;
-						(*FileReader) << *GatherableTextData;
-					}
-
-					ProcessGatherableTextDataArray(PackageFile, GatherableTextDataArray);
+					(*FileReader) << GatherableTextDataArray[GatherableTextDataIndex];
 				}
+
+				ProcessGatherableTextDataArray(PackageFile, GatherableTextDataArray);
 			}
 		}
 	}
@@ -610,45 +595,6 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		CollectGarbage(RF_NoFlags);
 		LoadedPackages.Empty(PackagesPerBatchCount);	
 		LoadedPackageFileNames.Empty(PackagesPerBatchCount);
-	}
-
-	for(auto i = ConflictTracker.Namespaces.CreateConstIterator(); i; ++i)
-	{
-		const FString& NamespaceName = i.Key();
-		const FConflictTracker::FKeyTable& KeyTable = i.Value();
-		for(auto j = KeyTable.CreateConstIterator(); j; ++j)
-		{
-			const FString& KeyName = j.Key();
-			const FConflictTracker::FEntryArray& EntryArray = j.Value();
-
-			for(int k = 0; k < EntryArray.Num(); ++k)
-			{
-				const FConflictTracker::FEntry& Entry = EntryArray[k];
-				switch(Entry.Status)
-				{
-				case EAssetTextGatherStatus::MissingKey:
-					{
-						UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Detected missing key on asset \"%s\"."), *Entry.PathToSourceString);
-					}
-					break;
-				case EAssetTextGatherStatus::MissingKey_Resolved:
-					{
-						UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Fixed missing key on asset \"%s\"."), *Entry.PathToSourceString);
-					}
-					break;
-				case EAssetTextGatherStatus::IdentityConflict:
-					{
-						UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Detected duplicate identity with differing source on asset \"%s\"."), *Entry.PathToSourceString);
-					}
-					break;
-				case EAssetTextGatherStatus::IdentityConflict_Resolved:
-					{
-						UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("Fixed duplicate identity with differing source on asset \"%s\"."), *Entry.PathToSourceString);
-					}
-					break;
-				}
-			}
-		}
 	}
 
 	return 0;

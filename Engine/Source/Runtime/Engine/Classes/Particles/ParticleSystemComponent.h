@@ -74,7 +74,8 @@ enum EParticleEventType
 // Called when the particle system is done
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnSystemFinished, class UParticleSystemComponent*, PSystem );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSystemPreActivate, class UParticleSystemComponent*, PSC);
+//Called just before the activation of a component changes.
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSystemPreActivationChange, class UParticleSystemComponent*, bool);
 
 /** Struct used for a particular named instance parameter for this ParticleSystemComponent. */
 USTRUCT(BlueprintType)
@@ -375,14 +376,11 @@ public:
 	UPROPERTY()
 	EParticleSignificanceLevel RequiredSignificance;
 
-	/** True if this component has emitters that weren't created or inited due to significance. If set we need to re-init when significance increases. */
-	bool bMissingEmittersDueToSignificance;
-
-	/** The significance level we ran InitParticles() with. If we change to require less significance than this we need to re-run InitParticles() to be sure we have created all emitters. */
-	EParticleSignificanceLevel InitRequiredSignificanceLevel;
-	
 	/** Time in seconds since we were last considered significant. */
 	float LastSignificantTime;
+
+	/** If this component is considered significant or not. */
+	uint32 bIsSignificant : 1;
 	
 private:
 	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
@@ -440,6 +438,8 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	float SecondsBeforeInactive;
+	/** Allow the above or not. This feature can interfere with some other systems. */
+	bool bAllowSecondsBeforeInactive;
 
 private:
 	/** Tracks the time since the last forced UpdateTransform. */
@@ -543,9 +543,6 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnSystemFinished OnSystemFinished;
 
-	UPROPERTY(BlueprintAssignable)
-	FOnSystemPreActivate OnSystemPreActivate;
-
 public:
 	/**
 	 * Component we automatically attach to when activated, if bAutoManageAttachment is true.
@@ -609,7 +606,14 @@ private:
 
 public:
 
-	void SetSignificance(float OldSignificance, float NewSignificance);
+	/** Called from game code when the significance required for a component changes. */
+	void SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance);
+	/** Whether this component should have it's significance managed by game code. */
+	bool ShouldManageSignificance()const;
+	/** When the overall significance for the component is changed. */
+	void OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters);
+	
+	void Complete();
 
 	FORCEINLINE const FTransform& GetAsyncComponentToWorld()
 	{
@@ -903,6 +907,9 @@ public:
 	/** Command fence used to shut down properly */
 	class FRenderCommandFence* ReleaseResourcesFence;
 
+	/** Static delegate called for all systems on an activation change. */
+	static FOnSystemPreActivationChange OnSystemPreActivationChange;
+
 private:
 	/** Task ref for parallel portion */
 	FGraphEventRef AsyncWork;
@@ -914,6 +921,8 @@ private:
 	bool bNeedsFinalize;
 	/** If true, it means the Async work is in process and not yet completed */
 	bool bAsyncWorkOutstanding;
+	/** Number of significant emitters. When this is 0, the system can either be deactivated or stopped ticking. */
+	uint32 NumSignificantEmitters;
 	/** Time in ms since a tick was last performed; used with MinTimeBetweenTicks (on UParticleSystem) to control tick rate */
 	uint32 TimeSinceLastTick;
 
@@ -1082,7 +1091,7 @@ public:
 	}
 
 	// If particles have not already been initialised (ie. EmitterInstances created) do it now.
-	virtual void InitParticles(bool bReInitExistingEmitters=true);
+	virtual void InitParticles();
 
 
 	// @todo document

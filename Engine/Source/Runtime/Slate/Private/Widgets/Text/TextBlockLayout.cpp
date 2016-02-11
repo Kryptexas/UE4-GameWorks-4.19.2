@@ -158,6 +158,11 @@ void FTextBlockLayout::SetTextFlowDirection(const TOptional<ETextFlowDirection>&
 	TextLayout->SetTextFlowDirection((InTextFlowDirection.IsSet()) ? InTextFlowDirection.GetValue() : GetDefaultTextFlowDirection());
 }
 
+void FTextBlockLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
+{
+	TextLayout->SetDebugSourceInfo(InDebugSourceInfo);
+}
+
 FChildren* FTextBlockLayout::GetChildren()
 {
 	return TextLayout->GetChildren();

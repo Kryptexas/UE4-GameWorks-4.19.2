@@ -85,7 +85,6 @@ public class Engine : ModuleRules
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "CrashTracker" });
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
-                "CookingStats",
 			}
 			);
 		}

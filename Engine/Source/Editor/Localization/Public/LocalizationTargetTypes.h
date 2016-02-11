@@ -109,6 +109,7 @@ struct FGatherTextFromPackagesConfiguration
 		: IsEnabled(true)
 		, FileExtensions(GetDefaultPackageFileExtensions())
 		, ShouldGatherFromEditorOnlyData(false)
+		, SkipGatherCache(false)
 	{
 	}
 
@@ -129,8 +130,12 @@ struct FGatherTextFromPackagesConfiguration
 	TArray<FGatherTextFileExtension> FileExtensions;
 
 	/* If enabled, data that is specified as editor-only may be processed for gathering. */
-	UPROPERTY(config, EditAnywhere, Category = "Filter")
+	UPROPERTY(config, EditAnywhere, Category = "Gather")
 	bool ShouldGatherFromEditorOnlyData;
+
+	/* Should we ignore the cached text in the package header and perform a full package load instead? */
+	UPROPERTY(config, EditAnywhere, Category = "Gather", AdvancedDisplay)
+	bool SkipGatherCache;
 
 	LOCALIZATION_API bool Validate(const FString& RootDirectory, FText& OutError) const;
 };

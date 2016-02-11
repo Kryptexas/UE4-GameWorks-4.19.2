@@ -152,12 +152,23 @@ float FScalableFloat::GetValueAtLevel(float Level) const
 {
 	if (Curve.CurveTable != nullptr)
 	{
-		if (FinalCurve == nullptr)
+		// We want to cache the FinalCurve when possible. However there are issue with this in CookOnTheFly scenerios where the backing UCurveTable
+		// will be destroyed and reallocated at the same memory adress via StaticAllocateObject. This will keep the UCurveTable* the same, but will shift
+		// the internal UCurveTable::RowMap memory, making our FinalCurve* into it invalid.
+		//
+		// Therefor: only do the caching in non editor builds. In editor builds we will also look up the FinalCurve* from our current UCurveTable*.
+		// 
+		// If this problems does happen in a mono build, we should consider caching the entire curve in the FScalableFloat, or have look into refactoring
+		// some of UCurveTable such that the actual curve data is stored in a global, more stable location.
+
+
+#if !WITH_EDITOR						// If not an editor build
+		if (FinalCurve == nullptr)		//		Only if we don't have a cached FRichCurve*, look it up
+#endif
+		
 		{
 			static const FString ContextString = TEXT("FScalableFloat::GetValueAtLevel");
 			FinalCurve = Curve.GetCurve(ContextString);
-
-			RegisterOnCurveTablePostReimport();
 		}
 
 		if (FinalCurve != nullptr)

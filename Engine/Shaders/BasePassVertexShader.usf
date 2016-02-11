@@ -109,7 +109,8 @@ void Main(
 
 	//@todo - get from VF
 	float3 LightingPositionOffset = 0;
-	ComputeVolumeUVs(WorldPosition.xyz - ResolvedView.PreViewTranslation.xyz, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
+	float3 WorldPositionForVertexLighting = VertexFactoryGetPositionForVertexLighting(Input, VFIntermediates, WorldPosition.xyz);
+	ComputeVolumeUVs(WorldPositionForVertexLighting - ResolvedView.PreViewTranslation.xyz, LightingPositionOffset, InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 
 	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_DIRECTIONAL
 	

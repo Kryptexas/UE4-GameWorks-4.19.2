@@ -51,8 +51,7 @@ public class Core : ModuleRules
 			new string[] {
 				"TargetPlatform",
 				"DerivedDataCache",
-                "CookingStats",
-				"InputDevice",
+                "InputDevice",
                 "Analytics"
 			}
 			);

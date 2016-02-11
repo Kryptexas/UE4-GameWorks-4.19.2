@@ -21,6 +21,9 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 	/** Whether backtrace was already captured */
 	bool bCapturedBacktrace;
 
+	/** Whether we're handling ensure() (prefer speed in this case). */
+	bool bHandlingEnsure;
+
 	/** Symbols received via backtrace_symbols(), if any (note that we will need to clean it up) */
 	char ** BacktraceSymbols;
 
@@ -35,6 +38,7 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 		,	Info(nullptr)
 		,	Context(nullptr)
 		,	bCapturedBacktrace(false)
+		,	bHandlingEnsure(false)
 		,	BacktraceSymbols(nullptr)
 	{
 		SignalDescription[ 0 ] = 0;

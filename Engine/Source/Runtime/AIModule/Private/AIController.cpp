@@ -38,6 +38,7 @@ DEFINE_LOG_CATEGORY(LogAINavigation);
 AAIController::AAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bSetControlRotationFromPawnOrientation = true;
 	PathFollowingComponent = CreateDefaultSubobject<UPathFollowingComponent>(TEXT("PathFollowingComponent"));
 	PathFollowingComponent->OnMoveFinished.AddUObject(this, &AAIController::OnMoveCompleted);
 
@@ -414,28 +415,36 @@ DEFINE_LOG_CATEGORY_STATIC(LogTestAI, All, All);
 
 void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 {
-	// Look toward focus
-	FVector FocalPoint = GetFocalPoint();
-	APawn* const Pawn = GetPawn();
-
-	if (Pawn)
+	APawn* const MyPawn = GetPawn();
+	if (MyPawn)
 	{
-		FVector Direction = FAISystem::IsValidLocation(FocalPoint) ? (FocalPoint - Pawn->GetPawnViewLocation()) : Pawn->GetActorForwardVector();
-		FRotator NewControlRotation = Direction.Rotation();
+		const FRotator InitialControlRotation = GetControlRotation();		
+		FRotator NewControlRotation = InitialControlRotation;
+
+		// Look toward focus
+		const FVector FocalPoint = GetFocalPoint();
+		if (FAISystem::IsValidLocation(FocalPoint))
+		{
+			NewControlRotation = (FocalPoint - MyPawn->GetPawnViewLocation()).Rotation();
+		}
+		else if (bSetControlRotationFromPawnOrientation)
+		{
+			NewControlRotation = MyPawn->GetActorRotation();
+		}
 
 		// Don't pitch view unless looking at another pawn
-		if (Cast<APawn>(GetFocusActor()) == nullptr)
+		if (NewControlRotation.Pitch != 0 && Cast<APawn>(GetFocusActor()) == nullptr)
 		{
 			NewControlRotation.Pitch = 0.f;
 		}
 
-		if (GetControlRotation().Equals(NewControlRotation, 1e-3f) == false)
+		if (InitialControlRotation.Equals(NewControlRotation, 1e-3f) == false)
 		{
 			SetControlRotation(NewControlRotation);
 
 			if (bUpdatePawn)
 			{
-				Pawn->FaceRotation(NewControlRotation, DeltaTime);
+				MyPawn->FaceRotation(NewControlRotation, DeltaTime);
 			}
 		}
 	}

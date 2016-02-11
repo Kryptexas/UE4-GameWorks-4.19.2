@@ -44,7 +44,7 @@ FString FDialogueContext::GetLocalizationKey() const
 	return Key;
 }
 
-FDialogueWaveParameter::FDialogueWaveParameter() : DialogueWave(NULL)
+FDialogueWaveParameter::FDialogueWaveParameter()
 {
 
 }

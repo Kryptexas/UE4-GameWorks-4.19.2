@@ -85,6 +85,7 @@
 #include "Engine/CoreSettings.h"
 #include "PerfCountersHelpers.h"
 #include "NetworkReplayStreaming.h"
+#include "InGamePerformanceTracker.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
@@ -182,6 +183,8 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 #endif // WITH_EDITOR
 
 	FWorldDelegates::OnPostWorldCreation.Broadcast(this);
+
+	PerfTrackers = new FWorldInGamePerformanceTrackers();
 }
 
 UWorld::~UWorld()
@@ -190,6 +193,11 @@ UWorld::~UWorld()
 	{
 		FPlatformProcess::Sleep(0.0f);
 	}	
+
+	if (PerfTrackers)
+	{
+		delete PerfTrackers;
+	}
 }
 
 void UWorld::Serialize( FArchive& Ar )

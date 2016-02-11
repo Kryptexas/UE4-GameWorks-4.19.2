@@ -432,6 +432,9 @@ public:
 	/** draw overlays for actors that were rendered this tick and have added themselves to the PostRenderedActors array	*/
 	virtual void DrawActorOverlays(FVector Viewpoint, FRotator ViewRotation);
 
+	/** Draw the safe zone debugging overlay when enabled */
+	virtual void DrawSafeZoneOverlay();
+
 	/** Called in PostInitializeComponents or postprocessing chain has changed (happens because of the worldproperties can define it's own chain and this one is set late). */
 	virtual void NotifyBindPostProcessEffects();
 

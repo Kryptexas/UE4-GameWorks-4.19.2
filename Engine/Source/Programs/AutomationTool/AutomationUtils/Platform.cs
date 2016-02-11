@@ -324,7 +324,24 @@ namespace AutomationTool
             return new List<string>();
         }
 
-
+        /// <summary>
+        /// Get a release pak file path, if we are currently building a patch then get the previous release pak file path, if we are creating a new release this will be the output path
+        /// </summary>
+        /// <param name="SC"></param>
+        /// <param name="Params"></param>
+        /// <param name="PakName"></param>
+        /// <returns></returns>
+        public virtual string GetReleasePakFilePath(DeploymentContext SC, ProjectParams Params, string PakName)
+        {
+            if (Params.IsGeneratingPatch)
+            {
+                return CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
+            }
+            else
+            {
+                return CombinePaths(Params.GetCreateReleaseVersionPath(SC), PakName);
+            }        
+        }
 
         /// <summary>
         /// Gets editor cook platform name for this platform. Cooking the editor is not useful, but this is used to fill the derived data cache

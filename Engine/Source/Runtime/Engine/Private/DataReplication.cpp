@@ -831,6 +831,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FRepl
 	ConditionMap[COND_InitialOrOwner] = bIsInitial || bIsOwner;
 	ConditionMap[COND_Custom] = true;
 	ConditionMap[COND_ReplayOrOwner] = bIsReplay || bIsOwner;
+	ConditionMap[COND_ReplayOnly] = bIsReplay;
 
 	// Replicate those properties.
 	for ( int32 i = 0; i < LifetimeCustomDeltaProperties.Num(); i++ )

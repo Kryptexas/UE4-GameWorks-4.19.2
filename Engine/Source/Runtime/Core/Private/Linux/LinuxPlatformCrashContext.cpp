@@ -306,6 +306,61 @@ void FLinuxCrashContext::CaptureStackTrace()
 	}
 }
 
+namespace LinuxCrashReporterTracker
+{
+	FProcHandle CurrentlyRunningCrashReporter;
+	FDelegateHandle CurrentTicker;
+
+	bool Tick(float DeltaTime)
+	{
+		if (!FPlatformProcess::IsProcRunning(CurrentlyRunningCrashReporter))
+		{
+			FPlatformProcess::CloseProc(CurrentlyRunningCrashReporter);
+			CurrentlyRunningCrashReporter = FProcHandle();
+
+			FTicker::GetCoreTicker().RemoveTicker(CurrentTicker);
+			CurrentTicker.Reset();
+
+			UE_LOG(LogLinux, Log, TEXT("Done sending crash report for ensure()."));
+			return false;
+		}
+
+		// tick again
+		return true;
+	}
+
+	/**
+	 * Waits for the proc with timeout (busy loop, workaround for platform abstraction layer not exposing this)
+	 *
+	 * @param Proc proc handle to wait for
+	 * @param TimeoutInSec timeout in seconds
+	 * @param SleepIntervalInSec sleep interval (the smaller the more CPU we will eat, but the faster we will detect the program exiting)
+	 *
+	 * @return true if exited cleanly, false if timeout has expired
+	 */
+	bool WaitForProcWithTimeout(FProcHandle Proc, const double TimeoutInSec, const double SleepIntervalInSec)
+	{
+		double StartSeconds = FPlatformTime::Seconds();
+		for (;;)
+		{
+			if (!FPlatformProcess::IsProcRunning(Proc))
+			{
+				break;
+			}
+
+			if (FPlatformTime::Seconds() - StartSeconds > TimeoutInSec)
+			{
+				return false;
+			}
+
+			FPlatformProcess::Sleep(SleepIntervalInSec);
+		};
+
+		return true;
+	}
+}
+
+
 void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCrash) const
 {
 	// do not report crashes for tools (particularly for crash reporter itself)
@@ -361,26 +416,39 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 
 		CrashReportClientArguments += CrashInfoAbsolute + TEXT("/");
 
-		FProcHandle RunningProc = FPlatformProcess::CreateProc(RelativePathToCrashReporter, *CrashReportClientArguments, true, false, false, NULL, 0, NULL, NULL);
-		if (FPlatformProcess::IsProcRunning(RunningProc))
+		if (bReportingNonCrash)
 		{
-			// do not wait indefinitely
-			double kTimeOut = 3 * 60.0;
-			double StartSeconds = FPlatformTime::Seconds();
-			for(;;)
+			// If we're reporting non-crash, try to avoid spinning here and instead do that in the tick.
+			// However, if there was already a crash reporter running (i.e. we hit ensure() too quickly), take a hitch here
+			if (FPlatformProcess::IsProcRunning(LinuxCrashReporterTracker::CurrentlyRunningCrashReporter))
 			{
-				if (!FPlatformProcess::IsProcRunning(RunningProc))
+				// do not wait indefinitely, allow 45 second hitch (anticipating callstack parsing)
+				const double kEnsureTimeOut = 45.0;
+				const double kEnsureSleepInterval = 0.1;
+				if (!LinuxCrashReporterTracker::WaitForProcWithTimeout(LinuxCrashReporterTracker::CurrentlyRunningCrashReporter, kEnsureTimeOut, kEnsureSleepInterval))
 				{
-					break;
+					FPlatformProcess::TerminateProc(LinuxCrashReporterTracker::CurrentlyRunningCrashReporter);
 				}
 
-				if (FPlatformTime::Seconds() - StartSeconds > kTimeOut)
-				{
-					break;
-				}
+				LinuxCrashReporterTracker::Tick(0.001f);	// tick one more time to make it clean up after itself
+			}
 
-				FPlatformProcess::Sleep(1.0f);
-			};
+			LinuxCrashReporterTracker::CurrentlyRunningCrashReporter = FPlatformProcess::CreateProc(RelativePathToCrashReporter, *CrashReportClientArguments, true, false, false, NULL, 0, NULL, NULL);
+			LinuxCrashReporterTracker::CurrentTicker = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&LinuxCrashReporterTracker::Tick), 1.f);
+		}
+		else
+		{
+			// spin here until CrashReporter exits
+			FProcHandle RunningProc = FPlatformProcess::CreateProc(RelativePathToCrashReporter, *CrashReportClientArguments, true, false, false, NULL, 0, NULL, NULL);
+			// do not wait indefinitely - can be more generous about the hitch than in ensure() case
+			const double kCrashTimeOut = 3 * 60.0;
+			const double kCrashSleepInterval = 1.0;
+			if (!LinuxCrashReporterTracker::WaitForProcWithTimeout(RunningProc, kCrashTimeOut, kCrashSleepInterval))
+			{
+				FPlatformProcess::TerminateProc(RunningProc);
+			}
+
+			FPlatformProcess::CloseProc(RunningProc);
 		}
 	}
 

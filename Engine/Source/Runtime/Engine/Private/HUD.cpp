@@ -20,6 +20,21 @@ DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 FOnShowDebugInfo AHUD::OnShowDebugInfo;
 
+// How opaque should the safe zone visualization be?
+TAutoConsoleVariable<int32> GSafeZoneVisualizationModeCVar(
+	TEXT("r.DebugSafeZone.Mode"),
+	0,
+	TEXT("The safe zone visualization mode (0..2)\n")
+	TEXT(" 0: Disabled (default)\n")
+	TEXT(" 1: Show Title Safe Zone\n")
+	TEXT(" 2: Show Action Safe Zone"));
+
+// How opaque should the safe zone visualization be?
+TAutoConsoleVariable<float> GSafeZoneVisualizationAlphaCVar(
+	TEXT("r.DebugSafeZone.OverlayAlpha"),
+	0.2f,
+	TEXT("The alpha value of the safe zone overlay (0..1)\n")
+	TEXT(" default: 0.2"));
 
 AHUD::AHUD(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -197,6 +212,8 @@ void AHUD::PostRender()
 		RenderHitBoxes( Canvas->Canvas );
 	}
 
+	DrawSafeZoneOverlay();
+
 	LastHUDRenderTime = GetWorld()->TimeSeconds;
 }
 
@@ -216,6 +233,52 @@ void AHUD::DrawActorOverlays(FVector Viewpoint, FRotator ViewRotation)
 		{
 			PostRenderedActors.RemoveAt(i,1);
 		}
+	}
+}
+
+void AHUD::DrawSafeZoneOverlay()
+{
+	const int32 DebugSafeZoneMode = GSafeZoneVisualizationModeCVar.GetValueOnGameThread();
+
+	if ((DebugSafeZoneMode > 0) && (DebugCanvas != nullptr))
+	{
+		FDisplayMetrics Metrics;
+		FSlateApplication::Get().GetDisplayMetrics(Metrics);
+
+		const FMargin SafeMargin = (DebugSafeZoneMode == 1) ?
+			FMargin(Metrics.TitleSafePaddingSize.X, Metrics.TitleSafePaddingSize.Y) :
+			FMargin(Metrics.ActionSafePaddingSize.X, Metrics.ActionSafePaddingSize.Y);
+
+		const float UnsafeZoneAlpha = GSafeZoneVisualizationAlphaCVar.GetValueOnGameThread();
+		const FLinearColor UnsafeZoneColor(1.0f, 0.5f, 0.5f, UnsafeZoneAlpha);
+
+		const float Width = DebugCanvas->SizeX;
+		const float Height = DebugCanvas->SizeY;
+
+		const float HeightOfSides = Height - SafeMargin.GetTotalSpaceAlong<Orient_Vertical>();
+
+		FCanvasTileItem TileItem(FVector2D::ZeroVector, GWhiteTexture, UnsafeZoneColor);
+		TileItem.BlendMode = SE_BLEND_Translucent;
+
+		// Top bar
+		TileItem.Position = FVector2D::ZeroVector;
+		TileItem.Size = FVector2D(Width, SafeMargin.Top);
+		DebugCanvas->DrawItem(TileItem);
+
+		// Bottom bar
+		TileItem.Position = FVector2D(0.0f, Height - SafeMargin.Bottom);
+		TileItem.Size = FVector2D(Width, SafeMargin.Bottom);
+		DebugCanvas->DrawItem(TileItem);
+
+		// Left bar
+		TileItem.Position = FVector2D(0.0f, SafeMargin.Top);
+		TileItem.Size = FVector2D(SafeMargin.Left, HeightOfSides);
+		DebugCanvas->DrawItem(TileItem);
+
+		// Right bar
+		TileItem.Position = FVector2D(Width - SafeMargin.Right, SafeMargin.Top);
+		TileItem.Size = FVector2D(SafeMargin.Right, HeightOfSides);
+		DebugCanvas->DrawItem(TileItem);
 	}
 }
 

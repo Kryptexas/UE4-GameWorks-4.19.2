@@ -92,45 +92,54 @@ void FParticleTrailsEmitterInstance_Base::Tick(float DeltaTime, bool bSuppressSp
 		// Handle EmitterTime setup, looping, etc.
 		float EmitterDelay = Tick_EmitterTimeSetup(DeltaTime, LODLevel);
 
-		// Update the source data (position, etc.)
-		UpdateSourceData(DeltaTime, bFirstTime);
+		if (bEnabled)
+		{
+			// Update the source data (position, etc.)
+			UpdateSourceData(DeltaTime, bFirstTime);
 
-		// Kill off any dead particles
-		KillParticles();
+			// Kill off any dead particles
+			KillParticles();
 
-		// Spawn Particles...
-		SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
+			// Spawn Particles...
+			SpawnFraction = Tick_SpawnParticles(DeltaTime, LODLevel, bSuppressSpawning, bFirstTime);
 
-		// Reset particle parameters.
-		ResetParticleParameters(DeltaTime);
+			// Reset particle parameters.
+			ResetParticleParameters(DeltaTime);
 
-		// Update existing particles (might respawn dying ones).
-		Tick_ModuleUpdate(DeltaTime, LODLevel);
+			// Update existing particles (might respawn dying ones).
+			Tick_ModuleUpdate(DeltaTime, LODLevel);
 
-		// Module post update 
-		Tick_ModulePostUpdate(DeltaTime, LODLevel);
+			// Module post update 
+			Tick_ModulePostUpdate(DeltaTime, LODLevel);
 
-		// Update the orbit data...
-	// 	UpdateOrbitData(DeltaTime);
+			// Update the orbit data...
+			// 	UpdateOrbitData(DeltaTime);
 
-		// Calculate bounding box and simulate velocity.
-		UpdateBoundingBox(DeltaTime);
+			// Calculate bounding box and simulate velocity.
+			UpdateBoundingBox(DeltaTime);
 
-		// Perform any final updates...
-		Tick_ModuleFinalUpdate(DeltaTime, LODLevel);
+			// Perform any final updates...
+			Tick_ModuleFinalUpdate(DeltaTime, LODLevel);
 
-		// Recalculate tangents, if enabled
-		Tick_RecalculateTangents(DeltaTime, LODLevel);
+			// Recalculate tangents, if enabled
+			Tick_RecalculateTangents(DeltaTime, LODLevel);
 
-		CurrentMaterial = LODLevel->RequiredModule->Material;
+			CurrentMaterial = LODLevel->RequiredModule->Material;
 
-		// Invalidate the contents of the vertex/index buffer.
-		IsRenderDataDirty = 1;
+			// Invalidate the contents of the vertex/index buffer.
+			IsRenderDataDirty = 1;
 
-		// 'Reset' the emitter time so that the delay functions correctly
-		EmitterTime += CurrentDelay;
-		RunningTime += DeltaTime;
-		LastTickTime = Component->GetWorld() ? Component->GetWorld()->GetTimeSeconds() : 0.0f;
+			// 'Reset' the emitter time so that the delay functions correctly
+			EmitterTime += CurrentDelay;
+			RunningTime += DeltaTime;
+			LastTickTime = Component->GetWorld() ? Component->GetWorld()->GetTimeSeconds() : 0.0f;
+		}
+		else
+		{
+			// 'Reset' the emitter time so that the delay functions correctly
+			EmitterTime += CurrentDelay;
+			FakeBursts();
+		}
 		
 		// Reset particles position offset
 		PositionOffsetThisTick = FVector::ZeroVector;
@@ -2588,7 +2597,7 @@ FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSe
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_GetDynamicData);
 
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetLODLevel(0);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -2643,7 +2652,7 @@ bool FParticleRibbonEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* 
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_UpdateDynamicData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -2681,7 +2690,7 @@ bool FParticleRibbonEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* 
  */
 FDynamicEmitterReplayDataBase* FParticleRibbonEmitterInstance::GetReplayData()
 {
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return NULL;
 	}
@@ -2756,7 +2765,7 @@ bool FParticleRibbonEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBas
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_FillReplayData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -3940,7 +3949,7 @@ FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool 
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_GetDynamicData);
 
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetLODLevel(0);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -4004,7 +4013,7 @@ bool FParticleAnimTrailEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBas
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_UpdateDynamicData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -4047,7 +4056,7 @@ bool FParticleAnimTrailEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBas
  */
 FDynamicEmitterReplayDataBase* FParticleAnimTrailEmitterInstance::GetReplayData()
 {
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return NULL;
 	}
@@ -4177,7 +4186,7 @@ bool FParticleAnimTrailEmitterInstance::FillReplayData( FDynamicEmitterReplayDat
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_FillReplayData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}

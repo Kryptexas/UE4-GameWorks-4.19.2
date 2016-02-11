@@ -28,6 +28,8 @@
 #include "ParallelFor.h"
 #include "Engine/CoreSettings.h"
 
+#include "InGamePerformanceTracker.h"
+
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
 #define LOG_DETAILED_DUMPSTATS 0
 
@@ -1056,6 +1058,13 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	FWorldDelegates::OnWorldTickStart.Broadcast(TickType, DeltaSeconds);
 
+	//Tick game and other thread trackers.
+	for (int32 Tracker = 0; Tracker < (int32)EInGamePerfTrackers::Num; ++Tracker)
+	{
+		PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::GameThread).Tick();
+		PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::OtherThread).Tick();
+	}
+
 #if LOG_DETAILED_PATHFINDING_STATS
 	GDetailedPathFindingStats.Reset();
 #endif
@@ -1456,6 +1465,18 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		GEngine->HMDDevice->OnEndGameFrame( GEngine->GetWorldContextFromWorldChecked( this ) );
 	}
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		TickInGamePerfTrackersRT,
+		UWorld*, WorldParam, this,
+		{
+		//Tick game and other thread trackers.
+		for (int32 Tracker = 0; Tracker < (int32)EInGamePerfTrackers::Num; ++Tracker)
+		{
+			WorldParam->PerfTrackers->GetInGamePerformanceTracker((EInGamePerfTrackers)Tracker, EInGamePerfTrackerThreads::RenderThread).Tick();
+		}
+	}
+	);
 }
 
 /**

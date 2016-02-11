@@ -2499,6 +2499,9 @@ public:
 	bool bReleased_GameThread;
 	bool bDestroyed_GameThread;
 
+	/** Allows disabling of simulation. */
+	bool bEnabled;
+
 	/** Default constructor. */
 	FParticleSimulationGPU()
 		: EmitterSimulationResources(NULL)
@@ -2510,6 +2513,7 @@ public:
 		, bDirty_GameThread(true)
 		, bReleased_GameThread(true)
 		, bDestroyed_GameThread(false)
+		, bEnabled(true)
 	{
 	}
 
@@ -3186,7 +3190,7 @@ public:
 
 		// Grab the current LOD level
 		UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
-		if (LODLevel->bEnabled == false)
+		if (LODLevel->bEnabled == false || !bEnabled)
 		{
 			return NULL;
 		}
@@ -3483,139 +3487,153 @@ public:
 		// Handle EmitterTime setup, looping, etc.
 		float EmitterDelay = Tick_EmitterTimeSetup( DeltaSeconds, LODLevel );
 
-		// If the emitter is warming up but any particle spawned now will die
-		// anyway, suppress spawning.
-		if (Component && Component->bWarmingUp &&
-			Component->WarmupTime - SecondsSinceCreation > EmitterInfo.MaxLifetime)
+		Simulation->bEnabled = bEnabled;
+		if (bEnabled)
 		{
-			bSuppressSpawning = true;
-		}
-
-		// Mark any tiles with all dead particles as free.
-		int32 ActiveTileCount = MarkTilesInactive();
-
-		// Update modules
-		Tick_ModuleUpdate(DeltaSeconds, LODLevel);
-
-		// Spawn particles.
-		bool bRefreshTiles = false;
-		const bool bPreventSpawning = bHaltSpawning || bSuppressSpawning;
-		const bool bValidEmitterTime = (EmitterTime >= 0.0f);
-		const bool bValidLoop = AllowedLoopCount == 0 || LoopCount < AllowedLoopCount;
-		if (!bPreventSpawning && bValidEmitterTime && bValidLoop)
-		{
-			SCOPE_CYCLE_COUNTER(STAT_GPUSpriteSpawnTime);
-
-			// Determine burst count.
-			FSpawnInfo BurstInfo;
-			int32 LeftoverBurst = 0;
+			// If the emitter is warming up but any particle spawned now will die
+			// anyway, suppress spawning.
+			if (Component && Component->bWarmingUp &&
+				Component->WarmupTime - SecondsSinceCreation > EmitterInfo.MaxLifetime)
 			{
-				float BurstDeltaTime = DeltaSeconds;
-				GetCurrentBurstRateOffset(BurstDeltaTime, BurstInfo.Count);
+				bSuppressSpawning = true;
+			}
 
-				BurstInfo.Count += ForceBurstSpawnedParticles.Num();
+			// Mark any tiles with all dead particles as free.
+			int32 ActiveTileCount = MarkTilesInactive();
 
-				if (BurstInfo.Count > FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame)
+			// Update modules
+			Tick_ModuleUpdate(DeltaSeconds, LODLevel);
+
+			// Spawn particles.
+			bool bRefreshTiles = false;
+			const bool bPreventSpawning = bHaltSpawning || bSuppressSpawning;
+			const bool bValidEmitterTime = (EmitterTime >= 0.0f);
+			const bool bValidLoop = AllowedLoopCount == 0 || LoopCount < AllowedLoopCount;
+			if (!bPreventSpawning && bValidEmitterTime && bValidLoop)
+			{
+				SCOPE_CYCLE_COUNTER(STAT_GPUSpriteSpawnTime);
+
+				// Determine burst count.
+				FSpawnInfo BurstInfo;
+				int32 LeftoverBurst = 0;
 				{
-					LeftoverBurst = BurstInfo.Count - FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame;
-					BurstInfo.Count = FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame;
+					float BurstDeltaTime = DeltaSeconds;
+					GetCurrentBurstRateOffset(BurstDeltaTime, BurstInfo.Count);
+
+					BurstInfo.Count += ForceBurstSpawnedParticles.Num();
+
+					if (BurstInfo.Count > FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame)
+					{
+						LeftoverBurst = BurstInfo.Count - FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame;
+						BurstInfo.Count = FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame;
+					}
+				}
+
+
+				// Determine spawn count based on rate.
+				FSpawnInfo SpawnInfo = GetNumParticlesToSpawn(DeltaSeconds);
+				SpawnInfo.Count += ForceSpawnedParticles.Num();
+
+
+				int32 FirstBurstParticleIndex = NewParticles.Num();
+
+				ReserveNewParticles(FirstBurstParticleIndex + BurstInfo.Count + SpawnInfo.Count);
+
+				BurstInfo.Count = AllocateTilesForParticles(NewParticles, BurstInfo.Count, ActiveTileCount);
+
+				int32 FirstSpawnParticleIndex = NewParticles.Num();
+				SpawnInfo.Count = AllocateTilesForParticles(NewParticles, SpawnInfo.Count, ActiveTileCount);
+				SpawnFraction += LeftoverBurst;
+
+				if (BurstInfo.Count > 0)
+				{
+					// Spawn burst particles.
+					BuildNewParticles(NewParticles.GetData() + FirstBurstParticleIndex, BurstInfo, ForceBurstSpawnedParticles);
+				}
+
+				if (SpawnInfo.Count > 0)
+				{
+					// Spawn normal particles.
+					BuildNewParticles(NewParticles.GetData() + FirstSpawnParticleIndex, SpawnInfo, ForceSpawnedParticles);
+				}
+
+				FreeNewParticleArray(ForceSpawnedParticles);
+				FreeNewParticleArray(ForceBurstSpawnedParticles);
+
+				int32 NewParticleCount = BurstInfo.Count + SpawnInfo.Count;
+				INC_DWORD_STAT_BY(STAT_GPUSpritesSpawned, NewParticleCount);
+	#if STATS
+				if (NewParticleCount > FXConsoleVariables::GPUSpawnWarningThreshold)
+				{
+					UE_LOG(LogParticles,Warning,TEXT("Spawning %d GPU particles in one frame[%d]: %s/%s"),
+						NewParticleCount,
+						GFrameNumber,
+						*SpriteTemplate->GetOuter()->GetName(),
+						*SpriteTemplate->EmitterName.ToString()
+						);
+
+				}
+	#endif
+
+				if (Component && Component->bWarmingUp)
+				{
+					SimulateWarmupParticles(
+						NewParticles.GetData() + (NewParticles.Num() - NewParticleCount),
+						NewParticleCount,
+						Component->WarmupTime - SecondsSinceCreation );
 				}
 			}
-
-
-			// Determine spawn count based on rate.
-			FSpawnInfo SpawnInfo = GetNumParticlesToSpawn(DeltaSeconds);
-			SpawnInfo.Count += ForceSpawnedParticles.Num();
-
-
-			int32 FirstBurstParticleIndex = NewParticles.Num();
-
-			ReserveNewParticles(FirstBurstParticleIndex + BurstInfo.Count + SpawnInfo.Count);
-
-			BurstInfo.Count = AllocateTilesForParticles(NewParticles, BurstInfo.Count, ActiveTileCount);
-
-			int32 FirstSpawnParticleIndex = NewParticles.Num();
-			SpawnInfo.Count = AllocateTilesForParticles(NewParticles, SpawnInfo.Count, ActiveTileCount);
-			SpawnFraction += LeftoverBurst;
-
-			if (BurstInfo.Count > 0)
+			else if (bFakeBurstsWhenSpawningSupressed)
 			{
-				// Spawn burst particles.
-				BuildNewParticles(NewParticles.GetData() + FirstBurstParticleIndex, BurstInfo, ForceBurstSpawnedParticles);
+				FakeBursts();
 			}
 
-			if (SpawnInfo.Count > 0)
+			// Free any tiles that we no longer need.
+			FreeInactiveTiles();
+
+			// Update current material.
+			if (EmitterInfo.RequiredModule->Material)
 			{
-				// Spawn normal particles.
-				BuildNewParticles(NewParticles.GetData() + FirstSpawnParticleIndex, SpawnInfo, ForceSpawnedParticles);
+				CurrentMaterial = EmitterInfo.RequiredModule->Material;
 			}
 
-			FreeNewParticleArray(ForceSpawnedParticles);
-			FreeNewParticleArray(ForceBurstSpawnedParticles);
+			// Update the local vector field.
+			TickLocalVectorField(DeltaSeconds);
 
-			int32 NewParticleCount = BurstInfo.Count + SpawnInfo.Count;
-			INC_DWORD_STAT_BY(STAT_GPUSpritesSpawned, NewParticleCount);
-#if STATS
-			if (NewParticleCount > FXConsoleVariables::GPUSpawnWarningThreshold)
+			// Look up the strength of the point attractor.
+			EmitterInfo.PointAttractorStrength.GetValue(EmitterTime, &PointAttractorStrength);
+
+			// Store the amount of time by which the GPU needs to update the simulation.
+			PendingDeltaSeconds = DeltaSeconds;
+
+			// Store the number of active particles.
+			ActiveParticles = ActiveTileCount * GParticlesPerTile;
+			INC_DWORD_STAT_BY(STAT_GPUSpriteParticles, ActiveParticles);
+
+			// 'Reset' the emitter time so that the delay functions correctly
+			EmitterTime += EmitterDelay;
+
+			// Update the bounding box.
+			UpdateBoundingBox(DeltaSeconds);
+
+			// Final update for modules.
+			Tick_ModuleFinalUpdate(DeltaSeconds, LODLevel);
+
+			// Queue an update to the GPU simulation if needed.
+			if (Simulation->bDirty_GameThread)
 			{
-				UE_LOG(LogParticles,Warning,TEXT("Spawning %d GPU particles in one frame[%d]: %s/%s"),
-					NewParticleCount,
-					GFrameNumber,
-					*SpriteTemplate->GetOuter()->GetName(),
-					*SpriteTemplate->EmitterName.ToString()
-					);
-
+				Simulation->InitResources(AllocatedTiles, &EmitterInfo.Resources->EmitterSimulationResources);
 			}
-#endif
 
-			if (Component && Component->bWarmingUp)
-			{
-				SimulateWarmupParticles(
-					NewParticles.GetData() + (NewParticles.Num() - NewParticleCount),
-					NewParticleCount,
-					Component->WarmupTime - SecondsSinceCreation );
-			}
+			CheckEmitterFinished();
 		}
-
-		// Free any tiles that we no longer need.
-		FreeInactiveTiles();
-
-		// Update current material.
-		if (EmitterInfo.RequiredModule->Material)
+		else
 		{
-			CurrentMaterial = EmitterInfo.RequiredModule->Material;
+			// 'Reset' the emitter time so that the delay functions correctly
+			EmitterTime += EmitterDelay;
+
+			FakeBursts();
 		}
-
-		// Update the local vector field.
-		TickLocalVectorField(DeltaSeconds);
-
-		// Look up the strength of the point attractor.
-		EmitterInfo.PointAttractorStrength.GetValue(EmitterTime, &PointAttractorStrength);
-
-		// Store the amount of time by which the GPU needs to update the simulation.
-		PendingDeltaSeconds = DeltaSeconds;
-
-		// Store the number of active particles.
-		ActiveParticles = ActiveTileCount * GParticlesPerTile;
-		INC_DWORD_STAT_BY(STAT_GPUSpriteParticles, ActiveParticles);
-
-		// 'Reset' the emitter time so that the delay functions correctly
-		EmitterTime += EmitterDelay;
-
-		// Update the bounding box.
-		UpdateBoundingBox(DeltaSeconds);
-
-		// Final update for modules.
-		Tick_ModuleFinalUpdate(DeltaSeconds, LODLevel);
-
-		// Queue an update to the GPU simulation if needed.
-		if (Simulation->bDirty_GameThread)
-		{
-			Simulation->InitResources(AllocatedTiles, &EmitterInfo.Resources->EmitterSimulationResources);
-		}
-
-
-		CheckEmitterFinished();
 
 		check(AllocatedTiles.Num() == TileTimeOfDeath.Num());
 	}
@@ -4558,7 +4576,8 @@ void FFXSystem::SimulateGPUParticles(
 
 		FParticleSimulationGPU* Simulation = *It;
 		if (Simulation->SimulationPhase == Phase
-			&& Simulation->TileVertexBuffer.AlignedTileCount > 0)
+			&& Simulation->TileVertexBuffer.AlignedTileCount > 0
+			&& Simulation->bEnabled)
 		{
 			FSimulationCommandGPU* SimulationCommand = new(SimulationCommands) FSimulationCommandGPU(
 				Simulation->TileVertexBuffer.GetShaderParam(),

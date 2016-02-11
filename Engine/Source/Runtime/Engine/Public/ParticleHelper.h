@@ -2587,6 +2587,7 @@ protected:
 #endif
 
 	uint32 bCastShadow : 1;
+	uint32 bManagingSignificance : 1;
 	
 	FMaterialRelevance MaterialRelevance;
 
@@ -2774,3 +2775,20 @@ enum class EParticleSignificanceLevel : uint8
 
 	Num UMETA(Hidden),
 };
+
+/** Determines what a particle system will do when all of it's emitters become insignificant. */
+UENUM()
+enum class EParticleSystemInsignificanceReaction: uint8
+{
+	/** Looping systems will DisableTick. Non-looping systems will Complete.*/
+	Auto,
+	/** The system will be considered complete and will auto destroy if desired etc.*/
+	Complete,
+	/** The system will simply stop ticking. Tick will be re-enabled when any emitters become significant again. This is useful for persistent fx such as environmental fx.  */
+	DisableTick,
+	/** As DisableTick but will also kill all particles. */
+	DisableTickAndKill UMETA(Hidden), //Hidden for now until I make it useful i.e. Killing particles saves memory.
+
+	Num UMETA(Hidden),
+};
+

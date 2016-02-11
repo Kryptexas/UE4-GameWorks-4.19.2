@@ -58,9 +58,12 @@ FIntPoint UGameUserSettings::GetDesktopResolution() const
 
 void UGameUserSettings::SetScreenResolution(FIntPoint Resolution)
 {
-	ResolutionSizeX = Resolution.X;
-	ResolutionSizeY = Resolution.Y;
-	UpdateMinResolutionScaling();
+	if (ResolutionSizeX != Resolution.X || ResolutionSizeY != Resolution.Y)
+	{
+		ResolutionSizeX = Resolution.X;
+		ResolutionSizeY = Resolution.Y;
+		UpdateResolutionQuality();
+	}
 }
 
 EWindowMode::Type UGameUserSettings::GetFullscreenMode() const
@@ -92,7 +95,7 @@ void UGameUserSettings::SetFullscreenMode( EWindowMode::Type InFullscreenMode )
 			break;
 	}
 
-	UpdateMinResolutionScaling();
+	UpdateResolutionQuality();
 }
 
 void UGameUserSettings::SetVSyncEnabled( bool bEnable )
@@ -167,6 +170,7 @@ void UGameUserSettings::SetToDefaults()
 	FullscreenMode = GetDefaultWindowMode();
 	FrameRateLimit = 0.0f;
 	MinResolutionScale = Scalability::MinResolutionScale;
+	DesiredScreenHeight = 720;
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
 	PreferredFullscreenMode = CVar->GetValueOnGameThread();
@@ -175,7 +179,7 @@ void UGameUserSettings::SetToDefaults()
 
 	if (!IsRunningDedicatedServer())
 	{
-		UpdateMinResolutionScaling();
+		UpdateResolutionQuality();
 	}
 }
 
@@ -189,12 +193,50 @@ void UGameUserSettings::UpdateVersion()
 	Version = UE_GAMEUSERSETTINGS_VERSION;
 }
 
-void UGameUserSettings::UpdateMinResolutionScaling()
+void UGameUserSettings::UpdateResolutionQuality()
 {
 	const int32 MinHeight = UKismetSystemLibrary::GetMinYResolutionFor3DView();
 	const int32 ScreenHeight = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution().Y : ResolutionSizeY;
 	MinResolutionScale = FMath::Max<int32>(Scalability::MinResolutionScale, ((float)MinHeight / (float)ScreenHeight) * 100);
+	if (DesiredScreenHeight > ScreenHeight && ScreenHeight > 0)
+	{
+		DesiredScreenHeight = ScreenHeight;
+	}
+	ScalabilityQuality.ResolutionQuality = FindResolutionQualityForScreenHeight(DesiredScreenHeight);
 	ScalabilityQuality.ResolutionQuality = FMath::Max(ScalabilityQuality.ResolutionQuality, MinResolutionScale);
+
+	OnGameUserSettingsUINeedsUpdate.Broadcast();
+}
+
+int32 UGameUserSettings::FindResolutionQualityForScreenHeight(int32 ScreenHeight)
+{
+	int32 ResolutionQuality = 100;
+
+	const FIntPoint ScreenSize = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution() : FIntPoint(ResolutionSizeX, ResolutionSizeY);
+	const float AspectRatio = (float)ScreenSize.X / (float)ScreenSize.Y;
+	const float Ratio16by9 = 16.0f / 9.0f;
+
+	// ScreenHeight values are based on 16:9 screens. If the screen aspect ratio is different, we need to adjust the target height
+	if (!FMath::IsNearlyEqual(AspectRatio, Ratio16by9))
+	{
+		if (AspectRatio < Ratio16by9)
+		{
+			// For smaller aspect ratios (16:10, 4:3) we allow more vertical space so that the screen width matches the width 16:9 mode would have
+			ScreenHeight = (ScreenHeight * Ratio16by9) / AspectRatio;
+		}
+		else
+		{
+			// For wider screens we try to choose a screen size that'd have similar total number of pixels as the target 16:9 mode
+			ScreenHeight = FMath::Sqrt((ScreenHeight * ScreenHeight * Ratio16by9) / AspectRatio);
+		}
+	}
+
+	if (ScreenHeight < ScreenSize.Y)
+	{
+		ResolutionQuality = ((float)ScreenHeight / (float)ScreenSize.Y) * 100;
+	}
+
+	return ResolutionQuality;
 }
 
 void UGameUserSettings::SetPreferredFullscreenMode(int32 Mode)
@@ -447,7 +489,7 @@ void UGameUserSettings::ResetToCurrentSettings()
 		// Reset the quality settings to the current levels
 		ScalabilityQuality = Scalability::GetQualityLevels();
 
-		UpdateMinResolutionScaling();
+		UpdateResolutionQuality();
 	}
 }
 
@@ -505,6 +547,8 @@ void UGameUserSettings::GetResolutionScaleInformation(float& CurrentScaleNormali
 void UGameUserSettings::SetResolutionScaleValue(int32 NewScaleValue)
 {
 	ScalabilityQuality.ResolutionQuality = FMath::Clamp(NewScaleValue, MinResolutionScale, Scalability::MaxResolutionScale);
+	const int32 ScreenHeight = FullscreenMode == EWindowMode::WindowedFullscreen ? GetDesktopResolution().Y : ResolutionSizeY;
+	DesiredScreenHeight = ScreenHeight * ScalabilityQuality.ResolutionQuality / 100;
 }
 
 void UGameUserSettings::SetResolutionScaleNormalized(float NewScaleNormalized)

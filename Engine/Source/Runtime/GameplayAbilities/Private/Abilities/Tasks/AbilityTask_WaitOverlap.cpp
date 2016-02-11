@@ -49,6 +49,8 @@ UAbilityTask_WaitOverlap* UAbilityTask_WaitOverlap::WaitForOverlap(UObject* Worl
 
 void UAbilityTask_WaitOverlap::Activate()
 {
+	SetWaitingOnAvatar();
+
 	UPrimitiveComponent* PrimComponent = GetComponent();
 	if (PrimComponent)
 	{

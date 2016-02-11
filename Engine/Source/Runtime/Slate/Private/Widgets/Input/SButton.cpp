@@ -359,7 +359,7 @@ void SButton::Release()
 
 bool SButton::IsInteractable() const
 {
-	return IsEnabled() && SupportsKeyboardFocus();
+	return IsEnabled();
 }
 
 bool SButton::IsPreciseTapOrClick(const FPointerEvent& MouseEvent) const

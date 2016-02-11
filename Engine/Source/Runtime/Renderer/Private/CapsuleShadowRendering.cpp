@@ -605,8 +605,21 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 	FRHICommandListImmediate& RHICmdList, 
 	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& CapsuleShadows) const
 {
+	bool bAllViewsHaveViewState = true;
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		const FViewInfo& View = Views[ViewIndex];
+
+		if (!View.ViewState)
+		{
+			bAllViewsHaveViewState = false;
+		}
+	}
+
 	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
-		&& CapsuleShadows.Num() > 0)
+		&& CapsuleShadows.Num() > 0
+		&& bAllViewsHaveViewState)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderCapsuleShadows);
 

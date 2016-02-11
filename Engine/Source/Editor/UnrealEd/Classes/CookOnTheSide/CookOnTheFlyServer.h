@@ -1347,13 +1347,6 @@ private:
 	 */
 	bool SaveCurrentIniSettings( const ITargetPlatform* TargetPlatform ) const;
 
-
-	/**
-	 * Save the accumulated cooker stats to the Saved\Stats folder
-	 * saves to different file name pending running multiprocess cooker / not
-	 */
-	void SaveCookerStats() const;
-
 	/**
 	 * IsCookFlagSet
 	 * 

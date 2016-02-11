@@ -108,6 +108,7 @@
 #include "Factories/SubUVAnimationFactory.h"
 #include "Particles/SubUVAnimation.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Sound/SoundNodeDialoguePlayer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -1822,7 +1823,18 @@ UDialogueWaveFactory::UDialogueWaveFactory(const FObjectInitializer& ObjectIniti
 
 UObject* UDialogueWaveFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)
 {
-	return NewObject<UObject>(InParent, Class, Name, Flags);
+	check(Class == SupportedClass);
+	UDialogueWave* DialogueWave = NewObject<UDialogueWave>(InParent, Name, Flags);
+
+	if (InitialSoundWave)
+	{
+		DialogueWave->SpokenText = InitialSoundWave->SpokenText;
+		DialogueWave->bMature = InitialSoundWave->bMature;
+	}
+
+	DialogueWave->UpdateContext(DialogueWave->ContextMappings[0], InitialSoundWave, InitialSpeakerVoice, InitialTargetVoices);
+
+	return DialogueWave;
 }
 
 /*-----------------------------------------------------------------------------
@@ -2342,6 +2354,21 @@ UObject* USoundCueFactoryNew::FactoryCreateNew( UClass* Class, UObject* InParent
 		WavePlayer->SetSoundWave(InitialSoundWave);
 		WavePlayer->GraphNode->NodePosX = -250;
 		WavePlayer->GraphNode->NodePosY = -35;
+	}
+	else if (InitialDialogueWave)
+	{
+		USoundNodeDialoguePlayer* DialoguePlayer = SoundCue->ConstructSoundNode<USoundNodeDialoguePlayer>();
+		SoundCue->FirstNode = DialoguePlayer;
+		SoundCue->LinkGraphNodesFromSoundNodes();
+		DialoguePlayer->SetDialogueWave(InitialDialogueWave);
+		DialoguePlayer->GraphNode->NodePosX = -250 - DialoguePlayer->GetGraphNode()->EstimateNodeWidth();
+		DialoguePlayer->GraphNode->NodePosY = -35;
+
+		if (InitialDialogueWave->ContextMappings.Num() == 1)
+		{
+			DialoguePlayer->DialogueWaveParameter.Context.Speaker = InitialDialogueWave->ContextMappings[0].Context.Speaker;
+			DialoguePlayer->DialogueWaveParameter.Context.Targets = InitialDialogueWave->ContextMappings[0].Context.Targets;
+		}
 	}
 
 	return SoundCue;

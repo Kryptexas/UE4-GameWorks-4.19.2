@@ -37,10 +37,8 @@ void UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut(UAnimMontage* Montage
 	}
 	else
 	{
-		OnComplete.Broadcast();
+		OnBlendOut.Broadcast();
 	}
-
-	EndTask();
 }
 
 void UAbilityTask_PlayMontageAndWait::OnMontageInterrupted()
@@ -50,6 +48,16 @@ void UAbilityTask_PlayMontageAndWait::OnMontageInterrupted()
 		// Let the BP handle the interrupt as well
 		OnInterrupted.Broadcast();
 	}
+}
+
+void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (!bInterrupted)
+	{
+		OnCompleted.Broadcast();
+	}
+
+	EndTask();
 }
 
 UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject,
@@ -91,7 +99,10 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 				InterruptedHandle = Ability->OnGameplayAbilityCancelled.AddUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageInterrupted);
 
 				BlendingOutDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut);
-				ActorInfo->AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate);
+				ActorInfo->AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate, MontageToPlay);
+
+				MontageEndedDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
+				ActorInfo->AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, MontageToPlay);
 
 				ACharacter* Character = Cast<ACharacter>(GetAvatarActor());
 				if (Character && (Character->Role == ROLE_Authority ||
@@ -110,12 +121,13 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 		ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s failed to play montage; Task Instance Name %s."), *Ability->GetName(), *InstanceName.ToString());
 		OnCancelled.Broadcast();
 	}
+
+	SetWaitingOnAvatar();
 }
 
 void UAbilityTask_PlayMontageAndWait::ExternalCancel()
 {
 	check(AbilitySystemComponent);
-
 
 	OnCancelled.Broadcast();
 	Super::ExternalCancel();
@@ -156,9 +168,11 @@ bool UAbilityTask_PlayMontageAndWait::StopPlayingMontage()
 			&& AbilitySystemComponent->GetCurrentMontage() == MontageToPlay)
 		{
 			// Unbind delegates so they don't get called as well
-			if (FOnMontageBlendingOutStarted* BoundDelegate = ActorInfo->AnimInstance->Montage_GetBlendingOutDelegate(MontageToPlay))
+			FAnimMontageInstance* MontageInstance = ActorInfo->AnimInstance->GetActiveInstanceForMontage(*MontageToPlay);
+			if (MontageInstance)
 			{
-				BoundDelegate->Unbind();
+				MontageInstance->OnMontageBlendingOutStarted.Unbind();
+				MontageInstance->OnMontageEnded.Unbind();
 			}
 
 			AbilitySystemComponent->CurrentMontageStop();

@@ -2668,7 +2668,11 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 	if (ensure(Idx < GetNumGameplayEffects()))
 	{
 		FActiveGameplayEffect& Effect = *GetActiveGameplayEffect(Idx);
-		ensure(!Effect.IsPendingRemove);
+		if (!ensure(!Effect.IsPendingRemove))
+		{
+			// This effect is already being removed. This probably means a bug at the callsite, but we can handle it gracefully here by earlying out and pretending the effect was removed.
+			return true;
+		}
 
 		ABILITY_LOG(Verbose, TEXT("InternalRemoveActiveGameplayEffect: Auth: %s Handle: %s Def: %s"), IsNetAuthority() ? TEXT("TRUE") : TEXT("FALSE"), *Effect.Handle.ToString(), Effect.Spec.Def ? *Effect.Spec.Def->GetName() : TEXT("NONE"));
 
@@ -3053,8 +3057,15 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 	for (int32 ActiveGEIdx = 0; ActiveGEIdx < GameplayEffects_Internal.Num(); ++ActiveGEIdx)
 	{
 		FActiveGameplayEffect& Effect = GameplayEffects_Internal[ActiveGEIdx];
-		if (Effect.Handle == Handle && Effect.IsPendingRemove == false)
+		if (Effect.Handle == Handle)
 		{
+			if (Effect.IsPendingRemove)
+			{
+				// break is this effect is pending remove. 
+				// (Note: don't combine this with the above if statement that is looking for the effect via handle, since we want to stop iteration if we find a matching handle but are pending remove).
+				break;
+			}
+
 			FTimerManager& TimerManager = Owner->GetWorld()->GetTimerManager();
 
 			// The duration may have changed since we registered this callback with the timer manager.
@@ -3104,6 +3115,14 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 					if (PeriodTimeRemaining <= KINDA_SMALL_NUMBER && !Effect.bIsInhibited)
 					{
 						ExecuteActiveEffectsFrom(Effect.Spec);
+
+						// The above call to ExecuteActiveEffectsFrom could cause this effect to be explicitly removed
+						// (for example it could kill the owner and cause the effect to be wiped via death).
+						// In that case, we need to early out instead of possibly continueing to the below calls to InternalRemoveActiveGameplayEffect
+						if ( Effect.IsPendingRemove )
+						{
+							break;
+						}
 					}
 
 					// Forcibly clear the periodic ticks because this effect is going to be removed

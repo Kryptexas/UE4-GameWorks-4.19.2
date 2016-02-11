@@ -125,8 +125,36 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 			break;
 		}
 	}
+	
+#if DO_CHECK
 	if (!SuccessfullyMeasuredSlice)
 	{
+		FString AnonymizedText;
+		AnonymizedText.Reserve(Line.Text->Len());
+		for (const TCHAR Char : *Line.Text)
+		{
+			if (Char == TCHAR('\\'))
+			{
+				AnonymizedText += TEXT("\\\\");
+			}
+			else if (FChar::IsWhitespace(Char) || FChar::IsPunct(Char))
+			{
+				AnonymizedText += Char;
+			}
+			else if (FChar::IsDigit(Char))
+			{
+				AnonymizedText += TEXT("0");
+			}
+			else if (FChar::IsLower(Char))
+			{
+				AnonymizedText += TEXT("a");
+			}
+			else
+			{
+				AnonymizedText += TEXT("A");
+			}
+		}
+
 		FString RunDebugData;
 		for (int32 RunIndex = 0; RunIndex < Line.Runs.Num(); ++RunIndex)
 		{
@@ -135,8 +163,9 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 			RunDebugData.Append(FString::Printf(TEXT("\t\t[%d] - Range: {%d, %d}\n"), RunIndex, RunRange.BeginIndex, RunRange.EndIndex));
 		}
 
-		checkf( SuccessfullyMeasuredSlice, TEXT("Failed to measure a slice of text!\n\tStart Index: %d\n\tEnd Index: %d\n\tStart Run Index: %d\n\tLine Runs:\n%s"), PreviousBreak, CurrentBreak, FirstRunIndexChecked, *RunDebugData );
+		checkf(SuccessfullyMeasuredSlice, TEXT("Failed to measure a slice of text!\n\tDebug Source: %s\n\tAnonymized Text: %s\n\tStart Index: %d\n\tEnd Index: %d\n\tStart Run Index: %d\n\tLine Runs:\n%s"), *DebugSourceInfo.Get(FString()), *AnonymizedText, PreviousBreak, CurrentBreak, FirstRunIndexChecked, *RunDebugData);
 	}
+#endif // DO_CHECK
 
 	BreakSize.Y = BreakSizeWithoutTrailingWhitespace.Y = MaxAboveBaseline + MaxBelowBaseline;
 
@@ -222,7 +251,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 			const TextBiDi::FTextDirectionInfo& CurrentTextDirectionInfo = SortedTextDirectionInfos[CurrentSortedTextDirectionInfoIndex];
 			CurrentTextDirectionStopIndex = CurrentTextDirectionInfo.StartIndex + CurrentTextDirectionInfo.Length;
 
-			check(BlockBeginIndex >= CurrentTextDirectionInfo.StartIndex);
+			checkf(BlockBeginIndex >= CurrentTextDirectionInfo.StartIndex, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 			BlockStopIndex = FMath::Min(BlockStopIndex, CurrentTextDirectionStopIndex);
 			BlockTextDirection = CurrentTextDirectionInfo.TextDirection;
@@ -278,7 +307,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 		const bool IsLastBlock = BlockStopIndex == StopIndex;
 
-		check( BlockBeginIndex <= BlockStopIndex );
+		checkf(BlockBeginIndex <= BlockStopIndex, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 		// Add the new block
 		{
@@ -343,7 +372,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 						return !InLineBlock->GetTextRange().IsEmpty() && InLineBlock->GetTextRange().BeginIndex == CurrentBlockStartIndex;
 					});
 
-					check(FoundLineBlock);
+					checkf(FoundLineBlock, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 					const TSharedRef<ILayoutBlock>& FoundLineBlockRef = *FoundLineBlock;
 					if (VisualTextDirectionInfo.TextDirection == TextBiDi::ETextDirection::LeftToRight)
@@ -449,7 +478,7 @@ void FTextLayout::JustifyLayout()
 
 float FTextLayout::GetWrappingDrawWidth() const
 {
-	check( WrappingWidth >= 0 );
+	checkf(WrappingWidth >= 0, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 	return FMath::Max( 0.01f, ( WrappingWidth - Margin.GetTotalSpaceAlong<Orient_Horizontal>() ) * Scale );
 }
 
@@ -512,7 +541,7 @@ void FTextLayout::FlowLineLayout(const int32 LineModelIndex, const float Wrappin
 	{
 		//Then iterate over all of it's runs
 		CreateLineViewBlocks( LineModelIndex, INDEX_NONE, 0.0f, /*OUT*/CurrentRunIndex, /*OUT*/CurrentRendererIndex, /*OUT*/PreviousBlockEnd, SoftLine );
-		check( CurrentRunIndex == LineModel.Runs.Num() );
+		checkf(CurrentRunIndex == LineModel.Runs.Num(), TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 		CurrentWidth = 0;
 		SoftLine.Reset();
 	}
@@ -584,7 +613,7 @@ void FTextLayout::FlowHighlights()
 	};
 
 	// FlowLayout must have been called first
-	check(!(DirtyFlags & ETextLayoutDirtyState::Layout));
+	checkf(!(DirtyFlags & ETextLayoutDirtyState::Layout), TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 	for (FLineView& LineView : LineViews)
 	{
@@ -925,7 +954,7 @@ void FTextLayout::DirtyAllLineModels(const ELineModelDirtyState::Flags InDirtyFl
 	}
 }
 
-FTextLayout::FTextLayout() 
+FTextLayout::FTextLayout()
 	: LineModels()
 	, LineViews()
 	, LineViewsToJustify()
@@ -1045,7 +1074,7 @@ void FTextLayout::SetRunRenderers( const TArray< FTextRunRenderer >& Renderers )
 
 void FTextLayout::AddRunRenderer( const FTextRunRenderer& Renderer )
 {
-	checkf( LineModels.IsValidIndex( Renderer.LineIndex ), TEXT("Renderers must be for a valid Line Index") );
+	checkf(LineModels.IsValidIndex(Renderer.LineIndex), TEXT("Renderers must be for a valid Line Index!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 	FLineModel& LineModel = LineModels[ Renderer.LineIndex ];
 
@@ -1055,13 +1084,13 @@ void FTextLayout::AddRunRenderer( const FTextRunRenderer& Renderer )
 	{
 		if ( LineModel.RunRenderers[ Index ].Range.BeginIndex > Renderer.Range.BeginIndex )
 		{
-			checkf( Index == 0 || LineModel.RunRenderers[ Index - 1 ].Range.EndIndex <= Renderer.Range.BeginIndex, TEXT("Renderers cannot overlap") );
+			checkf(Index == 0 || LineModel.RunRenderers[Index - 1].Range.EndIndex <= Renderer.Range.BeginIndex, TEXT("Renderers cannot overlap!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
 			LineModel.RunRenderers.Insert( Renderer, Index - 1 );
 			bWasInserted = true;
 		}
 		else if ( LineModel.RunRenderers[ Index ].Range.EndIndex > Renderer.Range.EndIndex )
 		{
-			checkf( LineModel.RunRenderers[ Index ].Range.BeginIndex >= Renderer.Range.EndIndex, TEXT("Renderers cannot overlap") );
+			checkf(LineModel.RunRenderers[Index].Range.BeginIndex >= Renderer.Range.EndIndex, TEXT("Renderers cannot overlap!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
 			LineModel.RunRenderers.Insert( Renderer, Index - 1 );
 			bWasInserted = true;
 		}
@@ -1099,8 +1128,8 @@ void FTextLayout::SetLineHighlights( const TArray< FTextLineHighlight >& Highlig
 
 void FTextLayout::AddLineHighlight( const FTextLineHighlight& Highlight )
 {
-	checkf( LineModels.IsValidIndex( Highlight.LineIndex ), TEXT("Highlights must be for a valid Line Index") );
-	checkf( Highlight.ZOrder, TEXT("The highlight Z-order must be <0 to create an underlay, or >0 to create an overlay") );
+	checkf(LineModels.IsValidIndex(Highlight.LineIndex), TEXT("Highlights must be for a valid Line Index!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
+	checkf(Highlight.ZOrder, TEXT("The highlight Z-order must be <0 to create an underlay, or >0 to create an overlay!\n\tDebug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 	FLineModel& LineModel = LineModels[ Highlight.LineIndex ];
 
@@ -1335,7 +1364,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 		const bool bIsLastRun = RunIndex == LineModel.Runs.Num() - 1;
 		if (RunRange.Contains(InsertLocation) || (bIsLastRun && !RunIsAfterInsertLocation))
 		{
-			check(RunIsAfterInsertLocation == false);
+			checkf(RunIsAfterInsertLocation == false, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 			RunIsAfterInsertLocation = true;
 
 			if ((RunModel.GetRun()->GetRunAttributes() & ERunAttributes::SupportsText) != ERunAttributes::None)
@@ -1345,7 +1374,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 			else
 			{
 				// Non-text runs are supposed to have a single dummy character in them
-				check(RunRange.Len() == 1);
+				checkf(RunRange.Len() == 1, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
 				const bool bIsInsertingToTheLeft = InsertLocation == RunRange.BeginIndex;
@@ -1400,7 +1429,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, const FString& Text)
 		const bool bIsLastRun = RunIndex == LineModel.Runs.Num() - 1;
 		if (RunRange.Contains(InsertLocation) || (bIsLastRun && !RunIsAfterInsertLocation))
 		{
-			check(RunIsAfterInsertLocation == false);
+			checkf(RunIsAfterInsertLocation == false, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 			RunIsAfterInsertLocation = true;
 
 			if ((RunModel.GetRun()->GetRunAttributes() & ERunAttributes::SupportsText) != ERunAttributes::None)
@@ -1410,7 +1439,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, const FString& Text)
 			else
 			{
 				// Non-text runs are supposed to have a single dummy character in them
-				check(RunRange.Len() == 1);
+				checkf(RunRange.Len() == 1, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
 				const bool bIsInsertingToTheLeft = InsertLocation == RunRange.BeginIndex;
@@ -1468,7 +1497,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun
 		const bool bIsLastRun = RunIndex == LineModel.Runs.Num() - 1;
 		if (RunRange.Contains(InsertLocation) || (bIsLastRun && !RunIsAfterInsertLocation))
 		{
-			check(RunIsAfterInsertLocation == false);
+			checkf(RunIsAfterInsertLocation == false, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 			RunIsAfterInsertLocation = true;
 
 			const int32 InsertLocationEnd = InsertLocation + NewRunText.Len();
@@ -1487,7 +1516,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TSharedRef<IRun> InRun
 			else
 			{
 				// Non-text runs are supposed to have a single dummy character in them
-				check(RunRange.Len() == 1);
+				checkf(RunRange.Len() == 1, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
 				const bool bIsInsertingToTheLeft = InsertLocation == RunRange.BeginIndex;
@@ -1600,7 +1629,7 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 	FLineModel LeftLineModel(MakeShareable(new FString(BreakLocation, **LineModel.Text)));
 	FLineModel RightLineModel(MakeShareable(new FString(LineModel.Text->Len() - BreakLocation, **LineModel.Text + BreakLocation)));
 
-	check(LeftLineModel.Text->Len() == BreakLocation);
+	checkf(LeftLineModel.Text->Len() == BreakLocation, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 	bool RunIsToTheLeftOfTheBreakLocation = true;
 	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
@@ -1611,7 +1640,7 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 		const bool bIsLastRun = RunIndex == LineModel.Runs.Num() - 1;
 		if (RunRange.Contains(BreakLocation) || (bIsLastRun && RunIsToTheLeftOfTheBreakLocation))
 		{
-			check(RunIsToTheLeftOfTheBreakLocation == true);
+			checkf(RunIsToTheLeftOfTheBreakLocation == true, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 			RunIsToTheLeftOfTheBreakLocation = false;
 
 			TSharedPtr<IRun> LeftRun;
@@ -1627,7 +1656,7 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 			else
 			{
 				// Non-text runs are supposed to have a single dummy character in them
-				check(RunRange.Len() == 1);
+				checkf(RunRange.Len() == 1, TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 
 				// This run doesn't support text, so we need to insert a new text run before or after the current run depending on the insertion point
 				const bool bIsInsertingToTheLeft = BreakLocation == RunRange.BeginIndex;
@@ -1735,7 +1764,7 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 				// Some of this run has been removed, and this run is the right hand part of the removal
 				// So we need to adjust the range so that we start at the removal point since the text has been removed from the beginning of this run
 				const FTextRange NewRange(RemoveTextRange.BeginIndex, RunRange.EndIndex - Count);
-				check(!NewRange.IsEmpty());
+				checkf(!NewRange.IsEmpty(), TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 				RunModel.SetTextRange(NewRange);
 			}
 			else
@@ -1743,7 +1772,7 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 				// Some of this run has been removed, and this run is the left hand part of the removal
 				// So we need to adjust the range by the amount of text that has been removed from the end of this run
 				const FTextRange NewRange(RunRange.BeginIndex, RunRange.EndIndex - IntersectedLength);
-				check(!NewRange.IsEmpty());
+				checkf(!NewRange.IsEmpty(), TEXT("Debug Source: %s"), *DebugSourceInfo.Get(FString()));
 				RunModel.SetTextRange(NewRange);
 			}
 
@@ -2273,6 +2302,11 @@ void FTextLayout::SetWrappingWidth( float Value )
 		WrappingWidth = Value; 
 		DirtyFlags |= ETextLayoutDirtyState::Layout;
 	}
+}
+
+void FTextLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
+{
+	DebugSourceInfo = InDebugSourceInfo;
 }
 
 FVector2D FTextLayout::GetDrawSize() const

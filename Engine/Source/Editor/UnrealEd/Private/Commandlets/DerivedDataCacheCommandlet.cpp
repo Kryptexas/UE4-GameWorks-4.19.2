@@ -241,7 +241,6 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 		}
 	}
 
-	IConsoleManager::Get().ProcessUserConsoleInput(TEXT("Tex.DerivedDataTimings"), *GWarn, NULL);
 	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Waiting for shaders to finish."));
 	GShaderCompilingManager->FinishAllCompilation();
 	GDistanceFieldAsyncQueue->BlockUntilAllBuildsComplete();

@@ -632,6 +632,15 @@ FString UDialogueWave::GetContextLocalizationKey( const FDialogueContext& Contex
 
 // End UDialogueWave interface.
 
+void UDialogueWave::UpdateContext(FDialogueContextMapping& ContextMapping, USoundWave* SoundWave, UDialogueVoice* Speaker, const TArray<UDialogueVoice*>& Targets)
+{
+	ContextMapping.SoundWave = SoundWave;
+	ContextMapping.Context.Speaker = Speaker;
+	ContextMapping.Context.Targets = Targets;
+
+	UpdateMappingProxy(ContextMapping);
+}
+
 void UDialogueWave::UpdateMappingProxy(FDialogueContextMapping& ContextMapping)
 {
 	if (ContextMapping.SoundWave)

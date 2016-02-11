@@ -351,7 +351,7 @@ void UAnimMontage::PostLoad()
 
 		if(CurrentCalculatedLength != SequenceLength)
 		{
-			UE_LOG(LogAnimMontage, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for montage %s does not match the length stored in the asset, please resave the montage asset."), *GetName());
+			UE_LOG(LogAnimMontage, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for %s does not match the length stored in the asset, please resave the asset."), *GetFullName());
 			SequenceLength = CurrentCalculatedLength;
 		}
 	}

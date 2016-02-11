@@ -82,6 +82,11 @@ struct CORE_API FCommandLine
 	 */
 	static const TCHAR* GetOriginal();
 
+	/**
+	 * Returns an edited version of the command line originally passed to the executable.
+	 */
+	static const TCHAR* GetOriginalForLogging();
+
 	/** 
 	 * Checks if the command line has been initialized. 
 	 */
@@ -150,6 +155,8 @@ private:
 	static TCHAR OriginalCmdLine[MaxCommandLineSize];
 	/** character buffer containing the command line filtered for logging purposes */
 	static TCHAR LoggingCmdLine[MaxCommandLineSize];
+	/** character buffer containing the original command line filtered for logging purposes */
+	static TCHAR LoggingOriginalCmdLine[MaxCommandLineSize];
 	/** subprocess command line */
 	static FString SubprocessCommandLine;
 };

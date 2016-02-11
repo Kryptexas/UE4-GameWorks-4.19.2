@@ -1931,12 +1931,18 @@ namespace AutomationTool
 			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, CookFlavor);
 			if (String.IsNullOrEmpty(BasePath))
 			{
-				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
+                BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
 			}
 			else
 			{
 				BasePath = CommandUtils.CombinePaths(BasePath, BasedOnReleaseVersion, Platform);
 			}
+
+            /*if ( TitleID != null && TitleID.Count == 1 )
+            {
+                BasePath = CommandUtils.CombinePaths( BasePath, TitleID[0]);
+            }*/
+
 			return BasePath;
 		}
 
@@ -1957,6 +1963,12 @@ namespace AutomationTool
 			{
 				BasePath = CommandUtils.CombinePaths(BasePath, CreateReleaseVersion, Platform);
 			}
+
+            /*if (TitleID != null && TitleID.Count == 1)
+            {
+                BasePath = CommandUtils.CombinePaths(BasePath, TitleID[0]);
+            }*/
+
 			return BasePath;
 		}
 

@@ -577,6 +577,9 @@ void FDisplayMetrics::GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetric
 
 	// Get connected monitor information
 	GetMonitorInfo(OutDisplayMetrics.MonitorInfo);
+
+	// Apply the debug safe zones
+	OutDisplayMetrics.ApplyDefaultSafeZones();
 }
 
 void FWindowsApplication::GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const

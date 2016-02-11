@@ -18,90 +18,10 @@ static const FName WorldClassName = FName("World");
 #define VALIDATE_INITIALIZECORECLASSES 0
 #define EXPORT_SORTING_DETAILED_LOGGING 0
 
-#define UE_PROFILE_COOKSAVE 1
-#if UE_PROFILE_COOKSAVE
-
-#include "CookingStatsModule.h"
-
-#define UE_OUTPUTSTATSTOLOG 0
-
-namespace SavePackageStats
-{
-static const FName CookingStatsName("CookingStats");
-static const FName GSavePackageTransactionId(*FString::Printf(TEXT("SavePackageTransactionId%s"), *FGuid::NewGuid().ToString()));
-static uint32 GSavePackageTransactionNumber = 0;
-
-	ICookingStats* GetCookingStats()
-	{
-		static ICookingStats* CookingStats = nullptr;
-		static bool bInitialized = false;
-		if (bInitialized == false)
-		{
-			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
-			if (CookingStatsModule)
-			{
-				CookingStats = CookingStatsModule->Get();
-			}
-			bInitialized = true;
-		}
-		return CookingStats;
-	}
-
-
-	// static ICookingStats* CookingStats = GetCookingStats();
-
-	void CookStatsStartStat(const FName& Key, const TCHAR *Filename)
-	{
-#if UE_OUTPUTSTATSTOLOG
-		UE_LOG(LogSavePackage, Log, TEXT("Starting save package for %s"), Filename);
-#endif
-
-		ICookingStats* CookingStats = GetCookingStats();
-		if (CookingStats)
-		{
-			CookingStats->AddTagValue(Key, TEXT("Filename"), FString(Filename));
-		}
-	}
-
-	void CookStatsAddStat(const FName& Key, const FName& Tag, const float TimeMilliseconds)
-	{
-#if UE_OUTPUTSTATSTOLOG
-		UE_LOG(LogSavePackage, Log, TEXT("TIMING: %s took %.2fms"), Tag, TimeMilliseconds);
-#endif
-
-		ICookingStats* CookingStats = GetCookingStats();
-		if (CookingStats)
-		{
-			CookingStats->AddTagValue(Key, Tag, TimeMilliseconds);
-		}
-	}
-}; // namespace SavePackageStats
-
-
-#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); const FName CookStatsKey = FName(SavePackageStats::GSavePackageTransactionId,++SavePackageStats::GSavePackageTransactionNumber); \
-	SavePackageStats::CookStatsStartStat(CookStatsKey, InFilename);
-
-#define UE_LOG_COOK_TIME(TimeType) \
-	{\
-		double CurrentTime = FPlatformTime::Seconds(); \
-	const FName TagName = FName(TimeType); \
-	SavePackageStats::CookStatsAddStat(CookStatsKey, TagName, (CurrentTime - PreviousTime) * 1000.0f); \
-		PreviousTime = CurrentTime; \
-	}
-
-#define UE_FINISH_LOG_COOK_TIME()\
-	UE_LOG_COOK_TIME(TEXT("UnaccountedTime")); \
-	{\
-		double CurrentTime = FPlatformTime::Seconds(); \
-		UE_LOG(LogSavePackage, Log, TEXT("Total save time: %.2fms"), (CurrentTime - StartTime) * 1000.0f); \
-	}
-
-#else
 // don't do anything
 #define UE_START_LOG_COOK_TIME(InFilename)
 #define UE_LOG_COOK_TIME(TimeType) 
 #define UE_FINISH_LOG_COOK_TIME()
-#endif
 
 
 static bool HasDeprecatedOrPendingKillOuter(UObject* InObj, UPackage* InSavingPackage)

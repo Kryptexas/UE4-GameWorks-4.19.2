@@ -101,6 +101,48 @@ const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_TriggerAxi
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Grip1Axis( "MotionController_Right_Grip1Axis" );
 const FGamepadKeyNames::Type FGamepadKeyNames::MotionController_Right_Grip2Axis( "MotionController_Right_Grip2Axis" );
 
+float GDebugSafeZoneRatio = 1.0f;
+float GDebugActionZoneRatio = 1.0f;
+
+FAutoConsoleVariableRef GDebugSafeZoneRatioCVar(
+	TEXT("r.DebugSafeZone.TitleRatio"),
+	GDebugSafeZoneRatio,
+	TEXT("The safe zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone (0..1)\n")
+	TEXT(" default: 1.0"));
+
+FAutoConsoleVariableRef GDebugActionZoneRatioCVar(
+	TEXT("r.DebugActionZone.ActionRatio"),
+	GDebugActionZoneRatio,
+	TEXT("The action zone ratio that will be returned by FDisplayMetrics::GetDisplayMetrics on platforms that don't have a defined safe zone (0..1)\n")
+	TEXT(" default: 1.0"));
+
+float FDisplayMetrics::GetDebugTitleSafeZoneRatio()
+{
+	return GDebugSafeZoneRatio;
+}
+
+float FDisplayMetrics::GetDebugActionSafeZoneRatio()
+{
+	return GDebugActionZoneRatio;
+}
+
+void FDisplayMetrics::ApplyDefaultSafeZones()
+{
+	const float SafeZoneRatio = GetDebugTitleSafeZoneRatio();
+	if (SafeZoneRatio < 1.0f)
+	{
+		const float HalfUnsafeRatio = (1.0f - SafeZoneRatio) * 0.5f;
+		TitleSafePaddingSize = FVector2D(PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio);
+	}
+
+	const float ActionSafeZoneRatio = GetDebugActionSafeZoneRatio();
+	if (ActionSafeZoneRatio < 1.0f)
+	{
+		const float HalfUnsafeRatio = (1.0f - ActionSafeZoneRatio) * 0.5f;
+		ActionSafePaddingSize = FVector2D(PrimaryDisplayWidth * HalfUnsafeRatio, PrimaryDisplayHeight * HalfUnsafeRatio);
+	}
+}
+
 void FDisplayMetrics::PrintToLog() const
 {
 	UE_LOG(LogInit, Log, TEXT("Display metrics:"));

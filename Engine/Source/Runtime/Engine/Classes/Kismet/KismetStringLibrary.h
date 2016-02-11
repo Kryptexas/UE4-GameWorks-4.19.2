@@ -260,6 +260,17 @@ class ENGINE_API UKismetStringLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Utilities|String")
 	static int32 FindSubstring(const FString& SearchIn, const FString& Substring, bool bUseCase = false, bool bSearchFromEnd = false, int32 StartPosition = -1);
 
+	/**
+	* Returns whether this string contains the specified substring.
+	*
+	* @param SubStr			Find to search for
+	* @param SearchCase		Indicates whether the search is case sensitive or not ( defaults to ESearchCase::IgnoreCase )
+	* @param SearchDir			Indicates whether the search starts at the begining or at the end ( defaults to ESearchDir::FromStart )
+	* @return					Returns whether the string contains the substring
+	**/
+	UFUNCTION(BlueprintPure, Category = "Utilities|String")
+	static bool Contains(const FString& SearchIn, const FString& Substring, bool bUseCase = false, bool bSearchFromEnd = false);
+
 	/** 
 	 * Gets a single character from the string (as an integer)
 	 * @param SourceString - The string to convert

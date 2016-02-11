@@ -100,6 +100,11 @@ public partial class GUBP : BuildCommand
         string BranchName = P4Enabled ? P4Env.BuildRootP4 : ParseParamValue("BranchName", "");
         GUBPBranchHacker.BranchOptions BranchOptions = GetBranchOptions(BranchName);
 
+		foreach (var Kind in BranchOptions.MonolithicsToRemove)
+		{
+			BranchInfo.MonolithicKinds.Remove(Kind);
+		}
+
 		string BranchNameForTempStorage = P4Enabled ? P4Env.BuildRootEscaped : "NoP4";
 		string RootNameForTempStorage = BranchOptions.RootNameForTempStorage ?? "UE4";
 		string PreflightSuffix = GetPreflightSuffix();
@@ -589,7 +594,10 @@ public partial class GUBP : BuildCommand
                 }
 				foreach (BuildNode Dep in NodeToDo.OrderDependencies.OrderBy(x => x.Name))
 				{
-					Log("           pdep> {0}", Dep.Name);
+					if (!NodeToDo.InputDependencies.Contains(Dep))
+					{
+						Log("           pdep> {0}", Dep.Name);
+					}
 				}
             }
         }

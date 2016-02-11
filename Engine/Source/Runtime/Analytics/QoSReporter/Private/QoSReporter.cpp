@@ -178,11 +178,13 @@ void FQoSReporter::SetBackendDeploymentName(const FString & InDeploymentName)
 void FQoSReporter::EnableCountingHitches(bool bEnable)
 {
 	bCountHitches = bEnable;
-	UE_LOG(LogQoSReporter, Verbose, TEXT("Counting hitches in QoSReporter has been %s."), bCountHitches ? TEXT("enabled") : TEXT("disabled"));
+	PreviousTickTime = FPlatformTime::Seconds();	// reset the timer
+	UE_LOG(LogQoSReporter, Log, TEXT("Counting hitches in QoSReporter has been %s."), bCountHitches ? TEXT("enabled") : TEXT("disabled"));
 }
 
 double FQoSReporter::HeartbeatInterval = 300;
 double FQoSReporter::LastHeartbeatTimestamp = 0;
+double FQoSReporter::PreviousTickTime = FPlatformTime::Seconds();
 #if WITH_ENGINE
 extern ENGINE_API float GAverageFPS;
 #else
@@ -196,7 +198,6 @@ void FQoSReporter::Tick()
 		return;
 	}
 
-	static double PreviousTickTime = FPlatformTime::Seconds();
 	double CurrentTime = FPlatformTime::Seconds();
 
 	if (HeartbeatInterval > 0 && CurrentTime - LastHeartbeatTimestamp > HeartbeatInterval)
@@ -219,10 +220,20 @@ void FQoSReporter::Tick()
 			if (DeltaBetweenTicks > 0.25)
 			{
 				PerfCountersIncrement(TEXT("HitchesAbove250msec"), 0, IPerfCounters::Flags::Transient);
+
+				if (DeltaBetweenTicks > 0.5)
+				{
+					PerfCountersIncrement(TEXT("HitchesAbove500msec"), 0, IPerfCounters::Flags::Transient);
+
+					if (DeltaBetweenTicks > 1)
+					{
+						PerfCountersIncrement(TEXT("HitchesAbove1000msec"), 0, IPerfCounters::Flags::Transient);
+					}
+				}
 			}
 #endif // USE_SERVER_PERF_COUNTERS
 
-			UE_LOG(LogQoSReporter, Warning, TEXT("QoS reporter could not tick for %f sec, average FPS is %f."),
+			UE_LOG(LogQoSReporter, Log, TEXT("QoS reporter could not tick for %f sec, average FPS is %f."),
 				DeltaBetweenTicks, GAverageFPS);
 		}
 	}
