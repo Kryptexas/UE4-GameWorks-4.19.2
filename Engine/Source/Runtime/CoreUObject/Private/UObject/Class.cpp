@@ -3629,6 +3629,7 @@ void UClass::Serialize( FArchive& Ar )
 			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName() );
 			ensure(ClassDefaultObject != NULL);
 			ClassDefaultObject = GetDefaultObject();
+			Ar.ForceBlueprintFinalization();
 		}
 	}
 }

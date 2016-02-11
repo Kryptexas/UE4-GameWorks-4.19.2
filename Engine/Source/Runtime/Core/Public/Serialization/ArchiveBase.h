@@ -94,6 +94,11 @@ public:
 	 */
 	virtual FArchive& operator<<(struct FStringAssetReference& Value);
 
+	/** 
+	 * Inform the archive that a blueprint would like to force finalization, normally
+	 * this is triggered by CDO load, but if there's no CDO we force finalization.
+	 */
+	virtual void ForceBlueprintFinalization() {}
 public:
 
 	/**
