@@ -729,7 +729,10 @@ FReply SParentPlayerTreeRow::OnFocusNodeButtonClicked()
 		{
 			UEdGraph* EdGraph = GraphNode->GetGraph();
 			TSharedPtr<SGraphEditor> GraphEditor = SharedPersona->OpenGraphAndBringToFront(EdGraph);
-			GraphEditor->JumpToNode(GraphNode, false);
+			if (GraphEditor.IsValid())
+			{
+				GraphEditor->JumpToNode(GraphNode, false);
+			}
 		}
 		return FReply::Handled();
 	}
