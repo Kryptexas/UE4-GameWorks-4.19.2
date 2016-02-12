@@ -716,7 +716,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 #if WITH_EDITORONLY_DATA
 	if (SpriteComponent)
 	{
-		SpriteComponent->DestroyComponent(bDestroyingHierarchy);
+		SpriteComponent->DestroyComponent();
 	}
 #endif
 
