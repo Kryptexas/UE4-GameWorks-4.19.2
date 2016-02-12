@@ -43,12 +43,6 @@ void FSubtitleManager::QueueSubtitles( PTRINT SubtitleID, float Priority, bool b
 {
 	check( GEngine );
 
-	// Do nothing if subtitles are disabled.
-	if( !GEngine->bSubtitlesEnabled )
-	{
-		return;
-	}
-
 	// No subtitles to display
 	if( !Subtitles.Num() )
 	{
@@ -73,15 +67,15 @@ void FSubtitleManager::QueueSubtitles( PTRINT SubtitleID, float Priority, bool b
 	FActiveSubtitle& NewSubtitle = ActiveSubtitles.Add( SubtitleID, FActiveSubtitle( 0, Priority, bManualWordWrap, bSingleLine, Subtitles ) );
 
 	// Resolve time offsets to absolute time
-	for( int32 SubtitleIndex = 0; SubtitleIndex < NewSubtitle.Subtitles.Num(); ++SubtitleIndex )
+	for( FSubtitleCue& Subtitle : Subtitles )
 	{
-		if(NewSubtitle.Subtitles[ SubtitleIndex ].Time > SoundDuration)
+		if (Subtitle.Time > SoundDuration)
 		{
-			NewSubtitle.Subtitles[ SubtitleIndex ].Time = SoundDuration;
+			Subtitle.Time = SoundDuration;
 			UE_LOG(LogSubtitle, Warning, TEXT( "Subtitle has time offset greater than length of sound - clamping" ) );
 		}
 
-		NewSubtitle.Subtitles[ SubtitleIndex ].Time += InStartTime;
+		Subtitle.Time += InStartTime;
 	}
 
 	// Add on a blank at the end to clear
@@ -323,6 +317,12 @@ void FSubtitleManager::DisplaySubtitles( FCanvas* InCanvas, FIntRect& InSubtitle
 	check( GEngine );
 	check( InCanvas );
 
+	// Do nothing if subtitles are disabled.
+	if( !GEngine->bSubtitlesEnabled )
+	{
+		return;
+	}
+
 	if( !GEngine->GetSubtitleFont() )
 	{
 		UE_LOG(LogSubtitle, Warning, TEXT( "NULL GEngine->GetSubtitleFont() - subtitles not rendering!" ) );
@@ -358,7 +358,7 @@ void FSubtitleManager::DisplaySubtitles( FCanvas* InCanvas, FIntRect& InSubtitle
  */
 FSubtitleManager* FSubtitleManager::GetSubtitleManager( void )
 {
-	static FSubtitleManager* SSubtitleManager = NULL;
+	static FSubtitleManager* SSubtitleManager = nullptr;
 
 	if( !SSubtitleManager )
 	{
