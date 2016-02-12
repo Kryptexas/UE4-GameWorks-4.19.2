@@ -123,7 +123,7 @@ namespace UnrealBuildTool
 			// warm up the .emscripten resource file
 			string NODE_ROOT = Path.GetDirectoryName(NODE_JS);
 			string PYTHON_ROOT = Path.GetDirectoryName(PYTHON);
-			Environment.SetEnvironmentVariable("PATH", NODE_ROOT + ";" + LLVM_ROOT + ";" + PYTHON_ROOT + ";" + EMSCRIPTEN_ROOT + ";" + PATH_SAVE);
+			Environment.SetEnvironmentVariable("PATH", NODE_ROOT + Path.PathSeparator + LLVM_ROOT + Path.PathSeparator + PYTHON_ROOT + Path.PathSeparator + EMSCRIPTEN_ROOT + Path.PathSeparator + PATH_SAVE);
 			Environment.SetEnvironmentVariable("USERPROFILE", HTML5Intermediatory);
 			// --------------------------------------------------
 				string cmd = "\"" + Path.Combine(EMSCRIPTEN_ROOT, "emcc") + "\"";
