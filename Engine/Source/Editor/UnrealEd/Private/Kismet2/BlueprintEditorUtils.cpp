@@ -4329,10 +4329,8 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 			}
 
 			{
-				UClass* NewSkelGeneratedClass = Blueprint->SkeletonGeneratedClass;
-				UMulticastDelegateProperty* MCProperty = NewSkelGeneratedClass ? FindField<UMulticastDelegateProperty>(NewSkelGeneratedClass, NewName) : nullptr;
-				UEdGraph* DelegateSignatureGraph = MCProperty ? FindObject<UEdGraph>(Blueprint, *OldName.ToString()) : nullptr;
-				if (MCProperty && DelegateSignatureGraph)
+				const bool bIsDelegateVar = (Variable.VarType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate);
+				if (UEdGraph* DelegateSignatureGraph = bIsDelegateVar ? FindObject<UEdGraph>(Blueprint, *OldName.ToString()) : nullptr)
 				{
 					FBlueprintEditorUtils::RenameGraph(DelegateSignatureGraph, NewName.ToString());
 
