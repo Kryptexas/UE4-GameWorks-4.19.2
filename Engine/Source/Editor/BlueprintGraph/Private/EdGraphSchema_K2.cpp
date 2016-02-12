@@ -4457,7 +4457,11 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 	const UK2Node* Node = Cast<UK2Node>(Pin.GetOwningNode());
 	const UBlueprint* OwningBlueprint = Node->GetBlueprint();
 	
-	if (!OwningBlueprint || (OwningBlueprint->BlueprintType == BPTYPE_MacroLibrary) || (OwningBlueprint->BlueprintType == BPTYPE_FunctionLibrary) || IsStaticFunctionGraph(Node->GetGraph()))
+	if (Pin.bNotConnectable)
+	{
+		bCanPromote = false;
+	}
+	else if (!OwningBlueprint || (OwningBlueprint->BlueprintType == BPTYPE_MacroLibrary) || (OwningBlueprint->BlueprintType == BPTYPE_FunctionLibrary) || IsStaticFunctionGraph(Node->GetGraph()))
 	{
 		// Never allow promotion in macros, because there's not a scope to define them in
 		bCanPromote = false;
@@ -4492,7 +4496,7 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 
 bool UEdGraphSchema_K2::CanSplitStructPin( const UEdGraphPin& Pin ) const
 {
-	return (Pin.LinkedTo.Num() == 0 && PinHasSplittableStructType(&Pin) && Pin.GetOwningNode()->AllowSplitPins());
+	return (!Pin.bNotConnectable && Pin.LinkedTo.Num() == 0 && PinHasSplittableStructType(&Pin) && Pin.GetOwningNode()->AllowSplitPins());
 }
 
 bool UEdGraphSchema_K2::CanRecombineStructPin( const UEdGraphPin& Pin ) const

@@ -134,14 +134,12 @@ void SGraphNodeSpawnActorFromClass::CreatePinWidgets()
 		{
 			TSharedPtr<SGraphPin> NewPin = FNodeFactory::CreatePinWidget(CurrentPin);
 			check(NewPin.IsValid());
-			NewPin->SetIsEditable(IsEditable);
 			this->AddPin(NewPin.ToSharedRef());
 		}
 		else if ((ClassPin == CurrentPin) && (!ClassPin->bHidden || (ClassPin->LinkedTo.Num() > 0)))
 		{
 			TSharedPtr<SGraphPinActorBasedClass> NewPin = SNew(SGraphPinActorBasedClass, ClassPin);
 			check(NewPin.IsValid());
-			NewPin->SetIsEditable(IsEditable);
 			this->AddPin(NewPin.ToSharedRef());
 		}
 	}

@@ -6,6 +6,7 @@
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_BreakStruct"
 
@@ -128,7 +129,9 @@ public:
 };
 
 
-UK2Node_BreakStruct::UK2Node_BreakStruct(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+UK2Node_BreakStruct::UK2Node_BreakStruct(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bMadeAfterOverridePinRemoval(false)
 {
 }
 
@@ -273,6 +276,11 @@ void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLo
 		{
 			MessageLog.Warning(*LOCTEXT("StructHasNoBPVisibleProperties_Warning", "@@ has no property tagged as BlueprintReadWrite or BlueprintReadOnly. The node will be removed in a future release.").ToString(), this);
 		}
+
+		if (!bMadeAfterOverridePinRemoval)
+		{
+			MessageLog.Warning(*NSLOCTEXT("K2Node", "OverridePinRemoval_BreakStruct", "Override pins have been removed from @@, please verify the Blueprint works as expected! See tooltips for enabling pin visibility for more details. This warning will go away after you resave the asset!").ToString(), this);
+		}
 	}
 }
 
@@ -371,6 +379,44 @@ void UK2Node_BreakStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 FText UK2Node_BreakStruct::GetMenuCategory() const
 {
 	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Struct);
+}
+
+void UK2Node_BreakStruct::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && !bMadeAfterOverridePinRemoval)
+	{
+		// Check if this node actually requires warning the user that functionality has changed.
+
+		bMadeAfterOverridePinRemoval = true;
+		FOptionalPinManager PinManager;
+
+		// Have to check if this node is even in danger.
+		for (TFieldIterator<UProperty> It(StructType, EFieldIteratorFlags::IncludeSuper); It; ++It)
+		{
+			UProperty* TestProperty = *It;
+			if (PinManager.CanTreatPropertyAsOptional(TestProperty))
+			{
+				bool bNegate = false;
+				if (UProperty* OverrideProperty = PropertyCustomizationHelpers::GetEditConditionProperty(TestProperty, bNegate))
+				{
+					// We have confirmed that there is a property that uses an override variable to enable it, so set it to true.
+					bMadeAfterOverridePinRemoval = false;
+					break;
+				}
+			}
+		}
+	}
+	else if (Ar.IsSaving() && !Ar.IsTransacting())
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(this);
+
+		if (Blueprint && !Blueprint->bBeingCompiled)
+		{
+			bMadeAfterOverridePinRemoval = true;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -140,17 +140,6 @@ bool SGraphNode::CanAllowInteractionUsingDragDropOp( const UEdGraphNode* GraphNo
 void SGraphNode::SetIsEditable(TAttribute<bool> InIsEditable)
 {
 	IsEditable = InIsEditable;
-
-	int32 i;
-	for(i = 0; i < InputPins.Num(); ++i)
-	{
-		InputPins[i]->SetIsEditable(IsEditable);
-	}
-
-	for(i = 0; i < OutputPins.Num(); ++i)
-	{
-		OutputPins[i]->SetIsEditable(IsEditable);
-	}
 }
 
 bool SGraphNode::IsNodeEditable() const
@@ -1011,7 +1000,6 @@ void SGraphNode::CreateStandardPinWidget(UEdGraphPin* CurPin)
 	{
 		TSharedPtr<SGraphPin> NewPin = CreatePinWidget(CurPin);
 		check(NewPin.IsValid());
-		NewPin->SetIsEditable(IsEditable);
 
 		this->AddPin(NewPin.ToSharedRef());
 	}
@@ -1172,7 +1160,8 @@ FLinearColor SGraphNode::GetPinLabelColorAndOpacity() const
 
 
 SGraphNode::SGraphNode()
-	: bProvidedComplexTooltip(false)
+	: IsEditable(true)
+	, bProvidedComplexTooltip(false)
 	, bRenameIsPending( false )
 	, ErrorColor( FLinearColor::White )
 	, CachedUnscaledPosition( FVector2D::ZeroVector )

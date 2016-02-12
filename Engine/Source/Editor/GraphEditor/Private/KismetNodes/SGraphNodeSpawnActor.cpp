@@ -120,7 +120,6 @@ void SGraphNodeSpawnActor::CreatePinWidgets()
 	{
 		TSharedPtr<SGraphPinActorBasedBlueprintClass> NewPin = SNew(SGraphPinActorBasedBlueprintClass, BlueprintPin);
 		check(NewPin.IsValid());
-		NewPin->SetIsEditable(IsEditable);
 
 		this->AddPin(NewPin.ToSharedRef());
 	}

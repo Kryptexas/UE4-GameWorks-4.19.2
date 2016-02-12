@@ -231,7 +231,7 @@ FReply SGraphPinKnot::OnPinMouseDown(const FGeometry& SenderGeometry, const FPoi
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		if (!GraphPinObj->bNotConnectable && IsEditable.Get())
+		if (!GraphPinObj->bNotConnectable && IsEditingEnabled())
 		{
 			if (MouseEvent.IsAltDown())
 			{

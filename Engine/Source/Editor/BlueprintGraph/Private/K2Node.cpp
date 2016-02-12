@@ -832,12 +832,12 @@ bool FOptionalPinManager::CanTreatPropertyAsOptional(UProperty* TestProperty) co
 void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct)
 {
 	// Save the old visibility
-	TMap<FName, bool> OldVisibility;
+	TMap<FName, FOldOptionalPinSettings> OldPinSettings;
 	for (auto ExtraPropertyIt = Properties.CreateIterator(); ExtraPropertyIt; ++ExtraPropertyIt)
 	{
 		FOptionalPinFromProperty& PropertyEntry = *ExtraPropertyIt;
 
-		OldVisibility.Add(PropertyEntry.PropertyName, PropertyEntry.bShowPin);
+		OldPinSettings.Add(PropertyEntry.PropertyName, FOldOptionalPinSettings(PropertyEntry.bShowPin, PropertyEntry.bIsOverrideEnabled, PropertyEntry.bIsSetValuePinVisible, PropertyEntry.bIsOverridePinVisible));
 	}
 
 	// Rebuild the property list
@@ -871,7 +871,7 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 #endif //WITH_EDITOR
 
 			OverridesMap.Remove(TestProperty->GetFName());
-			RebuildProperty(TestProperty, CategoryName, Properties, SourceStruct, OldVisibility);
+			RebuildProperty(TestProperty, CategoryName, Properties, SourceStruct, OldPinSettings);
 		}
 	}
 
@@ -885,11 +885,11 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 		CategoryName = FObjectEditorUtils::GetCategoryFName(TestProperty);
 #endif //WITH_EDITOR
 
-		RebuildProperty(TestProperty, CategoryName, Properties, SourceStruct, OldVisibility);
+		RebuildProperty(TestProperty, CategoryName, Properties, SourceStruct, OldPinSettings);
 	}
 }
 
-void FOptionalPinManager::RebuildProperty(UProperty* TestProperty, FName CategoryName, TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct, TMap<FName, bool>& OldVisibility)
+void FOptionalPinManager::RebuildProperty(UProperty* TestProperty, FName CategoryName, TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct, TMap<FName, FOldOptionalPinSettings>& OldSettings)
 {
 	FOptionalPinFromProperty* Record = new (Properties)FOptionalPinFromProperty;
 	Record->PropertyName = TestProperty->GetFName();
@@ -906,9 +906,12 @@ void FOptionalPinManager::RebuildProperty(UProperty* TestProperty, FName Categor
 	// If this is a refresh, propagate the old visibility
 	if (Record->bCanToggleVisibility)
 	{
-		if (bool* pShowHide = OldVisibility.Find(Record->PropertyName))
+		if (FOldOptionalPinSettings* OldSetting = OldSettings.Find(Record->PropertyName))
 		{
-			Record->bShowPin = *pShowHide;
+			Record->bShowPin = OldSetting->bOldVisibility;
+			Record->bIsOverrideEnabled = OldSetting->bIsOldOverrideEnabled;
+			Record->bIsSetValuePinVisible = OldSetting->bIsOldSetValuePinVisible;
+			Record->bIsOverridePinVisible = OldSetting->bIsOldOverridePinVisible;
 		}
 	}
 }
@@ -948,6 +951,8 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 							const FString PinName = PinFriendlyName.ToString();
 							NewPin = TargetNode->CreatePin(Direction, PinType, PinName);
 							NewPin->PinFriendlyName = PinFriendlyName;
+							NewPin->bNotConnectable = !PropertyEntry.bIsSetValuePinVisible;
+							NewPin->bDefaultValueIsIgnored = !PropertyEntry.bIsSetValuePinVisible;
 							Schema->ConstructBasicPinTooltip(*NewPin, PropertyEntry.PropertyTooltip, NewPin->PinToolTip);
 
 							// Allow the derived class to customize the created pin
@@ -981,6 +986,8 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 						const FString PinName = PropertyEntry.PropertyName.ToString();
 						NewPin = TargetNode->CreatePin(Direction, PinType, PinName);
 						NewPin->PinFriendlyName = PropertyEntry.PropertyFriendlyName.IsEmpty() ? FText::FromString(PinName) : FText::FromString(PropertyEntry.PropertyFriendlyName);
+						NewPin->bNotConnectable = !PropertyEntry.bIsSetValuePinVisible;
+						NewPin->bDefaultValueIsIgnored = !PropertyEntry.bIsSetValuePinVisible;
 						Schema->ConstructBasicPinTooltip(*NewPin, PropertyEntry.PropertyTooltip, NewPin->PinToolTip);
 
 						// Allow the derived class to customize the created pin

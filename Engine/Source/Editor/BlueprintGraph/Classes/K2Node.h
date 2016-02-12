@@ -10,36 +10,71 @@ class UBlueprintNodeSpawner;
 class FBlueprintActionDatabaseRegistrar;
 class UDynamicBlueprintBinding;
 
+/** Helper structure to cache old data for optional pins so the data can be restored during reconstruction */
+struct FOldOptionalPinSettings
+{
+	/** TRUE if optional pin was previously visible */
+	bool bOldVisibility;
+	/** TRUE if the optional pin's override value was previously enabled */
+	bool bIsOldOverrideEnabled;
+	/** TRUE if the optional pin's value was previously editable */
+	bool bIsOldSetValuePinVisible;
+	/** TRUE if the optional pin's override value was previously editable */
+	bool bIsOldOverridePinVisible;
+
+	FOldOptionalPinSettings(bool bInOldVisibility, bool bInIsOldOverrideEnabled, bool bInIsOldSetValuePinVisible, bool bInIsOldOverridePinVisible)
+		: bOldVisibility(bInOldVisibility)
+		, bIsOldOverrideEnabled(bInIsOldOverrideEnabled)
+		, bIsOldSetValuePinVisible(bInIsOldSetValuePinVisible)
+		, bIsOldOverridePinVisible(bInIsOldOverridePinVisible)
+	{}
+};
+
 USTRUCT()
 struct FOptionalPinFromProperty
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Category= OptionalPin, BlueprintReadOnly)
 	FName PropertyName;
 
-	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Category= OptionalPin, BlueprintReadOnly)
 	FString PropertyFriendlyName;
 
-	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Category= OptionalPin, BlueprintReadOnly)
 	FText PropertyTooltip;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
 	bool bShowPin;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
 	bool bCanToggleVisibility;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
 	bool bPropertyIsCustomized;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Hi)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=OptionalPin)
 	FName CategoryName;
 
-	UPROPERTY(EditAnywhere, Category = Hi)
+	UPROPERTY(EditAnywhere, Category=OptionalPin)
 	bool bHasOverridePin;
 
+	/** TRUE if the override value is enabled for use */
+	UPROPERTY(EditAnywhere, Category = OptionalPin)
+	bool bIsOverrideEnabled;
+
+	/** TRUE if the override value should be set through this pin */
+	UPROPERTY(EditAnywhere, Category = OptionalPin)
+	bool bIsSetValuePinVisible;
+
+	/** TRUE if the override pin is visible */
+	UPROPERTY(EditAnywhere, Category = OptionalPin)
+	bool bIsOverridePinVisible;
+
 	FOptionalPinFromProperty()
+		: bIsOverrideEnabled(true)
+		, bIsSetValuePinVisible(true)
+		, bIsOverridePinVisible(true)
 	{
 	}
 	
@@ -54,6 +89,9 @@ struct FOptionalPinFromProperty
 		, bPropertyIsCustomized(bInPropertyIsCustomized)
 		, CategoryName(InCategoryName)
 		, bHasOverridePin(bInHasOverridePin)
+		, bIsOverrideEnabled(true)
+		, bIsSetValuePinVisible(true)
+		, bIsOverridePinVisible(true)
 	{
 	}
 };
@@ -82,7 +120,7 @@ public:
 protected:
 	virtual void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const {}
 	virtual void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const {}
-	void RebuildProperty(UProperty* TestProperty, FName CategoryName, TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct, TMap<FName, bool>& OldVisibility);
+	void RebuildProperty(UProperty* TestProperty, FName CategoryName, TArray<FOptionalPinFromProperty>& Properties, UStruct* SourceStruct, TMap<FName, FOldOptionalPinSettings>& OldSettings);
 };
 
 enum ERenamePinResult

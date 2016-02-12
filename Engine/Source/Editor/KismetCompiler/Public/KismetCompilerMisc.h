@@ -123,7 +123,7 @@ protected:
 	bool ValidateAndRegisterNetIfLiteral(FKismetFunctionContext& Context, UEdGraphPin* Net);
 
 	// Helper to register literal term
-	FBPTerminal* RegisterLiteral(FKismetFunctionContext& Context, UEdGraphPin* Net);
+	virtual FBPTerminal* RegisterLiteral(FKismetFunctionContext& Context, UEdGraphPin* Net);
 public:
 	FNodeHandlingFunctor(FKismetCompilerContext& InCompilerContext)
 		: CompilerContext(InCompilerContext)

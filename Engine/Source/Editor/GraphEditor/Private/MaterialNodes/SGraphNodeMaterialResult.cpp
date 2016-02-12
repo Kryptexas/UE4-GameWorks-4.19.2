@@ -45,7 +45,6 @@ void SGraphNodeMaterialResult::CreatePinWidgets()
 		{
 			TSharedPtr<SGraphPin> NewPin = CreatePinWidget(CurPin);
 			check(NewPin.IsValid());
-			NewPin->SetIsEditable(IsEditable);
 
 			this->AddPin(NewPin.ToSharedRef());
 		}

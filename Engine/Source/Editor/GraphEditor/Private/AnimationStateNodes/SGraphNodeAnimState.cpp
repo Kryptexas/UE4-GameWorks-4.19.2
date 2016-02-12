@@ -37,7 +37,6 @@ void SStateMachineOutputPin::Construct(const FArguments& InArgs, UEdGraphPin* In
 	typedef SStateMachineOutputPin ThisClass;
 
 	bShowLabel = true;
-	IsEditable = true;
 
 	GraphPinObj = InPin;
 	check(GraphPinObj != NULL);
@@ -265,8 +264,6 @@ void SGraphNodeAnimState::CreatePinWidgets()
 	if (!CurPin->bHidden)
 	{
 		TSharedPtr<SGraphPin> NewPin = SNew(SStateMachineOutputPin, CurPin);
-
-		NewPin->SetIsEditable(IsEditable);
 
 		this->AddPin(NewPin.ToSharedRef());
 	}
