@@ -679,6 +679,7 @@ public:
 #endif
 	{
 		check(InComponent->InstanceReorderTable.Num() == InComponent->PerInstanceSMData.Num());
+		check(UnbuiltBounds.Num() == (LastUnbuiltIndex - FirstUnbuiltIndex + 1));
 		SetupOcclusion(InComponent);
 	}
 
@@ -695,6 +696,7 @@ public:
 #endif
 	{
 		check(!bInIsGrass || (!InComponent->InstanceReorderTable.Num() && !InComponent->PerInstanceSMData.Num()));
+		check(UnbuiltBounds.Num() == (LastUnbuiltIndex - FirstUnbuiltIndex + 1));
 		SetupOcclusion(InComponent);
 	}
 
@@ -1942,16 +1944,18 @@ int32 UHierarchicalInstancedStaticMeshComponent::AddInstance(const FTransform& I
 		BuildTree();
 	}
 	else
-	if (!IsAsyncBuilding())
 	{
-		BuildTreeAsync();
-	}
+		if (!IsAsyncBuilding())
+		{
+			BuildTreeAsync();
+		}
 
-	if (StaticMesh)
-	{
-		const FBox NewInstanceBounds = StaticMesh->GetBounds().GetBox().TransformBy(InstanceTransform);
-		UnbuiltInstanceBounds += NewInstanceBounds;
-		UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
+		if (StaticMesh)
+		{
+			const FBox NewInstanceBounds = StaticMesh->GetBounds().GetBox().TransformBy(InstanceTransform);
+			UnbuiltInstanceBounds += NewInstanceBounds;
+			UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
+		}
 	}
 
 	return InstanceIndex;
