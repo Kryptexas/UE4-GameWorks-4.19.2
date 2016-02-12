@@ -88,6 +88,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Compiler)
 	bool bJumpToNodeErrors;
 
+	/** If enabled, "Set Members..." nodes will cache any non-reference passed in the input on the output by-ref pin. This allows it to modify literals and other by-value items passed into it. */
+	UPROPERTY(EditAnywhere, config, Category = Experimental, AdvancedDisplay)
+	bool bAllowReferencePassThroughsToCacheNonReferences;
+
 	/** If enabled, nodes can be explicitly disabled via context menu when right-clicking on impure nodes in the Blueprint editor. Disabled nodes will not be compiled, but also will not break existing connections. */
 	UPROPERTY(EditAnywhere, config, Category=Experimental, AdvancedDisplay)
 	bool bAllowExplicitImpureNodeDisabling;

@@ -74,6 +74,13 @@ public:
 		, Dependencies(InDependencies)
 	{}
 
+	// PROPERTIES FOR INACCESSIBLE MEMBER VARIABLES
+	TMap<const UProperty*, FString> PropertiesForInaccessibleStructs;
+	void ResetPropertiesForInaccessibleStructs()
+	{
+		PropertiesForInaccessibleStructs.Empty();
+	}
+
 	// CONSTRUCTOR FUNCTIONS
 
 	static const TCHAR* ClassSubobjectListName(EClassSubobjectList ListType)

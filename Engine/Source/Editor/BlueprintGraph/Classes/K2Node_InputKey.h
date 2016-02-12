@@ -2,8 +2,11 @@
 
 
 #pragma once
-#include "K2Node.h"
+
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "InputCoreTypes.h"
+#include "K2Node.h"
+
 #include "K2Node_InputKey.generated.h"
 
 UCLASS(MinimalAPI)

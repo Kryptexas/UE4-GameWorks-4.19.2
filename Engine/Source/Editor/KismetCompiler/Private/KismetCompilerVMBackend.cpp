@@ -1322,8 +1322,9 @@ public:
 		int32 EventType = 0;
 		switch (Statement.Type)
 		{
-			case KCST_InstrumentedWireExit:		EventType = EScriptInstrumentation::NodeExit; break;
-			case KCST_InstrumentedWireEntry:	EventType = EScriptInstrumentation::NodeEntry; break;
+			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
+			case KCST_InstrumentedWireEntry:		EventType = EScriptInstrumentation::NodeEntry; break;
+			case KCST_InstrumentedPureNodeEntry:	EventType = EScriptInstrumentation::PureNodeEntry; break;
 		}
 		Writer << EX_InstrumentationEvent;
 		Writer << EventType;
@@ -1484,6 +1485,7 @@ public:
 			EmitSwitchValue(Statement);
 			break;
 		case KCST_InstrumentedWireExit:
+		case KCST_InstrumentedWireEntry:
 			{
 				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(Statement.ExecContext));
 				if (TrueSourcePin)
@@ -1491,10 +1493,6 @@ public:
 					int32 Offset = Writer.ScriptBuffer.Num() + sizeof(int32);
 					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
 				}
-			}
-			// no break, continue down.
-		case KCST_InstrumentedWireEntry:
-			{
 				if (SourceNode != NULL)
 				{
 					// Record where this NOP is
@@ -1514,6 +1512,9 @@ public:
 						ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, false);
 					}
 				}
+			}
+		case KCST_InstrumentedPureNodeEntry:
+			{
 				// Emit Statement
 				EmitInstrumentation(Statement);
 				break;

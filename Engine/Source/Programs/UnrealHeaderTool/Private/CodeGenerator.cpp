@@ -1312,9 +1312,23 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 	FUHTStringBuilder CallSingletons;
 	FString ApiString = GetAPIString();
 
+	TSet<FName> AlreadyIncludedNames;
 	TArray<UFunction*> FunctionsToExport;
 	for( TFieldIterator<UFunction> Function(Class,EFieldIteratorFlags::ExcludeSuper); Function; ++Function )
 	{
+		UFunction* LocalFunc = *Function;
+		FName TrueName = FNativeClassHeaderGenerator::GetOverriddenFName(LocalFunc);
+		bool bAlreadyIncluded = false;
+		AlreadyIncludedNames.Add(TrueName, &bAlreadyIncluded);
+		if (bAlreadyIncluded)
+		{
+			// In a dynamic class the same function signature may be used for a Multi- and a Single-cast delegate.
+			if (!LocalFunc->IsA<UDelegateFunction>() || !bIsDynamic)
+			{
+				FError::Throwf(TEXT("The same function linked twice. Function: %s Class: %s"), *LocalFunc->GetName(), *Class->GetName());
+			}
+			continue;
+		}
 		FunctionsToExport.Add(*Function);
 	}
 
@@ -5308,8 +5322,6 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 
 	GeneratedLinkerFixupFunction.Logf(TEXT("void EmptyLinkFunctionForGeneratedCode%s() {}") LINE_TERMINATOR, *ModuleInfo->Name);
 
-	GeneratedCPPText.Log(*GeneratedPackageCPP);
-
 	{
 		// Autogenerate names (alphabetically sorted).
 		ReferencedNames.KeySort( TLess<FName>() );
@@ -5319,6 +5331,8 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 			GeneratedCPPText.Logf(TEXT("FName %s_%s = FName(TEXT(\"%s\"));") LINE_TERMINATOR, *API, *PairIt.Key.ToString(), *PairIt.Value.ToString());
 		}
 	}
+
+	GeneratedCPPText.Log(*GeneratedPackageCPP);
 
 	GeneratedCPPEpilogue.Logf(
 		LINE_TERMINATOR

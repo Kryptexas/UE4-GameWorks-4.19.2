@@ -427,6 +427,18 @@ public:
 	// Required by UHT makefiles for internal data serialization.
 	friend struct FStructArchiveProxy;
 #endif // HACK_HEADER_GENERATOR
+
+protected:
+
+	/** Returns the property name from the guid */
+	virtual FName FindPropertyNameFromGuid(const FGuid& PropertyGuid) const { return NAME_None; }
+
+	/** Find property guid */
+	virtual FGuid FindPropertyGuidFromName(const FName InName) const { return FGuid(); }
+
+	/** Returns if we have access to property guids */
+	virtual bool ArePropertyGuidsAvailable() const { return false; }
+
 };
 
 enum EStructFlags
@@ -1373,7 +1385,7 @@ public:
 		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
 		const uint64 IgnoreFlags = CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference 
 			| CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_HasGetValueTypeHash | CPF_UObjectWrapper
-			| CPF_NativeAccessSpecifiers;
+			| CPF_NativeAccessSpecifiers | CPF_AdvancedDisplay;
 		return IgnoreFlags;
 	}
 
@@ -2920,6 +2932,11 @@ template<> struct TBaseStructure<FGuid>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
+
+template<> struct TBaseStructure<FBox2D>
+{
+	COREUOBJECT_API static UScriptStruct* Get();
+};	
 
 struct FFallbackStruct;
 template<> struct TBaseStructure<FFallbackStruct>

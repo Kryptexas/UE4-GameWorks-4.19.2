@@ -2,8 +2,6 @@
 
 #include "Private/BlueprintProfilerPCH.h"
 
-#include "BlueprintProfilerSupport.h"
-
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintInstrumentedEvent
 
@@ -13,6 +11,18 @@ void FBlueprintInstrumentedEvent::SetData(EScriptInstrumentation::Type InEventTy
 	PathData = InPathData;
 	CodeOffset = InCodeOffset;
 	Time = FPlatformTime::Seconds();
+}
+
+FName FBlueprintInstrumentedEvent::GetFunctionName() const
+{
+	FName Result = NAME_None;
+	int32 FunctionStart = INDEX_NONE;
+	if (PathData.FindLastChar(':', FunctionStart))
+	{
+		FunctionStart++;
+		Result = FName(*PathData.Right(PathData.Len() - FunctionStart));
+	}
+	return Result;
 }
 
 //////////////////////////////////////////////////////////////////////////

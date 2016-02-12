@@ -6,6 +6,7 @@
 #include "EngineLogs.h"
 #include "K2Node.generated.h"
 
+class UActorComponent;
 class UBlueprintNodeSpawner;
 class FBlueprintActionDatabaseRegistrar;
 class UDynamicBlueprintBinding;
@@ -109,7 +110,7 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
 	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) override;
-	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetReferencedLevelActor(); }
+    BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const override;
 	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
 	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }
@@ -119,6 +120,9 @@ class UK2Node : public UEdGraphNode
 	// End of UEdGraphNode interface
 
 	// K2Node interface
+
+	UPROPERTY()
+	TMap<UEdGraphPin*, UEdGraphPin*> ByRefMatchupPins;
 
 	// Reallocate pins during reconstruction; by default ignores the old pins and calls AllocateDefaultPins()
 	BLUEPRINTGRAPH_API virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins);

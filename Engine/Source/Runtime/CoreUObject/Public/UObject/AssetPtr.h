@@ -36,6 +36,15 @@ public:
 	}
 
 	/**  
+	 * Construct from a unique object identifier
+	 * @param ObjectID Object identifier to create a weak pointer to
+	**/
+	explicit FORCEINLINE FAssetPtr(const FStringAssetReference &ObjectID)
+		: TPersistentObjectPtr<FStringAssetReference>(ObjectID)
+	{
+	}
+
+	/**  
 	 * Construct from another lazy pointer
 	 * @param Other lazy pointer to copy from
 	 */
@@ -103,6 +112,15 @@ public:
 	**/
 	FORCEINLINE TAssetPtr(const T* Object)
 		: AssetPtr(Object)
+	{
+	}
+
+	/**  
+	 * Construct from a unique object identifier
+	 * @param ObjectID Object identifier to create a weak pointer to
+	**/
+	explicit FORCEINLINE TAssetPtr(const FStringAssetReference &ObjectID)
+		: AssetPtr(ObjectID)
 	{
 	}
 
@@ -323,6 +341,15 @@ public:
 	**/
 	FORCEINLINE TAssetSubclassOf(const UClass* From)
 		: AssetPtr(From)
+	{
+	}
+
+	/**  
+	 * Construct from a unique object identifier
+	 * @param ObjectID Object identifier to create a weak pointer to
+	**/
+	explicit FORCEINLINE TAssetSubclassOf(const FStringAssetReference &ObjectID)
+		: AssetPtr(ObjectID)
 	{
 	}
 

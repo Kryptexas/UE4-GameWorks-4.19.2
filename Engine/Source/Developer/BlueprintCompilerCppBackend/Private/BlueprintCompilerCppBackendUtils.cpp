@@ -745,6 +745,7 @@ void FEmitHelper::EmitSinglecastDelegateDeclarations_Inner(FEmitterLocalContext&
 	check(Signature);
 	FString ParamNumberStr, Parameters;
 	ParseDelegateDetails(EmitterContext, Signature, Parameters, ParamNumberStr);
+	EmitterContext.Header.AddLine(FString::Printf(TEXT("UDELEGATE(%s)"), *FEmitHelper::HandleMetaData(Signature, false)));
 	EmitterContext.Header.AddLine(FString::Printf(TEXT("DECLARE_DYNAMIC_DELEGATE%s(%s%s);"), *ParamNumberStr, *TypeName, *Parameters));
 }
 
@@ -778,6 +779,7 @@ void FEmitHelper::EmitMulticastDelegateDeclarations(FEmitterLocalContext& Emitte
 			| EPropertyExportCPPFlags::CPPF_NoRef
 			| EPropertyExportCPPFlags::CPPF_NoStaticArray
 			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("UDELEGATE(%s)"), *FEmitHelper::HandleMetaData(Signature, false)));
 		const FString TypeName = EmitterContext.ExportCppDeclaration(*It, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("DECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s);"), *ParamNumberStr, *TypeName, *Parameters));
 	}
@@ -977,7 +979,13 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	{
 		if (LiteralObject)
 		{
-			return FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
+			const bool bAssetSubclassOf = (UEdGraphSchema_K2::PC_AssetClass == Type.PinCategory);
+			UClass* MetaClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
+			MetaClass = MetaClass ? MetaClass : UObject::StaticClass();
+			return FString::Printf(TEXT("%s<%s>(FStringAssetReference(TEXT(\"%s\")))")
+				, bAssetSubclassOf ? TEXT("TAssetSubclassOf") : TEXT("TAssetPtr")
+				, *FEmitHelper::GetCppName(EmitterContext.GetFirstNativeOrConvertedClass(MetaClass))
+				, *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
 		}
 		return FString(TEXT("nullptr"));
 	}
@@ -1249,6 +1257,13 @@ FString FEmitHelper::ReplaceConvertedMetaData(UObject* Obj)
 FString FEmitHelper::GenerateGetPropertyByName(FEmitterLocalContext& EmitterContext, const UProperty* Property)
 {
 	check(Property);
+
+	FString* AlreadyCreatedProperty = EmitterContext.PropertiesForInaccessibleStructs.Find(Property);
+	if (AlreadyCreatedProperty)
+	{
+		return *AlreadyCreatedProperty;
+	}
+
 	const FString PropertyPtrName = EmitterContext.GenerateUniqueLocalName();
 
 	static const FBoolConfigValueHelper UseStaticVariables(TEXT("BlueprintNativizationSettings"), TEXT("bUseStaticVariablesInClasses"));
@@ -1281,6 +1296,11 @@ FString FEmitHelper::GenerateGetPropertyByName(FEmitterLocalContext& EmitterCont
 			, *PropertyOwnerStruct
 			, *Property->GetName()));
 		EmitterContext.AddLine(FString::Printf(TEXT("check(%s);"), *PropertyPtrName));
+	}
+
+	if (EmitterContext.CurrentCodeType != FEmitterLocalContext::EGeneratedCodeType::Regular)
+	{
+		EmitterContext.PropertiesForInaccessibleStructs.Add(Property, PropertyPtrName);
 	}
 	return PropertyPtrName;
 }

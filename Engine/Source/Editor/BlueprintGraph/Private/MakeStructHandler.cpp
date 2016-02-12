@@ -30,6 +30,7 @@ UEdGraphPin* FKCHandler_MakeStruct::FindStructPinChecked(UEdGraphNode* Node) con
 
 FKCHandler_MakeStruct::FKCHandler_MakeStruct(FKismetCompilerContext& InCompilerContext)
 	: FNodeHandlingFunctor(InCompilerContext)
+	, bAutoGenerateGotoForPure(true)
 {
 }
 
@@ -164,7 +165,7 @@ void FKCHandler_MakeStruct::Compile(FKismetFunctionContext& Context, UEdGraphNod
 		}
 	}
 
-	if (!Node->IsNodePure())
+	if (bAutoGenerateGotoForPure && !Node->IsNodePure())
 	{
 		GenerateSimpleThenGoto(Context, *Node);
 	}

@@ -18,6 +18,7 @@ public class Kismet : ModuleRules
                 "DerivedDataCache",
                 "LevelEditor",
 				"GameProjectGeneration",
+                "BlueprintProfiler"
 			}
 			);
 

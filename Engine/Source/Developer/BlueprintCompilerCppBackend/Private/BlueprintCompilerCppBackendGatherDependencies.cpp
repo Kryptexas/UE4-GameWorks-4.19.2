@@ -3,6 +3,8 @@
 #include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
 #include "IBlueprintCompilerCppBackendModule.h"
+#include "BlueprintEditorUtils.h"
+#include "K2Node_EnumLiteral.h"
 
 struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
 {
@@ -65,19 +67,28 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
 	{
-		if (!InObject || InObject->IsA<UBlueprint>() || (InObject == Dependencies.GetActualStruct()))
+		UObject* Object = InObject;
+		if (!Object || Object->IsA<UBlueprint>())
 		{
 			return;
 		}
 
-		const bool bUseZConstructorInGeneratedCode = true;
+		UClass* ActualClass = Cast<UClass>(Dependencies.GetActualStruct());
+		UStruct* CurrentlyConvertedStruct = ActualClass ? Dependencies.FindOriginalClass(ActualClass) : Dependencies.GetActualStruct();
+		ensure(CurrentlyConvertedStruct);
+		if (Object == CurrentlyConvertedStruct)
+		{
+			return;
+		}
+
+		const bool bUseZConstructorInGeneratedCode = false;
 
 		//TODO: What About Delegates?
-		auto ObjAsBPGC = Cast<UBlueprintGeneratedClass>(InObject);
+		auto ObjAsBPGC = Cast<UBlueprintGeneratedClass>(Object);
 		const bool bWillBeConvetedAsBPGC = ObjAsBPGC && Dependencies.WillClassBeConverted(ObjAsBPGC);
 		if (bWillBeConvetedAsBPGC)
 		{
-			if (ObjAsBPGC != Dependencies.GetActualStruct())
+			if (ObjAsBPGC != CurrentlyConvertedStruct)
 			{
 				Dependencies.ConvertedClasses.Add(ObjAsBPGC);
 				if(!bUseZConstructorInGeneratedCode)
@@ -86,7 +97,7 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 				}
 			}
 		}
-		else if (UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(InObject))
+		else if (UUserDefinedStruct* UDS = Cast<UUserDefinedStruct>(Object))
 		{
 			if (!UDS->HasAnyFlags(RF_ClassDefaultObject))
 			{
@@ -97,14 +108,14 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 				}
 			}
 		}
-		else if (UUserDefinedEnum* UDE = Cast<UUserDefinedEnum>(InObject))
+		else if (UUserDefinedEnum* UDE = Cast<UUserDefinedEnum>(Object))
 		{
 			if (!UDE->HasAnyFlags(RF_ClassDefaultObject))
 			{
 				Dependencies.ConvertedEnum.Add(UDE);
 			}
 		}
-		else if ((InObject->IsAsset() || ObjAsBPGC) && !InObject->IsIn(Dependencies.GetActualStruct()))
+		else if ((Object->IsAsset() || ObjAsBPGC) && !Object->IsIn(CurrentlyConvertedStruct))
 		{
 			// include all not converted super classes
 			for (auto SuperBPGC = ObjAsBPGC ? Cast<UBlueprintGeneratedClass>(ObjAsBPGC->GetSuperClass()) : nullptr;
@@ -114,22 +125,22 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 				Dependencies.Assets.AddUnique(SuperBPGC);
 			}
 
-			Dependencies.Assets.AddUnique(InObject);
+			Dependencies.Assets.AddUnique(Object);
 			return;
 		}
-		else if (auto ObjAsClass = Cast<UClass>(InObject))
+		else if (auto ObjAsClass = Cast<UClass>(Object))
 		{
 			if (ObjAsClass->HasAnyClassFlags(CLASS_Native))
 			{
 				return;
 			}
 		}
-		else if (InObject->IsA<UScriptStruct>())
+		else if (Object->IsA<UScriptStruct>())
 		{
 			return;
 		}
 
-		FindReferencesForNewObject(InObject);
+		FindReferencesForNewObject(Object);
 	}
 };
 
@@ -139,52 +150,134 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 		: FGatherConvertedClassDependenciesHelperBase(InDependencies)
 	{
 		FindReferences(Dependencies.GetActualStruct());
+
+		// special case - literal enum
+		UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(Dependencies.GetActualStruct());
+		UBlueprint* BP = BPGC ? Cast<UBlueprint>(BPGC->ClassGeneratedBy) : nullptr;
+		if (BP)
+		{
+			TArray<UEdGraph*> Graphs;
+			BP->GetAllGraphs(Graphs);
+			for (UEdGraph* Graph : Graphs)
+			{
+				if (Graph)
+				{
+					TArray<UK2Node_EnumLiteral*> LiteralEnumNodes;
+					Graph->GetNodesOfClass<UK2Node_EnumLiteral>(LiteralEnumNodes);
+					for (UK2Node_EnumLiteral* LiteralEnumNode : LiteralEnumNodes)
+					{
+						UEnum* Enum = LiteralEnumNode ? LiteralEnumNode->Enum : nullptr;
+						IncludeTheHeaderInBody(Enum);
+					}
+				}
+			}
+		}
 	}
 
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
 	{
-		if (!InObject || InObject->IsA<UBlueprint>() || (InObject == Dependencies.GetActualStruct()))
+		UObject* Object = InObject;
+		if (!Object || Object->IsA<UBlueprint>())
 		{
 			return;
 		}
 
-		auto ObjAsField = Cast<UField>(InObject);
-		if (!ObjAsField && InObject->IsA<UBlueprintFunctionLibrary>())
-		{
-			ObjAsField = InObject->GetClass();
-		}
-
-		if (ObjAsField && !ObjAsField->HasAnyFlags(RF_ClassDefaultObject))
-		{
-			if (ObjAsField->IsA<UProperty>())
-			{
-				ObjAsField = ObjAsField->GetOwnerStruct();
-			}
-			if (ObjAsField->IsA<UFunction>())
-			{
-				ObjAsField = ObjAsField->GetOwnerClass();
-			}
-			IncludeTheHeaderInBody(ObjAsField);
-		}
-
-		if ((InObject->IsAsset() || InObject->IsA<UBlueprintGeneratedClass>()) && !InObject->IsIn(Dependencies.GetActualStruct()))
+		UClass* ActualClass = Cast<UClass>(Dependencies.GetActualStruct());
+		UStruct* CurrentlyConvertedStruct = ActualClass ? Dependencies.FindOriginalClass(ActualClass) : Dependencies.GetActualStruct();
+		ensure(CurrentlyConvertedStruct);
+		if (Object == CurrentlyConvertedStruct)
 		{
 			return;
 		}
 
-		FindReferencesForNewObject(InObject);
+		{
+			auto ObjAsField = Cast<UField>(Object);
+			if (!ObjAsField)
+			{
+				const bool bTransientObject = (Object->HasAnyFlags(RF_Transient) && !Object->IsIn(CurrentlyConvertedStruct)) || Object->IsIn(GetTransientPackage());
+				if (bTransientObject)
+				{
+					return;
+				}
+
+				ObjAsField = Object->GetClass();
+			}
+
+			if (ObjAsField && !ObjAsField->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				if (ObjAsField->IsA<UProperty>())
+				{
+					ObjAsField = ObjAsField->GetOwnerStruct();
+				}
+				if (ObjAsField->IsA<UFunction>())
+				{
+					ObjAsField = ObjAsField->GetOwnerClass();
+				}
+				IncludeTheHeaderInBody(ObjAsField);
+			}
+		}
+
+		if ((Object->IsAsset() || Object->IsA<UBlueprintGeneratedClass>()) && !Object->IsIn(CurrentlyConvertedStruct))
+		{
+			return;
+		}
+
+		auto OwnedByAnythingInHierarchy = [&]()->bool
+		{
+			for (UStruct* IterStruct = CurrentlyConvertedStruct; IterStruct; IterStruct = IterStruct->GetSuperStruct())
+			{
+				if (Object->IsIn(IterStruct))
+				{
+					return true;
+				}
+				UClass* IterClass = Cast<UClass>(IterStruct);
+				UObject* CDO = IterClass ? IterClass->GetDefaultObject(false) : nullptr;
+				if (CDO && Object->IsIn(CDO))
+				{
+					return true;
+				}
+			}
+			return false;
+		};
+		if (!Object->IsA<UField>() && !Object->HasAnyFlags(RF_ClassDefaultObject) && !OwnedByAnythingInHierarchy())
+		{
+			Object = Object->GetClass();
+		}
+
+		FindReferencesForNewObject(Object);
 	}
 };
 
 FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* InStruct) : OriginalStruct(InStruct)
 {
 	check(OriginalStruct);
+
 	// Gather headers and type declarations for header.
 	DependenciesForHeader();
 	// Gather headers (only from the class hierarchy) to include in body.
 	FFindHeadersToInclude FindHeadersToInclude(*this);
 	// Gather assets that must be referenced.
 	FFindAssetsToInclude FindAssetsToInclude(*this);
+
+	static const FBoolConfigValueHelper DontNativizeDataOnlyBP(TEXT("BlueprintNativizationSettings"), TEXT("bDontNativizeDataOnlyBP"));
+	if (DontNativizeDataOnlyBP)
+	{
+		auto RemoveFieldsFromDataOnlyBP = [](TSet<UField*>& FieldSet)
+		{
+			for (auto Iter = FieldSet.CreateIterator(); Iter; ++Iter)
+			{
+				UClass* CurrentClass = (*Iter) ? (*Iter)->GetOwnerClass() : nullptr;
+				UBlueprint* CurrentBP = CurrentClass ? Cast<UBlueprint>(CurrentClass->ClassGeneratedBy) : nullptr;
+				if (CurrentBP && FBlueprintEditorUtils::IsDataOnlyBlueprint(CurrentBP))
+				{
+					Iter.RemoveCurrent();
+				}
+			}
+		};
+		RemoveFieldsFromDataOnlyBP(IncludeInHeader);
+		RemoveFieldsFromDataOnlyBP(DeclareInHeader);
+		RemoveFieldsFromDataOnlyBP(IncludeInBody);
+	}
 }
 
 UClass* FGatherConvertedClassDependencies::FindOriginalClass(const UClass* InClass) const
@@ -309,13 +402,28 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		}
 	}
 
+
+	UClass* AsBPGC = Cast<UBlueprintGeneratedClass>(OriginalStruct);
+	UClass* OriginalClassFromOriginalPackage = AsBPGC ? FindOriginalClass(AsBPGC) : nullptr;
+
 	const UPackage* OriginalStructPackage = OriginalStruct ? OriginalStruct->GetOutermost() : nullptr;
 	for (auto Iter = IncludeInHeader.CreateIterator(); Iter; ++Iter)
 	{
 		UField* CurrentField = *Iter;
-		if (CurrentField && (CurrentField->GetOutermost() == OriginalStructPackage))
+		if (CurrentField)
 		{
-			Iter.RemoveCurrent();
+			if (CurrentField->GetOutermost() == OriginalStructPackage)
+			{
+				Iter.RemoveCurrent();
+			}
+			else if (CurrentField == OriginalStruct)
+			{
+				Iter.RemoveCurrent();
+			}
+			else if (OriginalClassFromOriginalPackage && (CurrentField == OriginalClassFromOriginalPackage))
+			{
+				Iter.RemoveCurrent();
+			}
 		}
 	}
 }

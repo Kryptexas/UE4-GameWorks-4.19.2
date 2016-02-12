@@ -815,6 +815,9 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			const int32 EventType = ReadINT(ScriptIndex);
 			switch (EventType)
 			{
+				case EScriptInstrumentation::PureNodeEntry:
+					Ar.Logf(TEXT("%s $%X: .. instrumented pure node entry site .."), *Indents, (int32)Opcode);
+					break;
 				case EScriptInstrumentation::NodeEntry:
 					Ar.Logf(TEXT("%s $%X: .. instrumented wire entry site .."), *Indents, (int32)Opcode);
 					break;

@@ -517,6 +517,23 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 
 	// Grab the blueprint variables
 	NewClass->NumReplicatedProperties = 0;	// Keep track of how many replicated variables this blueprint adds
+	// Clear out any existing property guids
+	const bool bRebuildPropertyMap = bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad;
+	if (bRebuildPropertyMap)
+	{
+		NewClass->PropertyGuids.Reset();
+		// Add any chained parent blueprint map values
+		UBlueprint* ParentBP = Cast<UBlueprint>(Blueprint->ParentClass->ClassGeneratedBy);
+		while (ParentBP)
+		{
+			if (UBlueprintGeneratedClass* ParentBPGC = Cast<UBlueprintGeneratedClass>(ParentBP->GeneratedClass))
+			{
+				NewClass->PropertyGuids.Append(ParentBPGC->PropertyGuids);
+			}
+			ParentBP = Cast<UBlueprint>(ParentBP->ParentClass->ClassGeneratedBy);
+		}
+	}
+
 	for (int32 i = 0; i < Blueprint->NewVariables.Num(); ++i)
 	{
 		FBPVariableDescription& Variable = Blueprint->NewVariables[Blueprint->NewVariables.Num() - (i + 1)];
@@ -551,6 +568,11 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 						MessageLog.Warning(*FString::Printf(*LOCTEXT("ExposeToSpawnButPrivateWarning", "Variable %s is marked as 'Expose on Spawn' but not marked as 'Editable'; please make it 'Editable'").ToString(), *NewProperty->GetName()));
 					}
 				}
+			}
+			if (bRebuildPropertyMap)
+			{
+				// Update new class property guid map
+				NewClass->PropertyGuids.Add(Variable.VarName, Variable.VarGuid);
 			}
 		}
 	}
@@ -1471,9 +1493,9 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 		SortKeyMap.Add(Node, i);
 
 		const FString NodeComment = Node->NodeComment.IsEmpty() ? Node->GetName() : Node->NodeComment;
-
+		const bool bPureNode = IsNodePure(Node);
 		// Debug comments
-		if (KismetCompilerDebugOptions::EmitNodeComments)
+		if (KismetCompilerDebugOptions::EmitNodeComments && !Context.bGeneratingCpp)
 		{
 			FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
 			Statement.Type = KCST_Comment;
@@ -1481,23 +1503,41 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 		}
 
 		// Debug opcode insertion point
-		if (Context.IsDebuggingOrInstrumentationRequired() && !IsNodePure(Node))
+		if (Context.IsDebuggingOrInstrumentationRequired())
 		{
-			bool bEmitDebuggingSite = true;
-
-			if (Context.IsEventGraph() && (Node->IsA(UK2Node_FunctionEntry::StaticClass())))
+			if (!bPureNode)
 			{
-				// The entry point in the ubergraph is a non-visual construct, and will lead to some
-				// other 'fake' entry point such as an event or latent action.  Therefore, don't create
-				// debug data for the behind-the-scenes entry point, only for the user-visible ones.
-				bEmitDebuggingSite = false;
-			}
+				bool bEmitDebuggingSite = true;
 
-			if (bEmitDebuggingSite)
+				if (Context.IsEventGraph() && (Node->IsA(UK2Node_FunctionEntry::StaticClass())))
+				{
+					// The entry point in the ubergraph is a non-visual construct, and will lead to some
+					// other 'fake' entry point such as an event or latent action.  Therefore, don't create
+					// debug data for the behind-the-scenes entry point, only for the user-visible ones.
+					bEmitDebuggingSite = false;
+				}
+				if (bEmitDebuggingSite)
+				{
+					FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
+					Statement.Type = Context.GetBreakpointType();
+					if (Context.IsInstrumentationRequired())
+					{
+						for (auto Pin : Node->Pins)
+						{
+							if (Pin->Direction == EGPD_Input && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+							{
+								Statement.ExecContext = Pin;
+								break;
+							}
+						}
+					}
+					Statement.Comment = NodeComment;
+				}
+			}
+			else if (Context.IsInstrumentationRequired())
 			{
 				FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
-				Statement.Type = Context.GetBreakpointType();
-				Statement.Comment = NodeComment;
+				Statement.Type = KCST_InstrumentedPureNodeEntry;
 			}
 		}
 
@@ -1583,6 +1623,12 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 			++TestIndex;
 		}
 	}
+
+	if (Context.bIsUbergraph && CompileOptions.DoesRequireCppCodeGeneration())
+	{
+		Context.UnsortedSeparateExecutionGroups = FKismetCompilerUtilities::FindUnsortedSeparateExecutionGroups(Context.LinearExecutionList);
+	}
+
 }
 
 /**

@@ -5,6 +5,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Engine/InheritableComponentHandler.h"
 #include "Engine/DynamicBlueprintBinding.h"
+#include "Runtime/Core/Public/Math/Box2D.h"
 
 void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	, const UProperty* Property
@@ -171,20 +172,52 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 	
 	if (ArrayProperty)
 	{
+		const bool bInitializeWithoutScriptStruct = false;
 		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
+		UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner);
+		auto IsSpecialStructType = [](UScriptStruct* InScriptStruct) ->bool
+		{
+			return (InScriptStruct == TBaseStructure<FRotator>::Get())
+				|| (InScriptStruct == TBaseStructure<FTransform>::Get())
+				|| (InScriptStruct == TBaseStructure<FLinearColor>::Get())
+				|| (InScriptStruct == TBaseStructure<FColor>::Get())
+				|| (InScriptStruct == TBaseStructure<FVector>::Get())
+				|| (InScriptStruct == TBaseStructure<FVector2D>::Get())
+				|| (InScriptStruct == TBaseStructure<FRandomStream>::Get())
+				|| (InScriptStruct == TBaseStructure<FGuid>::Get());
+		};
+		UScriptStruct* InnerStruct = ((!bInitializeWithoutScriptStruct) && InnerStructProperty && !IsSpecialStructType(InnerStructProperty->Struct)) ? InnerStructProperty->Struct : nullptr;
+		if (ScriptArrayHelper.Num())
+		{
+			const TCHAR* ArrayReserveFunctionName = InnerStruct ? TEXT("AddUninitialized") : TEXT("Reserve");
+			Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, ArrayReserveFunctionName, ScriptArrayHelper.Num()));
+
+			if (InnerStruct)
+			{
+				const FString InnerStructStr = Context.FindGloballyMappedObject(InnerStruct);
+				Context.AddLine(FString::Printf(TEXT("%s->InitializeStruct(%s.GetData(), %d);"), *InnerStructStr, *PathToMember, ScriptArrayHelper.Num()));
+			}
+		}
+
+		const FStructOnScope DefaultStruct(InnerStruct);
+
 		for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
 		{
 			const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
 
-			FString ValueStr;
-			const bool bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, true);
-			Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
-			if (!bComplete)
+			bool bComplete = false;
+			if (!InnerStruct)
+			{
+				FString ValueStr;
+				bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, bInitializeWithoutScriptStruct);
+				ensure(bComplete || bInitializeWithoutScriptStruct);
+				Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
+			}
+			
+			if (InnerStruct || (bInitializeWithoutScriptStruct && !bComplete))
 			{
 				const FString LocalPathToMember = FString::Printf(TEXT("%s[%d]"), *PathToMember, Index);
-
-				// There is no point in doing diff with a "clean" struct, since we don't know what is really set by the native constructor.
-				InnerGenerate(Context, ArrayProperty->Inner, LocalPathToMember, LocalValuePtr, nullptr, true);
+				InnerGenerate(Context, ArrayProperty->Inner, LocalPathToMember, LocalValuePtr, DefaultStruct.GetStructMemory(), true);
 			}
 		}
 	}
@@ -258,7 +291,43 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 			const FGuid* Guid = reinterpret_cast<const FGuid*>(ValuePtr);
 			return FString::Printf(TEXT("FGuid(0x%08X, 0x%08X, 0x%08X, 0x%08X)"), Guid->A, Guid->B, Guid->C, Guid->D);
 		}
+
+		if (TBaseStructure<FRotator>::Get() == StructProperty->Struct)
+		{
+			const FRotator* Rotator = reinterpret_cast<const FRotator*>(ValuePtr);
+			return FString::Printf(TEXT("FRotator(%f, %f, %f)"), Rotator->Pitch, Rotator->Yaw, Rotator->Roll);
+		}
+
+		if (TBaseStructure<FLinearColor>::Get() == StructProperty->Struct)
+		{
+			const FLinearColor* LinearColor = reinterpret_cast<const FLinearColor*>(ValuePtr);
+			return FString::Printf(TEXT("FLinearColor(%f, %f, %f, %f)"), LinearColor->R, LinearColor->B, LinearColor->G, LinearColor->A);
+		}
+
+		if (TBaseStructure<FColor>::Get() == StructProperty->Struct)
+		{
+			const FColor* Color = reinterpret_cast<const FColor*>(ValuePtr);
+			return FString::Printf(TEXT("FColor(%d, %d, %d, %d)"), Color->R, Color->B, Color->G, Color->A);
+		}
+
+		if (TBaseStructure<FVector2D>::Get() == StructProperty->Struct)
+		{
+			const FVector2D* Vector2D = reinterpret_cast<const FVector2D*>(ValuePtr);
+			return FString::Printf(TEXT("FVector2D(%f, %f)"), Vector2D->X, Vector2D->Y);
+		}
+
+		if (TBaseStructure<FBox2D>::Get() == StructProperty->Struct)
+		{
+			const FBox2D* Box2D = reinterpret_cast<const FBox2D*>(ValuePtr);
+			return FString::Printf(TEXT("CreateFBox2D(FVector2D(%f, %f), FVector2D(%f, %f), %s)")
+				, Box2D->Min.X
+				, Box2D->Min.Y
+				, Box2D->Max.X
+				, Box2D->Max.Y
+				, Box2D->bIsValid ? TEXT("true") : TEXT("false"));
+		}
 	}
+
 	return FString();
 }
 
@@ -435,7 +504,7 @@ private:
 public:
 	static void AddDependenciesInConstructor(FEmitterLocalContext& Context)
 	{
-		const bool bUseZConstructorInGeneratedCode = true;
+		const bool bUseZConstructorInGeneratedCode = false;
 		if (Context.Dependencies.ConvertedClasses.Num())
 		{
 			Context.AddLine(TEXT("// List of all referenced converted classes"));
@@ -600,6 +669,7 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->Timelines.Num());"));
 		Context.AddLine(TEXT("ensure(nullptr == CastChecked<UDynamicClass>(GetClass())->AnimClassImplementation);"));
 		Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass;
+		Context.ResetPropertiesForInaccessibleStructs();
 
 		FDependenciesHelper::AddDependenciesInConstructor(Context);
 
@@ -644,6 +714,7 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 
 	{
 		Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::CommonConstructor;
+		Context.ResetPropertiesForInaccessibleStructs();
 		// Let's have an easy access to generated class subobjects
 		Context.AddLine(TEXT("{")); // no shadow variables
 		Context.IncreaseIndent();
@@ -769,7 +840,7 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
 	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
-
+	Context.ResetPropertiesForInaccessibleStructs();
 	{
 		Context.AddLine(FString::Printf(TEXT("void %s::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
@@ -820,11 +891,14 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 		LocalNativeName = Context.GenerateUniqueLocalName();
 		Context.AddClassSubObject_InConstructor(Object, LocalNativeName);
 		UClass* ObjectClass = Object->GetClass();
+		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
+		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
 		Context.AddLine(FString::Printf(
-			TEXT("auto %s = NewObject<%s>(%s, TEXT(\"%s\"));")
+			TEXT("auto %s = NewObject<%s>(%s, %s, TEXT(\"%s\"));")
 			, *LocalNativeName
-			, *FEmitHelper::GetCppName(ObjectClass)
+			, *NativeType
 			, *OuterStr
+			, *ActualClass
 			, *Object->GetName()));
 		if (AddAsSubobjectOfClass)
 		{
@@ -927,10 +1001,15 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 			ensure(false);
 			return FString();
 		}
-		Context.AddLine(FString::Printf(TEXT("auto %s = NewObject<%s>(%s, TEXT(\"%s\"));")
+
+		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
+		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
+		Context.AddLine(FString::Printf(
+			TEXT("auto %s = NewObject<%s>(%s, %s, TEXT(\"%s\"));")
 			, *LocalNativeName
-			, *FEmitHelper::GetCppName(ObjectClass)
+			, *NativeType
 			, *OuterStr
+			, *ActualClass
 			, *Object->GetName()));
 	}
 

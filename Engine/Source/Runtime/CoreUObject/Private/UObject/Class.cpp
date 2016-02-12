@@ -870,6 +870,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 
 	UClass* DefaultsClass = dynamic_cast<UClass*>(DefaultsStruct);
 	UScriptStruct* DefaultsScriptStruct = dynamic_cast<UScriptStruct*>(DefaultsStruct);
+	// Determine if this struct supports optional property guid's (UBlueprintGeneratedClasses Only)
+	const bool bArePropertyGuidsAvailable = (Ar.UE4Ver() >= VER_UE4_PROPERTY_GUID_IN_PROPERTY_TAG) && !FPlatformProperties::RequiresCookedData() && ArePropertyGuidsAvailable();
 
 	if( Ar.IsLoading() )
 	{
@@ -921,6 +923,16 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				RemainingArrayDim	= Property ? Property->ArrayDim : 0;
 			}
 			
+			// Optionally resolve properties using Guid Property tags in non cooked builds that support it.
+			if (bArePropertyGuidsAvailable && Tag.HasPropertyGuid)
+			{
+				// Use property guids from blueprint generated classes to redirect serialised data.
+				FName Result = FindPropertyNameFromGuid(Tag.PropertyGuid);
+				if (Result != NAME_None && Tag.Name != Result)
+				{
+					Tag.Name = Result;
+				}
+			}
 			// If this property is not the one we expect (e.g. skipped as it matches the default value), do the brute force search.
 			if( Property == NULL || Property->GetFName() != Tag.Name )
 			{
@@ -1431,6 +1443,12 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						FArchive::FScopeAddDebugData S(Ar, Property->GetFName());
 #endif
 						FPropertyTag Tag( Ar, Property, Idx, DataPtr, DefaultValue );
+						// If available use the property guid from BlueprintGeneratedClasses, provided we aren't cooking data.
+						if (bArePropertyGuidsAvailable && !Ar.IsCooking())
+						{
+							const FGuid PropertyGuid = FindPropertyGuidFromName(Tag.Name);
+							Tag.SetPropertyGuid(PropertyGuid);
+						}
 						Ar << Tag;
 
 						// need to know how much data this call to SerializeTaggedProperty consumes, so mark where we are
@@ -4794,6 +4812,11 @@ UScriptStruct* TBaseStructure<FGuid>::Get()
 	return ScriptStruct;
 }
 
+UScriptStruct* TBaseStructure<FBox2D>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Box2D"));
+	return ScriptStruct;
+}
 
 UScriptStruct* TBaseStructure<FFallbackStruct>::Get()
 {

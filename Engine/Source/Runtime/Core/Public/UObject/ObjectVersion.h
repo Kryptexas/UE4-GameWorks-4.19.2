@@ -600,6 +600,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FIX_SLOT_NAME_DUPLICATION,
 	// Texture streaming using AABBs instead of Spheres
 	VER_UE4_STREAMABLE_TEXTURE_AABB,
+	// FPropertyTag stores GUID of property
+	VER_UE4_PROPERTY_GUID_IN_PROPERTY_TAG,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraphSchema.h"
+#include "EdGraph/EdGraphPin.h"
 #include "EdGraphSchema_K2.generated.h"
 
 /** Reference to an structure (only used in 'docked' palette) */

@@ -57,11 +57,7 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	}
 
 	/** Static name of function to call */
-	static FName GetAddComponentFunctionName()
-	{
-		static const FName AddComponentFunctionName(GET_FUNCTION_NAME_CHECKED(AActor, AddComponent));
-		return AddComponentFunctionName;
-	}
+	static BLUEPRINTGRAPH_API FName GetAddComponentFunctionName();
 
 private: 
 	UEdGraphPin* GetTemplateNamePin() const

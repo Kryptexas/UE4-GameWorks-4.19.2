@@ -67,7 +67,8 @@ bool UUserWidget::Initialize()
 		{
 			//TODO NickD: This is a hack, and should be undone later
 			UWidgetBlueprintGeneratedClass* SuperBGClass = Cast<UWidgetBlueprintGeneratedClass>(BGClass->GetSuperClass());
-			if (BGClass->WidgetTree->RootWidget == nullptr && SuperBGClass )
+			const bool bNoRootWidget = (nullptr == BGClass->WidgetTree) || (nullptr == BGClass->WidgetTree->RootWidget);
+			if (bNoRootWidget && SuperBGClass)
 			{
 				SuperBGClass->InitializeWidget(this);
 			}

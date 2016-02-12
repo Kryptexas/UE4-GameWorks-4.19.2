@@ -20,6 +20,9 @@ public class BlueprintProfiler : ModuleRules
         if (UEBuildConfiguration.bBuildEditor == true)
         {
             PrivateDependencyModuleNames.Add("UnrealEd");
+            PrivateDependencyModuleNames.Add("Kismet");
+            PrivateDependencyModuleNames.Add("BlueprintGraph");
+            PrivateDependencyModuleNames.Add("EditorStyle");
         }
 
         if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)

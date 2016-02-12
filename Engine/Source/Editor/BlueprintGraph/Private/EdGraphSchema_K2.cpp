@@ -1672,6 +1672,8 @@ void UEdGraphSchema_K2::OnReplaceVariableForVariableNode( UK2Node_Variable* Vari
 		}
 		Pin->PinName = VariableName;
 		Variable->ReconstructNode();
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(OwnerBlueprint);
 	}
 }
 
@@ -4032,9 +4034,9 @@ void UEdGraphSchema_K2::ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchR
 				|| TargetNode.Pins.Contains(Pin);
 			if (!bIsValidPin)
 			{
-				UE_LOG(LogBlueprint, Error, 
-					TEXT("Broken Node: %s keeps removed/invalid pin: %s. Try refresh all nodes."),
-					*TargetNode.GetFullName(), *Pin->GetFullName());
+				UE_LOG(LogBlueprint, Warning,
+					TEXT("Invalid pin: '%s' thinks it belongs to a node ('%s' - '%s') which doesn't have record of it. Try refreshing the node, then compile and resave the Blueprint to hopefully aleviate the problem."),
+					*Pin->PinName, *TargetNode.GetNodeTitle(ENodeTitleType::MenuTitle).ToString(), *TargetNode.GetFullName());
 			}
 		}
 	}
@@ -6040,6 +6042,9 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 
 	ParentPin->bHidden = false;
 
+	UEdGraph* Graph = CastChecked<UEdGraph>(GraphNode->GetOuter());
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
+
 	for (int32 SubPinIndex = 0; SubPinIndex < ParentPin->SubPins.Num(); ++SubPinIndex)
 	{
 		UEdGraphPin* SubPin = ParentPin->SubPins[SubPinIndex];
@@ -6050,6 +6055,7 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		}
 
 		GraphNode->Pins.Remove(SubPin);
+		Blueprint->PinWatches.Remove(SubPin);
 	}
 
 	if (Pin->Direction == EGPD_Input)
@@ -6084,13 +6090,9 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		}
 	}
 
+	ParentPin->SubPins.Empty();	
 
-	ParentPin->SubPins.Empty();
-
-	UEdGraph* Graph = CastChecked<UEdGraph>(GraphNode->GetOuter());
 	Graph->NotifyGraphChanged();
-
-	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 }
 

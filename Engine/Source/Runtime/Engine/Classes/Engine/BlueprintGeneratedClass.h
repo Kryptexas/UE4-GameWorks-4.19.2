@@ -341,6 +341,17 @@ public:
 		PerFuncInfo.LineNumberToPinMap.Add(CodeOffset, ExecPin);
 	}
 
+	int32 FindPinToCodeAssociation(UEdGraphPin const* ExecPin, UFunction* InFunction)
+	{
+		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
+		int32 Result = INDEX_NONE;
+		if (const int32* CodeOffset = PerFuncInfo.LineNumberToPinMap.FindKey(ExecPin))
+		{
+			Result = *CodeOffset;
+		}
+		return Result;
+	}
+
 	// Registers an association between an object (pin or node typically) and an associated class member property
 	void RegisterClassPropertyAssociation(class UObject* TrueSourceObject, class UProperty* AssociatedProperty)
 	{
@@ -517,7 +528,11 @@ public:
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Transient)
 	UObject* OverridenArchetypeForCDO;
-#endif //WITH_EDITOR
+
+	/** Property guid map */
+	UPROPERTY()
+	TMap<FName,FGuid> PropertyGuids;
+#endif //WITH_EDITORONLY_DATA
 
 	// Mapping of changed properties & data to apply when instancing components in a cooked build (one entry per named AddComponent node template for fast lookup at runtime).
 	// Note: This is not currently utilized by the editor; it is a runtime optimization for cooked builds only. It assumes that the component class structure does not change.
@@ -572,7 +587,15 @@ public:
 	{
 		return CustomPropertyListForPostConstruction.Num() > 0 ? *CustomPropertyListForPostConstruction.GetData() : nullptr;
 	}
+
+protected:
+
+	virtual FName FindPropertyNameFromGuid(const FGuid& PropertyGuid) const override;
+	virtual FGuid FindPropertyGuidFromName(const FName InName) const override;
+	virtual bool ArePropertyGuidsAvailable() const override;
 	// End UClass interface
+
+public:
 
 	/** Called when the custom list of properties used during post-construct initialization needs to be rebuilt (e.g. after serialization and recompilation). */
 	void UpdateCustomPropertyListForPostConstruction();

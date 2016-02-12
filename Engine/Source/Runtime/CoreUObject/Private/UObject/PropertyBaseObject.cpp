@@ -455,10 +455,10 @@ void UObjectPropertyBase::CheckValidObject(void* Value) const
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 		FLinkerLoad* PropertyLinker = GetLinker();
 		bool const bIsDeferringValueLoad = ((PropertyLinker == nullptr) || (PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads)) &&
-			Object->IsA<ULinkerPlaceholderExportObject>();
+			(Object->IsA<ULinkerPlaceholderExportObject>() || Object->IsA<ULinkerPlaceholderClass>());
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-		check(bIsDeferringValueLoad || !Object->IsA<ULinkerPlaceholderExportObject>());
+		check( bIsDeferringValueLoad || (!Object->IsA<ULinkerPlaceholderExportObject>() && !Object->IsA<ULinkerPlaceholderClass>()) );
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING 

@@ -101,6 +101,9 @@
 
 #include "IMenu.h"
 
+// Blueprint Profiler
+#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
 /////////////////////////////////////////////////////
@@ -2205,7 +2208,8 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 
 		this->BlueprintProfiler =
 			SNew(SBlueprintProfilerView)
-			.ProfileViewType(PVT_LiveView);
+			.AssetEditor(SharedThis(this))
+			.ProfileViewType(EBlueprintPerfViewType::ExecutionGraph);
 
 		this->Palette = 
 			SNew(SBlueprintPalette, SharedThis(this))

@@ -503,7 +503,7 @@ void FKismetDebugUtilities::CheckBreakConditions(UEdGraphNode* NodeStoppedAt, bo
 				Data.GraphStack.Push(NewGraph);
 			}
 		}
-		else
+		else if (Data.GraphStack.Num())
 		{
 			UEdGraph* CurrGraph = NodeStoppedAt->GetTypedOuter<UEdGraph>();
 			if (Data.GraphStack.Last() != CurrGraph)

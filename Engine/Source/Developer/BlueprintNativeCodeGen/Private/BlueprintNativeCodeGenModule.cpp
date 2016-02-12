@@ -7,6 +7,7 @@
 #include "BlueprintNativeCodeGenModule.h"
 #include "BlueprintNativeCodeGenUtils.h"
 #include "IBlueprintCompilerCppBackendModule.h"
+#include "BlueprintEditorUtils.h"
 #include "Engine/Blueprint.h" // for EBlueprintType
 
 /*******************************************************************************
@@ -127,17 +128,33 @@ void FBlueprintNativeCodeGenModule::FillTargetedForReplacementQuery()
 
 namespace 
 {
-	void GetFieldFormPackage(UPackage* Package, UStruct*& OutStruct, UEnum*& OutEnum)
+	void GetFieldFormPackage(const UPackage* Package, UStruct*& OutStruct, UEnum*& OutEnum, EObjectFlags ExcludedFlags = RF_Transient)
 	{
 		TArray<UObject*> Objects;
 		GetObjectsWithOuter(Package, Objects, false);
 		for (auto Entry : Objects)
 		{
-			if (Entry->HasAnyFlags(RF_Transient))
+			if (Entry->HasAnyFlags(ExcludedFlags))
 			{
 				continue;
 			}
 
+			if (UClass* AsClass = Cast<UClass>(Entry))
+			{
+				// Not a placeholder
+				if (AsClass->GetName().Contains(TEXT("PLACEHOLDER")))
+				{
+					continue;
+				}
+				// Not a skeleton class
+				if (UBlueprint* GeneratingBP = Cast<UBlueprint>(AsClass->ClassGeneratedBy))
+				{
+					if (AsClass != GeneratingBP->GeneratedClass)
+					{
+						continue;
+					}
+				}
+			}
 			OutStruct = Cast<UStruct>(Entry);
 			if (OutStruct)
 			{
@@ -387,7 +404,7 @@ void FBlueprintNativeCodeGenModule::GenerateStubs()
 				continue;
 			}
 
-			ensure(AllPotentialStubs.Contains(BPPtr));
+			ensureMsgf(AllPotentialStubs.Contains(BPPtr), TEXT("A required blueprint doesn't generate stub: %s"), *BPPtr.ToString());
 			for (auto& PlatformName : TargetPlatformNames)
 			{
 				GenerateSingleStub(BPPtr.LoadSynchronous(), *PlatformName);
@@ -513,17 +530,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 	// non-native packages with enums and structs should be converted, unless they are blacklisted:
 	UStruct* Struct = nullptr;
 	UEnum* Enum = nullptr;
-	TArray<UObject*> Objects;
-	GetObjectsWithOuter(Package, Objects, false);
-	for (auto Entry : Objects)
-	{
-		Struct = Cast<UStruct>(Entry);
-		Enum = Cast<UEnum>(Entry);
-		if (Struct || Enum)
-		{
-			break;
-		}
-	}
+	GetFieldFormPackage(Package, Struct, Enum, RF_NoFlags);
 
 	UObject* Target = Struct;
 	if (Target == nullptr)
@@ -559,9 +566,29 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 			{
 				if (BlueprintType == UnconvertableBlueprintTypes[TypeIndex])
 				{
+					Result = EReplacementResult::GenerateStub;
+				}
+			}
+
+			static const FBoolConfigValueHelper DontNativizeDataOnlyBP(TEXT("BlueprintNativizationSettings"), TEXT("bDontNativizeDataOnlyBP"));
+			if (DontNativizeDataOnlyBP)
+			{
+				if (FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
+				{
 					return EReplacementResult::DontReplace;
 				}
 			}
+
+			for (UBlueprintGeneratedClass* ParentClassIt = Cast<UBlueprintGeneratedClass>(BlueprintClass->GetSuperClass())
+				; ParentClassIt; ParentClassIt = Cast<UBlueprintGeneratedClass>(ParentClassIt->GetSuperClass()))
+			{
+				EReplacementResult ParentResult = IsTargetedForReplacement(ParentClassIt);
+				if (ParentResult != EReplacementResult::ReplaceCompletely)
+				{
+					Result = EReplacementResult::GenerateStub;
+				}
+			}
+
 			for (TAssetSubclassOf<UBlueprint> ExcludedBlueprintTypeAsset : ExcludedBlueprintTypes)
 			{
 				UClass* ExcludedBPClass = ExcludedBlueprintTypeAsset.Get();

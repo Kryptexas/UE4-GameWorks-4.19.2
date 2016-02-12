@@ -280,6 +280,11 @@ void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin)
 	NotifyPinConnectionListChanged(Pin);
 }
 
+UObject* UK2Node::GetJumpTargetForDoubleClick() const
+{
+    return GetReferencedLevelActor();
+}
+
 void UK2Node::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	AllocateDefaultPins();

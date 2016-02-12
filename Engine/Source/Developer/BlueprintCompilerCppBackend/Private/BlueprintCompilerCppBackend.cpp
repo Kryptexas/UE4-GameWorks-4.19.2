@@ -82,9 +82,20 @@ void FBlueprintCompilerCppBackend::EmitCallStatment(FEmitterLocalContext& Emitte
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
+
+	FString CalledNamePostfix;
+	if (Statement.TargetLabel && UberGraphContext && (UberGraphContext->Function == Statement.FunctionToCall) && UberGraphContext->UnsortedSeparateExecutionGroups.Num())
+	{
+		int32* ExecutionGroupIndexPtr = UberGraphStatementToExecutionGroup.Find(Statement.TargetLabel);
+		if (ensure(ExecutionGroupIndexPtr))
+		{
+			CalledNamePostfix = FString::Printf(TEXT("_%d"), *ExecutionGroupIndexPtr);
+		}
+	}
+
 	{
 		FSafeContextScopedEmmitter SafeContextScope(EmitterContext, bUseSafeContext ? Statement.FunctionContext : nullptr, *this);
-		FString Result = EmitCallStatmentInner(EmitterContext, Statement, false);
+		FString Result = EmitCallStatmentInner(EmitterContext, Statement, false, CalledNamePostfix);
 		EmitterContext.AddLine(Result);
 	}
 }
@@ -251,11 +262,14 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 {
 	if (Statement.Type == KCST_ComputedGoto)
 	{
-		FString NextStateExpression;
-		NextStateExpression = TermToText(EmitterContext, Statement.LHS);
+		if (bUseGotoState)
+		{
+			FString NextStateExpression;
+			NextStateExpression = TermToText(EmitterContext, Statement.LHS);
 
-		EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %s;"), *NextStateExpression));
-		EmitterContext.AddLine(FString::Printf(TEXT("break;\n")));
+			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %s;"), *NextStateExpression));
+			EmitterContext.AddLine(FString::Printf(TEXT("break;\n")));
+		}
 	}
 	else if ((Statement.Type == KCST_GotoIfNot) || (Statement.Type == KCST_EndOfThreadIfNot) || (Statement.Type == KCST_GotoReturnIfNot))
 	{
@@ -267,45 +281,98 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		EmitterContext.IncreaseIndent();
 		if (Statement.Type == KCST_EndOfThreadIfNot)
 		{
-			ensure(FunctionContext.bUseFlowStack);
-			EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
+			if (bUseFlowStack)
+			{
+				EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
+			}
+			else if (bUseGotoState)
+			{
+				EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+			}
+			else
+			{
+				// is it needed?
+				EmitterContext.AddLine(TEXT("return; //KCST_EndOfThreadIfNot"));
+			}
 		}
 		else if (Statement.Type == KCST_GotoReturnIfNot)
 		{
-			EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+			if (bUseGotoState)
+			{
+				EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+			}
+			else
+			{
+				// is it needed?
+				EmitterContext.AddLine(TEXT("return; //KCST_GotoReturnIfNot"));
+			}
 		}
 		else
 		{
+			ensureMsgf(bUseGotoState, TEXT("KCST_GotoIfNot requires bUseGotoState == true class: %s"), *GetPathNameSafe(EmitterContext.GetCurrentlyGeneratedClass()));
 			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 		}
 
-		EmitterContext.AddLine(FString::Printf(TEXT("break;")));
+		if (bUseGotoState)
+		{
+			EmitterContext.AddLine(FString::Printf(TEXT("break;")));
+		}
 		EmitterContext.DecreaseIndent();
 		EmitterContext.AddLine(FString::Printf(TEXT("}")));
 	}
 	else if (Statement.Type == KCST_GotoReturn)
 	{
-		EmitterContext.AddLine(TEXT("CurrentState = -1;"));
-		EmitterContext.AddLine(FString::Printf(TEXT("break;")));
+		if (bUseGotoState)
+		{
+			EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+			EmitterContext.AddLine(FString::Printf(TEXT("break;")));
+		}
+		else
+		{
+			EmitterContext.AddLine(TEXT("return; // KCST_GotoReturn"));
+		}
+	}
+	else if (Statement.Type == KCST_UnconditionalGoto)
+	{
+		if (bUseGotoState)
+		{
+			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
+			EmitterContext.AddLine(FString::Printf(TEXT("break;")));
+		}
+		else
+		{
+			EmitterContext.AddLine(FString::Printf(TEXT("// optimized KCST_UnconditionalGoto")));
+		}
 	}
 	else
 	{
-		EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
-		EmitterContext.AddLine(FString::Printf(TEXT("break;")));
+		check(false);
 	}
 }
 
 void FBlueprintCompilerCppBackend::EmitPushStateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	ensure(FunctionContext.bUseFlowStack);
+	ensure(bUseFlowStack);
 	EmitterContext.AddLine(FString::Printf(TEXT("StateStack.Push(%d);"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 }
 
 void FBlueprintCompilerCppBackend::EmitEndOfThreadStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext)
 {
-	ensure(FunctionContext.bUseFlowStack);
-	EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
-	EmitterContext.AddLine(TEXT("break;"));
+	if (bUseFlowStack)
+	{
+		EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
+		EmitterContext.AddLine(TEXT("break;"));
+	}
+	else if (bUseGotoState)
+	{
+		EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+		EmitterContext.AddLine(TEXT("break;"));
+	}
+	else
+	{
+		// is it needed?
+		EmitterContext.AddLine(TEXT("return; //KCST_EndOfThread"));
+	}
 }
 
 FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement)
@@ -414,13 +481,25 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 	return Result;
 }
 
-FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement, bool bInline)
+FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement, bool bInline, FString PostFix)
 {
 	const bool bCallOnDifferentObject = Statement.FunctionContext && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
 	const bool bAnyInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
-	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event);
+	const bool bInterfaceCallExecute = bAnyInterfaceCall && Statement.FunctionToCall && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Event | FUNC_BlueprintEvent);
+
+	const UClass* CurrentClass = EmitterContext.GetCurrentlyGeneratedClass();
+	const UClass* SuperClass = CurrentClass ? CurrentClass->GetSuperClass() : nullptr;
+	const UClass* OriginalSuperClass = SuperClass ? EmitterContext.Dependencies.FindOriginalClass(SuperClass) : nullptr;
+	const UFunction* ActualParentFunction = (Statement.bIsParentContext && OriginalSuperClass) ? OriginalSuperClass->FindFunctionByName(Statement.FunctionToCall->GetFName(), EIncludeSuperFlag::IncludeSuper) : nullptr;
+	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName(ActualParentFunction ? ActualParentFunction : FEmitHelper::GetOriginalFunction(Statement.FunctionToCall)) + PostFix;
+	const bool bIsFunctionValidToCallFromBP = !ActualParentFunction || ActualParentFunction->HasAnyFunctionFlags(FUNC_Native) || (ActualParentFunction->Script.Num() > 0);
+
+	if (!bIsFunctionValidToCallFromBP)
+	{
+		return TEXT("/*This function cannot be called from BP. See bIsValidFunction in UObject::CallFunction*/");
+	}
 
 	FString Result;
 	FString CloseCast;
@@ -443,7 +522,6 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	}
 
 	// Emit object to call the method on
-	const FString FunctionToCallOriginalName = FEmitHelper::GetCppName(FEmitHelper::GetOriginalFunction(Statement.FunctionToCall));
 	if (bInterfaceCallExecute)
 	{
 		auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
@@ -485,6 +563,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			Result += TEXT("Super::");
 		}
 		Result += FunctionToCallOriginalName;
+
 		if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall))
 		{
 			ensure(!bCallOnDifferentObject);
@@ -525,7 +604,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		}
 		else if (KCST_CallFunction == Term->InlineGeneratedParameter->Type)
 		{
-			return EmitCallStatmentInner(EmitterContext, *Term->InlineGeneratedParameter, true);
+			return EmitCallStatmentInner(EmitterContext, *Term->InlineGeneratedParameter, true, FString());
 		}
 		else
 		{
@@ -690,161 +769,410 @@ FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FEmitterLocal
 	check(LinkageTermStartIdx != INDEX_NONE);
 	StructValues = StructValues.Replace(TEXT("-1"), *FString::FromInt(TargetStateIndex));
 
+	int32* ExecutionGroupPtr = UberGraphStatementToExecutionGroup.Find(TargetLabel);
+	if (ExecutionGroupPtr && UberGraphContext)
+	{
+		const FString OldExecutionFunctionName = UEdGraphSchema_K2::FN_ExecuteUbergraphBase.ToString() + TEXT("_") + UberGraphContext->Blueprint->GetName();
+		const FString NewExecutionFunctionName = OldExecutionFunctionName + FString::Printf(TEXT("_%d"), *ExecutionGroupPtr);
+		StructValues = StructValues.Replace(*OldExecutionFunctionName, *NewExecutionFunctionName);
+	}
+
 	return FEmitHelper::LiteralTerm(EmitterContext, Term->Type, StructValues, nullptr);
 }
 
-void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState)
+void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, int32 ExecutionGroup)
 {
-	if (bUseSwitchState)
+	EmitterContext.ResetPropertiesForInaccessibleStructs();
+
+	bUseExecutionGroup = ExecutionGroup >= 0;
+	ensure(FunctionContext.bIsUbergraph || !bUseExecutionGroup); // currently we split only ubergraphs
+
+	auto DoesUseFlowStack = [&]() -> bool
 	{
-		if (FunctionContext.bUseFlowStack)
+		for (UEdGraphNode* Node : FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup])
+		{
+			TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(Node);
+			const bool bFlowStackIsRequired = StatementList && StatementList->ContainsByPredicate([](const FBlueprintCompiledStatement* Statement)->bool
+			{
+				return Statement && (Statement->Type == KCST_PushState);
+			});
+			if (bFlowStackIsRequired)
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+	bUseFlowStack =  bUseExecutionGroup ? DoesUseFlowStack() : FunctionContext.bUseFlowStack;
+
+	UEdGraphNode* TheOnlyEntryPoint = nullptr;
+	TArray<UEdGraphNode*> LocalLinearExecutionList;
+	//TODO: unify ubergraph and function handling
+	if (bUseExecutionGroup)
+	{
+		const bool bCanUseWithoutGotoState = PrepareToUseExecutionGroupWithoutGoto(FunctionContext, ExecutionGroup, TheOnlyEntryPoint);
+		const bool bSortedWithoutCycles = bCanUseWithoutGotoState && SortNodesInUberGraphExecutionGroup(FunctionContext, TheOnlyEntryPoint, ExecutionGroup, LocalLinearExecutionList);
+		bUseGotoState = !bSortedWithoutCycles;
+	}
+	else
+	{
+		bUseGotoState = FunctionContext.MustUseSwitchState(nullptr) || FunctionContext.bIsUbergraph;
+	}
+	ensure(!bUseFlowStack || bUseGotoState);
+	TArray<UEdGraphNode*>* ActualLinearExecutionList = &FunctionContext.LinearExecutionList;
+	if (bUseGotoState)
+	{
+		if (bUseFlowStack)
 		{
 			EmitterContext.AddLine(TEXT("TArray< int32, TInlineAllocator<8> > StateStack;\n"));
 		}
-
-		EmitterContext.AddLine(TEXT("int32 CurrentState = 0;"));
+		if (FunctionContext.bIsUbergraph)
+		{
+			EmitterContext.AddLine(TEXT("int32 CurrentState = bpp__EntryPoint__pf;"));
+		}
+		else
+		{
+			FBlueprintCompiledStatement* FirstStatement = nullptr;
+			for (int32 NodeIndex = 0; (NodeIndex < FunctionContext.LinearExecutionList.Num()) && (!FirstStatement); ++NodeIndex)
+			{
+				UEdGraphNode* ItNode = FunctionContext.LinearExecutionList[NodeIndex];
+				TArray<FBlueprintCompiledStatement*>* FirstStatementList = ItNode ? FunctionContext.StatementsPerNode.Find(ItNode) : nullptr;
+				FirstStatement = (FirstStatementList && FirstStatementList->Num()) ? (*FirstStatementList)[0] : nullptr;
+			}
+			const int32 FirstIndex = FirstStatement ? StatementToStateIndex(FunctionContext, FirstStatement) : 0;
+			EmitterContext.AddLine(FString::Printf(TEXT("int32 CurrentState = %d;"), FirstIndex));
+		}
 		EmitterContext.AddLine(TEXT("do"));
 		EmitterContext.AddLine(TEXT("{"));
 		EmitterContext.IncreaseIndent();
 		EmitterContext.AddLine(TEXT("switch( CurrentState )"));
 		EmitterContext.AddLine(TEXT("{"));
-		EmitterContext.AddLine(TEXT("case 0:"));
-		EmitterContext.IncreaseIndent();
-		EmitterContext.AddLine(TEXT("{"));
-		EmitterContext.IncreaseIndent();
 	}
-
-	// Emit code in the order specified by the linear execution list (the first node is always the entry point for the function)
-	for (int32 NodeIndex = 0; NodeIndex < FunctionContext.LinearExecutionList.Num(); ++NodeIndex)
+	else if (FunctionContext.bIsUbergraph)
 	{
-		UEdGraphNode* StatementNode = FunctionContext.LinearExecutionList[NodeIndex];
-		TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(StatementNode);
-
-		if (!StatementList)
+		if (ensure(TheOnlyEntryPoint))
 		{
-			continue;
-		}
-
-		for (int32 StatementIndex = 0; StatementIndex < StatementList->Num(); ++StatementIndex)
-		{
-			FBlueprintCompiledStatement& Statement = *((*StatementList)[StatementIndex]);
-
-			if (Statement.bIsJumpTarget && bUseSwitchState)
-			{
-				EmitterContext.DecreaseIndent();
-				EmitterContext.AddLine(TEXT("}"));
-				const int32 StateNum = StatementToStateIndex(FunctionContext, &Statement);
-				EmitterContext.DecreaseIndent();
-				EmitterContext.AddLine(FString::Printf(TEXT("case %d:"), StateNum));
-				EmitterContext.IncreaseIndent();
-				EmitterContext.AddLine(TEXT("{"));
-				EmitterContext.IncreaseIndent();
-			}
-
-			switch (Statement.Type)
-			{
-			case KCST_Nop:
-				EmitterContext.AddLine(TEXT("//No operation."));
-				break;
-			case KCST_CallFunction:
-				EmitCallStatment(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_Assignment:
-				EmitAssignmentStatment(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_CompileError:
-				UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered KCST_CompileError"));
-				EmitterContext.AddLine(TEXT("static_assert(false); // KCST_CompileError"));
-				break;
-			case KCST_PushState:
-				EmitPushStateStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_Return:
-				UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered KCST_Return"));
-				EmitterContext.AddLine(TEXT("// Return statement."));
-				break;
-			case KCST_EndOfThread:
-				EmitEndOfThreadStatement(EmitterContext, FunctionContext);
-				break;
-			case KCST_Comment:
-				EmitterContext.AddLine(FString::Printf(TEXT("// %s"), *Statement.Comment.Replace(TEXT("\n"), TEXT(" "))));
-				break;
-			case KCST_DebugSite:
-				break;
-			case KCST_CastObjToInterface:
-				EmitCastObjToInterfaceStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_DynamicCast:
-				EmitDynamicCastStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_ObjectToBool:
-				EmitObjectToBoolStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_AddMulticastDelegate:
-				EmitAddMulticastDelegateStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_ClearMulticastDelegate:
-				EmitClearMulticastDelegateStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_WireTraceSite:
-				break;
-			case KCST_BindDelegate:
-				EmitBindDelegateStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_RemoveMulticastDelegate:
-				EmitRemoveMulticastDelegateStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_CallDelegate:
-				EmitCallDelegateStatment(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_CreateArray:
-				EmitCreateArrayStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_CrossInterfaceCast:
-				EmitCastBetweenInterfacesStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_MetaCast:
-				EmitMetaCastStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_CastInterfaceToObj:
-				EmitCastInterfaceToObjStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_ComputedGoto:
-			case KCST_UnconditionalGoto:
-			case KCST_GotoIfNot:
-			case KCST_EndOfThreadIfNot:
-			case KCST_GotoReturn:
-			case KCST_GotoReturnIfNot:
-				EmitGotoStatement(EmitterContext, FunctionContext, Statement);
-				break;
-			case KCST_SwitchValue:
-				// Switch Value should be always an "inline" statement, so there is no point to handle it here
-				// case: KCST_AssignmentOnPersistentFrame
-			default:
-				EmitterContext.AddLine(TEXT("// Warning: Ignoring unsupported statement\n"));
-				UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered unsupported statement type %d"), (int32)Statement.Type);
-				break;
-			};
+			TArray<FBlueprintCompiledStatement*>* FirstStatementList = FunctionContext.StatementsPerNode.Find(TheOnlyEntryPoint);
+			FBlueprintCompiledStatement* FirstStatement = (FirstStatementList && FirstStatementList->Num()) ? (*FirstStatementList)[0] : nullptr;
+			const int32 UberGraphOnlyEntryPoint = ensure(FirstStatement) ? StatementToStateIndex(FunctionContext, FirstStatement) : -1;
+			EmitterContext.AddLine(FString::Printf(TEXT("check(bpp__EntryPoint__pf == %d);"), UberGraphOnlyEntryPoint));
+			ActualLinearExecutionList = &LocalLinearExecutionList;
 		}
 	}
 
-	if (bUseSwitchState)
+	EmitAllStatements(FunctionContext, ExecutionGroup, EmitterContext, *ActualLinearExecutionList);
+
+	if (bUseGotoState)
 	{
 		EmitterContext.DecreaseIndent();
-		// Default error-catching case 
 		EmitterContext.AddLine(TEXT("}"));
 		EmitterContext.DecreaseIndent();
 		EmitterContext.AddLine(TEXT("default:"));
 		EmitterContext.IncreaseIndent();
-		if (FunctionContext.bUseFlowStack)
+		if (bUseFlowStack)
 		{
 			EmitterContext.AddLine(TEXT("check(false); // Invalid state"));
 		}
 		EmitterContext.AddLine(TEXT("break;"));
 		EmitterContext.DecreaseIndent();
-		// Close the switch block and do-while loop
 		EmitterContext.AddLine(TEXT("}"));
 		EmitterContext.DecreaseIndent();
 		EmitterContext.AddLine(TEXT("} while( CurrentState != -1 );"));
 	}
+}
+
+bool FBlueprintCompilerCppBackend::SortNodesInUberGraphExecutionGroup(FKismetFunctionContext &FunctionContext, UEdGraphNode* TheOnlyEntryPoint, int32 ExecutionGroup, TArray<UEdGraphNode*> &LocalLinearExecutionList)
+{
+	bool bFoundComputedGoto = false;
+	ensure(FunctionContext.LinearExecutionList.Contains(TheOnlyEntryPoint));
+	TArray<UEdGraphNode*> RemainLinearExecutionList;
+	for (UEdGraphNode* NodeIt : FunctionContext.LinearExecutionList)
+	{
+		if (FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(NodeIt))
+		{
+			RemainLinearExecutionList.Push(NodeIt);
+		}
+	}
+	UEdGraphNode* NextNode = TheOnlyEntryPoint;
+	while (RemainLinearExecutionList.Num())
+	{
+		UEdGraphNode* CurrentNode = NextNode;
+		NextNode = nullptr;
+		int32 IndexOfCurrentNodeInRemainList = RemainLinearExecutionList.IndexOfByKey(CurrentNode);
+		ensure(IndexOfCurrentNodeInRemainList != INDEX_NONE);
+		RemainLinearExecutionList.RemoveAt(IndexOfCurrentNodeInRemainList, 1, false);
+		LocalLinearExecutionList.Push(CurrentNode);
+		TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(CurrentNode);
+		if (StatementList)
+		{
+			for (int32 StatementIndex = 0; StatementIndex < StatementList->Num(); ++StatementIndex)
+			{
+				FBlueprintCompiledStatement& Statement = *((*StatementList)[StatementIndex]);
+				if (Statement.Type == KCST_ComputedGoto)
+				{
+					ensure(!bFoundComputedGoto);
+					bFoundComputedGoto = true;
+					ensure(CurrentNode == TheOnlyEntryPoint);
+				}
+				if (Statement.Type == KCST_UnconditionalGoto)
+				{
+					ensure(StatementIndex == (StatementList->Num() - 1)); // it should be the last statement generated from the node
+					ensure(Statement.TargetLabel);
+					auto FindNodeFormStatement = [&](FBlueprintCompiledStatement* InStatement, TArray<UEdGraphNode*> InNodes)->UEdGraphNode*
+					{
+						UEdGraphNode* FoundNode = nullptr;
+						for (UEdGraphNode* ItNode : InNodes)
+						{
+							TArray<FBlueprintCompiledStatement*>* LocStatementList = FunctionContext.StatementsPerNode.Find(ItNode);
+							if (LocStatementList && LocStatementList->Contains(InStatement))
+							{
+								return ItNode;
+							}
+						}
+						return nullptr;
+					};
+					NextNode = FindNodeFormStatement(Statement.TargetLabel, RemainLinearExecutionList);
+					if (!NextNode)
+					{
+						UE_LOG(LogK2Compiler, Log
+							, TEXT("Unexpected UnconditionalGoto (probably a cycle) in %s execution group %d, node: %s (%s)")
+							, *GetPathNameSafe(FunctionContext.Function)
+							, ExecutionGroup
+							, *GetPathNameSafe(CurrentNode)
+							, *CurrentNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
+						return false;
+					}
+				}
+			}
+		}
+		if (!NextNode && RemainLinearExecutionList.Num())
+		{
+			if (IndexOfCurrentNodeInRemainList >= RemainLinearExecutionList.Num())
+			{
+				UE_LOG(LogK2Compiler, Log
+					, TEXT("SortNodesInUberGraphExecutionGroup: changed the nodes sequence in %s execution group %d")
+					, *GetPathNameSafe(FunctionContext.Function)
+					, ExecutionGroup);
+				IndexOfCurrentNodeInRemainList = 0;
+			}
+			NextNode = RemainLinearExecutionList[IndexOfCurrentNodeInRemainList];
+		}
+	}
+	return true;
+}
+
+void FBlueprintCompilerCppBackend::EmitStatement(FBlueprintCompiledStatement &Statement, FEmitterLocalContext &EmitterContext, FKismetFunctionContext& FunctionContext)
+{
+	switch (Statement.Type)
+	{
+	case KCST_Nop:
+		EmitterContext.AddLine(TEXT("//No operation."));
+		break;
+	case KCST_CallFunction:
+		EmitCallStatment(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_Assignment:
+		EmitAssignmentStatment(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CompileError:
+		UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered KCST_CompileError"));
+		EmitterContext.AddLine(TEXT("static_assert(false); // KCST_CompileError"));
+		break;
+	case KCST_PushState:
+		EmitPushStateStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_Return:
+		UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered KCST_Return"));
+		EmitterContext.AddLine(TEXT("// Return statement."));
+		break;
+	case KCST_EndOfThread:
+		EmitEndOfThreadStatement(EmitterContext, FunctionContext);
+		break;
+	case KCST_Comment:
+		EmitterContext.AddLine(FString::Printf(TEXT("// %s"), *Statement.Comment.Replace(TEXT("\n"), TEXT(" "))));
+		break;
+	case KCST_DebugSite:
+		break;
+	case KCST_CastObjToInterface:
+		EmitCastObjToInterfaceStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_DynamicCast:
+		EmitDynamicCastStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_ObjectToBool:
+		EmitObjectToBoolStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_AddMulticastDelegate:
+		EmitAddMulticastDelegateStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_ClearMulticastDelegate:
+		EmitClearMulticastDelegateStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_WireTraceSite:
+		break;
+	case KCST_BindDelegate:
+		EmitBindDelegateStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_RemoveMulticastDelegate:
+		EmitRemoveMulticastDelegateStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CallDelegate:
+		EmitCallDelegateStatment(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CreateArray:
+		EmitCreateArrayStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CrossInterfaceCast:
+		EmitCastBetweenInterfacesStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_MetaCast:
+		EmitMetaCastStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CastInterfaceToObj:
+		EmitCastInterfaceToObjStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_ComputedGoto:
+	case KCST_UnconditionalGoto:
+	case KCST_GotoIfNot:
+	case KCST_EndOfThreadIfNot:
+	case KCST_GotoReturn:
+	case KCST_GotoReturnIfNot:
+		EmitGotoStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_SwitchValue:
+		// Switch Value should be always an "inline" statement, so there is no point to handle it here
+		// case: KCST_AssignmentOnPersistentFrame
+	default:
+		EmitterContext.AddLine(TEXT("// Warning: Ignoring unsupported statement\n"));
+		UE_LOG(LogK2Compiler, Error, TEXT("C++ backend encountered unsupported statement type %d"), (int32)Statement.Type);
+		break;
+	};
+}
+
+void FBlueprintCompilerCppBackend::EmitAllStatements(FKismetFunctionContext &FunctionContext, int32 ExecutionGroup, FEmitterLocalContext &EmitterContext, const TArray<UEdGraphNode*>& LinearExecutionList)
+{
+	ensure(!bUseExecutionGroup || FunctionContext.UnsortedSeparateExecutionGroups.IsValidIndex(ExecutionGroup));
+	bool bFirsCase = true;
+	// Emit code in the order specified by the linear execution list (the first node is always the entry point for the function)
+	for (int32 NodeIndex = 0; NodeIndex < LinearExecutionList.Num(); ++NodeIndex)
+	{
+		UEdGraphNode* StatementNode = LinearExecutionList[NodeIndex];
+		TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(StatementNode);
+		ensure(StatementNode && StatementNode->IsA<UK2Node>() && !CastChecked<UK2Node>(StatementNode)->IsNodePure());
+
+		const bool bIsCurrentExecutionGroup = !bUseExecutionGroup || FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(StatementNode);
+		if (StatementList && bIsCurrentExecutionGroup)
+		{
+			for (int32 StatementIndex = 0; StatementIndex < StatementList->Num(); ++StatementIndex)
+			{
+				FBlueprintCompiledStatement& Statement = *((*StatementList)[StatementIndex]);
+				if ((Statement.bIsJumpTarget || bFirsCase) && bUseGotoState)
+				{
+					const int32 StateNum = StatementToStateIndex(FunctionContext, &Statement);
+					if (bFirsCase)
+					{
+						bFirsCase = false;
+					}
+					else
+					{
+						EmitterContext.DecreaseIndent();
+						EmitterContext.AddLine(TEXT("}"));
+						EmitterContext.DecreaseIndent();
+					}
+					EmitterContext.AddLine(FString::Printf(TEXT("case %d:"), StateNum));
+					EmitterContext.IncreaseIndent();
+					EmitterContext.AddLine(TEXT("{"));
+					EmitterContext.IncreaseIndent();
+				}
+				EmitStatement(Statement, EmitterContext, FunctionContext);
+			}
+		}
+	}
+}
+
+bool FBlueprintCompilerCppBackend::PrepareToUseExecutionGroupWithoutGoto(FKismetFunctionContext &FunctionContext, int32 ExecutionGroup, UEdGraphNode* &TheOnlyEntryPoint)
+{
+	ensure(FunctionContext.bIsUbergraph && bUseExecutionGroup);
+	for (UEdGraphNode* Node : FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup])
+	{
+		if (Node && Node->IsA<UK2Node_ExecutionSequence>())
+		{
+			return false;
+		}
+
+		auto RequiresGoto = [](const FBlueprintCompiledStatement* Statement)->bool
+		{
+			// has no KCST_GotoIfNot state. Other states can be handled without switch
+			return Statement && (Statement->Type == KCST_PushState || Statement->Type == KCST_GotoIfNot);
+			//Statement->Type == KCST_UnconditionalGoto ||
+			//Statement->Type == KCST_ComputedGoto ||
+			//Statement->Type == KCST_EndOfThread ||
+			//Statement->Type == KCST_EndOfThreadIfNot ||
+			//Statement->Type == KCST_GotoReturn ||
+			//Statement->Type == KCST_GotoReturnIfNot
+		};
+		TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(Node);
+		if (StatementList && StatementList->ContainsByPredicate(RequiresGoto))
+		{
+			return false;
+		}
+
+		// we assume, that only the entry point generates Computed Goto
+		if (Node && Node->IsA<UK2Node_FunctionEntry>())
+		{
+			return false;
+		}
+		UK2Node_Event* AsEvent = Cast<UK2Node_Event>(Node);
+		if (TheOnlyEntryPoint && AsEvent)
+		{
+			return false;
+		}
+		if (AsEvent)
+		{
+			TheOnlyEntryPoint = AsEvent;
+		}
+	}
+
+	// 2. find latent action calling this group
+	for (UEdGraphNode* Node : FunctionContext.LinearExecutionList)
+	{
+		UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Node);
+		if (CallFunctionNode && CallFunctionNode->IsLatentFunction() && CallFunctionNode->GetThenPin())
+		{
+			for (UEdGraphPin* Link : CallFunctionNode->GetThenPin()->LinkedTo)
+			{
+				UEdGraphNode* OwnerNode = Link ? Link->GetOwningNodeUnchecked() : nullptr;
+				if (OwnerNode && FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(OwnerNode))
+				{
+					if (!TheOnlyEntryPoint)
+					{
+						TheOnlyEntryPoint = OwnerNode;
+
+						TArray<FBlueprintCompiledStatement*>* OwnerStatementList = FunctionContext.StatementsPerNode.Find(OwnerNode);
+						FBlueprintCompiledStatement* FirstStatementToCall = (OwnerStatementList && OwnerStatementList->Num()) ? (*OwnerStatementList)[0] : nullptr;
+						TArray<FBlueprintCompiledStatement*>* LatentCallStatementList = FunctionContext.StatementsPerNode.Find(CallFunctionNode);
+						check(LatentCallStatementList && FirstStatementToCall);
+						bool bMatch = false;
+						for (FBlueprintCompiledStatement* LatentCallStatement : *LatentCallStatementList)
+						{
+							if (LatentCallStatement && (KCST_CallFunction == LatentCallStatement->Type))
+							{
+								if (ensure(LatentCallStatement->TargetLabel == FirstStatementToCall))
+								{
+									bMatch = true;
+								}
+							}
+						}
+						ensure(bMatch);
+					}
+					else if (TheOnlyEntryPoint && (OwnerNode != TheOnlyEntryPoint))
+					{
+						return false;
+					}
+				}
+			}
+
+		}
+	}
+	return true;
 }

@@ -33,6 +33,9 @@ public:
 	/** Returns the object path for the object that triggered this event */
 	const FString& GetObjectPath() const { return PathData; }
 
+	/** Returns the function name the event occurred in */
+	FName GetFunctionName() const;
+
 	/** Returns the script offset at the time this event was generated */
 	int32 GetScriptCodeOffset() const { return CodeOffset; }
 
@@ -44,6 +47,9 @@ public:
 
 	/** Returns if this event represents a change in active instance */
 	bool IsNewInstance() const { return EventType == EScriptInstrumentation::Instance; }
+
+	/** Returns if this event represents a change in active event */
+	bool IsEvent() const { return EventType == EScriptInstrumentation::Event; }
 
 	/** Returns if this event represents a node execution event */
 	bool IsNodeTiming() const {	return EventType == EScriptInstrumentation::NodeEntry || EventType == EScriptInstrumentation::NodeExit;	}

@@ -24,6 +24,18 @@
 //For DOREPLIFETIME macros
 #include "Net/UnrealNetwork.h"
 
+//For Box2D
+#include "Runtime/Core/Public/Math/Box2D.h"
+
+inline FBox2D CreateFBox2D(FVector2D InMin, FVector2D InMax, bool InIsValid)
+{
+	FBox2D Result;
+	Result.Min = InMin;
+	Result.Max = InMax;
+	Result.bIsValid = InIsValid;
+	return Result;
+}
+
 template<class NativeType>
 inline NativeType* NoNativeCast(UClass* NoNativeClass, UObject* Object)
 {

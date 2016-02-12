@@ -8,6 +8,8 @@ struct CORE_API FBlueprintsObjectVersion
 	{
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
+		OverridenEventReferenceFixup,
+		CleanBlueprintFunctionFlags,
 
 
 		// -----<new versions can be added above this line>-------------------------------------------------

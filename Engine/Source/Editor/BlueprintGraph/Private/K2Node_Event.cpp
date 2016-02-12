@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "EventEntryHandler.h"
 #include "GraphEditorSettings.h"
+#include "BlueprintsObjectVersion.h"
 
 const FString UK2Node_Event::DelegateOutputName(TEXT("OutputDelegate"));
 
@@ -42,6 +43,7 @@ void UK2Node_Event::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
 	// Fix up legacy nodes that may not yet have a delegate pin
 	if(Ar.IsLoading())
 	{
@@ -50,9 +52,7 @@ void UK2Node_Event::Serialize(FArchive& Ar)
 			EventReference.SetExternalMember(EventSignatureName_DEPRECATED, EventSignatureClass_DEPRECATED);
 		}
 
-		// @TODO: Ar.IsTransacting() is no longer needed after the version bump done in Dev-BP
-		//if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::OverridenEventReferenceFixup)
-		if (!Ar.IsTransacting())
+		if (Ar.CustomVer(FBlueprintsObjectVersion::GUID) < FBlueprintsObjectVersion::OverridenEventReferenceFixup)
 		{
 			FixupEventReference();
 		}

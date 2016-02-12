@@ -15,6 +15,8 @@
 
 #include "SourceCodeNavigation.h"
 
+#include "ScriptPerfData.h"
+
 #define LOCTEXT_NAMESPACE "SettingsClasses"
 
 /* UContentBrowserSettings interface
@@ -67,7 +69,7 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
-	, BlueprintProfilerAverageSampleCount(20)
+	, BlueprintProfilerRecentSampleBias(0.2f)
 {
 }
 
@@ -89,6 +91,10 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 		{
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
+	}
+	else if (Name == FName(TEXT("BlueprintProfilerRecentSampleBias")))
+	{
+		FScriptPerfData::SetRecentSampleBias(BlueprintProfilerRecentSampleBias);
 	}
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())

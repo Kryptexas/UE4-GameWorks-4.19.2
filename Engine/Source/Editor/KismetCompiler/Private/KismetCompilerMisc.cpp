@@ -14,6 +14,7 @@
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "DefaultValueHelper.h"
 #include "Engine/UserDefinedStruct.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
@@ -1234,10 +1235,12 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 	UProperty* BoundProperty = FKismetCompilerUtilities::FindPropertyInScope(SearchScope, Net, CompilerContext.MessageLog, CompilerContext.GetSchema(), Context.NewClass);
 	if (BoundProperty != NULL)
 	{
+		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 		// Create the term in the list
 		FBPTerminal* Term = new (NetArray) FBPTerminal();
 		Term->CopyFromPin(Net, Net->PinName);
 		Term->AssociatedVarProperty = BoundProperty;
+		Term->bPassedByReference = Settings->bAllowReferencePassThroughsToCacheNonReferences;
 		Context.NetMap.Add(Net, Term);
 
 		// Check if the property is a local variable and mark it so
@@ -1470,6 +1473,19 @@ int32 FKismetFunctionContext::GetContextUniqueID()
 	return UUIDCounter++;
 }
 
+bool FKismetFunctionContext::DoesStatementRequiresSwitch(const FBlueprintCompiledStatement* Statement)
+{
+	return Statement && (
+		Statement->Type == KCST_UnconditionalGoto ||
+		Statement->Type == KCST_PushState ||
+		Statement->Type == KCST_GotoIfNot ||
+		Statement->Type == KCST_ComputedGoto ||
+		Statement->Type == KCST_EndOfThread ||
+		Statement->Type == KCST_EndOfThreadIfNot ||
+		Statement->Type == KCST_GotoReturn ||
+		Statement->Type == KCST_GotoReturnIfNot);
+}
+
 bool FKismetFunctionContext::MustUseSwitchState(const FBlueprintCompiledStatement* ExcludeThisOne) const
 {
 	for (auto Node : LinearExecutionList)
@@ -1479,15 +1495,7 @@ bool FKismetFunctionContext::MustUseSwitchState(const FBlueprintCompiledStatemen
 		{
 			for (auto Statement : (*StatementList))
 			{
-				if (Statement && (Statement != ExcludeThisOne) && (
-					Statement->Type == KCST_UnconditionalGoto ||
-					Statement->Type == KCST_PushState ||
-					Statement->Type == KCST_GotoIfNot ||
-					Statement->Type == KCST_ComputedGoto ||
-					Statement->Type == KCST_EndOfThread ||
-					Statement->Type == KCST_EndOfThreadIfNot ||
-					Statement->Type == KCST_GotoReturn ||
-					Statement->Type == KCST_GotoReturnIfNot))
+				if (Statement && (Statement != ExcludeThisOne) && DoesStatementRequiresSwitch(Statement))
 				{
 					return true;
 				}
@@ -1706,6 +1714,14 @@ void FKismetFunctionContext::FinalSortLinearExecList()
 	LinearExecutionList = SortedLinearExecutionList;
 }
 
+bool FKismetFunctionContext::DoesStatementRequiresFlowStack(const FBlueprintCompiledStatement* Statement)
+{
+	return Statement && (
+		(Statement->Type == KCST_EndOfThreadIfNot) ||
+		(Statement->Type == KCST_EndOfThread) ||
+		(Statement->Type == KCST_PushState));
+}
+
 void FKismetFunctionContext::ResolveStatements()
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ResolveCompiledStatements);
@@ -1714,16 +1730,7 @@ void FKismetFunctionContext::ResolveStatements()
 	static const FBoolConfigValueHelper OptimizeExecutionFlowStack(TEXT("Kismet"), TEXT("bOptimizeExecutionFlowStack"), GEngineIni);
 	if (OptimizeExecutionFlowStack)
 	{
-		const bool bFlowStackIsRequired = AllGeneratedStatements.ContainsByPredicate(
-			[](const FBlueprintCompiledStatement* Statement)
-		{
-			return Statement && (
-				(Statement->Type == KCST_EndOfThreadIfNot) ||
-				(Statement->Type == KCST_EndOfThread) ||
-				(Statement->Type == KCST_PushState));
-		});
-
-		bUseFlowStack = bFlowStackIsRequired;
+		bUseFlowStack = AllGeneratedStatements.ContainsByPredicate(&FKismetFunctionContext::DoesStatementRequiresFlowStack);
 	}
 
 	ResolveGotoFixups();
@@ -1890,14 +1897,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminalFromPinAutoChooseScope(U
 	static FBoolConfigValueHelper UseLocalGraphVariables(TEXT("Kismet"), TEXT("bUseLocalGraphVariables"), GEngineIni);
 	static FBoolConfigValueHelper UseLocalGraphVariablesInCpp(TEXT("BlueprintNativizationSettings"), TEXT("bUseLocalEventGraphVariables"));
 
-
-	auto PinRepresentsDelegate = [](const FEdGraphPinType& PinType) -> bool
-	{
-		return (PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate)
-			|| (PinType.PinCategory == UEdGraphSchema_K2::PC_MCDelegate);
-	};
-	const bool bUseLocalGraphVariables = UseLocalGraphVariables 
-		|| (bGeneratingCpp && (UseLocalGraphVariablesInCpp || PinRepresentsDelegate(Net->PinType)));
+	const bool bUseLocalGraphVariables = UseLocalGraphVariables || (bGeneratingCpp && UseLocalGraphVariablesInCpp);
 
 	const bool OutputPin = EEdGraphPinDirection::EGPD_Output == Net->Direction;
 	if (bSharedTerm && bUseLocalGraphVariables && OutputPin)
@@ -1929,4 +1929,80 @@ void FBPTerminal::CopyFromPin(UEdGraphPin* Net, const FString& NewName)
 	const bool bStructCategory = Schema && (Schema->PC_Struct == Net->PinType.PinCategory);
 	const bool bStructSubCategoryObj = (NULL != Cast<UScriptStruct>(Net->PinType.PinSubCategoryObject.Get()));
 	SetContextTypeStruct(bStructCategory && bStructSubCategoryObj);
+}
+
+
+TArray<TSet<UEdGraphNode*>> FKismetCompilerUtilities::FindUnsortedSeparateExecutionGroups(const TArray<UEdGraphNode*>& Nodes)
+{
+	TArray<UEdGraphNode*> UnprocessedNodes;
+	for (UEdGraphNode* Node : Nodes)
+	{
+		UK2Node* K2Node = Cast<UK2Node>(Node);
+		if (K2Node && !K2Node->IsNodePure())
+		{
+			UnprocessedNodes.Add(Node);
+		}
+	}
+
+	TSet<UEdGraphNode*> AlreadyProcessed;
+	TArray<TSet<UEdGraphNode*>> Result;
+	while (UnprocessedNodes.Num())
+	{
+		Result.Emplace(TSet<UEdGraphNode*>());
+		TSet<UEdGraphNode*>& ExecutionGroup = Result.Last();
+		TSet<UEdGraphNode*> ToProcess;
+
+		UEdGraphNode* Seed = UnprocessedNodes.Pop();
+		ensure(!AlreadyProcessed.Contains(Seed));
+		ToProcess.Add(Seed);
+		ExecutionGroup.Add(Seed);
+		while (ToProcess.Num())
+		{
+			UEdGraphNode* Node = *ToProcess.CreateIterator();
+			// for each execution pin
+			for (UEdGraphPin* Pin : Node->Pins)
+			{
+				if (Pin && Pin->LinkedTo.Num() && (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec))
+				{
+					for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
+					{
+						if (!LinkedPin)
+						{
+							continue;
+						}
+						UEdGraphNode* LinkedNode = LinkedPin->GetOwningNodeUnchecked();
+						const bool bIsAlreadyProcessed = AlreadyProcessed.Contains(LinkedNode);
+						const bool bInCurrentExecutionGroup = ExecutionGroup.Contains(LinkedNode);
+						ensure(!bIsAlreadyProcessed || bInCurrentExecutionGroup);
+						ensure(bInCurrentExecutionGroup || UnprocessedNodes.Contains(LinkedNode));
+						if (!bIsAlreadyProcessed)
+						{
+							ToProcess.Add(LinkedNode);
+							ExecutionGroup.Add(LinkedNode);
+							UnprocessedNodes.Remove(LinkedNode);
+						}
+					}
+				}
+			}
+
+			const int32 WasRemovedFromProcess = ToProcess.Remove(Node);
+			ensure(0 != WasRemovedFromProcess);
+			bool bAlreadyProcessed = false;
+			AlreadyProcessed.Add(Node, &bAlreadyProcessed);
+			ensure(!bAlreadyProcessed);
+		}
+
+		if (1 == ExecutionGroup.Num())
+		{
+			UEdGraphNode* TheOnlyNode = *ExecutionGroup.CreateIterator();
+			if (!TheOnlyNode || TheOnlyNode->IsA<UK2Node_FunctionEntry>() || TheOnlyNode->IsA<UK2Node_Timeline>())
+			{
+				Result.Pop();
+			}
+		}
+	}
+
+
+
+	return Result;
 }

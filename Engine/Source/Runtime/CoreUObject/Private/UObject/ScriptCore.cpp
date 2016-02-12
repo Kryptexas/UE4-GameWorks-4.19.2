@@ -228,6 +228,13 @@ FString UnicodeToCPPIdentifier(const FString& InName, bool bDeprecated, const TC
 		Ret.InsertAt(0, TCHAR('_'));
 	}
 	Ret = PrefixStr + Ret + Postfix;
+
+	// Workaround for a strange compiler error
+	if (InName == TEXT("Replicate to server"))
+	{
+		Ret = TEXT("MagicNameWorkaround");
+	}
+
 	return bDeprecated ? Ret + TEXT("_DEPRECATED") : Ret;
 }
 
@@ -1068,7 +1075,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetClass()->HasInstrumentation())
 	{
-		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Event, this);
+		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Event, this, Function->GetFName());
 		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 	}
 #endif
@@ -1202,7 +1209,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetClass()->HasInstrumentation())
 	{
-		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Stop, this);
+		EScriptInstrumentationEvent EventInstrumentationInfo(EScriptInstrumentation::Stop, this, NAME_None);
 		FBlueprintCoreDelegates::InstrumentScriptEvent(EventInstrumentationInfo);
 	}
 #if WITH_EDITORONLY_DATA

@@ -6372,6 +6372,11 @@ void FBlueprintEditorUtils::UpdateStalePinWatches( UBlueprint* Blueprint )
 		{
 			continue;
 		}
+
+		if (!OwningNode->Pins.Contains(Pin))
+		{
+			continue;
+		}
 		
 		AllPins.Add(Pin);
 	}

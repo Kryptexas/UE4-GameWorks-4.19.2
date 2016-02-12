@@ -591,10 +591,28 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	// Add in default value editing for properties that can be edited, local properties cannot be edited
 	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL))
 	{
+		bool bVariableRenamed = false;
 		if (VariableProperty != NULL && IsVariableInBlueprint())
 		{
+			// Determine the current property name on the CDO is stale
+			if (PropertyOwnerBlueprint.IsValid() && VariableProperty)
+			{
+				UBlueprint* PropertyBlueprint = PropertyOwnerBlueprint.Get();
+				const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(PropertyBlueprint, CachedVariableName);
+				if (VarIndex != INDEX_NONE)
+				{
+					const FGuid VarGuid = PropertyBlueprint->NewVariables[VarIndex].VarGuid;
+					if (UBlueprintGeneratedClass* AuthoritiveBPGC = Cast<UBlueprintGeneratedClass>(PropertyBlueprint->GeneratedClass))
+					{
+						if (const FName* OldName = AuthoritiveBPGC->PropertyGuids.FindKey(VarGuid))
+						{
+							bVariableRenamed = CachedVariableName != *OldName;
+						}
+					}
+				}
+			}
 			const UProperty* OriginalProperty = nullptr;
-			
+		
 			if(!IsALocalVariable(VariableProperty))
 			{
 				OriginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
@@ -604,7 +622,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				OriginalProperty = VariableProperty;
 			}
 
-			if (OriginalProperty == NULL)
+			if (OriginalProperty == NULL || bVariableRenamed)
 			{
 				// Prevent editing the default value of a skeleton property
 				VariableProperty = NULL;

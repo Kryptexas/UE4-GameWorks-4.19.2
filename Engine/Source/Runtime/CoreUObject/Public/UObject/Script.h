@@ -293,6 +293,7 @@ namespace EScriptInstrumentation
 		Function,
 		Branch,
 		Macro,
+		PureNodeEntry,
 		NodeEntry,
 		NodeExit,
 		NodePin,
@@ -337,13 +338,15 @@ public:
 	EScriptInstrumentationEvent(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame)
 		: EventType(InEventType)
 		, ContextObject(InContextObject)
+		, EventName(NAME_None)
 		, StackFramePtr(&InStackFrame)
 	{
 	}
 
-	EScriptInstrumentationEvent(EScriptInstrumentation::Type InEventType, const UObject* InContextObject)
+	EScriptInstrumentationEvent(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, FName InEventName)
 		: EventType(InEventType)
 		, ContextObject(InContextObject)
+		, EventName(InEventName)
 		, StackFramePtr(nullptr)
 	{
 	}
@@ -352,12 +355,14 @@ public:
 	void SetType(EScriptInstrumentation::Type InType) { EventType = InType;	}
 	const UObject* GetContextObject() const { return ContextObject; }
 	bool IsStackFrameValid() const { return StackFramePtr != nullptr; }
+	FName GetEventName() const { return EventName; }
 	const FFrame& GetStackFrame() const { return *StackFramePtr; }
 
 protected:
 
 	EScriptInstrumentation::Type EventType;
 	const UObject* ContextObject;
+	const FName EventName;
 	const struct FFrame* StackFramePtr;
 };
 

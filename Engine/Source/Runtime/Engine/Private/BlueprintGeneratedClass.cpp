@@ -1105,3 +1105,37 @@ void FBlueprintCookedComponentInstancingData::LoadCachedPropertyDataForSerializa
 		}
 	}
 }
+
+bool UBlueprintGeneratedClass::ArePropertyGuidsAvailable() const
+{
+#if WITH_EDITORONLY_DATA
+	// Property guid's are generated during compilation.
+	return PropertyGuids.Num() > 0;
+#else
+	return false;
+#endif // WITH_EDITORONLY_DATA
+}
+
+FName UBlueprintGeneratedClass::FindPropertyNameFromGuid(const FGuid& PropertyGuid) const
+{
+	FName RedirectedName = NAME_None;
+#if WITH_EDITORONLY_DATA
+	if (const FName* Result = PropertyGuids.FindKey(PropertyGuid))
+	{
+		RedirectedName = *Result;
+	}
+#endif // WITH_EDITORONLY_DATA
+	return RedirectedName;
+}
+
+FGuid UBlueprintGeneratedClass::FindPropertyGuidFromName(const FName InName) const
+{
+	FGuid PropertyGuid;
+#if WITH_EDITORONLY_DATA
+	if (const FGuid* Result = PropertyGuids.Find(InName))
+	{
+		PropertyGuid = *Result;
+	}
+#endif // WITH_EDITORONLY_DATA
+	return PropertyGuid;
+}

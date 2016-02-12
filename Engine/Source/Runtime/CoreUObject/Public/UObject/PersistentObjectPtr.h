@@ -40,6 +40,17 @@ public:
 	}
 
 	/**  
+	 * Construct from a unique object identifier
+	 * @param InObjectID a unique object identifier
+	 */
+	explicit FORCEINLINE TPersistentObjectPtr(const TObjectID& InObjectID)
+		: WeakPtr()
+		, TagAtLastTest(0)
+		, ObjectID(InObjectID)
+	{
+	}
+
+	/**  
 	 * Copy from a unique object identifier
 	 * @param ObjectID object identifier to create a weak pointer to
 	 */

@@ -4,6 +4,7 @@
 
 #include "EdGraph/EdGraphPin.h"
 #include "EdGraph/EdGraphNode.h"
+#include "Engine/EngineTypes.h"
 #include "BlueprintCore.h"
 #include "Blueprint.generated.h"
 
