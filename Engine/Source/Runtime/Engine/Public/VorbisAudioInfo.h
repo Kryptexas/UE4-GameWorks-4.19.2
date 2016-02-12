@@ -86,5 +86,8 @@ public:
 	const uint8*		SrcBufferData;
 	uint32			SrcBufferDataSize;
 	uint32			BufferOffset;
+
+	/** Critical section used to prevent multiple threads accessing same ogg-vorbis file handles at the same time */
+	FCriticalSection VorbisCriticalSection;
 };
 #endif

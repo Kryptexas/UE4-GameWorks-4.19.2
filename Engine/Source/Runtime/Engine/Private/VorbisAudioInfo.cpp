@@ -175,6 +175,8 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 	Callbacks.close_func = OggClose;
 	Callbacks.tell_func = OggTell;
 
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
 	// Set up the read from memory variables
 	if (ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, Callbacks) < 0)
 	{
@@ -216,6 +218,8 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
 	check( DstBuffer );
 	check( QualityInfo );
 
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
 	// A zero buffer size means decompress the entire ogg vorbis stream to PCM.
 	TotalBytesRead = 0;
 	BytesToRead = QualityInfo->SampleDataSize;
@@ -254,6 +258,8 @@ bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, 
 	uint32		TotalBytesRead;
 
 	SCOPE_CYCLE_COUNTER( STAT_VorbisDecompressTime );
+
+	FScopeLock ScopeLock(&VorbisCriticalSection);
 
 	bLooped = false;
 
@@ -304,12 +310,16 @@ bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, 
 
 void FVorbisAudioInfo::SeekToTime( const float SeekTime )
 {
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
 	const float TargetTime = FMath::Min(SeekTime, ( float )ov_time_total( &VFWrapper->vf, -1 ));
 	ov_time_seek( &VFWrapper->vf, TargetTime );
 }
 
 void FVorbisAudioInfo::EnableHalfRate( bool HalfRate )
 {
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
 	ov_halfrate( &VFWrapper->vf, int32(HalfRate));
 }
 
