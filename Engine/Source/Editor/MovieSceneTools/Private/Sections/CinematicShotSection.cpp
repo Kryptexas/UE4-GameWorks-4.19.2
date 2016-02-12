@@ -6,7 +6,7 @@
 #include "CinematicShotTrackEditor.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "SInlineEditableTextBlock.h"
-#include "CinematicShotTrackEDitor.h"
+#include "CinematicShotTrackEditor.h"
 #include "MovieSceneToolHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FCinematicShotSection"
