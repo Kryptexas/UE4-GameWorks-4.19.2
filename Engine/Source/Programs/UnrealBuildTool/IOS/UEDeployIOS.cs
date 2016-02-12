@@ -178,7 +178,8 @@ namespace UnrealBuildTool
 
 			// get the settings from the ini file
 			// plist replacements
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", bIsUE4Game ? new DirectoryReference(UnrealBuildTool.GetRemoteIniPath()) : new DirectoryReference(ProjectDirectory));
+			DirectoryReference DirRef = bIsUE4Game ? (!string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? new DirectoryReference(UnrealBuildTool.GetRemoteIniPath()) : null) : new DirectoryReference(ProjectDirectory);
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirRef);
 
 			// orientations
 			string SupportedOrientations = "";
