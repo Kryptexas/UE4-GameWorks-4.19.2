@@ -3361,16 +3361,20 @@ namespace UnrealBuildTool
 		/// </summary>
 		private bool ShouldExcludePlugin(PluginInfo Plugin, List<string> ExcludeFragments)
 		{
-			string RelativePathFromRoot;
 			if (Plugin.LoadedFrom == PluginLoadedFrom.Engine)
 			{
-				RelativePathFromRoot = Plugin.File.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
+				string RelativePathFromRoot = Plugin.File.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
+				return ExcludeFragments.Any(x => RelativePathFromRoot.Contains(x));
+			}
+			else if(ProjectFile != null)
+			{
+				string RelativePathFromRoot = Plugin.File.MakeRelativeTo(ProjectFile.Directory);
+				return ExcludeFragments.Any(x => RelativePathFromRoot.Contains(x));
 			}
 			else
 			{
-				RelativePathFromRoot = Plugin.File.MakeRelativeTo(ProjectFile.Directory);
+				return false;
 			}
-			return ExcludeFragments.Any(x => RelativePathFromRoot.Contains(x));
 		}
 
 		/// <summary>
