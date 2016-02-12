@@ -106,18 +106,7 @@ protected:
 
 			explicit FPersistentObjectRef(UObject* InObject);
 
-			/** Returns TRUE if the recorded object is part of the CDO */
-			bool IsPartOfCDO() const
-			{
-				return false;
-			}
-
 			UObject* Get() const;
-
-			UObject* GetRoot() const { return Object;  }
-
-			/** Determines if the object referenced by this struct, needs to be kept from garbage collection */
-			bool ShouldAddReference() const;
 
 			UObject* operator->() const
 			{

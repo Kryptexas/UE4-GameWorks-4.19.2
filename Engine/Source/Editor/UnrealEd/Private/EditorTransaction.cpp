@@ -70,7 +70,11 @@ void FTransaction::FObjectRecord::SerializeContents( FArchive& Ar, int32 InOper 
 {
 	// Cache to restore at the end
 	bool bWasArIgnoreOuterRef = Ar.ArIgnoreOuterRef;
-	Ar.ArIgnoreOuterRef = true;
+
+	if (Object.SubObjectHierarchyID.Num() != 0)
+	{
+		Ar.ArIgnoreOuterRef = true;
+	}
 
 	if( Array )
 	{
@@ -267,11 +271,6 @@ UObject* FTransaction::FObjectRecord::FPersistentObjectRef::Get() const
 	}
 
 	return Object;
-}
-
-bool FTransaction::FObjectRecord::FPersistentObjectRef::ShouldAddReference() const
-{
-	return ReferenceType == EReferenceType::RootObject;
 }
 
 void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Collector )
