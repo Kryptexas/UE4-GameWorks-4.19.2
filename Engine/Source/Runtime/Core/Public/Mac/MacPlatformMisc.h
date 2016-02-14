@@ -102,7 +102,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel );
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
 	static bool GetDiskTotalAndFreeSpace(const FString& InPath, uint64& TotalNumberOfBytes, uint64& NumberOfFreeBytes);
-
+	static bool HasSeparateChannelForDebugOutput();
 
 	/** 
 	 * Determines the shader format for the plarform

@@ -392,7 +392,7 @@ void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 
 bool FGenericPlatformMisc::HasSeparateChannelForDebugOutput()
 {
-	return false;
+	return true;
 }
 
 void FGenericPlatformMisc::RequestMinimize()

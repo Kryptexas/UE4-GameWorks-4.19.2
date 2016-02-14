@@ -12,7 +12,8 @@ void FGenericPlatformOutputDevices::SetupOutputDevices()
 
 	GLog->AddOutputDevice(FPlatformOutputDevices::GetLog());
 
-	if (!FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE")))
+	bool bHasConsole = !FParse::Param(FCommandLine::Get(), TEXT("NOCONSOLE"));
+	if (bHasConsole)
 	{
 		GLog->AddOutputDevice(GLogConsole);
 	}
@@ -22,7 +23,7 @@ void FGenericPlatformOutputDevices::SetupOutputDevices()
 	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || (UE_BUILD_SHIPPING && !NO_LOGGING) || GIsBuildMachine)
 	{
 		// Only need to do this if it's actually going to go to a different place than GLogConsole
-		if(FPlatformMisc::HasSeparateChannelForDebugOutput())
+		if(!bHasConsole || FPlatformMisc::HasSeparateChannelForDebugOutput())
 		{
 			GLog->AddOutputDevice(new FOutputDeviceDebug());
 		}
