@@ -374,9 +374,9 @@ void UK2Node_MakeStruct::Serialize(FArchive& Ar)
 				if (UProperty* OverrideProperty = PropertyCustomizationHelpers::GetEditConditionProperty(Property, bNegate))
 				{
 					bool bHadOverridePropertySeparation = false;
-					for (FOptionalPinFromProperty& PropertyEntry : ShowPinForProperties)
+					for (FOptionalPinFromProperty& OverridePropertyEntry : ShowPinForProperties)
 					{
-						if (PropertyEntry.PropertyName == OverrideProperty->GetFName())
+						if (OverridePropertyEntry.PropertyName == OverrideProperty->GetFName())
 						{
 							bHadOverridePropertySeparation = true;
 							break;
