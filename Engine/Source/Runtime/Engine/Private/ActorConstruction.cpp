@@ -303,8 +303,10 @@ void AActor::RerunConstructionScripts()
 				RootComponent->DetachFromParent(true);
 			}
 
+			// Update component transform and remember it so it can be reapplied to any new root component which exists after construction.
+			// (Component transform may be stale if we are here following an Undo)
+			RootComponent->UpdateComponentToWorld();
 			OldTransform = RootComponent->ComponentToWorld;
-			OldTransform.SetTranslation(RootComponent->GetComponentLocation()); // take into account any custom location
 		}
 
 #if WITH_EDITOR
