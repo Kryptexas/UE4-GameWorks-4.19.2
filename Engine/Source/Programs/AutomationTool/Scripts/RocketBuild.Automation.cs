@@ -449,6 +449,14 @@ namespace Rocket
 		{
 			AddNodeToStrip(GUBP.ToolsForCompileNode.StaticGetFullName(HostPlatform));
 			AddNodeToStrip(GUBP.ToolsNode.StaticGetFullName(HostPlatform));
+
+			SingleTargetProperties BuildPatchTool = BranchConfig.Branch.FindProgram("BuildPatchTool");
+			if (BuildPatchTool.Rules == null)
+			{
+				throw new AutomationException("Could not find program BuildPatchTool.");
+			}
+			AddNodeToStrip(GUBP.SingleInternalToolsNode.StaticGetFullName(HostPlatform, BuildPatchTool));
+
 			AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(InHostPlatform);
 		}
 
@@ -622,6 +630,14 @@ namespace Rocket
 		{
 			AddNodeToSign(GUBP.ToolsForCompileNode.StaticGetFullName(HostPlatform));
 			AddNodeToSign(GUBP.ToolsNode.StaticGetFullName(HostPlatform));
+
+			SingleTargetProperties BuildPatchTool = BranchConfig.Branch.FindProgram("BuildPatchTool");
+			if (BuildPatchTool.Rules == null)
+			{
+				throw new AutomationException("Could not find program BuildPatchTool.");
+			}
+			AddNodeToSign(GUBP.SingleInternalToolsNode.StaticGetFullName(HostPlatform, BuildPatchTool));
+
 			AddDependency(StripRocketToolsNode.StaticGetFullName(HostPlatform));
 			AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(InHostPlatform);
 		}
@@ -733,6 +749,13 @@ namespace Rocket
 			AddDependency(GUBP.RootEditorNode.StaticGetFullName(HostPlatform));
 			AddDependency(GUBP.ToolsNode.StaticGetFullName(HostPlatform));
 
+			SingleTargetProperties BuildPatchTool = BranchConfig.Branch.FindProgram("BuildPatchTool");
+			if (BuildPatchTool.Rules == null)
+			{
+				throw new AutomationException("Could not find program BuildPatchTool.");
+			}
+			AddDependency(GUBP.SingleInternalToolsNode.StaticGetFullName(HostPlatform, BuildPatchTool));
+
 			// Add all the monolithic builds from their appropriate source host platform
 			foreach(UnrealTargetPlatform TargetPlatform in TargetPlatforms)
 			{
@@ -840,6 +863,9 @@ namespace Rocket
 			AddRuleForBuildProducts(Filter, BranchConfig, GUBP.ToolsForCompileNode.StaticGetFullName(HostPlatform), FileFilterType.Include);
 			AddRuleForBuildProducts(Filter, BranchConfig, GUBP.RootEditorNode.StaticGetFullName(HostPlatform), FileFilterType.Include);
 			AddRuleForBuildProducts(Filter, BranchConfig, GUBP.ToolsNode.StaticGetFullName(HostPlatform), FileFilterType.Include);
+
+			SingleTargetProperties BuildPatchTool = BranchConfig.Branch.FindProgram("BuildPatchTool");
+			AddRuleForBuildProducts(Filter, BranchConfig, GUBP.SingleInternalToolsNode.StaticGetFullName(HostPlatform, BuildPatchTool), FileFilterType.Include);
 
 			// Include win64 tools on Mac, to get the win64 build of UBT, UAT and IPP
 			if (HostPlatform == UnrealTargetPlatform.Mac && BranchConfig.HostPlatforms.Contains(UnrealTargetPlatform.Win64))
