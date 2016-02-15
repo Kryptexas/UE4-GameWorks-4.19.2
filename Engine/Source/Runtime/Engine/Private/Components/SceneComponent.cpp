@@ -95,7 +95,7 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FMobilityQueryDelegate, EComponentMobilit
  *									(if left unset it will default to the AreMobilitiesDifferent() function)
  * @return The number of decedents that had their mobility altered.
  */
-static int32 SetDecendantMobility(USceneComponent const* SceneComponentObject, EComponentMobility::Type NewMobilityType, FMobilityQueryDelegate ShouldOverrideMobility = FMobilityQueryDelegate())
+static int32 SetDescendantMobility(USceneComponent const* SceneComponentObject, EComponentMobility::Type NewMobilityType, FMobilityQueryDelegate ShouldOverrideMobility = FMobilityQueryDelegate())
 {
 	if (!ensure(SceneComponentObject != nullptr))
 	{
@@ -123,7 +123,7 @@ static int32 SetDecendantMobility(USceneComponent const* SceneComponentObject, E
 		ShouldOverrideMobility = FMobilityQueryDelegate::CreateStatic(&AreMobilitiesDifferent, NewMobilityType);
 	}
 
-	int32 NumDecendantsChanged = 0;
+	int32 NumDescendantsChanged = 0;
 	// recursively alter the mobility for children and deeper decedents 
 	for (int32 ChildIndex = 0; ChildIndex < AttachedChildren.Num(); ++ChildIndex)
 	{
@@ -141,13 +141,13 @@ static int32 SetDecendantMobility(USceneComponent const* SceneComponentObject, E
 				{
 					ChildSceneComponent->Mobility = NewMobilityType;
 				}
-				++NumDecendantsChanged;
+				++NumDescendantsChanged;
 			}
-			NumDecendantsChanged += SetDecendantMobility(ChildSceneComponent, NewMobilityType, ShouldOverrideMobility);
+			NumDescendantsChanged += SetDescendantMobility(ChildSceneComponent, NewMobilityType, ShouldOverrideMobility);
 		}
 	}
 
-	return NumDecendantsChanged;
+	return NumDescendantsChanged;
 }
 
 /**
@@ -222,7 +222,7 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 	// Movable components can only have movable sub-components
 	if(ComponentThatChanged->Mobility == EComponentMobility::Movable)
 	{
-		NumMobilityChanges += SetDecendantMobility(ComponentThatChanged, EComponentMobility::Movable);
+		NumMobilityChanges += SetDescendantMobility(ComponentThatChanged, EComponentMobility::Movable);
 	}
 	else if(ComponentThatChanged->Mobility == EComponentMobility::Stationary)
 	{
@@ -242,7 +242,7 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 		FMobilityQueryDelegate IsMovableDelegate = FMobilityQueryDelegate::CreateRaw(&EquivalenceFunctor, &FMobilityEqualityFunctor::operator(), EComponentMobility::Movable);
 
 		// if any decedents are static, change them to stationary (or movable for static meshes)
-		NumMobilityChanges += SetDecendantMobility(ComponentThatChanged, EComponentMobility::Stationary, IsStaticDelegate);
+		NumMobilityChanges += SetDescendantMobility(ComponentThatChanged, EComponentMobility::Stationary, IsStaticDelegate);
 
 		// if any ancestors are movable, change them to stationary (or static for static meshes)
 		NumMobilityChanges += SetAncestorMobility(ComponentThatChanged, EComponentMobility::Stationary, IsMovableDelegate);
