@@ -299,7 +299,6 @@ class FGearVR : public FHeadMountedDisplay
 public:
 	/** IHeadMountedDisplay interface */
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
-	virtual void Tick(float TimeDeltaSeconds) override {}
 	virtual bool IsHMDConnected() override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
 	virtual bool GetHMDMonitorInfo(MonitorInfo&) override;

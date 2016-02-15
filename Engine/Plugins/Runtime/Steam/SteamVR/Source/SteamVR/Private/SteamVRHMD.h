@@ -38,7 +38,6 @@ class FSteamVRHMD : public IHeadMountedDisplay, public ISceneViewExtension, publ
 {
 public:
 	/** IHeadMountedDisplay interface */
-	virtual void Tick(float TimeDeltaSeconds) override;
 	virtual bool IsHMDConnected() override { return true; }
 	virtual bool IsHMDEnabled() const override;
 	virtual void EnableHMD(bool allow = true) override;
@@ -98,6 +97,8 @@ public:
 	virtual void UpdateScreenSettings(const FViewport* InViewport) override {}
 
 	virtual void OnEndPlay() override;
+
+	virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
 
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;

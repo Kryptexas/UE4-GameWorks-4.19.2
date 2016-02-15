@@ -20,11 +20,6 @@ public:
 	IHeadMountedDisplay();
 
 	/**
-	 * Allow the HMD time to process once per frame operations
-	 */
-	virtual void Tick(float TimeDeltaSeconds) = 0;
-
-	/**
 	 * Returns true if HMD is currently connected.
 	 */
 	virtual bool IsHMDConnected() = 0;

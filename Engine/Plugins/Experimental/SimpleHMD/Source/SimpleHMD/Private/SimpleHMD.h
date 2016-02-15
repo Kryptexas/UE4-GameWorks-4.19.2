@@ -14,7 +14,6 @@ class FSimpleHMD : public IHeadMountedDisplay, public ISceneViewExtension, publi
 {
 public:
 	/** IHeadMountedDisplay interface */
-	virtual void Tick(float TimeDeltaSeconds) override {}
 	virtual bool IsHMDConnected() override { return true; }
 	virtual bool IsHMDEnabled() const override;
 	virtual void EnableHMD(bool allow = true) override;
