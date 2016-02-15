@@ -56,7 +56,7 @@ namespace UnrealBuildTool
 				// Make the game executable.
 				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.Executable,
 																					InOutputFilePaths: OutputPaths,
-																					InIntermediateDirectory: ProjectIntermediateDirectory,
+																					InIntermediateDirectory: EngineIntermediateDirectory,
 																					bInCreateImportLibrarySeparately: (ShouldCompileMonolithic() ? false : true),
 																					bInAllowExports: !ShouldCompileMonolithic(),
 																					InModuleNames: new List<string>() { "Launch" });
