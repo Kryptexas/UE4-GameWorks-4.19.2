@@ -2001,6 +2001,25 @@ bool UParticleSystem::SetLODDistance(int32 LODLevelIndex, float InDistance)
 	return true;
 }
 
+bool UParticleSystem::DoesAnyEmitterHaveMotionBlur(int32 LODLevelIndex) const
+{
+	for (auto& EmitterIter : Emitters)
+	{
+		auto* EmitterLOD = EmitterIter->GetLODLevel(LODLevelIndex);
+		if (!EmitterLOD)
+		{
+			continue;
+		}
+
+		if (EmitterLOD->TypeDataModule && EmitterLOD->TypeDataModule->IsMotionBlurEnabled())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 #if WITH_EDITOR
 void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -2188,12 +2207,12 @@ void UParticleSystem::PostLoad()
 			if (EmitterSignificance < LowestSignificance)
 			{
 				LowestSignificance = EmitterSignificance;
-			}
 		}
+	}
 	}
 
 	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass());
-	
+
 	if (LODSettings.Num() == 0)
 	{
 		if (Emitters.Num() > 0)
@@ -3139,7 +3158,7 @@ void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLeve
 		//Set us to be significant again.
 		OnSignificanceChanged(true, true);
 	}
-}
+	}
 
 void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters)
 {
@@ -3156,25 +3175,25 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 				if (Inst)					
 				{
 					if (Inst->SpriteTemplate->IsSignificant(RequiredSignificance))
-					{
+	{
 						Inst->bEnabled = true;
 						Inst->SetHaltSpawning(false);
 						Inst->SetFakeBurstWhenSpawningSupressed(false);
 						++LocalNumSignificantEmitters;
-					}
-				}
-				else
-				{
+	}
+	}
+	else
+	{
 					++LocalNumSignificantEmitters;//Set significant for missing emitters due to other reasons such as detail mode.
 				}
-			}
+	}
 
 			if (LocalNumSignificantEmitters == 0)
-			{
+	{
 				UE_LOG(LogParticles, Warning, TEXT("Setting PSC as significant but it has no significant emitters. %s Template: %s"), *GetFullName(), *Template->GetFullName());
 			}
 			NumSignificantEmitters = LocalNumSignificantEmitters;
-		}
+	}
 	}
 	else
 	{
@@ -3183,25 +3202,25 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 		if (bApplyToEmitters && EmitterInstances.Num() > 0)
 		{
 			//Mark any emitters as significant if needed.
-			for (FParticleEmitterInstance* Inst : EmitterInstances)
-			{
-				if (Inst)
-				{
+	for (FParticleEmitterInstance* Inst : EmitterInstances)
+	{
+		if (Inst)
+		{
 					if(Inst->SpriteTemplate->IsSignificant(RequiredSignificance))
-					{
+			{
 						++LocalNumSignificantEmitters;
-					}
-					else
-					{
-						Inst->bEnabled = false;
-						Inst->SetHaltSpawning(true);
-						Inst->SetFakeBurstWhenSpawningSupressed(true);
-					}
-				}
 			}
+			else
+			{
+						Inst->bEnabled = false;
+				Inst->SetHaltSpawning(true);
+						Inst->SetFakeBurstWhenSpawningSupressed(true);
+			}
+		}
+	}
 
 			if (LocalNumSignificantEmitters > 0)
-			{
+	{
 				UE_LOG(LogParticles, Warning, TEXT("Setting PSC as not significant but it has some significant emitters. %s Template: %s"), *GetFullName(), *Template->GetFullName());
 			}
 
@@ -3212,10 +3231,10 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 		if (Template->InsignificantReaction == EParticleSystemInsignificanceReaction::Auto)
 		{
 			Reaction = Template->IsLooping() ? EParticleSystemInsignificanceReaction::DisableTick : EParticleSystemInsignificanceReaction::Complete;
-		}
+	}
 
 		switch (Reaction)
-		{
+	{
 		case EParticleSystemInsignificanceReaction::Complete:
 		{
 			Complete();
@@ -3224,7 +3243,7 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 		case EParticleSystemInsignificanceReaction::DisableTick:
 		{
 			SetComponentTickEnabled(false);
-		}
+	}
 			break;
 		case EParticleSystemInsignificanceReaction::DisableTickAndKill:
 		{
@@ -3939,7 +3958,6 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 	{
 		// Create the dynamic data for rendering this particle system
 		FParticleDynamicData* ParticleDynamicData = CreateDynamicData();
-
 		// Render the particles
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		//@todo.SAS. Remove thisline  - it is used for debugging purposes...
@@ -4227,7 +4245,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	bool bManagingSignificance = ShouldManageSignificance();
 	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
 
-	if( Template == nullptr)
+	if (Template == nullptr || Template->Emitters.Num() == 0)
 	{
 		return;
 	}
@@ -4259,11 +4277,6 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	UWorld* World = GetWorld();
 	check(World);
-	// Bail out if there is no template or there are no instances, or we're running a dedicated server and we don't update on those
-	if ((Template == NULL) || (EmitterInstances.Num() == 0) || (Template->Emitters.Num() == 0))
-	{
-		return;
-	}
 
 	// Bail out if we are running on a dedicated server and we don't want to update on those
 	if ((bUpdateOnDedicatedServer == false) && (GetNetMode() == NM_DedicatedServer))
@@ -4658,7 +4671,7 @@ void UParticleSystemComponent::FinalizeTickComponent()
 
 	// Indicate that we have been ticked since being registered.
 	bJustRegistered = false;
-	
+
 	float CurrTime = GetWorld()->GetTimeSeconds();
 
 	//Are we still significant?
@@ -4669,14 +4682,14 @@ void UParticleSystemComponent::FinalizeTickComponent()
 	else
 	{
 		LastSignificantTime = CurrTime;
-		// If component has just totally finished, call script event.
-		const bool bIsCompleted = HasCompleted();
-		if (bIsCompleted && !bWasCompleted)
-		{
+	// If component has just totally finished, call script event.
+	const bool bIsCompleted = HasCompleted(); 
+	if (bIsCompleted && !bWasCompleted)
+	{
 			Complete();
 		}
 		bWasCompleted = bIsCompleted;
-	}
+		}
 
 	// Update bounding box.
 	if (!bWarmingUp && !bWasCompleted && !Template->bUseFixedRelativeBoundingBox && !bIsTransformDirty)
@@ -4825,24 +4838,24 @@ void UParticleSystemComponent::InitParticles()
 				if (Instance)
 				{
 					Instance->bEnabled = true;
-					Instance->InitParameters(Emitter, this);
-					Instance->Init();
+						Instance->InitParameters(Emitter, this);
+						Instance->Init();
 
-					PreferredLODLevel = FMath::Min(PreferredLODLevel, Emitter->LODLevels.Num());
-					bSetLodLevels |= !bIsFirstCreate;//Only set lod levels if we init any instances and it's not the first creation time.
+						PreferredLODLevel = FMath::Min(PreferredLODLevel, Emitter->LODLevels.Num());
+						bSetLodLevels |= !bIsFirstCreate;//Only set lod levels if we init any instances and it's not the first creation time.
+					}
 				}
-			}
 			else
 			{
 				if (Instance)
 				{
 #if STATS
-					Instance->PreDestructorCall();
+						Instance->PreDestructorCall();
 #endif
-					delete Instance;
-					EmitterInstances[Idx] = NULL;
-					bClearDynamicData = true;
-				}
+						delete Instance;
+						EmitterInstances[Idx] = NULL;
+						bClearDynamicData = true;
+					}
 			}
 		}
 
@@ -5090,7 +5103,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 
 	// System settings may have been lowered. Support late deactivation.
 	const bool bDetailModeAllowsRendering = DetailMode <= GetCurrentDetailMode();
-	
+
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{
 		// Auto attach if requested
@@ -5127,7 +5140,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 			bIsSignificant = true;
 			RequiredSignificance = EParticleSignificanceLevel::Low;
 
-			//Call this now after any attachment has happened.
+		//Call this now after any attachment has happened.
 			OnSystemPreActivationChange.Broadcast(this, true);
 		}
 

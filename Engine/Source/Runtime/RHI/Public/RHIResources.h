@@ -27,13 +27,13 @@ public:
 			check(NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass())); // this should not have any outstanding refs
 		}
 	}
-	uint32 AddRef() const
+	FORCEINLINE_DEBUGGABLE uint32 AddRef() const
 	{
 		int32 NewValue = NumRefs.Increment();
-		check(NewValue > 0); 
+		checkSlow(NewValue > 0); 
 		return uint32(NewValue);
 	}
-	uint32 Release() const
+	FORCEINLINE_DEBUGGABLE uint32 Release() const
 	{
 		int32 NewValue = NumRefs.Decrement();
 		if (NewValue == 0)
@@ -50,13 +50,13 @@ public:
 				}
 			}
 		}
-		check(NewValue >= 0);
+		checkSlow(NewValue >= 0);
 		return uint32(NewValue);
 	}
-	uint32 GetRefCount() const
+	FORCEINLINE_DEBUGGABLE uint32 GetRefCount() const
 	{
 		int32 CurrentValue = NumRefs.GetValue();
-		check(CurrentValue >= 0); 
+		checkSlow(CurrentValue >= 0); 
 		return uint32(CurrentValue);
 	}
 	void DoNoDeferDelete()
@@ -416,6 +416,16 @@ public:
 	 * @return	The pointer to the native resource or NULL if it not initialized or not supported for this resource type for some reason
 	 */
 	virtual void* GetNativeShaderResourceView() const
+	{
+		// Override this in derived classes to expose access to the native texture resource
+		return nullptr;
+	}
+
+	/**
+	* Returns access to the platform-specific RHI texture baseclass.  This is designed to provide the RHI with fast access to its base classes in the face of multiple inheritance.
+	* @return	The pointer to the platform-specific RHI texture baseclass or NULL if it not initialized or not supported for this RHI
+	*/
+	virtual void* GetTextureBaseRHI()
 	{
 		// Override this in derived classes to expose access to the native texture resource
 		return nullptr;

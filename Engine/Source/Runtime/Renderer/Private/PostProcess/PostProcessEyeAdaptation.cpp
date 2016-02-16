@@ -78,7 +78,7 @@ inline static void ComputeEyeAdaptationValues(const ERHIFeatureLevel::Type MinFe
 	float DeltaLog = HistogramLogMax - HistogramLogMin;
 	float Multiply = 1.0f / DeltaLog;
 	float Add = -HistogramLogMin * Multiply;
-	float MinIntensity = exp2(HistogramLogMin);
+	float MinIntensity = FMath::Exp2(HistogramLogMin);
 	Out[2] = FVector4(Multiply, Add, MinIntensity, 0);
 }
 

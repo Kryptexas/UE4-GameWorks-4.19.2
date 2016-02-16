@@ -89,12 +89,45 @@ bool ShouldDebugCompositionGraph()
 #endif
 }
 
+void Test()
+{
+	struct ObjectSize4
+	{
+		void SetBaseValues(){}
+		static FName GetFName()
+		{
+ 			static const FName Name(TEXT("ObjectSize4"));
+ 			return Name;
+		}
+		uint8 Data[4];
+	};
+ 
+	MS_ALIGN(16) struct ObjectAligned16
+	{
+		void SetBaseValues(){}
+		static FName GetFName()
+		{
+ 			static const FName Name(TEXT("ObjectAligned16"));
+ 			return Name;
+		}
+		uint8 Data[16];
+	} GCC_ALIGN(16);
+
+	// https://udn.unrealengine.com/questions/274066/fblendablemanager-returning-wrong-or-misaligned-da.html
+	FBlendableManager Manager;
+	Manager.GetSingleFinalData<ObjectSize4>();
+	ObjectAligned16& AlignedData = Manager.GetSingleFinalData<ObjectAligned16>();
+
+	check((reinterpret_cast<ptrdiff_t>(&AlignedData) & 16) == 0);
+}
+
 void ExecuteCompositionGraphDebug()
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND(
 		StartDebugCompositionGraph,
 	{
 		GDebugCompositionGraphFrames = 1;
+		Test();
 	}
 	);
 }

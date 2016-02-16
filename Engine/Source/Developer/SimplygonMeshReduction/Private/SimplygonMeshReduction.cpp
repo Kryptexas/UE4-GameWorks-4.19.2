@@ -1897,7 +1897,6 @@ private:
 
 		// Set texture coordinate count on the new model.
 		NewModel->NumTexCoords = MeshData.TexCoordCount;
-		NewModel->Size = 0;
 	}
 
 	/**

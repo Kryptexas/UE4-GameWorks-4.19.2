@@ -1281,8 +1281,9 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawMesh(FRHICom
 			if(BatchElement.IndexBuffer)
 			{
 				check(BatchElement.IndexBuffer->IsInitialized());
-				if (BatchElement.InstanceRuns)
+				if (BatchElement.bIsInstanceRuns)
 				{
+					checkSlow(BatchElement.bIsInstanceRuns);
 					if (bUsePositionOnlyVS)
 					{
 						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)

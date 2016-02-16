@@ -1186,7 +1186,7 @@ FBoxSphereBounds UInstancedStaticMeshComponent::CalcBounds(const FTransform& Bou
 #if WITH_EDITOR
 void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo, const TArray<ULightComponent*>& InRelevantLights, const FLightingBuildOptions& Options)
 {
-	if (HasValidSettingsForStaticLighting())
+	if (HasValidSettingsForStaticLighting(false))
 	{
 		// create static lighting for LOD 0
 		int32 LightMapWidth = 0;

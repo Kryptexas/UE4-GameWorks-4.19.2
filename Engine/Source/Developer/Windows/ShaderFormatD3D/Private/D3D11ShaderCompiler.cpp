@@ -753,15 +753,13 @@ static bool CompileAndProcessD3DShader(FString& PreprocessedShaderSource, const 
 				FMemoryWriter UniformBufferNameWriter(UniformBufferNameBytes);
 				UniformBufferNameWriter << UniformBufferNames;
 
-				// At runtime textures are just SRVs, so combine them for the purposes of building token streams.
-				GenericSRT.ShaderResourceViewMap.Append(GenericSRT.TextureMap);
-
 				// Copy over the bits indicating which resource tables are active.
 				SRT.ResourceTableBits = GenericSRT.ResourceTableBits;
 
 				SRT.ResourceTableLayoutHashes = GenericSRT.ResourceTableLayoutHashes;
 
 				// Now build our token streams.
+				BuildResourceTableTokenStream(GenericSRT.TextureMap, GenericSRT.MaxBoundResourceTable, SRT.TextureMap);
 				BuildResourceTableTokenStream(GenericSRT.ShaderResourceViewMap, GenericSRT.MaxBoundResourceTable, SRT.ShaderResourceViewMap);
 				BuildResourceTableTokenStream(GenericSRT.SamplerMap, GenericSRT.MaxBoundResourceTable, SRT.SamplerMap);
 				BuildResourceTableTokenStream(GenericSRT.UnorderedAccessViewMap, GenericSRT.MaxBoundResourceTable, SRT.UnorderedAccessViewMap);

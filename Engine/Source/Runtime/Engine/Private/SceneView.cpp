@@ -1796,6 +1796,8 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 		CurrentWorldTime = 0;
 		CurrentRealTime = 0; 
 	}
+
+	DebugViewShaderMode = ChooseDebugViewShaderMode();
 #endif
 
 #if !WITH_EDITOR
@@ -1897,7 +1899,7 @@ ERHIFeatureLevel::Type FSceneViewFamily::GetFeatureLevel() const
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-EDebugViewShaderMode FSceneViewFamily::GetDebugViewShaderMode() const
+EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 {
 	const bool bDebugViewShaderExists = AllowDebugViewModeShader(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
 
@@ -1905,13 +1907,11 @@ EDebugViewShaderMode FSceneViewFamily::GetDebugViewShaderMode() const
 	{
 		if (EngineShowFlags.ShaderComplexity)
 		{
-			if (EngineShowFlags.QuadComplexity)
+			if (EngineShowFlags.QuadOverdraw)
 			{
-				// This can be used to visualize the QOM_ShaderComplexityBleeding mode.
-				// return EngineShowFlags.QuadOverhead ? DVSM_ShaderComplexityBleedingQuadOverhead : DVSM_QuadComplexity;
 				return DVSM_QuadComplexity;
 			}
-			else if (EngineShowFlags.QuadOverhead)
+			else if (EngineShowFlags.ShaderComplexityWithQuadOverdraw)
 			{
 				return DVSM_ShaderComplexityContainedQuadOverhead;
 			}
@@ -1928,8 +1928,12 @@ EDebugViewShaderMode FSceneViewFamily::GetDebugViewShaderMode() const
 		{
 			return DVSM_TexelFactorAccuracy;
 		}
+		else if (EngineShowFlags.TexCoordScaleAccuracy)
+		{
+			return DVSM_TexCoordScaleAnalysis;
+		}
 	}
-	else if (EngineShowFlags.ShaderComplexity && !EngineShowFlags.QuadComplexity)
+	else if (EngineShowFlags.ShaderComplexity && !EngineShowFlags.QuadOverdraw)
 	{
 		return DVSM_ShaderComplexity;
 	}

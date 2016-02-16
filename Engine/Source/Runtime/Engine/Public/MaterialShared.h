@@ -360,7 +360,8 @@ namespace EMaterialShaderMapUsage
 		MaterialExportAO,
 		MaterialExportEmissive,
 		MaterialExportOpacity,
-		MaterialExportSubSurfaceColor
+		MaterialExportSubSurfaceColor,
+		DebugViewModeTexCoordScale
 	};
 }
 
@@ -1625,6 +1626,8 @@ protected:
 	ENGINE_API virtual bool HasMaterialAttributesConnected() const override;
 	/** Useful for debugging. */
 	ENGINE_API virtual FString GetBaseMaterialPathName() const override;
+
+	friend class FDebugViewModeMaterialProxy; // Needed to redirect compilation
 };
 
 /**

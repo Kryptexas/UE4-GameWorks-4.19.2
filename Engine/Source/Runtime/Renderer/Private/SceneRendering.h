@@ -686,6 +686,8 @@ public:
 		return DrawRenderState;
 	}
 
+	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.ViewMatrix.GetColumn(2); }
+
 	/** Create a snapshot of this view info on the scene allocator. */
 	FViewInfo* CreateSnapshot() const;
 
@@ -903,9 +905,6 @@ protected:
 
 	/** Initialized the fog constants for each view. */
 	void InitFogConstants();
-
-	/** Initialized the atmopshere constants for each view. */
-	void InitAtmosphereConstants();
 
 	/** Returns whether there are translucent primitives to be renderered. */
 	bool ShouldRenderTranslucency() const;

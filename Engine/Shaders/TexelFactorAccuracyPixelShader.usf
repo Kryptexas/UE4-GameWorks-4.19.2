@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TexelFactorAccuracyPixelShader.usf: Outputs the accucary of the texel factor.
@@ -8,7 +8,7 @@
 
 #include "DebugViewModeCommon.usf"
 
-float4 StreamingAccuracyColors[5];
+float4 AccuracyColors[5];
 float CPUTexelFactor; // In world space units.
 
 // Needed because UAV accesses disable early depth test otherwises.
@@ -30,8 +30,8 @@ void Main(
 	{
 		float3 WorldPosition = SvPositionToResolvedTranslatedWorld(DebugInputs.SvPosition);
 
-		float2 CoordDDX = ddx(DebugInputs.TexCoords.xy);
-		float2 CoordDDY = ddy(DebugInputs.TexCoords.xy);
+		float2 CoordDDX = ddx(DebugInputs.TexCoord0.xy);
+		float2 CoordDDY = ddy(DebugInputs.TexCoord0.xy);
 		float3 WorldPosDDX = ddx(WorldPosition);
 		float3 WorldPosDDY = ddy(WorldPosition);
 
@@ -40,7 +40,7 @@ void Main(
 		float Accuracy = clamp(log2(CPUTexelFactor) - log2(GPUTexelFactor), -1.99, 1.99);
 		int ColorIndex = floor(Accuracy) + 2;
 
-		Result = lerp(StreamingAccuracyColors[ColorIndex], StreamingAccuracyColors[ColorIndex + 1], frac(Accuracy));
+		Result = lerp(AccuracyColors[ColorIndex], AccuracyColors[ColorIndex + 1], frac(Accuracy));
 	}
 
 	OutColor = RETURN_COLOR(float4(Result, .25f));

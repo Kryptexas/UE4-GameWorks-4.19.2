@@ -387,7 +387,7 @@ struct FMeshParticleInstanceVertex
 	FVector4 Transform[3];
 
 	/** The velocity of the particle, XYZ: direction, W: speed. */
-	FVector Velocity;
+	FVector4 Velocity;
 
 	/** The sub-image texture offsets for the particle. */
 	int16 SubUVParams[4];
@@ -403,6 +403,13 @@ struct FMeshParticleInstanceVertexDynamicParameter
 {
 	/** The dynamic parameter of the particle. */
 	float DynamicValue[4];
+};
+
+struct FMeshParticleInstanceVertexPrevTransform
+{
+	FVector4 PrevTransform0;
+	FVector4 PrevTransform1;
+	FVector4 PrevTransform2;
 };
 
 //
@@ -760,6 +767,16 @@ struct FMeshRotationPayloadData
 	FVector	 CurContinuousRotation;
 	FVector  RotationRate;
 	FVector  RotationRateBase;
+};
+
+struct FMeshMotionBlurPayloadData
+{
+	FVector BaseParticlePrevVelocity;
+	FVector BaseParticlePrevSize;
+	FVector PayloadPrevRotation;
+	FVector PayloadPrevOrbitOffset;
+	float   BaseParticlePrevRotation;
+	float   PayloadPrevCameraOffset;
 };
 
 /** ModuleLocationEmitter instance payload							*/
@@ -1743,15 +1760,16 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 struct FDynamicMeshEmitterReplayData
 	: public FDynamicSpriteEmitterReplayDataBase
 {
-	int32					SubUVInterpMethod;
-	int32					SubUVDataOffset;
-	int32					SubImages_Horizontal;
-	int32					SubImages_Vertical;
-	bool				bScaleUV;
-	int32					MeshRotationOffset;
-	uint8				MeshAlignment;
-	bool				bMeshRotationActive;
-	FVector				LockedAxis;	
+	int32	SubUVInterpMethod;
+	int32	SubUVDataOffset;
+	int32	SubImages_Horizontal;
+	int32	SubImages_Vertical;
+	bool	bScaleUV;
+	int32	MeshRotationOffset;
+	int32	MeshMotionBlurOffset;
+	uint8	MeshAlignment;
+	bool	bMeshRotationActive;
+	FVector	LockedAxis;	
 
 	/** Constructor */
 	FDynamicMeshEmitterReplayData() : 
@@ -1761,6 +1779,7 @@ struct FDynamicMeshEmitterReplayData
 		SubImages_Vertical( 0 ),
 		bScaleUV( false ),
 		MeshRotationOffset( 0 ),
+		MeshMotionBlurOffset( 0 ),
 		MeshAlignment( 0 ),
 		bMeshRotationActive( false ),
 		LockedAxis(1.0f, 0.0f, 0.0f)
@@ -1773,13 +1792,14 @@ struct FDynamicMeshEmitterReplayData
 	{
 		// Call parent implementation
 		FDynamicSpriteEmitterReplayDataBase::Serialize( Ar );
-
+		
 		Ar << SubUVInterpMethod;
 		Ar << SubUVDataOffset;
 		Ar << SubImages_Horizontal;
 		Ar << SubImages_Vertical;
 		Ar << bScaleUV;
 		Ar << MeshRotationOffset;
+		Ar << MeshMotionBlurOffset;
 		Ar << MeshAlignment;
 		Ar << bMeshRotationActive;
 		Ar << LockedAxis;
@@ -1829,25 +1849,38 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *
 	 *	@param	InstanceData            The memory to fill the vertex data into
 	 *	@param	DynamicParameterData    The memory to fill the vertex dynamic parameter data into
+	 *	@param	PrevTransformBuffer     The memory to fill the vertex prev transform data into. May be null
 	 *	@param	Proxy                   The scene proxy for the particle system that owns this emitter
 	 *	@param	View                    The scene view being rendered
 	 */
-	void GetInstanceData(void* InstanceData, void* DynamicParameterData, const FParticleSystemSceneProxy* Proxy, const FSceneView* View) const;
+	void GetInstanceData(void* InstanceData, void* DynamicParameterData, void* PrevTransformBuffer, const FParticleSystemSceneProxy* Proxy, const FSceneView* View) const;
 
 	/**
 	 *	Helper function for retrieving the particle transform.
 	 *
 	 *	@param	InParticle					The particle being processed
-	 *  @param	ParticleBase				The scene proxy for the particle system that owns this emitter
-	 *  @param  CameraPosition				The position of the camera
-	 *  @param	CameraFacingOpVector		The facing option for the camera.
-	 *  @param  PointToLockedAxis			A quaternion for locked axis rotation
 	 *  @param	Proxy					    The scene proxy for the particle system that owns this emitter
 	 *	@param	View						The scene view being rendered
 	 *	@param	OutTransform				The InstanceToWorld transform matrix for the particle
 	 */
-	void GetParticleTransform(const FBaseParticle& InParticle, const FVector& CameraPosition, const FVector& CameraFacingOpVector, 
-		const FQuat& PointToLockedAxis, const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const;
+	void GetParticleTransform(const FBaseParticle& InParticle, const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const;
+
+	void GetParticlePrevTransform(const FBaseParticle& InParticle, const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const;
+
+	void CalculateParticleTransform(
+		const FMatrix& ProxyLocalToWorld,
+		const FVector& ParticleLocation,
+			  float    ParticleRotation,
+		const FVector& ParticleVelocity,
+		const FVector& ParticleSize,
+		const FVector& ParticlePayloadInitialOrientation,
+		const FVector& ParticlePayloadRotation,
+		const FVector& ParticlePayloadCameraOffset,
+		const FVector& ParticlePayloadOrbitOffset,
+		const FVector& ViewOrigin,
+		const FVector& ViewDirection,
+		FMatrix& OutTransformMat
+		) const;
 
 	/** Gathers simple lights for this emitter. */
 	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
@@ -1888,7 +1921,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 		this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicMeshEmitterReplayData Source;
-
 
 	int32					LastFramePreRendered;
 

@@ -36,5 +36,5 @@ namespace SkinningTools
 	}
 }
 
-// Number of frames buffered
+// Number of frames buffered (2 would be enough for normal rendering as GPU produces and consumes but we need one more frame for velocity)
 #define GPUSKINCACHE_FRAMES 3

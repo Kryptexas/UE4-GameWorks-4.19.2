@@ -72,12 +72,24 @@ const static int InscatterNuNum = 8;
 #endif
 
 /** Textures for rendering */
-Texture2D AtmosphereTransmittanceTexture;
-SamplerState AtmosphereTransmittanceTextureSampler;
-Texture2D AtmosphereIrradianceTexture;
-SamplerState AtmosphereIrradianceTextureSampler;
-Texture3D AtmosphereInscatterTexture;
-SamplerState AtmosphereInscatterTextureSampler;
+#if IS_MATERIAL_SHADER
+    // for materials, these are in the frame UB
+	#define AtmosphereTransmittanceTexture			Frame.AtmosphereTransmittanceTexture_UB
+	#define AtmosphereTransmittanceTextureSampler	Frame.AtmosphereTransmittanceTextureSampler_UB
+	#define AtmosphereIrradianceTexture				Frame.AtmosphereIrradianceTexture_UB
+	#define AtmosphereIrradianceTextureSampler		Frame.AtmosphereIrradianceTextureSampler_UB
+	#define AtmosphereInscatterTexture				Frame.AtmosphereInscatterTexture_UB
+	#define AtmosphereInscatterTextureSampler		Frame.AtmosphereInscatterTextureSampler_UB
+#else
+	// these are only used for the precomputation shader; which doesn't have a frame UB
+	Texture2D AtmosphereTransmittanceTexture;
+	SamplerState AtmosphereTransmittanceTextureSampler;
+	Texture2D AtmosphereIrradianceTexture;
+	SamplerState AtmosphereIrradianceTextureSampler;
+	Texture3D AtmosphereInscatterTexture;
+	SamplerState AtmosphereInscatterTextureSampler;
+	#define ATMOSPHERIC_TEXTURE_PREFIX
+#endif
 
 struct FAtmosphereVSOutput
 {

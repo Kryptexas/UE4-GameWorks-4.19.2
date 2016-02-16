@@ -11,8 +11,8 @@
 #include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationDirect.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Direct Location"))
-class UParticleModuleLocationDirect : public UParticleModuleLocationBase
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Direct Location"))
+class ENGINE_API UParticleModuleLocationDirect : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()
 

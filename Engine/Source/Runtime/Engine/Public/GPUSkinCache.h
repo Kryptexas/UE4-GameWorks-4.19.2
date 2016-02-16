@@ -12,6 +12,7 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 
+typedef FRHIShaderResourceView*              FShaderResourceViewRHIParamRef;
 
 extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
 extern ENGINE_API int32 GEnableGPUSkinCache;
@@ -61,8 +62,11 @@ public:
 	//	For each Chunk:
 	//		Call Add*
 	//	Call End*
+	// @param MorphVertexBuffer if no moprh targets are used
 	// @returns -1 if failed, otherwise index into CachedElements[]
-	int32 StartCacheMesh(FRHICommandListImmediate& RHICmdList, int32 Key, class FGPUBaseSkinVertexFactory* VertexFactory, class FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const struct FSkelMeshChunk& BatchElement, const FSkeletalMeshObjectGPUSkin* Skin);
+	int32 StartCacheMesh(FRHICommandListImmediate& RHICmdList, int32 Key, class FGPUBaseSkinVertexFactory* VertexFactory,
+		class FGPUSkinPassthroughVertexFactory* TargetVertexFactory, const struct FSkelMeshChunk& BatchElement, const FSkeletalMeshObjectGPUSkin* Skin,
+		const class FMorphVertexBuffer* MorphVertexBuffer);
 
 	inline bool SetVertexStreamFromCache(FRHICommandList& RHICmdList, int32 Key, FShader* Shader, const FGPUSkinPassthroughVertexFactory* VertexFactory, uint32 BaseVertexIndex, FShaderParameter PreviousStreamFloatOffset, FShaderResourceParameter PreviousStreamBuffer)
 	{
@@ -84,6 +88,7 @@ public:
 		int32	Key;
 		// index into CachedVertexBuffers[] or -1 if it has no assignment yet
 		int32	VertexBufferSRVIndex;
+		int32	MorphVertexBufferSRVIndex;
 
 		uint32	FrameUpdated;
 
@@ -94,6 +99,12 @@ public:
 		uint32	PreviousFrameStreamOffset;
 
 		bool	bExtraBoneInfluences;
+
+		FElementCacheStatusInfo()
+			: VertexBufferSRVIndex(-1)
+			, MorphVertexBufferSRVIndex(-1)
+		{
+		}
 
 		struct FSearchInfo
 		{
@@ -117,18 +128,6 @@ public:
 		}
 	};
 
-	struct FVertexBufferInfo
-	{
-		const FVertexBuffer* VertexBuffer;
-		FShaderResourceViewRHIRef	VertexBufferSRV;
-		int32	Index;
-
-		bool operator == (const FVertexBuffer& OtherVertexBuffer) const 
-		{
-			return (VertexBuffer == &OtherVertexBuffer);
-		}
-	};
-
 	ENGINE_API void TransitionToReadable(FRHICommandList& RHICmdList);
 	ENGINE_API void TransitionToWriteable(FRHICommandList& RHICmdList);
 
@@ -136,7 +135,14 @@ public:
 private:
 	FElementCacheStatusInfo* FindEvictableCacheStatusInfo();
 
-	void	DispatchSkinCacheProcess(FRHICommandListImmediate& RHICmdList, uint32 InputStreamFloatOffset, uint32 OutputBufferFloatOffset, const struct FVertexBufferAndSRV& BoneBuffer, FUniformBufferRHIRef UniformBuffer, const FVertexBufferInfo* VBInfo, uint32 VertexStride, uint32 VertexCount, const FVector& MeshOrigin, const FVector& MeshExtension, bool bUseExtraBoneInfluences, ERHIFeatureLevel::Type FeatureLevel);
+	struct FVertexBufferInfo;
+
+	// @param SkinType 0:normal, 1:with morph target, 2:with APEX cloth (not yet implemented)
+	void DispatchSkinCacheProcess(FRHICommandListImmediate& RHICmdList, uint32 InputStreamFloatOffset, uint32 OutputBufferFloatOffset,
+		const struct FVertexBufferAndSRV& BoneBuffer, FUniformBufferRHIRef UniformBuffer, const FVertexBufferInfo* VBInfo,
+		uint32 VertexStride, uint32 VertexCount, const FVector& MeshOrigin, const FVector& MeshExtension, bool bUseExtraBoneInfluences, ERHIFeatureLevel::Type FeatureLevel,
+		uint32 SkinType, uint32 InMorphInputStreamFloatOffset, FShaderResourceViewRHIParamRef MorphVertexBufferSRV);
+
 	bool InternalSetVertexStreamFromCache(FRHICommandList& RHICmdList, int32 Key, FShader* Shader, const class FGPUSkinPassthroughVertexFactory* VertexFactory, uint32 BaseVertexIndex, FShaderParameter PreviousStreamFloatOffset, FShaderResourceParameter PreviousStreamBuffer);
 
 	bool	bInitialized : 1;
@@ -150,8 +156,6 @@ private:
 	int		CacheCurrentFloatOffset;
 	int		CachedChunksThisFrameCount;
 
-	TArray<FVertexBufferInfo>		CachedVertexBuffers;
-
 	TArray<FElementCacheStatusInfo>	CachedElements;
 
 	FRWBuffer	SkinCacheBuffer[GPUSKINCACHE_FRAMES];
@@ -159,6 +163,29 @@ private:
 	static void CVarSinkFunction();
 
 	static FAutoConsoleVariableSink CVarSink;
+
+	
+	// -------------------------------------------------
+	
+	// to cache the SRV needed to access the input vertex buffers
+	struct FVertexBufferInfo
+	{
+		// key: input vertex buffer from which we need an SRV
+		const FVertexBuffer* VertexBuffer;
+		// value: SRV created from the VertexBuffer
+		FShaderResourceViewRHIRef VertexBufferSRV;
+		
+		// to support FindByKey()
+		bool operator == (const FVertexBuffer& OtherVertexBuffer) const 
+		{
+			return (VertexBuffer == &OtherVertexBuffer);
+		}
+	};
+	
+	// to cache the SRV needed to access the input vertex buffers
+	TArray<FVertexBufferInfo> CachedVertexBuffers;
+	
+	FVertexBufferInfo* ReuseOrFindAndCacheSRV(int32& InOutIndex, const FVertexBuffer& VertexBuffer);
 };
 
 BEGIN_UNIFORM_BUFFER_STRUCT(GPUSkinCacheBonesUniformShaderParameters,)
@@ -176,7 +203,6 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for Max Chunks Per LOD"), STAT_G
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for Num Chunks Per Frame"), STAT_GPUSkinCache_SkippedForChunksPerFrame, STATGROUP_GPUSkinCache,);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for zero influences"), STAT_GPUSkinCache_SkippedForZeroInfluences, STATGROUP_GPUSkinCache,);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for Cloth"), STAT_GPUSkinCache_SkippedForCloth, STATGROUP_GPUSkinCache,);
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for Morphs"), STAT_GPUSkinCache_SkippedForMorphs, STATGROUP_GPUSkinCache,);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for Memory"), STAT_GPUSkinCache_SkippedForMemory, STATGROUP_GPUSkinCache,);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for Already Cached"), STAT_GPUSkinCache_SkippedForAlreadyCached, STATGROUP_GPUSkinCache,);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skipped for out of ECS"), STAT_GPUSkinCache_SkippedForOutOfECS, STATGROUP_GPUSkinCache,);

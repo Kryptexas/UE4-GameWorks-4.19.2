@@ -274,7 +274,7 @@ public:
 
 	void Start()
 	{
-		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, TPri_Normal, 
+		Thread = FRunnableThread::Create(this, TEXT("RHIThread"), 512 * 1024, TPri_SlightlyBelowNormal, 
 			FPlatformAffinity::GetRHIThreadMask()
 			);
 		check(Thread);

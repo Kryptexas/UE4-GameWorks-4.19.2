@@ -48,16 +48,7 @@
 #define GPUSKIN_RWBUFFER_NUM_FLOATS			5
 #endif
 
-float4 UnpackS8x4N(uint Packed)
-{
-	float4 Unpacked;
-	Unpacked.x = (float((Packed >> 0) & 0xff) / 127.5f) - 1.0f;
-	Unpacked.y = (float((Packed >> 8) & 0xff) / 127.5f) - 1.0f;
-	Unpacked.z = (float((Packed >> 16) & 0xff) / 127.5f) - 1.0f;
-	Unpacked.w = (float((Packed >> 24) & 0xff) / 127.5f) - 1.0f;
-	return Unpacked;
-}
-
+// @return 0..255
 uint4 UnpackU8x4(uint Packed)
 {
 	uint4 Unpacked;
@@ -68,34 +59,32 @@ uint4 UnpackU8x4(uint Packed)
 	return Unpacked;
 }
 
+// @return 0..1
 float4 UnpackU8x4N(uint Packed)
 {
-	float4 Unpacked;
-	Unpacked.x = (float((Packed >> 0) & 0xff) / 255.0f);
-	Unpacked.y = (float((Packed >> 8) & 0xff) / 255.0f);
-	Unpacked.z = (float((Packed >> 16) & 0xff) / 255.0f);
-	Unpacked.w = (float((Packed >> 24) & 0xff) / 255.0f);
-	return Unpacked;
+	return UnpackU8x4(Packed) / 255.0f;
 }
 
-// Leaves the high 8 bits unset
-uint PackS8x3N(float3 Unpacked)
+// @return -1..1
+float4 UnpackS8x4N(uint Packed)
 {
-	uint Packed = asuint(
-		(uint((Unpacked.x + 1.0f) * 127.5f) << 0) |
-		(uint((Unpacked.y + 1.0f) * 127.5f) << 8) |
-		(uint((Unpacked.z + 1.0f) * 127.5f) << 16))
-		;
-	return Packed;
+	return UnpackU8x4(Packed) / 127.5f - 1;
 }
 
+// @param Unpacked -1..1
 uint PackS8x4N(float4 Unpacked)
 {
 	uint Packed = asuint(
 		(uint((Unpacked.x + 1.0f) * 127.5f) << 0) |
 		(uint((Unpacked.y + 1.0f) * 127.5f) << 8) |
 		(uint((Unpacked.z + 1.0f) * 127.5f) << 16) |
-		(uint((Unpacked.w + 1.0f) * 127.5f) << 24))
-		;
+		(uint((Unpacked.w + 1.0f) * 127.5f) << 24));
 	return Packed;
+}
+
+// @param Unpacked -1..1
+// Leaves the high 8 bits unset
+uint PackS8x3N(float3 Unpacked)
+{
+	return PackS8x4N(float4(Unpacked, 0));
 }

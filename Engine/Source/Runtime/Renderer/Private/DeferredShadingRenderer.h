@@ -63,7 +63,7 @@ public:
 	 * Renders the scene's prepass for a particular view in parallel
 	 * @return true if the depth was cleared
 	 */
-	bool RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList, bool bDoFXPrerender);
+	bool RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList, TFunctionRef<void()> AfterTasksAreStarted, bool bDoPrePre);
 
 	/** Renders the basepass for the static data of a given View. */
 	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
@@ -158,7 +158,9 @@ private:
 	bool CheckForLightFunction(const FLightSceneInfo* LightSceneInfo) const;
 
 	/** Determines which primitives are visible for each view. */
-	void InitViews(FRHICommandListImmediate& RHICmdList);
+	bool InitViews(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents);
+
+	void InitViewsPossiblyAfterPrepass(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents);
 
 	void CreateIndirectCapsuleShadows();
 
@@ -166,13 +168,13 @@ private:
 	* Setup the prepass. This is split out so that in parallel we can do the fx prerender after we start the parallel tasks
 	* @return true if the depth was cleared
 	*/
-	bool PreRenderPrePass(FRHICommandListImmediate& RHICmdList, bool bDoFXPrerender);
+	bool PreRenderPrePass(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * Renders the scene's prepass and occlusion queries.
 	 * @return true if the depth was cleared
 	 */
-	bool RenderPrePass(bool bDoFXPrerender, FRHICommandListImmediate& RHICmdList);
+	bool RenderPrePass(FRHICommandListImmediate& RHICmdList, TFunctionRef<void()> AfterTasksAreStarted);
 
 	/**
 	 * Renders the active HMD's hidden area mask as a depth prepass, if available.

@@ -1488,7 +1488,6 @@ public:
 	* Rendering data.
 	*/
 	FMultiSizeIndexContainer	MultiSizeIndexContainer; 
-	uint32						Size;
 	uint32						NumVertices;
 	/** The number of unique texture coordinate sets in this lod */
 	uint32						NumTexCoords;
@@ -1533,8 +1532,9 @@ public:
 
 	/** Constructor (default) */
 	FStaticLODModel()
-	:	Size(0)
-	,	NumVertices(0)
+		: NumVertices(0)
+		, NumTexCoords(0)
+		, MaxImportVertex(-1)
 	{
 	}
 
@@ -1577,7 +1577,7 @@ public:
 	 * Initialize vertex buffers from skel mesh chunks.
 	 * @param BuildFlags See EVertexFlags.
 	 */
-	ENGINE_API void BuildVertexBuffers(uint32 VertexFlags);
+	ENGINE_API void BuildVertexBuffers(uint32 BuildFlags);
 
 	/** Utility function for returning total number of faces in this LOD. */
 	ENGINE_API int32 GetTotalFaces() const;
@@ -1585,7 +1585,10 @@ public:
 	/** Utility for finding the chunk that a particular vertex is in. */
 	ENGINE_API void GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkIndex, int32& OutVertIndex, bool& bOutSoftVert, bool& bOutHasExtraBoneInfluences) const;
 
-	/** Sort the triangles with the specified sorting method */
+	/**
+	 * Sort the triangles with the specified sorting method
+	 * @param ETriangleSortOption NewTriangleSorting new sorting method
+	 */
 	ENGINE_API void SortTriangles( FVector SortCenter, bool bUseSortCenter, int32 SectionIndex, ETriangleSortOption NewTriangleSorting );
 
 	/**

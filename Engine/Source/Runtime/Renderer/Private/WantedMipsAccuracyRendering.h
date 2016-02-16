@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 WantedMipsAccuracyRendering.h: Declarations used for the viewmode.
@@ -6,13 +6,10 @@ WantedMipsAccuracyRendering.h: Declarations used for the viewmode.
 
 #pragma once
 
-static const int32 NumStreamingAccuracyColors = 5;
-static const int32 MaxStreamingAccuracyMips = 11;
-
 /**
 * Pixel shader that renders texture streamer wanted mips accuracy.
 */
-class FWantedMipsAccuracyPS : public FDebugViewModePS
+class FWantedMipsAccuracyPS : public FGlobalShader, public IDebugViewModePSInterface
 {
 	DECLARE_SHADER_TYPE(FWantedMipsAccuracyPS,Global);
 
@@ -24,9 +21,9 @@ public:
 	}
 
 	FWantedMipsAccuracyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FDebugViewModePS(Initializer)
+		FGlobalShader(Initializer)
 	{
-		StreamingAccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("StreamingAccuracyColors"));
+		AccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("AccuracyColors"));
 		CPUWantedMipsParameter.Bind(Initializer.ParameterMap,TEXT("CPUWantedMips"));
 	}
 
@@ -35,7 +32,7 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << StreamingAccuracyColorsParameter;
+		Ar << AccuracyColorsParameter;
 		Ar << CPUWantedMipsParameter;
 		return bShaderHasOutdatedParameters;
 	}
@@ -49,6 +46,8 @@ public:
 		FRHICommandList& RHICmdList, 
 		const FShader* OriginalVS, 
 		const FShader* OriginalPS, 
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterial& Material,
 		const FSceneView& View
 		) override;
 
@@ -63,8 +62,10 @@ public:
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, const FSceneView& View) override;
 
+	virtual FShader* GetShader() override { return static_cast<FShader*>(this); }
+
 private:
 
-	FShaderParameter StreamingAccuracyColorsParameter;
+	FShaderParameter AccuracyColorsParameter;
 	FShaderParameter CPUWantedMipsParameter;
 };

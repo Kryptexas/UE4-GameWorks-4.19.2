@@ -217,6 +217,8 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	FViewUniformShaderParameters ViewUniformShaderParameters;
 	FFrameUniformShaderParameters FrameUniformShaderParameters;
 
+	FMemory::Memzero(ViewUniformShaderParameters);
+
 	ViewUniformShaderParameters.TranslatedWorldToClip = View->ViewMatrices.TranslatedViewProjectionMatrix;
 	ViewUniformShaderParameters.WorldToClip = ViewProjectionMatrix;
 	ViewUniformShaderParameters.TranslatedWorldToView = EffectiveTranslatedViewMatrix;
@@ -248,8 +250,6 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	FrameUniformShaderParameters.RealTime = View->Family->CurrentRealTime;
 	FrameUniformShaderParameters.Random = FMath::Rand();
 	FrameUniformShaderParameters.FrameNumber = View->Family->FrameNumber;
-	FrameUniformShaderParameters.DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
-	FrameUniformShaderParameters.DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 
 	{
 		// setup a matrix to transform float4(SvPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)

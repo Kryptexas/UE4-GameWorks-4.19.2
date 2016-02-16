@@ -65,14 +65,20 @@ public:
 	/** Changes the viewport to shader complexity mode */
 	TSharedPtr< FUICommandInfo > ShaderComplexityMode;
 
-	/** Changes the viewport to quad complexity mode */
-	TSharedPtr< FUICommandInfo > QuadComplexityMode;
+	/** Changes the viewport to quad overdraw mode */
+	TSharedPtr< FUICommandInfo > QuadOverdrawMode;
+
+	/** Changes the viewport to shader complexity with quad overdraw mode */
+	TSharedPtr< FUICommandInfo > ShaderComplexityWithQuadOverdrawMode;
 
 	/** Changes the viewport to wanted mips accuracy mode */
 	TSharedPtr< FUICommandInfo > WantedMipsAccuracyMode;
 
 	/** Changes the viewport to texel factor accuracy mode */
 	TSharedPtr< FUICommandInfo > TexelFactorAccuracyMode;
+
+	/** Changes the viewport to texcoord scale accuracy mode */
+	TSharedPtr< FUICommandInfo > TexCoordScaleAccuracyMode;
 
 	/** Changes the viewport to stationary light overlap mode */
 	TSharedPtr< FUICommandInfo > StationaryLightOverlapMode;

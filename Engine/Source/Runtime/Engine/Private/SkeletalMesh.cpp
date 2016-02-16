@@ -1148,7 +1148,7 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 		Ar << S.NumTriangles;
 	}
 		
-		Ar << S.TriangleSorting;
+	Ar << S.TriangleSorting;
 
 	// for clothing info
 	if( Ar.UE4Ver() >= VER_UE4_APEX_CLOTH )
@@ -1169,14 +1169,6 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 	FStaticLODModel
 -----------------------------------------------------------------------------*/
 
-/**
-* Special serialize function passing the owning UObject along as required by FUnytpedBulkData
-* serialization.
-*
-* @param	Ar		Archive to serialize with
-* @param	Owner	UObject this structure is serialized within
-* @param	Idx		Index of current array entry being serialized
-*/
 void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("FStaticLODModel::Serialize"), STAT_StaticLODModel_Serialize, STATGROUP_LoadTime );
@@ -1196,7 +1188,13 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 	MultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
 	Ar << ActiveBoneIndices;
 	Ar << Chunks;
-	Ar << Size;
+	
+	// no longer in use
+	{
+		uint32 LegacySize = 0;
+		Ar << LegacySize;
+	}
+
 	if (!StripFlags.IsDataStrippedForServer())
 	{
 		Ar << NumVertices;
@@ -1277,11 +1275,6 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 	}
 }
 
-/**
-* Initialize the LOD's render resources.
-*
-* @param Parent Parent mesh
-*/
 void FStaticLODModel::InitResources(bool bNeedsVertexColors)
 {
 	INC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0 );
@@ -1312,9 +1305,6 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors)
 	}
 }
 
-/**
-* Releases the LOD's render resources.
-*/
 void FStaticLODModel::ReleaseResources()
 {
 	DEC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0 );
@@ -1329,12 +1319,8 @@ void FStaticLODModel::ReleaseResources()
 	BeginReleaseResource(&VertexBufferGPUSkin);
 	BeginReleaseResource(&ColorVertexBuffer);
 	BeginReleaseResource(&APEXClothVertexBuffer);
-
 }
 
-/**
-* Utility function for returning total number of faces in this LOD. 
-*/
 int32 FStaticLODModel::GetTotalFaces() const
 {
 	int32 TotalFaces = 0;
@@ -1346,9 +1332,6 @@ int32 FStaticLODModel::GetTotalFaces() const
 	return TotalFaces;
 }
 
-/** 
- *	Utility for finding the chunk that a particular vertex is in.
- */
 void FStaticLODModel::GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkIndex, int32& OutVertIndex, bool& bOutSoftVert, bool& bOutHasExtraBoneInfluences) const
 {
 	OutChunkIndex = 0;
@@ -1387,15 +1370,8 @@ void FStaticLODModel::GetChunkAndSkinType(int32 InVertIndex, int32& OutChunkInde
 
 	// InVertIndex should always be in some chunk!
 	//check(false);
-	return;
 }
 
-
-/**
-* Fill array with vertex position and tangent data from skel mesh chunks.
-*
-* @param Vertices Array to fill.
-*/
 void FStaticLODModel::GetVertices(TArray<FSoftSkinVertex>& Vertices) const
 {
 	Vertices.Empty(NumVertices);
@@ -1437,11 +1413,6 @@ void FStaticLODModel::GetVertices(TArray<FSoftSkinVertex>& Vertices) const
 	}
 }
 
-/**
-* Fill array with APEX cloth mapping data.
-*
-* @param MappingData Array to fill.
-*/
 void FStaticLODModel::GetApexClothMappingData(TArray<FApexClothPhysToRenderVertData>& MappingData) const
 {
 	for( int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ChunkIndex++ )
@@ -1469,11 +1440,6 @@ void FStaticLODModel::GetApexClothMappingData(TArray<FApexClothPhysToRenderVertD
 	}
 }
 
-/**
-* Initialize position and tangent vertex buffers from skel mesh chunks
-*
-* @param Mesh Parent mesh
-*/
 void FStaticLODModel::BuildVertexBuffers(uint32 BuildFlags)
 {
 	bool bUseFullPrecisionUVs = (BuildFlags & EVertexFlags::UseFullPrecisionUVs) != 0;
@@ -1508,11 +1474,6 @@ void FStaticLODModel::BuildVertexBuffers(uint32 BuildFlags)
 	}
 }
 
-/**
-* Sort the triangles in the LODmodel
-*
-* @param ETriangleSortOption NewTriangleSorting new sorting method
-*/
 void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, int32 SectionIndex, ETriangleSortOption NewTriangleSorting )
 {
 #if WITH_EDITOR

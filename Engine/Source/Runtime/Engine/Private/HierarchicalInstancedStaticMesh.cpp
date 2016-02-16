@@ -1154,6 +1154,7 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					{
 						BatchElement0.NumInstances = RunArray.Num() / 2;
 						BatchElement0.InstanceRuns = &RunArray[0];
+						BatchElement0.bIsInstanceRuns = true;
 #if STATS
 						INC_DWORD_STAT_BY(STAT_FoliageRuns, BatchElement0.NumInstances);
 #endif

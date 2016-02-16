@@ -17,6 +17,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FMeshParticleUniformParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, SubImageSize )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, TexCoordWeightA )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, TexCoordWeightB )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( uint32, PrevTransformAvailable )
 END_UNIFORM_BUFFER_STRUCT( FMeshParticleUniformParameters )
 typedef TUniformBufferRef<FMeshParticleUniformParameters> FMeshParticleUniformBufferRef;
 
@@ -63,7 +64,6 @@ public:
 		FDataType()
 		: bInitialized(false)
 		{
-
 		}
 	};
 
@@ -72,6 +72,7 @@ public:
 	public:
 		const struct FMeshParticleInstanceVertex* InstanceBuffer;
 		const struct FMeshParticleInstanceVertexDynamicParameter* DynamicParameterBuffer;
+		const struct FMeshParticleInstanceVertexPrevTransform* PrevTransformBuffer;
 	};
 
 	/** Default constructor. */
@@ -103,9 +104,9 @@ public:
 
 		// Set a define so we can tell in MaterialTemplate.usf when we are compiling a mesh particle vertex factory
 		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_FACTORY"),TEXT("1"));
-		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"),(uint32) 1);
+		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"), (GetMaxSupportedFeatureLevel(Platform) > ERHIFeatureLevel::ES2) ? 1 : 0);
 	}
-
+	
 	/**
 	 * An implementation of the interface used by TSynchronizedResource to update the resource with new data from the game thread.
 	 */
@@ -126,7 +127,7 @@ public:
 	{
 		return MeshParticleUniformBuffer;
 	}
-
+	
 	/**
 	 * Update the data strides (MUST HAPPEN BEFORE InitRHI is called)
 	 */
@@ -145,6 +146,10 @@ public:
 	 * Set the source vertex buffer that contains particle dynamic parameter data.
 	 */
 	void SetDynamicParameterBuffer(const FVertexBuffer* InDynamicParameterBuffer, uint32 StreamOffset, uint32 Stride);
+
+	uint8* LockPreviousTransformBuffer(uint32 ParticleCount);
+	void UnlockPreviousTransformBuffer();
+	FShaderResourceViewRHIParamRef GetPreviousTransformBufferSRV() const;
 
 	/**
 	* Copy the data from another vertex factory
@@ -166,9 +171,10 @@ protected:
 	int32 DynamicVertexStride;
 	int32 DynamicParameterVertexStride;
 	
-
 	/** Uniform buffer with mesh particle parameters. */
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;
+
+	FDynamicReadBuffer PrevTransformBuffer;
 };
 
 
@@ -187,7 +193,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
-		return (Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL) // Those are only platforms that might not support hardware instancing
+		return (GetMaxSupportedFeatureLevel(Platform) <= ERHIFeatureLevel::ES2)
 				&& FMeshParticleVertexFactory::ShouldCache(Platform, Material, ShaderType);
 	}
 

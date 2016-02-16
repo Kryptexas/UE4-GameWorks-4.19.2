@@ -63,7 +63,9 @@ void FMorphVertexBuffer::InitDynamicRHI()
 	uint32 Size = LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
 	FRHIResourceCreateInfo CreateInfo;
 	void* BufferData = nullptr;
-	VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Dynamic, CreateInfo, BufferData);
+
+	// BUF_ShaderResource is needed for Morph support of the SkinCache
+	VertexBufferRHI = RHICreateAndLockVertexBuffer(Size, BUF_Dynamic | BUF_ShaderResource, CreateInfo, BufferData);
 
 	// Lock the buffer.
 	FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)BufferData;
@@ -283,7 +285,9 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 	const FSkelMeshObjectLODInfo& MeshLODInfo = LODInfo[DynamicData->LODIndex];
 
 	// if hasn't been updated, force update again
-	bMorphNeedsUpdate = LOD.MorphVertexBuffer.bHasBeenUpdated? bMorphNeedsUpdate:true;
+	bMorphNeedsUpdate = LOD.MorphVertexBuffer.bHasBeenUpdated ? bMorphNeedsUpdate : true;
+	
+	bool bMorph = DynamicData->NumWeightedActiveVertexAnims > 0;
 
 	const FStaticLODModel& LODModel = SkeletalMeshResource->LODModels[DynamicData->LODIndex];
 	const TArray<FSkelMeshChunk>& Chunks = GetRenderChunks(DynamicData->LODIndex);
@@ -293,10 +297,17 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 
 	bool DataPresent = false;
 
-	if(DynamicData->NumWeightedActiveVertexAnims > 0) 
+	if(bMorph) 
 	{
 		DataPresent = true;
 		checkSlow((VertexFactoryData.MorphVertexFactories.Num() == Chunks.Num()));
+		
+		// only update if the morph data changed and there are weighted morph targets
+		if(bMorphNeedsUpdate)
+		{
+			// update the morph data for the lod (before SkinCache)
+			LOD.UpdateMorphVertexBuffer( DynamicData->ActiveVertexAnims );
+		}
 	}
 	else
 	{
@@ -335,11 +346,6 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForZeroInfluences);
 					bUseSkinCache = false;
 				}
-				else if (DynamicData->NumWeightedActiveVertexAnims > 0)
-				{
-					INC_DWORD_STAT(STAT_GPUSkinCache_SkippedForMorphs);
-					bUseSkinCache = false;
-				}
 			}
 
 			// Create a uniform buffer from the bone transforms.
@@ -349,7 +355,8 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 			// Try to use the GPU skinning cache if possible
 			if (bUseSkinCache)
 			{
-				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, GPUSkinCacheKeys[ChunkIdx], VertexFactoryData.VertexFactories[ChunkIdx].Get(), VertexFactoryData.PassthroughVertexFactories[ChunkIdx].Get(), Chunk, this);
+				int32 Key = GGPUSkinCache.StartCacheMesh(RHICmdList, GPUSkinCacheKeys[ChunkIdx], VertexFactoryData.VertexFactories[ChunkIdx].Get(),
+					VertexFactoryData.PassthroughVertexFactories[ChunkIdx].Get(), Chunk, this, bMorph ? &LOD.MorphVertexBuffer : 0);
 				if(Key >= 0)
 				{
 					GPUSkinCacheKeys[ChunkIdx] = (int16)Key;
@@ -374,14 +381,6 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 				RHIThreadFenceForDynamicData = RHICmdList.RHIThreadFence(true);
 			}
 		}
-	}
-
-	// only update if the morph data changed and there are weighted morph targets
-	if( bMorphNeedsUpdate &&
-		DynamicData->NumWeightedActiveVertexAnims > 0 )
-	{
-		// update the morph data for the lod
-		LOD.UpdateMorphVertexBuffer( DynamicData->ActiveVertexAnims );
 	}
 }
 
@@ -500,24 +499,21 @@ const FVertexFactory* FSkeletalMeshObjectGPUSkin::GetVertexFactory(int32 LODInde
 	{
 		return LOD.GPUSkinVertexFactories.ClothVertexFactories[ChunkIdx]->GetVertexFactory();
 	}
+
+	// If the GPU skinning cache was used, return the passthrough vertex factory
+	if (GGPUSkinCache.IsElementProcessed(GPUSkinCacheKeys[ChunkIdx]))
+	{
+		return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
+	}
+
 	// use the morph enabled vertex factory if any active morphs are set
-	else if( DynamicData->NumWeightedActiveVertexAnims > 0 )
+	if( DynamicData->NumWeightedActiveVertexAnims > 0 )
 	{
 		return LOD.GPUSkinVertexFactories.MorphVertexFactories[ChunkIdx].Get();
 	}
+
 	// use the default gpu skin vertex factory
-	else
-	{
-		// If the GPU skinning cache was used, return the passthrough vertex factory
-		if (GGPUSkinCache.IsElementProcessed(GPUSkinCacheKeys[ChunkIdx]))
-		{
-			return LOD.GPUSkinVertexFactories.PassthroughVertexFactories[ChunkIdx].Get();
-		}
-		else
-		{
-			return LOD.GPUSkinVertexFactories.VertexFactories[ChunkIdx].Get();
-		}
-	}
+	return LOD.GPUSkinVertexFactories.VertexFactories[ChunkIdx].Get();
 }
 
 /** 

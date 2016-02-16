@@ -6,7 +6,7 @@
 #include "ParticleModuleSourceMovement.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Source Movement"))
-class UParticleModuleSourceMovement : public UParticleModuleLocationBase
+class ENGINE_API UParticleModuleSourceMovement : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 WantedMipsAccuracyRendering.cpp: Contains definitions for rendering the viewmode.
@@ -6,6 +6,7 @@ WantedMipsAccuracyRendering.cpp: Contains definitions for rendering the viewmode
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "WantedMipsAccuracyRendering.h"
 
 extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseAABB;
 
@@ -15,6 +16,8 @@ void FWantedMipsAccuracyPS::SetParameters(
 	FRHICommandList& RHICmdList, 
 	const FShader* OriginalVS, 
 	const FShader* OriginalPS, 
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const FMaterial& Material,
 	const FSceneView& View
 	)
 {
@@ -22,11 +25,11 @@ void FWantedMipsAccuracyPS::SetParameters(
 	int32 ColorIndex = 0;
 	for (; ColorIndex < NumEngineColors; ++ColorIndex)
 	{
-		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), StreamingAccuracyColorsParameter, GEngine->StreamingAccuracyColors[ColorIndex], ColorIndex);
+		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), AccuracyColorsParameter, GEngine->StreamingAccuracyColors[ColorIndex], ColorIndex);
 	}
 	for (; ColorIndex < NumStreamingAccuracyColors; ++ColorIndex)
 	{
-		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), StreamingAccuracyColorsParameter, FLinearColor::Black, ColorIndex);
+		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), AccuracyColorsParameter, FLinearColor::Black, ColorIndex);
 	}
 }
 

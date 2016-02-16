@@ -21,6 +21,7 @@
 #include "ParticleBeamTrailVertexFactory.h"
 #include "MeshBatch.h"
 #include "Particles/SubUVAnimation.h"
+#include "../../Renderer/Private/ScenePrivate.h"
 
 DECLARE_CYCLE_STAT(TEXT("ParticleSystemSceneProxy GetMeshElements"), STAT_FParticleSystemSceneProxy_GetMeshElements, STATGROUP_Particles);
 DECLARE_CYCLE_STAT(TEXT("DynamicSpriteEmitterData GetDynamicMeshElementsEmitter GetParticleOrderData"), STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData, STATGROUP_Particles);
@@ -318,6 +319,28 @@ void ComputeLockedAxes(EParticleAxisLock LockAxisFlag, const FMatrix& LocalToWor
 	}
 }
 
+FORCEINLINE FVector GetCameraOffset(
+	float CameraPayloadOffset,
+	FVector DirToCamera
+	)
+{
+	float CheckSize = DirToCamera.SizeSquared();
+	DirToCamera.Normalize();
+
+	if (CheckSize > (CameraPayloadOffset * CameraPayloadOffset))
+	{
+		return DirToCamera * CameraPayloadOffset;
+	}
+	else
+	{
+		// If the offset will push the particle behind the camera, then push it 
+		// WAY behind the camera. This is a hack... but in the case of 
+		// PSA_Velocity, it is required to ensure that the particle doesn't 
+		// 'spin' flat and come into view.
+		return DirToCamera * CameraPayloadOffset * HALF_WORLD_MAX;
+	}
+}
+
 /**
  *	Helper function for retrieving the camera offset payload of a particle.
  *
@@ -330,28 +353,17 @@ void ComputeLockedAxes(EParticleAxisLock LockAxisFlag, const FMatrix& LocalToWor
  */
 FORCEINLINE FVector GetCameraOffsetFromPayload(
 	int32 InCameraPayloadOffset,
-	const FBaseParticle& InParticle, 
-	const FVector& InPosition,
-	const FVector& InCameraPosition )
+	const FBaseParticle& InParticle,
+	const FVector& InParticlePosition,
+	const FVector& InCameraPosition 
+	)
 {
 	checkSlow(InCameraPayloadOffset > 0);
 
-	FVector DirToCamera = InCameraPosition - InPosition;
-	float CheckSize = DirToCamera.SizeSquared();
-	DirToCamera.Normalize();
+	FVector DirToCamera = InCameraPosition - InParticlePosition;
 	FCameraOffsetParticlePayload* CameraPayload = ((FCameraOffsetParticlePayload*)((uint8*)(&InParticle) + InCameraPayloadOffset));
-	if (CheckSize > (CameraPayload->Offset * CameraPayload->Offset))
-	{
-		return DirToCamera * CameraPayload->Offset;
-	}
-	else
-	{
-		// If the offset will push the particle behind the camera, then push it 
-		// WAY behind the camera. This is a hack... but in the case of 
-		// PSA_Velocity, it is required to ensure that the particle doesn't 
-		// 'spin' flat and come into view.
-		return DirToCamera * CameraPayload->Offset * HALF_WORLD_MAX;
-	}
+	
+	return GetCameraOffset(CameraPayload->Offset, DirToCamera);
 }
 
 void FDynamicSpriteEmitterDataBase::SortSpriteParticles(int32 SortMode, bool bLocalSpace, 
@@ -1422,14 +1434,17 @@ void FDynamicMeshEmitterData::UpdateRenderThreadResourcesEmitter(const FParticle
 	{
 		FMeshParticleUniformParameters UniformParameters;
 		UniformParameters.SubImageSize = FVector4(
-		1.0f / SourceData->SubImages_Horizontal,
-		1.0f / SourceData->SubImages_Vertical,
-		0,0);
+			1.0f / SourceData->SubImages_Horizontal,
+			1.0f / SourceData->SubImages_Vertical,
+			0,0);
 
 		// A weight is used to determine whether the mesh texture coordinates or SubUVs are passed from the vertex shader to the pixel shader.
 		const uint32 TexCoordWeight = (SourceData->SubUVDataOffset > 0) ? 1 : 0;
 		UniformParameters.TexCoordWeightA = TexCoordWeight;
 		UniformParameters.TexCoordWeightB = 1 - TexCoordWeight;
+
+		UniformParameters.PrevTransformAvailable = Source.MeshMotionBlurOffset ? 1 : 0;
+
 		UniformBuffer = FMeshParticleUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_SingleFrame );
 	}
 }
@@ -1443,7 +1458,7 @@ void FDynamicMeshEmitterData::UpdateRenderThreadResourcesEmitter(const FParticle
  */
 void FDynamicMeshEmitterData::ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	return FDynamicSpriteEmitterDataBase::ReleaseRenderThreadResources( InOwnerProxy );
+	return FDynamicSpriteEmitterDataBase::ReleaseRenderThreadResources(InOwnerProxy);
 	UniformBuffer.SafeRelease();
 }
 
@@ -1463,20 +1478,23 @@ class FMeshParticleInstanceVertices : public FOneFrameResource
 public:
 	TArray<FMeshParticleInstanceVertex, SceneRenderingAllocator> InstanceDataAllocationsCPU;
 	TArray<FMeshParticleInstanceVertexDynamicParameter, SceneRenderingAllocator> DynamicParameterDataAllocationsCPU;
+	TArray<FMeshParticleInstanceVertexPrevTransform, SceneRenderingAllocator> PrevTransformDataAllocationsCPU;
 };
 
 
 FParticleVertexFactoryBase *FDynamicMeshEmitterData::CreateVertexFactory()
 {
-		FMeshParticleVertexFactory *VertexFactory = ConstructMeshParticleVertexFactory();
-		VertexFactory->SetParticleFactoryType(PVFT_Mesh);
-		SetupVertexFactory(VertexFactory, StaticMesh->RenderData->LODResources[0]);
-		const int32 InstanceVertexStride = GetDynamicVertexStride(ERHIFeatureLevel::Type::SM5);	// featurelevel is ignored
-		const int32 DynamicParameterVertexStride = GetDynamicParameterVertexStride();
-		VertexFactory->SetStrides(InstanceVertexStride, GetDynamicParameterVertexStride());
-		VertexFactory->InitResource();
-		return VertexFactory;
+	FMeshParticleVertexFactory *VertexFactory = ConstructMeshParticleVertexFactory();
 
+	VertexFactory->SetParticleFactoryType(PVFT_Mesh);
+	SetupVertexFactory(VertexFactory, StaticMesh->RenderData->LODResources[0]);
+
+	const int32 InstanceVertexStride = GetDynamicVertexStride(ERHIFeatureLevel::Type::SM5);	// featurelevel is ignored
+	const int32 DynamicParameterVertexStride = GetDynamicParameterVertexStride();
+	VertexFactory->SetStrides(InstanceVertexStride, DynamicParameterVertexStride);
+	VertexFactory->InitResource();
+
+	return VertexFactory;
 }
 
 
@@ -1517,10 +1535,16 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			{
 				FGlobalDynamicVertexBuffer::FAllocation Allocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * InstanceVertexStride );
 				FGlobalDynamicVertexBuffer::FAllocation DynamicParameterAllocation;
+				uint8* PrevTransformBuffer = nullptr;
 
 				if (bUsesDynamicParameter)
 				{
 					DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexStride );
+				}
+
+				if (Source.MeshMotionBlurOffset)
+				{
+					PrevTransformBuffer = MeshVertexFactory->LockPreviousTransformBuffer(ParticleCount);
 				}
 
 				if(Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
@@ -1529,16 +1553,21 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					if (Collector.ShouldUseTasks())
 					{
 						Collector.AddTask(
-							[this, View, Proxy, Allocation, DynamicParameterAllocation]()
+							[this, View, Proxy, Allocation, DynamicParameterAllocation, PrevTransformBuffer]()
 							{
-					GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, Proxy, View);
-				}
+								GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, PrevTransformBuffer, Proxy, View);
+							}
 						);
 					}
 					else
 					{
-						GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, Proxy, View);
+						GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, PrevTransformBuffer, Proxy, View);
 					}
+				}
+
+				if (Source.MeshMotionBlurOffset)
+				{
+					MeshVertexFactory->UnlockPreviousTransformBuffer();
 				}
 
 				MeshVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, InstanceVertexStride);
@@ -1556,20 +1585,38 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.AddUninitialized(ParticleCount);
 				}
 
+				if (Source.MeshMotionBlurOffset)
+				{
+					InstanceVerticesCPU->PrevTransformDataAllocationsCPU.Reset(ParticleCount);
+					InstanceVerticesCPU->PrevTransformDataAllocationsCPU.AddUninitialized(ParticleCount);
+				}
+
 				// Fill instance buffer.
 				if (Collector.ShouldUseTasks())
 				{
 					Collector.AddTask(
 						[this, View, Proxy, InstanceVerticesCPU]()
 						{
-							GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), Proxy, View);
+							GetInstanceData(
+								(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), 
+								(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), 
+								(void*)InstanceVerticesCPU->PrevTransformDataAllocationsCPU.GetData(), 
+								Proxy, 
+								View
+								);
 						}
 					);
 				}
 				else
 				{
-				GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), Proxy, View);
-			}
+					GetInstanceData(
+						(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), 
+						(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), 
+						(void*)InstanceVerticesCPU->PrevTransformDataAllocationsCPU.GetData(), 
+						Proxy, 
+						View
+						);
+				}
 			}
 
 			Proxy->UpdateWorldSpacePrimitiveUniformBuffer();
@@ -1644,6 +1691,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 						FMeshParticleVertexFactory::FBatchParametersCPU& BatchParameters = Collector.AllocateOneFrameResource<FMeshParticleVertexFactory::FBatchParametersCPU>();
 						BatchParameters.InstanceBuffer = InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData();
 						BatchParameters.DynamicParameterBuffer = InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData();
+						BatchParameters.PrevTransformBuffer = InstanceVerticesCPU->PrevTransformDataAllocationsCPU.GetData();
 						BatchElement.UserData = &BatchParameters;
 						BatchElement.UserIndex = 0;
 
@@ -1683,49 +1731,191 @@ void FDynamicMeshEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy
 	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), ViewFamily, OutParticleLights);
 }
 
-void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InParticle, const FVector& CameraPosition, const FVector& CameraFacingOpVector, const FQuat& PointToLockedAxis, 
-	const FParticleSystemSceneProxy* Proxy, const FSceneView* View, FMatrix& OutTransformMat) const
-	
+void FDynamicMeshEmitterData::GetParticleTransform(
+	const FBaseParticle& InParticle,
+	const FParticleSystemSceneProxy* Proxy,
+	const FSceneView* View,
+	FMatrix& OutTransformMat
+	) const
 {
 	const uint8* ParticleBase = (const uint8*)&InParticle;
+
+	const FMeshRotationPayloadData* RotationPayload = (const FMeshRotationPayloadData*)((const uint8*)&InParticle + Source.MeshRotationOffset);
+	FVector RotationPayloadInitialOrientation = RotationPayload->InitialOrientation;
+	FVector RotationPayloadRotation = RotationPayload->Rotation;
+
+	FVector CameraPayloadCameraOffset = FVector::ZeroVector;
+	if (Source.CameraPayloadOffset != 0)
+	{
+		// Put the camera origin in the appropriate coordinate space.
+		FVector CameraPosition = View->ViewMatrices.ViewOrigin;
+		if (Source.bUseLocalSpace)
+		{
+			const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().Inverse();
+			CameraPosition = InvLocalToWorld.TransformPosition(CameraPosition);
+		}
+
+		CameraPayloadCameraOffset = GetCameraOffsetFromPayload(Source.CameraPayloadOffset, InParticle, InParticle.Location, CameraPosition);
+	}
+
+	FVector OrbitPayloadOrbitOffset = FVector::ZeroVector;
+	if (Source.OrbitModuleOffset != 0)
+	{
+		int32 CurrentOffset = Source.OrbitModuleOffset;
+		PARTICLE_ELEMENT(FOrbitChainModuleInstancePayload, OrbitPayload);
+		OrbitPayloadOrbitOffset = OrbitPayload.Offset;
+	}
+
+	CalculateParticleTransform(
+		Proxy->GetLocalToWorld(),
+		InParticle.Location,
+		InParticle.Rotation,
+		InParticle.Velocity,
+		InParticle.Size,
+		RotationPayloadInitialOrientation,
+		RotationPayloadRotation,
+		CameraPayloadCameraOffset,
+		OrbitPayloadOrbitOffset,
+		View->ViewMatrices.ViewOrigin,
+		View->GetViewDirection(),
+		OutTransformMat
+		);
+}
+
+void FDynamicMeshEmitterData::GetParticlePrevTransform(
+	const FBaseParticle& InParticle,
+	const FParticleSystemSceneProxy* Proxy,
+	const FSceneView* View,
+	FMatrix& OutTransformMat
+	) const
+{
+	const FMeshRotationPayloadData* RotationPayload = (const FMeshRotationPayloadData*)((const uint8*)&InParticle + Source.MeshRotationOffset);
+	const FMeshMotionBlurPayloadData* MotionBlurPayload = (const FMeshMotionBlurPayloadData*)((const uint8*)&InParticle + Source.MeshMotionBlurOffset);
+
+	const auto* ViewInfo = static_cast<const FViewInfo*>(View);
+
+	FVector CameraPayloadCameraOffset = FVector::ZeroVector;
+	if (Source.CameraPayloadOffset != 0)
+	{
+		// Put the camera origin in the appropriate coordinate space.
+		FVector CameraPosition = ViewInfo->PrevViewMatrices.ViewOrigin;
+		if (Source.bUseLocalSpace)
+		{
+			const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().Inverse();
+			CameraPosition = InvLocalToWorld.TransformPosition(CameraPosition);
+		}
+
+		CameraPayloadCameraOffset = GetCameraOffset(MotionBlurPayload->PayloadPrevCameraOffset, CameraPosition - InParticle.OldLocation);
+	}
+
+	CalculateParticleTransform(
+		Proxy->GetLocalToWorld(),
+		InParticle.OldLocation,
+		MotionBlurPayload->BaseParticlePrevRotation,
+		MotionBlurPayload->BaseParticlePrevVelocity,
+		MotionBlurPayload->BaseParticlePrevSize,
+		RotationPayload->InitialOrientation,
+		MotionBlurPayload->PayloadPrevRotation,
+		CameraPayloadCameraOffset,
+		MotionBlurPayload->PayloadPrevOrbitOffset,
+		ViewInfo->PrevViewMatrices.ViewOrigin,
+		ViewInfo->GetPrevViewDirection(),
+		OutTransformMat
+		);
+}
+
+void FDynamicMeshEmitterData::CalculateParticleTransform(
+	const FMatrix& ProxyLocalToWorld,
+	const FVector& ParticleLocation,
+		  float    ParticleRotation,
+	const FVector& ParticleVelocity,
+	const FVector& ParticleSize,
+	const FVector& ParticlePayloadInitialOrientation,
+	const FVector& ParticlePayloadRotation,
+	const FVector& ParticlePayloadCameraOffset,
+	const FVector& ParticlePayloadOrbitOffset,
+	const FVector& ViewOrigin,
+	const FVector& ViewDirection,
+	FMatrix& OutTransformMat
+	) const
+{
+	FVector CameraFacingOpVector = FVector::ZeroVector;
+	if (CameraFacingOption != XAxisFacing_NoUp)
+	{
+		switch (CameraFacingOption)
+		{
+		case XAxisFacing_ZUp:
+			CameraFacingOpVector = FVector(0.0f, 0.0f, 1.0f);
+			break;
+		case XAxisFacing_NegativeZUp:
+			CameraFacingOpVector = FVector(0.0f, 0.0f, -1.0f);
+			break;
+		case XAxisFacing_YUp:
+			CameraFacingOpVector = FVector(0.0f, 1.0f, 0.0f);
+			break;
+		case XAxisFacing_NegativeYUp:
+			CameraFacingOpVector = FVector(0.0f, -1.0f, 0.0f);
+			break;
+		case LockedAxis_YAxisFacing:
+		case VelocityAligned_YAxisFacing:
+			CameraFacingOpVector = FVector(0.0f, 1.0f, 0.0f);
+			break;
+		case LockedAxis_NegativeYAxisFacing:
+		case VelocityAligned_NegativeYAxisFacing:
+			CameraFacingOpVector = FVector(0.0f, -1.0f, 0.0f);
+			break;
+		case LockedAxis_ZAxisFacing:
+		case VelocityAligned_ZAxisFacing:
+			CameraFacingOpVector = FVector(0.0f, 0.0f, 1.0f);
+			break;
+		case LockedAxis_NegativeZAxisFacing:
+		case VelocityAligned_NegativeZAxisFacing:
+			CameraFacingOpVector = FVector(0.0f, 0.0f, -1.0f);
+			break;
+		}
+	}
+
+	FQuat PointToLockedAxis;
+	if (bUseMeshLockedAxis == true)
+	{
+		// facing axis is taken to be the local x axis.	
+		PointToLockedAxis = FQuat::FindBetweenNormals(FVector(1, 0, 0), Source.LockedAxis);
+	}
+
 	OutTransformMat = FMatrix::Identity;
-	
-	FMatrix LocalToWorld;
+
 	FTranslationMatrix kTransMat(FVector::ZeroVector);
 	FScaleMatrix kScaleMat(FVector(1.0f));
 	FQuat kLockedAxisQuat = FQuat::Identity;
-	FVector Location;
-	FVector ScaledSize;
-	FVector	DirToCamera;
-	FVector	LocalSpaceFacingAxis;
-	FVector	LocalSpaceUpAxis;
-	FQuat PointTo = PointToLockedAxis;
 
-	// Initialize particle position and scale.
-	FVector ParticlePosition(InParticle.Location);
-	if (Source.CameraPayloadOffset != 0)
-	{
-		const FVector CameraOffset = GetCameraOffsetFromPayload(Source.CameraPayloadOffset, InParticle, ParticlePosition, CameraPosition);
-		ParticlePosition += CameraOffset;
-	}
-
+	FVector ParticlePosition(ParticleLocation + ParticlePayloadCameraOffset);
 	kTransMat.M[3][0] = ParticlePosition.X;
 	kTransMat.M[3][1] = ParticlePosition.Y;
 	kTransMat.M[3][2] = ParticlePosition.Z;
-	ScaledSize = InParticle.Size * Source.Scale;
+
+	FVector ScaledSize = ParticleSize * Source.Scale;
 	kScaleMat.M[0][0] = ScaledSize.X;
 	kScaleMat.M[1][1] = ScaledSize.Y;
 	kScaleMat.M[2][2] = ScaledSize.Z;
 
 	FMatrix kRotMat(FMatrix::Identity);
-	LocalToWorld = Proxy->GetLocalToWorld();
-	if (bUseCameraFacing == true)
+	FMatrix LocalToWorld = ProxyLocalToWorld;
+
+	FVector	LocalSpaceFacingAxis;
+	FVector	LocalSpaceUpAxis;
+	FVector Location;
+	FVector	DirToCamera;
+	FQuat PointTo = PointToLockedAxis;
+
+	if (bUseCameraFacing)
 	{
 		Location = ParticlePosition;
-		FVector	VelocityDirection = InParticle.Velocity;
+		FVector	VelocityDirection = ParticleVelocity;
+
 		if (Source.bUseLocalSpace)
 		{
 			bool bClearLocal2World = false;
+
 			// Transform the location to world space
 			Location = LocalToWorld.TransformPosition(Location);
 			if (CameraFacingOption <= XAxisFacing_NegativeYUp)
@@ -1748,20 +1938,20 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 		}
 		VelocityDirection.Normalize();
 
-		if( bFaceCameraDirectionRatherThanPosition )
+		if (bFaceCameraDirectionRatherThanPosition)
 		{
-			DirToCamera = -View->GetViewDirection();
+			DirToCamera = -ViewDirection;
 		}
 		else
 		{
-			DirToCamera	= View->ViewMatrices.ViewOrigin - Location;
+			DirToCamera = ViewOrigin - Location;
 		}
-		
+
 		DirToCamera.Normalize();
-		if (DirToCamera.SizeSquared() <	0.5f)
+		if (DirToCamera.SizeSquared() < 0.5f)
 		{
 			// Assert possible if DirToCamera is not normalized
-			DirToCamera	= FVector(1,0,0);
+			DirToCamera = FVector(1, 0, 0);
 		}
 
 		bool bFacingDirectionIsValid = true;
@@ -1778,6 +1968,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 					// We have to fudge it
 					bFacingDirectionIsValid = false;
 				}
+
 				// Velocity align the X-axis, and camera face the selected axis
 				PointTo = FQuat::FindBetweenNormals(FVector(1.0f, 0.0f, 0.0f), VelocityDirection);
 				FacingDir = VelocityDirection;
@@ -1786,9 +1977,9 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 			else if (CameraFacingOption <= XAxisFacing_NegativeYUp)
 			{
 				// Camera face the X-axis, and point the selected axis towards the world up
-				PointTo = FQuat::FindBetweenNormals(FVector(1,0,0), DirToCamera);
+				PointTo = FQuat::FindBetweenNormals(FVector(1, 0, 0), DirToCamera);
 				FacingDir = DirToCamera;
-				DesiredDir = FVector(0,0,1);
+				DesiredDir = FVector(0, 0, 1);
 			}
 			else
 			{
@@ -1796,14 +1987,14 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 				// PointTo will contain quaternion for locked axis rotation.
 				FacingDir = Source.LockedAxis;
 
-				if(Source.bUseLocalSpace)
+				if (Source.bUseLocalSpace)
 				{
 					//Transform the direction vector into local space.
 					DesiredDir = LocalToWorld.GetTransposed().TransformVector(DirToCamera);
-				}	
+				}
 				else
 				{
-					DesiredDir = DirToCamera;	
+					DesiredDir = DirToCamera;
 				}
 			}
 
@@ -1817,28 +2008,28 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 			{
 				if (bFacingDirectionIsValid)
 				{
-					FQuat AddedRotation = FQuat(FacingDir, InParticle.Rotation);
+					FQuat AddedRotation = FQuat(FacingDir, ParticleRotation);
 					kLockedAxisQuat = (AddedRotation * PointTo);
 				}
 			}
 			else
 			{
-				FQuat AddedRotation = FQuat(DirToCamera, InParticle.Rotation);
+				FQuat AddedRotation = FQuat(DirToCamera, ParticleRotation);
 				kLockedAxisQuat = (AddedRotation * PointTo);
 			}
 		}
 		else
 		{
-			PointTo = FQuat::FindBetweenNormals(FVector(1,0,0), DirToCamera);
+			PointTo = FQuat::FindBetweenNormals(FVector(1, 0, 0), DirToCamera);
 			// Add in additional rotation about facing axis
-			FQuat AddedRotation = FQuat(DirToCamera, InParticle.Rotation);
+			FQuat AddedRotation = FQuat(DirToCamera, ParticleRotation);
 			kLockedAxisQuat = (AddedRotation * PointTo);
 		}
 	}
-	else if (bUseMeshLockedAxis == true)
+	else if (bUseMeshLockedAxis)
 	{
 		// Add any 'sprite rotation' about the locked axis
-		FQuat AddedRotation = FQuat(Source.LockedAxis, InParticle.Rotation);
+		FQuat AddedRotation = FQuat(Source.LockedAxis, ParticleRotation);
 		kLockedAxisQuat = (AddedRotation * PointTo);
 	}
 	else if (Source.ScreenAlignment == PSA_TypeSpecific)
@@ -1851,16 +2042,17 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 			kTransMat.SetOrigin(Location);
 			LocalToWorld.SetIdentity();
 		}
-		DirToCamera	= View->ViewMatrices.ViewOrigin - Location;
+
+		DirToCamera = ViewOrigin - Location;
 		DirToCamera.Normalize();
-		if (DirToCamera.SizeSquared() <	0.5f)
+		if (DirToCamera.SizeSquared() < 0.5f)
 		{
 			// Assert possible if DirToCamera is not normalized
-			DirToCamera	= FVector(1,0,0);
+			DirToCamera = FVector(1, 0, 0);
 		}
 
-		LocalSpaceFacingAxis = FVector(1,0,0); // facing axis is taken to be the local x axis.	
-		LocalSpaceUpAxis = FVector(0,0,1); // up axis is taken to be the local z axis
+		LocalSpaceFacingAxis = FVector(1, 0, 0); // facing axis is taken to be the local x axis.	
+		LocalSpaceUpAxis = FVector(0, 0, 1); // up axis is taken to be the local z axis
 
 		if (Source.MeshAlignment == PSMA_MeshFaceCameraWithLockedAxis)
 		{
@@ -1869,12 +2061,12 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 			// For the locked axis behavior, only rotate to	face the camera	about the
 			// locked direction, and maintain the up vector	pointing towards the locked	direction
 			// Find	the	rotation that points the localupaxis towards the targetupaxis
-			FQuat PointToUp	= FQuat::FindBetweenNormals(LocalSpaceUpAxis, Source.LockedAxis);
+			FQuat PointToUp = FQuat::FindBetweenNormals(LocalSpaceUpAxis, Source.LockedAxis);
 
 			// Add in rotation about the TargetUpAxis to point the facing vector towards the camera
 			FVector	DirToCameraInRotationPlane = DirToCamera - ((DirToCamera | Source.LockedAxis)*Source.LockedAxis);
 			DirToCameraInRotationPlane.Normalize();
-			FQuat PointToCamera	= FQuat::FindBetweenNormals(PointToUp.RotateVector(LocalSpaceFacingAxis), DirToCameraInRotationPlane);
+			FQuat PointToCamera = FQuat::FindBetweenNormals(PointToUp.RotateVector(LocalSpaceFacingAxis), DirToCameraInRotationPlane);
 
 			// Set kRotMat to the composed rotation
 			FQuat MeshRotation = PointToCamera*PointToUp;
@@ -1882,68 +2074,66 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 		}
 		else if (Source.MeshAlignment == PSMA_MeshFaceCameraWithSpin)
 		{
-				// Implement a tangent-rotation	version	of point-to-camera.	 The facing	direction points to	the	camera,
-				// with	no roll, and has addtional sprite-particle rotation	about the tangential axis
-				// (c.f. the roll rotation is about	the	radial axis)
+			// Implement a tangent-rotation	version	of point-to-camera.	 The facing	direction points to	the	camera,
+			// with	no roll, and has addtional sprite-particle rotation	about the tangential axis
+			// (c.f. the roll rotation is about	the	radial axis)
 
-				// Find	the	rotation that points the facing	axis towards the camera
-				FRotator PointToRotation = FRotator(FQuat::FindBetweenNormals(LocalSpaceFacingAxis, DirToCamera));
+			// Find	the	rotation that points the facing	axis towards the camera
+			FRotator PointToRotation = FRotator(FQuat::FindBetweenNormals(LocalSpaceFacingAxis, DirToCamera));
 
-				// When	constructing the rotation, we need to eliminate	roll around	the	dirtocamera	axis,
-				// otherwise the particle appears to rotate	around the dircamera axis when it or the camera	moves
-				PointToRotation.Roll = 0;
+			// When	constructing the rotation, we need to eliminate	roll around	the	dirtocamera	axis,
+			// otherwise the particle appears to rotate	around the dircamera axis when it or the camera	moves
+			PointToRotation.Roll = 0;
 
-				// Add in the tangential rotation we do	want.
-				FVector	vPositivePitch = FVector(0,0,1); //	this is	set	by the rotator's yaw/pitch/roll	reference frame
-				FVector	vTangentAxis = vPositivePitch^DirToCamera;
-				vTangentAxis.Normalize();
-				if (vTangentAxis.SizeSquared() < 0.5f)
-				{
-					vTangentAxis = FVector(1,0,0); // assert is	possible if	FQuat axis/angle constructor is	passed zero-vector
-				}
+			// Add in the tangential rotation we do	want.
+			FVector	vPositivePitch = FVector(0, 0, 1); //	this is	set	by the rotator's yaw/pitch/roll	reference frame
+			FVector	vTangentAxis = vPositivePitch^DirToCamera;
+			vTangentAxis.Normalize();
+			if (vTangentAxis.SizeSquared() < 0.5f)
+			{
+				vTangentAxis = FVector(1, 0, 0); // assert is	possible if	FQuat axis/angle constructor is	passed zero-vector
+			}
 
-				FQuat AddedTangentialRotation =	FQuat(vTangentAxis,	InParticle.Rotation);
+			FQuat AddedTangentialRotation = FQuat(vTangentAxis, ParticleRotation);
 
-				// Set kRotMat to the composed rotation
-				FQuat MeshRotation = AddedTangentialRotation*PointToRotation.Quaternion();
-				kRotMat = FQuatRotationMatrix(MeshRotation);
+			// Set kRotMat to the composed rotation
+			FQuat MeshRotation = AddedTangentialRotation*PointToRotation.Quaternion();
+			kRotMat = FQuatRotationMatrix(MeshRotation);
 		}
-		else 
+		else
 		{
-				// Implement a roll-rotation version of	point-to-camera.  The facing direction points to the camera,
-				// with	no roll, and then rotates about	the	direction_to_camera	by the spriteparticle rotation.
+			// Implement a roll-rotation version of	point-to-camera.  The facing direction points to the camera,
+			// with	no roll, and then rotates about	the	direction_to_camera	by the spriteparticle rotation.
 
-				// Find	the	rotation that points the facing	axis towards the camera
-				FRotator PointToRotation = FRotator(FQuat::FindBetweenNormals(LocalSpaceFacingAxis, DirToCamera));
+			// Find	the	rotation that points the facing	axis towards the camera
+			FRotator PointToRotation = FRotator(FQuat::FindBetweenNormals(LocalSpaceFacingAxis, DirToCamera));
 
-				// When	constructing the rotation, we need to eliminate	roll around	the	dirtocamera	axis,
-				// otherwise the particle appears to rotate	around the dircamera axis when it or the camera	moves
-				PointToRotation.Roll = 0;
+			// When	constructing the rotation, we need to eliminate	roll around	the	dirtocamera	axis,
+			// otherwise the particle appears to rotate	around the dircamera axis when it or the camera	moves
+			PointToRotation.Roll = 0;
 
-				// Add in the roll we do want.
-				FQuat AddedRollRotation	= FQuat(DirToCamera, InParticle.Rotation);
+			// Add in the roll we do want.
+			FQuat AddedRollRotation = FQuat(DirToCamera, ParticleRotation);
 
-				// Set kRotMat to the composed	rotation
-				FQuat MeshRotation = AddedRollRotation*PointToRotation.Quaternion();
-				kRotMat = FQuatRotationMatrix(MeshRotation);
+			// Set kRotMat to the composed	rotation
+			FQuat MeshRotation = AddedRollRotation*PointToRotation.Quaternion();
+			kRotMat = FQuatRotationMatrix(MeshRotation);
 		}
 	}
 	else
 	{
-		float fRot = InParticle.Rotation * 180.0f / PI;
+		float fRot = ParticleRotation * 180.0f / PI;
 		FVector kRotVec = FVector(fRot, fRot, fRot);
 		FRotator kRotator = FRotator::MakeFromEuler(kRotVec);
 
-		const FMeshRotationPayloadData* PayloadData = (const FMeshRotationPayloadData*)((const uint8*)&InParticle + Source.MeshRotationOffset);
-		kRotator += FRotator::MakeFromEuler(PayloadData->Rotation);
+		kRotator += FRotator::MakeFromEuler(ParticlePayloadRotation);
 
 		kRotMat = FRotationMatrix(kRotator);
 	}
 
 	if (bApplyPreRotation == true)
 	{
-		const FMeshRotationPayloadData* PayloadData = (const FMeshRotationPayloadData*)((const uint8*)&InParticle + Source.MeshRotationOffset);
-		FRotator MeshOrient = FRotator::MakeFromEuler(PayloadData->InitialOrientation);
+		FRotator MeshOrient = FRotator::MakeFromEuler(ParticlePayloadInitialOrientation);
 		FRotationMatrix OrientMat(MeshOrient);
 
 		if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))
@@ -1964,20 +2154,14 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 		OutTransformMat = kScaleMat * kRotMat * kTransMat;
 	}
 
-	FVector OrbitOffset(0.0f, 0.0f, 0.0f);
-	if (Source.OrbitModuleOffset != 0)
+	FVector OrbitOffset = ParticlePayloadOrbitOffset;
+	if (Source.bUseLocalSpace == false)
 	{
-		int32 CurrentOffset = Source.OrbitModuleOffset;
-		PARTICLE_ELEMENT(FOrbitChainModuleInstancePayload, OrbitPayload);
-		OrbitOffset = OrbitPayload.Offset;
-		if (Source.bUseLocalSpace == false)
-		{
-			OrbitOffset = LocalToWorld.TransformVector(OrbitOffset);
-		}
-
-		FTranslationMatrix OrbitMatrix(OrbitOffset);
-		OutTransformMat *= OrbitMatrix;
+		OrbitOffset = LocalToWorld.TransformVector(OrbitOffset);
 	}
+
+	FTranslationMatrix OrbitMatrix(OrbitOffset);
+	OutTransformMat *= OrbitMatrix;
 
 	if (Source.bUseLocalSpace)
 	{
@@ -1985,61 +2169,9 @@ void FDynamicMeshEmitterData::GetParticleTransform(const FBaseParticle& InPartic
 	}
 }
 
-
-void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicParameterData, const FParticleSystemSceneProxy* Proxy, const FSceneView* View) const
+void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicParameterData, void* PrevTransformBuffer, const FParticleSystemSceneProxy* Proxy, const FSceneView* View) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticlePackingTime);
-
-	FQuat PointToLockedAxis;
-	if (bUseMeshLockedAxis == true)
-	{
-		// facing axis is taken to be the local x axis.	
-		PointToLockedAxis = FQuat::FindBetweenNormals(FVector(1,0,0), Source.LockedAxis);
-	}
-
-	FVector CameraFacingOpVector = FVector::ZeroVector;
-	if (CameraFacingOption != XAxisFacing_NoUp)
-	{
-		switch (CameraFacingOption)
-		{
-		case XAxisFacing_ZUp:
-			CameraFacingOpVector = FVector( 0.0f, 0.0f, 1.0f);
-			break;
-		case XAxisFacing_NegativeZUp:
-			CameraFacingOpVector = FVector( 0.0f, 0.0f,-1.0f);
-			break;
-		case XAxisFacing_YUp:
-			CameraFacingOpVector = FVector( 0.0f, 1.0f, 0.0f);
-			break;
-		case XAxisFacing_NegativeYUp:
-			CameraFacingOpVector = FVector( 0.0f,-1.0f, 0.0f);
-			break;
-		case LockedAxis_YAxisFacing:
-		case VelocityAligned_YAxisFacing:
-			CameraFacingOpVector = FVector(0.0f, 1.0f, 0.0f);
-			break;
-		case LockedAxis_NegativeYAxisFacing:
-		case VelocityAligned_NegativeYAxisFacing:
-			CameraFacingOpVector = FVector(0.0f,-1.0f, 0.0f);
-			break;
-		case LockedAxis_ZAxisFacing:
-		case VelocityAligned_ZAxisFacing:
-			CameraFacingOpVector = FVector(0.0f, 0.0f, 1.0f);
-			break;
-		case LockedAxis_NegativeZAxisFacing:
-		case VelocityAligned_NegativeZAxisFacing:
-			CameraFacingOpVector = FVector(0.0f, 0.0f,-1.0f);
-			break;
-		}
-	}
-
-	// Put the camera origin in the appropriate coordinate space.
-	FVector CameraPosition = View->ViewMatrices.ViewOrigin;
-	if (Source.bUseLocalSpace)
-	{
-		const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().Inverse();
-		CameraPosition = InvLocalToWorld.TransformPosition(CameraPosition);
-	}
 
 	int32 SubImagesX = Source.SubImages_Horizontal;
 	int32 SubImagesY = Source.SubImages_Vertical;
@@ -2054,8 +2186,11 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 
 	int32 InstanceVertexStride = sizeof(FMeshParticleInstanceVertex);
 	int32 DynamicParameterVertexStride = bUsesDynamicParameter ? sizeof(FMeshParticleInstanceVertexDynamicParameter) : 0;
+	int32 PrevTransformVertexStride = sizeof(FVector4) * 3;
+
 	uint8* TempVert = (uint8*)InstanceData;
 	uint8* TempDynamicParameterVert = (uint8*)DynamicParameterData;
+	uint8* TempPrevTranformVert = (uint8*)PrevTransformBuffer;
 
 	for (int32 i = ParticleCount - 1; i >= 0; i--)
 	{
@@ -2067,16 +2202,33 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 		// Populate instance buffer;
 		// The particle color.
 		CurrentInstanceVertex->Color = Particle.Color;
-
+		
 		// Instance to world transformation. Translation (Instance world position) is packed into W
 		FMatrix TransMat(FMatrix::Identity);
-		GetParticleTransform(Particle, CameraPosition, CameraFacingOpVector, PointToLockedAxis, Proxy, View, TransMat);
+		GetParticleTransform(Particle, Proxy, View, TransMat);
 		
 		// Transpose on CPU to allow for simpler shader code to perform the transform. 
 		const FMatrix Transpose = TransMat.GetTransposed();
 		CurrentInstanceVertex->Transform[0] = FVector4(Transpose.M[0][0], Transpose.M[0][1], Transpose.M[0][2], Transpose.M[0][3]);
 		CurrentInstanceVertex->Transform[1] = FVector4(Transpose.M[1][0], Transpose.M[1][1], Transpose.M[1][2], Transpose.M[1][3]);
 		CurrentInstanceVertex->Transform[2] = FVector4(Transpose.M[2][0], Transpose.M[2][1], Transpose.M[2][2], Transpose.M[2][3]);
+
+		if (Source.MeshMotionBlurOffset)
+		{
+			FVector4* PrevTransformVertex = (FVector4*)TempPrevTranformVert;
+
+			// Instance to world transformation. Translation (Instance world position) is packed into W
+			FMatrix PrevTransMat(FMatrix::Identity);
+			GetParticlePrevTransform(Particle, Proxy, View, PrevTransMat);
+
+			// Transpose on CPU to allow for simpler shader code to perform the transform. 
+			const FMatrix PrevTranspose = PrevTransMat.GetTransposed();
+			PrevTransformVertex[0] = FVector4(PrevTranspose.M[0][0], PrevTranspose.M[0][1], PrevTranspose.M[0][2], PrevTranspose.M[0][3]);
+			PrevTransformVertex[1] = FVector4(PrevTranspose.M[1][0], PrevTranspose.M[1][1], PrevTranspose.M[1][2], PrevTranspose.M[1][3]);
+			PrevTransformVertex[2] = FVector4(PrevTranspose.M[2][0], PrevTranspose.M[2][1], PrevTranspose.M[2][2], PrevTranspose.M[2][3]);
+
+			TempPrevTranformVert += PrevTransformVertexStride;
+		}
 
 		// Particle velocity. Calculate on CPU to avoid computing in vertex shader.
 		// Note: It would be preferred if we could check whether the material makes use of the 'Particle Direction' node to avoid this work.
@@ -2100,7 +2252,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 			DeltaPosition.ToDirectionAndLength(Direction, Speed);
 
 			// Pack direction and speed.
-			CurrentInstanceVertex->Velocity = FVector4(Direction,Speed);
+			CurrentInstanceVertex->Velocity = FVector4(Direction, Speed);
 		}
 		else
 		{
@@ -2148,7 +2300,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 		// The particle's relative time
 		CurrentInstanceVertex->RelativeTime = Particle.RelativeTime;
 
-		TempVert += InstanceVertexStride; 
+		TempVert += InstanceVertexStride;
 	}
 }
 
@@ -6459,6 +6611,8 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 
 	LODMethod = Component->LODMethod;
 
+	// Particle systems intrinsically always have motion, but is this motion relevant to systems external to particle systems?
+	bAlwaysHasVelocity = Component->Template->DoesAnyEmitterHaveMotionBlur(Component->GetCurrentLODIndex());
 }
 
 FParticleSystemSceneProxy::~FParticleSystemSceneProxy()

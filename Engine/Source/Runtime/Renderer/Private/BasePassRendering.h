@@ -118,7 +118,6 @@ protected:
 	{
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
-		AtmosphericFogTextureParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingVolumeParameters.Bind(Initializer.ParameterMap);
 		const bool bOutputsVelocityToGBuffer = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputsVelocityToGBuffer)
@@ -144,7 +143,6 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
-		Ar << AtmosphericFogTextureParameters;
 		Ar << TranslucentLightingVolumeParameters;
 		Ar << PreviousLocalToWorldParameter;
 		Ar << SkipOutputVelocityParameter;
@@ -169,7 +167,6 @@ public:
 		if (bAllowGlobalFog)
 		{
 			HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
-			AtmosphericFogTextureParameters.Set(RHICmdList, GetVertexShader(), View);
 		}
 
 		TranslucentLightingVolumeParameters.Set(RHICmdList, GetVertexShader());
@@ -188,7 +185,6 @@ private:
 	
 	/** The parameters needed to calculate the fog contribution from height fog layers. */
 	FHeightFogShaderParameters HeightFogParameters;
-	FAtmosphereShaderTextureParameters AtmosphericFogTextureParameters;
 	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
 	// When outputting from base pass, the previous transform
 	FShaderParameter PreviousLocalToWorldParameter;
@@ -819,7 +815,7 @@ public:
 				RHICmdList.SetBlendState( TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 			}
 
-			FDebugViewMode::GetPixelShader(View->ShaderMap, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, *View);
+			FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
 		}
 		else
 #endif
@@ -946,7 +942,7 @@ public:
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
 
-			FDebugViewMode::GetPixelShader(View.ShaderMap, GetDebugViewShaderMode())->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
+			FDebugViewMode::GetPSInterface(View.ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
 		}
 		else
 #endif

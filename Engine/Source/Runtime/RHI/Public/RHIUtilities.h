@@ -120,6 +120,54 @@ struct FRWBufferByteAddress
 	}
 };
 
+struct FDynamicReadBuffer : public FReadBuffer
+{
+	/** Pointer to the vertex buffer mapped in main memory. */
+	uint8* MappedBuffer;
+
+	/** Default constructor. */
+	FDynamicReadBuffer()
+		: MappedBuffer(nullptr)
+	{
+	}
+
+	~FDynamicReadBuffer()
+	{
+		Release();
+	}
+
+	virtual void Initialize(uint32 BytesPerElement, uint32 NumElements, EPixelFormat Format, uint32 AdditionalUsage = 0)
+	{
+		ensure(
+			AdditionalUsage & (BUF_Dynamic | BUF_Volatile) &&								// buffer should be Dynamic or Volatile
+			(AdditionalUsage & (BUF_Dynamic | BUF_Volatile)) ^ (BUF_Dynamic | BUF_Volatile) // buffer should not be both
+			);
+
+		FReadBuffer::Initialize(BytesPerElement, NumElements, Format, AdditionalUsage);
+	}
+
+	/**
+	* Locks the vertex buffer so it may be written to.
+	*/
+	void Lock()
+	{
+		check(MappedBuffer == nullptr);
+		check(IsValidRef(Buffer));
+		MappedBuffer = (uint8*)RHILockVertexBuffer(Buffer, 0, NumBytes, RLM_WriteOnly);
+	}
+
+	/**
+	* Unocks the buffer so the GPU may read from it.
+	*/
+	void Unlock()
+	{
+		check(MappedBuffer);
+		check(IsValidRef(Buffer));
+		RHIUnlockVertexBuffer(Buffer);
+		MappedBuffer = nullptr;
+	}
+};
+
 /**
  * Convert the ESimpleRenderTargetMode into usable values 
  * @todo: Can we easily put this into a .cpp somewhere?

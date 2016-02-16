@@ -197,6 +197,19 @@
 #define STENCIL_COMPONENT_SWIZZLE .g
 #endif
 
+#if !TEX_COORD_SCALE_ANALYSIS
+// Texture coordinate scale analysis is used by the texture streamer to compute material scale factors (relatively to UV0) when sampling textures.
+// The pratical implementation is in TexCoordScaleAnalysisPixelShader even though the code is inserted in all shaders, using the stubs above.
+MaterialFloat StoreTexCoordScale(float2 UV, uint TextureReferenceIndex)
+{
+	return 1.f;
+}
+MaterialFloat StoreTexSample(float4 C, uint TextureReferenceIndex)
+{
+	return 1.f;
+}
+#endif
+
 // Whether the platform supports independent texture and samplers
 // When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
 // Ideally this would just be enabled for all SM4 and above feature level platforms
@@ -1101,6 +1114,11 @@ float2 SvPositionToViewportUV(float4 SvPosition)
 	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
 }
 
+float2 BufferUVToViewportUV(float2 BufferUV)
+{
+	float2 PixelPos = BufferUV.xy * Frame.BufferSizeAndInvSize.xy - Frame.ViewRectMin.xy;
+	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
+}
 // ----------------------------
 
 /** 

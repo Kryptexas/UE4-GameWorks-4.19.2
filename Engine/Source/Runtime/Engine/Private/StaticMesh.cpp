@@ -513,11 +513,15 @@ FStaticMeshLODResources::FStaticMeshLODResources()
 	, bHasReversedIndices(false)
 	, bHasReversedDepthOnlyIndices(false)
 	, DepthOnlyNumTriangles(0)
+	, SplineVertexFactory(nullptr)
+	, SplineVertexFactoryOverrideColorVertexBuffer(nullptr)
 {
 }
 
 FStaticMeshLODResources::~FStaticMeshLODResources()
 {
+	delete (FRenderResource*)SplineVertexFactory;
+	delete (FRenderResource*)SplineVertexFactoryOverrideColorVertexBuffer;
 	delete DistanceFieldData;
 }
 
@@ -632,6 +636,15 @@ void FStaticMeshLODResources::ReleaseResources()
 	// Release the vertex factories.
 	BeginReleaseResource(&VertexFactory);
 	BeginReleaseResource(&VertexFactoryOverrideColorVertexBuffer);
+
+	if (SplineVertexFactory)
+	{
+		BeginReleaseResource((FRenderResource *)SplineVertexFactory);
+	}
+	if (SplineVertexFactoryOverrideColorVertexBuffer)
+	{
+		BeginReleaseResource((FRenderResource *)SplineVertexFactoryOverrideColorVertexBuffer);
+	}
 
 	if (DistanceFieldData)
 	{

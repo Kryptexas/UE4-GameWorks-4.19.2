@@ -4,8 +4,8 @@
 #include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModulePivotOffset.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, DisplayName="Pivot Offset")
-class UParticleModulePivotOffset : public UParticleModuleLocationBase
+UCLASS(editinlinenew, hidecategories=Object, DisplayName="Pivot Offset")
+class ENGINE_API UParticleModulePivotOffset : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()
 

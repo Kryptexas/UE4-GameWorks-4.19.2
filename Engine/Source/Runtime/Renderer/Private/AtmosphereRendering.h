@@ -86,4 +86,5 @@ private:
 #endif
 };
 
-extern bool ShouldRenderAtmosphere(const FSceneViewFamily& Family);
+bool ShouldRenderAtmosphere(const FSceneViewFamily& Family);
+void InitAtmosphereConstantsInView(FViewInfo& View);

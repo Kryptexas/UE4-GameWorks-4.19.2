@@ -87,8 +87,9 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 		if(BatchElement.IndexBuffer)
 		{
 			check(BatchElement.IndexBuffer->IsInitialized());
-			if (BatchElement.InstanceRuns)
+			if (BatchElement.bIsInstanceRuns)
 			{
+				checkSlow(BatchElement.bIsInstanceRuns);
 				if (!GRHISupportsFirstInstance)
 				{
 					if (bUsePositionOnlyVS)

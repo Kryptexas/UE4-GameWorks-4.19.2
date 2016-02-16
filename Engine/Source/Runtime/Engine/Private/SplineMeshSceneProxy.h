@@ -17,11 +17,6 @@ struct FSplineMeshVertexFactory : public FLocalVertexFactory
 	DECLARE_VERTEX_FACTORY_TYPE(FSplineMeshVertexFactory);
 public:
 
-	FSplineMeshVertexFactory(class FSplineMeshSceneProxy* InSplineProxy) :
-		SplineSceneProxy(InSplineProxy)
-	{
-	}
-
 	/** Should we cache the material's shadertype on this platform with this vertex factory? */
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
@@ -49,17 +44,7 @@ public:
 		BeginUpdateResourceRHI(this);
 	}
 
-	// FRenderResource interface.
-	virtual void InitRHI() override
-	{
-		FLocalVertexFactory::InitRHI();
-	}
-
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
-
-	class FSplineMeshSceneProxy* SplineSceneProxy;
-
-private:
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -147,11 +132,7 @@ public:
 
 	FSplineMeshSceneProxy(USplineMeshComponent* InComponent);
 
-	virtual ~FSplineMeshSceneProxy() override;
-
-	void InitResources(USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer*);
-
-	void ReleaseResources();
+	void InitVertexFactory(USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer*);
 
 	/** Sets up a shadow FMeshBatch for a specific LOD. */
 	virtual bool GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch, bool bDitheredLODTransition) const override;

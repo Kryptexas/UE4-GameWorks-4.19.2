@@ -43,7 +43,7 @@ struct FLocationBoneSocketInfo
 };
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Bone/Socket Location"))
-class UParticleModuleLocationBoneSocket : public UParticleModuleLocationBase
+class ENGINE_API UParticleModuleLocationBoneSocket : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()
 

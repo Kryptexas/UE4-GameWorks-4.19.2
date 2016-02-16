@@ -58,7 +58,9 @@ float ClothBlendWeight;
 struct FVertexFactoryInput
 {
 	float4	Position		: ATTRIBUTE0;
+	// 0..1
 	half3	TangentX		: ATTRIBUTE1;
+	// 0..1
 	// TangentZ.w contains sign of tangent basis determinant
 	half4	TangentZ		: ATTRIBUTE2;	
 
@@ -88,7 +90,7 @@ struct FVertexFactoryInput
 	// NOTE: TEXCOORD6,TEXCOORD7 used instead of POSITION1,NORMAL1 since those semantics are not supported by Cg 
 	/** added to the Position */
 	float3	DeltaPosition	: ATTRIBUTE9;	//POSITION1;
-	/** added to the TangentZ and then used to derive new TangentX,TangentY */
+	/** added to the TangentZ and then used to derive new TangentX,TangentY, .w contains the weight of the tangent blend */
 	float3	DeltaTangentZ	: ATTRIBUTE10;	//NORMAL1;
 #elif GPUSKIN_APEX_CLOTH // exclusive with GPUSKIN_MORPH_BLEND
 	// APEX cloth mesh-mesh mapping data
@@ -264,7 +266,7 @@ float3 ClothingPosition( FVertexFactoryInput Input, bool bPrevious)
 float3 UnpackedPosition( FVertexFactoryInput Input )
 {
 		return float3(Input.Position.xyz*MeshExtension + MeshOrigin);
-	}
+}
 
 #if GPUSKIN_MORPH_BLEND
 /** 
@@ -371,22 +373,21 @@ float3 SkinPreviousPosition( FVertexFactoryInput Input, FVertexFactoryIntermedia
 /** transform the tangent basis vectors */
 float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates )
 {
-	float2x3 Tangents;
 	float3x3 TangentToLocal;
-#if GPUSKIN_MORPH_BLEND
-	// tangent
-	float3 TangentX = TangentBias(Input.TangentX);
-	// normal
-	float4 TangentZ = TangentBias(Input.TangentZ);
 
+	// tangent
+	// -1..1
+	half3 LocalTangentX = TangentBias(Input.TangentX);
+	// -1..1 .xyz:normal, .w:contains sign of tangent basis determinant (left or right handed)
+	half4 LocalTangentZ = TangentBias(Input.TangentZ);
+
+#if GPUSKIN_MORPH_BLEND
 	// calc new normal by offseting it with the delta
-	Tangents[1] = normalize( TangentZ.xyz + Input.DeltaTangentZ.xyz );
+	LocalTangentZ.xyz = normalize(LocalTangentZ.xyz + Input.DeltaTangentZ);
 	// derive the new tangent by orthonormalizing the new normal against
 	// the base tangent vector (assuming these are normalized)
-	Tangents[0] = normalize( TangentX - (dot(TangentX,Tangents[1]) * Tangents[1]) );
+	LocalTangentX = normalize(LocalTangentX - dot(LocalTangentX, LocalTangentZ.xyz) * LocalTangentZ.xyz);
 #else
-	half4 TangentZ = TangentBias(Input.TangentZ);
-	
 	#if GPUSKIN_APEX_CLOTH
 
 	float3x3 ClothTangent = float3x3(1,0,0, 0,1,0, 0,0,1);
@@ -422,30 +423,25 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 
 		// derive the new binormal by getting the cross product of the normal and tangent
 		// and flip vector based on sign of tangent basis determinant
-		TangentToLocal[1] = cross(TangentToLocal[2], TangentToLocal[0]) * TangentZ.w;
+		TangentToLocal[1] = cross(TangentToLocal[2], TangentToLocal[0]) * LocalTangentZ.w;
 	
 		ClothTangent = TangentToLocal;
 	}
 	#endif // GPUSKIN_APEX_CLOTH
 
-	// pass-thru the tangent
-	Tangents[0] = TangentBias(Input.TangentX);
-	// pass-thru the normal
-	Tangents[1] = float3(TangentZ.x,TangentZ.y,TangentZ.z);
-
 #endif // GPUSKIN_MORPH_BLEND
 
 	// Note the use of mul(Matrix,Vector), bone matrices are stored transposed
 	// for tighter packing.
-	TangentToLocal[0] = mul( Intermediates.BlendMatrix, float4(Tangents[0],0) );
-	TangentToLocal[2] = mul( Intermediates.BlendMatrix, float4(Tangents[1],0) );
+	TangentToLocal[0] = mul( Intermediates.BlendMatrix, float4(LocalTangentX, 0) );
+	TangentToLocal[2] = mul( Intermediates.BlendMatrix, float4(LocalTangentZ.xyz, 0) );
 
 	// derive the new binormal by getting the cross product of the normal and tangent
 	// and flip vector based on sign of tangent basis determinant
-	TangentToLocal[1] = cross(TangentToLocal[2], TangentToLocal[0]) * TangentZ.w;
+	TangentToLocal[1] = cross(TangentToLocal[2], TangentToLocal[0]) * LocalTangentZ.w;
 
 #if GPUSKIN_APEX_CLOTH
-	return ClothTangent*TempClothBlendWeight + TangentToLocal*(1.0f - TempClothBlendWeight);
+	return ClothTangent * TempClothBlendWeight + TangentToLocal * (1.0f - TempClothBlendWeight);
 #else
 	return TangentToLocal;
 #endif	// GPUSKIN_APEX_CLOTH

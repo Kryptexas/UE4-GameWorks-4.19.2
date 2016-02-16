@@ -741,6 +741,7 @@ public:
 			const FString CollectionName = FString::Printf(TEXT("MaterialCollection%u"), CollectionIndex);
 			FShaderUniformBufferParameter::ModifyCompilationEnvironment(*CollectionName, ParameterCollections[CollectionIndex]->GetUniformBufferStruct(), InPlatform, OutEnvironment);
 		}
+		OutEnvironment.SetDefine(TEXT("IS_MATERIAL_SHADER"), TEXT("1"));
 	}
 
 	void GetSharedInputsMaterialCode(FString& PixelMembersDeclaration, FString& NormalAssignment, FString& PixelMembersInitializationEpilog)
@@ -2128,14 +2129,24 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.LightVector"));
 	}
 
-	virtual int32 ScreenPosition() override
+	virtual int32 ScreenPosition(EMaterialExpressionScreenPositionMapping Mapping) override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
 		{
 			return Errorf(TEXT("Invalid node used in hull/domain shader input!"));
 		}
 
-		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));		
+		switch (Mapping)
+		{
+		case MESP_SceneTextureUV:
+			return AddCodeChunk(MCT_Float2, TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+		case MESP_ViewportUV:
+			// Works for pixel and vertex shader.  The following commented line would optimize for pixel shader but doesnt work for vertex shader
+			return AddCodeChunk(MCT_Float2, TEXT("BufferUVToViewportUV(ScreenAlignedPosition(GetScreenPosition(Parameters)))"));
+			//return AddCodeChunk(MCT_Float2, TEXT("SvPositionToViewportUV(Parameters.SvPosition)"));
+		default:
+			return Errorf(TEXT("Invalid UV mapping!"));
+		}		
 	}
 
 	virtual int32 ParticleMacroUV() override 
@@ -2507,7 +2518,8 @@ protected:
 		int32 MipValue0Index=INDEX_NONE,
 		int32 MipValue1Index=INDEX_NONE,
 		ETextureMipValueMode MipValueMode=TMVM_None,
-		ESamplerSourceMode SamplerSource=SSM_FromTextureAsset
+		ESamplerSourceMode SamplerSource=SSM_FromTextureAsset,
+		int32 TextureReferenceIndex=INDEX_NONE
 		) override
 	{
 		if(TextureIndex == INDEX_NONE || CoordinateIndex == INDEX_NONE)
@@ -2661,7 +2673,13 @@ protected:
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
-		return AddCodeChunk(
+		if (TextureReferenceIndex != INDEX_NONE)
+		{
+			// Output GPU coordinate analysis. Stubbed unless in TexCoordScaleAnalysis pixel shader.
+			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(%s, %d)"), *UVs, (int)TextureReferenceIndex);
+		}
+
+		int32 SamplingCodeIndex = AddCodeChunk(
 			MCT_Float4,
 			*SampleCode,
 			*TextureName,
@@ -2670,6 +2688,15 @@ protected:
 			*MipValue0Code,
 			*MipValue1Code
 			);
+
+		if (TextureReferenceIndex != INDEX_NONE)
+		{
+			// Output sampling result for the TexCoordScaleAccuracy debug view mode.
+			FString SamplingCode = CoerceParameter(SamplingCodeIndex, MCT_Float4);
+			AddCodeChunk(MCT_Float, TEXT("StoreTexSample(%s, %d)"), *SamplingCode, (int)TextureReferenceIndex);
+		}
+
+		return SamplingCodeIndex;
 	}
 
 	virtual int32 TextureProperty(int32 TextureIndex, EMaterialExposedTextureProperty Property) override
@@ -3010,7 +3037,7 @@ protected:
 			);
 	}
 
-	virtual int32 Texture(UTexture* InTexture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
+	virtual int32 Texture(UTexture* InTexture,int32& TextureReferenceIndex,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -3019,7 +3046,7 @@ protected:
 		}
 
 		EMaterialValueType ShaderType = InTexture->GetMaterialType();
-		const int32 TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
+		TextureReferenceIndex = Material->GetReferencedTextures().Find(InTexture);
 
 #if DO_CHECK
 		// UE-3518: Additional pre-assert logging to help determine the cause of this failure.
@@ -3038,7 +3065,7 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionTexture(TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
 
-	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
+	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,int32& TextureReferenceIndex,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -3047,7 +3074,7 @@ protected:
 		}
 
 		EMaterialValueType ShaderType = DefaultValue->GetMaterialType();
-		const int32 TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
+		TextureReferenceIndex = Material->GetReferencedTextures().Find(DefaultValue);
 		checkf(TextureReferenceIndex != INDEX_NONE, TEXT("Material expression called Compiler->TextureParameter() without implementing UMaterialExpression::GetReferencedTexture properly"));
 		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName, TextureReferenceIndex, SamplerSource),ShaderType,TEXT(""));
 	}
@@ -3147,7 +3174,8 @@ protected:
 		else if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			FString WeightmapName = FString::Printf(TEXT("Weightmap%d"),WeightmapIndex);
-			int32 TextureCodeIndex = TextureParameter(FName(*WeightmapName),  GEngine->WeightMapPlaceholderTexture);
+			int32 TextureReferenceIndex = INDEX_NONE;
+			int32 TextureCodeIndex = TextureParameter(FName(*WeightmapName), GEngine->WeightMapPlaceholderTexture, TextureReferenceIndex);
 			int32 WeightmapCode = TextureSample(TextureCodeIndex, TextureCoordinate(3, false, false), SAMPLERTYPE_Masks);
 			FString LayerMaskName = FString::Printf(TEXT("LayerMask_%s"),*ParameterName.ToString());
 			return Dot(WeightmapCode,VectorParameter(FName(*LayerMaskName), FLinearColor(1.f,0.f,0.f,0.f)));

@@ -19,6 +19,8 @@ void TComplexityAccumulatePS<bQuadComplexity>::SetParameters(
 	FRHICommandList& RHICmdList, 
 	const FShader* OriginalVS, 
 	const FShader* OriginalPS, 
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const FMaterial& Material,
 	const FSceneView& View
 	)
 {

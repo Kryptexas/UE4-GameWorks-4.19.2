@@ -11,6 +11,14 @@
 
 float4x4 PreviousLocalToWorld;
 
+#if PARTICLE_MESH_INSTANCED
+	Buffer<float4> PrevTransformBuffer;
+#else
+	float4 PrevTransform0;
+	float4 PrevTransform1;
+	float4 PrevTransform2;
+#endif
+	
 #if !PARTICLE_MESH_INSTANCED
 	float4 Transform1;
 	float4 Transform2;
@@ -58,7 +66,7 @@ struct FVertexFactoryInput
 #endif
 
 /** Optional instance ID for vertex layered rendering */
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES2 
 	uint InstanceId	: SV_InstanceID;
 #endif
 };
@@ -148,6 +156,29 @@ float4x4 GetParticleTransform(FVertexFactoryInput Input)
 #else
 	return transpose(float4x4(Transform1, Transform2, Transform3, float4(0, 0, 0, 1)));
 #endif
+}
+
+float4x4 GetParticlePrevTransform(FVertexFactoryInput Input)
+{
+#if PARTICLE_MESH_INSTANCED
+	uint TransformBaseIdx = Input.InstanceId * 3;
+
+	float4x4 PrevTransform4x4 = float4x4(
+		PrevTransformBuffer[TransformBaseIdx + 0], 
+		PrevTransformBuffer[TransformBaseIdx + 1], 
+		PrevTransformBuffer[TransformBaseIdx + 2], 
+		float4(0, 0, 0, 1)
+		);
+#else
+	float4x4 PrevTransform4x4 = float4x4(
+		PrevTransform0, 
+		PrevTransform1, 
+		PrevTransform2, 
+		float4(0, 0, 0, 1)
+		);
+#endif
+	//Transform is transposed on CPU and position is packed into W. Transpose again to get the correct transform back.
+	return transpose(PrevTransform4x4);
 }
 
 /** Converts from vertex factory specific interpolants to a FMaterialPixelParameters, which is used by material inputs. */
@@ -271,6 +302,20 @@ float4 CalcWorldPosition(FVertexFactoryInput Input)
 	float4x4 Transform = GetParticleTransform(Input);
 	float3 WorldPosition = mul(Input.Position, Transform).xyz + ResolvedView.PreViewTranslation;
 	return float4(WorldPosition, Input.Position.w);
+}
+
+float4 CalcPrevWorldPosition(FVertexFactoryInput Input)
+{
+	if (MeshParticleVF.PrevTransformAvailable > 0)
+	{
+		float4x4 PrevTransform = GetParticlePrevTransform(Input);
+		float3 PrevWorldPosition = mul(Input.Position, PrevTransform).xyz + ResolvedView.PrevPreViewTranslation;
+		return float4(PrevWorldPosition, Input.Position.w);
+	}
+	else
+	{
+		return CalcWorldPosition(Input);
+	}
 }
 
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
@@ -459,9 +504,8 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 
 // @return previous translated world position
 float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates)
-{
-	// The previous local to world instance transform isn't available.
-	return CalcWorldPosition(Input);
+{	
+	return CalcPrevWorldPosition(Input);
 }
 
 #if USING_TESSELLATION

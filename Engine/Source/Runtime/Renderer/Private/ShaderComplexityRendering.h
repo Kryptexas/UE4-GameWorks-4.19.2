@@ -7,7 +7,7 @@ ShaderComplexityRendering.h: Declarations used for the shader complexity viewmod
 #pragma once
 
 template <bool bQuadComplexity>
-class TComplexityAccumulatePS : public FDebugViewModePS
+class TComplexityAccumulatePS : public FGlobalShader, public IDebugViewModePSInterface
 {
 	DECLARE_SHADER_TYPE(TComplexityAccumulatePS,Global);
 public:
@@ -18,7 +18,7 @@ public:
 	}
 
 	TComplexityAccumulatePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FDebugViewModePS(Initializer)
+		FGlobalShader(Initializer)
 	{
 		NormalizedComplexity.Bind(Initializer.ParameterMap,TEXT("NormalizedComplexity"));
 		ShowQuadOverdraw.Bind(Initializer.ParameterMap,TEXT("bShowQuadOverdraw"));
@@ -45,6 +45,8 @@ public:
 		FRHICommandList& RHICmdList, 
 		const FShader* OriginalVS, 
 		const FShader* OriginalPS, 
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterial& Material,
 		const FSceneView& View
 		) override;
 
@@ -58,6 +60,8 @@ public:
 		) override {}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, const FSceneView& View) override {}
+
+	virtual FShader* GetShader() override { return static_cast<FShader*>(this); }
 
 private:
 

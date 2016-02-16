@@ -259,8 +259,18 @@ public:
 		Num
 	};
 	void *RenderThreadContexts[(int32)ERenderThreadContext::Num];
-private:
+	static int32 StateCacheEnabled;
+protected:
+	struct FRHICommandSetRasterizerState* CachedRasterizerState;
+	struct FRHICommandSetDepthStencilState* CachedDepthStencilState;
 public:
+	void FORCEINLINE FlushStateCache()
+	{
+		CachedRasterizerState = nullptr;
+		CachedDepthStencilState = nullptr;
+	}
+
+
 	void CopyRenderThreadContexts(const FRHICommandListBase& ParentCommandList)
 	{
 		for (int32 Index = 0; ERenderThreadContext(Index) < ERenderThreadContext::Num; Index++)
@@ -1578,7 +1588,11 @@ public:
 			CMD_CONTEXT(SetRasterizerState)(State);
 			return;
 		}
-		new (AllocCommand<FRHICommandSetRasterizerState>()) FRHICommandSetRasterizerState(State);
+		if (StateCacheEnabled && CachedRasterizerState && CachedRasterizerState->State == State)
+		{
+			return;
+		}
+		CachedRasterizerState = new(AllocCommand<FRHICommandSetRasterizerState>()) FRHICommandSetRasterizerState(State);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
@@ -1628,7 +1642,11 @@ public:
 			CMD_CONTEXT(SetDepthStencilState)(NewStateRHI, StencilRef);
 			return;
 		}
-		new (AllocCommand<FRHICommandSetDepthStencilState>()) FRHICommandSetDepthStencilState(NewStateRHI, StencilRef);
+		if (StateCacheEnabled && CachedDepthStencilState && CachedDepthStencilState->State == NewStateRHI && CachedDepthStencilState->StencilRef == StencilRef)
+		{
+			return;
+		}
+		CachedDepthStencilState = new(AllocCommand<FRHICommandSetDepthStencilState>()) FRHICommandSetDepthStencilState(NewStateRHI, StencilRef);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)

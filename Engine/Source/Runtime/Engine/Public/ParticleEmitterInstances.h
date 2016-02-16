@@ -846,6 +846,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	UParticleModuleTypeDataMesh* MeshTypeData;
 	bool MeshRotationActive;
 	int32 MeshRotationOffset;
+	int32 MeshMotionBlurOffset;
 
 	/** The materials to render this instance with.	*/
 	TArray<UMaterialInterface*> CurrentMaterials;
@@ -1178,6 +1179,39 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 		CheckIndices(TrailIndex);
 	}
 
+	template<typename TrailDataType> void GetTrailStart(const int32 TrailIdx, int32 &OutStartIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
+	{
+		if (TrailIdx != INDEX_NONE)
+		{
+			OutStartIndex = CurrentStartIndices[TrailIdx];
+			if (OutStartIndex != INDEX_NONE)
+			{
+				DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * OutStartIndex);
+				TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
+				check(TRAIL_EMITTER_IS_START(CheckTrailData->Flags));
+				OutTrailData = CheckTrailData;
+				OutParticle = CheckParticle;
+			}
+		}
+	}
+
+	template<typename TrailDataType> void GetTrailEnd(const int32 TrailIdx, int32 &OutEndIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
+	{
+		if (TrailIdx != INDEX_NONE)
+		{
+			OutEndIndex = CurrentEndIndices[TrailIdx];
+			if (OutEndIndex != INDEX_NONE)
+			{
+				DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * OutEndIndex);
+				TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
+				check(TRAIL_EMITTER_IS_END(CheckTrailData->Flags));
+				OutTrailData = CheckTrailData;
+				OutParticle = CheckParticle;
+			}
+		}
+	}
+
+
 	void SetEndIndex(int32 TrailIndex, int32 ParticleIndex)
 	{
 		CurrentEndIndices[TrailIndex] = ParticleIndex;
@@ -1210,23 +1244,43 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 
 	void CheckIndices(int32 TrailIdx)
 	{
-		//Disabled until bug with this optimization is found. Usage of the optimization is alredy disabled but these check were still being hit.
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+ 		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
+ 		{
+ 			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
+ 			FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
+ 			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
+ 		}
+ 
+ 		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
+ 		{
+ 			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
+ 			FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
+ 			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+ 		}
+#endif
+	}
 
-// #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-// 		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
-// 		{
-// 			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
-// 			FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
-// 			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
-// 		}
-// 
-// 		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
-// 		{
-// 			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
-// 			FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-// 			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
-// 		}
-// #endif
+	void CheckAllIndices()
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		for (uint32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
+		{
+			if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
+			{
+				DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
+				FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
+				check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
+			}
+
+			if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
+			{
+				DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
+				FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
+				check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+			}
+		}
+#endif
 	}
 
 

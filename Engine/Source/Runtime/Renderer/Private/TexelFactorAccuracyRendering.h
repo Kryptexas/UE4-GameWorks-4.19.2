@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 TexelFactorAccuracyRendering.h: Declarations used for the viewmode.
@@ -9,7 +9,7 @@ TexelFactorAccuracyRendering.h: Declarations used for the viewmode.
 /**
 * Pixel shader that renders the accuracy of the texel factor.
 */
-class FTexelFactorAccuracyPS : public FDebugViewModePS
+class FTexelFactorAccuracyPS : public FGlobalShader, public IDebugViewModePSInterface
 {
 	DECLARE_SHADER_TYPE(FTexelFactorAccuracyPS,Global);
 
@@ -21,9 +21,9 @@ public:
 	}
 
 	FTexelFactorAccuracyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FDebugViewModePS(Initializer)
+		FGlobalShader(Initializer)
 	{
-		StreamingAccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("StreamingAccuracyColors"));
+		AccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("AccuracyColors"));
 		CPUTexelFactorParameter.Bind(Initializer.ParameterMap,TEXT("CPUTexelFactor"));
 	}
 
@@ -32,7 +32,7 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << StreamingAccuracyColorsParameter;
+		Ar << AccuracyColorsParameter;
 		Ar << CPUTexelFactorParameter;
 		return bShaderHasOutdatedParameters;
 	}
@@ -45,6 +45,8 @@ public:
 		FRHICommandList& RHICmdList, 
 		const FShader* OriginalVS, 
 		const FShader* OriginalPS, 
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterial& Material,
 		const FSceneView& View
 		) override;
 
@@ -59,8 +61,10 @@ public:
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, const FSceneView& View) override;
 
+	virtual FShader* GetShader() override { return static_cast<FShader*>(this); }
+
 private:
 
-	FShaderParameter StreamingAccuracyColorsParameter;
+	FShaderParameter AccuracyColorsParameter;
 	FShaderParameter CPUTexelFactorParameter;
 };

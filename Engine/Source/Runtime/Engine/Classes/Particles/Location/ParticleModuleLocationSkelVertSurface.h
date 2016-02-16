@@ -14,7 +14,7 @@ enum ELocationSkelVertSurfaceSource
 };
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Skel Vert/Surf Location"))
-class UParticleModuleLocationSkelVertSurface : public UParticleModuleLocationBase
+class ENGINE_API UParticleModuleLocationSkelVertSurface : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()
 

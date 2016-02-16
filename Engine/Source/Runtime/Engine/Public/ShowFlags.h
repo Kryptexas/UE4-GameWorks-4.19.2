@@ -289,8 +289,8 @@ private:
 		SetNavigation(false);
 		SetLightComplexity(false);
 		SetShaderComplexity(false);
-		SetQuadComplexity(false);
-		SetQuadOverhead(false);
+		SetQuadOverdraw(false);
+		SetShaderComplexityWithQuadOverdraw(false);
 		SetStationaryLightOverlap(false);
 		SetLightMapDensity(false);
 		SetVertexDensities(false);
@@ -345,6 +345,7 @@ private:
 		SetVisualizeBloom(false);
 		SetWantedMipsAccuracy(false);
 		SetTexelFactorAccuracy(false);
+		SetTexCoordScaleAccuracy(false);
 	}
 
 

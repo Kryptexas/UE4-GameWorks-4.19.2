@@ -455,13 +455,23 @@ public:
 	/**
 	 *	Set the distance for the given LOD index
 	 *
-	 *	@param	LODLevelIndex	The LOD level to set the distance ofr
+	 *	@param	LODLevelIndex	The LOD level to set the distance of
 	 *	@param	InDistance		The distance to set
 	 *
 	 *	@return	true			If successful
 	 *			false			Invalid LODLevelIndex
 	 */
 	virtual bool SetLODDistance(int32 LODLevelIndex, float InDistance);
+
+	/**
+	*	Checks if any of the emitters have motion blur at a specific lod level.
+	*
+	*	@param	LODLevelIndex	The LOD level to check motion blur availability
+	*
+	*	@return	true			If any emitter has motion blur
+	*			false			None of the emitters have motion blur
+	*/
+	bool DoesAnyEmitterHaveMotionBlur(int32 LODLevelIndex) const;
 
 	/**
 	 * Builds all emitters in the particle system.

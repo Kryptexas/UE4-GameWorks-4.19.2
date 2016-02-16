@@ -68,8 +68,12 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 				Label = LOCTEXT("ViewMenuTitle_ShaderComplexity", "Shader Complexity");
 				break;
 
-			case VMI_QuadComplexity:
+			case VMI_QuadOverdraw:
 				Label = LOCTEXT("ViewMenuTitle_QuadOverdraw", "Quad Overdraw");
+				break;
+
+			case VMI_ShaderComplexityWithQuadOverdraw:
+				Label = LOCTEXT("ViewMenuTitle_ShaderComplexityWithQuadOverdraw", "Shader Complexity & Quads");
 				break;
 
 			case VMI_WantedMipsAccuracy:
@@ -78,6 +82,10 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 
 			case VMI_TexelFactorAccuracy:
 				Label = LOCTEXT("ViewMenuTitle_TexelFactorAccuracy", "Texel Factor Accuracy");
+				break;
+
+			case VMI_TexCoordScaleAccuracy:
+				Label = LOCTEXT("ViewMenuTitle_TexCoordScaleAccuracy", "Texture Coordinate Scale Accuracy");
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -132,7 +140,8 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 		static FName LightingOnlyIcon("EditorViewport.LightingOnlyMode");
 		static FName LightComplexityIcon("EditorViewport.LightComplexityMode");
 		static FName ShaderComplexityIcon("EditorViewport.ShaderComplexityMode");
-		static FName QuadComplexityIcon("EditorViewport.QuadComplexityMode");
+		static FName QuadOverdrawIcon("EditorViewport.QuadOverdrawMode");
+		static FName ShaderComplexityWithQuadOverdrawIcon("EditorViewport.ShaderCOmplexityWithQuadOverdrawMode");
 		static FName WantedMipsAccuracyIcon("EditorViewport.WantedMipsAccuracyMode");
 		static FName TexelFactorAccuracyIcon("EditorViewport.TexelFactorAccuracyMode");
 		static FName LightOverlapIcon("EditorViewport.StationaryLightOverlapMode");
@@ -177,8 +186,12 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 				Icon = ShaderComplexityIcon;
 				break;
 
-			case VMI_QuadComplexity:
-				Icon = QuadComplexityIcon;
+			case VMI_QuadOverdraw:
+				Icon = QuadOverdrawIcon;
+				break;
+
+			case VMI_ShaderComplexityWithQuadOverdraw:
+				Icon = ShaderComplexityWithQuadOverdrawIcon;
 				break;
 
 			case VMI_WantedMipsAccuracy:
@@ -186,6 +199,10 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 				break;
 
 			case VMI_TexelFactorAccuracy:
+				Icon = TexelFactorAccuracyIcon;
+				break;
+
+			case VMI_TexCoordScaleAccuracy:
 				Icon = TexelFactorAccuracyIcon;
 				break;
 
@@ -265,10 +282,15 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 						Menu.AddMenuEntry( BaseViewportCommands.LightmapDensityMode, NAME_None, LOCTEXT("LightmapDensityViewModeDisplayName", "Lightmap Density") );
 						Menu.AddMenuEntry( BaseViewportCommands.StationaryLightOverlapMode, NAME_None, LOCTEXT("StationaryLightOverlapViewModeDisplayName", "Stationary Light Overlap") );
 						Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityMode, NAME_None, LOCTEXT("ShaderComplexityViewModeDisplayName", "Shader Complexity") );
-						Menu.AddMenuEntry( BaseViewportCommands.QuadComplexityMode, NAME_None, LOCTEXT("QuadComplexityViewModeDisplayName", "Quad Overdraw") );
+						Menu.AddMenuEntry( BaseViewportCommands.ShaderComplexityWithQuadOverdrawMode, NAME_None, LOCTEXT("ShaderComplexityWithQuadOverdrawViewModeDisplayName", "Shader Complexity & Quads") );
+						Menu.AddMenuEntry( BaseViewportCommands.QuadOverdrawMode, NAME_None, LOCTEXT("QuadOverdrawViewModeDisplayName", "Quad Overdraw") );
 						Menu.AddMenuEntry( BaseViewportCommands.LODColorationMode, NAME_None, LOCTEXT("LODColorationViewModeDisplayName", "LOD Coloration") );
+
+						Menu.BeginSection("TextureStreaming", LOCTEXT("TextureStreamingHeader", "Texture Streaming") );
 						Menu.AddMenuEntry( BaseViewportCommands.WantedMipsAccuracyMode, NAME_None, LOCTEXT("WantedMipsAccuracyDisplayName", "Wanted Mips Accuracy") );
 						Menu.AddMenuEntry( BaseViewportCommands.TexelFactorAccuracyMode, NAME_None, LOCTEXT("TexelFactorAccuracyDisplayName", "Texel Factor Accuracy") );
+						Menu.AddMenuEntry( BaseViewportCommands.TexCoordScaleAccuracyMode, NAME_None, LOCTEXT("TexCoordScaleAccuracyDisplayName", "TexCoord Scale Accuracy") );
+						Menu.EndSection();
 					}
 				};
 

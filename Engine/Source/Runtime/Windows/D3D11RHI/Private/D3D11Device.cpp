@@ -186,6 +186,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	GMaxTextureMipCount = FMath::Min<int32>( MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount );
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
+	GRHISupportsInstancing = GMaxRHIFeatureLevel > ERHIFeatureLevel::ES2;
 
 	// Initialize the constant buffers.
 	InitConstantBuffers();

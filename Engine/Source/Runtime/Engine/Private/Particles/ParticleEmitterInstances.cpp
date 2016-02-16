@@ -2965,6 +2965,7 @@ FParticleMeshEmitterInstance::FParticleMeshEmitterInstance() :
 	, MeshTypeData(NULL)
 	, MeshRotationActive(false)
 	, MeshRotationOffset(0)
+	, MeshMotionBlurOffset(0)
 {
 }
 
@@ -3016,7 +3017,7 @@ bool FParticleMeshEmitterInstance::Resize(int32 NewMaxActiveParticles, bool bSet
 				PayloadData->RotationRateBase			= FVector::ZeroVector;
 			}
 		}
-
+		
 		return true;
 	}
 
@@ -3225,6 +3226,36 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 			FPlatformMisc::Prefetch(ParticleData, ParticleStride * ParticleIndices[i+1]);
 			FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + PLATFORM_CACHE_LINE_SIZE);
 
+			if (MeshMotionBlurOffset)
+			{
+				FMeshRotationPayloadData* RotationPayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
+				FMeshMotionBlurPayloadData* MotionBlurPayloadData = (FMeshMotionBlurPayloadData*)((uint8*)&Particle + MeshRotationOffset);
+				MotionBlurPayloadData->BaseParticlePrevRotation = Particle.Rotation;
+				MotionBlurPayloadData->BaseParticlePrevVelocity = Particle.Velocity;
+				MotionBlurPayloadData->BaseParticlePrevSize = Particle.Size;
+				MotionBlurPayloadData->PayloadPrevRotation = RotationPayloadData->Rotation;
+
+				if (CameraPayloadOffset)
+				{
+					const FCameraOffsetParticlePayload* CameraPayload = (const FCameraOffsetParticlePayload*)((const uint8*)&Particle + CameraPayloadOffset);
+					MotionBlurPayloadData->PayloadPrevCameraOffset = CameraPayload->Offset;
+				}
+				else
+				{
+					MotionBlurPayloadData->PayloadPrevCameraOffset = 0.0f;
+				}
+
+				if (OrbitModuleOffset)
+				{
+					const FOrbitChainModuleInstancePayload* OrbitPayload = (const FOrbitChainModuleInstancePayload*)((const uint8*)&Particle + OrbitModuleOffset);
+					MotionBlurPayloadData->PayloadPrevOrbitOffset = OrbitPayload->Offset;
+				}
+				else
+				{
+					MotionBlurPayloadData->PayloadPrevOrbitOffset = FVector::ZeroVector;
+				}
+			}
+
 			// Do linear integrator and update bounding box
 			Particle.OldLocation = Particle.Location;
 			if ((Particle.Flags & STATE_Particle_Freeze) == 0)
@@ -3296,8 +3327,20 @@ void FParticleMeshEmitterInstance::UpdateBoundingBox(float DeltaTime)
 uint32 FParticleMeshEmitterInstance::RequiredBytes()
 {
 	uint32 uiBytes = FParticleEmitterInstance::RequiredBytes();
+
 	MeshRotationOffset	= PayloadOffset + uiBytes;
 	uiBytes += sizeof(FMeshRotationPayloadData);
+
+	if (MeshTypeData)
+	{
+		const auto* MeshTD = static_cast<const UParticleModuleTypeDataMesh*>(MeshTypeData);
+		if (MeshTypeData->bEnableMotionBlur)
+		{
+			MeshMotionBlurOffset = PayloadOffset + uiBytes;
+			uiBytes += sizeof(FMeshMotionBlurPayloadData);
+		}
+	}
+
 	return uiBytes;
 }
 
@@ -3338,6 +3381,37 @@ void FParticleMeshEmitterInstance::PostSpawn(FBaseParticle* Particle, float Inte
 
 	FVector InitialOrient = MeshTypeData->RollPitchYawRange.GetValue(SpawnTime, 0, 0, &MeshTypeData->RandomStream);
 	PayloadData->InitialOrientation = InitialOrient;
+
+	if (MeshMotionBlurOffset)
+	{
+		FMeshRotationPayloadData* RotationPayloadData = (FMeshRotationPayloadData*)((uint8*)Particle + MeshRotationOffset);
+		FMeshMotionBlurPayloadData* MotionBlurPayloadData = (FMeshMotionBlurPayloadData*)((uint8*)Particle + MeshMotionBlurOffset);
+
+		MotionBlurPayloadData->BaseParticlePrevRotation = Particle->Rotation;
+		MotionBlurPayloadData->BaseParticlePrevVelocity = Particle->Velocity;
+		MotionBlurPayloadData->BaseParticlePrevSize = Particle->Size;
+		MotionBlurPayloadData->PayloadPrevRotation = RotationPayloadData->Rotation;
+
+		if (CameraPayloadOffset)
+		{
+			const FCameraOffsetParticlePayload* CameraPayload = (const FCameraOffsetParticlePayload*)((const uint8*)Particle + CameraPayloadOffset);
+			MotionBlurPayloadData->PayloadPrevCameraOffset = CameraPayload->Offset;
+		}
+		else
+		{
+			MotionBlurPayloadData->PayloadPrevCameraOffset = 0.0f;
+		}
+
+		if (OrbitModuleOffset)
+		{
+			const FOrbitChainModuleInstancePayload* OrbitPayload = (const FOrbitChainModuleInstancePayload*)((const uint8*)Particle + OrbitModuleOffset);
+			MotionBlurPayloadData->PayloadPrevOrbitOffset = OrbitPayload->Offset;
+		}
+		else
+		{
+			MotionBlurPayloadData->PayloadPrevOrbitOffset = FVector::ZeroVector;
+		}
+	}
 }
 
 bool FParticleMeshEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)
@@ -3622,6 +3696,7 @@ bool FParticleMeshEmitterInstance::FillReplayData( FDynamicEmitterReplayDataBase
 	NewReplayData->SubImages_Horizontal = LODLevel->RequiredModule->SubImages_Horizontal;
 	NewReplayData->SubImages_Vertical = LODLevel->RequiredModule->SubImages_Vertical;
 	NewReplayData->MeshRotationOffset = MeshRotationOffset;
+	NewReplayData->MeshMotionBlurOffset = MeshMotionBlurOffset;
 	NewReplayData->bMeshRotationActive = MeshRotationActive;
 	NewReplayData->MeshAlignment = MeshTypeData->MeshAlignment;
 

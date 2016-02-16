@@ -6,7 +6,7 @@
 #include "ParticleModuleLocationWorldOffset.generated.h"
 
 UCLASS(editinlinenew, meta=(DisplayName = "World Offset"))
-class UParticleModuleLocationWorldOffset : public UParticleModuleLocation
+class ENGINE_API UParticleModuleLocationWorldOffset : public UParticleModuleLocation
 {
 	GENERATED_UCLASS_BODY()
 

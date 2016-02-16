@@ -6,7 +6,7 @@
 #include "ParticleModuleLocation_Seeded.generated.h"
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Initial Location (Seed)"))
-class UParticleModuleLocation_Seeded : public UParticleModuleLocation
+class ENGINE_API UParticleModuleLocation_Seeded : public UParticleModuleLocation
 {
 	GENERATED_UCLASS_BODY()
 

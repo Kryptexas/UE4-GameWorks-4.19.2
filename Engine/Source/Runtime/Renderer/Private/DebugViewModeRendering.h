@@ -1,7 +1,7 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-ShaderComplexityRendering.h: Declarations used for the shader complexity viewmode.
+DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 =============================================================================*/
 
 #pragma once
@@ -18,6 +18,9 @@ FORCEINLINE bool RuntimeAllowDebugViewModeShader(ERHIFeatureLevel::Type InFeatur
 	return false;
 }
 #endif
+
+static const int32 NumStreamingAccuracyColors = 5;
+static const int32 MaxStreamingAccuracyMips = 11;
 
 /**
  * Vertex shader for quad overdraw. Required because overdraw shaders need to have SV_Position as first PS interpolant.
@@ -82,17 +85,19 @@ public:
 	FDebugViewModeDS() {}
 };
 
-class FDebugViewModePS : public FGlobalShader
+// Interface for debug viewmode pixel shaders. Devired classes can be of global shader or material shaders.
+class IDebugViewModePSInterface
 {
 public:
 
-	FDebugViewModePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) : FGlobalShader(Initializer) {}
-	FDebugViewModePS() {}
+	virtual ~IDebugViewModePSInterface() {}
 
 	virtual void SetParameters(
 		FRHICommandList& RHICmdList, 
 		const FShader* OriginalVS, 
 		const FShader* OriginalPS, 
+		const FMaterialRenderProxy* MaterialRenderProxy,
+		const FMaterial& Material,
 		const FSceneView& View
 		) = 0;
 
@@ -107,11 +112,16 @@ public:
 
 	// Used for custom rendering like decals.
 	virtual void SetMesh(FRHICommandList& RHICmdList, const FSceneView& View) = 0;
+
+	virtual FShader* GetShader() = 0;
 };
 
+/**
+ * Namespace holding the interface for debugview modes.
+ */
 struct FDebugViewMode
 {
-	static FDebugViewModePS* GetPixelShader(TShaderMap<FGlobalShaderType>* ShaderMap, EDebugViewShaderMode DebugViewShaderMode);
+	static IDebugViewModePSInterface* GetPSInterface(TShaderMap<FGlobalShaderType>* ShaderMap, const FMaterial* Material, EDebugViewShaderMode DebugViewShaderMode);
 
 	static void GetDebugMaterial(const FMaterialRenderProxy** MaterialRenderProxy, const FMaterial** Material, ERHIFeatureLevel::Type FeatureLevel);
 
@@ -142,5 +152,4 @@ struct FDebugViewMode
 			ERHIFeatureLevel::Type FeatureLevel, 
 			EDebugViewShaderMode DebugViewShaderMode
 			);
-
 };

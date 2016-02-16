@@ -91,8 +91,6 @@ public:
 #include "SceneHitProxyRendering.h"
 #include "DebugViewModeRendering.h"
 #include "ShaderComplexityRendering.h"
-#include "WantedMipsAccuracyRendering.h"
-#include "TexelFactorAccuracyRendering.h"
 #include "ShadowRendering.h"
 #include "SceneRendering.h"
 #include "StaticMeshDrawList.h"

@@ -623,7 +623,7 @@ public:
 
 	/** Finds an automatically bound uniform buffer matching the given uniform buffer type if one exists, or returns an unbound parameter. */
 	template<typename UniformBufferStructType>
-	const TShaderUniformBufferParameter<UniformBufferStructType>& GetUniformBufferParameter() const
+	FORCEINLINE_DEBUGGABLE const TShaderUniformBufferParameter<UniformBufferStructType>& GetUniformBufferParameter() const
 	{
 		FUniformBufferStruct* SearchStruct = &UniformBufferStructType::StaticStruct;
 		int32 FoundIndex = INDEX_NONE;

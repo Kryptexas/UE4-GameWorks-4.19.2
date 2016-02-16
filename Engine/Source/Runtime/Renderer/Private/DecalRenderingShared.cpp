@@ -446,15 +446,16 @@ void FDecalRendering::SetShader(FRHICommandList& RHICmdList, const FViewInfo& Vi
 	if (DebugViewShaderMode != DVSM_None)
 	{
 		// For this to work, decal VS must output compatible interpolants. Currently this requires to use FDebugPSInLean.
-		FDebugViewModePS* DebugPixelShader = FDebugViewMode::GetPixelShader(View.ShaderMap, DebugViewShaderMode); 
+		// Here we pass nullptr for the material interface because the use of a static bound shader state is only compatible with unique shaders.
+		IDebugViewModePSInterface* DebugPixelShader = FDebugViewMode::GetPSInterface(View.ShaderMap, nullptr, DebugViewShaderMode); 
 
 		const uint32 NumPixelShaderInstructions = PixelShader->GetNumInstructions();
 		const uint32 NumVertexShaderInstructions = VertexShader->GetNumInstructions();
 
 		static FGlobalBoundShaderState BoundShaderState[DVSM_MAX];
-		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState[(uint32)DebugViewShaderMode], GetVertexDeclarationFVector4(), *VertexShader, DebugPixelShader);
+		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState[(uint32)DebugViewShaderMode], GetVertexDeclarationFVector4(), *VertexShader, DebugPixelShader->GetShader());
 
-		DebugPixelShader->SetParameters(RHICmdList, *VertexShader, PixelShader, View);
+		DebugPixelShader->SetParameters(RHICmdList, *VertexShader, PixelShader, DecalData.MaterialProxy, *DecalData.MaterialResource, View);
 		DebugPixelShader->SetMesh(RHICmdList, View);
 	}
 	else

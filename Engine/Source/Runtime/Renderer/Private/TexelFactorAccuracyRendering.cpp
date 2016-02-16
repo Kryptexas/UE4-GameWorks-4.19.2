@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 TexelFactorAccuracyRendering.cpp: Contains definitions for rendering the viewmode.
@@ -6,6 +6,7 @@ TexelFactorAccuracyRendering.cpp: Contains definitions for rendering the viewmod
 
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
+#include "TexelFactorAccuracyRendering.h"
 
 IMPLEMENT_SHADER_TYPE(,FTexelFactorAccuracyPS,TEXT("TexelFactorAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
 
@@ -13,6 +14,8 @@ void FTexelFactorAccuracyPS::SetParameters(
 	FRHICommandList& RHICmdList, 
 	const FShader* OriginalVS, 
 	const FShader* OriginalPS, 
+	const FMaterialRenderProxy* MaterialRenderProxy,
+	const FMaterial& Material,
 	const FSceneView& View
 	)
 {
@@ -23,11 +26,11 @@ void FTexelFactorAccuracyPS::SetParameters(
 	int32 ColorIndex = 0;
 	for (; ColorIndex < NumEngineColors; ++ColorIndex)
 	{
-		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), StreamingAccuracyColorsParameter, GEngine->StreamingAccuracyColors[ColorIndex], ColorIndex);
+		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), AccuracyColorsParameter, GEngine->StreamingAccuracyColors[ColorIndex], ColorIndex);
 	}
 	for (; ColorIndex < NumStreamingAccuracyColors; ++ColorIndex)
 	{
-		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), StreamingAccuracyColorsParameter, FLinearColor::Black, ColorIndex);
+		SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), AccuracyColorsParameter, FLinearColor::Black, ColorIndex);
 	}
 }
 

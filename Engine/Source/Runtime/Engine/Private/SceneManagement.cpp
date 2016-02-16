@@ -450,10 +450,46 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 }
 
 FFrameUniformShaderParameters::FFrameUniformShaderParameters()
-	: DirectionalLightShadowTexture(GWhiteTexture->TextureRHI)
-	, DirectionalLightShadowSampler(TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI())
 {
+	FMemory::Memzero(*this);
+	FTextureRHIParamRef BlackVolume = (GBlackVolumeTexture &&  GBlackVolumeTexture->TextureRHI) ? GBlackVolumeTexture->TextureRHI : GBlackTexture->TextureRHI; // for es2, this might need to be 2d
+	check(GBlackVolumeTexture);
+	DirectionalLightShadowTexture = GWhiteTexture->TextureRHI;
+	DirectionalLightShadowSampler = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+
+	AtmosphereTransmittanceTexture_UB = GWhiteTexture->TextureRHI;
+	AtmosphereTransmittanceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	AtmosphereIrradianceTexture_UB = GWhiteTexture->TextureRHI;
+	AtmosphereIrradianceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	AtmosphereInscatterTexture_UB = BlackVolume;
+	AtmosphereInscatterTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+
+	PerlinNoiseGradientTexture = GWhiteTexture->TextureRHI;
+	PerlinNoiseGradientTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+
+	PerlinNoise3DTexture = BlackVolume;
+	PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+
+	GlobalDistanceFieldTexture0_UB = BlackVolume;
+	GlobalDistanceFieldSampler0_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	GlobalDistanceFieldTexture1_UB = BlackVolume;
+	GlobalDistanceFieldSampler1_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	GlobalDistanceFieldTexture2_UB = BlackVolume;
+	GlobalDistanceFieldSampler2_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	GlobalDistanceFieldTexture3_UB = BlackVolume;
+	GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
 }
+
+FViewUniformShaderParameters::FViewUniformShaderParameters()
+{
+	FMemory::Memzero(*this);
+}
+
+FInstancedViewUniformShaderParameters::FInstancedViewUniformShaderParameters()
+{
+	FMemory::Memzero(*this);
+}
+
 
 void FSharedSamplerState::InitRHI()
 {

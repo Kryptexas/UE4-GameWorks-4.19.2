@@ -1129,6 +1129,10 @@ FMaterial::~FMaterial()
 	}
 
 	FMaterialShaderMap::RemovePendingMaterial(this);
+
+	// If the material becomes invalid, then the debug view material will also be invalid
+	void ClearAllDebugViewMaterials();
+	ClearAllDebugViewMaterials();
 }
 
 // could be more to a more central DBuffer file

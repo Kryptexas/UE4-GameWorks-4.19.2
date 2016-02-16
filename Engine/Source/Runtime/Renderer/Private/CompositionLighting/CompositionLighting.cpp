@@ -328,18 +328,21 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 
 		FRenderingCompositeOutputRef AmbientOcclusion;
 
-		uint32 Levels = ComputeAmbientOcclusionPassCount(Context.View);
-		if (Levels && !FSSAOHelper::IsAmbientOcclusionAsyncCompute(Context.View, Levels))
+		uint32 SSAOLevels = ComputeAmbientOcclusionPassCount(Context.View);
+		if (SSAOLevels)
 		{
-			AmbientOcclusion = AddPostProcessingAmbientOcclusion(RHICmdList, Context, Levels);
-		}
+			if(!FSSAOHelper::IsAmbientOcclusionAsyncCompute(Context.View, SSAOLevels))
+			{
+				AmbientOcclusion = AddPostProcessingAmbientOcclusion(RHICmdList, Context, SSAOLevels);
+			}
 
-		if (FSSAOHelper::IsBasePassAmbientOcclusionRequired(Context.View))
-		{
-			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasePassAO());
-			Pass->AddDependency(Context.FinalOutput);
+			if (FSSAOHelper::IsBasePassAmbientOcclusionRequired(Context.View))
+			{
+				FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBasePassAO());
+				Pass->AddDependency(Context.FinalOutput);
 
-			Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
+				Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
+			}
 		}
 
 		if (IsAmbientCubemapPassRequired(Context.View))

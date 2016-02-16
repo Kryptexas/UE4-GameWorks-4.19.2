@@ -665,7 +665,7 @@ public:
 				}
 			}
 
-			FDebugViewMode::GetPixelShader(View->ShaderMap, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, *View);
+			FDebugViewMode::GetPSInterface(View->ShaderMap, MaterialResource, GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, MaterialRenderProxy, *MaterialResource, *View);
 		}
 		else
 #endif
@@ -714,7 +714,7 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (GetDebugViewShaderMode() != DVSM_None)
 		{
-			PixelShaderRHIRef = FDebugViewMode::GetPixelShader(GetGlobalShaderMap(InFeatureLevel), GetDebugViewShaderMode())->GetPixelShader();
+			PixelShaderRHIRef = FDebugViewMode::GetPSInterface(GetGlobalShaderMap(InFeatureLevel), MaterialResource, GetDebugViewShaderMode())->GetShader()->GetPixelShader();
 		}
 #endif
 
@@ -765,7 +765,7 @@ public:
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One>::GetRHI());
 			}
 
-			FDebugViewMode::GetPixelShader(GetGlobalShaderMap(View.FeatureLevel), GetDebugViewShaderMode())->SetParameters(RHICmdList, VertexShader, PixelShader, View);
+			FDebugViewMode::GetPSInterface(GetGlobalShaderMap(View.FeatureLevel), MaterialResource, GetDebugViewShaderMode())->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, BatchElement, DrawRenderState);
 		}
 		else
 #endif

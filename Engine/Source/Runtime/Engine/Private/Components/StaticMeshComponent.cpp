@@ -1471,15 +1471,23 @@ int32 UStaticMeshComponent::GetStaticLightMapResolution() const
 	return FMath::Max<int32>(Width, Height);
 }
 
-bool UStaticMeshComponent::HasValidSettingsForStaticLighting() const
+bool UStaticMeshComponent::HasValidSettingsForStaticLighting(bool bOverlookInvalidComponents) const
 {
-	int32 LightMapWidth = 0;
-	int32 LightMapHeight = 0;
-	GetLightMapResolution(LightMapWidth, LightMapHeight);
+	if (bOverlookInvalidComponents && !StaticMesh)
+	{
+		// Return true for invalid components, this is used during the map check where those invalid components will be warned about separately
+		return true;
+	}
+	else
+	{
+		int32 LightMapWidth = 0;
+		int32 LightMapHeight = 0;
+		GetLightMapResolution(LightMapWidth, LightMapHeight);
 
-	return Super::HasValidSettingsForStaticLighting() 
-		&& StaticMesh
-		&& UsesTextureLightmaps(LightMapWidth, LightMapHeight);
+		return Super::HasValidSettingsForStaticLighting(bOverlookInvalidComponents) 
+			&& StaticMesh
+			&& UsesTextureLightmaps(LightMapWidth, LightMapHeight);
+	}
 }
 
 bool UStaticMeshComponent::UsesTextureLightmaps(int32 InWidth, int32 InHeight) const

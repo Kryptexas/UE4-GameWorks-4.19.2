@@ -55,7 +55,10 @@ public:
 
 	bool SupportsVelocity() const
 	{
-		return PreviousLocalToWorld.IsBound() || GPUSkinCachePreviousBuffer.IsBound();
+		return PreviousLocalToWorld.IsBound() || 
+			GPUSkinCachePreviousBuffer.IsBound() || 
+			PrevTransformBuffer.IsBound() || 
+			(PrevTransform0.IsBound() && PrevTransform1.IsBound() && PrevTransform2.IsBound());
 	}
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
@@ -76,6 +79,10 @@ protected:
 	{
 		PreviousLocalToWorld.Bind(Initializer.ParameterMap,TEXT("PreviousLocalToWorld"));
 		GPUSkinCachePreviousBuffer.Bind(Initializer.ParameterMap, TEXT("GPUSkinCachePreviousBuffer"));
+		PrevTransform0.Bind(Initializer.ParameterMap, TEXT("PrevTransform0"));
+		PrevTransform1.Bind(Initializer.ParameterMap, TEXT("PrevTransform1"));
+		PrevTransform2.Bind(Initializer.ParameterMap, TEXT("PrevTransform2"));
+		PrevTransformBuffer.Bind(Initializer.ParameterMap, TEXT("PrevTransformBuffer"));
 	}
 
 	FVelocityVS() {}
@@ -83,13 +90,24 @@ protected:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
-		Ar << PreviousLocalToWorld << GPUSkinCachePreviousBuffer;
+
+		Ar << PreviousLocalToWorld;
+		Ar << GPUSkinCachePreviousBuffer;
+		Ar << PrevTransform0;
+		Ar << PrevTransform1;
+		Ar << PrevTransform2;
+		Ar << PrevTransformBuffer;
+
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 	FShaderParameter PreviousLocalToWorld;
 	FShaderResourceParameter GPUSkinCachePreviousBuffer;
+	FShaderParameter PrevTransform0;
+	FShaderParameter PrevTransform1;
+	FShaderParameter PrevTransform2;
+	FShaderResourceParameter PrevTransformBuffer;
 };
 
 

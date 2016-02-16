@@ -177,11 +177,9 @@ FAutoConsoleCommand CmdDumpShadowDumpSetup(
  *
  * @return	fade value between 0 and 1
  */
-float CalculateShadowFadeAlpha(float MaxUnclampedResolution, int32 ShadowFadeResolution, int32 MinShadowResolution)
+float CalculateShadowFadeAlpha(const float MaxUnclampedResolution, const uint32 ShadowFadeResolution, const uint32 MinShadowResolution)
 {
-	check(MaxUnclampedResolution >= 0);
-	check(ShadowFadeResolution >= 0);
-	check(MinShadowResolution >= 0);
+	// NB: MaxUnclampedResolution < 0 will return FadeAlpha = 0.0f. 
 
 	float FadeAlpha = 0.0f;
 	// Shadow size is above fading resolution.
@@ -192,11 +190,23 @@ float CalculateShadowFadeAlpha(float MaxUnclampedResolution, int32 ShadowFadeRes
 	// Shadow size is below fading resolution but above min resolution.
 	else if (MaxUnclampedResolution > MinShadowResolution)
 	{
-		const float InverseRange = 1.0f / (ShadowFadeResolution - MinShadowResolution);
-		const float FirstFadeValue = FMath::Pow(InverseRange, CVarShadowFadeExponent.GetValueOnRenderThread());
-		const float SizeRatio = (float)(MaxUnclampedResolution - MinShadowResolution) * InverseRange;
-		// Rescale the fade alpha to reduce the change between no fading and the first value, which reduces popping with small ShadowFadeExponent's
-		FadeAlpha = (FMath::Pow(SizeRatio, CVarShadowFadeExponent.GetValueOnRenderThread()) - FirstFadeValue) / (1.0f - FirstFadeValue);
+		const float Exponent = CVarShadowFadeExponent.GetValueOnRenderThread();
+		
+		// Use the limit case ShadowFadeResolution = MinShadowResolution
+		// to gracefully handle this case.
+		if (MinShadowResolution >= ShadowFadeResolution)
+		{
+			const float SizeRatio = (float)(MaxUnclampedResolution - MinShadowResolution);
+			FadeAlpha = 1.0f - FMath::Pow(SizeRatio, Exponent);
+		} 
+		else
+		{
+			const float InverseRange = 1.0f / (ShadowFadeResolution - MinShadowResolution);
+			const float FirstFadeValue = FMath::Pow(InverseRange, Exponent);
+			const float SizeRatio = (float)(MaxUnclampedResolution - MinShadowResolution) * InverseRange;
+			// Rescale the fade alpha to reduce the change between no fading and the first value, which reduces popping with small ShadowFadeExponent's
+			FadeAlpha = (FMath::Pow(SizeRatio, Exponent) - FirstFadeValue) / (1.0f - FirstFadeValue);
+		}
 	}
 	return FadeAlpha;
 }
@@ -492,7 +502,7 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 
 		MinPreSubjectZ = Initializer.MinLightW;
 
-		ResolutionY = FMath::Min<uint32>(FMath::TruncToInt(InResolutionX / AspectRatio), MaxShadowResolutionY);
+		ResolutionY = FMath::Clamp<uint32>(FMath::TruncToInt(InResolutionX / AspectRatio), 1, MaxShadowResolutionY);
 
 		if (ResolutionX == 0 || ResolutionY == 0)
 		{
@@ -978,8 +988,14 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 		// Shadow must be visible in at least one view
 		if (bVisibleInAnyView)
 		{		
-			check(FoundView && IsInRenderingThread() 
-				&& !FRHICommandListImmediate::AnyRenderThreadTasksOutstanding()); // this would be bad because they probably rely on the view we are hacking
+			check(FoundView && IsInRenderingThread());
+			bool bMakeViewSnapshot = FRHICommandListImmediate::AnyRenderThreadTasksOutstanding(); // if there are task in flight, we need to clone
+
+			if (bMakeViewSnapshot)
+			{
+				FoundView = FoundView->CreateSnapshot();
+			}
+
 
 		    // Backup properties of the view that we will override
 		    FMatrix OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
@@ -1021,9 +1037,12 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 		    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 4) ? &NoCull : &CasterFrustum;
 		    GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectTranslucentPrimitives, DynamicSubjectTranslucentMeshElements, ReusedViewsArray);
     
-		    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = nullptr;
-    
-		    FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
+			if (!bMakeViewSnapshot)
+			{
+				FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = nullptr;
+
+				FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
+			}
 
 			Renderer.MeshCollector.ProcessTasks();
 	    }
@@ -1402,13 +1421,16 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	
 	// Shadowing constants.
-	const uint32 MinShadowResolution = CVarMinShadowResolution.GetValueOnRenderThread();
+	
 	const uint32 MaxShadowResolutionSetting = GetCachedScalabilityCVars().MaxShadowResolution;
 	const FIntPoint ShadowBufferResolution = SceneContext.GetShadowDepthTextureResolution();
 	const uint32 MaxShadowResolution = FMath::Min<int32>(MaxShadowResolutionSetting, ShadowBufferResolution.X) - SHADOW_BORDER * 2;
 	const uint32 MaxShadowResolutionY = FMath::Min<int32>(MaxShadowResolutionSetting, ShadowBufferResolution.Y) - SHADOW_BORDER * 2;
-	const int32 ShadowFadeResolution = CVarShadowFadeResolution.GetValueOnRenderThread();
-
+	const uint32 MinShadowResolution     = FMath::Max<int32>(0, CVarMinShadowResolution.GetValueOnRenderThread());
+	const uint32 ShadowFadeResolution    = FMath::Max<int32>(0, CVarShadowFadeResolution.GetValueOnRenderThread());
+	const uint32 MinPreShadowResolution  = FMath::Max<int32>(0, CVarMinPreShadowResolution.GetValueOnRenderThread());
+	const uint32 PreShadowFadeResolution = FMath::Max<int32>(0, CVarPreShadowFadeResolution.GetValueOnRenderThread());
+	
 	// Compute the maximum resolution required for the shadow by any view. Also keep track of the unclamped resolution for fading.
 	uint32 MaxDesiredResolution = 0;
 	float MaxUnclampedResolution = 0;
@@ -1457,7 +1479,8 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 		MaxResolutionFadeAlpha = FMath::Max(MaxResolutionFadeAlpha, ViewSpecificAlpha);
 		ResolutionFadeAlphas.Add(ViewSpecificAlpha);
 
-		const float ViewSpecificPreShadowAlpha = CalculateShadowFadeAlpha( UnclampedResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread(), CVarPreShadowFadeResolution.GetValueOnRenderThread(), CVarMinPreShadowResolution.GetValueOnRenderThread() );
+	
+		const float ViewSpecificPreShadowAlpha = CalculateShadowFadeAlpha(UnclampedResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread(), PreShadowFadeResolution, MinPreShadowResolution);
 		MaxResolutionPreShadowFadeAlpha = FMath::Max(MaxResolutionPreShadowFadeAlpha, ViewSpecificPreShadowAlpha);
 		ResolutionPreShadowFadeAlphas.Add(ViewSpecificPreShadowAlpha);
 	}
@@ -1678,12 +1701,12 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 
 		// Shadow resolution constants.
 		const uint32 EffectiveDoubleShadowBorder = ProjectedShadowInitializers[0].CascadeSettings.bOnePassPointLightShadow ? 0 : SHADOW_BORDER * 2;
-		const int32 MinShadowResolution = CVarMinShadowResolution.GetValueOnRenderThread();
+		const uint32 MinShadowResolution = FMath::Max<int32>(0, CVarMinShadowResolution.GetValueOnRenderThread());
 		const int32 MaxShadowResolutionSetting = GetCachedScalabilityCVars().MaxShadowResolution;
 		const FIntPoint ShadowBufferResolution = SceneContext_ConstantsOnly.GetShadowDepthTextureResolution();
 		const uint32 MaxShadowResolution = FMath::Min(MaxShadowResolutionSetting, ShadowBufferResolution.X) - EffectiveDoubleShadowBorder;
 		const uint32 MaxShadowResolutionY = FMath::Min(MaxShadowResolutionSetting, ShadowBufferResolution.Y) - EffectiveDoubleShadowBorder;
-		const int32 ShadowFadeResolution = CVarShadowFadeResolution.GetValueOnRenderThread();
+		const uint32 ShadowFadeResolution = FMath::Max<int32>(0, CVarShadowFadeResolution.GetValueOnRenderThread());
 
 		// Compute the maximum resolution required for the shadow by any view. Also keep track of the unclamped resolution for fading.
 		float MaxDesiredResolution = 0;

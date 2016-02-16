@@ -335,22 +335,15 @@ public:
 class SHADERCORE_API FVertexFactory : public FRenderResource
 {
 public:
-	/**
-	 * Default constructor 
-	 */
-	FVertexFactory() {}
+	FVertexFactory() 
+	{
+	}
 
-	/**
-	* Constructor specifiying feature level
-	*/
 	FVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) 
 		: FRenderResource(InFeatureLevel)
 	{
 	}
 
-	/**
-	 * @return The vertex factory's type.
-	 */
 	virtual FVertexFactoryType* GetType() const { return NULL; }
 
 	/**

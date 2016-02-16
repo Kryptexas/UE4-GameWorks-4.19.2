@@ -202,6 +202,10 @@ public:
 		return new FRHIShaderResourceView(); 
 	}
 
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView(FIndexBufferRHIParamRef Buffer) final override
+	{ 
+		return new FRHIShaderResourceView(); 
+	}
 
 	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override
 	{

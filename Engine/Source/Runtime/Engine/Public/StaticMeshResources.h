@@ -580,6 +580,9 @@ struct FStaticMeshLODResources
 
 	uint32 DepthOnlyNumTriangles;
 
+	struct FSplineMeshVertexFactory* SplineVertexFactory;
+	struct FSplineMeshVertexFactory* SplineVertexFactoryOverrideColorVertexBuffer;
+
 	/** Default constructor. */
 	FStaticMeshLODResources();
 

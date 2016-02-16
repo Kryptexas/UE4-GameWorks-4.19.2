@@ -1317,7 +1317,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 {
 	if (Texture || TextureObject.Expression)
 	{
-		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture, SamplerSource);
+		int32 TextureReferenceIndex = INDEX_NONE;
+		int32 TextureCodeIndex = TextureObject.Expression ? TextureObject.Compile(Compiler) : Compiler->Texture(Texture, TextureReferenceIndex, SamplerSource);
 
 		UTexture* EffectiveTexture = Texture;
 		EMaterialSamplerType EffectiveSamplerType = (EMaterialSamplerType)SamplerType;
@@ -1360,8 +1361,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				CompileMipValue0(Compiler),
 				CompileMipValue1(Compiler),
 				MipValueMode,
-				SamplerSource
-				);
+				SamplerSource,
+				TextureReferenceIndex);
 		}
 		else
 		{
@@ -1530,16 +1531,17 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 
 	int32 MipValue0Index = CompileMipValue0(Compiler);
 	int32 MipValue1Index = CompileMipValue1(Compiler);
+	int32 TextureReferenceIndex = INDEX_NONE;
 
 	return Compiler->TextureSample(
-					Compiler->TextureParameter(ParameterName, Texture, SamplerSource),
+					Compiler->TextureParameter(ParameterName, Texture, TextureReferenceIndex, SamplerSource),
 					Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 					(EMaterialSamplerType)SamplerType,
 					MipValue0Index,
 					MipValue1Index,
 					MipValueMode,
-					SamplerSource
-					);
+					SamplerSource,
+					TextureReferenceIndex);
 }
 
 void UMaterialExpressionTextureSampleParameter::GetCaption(TArray<FString>& OutCaptions) const
@@ -1713,7 +1715,6 @@ int32 UMaterialExpressionTextureObject::Compile(class FMaterialCompiler* Compile
 	{
 		return CompilerError(Compiler, TEXT("Requires valid texture"));
 	}
-
 	return Compiler->Texture(Texture);
 }
 
@@ -4725,11 +4726,19 @@ UMaterialExpressionScreenPosition::UMaterialExpressionScreenPosition(const FObje
 
 int32 UMaterialExpressionScreenPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->ScreenPosition();
+	return Compiler->ScreenPosition(Mapping);
 }
 
 void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions) const
 {
+
+#if WITH_EDITOR
+	const UEnum* ScreenPositionMappingEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExpressionScreenPositionMapping"));
+	check(ScreenPositionMappingEnum);
+
+	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameText(Mapping).ToString();
+	OutCaptions.Add(MappingDisplayName);
+#endif
 	OutCaptions.Add(TEXT("ScreenPosition"));
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugViewModeCommon.hlsl: Debug pixel shader interpolants.
@@ -13,7 +13,11 @@ struct FDebugVSToPS
 {
 	// TexCoords must first in order to be compatible with viewmode requiring using only SV_Position
 	float4 Position : SV_POSITION;
-	float2 TexCoords : TEXCOORD0;
+	float4 VertexColor : TEXCOORD0;
+	float2 TexCoord0 : TEXCOORD1;
+	float3 TangentToWorld0 : TEXCOORD2;
+	float3 TangentToWorld1 : TEXCOORD3;
+	float3 TangentToWorld2 : TEXCOORD4;
 #if INSTANCED_STEREO
 	nointerpolation uint EyeIndex : EYE_INDEX;
 #endif
@@ -22,7 +26,11 @@ struct FDebugVSToPS
 struct FDebugPSIn
 {
 	float4 SvPosition : SV_POSITION;
-	float2 TexCoords : TEXCOORD0;
+	float4 VertexColor : TEXCOORD0;
+	float2 TexCoord0 : TEXCOORD1;
+	float3 TangentToWorld0 : TEXCOORD2;
+	float3 TangentToWorld1 : TEXCOORD3;
+	float3 TangentToWorld2 : TEXCOORD4;
 #if INSTANCED_STEREO
 	nointerpolation uint EyeIndex : EYE_INDEX;
 #endif
@@ -35,3 +43,23 @@ struct FDebugPSInLean
 	float4 SvPosition : SV_POSITION;
 	uint PrimitiveID : SV_PrimitiveID;
 };
+
+#if DEBUG_MATERIAL_PARAMETERS
+/** Converts from vertex factory specific interpolants to a FMaterialPixelParameters, which is used by material inputs. */
+FMaterialPixelParameters GetMaterialPixelParameters(FDebugPSIn DebugInputs, float4 SvPosition)
+{
+	// GetMaterialPixelParameters is responsible for fully initializing the result
+	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
+
+	Result.VertexColor = DebugInputs.VertexColor;
+
+	Result.TangentToWorld = half3x3(half3(DebugInputs.TangentToWorld0), half3(DebugInputs.TangentToWorld1), half3(DebugInputs.TangentToWorld2));
+
+#if NUM_MATERIAL_TEXCOORDS > 0
+	Result.TexCoords[0] = DebugInputs.TexCoord0;
+#endif
+
+	Result.TwoSidedSign = 1;
+	return Result;
+}
+#endif

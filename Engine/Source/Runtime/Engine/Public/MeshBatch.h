@@ -19,10 +19,15 @@ struct FMeshBatchElement
 
 	const FIndexBuffer* IndexBuffer;
 
-	/** Instance runs, where number of runs is specified by NumInstances.  Run structure is [StartInstanceIndex, EndInstanceIndex]. */
-	uint32* InstanceRuns;
+	union 
+	{
+		/** If bIsSplineProxy, Instance runs, where number of runs is specified by NumInstances.  Run structure is [StartInstanceIndex, EndInstanceIndex]. */
+		uint32* InstanceRuns;
+		/** If bIsSplineProxy, a pointer back to the proxy */
+		class FSplineMeshSceneProxy* SplineMeshSceneProxy;
+	};
 	const void* UserData;
-	/** 
+	/**
 	 *	DynamicIndexData - pointer to user memory containing the index data.
 	 *	Used for rendering dynamic data directly.
 	 */
@@ -43,7 +48,9 @@ struct FMeshBatchElement
 	uint8 InstancedLODRange : 4;
 	uint8 bUserDataIsColorVertexBuffer : 1;
 	uint8 bIsInstancedMesh : 1;
-	
+	uint8 bIsSplineProxy : 1;
+	uint8 bIsInstanceRuns : 1;
+
 	FMeshBatchElement()
 	:	PrimitiveUniformBufferResource(nullptr)
 	,	IndexBuffer(nullptr)
@@ -58,6 +65,8 @@ struct FMeshBatchElement
 	,	InstancedLODRange(0)
 	,	bUserDataIsColorVertexBuffer(false)
 	,   bIsInstancedMesh(false)
+	,	bIsSplineProxy(false)
+	,	bIsInstanceRuns(false)
 	{
 	}
 };
@@ -176,7 +185,7 @@ struct FMeshBatch
 		int32 Count=0;
 		for( int32 ElementIdx=0;ElementIdx<Elements.Num();ElementIdx++ )
 		{
-			if (Elements[ElementIdx].InstanceRuns)
+			if (Elements[ElementIdx].bIsInstanceRuns && Elements[ElementIdx].InstanceRuns)
 			{
 				for (uint32 Run = 0; Run < Elements[ElementIdx].NumInstances; Run++)
 				{

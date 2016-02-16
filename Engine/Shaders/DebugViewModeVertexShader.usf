@@ -30,35 +30,42 @@
 	
 	FDebugVSToDS PassInterpolate(FDebugVSToDS a, float aInterp, FDebugVSToDS b, float bInterp)
 	{
-		FDebugVSToDS O;
+		FDebugVSToDS Output;
 		
-		O.FactoryInterpolants = VertexFactoryInterpolate(a.FactoryInterpolants, aInterp, b.FactoryInterpolants, bInterp);
+		Output.FactoryInterpolants = VertexFactoryInterpolate(a.FactoryInterpolants, aInterp, b.FactoryInterpolants, bInterp);
 
-		return O;
+		return Output;
 	}
 
 	FDebugVSToPS PassFinalizeTessellationOutput(FDebugVSToDS Interpolants, float4 WorldPosition, FMaterialTessellationParameters MaterialParameters)
 	{
-		FDebugVSToPS O;
+		FDebugVSToPS Output;
 		
 		// Finally, transform position to clip-space
 		ISOLATE
 		{
 
-			O.Position = mul(WorldPosition, ResolvedView.TranslatedWorldToClip);
+			Output.Position = mul(WorldPosition, ResolvedView.TranslatedWorldToClip);
 		}
 
+		Output.VertexColor = MaterialParameters.VertexColor;
+
+		float3x3 TangentToWorld = MaterialParameters.TangentToWorld;
+		Output.TangentToWorld0 = TangentToWorld[0];
+		Output.TangentToWorld1 = TangentToWorld[1];
+		Output.TangentToWorld2 = TangentToWorld[2];
+
 #if NUM_MATERIAL_TEXCOORDS > 0
-		O.TexCoords = MaterialParameters.TexCoords[0];
+		Output.TexCoord0 = MaterialParameters.TexCoords[0];
 #else
-		O.TexCoords = 0;
+		Output.TexCoord0 = 0;
 #endif
 
 #if INSTANCED_STEREO
-		O.EyeIndex = Interpolants.FactoryInterpolants.EyeIndex;
+		Output.EyeIndex = Interpolants.FactoryInterpolants.EyeIndex;
 #endif
-		
-		return O;
+
+		return Output;
 	}
 	
 	#include "Tessellation.usf"
@@ -130,10 +137,18 @@ void Main(
 		}
 		#endif
 	}
+
+	Output.VertexColor = VertexParameters.VertexColor;
+
+	float3x3 TangentToWorld = VertexParameters.TangentToWorld;
+	Output.TangentToWorld0 = float3(TangentToWorld[0]);
+	Output.TangentToWorld1 = float3(TangentToWorld[1]);
+	Output.TangentToWorld2 = float3(TangentToWorld[2]);
+
 #if NUM_MATERIAL_TEXCOORDS > 0
-	Output.TexCoords = VertexParameters.TexCoords[0];
+	Output.TexCoord0 = VertexParameters.TexCoords[0];
 #else
-	Output.TexCoords = 0;
+	Output.TexCoord0 = 0;
 #endif
 
 #if INSTANCED_STEREO

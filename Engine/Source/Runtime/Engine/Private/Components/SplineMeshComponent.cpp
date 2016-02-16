@@ -39,10 +39,16 @@ void FSplineMeshVertexFactoryShaderParameters::Bind(const FShaderParameterMap& P
 
 void FSplineMeshVertexFactoryShaderParameters::SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const
 {
+	if (BatchElement.bUserDataIsColorVertexBuffer)
+	{
+		FColorVertexBuffer* OverrideColorVertexBuffer = (FColorVertexBuffer*)BatchElement.UserData;
+		check(OverrideColorVertexBuffer);
+		static_cast<const FLocalVertexFactory*>(VertexFactory)->SetColorOverrideStream(RHICmdList, OverrideColorVertexBuffer);
+	}
 	if (Shader->GetVertexShader())
 	{
-		FSplineMeshVertexFactory* SplineVertexFactory = (FSplineMeshVertexFactory*)VertexFactory;
-		FSplineMeshSceneProxy* SplineProxy = SplineVertexFactory->SplineSceneProxy;
+		checkSlow(BatchElement.bIsSplineProxy);
+		FSplineMeshSceneProxy* SplineProxy = BatchElement.SplineMeshSceneProxy;
 		FSplineMeshParams& SplineParams = SplineProxy->SplineParams;
 
 		SetShaderValue(RHICmdList, Shader->GetVertexShader(), SplineStartPosParam, SplineParams.StartPos);
@@ -89,16 +95,30 @@ FVertexFactoryShaderParameters* FSplineMeshVertexFactory::ConstructShaderParamet
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshSceneProxy
 
-void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer )
+void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer)
 {
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 		InitSplineMeshVertexFactory,
-		FSplineMeshVertexFactory*, VertexFactory, LODResources[InLODIndex].VertexFactory,
 		FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
 		UStaticMesh*, Parent, InComponent->StaticMesh,
-		FColorVertexBuffer*, OverridenColorVertexBuffer, InOverrideColorVertexBuffer,
+		bool, bOverrideColorVertexBuffer, !!InOverrideColorVertexBuffer,
 		{
+
+		if ((RenderData->SplineVertexFactory && !bOverrideColorVertexBuffer) || (RenderData->SplineVertexFactoryOverrideColorVertexBuffer && bOverrideColorVertexBuffer))
+		{
+			// we already have it
+			return;
+		}
+		FSplineMeshVertexFactory* VertexFactory = new FSplineMeshVertexFactory;
+		if (bOverrideColorVertexBuffer)
+		{
+			RenderData->SplineVertexFactoryOverrideColorVertexBuffer = VertexFactory;
+		}
+		else
+		{
+			RenderData->SplineVertexFactory = VertexFactory;
+		}
 		FLocalVertexFactory::FDataType Data;
 
 		Data.PositionComponent = FVertexStreamComponent(
@@ -119,14 +139,21 @@ void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, in
 			RenderData->VertexBuffer.GetStride(),
 			VET_PackedNormal
 			);
-		
-		FColorVertexBuffer* LODColorVertexBuffer = &RenderData->ColorVertexBuffer;
-		// Override the buffer if it has been changed
-		if ( OverridenColorVertexBuffer != NULL )
+		if (bOverrideColorVertexBuffer)
 		{
-			LODColorVertexBuffer = OverridenColorVertexBuffer;
+			Data.ColorComponent = FVertexStreamComponent(
+				&GNullColorVertexBuffer,
+				0,	// Struct offset to color
+				sizeof(FColor), //asserted elsewhere
+				VET_Color,
+				false, // not instanced
+				true // set in SetMesh
+				);
 		}
-		if ( LODColorVertexBuffer->GetNumVertices() > 0 )
+		else
+		{
+			FColorVertexBuffer* LODColorVertexBuffer = &RenderData->ColorVertexBuffer;
+			if (LODColorVertexBuffer->GetNumVertices() > 0)
 		{
 			Data.ColorComponent = FVertexStreamComponent(
 				LODColorVertexBuffer,
@@ -134,6 +161,7 @@ void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, in
 				LODColorVertexBuffer->GetStride(),
 				VET_Color
 				);
+		}
 		}
 
 		Data.TextureCoordinates.Empty();
@@ -211,14 +239,6 @@ void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, in
 	});
 }
 
-
-void FSplineMeshSceneProxy::ReleaseResources()
-{
-	for (FSplineMeshSceneProxy::FLODResources& LODResource : LODResources)
-	{
-		LODResource.VertexFactory->ReleaseResource();
-	}
-}
 
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshComponent
