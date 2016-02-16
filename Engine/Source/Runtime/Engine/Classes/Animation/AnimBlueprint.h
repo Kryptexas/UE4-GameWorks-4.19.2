@@ -118,6 +118,8 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 
 	virtual void PostLoad() override;
 
+	virtual void Serialize(FArchive& Ar) override;
+
 protected:
 	// Broadcast when an override is changed, allowing derived blueprints to be updated
 	FOnOverrideChangedMulticaster OnOverrideChanged;

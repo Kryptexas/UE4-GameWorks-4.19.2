@@ -66,4 +66,5 @@ public:
 
 public:
 	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
+	virtual void ClearBoundGraph() override { BoundGraph = nullptr; }
 };

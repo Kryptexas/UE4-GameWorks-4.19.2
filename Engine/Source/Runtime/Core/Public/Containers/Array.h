@@ -3610,6 +3610,12 @@ public:
 		(Super&)*this = Other;
 	}
 
+	// Functions dependent on Add, Remove.
+	void AssignButKeepOwner( Super&& Other )
+	{
+		(Super&)*this = MoveTemp(Other);
+	}
+
 	int32 Add( const T& Item )
 	{
 		new(*this) T(Item);

@@ -22,6 +22,8 @@
 #include "AnimGraphNodeDetails.h"
 #include "STextComboBox.h"
 
+#include "Engine/SkeletalMeshReductionSettings.h"
+
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
 /** Returns true if automatic mesh reduction is available. */
@@ -776,30 +778,51 @@ void FPersonaMeshDetails::ApplyChanges()
 	// we need to add more
 	else if (LODCount > CurrentNumLODs)
 	{
-		// creating new ones only
+		// Retrieve default skeletal mesh reduction settings
+		USkeletalMeshReductionSettings* ReductionSettings = USkeletalMeshReductionSettings::Get();		
+
+		// Only create new skeletal mesh LOD level entries
 		for (int32 LODIdx = CurrentNumLODs; LODIdx < LODCount; LODIdx++)
 		{
-			FSkeletalMeshOptimizationSettings Setting;
+			FSkeletalMeshOptimizationSettings Settings;
+			
+			const int32 SettingsIndex = LODIdx - 1;
+			// If there are valid default settings use those for the new LOD
 
-			// find whatever latest that was using mesh reduction, and 
-			// make it 50 % of that. 
-			for (int32 SubLOD = LODIdx - 1; SubLOD >= 0; --SubLOD)
+			const bool bHasValidUserSetting = ReductionSettings->HasValidSettings() && ReductionSettings->GetNumberOfSettings() > SettingsIndex;
+			if (bHasValidUserSetting)
 			{
-				if (SkelMesh->LODInfo[SubLOD].bHasBeenSimplified)
+				const FSkeletalMeshLODGroupSettings& GroupSettings = ReductionSettings->GetDefaultSettingsForLODLevel(SettingsIndex);
+				Settings = GroupSettings.GetSettings();
+			}
+			else
+			{
+				// Otherwise find whatever latest that was using mesh reduction, and make it 50% of that. 	
+				for (int32 SubLOD = LODIdx - 1; SubLOD >= 0; --SubLOD)
 				{
-					// copy whatever latest LOD info reduction setting
-					Setting = SkelMesh->LODInfo[SubLOD].ReductionSettings;
-					// and make it 50 % of that
-					Setting.NumOfTrianglesPercentage *= 0.5f;
-					break;
+					if (SkelMesh->LODInfo[SubLOD].bHasBeenSimplified)
+					{
+						// copy whatever latest LOD info reduction setting
+						Settings = SkelMesh->LODInfo[SubLOD].ReductionSettings;
+						// and make it 50 % of that
+						Settings.NumOfTrianglesPercentage *= 0.5f;
+						break;
+					}
 				}
 			}
 
 			// if no previous setting found, it will use default setting. 
-			FLODUtilities::SimplifySkeletalMeshLOD(UpdateContext, Setting, LODIdx);
+			FLODUtilities::SimplifySkeletalMeshLOD(UpdateContext, Settings, LODIdx);
 
 			FSkeletalMeshLODInfo& Info = SkelMesh->LODInfo[LODIdx];
-			Info.ReductionSettings = Setting;
+			Info.ReductionSettings = Settings;
+
+			// If there is a valid screensize value use that one for this new LOD
+			if (bHasValidUserSetting)
+			{
+				const FSkeletalMeshLODGroupSettings& GroupSettings = ReductionSettings->GetDefaultSettingsForLODLevel(SettingsIndex);
+				Info.ScreenSize = GroupSettings.GetScreenSize();
+			}
 		}
 	}
 	else if (IsApplyNeeded())

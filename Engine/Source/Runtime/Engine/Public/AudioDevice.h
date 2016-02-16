@@ -969,7 +969,12 @@ private:
 
 	TArray<struct FActiveSound*> ActiveSounds;
 	TArray<FWaveInstance*> ActiveWaveInstances;
+
+	/** Set of sounds which will be stopped next audio frame update */
 	TSet<struct FActiveSound*> PendingSoundsToStop;
+
+	/** A set of sounds which need to be deleted but weren't able to be deleted due to pending async operations */
+	TArray<struct FActiveSound*> PendingSoundsToDelete;
 
 	TMap<UPTRINT, struct FActiveSound*> AudioComponentToActiveSoundMap;
 

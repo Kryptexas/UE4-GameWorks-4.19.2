@@ -2529,6 +2529,7 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 		else if (UEdGraph* OuterGraph = Cast<UEdGraph>(TestOuter))
 		{
 			// remove ourselves
+			OuterGraph->Modify();
 			OuterGraph->SubGraphs.Remove(GraphToRemove);
 		}
 		else if (! (Cast<UK2Node_Composite>(TestOuter)	|| 

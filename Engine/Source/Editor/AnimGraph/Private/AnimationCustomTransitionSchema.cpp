@@ -61,3 +61,24 @@ void UAnimationCustomTransitionSchema::GetGraphDisplayInformation(const UEdGraph
 
 	DisplayInfo.DisplayName = DisplayInfo.PlainName;
 }
+
+void UAnimationCustomTransitionSchema::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) const
+{
+	if(UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&GraphBeingRemoved))
+	{
+		// Look for state nodes that reference this graph
+		TArray<UAnimStateTransitionNode*> TransitionNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UAnimStateTransitionNode>(Blueprint, TransitionNodes);
+
+		for(UAnimStateTransitionNode* Node : TransitionNodes)
+		{
+			if(Node->CustomTransitionGraph == &GraphBeingRemoved)
+			{
+				// Clear out the logic for this node as we're removing the graph
+				Node->Modify();
+				Node->LogicType = ETransitionLogicType::TLT_StandardBlend;
+				Node->CustomTransitionGraph = nullptr;
+			}
+		}
+	}
+}

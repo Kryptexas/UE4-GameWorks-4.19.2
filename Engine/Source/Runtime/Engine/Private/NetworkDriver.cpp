@@ -204,7 +204,6 @@ FNetworkObjectInfo* UNetDriver::GetNetworkActor(const AActor* InActor)
 	FNetworkObjectInfo* NetActor = nullptr;
 	if (InActor)
 	{
-		// TODO: this Find() operation is implicitly creating a TSharedPtr and causing a malloc.
 		// note: const_cast<> required because the set keys are not const.
 		TSharedPtr<FNetworkObjectInfo>* NetActorInfo = GetNetworkObjectList().GetObjects().Find(const_cast<AActor*>(InActor));
 		NetActor = (NetActorInfo ? NetActorInfo->Get() : nullptr);

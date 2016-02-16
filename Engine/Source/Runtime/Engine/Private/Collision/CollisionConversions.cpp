@@ -431,13 +431,12 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 	SCOPE_CYCLE_COUNTER(STAT_ConvertQueryImpactHit);
 
 #if WITH_EDITOR
-	bool bIgnoreFaceIndexForPIE = false;
 	if(bReturnFaceIndex && World->IsGameWorld())
 	{
 		if(!ensure(UPhysicsSettings::Get()->bSuppressFaceRemapTable == false))
 		{
-			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSuppressFaceRemapTable is false."));
-			bIgnoreFaceIndexForPIE = true;
+			UE_LOG(LogPhysics, Error, TEXT("A scene query is relying on face indices, but bSuppressFaceRemapTable is true."));
+			bReturnFaceIndex = false;
 		}
 	}
 #endif
@@ -523,21 +522,17 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 			}
 		}
 	}
-	else
-	if(bReturnFaceIndex && PHit.shape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
+	else if (bReturnFaceIndex && PHit.shape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
 	{
 		PxTriangleMeshGeometry PTriMeshGeom;
 		if(	PHit.shape->getTriangleMeshGeometry(PTriMeshGeom) && 
 			PTriMeshGeom.triangleMesh != NULL &&
 			PHit.faceIndex < PTriMeshGeom.triangleMesh->getNbTriangles() )
 		{
-			OutResult.FaceIndex	= PTriMeshGeom.triangleMesh->getTrianglesRemap()[PHit.faceIndex];
-#if WITH_EDITOR
-			if(bIgnoreFaceIndexForPIE)
+			if (const PxU32* TriangleRemap = PTriMeshGeom.triangleMesh->getTrianglesRemap())
 			{
-				OutResult.FaceIndex = INDEX_NONE;	//if we need to ignore face index in PIE it's because at runtime we don't have the info. We want to make sure PIE is consistent with cooked version
+				OutResult.FaceIndex	= TriangleRemap[PHit.faceIndex];
 			}
-#endif
 		}
 	}
 
@@ -574,7 +569,7 @@ EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UW
 	return ConvertResult;
 }
 
-EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat)
+EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
 	OutHits.Reserve(OutHits.Num() + NumHits);
 	EConvertQueryResult ConvertResult = EConvertQueryResult::Valid;
@@ -587,7 +582,7 @@ EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* 
 		if(PHit.distance <= MaxDistance)
 		{
 			FHitResult& NewResult = OutHits[OutHits.AddDefaulted()];
-			if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, &Geom, QueryTM, false, bReturnPhysMat) == EConvertQueryResult::Valid)
+			if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, &Geom, QueryTM, bReturnFaceIndex, bReturnPhysMat) == EConvertQueryResult::Valid)
 			{
 				bHadBlockingHit |= NewResult.bBlockingHit;
 			}

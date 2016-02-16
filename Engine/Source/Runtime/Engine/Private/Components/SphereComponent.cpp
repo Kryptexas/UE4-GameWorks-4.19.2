@@ -74,6 +74,7 @@ void USphereComponent::UpdateBodySetup()
 void USphereComponent::SetSphereRadius( float InSphereRadius, bool bUpdateOverlaps )
 {
 	SphereRadius = InSphereRadius;
+	UpdateBounds();
 	UpdateBodySetup();
 	MarkRenderStateDirty();
 

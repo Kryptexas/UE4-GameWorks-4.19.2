@@ -16,6 +16,7 @@ UBoxComponent::UBoxComponent(const FObjectInitializer& ObjectInitializer)
 void UBoxComponent::SetBoxExtent(FVector NewBoxExtent, bool bUpdateOverlaps)
 {
 	BoxExtent = NewBoxExtent;
+	UpdateBounds();
 	MarkRenderStateDirty();
 	UpdateBodySetup();
 

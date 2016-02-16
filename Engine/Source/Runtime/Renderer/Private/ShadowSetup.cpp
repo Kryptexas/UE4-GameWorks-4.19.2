@@ -506,7 +506,6 @@ bool FProjectedShadowInfo::SetupPerObjectProjection(
 
 		if (ResolutionX == 0 || ResolutionY == 0)
 		{
-			checkfSlow(0, TEXT("Tried to create shadow with invalid resolution [%d * %d]."), ResolutionX, ResolutionY);
 			bRet = false;
 		}
 		else

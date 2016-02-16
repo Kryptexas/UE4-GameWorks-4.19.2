@@ -134,7 +134,6 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void* Alloc(int32 AllocSize, int32 Alignment)
 	{
-		checkSlow(!Bypass());
 		return MemManager.Alloc(AllocSize, Alignment);
 	}
 

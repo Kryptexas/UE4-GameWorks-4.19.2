@@ -20,6 +20,29 @@ FAnimNode_BlendSpacePlayer::FAnimNode_BlendSpacePlayer()
 {
 }
 
+float FAnimNode_BlendSpacePlayer::GetCurrentAssetTime()
+{
+	if(const FBlendSampleData* HighestWeightedSample = GetHighestWeightedSample())
+	{
+		return HighestWeightedSample->Time;
+	}
+
+	// No sample
+	return 0.0f;
+}
+
+float FAnimNode_BlendSpacePlayer::GetCurrentAssetLength()
+{
+	if(const FBlendSampleData* HighestWeightedSample = GetHighestWeightedSample())
+	{
+		FBlendSample& Sample = BlendSpace->SampleData[HighestWeightedSample->SampleDataIndex];
+		return Sample.Animation->SequenceLength;
+	}
+
+	// No sample
+	return 0.0f;
+}
+
 void FAnimNode_BlendSpacePlayer::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_AssetPlayerBase::Initialize(Context);
@@ -110,6 +133,26 @@ float FAnimNode_BlendSpacePlayer::GetTimeFromEnd(float CurrentTime)
 UAnimationAsset* FAnimNode_BlendSpacePlayer::GetAnimAsset()
 {
 	return BlendSpace;
+}
+
+const FBlendSampleData* FAnimNode_BlendSpacePlayer::GetHighestWeightedSample() const
+{
+	if(BlendSampleDataCache.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	const FBlendSampleData* HighestSample = &BlendSampleDataCache[0];
+
+	for(int32 Idx = 1; Idx < BlendSampleDataCache.Num(); ++Idx)
+	{
+		if(BlendSampleDataCache[Idx].TotalWeight > HighestSample->TotalWeight)
+		{
+			HighestSample = &BlendSampleDataCache[Idx];
+		}
+	}
+
+	return HighestSample;
 }
 
 void FAnimNode_BlendSpacePlayer::Reinitialize()

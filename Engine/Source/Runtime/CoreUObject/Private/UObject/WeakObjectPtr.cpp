@@ -41,6 +41,11 @@ bool FWeakObjectPtr::IsValid(bool bEvenIfPendingKill, bool bThreadsafeTest) cons
 	return Internal_IsValid(bEvenIfPendingKill, bThreadsafeTest);
 }
 
+bool FWeakObjectPtr::IsValid() const
+{
+	// Using literals here allows the optimizer to remove branches later down the chain.
+	return Internal_IsValid(false, false);
+}
 
 bool FWeakObjectPtr::IsStale(bool bEvenIfPendingKill, bool bThreadsafeTest) const
 {

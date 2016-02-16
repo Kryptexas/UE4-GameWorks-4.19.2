@@ -56,6 +56,11 @@ protected:
 public:	
 	FAnimNode_BlendSpacePlayer();
 
+	// FAnimNode_AssetPlayerBase interface
+	virtual float GetCurrentAssetTime();
+	virtual float GetCurrentAssetLength();
+	// End of FAnimNode_AssetPlayerBase interface
+
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
@@ -74,4 +79,6 @@ protected:
 
 private:
 	void Reinitialize();
+
+	const FBlendSampleData* GetHighestWeightedSample() const;
 };

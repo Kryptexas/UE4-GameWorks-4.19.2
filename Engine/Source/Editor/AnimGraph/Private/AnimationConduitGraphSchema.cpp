@@ -40,3 +40,37 @@ void UAnimationConduitGraphSchema::GetGraphDisplayInformation(const UEdGraph& Gr
 
 	DisplayInfo.DisplayName = DisplayInfo.PlainName;
 }
+
+void UAnimationConduitGraphSchema::HandleGraphBeingDeleted(UEdGraph& GraphBeingRemoved) const
+{
+	Super::HandleGraphBeingDeleted(GraphBeingRemoved);
+
+	if(UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&GraphBeingRemoved))
+	{
+		// Handle composite anim graph nodes
+		TArray<UAnimStateNodeBase*> StateNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClassEx<UAnimStateConduitNode>(Blueprint, StateNodes);
+
+		TSet<UAnimStateNodeBase*> NodesToDelete;
+		for(int32 i = 0; i < StateNodes.Num(); ++i)
+		{
+			UAnimStateNodeBase* StateNode = StateNodes[i];
+			if(StateNode->GetBoundGraph() == &GraphBeingRemoved)
+			{
+				NodesToDelete.Add(StateNode);
+			}
+		}
+
+		// Delete the node that owns us
+		ensure(NodesToDelete.Num() <= 1);
+		for(TSet<UAnimStateNodeBase*>::TIterator It(NodesToDelete); It; ++It)
+		{
+			UAnimStateNodeBase* NodeToDelete = *It;
+
+			FBlueprintEditorUtils::RemoveNode(Blueprint, NodeToDelete, true);
+
+			// Prevent re-entrancy here
+			NodeToDelete->ClearBoundGraph();
+		}
+	}
+}

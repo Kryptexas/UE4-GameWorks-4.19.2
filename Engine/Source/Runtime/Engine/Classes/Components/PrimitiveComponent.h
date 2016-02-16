@@ -1469,15 +1469,28 @@ protected:
 public:
 	virtual bool IsWorldGeometry() const override;
 
-
+	/** Returns the form of collision for this component */
+	UFUNCTION(BlueprintCallable, Category="Collision")
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
 
+	/** Utility to see if there is any form of collision (query or physics) enabled on this component. */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="Is Collision Enabled"), Category="Collision")
+	bool K2_IsCollisionEnabled() const;
+
+	/** Utility to see if there is any query collision enabled on this component. */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="Is Query Collision Enabled"), Category="Collision")
+	bool K2_IsQueryCollisionEnabled() const;
+
+	/** Utility to see if there is any physics collision enabled on this component. */
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="Is Physics Collision Enabled"), Category="Collision")
+	bool K2_IsPhysicsCollisionEnabled() const;
+
 	/** Gets the response type given a specific channel */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Collision")
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
 
 	/** Gets the collision object type */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Collision")
 	virtual ECollisionChannel GetCollisionObjectType() const override;
 
 	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const override;
@@ -1913,4 +1926,19 @@ FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapComponent(class
 FORCEINLINE_DEBUGGABLE const TArray<FOverlapInfo>& UPrimitiveComponent::GetOverlapInfos() const
 {
 	return OverlappingComponents;
+}
+
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::K2_IsCollisionEnabled() const
+{
+	return IsCollisionEnabled();
+}
+
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::K2_IsQueryCollisionEnabled() const
+{
+	return IsQueryCollisionEnabled();
+}
+
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::K2_IsPhysicsCollisionEnabled() const
+{
+	return IsPhysicsCollisionEnabled();
 }

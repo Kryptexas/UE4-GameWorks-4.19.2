@@ -24,9 +24,17 @@ class UAnimGraphNode_TransitionPoseEvaluator : public UAnimGraphNode_Base
 
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const override;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 	// End of UAnimGraphNode_Base interface
 
 	// UK2Node interface.
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+
+private:
+
+	// Details customization helpers
+	EVisibility GetCacheFramesVisibility() const;
+
+
 	// End of UK2Node interface
 };

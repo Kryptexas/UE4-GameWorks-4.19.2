@@ -71,24 +71,30 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 		return 0;
 	}
 
+	SIZE_T CalculatedResourceSize = 0;
+
 	if (FAudioDevice* LocalAudioDevice = GEngine->GetMainAudioDevice())
 	{
 		if (LocalAudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
 		{
 			check(ResourceSize == 0);
-			return RawPCMDataSize;
+			CalculatedResourceSize = RawPCMDataSize;
 		}
-		else if (DecompressionType == DTYPE_RealTime && CachedRealtimeFirstBuffer)
+		else 
 		{
-			return MONO_PCM_BUFFER_SIZE * NumChannels;
-		}
-		else if ((!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
-		{
-			return GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this));
+			if (DecompressionType == DTYPE_RealTime && CachedRealtimeFirstBuffer)
+			{
+				CalculatedResourceSize = MONO_PCM_BUFFER_SIZE * NumChannels;
+			}
+			
+			if ((!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
+			{
+				CalculatedResourceSize += GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this));
+			}
 		}
 	}
 
-	return 0;
+	return CalculatedResourceSize;
 }
 
 int32 USoundWave::GetResourceSizeForFormat(FName Format)

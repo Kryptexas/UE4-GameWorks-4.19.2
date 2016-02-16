@@ -1107,7 +1107,6 @@ void UCharacterMovementComponent::AdjustProxyCapsuleSize()
 			Radius * ComponentScale, HalfHeight * ComponentScale, NewRadius * ComponentScale, NewHalfHeight * ComponentScale);
 
 		CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(NewRadius, NewHalfHeight, true);
-		CharacterOwner->GetCapsuleComponent()->UpdateBounds();
 	}	
 }
 
@@ -2091,7 +2090,6 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 	check(CharacterOwner->GetCapsuleComponent());
 	bool bUpdateOverlaps = false;
 	CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), bUpdateOverlaps);
-	CharacterOwner->GetCapsuleComponent()->UpdateBounds(); // Force an update of the bounds with the new dimensions
 
 	if( !bClientSimulation )
 	{
@@ -2175,7 +2173,6 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		if (bEncroached)
 		{
 			CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), OldUnscaledHalfHeight, false);
-			CharacterOwner->GetCapsuleComponent()->UpdateBounds(); // Update bounds again back to old value
 			return;
 		}
 

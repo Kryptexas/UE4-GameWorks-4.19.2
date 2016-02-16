@@ -386,6 +386,19 @@ public:
 		}
 	}
 
+	/** Returns all nodes in all graphs of at least the minimum node type */
+	template< class MinNodeType, class ArrayClassType>
+	static inline void GetAllNodesOfClassEx(const UBlueprint* Blueprint, TArray<ArrayClassType*>& OutNodes)
+	{
+		TArray<UEdGraph*> AllGraphs;
+		Blueprint->GetAllGraphs(AllGraphs);
+		for(UEdGraph* Graph : AllGraphs)
+		{
+			check(Graph != nullptr);
+			Graph->GetNodesOfClassEx<MinNodeType, ArrayClassType>(OutNodes);
+		}
+	}
+
 	/**
 	 * Searches all nodes in a Blueprint and checks for a matching Guid
 	 *

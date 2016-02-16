@@ -12,6 +12,10 @@ struct CORE_API FFrameworkObjectVersion
 		// BodySetup's default instance collision profile is used by default when creating a new instance.
 		UseBodySetupCollisionProfile,
 
+		// Regenerate subgraph arrays correctly in animation blueprints to remove duplicates and add
+		// missing graphs that appear read only when edited
+		AnimBlueprintSubgraphFix,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

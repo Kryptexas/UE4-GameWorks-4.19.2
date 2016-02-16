@@ -844,7 +844,7 @@ void UAnimSequence::ExtractBoneTransform(const TArray<struct FRawAnimSequenceTra
 	// Bail out if the animation data doesn't exists (e.g. was stripped by the cooker).
 	if(InRawAnimationData.Num() == 0)
 	{
-		UE_LOG(LogAnimation, Log, TEXT("UAnimSequence::GetBoneTransform : No anim data in AnimSequence!"));
+		UE_LOG(LogAnimation, Log, TEXT("UAnimSequence::GetBoneTransform : No anim data in AnimSequence[%s]!"),*GetFullName());
 		OutAtom.SetIdentity();
 		return;
 	}
@@ -857,7 +857,7 @@ void UAnimSequence::ExtractBoneTransform(const struct FRawAnimSequenceTrack& Raw
 	// Bail out (with rather wacky data) if data is empty for some reason.
 	if(RawTrack.PosKeys.Num() == 0 || RawTrack.RotKeys.Num() == 0)
 	{
-		UE_LOG(LogAnimation, Log, TEXT("UAnimSequence::GetBoneTransform : No anim data in AnimSequence!"));
+		UE_LOG(LogAnimation, Log, TEXT("UAnimSequence::GetBoneTransform : No anim data in AnimSequence[%s]!"),*GetFullName());
 		OutAtom.SetIdentity();
 		return;
 	}
@@ -1159,10 +1159,11 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimSeq_GetBonePose);
 
-	USkeleton* MySkeleton = GetSkeleton();
+	const bool bIsBakedAdditive = !bCalcAdditiveDynamically && IsValidAdditive();
+	const USkeleton* MySkeleton = GetSkeleton();
 	if (!MySkeleton)
 	{
-		if (!bCalcAdditiveDynamically && IsValidAdditive())
+		if (bIsBakedAdditive)
 		{
 			OutPose.ResetToIdentity(); 
 		}
@@ -1174,31 +1175,31 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 	}
 
 	const FBoneContainer& RequiredBones = OutPose.GetBoneContainer();
+	const bool bDisableRetargeting = RequiredBones.GetDisableRetargeting();
 
-	// if retargeting is disabled, we initialize pose with 'Retargeting Source' ref pose.
-	bool const bDisableRetargeting = RequiredBones.GetDisableRetargeting();
-	if (bDisableRetargeting)
+	// initialize with ref-pose
+	if (bIsBakedAdditive)
 	{
-		TArray<FTransform> const& AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
-		TArray<FBoneIndexType> const& RequireBonesIndexArray = RequiredBones.GetBoneIndicesArray();
-
-		int32 const NumRequiredBones = RequireBonesIndexArray.Num();
-		for (FCompactPoseBoneIndex PoseBoneIndex : OutPose.ForEachBoneIndex())
-		{
-			int32 const& SkeletonBoneIndex = RequiredBones.GetSkeletonIndex(PoseBoneIndex);
-
-			// Pose bone index should always exist in Skeleton
-			checkSlow(SkeletonBoneIndex != INDEX_NONE);
-			OutPose[PoseBoneIndex] = AuthoredOnRefSkeleton[SkeletonBoneIndex];
-		}
+		//When using baked additive ref pose is identity
+		OutPose.ResetToIdentity();
 	}
 	else
 	{
-		// initialize with ref-pose
-		if (!bCalcAdditiveDynamically && IsValidAdditive())
+		// if retargeting is disabled, we initialize pose with 'Retargeting Source' ref pose.
+		if (bDisableRetargeting)
 		{
-			//When using baked additive ref pose is identity
-			OutPose.ResetToIdentity();
+			TArray<FTransform> const& AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
+			TArray<FBoneIndexType> const& RequireBonesIndexArray = RequiredBones.GetBoneIndicesArray();
+
+			int32 const NumRequiredBones = RequireBonesIndexArray.Num();
+			for (FCompactPoseBoneIndex PoseBoneIndex : OutPose.ForEachBoneIndex())
+			{
+				int32 const& SkeletonBoneIndex = RequiredBones.GetSkeletonIndex(PoseBoneIndex);
+
+				// Pose bone index should always exist in Skeleton
+				checkSlow(SkeletonBoneIndex != INDEX_NONE);
+				OutPose[PoseBoneIndex] = AuthoredOnRefSkeleton[SkeletonBoneIndex];
+			}
 		}
 		else
 		{
@@ -1307,7 +1308,13 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 						break;
 					case EBoneTranslationRetargetingMode::AnimationRelative:
 						TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
-						AnimRelativeRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+
+						// With baked additives, we can skip 'AnimationRelative' tracks, as the relative transform gets canceled out.
+						// (A1 + Rel) - (A2 + Rel) = A1 - A2.
+						if (!bIsBakedAdditive)
+						{
+							AnimRelativeRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+						}
 						break;
 					}
 				}
@@ -1499,35 +1506,33 @@ void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32
 	const USkeleton* MySkeleton = GetSkeleton();
 	const TArray<FBoneNode>& BoneTree = MySkeleton->GetBoneTree();
 
-	check(!bBakedAdditive || BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton || BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Animation);
+	switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+	{
+		case EBoneTranslationRetargetingMode::AnimationScaled:
+		{
+			// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
+			const TArray<FTransform>& SkeletonRefPoseArray = GetSkeleton()->GetRefLocalPoses(RetargetSource);
+			const float SourceTranslationLength = SkeletonRefPoseArray[SkeletonBoneIndex].GetTranslation().Size();
+			if (SourceTranslationLength > KINDA_SMALL_NUMBER)
+			{
+				const float TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
+				BoneTransform.ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
+			}
+			break;
+		}
+		
+		case EBoneTranslationRetargetingMode::Skeleton:
+		{
+			BoneTransform.SetTranslation(bBakedAdditive ? FVector::ZeroVector : RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation());
+			break;
+		}
+		
 
-	if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationScaled)
-	{
-		// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
-		const TArray<FTransform>& SkeletonRefPoseArray = GetSkeleton()->GetRefLocalPoses(RetargetSource);
-		const float SourceTranslationLength = SkeletonRefPoseArray[SkeletonBoneIndex].GetTranslation().Size();
-		if (SourceTranslationLength > KINDA_SMALL_NUMBER)
+		case EBoneTranslationRetargetingMode::AnimationRelative:
 		{
-			const float TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
-			BoneTransform.ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
-		}
-	}
-	else
-	{
-		if (bBakedAdditive)
-		{
-			if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton)
-			{
-				BoneTransform.SetTranslation(FVector::ZeroVector);
-			}
-		}
-		else
-		{
-			if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton)
-			{
-				BoneTransform.SetTranslation(RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation());
-			}
-			else if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationRelative)
+			// With baked additive animations, Animation Relative delta gets canceled out, so we can skip it.
+			// (A1 + Rel) - (A2 + Rel) = A1 - A2.
+			if (!bBakedAdditive)
 			{
 				const TArray<FTransform>& AuthoredOnRefSkeleton = GetSkeleton()->GetRefLocalPoses(RetargetSource);
 				const TArray<FTransform>& PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
@@ -1540,8 +1545,8 @@ void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32
 				BoneTransform.SetScale3D(BoneTransform.GetScale3D() * (RefPoseTransform.GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
 				BoneTransform.NormalizeRotation();
 			}
+			break;
 		}
-
 	}
 }
 

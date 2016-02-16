@@ -64,6 +64,21 @@ float UCrowdFollowingComponent::GetCrowdAgentMaxSpeed() const
 	return MovementComp ? MovementComp->GetMaxSpeed() : 0.0f;
 }
 
+int32 UCrowdFollowingComponent::GetCrowdAgentAvoidanceGroup() const
+{
+	return GetAvoidanceGroup();
+}
+
+int32 UCrowdFollowingComponent::GetCrowdAgentGroupsToAvoid() const
+{
+	return GetGroupsToAvoid();
+}
+
+int32 UCrowdFollowingComponent::GetCrowdAgentGroupsToIgnore() const
+{
+	return GetGroupsToIgnore();
+}
+
 void UCrowdFollowingComponent::SetCrowdAnticipateTurns(bool bEnable, bool bUpdateAgent)
 {
 	if (bEnableAnticipateTurns != bEnable)

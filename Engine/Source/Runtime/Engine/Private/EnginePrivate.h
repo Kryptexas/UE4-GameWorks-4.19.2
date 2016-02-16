@@ -100,3 +100,4 @@ EnginePrivate.h: Unreal engine private header file.
 #include "Engine/TextureLODSettings.h"
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
+#include "Engine/SkeletalMeshReductionSettings.h"

@@ -4,6 +4,16 @@
 #include "AnimNodes/AnimNode_SequenceEvaluator.h"
 #include "Animation/AnimInstanceProxy.h"
 
+float FAnimNode_SequenceEvaluator::GetCurrentAssetTime()
+{
+	return ExplicitTime;
+}
+
+float FAnimNode_SequenceEvaluator::GetCurrentAssetLength()
+{
+	return Sequence ? Sequence->SequenceLength : 0.0f;
+}
+
 /////////////////////////////////////////////////////
 // FAnimSequenceEvaluatorNode
 

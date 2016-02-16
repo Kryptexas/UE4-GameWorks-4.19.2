@@ -186,6 +186,7 @@ void UCrowdManager::BeginDestroy()
 	delete TickHelper;
 #endif
 
+	DestroyCrowdManager();
 	Super::BeginDestroy();
 }
 
@@ -692,6 +693,11 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAge
 
 	AgentParams.radius = CylRadius;
 	AgentParams.height = CylHalfHeight * 2.0f;
+	AgentParams.avoidanceQueryMultiplier = 1.0f;
+	AgentParams.avoidanceGroup = Agent->GetCrowdAgentAvoidanceGroup();
+	AgentParams.groupsToAvoid = Agent->GetCrowdAgentGroupsToAvoid();
+	AgentParams.groupsToIgnore = Agent->GetCrowdAgentGroupsToIgnore();
+
 	// skip maxSpeed, it will be constantly updated in every tick
 	// skip maxAcceleration, we don't use Detour's movement code
 
@@ -703,7 +709,7 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAge
 		AgentParams.separationWeight = CrowdComponent->GetCrowdSeparationWeight();
 		AgentParams.obstacleAvoidanceType = CrowdComponent->GetCrowdAvoidanceQuality();
 		AgentParams.avoidanceQueryMultiplier = CrowdComponent->GetCrowdAvoidanceRangeMultiplier();
-	
+
 		if (CrowdComponent->IsCrowdSimulationEnabled())
 		{
 			AgentParams.updateFlags =
@@ -715,16 +721,6 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAge
 				(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0) |
 				(CrowdComponent->IsCrowdSlowdownAtGoalEnabled() ? DT_CROWD_SLOWDOWN_AT_GOAL : 0);
 		}
-
-		AgentParams.avoidanceGroup = CrowdComponent->GetAvoidanceGroup();
-		AgentParams.groupsToAvoid = CrowdComponent->GetGroupsToAvoid();
-		AgentParams.groupsToIgnore = CrowdComponent->GetGroupsToIgnore();
-	}
-	else
-	{
-		AgentParams.avoidanceQueryMultiplier = 1.0f;
-		AgentParams.avoidanceGroup = 1;
-		AgentParams.groupsToAvoid = MAX_uint32;
 	}
 }
 

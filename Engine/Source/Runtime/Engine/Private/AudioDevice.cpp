@@ -2413,11 +2413,34 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 
 void FAudioDevice::ProcessingPendingActiveSoundStops()
 {
+	// Process the PendingSoundsToDelete. These may have 
+	// had their deletion deferred due to an async operation
+	for (int32 i = PendingSoundsToDelete.Num() - 1; i >= 0; --i)
+	{
+		FActiveSound* ActiveSound = PendingSoundsToDelete[i];
+		if (ActiveSound->CanDelete())
+		{
+			PendingSoundsToDelete.RemoveAtSwap(i, 1, false);
+			delete ActiveSound;
+		}
+	}
+
 	// Stop any pending active sounds that need to be stopped
 	for (FActiveSound* ActiveSound : PendingSoundsToStop)
 	{
 		check(ActiveSound);
 		ActiveSound->Stop();
+
+		// If we can delete the active sound now, then delete it
+		if (ActiveSound->CanDelete())
+		{
+			delete ActiveSound;
+		}
+		else
+		{
+			// There was an async operation pending. We need to defer deleting this sound
+			PendingSoundsToDelete.Add(ActiveSound);
+		}
 	}
 	PendingSoundsToStop.Reset();
 }

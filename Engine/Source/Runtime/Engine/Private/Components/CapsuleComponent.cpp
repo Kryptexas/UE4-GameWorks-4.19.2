@@ -146,6 +146,7 @@ void UCapsuleComponent::SetCapsuleSize(float NewRadius, float NewHalfHeight, boo
 {
 	CapsuleHalfHeight = FMath::Max3(0.f, NewHalfHeight, NewRadius);
 	CapsuleRadius = FMath::Max(0.f, NewRadius);
+	UpdateBounds();
 	UpdateBodySetup();
 	MarkRenderStateDirty();
 

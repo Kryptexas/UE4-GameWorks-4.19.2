@@ -399,7 +399,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 		if (EncroachingBlockingGeometry(Template, FinalRootLocation, FinalRootRotation))
 		{
 			// a native component is colliding, that's enough to reject spawning
-			UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because of collision at the spawn location [%s] for [%s]"), *FinalRootLocation.ToString(), *Class->GetName());
+			UE_LOG(LogSpawn, Log, TEXT("SpawnActor failed because of collision at the spawn location [%s] for [%s]"), *FinalRootLocation.ToString(), *Class->GetName());
 			return nullptr;
 		}
 	}
@@ -440,7 +440,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 
 	if (Actor->IsPendingKill() && !SpawnParameters.bNoFail)
 	{
-		UE_LOG(LogSpawn, Warning, TEXT("SpawnActor failed because the spawned actor %s IsPendingKill"), *Actor->GetPathName());
+		UE_LOG(LogSpawn, Log, TEXT("SpawnActor failed because the spawned actor %s IsPendingKill"), *Actor->GetPathName());
 		return NULL;
 	}
 

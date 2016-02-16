@@ -960,7 +960,7 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerLength(int32 AssetPlayerIndex)
 {
 	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
 	{
-		return PlayerNode->GetAnimAsset()->GetMaxCurrentTime();
+		return PlayerNode->GetCurrentAssetLength();
 	}
 
 	return 0.0f;
@@ -980,13 +980,11 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTimeFraction(int32 AssetPlayerIn
 {
 	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
 	{
-		UAnimationAsset* Asset = PlayerNode->GetAnimAsset();
-
-		float Length = Asset ? Asset->GetMaxCurrentTime() : 0.0f;
+		float Length = PlayerNode->GetCurrentAssetLength();
 
 		if(Length > 0.0f)
 		{
-			return PlayerNode->GetAccumulatedTime() / Length;
+			return PlayerNode->GetCurrentAssetTime() / Length;
 		}
 	}
 
@@ -997,13 +995,11 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTimeFromEndFraction(int32 AssetP
 {
 	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
 	{
-		UAnimationAsset* Asset = PlayerNode->GetAnimAsset();
-		
-		float Length = Asset ? Asset->GetMaxCurrentTime() : 0.f;
+		float Length = PlayerNode->GetCurrentAssetLength();
 
 		if(Length > 0.f)
 		{
-			return (Length - PlayerNode->GetAccumulatedTime()) / Length;
+			return (Length - PlayerNode->GetCurrentAssetTime()) / Length;
 		}
 	}
 
@@ -1014,11 +1010,7 @@ float FAnimInstanceProxy::GetInstanceAssetPlayerTimeFromEnd(int32 AssetPlayerInd
 {
 	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
 	{
-		UAnimationAsset* Asset = PlayerNode->GetAnimAsset();
-		if(Asset)
-		{
-			return PlayerNode->GetAnimAsset()->GetMaxCurrentTime() - PlayerNode->GetAccumulatedTime();
-		}
+		return PlayerNode->GetCurrentAssetLength() - PlayerNode->GetCurrentAssetTime();
 	}
 
 	return MAX_flt;
@@ -1082,7 +1074,7 @@ float FAnimInstanceProxy::GetRelevantAnimTimeRemaining(int32 MachineIndex, int32
 	{
 		if(AssetPlayer->GetAnimAsset())
 		{
-			return AssetPlayer->GetAnimAsset()->GetMaxCurrentTime() - AssetPlayer->GetAccumulatedTime();
+			return AssetPlayer->GetCurrentAssetLength() - AssetPlayer->GetCurrentAssetTime();
 		}
 	}
 
@@ -1095,10 +1087,10 @@ float FAnimInstanceProxy::GetRelevantAnimTimeRemainingFraction(int32 MachineInde
 	{
 		if(AssetPlayer->GetAnimAsset())
 		{
-			float Length = AssetPlayer->GetAnimAsset()->GetMaxCurrentTime();
+			float Length = AssetPlayer->GetCurrentAssetLength();
 			if(Length > 0.0f)
 			{
-				return (Length - AssetPlayer->GetAccumulatedTime()) / Length;
+				return (Length - AssetPlayer->GetCurrentAssetTime()) / Length;
 			}
 		}
 	}
@@ -1112,7 +1104,7 @@ float FAnimInstanceProxy::GetRelevantAnimLength(int32 MachineIndex, int32 StateI
 	{
 		if(AssetPlayer->GetAnimAsset())
 		{
-			return AssetPlayer->GetAnimAsset()->GetMaxCurrentTime();
+			return AssetPlayer->GetCurrentAssetLength();
 		}
 	}
 
@@ -1123,7 +1115,7 @@ float FAnimInstanceProxy::GetRelevantAnimTime(int32 MachineIndex, int32 StateInd
 {
 	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
 	{
-		return AssetPlayer->GetAccumulatedTime();
+		return AssetPlayer->GetCurrentAssetTime();
 	}
 
 	return 0.0f;
@@ -1133,10 +1125,10 @@ float FAnimInstanceProxy::GetRelevantAnimTimeFraction(int32 MachineIndex, int32 
 {
 	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
 	{
-		float Length = AssetPlayer->GetAnimAsset()->GetMaxCurrentTime();
+		float Length = AssetPlayer->GetCurrentAssetLength();
 		if(Length > 0.0f)
 		{
-			return AssetPlayer->GetAccumulatedTime() / Length;
+			return AssetPlayer->GetCurrentAssetTime() / Length;
 		}
 	}
 

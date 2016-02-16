@@ -57,6 +57,10 @@ struct ENGINE_API FAnimNode_AssetPlayerBase : public FAnimNode_Base
 	// Create a tick record for this node
 	void CreateTickRecordForNode(const FAnimationUpdateContext& Context, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate);
 
+	// Functions to report data to getters, this is required for all asset players (but can't be pure abstract because of struct instantiation generated code).
+	virtual float GetCurrentAssetLength() { return 0.0f; }
+	virtual float GetCurrentAssetTime() { return 0.0f; }
+
 protected:
 
 	/** Last encountered blendweight for this node */
