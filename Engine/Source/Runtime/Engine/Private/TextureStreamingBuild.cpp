@@ -5,7 +5,7 @@ TextureStreamingBuild.cpp : Contains definitions to build texture streaming data
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "DebugVieWModeMaterialProxy.h"
+#include "DebugViewModeMaterialProxy.h"
 #include "ShaderCompiler.h"
 
 ENGINE_API void BuildTextureStreamingData(UWorld* InWorld)
