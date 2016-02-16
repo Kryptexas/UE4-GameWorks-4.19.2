@@ -201,7 +201,7 @@ public:
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() override
+	virtual void PreUnloadCallback() override
 	{
 		FEditorModeRegistry::Get().UnregisterMode( FBuiltinEditorModes::EM_Placement );
 
