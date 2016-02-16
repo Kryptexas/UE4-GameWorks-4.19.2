@@ -104,5 +104,5 @@ private:
 	FVector GetAlignVector(EAxis::Type AxisOption, bool bInvert);
 
 	// skeleton index
-	TArray<FBoneIndexType> ChainBoneIndices;
+	TArray<int32> ChainBoneIndices;
 };
