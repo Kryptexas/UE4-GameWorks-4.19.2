@@ -1097,6 +1097,18 @@ void USkeletalMeshComponent::UpdateClothSimulationContext()
 	{
 		CheckClothTeleport();
 		InternalClothSimulationContext.ClothTeleportMode = ClothTeleportMode;
+
+		if(InternalClothSimulationContext.bPendingClothUpdateTransform)	//it's possible we want to update cloth collision based on a pending transform
+		{
+			InternalClothSimulationContext.bPendingClothUpdateTransform = false;
+			if(InternalClothSimulationContext.PendingTeleportType == ETeleportType::TeleportPhysics)	//If the pending transform came from a teleport, make sure to teleport the cloth in this upcoming simulation
+			{
+				InternalClothSimulationContext.ClothTeleportMode = FClothingActor::TeleportMode::Teleport;
+			}
+
+			UpdateClothTransformImp();
+		}
+
 		ClothTeleportMode = FClothingActor::TeleportMode::Continuous;
 	}
 
@@ -1252,6 +1264,8 @@ FClothSimulationContext::FClothSimulationContext()
 	InMasterBoneMapCacheCount = -1;
 	bUseMasterPose = false;
 	WindAdaption = 2.f;	//This is the const that the previous code was using. Not sure where it comes from
+	bPendingClothUpdateTransform = false;
+	PendingTeleportType = ETeleportType::None;
 }
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
@@ -1349,7 +1363,7 @@ FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWor
 		FBoxSphereBounds NewBounds = CalcMeshBound( RootBoneOffset, bHasValidBodies, LocalToWorld );
 
 #if WITH_APEX_CLOTHING
-		AddClothingBounds(NewBounds);
+		AddClothingBounds(NewBounds, LocalToWorld);
 #endif// #if WITH_APEX_CLOTHING
 
 		bCachedLocalBoundsUpToDate = true;

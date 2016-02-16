@@ -1450,9 +1450,10 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportT
 #if WITH_APEX_CLOTHING
 	if(ClothingActors.Num() > 0)
 	{
+		
 		//@todo: Should cloth know whether we're teleporting?
 		// Updates cloth animation states because transform is updated
-		UpdateClothTransform();
+		UpdateClothTransform(Teleport);
 	}
 #endif //#if WITH_APEX_CLOTHING
 }
@@ -2079,21 +2080,30 @@ bool USkeletalMeshComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapRes
 
 
 
-void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds) const
+void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds, const FTransform& LocalToWorld) const
 {
-	for(const FClothingActor& ClothingActor : ClothingActors)
+	for (const FClothingActor& ClothingActor : ClothingActors)
+	{
+		if (NxClothingActor* Actor = ClothingActor.ApexClothingActor)
 		{
-		if(NxClothingActor* Actor = ClothingActor.ApexClothingActor)
+			physx::PxBounds3 ApexClothingBounds = Actor->getBounds();
+			if (!ApexClothingBounds.isEmpty())
 			{
-				physx::PxBounds3 ApexClothingBounds = Actor->getBounds();
+				const physx::PxMat44& ApexGlobalPose = Actor->getGlobalPose();
 
-				if (!ApexClothingBounds.isEmpty())
-				{
-					FBoxSphereBounds BoxBounds = FBox( P2UVector(ApexClothingBounds.minimum), P2UVector(ApexClothingBounds.maximum) );
-					InOutBounds = InOutBounds + BoxBounds;
-				}
+				FBoxSphereBounds BoxBounds = FBox(P2UVector(ApexClothingBounds.minimum), P2UVector(ApexClothingBounds.maximum));
+
+				//It's possible that the cloth sim has never run, in which case its global pose is 0,0,0 - In this case the final bounds will be huge because of our LocalToWorld.
+				//It's also possible that after submitting ComponentToWorld on the game thread we modified it. In this case the cloth sim will have a different bounds origin, so again we'll get a huge final bounds
+				//To fix this we convert the bounds to local space and then to world. Note that this ignores scale! If this becomes an issue feel free to use both LocalToWorld and ApexGlobalPose to solve the issue.
+
+				BoxBounds.Origin -= P2UVector(ApexGlobalPose.getPosition());	//to local world
+				BoxBounds.Origin += LocalToWorld.GetLocation();					//to world as seen by our final bounds
+
+				InOutBounds = InOutBounds + BoxBounds;
 			}
 		}
+	}
 }
 
 bool USkeletalMeshComponent::HasValidClothingActors() const
@@ -3214,7 +3224,7 @@ void USkeletalMeshComponent::PostPhysicsTickComponent(FSkeletalMeshComponentPost
 
 #if WITH_APEX_CLOTHING
 
-void USkeletalMeshComponent::UpdateClothTransform()
+void USkeletalMeshComponent::UpdateClothTransformImp()
 {
 	int32 NumActors = ClothingActors.Num();
 
@@ -3244,20 +3254,14 @@ void USkeletalMeshComponent::UpdateClothTransform()
 		ComponentToWorld.SetIdentity();
 	}
 //#endif
+}
 
-	physx::PxMat44 PxGlobalPose = U2PMatrix(ComponentToWorld.ToMatrixWithScale());
+void USkeletalMeshComponent::UpdateClothTransform(ETeleportType TeleportType)
+{
+	//Note that it's not safe to run the update here. This is because cloth sim could still be running on another thread. We defer it
+	InternalClothSimulationContext.bPendingClothUpdateTransform = true;
+	InternalClothSimulationContext.PendingTeleportType = TeleportType;
 
-	for(FClothingActor& ClothingActor : ClothingActors)
-	{
-		if(NxClothingActor* ApexClothingActor = ClothingActor.ApexClothingActor)
-		{
-			NxParameterized::Interface* ActorDesc = ApexClothingActor->getActorDesc();
-			if(ActorDesc != nullptr)
-			{
-				verify(NxParameterized::setParamMat44(*ActorDesc, "globalPose", PxGlobalPose));
-			}
-		}
-	}
 }
 
 void USkeletalMeshComponent::CheckClothTeleport()
