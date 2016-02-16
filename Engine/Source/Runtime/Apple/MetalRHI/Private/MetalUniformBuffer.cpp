@@ -201,7 +201,6 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 	, Buffer(nil)
 	, Offset(0)
 	, Size(Layout.ConstantBufferSize)
-	, LastCachedFrame(INDEX_NONE)
 {
 	if (Layout.ConstantBufferSize > 0)
 	{
@@ -269,8 +268,6 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 			check(InResources[i]);
 			ResourceTable[i] = InResources[i];
 		}
-		RawResourceTable.Empty(NumResources);
-		RawResourceTable.AddZeroed(NumResources);
 	}
 }
 
@@ -283,64 +280,6 @@ FMetalUniformBuffer::~FMetalUniformBuffer()
 		AddNewlyFreedBufferToUniformBufferPool(Buffer, Offset, Size);
 	}
 }
-
-void FMetalUniformBuffer::CacheResourcesInternal()
-{
-	const FRHIUniformBufferLayout& Layout = GetLayout();
-	int32 NumResources = Layout.Resources.Num();
-	const uint8* RESTRICT ResourceTypes = Layout.Resources.GetData();
-	const TRefCountPtr<FRHIResource>* RESTRICT Resources = ResourceTable.GetData();
-	void** RESTRICT RawResources = RawResourceTable.GetData();
-	float CurrentTime = FApp::GetCurrentTime();
-
-	// todo: Immutable resources, i.e. not textures, can be safely cached across frames.
-	// Texture streaming makes textures complicated :)
-	for (int32 i = 0; i < NumResources; ++i)
-	{
-		switch (ResourceTypes[i])
-		{
-			case UBMT_SRV:
-				{
-					NOT_SUPPORTED("FMetalUniformBuffer::CacheResourcesInternal UBMT_SRV");
-					
-					FMetalShaderResourceView* SRV = (FMetalShaderResourceView*)Resources[i].GetReference();
-					if (IsValidRef(SRV->SourceTexture))
-					{
-						FMetalSurface* Surface = SRV->TextureView;
-						RawResources[i] = Surface;
-					}
-					else
-					{
-						RawResources[i] = &SRV->SourceVertexBuffer->Buffer;
-					}
-				}
-				break;
-
-			case UBMT_TEXTURE:
-				{
-					FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
-					TextureRHI->SetLastRenderTime(CurrentTime);
-					RawResources[i] = TextureRHI;
-				}
-				break;
-
-			case UBMT_UAV:
-				NOT_SUPPORTED("FMetalUniformBuffer::CacheResourcesInternal UBMT_UAV");
-				RawResources[i] = 0;
-				break;
-
-			case UBMT_SAMPLER:
-				RawResources[i] = (FMetalSamplerState*)Resources[i].GetReference();
-				break;
-
-			default:
-				check(0);
-				break;
-		}
-	}
-}
-
-
 
 FUniformBufferRHIRef FMetalDynamicRHI::RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
 {

@@ -43,7 +43,7 @@ FMetalSurface* GetMetalSurfaceFromRHITexture(FRHITexture* Texture)
     if (!Texture)
     {
         return NULL;
-    }
+	}
 	if(Texture->GetTexture2D())
 	{
 		return &((FMetalTexture2D*)Texture)->Surface;
@@ -261,6 +261,15 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 	}
 #endif
 	
+	if(Source.MSAATexture)
+	{
+		MSAATexture = Texture;
+	}
+	if(Source.StencilTexture)
+	{
+		StencilTexture = Texture;
+	}
+	
 	NSRange Slices = NSMakeRange(0, Source.Texture.arrayLength * (bIsCubemap ? 6 : 1));
     // @todo Zebra Temporary workaround for absence of X24_G8 or equivalent to GL_STENCIL_INDEX so that the stencil part of a texture may be sampled
 	// For now, if we find ourselves *requiring* this we lazily blit the stencil data out to a separate texture. radr://21813831
@@ -326,6 +335,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 					SafeReleasePooledBuffer(Buf.Buffer);
 				}
 				//fallthrough to assign the stencil texture
+				StencilTexture = [Source.Texture retain];
 			}
 #endif
 			case MTLPixelFormatDepth32Float:
@@ -345,17 +355,6 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
     {
         Texture = [Source.Texture retain];
     }
-	if(Source.MSAATexture)
-	{
-		MSAATexture = Texture;
-	}
-	if(Source.StencilTexture)
-	{
-#if PLATFORM_IOS
-		//check(false); // @todo Zebra Must handle separate stencil texture SRV!
-#endif
-		StencilTexture = Texture;
-	}
 	
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
 	const uint32 BlockSizeY = GPixelFormats[PixelFormat].BlockSizeY;
@@ -562,7 +561,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 			
 			if (Texture == nil)
 			{
-				NSLog(@"Failed to create texture, desc  %@", Desc);
+				UE_LOG(LogMetal, Fatal, TEXT("Failed to create texture, desc %s"), *FString([Desc description]));
 			}
 		}
 		TRACK_OBJECT(Texture);
@@ -575,7 +574,7 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 		Texture = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
 		if (Texture == nil)
 		{
-			NSLog(@"Failed to create texture, desc  %@", Desc);
+			UE_LOG(LogMetal, Fatal, TEXT("Failed to create texture, desc %s"), *FString([Desc description]));
 		}
 		TRACK_OBJECT(Texture);
 		
@@ -714,8 +713,13 @@ FMetalSurface::~FMetalSurface()
 	if (MSAATexture != nil)
     {
 		SafeReleaseMetalResource(MSAATexture);
-    }
-    
+	}
+	
+	if (StencilTexture != nil && StencilTexture != Texture)
+	{
+		SafeReleaseMetalResource(StencilTexture);
+	}
+	
 	if (!(Flags & TexCreate_Presentable) && MSAATexture != Texture)
 	{
 		SafeReleaseMetalResource(Texture);
@@ -821,6 +825,8 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 #if PLATFORM_MAC
 		if(Texture.storageMode == MTLStorageModePrivate)
 		{
+			SCOPED_AUTORELEASE_POOL;
+			
 			// @todo: gather these all up over a frame
 			id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
 			
@@ -830,7 +836,7 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			[Blitter copyFromBuffer:LockedMemory[MipIndex] sourceOffset:0 sourceBytesPerRow:Stride sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Texture destinationSlice:ArrayIndex destinationLevel:MipIndex destinationOrigin:Region.origin];
 			
 			[Blitter endEncoding];
-			[CommandBuffer commit];
+			GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
 		}
 		else
 #else
@@ -925,6 +931,28 @@ id<MTLTexture> FMetalSurface::GetDrawableTexture()
 	return Texture;
 }
 
+void FMetalSurface::UpdateSRV()
+{
+#if METAL_API_1_1
+	if (PixelFormat == PF_X24_G8 && Texture != StencilTexture && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
+	{
+		// In this case StencilTexture is the source depth/stencil texture and Texture is our target Stencil-only copy
+		
+		id<MTLBlitCommandEncoder> BlitEncoder = FMetalContext::GetCurrentContext()->GetBlitContext();
+		
+		uint32 SizePerImage = Texture.width * Texture.height;
+		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), SizePerImage, MTLStorageModeShared));
+		[Buf.Buffer retain];
+		
+		[BlitEncoder copyFromTexture:StencilTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Texture.width destinationBytesPerImage:SizePerImage options:MTLBlitOptionStencilFromDepthStencil];
+		
+		[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
+		
+		SafeReleasePooledBuffer(Buf.Buffer);
+	}
+#endif
+}
+
 
 /*-----------------------------------------------------------------------------
 	Texture allocator support.
@@ -999,6 +1027,8 @@ void FMetalDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
 	FMetalSurface* Surf = GetMetalSurfaceFromRHITexture(SourceSurfaceRHI);
 	if (Surf && Surf->Texture)
 	{
+		SCOPED_AUTORELEASE_POOL;
+		
 		// @todo: gather these all up over a frame
 		id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
 		
@@ -1009,7 +1039,7 @@ void FMetalDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
 		
 		// kick it off!
 		[Blitter endEncoding];
-		[CommandBuffer commit];
+		GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
 		
 		if (GIsRHIInitialized)
 		{
@@ -1047,6 +1077,8 @@ ETextureReallocationStatus FMetalDynamicRHI::CancelAsyncReallocateTexture2D_Rend
 
 FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIParamRef OldTextureRHI, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus)
 {
+	SCOPED_AUTORELEASE_POOL;
+	
 	FMetalTexture2D* OldTexture = ResourceCast(OldTextureRHI);
 
 	FMetalTexture2D* NewTexture = new FMetalTexture2D(OldTexture->GetFormat(), NewSizeX, NewSizeY, NewMipCount, OldTexture->GetNumSamples(), OldTexture->GetFlags(), NULL, OldTextureRHI->GetClearBinding());
@@ -1096,7 +1128,7 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 
 	// kick it off!
 	[Blitter endEncoding];
-	[CommandBuffer commit];
+	GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
 
 	return NewTexture;
 }
@@ -1191,6 +1223,8 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 #if PLATFORM_MAC
 	if(Tex.storageMode == MTLStorageModePrivate)
 	{
+		SCOPED_AUTORELEASE_POOL;
+		
 		// @todo: gather these all up over a frame
 		id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
 		
@@ -1213,7 +1247,7 @@ void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint
 		[Blitter copyFromBuffer:LockedMemory sourceOffset:0 sourceBytesPerRow:SourcePitch sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Tex destinationSlice:0 destinationLevel:MipIndex destinationOrigin:Region.origin];
 		
 		[Blitter endEncoding];
-		[CommandBuffer commit];
+		GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
 		
 		GetMetalDeviceContext().ReleaseObject(LockedMemory);
 	}
@@ -1235,6 +1269,8 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 #if PLATFORM_MAC
 	if(Tex.storageMode == MTLStorageModePrivate)
 	{
+		SCOPED_AUTORELEASE_POOL;
+		
 		// @todo: gather these all up over a frame
 		id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
 		
@@ -1257,7 +1293,7 @@ void FMetalDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 		[Blitter copyFromBuffer:LockedMemory sourceOffset:0 sourceBytesPerRow:SourceRowPitch sourceBytesPerImage:BytesPerImage sourceSize:Region.size toTexture:Tex destinationSlice:0 destinationLevel:MipIndex destinationOrigin:Region.origin];
 		
 		[Blitter endEncoding];
-		[CommandBuffer commit];
+		GetMetalDeviceContext().GetCommandList().Commit(CommandBuffer, false);
 		
 		GetMetalDeviceContext().ReleaseObject(LockedMemory);
 	}

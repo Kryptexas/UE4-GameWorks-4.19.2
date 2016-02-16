@@ -110,6 +110,7 @@ id<MTLDrawable> FMetalViewport::GetDrawable()
 {
 	if (!Drawable)
 	{
+		SCOPED_AUTORELEASE_POOL;
 		uint32 IdleStart = FPlatformTime::Cycles();
 		
 #if PLATFORM_MAC

@@ -7,8 +7,9 @@
 #include "MetalRHIPrivate.h"
 
 #include "MetalCommandQueue.h"
+#include "MetalCommandList.h"
 #if METAL_STATISTICS
-#include "Runtime/Mac/NoRedist/MetalStatistics/Public/MetalStatistics.h"
+#include "MetalStatistics.h"
 #include "ModuleManager.h"
 #endif
 
@@ -68,11 +69,44 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
     return bUnretainedRefs ? [CommandQueue commandBufferWithUnretainedReferences] : [CommandQueue commandBuffer];
 }
 
+void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandBuffer)
+{
+	check(CommandBuffer);
+	[CommandBuffer commit];
+}
+
+void FMetalCommandQueue::SubmitCommandBuffers(FMetalCommandList* BufferList, uint32 Index, uint32 Count)
+{
+	check(BufferList);
+	CommandBuffers.SetNumZeroed(Count);
+	CommandBuffers[Index] = BufferList;
+	bool bComplete = true;
+	for (uint32 i = 0; i < Count; i++)
+	{
+		bComplete &= (CommandBuffers[i] != nullptr);
+	}
+	if (bComplete)
+	{
+		GetMetalDeviceContext().SubmitCommandsHint(true);
+		
+		for (uint32 i = 0; i < Count; i++)
+		{
+			FMetalCommandList* List = CommandBuffers[i];
+			for (id<MTLCommandBuffer> Buffer in List->GetCommandBuffers())
+			{
+				CommitCommandBuffer(Buffer);
+			}
+			List->OnScheduled();
+			CommandBuffers[i] = nullptr;
+		}
+	}
+}
+
 #pragma mark - Public Command Queue Accessors -
 	
-id<MTLCommandQueue> FMetalCommandQueue::GetCommandQueue(void) const
+id<MTLDevice> FMetalCommandQueue::GetDevice(void) const
 {
-	return CommandQueue;
+	return CommandQueue.device;
 }
 
 #pragma mark - Public Debug Support -

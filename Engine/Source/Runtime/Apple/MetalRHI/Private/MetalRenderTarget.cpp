@@ -429,7 +429,7 @@ static void ConvertSurfaceDataToFColor(EPixelFormat Format, uint32 Width, uint32
 void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
-	
+
 	// allocate output space
 	const uint32 SizeX = Rect.Width();
 	const uint32 SizeY = Rect.Height();
@@ -438,18 +438,18 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 	
 	FColor* OutDataPtr = OutData.GetData();
 	MTLRegion Region = MTLRegionMake2D(Rect.Min.X, Rect.Min.Y, SizeX, SizeY);
-	
-	id<MTLTexture> Texture = Surface->Texture;
-	if(!Texture && (Surface->Flags & TexCreate_Presentable))
-	{
-		Texture = Surface->GetDrawableTexture();
-	}
-	if(!Texture)
-	{
-		UE_LOG(LogRHI, Error, TEXT("Trying to read from an uninitialised texture."));
-		return;
-	}
-	
+    
+    id<MTLTexture> Texture = Surface->Texture;
+    if(!Texture && (Surface->Flags & TexCreate_Presentable))
+    {
+        Texture = Surface->GetDrawableTexture();
+    }
+    if(!Texture)
+    {
+        UE_LOG(LogRHI, Error, TEXT("Trying to read from an uninitialised texture."));
+        return;
+    }
+
 	if (GMetalUseTexGetBytes && Surface->PixelFormat != PF_DepthStencil && Surface->PixelFormat != PF_ShadowDepth)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
@@ -501,7 +501,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		
 		const uint32 Stride = GPixelFormats[Surface->PixelFormat].BlockBytes * SizeX;
 		const uint32 BytesPerImage = Stride * SizeY;
-		
+
 		TArray<uint8> Data;
 		Data.AddUninitialized(BytesPerImage);
 		
@@ -519,7 +519,6 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		uint32 BytesPerPixel = (Surface->PixelFormat != PF_DepthStencil || !InFlags.GetOutputStencil()) ? GPixelFormats[Surface->PixelFormat].BlockBytes : 1;
 		const uint32 Stride = BytesPerPixel * SizeX;
 		const uint32 BytesPerImage = Stride * SizeY;
-		
 		FMetalPooledBuffer Buffer = ((FMetalDeviceContext*)Context)->CreatePooledBuffer(FMetalPooledBufferArgs(Context->GetDevice(), BytesPerImage, MTLStorageModeShared));
 		{
 			// Synchronise the texture with the CPU

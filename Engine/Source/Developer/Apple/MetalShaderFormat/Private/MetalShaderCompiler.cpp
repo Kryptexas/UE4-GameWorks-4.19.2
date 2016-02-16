@@ -225,7 +225,9 @@ static void BuildMetalShaderOutput(
 		Header.Bindings.PackedUniformBuffers.Add(InfoArray);
 	}
 
-	// Then samplers.
+    uint32 NumTextures = 0;
+    
+    // Then samplers.
 	TMap<FString, uint32> SamplerMap;
 	for (auto& Sampler : CCHeader.Samplers)
 	{
@@ -236,16 +238,15 @@ static void BuildMetalShaderOutput(
 			Sampler.Count
 			);
 
-		Header.Bindings.NumSamplers = FMath::Max<uint8>(
-			Header.Bindings.NumSamplers,
-			Sampler.Offset + Sampler.Count
-			);
+        NumTextures += Sampler.Count;
 
 		for (auto& SamplerState : Sampler.SamplerStates)
 		{
 			SamplerMap.Add(SamplerState, Sampler.Count);
 		}
-	}	
+    }
+    
+    Header.Bindings.NumSamplers = CCHeader.SamplerStates.Num();
 
 	// Then UAVs (images in Metal)
 	for (auto& UAV : CCHeader.UAVs)
@@ -520,6 +521,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 	static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 	static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
+	static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 	
 	TCHAR const* Standard = TEXT("-std=ios-metal1.0");
 
@@ -530,6 +532,12 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
+	}
+	else if (Input.ShaderFormat == NAME_SF_METAL_MACES3_1)
+	{
+		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
+		Standard = TEXT("-std=osx-metal1.1");
+		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM4)
 	{

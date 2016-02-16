@@ -12,6 +12,12 @@ FMetalShaderResourceView::~FMetalShaderResourceView()
 		{
 			[TextureView->Texture release];
 			TextureView->Texture = nil;
+			
+			[TextureView->StencilTexture release];
+			TextureView->StencilTexture = nil;
+			
+			[TextureView->MSAATexture release];
+			TextureView->MSAATexture = nil;
 		}
 		delete TextureView;
 		TextureView = nullptr;

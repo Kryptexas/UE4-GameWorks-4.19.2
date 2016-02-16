@@ -227,6 +227,10 @@ FText GetFriendlyNameFromRHINameMac(const FString& InRHIName)
 	{
 		FriendlyRHIName = LOCTEXT("OpenGL3", "OpenGL 3 (SM4)");
 	}
+	else if (InRHIName == TEXT("SF_METAL_MACES3_1"))
+	{
+		FriendlyRHIName = LOCTEXT("MetalES3.1", "Metal (ES3.1, Mobile Preview)");
+	}
 	else if (InRHIName == TEXT("SF_METAL_SM4"))
 	{
 		FriendlyRHIName = LOCTEXT("MetalSM4", "Metal (SM4)");
