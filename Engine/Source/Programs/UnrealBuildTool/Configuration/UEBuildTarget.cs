@@ -3042,7 +3042,7 @@ namespace UnrealBuildTool
 									bCanPrecompile = false;
 									break;
 								case ModuleRules.PrecompileTargetsType.Default:
-									bCanPrecompile = !ModuleFileName.IsUnderDirectory(DeveloperDirectory);
+									bCanPrecompile = !ModuleFileName.IsUnderDirectory(DeveloperDirectory) || TargetType == TargetRules.TargetType.Editor;
 									break;
 								case ModuleRules.PrecompileTargetsType.Game:
 									bCanPrecompile = (TargetType == TargetRules.TargetType.Client || TargetType == TargetRules.TargetType.Server || TargetType == TargetRules.TargetType.Game);
