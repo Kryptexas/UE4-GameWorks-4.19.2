@@ -1790,6 +1790,8 @@ void SSkeletonTree::RemoveFromLOD(int32 LODIndex, bool bIncludeSelected, bool bI
 
 		// remove from current LOD
 		MeshUtilities.RemoveBonesFromMesh(PreviewComponent->SkeletalMesh, LODIndex, &BonesToRemove);
+		// update UI to reflect the change
+		OnLODSwitched();
 	}
 }
 
