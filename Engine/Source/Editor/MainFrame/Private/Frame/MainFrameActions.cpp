@@ -895,7 +895,7 @@ bool FMainFrameActionCallbacks::Redo_CanExecute()
 
 void FMainFrameActionCallbacks::ExecuteExecCommand( FString Command )
 {
-	GUnrealEd->Exec( GEditor->GetEditorWorldContext(true).World(), *Command );
+	GUnrealEd->Exec( GEditor->GetEditorWorldContext(false).World(), *Command );
 }
 
 

@@ -3096,6 +3096,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	// Clean up any editor actors being referenced 
 	GEngine->BroadcastLevelActorListChanged();
 
+	// Set an undo barrier so that transactions prior to PIE can't be undone
+	GUnrealEd->ResetTransaction(NSLOCTEXT("UnrealEd", "PIEStarted", "PIE Started"));
+
 	return GameInstance;
 }
 
