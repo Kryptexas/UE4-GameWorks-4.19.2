@@ -795,7 +795,7 @@ void FViewport::HighResScreenshot()
 	BeginInitResource(DummyViewport);
 
 	bool MaskShowFlagBackup = ViewportClient->GetEngineShowFlags()->HighResScreenshotMask;
-	const uint32 MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
+	const bool MotionBlurShowFlagBackup = ViewportClient->GetEngineShowFlags()->MotionBlur;
 
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(GetHighResScreenshotConfig().bMaskEnabled);
 	ViewportClient->GetEngineShowFlags()->SetMotionBlur(false);
