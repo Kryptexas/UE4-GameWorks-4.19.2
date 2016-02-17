@@ -311,13 +311,15 @@ void FMacPlatformSplash::Hide()
 {
 	if (GSplashWindow)
 	{
-		SCOPED_AUTORELEASE_POOL;
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 
-		[GSplashWindow close];
-		GSplashWindow = NULL;
+			[GSplashWindow close];
+			GSplashWindow = NULL;
 
-		[GSplashScreenImage release];
-		GSplashScreenImage = NULL;
+			[GSplashScreenImage release];
+			GSplashScreenImage = NULL;
+		}, NSDefaultRunLoopMode, true);
 
 		FPlatformMisc::PumpMessages(true);
 	}
