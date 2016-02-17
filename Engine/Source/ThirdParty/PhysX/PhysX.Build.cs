@@ -176,7 +176,10 @@ public class PhysX : ModuleRules
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
 				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				if (System.IO.File.Exists(Path.ChangeExtension(FileName, ".pdb")))
+				{
+					RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				}
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt64_1.dll"));
 		}
@@ -226,7 +229,10 @@ public class PhysX : ModuleRules
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
 				RuntimeDependencies.Add(new RuntimeDependency(FileName));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				if (System.IO.File.Exists(Path.ChangeExtension(FileName, ".pdb")))
+				{
+					RuntimeDependencies.Add(new RuntimeDependency(Path.ChangeExtension(FileName, ".pdb"), true));
+				}
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt32_1.dll"));
 		}
