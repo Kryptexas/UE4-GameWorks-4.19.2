@@ -22,6 +22,7 @@ namespace AutomationTool
 		static public readonly string LogFolder = "uebp_LogFolder";
         static public readonly string CSVFile = "uebp_CSVFile";
 		static public readonly string EngineSavedFolder = "uebp_EngineSavedFolder";
+		static public readonly string MacMallocNanoZone = "MallocNanoZone";
 
 		// Perforce Environment
 		static public readonly string P4Port = "uebp_PORT";		
@@ -60,6 +61,7 @@ namespace AutomationTool
 		public bool HasCapabilityToCompile { get; protected set; }
 		public string MsBuildExe { get; protected set; }
 		public string MsDevExe { get; protected set; }
+		public string MallocNanoZone { get; protected set; }
 
 		#endregion
 
@@ -117,7 +119,8 @@ namespace AutomationTool
 			RobocopyExe = GetSystemExePath("robocopy.exe");
 			MountExe = GetSystemExePath("mount.exe");
 			CmdExe = Utils.IsRunningOnMono ? "/bin/sh" : GetSystemExePath("cmd.exe");
-
+			MallocNanoZone = "0";
+			CommandUtils.SetEnvVar(EnvVarNames.MacMallocNanoZone, MallocNanoZone);
 			if (String.IsNullOrEmpty(LogFolder))
 			{
 				throw new AutomationException("Environment is not set up correctly: LogFolder is not set!");
