@@ -115,11 +115,11 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 						break;
 
 					case EWindowType::Menu:
-						WindowLevel = NSMainMenuWindowLevel;
+						WindowLevel = NSStatusWindowLevel;
 						break;
 
 					case EWindowType::ToolTip:
-						WindowLevel = NSStatusWindowLevel;
+						WindowLevel = NSPopUpMenuWindowLevel;
 						break;
 
 					case EWindowType::Notification:
@@ -127,7 +127,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 						break;
 
 					case EWindowType::CursorDecorator:
-						WindowLevel = NSPopUpMenuWindowLevel;
+						WindowLevel = NSMainMenuWindowLevel;
 						break;
 				}
 			}
