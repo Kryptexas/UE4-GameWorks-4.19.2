@@ -10,7 +10,7 @@ class FSlateFontCache;
 struct FCachedShapedTextKey
 {
 public:
-	FCachedShapedTextKey(const FTextRange& InTextRange, const float InScale, const FRunTextContext& InTextContext, const FSlateFontInfo& InFontInfo)
+	FCachedShapedTextKey(const FTextRange& InTextRange, const float InScale, const FShapedTextContext& InTextContext, const FSlateFontInfo& InFontInfo)
 		: TextRange(InTextRange)
 		, Scale(InScale)
 		, TextContext(InTextContext)
@@ -43,7 +43,7 @@ public:
 
 	FTextRange TextRange;
 	float Scale;
-	FRunTextContext TextContext;
+	FShapedTextContext TextContext;
 	FSlateFontInfo FontInfo;
 };
 
