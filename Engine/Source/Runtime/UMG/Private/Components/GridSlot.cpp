@@ -23,7 +23,6 @@ void UGridSlot::ReleaseSlateResources(bool bReleaseChildren)
 	Slot = nullptr;
 }
 
-// COMPILE PLEASE
 void UGridSlot::BuildSlot(TSharedRef<SGridPanel> GridPanel)
 {
 	Slot = &GridPanel->AddSlot(Column, Row, SGridPanel::Layer(Layer))
@@ -108,4 +107,5 @@ void UGridSlot::SynchronizeProperties()
 	SetColumnSpan(ColumnSpan);
 	SetHorizontalAlignment(HorizontalAlignment);
 	SetVerticalAlignment(VerticalAlignment);
+	SetLayer(Layer);
 }
