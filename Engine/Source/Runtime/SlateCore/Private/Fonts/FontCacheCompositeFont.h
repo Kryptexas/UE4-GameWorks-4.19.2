@@ -33,6 +33,9 @@ public:
 		return ScalingFactor;
 	}
 
+	/** Get all the font data cached by this entry */
+	void GetCachedFontData(TArray<const FFontData*>& OutFontData) const;
+
 private:
 	/** Typeface we cached data from */
 	const FTypeface* Typeface;
@@ -75,6 +78,9 @@ public:
 
 	/** Get the typeface that should be used for the given character */
 	const FCachedTypefaceData* GetTypefaceForCharacter(const TCHAR InChar) const;
+
+	/** Get all the font data cached by this entry */
+	void GetCachedFontData(TArray<const FFontData*>& OutFontData) const;
 
 private:
 	/** Entry containing a range and the typeface associated with that range */
@@ -132,6 +138,9 @@ public:
 
 	/** Get the attributes associated with the given font data */
 	const TSet<FName>& GetFontAttributes(const FFontData& InFontData);
+
+	/** Flush a single composite font entry from this cache */
+	void FlushCompositeFont(const FCompositeFont& InCompositeFont);
 
 	/** Flush this cache */
 	void FlushCache();

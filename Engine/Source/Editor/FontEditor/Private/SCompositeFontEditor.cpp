@@ -159,6 +159,7 @@ void SCompositeFontEditor::FlushCachedFont()
 	if(CompositeFont)
 	{
 		CompositeFont->MakeDirty();
+		FSlateApplication::Get().GetRenderer()->GetFontCache()->FlushCompositeFont(*CompositeFont);
 	}
 
 	TSharedPtr<IFontEditor> FontEditor = FontEditorPtr.Pin();
