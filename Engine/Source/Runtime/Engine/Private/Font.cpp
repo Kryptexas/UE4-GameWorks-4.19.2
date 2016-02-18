@@ -394,8 +394,11 @@ SIZE_T UFont::GetResourceSize(EResourceSizeMode::Type Mode)
 				int32 TypefaceResourceSize = 0;
 				for (const FTypefaceEntry& TypefaceEntry : Typeface.Fonts)
 				{
-					// We use GetBulkDataSizeOnDisk since that will be the resident size once the bulk data has been decompressed
-					TypefaceResourceSize += TypefaceEntry.Font.BulkDataPtr->GetBulkDataSizeOnDisk();
+					if (TypefaceEntry.Font.BulkDataPtr)
+					{
+						// We use GetBulkDataSizeOnDisk since that will be the resident size once the bulk data has been decompressed
+						TypefaceResourceSize += TypefaceEntry.Font.BulkDataPtr->GetBulkDataSizeOnDisk();
+					}
 				}
 				return TypefaceResourceSize;
 			};
