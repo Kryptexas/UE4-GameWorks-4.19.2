@@ -353,6 +353,11 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 
 	bFrameBegun = true;
 
+	FQuat OldOrientation;
+	FVector OldPosition;
+	CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurSensorState.HeadPose.Pose, OldOrientation, OldPosition);
+	const FTransform OldRelativeTransform(OldOrientation, OldPosition);
+
 	if (ShowFlags.Rendering)
 	{
 		check(pPresentBridge->GetRenderThreadId() == gettid());
@@ -363,6 +368,13 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 			return;
 		}
 	}
+
+	FQuat NewOrientation;
+	FVector NewPosition;
+	CurrentFrame->PoseToOrientationAndPosition(NewTracking.HeadPose.Pose, NewOrientation, NewPosition);
+	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
+
+	Delegate->ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
 }
 
 void FGearVR::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
