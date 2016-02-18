@@ -492,7 +492,6 @@ namespace UnrealBuildTool
 			string ProjectArg = null;
 			if (LowercaseArg == "-rocket")
 			{
-				Log.TraceWarning("Use of -rocket argument on command-line to test Rocket behavior is deprecated, please ensure that you've built a true Rocket build.");
 				bRunningRocket = true;
 			}
 			else if (LowercaseArg.StartsWith("-project="))
