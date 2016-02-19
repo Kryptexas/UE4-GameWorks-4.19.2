@@ -31,7 +31,7 @@ FStringAssetReference UBlueprintFunctionLibrary::Generic_MakeStringAssetReferenc
 	FStringAssetReference Ref(AssetLongPathname);
 	if (!AssetLongPathname.IsEmpty() && !Ref.IsValid())
 	{
-		FBlueprintExceptionInfo Info(EBlueprintExceptionType::FatalError, TEXT("Asset path not valid. Only long path name is allowed."));
+		FBlueprintExceptionInfo Info(EBlueprintExceptionType::FatalError, NSLOCTEXT("BlueprintFunctionLibrary", "AssetStringInvalid", "Asset path not valid. Only long path name is allowed."));
 		FBlueprintCoreDelegates::ThrowScriptException(Stack.Object, Stack, Info);
 		return FStringAssetReference();
 	}
