@@ -1477,33 +1477,19 @@ void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent,
 
 AActor* AActor::GetAttachParentActor() const
 {
-	if(RootComponent != NULL)
+	if (GetRootComponent() && GetRootComponent()->GetAttachParent())
 	{
-		for( const USceneComponent* Test=GetRootComponent()->AttachParent; Test!=NULL; Test=Test->AttachParent )
-		{
-			AActor* TestOwner = Test->GetOwner();
-			if( TestOwner != this )
-			{
-				return TestOwner;
-			}
-		}
+		return GetRootComponent()->GetAttachParent()->GetOwner();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FName AActor::GetAttachParentSocketName() const
 {
-	if(RootComponent != NULL)
+	if (GetRootComponent() && GetRootComponent()->GetAttachParent())
 	{
-		for( const USceneComponent* Test=GetRootComponent(); Test!=NULL; Test=Test->AttachParent )
-		{
-			AActor* TestOwner = Test->GetOwner();
-			if( TestOwner != this )
-			{
-				return Test->AttachSocketName;
-			}
-		}
+		return GetRootComponent()->GetAttachSocketName();
 	}
 
 	return NAME_None;
