@@ -177,6 +177,12 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		FKismetCompilerOptions SkeletonCompileOptions;
 		SkeletonCompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 		CompileBlueprintInner(Blueprint, SkeletonCompileOptions, SkeletonResults, ParentReinstancer, ObjLoaded);
+
+		// Only when doing full compiles do we want to compile all skeletons before continuing to compile 
+		if (CompileOptions.CompileType == EKismetCompileType::Full)
+		{
+			SkeletonReinstancer->ReinstanceObjects();
+		}
 	}
 
 	// If this was a full compile, take appropriate actions depending on the success of failure of the compile
