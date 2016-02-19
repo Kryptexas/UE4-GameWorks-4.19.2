@@ -452,7 +452,8 @@ namespace AutomationTool
 					}
 					catch (Exception Ex)
 					{
-						CommandUtils.LogWarning("Failed to delete old manifest folder '{0}', will try one file at a time: {1}", OldManifestInfo.NodeNameDir, Ex);
+                        // Quick fix for race condition in Orion between jobs trying to clear the same storage
+						CommandUtils.Log("Failed to delete old manifest folder '{0}', will try one file at a time: {1}", OldManifestInfo.NodeNameDir, Ex);
 						if (CommandUtils.DeleteDirectory_NoExceptions(true, OldManifestInfo.NodeNameDir))
 						{
 							FoldersManuallyCleaned++;
@@ -488,7 +489,11 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				CommandUtils.LogWarning("Unable to Clean Temp Directory {0}. Exception: {1}", TempStorageFolder, Ex);
+                // Quick fix for a race condition between jobs cleaning out the shared storage in Orion
+                if (!(Ex is System.IO.DirectoryNotFoundException))
+                {
+                    CommandUtils.LogWarning("Unable to Clean Temp Directory {0}. Exception: {1}", TempStorageFolder, Ex);
+                }
 			}
 		}
 

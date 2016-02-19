@@ -53,7 +53,7 @@ UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 
 void UGameplayCueManager::OnCreated()
 {
-	FWorldDelegates::OnPostWorldCreation.AddUObject(this, &UGameplayCueManager::OnWorldCreated);
+	FWorldDelegates::OnPostWorldInitialization.AddUObject(this, &UGameplayCueManager::OnWorldCreated);
 	FWorldDelegates::OnWorldCleanup.AddUObject(this, &UGameplayCueManager::OnWorldCleanup);
 	FWorldDelegates::OnPreWorldFinishDestroy.AddUObject(this, &UGameplayCueManager::OnWorldCleanup, true, true);
 
@@ -1108,7 +1108,7 @@ FPreallocationInfo& UGameplayCueManager::GetPreallocationInfo(UWorld* World)
 
 }
 
-void UGameplayCueManager::OnWorldCreated(UWorld* NewWorld)
+void UGameplayCueManager::OnWorldCreated(UWorld* NewWorld, const UWorld::InitializationValues IV )
 {
 	// Attempting to track down rare GC error where PreallocationInfo_Internal.OwningWorld is not cleaned up.
 	ABILITY_LOG(Display, TEXT("UGameplayCueManager::OnWorldCreated %s. Current PreallocationInfo_Internal: %s"), *GetNameSafe(NewWorld), *GetNameSafe(PreallocationInfo_Internal.OwningWorld));
@@ -1129,7 +1129,7 @@ void UGameplayCueManager::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool
 	if (PreallocationInfo_Internal.OwningWorld == World)
 	{
 		// Reset PreallocationInfo_Internal
-		OnWorldCreated(nullptr);
+		OnWorldCreated(nullptr, UWorld::InitializationValues());
 	}
 
 #if WITH_EDITOR

@@ -961,6 +961,8 @@ protected:
 
 	void OnInputAction( FOnInputAction Callback );
 
+	virtual void InitializeInputComponent();
+
 	UPROPERTY( transient )
 	class UInputComponent* InputComponent;
 

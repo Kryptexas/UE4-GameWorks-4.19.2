@@ -542,6 +542,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		bool bWindowAlreadyExists = GameViewportWindow.IsValid();
 		if (!bWindowAlreadyExists)
 		{
+			UE_LOG(LogEngine, Log, TEXT("GameWindow did not exist.  Was created"));
 			GameViewportWindow = CreateGameWindow();
 		}
 

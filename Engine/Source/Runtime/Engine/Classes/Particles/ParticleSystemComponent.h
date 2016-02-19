@@ -379,8 +379,10 @@ public:
 	/** Time in seconds since we were last considered significant. */
 	float LastSignificantTime;
 
-	/** If this component is considered significant or not. */
-	uint32 bIsSignificant : 1;
+	/** If this component is having it's significance managed by gameplay code. */
+	uint32 bIsManagingSignificance : 1;
+	/** If this component was previously having it's significance managed by gameplay code. Allows us to refresh render data when this changes. */
+	uint32 bWasManagingSignificance : 1;
 	
 private:
 	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
@@ -438,8 +440,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Particles)
 	float SecondsBeforeInactive;
-	/** Allow the above or not. This feature can interfere with some other systems. */
-	bool bAllowSecondsBeforeInactive;
 
 private:
 	/** Tracks the time since the last forced UpdateTransform. */
@@ -611,8 +611,24 @@ public:
 	/** Whether this component should have it's significance managed by game code. */
 	bool ShouldManageSignificance()const;
 	/** When the overall significance for the component is changed. */
-	void OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters);
+	void OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters, bool bAsync=false);
+
+	/** Called from game code when the component begins having it's significance managed. */
+	FORCEINLINE void SetManagingSignificance(bool bManageSignificance)
+	{
+		bWasManagingSignificance = bIsManagingSignificance;
+		bIsManagingSignificance = bManageSignificance;
+	}
+
+	/** Returns the approximate distance squared from this component to the passed location. */
+	float GetApproxDistanceSquared(FVector Point)const;
 	
+	/** True if this component can be considered invisible and potentially culled. */
+	bool CanConsiderInvisible()const;
+
+	/** true if this component can be occluded. */
+	bool CanBeOccluded()const;
+
 	void Complete();
 
 	FORCEINLINE const FTransform& GetAsyncComponentToWorld()

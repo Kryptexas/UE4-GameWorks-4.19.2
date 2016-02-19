@@ -695,7 +695,7 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 					const char * SourceFilename = NULL;
 					int LineNumber;
 					// do not symbolicate if we're handling ensure()
-					if (!LinuxContext->bHandlingEnsure && LinuxStackWalkHelpers::GetBacktraceSymbols()->GetInfoForAddress(reinterpret_cast< void* >( ProgramCounter ), NULL, &SourceFilename, &LineNumber) && FunctionName != nullptr)
+					if (!LinuxContext->GetIsEnsure() && LinuxStackWalkHelpers::GetBacktraceSymbols()->GetInfoForAddress(reinterpret_cast< void* >( ProgramCounter ), NULL, &SourceFilename, &LineNumber) && FunctionName != nullptr)
 					{
 						FCStringAnsi::Sprintf(TempArray, " [%s, line %d]", SourceFilename, LineNumber);
 						LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, TempArray);
@@ -742,14 +742,31 @@ void FLinuxPlatformStackWalk::StackWalkAndDumpEx(ANSICHAR* HumanReadableString, 
 	const bool bHandlingEnsure = (Flags & EStackWalkFlags::FlagsUsedWhenHandlingEnsure) == EStackWalkFlags::FlagsUsedWhenHandlingEnsure;
 	if (Context == nullptr)
 	{
-		FLinuxCrashContext CrashContext;
+		FLinuxCrashContext CrashContext(bHandlingEnsure);
 		CrashContext.InitFromSignal(0, nullptr, nullptr);
-		CrashContext.bHandlingEnsure = bHandlingEnsure;
 		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, &CrashContext);
 	}
 	else
 	{
-		TGuardValue<bool> Guard(reinterpret_cast<FLinuxCrashContext *>(Context)->bHandlingEnsure, bHandlingEnsure);
+		/** Helper sets the ensure value in the context and guarantees it gets reset afterwards (even if an exception is thrown) */
+		struct FLocalGuardHelper
+		{
+			FLocalGuardHelper(FLinuxCrashContext* InContext, bool bNewEnsureValue)
+				: Context(InContext), bOldEnsureValue(Context->GetIsEnsure())
+			{
+				Context->SetIsEnsure(bNewEnsureValue);
+			}
+			~FLocalGuardHelper()
+			{
+				Context->SetIsEnsure(bOldEnsureValue);
+			}
+
+		private:
+			FLinuxCrashContext* Context;
+			bool bOldEnsureValue;
+		};
+
+		FLocalGuardHelper Guard(reinterpret_cast<FLinuxCrashContext*>(Context), bHandlingEnsure);
 		FPlatformStackWalk::StackWalkAndDump(HumanReadableString, HumanReadableStringSize, IgnoreCount + 1, Context);
 	}
 }
@@ -798,9 +815,9 @@ void NewReportEnsure(const TCHAR* ErrorMessage)
 	Signal.si_code = TRAP_TRACE;
 	Signal.si_addr = __builtin_return_address(0);
 
-	FLinuxCrashContext EnsureContext;
+	const bool bIsEnsure = true;
+	FLinuxCrashContext EnsureContext(bIsEnsure);
 	EnsureContext.InitFromSignal(SIGTRAP, &Signal, nullptr);
-	EnsureContext.bHandlingEnsure = true;
 	EnsureContext.CaptureStackTrace();
 	EnsureContext.GenerateCrashInfoAndLaunchReporter(true);
 

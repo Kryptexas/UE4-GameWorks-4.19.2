@@ -533,6 +533,9 @@ public:
 	ENGINE_API virtual FString RemoteAddressToString() PURE_VIRTUAL(UNetConnection::RemoteAddressToString, return TEXT("Error"););
 	
 	
+	/** Called by UActorChannel. Handles creating a new replicator for an actor */
+	ENGINE_API virtual TSharedPtr<FObjectReplicator> CreateReplicatorForNewActorChannel(UObject* Object);
+
 	// Functions.
 
 	/** Resend any pending acks. */

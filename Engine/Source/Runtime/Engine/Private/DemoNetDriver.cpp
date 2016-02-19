@@ -307,6 +307,7 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		bWasStartStreamingSuccessful	= true;
 		SavedReplicatedWorldTimeSeconds	= 0.0f;
 		SavedSecondsToSkip				= 0.0f;
+		bIsLoadingCheckpoint			= false;
 
 		ResetDemoState();
 
@@ -1802,21 +1803,6 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 	// This must be set before we CallRepNotifies or they might be skipped again
 	bIsFastForwarding = false;
 
-	// Flush all pending RepNotifies that were built up during the fast-forward.
-	if ( ServerConnection != nullptr )
-	{
-		for ( auto& ChannelPair : ServerConnection->ActorChannels )
-		{
-			if ( ChannelPair.Value != NULL )
-			{
-				for ( auto& ReplicatorPair : ChannelPair.Value->ReplicationMap )
-				{
-					ReplicatorPair.Value->CallRepNotifies( true );
-				}
-			}
-		}
-	}
-
 	AGameState* const GameState = World != nullptr ? World->GetGameState() : nullptr;
 
 	// Correct server world time for fast-forwarding after a checkpoint
@@ -1833,6 +1819,48 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 
 		// Correct the ServerWorldTimeSecondsDelta
 		GameState->OnRep_ReplicatedWorldTimeSeconds();
+	}
+
+	if (bIsFastForwardingForCheckpoint)
+	{
+		// Make a pass at OnReps for startup actors, since they were skipped during checkpoint loading.
+		// At this point the shadow state of these actors should be the actual state from before the checkpoint,
+		// and the current state is the CDO state evolved by any changes that occurred during checkpoint loading and fast-forwarding.
+		for (UChannel* Channel : ServerConnection->OpenChannels)
+		{
+			UActorChannel* const ActorChannel = Cast<UActorChannel>(Channel);
+			if (ActorChannel == nullptr)
+			{
+				continue;
+			}
+
+			const AActor* const Actor = ActorChannel->GetActor();
+			if (Actor == nullptr)
+			{
+				continue;
+			}
+
+			const FObjectReplicator* const ActorReplicator = ActorChannel->ActorReplicator;
+			if (Actor->IsNetStartupActor() && ActorReplicator)
+			{
+				ActorReplicator->RepLayout->DiffProperties(&(ActorReplicator->RepState->RepNotifies), ActorReplicator->RepState->StaticBuffer.GetData(), Actor, true);
+			}
+		}
+	}
+
+	// Flush all pending RepNotifies that were built up during the fast-forward.
+	if ( ServerConnection != nullptr )
+	{
+		for ( auto& ChannelPair : ServerConnection->ActorChannels )
+		{
+			if ( ChannelPair.Value != NULL )
+			{
+				for ( auto& ReplicatorPair : ChannelPair.Value->ReplicationMap )
+				{
+					ReplicatorPair.Value->CallRepNotifies( true );
+				}
+			}
+		}
 	}
 
 	// We may have been fast-forwarding immediately after loading a checkpoint
@@ -2000,6 +2028,8 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 	FNetworkReplayDelegates::OnPreScrub.Broadcast(GetWorld());
 
+	bIsLoadingCheckpoint = true;
+
 #if 1
 	// Destroy all non startup actors. They will get restored with the checkpoint
 	for ( FActorIterator It( GetWorld() ); It; ++It )
@@ -2156,6 +2186,7 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	ReadDemoFrame( GotoCheckpointArchive );
 
 	bDemoPlaybackDone = false;
+	bIsLoadingCheckpoint = false;
 
 	// Save the replicated server time here
 	if (World != nullptr)
@@ -2229,6 +2260,23 @@ AActor* UDemoNetDriver::GetActorForGUID(FNetworkGUID InGUID) const
 	UObject* FoundObject = Connection->PackageMap->GetObjectFromNetGUID(InGUID, true);
 	return Cast<AActor>(FoundObject);
 
+}
+
+bool UDemoNetDriver::ShouldReceiveRepNotifiesForObject(UObject* Object) const
+{
+	// Return false for startup actors during checkpoint loading, since they are
+	// not destroyed and re-created like dynamic actors. Startup actors will
+	// have their properties diffed and RepNotifies called after the checkpoint is loaded.
+
+	if (!bIsLoadingCheckpoint && !bIsFastForwardingForCheckpoint)
+	{
+		return true;
+	}
+
+	const AActor* const Actor = Cast<AActor>(Object);
+	const bool bIsStartupActor = Actor != nullptr && Actor->IsNetStartupActor();
+
+	return !bIsStartupActor;
 }
 
 void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor const* Actor)
@@ -2402,6 +2450,30 @@ bool UDemoNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 	// to stay in sync with the recording server
 	// This may need to be tweaked or re-evaluated when we start recording demos on the client
 	return ( GetDriver()->DemoFrameNum > 2 || Super::ClientHasInitializedLevelFor( TestObject ) );
+}
+
+TSharedPtr<FObjectReplicator> UDemoNetConnection::CreateReplicatorForNewActorChannel(UObject* Object)
+{
+	TSharedPtr<FObjectReplicator> NewReplicator = MakeShareable(new FObjectReplicator());
+
+	// To handle rewinding net startup actors in replays properly, we need to
+	// initialize the shadow state with the object's current state.
+	// Afterwards, we will copy the CDO state to object's current state with repnotifies disabled.
+	UDemoNetDriver* Driver = GetDriver();
+	AActor* Actor = Cast<AActor>(Object);
+
+	const bool bIsCheckpointStartupActor = Driver && Driver->IsLoadingCheckpoint() && Actor && Actor->IsNetStartupActor();
+	const bool bUseDefaultState = !bIsCheckpointStartupActor;
+
+	NewReplicator->InitWithObject(Object, this, bUseDefaultState);
+
+	// Now that the shadow state is initialized, copy the CDO state into the actor state.
+	if (bIsCheckpointStartupActor && NewReplicator->RepLayout.IsValid() && Object->GetClass())
+	{
+		NewReplicator->RepLayout->DiffProperties(nullptr, Object, Object->GetClass()->GetDefaultObject(), true);
+	}
+
+	return NewReplicator;
 }
 
 bool UDemoNetDriver::IsLevelInitializedForActor( const AActor* InActor, const UNetConnection* InConnection ) const

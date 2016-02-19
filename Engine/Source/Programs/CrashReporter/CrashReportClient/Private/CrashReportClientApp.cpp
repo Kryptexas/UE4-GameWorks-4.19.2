@@ -3,6 +3,7 @@
 #include "CrashReportClientApp.h"
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
+#include "QoSReporter.h"
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 	#include "SCrashReportClient.h"
@@ -165,17 +166,15 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	
 	if (ErrorReport.HasFilesToUpload() && FPrimaryCrashProperties::Get() != nullptr)
 	{
+		FCrashReportAnalytics::Initialize();
+		FQoSReporter::Initialize();
+		FQoSReporter::SetBackendDeploymentName(FPrimaryCrashProperties::Get()->DeploymentName);
+
 		if (bUnattended)
 		{
 			// In the unattended mode we don't send any PII.
 			FCrashReportClientUnattended CrashReportClient(ErrorReport);
 			ErrorReport.SetUserComment(NSLOCTEXT("CrashReportClient", "UnattendedMode", "Sent in the unattended mode"));
-
-			if (ErrorReport.HasFilesToUpload())
-			{
-				// Send analytics.
-				FPrimaryCrashProperties::Get()->SendAnalytics();
-			}
 
 			// loop until the app is ready to quit
 			while (!GIsRequestingExit)
@@ -236,6 +235,10 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 			FSlateApplication::Shutdown();
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 		}
+
+		// Shutdown analytics.
+		FCrashReportAnalytics::Shutdown();
+		FQoSReporter::Shutdown();
 	}
 
 	FPrimaryCrashProperties::Shutdown();

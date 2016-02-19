@@ -583,6 +583,9 @@ public:
 	/** Returns the actor that corresponds to InGUID, if one can be found. */
 	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const { return nullptr; }
 
+	/** Returns true if RepNotifies should be checked and generated when receiving properties for the given object. */
+	virtual bool ShouldReceiveRepNotifiesForObject(UObject* Object) const { return true; }
+
 	/** Returns the object that manages the list of replicated UObjects. */
 	ENGINE_API FNetworkObjectList& GetNetworkObjectList() { return *NetworkObjects; }
 

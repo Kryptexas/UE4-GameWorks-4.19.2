@@ -174,7 +174,11 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 
 	BindSequencerCommands();
 	ActivateSequencerEditorMode();
-	AttachTransportControlsToViewports();
+
+	if( bIsEditingWithinLevelEditor )
+	{
+		AttachTransportControlsToViewports();
+	}
 
 	for (auto TrackEditor : TrackEditors)
 	{
@@ -206,7 +210,10 @@ FSequencer::~FSequencer()
 	GEditor->GetActorRecordingState().RemoveAll( this );
 	GEditor->UnregisterForUndo( this );
 
-	DetachTransportControlsFromViewports();
+	if( bIsEditingWithinLevelEditor )
+	{
+		DetachTransportControlsFromViewports();
+	}
 
 	for (auto TrackEditor : TrackEditors)
 	{
@@ -249,10 +256,10 @@ void FSequencer::Close()
 			
 		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");			
 		EditModule.OnPropertyEditorOpened().RemoveAll(this);
+
+		DetachTransportControlsFromViewports();
 	}
 	
-	DetachTransportControlsFromViewports();
-
 	SequencerWidget.Reset();
 }
 

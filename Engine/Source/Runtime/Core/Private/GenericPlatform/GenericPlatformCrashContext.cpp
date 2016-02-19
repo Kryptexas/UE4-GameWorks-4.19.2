@@ -119,6 +119,7 @@ void FGenericCrashContext::Initialize()
 }
 
 FGenericCrashContext::FGenericCrashContext()
+	: bIsEnsure(false)
 {
 	CommonBuffer.Reserve( 32768 );
 }
@@ -136,6 +137,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "IsInternalBuild" ), NCachedCrashContextProperties::bIsInternalBuild );
 	AddCrashProperty( TEXT( "IsPerforceBuild" ), NCachedCrashContextProperties::bIsPerforceBuild );
 	AddCrashProperty( TEXT( "IsSourceDistribution" ), NCachedCrashContextProperties::bIsSourceDistribution );
+	AddCrashProperty( TEXT( "IsEnsure" ), bIsEnsure );
 
 	AddCrashProperty( TEXT( "SecondsSinceStart" ), NCachedCrashContextProperties::SecondsSinceStart );
 

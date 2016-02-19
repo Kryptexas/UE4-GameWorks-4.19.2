@@ -2355,7 +2355,7 @@ MSVC_PRAGMA(warning(disable : 4717))
 // clang can optimize this out (http://stackoverflow.com/questions/18478078/clang-infinite-tail-recursion-optimization), make the function do some useful work
 
 volatile int GInfiniteRecursionCount = 0;
-static int InfiniteRecursionFunction(int B)
+int InfiniteRecursionFunction(int B)
 {
 	GInfiniteRecursionCount += InfiniteRecursionFunction(B + 1);
 	return GInfiniteRecursionCount;
@@ -4505,7 +4505,7 @@ bool UEngine::HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 static bool GDebugAllocMemEveryFrame = false;
 
 /** Helper function to cause a stack overflow crash */
-FORCENOINLINE static void StackOverflowFunction(int32* DummyArg)
+FORCENOINLINE void StackOverflowFunction(int32* DummyArg)
 {
 	int32 StackArray[8196];
 	FMemory::Memset(StackArray, 0, sizeof(StackArray));
@@ -4756,10 +4756,33 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if( FParse::Command( &Cmd, TEXT("RECURSE") ) )
 	{
-		Ar.Logf( TEXT("Recursing") );
+		Ar.Logf( TEXT("Recursing to create a very deep callstack.") );
 		GLog->Flush();
 		InfiniteRecursionFunction(1);
 		Ar.Logf(TEXT("You will never see this log line."));
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("THREADRECURSE")))
+	{
+		Ar.Log(TEXT("Recursing to create a very deep callstack (in a separate thread)."));
+		struct FThread
+		{
+			static void InfiniteRecursion(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				InfiniteRecursionFunction(1);
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::InfiniteRecursion"),
+		STAT_FThread__InfiniteRecursion,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::InfiniteRecursion),
+			GET_STATID(STAT_FThread__InfiniteRecursion)),
+			ENamedThreads::GameThread
+			);
 		return true;
 	}
 	else if( FParse::Command( &Cmd, TEXT("EATMEM") ) )
@@ -4780,8 +4803,31 @@ bool UEngine::HandleDebugCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if (FParse::Command(&Cmd, TEXT("STACKOVERFLOW")))
 	{
-		Ar.Log(TEXT("Inifnite recursion to cause stack overflow"));
+		Ar.Log(TEXT("Infinite recursion to cause stack overflow"));
 		StackOverflowFunction(nullptr);
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("THREADSTACKOVERFLOW")))
+	{
+		Ar.Log(TEXT("Infinite recursion to cause stack overflow will happen in a separate thread."));
+		struct FThread
+		{
+			static void StackOverflow(ENamedThreads::Type, const FGraphEventRef&)
+			{
+				StackOverflowFunction(nullptr);
+			}
+		};
+
+		DECLARE_CYCLE_STAT(TEXT("FThread::StackOverflow"),
+		STAT_FThread__StackOverflow,
+			STATGROUP_TaskGraphTasks);
+
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(
+			FDelegateGraphTask::CreateAndDispatchWhenReady(
+			FDelegateGraphTask::FDelegate::CreateStatic(FThread::StackOverflow),
+			GET_STATID(STAT_FThread__StackOverflow)),
+			ENamedThreads::GameThread
+			);
 		return true;
 	}
 

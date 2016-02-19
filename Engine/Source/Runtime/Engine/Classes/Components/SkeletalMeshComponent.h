@@ -1239,7 +1239,7 @@ public:
 	/** should call this method if occurred any changes in clothing assets */
 	void RecreateClothingActors();
 	/** add bounding box for cloth */
-	void AddClothingBounds(FBoxSphereBounds& InOutBounds) const;
+	void AddClothingBounds(FBoxSphereBounds& InOutBounds, const FTransform& LocalToWorld) const;
 	/** changes clothing LODs, if clothing LOD is disabled or LODIndex is greater than apex clothing LODs, simulation will be disabled */
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */

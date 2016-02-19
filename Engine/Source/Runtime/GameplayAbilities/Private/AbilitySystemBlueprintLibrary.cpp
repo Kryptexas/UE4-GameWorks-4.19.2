@@ -550,7 +550,7 @@ bool UAbilitySystemBlueprintLibrary::GetGameplayCueDirection(AActor* TargetActor
 {
 	if (Parameters.Normal.IsNearlyZero() == false)
 	{
-		Direction = Parameters.Normal;
+		Direction = -Parameters.Normal;
 		return true;
 	}
 

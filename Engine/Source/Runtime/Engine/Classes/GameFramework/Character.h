@@ -297,6 +297,10 @@ protected:
 	/** Event called after actor's base changes (if SetBase was requested to notify us with bNotifyPawn). */
 	virtual void BaseChange();
 
+	/** CharacterMovement ServerLastTransformUpdateTimeStamp value, replicated to simulated proxies. */
+	UPROPERTY(Replicated)
+	float ReplicatedServerLastTransformUpdateTimeStamp;
+
 	/** CharacterMovement MovementMode (and custom mode) replicated for simulated proxies. Use CharacterMovementComponent::UnpackNetworkMovementMode() to translate it. */
 	UPROPERTY(Replicated)
 	uint8 ReplicatedMovementMode;
@@ -306,6 +310,9 @@ protected:
 	bool bInBaseReplication;
 
 public:	
+
+	/** Accessor for ReplicatedServerLastTransformUpdateTimeStamp. */
+	FORCEINLINE float GetServerLastTransformUpdateTimeStamp() const { return ReplicatedServerLastTransformUpdateTimeStamp; }
 
 	/** Accessor for BasedMovement */
 	FORCEINLINE const FBasedMovementInfo& GetBasedMovement() const { return BasedMovement; }

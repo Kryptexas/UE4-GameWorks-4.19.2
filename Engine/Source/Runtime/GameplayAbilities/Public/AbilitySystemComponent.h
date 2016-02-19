@@ -599,6 +599,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		return ActiveGameplayEffects.GetActiveEffectsEndTime(Query);
 	}
 
+	bool GetActiveEffectsEndTimeAndDuration(const FGameplayEffectQuery& Query, float& EndTime, float& Duration) const
+	{
+		return ActiveGameplayEffects.GetActiveEffectsEndTimeAndDuration(Query, EndTime, Duration);
+	}
+
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
 	{
 		ActiveGameplayEffects.ModifyActiveEffectStartTime(Handle, StartTimeDiff);

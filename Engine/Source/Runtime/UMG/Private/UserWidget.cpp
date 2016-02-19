@@ -900,17 +900,7 @@ void UUserWidget::ListenForInputAction( FName ActionName, TEnumAsByte< EInputEve
 {
 	if ( !InputComponent )
 	{
-		if ( APlayerController* Controller = GetOwningPlayer() )
-		{
-			InputComponent = NewObject< UInputComponent >( this, NAME_None, RF_Transient );
-			InputComponent->bBlockInput = bStopAction;
-			InputComponent->Priority = Priority;
-			Controller->PushInputComponent( InputComponent );
-		}
-		else
-		{
-			FMessageLog("PIE").Info(FText::Format(LOCTEXT("NoInputListeningWithoutPlayerController", "Unable to listen to input actions without a player controller in {0}."), FText::FromName(GetClass()->GetFName())));
-		}
+		InitializeInputComponent();
 	}
 
 	if ( InputComponent )
@@ -999,6 +989,21 @@ void UUserWidget::OnInputAction( FOnInputAction Callback )
 	if ( GetIsEnabled() )
 	{
 		Callback.ExecuteIfBound();
+	}
+}
+
+void UUserWidget::InitializeInputComponent()
+{
+	if ( APlayerController* Controller = GetOwningPlayer() )
+	{
+		InputComponent = NewObject< UInputComponent >( this, NAME_None, RF_Transient );
+		InputComponent->bBlockInput = bStopAction;
+		InputComponent->Priority = Priority;
+		Controller->PushInputComponent( InputComponent );
+	}
+	else
+	{
+		FMessageLog("PIE").Info(FText::Format(LOCTEXT("NoInputListeningWithoutPlayerController", "Unable to listen to input actions without a player controller in {0}."), FText::FromName(GetClass()->GetFName())));
 	}
 }
 

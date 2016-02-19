@@ -6,6 +6,8 @@
 #include "DerivedDataBackendInterface.h"
 #include "DDCCleanup.h"
 
+#include "DerivedDataCacheUsageStats.h"
+
 #define MAX_BACKEND_KEY_LENGTH (120)
 #define MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH (9)
 #if PLATFORM_LINUX	// PATH_MAX on Linux is 4096 (getconf PATH_MAX /, also see limits.h), so this value can be larger (note that it is still arbitrary).
@@ -133,12 +135,7 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-#if ENABLE_DDC_STATS
-		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
-		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
-		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
-		Stat.AddTag(NAME_FileDDCPath, CachePath);
-#endif
+		COOK_STAT(auto Timer = UsageStats.TimeProbablyExists());
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		FDateTime TimeStamp = IFileManager::Get().GetTimeStamp(*Filename);
@@ -152,6 +149,10 @@ public:
 				IFileManager::Get().SetTimeStamp(*Filename, FDateTime::UtcNow());
 			}
 		}
+		if (bExists)
+		{
+			COOK_STAT(Timer.AddHit(0));
+		}
 		return bExists;
 	}
 	/**
@@ -163,14 +164,7 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& Data) override
 	{
-#if ENABLE_DDC_STATS
-		static FName NAME_GetCachedData(TEXT("GetCachedData"));
-		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
-		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
-		static FName NAME_Retrieved(TEXT("Retrieved"));
-		Stat.AddTag(NAME_FileDDCPath, CachePath);
-#endif
-
+		COOK_STAT(auto Timer = UsageStats.TimeGet());
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		double StartTime = FPlatformTime::Seconds();
@@ -185,16 +179,11 @@ public:
 			}
 
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache hit on %s"),*Filename);
-#if ENABLE_DDC_STATS
-			Stat.AddTag(NAME_Retrieved, true);
-#endif
+			COOK_STAT(Timer.AddHit(Data.Num()));
 			return true;
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
 		Data.Empty();
-#if ENABLE_DDC_STATS
-		Stat.AddTag(NAME_Retrieved, false);
-#endif
 		return false;
 	}
 	/**
@@ -206,17 +195,13 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists) override
 	{
-#if ENABLE_DDC_STATS
-		static FName NAME_PutCachedData(TEXT("PutCachedData"));
-		FDDCScopeStatHelper Stat(CacheKey, NAME_PutCachedData);
-		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
-		Stat.AddTag(NAME_FileDDCPath, CachePath);
-#endif
+		COOK_STAT(auto Timer = UsageStats.TimePut());
 		check(!bFailed);
 		if (!bReadOnly)
 		{
 			if (bPutEvenIfExists || !CachedDataProbablyExists(CacheKey))
 			{
+				COOK_STAT(Timer.AddHit(Data.Num()));
 				check(Data.Num());
 				FString Filename = BuildFilename(CacheKey);
 				FString TempFilename(TEXT("temp.")); 
@@ -280,7 +265,13 @@ public:
 		}
 	}
 
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap, FString&& GraphPath) override
+	{
+		COOK_STAT(UsageStatsMap.Add(FString::Printf(TEXT("%s: %s.%s"), *GraphPath, TEXT("FileSystem"), *CachePath), UsageStats));
+	}
+
 private:
+	FDerivedDataCacheUsageStats UsageStats;
 
 	/**
 	 * Threadsafe method to compute the filename from the cachekey, currently just adds a path and an extension.

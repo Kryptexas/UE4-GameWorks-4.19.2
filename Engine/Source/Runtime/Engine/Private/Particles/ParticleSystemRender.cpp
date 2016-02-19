@@ -7012,14 +7012,14 @@ FParticleSystemOcclusionSceneProxy::~FParticleSystemOcclusionSceneProxy()
 
 FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 {
-	bool bManagingSignificance = ShouldManageSignificance();
-	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
 	FParticleSystemSceneProxy* NewProxy = NULL;
 
 	//@fixme EmitterInstances.Num() check should be here to avoid proxies for dead emitters but there are some edge cases where it happens for emitters that have just activated...
 	//@fixme Get non-instanced path working in ES2!
-	if ((bIsActive == true)/** && (EmitterInstances.Num() > 0)*/ && Template && bIsSignificant)
+	if ((bIsActive == true)/** && (EmitterInstances.Num() > 0)*/ && Template)
 	{
+		FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
+
 		UE_LOG(LogParticles,Verbose,
 			TEXT("CreateSceneProxy @ %fs %s bIsActive=%d"), GetWorld()->TimeSeconds,
 			Template != NULL ? *Template->GetName() : TEXT("NULL"), bIsActive);
@@ -7032,14 +7032,14 @@ FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 		// Create the dynamic data for rendering this particle system.
 		FParticleDynamicData* ParticleDynamicData = CreateDynamicData();
 
-		if (Template->OcclusionBoundsMethod == EPSOBM_None)
-		{
-			NewProxy = ::new FParticleSystemSceneProxy(this,ParticleDynamicData);
-		}
-		else
+		if (CanBeOccluded())
 		{
 			Template->CustomOcclusionBounds.IsValid = true;
 			NewProxy = ::new FParticleSystemOcclusionSceneProxy(this,ParticleDynamicData);
+		}
+		else
+		{
+			NewProxy = ::new FParticleSystemSceneProxy(this,ParticleDynamicData);
 		}
 		check (NewProxy);
 		if (ParticleDynamicData)

@@ -39,21 +39,36 @@ ISlate3DRenderer* FWidgetRenderer::GetSlateRenderer()
 
 UTextureRenderTarget2D* FWidgetRenderer::DrawWidget(const TSharedRef<SWidget>& Widget, FVector2D DrawSize)
 {
-	UTextureRenderTarget2D* RenderTarget = FWidgetRenderer::CreateTargetFor(DrawSize, TF_Bilinear, bUseGammaSpace);
+	if ( !IsRunningDedicatedServer() )
+	{
+		UTextureRenderTarget2D* RenderTarget = FWidgetRenderer::CreateTargetFor(DrawSize, TF_Bilinear, bUseGammaSpace);
 
-	DrawWidget(RenderTarget, Widget, DrawSize, 0);
+		DrawWidget(RenderTarget, Widget, DrawSize, 0);
 
-	return RenderTarget;
+		return RenderTarget;
+	}
+
+	return nullptr;
 }
 
 UTextureRenderTarget2D* FWidgetRenderer::CreateTargetFor(FVector2D DrawSize, TextureFilter InFilter, bool bUseGammaCorrection)
 {
-	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>();
-	RenderTarget->Filter = InFilter;
-	RenderTarget->ClearColor = FLinearColor::Transparent;
-	const bool bIsLinearSpace = !bUseGammaCorrection;
-	RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, bIsLinearSpace);
-	return RenderTarget;
+	if ( !IsRunningDedicatedServer() )
+	{
+		const bool bIsLinearSpace = !bUseGammaCorrection;
+
+		UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>();
+		RenderTarget->Filter = InFilter;
+		RenderTarget->ClearColor = FLinearColor::Transparent;
+		RenderTarget->SRGB = bIsLinearSpace;
+		RenderTarget->TargetGamma = 1;
+		RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, bIsLinearSpace);
+		RenderTarget->UpdateResourceImmediate(true);
+
+		return RenderTarget;
+	}
+
+	return nullptr;
 }
 
 void FWidgetRenderer::DrawWidget(UTextureRenderTarget2D* RenderTarget, const TSharedRef<SWidget>& Widget, FVector2D DrawSize, float DeltaTime)

@@ -103,7 +103,7 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Prespawns a single actor for gameplaycue notify actor classes that need prespawning (should be called by outside gamecode, such as gamestate) */
 	void UpdatePreallocation(UWorld* World);
 
-	void OnWorldCreated(UWorld* NewWorld);
+	void OnWorldCreated(UWorld* NewWorld, const UWorld::InitializationValues);
 
 	void OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 
@@ -203,21 +203,21 @@ protected:
 	void CheckForPreallocation(UClass* GCClass);
 
 	/** Hardref to the gameplaycue notify classes we have async loaded*/
-	UPROPERTY()
+	UPROPERTY(transient)
 	TArray<UClass*> LoadedGameplayCueNotifyClasses;
 
 	/** Classes that we need to preallocate instances for */
-	UPROPERTY()
+	UPROPERTY(transient)
 	TArray<AGameplayCueNotify_Actor*> GameplayCueClassesForPreallocation;
 
 	TArray<FString>	LoadedPaths;
 
 	/** List of gameplay cue executes that haven't been processed yet */
-	UPROPERTY()
+	UPROPERTY(transient)
 	TArray<FGameplayCuePendingExecute> PendingExecuteCues;
 
 	/** Number of active gameplay cue send contexts, when it goes to 0 cues are flushed */
-	UPROPERTY()
+	UPROPERTY(transient)
 	int32 GameplayCueSendContextCount;
 
 	/** Cached world we are currently handling cues for. Used for non instanced GC Notifies that need world. */

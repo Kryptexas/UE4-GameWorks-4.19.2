@@ -14,6 +14,7 @@
 #include "MapErrors.h"
 #include "DisplayDebugHelpers.h"
 #include "VisualLogger.h"
+#include "GameplayEffectCustomApplicationRequirement.h"
 
 DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
 
@@ -573,14 +574,24 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	//	But this will also be where we need to merge in context tags? (Headshot, executing ability, etc?)
 	//	Or do we push these tags into (our copy of the spec)?
 
-	FGameplayTagContainer MyTags;
+	static FGameplayTagContainer MyTags;
+	MyTags.Reset();
+
 	GetOwnedGameplayTags(MyTags);
 
 	if (Spec.Def->ApplicationTagRequirements.RequirementsMet(MyTags) == false)
 	{
 		return FActiveGameplayEffectHandle();
 	}
-	
+
+	// Custom application requirement check
+	for (const TSubclassOf<UGameplayEffectCustomApplicationRequirement>& AppReq : Spec.Def->ApplicationRequirements)
+	{
+		if (*AppReq && AppReq->GetDefaultObject<UGameplayEffectCustomApplicationRequirement>()->CanApplyGameplayEffect(Spec.Def, Spec, this) == false)
+		{
+			return FActiveGameplayEffectHandle();
+		}
+	}
 
 	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
 	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && PredictionKey.IsLocalClientKey() && Spec.Def->DurationPolicy == EGameplayEffectDurationType::Instant;

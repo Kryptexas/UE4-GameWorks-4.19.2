@@ -906,3 +906,9 @@ bool UGameInstance::IsDedicatedServerInstance() const
 		return WorldContext ? WorldContext->RunAsDedicated : false;
 	}
 }
+
+void UGameInstance::NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
+{
+	OnNotifyPreClientTravel().Broadcast(PendingURL, TravelType, bIsSeamlessTravel);
+}
+

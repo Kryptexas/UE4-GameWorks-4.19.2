@@ -883,6 +883,9 @@ public partial class GUBP : BuildCommand
 					}
 				}
 			}
+			History.AllStarted.Sort();
+			History.AllSucceeded.Sort();
+			History.AllFailed.Sort();
 
 			// Filter everything relative to the current CL
             if (History.AllFailed.Count > 0)

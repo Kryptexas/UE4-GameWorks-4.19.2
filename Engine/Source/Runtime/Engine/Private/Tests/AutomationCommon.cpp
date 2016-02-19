@@ -38,7 +38,6 @@ namespace AutomationCommon
 	}
 }
 
-
 bool AutomationOpenMap(const FString& MapName)
 {
 	bool bCanProceed = true;

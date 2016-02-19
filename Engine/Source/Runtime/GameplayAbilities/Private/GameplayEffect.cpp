@@ -1387,6 +1387,9 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 		// All OnDirty callbacks must be inhibited until we update this entire GameplayEffect.
 		FScopedAggregatorOnDirtyBatch	AggregatorOnDirtyBatcher;
 
+		// Important to set this prior to adding or removing, so that any delegates that are triggered can query accurately against this GE
+		bIsInhibited = bShouldBeInhibited;
+
 		if (bShouldBeInhibited)
 		{
 			// Remove our ActiveGameplayEffects modifiers with our Attribute Aggregators
@@ -1396,8 +1399,6 @@ void FActiveGameplayEffect::CheckOngoingTagRequirements(const FGameplayTagContai
 		{
 			OwningContainer.AddActiveGameplayEffectGrantedTagsAndModifiers(*this, bInvokeGameplayCueEvents);
 		}
-
-		bIsInhibited = bShouldBeInhibited;
 	}
 }
 
@@ -3318,27 +3319,41 @@ TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEf
 
 float FActiveGameplayEffectsContainer::GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const
 {
-	float ReturnTime = 0.f;
+	float EndTime = 0.f;
+	float Duration = 0.f;
+	GetActiveEffectsEndTimeAndDuration(Query, EndTime, Duration);
+	return EndTime;
+}
+
+bool FActiveGameplayEffectsContainer::GetActiveEffectsEndTimeAndDuration(const FGameplayEffectQuery& Query, float& EndTime, float& Duration) const
+{
+	bool FoundSomething = false;
+	
 	for (const FActiveGameplayEffect& Effect : this)
 	{
 		if (!Query.Matches(Effect))
 		{
 			continue;
 		}
+		
+		FoundSomething = true;
 
-		float EndTime = Effect.GetEndTime();
-		if (EndTime <= UGameplayEffect::INFINITE_DURATION)
+		float ThisEndTime = Effect.GetEndTime();
+		if (ThisEndTime <= UGameplayEffect::INFINITE_DURATION)
 		{
 			// This is an infinite duration effect, so this end time is indeterminate
-			return -1.f;
+			EndTime = -1.f;
+			Duration = -1.f;
+			return true;
 		}
 
-		if (EndTime > ReturnTime)
+		if (ThisEndTime > EndTime)
 		{
-			ReturnTime = EndTime;
+			EndTime = ThisEndTime;
+			Duration = Effect.GetDuration();
 		}
 	}
-	return ReturnTime;
+	return FoundSomething;
 }
 
 TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetAllActiveEffectHandles() const

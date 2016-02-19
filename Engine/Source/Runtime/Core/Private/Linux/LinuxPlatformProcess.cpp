@@ -788,23 +788,44 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	extern char ** environ;	// provided by libc
 	pid_t ChildPid = -1;
 
-	posix_spawn_file_actions_t FileActions;
-
-	posix_spawn_file_actions_init(&FileActions);
-	if (PipeWriteChild)
+	int PosixSpawnErrNo = -1;
+	if (PipeWriteChild || PipeReadChild)
 	{
-		const FPipeHandle* PipeWriteHandle = reinterpret_cast< const FPipeHandle* >(PipeWriteChild);
-		posix_spawn_file_actions_adddup2(&FileActions, PipeWriteHandle->GetHandle(), STDOUT_FILENO);
+		posix_spawn_file_actions_t FileActions;
+		posix_spawn_file_actions_init(&FileActions);
+
+		if (PipeWriteChild)
+		{
+			const FPipeHandle* PipeWriteHandle = reinterpret_cast<const FPipeHandle*>(PipeWriteChild);
+			posix_spawn_file_actions_adddup2(&FileActions, PipeWriteHandle->GetHandle(), STDOUT_FILENO);
+		}
+
+		if (PipeReadChild)
+		{
+			const FPipeHandle* PipeReadHandle = reinterpret_cast<const FPipeHandle*>(PipeReadChild);
+			posix_spawn_file_actions_adddup2(&FileActions, PipeReadHandle->GetHandle(), STDIN_FILENO);
+		}
+
+		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, nullptr, Argv, environ);
+		posix_spawn_file_actions_destroy(&FileActions);
+	}
+	else
+	{
+		// if we don't have any actions to do, use a faster route that will use vfork() instead.
+		// This is not just faster, it is crucial when spawning a crash reporter to report a crash due to stack overflow in a thread
+		// since otherwise atfork handlers will get called and posix_spawn() will crash (in glibc's __reclaim_stacks()).
+		// However, it has its problems, see:
+		//		http://ewontfix.com/7/
+		//		https://sourceware.org/bugzilla/show_bug.cgi?id=14750
+		//		https://sourceware.org/bugzilla/show_bug.cgi?id=14749
+		posix_spawnattr_t SpawnAttr;
+		posix_spawnattr_init(&SpawnAttr);
+		posix_spawnattr_setflags(&SpawnAttr, POSIX_SPAWN_USEVFORK);
+
+		PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), nullptr, &SpawnAttr, Argv, environ);
+		posix_spawnattr_destroy(&SpawnAttr);
 	}
 
-	if (PipeReadChild)
-	{
-		const FPipeHandle* PipeReadHandle = reinterpret_cast< const FPipeHandle* >(PipeReadChild);
-		posix_spawn_file_actions_adddup2(&FileActions, PipeReadHandle->GetHandle(), STDIN_FILENO);
-	}
-
-	int PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, nullptr, Argv, environ);
-	posix_spawn_file_actions_destroy(&FileActions);
 	if (PosixSpawnErrNo != 0)
 	{
 		UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::CreateProc: posix_spawn() failed (%d, %s)"), PosixSpawnErrNo, ANSI_TO_TCHAR(strerror(PosixSpawnErrNo)));

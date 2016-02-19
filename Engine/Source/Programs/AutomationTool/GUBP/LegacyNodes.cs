@@ -1075,6 +1075,7 @@ partial class GUBP
     {
         BranchInfo.BranchUProject GameProj;
 		List<UnrealTargetPlatform> ActivePlatforms;
+		protected List<TargetRules.TargetType> ActiveMonolithicKinds;
         UnrealTargetPlatform TargetPlatform;
 		bool WithXp;
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
@@ -1089,6 +1090,7 @@ partial class GUBP
 			WithXp = InWithXp;
 			Precompiled = InPrecompiled;
 			EnhanceAgentRequirements = BranchConfig.BranchOptions.EnhanceAgentRequirements.Contains(StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled));
+			ActiveMonolithicKinds = BranchInfo.MonolithicKinds;
 
             if (TargetPlatform == UnrealTargetPlatform.PS4 || TargetPlatform == UnrealTargetPlatform.XboxOne)
             {
@@ -1318,7 +1320,7 @@ partial class GUBP
 				Args += " -winxp";
 			}
 
-            foreach (var Kind in BranchInfo.MonolithicKinds)
+            foreach (var Kind in ActiveMonolithicKinds)
             {
                 if (GameProj.Properties.Targets.ContainsKey(Kind))
                 {
@@ -1363,12 +1365,47 @@ partial class GUBP
 		public static string StaticGetArchivedHeadersPath(UnrealTargetPlatform HostPlatform, BranchInfo.BranchUProject GameProj, UnrealTargetPlatform TargetPlatform)
 		{
 			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Precompiled", "Headers-" + StaticGetFullName(HostPlatform, GameProj, TargetPlatform) + ".zip");
-    }
+		}
 
 		public static string StaticGetBuildDependenciesPath(UnrealTargetPlatform HostPlatform, BranchInfo.BranchUProject GameProj, UnrealTargetPlatform TargetPlatform)
-	{
+		{
 			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Precompiled", "BuildDependencies-" + StaticGetFullName(HostPlatform, GameProj, TargetPlatform) + ".xml");
 		}
+	}
+
+	public class GamePlatformMonolithicsKindNode : GamePlatformMonolithicsNode
+	{
+		public GamePlatformMonolithicsKindNode(GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, TargetRules.TargetType InTargetKind, bool InWithXp = false, bool InPrecompiled = false)
+			: base(InBranchConfig, InHostPlatform, InActivePlatforms, InGameProj, InTargetPlatform, InWithXp, InPrecompiled)
+		{
+			ActiveMonolithicKinds = new List<TargetRules.TargetType>();
+			ActiveMonolithicKinds.Add(InTargetKind);
+		}
+
+		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, TargetRules.TargetType InTargetKind, bool WithXp = false, bool Precompiled = false)
+		{
+			string Name = GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, InGameProj, InTargetPlatform, WithXp, Precompiled);
+			return Name + "_" + InTargetKind;
+		}
+
+		public override string GetFullName()
+		{
+			string Name = base.GetFullName();
+			return Name + "_" + ActiveMonolithicKinds[0];
+		}
+
+		public static bool HasPrecompiledTargets(BranchInfo.BranchUProject Project, UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform, TargetRules.TargetType InTargetKind)
+		{
+			if (Project.Properties.Targets.ContainsKey(InTargetKind))
+			{
+				SingleTargetProperties Target = Project.Properties.Targets[InTargetKind];
+				if (Target.Rules.GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(HostPlatform, TargetPlatform).Any())
+				{
+					return true;
+				}
+			}
+			return false;
+		}	
 	}
 
     public class SuccessNode : GUBPNode

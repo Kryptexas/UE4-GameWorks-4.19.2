@@ -89,6 +89,6 @@ void FAnimNode_SequenceEvaluator::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 	
-	DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *GetNameSafe(Sequence), ExplicitTime);
+	DebugLine += FString::Printf(TEXT("('%s' InputTime: %.3f, Time: %.3f)"), *GetNameSafe(Sequence), ExplicitTime, InternalTimeAccumulator);
 	DebugData.AddDebugItem(DebugLine, true);
 }

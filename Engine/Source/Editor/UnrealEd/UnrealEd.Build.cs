@@ -23,7 +23,6 @@ public class UnrealEd : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] 
 			{
-				"Analytics",
 				"AssetRegistry",
 				"AssetTools",
                 "BehaviorTreeEditor",
@@ -144,7 +143,7 @@ public class UnrealEd : ModuleRules
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",
-                "Analytics",
+                "AnalyticsET",
                 "PluginWarden"
 			}
 		);

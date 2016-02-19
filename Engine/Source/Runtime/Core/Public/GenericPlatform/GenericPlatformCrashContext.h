@@ -145,6 +145,14 @@ public:
 	/** Unescapes a specified XML string, naive implementation. */
 	static FString UnescapeXMLString( const FString& Text );
 
+	/**
+	 * @return whether this crash is a non-crash event
+	 */
+	bool GetIsEnsure() const { return bIsEnsure; }
+
+protected:
+	bool bIsEnsure;
+
 private:
 	/** Serializes platform specific properties to the buffer. */
 	virtual void AddPlatformSpecificProperties();

@@ -90,7 +90,13 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		return InnerBackend->CachedDataProbablyExists(CacheKey);
+		COOK_STAT(auto Timer = UsageStats.TimeProbablyExists());
+		bool Result = InnerBackend->CachedDataProbablyExists(CacheKey);
+		if (Result)
+		{
+			COOK_STAT(Timer.AddHit(0));
+		}
+		return Result;
 	}
 	/**
 	 * Synchronous retrieve of a cache item
@@ -101,6 +107,7 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimeGet());
 		bool bOk = InnerBackend->GetCachedData(CacheKey, OutData);
 		if (bOk)
 		{
@@ -113,7 +120,7 @@ public:
 			{
 				FDerivedDataTrailer Trailer;
 				FMemory::Memcpy(&Trailer,&OutData[OutData.Num() - sizeof(FDerivedDataTrailer)], sizeof(FDerivedDataTrailer));
-				OutData.RemoveAt(OutData.Num() - sizeof(FDerivedDataTrailer),sizeof(FDerivedDataTrailer));
+				OutData.RemoveAt(OutData.Num() - sizeof(FDerivedDataTrailer),sizeof(FDerivedDataTrailer), false);
 				FDerivedDataTrailer RecomputedTrailer(OutData);
 				if (Trailer == RecomputedTrailer)
 				{
@@ -135,6 +142,10 @@ public:
 		{
 			OutData.Empty();
 		}
+		else
+		{
+			COOK_STAT(Timer.AddHit(OutData.Num()));
+		}
 		return bOk;
 	}
 	/**
@@ -146,11 +157,12 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimePut());
 		if (!InnerBackend->IsWritable())
 		{
 			return; // no point in continuing down the chain
 		}
-
+		COOK_STAT(Timer.AddHit(InData.Num()));
 		// Get rid of the double copy!
 		TArray<uint8> Data;
 		Data.Reset( InData.Num() + sizeof(FDerivedDataTrailer) );
@@ -170,7 +182,21 @@ public:
 		}
 		return InnerBackend->RemoveCachedData(CacheKey, bTransient);
 	}
+
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap, FString&& GraphPath) override
+	{
+		COOK_STAT(
+		{
+			UsageStatsMap.Add(GraphPath + TEXT(": CorruptionWrapper"), UsageStats);
+			if (InnerBackend)
+			{
+				InnerBackend->GatherUsageStats(UsageStatsMap, GraphPath + TEXT(". 0"));
+			}
+		});
+	}
+
 private:
+	FDerivedDataCacheUsageStats UsageStats;
 
 	/** Backend to use for storage, my responsibilities are about corruption **/
 	FDerivedDataBackendInterface* InnerBackend;

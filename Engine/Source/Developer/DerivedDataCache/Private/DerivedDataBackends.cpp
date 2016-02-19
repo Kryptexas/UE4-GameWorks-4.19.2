@@ -13,6 +13,7 @@
 #include "DerivedDataBackendVerifyWrapper.h"
 #include "DerivedDataUtilsInterface.h"
 #include "Misc/EngineBuildSettings.h"
+#include "DerivedDataCacheUsageStats.h"
 
 DEFINE_LOG_CATEGORY(LogDerivedDataCache);
 
@@ -784,6 +785,14 @@ public:
 			}
 		}
 		return false;
+	}
+
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStats) override
+	{
+		if (RootCache)
+		{
+			RootCache->GatherUsageStats(UsageStats, TEXT(" 0"));
+		}
 	}
 
 private:

@@ -1457,6 +1457,11 @@ void APlayerController::FOV(float F)
 
 void APlayerController::PreClientTravel( const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel )
 {
+	UGameInstance* GameInstance = GetGameInstance();
+	if (GameInstance)
+	{
+		GameInstance->NotifyPreClientTravel(PendingURL, TravelType, bIsSeamlessTravel);
+	}
 }
 
 void APlayerController::Camera( FName NewMode )
@@ -2922,12 +2927,12 @@ void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject
 void APlayerController::ClientPrepareMapChange_Implementation(FName LevelName, bool bFirst, bool bLast)
 {
 	// Only call on the first local player controller to handle it being called on multiple PCs for splitscreen.
-	if (GetWorld()->GetGameInstance() == nullptr)
+	if (GetGameInstance() == nullptr)
 	{
 		return;
 	}
 
-	APlayerController* PlayerController = GetWorld()->GetGameInstance()->GetFirstLocalPlayerController();
+	APlayerController* PlayerController = GetGameInstance()->GetFirstLocalPlayerController();
 	if( PlayerController != this )
 	{
 		return;

@@ -41,6 +41,7 @@
 #include "ShaderCache.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/TextureLODSettings.h"
+#include "CookStats.h"
 
 #define LOCTEXT_NAMESPACE "Cooker"
 
@@ -53,6 +54,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 #define VERIFY_GETDEPENDENTPACKAGES 0 // verify has false hits because old serialization method for generating dependencies had errors (included transient objects which shouldn't be in asset registry), but you can still use verify to build a list then cross check against transient objects.  
 
 #if OUTPUT_TIMING
+#include "ScopedTimers.h"
 
 #define HEIRARCHICAL_TIMER 1
 #define PERPACKAGE_TIMER 0
@@ -409,6 +411,20 @@ void OutputHierarchyTimers()
 
 #define OUTPUT_TIMERS()
 #define OUTPUT_HIERARCHYTIMERS()
+#endif
+
+#if ENABLE_COOK_STATS
+#include "ScopedTimers.h"
+namespace DetailedCookStats
+{
+	//Externable so CookCommandlet can pick them up and merge them with it's cook stats
+	double TickCookOnTheSideTimeSec = 0.0;
+	double TickCookOnTheSideLoadPackagesTimeSec = 0.0;
+	double TickCookOnTheSideResolveRedirectorsTimeSec = 0.0;
+	double TickCookOnTheSideSaveCookedPackageTimeSec = 0.0;
+	double TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec = 0.0;
+	double TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec = 0.0;
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -1295,9 +1311,9 @@ bool UCookOnTheFlyServer::TickChildCookers()
 
 }
 
-
 uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackageCount )
 {
+	COOK_STAT(FScopedDurationTimer TickTimer(DetailedCookStats::TickCookOnTheSideTimeSec));
 	FCookerTimer Timer(TimeSlice, IsRealtimeMode());
 
 	uint32 Result = 0;
@@ -1457,6 +1473,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 		if ( bShouldCook ) // if we should cook the package then cook it otherwise add it to the list of already cooked packages below
 		{
+			COOK_STAT(FScopedDurationTimer LoadPackagesTimer(DetailedCookStats::TickCookOnTheSideLoadPackagesTimeSec));
 			UPackage *Package = NULL;
 			{
 				FString PackageName;
@@ -1616,6 +1633,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		if ( IsCookByTheBookMode() )
 		{
 			SCOPE_TIMER(ResolveRedirectors);
+			COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
 			GRedirectCollector.ResolveStringAssetReference();
 		}
 
@@ -1632,6 +1650,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 		auto BeginPackageCacheForCookedPlatformData = [&]( const TArray<UObject*>& ObjectsInPackage )
 		{
+			COOK_STAT(FScopedDurationTimer DurationTimer(DetailedCookStats::TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec));
 			if (CurrentReentryData.bBeginCacheFinished)
 				return true;
 			for (; CurrentReentryData.BeginCacheCount < ObjectsInPackage.Num(); ++CurrentReentryData.BeginCacheCount)
@@ -1656,15 +1675,19 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 		auto FinishPackageCacheForCookedPlatformData = [&]( const TArray<UObject*>& ObjectsInPackage )
 		{
-			for ( const auto& Obj : ObjectsInPackage )
+			COOK_STAT(FScopedDurationTimer DurationTimer(DetailedCookStats::TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec));
+			for (const auto& Obj : ObjectsInPackage)
 			{
-				for ( const auto& TargetPlatform : TargetPlatforms )
+				for (const auto& TargetPlatform : TargetPlatforms)
 				{
+					COOK_STAT(double CookerStatSavedValue = DetailedCookStats::TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec);
 					// These begin cache calls should be quick 
 					// because they will just be checking that the data is already cached and kicking off new multithreaded requests if not
 					// all sync requests should have been caught in the first begincache call above
-					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
-					if ( Obj->IsCachedCookedPlatformDataLoaded(TargetPlatform) == false )
+					Obj->BeginCacheForCookedPlatformData(TargetPlatform);
+					// We want to measure inclusive time for this function, but not accumulate into the BeginXXX timer, so subtract these times out of the BeginTimer.
+					COOK_STAT(DetailedCookStats::TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec = CookerStatSavedValue);
+					if (Obj->IsCachedCookedPlatformDataLoaded(TargetPlatform) == false)
 					{
 #if DEBUG_COOKONTHEFLY
 						UE_LOG(LogCook, Display, TEXT("Object %s isn't cached yet"), *Obj->GetFullName());
@@ -1676,7 +1699,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				// if this objects data is cached then we can call FinishedCookedPLatformDataCache
 				// we can only safely call this when we are finished caching this object completely.
 				// this doesn't ever happen for cook in editor or cook on the fly mode
-				if ( bIsAllDataCached && (CurrentCookMode == ECookMode::CookByTheBook) )
+				if (bIsAllDataCached && (CurrentCookMode == ECookMode::CookByTheBook))
 				{
 					// this might be run multiple times for a single object
 					Obj->WillNeverCacheCookedPlatformDataAgain();
@@ -1924,6 +1947,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					{
 						// add to back of queue
 						PackagesToSave.Add(Package);
+						continue;
 					}
 				}
 
@@ -1939,6 +1963,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				ESavePackageResult SavePackageResult = ESavePackageResult::Error;
 				bool bSucceededSavePackage = false;
 				{
+					COOK_STAT(FScopedDurationTimer TickCookOnTheSideSaveCookedPackageTimer(DetailedCookStats::TickCookOnTheSideSaveCookedPackageTimeSec));
 					SCOPE_TIMER(SaveCookedPackage);
 					uint32 SaveFlags = SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0);
 					GOutputCookingWarnings = IsCookFlagSet(ECookInitializationFlags::OutputVerboseCookerWarnings);

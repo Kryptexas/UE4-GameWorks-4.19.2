@@ -32,6 +32,7 @@ public:
 	virtual void FlushNet( bool bIgnoreSimulation = false ) override;
 	virtual void HandleClientPlayer( APlayerController* PC, class UNetConnection* NetConnection ) override;
 	virtual bool ClientHasInitializedLevelFor( const UObject* TestObject ) const override;
+	virtual TSharedPtr<FObjectReplicator> CreateReplicatorForNewActorChannel(UObject* Object);
 
 public:
 

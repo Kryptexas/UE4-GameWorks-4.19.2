@@ -2076,6 +2076,21 @@ void FTexture2DResource::UploadMipData()
 }
 
 /**
+* Helper function for cleaning up bulk data files after streaming
+* @todo: make it smarter, close only when we know we won't be streaming anymore or at least for a while
+* @todo: What if each mip is in a different bulk data file? might need to loop over all
+*/
+inline void HintDoneWithStreamedTextureFiles(const UTexture2D* InTexture)
+{
+	if (FPlatformProperties::RequiresCookedData())
+	{
+		const TIndirectArray<FTexture2DMipMap>& OwnerMips = InTexture->GetPlatformMips();
+		const FTexture2DMipMap& MipMap = OwnerMips[0];
+		FIOSystem::Get().HintDoneWithFile(MipMap.BulkData.GetFilename());
+	}
+}
+
+/**
  * Called from the rendering thread to finalize a mip change.
  */
 void FTexture2DResource::FinalizeMipCount()
@@ -2115,13 +2130,7 @@ void FTexture2DResource::FinalizeMipCount()
 		// We're done.
 		Owner->PendingMipChangeRequestStatus.Decrement();
 
-		// @todo: make it smarter, close only when we know we won't be streaming anymore or at least for a while
-		if (FPlatformProperties::RequiresCookedData())
-		{
-			const TIndirectArray<FTexture2DMipMap>& OwnerMips = Owner->GetPlatformMips();
-			const FTexture2DMipMap& MipMap = OwnerMips[0];
-			FIOSystem::Get().HintDoneWithFile(MipMap.BulkData.GetFilename());
-		}
+		HintDoneWithStreamedTextureFiles(Owner);
 
 		return;
 	}
@@ -2189,6 +2198,8 @@ void FTexture2DResource::FinalizeMipCount()
 		IntermediateTextureRHI.SafeRelease();
 
 		GStreamMemoryTracker.RenderThread_Finalize( *Owner, bSuccess );
+
+		HintDoneWithStreamedTextureFiles(Owner);
 	}
 	else
 	{

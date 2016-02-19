@@ -39,6 +39,10 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 			TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
 			Objects.Add(FoundObject);
 		}
+		else
+		{
+			UE_LOG(LogUMG, Warning, TEXT("Failed to find runtime objects for %s animation, WidgetName: %s, SlotName: %s"), *InAnimation.GetPathName(), *Binding.WidgetName.ToString(), *Binding.SlotWidgetName.ToString() );
+		}
 	}
 }
 
@@ -184,10 +188,6 @@ void UUMGSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstanc
 	if( FoundObjects )
 	{
 		OutObjects.Append(*FoundObjects);
-	}
-	else
-	{
-		UE_LOG( LogUMG, Warning, TEXT("Failed to find runtime objects for %s animation"), Animation ? *Animation->GetPathName() : TEXT("(none)") );
 	}
 }
 

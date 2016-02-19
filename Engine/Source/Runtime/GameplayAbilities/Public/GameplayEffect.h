@@ -20,6 +20,7 @@ class UGameplayEffectTemplate;
 class UAbilitySystemComponent;
 class UGameplayModMagnitudeCalculation;
 class UGameplayEffectExecutionCalculation;
+class UGameplayEffectCustomApplicationRequirement;
 
 /** Enumeration outlining the possible gameplay effect magnitude calculation policies. */
 UENUM()
@@ -608,6 +609,9 @@ public:
 	/** Probability that this gameplay effect will be applied to the target actor (0.0 for never, 1.0 for always) */
 	UPROPERTY(EditDefaultsOnly, Category=Application, meta=(GameplayAttribute="True"))
 	FScalableFloat	ChanceToApplyToTarget;
+
+	UPROPERTY(EditDefaultsOnly, Category=Application, DisplayName="Application Requirement")
+	TArray<TSubclassOf<UGameplayEffectCustomApplicationRequirement> > ApplicationRequirements;
 
 	/** other gameplay effects that will be applied to the target of this effect if this effect applies */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect,meta = (DisplayName = "Linked Gameplay Effects"))
@@ -1642,6 +1646,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
 
 	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
+	bool GetActiveEffectsEndTimeAndDuration(const FGameplayEffectQuery& Query, float& EndTime, float& Duration) const;
 
 	/** Returns an array of all of the active gameplay effect handles */
 	TArray<FActiveGameplayEffectHandle> GetAllActiveEffectHandles() const;

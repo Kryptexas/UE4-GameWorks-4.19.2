@@ -16,6 +16,7 @@ struct FPrimaryCrashProperties;
 	"IsInternalBuild"
 	"IsPerforceBuild"
 	"IsSourceDistribution"
+	"IsEnsure"
 	"SecondsSinceStart"
 	"GameName"
 	"ExecutableName"
@@ -337,6 +338,11 @@ struct FPrimaryCrashProperties
 	/** Whether this crash contains primary usable data. */
 	bool bHasPrimaryData;
 
+	/**
+	 *	Whether the report comes from a non-fatal event such as an ensure
+	 */
+	bool bIsEnsure;
+
 protected:
 	/** Default constructor. */
 	FPrimaryCrashProperties();
@@ -382,8 +388,11 @@ public:
 	/** Updates following properties: UserName, MachineID and EpicAccountID. */
 	void UpdateIDs();
 
-	/** Sends this crash for analytics. */
-	void SendAnalytics();
+	/** Sends this crash for analytics (before upload). */
+	void SendPreUploadAnalytics();
+
+	/** Sends this crash for analytics (after successful upload). */
+	void SendPostUploadAnalytics();
 
 	/** Saves the data. */
 	void Save();

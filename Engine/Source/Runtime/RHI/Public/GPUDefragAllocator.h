@@ -6,7 +6,10 @@
 
 #define LOG_EVERY_ALLOCATION			0
 #define DUMP_ALLOC_FREQUENCY			0 // 100
-#define VALIDATE_SYNC_SIZE				(!(UE_BUILD_TEST || UE_BUILD_SHIPPING))
+
+#define VALIDATE_SYNC_SIZE				1 //validates that the CPU is returning memory in an allocate that's part of an active GPU move.
+#define VALIDATE_MOVES					1 //validates that GPU moves in a given frame do not overlap destination areas.
+#define TRACK_RELOCATIONS (VALIDATE_SYNC_SIZE || VALIDATE_MOVES)
 #define VALIDATE_MEMORY_PROTECTION		1 //(!(UE_BUILD_TEST || UE_BUILD_SHIPPING))
 
 /*-----------------------------------------------------------------------------
@@ -655,17 +658,10 @@ public:
 
 protected:
 
-#if VALIDATE_SYNC_SIZE
+#if TRACK_RELOCATIONS
 	struct FRelocationEntry
 	{
-		FRelocationEntry(const uint8* InOldBase, const uint8* InNewBase, uint64 InSize, uint64 InSyncIndex)
-		: OldBase(InOldBase)
-		, NewBase(InNewBase)
-		, Size(InSize)
-		, SyncIndex(InSyncIndex)
-		{
-			printf("Relocation: 0x%p to 0x%p, %i, %i\n", OldBase, NewBase, (int32)Size, (int32)SyncIndex);
-		}
+		FRelocationEntry(const uint8* InOldBase, const uint8* InNewBase, uint64 InSize, uint64 InSyncIndex);
 
 		const uint8* OldBase;
 		const uint8* NewBase;
@@ -674,20 +670,23 @@ protected:
 	};
 
 	void ValidateRelocations(uint8* UsedBaseAddress, uint64 Size);
+	
 	TArray<FRelocationEntry> Relocations;
 #endif
 
 #if VALIDATE_MEMORY_PROTECTION
 	struct FMemProtectTracker
 	{
-		FMemProtectTracker(const void* InMemory, uint64 InBlockSize, uint32 InSyncIndex)
+		FMemProtectTracker(const void* InMemory, const void* InUserPayload, uint64 InBlockSize, uint32 InSyncIndex)
 		: Memory(InMemory)
+		, UserPayload(InUserPayload)
 		, BlockSize(InBlockSize)
 		, SyncIndex(InSyncIndex)
 		{
 
 		}
 		const void* Memory;
+		const void* UserPayload;
 		uint64 BlockSize;
 		uint32 SyncIndex;
 	};
@@ -695,9 +694,24 @@ protected:
 	TArray<FMemProtectTracker> BlocksToProtect;
 	TArray<FMemProtectTracker> BlocksToUnProtect;
 
-	void AllowCPUAccessToBlocks();
-	virtual void	PlatformAllowCPUAccessToBlock(const FMemProtectTracker& BlocksToAllow) {};
-	virtual void	PlatformRemoveCPUAccessTo(const TArray<FMemProtectTracker>& BlocksToRemove) {};
+	static int32 GGPUDefragDumpRelocationsToTTY;
+	static FAutoConsoleVariableRef CVarGPUDefragDumpRelocationsToTTY;
+
+	/** Sets Static memory privileges on blocks that have completed relocations. */
+	void SetStaticMemoryPrivileges();
+
+	/** Removes all CPU and GPU read/write privileges from the given Block.  Used for Free memory that is not part of a relocation. */
+	virtual void	PlatformSetNoMemoryPrivileges(const FMemProtectTracker& Block) {};
+
+	/** Allows all CPU and GPU read/write privileges on the given Block.  Used to reset privileges on allocation */
+	virtual void	PlatformSetStandardMemoryPrivileges(const FMemProtectTracker& Block) {};
+	
+	/** Allows all CPU R/W, GPU Read, and GPUWrite Platform implementation can determine that it should do so. Used when UserPayload is set.  Used during defraggable registration, and after waiting on the appropriate fence. */
+	virtual void	PlatformSetStaticMemoryPrivileges(const FMemProtectTracker& BlocksToAllow) {};
+
+	/** Allows Only GPU R/W.  CPU access is a bug.  This is used when this memory is part of an active relocation */
+	virtual void	PlatformSetRelocationMemoryPrivileges(const FMemProtectTracker& BlocksToAllow) {};
+	virtual void	PlatformSetRelocationMemoryPrivileges(const TArray<FMemProtectTracker>& BlocksToRemove) {};
 #endif
 
 
@@ -771,8 +785,8 @@ protected:
 		if (!bBenchmarkMode)
 		{
 #if VALIDATE_MEMORY_PROTECTION
-			BlocksToProtect.Emplace(DestAddr, Size, CurrentSyncIndex);
-			BlocksToProtect.Emplace(Source, Size, CurrentSyncIndex);
+			BlocksToProtect.Emplace(DestAddr, UserPayload, Size, CurrentSyncIndex);
+			BlocksToProtect.Emplace(Source, UserPayload, Size, CurrentSyncIndex);
 #endif
 			PlatformRelocate(DestAddr, Source, Size, UserPayload);
 		}

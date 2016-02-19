@@ -562,6 +562,15 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			PerfCounters->Set(TEXT("OutRateClientMin"), ClientOutBytesMin);
 			PerfCounters->Set(TEXT("OutRateClientAvg"), ClientOutBytesAvg);
 
+			PerfCounters->Set(TEXT("InRate"), InBytes);
+			PerfCounters->Set(TEXT("OutRate"), OutBytes);
+			PerfCounters->Set(TEXT("InPacketsLost"), InPacketsLost);
+			PerfCounters->Set(TEXT("OutPacketsLost"), OutPacketsLost);
+			PerfCounters->Set(TEXT("InPackets"), InPackets);
+			PerfCounters->Set(TEXT("OutPackets"), OutPackets);
+			PerfCounters->Set(TEXT("InBunches"), InBunches);
+			PerfCounters->Set(TEXT("OutBunches"), OutBunches);
+
 			PerfCounters->Set(TEXT("ServerReplicateActorsTimeMs"), ServerReplicateActorsTimeMs);
 			PerfCounters->Set(TEXT("OutSaturationMax"), RemoteSaturationMax);
 		}

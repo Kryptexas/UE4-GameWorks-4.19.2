@@ -1878,8 +1878,10 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	SaveBaseLocation();
 	UpdateComponentVelocity();
 
+	const bool bHasAuthority = CharacterOwner && CharacterOwner->HasAuthority();
+
 	// If we move we want to avoid a long delay before replication catches up to notice this change, especially if it's throttling our rate.
-	if (UNetDriver::IsAdaptiveNetUpdateFrequencyEnabled() && UpdatedComponent && CharacterOwner && CharacterOwner->HasAuthority())
+	if (bHasAuthority && UNetDriver::IsAdaptiveNetUpdateFrequencyEnabled() && UpdatedComponent)
 	{
 		const UWorld* MyWorld = GetWorld();
 		if (MyWorld && MyWorld->GetTimeSeconds() <= CharacterOwner->NetUpdateTime)
@@ -1896,6 +1898,17 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 					}
 				}
 			}
+		}
+	}
+
+	if (bHasAuthority && UpdatedComponent && GetNetMode() < NM_Client)
+	{
+		const bool bLocationChanged = (UpdatedComponent->GetComponentLocation() != LastUpdateLocation);
+		const bool bRotationChanged = (UpdatedComponent->GetComponentQuat() != LastUpdateRotation);
+		if (bLocationChanged || bRotationChanged)
+		{
+			const UWorld* MyWorld = GetWorld();
+			ServerLastTransformUpdateTimeStamp = MyWorld ? MyWorld->GetTimeSeconds() : 0.f;
 		}
 	}
 
@@ -6190,9 +6203,35 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 			const FScopedPreventAttachedComponentMove PreventMeshMove(CharacterOwner->GetMesh());
 			UpdatedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
 		}
+	
+		// If running ahead, pull back slightly. This will cause the next delta to seem slightly longer, and cause us to lerp to it slightly slower.
+		if (ClientData->SmoothingClientTimeStamp > ClientData->SmoothingServerTimeStamp)
+		{
+			const double OldClientTimeStamp = ClientData->SmoothingClientTimeStamp;
+			ClientData->SmoothingClientTimeStamp = FMath::LerpStable(ClientData->SmoothingServerTimeStamp, OldClientTimeStamp, 0.5);
 
-		ClientData->LastCorrectionDelta = FMath::Clamp(MyWorld->TimeSince(ClientData->LastCorrectionTime), 1.0f / 120.0f, 1.0f / 5.0f);
-		ClientData->LastCorrectionTime  = MyWorld->GetTimeSeconds();
+			UE_LOG(LogCharacterNetSmoothing, VeryVerbose, TEXT("SmoothCorrection: Pull back client from ClientTimeStamp: %.6f to %.6f, ServerTimeStamp: %.6f for %s"),
+				OldClientTimeStamp, ClientData->SmoothingClientTimeStamp, ClientData->SmoothingServerTimeStamp, *GetNameSafe(CharacterOwner));
+		}
+
+		// Using server timestamp lets us know how much time actually elapsed, regardless of packet lag variance.
+		ClientData->SmoothingServerTimeStamp = CharacterOwner->GetServerLastTransformUpdateTimeStamp();
+
+		// Initial update has no delta.
+		if (ClientData->LastCorrectionTime == 0)
+		{
+			ClientData->SmoothingClientTimeStamp = ClientData->SmoothingServerTimeStamp;
+		}
+
+		// Don't let the client fall too far behind or run ahead.
+		ClientData->SmoothingClientTimeStamp = FMath::Clamp<double>(ClientData->SmoothingClientTimeStamp, ClientData->SmoothingServerTimeStamp - ClientData->MaxResponseTime, ClientData->SmoothingServerTimeStamp);
+
+		// Compute actual delta between new server timestamp and client simulation.
+		ClientData->LastCorrectionDelta = ClientData->SmoothingServerTimeStamp - ClientData->SmoothingClientTimeStamp;
+		ClientData->LastCorrectionTime = MyWorld->GetTimeSeconds();
+
+		UE_LOG(LogCharacterNetSmoothing, VeryVerbose, TEXT("SmoothCorrection: WorldTime: %.6f, ServerTimeStamp: %.6f, ClientTimeStamp: %.6f, Delta: %.6f for %s"),
+			MyWorld->GetTimeSeconds(), ClientData->SmoothingServerTimeStamp, ClientData->SmoothingClientTimeStamp, ClientData->LastCorrectionDelta, *GetNameSafe(CharacterOwner));
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if ( CVarNetVisualizeSimulatedCorrections.GetValueOnGameThread() >= 2 )
@@ -6268,21 +6307,53 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 		if (NetworkSmoothingMode == ENetworkSmoothingMode::Linear)
 		{
 			const UWorld* MyWorld = GetWorld();
-			const float CurrentSmoothTime = MyWorld->TimeSince(ClientData->LastCorrectionTime);
 
-			// Linearly interpolate between correction updates
-			const bool bAtEnd = (ClientData->LastCorrectionDelta < SMALL_NUMBER) || (CurrentSmoothTime >= ClientData->LastCorrectionDelta);
-			const float LerpPercent	= bAtEnd ? 1.0f : (CurrentSmoothTime / ClientData->LastCorrectionDelta);
+			// Increment client position.
+			ClientData->SmoothingClientTimeStamp += DeltaSeconds;
 
-			if (LerpPercent >= 1.0f)
+			float LerpPercent = 0.f;
+			const float LerpLimit = 1.15f;
+			const float TargetDelta = ClientData->LastCorrectionDelta;
+			if (TargetDelta > SMALL_NUMBER)
 			{
-				ClientData->MeshTranslationOffset = FVector::ZeroVector;
-				ClientData->MeshRotationOffset = ClientData->MeshRotationTarget;
-				bNetworkSmoothingComplete = true;
+				// Don't let the client get too far ahead (happens on spikes). But we do want a buffer for variable network conditions.
+				const float MaxClientTimeAheadPercent = 0.15f;
+				const float MaxTimeAhead = TargetDelta * MaxClientTimeAheadPercent;
+				ClientData->SmoothingClientTimeStamp = FMath::Min<float>(ClientData->SmoothingClientTimeStamp, ClientData->SmoothingServerTimeStamp + MaxTimeAhead);
+
+				// Compute interpolation alpha based on our client position within the server delta. We should take TargetDelta seconds to reach alpha of 1.
+				const float RemainingTime = ClientData->SmoothingServerTimeStamp - ClientData->SmoothingClientTimeStamp;
+				const float CurrentSmoothTime = TargetDelta - RemainingTime;
+				LerpPercent = FMath::Clamp(CurrentSmoothTime / TargetDelta, 0.0f, LerpLimit);
+
+				UE_LOG(LogCharacterNetSmoothing, VeryVerbose, TEXT("Interpolate: WorldTime: %.6f, ServerTimeStamp: %.6f, ClientTimeStamp: %.6f, Elapsed: %.6f, Alpha: %.6f for %s"),
+					MyWorld->GetTimeSeconds(), ClientData->SmoothingServerTimeStamp, ClientData->SmoothingClientTimeStamp, CurrentSmoothTime, LerpPercent, *GetNameSafe(CharacterOwner));
 			}
 			else
 			{
-				ClientData->MeshTranslationOffset = FMath::Lerp(ClientData->OriginalMeshTranslationOffset, FVector::ZeroVector, LerpPercent);
+				LerpPercent = 1.0f;
+			}
+
+			if (LerpPercent >= 1.0f - KINDA_SMALL_NUMBER)
+			{
+				if (Velocity.IsNearlyZero())
+				{
+					ClientData->MeshTranslationOffset = FVector::ZeroVector;
+					ClientData->SmoothingClientTimeStamp = ClientData->SmoothingServerTimeStamp;
+					bNetworkSmoothingComplete = true;
+				}
+				else
+				{
+					// Allow limited forward prediction.
+					ClientData->MeshTranslationOffset = FMath::LerpStable(ClientData->OriginalMeshTranslationOffset, FVector::ZeroVector, LerpPercent);
+					bNetworkSmoothingComplete = (LerpPercent >= LerpLimit);
+				}
+
+				ClientData->MeshRotationOffset = ClientData->MeshRotationTarget;
+			}
+			else
+			{
+				ClientData->MeshTranslationOffset = FMath::LerpStable(ClientData->OriginalMeshTranslationOffset, FVector::ZeroVector, LerpPercent);
 				ClientData->MeshRotationOffset = FQuat::FastLerp(ClientData->OriginalMeshRotationOffset, ClientData->MeshRotationTarget, LerpPercent).GetNormalized();
 			}
 
@@ -6339,8 +6410,8 @@ void UCharacterMovementComponent::SmoothClientPosition_Interpolate(float DeltaSe
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		UE_LOG(LogCharacterNetSmoothing, Verbose, TEXT("SmoothClientPosition_Interpolate %s: Translation: %s Rotation: %s"),
-			*GetNameSafe(CharacterOwner), *ClientData->MeshTranslationOffset.ToString(), *ClientData->MeshRotationOffset.ToString());
+		//UE_LOG(LogCharacterNetSmoothing, VeryVerbose, TEXT("SmoothClientPosition_Interpolate %s: Translation: %s Rotation: %s"),
+		//	*GetNameSafe(CharacterOwner), *ClientData->MeshTranslationOffset.ToString(), *ClientData->MeshRotationOffset.ToString());
 
 		if ( CVarNetVisualizeSimulatedCorrections.GetValueOnGameThread() >= 1 )
 		{
@@ -8227,6 +8298,8 @@ FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character
 	, MeshRotationTarget(FQuat::Identity)
 	, LastCorrectionDelta(0.f)
 	, LastCorrectionTime(0.f)
+	, SmoothingServerTimeStamp(0.f)
+	, SmoothingClientTimeStamp(0.f)
 	, CurrentSmoothTime(0.f) // Deprecated
 	, bUseLinearSmoothing(false) // Deprecated
 	, MaxSmoothNetUpdateDist(0.f)

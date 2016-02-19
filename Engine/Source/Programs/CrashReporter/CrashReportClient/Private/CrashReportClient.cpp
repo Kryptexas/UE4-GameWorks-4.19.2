@@ -83,12 +83,6 @@ FReply FCrashReportClient::CloseWithoutSending()
 
 FReply FCrashReportClient::Submit()
 {
-	if (ErrorReport.HasFilesToUpload())
-	{
-		// Send analytics.
-		FPrimaryCrashProperties::Get()->SendAnalytics();
-	}
-
 	bSendData = true;
 	StoreCommentAndUpload();
 	bShouldWindowBeHidden = true;

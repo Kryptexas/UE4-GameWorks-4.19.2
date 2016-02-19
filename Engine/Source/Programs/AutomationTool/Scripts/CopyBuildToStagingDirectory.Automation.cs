@@ -913,8 +913,8 @@ public partial class Project : CommandUtils
 		{
 			if (File.Exists(OutputLocation))
 			{
-				string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-				if (File.GetLastWriteTimeUtc(OutputLocation) > File.GetLastWriteTimeUtc(UnrealPakResponseFileName))
+				string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + Path.GetFileNameWithoutExtension(OutputLocation) + ".txt");
+				if (File.Exists(UnrealPakResponseFileName) && File.GetLastWriteTimeUtc(OutputLocation) > File.GetLastWriteTimeUtc(UnrealPakResponseFileName))
 				{
 					bCopiedExistingPak = true;
 				}
@@ -1786,6 +1786,11 @@ public partial class Project : CommandUtils
 				foreach (var SC in DeployContextList)
 				{
 					CreateStagingManifest(Params, SC);
+					CleanStagingDirectory(Params, SC);
+				}
+
+				foreach (var SC in DeployContextList)
+				{
 					ApplyStagingManifest(Params, SC);
 				}
 			}

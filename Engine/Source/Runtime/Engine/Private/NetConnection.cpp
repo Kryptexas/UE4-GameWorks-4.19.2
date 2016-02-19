@@ -1024,7 +1024,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 					}
 					else
 					{
-						UE_LOG( LogNetTraffic, Warning, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
+						// Simply a log (not a warning, since this can happen under normal conditions, like from a re-join, etc)
+						UE_LOG( LogNetTraffic, Log, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
 					}
 
 					// Since we won't be processing this packet, don't ack it
@@ -1187,6 +1188,13 @@ void UNetConnection::PopLastStart()
 	NumBunchBits -= SendBuffer.GetNumBits() - LastStart.GetNumBits();
 	LastStart.Pop(SendBuffer);
 	NETWORK_PROFILER(GNetworkProfiler.PopSendBunch(this));
+}
+
+TSharedPtr<FObjectReplicator> UNetConnection::CreateReplicatorForNewActorChannel(UObject* Object)
+{
+	TSharedPtr<FObjectReplicator> NewReplicator = MakeShareable(new FObjectReplicator());
+	NewReplicator->InitWithObject( Object, this, true );
+	return NewReplicator;
 }
 
 void UNetConnection::PurgeAcks()

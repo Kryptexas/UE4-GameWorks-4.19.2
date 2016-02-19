@@ -1172,7 +1172,7 @@ bool FChunkManifestGenerator::CheckChunkAssetsAreNotInChild(const FChunkDependen
 
 void FChunkManifestGenerator::AddPackageAndDependenciesToChunk(FChunkPackageSet* ThisPackageSet, FName InPkgName, const FString& InSandboxFile, int32 ChunkID, FSandboxPlatformFile* SandboxPlatformFile)
 {
-	FChunkPackageSet* InitialPackageSetForThisChunk = ChunkManifests[ChunkID];
+	FChunkPackageSet* InitialPackageSetForThisChunk = ChunkManifests.IsValidIndex(ChunkID) ? ChunkManifests[ChunkID] : nullptr;
 
 	//Add this asset
 	ThisPackageSet->Add(InPkgName, InSandboxFile);

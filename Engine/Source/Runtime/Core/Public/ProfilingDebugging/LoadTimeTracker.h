@@ -6,11 +6,7 @@
 
 #pragma once
 
-#if !UE_BUILD_SHIPPING
 #define ENABLE_LOADTIME_TRACKING 1
-#else
-#define ENABLE_LOADTIME_TRACKING 0
-#endif
 
 #include "ScopedTimers.h"
 
@@ -37,6 +33,13 @@ public:
 	{
 		Get().DumpLoadTimes();
 	}
+
+	const TMap<FName, TArray<double>>& GetData() const
+	{
+		return TimeInfo;
+	}
+
+	void ResetLoadTimes();
 
 private:
 	TMap<FName, TArray<double>> TimeInfo;

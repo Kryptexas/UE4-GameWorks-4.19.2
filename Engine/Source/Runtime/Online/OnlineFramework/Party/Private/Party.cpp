@@ -21,7 +21,11 @@ UParty::UParty(const FObjectInitializer& ObjectInitializer) :
 
 void UParty::Init()
 {
-	FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UParty::OnPostLoadMap);
+	UGameInstance* GameInstance = GetGameInstance();
+	check(GameInstance);
+	GameInstance->OnNotifyPreClientTravel().AddUObject(this, &ThisClass::NotifyPreClientTravel);
+
+	FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &ThisClass::OnPostLoadMap);
 }
 
 void UParty::InitPIE()
@@ -57,6 +61,12 @@ void UParty::OnShutdown()
 
 		UnregisterIdentityDelegates();
 		UnregisterPartyDelegates();
+	}
+
+	UGameInstance* GameInstance = GetGameInstance();
+	if (GameInstance)
+	{
+		GameInstance->OnNotifyPreClientTravel().RemoveAll(this);
 	}
 }
 
@@ -232,7 +242,7 @@ void UParty::UnregisterPartyDelegates()
 	}
 }
 
-void UParty::NotifyPreClientTravel()
+void UParty::NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
 {
 	for (auto& JoinedParty : JoinedParties)
 	{

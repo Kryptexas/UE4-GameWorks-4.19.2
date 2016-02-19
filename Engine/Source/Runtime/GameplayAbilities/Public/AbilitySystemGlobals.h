@@ -207,7 +207,11 @@ protected:
 	UPROPERTY(config)
 	FString GlobalAttributeSetDefaultsTableName;
 
-	/** The class to instantiate as the global GameplayCue manager. This class is responsible for directing GameplayCue events, loading and cooking assets related to GameplayCues. */
+	/** Class reference to gameplay cue manager. Use this if you want to just instantiate a class for your gameplay cue manager without having to create an asset. */
+	UPROPERTY(config)
+	FStringAssetReference GlobalGameplayCueManagerClass;
+
+	/** Object reference to gameplay cue manager (E.g., reference to a specific blueprint of your GameplayCueManager class. This is not necessary unless you want to have data or blueprints in your gameplay cue manager. */
 	UPROPERTY(config)
 	FStringAssetReference GlobalGameplayCueManagerName;
 

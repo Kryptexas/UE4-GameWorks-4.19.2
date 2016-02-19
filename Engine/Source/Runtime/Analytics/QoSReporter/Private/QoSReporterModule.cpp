@@ -18,7 +18,7 @@ DEFINE_LOG_CATEGORY(LogQoSReporter);
 IMPLEMENT_MODULE(FQoSReporterModule, QoSReporter);
 
 // helps to version QoS events (date*10 to allow for 10 revisions per day)
-#define QOS_EVENTS_REVISION					201602080
+#define QOS_EVENTS_REVISION					201602160
 
 FString FQoSReporterModule::Config::GetDefaultAppVersion()
 { 
@@ -295,7 +295,7 @@ void FAnalyticsProviderQoSReporter::EventRequestComplete(FHttpRequestPtr HttpReq
 	if (bCountTowardsFailedAttempts)
 	{
 		// FIXME: should use retrial with exponential backoff here
-#if USE_SERVER_PERF_COUNTERS
+#if USE_SERVER_PERF_COUNTERS && !IS_PROGRAM
 		PerfCountersIncrement(TEXT("FailedQoSRequests"), 0, IPerfCounters::Flags::Transient);
 #endif // USE_SERVER_PERF_COUNTERS
 	}

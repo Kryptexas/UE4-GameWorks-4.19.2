@@ -155,7 +155,7 @@ bool FObjectReplicator::ValidateAgainstState( const UObject* ObjectState )
 		return false;
 	}
 
-	if ( RepLayout->DiffProperties( RepState, ObjectState, false ) )
+	if ( RepLayout->DiffProperties( &(RepState->RepNotifies), RepState->StaticBuffer.GetData(), ObjectState, false ) )
 	{
 		UE_LOG(LogRep, Warning, TEXT("ValidateAgainstState: Properties changed for %s"), *ObjectState->GetName());
 		return false;
@@ -533,7 +533,8 @@ bool FObjectReplicator::ReceivedBunch( FInBunch& Bunch, const FReplicationFlags&
 			{
 				bool bLocalHasUnmapped = false;
 				// We hijack a non custom delta property to signify we are using FRepLayout to read the entire property block
-				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bLocalHasUnmapped ) )
+				const bool bShouldReceiveRepNotifies = Connection->Driver->ShouldReceiveRepNotifiesForObject( Object );
+				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bLocalHasUnmapped, bShouldReceiveRepNotifies ) )
 				{
 					UE_LOG(LogRep, Error, TEXT("ReceiveProperties FAILED %s in %s"), *ReplicatedProp->GetName(), *Object->GetFullName());
 					return false;

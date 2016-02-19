@@ -1000,7 +1000,9 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 {
 	const FGameplayTag& NetworkFailTag = UAbilitySystemGlobals::Get().ActivateFailNetworkingTag;
 
-	FGameplayTagContainer FailureTags;
+	static FGameplayTagContainer FailureTags;
+	FailureTags.Reset();
+
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (!Spec)
 	{

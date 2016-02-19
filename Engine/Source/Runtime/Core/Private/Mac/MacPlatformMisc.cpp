@@ -1412,7 +1412,7 @@ void FMacPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrash
 	}
 }
 
-void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
+void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsEnsure) const
 {
 	int ReportFile = open(WERPath, O_CREAT|O_WRONLY, 0766);
 	if (ReportFile != -1)
@@ -1570,6 +1570,7 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 		WriteUTF16String(ReportFile, *GMacAppInfo.LCID);
 		WriteLine(ReportFile, TEXT("</Parameter2>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
 
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 		
@@ -1624,7 +1625,7 @@ void FMacCrashContext::CopyMinidump(char const* OutputPath, char const* InputPat
 	}
 }
 
-void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
+void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool bIsEnsure) const
 {
 	// create a crash-specific directory
 	char CrashInfoFolder[PATH_MAX] = {};
@@ -1652,7 +1653,7 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder) const
 		// generate "WER"
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/wermeta.xml");
-		GenerateWindowsErrorReport(FilePath);
+		GenerateWindowsErrorReport(FilePath, bIsEnsure);
 		
 		// generate "minidump" (Apple crash log format)
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
@@ -1772,7 +1773,8 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.C, 16));
 		FCStringAnsi::Strcat(CrashInfoFolder, PATH_MAX, ItoANSI(GMacAppInfo.RunUUID.D, 16));
 		
-		GenerateInfoInFolder(CrashInfoFolder);
+		const bool bIsEnsure = false;
+		GenerateInfoInFolder(CrashInfoFolder, bIsEnsure);
 
 		// try launching the tool and wait for its exit, if at all
 		// Use vfork() & execl() as they are async-signal safe, CreateProc can fail in Cocoa
@@ -1836,7 +1838,8 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		FString GameName = FApp::GetGameName();
 		FString EnsureLogFolder = FString(GMacAppInfo.CrashReportPath) / FString::Printf(TEXT("EnsureReport-%s-%s"), *GameName, *Guid.ToString(EGuidFormats::Digits));
 		
-		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder));
+		const bool bIsEnsure = true;
+		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder), bIsEnsure);
 		
 		FString Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
 		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));

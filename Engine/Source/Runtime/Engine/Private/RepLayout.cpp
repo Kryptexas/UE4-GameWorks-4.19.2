@@ -334,13 +334,13 @@ public:
 		}
 	}
 
-	void ProcessCmds( FRepState* RepState, uint8* RESTRICT Data )
+	void ProcessCmds( uint8* RESTRICT Data, uint8* RESTRICT ShadowData )
 	{
-		TStackState StackState( 0, Cmds.Num() - 1, NULL, NULL, (uint8*)RepState->StaticBuffer.GetData(), Data );
+		TStackState StackState( 0, Cmds.Num() - 1, NULL, NULL, ShadowData, Data );
 
 		static_cast< TImpl* >( this )->InitStack( StackState );
 
-		ProcessCmds_r( StackState, (uint8*)RepState->StaticBuffer.GetData(), Data );
+		ProcessCmds_r( StackState, ShadowData, Data );
 	}
 
 	const TArray< FRepParentCmd >&	Parents;
@@ -1184,14 +1184,15 @@ public:
 class FReceivePropertiesImpl : public FRepLayoutCmdIterator< FReceivePropertiesImpl, FReceivedPropertiesStackState >
 {
 public:
-	FReceivePropertiesImpl( FNetBitReader & InBunch, FRepState * InRepState, bool bInDoChecksum, const TArray< FRepParentCmd >& InParents, const TArray< FRepLayoutCmd >& InCmds ) :
+	FReceivePropertiesImpl( FNetBitReader & InBunch, FRepState * InRepState, bool bInDoChecksum, const TArray< FRepParentCmd >& InParents, const TArray< FRepLayoutCmd >& InCmds, const bool bInDoRepNotify ) :
         FRepLayoutCmdIterator( InParents, InCmds ),
 		WaitingHandle( 0 ),
 		CurrentHandle( 0 ), 
 		Bunch( InBunch ),
 		RepState( InRepState ),
 		bDoChecksum( bInDoChecksum ),
-		bHasUnmapped( false )
+		bHasUnmapped( false ),
+		bDoRepNotify( bInDoRepNotify )
 	{}
 
 	void ReadNextHandle()
@@ -1254,7 +1255,7 @@ public:
 
 		const FRepParentCmd& Parent = Parents[Cmd.ParentIndex];
 
-		if ( ( StackState.DataArray->Num() != ArrayNum || Parent.RepNotifyCondition == REPNOTIFY_Always ) && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+		if ( bDoRepNotify && ( StackState.DataArray->Num() != ArrayNum || Parent.RepNotifyCondition == REPNOTIFY_Always ) && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 		{
 			RepState->RepNotifies.AddUnique( Parent.Property );
 		}
@@ -1265,12 +1266,17 @@ public:
 		FScriptArrayHelper ArrayHelper( (UArrayProperty *)Cmd.Property, Data );
 		ArrayHelper.Resize( ArrayNum );
 
-		FScriptArrayHelper ShadowArrayHelper( (UArrayProperty *)Cmd.Property, ShadowData );
-		ShadowArrayHelper.Resize( ArrayNum );
-
 		// Re-compute the base data values since they could have changed after the resize above
 		StackState.BaseData			= (uint8*)StackState.DataArray->GetData();
-		StackState.ShadowBaseData	= (uint8*)StackState.ShadowArray->GetData();
+		
+		// Only resize the shadow data array if we're actually tracking RepNotifies
+		if (bDoRepNotify)
+		{
+			FScriptArrayHelper ShadowArrayHelper((UArrayProperty*)Cmd.Property, ShadowData);
+			ShadowArrayHelper.Resize(ArrayNum);
+
+			StackState.ShadowBaseData = (uint8*)StackState.ShadowArray->GetData();
+		}
 
 		// Save the old handle so we can restore it when we pop out of the array
 		const uint16 OldHandle = CurrentHandle;
@@ -1304,7 +1310,7 @@ public:
 		// Remember where we started reading from, so that if we have unmapped properties, we can re-deserialize from this data later
 		FBitReaderMark Mark( Bunch );
 
-		if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+		if ( bDoRepNotify && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 		{
 			// Copy current value over so we can check to see if it changed
 			StoreProperty( Cmd, ShadowData + Cmd.Offset, Data + SwappedCmd.Offset );
@@ -1374,9 +1380,10 @@ public:
 	FRepState *				RepState;
 	bool					bDoChecksum;
 	bool					bHasUnmapped;
+	bool					bDoRepNotify;
 };
 
-bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped ) const
+bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void* RESTRICT Data, FNetBitReader & InBunch, bool & bOutHasUnmapped, const bool bEnableRepNotifies ) const
 {
 	check( InObjectClass == Owner );
 
@@ -1388,13 +1395,13 @@ bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT
 
 	bOutHasUnmapped = false;
 
-	FReceivePropertiesImpl ReceivePropertiesImpl( InBunch, RepState, bDoChecksum, Parents, Cmds );
+	FReceivePropertiesImpl ReceivePropertiesImpl( InBunch, RepState, bDoChecksum, Parents, Cmds, bEnableRepNotifies );
 
 	// Read first handle
 	ReceivePropertiesImpl.ReadNextHandle();
 
 	// Read all properties
-	ReceivePropertiesImpl.ProcessCmds( RepState, (uint8*)Data );
+	ReceivePropertiesImpl.ProcessCmds( (uint8*)Data, RepState->StaticBuffer.GetData() );
 
 	// Make sure we're waiting on the last NULL terminator
 	if ( ReceivePropertiesImpl.WaitingHandle != 0 )
@@ -1789,7 +1796,7 @@ void FRepLayout::MergeDirtyList( FRepState * RepState, const void* RESTRICT Data
 	MergePropertiesImpl.bDirtyValid2 = Dirty2.Num() > 0;
 
 	// Merge lists
-	MergePropertiesImpl.ProcessCmds( RepState, (uint8*)Data );
+	MergePropertiesImpl.ProcessCmds( (uint8*)Data, (uint8*)RepState->StaticBuffer.GetData() );
 
 	MergePropertiesImpl.MergedDirtyList.Add( 0 );
 }
@@ -1877,7 +1884,7 @@ void FRepLayout::SanityCheckChangeList( const uint8* RESTRICT Data, TArray< uint
 class FDiffPropertiesImpl : public FRepLayoutCmdIterator< FDiffPropertiesImpl, FCmdIteratorBaseStackState >
 {
 public:
-	FDiffPropertiesImpl( const bool bInSync, TArray< UProperty * >&	InRepNotifies, const TArray< FRepParentCmd >& InParents, const TArray< FRepLayoutCmd >& InCmds ) : 
+	FDiffPropertiesImpl( const bool bInSync, TArray< UProperty * >*	InRepNotifies, const TArray< FRepParentCmd >& InParents, const TArray< FRepLayoutCmd >& InCmds ) : 
 		FRepLayoutCmdIterator( InParents, InCmds ),
 		bSync( bInSync ),
 		RepNotifies( InRepNotifies ),
@@ -1944,23 +1951,23 @@ public:
 
 			StoreProperty( Cmd, (void*)( Data + Cmd.Offset ), (const void*)( ShadowData + Cmd.Offset ) );
 
-			if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+			if ( RepNotifies && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 			{
-				RepNotifies.AddUnique( Parent.Property );
+				RepNotifies->AddUnique( Parent.Property );
 			}
 		}
 	}
 
 	bool					bSync;
-	TArray< UProperty * >&	RepNotifies;
+	TArray< UProperty * >*	RepNotifies;
 	bool					bDifferent;
 };
 
-bool FRepLayout::DiffProperties( FRepState * RepState, const void* RESTRICT Data, const bool bSync ) const
+bool FRepLayout::DiffProperties( TArray<UProperty*>* RepNotifies, void* RESTRICT Destination, const void* RESTRICT Source, const bool bSync ) const
 {	
-	FDiffPropertiesImpl DiffPropertiesImpl( bSync, RepState->RepNotifies, Parents, Cmds );
+	FDiffPropertiesImpl DiffPropertiesImpl( bSync, RepNotifies, Parents, Cmds );
 
-	DiffPropertiesImpl.ProcessCmds( RepState, (uint8*)Data );
+	DiffPropertiesImpl.ProcessCmds( (uint8*)Destination, (uint8*)Source );
 
 	return DiffPropertiesImpl.bDifferent;
 }

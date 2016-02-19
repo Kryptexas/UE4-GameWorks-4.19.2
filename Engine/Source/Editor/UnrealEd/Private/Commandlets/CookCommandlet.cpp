@@ -26,8 +26,115 @@
 #include "CookerSettings.h"
 #include "ShaderCompiler.h"
 #include "MemoryMisc.h"
+#include "CookStats.h"
+#include "DerivedDataCacheUsageStats.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
+
+#if ENABLE_COOK_STATS
+#include "ScopedTimers.h"
+#include "AnalyticsET.h"
+#include "IAnalyticsProvider.h"
+namespace DetailedCookStats
+{
+	FString CookProject;
+	FString TargetPlatforms;
+	double CookWallTimeSec = 0.0;
+	double StartupWallTimeSec = 0.0;
+	double NewCookTimeSec = 0.0;
+	double StartCookByTheBookTimeSec = 0.0;
+	extern double TickCookOnTheSideTimeSec;
+	extern double TickCookOnTheSideLoadPackagesTimeSec;
+	extern double TickCookOnTheSideResolveRedirectorsTimeSec;
+	extern double TickCookOnTheSideSaveCookedPackageTimeSec;
+	extern double TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec;
+	extern double TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec;
+	double TickLoopGCTimeSec = 0.0;
+	double TickLoopRecompileShaderRequestsTimeSec = 0.0;
+	double TickLoopShaderProcessAsyncResultsTimeSec = 0.0;
+	double TickLoopProcessDeferredCommandsTimeSec = 0.0;
+	double TickLoopTickCommandletStatsTimeSec = 0.0;
+
+	static void CollectStats(FCookStatsManager::AddStatFuncRef AddStat)
+	{
+		const FString StatName(TEXT("Cook.Profile"));
+		TArray<FCookStatsManager::KeyValue> Attrs;
+		#define ADD_COOK_STAT_FLT(Path, Name) AddStat(StatName, FCookStatsManager::CreateKeyValueArray(TEXT("Path"), TEXT(Path), TEXT(#Name), Name))
+		ADD_COOK_STAT_FLT(" 0", CookWallTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0", StartupWallTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0", NewCookTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 0", StartCookByTheBookTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 1", TickCookOnTheSideTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 0", TickCookOnTheSideLoadPackagesTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 1", TickCookOnTheSideResolveRedirectorsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 2", TickCookOnTheSideSaveCookedPackageTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 3", TickCookOnTheSideBeginPackageCacheForCookedPlatformDataTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 1. 4", TickCookOnTheSideFinishPackageCacheForCookedPlatformDataTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 2", TickLoopGCTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 3", TickLoopRecompileShaderRequestsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 4", TickLoopShaderProcessAsyncResultsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 5", TickLoopProcessDeferredCommandsTimeSec);
+		ADD_COOK_STAT_FLT(" 0. 0. 0. 6", TickLoopTickCommandletStatsTimeSec);
+		#undef ADD_COOK_STAT_FLT
+	}
+	FCookStatsManager::FAutoRegisterCallback RegisterCookStats(&CollectStats);
+
+	/** Gathers the cook stats registered with the FCookStatsManager delegate and logs them as a CSV. */
+	static void LogCookStats(const FString& CookCmdLine)
+	{
+		// Optionally create an analytics provider to send stats to for central collection.
+		TSharedPtr<IAnalyticsProvider> CookAnalytics;
+		if (GIsBuildMachine || FParse::Param(FCommandLine::Get(), TEXT("SendCookAnalytics")))
+		{
+			FAnalyticsET::Config Config;
+			// This value is set by an INI private to Epic.
+			if (GConfig->GetString(TEXT("CookAnalytics"), TEXT("APIServer"), Config.APIServerET, GEngineIni))
+			{
+				Config.UseLegacyProtocol = true;
+				Config.APIKeyET = TEXT("Cook");
+				CookAnalytics = FAnalyticsET::Get().CreateAnalyticsProvider(Config);
+			}
+		}
+		if (CookAnalytics.IsValid())
+		{
+			CookAnalytics->SetUserID(FString(FPlatformProcess::ComputerName()) + FString(TEXT("\\")) + FString(FPlatformProcess::UserName(false)));
+			TArray<FAnalyticsEventAttribute> Attrs;
+			Attrs.Emplace(TEXT("Project"), CookProject);
+			Attrs.Emplace(TEXT("CmdLine"), CookCmdLine);
+			Attrs.Emplace(TEXT("IsBuildMachine"), GIsBuildMachine);
+			Attrs.Emplace(TEXT("TargetPlatforms"), TargetPlatforms);
+			CookAnalytics->StartSession(Attrs);
+		}
+
+		/** this functor will take a collected cooker stat and log it out, optionally sending it to a configured analytics provider. */
+		auto LogAndSendAnalytics = [=](const FString& StatName, const TArray<FCookStatsManager::KeyValue>& StatAttributes)
+		{
+			FString LogLine = StatName;
+			// log each key/value pair, with the equal signs lined up.
+			for (const auto& Attr : StatAttributes)
+			{
+				LogLine += FString::Printf(TEXT(",%s=%s"), *Attr.Key, *Attr.Value);
+			}
+			UE_LOG(LogCookCommandlet, Display, TEXT("%s"), *LogLine);
+			// convert to an analytics event
+			if (CookAnalytics.IsValid())
+			{
+				TArray<FAnalyticsEventAttribute> Attrs;
+				Attrs.Reset(StatAttributes.Num());
+				for (const auto& Attr : StatAttributes)
+				{
+					Attrs.Emplace(Attr.Key, Attr.Value);
+				}
+				CookAnalytics->RecordEvent(StatName, Attrs);
+			}
+		};
+
+		UE_LOG(LogCookCommandlet, Display, TEXT("CookStats"));
+		UE_LOG(LogCookCommandlet, Display, TEXT("---------"));
+		FCookStatsManager::LogCookStats(LogAndSendAnalytics);
+	}
+}
+#endif
 
 UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -500,6 +607,7 @@ void UCookCommandlet::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 
 int32 UCookCommandlet::Main(const FString& CmdLineParams)
 {
+	COOK_STAT(double CookStartTime = FPlatformTime::Seconds());
 	Params = CmdLineParams;
 	ParseCommandLine(*Params, Tokens, Switches);
 
@@ -522,6 +630,8 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 			LastGCItems.Add(FWeakObjectPtr(*It));
 		}
 	}
+
+	COOK_STAT(DetailedCookStats::CookProject = FApp::GetGameName());
 
 	if ( bCookOnTheFly )
 	{
@@ -562,6 +672,15 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		{
 			NewCook(Platforms, FilesInPath );
 		}
+
+		// Use -LogCookStats to log the results to the command line after the cook (happens automatically on a build machine)
+		COOK_STAT(
+		{
+			double Now = FPlatformTime::Seconds();
+			DetailedCookStats::CookWallTimeSec = Now - GStartTime;
+			DetailedCookStats::StartupWallTimeSec = CookStartTime - GStartTime;
+			DetailedCookStats::LogCookStats(CmdLineParams);
+		});
 	}
 	
 	return 0;
@@ -994,7 +1113,7 @@ void UCookCommandlet::GenerateLongPackageNames(TArray<FString>& FilesInPath)
 
 bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray<FString>& FilesInPath )
 {
-
+	COOK_STAT(FScopedDurationTimer NewCookTimer(DetailedCookStats::NewCookTimeSec));
 	UCookOnTheFlyServer *CookOnTheFlyServer = NewObject<UCookOnTheFlyServer>();
 
 	struct FScopeRootObject
@@ -1207,7 +1326,21 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	StartupOptions.ChildCookIdentifier = ChildCookIdentifier;
 	StartupOptions.NumProcesses = NumProcesses;
 
-	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
+	COOK_STAT(
+	{
+		for (const auto& Platform : Platforms)
+		{
+			DetailedCookStats::TargetPlatforms += Platform->PlatformName() + TEXT("+");
+		}
+		if (!DetailedCookStats::TargetPlatforms.IsEmpty())
+		{
+			DetailedCookStats::TargetPlatforms.RemoveFromEnd(TEXT("+"));
+		}
+	});
+	{
+		COOK_STAT(FScopedDurationTimer StartCookByTheBookTimer(DetailedCookStats::StartCookByTheBookTimeSec));
+		CookOnTheFlyServer->StartCookByTheBook(StartupOptions);
+	}
 
 	// Garbage collection should happen when either
 	//	1. We have cooked a map (configurable asset type)
@@ -1242,7 +1375,10 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			}
 
 
-			GShaderCompilingManager->ProcessAsyncResults( true, false );
+			{
+				COOK_STAT(FScopedDurationTimer ShaderProcessAsyncTimer(DetailedCookStats::TickLoopShaderProcessAsyncResultsTimeSec));
+				GShaderCompilingManager->ProcessAsyncResults(true, false);
+			}
 
 			if (NonMapPackageCountSinceLastGC > 0)
 			{
@@ -1265,20 +1401,27 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 
 				UE_LOG( LogCookCommandlet, Display, TEXT( "GC..." ) );
 
+				COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
 				CollectGarbage(RF_NoFlags);
 			}
 			else
 			{
+				COOK_STAT(FScopedDurationTimer RecompileTimer(DetailedCookStats::TickLoopRecompileShaderRequestsTimeSec));
 				CookOnTheFlyServer->TickRecompileShaderRequests();
 
 				FPlatformProcess::Sleep( 0.0f );
 			}
 
-
-			ProcessDeferredCommands();
+			{
+				COOK_STAT(FScopedDurationTimer ProcessDeferredCommandsTimer(DetailedCookStats::TickLoopProcessDeferredCommandsTimeSec));
+				ProcessDeferredCommands();
+			}
 		}
 
-		FStats::TickCommandletStats();
+		{
+			COOK_STAT(FScopedDurationTimer TickCommandletStatsTimer(DetailedCookStats::TickLoopTickCommandletStatsTimeSec));
+			FStats::TickCommandletStats();
+		}
 	}
 
 	return true;

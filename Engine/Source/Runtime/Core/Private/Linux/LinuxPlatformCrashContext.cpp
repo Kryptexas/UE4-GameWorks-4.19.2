@@ -5,6 +5,7 @@
 #include "Misc/App.h"
 #include "EngineVersion.h"
 #include "PlatformMallocCrash.h"
+#include "LinuxPlatformRunnableThread.h"
 
 #include <sys/utsname.h>	// for uname()
 #include <signal.h>
@@ -204,7 +205,7 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
 /** 
  * Mimics Windows WER format
  */
-void GenerateWindowsErrorReport(const FString & WERPath)
+void GenerateWindowsErrorReport(const FString & WERPath, bool bReportingNonCrash)
 {
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*WERPath);
 	if (ReportFile != NULL)
@@ -252,6 +253,7 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("\t\t<Parameter1>6.1.7601.2.1.0.256.48</Parameter1>"));
 		WriteLine(ReportFile, TEXT("\t\t<Parameter2>1033</Parameter2>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<DeploymentName>%s</DeploymentName>"), FApp::GetDeploymentName()));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bReportingNonCrash ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 
 		WriteLine(ReportFile, TEXT("\t<SystemInformation>"));
@@ -381,7 +383,7 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 		GenerateReport(FPaths::Combine(*CrashInfoFolder, TEXT("Diagnostics.txt")));
 
 		// generate "WER"
-		GenerateWindowsErrorReport(FPaths::Combine(*CrashInfoFolder, TEXT("wermeta.xml")));
+		GenerateWindowsErrorReport(FPaths::Combine(*CrashInfoFolder, TEXT("wermeta.xml")), bReportingNonCrash);
 
 		// generate "minidump" (just >1 byte)
 		GenerateMinidump(FPaths::Combine(*CrashInfoFolder, TEXT("minidump.dmp")));
@@ -457,12 +459,14 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 	if (!bReportingNonCrash)
 	{
 		// remove the handler for this signal and re-raise it (which should generate the proper core dump)
-		UE_LOG(LogLinux, Log, TEXT("Engine crash handling finished; re-raising signal %d for the default handler. Good bye."), Signal);
+		// print message to stdout directly, it may be too late for the log (doesn't seem to be printed during a crash in the thread) 
+		printf("Engine crash handling finished; re-raising signal %d for the default handler. Good bye.\n", Signal);
+		fflush(stdout);
 
 		struct sigaction ResetToDefaultAction;
 		FMemory::Memzero(ResetToDefaultAction);
 		ResetToDefaultAction.sa_handler = SIG_DFL;
-		sigemptyset(&ResetToDefaultAction.sa_mask);
+		sigfillset(&ResetToDefaultAction.sa_mask);
 		sigaction(Signal, &ResetToDefaultAction, nullptr);
 
 		raise(Signal);
@@ -524,28 +528,96 @@ void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
 void FLinuxPlatformMisc::SetGracefulTerminationHandler()
 {
 	struct sigaction Action;
-	FMemory::Memzero(&Action, sizeof(struct sigaction));
+	FMemory::Memzero(Action);
 	Action.sa_sigaction = GracefulTerminationHandler;
-	sigemptyset(&Action.sa_mask);
+	sigfillset(&Action.sa_mask);
 	Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
-	sigaction(SIGINT, &Action, NULL);
-	sigaction(SIGTERM, &Action, NULL);
-	sigaction(SIGHUP, &Action, NULL);	//  this should actually cause the server to just re-read configs (restart?)
+	sigaction(SIGINT, &Action, nullptr);
+	sigaction(SIGTERM, &Action, nullptr);
+	sigaction(SIGHUP, &Action, nullptr);	//  this should actually cause the server to just re-read configs (restart?)
 }
+
+// reserve stack for the main thread in BSS
+char FRunnableThreadLinux::MainThreadSignalHandlerStack[FRunnableThreadLinux::EConstants::CrashHandlerStackSize];
 
 void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
 {
 	GCrashHandlerPointer = CrashHandler;
 
+	// This table lists all signals that we handle. 0 is not a valid signal, it is used as a separator: everything 
+	// before is considered a crash and handled by the crash handler; everything above it is handled elsewhere 
+	// and also omitted from setting to ignore
+	int HandledSignals[] = 
+	{
+		// signals we consider crashes
+		SIGQUIT, 
+		SIGILL, 
+		SIGFPE, 
+		SIGBUS, 
+		SIGSEGV, 
+		SIGSYS,
+		0,	// marks the end of crash signals
+		SIGINT,
+		SIGTERM,
+		SIGHUP,
+		SIGCHLD
+	};
+
 	struct sigaction Action;
-	FMemory::Memzero(&Action, sizeof(struct sigaction));
-	Action.sa_sigaction = PlatformCrashHandler;
-	sigemptyset(&Action.sa_mask);
+	FMemory::Memzero(Action);
+	sigfillset(&Action.sa_mask);
 	Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
-	sigaction(SIGQUIT, &Action, NULL);	// SIGQUIT is a user-initiated "crash".
-	sigaction(SIGILL, &Action, NULL);
-	sigaction(SIGFPE, &Action, NULL);
-	sigaction(SIGBUS, &Action, NULL);
-	sigaction(SIGSEGV, &Action, NULL);
-	sigaction(SIGSYS, &Action, NULL);
+	Action.sa_sigaction = PlatformCrashHandler;
+
+	// install this handler for all the "crash" signals
+	for (int Signal : HandledSignals)
+	{
+		if (!Signal)
+		{
+			// hit the end of crash signals, the rest is already handled elsewhere
+			break;
+		}
+		sigaction(Signal, &Action, nullptr);
+	}
+
+	// reinitialize the structure, since assigning to both sa_handler and sa_sigacton is ill-advised
+	FMemory::Memzero(Action);
+	sigfillset(&Action.sa_mask);
+	Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
+	Action.sa_handler = SIG_IGN;
+
+	// set all the signals except ones we know we are handling to be ignored
+	for (int Signal = 1; Signal < NSIG; ++Signal)
+	{
+		bool bSignalShouldBeIgnored = true;
+		for (int HandledSignal : HandledSignals)
+		{
+			if (Signal == HandledSignal)
+			{
+				bSignalShouldBeIgnored = false;
+				break;
+			}
+		}
+
+		if (bSignalShouldBeIgnored)
+		{
+			sigaction(Signal, &Action, nullptr);
+		}
+	}
+
+	checkf(IsInGameThread(), TEXT("Crash handler should be set from the main thread only."));
+	stack_t SignalHandlerStack;
+	
+	FMemory::Memzero(SignalHandlerStack);
+	SignalHandlerStack.ss_sp = FRunnableThreadLinux::MainThreadSignalHandlerStack;
+	SignalHandlerStack.ss_size = sizeof(FRunnableThreadLinux::MainThreadSignalHandlerStack);
+
+	if (sigaltstack(&SignalHandlerStack, nullptr) < 0)
+	{
+		int ErrNo = errno;
+		UE_LOG(LogLinux, Warning, TEXT("Unable to set alternate stack for crash handler, sigaltstack() failed with errno=%d (%s)"),
+			ErrNo,
+			UTF8_TO_TCHAR(strerror(ErrNo))
+			);
+	}
 }

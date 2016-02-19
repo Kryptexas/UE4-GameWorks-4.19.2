@@ -421,6 +421,7 @@ public:
 		ActivePlayers.Reset();
 		bCanUseMarkerSync = false;
 		MontageLeaderWeight = 0.f;
+		MarkerTickContext = FMarkerTickContext();
 	}
 
 	// Checks the last tick record in the ActivePlayers array to see if it's a better leader than the current candidate.

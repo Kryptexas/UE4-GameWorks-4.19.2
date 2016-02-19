@@ -2097,36 +2097,57 @@ void FParticleRibbonEmitterInstance::UpdateSourceData(float DeltaTime, bool bFir
 	float TangentStrength;
 	// For each possible trail in this emitter, update it's source information
 	float ElapsedTime = RunningTime;//SecondsSinceCreation;
+	bool bCanBeValidParticleSource = ((SourceModule != NULL) && (SourceModule->SourceMethod == PET2SRCM_Particle));
 	for (int32 TrailIdx = 0; TrailIdx < MaxTrailCount; TrailIdx++)
 	{
 		bool bNewSource = (SourceIndices[TrailIdx] == -1);
 		if (ResolveSourcePoint(TrailIdx, Position, Rotation, Up, Tangent, TangentStrength) == true)
 		{
-			if ((bFirstTime == true) || 
-				((bNewSource == true) && ((SourceModule != NULL) && (SourceModule->SourceMethod == PET2SRCM_Particle))))
+			if (SourceIndices[TrailIdx] == -1 && bCanBeValidParticleSource)
 			{
+				//No valid particle for source so set all last and prev data to the same defaults. Stops issues with SpawnPerUnit trails having a segment back to the default location.
 				LastSourcePosition[TrailIdx] = Position;
-				LastSourceTangent[TrailIdx] = FVector::ZeroVector;//Component->LocalToWorld.TransformVector(FVector(1,0,0));
+				LastSourceTangent[TrailIdx] = Tangent;
 				LastSourceTangentStrength[TrailIdx] = TangentStrength;
+				LastSourceRotation[TrailIdx] = Rotation;
 				LastSourceUp[TrailIdx] = Up;
-				TrailSpawnTimes[TrailIdx] = RunningTime;
-			}
-			CurrentSourcePosition[TrailIdx] = Position;
-			CurrentSourceRotation[TrailIdx] = Rotation;
-			float ElapsedTimeSinceSpanwed = ElapsedTime - TrailSpawnTimes[TrailIdx];
-			if ( ElapsedTimeSinceSpanwed != 0.f )
-			{
-				CurrentSourceTangent[TrailIdx] = (CurrentSourcePosition[TrailIdx] - LastSourcePosition[TrailIdx]) / ElapsedTimeSinceSpanwed;
+
+				CurrentSourcePosition[TrailIdx] = Position;
+				CurrentSourceTangent[TrailIdx] = Tangent;
+				CurrentSourceTangentStrength[TrailIdx] = TangentStrength;
+				CurrentSourceRotation[TrailIdx] = Rotation;
+				CurrentSourceUp[TrailIdx] = Up;
+
+				TrailSpawnTimes[TrailIdx] = 0.0f;				
 			}
 			else
 			{
-				CurrentSourceTangent[TrailIdx] = FVector(1.f, 0.f, 0.f);
-			}
-			CurrentSourceTangentStrength[TrailIdx] = TangentStrength;
-			CurrentSourceUp[TrailIdx] = Up;
-			if (bFirstTime == true)
-			{
-				LastSourceRotation[TrailIdx] = CurrentSourceRotation[TrailIdx];
+				if ((bFirstTime == true) || 
+					((bNewSource == true) && bCanBeValidParticleSource))
+				{
+					LastSourcePosition[TrailIdx] = Position;
+					LastSourceTangent[TrailIdx] = FVector::ZeroVector;//Component->LocalToWorld.TransformVector(FVector(1,0,0));
+					LastSourceTangentStrength[TrailIdx] = TangentStrength;
+					LastSourceUp[TrailIdx] = Up;
+					TrailSpawnTimes[TrailIdx] = RunningTime;
+				}
+				CurrentSourcePosition[TrailIdx] = Position;
+				CurrentSourceRotation[TrailIdx] = Rotation;
+				float ElapsedTimeSinceSpanwed = ElapsedTime - TrailSpawnTimes[TrailIdx];
+				if ( ElapsedTimeSinceSpanwed != 0.f )
+				{
+					CurrentSourceTangent[TrailIdx] = (CurrentSourcePosition[TrailIdx] - LastSourcePosition[TrailIdx]) / ElapsedTimeSinceSpanwed;
+				}
+				else
+				{
+					CurrentSourceTangent[TrailIdx] = FVector(1.f, 0.f, 0.f);
+				}
+				CurrentSourceTangentStrength[TrailIdx] = TangentStrength;
+				CurrentSourceUp[TrailIdx] = Up;
+				if (bFirstTime == true)
+				{
+					LastSourceRotation[TrailIdx] = CurrentSourceRotation[TrailIdx];
+				}
 			}
 		}
 	}
@@ -2282,6 +2303,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 						//@todo. How to handle this... can potentially cause a jump from the emitter to the
 						// particle...
 						SourceTimes[InTrailIdx] = 0.0f;
+						SourceIndices[InTrailIdx] = -1;//No valid particle source;
 					}
 					OutTangentStrength = OutTangent.SizeSquared();
 					//@todo. Allow particle rotation to define up??

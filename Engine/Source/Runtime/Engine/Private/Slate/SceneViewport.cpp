@@ -1094,6 +1094,8 @@ void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMod
 
 		UpdateViewportRHI(false, NewSizeX, NewSizeY, NewWindowMode);
 
+		FSystemResolution::RequestResolutionChange(NewSizeX, NewSizeY, NewWindowMode);
+
 		if (ViewportClient)
 		{
 			// Invalidate, then redraw immediately so the user isn't left looking at an empty black viewport

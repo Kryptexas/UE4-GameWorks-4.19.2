@@ -33,7 +33,8 @@ public:
 
 	FAISenseID GetSenseID() const;
 	
-	float GetMaxAge() const { return MaxAge == 0.f ? FAIStimulus::NeverHappenedAge : MaxAge; }
+	void SetMaxAge(const float NewMaxAge) { MaxAge = NewMaxAge; }
+	float GetMaxAge() const { return MaxAge == 0.f ? FAIStimulus::NeverHappenedAge : MaxAge; }	
 	bool IsEnabled() const { return bStartsEnabled; }
 
 #if !UE_BUILD_SHIPPING

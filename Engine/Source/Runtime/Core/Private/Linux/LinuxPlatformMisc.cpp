@@ -48,11 +48,11 @@ namespace
 	void InstallChildExitedSignalHanlder()
 	{
 		struct sigaction Action;
-		FMemory::Memzero(&Action, sizeof(struct sigaction));
+		FMemory::Memzero(Action);
 		Action.sa_sigaction = EmptyChildHandler;
-		sigemptyset(&Action.sa_mask);
+		sigfillset(&Action.sa_mask);
 		Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
-		sigaction(SIGCHLD, &Action, NULL);
+		sigaction(SIGCHLD, &Action, nullptr);
 	}
 }
 

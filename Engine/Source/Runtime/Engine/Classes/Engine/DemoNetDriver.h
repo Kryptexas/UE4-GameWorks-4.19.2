@@ -90,10 +90,13 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	/** Public delegate for external systems to be notified when scrubbing is complete. Only called for successful scrub. */
 	FOnGotoTimeMCDelegate OnGotoTimeDelegate;
 
+	bool		IsLoadingCheckpoint() const { return bIsLoadingCheckpoint; }
+
 private:
 	bool		bIsFastForwarding;
 	bool		bIsFastForwardingForCheckpoint;
 	bool		bWasStartStreamingSuccessful;
+	bool		bIsLoadingCheckpoint;
 
 	TArray<FNetworkGUID> NonQueuedGUIDsForScrubbing;
 
@@ -131,6 +134,7 @@ public:
 	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const override;
 	virtual FNetworkGUID GetGUIDForActor(const AActor* InActor) const override;
 	virtual AActor* GetActorForGUID(FNetworkGUID InGUID) const override;
+	virtual bool ShouldReceiveRepNotifiesForObject(UObject* Object) const override;
 
 	/** 
 	 * Scrubs playback to the given time. 

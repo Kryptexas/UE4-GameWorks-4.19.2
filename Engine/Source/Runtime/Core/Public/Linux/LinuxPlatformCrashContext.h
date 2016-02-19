@@ -21,9 +21,6 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 	/** Whether backtrace was already captured */
 	bool bCapturedBacktrace;
 
-	/** Whether we're handling ensure() (prefer speed in this case). */
-	bool bHandlingEnsure;
-
 	/** Symbols received via backtrace_symbols(), if any (note that we will need to clean it up) */
 	char ** BacktraceSymbols;
 
@@ -38,11 +35,22 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 		,	Info(nullptr)
 		,	Context(nullptr)
 		,	bCapturedBacktrace(false)
-		,	bHandlingEnsure(false)
 		,	BacktraceSymbols(nullptr)
 	{
 		SignalDescription[ 0 ] = 0;
 		MinidumpCallstackInfo[ 0 ] = 0;
+	}
+
+	FLinuxCrashContext(bool bInIsEnsure)
+		: Signal(0)
+		, Info(nullptr)
+		, Context(nullptr)
+		, bCapturedBacktrace(false)
+		, BacktraceSymbols(nullptr)
+	{
+		SignalDescription[0] = 0;
+		MinidumpCallstackInfo[0] = 0;
+		bIsEnsure = bInIsEnsure;
 	}
 
 	~FLinuxCrashContext();
@@ -70,6 +78,11 @@ struct CORE_API FLinuxCrashContext : public FGenericCrashContext
 	 * @return If bReportingNonCrash is false, the function will not return
 	 */
 	void GenerateCrashInfoAndLaunchReporter(bool bReportingNonCrash = false) const;
+
+	/**
+	 * Sets whether this crash represents a non-crash event like an ensure
+	 */
+	void SetIsEnsure(bool bInIsEnsure) { bIsEnsure = bInIsEnsure; }
 
 protected:
 	/**

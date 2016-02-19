@@ -2088,7 +2088,7 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		}
 	}
 
-	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass());
+	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical/* && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass())*/;
 
 	//cap the WarmupTickRate to realistic values
 	if (WarmupTickRate <= 0)
@@ -2211,7 +2211,7 @@ void UParticleSystem::PostLoad()
 	}
 	}
 
-	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass());
+	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical /* && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass())*/;
 
 	if (LODSettings.Num() == 0)
 	{
@@ -3109,7 +3109,6 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 	WarmupTime = 0.0f;
 	SecondsBeforeInactive = 1.0f;
-	bAllowSecondsBeforeInactive = true;
 	bIsTransformDirty = false;
 	bSkipUpdateDynamicDataDuringTick = false;
 	bIsViewRelevanceDirty = true;
@@ -3137,7 +3136,8 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 	RequiredSignificance = EParticleSignificanceLevel::Low;
 	LastSignificantTime = 0.0f;
-	bIsSignificant = 1;
+	bIsManagingSignificance = 0;
+	bWasManagingSignificance = 0;
 }
 
 void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance)
@@ -3156,17 +3156,24 @@ void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLeve
 	if (!IsComponentTickEnabled() && Reaction == EParticleSystemInsignificanceReaction::DisableTick && Template->GetHighestSignificance() >= NewRequiredSignificance)
 	{
 		//Set us to be significant again.
-		OnSignificanceChanged(true, true);
+		OnSignificanceChanged(true, true, true);
 	}
 	}
 
-void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters)
+void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters, bool bAsync)
 {
 	int32 LocalNumSignificantEmitters = 0;
 	if (bSignificant)
 	{
-		SetComponentTickEnabled(true);
-		bIsSignificant = true;
+		if (bAsync)
+		{
+			SetComponentTickEnabledAsync(true);
+		}
+		else
+		{
+			SetComponentTickEnabled(true);
+		}
+
 		if (bApplyToEmitters && EmitterInstances.Num() > 0)
 		{
 			//Mark any emitters as significant if needed.
@@ -3197,8 +3204,15 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 	}
 	else
 	{
-		SetComponentTickEnabled(false);
-		bIsSignificant = false;
+		if (bAsync)
+		{
+			SetComponentTickEnabledAsync(false);
+		}
+		else
+		{
+			SetComponentTickEnabled(false);
+		}
+
 		if (bApplyToEmitters && EmitterInstances.Num() > 0)
 		{
 			//Mark any emitters as significant if needed.
@@ -3253,12 +3267,40 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 			break;
 		}
 	}
-	MarkRenderStateDirty();
 }
 
 bool UParticleSystemComponent::ShouldManageSignificance() const
 {
 	return Template ? Template->ShouldManageSignificance() : false;
+}
+
+float UParticleSystemComponent::GetApproxDistanceSquared(FVector Point) const
+{
+	return Bounds.ComputeSquaredDistanceFromBoxToPoint(Point);
+	//TODO: Consider beam line segment?
+}
+
+bool UParticleSystemComponent::CanBeOccluded()const
+{
+	return Template->OcclusionBoundsMethod != EPSOBM_None && 
+		(Template->FixedRelativeBoundingBox.IsValid || (Template->OcclusionBoundsMethod == EPSOBM_CustomBounds)); //We can only be occluded if we have fixed bounds or custom occlusion bounds.
+}
+
+bool UParticleSystemComponent::CanConsiderInvisible()const
+{
+	if (World)
+	{
+		const float MaxSecondsBeforeInactive = FMath::Max(SecondsBeforeInactive, Template->SecondsBeforeInactive);
+
+		// Clamp MaxSecondsBeforeInactive to be at least twice the maximum smoothed frame time (45.45ms) because the rendering thread runs one 
+		// frame behind the game thread and so smaller time differences cannot be reliably detected.
+		const float ClampedMaxSecondsBeforeInactive = MaxSecondsBeforeInactive > 0 ? FMath::Max(MaxSecondsBeforeInactive, 0.1f) : 0.0f;
+		if (ClampedMaxSecondsBeforeInactive > 0.0f && AccumTickTime > ClampedMaxSecondsBeforeInactive && World->IsGameWorld())
+		{
+			return World->GetTimeSeconds() > (LastRenderTime + ClampedMaxSecondsBeforeInactive);
+		}
+	}
+	return false;
 }
 
 #if WITH_EDITOR
@@ -3707,6 +3749,8 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 FParticleDynamicData* UParticleSystemComponent::CreateDynamicData()
 {
 	//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_CreateDynamicData);
+
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
 
 	// Only proceed if we have any live particles or if we're actively replaying/capturing
 	if (EmitterInstances.Num() > 0)
@@ -4242,8 +4286,7 @@ DECLARE_CYCLE_STAT(TEXT("PSys Comp Marshall Time"),STAT_UParticleSystemComponent
 
 void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	bool bManagingSignificance = ShouldManageSignificance();
-	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
 
 	if (Template == nullptr || Template->Emitters.Num() == 0)
 	{
@@ -4263,6 +4306,12 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 	SCOPE_CYCLE_COUNTER(STAT_PSysCompTickTime);
+
+	if (bWasManagingSignificance != bIsManagingSignificance)
+	{	
+		bWasManagingSignificance = bIsManagingSignificance;
+		MarkRenderStateDirty();
+	}
 
 	bool bDisallowAsync = false;
 
@@ -4346,34 +4395,22 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 	{
 		//For now, we're only allowing the SecondsBeforeInactive optimization on looping emitters as it can cause leaks with non-looping effects.
 		//Longer term, there is likely a better solution.
-		if (bAllowSecondsBeforeInactive && Template->IsLooping())
+		if (Template->IsLooping() && CanConsiderInvisible())
 		{
-			const float MaxSecondsBeforeInactive = FMath::Max(SecondsBeforeInactive, Template->SecondsBeforeInactive);
+			SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD_Inactive);
+			bForcedInActive = true;
+			SpawnEvents.Empty();
+			DeathEvents.Empty();
+			CollisionEvents.Empty();
+			KismetEvents.Empty();
 
-			// Clamp MaxSecondsBeforeInactive to be at least twice the maximum
-			// smoothed frame time (45.45ms) because the rendering thread runs one 
-			// frame behind the game thread and so smaller time differences cannot 
-			// be reliably detected.
-			const float ClampedMaxSecondsBeforeInactive = MaxSecondsBeforeInactive > 0 ? FMath::Max(MaxSecondsBeforeInactive, 0.1f) : 0;
-
-			if (ClampedMaxSecondsBeforeInactive > 0
-				&& AccumTickTime > ClampedMaxSecondsBeforeInactive//SecondsBeforeInactive
-				&&	GetWorld()->IsGameWorld())
+			if (bIsManagingSignificance && Template->GetHighestSignificance() < RequiredSignificance)
 			{
-				SCOPE_CYCLE_COUNTER(STAT_UParticleSystemComponent_LOD_Inactive);
-				const float CurrentTimeSeconds = World->GetTimeSeconds();
-				if (CurrentTimeSeconds > (LastRenderTime + ClampedMaxSecondsBeforeInactive))
-				{
-					bForcedInActive = true;
-
-					SpawnEvents.Empty();
-					DeathEvents.Empty();
-					CollisionEvents.Empty();
-					KismetEvents.Empty();
-
-					return;
-				}
+				//We're definitely insignificant so we can stop ticking entirely.
+				OnSignificanceChanged(false, true);
 			}
+
+			return;
 		}
 
 		AccumLODDistanceCheckTime += DeltaTime;
@@ -4533,8 +4570,7 @@ int32 UParticleSystemComponent::GetCurrentDetailMode() const
 
 void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 {
-	bool bLocalShouldManageSignificance = ShouldManageSignificance();
-	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, IsInGameThread() ? EInGamePerfTrackerThreads::GameThread : EInGamePerfTrackerThreads::OtherThread, bLocalShouldManageSignificance);
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, IsInGameThread() ? EInGamePerfTrackerThreads::GameThread : EInGamePerfTrackerThreads::OtherThread, bIsManagingSignificance);
 
 	SCOPE_CYCLE_COUNTER(STAT_ParticleComputeTickTime);
 	FScopeCycleCounterUObject AdditionalScope(AdditionalStatObject(), GET_STATID(STAT_ParticleComputeTickTime));
@@ -4559,7 +4595,7 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 			UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
 			if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 			{
-				if (bLocalShouldManageSignificance)
+				if (bIsManagingSignificance)
 				{
 					bool bEmitterIsSignificant = Instance->SpriteTemplate->IsSignificant(RequiredSignificance);
 					if (bEmitterIsSignificant)
@@ -4609,8 +4645,7 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 
 void UParticleSystemComponent::FinalizeTickComponent()
 {
-	bool bLocalShouldManageSignificance = ShouldManageSignificance();
-	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bLocalShouldManageSignificance);
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, IsInGameThread() ? EInGamePerfTrackerThreads::GameThread : EInGamePerfTrackerThreads::OtherThread, bIsManagingSignificance);
 
 	SCOPE_CYCLE_COUNTER(STAT_ParticleFinalizeTickTime);
 
@@ -4675,9 +4710,9 @@ void UParticleSystemComponent::FinalizeTickComponent()
 	float CurrTime = GetWorld()->GetTimeSeconds();
 
 	//Are we still significant?
-	if ((bIsActive && !bWasDeactivated) && bLocalShouldManageSignificance && NumSignificantEmitters == 0 && CurrTime >= LastSignificantTime + Template->InsignificanceDelay)
+	if ((bIsActive && !bWasDeactivated) && bIsManagingSignificance && NumSignificantEmitters == 0 && CurrTime >= LastSignificantTime + Template->InsignificanceDelay)
 	{
-		OnSignificanceChanged(false, false);
+		OnSignificanceChanged(false, true);
 	}
 	else
 	{
@@ -5057,9 +5092,6 @@ void UParticleSystemComponent::SetTemplate(class UParticleSystem* NewTemplate)
 
 void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 {
-	bool bManagingSignificance = ShouldManageSignificance();
-	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
-
 	SCOPE_CYCLE_COUNTER(STAT_ParticleActivateTime);
 	ForceAsyncWorkCompletion(STALL);
 
@@ -5134,15 +5166,19 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 			}
 		}
 
+		AccumTickTime = 0.0;
+
 		if (!bIsActive)
 		{
 			LastSignificantTime = GetWorld()->GetTimeSeconds();
-			bIsSignificant = true;
 			RequiredSignificance = EParticleSignificanceLevel::Low;
 
 		//Call this now after any attachment has happened.
 			OnSystemPreActivationChange.Broadcast(this, true);
 		}
+
+		//We start this here as before the PreActivation call above, we don't know if this component is managing significance or not.
+		FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
 
 		if (bFlagAsJustAttached)
 		{
@@ -5246,7 +5282,6 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 			WarmupTime = 0.0f;
 			bSkipUpdateDynamicDataDuringTick = bSaveSkipUpdate;
 		}
-		AccumTickTime = 0.0;
 	}
 
 	// Mark render state dirty to ensure the scene proxy is added and registered with the scene.
@@ -5258,7 +5293,7 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 	}
 
 	//We are definitely insignificant already so set insignificant before we ever begin ticking.
-	if (bManagingSignificance && Template->GetHighestSignificance() < RequiredSignificance && Template->InsignificanceDelay == 0.0f)
+	if (bIsManagingSignificance && Template->GetHighestSignificance() < RequiredSignificance && Template->InsignificanceDelay == 0.0f)
 	{
 		OnSignificanceChanged(false, true);
 	}
@@ -5289,8 +5324,7 @@ void UParticleSystemComponent::Complete()
 
 void UParticleSystemComponent::DeactivateSystem()
 {
-	bool bManagingSignificance = ShouldManageSignificance();
-	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bManagingSignificance);
+	FInGameScopedCycleCounter InGameCycleCounter(GetWorld(), EInGamePerfTrackers::VFXSignificance, EInGamePerfTrackerThreads::GameThread, bIsManagingSignificance);
 
 	if (IsTemplate() == true)
 	{

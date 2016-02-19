@@ -777,6 +777,14 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	return 0.f;
 }
 
+void UGameplayAbility::InvalidateClientPredictionKey() const
+{
+	if (CurrentActorInfo && CurrentActorInfo->AbilitySystemComponent.IsValid())
+	{
+		CurrentActorInfo->AbilitySystemComponent->ScopedPredictionKey = FPredictionKey();
+	}
+}
+
 void UGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, float& TimeRemaining, float& CooldownDuration) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemainingAndDuration);

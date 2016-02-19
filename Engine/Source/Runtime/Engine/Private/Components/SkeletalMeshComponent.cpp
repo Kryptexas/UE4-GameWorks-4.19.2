@@ -1393,7 +1393,7 @@ FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWor
 		FBoxSphereBounds NewBounds = CalcMeshBound( RootBoneOffset, bHasValidBodies, LocalToWorld );
 
 #if WITH_APEX_CLOTHING
-		AddClothingBounds(NewBounds);
+		AddClothingBounds(NewBounds, LocalToWorld);
 #endif// #if WITH_APEX_CLOTHING
 
 		bCachedLocalBoundsUpToDate = true;

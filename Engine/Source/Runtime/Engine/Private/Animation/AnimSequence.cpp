@@ -4432,7 +4432,11 @@ void UAnimSequence::ValidateCurrentPosition(const FMarkerSyncAnimPosition& Posit
 	checkSlow(MarkerMatchesPosition(this, PreviousMarker.MarkerIndex, Position.PreviousMarkerName));
 	checkSlow(MarkerMatchesPosition(this, NextMarker.MarkerIndex, Position.NextMarkerName));
 
-	CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, Position.PositionBetweenMarkers);
+	// Only reset position if we found valid markers. Otherwise stay where we are to not pop.
+	if ((PreviousMarker.MarkerIndex != MarkerIndexSpecialValues::AnimationBoundary) && (NextMarker.MarkerIndex != MarkerIndexSpecialValues::AnimationBoundary))
+	{
+		CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, Position.PositionBetweenMarkers);
+	}
 }
 
 void UAnimSequence::AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Context, float DeltaRemaining, bool bLooping, float& CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const
@@ -4482,8 +4486,13 @@ void UAnimSequence::AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Conte
 		{
 			check(AuthoredSyncMarkers[NextMarker.MarkerIndex].MarkerName == End.NextMarkerName);
 		}
-		//End Validation
-		CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+
+		// End Validation
+		// Only reset position if we found valid markers. Otherwise stay where we are to not pop.
+		if ((PreviousMarker.MarkerIndex != MarkerIndexSpecialValues::AnimationBoundary) && (NextMarker.MarkerIndex != MarkerIndexSpecialValues::AnimationBoundary))
+		{
+			CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+		}
 	}
 	else
 	{
@@ -4492,7 +4501,7 @@ void UAnimSequence::AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Conte
 		{
 			if (PreviousMarker.MarkerIndex == -1)
 			{
-				check(!bLooping || Context.GetMarkerSyncEndPosition().PreviousMarkerName == NAME_None); // shouldnt have an end of anim marker if looping
+				check(!bLooping || Context.GetMarkerSyncEndPosition().PreviousMarkerName == NAME_None); // shouldn't have an end of anim marker if looping
 				CurrentTime = FMath::Max(CurrentTime + DeltaRemaining, 0.f);
 				break;
 			}
@@ -4527,8 +4536,13 @@ void UAnimSequence::AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Conte
 		{
 			check(AuthoredSyncMarkers[PreviousMarker.MarkerIndex].MarkerName == End.PreviousMarkerName);
 		}
-		//End Validation
-		CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+
+		// End Validation
+		// Only reset position if we found valid markers. Otherwise stay where we are to not pop.
+		if ((PreviousMarker.MarkerIndex != MarkerIndexSpecialValues::AnimationBoundary) && (NextMarker.MarkerIndex != MarkerIndexSpecialValues::AnimationBoundary))
+		{
+			CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+		}
 	}
 }
 
@@ -4634,6 +4648,31 @@ float UAnimSequence::GetCurrentTimeFromMarkers(FMarkerPair& PrevMarker, FMarkerP
 
 void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& SyncPosition, bool bLooping, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float& OutCurrentTime) const
 {
+	// If we're not looping, assume we're playing a transition and we need to stay where we are.
+	if (!bLooping)
+	{
+		OutPrevMarker.MarkerIndex = -1;
+		OutNextMarker.MarkerIndex = -1;
+
+		for (int32 Idx = 0; Idx<AuthoredSyncMarkers.Num(); Idx++)
+		{
+			const float MarkerTime = AuthoredSyncMarkers[Idx].Time;
+			if (OutCurrentTime > MarkerTime)
+			{
+				OutPrevMarker.MarkerIndex = Idx;
+				OutPrevMarker.TimeToMarker = MarkerTime - OutCurrentTime;
+			}
+			else if (OutCurrentTime < MarkerTime)
+			{
+				OutNextMarker.MarkerIndex = Idx;
+				OutNextMarker.TimeToMarker = MarkerTime - OutCurrentTime;
+				break;
+			}
+		}
+
+		return;
+	}
+
 	if (SyncPosition.PreviousMarkerName == NAME_None)
 	{
 		OutPrevMarker.MarkerIndex = -1;

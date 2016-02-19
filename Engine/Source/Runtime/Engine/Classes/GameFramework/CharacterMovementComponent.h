@@ -534,6 +534,10 @@ protected:
 	UPROPERTY()
 	FVector LastUpdateVelocity;
 
+	/** Timestamp when location or rotation last changed during an update. Only valid on the server. */
+	UPROPERTY(Transient)
+	float ServerLastTransformUpdateTimeStamp;
+
 	/** Accumulated impulse to be added next tick. */
 	UPROPERTY()
 	FVector PendingImpulseToApply;
@@ -552,6 +556,9 @@ protected:
 	virtual float ComputeAnalogInputModifier() const;
 
 public:
+
+	/** Get the value of ServerLastTransformUpdateTimeStamp. */
+	FORCEINLINE float GetServerLastTransformUpdateTimeStamp() const { return ServerLastTransformUpdateTimeStamp;  }
 
 	/**
 	 * Compute remaining time step given remaining time and current iterations.
@@ -2268,8 +2275,14 @@ public:
 	/** Used to track time of last correction */
 	float LastCorrectionTime;
 
+	/** Used to track the timestamp of the last server move. */
+	double SmoothingServerTimeStamp;
+
+	/** Used to track the client time as we try to match the server.*/
+	double SmoothingClientTimeStamp;
+
 	/** Used to track how much time has elapsed since last correction. It can be computed as World->TimeSince(LastCorrectionTime). */
-	DEPRECATED(4.11, "bUseLinearSmoothing will be removed, use LastCorrectionTime instead.")
+	DEPRECATED(4.11, "CurrentSmoothTime will be removed, use LastCorrectionTime instead.")
 	float CurrentSmoothTime;
 
 	/** Used to signify that linear smoothing is desired */

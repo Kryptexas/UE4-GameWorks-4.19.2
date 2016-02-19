@@ -2720,8 +2720,7 @@ TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject
 			// Still didn't find one, need to create
 			UE_LOG( LogNetTraffic, Log, TEXT( "Creating Replicator for %s" ), *Obj->GetName() );
 
-			NewReplicator = TSharedRef<FObjectReplicator>(new FObjectReplicator());
-			NewReplicator->InitWithObject( Obj, Connection, true );
+			NewReplicator = Connection->CreateReplicatorForNewActorChannel(Obj);
 		}
 		else
 		{

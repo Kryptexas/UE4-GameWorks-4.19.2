@@ -38,6 +38,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogSkeletalGPUSkinMesh, Warning, All);
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Update"),STAT_MorphVertexBuffer_Update,STATGROUP_MorphTarget);
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Init"),STAT_MorphVertexBuffer_Init,STATGROUP_MorphTarget);
 DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Apply Delta"),STAT_MorphVertexBuffer_ApplyDelta,STATGROUP_MorphTarget);
+DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer Alloc"), STAT_MorphVertexBuffer_Alloc, STATGROUP_MorphTarget);
+DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer RHI Lock and copy"), STAT_MorphVertexBuffer_RhiLockAndCopy, STATGROUP_MorphTarget);
+DECLARE_CYCLE_STAT(TEXT("Morph Vertex Buffer RHI Unlock"), STAT_MorphVertexBuffer_RhiUnlock, STATGROUP_MorphTarget);
 
 static TAutoConsoleVariable<int32> CVarMotionBlurDebug(
 	TEXT("r.MotionBlurDebug"),
@@ -397,7 +400,11 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 		FStaticLODModel& LodModel = SkelMeshResource->LODModels[LODIndex];
 		uint32 Size = LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
 
-		FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)FMemory::Malloc(Size);
+		FMorphGPUSkinVertex* Buffer = nullptr;
+		{
+			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Alloc)
+			Buffer = (FMorphGPUSkinVertex*)FMemory::Malloc(Size);
+		}
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Init);
@@ -473,14 +480,20 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 		} // ApplyDelta
 
 		// Lock the real buffer.
-		FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
-		FMemory::Memcpy(ActualBuffer, Buffer, Size);
-		FMemory::Free(Buffer);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_RhiLockAndCopy)
+			FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
+			FMemory::Memcpy(ActualBuffer, Buffer, Size);
+			FMemory::Free(Buffer);
+		}
 
-		// Unlock the buffer.
-		RHIUnlockVertexBuffer(MorphVertexBuffer.VertexBufferRHI);
-		// set update flag
-		MorphVertexBuffer.bHasBeenUpdated = true;
+		{
+			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_RhiUnlock)
+			// Unlock the buffer.
+			RHIUnlockVertexBuffer(MorphVertexBuffer.VertexBufferRHI);
+			// set update flag
+			MorphVertexBuffer.bHasBeenUpdated = true;
+		}
 	}
 }
 

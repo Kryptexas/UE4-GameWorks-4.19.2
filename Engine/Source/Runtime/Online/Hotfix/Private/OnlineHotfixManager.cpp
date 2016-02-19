@@ -121,7 +121,8 @@ void UOnlineHotfixManager::Cleanup()
 void UOnlineHotfixManager::StartHotfixProcess()
 {
 	// Patching the editor this way seems like a bad idea
-	if (!IsRunningGame())
+	bool bShouldHotfix = IsRunningGame() || IsRunningDedicatedServer() || IsRunningClientOnly();
+	if (!bShouldHotfix)
 	{
 		UE_LOG(LogHotfixManager, Warning, TEXT("Hotfixing skipped due to IsRunningGame() == false"));
 		TriggerHotfixComplete(EHotfixResult::SuccessNoChange);

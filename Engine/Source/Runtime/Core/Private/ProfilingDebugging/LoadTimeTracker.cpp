@@ -52,6 +52,15 @@ void FLoadTimeTracker::DumpLoadTimes()
 	UE_LOG(LogLoad, Log, TEXT("Total Load times: %f"), TotalTime);
 }
 
+void FLoadTimeTracker::ResetLoadTimes()
+{
+	static bool bActuallyReset = !FParse::Param(FCommandLine::Get(), TEXT("-NoLoadTrackClear"));
+	if(bActuallyReset)
+	{
+		TimeInfo.Reset();
+	}
+}
+
 static FAutoConsoleCommand LoadTimerDumpCmd(
 	TEXT("LoadTimes.DumpTracking"),
 	TEXT("Dump high level load times being tracked"),

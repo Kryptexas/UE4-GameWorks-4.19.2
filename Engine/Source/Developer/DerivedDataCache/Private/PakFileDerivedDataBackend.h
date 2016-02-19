@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Compression.h"
+#include "DerivedDataCacheUsageStats.h"
 
 /** 
  * A simple thread safe, pak file based backend. 
@@ -88,8 +89,14 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimeProbablyExists());
 		FScopeLock ScopeLock(&SynchronizationObject);
-		return CacheItems.Contains(FString(CacheKey));
+		bool Result = CacheItems.Contains(FString(CacheKey));
+		if (Result)
+		{
+			COOK_STAT(Timer.AddHit(0));
+		}
+		return Result;
 	}
 	/**
 	 * Synchronous retrieve of a cache item
@@ -100,6 +107,7 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimeGet());
 		if (bWriting || bClosed)
 		{
 			return false;
@@ -130,6 +138,7 @@ public:
 				{
 					UE_LOG(LogDerivedDataCache, Verbose, TEXT("FPakFileDerivedDataBackend: Cache hit on %s"), CacheKey);
 					check(OutData.Num());
+					COOK_STAT(Timer.AddHit(OutData.Num()));
 					return true;
 				}
 			}
@@ -150,6 +159,7 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
+		COOK_STAT(auto Timer = UsageStats.TimePut());
 		if (!bWriting || bClosed)
 		{
 			return;
@@ -174,6 +184,7 @@ public:
 				}
 				else
 				{
+					COOK_STAT(Timer.AddHit(InData.Num()));
 					FileHandle->Serialize(InData.GetData(), int64(InData.Num()));
 					UE_LOG(LogDerivedDataCache, Verbose, TEXT("FPakFileDerivedDataBackend: Put %s"), CacheKey);
 					CacheItems.Add(Key,FCacheValue(Offset, InData.Num(), Crc));
@@ -424,7 +435,13 @@ public:
 		return true;
 	}
 
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap, FString&& GraphPath) override
+	{
+		COOK_STAT(UsageStatsMap.Add(FString::Printf(TEXT("%s: %s.%s"), *GraphPath, TEXT("PakFile"), *Filename), UsageStats));
+	}
+
 private:
+	FDerivedDataCacheUsageStats UsageStats;
 
 	struct FCacheValue
 	{

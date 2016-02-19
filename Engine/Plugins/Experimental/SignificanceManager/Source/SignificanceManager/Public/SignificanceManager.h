@@ -62,7 +62,7 @@ class SIGNIFICANCEMANAGER_API USignificanceManager : public UObject
 
 public:
 	typedef TFunction<float(UObject*, const FTransform&)> FSignificanceFunction;
-	typedef TFunction<void(UObject*, float, float)> FPostSignificanceFunction;
+	typedef TFunction<void(UObject*, float, float, bool)> FPostSignificanceFunction;
 
 	struct FManagedObjectInfo
 	{
@@ -75,7 +75,7 @@ public:
 		FManagedObjectInfo(UObject* InObject, FName InTag, FSignificanceFunction InSignificanceFunction, FPostSignificanceFunction InPostSignificanceFunction)
 			: Object(InObject)
 			, Tag(InTag)
-			, Significance(-1.0f)
+			, Significance(1.0f)
 			, SignificanceFunction(InSignificanceFunction)
 			, PostSignificanceFunction(InPostSignificanceFunction)
 		{
@@ -106,6 +106,7 @@ public:
 
 	// Begin UObject overrides
 	virtual void BeginDestroy() override;
+	virtual UWorld* GetWorld()const override;
 	// End UObject overrides
 
 	// Overridable function to update the managed objects' significance
@@ -148,10 +149,10 @@ public:
 		return CastChecked<T>(Get(World), ECastCheckedType::NullAllowed);
 	}
 
-protected:
-
 	// Returns the list of viewpoints currently being represented by the significance manager
 	const TArray<FTransform>& GetViewpoints() const { return Viewpoints; }
+protected:
+
 
 	// Whether the significance manager should be created on a client. Only used from CDO and 
 	uint32 bCreateOnClient:1;

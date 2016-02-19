@@ -183,52 +183,96 @@ FString FPrimaryCrashProperties::EncodeArrayStringAsXMLString( const TArray<FStr
 	return Encoded;
 }
 
-void FPrimaryCrashProperties::SendAnalytics()
+void FPrimaryCrashProperties::SendPreUploadAnalytics()
 {
-	// Connect the crash report client analytics provider.
-	FCrashReportAnalytics::Initialize();
-
-	IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
-
 	TArray<FAnalyticsEventAttribute> CrashAttributes;
 
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "bHasPrimaryData" ), bHasPrimaryData ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "CrashVersion" ), (int32)CrashVersion ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "CrashGUID" ), CrashGUID ) );
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("bHasPrimaryData"), bHasPrimaryData));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashVersion"), (int32)CrashVersion));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashGUID"), CrashGUID));
 
 	//	AppID = GameName
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "GameName" ), GameName ) );
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("GameName"), GameName));
 
 	//	AppVersion = EngineVersion
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EngineVersion" ), EngineVersion.ToString() ) );
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineVersion"), EngineVersion.ToString()));
 
 	// @see UpdateIDs()
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "MachineID" ), MachineId.AsString() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "UserName" ), UserName.AsString() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EpicAccountId" ), EpicAccountId.AsString() ) );
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"), MachineId.AsString()));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserName"), UserName.AsString()));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EpicAccountId"), EpicAccountId.AsString()));
 
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "Platform" ), PlatformFullName.AsString() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "TimeOfCrash" ), TimeOfCrash.AsString() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EngineMode" ), EngineMode ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "AppDefaultLocale" ), AppDefaultLocale ) );
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformFullName.AsString()));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeOfCrash"), TimeOfCrash.AsString()));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineMode"), EngineMode));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("AppDefaultLocale"), AppDefaultLocale));
 
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "UserActivityHint" ), UserActivityHint.AsString() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "GameSessionID" ), GameSessionID.AsString() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "DeploymentName" ), DeploymentName ) );
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserActivityHint"), UserActivityHint.AsString()));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("GameSessionID"), GameSessionID.AsString()));
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("DeploymentName"), DeploymentName));
 
-	Analytics.RecordEvent( TEXT( "CrashReportClient.ReportCrash" ), CrashAttributes );
-	// Shutdown analytics.
-	FCrashReportAnalytics::Shutdown();
+	if (FCrashReportAnalytics::IsAvailable())
+	{
+		// Connect the crash report client analytics provider.
+		IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
+
+		if (bIsEnsure)
+		{
+			Analytics.RecordEvent(TEXT("CrashReportClient.ReportEnsure"), CrashAttributes);
+		}
+		else
+		{
+			Analytics.RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
+		}
+	}
 
 	// duplicate the event to QoS Reporter
-	FQoSReporter::Initialize();
-	FQoSReporter::SetBackendDeploymentName(DeploymentName);
-
 	if (FQoSReporter::IsAvailable())
 	{
-		FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
+		if (bIsEnsure)
+		{
+			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportEnsure"), CrashAttributes);
+		}
+		else
+		{
+			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrash"), CrashAttributes);
+		}
 	}
-	FQoSReporter::Shutdown();
+}
+
+void FPrimaryCrashProperties::SendPostUploadAnalytics()
+{
+	TArray<FAnalyticsEventAttribute> CrashAttributes;
+
+	CrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashGUID"), CrashGUID));
+
+	if (FCrashReportAnalytics::IsAvailable())
+	{
+		// Connect the crash report client analytics provider.
+		IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
+
+		if (bIsEnsure)
+		{
+			Analytics.RecordEvent(TEXT("CrashReportClient.ReportEnsureUploaded"), CrashAttributes);
+		}
+		else
+		{
+			Analytics.RecordEvent(TEXT("CrashReportClient.ReportCrashUploaded"), CrashAttributes);
+		}
+	}
+
+	// duplicate the event to QoS Reporter
+	if (FQoSReporter::IsAvailable())
+	{
+		if (bIsEnsure)
+		{
+			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportEnsureUploaded"), CrashAttributes);
+		}
+		else
+		{
+			FQoSReporter::GetProvider().RecordEvent(TEXT("CrashReportClient.ReportCrashUploaded"), CrashAttributes);
+		}
+	}
 }
 
 void FPrimaryCrashProperties::Save()
@@ -280,6 +324,7 @@ FCrashContext::FCrashContext( const FString& CrashContextFilepath )
 		GetCrashProperty( EngineMode, FGenericCrashContext::RuntimePropertiesTag, TEXT( "EngineMode" ) );
 		GetCrashProperty( DeploymentName, FGenericCrashContext::RuntimePropertiesTag, TEXT( "DeploymentName" ) );
 		GetCrashProperty( AppDefaultLocale, FGenericCrashContext::RuntimePropertiesTag, TEXT( "AppDefaultLocale" ) );
+		GetCrashProperty( bIsEnsure, FGenericCrashContext::RuntimePropertiesTag, TEXT("IsEnsure"));
 
 		if (CrashDumpMode == ECrashDumpMode::FullDump)
 		{
@@ -399,6 +444,7 @@ FCrashWERContext::FCrashWERContext( const FString& WERXMLFilepath )
 		}
 
 		GetCrashProperty(DeploymentName, TEXT("DynamicSignatures"), TEXT("DeploymentName"));
+		GetCrashProperty(bIsEnsure, TEXT("DynamicSignatures"), TEXT("IsEnsure"));
 
 		bHasPrimaryData = true;
 	}

@@ -290,7 +290,7 @@ public:
 	UPartyGameState* GetPersistentParty() const;
 
 	/** Notify the party system that travel is occurring */
-	void NotifyPreClientTravel();
+	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);
 
 	/**
 	 * Party invites

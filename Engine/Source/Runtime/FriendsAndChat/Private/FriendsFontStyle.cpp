@@ -46,6 +46,12 @@ FFriendsFontStyle& FFriendsFontStyle::SetFontLargeBold(const FSlateFontInfo& Fon
 	return *this;
 }
 
+FFriendsFontStyle& FFriendsFontStyle::SetChatFont(const FSlateFontInfo& FontStyle)
+{
+	FriendsChatFont = FontStyle;
+	return *this;
+}
+
 FFriendsFontStyle& FFriendsFontStyle::SetDefaultFontColor(const FLinearColor& FontColor)
 {
 	DefaultFontColor = FontColor;

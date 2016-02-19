@@ -15,6 +15,9 @@
 #include "MoviePlayerSettings.h"
 #include "ShaderCompiler.h"
 
+
+DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
+
 class SDefaultMovieBorder : public SBorder
 {
 public:
@@ -114,6 +117,8 @@ void FDefaultGameMoviePlayer::SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlat
 
 void FDefaultGameMoviePlayer::Initialize()
 {
+	UE_LOG(LogMoviePlayer, Log, TEXT("Initializing movie player"));
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(RegisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
 	{
 		MoviePlayer->Register();
@@ -182,6 +187,8 @@ void FDefaultGameMoviePlayer::Initialize()
 
 void FDefaultGameMoviePlayer::Shutdown()
 {
+	UE_LOG(LogMoviePlayer, Log, TEXT("Shutting down movie player"));
+
 	StopMovie();
 	WaitForMovieToFinish();
 
@@ -209,14 +216,18 @@ void FDefaultGameMoviePlayer::Shutdown()
 		delete SyncMechanism;
 		SyncMechanism = NULL;
 	}
-
 }
+
 void FDefaultGameMoviePlayer::PassLoadingScreenWindowBackToGame() const
 {
-	auto GameEngine = Cast<UGameEngine>(GEngine);
+	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 	if (LoadingScreenWindowPtr.IsValid() && GameEngine)
 	{
 		GameEngine->GameViewportWindow = LoadingScreenWindowPtr;
+	}
+	else
+	{
+		UE_LOG(LogMoviePlayer, Warning, TEXT("PassLoadingScreenWindowBackToGame failed.  No Window") );
 	}
 }
 

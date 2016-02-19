@@ -2,6 +2,9 @@
 
 
 #pragma once
+
+class FDerivedDataCacheUsageStats;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogDerivedDataCache, Log, All);
 
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Gets"),STAT_DDC_NumGets,STATGROUP_DDC, );
@@ -68,6 +71,14 @@ public:
 	 * @param	bTransient	true if the data is transient and it is up to the backend to decide when and if to remove cached data.
 	 */
 	virtual void RemoveCachedData(const TCHAR* CacheKey, bool bTransient)=0;
+
+	/**
+	 * Retrieve usage stats for this backend. If the backend holds inner backends, this is expected to be passed down recursively.
+	 * @param	UsageStatsMap		The map of usages. Each backend instance should give itself a unique name if possible (ie, use the filename associated).
+	 * @param	GraphPath			Path to the node in the graph. If you have inner nodes, add their index to the current path as ". <n>".
+	 *								This will create a path such as "0. 1. 0. 2", which can uniquely identify this node.
+	 */
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStatsMap, FString&& GraphPath) = 0;
 };
 
 class FDerivedDataBackend
@@ -109,6 +120,6 @@ public:
 	 */
 	virtual bool UnmountPakFile(const TCHAR* PakFilename) = 0;
 
+	virtual void GatherUsageStats(TMap<FString, FDerivedDataCacheUsageStats>& UsageStats) = 0;
+
 };
-
-
