@@ -246,11 +246,12 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	DelayedFreeLists.Add(NewList);
 	
 	uint32 RingBufferOffset = RingBuffer->GetOffset();
+	id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
 	TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
 	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
 	 {
 		TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> CmdBufferRingBuffer = WeakRingBufferRef->Pin();
-		if(CmdBufferRingBuffer.IsValid())
+		if(CmdBufferRingBuffer.IsValid() && CmdBufferRingBuffer->Buffer == CurrentRingBuffer)
 		{
 			CmdBufferRingBuffer->SetLastRead(RingBufferOffset);
 		}
@@ -524,12 +525,13 @@ void FMetalContext::CreateCurrentCommandBuffer(bool bWait)
 
 void FMetalContext::SubmitCommandsHint(bool const bCreateNew)
 {
-    uint32 RingBufferOffset = RingBuffer->GetOffset();
+	uint32 RingBufferOffset = RingBuffer->GetOffset();
+	id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
 	TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
     [CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
     {
 		TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> CmdBufferRingBuffer = WeakRingBufferRef->Pin();
-		if(CmdBufferRingBuffer.IsValid())
+		if(CmdBufferRingBuffer.IsValid() && CmdBufferRingBuffer->Buffer == CurrentRingBuffer)
 		{
 			CmdBufferRingBuffer->SetLastRead(RingBufferOffset);
 		}
@@ -564,11 +566,12 @@ void FMetalContext::SubmitCommandsHint(bool const bCreateNew)
 void FMetalContext::SubmitCommandBufferAndWait()
 {
 	uint32 RingBufferOffset = RingBuffer->GetOffset();
+	id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
 	TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
 	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
 	 {
 		TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> CmdBufferRingBuffer = WeakRingBufferRef->Pin();
-		if(CmdBufferRingBuffer.IsValid())
+		if(CmdBufferRingBuffer.IsValid() && CmdBufferRingBuffer->Buffer == CurrentRingBuffer)
 		{
 			CmdBufferRingBuffer->SetLastRead(RingBufferOffset);
 		}
