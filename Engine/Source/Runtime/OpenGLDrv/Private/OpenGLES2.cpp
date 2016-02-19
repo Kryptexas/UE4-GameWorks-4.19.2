@@ -133,6 +133,9 @@ bool FOpenGLES2::bNeedsVertexAttribRemap = false;
 /* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
 bool FOpenGLES2::bRequiresTexture2DPrecisionHack = false;
 
+/* This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension  */
+bool FOpenGLES2::bRequiresShaderFramebufferFetchUndef = false;
+
 /* Indicates shader compiler hack checks are being tested */
 bool FOpenGLES2::bIsCheckingShaderCompilerHacks = false;
 

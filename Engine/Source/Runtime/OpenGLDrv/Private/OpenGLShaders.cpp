@@ -620,6 +620,7 @@ void OPENGLDRV_API GetCurrentOpenGLShaderDeviceCapabilities(FOpenGLShaderDeviceC
 	Capabilities.bSupportsStandardDerivativesExtension = FOpenGL::SupportsStandardDerivativesExtension();
 	Capabilities.bSupportsRenderTargetFormat_PF_FloatRGBA = GSupportsRenderTargetFormat_PF_FloatRGBA;
 	Capabilities.bSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
+	Capabilities.bRequiresShaderFramebufferFetchUndef = FOpenGL::RequiresShaderFramebufferFetchUndef();
 	Capabilities.bRequiresDontEmitPrecisionForTextureSamplers = FOpenGL::RequiresDontEmitPrecisionForTextureSamplers();
 	Capabilities.bSupportsShaderTextureLod = FOpenGL::SupportsShaderTextureLod();
 	Capabilities.bSupportsShaderTextureCubeLod = FOpenGL::SupportsShaderTextureCubeLod();
@@ -734,7 +735,7 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 				}
 			}
 
-			if (!Capabilities.bSupportsShaderFramebufferFetch && TypeEnum == GL_FRAGMENT_SHADER)
+			if (Capabilities.bRequiresShaderFramebufferFetchUndef && TypeEnum == GL_FRAGMENT_SHADER)
 			{
 				// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
 				// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
