@@ -85,8 +85,16 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 		return false;
 	}
 
+	UWidget* RenamedTemplateWidget = Widget.GetTemplate();
+	if ( !RenamedTemplateWidget )
+	{
+		// In certain situations, the template might be lost due to mid recompile with focus lost on the rename box at
+		// during a strange moment.
+		return false;
+	}
+
 	// Slug the new name down to a valid object name
-	const FName NewNameSlug = MakeObjectNameFromDisplayLabel(NewNameString, Widget.GetTemplate()->GetFName());
+	const FName NewNameSlug = MakeObjectNameFromDisplayLabel(NewNameString, RenamedTemplateWidget->GetFName());
 
 	UWidgetBlueprint* Blueprint = BlueprintEditor->GetWidgetBlueprintObj();
 	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget(NewNameSlug);
@@ -94,7 +102,7 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 	bool bIsSameWidget = false;
 	if (ExistingTemplate != nullptr)
 	{
-		if (Widget.GetTemplate() != ExistingTemplate)
+		if ( RenamedTemplateWidget != ExistingTemplate )
 		{
 			OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
 			return false;
@@ -117,7 +125,7 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 				return false;
 			}
 		}
-		UWidget* WidgetTemplate = Widget.GetTemplate();
+		UWidget* WidgetTemplate = RenamedTemplateWidget;
 		if (WidgetTemplate)
 		{
 			// Dummy rename with flag REN_Test returns if rename is possible
