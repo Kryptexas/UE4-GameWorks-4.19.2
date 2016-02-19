@@ -114,6 +114,16 @@ uint8 UKismetMathLibrary::Subtract_ByteByte(uint8 A, uint8 B)
 	return A - B;
 }
 
+uint8 UKismetMathLibrary::BMin(uint8 A, uint8 B)
+{
+	return FMath::Min<uint8>(A, B);
+}
+
+uint8 UKismetMathLibrary::BMax(uint8 A, uint8 B)
+{
+	return FMath::Max<uint8>(A, B);
+}
+ 
 bool UKismetMathLibrary::Less_ByteByte(uint8 A, uint8 B)
 {
 	return A < B;

@@ -477,7 +477,7 @@ void FD3D12Viewport::PresentWithVsyncDWM()
 bool FD3D12Viewport::Present(bool bLockToVsync)
 {
 	FD3D12CommandContext& DefaultContext = GetParentDevice()->GetDefaultCommandContext();
-
+	
 	bool bNativelyPresented = true;
 	FD3D12DynamicRHI::TransitionResource(DefaultContext.CommandListHandle, GetBackBuffer()->GetShaderResourceView(), D3D12_RESOURCE_STATE_PRESENT);
 
@@ -488,6 +488,13 @@ bool FD3D12Viewport::Present(bool bLockToVsync)
 
 	// Reset the default context state
 	DefaultContext.ClearState();
+
+	if (GEnableAsyncCompute)
+	{
+		FD3D12CommandContext& DefaultAsyncComputeContext = GetParentDevice()->GetDefaultAsyncComputeContext();
+		DefaultAsyncComputeContext.ReleaseCommandAllocator();
+		DefaultAsyncComputeContext.ClearState();
+	}
 
 	int32 syncInterval = bLockToVsync ? RHIConsoleVariables::SyncInterval : 0;
 

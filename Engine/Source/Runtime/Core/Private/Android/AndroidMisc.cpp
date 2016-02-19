@@ -41,7 +41,15 @@ extern void AndroidThunkCpp_ForceQuit();
 
 void FAndroidMisc::RequestExit( bool Force )
 {
-	AndroidThunkCpp_ForceQuit();
+	UE_LOG(LogWindows, Log, TEXT("FAndroidMisc::RequestExit(%i)"), Force);
+	if (Force)
+	{
+		AndroidThunkCpp_ForceQuit();
+	}
+	else
+	{
+		GIsRequestingExit = 1;
+	}
 }
 
 extern void AndroidThunkCpp_Minimize();

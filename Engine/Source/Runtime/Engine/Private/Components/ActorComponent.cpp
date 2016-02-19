@@ -1629,4 +1629,14 @@ void UActorComponent::HandleCanEverAffectNavigationChange(bool bForceUpdate)
 	}
 }
 
+void UActorComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && (Ar.HasAnyPortFlags(PPF_DuplicateForPIE)||!Ar.HasAnyPortFlags(PPF_Duplicate)))
+	{
+		bHasBeenCreated = true;
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -63,15 +63,27 @@ private:
 	private:
 		friend class UMotionControllerComponent;
 
-		/** Walks the component hierarchy gathering scene proxies */
-		void GatherSceneProxies(USceneComponent* Component);
-
 		/** Motion controller component associated with this view extension */
 		UMotionControllerComponent* MotionControllerComponent;
 
-		/** Scene proxies that need late updates */
-		FPrimitiveSceneProxy*	LateUpdateSceneProxies[16];
-		int32					LateUpdateSceneProxyCount;
+		/*
+		 *	Late update primitive info for accessing valid scene proxy info. From the time the info is gathered
+		 *  to the time it is later accessed the render proxy can be deleted. To ensure we only access a proxy that is
+		 *  still valid we cache the primitive's scene info AND a pointer to it's own cached index. If the primitive
+		 *  is deleted or removed from the scene then attempting to access it via it's index will result in a different
+		 *  scene info than the cached scene info.
+		 */
+		struct LateUpdatePrimitiveInfo
+		{
+			const int32*			IndexAddress;
+			FPrimitiveSceneInfo*	SceneInfo;
+		};
+
+		/** Walks the component hierarchy gathering scene proxies */
+		void GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives);
+
+		/** Primitives that need late update before rendering */
+		TArray<LateUpdatePrimitiveInfo> LateUpdatePrimitives;
 	};
 	TSharedPtr< FViewExtension, ESPMode::ThreadSafe > ViewExtension;
 };

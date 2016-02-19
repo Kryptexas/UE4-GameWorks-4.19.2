@@ -28,6 +28,7 @@
 #include "KismetNodes/SGraphNodeK2Event.h"
 #include "KismetNodes/SGraphNodeFormatText.h"
 #include "KismetNodes/SGraphNodeK2ArrayFunction.h"
+#include "KismetNodes/SGraphNodeMakeStruct.h"
 #include "KismetNodes/SGraphNodeK2Copy.h"
 
 #include "AnimGraphNode_Root.h"
@@ -223,6 +224,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(InNode))
 		{
 			return SNew(SGraphNodeKnot, Knot);
+		}
+		else if (UK2Node_MakeStruct* MakeStruct = Cast<UK2Node_MakeStruct>(InNode))
+		{
+			return SNew(SGraphNodeMakeStruct, MakeStruct);
 		}
 		else if (UK2Node_Copy* CopyNode = Cast<UK2Node_Copy>(InNode))
 		{

@@ -108,6 +108,8 @@ bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstanc
 				if (WaveInstance)
 				{
 					WaveInstance->bAlreadyNotifiedHook = true;
+					WaveInstance->bIsStarted = false;
+					WaveInstance->bIsFinished = false;
 				}
 			}
 		}
@@ -149,4 +151,18 @@ float USoundNodeLooping::GetDuration()
 	
 	return Duration;
 }
+
+int32 USoundNodeLooping::GetNumSounds(const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound) const
+{
+	// Number of sounds this node plays is essentially infinite if told to bLoopIndefinitely
+	if (bLoopIndefinitely)
+	{
+		return (int32)INDEFINITELY_LOOPING_DURATION;
+	}
+	// Looping nodes count as 1 sound finishing since the looping node captures 
+	// sounddone hooks except for the last one (when the loop count is reached)
+	return 1;
+}
+
+
 

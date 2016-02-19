@@ -69,9 +69,18 @@ void UInAppPurchaseRestoreCallbackProxy::OnInAppPurchaseRestoreComplete(EInAppPu
     
 	if (UWorld* World = WorldPtr.Get())
 	{
-		// Use a local timer handle as we don't need to store it for later but we don't need to look for something to clear
-		FTimerHandle TimerHandle;
-		World->GetTimerManager().SetTimer(OnInAppPurchaseRestoreComplete_DelayedTimerHandle, this, &UInAppPurchaseRestoreCallbackProxy::OnInAppPurchaseRestoreComplete_Delayed, 0.001f, false);
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.DelayInAppPurchaseRestoreComplete"), STAT_FSimpleDelegateGraphTask_DelayInAppPurchaseRestoreComplete, STATGROUP_TaskGraphTasks);
+
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateLambda([=](){
+
+				OnInAppPurchaseRestoreComplete_Delayed();
+
+			}),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_DelayInAppPurchaseRestoreComplete), 
+			nullptr, 
+			ENamedThreads::GameThread
+		);
     }
 
 	ReadObject = NULL;

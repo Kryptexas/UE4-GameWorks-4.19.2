@@ -309,7 +309,7 @@ void FHittestGrid::InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> Custo
 	}
 }
 
-bool FHittestGrid::IsDecendantOf(const TSharedRef<SWidget> Parent, const FCachedWidget& Child)
+bool FHittestGrid::IsDescendantOf(const TSharedRef<SWidget> Parent, const FCachedWidget& Child)
 {
 	TSharedPtr<SWidget> ChildWidget = Child.WidgetPtr.Pin();
 
@@ -392,7 +392,7 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 					// If we have a non escape boundary condition and this widget isn't a descendant of our boundary condition widget then it's invalid so we keep looking.
 					if (NavigationReply.GetBoundaryRule() != EUINavigationRule::Escape 
 						&& NavigationReply.GetHandler().IsValid() 
-						&& !IsDecendantOf(NavigationReply.GetHandler().ToSharedRef(), TestCandidate))
+						&& !IsDescendantOf(NavigationReply.GetHandler().ToSharedRef(), TestCandidate))
 					{
 						continue;
 					}

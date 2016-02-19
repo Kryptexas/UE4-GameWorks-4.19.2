@@ -141,6 +141,14 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Byte - Byte", CompactNodeTitle = "-", Keywords = "- subtract minus"), Category="Math|Byte")
 	static uint8 Subtract_ByteByte(uint8 A, uint8 B = 1);
 
+	/* Returns the minimum value of A and B */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Min (Byte)", CompactNodeTitle = "MIN", CommutativeAssociativeBinaryOperator = "true"), Category = "Math|Byte")
+	static uint8 BMin(uint8 A, uint8 B);
+
+	/* Returns the maximum value of A and B */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Max (Byte)", CompactNodeTitle = "MAX", CommutativeAssociativeBinaryOperator = "true"), Category = "Math|Byte")
+	static uint8 BMax(uint8 A, uint8 B);
+	
 	/* Returns true if A is less than B (A < B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Byte < Byte", CompactNodeTitle = "<", Keywords = "< less"), Category="Math|Byte")
 	static bool Less_ByteByte(uint8 A, uint8 B);

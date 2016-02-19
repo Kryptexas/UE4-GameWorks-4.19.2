@@ -58,6 +58,4 @@ private:
 	// Did the read succeed?
 	bool bSavedWasSuccessful;
 	TArray<FInAppPurchaseProductInfo> SavedProductInformation;
-
-	FTimerHandle OnInAppPurchaseRead_DelayedTimerHandle;
 };

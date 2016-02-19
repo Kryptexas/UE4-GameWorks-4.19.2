@@ -9,6 +9,9 @@
 
 bool GAndroidGPUInfoReady = false;
 
+// call out to JNI to see if the application was packaged for GearVR
+extern bool AndroidThunkCpp_IsGearVRApplication();
+
 class FAndroidGPUInfo
 {
 public:
@@ -48,7 +51,8 @@ private:
 #endif
 		}
 #if !PLATFORM_ANDROIDES31
-		EGL->InitSurface(true);
+		// Do not create a window surface if the app is for GearVR
+		EGL->InitSurface(!AndroidThunkCpp_IsGearVRApplication());
 #endif
 		EGL->SetCurrentSharedContext();
 

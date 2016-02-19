@@ -61,6 +61,4 @@ private:
 	/** Did the purchase succeed? */
 	EInAppPurchaseState::Type SavedPurchaseState;
 	TArray<FInAppPurchaseRestoreInfo> SavedProductInformation;
-
-	FTimerHandle OnInAppPurchaseRestoreComplete_DelayedTimerHandle;
 };

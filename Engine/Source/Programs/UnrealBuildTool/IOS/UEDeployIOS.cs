@@ -178,7 +178,8 @@ namespace UnrealBuildTool
 
 			// get the settings from the ini file
 			// plist replacements
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", bIsUE4Game? null : new DirectoryReference(ProjectDirectory));
+			DirectoryReference DirRef = bIsUE4Game ? (!string.IsNullOrEmpty(UnrealBuildTool.GetRemoteIniPath()) ? new DirectoryReference(UnrealBuildTool.GetRemoteIniPath()) : null) : new DirectoryReference(ProjectDirectory);
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirRef);
 
 			// orientations
 			string SupportedOrientations = "";
@@ -383,7 +384,7 @@ namespace UnrealBuildTool
 				// eventually we want to generate this based on what the user has set in the project settings
 				string[] IPhoneConfigs =  
 					{ 
-						"Default-IPhone6", "Landscape", "{375, 667}", 
+						"Default-IPhone6-Landscape", "Landscape", "{375, 667}", 
 						"Default-IPhone6", "Portrait", "{375, 667}", 
 						"Default-IPhone6Plus-Landscape", "Landscape", "{414, 736}", 
 						"Default-IPhone6Plus-Portrait", "Portrait", "{414, 736}", 

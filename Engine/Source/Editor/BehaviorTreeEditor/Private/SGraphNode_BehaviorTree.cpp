@@ -702,8 +702,6 @@ void SGraphNode_BehaviorTree::CreatePinWidgets()
 			TSharedPtr<SGraphPin> NewPin = SNew(SBehaviorTreePin, MyPin)
 				.ToolTipText( this, &SGraphNode_BehaviorTree::GetPinTooltip, MyPin);
 
-			NewPin->SetIsEditable(IsEditable);
-
 			AddPin(NewPin.ToSharedRef());
 		}
 	}

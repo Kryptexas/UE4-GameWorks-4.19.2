@@ -15,10 +15,6 @@ static uint32 GBenchmarkResolution = 512;
 
 DEFINE_LOG_CATEGORY_STATIC(LogSynthBenchmark, Log, All);
 
-
-// todo: get rid of global
-FRenderQueryPool GTimerQueryPool(RQT_AbsoluteTime);
-
 /** Encapsulates the post processing down sample pixel shader. */
 template <uint32 Method>
 class FPostProcessBenchmarkPS : public FGlobalShader
@@ -311,6 +307,8 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 {
 	check(IsInRenderingThread());
 
+	FRenderQueryPool TimerQueryPool(RQT_AbsoluteTime);
+
 	bool bValidGPUTimer = (FGPUTiming::GetTimingFrequency() / (1000 * 1000)) != 0;
 
 	if(!bValidGPUTimer)
@@ -355,7 +353,7 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 
 		for(uint32  i = 0; i < TimerSampleCount; ++i)
 		{
-			TimerQueries[i] = GTimerQueryPool.AllocateQuery();
+			TimerQueries[i] = TimerQueryPool.AllocateQuery();
 		}
 
 		const bool bSupportsTimerQueries = (TimerQueries[0] != NULL);
@@ -488,7 +486,7 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 			// flushes the RHI thread to make sure all RHICmdList.EndRenderQuery() commands got executed.
 			RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 			RHICmdList.GetRenderQueryResult(TimerQueries[0], OldAbsTime, true);
-			GTimerQueryPool.ReleaseQuery(TimerQueries[0]);
+			TimerQueryPool.ReleaseQuery(TimerQueries[0]);
 
 			for(uint32 Iteration = 0; Iteration < IterationCount; ++Iteration)
 			{
@@ -500,7 +498,7 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 
 					uint64 AbsTime;
 					RHICmdList.GetRenderQueryResult(TimerQueries[QueryIndex], AbsTime, true);
-					GTimerQueryPool.ReleaseQuery(TimerQueries[QueryIndex]);
+					TimerQueryPool.ReleaseQuery(TimerQueries[QueryIndex]);
 
 					uint64 RelTime = AbsTime - OldAbsTime; 
 

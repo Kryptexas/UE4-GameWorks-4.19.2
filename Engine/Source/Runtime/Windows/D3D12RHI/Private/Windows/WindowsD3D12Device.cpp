@@ -673,20 +673,23 @@ void FD3D12Device::InitD3DDevice()
 
 		// This value can be tuned on a per app basis. I.e. most apps will never run into descriptor heap pressure so
 		// can make this global heap smaller
-		uint32 NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_1;
+		uint32 NumGlobalViewDesc = GLOBAL_VIEW_HEAP_SIZE;
+
+		uint32 MaximumSupportedHeapSize = NUM_VIEW_DESCRIPTORS_TIER_1;
 		switch (ResourceBindingTier)
 		{
 		case D3D12_RESOURCE_BINDING_TIER_1:
-			NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_1;
+			MaximumSupportedHeapSize = NUM_VIEW_DESCRIPTORS_TIER_1;
 			break;
 		case D3D12_RESOURCE_BINDING_TIER_2:
-			NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_2;
+			MaximumSupportedHeapSize = NUM_VIEW_DESCRIPTORS_TIER_2;
 			break;
 		case D3D12_RESOURCE_BINDING_TIER_3:
 		default:
-			NumGlobalViewDesc = NUM_VIEW_DESCRIPTORS_TIER_3;
+			MaximumSupportedHeapSize = NUM_VIEW_DESCRIPTORS_TIER_3;
 			break;
 		}
+		check(NumGlobalViewDesc <= MaximumSupportedHeapSize);
 		
 		GlobalViewHeap.Init(NumGlobalViewDesc, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -696,6 +699,7 @@ void FD3D12Device::InitD3DDevice()
 		// Create the main set of command lists used for rendering a frame
 		CommandListManager.Create();
 		CopyCommandListManager.Create();
+		AsyncCommandListManager.Create();
 
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 		// Add some filter outs for known debug spew messages (that we don't care about)

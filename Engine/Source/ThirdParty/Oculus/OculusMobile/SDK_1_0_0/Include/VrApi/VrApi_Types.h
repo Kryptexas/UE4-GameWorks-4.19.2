@@ -37,20 +37,94 @@ typedef struct
 	jobject		ActivityObject;		// Java activity object
 } ovrJava;
 
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrJava, 12 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrJava, 24 );
+
 //-----------------------------------------------------------------
-// HMD information.
+// Basic Types
 //-----------------------------------------------------------------
 
-typedef struct
+typedef struct ovrVector3f_
 {
-	// Resolution of the display in pixels.
-	int		DisplayPixelsWide;
-	int		DisplayPixelsHigh;
+	float x, y, z;
+} ovrVector3f;
 
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrVector3f, 12 );
+
+// Quaternion.
+typedef struct ovrQuatf_
+{
+	float x, y, z, w;
+} ovrQuatf;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrQuatf, 16 );
+
+// Row-major 4x4 matrix.
+typedef struct ovrMatrix4f_
+{
+	float M[4][4];
+} ovrMatrix4f;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrMatrix4f, 64 );
+
+// Position and orientation together.
+typedef struct ovrPosef_
+{
+	ovrQuatf	Orientation;
+	ovrVector3f	Position;
+} ovrPosef;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrPosef, 28 );
+
+typedef struct ovrRectf_
+{
+	float x;
+	float y;
+	float width;
+	float height;
+} ovrRectf;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrRectf, 16 );
+
+typedef enum
+{
+	VRAPI_FALSE = 0,
+	VRAPI_TRUE
+} ovrBooleanResult;
+
+//-----------------------------------------------------------------
+// Structure Types
+//-----------------------------------------------------------------
+
+typedef enum
+{
+	VRAPI_STRUCTURE_TYPE_INIT_PARMS		= 1,
+	VRAPI_STRUCTURE_TYPE_MODE_PARMS		= 2,
+	VRAPI_STRUCTURE_TYPE_FRAME_PARMS	= 3,
+} ovrStructureType;
+
+//-----------------------------------------------------------------
+// System Properties and Status
+//-----------------------------------------------------------------
+
+typedef enum
+{
+	VRAPI_DEVICE_TYPE_NOTE4,
+	VRAPI_DEVICE_TYPE_NOTE5,
+	VRAPI_DEVICE_TYPE_S6,
+	VRAPI_MAX_DEVICE_TYPES
+} ovrDeviceType;
+
+typedef enum
+{
+	VRAPI_SYS_PROP_DEVICE_TYPE,
+	VRAPI_SYS_PROP_MAX_FULLSPEED_FRAMEBUFFER_SAMPLES,
+	// Physical width and height of the display in pixels.
+	VRAPI_SYS_PROP_DISPLAY_PIXELS_WIDE,
+	VRAPI_SYS_PROP_DISPLAY_PIXELS_HIGH,
 	// Refresh rate of the display in cycles per second.
 	// Currently 60Hz.
-	float	DisplayRefreshRate;
-
+	VRAPI_SYS_PROP_DISPLAY_REFRESH_RATE,
 	// With a display resolution of 2560x1440, the pixels at the center
 	// of each eye cover about 0.06 degrees of visual arc. To wrap a
 	// full 360 degrees, about 6000 pixels would be needed and about one
@@ -59,69 +133,147 @@ typedef struct
 	// in the center, but they need mip-maps for off center pixels. To
 	// avoid the need for mip-maps and for significantly improved rendering
 	// performance this currently returns a conservative 1024x1024.
-	int		SuggestedEyeResolutionWidth;
-	int		SuggestedEyeResolutionHeight;
-
+	VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH,
+	VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT,
 	// This is a product of the lens distortion and the screen size,
 	// but there is no truly correct answer.
-	//
 	// There is a tradeoff in resolution and coverage.
 	// Too small of an FOV will leave unrendered pixels visible, but too
 	// large wastes resolution or fill rate.  It is unreasonable to
 	// increase it until the corners are completely covered, but we do
 	// want most of the outside edges completely covered.
-	//
 	// Applications might choose to render a larger FOV when angular
 	// acceleration is high to reduce black pull in at the edges by
 	// the time warp.
-	//
 	// Currently symmetric 90.0 degrees.
-	float	SuggestedEyeFovDegreesX;			// Horizontal Field of View in degrees
-	float	SuggestedEyeFovDegreesY;			// Vertical Field of View in degrees
-} ovrHmdInfo;
+	VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X,		// Horizontal field of view in degrees
+	VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y,		// Vertical field of view in degrees
+} ovrSystemProperty;
+
+typedef enum
+{
+	VRAPI_SYS_STATUS_DOCKED,						// Device is docked.
+	VRAPI_SYS_STATUS_MOUNTED,						// Device is mounted.
+	VRAPI_SYS_STATUS_THROTTLED,						// Device is in powersave mode.
+	VRAPI_SYS_STATUS_THROTTLED2,					// Device is in extreme powersave mode.
+	VRAPI_SYS_STATUS_THROTTLED_WARNING_LEVEL,		// Powersave mode warning required.
+
+	VRAPI_SYS_STATUS_RENDER_LATENCY_MILLISECONDS,	// Average time between render tracking sample and scanout.
+	VRAPI_SYS_STATUS_TIMEWARP_LATENCY_MILLISECONDS,	// Average time between timewarp tracking sample and scanout.
+	VRAPI_SYS_STATUS_SCANOUT_LATENCY_MILLISECONDS,	// Average time between Vsync and scanout.
+	VRAPI_SYS_STATUS_APP_FRAMES_PER_SECOND,			// Number of frames per second delivered through vrapi_SubmitFrame.
+	VRAPI_SYS_STATUS_SCREEN_TEARS_PER_SECOND,		// Number of screen tears per second (per eye).
+	VRAPI_SYS_STATUS_EARLY_FRAMES_PER_SECOND,		// Number of frames per second delivered a whole display refresh early.
+	VRAPI_SYS_STATUS_STALE_FRAMES_PER_SECOND,		// Number of frames per second delivered late.
+
+	VRAPI_SYS_STATUS_FRONT_BUFFER_PROTECTED	= 128,	// True if the front buffer is allocated in TrustZone memory.
+	VRAPI_SYS_STATUS_FRONT_BUFFER_565,				// True if the front buffer is 16-bit 5:6:5
+	VRAPI_SYS_STATUS_FRONT_BUFFER_SRGB,				// True if the front buffer uses the sRGB color space.
+} ovrSystemStatus;
 
 //-----------------------------------------------------------------
 // Initialization
 //-----------------------------------------------------------------
 
+typedef enum
+{
+	VRAPI_INITIALIZE_SUCCESS			=  0,
+	VRAPI_INITIALIZE_UNKNOWN_ERROR		= -1,
+	VRAPI_INITIALIZE_PERMISSIONS_ERROR	= -2,
+} ovrInitializeStatus;
+
+typedef enum
+{
+	VRAPI_GRAPHICS_API_OPENGL_ES_2   = ( 0x10000 | 0x0200 ), // OpenGL ES 2.x context
+	VRAPI_GRAPHICS_API_OPENGL_ES_3   = ( 0x10000 | 0x0300 ), // OpenGL ES 3.x context
+	VRAPI_GRAPHICS_API_OPENGL_COMPAT = ( 0x20000 | 0x0100 ), // OpenGL Compatibility Profile
+	VRAPI_GRAPHICS_API_OPENGL_CORE_3 = ( 0x20000 | 0x0300 ), // OpenGL Core Profile 3.x
+	VRAPI_GRAPHICS_API_OPENGL_CORE_4 = ( 0x20000 | 0x0400 ), // OpenGL Core Profile 4.x
+} ovrGraphicsAPI;
+
 typedef struct
 {
-	int		MajorVersion;
-	int		MinorVersion;
-	ovrJava	Java;
+	ovrStructureType	Type;
+	int					ProductVersion;
+	int					MajorVersion;
+	int					MinorVersion;
+	int					PatchVersion;
+	ovrGraphicsAPI		GraphicsAPI;
+	ovrJava				Java;
 } ovrInitParms;
 
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrInitParms, 36 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrInitParms, 48 );
+
 //-----------------------------------------------------------------
-// VR mode
+// VR Mode
 //-----------------------------------------------------------------
 
-typedef struct
+// NOTE: the first two flags use the first two bytes for backwards compatibility on little endian systems.
+typedef enum
 {
-	// If true, warn and allow the app to continue at 30fps when 
-	// throttling occurs.
-	// If false, display the level 2 error message which requires
-	// the user to undock.
-	bool	AllowPowerSave;
+	// If set, warn and allow the app to continue at 30 FPS when throttling occurs.
+	// If not set, display the level 2 error message which requires the user to undock.
+	VRAPI_MODE_FLAG_ALLOW_POWER_SAVE			= 0x000000FF,
 
-	// When an application with multiple activities moves backwards on
-	// the activity stack, the activity window it returns to is no longer
-	// flagged as fullscreen. As a result, Android will also render
-	// the decor view, which wastes a significant amount of bandwidth.
+	// When an application moves backwards on the activity stack,
+	// the activity window it returns to is no longer flagged as fullscreen.
+	// As a result, Android will also render the decor view, which wastes a
+	// significant amount of bandwidth.
 	// By setting this flag, the fullscreen flag is reset on the window.
 	// Unfortunately, this causes Android life cycle events that mess up
 	// several NativeActivity codebases like Stratum and UE4, so this
-	// flag should only be set for select applications with multiple
-	// activities. Use "adb shell dumpsys SurfaceFlinger" to verify
+	// flag should only be set for specific applications.
+	// Use "adb shell dumpsys SurfaceFlinger" to verify
 	// that there is only one HWC next to the FB_TARGET.
-	bool	ResetWindowFullscreen;
+	VRAPI_MODE_FLAG_RESET_WINDOW_FULLSCREEN		= 0x0000FF00,
+
+	// The WindowSurface passed in is an ANativeWindow.
+	VRAPI_MODE_FLAG_NATIVE_WINDOW				= 0x00010000,
+
+	// Create the front buffer in TrustZone memory to allow protected DRM
+	// content to be rendered to the front buffer.
+	VRAPI_MODE_FLAG_FRONT_BUFFER_PROTECTED		= 0x00020000,
+
+	// Create a 16-bit 5:6:5 front buffer.
+	VRAPI_MODE_FLAG_FRONT_BUFFER_565			= 0x00040000,
+
+	// Create a front buffer using the sRGB color space.
+	VRAPI_MODE_FLAG_FRONT_BUFFER_SRGB			= 0x00080000
+} ovrModeFlags;
+
+typedef struct
+{
+	ovrStructureType	Type;
+
+	// Combination of ovrModeFlags flags.
+	unsigned int		Flags;
 
 	// The Java VM is needed for the time warp thread to create a Java environment.
 	// A Java environment is needed to access various system services. The thread
 	// that enters VR mode is responsible for attaching and detaching the Java
 	// environment. The Java Activity object is needed to get the windowManager,
 	// packageName, systemService, etc.
-	ovrJava	Java;
+	ovrJava				Java;
+
+	OVR_VRAPI_PADDING_32_BIT( 4 );
+
+	// If not zero, then use this display for asynchronous time warp rendering.
+	// Using EGL this is an EGLDisplay.
+	unsigned long long	Display;
+
+	// If not zero, then use this window surface for asynchronous time warp rendering.
+	// Using EGL this can be the EGLSurface created by the application for the ANativeWindow.
+	// Preferrably this is the ANativeWIndow itself (requires VRAPI_MODE_FLAG_NATIVE_WINDOW).
+	unsigned long long	WindowSurface;
+
+	// If not zero, then resources from this context will be shared with the asynchronous time warp.
+	// Using EGL this is an EGLContext.
+	unsigned long long	ShareContext;
 } ovrModeParms;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrModeParms, 48 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrModeParms, 56 );
 
 // VR context
 // To allow multiple Android activities that live in the same address space
@@ -133,41 +285,20 @@ typedef struct ovrMobile ovrMobile;
 // Tracking
 //-----------------------------------------------------------------
 
-typedef struct ovrVector3f_
-{
-	float x, y, z;
-} ovrVector3f;
-
-// Quaternion.
-typedef struct ovrQuatf_
-{
-	float x, y, z, w;
-} ovrQuatf;
-
-// Row-major 4x4 matrix.
-typedef struct ovrMatrix4f_
-{
-	float M[4][4];
-} ovrMatrix4f;
-
-// Position and orientation together.
-typedef struct ovrPosef_
-{
-	ovrQuatf	Orientation;
-	ovrVector3f	Position;    
-} ovrPosef;
-
 // Full rigid body pose with first and second derivatives.
 typedef struct ovrRigidBodyPosef_
 {
-	ovrPosef	Pose;
-	ovrVector3f	AngularVelocity;
-	ovrVector3f	LinearVelocity;
-	ovrVector3f	AngularAcceleration;
-	ovrVector3f	LinearAcceleration;
-	double		TimeInSeconds;			// Absolute time of this pose.
-	double		PredictionInSeconds;	// Seconds this pose was predicted ahead.
+	ovrPosef		Pose;
+	ovrVector3f		AngularVelocity;
+	ovrVector3f		LinearVelocity;
+	ovrVector3f		AngularAcceleration;
+	ovrVector3f		LinearAcceleration;
+	OVR_VRAPI_PADDING( 4 );
+	double			TimeInSeconds;			// Absolute time of this pose.
+	double			PredictionInSeconds;	// Seconds this pose was predicted ahead.
 } ovrRigidBodyPosef;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrRigidBodyPosef, 96 );
 
 // Bit flags describing the current status of sensor tracking.
 typedef enum
@@ -182,13 +313,18 @@ typedef struct ovrTracking_
 {
 	// Sensor status described by ovrTrackingStatus flags.
 	unsigned int		Status;
+
+	OVR_VRAPI_PADDING( 4 );
+
 	// Predicted head configuration at the requested absolute time.
 	// The pose describes the head orientation and center eye position.
 	ovrRigidBodyPosef	HeadPose;
 } ovrTracking;
 
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrTracking, 104 );
+
 //-----------------------------------------------------------------
-// Texture Set
+// Texture Swap Chain
 //-----------------------------------------------------------------
 
 typedef enum
@@ -243,27 +379,34 @@ typedef enum
 	// be able to toggle between gamma correct and incorrect, you must allocate
 	// the framebuffer as sRGB, then inhibit that processing when using normal
 	// textures.
-	VRAPI_FRAME_OPTION_INHIBIT_SRGB_FRAMEBUFFER						= 1,
-	// Correct for chromatic aberration.
-	VRAPI_FRAME_OPTION_INHIBIT_CHROMATIC_ABERRATION_CORRECTION		= 2,
-	// Enable / disable the sliced warp.
-	VRAPI_FRAME_OPTION_USE_SLICED_WARP								= 4,
+	VRAPI_FRAME_FLAG_INHIBIT_SRGB_FRAMEBUFFER					= 1,
 	// Flush the warp swap pipeline so the images show up immediately.
 	// This is expensive and should only be used when an immediate transition
 	// is needed like displaying black when resetting the HMD orientation.
-	VRAPI_FRAME_OPTION_FLUSH										= 8,
+	VRAPI_FRAME_FLAG_FLUSH										= 2,
 	// This is the final frame. Do not accept any more frames after this.
-	VRAPI_FRAME_OPTION_FINAL										= 16,
-	// The overlay plane is a HUD, and should ignore head tracking.
-	// This is generally poor practice for VR.
-	VRAPI_FRAME_OPTION_FIXED_OVERLAY								= 32,			// FIXME: use ovrFrameLayer::FixedToView
-	// The third image plane is blended separately over only a small, central
-	// section of each eye for performance reasons, so it is enabled with
-	// a flag instead of a shared ovrFrameProgram.
-	VRAPI_FRAME_OPTION_SHOW_CURSOR									= 64,			// FIXME: use ovrFrameLayerTexture::TextureRect
-	// Draw the axis lines after warp to show the skew with the pre-warp lines.
-	VRAPI_FRAME_OPTION_DRAW_CALIBRATION_LINES						= 128			// FIXME: use local preference
-} ovrFrameOption;
+	VRAPI_FRAME_FLAG_FINAL										= 4,
+	// Display continuously changing graph of TimeWarp timing data. By default,
+	// this will display the start and end times of the draw.
+	VRAPI_FRAME_FLAG_TIMEWARP_DEBUG_GRAPH_SHOW					= 8,
+	// Continue to display the timing data, but no new data is collected and displayed.
+	VRAPI_FRAME_FLAG_TIMEWARP_DEBUG_GRAPH_FREEZE				= 16,
+	// Change the TimeWarp graph to display the latency (seconds from eye buffer
+	// orientation time) instead of the draw times.
+	VRAPI_FRAME_FLAG_TIMEWARP_DEBUG_GRAPH_LATENCY_MODE			= 32,
+} ovrFrameFlags;
+
+typedef enum
+{
+	// Enable writing to the alpha channel
+	VRAPI_FRAME_LAYER_FLAG_WRITE_ALPHA								= 1,
+	// Correct for chromatic aberration. Quality/perf trade-off.
+	VRAPI_FRAME_LAYER_FLAG_CHROMATIC_ABERRATION_CORRECTION	= 2,
+	// Used for some HUDs, but generally considered bad practice.
+	VRAPI_FRAME_LAYER_FLAG_FIXED_TO_VIEW							= 4,
+	// Spin the layer - for loading icons
+	VRAPI_FRAME_LAYER_FLAG_SPIN										= 8,
+} ovrFrameLayerFlags;
 
 typedef enum
 {
@@ -293,35 +436,10 @@ typedef enum
 
 typedef enum
 {
-	VRAPI_FRAME_PROGRAM_SIMPLE,
-	VRAPI_FRAME_PROGRAM_MASKED_PLANE,			// overlay plane shows through masked areas in eyes
-	VRAPI_FRAME_PROGRAM_MASKED_PLANE_EXTERNAL,	// overlay plane shows through masked areas in eyes, using external texture as source
-	VRAPI_FRAME_PROGRAM_MASKED_CUBE,			// overlay cube shows through masked areas in eyes
-	VRAPI_FRAME_PROGRAM_CUBE,					// overlay cube only, no main scene (for power savings)
-	VRAPI_FRAME_PROGRAM_LOADING_ICON,			// overlay loading icon
-	VRAPI_FRAME_PROGRAM_MIDDLE_CLAMP,			// UE4 stereo in a single texture
-	VRAPI_FRAME_PROGRAM_OVERLAY_PLANE,			// world shows through transparent parts of overlay plane
-	VRAPI_FRAME_PROGRAM_OVERLAY_PLANE_SHOW_LOD,	// debug tool to color tint based on mip levels
-	VRAPI_FRAME_PROGRAM_CAMERA,
-	VRAPI_FRAME_PROGRAM_VIDEO_CUBE,				// static cube map + video texture on -Z face
-	VRAPI_FRAME_PROGRAM_SDF_TEXT,				// alpha = 0 pixels have signed distance field data in the red channel
-	VRAPI_FRAME_PROGRAM_PROGRAM_MAX
-} ovrFrameProgram;
-
-typedef enum
-{
-	VRAPI_EXTRA_LATENCY_MODE_NEVER,
-	VRAPI_EXTRA_LATENCY_MODE_ALWAYS,
+	VRAPI_EXTRA_LATENCY_MODE_OFF,
+	VRAPI_EXTRA_LATENCY_MODE_ON,
 	VRAPI_EXTRA_LATENCY_MODE_DYNAMIC
 } ovrExtraLatencyMode;
-
-typedef struct ovrRectf_
-{
-	float x;
-	float y;
-	float width;
-	float height;
-} ovrRectf;
 
 // Note that any layer textures that are dynamic must be triple buffered.
 typedef struct
@@ -348,30 +466,41 @@ typedef struct
 	// This is a sub-rectangle of the [(0,0)-(1,1)] texture coordinate range.
 	ovrRectf				TextureRect;
 
+	OVR_VRAPI_PADDING( 4 );
+
 	// The tracking state for which ModelViewMatrix is correct.
 	// It is ok to update the orientation for each eye, which
 	// can help minimize black edge pull-in, but the position
 	// must remain the same for both eyes, or the position would
 	// seem to judder "backwards in time" if a frame is dropped.
 	ovrRigidBodyPosef		HeadPose;
+
+	// If not zero, this fence will be used to determine whether or not
+	// rendering to the color and depth texture swap chains has completed.
+	unsigned long long		CompletionFence;
 } ovrFrameLayerTexture;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrFrameLayerTexture, 200 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrFrameLayerTexture, 208 );
 
 typedef struct
 {
 	// Image used for each eye.
 	ovrFrameLayerTexture	Textures[VRAPI_FRAME_LAYER_EYE_MAX];
 
+	// Program-specific tuning values.
+	float					ProgramParms[4];
+
 	// Layer blend function.
 	ovrFrameLayerBlend		SrcBlend;
 	ovrFrameLayerBlend		DstBlend;
 
-	// Set to true if this layer should write alpha.
-	bool					WriteAlpha;
-
-	// The layer is a HUD, and should ignore head tracking.
-	// This is generally poor practice for VR.
-	bool					FixedToView;
+	// Combination of ovrFrameLayerFlags flags.
+	int						Flags;
 } ovrFrameLayer;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrFrameLayer, 432 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrFrameLayer, 448 );
 
 typedef struct
 {
@@ -384,20 +513,20 @@ typedef struct
 	int						RenderThreadTid;
 } ovrPerformanceParms;
 
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrPerformanceParms, 16 );
+
 typedef struct
 {
+	ovrStructureType		Type;
+
+	OVR_VRAPI_PADDING( 4 );
+
 	// Layers composited in the time warp.
 	ovrFrameLayer	 		Layers[VRAPI_FRAME_LAYER_TYPE_MAX];
 	int						LayerCount;
 
-	// Combination of ovrFrameOption flags.
-	int 					WarpOptions;
-
-	// Which program to run with these layers.
-	ovrFrameProgram			WarpProgram;
-
-	// Program-specific tuning values.
-	float					ProgramParms[4];
+	// Combination of ovrFrameFlags flags.
+	int 					Flags;
 
 	// Application controlled frame index that uniquely identifies this particular frame.
 	// This must be the same frame index that was passed to vrapi_GetPredictedDisplayTime()
@@ -423,7 +552,7 @@ typedef struct
 	ovrMatrix4f				ExternalVelocity;
 
 	// jobject that will be updated before each eye for minimal
-	// latency with VRAPI_FRAME_PROGRAM_MASKED_PLANE_EXTERNAL.
+	// latency.
 	// IMPORTANT: This should be a JNI weak reference to the object.
 	// The system will try to convert it into a global reference before
 	// calling SurfaceTexture->Update, which allows it to be safely
@@ -437,6 +566,9 @@ typedef struct
 	ovrJava					Java;
 } ovrFrameParms;
 
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrFrameParms, 1856 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrFrameParms, 1936 );
+
 //-----------------------------------------------------------------
 // Head Model
 //-----------------------------------------------------------------
@@ -449,73 +581,7 @@ typedef struct
 	float	HeadModelHeight;		// Neck joint offset down from the head center at EyeHeight.
 } ovrHeadModelParms;
 
-//-----------------------------------------------------------------
-// System Properties
-//-----------------------------------------------------------------
-
-typedef enum
-{
-	VRAPI_DEVICE_TYPE_NOTE4,
-	VRAPI_DEVICE_TYPE_S6,
-	VRAPI_MAX_DEVICE_TYPES
-} ovrDeviceType;
-
-typedef enum
-{
-	VRAPI_GPU_TYPE_ADRENO					= 0x1000,
-	VRAPI_GPU_TYPE_ADRENO_330				= 0x1100,
-	VRAPI_GPU_TYPE_ADRENO_420				= 0x1200,
-	VRAPI_GPU_TYPE_MALI						= 0x2000,
-	VRAPI_GPU_TYPE_MALI_T760				= 0x2100,
-	VRAPI_GPU_TYPE_MALI_T760_EXYNOS_5433	= 0x2101,
-	VRAPI_GPU_TYPE_MALI_T760_EXYNOS_7420	= 0x2102,
-	VRAPI_GPU_TYPE_UNKNOWN					= 0
-} ovrGpuType;
-
-typedef enum
-{
-	VRAPI_SYS_PROP_DEVICE_TYPE,
-	VRAPI_SYS_PROP_GPU_TYPE,
-	VRAPI_SYS_PROP_EXTERNAL_SDCARD,
-	VRAPI_SYS_PROP_MAX_FULLSPEED_FRAMEBUFFER_SAMPLES
-} ovrSystemProperty;
-
-//-----------------------------------------------------------------
-// System Activity Commands
-//-----------------------------------------------------------------
-
-#define PUI_GLOBAL_MENU				"globalMenu"
-#define PUI_GLOBAL_MENU_TUTORIAL	"globalMenuTutorial"
-#define PUI_CONFIRM_QUIT			"confirmQuit"
-#define PUI_THROTTLED1				"throttled1"	// Warn that Power Save Mode has been activated
-#define PUI_THROTTLED2				"throttled2"	// Warn that Minimum Mode has been activated
-#define PUI_HMT_UNMOUNT				"HMT_unmount"	// the HMT has been taken off the head
-#define PUI_HMT_MOUNT				"HMT_mount"		// the HMT has been placed on the head
-#define PUI_WARNING					"warning"		// the HMT has been placed on the head and a warning message shows
-#define PUI_FAIL_MENU				"failMenu"		// display a FAIL() message in the System Activities
-
-typedef enum
-{
-	FINISH_NONE,		// This will not exit the activity at all -- normally used for starting the platform UI activity
-	FINISH_NORMAL,		// This will finish the current activity.
-	FINISH_AFFINITY		// This will finish all activities on the stack.
-} ovrFinishType;
-
-//-----------------------------------------------------------------
-// Error handling
-//-----------------------------------------------------------------
-
-typedef enum
-{
-	ERROR_OUT_OF_MEMORY,
-	ERROR_OUT_OF_STORAGE,
-	ERROR_OSIG,
-	ERROR_MISC
-} ovrError;
-
-#define ERROR_MSG_OUT_OF_MEMORY		"failOutOfMemory"
-#define ERROR_MSG_OUT_OF_STORAGE	"failOutOfStorage"
-#define ERROR_MSG_OSIG				"failOSig"
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrHeadModelParms, 16 );
 
 //-----------------------------------------------------------------
 // FIXME:VRAPI remove this once all simulation code uses VrFrame::PredictedDisplayTimeInSeconds and perf timing uses LOGCPUTIME

@@ -42,7 +42,6 @@ void SGraphPinAI::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 	this->SetCursor(EMouseCursor::Default);
 
 	bShowLabel = true;
-	IsEditable = true;
 
 	GraphPinObj = InPin;
 	check(GraphPinObj != NULL);

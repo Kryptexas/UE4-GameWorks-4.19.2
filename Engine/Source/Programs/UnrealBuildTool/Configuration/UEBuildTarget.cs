@@ -3231,9 +3231,6 @@ namespace UnrealBuildTool
 				// If we're precompiling a base engine target, create binaries for all the engine modules that are compatible with it.
 				if (bPrecompile && ProjectFile == null && TargetType != TargetRules.TargetType.Program)
 				{
-					// Whether to build static libraries for developer modules. Currently disabled to reduce the size of installed builds.
-					bool bIncludeDeveloperModules = (TargetType == TargetRules.TargetType.Editor); // UEBuildConfiguration.bBuildDeveloperTools
-
 					// Find all the known module names in this assembly
 					List<string> ModuleNames = new List<string>();
 					RulesAssembly.GetAllModuleNames(ModuleNames);
@@ -3262,15 +3259,21 @@ namespace UnrealBuildTool
 
 					// Find all the directories containing engine modules that may be compatible with this target
 					List<DirectoryReference> Directories = new List<DirectoryReference>();
-					if(bIncludeDeveloperModules)
-					{
-						Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Developer"));
-					}
 					if (TargetType == TargetRules.TargetType.Editor)
 					{
 						Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Editor"));
 					}
 					Directories.Add(DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime"));
+
+					// Also allow anything in the developer directory in non-shipping configurations (though we blacklist by default unless the PrecompileForTargets
+					// setting indicates that it's actually useful at runtime).
+					bool bAllowDeveloperModules = false;
+					DirectoryReference DeveloperDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Developer");
+					if(Configuration != UnrealTargetConfiguration.Shipping)
+					{
+						Directories.Add(DeveloperDirectory);
+						bAllowDeveloperModules = true;
+					}
 
 					// Find all the modules that are not part of the standard set
 					HashSet<string> FilteredModuleNames = new HashSet<string>();
@@ -3294,7 +3297,7 @@ namespace UnrealBuildTool
 						{
 							foreach (ModuleDescriptor ModuleDescriptor in Plugin.Descriptor.Modules)
 							{
-								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, bIncludeDeveloperModules, UEBuildConfiguration.bBuildEditor))
+								if (ModuleDescriptor.IsCompiledInConfiguration(Platform, TargetType, bAllowDeveloperModules && UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor))
 								{
 									string RelativeFileName = RulesAssembly.GetModuleFileName(ModuleDescriptor.Name).MakeRelativeTo(UnrealBuildTool.EngineDirectory);
 									if (!ExcludeFolders.Any(x => RelativeFileName.Contains(x)) && !PrecompiledModules.Any(x => x.Name == ModuleDescriptor.Name))
@@ -3309,11 +3312,13 @@ namespace UnrealBuildTool
 					// Create rules for each remaining module, and check that it's set to be precompiled
 					foreach(string FilteredModuleName in FilteredModuleNames)
 					{
+						FileReference ModuleFileName = null;
+
 						// Try to create the rules object, but catch any exceptions if it fails. Some modules (eg. SQLite) may determine that they are unavailable in the constructor.
 						ModuleRules Rules;
 						try
 						{
-							Rules = RulesAssembly.CreateModuleRules(FilteredModuleName, TargetInfo);
+							Rules = RulesAssembly.CreateModuleRules(FilteredModuleName, TargetInfo, out ModuleFileName);
 						}
 						catch (BuildException)
 						{
@@ -3330,13 +3335,16 @@ namespace UnrealBuildTool
 									bCanPrecompile = false;
 									break;
 								case ModuleRules.PrecompileTargetsType.Default:
-									bCanPrecompile = true;
+									bCanPrecompile = !ModuleFileName.IsUnderDirectory(DeveloperDirectory);
 									break;
 								case ModuleRules.PrecompileTargetsType.Game:
 									bCanPrecompile = (TargetType == TargetRules.TargetType.Client || TargetType == TargetRules.TargetType.Server || TargetType == TargetRules.TargetType.Game);
 									break;
 								case ModuleRules.PrecompileTargetsType.Editor:
 									bCanPrecompile = (TargetType == TargetRules.TargetType.Editor);
+									break;
+								case ModuleRules.PrecompileTargetsType.Any:
+									bCanPrecompile = true;
 									break;
 							}
 						}
@@ -3646,16 +3654,20 @@ namespace UnrealBuildTool
 		/// </summary>
 		private bool ShouldExcludePlugin(PluginInfo Plugin, List<string> ExcludeFragments)
 		{
-			string RelativePathFromRoot;
 			if (Plugin.LoadedFrom == PluginLoadedFrom.Engine)
 			{
-				RelativePathFromRoot = Plugin.File.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
+				string RelativePathFromRoot = Plugin.File.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
+				return ExcludeFragments.Any(x => RelativePathFromRoot.Contains(x));
+			}
+			else if(ProjectFile != null)
+			{
+				string RelativePathFromRoot = Plugin.File.MakeRelativeTo(ProjectFile.Directory);
+				return ExcludeFragments.Any(x => RelativePathFromRoot.Contains(x));
 			}
 			else
 			{
-				RelativePathFromRoot = Plugin.File.MakeRelativeTo(ProjectFile.Directory);
+				return false;
 			}
-			return ExcludeFragments.Any(x => RelativePathFromRoot.Contains(x));
 		}
 
 		/// <summary>

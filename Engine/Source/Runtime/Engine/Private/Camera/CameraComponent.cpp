@@ -61,11 +61,11 @@ void UCameraComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 	if (ProxyMeshComponent)
 	{
-		ProxyMeshComponent->DestroyComponent(bDestroyingHierarchy);
+		ProxyMeshComponent->DestroyComponent();
 	}
 	if (DrawFrustum)
 	{
-		DrawFrustum->DestroyComponent(bDestroyingHierarchy);
+		DrawFrustum->DestroyComponent();
 	}
 }
 #endif

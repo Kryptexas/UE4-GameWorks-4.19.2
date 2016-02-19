@@ -2826,7 +2826,9 @@ UObject* UClass::CreateDefaultObject()
 			// NULL (so we don't invalidate one that has already been setup)
 			if (ClassDefaultObject == NULL)
 			{
-				ClassDefaultObject = StaticAllocateObject(this, GetOuter(), NAME_None, EObjectFlags(RF_Public|RF_ClassDefaultObject));
+				// RF_ArchetypeObject flag is often redundant to RF_ClassDefaultObject, but we need to tag
+				// the CDO as RF_ArchetypeObject in order to propagate that flag to any default sub objects.
+				ClassDefaultObject = StaticAllocateObject(this, GetOuter(), NAME_None, EObjectFlags(RF_Public|RF_ClassDefaultObject|RF_ArchetypeObject));
 				check(ClassDefaultObject);
 				// Blueprint CDOs have their properties always initialized.
 				const bool bShouldInitilizeProperties = !HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
@@ -3699,6 +3701,7 @@ void UClass::Serialize( FArchive& Ar )
 			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName() );
 			ensure(ClassDefaultObject != NULL);
 			ClassDefaultObject = GetDefaultObject();
+			Ar.ForceBlueprintFinalization();
 		}
 	}
 }

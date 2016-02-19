@@ -669,6 +669,10 @@ public class IOSPlatform : Platform
 				{
 					// ensure the plist, entitlements, and provision files are properly copied
 					Console.WriteLine("CookPlat {0}, this {1}", GetCookPlatform(false, false, ""), ToString());
+					if (!SC.IsCodeBasedProject)
+					{
+						UnrealBuildTool.UnrealBuildTool.SetRemoteIniPath(SC.ProjectRoot);
+					}
 					GetDeployHandler().GeneratePList((SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"), !SC.IsCodeBasedProject, (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"), SC.ShortProjectName, SC.LocalRoot + "/Engine", (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine") + "/Binaries/" + PlatformName + "/Payload/" + (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game") + ".app");
 				}
 

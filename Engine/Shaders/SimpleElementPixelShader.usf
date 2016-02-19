@@ -304,6 +304,9 @@ void GammaDistanceFieldMain(
 	float4 BaseTexture = Texture2DSample(InTexture, InTextureSampler,TextureCoordinate);
 	ReplicateChannelSimpleElementShader(BaseTexture);
 	float BaseDist = BaseTexture.a;
+#if COMPILER_METAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM4 // For reasons best known to themselves Apple have made R8Unorm use the sRGB color space on desktop!
+	BaseDist = pow(BaseTexture.a, 2.2f);
+#endif
 	// smooth range between SmoothWidth texels around edge
 	// We want to control font edge smoothness in screen space, but the distance field is stored in texture space.
 	// Using ddx scales the smoothstep steepness based on texel-to-pixel scaling.
@@ -319,6 +322,10 @@ void GammaDistanceFieldMain(
 		float4 ShadowTexture = Texture2DSample(InTexture, InTextureSampler,TextureCoordinate + ShadowDirection);
 		ReplicateChannelSimpleElementShader(ShadowTexture);
 		float ShadowDist = ShadowTexture.a;
+#if COMPILER_METAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM4 // For reasons best known to themselves Apple have made R8Unorm use the sRGB color space on desktop!
+		ShadowDist = pow(ShadowTexture.a, 2.2f);
+#endif
+
 		// smooth range between ShadowSmoothWidth texels around edge
 		float4 ShadowResult = ShadowColor * smoothstep(0.5-ShadowSmoothWidth, 0.5+ShadowSmoothWidth, ShadowDist);
 		BaseColor =  lerp(ShadowResult, BaseColor, BaseColor.a);

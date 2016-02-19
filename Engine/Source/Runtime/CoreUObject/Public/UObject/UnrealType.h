@@ -3756,7 +3756,7 @@ protected:
 				if (InterfaceIndex < CurrentClass->Interfaces.Num())
 				{
 					FImplementedInterface& Interface = CurrentClass->Interfaces[InterfaceIndex];
-					CurrentField = Interface.Class->Children;
+					CurrentField = Interface.Class ? Interface.Class->Children : nullptr;
 					continue;
 				}
 			}

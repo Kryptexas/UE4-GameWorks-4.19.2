@@ -1366,7 +1366,11 @@ void FNodeHandlingFunctor::RegisterNets(FKismetFunctionContext& Context, UEdGrap
 	for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
 	{
 		UEdGraphPin* Pin = Node->Pins[PinIndex];
-		if (!CompilerContext.GetSchema()->IsMetaPin(*Pin)
+		if (Pin->bNotConnectable && Pin->LinkedTo.Num() > 0)
+		{
+			CompilerContext.MessageLog.Warning(*LOCTEXT("NotConnectablePinLinked", "@@ is linked to another pin but is marked as not connectable. This pin connection will not be compiled.").ToString(), Pin);
+		}
+		else if (!CompilerContext.GetSchema()->IsMetaPin(*Pin)
 			|| (CompilerContext.GetSchema()->IsSelfPin(*Pin) && Pin->LinkedTo.Num() == 0 && Pin->DefaultObject) )
 		{
 			UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(Pin);

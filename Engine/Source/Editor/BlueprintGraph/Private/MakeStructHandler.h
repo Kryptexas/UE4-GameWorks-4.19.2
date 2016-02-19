@@ -16,6 +16,7 @@ public:
 	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) override;
 
 	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override;
+	virtual FBPTerminal* RegisterLiteral(FKismetFunctionContext& Context, UEdGraphPin* Net) override;
 
 	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* InNode) override;
 

@@ -321,7 +321,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 
 	TArray< TSharedPtr<FInternationalizationArchive> > NativeArchives;
 	{
-		const FString NativeCulturePath = DestinationPath / *(NativeCultureName);
+		const FString NativeCulturePath = SourcePath / *(NativeCultureName);
 		TArray<FString> NativeArchiveFileNames;
 		IFileManager::Get().FindFiles(NativeArchiveFileNames, *(NativeCulturePath / TEXT("*.archive")), true, false);
 

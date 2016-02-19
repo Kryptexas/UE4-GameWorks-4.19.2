@@ -95,7 +95,7 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FMobilityQueryDelegate, EComponentMobilit
  *									(if left unset it will default to the AreMobilitiesDifferent() function)
  * @return The number of decedents that had their mobility altered.
  */
-static int32 SetDecedentMobility(USceneComponent const* SceneComponentObject, EComponentMobility::Type NewMobilityType, FMobilityQueryDelegate ShouldOverrideMobility = FMobilityQueryDelegate())
+static int32 SetDescendantMobility(USceneComponent const* SceneComponentObject, EComponentMobility::Type NewMobilityType, FMobilityQueryDelegate ShouldOverrideMobility = FMobilityQueryDelegate())
 {
 	if (!ensure(SceneComponentObject != nullptr))
 	{
@@ -123,30 +123,31 @@ static int32 SetDecedentMobility(USceneComponent const* SceneComponentObject, EC
 		ShouldOverrideMobility = FMobilityQueryDelegate::CreateStatic(&AreMobilitiesDifferent, NewMobilityType);
 	}
 
-	int32 NumDecendentsChanged = 0;
+	int32 NumDescendantsChanged = 0;
 	// recursively alter the mobility for children and deeper decedents 
 	for (int32 ChildIndex = 0; ChildIndex < AttachedChildren.Num(); ++ChildIndex)
 	{
-		USceneComponent* ChildSceneComponent = AttachedChildren[ChildIndex];
-
-		if (ShouldOverrideMobility.Execute(ChildSceneComponent->Mobility))
+		if (USceneComponent* ChildSceneComponent = AttachedChildren[ChildIndex])
 		{
-			// USceneComponents shouldn't be set Stationary 
-			if ((NewMobilityType == EComponentMobility::Stationary) && ChildSceneComponent->IsA(UStaticMeshComponent::StaticClass()))
+			if (ShouldOverrideMobility.Execute(ChildSceneComponent->Mobility))
 			{
-				// make it Movable (because it is acceptable for Stationary parents to have Movable children)
-				ChildSceneComponent->Mobility = EComponentMobility::Movable;
+				// USceneComponents shouldn't be set Stationary 
+				if ((NewMobilityType == EComponentMobility::Stationary) && ChildSceneComponent->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					// make it Movable (because it is acceptable for Stationary parents to have Movable children)
+					ChildSceneComponent->Mobility = EComponentMobility::Movable;
+				}
+				else
+				{
+					ChildSceneComponent->Mobility = NewMobilityType;
+				}
+				++NumDescendantsChanged;
 			}
-			else
-			{
-				ChildSceneComponent->Mobility = NewMobilityType;
-			}
-			++NumDecendentsChanged;
+			NumDescendantsChanged += SetDescendantMobility(ChildSceneComponent, NewMobilityType, ShouldOverrideMobility);
 		}
-		NumDecendentsChanged += SetDecedentMobility(ChildSceneComponent, NewMobilityType, ShouldOverrideMobility);
 	}
 
-	return NumDecendentsChanged;
+	return NumDescendantsChanged;
 }
 
 /**
@@ -232,7 +233,7 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 	// Movable components can only have movable sub-components
 	if(ComponentThatChanged->Mobility == EComponentMobility::Movable)
 	{
-		NumMobilityChanges += SetDecedentMobility(ComponentThatChanged, EComponentMobility::Movable);
+		NumMobilityChanges += SetDescendantMobility(ComponentThatChanged, EComponentMobility::Movable);
 	}
 	else if(ComponentThatChanged->Mobility == EComponentMobility::Stationary)
 	{
@@ -252,7 +253,7 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 		FMobilityQueryDelegate IsMovableDelegate = FMobilityQueryDelegate::CreateRaw(&EquivalenceFunctor, &FMobilityEqualityFunctor::operator(), EComponentMobility::Movable);
 
 		// if any decedents are static, change them to stationary (or movable for static meshes)
-		NumMobilityChanges += SetDecedentMobility(ComponentThatChanged, EComponentMobility::Stationary, IsStaticDelegate);
+		NumMobilityChanges += SetDescendantMobility(ComponentThatChanged, EComponentMobility::Stationary, IsStaticDelegate);
 
 		// if any ancestors are movable, change them to stationary (or static for static meshes)
 		NumMobilityChanges += SetAncestorMobility(ComponentThatChanged, EComponentMobility::Stationary, IsMovableDelegate);
@@ -726,7 +727,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 #if WITH_EDITORONLY_DATA
 	if (SpriteComponent)
 	{
-		SpriteComponent->DestroyComponent(bDestroyingHierarchy);
+		SpriteComponent->DestroyComponent();
 	}
 #endif
 
@@ -787,9 +788,8 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 							if (Child->AttachParent)
 							{
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
-								ensure(Child->AttachParent == this);
 							}
-							else if (!ensure(IsPendingKill() || Child->IsPendingKill()))
+							else if (!IsPendingKill())
 							{
 								// If we (or child) are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
@@ -836,11 +836,10 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 							if (Child->AttachParent)
 							{
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is attached to '%s'"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName(), *Child->AttachParent->GetFullName());
-								ensure(Child->AttachParent == this);
 							}
-							else if (!ensure(IsPendingKill() || Child->IsPendingKill()))
+							else if (!IsPendingKill())
 							{
-								// If we are pending kill, the AttachParent reference to us may have been nulled already, so only error if not pending kill
+								// If we are pending kill, the AttachParent reference to us may have been nulled already, so only an error if not pending kill
 								UE_LOG(LogSceneComponent, Error, TEXT("Component '%s' has '%s' in its AttachChildren array, however, '%s' believes it is not attached to anything"), *GetFullName(), *Child->GetFullName(), *Child->GetFullName());
 							}
 							AttachChildren.Pop(false);

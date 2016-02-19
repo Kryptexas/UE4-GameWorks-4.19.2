@@ -1302,8 +1302,6 @@ public:
 
 	/** Flags determining loading behavior.																					*/
 	uint32					LoadFlags;
-	/** Indicates whether the imports for this loader have been verified													*/
-	bool					bHaveImportsBeenVerified;
 	/** Indicates that this linker was created for a dynamic class package and will not use Loader */
 	bool					bDynamicClassLinker;
 	/** Hash table for exports.																								*/
@@ -1407,6 +1405,8 @@ private:
 	float					TimeLimit;
 	/** Time at begin of Tick function. Used for time limit determination.													*/
 	double					TickStartTime;
+	/**  Tracks the last verified import (making Verify() reentrant) - used to know when all the imports have been verified */
+	int32					VerifiedImportCount;
 
 	/** Used for ActiveClassRedirects functionality */
 	bool					bFixupExportMapDone;
@@ -1518,6 +1518,12 @@ public:
 	FORCEINLINE int32 GetOwnerThreadId() const
 	{
 		return OwnerThread;
+	}
+
+	/** Indicates when Verify() has gone through the entire  */
+	FORCEINLINE bool HaveImportsBeenVerified() const
+	{
+		return VerifiedImportCount >= Summary.ImportCount;
 	}
 
 	/**
@@ -1965,6 +1971,9 @@ public:
 	 */
 	COREUOBJECT_API ELinkerStatus SerializeThumbnails( bool bForceEnableForCommandlet=false );
 
+	/** Inform the archive that blueprint finalization is pending. */
+	virtual void ForceBlueprintFinalization() override;
+
 	/**
 	* Query method to help handle recursive behavior. When this returns true,
 	* this linker is in the middle of, or is about to call FinalizeBlueprint()
@@ -2130,6 +2139,12 @@ private:
 	 * class if complete. If we attempt to serialize the CDO while that is 
 	 * happening, we instead defer it and record the export's index here (so we 
 	 * can return to it later).
+	 */
+	bool bForceBlueprintFinalization;
+
+	/** 
+	 * Index of the CDO that should be used for blueprint finalization, may be INDEX_NONE
+	 * in the case of some legacy content.
 	 */
 	int32 DeferredCDOIndex;
 

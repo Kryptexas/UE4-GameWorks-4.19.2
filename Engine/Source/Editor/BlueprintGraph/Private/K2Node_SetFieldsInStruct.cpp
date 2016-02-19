@@ -135,7 +135,6 @@ public:
 
 UK2Node_SetFieldsInStruct::UK2Node_SetFieldsInStruct(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bMadeAfterOverridePinRemoval(false)
 {
 }
 
@@ -212,11 +211,6 @@ void UK2Node_SetFieldsInStruct::ValidateNodeDuringCompilation(FCompilerResultsLo
 	{
 		FText ErrorMessage = LOCTEXT("SetStructFields_NoStructRefError", "The @@ pin must be connected to the struct that you wish to set.");
 		MessageLog.Error(*ErrorMessage.ToString(), FoundPin);
-	}
-
-	if (!bMadeAfterOverridePinRemoval)
-	{
-		MessageLog.Warning(*NSLOCTEXT("K2Node", "OverridePinRemoval", "Override pins have been removed from @@, please verify the Blueprint works as expected! See tooltips for enabling pin visibility for more details. This warning will go away after you resave the asset!").ToString(), this);
 	}
 }
 
@@ -306,12 +300,6 @@ void UK2Node_SetFieldsInStruct::FSetFieldsInStructPinManager::GetRecordDefaults(
 	Record.bShowPin = false;
 }
 
-void UK2Node_SetFieldsInStruct::PostPlacedNewNode()
-{
-	// New nodes automatically have this set.
-	bMadeAfterOverridePinRemoval = true;
-}
-
 void UK2Node_SetFieldsInStruct::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
@@ -336,42 +324,16 @@ void UK2Node_SetFieldsInStruct::ExpandNode(class FKismetCompilerContext& Compile
 	}
 }
 
-void UK2Node_SetFieldsInStruct::Serialize(FArchive& Ar)
+bool UK2Node_SetFieldsInStruct::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
-	UK2Node_StructOperation::Serialize(Ar);
-
-	if (Ar.IsLoading() && !bMadeAfterOverridePinRemoval)
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if (MyPin->bNotConnectable)
 	{
-		// Check if this node actually requires warning the user that functionality has changed.
-
-		bMadeAfterOverridePinRemoval = true;
-		FOptionalPinManager PinManager;
-
-		// Have to check if this node is even in danger.
-		for (TFieldIterator<UProperty> It(StructType, EFieldIteratorFlags::IncludeSuper); It; ++It)
-		{
-			UProperty* TestProperty = *It;
-			if (PinManager.CanTreatPropertyAsOptional(TestProperty))
-			{
-				bool bNegate = false;
-				if (UProperty* OverrideProperty = PropertyCustomizationHelpers::GetEditConditionProperty(TestProperty, bNegate))
-				{
-					// We have confirmed that there is a property that uses an override variable to enable it, so set it to true.
-					bMadeAfterOverridePinRemoval = false;
-					break;
-				}
-			}
-		}
+		OutReason = LOCTEXT("SetFieldsInStructConnectionDisallowed", "This pin must enable the override to set a value!").ToString();
+		return true;
 	}
-	else if (Ar.IsSaving() && !Ar.IsTransacting())
-	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(this);
 
-		if (Blueprint && !Blueprint->bBeingCompiled)
-		{
-			bMadeAfterOverridePinRemoval = true;
-		}
-	}
+	return Super::IsConnectionDisallowed(MyPin, OtherPin, OutReason);
 }
 
 #undef LOCTEXT_NAMESPACE
