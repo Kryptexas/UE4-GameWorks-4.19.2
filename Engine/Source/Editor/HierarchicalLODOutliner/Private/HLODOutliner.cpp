@@ -122,40 +122,42 @@ namespace HLODOutliner
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(0.0f, 5.0f))
 			[
-
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5.0f, 0.0f))
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("GenerateClusters", "Generate Clusters"))
-					.OnClicked(this, &SHLODOutliner::HandlePreviewHLODs)
-				]
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(5.0f, 0.0f))
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("GenerateClusters", "Generate Clusters"))
+						.OnClicked(this, &SHLODOutliner::HandlePreviewHLODs)
+						.ToolTipText(LOCTEXT("GenerateClusterToolTip", "Generates Clusters (but not proxy meshes) for Meshes in the Level"))
+					]
 
 				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5.0f, 0.0f))
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("DeleteClusters", "Delete Clusters"))
-					.OnClicked(this, &SHLODOutliner::HandleDeleteHLODs)
-				]
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(5.0f, 0.0f))
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("DeleteClusters", "Delete Clusters"))
+						.OnClicked(this, &SHLODOutliner::HandleDeleteHLODs)
+						.ToolTipText(LOCTEXT("DeleteClusterToolTip", "Deletes all Clusters in the Level"))
+					]
 
 				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5.0f, 0.0f))
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("BuildMeshes", "Build LOD Meshes for Clusters"))
-					.OnClicked(this, &SHLODOutliner::HandleBuildLODActors)
-				]				
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(5.0f, 0.0f))
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("BuildMeshes", "Generate Proxy Meshes"))
+						.OnClicked(this, &SHLODOutliner::HandleBuildLODActors)
+						.ToolTipText(LOCTEXT("GenerateProxyMeshesToolTip", "Generates Proxy Mesh for each Clusters in the Level"))
+					]
 			];
 		
 	}
