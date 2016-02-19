@@ -1027,8 +1027,6 @@ void FMetalDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
 	FMetalSurface* Surf = GetMetalSurfaceFromRHITexture(SourceSurfaceRHI);
 	if (Surf && Surf->Texture)
 	{
-		SCOPED_AUTORELEASE_POOL;
-		
 		// @todo: gather these all up over a frame
 		id<MTLCommandBuffer> CommandBuffer = GetMetalDeviceContext().CreateCommandBuffer(false/*bRetainReferences*/);
 		
@@ -1077,8 +1075,6 @@ ETextureReallocationStatus FMetalDynamicRHI::CancelAsyncReallocateTexture2D_Rend
 
 FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIParamRef OldTextureRHI, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus)
 {
-	SCOPED_AUTORELEASE_POOL;
-	
 	FMetalTexture2D* OldTexture = ResourceCast(OldTextureRHI);
 
 	FMetalTexture2D* NewTexture = new FMetalTexture2D(OldTexture->GetFormat(), NewSizeX, NewSizeY, NewMipCount, OldTexture->GetNumSamples(), OldTexture->GetFlags(), NULL, OldTextureRHI->GetClearBinding());
@@ -1114,8 +1110,8 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 					sourceOrigin:Origin
 					  sourceSize:MTLSizeMake(MipSizeX, MipSizeY, 1)
 					   toTexture:NewTexture->Surface.Texture
-			    destinationSlice:SliceIndex
-			    destinationLevel:MipIndex + DestMipOffset
+				destinationSlice:SliceIndex
+				destinationLevel:MipIndex + DestMipOffset
 			   destinationOrigin:Origin];
 	}
 

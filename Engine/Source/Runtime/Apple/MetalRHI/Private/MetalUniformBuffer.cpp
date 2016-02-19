@@ -196,11 +196,12 @@ id<MTLBuffer> SuballocateUB(uint32 Size, uint32& OutOffset)
 }
 
 
-FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
+FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage InUsage)
 	: FRHIUniformBuffer(Layout)
 	, Buffer(nil)
 	, Offset(0)
 	, Size(Layout.ConstantBufferSize)
+	, Usage(InUsage)
 {
 	if (Layout.ConstantBufferSize > 0)
 	{
@@ -274,7 +275,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 FMetalUniformBuffer::~FMetalUniformBuffer()
 {
 	// don't need to free the ring buffer!
-	if (GIsRHIInitialized && Buffer != nil && Buffer != GetMetalDeviceContext().GetRingBuffer())
+	if (GIsRHIInitialized && Buffer != nil && !(Usage == UniformBuffer_SingleDraw && !GUseRHIThread))
 	{
 		check(Size <= 65536);
 		AddNewlyFreedBufferToUniformBufferPool(Buffer, Offset, Size);

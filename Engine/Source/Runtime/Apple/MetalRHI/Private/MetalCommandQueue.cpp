@@ -60,19 +60,26 @@ FMetalCommandQueue::~FMetalCommandQueue(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 {
-	return [CommandQueue commandBuffer];
+	@autoreleasepool
+	{
+		return [[CommandQueue commandBuffer] retain];
+	}
 }
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 {
-    static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
-    return bUnretainedRefs ? [CommandQueue commandBufferWithUnretainedReferences] : [CommandQueue commandBuffer];
+	@autoreleasepool
+	{
+		static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+		return bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
+	}
 }
 
 void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandBuffer)
 {
 	check(CommandBuffer);
 	[CommandBuffer commit];
+	[CommandBuffer release];
 }
 
 void FMetalCommandQueue::SubmitCommandBuffers(FMetalCommandList* BufferList, uint32 Index, uint32 Count)

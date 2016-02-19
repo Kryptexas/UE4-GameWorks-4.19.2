@@ -518,6 +518,9 @@ public:
 
 	uint32 Size; // @todo zebra: HACK! This should be removed and the code that uses it should be changed to use GetSize() instead once we fix the problem with FRHIUniformBufferLayout being released too early
 
+	/** The intended usage of the uniform buffer. */
+	EUniformBufferUsage Usage;
+	
 	/** Resource table containing RHI references. */
 	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
 

@@ -515,7 +515,6 @@ void FMetalContext::CreateCurrentCommandBuffer(bool bWait)
 		dispatch_semaphore_wait(CommandBufferSemaphore, DISPATCH_TIME_FOREVER);
 	}
 	
-	SCOPED_AUTORELEASE_POOL;
 	CurrentCommandBuffer = CommandQueue.CreateUnretainedCommandBuffer();
 	[CurrentCommandBuffer retain];
 	TRACK_OBJECT(CurrentCommandBuffer);
