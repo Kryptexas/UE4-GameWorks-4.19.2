@@ -30,10 +30,12 @@ public:
 
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) override;
 	virtual FText GetDisplayName() const override;
-
+	virtual float GetSectionHeight() const override;
+	virtual int32 OnPaintSection(FSequencerSectionPainter& InPainter) const override;
+	virtual FMargin GetContentPadding() const override;
 	// FThumbnail interface
 
-	virtual ACameraActor* GetCameraObject() const override;
+	virtual AActor* GetCameraObject() const override;
 	virtual FText HandleThumbnailTextBlockText() const override;
 
 private:

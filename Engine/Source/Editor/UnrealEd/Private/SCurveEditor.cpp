@@ -8,6 +8,7 @@
 #include "SColorGradientEditor.h"
 #include "GenericCommands.h"
 #include "SNumericEntryBox.h"
+#include "STextEntryPopup.h"
 #include "CurveEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
@@ -86,6 +87,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	TransactionIndex = -1;
 
+	ReduceTolerance = 0.001;
+
 	Settings = GetMutableDefault<UCurveEditorSettings>();
 
 	Commands->MapAction(FGenericCommands::Get().Undo,
@@ -143,6 +146,13 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 
 	Commands->MapAction(FRichCurveEditorCommands::Get().StraightenTangents,
 		FExecuteAction::CreateSP(this, &SCurveEditor::OnFlattenOrStraightenTangents, false));
+
+	// Bake and reduce
+	Commands->MapAction(FRichCurveEditorCommands::Get().BakeCurve,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnBakeCurve));
+
+	Commands->MapAction(FRichCurveEditorCommands::Get().ReduceCurve,
+		FExecuteAction::CreateSP(this, &SCurveEditor::OnReduceCurve));
 
 	// Pre infinity extrapolation
 	Commands->MapAction(FRichCurveEditorCommands::Get().SetPreInfinityExtrapCycle,
@@ -2998,6 +3008,151 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 	}
 }
 
+void SCurveEditor::OnBakeCurve()
+{
+	float BakeSampleRate = InputSnap.IsSet() ? InputSnap.Get() : 0.05f;
+
+	// Display dialog and let user enter sample rate.
+	GenericTextEntryModeless(
+		NSLOCTEXT("CurveEditor.Popups", "BakeSampleRate", "Sample Rate"),
+		FText::AsNumber( BakeSampleRate ),
+		FOnTextCommitted::CreateSP(this, &SCurveEditor::OnBakeCurveSampleRateCommitted)
+		);
+}
+
+void SCurveEditor::OnBakeCurveSampleRateCommitted(const FText& InText, ETextCommit::Type CommitInfo)
+{
+	CloseEntryPopupMenu();
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		double NewBakeSampleRate = FCString::Atod(*InText.ToString());
+		const bool bIsNumber = InText.IsNumeric(); 
+		if(!bIsNumber)
+			return;
+
+		float BakeSampleRate = (float)NewBakeSampleRate;
+
+		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_BakeCurve", "Bake Curve"));
+		CurveOwner->ModifyOwner();
+
+		bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
+		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+
+		// If keys are selected, bake between them
+		TMap<FRichCurve*, TInterval<float> > CurveRangeMap;
+		for (auto SelectedKey : SelectedKeys)
+		{
+			float SelectedTime = SelectedKey.Curve->GetKey(SelectedKey.KeyHandle).Time;
+			if (CurveRangeMap.Find(SelectedKey.Curve) != nullptr)
+			{
+				CurveRangeMap[SelectedKey.Curve].Include(SelectedTime);
+			}
+			else
+			{
+				CurveRangeMap.Add(SelectedKey.Curve, TInterval<float>(SelectedTime, SelectedTime));
+			}
+		}
+
+		if (CurveRangeMap.Num())
+		{
+			for (auto CurveToBake : CurveRangeMap)
+			{
+				CurveToBake.Key->BakeCurve(BakeSampleRate, CurveToBake.Value.Min, CurveToBake.Value.Max);
+				ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+			}
+		}
+		else
+		{
+			for (auto CurveViewModel : CurveViewModels)
+			{
+				if (!bAnyCurveViewModelsSelected || CurveViewModel->bIsSelected)
+				{
+					CurveViewModel->CurveInfo.CurveToEdit->BakeCurve(BakeSampleRate);
+					ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+				}
+			}
+		}
+
+		if (ChangedCurveEditInfos.Num())
+		{
+			CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+		}
+	}
+}
+
+void SCurveEditor::OnReduceCurve()
+{
+	// Display dialog and let user enter tolerance.
+	GenericTextEntryModeless(
+		NSLOCTEXT("CurveEditor.Popups", "ReduceCurveTolerance", "Tolerance"),
+		FText::AsNumber( ReduceTolerance ),
+		FOnTextCommitted::CreateSP(this, &SCurveEditor::OnReduceCurveToleranceCommitted)
+		);
+}
+
+void SCurveEditor::OnReduceCurveToleranceCommitted(const FText& InText, ETextCommit::Type CommitInfo)
+{
+	CloseEntryPopupMenu();
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		double NewTolerance = FCString::Atod(*InText.ToString());
+		const bool bIsNumber = InText.IsNumeric(); 
+		if(!bIsNumber)
+			return;
+
+		ReduceTolerance = (float)NewTolerance;
+
+		const FScopedTransaction Transaction(LOCTEXT("CurveEditor_ReduceCurve", "Reduce Curve"));
+		CurveOwner->ModifyOwner();
+
+		bool bAnyCurveViewModelsSelected = AnyCurveViewModelsSelected();
+
+		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+
+		// If keys are selected, bake between them
+		TMap<FRichCurve*, TInterval<float> > CurveRangeMap;
+		for (auto SelectedKey : SelectedKeys)
+		{
+			float SelectedTime = SelectedKey.Curve->GetKey(SelectedKey.KeyHandle).Time;
+			if (CurveRangeMap.Find(SelectedKey.Curve) != nullptr)
+			{
+				CurveRangeMap[SelectedKey.Curve].Include(SelectedTime);
+			}
+			else
+			{
+				CurveRangeMap.Add(SelectedKey.Curve, TInterval<float>(SelectedTime, SelectedTime));
+			}
+		}
+
+		if (CurveRangeMap.Num())
+		{
+			for (auto CurveToBake : CurveRangeMap)
+			{
+				CurveToBake.Key->RemoveRedundantKeys(ReduceTolerance, CurveToBake.Value.Min, CurveToBake.Value.Max);
+				ChangedCurveEditInfos.Add(GetViewModelForCurve(CurveToBake.Key)->CurveInfo);
+			}
+		}
+		else
+		{
+			for (auto CurveViewModel : CurveViewModels)
+			{
+				if (!bAnyCurveViewModelsSelected || CurveViewModel->bIsSelected)
+				{
+					CurveViewModel->CurveInfo.CurveToEdit->RemoveRedundantKeys(ReduceTolerance);
+					ChangedCurveEditInfos.Add(CurveViewModel->CurveInfo);
+				}
+			}
+		}
+
+		if (ChangedCurveEditInfos.Num())
+		{
+			CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+		}
+	}
+}
+
+
 void SCurveEditor::OnSelectPreInfinityExtrap(ERichCurveExtrapolation Extrapolation)
 {
 	const FScopedTransaction Transaction(LOCTEXT("CurveEditor_SetPreInfinityExtrapolation", "Set Pre-Infinity Extrapolation"));
@@ -3382,6 +3537,35 @@ TSharedPtr<FCurveViewModel> SCurveEditor::GetViewModelForCurve(FRichCurve* InCur
 		}
 	}
 	return TSharedPtr<FCurveViewModel>();
+}
+
+void SCurveEditor::GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted)
+{
+	TSharedRef<STextEntryPopup> TextEntryPopup = 
+		SNew(STextEntryPopup)
+		.Label(DialogText)
+		.DefaultText(DefaultText)
+		.OnTextCommitted(OnTextComitted)
+		.ClearKeyboardFocusOnCommit(false)
+		.SelectAllTextWhenFocused(true)
+		.MaxWidth(1024.0f);
+
+	EntryPopupMenu = FSlateApplication::Get().PushMenu(
+		SharedThis(this),
+		FWidgetPath(),
+		TextEntryPopup,
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+	);
+}
+
+
+void SCurveEditor::CloseEntryPopupMenu()
+{
+	if (EntryPopupMenu.IsValid())
+	{
+		EntryPopupMenu.Pin()->Dismiss();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

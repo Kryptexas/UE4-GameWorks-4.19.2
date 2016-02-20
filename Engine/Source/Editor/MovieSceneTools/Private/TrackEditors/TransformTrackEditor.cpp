@@ -54,9 +54,9 @@ public:
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
-		static const FLinearColor BlueKeyAreaColor(0.0f, 0.0f, 0.7f, 0.2f);
-		static const FLinearColor GreenKeyAreaColor(0.0f, 0.7f, 0.0f, 0.2f);
-		static const FLinearColor RedKeyAreaColor(0.7f, 0.0f, 0.0f, 0.2f);
+		static const FLinearColor BlueKeyAreaColor(0.0f, 0.0f, 0.7f, 0.5f);
+		static const FLinearColor GreenKeyAreaColor(0.0f, 0.7f, 0.0f, 0.5f);
+		static const FLinearColor RedKeyAreaColor(0.7f, 0.0f, 0.0f, 0.5f);
 
 		UMovieScene3DTransformSection* TransformSection = Cast<UMovieScene3DTransformSection>( &Section );
 
@@ -92,21 +92,9 @@ public:
 		LayoutBuilder.PopCategory();
 	}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override 
 	{
-		const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
-	
-		// Add a box for the section
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect,
-			DrawEffects
-		); 
-
-		return LayerId;
+		return InPainter.PaintSectionBackground();
 	}
 
 	void SetIntermediateValue(UMovieSceneTrack* Track, FTransformData IntermediateData )
@@ -423,38 +411,54 @@ void F3DTransformTrackEditor::BindCommands(TSharedRef<FUICommandList> SequencerC
 
 void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectGuid, const UClass* ObjectClass)
 {
-	if (!ObjectClass->IsChildOf<ACameraActor>() && !ObjectClass->IsChildOf<UCameraComponent>())
+	bool bHasCameraComponent = false;
+
+	TArray<UObject*> OutObjects;
+	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
+
+	for (UObject* Object : OutObjects)
 	{
-		return;
+		AActor* Actor = Cast<AActor>( Object );
+		if (Actor)
+		{
+			UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(Actor);
+			if (CameraComponent)
+			{
+				bHasCameraComponent = true;
+			}
+		}
 	}
 
-	// If this is a camera track, add a button to lock the viewport to the camera
-	EditBox.Get()->AddSlot()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Right)
-		.AutoWidth()
-		.Padding(4, 0, 0, 0)
-		[
-			SNew(SCheckBox)		
-				.IsFocusable(false)
-				.Visibility(this, &F3DTransformTrackEditor::IsCameraVisible, ObjectGuid)
-				.IsChecked(this, &F3DTransformTrackEditor::IsCameraLocked, ObjectGuid)
-				.OnCheckStateChanged(this, &F3DTransformTrackEditor::OnLockCameraClicked, ObjectGuid)
-				.ToolTipText(this, &F3DTransformTrackEditor::GetLockCameraToolTip, ObjectGuid)
-				.ForegroundColor(FLinearColor::White)
-				.CheckedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
-				.CheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
-				.CheckedPressedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
-				.UncheckedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
-				.UncheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
-				.UncheckedPressedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
-		];
+	if (bHasCameraComponent)
+	{
+		// If this is a camera track, add a button to lock the viewport to the camera
+		EditBox.Get()->AddSlot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Right)
+			.AutoWidth()
+			.Padding(4, 0, 0, 0)
+			[
+				SNew(SCheckBox)		
+					.IsFocusable(false)
+					.Visibility(this, &F3DTransformTrackEditor::IsCameraVisible, ObjectGuid)
+					.IsChecked(this, &F3DTransformTrackEditor::IsCameraLocked, ObjectGuid)
+					.OnCheckStateChanged(this, &F3DTransformTrackEditor::OnLockCameraClicked, ObjectGuid)
+					.ToolTipText(this, &F3DTransformTrackEditor::GetLockCameraToolTip, ObjectGuid)
+					.ForegroundColor(FLinearColor::White)
+					.CheckedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
+					.CheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
+					.CheckedPressedImage(FEditorStyle::GetBrush("Sequencer.LockCamera"))
+					.UncheckedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
+					.UncheckedHoveredImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
+					.UncheckedPressedImage(FEditorStyle::GetBrush("Sequencer.UnlockCamera"))
+			];
+	}
 }
 
 
 void F3DTransformTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
-	if (ObjectClass->IsChildOf(AActor::StaticClass()))
+	if (ObjectClass->IsChildOf(AActor::StaticClass()) || ObjectClass->IsChildOf(USceneComponent::StaticClass()))
 	{
 		FKeyParams KeyParams;
 		KeyParams.bCreateTrackIfMissing = true;
@@ -489,7 +493,7 @@ F3DTransformTrackEditor::IsCameraVisible(FGuid ObjectGuid) const
 
 	for (UObject* Object : OutObjects)
 	{
-		ACameraActor* Actor = Cast<ACameraActor>( Object );
+		AActor* Actor = Cast<AActor>( Object );
 		if (Actor)
 		{
 			return EVisibility::Visible;
@@ -504,11 +508,11 @@ ECheckBoxState F3DTransformTrackEditor::IsCameraLocked(FGuid ObjectGuid) const
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-	TWeakObjectPtr<ACameraActor> CameraActor;
+	TWeakObjectPtr<AActor> CameraActor;
 
 	for (UObject* Object : OutObjects)
 	{
-		ACameraActor* Actor = Cast<ACameraActor>( Object );
+		AActor* Actor = Cast<AActor>( Object );
 		if (Actor)
 		{
 			CameraActor = Actor;
@@ -537,11 +541,11 @@ void F3DTransformTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState, 
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-	TWeakObjectPtr<ACameraActor> CameraActor;
+	TWeakObjectPtr<AActor> CameraActor;
 
 	for (UObject* Object : OutObjects)
 	{
-		ACameraActor* Actor = Cast<ACameraActor>( Object );
+		AActor* Actor = Cast<AActor>( Object );
 		if (Actor)
 		{
 			CameraActor = Actor;
@@ -607,11 +611,11 @@ FText F3DTransformTrackEditor::GetLockCameraToolTip(FGuid ObjectGuid) const
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-	TWeakObjectPtr<ACameraActor> CameraActor;
+	TWeakObjectPtr<AActor> CameraActor;
 
 	for (UObject* Object : OutObjects)
 	{
-		ACameraActor* Actor = Cast<ACameraActor>( Object );
+		AActor* Actor = Cast<AActor>( Object );
 		if (Actor)
 		{
 			CameraActor = Actor;
@@ -696,25 +700,32 @@ void F3DTransformTrackEditor::AddTransformKeysForObject( UObject* Object, EKey3D
 	if ( Actor != nullptr && SceneComponent != nullptr )
 	{
 		FTransformData CurrentTransform( SceneComponent );
-		AddTransformKeys( Actor, FTransformData(), CurrentTransform, ChannelToKey, false, KeyParams );
+		if(Object->GetClass()->IsChildOf(AActor::StaticClass()))
+		{
+			AddTransformKeys( Actor, FTransformData(), CurrentTransform, ChannelToKey, false, KeyParams );
+		}
+		else if(Object->GetClass()->IsChildOf(USceneComponent::StaticClass()))
+		{
+			AddTransformKeys( SceneComponent, FTransformData(), CurrentTransform, ChannelToKey, false, KeyParams );
+		}
 	}
 }
 
 
-void F3DTransformTrackEditor::AddTransformKeys( AActor* ActorToKey, const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, FKeyParams KeyParams )
+void F3DTransformTrackEditor::AddTransformKeys( UObject* ObjectToKey, const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, FKeyParams KeyParams )
 {
 	TArray<FTransformKey> NewKeys;
 	TArray<FTransformKey> DefaultKeys;
 	GetTransformKeys(LastTransform, CurrentTransform, ChannelsToKey, bUnwindRotation, NewKeys, DefaultKeys);
 
-	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnAddTransformKeys, ActorToKey, &NewKeys, &DefaultKeys, CurrentTransform, KeyParams ) );
+	AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnAddTransformKeys, ObjectToKey, &NewKeys, &DefaultKeys, CurrentTransform, KeyParams ) );
 }
 
 
-bool F3DTransformTrackEditor::OnAddTransformKeys( float Time, AActor* ActorToKey, TArray<FTransformKey>* NewKeys, TArray<FTransformKey>* DefaultKeys, FTransformData CurrentTransform, FKeyParams KeyParams )
+bool F3DTransformTrackEditor::OnAddTransformKeys( float Time, UObject* ObjectToKey, TArray<FTransformKey>* NewKeys, TArray<FTransformKey>* DefaultKeys, FTransformData CurrentTransform, FKeyParams KeyParams )
 {
 	TArray<UObject*> ObjectsToKey;
-	ObjectsToKey.Add(ActorToKey);
+	ObjectsToKey.Add(ObjectToKey);
 	
 	return AddKeysToObjects(
 		ObjectsToKey,

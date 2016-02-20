@@ -170,7 +170,12 @@ TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetTraversedSectionsWit
 void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubTrack->GetAllSections();
-	TArray<UMovieSceneSection*> TraversedSections = GetTraversedSectionsWithPreroll(AllSections, UpdateData.Position, UpdateData.LastPosition);
+
+	// Evaluate only the sections that intersect with the update time and not including the last position
+	float CurrentTime = UpdateData.Position;
+	float PreviousTime = CurrentTime;
+
+	TArray<UMovieSceneSection*> TraversedSections = GetTraversedSectionsWithPreroll(AllSections, CurrentTime, PreviousTime);
 
 	const float InitialUpdatePosition = UpdateData.Position;
 
@@ -198,6 +203,7 @@ void FMovieSceneSubTrackInstance::Update(EMovieSceneUpdateData& UpdateData, cons
 		const float InstancePosition = InstanceOffset + (UpdateData.Position - (SubSection->GetStartTime()- SubSection->PrerollTime)) / SubSection->TimeScale;
 
 		EMovieSceneUpdateData SubUpdateData(InstancePosition, InstanceLastPosition);
+		SubUpdateData.bJumpCut = UpdateData.LastPosition < SubSection->GetStartTime();
 		SubUpdateData.UpdatePass = UpdateData.UpdatePass;
 		SubUpdateData.bPreroll = InitialUpdatePosition < SubSection->GetStartTime();
 

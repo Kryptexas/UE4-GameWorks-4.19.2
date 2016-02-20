@@ -21,7 +21,11 @@ public:
 	UMovieSceneEventTrack()
 		: bFireEventsWhenForwards(true)
 		, bFireEventsWhenBackwards(true)
-	{ }
+	{
+#if WITH_EDITORONLY_DATA
+		TrackTint = FColor(0, 255, 128);
+#endif
+	}
 
 public:
 

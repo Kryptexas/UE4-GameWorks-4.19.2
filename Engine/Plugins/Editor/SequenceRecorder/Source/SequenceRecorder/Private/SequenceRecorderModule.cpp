@@ -8,12 +8,13 @@
 #include "SequenceRecorderCommands.h"
 #include "SequenceRecorder.h"
 #include "SequenceRecorderSettings.h"
+#include "ISequenceRecorder.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 
 static const FName SequenceRecorderTabName(TEXT("SequenceRecorder"));
 
-class FSequenceRecorderModule : public IModuleInterface, private FSelfRegisteringExec
+class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteringExec
 {
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override
@@ -211,6 +212,22 @@ class FSequenceRecorderModule : public IModuleInterface, private FSelfRegisterin
 
 #endif
 		return false;
+	}
+
+	// ISequenceRecorder interface
+	virtual bool StartRecording(UWorld* World, const FSequenceRecorderActorFilter& ActorFilter) override
+	{
+		return FSequenceRecorder::Get().StartRecordingForReplay(World, ActorFilter);
+	}
+
+	virtual void StopRecording() override
+	{
+		FSequenceRecorder::Get().StopRecording();
+	}
+
+	virtual bool IsRecording() override
+	{
+		return FSequenceRecorder::Get().IsRecording();
 	}
 
 	static void TickSequenceRecorder(float DeltaSeconds)

@@ -18,6 +18,7 @@ struct EMovieSceneUpdateData
 	float Position;
 	float LastPosition;
 	bool bPreroll;
+	bool bJumpCut;
 	EMovieSceneUpdatePass UpdatePass;
 
 	EMovieSceneUpdateData()
@@ -25,6 +26,7 @@ struct EMovieSceneUpdateData
 		Position = 0.0f;
 		LastPosition = 0.0f;
 		bPreroll = false;
+		bJumpCut = false;
 		UpdatePass = MSUP_PreUpdate;
 	}
 	EMovieSceneUpdateData(float InPosition, float InLastPosition)
@@ -32,6 +34,7 @@ struct EMovieSceneUpdateData
 		Position = InPosition;
 		LastPosition = InLastPosition;
 		bPreroll = false;
+		bJumpCut = false;
 		UpdatePass = MSUP_PreUpdate;
 	}
 };

@@ -67,7 +67,7 @@ private:
 		}
 		{
 			Info.DisplayName = LOCTEXT("BMPDescription", "Image Sequence (bmp)");
-			Info.SettingsClassType = nullptr;	// Bitmaps don't have any options
+			Info.SettingsClassType = UBmpImageCaptureSettings::StaticClass();
 			Info.Factory = []() -> TSharedRef<IMovieSceneCaptureProtocol> {
 				return MakeShareable(new FImageSequenceProtocol(EImageFormat::BMP));
 			};
@@ -169,7 +169,7 @@ private:
 						UClass* ProtocolTypeClass = FindObject<UClass>(nullptr, *ProtocolTypeField->AsString());
 						if (ProtocolTypeClass)
 						{
-							Capture->ProtocolSettings = NewObject<UMovieSceneCapture>(Capture, ProtocolTypeClass);
+							Capture->ProtocolSettings = NewObject<UMovieSceneCaptureProtocolSettings>(Capture, ProtocolTypeClass);
 							if (Capture->ProtocolSettings)
 							{
 								auto ProtocolDataField = RootObject->TryGetField(TEXT("ProtocolData"));

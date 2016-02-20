@@ -256,26 +256,13 @@ struct FFilmOverlay_SafeFrame : IFilmOverlay
 		auto SetValue = [this](float NewValue){ SizePercentage = NewValue; };
 		auto SetValueCommitted = [this](float NewValue, ETextCommit::Type){ SizePercentage = NewValue; };
 
-		return SNew(SHorizontalBox)
-
-			// + SHorizontalBox::Slot()
-			// .AutoWidth()
-			// [
-			// 	SNew(STextBlock)
-			// 	.Text(LOCTEXT("SizePercentage", "Screen Percentage:"))
-			// ]
-
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Right)
-			[
-				SNew(SSpinBox<float>)
-				.MinValue(1)
-				.MaxValue(99)
-				.Value_Lambda(GetValue)
-				.OnValueChanged_Lambda(SetValue)
-				.OnValueCommitted_Lambda(SetValueCommitted)
-				.TypeInterface(MakeShareable(new FPercentageInterface))
-			];
+		return SNew(SSpinBox<float>)
+			.MinValue(1)
+			.MaxValue(99)
+			.Value_Lambda(GetValue)
+			.OnValueChanged_Lambda(SetValue)
+			.OnValueCommitted_Lambda(SetValueCommitted)
+			.TypeInterface(MakeShareable(new FPercentageInterface));
 	}
 
 private:
@@ -532,7 +519,11 @@ TSharedRef<SWidget> SFilmOverlayOptions::ConstructToggleableOverlaysMenu()
 		.HAlign(HAlign_Right)
 		.Padding(10.f, 5.f)
 		[
-			Settings.ToSharedRef()
+			SNew(SBox)
+			.WidthOverride(100)
+			[
+				Settings.ToSharedRef()
+			]
 		];
 
 		++Row;

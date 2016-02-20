@@ -60,7 +60,12 @@ void FMovieSceneCinematicShotTrackInstance::Update(EMovieSceneUpdateData& Update
 	FMovieSceneSubTrackInstance::Update(UpdateData, RuntimeObjects, Player, SequenceInstance);
 
 	const TArray<UMovieSceneSection*>& AllSections = SubTrack->GetAllSections();
-	TArray<UMovieSceneSection*> TraversedSections = GetTraversedSectionsWithPreroll(AllSections, UpdateData.Position, UpdateData.LastPosition);
+
+	// Evaluate only the sections that intersect with the update time and not including the last position
+	float CurrentTime = UpdateData.Position;
+	float PreviousTime = CurrentTime;
+
+	TArray<UMovieSceneSection*> TraversedSections = GetTraversedSectionsWithPreroll(AllSections, CurrentTime, PreviousTime);
 
 	if (TraversedSections.Num() == 0)
 	{

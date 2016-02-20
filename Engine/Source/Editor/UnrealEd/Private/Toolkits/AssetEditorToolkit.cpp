@@ -188,11 +188,15 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		Toolbar = SNullWidget::NullWidget;
 	}
 
-
 	ToolkitCommands->MapAction(
 		FAssetEditorCommonCommands::Get().SaveAsset,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::SaveAsset_Execute ),
 		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanSaveAsset ));
+
+	ToolkitCommands->MapAction(
+		FAssetEditorCommonCommands::Get().SaveAssetAs,
+		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::SaveAssetAs_Execute ),
+		FCanExecuteAction::CreateSP( this, &FAssetEditorToolkit::CanSaveAssetAs ));
 
 	ToolkitCommands->MapAction(
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser,
@@ -422,6 +426,20 @@ const TArray< UObject* >& FAssetEditorToolkit::GetEditingObjects() const
 }
 
 
+void FAssetEditorToolkit::GetSaveableObjects(TArray<UObject*>& OutObjects) const
+{
+	for (const auto Object : EditingObjects)
+	{
+		// don't allow user to perform certain actions on objects that
+		// aren't actually assets (e.g. Level Script blueprint objects)
+		if ((Object != nullptr) && Object->IsAsset())
+		{
+			OutObjects.Add(Object);
+		}
+	}
+}
+
+
 void FAssetEditorToolkit::AddEditingObject(UObject* Object)
 {
 	EditingObjects.Add(Object);
@@ -438,23 +456,96 @@ void FAssetEditorToolkit::RemoveEditingObject(UObject* Object)
 
 void FAssetEditorToolkit::SaveAsset_Execute()
 {
-	if( ensure( EditingObjects.Num() > 0 ) )
+	if (EditingObjects.Num() == 0)
 	{
-		TArray< UPackage* > PackagesToSave;
-
-		for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
-		{
-			// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
-			const auto EditingObject = *ObjectIter;
-			if( EditingObject != NULL && EditingObject->IsAsset() )
-			{
-				PackagesToSave.Add( EditingObject->GetOutermost() );
-			}
-		}
-
-		FEditorFileUtils::PromptForCheckoutAndSave( PackagesToSave, bCheckDirtyOnAssetSave, /*bPromptToSave=*/ false );
+		return;
 	}
+
+	TArray<UObject*> ObjectsToSave;
+	GetSaveableObjects(ObjectsToSave);
+
+	if (ObjectsToSave.Num() == 0)
+	{
+		return;
+	}
+
+	TArray<UPackage*> PackagesToSave;
+
+	for (auto Object : ObjectsToSave)
+	{
+		check((Object != nullptr) && Object->IsAsset());
+		PackagesToSave.Add(Object->GetOutermost());
+	}
+
+	FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirtyOnAssetSave, /*bPromptToSave=*/ false);
 }
+
+
+void FAssetEditorToolkit::SaveAssetAs_Execute()
+{
+	if (EditingObjects.Num() == 0)
+	{
+		return;
+	}
+
+	TSharedPtr<IToolkitHost> MyToolkitHost = ToolkitHost.Pin();
+
+	if (!MyToolkitHost.IsValid())
+	{
+		return;
+	}
+
+	// get collection of objects to save
+	TArray<UObject*> ObjectsToSave;
+	GetSaveableObjects(ObjectsToSave);
+
+	if (ObjectsToSave.Num() == 0)
+	{
+		return;
+	}
+
+	// save assets under new name
+	TArray<UObject*> SavedObjects;
+	FEditorFileUtils::SaveAssetsAs(ObjectsToSave, SavedObjects);
+
+
+	// close existing asset editors for resaved assets
+	FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
+
+	/* @todo editor: Persona does not behave well when closing specific objects
+	for (int32 Index = 0; Index < ObjectsToSave.Num(); ++Index)
+	{
+		if ((SavedObjects[Index] != ObjectsToSave[Index]) && (SavedObjects[Index] != nullptr))
+		{
+			AssetEditorManager.CloseAllEditorsForAsset(ObjectsToSave[Index]);
+		}
+	}
+
+	// reopen asset editor
+	AssetEditorManager.OpenEditorForAssets(TArrayBuilder<UObject*>().Add(SavedObjects[0]), ToolkitMode, MyToolkitHost.ToSharedRef());
+	*/
+	// hack
+	TArray<UObject*> ObjectsToReopen;
+	for (auto Object : EditingObjects)
+	{
+		if (Object->IsAsset() && !ObjectsToSave.Contains(Object))
+		{
+			ObjectsToReopen.Add(Object);
+		}
+	}
+	for (auto Object : SavedObjects)
+	{
+		ObjectsToReopen.AddUnique(Object);
+	}
+	for (auto Object : EditingObjects)
+	{
+		AssetEditorManager.CloseAllEditorsForAsset(Object);
+		FAssetEditorManager::Get().NotifyAssetClosed(Object, this);
+	}
+	AssetEditorManager.OpenEditorForAssets(ObjectsToReopen, ToolkitMode, MyToolkitHost.ToSharedRef());
+	// end hack
+}
+
 
 const FSlateBrush* FAssetEditorToolkit::GetDefaultTabIcon() const
 {
@@ -738,8 +829,8 @@ void FAssetEditorToolkit::FillDefaultFileMenuCommands( FMenuBuilder& MenuBuilder
 {
 	if( IsActuallyAnAsset() )
 	{
-		MenuBuilder.AddMenuEntry( FAssetEditorCommonCommands::Get().SaveAsset, "SaveAsset", TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "AssetEditor.SaveAsset.Greyscale") );
-
+		MenuBuilder.AddMenuEntry(FAssetEditorCommonCommands::Get().SaveAsset, "SaveAsset", TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "AssetEditor.SaveAsset.Greyscale"));
+		MenuBuilder.AddMenuEntry(FAssetEditorCommonCommands::Get().SaveAssetAs, "SaveAssetAs", TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "AssetEditor.SaveAssetAs.Small"));
 		MenuBuilder.AddMenuSeparator();
 	}
 

@@ -21,6 +21,8 @@ class UMovieSceneCinematicShotTrack
 
 public:
 
+	UMovieSceneCinematicShotTrack(const FObjectInitializer& ObjectInitializer);
+	
 	// UMovieSceneSubTrack interface
 
 	MOVIESCENETRACKS_API virtual UMovieSceneSubSection* AddSequence(UMovieSceneSequence* Sequence, float StartTime, float Duration, const bool& bInsertSequence = false);

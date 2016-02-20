@@ -22,6 +22,8 @@ class UMovieSceneSubTrack
 
 public:
 
+	UMovieSceneSubTrack( const FObjectInitializer& ObjectInitializer );
+
 	/**
 	 * Adds a movie scene section to the end of all the existing sections. If there are no sections, the new movie scene section is added at the requested time.
 	 *

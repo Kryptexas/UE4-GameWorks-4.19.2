@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SequenceRecorderActorFilter.h"
 #include "SequenceRecorderSettings.generated.h"
 
 UCLASS(config=Editor, MinimalAPI)
@@ -34,7 +35,19 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	FString AnimationSubDirectory;
 
-	/** When set, record a transform track and record animations in local space */
+	/** Whether to record nearby spawned actors. */
 	UPROPERTY(EditAnywhere, Category = "Sequence Recording")
-	bool bRecordTransformsAsSeperateTrack;
+	bool bRecordNearbySpawnedActors;
+
+	/** Proximity to currently recorded actors to record newly spawned actors. */
+	UPROPERTY(EditAnywhere, Category = "Sequence Recording")
+	float NearbyActorRecordingProximity;
+
+	/** Whether to record the world settings actor in the sequence (some games use this to attach world SFX) */
+	UPROPERTY(EditAnywhere, Category = "Sequence Recording")
+	bool bRecordWorldSettingsActor;
+
+	/** Filter to check spawned actors against to see if they should be recorded */
+	UPROPERTY(EditAnywhere, Category = "Sequence Recording")
+	FSequenceRecorderActorFilter ActorFilter;
 };

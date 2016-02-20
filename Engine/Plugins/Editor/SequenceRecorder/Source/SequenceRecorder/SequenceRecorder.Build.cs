@@ -43,6 +43,7 @@ namespace UnrealBuildTool.Rules
 					"MovieScene",
 					"MovieSceneTracks",
 					"LevelSequence",
+					"NetworkReplayStreaming",
 				}
 				);
 

@@ -56,6 +56,14 @@ public:
 	 */	
 	static USceneComponent* SceneComponentFromRuntimeObject(UObject* Object);
 
+	/**
+	 * Get the active camera component from the actor 
+	 *
+	 * @param InActor The actor to look for the camera component on
+	 * @return The active camera component
+	 */
+	static UCameraComponent* CameraComponentFromActor(const AActor* InActor);
+
 	/*
 	 * Set the runtime object movable
 	 *

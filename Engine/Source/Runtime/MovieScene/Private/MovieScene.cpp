@@ -190,6 +190,10 @@ FMovieScenePossessable* UMovieScene::FindPossessable( const FGuid& Guid )
 	return nullptr;
 }
 
+FMovieScenePossessable* UMovieScene::FindPossessable( const TFunctionRef<bool(FMovieScenePossessable&)>& InPredicate )
+{
+	return Possessables.FindByPredicate(InPredicate);
+}
 
 int32 UMovieScene::GetPossessableCount() const
 {
@@ -258,9 +262,16 @@ void UMovieScene::SetPlaybackRange(float Start, float End)
 {
 	if (ensure(End >= Start))
 	{
+		const auto NewRange = TRange<float>(Start, TRangeBound<float>::Inclusive(End));
+
+		if (PlaybackRange == NewRange)
+		{
+			return;
+		}
+
 		Modify();
 		
-		PlaybackRange = TRange<float>(Start, TRangeBound<float>::Inclusive(End));
+		PlaybackRange = NewRange;
 
 #if WITH_EDITORONLY_DATA
 		if (EditorData.WorkingRange.IsEmpty())
@@ -338,7 +349,7 @@ class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> Tra
 
 			CreatedType = NewObject<UMovieSceneTrack>(this, TrackClass, NAME_None, RF_Transactional);
 			ensure(CreatedType);
-
+			
 			Binding.AddTrack( *CreatedType );
 		}
 	}
@@ -351,7 +362,7 @@ bool UMovieScene::RemoveTrack(UMovieSceneTrack& Track)
 {
 	Modify();
 
-	bool bAnythingRemoved = false;
+bool bAnythingRemoved = false;
 
 	for (auto& Binding : ObjectBindings)
 	{

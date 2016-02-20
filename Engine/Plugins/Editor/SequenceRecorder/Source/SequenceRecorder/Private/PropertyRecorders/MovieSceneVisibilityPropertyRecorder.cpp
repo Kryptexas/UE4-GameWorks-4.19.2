@@ -8,9 +8,9 @@
 
 static const FName VisibilityTrackName = TEXT("Visibility");
 
-void FMovieSceneVisibilityPropertyRecorder::CreateSection(AActor* SourceActor, UMovieScene* MovieScene, const FGuid& Guid, bool bRecord)
+void FMovieSceneVisibilityPropertyRecorder::CreateSection(UObject* InObjectToRecord, UMovieScene* MovieScene, const FGuid& Guid, float Time, bool bRecord)
 {
-	ActorToRecord = SourceActor;
+	ObjectToRecord = InObjectToRecord;
 
 	UMovieSceneVisibilityTrack* VisibilityTrack = MovieScene->AddTrack<UMovieSceneVisibilityTrack>(Guid);
 	if(VisibilityTrack)
@@ -23,12 +23,24 @@ void FMovieSceneVisibilityPropertyRecorder::CreateSection(AActor* SourceActor, U
 
 		MovieSceneSection->SetDefault(false);
 
-		MovieSceneSection->SetStartTime(0.0f);
+		bWasVisible = false;
+		if(USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectToRecord.Get()))
+		{
+			bWasVisible = SceneComponent->IsVisible() && SceneComponent->IsRegistered();
+		}
+		else if(AActor* Actor = Cast<AActor>(ObjectToRecord.Get()))
+		{
+			bWasVisible = !Actor->bHidden;
+		}
+
+		MovieSceneSection->AddKey(Time, bWasVisible, EMovieSceneKeyInterpolation::Break);
+
+		MovieSceneSection->SetStartTime(Time);
 	}
 
 	bRecording = bRecord;
 
-	bWasVisible = false;
+	Record(Time);
 }
 
 void FMovieSceneVisibilityPropertyRecorder::FinalizeSection()
@@ -38,15 +50,22 @@ void FMovieSceneVisibilityPropertyRecorder::FinalizeSection()
 
 void FMovieSceneVisibilityPropertyRecorder::Record(float CurrentTime)
 {
-	if(ActorToRecord.IsValid())
+	if(ObjectToRecord.IsValid())
 	{
 		MovieSceneSection->SetEndTime(CurrentTime);
 
 		if(bRecording)
 		{
-			USkeletalMeshComponent* SkeletalMeshComponent = ActorToRecord->FindComponentByClass<USkeletalMeshComponent>();
+			bool bVisible = false;
+			if(USceneComponent* SceneComponent = Cast<USceneComponent>(ObjectToRecord.Get()))
+			{
+				bVisible = SceneComponent->IsVisible() && SceneComponent->IsRegistered();
+			}
+			else if(AActor* Actor = Cast<AActor>(ObjectToRecord.Get()))
+			{
+				bVisible = !Actor->bHidden;
+			}
 
-			const bool bVisible = SkeletalMeshComponent ? !SkeletalMeshComponent->bHiddenInGame : !ActorToRecord->bHidden;
 			if(bVisible != bWasVisible)
 			{
 				MovieSceneSection->AddKey(CurrentTime, bVisible, EMovieSceneKeyInterpolation::Break);

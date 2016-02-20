@@ -68,6 +68,11 @@ void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, UObject& Posse
 	}
 }
 
+void ULevelSequence::BindPossessableObject(const FGuid& ObjectId, const FLevelSequenceObjectReference& ObjectReference)
+{
+	ObjectReferences.CreateBinding(ObjectId, ObjectReference);
+}
+
 bool ULevelSequence::CanPossessObject(UObject& Object) const
 {
 	return Object.IsA<AActor>() || Object.IsA<UActorComponent>();

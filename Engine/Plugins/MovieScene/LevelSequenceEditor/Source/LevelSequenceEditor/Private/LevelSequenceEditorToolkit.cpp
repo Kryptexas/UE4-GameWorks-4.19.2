@@ -6,18 +6,21 @@
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "ClassIconFinder.h"
 #include "ISequencer.h"
 #include "ISequencerModule.h"
-#include "SDockTab.h"
-#include "MovieSceneBinding.h"
 #include "MovieScene.h"
-#include "MovieSceneSequenceInstance.h"
+#include "MovieSceneBinding.h"
 #include "MovieSceneMaterialTrack.h"
+#include "MovieSceneSequenceInstance.h"
 #include "ScopedTransaction.h"
-#include "ClassIconFinder.h"
 #include "SceneOutlinerModule.h"
 #include "SceneOutlinerPublicTypes.h"
-#include "LevelSequenceEditorSpawnRegister.h"
+#include "SDockTab.h"
+
+// @todo sequencer: hack: setting defaults for transform tracks
+#include "MovieScene3DTransformSection.h"
+#include "MovieScene3DTransformTrack.h"
 
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
@@ -279,17 +282,159 @@ void FLevelSequenceEditorToolkit::AddActorsToSequencer(AActor*const* InActors, i
 	while (NumActors--)
 	{
 		AActor* ThisActor = *InActors;
+
 		if (!Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*ThisActor).IsValid())
 		{
-			Sequencer->CreateBinding(*ThisActor, ThisActor->GetActorLabel());
+			FGuid Binding = Sequencer->CreateBinding(*ThisActor, ThisActor->GetActorLabel());
+			Sequencer->UpdateRuntimeInstances();
+			AddDefaultTracksForActor(*ThisActor, Binding);
 		}
 
 		GEditor->SelectActor(ThisActor, true, true);
-
 		InActors++;
 	}
 
 	Sequencer->NotifyMovieSceneDataChanged();
+}
+
+void FLevelSequenceEditorToolkit::AddDefaultTracksForActor(AActor& Actor, const FGuid Binding)
+{
+	// get focused movie scene
+	UMovieSceneSequence* Sequence = Sequencer->GetFocusedMovieSceneSequence();
+
+	if (Sequence == nullptr)
+	{
+		return;
+	}
+
+	UMovieScene* MovieScene = Sequence->GetMovieScene();
+
+	if (MovieScene == nullptr)
+	{
+		return;
+	}
+
+	// add default tracks
+	for (const FLevelSequenceTrackSettings& TrackSettings : GetDefault<ULevelSequenceEditorSettings>()->TrackSettings)
+	{
+		UClass* MatchingActorClass = TrackSettings.MatchingActorClass.ResolveClass();
+
+		if ((MatchingActorClass == nullptr) || !Actor.IsA(MatchingActorClass))
+		{
+			continue;
+		}
+
+		// add tracks by type
+		for (const FStringClassReference& DefaultTrack : TrackSettings.DefaultTracks)
+		{
+			UClass* TrackClass = DefaultTrack.ResolveClass();
+
+			if (TrackClass != nullptr)
+			{
+				UMovieSceneTrack* NewTrack = MovieScene->AddTrack(TrackClass, Binding);
+				UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
+
+				NewTrack->AddSection(*NewSection);
+
+				// @todo sequencer: hack: setting defaults for transform tracks
+				if (NewTrack->IsA(UMovieScene3DTransformTrack::StaticClass()))
+				{
+					auto TransformSection = Cast<UMovieScene3DTransformSection>(NewSection);
+
+					const FVector Location = Actor.GetActorLocation();
+					const FRotator Rotation = Actor.GetActorRotation();
+					const FVector Scale = Actor.GetActorScale();
+
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::X, Location.X, false /*bUnwindRotation*/));
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::Y, Location.Y, false /*bUnwindRotation*/));
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Translation, EAxis::Z, Location.Z, false /*bUnwindRotation*/));
+
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::X, Rotation.Euler().X, false /*bUnwindRotation*/));
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Y, Rotation.Euler().Y, false /*bUnwindRotation*/));
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Z, Rotation.Euler().Z, false /*bUnwindRotation*/));
+
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::X, Scale.X, false /*bUnwindRotation*/));
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::Y, Scale.Y, false /*bUnwindRotation*/));
+					TransformSection->SetDefault(FTransformKey(EKey3DTransformChannel::Scale, EAxis::Z, Scale.Z, false /*bUnwindRotation*/));
+				}
+
+				Sequencer->UpdateRuntimeInstances();
+			}
+		}
+
+		// add tracks by property
+		for (const FLevelSequencePropertyTrackSettings& PropertyTrackSettings : TrackSettings.DefaultPropertyTracks)
+		{
+			TArray<UProperty*> PropertyPath;
+			UObject* PropertyOwner = &Actor;
+
+			// determine object hierarchy
+			TArray<FString> ComponentNames;
+			PropertyTrackSettings.ComponentPath.ParseIntoArray(ComponentNames, TEXT("."));
+
+			for (const FString& ComponentName : ComponentNames)
+			{
+				PropertyOwner = FindObjectFast<UObject>(PropertyOwner, *ComponentName);
+
+				if (PropertyOwner == nullptr)
+				{
+					return;
+				}
+			}
+
+			UStruct* PropertyOwnerClass = PropertyOwner->GetClass();
+
+			// determine property path
+			TArray<FString> PropertyNames;
+			PropertyTrackSettings.PropertyPath.ParseIntoArray(PropertyNames, TEXT("."));
+
+			for (const FString& PropertyName : PropertyNames)
+			{
+				UProperty* Property = PropertyOwnerClass->FindPropertyByName(*PropertyName);
+
+				if (Property != nullptr)
+				{
+					PropertyPath.Add(Property);
+				}
+
+				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+
+				if (StructProperty != nullptr)
+				{
+					PropertyOwnerClass = StructProperty->Struct;
+					continue;
+				}
+
+				UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
+
+				if (ObjectProperty != nullptr)
+				{
+					PropertyOwnerClass = ObjectProperty->PropertyClass;
+					continue;
+				}
+
+				break;
+			}
+
+			if (!Sequencer->CanKeyProperty(FCanKeyPropertyParams(Actor.GetClass(), PropertyPath)))
+			{
+				continue;
+			}
+
+			// key property
+			FKeyPropertyParams KeyPropertyParams(TArrayBuilder<UObject*>().Add(PropertyOwner), PropertyPath);
+			{
+				KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
+				KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
+				KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
+				KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
+				KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = true;
+			}
+
+			Sequencer->KeyProperty(KeyPropertyParams);
+			Sequencer->UpdateRuntimeInstances();
+		}
+	}
 }
 
 void FLevelSequenceEditorToolkit::AddPosessActorMenuExtensions(FMenuBuilder& MenuBuilder)

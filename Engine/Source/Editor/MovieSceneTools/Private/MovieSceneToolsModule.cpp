@@ -32,6 +32,7 @@
 #include "MaterialTrackEditor.h"
 #include "FadeTrackEditor.h"
 #include "SpawnTrackEditor.h"
+#include "LevelVisibilityTrackEditor.h"
 
 #include "MovieSceneClipboard.h"
 #include "SequencerClipboardReconciler.h"
@@ -88,6 +89,7 @@ public:
 		ComponentMaterialTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FComponentMaterialTrackEditor::CreateTrackEditor ) );
 		FadeTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FFadeTrackEditor::CreateTrackEditor ) );
 		SpawnTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSpawnTrackEditor::CreateTrackEditor ) );
+		LevelVisibilityTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FLevelVisibilityTrackEditor::CreateTrackEditor ) );
 
 		RegisterClipboardConversions();
 	}
@@ -130,6 +132,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor_Handle( ComponentMaterialTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( FadeTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( SpawnTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( LevelVisibilityTrackCreateEditorHandle );
 	}
 
 	void RegisterClipboardConversions()
@@ -191,6 +194,7 @@ private:
 	FDelegateHandle ComponentMaterialTrackCreateEditorHandle;
 	FDelegateHandle FadeTrackCreateEditorHandle;
 	FDelegateHandle SpawnTrackCreateEditorHandle;
+	FDelegateHandle LevelVisibilityTrackCreateEditorHandle;
 };
 
 

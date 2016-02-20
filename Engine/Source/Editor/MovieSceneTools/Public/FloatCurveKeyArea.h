@@ -14,7 +14,7 @@ class MOVIESCENETOOLS_API FFloatCurveKeyArea
 {
 public:
 
-	FFloatCurveKeyArea(FRichCurve* InCurve, UMovieSceneSection* InOwningSection, const FLinearColor& InColor = FLinearColor(0.1f, 0.1f, 0.1f, 0.7f))
+	FFloatCurveKeyArea(FRichCurve* InCurve, UMovieSceneSection* InOwningSection, TOptional<FLinearColor> InColor = TOptional<FLinearColor>())
 		: Color(InColor)
 		, Curve(InCurve)
 		, OwningSection(InOwningSection)
@@ -41,7 +41,7 @@ public:
 	virtual bool CanCreateKeyEditor() override;
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
 	virtual void DeleteKey(FKeyHandle KeyHandle) override;
-	virtual FLinearColor GetColor() override;
+	virtual TOptional<FLinearColor> GetColor() override;
 	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override;
 	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const override;
 	virtual TSharedPtr<FStructOnScope> GetKeyStruct(FKeyHandle KeyHandle) override;
@@ -62,7 +62,7 @@ public:
 private:
 
 	/** The key area's color. */
-	FLinearColor Color;
+	TOptional<FLinearColor> Color;
 
 	/** The curve which provides the keys for this key area. */
 	FRichCurve* Curve;

@@ -71,6 +71,63 @@ struct FTransformKey
 
 
 /**
+ * Proxy structure for translation keys in 3D transform sections.
+ */
+USTRUCT()
+struct FMovieScene3DLocationKeyStruct
+	: public FMovieSceneKeyStruct
+{
+	GENERATED_BODY()
+
+	/** They key's translation value. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	FVector Location;
+
+	FRichCurveKey* LocationKeys[3];
+
+	virtual void PropagateChanges(const FPropertyChangedEvent& ChangeEvent) override;
+};
+
+
+/**
+ * Proxy structure for translation keys in 3D transform sections.
+ */
+USTRUCT()
+struct FMovieScene3DRotationKeyStruct
+	: public FMovieSceneKeyStruct
+{
+	GENERATED_BODY()
+
+	/** They key's rotation value. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	FRotator Rotation;
+
+	FRichCurveKey* RotationKeys[3];
+
+	virtual void PropagateChanges(const FPropertyChangedEvent& ChangeEvent) override;
+};
+
+
+/**
+ * Proxy structure for translation keys in 3D transform sections.
+ */
+USTRUCT()
+struct FMovieScene3DScaleKeyStruct
+	: public FMovieSceneKeyStruct
+{
+	GENERATED_BODY()
+
+	/** They key's scale value. */
+	UPROPERTY(EditAnywhere, Category=Key)
+	FVector Scale;
+
+	FRichCurveKey* ScaleKeys[3];
+
+	virtual void PropagateChanges(const FPropertyChangedEvent& ChangeEvent) override;
+};
+
+
+/**
  * Proxy structure for 3D transform section key data.
  */
 USTRUCT()
@@ -81,7 +138,7 @@ struct FMovieScene3DTransformKeyStruct
 
 	/** They key's translation value. */
 	UPROPERTY(EditAnywhere, Category=Key)
-	FVector4 Translation;
+	FVector Location;
 
 	/** They key's rotation value. */
 	UPROPERTY(EditAnywhere, Category=Key)
@@ -89,9 +146,9 @@ struct FMovieScene3DTransformKeyStruct
 
 	/** They key's scale value. */
 	UPROPERTY(EditAnywhere, Category=Key)
-	FVector4 Scale;
+	FVector Scale;
 
-	FRichCurveKey* TranslationKeys[3];
+	FRichCurveKey* LocationKeys[3];
 	FRichCurveKey* RotationKeys[3];
 	FRichCurveKey* ScaleKeys[3];
 

@@ -107,13 +107,14 @@ TSharedPtr<FStructOnScope> UMovieSceneColorSection::GetKeyStruct(const TArray<FK
 	TSharedRef<FStructOnScope> KeyStruct = MakeShareable(new FStructOnScope(FMovieSceneColorKeyStruct::StaticStruct()));
 	auto Struct = (FMovieSceneColorKeyStruct*)KeyStruct->GetStructMemory();
 	{
-		Struct->Keys[0] = &RedCurve.GetFirstMatchingKey(KeyHandles);
-		Struct->Keys[1] = &GreenCurve.GetFirstMatchingKey(KeyHandles);
-		Struct->Keys[2] = &BlueCurve.GetFirstMatchingKey(KeyHandles);
-		Struct->Keys[3] = &AlphaCurve.GetFirstMatchingKey(KeyHandles);
+		Struct->Keys[0] = RedCurve.GetFirstMatchingKey(KeyHandles);
+		Struct->Keys[1] = GreenCurve.GetFirstMatchingKey(KeyHandles);
+		Struct->Keys[2] = BlueCurve.GetFirstMatchingKey(KeyHandles);
+		Struct->Keys[3] = AlphaCurve.GetFirstMatchingKey(KeyHandles);
 
 		for (int32 Index = 0; Index <= 3; ++Index)
 		{
+			check(Struct->Keys[Index] != nullptr);
 			Struct->Color.Component(Index) = Struct->Keys[Index]->Value;
 		}
 	}

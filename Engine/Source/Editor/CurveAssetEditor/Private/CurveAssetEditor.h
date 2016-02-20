@@ -35,6 +35,7 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 	TSharedPtr<FExtender> GetToolbarExtender();
+	TSharedRef<SWidget> MakeCurveEditorCurveOptionsMenu();
 
 private:
 

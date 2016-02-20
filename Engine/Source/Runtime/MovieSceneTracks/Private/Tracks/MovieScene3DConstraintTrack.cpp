@@ -12,7 +12,11 @@
 
 UMovieScene3DConstraintTrack::UMovieScene3DConstraintTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{ }
+{
+#if WITH_EDITORONLY_DATA
+	TrackTint = FColor(128, 90, 0);
+#endif
+}
 
 
 const TArray<UMovieSceneSection*>& UMovieScene3DConstraintTrack::GetAllSections() const

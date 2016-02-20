@@ -9,13 +9,14 @@
 #include "MovieSceneCinematicShotSection.h"
 #include "MovieSceneSubTrack.h"
 #include "MovieSceneSubSection.h"
+#include "MovieSceneCommonHelpers.h"
 #include "SCinematicTransportRange.h"
 #include "FilmOverlays.h"
 #include "LevelViewportLayout.h"
 #include "LevelViewportTabContent.h"
 #include "LevelSequenceEditorStyle.h"
 #include "SWidgetSwitcher.h"
-#include "Camera/CineCameraComponent.h"
+#include "CineCameraComponent.h"
 #include "UnitConversion.h"
 #include "ScopedTransaction.h"
 
@@ -78,6 +79,21 @@ FCinematicViewportClient::FCinematicViewportClient()
 	SetAllowCinematicPreview(true);
 	bDisableInput = false;
 }
+
+bool FCinematicViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
+{
+	// Allow immersive mode to be processed when input handling is disabled
+	if (bDisableInput)		
+	{
+		if (Key == EKeys::F11)
+		{
+			return false;
+		}
+	}
+
+	return FLevelEditorViewportClient::InputKey(Viewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
+}
+
 
 class SPreArrangedBox : public SCompoundWidget
 {
@@ -428,6 +444,11 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 		Setup(Toolkit);
 		return false;
 	});
+
+	CommandList = MakeShareable( new FUICommandList );
+	// Ensure the commands are registered
+	FLevelSequenceEditorCommands::Register();
+	BindCommands();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -477,6 +498,29 @@ bool SCinematicLevelViewport::IsMaximized() const
 	if (ParentLayoutPinned.IsValid())
 	{
 		return ParentLayoutPinned->IsViewportMaximized(LayoutName);
+	}
+	return false;
+}
+
+void SCinematicLevelViewport::OnToggleImmersive()
+{
+	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
+	if (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported())
+	{
+		const bool bAllowAnimation = true;
+		const bool bMaximize = !ParentLayoutPinned->IsViewportMaximized(LayoutName);
+		
+		const bool bImmersive = !IsImmersive();
+		ParentLayoutPinned->RequestMaximizeViewport( LayoutName, bMaximize, bImmersive, bAllowAnimation );
+	}
+}
+
+bool SCinematicLevelViewport::IsImmersive() const
+{
+	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
+	if (ParentLayoutPinned.IsValid())
+	{
+		return ParentLayoutPinned->IsViewportImmersive(LayoutName);
 	}
 	return false;
 }
@@ -708,10 +752,17 @@ void SCinematicLevelViewport::UpdateActiveCameras()
 	for (int32 SpawnableIndex = 0; SpawnableIndex < NumSpawnables; ++SpawnableIndex)
 	{
 		FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
-		if (Spawnable.GetClass()->IsChildOf(ACameraActor::StaticClass()))
+		if (Spawnable.GetClass()->IsChildOf(AActor::StaticClass()))
 		{
-			ACameraActor* Camera = Cast<ACameraActor>(SequenceInstance->FindObject(Spawnable.GetGuid(), *Sequencer));
-			Cameras.Add(Spawnable.GetGuid(), FActiveCamera(Spawnable.GetName(), Camera));
+			AActor* CameraActor = Cast<AActor>(SequenceInstance->FindObject(Spawnable.GetGuid(), *Sequencer));
+			if (CameraActor)
+			{
+				UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(CameraActor);
+				if (CameraComponent)
+				{
+					Cameras.Add(Spawnable.GetGuid(), FActiveCamera(Spawnable.GetName(), CameraActor));
+				}
+			}
 		}
 	}
 
@@ -719,10 +770,14 @@ void SCinematicLevelViewport::UpdateActiveCameras()
 	for (int32 PossessableIndex = 0; PossessableIndex < NumPossessables; ++PossessableIndex)
 	{
 		FMovieScenePossessable& Possessable = MovieScene->GetPossessable(PossessableIndex);
-		ACameraActor* Camera = Cast<ACameraActor>(SequenceInstance->FindObject(Possessable.GetGuid(), *Sequencer));
-		if (Camera)
+		AActor* CameraActor = Cast<AActor>(SequenceInstance->FindObject(Possessable.GetGuid(), *Sequencer));
+		if (CameraActor)
 		{
-			Cameras.Add(Possessable.GetGuid(), FActiveCamera(Possessable.GetName(), Camera));
+			UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(CameraActor);
+			if (CameraComponent)
+			{
+				Cameras.Add(Possessable.GetGuid(), FActiveCamera(Possessable.GetName(), CameraActor));
+			}
 		}
 	}
 }
@@ -739,7 +794,7 @@ void SCinematicLevelViewport::OnUpdateCameraCut(UObject* CameraObject)
 		return;
 	}
 
-	ACameraActor* CameraActor = Cast<ACameraActor>(CameraObject);
+	AActor* CameraActor = Cast<AActor>(CameraObject);
 	TSharedPtr<FCinematicViewportClient> ViewportClient = GetViewportClient();
 	
 	if (CameraActor)
@@ -763,17 +818,21 @@ void SCinematicLevelViewport::OnUpdateCameraCut(UObject* CameraObject)
 	// If viewing through a camera - enforce aspect ratio.
 	if (CameraActor)
 	{
-		if (CameraActor->GetCameraComponent()->AspectRatio == 0)
+		UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(CameraActor);
+		if (CameraComponent)
 		{
-			ViewportClient->AspectRatio = 1.7f;
-		}
-		else
-		{
-			ViewportClient->AspectRatio = CameraActor->GetCameraComponent()->AspectRatio;
-		}
+			if (CameraComponent->AspectRatio == 0)
+			{
+				ViewportClient->AspectRatio = 1.7f;
+			}
+			else
+			{
+				ViewportClient->AspectRatio = CameraComponent->AspectRatio;
+			}
 
-		//don't stop the camera from zooming when not playing back
-		ViewportClient->ViewFOV = CameraActor->GetCameraComponent()->FieldOfView;
+			//don't stop the camera from zooming when not playing back
+			ViewportClient->ViewFOV = CameraComponent->FieldOfView;
+		}
 	}
 
 	// Update ControllingActorViewInfo, so it is in sync with the updated viewport
@@ -782,6 +841,11 @@ void SCinematicLevelViewport::OnUpdateCameraCut(UObject* CameraObject)
 
 FReply SCinematicLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) 
 {
+	if (CommandList->ProcessCommandBindings(InKeyEvent))
+	{
+		return FReply::Handled();
+	}
+
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer && Sequencer->GetCommandBindings()->ProcessCommandBindings(InKeyEvent))
 	{
@@ -859,6 +923,19 @@ void SCinematicLevelViewport::OnEditorClosed()
 	{
 		SetCameraMode(ECinematicCameraMode::FreeCamera);
 	}
+}
+
+void SCinematicLevelViewport::BindCommands()
+{
+	FUICommandList& CommandListRef = *CommandList;
+
+	const FLevelSequenceEditorCommands& Commands = FLevelSequenceEditorCommands::Get();
+
+	CommandListRef.MapAction( 
+		Commands.ToggleImmersive,
+		FExecuteAction::CreateSP( this, &SCinematicLevelViewport::OnToggleImmersive ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SCinematicLevelViewport::IsImmersive));
 }
 
 ISequencer* SCinematicLevelViewport::GetSequencer() const

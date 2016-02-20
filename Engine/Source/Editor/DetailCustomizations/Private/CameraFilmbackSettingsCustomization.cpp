@@ -3,7 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CameraFilmbackSettingsCustomization.h"
 #include "ScopedTransaction.h"
-#include "Camera/CineCameraComponent.h"
+#include "CineCameraComponent.h"
 
 #define LOCTEXT_NAMESPACE "CameraFilmbackSettingsCustomization"
 

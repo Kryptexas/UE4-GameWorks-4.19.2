@@ -14,7 +14,6 @@
 #include "MovieSceneToolHelpers.h"
 #include "CinematicShotTrackEditor.h"
 #include "CommonMovieSceneTools.h"
-#include "Camera/CameraActor.h"
 #include "CinematicShotSection.h"
 #include "SequencerUtilities.h"
 #include "ContentBrowserModule.h"
@@ -158,7 +157,12 @@ void FCinematicShotTrackEditor::Tick(float DeltaTime)
 {
 	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
 	{
-		ThumbnailPool->DrawThumbnails();
+		float SavedTime = GetSequencer()->GetGlobalTime();
+
+		if (ThumbnailPool->DrawThumbnails())
+		{
+			GetSequencer()->SetGlobalTime(SavedTime);
+		}
 	}
 }
 
@@ -630,7 +634,7 @@ bool FCinematicShotTrackEditor::CanAddSubSequence(const UMovieSceneSequence& Seq
 void FCinematicShotTrackEditor::OnUpdateCameraCut(UObject* CameraObject)
 {
 	// Keep track of the camera when it switches so that the thumbnail can be drawn with the correct camera
-	CinematicShotCamera = Cast<ACameraActor>(CameraObject);
+	CinematicShotCamera = Cast<AActor>(CameraObject);
 }
 
 bool FCinematicShotTrackEditor::HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence)

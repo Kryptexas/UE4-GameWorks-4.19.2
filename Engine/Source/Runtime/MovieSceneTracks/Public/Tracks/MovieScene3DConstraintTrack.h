@@ -26,9 +26,10 @@ public:
 	 * @param Time The time relative to the owning movie scene where the section should be.
 	 * @param ConstraintEndTime Set the constraint to end at this time.
 	 * @param SocketName The socket name for the constraint.
+	 * @param ComponentName The name of the component the socket resides in.
 	 * @param ConstraintId The id to the constraint.
 	 */
-	virtual void AddConstraint(float Time, float ConstraintEndTime, const FName SocketName, const FGuid& ConstraintId) { }
+	virtual void AddConstraint(float Time, float ConstraintEndTime, const FName SocketName, const FName ComponentName, const FGuid& ConstraintId) { }
 
 public:
 

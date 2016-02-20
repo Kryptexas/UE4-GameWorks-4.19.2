@@ -1799,24 +1799,6 @@ FLinearColor FPersona::GetWorldCentricTabColorScale() const
 	return FLinearColor( 0.5f, 0.25f, 0.35f, 0.5f );
 }
 
-void FPersona::SaveAsset_Execute()
-{
-	if( ensure( GetEditingObjects().Num() > 0 ) )
-	{
-		const FName CurrentMode = GetCurrentMode();
-
-		TArray<UObject*> EditorObjects = GetEditorObjectsForMode(CurrentMode);
-
-		TArray< UPackage* > PackagesToSave;
-		for(auto Iter = EditorObjects.CreateIterator(); Iter; ++Iter)
-		{
-			PackagesToSave.Add((*Iter)->GetOutermost());
-		}
-
-		FEditorFileUtils::PromptForCheckoutAndSave( PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false );
-	}
-}
-
 void FPersona::SaveAnimationAssets_Execute()
 {
 	// only save animation assets related to skeletons
@@ -2572,6 +2554,11 @@ TArray<UObject*> FPersona::GetEditorObjectsForMode(FName Mode) const
 		return GetEditorObjectsOfClass( GetEditingObjects(), USkeleton::StaticClass() );
 	}
 	return TArray<UObject*>();
+}
+
+void FPersona::GetSaveableObjects(TArray<UObject*>& OutObjects) const
+{
+	OutObjects = GetEditorObjectsForMode(GetCurrentMode());
 }
 
 const FSlateBrush* FPersona::GetDirtyImageForMode(FName Mode) const

@@ -11,6 +11,9 @@
 UMovieSceneParticleParameterTrack::UMovieSceneParticleParameterTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
+#if WITH_EDITORONLY_DATA
+	TrackTint = FColor(0, 170, 255);
+#endif
 }
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneParticleParameterTrack::CreateInstance()

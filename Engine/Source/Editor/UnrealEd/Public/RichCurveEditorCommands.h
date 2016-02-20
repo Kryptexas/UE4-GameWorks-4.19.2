@@ -34,6 +34,9 @@ public:
 	TSharedPtr<FUICommandInfo> FlattenTangents;
 	TSharedPtr<FUICommandInfo> StraightenTangents;
 
+	TSharedPtr<FUICommandInfo> BakeCurve;
+	TSharedPtr<FUICommandInfo> ReduceCurve;
+
 	TSharedPtr<FUICommandInfo> SetPreInfinityExtrapCycle;
 	TSharedPtr<FUICommandInfo> SetPreInfinityExtrapCycleWithOffset;
 	TSharedPtr<FUICommandInfo> SetPreInfinityExtrapOscillate;

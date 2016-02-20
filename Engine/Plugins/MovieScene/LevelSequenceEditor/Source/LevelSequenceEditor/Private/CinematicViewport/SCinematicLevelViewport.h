@@ -18,6 +18,7 @@ struct FCinematicViewportClient : FLevelEditorViewportClient
 {
 	FCinematicViewportClient();
 	virtual bool IsLevelEditorClient() const override { return true; }
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
 };
 
 
@@ -87,6 +88,8 @@ private:
 	/** Called when the level sequence editor toolkit we were observing has been closed */
 	void OnEditorClosed();
 
+	void BindCommands();
+
 private:
 
 	/** Get the sequencer ptr from our current toolkit, if set */
@@ -108,6 +111,12 @@ private:
 
 	/** Test whether this viewport is maximized or not */
 	bool IsMaximized() const;
+
+	/** Toggle this viewport's immersive state */
+	void OnToggleImmersive();
+
+	/** Test whether this viewport is immersive or not */
+	bool IsImmersive() const;
 
 	/** Called when we want to revert to the equivalent non-cinematic viewport */
 	FReply OnRevertLayout();
@@ -154,6 +163,9 @@ private:
 	/** The toolkit we're currently editing */
 	TWeakPtr<FLevelSequenceEditorToolkit> CurrentToolkit;
 
+	/** Commandlist used in the viewport (Maps commands to viewport specific actions) */
+	TSharedPtr<FUICommandList> CommandList;
+
 	/** Slot for transport controls */
 	TSharedPtr<SBox> TransportControls;
 
@@ -192,12 +204,12 @@ private:
 	/** Cached active cameras */
 	struct FActiveCamera
 	{
-		FActiveCamera(FString InDisplayName, ACameraActor* InCameraActor)
+		FActiveCamera(FString InDisplayName, AActor* InCameraActor)
 			: DisplayName(InDisplayName), CameraActor(InCameraActor)
 		{}
 
 		FString DisplayName;
-		TWeakObjectPtr<ACameraActor> CameraActor;
+		TWeakObjectPtr<AActor> CameraActor;
 	};
 	TMap<FGuid, FActiveCamera> Cameras;
 };

@@ -12,7 +12,7 @@ void SSequencerTrackLane::Construct(const FArguments& InArgs, const TSharedRef<F
 
 	ChildSlot
 	.HAlign(HAlign_Fill)
-	.Padding(0, DisplayNode->GetNodePadding().Top, 0, 0)
+	.Padding(0)
 	[
 		InArgs._Content.Widget
 	];
@@ -70,7 +70,7 @@ void DrawLaneRecursive(const TSharedRef<FSequencerDisplayNode>& DisplayNode, con
 			FEditorStyle::GetBrush(BorderName),
 			MyClippingRect,
 			ESlateDrawEffect::None,
-			FLinearColor(1.0f, 1.0f, 1.0f, 0.1f)
+			FLinearColor(1.0f, 1.0f, 1.0f, 0.05f)
 		);
 	}
 

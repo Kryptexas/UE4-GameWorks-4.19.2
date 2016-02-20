@@ -30,14 +30,15 @@ public:
 
 	// ISequencerSection interface
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
+	virtual int32 OnPaintSection( FSequencerSectionPainter& Painter ) const override;
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) override;
 	virtual FText GetDisplayName() const override;
 	virtual FReply OnSectionDoubleClicked(const FGeometry& SectionGeometry, const FPointerEvent& MouseEvent) override;
-
+	virtual float GetSectionHeight() const override;
+	virtual FMargin GetContentPadding() const override;
 	// FThumbnail interface
 
-	virtual ACameraActor* GetCameraObject() const override;
+	virtual AActor* GetCameraObject() const override;
 	virtual bool CanRename() const override { return true; }
 	virtual FText HandleThumbnailTextBlockText() const override;
 	virtual void HandleThumbnailTextBlockTextCommitted(const FText& NewThumbnailName, ETextCommit::Type CommitType) override;

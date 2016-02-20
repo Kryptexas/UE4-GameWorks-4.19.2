@@ -59,7 +59,7 @@ private:
 	void CollectAllKeyTimes(TArray<float>& OutKeyTimes) const;
 
 	/** Adds a key time uniquely to an array of key times */
-	void AddKeyTime(float NewTime, TArray<float>& OutKeyTimes) const;
+	void AddKeyTime(const float& NewTime, TArray<float>& OutKeyTimes) const;
 
 private:
 
@@ -73,28 +73,32 @@ private:
 
 int32 SSequencerObjectTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	TArray<float> OutKeyTimes;
-	CollectAllKeyTimes(OutKeyTimes);
-	
-	FTimeToPixel TimeToPixelConverter(AllottedGeometry, ViewRange.Get());
-
-	for (int32 i = 0; i < OutKeyTimes.Num(); ++i)
+	if (RootNode->GetSequencer().GetSettings()->GetShowCombinedKeyframes())
 	{
-		float KeyPosition = TimeToPixelConverter.TimeToPixel(OutKeyTimes[i]);
-		static const FVector2D KeyMarkSize = FVector2D(3.f, 21.f);
+		TArray<float> OutKeyTimes;
+		CollectAllKeyTimes(OutKeyTimes);
+	
+		FTimeToPixel TimeToPixelConverter(AllottedGeometry, ViewRange.Get());
 
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId+1,
-			AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::CeilToFloat(KeyMarkSize.X/2.f), FMath::CeilToFloat(AllottedGeometry.Size.Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
-			FEditorStyle::GetBrush("Sequencer.KeyMark"),
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			FLinearColor(1.f, 1.f, 1.f, 1.f)
-		);
+		for (int32 i = 0; i < OutKeyTimes.Num(); ++i)
+		{
+			float KeyPosition = TimeToPixelConverter.TimeToPixel(OutKeyTimes[i]);
+			static const FVector2D KeyMarkSize = FVector2D(3.f, 21.f);
+
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				LayerId+1,
+				AllottedGeometry.ToPaintGeometry(FVector2D(KeyPosition - FMath::CeilToFloat(KeyMarkSize.X/2.f), FMath::CeilToFloat(AllottedGeometry.Size.Y/2.f - KeyMarkSize.Y/2.f)), KeyMarkSize),
+				FEditorStyle::GetBrush("Sequencer.KeyMark"),
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				FLinearColor(1.f, 1.f, 1.f, 1.f)
+			);
+		}
+		return LayerId+1;
 	}
 
-	return LayerId+1;
+	return LayerId;
 }
 
 
@@ -110,7 +114,7 @@ void SSequencerObjectTrack::CollectAllKeyTimes(TArray<float>& OutKeyTimes) const
 	TArray<TSharedRef<FSequencerSectionKeyAreaNode>> OutNodes;
 	RootNode->GetChildKeyAreaNodesRecursively(OutNodes);
 
-	for (int32 i = 0; i < OutNodes.Num(); ++i)
+for (int32 i = 0; i < OutNodes.Num(); ++i)
 	{
 		TArray< TSharedRef<IKeyArea> > KeyAreas = OutNodes[i]->GetAllKeyAreas();
 		for (int32 j = 0; j < KeyAreas.Num(); ++j)
@@ -125,7 +129,7 @@ void SSequencerObjectTrack::CollectAllKeyTimes(TArray<float>& OutKeyTimes) const
 }
 
 
-void SSequencerObjectTrack::AddKeyTime(float NewTime, TArray<float>& OutKeyTimes) const
+void SSequencerObjectTrack::AddKeyTime(const float& NewTime, TArray<float>& OutKeyTimes) const
 {
 	// @todo Sequencer It might be more efficient to add each key and do the pruning at the end
 	for (float& KeyTime : OutKeyTimes)

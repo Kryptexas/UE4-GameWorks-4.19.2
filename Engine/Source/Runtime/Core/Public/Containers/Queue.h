@@ -115,6 +115,7 @@ public:
 		{
 			OldHead = Head;
 			Head = NewNode;
+			FPlatformMisc::MemoryBarrier();
 		}		
 
 		OldHead->NextNode = NewNode;

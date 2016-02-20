@@ -2094,20 +2094,8 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 			if (bLockedCameraView)
 			{
 				// If this is a camera actor, then inherit some other settings
-				TArray<UCameraComponent*> CamComps;
-				Actor->GetComponents<UCameraComponent>(CamComps);
-
-				UCameraComponent* CameraComponent = nullptr;
-				for (UCameraComponent* Comp : CamComps)
-				{
-					if (Comp->bIsActive)
-					{
-						CameraComponent = Comp;
-						break;
-					}
-				}
-
-				if (CameraComponent != NULL)
+				UCameraComponent* const CameraComponent = GetCameraComponentForLockedActor(Actor);
+				if (CameraComponent != nullptr)
 				{
 					bUseControllingActorViewInfo = true;
 					CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
@@ -2122,7 +2110,6 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 		}
 	}
 }
-
 
 /*namespace ViewportDeadZoneConstants
 {

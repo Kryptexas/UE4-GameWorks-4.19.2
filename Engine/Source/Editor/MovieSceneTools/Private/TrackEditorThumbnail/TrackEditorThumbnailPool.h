@@ -22,7 +22,8 @@ public:
 	void AddThumbnailsNeedingRedraw(const TArray<TSharedPtr<FTrackEditorThumbnail>>& InThumbnails);
 
 	/** Draws a small number of thumbnails that are enqueued for drawing */
-	void DrawThumbnails();
+	/* @return Whether thumbnails were drawn */
+	bool DrawThumbnails();
 
 	/** Informs the pool that the thumbnails passed in no longer need to be drawn */
 	void RemoveThumbnailsNeedingRedraw(const TArray< TSharedPtr<FTrackEditorThumbnail>>& InThumbnails);

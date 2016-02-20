@@ -55,15 +55,13 @@ public:
 	 */
 	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TSharedRef<IDetailKeyframeHandler>& InDetailKeyframeHandler, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates);
 
-	/** Set the global time directly, without performing any auto-scroll */
-	void SetGlobalTimeDirectly(float Time, const bool& bAllowSnappingToFrames = false);
-
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const override;
 	virtual void SetViewRange(TRange<float> NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated) override;
 
 	/** @return The current clamp range */
 	FAnimatedRange GetClampRange() const;
+	void SetClampRange(TRange<float> InNewClampRange);
 
 	TRange<float> GetPlaybackRange() const;
 	void SetPlaybackRange(TRange<float> InNewPlaybackRange);
@@ -257,6 +255,9 @@ public:
 	/** Called to save the current movie scene */
 	void SaveCurrentMovieScene();
 
+	/** Called to save the current movie scene under a new name */
+	void SaveCurrentMovieSceneAs();
+
 	/** Called to add selected objects to the movie scene */
 	void AddSelectedObjects();
 
@@ -302,6 +303,9 @@ public:
 
 	/** Promote a clipboard to the top of the clipboard stack, and update its timestamp */
 	void OnClipboardUsed(TSharedPtr<FMovieSceneClipboard> Clipboard);
+
+	/** Discard all changes to the current movie scene. */
+	void DiscardChanges();
 
 public:
 
@@ -352,7 +356,7 @@ public:
 	virtual void ResetToNewRootSequence(UMovieSceneSequence& NewSequence) override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetFocusedMovieSceneSequenceInstance() const override;
-	virtual void FocusSequenceInstance( TSharedRef<FMovieSceneSequenceInstance> SequenceInstance ) override;
+	virtual void FocusSequenceInstance( UMovieSceneSubSection& InSubSection ) override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetSequenceInstanceForSection(UMovieSceneSection& Section) const override;
 	virtual bool HasSequenceInstanceForSection(UMovieSceneSection& Section) const override;
 	virtual EAutoKeyMode GetAutoKeyMode() const override;
@@ -367,6 +371,7 @@ public:
 	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() override;
 	virtual void SetGlobalTime(float Time, const bool& bAllowSnappingToFrames = false) override;
+	virtual void SetGlobalTimeDirectly(float Time, const bool& bAllowSnappingToFrames = false) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
 	virtual void SetPerspectiveViewportCameraCutEnabled(bool bEnabled) override;
 	virtual FGuid GetHandleToObject(UObject* Object, bool bCreateHandleIfMissing = true) override;
@@ -398,6 +403,7 @@ public:
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
+	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) override;
 	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
 	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
 	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override { return *SpawnRegister; }

@@ -604,7 +604,10 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 
 void USkeletalMeshComponent::UpdateMaterialParameters()
 {
-	AnimScriptInstance->UpdateComponentsMaterialParameters(this);
+	if(AnimScriptInstance != nullptr)
+	{
+		AnimScriptInstance->UpdateComponentsMaterialParameters(this);
+	}
 }
 
 bool USkeletalMeshComponent::UpdateLODStatus()

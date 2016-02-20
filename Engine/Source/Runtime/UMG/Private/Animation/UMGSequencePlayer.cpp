@@ -195,3 +195,8 @@ EMovieScenePlayerStatus::Type UUMGSequencePlayer::GetPlaybackStatus() const
 {
 	return PlayerStatus;
 }
+
+void UUMGSequencePlayer::SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus)
+{
+	PlayerStatus = InPlaybackStatus;
+}

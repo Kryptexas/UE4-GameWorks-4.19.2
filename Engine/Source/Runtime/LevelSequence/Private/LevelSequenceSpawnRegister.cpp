@@ -7,6 +7,7 @@
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Particles/ParticleSystem.h"
 
 UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovieSceneSequenceInstance& SequenceInstance, IMovieScenePlayer& Player)
 {
@@ -78,6 +79,14 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		{
 			TemplateRootComponent->UpdateComponentToWorld();
 			NewTransform = TemplateRootComponent->GetComponentToWorld().Inverse() * NewTransform;
+			//TemplateRootComponent->bAutoActivate = false;
+		}
+
+		// Disable all particle components so that they don't auto fire as soon as the actor is spawned. The particles should be triggered through the particle track.
+		TArray<UActorComponent*> ParticleComponents = Template->GetComponentsByClass(UParticleSystem::StaticClass());
+		for (int32 ComponentIdx = 0; ComponentIdx < ParticleComponents.Num(); ++ComponentIdx)
+		{
+			ParticleComponents[ComponentIdx]->bAutoActivate = false;
 		}
 	}
 

@@ -47,9 +47,9 @@ void FIntegralCurveKeyAreaBase::DeleteKey(FKeyHandle KeyHandle)
 }
 
 
-FLinearColor FIntegralCurveKeyAreaBase::GetColor()
+TOptional<FLinearColor> FIntegralCurveKeyAreaBase::GetColor()
 {
-	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
+	return TOptional<FLinearColor>();
 }
 
 

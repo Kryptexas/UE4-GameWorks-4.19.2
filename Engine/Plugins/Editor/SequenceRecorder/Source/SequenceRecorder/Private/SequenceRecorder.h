@@ -11,6 +11,9 @@ public:
 	/** Starts recording a sequence. */
 	bool StartRecording();
 
+	/** Starts recording a sequence for the specified world. */
+	bool StartRecordingForReplay(UWorld* World, const struct FSequenceRecorderActorFilter& ActorFilter);
+
 	/** Stops any currently recording sequence */
 	bool StopRecording();
 
@@ -23,7 +26,11 @@ public:
 	/** Get the current delay we are waiting for */
 	float GetCurrentDelay() const;
 
+	TWeakObjectPtr<class ULevelSequence> GetCurrentSequence() { return CurrentSequence; }
+
 	bool IsRecordingQueued(AActor* Actor) const;
+
+	class UActorRecording* FindRecording(AActor* Actor) const;
 
 	void StartAllQueuedRecordings();
 
@@ -31,7 +38,7 @@ public:
 
 	void StopRecordingDeadAnimations();
 
-	void AddNewQueuedRecording(AActor* Actor = nullptr, UAnimSequence* AnimSequence = nullptr, float Length = 0.0f);
+	class UActorRecording* AddNewQueuedRecording(AActor* Actor = nullptr, UAnimSequence* AnimSequence = nullptr, float Length = 0.0f);
 
 	void RemoveQueuedRecording(AActor* Actor);
 
@@ -45,9 +52,17 @@ public:
 
 	void ResetQueuedRecordingsDirty() { bQueuedRecordingsDirty = false; }
 
+	bool IsRecording() const { return CurrentSequence.IsValid(); }
+
 private:
 	/** Starts recording a sequence, possibly delayed */
-	bool StartRecordingInternal();
+	bool StartRecordingInternal(UWorld* World);
+
+	/** Check if an actor is valid for recording */
+	bool IsActorValidForRecording(AActor* Actor);
+
+	/** Handle actors being spawned */
+	static void HandleActorSpawned(AActor* Actor);
 
 private:
 	/** Constructor, private - use Get() function */
@@ -56,10 +71,14 @@ private:
 	/** Currently recording level sequence, if any */
 	TWeakObjectPtr<class ULevelSequence> CurrentSequence;
 
-	/** The current set of property recorders */
-	TArray<TSharedPtr<class IMovieScenePropertyRecorder>> PropertyRecorders;
+	/** World we are recording a replay for, if any */
+	TLazyObjectPtr<class UWorld> CurrentReplayWorld;
 
 	TArray<class UActorRecording*> QueuedRecordings;
+
+	TArray<class UActorRecording*> DeadRecordings;
+
+	TArray<TWeakObjectPtr<AActor>> QueuedSpawnedActors;
 
 	bool bQueuedRecordingsDirty;
 
@@ -68,4 +87,7 @@ private:
 
 	/** Current recording time */
 	float CurrentTime;
+
+	/** Delegate handles for FOnActorSpawned events */
+	TMap<TWeakObjectPtr<UWorld>, FDelegateHandle> ActorSpawningDelegateHandles;
 };

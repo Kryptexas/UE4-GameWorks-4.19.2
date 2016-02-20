@@ -194,7 +194,7 @@ public:
 	 *
 	 * @return Key area color.
 	 */
-	virtual FLinearColor GetColor() = 0;
+	virtual TOptional<FLinearColor> GetColor() = 0;
 
 	/**
 	 * Get the data structure representing the specified key.

@@ -33,8 +33,11 @@
 #include "Engine/LevelStreaming.h"
 #include "GameMapsSettings.h"
 #include "AutoSaveUtils.h"
+#include "AssetRegistryModule.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
+
 
 //definition of flag used to do special work when we're attempting to load the "startup map"
 bool FEditorFileUtils::bIsLoadingDefaultStartupMap = false;
@@ -895,6 +898,72 @@ static bool IsWorldDirty()
 // FEditorFileUtils
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void FEditorFileUtils::SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObject*>& OutSavedAssets)
+{
+	for (UObject* Asset : Assets)
+	{
+		const FString OldPackageName = Asset->GetOutermost()->GetName();
+		const FString OldPackagePath = FPackageName::GetLongPackagePath(OldPackageName);
+		const FString OldAssetName = FPackageName::GetLongPackageAssetName(OldPackageName);
+
+		FString NewPackageName;
+
+		// get destination for asset
+		bool FilenameValid = false;
+
+		while (!FilenameValid)
+		{
+			if (!OpenSaveAsDialog(Asset->GetClass(), OldPackagePath, OldAssetName, NewPackageName))
+			{
+				break;
+			}
+
+			FText OutError;
+			FilenameValid = FEditorFileUtils::IsFilenameValidForSaving(NewPackageName, OutError);
+		}
+
+		// process asset
+		if (NewPackageName.IsEmpty())
+		{
+			OutSavedAssets.Add(Asset); // user cancelled
+		}
+		else if (NewPackageName != OldPackageName)
+		{
+			// duplicate asset at destination
+			const FString NewAssetName = FPackageName::GetLongPackageAssetName(NewPackageName);
+			UPackage* DuplicatedPackage = CreatePackage(nullptr, *NewPackageName);
+			UObject* DuplicatedAsset = StaticDuplicateObject(Asset, DuplicatedPackage, *NewAssetName);
+
+			if (DuplicatedAsset != nullptr)
+			{
+				DuplicatedAsset->MarkPackageDirty();
+				FAssetRegistryModule::AssetCreated(DuplicatedAsset);
+				OutSavedAssets.Add(DuplicatedAsset);
+			}
+			else
+			{
+				OutSavedAssets.Add(Asset); // error duplicating
+			}
+		}
+		else
+		{
+			// save existing asset
+			OutSavedAssets.Add(Asset);
+		}
+	}
+
+	// save packages
+	TArray<UPackage*> PackagesToSave;
+
+	for (UObject* Asset : OutSavedAssets)
+	{
+		PackagesToSave.Add(Asset->GetOutermost());
+	}
+
+	FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, true, false);
+}
+
 
 /**
  * Does a saveAs for the specified level.

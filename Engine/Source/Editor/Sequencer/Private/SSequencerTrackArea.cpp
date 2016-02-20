@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "SSequencerTrackArea.h"
 #include "SSequencerTrackLane.h"
-#include "TimeSliderController.h"
+#include "SequencerTimeSliderController.h"
 #include "CommonMovieSceneTools.h"
 #include "Sequencer.h"
 #include "SSequencerTreeView.h"
@@ -157,9 +157,6 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 			LayerId = EditTool->OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId + 1);
 		}
 
-		static const FName SelectionColorPressedName("SelectionColor");
-		FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorPressedName).GetColor(InWidgetStyle).CopyWithNewOpacity(0.5f);
-
 		TOptional<FHighlightRegion> HighlightRegion = TreeView.Pin()->GetHighlightRegion();
 		if (HighlightRegion.IsSet())
 		{
@@ -170,7 +167,7 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Top"),
 				MyClippingRect,
 				ESlateDrawEffect::None,
-				SelectionColor
+				FLinearColor::Black
 			);
 		
 			FSlateDrawElement::MakeBox(
@@ -180,7 +177,7 @@ int32 SSequencerTrackArea::OnPaint(const FPaintArgs& Args, const FGeometry& Allo
 				FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Bottom"),
 				MyClippingRect,
 				ESlateDrawEffect::None,
-				SelectionColor
+				FLinearColor::Black
 			);
 		}
 	}
@@ -216,7 +213,11 @@ FReply SSequencerTrackArea::OnMouseButtonUp( const FGeometry& MyGeometry, const 
 
 bool SSequencerTrackArea::CanActivateEditTool(FName Identifier) const
 {
-	if (!EditTool.IsValid())
+	if (InputStack.GetCapturedIndex() != INDEX_NONE)
+	{
+		return false;
+	}
+	else if (!EditTool.IsValid())
 	{
 		return true;
 	}

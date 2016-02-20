@@ -514,7 +514,12 @@ void SLevelEditor::AttachSequencer( TSharedPtr<SWidget> SequencerWidget, TShared
 	{
 		static void OnSequencerClosed( TSharedRef<SDockTab> DockTab, TWeakPtr<IAssetEditorInstance> InSequencerAssetEditor )
 		{
-			InSequencerAssetEditor.Pin()->CloseWindow();
+			TSharedPtr<IAssetEditorInstance> AssetEditorInstance = InSequencerAssetEditor.Pin();
+
+			if (AssetEditorInstance.IsValid())
+			{
+				InSequencerAssetEditor.Pin()->CloseWindow();
+			}
 		}
 	};
 

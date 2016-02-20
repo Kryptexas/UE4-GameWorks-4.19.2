@@ -8,6 +8,7 @@
 #include "SubTrackEditor.h"
 #include "ContentBrowserModule.h"
 #include "SequencerUtilities.h"
+#include "SequencerSectionPainter.h"
 
 
 namespace SubTrackEditorConstants
@@ -44,11 +45,6 @@ public:
 		// do nothing
 	}
 
-	virtual bool ShouldDrawKeyAreaBackground() const override
-	{
-		return false;
-	}
-
 	virtual FText GetDisplayName() const override
 	{
 		return GetSectionTitle();
@@ -68,9 +64,11 @@ public:
 	{
 		return FText::FromString(SectionObject.GetSequence()->GetName());
 	}
-
-	virtual int32 OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const override 
+	
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override
 	{
+		int32 LayerId = InPainter.PaintSectionBackground();
+
 		const float SectionSize = SectionObject.GetTimeSize();
 
 		if (SectionSize <= 0.0f)
@@ -78,8 +76,8 @@ public:
 			return LayerId;
 		}
 
-		const float DrawScale = AllottedGeometry.Size.X / SectionSize;
-		const ESlateDrawEffect::Type DrawEffects = bParentEnabled
+		const float DrawScale = InPainter.SectionGeometry.Size.X / SectionSize;
+		const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled
 			? ESlateDrawEffect::None
 			: ESlateDrawEffect::DisabledEffect;
 
@@ -92,14 +90,14 @@ public:
 		const float WorkingSize = SectionObject.TimeScale * MovieScene->GetEditorData().WorkingRange.Size<float>();
 
 		FSlateDrawElement::MakeBox(
-			OutDrawElements,
+			InPainter.DrawElements,
 			LayerId,
-			AllottedGeometry.ToPaintGeometry(
+			InPainter.SectionGeometry.ToPaintGeometry(
 				FVector2D(WorkingStart * DrawScale, 0.f),
-				FVector2D(WorkingSize * DrawScale, AllottedGeometry.Size.Y)
+				FVector2D(WorkingSize * DrawScale, InPainter.SectionGeometry.Size.Y)
 			),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect,
+			FEditorStyle::GetBrush("Sequencer.Section.SelectedTrackTint"),
+			InPainter.SectionClippingRect,
 			DrawEffects,
 			FColor(220, 120, 120)
 		);
@@ -108,14 +106,14 @@ public:
 		if (StartOffset < 0.0f)
 		{
 			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				LayerId + 1,
-				AllottedGeometry.ToPaintGeometry(
+				InPainter.DrawElements,
+				++LayerId,
+				InPainter.SectionGeometry.ToPaintGeometry(
 					FVector2D(0.0f, 0.f),
-					FVector2D(-StartOffset * DrawScale, AllottedGeometry.Size.Y)
+					FVector2D(-StartOffset * DrawScale, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				SectionClippingRect,
+				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black.CopyWithNewOpacity(0.2f)
 			);
@@ -125,14 +123,14 @@ public:
 		if (StartOffset <= 0)
 		{
 			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				LayerId + 2,
-				AllottedGeometry.ToPaintGeometry(
+				InPainter.DrawElements,
+				++LayerId,
+				InPainter.SectionGeometry.ToPaintGeometry(
 					FVector2D(-StartOffset * DrawScale, 0.f),
-					FVector2D(1.0f, AllottedGeometry.Size.Y)
+					FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				SectionClippingRect,
+				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FColor(32, 128, 32)	// 120, 75, 50 (HSV)
 			);
@@ -144,14 +142,14 @@ public:
 		if (PlaybackEnd < SectionSize)
 		{
 			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				LayerId + 1,
-				AllottedGeometry.ToPaintGeometry(
+				InPainter.DrawElements,
+				++LayerId,
+				InPainter.SectionGeometry.ToPaintGeometry(
 					FVector2D(PlaybackEnd * DrawScale, 0.f),
-					FVector2D((SectionSize - PlaybackEnd) * DrawScale, AllottedGeometry.Size.Y)
+					FVector2D((SectionSize - PlaybackEnd) * DrawScale, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				SectionClippingRect,
+				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FLinearColor::Black.CopyWithNewOpacity(0.2f)
 			);
@@ -161,14 +159,14 @@ public:
 		if (PlaybackEnd <= SectionSize)
 		{
 			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				LayerId + 2,
-				AllottedGeometry.ToPaintGeometry(
+				InPainter.DrawElements,
+				++LayerId,
+				InPainter.SectionGeometry.ToPaintGeometry(
 					FVector2D(PlaybackEnd * DrawScale, 0.f),
-					FVector2D(1.0f, AllottedGeometry.Size.Y)
+					FVector2D(1.0f, InPainter.SectionGeometry.Size.Y)
 				),
 				FEditorStyle::GetBrush("WhiteBrush"),
-				SectionClippingRect,
+				InPainter.SectionClippingRect,
 				ESlateDrawEffect::None,
 				FColor(128, 32, 32)	// 0, 75, 50 (HSV)
 			);
@@ -178,14 +176,14 @@ public:
 		int32 NumTracks = MovieScene->GetPossessableCount() + MovieScene->GetSpawnableCount() + MovieScene->GetMasterTracks().Num();
 
 		FSlateDrawElement::MakeText(
-			OutDrawElements,
-			LayerId + 3,
-			AllottedGeometry.ToOffsetPaintGeometry(FVector2D(5.0f, 32.0f)),
+			InPainter.DrawElements,
+			++LayerId,
+			InPainter.SectionGeometry.ToOffsetPaintGeometry(FVector2D(5.0f, 32.0f)),
 			FText::Format(LOCTEXT("NumTracksFormat", "{0} track(s)"), FText::AsNumber(NumTracks)),
 			FEditorStyle::GetFontStyle("NormalFont"),
-			SectionClippingRect,
+			InPainter.SectionClippingRect,
 			DrawEffects,
-			FLinearColor::White
+			FColor(200, 200, 200)
 		);
 
 		return LayerId;
@@ -195,7 +193,7 @@ public:
 	{
 		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
-			Sequencer.Pin()->FocusSequenceInstance(SequenceInstance.Pin().ToSharedRef());
+			Sequencer.Pin()->FocusSequenceInstance(SectionObject);
 		}
 
 		return FReply::Handled();

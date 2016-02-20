@@ -272,11 +272,10 @@ void UAnimSingleNodeInstance::SetReverse(bool bInReverse)
 	GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>().SetReverse(bInReverse);
 }
 
-void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
+void UAnimSingleNodeInstance::SetPositionWithPreviousTime(float InPosition, float InPreviousTime, bool bFireNotifies)
 {
 	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 
-	float PreviousTime = Proxy.GetCurrentTime();
 	Proxy.SetCurrentTime(FMath::Clamp<float>(InPosition, 0.f, GetLength()));
 
 	if (FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance())
@@ -295,7 +294,7 @@ void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
 			NotifyQueue.Reset(GetSkelMeshComponent());
 
 			TArray<const FAnimNotifyEvent*> Notifies;
-			SequenceBase->GetAnimNotifiesFromDeltaPositions(PreviousTime, Proxy.GetCurrentTime(), Notifies);
+			SequenceBase->GetAnimNotifiesFromDeltaPositions(InPreviousTime, Proxy.GetCurrentTime(), Notifies);
 			if ( Notifies.Num() > 0 )
 			{
 				// single node instance only has 1 asset at a time
@@ -306,6 +305,15 @@ void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
 
 		}
 	}
+}
+
+void UAnimSingleNodeInstance::SetPosition(float InPosition, bool bFireNotifies)
+{
+	FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+
+	float PreviousTime = Proxy.GetCurrentTime();
+
+	SetPositionWithPreviousTime(InPosition, PreviousTime, bFireNotifies);
 }
 
 void UAnimSingleNodeInstance::SetBlendSpaceInput(const FVector& InBlendInput)

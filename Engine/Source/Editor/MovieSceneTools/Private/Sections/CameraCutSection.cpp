@@ -42,9 +42,13 @@ void FCameraCutSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const
 	{
 		AActor* Actor = *ActorIt;
 
-		if ((Actor != GetCameraObject()) && Actor->IsListedInSceneOutliner() && Actor->IsA<ACameraActor>())
+		if ((Actor != GetCameraObject()) && Actor->IsListedInSceneOutliner())
 		{
-			AllCameras.Add(Actor);
+			UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(Actor);
+			if (CameraComponent)
+			{
+				AllCameras.Add(Actor);
+			}
 		}
 	}
 
@@ -80,7 +84,7 @@ FText FCameraCutSection::GetDisplayName() const
 /* FThumbnailSection interface
  *****************************************************************************/
 
-ACameraActor* FCameraCutSection::GetCameraObject() const
+AActor* FCameraCutSection::GetCameraObject() const
 {
 	UMovieSceneCameraCutSection* CameraCutSection = Cast<UMovieSceneCameraCutSection>(Section);
 
@@ -88,11 +92,11 @@ ACameraActor* FCameraCutSection::GetCameraObject() const
 	// @todo sequencer: the director track may be able to get cameras from sub-movie scenes
 	SequencerPtr.Pin()->GetRuntimeObjects(SequencerPtr.Pin()->GetRootMovieSceneSequenceInstance(),  CameraCutSection->GetCameraGuid(), OutObjects);
 
-	ACameraActor* ReturnCam = nullptr;
+	AActor* ReturnCam = nullptr;
 
 	if (OutObjects.Num() > 0)
 	{
-		ReturnCam = Cast<ACameraActor>(OutObjects[0]);
+		ReturnCam = Cast<AActor>(OutObjects[0]);
 
 		if (ReturnCam != nullptr)
 		{
@@ -106,7 +110,7 @@ ACameraActor* FCameraCutSection::GetCameraObject() const
 
 	if (OutObjects.Num() > 0)
 	{
-		ReturnCam = Cast<ACameraActor>(OutObjects[0]);
+		ReturnCam = Cast<AActor>(OutObjects[0]);
 
 		if (ReturnCam != nullptr)
 		{
@@ -117,9 +121,27 @@ ACameraActor* FCameraCutSection::GetCameraObject() const
 	return ReturnCam;
 }
 
+float FCameraCutSection::GetSectionHeight() const
+{
+	return FThumbnailSection::GetSectionHeight() + 10.f;
+}
+
+FMargin FCameraCutSection::GetContentPadding() const
+{
+	return FMargin(6.f, 12.f);
+}
+
+int32 FCameraCutSection::OnPaintSection(FSequencerSectionPainter& InPainter) const
+{
+	static const FSlateBrush* FilmBorder = FEditorStyle::GetBrush("Sequencer.Section.FilmBorder");
+
+	InPainter.LayerId = InPainter.PaintSectionBackground();
+	return FThumbnailSection::OnPaintSection(InPainter);
+}
+
 FText FCameraCutSection::HandleThumbnailTextBlockText() const
 {
-	ACameraActor* CameraActor = GetCameraObject();
+	AActor* CameraActor = GetCameraObject();
 	if (CameraActor)
 	{
 		return FText::FromString(CameraActor->GetActorLabel());

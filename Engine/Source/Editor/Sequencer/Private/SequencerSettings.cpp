@@ -28,10 +28,12 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
+	bLinkCurveEditorTimeRange = false;
 	bLooping = false;
 	bKeepCursorInPlayRange = true;
 	bKeepPlayRangeInSectionBounds = true;
 	ZeroPadFrames = 0;
+	bShowCombinedKeyframes = true;
 }
 
 EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
@@ -415,6 +417,21 @@ void USequencerSettings::SetShowCurveEditorCurveToolTips(bool InbShowCurveEditor
 }
 
 
+bool USequencerSettings::GetLinkCurveEditorTimeRange() const
+{
+	return bLinkCurveEditorTimeRange;
+}
+
+void USequencerSettings::SetLinkCurveEditorTimeRange(bool InbLinkCurveEditorTimeRange)
+{
+	if (bLinkCurveEditorTimeRange != InbLinkCurveEditorTimeRange)
+	{
+		bLinkCurveEditorTimeRange = InbLinkCurveEditorTimeRange;
+		SaveConfig();
+	}
+}
+
+
 uint8 USequencerSettings::GetZeroPadFrames() const
 {
 	return ZeroPadFrames;
@@ -429,6 +446,21 @@ void USequencerSettings::SetZeroPadFrames(uint8 InZeroPadFrames)
 	}
 }
 
+bool USequencerSettings::GetShowCombinedKeyframes() const
+{
+	return bShowCombinedKeyframes;
+}
+
+void USequencerSettings::SetShowCombinedKeyframes(bool InbShowCombinedKeyframes)
+{
+	if (bShowCombinedKeyframes != InbShowCombinedKeyframes)
+	{
+		bShowCombinedKeyframes = InbShowCombinedKeyframes;
+		SaveConfig();
+	}
+}
+
+
 float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 {
 	return TimeSnapInterval > 0
@@ -439,15 +471,4 @@ float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 USequencerSettings::FOnShowCurveEditorChanged& USequencerSettings::GetOnShowCurveEditorChanged()
 {
 	return OnShowCurveEditorChanged;
-}
-
-/** Level editor specific sequencer settings */
-ULevelEditorSequencerSettings::ULevelEditorSequencerSettings( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
-{
-	bKeyInterpPropertiesOnly = true;
-	TimeSnapInterval = 0.033334f;
-	bShowRangeSlider = true;
-	bKeepPlayRangeInSectionBounds = false;
-	ZeroPadFrames = 4;
 }

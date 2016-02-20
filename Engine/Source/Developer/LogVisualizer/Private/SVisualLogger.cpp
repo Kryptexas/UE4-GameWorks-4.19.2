@@ -8,7 +8,6 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 #include "VisualLoggerCameraController.h"
-#include "TimeSliderController.h"
 #if WITH_EDITOR
 #	include "Editor/UnrealEd/Public/EditorComponents.h"
 #	include "Editor/UnrealEd/Public/EditorReimportHandler.h"

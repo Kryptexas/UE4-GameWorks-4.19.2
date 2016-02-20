@@ -206,6 +206,11 @@ bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectCla
 
 bool FSequencerObjectChangeListener::CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const
 {
+	if (CanKeyPropertyParams.PropertyPath.Num() == 0)
+	{
+		return false;
+	}
+
 	const UStructProperty* StructProperty = Cast<const UStructProperty>(CanKeyPropertyParams.PropertyPath.Last());
 	const UStructProperty* ParentStructProperty = nullptr;
 	if (CanKeyPropertyParams.PropertyPath.Num() > 1)

@@ -498,6 +498,12 @@ private:
 	/** Flatten or straighten tangents */
 	void OnFlattenOrStraightenTangents(bool bFlattenTangents);
 
+	/** Called when user selects bake or reduce curve */
+	void OnBakeCurve();
+	void OnBakeCurveSampleRateCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+	void OnReduceCurve();
+	void OnReduceCurveToleranceCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+
 	/** Called when the user selects the extrapolation type */
 	void OnSelectPreInfinityExtrap(ERichCurveExtrapolation Extrapolation);
 	bool IsPreInfinityExtrapSelected(ERichCurveExtrapolation Extrapolation);
@@ -576,6 +582,12 @@ protected:
 
 	/** Ensure that selected keys and tangents are still valid */
 	UNREALED_API void ValidateSelection();
+
+	/** Modeless Version of the String Entry Box */
+	void GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted);
+	
+	/** Closes the popup created by GenericTextEntryModeless*/
+	void CloseEntryPopupMenu();
 
 private:
 
@@ -733,6 +745,12 @@ protected:
 
 	/** The color used to draw the grid lines. */
 	FLinearColor GridColor;
+
+	/** The tolerance to use when reducing curves */
+	float ReduceTolerance;
+
+	/** Generic Popup Entry */
+	TWeakPtr<IMenu> EntryPopupMenu;
 };
 
 #endif // __SCurveEditor_h__

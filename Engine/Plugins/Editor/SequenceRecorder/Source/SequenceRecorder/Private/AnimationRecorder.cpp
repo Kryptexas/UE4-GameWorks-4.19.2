@@ -171,6 +171,42 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Componen
 	return false;
 }
 
+/** Helper function to get space bases depending on master pose component */
+static void GetBoneTransforms(USkeletalMeshComponent* Component, TArray<FTransform>& BoneTransforms)
+{
+	const USkinnedMeshComponent* const MasterPoseComponentInst = Component->MasterPoseComponent.Get();
+	if(MasterPoseComponentInst)
+	{
+		const TArray<FTransform>& SpaceBases = MasterPoseComponentInst->GetSpaceBases();
+		BoneTransforms.Reset(BoneTransforms.Num());
+		BoneTransforms.AddUninitialized(SpaceBases.Num());
+		for(int32 BoneIndex = 0; BoneIndex < SpaceBases.Num(); BoneIndex++)
+		{
+			if(BoneIndex < Component->GetMasterBoneMap().Num())
+			{
+				int32 MasterBoneIndex = Component->GetMasterBoneMap()[BoneIndex];
+
+				// If ParentBoneIndex is valid, grab matrix from MasterPoseComponent.
+				if(MasterBoneIndex != INDEX_NONE && MasterBoneIndex < SpaceBases.Num())
+				{
+					BoneTransforms[BoneIndex] = SpaceBases[MasterBoneIndex];
+				}
+				else
+				{
+					BoneTransforms[BoneIndex] = FTransform::Identity;
+				}
+			}
+			else
+			{
+				BoneTransforms[BoneIndex] = FTransform::Identity;
+			}
+		}
+	}
+	else
+	{
+		BoneTransforms =  Component->GetSpaceBases();
+	}
+}
 
 void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSequence* InAnimationObject)
 {
@@ -181,7 +217,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 	AnimationObject->TrackToSkeletonMapTable.Empty();
 	AnimationObject->AnimationTrackNames.Empty();
 
-	PreviousSpacesBases = Component->GetSpaceBases();
+	GetBoneTransforms(Component, PreviousSpacesBases);
 	PreviousComponentToWorld = Component->ComponentToWorld;
 
 	LastFrame = 0;
@@ -367,10 +403,11 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 		RecordNotifies(Component, Component->GetAnimInstance()->NotifyQueue.AnimNotifies, DeltaTime, TimePassed);
 	}
 
+	TArray<FTransform> SpaceBases;
+	GetBoneTransforms(Component, SpaceBases);
+
 	if (FramesRecorded < FramesToRecord)
 	{
-		const TArray<FTransform>& SpaceBases = Component->GetSpaceBases();
-
 		check(SpaceBases.Num() == PreviousSpacesBases.Num());
 
 		TArray<FTransform> BlendedSpaceBases;
@@ -404,7 +441,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 	}
 
 	//save to current transform
-	PreviousSpacesBases = Component->GetSpaceBases();
+	PreviousSpacesBases = SpaceBases;
 	PreviousComponentToWorld = Component->ComponentToWorld;
 
 	// if we passed MaxFrame, just stop it
@@ -415,7 +452,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 	}
 }
 
-void FAnimationRecorder::Record( USkeletalMeshComponent* Component, FTransform const& ComponentToWorld, TArray<FTransform> SpacesBases, int32 FrameToAdd )
+void FAnimationRecorder::Record( USkeletalMeshComponent* Component, FTransform const& ComponentToWorld, const TArray<FTransform>& SpacesBases, int32 FrameToAdd )
 {
 	if (ensure(AnimationObject))
 	{

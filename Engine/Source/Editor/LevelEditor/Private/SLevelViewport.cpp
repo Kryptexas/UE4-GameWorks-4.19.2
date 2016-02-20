@@ -3771,6 +3771,18 @@ bool SLevelViewport::GetCameraInformationFromActor(AActor* Actor, FMinimalViewIn
 		}
 	}
 
+	// see if any actors are attached to us, directly or indirectly, that have an active camera component we might want to use
+	// #note: assumption here that attachment cannot be circular
+	TArray<AActor*> AttachedActors;
+	Actor->GetAttachedActors(AttachedActors);
+	for (AActor* AttachedActor : AttachedActors)
+	{
+		if (GetCameraInformationFromActor(AttachedActor, out_CameraInfo))
+		{
+			return true;
+		}
+	}
+
 	// no active cameras
 	return false;
 }

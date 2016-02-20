@@ -90,7 +90,8 @@ TSharedPtr<FStructOnScope> UMovieSceneVectorSection::GetKeyStruct(const TArray<F
 	{
 		for (int32 Index = 0; Index <= 3; ++Index)
 		{
-			Struct->Keys[Index] = &Curves[Index].GetFirstMatchingKey(KeyHandles);
+			Struct->Keys[Index] = Curves[Index].GetFirstMatchingKey(KeyHandles);
+			check(Struct->Keys[Index] != nullptr);
 			Struct->Vector[Index] = Struct->Keys[Index]->Value;
 		}
 	}

@@ -178,15 +178,51 @@ TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 
 		TSharedPtr<SWidget> Widget = AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedTrack.Get(), Params);
 
+		TSharedRef<SHorizontalBox> BoxPanel = SNew(SHorizontalBox);
+
+		bool bHasKeyableAreas = false;
+
+		TArray<TSharedRef<FSequencerSectionKeyAreaNode>> ChildKeyAreaNodes;
+		FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(ChildKeyAreaNodes);
+		for (int32 ChildIndex = 0; ChildIndex < ChildKeyAreaNodes.Num() && !bHasKeyableAreas; ++ChildIndex)
+		{
+			TArray< TSharedRef<IKeyArea> > ChildKeyAreas = ChildKeyAreaNodes[ChildIndex]->GetAllKeyAreas();
+
+			for (int32 ChildKeyAreaIndex = 0; ChildKeyAreaIndex < ChildKeyAreas.Num() && !bHasKeyableAreas; ++ChildKeyAreaIndex)
+			{
+				if (ChildKeyAreas[ChildKeyAreaIndex]->CanCreateKeyEditor())
+				{
+					bHasKeyableAreas = true;
+				}
+			}
+		}
+
 		if (Widget.IsValid())
 		{
-			return SNew(SBox)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Right)
-				[
-					Widget.ToSharedRef()
-				];
+			BoxPanel->AddSlot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Right)
+			[
+				Widget.ToSharedRef()
+			];
 		}
+
+		if (bHasKeyableAreas)
+		{
+			BoxPanel->AddSlot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SKeyNavigationButtons, AsShared())
+			];
+		}
+
+		return SNew(SBox)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Right)
+			[
+				BoxPanel
+			];
 	}
 
 
@@ -219,15 +255,17 @@ FText FSequencerTrackNode::GetDisplayName() const
 
 float FSequencerTrackNode::GetNodeHeight() const
 {
-	return (Sections.Num() > 0)
+	float Height = (Sections.Num() > 0)
 		? Sections[0]->GetSectionHeight() * (GetMaxRowIndex() + 1)
 		: SequencerLayoutConstants::SectionAreaDefaultHeight;
+
+	return Height + 2*SequencerNodeConstants::CommonPadding;
 }
 
 
 FNodePadding FSequencerTrackNode::GetNodePadding() const
 {
-	return FNodePadding(SequencerNodeConstants::CommonPadding);
+	return FNodePadding(0.f);//SequencerNodeConstants::CommonPadding);
 }
 
 

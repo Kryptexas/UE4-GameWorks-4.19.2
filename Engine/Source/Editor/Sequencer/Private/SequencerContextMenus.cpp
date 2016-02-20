@@ -516,14 +516,17 @@ void FSectionContextMenu::SelectAllKeys()
 			continue;
 		}
 
-		FKeyAreaLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
-		for (const FKeyAreaLayoutElement& Element : Layout.GetElements())
+		FSectionLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
+		for (const FSectionLayoutElement& Element : Layout.GetElements())
 		{
 			TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
-			for (const FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
+			if (KeyArea.IsValid())
 			{
-				FSequencerSelectedKey SelectKey(*Section, KeyArea, KeyHandle);
-				Sequencer->GetSelection().AddToSelection(SelectKey);
+				for (const FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
+				{
+					FSequencerSelectedKey SelectKey(*Section, KeyArea, KeyHandle);
+					Sequencer->GetSelection().AddToSelection(SelectKey);
+				}
 			}
 		}
 	}
@@ -541,11 +544,11 @@ bool FSectionContextMenu::CanSelectAllKeys() const
 			continue;
 		}
 
-		FKeyAreaLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
-		for (const FKeyAreaLayoutElement& Element : Layout.GetElements())
+		FSectionLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
+		for (const FSectionLayoutElement& Element : Layout.GetElements())
 		{
-			TArray<FKeyHandle> KeyHandles = Element.GetKeyArea()->GetUnsortedKeyHandles();
-			if (KeyHandles.Num() > 0)
+			TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+			if (KeyArea.IsValid() && Element.GetKeyArea()->GetUnsortedKeyHandles().Num() > 0)
 			{
 				return true;
 			}
@@ -560,11 +563,11 @@ bool FSectionContextMenu::CanSetExtrapolationMode() const
 	TArray<FSectionHandle> SelectedSections = StaticCastSharedRef<SSequencer>(Sequencer->GetSequencerWidget())->GetSectionHandles(Sequencer->GetSelection().GetSelectedSections());
 	for (const FSectionHandle& Handle : SelectedSections)
 	{
-		FKeyAreaLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
-		for (const FKeyAreaLayoutElement& Element : Layout.GetElements())
+		FSectionLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
+		for (const FSectionLayoutElement& Element : Layout.GetElements())
 		{
 			TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
-			if (KeyArea->CanSetExtrapolationMode())
+			if (KeyArea.IsValid() && KeyArea->CanSetExtrapolationMode())
 			{
 				return true;
 			}
@@ -621,12 +624,15 @@ void FSectionContextMenu::SetExtrapolationMode(ERichCurveExtrapolation ExtrapMod
 
 		if (Section->TryModify())
 		{
-			FKeyAreaLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
-			for (const FKeyAreaLayoutElement& Element : Layout.GetElements())
+			FSectionLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
+			for (const FSectionLayoutElement& Element : Layout.GetElements())
 			{
 				TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
-				bAnythingChanged = true;
-				KeyArea->SetExtrapolationMode(ExtrapMode, bPreInfinity);
+				if (KeyArea.IsValid())
+				{
+					bAnythingChanged = true;
+					KeyArea->SetExtrapolationMode(ExtrapMode, bPreInfinity);
+				}
 			}
 		}
 	}
@@ -650,16 +656,18 @@ bool FSectionContextMenu::IsExtrapolationModeSelected(ERichCurveExtrapolation Ex
 	TArray<FSectionHandle> SelectedSections = StaticCastSharedRef<SSequencer>(Sequencer->GetSequencerWidget())->GetSectionHandles(Sequencer->GetSelection().GetSelectedSections());
 	for (const FSectionHandle& Handle : SelectedSections)
 	{
-		FKeyAreaLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
-		for (const FKeyAreaLayoutElement& Element : Layout.GetElements())
+		FSectionLayout Layout(*Handle.TrackNode, Handle.SectionIndex);
+		for (const FSectionLayoutElement& Element : Layout.GetElements())
 		{
 			TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
-
-			bAllSelected = true;
-			if (KeyArea->GetExtrapolationMode(bPreInfinity) != ExtrapMode)
+			if (KeyArea.IsValid())
 			{
-				bAllSelected = false;
-				break;
+				bAllSelected = true;
+				if (KeyArea->GetExtrapolationMode(bPreInfinity) != ExtrapMode)
+				{
+					bAllSelected = false;
+					break;
+				}
 			}
 		}
 	}

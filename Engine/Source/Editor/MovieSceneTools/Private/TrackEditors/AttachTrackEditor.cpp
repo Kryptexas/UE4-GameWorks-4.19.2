@@ -47,21 +47,9 @@ public:
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override 
 	{
-		const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
-	
-		// Add a box for the section
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect,
-			DrawEffects
-		); 
-
-		return LayerId;
+		return InPainter.PaintSectionBackground();
 	}
 	
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) override
@@ -147,14 +135,14 @@ bool F3DAttachTrackEditor::IsActorPickable(const AActor* const ParentActor, FGui
 }
 
 
-void F3DAttachTrackEditor::ActorSocketPicked(const FName SocketName, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
+void F3DAttachTrackEditor::ActorSocketPicked(const FName SocketName, USceneComponent* Component, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
 {
 	if (ObjectGuid.IsValid())
 	{
 		TArray<UObject*> OutObjects;
 		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DAttachTrackEditor::AddKeyInternal, OutObjects, SocketName, ParentActor) );
+		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DAttachTrackEditor::AddKeyInternal, OutObjects, SocketName, Component ? Component->GetFName() : NAME_None, ParentActor) );
 	}
 	else if (Section != nullptr)
 	{
@@ -167,11 +155,12 @@ void F3DAttachTrackEditor::ActorSocketPicked(const FName SocketName, AActor* Par
 		{
 			AttachSection->SetConstraintId(ActorId);
 			AttachSection->AttachSocketName = SocketName;
+			AttachSection->AttachComponentName = Component ? Component->GetFName() : NAME_None;
 		}
 	}
 }
 
-bool F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, const FName SocketName, AActor* ParentActor)
+bool F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, const FName SocketName, const FName ComponentName, AActor* ParentActor)
 {
 	bool bHandleCreated = false;
 	bool bTrackCreated = false;
@@ -222,7 +211,7 @@ bool F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*>
 					}
 				}
 
-				Cast<UMovieScene3DAttachTrack>(Track)->AddConstraint( KeyTime, AttachEndTime, SocketName, ParentActorId );
+				Cast<UMovieScene3DAttachTrack>(Track)->AddConstraint( KeyTime, AttachEndTime, SocketName, ComponentName, ParentActorId );
 				bTrackModified = true;
 			}
 		}

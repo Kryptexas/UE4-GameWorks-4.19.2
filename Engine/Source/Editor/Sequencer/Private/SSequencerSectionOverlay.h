@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "TimeSliderController.h"
+#include "SequencerTimeSliderController.h"
 
 /**
  * An overlay that displays global information in the section area

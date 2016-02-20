@@ -12,10 +12,8 @@
 namespace ThumbnailSectionConstants
 {
 	const uint32 ThumbnailHeight = 90;
-	const uint32 TrackHeight = ThumbnailHeight+10; // some extra padding
 	const uint32 TrackWidth = 90;
 	const float SectionGripSize = 4.0f;
-	const FName ThumbnailGripBrushName = FName("Sequencer.Thumbnail.SectionHandle");
 }
 
 
@@ -74,12 +72,15 @@ void FThumbnailSection::DrawViewportThumbnail(TSharedPtr<FTrackEditorThumbnail> 
 {
 	if (InternalViewportScene.IsValid())
 	{
-		SequencerPtr.Pin()->SetGlobalTime(TrackEditorThumbnail->GetTime());
+		EMovieScenePlayerStatus::Type PlaybackStatus = SequencerPtr.Pin()->GetPlaybackStatus();
+		SequencerPtr.Pin()->SetPlaybackStatus(EMovieScenePlayerStatus::Jumping);
+		SequencerPtr.Pin()->SetGlobalTimeDirectly(TrackEditorThumbnail->GetTime());
 		InternalViewportClient->SetActorLock(GetCameraObject());
 		InternalViewportClient->UpdateViewForLockedActor();
 		GWorld->SendAllEndOfFrameUpdates();
 		InternalViewportScene->Draw(false);
 		TrackEditorThumbnail->CopyTextureIn((FSlateRenderTargetRHI*)InternalViewportScene->GetViewportRenderTargetTexture());
+		SequencerPtr.Pin()->SetPlaybackStatus(PlaybackStatus);
 	}
 }
 
@@ -92,7 +93,7 @@ uint32 FThumbnailSection::GetThumbnailWidth() const
 
 void FThumbnailSection::RegenerateViewportThumbnails(const FIntPoint& Size)
 {
-	ACameraActor* CameraActor = GetCameraObject();
+	AActor* CameraActor = GetCameraObject();
 
 	if (CameraActor != nullptr && InternalViewportScene.IsValid())
 	{
@@ -107,7 +108,8 @@ void FThumbnailSection::RegenerateViewportThumbnails(const FIntPoint& Size)
 		StoredSize = Size;
 		StoredStartTime = Section->GetStartTime();
 	
-		float AspectRatio = CameraActor->CameraComponent->AspectRatio;
+		UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(CameraActor);
+		float AspectRatio = CameraComponent ? CameraComponent->AspectRatio : 1.f;
 
 		int32 NewThumbnailWidth = FMath::TruncToInt(ThumbnailSectionConstants::TrackWidth * AspectRatio);
 		int32 ThumbnailCount = FMath::DivideAndRoundUp(StoredSize.X, NewThumbnailWidth);
@@ -159,11 +161,6 @@ void FThumbnailSection::RegenerateViewportThumbnails(const FIntPoint& Size)
 /* ISequencerSection interface
  *****************************************************************************/
 
-bool FThumbnailSection::ShouldDrawKeyAreaBackground() const
-{
-	return false;
-}
-
 bool FThumbnailSection::AreSectionsConnected() const
 {
 	return true;
@@ -174,7 +171,7 @@ TSharedRef<SWidget> FThumbnailSection::GenerateSectionWidget()
 	return SNew(SBox)
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Top)
-		.Padding(FMargin(15.0f, 7.0f, 0.0f, 0.0f))
+		.Padding(GetContentPadding())
 		[
 			SNew(SInlineEditableTextBlock)
 				.ToolTipText(CanRename() ? LOCTEXT("RenameThumbnail", "Click or hit F2 to rename") : FText::GetEmpty())
@@ -186,18 +183,6 @@ TSharedRef<SWidget> FThumbnailSection::GenerateSectionWidget()
 }
 
 
-FName FThumbnailSection::GetSectionGripLeftBrushName() const
-{
-	return ThumbnailSectionConstants::ThumbnailGripBrushName;
-}
-
-
-FName FThumbnailSection::GetSectionGripRightBrushName() const
-{
-	return ThumbnailSectionConstants::ThumbnailGripBrushName;
-}
-
-
 float FThumbnailSection::GetSectionGripSize() const
 {
 	return ThumbnailSectionConstants::SectionGripSize;
@@ -206,7 +191,7 @@ float FThumbnailSection::GetSectionGripSize() const
 
 float FThumbnailSection::GetSectionHeight() const
 {
-	return ThumbnailSectionConstants::TrackHeight;
+	return ThumbnailSectionConstants::ThumbnailHeight;
 }
 
 
@@ -221,40 +206,36 @@ FText FThumbnailSection::GetSectionTitle() const
 	return FText::GetEmpty();
 }
 
-
-int32 FThumbnailSection::OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const
+int32 FThumbnailSection::OnPaintSection( FSequencerSectionPainter& InPainter ) const
 {
-	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
+	int32 LayerId = InPainter.LayerId;
 
 	if (Thumbnails.Num() != 0)
 	{
-		FGeometry ThumbnailAreaGeometry = AllottedGeometry.MakeChild( FVector2D(GetSectionGripSize(), 0.0f), AllottedGeometry.GetDrawSize() - FVector2D( GetSectionGripSize()*2, 0.0f ) );
-
-		FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				LayerId,
-				ThumbnailAreaGeometry.ToPaintGeometry(),
-				FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-				SectionClippingRect,
-				DrawEffects
-			);
-
 		// @todo Sequencer: Need a way to visualize the key here
+		FVector2D SectionSize = InPainter.SectionGeometry.GetLocalSize();
 
 		int32 ThumbnailIndex = 0;
 		for( const TSharedPtr<FTrackEditorThumbnail>& Thumbnail : Thumbnails )
 		{
-			FGeometry TruncatedGeometry = ThumbnailAreaGeometry.MakeChild(
-				Thumbnail->GetSize(),
-				FSlateLayoutTransform(ThumbnailAreaGeometry.Scale, FVector2D( ThumbnailIndex * ThumbnailWidth, 5.f))
-				);
+			FVector2D ThumbnailSize = Thumbnail->GetSize();
+
+			FGeometry TruncatedGeometry = InPainter.SectionGeometry.MakeChild(
+				ThumbnailSize,
+				FSlateLayoutTransform(
+					InPainter.SectionGeometry.Scale,
+					FVector2D( ThumbnailIndex * ThumbnailWidth, (SectionSize.Y - ThumbnailSize.Y)*.5f)
+				)
+			);
 			
 			FSlateDrawElement::MakeViewport(
-				OutDrawElements,
-				LayerId,
+				InPainter.DrawElements,
+				++LayerId,
 				TruncatedGeometry.ToPaintGeometry(),
 				Thumbnail,
-				SectionClippingRect,
+				InPainter.SectionClippingRect,
 				false,
 				false,
 				DrawEffects,
@@ -264,11 +245,11 @@ int32 FThumbnailSection::OnPaintSection(const FGeometry& AllottedGeometry, const
 			if(Thumbnail->GetFadeInCurve() > 0.0f )
 			{
 				FSlateDrawElement::MakeBox(
-					OutDrawElements,
-					LayerId+1,
+					InPainter.DrawElements,
+					++LayerId,
 					TruncatedGeometry.ToPaintGeometry(),
 					WhiteBrush,
-					SectionClippingRect,
+					InPainter.SectionClippingRect,
 					DrawEffects,
 					FLinearColor(1.0f, 1.0f, 1.0f, Thumbnail->GetFadeInCurve())
 					);
@@ -277,33 +258,17 @@ int32 FThumbnailSection::OnPaintSection(const FGeometry& AllottedGeometry, const
 			++ThumbnailIndex;
 		}
 	}
-	else
-	{
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect,
-			DrawEffects
-		); 
-	}
 
-	return LayerId + 2;
+	return LayerId;
 }
 
 
 void FThumbnailSection::Tick(const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	FTimeToPixel TimeToPixelConverter(AllottedGeometry, TRange<float>(Section->GetStartTime(), Section->GetEndTime()));
+	// The sequencer view range which will be used to determine whether the individual thumbnails should be drawn if the time range intersects the view range
+	VisibleTimeRange = SequencerPtr.Pin()->GetViewRange();
 
-	// get the visible time range
-	VisibleTimeRange = TRange<float>(
-		TimeToPixelConverter.PixelToTime(-AllottedGeometry.Position.X),
-		TimeToPixelConverter.PixelToTime(-AllottedGeometry.Position.X + ParentGeometry.Size.X)
-	);
-
-	FIntPoint AllocatedSize = AllottedGeometry.MakeChild( FVector2D( GetSectionGripSize(), 0.0f ), FVector2D( AllottedGeometry.Size.X - (GetSectionGripSize()*2), AllottedGeometry.Size.Y) ).Size.IntPoint();
+	FIntPoint AllocatedSize = AllottedGeometry.GetLocalSize().IntPoint();
 	AllocatedSize.X = FMath::Max(AllocatedSize.X, 1);
 
 	float StartTime = Section->GetStartTime();

@@ -15,7 +15,11 @@
 
 UMovieSceneSkeletalAnimationTrack::UMovieSceneSkeletalAnimationTrack(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-{ }
+{
+#if WITH_EDITORONLY_DATA
+	TrackTint = FColor(194, 29, 194);
+#endif
+}
 
 
 /* UMovieSceneSkeletalAnimationTrack interface

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "LevelSequenceSpawnRegister.h"
-
+#include "ObjectKey.h"
 
 class AActor;
 class FMovieSceneSequenceInstance;
@@ -64,6 +64,9 @@ private:
 
 	/** Set of spawn register keys for objects that should be selected if they are spawned. */
 	TSet<FMovieSceneSpawnRegisterKey> SelectedSpawnedObjects;
+
+	/** Set of currently spawned objects */
+	TSet<FObjectKey> SpawnedObjects;
 
 	/** True if we should clear the above selection cache when the editor selection has been changed. */
 	bool bShouldClearSelectionCache;

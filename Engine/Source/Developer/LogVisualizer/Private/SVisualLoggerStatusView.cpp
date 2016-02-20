@@ -2,12 +2,8 @@
 
 #include "LogVisualizer.h"
 #include "SVisualLoggerView.h"
-#include "TimeSliderController.h"
 #include "ITimeSlider.h"
-#include "STimeSlider.h"
 #include "SSearchBox.h"
-#include "SSequencerSectionOverlay.h"
-#include "STimelinesContainer.h"
 #include "SVisualLoggerStatusView.h"
 
 #define LOCTEXT_NAMESPACE "SVisualLoggerStatusView"

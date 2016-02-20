@@ -4,7 +4,6 @@
 #include "ISequencer.h"
 #include "ISequencerObjectChangeListener.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "LevelSequenceEditorSpawnRegister.h"
 #include "MovieScene.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -23,7 +22,10 @@ FLevelSequenceEditorSpawnRegister::FLevelSequenceEditorSpawnRegister()
 	OnActorSelectionChangedHandle = LevelEditor.OnActorSelectionChanged().AddRaw(this, &FLevelSequenceEditorSpawnRegister::HandleActorSelectionChanged);
 
 	OnActorMovedHandle = GEditor->OnActorMoved().AddLambda([=](AActor* Actor){
-		HandleAnyPropertyChanged(*Actor);
+		if (SpawnedObjects.Contains(Actor))
+		{
+			HandleAnyPropertyChanged(*Actor);
+		}
 	});
 }
 
@@ -45,19 +47,24 @@ UObject* FLevelSequenceEditorSpawnRegister::SpawnObject(const FGuid& BindingId, 
 {
 	TGuardValue<bool> Guard(bShouldClearSelectionCache, false);
 	UObject* NewObject = FLevelSequenceSpawnRegister::SpawnObject(BindingId, SequenceInstance, Player);
-
-	// Add an object listener for the spawned object to propagate changes back onto the spawnable default
-	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
-
-	if (Sequencer.IsValid() && NewObject)
+	
+	if (NewObject)
 	{
-		Sequencer->GetObjectChangeListener().GetOnAnyPropertyChanged(*NewObject).AddSP(this, &FLevelSequenceEditorSpawnRegister::HandleAnyPropertyChanged);
+		SpawnedObjects.Add(NewObject);
 
-		// Select the actor if we think it should be selected
+		// Add an object listener for the spawned object to propagate changes back onto the spawnable default
+		TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
 		AActor* Actor = Cast<AActor>(NewObject);
-		if (Actor && SelectedSpawnedObjects.Contains(FMovieSceneSpawnRegisterKey(BindingId, SequenceInstance)))
+
+		if (Sequencer.IsValid() && Actor)
 		{
-			GEditor->SelectActor(Actor, true /*bSelected*/, true /*bNotify*/);
+			Sequencer->GetObjectChangeListener().GetOnAnyPropertyChanged(*NewObject).AddSP(this, &FLevelSequenceEditorSpawnRegister::HandleAnyPropertyChanged);
+
+			// Select the actor if we think it should be selected
+			if (Actor && SelectedSpawnedObjects.Contains(FMovieSceneSpawnRegisterKey(BindingId, SequenceInstance)))
+			{
+				GEditor->SelectActor(Actor, true /*bSelected*/, true /*bNotify*/);
+			}
 		}
 	}
 
@@ -76,6 +83,8 @@ void FLevelSequenceEditorSpawnRegister::PreDestroyObject(UObject& Object, const 
 		SelectedSpawnedObjects.Add(FMovieSceneSpawnRegisterKey(BindingId, SequenceInstance));
 		GEditor->SelectActor(Actor, false /*bSelected*/, true /*bNotify*/);
 	}
+			
+	SpawnedObjects.Remove(&Object);
 
 	// Remove our object listener
 	TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
@@ -117,9 +126,6 @@ void FLevelSequenceEditorSpawnRegister::HandleActorSelectionChanged(const TArray
 
 void FLevelSequenceEditorSpawnRegister::HandleAnyPropertyChanged(UObject& SpawnedObject)
 {
-	//@todo: AndrewR to filter this to just spawned objects only
-	return;
-
 	using namespace EditorUtilities;
 
 	AActor* Actor = CastChecked<AActor>(&SpawnedObject);

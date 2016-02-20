@@ -1,37 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceEditorPCH.h"
+#include "CineCameraActor.h"
+#include "CinematicLevelViewportLayout.h"
+#include "IPlacementModeModule.h"
+#include "ISettingsModule.h"
 #include "LevelEditor.h"
 #include "LevelSequenceActor.h"
 #include "LevelSequenceEditorStyle.h"
 #include "ModuleInterface.h"
 #include "PropertyEditorModule.h"
-#include "CinematicLevelViewportLayout.h"
-#include "IPlacementModeModule.h"
-#include "Camera/CineCameraActor.h"
+
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
 
+
 TSharedPtr<FLevelSequenceEditorStyle> FLevelSequenceEditorStyle::Singleton;
-
-class FLevelSequenceExtensionCommands
-	: public TCommands<FLevelSequenceExtensionCommands>
-{
-public:
-
-	/** Default constructor. */
-	FLevelSequenceExtensionCommands()
-		: TCommands("LevelSequenceEditor", LOCTEXT("ExtensionDescription", "Extension commands specific to the level sequence editor"), NAME_None, "LevelSequenceEditorStyle")
-	{ }
-
-	/** Initialize commands */
-	virtual void RegisterCommands() override
-	{
-		UI_COMMAND(CreateNewLevelSequenceInLevel, "Add Level Sequence", "Create a new level sequence asset, and place an instance of it in this level", EUserInterfaceActionType::Button, FInputChord());
-	}
-
-	TSharedPtr<FUICommandInfo> CreateNewLevelSequenceInLevel;
-};
 
 
 /**
@@ -53,6 +37,7 @@ public:
 		RegisterMenuExtensions();
 		RegisterLevelEditorExtensions();
 		RegisterPlacementModeExtensions();
+		RegisterSettings();
 	}
 	
 	virtual void ShutdownModule() override
@@ -62,9 +47,37 @@ public:
 		UnregisterMenuExtensions();
 		UnregisterLevelEditorExtensions();
 		UnregisterPlacementModeExtensions();
+		UnregisterSettings();
 	}
 
 protected:
+
+	/** Registers asset tool actions. */
+	void RegisterAssetTools()
+	{
+		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FLevelSequenceActions(FLevelSequenceEditorStyle::Get())));
+	}
+
+	/**
+	* Registers a single asset type action.
+	*
+	* @param AssetTools The asset tools object to register with.
+	* @param Action The asset type action to register.
+	*/
+	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
+	{
+		AssetTools.RegisterAssetTypeActions(Action);
+		RegisteredAssetTypeActions.Add(Action);
+	}
+
+	/** Register details view customizations. */
+	void RegisterCustomizations()
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		LevelSequencePlayingSettingsName = FLevelSequencePlaybackSettings::StaticStruct()->GetFName();
+		PropertyModule.RegisterCustomPropertyTypeLayout(LevelSequencePlayingSettingsName, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLevelSequencePlaybackSettingsCustomization::MakeInstance));
+	}
 
 	/** Registers level editor extensions. */
 	void RegisterLevelEditorExtensions()
@@ -84,11 +97,24 @@ protected:
 		LevelEditorModule.RegisterCustomViewportLayout("TwoPaneCinematic", OnePaneDefinition);
 	}
 
-	/** Registers asset tool actions. */
-	void RegisterAssetTools()
+	/** Register menu extensions for the level editor toolbar. */
+	void RegisterMenuExtensions()
 	{
-		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FLevelSequenceActions(FLevelSequenceEditorStyle::Get())));
+		FLevelSequenceEditorCommands::Register();
+
+		CommandList = MakeShareable(new FUICommandList);
+		CommandList->MapAction(FLevelSequenceEditorCommands::Get().CreateNewLevelSequenceInLevel,
+			FExecuteAction::CreateStatic(&FLevelSequenceEditorModule::OnCreateActorInLevel)
+		);
+
+		// Create and register the level editor toolbar menu extension
+		CinematicsMenuExtender = MakeShareable(new FExtender);
+		CinematicsMenuExtender->AddMenuExtension("LevelEditorNewMatinee", EExtensionHook::First, CommandList, FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder) {
+			MenuBuilder.AddMenuEntry(FLevelSequenceEditorCommands::Get().CreateNewLevelSequenceInLevel);
+		}));
+
+		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+		LevelEditorModule.GetAllLevelEditorToolbarCinematicsMenuExtenders().Add(CinematicsMenuExtender);
 	}
 
 	/** Registers placement mode extensions. */
@@ -98,22 +124,30 @@ protected:
 			LOCTEXT("CinematicCategoryName", "Cinematic"),
 			"Cinematic",
 			TEXT("PMCinematic"),
-			25);
+			25
+		);
+
 		IPlacementModeModule::Get().RegisterPlacementCategory(Info);
 		IPlacementModeModule::Get().RegisterPlaceableItem(Info.UniqueHandle, MakeShareable( new FPlaceableItem(nullptr, FAssetData(ACineCameraActor::StaticClass())) ));
 	}
 
-	/**
-	 * Registers a single asset type action.
-	 *
-	 * @param AssetTools The asset tools object to register with.
-	 * @param Action The asset type action to register.
-	 */
-	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
+	/** Register settings objects. */
+	void RegisterSettings()
 	{
-		AssetTools.RegisterAssetTypeActions(Action);
-		RegisteredAssetTypeActions.Add(Action);
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			// @todo sequencer: this should be moved into LevelSequenceEditor
+			SettingsModule->RegisterSettings("Project", "Plugins", "LevelSequencer",
+				LOCTEXT("LevelSequenceEditorSettingsName", "Level Sequencer"),
+				LOCTEXT("LevelSequenceEditorSettingsDescription", "Configure the Level Sequence Editor."),
+				GetMutableDefault<ULevelSequenceEditorSettings>()
+			);
+		}
 	}
+
+protected:
 
 	/** Unregisters asset tool actions. */
 	void UnregisterAssetTools()
@@ -131,6 +165,16 @@ protected:
 		}
 	}
 
+	/** Unregister details view customizations. */
+	void UnregisterCustomizations()
+	{
+		FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor");
+		if (PropertyModule)
+		{
+			PropertyModule->UnregisterCustomPropertyTypeLayout(LevelSequencePlayingSettingsName);
+		}
+	}
+
 	/** Unregisters level editor extensions. */
 	void UnregisterLevelEditorExtensions()
 	{
@@ -139,56 +183,6 @@ protected:
 		{
 			LevelEditorModule->UnRegisterCustomViewportLayout("Cinematic");
 		}
-	}
-
-	/** Unregisters placement mode extensions. */
-	void UnregisterPlacementModeExtensions()
-	{
-		if (IPlacementModeModule::IsAvailable())
-		{
-			IPlacementModeModule::Get().UnregisterPlacementCategory("Cinematic");
-		}
-	}
-
-protected:
-
-	/** Register details view customizations. */
-	void RegisterCustomizations()
-	{
-		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyTypeLayout(FLevelSequencePlaybackSettings::StaticStruct()->GetFName(), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FLevelSequencePlaybackSettingsCustomization::MakeInstance));
-	}
-
-	/** Unregister details view customizations. */
-	void UnregisterCustomizations()
-	{
-		FPropertyEditorModule* PropertyModule = FModuleManager::GetModulePtr<FPropertyEditorModule>("PropertyEditor");
-		if (PropertyModule)
-		{
-			PropertyModule->UnregisterCustomPropertyTypeLayout(FLevelSequencePlaybackSettings::StaticStruct()->GetFName());
-		}
-	}
-
-protected:
-
-	/** Register menu extensions for the level editor toolbar. */
-	void RegisterMenuExtensions()
-	{
-		FLevelSequenceExtensionCommands::Register();
-
-		CommandList = MakeShareable(new FUICommandList);
-		CommandList->MapAction(FLevelSequenceExtensionCommands::Get().CreateNewLevelSequenceInLevel,
-			FExecuteAction::CreateStatic(&FLevelSequenceEditorModule::OnCreateActorInLevel)
-		);
-
-		// Create and register the level editor toolbar menu extension
-		CinematicsMenuExtender = MakeShareable(new FExtender);
-		CinematicsMenuExtender->AddMenuExtension("LevelEditorNewMatinee", EExtensionHook::First, CommandList, FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder){
-			MenuBuilder.AddMenuEntry(FLevelSequenceExtensionCommands::Get().CreateNewLevelSequenceInLevel);
-		}));
-
-		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-		LevelEditorModule.GetAllLevelEditorToolbarCinematicsMenuExtenders().Add(CinematicsMenuExtender);
 	}
 
 	/** Unregisters menu extensions for the level editor toolbar. */
@@ -202,8 +196,31 @@ protected:
 		CinematicsMenuExtender = nullptr;
 		CommandList = nullptr;
 
-		FLevelSequenceExtensionCommands::Unregister();
+		FLevelSequenceEditorCommands::Unregister();
 	}
+
+	/** Unregisters placement mode extensions. */
+	void UnregisterPlacementModeExtensions()
+	{
+		if (IPlacementModeModule::IsAvailable())
+		{
+			IPlacementModeModule::Get().UnregisterPlacementCategory("Cinematic");
+		}
+	}
+
+	/** Unregister settings objects. */
+	void UnregisterSettings()
+	{
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if (SettingsModule != nullptr)
+		{
+			// @todo sequencer: this should be moved into LevelSequenceEditor
+			SettingsModule->UnregisterSettings("Project", "Plugins", "LevelSequencer");
+		}
+	}
+
+protected:
 
 	/** Callback for creating a new level sequence asset in the level. */
 	static void OnCreateActorInLevel()
@@ -262,6 +279,9 @@ private:
 	TSharedPtr<FExtender> CinematicsMenuExtender;
 
 	TSharedPtr<FUICommandList> CommandList;
+
+	/** Captured name of the FLevelSequencePlaybackSettings struct */
+	FName LevelSequencePlayingSettingsName;
 };
 
 

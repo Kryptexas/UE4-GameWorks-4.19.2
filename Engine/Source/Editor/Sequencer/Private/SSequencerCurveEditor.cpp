@@ -3,7 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "SCurveEditor.h"
 #include "Sequencer.h"
-#include "TimeSliderController.h"
+#include "SequencerTimeSliderController.h"
 
 #define LOCTEXT_NAMESPACE "SequencerCurveEditor"
 

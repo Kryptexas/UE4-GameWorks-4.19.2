@@ -70,7 +70,7 @@ public:
 	virtual FText GetSectionTitle() const override { return FText::GetEmpty(); }
 	virtual float GetSectionHeight() const override;
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override;
 	virtual const FSlateBrush* GetKeyBrush( FKeyHandle KeyHandle ) const override;
 	virtual bool SectionIsResizable() const override { return false; }
 

@@ -136,6 +136,9 @@ TSharedRef<SWidget> SSequencerCurveEditorToolBar::MakeCurveEditorCurveOptionsMen
 
 	FMenuBuilder MenuBuilder( true, CurveEditorCommandList );
 
+	MenuBuilder.AddMenuEntry( FRichCurveEditorCommands::Get().BakeCurve);
+	MenuBuilder.AddMenuEntry( FRichCurveEditorCommands::Get().ReduceCurve);
+
 	MenuBuilder.AddSubMenu(
 		LOCTEXT( "PreInfinitySubMenu", "Pre-Infinity" ),
 		LOCTEXT( "PreInfinitySubMenuToolTip", "Pre-Infinity Extrapolation" ),

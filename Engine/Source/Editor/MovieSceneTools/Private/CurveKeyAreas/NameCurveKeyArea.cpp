@@ -59,9 +59,9 @@ void FNameCurveKeyArea::DeleteKey(FKeyHandle KeyHandle)
 }
 
 
-FLinearColor FNameCurveKeyArea::GetColor()
+TOptional<FLinearColor> FNameCurveKeyArea::GetColor()
 {
-	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
+	return TOptional<FLinearColor>();
 }
 
 

@@ -1,44 +1,48 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerWidgetsPrivatePCH.h"
-#include "STimeSlider.h"
-#include "STimeRange.h"
+#include "ISequencerWidgetsModule.h"
 #include "ModuleManager.h"
+#include "SSequencerTimeSlider.h"
+#include "STimeRange.h"
 
 
-IMPLEMENT_MODULE( FSequencerWidgetsModule, SequencerWidgets );
-
-void FSequencerWidgetsModule::StartupModule()
+/**
+ * The public interface of SequencerModule
+ */
+class FSequencerWidgetsModule
+	: public ISequencerWidgetsModule
 {
+public:
 
-}
+	// ISequencerWidgetsModule interface
 
-void FSequencerWidgetsModule::ShutdownModule()
-{
+	TSharedRef<ITimeSlider> CreateTimeSlider(const TSharedRef<ITimeSliderController>& InController, bool bMirrorLabels) override
+	{
+		return SNew(SSequencerTimeSlider, InController)
+			.MirrorLabels(bMirrorLabels);
+	}
 
-}
+	TSharedRef<ITimeSlider> CreateTimeSlider(const TSharedRef<ITimeSliderController>& InController, const TAttribute<EVisibility>& VisibilityDelegate, bool bMirrorLabels) override
+	{
+		return SNew(SSequencerTimeSlider, InController)
+			.Visibility(VisibilityDelegate)
+			.MirrorLabels(bMirrorLabels);
+	}
 
-TSharedRef<ITimeSlider> FSequencerWidgetsModule::CreateTimeSlider( const TSharedRef<ITimeSliderController>& InController, bool bMirrorLabels )
-{
-	return
-		SNew( STimeSlider, InController )
-		.MirrorLabels( bMirrorLabels );
-}
+	TSharedRef<ITimeSlider> CreateTimeRange(const TSharedRef<ITimeSliderController>& InController, const TAttribute<EVisibility>& VisibilityDelegate, const TAttribute<bool>& ShowFrameNumbersDelegate, const TAttribute<float>& TimeSnapIntervalDelegate) override
+	{
+		return SNew(STimeRange, InController)
+			.Visibility(VisibilityDelegate)
+			.ShowFrameNumbers(ShowFrameNumbersDelegate)
+			.TimeSnapInterval(TimeSnapIntervalDelegate);
+	}
 
-TSharedRef<ITimeSlider> FSequencerWidgetsModule::CreateTimeSlider( const TSharedRef<ITimeSliderController>& InController, const TAttribute<EVisibility>& VisibilityDelegate, bool bMirrorLabels )
-{
-	return
-		SNew( STimeSlider, InController )
-		.Visibility(VisibilityDelegate)
-		.MirrorLabels( bMirrorLabels );
-}
+public:
 
-TSharedRef<ITimeSlider> FSequencerWidgetsModule::CreateTimeRange( const TSharedRef<ITimeSliderController>& InController, const TAttribute<EVisibility>& VisibilityDelegate, const TAttribute<bool>& ShowFrameNumbersDelegate, const TAttribute<float>& TimeSnapIntervalDelegate )
-{
-	return 
-		SNew( STimeRange, InController)
-		.Visibility(VisibilityDelegate)
-		.ShowFrameNumbers(ShowFrameNumbersDelegate)
-		.TimeSnapInterval(TimeSnapIntervalDelegate);
-}
+	virtual void StartupModule() override { }
+	virtual void ShutdownModule() override { }
+};
 
+
+IMPLEMENT_MODULE(FSequencerWidgetsModule, SequencerWidgets);

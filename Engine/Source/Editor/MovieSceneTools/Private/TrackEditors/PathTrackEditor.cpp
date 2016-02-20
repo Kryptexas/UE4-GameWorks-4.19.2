@@ -51,18 +51,9 @@ public:
 		LayoutBuilder.AddKeyArea("Timing", LOCTEXT("TimingArea", "Timing"), MakeShareable( new FFloatCurveKeyArea ( &PathSection->GetTimingCurve( ), PathSection ) ) );
 	}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override 
 	{
-		// Add a box for the section
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect
-		); 
-
-		return LayerId;
+		return InPainter.PaintSectionBackground();
 	}
 	
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding) override
@@ -164,7 +155,7 @@ bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid 
 }
 
 
-void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
+void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneComponent* Component, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
 {
 	if (ObjectGuid.IsValid())
 	{
@@ -240,7 +231,7 @@ bool F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> O
 					}
 				}
 
-				Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, NAME_None, SplineId );
+				Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, NAME_None, NAME_None, SplineId );
 				bTrackModified = true;
 			}
 		}

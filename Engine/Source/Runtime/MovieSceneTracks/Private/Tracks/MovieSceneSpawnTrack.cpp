@@ -14,7 +14,11 @@
 
 UMovieSceneSpawnTrack::UMovieSceneSpawnTrack(const FObjectInitializer& Obj)
 	: Super(Obj)
-{ }
+{
+#if WITH_EDITORONLY_DATA
+	TrackTint = FColor(255, 0, 234);
+#endif
+}
 
 
 /* UMovieSceneSpawnTrack interface

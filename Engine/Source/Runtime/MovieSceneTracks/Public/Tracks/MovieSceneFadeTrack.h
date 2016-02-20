@@ -23,6 +23,6 @@ public:
 	virtual UMovieSceneSection* CreateNewSection() override;
 
 #if WITH_EDITORONLY_DATA
-	virtual FText GetDisplayName() const override;
+	virtual FText GetDefaultDisplayName() const override;
 #endif
 };

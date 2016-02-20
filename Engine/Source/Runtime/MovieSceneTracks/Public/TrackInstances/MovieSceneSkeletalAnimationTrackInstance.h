@@ -28,6 +28,25 @@ public:
 
 private:
 
+	void BeginAnimControl(USkeletalMeshComponent* SkeletalMeshComponent);
+
+	bool CanPlayAnimation(USkeletalMeshComponent* SkeletalMeshComponent, class UAnimSequenceBase* AnimAssetBase = nullptr) const;
+
+	void SetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bFireNotifies, bool bLooping);
+
+	void FinishAnimControl(USkeletalMeshComponent* SkeletalMeshComponent);
+
+	void PreviewBeginAnimControl(USkeletalMeshComponent* SkeletalMeshComponent);
+
+	void PreviewFinishAnimControl(USkeletalMeshComponent* SkeletalMeshComponent);
+
+	void PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
+
+private:
+
 	/** Track that is being instanced */
 	UMovieSceneSkeletalAnimationTrack* AnimationTrack;
+
+	/** Keep track of the currently playhing montage */
+	TWeakObjectPtr<UAnimMontage> CurrentlyPlayingMontage;
 };

@@ -572,18 +572,17 @@ FRichCurveKey FRichCurve::GetLastKey() const
 }
 
 
-FRichCurveKey& FRichCurve::GetFirstMatchingKey(const TArray<FKeyHandle>& KeyHandles)
+FRichCurveKey* FRichCurve::GetFirstMatchingKey(const TArray<FKeyHandle>& KeyHandles)
 {
 	for (const auto& KeyHandle : KeyHandles)
 	{
 		if (IsKeyHandleValid(KeyHandle))
 		{
-			return GetKey(KeyHandle);
+			return &GetKey(KeyHandle);
 		}
 	}
 
-	checkf(false, TEXT("No matching rich curve key found."));
-	return Keys[INDEX_NONE];
+	return nullptr;
 }
 
 
@@ -1204,12 +1203,57 @@ void FRichCurve::ReadjustTimeRange(float NewMinTimeRange, float NewMaxTimeRange,
 	}
 }
 
+void FRichCurve::BakeCurve(float SampleRate)
+{
+	if (Keys.Num() == 0)
+	{
+		return;
+	}
+
+	float FirstKeyTime = Keys[0].Time;
+	float LastKeyTime = Keys[Keys.Num()-1].Time;
+
+	BakeCurve(SampleRate, FirstKeyTime, LastKeyTime);
+}
+
+void FRichCurve::BakeCurve(float SampleRate, float FirstKeyTime, float LastKeyTime)
+{
+	if (Keys.Num() == 0)
+	{
+		return;
+	}
+
+	for (float Time = FirstKeyTime + SampleRate; Time < LastKeyTime;  )
+	{
+		float Value = Eval(Time);
+		UpdateOrAddKey(Time, Value);
+		Time += SampleRate;
+	}
+}
+
 void FRichCurve::RemoveRedundantKeys(float Tolerance)
+{
+	if (Keys.Num() == 0)
+	{
+		return;
+	}
+
+	float FirstKeyTime = Keys[0].Time;
+	float LastKeyTime = Keys[Keys.Num()-1].Time;
+
+	RemoveRedundantKeys(Tolerance, FirstKeyTime, LastKeyTime);
+}
+
+void FRichCurve::RemoveRedundantKeys(float Tolerance, float FirstKeyTime, float LastKeyTime)
 {
 	for(int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex)
 	{
 		// copy the key
 		FRichCurveKey OriginalKey = Keys[KeyIndex];
+		if (OriginalKey.Time < FirstKeyTime || OriginalKey.Time > LastKeyTime)
+		{
+			continue;
+		}
 
 		FKeyHandle KeyHandle = GetKeyHandle(KeyIndex);
 

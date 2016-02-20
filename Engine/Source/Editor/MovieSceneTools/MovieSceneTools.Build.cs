@@ -39,6 +39,7 @@ public class MovieSceneTools : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
+				"EditorWidgets",
 				"RenderCore",
 				"RHI"
 			}

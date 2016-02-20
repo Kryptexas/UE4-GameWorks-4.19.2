@@ -388,8 +388,8 @@ private:
 
 public:
 	/** static functions that are used by matinee functionality */
-	static void SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping);
-	static void PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
+	ENGINE_API static void SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping);
+	ENGINE_API static void PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
 };
 
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)

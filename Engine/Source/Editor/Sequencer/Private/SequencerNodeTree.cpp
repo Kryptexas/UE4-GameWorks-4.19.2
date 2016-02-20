@@ -137,9 +137,9 @@ void FSequencerNodeTree::Update()
 	RootNodes.Reserve(RootNodes.Num()*2);
 	for (int32 Index = 0; Index < RootNodes.Num(); Index += 2)
 	{
-		RootNodes.Insert(MakeShareable(new FSequencerSpacerNode(2.f, nullptr, *this)), Index);
+		RootNodes.Insert(MakeShareable(new FSequencerSpacerNode(1.f, nullptr, *this)), Index);
 	}
-	RootNodes.Add(MakeShareable(new FSequencerSpacerNode(2.f, nullptr, *this)));
+	RootNodes.Add(MakeShareable(new FSequencerSpacerNode(1.f, nullptr, *this)));
 
 	// Set up virtual offsets, expansion states, and tints
 	float VerticalOffset = 0.f;

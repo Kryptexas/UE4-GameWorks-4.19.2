@@ -19,6 +19,7 @@ public class LevelSequenceEditor : ModuleRules
 				"AppFramework",
                 "LevelSequence",
 				"BlueprintGraph",
+                "CinematicCamera",
 				"Core",
 				"CoreUObject",
                 "EditorStyle",
@@ -42,6 +43,7 @@ public class LevelSequenceEditor : ModuleRules
                 "MovieSceneTools",
 				"SceneOutliner",
 				"PlacementMode",
+                "Settings",
 			}
 		);
 

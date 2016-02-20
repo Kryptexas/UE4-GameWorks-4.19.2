@@ -2042,10 +2042,21 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 			SingleNodeInst->SetAnimationAsset(InAnimSequence, bLooping);
 		}
 
+
 		SingleNodeInst->SetLooping(bLooping);
-		SingleNodeInst->SetPosition(InPosition, bFireNotifies);
+
+		// Anim notifies are fired from the previous evaluation time to the current time. When the delta time is 0, explicitly set the previous time to the current time so that anim notifies prior are not fired.
+		if (DeltaTime == 0.f)
+		{
+			const float PreviousTime = InPosition;
+			SingleNodeInst->SetPositionWithPreviousTime(InPosition, PreviousTime, bFireNotifies);
+		}
+		else
+		{
+			SingleNodeInst->SetPosition(InPosition, bFireNotifies);
+		}
 	}
-	else
+	else if (AnimInst)
 	{
 		bool bShouldChange = AnimInst->IsPlayingSlotAnimation(InAnimSequence, SlotName) == false;
 		if(bShouldChange)

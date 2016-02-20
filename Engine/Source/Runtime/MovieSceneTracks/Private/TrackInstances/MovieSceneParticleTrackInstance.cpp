@@ -12,6 +12,17 @@ FMovieSceneParticleTrackInstance::~FMovieSceneParticleTrackInstance()
 {
 }
 
+static UParticleSystemComponent* ParticleSystemComponentFromRuntimeObject(UObject* Object)
+{
+	if(AEmitter* Emitter = Cast<AEmitter>(Object))
+	{
+		return Emitter->GetParticleSystemComponent();
+	}
+	else
+	{
+		return Cast<UParticleSystemComponent>(Object);
+	}
+}
 
 void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
@@ -47,28 +58,25 @@ void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData,
 		{
 			for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
 			{
-				AEmitter* Emitter = Cast<AEmitter>(RuntimeObjects[i]);
-				if (Emitter)
+				UParticleSystemComponent* ParticleSystemComponent = ParticleSystemComponentFromRuntimeObject(RuntimeObjects[i]);
+
+				if ( ParticleSystemComponent != nullptr )
 				{
-					UParticleSystemComponent* ParticleSystemComponent = Emitter->GetParticleSystemComponent();
-					if ( ParticleSystemComponent != nullptr )
+					if ( ParticleKey == EParticleKey::Activate)
 					{
-						if ( ParticleKey == EParticleKey::Activate)
-						{
-							if ( ParticleSystemComponent->IsActive() )
-							{
-								ParticleSystemComponent->SetActive(false, true);
-							}
-							ParticleSystemComponent->SetActive(true, true);
-						}
-						else if( ParticleKey == EParticleKey::Deactivate )
+						if ( ParticleSystemComponent->IsActive() )
 						{
 							ParticleSystemComponent->SetActive(false, true);
 						}
-						else if ( ParticleKey == EParticleKey::Trigger )
-						{
-							ParticleSystemComponent->ActivateSystem(true);
-						}
+						ParticleSystemComponent->SetActive(true, true);
+					}
+					else if( ParticleKey == EParticleKey::Deactivate )
+					{
+						ParticleSystemComponent->SetActive(false, true);
+					}
+					else if ( ParticleKey == EParticleKey::Trigger )
+					{
+						ParticleSystemComponent->ActivateSystem(true);
 					}
 				}
 			}
@@ -82,6 +90,10 @@ void FMovieSceneParticleTrackInstance::Update(EMovieSceneUpdateData& UpdateData,
 			if (Emitter)
 			{
 				Emitter->Deactivate();
+			}
+			else if(UParticleSystemComponent* Component =  Cast<UParticleSystemComponent>(RuntimeObjects[i]))
+			{
+				Component->SetActive(false, true);
 			}
 		}
 	}

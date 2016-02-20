@@ -109,6 +109,7 @@ void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateDa
  		for( UObject* Object : RuntimeObjects )
  		{
 			AActor* Actor = Cast<AActor>(Object);
+			USceneComponent* SceneComponent = Cast<USceneComponent>(Object);
 
 			if (Actor != nullptr)
 			{
@@ -124,16 +125,23 @@ void FMovieSceneVisibilityTrackInstance::Update( EMovieSceneUpdateData& UpdateDa
 						Actor->SetIsTemporarilyHiddenInEditor(Visible);
 					}
 
-					USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Actor);
-					if (SceneComponent != nullptr)
+					USceneComponent* RuntimeSceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(Actor);
+					if (RuntimeSceneComponent != nullptr)
 					{
-						if (SceneComponent->IsVisibleInEditor() != !Visible)
+						if (RuntimeSceneComponent->IsVisibleInEditor() != !Visible)
 						{
-							SceneComponent->SetVisibility(!Visible);
+							RuntimeSceneComponent->SetVisibility(!Visible);
 						}
 					}
 				}
 #endif // WITH_EDITOR
+			}
+			else if(SceneComponent != nullptr)
+			{
+				if (SceneComponent->IsVisible() != !Visible)
+				{
+					SceneComponent->SetVisibility(!Visible);
+				}
 			}
  		}
 	}

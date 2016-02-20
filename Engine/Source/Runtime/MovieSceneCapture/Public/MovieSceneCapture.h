@@ -9,6 +9,7 @@
 #include "RenderingThread.h"
 #include "IMovieSceneCaptureProtocol.h"
 #include "MovieSceneCaptureProtocolRegistry.h"
+#include "MovieSceneCaptureProtocolSettings.h"
 #include "MovieSceneCapture.generated.h"
 
 /** Structure used to cache various metrics for our capture */
@@ -53,7 +54,7 @@ public:
 
 	/** Settings specific to the capture protocol */
 	UPROPERTY(EditAnywhere, Category=CaptureSettings)
-	UObject* ProtocolSettings;
+	UMovieSceneCaptureProtocolSettings* ProtocolSettings;
 
 	/** Settings that define how to capture */
 	UPROPERTY(EditAnywhere, config, Category=CaptureSettings, meta=(ShowOnlyInnerProperties))

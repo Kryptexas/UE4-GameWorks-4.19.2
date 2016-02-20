@@ -79,7 +79,7 @@ float FSequencerSectionKeyAreaNode::GetNodeHeight() const
 
 FNodePadding FSequencerSectionKeyAreaNode::GetNodePadding() const
 {
-	return FNodePadding(0.f, 1.f);
+	return FNodePadding(0.f);//FNodePadding(0.f, 1.f);
 }
 
 

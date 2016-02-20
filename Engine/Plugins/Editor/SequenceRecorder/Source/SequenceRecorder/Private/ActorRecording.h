@@ -15,8 +15,6 @@ struct FActorRecordingSettings
 	FActorRecordingSettings()
 		: bRecordTransforms(false)
 		, bRecordVisibility(true)
-		, bRecordNearbySpawnedActors(false)
-		, NearbyActorRecordingProximity(1000.0f)
 	{}
 
 public:
@@ -30,33 +28,47 @@ public:
 	/** Whether to record actor visibility. */
 	UPROPERTY(EditAnywhere, Category = "Actor Recording")
 	bool bRecordVisibility;
-
-	/** Whether to record nearby spawned actors. */
-	UPROPERTY(EditAnywhere, Category = "Actor Recording")
-	bool bRecordNearbySpawnedActors;
-
-	/** Proximity to currently recorded actors to record newly spawned actors. */
-	UPROPERTY(EditAnywhere, Category = "Actor Recording")
-	float NearbyActorRecordingProximity;
 };
 
 UCLASS(MinimalAPI, Transient)
 class UActorRecording : public UObject
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
 public:
-	/** Start this queued recording */
-	bool StartRecording();
+	/** Check whether it is worth recording this actor - i.e. is it going to affect the end result of the sequence */
+	static bool IsRelevantForRecording(AActor* Actor);
 
-	/** Stop this recording. Has no effect if we are not currently recording */
-	bool StopRecording();
+	/** Start this queued recording. Sequence can be nullptr */
+	bool StartRecording(class ULevelSequence* CurrentSequence = nullptr, float CurrentSequenceTime = 0.0f);
+
+	/** Stop this recording. Has no effect if we are not currently recording. Sequence can be nullptr */
+	bool StopRecording(class ULevelSequence* CurrentSequence = nullptr);
 
 	/** Tick this recording */
-	void Tick(float DeltaSeconds);
+	void Tick(float DeltaSeconds, ULevelSequence* CurrentSequence = nullptr, float CurrentSequenceTime = 0.0f);
 
 	/** Whether we are currently recording */
 	bool IsRecording() const;
+
+private:
+	/** Check component valididty for recording */
+	bool ValidComponent(USceneComponent* SceneComponent) const;
+
+	/** Start recording actor properties to a sequence */
+	void StartRecordingActorProperties(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
+
+	/** Start recording component properties to a sequence */
+	TSharedPtr<class FMovieSceneAnimationPropertyRecorder> StartRecordingComponentProperties(const FName& BindingName, USceneComponent* SceneComponent, UObject* BindingContext, ULevelSequence* CurrentSequence, float CurrentSequenceTime);
+
+	/** Start recording components that are added at runtime */
+	void StartRecordingNewComponents(ULevelSequence* CurrentSequence, float CurrentSequenceTime);
+
+	/** Helper function to grab all scene components in the actor's hierarchy */
+	void GetSceneComponents(TArray<USceneComponent*>& OutArray, bool bIncludeNonCDO = true);
+
+	/** Sync up tracked components with the actor */
+	void SyncTrackedComponents(bool bIncludeNonCDO = true);
 
 public:
 	/** The actor we want to record */
@@ -78,12 +90,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Animation Recording")
 	FAnimationRecordingSettings AnimationSettings;
 
-	/** Our last recorded animation */
-	UPROPERTY(Transient)
-	TWeakObjectPtr<UAnimSequence> LastRecordedAnimation;
-
 	/** Guid that identifies our spawnable in a recorded sequence */
 	FGuid Guid;
+
+	/** Whether this actor recording was triggered from an acotr spawn */
+	bool bWasSpawnedPostRecord;
 
 private:
 	/** Used to store/restore update flag when recording */
@@ -91,4 +102,13 @@ private:
 
 	/** Used to store/restore URO when recording */
 	bool bEnableUpdateRateOptimizations;
+
+	/** This actor's current set of property recorders */
+	TArray<TSharedPtr<class IMovieScenePropertyRecorder>> PropertyRecorders;
+
+	/** Track components to check if any have changed */
+	TArray<TWeakObjectPtr<USceneComponent>> TrackedComponents;
+
+	/** Flag to track whether we created new components */
+	bool bNewComponentAddedWhileRecording;
 };

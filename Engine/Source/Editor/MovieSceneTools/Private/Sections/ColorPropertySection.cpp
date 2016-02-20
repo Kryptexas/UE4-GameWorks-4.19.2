@@ -23,10 +23,11 @@ void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& 
 	LayoutBuilder.AddKeyArea( "A", NSLOCTEXT( "FColorPropertySection", "OpacityArea", "Opacity" ), AlphaKeyArea.ToSharedRef() );
 }
 
-
-int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
+int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 {
-	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	int32 LayerId = Painter.PaintSectionBackground(FColor(255,255,255));
+
+	const ESlateDrawEffect::Type DrawEffects = Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	const UMovieSceneColorSection* ColorSection = Cast<const UMovieSceneColorSection>( &SectionObject );
 
@@ -36,15 +37,18 @@ int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, 
 
 	if ( !FMath::IsNearlyZero( SectionDuration ) )
 	{
-		LayerId = FPropertySection::OnPaintSection( AllottedGeometry, SectionClippingRect, OutDrawElements, LayerId, bParentEnabled );
+		FVector2D GradientSize = FVector2D( Painter.SectionGeometry.Size.X, (Painter.SectionGeometry.Size.Y / 4) - 3.0f );
 
-		FVector2D GradientSize = FVector2D( AllottedGeometry.Size.X, (AllottedGeometry.Size.Y / 4) - 3.0f );
-
-		FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry( FVector2D( 0, 0 ), GradientSize );
+		FPaintGeometry PaintGeometry = Painter.SectionGeometry.ToPaintGeometry( FVector2D( 0, 0 ), GradientSize );
 
 		// If we are showing a background pattern and the colors is transparent, draw a checker pattern
-		const FSlateBrush* CheckerBrush = FEditorStyle::GetBrush( "Checker" );
-		FSlateDrawElement::MakeBox( OutDrawElements, LayerId, PaintGeometry, CheckerBrush, SectionClippingRect, DrawEffects );
+		FSlateDrawElement::MakeBox(
+			Painter.DrawElements,
+			LayerId,
+			PaintGeometry,
+			FEditorStyle::GetBrush( "Checker" ),
+			Painter.SectionClippingRect,
+			DrawEffects);
 
 		TArray<FSlateGradientStop> GradientStops;
 
@@ -57,19 +61,19 @@ int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, 
 			FLinearColor Color = ColorKeys[i].Value;
 			float TimeFraction = (Time - StartTime) / SectionDuration;
 
-			GradientStops.Add( FSlateGradientStop( FVector2D( TimeFraction * AllottedGeometry.Size.X, 0 ),
+			GradientStops.Add( FSlateGradientStop( FVector2D( TimeFraction * Painter.SectionGeometry.Size.X, 0 ),
 				Color ) );
 		}
 
 		if ( GradientStops.Num() > 0 )
 		{
 			FSlateDrawElement::MakeGradient(
-				OutDrawElements,
-				LayerId + 1,
+				Painter.DrawElements,
+				Painter.LayerId + 1,
 				PaintGeometry,
 				GradientStops,
 				Orient_Vertical,
-				SectionClippingRect,
+				Painter.SectionClippingRect,
 				DrawEffects
 				);
 		}

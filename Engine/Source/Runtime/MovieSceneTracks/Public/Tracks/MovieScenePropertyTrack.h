@@ -55,9 +55,10 @@ public:
 	 * Finds a section at the current time.
 	 *
 	 * @param Time	The time relative to the owning movie scene where the section should be
+	 * @param bSectionAdded Whether a section was added or not
 	 * @return The found section, or the new section.
 	 */
-	class UMovieSceneSection* FindOrAddSection(float Time);
+	class UMovieSceneSection* FindOrAddSection(float Time, bool& bSectionAdded);
 
 protected:
 

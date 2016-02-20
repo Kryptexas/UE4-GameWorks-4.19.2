@@ -197,7 +197,6 @@ public:
 	virtual FText GetToolkitToolTipText() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	virtual void SaveAsset_Execute() override;
 	//~ End IToolkit Interface
 
 	/** Saves all animation assets related to a skeleton */
@@ -296,6 +295,10 @@ protected:
 
 	/** Handler connected to open skeleton so we get notified when it changes */
 	void OnSkeletonHierarchyChanged();
+
+protected:
+	//~ IToolkit interface
+	virtual void GetSaveableObjects(TArray<UObject*>& OutObjects) const override;
 
 protected:
 	USkeleton* TargetSkeleton;

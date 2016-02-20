@@ -12,4 +12,7 @@ USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& O
 	SequenceName = TEXT("RecordedSequence");
 	AnimationSubDirectory = TEXT("Animations");
 	SequenceRecordingBasePath.Path = TEXT("Cinematics/Sequences");
+	bRecordNearbySpawnedActors = false;
+	NearbyActorRecordingProximity = 1000.0f;
+	bRecordWorldSettingsActor = false;
 }

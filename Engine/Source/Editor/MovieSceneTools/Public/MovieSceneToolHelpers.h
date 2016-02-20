@@ -61,8 +61,9 @@ public:
 	 * 
 	 * @param Section The section to gather takes from
 	 * @param TakeNumbers The gathered take numbers
+	 * @param CurrentTakeNumber The current take number of the section
 	 */
-	static void GatherTakes(const UMovieSceneSection* Section, TArray<uint32>& TakeNumbers);
+	static void GatherTakes(const UMovieSceneSection* Section, TArray<uint32>& TakeNumbers, uint32& CurrentTakeNumber);
 
 
 	/**

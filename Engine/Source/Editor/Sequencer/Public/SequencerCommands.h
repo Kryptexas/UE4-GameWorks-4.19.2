@@ -153,8 +153,8 @@ public:
 	/** Finds the viewed sequence asset in the content browser. */
 	TSharedPtr< FUICommandInfo > FindInContentBrowser;
 
-	/** Toggles whether the details view is enabled in the level editor. */
-	TSharedPtr< FUICommandInfo > ToggleDetailsView;
+	/** Toggles whether to show combined keys at the top node level. */
+	TSharedPtr< FUICommandInfo > ToggleCombinedKeyframes;
 
 	/** Toggles whether the label browser is enabled in the level editor. */
 	TSharedPtr< FUICommandInfo > ToggleLabelBrowser;
@@ -164,6 +164,9 @@ public:
 
 	/** Toggles whether or not the curve editor should be shown. */
 	TSharedPtr< FUICommandInfo > ToggleShowCurveEditor;
+
+	/** Toggles whether or not the curve editor time range should be linked to the sequencer. */
+	TSharedPtr< FUICommandInfo > ToggleLinkCurveEditorTimeRange;
 
 	/** Enable the move tool */
 	TSharedPtr< FUICommandInfo > MoveTool;
@@ -179,6 +182,9 @@ public:
 
 	/** Convert the selected possessed objects to spawnables. These will be spawned and destroyed by sequencer as per object's the spawn track. */
 	TSharedPtr< FUICommandInfo > ConvertToSpawnable;
+
+	/** Discard all changes to the current movie scene. */
+	TSharedPtr< FUICommandInfo > DiscardChanges;
 
 	/**
 	 * Initialize commands

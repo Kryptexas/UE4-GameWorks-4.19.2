@@ -177,6 +177,9 @@ public:
 	/** Called when the save button is clicked */
 	void OnSaveMovieSceneClicked();
 
+	/** Called when the save-as button is clicked */
+	void OnSaveMovieSceneAsClicked();
+
 	/** Access the tree view for this sequencer */
 	TSharedPtr<SSequencerTreeView> GetTreeView() const;
 
@@ -429,4 +432,8 @@ private:
 
 	/** Called when the user has finished dragging the playback range */
 	FSimpleDelegate OnEndPlaybackRangeDrag;
+
+	/** Cached clamp and view range for unlinking the curve editor time range */
+	TRange<float> CachedClampRange;
+	TRange<float> CachedViewRange;
 };

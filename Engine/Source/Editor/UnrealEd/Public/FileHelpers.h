@@ -124,6 +124,14 @@ public:
 	static UNREALED_API bool SaveLevel(ULevel* Level, const FString& DefaultFilename = TEXT( "" ) );
 
 	/**
+	 * Does a SaveAs for the specified assets.
+	 *
+	 * @param Assets The collection of assets to save.
+	 * @param SavedAssets The collection of corresponding saved assets (contains original asset if not resaved).
+	 */
+	UNREALED_API static void SaveAssetsAs(const TArray<UObject*>& Assets, TArray<UObject*>& OutSavedAssets);
+
+	/**
 	 * Does a saveAs for the specified level.
 	 *
 	 * @param	Level		The Level to be SaveAs'd.

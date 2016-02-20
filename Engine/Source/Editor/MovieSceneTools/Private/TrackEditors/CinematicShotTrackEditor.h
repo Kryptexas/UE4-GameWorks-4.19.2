@@ -35,7 +35,7 @@ public:
 	 */
 	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor(TSharedRef<ISequencer> OwningSequencer);
 
-	TWeakObjectPtr<ACameraActor> GetCinematicShotCamera() const { return CinematicShotCamera; }
+	TWeakObjectPtr<AActor> GetCinematicShotCamera() const { return CinematicShotCamera; }
 
 public:
 
@@ -158,7 +158,7 @@ private:
 	TSharedPtr<FTrackEditorThumbnailPool> ThumbnailPool;
 
 	/** The camera actor for the current cut. */
-	TWeakObjectPtr<ACameraActor> CinematicShotCamera;
+	TWeakObjectPtr<AActor> CinematicShotCamera;
 
 	/** Delegate binding handle for ISequencer::OnCameraCut */
 	FDelegateHandle OnCameraCutHandle;

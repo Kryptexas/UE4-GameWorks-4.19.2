@@ -12,6 +12,9 @@ UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& Obje
 	Sound = nullptr;
 	AudioStartTime = 0.f;
 	AudioDilationFactor = 1.f;
+#if WITH_EDITORONLY_DATA
+	bShowIntensity = false;
+#endif
 }
 
 

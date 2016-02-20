@@ -105,7 +105,7 @@ void FFloatCurveKeyArea::DeleteKey(FKeyHandle KeyHandle)
 }
 
 
-FLinearColor FFloatCurveKeyArea::GetColor()
+TOptional<FLinearColor> FFloatCurveKeyArea::GetColor()
 {
 	return Color;
 }

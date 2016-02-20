@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SequencerSectionPainter.h"
+
 class IKeyArea;
 
 namespace SequencerSectionConstants
@@ -19,10 +21,6 @@ namespace SequencerSectionConstants
 	const FName SelectionColorName("SelectionColor");
 
 	const FName SelectionInactiveColorName("SelectionColorInactive");
-	
-	const FName DefaultSectionGripLeftImageName("Sequencer.DefaultSectionGripLeft");
-	
-	const FName DefaultSectionGripRightImageName("Sequencer.DefaultSectionGripRight");
 }
 
 /**
@@ -48,14 +46,10 @@ public:
 	/**
 	 * Called when the section should be painted
 	 *
-	 * @param AllottedGeometry		The geometry of the section
-	 * @param SectionClippingRect	The clipping rect around the section
-	 * @param OutDrawElements		The element list ot add elements to
-	 * @param LayerId				The ID of the starting layer to draw elements to
-	 * @param bParentEnabled		Whether or not the parent widget is enabled
-	 * @return						The new LayerId
+	 * @param Painter		Structure that affords common painting operations
+	 * @return				The new LayerId
 	 */
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const = 0;
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const = 0;
 
 	/** Allows a section to override the brush to use for a key by handle.
 	 *
@@ -63,11 +57,6 @@ public:
 	 * @return A const pointer to a slate brush if the brush should be overridden, otherwise null.
 	 */
 	virtual const FSlateBrush* GetKeyBrush(FKeyHandle KeyHandle) const { return nullptr; }
-
-	/*
-	 * @return Whether to draw a background for the key area
-	 */
-	virtual bool ShouldDrawKeyAreaBackground() const { return true; }
 
 	/**
 	 * Called when the section is double clicked
@@ -89,6 +78,11 @@ public:
 	virtual FText GetSectionTitle() const = 0;
 
 	/**
+	 * @return The amount of padding to apply to non-interactive portions of the section interface (such as section text)
+	 */
+	virtual FMargin GetContentPadding() const { return FMargin(11.f, 6.f); }
+
+	/**
 	 * Generates the inner layout for this section
 	 *
 	 * @param LayoutBuilder	The builder utility for creating section layouts
@@ -101,10 +95,6 @@ public:
 	virtual float GetSectionHeight() const { return SequencerSectionConstants::DefaultSectionHeight; }
 	
 	virtual float GetSectionGripSize() const { return SequencerSectionConstants::DefaultSectionGripSize; }
-
-	virtual FName GetSectionGripLeftBrushName() const { return SequencerSectionConstants::DefaultSectionGripLeftImageName; }
-
-	virtual FName GetSectionGripRightBrushName() const { return SequencerSectionConstants::DefaultSectionGripRightImageName; }
 
 	/**
 	 * @return Whether or not the user can resize this section.

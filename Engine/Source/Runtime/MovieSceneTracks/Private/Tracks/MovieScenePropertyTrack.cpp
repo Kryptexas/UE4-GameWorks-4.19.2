@@ -69,8 +69,10 @@ bool UMovieScenePropertyTrack::IsEmpty() const
 }
 
 
-UMovieSceneSection* UMovieScenePropertyTrack::FindOrAddSection(float Time)
+UMovieSceneSection* UMovieScenePropertyTrack::FindOrAddSection(float Time, bool& bSectionAdded)
 {
+	bSectionAdded = false;
+
 	// Find a spot for the section so that they are sorted by start time
 	for(int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
 	{
@@ -130,6 +132,8 @@ UMovieSceneSection* UMovieScenePropertyTrack::FindOrAddSection(float Time)
 	NewSection->SetEndTime(Time);
 
 	Sections.Add(NewSection);
+	
+	bSectionAdded = true;
 
 	return NewSection;
 }

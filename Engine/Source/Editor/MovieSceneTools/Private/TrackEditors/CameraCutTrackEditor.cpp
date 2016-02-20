@@ -13,7 +13,6 @@
 #include "MovieSceneTrackEditor.h"
 #include "CameraCutTrackEditor.h"
 #include "CommonMovieSceneTools.h"
-#include "Camera/CameraActor.h"
 #include "AssetToolsModule.h"
 #include "CameraCutSection.h"
 #include "SequencerUtilities.h"
@@ -118,7 +117,12 @@ void FCameraCutTrackEditor::Tick(float DeltaTime)
 {
 	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
 	{
-		ThumbnailPool->DrawThumbnails();
+		float SavedTime = GetSequencer()->GetGlobalTime();
+
+		if (ThumbnailPool->DrawThumbnails())
+		{
+			GetSequencer()->SetGlobalTime(SavedTime);
+		}
 	}
 }
 
@@ -207,10 +211,13 @@ bool FCameraCutTrackEditor::IsCameraPickable(const AActor* const PickableActor)
 	if (PickableActor->IsListedInSceneOutliner() &&
 		!FActorEditorUtils::IsABuilderBrush(PickableActor) &&
 		!PickableActor->IsA( AWorldSettings::StaticClass() ) &&
-		!PickableActor->IsPendingKill() &&
-		PickableActor->IsA( ACameraActor::StaticClass()) )
-	{			
-		return true;
+		!PickableActor->IsPendingKill())
+	{	
+		UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(PickableActor);
+		if (CameraComponent)	
+		{
+			return true;
+		}
 	}
 	return false;
 }

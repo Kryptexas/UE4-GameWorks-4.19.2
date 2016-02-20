@@ -49,7 +49,7 @@ public:
 	void RegenerateViewportThumbnails(const FIntPoint& Size);
 
 	/** Get the camera that this thumbnail should draw from */
-	virtual ACameraActor* GetCameraObject() const { return nullptr; }
+	virtual AActor* GetCameraObject() const { return nullptr; }
 
 	/** Get whether the text is renameable */
 	virtual bool CanRename() const { return false; }
@@ -64,17 +64,14 @@ public:
 
 	// ISequencerSection interface
 
-	virtual bool ShouldDrawKeyAreaBackground() const override;
 	virtual bool AreSectionsConnected() const override;
 	virtual void GenerateSectionLayout(ISectionLayoutBuilder& LayoutBuilder) const override { }
 	virtual TSharedRef<SWidget> GenerateSectionWidget() override;
-	virtual FName GetSectionGripLeftBrushName() const override;
-	virtual FName GetSectionGripRightBrushName() const override;
 	virtual float GetSectionGripSize() const override;
 	virtual float GetSectionHeight() const override;
 	virtual UMovieSceneSection* GetSectionObject() override;
 	virtual FText GetSectionTitle() const override;
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;
+	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const FGeometry& ParentGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 protected:

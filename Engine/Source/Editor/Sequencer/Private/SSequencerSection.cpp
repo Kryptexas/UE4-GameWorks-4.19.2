@@ -10,16 +10,156 @@
 #include "CommonMovieSceneTools.h"
 #include "SequencerHotspots.h"
 #include "ScopedTransaction.h"
+#include "SequencerSectionPainter.h"
 
 double SSequencerSection::SelectionThrobEndTime = 0;
 
+struct FSequencerSectionPainterImpl : FSequencerSectionPainter
+{
+	FSequencerSectionPainterImpl(FSequencer& InSequencer, UMovieSceneSection& InSection, FSlateWindowElementList& _OutDrawElements, const FGeometry& InSectionGeometry)
+		: FSequencerSectionPainter(_OutDrawElements, InSectionGeometry, InSection)
+		, Sequencer(InSequencer)
+		, TimeToPixelConverter(InSection.IsInfinite() ?
+			FTimeToPixel(SectionGeometry, Sequencer.GetViewRange()) :
+			FTimeToPixel(SectionGeometry, TRange<float>(InSection.GetStartTime(), InSection.GetEndTime()))
+			)
+	{
+		CalculateSelectionColor();
+	}
+
+	virtual int32 PaintSectionBackground(const FSequencerSectionTintRegion* Tints, uint32 NumTints) override
+	{
+		const ESlateDrawEffect::Type DrawEffects = bParentEnabled
+			? ESlateDrawEffect::None
+			: ESlateDrawEffect::DisabledEffect;
+
+		static const FSlateBrush* SectionBackgroundBrush = FEditorStyle::GetBrush("Sequencer.Section.Background");
+		static const FSlateBrush* SectionBackgroundTintBrush = FEditorStyle::GetBrush("Sequencer.Section.BackgroundTint");
+		static const FSlateBrush* SelectedSectionOverlay = FEditorStyle::GetBrush("Sequencer.Section.SelectedSectionOverlay");
+
+		FGeometry InfiniteGeometry = SectionGeometry.MakeChild(FVector2D(-100.f, 0.f), FVector2D(SectionGeometry.GetLocalSize().X + 200.f, SectionGeometry.GetLocalSize().Y));
+
+		FSlateDrawElement::MakeBox(
+			DrawElements,
+			LayerId++,
+			Section.IsInfinite() ?
+				InfiniteGeometry.ToPaintGeometry() :
+				SectionGeometry.ToPaintGeometry(),
+			SectionBackgroundBrush,
+			SectionClippingRect,
+			DrawEffects
+		);
+
+		const FSlateLayoutTransform LayoutTransform = SectionGeometry.GetAccumulatedLayoutTransform();
+
+		//const float TintOpacity = Args.bHovered ? 0.1f : 0.07f;
+		while (NumTints-- > 0)
+		{
+			FSlateRect SubClippingRect = SectionClippingRect;
+
+			if (Tints->Range.IsSet())
+			{
+				const float StartPixel = TimeToPixelConverter.TimeToPixel(Tints->Range->GetLowerBoundValue());
+				const float EndPixel = TimeToPixelConverter.TimeToPixel(Tints->Range->GetUpperBoundValue());
+
+				SubClippingRect = SubClippingRect.IntersectionWith(
+					TransformRect(LayoutTransform, FSlateRect(StartPixel, 0.0f, EndPixel, SectionGeometry.Size.Y))
+					);
+			}
+			
+			// We never show colors with full tint
+			FLinearColor TintColor(Tints->Color);
+			TintColor.A *= 0.4f;
+
+			FSlateDrawElement::MakeBox(
+				DrawElements,
+				LayerId,
+				SectionGeometry.ToPaintGeometry(),
+				SectionBackgroundTintBrush,
+				SubClippingRect.InsetBy(FMargin(1.f)),
+				DrawEffects,
+				TintColor
+			);
+
+			Tints++;
+		}
+
+		++LayerId;
+
+		// This is now invalid
+		Tints = nullptr;
+
+		// Draw the selection hash
+		if (SelectionColor.IsSet())
+		{
+			FSlateDrawElement::MakeBox(
+				DrawElements,
+				LayerId,
+				SectionGeometry.ToPaintGeometry(FVector2D(1, 1), SectionGeometry.Size - FVector2D(2,2)),
+				SelectedSectionOverlay,
+				SectionClippingRect,
+				DrawEffects,
+				SelectionColor.GetValue().CopyWithNewOpacity(0.8f)
+			);
+		}
+
+		return LayerId;
+	}
+
+	virtual const FTimeToPixel& GetTimeConverter() const
+	{
+		return TimeToPixelConverter;
+	}
+
+	void CalculateSelectionColor()
+	{
+		FSequencerSelection& Selection = Sequencer.GetSelection();
+		FSequencerSelectionPreview& SelectionPreview = Sequencer.GetSelectionPreview();
+
+		ESelectionPreviewState SelectionPreviewState = SelectionPreview.GetSelectionState(&Section);
+
+		if (SelectionPreviewState == ESelectionPreviewState::NotSelected)
+		{
+			// Explicitly not selected in the preview selection
+			return;
+		}
+		
+		if (SelectionPreviewState == ESelectionPreviewState::Undefined && !Selection.IsSelected(&Section))
+		{
+			// No preview selection for this section, and it's not selected
+			return;
+		}
+
+		SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionColorName).GetColor(FWidgetStyle());
+
+		// Use a muted selection color for selection previews
+		if (SelectionPreviewState == ESelectionPreviewState::Selected)
+		{
+			SelectionColor.GetValue() = SelectionColor.GetValue().LinearRGBToHSV();
+			SelectionColor.GetValue().R += 0.1f; // +10% hue
+			SelectionColor.GetValue().G = 0.6f; // 60% saturation
+
+			SelectionColor = SelectionColor.GetValue().HSVToLinearRGB();
+		}
+		else if (Selection.GetActiveSelection() != FSequencerSelection::EActiveSelection::KeyAndSection)
+		{
+			// Use an inactive selection color for existing selections that are not active
+			SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionInactiveColorName).GetColor(FWidgetStyle());
+		}
+	}
+
+	TOptional<FLinearColor> SelectionColor;
+	FSequencer& Sequencer;
+	FTimeToPixel TimeToPixelConverter;
+};
 
 void SSequencerSection::Construct( const FArguments& InArgs, TSharedRef<FSequencerTrackNode> SectionNode, int32 InSectionIndex )
 {
 	SectionIndex = InSectionIndex;
 	ParentSectionArea = SectionNode;
 	SectionInterface = SectionNode->GetSections()[InSectionIndex];
-	Layout = FKeyAreaLayout(*SectionNode, InSectionIndex);
+	Layout = FSectionLayout(*SectionNode, InSectionIndex);
+	HandleOffsetPx = 0.f;
 
 	ChildSlot
 	[
@@ -34,10 +174,10 @@ FVector2D SSequencerSection::ComputeDesiredSize(float) const
 }
 
 
-FGeometry SSequencerSection::GetKeyAreaGeometry( const FKeyAreaLayoutElement& KeyArea, const FGeometry& SectionGeometry ) const
+FGeometry SSequencerSection::GetKeyAreaGeometry( const FSectionLayoutElement& KeyArea, const FGeometry& SectionGeometry ) const
 {
 	// Compute the geometry for the key area
-	return SectionGeometry.MakeChild( FVector2D( 0, KeyArea.GetOffset() ), FVector2D( SectionGeometry.Size.X, KeyArea.GetHeight(SectionGeometry) ) );
+	return SectionGeometry.MakeChild( FVector2D( 0, KeyArea.GetOffset() ), FVector2D( SectionGeometry.Size.X, KeyArea.GetHeight()  ) );
 }
 
 
@@ -48,9 +188,13 @@ FSequencerSelectedKey SSequencerSection::GetKeyUnderMouse( const FVector2D& Mous
 	UMovieSceneSection& Section = *SectionInterface->GetSectionObject();
 
 	// Search every key area until we find the one under the mouse
-	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
+	for (const FSectionLayoutElement& Element : Layout->GetElements())
 	{
 		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+		if (!KeyArea.IsValid())
+		{
+			continue;
+		}
 
 		// Compute the current key area geometry
 		FGeometry KeyAreaGeometryPadded = GetKeyAreaGeometry( Element, AllottedGeometry );
@@ -99,9 +243,13 @@ FSequencerSelectedKey SSequencerSection::CreateKeyUnderMouse( const FVector2D& M
 	FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
 
 	// Search every key area until we find the one under the mouse
-	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
+	for (const FSectionLayoutElement& Element : Layout->GetElements())
 	{
 		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+		if (!KeyArea.IsValid())
+		{
+			continue;
+		}
 
 		// Compute the current key area geometry
 		FGeometry KeyAreaGeometryPadded = GetKeyAreaGeometry( Element, AllottedGeometry );
@@ -138,12 +286,16 @@ FSequencerSelectedKey SSequencerSection::CreateKeyUnderMouse( const FVector2D& M
 
 					TArray<FKeyHandle> KeyHandles = KeyArea->AddKeyUnique(KeyTime+TimeFuzz, GetSequencer().GetKeyInterpolation(), KeyTime);
 
-					Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
+					Layout = FSectionLayout(*ParentSectionArea, SectionIndex);
 
 					// Look specifically for the key with the offset key time
-					for (const FKeyAreaLayoutElement& NewElement : Layout->GetElements())
+					for (const FSectionLayoutElement& NewElement : Layout->GetElements())
 					{
 						TSharedPtr<IKeyArea> NewKeyArea = NewElement.GetKeyArea();
+						if (!NewKeyArea.IsValid())
+						{
+							continue;
+						}
 
 						for (auto KeyHandle : KeyHandles)
 						{
@@ -160,7 +312,7 @@ FSequencerSelectedKey SSequencerSection::CreateKeyUnderMouse( const FVector2D& M
 				else
 				{
 					KeyArea->AddKeyUnique(KeyTime, GetSequencer().GetKeyInterpolation());
-					Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
+					Layout = FSectionLayout(*ParentSectionArea, SectionIndex);
 						
 					return GetKeyUnderMouse(MousePosition, AllottedGeometry);
 				}
@@ -217,17 +369,37 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	const bool bLocked = SectionObject.IsLocked();
 	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled );
+
 	FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
-	FSlateRect SectionClipRect = SectionGeometry.GetClippingRect().IntersectionWith( MyClippingRect );
+
+	FSequencerSectionPainterImpl Painter(ParentSectionArea->GetSequencer(), SectionObject, OutDrawElements, SectionGeometry);
+
+	FGeometry PaintSpaceParentGeometry = ParentGeometry;
+	PaintSpaceParentGeometry.AppendTransform(FSlateLayoutTransform(Inverse(Args.GetWindowToDesktopTransform())));
+
+	FSlateRect ParentClippingRect = PaintSpaceParentGeometry.GetClippingRect();
+
+	// Clip vertically
+	ParentClippingRect.Top = FMath::Max(ParentClippingRect.Top, MyClippingRect.Top);
+	ParentClippingRect.Bottom = FMath::Min(ParentClippingRect.Bottom, MyClippingRect.Bottom);
+
+	Painter.SectionClippingRect = Painter.SectionGeometry.GetClippingRect().IntersectionWith(ParentClippingRect);
+
+	Painter.LayerId = LayerId;
+	Painter.bParentEnabled = bEnabled;
 
 	// Ask the interface to draw the section
-	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, SectionClipRect, OutDrawElements, LayerId, bEnabled );
-	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionColorName).GetColor(FWidgetStyle());
+	LayerId = SectionInterface->OnPaintSection(Painter);
+	
+	LayerId = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled );
 
-	DrawSectionHandles(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, DrawEffects, SelectionColor);
-	DrawSelectionBorder(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, DrawEffects, SelectionColor);
-	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle, bEnabled );
+	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionColorName).GetColor(FWidgetStyle());
+	DrawSectionHandles(AllottedGeometry, MyClippingRect, OutDrawElements, ++LayerId, DrawEffects, SelectionColor);
+
+	FSlateRect KeyClippingRect = Painter.SectionGeometry.GetClippingRect().ExtendBy(FMargin(10.f, 0.f)).IntersectionWith(ParentClippingRect);
+	
+	Painter.LayerId = ++LayerId;
+	PaintKeys( Painter, InWidgetStyle, KeyClippingRect );
 
 	if (bLocked)
 	{
@@ -235,7 +407,7 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
-			PostSectionLayer+1,
+			++LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			FEditorStyle::GetBrush(SelectionBorder),
 			MyClippingRect,
@@ -246,29 +418,30 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 	// Section name with drop shadow
 	FText SectionTitle = SectionInterface->GetSectionTitle();
+	FMargin ContentPadding = SectionInterface->GetContentPadding();
 
 	if (!SectionTitle.IsEmpty())
 	{
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
-			PostSectionLayer+1,
-			SectionGeometry.ToOffsetPaintGeometry(FVector2D(6, 6)),
+			++LayerId,
+			Painter.SectionGeometry.ToOffsetPaintGeometry(FVector2D(ContentPadding.Left + 1, ContentPadding.Top + 1)),
 			SectionTitle,
 			FEditorStyle::GetFontStyle("NormalFont"),
 			MyClippingRect,
 			DrawEffects,
-			FLinearColor::Black
+			FLinearColor(0,0,0,.5f)
 		);
 
 		FSlateDrawElement::MakeText(
 			OutDrawElements,
-			PostSectionLayer+2,
-			SectionGeometry.ToOffsetPaintGeometry(FVector2D(5, 5)),
+			++LayerId,
+			Painter.SectionGeometry.ToOffsetPaintGeometry(FVector2D(ContentPadding.Left, ContentPadding.Top)),
 			SectionTitle,
 			FEditorStyle::GetFontStyle("NormalFont"),
 			MyClippingRect,
 			DrawEffects,
-			FLinearColor::White
+			FColor(200, 200, 200)
 		);
 	}
 
@@ -276,15 +449,16 @@ int32 SSequencerSection::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 }
 
 
-void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+void SSequencerSection::PaintKeys( FSequencerSectionPainter& InPainter, const FWidgetStyle& InWidgetStyle, const FSlateRect& KeyClippingRect ) const
 {
 	static const FName HighlightBrushName("Sequencer.AnimationOutliner.DefaultBorder");
 
-	static const FName BackgroundBrushName("Sequencer.SectionArea.Background");
+	static const FName BackgroundBrushName("Sequencer.Section.BackgroundTint");
 	static const FName CircleKeyBrushName("Sequencer.KeyCircle");
 	static const FName DiamondKeyBrushName("Sequencer.KeyDiamond");
 	static const FName SquareKeyBrushName("Sequencer.KeySquare");
 	static const FName TriangleKeyBrushName("Sequencer.KeyTriangle");
+	static const FName StripeOverlayBrushName("Sequencer.Section.StripeOverlay");
 
 	static const FName SelectionColorName("SelectionColor");
 	static const FName SelectionInactiveColorName("SelectionColorInactive");
@@ -323,52 +497,82 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 
 	const FSlateBrush* HighlightBrush = FEditorStyle::GetBrush(HighlightBrushName);
 	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush(BackgroundBrushName);
+	const FSlateBrush* StripeOverlayBrush = FEditorStyle::GetBrush(StripeOverlayBrushName);
 	const FSlateBrush* CircleKeyBrush = FEditorStyle::GetBrush(CircleKeyBrushName);
 	const FSlateBrush* DiamondKeyBrush = FEditorStyle::GetBrush(DiamondKeyBrushName);
 	const FSlateBrush* SquareKeyBrush = FEditorStyle::GetBrush(SquareKeyBrushName);
 	const FSlateBrush* TriangleKeyBrush = FEditorStyle::GetBrush(TriangleKeyBrushName);
 
-	const ESlateDrawEffect::Type DrawEffects = bParentEnabled
+	const ESlateDrawEffect::Type DrawEffects = InPainter.bParentEnabled
 		? ESlateDrawEffect::None
 		: ESlateDrawEffect::DisabledEffect;
 
-	for (const FKeyAreaLayoutElement& LayoutElement : Layout->GetElements())
+	const FTimeToPixel& TimeToPixelConverter = InPainter.GetTimeConverter();
+
+	int32 LayerId = InPainter.LayerId;
+
+	for (const FSectionLayoutElement& LayoutElement : Layout->GetElements())
 	{
 		// get key handles
 		TSharedPtr<IKeyArea> KeyArea = LayoutElement.GetKeyArea();
 
+		FGeometry KeyAreaGeometry = GetKeyAreaGeometry(LayoutElement, InPainter.SectionGeometry);
 
-		FGeometry KeyAreaGeometry = GetKeyAreaGeometry(LayoutElement, AllottedGeometry);
-
-		FTimeToPixel TimeToPixelConverter = SectionObject.IsInfinite()
-			? FTimeToPixel(ParentGeometry, Sequencer.GetViewRange())
-			: FTimeToPixel(KeyAreaGeometry, TRange<float>(SectionObject.GetStartTime(), SectionObject.GetEndTime()));
+		TOptional<FLinearColor> KeyAreaColor = KeyArea.IsValid() ? KeyArea->GetColor() : TOptional<FLinearColor>();
 
 		// draw a box for the key area 
-		if (SectionInterface->ShouldDrawKeyAreaBackground())
+		if (KeyAreaColor.IsSet())
 		{
+			static float BoxThickness = 5.f;
+			FVector2D KeyAreaSize = KeyAreaGeometry.GetLocalSize();
 			FSlateDrawElement::MakeBox( 
-				OutDrawElements,
+				InPainter.DrawElements,
 				LayerId + 1,
-				KeyAreaGeometry.ToPaintGeometry(),
-				BackgroundBrush,
-				MyClippingRect,
+				KeyAreaGeometry.ToPaintGeometry(FVector2D(KeyAreaSize.X, BoxThickness), FSlateLayoutTransform(FVector2D(0.f, KeyAreaSize.Y*.5f - BoxThickness*.5f))),
+				StripeOverlayBrush,
+				InPainter.SectionClippingRect,
 				DrawEffects,
-				KeyArea->GetColor()
+				KeyAreaColor.GetValue()
 			); 
 		}
 
 		if (LayoutElement.GetDisplayNode().IsValid() && LayoutElement.GetDisplayNode()->IsHovered())
 		{
-			FSlateDrawElement::MakeBox( 
-				OutDrawElements,
+			FSlateDrawElement::MakeBox(
+				InPainter.DrawElements,
 				LayerId + 1,
 				KeyAreaGeometry.ToPaintGeometry(),
 				HighlightBrush,
-				MyClippingRect,
+				InPainter.SectionClippingRect,
 				DrawEffects,
-				FLinearColor(1.f, 1.f, 1.f, 0.2f)
+				FLinearColor(1.f, 1.f, 1.f, 0.05f)
 			); 
+		}
+
+		if (Selection.IsSelected(LayoutElement.GetDisplayNode().ToSharedRef()))
+		{
+			static const FName SelectedTrackTint("Sequencer.Section.SelectedTrackTint");
+			static const FName SelectionColorInactiveName("SelectionColor_Inactive");
+
+			FLinearColor KeyAreaOutlineColor = (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
+					? SelectionColor
+					: FEditorStyle::GetSlateColor(SelectionColorInactiveName).GetColor(InWidgetStyle);
+
+			FSlateDrawElement::MakeBox(
+				InPainter.DrawElements,
+				++LayerId + 2,
+				KeyAreaGeometry.ToPaintGeometry(),
+				FEditorStyle::GetBrush(SelectedTrackTint),
+				InPainter.SectionClippingRect,
+				DrawEffects,
+				KeyAreaOutlineColor
+			);
+		}
+
+		// Can't do any of the rest if there are no keys
+		if (!KeyArea.IsValid())
+		{
+			continue;
 		}
 
 		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
@@ -437,7 +641,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 			// allow group & section overrides
 			const FSlateBrush* OverrideBrush = nullptr;
 
-			if (LayoutElement.GetType() == FKeyAreaLayoutElement::Group)
+			if (LayoutElement.GetType() == FSectionLayoutElement::Group)
 			{
 				auto Group = StaticCastSharedPtr<FGroupedKeyArea>(KeyArea);
 				OverrideBrush = Group->GetBrush(KeyHandle);
@@ -490,7 +694,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 			}
 
 			// allow group to tint the color
-			if (LayoutElement.GetType() == FKeyAreaLayoutElement::Group)
+			if (LayoutElement.GetType() == FSectionLayoutElement::Group)
 			{
 				auto Group = StaticCastSharedPtr<FGroupedKeyArea>(KeyArea);
 				KeyColor *= Group->GetKeyTint(KeyHandle);
@@ -503,7 +707,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 			const FVector2D KeySize = bSelected ? SequencerSectionConstants::KeySize + ThrobAmount * ThrobScaleValue : SequencerSectionConstants::KeySize;
 
 			FSlateDrawElement::MakeBox(
-				OutDrawElements,
+				InPainter.DrawElements,
 				// always draw selected keys on top of other keys
 				bSelected ? KeyLayer + 1 : KeyLayer,
 				// Center the key along Y.  Ensure the middle of the key is at the actual key time
@@ -515,14 +719,14 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 					KeySize
 				),
 				KeyBrush,
-				MyClippingRect,
+				KeyClippingRect,
 				DrawEffects,
 				BorderColor
 			);
 
 			// draw fill
 			FSlateDrawElement::MakeBox(
-				OutDrawElements,
+				InPainter.DrawElements,
 				// always draw selected keys on top of other keys
 				bSelected ? KeyLayer + 2 : KeyLayer + 1,
 				// Center the key along Y.  Ensure the middle of the key is at the actual key time
@@ -534,7 +738,7 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 					KeySize - 2.0f * BrushBorderWidth
 				),
 				KeyBrush,
-				MyClippingRect,
+				KeyClippingRect,
 				DrawEffects,
 				FillColor
 			);
@@ -545,8 +749,14 @@ void SSequencerSection::PaintKeys( const FGeometry& AllottedGeometry, const FSla
 
 void SSequencerSection::DrawSectionHandles( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect::Type DrawEffects, FLinearColor SelectionColor ) const
 {
-	const FSlateBrush* LeftGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripLeftBrushName());
-	const FSlateBrush* RightGripBrush = FEditorStyle::GetBrush(SectionInterface->GetSectionGripRightBrushName());
+	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+	if (!Section || Section->IsInfinite())
+	{
+		return;
+	}
+
+	const FSlateBrush* LeftGripBrush = FEditorStyle::GetBrush("Sequencer.Section.GripLeft");
+	const FSlateBrush* RightGripBrush = FEditorStyle::GetBrush("Sequencer.Section.GripRight");
 
 	bool bLeftHandleActive = false;
 	bool bRightHandleActive = false;
@@ -566,17 +776,21 @@ void SSequencerSection::DrawSectionHandles( const FGeometry& AllottedGeometry, c
 		}
 	}
 
+	float Opacity = FMath::Clamp(.5f + HandleOffsetPx / SectionInterface->GetSectionGripSize() * .5f, .5f, 1.f);
+
 	// Left Grip
 	FSlateDrawElement::MakeBox
 	(
 		OutDrawElements,
 		LayerId,
-		// Center the key along Y.  Ensure the middle of the key is at the actual key time
-		AllottedGeometry.ToPaintGeometry(FVector2D(0.0f, 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
+		AllottedGeometry.ToPaintGeometry(
+			FVector2D(0.0f, 0.0f),
+			FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)
+		),
 		LeftGripBrush,
-		MyClippingRect,
+		MyClippingRect.InsetBy(FMargin(1.f)),
 		DrawEffects,
-		bLeftHandleActive ? SelectionColor : LeftGripBrush->GetTint(FWidgetStyle())
+		(bLeftHandleActive ? SelectionColor : LeftGripBrush->GetTint(FWidgetStyle())).CopyWithNewOpacity(Opacity)
 	);
 	
 	// Right Grip
@@ -584,60 +798,14 @@ void SSequencerSection::DrawSectionHandles( const FGeometry& AllottedGeometry, c
 	(
 		OutDrawElements,
 		LayerId,
-		// Center the key along Y.  Ensure the middle of the key is at the actual key time
-		AllottedGeometry.ToPaintGeometry(FVector2D(AllottedGeometry.Size.X-SectionInterface->GetSectionGripSize(), 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
+		AllottedGeometry.ToPaintGeometry(
+			FVector2D(AllottedGeometry.Size.X-SectionInterface->GetSectionGripSize(), 0.0f),
+			FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)
+		),
 		RightGripBrush,
-		MyClippingRect,
+		MyClippingRect.InsetBy(FMargin(1.f)),
 		DrawEffects,
-		bRightHandleActive ? SelectionColor : RightGripBrush->GetTint(FWidgetStyle())
-	);
-}
-
-
-void SSequencerSection::DrawSelectionBorder( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, ESlateDrawEffect::Type DrawEffects, FLinearColor SelectionColor ) const
-{
-	FSequencerSelection& Selection = ParentSectionArea->GetSequencer().GetSelection();
-	FSequencerSelectionPreview& SelectionPreview = ParentSectionArea->GetSequencer().GetSelectionPreview();
-	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
-	ESelectionPreviewState SelectionPreviewState = SelectionPreview.GetSelectionState( SectionObject );
-
-	if (SelectionPreviewState == ESelectionPreviewState::NotSelected)
-	{
-		// Explicitly not selected in the preview selection
-		return;
-	}
-	
-	if (SelectionPreviewState == ESelectionPreviewState::Undefined && !Selection.IsSelected(SectionObject))
-	{
-		// No preview selection for this section, and it's not selected
-		return;
-	}
-	
-	// Use a muted selection color for selection previews
-	if( SelectionPreviewState == ESelectionPreviewState::Selected )
-	{
-		SelectionColor = SelectionColor.LinearRGBToHSV();
-		SelectionColor.R += 0.1f; // +10% hue
-		SelectionColor.G = 0.6f; // 60% saturation
-		SelectionColor = SelectionColor.HSVToLinearRGB();
-	}
-	else if (Selection.GetActiveSelection() != FSequencerSelection::EActiveSelection::KeyAndSection)
-	{
-		// Use an inactive selection color for existing selections that are not active
-		SelectionColor = FEditorStyle::GetSlateColor(SequencerSectionConstants::SelectionInactiveColorName).GetColor(FWidgetStyle());
-	}
-
-	// draw selection box
-	static const FName SelectionBorder("Sequencer.Section.SelectionBorder");
-
-	FSlateDrawElement::MakeBox(
-		OutDrawElements,
-		LayerId+1,
-		AllottedGeometry.ToPaintGeometry(),
-		FEditorStyle::GetBrush(SelectionBorder),
-		MyClippingRect,
-		DrawEffects,
-		SelectionColor
+		(bRightHandleActive ? SelectionColor : RightGripBrush->GetTint(FWidgetStyle())).CopyWithNewOpacity(Opacity)
 	);
 }
 
@@ -645,9 +813,24 @@ void SSequencerSection::Tick( const FGeometry& AllottedGeometry, const double In
 {	
 	if( GetVisibility() == EVisibility::Visible )
 	{
-		Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
-		FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
+		Layout = FSectionLayout(*ParentSectionArea, SectionIndex);
 
+		UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+		if (Section && !Section->IsInfinite())
+		{
+			FTimeToPixel TimeToPixelConverter(ParentGeometry, GetSequencer().GetViewRange());
+
+			const int32 SectionLengthPx = FMath::Max(0,
+				FMath::RoundToInt(
+					TimeToPixelConverter.TimeToPixel(Section->GetEndTime())) - FMath::RoundToInt(TimeToPixelConverter.TimeToPixel(Section->GetStartTime())
+				)
+			);
+
+			const float SectionGripSize = SectionInterface->GetSectionGripSize();
+			HandleOffsetPx = FMath::Max(FMath::RoundToFloat((2*SectionGripSize - SectionLengthPx) * .5f), 0.f);
+		}
+
+		FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
 		SectionInterface->Tick(SectionGeometry, ParentGeometry, InCurrentTime, InDeltaTime);
 	}
 }
@@ -691,10 +874,10 @@ FReply SSequencerSection::OnMouseButtonDown( const FGeometry& MyGeometry, const 
 
 FGeometry SSequencerSection::MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const
 {
-	const bool bSectionsAreConnected = InSectionInterface->AreSectionsConnected();
-	const float SectionGripSize = !bSectionsAreConnected ? InSectionInterface->GetSectionGripSize() : 0.0f;
-
-	return AllottedGeometry.MakeChild( FVector2D( SectionGripSize, 0 ), AllottedGeometry.GetDrawSize() - FVector2D( SectionGripSize*2, 0.0f ) );
+	return AllottedGeometry.MakeChild(
+		AllottedGeometry.GetDrawSize() - FVector2D( HandleOffsetPx*2, 0.0f ),
+		FSlateLayoutTransform(FVector2D(HandleOffsetPx, 0 ))
+	);
 }
 
 

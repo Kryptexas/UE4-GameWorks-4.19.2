@@ -83,6 +83,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetPosition(float InPosition, bool bFireNotifies=true);
 	UFUNCTION(BlueprintCallable, Category="Animation")
+	void SetPositionWithPreviousTime(float InPosition, float InPreviousTime, bool bFireNotifies=true);
+	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetBlendSpaceInput(const FVector& InBlendInput);
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void SetPlaying(bool bIsPlaying);

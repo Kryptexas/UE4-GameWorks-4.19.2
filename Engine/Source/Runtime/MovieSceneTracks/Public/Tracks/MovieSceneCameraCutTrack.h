@@ -18,7 +18,8 @@ class UMovieSceneCameraCutTrack
 	: public UMovieSceneNameableTrack
 {
 	GENERATED_BODY()
-
+	UMovieSceneCameraCutTrack( const FObjectInitializer& ObjectInitializer );
+	
 public:
 
 	/** 

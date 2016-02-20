@@ -18,6 +18,12 @@ FMovieSceneAudioTrackInstance::FMovieSceneAudioTrackInstance( UMovieSceneAudioTr
 
 void FMovieSceneAudioTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
+	// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable audio updates
+	if (Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping)
+	{
+		return;
+	}
+
 	const TArray<UMovieSceneSection*>& AudioSections = AudioTrack->GetAudioSections();
 
 	TArray<AActor*> Actors = GetRuntimeActors(RuntimeObjects);

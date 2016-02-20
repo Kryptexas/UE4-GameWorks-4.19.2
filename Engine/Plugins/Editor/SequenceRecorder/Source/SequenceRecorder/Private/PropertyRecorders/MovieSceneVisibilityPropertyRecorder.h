@@ -9,16 +9,20 @@ class FMovieSceneVisibilityPropertyRecorder : public IMovieScenePropertyRecorder
 public:
 	virtual ~FMovieSceneVisibilityPropertyRecorder() {}
 
-	virtual void CreateSection(class AActor* SourceActor, class UMovieScene* MovieScene, const FGuid& Guid, bool bRecord) override;
+	virtual void CreateSection(UObject* InObjectToRecord, class UMovieScene* MovieScene, const FGuid& Guid, float Time, bool bRecord) override;
 	virtual void FinalizeSection() override;
 	virtual void Record(float CurrentTime) override;
 
 private:
-	TLazyObjectPtr<class AActor> ActorToRecord;
+	/** Object to record from */
+	TLazyObjectPtr<class UObject> ObjectToRecord;
 
+	/** Section to record to */
 	TWeakObjectPtr<class UMovieSceneVisibilitySection> MovieSceneSection;
 
+	/** Flag if we are actually recording or not */
 	bool bRecording;
 
+	/** Flag used to track visibility state and add keys when this changes */
 	bool bWasVisible;
 };

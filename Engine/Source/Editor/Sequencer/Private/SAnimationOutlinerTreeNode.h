@@ -53,6 +53,9 @@ private:
 
 	FSlateColor GetForegroundBasedOnSelection() const;
 
+	/** Get the tint to apply to the color indicator based on this node's track */
+	FSlateColor GetTrackColorTint() const;
+
 	/**
 	 * @return The border image to show in the tree node.
 	 */
@@ -87,6 +90,9 @@ private:
 
 	/** Called when nodes are selected. */
 	void OnSelectionChanged(TArray<TSharedPtr<FSequencerDisplayNode>> AffectedNodes);
+
+	/** Called when the user clicks the track color */
+	TSharedRef<SWidget> OnGetColorPicker() const;
 
 private:
 

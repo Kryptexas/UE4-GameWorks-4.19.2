@@ -22,15 +22,13 @@ void FTrackEditorThumbnailPool::AddThumbnailsNeedingRedraw(const TArray<TSharedP
 }
 
 
-void FTrackEditorThumbnailPool::DrawThumbnails()
+bool FTrackEditorThumbnailPool::DrawThumbnails()
 {
 	if (ThumbnailsNeedingDraw.Num() == 0)
 	{
-		return;
+		return false;
 	}
 
-	// save the global time
-	float SavedTime = Sequencer.Pin()->GetGlobalTime();
 	uint32 ThumbnailsDrawn = 0;
 
 	for (int32 ThumbnailsIndex = 0; ThumbnailsDrawn < MaxThumbnailsToDrawAtATime && ThumbnailsIndex < ThumbnailsNeedingDraw.Num(); ++ThumbnailsIndex)
@@ -63,10 +61,9 @@ void FTrackEditorThumbnailPool::DrawThumbnails()
 	{
 		// Ensure all buffers are updated
 		FlushRenderingCommands();
-
-		// restore the global time
-		Sequencer.Pin()->SetGlobalTime(SavedTime);
 	}
+
+	return ThumbnailsDrawn > 0;
 }
 
 

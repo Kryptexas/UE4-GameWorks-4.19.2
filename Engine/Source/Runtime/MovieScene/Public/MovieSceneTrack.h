@@ -20,6 +20,14 @@ class UMovieSceneTrack
 
 public:
 
+	UMovieSceneTrack(const FObjectInitializer& InInitializer)
+		: Super(InInitializer)
+	{
+#if WITH_EDITORONLY_DATA
+		TrackTint = FColor(127, 127, 127, 0);
+#endif
+	}
+
 	/**
 	 * Creates a runtime instance of this class.
 	 * 
@@ -111,6 +119,34 @@ public:
 	 * @return Display name text.
 	 */
 	virtual FText GetDisplayName() const PURE_VIRTUAL(UMovieSceneTrack::GetDisplayName, return FText::FromString(TEXT("Unnamed Track")););
+
+	/**
+	 * Get this track's color tint.
+	 *
+	 * @return Color Tint.
+	 */
+	const FColor& GetColorTint() const
+	{
+		return TrackTint;
+	}
+
+	/**
+	 * Set this track's color tint.
+	 *
+	 * @param InTrackTint The color to tint this track.
+	 */
+	void SetColorTint(const FColor& InTrackTint)
+	{
+		TrackTint = InTrackTint;
+	}
+
+protected:
+
+	/** This track's tint color */
+	UPROPERTY(EditAnywhere, Category=General, DisplayName=Color)
+	FColor TrackTint;
+
+public:
 #endif
 
 #if WITH_EDITOR

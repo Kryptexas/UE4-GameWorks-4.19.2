@@ -32,28 +32,48 @@ FCinematicShotSection::~FCinematicShotSection()
 {
 }
 
-int32 FCinematicShotSection::OnPaintSection(const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled) const
+float FCinematicShotSection::GetSectionHeight() const
 {
+	return FThumbnailSection::GetSectionHeight() + 2*13.f;
+}
+
+FMargin FCinematicShotSection::GetContentPadding() const
+{
+	return FMargin(8.f, 15.f);
+}
+
+int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter) const
+{
+	static const FSlateBrush* FilmBorder = FEditorStyle::GetBrush("Sequencer.Section.FilmBorder");
+
+	InPainter.LayerId = InPainter.PaintSectionBackground();
+
+	FVector2D SectionSize = InPainter.SectionGeometry.GetLocalSize();
+
+	FSlateDrawElement::MakeBox(
+		InPainter.DrawElements,
+		InPainter.LayerId++,
+		InPainter.SectionGeometry.ToPaintGeometry(FVector2D(SectionSize.X-2.f, 7.f), FSlateLayoutTransform(FVector2D(1.f, 4.f))),
+		FilmBorder,
+		InPainter.SectionClippingRect.InsetBy(FMargin(1.f)),
+		InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect
+	);
+
+	FSlateDrawElement::MakeBox(
+		InPainter.DrawElements,
+		InPainter.LayerId++,
+		InPainter.SectionGeometry.ToPaintGeometry(FVector2D(SectionSize.X-2.f, 7.f), FSlateLayoutTransform(FVector2D(1.f, SectionSize.Y - 11.f))),
+		FilmBorder,
+		InPainter.SectionClippingRect.InsetBy(FMargin(1.f)),
+		InPainter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect
+	);
+
 	if (SequenceInstance.IsValid())
 	{
-		return FThumbnailSection::OnPaintSection(AllottedGeometry, SectionClippingRect, OutDrawElements, LayerId, bParentEnabled);
+		return FThumbnailSection::OnPaintSection(InPainter);
 	}
-	else
-	{
-		const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect,
-			DrawEffects,
-			FLinearColor::Black
-		); 
-
-		return LayerId + 2;
-	}
+	return InPainter.LayerId;
 }
 
 void FCinematicShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding)
@@ -108,14 +128,15 @@ void FCinematicShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, c
 void FCinematicShotSection::AddTakesMenu(FMenuBuilder& MenuBuilder)
 {
 	TArray<uint32> TakeNumbers;
-	MovieSceneToolHelpers::GatherTakes(&SectionObject, TakeNumbers);
+	uint32 CurrentTakeNumber = INDEX_NONE;
+	MovieSceneToolHelpers::GatherTakes(&SectionObject, TakeNumbers, CurrentTakeNumber);
 
 	for (auto TakeNumber : TakeNumbers)
 	{
 		MenuBuilder.AddMenuEntry(
 			FText::Format(LOCTEXT("TakeNumber", "Take {0}"), FText::AsNumber(TakeNumber)),
 			FText::Format(LOCTEXT("TakeNumberTooltip", "Switch to take {0}"), FText::AsNumber(TakeNumber)),
-			FSlateIcon(),
+			TakeNumber == CurrentTakeNumber ? FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Star") : FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Empty"),
 			FUIAction(FExecuteAction::CreateSP(CinematicShotTrackEditor.Pin().ToSharedRef(), &FCinematicShotTrackEditor::SwitchTake, &SectionObject, TakeNumber))
 		);
 	}
@@ -129,7 +150,7 @@ FText FCinematicShotSection::GetDisplayName() const
 /* FCinematicShotSection callbacks
  *****************************************************************************/
 
-ACameraActor* FCinematicShotSection::GetCameraObject() const
+AActor* FCinematicShotSection::GetCameraObject() const
 {
 	return CinematicShotTrackEditor.IsValid() ? CinematicShotTrackEditor.Pin()->GetCinematicShotCamera().Get() : nullptr;
 }
@@ -158,7 +179,7 @@ FReply FCinematicShotSection::OnSectionDoubleClicked(const FGeometry& SectionGeo
 	{
 		if (SequenceInstance.IsValid())
 		{
-			Sequencer.Pin()->FocusSequenceInstance(SequenceInstance.Pin().ToSharedRef());
+			Sequencer.Pin()->FocusSequenceInstance(SectionObject);
 		}
 	}
 

@@ -864,6 +864,18 @@ bool FMaterialEditor::ApproveSetPreviewAsset(UObject* InAsset)
 	return bApproved;
 }
 
+void FMaterialEditor::GetSaveableObjects(TArray<UObject*>& OutObjects) const
+{
+	if ((MaterialFunction != nullptr) && MaterialFunction->ParentFunction)
+	{
+		OutObjects.Add(MaterialFunction->ParentFunction);
+	}
+	else
+	{
+		OutObjects.Add(OriginalMaterial);
+	}
+}
+
 void FMaterialEditor::SaveAsset_Execute()
 {
 	UE_LOG(LogMaterialEditor, Log, TEXT("Saving and Compiling material %s"), *GetEditingObjects()[0]->GetName());
@@ -873,20 +885,19 @@ void FMaterialEditor::SaveAsset_Execute()
 		UpdateOriginalMaterial();
 	}
 
-	UPackage* Package = OriginalMaterial->GetOutermost();
+	IMaterialEditor::SaveAsset_Execute();
+}
 
-	if (MaterialFunction != NULL && MaterialFunction->ParentFunction)
-	{
-		Package = MaterialFunction->ParentFunction->GetOutermost();
-	}
-	
-	if (Package)
-	{
-		TArray<UPackage*> PackagesToSave;
-		PackagesToSave.Add(Package);
+void FMaterialEditor::SaveAssetAs_Execute()
+{
+	UE_LOG(LogMaterialEditor, Log, TEXT("Saving and Compiling material %s"), *GetEditingObjects()[0]->GetName());
 
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
+	if (bMaterialDirty)
+	{
+		UpdateOriginalMaterial();
 	}
+
+	IMaterialEditor::SaveAssetAs_Execute();
 }
 
 bool FMaterialEditor::OnRequestClose()

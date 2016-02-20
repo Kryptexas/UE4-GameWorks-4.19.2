@@ -303,113 +303,98 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 	StructPropertyHandle->GetNumChildren(NumChildren);
 
 	ValueProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Value));
-	if (ValueProperty.IsValid() == false)
-	{
-		return;
-	}
-
 	CurveTableHandleProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Curve));
-	if (CurveTableHandleProperty.IsValid() == false)
+
+	if(ValueProperty.IsValid() && CurveTableHandleProperty.IsValid())
 	{
-		return;
-	}
+		RowNameProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, RowName));
+		CurveTableProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, CurveTable));
 
-	RowNameProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, RowName));
-	if (RowNameProperty.IsValid() == false)
-	{
-		return;
-	}
+		CurrentSelectedItem = InitWidgetContent();
 
-	CurveTableProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, CurveTable));
-	if (CurveTableProperty.IsValid() == false)
-	{
-		return;
-	}
+		FSimpleDelegate OnCurveTableChangedDelegate = FSimpleDelegate::CreateSP(this, &FScalableFloatDetails::OnCurveTableChanged);
+		CurveTableProperty->SetOnPropertyValueChanged(OnCurveTableChangedDelegate);
 
-	CurrentSelectedItem = InitWidgetContent();
-
-	FSimpleDelegate OnCurveTableChangedDelegate = FSimpleDelegate::CreateSP(this, &FScalableFloatDetails::OnCurveTableChanged);
-	CurveTableProperty->SetOnPropertyValueChanged(OnCurveTableChangedDelegate);
-
-	HeaderRow
-		.NameContent()
-		[
-			StructPropertyHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		.MinDesiredWidth( 600 )
-		.MaxDesiredWidth( 4096 )
-		[
-			SNew(SHorizontalBox)
-			.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FScalableFloatDetails::IsEditable)))
+		HeaderRow
+			.NameContent()
+			[
+				StructPropertyHandle->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			.MinDesiredWidth( 600 )
+			.MaxDesiredWidth( 4096 )
+			[
+				SNew(SHorizontalBox)
+				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FScalableFloatDetails::IsEditable)))
 			
-			+SHorizontalBox::Slot()
-			.FillWidth(0.12f)
-			.HAlign(HAlign_Fill)
-			.Padding(0.f, 0.f, 2.f, 0.f)
-			[
-				ValueProperty->CreatePropertyValueWidget()
-			]
+				+SHorizontalBox::Slot()
+				.FillWidth(0.12f)
+				.HAlign(HAlign_Fill)
+				.Padding(0.f, 0.f, 2.f, 0.f)
+				[
+					ValueProperty->CreatePropertyValueWidget()
+				]
 		
-			+SHorizontalBox::Slot()
-			.FillWidth(0.40f)
-			.HAlign(HAlign_Fill)
-			.Padding(2.f, 0.f, 2.f, 0.f)
-			[
-				CurveTableProperty->CreatePropertyValueWidget()
-			]
-
-			+SHorizontalBox::Slot()
-			.FillWidth(0.23f)
-			.HAlign(HAlign_Fill)
-			.Padding(2.f, 0.f, 2.f, 0.f)
-			[
-				SAssignNew(RowNameComboButton, SComboButton)
-				.OnGetMenuContent(this, &FScalableFloatDetails::GetListContent)
-				.ContentPadding(FMargin(2.0f, 2.0f))
-				.Visibility(this, &FScalableFloatDetails::GetRowNameVisibility)
-				.ButtonContent()
+				+SHorizontalBox::Slot()
+				.FillWidth(0.40f)
+				.HAlign(HAlign_Fill)
+				.Padding(2.f, 0.f, 2.f, 0.f)
 				[
-					SNew(STextBlock)
-					.Text(this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
+					CurveTableProperty->CreatePropertyValueWidget()
 				]
-			]
 
-			+SHorizontalBox::Slot()
-			.FillWidth(0.15f)
-			.HAlign(HAlign_Fill)
-			.Padding(2.f, 0.f, 2.f, 0.f)
-			[
-				SNew(SVerticalBox)
-				.Visibility(this, &FScalableFloatDetails::GetPreviewVisibility)
+				+SHorizontalBox::Slot()
+				.FillWidth(0.23f)
+				.HAlign(HAlign_Fill)
+				.Padding(2.f, 0.f, 2.f, 0.f)
+				[
+					SAssignNew(RowNameComboButton, SComboButton)
+					.OnGetMenuContent(this, &FScalableFloatDetails::GetListContent)
+					.ContentPadding(FMargin(2.0f, 2.0f))
+					.Visibility(this, &FScalableFloatDetails::GetRowNameVisibility)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Text(this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
+					]
+				]
+
+				+SHorizontalBox::Slot()
+				.FillWidth(0.15f)
+				.HAlign(HAlign_Fill)
+				.Padding(2.f, 0.f, 2.f, 0.f)
+				[
+					SNew(SVerticalBox)
+					.Visibility(this, &FScalableFloatDetails::GetPreviewVisibility)
 				
-				+SVerticalBox::Slot()
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text(this, &FScalableFloatDetails::GetRowValuePreviewLabel)
+					+SVerticalBox::Slot()
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(this, &FScalableFloatDetails::GetRowValuePreviewLabel)
+					]
+
+					+SVerticalBox::Slot()
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(this, &FScalableFloatDetails::GetRowValuePreviewText)
+					]
 				]
 
-				+SVerticalBox::Slot()
-				.HAlign(HAlign_Center)
+				+SHorizontalBox::Slot()
+				.FillWidth(0.1f)
+				.HAlign(HAlign_Fill)
+				.Padding(2.f, 0.f, 0.f, 0.f)
 				[
-					SNew(STextBlock)
-					.Text(this, &FScalableFloatDetails::GetRowValuePreviewText)
+					SNew(SSlider)
+					.Visibility(this, &FScalableFloatDetails::GetPreviewVisibility)
+					.ToolTipText(LOCTEXT("LevelPreviewToolTip", "Adjust the preview level."))
+					.Value(this, &FScalableFloatDetails::GetPreviewLevel)
+					.OnValueChanged(this, &FScalableFloatDetails::SetPreviewLevel)
 				]
-			]
-
-			+SHorizontalBox::Slot()
-			.FillWidth(0.1f)
-			.HAlign(HAlign_Fill)
-			.Padding(2.f, 0.f, 0.f, 0.f)
-			[
-				SNew(SSlider)
-				.Visibility(this, &FScalableFloatDetails::GetPreviewVisibility)
-				.ToolTipText(LOCTEXT("LevelPreviewToolTip", "Adjust the preview level."))
-				.Value(this, &FScalableFloatDetails::GetPreviewLevel)
-				.OnValueChanged(this, &FScalableFloatDetails::SetPreviewLevel)
-			]
-		];	
+			];	
+	}
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

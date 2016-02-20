@@ -13,6 +13,13 @@
 
 /* UMovieSceneSubTrack interface
  *****************************************************************************/
+UMovieSceneSubTrack::UMovieSceneSubTrack( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+#if WITH_EDITORONLY_DATA
+	TrackTint = FColor(255, 0, 0);
+#endif
+}
 
 UMovieSceneSubSection* UMovieSceneSubTrack::AddSequence(UMovieSceneSequence* Sequence, float StartTime, float Duration, const bool& bInsertSequence)
 {

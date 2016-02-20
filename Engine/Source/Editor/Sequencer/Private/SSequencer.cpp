@@ -2,7 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 #include "SSequencer.h"
-#include "Editor/SequencerWidgets/Public/SequencerWidgetsModule.h"
+#include "ISequencerWidgetsModule.h"
 #include "Sequencer.h"
 #include "MovieScene.h"
 #include "MovieSceneSection.h"
@@ -14,7 +14,7 @@
 #include "SSequencerTrackArea.h"
 #include "SSequencerTrackOutliner.h"
 #include "SequencerNodeTree.h"
-#include "TimeSliderController.h"
+#include "SequencerTimeSliderController.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "DragAndDrop/ClassDragDropOp.h"
@@ -96,6 +96,8 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	SequencerPtr = InSequencer;
 	bIsActiveTimerRegistered = false;
 	bUserIsSelecting = false;
+	CachedClampRange = TRange<float>::Empty();
+	CachedViewRange = TRange<float>::Empty();
 
 	USelection::SelectionChangedEvent.AddSP(this, &SSequencer::OnActorSelectionChanged);
 
@@ -105,7 +107,7 @@ void SSequencer::Construct(const FArguments& InArgs, TSharedRef<FSequencer> InSe
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
 
-	FSequencerWidgetsModule& SequencerWidgets = FModuleManager::Get().LoadModuleChecked<FSequencerWidgetsModule>( "SequencerWidgets" );
+	ISequencerWidgetsModule& SequencerWidgets = FModuleManager::Get().LoadModuleChecked<ISequencerWidgetsModule>( "SequencerWidgets" );
 
 	OnBeginPlaybackRangeDrag = InArgs._OnBeginPlaybackRangeDrag;
 	OnEndPlaybackRangeDrag = InArgs._OnEndPlaybackRangeDrag;
@@ -625,6 +627,16 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Save")
 			);
 
+			ToolBarBuilder.AddToolBarButton(
+				FUIAction(FExecuteAction::CreateSP(this, &SSequencer::OnSaveMovieSceneAsClicked)),
+				NAME_None,
+				LOCTEXT("SaveAs", "Save As"),
+				LOCTEXT("SaveAsTooltip", "Saves the current level sequence under a different name"),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "AssetEditor.SaveAssetAs")
+			);
+
+			// @todo sequencer: implement FSequencer::DiscardChanges()
+			//ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().DiscardChanges );
 			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
 			ToolBarBuilder.AddSeparator();
 		}
@@ -766,6 +778,8 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLabelBrowser );
 		}
 
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCombinedKeyframes );
+
 		if (SequencerPtr.Pin()->IsLevelEditorSequencer())
 		{
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().FindInContentBrowser );
@@ -878,6 +892,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 
 		MenuBuilder.AddMenuSeparator();
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleShowGotoBox );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleLinkCurveEditorTimeRange );
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -1453,6 +1468,12 @@ void SSequencer::OnSaveMovieSceneClicked()
 }
 
 
+void SSequencer::OnSaveMovieSceneAsClicked()
+{
+	SequencerPtr.Pin()->SaveCurrentMovieSceneAs();
+}
+
+
 void SSequencer::StepToNextKey()
 {
 	StepToKey(true, false);
@@ -1641,6 +1662,25 @@ void SSequencer::OnCurveEditorVisibilityChanged()
 {
 	if (CurveEditor.IsValid())
 	{
+		if (!Settings->GetLinkCurveEditorTimeRange())
+		{
+			TRange<float> ClampRange = SequencerPtr.Pin()->GetClampRange();
+			if (CachedClampRange.IsEmpty())
+			{
+				CachedClampRange = ClampRange;
+			}
+			SequencerPtr.Pin()->SetClampRange(CachedClampRange);
+			CachedClampRange = ClampRange;
+
+			TRange<float> ViewRange = SequencerPtr.Pin()->GetViewRange();
+			if (CachedViewRange.IsEmpty())
+			{
+				CachedViewRange = ViewRange;
+			}
+			SequencerPtr.Pin()->SetViewRange(CachedViewRange);
+			CachedViewRange = ViewRange;
+		}
+
 		// Only zoom horizontally if the editor is visible
 		CurveEditor->SetAllowAutoFrame(Settings->GetShowCurveEditor());
 	}

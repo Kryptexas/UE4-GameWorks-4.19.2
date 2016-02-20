@@ -270,13 +270,13 @@ FText FSequencerObjectBindingNode::GetIconToolTipText() const
 
 float FSequencerObjectBindingNode::GetNodeHeight() const
 {
-	return SequencerLayoutConstants::ObjectNodeHeight;
+	return SequencerLayoutConstants::ObjectNodeHeight + SequencerNodeConstants::CommonPadding*2;
 }
 
 
 FNodePadding FSequencerObjectBindingNode::GetNodePadding() const
 {
-	return FNodePadding(SequencerNodeConstants::CommonPadding);
+	return FNodePadding(0.f);//SequencerNodeConstants::CommonPadding);
 }
 
 

@@ -239,9 +239,18 @@ public:
 		TArray<FVectorParameterNameAndValue>& OutVectorValues,
 		TArray<FColorParameterNameAndValue>& OutColorValues ) const;
 
+public:
+
+	// UMovieSceneSection interface
+
+	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
+	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
+	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
 
 private:
 	void UpdateParameterIndicesFromRemoval(int32 RemovedIndex);
+	void GatherCurves(TArray<const FRichCurve*> &OutCurves) const;
+	void GatherCurves(TArray<FRichCurve*> &OutCurves);
 
 private:
 	/**

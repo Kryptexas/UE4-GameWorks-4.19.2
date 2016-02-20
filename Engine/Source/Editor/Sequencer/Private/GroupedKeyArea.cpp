@@ -477,9 +477,9 @@ TSharedRef<SWidget> FGroupedKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 }
 
 
-FLinearColor FGroupedKeyArea::GetColor()
+TOptional<FLinearColor> FGroupedKeyArea::GetColor()
 {
-	return FLinearColor(0.1f, 0.1f, 0.1f, 0.7f);
+	return TOptional<FLinearColor>();
 }
 
 

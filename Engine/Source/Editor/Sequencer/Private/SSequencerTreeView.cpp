@@ -155,10 +155,7 @@ int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 
 	if (HighlightRegion.IsSet())
 	{
-		static const FName SelectionColorPressedName("SelectionColor");
-		FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorPressedName).GetColor(InWidgetStyle).CopyWithNewOpacity(0.3f);
-
-		// Black tint for unhighlighted regions
+		// Black tint for highlighted regions
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId+1,
@@ -166,7 +163,7 @@ int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 			FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Top"),
 			MyClippingRect,
 			ESlateDrawEffect::None,
-			SelectionColor
+			FLinearColor::Black
 		);
 		
 		FSlateDrawElement::MakeBox(
@@ -176,7 +173,7 @@ int32 SSequencerTreeView::OnPaint(const FPaintArgs& Args, const FGeometry& Allot
 			FEditorStyle::GetBrush("Sequencer.TrackHoverHighlight_Bottom"),
 			MyClippingRect,
 			ESlateDrawEffect::None,
-			SelectionColor
+			FLinearColor::Black
 		);
 	}
 

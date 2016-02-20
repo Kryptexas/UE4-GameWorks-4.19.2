@@ -170,6 +170,14 @@ public:
 	struct FMovieScenePossessable* FindPossessable(const FGuid& Guid);
 
 	/**
+	 * Attempt to find a possessable using some custom prdeicate
+	 *
+	 * @param InPredicate A predicate to test each possessable against
+	 * @return Possessable object that was found (or nullptr if not found).
+	 */
+	FMovieScenePossessable* FindPossessable( const TFunctionRef<bool(FMovieScenePossessable&)>& InPredicate );
+
+	/**
 	 * Grabs a reference to a specific possessable by index.
 	 *
 	 * @param Index of possessable to return.

@@ -37,4 +37,7 @@ static AssetType* MakeNewAsset(const FString& BaseAssetPath, const FString& Base
 	return NewObject<AssetType>(Package, *AssetName, RF_Public | RF_Standalone);
 }
 
+/** Helper function - check whether our component hierarchy has some attachment outside of its owned components */
+AActor* GetAttachment(AActor* InActor, FName& SocketName, FName& ComponentName);
+
 }

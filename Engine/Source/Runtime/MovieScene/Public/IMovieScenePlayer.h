@@ -12,6 +12,7 @@ namespace EMovieScenePlayerStatus
 		Playing,
 		Recording,
 		Scrubbing,
+		Jumping,
 		MAX
 	};
 }
@@ -105,6 +106,11 @@ public:
 
 	/** @return whether the player is currently playing, scrubbing, etc. */
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const = 0;
+
+	/** 
+	* @param PlaybackStatus The playback status to set
+	*/
+	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) = 0;
 
 	/**
 	 * Obtain an object responsible for managing movie scene spawnables

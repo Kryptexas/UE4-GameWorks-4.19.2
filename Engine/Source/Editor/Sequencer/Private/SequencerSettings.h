@@ -4,6 +4,7 @@
 
 #include "SequencerSettings.generated.h"
 
+
 UENUM()
 enum ESequencerSpawnPosition
 {
@@ -14,9 +15,11 @@ enum ESequencerSpawnPosition
 	SSP_PlaceInFrontOfCamera UMETA(DisplayName="Place in Front of Camera"),
 };
 
+
 /** Empty class used to house multiple named USequencerSettings */
 UCLASS()
-class USequencerSettingsContainer : public UObject
+class USequencerSettingsContainer
+	: public UObject
 {
 public:
 	GENERATED_BODY()
@@ -45,9 +48,11 @@ public:
 	}
 };
 
+
 /** Serializable options for sequencer. */
 UCLASS(config=EditorPerProjectUserSettings, PerObjectConfig)
-class USequencerSettings : public UObject
+class USequencerSettings
+	: public UObject
 {
 public:
 	GENERATED_UCLASS_BODY()
@@ -176,6 +181,11 @@ public:
 	/** Sets whether or not to show curve tool tips in the curve editor. */
 	void SetShowCurveEditorCurveToolTips(bool InbShowCurveEditorCurveToolTips);
 	
+	/** Gets whether or not to link the curve editor time range. */
+	bool GetLinkCurveEditorTimeRange() const;
+	/** Sets whether or not to link the curve editor time range. */
+	void SetLinkCurveEditorTimeRange(bool InbLinkCurveEditorTimeRange);
+
 	/** Gets the loop mode. */
 	bool IsLooping() const;
 	/** Sets the loop mode. */
@@ -196,6 +206,11 @@ public:
 	/** Set the number of digits we should zero-pad to when showing frame numbers in sequencer */
 	void SetZeroPadFrames(uint8 InZeroPadFrames);
 
+	/** @return true if showing combined keyframes at the top node */
+	bool GetShowCombinedKeyframes() const;
+	/** Set whether to show combined keyframes at the top node */ 
+	void SetShowCombinedKeyframes(bool InShowCombinedKeyframes);
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
@@ -203,6 +218,7 @@ public:
 	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
 
 protected:
+
 	UPROPERTY( config )
 	TEnumAsByte<EAutoKeyMode> AutoKeyMode;
 
@@ -276,6 +292,9 @@ protected:
 	bool bShowCurveEditorCurveToolTips;
 
 	UPROPERTY( config )
+	bool bLinkCurveEditorTimeRange;
+
+	UPROPERTY( config )
 	bool bLooping;
 
 	UPROPERTY( config )
@@ -287,13 +306,8 @@ protected:
 	UPROPERTY( config )
 	uint8 ZeroPadFrames;
 
-	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
-};
+	UPROPERTY( config )
+	bool bShowCombinedKeyframes;
 
-/** Level editor specific sequencer settings */
-UCLASS(config=EditorPerProjectUserSettings, PerObjectConfig)
-class ULevelEditorSequencerSettings : public USequencerSettings
-{
-public:
-	GENERATED_UCLASS_BODY()
+	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

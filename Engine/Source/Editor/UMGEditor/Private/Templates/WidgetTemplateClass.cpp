@@ -45,8 +45,8 @@ const FSlateBrush* GetEditorIcon_Deprecated(UWidget* Widget);
 const FSlateBrush* FWidgetTemplateClass::GetIcon() const
 {
 	// @todo UMG: remove after 4.12
-	auto DefaultUserWidget = WidgetClass->GetDefaultObject<UUserWidget>();
-	return GetEditorIcon_Deprecated(DefaultUserWidget);
+	UWidget* DefaultWidget = WidgetClass->GetDefaultObject<UWidget>();
+	return GetEditorIcon_Deprecated(DefaultWidget);
 	// return FClassIconFinder::FindIconForClass(WidgetClass);
 }
 

@@ -119,7 +119,7 @@ public:
 	virtual FName GetName() const override { return NAME_None; }
 	virtual void CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const override;
 	virtual void PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment) override;
-	virtual FLinearColor GetColor() override;
+	virtual TOptional<FLinearColor> GetColor() override;
 
 protected:
 

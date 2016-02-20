@@ -524,7 +524,7 @@ public:
 	FRichCurveKey GetLastKey() const;
 
 	/** Get the first key that matches any of the given key handles. */
-	FRichCurveKey& GetFirstMatchingKey(const TArray<FKeyHandle>& KeyHandles);
+	FRichCurveKey* GetFirstMatchingKey(const TArray<FKeyHandle>& KeyHandles);
 
 	/** Get the next or previous key given the key handle */
 	FKeyHandle GetNextKey(FKeyHandle KeyHandle) const;
@@ -612,8 +612,13 @@ public:
 	/** Determine if two RichCurves are the same */
 	bool operator == (const FRichCurve& Curve) const;
 
+	/** Bake curve given the sample rate */
+	void BakeCurve(float SampleRate);
+	void BakeCurve(float SampleRate, float FirstKeyTime, float LastKeyTime);
+
 	/** Remove redundant keys, comparing against Tolerance */
 	void RemoveRedundantKeys(float Tolerance);
+	void RemoveRedundantKeys(float Tolerance, float FirstKeyTime, float LastKeyTime);
 
 public:
 

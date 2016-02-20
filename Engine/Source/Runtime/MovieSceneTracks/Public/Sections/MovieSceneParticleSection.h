@@ -30,7 +30,7 @@ class UMovieSceneParticleSection
 {
 	GENERATED_UCLASS_BODY()
 
-	void AddKey(float Time, EParticleKey::Type KeyType);
+	MOVIESCENETRACKS_API void AddKey(float Time, EParticleKey::Type KeyType);
 
 	MOVIESCENETRACKS_API FIntegralCurve& GetParticleCurve();
 

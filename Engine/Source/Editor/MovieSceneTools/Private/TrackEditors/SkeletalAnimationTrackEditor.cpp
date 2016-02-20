@@ -44,11 +44,6 @@ UMovieSceneSection* FSkeletalAnimationSection::GetSectionObject()
 }
 
 
-bool FSkeletalAnimationSection::ShouldDrawKeyAreaBackground() const
-{
-	return false;
-}
-
 FText FSkeletalAnimationSection::GetDisplayName() const
 {
 	return LOCTEXT("AnimationSection", "Animation");
@@ -72,24 +67,15 @@ float FSkeletalAnimationSection::GetSectionHeight() const
 }
 
 
-int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
+int32 FSkeletalAnimationSection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 {
-	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+	const ESlateDrawEffect::Type DrawEffects = Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(&Section);
 	
-	FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
+	const FTimeToPixel& TimeToPixelConverter = Painter.GetTimeConverter();
 
-	// Add a box for the section
-	FSlateDrawElement::MakeBox(
-		OutDrawElements,
-		LayerId,
-		AllottedGeometry.ToPaintGeometry(),
-		FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-		SectionClippingRect,
-		DrawEffects,
-		FLinearColor(0.7f, 0.4f, 0.7f, 1.f)
-	);
+	int32 LayerId = Painter.PaintSectionBackground();
 
 	// Add lines where the animation starts and ends/loops
 	float CurrentTime = AnimSection->GetStartTime();
@@ -103,21 +89,21 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 
 			TArray<FVector2D> Points;
 			Points.Add(FVector2D(CurrentPixels, 0));
-			Points.Add(FVector2D(CurrentPixels, AllottedGeometry.Size.Y));
+			Points.Add(FVector2D(CurrentPixels, Painter.SectionGeometry.Size.Y));
 
 			FSlateDrawElement::MakeLines(
-				OutDrawElements,
-				LayerId + 2,
-				AllottedGeometry.ToPaintGeometry(),
+				Painter.DrawElements,
+				++LayerId,
+				Painter.SectionGeometry.ToPaintGeometry(),
 				Points,
-				SectionClippingRect,
+				Painter.SectionClippingRect,
 				DrawEffects
 			);
 		}
 		CurrentTime += SeqLength;
 	}
 
-	return LayerId+3;
+	return LayerId;
 }
 
 
@@ -207,7 +193,7 @@ bool FSkeletalAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid
 
 void FSkeletalAnimationTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
-	if (ObjectClass->IsChildOf(ASkeletalMeshActor::StaticClass()))
+	if (ObjectClass->IsChildOf(USkeletalMeshComponent::StaticClass()) || ObjectClass->IsChildOf(AActor::StaticClass()))
 	{
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
@@ -315,9 +301,7 @@ USkeleton* FSkeletalAnimationTrackEditor::AcquireSkeletonFromObjectGuid(const FG
 	USkeleton* Skeleton = NULL;
 	for (int32 i = 0; i < OutObjects.Num(); ++i)
 	{
-		AActor* Actor = Cast<AActor>(OutObjects[i]);
-
-		if (Actor != NULL)
+		if (AActor* Actor = Cast<AActor>(OutObjects[i]))
 		{
 			TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 			Actor->GetComponents(SkeletalMeshComponents);
@@ -331,6 +315,14 @@ USkeleton* FSkeletalAnimationTrackEditor::AcquireSkeletonFromObjectGuid(const FG
 					check(!Skeleton);
 					Skeleton = SkeletalMeshComp->SkeletalMesh->Skeleton;
 				}
+			}
+		}
+		else if(USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(OutObjects[i]))
+		{
+			if (SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Skeleton)
+			{
+				check(!Skeleton);
+				Skeleton = SkeletalMeshComponent->SkeletalMesh->Skeleton;
 			}
 		}
 	}

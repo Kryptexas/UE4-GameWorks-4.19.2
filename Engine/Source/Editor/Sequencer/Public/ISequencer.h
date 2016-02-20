@@ -14,6 +14,7 @@ class UMovieSceneSequence;
 class UAnimSequence;
 class UMovieScene;
 class UMovieSceneSection;
+class UMovieSceneSubSection;
 enum class EMapChangeType : uint8;
 
 
@@ -70,9 +71,9 @@ public:
 	/**
 	 * Focuses a sub-movie scene (MovieScene within a MovieScene) in the sequencer.
 	 * 
-	 * @param SequenceInstance	Sub-sequence instance to focus.
+	 * @param Section The sub-movie scene section containing the sequence instance to get.
 	 */
-	virtual void FocusSequenceInstance(TSharedRef<FMovieSceneSequenceInstance> SequenceInstance) = 0;
+	virtual void FocusSequenceInstance(UMovieSceneSubSection& Section) = 0;
 	
 	/**
 	 * Create a new binding for the specified object
@@ -149,6 +150,9 @@ public:
 	 * @see GetGlobalTime
 	 */
 	virtual void SetGlobalTime(float Time, const bool& bAllowSnappingToFrames = false) = 0;
+
+	/** Set the global time directly, without performing any auto-scroll */
+	virtual void SetGlobalTimeDirectly(float Time, const bool& bAllowSnappingToFrames = false) = 0;
 
 	/** @return The current view range */
 	virtual FAnimatedRange GetViewRange() const

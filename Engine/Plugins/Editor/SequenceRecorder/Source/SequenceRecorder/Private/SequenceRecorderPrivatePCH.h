@@ -12,3 +12,4 @@
 #include "KeyParams.h"
 #include "IKeyframeSection.h"
 #include "MovieSceneSection.h"
+#include "LevelSequence.h"

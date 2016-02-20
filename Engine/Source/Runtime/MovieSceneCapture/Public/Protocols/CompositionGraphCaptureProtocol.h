@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IMovieSceneCaptureProtocol.h"
+#include "MovieSceneCaptureProtocolSettings.h"
 #include "CompositionGraphCaptureProtocol.generated.h"
 
 USTRUCT()
@@ -15,11 +16,15 @@ struct MOVIESCENECAPTURE_API FCompositionGraphCapturePasses
 };
 
 UCLASS(config=EditorPerProjectUserSettings, DisplayName="Composition Graph Options")
-class MOVIESCENECAPTURE_API UCompositionGraphCaptureSettings : public UObject
+class MOVIESCENECAPTURE_API UCompositionGraphCaptureSettings : public UMovieSceneCaptureProtocolSettings
 {
 public:
 	GENERATED_BODY()
 	
+	/**~ UMovieSceneCaptureProtocolSettings implementation */
+	virtual void OnReleaseConfig(FMovieSceneCaptureSettings& InSettings) override;
+	virtual void OnLoadConfig(FMovieSceneCaptureSettings& InSettings) override;
+
 	/** A list of render passes to include in the capture. Leave empty to export all available passes. */
 	UPROPERTY(config, EditAnywhere, Category="Composition Graph Options")
 	FCompositionGraphCapturePasses IncludeRenderPasses;

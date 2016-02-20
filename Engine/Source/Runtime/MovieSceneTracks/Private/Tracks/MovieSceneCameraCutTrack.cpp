@@ -13,6 +13,14 @@
 
 /* UMovieSceneCameraCutTrack interface
  *****************************************************************************/
+UMovieSceneCameraCutTrack::UMovieSceneCameraCutTrack( const FObjectInitializer& ObjectInitializer )
+	: Super( ObjectInitializer )
+{
+#if WITH_EDITORONLY_DATA
+	TrackTint = FColor(0, 0, 0);
+#endif
+}
+
 
 void UMovieSceneCameraCutTrack::AddNewCameraCut(FGuid CameraHandle, float StartTime)
 {

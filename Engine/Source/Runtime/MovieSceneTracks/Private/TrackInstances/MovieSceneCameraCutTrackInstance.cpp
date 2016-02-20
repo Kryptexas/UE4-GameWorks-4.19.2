@@ -57,7 +57,7 @@ void FMovieSceneCameraCutTrackInstance::Update(EMovieSceneUpdateData& UpdateData
 	UObject* CameraObject = nullptr;
 	const TArray<UMovieSceneSection*>& CameraCutSections = CameraCutTrack->GetAllSections();
 
-	UMovieSceneCameraCutSection* NearestCameraCutSection = Cast<UMovieSceneCameraCutSection>(MovieSceneHelpers::FindNearestSectionAtTime(CameraCutSections, UpdateData.Position));
+	UMovieSceneCameraCutSection* NearestCameraCutSection = Cast<UMovieSceneCameraCutSection>(MovieSceneHelpers::FindSectionAtTime(CameraCutSections, UpdateData.Position));
 	if (NearestCameraCutSection != nullptr)
 	{
 		for (int32 CameraCutIndex = 0; CameraCutIndex < CameraCutSections.Num(); ++CameraCutIndex)

@@ -11,9 +11,72 @@
 #include "IKeyArea.h"
 #include "SEditableLabel.h"
 #include "SSequencerTreeView.h"
+#include "SColorPicker.h"
 
 
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
+
+class STrackColorPicker : public SCompoundWidget
+{
+public:
+	static void OnOpen()
+	{
+		if (!Transaction.IsValid())
+		{
+			Transaction.Reset(new FScopedTransaction(LOCTEXT("ChangeTrackColor", "Change Track Color")));
+		}
+	}
+
+	static void OnClose()
+	{
+		if (!Transaction.IsValid())
+		{
+			return;
+		}
+
+		if (!bMadeChanges)
+		{
+			Transaction->Cancel();
+		}
+		Transaction.Reset();
+	}
+
+	SLATE_BEGIN_ARGS(STrackColorPicker){}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, UMovieSceneTrack* InTrack)
+	{
+		bMadeChanges = false;
+		Track = InTrack;
+		ChildSlot
+		[
+			SNew(SColorPicker)
+			.DisplayInlineVersion(true)
+			.TargetColorAttribute(this, &STrackColorPicker::GetTrackColor)
+			.OnColorCommitted(this, &STrackColorPicker::SetTrackColor)
+		];
+	}
+
+	FLinearColor GetTrackColor() const
+	{
+		return Track->GetColorTint().ReinterpretAsLinear();
+	}
+
+	void SetTrackColor(FLinearColor NewColor)
+	{
+		bMadeChanges = true;
+		Track->Modify();
+		Track->SetColorTint(NewColor.ToFColor(false));
+	}
+
+private:
+	UMovieSceneTrack* Track;
+	static TUniquePtr<FScopedTransaction> Transaction;
+	static bool bMadeChanges;
+};
+
+TUniquePtr<FScopedTransaction> STrackColorPicker::Transaction;
+bool STrackColorPicker::bMadeChanges = false;
 
 SAnimationOutlinerTreeNode::~SAnimationOutlinerTreeNode()
 {
@@ -60,64 +123,100 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		.BorderBackgroundColor( this, &SAnimationOutlinerTreeNode::GetNodeBackgroundTint )
 		.Padding(FMargin(0, Node->GetNodePadding().Combined() / 2))
 		[
-			SNew(SBox)
-			.HeightOverride_Lambda(NodeHeight)
-			.Padding(FMargin(5.0f, 0.0f))
+			SNew( SHorizontalBox )
+
+			+ SHorizontalBox::Slot()
 			[
-				SNew( SHorizontalBox )
-
-				// Expand track lanes button
-				+ SHorizontalBox::Slot()
-				.Padding(FMargin(2.f, 0.f, 4.f, 0.f))
-				.VAlign( VAlign_Center )
-				.AutoWidth()
+				SNew(SBox)
+				.HeightOverride_Lambda(NodeHeight)
+				.Padding(FMargin(5.0f, 0.0f))
 				[
-					SNew(SExpanderArrow, InTableRow).IndentAmount(SequencerLayoutConstants::IndentAmount)
+					SNew( SHorizontalBox )
+
+					// Expand track lanes button
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(2.f, 0.f, 4.f, 0.f))
+					.VAlign( VAlign_Center )
+					.AutoWidth()
+					[
+						SNew(SExpanderArrow, InTableRow).IndentAmount(SequencerLayoutConstants::IndentAmount)
+					]
+
+					// Icon
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(SOverlay)
+
+						+ SOverlay::Slot()
+						[
+							SNew(SImage)
+							.Image(InArgs._IconBrush)
+						]
+
+						+ SOverlay::Slot()
+						.VAlign(VAlign_Top)
+						.HAlign(HAlign_Right)
+						[
+							SNew(SImage)
+							.Image(InArgs._IconOverlayBrush)
+						]
+
+						+ SOverlay::Slot()
+						[
+							SNew(SSpacer)
+							.Visibility(EVisibility::Visible)
+							.ToolTipText(InArgs._IconToolTipText)
+						]
+					]
+
+					// Label Slot
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(0.f, 0.f, 4.f, 0.f))
+					.AutoWidth()
+					[
+						EditableLabel.ToSharedRef()
+					]
+
+					// Arbitrary customization slot
+					+ SHorizontalBox::Slot()
+					[
+						InArgs._CustomContent.Widget
+					]
 				]
+			]
 
-				// Icon
-				+ SHorizontalBox::Slot()
-				.Padding(FMargin(0.f, 0.f, 4.f, 0.f))
-				.VAlign(VAlign_Center)
-				.AutoWidth()
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SComboButton)
+				.ContentPadding(0)
+				.VAlign(VAlign_Fill)
+				.HasDownArrow(false)
+				.ButtonStyle(FEditorStyle::Get(), "Sequencer.AnimationOutliner.ColorStrip")
+				.OnGetMenuContent(this, &SAnimationOutlinerTreeNode::OnGetColorPicker)
+				.OnMenuOpenChanged_Lambda([](bool bIsOpen){
+					if (bIsOpen)
+					{
+						STrackColorPicker::OnOpen();
+					}
+					else if (!bIsOpen)
+					{
+						STrackColorPicker::OnClose();
+					}
+				})
+				.ButtonContent()
 				[
-					SNew(SOverlay)
-
-					+ SOverlay::Slot()
+					SNew(SBox)
+					.WidthOverride(6.f)
 					[
 						SNew(SImage)
-						.Image(InArgs._IconBrush)
+						.Image(FEditorStyle::GetBrush("WhiteBrush"))
+						.ColorAndOpacity(this, &SAnimationOutlinerTreeNode::GetTrackColorTint)
 					]
-
-					+ SOverlay::Slot()
-					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Right)
-					[
-						SNew(SImage)
-						.Image(InArgs._IconOverlayBrush)
-					]
-
-					+ SOverlay::Slot()
-					[
-						SNew(SSpacer)
-						.Visibility(EVisibility::Visible)
-						.ToolTipText(InArgs._IconToolTipText)
-					]
-				]
-
-				// Label Slot
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(0.f, 0.f, 4.f, 0.f))
-				.AutoWidth()
-				[
-					EditableLabel.ToSharedRef()
-				]
-
-				// Arbitrary customization slot
-				+ SHorizontalBox::Slot()
-				[
-					InArgs._CustomContent.Widget
 				]
 			]
 		];
@@ -330,6 +429,51 @@ FSlateColor SAnimationOutlinerTreeNode::GetNodeBackgroundTint() const
 	{
 		return bIsTopLevelNode ? FLinearColor(FColor(48, 48, 48, 255)) : FLinearColor(FColor(62, 62, 62, 255));
 	}
+}
+
+TSharedRef<SWidget> SAnimationOutlinerTreeNode::OnGetColorPicker() const
+{
+	UMovieSceneTrack* Track = nullptr;
+
+	FSequencerDisplayNode* Current = DisplayNode.Get();
+	while (Current && Current->GetType() != ESequencerNode::Object)
+	{
+		if (Current->GetType() == ESequencerNode::Track)
+		{
+			Track = static_cast<FSequencerTrackNode*>(Current)->GetTrack();
+			if (Track)
+			{
+				break;
+			}
+		}
+		Current = Current->GetParent().Get();
+	}
+
+	if (!Track)
+	{
+		return SNullWidget::NullWidget;
+	}
+
+	return SNew(STrackColorPicker, Track);
+}
+
+FSlateColor SAnimationOutlinerTreeNode::GetTrackColorTint() const
+{
+	FSequencerDisplayNode* Current = DisplayNode.Get();
+	while (Current && Current->GetType() != ESequencerNode::Object)
+	{
+		if (Current->GetType() == ESequencerNode::Track)
+		{
+			UMovieSceneTrack* Track = static_cast<FSequencerTrackNode*>(Current)->GetTrack();
+			if (Track)
+			{
+				return FLinearColor(Track->GetColorTint()).CopyWithNewOpacity(1.f);
+			}
+		}
+		Current = Current->GetParent().Get();
+	}
+
+	return FLinearColor::Transparent;
 }
 
 FSlateColor SAnimationOutlinerTreeNode::GetForegroundBasedOnSelection() const

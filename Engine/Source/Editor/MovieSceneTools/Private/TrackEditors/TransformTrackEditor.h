@@ -117,17 +117,17 @@ private:
 	* @param bUnwindRotation Whether or not rotation key values should be unwound.
 	* @param KeyParams Parameters which control how the keys are added.
 	*/
-	void AddTransformKeys( AActor* ActorToKey, const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, FKeyParams KeyParams );
+	void AddTransformKeys( UObject* ObjectToKey, const FTransformData& LastTransform, const FTransformData& CurrentTransform, EKey3DTransformChannel::Type ChannelsToKey, bool bUnwindRotation, FKeyParams KeyParams );
 
 	/**
 	* Delegate target of AnimatablePropertyChanged which actually adds the keys.
 
 	* @param Time The time to add keys.
-	* @param ActorToKey The actor to add keys to.
+	* @param ObjectToKey The object to add keys to.
 	* @param Keys The keys to add.
 	* @param KeyParams Parameters which control how the keys are added.
 	*/
-	bool OnAddTransformKeys( float Time, AActor* ActorToKey, TArray<FTransformKey>* NewKeys, TArray<FTransformKey>* DefaultKeys, FTransformData CurrentTransform, FKeyParams KeyParams );
+	bool OnAddTransformKeys( float Time, UObject* ObjectToKey, TArray<FTransformKey>* NewKeys, TArray<FTransformKey>* DefaultKeys, FTransformData CurrentTransform, FKeyParams KeyParams );
 
 private:
 

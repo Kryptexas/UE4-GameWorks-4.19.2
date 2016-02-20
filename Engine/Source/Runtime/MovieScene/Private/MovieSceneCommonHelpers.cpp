@@ -182,6 +182,36 @@ USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Obj
 	return SceneComponent;
 }
 
+UCameraComponent* MovieSceneHelpers::CameraComponentFromActor(const AActor* InActor)
+{
+	TArray<UCameraComponent*> CameraComponents;
+	InActor->GetComponents<UCameraComponent>(CameraComponents);
+
+	for (UCameraComponent* CameraComponent : CameraComponents)
+	{
+		if (CameraComponent->bIsActive)
+		{
+			return CameraComponent;
+		}
+	}
+
+	// now see if any actors are attached to us, directly or indirectly, that have an active camera component we might want to use
+	// we will just return the first one.
+	// #note: assumption here that attachment cannot be circular
+	TArray<AActor*> AttachedActors;
+	InActor->GetAttachedActors(AttachedActors);
+	for (AActor* AttachedActor : AttachedActors)
+	{
+		UCameraComponent* const Comp = CameraComponentFromActor(AttachedActor);
+		if (Comp)
+		{
+			return Comp;
+		}
+	}
+
+	return nullptr;
+}
+
 void MovieSceneHelpers::SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKeyHandle, EMovieSceneKeyInterpolation InKeyInterpolation)
 {
 	switch (InKeyInterpolation)

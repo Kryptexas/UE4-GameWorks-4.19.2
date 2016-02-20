@@ -73,6 +73,13 @@ void FMovieScene3DConstraintTrackInstance::Update(EMovieSceneUpdateData& UpdateD
 			{
 				Player.GetRuntimeObjects( Player.GetRootMovieSceneSequenceInstance(), ConstraintId, ConstraintObjects);
 
+				// Also look in this current sequence instance for the constrained object
+				UObject* FoundObject = SequenceInstance.FindObject(ConstraintId, Player);
+				if (FoundObject && ConstraintObjects.Find(FoundObject) == INDEX_NONE)
+				{
+					ConstraintObjects.Add(FoundObject);
+				}
+
 				for (int32 ConstraintObjectIndex = 0; ConstraintObjectIndex < ConstraintObjects.Num(); ++ConstraintObjectIndex)
 				{
 					AActor* Actor = Cast<AActor>(ConstraintObjects[ConstraintObjectIndex]);

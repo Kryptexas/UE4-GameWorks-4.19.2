@@ -3,7 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CameraLensSettingsCustomization.h"
 #include "ScopedTransaction.h"
-#include "Camera/CineCameraComponent.h"
+#include "CineCameraComponent.h"
 
 #define LOCTEXT_NAMESPACE "CameraLensSettingsCustomization"
 
@@ -68,10 +68,9 @@ void FCameraLensSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHan
 	{
 		TSharedRef<IPropertyHandle> ChildHandle = StructPropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
 		const FName PropertyName = ChildHandle->GetProperty()->GetFName();
-
 		PropertyHandles.Add(PropertyName, ChildHandle);
 	}
-
+	
 	// Retrieve special case properties
 	MinFocalLengthHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FCameraLensSettings, MinFocalLength));
 	MaxFocalLengthHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FCameraLensSettings, MaxFocalLength));
@@ -82,6 +81,12 @@ void FCameraLensSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHan
 
 	for (auto Iter(PropertyHandles.CreateConstIterator()); Iter; ++Iter)
 	{
+		if ((Iter.Value() == MinFocusDistanceHandle) || (Iter.Value() == MaxReproRatioHandle))
+		{
+			// skip showing these in the panel for now, as we don't really use them
+			continue;
+		}
+
 		IDetailPropertyRow& SettingsRow = ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
 	}
 }
