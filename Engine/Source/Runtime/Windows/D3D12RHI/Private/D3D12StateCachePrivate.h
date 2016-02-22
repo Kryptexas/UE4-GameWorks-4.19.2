@@ -961,7 +961,7 @@ public:
 
 	FD3D12PipelineStateCache& operator=(const FD3D12PipelineStateCache&);
 
-	static const bool bUseAPILibaries = true;
+	static const bool bUseAPILibaries = false;
 	uint32 DriverShaderBlobs;
 };
 
@@ -1726,7 +1726,7 @@ public:
 	void RestoreState();
 	void DirtyViewDescriptorTables();
 	void DirtySamplerDescriptorTables();
-	bool VerifyResourceStates(const bool IsCompute);
+	bool AssertResourceStates(const bool IsCompute);
 
 	template <class ViewT>
 	bool VerifyViewState(ID3D12DebugCommandList* pDebugCommandList, FD3D12View<ViewT> *pView, D3D12_RESOURCE_STATES State);

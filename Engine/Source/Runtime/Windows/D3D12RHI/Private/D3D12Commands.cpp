@@ -209,8 +209,6 @@ void FD3D12CommandContext::RHIDispatchComputeShader(uint32 ThreadGroupCountX, ui
 	numDispatches++;
 	CommandListHandle->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 
-	StateCache.FlushComputeShaderCache();
-
 	DEBUG_EXECUTE_COMMAND_LIST(this);
 
 	StateCache.SetComputeShader(nullptr);
@@ -245,19 +243,195 @@ void FD3D12CommandContext::RHIDispatchIndirectComputeShader(FVertexBufferRHIPara
 		0
 		);
 
-	StateCache.FlushComputeShaderCache();
-
 	DEBUG_EXECUTE_COMMAND_LIST(this);
 
 	StateCache.SetComputeShader(nullptr);
 }
 
+
+void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)
+{
+#if !USE_D3D12RHI_RESOURCE_STATE_TRACKING
+	check(TransitionType == EResourceTransitionAccess::EReadable || TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWSubResBarrier);
+	// TODO: Remove this skip.
+	// Skip for now because we don't have enough info about what mip to transition yet.
+	// Note: This causes visual corruption.
+	if (TransitionType == EResourceTransitionAccess::ERWSubResBarrier)
+	{
+		return;
+	}
+
+	static IConsoleVariable* CVarShowTransitions = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ProfileGPU.ShowTransitions"));
+	const bool bShowTransitionEvents = CVarShowTransitions->GetInt() != 0;
+
+	SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResources, bShowTransitionEvents, TEXT("TransitionTo: %s: %i Textures"), *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)TransitionType], NumTextures);
+
+	// Determine the direction of the transitions.
+	const D3D12_RESOURCE_STATES* pBefore = nullptr;
+	const D3D12_RESOURCE_STATES* pAfter = nullptr;
+	D3D12_RESOURCE_STATES WritableState;
+	D3D12_RESOURCE_STATES ReadableState;
+	switch (TransitionType)
+	{
+	case EResourceTransitionAccess::EReadable:
+		// Write -> Read
+		pBefore = &WritableState;
+		pAfter = &ReadableState;
+		break;
+
+	case EResourceTransitionAccess::EWritable:
+		// Read -> Write
+		pBefore = &ReadableState;
+		pAfter = &WritableState;
+		break;
+
+	default:
+		check(false);
+		break;
+	}
+
+	// Create the resource barrier descs for each texture to transition.
+	uint32 BarrierCount = 0;
+	const uint32 MaxBarrierCount = 64;
+	D3D12_RESOURCE_BARRIER Barriers[MaxBarrierCount];
+	for (int32 i = 0; i < NumTextures; ++i)
+	{
+		if (InTextures[i])
+		{
+			FD3D12Resource* Resource = GetD3D11TextureFromRHITexture(InTextures[i])->GetResource();
+			check(Resource->RequiresResourceStateTracking());
+
+			SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *Resource->GetName().ToString());
+
+			WritableState = Resource->GetWritableState();
+			ReadableState = Resource->GetReadableState();
+
+			check(BarrierCount < MaxBarrierCount);
+			D3D12_RESOURCE_BARRIER& BarrierDesc = Barriers[BarrierCount];
+			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			BarrierDesc.Transition.pResource = Resource->GetResource();
+			BarrierDesc.Transition.StateBefore = *pBefore;
+			BarrierDesc.Transition.StateAfter = *pAfter;
+			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			check(BarrierDesc.Transition.StateBefore != BarrierDesc.Transition.StateAfter);
+
+			BarrierCount++;
+
+			DUMP_TRANSITION(Resource->GetName(), TransitionType);
+		}
+	}
+
+	// Transition the resources.
+	if (BarrierCount > 0)
+	{
+		CommandListHandle->ResourceBarrier(BarrierCount, Barriers);
+		this->numBarriers += BarrierCount;
+	}
+#endif // !USE_D3D12RHI_RESOURCE_STATE_TRACKING
+}
+
+
 void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI)
 {
-	FD3D12Fence* Fence = FD3D12DynamicRHI::ResourceCast(WriteComputeFenceRHI);
+	static IConsoleVariable* CVarShowTransitions = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ProfileGPU.ShowTransitions"));
+	const bool bShowTransitionEvents = CVarShowTransitions->GetInt() != 0;
 
-	if (Fence)
+	SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResources, bShowTransitionEvents, TEXT("TransitionTo: %s: %i UAVs"), *FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)TransitionType], NumUAVs);
+	const bool bUAVTransition = (TransitionType == EResourceTransitionAccess::EReadable) || (TransitionType == EResourceTransitionAccess::EWritable || TransitionType == EResourceTransitionAccess::ERWBarrier);
+	const bool bUAVBarrier = (TransitionType == EResourceTransitionAccess::ERWBarrier && TransitionPipeline == EResourceTransitionPipeline::EComputeToCompute);
+
+	if (bUAVBarrier)
 	{
+		// UAV barrier between Dispatch() calls to ensure all R/W accesses are complete.
+		StateCache.FlushComputeShaderCache(true);
+	}
+	else if (bUAVTransition)
+	{
+#if !USE_D3D12RHI_RESOURCE_STATE_TRACKING
+		// Determine the direction of the transitions.
+		// Note in this method, the writeable state is always UAV, regardless of the FD3D12Resource's Writeable state.
+		const D3D12_RESOURCE_STATES* pBefore = nullptr;
+		const D3D12_RESOURCE_STATES* pAfter = nullptr;
+		const D3D12_RESOURCE_STATES WritableComputeState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		D3D12_RESOURCE_STATES WritableGraphicsState;
+		D3D12_RESOURCE_STATES ReadableState;
+		switch (TransitionType)
+		{
+		case EResourceTransitionAccess::EReadable:
+			// Write -> Read
+			pBefore = &WritableComputeState;
+			pAfter = &ReadableState;
+			break;
+
+		case EResourceTransitionAccess::EWritable:
+			// Read -> Write
+			pBefore = &ReadableState;
+			pAfter = &WritableComputeState;
+			break;
+
+		case EResourceTransitionAccess::ERWBarrier:
+			// Write -> Write, but switching from Grfx to Compute.
+			check(TransitionPipeline == EResourceTransitionPipeline::EGfxToCompute);
+			pBefore = &WritableGraphicsState;
+			pAfter = &WritableComputeState;
+			break;
+
+		default:
+			check(false);
+			break;
+		}
+
+		// Create the resource barrier descs for each texture to transition.
+		uint32 BarrierCount = 0;
+		const uint32 MaxBarrierCount = 16;
+		D3D12_RESOURCE_BARRIER Barriers[MaxBarrierCount];
+		for (int32 i = 0; i < NumUAVs; ++i)
+		{
+			if (InUAVs[i])
+			{
+				FD3D12UnorderedAccessView* UnorderedAccessView = FD3D12DynamicRHI::ResourceCast(InUAVs[i]);
+				FD3D12Resource* Resource = UnorderedAccessView->GetResource();
+				check(Resource->RequiresResourceStateTracking());
+
+				SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *Resource->GetName().ToString());
+
+				// The writable compute state is always UAV.
+				WritableGraphicsState = Resource->GetWritableState();
+				ReadableState = Resource->GetReadableState();
+
+				// Some ERWBarriers might have the same before and after states.
+				if (*pBefore != *pAfter)
+				{
+					check(BarrierCount < MaxBarrierCount);
+					D3D12_RESOURCE_BARRIER& BarrierDesc = Barriers[BarrierCount];
+					BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+					BarrierDesc.Transition.pResource = Resource->GetResource();
+					BarrierDesc.Transition.StateBefore = *pBefore;
+					BarrierDesc.Transition.StateAfter = *pAfter;
+					BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					check(BarrierDesc.Transition.StateBefore != BarrierDesc.Transition.StateAfter);
+
+					BarrierCount++;
+
+					DUMP_TRANSITION(Resource->GetName(), TransitionType);
+				}
+			}
+		}
+
+		// Transition the resources.
+		if (BarrierCount > 0)
+		{
+			CommandListHandle->ResourceBarrier(BarrierCount, Barriers);
+			this->numBarriers += BarrierCount;
+		}
+#endif // !USE_D3D12RHI_RESOURCE_STATE_TRACKING
+	}
+
+	if (WriteComputeFenceRHI)
+	{
+		FD3D12Fence* Fence = FD3D12DynamicRHI::ResourceCast(WriteComputeFenceRHI);
 		Fence->WriteFence();
 
 		if (!bIsAsyncComputeContext)
@@ -2190,6 +2364,11 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 	OwningRHI.RegisterGPUWork(0);
 
 	DEBUG_EXECUTE_COMMAND_LIST(this);
+}
+
+void FD3D12CommandContext::RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil)
+{
+	// Not necessary for d3d.
 }
 
 void FD3D12CommandContext::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority)

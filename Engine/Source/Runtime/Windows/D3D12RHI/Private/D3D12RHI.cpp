@@ -126,7 +126,7 @@ FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompleti
 	check(IsDefaultContext());
 
 	FD3D12Device* Device = GetParentDevice();
-	const bool bExecutePendingWork = GCommandListBatchingMode == CLB_AggressiveBatching;
+	const bool bExecutePendingWork = GCommandListBatchingMode == CLB_AggressiveBatching || GetParentDevice()->IsGPUIdle();
 	const bool bHasPendingWork = bExecutePendingWork && (Device->PendingCommandListsTotalWorkCommands > 0);
 	const bool bHasDoneWork = HasDoneWork() || bHasPendingWork;
 
@@ -877,6 +877,20 @@ FFastVRAMAllocator* FFastVRAMAllocator::GetFastVRAMAllocator()
 void FD3D12DynamicRHI::GetLocalVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO* LocalVideoMemoryInfo)
 {
 	VERIFYD3D11RESULT(MainDevice->GetAdapter3()->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, LocalVideoMemoryInfo));
+}
+
+void  FD3D12DynamicRHI::UpdateBuffer(FD3D12Resource* Dest, uint32 DestOffset, FD3D12Resource* Source, uint32 SourceOffset, uint32 NumBytes)
+{
+	FD3D12CommandContext& defaultContext = FD3D12DynamicRHI::GetD3DRHI()->GetRHIDevice()->GetDefaultCommandContext();
+	FD3D12CommandListHandle& hCommandList = defaultContext.CommandListHandle;
+
+	FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Dest, Dest->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, 0);
+	// Don't need to transition upload heaps
+
+	defaultContext.numCopies++;
+	hCommandList->CopyBufferRegion(Dest->GetResource(), DestOffset, Source->GetResource(), SourceOffset, NumBytes);
+
+	DEBUG_RHI_EXECUTE_COMMAND_LIST(this);
 }
 
 #if SUPPORTS_MEMORY_RESIDENCY
