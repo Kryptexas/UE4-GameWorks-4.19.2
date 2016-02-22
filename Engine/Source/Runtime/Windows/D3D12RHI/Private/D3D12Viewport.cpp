@@ -165,6 +165,8 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	D3D11TextureAllocated2D(*NewTexture);
 
 	NewTexture->DoNoDeferDelete();
+	pWrappedShaderResourceView->DoNoDeferDelete();
+	BackBufferRenderTargetView->DoNoDeferDelete();
 
 	return NewTexture;
 }

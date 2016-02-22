@@ -408,14 +408,15 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	GRHIAdapterName = AdapterDesc->Description;
 	GRHIVendorId = AdapterDesc->VendorId;
 
-	// get driver version (todo: share with other RHIs)
-	{
-		FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
+	// Copied from the D3D11 RHI but disabled for now as this doesn't exist for UT.
+	//// get driver version (todo: share with other RHIs)
+	//{
+	//	FPlatformMisc::GetGPUDriverInfo(GRHIAdapterName, GRHIAdapterInternalDriverVersion, GRHIAdapterUserDriverVersion, GRHIAdapterDriverDate);
 
-		UE_LOG(LogD3D12RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
-		UE_LOG(LogD3D12RHI, Log, TEXT("  Driver Version: %s (internal %s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion);
-		UE_LOG(LogD3D12RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
-	}
+	//	UE_LOG(LogD3D12RHI, Log, TEXT("    Adapter Name: %s"), *GRHIAdapterName);
+	//	UE_LOG(LogD3D12RHI, Log, TEXT("  Driver Version: %s (internal %s)"), *GRHIAdapterUserDriverVersion, *GRHIAdapterInternalDriverVersion);
+	//	UE_LOG(LogD3D12RHI, Log, TEXT("     Driver Date: %s"), *GRHIAdapterDriverDate);
+	//}
 
 	// Issue: 32bit windows doesn't report 64bit value, we take what we get.
 	FD3D12GlobalStats::GDedicatedVideoMemory = int64(AdapterDesc->DedicatedVideoMemory);

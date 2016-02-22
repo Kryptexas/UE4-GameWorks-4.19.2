@@ -850,9 +850,6 @@ void FD3D12Device::CleanupD3DDevice()
 		// Ensure any pending rendering is finished
 		GetCommandListManager().SignalFrameComplete(true);
 
-		// Flush all pending deletes before destroying the device.
-		FRHIResource::FlushPendingDeletes();
-
 		check(Direct3DDevice);
 
 		OwningRHI->ClearOutstandingLocks();
@@ -876,6 +873,9 @@ void FD3D12Device::CleanupD3DDevice()
 		{
 			ResourceIt->ReleaseDynamicRHI();
 		}
+
+		// Flush all pending deletes before destroying the device.
+		FRHIResource::FlushPendingDeletes();
 
 		Viewports.Empty();
 		DrawingViewport = nullptr;
