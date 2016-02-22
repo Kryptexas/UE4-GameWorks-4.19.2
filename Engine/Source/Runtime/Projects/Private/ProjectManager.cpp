@@ -23,10 +23,6 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
 	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
-		Descriptor->Save("D:\\P4 Streams\\Templates\\TP_Flying\\Out.json", FailureReason);
-
-
-
 		// Create the project
 		CurrentProject = Descriptor;
 		return true;
