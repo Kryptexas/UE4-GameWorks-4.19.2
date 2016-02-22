@@ -242,6 +242,7 @@ bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
+bool GRHINeedsExtraDeletionLatency = false;
 int32 GMaxShadowDepthBufferSizeX = 2048;
 int32 GMaxShadowDepthBufferSizeY = 2048;
 int32 GMaxTextureDimensions = 2048;
