@@ -453,7 +453,7 @@ void FSimplygonRESTClient::DownloadAsset_Response(FHttpRequestPtr Request, FHttp
 		
 		if (!FFileHelper::SaveArrayToFile(data, *SwarmTask->TaskData.OutputZipFilePath))
 		{
-			UE_LOG(LogSimplygonRESTClient, Log, TEXT("Unable to save file %S"), *SwarmTask->TaskData.OutputZipFilePath);
+			UE_LOG(LogSimplygonRESTClient, Log, TEXT("Unable to save file %s"), *SwarmTask->TaskData.OutputZipFilePath);
 			SwarmTask->SetState(SRS_FAILED);
 			
 		}

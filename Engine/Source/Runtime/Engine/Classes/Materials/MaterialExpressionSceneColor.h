@@ -47,8 +47,10 @@ class UMaterialExpressionSceneColor : public UMaterialExpression
 	//~ End UObject Interface.
 
 	//~ Begin UMaterialExpression Interface
+#if WITH_EDITOR
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+#endif
 	virtual FString GetInputName(int32 InputIndex) const override;
 	//~ End UMaterialExpression Interface
 };

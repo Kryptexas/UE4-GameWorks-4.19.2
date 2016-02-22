@@ -144,9 +144,11 @@ enum EMaterialDecalResponse
 USTRUCT(noexport)
 struct FMaterialInput
 {
+#if WITH_EDITORONLY_DATA
 	/** Material expression that this input is connected to, or NULL if not connected. */
 	UPROPERTY()
 	class UMaterialExpression* Expression;
+#endif
 
 	/** Index into Expression's outputs array that this input is connected to. */
 	UPROPERTY()
@@ -174,8 +176,9 @@ struct FMaterialInput
 	UPROPERTY()
 	int32 MaskA;
 
+	/** Material expression name that this input is connected to, or None if not connected. Used only in cooked builds */
 	UPROPERTY()
-	int32 GCC64_Padding;    // @todo 64: if the C++ didn't mismirror this structure (with ExpressionInput), we might not need this
+	FName ExpressionName;
 
 };
 #endif
@@ -817,8 +820,10 @@ public:
 	ENGINE_API virtual bool GetStaticComponentMaskParameterValue(FName ParameterName, bool &R, bool &G, bool &B, bool &A, FGuid &OutExpressionGuid) const override;
 	ENGINE_API virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) const override;
 	ENGINE_API virtual bool UpdateLightmassTextureTracking() override;
+#if WITH_EDITOR
 	ENGINE_API virtual bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures, 
 		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
+#endif
 	ENGINE_API virtual void RecacheUniformExpressions() const override;
 
 	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread = IsInGameThread()) const override;
@@ -835,8 +840,10 @@ public:
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
+#if WITH_EDITOR
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property ) override;
+#endif // WITH_EDITOR
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	//~ End UMaterialInterface Interface.
 
@@ -1250,6 +1257,7 @@ public:
 	/* Returns any UMaterialExpressionCustomOutput expressions */
 	ENGINE_API void GetAllCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const;
 
+#if WITH_EDITOR
 	/**
 	 *	Get all referenced expressions (returns the chains for all properties).
 	 *
@@ -1271,11 +1279,14 @@ public:
 	 */
 	ENGINE_API virtual bool GetExpressionsInPropertyChain(EMaterialProperty InProperty, 
 		TArray<UMaterialExpression*>& OutExpressions, class FStaticParameterSet* InStaticParameterSet);
+#endif
 
 	/** Appends textures referenced by expressions, including nested functions. */
 	ENGINE_API void AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const;
 
 protected:
+
+#if WITH_EDITOR
 	/**
 	 *	Recursively retrieve the expressions contained in the chain of the given expression.
 	 *
@@ -1298,6 +1309,7 @@ protected:
 	*
 	*/
 	void RecursiveUpdateRealtimePreview(UMaterialExpression* InExpression, TArray<UMaterialExpression*>& InOutExpressionsToProcess);
+#endif
 
 public:
 	bool HasNormalConnected() const { return Normal.IsConnected(); }

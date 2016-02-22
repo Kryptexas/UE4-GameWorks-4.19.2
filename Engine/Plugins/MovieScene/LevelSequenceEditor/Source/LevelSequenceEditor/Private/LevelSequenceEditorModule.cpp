@@ -137,7 +137,7 @@ protected:
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
-		{
+	{
 			// @todo sequencer: this should be moved into LevelSequenceEditor
 			SettingsModule->RegisterSettings("Project", "Plugins", "LevelSequencer",
 				LOCTEXT("LevelSequenceEditorSettingsName", "Level Sequencer"),
@@ -191,7 +191,7 @@ protected:
 		if (FLevelEditorModule* LevelEditorModule = FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor"))
 		{
 			LevelEditorModule->GetAllLevelEditorToolbarCinematicsMenuExtenders().Remove(CinematicsMenuExtender);
-		}
+	}
 
 		CinematicsMenuExtender = nullptr;
 		CommandList = nullptr;
@@ -214,11 +214,11 @@ protected:
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 
 		if (SettingsModule != nullptr)
-		{
+	{
 			// @todo sequencer: this should be moved into LevelSequenceEditor
 			SettingsModule->UnregisterSettings("Project", "Plugins", "LevelSequencer");
-		}
 	}
+		}
 
 protected:
 

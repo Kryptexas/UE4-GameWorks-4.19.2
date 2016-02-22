@@ -32,11 +32,14 @@ class UMaterialExpressionDynamicParameter : public UMaterialExpression
 #endif // WITH_EDITOR
 
 	virtual void PostLoad() override;
+	virtual bool NeedsLoadForClient() const override;
 	//~ End UObject Interface
 
 	//~ Begin UMaterialExpression Interface
+#if WITH_EDITOR
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+#endif
 	virtual TArray<FExpressionOutput>& GetOutputs() override;
 	virtual int32 GetWidth() const override;
 	virtual int32 GetLabelPadding() override { return 8; }

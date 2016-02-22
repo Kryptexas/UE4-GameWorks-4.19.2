@@ -9,6 +9,7 @@
 #include "ModuleManager.h"
 #include "FastReferenceCollector.h"
 #include "GarbageCollection.h"
+#include "ReferenceChainSearch.h"
 
 int32 GCreateGCClusters = 1;
 static FAutoConsoleVariableRef CCreateGCClusters(
@@ -25,6 +26,8 @@ static FAutoConsoleVariableRef CMergeGCClusters(
 	TEXT("If true, when creating clusters, the clusters referenced from another cluster will get merged into one big cluster."),
 	ECVF_Default
 	);
+
+#if !UE_BUILD_SHIPPING
 
 // Dumps all clusters to log.
 static void ListClusters(const TArray<FString>& Args)
@@ -68,11 +71,60 @@ static void ListClusters(const TArray<FString>& Args)
 	UE_LOG(LogObj, Display, TEXT("Average number of custer-to-cluster references: %d"), GUObjectClusters.Num() ? (TotalInterClusterReferences / GUObjectClusters.Num()) : 0);
 }
 
+static void FindStaleClusters(const TArray<FString>& Args)
+{
+	// This is seriously slow.
+	UE_LOG(LogObj, Display, TEXT("Searching for stale clusters. This may take a while...")); 
+	int32 NumStaleClusters = 0;
+	int32 TotalNumClusters = 0;
+	for (FRawObjectIterator It(true); It; ++It)
+	{
+		FUObjectItem* ObjectItem = *It;
+		if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot))
+		{
+			TotalNumClusters++;
+
+			UObject* ClusterRootObject = static_cast<UObject*>(ObjectItem->Object);
+			FReferenceChainSearch SearchRefs(ClusterRootObject, FReferenceChainSearch::ESearchMode::Shortest);
+			
+			bool bReferenced = false;
+			if (SearchRefs.GetReferenceChains().Num() > 0)
+			{
+				for (const FReferenceChainSearch::FReferenceChain& ReferenceChain : SearchRefs.GetReferenceChains())
+				{
+					UObject* ReferencingObj = ReferenceChain.RefChain[0].ReferencedBy;
+					// Ignore internal references
+					if (!ReferencingObj->IsIn(ClusterRootObject) && ReferencingObj != ClusterRootObject)
+					{
+						bReferenced = true;
+						break;
+					}
+				}
+			}
+			if (!bReferenced)
+			{
+				NumStaleClusters++;
+				UE_LOG(LogObj, Display, TEXT("Cluster %s has no external references:"), *ClusterRootObject->GetFullName());
+				SearchRefs.PrintResults();
+			}
+		}
+	}
+	UE_LOG(LogObj, Display, TEXT("Found %d clusters, including %d stale."), TotalNumClusters, NumStaleClusters);
+}
+
 static FAutoConsoleCommand ListClustersCommand(
 	TEXT("gc.ListClusters"),
 	TEXT("Dumps all clusters do output log. When 'Hiearchy' argument is specified lists all objects inside clusters."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(ListClusters)
 	);
+
+static FAutoConsoleCommand FindStaleClustersCommand(
+	TEXT("gc.FindStaleClusters"),
+	TEXT("Dumps all clusters do output log that are not referenced by anything."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(FindStaleClusters)
+	);
+
+#endif // !UE_BUILD_SHIPPING
 
 /**
 * Pool for reducing allocations when constructing clusters

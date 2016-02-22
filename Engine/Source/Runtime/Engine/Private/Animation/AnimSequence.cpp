@@ -122,6 +122,9 @@ UAnimSequence::UAnimSequence(const FObjectInitializer& ObjectInitializer)
 	, bCalcAdditiveDynamically(true)
 {
 	RateScale = 1.0;
+#if WITH_EDITORONLY_DATA
+	bCompressedOnCook = false;
+#endif
 }
 
 void UAnimSequence::PostInitProperties()
@@ -323,12 +326,14 @@ void UAnimSequence::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	FScopedAnimSequenceCompressedDataCache CompressedDataCache;
 
-	if (Ar.IsCooking() && Ar.IsSaving() && CanBakeAdditive())
+	if (!bCompressedOnCook && Ar.IsCooking() && Ar.IsSaving() && CanBakeAdditive())
 	{
 		CompressedDataCache.InitFrom(this);
 
 		//Make copies of original compressed data
 		BakeOutAdditiveIntoRawData();
+		// Don't do this again
+		bCompressedOnCook = true;
 	}
 #endif
 

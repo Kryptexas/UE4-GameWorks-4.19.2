@@ -774,6 +774,7 @@ UMaterialExpressionLandscapeGrassOutput::UMaterialExpressionLandscapeGrassOutput
 	new(GrassTypes)FGrassInput(ConstructorStatics.NAME_Grass);
 }
 
+#if WITH_EDITOR
 int32 UMaterialExpressionLandscapeGrassOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	if (GrassTypes.IsValidIndex(OutputIndex))
@@ -795,6 +796,7 @@ void UMaterialExpressionLandscapeGrassOutput::GetCaption(TArray<FString>& OutCap
 {
 	OutCaptions.Add(TEXT("Grass"));
 }
+#endif // WITH_EDITOR
 
 const TArray<FExpressionInput*> UMaterialExpressionLandscapeGrassOutput::GetInputs()
 {
@@ -814,6 +816,11 @@ FExpressionInput* UMaterialExpressionLandscapeGrassOutput::GetInput(int32 InputI
 FString UMaterialExpressionLandscapeGrassOutput::GetInputName(int32 InputIndex) const
 {
 	return GrassTypes[InputIndex].Name.ToString();
+}
+
+bool UMaterialExpressionLandscapeGrassOutput::NeedsLoadForClient() const
+{
+	return true;
 }
 
 #if WITH_EDITOR

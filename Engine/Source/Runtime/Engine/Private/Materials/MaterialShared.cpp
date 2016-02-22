@@ -25,6 +25,8 @@
 #include "VertexFactory.h"
 #include "RendererInterface.h"
 #include "MaterialShaderQualitySettings.h"
+#include "UObject/CoreObjectVersion.h"
+
 DEFINE_LOG_CATEGORY(LogMaterial);
 
 FName MaterialQualityLevelNames[] = 
@@ -64,10 +66,14 @@ int32 FMaterialCompiler::Errorf(const TCHAR* Format,...)
 	return Error(ErrorText);
 }
 
-//
-//	FExpressionInput::Compile
-//
+IMPLEMENT_STRUCT(ExpressionInput);
+IMPLEMENT_STRUCT(ColorMaterialInput);
+IMPLEMENT_STRUCT(ScalarMaterialInput);
+IMPLEMENT_STRUCT(VectorMaterialInput);
+IMPLEMENT_STRUCT(Vector2MaterialInput);
+IMPLEMENT_STRUCT(MaterialAttributesInput);
 
+#if WITH_EDITOR
 int32 FExpressionInput::Compile(class FMaterialCompiler* Compiler, int32 MultiplexIndex)
 {
 	if(Expression)
@@ -106,7 +112,96 @@ void FExpressionInput::Connect( int32 InOutputIndex, class UMaterialExpression* 
 	MaskB = Output->MaskB;
 	MaskA = Output->MaskA;
 }
+#endif // WITH_EDITOR
 
+/** Native serialize for FMaterialExpression struct */
+static bool SerializeExpressionInput(FArchive& Ar, FExpressionInput& Input)
+{
+	Ar.UsingCustomVersion(FCoreObjectVersion::GUID);
+
+	if (Ar.CustomVer(FCoreObjectVersion::GUID) < FCoreObjectVersion::MaterialInputNativeSerialize)
+	{
+		return false;
+	}
+
+#if WITH_EDITORONLY_DATA
+	if (!Ar.IsCooking())
+	{
+		Ar << Input.Expression;
+	}
+#endif
+	Ar << Input.OutputIndex;
+	Ar << Input.InputName;
+	Ar << Input.Mask;
+	Ar << Input.MaskR;
+	Ar << Input.MaskG;
+	Ar << Input.MaskB;
+	Ar << Input.MaskA;
+
+	// Some expressions may have been stripped when cooking and Expression can be null after loading
+	// so make sure we keep the information about the connected node in cooked packages
+	if (FPlatformProperties::RequiresCookedData() || (Ar.IsSaving() && Ar.IsCooking()))
+	{
+#if WITH_EDITORONLY_DATA
+		if (Ar.IsSaving())
+		{
+			Input.ExpressionName = Input.Expression ? Input.Expression->GetFName() : NAME_None;
+		}
+#endif // WITH_EDITORONLY_DATA
+		Ar << Input.ExpressionName;
+	}
+
+	return true;
+}
+
+template <typename InputType>
+static bool SerializeMaterialInput(FArchive& Ar, FMaterialInput<InputType>& Input)
+{
+	if (SerializeExpressionInput(Ar, Input))
+	{
+		bool bUseConstantValue = Input.UseConstant;
+		Ar << bUseConstantValue;
+		Input.UseConstant = bUseConstantValue;
+		Ar << Input.Constant;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool FExpressionInput::Serialize(FArchive& Ar)
+{
+	return SerializeExpressionInput(Ar, *this);
+}
+
+bool FColorMaterialInput::Serialize(FArchive& Ar)
+{
+	return SerializeMaterialInput<FColor>(Ar, *this);
+}
+
+bool FScalarMaterialInput::Serialize(FArchive& Ar)
+{
+	return SerializeMaterialInput<float>(Ar, *this);
+}
+
+bool FVectorMaterialInput::Serialize(FArchive& Ar)
+{
+	return SerializeMaterialInput<FVector>(Ar, *this);
+}
+
+bool FVector2MaterialInput::Serialize(FArchive& Ar)
+{
+	return SerializeMaterialInput<FVector2D>(Ar, *this);
+}
+
+bool FMaterialAttributesInput::Serialize(FArchive& Ar)
+{
+	return SerializeExpressionInput(Ar, *this);
+}
+
+#if WITH_EDITOR
 int32 FColorMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
 	if (UseConstant)
@@ -206,6 +301,7 @@ int32 FMaterialAttributesInput::CompileWithDefault(class FMaterialCompiler* Comp
 
 	return Ret;
 }
+#endif  // WITH_EDITOR
 
 EMaterialValueType GetMaterialPropertyType(EMaterialProperty Property)
 {
@@ -687,7 +783,7 @@ bool IsTranslucentBlendMode(EBlendMode BlendMode)
 }
 
 int32 FMaterialResource::GetMaterialDomain() const { return Material->MaterialDomain; }
-bool FMaterialResource::IsTangentSpaceNormal() const { return Material->bTangentSpaceNormal || (Material->Normal.Expression == nullptr && !Material->bUseMaterialAttributes); }
+bool FMaterialResource::IsTangentSpaceNormal() const { return Material->bTangentSpaceNormal || (!Material->Normal.IsConnected() && !Material->bUseMaterialAttributes); }
 bool FMaterialResource::ShouldInjectEmissiveIntoLPV() const { return Material->bUseEmissiveForDynamicAreaLighting; }
 bool FMaterialResource::ShouldBlockGI() const { return Material->bBlockGI; }
 bool FMaterialResource::ShouldGenerateSphericalParticleNormals() const { return Material->bGenerateSphericalParticleNormals; }
@@ -700,9 +796,9 @@ bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomai
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
 bool FMaterialResource::IsUsedWithDeferredDecal() const { return Material->MaterialDomain == MD_DeferredDecal; }
 bool FMaterialResource::IsSpecialEngineMaterial() const { return Material->bUsedAsSpecialEngineMaterial; }
-bool FMaterialResource::HasVertexPositionOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->WorldPositionOffset.Expression != nullptr; }
-bool FMaterialResource::HasPixelDepthOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->PixelDepthOffset.Expression != nullptr; }
-bool FMaterialResource::HasMaterialAttributesConnected() const { return Material->bUseMaterialAttributes && Material->MaterialAttributes.Expression != nullptr; }
+bool FMaterialResource::HasVertexPositionOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->WorldPositionOffset.IsConnected(); }
+bool FMaterialResource::HasPixelDepthOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->PixelDepthOffset.IsConnected(); }
+bool FMaterialResource::HasMaterialAttributesConnected() const { return Material->bUseMaterialAttributes && Material->MaterialAttributes.IsConnected(); }
 FString FMaterialResource::GetBaseMaterialPathName() const { return Material->GetPathName(); }
 
 bool FMaterialResource::IsUsedWithSkeletalMesh() const
@@ -2456,6 +2552,7 @@ bool UMaterialInterface::IsPropertyActive(EMaterialProperty InProperty)const
 	return false;
 }
 
+#if WITH_EDITOR
 int32 UMaterialInterface::CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property )
 {
 	return INDEX_NONE;
@@ -2472,6 +2569,7 @@ int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterial
 		return GetDefaultExpressionForMaterialProperty(Compiler, Property);
 	}
 }
+#endif // WITH_EDITOR
 
 void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, int32& OutNumTextureCoordinates, bool& bOutRequiresVertexData)
 {
@@ -2518,6 +2616,7 @@ void UMaterialInterface::AnalyzeMaterialProperty(EMaterialProperty InProperty, i
 #endif
 }
 
+#if WITH_EDITORONLY_DATA
 //Reorder the output index for any FExpressionInput connected to a UMaterialExpressionBreakMaterialAttributes.
 //If the order of pins in the material results or the make/break attributes nodes changes 
 //then the OutputIndex stored in any FExpressionInput coming from UMaterialExpressionBreakMaterialAttributes will be wrong and needs reordering.
@@ -2552,7 +2651,7 @@ void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver)
 		}
 	}
 }
-
+#endif // WITH_EDITORONLY_DATA
 //////////////////////////////////////////////////////////////////////////
 
 FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()

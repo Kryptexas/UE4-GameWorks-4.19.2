@@ -2661,13 +2661,23 @@ void ULandscapeComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimit
 				UMaterialExpressionTextureSample* TextureSample = Cast<UMaterialExpressionTextureSample>(Expression);
 
 				// TODO: This is only works for direct Coordinate Texture Sample cases
-				if (TextureSample && TextureSample->Coordinates.Expression)
+				if (TextureSample && TextureSample->Coordinates.IsConnected())
 				{
-					UMaterialExpressionTextureCoordinate* TextureCoordinate =
-						Cast<UMaterialExpressionTextureCoordinate>(TextureSample->Coordinates.Expression);
-
-					UMaterialExpressionLandscapeLayerCoords* TerrainTextureCoordinate =
-						Cast<UMaterialExpressionLandscapeLayerCoords>(TextureSample->Coordinates.Expression);
+					UMaterialExpressionTextureCoordinate* TextureCoordinate = nullptr;
+					UMaterialExpressionLandscapeLayerCoords* TerrainTextureCoordinate = nullptr;
+		
+					for (UMaterialExpression* FindExp : Material->Expressions)
+					{
+						if (FindExp && FindExp->GetFName() == TextureSample->Coordinates.ExpressionName)
+						{
+							TextureCoordinate = Cast<UMaterialExpressionTextureCoordinate>(FindExp);
+							if (!TextureCoordinate)
+							{
+								TerrainTextureCoordinate = Cast<UMaterialExpressionLandscapeLayerCoords>(FindExp);
+							}
+							break;
+						}
+					}
 
 					if (TextureCoordinate || TerrainTextureCoordinate)
 					{

@@ -907,6 +907,10 @@ private:
 
 	friend class UAnimationAsset;
 	friend struct FScopedAnimSequenceCompressedDataCache;
+
+#if WITH_EDITORONLY_DATA
+	bool bCompressedOnCook;
+#endif
 };
 
 

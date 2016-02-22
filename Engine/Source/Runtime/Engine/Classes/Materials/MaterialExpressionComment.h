@@ -31,7 +31,9 @@ class UMaterialExpressionComment : public UMaterialExpression
 	//~ End UObject Interface
 
 	//~ Begin UMaterialExpression Interface
+#if WITH_EDITOR
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+#endif // WITH_EDITOR
 	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 	//~ End UMaterialExpression Interface
 };

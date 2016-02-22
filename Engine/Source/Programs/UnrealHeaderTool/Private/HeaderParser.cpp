@@ -7303,10 +7303,10 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 		if( bIf || FParse::Command(&Str,TEXT("#ifdef")) || FParse::Command(&Str,TEXT("#ifndef")) )
 		{
 			FStringOutputDevice TextDumpDummy;
-			int32 PreprocessorNest = 1;
 			FStringOutputDevice* Target = NULL;
 			FStringOutputDevice* SpacerTarget = NULL;
-			bool bKeepPreprocessorDirectives = true;
+			TArray<bool, TInlineAllocator<8>> KeepPreprocessorDirectiveStack;
+			KeepPreprocessorDirectiveStack.Push(true);
 			bool bNotCPP = false;
 			bool bCPP = false;
 			bool bUnknownDirective = false;
@@ -7320,14 +7320,14 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 			else if( bIf && FParse::Command(&Str,TEXT("!CPP")) )
 			{
 				Target = &ClassHeaderTextStrippedOfCppText;
-				bKeepPreprocessorDirectives = false;
+				KeepPreprocessorDirectiveStack.Top() = false;
 				bNotCPP = true;
 			}
 #if WITH_HOT_RELOAD_CTORS
 			else if (bIf && FParse::Command(&Str, TEXT("WITH_HOT_RELOAD")))
 			{
 				Target = &ClassHeaderTextStrippedOfCppText;
-				bKeepPreprocessorDirectives = false;
+				KeepPreprocessorDirectiveStack.Top() = false;
 			}
 #endif // WITH_HOT_RELOAD_CTORS
 			else if (bIf && (FParse::Command(&Str,TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str,TEXT("WITH_EDITOR"))))
@@ -7343,7 +7343,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 				SpacerTarget = &ClassHeaderTextStrippedOfCppText;
 			}
 
-			if (bKeepPreprocessorDirectives)
+			if (KeepPreprocessorDirectiveStack.Top())
 			{
 				Target->Logf( TEXT("%s\r\n"), *StrLine );
 			}
@@ -7358,7 +7358,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 				SpacerTarget->Logf( TEXT("\r\n") );
 			}
 
-			while ((PreprocessorNest > 0) && FParse::Line(&Buffer, StrLine, 1))
+			while ((KeepPreprocessorDirectiveStack.Num() > 0) && FParse::Line(&Buffer, StrLine, 1))
 			{
 				if (SpacerTarget != NULL)
 				{
@@ -7368,22 +7368,29 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 
 				CurrentLine++;
 				Str = *StrLine;
+				bool bKeepPreprocessorDirective = KeepPreprocessorDirectiveStack.Top();
 				bool bIsPrep = false;
 				if( FParse::Command(&Str,TEXT("#endif")) )
 				{
-					PreprocessorNest--;
+					KeepPreprocessorDirectiveStack.Pop();
 					bIsPrep = true;
 				}
 				else if( FParse::Command(&Str,TEXT("#if")) || FParse::Command(&Str,TEXT("#ifdef")) || FParse::Command(&Str,TEXT("#ifndef")) )
 				{
-					PreprocessorNest++;
+					bKeepPreprocessorDirective = FParse::Command(&Str, TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str, TEXT("WITH_EDITOR"));
+					KeepPreprocessorDirectiveStack.Push(bKeepPreprocessorDirective);
+					bIsPrep = true;
+				}
+				else if (FParse::Command(&Str, TEXT("#ifndef")))
+				{
+					KeepPreprocessorDirectiveStack.Push(false);
 					bIsPrep = true;
 				}
 				else if( FParse::Command(&Str,TEXT("#elif")) )
 				{
 					bIsPrep = true;
 				}
-				else if(PreprocessorNest == 1 && FParse::Command(&Str,TEXT("#else")))
+				else if (KeepPreprocessorDirectiveStack.Num() == 1 && FParse::Command(&Str, TEXT("#else")))
 				{
 					if (!bUnknownDirective)
 					{
@@ -7396,12 +7403,12 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 						{
 							Target = &TextDumpDummy;
 							SpacerTarget = &ClassHeaderTextStrippedOfCppText;
-							bKeepPreprocessorDirectives = true;
+							KeepPreprocessorDirectiveStack.Top() = true;
 							StrLine = TEXT("#if CPP\r\n");
 						}
 						else
 						{
-							bKeepPreprocessorDirectives = false;
+							KeepPreprocessorDirectiveStack.Top() = false;
 							Target = &ClassHeaderTextStrippedOfCppText;
 							SpacerTarget = NULL;
 						}
@@ -7409,7 +7416,7 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 					bIsPrep = true;
 				}
 
-				if (bKeepPreprocessorDirectives || !bIsPrep)
+				if (bKeepPreprocessorDirective || !bIsPrep)
 				{
 					Target->Logf( TEXT("%s\r\n"), *StrLine );
 				}

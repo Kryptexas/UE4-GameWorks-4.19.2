@@ -8,7 +8,7 @@ struct CORE_API FCoreObjectVersion
 	{
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
-
+		MaterialInputNativeSerialize,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

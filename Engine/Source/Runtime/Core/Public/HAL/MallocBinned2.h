@@ -23,10 +23,6 @@ private:
 	// Counts.
 	enum { SMALL_POOL_COUNT = 41 };
 
-	/** Maximum allocation for the pooled allocator */
-	enum { MAX_SMALL_POOLED_ALLOCATION_SIZE = 32768 };
-	enum { MAX_LARGE_POOLED_PAGE_FRACTIONS  = 2 };
-
 	// Forward declares.
 	struct FFreeBlock;
 	struct FPoolInfo;
@@ -103,13 +99,12 @@ private:
 	// Pool tables for different pool sizes
 	FPoolTable SmallPoolTables[SMALL_POOL_COUNT];
 
-	// Mapping of indices to both large and small tables
-	FPoolTable* MemSizeToPoolTable[MAX_SMALL_POOLED_ALLOCATION_SIZE];
-
 	PoolHashBucket* HashBuckets;
 	PoolHashBucket* HashBucketFreeList;
 
 	TCachedOSPageAllocator<BINNED2_MAX_CACHED_OS_FREES, BINNED2_MAX_CACHED_OS_FREES_BYTE_LIMIT> CachedOSPageAllocator;
+
+	FCriticalSection Mutex;
 
 public:
 	// FMalloc interface.
@@ -157,4 +152,6 @@ public:
 	virtual bool ValidateHeap() override;
 
 	virtual const TCHAR* GetDescriptiveName() override;
+
+	virtual void FlushCurrentThreadCache() override;
 };

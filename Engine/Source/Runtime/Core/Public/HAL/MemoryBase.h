@@ -155,6 +155,13 @@ public:
 		return TEXT("Unspecified allocator");
 	}
 
+	/**
+	 * Triggers a cache flush of any memory being held by the allocator on the current thread.
+	 */
+	virtual void FlushCurrentThreadCache()
+	{
+	}
+
 protected:
 	friend struct FCurrentFrameCalls;
 

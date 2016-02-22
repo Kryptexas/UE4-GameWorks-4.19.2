@@ -758,10 +758,12 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 	FCompressedFileBuffer CompressedFileBuffer;
 
 	uint8* PaddingBuffer = nullptr;
+	int64 PaddingBufferSize = 0;
 	if (CmdLineParameters.PatchFilePadAlign > 0)
 	{
-		PaddingBuffer = (uint8*)FMemory::Malloc(CmdLineParameters.PatchFilePadAlign);
-		FMemory::Memset(PaddingBuffer, 0, CmdLineParameters.PatchFilePadAlign);
+		PaddingBufferSize = CmdLineParameters.PatchFilePadAlign;
+		PaddingBuffer = (uint8*)FMemory::Malloc(PaddingBufferSize);
+		FMemory::Memset(PaddingBuffer, 0, PaddingBufferSize);
 	}
 
 	for (int32 FileIndex = 0; FileIndex < FilesToAdd.Num(); FileIndex++)
@@ -803,8 +805,29 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 			if ((NewEntryOffset / CmdLineParameters.FileSystemBlockSize) != ((NewEntryOffset+RealFileSize) / CmdLineParameters.FileSystemBlockSize))
 			{
 				//File crosses a block boundary, so align it to the beginning of the next boundary
+				int64 OldOffset = NewEntryOffset;
 				NewEntryOffset = AlignArbitrary(NewEntryOffset, CmdLineParameters.FileSystemBlockSize);
-				PakFileHandle->Seek(NewEntryOffset);
+				int64 PaddingRequired = NewEntryOffset - OldOffset;
+				
+				if (PaddingRequired > 0)
+				{
+					// If we don't already have a padding buffer, create one
+					if (PaddingBuffer == nullptr)
+					{
+						PaddingBufferSize = 64 * 1024;
+						PaddingBuffer = (uint8*)FMemory::Malloc(PaddingBufferSize);
+						FMemory::Memset(PaddingBuffer, 0, PaddingBufferSize);
+					}
+
+					while (PaddingRequired > 0)
+					{
+						int64 AmountToWrite = FMath::Min(PaddingRequired, PaddingBufferSize);
+						PakFileHandle->Serialize(PaddingBuffer, AmountToWrite);
+						PaddingRequired -= AmountToWrite;
+					}
+					
+					check(PakFileHandle->Tell() == NewEntryOffset);
+				}
 			}
 		}
 
@@ -815,7 +838,7 @@ bool CreatePakFile(const TCHAR* Filename, TArray<FPakInputPair>& FilesToAdd, con
 			NewEntryOffset = AlignArbitrary(NewEntryOffset, CmdLineParameters.PatchFilePadAlign);
 			int64 CurrentLoc = PakFileHandle->Tell();
 			int64 PaddingSize = NewEntryOffset - CurrentLoc;
-			check(PaddingSize <= CmdLineParameters.PatchFilePadAlign);
+			check(PaddingSize <= PaddingBufferSize);
 
 			//have to pad manually with 0's.  File locations skipped by Seek and never written are uninitialized which would defeat the whole purpose
 			//of padding for certain platforms patch diffing systems.

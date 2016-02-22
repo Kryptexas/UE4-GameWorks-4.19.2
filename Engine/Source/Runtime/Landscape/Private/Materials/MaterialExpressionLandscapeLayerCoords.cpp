@@ -30,7 +30,7 @@ UMaterialExpressionLandscapeLayerCoords::UMaterialExpressionLandscapeLayerCoords
 	bCollapsed = false;
 }
 
-
+#if WITH_EDITOR
 int32 UMaterialExpressionLandscapeLayerCoords::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	switch (CustomUVType)
@@ -100,6 +100,11 @@ void UMaterialExpressionLandscapeLayerCoords::GetCaption(TArray<FString>& OutCap
 {
 	OutCaptions.Add(FString(TEXT("LandscapeCoords")));
 }
+#endif // WITH_EDITOR
 
+bool UMaterialExpressionLandscapeLayerCoords::NeedsLoadForClient() const
+{
+	return true;
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -1711,5 +1711,7 @@ ENGINE_API int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Comp
  */
 ENGINE_API FString GetNameOfMaterialProperty(EMaterialProperty Property);
 
+#if WITH_EDITORONLY_DATA
 /** TODO - This can be removed whenever VER_UE4_MATERIAL_ATTRIBUTES_REORDERING is no longer relevant. */
 ENGINE_API void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver);
+#endif // WITH_EDITORONLY_DATA

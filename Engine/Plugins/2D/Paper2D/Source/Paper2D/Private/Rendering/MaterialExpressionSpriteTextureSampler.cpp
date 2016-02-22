@@ -16,6 +16,7 @@ UMaterialExpressionSpriteTextureSampler::UMaterialExpressionSpriteTextureSampler
 	AdditionalSlotIndex = 0;
 }
 
+#if WITH_EDITOR
 void UMaterialExpressionSpriteTextureSampler::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Paper2D Sprite"));
@@ -38,7 +39,6 @@ void UMaterialExpressionSpriteTextureSampler::GetCaption(TArray<FString>& OutCap
 	}
 }
 
-#if WITH_EDITOR
 FText UMaterialExpressionSpriteTextureSampler::GetKeywords() const
 {
 	FText ParentKeywords = Super::GetKeywords();

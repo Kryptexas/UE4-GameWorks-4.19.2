@@ -480,6 +480,7 @@ public:
 		LightmassSettings.ExportResolutionScale = InExportResolutionScale;
 	}
 
+#if WITH_EDITOR
 	/**
 	 *	Get all of the textures in the expression chain for the given property (ie fill in the given array with all textures in the chain).
 	 *
@@ -492,6 +493,7 @@ public:
 	 */
 	virtual bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,  TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet)
 		PURE_VIRTUAL(UMaterialInterface::GetTexturesInPropertyChain,return false;);
+#endif
 
 	ENGINE_API virtual bool GetParameterDesc(FName ParameterName, FString& OutDesc) const;
 	ENGINE_API virtual bool GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue, int32& OutFontPage) const;
@@ -560,11 +562,13 @@ public:
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
 
+#if WITH_EDITOR
 	/** Compiles a material property. */
 	ENGINE_API int32 CompileProperty(FMaterialCompiler* Compiler, EMaterialProperty Property);
 
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property );
+#endif // WITH_EDITOR
 
 	/** Get bitfield indicating which feature levels should be compiled by default */
 	ENGINE_API static uint32 GetFeatureLevelsToCompileForAllMaterials() { return FeatureLevelsForAllMaterials | (1 << GMaxRHIFeatureLevel); }

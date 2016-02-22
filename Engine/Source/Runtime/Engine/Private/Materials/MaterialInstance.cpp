@@ -2294,6 +2294,7 @@ float UMaterialInstance::GetExportResolutionScale() const
 	return 1.0f;
 }
 
+#if WITH_EDITOR
 bool UMaterialInstance::GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,  
 	TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet)
 {
@@ -2325,6 +2326,7 @@ bool UMaterialInstance::GetTexturesInPropertyChain(EMaterialProperty InProperty,
 	}
 	return false;
 }
+#endif // WITH_EDITOR
 
 SIZE_T UMaterialInstance::GetResourceSize(EResourceSizeMode::Type Mode)
 {
@@ -2647,10 +2649,12 @@ bool UMaterialInstance::IsPropertyActive(EMaterialProperty InProperty) const
 	return true;
 }
 
+#if WITH_EDITOR
 int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property )
 {
 	return Parent ? Parent->CompilePropertyEx(Compiler, Property) : INDEX_NONE;
 }
+#endif // WITH_EDITOR
 
 const FStaticParameterSet& UMaterialInstance::GetStaticParameters() const
 {
