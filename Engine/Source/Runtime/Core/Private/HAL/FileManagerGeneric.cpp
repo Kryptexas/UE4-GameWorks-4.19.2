@@ -310,21 +310,29 @@ bool FFileManagerGeneric::Move( const TCHAR* Dest, const TCHAR* Src, bool Replac
 		{
 			return false;
 		}
-		// If the move failed, throw a warning but retry before we throw an error
-		UE_LOG( LogFileManager, Warning, TEXT( "MoveFile was unable to move '%s' to '%s', retrying in .5s..." ), Src, Dest );
 
-		// Wait just a little bit( i.e. a totally arbitrary amount )...
-		FPlatformProcess::Sleep( 0.5f );
+		int32 RetryCount = 10;
+		bool bSuccess = false;
+		while (RetryCount--)
+		{
+			// If the move failed, throw a warning but retry before we throw an error
+			UE_LOG(LogFileManager, Warning, TEXT("MoveFile was unable to move '%s' to '%s', retrying in .5s..."), Src, Dest);
 
-		// Try again
-		if( !GetLowLevel().MoveFile( Dest, Src ) )
+			// Wait just a little bit( i.e. a totally arbitrary amount )...
+			FPlatformProcess::Sleep(0.5f);
+
+			// Try again
+			bSuccess = GetLowLevel().MoveFile(Dest, Src);
+			if (bSuccess)
+			{
+				UE_LOG(LogFileManager, Warning, TEXT("MoveFile recovered during retry!"));
+				break;
+			}
+		}
+		if (!bSuccess)
 		{
 			UE_LOG( LogFileManager, Error, TEXT( "Error moving file '%s' to '%s'." ), Src, Dest );
 			return false;
-		}
-		else
-		{
-			UE_LOG( LogFileManager, Warning, TEXT( "MoveFile recovered during retry!" ) );
 		}
 	}
 	return true;
