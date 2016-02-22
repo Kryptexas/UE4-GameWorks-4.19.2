@@ -333,11 +333,13 @@ partial class GUBP
     public class ToolsForCompileNode : CompileNode
     {
 		bool bHasLauncherParam;
+		bool bNoInstalledEngine;
 
         public ToolsForCompileNode(GUBP.GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, bool bInHasLauncherParam)
             : base(InBranchConfig, InHostPlatform, false)
         {
 			bHasLauncherParam = bInHasLauncherParam;
+			bNoInstalledEngine = InBranchConfig.BranchOptions.bNoInstalledEngine;
 
 			if (InHostPlatform != UnrealTargetPlatform.Win64)
             {
@@ -396,7 +398,7 @@ partial class GUBP
             }
             string AddArgs = "-CopyAppBundleBackToDevice";
 
-            Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
+            Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs + (bNoInstalledEngine? "" : " -precompile"));
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
 				Agenda.AddTargets(new string[] { "ParallelExecutor" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);

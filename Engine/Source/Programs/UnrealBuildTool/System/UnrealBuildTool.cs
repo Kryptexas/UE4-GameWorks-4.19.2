@@ -1996,7 +1996,10 @@ namespace UnrealBuildTool
 								// clean up any stale modules
 								foreach (UEBuildTarget Target in Targets)
 								{
-									Target.CleanStaleModules();
+									if (Target.OnlyModules == null || Target.OnlyModules.Count == 0)
+									{
+										Target.CleanStaleModules();
+									}
 								}
 							}
 
