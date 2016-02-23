@@ -1109,7 +1109,11 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 		{
 			DrawDebugTrackingCameraFrustum(GWorld, Canvas->SceneView->ViewRotation, Canvas->SceneView->ViewLocation);
 		}
-		DrawSeaOfCubes(GWorld, Canvas->SceneView->ViewLocation);
+
+		if(Canvas && Canvas->SceneView)
+		{
+			DrawSeaOfCubes(GWorld, Canvas->SceneView->ViewLocation);
+		}
 	}
 
 #endif // #if !UE_BUILD_SHIPPING
