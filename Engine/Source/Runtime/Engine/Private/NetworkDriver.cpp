@@ -2034,7 +2034,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			check( World == OwningActor->GetWorld() );
 			if( !bNetRelevantActorCount )
 			{
-				NetRelevantActorCount = World->GetNetRelevantActorCount() + 2;
+				NetRelevantActorCount = World->NetworkActors.Num() + 2;
 				bNetRelevantActorCount = true;
 			}
 			bFoundReadyConnection = true;
@@ -2361,7 +2361,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				// Make list of all actors to consider.
 				check(World == Connection->OwningActor->GetWorld());
 				
-				NetRelevantCount = World->GetNetRelevantActorCount() + DestroyedStartupOrDormantActors.Num();
+				NetRelevantCount = World->NetworkActors.Num() + DestroyedStartupOrDormantActors.Num();
 				PriorityList = new(FMemStack::Get(),NetRelevantCount+2)FActorPriority;
 				PriorityActors = new(FMemStack::Get(),NetRelevantCount+2)FActorPriority*;
 
