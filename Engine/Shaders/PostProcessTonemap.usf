@@ -28,6 +28,10 @@ float2 TonemapperParams;
 // Fine film grain
 float3 GrainRandomFull;
 float3 GrainScaleBiasJitter;
+#if EYEADAPTATION_EXPOSURE_FIX != 1
+// Default value used when eye adaption is not avalible
+float DefaultEyeExposure;
+#endif
 
 half GrainFromUV(float2 GrainUV) 
 {
@@ -105,12 +109,12 @@ void MainVS(
 {
 	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord);
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+#if EYEADAPTATION_EXPOSURE_FIX == 1
 	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
 	OutExposureScaleVignette.x = EyeAdaptation.Load(int3(0, 0, 0)).r;
 #else
-	// Eye adaptation is not yet supported
-	OutExposureScaleVignette.x = 1.0f;
+	// Eye adaptation is not yet supported, use the default value.
+	OutExposureScaleVignette.x = DefaultEyeExposure;
 #endif
 
 	// Scale vignette to always be a circle with consistent corner intensity.
@@ -279,10 +283,6 @@ void MainPS(
 			float4 CombinedBloom = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
 			float3 BloomDirtMaskColor = Texture2DSample(BloomDirtMask.Mask, BloomDirtMask.MaskSampler, SvPositionToViewportUV(SvPosition)).rgb * BloomDirtMask.Tint.rgb; 
 			LinearColor += CombinedBloom.rgb * (ColorScale1.rgb + BloomDirtMaskColor); 
-		#endif
-
-		#if NO_EYEADAPTATION_EXPOSURE_FIX
-			ExposureScale = BloomDirtMask.Tint.w;
 		#endif
 
 		LinearColor *= ExposureScale;
