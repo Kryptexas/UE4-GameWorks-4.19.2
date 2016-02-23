@@ -130,7 +130,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	else if(GRHIAdapterName.Contains("Intel"))
 	{
 		GSupportsVolumeTextureRendering = true;
-		bSupportsPointLights = false;
+		bSupportsPointLights = (FPlatformMisc::MacOSXVersionCompare(10,11,4) >= 0);
 		GRHIVendorId = 0x8086;
 	}
 	
