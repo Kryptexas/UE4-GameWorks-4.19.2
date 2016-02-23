@@ -645,6 +645,11 @@ public:
 	bool HasFocusedDescendants() const;
 
 	/**
+	 * @return whether or not any users have this widget focused, or any descendant focused.
+	 */
+	bool HasAnyUserFocusOrFocusedDescendants() const;
+
+	/**
 	 * Checks to see if this widget is the current mouse captor
 	 *
 	 * @return  True if this widget has captured the mouse

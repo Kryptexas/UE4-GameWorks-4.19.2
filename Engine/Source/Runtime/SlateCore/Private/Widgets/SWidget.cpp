@@ -448,6 +448,11 @@ bool SWidget::HasFocusedDescendants() const
 	return FSlateApplicationBase::Get().HasFocusedDescendants(SharedThis(this));
 }
 
+bool SWidget::HasAnyUserFocusOrFocusedDescendants() const
+{
+	return HasAnyUserFocus().IsSet() || HasFocusedDescendants();
+}
+
 const FSlateBrush* SWidget::GetFocusBrush() const
 {
 	return FCoreStyle::Get().GetBrush("FocusRectangle");
