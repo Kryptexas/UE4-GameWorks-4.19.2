@@ -236,7 +236,7 @@ static void RenameVariableReferencesInGraph(UBlueprint* InBlueprint, UClass* InV
 
 		if(UK2Node_ComponentBoundEvent* const ComponentBoundEventNode = Cast<UK2Node_ComponentBoundEvent>(GraphNode))
 		{
-			if(InOldVarName == ComponentBoundEventNode->ComponentPropertyName)
+			if( InOldVarName == ComponentBoundEventNode->ComponentPropertyName && InVariableClass->IsChildOf(InBlueprint->GeneratedClass) )
 			{
 				ComponentBoundEventNode->Modify();
 				ComponentBoundEventNode->ComponentPropertyName = InNewVarName;
