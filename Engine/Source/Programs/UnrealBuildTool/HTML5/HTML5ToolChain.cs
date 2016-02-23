@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 			}
 
 			// set some environment variable we'll need
-			//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
+//			Environment.SetEnvironmentVariable("EMCC_DEBUG", "1");
 			Environment.SetEnvironmentVariable("EMCC_CORES", "8");
 			Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 		}
@@ -44,7 +44,7 @@ namespace UnrealBuildTool
 		{
 			string Result = " ";
 
-			if (Architecture == "-win32")
+            if (Architecture == "-win32") // simulator
 			{
 				return Result;
 			}
@@ -106,7 +106,7 @@ namespace UnrealBuildTool
 		{
 			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture, CompileEnvironment.Config.bEnableShadowVariableWarning);
 
-			if (CompileEnvironment.Config.Target.Architecture != "-win32")
+            if (CompileEnvironment.Config.Target.Architecture != "-win32")  // ! simulator
 			{
 				// do we want debug info?
 				/*			if (CompileEnvironment.Config.bCreateDebugInfo)
@@ -117,37 +117,37 @@ namespace UnrealBuildTool
 //				Result += " -Wno-warn-absolute-paths "; // as of emscripten 1.35.0 complains that this is unknown
 				Result += " -Wno-reorder"; // we disable constructor order warnings.
 
-				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
-				{
-					Result += " -O0";
-				}
 				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
-					Result += " -s GL_ASSERTIONS=1 ";
-				}
-				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
-				{
-					if (UEBuildConfiguration.bCompileForSize)
-					{
-						Result += " -Oz -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
-					}
-					else
-					{
-						Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-					}
-				}
-				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
-				{
-					if (UEBuildConfiguration.bCompileForSize)
-					{
-						Result += " -Oz -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
-					}
-					else
-					{
-						Result += " -O3 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-					}
+					Result += " -s GL_ASSERTIONS=1";
 				}
 
+                if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+                {
+                    Result += " -O0";
+                }
+                else // development & shipiing
+                {
+                    Result += " -s ASM_JS=1";
+
+                    if (UEBuildConfiguration.bCompileForSize)
+				    {
+					    Result += " -Oz -s OUTLINING_LIMIT=40000";
+				    }
+                    else
+                    {
+                        Result += " -s OUTLINING_LIMIT=110000";
+
+                        if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
+                        {
+                            Result += " -O2";
+                        }
+                        if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
+                        {
+                            Result += " -O3";
+                        }
+                    }
+                }
 			}
 
 			return Result;
@@ -157,7 +157,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (CompileEnvironment.Config.Target.Architecture != "-win32")
+            if (CompileEnvironment.Config.Target.Architecture != "-win32") // ! simulator
 			{
 				Result = " -std=c++11";
 			}
@@ -175,7 +175,7 @@ namespace UnrealBuildTool
 		{
 			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture, false);
 
-			if (LinkEnvironment.Config.Target.Architecture != "-win32")
+            if (LinkEnvironment.Config.Target.Architecture != "-win32") // ! simulator
 			{
 				// suppress link time warnings
 				Result += " -Wno-ignored-attributes"; // function alias that always gets resolved
@@ -185,10 +185,10 @@ namespace UnrealBuildTool
 				// enable verbose mode
 				Result += " -v";
 
-				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug || LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
 					// check for alignment/etc checking
-					//Result += " -s SAFE_HEAP=1";
+//					Result += " -s SAFE_HEAP=1";
 					//Result += " -s CHECK_HEAP_ALIGN=1";
 					//Result += " -s SAFE_DYNCALLS=1";
 
@@ -200,18 +200,28 @@ namespace UnrealBuildTool
 				{
 					Result += " -O0";
 				}
-				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug || LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
-				{
-					Result += " -s GL_ASSERTIONS=1 ";
-				}
-				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
-				{
-					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000 ";
-				}
-				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
-				{
-					Result += " -O3 -s ASM_JS=1 -s OUTLINING_LIMIT=40000";
-				}
+                else // development & shipping
+                {
+                    Result += " -s ASM_JS=1";
+
+                    if (UEBuildConfiguration.bCompileForSize)
+                    {
+                        Result += " -Oz -s OUTLINING_LIMIT=40000";
+                    }
+                    else
+                    {
+                        Result += " -s OUTLINING_LIMIT=110000";
+
+                        if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
+                        {
+                            Result += " -O2";
+                        }
+                        if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
+                        {
+                            Result += " -O3";
+                        }
+                    }
+                }
 
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
 			}
@@ -223,7 +233,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (LinkEnvironment.Config.Target.Architecture == "-win32")
+            if (LinkEnvironment.Config.Target.Architecture == "-win32") // simulator
 			{
 				// Prevents the linker from displaying its logo for each invocation.
 				Result += " /NOLOGO";
@@ -302,7 +312,7 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			if (CompileEnvironment.Config.Target.Architecture == "-win32")
+            if (CompileEnvironment.Config.Target.Architecture == "-win32") // simulator
 			{
 				return base.CompileCPPFiles(Target, CompileEnvironment, SourceFiles, ModuleName);
 			}
@@ -397,7 +407,7 @@ namespace UnrealBuildTool
 		{
 			CPPOutput Result = new CPPOutput();
 
-			if (Environment.Config.Target.Architecture == "-win32")
+            if (Environment.Config.Target.Architecture == "-win32") // simulator
 			{
 				return base.CompileRCFiles(Target, Environment, RCFiles);
 			}
@@ -461,7 +471,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			if (LinkEnvironment.Config.Target.Architecture == "-win32")
+            if (LinkEnvironment.Config.Target.Architecture == "-win32") // simulator
 			{
 				return base.LinkFiles(LinkEnvironment, bBuildImportLibraryOnly);
 			}

@@ -20,7 +20,8 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 
 	if ((TranslucenyPassType == TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
 	{
-		bSetupTranslucentState = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bFirstTimeThisFrame);
+		const bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
+		bSetupTranslucentState = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bNeedsClear);
 	}
 	else
 	{

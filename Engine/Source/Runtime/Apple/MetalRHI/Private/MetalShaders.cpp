@@ -523,8 +523,8 @@ void FMetalShaderParameterCache::CommitPackedGlobals(FMetalContext* Context, int
 			}
 */
 			// allocate memory in the ring buffer
-			id<MTLBuffer> RingBuffer = Context->GetRingBuffer();
 			uint32 Offset = Context->AllocateFromRingBuffer(TotalSize);
+			id<MTLBuffer> RingBuffer = Context->GetRingBuffer();
 /*
 			// copy into the middle of the ring buffer
 			if (UniformBufferIndex == CrossCompiler::PACKED_TYPEINDEX_MEDIUMP)

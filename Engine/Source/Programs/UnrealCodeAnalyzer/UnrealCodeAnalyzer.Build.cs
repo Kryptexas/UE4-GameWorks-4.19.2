@@ -29,5 +29,7 @@ public class UnrealCodeAnalyzer : ModuleRules
 		});
 
 		SharedPCHHeaderFile = "Programs/UnrealCodeAnalyzer/Public/UnrealCodeAnalyzerPCH.h";
+
+		PrecompileForTargets = PrecompileTargetsType.Any;
 	}
 }

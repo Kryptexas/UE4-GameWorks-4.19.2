@@ -97,8 +97,8 @@ public:
 							UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject);
 							ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
 
-							TArray<UObject*> OutDefaultOuters;
-							GetObjectsWithOuter(NewEditInlineSubobject, OutDefaultOuters, false);
+							// Patch the linker table with the new instance.
+							FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(Obj, NewEditInlineSubobject);
 
 							// We also need to make sure to fixup any properties here
 							DuplicatedObjects.Add(NewEditInlineSubobject);

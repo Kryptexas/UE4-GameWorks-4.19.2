@@ -6,6 +6,7 @@
 #include "hlslcc.h"
 #include "hlslcc_private.h"
 #include "MetalBackend.h"
+#include "MetalUtils.h"
 #include "compiler.h"
 
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS

@@ -46,13 +46,14 @@ public:
 private:
 
 	FReply OnClicked();
-	EActiveTimerReturnType ActiveTick(double InCurrentTime, float InDeltaTime);
 
 	EVisibility GetEscapeTextVisibility() const;
 
 	FSlateColor GetDropperImageColor() const;
 
 	bool IsMouseOver(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
+
+	void OnPreTick(float DeltaTime);
 
 private:
 

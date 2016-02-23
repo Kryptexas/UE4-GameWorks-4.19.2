@@ -62,7 +62,7 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
     CaptureComponent->bCaptureEveryFrame = false;
     CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
-    CaptureComponent->TextureTarget = NewObject<UTextureRenderTarget2D>(this);
+    CaptureComponent->TextureTarget = NewObject<UTextureRenderTarget2D>(this, TEXT("SceneCaptureTextureTarget"));
     //TODO: ikrimae: Not sure why the render target needs to be float to avoid banding. Seems like captures to this RT and then applies PP
     //               on top of it which causes degredation.
     CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_A16B16G16R16, false);

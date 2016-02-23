@@ -456,7 +456,7 @@ TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem I
 
 void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCategory)
 {
-	const FScopedTransaction Transaction( LOCTEXT("ChangeParam", "Change Paramater Type") );
+	const FScopedTransaction Transaction( LOCTEXT("ChangeParam", "Change Parameter Type") );
 
 	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
 	//Call delegate in order to notify pin type change is about to happen

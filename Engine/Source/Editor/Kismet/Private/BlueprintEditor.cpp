@@ -7560,6 +7560,11 @@ void FBlueprintEditor::OnEditTabClosed(TSharedRef<SDockTab> Tab)
 // Tries to open the specified graph and bring it's document to the front
 TSharedPtr<SGraphEditor> FBlueprintEditor::OpenGraphAndBringToFront(UEdGraph* Graph)
 {
+	if (!Graph || Graph->IsPendingKill())
+	{
+		return TSharedPtr<SGraphEditor>();
+	}
+
 	// First, switch back to standard mode
 	SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
 

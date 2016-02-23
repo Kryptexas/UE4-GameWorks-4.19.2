@@ -718,7 +718,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags )
 : FLinker(ELinkerType::Load, InParent, InFilename)
 , LoadFlags(InLoadFlags)
-, bHaveImportsBeenVerified(false)
 , bDynamicClassLinker(false)
 , Loader(nullptr)
 , AsyncRoot(nullptr)
@@ -739,12 +738,14 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 , IsTimeLimitExceededCallCount(0)
 , TimeLimit(0.0f)
 , TickStartTime(0.0)
+, VerifiedImportCount(0)
 , bFixupExportMapDone(false)
 #if WITH_EDITOR
 , bExportsDuplicatesFixed(false)
 ,	LoadProgressScope( nullptr )
 #endif // WITH_EDITOR
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+,	bForceBlueprintFinalization(false)
 ,	DeferredCDOIndex(INDEX_NONE)
 ,	ResolvingDeferredPlaceholder(nullptr)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
@@ -1884,7 +1885,20 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 //			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
-		if( !(LoadFlags & LOAD_NoVerify))
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		// we can't verify our imports if we're currently deferring dependency
+		// loads (or if we've explicitly requested this linker without it);
+		// with the LOAD_DeferDependencyLoads flag, this is most likely a 
+		// UserDefinedStruct package, which we need to load for some other Blueprint
+		// package (further up the stack), but at that Blueprint's request we 
+		// cannot spider out to load anything else - don't worry though, import
+		// verification happens as needed for CreateImport() during export 
+		// serialization, so it's not like this will be skipped completely (just
+		// deferred)
+		if( !(LoadFlags & (LOAD_NoVerify|LOAD_DeferDependencyLoads)) )
+#else 
+		if ( !(LoadFlags & LOAD_NoVerify) )
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 		{
 			Verify();
 		}
@@ -1974,16 +1988,21 @@ void FLinkerLoad::Verify()
 {
 	if(!FApp::IsGame() || GIsEditor || IsRunningCommandlet())
 	{
-		if (!bHaveImportsBeenVerified)
+		if (!HaveImportsBeenVerified())
 		{
 #if WITH_EDITOR
 			FScopedSlowTask SlowTask(Summary.ImportCount, NSLOCTEXT("Core", "LinkerLoad_Imports", "Loading Imports"), ShouldReportProgress());
 #endif
 			// Validate all imports and map them to their remote linkers.
-			for (int32 ImportIndex = 0; ImportIndex < Summary.ImportCount; ImportIndex++)
+			while (VerifiedImportCount < Summary.ImportCount)
 			{
-				FObjectImport& Import = ImportMap[ImportIndex];
+				// use an incrementing class-scoped counter in order to make 
+				// this function reentrant (so we can continue verifying from
+				// where we last left off, up the callstack)
+				const int32 ImportIndex = VerifiedImportCount;
+				++VerifiedImportCount;
 
+				FObjectImport& Import = ImportMap[ImportIndex];
 #if WITH_EDITOR
 				SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("Core", "LinkerLoad_LoadingImportName", "Loading Import '{0}'"), FText::FromString(Import.ObjectName.ToString())));
 #endif
@@ -1991,7 +2010,6 @@ void FLinkerLoad::Verify()
 			}
 		}
 	}
-	bHaveImportsBeenVerified = true;
 }
 
 FName FLinkerLoad::GetExportClassPackage( int32 i )

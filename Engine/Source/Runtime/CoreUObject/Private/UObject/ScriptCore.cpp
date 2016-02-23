@@ -14,6 +14,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogScriptCore, Log, All);
 
 DECLARE_CYCLE_STAT(TEXT("Blueprint Time"),STAT_BlueprintTime,STATGROUP_Game);
 
+#define LOCTEXT_NAMESPACE "ScriptCore"
 
 /*-----------------------------------------------------------------------------
 	Globals.
@@ -100,7 +101,7 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 		}
 #endif // WITH_EDITOR
 	default:
-		UE_SUPPRESS(LogScript, Warning, const_cast<FFrame*>(&StackFrame)->Logf(TEXT("%s"), *(Info.GetDescription())));
+		UE_SUPPRESS(LogScript, Warning, const_cast<FFrame*>(&StackFrame)->Logf(TEXT("%s"), *(Info.GetDescription().ToString())));
 		break;
 	}
 
@@ -757,8 +758,13 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 			ClearReturnValue(ReturnProp, RESULT_PARAM);
 
 			// Notify anyone who cares that we've had a fatal error, so we can shut down PIE, etc
-			const FString Desc = FString::Printf(TEXT("Infinite script recursion (%i calls) detected"), RECURSE_LIMIT);
-			FBlueprintExceptionInfo InfiniteRecursionExceptionInfo(EBlueprintExceptionType::InfiniteLoop, Desc);
+			FBlueprintExceptionInfo InfiniteRecursionExceptionInfo(
+				EBlueprintExceptionType::InfiniteLoop, 
+				FText::Format(
+					LOCTEXT("InfiniteLoop", "Infinite script recursion ({0} calls) detected - see log for stack trace"), 
+					FText::AsNumber(RECURSE_LIMIT)
+				)
+			);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, InfiniteRecursionExceptionInfo);
 
 			// This flag prevents repeated warnings of infinite loop, script exception handler 
@@ -785,8 +791,13 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 				ClearReturnValue(ReturnProp, RESULT_PARAM);
 
 				// Notify anyone who cares that we've had a fatal error, so we can shut down PIE, etc
-				const FString Desc = FString::Printf(TEXT("Runaway loop detected (over %i iterations)"), GMaximumScriptLoopIterations );
-				FBlueprintExceptionInfo RunawayLoopExceptionInfo(EBlueprintExceptionType::InfiniteLoop, Desc);
+				FBlueprintExceptionInfo RunawayLoopExceptionInfo(
+					EBlueprintExceptionType::InfiniteLoop, 
+					FText::Format(
+						LOCTEXT("RunawayLoop", "Runaway loop detected (over {0} iterations) - see log for stack trace"),
+						FText::AsNumber(GMaximumScriptLoopIterations)
+					)
+				);
 
 				// Need to reset Runaway counter BEFORE throwing script exception, because the exception causes a modal dialog,
 				// and other scripts running will then erroneously think they are also "runaway".
@@ -1196,9 +1207,9 @@ void UObject::execInstanceVariable(FFrame& Stack, RESULT_DECL)
 	UProperty* VarProperty = (UProperty*)Stack.ReadObject();
 	Stack.MostRecentProperty = VarProperty;
 
-	if (VarProperty == nullptr)
+	if (VarProperty == nullptr || !IsA((UClass*)VarProperty->GetOuter()))
 	{
-		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("MissingProperty", "Attempted to access missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
 		Stack.MostRecentPropertyAddress = nullptr;
@@ -1223,23 +1234,23 @@ void UObject::execDefaultVariable(FFrame& Stack, RESULT_DECL)
 	Stack.MostRecentProperty = VarProperty;
 	Stack.MostRecentPropertyAddress = nullptr;
 
-	if(VarProperty == nullptr)
+	UObject* DefaultObject = nullptr;
+	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
-		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access a missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		DefaultObject = this;
+	}
+	else
+	{
+		// @todo - allow access to archetype properties through object references?
+	}
+
+	if (VarProperty == nullptr || (DefaultObject && !DefaultObject->IsA((UClass*)VarProperty->GetOuter())))
+	{
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("MissingPropertyDefaultObject", "Attempted to access a missing property on a CDO. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 	}
 	else
 	{
-		UObject* DefaultObject = nullptr;
-		if(HasAnyFlags(RF_ClassDefaultObject))
-		{
-			DefaultObject = this;
-		}
-		else
-		{
-			// @todo - allow access to archetype properties through object references?
-		}
-
 		if(DefaultObject != nullptr)
 		{
 			Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(DefaultObject);
@@ -1250,7 +1261,7 @@ void UObject::execDefaultVariable(FFrame& Stack, RESULT_DECL)
 		}
 		else
 		{
-			static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access a default property through an invalid or otherwise unsupported context."));
+			FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("AccessNoneDefaultObject", "Accessed None attempting to read a default property"));
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 		}
 	}
@@ -1316,13 +1327,18 @@ void UObject::execClassContext(FFrame& Stack, RESULT_DECL)
 	{
 		if (Stack.MostRecentProperty != NULL)
 		{
-			const FString Desc = FString::Printf(TEXT("Accessed null class context '%s'"), *Stack.MostRecentProperty->GetName());
-			FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, Desc);
+			FBlueprintExceptionInfo ExceptionInfo(
+				EBlueprintExceptionType::AccessViolation, 
+				FText::Format(
+					LOCTEXT("AccessedNoneClass", "Accessed None trying to read Class from property {0}"), 
+					FText::FromString(Stack.MostRecentProperty->GetName())
+				)
+			);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 		}
 		else
 		{
-			static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Accessed null class context"));
+			FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("AccessedNoneClassUnknownProperty", "Accessed None reading a Class"));
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 		}
 
@@ -1376,7 +1392,7 @@ void UObject::execBreakpoint( FFrame& Stack, RESULT_DECL )
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
-		static FBlueprintExceptionInfo BreakpointExceptionInfo(EBlueprintExceptionType::Breakpoint);
+		FBlueprintExceptionInfo BreakpointExceptionInfo(EBlueprintExceptionType::Breakpoint);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, BreakpointExceptionInfo);
 	}
 #endif
@@ -1388,7 +1404,7 @@ void UObject::execTracepoint( FFrame& Stack, RESULT_DECL )
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
-		static FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Tracepoint);
+		FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Tracepoint);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
 	}
 #endif
@@ -1400,7 +1416,7 @@ void UObject::execWireTracepoint( FFrame& Stack, RESULT_DECL )
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor)
 	{
-		static FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::WireTracepoint);
+		FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::WireTracepoint);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
 	}
 #endif
@@ -1416,12 +1432,12 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 	{
 		if (EventType == EScriptInstrumentation::NodeEntry)
 		{
-			static FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Tracepoint);
+			FBlueprintExceptionInfo TracepointExceptionInfo(EBlueprintExceptionType::Tracepoint);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, TracepointExceptionInfo);
 		}
 		else if (EventType == EScriptInstrumentation::NodeExit)
 		{
-			static FBlueprintExceptionInfo WiretraceExceptionInfo(EBlueprintExceptionType::WireTracepoint);
+			FBlueprintExceptionInfo WiretraceExceptionInfo(EBlueprintExceptionType::WireTracepoint);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, WiretraceExceptionInfo);
 		}
 	}
@@ -1599,7 +1615,13 @@ void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 	uint8* IndexAdress = Stack.MostRecentPropertyAddress;
 	if (!ensure(IndexAdress))
 	{
-		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, TEXT("Switch - Unknown index"));
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::NonFatalError, 
+			FText::Format(
+				LOCTEXT("SwitchValueIndex", "Switch statement failed to read property for index value for index property {0}"),
+				FText::FromString(IndexProperty->GetName())
+			)
+		);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 	}
 
@@ -1631,7 +1653,13 @@ void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 	}
 	else
 	{
-		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, TEXT("Switch - Out of bounds index"));
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::NonFatalError, 
+			FText::Format(
+				LOCTEXT("SwitchValueOutOfBounds", "Switch statement failed to match case for index property {0}"),
+				FText::FromString(IndexProperty->GetName())
+			)
+		);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
 		// get default value
@@ -1642,8 +1670,6 @@ IMPLEMENT_VM_FUNCTION(EX_SwitchValue, execSwitchValue);
 
 void UObject::execLet(FFrame& Stack, RESULT_DECL)
 {
-	checkSlow(!dynamic_cast<UBoolProperty*>(this));
-
 	Stack.MostRecentProperty = nullptr;
 	UProperty* LocallyKnownProperty = Stack.ReadPropertyUnchecked();
 
@@ -1655,7 +1681,9 @@ void UObject::execLet(FFrame& Stack, RESULT_DECL)
 	uint8* LocalTempResult = nullptr;
 	if (Stack.MostRecentPropertyAddress == nullptr)
 	{
-		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to assign variable through None"));
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation, 
+			LOCTEXT("LetAccessNone", "Attempted to assign to None"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
 		if (LocallyKnownProperty)
@@ -1689,7 +1717,9 @@ void UObject::execLetObj( FFrame& Stack, RESULT_DECL )
 
 	if (Stack.MostRecentPropertyAddress == NULL)
 	{
-		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to assign variable through None"));
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation, 
+			LOCTEXT("LetObjAccessNone", "Accessed None attempting to assign variable on an object"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 	}
 
@@ -1724,7 +1754,9 @@ void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
 
 	if (Stack.MostRecentPropertyAddress == NULL)
 	{
-		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to assign variable through None"));
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation,
+			LOCTEXT("LetWeakObjAccessNone", "Accessed None attempting to assign variable on a weakly referenced object"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 	}
 
@@ -1883,15 +1915,25 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 		{
 			if (NewContext && NewContext->IsPendingKill())
 			{
-				const FString Desc = FString::Printf(TEXT("Cannot access '%s'. It is pending kill. Property: '%s'")
-					, *GetNameSafe(NewContext), *GetNameSafe(Stack.MostRecentProperty));
-				FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, Desc);
+				FBlueprintExceptionInfo ExceptionInfo(
+					EBlueprintExceptionType::AccessViolation, 
+					FText::Format(
+						LOCTEXT("AccessPendingKill", "Attempted to access {0} via property {1}, but {0} is pending kill"),
+						FText::FromString( GetNameSafe(NewContext) ), 
+						FText::FromString( GetNameSafe(Stack.MostRecentProperty) )
+					)
+				);
 				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 			}
 			else if (Stack.MostRecentProperty != NULL)
 			{
-				const FString Desc = FString::Printf(TEXT("Accessed None '%s'"), *Stack.MostRecentProperty->GetName());
-				FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, Desc);
+				FBlueprintExceptionInfo ExceptionInfo(
+					EBlueprintExceptionType::AccessViolation, 
+					FText::Format( 
+						LOCTEXT("AccessNoneContext", "Accessed None trying to read property {0}"), 
+						FText::FromString( Stack.MostRecentProperty->GetName() )
+					)
+				);
 				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 			}
 			else
@@ -1900,7 +1942,10 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 				//   1. the context expression was a function call which returned an object
 				//   2. the context expression was a literal object reference
 				//   3. the context expression was an instance variable that no longer exists (it was editor-only, etc.)
-				static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Accessed None"));
+				FBlueprintExceptionInfo ExceptionInfo(
+					EBlueprintExceptionType::AccessViolation, 
+					LOCTEXT("AccessNoneNoContext", "Accessed None")
+				);
 				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 			}
 		}
@@ -1945,7 +1990,13 @@ void UObject::execStructMemberContext(FFrame& Stack, RESULT_DECL)
 	else
 	{
 		// Access none
-		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Struct expression was None"));
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation, 
+			FText::Format(
+				LOCTEXT("AccessNoneStructure", "Accessed None reading structure {0}"),
+				FText::FromString(StructProperty->GetName())
+			)
+		);
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
 		Stack.MostRecentPropertyAddress = NULL;
@@ -2496,3 +2547,4 @@ void UObject::execInterfaceToObject(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION( EX_InterfaceToObjCast, execInterfaceToObject );
 
+#undef LOCTEXT_NAMESPACE

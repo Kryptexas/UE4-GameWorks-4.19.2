@@ -60,6 +60,4 @@ private:
 
 	/** Did the purchase succeed? */
 	EInAppPurchaseState::Type SavedPurchaseState;
-
-	FTimerHandle OnInAppPurchaseComplete_DelayedTimerHandle;
 };

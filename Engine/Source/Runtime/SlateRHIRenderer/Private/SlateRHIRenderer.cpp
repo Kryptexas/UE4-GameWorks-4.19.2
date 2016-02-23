@@ -1221,6 +1221,8 @@ void FSlateRHIRenderer::InvalidateAllViewports()
 
 void FSlateRHIRenderer::ReleaseAccessedResources(bool bImmediatelyFlush)
 {
+	FScopeLock ScopeLock(GetResourceCriticalSection());
+
 	// Clear accessed UTexture and Material objects from the previous frame
 	ResourceManager->BeginReleasingAccessedResources(bImmediatelyFlush);
 

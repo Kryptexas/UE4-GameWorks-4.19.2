@@ -49,7 +49,7 @@ const static int InscatterNuNum = 8;
 
 #define TRANSMITTANCE_NON_LINEAR			1
 #define INSCATTER_NON_LINEAR				1
-#define ATMOSPHERIC_TEXTURE_SAMPLE_FIX		1
+#define ATMOSPHERIC_TEXTURE_SAMPLE_FIX		(!COMPILER_METAL || !MAC) // @todo AMD & Intel's Metal shader compilers apply overly aggressive optimisations to this path & thus generate NaN when they shouldn't. They'll need to fix this in a subsequent version of OS X.
 
 #ifndef ATMOSPHERIC_NO_SUN_DISK
 #define	ATMOSPHERIC_NO_SUN_DISK				0

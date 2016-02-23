@@ -1095,8 +1095,8 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		FLinkerLoad* SuperLinker = SuperClass->GetLinker();
 		if ((SuperLinker != nullptr) && SuperLinker->IsBlueprintFinalizationPending())
 		{
-			DEFERRED_DEPENDENCY_CHECK(SuperLinker->DeferredCDOIndex != INDEX_NONE);
-			UObject* SuperCDO = SuperLinker->ExportMap[SuperLinker->DeferredCDOIndex].Object;
+			DEFERRED_DEPENDENCY_CHECK(SuperLinker->DeferredCDOIndex != INDEX_NONE || SuperLinker->bForceBlueprintFinalization);
+			UObject* SuperCDO = SuperLinker->DeferredCDOIndex != INDEX_NONE ? SuperLinker->ExportMap[SuperLinker->DeferredCDOIndex].Object : SuperClass->ClassDefaultObject;
 			// we MUST have the super fully serialized before we can finalize  
 			// this (class and CDO); if the SuperCDO is already in the midst of 
 			// serializing somewhere up the stack (and a cyclic dependency has  
@@ -1144,8 +1144,11 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// some nested call
 	if (IsBlueprintFinalizationPending())
 	{
-		FObjectExport& CDOExport = ExportMap[DeferredCDOIndex];
-		// clear this so IsBlueprintFinalizationPending() doesn't report true
+		int32 DeferredCDOIndexCopy = DeferredCDOIndex;
+		UObject* CDO = DeferredCDOIndex != INDEX_NONE ? ExportMap[DeferredCDOIndexCopy].Object : LoadClass->ClassDefaultObject;
+		// clear this so IsBlueprintFinalizationPending() doesn't report true:
+		FLinkerLoad::bForceBlueprintFinalization = false;
+		// clear this because we're processing this CDO now:
 		DeferredCDOIndex = INDEX_NONE;
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -1166,7 +1169,7 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		}
 		DEFERRED_DEPENDENCY_CHECK(ClassInstances.Num() == 0);
 
-		UClass* BlueprintClass = Cast<UClass>(IndexToObject(CDOExport.ClassIndex));
+		UClass* BlueprintClass = DeferredCDOIndexCopy != INDEX_NONE ? Cast<UClass>(IndexToObject(ExportMap[DeferredCDOIndexCopy].ClassIndex)) : LoadClass;
 		DEFERRED_DEPENDENCY_CHECK(BlueprintClass == LoadClass);
 		DEFERRED_DEPENDENCY_CHECK(BlueprintClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -1185,7 +1188,7 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		if (!LoadClass->bCooked)
 		{
 			UObject* OldCDO = LoadClass->ClassDefaultObject;
-			if (RegenerateBlueprintClass(LoadClass, CDOExport.Object))
+			if (RegenerateBlueprintClass(LoadClass, CDO))
 			{
 				// emulate class CDO serialization (RegenerateBlueprintClass() could 
 				// have a side-effect where it overwrites the class's CDO; so we 
@@ -1193,7 +1196,7 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 				// stale one)
 				if (OldCDO == LoadClass->ClassDefaultObject)
 				{
-					LoadClass->ClassDefaultObject = CDOExport.Object;
+					LoadClass->ClassDefaultObject = CDO;
 				}
 			}
 		}
@@ -1209,10 +1212,9 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		return;
 	}
 
-	DEFERRED_DEPENDENCY_CHECK(DeferredCDOIndex != INDEX_NONE);
-	FObjectExport& CDOExport = ExportMap[DeferredCDOIndex];
+	DEFERRED_DEPENDENCY_CHECK(DeferredCDOIndex != INDEX_NONE || bForceBlueprintFinalization);
 
-	UObject* BlueprintCDO = CDOExport.Object;
+	UObject* BlueprintCDO = DeferredCDOIndex != INDEX_NONE ? ExportMap[DeferredCDOIndex].Object : LoadClass->ClassDefaultObject;
 	DEFERRED_DEPENDENCY_CHECK(BlueprintCDO != nullptr);
 
 	if (!FBlueprintSupport::IsDeferredExportCreationDisabled())
@@ -1317,10 +1319,13 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		// have to prematurely set the CDO's linker so we can force a Preload()/
 		// Serialization of the CDO before we regenerate the Blueprint class
 		{
-			const EObjectFlags OldFlags = BlueprintCDO->GetFlags();
-			BlueprintCDO->ClearFlags(RF_NeedLoad | RF_NeedPostLoad);
-			BlueprintCDO->SetLinker(this, DeferredCDOIndex, /*bShouldDetatchExisting =*/false);
-			BlueprintCDO->SetFlags(OldFlags);
+			if (DeferredCDOIndex != INDEX_NONE)
+			{
+				const EObjectFlags OldFlags = BlueprintCDO->GetFlags();
+				BlueprintCDO->ClearFlags(RF_NeedLoad | RF_NeedPostLoad);
+				BlueprintCDO->SetLinker(this, DeferredCDOIndex, /*bShouldDetatchExisting =*/false);
+				BlueprintCDO->SetFlags(OldFlags);
+			}
 		}
 		DEFERRED_DEPENDENCY_CHECK(BlueprintCDO->GetClass() == LoadClass);
 
@@ -1369,10 +1374,18 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
+void FLinkerLoad::ForceBlueprintFinalization()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	check(!bForceBlueprintFinalization);
+	bForceBlueprintFinalization = true;
+#endif
+}
+
 bool FLinkerLoad::IsBlueprintFinalizationPending() const
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	return (DeferredCDOIndex != INDEX_NONE);
+	return bForceBlueprintFinalization || (DeferredCDOIndex != INDEX_NONE);
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	return false;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
@@ -1446,6 +1459,7 @@ void FLinkerLoad::ResetDeferredLoadingState()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	DeferredCDOIndex = INDEX_NONE;
+	bForceBlueprintFinalization = false;
 	ResolvingDeferredPlaceholder = nullptr;
 	LoadFlags &= ~(LOAD_DeferDependencyLoads);
 

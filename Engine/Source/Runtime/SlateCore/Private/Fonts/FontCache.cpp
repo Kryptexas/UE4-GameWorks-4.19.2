@@ -1206,6 +1206,11 @@ void FSlateFontCache::FlushObject( const UObject* const InObject )
 	}
 }
 
+void FSlateFontCache::FlushCompositeFont(const FCompositeFont& InCompositeFont)
+{
+	CompositeFontCache->FlushCompositeFont(InCompositeFont);
+}
+
 bool FSlateFontCache::ConditionalFlushCache()
 {
 	bool bFlushed = false;

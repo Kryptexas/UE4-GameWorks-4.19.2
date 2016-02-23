@@ -559,6 +559,8 @@ bool FFileHelper::LoadANSITextFileToStrings(const TCHAR* InFilename, IFileManage
 bool FCommandLine::bIsInitialized = false;
 TCHAR FCommandLine::CmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
 TCHAR FCommandLine::OriginalCmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
+TCHAR FCommandLine::LoggingCmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
+TCHAR FCommandLine::LoggingOriginalCmdLine[FCommandLine::MaxCommandLineSize] = TEXT("");
 FString FCommandLine::SubprocessCommandLine(TEXT(" -Multiprocess"));
 
 bool FCommandLine::IsInitialized()
@@ -572,20 +574,34 @@ const TCHAR* FCommandLine::Get()
 	return CmdLine;
 }
 
+const TCHAR* FCommandLine::GetForLogging()
+{
+	UE_CLOG(!bIsInitialized, LogInit, Fatal, TEXT("Attempting to get the command line but it hasn't been initialized yet."));
+	return LoggingCmdLine;
+}
+
 const TCHAR* FCommandLine::GetOriginal()
 {
 	UE_CLOG(!bIsInitialized, LogInit, Fatal, TEXT("Attempting to get the command line but it hasn't been initialized yet."));
 	return OriginalCmdLine;
 }
 
+const TCHAR* FCommandLine::GetOriginalForLogging()
+{
+	UE_CLOG(!bIsInitialized, LogInit, Fatal, TEXT("Attempting to get the command line but it hasn't been initialized yet."));
+	return LoggingOriginalCmdLine;
+}
+
 bool FCommandLine::Set(const TCHAR* NewCommandLine)
 {
 	if (!bIsInitialized)
 	{
-		FCString::Strncpy(OriginalCmdLine, NewCommandLine, ARRAY_COUNT(CmdLine));
+		FCString::Strncpy(OriginalCmdLine, NewCommandLine, ARRAY_COUNT(OriginalCmdLine));
+		FCString::Strncpy(LoggingOriginalCmdLine, NewCommandLine, ARRAY_COUNT(LoggingOriginalCmdLine));
 	}
 
 	FCString::Strncpy( CmdLine, NewCommandLine, ARRAY_COUNT(CmdLine) );
+	FCString::Strncpy(LoggingCmdLine, NewCommandLine, ARRAY_COUNT(LoggingCmdLine));
 	// If configured as part of the build, strip out any unapproved args
 	WhitelistCommandLines();
 
@@ -615,6 +631,7 @@ void FCommandLine::Append(const TCHAR* AppendString)
 
 #if WANTS_COMMANDLINE_WHITELIST
 TArray<FString> FCommandLine::ApprovedArgs;
+TArray<FString> FCommandLine::FilterArgsForLogging;
 
 #ifdef OVERRIDE_COMMANDLINE_WHITELIST
 /**
@@ -630,6 +647,19 @@ const TCHAR* OverrideList = TEXT(OVERRIDE_COMMANDLINE_WHITELIST);
 const TCHAR* OverrideList = TEXT("-fullscreen /windowed");
 #endif
 
+#ifdef FILTER_COMMANDLINE_LOGGING
+/**
+* When overriding this setting make sure that your define looks like the following in your .cs file:
+*
+*		OutCPPEnvironmentConfiguration.Definitions.Add("FILTER_COMMANDLINE_LOGGING=\"-arg1 -arg2 -arg3 -arg4\"");
+*
+* The important part is the \" as they quotes get stripped off by the compiler without them
+*/
+const TCHAR* FilterForLoggingList = TEXT(FILTER_COMMANDLINE_LOGGING);
+#else
+const TCHAR* FilterForLoggingList = TEXT("");
+#endif
+
 void FCommandLine::WhitelistCommandLines()
 {
 	if (ApprovedArgs.Num() == 0)
@@ -637,12 +667,23 @@ void FCommandLine::WhitelistCommandLines()
 		TArray<FString> Ignored;
 		FCommandLine::Parse(OverrideList, ApprovedArgs, Ignored);
 	}
+	if (FilterArgsForLogging.Num() == 0)
+	{
+		TArray<FString> Ignored;
+		FCommandLine::Parse(FilterForLoggingList, FilterArgsForLogging, Ignored);
+	}
 	// Process the original command line
 	TArray<FString> OriginalList = FilterCommandLine(OriginalCmdLine);
 	BuildWhitelistCommandLine(OriginalCmdLine, ARRAY_COUNT(OriginalCmdLine), OriginalList);
 	// Process the current command line
 	TArray<FString> CmdList = FilterCommandLine(CmdLine);
 	BuildWhitelistCommandLine(CmdLine, ARRAY_COUNT(CmdLine), CmdList);
+	// Process the command line for logging purposes
+	TArray<FString> LoggingCmdList = FilterCommandLineForLogging(LoggingCmdLine);
+	BuildWhitelistCommandLine(LoggingCmdLine, ARRAY_COUNT(LoggingCmdLine), LoggingCmdList);
+	// Process the original command line for logging purposes
+	TArray<FString> LoggingOriginalCmdList = FilterCommandLineForLogging(LoggingOriginalCmdLine);
+	BuildWhitelistCommandLine(LoggingOriginalCmdLine, ARRAY_COUNT(LoggingOriginalCmdLine), LoggingOriginalCmdList);
 }
 
 TArray<FString> FCommandLine::FilterCommandLine(TCHAR* CommandLine)
@@ -654,9 +695,41 @@ TArray<FString> FCommandLine::FilterCommandLine(TCHAR* CommandLine)
 	// Remove any that are not in our approved list
 	for (int32 Index = 0; Index < ParsedList.Num(); Index++)
 	{
-		if (!ApprovedArgs.Contains(ParsedList[Index]))
+		bool bFound = false;
+		for (auto ApprovedArg : ApprovedArgs)
+		{
+			if (ParsedList[Index].StartsWith(ApprovedArg))
+			{
+				bFound = true;
+				break;
+			}
+		}
+		if (!bFound)
 		{
 			ParsedList.RemoveAt(Index);
+			Index--;
+		}
+	}
+	return ParsedList;
+}
+
+TArray<FString> FCommandLine::FilterCommandLineForLogging(TCHAR* CommandLine)
+{
+	TArray<FString> Ignored;
+	TArray<FString> ParsedList;
+	// Parse the command line list
+	FCommandLine::Parse(CommandLine, ParsedList, Ignored);
+	// Remove any that are not in our approved list
+	for (int32 Index = 0; Index < ParsedList.Num(); Index++)
+	{
+		for (auto Filter : FilterArgsForLogging)
+		{
+			if (ParsedList[Index].StartsWith(Filter))
+			{
+				ParsedList.RemoveAt(Index);
+				Index--;
+				break;
+			}
 		}
 	}
 	return ParsedList;
@@ -666,7 +739,7 @@ void FCommandLine::BuildWhitelistCommandLine(TCHAR* CommandLine, uint32 ArrayCou
 {
 	check(ArrayCount > 0);
 	// Zero the whole string
-	FMemory::Memzero(OriginalCmdLine, sizeof(TCHAR) * ArrayCount);
+	FMemory::Memzero(CommandLine, sizeof(TCHAR) * ArrayCount);
 
 	uint32 StartIndex = 0;
 	for (auto Arg : FilteredArgs)

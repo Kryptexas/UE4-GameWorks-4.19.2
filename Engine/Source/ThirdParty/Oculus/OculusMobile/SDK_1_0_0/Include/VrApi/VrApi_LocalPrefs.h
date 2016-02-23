@@ -49,7 +49,7 @@ extern "C" {
 #define LOCAL_PREF_VRAPI_MINIMUM_VSYNCS					"dev_mimumumVsyncs"				// "0", "1", "2", "3"
 
 // Optionally force a specific extra latency mode.
-#define LOCAL_PREF_VRAPI_EXTRA_LATENCY_MODE				"dev_extraLatencyMode"			// "0" = never, "1" = always, "2" = dynamic
+#define LOCAL_PREF_VRAPI_EXTRA_LATENCY_MODE				"dev_extraLatencyMode"			// "0" = off, "1" = on, "2" = dynamic
 
 // For video capture or testing on reference platforms without direct frontbuffer
 // rendering, direct frontbuffer can be forced off.
@@ -61,27 +61,14 @@ extern "C" {
 // Experimental feature that clips the distortion mesh to reduce GPU fill for timewarp+distortion
 #define LOCAL_PREF_VRAPI_CLIP_DISTORTION_MESH			"dev_clipDistortionMesh"		// "0" = off, "1" = clip to optics, "2" = clip to framebuffer
 
-// Time in seconds to start drawing before each slice.
-// Clamped at 0.014 high and 0.002 low, but the very low
-// values will usually result in screen tearing.
-#define LOCAL_PREF_VRAPI_SLICE_PRE_SCHEDULE_SECONDS		"dev_slicePreScheduleSeconds"	// "0.002" - "0.014", default = "0.014"
-
-// Controls the collection and display of timing data.
-#define LOCAL_PREF_VRAPI_TIMEWARP_DEBUG_GRAPH_MODE		"dev_timeWarpDebugGraphMode"	// "0" = off, "1" = running, "2" = frozen
-#define LOCAL_PREF_VRAPI_TIMEWARP_DEBUG_GRAPH_VALUE		"dev_timeWarpDebugGraphValue"	// "0" = draw, "1" = latency
+// Debug option to draw the axis lines after warp.
+#define LOCAL_PREF_VRAPI_DRAW_CALIBRATION_LINES			"dev_drawCalibrationLines"		// "0" or "1"
 
 #define LOCAL_PREF_VRAPI_GPU_TIMINGS					"dev_gpuTimings"				// "0" = off, "1" = glBeginQuery/glEndQuery, "2" = glQueryCounter
 
-#define LOCAL_PREF_APP_SHOW_VIGNETTE					"dev_showVignette"				// "0" or "1"
-
 #define LOCAL_PREF_APP_DEBUG_OPTIONS					"dev_debugOptions"				// "0" or "1"
 
-// Temporary preference to verify ovrFrameParms are consistent.
-// Should be removed once the WarpProgram member is gone.
-#define LOCAL_PREF_VRAPI_VERIFY_FRAME_PARMS				"dev_verifyFrameParms"			// "0" or "1" (default)
-
-// When "1", render each layer as a separate blended draw call.
-#define LOCAL_PREF_VRAPI_TIMEWARP_LAYERS_MULTIPASS		"dev_timewarpLayersMultipass"	// "0" (default) or "1"
+#define LOCAL_PREF_VRAPI_SIMULATE_UNDOCK				"dev_simulateUndock"			// time to wait before simulating an undock event, < 0 means don't simulate
 
 // Query the in-memory preferences for a (case insensitive) key / value pair.
 // If the returned string is not defaultKeyValue, it will remain valid until the next ovr_UpdateLocalPreferences().

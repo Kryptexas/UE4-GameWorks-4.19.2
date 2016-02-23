@@ -91,6 +91,8 @@ void ANavLinkProxy::BeginPlay()
 	{
 		REDIRECT_OBJECT_TO_VLOG(this, NavSys);
 	}
+
+	Super::BeginPlay();
 }
 #endif // ENABLE_VISUAL_LOG
 

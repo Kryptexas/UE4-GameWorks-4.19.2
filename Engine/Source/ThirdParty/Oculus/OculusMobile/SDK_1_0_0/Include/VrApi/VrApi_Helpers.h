@@ -413,8 +413,12 @@ static inline ovrInitParms vrapi_DefaultInitParms( const ovrJava * java )
 	ovrInitParms parms;
 	memset( &parms, 0, sizeof( parms ) );
 
+	parms.Type = VRAPI_STRUCTURE_TYPE_INIT_PARMS;
+	parms.ProductVersion = VRAPI_PRODUCT_VERSION;
 	parms.MajorVersion = VRAPI_MAJOR_VERSION;
 	parms.MinorVersion = VRAPI_MINOR_VERSION;
+	parms.PatchVersion = VRAPI_PATCH_VERSION;
+	parms.GraphicsAPI = VRAPI_GRAPHICS_API_OPENGL_ES_2;
 	parms.Java = *java;
 
 	return parms;
@@ -426,8 +430,9 @@ static inline ovrModeParms vrapi_DefaultModeParms( const ovrJava * java )
 	ovrModeParms parms;
 	memset( &parms, 0, sizeof( parms ) );
 
-	parms.AllowPowerSave = true;
-	parms.ResetWindowFullscreen = true;
+	parms.Type = VRAPI_STRUCTURE_TYPE_MODE_PARMS;
+	parms.Flags |= VRAPI_MODE_FLAG_ALLOW_POWER_SAVE;
+	parms.Flags |= VRAPI_MODE_FLAG_RESET_WINDOW_FULLSCREEN;
 	parms.Java = *java;
 
 	return parms;
@@ -457,17 +462,19 @@ typedef enum
 } ovrFrameInit;
 
 // Utility function to default initialize the ovrFrameParms.
-static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const ovrFrameInit init, ovrTextureSwapChain * textureSwapChain )
+static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const ovrFrameInit init, const double currentTime, 
+													 ovrTextureSwapChain * textureSwapChain )
 {
 	const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov( 90.0f, 90.0f, 0.0f, 0.0f, 0.1f, 0.0f );
 	const ovrMatrix4f texCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection( &projectionMatrix );
-	const double currentTime = vrapi_GetTimeInSeconds();
 
 	ovrFrameParms parms;
 	memset( &parms, 0, sizeof( parms ) );
 
+	parms.Type = VRAPI_STRUCTURE_TYPE_FRAME_PARMS;
 	for ( int layer = 0; layer < VRAPI_FRAME_LAYER_TYPE_MAX; layer++ )
 	{
+		parms.Layers[layer].ProgramParms[2] = 1.0f; // color scale
 		for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 		{
 			parms.Layers[layer].Textures[eye].TexCoordsFromTanAngles = texCoordsFromTanAngles;
@@ -478,9 +485,8 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 		}
 	}
 	parms.LayerCount = 1;
-	parms.WarpProgram = VRAPI_FRAME_PROGRAM_SIMPLE;
 	parms.MinimumVsyncs = 1;
-	parms.ExtraLatencyMode = VRAPI_EXTRA_LATENCY_MODE_NEVER;
+	parms.ExtraLatencyMode = VRAPI_EXTRA_LATENCY_MODE_OFF;
 	parms.ExternalVelocity.M[0][0] = 1.0f;
 	parms.ExternalVelocity.M[1][1] = 1.0f;
 	parms.ExternalVelocity.M[2][2] = 1.0f;
@@ -490,12 +496,10 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 
 	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
 	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].DstBlend = VRAPI_FRAME_LAYER_BLEND_ZERO;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].WriteAlpha = false;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].FixedToView = false;
+	parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Flags = 0;
 	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].SrcBlend = VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
 	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].WriteAlpha = false;
-	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].FixedToView = false;
+	parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Flags = 0;
 
 	switch ( init )
 	{
@@ -507,9 +511,7 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 		case VRAPI_FRAME_INIT_BLACK_FLUSH:
 		case VRAPI_FRAME_INIT_BLACK_FINAL:
 		{
-			parms.WarpOptions = VRAPI_FRAME_OPTION_INHIBIT_SRGB_FRAMEBUFFER |
-								VRAPI_FRAME_OPTION_INHIBIT_CHROMATIC_ABERRATION_CORRECTION;
-			parms.WarpProgram = VRAPI_FRAME_PROGRAM_SIMPLE;
+			parms.Flags = VRAPI_FRAME_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
 			for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 			{
 				parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
@@ -520,11 +522,10 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 		case VRAPI_FRAME_INIT_LOADING_ICON_FLUSH:
 		{
 			parms.LayerCount = 2;
-			parms.WarpOptions = VRAPI_FRAME_OPTION_INHIBIT_SRGB_FRAMEBUFFER |
-								VRAPI_FRAME_OPTION_INHIBIT_CHROMATIC_ABERRATION_CORRECTION;
-			parms.WarpProgram = VRAPI_FRAME_PROGRAM_LOADING_ICON;
-			parms.ProgramParms[0] = 1.0f;		// rotation in radians per second
-			parms.ProgramParms[1] = 16.0f;		// icon size factor smaller than fullscreen
+			parms.Flags = VRAPI_FRAME_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
+			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].Flags = VRAPI_FRAME_LAYER_FLAG_SPIN;
+			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].ProgramParms[0] = 1.0f;		// rotation in radians per second
+			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].ProgramParms[1] = 16.0f;		// icon size factor smaller than fullscreen
 			for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 			{
 				parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
@@ -536,11 +537,9 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 		case VRAPI_FRAME_INIT_MESSAGE_FLUSH:
 		{
 			parms.LayerCount = 2;
-			parms.WarpOptions = VRAPI_FRAME_OPTION_INHIBIT_SRGB_FRAMEBUFFER |
-								VRAPI_FRAME_OPTION_INHIBIT_CHROMATIC_ABERRATION_CORRECTION;
-			parms.WarpProgram = VRAPI_FRAME_PROGRAM_LOADING_ICON;
-			parms.ProgramParms[0] = 0.0f;		// rotation in radians per second
-			parms.ProgramParms[1] = 2.0f;		// message size factor smaller than fullscreen
+			parms.Flags = VRAPI_FRAME_FLAG_INHIBIT_SRGB_FRAMEBUFFER;
+			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].ProgramParms[0] = 0.0f;		// rotation in radians per second
+			parms.Layers[VRAPI_FRAME_LAYER_TYPE_OVERLAY].ProgramParms[1] = 2.0f;		// message size factor smaller than fullscreen
 			for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 			{
 				parms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eye].ColorTextureSwapChain = (ovrTextureSwapChain *)VRAPI_DEFAULT_TEXTURE_SWAPCHAIN_BLACK;
@@ -552,15 +551,19 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 
 	if ( init == VRAPI_FRAME_INIT_BLACK_FLUSH || init == VRAPI_FRAME_INIT_LOADING_ICON_FLUSH || init == VRAPI_FRAME_INIT_MESSAGE_FLUSH )
 	{
-		parms.WarpOptions |= VRAPI_FRAME_OPTION_FLUSH;
+		parms.Flags |= VRAPI_FRAME_FLAG_FLUSH;
 	}
 	if ( init == VRAPI_FRAME_INIT_BLACK_FINAL )
 	{
-		parms.WarpOptions |= VRAPI_FRAME_OPTION_FLUSH | VRAPI_FRAME_OPTION_FINAL;
+		parms.Flags |= VRAPI_FRAME_FLAG_FLUSH | VRAPI_FRAME_FLAG_FINAL;
 	}
 
 	return parms;
 }
+
+//-----------------------------------------------------------------
+// Head Model
+//-----------------------------------------------------------------
 
 // Utility function to default initialize the ovrHeadModelParms.
 static inline ovrHeadModelParms vrapi_DefaultHeadModelParms()

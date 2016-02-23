@@ -296,7 +296,7 @@ public:
 	{
 	}
 
-	FBlueprintExceptionInfo(EBlueprintExceptionType::Type InEventType, const FString& InDescription)
+	FBlueprintExceptionInfo(EBlueprintExceptionType::Type InEventType, const FText& InDescription)
 		: EventType(InEventType)
 		, Description(InDescription)
 	{
@@ -307,13 +307,13 @@ public:
 		return EventType;
 	}
 
-	const FString& GetDescription() const
+	const FText& GetDescription() const
 	{
 		return Description;
 	}
 protected:
 	EBlueprintExceptionType::Type EventType;
-	FString Description;
+	FText Description;
 };
 
 // Information about a blueprint instrumentation event

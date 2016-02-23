@@ -373,7 +373,6 @@ void SGraphNode_EnvironmentQuery::CreatePinWidgets()
 	{
 		TSharedPtr<SGraphPin> NewPin = SNew(SEnvironmentQueryPin, CurPin);
 
-		NewPin->SetIsEditable(IsEditable);
 		AddPin(NewPin.ToSharedRef());
 	}
 
@@ -382,7 +381,6 @@ void SGraphNode_EnvironmentQuery::CreatePinWidgets()
 	{
 		TSharedPtr<SGraphPin> NewPin = SNew(SEnvironmentQueryPin, CurPin);
 
-		NewPin->SetIsEditable(IsEditable);
 		AddPin(NewPin.ToSharedRef());
 	}
 }

@@ -196,6 +196,7 @@ bool UUnrealEdEngine::CanCookByTheBookInEditor(const FString& PlatformName) cons
 { 	
 	if ( CanCookForPlatformInThisProcess(PlatformName) == false )
 	{
+		CookServer->ClearAllCookedData();
 		return false;
 	}
 
@@ -210,6 +211,7 @@ bool UUnrealEdEngine::CanCookOnTheFlyInEditor(const FString& PlatformName) const
 {
 	if ( CanCookForPlatformInThisProcess(PlatformName) == false )
 	{
+		CookServer->ClearAllCookedData();
 		return false;
 	}
 

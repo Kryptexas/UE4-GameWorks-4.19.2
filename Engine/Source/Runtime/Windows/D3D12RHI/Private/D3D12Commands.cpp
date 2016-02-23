@@ -26,7 +26,6 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 #include "ShaderParameterUtils.h"
 #include "ScreenRendering.h"
 
-
 // MSFT: Seb: Fix up these D3D11 names and remove namespace
 namespace D3D12RHI
 {
@@ -180,6 +179,17 @@ void FD3D12CommandContext::RHISetComputeShader(FComputeShaderRHIParamRef Compute
 	SetCurrentComputeShader(ComputeShaderRHI);
 }
 
+void FD3D12CommandContext::RHIWaitComputeFence(FComputeFenceRHIParamRef InFenceRHI)
+{
+	FD3D12Fence* Fence = FD3D12DynamicRHI::ResourceCast(InFenceRHI);
+
+	if (Fence)
+	{
+		checkf(Fence->GetWriteEnqueued(), TEXT("ComputeFence: %s waited on before being written. This will hang the GPU."), *Fence->GetName().ToString());
+		Fence->GpuWait(GetCommandListManager().GetD3DCommandQueue(), Fence->GetSignalFence());
+	}
+}
+
 void FD3D12CommandContext::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
 {
 	FComputeShaderRHIParamRef ComputeShaderRHI = GetCurrentComputeShader();
@@ -240,6 +250,25 @@ void FD3D12CommandContext::RHIDispatchIndirectComputeShader(FVertexBufferRHIPara
 	DEBUG_EXECUTE_COMMAND_LIST(this);
 
 	StateCache.SetComputeShader(nullptr);
+}
+
+void FD3D12CommandContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFenceRHI)
+{
+	FD3D12Fence* Fence = FD3D12DynamicRHI::ResourceCast(WriteComputeFenceRHI);
+
+	if (Fence)
+	{
+		Fence->WriteFence();
+
+		if (!bIsAsyncComputeContext)
+		{
+			Fence->Signal(GetParentDevice()->GetCommandListManager().GetD3DCommandQueue());
+		}
+		else
+		{
+			PendingFence = Fence;
+		}
+	}
 }
 
 void FD3D12CommandContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
@@ -346,7 +375,6 @@ void FD3D12CommandContext::RHISetShaderTexture(FVertexShaderRHIParamRef VertexSh
 void FD3D12CommandContext::RHISetShaderTexture(FHullShaderRHIParamRef HullShaderRHI, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
 	uint32 Start = FPlatformTime::Cycles();
-
 	VALIDATE_BOUND_SHADER(HullShaderRHI);
 
 	FD3D12TextureBase* NewTexture = GetD3D11TextureFromRHITexture(NewTextureRHI);
@@ -429,7 +457,7 @@ void FD3D12CommandContext::RHISetShaderTexture(FComputeShaderRHIParamRef Compute
 	FD3D12ShaderResourceView* ShaderResourceView = NewTexture ? NewTexture->GetShaderResourceView() : NULL;
 	FD3D12ResourceLocation* ResourceLocation = NewTexture ? NewTexture->ResourceLocation : nullptr;
 
-	if ((NewTexture == NULL) || (NewTexture->GetRenderTargetView(0, 0) !=NULL) || (NewTexture->HasDepthStencilView()))
+	if ( ( NewTexture == NULL) || ( NewTexture->GetRenderTargetView( 0, 0 ) !=NULL) || ( NewTexture->HasDepthStencilView()) )
 	{
 		SetShaderResourceView<SF_Compute>(ResourceLocation, ShaderResourceView, TextureIndex, FD3D12StateCache::SRV_Dynamic);
 	}
@@ -457,7 +485,6 @@ void FD3D12CommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeS
 
 	// Actually set the UAV
 	StateCache.SetUAVs(SF_Compute, UAVIndex, 1, &UAV, &InitialCount);
-
 }
 
 void FD3D12CommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAVRHI, uint32 InitialCount)
@@ -472,7 +499,6 @@ void FD3D12CommandContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeS
 	}
 
 	StateCache.SetUAVs(SF_Compute, UAVIndex, 1, &UAV, &InitialCount);
-
 }
 
 void FD3D12CommandContext::RHISetShaderResourceViewParameter(FPixelShaderRHIParamRef PixelShaderRHI, uint32 TextureIndex, FShaderResourceViewRHIParamRef SRVRHI)
@@ -647,16 +673,8 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Ve
 	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(VertexShader);
 	FD3D12UniformBuffer* Buffer = FD3D12DynamicRHI::ResourceCast(BufferRHI);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Vertex>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		StateCache.SetConstantBuffer<SF_Vertex>(BufferIndex, nullptr, Buffer);
-	}
+
+	StateCache.SetConstantBuffer<SF_Vertex>(BufferIndex, nullptr, Buffer);
 
 	BoundUniformBuffers[SF_Vertex][BufferIndex] = BufferRHI;
 	DirtyUniformBuffers[SF_Vertex] |= (1 << BufferIndex);
@@ -667,16 +685,8 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FHullShaderRHIParamRef Hull
 	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(HullShader);
 	FD3D12UniformBuffer* Buffer = FD3D12DynamicRHI::ResourceCast(BufferRHI);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Hull>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		StateCache.SetConstantBuffer<SF_Hull>(BufferIndex, nullptr, Buffer);
-	}
+
+	StateCache.SetConstantBuffer<SF_Hull>(BufferIndex, nullptr, Buffer);
 
 	BoundUniformBuffers[SF_Hull][BufferIndex] = BufferRHI;
 	DirtyUniformBuffers[SF_Hull] |= (1 << BufferIndex);
@@ -687,16 +697,8 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef Do
 	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(DomainShader);
 	FD3D12UniformBuffer* Buffer = FD3D12DynamicRHI::ResourceCast(BufferRHI);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Domain>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		StateCache.SetConstantBuffer<SF_Domain>(BufferIndex, nullptr, Buffer);
-	}
+	
+	StateCache.SetConstantBuffer<SF_Domain>(BufferIndex, nullptr, Buffer);
 
 	BoundUniformBuffers[SF_Domain][BufferIndex] = BufferRHI;
 	DirtyUniformBuffers[SF_Domain] |= (1 << BufferIndex);
@@ -707,16 +709,8 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef 
 	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(GeometryShader);
 	FD3D12UniformBuffer* Buffer = FD3D12DynamicRHI::ResourceCast(BufferRHI);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Geometry>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		StateCache.SetConstantBuffer<SF_Geometry>(BufferIndex, nullptr, Buffer);
-	}
+
+	StateCache.SetConstantBuffer<SF_Geometry>(BufferIndex, nullptr, Buffer);
 
 	BoundUniformBuffers[SF_Geometry][BufferIndex] = BufferRHI;
 	DirtyUniformBuffers[SF_Geometry] |= (1 << BufferIndex);
@@ -727,16 +721,8 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef Pix
 	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	VALIDATE_BOUND_SHADER(PixelShader);
 	FD3D12UniformBuffer* Buffer = FD3D12DynamicRHI::ResourceCast(BufferRHI);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Pixel>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		StateCache.SetConstantBuffer<SF_Pixel>(BufferIndex, nullptr, Buffer);
-	}
+
+	StateCache.SetConstantBuffer<SF_Pixel>(BufferIndex, nullptr, Buffer);
 
 	BoundUniformBuffers[SF_Pixel][BufferIndex] = BufferRHI;
 	DirtyUniformBuffers[SF_Pixel] |= (1 << BufferIndex);
@@ -747,16 +733,8 @@ void FD3D12CommandContext::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef C
 	SCOPE_CYCLE_COUNTER(STAT_D3D12SetShaderUniformBuffer);
 	//VALIDATE_BOUND_SHADER(ComputeShader);
 	FD3D12UniformBuffer* Buffer = FD3D12DynamicRHI::ResourceCast(BufferRHI);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Compute>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		StateCache.SetConstantBuffer<SF_Compute>(BufferIndex, nullptr, Buffer);
-	}
+
+	StateCache.SetConstantBuffer<SF_Compute>(BufferIndex, nullptr, Buffer);
 
 	BoundUniformBuffers[SF_Compute][BufferIndex] = BufferRHI;
 	DirtyUniformBuffers[SF_Compute] |= (1 << BufferIndex);
@@ -1149,19 +1127,34 @@ void FD3D12CommandContext::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 	GIsDoingQuery = true;
 #endif
 }
+
 void FD3D12CommandContext::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
-	FD3D12OcclusionQuery*  Query = FD3D12DynamicRHI::ResourceCast(QueryRHI);
-	if (Query != NULL)
+	FD3D12OcclusionQuery* Query = FD3D12DynamicRHI::ResourceCast(QueryRHI);
+
+	if (Query != nullptr)
 	{
-		// This code always assumed it was an occlusion query
-		check(Query->Type == RQT_Occlusion);
+		switch (Query->Type)
+		{
+		case RQT_Occlusion:
+			// End the query
+			GetParentDevice()->GetQueryHeap()->EndQuery(*this, D3D12_QUERY_TYPE_OCCLUSION, Query->HeapIndex);
+			check(Query->OwningCommandList == CommandListHandle);
+			check(Query->OwningContext == this);
+			break;
 
-		// End the query
-		GetParentDevice()->GetQueryHeap()->EndQuery(*this, D3D12_QUERY_TYPE_OCCLUSION, Query->HeapIndex);
+		case RQT_AbsoluteTime:
+			Query->bResultIsCached = false;
+			Query->OwningCommandList = CommandListHandle;
+			Query->OwningContext = this;
+			this->otherWorkCounter += 2;	// +2 For the EndQuery and the ResolveQueryData
+			CommandListHandle->EndQuery(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex);
+			CommandListHandle->ResolveQueryData(Query->QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, Query->HeapIndex, 1, Query->ResultBuffer, sizeof(uint64) * Query->HeapIndex);
+			break;
 
-		check(Query->OwningCommandList == CommandListHandle);
-		check(Query->OwningContext == this);
+		default:
+			check(false);
+		}
 	}
 
 #if EXECUTE_DEBUG_COMMAND_LISTS
@@ -2201,23 +2194,17 @@ void FD3D12CommandContext::RHIClearMRTImpl(bool bClearColor, int32 NumClearColor
 
 void FD3D12CommandContext::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority)
 {
-#if USE_ASYNC_COMPUTE_CONTEXT
-#error Implement me!
-#endif
+	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
 }
 
 void FD3D12CommandContext::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
 {
-#if USE_ASYNC_COMPUTE_CONTEXT
-#error Implement me!
-#endif
+	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
 }
 
 void FD3D12CommandContext::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
 {
-#if USE_ASYNC_COMPUTE_CONTEXT
-#error Implement me!
-#endif
+	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
 }
 
 // Functions to yield and regain rendering control from D3D
@@ -2241,7 +2228,9 @@ bool FD3D12DynamicRHI::RHIIsRenderingSuspended()
 // Blocks the CPU until the GPU catches up and goes idle.
 void FD3D12DynamicRHI::RHIBlockUntilGPUIdle()
 {
-	// Not really supported
+	GetRHIDevice()->GetCommandListManager().WaitForCommandQueueFlush();
+	GetRHIDevice()->GetCopyCommandListManager().WaitForCommandQueueFlush();
+	GetRHIDevice()->GetAsyncCommandListManager().WaitForCommandQueueFlush();
 }
 
 /*
@@ -2270,6 +2259,17 @@ void FD3D12CommandContext::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth
 
 void FD3D12CommandContext::RHISubmitCommandsHint()
 {
+	if (bIsAsyncComputeContext)
+	{
+		GetParentDevice()->GetDefaultCommandContext().RHISubmitCommandsHint();
+	}
+
 	// Submit the work we have so far, and start a new command list.
 	FlushCommands();
+
+	if (PendingFence.GetReference())
+	{
+		PendingFence->Signal(GetCommandListManager().GetD3DCommandQueue());
+		PendingFence = nullptr;
+	}
 }

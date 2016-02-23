@@ -40,28 +40,27 @@ enum class ERunAttributes : uint8
 };
 ENUM_CLASS_FLAGS(ERunAttributes);
 
-/** The context needed when performing text operations on a run of text */
-struct FRunTextContext
+/** The basic data needed when shaping a run of text */
+struct FShapedTextContext
 {
-	FRunTextContext(const ETextShapingMethod InTextShapingMethod, const TextBiDi::ETextDirection InBaseDirection, FShapedTextCacheRef InShapedTextCache)
+	FShapedTextContext(const ETextShapingMethod InTextShapingMethod, const TextBiDi::ETextDirection InBaseDirection)
 		: TextShapingMethod(InTextShapingMethod)
 		, BaseDirection(InBaseDirection)
-		, ShapedTextCache(MoveTemp(InShapedTextCache))
 	{
 	}
 
-	FORCEINLINE bool operator==(const FRunTextContext& Other) const
+	FORCEINLINE bool operator==(const FShapedTextContext& Other) const
 	{
-		return TextShapingMethod == Other.TextShapingMethod 
+		return TextShapingMethod == Other.TextShapingMethod
 			&& BaseDirection == Other.BaseDirection;
 	}
 
-	FORCEINLINE bool operator!=(const FRunTextContext& Other) const
+	FORCEINLINE bool operator!=(const FShapedTextContext& Other) const
 	{
 		return !(*this == Other);
 	}
 
-	friend inline uint32 GetTypeHash(const FRunTextContext& Key)
+	friend inline uint32 GetTypeHash(const FShapedTextContext& Key)
 	{
 		uint32 KeyHash = 0;
 		KeyHash = HashCombine(KeyHash, GetTypeHash(Key.TextShapingMethod));
@@ -74,6 +73,16 @@ struct FRunTextContext
 
 	/** The base direction of the current line of text */
 	TextBiDi::ETextDirection BaseDirection;
+};
+
+/** The context needed when performing text operations on a run of text */
+struct FRunTextContext : public FShapedTextContext
+{
+	FRunTextContext(const ETextShapingMethod InTextShapingMethod, const TextBiDi::ETextDirection InBaseDirection, FShapedTextCacheRef InShapedTextCache)
+		: FShapedTextContext(InTextShapingMethod, InBaseDirection)
+		, ShapedTextCache(InShapedTextCache)
+	{
+	}
 
 	/** The shaped text cache that should be used by this line of text */
 	FShapedTextCacheRef ShapedTextCache;

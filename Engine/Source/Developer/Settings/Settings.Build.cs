@@ -26,5 +26,7 @@ public class Settings : ModuleRules
                 "Developer/Settings/Private",
             }
 		);
+
+		PrecompileForTargets = PrecompileTargetsType.Any;
 	}
 }

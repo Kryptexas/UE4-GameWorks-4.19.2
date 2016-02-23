@@ -12,7 +12,8 @@ UENUM(BlueprintType)
 enum class EControllerHand
 {
 	Left,
-	Right
+	Right,
+	Pad
 };
 
 USTRUCT(BlueprintType)

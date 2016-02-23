@@ -408,6 +408,12 @@ public:
 	virtual void MapVirtualScreenBuffer(FMappedTextureBuffer* OutImageData) {}
 	virtual void UnmapVirtualScreenBuffer() {}
 
+	/**
+	 * Necessary to grab before flushing the resource pool, as it may be being 
+	 * accessed by multiple threads when loading.
+	 */
+	FCriticalSection* GetResourceCriticalSection() { return &ResourceCriticalSection; }
+
 private:
 
 	// Non-copyable
@@ -421,6 +427,12 @@ protected:
 
 	/** Callback that fires after Slate has rendered each window, each frame */
 	FOnSlateWindowRendered SlateWindowRendered;
+
+	/**
+	 * Necessary to grab before flushing the resource pool, as it may be being 
+	 * accessed by multiple threads when loading.
+	 */
+	FCriticalSection ResourceCriticalSection;
 
 	friend class FSlateRenderDataHandle;
 };

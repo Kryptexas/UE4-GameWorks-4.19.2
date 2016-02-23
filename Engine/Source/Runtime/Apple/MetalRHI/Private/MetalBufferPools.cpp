@@ -218,7 +218,6 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 		}
 		else // wrap
 		{
-			// 		NSLog(@"Wrapping at frame %lld [size = %d]", GFrameCounter, (uint32)Buffer.length);
 			Offset = 0;
 		}
 	}
@@ -234,7 +233,12 @@ uint32 FRingBuffer::Allocate(uint32 Size, uint32 Alignment)
 	}
 	else
 	{
-		UE_LOG(LogMetal, Warning, TEXT("Wrapping offset %d into outstanding buffer region %d at frame %lld [size = %d]"), Offset, LastRead, GFrameCounter, (uint32)Buffer.length);
+		uint32 BufferSize = Buffer.length;
+		UE_LOG(LogMetal, Warning, TEXT("Reallocating ring-buffer from %d to %d to avoid wrapping write at offset %d into outstanding buffer region %d at frame %lld]"), BufferSize, BufferSize * 2, Offset, LastRead, GFrameCounter);
+		SafeReleaseMetalResource(Buffer);
+		Buffer = [GetMetalDeviceContext().GetDevice() newBufferWithLength:BufferSize * 2 options:BUFFER_CACHE_MODE];
+		Offset = 0;
+		LastRead = Size;
 		
 		// get current location
 		uint32 ReturnOffset = Offset;

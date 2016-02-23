@@ -379,6 +379,10 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	const bool bIsAdrenoBased = RendererString.Contains(TEXT("Adreno"));
 	if (bIsAdrenoBased)
 	{
+		// This is to avoid a bug in Adreno drivers that define GL_EXT_shader_framebuffer_fetch even when device does not support this extension
+		// OpenGL ES 3.1 V@127.0 (GIT@I1af360237c)
+		bRequiresShaderFramebufferFetchUndef = !bSupportsShaderFramebufferFetch;
+
 		// Adreno 2xx doesn't work with packed depth stencil enabled
 		if (RendererString.Contains(TEXT("Adreno (TM) 2")))
 		{

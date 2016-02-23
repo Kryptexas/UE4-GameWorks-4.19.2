@@ -7,7 +7,7 @@
 #include "GPUProfiler.h"
 
 #if METAL_STATISTICS
-#include "Runtime/Mac/NoRedist/MetalStatistics/Public/MetalStatistics.h"
+#include "MetalStatistics.h"
 #endif
 
 // Stats

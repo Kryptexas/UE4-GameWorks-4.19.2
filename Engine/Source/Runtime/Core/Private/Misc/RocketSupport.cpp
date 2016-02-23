@@ -20,10 +20,6 @@ bool FRocketSupport::IsRocket( const TCHAR* CmdLine )
 
 		// Pass "rocket" on the command-line in non-shipping editor builds to get rocket-like behavior
 		static bool bIsRocket = FParse::Param(CmdLine, TEXT("rocket"));
-		if (bIsRocket)
-		{
-			UE_LOG(LogRocket, Warning, TEXT("Use of -rocket argument on command-line to test Rocket behavior is deprecated, please ensure that you've built a true Rocket build."));
-		}
 		FString RocketFile = FPaths::RootDir() / TEXT("Engine/Build/Rocket.txt");
 		FPaths::NormalizeFilename(RocketFile);
 		bIsRocket |= IFileManager::Get().FileExists(*RocketFile);

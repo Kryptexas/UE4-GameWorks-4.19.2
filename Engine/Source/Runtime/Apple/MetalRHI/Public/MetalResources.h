@@ -10,7 +10,8 @@
 #include "MetalShaderResources.h"
 #include "ShaderCache.h"
 
-#define METAL_SUPPORTS_PARALLEL_RHI_EXECUTE 0
+/** Parallel execution is available on Mac but not iOS for the moment - it needs to be tested because it isn't cost-free */
+#define METAL_SUPPORTS_PARALLEL_RHI_EXECUTE PLATFORM_MAC
 
 class FMetalContext;
 
@@ -201,6 +202,9 @@ public:
 	
 	/** Gets the drawable texture if this is a back-buffer surface. */
 	id<MTLTexture> GetDrawableTexture();
+	
+	/** Updates an SRV surface's internal data if required. */
+	void UpdateSRV();
 
 	ERHIResourceType Type;
 	EPixelFormat PixelFormat;
@@ -500,16 +504,6 @@ public:
 	~FMetalUniformBuffer();
 	
 
-	/** Cache resources if needed. */
-	inline void CacheResources(uint32 InFrameCounter)
-	{
-		if (InFrameCounter == INDEX_NONE || LastCachedFrame != InFrameCounter)
-		{
-			CacheResourcesInternal();
-			LastCachedFrame = InFrameCounter;
-		}
-	}
-
 	bool IsConstantBuffer() const
 	{
 		return Buffer.length > 0;
@@ -524,18 +518,11 @@ public:
 
 	uint32 Size; // @todo zebra: HACK! This should be removed and the code that uses it should be changed to use GetSize() instead once we fix the problem with FRHIUniformBufferLayout being released too early
 
+	/** The intended usage of the uniform buffer. */
+	EUniformBufferUsage Usage;
+	
 	/** Resource table containing RHI references. */
 	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
-
-	/** Raw resource table, cached once per frame. */
-	TArray<void*> RawResourceTable;
-
-	/** The frame in which RawResourceTable was last cached. */
-	uint32 LastCachedFrame;
-
-private:
-	/** Actually cache resources. */
-	void CacheResourcesInternal();
 
 };
 

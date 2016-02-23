@@ -2347,7 +2347,6 @@ namespace ObjectTools
 
 			if (NewPackage)
 			{
-				FString PackagePrefix = PackageName;
 				FString ObjectPrefix = ObjectName;
 				int32 Suffix = 2;
 
@@ -2372,6 +2371,11 @@ namespace ObjectTools
 					}
 				}
 				
+				// If the package and object names were equal before, ensure that the generated names are also equal
+				const FString PackageShortName = FPackageName::GetLongPackageAssetName(*PackageName);
+				const FString PackagePath = FPackageName::GetLongPackagePath(*PackageName);
+				FString PackagePrefix = (ObjectName == PackageShortName) ? (PackagePath / ObjectPrefix) : PackageName;
+
 				for (; NewPackage && StaticFindObjectFast(NULL, NewPackage, FName(*ObjectName)); Suffix++)
 				{
 					// DlgName exists in DlgPackage - generate a new one with a numbered suffix

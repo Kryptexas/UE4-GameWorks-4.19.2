@@ -85,12 +85,21 @@ FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
 
 FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
 {
-	if( bInitialized )
+	if ( bInitialized )
 	{
 		// This should not happen if initialize was called correctly.  This is a fallback to ensure that the movie player rendering tickable gets unregistered on the rendering thread correctly
 		Shutdown();
-		FlushRenderingCommands();
 	}
+	else
+	{
+		// Even when uninitialized we must safely unregister the movie player on the render thread
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UnregisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
+		{
+			MoviePlayer->Unregister();
+		});
+	}
+
+	FlushRenderingCommands();
 }
 
 void FDefaultGameMoviePlayer::RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer)
@@ -193,13 +202,13 @@ void FDefaultGameMoviePlayer::Shutdown()
 
 	LoadingScreenAttributes = FLoadingScreenAttributes();
 
-	if( SyncMechanism)
+	if ( SyncMechanism )
 	{
 		SyncMechanism->DestroySlateThread();
+		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
 		delete SyncMechanism;
 		SyncMechanism = NULL;
 	}
-
 }
 void FDefaultGameMoviePlayer::PassLoadingScreenWindowBackToGame() const
 {
@@ -226,24 +235,28 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		
 		LastPlayTime = FPlatformTime::Seconds();
 
-        bool bIsInitialized = true;
+		bool bIsInitialized = true;
 		if (MovieStreamingIsPrepared())
 		{
 			bIsInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
 		}
-        if (bIsInitialized)
-        {
+
+		if (bIsInitialized)
+		{
 			MovieStreamingIsDone.Set(MovieStreamingIsPrepared() ? 0 : 1);
 			LoadingIsDone.Set(0);
 			
 			LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
-            LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
+			LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
 		
-            SyncMechanism = new FSlateLoadingSynchronizationMechanism();
-            SyncMechanism->Initialize();
+			{
+				FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
+				SyncMechanism = new FSlateLoadingSynchronizationMechanism();
+				SyncMechanism->Initialize();
+			}
 
-            bBeganPlaying = true;
-        }
+			bBeganPlaying = true;
+		}
 	}
 
 	return bBeganPlaying;
@@ -268,8 +281,12 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		if (SyncMechanism)
 		{
 			SyncMechanism->DestroySlateThread();
-			delete SyncMechanism;
-			SyncMechanism = NULL;
+
+			{
+				FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
+				delete SyncMechanism;
+				SyncMechanism = NULL;
+			}
 		}
 
 		if( !bEnforceMinimumTime )
@@ -375,6 +392,7 @@ void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 	check(IsInRenderingThread());
 	if (LoadingScreenWindowPtr.IsValid() && RendererPtr.IsValid())
 	{
+		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
 		if (!IsLoadingFinished() && SyncMechanism)
 		{
 			if (SyncMechanism->IsSlateDrawPassEnqueued())
@@ -433,9 +451,9 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 		const TArray<FString>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
 
 		if (StartupMovies.Num() == 0)
-        {
+		{
 			LoadingScreen.MoviePaths.Add(TEXT("Default_Startup"));
-        }
+		}
 		else
 		{
 			for (const FString& Movie : StartupMovies)

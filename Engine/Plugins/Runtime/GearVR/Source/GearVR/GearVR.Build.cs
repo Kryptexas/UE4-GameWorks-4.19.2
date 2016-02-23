@@ -12,7 +12,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"GearVR/Private",
 					"../../../../Source/Runtime/Renderer/Private",
-//					"../../../../Source/Runtime/Launch/Private",
+					"../../../../Source/Runtime/Launch/Private",
  					"../../../../Source/ThirdParty/Oculus/Common",
 					// ... add other private include paths required here ...
 				}
@@ -24,14 +24,16 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
+					"InputCore",
 					"RHI",
 					"RenderCore",
 					"Renderer",
 					"ShaderCore",
-					"Launch",
 					"HeadMountedDisplay"
 				}
 				);
+
+            PublicIncludePathModuleNames.Add("Launch");
 
 			PrivateDependencyModuleNames.AddRange(new string[] { "OpenGLDrv" });
 			AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
@@ -43,7 +45,7 @@ namespace UnrealBuildTool.Rules
 				);
 			if (Target.Platform == UnrealTargetPlatform.Android)
 			{
-				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVRMobile" });
+				PrivateDependencyModuleNames.AddRange(new string[] { "OculusMobile" });
 
 				string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
 				AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "GearVR_APL.xml")));

@@ -186,3 +186,10 @@ FString FOnlineIdentityGooglePlay::GetAuthType() const
 {
 	return TEXT("");
 }
+
+void FOnlineIdentityGooglePlay::SetPlayerDataFromFetchSelfResponse(const gpg::Player& PlayerData)
+{
+	FString PlayerId(PlayerData.Id().c_str());
+	UniqueNetId = MakeShareable(new FUniqueNetIdString(PlayerId));
+	PlayerAlias = PlayerData.Name().c_str();
+}

@@ -1568,29 +1568,56 @@ void UEngine::InitializeObjectReferences()
 #if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 void UEngine::InitializePortalServices()
 {
-	// Initialize Portal services
-	PortalRpcClient = FModuleManager::LoadModuleChecked<IMessagingRpcModule>("MessagingRpc").CreateRpcClient();
-	{
-		// @todo gmp: catch timeouts?
-	}
+	TSharedPtr<IMessagingRpcModule> MessagingRpcModule = StaticCastSharedPtr<IMessagingRpcModule>(FModuleManager::Get().LoadModule("MessagingRpc"));
+	TSharedPtr<IPortalRpcModule> PortalRpcModule = StaticCastSharedPtr<IPortalRpcModule>(FModuleManager::Get().LoadModule("PortalRpc"));
+	TSharedPtr<IPortalServicesModule> PortalServicesModule = StaticCastSharedPtr<IPortalServicesModule>(FModuleManager::Get().LoadModule("PortalServices"));
 
-	PortalRpcLocator = FModuleManager::LoadModuleChecked<IPortalRpcModule>("PortalRpc").CreateLocator();
+	if (MessagingRpcModule.IsValid() &&
+		PortalRpcModule.IsValid() &&
+		PortalServicesModule.IsValid())
 	{
-		PortalRpcLocator->OnServerLocated().BindLambda([=]() { PortalRpcClient->Connect(PortalRpcLocator->GetServerAddress()); });
-		PortalRpcLocator->OnServerLost().BindLambda([=]() { PortalRpcClient->Disconnect(); });
-	}
+		// Initialize Portal services
+		PortalRpcClient = MessagingRpcModule->CreateRpcClient();
+		{
+			// @todo gmp: catch timeouts?
+		}
 
-	ServiceDependencies = MakeShareable(new FTypeContainer);
-	{
-		ServiceDependencies->RegisterInstance<IMessageRpcClient>(PortalRpcClient.ToSharedRef());
-	}
+		PortalRpcLocator = PortalRpcModule->CreateLocator();
+		{
+			PortalRpcLocator->OnServerLocated().BindLambda([=]() { PortalRpcClient->Connect(PortalRpcLocator->GetServerAddress()); });
+			PortalRpcLocator->OnServerLost().BindLambda([=]() { PortalRpcClient->Disconnect(); });
+		}
 
-	ServiceLocator = FModuleManager::LoadModuleChecked<IPortalServicesModule>("PortalServices").CreateLocator(ServiceDependencies.ToSharedRef());
+		ServiceDependencies = MakeShareable(new FTypeContainer);
+		{
+			ServiceDependencies->RegisterInstance<IMessageRpcClient>(PortalRpcClient.ToSharedRef());
+		}
+
+		ServiceLocator = PortalServicesModule->CreateLocator(ServiceDependencies.ToSharedRef());
+		{
+			// @todo add any Engine specific Portal services here
+			ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
+			ServiceLocator->Configure(TEXT("IPortalUser"), TEXT("*"), "PortalProxies");
+			ServiceLocator->Configure(TEXT("IPortalUserLogin"), TEXT("*"), "PortalProxies");
+		}
+	}
+	else
 	{
-		// @todo add any Engine specific Portal services here
-		ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
-		ServiceLocator->Configure(TEXT("IPortalUser"), TEXT("*"), "PortalProxies");
-		ServiceLocator->Configure(TEXT("IPortalUserLogin"), TEXT("*"), "PortalProxies");
+		class FNullPortalServiceLocator
+			: public IPortalServiceLocator
+		{
+			virtual void Configure(const FString& ServiceName, const FWildcardString& ProductId, const FName& ServiceModule) override
+			{
+
+			}
+
+			virtual TSharedPtr<IPortalService> GetService(const FString& ServiceName, const FString& ProductId) override
+			{
+				return nullptr;
+			}
+		};
+
+		ServiceLocator = MakeShareable(new FNullPortalServiceLocator());
 	}
 }
 #endif
@@ -10920,29 +10947,19 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	TArray<UObject*> ComponentsOnNewObject;
 	{
 		TArray<UObject*> EditInlineSubobjectsOfComponents;
-
-		// Find all instanced objects of the old CDO, and save off their modified properties to be later applied to the newly instanced objects of the new CDO
 		NewObject->CollectDefaultSubobjects(ComponentsOnNewObject,true);
 
-		// Serialize in the modified properties from the old CDO to the new CDO
-		if (SavedProperties.Num() > 0)
-		{
-			FObjectReader Reader(NewObject, SavedProperties, true, true);
-		}
-
+		// populate the ReferenceReplacementMap 
 		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)
 		{
 			UObject* NewInstance = ComponentsOnNewObject[Index];
 			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetFName()))
 			{
-				// Restore modified properties into the new instance
 				FInstancedObjectRecord& Record = SavedInstances[*pOldInstanceIndex];
 				ReferenceReplacementMap.Add(Record.OldInstance, NewInstance);
 				if (Params.bAggressiveDefaultSubobjectReplacement)
 				{
 					UClass* Class = OldObject->GetClass()->GetSuperClass();
-					//UClass* Class = OldObject->GetClass();
-					//while (Class)
 					if (Class)
 					{
 						UObject *CDOInst = Class->GetDefaultSubobjectByName(NewInstance->GetFName());
@@ -10961,15 +10978,8 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 							}
 #endif // WITH_EDITOR
 						}
-						else
-						{
-							//break;
-						}
-						//Class = Class->GetSuperClass();
 					}
 				}
-				FObjectReader Reader(NewInstance, Record.SavedProperties, true, true);
-				FFindInstancedReferenceSubobjectHelper::Duplicate(Record.OldInstance, NewInstance, ReferenceReplacementMap, EditInlineSubobjectsOfComponents);
 			}
 			else
 			{
@@ -10986,8 +10996,26 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 				if (!bContainedInsideNewInstance)
 				{
 					// A bad thing has happened and cannot be reasonably fixed at this point
-					UE_LOG(LogEngine, Log, TEXT("Warning: The CDO '%s' references a component that does not have the CDO in its outer chain!"), *NewObject->GetFullName(), *NewInstance->GetFullName()); 	
+					UE_LOG(LogEngine, Log, TEXT("Warning: The CDO '%s' references a component that does not have the CDO in its outer chain!"), *NewObject->GetFullName(), *NewInstance->GetFullName());
 				}
+			}
+		}
+
+		// Serialize in the modified properties from the old CDO to the new CDO
+		if (SavedProperties.Num() > 0)
+		{
+			FObjectReader Reader(NewObject, SavedProperties, true, true);
+		}
+
+		for (int32 Index = 0; Index < ComponentsOnNewObject.Num(); Index++)
+		{
+			UObject* NewInstance = ComponentsOnNewObject[Index];
+			if (int32* pOldInstanceIndex = OldInstanceMap.Find(NewInstance->GetFName()))
+			{
+				// Restore modified properties into the new instance
+				FInstancedObjectRecord& Record = SavedInstances[*pOldInstanceIndex];
+				FObjectReader Reader(NewInstance, Record.SavedProperties, true, true);
+				FFindInstancedReferenceSubobjectHelper::Duplicate(Record.OldInstance, NewInstance, ReferenceReplacementMap, EditInlineSubobjectsOfComponents);
 			}
 		}
 		ComponentsOnNewObject.Append(EditInlineSubobjectsOfComponents);

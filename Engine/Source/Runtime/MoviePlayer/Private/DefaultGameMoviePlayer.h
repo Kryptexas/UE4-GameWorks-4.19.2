@@ -99,7 +99,11 @@ private:
 
 	/** True if the movie player has been initialized */
 	bool bInitialized;
+
 private:
 	/** Singleton handle */
 	static TSharedPtr<FDefaultGameMoviePlayer> MoviePlayer;
+
+	/** Critical section to allow the slate loading thread and the render thread to safely utilize the synchronization mechanism for ticking Slate. */
+	FCriticalSection SyncMechanismCriticalSection;
 };

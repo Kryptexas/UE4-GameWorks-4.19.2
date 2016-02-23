@@ -115,8 +115,7 @@ public:
 	UPROPERTY(ReplicatedUsing=OnRep_AttachSocketName)
 	FName AttachSocketName;
 
-	/** if true, will call GetCustomLocation instead or returning the location part of ComponentToWorld */
-	UPROPERTY()
+	DEPRECATED(4.11, "SceneComponent no longer supports custom locations.")
 	uint32 bRequiresCustomLocation:1;
 
 protected:
@@ -807,20 +806,13 @@ public:
 	/** Return location of the component, in world space */
 	FORCEINLINE FVector GetComponentLocation() const
 	{
-		if (bRequiresCustomLocation)
-		{
-			return GetCustomLocation();
-		}
-		else
-		{
-			return ComponentToWorld.GetLocation();
-		}
+		return ComponentToWorld.GetLocation();
 	}
 
-	/** Internal routine. Only called if bRequiresCustomLocation is true, Return location of the component, in world space */
+	DEPRECATED(4.11, "Custom locations on SceneComponent are now deprecated.")
 	virtual FVector GetCustomLocation() const
 	{
-		check(0); // if you have custom location, you should not end up here!
+		check(0);
 		return ComponentToWorld.GetLocation();
 	}
 

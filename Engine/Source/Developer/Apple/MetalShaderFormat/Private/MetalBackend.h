@@ -3,6 +3,10 @@
 #pragma once
 
 #include "hlslcc.h"
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+#include "ir.h"
+#include "PackUniformBuffers.h"
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #include "LanguageSpec.h"
 
 

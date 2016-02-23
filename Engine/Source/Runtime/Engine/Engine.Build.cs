@@ -108,14 +108,25 @@ public class Engine : ModuleRules
 
         if (Target.Platform != UnrealTargetPlatform.XboxOne)
         {
-            // these modules require variadic templates
-            PrivateDependencyModuleNames.AddRange(
+            PrivateIncludePathModuleNames.AddRange(
                 new string[] {
                     "MessagingRpc",
                     "PortalRpc",
                     "PortalServices",
                 }
             );
+
+            if (Target.Type == TargetRules.TargetType.Editor)
+            {
+                // these modules require variadic templates
+                PrivateDependencyModuleNames.AddRange(
+                    new string[] {
+                        "MessagingRpc",
+                        "PortalRpc",
+                        "PortalServices",
+                    }
+                );
+            }
         }
 
         CircularlyReferencedDependentModules.Add("AIModule");

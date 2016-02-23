@@ -199,6 +199,10 @@ FSequencer::~FSequencer()
 	GEditor->GetActorRecordingState().RemoveAll( this );
 	GEditor->UnregisterForUndo( this );
 
+	for (auto TrackEditor : TrackEditors)
+	{
+		TrackEditor->OnRelease();
+	}
 	TrackEditors.Empty();
 	SequencerWidget.Reset();
 }

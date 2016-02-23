@@ -75,16 +75,7 @@ namespace D3D12RHI
 			return;
 		}
 
-		// MSFT: This code (AlignedSize) is in DX11's RHI but it appears to regress texture quality in infiltrator. For now, keeping the existing code
-		if (ShouldCountAsTextureMemory(Desc.Flags))
-		{
-			FPlatformAtomics::InterlockedAdd(&GCurrentTextureMemorySize, Align(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, 1024) / 1024);
-		}
-		else
-		{
-			FPlatformAtomics::InterlockedAdd(&GCurrentRendertargetMemorySize, Align(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, 1024) / 1024);
-		}
-		/*int64 AlignedSize = (TextureSize > 0) ? Align(TextureSize, 1024) / 1024 : -(Align(-TextureSize, 1024) / 1024);
+		int64 AlignedSize = (TextureSize > 0) ? Align(TextureSize, 1024) / 1024 : -(Align(-TextureSize, 1024) / 1024);
 		if (ShouldCountAsTextureMemory(Desc.Flags))
 		{
 			FPlatformAtomics::InterlockedAdd(&GCurrentTextureMemorySize, AlignedSize);
@@ -92,7 +83,7 @@ namespace D3D12RHI
 		else
 		{
 			FPlatformAtomics::InterlockedAdd(&GCurrentRendertargetMemorySize, AlignedSize);
-		}*/
+		}
 
 		INC_MEMORY_STAT_BY_FName(GetD3D11StatEnum(Desc.Flags, bCubeMap, b3D).GetName(), TextureSize);
 
@@ -511,14 +502,15 @@ HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const 
 	TRefCountPtr<FD3D12Resource> Resource;
 	HRESULT hr = S_OK;
 
+	TextureLocation->Clear();
+
 	D3D12_RESOURCE_ALLOCATION_INFO Info = Device->GetDevice()->GetResourceAllocationInfo(0, 1, &Desc);
 
 	if (Info.SizeInBytes < D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)
 	{
-		if (CanAllocate(Info.SizeInBytes))
+		FD3D12ResourceBlockInfo* Block = TryAllocate(Info.SizeInBytes, Info.Alignment, nullptr);
+		if(Block)
 		{
-			FD3D12ResourceBlockInfo* Block = Allocate(Info.SizeInBytes, Info.Alignment, nullptr);
-
 			hr = FD3D12DynamicRHI::CreatePlacedResource(Desc, BackingHeap, Block->Offset, D3D12_RESOURCE_STATE_COMMON, ClearValue, Resource.GetInitReference());
 
 			Block->ResourceHeap = Resource.GetReference();
@@ -526,14 +518,6 @@ HRESULT FD3D12TextureAllocator::AllocateTexture(D3D12_RESOURCE_DESC Desc, const 
 			TextureLocation->SetBlockInfo(Block, &Device->GetDefaultCommandContext().StateCache);
 
 			return hr;
-		}
-		else
-		{
-			if (HeapFullMessageDisplayed == false)
-			{
-				UE_LOG(LogD3D12RHI, Warning, TEXT("Placed Texture Pool ran out of space. This is ok as the allocation will still succeed, it will just take up more space."));
-				HeapFullMessageDisplayed = true;
-			}
 		}
 	}
 
@@ -1753,16 +1737,15 @@ void* TD3D12Texture2D<RHIResourceType>::Lock(uint32 MipIndex, uint32 ArrayIndex,
 		{
 			// If we're writing to the texture, allocate a system memory buffer to receive the new contents.
 			// Use an upload heap to copy data to a default resource.
-			const uint32 bufferSize = Align(MipBytesAligned, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+			const uint32 bufferSize = (uint32)GetRequiredIntermediateSize(this->GetResource()->GetResource(), Subresource, 1);
 
-		TRefCountPtr<FD3D12ResourceLocation> pUploadHeapResourceLocation = new FD3D12ResourceLocation(GetParentDevice());
-		//The alignment is taken care of above
-		void* pData = GetParentDevice()->GetDefaultFastAllocator().Allocate(bufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, pUploadHeapResourceLocation);
-		if (nullptr == pData)
-		{
-			check(false);
-			return nullptr;
-		}
+			TRefCountPtr<FD3D12ResourceLocation> pUploadHeapResourceLocation = new FD3D12ResourceLocation(GetParentDevice());
+			void* pData = GetParentDevice()->GetDefaultFastAllocator().Allocate(bufferSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, pUploadHeapResourceLocation);
+			if (nullptr == pData)
+			{
+				check(false);
+				return nullptr;
+			}
 
 			// Add the lock to the lock map.
 			LockedData.SetData(pData);

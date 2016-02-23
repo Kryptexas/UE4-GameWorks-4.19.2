@@ -2,6 +2,7 @@
 //
 #include "HeadMountedDisplayPrivate.h"
 #include "MotionControllerComponent.h"
+#include "PrimitiveSceneInfo.h"
 
 namespace {
 	/** This is to prevent destruction of motion controller components while they are
@@ -110,8 +111,8 @@ void UMotionControllerComponent::FViewExtension::BeginRenderViewFamily(FSceneVie
 		return;
 	}
 
-	LateUpdateSceneProxyCount = 0;
-	GatherSceneProxies(MotionControllerComponent);
+	LateUpdatePrimitives.Reset();
+	GatherLateUpdatePrimitives(MotionControllerComponent, LateUpdatePrimitives);
 }
 
 //=============================================================================
@@ -135,27 +136,42 @@ void UMotionControllerComponent::FViewExtension::PreRenderViewFamily_RenderThrea
 		return;
 	}
 	
-	// Calculate the late update transform that will rebase all children proxies within the frame of reference
-	const FTransform OldLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(MotionControllerComponent->GetRelativeTransform());
-	const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position));
-	const FMatrix LateUpdateTransform = (OldLocalToWorldTransform.Inverse() * NewLocalToWorldTransform).ToMatrixWithScale();
-
-	// Apply adjustment to the affected scene proxies
-	for (int32 ProxyIndex = 0; ProxyIndex < LateUpdateSceneProxyCount; ++ProxyIndex)
+	if (LateUpdatePrimitives.Num())
 	{
-		LateUpdateSceneProxies[ProxyIndex]->ApplyLateUpdateTransform(LateUpdateTransform);
+		// Calculate the late update transform that will rebase all children proxies within the frame of reference
+		const FTransform OldLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(MotionControllerComponent->GetRelativeTransform());
+		const FTransform NewLocalToWorldTransform = MotionControllerComponent->CalcNewComponentToWorld(FTransform(Orientation, Position));
+		const FMatrix LateUpdateTransform = (OldLocalToWorldTransform.Inverse() * NewLocalToWorldTransform).ToMatrixWithScale();
+
+		// Apply delta to the affected scene proxies
+		for (auto PrimitiveInfo : LateUpdatePrimitives)
+		{
+			FPrimitiveSceneInfo* RetrievedSceneInfo = InViewFamily.Scene->GetPrimitiveSceneInfo(*PrimitiveInfo.IndexAddress);
+			FPrimitiveSceneInfo* CachedSceneInfo = PrimitiveInfo.SceneInfo;
+			// If the retrieved scene info is different than our cached scene info then the primitive was removed from the scene
+			if (CachedSceneInfo == RetrievedSceneInfo && CachedSceneInfo->Proxy)
+			{
+				CachedSceneInfo->Proxy->ApplyLateUpdateTransform(LateUpdateTransform);
+			}
+		}
+		LateUpdatePrimitives.Reset();
 	}
 }
 
-//=============================================================================
-void UMotionControllerComponent::FViewExtension::GatherSceneProxies(USceneComponent* Component)
+void UMotionControllerComponent::FViewExtension::GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives)
 {
 	// If a scene proxy is present, cache it
 	UPrimitiveComponent* PrimitiveComponent = dynamic_cast<UPrimitiveComponent*>(Component);
 	if (PrimitiveComponent && PrimitiveComponent->SceneProxy)
 	{
-		check(LateUpdateSceneProxyCount < ARRAY_COUNT(LateUpdateSceneProxies));
-		LateUpdateSceneProxies[LateUpdateSceneProxyCount++] = PrimitiveComponent->SceneProxy;
+		FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveComponent->SceneProxy->GetPrimitiveSceneInfo();
+		if (PrimitiveSceneInfo)
+		{
+			LateUpdatePrimitiveInfo PrimitiveInfo;
+			PrimitiveInfo.IndexAddress = PrimitiveSceneInfo->GetIndexAddress();
+			PrimitiveInfo.SceneInfo = PrimitiveSceneInfo;
+			Primitives.Add(PrimitiveInfo);
+		}
 	}
 
 	// Gather children proxies
@@ -168,6 +184,6 @@ void UMotionControllerComponent::FViewExtension::GatherSceneProxies(USceneCompon
 			continue;
 		}
 
-		GatherSceneProxies(ChildComponent);
+		GatherLateUpdatePrimitives(ChildComponent, Primitives);
 	}
 }

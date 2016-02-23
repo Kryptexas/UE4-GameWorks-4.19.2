@@ -479,7 +479,7 @@ def check_sanity(force=False):
         except Exception, e:
           reason = 'unknown: ' + str(e)
     if reason:
-      logging.warning('(Emscripten: %s, clearing cache)' % reason)
+      logging.info('(Emscripten: %s, clearing cache)' % reason)
       Cache.erase()
       force = False # the check actually failed, so definitely write out the sanity file, to avoid others later seeing failures too
 

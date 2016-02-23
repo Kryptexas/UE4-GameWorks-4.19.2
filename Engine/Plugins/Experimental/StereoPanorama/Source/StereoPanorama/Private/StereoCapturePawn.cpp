@@ -46,6 +46,7 @@ void AStereoCapturePawn::UpdateStereoAtlas(UObject* WorldContextObject, struct F
     }
 }
 
+
 void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FColor>& InLeftEyeAtlasData, const TArray<FColor>& InRightEyeAtlasData)
 {
     if (LeftEyeAtlas &&
@@ -82,5 +83,3 @@ void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FColor>& InLeftEye
         StereoCaptureDoneAction->IsStereoCaptureDone = true;
     }
 }
-
-
