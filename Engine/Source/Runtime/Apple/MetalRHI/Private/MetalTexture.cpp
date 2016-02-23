@@ -960,10 +960,20 @@ void FMetalSurface::UpdateSRV()
 
 void FMetalDynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
-	OutStats.DedicatedVideoMemory = 0;
-	OutStats.DedicatedSystemMemory = 0;
-	OutStats.SharedSystemMemory = 0;
-	OutStats.TotalGraphicsMemory = 0;
+	if(MemoryStats.TotalGraphicsMemory > 0)
+	{
+		OutStats.DedicatedVideoMemory = MemoryStats.DedicatedVideoMemory;
+		OutStats.DedicatedSystemMemory = MemoryStats.DedicatedSystemMemory;
+		OutStats.SharedSystemMemory = MemoryStats.SharedSystemMemory;
+		OutStats.TotalGraphicsMemory = MemoryStats.TotalGraphicsMemory;
+	}
+	else
+	{
+		OutStats.DedicatedVideoMemory = 0;
+		OutStats.DedicatedSystemMemory = 0;
+		OutStats.SharedSystemMemory = 0;
+		OutStats.TotalGraphicsMemory = 0;
+	}
 
 	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
 	OutStats.TexturePoolSize = GTexturePoolSize;

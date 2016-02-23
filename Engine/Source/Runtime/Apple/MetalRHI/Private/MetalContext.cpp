@@ -31,50 +31,76 @@ MTL_EXTERN NSArray* MTLCopyAllDevices(void);
 MTL_EXTERN NSArray <id<MTLDevice>>* MTLCopyAllDevices(void);
 #endif
 
-static id<MTLDevice> GetMTLDevice()
+static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 {
+	SCOPED_AUTORELEASE_POOL;
+	
+	DeviceIndex = 0;
+	
+	if(FParse::Param(FCommandLine::Get(),TEXT("metaldebug")))
+	{
+		setenv("METAL_DEVICE_WRAPPER_TYPE", "1", 0);
+	}
+	
 	NSArray* DeviceList = MTLCopyAllDevices();
+	[DeviceList autorelease];
+	
 	const int32 NumDevices = [DeviceList count];
 	
-	// return the first device if there’s only one in the list
-	if (NumDevices == 1)
+	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = FPlatformMisc::GetGPUDescriptors();
+	check(GPUs.Num() > 0);
+	
+	id<MTLDevice> SelectedDevice = nil;
+	
+	int32 ExplicitRendererId = FPlatformMisc::GetExplicitRendererIndex();
+	if (ExplicitRendererId >= 0 && ExplicitRendererId < GPUs.Num())
 	{
-		return (id<MTLDevice>)[DeviceList objectAtIndex:0];
-	}
-	
-	const char* MetalDeviceToUse = getenv("MetalDeviceToUse");
-	const bool bForceIntelGPU = MetalDeviceToUse && strcmp(MetalDeviceToUse, "Intel") == 0;
-	const bool bForceDefault = FParse::Param(FCommandLine::Get(),TEXT("defaultgpu"));
-	
-	id<MTLDevice> DefaultDevice = MTLCreateSystemDefaultDevice();
-	if (bForceDefault)
-	{
-		
-		return DefaultDevice;
-	}
-	
-	const bool bForceHeadless = FParse::Param(FCommandLine::Get(),TEXT("metalheadless"));
-	
-	if (bForceIntelGPU || bForceHeadless)
-	{
-		// enumerate through the device list to find the low power device
-		for (int32 Index = 0; Index < NumDevices; Index++)
+		FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[ExplicitRendererId];
+		for (id<MTLDevice> Device in DeviceList)
 		{
-			id<MTLDevice> Device = (id<MTLDevice>)[DeviceList objectAtIndex:Index];
-			const bool bIsLowPower = Device.lowPower;
-			const bool bIsHeadless = Device != DefaultDevice;
-			if (bIsLowPower && bForceIntelGPU)
+			if(([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			|| ([Device.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
+			|| ([Device.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
 			{
-				return Device;
-			}
-			else if (bIsHeadless && !bIsLowPower && bForceHeadless)
-			{
-				return Device;
+				if((Device.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(Device.name).Contains(FString(GPU.GPUName).Trim()))
+				{
+					DeviceIndex = ExplicitRendererId;
+					SelectedDevice = Device;
+					break;
+				}
 			}
 		}
+		if(!SelectedDevice)
+		{
+			UE_LOG(LogMetal, Warning,  TEXT("Couldn't find Metal device to match GPU descriptor (%s) from IORegistry - using default device."), *FString(GPU.GPUName));
+		}
 	}
-	
-	return DefaultDevice;
+	if (SelectedDevice == nil)
+	{
+		SelectedDevice = MTLCreateSystemDefaultDevice();
+		bool bFoundDefault = false;
+		for (uint32 i = 0; i < GPUs.Num(); i++)
+		{
+			FMacPlatformMisc::FGPUDescriptor const& GPU = GPUs[i];
+			if(([SelectedDevice.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x10DE)
+			   || ([SelectedDevice.name rangeOfString:@"AMD" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x1002)
+			   || ([SelectedDevice.name rangeOfString:@"Intel" options:NSCaseInsensitiveSearch].location != NSNotFound && GPU.GPUVendorId == 0x8086))
+			{
+				if((SelectedDevice.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(SelectedDevice.name).Contains(FString(GPU.GPUName).Trim()))
+				{
+					DeviceIndex = i;
+					bFoundDefault = true;
+					break;
+				}
+			}
+		}
+		if(!bFoundDefault)
+		{
+			UE_LOG(LogMetal, Warning,  TEXT("Couldn't find Metal device %s in GPU descriptors from IORegistry - capability reporting may be wrong."), *FString(SelectedDevice.name));
+		}
+	}
+	check(SelectedDevice);
+	return SelectedDevice;
 }
 
 static MTLPrimitiveTopologyClass TranslatePrimitiveTopology(uint32 PrimitiveType)
@@ -97,20 +123,22 @@ static MTLPrimitiveTopologyClass TranslatePrimitiveTopology(uint32 PrimitiveType
 
 FMetalDeviceContext* FMetalDeviceContext::CreateDeviceContext()
 {
+	uint32 DeviceIndex = 0;
 #if PLATFORM_IOS
 	id<MTLDevice> Device = [IOSAppDelegate GetDelegate].IOSView->MetalDevice;
 #else // @todo zebra
-	id<MTLDevice> Device = GetMTLDevice();
+	id<MTLDevice> Device = GetMTLDevice(DeviceIndex);
 #endif
 	FMetalCommandQueue* Queue = new FMetalCommandQueue(Device);
 	check(Queue);
 	
-	return new FMetalDeviceContext(Device, Queue);
+	return new FMetalDeviceContext(Device, DeviceIndex, Queue);
 }
 
-FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalCommandQueue* Queue)
+FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDeviceIndex, FMetalCommandQueue* Queue)
 : FMetalContext(*Queue, true)
 , Device(MetalDevice)
+, DeviceIndex(InDeviceIndex)
 , SceneFrameCounter(0)
 , FrameCounter(0)
 , Features(0)
@@ -389,6 +417,11 @@ void FMetalDeviceContext::ReleaseContext(FMetalRHICommandContext* Context)
 uint32 FMetalDeviceContext::GetNumActiveContexts(void) const
 {
 	return ActiveContexts;
+}
+
+uint32 FMetalDeviceContext::GetDeviceIndex(void) const
+{
+	return DeviceIndex;
 }
 
 uint32 FMetalContext::AutoReleasePoolTLSSlot = FPlatformTLS::AllocTlsSlot();
