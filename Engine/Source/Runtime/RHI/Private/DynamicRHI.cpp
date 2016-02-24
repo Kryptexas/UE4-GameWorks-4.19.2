@@ -25,7 +25,7 @@ static TAutoConsoleVariable<int32> CVarWarnOfBadDrivers(
 	TEXT(" 2: Simulating the system has a blacklisted NVIDIA driver (UI should appear)\n")
 	TEXT(" 3: Simulating the system has a blacklisted AMD driver (UI should appear)\n")
 	TEXT(" 4: Simulating the system has a not blacklisted AMD driver (no UI should appear)\n")
-	TEXT(" 5: Simulating the system has a Indel driver (no UI should appear)"),
+	TEXT(" 5: Simulating the system has a Intel driver (no UI should appear)"),
 	ECVF_RenderThreadSafe
 	);
 

@@ -786,6 +786,9 @@ public:
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
 	virtual bool GetWireframeMeshElement(int32 LODIndex, int32 BatchIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, bool bAllowPreCulledIndices, FMeshBatch& OutMeshBatch) const;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	virtual bool GetStreamingTextureInfo(struct FStreamingTexturePrimitiveInfo& OutInfo, int32 LODIndex, int32 ElementIndex) const override;
+#endif
 
 protected:
 	/**
@@ -914,7 +917,10 @@ protected:
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** The precise streaming info for each LOD and Section. */
+	TArray<struct FStreamingTexturePrimitiveInfo> StreamingTextureInfos;
 	/** Texture streaming factor used for lightmap textures */
+	float WorldTexelFactor;
 	float WorldLightmapFactor;
 
 	/** LOD used for collision */

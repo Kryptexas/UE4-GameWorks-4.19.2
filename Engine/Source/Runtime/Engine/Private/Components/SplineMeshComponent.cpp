@@ -1161,9 +1161,9 @@ FStaticMeshStaticLightingMesh* USplineMeshComponent::AllocateStaticLightingMesh(
 }
 
 
-bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
+bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor, FBoxSphereBounds& OutBounds, int32 LODIndex, int32 ElementIndex) const
 {
-	if (UStaticMeshComponent::GetStreamingTextureFactors(OutWorldTexelFactor, OutWorldLightmapFactor))
+	if (UStaticMeshComponent::GetStreamingTextureFactors(OutWorldTexelFactor, OutWorldLightmapFactor, OutBounds, LODIndex, ElementIndex))
 	{
 		// We need to come up with a compensation factor for spline deformed meshes
 

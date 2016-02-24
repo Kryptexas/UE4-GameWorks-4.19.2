@@ -49,6 +49,7 @@ public:
 		const FVertexFactory* VertexFactory,
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* Proxy,
+		int32 VisualizeLODIndex,
 		const FMeshBatchElement& BatchElement, 
 		const FMeshDrawingRenderState& DrawRenderState
 		) override{}

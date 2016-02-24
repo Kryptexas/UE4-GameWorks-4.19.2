@@ -380,14 +380,6 @@ private:
 		 */
 		void ReleaseMorphResources();
 
-		/** 
-		 * Update the contents of the vertex buffer with new data. Note that this
-		 * function is called from the render thread.
-		 * @param	NewVertices - array of new vertex data
-		 * @param	NumVertices - Number of vertices
-		 */
-		void UpdateShadowVertexBuffer( const FVector* NewVertices, uint32 NumVertices ) const;
-
 		/**
 		 * @return memory in bytes of size of the resources for this LOD
 		 */

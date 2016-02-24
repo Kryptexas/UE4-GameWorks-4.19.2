@@ -6,7 +6,7 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 
 #pragma once
 
-// Used to know whether QuadOverdraw should be used at runtime.
+// Used to know whether debug viewmodes are allowed at runtime.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 FORCEINLINE bool RuntimeAllowDebugViewModeShader(ERHIFeatureLevel::Type InFeatureLevel)
 {
@@ -106,6 +106,7 @@ public:
 		const FVertexFactory* VertexFactory,
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* Proxy,
+		int32 VisualizeLODIndex,
 		const FMeshBatchElement& BatchElement, 
 		const FMeshDrawingRenderState& DrawRenderState
 		) = 0;

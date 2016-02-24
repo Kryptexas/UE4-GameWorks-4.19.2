@@ -222,6 +222,8 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bSeparateTranslucencyPass(SnapshotSource.bSeparateTranslucencyPass)
 	, GBufferResourcesUniformBuffer(SnapshotSource.GBufferResourcesUniformBuffer)
 	, BufferSize(SnapshotSource.BufferSize)
+	, SeparateTranslucencyBufferSize(SnapshotSource.SeparateTranslucencyBufferSize)
+	, SeparateTranslucencyScale(SnapshotSource.SeparateTranslucencyScale)
 	, SmallColorDepthDownsampleFactor(SnapshotSource.SmallColorDepthDownsampleFactor)
 	, bLightAttenuationEnabled(SnapshotSource.bLightAttenuationEnabled)
 	, bUseDownsizedOcclusionQueries(SnapshotSource.bUseDownsizedOcclusionQueries)
@@ -1273,9 +1275,8 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 	if(IsSeparateTranslucencyActive(View))
 	{
 		FIntPoint ScaledSize;
-		uint32 NumSamples = 1;
 		float Scale = 1.0f;
-		GetSeparateTranslucencyDimensionsAndSamplecount(ScaledSize, NumSamples, Scale);
+		GetSeparateTranslucencyDimensions(ScaledSize, Scale);
 
 		SCOPED_DRAW_EVENT(RHICmdList, BeginSeparateTranslucency);
 
@@ -1327,9 +1328,8 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 		else
 		{
 			FIntPoint ScaledSize;
-			uint32 NumSamples = 1;
 			float Scale = 1.0f;
-			GetSeparateTranslucencyDimensionsAndSamplecount(ScaledSize, NumSamples, Scale);
+			GetSeparateTranslucencyDimensions(ScaledSize, Scale);
 			SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
 			SeparateTranslucencyDepth = &GetSeparateTranslucencyDepth(RHICmdList, GetBufferSizeXY());
 		}
@@ -1487,6 +1487,24 @@ void FSceneRenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY
 	QuantizeBufferSize(InBufferSizeX, InBufferSizeY);
 	BufferSize.X = InBufferSizeX;
 	BufferSize.Y = InBufferSizeY;
+}
+
+void FSceneRenderTargets::SetSeparateTranslucencyBufferSize(bool bAnyViewWantsDownsampledSeparateTranslucency)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
+	const float CVarScale = FMath::Clamp(CVar->GetValueOnRenderThread() / 100.0f, 0.0f, 100.0f);
+	float EffectiveScale = CVarScale;
+
+	// 'r.SeparateTranslucencyScreenPercentage' CVar wins over automatic downsampling
+	if (FMath::Abs(CVarScale - 1.0f) < .001f && bAnyViewWantsDownsampledSeparateTranslucency)
+	{
+		EffectiveScale = .5f;
+	}
+
+	int32 ScaledX = GetBufferSizeXY().X * EffectiveScale;
+	int32 ScaledY = GetBufferSizeXY().Y * EffectiveScale;
+	SeparateTranslucencyBufferSize = FIntPoint(FMath::Max(ScaledX, 1), FMath::Max(ScaledY, 1));
+	SeparateTranslucencyScale = EffectiveScale;
 }
 
 void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets(FRHICommandList& RHICmdList)
@@ -2262,13 +2280,18 @@ void FSceneTextureShaderParameters::Set(
 
 		if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
 			const FTexture2DRHIRef* DepthTexture = SceneContext.GetActualDepthTexture();
-			if (SceneContext.IsSeparateTranslucencyPass()
-				&& CVar->GetValueOnRenderThread() < 100
-				&& SceneContext.IsSeparateTranslucencyDepthValid())
+
+			if (SceneContext.IsSeparateTranslucencyPass() && SceneContext.IsSeparateTranslucencyDepthValid())
 			{
-				DepthTexture = &SceneContext.GetSeparateTranslucencyDepthSurface();
+				FIntPoint OutScaledSize;
+				float OutScale;
+				SceneContext.GetSeparateTranslucencyDimensions(OutScaledSize, OutScale);
+
+				if (OutScale < 1.0f)
+				{
+					DepthTexture = &SceneContext.GetSeparateTranslucencyDepthSurface();
+				}
 			}
 
 			SetTextureParameter(

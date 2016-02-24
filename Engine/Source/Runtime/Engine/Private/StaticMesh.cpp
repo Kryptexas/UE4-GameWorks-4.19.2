@@ -1452,7 +1452,7 @@ FBox UStaticMesh::GetBoundingBox() const
 	return ExtendedBounds.GetBox();
 }
 
-float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
+float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex) const
 {
 	check(RequestedUVIndex >= 0);
 	check(RequestedUVIndex < MAX_STATIC_TEXCOORDS);
@@ -1475,6 +1475,118 @@ float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
 	}
 	return StreamingTextureFactor;
 }
+
+bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex, const FTransform& Transform) const 
+{
+#if WITH_EDITORONLY_DATA
+	if (!GIsEditor || !RenderData || !RenderData->LODResources.IsValidIndex(LODIndex))
+	{
+		return false;
+	}
+
+	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
+
+	if (CoordinateIndex < 0 || CoordinateIndex >= LODModel.GetNumTexCoords())
+	{
+		return false;
+	}
+
+	if (!LODModel.Sections.IsValidIndex(ElementIndex))
+	{
+		return false;
+	}
+
+	struct FTriangleInfo
+	{
+		FTriangleInfo(float InAera, float InTexelRatio) : Aera(InAera), TexelRatio(InTexelRatio) {}
+		float Aera;
+		float TexelRatio;
+	};
+
+	struct FCompareAera
+	{
+		FORCEINLINE bool operator()(FTriangleInfo const& A, FTriangleInfo const& B) const { return A.Aera < B.Aera; }
+	};
+
+	struct FCompareTexelRatio
+	{
+		FORCEINLINE bool operator()(FTriangleInfo const& A, FTriangleInfo const& B) const { return A.TexelRatio < B.TexelRatio; }
+	};
+
+	TArray<FTriangleInfo> TriangleInfos;
+
+	const FStaticMeshSection& SectionInfo = LODModel.Sections[ElementIndex];
+	const int32 SectionIndexCount = SectionInfo.NumTriangles * 3;
+	FIndexArrayView IndexBuffer = LODModel.IndexBuffer.GetArrayView();
+	
+	FBox TransformedSectionBox(ForceInit);
+
+	for (uint32 TriangleIndex = 0; TriangleIndex < SectionInfo.NumTriangles; ++TriangleIndex)
+	{
+		const int32 Index0 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 0];
+		const int32 Index1 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 1];
+		const int32 Index2 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 2];
+
+		FVector Pos0 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index0));
+		FVector Pos1 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index1));
+		FVector Pos2 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index2));
+
+		TransformedSectionBox += Pos0;
+		TransformedSectionBox += Pos1;
+		TransformedSectionBox += Pos2;
+
+		FVector2D UV0 = LODModel.VertexBuffer.GetVertexUV(Index0, CoordinateIndex);
+		FVector2D UV1 = LODModel.VertexBuffer.GetVertexUV(Index1, CoordinateIndex);
+		FVector2D UV2 = LODModel.VertexBuffer.GetVertexUV(Index2, CoordinateIndex);
+
+		FVector P01 = Pos1 - Pos0;
+		FVector P02 = Pos2 - Pos0;
+
+		float Aera = FVector::CrossProduct(P01, P02).Size();
+
+		if (Aera > SMALL_NUMBER)
+		{
+			float L1 = P01.Size();
+			float L2 = P02.Size();
+
+			float T1 = (UV1 - UV0).Size();
+			float T2 = (UV2 - UV0).Size();
+
+			if (T1 > SMALL_NUMBER && T2 > SMALL_NUMBER)
+			{
+				float TexelRatio = FMath::Max(L1 / T1, L2 / T2);
+				TriangleInfos.Push(FTriangleInfo(Aera, TexelRatio));
+			}
+		}
+	}
+
+	TriangleInfos.Sort(FCompareTexelRatio());
+
+	float WeightedTexelFactorSum = 0;
+	float AreaSum = 0;
+
+	// Remove 10% of higher and lower texel factors.
+	int32 Threshold = FMath::FloorToInt(.10f * (float)TriangleInfos.Num());
+	for (int32 Index = Threshold; Index < TriangleInfos.Num() - Threshold; ++Index)
+	{
+		WeightedTexelFactorSum += TriangleInfos[Index].TexelRatio * TriangleInfos[Index].Aera;
+		AreaSum += TriangleInfos[Index].Aera;
+	}
+
+	if (AreaSum == 0)
+	{
+		return false;
+	}
+
+	OutBounds = TransformedSectionBox;
+	OutTexelFactor = WeightedTexelFactorSum / AreaSum;
+	return true;
+
+#else
+	return false;
+#endif
+}	
+
 
 /**
  * Releases the static mesh's render resources.

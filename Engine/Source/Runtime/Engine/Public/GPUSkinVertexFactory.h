@@ -357,6 +357,7 @@ public:
 		}
 
 	private:
+		// double buffered bone positions+orientations to support normal rendering and velocity (new-old position) rendering
 		FVertexBufferAndSRV BoneBuffer[2];
 		// 0 / 1 to index into BoneBuffer
 		uint32 CurrentBuffer;
@@ -617,7 +618,7 @@ protected:
 
 private:
 	/** stream component data bound to this vertex factory */
-	FDataType MorphData; 
+	FDataType MorphData;
 
 };
 

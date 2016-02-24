@@ -2593,7 +2593,7 @@ FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescr
 
 	if(bIterateAvailableAndChoose)
 	{
-		for(uint32 i = 0;; ++i)
+		for(uint32 i = 0; i < 256; ++i)
 		{
 			// Iterate all installed display adapters
 			const FString Key = FString::Printf(TEXT("SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}\\%04d"), i);
@@ -2603,7 +2603,9 @@ FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescr
 
 			if(!Local.IsValid())
 			{
+				// last device or error
 				DebugString += TEXT("GetVideoDriverDetailsInvalid ");
+				break;
 			}
 
 			if(Local.DeviceDescription == DeviceDescription)

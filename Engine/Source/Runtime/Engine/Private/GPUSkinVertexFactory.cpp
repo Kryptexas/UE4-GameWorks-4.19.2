@@ -580,8 +580,8 @@ public:
 	*/
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
-		GPUSkinCacheFloatOffset.Bind(ParameterMap,TEXT("GPUSkinCachePreviousFloatOffset"));
-		GPUSkinCacheBuffer.Bind(ParameterMap,TEXT("GPUSkinCachePreviousBuffer"));
+		GPUSkinCachePreviousFloatOffset.Bind(ParameterMap,TEXT("GPUSkinCachePreviousFloatOffset"));
+		GPUSkinCachePreviousBuffer.Bind(ParameterMap,TEXT("GPUSkinCachePreviousBuffer"));
 	}
 	/**
 	* Serialize shader params to an archive
@@ -589,8 +589,8 @@ public:
 	*/
 	virtual void Serialize(FArchive& Ar) override
 	{
-		Ar << GPUSkinCacheFloatOffset;
-		Ar << GPUSkinCacheBuffer;
+		Ar << GPUSkinCachePreviousFloatOffset;
+		Ar << GPUSkinCachePreviousBuffer;
 	}
 	/**
 	* Set any shader data specific to this vertex factory
@@ -601,7 +601,7 @@ public:
 		{
 			bool bIsGPUCached = false;
 			check(VertexFactory->GetType() == &FGPUSkinPassthroughVertexFactory::StaticType);
-			if (GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, BatchElement.UserIndex, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCacheFloatOffset, GPUSkinCacheBuffer))
+			if (GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, BatchElement.UserIndex, Shader, (FGPUSkinPassthroughVertexFactory*)VertexFactory, BatchElement.MinVertexIndex, GPUSkinCachePreviousFloatOffset, GPUSkinCachePreviousBuffer))
 			{
 				bIsGPUCached = true;
 			}
@@ -611,8 +611,8 @@ public:
 	virtual uint32 GetSize() const override { return sizeof(*this); }
 
 private:
-	FShaderParameter GPUSkinCacheFloatOffset;
-	FShaderResourceParameter GPUSkinCacheBuffer;
+	FShaderParameter GPUSkinCachePreviousFloatOffset;
+	FShaderResourceParameter GPUSkinCachePreviousBuffer;
 };
 
 /*-----------------------------------------------------------------------------

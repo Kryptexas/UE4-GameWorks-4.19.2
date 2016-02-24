@@ -640,42 +640,29 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass
     }
 }
 
-FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily, 
-	FVector& OutViewLocation, 
-	FRotator& OutViewRotation, 
-	FViewport* Viewport, 
+bool ULocalPlayer::CalcSceneViewInitOptions(
+	struct FSceneViewInitOptions& ViewInitOptions,
+	FViewport* Viewport,
 	class FViewElementDrawer* ViewDrawer,
 	EStereoscopicPass StereoPass)
 {
-	SCOPE_CYCLE_COUNTER(STAT_CalcSceneView);
-
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_CalcSceneViewInitOptions);
 	if ((PlayerController == NULL) || (Size.X <= 0.f) || (Size.Y <= 0.f) || (Viewport == NULL))
 	{
-		return NULL;
+		return false;
 	}
-
-	FSceneViewInitOptions ViewInitOptions;
-
 	// get the projection data
 	if (GetProjectionData(Viewport, StereoPass, /*inout*/ ViewInitOptions) == false)
 	{
 		// Return NULL if this we didn't get back the info we needed
-		return NULL;
+		return false;
 	}
-	
+
 	// return if we have an invalid view rect
 	if (!ViewInitOptions.IsValidViewRectangle())
 	{
-		return NULL;
+		return false;
 	}
-
-	// Get the viewpoint...technically doing this twice
-	// but it makes GetProjectionData better
-	FMinimalViewInfo ViewInfo;
-	GetViewPoint(ViewInfo, StereoPass);
-	
-	OutViewLocation = ViewInfo.Location;
-	OutViewRotation = ViewInfo.Rotation;
 
 	if (PlayerController->PlayerCameraManager != NULL)
 	{
@@ -683,7 +670,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		if (PlayerController->PlayerCameraManager->bEnableFading)
 		{
 			ViewInitOptions.OverlayColor = PlayerController->PlayerCameraManager->FadeColor;
-			ViewInitOptions.OverlayColor.A = FMath::Clamp(PlayerController->PlayerCameraManager->FadeAmount,0.0f,1.0f);
+			ViewInitOptions.OverlayColor.A = FMath::Clamp(PlayerController->PlayerCameraManager->FadeAmount, 0.0f, 1.0f);
 		}
 
 		// Do color scaling if desired.
@@ -699,11 +686,8 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		// Was there a camera cut this frame?
 		ViewInitOptions.bInCameraCut = PlayerController->PlayerCameraManager->bGameCameraCutThisFrame;
 	}
-	
-	check(PlayerController && PlayerController->GetWorld());
 
-	// Fill out the rest of the view init options
-	ViewInitOptions.ViewFamily = ViewFamily;
+	check(PlayerController && PlayerController->GetWorld());
 	ViewInitOptions.SceneViewStateInterface = ((StereoPass != eSSP_RIGHT_EYE) ? ViewState.GetReference() : StereoViewState.GetReference());
 	ViewInitOptions.ViewActor = PlayerController->GetViewTarget();
 	ViewInitOptions.ViewElementDrawer = ViewDrawer;
@@ -713,8 +697,42 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	ViewInitOptions.WorldToMetersScale = PlayerController->GetWorldSettings()->WorldToMeters;
 	ViewInitOptions.CursorPos = Viewport->HasMouseCapture() ? FIntPoint(-1, -1) : FIntPoint(Viewport->GetMouseX(), Viewport->GetMouseY());
 	ViewInitOptions.bOriginOffsetThisFrame = PlayerController->GetWorld()->bOriginOffsetThisFrame;
+
+	return true;
+}
+
+
+FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily, 
+	FVector& OutViewLocation, 
+	FRotator& OutViewRotation, 
+	FViewport* Viewport, 
+	class FViewElementDrawer* ViewDrawer,
+	EStereoscopicPass StereoPass)
+{
+	SCOPE_CYCLE_COUNTER(STAT_CalcSceneView);
+
+	FSceneViewInitOptions ViewInitOptions;
+
+	if (!CalcSceneViewInitOptions(ViewInitOptions, Viewport, ViewDrawer, StereoPass))
+	{
+		return nullptr;
+	}
+
+	// Get the viewpoint...technically doing this twice
+	// but it makes GetProjectionData better
+	FMinimalViewInfo ViewInfo;
+	GetViewPoint(ViewInfo, StereoPass);
+	OutViewLocation = ViewInfo.Location;
+	OutViewRotation = ViewInfo.Rotation;
 	ViewInitOptions.bUseFieldOfViewForLOD = ViewInfo.bUseFieldOfViewForLOD;
-	PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
+
+	// Fill out the rest of the view init options
+	ViewInitOptions.ViewFamily = ViewFamily;
+
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHiddenComponentList);
+		PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
+	}
 
 	FSceneView* const View = new FSceneView(ViewInitOptions);
 	

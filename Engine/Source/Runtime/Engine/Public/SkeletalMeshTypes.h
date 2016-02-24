@@ -351,7 +351,9 @@ struct FSkelMeshChunk
 	/** max # of bones used to skin the vertices in this chunk */
 	int32 MaxBoneInfluences;
 
+	// INDEX_NONE if not set
 	int16 CorrespondClothAssetIndex;
+	// INDEX_NONE if not set
 	int16 ClothAssetSubmeshIndex;
 
 	FSkelMeshChunk()
@@ -1487,7 +1489,10 @@ public:
 	/** 
 	* Rendering data.
 	*/
+
+	// Index Buffer (MultiSize: 16bit or 32bit)
 	FMultiSizeIndexContainer	MultiSizeIndexContainer; 
+	//
 	uint32						NumVertices;
 	/** The number of unique texture coordinate sets in this lod */
 	uint32						NumTexCoords;

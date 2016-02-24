@@ -237,6 +237,10 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(transient)
 	TArray<struct FStaticMeshComponentLODInfo> LODData;
 
+	/** The streaming info for each LOD / Section. Needs to be persistent in order to be accessible when loading cooked maps. */
+	UPROPERTY()
+	TArray<FStreamingTexturePrimitiveInfo> StreamingTextureInfos;
+
 #if WITH_EDITORONLY_DATA
 	/** Derived data key of the static mesh, used to determine if an update from the source static mesh is required. */
 	UPROPERTY()
@@ -295,6 +299,7 @@ public:
 		// return IsCollisionEnabled() && (StaticMesh != NULL);
 		return false;
 	}
+
 	//~ End USceneComponent Interface
 
 	//~ Begin UActorComponent Interface.
@@ -322,7 +327,8 @@ public:
 		return LightmassSettings.bShadowIndirectOnly;
 	}
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
-	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const;
+	void UpdateStreamingTextureInfos(bool bForce = false);
+	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor, FBoxSphereBounds& OutBounds, int32 LODIndex, int32 ElementIndex) const;
 	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual class UBodySetup* GetBodySetup() override;
 	virtual bool CanEditSimulatePhysics() override;

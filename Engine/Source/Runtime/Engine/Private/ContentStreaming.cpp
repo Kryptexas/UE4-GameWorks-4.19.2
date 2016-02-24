@@ -172,10 +172,10 @@ static TAutoConsoleVariable<int32> CVarStreamingShowWantedMips(
 	TEXT("If non-zero, will limit resolution to wanted mip."),
 	ECVF_Cheat);
 
-ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseAABB(
-	TEXT("r.Streaming.UseAABB"),
+ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics(
+	TEXT("r.Streaming.UseNewMetrics"),
 	0,
-	TEXT("If non-zero, will use AABB to compute distance."),
+	TEXT("If non-zero, will use tight AABB bounds and improved texture factors."),
 	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarStreamingHLODStrategy(
@@ -5522,7 +5522,7 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 	bool bShouldAbortLoop = false;
 	bool bEntryFound = false; // True an entry for this texture exists­.
 
-	const bool bUseAABB = CVarStreamingUseAABB.GetValueOnAnyThread() > 0;
+	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() > 0;
 	const float HiddenScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
 	const float MaxResolution = (float)(0x1 << (StreamingTexture.MaxAllowedMips - 1));
 
@@ -5597,7 +5597,7 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 						const VectorRegister InRangeMask = VectorCompareEQ(DistSq, ClampedDistSq);
 
 						VectorRegister DistSqMinusRadiusSq = VectorZero();
-						if (bUseAABB)
+						if (bUseNewMetrics)
 						{
 							// In this case DistSqMinusRadiusSq will contain the distance to the box^2
 							Temp = VectorSubtract( ViewOriginX, CenterX );

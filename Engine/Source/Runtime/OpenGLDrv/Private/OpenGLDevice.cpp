@@ -698,6 +698,7 @@ static void InitRHICapabilitiesForGL()
 	GMaxShadowDepthBufferSizeY = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096);
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
 	GRHISupportsInstancing = FOpenGL::SupportsInstancing(); // HTML5 does not support it. Android supports it with OpenGL ES3.0+ 
+	GSupportsTimestampRenderQueries = FOpenGL::SupportsTimestampQueries();
 
 	GSupportsHDR32bppEncodeModeIntrinsic = FOpenGL::SupportsHDR32bppEncodeModeIntrinsic();
 

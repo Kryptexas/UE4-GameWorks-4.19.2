@@ -86,7 +86,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	}
 #endif
 
-#if ENABLE_SKY_LIGHT
+#if ENABLE_SKY_LIGHT || MATERIAL_SHADINGMODEL_CLEAR_COAT
 	BRANCH
 	if (SkyLightParameters.y > 0 && SpecularIBL.a < .999f)
 	{

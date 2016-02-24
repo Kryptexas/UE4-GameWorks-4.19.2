@@ -235,7 +235,9 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 
 	const float FadeMultiplier = CVarDecalFadeScreenSizeMultiplier.GetValueOnRenderThread();
 	const EShaderPlatform ShaderPlatform = View.GetShaderPlatform();
-	
+
+	const bool bIsPerspectiveProjection = View.IsPerspectiveProjection();
+
 	// Build a list of decals that need to be rendered for this view in SortedDecals
 	for (const FDeferredDecalProxy* DecalProxy : Scene.Decals)
 	{
@@ -273,7 +275,7 @@ void FDecalRendering::BuildVisibleDecalList(const FScene& Scene, const FViewInfo
 			// filter out decals with blend modes that are not supported on current platform
 			if (IsBlendModeSupported(ShaderPlatform, Data.DecalBlendMode))
 			{
-				if (Data.DecalProxy->Component->FadeScreenSize != 0.0f)
+				if (bIsPerspectiveProjection && Data.DecalProxy->Component->FadeScreenSize != 0.0f)
 				{
 					float Distance = (View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).Size();
 					float Radius = ComponentToWorldMatrix.GetMaximumAxisScale();

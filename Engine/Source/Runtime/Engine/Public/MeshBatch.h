@@ -51,6 +51,11 @@ struct FMeshBatchElement
 	uint8 bIsSplineProxy : 1;
 	uint8 bIsInstanceRuns : 1;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/** Conceptual element index used for debug viewmodes. */
+	int8 VisualizeElementIndex;
+#endif
+
 	FMeshBatchElement()
 	:	PrimitiveUniformBufferResource(nullptr)
 	,	IndexBuffer(nullptr)
@@ -67,6 +72,10 @@ struct FMeshBatchElement
 	,   bIsInstancedMesh(false)
 	,	bIsSplineProxy(false)
 	,	bIsInstanceRuns(false)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	,	VisualizeElementIndex(INDEX_NONE)
+#endif
+
 	{
 	}
 };
@@ -84,8 +93,10 @@ struct FMeshBatch
 	/** LOD index of the mesh, used for fading LOD transitions. */
 	int8 LODIndex;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Conceptual LOD index used for the LOD Coloration visualization. */
 	int8 VisualizeLODIndex;
+#endif
 
 	/** Conceptual HLOD index used for the HLOD Coloration visualization. */
 	int8 VisualizeHLODIndex;
@@ -214,7 +225,9 @@ struct FMeshBatch
 	FMeshBatch()
 	:	DynamicVertexStride(0)
 	,	LODIndex(INDEX_NONE)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	,	VisualizeLODIndex(INDEX_NONE)
+#endif
 	,	VisualizeHLODIndex(INDEX_NONE)
 	,	UseDynamicData(false)
 	,	ReverseCulling(false)

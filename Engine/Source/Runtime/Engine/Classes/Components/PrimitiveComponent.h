@@ -19,11 +19,10 @@ struct FConvexVolume;
 struct FNavigableGeometryExport;
 
 /** Information about a streaming texture that a primitive uses for rendering. */
+USTRUCT()
 struct FStreamingTexturePrimitiveInfo
 {
-	UTexture* Texture;
-	FBoxSphereBounds Bounds;
-	float TexelFactor;
+	GENERATED_USTRUCT_BODY()
 
 	FStreamingTexturePrimitiveInfo()
 		: Texture(nullptr)
@@ -31,6 +30,15 @@ struct FStreamingTexturePrimitiveInfo
 		, TexelFactor(1.0f)
 	{
 	}
+
+	UPROPERTY()
+	UTexture* Texture;
+
+	UPROPERTY()
+	FBoxSphereBounds Bounds;
+
+	UPROPERTY()
+	float TexelFactor;
 };
 
 /** Determines whether a Character can attempt to step up onto a component when they walk in to it. */

@@ -71,9 +71,6 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))
 ,	LpvBiasMultiplier(InComponent->LpvBiasMultiplier)
 ,	IndirectLightingCacheQuality(InComponent->IndirectLightingCacheQuality)
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-,	WorldTexelFactor(0)
-#endif
 ,	Scene(InComponent->GetScene())
 ,	PrimitiveComponentId(InComponent->ComponentId)
 ,	PrimitiveSceneInfo(NULL)

@@ -605,6 +605,18 @@ public:
 	FShaderResourceViewRHIRef IndirectShadowLightDirectionSRV;
 	FRWBuffer CapsuleTileIntersectionCountsBuffer;
 
+	/** Timestamp queries around separate translucency, used for auto-downsampling. */
+	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1> > PendingTranslucencyStartTimestamps;
+	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1> > PendingTranslucencyEndTimestamps;
+
+	/** This is float since it is derived off of UWorld::RealTimeSeconds, which is relative to BeginPlay time. */
+	float LastAutoDownsampleChangeTime;
+	float SmoothedHalfResTranslucencyGPUDuration;
+	float SmoothedFullResTranslucencyGPUDuration;
+
+	/** Current desired state of auto-downsampled separate translucency for this view. */
+	bool bShouldAutoDownsampleTranslucency;
+
 	// Is DOFHistoryRT set from DepthOfField?
 	bool bDOFHistory;
 	// Is DOFHistoryRT2 set from DepthOfField?
@@ -811,6 +823,16 @@ public:
 		IndirectShadowLightDirectionVertexBuffer.SafeRelease();
 		IndirectShadowLightDirectionSRV.SafeRelease();
 		CapsuleTileIntersectionCountsBuffer.Release();
+
+		for (int32 QueryIndex = 0; QueryIndex < PendingTranslucencyStartTimestamps.Num(); QueryIndex++)
+		{
+			PendingTranslucencyStartTimestamps[QueryIndex].SafeRelease();
+		}
+
+		for (int32 QueryIndex = 0; QueryIndex < PendingTranslucencyEndTimestamps.Num(); QueryIndex++)
+		{
+			PendingTranslucencyEndTimestamps[QueryIndex].SafeRelease();
+		}
 	}
 
 	// FSceneViewStateInterface

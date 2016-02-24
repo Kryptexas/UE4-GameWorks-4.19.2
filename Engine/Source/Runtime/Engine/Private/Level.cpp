@@ -1556,10 +1556,8 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 			const bool bIsClassDefaultObject = Primitive->IsTemplate(RF_ClassDefaultObject);
 			if ( !bIsClassDefaultObject && Primitive->IsRegistered() )
 			{
-				const AActor* const Owner				= Primitive->GetOwner();
-				const bool bIsStatic					= Owner == NULL 
-															|| Primitive->Mobility == EComponentMobility::Static 
-															|| Primitive->Mobility == EComponentMobility::Stationary;
+				const AActor* const Owner = Primitive->GetOwner();
+				const bool bIsStatic = Owner == NULL || Primitive->Mobility == EComponentMobility::Static || Primitive->Mobility == EComponentMobility::Stationary;
 
 				TArray<FStreamingTexturePrimitiveInfo> PrimitiveStreamingTextures;
 

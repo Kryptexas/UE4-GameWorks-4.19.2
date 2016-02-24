@@ -172,6 +172,8 @@ protected:
 		bVelocityPass(false),
 		bSeparateTranslucencyPass(false),
 		BufferSize(0, 0),
+		SeparateTranslucencyBufferSize(0, 0),
+		SeparateTranslucencyScale(1),
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
 		bUseDownsizedOcclusionQueries(true),
@@ -217,6 +219,8 @@ public:
 	 *
 	 */
 	void SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY);
+
+	void SetSeparateTranslucencyBufferSize(bool bAnyViewWantsDownsampledSeparateTranslucency);
 
 	void BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERenderTargetLoadAction ColorLoadAction, ERenderTargetLoadAction DepthLoadAction, bool bBindQuadOverdrawBuffers, const FLinearColor& ClearColor = FLinearColor(0, 0, 0, 1));
 	void FinishRenderingGBuffer(FRHICommandListImmediate& RHICmdList);
@@ -271,7 +275,10 @@ public:
 	{
 		SeparateTranslucencyRT.SafeRelease();
 		check(!SeparateTranslucencyRT);
+	}
 
+	void FreeSeparateTranslucencyDepth()
+	{
 		if (SeparateTranslucencyDepthRT.GetReference())
 		{
 			SeparateTranslucencyDepthRT.SafeRelease();
@@ -290,17 +297,13 @@ public:
 	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite = false);
 	void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
 
-	void GetSeparateTranslucencyDimensionsAndSamplecount(FIntPoint &OutScaledSize, uint32 &OutNumSamples, float &OutScale)
+	void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale)
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
-		OutScale = FMath::Clamp(CVar->GetValueOnRenderThread() / 100.0f, 0.0f, 100.0f);
-		int32 ScaledX = GetBufferSizeXY().X * OutScale;
-		int32 ScaledY = GetBufferSizeXY().Y * OutScale;
-		OutScaledSize = FIntPoint(  FMath::Max(ScaledX, 1), FMath::Max(ScaledY, 1));
-		OutNumSamples = OutScale < 1.0f ? 4 : 1;
+		OutScaledSize = SeparateTranslucencyBufferSize;
+		OutScale = SeparateTranslucencyScale;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size, uint32 NumSamples = 1)
+	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size)
 	{
 		if (!SeparateTranslucencyRT || SeparateTranslucencyRT->GetDesc().Extent != Size)
 		{
@@ -317,7 +320,7 @@ public:
 		return SeparateTranslucencyDepthRT != nullptr;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size, uint32 NumSamples = 1)
+	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucencyDepth(FRHICommandList& RHICmdList, FIntPoint Size)
 	{
 		if (!SeparateTranslucencyDepthRT || SeparateTranslucencyDepthRT->GetDesc().Extent != Size)
 		{
@@ -729,6 +732,8 @@ private:
 	FUniformBufferRHIRef GBufferResourcesUniformBuffer;
 	/** size of the back buffer, in editor this has to be >= than the biggest view port */
 	FIntPoint BufferSize;
+	FIntPoint SeparateTranslucencyBufferSize;
+	float SeparateTranslucencyScale;
 	/** e.g. 2 */
 	uint32 SmallColorDepthDownsampleFactor;
 	/** if true we use the light attenuation buffer otherwise the 1x1 white texture is used */

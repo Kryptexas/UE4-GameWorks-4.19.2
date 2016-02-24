@@ -1722,8 +1722,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 				Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 			}
 
-			const EDebugViewShaderMode DebugViewShaderMode = View.Family->GetDebugViewShaderMode();
-			if (DebugViewShaderMode == DVSM_None)
+			// Shader complexity does not actually output a color
+			if (!View.Family->EngineShowFlags.ShaderComplexity)
 			{
 				AddGammaOnlyTonemapper(Context);
 			}
@@ -1943,6 +1943,9 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 	}
 
 	GRenderTargetPool.AddPhaseEvent(TEXT("AfterPostprocessing"));
+
+	// End of frame, we don't need it anymore
+	FSceneRenderTargets::Get(RHICmdList).FreeSeparateTranslucencyDepth();
 }
 
 

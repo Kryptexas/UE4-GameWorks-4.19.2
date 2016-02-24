@@ -238,7 +238,7 @@ namespace AutomationTool
 				String.IsNullOrEmpty(Parameters) ? "" : Parameters,
 				CommandUtils.MakePathSafeToUseWithCommandLine(LocalLogFile),
 				IsBuildMachine ? "-buildmachine" : "",
-				GlobalCommandLine.Verbose ? "-AllowStdOutLogVerbosity " : ""
+                (GlobalCommandLine.Verbose || GlobalCommandLine.AllowStdOutLogVerbosity) ? "-AllowStdOutLogVerbosity " : ""
 			);
 			ERunOptions Opts = ERunOptions.Default;
 			if (GlobalCommandLine.UTF8Output)

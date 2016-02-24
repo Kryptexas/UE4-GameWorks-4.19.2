@@ -10,6 +10,9 @@ TexelFactorAccuracyRendering.cpp: Contains definitions for rendering the viewmod
 
 IMPLEMENT_SHADER_TYPE(,FTexelFactorAccuracyPS,TEXT("TexelFactorAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
 
+extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;
+
+
 void FTexelFactorAccuracyPS::SetParameters(
 	FRHICommandList& RHICmdList, 
 	const FShader* OriginalVS, 
@@ -39,15 +42,21 @@ void FTexelFactorAccuracyPS::SetMesh(
 	const FVertexFactory* VertexFactory,
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* Proxy,
+	int32 VisualizeLODIndex,
 	const FMeshBatchElement& BatchElement, 
 	const FMeshDrawingRenderState& DrawRenderState
 	)
 {
+	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
+
 	float CPUTexelFactor = -1.f;
-	if (Proxy && Proxy->GetWorldTexelFactor() > 0)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FStreamingTexturePrimitiveInfo Info; 
+	if (Proxy && Proxy->GetStreamingTextureInfo(Info, bUseMetrics ? VisualizeLODIndex : INDEX_NONE, bUseMetrics ? BatchElement.VisualizeElementIndex : INDEX_NONE))
 	{
-		CPUTexelFactor = Proxy->GetWorldTexelFactor();
+		CPUTexelFactor = Info.TexelFactor;
 	}
+#endif
 	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), CPUTexelFactorParameter, CPUTexelFactor);
 }
 

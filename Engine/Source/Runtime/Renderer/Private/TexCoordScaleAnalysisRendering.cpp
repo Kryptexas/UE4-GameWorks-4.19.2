@@ -44,27 +44,11 @@ void FTexCoordScaleAnalysisPS::SetMesh(
 	const FVertexFactory* VertexFactory,
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* Proxy,
+	int32 VisualizeLODIndex,
 	const FMeshBatchElement& BatchElement, 
 	const FMeshDrawingRenderState& DrawRenderState
 	)
 {
-	// This is taken from FStreamingHandlerTextureStatic::GetWantedMips
-
-	float CPUWantedMips = -1.f;
-	if (Proxy && Proxy->GetWorldTexelFactor() > 0)
-	{
-		FVector ViewToObject = Proxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin;
-
-		float DistSqMinusRadiusSq = 0;
-		float ViewSize = View.ViewRect.Size().X;
-
-		DistSqMinusRadiusSq = FMath::Max(1.f, DistSqMinusRadiusSq);
-
-		float CoordSize = Proxy->GetWorldTexelFactor() * FMath::InvSqrt(DistSqMinusRadiusSq) * ViewSize;
-
-		CPUWantedMips = FMath::Clamp<float>(FMath::Log2(CoordSize), 0.f, (float)MaxStreamingAccuracyMips);
-	}
-
 	SetShaderValue(RHICmdList, FMeshMaterialShader::GetPixelShader(), TextureAnalysisIndexParameter, (int32)CVarStreamingAnalysisIndex.GetValueOnRenderThread());
 	SetShaderValue(RHICmdList, FMeshMaterialShader::GetPixelShader(), CPUScaleParameter, 1.f);
 

@@ -102,6 +102,9 @@ extern RHI_API bool GSupportsShaderFramebufferFetch;
 /** true if mobile depth & stencil fetch is supported */
 extern RHI_API bool GSupportsShaderDepthStencilFetch;
 
+/** true if RQT_AbsoluteTime is supported by RHICreateRenderQuery */
+extern RHI_API bool GSupportsTimestampRenderQueries;
+
 /** true if the GPU supports hidden surface removal in hardware. */
 extern RHI_API bool GHardwareHiddenSurfaceRemoval;
 

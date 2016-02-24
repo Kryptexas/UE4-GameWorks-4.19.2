@@ -84,6 +84,7 @@ float4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
 
 	Parameters.VertexColor = InVertex.Color;
 
+    ResolvedView = ResolveView();
 	FPixelMaterialInputs PixelMaterialInputs;
 	CalcMaterialParameters( Parameters, PixelMaterialInputs, InVertex.Position, true );
 

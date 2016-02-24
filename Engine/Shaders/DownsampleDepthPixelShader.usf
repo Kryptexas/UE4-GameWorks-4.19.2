@@ -9,7 +9,7 @@
 float2 ProjectionScaleBias;
 float4 SourceTexelOffsets01;
 float4 SourceTexelOffsets23;
-float MinMaxBlend;
+float UseMaxDepth;
 
 void Main(
 	noperspective float2 InUV : TEXCOORD0,
@@ -23,10 +23,11 @@ void Main(
 	float ViewSpaceZ2 = CalcSceneDepth(InUV + SourceTexelOffsets23.xy);
 	float ViewSpaceZ3 = CalcSceneDepth(InUV + SourceTexelOffsets23.zw);
 
-	// Use the furthest depth to shrink foreground object silhouettes
-	float MinDepth = min(min(ViewSpaceZ0, ViewSpaceZ1), min(ViewSpaceZ2, ViewSpaceZ3));
 	float MaxDepth = max(max(ViewSpaceZ0, ViewSpaceZ1), max(ViewSpaceZ2, ViewSpaceZ3));
-	float Depth = MinDepth*MinMaxBlend + MaxDepth*(1-MinMaxBlend);
+
+	// Max depth shrinks the silhouettes around foreground objects and is conservative for depth testing
+	// Sample 0 has consistent error, use whichever one is requested for this downsample
+	float Depth = UseMaxDepth > 0 ? MaxDepth : ViewSpaceZ0;
 	// Convert view space Z into post projection Z and output post projection Z / W as the depth buffer expects.
 	OutDepth = (Depth * ProjectionScaleBias.x + ProjectionScaleBias.y) / Depth;
 }

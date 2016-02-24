@@ -1225,6 +1225,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_LookupPrecomputedVisibility);
 
+		FViewElementPDI OcclusionPDI(&View, NULL);
 		uint8 PrecomputedVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 		for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 		{
@@ -1236,6 +1237,12 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
 					INC_DWORD_STAT_BY(STAT_StaticallyOccludedPrimitives,1);
 					STAT(NumOccludedPrimitives++);
+
+					if (GVisualizeOccludedPrimitives)
+					{
+						const FBoxSphereBounds& Bounds = Scene->PrimitiveOcclusionBounds[BitIt.GetIndex()];
+						DrawWireBox(&OcclusionPDI, Bounds.GetBox(), FColor(100, 50, 50), SDPG_Foreground);
+					}
 				}
 			}
 		}
@@ -2873,6 +2880,8 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 		// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
 		UpdatePrimitivePrecomputedLightingBuffers();
 	}
+
+	UpdateSeparateTranslucencyBufferSize(RHICmdList);
 }
 
 /*------------------------------------------------------------------------------

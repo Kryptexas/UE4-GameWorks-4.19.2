@@ -127,6 +127,7 @@ private:
 
 	// fences to make sure the rhi thread has digested the occlusion query renders before we attempt to read them back async
 	static FGraphEventRef OcclusionSubmittedFence[FOcclusionQueryHelpers::MaxBufferedOcclusionFrames];
+	static FGraphEventRef TranslucencyTimestampQuerySubmittedFence[FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1];
 
 	/** Creates a per object projected shadow for the given interaction. */
 	void CreatePerObjectProjectedShadow(
@@ -161,6 +162,9 @@ private:
 	bool InitViews(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents);
 
 	void InitViewsPossiblyAfterPrepass(FRHICommandListImmediate& RHICmdList, struct FILCUpdatePrimTaskData& ILCTaskData, FGraphEventArray& SortEvents);
+
+	/** Updates auto-downsampling of separate translucency and sets FSceneRenderTargets::SeparateTranslucencyBufferSize */
+	void UpdateSeparateTranslucencyBufferSize(FRHICommandListImmediate& RHICmdList);
 
 	void CreateIndirectCapsuleShadows();
 
@@ -238,6 +242,12 @@ private:
 	/** Render stationary light overlap as complexity to scene color. */
 	void RenderStationaryLightOverlap(FRHICommandListImmediate& RHICmdList);
 	
+	/** Issues a timestamp query for the beginning of the separate translucency pass. */
+	void BeginTimingSeparateTranslucencyPass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
+	/** Issues a timestamp query for the end of the separate translucency pass. */
+	void EndTimingSeparateTranslucencyPass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
 	/** 
 	 * Renders the scene's translucency, parallel version
 	 */
@@ -279,7 +289,7 @@ private:
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
 	/** Downsample the scene depth with a specified scale factor to a specified render target*/
-	void DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo &View, float ScaleFactor, float MinMaxFilterBlend = 0.0f);
+	void DownsampleDepthSurface(FRHICommandList& RHICmdList, const FTexture2DRHIRef& RenderTarget, const FViewInfo& View, float ScaleFactor, bool bUseMaxDepth);
 
 	void CopyStencilToLightingChannelTexture(FRHICommandList& RHICmdList);
 

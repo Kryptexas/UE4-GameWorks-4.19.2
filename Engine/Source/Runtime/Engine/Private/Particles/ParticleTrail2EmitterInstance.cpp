@@ -4272,7 +4272,7 @@ void FParticleAnimTrailEmitterInstance::PrintParticleData(FBaseParticle* Particl
 		);
 	UE_LOG(LogParticles, Log, TEXT("TI=%4d - TC=%4d, SpT=%.5f, SpD= %.5f, TU=%.4f, SpTP=%4d, RIntpC=%4d, PSF=%.4f, %s, %s"),
 		TrailData->TrailIndex, TrailData->TriangleCount, TrailData->SpawnTime, TrailData->SpawnDelta, TrailData->TiledU, TrailData->SpawnedTessellationPoints,
-		TrailData->RenderingInterpCount, TrailData->PinchScaleFactor, TrailData->bInterpolatedSpawn ? "1" : "0", TrailData->bMovementSpawned ? "1" : "0");
+		TrailData->RenderingInterpCount, TrailData->PinchScaleFactor, TrailData->bInterpolatedSpawn ? TEXT("1") : TEXT("0"), TrailData->bMovementSpawned ? TEXT("1") : TEXT("0"));
 }
 
 void FParticleAnimTrailEmitterInstance::PrintAllActiveParticles()

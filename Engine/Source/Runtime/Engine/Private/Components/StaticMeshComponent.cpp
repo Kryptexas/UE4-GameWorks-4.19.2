@@ -495,20 +495,79 @@ void UStaticMeshComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
+void UStaticMeshComponent::UpdateStreamingTextureInfos(bool bForce)
 {
-	if (StaticMesh && StaticMesh && StaticMesh->RenderData && StaticMesh->RenderData->LODResources.Num() > 0)
+	// Only rebuild the data in editor 
+#if WITH_EDITORONLY_DATA
+	StreamingTextureInfos.Empty();
+
+	if ((bForce || (!bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static)) && StaticMesh && StaticMesh->RenderData)
 	{
-		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		{
+			const FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODIndex];
 
-		bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
-			&& ((uint32)StaticMesh->LightMapCoordinateIndex < StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumTexCoords()));
+			for( int32 ElementIndex = 0; ElementIndex < LOD.Sections.Num(); ElementIndex++ )
+			{
+				FStreamingTexturePrimitiveInfo Info;
 
-		const float LocalTexelFactor	= StaticMesh->GetStreamingTextureFactor(0) * FMath::Max(0.0f, StreamingDistanceMultiplier);
+				if (StaticMesh->GetStreamingTextureFactor(Info.TexelFactor, Info.Bounds, 0, LODIndex, ElementIndex, ComponentToWorld))
+				{
+					Info.TexelFactor *= FMath::Max(0.0f, StreamingDistanceMultiplier);
+					StreamingTextureInfos.Push(Info);
+				}
+				else
+				{
+					StreamingTextureInfos.Empty();
+					return;
+				}
+			}
+		}
+	}
+#endif
+}
+
+extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;
+
+bool UStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor, FBoxSphereBounds& OutBounds, int32 LODIndex, int32 ElementIndex) const
+{
+	bool bUsePreciseStreamingBounds = false;
+
+	if (StaticMesh && StaticMesh->RenderData && LODIndex < StaticMesh->RenderData->LODResources.Num())
+	{
+		TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
+
+		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
+		const bool bHasValidLightmapCoordinates = StaticMesh->LightMapCoordinateIndex >= 0 &&
+			(uint32)StaticMesh->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
+
+		// Because there is a single array for each sections and lods, the index needs to be computed depending on the number of section per lod.
+		int32 InfoIndex = ElementIndex;
+		if (StreamingTextureInfos.Num() && LODResources.IsValidIndex(LODIndex) && LODResources[LODIndex].Sections.IsValidIndex(ElementIndex))
+		{
+			int32 DebugLODIndex = 0;
+			while (DebugLODIndex < LODIndex)
+			{
+				InfoIndex += LODResources[DebugLODIndex].Sections.Num();
+				++DebugLODIndex;
+			}
+		}
+
+		if (StreamingTextureInfos.IsValidIndex(InfoIndex) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() > 0)
+		{
+			OutBounds = StreamingTextureInfos[InfoIndex].Bounds;
+			OutWorldTexelFactor = StreamingTextureInfos[InfoIndex].TexelFactor;
+		}
+		else
+		{
+			float LocalTexelFactor = StaticMesh->GetStreamingTextureFactor(0) * FMath::Max(0.0f, StreamingDistanceMultiplier);
+			OutWorldTexelFactor	= LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
+			OutBounds = Bounds;
+		}
+
 		const float LocalLightmapFactor	= bHasValidLightmapCoordinates ? StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex) : 1.0f;
-
-		OutWorldTexelFactor	= LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
-		OutWorldLightmapFactor	= LocalLightmapFactor * ComponentToWorld.GetMaximumAxisScale();
+		OutWorldLightmapFactor = LocalLightmapFactor * ComponentToWorld.GetMaximumAxisScale();
 
 		return true;
 	}
@@ -524,10 +583,11 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 	float WorldTexelFactor = 1.f;
 	float WorldLightmapFactor = 1.f;
 
-	if ( !bIgnoreInstanceForTextureStreaming && GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor) )
+	if (!bIgnoreInstanceForTextureStreaming && StaticMesh && StaticMesh->RenderData)
 	{
-		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
-		bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
+		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+
+		const bool bHasValidLightmapCoordinates = ((StaticMesh->LightMapCoordinateIndex >= 0)
 			&& ((uint32)StaticMesh->LightMapCoordinateIndex < StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumTexCoords()));
 
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
@@ -544,6 +604,10 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 					Material = UMaterial::GetDefaultMaterial(MD_Surface);
 				}
 
+				FBoxSphereBounds SectionBounds;
+				if (!GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor, SectionBounds, LODIndex, ElementIndex))
+					continue;
+
 				// Enumerate the textures used by the material.
 				TArray<UTexture*> Textures;
 
@@ -554,7 +618,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimi
 				for(int32 TextureIndex = 0;TextureIndex < Textures.Num();TextureIndex++)
 				{
 					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-					StreamingTexture.Bounds = Bounds;
+					StreamingTexture.Bounds = SectionBounds;
 					StreamingTexture.TexelFactor = WorldTexelFactor;
 					StreamingTexture.Texture = Textures[TextureIndex];
 				}

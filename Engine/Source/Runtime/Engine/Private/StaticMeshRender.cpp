@@ -100,6 +100,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	, WorldTexelFactor(0)
 	, WorldLightmapFactor(0)
 	, LODForCollision(InComponent->StaticMesh->LODForCollision)
 	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
@@ -189,8 +190,19 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 #endif
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// Update texture streaming factors
-	InComponent->GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor);
+	if (AllowDebugViewmodes())
+	{
+		// Update texture streaming factors
+		StreamingTextureInfos = InComponent->StreamingTextureInfos;
+
+		FBoxSphereBounds DummyBounds;
+		InComponent->GetStreamingTextureFactors(WorldTexelFactor, WorldLightmapFactor, DummyBounds, INDEX_NONE, INDEX_NONE);
+	}
+	else
+	{
+		WorldTexelFactor = 0;
+		WorldLightmapFactor = 0;
+	}
 #endif
 
 	if (BodySetup)
@@ -334,6 +346,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 		OutBatchElement.MaxVertexIndex = Section.MaxVertexIndex;
 		OutMeshBatch.LODIndex = LODIndex;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		OutBatchElement.VisualizeElementIndex = SectionIndex;
 		OutMeshBatch.VisualizeLODIndex = LODIndex;
 		OutMeshBatch.VisualizeHLODIndex = HierarchicalLODIndex;
 #endif
@@ -405,6 +418,34 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 
 	return OutBatchElement.NumPrimitives > 0;
 }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+bool FStaticMeshSceneProxy::GetStreamingTextureInfo(struct FStreamingTexturePrimitiveInfo& OutInfo, int32 LODIndex, int32 ElementIndex) const
+{
+	int32 DebugIndex = ElementIndex;
+	if (StreamingTextureInfos.Num() && RenderData->LODResources.IsValidIndex(LODIndex) && RenderData->LODResources[LODIndex].Sections.IsValidIndex(ElementIndex))
+	{
+		int32 DebugLODIndex = 0;
+		while (DebugLODIndex < LODIndex)
+		{
+			DebugIndex += RenderData->LODResources[DebugLODIndex].Sections.Num();
+			++DebugLODIndex;
+		}
+	}
+
+	if (StreamingTextureInfos.IsValidIndex(DebugIndex))
+	{
+		OutInfo = StreamingTextureInfos[DebugIndex];
+		return true;
+	}
+	else
+	{
+		OutInfo.Bounds = GetBounds();
+		OutInfo.TexelFactor = WorldTexelFactor;
+		return WorldTexelFactor != 0;
+	}
+}
+#endif
 
 /**
  * Sets IndexBuffer, FirstIndex and NumPrimitives of OutMeshElement.
@@ -1471,3 +1512,4 @@ bool UStaticMeshComponent::ShouldRecreateProxyOnUpdateTransform() const
 {
 	return (Mobility != EComponentMobility::Movable);
 }
+

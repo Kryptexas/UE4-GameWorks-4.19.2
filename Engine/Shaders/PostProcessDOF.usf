@@ -208,6 +208,7 @@ void MainRecombinePS(
 
 	// apply SeparateTransluceny (todo: shader permutation to save a bit of performance if the feature is disabled)
 	{
+		//@todo - use UpsampleSeparateTranslucency
 		float4 SeparateTranslucency = Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, FullResUV);
 		       
 		// add RGB, darken by A (this allows to represent translucent and additive blending)

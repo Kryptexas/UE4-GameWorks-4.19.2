@@ -252,6 +252,22 @@ public:
 	 */
 	UGameInstance* GetGameInstance() const;
 
+
+	/**
+	* Calculate the view init settings for drawing from this view actor
+	*
+	* @param	OutInitOptions - output view struct. Not every field is initialized, some of them are only filled in by CalcSceneView
+	* @param	Viewport - current client viewport
+	* @param	ViewDrawer - optional drawing in the view
+	* @param	StereoPass - whether we are drawing the full viewport, or a stereo left / right pass
+	* @return	true if the view options were filled in. false in various fail conditions.
+	*/
+	bool CalcSceneViewInitOptions(
+		struct FSceneViewInitOptions& OutInitOptions, 
+		FViewport* Viewport,
+		class FViewElementDrawer* ViewDrawer = NULL,
+		EStereoscopicPass StereoPass = eSSP_FULL);
+
 	/**
 	 * Calculate the view settings for drawing from this view actor
 	 *

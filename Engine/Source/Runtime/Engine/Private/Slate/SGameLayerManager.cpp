@@ -320,29 +320,16 @@ void SGameLayerManager::AddOrUpdatePlayerLayers(const FGeometry& AllottedGeometr
 
 FVector2D SGameLayerManager::GetAspectRatioInset(ULocalPlayer* LocalPlayer) const
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_SGameLayerManager_GetAspectRatioInset);
 	FVector2D Offset(0.f, 0.f);
-
-	if ( LocalPlayer )
+	if (LocalPlayer)
 	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-			LocalPlayer->ViewportClient->Viewport,
-			LocalPlayer->GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags)
-			.SetRealtimeUpdate(true));
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport);
-
-		if ( SceneView )
+		FSceneViewInitOptions ViewInitOptions;
+		if (LocalPlayer->CalcSceneViewInitOptions(ViewInitOptions, LocalPlayer->ViewportClient->Viewport))
 		{
-			Offset.X = ( SceneView->ViewRect.Min.X - SceneView->UnscaledViewRect.Min.X ) // This accounts for the borders when the aspect ratio is locked
-				- SceneView->UnscaledViewRect.Min.X;									 // And this will deal with the viewport offset if its a split screen
-
-			Offset.Y = ( SceneView->ViewRect.Min.Y - SceneView->UnscaledViewRect.Min.Y )
-				- SceneView->UnscaledViewRect.Min.Y;
+			FIntRect UnscaledViewRect = ViewInitOptions.GetConstrainedViewRect();
+			Offset.X = -UnscaledViewRect.Min.X;
+			Offset.Y = -UnscaledViewRect.Min.Y;
 		}
 	}
 

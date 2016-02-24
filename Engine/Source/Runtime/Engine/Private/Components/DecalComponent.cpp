@@ -57,6 +57,8 @@ void FDeferredDecalProxy::InitializeFadingParameters(float AbsSpawnTime, float F
 UDecalComponent::UDecalComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, FadeScreenSize(0.01)
+	, FadeStartDelay(0.0f)
+	, FadeDuration(0.0f)
 	, bDestroyOwnerAfterFade(true)
 	, DecalSize(128.0f, 256.0f, 256.0f)
 {
@@ -90,7 +92,7 @@ void UDecalComponent::LifeSpanCallback()
 
 	auto* Owner = GetOwner();
 
-	if (bDestroyOwnerAfterFade && Owner)
+	if (bDestroyOwnerAfterFade && Owner && (FadeDuration > 0.0f || FadeStartDelay > 0.0f))
 	{
 		Owner->Destroy();
 	}

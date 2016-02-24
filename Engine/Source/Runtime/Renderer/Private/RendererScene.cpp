@@ -109,6 +109,17 @@ FSceneViewState::FSceneViewState()
 	ShadowOcclusionQueryMaps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);	
 
 	bValidEyeAdaptation = false;
+
+	LastAutoDownsampleChangeTime = 0;
+	SmoothedHalfResTranslucencyGPUDuration = 0;
+	SmoothedFullResTranslucencyGPUDuration = 0;
+	bShouldAutoDownsampleTranslucency = false;
+
+	PendingTranslucencyStartTimestamps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
+	PendingTranslucencyStartTimestamps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
+
+	PendingTranslucencyEndTimestamps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
+	PendingTranslucencyEndTimestamps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames + 1);
 }
 
 void DestroyRenderResource(FRenderResource* RenderResource)
