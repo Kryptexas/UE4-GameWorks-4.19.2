@@ -2188,6 +2188,12 @@ namespace UnrealBuildTool
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeExecutablePaths");
 				}
 
+				string EditorProcessFilename = EditorProcessFilenames[0].CanonicalName;
+				if (TargetDesc.Platform == UnrealTargetPlatform.Mac && !EditorProcessFilename.Contains(".app/contents/macos/"))
+				{
+					EditorProcessFilename += ".app/contents/macos/" + Path.GetFileNameWithoutExtension(EditorProcessFilename);
+				}
+					
 				var Processes = BuildHostPlatform.Current.GetProcesses();
 				var EditorRunsDir = Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Intermediate", "EditorRuns");
 
@@ -2213,7 +2219,7 @@ namespace UnrealBuildTool
 					if (!bIsRunning)
 					{
 						// Otherwise check if the path matches.
-						bIsRunning = new FileReference(Proc.Filename).CanonicalName == EditorProcessFilenames[0].CanonicalName;
+						bIsRunning = new FileReference (Proc.Filename).CanonicalName == EditorProcessFilename;
 					}
 				}
 			}
