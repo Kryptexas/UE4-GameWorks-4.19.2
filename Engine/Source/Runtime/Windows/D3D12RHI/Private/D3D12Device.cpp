@@ -906,6 +906,9 @@ void FD3D12Device::CleanupD3DDevice()
 		// after the above signal frame
 		GetCommandListManager().SignalFrameComplete(true);
 
+		// Flush all pending deletes before destroying the device.
+		FRHIResource::FlushPendingDeletes();
+
 		// Cleanup the allocator near the end, as some resources may be returned to the allocator
 		DefaultBufferAllocator.FreeDefaultBufferPools();
 

@@ -86,12 +86,10 @@ FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
 TQueue<FRHIResource::ResourceToDelete> FRHIResource::DeferredDeletionQueue;
 uint32 FRHIResource::CurrentFrame = 0;
 
-#if !DISABLE_RHI_DEFFERED_DELETE
 bool FRHIResource::Bypass()
 {
 	return GRHICommandList.Bypass();
 }
-#endif
 
 DECLARE_CYCLE_STAT(TEXT("Delete Resources"), STAT_DeleteResources, STATGROUP_RHICMDLIST);
 
@@ -138,7 +136,7 @@ void FRHIResource::FlushPendingDeletes()
 
 	const uint32 NumFramesToExpire = 3;
 
-	if (PlatformNeedsExtraDeletionLatency())
+	if (!DeferredDeletionQueue.IsEmpty())
 	{
 		ResourceToDelete TempResource;
 
@@ -146,7 +144,7 @@ void FRHIResource::FlushPendingDeletes()
 		{
 			DeferredDeletionQueue.Peek(TempResource);
 
-			if ((TempResource.FrameDeleted + NumFramesToExpire) < CurrentFrame)
+			if (((TempResource.FrameDeleted + NumFramesToExpire) < CurrentFrame) || !GIsRHIInitialized)
 			{
 				// It's possible the resource has been resurrected elsewhere
 				if (TempResource.Resource->GetRefCount() == 0)

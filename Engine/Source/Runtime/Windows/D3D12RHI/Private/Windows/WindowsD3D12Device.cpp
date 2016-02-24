@@ -492,6 +492,9 @@ void FD3D12DynamicRHI::PerRHISetup(FD3D12Device* MainDevice)
 	GRHISupportsTextureStreaming = true;
 	GRHISupportsFirstInstance = true;
 
+	// Indicate that the RHI needs to use the engine's deferred deletion queue.
+	GRHINeedsExtraDeletionLatency = true;
+
 	// Set the RHI initialized flag.
 	GIsRHIInitialized = true;
 }
