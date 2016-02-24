@@ -214,8 +214,8 @@ bool FAnimNode_Trail::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneCo
 		{
 			if (ChainIndex == INDEX_NONE)
 			{
-				// we don't want this to spam. We want this to happen once. 
-				ensureMsgf(false, TEXT("AnimNode_Trail [%s]: contains invalid chain index. Verify if the node contains correct length of chain. "), *TrailBone.BoneName.ToString());
+				// unfortunately there is no easy way to communicate this back to user other than spamming here because this gets called every frame
+				// originally tried in AnimGraphNode, but that doesn't know hierarchy so I can't verify it there. Maybe should try with USkeleton asset there. @todo
 				return false;
 			}
 			else if (RequiredBones.Contains(ChainIndex) == false)
