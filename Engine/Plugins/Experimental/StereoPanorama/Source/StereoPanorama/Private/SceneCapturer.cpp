@@ -718,7 +718,7 @@ void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 Curren
     }
 }
 
-//TODO: ikrimae: This is a cluster fuck. Come back and actually work out the timings. Trickery b/c SceneCaptureCubes Tick at the end of the frame so we're effectively queuing up the next
+//TODO: ikrimae: Come back and actually work out the timings. Trickery b/c SceneCaptureCubes Tick at the end of the frame so we're effectively queuing up the next
 //               step (pause, unpause, setposition) for the next frame. FlushRenderingCommands() added haphazardly to test but didn't want to remove them so close to delivery. 
 //               Think through when we actually need to flush and document.
 void USceneCapturer::Tick( float DeltaTime )
