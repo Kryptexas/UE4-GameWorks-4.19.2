@@ -1410,7 +1410,9 @@ namespace MachObjectHandling
 		protected void InitializeFromCert(X509Certificate2 SigningCert, string Bundle)
 		{
 			BundleIdentifier = Bundle;
-			CertificateName = SigningCert.FriendlyName;
+			int StartIndex = SigningCert.SubjectName.Name.IndexOf("CN=\"") + 4;
+			int EndIndex = SigningCert.SubjectName.Name.IndexOf("\"", StartIndex);
+			CertificateName = SigningCert.SubjectName.Name.Substring(StartIndex, EndIndex - StartIndex);
 		}
 
 		protected override void PackageData(WritingContext SW)
