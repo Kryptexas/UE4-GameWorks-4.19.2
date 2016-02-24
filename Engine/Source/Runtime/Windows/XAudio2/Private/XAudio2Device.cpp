@@ -268,39 +268,8 @@ class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave
  */
 bool FXAudio2Device::ValidateAPICall( const TCHAR* Function, uint32 ErrorCode )
 {
-	if( ErrorCode != S_OK )
-	{
-		switch( ErrorCode )
-		{
-		case XAUDIO2_E_INVALID_CALL:
-			UE_LOG(LogAudio, Warning, TEXT( "%s error: Invalid Call" ), Function );
-			break;
-
-		case XAUDIO2_E_XMA_DECODER_ERROR:
-			UE_LOG(LogAudio, Warning, TEXT( "%s error: XMA Decoder Error" ), Function );
-			break;
-
-		case XAUDIO2_E_XAPO_CREATION_FAILED:
-			UE_LOG(LogAudio, Warning, TEXT( "%s error: XAPO Creation Failed" ), Function );
-			break;
-
-		case XAUDIO2_E_DEVICE_INVALIDATED:
-			UE_LOG(LogAudio, Warning, TEXT( "%s error: Device Invalidated" ), Function );
-			break;
-
-		default:
-			UE_LOG(LogAudio, Warning, TEXT( "%s error: Unhandled error code %d" ), Function, ErrorCode );
-			break;
-		};
-
-		return( false );
-	}
-
-	return( true );
+	return DeviceProperties->Validate(Function, ErrorCode);
 }
-
-
-
 
 /** 
  * Derives the output matrix to use based on the channel mask and the number of channels
