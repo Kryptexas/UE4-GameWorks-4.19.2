@@ -3205,7 +3205,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 		const bool bIsCooking = TargetPlatform != nullptr;
 #if WITH_EDITORONLY_DATA
-		if (bIsCooking)
+		if (bIsCooking && (!(SaveFlags & ESaveFlags::SAVE_KeepEditorOnlyCookedPackages)))
 		{
 			// Don't save packages marked as editor-only.
 			if (InOuter->IsLoadedByEditorPropertiesOnly())
