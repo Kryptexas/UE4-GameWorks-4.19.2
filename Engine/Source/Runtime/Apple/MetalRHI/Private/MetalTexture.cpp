@@ -309,7 +309,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 					MTLTextureDescriptor* Desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:StencilFormat width:Source.SizeX height:Source.SizeY mipmapped:false];
 					if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions))
 					{
-						Desc.usage = ConvertFlagsToUsage(Flags);
+						Desc.usage = ConvertFlagsToUsage(TexCreate_ShaderResource);
 #if PLATFORM_MAC
 						Desc.cpuCacheMode = MTLCPUCacheModeWriteCombined;
 						Desc.storageMode = MTLStorageModePrivate;
