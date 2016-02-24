@@ -4491,7 +4491,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 			FName CurrentMapName = CurrentWorld->GetOutermost()->GetFName();
 			FName DestinationMapName = FName(*PendingTravelURL.Map);
 
-			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap;
+			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap.ToString();
 			FName DefaultMapFinalName(*TransitionMap);
 
 			// if we're already in the default map, skip loading it and just go to the destination
