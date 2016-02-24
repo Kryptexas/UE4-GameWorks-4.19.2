@@ -32,9 +32,6 @@ bool FHierarchicalLODProxyProcessor::Tick(float DeltaTime)
 		UStaticMesh* MainMesh = nullptr;		
 		for (UObject* AssetObject : Data->AssetObjects)
 		{
-			// We make it private, so it can't be used by outside of map and is invisible in the content browser, and then remove standalone
-			AssetObject->ClearFlags(RF_Public | RF_Standalone);
-			
 			// Check if this is the generated proxy (static-)mesh
 			UStaticMesh* StaticMesh = Cast<UStaticMesh>(AssetObject);
 			if (StaticMesh)
