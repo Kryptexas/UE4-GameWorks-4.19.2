@@ -1,15 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	HUD.cpp: Heads up Display related functionality
-=============================================================================*/
-#include "GameplayDebuggerPrivate.h"
+//////////////////////////////////////////////////////////////////////////
+// THIS CLASS IS NOW DEPRECATED AND WILL BE REMOVED IN NEXT VERSION
+// Please check GameplayDebugger.h for details.
+
+#include "GameplayDebuggerPrivatePCH.h"
 #include "GameplayDebuggerSettings.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
 #include "GameplayDebuggingControllerComponent.h"
+#include "GameplayDebuggingReplicator.h"
 #include "CanvasItem.h"
+#include "Engine/Canvas.h"
 #include "AI/Navigation/NavigationSystem.h"
 
 #include "AITypes.h"
@@ -17,13 +20,13 @@
 #include "GenericTeamAgentInterface.h"
 #include "AIController.h"
 
-
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "Engine/Texture2D.h"
 #include "Regex.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"					// Game play timers
 #include "RenderUtils.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 

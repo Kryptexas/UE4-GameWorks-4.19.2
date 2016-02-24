@@ -10,7 +10,7 @@ class UAISense_Touch;
 UCLASS(meta = (DisplayName = "AI Touch config"))
 class AIMODULE_API UAISenseConfig_Touch : public UAISenseConfig
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 public:	
-	virtual TSubclassOf<UAISense> GetSenseImplementation() const override { return UAISense_Touch::StaticClass(); }
+	virtual TSubclassOf<UAISense> GetSenseImplementation() const override;
 };

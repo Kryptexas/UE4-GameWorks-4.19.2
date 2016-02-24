@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivate.h"
+//////////////////////////////////////////////////////////////////////////
+// THIS CLASS IS NOW DEPRECATED AND WILL BE REMOVED IN NEXT VERSION
+// Please check GameplayDebugger.h for details.
+
+#if ENABLE_OLD_GAMEPLAY_DEBUGGER
+
+#include "GameplayDebuggerPrivatePCH.h"
 #include "Misc/CoreMisc.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
@@ -9,6 +15,7 @@
 #include "AISystem.h"
 #include "GameplayDebuggerSettings.h"
 #include "GameFramework/PlayerState.h"
+#include "EngineUtils.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
 #include "ISettingsModule.h"
@@ -22,7 +29,7 @@ FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingRepli
 	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
 }
 
-class FGameplayDebugger : public FSelfRegisteringExec, public IGameplayDebugger
+class FGameplayDebuggerCompat : public FSelfRegisteringExec, public GameplayDebugger
 {
 public:
 	// Begin IModuleInterface
@@ -53,6 +60,13 @@ private:
 	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) override;
 	virtual bool IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController) override;
 
+	virtual void RegisterCategory(FName CategoryName, FOnGetCategory MakeInstanceDelegate, EGameplayDebuggerCategoryState CategoryState = EGameplayDebuggerCategoryState::Disabled, int32 SlotIdx = INDEX_NONE) {}
+	virtual void UnregisterCategory(FName CategoryName) {}
+	virtual void NotifyCategoriesChanged() {}
+	virtual void RegisterExtension(FName ExtensionName, IGameplayDebugger::FOnGetExtension MakeInstanceDelegate) {}
+	virtual void UnregisterExtension(FName ExtensionName) {}
+	virtual void NotifyExtensionsChanged() {}
+
 	bool DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController);
 
 	TMap<TWeakObjectPtr<UWorld>, TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> > > AllReplicatorsPerWorlds;
@@ -62,10 +76,10 @@ private:
 #endif
 };
 
-IMPLEMENT_MODULE(FGameplayDebugger, GameplayDebugger)
+IMPLEMENT_MODULE(FGameplayDebuggerCompat, GameplayDebugger)
 
 // This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
-void FGameplayDebugger::StartupModule()
+void FGameplayDebuggerCompat::StartupModule()
 { 
 	//EMIT_CUSTOM_WARNING("/Engine/Source/Developer/GameplayDebugger module is deprecated and it's going to be removed with next UE4 version. Please use GameplayDebuggerPlugin instead.");
 	//UE_LOG(LogGameplayDebugger, Warning, TEXT("/Engine/Source/Developer/GameplayDebugger module is deprecated and it's going to be removed with next UE4 version. Please use GameplayDebuggerPlugin instead."));
@@ -73,11 +87,11 @@ void FGameplayDebugger::StartupModule()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GEngine)
 	{
-		GEngine->OnWorldAdded().AddRaw(this, &FGameplayDebugger::WorldAdded);
-		GEngine->OnWorldDestroyed().AddRaw(this, &FGameplayDebugger::WorldDestroyed);
+		GEngine->OnWorldAdded().AddRaw(this, &FGameplayDebuggerCompat::WorldAdded);
+		GEngine->OnWorldDestroyed().AddRaw(this, &FGameplayDebuggerCompat::WorldDestroyed);
 #if WITH_EDITOR
-		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebugger::OnLevelActorAdded);
-		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebugger::OnLevelActorDeleted);
+		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebuggerCompat::OnLevelActorAdded);
+		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebuggerCompat::OnLevelActorDeleted);
 
 		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 		if (SettingsModule != nullptr)
@@ -89,7 +103,7 @@ void FGameplayDebugger::StartupModule()
 				);
 		}
 
-		UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->OnSettingChanged().AddRaw(this, &FGameplayDebugger::HandleSettingChanged);
+		UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->OnSettingChanged().AddRaw(this, &FGameplayDebuggerCompat::HandleSettingChanged);
 
 #		if ADD_LEVEL_EDITOR_EXTENSIONS
 		const bool bExtendViewportMenu = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->bExtendViewportMenu;
@@ -97,7 +111,7 @@ void FGameplayDebugger::StartupModule()
 		{
 			// Register the extension with the level editor
 			{
-				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebugger::OnExtendLevelEditorViewMenu);
+				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebuggerCompat::OnExtendLevelEditorViewMenu);
 				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
 				if (LevelEditor)
 				{
@@ -112,7 +126,7 @@ void FGameplayDebugger::StartupModule()
 }
 
 #if WITH_EDITOR
-void FGameplayDebugger::HandleSettingChanged(FName PropertyName)
+void FGameplayDebuggerCompat::HandleSettingChanged(FName PropertyName)
 {
 #if ADD_LEVEL_EDITOR_EXTENSIONS
 	const bool bExtendViewportMenu = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->bExtendViewportMenu;
@@ -122,7 +136,7 @@ void FGameplayDebugger::HandleSettingChanged(FName PropertyName)
 		{
 			// Register the extension with the level editor
 			{
-				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebugger::OnExtendLevelEditorViewMenu);
+				ViewMenuExtender = FLevelEditorModule::FLevelEditorMenuExtender::CreateRaw(this, &FGameplayDebuggerCompat::OnExtendLevelEditorViewMenu);
 				FLevelEditorModule* LevelEditor = FModuleManager::LoadModulePtr<FLevelEditorModule>(TEXT("LevelEditor"));
 				if (LevelEditor)
 				{
@@ -148,7 +162,7 @@ void FGameplayDebugger::HandleSettingChanged(FName PropertyName)
 
 // This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 // we call this function before unloading the module.
-void FGameplayDebugger::ShutdownModule()
+void FGameplayDebuggerCompat::ShutdownModule()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GEngine)
@@ -187,7 +201,7 @@ void FGameplayDebugger::ShutdownModule()
 
 #if WITH_EDITOR
 
-void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
+void FGameplayDebuggerCompat::CreateSettingSubMenu(FMenuBuilder& Builder)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	Builder.AddMenuEntry(
@@ -205,7 +219,7 @@ void FGameplayDebugger::CreateSettingSubMenu(FMenuBuilder& Builder)
 #endif
 }
 
-void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
+void FGameplayDebuggerCompat::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI && GCurrentLevelEditingViewportClient->IsSimulateInEditorViewport())
@@ -214,13 +228,13 @@ void FGameplayDebugger::CreateSnappingOptionsMenu(FMenuBuilder& Builder)
 		Builder.AddSubMenu(
 			LOCTEXT("Test_GameplayDebugger_SnappingOptions_Menu", "Gameplay Debugger"),
 			LOCTEXT("Test_GameplayDebugger_SnappingOptions_Menu_Tooltip", "Quick setting for Gameplay Debugger tool in selected view"),
-			FNewMenuDelegate::CreateRaw(this, &FGameplayDebugger::CreateSettingSubMenu)
+			FNewMenuDelegate::CreateRaw(this, &FGameplayDebuggerCompat::CreateSettingSubMenu)
 			);
 	}
 #endif
 }
 
-TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList)
+TSharedRef<FExtender> FGameplayDebuggerCompat::OnExtendLevelEditorViewMenu(const TSharedRef<FUICommandList> CommandList)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EDITOR
 	TSharedRef<FExtender> Extender(new FExtender());
@@ -231,7 +245,7 @@ TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TShar
 			"LevelViewportLayouts",
 			EExtensionHook::After,
 			NULL,
-			FMenuExtensionDelegate::CreateRaw(this, &FGameplayDebugger::CreateSnappingOptionsMenu));
+			FMenuExtensionDelegate::CreateRaw(this, &FGameplayDebuggerCompat::CreateSnappingOptionsMenu));
 
 	}
 #endif
@@ -239,7 +253,7 @@ TSharedRef<FExtender> FGameplayDebugger::OnExtendLevelEditorViewMenu(const TShar
 }
 #endif
 
-bool FGameplayDebugger::DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController)
+bool FGameplayDebuggerCompat::DoesGameplayDebuggingReplicatorExistForPlayerController(APlayerController* PlayerController)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PlayerController == NULL)
@@ -266,7 +280,7 @@ bool FGameplayDebugger::DoesGameplayDebuggingReplicatorExistForPlayerController(
 	return false;
 }
 
-bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController)
+bool FGameplayDebuggerCompat::CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PlayerController == NULL)
@@ -318,7 +332,7 @@ bool FGameplayDebugger::CreateGameplayDebuggerForPlayerController(APlayerControl
 	return false;
 }
 
-bool FGameplayDebugger::IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController)
+bool FGameplayDebuggerCompat::IsGameplayDebuggerActiveForPlayerController(APlayerController* PlayerController)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PlayerController == NULL)
@@ -345,22 +359,22 @@ bool FGameplayDebugger::IsGameplayDebuggerActiveForPlayerController(APlayerContr
 	return false;
 }
 
-TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& FGameplayDebugger::GetAllReplicators(UWorld* InWorld)
+TArray<TWeakObjectPtr<AGameplayDebuggingReplicator> >& FGameplayDebuggerCompat::GetAllReplicators(UWorld* InWorld)
 {
 	return AllReplicatorsPerWorlds.FindOrAdd(InWorld);
 }
 
-void FGameplayDebugger::AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
+void FGameplayDebuggerCompat::AddReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
 {
 	GetAllReplicators(InWorld).Add(InReplicator);
 }
 
-void FGameplayDebugger::RemoveReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
+void FGameplayDebuggerCompat::RemoveReplicator(UWorld* InWorld, AGameplayDebuggingReplicator* InReplicator)
 {
 	GetAllReplicators(InWorld).RemoveSwap(InReplicator);
 }
 
-void FGameplayDebugger::WorldAdded(UWorld* InWorld)
+void FGameplayDebuggerCompat::WorldAdded(UWorld* InWorld)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bIsServer = InWorld && InWorld->GetNetMode() < ENetMode::NM_Client; // (Only server code)
@@ -401,7 +415,7 @@ void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
+void FGameplayDebuggerCompat::WorldDestroyed(UWorld* InWorld)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bIsServer = InWorld && InWorld->GetNetMode() < ENetMode::NM_Client; // (Only work on  server)
@@ -416,7 +430,7 @@ void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 }
 
 #if WITH_EDITOR
-void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
+void FGameplayDebuggerCompat::OnLevelActorAdded(AActor* InActor)
 {
 	// This function doesn't help much, because it's only called in EDITOR!
 	// We need a function that is called in the game!  So instead of creating it automatically, I'm leaving it
@@ -434,7 +448,7 @@ void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 #endif
 }
 
-void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
+void FGameplayDebuggerCompat::OnLevelActorDeleted(AActor* InActor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!InActor)
@@ -475,7 +489,7 @@ void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
 }
 #endif //WITH_EDITOR
 
-bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+bool FGameplayDebuggerCompat::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bHandled = false;
@@ -685,3 +699,17 @@ bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& A
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#else // ENABLE_OLD_GAMEPLAY_DEBUGGER
+
+#include "GameplayDebuggerPrivatePCH.h"
+#include "GameplayDebuggingReplicator.h"
+#include "GameplayDebuggerSettings.h"
+
+FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator)
+{
+	uint32& Settings = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->GetSettings();
+	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
+}
+
+#endif // ENABLE_OLD_GAMEPLAY_DEBUGGER

@@ -898,7 +898,7 @@ enum ETimelineSigType
 
 
 /** Enum used to describe what type of collision is enabled on a body. */
-UENUM()
+UENUM(BlueprintType)
 namespace ECollisionEnabled 
 { 
 	enum Type 
@@ -1613,7 +1613,7 @@ struct FPrimitiveMaterialRef
 /**
  * Structure containing information about one hit of a trace, such as point of impact and surface normal at that point.
  */
-USTRUCT(BlueprintType, meta=(HasNativeBreak="Engine.GameplayStatics.BreakHitResult"))
+USTRUCT(BlueprintType, meta = (HasNativeBreak = "Engine.GameplayStatics.BreakHitResult", HasNativeMake = "Engine.GameplayStatics.MakeHitResult"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()

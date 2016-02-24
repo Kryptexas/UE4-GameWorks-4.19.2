@@ -464,7 +464,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 
 		if (LevelIter->Actors.Num() > 0)
 		{
-			UPackage* AssetsOuter = LevelIter->GetOutermost();
+			UPackage* AssetsOuter = FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(LevelIter);
 
 			if (AssetsOuter)
 			{
@@ -549,11 +549,13 @@ void FHierarchicalLODBuilder::DeleteLODActors(ULevel* InLevel, const bool bPrevi
 	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 }
 
+
+
 void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const uint32 LODLevel)
 {
 	AWorldSettings* WorldSetting = World->GetWorldSettings();
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
-	UPackage* AssetsOuter = LODActor->GetLevel()->GetOutermost();
+	UPackage* AssetsOuter = FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(LODActor->GetLevel());
 
 	const bool bResult = FHierarchicalLODUtilities::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);
 

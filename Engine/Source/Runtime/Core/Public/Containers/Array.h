@@ -1703,7 +1703,7 @@ public:
 	 *
 	 * @param NewNum New size of the array.
 	 */
-	void SetNumZeroed(int32 NewNum)
+	void SetNumZeroed(int32 NewNum, bool bAllowShrinking = true)
 	{
 		if (NewNum > Num())
 		{
@@ -1711,7 +1711,7 @@ public:
 		}
 		else if (NewNum < Num())
 		{
-			RemoveAt(NewNum, Num() - NewNum);
+			RemoveAt(NewNum, Num() - NewNum, bAllowShrinking);
 		}
 	}
 
@@ -1720,7 +1720,7 @@ public:
 	 *
 	 * @param NewNum New size of the array.
 	 */
-	void SetNumUninitialized(int32 NewNum)
+	void SetNumUninitialized(int32 NewNum, bool bAllowShrinking = true)
 	{
 		if (NewNum > Num())
 		{
@@ -1728,7 +1728,7 @@ public:
 		}
 		else if (NewNum < Num())
 		{
-			RemoveAt(NewNum, Num() - NewNum);
+			RemoveAt(NewNum, Num() - NewNum, bAllowShrinking);
 		}
 	}
 

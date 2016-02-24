@@ -48,7 +48,7 @@ UParticleModuleTrailSource::UParticleModuleTrailSource(const FObjectInitializer&
 
 void UParticleModuleTrailSource::InitializeDefaults()
 {
-	if (!SourceStrength.Distribution)
+	if (!SourceStrength.IsCreated())
 	{
 		UDistributionFloatConstant* DistributionSourceStrength = NewObject<UDistributionFloatConstant>(this, TEXT("DistributionSourceStrength"));
 		DistributionSourceStrength->Constant = 100.0f;

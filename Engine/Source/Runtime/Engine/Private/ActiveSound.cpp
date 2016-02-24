@@ -422,7 +422,7 @@ void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector 
 			else if (!bAsyncOcclusionPending)
 			{
 				bAsyncOcclusionPending = true;
-				WorldPtr->AsyncLineTraceByChannel(SoundLocation, ListenerLocation, ECC_Visibility, Params, FCollisionResponseParams::DefaultResponseParam, &OcclusionTraceDelegate);
+				WorldPtr->AsyncLineTraceByChannel(EAsyncTraceType::Test, SoundLocation, ListenerLocation, ECC_Visibility, Params, FCollisionResponseParams::DefaultResponseParam, &OcclusionTraceDelegate);
 			}
 		}
 	}

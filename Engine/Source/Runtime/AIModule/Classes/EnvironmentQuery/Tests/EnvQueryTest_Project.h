@@ -21,8 +21,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Test)
 	FEnvTraceData ProjectionData;
 
-#if WITH_DEV_AUTOMATION_TESTS
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 	virtual FText GetDescriptionDetails() const override;
-#endif
 };

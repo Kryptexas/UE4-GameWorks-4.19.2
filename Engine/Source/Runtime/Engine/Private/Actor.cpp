@@ -2383,17 +2383,7 @@ UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent>
 
 UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass)
 {
-	UActorComponent* FoundComponent = NULL;
-	for (UActorComponent* Component : OwnedComponents)
-	{
-		if (Component && Component->IsA(ComponentClass))
-		{
-			FoundComponent = Component;
-			break;
-		}
-	}
-
-	return FoundComponent;
+	return FindComponentByClass(ComponentClass);
 }
 
 TArray<UActorComponent*> AActor::GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const

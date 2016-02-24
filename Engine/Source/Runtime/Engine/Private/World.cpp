@@ -853,17 +853,26 @@ UAISystemBase* UWorld::CreateAISystem()
 
 void UWorld::RepairWorldSettings()
 {
+	AWorldSettings* ExistingWorldSettings = PersistentLevel->GetWorldSettings(false);
+
+	if (ExistingWorldSettings == nullptr && PersistentLevel->Actors.Num() > 0)
+	{
+		ExistingWorldSettings = Cast<AWorldSettings>(PersistentLevel->Actors[0]);
+		if (ExistingWorldSettings)
+		{
+			// This means the WorldSettings member just wasn't initialized, get that resolved
+			PersistentLevel->SetWorldSettings(ExistingWorldSettings);
+		}
+	}
+
 	// If for some reason we don't have a valid WorldSettings object go ahead and spawn one to avoid crashing.
 	// This will generally happen if a map is being moved from a different project.
-	const bool bNeedsExchange = PersistentLevel->Actors.Num() > 0;
-	const bool bNeedsDestroy = bNeedsExchange && PersistentLevel->Actors[0] != NULL;
-
-	if (PersistentLevel->Actors.Num() < 1 || PersistentLevel->Actors[0] == NULL || !PersistentLevel->Actors[0]->IsA(GEngine->WorldSettingsClass))
+	if (ExistingWorldSettings == nullptr || !ExistingWorldSettings->IsA(GEngine->WorldSettingsClass))
 	{
 		// Rename invalid WorldSettings to avoid name collisions
-		if (bNeedsDestroy)
+		if (ExistingWorldSettings)
 		{
-			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel, REN_ForceNoResetLoaders);
+			ExistingWorldSettings->Rename(nullptr, PersistentLevel, REN_ForceNoResetLoaders);
 		}
 		
 		bool bClearOwningWorld = false;
@@ -879,22 +888,15 @@ void UWorld::RepairWorldSettings()
 		SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
 		AWorldSettings* const NewWorldSettings = SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
 
-		const int32 NewWorldSettingsActorIndex = PersistentLevel->Actors.Find( NewWorldSettings );
-
-		if (bNeedsExchange)
-		{
-			// The world info must reside at index 0.
-			Exchange(PersistentLevel->Actors[0],PersistentLevel->Actors[NewWorldSettingsActorIndex]);
-		}
-
-		// If there was an existing actor, copy its properties to the new actor and then destroy it
-		if (bNeedsDestroy)
+		// If there was an existing actor, copy its properties to the new actor (the it will be destroyed by SetWorldSettings)
+		if (ExistingWorldSettings)
 		{
 			NewWorldSettings->UnregisterAllComponents();
-			UEngine::CopyPropertiesForUnrelatedObjects(PersistentLevel->Actors[NewWorldSettingsActorIndex], NewWorldSettings);
+			UEngine::CopyPropertiesForUnrelatedObjects(ExistingWorldSettings, NewWorldSettings);
 			NewWorldSettings->RegisterAllComponents();
-			PersistentLevel->Actors[NewWorldSettingsActorIndex]->Destroy();
 		}
+
+		PersistentLevel->SetWorldSettings(NewWorldSettings);
 
 		// Re-sort actor list as we just shuffled things around.
 		PersistentLevel->SortActorList();
@@ -1120,7 +1122,8 @@ void UWorld::InitializeNewWorld(const InitializationValues IVS)
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	// Set constant name for WorldSettings to make a network replication work between new worlds on host and client
 	SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
-	AActor* WorldSettings = SpawnActor( GEngine->WorldSettingsClass, NULL, NULL, SpawnInfo );
+	AWorldSettings* WorldSettings = SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
+	PersistentLevel->SetWorldSettings(WorldSettings);
 	check(GetWorldSettings());
 #if WITH_EDITOR
 	WorldSettings->SetIsTemporarilyHiddenInEditor(true);
@@ -3594,30 +3597,19 @@ ALevelScriptActor* UWorld::GetLevelScriptActor( ULevel* OwnerLevel ) const
 AWorldSettings* UWorld::GetWorldSettings( bool bCheckStreamingPesistent, bool bChecked ) const
 {
 	checkSlow(IsInGameThread());
-	AWorldSettings* WorldSettings = NULL;
+	AWorldSettings* WorldSettings = nullptr;
 	if (PersistentLevel)
 	{
-		if (bChecked)
-		{
-			checkSlow(PersistentLevel->Actors.Num());
-			checkSlow(PersistentLevel->Actors[0]);
-			checkSlow(PersistentLevel->Actors[0]->IsA(AWorldSettings::StaticClass()));
-
-			WorldSettings = (AWorldSettings*)PersistentLevel->Actors[0];
-		}
-		else if (PersistentLevel->Actors.Num() > 0)
-		{
-			WorldSettings = Cast<AWorldSettings>(PersistentLevel->Actors[0]);
-		}
+		WorldSettings = PersistentLevel->GetWorldSettings(bChecked);
 
 		if( bCheckStreamingPesistent )
 		{
 			if( StreamingLevels.Num() > 0 &&
 				StreamingLevels[0] &&
-				StreamingLevels[0]->IsA(ULevelStreamingPersistent::StaticClass()) )
+				StreamingLevels[0]->IsA<ULevelStreamingPersistent>()) 
 			{
 				ULevel* Level = StreamingLevels[0]->GetLoadedLevel();
-				if (Level != NULL)
+				if (Level != nullptr)
 				{
 					WorldSettings = Level->GetWorldSettings();
 				}

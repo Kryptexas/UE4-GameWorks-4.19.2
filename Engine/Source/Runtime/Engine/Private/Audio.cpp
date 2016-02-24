@@ -594,7 +594,7 @@ float FWaveInstance::GetVolumeWeightedPriority() const
 	float ActualVolume = GetActualVolume();
 	if (ActualVolume > 0.0f)
 	{
-		return GetActualVolume() * Priority;
+		return ActualVolume * Priority;
 	}
 	else
 	{

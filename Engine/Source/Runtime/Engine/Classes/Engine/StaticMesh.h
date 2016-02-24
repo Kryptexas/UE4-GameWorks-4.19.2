@@ -352,7 +352,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	 *	Sometimes it can be desirable to use a lower poly representation for collision to reduce memory usage, improve performance and behaviour.
 	 *	Collision representation does not change based on distance to camera.
 	 */
-	UPROPERTY(EditAnywhere,  Category = StaticMesh)
+	UPROPERTY(EditAnywhere, Category = StaticMesh, meta=(DisplayName="LOD For Collision"))
 	int32 LODForCollision;
 
 	/** True if mesh should use a less-conservative method of mip LOD texture factor computation.

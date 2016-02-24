@@ -6,65 +6,57 @@ namespace UnrealBuildTool.Rules
     {
         public GameplayDebugger(TargetInfo Target)
         {
-            PublicIncludePaths.AddRange(
-                new string[] {
-				    "Developer/GameplayDebugger/Public",
-				    "Developer/AIModule/Public",
-                    "Developer/Settings/Public",
-                    "Runtime/GameplayAbilities/Public",
-				    // ... add public include paths required here ...
-			    }
-            );
+            // change this flag to if you need to use deprecated GameplayDebugger module
+            // however, it will be removed in next engine version!
+            const bool bEnableDeprecatedDebugger = true;
 
-            PrivateIncludePaths.AddRange(
-                new string[] {
-					"Developer/GameplayDebugger/Private",
-                    "Runtime/Engine/Private",
-                    "Runtime/AIModule/Private",
-					// ... add other private include paths required here ...
-				    }
-                );
-
-            PrivateDependencyModuleNames.AddRange(
-                new string[]
-				{
+            PublicDependencyModuleNames.AddRange(
+				new string[] {
 					"Core",
 					"CoreUObject",
-                    "InputCore",
-					"Engine",    
-                    "RenderCore",
-                    "RHI",
-                    "ShaderCore",
-                    "Settings",
-                    "AIModule",  // it have to be here for now. It'll be changed to remove any dependency to AIModule in future
+					"Engine",
+				});
 
-                    // @todo do we really need to include these two? Maybe a smart interface would help here?
-                    "GameplayTasks",
-                    "GameplayAbilities",    
-				}
-                );
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"RenderCore",
+					"InputCore",
+					"Slate",
+				});
 
-            DynamicallyLoadedModuleNames.AddRange(
-                new string[]
-				    {
-					    // ... add any modules that your module loads dynamically here ...
-				    }
-                );
+			PrivateIncludePaths.Add("Developer/GameplayDebugger/Private");
 
             if (UEBuildConfiguration.bBuildEditor == true)
-            {
-                PrivateDependencyModuleNames.Add("UnrealEd");
-                PrivateDependencyModuleNames.Add("LevelEditor");
-                PrivateDependencyModuleNames.Add("Slate");
-                PublicIncludePaths.Add("Editor/LevelEditor/Public");
-            }
+			{
+				PrivateDependencyModuleNames.Add("UnrealEd");
+			}
 
-            if (UEBuildConfiguration.bCompileRecast)
-            {
-                PrivateDependencyModuleNames.Add("Navmesh");
-            }
+            Definitions.Add("ENABLE_OLD_GAMEPLAY_DEBUGGER=" + (bEnableDeprecatedDebugger ? "1" : "0"));
 
-			PrecompileForTargets = PrecompileTargetsType.Any;
+            // include for compatibility with old debugger
+            // to be removed with next version
+			{
+                PublicIncludePaths.AddRange(
+					new string[] {
+						"Developer/GameplayDebugger/Public",
+						"Developer/AIModule/Public",
+						"Developer/Settings/Public",
+						"Runtime/GameplayAbilities/Public",
+						// ... add public include paths required here ...
+					}
+                );
+
+				PrivateIncludePaths.AddRange(
+					new string[] {
+						"Runtime/Engine/Private",
+						"Runtime/AIModule/Private",
+						// ... add other private include paths required here ...
+						}
+					);
+
+                PrivateDependencyModuleNames.AddRange(new string[] { "AIModule", "GameplayTasks", "GameplayAbilities" });
+                CircularlyReferencedDependentModules.AddRange(new string[] { "AIModule", "GameplayTasks", "GameplayAbilities" });
+			}
         }
     }
 }

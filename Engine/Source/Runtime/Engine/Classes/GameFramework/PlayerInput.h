@@ -59,7 +59,10 @@ struct FKeyBind
 	UPROPERTY(config)
 	uint32 bIgnoreCmd:1;
 
-	FKeyBind() 
+	UPROPERTY(transient)
+	uint32 bDisabled : 1;
+
+	FKeyBind()
 	{
 	}
 };

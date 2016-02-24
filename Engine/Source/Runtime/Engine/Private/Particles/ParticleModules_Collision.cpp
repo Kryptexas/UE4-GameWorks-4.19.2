@@ -56,31 +56,31 @@ UParticleModuleCollision::UParticleModuleCollision(const FObjectInitializer& Obj
 
 void UParticleModuleCollision::InitializeDefaults()
 {
-	if (!DampingFactor.Distribution)
+	if (!DampingFactor.IsCreated())
 	{
 		DampingFactor.Distribution = NewObject<UDistributionVectorUniform>(this, TEXT("DistributionDampingFactor"));
 	}
 
-	if (!DampingFactorRotation.Distribution)
+	if (!DampingFactorRotation.IsCreated())
 	{
 		UDistributionVectorConstant* DistributionDampingFactorRotation = NewObject<UDistributionVectorConstant>(this, TEXT("DistributionDampingFactorRotation"));
 		DistributionDampingFactorRotation->Constant = FVector(1.0f, 1.0f, 1.0f);
 		DampingFactorRotation.Distribution = DistributionDampingFactorRotation; 
 	}
 
-	if (!MaxCollisions.Distribution)
+	if (!MaxCollisions.IsCreated())
 	{
 		MaxCollisions.Distribution = NewObject<UDistributionFloatUniform>(this, TEXT("DistributionMaxCollisions"));
 	}
 
-	if (!ParticleMass.Distribution)
+	if (!ParticleMass.IsCreated())
 	{
 		UDistributionFloatConstant* DistributionParticleMass = NewObject<UDistributionFloatConstant>(this, TEXT("DistributionParticleMass"));
 		DistributionParticleMass->Constant = 0.1f;
 		ParticleMass.Distribution = DistributionParticleMass;
 	}
 
-	if (!DelayAmount.Distribution)
+	if (!DelayAmount.IsCreated())
 	{
 		UDistributionFloatConstant* DistributionDelayAmount = NewObject<UDistributionFloatConstant>(this, TEXT("DistributionDelayAmount"));
 		DistributionDelayAmount->Constant = 0.0f;
@@ -574,14 +574,14 @@ UParticleModuleCollisionGPU::UParticleModuleCollisionGPU(const FObjectInitialize
 
 void UParticleModuleCollisionGPU::InitializeDefaults()
 {
-	if (!Resilience.Distribution)
+	if (!Resilience.IsCreated())
 	{
 		UDistributionFloatConstant* ResilienceDistribution = NewObject<UDistributionFloatConstant>(this, TEXT("ResilienceDistribution"));
 		ResilienceDistribution->Constant = 0.5f;
 		Resilience.Distribution = ResilienceDistribution;
 	}
 
-	if (!ResilienceScaleOverLife.Distribution)
+	if (!ResilienceScaleOverLife.IsCreated())
 	{
 		UDistributionFloatConstant* ResilienceScaleOverLifeDistribution = NewObject<UDistributionFloatConstant>(this, TEXT("ResilienceScaleOverLifeDistribution"));
 		ResilienceScaleOverLifeDistribution->Constant = 1.0f;

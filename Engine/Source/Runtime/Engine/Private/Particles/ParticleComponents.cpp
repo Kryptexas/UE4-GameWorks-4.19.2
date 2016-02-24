@@ -1539,7 +1539,9 @@ void UParticleEmitter::Build()
 			if(HighLODLevel->TypeDataModule->RequiresBuild())
 		{
 			FParticleEmitterBuildInfo EmitterBuildInfo;
+#if WITH_EDITOR
 				HighLODLevel->CompileModules( EmitterBuildInfo );
+#endif
 				HighLODLevel->TypeDataModule->Build( EmitterBuildInfo );
 			}
 

@@ -4,12 +4,6 @@
 #include "EnvironmentQuery/Tests/EnvQueryTest_Random.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 
-#if !WITH_DEV_AUTOMATION_TESTS
-
-UEnvQueryTest_Random::UEnvQueryTest_Random(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
-
-#else
-
 UEnvQueryTest_Random::UEnvQueryTest_Random(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Cost = EEnvTestCost::Low;
@@ -43,5 +37,3 @@ FText UEnvQueryTest_Random::GetDescriptionDetails() const
 {
 	return DescribeFloatTestParams();
 }
-
-#endif //WITH_DEV_AUTOMATION_TESTS

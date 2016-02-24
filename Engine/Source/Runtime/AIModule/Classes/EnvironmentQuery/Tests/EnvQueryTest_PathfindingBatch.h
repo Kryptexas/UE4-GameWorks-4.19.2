@@ -15,8 +15,6 @@ class UEnvQueryTest_PathfindingBatch : public UEnvQueryTest_Pathfinding
 	UPROPERTY(EditDefaultsOnly, Category = Pathfinding, AdvancedDisplay)
 	FAIDataProviderFloatValue ScanRangeMultiplier;
 
-#if WITH_DEV_AUTOMATION_TESTS
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 	virtual FText GetDescriptionTitle() const override;
-#endif
 };

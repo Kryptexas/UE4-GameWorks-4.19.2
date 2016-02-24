@@ -21,19 +21,49 @@ FBodyInstanceCustomization::FBodyInstanceCustomization()
 	RefreshCollisionProfiles();
 }
 
+UStaticMeshComponent* GetDefaultCollisionProvider(const FBodyInstance* BI)
+{
+	UStaticMeshComponent* SMC = BI ? Cast<UStaticMeshComponent>(BI->OwnerComponent.Get()) : nullptr;
+	return SMC && SMC->SupportsDefaultCollision() ? SMC : nullptr;
+}
+
+bool FBodyInstanceCustomization::CanUseDefaultCollision() const
+{
+	bool bResult = BodyInstances.Num() > 0;
+	for(const FBodyInstance* BI : BodyInstances)
+	{
+		bResult &= GetDefaultCollisionProvider(BI) != nullptr;
+	}
+
+	return bResult;
+}
+
 void FBodyInstanceCustomization::RefreshCollisionProfiles()
 {
 	int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
+
+	bool bCanUseDefaultCollision = CanUseDefaultCollision();
+
 	// first create profile combo list
-	CollisionProfileComboList.Empty(NumProfiles + 1);
+	CollisionProfileComboList.Empty(NumProfiles + (bCanUseDefaultCollision ? 2 : 1));	//If we can use default collision we'll add a "Default" option
 
 	// first one is default one
+	if(bCanUseDefaultCollision)
+	{
+		CollisionProfileComboList.Add(MakeShareable(new FString(TEXT("Default"))));
+	}
+	
 	CollisionProfileComboList.Add(MakeShareable(new FString(TEXT("Custom..."))));
 
 	// go through profile and see if it has mine
 	for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 	{
 		CollisionProfileComboList.Add(MakeShareable(new FString(CollisionProfile->GetProfileByIndex(ProfileId)->Name.ToString())));
+	}
+
+	if(CollsionProfileComboBox.IsValid())
+	{
+		CollsionProfileComboBox->RefreshOptions();
 	}
 }
 
@@ -55,7 +85,7 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 	bool bDisplayAdvancedCollisionSettings = true;
 
 	// if I have valid profile name
-	if (CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) )
+	if (!AreAllCollisionUsingDefault() && CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) )
 	{
 		DisplayName = GetProfileString(ProfileName);
 		bDisplayAdvancedCollisionSettings = false;
@@ -80,7 +110,6 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 		.Padding(0.f, 0.f, 10.f, 0.f)
 		[
 			SNew(SHorizontalBox)
-			.Visibility(this, &FBodyInstanceCustomization::IsCollisionPresetVisible)
 			.IsEnabled(this, &FBodyInstanceCustomization::IsCollisionEnabled)
 			+ SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
@@ -102,36 +131,24 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 			]
 
 			+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(2.0f)
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.OnClicked(this, &FBodyInstanceCustomization::SetToDefaultProfile)
-					.ContentPadding(0.f)
-					.ToolTipText(LOCTEXT("ResetToDefaultToolTip", "Reset to Default"))
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-					.IsEnabled(this, &FBodyInstanceCustomization::IsCollisionEnabled)
-					.Content()
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
-					]
-				]
-		]
-
-		+ SVerticalBox::Slot()
-			.Padding(0.f, 0.f, 10.f, 0.f)
+			.VAlign(VAlign_Center)
+			.Padding(2.0f)
+			.AutoWidth()
 			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("DefaultCollision", "Default Collision"))
-				.Visibility(this, &FBodyInstanceCustomization::IsDefaultCollisionVisible)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.ToolTipText(LOCTEXT("DefaultCollisionToolTip", "Default Collision. See the StaticMesh asset to find out collision settings"))
+				SNew(SButton)
+				.OnClicked(this, &FBodyInstanceCustomization::SetToDefaultProfile)
+				.ContentPadding(0.f)
+				.ToolTipText(LOCTEXT("ResetToDefaultToolTip", "Reset to Default"))
+				.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+				.IsEnabled(this, &FBodyInstanceCustomization::IsCollisionEnabled)
+				.Visibility(this, &FBodyInstanceCustomization::ShouldShowResetToDefaultProfile)
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.DiffersFromDefault"))
+				]
 			]
-
-
-		
+		]
 	];
 
 	CollisionGroup.ToggleExpansion(bDisplayAdvancedCollisionSettings);
@@ -156,6 +173,7 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 		BodyInstances[Iter.GetIndex()] = (FBodyInstance*)(*Iter);
 	}
 
+	RefreshCollisionProfiles();
 	
 	// get all parent instances
 	TSharedPtr<IPropertyHandle> ParentPropertyHandle = StructPropertyHandle->GetParentHandle();
@@ -178,6 +196,12 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 		
 		UseDefaultCollisionHandle = ParentPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, bUseDefaultCollision));
 		StaticMeshHandle = ParentPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, StaticMesh));
+
+		if(StaticMeshHandle.IsValid())
+		{
+			FSimpleDelegate OnStaticMeshChangedDelegate = FSimpleDelegate::CreateSP(this, &FBodyInstanceCustomization::RefreshCollisionProfiles);
+			StaticMeshHandle->SetOnPropertyValueChanged(OnStaticMeshChangedDelegate);
+		}
 	}
 	
 
@@ -235,6 +259,22 @@ int32 FBodyInstanceCustomization::InitializeObjectTypeComboList()
 	return Selected;
 }
 
+int32 FBodyInstanceCustomization::GetNumberOfSpecialProfiles() const
+{
+	return CanUseDefaultCollision() ? 2 : 1;
+}
+
+int32 FBodyInstanceCustomization::GetCustomIndex() const
+{
+	return CanUseDefaultCollision() ? 1 : 0;
+}
+
+int32 FBodyInstanceCustomization::GetDefaultIndex() const
+{
+	ensure(CanUseDefaultCollision());
+	return 0;
+}
+
 TSharedPtr<FString> FBodyInstanceCustomization::GetProfileString(FName ProfileName) const
 {
 	FString ProfileNameString = ProfileName.ToString();
@@ -242,7 +282,7 @@ TSharedPtr<FString> FBodyInstanceCustomization::GetProfileString(FName ProfileNa
 	// go through profile and see if it has mine
 	int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
 	// refresh collision count
-	if( NumProfiles+1==CollisionProfileComboList.Num() )
+	if( NumProfiles + GetNumberOfSpecialProfiles() == CollisionProfileComboList.Num() )
 	{
 		for(int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 		{
@@ -253,7 +293,7 @@ TSharedPtr<FString> FBodyInstanceCustomization::GetProfileString(FName ProfileNa
 		}
 	}
 
-	return CollisionProfileComboList[0];
+	return CollisionProfileComboList[GetCustomIndex()];
 }
 
 // filter through find valid index of enum values matching each item
@@ -718,6 +758,16 @@ TSharedRef<SWidget> FBodyInstanceCustomization::MakeCollisionProfileComboWidget(
 
 void FBodyInstanceCustomization::OnCollisionProfileComboOpening()
 {
+	if(AreAllCollisionUsingDefault())
+	{
+		TSharedPtr<FString> ComboStringPtr = CollisionProfileComboList[GetDefaultIndex()];
+		if (ComboStringPtr.IsValid())
+		{
+			CollsionProfileComboBox->SetSelectedItem(ComboStringPtr);
+			return;
+		}
+	}
+
 	FName ProfileName;
 	if (CollisionProfileNameHandle->GetValue(ProfileName) != FPropertyAccess::Result::MultipleValues)
 	{
@@ -725,6 +775,20 @@ void FBodyInstanceCustomization::OnCollisionProfileComboOpening()
 		if( ComboStringPtr.IsValid() )
 		{
 			CollsionProfileComboBox->SetSelectedItem(ComboStringPtr);
+		}
+	}
+}
+
+void MarkAllBodiesDefaultCollision(TArray<FBodyInstance*>& BodyInstances, bool bUseDefaultCollision)
+{
+	for (const FBodyInstance* BI : BodyInstances)
+	{
+		if (UStaticMeshComponent* SMC = GetDefaultCollisionProvider(BI))
+		{
+			if(SMC->SupportsDefaultCollision())
+			{
+				SMC->bUseDefaultCollision = bUseDefaultCollision;
+			}
 		}
 	}
 }
@@ -746,18 +810,31 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 				// set profile set up
 				ensure ( CollisionProfileNameHandle->SetValue(NewValue) ==  FPropertyAccess::Result::Success );
 				UpdateCollisionProfile();
+				MarkAllBodiesDefaultCollision(BodyInstances, false);
 				return;
 			}
 		}
 
-		if( NewSelection == CollisionProfileComboList[0] )
+		if(CanUseDefaultCollision())
+		{
+			if(NewSelection == CollisionProfileComboList[GetDefaultIndex()])
+			{
+				MarkAllBodiesDefaultCollision(BodyInstances, true);
+				return;
+			}
+		}
+
+		if( NewSelection == CollisionProfileComboList[GetCustomIndex()])
 		{
 			// Force expansion when the user chooses the selected item
 			CollisionGroup->ToggleExpansion( true );
 		}
+
 		// if none of them found, clear it
 		FName Name=UCollisionProfile::CustomCollisionProfileName;
 		ensure ( CollisionProfileNameHandle->SetValue(Name) ==  FPropertyAccess::Result::Success );
+
+		MarkAllBodiesDefaultCollision(BodyInstances, false);
 	}
 }
 
@@ -766,9 +843,10 @@ void FBodyInstanceCustomization::UpdateCollisionProfile()
 	FName ProfileName;
 
 	// if I have valid profile name
-	if (CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) )
+	if (!AreAllCollisionUsingDefault() && CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) )
 	{
 		int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
+		const int32 NumSpecialProfiles = GetNumberOfSpecialProfiles();
 		for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 		{
 			// find the profile
@@ -782,7 +860,7 @@ void FBodyInstanceCustomization::UpdateCollisionProfile()
 				SetCollisionResponseContainer(CurProfile->ResponseToChannels);
 
 				// now update combo box
-				CollsionProfileComboBox.Get()->SetSelectedItem(CollisionProfileComboList[ProfileId+1]);
+				CollsionProfileComboBox.Get()->SetSelectedItem(CollisionProfileComboList[ProfileId+NumSpecialProfiles]);
 				if (ObjectTypeComboBox.IsValid())
 				{
 					for (auto Iter = ObjectTypeValues.CreateConstIterator(); Iter; ++Iter)
@@ -800,13 +878,14 @@ void FBodyInstanceCustomization::UpdateCollisionProfile()
 		}
 	}
 
-	CollsionProfileComboBox.Get()->SetSelectedItem(CollisionProfileComboList[0]);
+	CollsionProfileComboBox.Get()->SetSelectedItem(CollisionProfileComboList[AreAllCollisionUsingDefault() ? GetDefaultIndex() : GetCustomIndex()]);
 }
 
 FReply FBodyInstanceCustomization::SetToDefaultProfile()
 {
 	// trigger transaction before UpdateCollisionProfile
 	const FScopedTransaction Transaction( LOCTEXT( "ResetCollisionProfile", "Reset Collision Profile" ) );
+	MarkAllBodiesDefaultCollision(BodyInstances, false);
 	CollisionProfileNameHandle.Get()->ResetToDefault();
 	UpdateCollisionProfile();
 	return FReply::Handled();
@@ -853,35 +932,21 @@ EVisibility FBodyInstanceCustomization::ShouldShowResetToDefaultResponse(int32 V
 
 bool FBodyInstanceCustomization::AreAllCollisionUsingDefault() const
 {
-	if(UseDefaultCollisionHandle.IsValid())
+	bool bAllUsingDefault = BodyInstances.Num() > 0;
+	for(const FBodyInstance* BI : BodyInstances)
 	{
-		bool bUseDefaultCollision = false;
-		if (UseDefaultCollisionHandle->GetValue(bUseDefaultCollision) == FPropertyAccess::Result::Success && bUseDefaultCollision)
+		if(UStaticMeshComponent* SMC = GetDefaultCollisionProvider(BI))
 		{
-			return true;
+			bAllUsingDefault &= SMC->bUseDefaultCollision;
 		}
-	}
-	
-	return false;
-}
-
-EVisibility FBodyInstanceCustomization::IsCollisionPresetVisible() const
-{
-	if (StaticMeshHandle.IsValid())
-	{
-		UObject* StaticMesh = nullptr;
-		if (StaticMeshHandle->GetValue(StaticMesh) == FPropertyAccess::Result::Success && StaticMesh)
+		else
 		{
-			return AreAllCollisionUsingDefault() ? EVisibility::Collapsed : EVisibility::Visible;
+			bAllUsingDefault = false;
+			break;
 		}
 	}
 
-	return EVisibility::Visible;
-}
-
-EVisibility FBodyInstanceCustomization::IsDefaultCollisionVisible() const
-{
-	return IsCollisionPresetVisible()  == EVisibility::Visible ? EVisibility::Collapsed : EVisibility::Visible;
+	return bAllUsingDefault;
 }
 
 bool FBodyInstanceCustomization::IsCollisionEnabled() const
@@ -898,7 +963,7 @@ bool FBodyInstanceCustomization::IsCollisionEnabled() const
 bool FBodyInstanceCustomization::ShouldEnableCustomCollisionSetup() const
 {
 	FName ProfileName;
-	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) == false)
+	if (!AreAllCollisionUsingDefault() && CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) == false)
 	{
 		return IsCollisionEnabled();
 	}
@@ -913,8 +978,29 @@ EVisibility FBodyInstanceCustomization::ShouldShowCustomCollisionSetup() const
 
 FText FBodyInstanceCustomization::GetCollisionProfileComboBoxContent() const
 {
+	bool bAllUseDefaultCollision = BodyInstances.Num() > 0;
+	bool bSomeUseDefaultCollision = false;
+
+	for(const FBodyInstance* BI : BodyInstances)
+	{
+		if(UStaticMeshComponent* SMC = GetDefaultCollisionProvider(BI))
+		{
+			bAllUseDefaultCollision &= SMC->bUseDefaultCollision;
+			bSomeUseDefaultCollision |= SMC->bUseDefaultCollision;
+		}
+		else
+		{
+			bAllUseDefaultCollision = false;
+		}
+	}
+
+	if(bAllUseDefaultCollision)
+	{
+		return FText::FromString(*CollisionProfileComboList[GetDefaultIndex()]);
+	}
+
 	FName ProfileName;
-	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::MultipleValues)
+	if (bSomeUseDefaultCollision || CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::MultipleValues)
 	{
 		return LOCTEXT("MultipleValues", "Multiple Values");
 	}
@@ -924,6 +1010,11 @@ FText FBodyInstanceCustomization::GetCollisionProfileComboBoxContent() const
 
 FText FBodyInstanceCustomization::GetCollisionProfileComboBoxToolTip() const
 {
+	if(AreAllCollisionUsingDefault())
+	{
+		return LOCTEXT("DefaultCollision", "Default collision preset specified in the StaticMesh asset");
+	}
+
 	FName ProfileName;
 	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::Success)
 	{

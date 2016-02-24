@@ -12,12 +12,6 @@
 #include "AI/Navigation/PImplRecastNavMesh.h"
 #endif
 
-#if !WITH_DEV_AUTOMATION_TESTS
-
-UEnvQueryTest_PathfindingBatch::UEnvQueryTest_PathfindingBatch(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
-
-#else
-
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
 UEnvQueryTest_PathfindingBatch::UEnvQueryTest_PathfindingBatch(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -196,5 +190,3 @@ FText UEnvQueryTest_PathfindingBatch::GetDescriptionTitle() const
 }
 
 #undef LOCTEXT_NAMESPACE
-
-#endif //WITH_DEV_AUTOMATION_TESTS

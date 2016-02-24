@@ -5,12 +5,6 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 #include "GameplayTagAssetInterface.h"
 
-#if !WITH_DEV_AUTOMATION_TESTS
-
-UEnvQueryTest_GameplayTags::UEnvQueryTest_GameplayTags(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
-
-#else
-
 UEnvQueryTest_GameplayTags::UEnvQueryTest_GameplayTags(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Cost = EEnvTestCost::Low;
@@ -91,5 +85,3 @@ FText UEnvQueryTest_GameplayTags::GetDescriptionDetails() const
 {
 	return GameplayTags.ToMatchingText(TagsToMatch, !BoolValue.DefaultValue);
 }
-
-#endif //WITH_DEV_AUTOMATION_TESTS

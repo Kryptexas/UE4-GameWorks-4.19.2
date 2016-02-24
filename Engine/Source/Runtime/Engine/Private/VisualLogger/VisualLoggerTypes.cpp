@@ -2,8 +2,14 @@
 
 #include "EnginePrivate.h"
 #include "ObjectBase.h"
+#include "VisualLogger/VisualLoggerTypes.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerDebugSnapshotInterface.h"
+
+namespace
+{
+	const FName NAME_UnnamedCategory = TEXT("UnnamedCategry");
+}
 
 UVisualLoggerDebugSnapshotInterface::UVisualLoggerDebugSnapshotInterface(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -14,6 +20,22 @@ UVisualLoggerDebugSnapshotInterface::UVisualLoggerDebugSnapshotInterface(const F
 
 #define DEPRECATED_VISUAL_LOGGER_MAGIC_NUMBER 0xFAFAAFAF
 #define VISUAL_LOGGER_MAGIC_NUMBER 0xAFAFFAFA
+
+FVisualLogShapeElement::FVisualLogShapeElement(EVisualLoggerShapeElement InType)
+	: Category(NAME_UnnamedCategory)
+	, Verbosity(ELogVerbosity::All)
+	, TransformationMatrix(FMatrix::Identity)
+	, Type(InType)
+	, Color(0xff)
+	, Thicknes(0)
+{
+
+}
+
+FVisualLogStatusCategory::FVisualLogStatusCategory()
+	: Category(NAME_UnnamedCategory.ToString())
+{
+}
 
 bool FVisualLogStatusCategory::GetDesc(int32 Index, FString& Key, FString& Value) const
 {

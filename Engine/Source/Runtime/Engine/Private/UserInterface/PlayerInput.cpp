@@ -1276,11 +1276,6 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 		}
 	}
 
-	const float DetectedMouseSampleHz = MouseSamples / MouseSamplingTotal;
-
-	// actual num samples should be either this or this+1
-	const int32 ExpectedNumSamplesThisFrame = FMath::TruncToInt(DeltaTime * DetectedMouseSampleHz);
-
 	if (DeltaTime < 0.25f)
 	{
 		// this is seconds/sample
@@ -1821,7 +1816,7 @@ FString UPlayerInput::GetBind(FKey Key)
 		for ( int32 BindIndex = DebugExecBindings.Num() - 1; BindIndex >= 0; BindIndex-- )
 		{
 			const FKeyBind&	Bind = DebugExecBindings[BindIndex];
-			if ( Bind.Key == Key )
+			if ( Bind.Key == Key && !Bind.bDisabled )
 			{
 				// if the modifier key pressed [or this key-bind doesn't require that key], and the key-bind isn't
 				// configured to ignore they modifier key, we've found a match.

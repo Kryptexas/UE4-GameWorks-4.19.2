@@ -6,8 +6,6 @@
 UAISense_Prediction::UAISense_Prediction(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	DebugName = TEXT("Prediction");
-	DebugDrawColor = FColorList::Grey;
 }
 
 float UAISense_Prediction::Update()

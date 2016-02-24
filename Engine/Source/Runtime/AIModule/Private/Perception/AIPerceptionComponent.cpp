@@ -5,6 +5,10 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/Canvas.h"
 
+#if WITH_GAMEPLAY_DEBUGGER
+#include "GameplayDebuggerCategory.h"
+#endif
+
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Damage.h"
@@ -657,49 +661,42 @@ bool UAIPerceptionComponent::GetActorsPerception(AActor* Actor, FActorPerception
 //----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//
-#if !UE_BUILD_SHIPPING
-void UAIPerceptionComponent::GrabGameplayDebuggerData(TArray<FString>& OnScreenStrings, TArray<FGameplayDebuggerShapeElement>& DebugShapes) const
+#if WITH_GAMEPLAY_DEBUGGER
+void UAIPerceptionComponent::DescribeSelfToGameplayDebugger(FGameplayDebuggerCategory* DebuggerCategory) const
 {
-#if ENABLED_GAMEPLAY_DEBUGGER
-	UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld());
-	check(PerceptionSys);
+	if (DebuggerCategory == nullptr)
+	{
+		return;
+	}
 
 	for (UAIPerceptionComponent::TActorPerceptionContainer::TConstIterator It(GetPerceptualDataConstIterator()); It; ++It)
 	{
-		if (It->Key == NULL)
-		{
-			continue;
-		}
-
 		const FActorPerceptionInfo& ActorPerceptionInfo = It->Value;
-
-		if (ActorPerceptionInfo.Target.IsValid())
+		if (ActorPerceptionInfo.Target.IsValid() && It->Key)
 		{
 			const FVector TargetLocation = ActorPerceptionInfo.Target->GetActorLocation();
-			for (const auto& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
+			for (const FAIStimulus& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 			{
-				if (Stimulus.Strength >= 0)
+				const UAISenseConfig* SenseConfig = GetSenseConfig(Stimulus.Type);
+				if (Stimulus.Strength >= 0 && SenseConfig)
 				{
-					const FString Description = FString::Printf(TEXT("%s: %.2f a:%.2f"), *PerceptionSys->GetSenseName(Stimulus.Type), Stimulus.Strength, Stimulus.GetAge());
-					DebugShapes.Add(UGameplayDebuggerHelper::MakeString(Description, Stimulus.StimulusLocation + FVector(0, 0, 30)));
+					const FString Description = FString::Printf(TEXT("%s: %.2f age:%.2f"), *SenseConfig->GetSenseName(), Stimulus.Strength, Stimulus.GetAge());
+					const FColor DebugColor = SenseConfig->GetDebugColor();
 
-					const FColor DebugColor = PerceptionSys->GetSenseDebugColor(Stimulus.Type);
-					DebugShapes.Add(UGameplayDebuggerHelper::MakePoint(Stimulus.StimulusLocation, DebugColor, 30));
-					DebugShapes.Add(UGameplayDebuggerHelper::MakeLine(Stimulus.ReceiverLocation, Stimulus.StimulusLocation, DebugColor));
-					DebugShapes.Add(UGameplayDebuggerHelper::MakeLine(TargetLocation, Stimulus.StimulusLocation, FColor::Black));
+					DebuggerCategory->AddShape(FGameplayDebuggerShape::MakePoint(Stimulus.StimulusLocation + FVector(0, 0, 30), 30.0f, DebugColor, Description));
+					DebuggerCategory->AddShape(FGameplayDebuggerShape::MakeSegment(Stimulus.ReceiverLocation, Stimulus.StimulusLocation, DebugColor));
+					DebuggerCategory->AddShape(FGameplayDebuggerShape::MakeSegment(TargetLocation, Stimulus.StimulusLocation, FColor::Black));
 				}
 			}
 		}
 	}
 
-	for (auto Sense : SensesConfig)
+	for (UAISenseConfig* SenseConfig : SensesConfig)
 	{
-		Sense->GetDebugData(OnScreenStrings, DebugShapes, *this);
+		SenseConfig->DescribeSelfToGameplayDebugger(this, DebuggerCategory);
 	}
-#endif
 }
-
-#endif // !UE_BUILD_SHIPPING
+#endif // WITH_GAMEPLAY_DEBUGGER
 
 #if ENABLE_VISUAL_LOG
 void UAIPerceptionComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const

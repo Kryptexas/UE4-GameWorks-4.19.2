@@ -185,7 +185,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	uint32 bForceNavigationObstacle : 1;
 
 	/** Use the collision profile specified in the StaticMesh asset.*/
-	UPROPERTY(EditAnywhere, Category = Collision)
+	UPROPERTY()
 	uint32 bUseDefaultCollision : 1;
 
 	/** If true, mesh painting is disallowed on this instance. Set if vertex colors are overridden in a construction script. */

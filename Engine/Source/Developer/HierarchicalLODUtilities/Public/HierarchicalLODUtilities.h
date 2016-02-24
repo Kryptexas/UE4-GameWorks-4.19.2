@@ -45,6 +45,9 @@ public:
 
 	static float CalculateDrawDistanceFromScreenSize(const float SphereRadius, const float ScreenSize, const FMatrix& ProjectionMatrix);
 
+	/** Creates or retrieves the HLOD package that is created for the given level */
+	static UPackage* CreateOrRetrieveLevelHLODPackage(ULevel* InLevel);
+
 	/**
 	* Builds a static mesh object for the given LODACtor
 	*

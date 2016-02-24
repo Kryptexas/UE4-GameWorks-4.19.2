@@ -30,10 +30,9 @@ class UEnvQueryTest_Distance : public UEnvQueryTest
 	/** context */
 	UPROPERTY(EditDefaultsOnly, Category=Distance)
 	TSubclassOf<UEnvQueryContext> DistanceTo;
-#if WITH_DEV_AUTOMATION_TESTS
+
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;
-#endif
 };

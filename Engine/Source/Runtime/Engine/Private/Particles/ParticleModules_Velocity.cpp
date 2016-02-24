@@ -44,12 +44,12 @@ UParticleModuleVelocity::UParticleModuleVelocity(const FObjectInitializer& Objec
 
 void UParticleModuleVelocity::InitializeDefaults()
 {
-	if (!StartVelocity.Distribution)
+	if (!StartVelocity.IsCreated())
 	{
 		StartVelocity.Distribution = NewObject<UDistributionVectorUniform>(this, TEXT("DistributionStartVelocity"));
 	}
 
-	if (!StartVelocityRadial.Distribution)
+	if (!StartVelocityRadial.IsCreated())
 	{
 		StartVelocityRadial.Distribution = NewObject<UDistributionFloatUniform>(this, TEXT("DistributionStartVelocityRadial"));
 	}
@@ -161,7 +161,7 @@ UParticleModuleVelocityInheritParent::UParticleModuleVelocityInheritParent(const
 
 void UParticleModuleVelocityInheritParent::InitializeDefaults()
 {
-	if (!Scale.Distribution)
+	if (!Scale.IsCreated())
 	{
 		UDistributionVectorConstant* DistributionScale = NewObject<UDistributionVectorConstant>(this, TEXT("DistributionScale"));
 		DistributionScale->Constant = FVector(1.0f, 1.0f, 1.0f);
@@ -225,7 +225,7 @@ UParticleModuleVelocityOverLifetime::UParticleModuleVelocityOverLifetime(const F
 
 void UParticleModuleVelocityOverLifetime::InitializeDefaults()
 {
-	if (!VelOverLife.Distribution)
+	if (!VelOverLife.IsCreated())
 	{
 		VelOverLife.Distribution = NewObject<UDistributionVectorConstantCurve>(this, TEXT("DistributionVelOverLife"));
 	}
@@ -386,12 +386,12 @@ UParticleModuleVelocityCone::UParticleModuleVelocityCone(const FObjectInitialize
 
 void UParticleModuleVelocityCone::InitializeDefaults()
 {
-	if (!Angle.Distribution)
+	if (!Angle.IsCreated())
 	{
 		Angle.Distribution = NewObject<UDistributionFloatUniform>(this, TEXT("DistributionAngle"));
 	}
 
-	if (!Velocity.Distribution)
+	if (!Velocity.IsCreated())
 	{
 		Velocity.Distribution = NewObject<UDistributionFloatUniform>(this, TEXT("DistributionVelocity"));
 	}

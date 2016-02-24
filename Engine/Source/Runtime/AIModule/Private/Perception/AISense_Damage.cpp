@@ -68,11 +68,8 @@ IAIPerceptionListenerInterface* FAIDamageEvent::GetDamagedActorAsPerceptionListe
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
-UAISense_Damage::UAISense_Damage(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer)
+UAISense_Damage::UAISense_Damage(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	DebugName = TEXT("Damage");
-	DebugDrawColor = FColor::Red;
 }
 
 float UAISense_Damage::Update()

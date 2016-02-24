@@ -187,21 +187,6 @@ private:
 	/** cached world's timestamp */
 	float CurrentTime;
 
-public:
-
-#if !UE_BUILD_SHIPPING
-	//----------------------------------------------------------------------//
-	// DEBUG
-	//----------------------------------------------------------------------//
-	TArray<FColor> DebugSenseColors;
-	FString PerceptionDebugLegend;	// describes which color means what
-
-	FColor GetSenseDebugColor(FAISenseID SenseID) const;
-	FString GetSenseName(FAISenseID SenseID) const;
-	FString GetPerceptionDebugLegend() const { return PerceptionDebugLegend; }
-#endif 
-
-private:
 	FTimerHandle AgeStimuliTimerHandle;
 };
 

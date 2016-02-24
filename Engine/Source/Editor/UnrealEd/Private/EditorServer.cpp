@@ -3054,8 +3054,8 @@ ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 	// Spawn worldsettings.
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.OverrideLevel = BufferLevel;
-	InWorld->SpawnActor( GEngine->WorldSettingsClass, NULL, NULL, SpawnInfo );
-	check( Cast<AWorldSettings>( BufferLevel->Actors[0] ) );
+	AWorldSettings* WorldSettings = InWorld->SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
+	BufferLevel->SetWorldSettings(WorldSettings);
 
 	// Spawn builder brush for the buffer level.
 	ABrush* BufferDefaultBrush = InWorld->SpawnActor<ABrush>( SpawnInfo );
@@ -3693,7 +3693,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			if (Level != NULL)
 			{
 				// Grab the world info of the streaming level, and loop through it's streaming levels
-				AWorldSettings* SubLevelWorldSettings = CastChecked<AWorldSettings>(Level->Actors[0]);
+				AWorldSettings* SubLevelWorldSettings = Level->GetWorldSettings();
 				UWorld *SubLevelWorld = CastChecked<UWorld>(Level->GetOuter());
 				if (SubLevelWorld != NULL && SubLevelWorldSettings != NULL )
 				{

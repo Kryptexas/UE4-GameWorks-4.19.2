@@ -1374,7 +1374,7 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 
 
 		FVector Mins, Maxs;
-		MeshTD->RollPitchYawRange.Distribution->GetRange(Mins, Maxs);
+		MeshTD->RollPitchYawRange.GetRange(Mins, Maxs);
 
 		// Enable/Disable pre-rotation
 		if (Mins.SizeSquared() || Maxs.SizeSquared())

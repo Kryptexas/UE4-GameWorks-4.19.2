@@ -1052,7 +1052,7 @@ bool UPathFollowingComponent::HasReachedInternal(const FVector& GoalLocation, fl
 
 void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const
 {
-	if (!Path.IsValid() || MovementComp == NULL)
+	if (!Path.IsValid() || MovementComp == nullptr || MovementComp->UpdatedComponent == nullptr)
 	{
 		return;
 	}

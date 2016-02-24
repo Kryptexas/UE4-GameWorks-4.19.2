@@ -6,8 +6,6 @@
 UAISense_Touch::UAISense_Touch(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	DebugName = TEXT("Touch");
-	DebugDrawColor = FColor::Cyan;
 }
 
 float UAISense_Touch::Update()

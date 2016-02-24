@@ -66,6 +66,8 @@ void UAISystem::PostInitProperties()
 			FOnActorSpawned::FDelegate ActorSpawnedDelegate = FOnActorSpawned::FDelegate::CreateUObject(this, &UAISystem::OnActorSpawned);
 			ActorSpawnedDelegateHandle = WorldOuter->AddOnActorSpawnedHandler(ActorSpawnedDelegate);
 		}
+
+		ConditionalLoadDebuggerPlugin();
 	}
 }
 
@@ -202,4 +204,19 @@ void UAISystem::UnregisterBlackboardComponent(UBlackboardData& BlackboardData, U
 UAISystem::FBlackboardDataToComponentsIterator UAISystem::CreateBlackboardDataToComponentsIterator(UBlackboardData& BlackboardAsset)
 {
 	return UAISystem::FBlackboardDataToComponentsIterator(BlackboardDataToComponentsMap, &BlackboardAsset);
+}
+
+void UAISystem::ConditionalLoadDebuggerPlugin()
+{
+#if ENABLED_GAMEPLAY_DEBUGGER
+	if (bEnableDebuggerPlugin)
+	{
+		LoadDebuggerPlugin();
+	}
+#endif
+}
+
+void UAISystem::LoadDebuggerPlugin()
+{
+	FModuleManager::LoadModulePtr< IModuleInterface >("GameplayDebugger");
 }

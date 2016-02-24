@@ -281,6 +281,8 @@ public:
 
 	FVector GetLastRepathGoalLocation() const { return GoalActorLastLocation; }
 	void UpdateLastRepathGoalLocation();
+	
+	float GetLastUpdateTime() const { return LastUpdateTimeStamp; }
 
 	/** if enabled path will request recalculation if it gets invalidated due to a change to underlying navigation */
 	void EnableRecalculationOnInvalidation(bool bShouldAutoUpdate)

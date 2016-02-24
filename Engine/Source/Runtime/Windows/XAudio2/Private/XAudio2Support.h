@@ -88,6 +88,8 @@ struct FXWMABufferInfo
 	UINT32						XWMASeekDataSize;
 };
 
+typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FXAudio2SoundBuffer>> FAsyncRealtimeAudioTask;
+
 /**
  * XAudio2 implementation of FSoundBuffer, containing the wave data and format information.
  */
@@ -106,7 +108,14 @@ public:
 	 * 
 	 * Frees wave data and detaches itself from audio device.
 	 */
-	~FXAudio2SoundBuffer( void );
+	~FXAudio2SoundBuffer();
+
+	//~ Begin FSoundBuffer interface
+	int32 GetSize() override;
+	int32 GetCurrentChunkIndex() const override;
+	int32 GetCurrentChunkOffset() const override;
+	bool IsRealTimeSourceReady() override;
+	//~ End FSoundBuffer interface 
 
 	/** 
 	 * Set up this buffer to contain and play XMA2 data
@@ -122,6 +131,11 @@ public:
 	 * Setup a WAVEFORMATEX structure
 	 */
 	void InitWaveFormatEx( uint16 Format, USoundWave* Wave, bool bCheckPCMData );
+
+	/**
+	* Read the compressed info (i.e. parse header and open up a file handle) from the given sound wave.
+	*/
+	bool ReadCompressedInfo(USoundWave* SoundWave) override;
 
 	/**
 	 * Decompresses a chunk of compressed audio to the destination memory
@@ -194,16 +208,6 @@ public:
 	 */
 	static FXAudio2SoundBuffer* Init( FAudioDevice* AudioDevice, USoundWave* InWave, bool bForceRealtime );
 
-	/**
-	 * Returns the size of this buffer in bytes.
-	 *
-	 * @return Size in bytes
-	 */
-	int32 GetSize( void );
-
-	virtual int32 GetCurrentChunkIndex() const override;
-	virtual int32 GetCurrentChunkOffset() const override;
-
 	/** Format of the sound referenced by this buffer */
 	int32							SoundFormat;
 
@@ -217,9 +221,16 @@ public:
 	};
 
 	/** Wrapper to handle the decompression of audio codecs */
-	class ICompressedAudioInfo*		DecompressionState;
+	class ICompressedAudioInfo* DecompressionState;
+
+	/** Asynch task for parsing real-time decompressed compressed info headers */
+	FAsyncRealtimeAudioTask* RealtimeAsyncHeaderParseTask;
+
+	/** Bool indicating the that the real-time source is ready for real-time decoding. */
+	FThreadSafeBool bRealTimeSourceReady;
+
 	/** Set to true when the PCM data should be freed when the buffer is destroyed */
-	bool						bDynamicResource;
+	bool bDynamicResource;
 };
 
 /**
@@ -228,44 +239,27 @@ public:
 class FXAudio2SoundSourceCallback : public IXAudio2VoiceCallback
 {
 public:
-	FXAudio2SoundSourceCallback( void )
-	{
-	}
+	FXAudio2SoundSourceCallback() {}
+	virtual ~FXAudio2SoundSourceCallback() {}
+	virtual void STDCALL OnStreamEnd() {}
+	virtual void STDCALL OnVoiceProcessingPassEnd() {}
+	virtual void STDCALL OnVoiceProcessingPassStart(UINT32) {}
+	virtual void STDCALL OnBufferStart(void* BufferContext) {}
+	virtual void STDCALL OnVoiceError(void* BufferContext, HRESULT Error) {}
 
-	virtual ~FXAudio2SoundSourceCallback( void )
-	{ 
-	}
+	/**
+	* Function is called by xaudio2 for a playing voice every time a buffer finishes playing
+	* We use it to launch async decoding tasks and read the results of previous, finished tasks.
+	*/
+	virtual void STDCALL OnBufferEnd(void* BufferContext);
 
-	virtual void STDCALL OnStreamEnd( void ) 
-	{ 
-	}
-
-	virtual void STDCALL OnVoiceProcessingPassEnd( void ) 
-	{
-	}
-
-	virtual void STDCALL OnVoiceProcessingPassStart( UINT32 SamplesRequired )
-	{
-	}
-
-	virtual void STDCALL OnBufferEnd( void* BufferContext )
-	{
-	}
-
-	virtual void STDCALL OnBufferStart( void* BufferContext )
-	{
-	}
-
-	virtual void STDCALL OnLoopEnd( void* BufferContext );
-
-	virtual void STDCALL OnVoiceError( void* BufferContext, HRESULT Error )
-	{
-	}
+	/**
+	* Function called whenever an xaudio2 voice loops on itself. Used to trigger notifications on loop.
+	*/
+	virtual void STDCALL OnLoopEnd(void* BufferContext);
 
 	friend class FXAudio2SoundSource;
 };
-
-typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FXAudio2SoundBuffer>> FAsyncRealtimeAudioTask;
 
 /**
  * XAudio2 implementation of FSoundSource, the interface used to play, stop and update sources
@@ -283,12 +277,12 @@ public:
 	/**
 	 * Destructor, cleaning up voice
 	 */
-	virtual ~FXAudio2SoundSource( void );
+	virtual ~FXAudio2SoundSource();
 
 	/**
 	 * Frees existing resources. Called from destructor and therefore not virtual.
 	 */
-	void FreeResources( void );
+	void FreeResources();
 
 	/**
 	* Initializes any effects used with this source voice
@@ -296,33 +290,47 @@ public:
 	void InitializeSourceEffects(uint32 InVoiceId) override;
 
 	/**
+	* Attempts to initialize the sound source. If the source needs to decode asynchronously,
+	* this may not result in the source actually initializing, but instead it may launch
+	* an async task to parse the encoded file header and open a file handle. For ogg-vorbis
+	* synchronous file parsing can cause significant hitches.
+	*/
+	virtual bool PrepareForInitialization(FWaveInstance* InWaveInstance) override;
+
+	/**
+	* Queries if the async task has finished parsing the real-time decoded file header and if the
+	* the sound source is ready for initialization.
+	*/
+	virtual bool IsPreparedToInit() override;
+
+	/**
 	 * Initializes a source with a given wave instance and prepares it for playback.
 	 *
 	 * @param	WaveInstance	wave instance being primed for playback
 	 * @return	true if initialization was successful, false otherwise
 	 */
-	virtual bool Init( FWaveInstance* WaveInstance );
+	virtual bool Init(FWaveInstance* WaveInstance) override;
 
 	/**
 	 * Updates the source specific parameter like e.g. volume and pitch based on the associated
 	 * wave instance.	
 	 */
-	virtual void Update( void );
+	virtual void Update();
 
 	/**
 	 * Plays the current wave instance.	
 	 */
-	virtual void Play( void );
+	virtual void Play();
 
 	/**
 	 * Stops the current wave instance and detaches it from the source.	
 	 */
-	virtual void Stop( void );
+	virtual void Stop();
 
 	/**
 	 * Pauses playback of current wave instance.
 	 */
-	virtual void Pause( void );
+	virtual void Pause();
 
 	/**
 	 * Handles feeding new data to a real time decompressed sound
@@ -340,32 +348,32 @@ public:
 	 * @return	true if the wave instance/ source has finished playback and false if it is 
 	 *			currently playing or paused.
 	 */
-	virtual bool IsFinished( void );
+	virtual bool IsFinished();
 
 	/**
 	 * Create a new source voice
 	 */
-	bool CreateSource( void );
+	bool CreateSource();
 
 	/** 
 	 * Submit the relevant audio buffers to the system
 	 */
-	void SubmitPCMBuffers( void );
+	void SubmitPCMBuffers();
 
 	/** 
 	 * Submit the relevant audio buffers to the system
 	 */
-	void SubmitPCMRTBuffers( void );
+	void SubmitPCMRTBuffers();
 
 	/** 
 	 * Submit the relevant audio buffers to the system, accounting for looping modes
 	 */
-	void SubmitXMA2Buffers( void );
+	void SubmitXMA2Buffers();
 
 	/** 
 	 * Submit the relevant audio buffers to the system
 	 */
-	void SubmitXWMABuffers( void );
+	void SubmitXWMABuffers();
 
 	/**
 	 * Calculates the volume for each channel
@@ -451,39 +459,62 @@ protected:
 	void RouteMonoToReverb(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 	void RouteStereoToReverb(float ChannelVolumes[CHANNEL_MATRIX_COUNT]);
 
-	/** Owning classes */
-	FXAudio2Device*				AudioDevice;
-	FXAudio2EffectsManager*		Effects;
+	/** Owning audio device object */
+	FXAudio2Device*	AudioDevice;
+
+	/** Pointer to effects manager, which handles updating singleton effects */
+	FXAudio2EffectsManager* Effects;
 
 	/** Cached subclass version of Buffer (which the base class has) */
-	FXAudio2SoundBuffer*		XAudio2Buffer;
-	/** XAudio2 source voice associated with this source. */
-	IXAudio2SourceVoice*		Source;
-	/** The max channels in the voice's effect chain. This is used to classify a pool for IXAudio2SourceVoice. */
-	int32						MaxEffectChainChannels;
+	FXAudio2SoundBuffer* XAudio2Buffer;
 
-	/** Asynchronous task for real time audio sources */
+	/** XAudio2 source voice associated with this source. */
+	IXAudio2SourceVoice* Source;
+
+	/** The max channels in the voice's effect chain. This is used to classify a pool for IXAudio2SourceVoice. */
+	int32 MaxEffectChainChannels;
+
+	/** Asynchronous task for real time audio decoding, created from main thread */
 	FAsyncRealtimeAudioTask* RealtimeAsyncTask;
+
 	/** Destination voices */
-	XAUDIO2_SEND_DESCRIPTOR		Destinations[DEST_COUNT];
-	/** Which sound buffer should be written to next - used for double buffering. */
-	int32							CurrentBuffer;
+	XAUDIO2_SEND_DESCRIPTOR Destinations[DEST_COUNT];
+
 	/** A pair of sound buffers to allow notification when a sound loops. */
-	XAUDIO2_BUFFER				XAudio2Buffers[3];
+	XAUDIO2_BUFFER XAudio2Buffers[3];
+
 	/** Additional buffer info for XWMA sounds */
-	XAUDIO2_BUFFER_WMA			XAudio2BufferXWMA[1];
-	/** Set when we wish to let the buffers play themselves out */
-	uint32						bBuffersToFlush:1;
-	/** Set to true when the loop end callback is hit */
-	uint32						bLoopCallback:1;
-	/** Set to true when we've allocated resources that need to be freed */
-	uint32						bResourcesNeedFreeing:1;
+	XAUDIO2_BUFFER_WMA XAudio2BufferXWMA[1];
+
 	/** Index of this sound source in the audio device sound source array. */
-	uint32						VoiceId;
+	uint32 VoiceId;
+
+	/** Which sound buffer should be written to next - used for triple buffering. */
+	int32 CurrentBuffer;
+
+	/** Set to true when the loop end callback is hit */
+	FThreadSafeBool bLoopCallback;
+
+	/** Whether or not the sound has finished playing */
+	FThreadSafeBool bIsFinished;
+
+	/** Whether or not the cached first buffer has played. Used to skip first two reads of a RT decoded file */
+	FThreadSafeBool bPlayedCachedBuffer;
+
+	/** Whether or not we need to submit our first buffers to the voice */
+	FThreadSafeBool bFirstRTBuffersSubmitted;
+
+	/** Set when we wish to let the buffers play themselves out */
+	FThreadSafeBool bBuffersToFlush;
+
+	/** Set to true when we've allocated resources that need to be freed */
+	uint32 bResourcesNeedFreeing : 1;
+
 	/** Whether or not this sound is spatializing using an HRTF spatialization algorithm. */
-	bool						bUsingHRTFSpatialization;
+	uint32 bUsingHRTFSpatialization : 1;
+
 	/** Whether or not we've already logged a warning on this sound about it switching algorithms after init. */
-	bool						bEditorWarnedChangedSpatialization;
+	uint32 bEditorWarnedChangedSpatialization : 1;
 
 	friend class FXAudio2Device;
 	friend class FXAudio2SoundSourceCallback;

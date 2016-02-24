@@ -671,12 +671,12 @@ void ForEachObjectWithOuter(const class UObjectBase* Outer, TFunctionRef<void(UO
 			if (!Object->HasAnyFlags(ExclusionFlags) && !Object->HasAnyInternalFlags(ExclusionInternalFlags))
 			{
 				Operation(Object);
-				if (bIncludeNestedObjects)
+			}
+			if (bIncludeNestedObjects)
+			{
+				if (TSet<UObjectBase*> const* ObjectInners = ThreadHash.ObjectOuterMap.Find(Object))
 				{
-					if (TSet<UObjectBase*> const* ObjectInners = ThreadHash.ObjectOuterMap.Find(Object))
-					{
-						AllInners.Add(ObjectInners);
-					}
+					AllInners.Add(ObjectInners);
 				}
 			}
 		}

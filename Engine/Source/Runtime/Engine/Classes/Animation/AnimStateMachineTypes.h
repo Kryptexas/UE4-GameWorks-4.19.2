@@ -96,6 +96,7 @@ struct FAnimationState : public FAnimationStateBase
 	
 	FAnimationState()
 		: FAnimationStateBase()
+		, StateRootNodeIndex(INDEX_NONE)
 		, StartNotify(INDEX_NONE)
 		, EndNotify(INDEX_NONE)
 		, FullyBlendedNotify(INDEX_NONE)
@@ -245,7 +246,8 @@ struct FBakedAnimationState
 
 public:
 	FBakedAnimationState()
-		: StartNotify(INDEX_NONE)
+		: StateRootNodeIndex(INDEX_NONE)
+		, StartNotify(INDEX_NONE)
 		, EndNotify(INDEX_NONE)
 		, FullyBlendedNotify(INDEX_NONE)
 		, bIsAConduit(false)

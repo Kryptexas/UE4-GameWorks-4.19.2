@@ -8,6 +8,7 @@ class ALevelBounds;
 class UTexture2D;
 class UNavigationDataChunk;
 class AInstancedFoliageActor;
+class AWorldSettings;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -509,6 +510,9 @@ public:
 private:
 	FLevelBoundsActorUpdatedEvent LevelBoundsActorUpdatedEvent; 
 
+	UPROPERTY()
+	AWorldSettings* WorldSettings;
+
 protected:
 
 	/** Array of user data stored with the asset */
@@ -685,8 +689,9 @@ public:
 	 *
 	 * @return		The AWorldSettings for this level.
 	 */
-	ENGINE_API 
-	class AWorldSettings* GetWorldSettings() const;
+	ENGINE_API AWorldSettings* GetWorldSettings(bool bChecked = true) const;
+
+	ENGINE_API void SetWorldSettings(AWorldSettings* NewWorldSettings);
 
 	/**
 	 * Returns the level scripting actor associated with this level

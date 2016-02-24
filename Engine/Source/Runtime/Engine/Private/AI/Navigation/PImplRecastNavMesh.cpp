@@ -2182,12 +2182,12 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 			}
 		}
 
-		OutGeometry.MeshVerts.Reserve(NumVertsToReserve);
-		OutGeometry.AreaIndices[0].Reserve(NumIndicesToReserve);
-		OutGeometry.BuiltMeshIndices.Reserve(NumIndicesToReserve);
-		OutGeometry.Clusters.AddZeroed(NumClusters);
+		OutGeometry.MeshVerts.Reserve(OutGeometry.MeshVerts.Num() + NumVertsToReserve);
+		OutGeometry.AreaIndices[0].Reserve(OutGeometry.AreaIndices[0].Num() + NumIndicesToReserve);
+		OutGeometry.BuiltMeshIndices.Reserve(OutGeometry.BuiltMeshIndices.Num() + NumIndicesToReserve);
+		OutGeometry.Clusters.AddZeroed(OutGeometry.Clusters.Num() + NumClusters);
 
-		uint32 AllTilesVertBase = 0;
+		uint32 VertBase = OutGeometry.MeshVerts.Num();
 		for (const FIntPoint& TileLocation : ActiveTiles)
 		{
 			const int32 LayersCount = ConstNavMesh->getTileCountAt(TileLocation.X, TileLocation.Y);
@@ -2197,7 +2197,7 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 				dtMeshTile const* const Tile = ConstNavMesh->getTileAt(TileLocation.X, TileLocation.Y, Layer);
 				if (Tile != nullptr && Tile->header != nullptr)
 				{
-					AllTilesVertBase += GetTilesDebugGeometry(Generator, *Tile, AllTilesVertBase, OutGeometry);
+					VertBase += GetTilesDebugGeometry(Generator, *Tile, VertBase, OutGeometry);
 				}
 			}
 		}
@@ -2223,14 +2223,12 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 			}
 		}
 
-		OutGeometry.MeshVerts.Reserve(NumVertsToReserve);
-		OutGeometry.AreaIndices[0].Reserve(NumIndicesToReserve);
-		OutGeometry.BuiltMeshIndices.Reserve(NumIndicesToReserve);
-		OutGeometry.Clusters.AddZeroed(NumClusters);
+		OutGeometry.MeshVerts.Reserve(OutGeometry.MeshVerts.Num() + NumVertsToReserve);
+		OutGeometry.AreaIndices[0].Reserve(OutGeometry.AreaIndices[0].Num() + NumIndicesToReserve);
+		OutGeometry.BuiltMeshIndices.Reserve(OutGeometry.BuiltMeshIndices.Num() + NumIndicesToReserve);
+		OutGeometry.Clusters.AddZeroed(OutGeometry.Clusters.Num() + NumClusters);
 
-		// spin through all polys in all tiles and draw them
-		// @see drawMeshTile() in recast code for reference
-		uint32 AllTilesVertBase = 0;
+		uint32 VertBase = OutGeometry.MeshVerts.Num();
 		for (int32 TileIdx = StartingTile; TileIdx < NumTiles; ++TileIdx)
 		{
 			dtMeshTile const* const Tile = ConstNavMesh->getTile(TileIdx);
@@ -2240,7 +2238,7 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 				continue;
 			}
 
-			AllTilesVertBase += GetTilesDebugGeometry(Generator, *Tile, AllTilesVertBase, OutGeometry, TileIdx);
+			VertBase += GetTilesDebugGeometry(Generator, *Tile, VertBase, OutGeometry, TileIdx);
 		}
 	}
 }

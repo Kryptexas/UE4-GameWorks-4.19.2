@@ -61,8 +61,6 @@ private:
 	bool IsCollisionEnabled() const;
 
 	// whether we can edit collision or if we're getting it from a default
-	EVisibility IsCollisionPresetVisible() const;
-	EVisibility IsDefaultCollisionVisible() const;
 	bool AreAllCollisionUsingDefault() const;
 
 	// utility functions between property and struct
@@ -105,6 +103,12 @@ private:
 	TArray<FCollisionChannelInfo>	ValidCollisionChannels;
 
 	void RefreshCollisionProfiles();
+
+	bool CanUseDefaultCollision() const;
+	bool CanShowDefaultCollision() const;
+	int32 GetNumberOfSpecialProfiles() const;
+	int32 GetCustomIndex() const;
+	int32 GetDefaultIndex() const;
 };
 
 class FBodyInstanceCustomizationHelper  : public TSharedFromThis<FBodyInstanceCustomizationHelper>

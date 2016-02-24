@@ -11,7 +11,7 @@ class UAISense_Team;
 UCLASS(meta = (DisplayName = "AI Team sense config"))
 class AIMODULE_API UAISenseConfig_Team : public UAISenseConfig
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 public:	
 	virtual TSubclassOf<UAISense> GetSenseImplementation() const override { return UAISense_Team::StaticClass(); }
 };

@@ -5,6 +5,7 @@
 #include "Debug/DebugDrawService.h"
 #include "EnvQueryTypes.h"
 #include "EnvQueryDebugHelpers.h"
+#include "Components/PrimitiveComponent.h"
 #include "EQSRenderingComponent.generated.h"
 
 class IEQSQueryResultSourceInterface;

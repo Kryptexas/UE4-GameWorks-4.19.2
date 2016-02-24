@@ -2490,7 +2490,7 @@ public:
 	
 	/** Script exposed version of FindComponentByClass */
 	UFUNCTION()
-	virtual UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass);
+	UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass);
 
 	/* Gets all the components that inherit from the given class.
 		Currently returns an array of UActorComponent which must be cast to the correct type. */

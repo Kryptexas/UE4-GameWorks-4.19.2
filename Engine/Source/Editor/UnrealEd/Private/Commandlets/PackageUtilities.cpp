@@ -2475,11 +2475,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 
 						if (ClassToReplace->IsChildOf(AWorldSettings::StaticClass()))
 						{
-							// Find the index in the array the worldsettings has been spawned at. 
-							const int32 WorldSettingsActorIndex = Level->Actors.Find( NewActor );
-
-							// The worldsettings needs to reside at index 0.
-							Exchange(Level->Actors[0],Level ->Actors[WorldSettingsActorIndex]);
+							Level->SetWorldSettings(CastChecked<AWorldSettings>(NewActor));
 						}
 						check(OldActor->IsValidLowLevel()); // make sure DestroyActor() doesn't immediately trigger GC since that'll break the reference replacement
 						// check for any references to the old Actor and replace them with the new one

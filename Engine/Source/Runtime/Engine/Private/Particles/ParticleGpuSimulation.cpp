@@ -3247,20 +3247,20 @@ public:
 		// Setup dynamic color parameter. Only set when using particle parameter distributions.
 		FVector4 ColorOverLife(1.0f, 1.0f, 1.0f, 1.0f);
 		FVector4 ColorScaleOverLife(1.0f, 1.0f, 1.0f, 1.0f);
-		if( EmitterInfo.DynamicColorScale.Distribution )
+		if( EmitterInfo.DynamicColorScale.IsCreated() )
 		{
 			ColorScaleOverLife = EmitterInfo.DynamicColorScale.GetValue(0.0f,Component);
 		}
-		if( EmitterInfo.DynamicAlphaScale.Distribution )
+		if( EmitterInfo.DynamicAlphaScale.IsCreated() )
 		{
 			ColorScaleOverLife.W = EmitterInfo.DynamicAlphaScale.GetValue(0.0f,Component);
 		}
 
-		if( EmitterInfo.DynamicColor.Distribution )
+		if( EmitterInfo.DynamicColor.IsCreated() )
 		{
 			ColorOverLife = EmitterInfo.DynamicColor.GetValue(0.0f,Component);
 		}
-		if( EmitterInfo.DynamicAlpha.Distribution )
+		if( EmitterInfo.DynamicAlpha.IsCreated() )
 		{
 			ColorOverLife.W = EmitterInfo.DynamicAlpha.GetValue(0.0f,Component);
 		}

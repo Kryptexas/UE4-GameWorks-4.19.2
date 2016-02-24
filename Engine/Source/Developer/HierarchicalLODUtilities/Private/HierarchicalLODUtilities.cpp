@@ -103,6 +103,29 @@ float FHierarchicalLODUtilities::CalculateDrawDistanceFromScreenSize(const float
 	return Distance;
 }
 
+UPackage* FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(ULevel* InLevel)
+{
+	checkf(InLevel != nullptr, TEXT("Invalid Level supplied"));
+
+	UPackage* HLODPackage = nullptr;
+	UPackage* LevelOuterMost = InLevel->GetOutermost();
+
+	const FString PathName = FPackageName::GetLongPackagePath(LevelOuterMost->GetPathName());
+	const FString BaseName = FPackageName::GetShortName(LevelOuterMost->GetPathName());
+	const FString HLODLevelPackageName = FString::Printf(TEXT("%s/HLOD/%s_HLOD"), *PathName, *BaseName);
+
+	HLODPackage = CreatePackage(NULL, *HLODLevelPackageName);
+	HLODPackage->FullyLoad();
+	HLODPackage->Modify();
+	
+	// Target level filename
+	const FString HLODLevelFileName = FPackageName::LongPackageNameToFilename(HLODLevelPackageName);
+	// This is a hack to avoid save file dialog when we will be saving HLOD map package
+	HLODPackage->FileName = FName(*HLODLevelFileName);
+
+	return HLODPackage;	
+}
+
 bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup, const uint32 LODIndex)
 {
 	if (AssetsOuter && LODActor)
@@ -200,13 +223,7 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				}
 
 				MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), MergeSettings, AssetsOuter, PackageName, LODIndex, OutAssets, OutProxyLocation, LODSetup.TransitionScreenSize, true);
-
-				// we make it private, so it can't be used by outside of map since it's useless, and then remove standalone
-				for (auto& AssetIter : OutAssets)
-				{
-					AssetIter->ClearFlags(RF_Public | RF_Standalone);
-				}
-
+				
 				// set staticmesh
 				for (auto& Asset : OutAssets)
 				{

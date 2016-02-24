@@ -24,7 +24,6 @@
 #include "RecastHelpers.h"
 #include "NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
-#include "NavMeshRenderingHelpers.h"
 
 #define SEAMLESS_REBUILDING_ENABLED 1
 
@@ -4246,7 +4245,21 @@ void FRecastNavMeshGenerator::GrabDebugSnapshot(struct FVisualLogEntry* Snapshot
 				if (bExportGeometry && Element.Data->CollisionData.Num())
 				{
 					FRecastGeometryCache CachedGeometry(Element.Data->CollisionData.GetData());
-					AppendGeometry(CoordBuffer, Indices, CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
+					
+					const uint32 NumVerts = CachedGeometry.Header.NumVerts;
+					CoordBuffer.Reset(NumVerts);
+					for (uint32 VertIdx = 0; VertIdx < NumVerts * 3; VertIdx += 3)
+					{
+						CoordBuffer.Add(Recast2UnrealPoint(&CachedGeometry.Verts[VertIdx]));
+					}
+
+					const uint32 NumIndices = CachedGeometry.Header.NumFaces * 3;
+					Indices.SetNum(NumIndices, false);
+					for (uint32 IndicesIdx = 0; IndicesIdx < NumIndices; ++IndicesIdx)
+					{
+						Indices[IndicesIdx] = CachedGeometry.Indices[IndicesIdx];
+					}
+
 					Snapshot->AddElement(CoordBuffer, Indices, LogCategory.GetCategoryName(), LogVerbosity, FColorList::LightGrey.WithAlpha(255));
 				}
 				else

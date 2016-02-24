@@ -495,20 +495,18 @@ void ULevel::SortActorList()
 		return;
 	}
 
-	int32 StartIndex = 0;
 	TArray<AActor*> NewActors;
 	NewActors.Reserve(Actors.Num());
 
-	// The WorldSettings has fixed actor index.
-	check(Actors[StartIndex] == GetWorldSettings());
-	NewActors.Add(Actors[StartIndex++]);
+	check(WorldSettings);
+
+	// The WorldSettings tries to stay at index 0
+	NewActors.Add(WorldSettings);
 
 	// Static not net relevant actors.
-	for (int32 ActorIndex = StartIndex; ActorIndex < Actors.Num(); ActorIndex++)
+	for (AActor* Actor : Actors)
 	{
-		AActor* Actor = Actors[ActorIndex];
-
-		if (Actor != NULL && !Actor->IsPendingKill() && !IsNetActor(Actor))
+		if (Actor != nullptr && Actor != WorldSettings && !Actor->IsPendingKill() && !IsNetActor(Actor))
 		{
 			NewActors.Add(Actor);
 		}
@@ -516,20 +514,19 @@ void ULevel::SortActorList()
 	iFirstNetRelevantActor = NewActors.Num();
 
 	// Static net relevant actors.
-	for (int32 ActorIndex = StartIndex; ActorIndex < Actors.Num(); ActorIndex++)
+	for (AActor* Actor : Actors)
 	{
-		AActor* Actor = Actors[ActorIndex];		
-		if (Actor != NULL && !Actor->IsPendingKill() && IsNetActor(Actor))
+		if (Actor != nullptr && !Actor->IsPendingKill() && IsNetActor(Actor))
 		{
 			NewActors.Add(Actor);
 		}
 	}
 
 	// Replace with sorted list.
-	Actors.AssignButKeepOwner(NewActors);
+	Actors.AssignButKeepOwner(MoveTemp(NewActors));
 
 	// Add all network actors to the owning world
-	if ( OwningWorld != NULL )
+	if ( OwningWorld != nullptr )
 	{
 		// Don't use sorted optimization outside of gameplay so we can safely shuffle around actors e.g. in the Editor
 		// without there being a chance to break code using dynamic/ net relevant actor iterators.
@@ -611,6 +608,11 @@ void ULevel::PostLoad()
 #if WITH_EDITOR
 	Actors.Remove(nullptr);
 #endif
+
+	if (WorldSettings == nullptr)
+	{
+		WorldSettings = Cast<AWorldSettings>(Actors[0]);
+	}
 
 	// in the Editor, sort Actor list immediately (at runtime we wait for the level to be added to the world so that it can be delayed in the level streaming case)
 	if (GIsEditor)
@@ -1765,12 +1767,43 @@ ABrush* ULevel::GetDefaultBrush() const
 }
 
 
-AWorldSettings* ULevel::GetWorldSettings() const
+AWorldSettings* ULevel::GetWorldSettings(bool bChecked) const
 {
-	checkf( Actors.Num() >= 1, *GetPathName() );
-	AWorldSettings* WorldSettings = Cast<AWorldSettings>( Actors[0] );
-	checkf( WorldSettings != NULL, *GetPathName() );
+	if (bChecked)
+	{
+		checkf( WorldSettings != nullptr, *GetPathName() );
+	}
 	return WorldSettings;
+}
+
+void ULevel::SetWorldSettings(AWorldSettings* NewWorldSettings)
+{
+	check(NewWorldSettings); // Doesn't make sense to be clearing a world settings object
+	if (WorldSettings != NewWorldSettings)
+	{
+		// We'll generally endeavor to keep the world settings at its traditional index 0
+		const int32 NewWorldSettingsIndex = Actors.FindLast( NewWorldSettings );
+		if (NewWorldSettingsIndex != 0)
+		{
+			if (Actors[0] == nullptr || Actors[0]->IsA<AWorldSettings>())
+			{
+				Exchange(Actors[0],Actors[NewWorldSettingsIndex]);
+			}
+			else
+			{
+				Actors[NewWorldSettingsIndex] = nullptr;
+				Actors.Insert(NewWorldSettings,0);
+			}
+		}
+
+		if (WorldSettings)
+		{
+			// Makes no sense to have two WorldSettings so destroy existing one
+			WorldSettings->Destroy();
+		}
+
+		WorldSettings = NewWorldSettings;
+	}
 }
 
 ALevelScriptActor* ULevel::GetLevelScriptActor() const

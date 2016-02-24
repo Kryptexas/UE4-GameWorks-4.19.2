@@ -778,6 +778,26 @@ void UGameplayStatics::BreakHitResult(const FHitResult& Hit, bool& bBlockingHit,
 	TraceEnd = Hit.TraceEnd;
 }
 
+FHitResult UGameplayStatics::MakeHitResult(bool bBlockingHit, bool bInitialOverlap, float Time, FVector Location, FVector ImpactPoint, FVector Normal, FVector ImpactNormal, class UPhysicalMaterial* PhysMat, class AActor* HitActor, class UPrimitiveComponent* HitComponent, FName HitBoneName, int32 HitItem, FVector TraceStart, FVector TraceEnd)
+{
+	FHitResult Hit;
+	Hit.bBlockingHit = bBlockingHit;
+	Hit.bStartPenetrating = bInitialOverlap;
+	Hit.Time = Time;
+	Hit.Location = Location;
+	Hit.ImpactPoint = ImpactPoint;
+	Hit.Normal = Normal;
+	Hit.ImpactNormal = ImpactNormal;
+	Hit.PhysMaterial = PhysMat;
+	Hit.Actor = HitActor;
+	Hit.Component = HitComponent;
+	Hit.BoneName = HitBoneName;
+	Hit.Item = HitItem;
+	Hit.TraceStart = TraceStart;
+	Hit.TraceEnd = TraceEnd;
+	return Hit;
+}
+
 EPhysicalSurface UGameplayStatics::GetSurfaceType(const struct FHitResult& Hit)
 {
 	UPhysicalMaterial* const HitPhysMat = Hit.PhysMaterial.Get();
@@ -1095,6 +1115,25 @@ void UGameplayStatics::PushSoundMixModifier(UObject* WorldContextObject, USoundM
 	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
 		AudioDevice->PushSoundMixModifier(InSoundMixModifier);
+	}
+}
+
+void UGameplayStatics::SetSoundMixClassOverride(UObject* WorldContextObject, class USoundMix* InSoundMixModifier, class USoundClass* InSoundClass, float Volume, float Pitch, float FadeInTime, bool bApplyToChildren)
+{
+	if (!InSoundMixModifier || !GEngine || !GEngine->UseSound())
+	{
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		AudioDevice->SetSoundMixClassOverride(InSoundMixModifier, InSoundClass, Volume, Pitch, FadeInTime, bApplyToChildren);
 	}
 }
 

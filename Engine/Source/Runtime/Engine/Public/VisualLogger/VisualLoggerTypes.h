@@ -110,7 +110,8 @@ struct ENGINE_API FVisualLogStatusCategory
 	int32 UniqueId;
 	TArray<FVisualLogStatusCategory> Children;
 
-	FVisualLogStatusCategory(const FString& InCategory = TEXT(""))
+	FVisualLogStatusCategory();
+	explicit FVisualLogStatusCategory(const FString& InCategory/* = TEXT("")*/)
 		: Category(InCategory)
 	{
 	}
@@ -364,16 +365,7 @@ void FVisualLogStatusCategory::AddChild(const FVisualLogStatusCategory& Child)
 	Children.Add(Child);
 }
 
-inline
-FVisualLogShapeElement::FVisualLogShapeElement(EVisualLoggerShapeElement InType)
-: Verbosity(ELogVerbosity::All)
-, TransformationMatrix(FMatrix::Identity)
-, Type(InType)
-, Color(0xff)
-, Thicknes(0)
-{
 
-}
 
 inline
 FVisualLogShapeElement::FVisualLogShapeElement(const FString& InDescription, const FColor& InColor, uint16 InThickness, const FName& InCategory)

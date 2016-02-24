@@ -3379,7 +3379,7 @@ void FLightmassProcessor::ImportMeshAreaLightData()
 					Direction = LMCurrentLightData.Direction;
 					// Spawn a AGeneratedMeshAreaLight to handle the light's influence on dynamic objects
 					FActorSpawnParameters SpawnInfo;
-					SpawnInfo.Owner = CurrentLevel->Actors[0];
+					SpawnInfo.Owner = CurrentLevel->GetWorldSettings();
 					AGeneratedMeshAreaLight* NewGeneratedLight = CurrentLevel->OwningWorld->SpawnActor<AGeneratedMeshAreaLight>(Position, Direction.Rotation());
 					USpotLightComponent* SpotComponent = CastChecked<USpotLightComponent>(NewGeneratedLight->GetLightComponent());
 					// Unregister the component before we change its attributes

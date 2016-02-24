@@ -295,14 +295,14 @@ UParticleModuleEventReceiverSpawn::UParticleModuleEventReceiverSpawn(const FObje
 
 void UParticleModuleEventReceiverSpawn::InitializeDefaults()
 {
-	if (!SpawnCount.Distribution)
+	if (!SpawnCount.IsCreated())
 	{
 		UDistributionFloatConstant* RequiredDistributionSpawnCount = NewObject<UDistributionFloatConstant>(this, TEXT("RequiredDistributionSpawnCount"));
 		RequiredDistributionSpawnCount->Constant = 0.0f;
 		SpawnCount.Distribution = RequiredDistributionSpawnCount;
 	}
 
-	if (!InheritVelocityScale.Distribution)
+	if (!InheritVelocityScale.IsCreated())
 	{
 		UDistributionVectorConstant* RequiredDistributionInheritVelocityScale = NewObject<UDistributionVectorConstant>(this, TEXT("RequiredDistributionInheritVelocityScale"));
 		RequiredDistributionInheritVelocityScale->Constant = FVector(1.0f, 1.0f, 1.0f);
