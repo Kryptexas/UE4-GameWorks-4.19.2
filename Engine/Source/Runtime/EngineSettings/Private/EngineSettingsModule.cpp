@@ -67,11 +67,11 @@ UHudSettings::UHudSettings( const FObjectInitializer& ObjectInitializer )
 /* Static functions
  *****************************************************************************/
 
-const FString& UGameMapsSettings::GetGameDefaultMap( )
+const FString UGameMapsSettings::GetGameDefaultMap( )
 {
 	return IsRunningDedicatedServer()
-		? GetDefault<UGameMapsSettings>()->ServerDefaultMap.ToString()
-		: GetDefault<UGameMapsSettings>()->GameDefaultMap.ToString();
+		? GetDefault<UGameMapsSettings>()->ServerDefaultMap.GetLongPackageName()
+		: GetDefault<UGameMapsSettings>()->GameDefaultMap.GetLongPackageName();
 }
 
 

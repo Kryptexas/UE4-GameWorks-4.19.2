@@ -3271,7 +3271,7 @@ void FEditorFileUtils::LoadDefaultMapAtStartup()
 	// Default project map.
 	if (EditorStartupMap.IsEmpty()) 
 	{
-		EditorStartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap.ToString();
+		EditorStartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap.GetLongPackageName();
 	}
 	
 	const bool bIncludeReadOnlyRoots = true;

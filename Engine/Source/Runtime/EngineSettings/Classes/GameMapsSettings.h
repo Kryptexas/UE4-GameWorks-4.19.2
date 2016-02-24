@@ -41,7 +41,7 @@ class ENGINESETTINGS_API UGameMapsSettings
 	 *
 	 * @return the default map specified in the settings
 	 */
-	static const FString& GetGameDefaultMap( );
+	static const FString GetGameDefaultMap( );
 
 	/**
 	 * Get the global default game type specified in the configuration
