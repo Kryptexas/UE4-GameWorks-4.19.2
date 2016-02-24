@@ -717,9 +717,22 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 	if (VRSystem && SceneVP)
 	{
 		int32 PosX, PosY;
-		uint32 Width, Height;
-		GetWindowBounds(&PosX, &PosY, &Width, &Height);
-		SceneVP->SetViewportSize(Width, Height);
+		if( bStereo )
+		{
+			uint32 Width, Height;
+			GetWindowBounds( &PosX, &PosY, &Width, &Height );
+			SceneVP->SetViewportSize( Width, Height );
+		}
+		else
+		{
+			TSharedPtr<SWindow> Window = SceneVP->FindWindow();
+			if( Window.IsValid() )
+			{
+				FVector2D size = SceneVP->FindWindow()->GetSizeInScreen();
+				SceneVP->SetViewportSize( size.X, size.Y );
+				Window->SetViewportSizeDrivenByWindow( true );
+			}
+		}
 	}
 
 	// Uncap fps to enable FPS higher than 62
