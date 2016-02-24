@@ -11,14 +11,21 @@ class FAudioSpatializationParams
 public:
 	FAudioSpatializationParams()
 		: EmitterPosition(0.0f)
+		, EmitterWorldPosition(0.0f)
 	{}
 
-	FAudioSpatializationParams(const FVector& InEmitterPosition)
+	FAudioSpatializationParams(const FVector& InEmitterPosition, const FVector& InEmitterWorldPosition)
 		: EmitterPosition(InEmitterPosition)
+		, EmitterWorldPosition(InEmitterWorldPosition)
 	{}
 
 	// Add any more params one might need here...
+
+	/** Normalized emitter position relative to the listener */
 	FVector EmitterPosition;
+
+	/** Raw emitter world position, untransformed relative to listener */
+	FVector EmitterWorldPosition;
 };
 
 /**
