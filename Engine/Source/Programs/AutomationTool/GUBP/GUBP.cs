@@ -195,6 +195,10 @@ public partial class GUBP : BuildCommand
 				}
 			}
 		}
+		foreach(TriggerNode TriggerNode in NodesToDo.OfType<TriggerNode>())
+		{
+			TriggerNode.CopyToSharedStorage = true;
+		}
 
 		// From each of those nodes, remove any order dependencies that we're not going to run. There are no circumstances in which they should be 
 		// considered dependencies from this point on.
