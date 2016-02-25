@@ -5,6 +5,8 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "GameplayDebuggerCategory_EQS.h"
+#include "Engine/Canvas.h"
+#include "DrawDebugHelpers.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
 

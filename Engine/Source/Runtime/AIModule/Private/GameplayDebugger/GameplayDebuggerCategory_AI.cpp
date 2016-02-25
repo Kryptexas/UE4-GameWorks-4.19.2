@@ -7,6 +7,12 @@
 #include "DebugRenderSceneProxy.h"
 #include "GameplayTasksComponent.h"
 #include "GameplayDebuggerCategory_AI.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimMontage.h"
+#include "Engine/Canvas.h"
+#include "DrawDebugHelpers.h"
+
 
 FGameplayDebuggerCategory_AI::FGameplayDebuggerCategory_AI()
 {
