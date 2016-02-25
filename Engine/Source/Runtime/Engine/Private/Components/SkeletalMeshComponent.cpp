@@ -406,6 +406,9 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		{
 			AnimScriptInstance->InitializeAnimation();
 		}		
+
+		// refresh vertex animation - this can happen when re-registration happens
+		RefreshActiveVertexAnims();
 	}
 }
 
@@ -1008,16 +1011,14 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 {
 	check (MasterPoseComponent.IsValid());
 
-	if(MasterPoseComponent->IsA(USkeletalMeshComponent::StaticClass()))
+	if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
 	{
- 		USkeletalMeshComponent* MasterSMC= CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
- 
- 		if ( MasterSMC->AnimScriptInstance )
- 		{
- 			MasterSMC->AnimScriptInstance->RefreshCurves(this);
- 		}
+		if (MasterSMC->AnimScriptInstance)
+		{
+			MasterSMC->AnimScriptInstance->RefreshCurves(this);
+		}
 	}
-
+ 
 	Super::UpdateSlaveComponent();
 }
 
@@ -2203,6 +2204,13 @@ void USkeletalMeshComponent::RefreshActiveVertexAnims()
 		// as this can be called from any worker thread (i.e. from CreateRenderState_Concurrent) we cant currently be doing parallel evaluation
 		check(!IsRunningParallelEvaluation());
 		AnimScriptInstance->RefreshCurves(this);
+	}
+	else if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
+	{
+		if (MasterSMC->AnimScriptInstance)
+		{
+			MasterSMC->AnimScriptInstance->RefreshCurves(this);
+		}
 	}
 	else
 	{
