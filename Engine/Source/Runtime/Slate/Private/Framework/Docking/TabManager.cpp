@@ -39,8 +39,8 @@ TSharedPtr<SDockTab> FTabManager::FRequireClosedTab::Search(const FTabManager& M
 	return TSharedPtr<SDockTab>();
 }
 
-FTabManager::FLastMajorOrNomadTab::FLastMajorOrNomadTab(FName FallbackTabId)
-	: FallbackTabId(FallbackTabId)
+FTabManager::FLastMajorOrNomadTab::FLastMajorOrNomadTab(FName InFallbackTabId)
+	: FallbackTabId(InFallbackTabId)
 {
 }
 

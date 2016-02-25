@@ -527,7 +527,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		class SLATE_API FLastMajorOrNomadTab : public FSearchPreference
 		{
 		public:
-			FLastMajorOrNomadTab(FName FallbackTabId);
+			FLastMajorOrNomadTab(FName InFallbackTabId);
 
 			virtual TSharedPtr<SDockTab> Search(const FTabManager& Manager, FName PlaceholderId, const TSharedRef<SDockTab>& UnmanagedTab) const override;
 		private:
