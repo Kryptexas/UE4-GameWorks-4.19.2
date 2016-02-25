@@ -902,6 +902,13 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
 	void SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand);
+	
+	/**
+	* Sets the light color of the player's controller
+	* @param	Color					The color for the light to be
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	void SetControllerLightColor(FColor Color);
 
 	/**
 	 * Travel to a different map or IP address. Calls the PreClientTravel event before doing anything.
