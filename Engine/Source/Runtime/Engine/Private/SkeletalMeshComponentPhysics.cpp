@@ -1479,6 +1479,9 @@ void USkeletalMeshComponent::CreatePhysicsState()
 		BodySetup->CreatePhysicsMeshes();
 		Super::CreatePhysicsState();	//If we're doing per poly we'll use the body instance of the primitive component
 	}
+
+	// Notify physics created
+	OnSkelMeshPhysicsCreated.Broadcast();
 }
 
 

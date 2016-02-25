@@ -18,8 +18,8 @@ class UAnimInstance;
 struct FEngineShowFlags;
 struct FConvexVolume;
 
-
-
+DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
+typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
 
 namespace physx
 { 
@@ -1414,7 +1414,13 @@ public:
 	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);
 
 	FRootMotionMovementParams ConsumeRootMotion();
+
+	/** Register/Unregister for physics state creation callback */
+	FDelegateHandle RegisterOnPhysicsCreatedDelegate(const FOnSkelMeshPhysicsCreated& Delegate);
+	void UnregisterOnPhysicsCreatedDelegate(const FDelegateHandle& DelegateHandle);
+
+private:
+
+	/** Multicaster fired when this component creates physics state (in case external objects rely on physics state)*/
+	FOnSkelMeshPhysicsCreatedMultiCast OnSkelMeshPhysicsCreated;
 };
-
-
-

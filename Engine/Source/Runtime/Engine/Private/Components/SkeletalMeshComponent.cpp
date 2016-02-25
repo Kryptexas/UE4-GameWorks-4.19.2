@@ -1901,7 +1901,6 @@ FRootMotionMovementParams USkeletalMeshComponent::ConsumeRootMotion()
 	return FRootMotionMovementParams();
 }
 
-
 float USkeletalMeshComponent::CalculateMass(FName BoneName)
 {
 	float Mass = 0.0f;
@@ -2383,4 +2382,14 @@ void USkeletalMeshComponent::UpdateCachedAnimCurveMappingNameUids()
 TArray<FSmartNameMapping::UID> const * USkeletalMeshComponent::GetCachedAnimCurveMappingNameUids()
 {
 	return &CachedAnimCurveMappingNameUids;
+}
+
+FDelegateHandle USkeletalMeshComponent::RegisterOnPhysicsCreatedDelegate(const FOnSkelMeshPhysicsCreated& Delegate)
+{
+	return OnSkelMeshPhysicsCreated.Add(Delegate);
+}
+
+void USkeletalMeshComponent::UnregisterOnPhysicsCreatedDelegate(const FDelegateHandle& DelegateHandle)
+{
+	OnSkelMeshPhysicsCreated.Remove(DelegateHandle);
 }
