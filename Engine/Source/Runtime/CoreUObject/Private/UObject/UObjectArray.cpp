@@ -10,26 +10,96 @@ DEFINE_LOG_CATEGORY_STATIC(LogUObjectArray, Log, All);
 
 TMap<int32, FUObjectCluster*> GUObjectClusters;
 
-void FUObjectArray::AllocateObjectPool(int32 MaxUObjects, int32 MaxObjectsNotConsideredByGC)
+void FUObjectArray::AllocateObjectPool(int32 InMaxUObjects, int32 InMaxObjectsNotConsideredByGC)
 {
 	check(IsInGameThread());
 
+	MaxObjectsNotConsideredByGC = InMaxObjectsNotConsideredByGC;
+
 	// GObjFirstGCIndex is the index at which the garbage collector will start for the mark phase.
-	ObjFirstGCIndex = MaxObjectsNotConsideredByGC;
+	// If disregard for GC is enabled this will be set to an invalid value so that later we
+	// know if disregard for GC pool has already been closed (at least once)
+	ObjFirstGCIndex = DisregardForGCEnabled() ? -1 : 0;
 
 	// Pre-size array.
 	check(ObjObjects.Num() == 0);
-	ObjObjects.PreAllocate(MaxUObjects);
+	ObjObjects.PreAllocate(InMaxUObjects);
+
+	if (MaxObjectsNotConsideredByGC > 0)
+	{
+		ObjObjects.AddRange(MaxObjectsNotConsideredByGC);
+	}
+}
+
+void FUObjectArray::OpenDisregardForGC()
+{
+	check(IsInGameThread());
+	check(!OpenForDisregardForGC);
+	OpenForDisregardForGC = true;
+	UE_LOG(LogUObjectArray, Log, TEXT("OpenDisregardForGC: %d/%d objects in disregard for GC pool"), ObjLastNonGCIndex + 1, MaxObjectsNotConsideredByGC);
 }
 
 void FUObjectArray::CloseDisregardForGC()
 {
 	check(IsInGameThread());
+	check(OpenForDisregardForGC);
+
+	// Iterate over all class objects and force the default objects to be created. Additionally also
+	// assembles the token reference stream at this point. This is required for class objects that are
+	// not taken into account for garbage collection but have instances that are.
+
+	// Workaround for Visual Studio 2013 analyzer bug. Using a temporary directly in the range-for
+	// errors if the analyzer is enabled.
+	TObjectRange<UClass> Range;
+	for (UClass* Class : Range)
+	{
+		// Force the default object to be created.
+		Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
+		// Assemble reference token stream for garbage collection/ RTGC.
+		if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+		{
+			Class->AssembleReferenceTokenStream();
+		}
+	}
+
+	if (GIsInitialLoad)
+	{
+		// Iterate over all objects and mark them to be part of root set.
+		int32 NumAlwaysLoadedObjects = 0;
+		int32 NumRootObjects = 0;
+		for (FObjectIterator It; It; ++It)
+		{
+			UObject* Object = *It;
+			if (Object->IsSafeForRootSet())
+			{
+				NumRootObjects++;
+				Object->AddToRoot();
+			}
+			else if (Object->IsRooted())
+			{
+				Object->RemoveFromRoot();
+			}
+			NumAlwaysLoadedObjects++;
+		}
+
+		UE_LOG(LogUObjectArray, Log, TEXT("%i objects as part of root set at end of initial load."), NumAlwaysLoadedObjects);
+		if (GUObjectArray.DisregardForGCEnabled())
+		{
+			UE_LOG(LogUObjectArray, Log, TEXT("%i objects are not in the root set, but can never be destroyed because they are in the DisregardForGC set."), NumAlwaysLoadedObjects - NumRootObjects);
+		}
+
+		// When disregard for GC pool is closed for the first time, make sure the first GC index is set after the last non-GC index.
+		// We do allow here for some slack if MaxObjectsNotConsideredByGC > (ObjLastNonGCIndex + 1) so that disregard for GC pool
+		// can be re-opened later.
+		ObjFirstGCIndex = FMath::Max(ObjFirstGCIndex, ObjLastNonGCIndex + 1);
+
+		GUObjectAllocator.BootMessage();
+	}
+
+	UE_LOG(LogUObjectArray, Log, TEXT("CloseDisregardForGC: %d/%d objects in disregard for GC pool"), ObjLastNonGCIndex + 1, MaxObjectsNotConsideredByGC);	
 
 	OpenForDisregardForGC = false;
 	GIsInitialLoad = false;
-	// Make sure the first GC index matches the last non-GC index after DisregardForGC is closed
-	ObjFirstGCIndex = ObjLastNonGCIndex + 1;
 }
 
 void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThreads /*= false*/)
@@ -42,9 +112,16 @@ void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThrea
 	{
 		// Disregard from GC pool is only available from the game thread, at least for now
 		check(IsInGameThread());
-		Index = ObjObjects.AddSingle();
-		ObjLastNonGCIndex = Index;
-		ObjFirstGCIndex = FMath::Max(ObjFirstGCIndex, Index + 1);
+		Index = ++ObjLastNonGCIndex;
+		// Check if we're not out of bounds, unless there hasn't been any gc objects yet
+		UE_CLOG(ObjLastNonGCIndex >= MaxObjectsNotConsideredByGC && ObjFirstGCIndex >= 0, LogUObjectArray, Fatal, TEXT("Unable to add more objects to disregard for GC pool (Max: %d)"), MaxObjectsNotConsideredByGC);
+		// If we haven't added any GC objects yet, it's fine to keep growing the disregard pool past its initial size.
+		if (ObjLastNonGCIndex >= MaxObjectsNotConsideredByGC)
+		{
+			Index = ObjObjects.AddSingle();
+			check(Index == ObjLastNonGCIndex);
+		}
+		MaxObjectsNotConsideredByGC = FMath::Max(MaxObjectsNotConsideredByGC, ObjLastNonGCIndex + 1);
 	}
 	// Regular pool/ range.
 	else
@@ -61,14 +138,16 @@ void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThrea
 		}
 		else
 		{
+			// Make sure ObjFirstGCIndex is valid, otherwise we didn't close the disregard for GC set
+			check(ObjFirstGCIndex >= 0);
 #if THREADSAFE_UOBJECTS
 			FScopeLock ObjObjectsLock(&ObjObjectsCritical);
 #else
 			check(IsInGameThread());
 #endif
-			Index = ObjObjects.AddSingle();
+			Index = ObjObjects.AddSingle();			
 		}
-		check(Index >= ObjFirstGCIndex);
+		check(Index >= ObjFirstGCIndex && Index > ObjLastNonGCIndex);
 	}
 	// Add to global table.
 	if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&ObjObjects[Index].Object, Object, NULL) != NULL) // we use an atomic operation to check for unexpected concurrency, verify alignment, etc

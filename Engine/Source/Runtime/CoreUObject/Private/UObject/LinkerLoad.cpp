@@ -2907,7 +2907,7 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 	// Mark package as having been fully loaded.
 	if( LinkerRoot )
 	{
-		LinkerRoot->MarkAsFullyLoaded();
+		LinkerRoot->MarkAsFullyLoaded();		
 	}
 }
 
@@ -3829,10 +3829,14 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			EInternalObjectFlags::None,
 			Template
 		);
-		if (FPlatformProperties::RequiresCookedData() && GIsInitialLoad)
+		if (FPlatformProperties::RequiresCookedData())
 		{
-			Export.Object->AddToRoot();
+			if (GIsInitialLoad || GUObjectArray.IsOpenForDisregardForGC())
+			{
+				Export.Object->AddToRoot();
+			}
 		}
+		
 		LoadClass = Export.Object->GetClass(); // this may have changed if we are overwriting a CDO component
 
 		if (NewName != Export.ObjectName)
