@@ -9,6 +9,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/Engine.h"
 #include "Engine/DemoNetDriver.h"
+#include "Engine/LatentActionManager.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSessionInterface.h"
 #include "GameFramework/OnlineSession.h"
@@ -18,10 +19,10 @@
 #include "UnrealEd.h"
 #endif
 
-
 UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 , TimerManager(new FTimerManager())
+, LatentActionManager(new FLatentActionManager())
 {
 }
 
@@ -31,6 +32,13 @@ void UGameInstance::FinishDestroy()
 	{
 		delete TimerManager;
 		TimerManager = nullptr;
+	}
+
+	// delete operator should handle null, but maintaining pattern of TimerManager:
+	if (LatentActionManager)
+	{
+		delete LatentActionManager;
+		LatentActionManager = nullptr;
 	}
 
 	Super::FinishDestroy();
