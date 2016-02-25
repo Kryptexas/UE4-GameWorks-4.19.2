@@ -500,6 +500,10 @@ void UInterpToMovementComponent::AddControlPointPosition(FVector Pos,bool bPosit
 
 void UInterpToMovementComponent::FinaliseControlPoints()
 {
+	if (UpdatedComponent == nullptr)
+	{
+		return;
+	}
 	StartLocation = UpdatedComponent->GetComponentLocation();
 	TimeMultiplier = 1.0f / Duration;
 	if (ControlPoints.Num() != 0)
