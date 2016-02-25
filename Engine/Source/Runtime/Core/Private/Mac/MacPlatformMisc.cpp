@@ -1303,19 +1303,24 @@ FString FMacPlatformMisc::GetPrimaryGPUBrand()
 	if(PrimaryGPU.IsEmpty())
 	{
 		TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = GetGPUDescriptors();
-		for(FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
+		
+		if(GPUs.Num() > 1)
 		{
-			if ( PrimaryGPU.IsEmpty() )
+			for(FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 			{
-				PrimaryGPU = GPU.GPUName;
-			}
-			else
-			{
-				PrimaryGPU += TEXT(" - ");
-				PrimaryGPU += GPU.GPUName;
+				if(!GPU.GPUHeadless && GPU.GPUVendorId != 0x8086)
+				{
+					PrimaryGPU = GPU.GPUName;
+					break;
+				}
 			}
 		}
-			
+		
+		if ( PrimaryGPU.IsEmpty() && GPUs.Num() > 0 )
+		{
+			PrimaryGPU = GPUs[0].GPUName;
+		}
+		
 		if ( PrimaryGPU.IsEmpty() )
 		{
 			PrimaryGPU = FGenericPlatformMisc::GetPrimaryGPUBrand();
