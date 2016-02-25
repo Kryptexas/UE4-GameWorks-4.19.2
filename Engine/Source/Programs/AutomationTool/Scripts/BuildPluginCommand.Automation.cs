@@ -43,14 +43,15 @@ class BuildPlugin : BuildCommand
 			CommandUtils.DeleteDirectory(HostProjectDirectory.FullName);
 		}
 
-		DirectoryReference HostProjectPluginsDirectory = DirectoryReference.Combine(HostProjectDirectory, "Plugins", PluginFile.GetFileNameWithoutExtension());
+		DirectoryReference HostProjectPluginDirectory = DirectoryReference.Combine(HostProjectDirectory, "Plugins", PluginFile.GetFileNameWithoutExtension());
 
 		string[] CopyPluginFiles = Directory.EnumerateFiles(PluginDirectory.FullName, "*", SearchOption.AllDirectories).ToArray();
 		foreach (string CopyPluginFile in CopyPluginFiles)
 		{
-			CommandUtils.CopyFile(CopyPluginFile, CommandUtils.MakeRerootedFilePath(CopyPluginFile, PluginDirectory.FullName, HostProjectPluginsDirectory.FullName));
+			CommandUtils.CopyFile(CopyPluginFile, CommandUtils.MakeRerootedFilePath(CopyPluginFile, PluginDirectory.FullName, HostProjectPluginDirectory.FullName));
 		}
 
+		FileReference HostProjectPluginFile = FileReference.Combine(HostProjectPluginDirectory, PluginFile.GetFileName());
 		FileReference HostProjectFile = FileReference.Combine(HostProjectDirectory, "HostProject.uproject");
 		File.WriteAllText(HostProjectFile.FullName, "{ \"FileVersion\": 3, \"Plugins\": [ { \"Name\": \"" + PluginFile.GetFileNameWithoutExtension() + "\", \"Enabled\": true } ] }");
 
@@ -65,7 +66,7 @@ class BuildPlugin : BuildCommand
 		{
 			if (Plugin.bCanBeUsedWithUnrealHeaderTool)
 			{
-				AddPluginToAgenda(Agenda, PluginFile, Plugin, null, "UnrealHeaderTool", TargetRules.TargetType.Program, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, String.Format("{0} -plugin {1}", AdditionalArgs, CommandUtils.MakePathSafeToUseWithCommandLine(PluginFile.FullName)));
+				AddPluginToAgenda(Agenda, PluginFile, Plugin, null, "UnrealHeaderTool", TargetRules.TargetType.Program, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, String.Format("{0} -plugin {1}", AdditionalArgs, CommandUtils.MakePathSafeToUseWithCommandLine(HostProjectPluginFile.FullName)));
 			}
 			AddPluginToAgenda(Agenda, PluginFile, Plugin, HostProjectFile, "UE4Editor", TargetRules.TargetType.Editor, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, AdditionalArgs);
 		}
@@ -90,7 +91,7 @@ class BuildPlugin : BuildCommand
 		if(PackageDirectory != null)
 		{
 			List<BuildProduct> BuildProducts = GetBuildProductsFromReceipts(ReceiptFileNames);
-			PackagePlugin(PluginFile, BuildProducts, PackageDirectory);
+			PackagePlugin(HostProjectPluginFile, BuildProducts, PackageDirectory);
 		}
 	}
 
