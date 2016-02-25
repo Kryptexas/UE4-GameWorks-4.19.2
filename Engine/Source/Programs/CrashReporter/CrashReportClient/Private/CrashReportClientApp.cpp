@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
+#include "EngineVersion.h"
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
 
@@ -48,11 +49,41 @@ void ParseCommandLine(const TCHAR* CommandLine)
 	// Use the first argument if present and it's not a flag
 	if (*CommandLineAfterExe)
 	{
-		if (*CommandLineAfterExe != '-')
+		TArray<FString> Switches;
+		TArray<FString> Tokens;
+		TMap<FString, FString> Params;
 		{
-			ReportDirectoryAbsolutePath = FParse::Token(CommandLineAfterExe, true /* handle escaped quotes */);
+			FString NextToken;
+			while (FParse::Token(CommandLineAfterExe, NextToken, false))
+			{
+				if (**NextToken == TCHAR('-'))
+				{
+					new(Switches)FString(NextToken.Mid(1));
+				}
+				else
+				{
+					new(Tokens)FString(NextToken);
+				}
+			}
+
+			for (int32 SwitchIdx = Switches.Num() - 1; SwitchIdx >= 0; --SwitchIdx)
+			{
+				FString& Switch = Switches[SwitchIdx];
+				TArray<FString> SplitSwitch;
+				if (2 == Switch.ParseIntoArray(SplitSwitch, TEXT("="), true))
+				{
+					Params.Add(SplitSwitch[0], SplitSwitch[1].TrimQuotes());
+					Switches.RemoveAt(SwitchIdx);
+				}
+			}
 		}
-		FParse::Value( CommandLineAfterExe, TEXT( "AppName=" ), GameNameFromCmd );
+
+		if (Tokens.Num() > 0)
+		{
+			ReportDirectoryAbsolutePath = Tokens[0];
+		}
+
+		GameNameFromCmd = Params.FindRef("AppName");
 	}
 
 	if (ReportDirectoryAbsolutePath.IsEmpty())
@@ -139,6 +170,12 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 			// In the unattended mode we don't send any PII.
 			ErrorReport.SetUserComment(NSLOCTEXT("CrashReportClient", "UnattendedMode", "Sent in the unattended mode"));
 			FCrashReportClientUnattended CrashReportClient(ErrorReport);
+
+			if (ErrorReport.HasFilesToUpload())
+			{
+				// Send analytics.
+				FPrimaryCrashProperties::Get()->SendAnalytics();
+			}
 
 			// loop until the app is ready to quit
 			while (!GIsRequestingExit)
