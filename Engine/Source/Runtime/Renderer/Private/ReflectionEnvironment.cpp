@@ -1043,6 +1043,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		if (!LightAccumulation)
 		{
 			// should never be used but during debugging it can happen
+			ensureMsgf(LightAccumulation, TEXT("White dummy system texture about to be corrupted."));
 			LightAccumulation = GSystemTextures.WhiteDummy;
 		}
 

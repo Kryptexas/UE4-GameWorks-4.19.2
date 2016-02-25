@@ -4383,9 +4383,20 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 						const FKSphylElem& SphylShape = BodySetup->AggGeom.SphylElems[CapsuleIndex];
 						ShadowCapsuleData.Add(TPairInitializer<int32, FCapsuleShape>(BoneIndex, FCapsuleShape(RefBoneMatrix.TransformPosition(SphylShape.Center), SphylShape.Radius, RefBoneMatrix.TransformVector((SphylShape.Orientation * SphylBasis).Vector()), SphylShape.Length)));
 					}
+
+					if (NumSpheres > 0 || NumCapsules > 0)
+					{
+						ShadowCapsuleBoneIndices.AddUnique(BoneIndex);
+					}
 				}
 			}
 		}
+	}
+
+	// Sort to allow merging with other bone hierarchies
+	if (ShadowCapsuleBoneIndices.Num())
+	{
+		ShadowCapsuleBoneIndices.Sort();
 	}
 }
 
@@ -4773,17 +4784,6 @@ void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShap
 		NewCapsule.Radius = CapsuleData.Value.Radius * MaxScale;
 		NewCapsule.Orientation = ReferenceToWorld.TransformVector(CapsuleData.Value.Orientation);
 		NewCapsule.Length = CapsuleData.Value.Length * MaxScale;
-	}
-}
-
-void FSkeletalMeshSceneProxy::GetShadowShapeBoneIndices(TArray<uint16>& BoneIndices) const
-{
-	for (const TPair<int32, FCapsuleShape>& Capsule : ShadowCapsuleData)
-	{
-		if (Capsule.Key != INDEX_NONE)
-		{
-			BoneIndices.Add(Capsule.Key);
-		}
 	}
 }
 

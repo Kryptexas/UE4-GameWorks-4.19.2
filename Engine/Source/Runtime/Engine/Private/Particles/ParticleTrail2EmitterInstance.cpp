@@ -1317,6 +1317,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 			float StoredSpawnTime = DeltaTime * TimeStep;
 
 			PreSpawn(Particle, Location, FVector::ZeroVector);
+			SetDeadIndex(TrailData->TrailIndex, ParticleIndex);
 			if (LODLevel->TypeDataModule)
 			{
 				UParticleModuleTypeDataBase* pkBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
@@ -3099,6 +3100,7 @@ void FParticleAnimTrailEmitterInstance::SpawnParticle( int32& StartParticleIndex
 
 	// Standard spawn setup
 	PreSpawn(Particle, Location, FVector::ZeroVector);
+	SetDeadIndex(TrailData->TrailIndex, ParticleIndex);
 	for (int32 SpawnModuleIdx = 0; SpawnModuleIdx < LODLevel->SpawnModules.Num(); SpawnModuleIdx++)
 	{
 		UParticleModule* SpawnModule = LODLevel->SpawnModules[SpawnModuleIdx];

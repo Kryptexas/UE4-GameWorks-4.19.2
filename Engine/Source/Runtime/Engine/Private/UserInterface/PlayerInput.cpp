@@ -1265,9 +1265,13 @@ void UPlayerInput::ClearSmoothing()
 
 float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCount, int32 Index)
 {
+	check(Index >= 0);
+	check(Index < ARRAY_COUNT(ZeroTime));
+
 	UWorld* World = GetWorld();
 	if (World)
 	{
+		check(World->GetWorldSettings());
 		const float EffectiveTimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
 		if (EffectiveTimeDilation != LastTimeDilation)
 		{
@@ -1278,8 +1282,11 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 
 	if (DeltaTime < 0.25f)
 	{
+		check(MouseSamples > 0);
+
 		// this is seconds/sample
 		const float MouseSamplingTime = MouseSamplingTotal/MouseSamples;
+		check(MouseSamplingTime > 0.0f);
 
 		if ( aMouse == 0 )
 		{
@@ -1303,6 +1310,8 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 				// this isn't the first tick with non-zero mouse movement
 				if ( DeltaTime < MouseSamplingTime * (SampleCount + 1) )
 				{
+					check(SampleCount > 0);
+
 					// smooth mouse movement so samples/tick is constant
 					aMouse = aMouse * DeltaTime/(MouseSamplingTime * SampleCount);
 				}
@@ -1313,6 +1322,8 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 					SampleCount = DeltaTime/MouseSamplingTime;
 				}
 			}
+
+			check(SampleCount > 0);
 			SmoothedMouse[Index] = aMouse/SampleCount;
 		}
 	}

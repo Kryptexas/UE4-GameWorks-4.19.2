@@ -136,6 +136,9 @@ void FDefaultGameMoviePlayer::Initialize()
 
 	// Add a delegate to start playing movies when we start loading a map
 	FCoreUObjectDelegates::PreLoadMap.AddSP( this, &FDefaultGameMoviePlayer::OnPreLoadMap );
+	
+	// Shutdown the movie player if the app is exiting
+	FCoreDelegates::OnPreExit.AddSP( this, &FDefaultGameMoviePlayer::Shutdown );
 
 	FPlatformSplash::Hide();
 
@@ -200,6 +203,7 @@ void FDefaultGameMoviePlayer::Shutdown()
 	bInitialized = false;
 
 	FCoreUObjectDelegates::PreLoadMap.RemoveAll( this );
+	FCoreDelegates::OnPreExit.RemoveAll( this );
 
 	LoadingScreenContents.Reset();
 	LoadingScreenWidgetHolder.Reset();
@@ -209,7 +213,7 @@ void FDefaultGameMoviePlayer::Shutdown()
 
 	LoadingScreenAttributes = FLoadingScreenAttributes();
 
-	if( SyncMechanism)
+	if( SyncMechanism )
 	{
 		SyncMechanism->DestroySlateThread();
 		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
@@ -247,18 +251,19 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		
 		LastPlayTime = FPlatformTime::Seconds();
 
-        bool bIsInitialized = true;
+		bool bIsInitialized = true;
 		if (MovieStreamingIsPrepared())
 		{
 			bIsInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
 		}
-        if (bIsInitialized)
-        {
+
+		if (bIsInitialized)
+		{
 			MovieStreamingIsDone.Set(MovieStreamingIsPrepared() ? 0 : 1);
 			LoadingIsDone.Set(0);
 			
 			LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
-            LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
+			LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
 		
 			{
 				FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
@@ -266,8 +271,8 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 				SyncMechanism->Initialize();
 			}
 
-            bBeganPlaying = true;
-        }
+			bBeganPlaying = true;
+		}
 	}
 
 	return bBeganPlaying;
@@ -401,12 +406,12 @@ bool FDefaultGameMoviePlayer::IsMovieStreamingFinished() const
 void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 {
 	check(IsInRenderingThread());
-	if (LoadingScreenWindowPtr.IsValid() && RendererPtr.IsValid())
+	if (LoadingScreenWindowPtr.IsValid() && RendererPtr.IsValid() && !IsLoadingFinished())
 	{
 		FScopeLock SyncMechanismLock(&SyncMechanismCriticalSection);
-		if (!IsLoadingFinished() && SyncMechanism)
+		if(SyncMechanism)
 		{
-			if (SyncMechanism->IsSlateDrawPassEnqueued())
+			if(SyncMechanism->IsSlateDrawPassEnqueued())
 			{
 				GFrameNumberRenderThread++;
 				GRHICommandList.GetImmediateCommandList().BeginFrame();
@@ -462,9 +467,9 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 		const TArray<FString>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
 
 		if (StartupMovies.Num() == 0)
-        {
+		{
 			LoadingScreen.MoviePaths.Add(TEXT("Default_Startup"));
-        }
+		}
 		else
 		{
 			for (const FString& Movie : StartupMovies)

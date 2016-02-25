@@ -574,7 +574,7 @@ public:
 	// temp function for easy conversion
 	FORCEINLINE FVector GetLocation() const
 	{
-		return Translation;
+		return GetTranslation();
 	}
 
 	FORCEINLINE FRotator Rotator() const

@@ -364,7 +364,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectExecutionDefinition
 	UPROPERTY(EditDefaultsOnly, Category = Execution)
 	TArray<FGameplayEffectExecutionScopedModifierInfo> CalculationModifiers;
 
-	/** Other Gameplay Effects that will be applied to the target of this execution if the execution is successful */
+	/** Other Gameplay Effects that will be applied to the target of this execution if the execution is successful. Note if no execution class is selected, these will always apply. */
 	UPROPERTY(EditDefaultsOnly, Category = Execution, meta = (DisplayName = "Conditional Gameplay Effects"))
 	TArray<TSubclassOf<UGameplayEffect>> ConditionalGameplayEffectClasses;
 };

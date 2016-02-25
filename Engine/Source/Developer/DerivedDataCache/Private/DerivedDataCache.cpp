@@ -328,7 +328,7 @@ public:
 			delete AsyncTask;
 			return false;
 		}
-		OutData = AsyncTask->GetTask().Data;
+		OutData = MoveTemp(AsyncTask->GetTask().Data);
 		delete AsyncTask;
 		check(OutData.Num());
 		return true;

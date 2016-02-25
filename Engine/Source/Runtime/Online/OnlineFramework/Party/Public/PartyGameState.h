@@ -302,7 +302,7 @@ public:
 	 *
 	 * @return The chat room ID
 	 */
-	FChatRoomId GetChatRoomID() const;
+	virtual FChatRoomId GetChatRoomID() const;
 
 	template< typename TPartyMemberState >
 	void GetTypedPartyMembers(TArray< TPartyMemberState* >& PartyMembers) const
@@ -563,7 +563,7 @@ protected:
 	 * 
 	 * @param Reason reason local players were removed from party
 	 */
-	void HandleRemovedFromParty(EMemberExitedReason Reason);
+	virtual void HandleRemovedFromParty(EMemberExitedReason Reason);
 
 	/** Party leader delegates */
 	void OnPartyMemberPromoted(const FUniqueNetId& LocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InMemberId, const EPromoteMemberCompletionResult Result);

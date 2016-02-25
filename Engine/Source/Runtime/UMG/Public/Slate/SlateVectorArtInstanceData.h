@@ -10,6 +10,7 @@ public:
 	FVector4& GetData() { return Data; }
 
 	void SetPositionFixedPoint16(FVector2D Position);
+	void SetScaleFixedPoint16(float Scale);
 
 	void SetPosition(FVector2D Position);
 	void SetScale(float Scale);

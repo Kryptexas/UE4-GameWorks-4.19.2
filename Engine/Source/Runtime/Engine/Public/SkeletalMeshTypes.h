@@ -1761,7 +1761,12 @@ public:
 	
 	virtual bool HasDistanceFieldRepresentation() const override;
 	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const override;
-	virtual void GetShadowShapeBoneIndices(TArray<uint16>& BoneIndices) const override;
+
+	/** Returns a pre-sorted list of shadow capsules's bone indicies */
+	const TArray<uint16>& GetSortedShadowBoneIndices() const
+	{
+		return ShadowCapsuleBoneIndices;
+	}
 
 	/**
 	 * Returns the world transform to use for drawing.
@@ -1853,6 +1858,7 @@ protected:
 	 * Note that these are in refpose component space, NOT bone space.
 	 */
 	TArray<TPair<int32, FCapsuleShape>> ShadowCapsuleData;
+	TArray<uint16> ShadowCapsuleBoneIndices;
 
 	/** Set of materials used by this scene proxy, safe to access from the game thread. */
 	TSet<UMaterialInterface*> MaterialsInUse_GameThread;

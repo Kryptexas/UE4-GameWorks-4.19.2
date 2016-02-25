@@ -122,13 +122,9 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 */
 	static const TCHAR* GetNullRHIShaderFormat();
 
-#if PLATFORM_HAS_CPUID
-	/**
-	 * Uses cpuid instruction to get the vendor string
-	 *
-	 * @return	CPU vendor name
-	 */
+	static bool HasCPUIDInstruction();
 	static FString GetCPUVendor();
+	static FString GetCPUBrand();
 
 	/**
 	 * Uses cpuid instruction to get the vendor string
@@ -145,7 +141,6 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
-#endif // PLATFORM_HAS_CPUID
 
 	static const TCHAR* EngineDir()
 	{

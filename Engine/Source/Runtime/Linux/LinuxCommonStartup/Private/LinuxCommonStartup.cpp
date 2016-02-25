@@ -13,6 +13,11 @@ static FString GSavedCommandLine;
 extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
 
+#if WITH_ENGINE
+// see comment in LaunchLinux.cpp for details why it is done this way
+extern void LaunchLinux_FEngineLoop_AppExit();
+#endif // WITH_ENGINE
+
 /**
  * Game-specific crash reporter
  */
@@ -226,6 +231,11 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 			GIsGuarded = 0;
 		}
 	}
+
+	// Final shut down.
+#if WITH_ENGINE
+	LaunchLinux_FEngineLoop_AppExit();
+#endif // WITH_ENGINE
 
 	// check if a specific return code has been set
 	uint8 OverriddenErrorLevel = 0;

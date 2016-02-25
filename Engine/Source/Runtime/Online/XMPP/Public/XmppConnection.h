@@ -126,6 +126,11 @@ public:
 	{
 		return !Id.IsEmpty() && !Domain.IsEmpty();
 	}
+
+	FString ToDebugString() const
+	{
+		return FString::Printf(TEXT("%s:%s:%s"), *Id, *Domain, *Resource);
+	}
 };
 
 /**

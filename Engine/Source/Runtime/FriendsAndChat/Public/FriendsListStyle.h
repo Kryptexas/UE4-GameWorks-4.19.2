@@ -245,6 +245,12 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FMargin TipStatusMargin;
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin AddButtonMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FVector2D AddButtonSpacing;
+
 
 // Clan Settings
 

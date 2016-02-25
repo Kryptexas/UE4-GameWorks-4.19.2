@@ -822,7 +822,7 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 
 /** Takes sorted array Base and then adds any elements from sorted array Insert which is missing from it, preserving order.
  * this assumes both arrays are sorted and contain unique bone indices. */
-static void MergeInBoneIndexArrays(TArray<FBoneIndexType>& BaseArray, TArray<FBoneIndexType>& InsertArray)
+static void MergeInBoneIndexArrays(TArray<FBoneIndexType>& BaseArray, const TArray<FBoneIndexType>& InsertArray)
 {
 	// Then we merge them into the array of required bones.
 	int32 BaseBonePos = 0;
@@ -992,13 +992,11 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// Gather any bones referenced by shadow shapes
 	if (FSkeletalMeshSceneProxy* SkeletalMeshProxy = (FSkeletalMeshSceneProxy*)SceneProxy)
 	{
-		TArray<FBoneIndexType> ShadowShapeBones;
-		SkeletalMeshProxy->GetShadowShapeBoneIndices(ShadowShapeBones);
+		const TArray<FBoneIndexType>& ShadowShapeBones = SkeletalMeshProxy->GetSortedShadowBoneIndices();
 
 		if (ShadowShapeBones.Num())
 		{
 			// Sort in hierarchy order then merge to required bones array
-			ShadowShapeBones.Sort();
 			MergeInBoneIndexArrays(RequiredBones, ShadowShapeBones);
 		}
 	}

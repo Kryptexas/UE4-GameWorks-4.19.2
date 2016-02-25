@@ -2338,6 +2338,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, physx::apex::
 void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 {
 	bool bFrozen = false;
+	bool bResetSim = false;
 
 	for (FClothingActor& ClothingActor : ClothingActors)
 	{
@@ -2346,10 +2347,10 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 			int32 CurLODIndex = (int32)ClothingActor.ApexClothingActor->getGraphicalLod();
 
 			// check whether clothing LOD is mapped for this LOD index
-			bool IsMappedClothLOD = SkeletalMesh->IsMappedClothingLOD(LODIndex, ClothingActor.ParentClothingAssetIndex);
+			bool bIsNewLodMapped = SkeletalMesh->IsMappedClothingLOD(LODIndex, ClothingActor.ParentClothingAssetIndex);
 
 			// Change Clothing LOD if a new LOD index is different from the current index
-			if (IsMappedClothLOD && CurLODIndex != LODIndex)
+			if (bIsNewLodMapped && CurLODIndex != LODIndex)
 			{
 				//physical LOD is changed by graphical LOD
 				ClothingActor.ApexClothingActor->setGraphicalLOD(LODIndex);
@@ -2363,13 +2364,15 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 			int32 NumClothLODs = ClothingActor.ParentClothingAsset->getNumGraphicalLodLevels();
 
 			// decide whether should enable or disable
-			if (!IsMappedClothLOD || (LODIndex >= NumClothLODs))
+			if (!bIsNewLodMapped || (LODIndex >= NumClothLODs))
 			{
 				//disable clothing simulation
 				ClothingActor.bSimulateForCurrentLOD = false;
 			}
-			else
+			else if(!ClothingActor.bSimulateForCurrentLOD)
 			{	
+				// Was disabled, will require a reset to animated position.
+				bResetSim = true;
 				ClothingActor.bSimulateForCurrentLOD = true;
 			}
 		}
@@ -2384,7 +2387,14 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 		FreezeClothSection(false);
 	}
 
-	ForceClothNextUpdateTeleportAndReset();
+	if(bResetSim)
+	{
+		ForceClothNextUpdateTeleportAndReset();
+	}
+	else
+	{
+		ForceClothNextUpdateTeleport();
+	}
 }
 
 void USkeletalMeshComponent::RemoveAllClothingActors()

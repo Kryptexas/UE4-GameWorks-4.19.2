@@ -69,6 +69,8 @@ public:
 	FString Platform;
 	/** string that will be parsed for further displayed presence info */
 	FString StatusStr;
+	/** full jid for user that sent this presence update */
+	FXmppUserJid UserJid;
 };
 
 /**

@@ -36,6 +36,11 @@ public:
 	FXmppUserJid MemberJid;
 	FXmppUserPresence UserPresence;
 	EXmppChatMemberRole::Type Affiliation;
+
+	FString ToDebugString() const
+	{
+		return FString::Printf(TEXT("%s [%s] Role: %d"), *Nickname, *MemberJid.ToDebugString(), (int32)Affiliation);
+	}
 };
 
 /**
@@ -52,6 +57,11 @@ public:
 	FString OwnerId;
 	FString Subject;
 	bool bIsPrivate;
+
+	FString ToDebugString() const
+	{
+		return FString::Printf(TEXT("%s Owner: %s Subj: %s Priv: %d"), *Id, *OwnerId, *Subject, bIsPrivate);
+	}
 };
 
 /**

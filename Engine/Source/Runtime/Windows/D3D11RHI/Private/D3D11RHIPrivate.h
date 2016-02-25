@@ -30,7 +30,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 #define CHECK_SRV_TRANSITIONS 0
 #else
-#define CHECK_SRV_TRANSITIONS 1
+//Feature is broken, and also will leak memory when the program is alt-tabbed.  disable for now.
+#define CHECK_SRV_TRANSITIONS 0
 #endif
 
 // DX11 doesn't support higher MSAA count

@@ -265,9 +265,15 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void DumpOnlineSessionState();
 
+	/** Dump known party information */
 	UFUNCTION(exec)
 	virtual void DumpPartyState();
 
+	/** Dump known chat information */
+	UFUNCTION(exec)
+	virtual void DumpChatState();
+
+	/** Dump current state of voice chat */
 	UFUNCTION(exec)
 	virtual void DumpVoiceMutingState();
 

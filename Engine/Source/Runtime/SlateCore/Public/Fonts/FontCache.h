@@ -233,6 +233,10 @@ public:
 	};
 
 	FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToRender, TArray<FShapedGlyphClusterBlock> InGlyphClusterBlocks, const int16 InTextBaseline, const uint16 InMaxTextHeight, const UObject* InFontMaterial, const FSourceTextRange& InSourceTextRange);
+	~FShapedGlyphSequence();
+
+	/** Get the amount of memory allocated to this sequence */
+	uint32 GetAllocatedSize() const;
 
 	/** Get the array of glyphs in this sequence. This data will be ordered so that you can iterate and draw left-to-right, which means it will be backwards for right-to-left languages */
 	const TArray<FShapedGlyphEntry>& GetGlyphsToRender() const
@@ -339,6 +343,10 @@ public:
 	FShapedGlyphSequencePtr GetSubSequence(const int32 InStartIndex, const int32 InEndIndex) const;
 
 private:
+	/** Non-copyable */
+	FShapedGlyphSequence(const FShapedGlyphSequence&);
+	FShapedGlyphSequence& operator=(const FShapedGlyphSequence&);
+
 	/**
 	 * Enumerate all of the glyphs within the given cluster index range
 	 * @note The indices used here are relative to the start of the text we were shaped from, even if we were only shaped from a sub-section of that text
@@ -397,16 +405,21 @@ private:
 			GlyphDataArray.SetNum(InSourceTextRange.TextLen);
 		}
 
-		FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex)
+		FORCEINLINE FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex)
 		{
 			const int32 InternalIndex = InSourceTextIndex - SourceTextRange.TextStart;
 			return (GlyphDataArray.IsValidIndex(InternalIndex)) ? &GlyphDataArray[InternalIndex] : nullptr;
 		}
 
-		const FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex) const
+		FORCEINLINE const FClusterIndexToGlyphData* GetGlyphData(const int32 InSourceTextIndex) const
 		{
 			const int32 InternalIndex = InSourceTextIndex - SourceTextRange.TextStart;
 			return (GlyphDataArray.IsValidIndex(InternalIndex)) ? &GlyphDataArray[InternalIndex] : nullptr;
+		}
+
+		FORCEINLINE uint32 GetAllocatedSize() const
+		{
+			return GlyphDataArray.GetAllocatedSize();
 		}
 
 	private:

@@ -7,10 +7,10 @@
 #define LOG_EVERY_ALLOCATION			0
 #define DUMP_ALLOC_FREQUENCY			0 // 100
 
-#define VALIDATE_SYNC_SIZE				1 //validates that the CPU is returning memory in an allocate that's part of an active GPU move.
-#define VALIDATE_MOVES					1 //validates that GPU moves in a given frame do not overlap destination areas.
+#define VALIDATE_SYNC_SIZE				0 //validates that the CPU is returning memory in an allocate that's part of an active GPU move.
+#define VALIDATE_MOVES					0 //validates that GPU moves in a given frame do not overlap destination areas.
 #define TRACK_RELOCATIONS (VALIDATE_SYNC_SIZE || VALIDATE_MOVES)
-#define VALIDATE_MEMORY_PROTECTION		1 //(!(UE_BUILD_TEST || UE_BUILD_SHIPPING))
+#define VALIDATE_MEMORY_PROTECTION		0
 
 /*-----------------------------------------------------------------------------
 Custom fixed size pool best fit texture memory allocator

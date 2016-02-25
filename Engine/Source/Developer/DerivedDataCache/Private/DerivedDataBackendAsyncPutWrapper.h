@@ -198,7 +198,7 @@ public:
 	 */
 	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
 	{
-		COOK_STAT(auto Timer = UsageStats.TimePut());
+		COOK_STAT(auto Timer = PutSyncUsageStats.TimePut());
 		if (!InnerBackend->IsWritable())
 		{
 			return; // no point in continuing down the chain
@@ -215,8 +215,8 @@ public:
 				return; // if it is already on its way, we don't need to send it again
 			}
 			InflightCache->PutCachedData(CacheKey, InData, true); // temp copy stored in memory while the async task waits to complete
+			COOK_STAT(Timer.AddHit(InData.Num()));
 		}
-		COOK_STAT(Timer.UntrackHitOrMiss());
 		FDerivedDataBackend::Get().AddToAsyncCompletionCounter(1);
 		(new FAutoDeleteAsyncTask<FCachePutAsyncWorker>(CacheKey, &InData, InnerBackend, bPutEvenIfExists, InflightCache.GetOwnedPointer(), &FilesInFlight, UsageStats))->StartBackgroundTask();
 	}
@@ -243,6 +243,7 @@ public:
 		COOK_STAT(
 			{
 			UsageStatsMap.Add(GraphPath + TEXT(": AsyncPut"), UsageStats);
+			UsageStatsMap.Add(GraphPath + TEXT(": AsyncPutSync"), PutSyncUsageStats);
 			if (InnerBackend)
 			{
 				InnerBackend->GatherUsageStats(UsageStatsMap, GraphPath + TEXT(". 0"));
@@ -256,6 +257,7 @@ public:
 
 private:
 	FDerivedDataCacheUsageStats UsageStats;
+	FDerivedDataCacheUsageStats PutSyncUsageStats;
 
 	/** Backend to use for storage, my responsibilities are about async puts **/
 	FDerivedDataBackendInterface*					InnerBackend;

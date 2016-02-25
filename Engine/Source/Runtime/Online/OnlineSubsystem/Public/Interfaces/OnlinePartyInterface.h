@@ -361,6 +361,7 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 		: JoinRequestAction(EJoinRequestAction::Manual)
 		, PresencePermissions(PartySystemPermissions::EPresencePermissions::AnyonePublishIdAnyonePublishKey)
 		, InvitePermissions(PartySystemPermissions::EInvitePermissions::Leader)
+		, bChatEnabled(true)
 		, bShouldRemoveOnDisconnection(false)
 		, bIsAcceptingMembers(false)
 		, NotAcceptingMembersReason(0)
@@ -373,6 +374,8 @@ struct FPartyConfiguration : public TSharedFromThis<FPartyConfiguration>
 	PartySystemPermissions::EPresencePermissions PresencePermissions;
 	/** Permission who can send invites */
 	PartySystemPermissions::EInvitePermissions InvitePermissions;
+	/** should have a muc room */
+	bool bChatEnabled;
 	/** should remove on disconnection */
 	bool bShouldRemoveOnDisconnection;
 	/** is accepting members */
@@ -1847,10 +1850,11 @@ inline const TCHAR* ToString(const EInvitationResponse Value)
 
 inline FString ToDebugString(const FPartyConfiguration& PartyConfiguration)
 {
-	return FString::Printf(TEXT("JoinRequestAction(%s) RemoveOnDisconnect(%d) Publish(%s) Invite(%s) Accepting(%d) Not Accepting Reason(%d) MaxMembers: %d Nickname: %s Description: %s Password: %s"),
+	return FString::Printf(TEXT("JoinRequestAction(%s) RemoveOnDisconnect(%d) Publish(%s) Chat(%d) Invite(%s) Accepting(%d) Not Accepting Reason(%d) MaxMembers: %d Nickname: %s Description: %s Password: %s"),
 			ToString(PartyConfiguration.JoinRequestAction),
 			PartyConfiguration.bShouldRemoveOnDisconnection,
 			ToString(PartyConfiguration.PresencePermissions),
+			PartyConfiguration.bChatEnabled,
 			ToString(PartyConfiguration.InvitePermissions),
 			PartyConfiguration.bIsAcceptingMembers,
 			PartyConfiguration.NotAcceptingMembersReason,

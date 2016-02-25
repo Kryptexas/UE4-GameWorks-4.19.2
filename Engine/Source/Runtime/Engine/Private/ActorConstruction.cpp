@@ -638,7 +638,7 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 	};
 
 	UActorComponent* NewActorComp = nullptr;
-	if (TemplateData != nullptr)
+	if (TemplateData != nullptr && TemplateData->ComponentTemplateClass != nullptr)	// some components (e.g. UTextRenderComponent) are not loaded on a server (or client). Handle that gracefully, but we ideally shouldn't even get here (see UEBP-175).
 	{
 #if !UE_BUILD_SHIPPING
 		const double StartTime = FPlatformTime::Seconds();

@@ -558,7 +558,7 @@ struct FMath : public FPlatformMath
 		return GetMappedRangeValueClamped(InputRange, OutputRange, Value);
 	}
 
-	/** For the given Value clamped to the Input Range, returns the corresponding value in the Output Range. */
+	/** For the given Value clamped to the [Input:Range] inclusive, returns the corresponding percentage in [Output:Range] Inclusive. */
 	static FORCEINLINE float GetMappedRangeValueClamped(const FVector2D& InputRange, const FVector2D& OutputRange, const float Value)
 	{
 		const float ClampedPct = Clamp<float>(GetRangePct(InputRange, Value), 0.f, 1.f);

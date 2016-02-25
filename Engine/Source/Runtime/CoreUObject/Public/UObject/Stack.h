@@ -136,6 +136,9 @@ public:
 	
 	COREUOBJECT_API static void KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity);
 
+	/** Returns current blueprint callstack **/
+	COREUOBJECT_API static FString GetScriptCallstack();
+
 	int32 ReadInt();
 	float ReadFloat();
 	FName ReadName();

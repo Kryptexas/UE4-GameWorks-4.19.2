@@ -2,6 +2,9 @@
 
 #pragma once
 
+// To lock a build to a specific version set VERSION_LOCKED to 1, and 
+// fill out the details below.
+
 #define VERSION_LOCKED 0
 
 #if VERSION_LOCKED
@@ -12,8 +15,8 @@
 
 #define ENGINE_IS_LICENSEE_VERSION 0
 
-#define BUILT_FROM_CHANGELIST 2839255
-#define BRANCH_NAME "++Orion+Release-Next"
+#define BUILT_FROM_CHANGELIST 1234567
+#define BRANCH_NAME "++Game+Release-1.0"
 
 #define ENGINE_IS_PROMOTED_BUILD (BUILT_FROM_CHANGELIST > 0)
 

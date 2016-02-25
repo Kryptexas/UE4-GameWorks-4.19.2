@@ -1544,7 +1544,7 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 		{			
 			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. NO CHUNKS" ) );
 
-			StartStreamingDelegate.ExecuteIfBound( false, true );
+			StartStreamingDelegate.ExecuteIfBound( false, false );
 
 			// Reset delegate
 			StartStreamingDelegate = FOnStreamReadyDelegate();
@@ -1556,7 +1556,7 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 	{
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. FAILED, %s" ), *BuildRequestErrorString( HttpRequest, HttpResponse ) );
 
-		StartStreamingDelegate.ExecuteIfBound( false, true );
+		StartStreamingDelegate.ExecuteIfBound( false, false );
 
 		// Reset delegate
 		StartStreamingDelegate = FOnStreamReadyDelegate();

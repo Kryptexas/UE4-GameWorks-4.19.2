@@ -97,17 +97,60 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 
 			const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
 
-			// Work out where we should create this asset editor
-			EAssetEditorToolkitTabLocation SavedAssetEditorToolkitTabLocation = StyleSettings->bOpenAssetEditorTabsInNewWindow ? EAssetEditorToolkitTabLocation::Standalone : EAssetEditorToolkitTabLocation::Docked;
-			GConfig->GetInt(
-				TEXT("AssetEditorToolkitTabLocation"), 
-				*ObjectsToEdit[0]->GetPathName(), 
-				reinterpret_cast<int32&>(SavedAssetEditorToolkitTabLocation), 
-				GEditorPerProjectIni
-				);
+			FName PlaceholderId(TEXT("StandaloneToolkit"));
+			FTabManager::FSearchPreference* SearchPreference = nullptr;
+			if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::Default )
+			{
+				// Work out where we should create this asset editor
+				EAssetEditorToolkitTabLocation SavedAssetEditorToolkitTabLocation = EAssetEditorToolkitTabLocation::Standalone;
+				GConfig->GetInt(
+					TEXT("AssetEditorToolkitTabLocation"),
+					*ObjectsToEdit[0]->GetPathName(),
+					reinterpret_cast<int32&>( SavedAssetEditorToolkitTabLocation ),
+					GEditorPerProjectIni
+					);
 
-			const FName AssetEditorToolkitTab = (SavedAssetEditorToolkitTabLocation == EAssetEditorToolkitTabLocation::Docked) ? "DockedToolkit" : "StandaloneToolkit";
-			FGlobalTabmanager::Get()->InsertNewDocumentTab( AssetEditorToolkitTab, FTabManager::ESearchPreference::PreferLiveTab, NewMajorTab.ToSharedRef() );
+				PlaceholderId = ( SavedAssetEditorToolkitTabLocation == EAssetEditorToolkitTabLocation::Docked ) ? TEXT("DockedToolkit") : TEXT("StandaloneToolkit");
+				SearchPreference = new FTabManager::FLiveTabSearch();
+			}
+			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::NewWindow )
+			{
+				PlaceholderId = TEXT("StandaloneToolkit");
+				SearchPreference = new FTabManager::FRequireClosedTab();
+			}
+			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::MainWindow )
+			{
+				PlaceholderId = TEXT("DockedToolkit");
+				SearchPreference = new FTabManager::FLiveTabSearch(TEXT("LevelEditor"));
+			}
+			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::ContentBrowser )
+			{
+				PlaceholderId = TEXT("DockedToolkit");
+				SearchPreference = new FTabManager::FLiveTabSearch(TEXT("ContentBrowserTab1"));
+			}
+			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrNewWindow )
+			{
+				PlaceholderId = TEXT("StandaloneToolkit");
+				SearchPreference = new FTabManager::FLastMajorOrNomadTab(NAME_None);
+			}
+			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrMainWindow )
+			{
+				PlaceholderId = TEXT("StandaloneToolkit");
+				SearchPreference = new FTabManager::FLastMajorOrNomadTab(TEXT("LevelEditor"));
+			}
+			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrContentBrowser )
+			{
+				PlaceholderId = TEXT("StandaloneToolkit");
+				SearchPreference = new FTabManager::FLastMajorOrNomadTab(TEXT("ContentBrowserTab1"));
+			}
+			else
+			{
+				// Add more cases!
+				check(false);
+			}
+
+			FGlobalTabmanager::Get()->InsertNewDocumentTab(PlaceholderId, *SearchPreference, NewMajorTab.ToSharedRef());
+			delete SearchPreference;
 		}
 
 #if PLATFORM_MAC

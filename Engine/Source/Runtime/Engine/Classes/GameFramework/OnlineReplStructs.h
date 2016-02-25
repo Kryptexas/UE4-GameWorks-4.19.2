@@ -159,7 +159,7 @@ protected:
 	void UniqueIdFromString(const FString& Contents);
 };
 
-/** Specify net delta serializer support for the active skill cooldown array */
+/** Specify type trait support for various low level UPROPERTY overrides */
 template<>
 struct TStructOpsTypeTraits<FUniqueNetIdRepl> : public TStructOpsTypeTraitsBase
 {

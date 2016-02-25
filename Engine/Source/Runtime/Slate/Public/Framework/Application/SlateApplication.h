@@ -1682,5 +1682,6 @@ private:
 	/** Delegate for post slate Tick */
 	FSlateTickEvent PostTickEvent;
 
+	/** Critical section to avoid multiple threads calling Slate Tick when we're synchronizing between the Slate Loading Thread and the Game Thread. */
 	FCriticalSection SlateTickCriticalSection;
 };

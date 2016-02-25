@@ -572,9 +572,7 @@ public:
 
 	FORCEINLINE FVector GetLocation() const
 	{
-		FVector OutTranslation;
-		VectorStoreFloat3(Translation, &OutTranslation);
-		return OutTranslation;
+		return GetTranslation();
 	}
 
 	FORCEINLINE FRotator Rotator() const

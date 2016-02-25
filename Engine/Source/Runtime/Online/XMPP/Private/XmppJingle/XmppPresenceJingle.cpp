@@ -305,6 +305,7 @@ FXmppPresenceJingle::~FXmppPresenceJingle()
 
 void FXmppPresenceJingle::ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus, const FXmppUserJid& InJid)
 {
+	OutPresence.UserJid = InJid;
 	OutPresence.bIsAvailable = InStatus.available();
 	OutPresence.StatusStr = UTF8_TO_TCHAR(InStatus.status().c_str());
 	if (!InStatus.sent_time().empty())

@@ -127,6 +127,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectHandle
 
 	static FActiveGameplayEffectHandle GenerateNewHandle(UAbilitySystemComponent* OwningComponent);
 
+	static void ResetGlobalHandleMap();
+
 	UAbilitySystemComponent* GetOwningAbilitySystemComponent();
 	const UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
 

@@ -5,6 +5,7 @@
 #include "HttpRetrySystem.h"
 
 FHttpRetrySystem::FRequest::FRequest(
+	FManager& InManager,
 	const TSharedRef<IHttpRequest>& HttpRequest, 
 	const FHttpRetrySystem::FRetryLimitCountSetting& InRetryLimitCountOverride,
 	const FHttpRetrySystem::FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride,
@@ -15,9 +16,31 @@ FHttpRetrySystem::FRequest::FRequest(
     , RetryLimitCountOverride(InRetryLimitCountOverride)
     , RetryTimeoutRelativeSecondsOverride(InRetryTimeoutRelativeSecondsOverride)
 	, RetryResponseCodes(InRetryResponseCodes)
+	, RetryManager(InManager)
 {
     // if the InRetryTimeoutRelativeSecondsOverride override is being used the value cannot be negative
     check(!(InRetryTimeoutRelativeSecondsOverride.bUseValue) || (InRetryTimeoutRelativeSecondsOverride.Value >= 0.0));
+}
+
+bool FHttpRetrySystem::FRequest::ProcessRequest()
+{ 
+	TSharedRef<FRequest> RetryRequest = StaticCastSharedRef<FRequest>(AsShared());
+
+	HttpRequest->OnRequestProgress().BindSP(RetryRequest, &FHttpRetrySystem::FRequest::HttpOnRequestProgress);
+
+	return RetryManager.ProcessRequest(RetryRequest);
+}
+
+void FHttpRetrySystem::FRequest::CancelRequest() 
+{ 
+	TSharedRef<FRequest> RetryRequest = StaticCastSharedRef<FRequest>(AsShared());
+
+	RetryManager.CancelRequest(RetryRequest);
+}
+
+void FHttpRetrySystem::FRequest::HttpOnRequestProgress(FHttpRequestPtr InHttpRequest, int32 BytesSent, int32 BytesRcv)
+{
+	OnRequestProgress().ExecuteIfBound(AsShared(), BytesSent, BytesRcv);
 }
 
 FHttpRetrySystem::FManager::FManager(const FRetryLimitCountSetting& InRetryLimitCountDefault, const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsDefault)
@@ -26,16 +49,30 @@ FHttpRetrySystem::FManager::FManager(const FRetryLimitCountSetting& InRetryLimit
 	, RetryTimeoutRelativeSecondsDefault(InRetryTimeoutRelativeSecondsDefault)
 {}
 
+TSharedRef<FHttpRetrySystem::FRequest> FHttpRetrySystem::FManager::CreateRequest(
+	const FRetryLimitCountSetting& InRetryLimitCountOverride,
+	const FRetryTimeoutRelativeSecondsSetting& InRetryTimeoutRelativeSecondsOverride,
+	const FRetryResponseCodes& InRetryResponseCodes)
+{
+	return MakeShareable(new FRequest(
+		*this,
+		FHttpModule::Get().CreateRequest(),
+		InRetryLimitCountOverride,
+		InRetryTimeoutRelativeSecondsOverride,
+		InRetryResponseCodes
+		));
+}
+
 bool FHttpRetrySystem::FManager::ShouldRetry(const FHttpRetryRequestEntry& HttpRetryRequestEntry)
 {
     bool bResult = false;
 
-	FHttpResponsePtr Response = HttpRetryRequestEntry.HttpRequest->GetResponse();
+	FHttpResponsePtr Response = HttpRetryRequestEntry.Request->GetResponse();
 	// invalid response means connection or network error but we need to know which one
 	if (!Response.IsValid())
 	{
 		// ONLY retry bad responses if they are connection errors (NOT protocol errors or unknown) otherwise request may be sent (and processed!) twice
-		EHttpRequestStatus::Type Status = HttpRetryRequestEntry.HttpRequest->GetRequestStatus();
+		EHttpRequestStatus::Type Status = HttpRetryRequestEntry.Request->GetStatus();
 		if (Status == EHttpRequestStatus::Failed_ConnectionError)
 		{
 			bResult = true;
@@ -43,7 +80,7 @@ bool FHttpRetrySystem::FManager::ShouldRetry(const FHttpRetryRequestEntry& HttpR
 		else if (Status == EHttpRequestStatus::Failed)
 		{
 			// we will also allow retry for GET and HEAD requests even if they may duplicate on the server
-			FString Verb = HttpRetryRequestEntry.HttpRequest->GetVerb();
+			FString Verb = HttpRetryRequestEntry.Request->GetVerb();
 			if (Verb == TEXT("GET") || Verb == TEXT("HEAD"))
 			{
 				bResult = true;
@@ -53,7 +90,7 @@ bool FHttpRetrySystem::FManager::ShouldRetry(const FHttpRetryRequestEntry& HttpR
 	else
 	{
 		// this may be a successful response with one of the explicitly listed response codes we want to retry on
-		if (HttpRetryRequestEntry.HttpRequest->RetryResponseCodes.Contains(Response->GetResponseCode()))
+		if (HttpRetryRequestEntry.Request->RetryResponseCodes.Contains(Response->GetResponseCode()))
 		{
 			bResult = true;
 		}
@@ -68,10 +105,10 @@ bool FHttpRetrySystem::FManager::CanRetry(const FHttpRetryRequestEntry& HttpRetr
 
     bool bShouldTestCurrentRetryCount = false;
     double RetryLimitCount = 0;
-    if (HttpRetryRequestEntry.HttpRequest->RetryLimitCountOverride.bUseValue)
+    if (HttpRetryRequestEntry.Request->RetryLimitCountOverride.bUseValue)
     {
         bShouldTestCurrentRetryCount = true;
-        RetryLimitCount = HttpRetryRequestEntry.HttpRequest->RetryLimitCountOverride.Value;
+        RetryLimitCount = HttpRetryRequestEntry.Request->RetryLimitCountOverride.Value;
     }
     else if (RetryLimitCountDefault.bUseValue)
     {
@@ -96,10 +133,10 @@ bool FHttpRetrySystem::FManager::HasTimedOut(const FHttpRetryRequestEntry& HttpR
 
     bool bShouldTestRetryTimeout = false;
     double RetryTimeoutAbsoluteSeconds = HttpRetryRequestEntry.RequestStartTimeAbsoluteSeconds;
-    if (HttpRetryRequestEntry.HttpRequest->RetryTimeoutRelativeSecondsOverride.bUseValue)
+    if (HttpRetryRequestEntry.Request->RetryTimeoutRelativeSecondsOverride.bUseValue)
     {
         bShouldTestRetryTimeout = true;
-        RetryTimeoutAbsoluteSeconds += HttpRetryRequestEntry.HttpRequest->RetryTimeoutRelativeSecondsOverride.Value;
+        RetryTimeoutAbsoluteSeconds += HttpRetryRequestEntry.Request->RetryTimeoutRelativeSecondsOverride.Value;
     }
     else if (RetryTimeoutRelativeSecondsDefault.bUseValue)
     {
@@ -186,9 +223,9 @@ bool FHttpRetrySystem::FManager::Update(uint32* FileCount, uint32* FailingCount,
 	while (index < RequestList.Num())
 	{
 		FHttpRetryRequestEntry& HttpRetryRequestEntry = RequestList[index];
-		TSharedRef<FHttpRetrySystem::FRequest>& HttpRetryRequest = HttpRetryRequestEntry.HttpRequest;
+		TSharedRef<FHttpRetrySystem::FRequest>& HttpRetryRequest = HttpRetryRequestEntry.Request;
 
-		EHttpRequestStatus::Type RequestStatus = HttpRetryRequest->HttpRequest->GetStatus();
+		EHttpRequestStatus::Type RequestStatus = HttpRetryRequest->GetStatus();
 
         if (!HasTimedOut(HttpRetryRequestEntry, NowAbsoluteSeconds))
 		{
@@ -318,7 +355,7 @@ bool FHttpRetrySystem::FManager::Update(uint32* FileCount, uint32* FailingCount,
 
 		if (bWasCompleted)
 		{
-			HttpRetryRequest->OnProcessRequestComplete().ExecuteIfBound(HttpRetryRequest, bWasSuccessful);
+			HttpRetryRequest->OnProcessRequestComplete().ExecuteIfBound(HttpRetryRequest, HttpRetryRequest->GetResponse(), bWasSuccessful);
 		}
 
         if(bWasSuccessful)
@@ -342,44 +379,35 @@ bool FHttpRetrySystem::FManager::Update(uint32* FileCount, uint32* FailingCount,
 	return bIsGreen;
 }
 
-FHttpRetrySystem::FManager::FHttpRetryRequestEntry::FHttpRetryRequestEntry(TSharedRef<FHttpRetrySystem::FRequest>& InHttpRequest)
+FHttpRetrySystem::FManager::FHttpRetryRequestEntry::FHttpRetryRequestEntry(TSharedRef<FHttpRetrySystem::FRequest>& InRequest)
     : bShouldCancel(false)
     , CurrentRetryCount(0)
 	, RequestStartTimeAbsoluteSeconds(FPlatformTime::Seconds())
-    , HttpRequest(InHttpRequest)
+	, Request(InRequest)
 {}
 
-bool FHttpRetrySystem::FManager::ProcessRequest(TSharedRef<FHttpRetrySystem::FRequest>& HttpRequest)
+bool FHttpRetrySystem::FManager::ProcessRequest(TSharedRef<FHttpRetrySystem::FRequest>& HttpRetryRequest)
 {
-	bool bResult = HttpRequest->ProcessRequest();
+	bool bResult = HttpRetryRequest->HttpRequest->ProcessRequest();
 
 	if (bResult)
 	{
-        RequestList.Add(FHttpRetryRequestEntry(HttpRequest));
+		RequestList.Add(FHttpRetryRequestEntry(HttpRetryRequest));
 	}
 
 	return bResult;
 }
 
-void FHttpRetrySystem::FManager::CancelRequest(TSharedRef<FHttpRetrySystem::FRequest>& HttpRequest)
+void FHttpRetrySystem::FManager::CancelRequest(TSharedRef<FHttpRetrySystem::FRequest>& HttpRetryRequest)
 {
     for (int32 i = 0; i < RequestList.Num(); ++i)
     {
         FHttpRetryRequestEntry& EntryRef = RequestList[i];
 
-        if(EntryRef.HttpRequest == HttpRequest)
+		if (EntryRef.Request == HttpRetryRequest)
         {
             EntryRef.bShouldCancel = true;
         }
     }
-    HttpRequest->CancelRequest();
-
-    /*
-    if (bResult)
-    {
-        RequestList.Add(FHttpRetryRequestEntry(HttpRequest));
-    }
-
-    return bResult;
-    */
+	HttpRetryRequest->HttpRequest->CancelRequest();
 }

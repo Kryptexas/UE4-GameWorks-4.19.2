@@ -23,6 +23,7 @@ public:
 	virtual bool IsPrivate() const = 0;
 	virtual bool IsJoined() const = 0;
 	virtual const class FChatRoomConfig& GetRoomConfig() const = 0;
+	virtual FString ToDebugString() const = 0;
 };
 
 /**
@@ -38,6 +39,11 @@ public:
 
 	bool bPasswordRequired;
 	FString Password;
+
+	FString ToDebugString() const
+	{
+		return FString::Printf(TEXT("bPassReqd: %d Pass: %s"), bPasswordRequired, *Password);
+	}
 
 private:
 	// Below are unused, move to public when hooking up to functionality
@@ -267,6 +273,16 @@ public:
 	virtual bool SendPrivateChat(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId, const FString& MsgBody) = 0;
 
 	/**
+	 * Determine if chat is allowed for a given user
+	 * 
+	 * @param UserId id of user that is sending the message
+	 * @param RecipientId id of user to send the chat to
+	 *
+	 * @return if chat is allowed
+	 */
+	virtual bool IsChatAllowed(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId) const = 0;
+
+	/**
 	 * Get cached list of rooms that have been joined
 	 * 
 	 * @param UserId id of user to find
@@ -317,6 +333,11 @@ public:
 	 * @return true if found
 	 */
 	virtual bool GetLastMessages(const FUniqueNetId& UserId, const FChatRoomId& RoomId, int32 NumMessages, TArray< TSharedRef<FChatMessage> >& OutMessages) = 0;
+
+	/**
+	 * Dump state information about chat rooms
+	 */
+	virtual void DumpChatState() const = 0;
 
 	// delegate callbacks (see declarations above)
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnChatRoomCreated, const FUniqueNetId&, const FChatRoomId&, bool, const FString&);

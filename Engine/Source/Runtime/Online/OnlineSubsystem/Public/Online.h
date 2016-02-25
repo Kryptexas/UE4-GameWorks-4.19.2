@@ -45,6 +45,13 @@ namespace Online
 	 */
 	IMPLEMENT_GET_INTERFACE(Party);
 
+	/**
+	 * Get the interface for accessing the chat services
+	 * @param SubsystemName - Name of the requested online service
+	 * @return Interface pointer for the appropriate party service
+	 */
+	IMPLEMENT_GET_INTERFACE(Chat);
+
 	/** 
 	 * Get the interface for accessing the player friends services
 	 * @param SubsystemName - Name of the requested online service

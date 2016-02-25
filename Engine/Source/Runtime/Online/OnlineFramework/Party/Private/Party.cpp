@@ -141,7 +141,7 @@ void UParty::OnLoginStatusChanged(int32 LocalUserNum, ELoginStatus::Type OldStat
 		}
 	}
 
-	PendingPartyJoin.Reset();
+	ClearPendingPartyJoin();
 }
 
 void UParty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -249,6 +249,11 @@ void UParty::NotifyPreClientTravel(const FString& PendingURL, ETravelType Travel
 		UPartyGameState* PartyState = JoinedParty.Value;
 		PartyState->PreClientTravel();
 	}
+}
+
+bool UParty::HasPendingPartyJoin()
+{
+	return PendingPartyJoin.IsValid();
 }
 
 UPartyGameState* UParty::GetParty(const FOnlinePartyId& InPartyId) const
@@ -1218,7 +1223,7 @@ void UParty::AddPendingPartyJoin(const FUniqueNetId& LocalUserId, const FPartyDe
 {
 	if (LocalUserId.IsValid() && PartyDetails.IsValid())
 	{
-		if (!PendingPartyJoin.IsValid())
+		if (!HasPendingPartyJoin())
 		{
 			PendingPartyJoin = MakeShareable(new FPendingPartyJoin(LocalUserId.AsShared(), PartyDetails, JoinCompleteDelegate));
 		}
@@ -1232,14 +1237,9 @@ void UParty::ClearPendingPartyJoin()
 
 bool UParty::ProcessPendingPartyJoin()
 {
-	if (PendingPartyJoin.IsValid() )
+	if (HasPendingPartyJoin())
 	{
-		// Copy the values out because PendingPartyInvite is going to be remade inside this function
-		TSharedRef<const FUniqueNetId> LocalUserId = PendingPartyJoin->LocalUserId;
-		FPartyDetails PartyDetails = PendingPartyJoin->PartyDetails;
-
 		HandlePendingJoin();
-
 		return true;
 	}
 

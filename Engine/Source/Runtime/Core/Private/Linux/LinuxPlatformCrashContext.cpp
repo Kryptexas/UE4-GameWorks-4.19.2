@@ -556,6 +556,7 @@ void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCra
 		SIGBUS, 
 		SIGSEGV, 
 		SIGSYS,
+		SIGTRAP,
 		0,	// marks the end of crash signals
 		SIGINT,
 		SIGTERM,

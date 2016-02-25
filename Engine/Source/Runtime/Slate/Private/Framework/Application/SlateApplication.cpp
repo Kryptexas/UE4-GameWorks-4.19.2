@@ -1335,14 +1335,6 @@ void FSlateApplication::Tick()
 		SCOPE_CYCLE_COUNTER(STAT_SlateTickTime);
 		SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
 
-
-	if (Renderer.IsValid())
-	{
-		// Release any temporary material or texture resources we may have cached and are reporting to prevent
-		// GC on those resources.  We don't need to force it, we just need to let the ones used last frame to
-		// be queued up to be released.
-		Renderer->ReleaseAccessedResources(/* Flush State */ false);
-	}
 		const float DeltaTime = GetDeltaTime();
 
 		TickPlatform(DeltaTime);
@@ -5082,6 +5074,8 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 
 	if ( !bIsSynthetic )
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ProcessMouseMove_Tooltip);
+
 		QueueSynthesizedMouseMove();
 
 		// Detecting a mouse move of zero delta is our way of filtering out synthesized move events
@@ -5101,7 +5095,14 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		? LocateWindowUnderMouse(MouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows())
 		: FWidgetPath();
 
-	return RoutePointerMoveEvent( WidgetsUnderCursor, MouseEvent, bIsSynthetic );
+	bool bResult;
+
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ProcessMouseMove_RoutePointerMoveEvent);
+		bResult = RoutePointerMoveEvent(WidgetsUnderCursor, MouseEvent, bIsSynthetic);
+	}
+
+	return bResult;
 }
 
 bool FSlateApplication::OnCursorSet()
@@ -5458,6 +5459,10 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 			LastUserInteractionTime = this->GetCurrentTime();
 		}
 		
+		// Widgets that happen to be under the mouse need to update if activation changes
+		// This also serves as a force redraw which is needed when restoring a window that was previously inactive.
+		QueueSynthesizedMouseMove();
+
 		// NOTE: The window is brought to front even when a modal window is active and this is not the modal window one of its children 
 		// The reason for this is so that the Slate window order is in sync with the OS window order when a modal window is open.  This is important so that when the modal window closes the proper window receives input from Slate.
 		// If you change this be sure to test windows are activated properly and receive input when they are opened when a modal dialog is open.
@@ -5496,6 +5501,9 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 			// This allows us to force ourselves back to the correct resolution after alt-tabbing out of a fullscreen
 			// window and then going back in again.
 			Renderer->RestoreSystemResolution(ActivateEvent.GetAffectedWindow());
+
+			// Synthesize mouse move to resume rendering in the next tick if Slate is sleeping
+			QueueSynthesizedMouseMove();
 		}
 		else
 		{

@@ -20,6 +20,7 @@
 #include "Materials/MaterialExpressionStaticSwitchParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionSceneColor.h"
 #include "MaterialUniformExpressions.h"
 #include "Engine/SubsurfaceProfile.h"
 #include "EditorSupportDelegates.h"
@@ -3210,6 +3211,24 @@ void UMaterial::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 bool UMaterial::CanBeClusterRoot() const 
 {
 	return true;
+}
+
+void UMaterial::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	// Search for any scene color nodes
+	bool bHasSceneColor = false;
+	for (const UMaterialExpression* Expression : Expressions)
+	{
+		if (Expression->IsA<UMaterialExpressionSceneColor>())
+		{
+			bHasSceneColor = true;
+			break;
+		}
+	}
+
+	OutTags.Add(FAssetRegistryTag("HasSceneColor", bHasSceneColor ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+
+	Super::GetAssetRegistryTags(OutTags);
 }
 
 #if WITH_EDITOR

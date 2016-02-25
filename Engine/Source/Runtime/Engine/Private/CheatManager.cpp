@@ -991,6 +991,15 @@ void UCheatManager::DumpPartyState()
 	}
 }
 
+void UCheatManager::DumpChatState()
+{
+	IOnlineChatPtr ChatInt = Online::GetChatInterface(GetWorld());
+	if (ChatInt.IsValid())
+	{
+		ChatInt->DumpChatState();
+	}
+}
+
 void UCheatManager::DumpVoiceMutingState()
 {
 	UE_LOG(LogCheatManager, Display, TEXT(""));

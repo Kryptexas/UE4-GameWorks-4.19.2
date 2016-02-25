@@ -288,7 +288,6 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	for (auto& It : This->TextureToInstancesMap)
 	{
 		UTexture2D* Texture2D = It.Key;
-		TexturesToRemove.Add(Texture2D);
 		Collector.AddReferencedObject(Texture2D, This);
 		if (!Texture2D)
 		{

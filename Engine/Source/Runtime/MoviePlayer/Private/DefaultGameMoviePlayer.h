@@ -77,9 +77,6 @@ private:
 	/** The widget which holds the loading screen widget passed in via the FLoadingScreenAttributes */
 	TSharedPtr<class SBorder> LoadingScreenWidgetHolder;
 
-	/** Controls access to the sync mechanism across threads */
-	FCriticalSection SyncMechanismCriticalSection;
-
 	/** The threading mechanism with which we handle running slate on another thread */
 	class FSlateLoadingSynchronizationMechanism* SyncMechanism;
 
@@ -102,7 +99,11 @@ private:
 
 	/** True if the movie player has been initialized */
 	bool bInitialized;
+
 private:
 	/** Singleton handle */
 	static TSharedPtr<FDefaultGameMoviePlayer> MoviePlayer;
+
+	/** Critical section to allow the slate loading thread and the render thread to safely utilize the synchronization mechanism for ticking Slate. */
+	FCriticalSection SyncMechanismCriticalSection;
 };

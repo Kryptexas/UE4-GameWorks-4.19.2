@@ -3735,57 +3735,63 @@ int32 FStreamingManagerTexture::StreamoutTextures( FStreamoutLogic StreamoutLogi
 	for ( ; AvailableLater < 0 && Index > StopIndex && TempMemoryUsed < MaxTempMemoryUsed; --Index )
 	{
 		const FTexturePriority& TexturePriority = PrioritizedTextures[ Index ];
-		FStreamingTexture& StreamingTexture = StreamingTextures[ TexturePriority.TextureIndex ];
-
-		// Check that this texture hasn't been marked for removal, and that we can perform streaming actions on it.
-		if ( StreamingTexture.Texture != NULL && StreamingTexture.bReadyForStreaming )
+		
+		// Because deleted textures can shrink StreamingTextures, we need to check that the index is in range.
+		// Even if it is, because of the RemoveSwap logic, it could refer to the wrong texture now.
+		if (TexturePriority.TextureIndex < StreamingTextures.Num() && TexturePriority.Texture == StreamingTextures[TexturePriority.TextureIndex].Texture)
 		{
-			if ( StreamingTexture.bInFlight )
+			FStreamingTexture& StreamingTexture = StreamingTextures[ TexturePriority.TextureIndex ];
+
+			// Check that this texture hasn't been marked for removal, and that we can perform streaming actions on it.
+			if ( StreamingTexture.Texture != NULL && StreamingTexture.bReadyForStreaming )
 			{
-				// Cancel load operation?
-				bool bIsLoadRequest = StreamingTexture.RequestedMips > StreamingTexture.ResidentMips;
-				if ( bIsLoadRequest &&
-					 (StreamoutLogic == StreamOut_AllMips ||
-					 (StreamoutLogic == StreamOut_UnwantedMips && StreamingTexture.RequestedMips > StreamingTexture.WantedMips) ) )
+				if ( StreamingTexture.bInFlight )
 				{
-					// Try to cancel.
-					bool bCancelled = CancelStreamingRequest( StreamingTexture );
-					if ( bCancelled )
+					// Cancel load operation?
+					bool bIsLoadRequest = StreamingTexture.RequestedMips > StreamingTexture.ResidentMips;
+					if ( bIsLoadRequest &&
+						 (StreamoutLogic == StreamOut_AllMips ||
+						 (StreamoutLogic == StreamOut_UnwantedMips && StreamingTexture.RequestedMips > StreamingTexture.WantedMips) ) )
 					{
-						int64 CurrentSize = StreamingTexture.GetSize( StreamingTexture.ResidentMips );
-						int64 StreamSize = StreamingTexture.GetSize( StreamingTexture.RequestedMips ) - CurrentSize;
+						// Try to cancel.
+						bool bCancelled = CancelStreamingRequest( StreamingTexture );
+						if ( bCancelled )
+						{
+							int64 CurrentSize = StreamingTexture.GetSize( StreamingTexture.ResidentMips );
+							int64 StreamSize = StreamingTexture.GetSize( StreamingTexture.RequestedMips ) - CurrentSize;
+							AvailableLater += StreamSize;
+						}
+					}
+				}
+				else
+				{
+					int32 WantedMips = ( StreamoutLogic == StreamOut_AllMips ) ?  StreamingTexture.MinAllowedMips : StreamingTexture.WantedMips;
+
+					// Note: When first attempting streamout, RequestedMips == ResidentMips. After the first attempt, it will be what we attempted last.
+					int32 CurrentMips = StreamingTexture.RequestedMips;
+
+					// Can we stream out this texture?
+					if ( WantedMips < CurrentMips )
+					{
+						//@TODO: Temp memory used=0 when using in-place reallocation. Though this is conservative and should be fine.
+						int64 CurrentSize = StreamingTexture.GetSize( CurrentMips );
+						int64 StreamSize = CurrentSize - StreamingTexture.GetSize( WantedMips );
 						AvailableLater += StreamSize;
+						TempMemoryUsed += CurrentSize;
+
+						// If we haven't added it to the request array yet, do so now.
+						if ( StreamingTexture.RequestedMips == StreamingTexture.ResidentMips )
+						{
+							StreamingRequests.Add( TexturePriority.TextureIndex );
+						}
+						StreamingTexture.RequestedMips = WantedMips;
 					}
-				}
-			}
-			else
-			{
-				int32 WantedMips = ( StreamoutLogic == StreamOut_AllMips ) ?  StreamingTexture.MinAllowedMips : StreamingTexture.WantedMips;
 
-				// Note: When first attempting streamout, RequestedMips == ResidentMips. After the first attempt, it will be what we attempted last.
-				int32 CurrentMips = StreamingTexture.RequestedMips;
-
-				// Can we stream out this texture?
-				if ( WantedMips < CurrentMips )
-				{
-					//@TODO: Temp memory used=0 when using in-place reallocation. Though this is conservative and should be fine.
-					int64 CurrentSize = StreamingTexture.GetSize( CurrentMips );
-					int64 StreamSize = CurrentSize - StreamingTexture.GetSize( WantedMips );
-					AvailableLater += StreamSize;
-					TempMemoryUsed += CurrentSize;
-
-					// If we haven't added it to the request array yet, do so now.
-					if ( StreamingTexture.RequestedMips == StreamingTexture.ResidentMips )
+					// Can stream out more from this texture later, if we need to?
+					if ( StreamingTexture.RequestedMips > StreamingTexture.MinAllowedMips )
 					{
-						StreamingRequests.Add( TexturePriority.TextureIndex );
+						bBumpLowPrioIndex = false;
 					}
-					StreamingTexture.RequestedMips = WantedMips;
-				}
-
-				// Can stream out more from this texture later, if we need to?
-				if ( StreamingTexture.RequestedMips > StreamingTexture.MinAllowedMips )
-				{
-					bBumpLowPrioIndex = false;
 				}
 			}
 		}

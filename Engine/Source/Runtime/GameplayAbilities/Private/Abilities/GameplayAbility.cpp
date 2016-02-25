@@ -168,7 +168,8 @@ bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemCom
 	// Check to see the required/blocked tags for this ability
 	if (ActivationBlockedTags.Num() || ActivationRequiredTags.Num())
 	{
-		FGameplayTagContainer AbilitySystemComponentTags;
+		static FGameplayTagContainer AbilitySystemComponentTags;
+		AbilitySystemComponentTags.Reset();
 
 		AbilitySystemComponent.GetOwnedGameplayTags(AbilitySystemComponentTags);
 
@@ -246,7 +247,9 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handl
 	}
 
 	//make into a reference for simplicity
-	FGameplayTagContainer DummyContainer;
+	static FGameplayTagContainer DummyContainer;
+	DummyContainer.Reset();
+
 	FGameplayTagContainer& OutTags = OptionalRelevantTags ? *OptionalRelevantTags : DummyContainer;
 
 	// make sure the ActorInfo and its ability system component are valid, if not bail out.

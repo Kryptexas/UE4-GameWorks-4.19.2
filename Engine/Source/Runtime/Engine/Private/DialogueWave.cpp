@@ -10,6 +10,24 @@
 #include "InternationalizationMetadata.h"
 #include "Sound/DialogueVoice.h"
 
+namespace DialogueConstants
+{
+	const FString DialogueNamespace						= TEXT("Dialogue");
+
+#if WITH_EDITORONLY_DATA
+	const FString PropertyName_AudioFile				= TEXT("AudioFile");
+	const FString PropertyName_VoiceActorDirection		= TEXT("VoiceActorDirection");
+	const FString PropertyName_Speaker					= TEXT("Speaker");
+	const FString PropertyName_Targets					= TEXT("Targets");
+	const FString PropertyName_GrammaticalGender		= TEXT("Gender");
+	const FString PropertyName_GrammaticalPlurality		= TEXT("Plurality");
+	const FString PropertyName_TargetGrammaticalGender	= TEXT("TargetGender");
+	const FString PropertyName_TargetGrammaticalNumber	= TEXT("TargetPlurality");
+	const FString PropertyName_DialogueContext			= TEXT("Context");
+	const FString PropertyName_IsMature					= TEXT("IsMature");
+#endif //WITH_EDITORONLY_DATA
+}
+
 #if WITH_EDITORONLY_DATA
 namespace
 {
@@ -17,203 +35,138 @@ namespace
 	class FDialogueHelper
 	{
 	public:
-		bool ProcessDialogueWave( const UDialogueWave* DialogueWave );
-		const FString& GetSpokenSource() const { return SpokenSource; }
-
-		const FTextSourceSiteContext& GetBaseContext() const { return Base; };
+		bool ProcessDialogueWave(const UDialogueWave* DialogueWave);
 		const TArray<FTextSourceSiteContext>& GetContextSpecificVariations() const { return ContextSpecificVariations; }
 
 	private:
-		TSharedPtr< FLocMetadataValue > GenSourceTargetMetadata( const FString& SpeakerName, const TArray< FString >& TargetNames, bool bCompact = true );
-		FString ArrayMetaDataToString( const TArray< TSharedPtr< FLocMetadataValue > >& MetadataArray );
-		FString GetDialogueVoiceName( const UDialogueVoice* DialogueVoice );
-		FString GetGrammaticalGenderString( TEnumAsByte<EGrammaticalGender::Type> Gender );
-		FString GetGrammaticalNumberString( TEnumAsByte<EGrammaticalNumber::Type> Plurality );
-
-	public:
-		static const FString DialogueNamespace;
-		static const FString PropertyName_VoiceActorDirection;
-		static const FString PropertyName_Speaker;
-		static const FString PropertyName_Speakers;
-		static const FString PropertyName_Targets;
-		static const FString PropertyName_GrammaticalGender;
-		static const FString PropertyName_GrammaticalPlurality;
-		static const FString PropertyName_TargetGrammaticalGender;
-		static const FString PropertyName_TargetGrammaticalNumber;
-		static const FString PropertyName_Optional;
-		static const FString PropertyName_DialogueVariations;
-		static const FString PropertyName_IsMature;
+		static TSharedPtr<FLocMetadataValue> GetVoicesMetadata(const FString& SpeakerName, const TArray<FString>& TargetNames, bool bCompact = true);
+		static FString GetDialogueVoiceName(const UDialogueVoice* DialogueVoice);
+		static FString GetGrammaticalGenderString(const EGrammaticalGender::Type Gender);
+		static FString GetGrammaticalNumberString(const EGrammaticalNumber::Type Plurality);
 
 	private:
-		FString DialogueKey;
-		FString SourceLocation;
-		FString SpokenSource;
-		FString VoiceActorDirection;
-		bool bIsMature;
-
-		// The non-optional entry
-		FTextSourceSiteContext Base;
-		// Optional entries that are context specific
-		TArray< FTextSourceSiteContext > ContextSpecificVariations;
+		// Context specific entries
+		TArray<FTextSourceSiteContext> ContextSpecificVariations;
 	};
 
-	const FString FDialogueHelper::DialogueNamespace						= TEXT("");
-	const FString FDialogueHelper::PropertyName_VoiceActorDirection		= TEXT("Voice Actor Direction");
-	const FString FDialogueHelper::PropertyName_Speaker					= TEXT("Speaker");
-	const FString FDialogueHelper::PropertyName_Speakers					= TEXT("Speakers");
-	const FString FDialogueHelper::PropertyName_Targets					= TEXT("Targets");
-	const FString FDialogueHelper::PropertyName_GrammaticalGender			= TEXT("Gender");
-	const FString FDialogueHelper::PropertyName_GrammaticalPlurality		= TEXT("Plurality");
-	const FString FDialogueHelper::PropertyName_TargetGrammaticalGender	= TEXT("TargetGender");
-	const FString FDialogueHelper::PropertyName_TargetGrammaticalNumber	= TEXT("TargetPlurality");
-	const FString FDialogueHelper::PropertyName_Optional					= TEXT("Optional");
-	const FString FDialogueHelper::PropertyName_DialogueVariations			= TEXT("Variations");
-	const FString FDialogueHelper::PropertyName_IsMature					= TEXT("*IsMature");
-
-	bool FDialogueHelper::ProcessDialogueWave( const UDialogueWave* DialogueWave )
+	bool FDialogueHelper::ProcessDialogueWave(const UDialogueWave* DialogueWave)
 	{
-		if( !DialogueWave )
+		if (!DialogueWave)
 		{
 			return false;
 		}
 
-		DialogueKey = DialogueWave->LocalizationGUID.ToString();
-		SourceLocation = DialogueWave->GetPathName();
-		SpokenSource = DialogueWave->SpokenText;
-		VoiceActorDirection = DialogueWave->VoiceActorDirection;
-		bIsMature = DialogueWave->bMature;
+		const FString DialogueKey = DialogueWave->LocalizationGUID.ToString();
+		const FString SourceLocation = DialogueWave->GetPathName();
+		const FString VoiceActorDirection = DialogueWave->VoiceActorDirection;
+		const bool bIsMature = DialogueWave->bMature;
 
-		// Stores the human readable info describing source and targets for each context of this DialogueWave
-		TArray< TSharedPtr< FLocMetadataValue > > VariationsDisplayInfoList;
-
-		for( const FDialogueContextMapping& ContextMapping : DialogueWave->ContextMappings )
+		for (const FDialogueContextMapping& ContextMapping : DialogueWave->ContextMappings)
 		{
 			const FDialogueContext& DialogueContext = ContextMapping.Context;
 			const UDialogueVoice* SpeakerDialogueVoice = DialogueContext.Speaker;
 
 			// Skip over entries with invalid speaker
-			if( !SpeakerDialogueVoice )
+			if (!SpeakerDialogueVoice)
 			{
 				continue;
 			}
 
 			// Collect speaker info
-			FString SpeakerDisplayName = GetDialogueVoiceName( SpeakerDialogueVoice );
-			FString SpeakerGender = GetGrammaticalGenderString( SpeakerDialogueVoice->Gender );
-			FString SpeakerPlurality = GetGrammaticalNumberString( SpeakerDialogueVoice->Plurality );
-			FString SpeakerGuid = SpeakerDialogueVoice->LocalizationGUID.ToString();
+			const FString SpeakerDisplayName = GetDialogueVoiceName(SpeakerDialogueVoice);
+			const FString SpeakerGender = GetGrammaticalGenderString(SpeakerDialogueVoice->Gender);
+			const FString SpeakerPlurality = GetGrammaticalNumberString(SpeakerDialogueVoice->Plurality);
+			const FString SpeakerGuid = SpeakerDialogueVoice->LocalizationGUID.ToString();
 
-			EGrammaticalGender::Type AccumulatedTargetGender = (EGrammaticalGender::Type)-1;
-			EGrammaticalNumber::Type AccumulatedTargetPlurality = (EGrammaticalNumber::Type)-1;
+			TOptional<EGrammaticalGender::Type> AccumulatedTargetGender;
+			TOptional<EGrammaticalNumber::Type> AccumulatedTargetPlurality;
 
 			TArray<FString> TargetGuidsList;
 			TArray<FString> TargetDisplayNameList;
 
 			// Collect info on all the targets
-			bool HasTarget = false;
-			for( const UDialogueVoice* TargetDialogueVoice : DialogueContext.Targets )
+			for (const UDialogueVoice* TargetDialogueVoice : DialogueContext.Targets)
 			{
-				if( TargetDialogueVoice )
+				if (TargetDialogueVoice)
 				{
-					FString TargetDisplayName = GetDialogueVoiceName( TargetDialogueVoice );
-					TargetDisplayNameList.AddUnique( TargetDisplayName );
-					FString TargetGender = GetGrammaticalGenderString( TargetDialogueVoice->Gender );
-					FString TargetPlurality = GetGrammaticalNumberString( TargetDialogueVoice->Plurality );
-					FString TargetGuid = TargetDialogueVoice->LocalizationGUID.ToString();
+					const FString TargetDisplayName = GetDialogueVoiceName(TargetDialogueVoice);
+					const FString TargetGender = GetGrammaticalGenderString(TargetDialogueVoice->Gender);
+					const FString TargetPlurality = GetGrammaticalNumberString(TargetDialogueVoice->Plurality);
+					const FString TargetGuid = TargetDialogueVoice->LocalizationGUID.ToString();
 
-					TargetGuidsList.AddUnique( TargetGuid );
+					TargetDisplayNameList.AddUnique(TargetDisplayName);
+					TargetGuidsList.AddUnique(TargetGuid);
 
-					if( AccumulatedTargetGender == -1)
+					if (!AccumulatedTargetGender.IsSet())
 					{
 						AccumulatedTargetGender = TargetDialogueVoice->Gender;
 					}
-					else if( AccumulatedTargetGender != TargetDialogueVoice->Gender )
+					else if (AccumulatedTargetGender.GetValue() != TargetDialogueVoice->Gender)
 					{
 						AccumulatedTargetGender = EGrammaticalGender::Mixed;
 					}
 
-					if( AccumulatedTargetPlurality == -1 )
+					if (!AccumulatedTargetPlurality.IsSet())
 					{
 						AccumulatedTargetPlurality = TargetDialogueVoice->Plurality;
 					}
-					else if( AccumulatedTargetPlurality == EGrammaticalNumber::Singular )
+					else if (AccumulatedTargetPlurality.GetValue() == EGrammaticalNumber::Singular)
 					{
 						AccumulatedTargetPlurality = EGrammaticalNumber::Plural;
 					}
-
-					HasTarget = true;
 				}
 			}
 
-			FString FinalTargetGender = HasTarget ? GetGrammaticalGenderString( AccumulatedTargetGender ) : TEXT("");
-			FString FinalTargetPlurality = HasTarget ? GetGrammaticalNumberString( AccumulatedTargetPlurality ) : TEXT("");
+			const FString FinalTargetGender = AccumulatedTargetGender.IsSet() ? GetGrammaticalGenderString(AccumulatedTargetGender.GetValue()) : TEXT("");
+			const FString FinalTargetPlurality = AccumulatedTargetPlurality.IsSet() ? GetGrammaticalNumberString(AccumulatedTargetPlurality.GetValue()) : TEXT("");
+
+			FTextSourceSiteContext& Context = ContextSpecificVariations[ContextSpecificVariations.AddDefaulted()];
+
+			// Setup the variation context
+			Context.KeyName = DialogueWave->GetContextLocalizationKey(ContextMapping);
+			Context.SiteDescription = SourceLocation;
+			Context.IsOptional = false;
 
 			// Add the context specific variation
 			{
-				TSharedPtr< FLocMetadataObject > KeyMetaDataObject = MakeShareable( new FLocMetadataObject() );
-
 				// Setup a loc metadata object with all the context specific keys.
 				{
-					KeyMetaDataObject->SetStringField( PropertyName_GrammaticalGender, SpeakerGender );
-					KeyMetaDataObject->SetStringField( PropertyName_GrammaticalPlurality, SpeakerPlurality );
-					KeyMetaDataObject->SetStringField( PropertyName_Speaker, SpeakerGuid );
-					KeyMetaDataObject->SetStringField( PropertyName_TargetGrammaticalGender, FinalTargetGender );
-					KeyMetaDataObject->SetStringField( PropertyName_TargetGrammaticalNumber, FinalTargetPlurality );
+					Context.KeyMetaData.SetStringField(DialogueConstants::PropertyName_GrammaticalGender, SpeakerGender);
+					Context.KeyMetaData.SetStringField(DialogueConstants::PropertyName_GrammaticalPlurality, SpeakerPlurality);
+					Context.KeyMetaData.SetStringField(DialogueConstants::PropertyName_Speaker, SpeakerGuid);
+					Context.KeyMetaData.SetStringField(DialogueConstants::PropertyName_TargetGrammaticalGender, FinalTargetGender);
+					Context.KeyMetaData.SetStringField(DialogueConstants::PropertyName_TargetGrammaticalNumber, FinalTargetPlurality);
 
-					TArray< TSharedPtr< FLocMetadataValue > > TargetGuidsMetadata;
-					for( FString& TargetGuid : TargetGuidsList )
+					TArray<TSharedPtr<FLocMetadataValue>> TargetGuidsMetadata;
+					for (const FString& TargetGuid : TargetGuidsList)
 					{
-						TargetGuidsMetadata.Add( MakeShareable( new FLocMetadataValueString( TargetGuid ) ) );
+						TargetGuidsMetadata.Add(MakeShareable(new FLocMetadataValueString(TargetGuid)));
 					}
 
-					KeyMetaDataObject->SetArrayField( PropertyName_Targets, TargetGuidsMetadata );
+					Context.KeyMetaData.SetArrayField(DialogueConstants::PropertyName_Targets, TargetGuidsMetadata);
 				}
-
-				// Create the human readable info that describes the source and target of this dialogue
-				TSharedPtr< FLocMetadataValue > SourceTargetInfo = GenSourceTargetMetadata( SpeakerDisplayName, TargetDisplayNameList );
-
-				TSharedPtr< FLocMetadataObject > InfoMetaDataObject = MakeShareable( new FLocMetadataObject() );
 
 				// Setup a loc metadata object with all the context specific info.  This usually includes human readable descriptions of the dialogue
 				{
-					if( SourceTargetInfo.IsValid() )
+					// Create the human readable info that describes the source and target voices of this dialogue
+					TSharedPtr<FLocMetadataValue> VoicesMetadata = GetVoicesMetadata(SpeakerDisplayName, TargetDisplayNameList);
+					if (VoicesMetadata.IsValid())
 					{
-						InfoMetaDataObject->SetField( PropertyName_DialogueVariations, SourceTargetInfo );
+						Context.InfoMetaData.SetField(DialogueConstants::PropertyName_DialogueContext, VoicesMetadata);
 					}
 
-					if( !VoiceActorDirection.IsEmpty() )
+					if (!VoiceActorDirection.IsEmpty())
 					{
-						InfoMetaDataObject->SetStringField( PropertyName_VoiceActorDirection, VoiceActorDirection );
+						Context.InfoMetaData.SetStringField(DialogueConstants::PropertyName_VoiceActorDirection, VoiceActorDirection);
 					}
-				}
 
-
-				FTextSourceSiteContext& Context = *(new(ContextSpecificVariations) FTextSourceSiteContext);
-
-				// Setup the context
-				{
-					Context.KeyName = DialogueWave->GetContextLocalizationKey( DialogueContext );
-					Context.SiteDescription = SourceLocation;
-					Context.IsOptional = false;
-					Context.KeyMetaData = KeyMetaDataObject->Values.Num() > 0 ? *KeyMetaDataObject : FLocMetadataObject();
-					Context.InfoMetaData = InfoMetaDataObject->Values.Num() > 0 ? *InfoMetaDataObject : FLocMetadataObject();
-				}
-
-				{
-					// Add human readable info describing the source and targets of this dialogue to the non-optional manifest entry if it does not exist already
-					bool bAddContextDisplayInfoToBase = true;
-					for( TSharedPtr< FLocMetadataValue > VariationInfo : VariationsDisplayInfoList )
+					const FString AudioFile = DialogueWave->GetContextRecordedAudioFilename(ContextMapping);
+					if (!AudioFile.IsEmpty())
 					{
-						if( *SourceTargetInfo == *VariationInfo)
-						{
-							bAddContextDisplayInfoToBase = false;
-							break;
-						}
+						Context.InfoMetaData.SetStringField(DialogueConstants::PropertyName_AudioFile, AudioFile);
 					}
-					if( bAddContextDisplayInfoToBase )
-					{
-						VariationsDisplayInfoList.Add( SourceTargetInfo );
-					}
+
+					//Context.InfoMetaData.SetBoolField(DialogueConstants::PropertyName_IsMature, bIsMature);
 				}
 			}
 		}
@@ -221,133 +174,100 @@ namespace
 		return true;
 	}
 
-	FString FDialogueHelper::GetGrammaticalNumberString(TEnumAsByte<EGrammaticalNumber::Type> Plurality)
-	{
-		switch(Plurality)
-		{
-		case EGrammaticalNumber::Singular:
-			return TEXT("Singular");
-			break;
-		case EGrammaticalNumber::Plural:
-			return TEXT("Plural");
-			break;
-		default:
-			return FString();
-		}
-	}
-
-	FString FDialogueHelper::GetGrammaticalGenderString(TEnumAsByte<EGrammaticalGender::Type> Gender)
-	{
-		switch(Gender)
-		{
-		case EGrammaticalGender::Neuter:
-			return TEXT("Neuter");
-			break;
-		case EGrammaticalGender::Masculine:
-			return TEXT("Masculine");
-			break;
-		case EGrammaticalGender::Feminine:
-			return TEXT("Feminine");
-			break;
-		case EGrammaticalGender::Mixed:
-			return TEXT("Mixed");
-			break;
-		default:
-			return TEXT("");
-		}
-	}
-
-	FString FDialogueHelper::GetDialogueVoiceName( const UDialogueVoice* DialogueVoice )
-	{
-		FString Name = DialogueVoice->GetName();
-		return Name;
-	}
-
-	FString FDialogueHelper::ArrayMetaDataToString( const TArray< TSharedPtr< FLocMetadataValue > >& MetadataArray )
-	{
-		FString FinalString;
-		if( MetadataArray.Num() > 0 )
-		{
-			TArray< FString > MetadataStrings;
-			for( TSharedPtr< FLocMetadataValue > DataEntry : MetadataArray )
-			{
-				if( DataEntry->Type == ELocMetadataType::String )
-				{
-					MetadataStrings.Add(DataEntry->AsString());
-				}
-			}
-			MetadataStrings.Sort();
-			for( const FString& StrEntry : MetadataStrings )
-			{
-				if(FinalString.Len())
-				{
-					FinalString += TEXT(",");
-				}
-				FinalString += StrEntry;
-			}
-		}
-		return FinalString;
-	}
-
-	TSharedPtr< FLocMetadataValue > FDialogueHelper::GenSourceTargetMetadata( const FString& SpeakerName, const TArray< FString >& TargetNames, bool bCompact )
+	TSharedPtr<FLocMetadataValue> FDialogueHelper::GetVoicesMetadata(const FString& SpeakerName, const TArray<FString>& TargetNames, bool bCompact)
 	{
 		/*
 		This function can support two different formats.
 
 		The first format is compact and results in string entries that will later be combined into something like this
 		"Variations": [
-		"Jenny -> Audience",
-		"Zak -> Audience"
+			"Jenny -> Audience",
+			"Zak -> Audience"
 		]
 
 		The second format is verbose and results in object entries that will later be combined into something like this
 		"VariationsTest": [
-		{
-		"Speaker": "Jenny",
-		"Targets": [
-		"Audience"
-		]
-		},
-		{
-		"Speaker": "Zak",
-		"Targets": [
-		"Audience"
-		]
-		}
+			{
+				"Speaker": "Jenny",
+				"Targets": [
+					"Audience"
+					]
+			},
+			{
+				"Speaker": "Zak",
+				"Targets": [
+					"Audience"
+					]
+			}
 		]
 		*/
 
-		TSharedPtr< FLocMetadataValue > Result;
-		if( bCompact )
+		TSharedPtr<FLocMetadataValue> Result;
+		if (bCompact)
 		{
 			TArray<FString> SortedTargetNames = TargetNames;
 			SortedTargetNames.Sort();
 			FString TargetNamesString;
-			for( const FString& StrEntry : SortedTargetNames )
+			for (const FString& StrEntry : SortedTargetNames)
 			{
-				if(TargetNamesString.Len())
+				if (TargetNamesString.Len())
 				{
 					TargetNamesString += TEXT(",");
 				}
 				TargetNamesString += StrEntry;
 			}
-			Result = MakeShareable( new FLocMetadataValueString( FString::Printf( TEXT("%s -> %s" ), *SpeakerName, *TargetNamesString ) ) );
+			Result = MakeShareable(new FLocMetadataValueString(FString::Printf(TEXT("%s -> %s"), *SpeakerName, *TargetNamesString)));
 		}
 		else
 		{
-			TArray< TSharedPtr< FLocMetadataValue > > TargetNamesMetadataList;
-			for( const FString& StrEntry: TargetNames )
+			TArray<TSharedPtr<FLocMetadataValue>> TargetNamesMetadataList;
+			for (const FString& StrEntry : TargetNames)
 			{
-				TargetNamesMetadataList.Add( MakeShareable( new FLocMetadataValueString( StrEntry ) ) );
+				TargetNamesMetadataList.Add(MakeShareable(new FLocMetadataValueString(StrEntry)));
 			}
 
-			TSharedPtr< FLocMetadataObject > MetadataObj = MakeShareable( new FLocMetadataObject() );
-			MetadataObj->SetStringField( PropertyName_Speaker, SpeakerName );
-			MetadataObj->SetArrayField( PropertyName_Targets, TargetNamesMetadataList );
+			TSharedPtr<FLocMetadataObject> MetadataObj = MakeShareable(new FLocMetadataObject());
+			MetadataObj->SetStringField(DialogueConstants::PropertyName_Speaker, SpeakerName);
+			MetadataObj->SetArrayField(DialogueConstants::PropertyName_Targets, TargetNamesMetadataList);
 
-			Result = MakeShareable( new FLocMetadataValueObject( MetadataObj.ToSharedRef() ) );
+			Result = MakeShareable(new FLocMetadataValueObject(MetadataObj.ToSharedRef()));
 		}
 		return Result;
+	}
+
+	FString FDialogueHelper::GetDialogueVoiceName(const UDialogueVoice* DialogueVoice)
+	{
+		return DialogueVoice->GetName();
+	}
+
+	FString FDialogueHelper::GetGrammaticalGenderString(const EGrammaticalGender::Type Gender)
+	{
+		switch (Gender)
+		{
+		case EGrammaticalGender::Neuter:
+			return TEXT("Neuter");
+		case EGrammaticalGender::Masculine:
+			return TEXT("Masculine");
+		case EGrammaticalGender::Feminine:
+			return TEXT("Feminine");
+		case EGrammaticalGender::Mixed:
+			return TEXT("Mixed");
+		default:
+			return FString();
+		}
+	}
+
+	FString FDialogueHelper::GetGrammaticalNumberString(const EGrammaticalNumber::Type Plurality)
+	{
+		switch (Plurality)
+		{
+		case EGrammaticalNumber::Singular:
+			return TEXT("Singular");
+		case EGrammaticalNumber::Plural:
+			return TEXT("Plural");
+		default:
+			return FString();
+		}
 	}
 
 	void GatherDialogueWaveForLocalization(const UObject* const Object, FPropertyLocalizationDataGatherer& PropertyLocalizationDataGatherer, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
@@ -357,11 +277,11 @@ namespace
 		PropertyLocalizationDataGatherer.GatherLocalizationDataFromObject(DialogueWave, GatherTextFlags);
 
 		FDialogueHelper DialogueHelper;
-		if( DialogueHelper.ProcessDialogueWave( DialogueWave ) )
+		if (DialogueHelper.ProcessDialogueWave(DialogueWave))
 		{
-			const FString& SpokenSource = DialogueHelper.GetSpokenSource();
+			const FString& SpokenSource = DialogueWave->SpokenText;
 
-			if( !SpokenSource.IsEmpty() )
+			if (!SpokenSource.IsEmpty())
 			{
 				FTextSourceData SourceData;
 				{
@@ -371,35 +291,29 @@ namespace
 				auto& GatherableTextDataArray = PropertyLocalizationDataGatherer.GetGatherableTextDataArray();
 				FGatherableTextData* GatherableTextData = GatherableTextDataArray.FindByPredicate([&](const FGatherableTextData& Candidate)
 				{
-					return Candidate.NamespaceName.Equals(DialogueHelper.DialogueNamespace, ESearchCase::CaseSensitive)
-						&& Candidate.SourceData.SourceString.Equals(SourceData.SourceString, ESearchCase::CaseSensitive) 
+					return Candidate.NamespaceName.Equals(DialogueConstants::DialogueNamespace, ESearchCase::CaseSensitive)
+						&& Candidate.SourceData.SourceString.Equals(SourceData.SourceString, ESearchCase::CaseSensitive)
 						&& Candidate.SourceData.SourceStringMetaData == SourceData.SourceStringMetaData;
 				});
-				if(!GatherableTextData)
+				if (!GatherableTextData)
 				{
 					GatherableTextData = &GatherableTextDataArray[GatherableTextDataArray.AddDefaulted()];
-					GatherableTextData->NamespaceName = DialogueHelper.DialogueNamespace;
+					GatherableTextData->NamespaceName = DialogueConstants::DialogueNamespace;
 					GatherableTextData->SourceData = SourceData;
 				}
 
 				{
-					const FTextSourceSiteContext& Base = DialogueHelper.GetBaseContext();
-
-					GatherableTextData->SourceSiteContexts.Add(FTextSourceSiteContext(Base));
-				}
-
-				{
 					const TArray<FTextSourceSiteContext>& Variations = DialogueHelper.GetContextSpecificVariations();
-					for( const FTextSourceSiteContext& Variation : Variations )
+					for (const FTextSourceSiteContext& Variation : Variations)
 					{
-						GatherableTextData->SourceSiteContexts.Add(FTextSourceSiteContext(Variation));
+						GatherableTextData->SourceSiteContexts.Add(Variation);
 					}
 				}
 			}
 		}
 	}
 }
-#endif
+#endif //WITH_EDITORONLY_DATA
 
 bool operator==(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS)
 {
@@ -413,9 +327,21 @@ bool operator!=(const FDialogueContextMapping& LHS, const FDialogueContextMappin
 		LHS.SoundWave != RHS.SoundWave;
 }
 
-FDialogueContextMapping::FDialogueContextMapping() : SoundWave(NULL), Proxy(NULL)
+FDialogueContextMapping::FDialogueContextMapping()
+	: SoundWave(nullptr)
+	, LocalizationKeyFormat(TEXT("{ContextHash}"))
+	, Proxy(nullptr)
 {
 
+}
+
+FString FDialogueContextMapping::GetLocalizationKey(const FString& InOwnerDialogueWaveKey) const
+{
+	TMap<FString, FStringFormatArg> Args;
+	Args.Add(TEXT("ContextHash"), Context.GetContextHash());
+	const FString ContextKey = FString::Format(*LocalizationKeyFormat, Args);
+
+	return FString::Printf(TEXT("%s_%s"), *InOwnerDialogueWaveKey, *ContextKey);
 }
 
 UDialogueSoundWaveProxy::UDialogueSoundWaveProxy(const FObjectInitializer& ObjectInitializer)
@@ -453,14 +379,14 @@ float UDialogueSoundWaveProxy::GetPitchMultiplier()
 	return SoundWave->GetPitchMultiplier();
 }
 
-void UDialogueSoundWaveProxy::Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
+void UDialogueSoundWaveProxy::Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
 {
 	int OldWaveInstanceCount = WaveInstances.Num();
 	SoundWave->Parse(AudioDevice, NodeWaveInstanceHash, ActiveSound, ParseParams, WaveInstances);
 	int NewWaveInstanceCount = WaveInstances.Num();
 
-	FWaveInstance* WaveInstance = NULL;
-	if(NewWaveInstanceCount == OldWaveInstanceCount + 1)
+	FWaveInstance* WaveInstance = nullptr;
+	if (NewWaveInstanceCount == OldWaveInstanceCount + 1)
 	{
 		WaveInstance = WaveInstances[WaveInstances.Num() - 1];
 	}
@@ -473,15 +399,15 @@ void UDialogueSoundWaveProxy::Parse( class FAudioDevice* AudioDevice, const UPTR
 		if (AudioComponent && AudioComponent->OnQueueSubtitles.IsBound())
 		{
 			// intercept the subtitles if the delegate is set
-			AudioComponent->OnQueueSubtitles.ExecuteIfBound( Subtitles, GetDuration() );
+			AudioComponent->OnQueueSubtitles.ExecuteIfBound(Subtitles, GetDuration());
 		}
 		else
 		{
 			// otherwise, pass them on to the subtitle manager for display
 			// Subtitles are hashed based on the associated sound (wave instance).
-			if( ActiveSound.World.IsValid() )
+			if (ActiveSound.World.IsValid())
 			{
-				FSubtitleManager::GetSubtitleManager()->QueueSubtitles( ( PTRINT )WaveInstance, ActiveSound.SubtitlePriority, false, false, GetDuration(), Subtitles, 0.0f );
+				FSubtitleManager::GetSubtitleManager()->QueueSubtitles((PTRINT)WaveInstance, ActiveSound.SubtitlePriority, false, false, GetDuration(), Subtitles, 0.0f);
 			}
 		}
 	}
@@ -494,7 +420,7 @@ USoundClass* UDialogueSoundWaveProxy::GetSoundClass() const
 
 UDialogueWave::UDialogueWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, LocalizationGUID( FGuid::NewGuid() )
+	, LocalizationGUID(FGuid::NewGuid())
 {
 #if WITH_EDITORONLY_DATA
 	static struct FAutomaticRegistrationOfLocalizationGatherer
@@ -506,13 +432,13 @@ UDialogueWave::UDialogueWave(const FObjectInitializer& ObjectInitializer)
 	} AutomaticRegistrationOfLocalizationGatherer;
 #endif
 
-	ContextMappings.Add( FDialogueContextMapping() );
+	ContextMappings.Add(FDialogueContextMapping());
 }
 
 // Begin UObject interface. 
-void UDialogueWave::Serialize( FArchive& Ar )
+void UDialogueWave::Serialize(FArchive& Ar)
 {
-	Super::Serialize( Ar );
+	Super::Serialize(Ar);
 
 	Ar.ThisRequiresLocalizationGather();
 
@@ -532,7 +458,7 @@ bool UDialogueWave::IsReadyForFinishDestroy()
 
 FString UDialogueWave::GetDesc()
 {
-	return FString::Printf( TEXT( "Dialogue Wave Description" ) );
+	return FString::Printf(TEXT("Dialogue Wave Description"));
 }
 
 void UDialogueWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
@@ -543,7 +469,7 @@ void UDialogueWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 void UDialogueWave::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
-	if( !bDuplicateForPIE )
+	if (!bDuplicateForPIE)
 	{
 		LocalizationGUID = FGuid::NewGuid();
 	}
@@ -553,7 +479,7 @@ void UDialogueWave::PostLoad()
 {
 	Super::PostLoad();
 
-	for(FDialogueContextMapping& ContextMapping : ContextMappings)
+	for (FDialogueContextMapping& ContextMapping : ContextMappings)
 	{
 		UpdateMappingProxy(ContextMapping);
 	}
@@ -572,7 +498,7 @@ void UDialogueWave::PostEditChangeChainProperty(FPropertyChangedChainEvent& Prop
 	}
 	else if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UDialogueWave, SpokenText))
 	{
-		for(FDialogueContextMapping& ContextMapping : ContextMappings)
+		for (FDialogueContextMapping& ContextMapping : ContextMappings)
 		{
 			UpdateMappingProxy(ContextMapping);
 		}
@@ -585,10 +511,10 @@ void UDialogueWave::PostEditChangeChainProperty(FPropertyChangedChainEvent& Prop
 // Begin UDialogueWave interface.
 bool UDialogueWave::SupportsContext(const FDialogueContext& Context) const
 {
-	for(int32 i = 0; i < ContextMappings.Num(); ++i)
+	for (int32 i = 0; i < ContextMappings.Num(); ++i)
 	{
 		const FDialogueContextMapping& ContextMapping = ContextMappings[i];
-		if(ContextMapping.Context == Context)
+		if (ContextMapping.Context == Context)
 		{
 			return true;
 		}
@@ -599,17 +525,17 @@ bool UDialogueWave::SupportsContext(const FDialogueContext& Context) const
 
 USoundBase* UDialogueWave::GetWaveFromContext(const FDialogueContext& Context) const
 {
-	if(Context.Speaker == NULL)
+	if (Context.Speaker == nullptr)
 	{
 		UE_LOG(LogAudio, Warning, TEXT("UDialogueWave::GetWaveFromContext requires a Context.Speaker (%s)."), *GetPathName());
-		return NULL;
+		return nullptr;
 	}
 
-	UDialogueSoundWaveProxy* Proxy = NULL;
-	for(int32 i = 0; i < ContextMappings.Num(); ++i)
+	UDialogueSoundWaveProxy* Proxy = nullptr;
+	for (int32 i = 0; i < ContextMappings.Num(); ++i)
 	{
 		const FDialogueContextMapping& ContextMapping = ContextMappings[i];
-		if(ContextMapping.Context == Context)
+		if (ContextMapping.Context == Context)
 		{
 			Proxy = ContextMapping.Proxy;
 			break;
@@ -619,16 +545,50 @@ USoundBase* UDialogueWave::GetWaveFromContext(const FDialogueContext& Context) c
 	return Proxy;
 }
 
-FString UDialogueWave::GetContextLocalizationKey( const FDialogueContext& Context ) const
+USoundBase* UDialogueWave::GetWaveFromContext(const FDialogueContextMapping& ContextMapping) const
 {
-	FString Key;
-	if( SupportsContext(Context) )
+	if (ContextMapping.Context.Speaker == nullptr)
 	{
-		Key = LocalizationGUID.ToString() + TEXT(" ") + Context.GetLocalizationKey();
+		UE_LOG(LogAudio, Warning, TEXT("UDialogueWave::GetWaveFromContext requires a Context.Speaker (%s)."), *GetPathName());
+		return nullptr;
 	}
-	return Key;
+
+	return ContextMapping.Proxy;
 }
 
+FString UDialogueWave::GetContextLocalizationKey(const FDialogueContext& Context) const
+{
+	for (const FDialogueContextMapping& ContextMapping : ContextMappings)
+	{
+		if (ContextMapping.Context == Context)
+		{
+			return GetContextLocalizationKey(ContextMapping);
+		}
+	}
+	return FString();
+}
+
+FString UDialogueWave::GetContextLocalizationKey(const FDialogueContextMapping& ContextMapping) const
+{
+	return ContextMapping.GetLocalizationKey(LocalizationGUID.ToString());
+}
+
+FString UDialogueWave::GetContextRecordedAudioFilename(const FDialogueContext& Context) const
+{
+	for (const FDialogueContextMapping& ContextMapping : ContextMappings)
+	{
+		if (ContextMapping.Context == Context)
+		{
+			return GetContextRecordedAudioFilename(ContextMapping);
+		}
+	}
+	return FString();
+}
+
+FString UDialogueWave::GetContextRecordedAudioFilename(const FDialogueContextMapping& ContextMapping) const
+{
+	return FString::Printf(TEXT("%s.wav"), *ContextMapping.GetLocalizationKey(LocalizationGUID.ToString()));
+}
 
 // End UDialogueWave interface.
 
@@ -652,25 +612,25 @@ void UDialogueWave::UpdateMappingProxy(FDialogueContextMapping& ContextMapping)
 	}
 	else
 	{
-		ContextMapping.Proxy = NULL;
+		ContextMapping.Proxy = nullptr;
 	}
 
-	if(ContextMapping.Proxy)
+	if (ContextMapping.Proxy)
 	{
 		// Copy the properties that the proxy shares with the sound in case it's used as a SoundBase
 		ContextMapping.Proxy->SoundWave = ContextMapping.SoundWave;
 		UEngine::CopyPropertiesForUnrelatedObjects(ContextMapping.SoundWave, ContextMapping.Proxy);
 
 		FSubtitleCue NewSubtitleCue;
-		FString Key = GetContextLocalizationKey( ContextMapping.Context );
+		FString Key = GetContextLocalizationKey(ContextMapping);
 
-		if( !( FText::FindText( FString(), Key, NewSubtitleCue.Text )) )
+		if (!(FText::FindText(DialogueConstants::DialogueNamespace, Key, NewSubtitleCue.Text)))
 		{
 			Key = LocalizationGUID.ToString();
 
-			if ( !FText::FindText( FString(), Key, /*OUT*/NewSubtitleCue.Text ) )
+			if (!FText::FindText(DialogueConstants::DialogueNamespace, Key, /*OUT*/NewSubtitleCue.Text))
 			{
-				NewSubtitleCue.Text = FText::FromString( SpokenText );
+				NewSubtitleCue.Text = FText::FromString(SpokenText);
 			}
 		}
 		NewSubtitleCue.Time = 0.0f;

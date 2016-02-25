@@ -171,9 +171,6 @@ public:
 	/** Gathers shadow shapes from this proxy. */
 	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const {}
 
-	/** Returns a list of valid bone indices referenced by this proxy's shadow shapes. */
-	virtual void GetShadowShapeBoneIndices(TArray<uint16>& BoneIndices) const {}
-
 	/** 
 	 * Gathers the primitive's dynamic mesh elements.  This will only be called if GetViewRelevance declares dynamic relevance.
 	 * This is called from the rendering thread for each set of views that might be rendered.  

@@ -5911,6 +5911,7 @@ UK2Node* UEdGraphSchema_K2::CreateSplitPinNode(UEdGraphPin* Pin, FKismetCompiler
 		{
 			UK2Node_BreakStruct* BreakStructNode = (CompilerContext ? CompilerContext->SpawnIntermediateNode<UK2Node_BreakStruct>(GraphNode, SourceGraph) : NewObject<UK2Node_BreakStruct>(Graph));
 			BreakStructNode->StructType = StructType;
+			BreakStructNode->bMadeAfterOverridePinRemoval = true;
 			SplitPinNode = BreakStructNode;
 		}
 		else

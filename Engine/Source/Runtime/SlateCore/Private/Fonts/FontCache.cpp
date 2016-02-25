@@ -10,6 +10,7 @@
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Font Atlases"), STAT_SlateNumFontAtlases, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Font Kerning Table Memory"), STAT_SlateFontKerningTableMemory, STATGROUP_SlateMemory);
+DECLARE_MEMORY_STAT(TEXT("Shaped Glyph Sequence Memory"), STAT_SlateShapedGlyphSequenceMemory, STATGROUP_SlateMemory);
 DEFINE_STAT(STAT_SlateFontMeasureCacheMemory);
 
 
@@ -90,6 +91,20 @@ FShapedGlyphSequence::FShapedGlyphSequence(TArray<FShapedGlyphEntry> InGlyphsToR
 			}
 		}
 	}
+
+	// Track memory usage
+	INC_MEMORY_STAT_BY(STAT_SlateShapedGlyphSequenceMemory, GetAllocatedSize());
+}
+
+FShapedGlyphSequence::~FShapedGlyphSequence()
+{
+	// Untrack memory usage
+	DEC_MEMORY_STAT_BY(STAT_SlateShapedGlyphSequenceMemory, GetAllocatedSize());
+}
+
+uint32 FShapedGlyphSequence::GetAllocatedSize() const
+{
+	return GlyphsToRender.GetAllocatedSize() + GlyphClusterBlocks.GetAllocatedSize() + GlyphFontFaces.GetAllocatedSize() + ClusterIndicesToGlyphData.GetAllocatedSize();
 }
 
 bool FShapedGlyphSequence::IsDirty() const

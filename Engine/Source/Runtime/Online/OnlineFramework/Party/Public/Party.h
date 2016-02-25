@@ -292,6 +292,8 @@ public:
 	/** Notify the party system that travel is occurring */
 	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);
 
+	/** @return true if the player has accepted an invite, but it hasn't been processed yet */
+	bool HasPendingPartyJoin();
 	/**
 	 * Party invites
 	 */

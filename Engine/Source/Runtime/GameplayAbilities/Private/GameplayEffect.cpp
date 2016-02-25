@@ -1568,6 +1568,8 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 
 	for (const FGameplayEffectExecutionDefinition& CurExecDef : SpecToUse.Def->Executions)
 	{
+		bool bRunConditionalEffects = true; // Default to true if there is no CalculationClass specified.
+
 		if (CurExecDef.CalculationClass)
 		{
 			const UGameplayEffectExecutionCalculation* ExecCDO = CurExecDef.CalculationClass->GetDefaultObject<UGameplayEffectExecutionCalculation>();
@@ -1578,20 +1580,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			FGameplayEffectCustomExecutionOutput ExecutionOutput;
 			ExecCDO->Execute(ExecutionParams, ExecutionOutput);
 
-			const bool bRunConditionalEffects = ExecutionOutput.ShouldTriggerConditionalGameplayEffects();
-			if (bRunConditionalEffects)
-			{
-				// If successful, apply conditional specs
-				for (const TSubclassOf<UGameplayEffect>& TargetDefClass : CurExecDef.ConditionalGameplayEffectClasses)
-				{
-					if (*TargetDefClass != nullptr)
-					{
-						const UGameplayEffect* TargetDef = TargetDefClass->GetDefaultObject<UGameplayEffect>();
-
-						ConditionalEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, Spec.GetEffectContext(), Spec.GetLevel())));
-					}
-				}
-			}
+			bRunConditionalEffects = ExecutionOutput.ShouldTriggerConditionalGameplayEffects();
 
 			// Execute any mods the custom execution yielded
 			TArray<FGameplayModifierEvaluatedData>& OutModifiers = ExecutionOutput.GetOutputModifiersRef();
@@ -1613,6 +1602,20 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			if (ExecutionOutput.AreGameplayCuesHandledManually())
 			{
 				GameplayCuesWereManuallyHandled = true;
+			}
+		}
+
+		if (bRunConditionalEffects)
+		{
+			// If successful, apply conditional specs
+			for (const TSubclassOf<UGameplayEffect>& TargetDefClass : CurExecDef.ConditionalGameplayEffectClasses)
+			{
+				if (*TargetDefClass != nullptr)
+				{
+					const UGameplayEffect* TargetDef = TargetDefClass->GetDefaultObject<UGameplayEffect>();
+
+					ConditionalEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, Spec.GetEffectContext(), Spec.GetLevel())));
+				}
 			}
 		}
 	}
@@ -3723,6 +3726,11 @@ void FActiveGameplayEffectsContainer::CloneFrom(const FActiveGameplayEffectsCont
 namespace GlobalActiveGameplayEffectHandles
 {
 	static TMap<FActiveGameplayEffectHandle, TWeakObjectPtr<UAbilitySystemComponent>>	Map;
+}
+
+void FActiveGameplayEffectHandle::ResetGlobalHandleMap()
+{
+	GlobalActiveGameplayEffectHandles::Map.Reset();
 }
 
 FActiveGameplayEffectHandle FActiveGameplayEffectHandle::GenerateNewHandle(UAbilitySystemComponent* OwningComponent)

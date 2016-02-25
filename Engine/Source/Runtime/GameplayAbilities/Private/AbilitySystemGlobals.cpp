@@ -380,4 +380,5 @@ bool UAbilitySystemGlobals::ShouldIgnoreCosts() const
 void UAbilitySystemGlobals::HandlePostWorldCreate(UWorld* NewWorld)
 {
 	IGameplayCueInterface::ClearTagToFunctionMap();
+	FActiveGameplayEffectHandle::ResetGlobalHandleMap();
 }

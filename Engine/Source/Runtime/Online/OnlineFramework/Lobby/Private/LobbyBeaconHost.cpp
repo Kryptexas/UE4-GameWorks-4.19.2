@@ -310,7 +310,7 @@ void ALobbyBeaconHost::AdvertiseSessionJoinability(const FJoinabilitySettings& S
 
 void ALobbyBeaconHost::DumpState() const
 {
-	UE_LOG(LogBeacon, Display, TEXT("Fortnite Lobby Beacon:"), *GetBeaconType());
+	UE_LOG(LogBeacon, Display, TEXT("Lobby Beacon: %s"), *GetBeaconType());
 
 	if (LobbyState)
 	{

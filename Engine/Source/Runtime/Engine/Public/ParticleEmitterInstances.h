@@ -1248,14 +1248,14 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
  		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
  		{
  			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
- 			FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
+			FTrailsBaseTypeDataPayload* EndTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
  			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
  		}
  
  		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
  		{
  			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
- 			FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
+			FTrailsBaseTypeDataPayload* StartTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
  			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
  		}
 #endif

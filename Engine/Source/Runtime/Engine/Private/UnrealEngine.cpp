@@ -1638,29 +1638,56 @@ void UEngine::InitializeObjectReferences()
 #if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 void UEngine::InitializePortalServices()
 {
-	// Initialize Portal services
-	PortalRpcClient = FModuleManager::LoadModuleChecked<IMessagingRpcModule>("MessagingRpc").CreateRpcClient();
-	{
-		// @todo gmp: catch timeouts?
-	}
+	TSharedPtr<IMessagingRpcModule> MessagingRpcModule = StaticCastSharedPtr<IMessagingRpcModule>(FModuleManager::Get().LoadModule("MessagingRpc"));
+	TSharedPtr<IPortalRpcModule> PortalRpcModule = StaticCastSharedPtr<IPortalRpcModule>(FModuleManager::Get().LoadModule("PortalRpc"));
+	TSharedPtr<IPortalServicesModule> PortalServicesModule = StaticCastSharedPtr<IPortalServicesModule>(FModuleManager::Get().LoadModule("PortalServices"));
 
-	PortalRpcLocator = FModuleManager::LoadModuleChecked<IPortalRpcModule>("PortalRpc").CreateLocator();
+	if (MessagingRpcModule.IsValid() &&
+		PortalRpcModule.IsValid() &&
+		PortalServicesModule.IsValid())
 	{
-		PortalRpcLocator->OnServerLocated().BindLambda([=]() { PortalRpcClient->Connect(PortalRpcLocator->GetServerAddress()); });
-		PortalRpcLocator->OnServerLost().BindLambda([=]() { PortalRpcClient->Disconnect(); });
-	}
+		// Initialize Portal services
+		PortalRpcClient = MessagingRpcModule->CreateRpcClient();
+		{
+			// @todo gmp: catch timeouts?
+		}
 
-	ServiceDependencies = MakeShareable(new FTypeContainer);
-	{
-		ServiceDependencies->RegisterInstance<IMessageRpcClient>(PortalRpcClient.ToSharedRef());
-	}
+		PortalRpcLocator = PortalRpcModule->CreateLocator();
+		{
+			PortalRpcLocator->OnServerLocated().BindLambda([=]() { PortalRpcClient->Connect(PortalRpcLocator->GetServerAddress()); });
+			PortalRpcLocator->OnServerLost().BindLambda([=]() { PortalRpcClient->Disconnect(); });
+		}
 
-	ServiceLocator = FModuleManager::LoadModuleChecked<IPortalServicesModule>("PortalServices").CreateLocator(ServiceDependencies.ToSharedRef());
+		ServiceDependencies = MakeShareable(new FTypeContainer);
+		{
+			ServiceDependencies->RegisterInstance<IMessageRpcClient>(PortalRpcClient.ToSharedRef());
+		}
+
+		ServiceLocator = PortalServicesModule->CreateLocator(ServiceDependencies.ToSharedRef());
+		{
+			// @todo add any Engine specific Portal services here
+			ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
+			ServiceLocator->Configure(TEXT("IPortalUser"), TEXT("*"), "PortalProxies");
+			ServiceLocator->Configure(TEXT("IPortalUserLogin"), TEXT("*"), "PortalProxies");
+		}
+	}
+	else
 	{
-		// @todo add any Engine specific Portal services here
-		ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
-		ServiceLocator->Configure(TEXT("IPortalUser"), TEXT("*"), "PortalProxies");
-		ServiceLocator->Configure(TEXT("IPortalUserLogin"), TEXT("*"), "PortalProxies");
+		class FNullPortalServiceLocator
+			: public IPortalServiceLocator
+		{
+			virtual void Configure(const FString& ServiceName, const FWildcardString& ProductId, const FName& ServiceModule) override
+			{
+
+			}
+
+			virtual TSharedPtr<IPortalService> GetService(const FString& ServiceName, const FString& ProductId) override
+			{
+				return nullptr;
+			}
+		};
+
+		ServiceLocator = MakeShareable(new FNullPortalServiceLocator());
 	}
 }
 #endif

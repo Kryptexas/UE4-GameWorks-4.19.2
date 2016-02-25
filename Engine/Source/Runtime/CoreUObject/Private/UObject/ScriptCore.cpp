@@ -75,15 +75,20 @@ FBlueprintCoreDelegates::FOnToggleScriptProfiler FBlueprintCoreDelegates::OnTogg
 
 void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, const FFrame& StackFrame, const FBlueprintExceptionInfo& Info)
 {
+	bool bShouldLogWarning = true;
+
 	switch (Info.GetType())
 	{
 	case EBlueprintExceptionType::Breakpoint:
 	case EBlueprintExceptionType::Tracepoint:
 	case EBlueprintExceptionType::WireTracepoint:
+		// These shouldn't warn (they're just to pass the exception into the editor via the delegate below)
+		bShouldLogWarning = false;
 		break;
 #if WITH_EDITOR && DO_BLUEPRINT_GUARD
 	case EBlueprintExceptionType::AccessViolation:
 		{
+			// Determine if the access none should warn or not (we suppress warnings beyond a certain count for each object to avoid per-frame spaminess)
 			struct FIntConfigValueHelper
 			{
 				int32 Value;
@@ -101,19 +106,26 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 				int32& Num = FBlueprintExceptionTracker::Get().DisplayedWarningsMap.FindOrAdd(ActiveObjectName);
 				if (Num > MaxNumOfAccessViolation.Value)
 				{
-					break;
+					// Skip the generic warning, we've hit this one too many times
+					bShouldLogWarning = false;
 				}
 				Num++;
 			}
 		}
-#endif // WITH_EDITOR
+		break;
+#endif // WITH_EDITOR && DO_BLUEPRINT_GUARD
 	default:
-		UE_SUPPRESS(LogScript, Warning, const_cast<FFrame*>(&StackFrame)->Logf(TEXT("%s"), *(Info.GetDescription())));
+		// Other unhandled cases should always emit a warning
 		break;
 	}
 
-	// cant fire arbitrary delegates here off the game thead
-	if(IsInGameThread())
+	if (bShouldLogWarning)
+	{
+		UE_SUPPRESS(LogScript, Warning, const_cast<FFrame*>(&StackFrame)->Logf(TEXT("%s"), *(Info.GetDescription())));
+	}
+
+	// cant fire arbitrary delegates here off the game thread
+	if (IsInGameThread())
 	{
 		OnScriptException.Broadcast(ActiveObject, StackFrame, Info);
 	}
@@ -273,53 +285,83 @@ void FFrame::StepExplicitProperty(void*const Result, UProperty* Property)
 }
 
 //
+// Helper function that checks commandline and Engine ini to see whether
+// script stack should be shown on warnings
+static bool ShowKismetScriptStackOnWarnings()
+{
+	static bool ShowScriptStackForScriptWarning = false;
+	static bool CheckScriptWarningOptions = false;
+
+	if (!CheckScriptWarningOptions)
+	{
+		GConfig->GetBool(TEXT("Kismet"), TEXT("ScriptStackOnWarnings"), ShowScriptStackForScriptWarning, GEngineIni);
+
+		if (FParse::Param(FCommandLine::Get(), TEXT("SCRIPTSTACKONWARNINGS")))
+		{
+			ShowScriptStackForScriptWarning = true;
+		}
+
+		CheckScriptWarningOptions = true;
+	}
+
+	return ShowScriptStackForScriptWarning;
+}
+
+FString FFrame::GetScriptCallstack()
+{
+	FString ScriptStack;
+
+#if DO_BLUEPRINT_GUARD
+	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
+	if (BlueprintExceptionTracker.ScriptStack.Num() > 0)
+	{
+		for (int32 i = BlueprintExceptionTracker.ScriptStack.Num() - 1; i >= 0; --i)
+		{
+			ScriptStack += TEXT("\t") + BlueprintExceptionTracker.ScriptStack[i].GetStackDescription() + TEXT("\n");
+		}
+	}
+#else
+	ScriptStack = TEXT("Unable to display Script Callstack. Compile with DO_BLUEPRINT_GUARD=1");
+#endif
+
+	return ScriptStack;
+}
+
+//
 // Error or warning handler.
 //
 //@TODO: This function should take more information in, or be able to gather it from the callstack!
 void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Verbosity)
 {
-	// Treat errors/warnings as bad
-	if (Verbosity == ELogVerbosity::Warning)
-	{
-#if !UE_BUILD_SHIPPING
-		static bool GTreatScriptWarningsFatal = FParse::Param(FCommandLine::Get(),TEXT("FATALSCRIPTWARNINGS"));
-		if (GTreatScriptWarningsFatal)
-		{
-			Verbosity = ELogVerbosity::Error;
-		}
-#endif
-	}
 
-#if DO_BLUEPRINT_GUARD
-	// Walk the script stack, if any
+#if !UE_BUILD_SHIPPING
+	// Optionally always treat errors/warnings as bad
+	if (Verbosity <= ELogVerbosity::Warning && FParse::Param(FCommandLine::Get(), TEXT("FATALSCRIPTWARNINGS")))
+	{
+		Verbosity = ELogVerbosity::Fatal;
+	}
+#endif
+
 	FString ScriptStack;
 
-	FBlueprintExceptionTracker& BlueprintExceptionTracker = FBlueprintExceptionTracker::Get();
-	if( BlueprintExceptionTracker.ScriptStack.Num() > 0 )
+	// Show the stackfor fatal/error, and on warning if that option is enabled
+	if (Verbosity <= ELogVerbosity::Error || (ShowKismetScriptStackOnWarnings() && Verbosity == ELogVerbosity::Warning))
 	{
-		ScriptStack = TEXT( "Script call stack:\n" );
-		for( int32 i = BlueprintExceptionTracker.ScriptStack.Num() - 1; i >= 0; --i )
-		{
-			ScriptStack += TEXT( "\t" ) + BlueprintExceptionTracker.ScriptStack[i].GetStackDescription() + TEXT( "\n" );
-		}
+		ScriptStack = TEXT("Script call stack:\n");
+		ScriptStack += GetScriptCallstack();
 	}
-#endif
 
-	if (Verbosity == ELogVerbosity::Error)
+	if (Verbosity == ELogVerbosity::Fatal)
 	{
-#if DO_BLUEPRINT_GUARD
-		UE_LOG(LogScriptCore, Fatal,TEXT("%s\n%s"), Message, *ScriptStack);
-#else
-		UE_LOG(LogScriptCore, Fatal,TEXT("%s"), Message);
-#endif
+		UE_LOG(LogScriptCore, Fatal, TEXT("%s\n%s"), Message, *ScriptStack);
 	}
-	else
+#if !NO_LOGGING
+	else if (!LogScriptCore.IsSuppressed(Verbosity))
 	{
-#if DO_BLUEPRINT_GUARD
-		static bool GScriptStackForScriptWarning = FParse::Param(FCommandLine::Get(),TEXT("SCRIPTSTACKONWARNINGS"));
-		UE_LOG(LogScript, Warning, TEXT("%s%s"), Message, GScriptStackForScriptWarning ? *FString::Printf(TEXT("\n%s"), *ScriptStack) : TEXT(""));
+		// Call directly so we can pass verbosity through
+		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s\n%s"), Message, *ScriptStack);
+	}	
 #endif
-	}
 }
 
 void FFrame::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category )
@@ -349,14 +391,13 @@ void FFrame::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const cla
 	else
 	{
 #if DO_BLUEPRINT_GUARD
-		static bool GScriptStackForScriptWarning = FParse::Param(FCommandLine::Get(),TEXT("SCRIPTSTACKONWARNINGS"));
 		UE_LOG(LogScript, Warning,
 			TEXT("%s\r\n\t%s\r\n\t%s:%04X%s"),
 			V,
 			*Object->GetFullName(),
 			*Node->GetFullName(),
 			Code - Node->Script.GetData(),
-			GScriptStackForScriptWarning ? *(FString(TEXT("\r\n")) + GetStackTrace()) : TEXT("")
+			ShowKismetScriptStackOnWarnings() ? *(FString(TEXT("\r\n")) + GetStackTrace()) : TEXT("")
 		);
 #endif
 	}
@@ -1686,7 +1727,8 @@ void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 	}
 	else
 	{
-		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, TEXT("Switch - Out of bounds index"));
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, FString::Printf(TEXT("Switch - Out of bounds index %d (cases %d-%d)"),
+			IndexAdress ? *IndexAdress : -1, 0, NumCases-1));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
 		// get default value

@@ -3144,21 +3144,22 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance)
 {
-	check(Template);
-
-	RequiredSignificance = NewRequiredSignificance;
-
-	EParticleSystemInsignificanceReaction Reaction = Template->InsignificantReaction;
-	if (Template->InsignificantReaction == EParticleSystemInsignificanceReaction::Auto)
+	if (Template)//This shouldn't be possible but for now allow it until the root cause can be found.
 	{
-		Reaction = Template->IsLooping() ? EParticleSystemInsignificanceReaction::DisableTick : EParticleSystemInsignificanceReaction::Complete;
-	}
+		RequiredSignificance = NewRequiredSignificance;
 
-	//If our tick is disabled we need to work out if we should re-enable it based on this new significance
-	if (!IsComponentTickEnabled() && Reaction == EParticleSystemInsignificanceReaction::DisableTick && Template->GetHighestSignificance() >= NewRequiredSignificance)
-	{
-		//Set us to be significant again.
-		OnSignificanceChanged(true, true, true);
+		EParticleSystemInsignificanceReaction Reaction = Template->InsignificantReaction;
+		if (Template->InsignificantReaction == EParticleSystemInsignificanceReaction::Auto)
+		{
+			Reaction = Template->IsLooping() ? EParticleSystemInsignificanceReaction::DisableTick : EParticleSystemInsignificanceReaction::Complete;
+		}
+
+		//If our tick is disabled we need to work out if we should re-enable it based on this new significance
+		if (!IsComponentTickEnabled() && Reaction == EParticleSystemInsignificanceReaction::DisableTick && Template->GetHighestSignificance() >= NewRequiredSignificance)
+		{
+			//Set us to be significant again.
+			OnSignificanceChanged(true, true, true);
+		}
 	}
 	}
 
@@ -3290,7 +3291,7 @@ bool UParticleSystemComponent::CanBeOccluded()const
 
 bool UParticleSystemComponent::CanConsiderInvisible()const
 {
-	if (World)
+	if (World && Template)
 	{
 		const float MaxSecondsBeforeInactive = FMath::Max(SecondsBeforeInactive, Template->SecondsBeforeInactive);
 
