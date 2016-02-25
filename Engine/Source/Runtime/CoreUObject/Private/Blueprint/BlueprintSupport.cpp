@@ -450,28 +450,29 @@ bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 }
 
 #if WITH_EDITOR
-bool FLinkerLoad::IsSuppressableBlueprintImportError(FObjectImport& InImport)
+bool FLinkerLoad::IsSuppressableBlueprintImportError(int32 ImportIndex) const
 {
 	// We want to suppress any import errors that target a BlueprintGeneratedClass
 	// since these issues can occur when an externally referenced Blueprint is saved 
 	// without compiling. This should not be a problem because all Blueprints are
 	// compiled-on-load.
 	static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
-	FObjectImport& TestImport = InImport;
-	bool bResult = false;
+
+	bool bImportBelongsToBlueprint = false;
 	// We will look at each outer of the Import to see if any of them are a BPGC
-	while (1)
+	while (ImportMap.IsValidIndex(ImportIndex))
 	{
+		const FObjectImport& TestImport = ImportMap[ImportIndex];
 		if (TestImport.ClassName == NAME_BlueprintGeneratedClass)
 		{
 			// The import is a BPGC, suppress errors
-			bResult = true;
+			bImportBelongsToBlueprint = true;
 			break;
 		}
 
 		if (!TestImport.OuterIndex.IsNull() && TestImport.OuterIndex.IsImport())
 		{
-			TestImport = Imp(TestImport.OuterIndex);
+			ImportIndex = TestImport.OuterIndex.ToImport();
 		}
 		else
 		{
@@ -479,7 +480,8 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(FObjectImport& InImport)
 			break;
 		}
 	}
-	return bResult;
+
+	return bImportBelongsToBlueprint;
 }
 #endif // WITH_EDITOR
 

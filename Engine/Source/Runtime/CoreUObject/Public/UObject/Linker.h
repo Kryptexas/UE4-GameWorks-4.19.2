@@ -2000,10 +2000,10 @@ private:
 	/**
 	* Determines if the Object Import error should be suppressed
 	*
-	* @param  InImport    Import to check for suppression.
+	* @param  ImportIndex    Internal index into this linker's ImportMap, references the import to check for suppression.
 	* @return True if the import error should be suppressed
 	*/
-	bool IsSuppressableBlueprintImportError(FObjectImport& InImport);
+	bool IsSuppressableBlueprintImportError(int32 ImportIndex) const;
 #endif // WITH_EDITOR
 
 	/**

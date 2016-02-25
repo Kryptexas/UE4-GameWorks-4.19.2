@@ -2310,7 +2310,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				if( GIsEditor && !IsRunningCommandlet())
 				{
 					bool bSupressLinkerError = false;
-					bSupressLinkerError = IsSuppressableBlueprintImportError(Import);
+					bSupressLinkerError = IsSuppressableBlueprintImportError(ImportIndex);
 					if (!bSupressLinkerError)
 					{
 						FDeferredMessageLog LoadErrors(NAME_LoadErrors);
