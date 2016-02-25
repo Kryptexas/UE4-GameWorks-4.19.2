@@ -2811,7 +2811,8 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 
 bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if ( InWorld != nullptr && InWorld->GetGameInstance() != nullptr )
+	if (InWorld != nullptr && InWorld->GetGameInstance() != nullptr &&
+		InWorld->WorldType != EWorldType::PIE && !(InWorld->DemoNetDriver && InWorld->DemoNetDriver->IsPlaying()))
 	{
 		FString DemoName;
 
@@ -2828,6 +2829,11 @@ bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 
 bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
+	if (InWorld->WorldType == EWorldType::PIE)
+	{
+		return true;
+	}
+
 	FString Temp;
 	const TCHAR* ErrorString = nullptr;
 
@@ -2843,19 +2849,19 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 	{
 		ErrorString = TEXT( "InWorld->GetGameInstance() is null" );
 	}
-
-	if ( ErrorString != nullptr )
+	
+	if (ErrorString != nullptr)
 	{
-		Ar.Log( ErrorString );
+		Ar.Log(ErrorString);
 
-		if ( GetGameInstance() != nullptr )
+		if (GetGameInstance() != nullptr)
 		{
-			GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( ErrorString ) );
+			GetGameInstance()->HandleDemoPlaybackFailure(EDemoPlayFailure::Generic, FString(ErrorString));
 		}
 	}
 	else
 	{
-		InWorld->GetGameInstance()->PlayReplay( Temp );
+		InWorld->GetGameInstance()->PlayReplay(Temp);
 	}
 
 	return true;
