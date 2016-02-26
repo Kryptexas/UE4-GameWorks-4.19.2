@@ -90,7 +90,7 @@ class BuildPlugin : BuildCommand
 		string PackageDirectory = ParseParamValue("Package");
 		if(PackageDirectory != null)
 		{
-			List<BuildProduct> BuildProducts = GetBuildProductsFromReceipts(ReceiptFileNames);
+			List<BuildProduct> BuildProducts = GetBuildProductsFromReceipts(UnrealBuildTool.UnrealBuildTool.EngineDirectory, HostProjectDirectory, ReceiptFileNames);
 			PackagePlugin(HostProjectPluginFile, BuildProducts, PackageDirectory);
 		}
 	}
@@ -131,7 +131,7 @@ class BuildPlugin : BuildCommand
 		}
 	}
 
-	static List<BuildProduct> GetBuildProductsFromReceipts(List<string> ReceiptFileNames)
+	static List<BuildProduct> GetBuildProductsFromReceipts(DirectoryReference EngineDir, DirectoryReference ProjectDir, List<string> ReceiptFileNames)
 	{
 		List<BuildProduct> BuildProducts = new List<BuildProduct>();
 		foreach(string ReceiptFileName in ReceiptFileNames)
@@ -141,6 +141,7 @@ class BuildPlugin : BuildCommand
 			{
 				throw new AutomationException("Missing or invalid target receipt ({0})", ReceiptFileName);
 			}
+			Receipt.ExpandPathVariables(EngineDir, ProjectDir);
 			BuildProducts.AddRange(Receipt.BuildProducts);
 		}
 		return BuildProducts;
