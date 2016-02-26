@@ -54,6 +54,21 @@ const FFontData* FCachedTypefaceData::GetFontData(const FName& InName) const
 	return SingularFontData;
 }
 
+void FCachedTypefaceData::GetCachedFontData(TArray<const FFontData*>& OutFontData) const
+{
+	if (NameToFontDataMap.Num() > 0)
+	{
+		for (const auto& NameToFontDataPair : NameToFontDataMap)
+		{
+			OutFontData.Add(NameToFontDataPair.Value);
+		}
+	}
+	else
+	{
+		OutFontData.Add(SingularFontData);
+	}
+}
+
 
 FCachedCompositeFontData::FCachedCompositeFontData()
 	: CompositeFont(nullptr)
@@ -119,6 +134,14 @@ const FCachedTypefaceData* FCachedCompositeFontData::GetTypefaceForCharacter(con
 	}
 
 	return CachedTypefaces[0].Get();
+}
+
+void FCachedCompositeFontData::GetCachedFontData(TArray<const FFontData*>& OutFontData) const
+{
+	for (const auto& CachedTypeface : CachedTypefaces)
+	{
+		CachedTypeface->GetCachedFontData(OutFontData);
+	}
 }
 
 
@@ -234,6 +257,23 @@ const TSet<FName>& FCompositeFontCache::GetFontAttributes(const FFontData& InFon
 
 	TSharedPtr<FFreeTypeFace> FaceAndMemory = GetFontFace(InFontData);
 	return (FaceAndMemory.IsValid()) ? FaceAndMemory->GetAttributes() : DummyAttributes;
+}
+
+void FCompositeFontCache::FlushCompositeFont(const FCompositeFont& InCompositeFont)
+{
+	TSharedPtr<FCachedCompositeFontData>* const FoundCompositeFontData = CompositeFontToCachedDataMap.Find(&InCompositeFont);
+	if (FoundCompositeFontData)
+	{
+		// Also clear out any font face map entries for the cached data
+		TArray<const FFontData*> AllCachedFontData;
+		(*FoundCompositeFontData)->GetCachedFontData(AllCachedFontData);
+		for (const FFontData* CachedFontData : AllCachedFontData)
+		{
+			FontFaceMap.Remove(CachedFontData);
+		}
+
+		CompositeFontToCachedDataMap.Remove(&InCompositeFont);
+	}
 }
 
 void FCompositeFontCache::FlushCache()

@@ -135,9 +135,9 @@ public class Engine : ModuleRules
                 // these modules require variadic templates
                 PrivateDependencyModuleNames.AddRange(
                     new string[] {
-                    "MessagingRpc",
-                    "PortalRpc",
-                    "PortalServices",
+                        "MessagingRpc",
+                        "PortalRpc",
+                        "PortalServices",
                     }
                 );
             }

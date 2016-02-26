@@ -514,7 +514,14 @@ void FBlueprintCompileReinstancer::CompileChildren()
 		{
 			ReparentChild(BP);
 
-			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection);
+			// Full compiles first recompile all skeleton classes, so they are up-to-date
+			const bool bSkeletonUpToDate = true;
+			FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection, false, nullptr, bSkeletonUpToDate, false);
+		}
+		else if (bIsReinstancingSkeleton)
+		{
+			const bool bForceRegeneration = true;
+			FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
 		}
 	}
 }
@@ -635,11 +642,21 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				Iter.RemoveCurrent();
 				if (auto BP = BPPtr.Get())
 				{
-					// it's unsafe to GC in the middle of reinstancing because there may be other reinstancers still alive with references to 
-					// otherwise unreferenced classes:
-					const bool bSkipGC = true;
-					FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, false, nullptr, false, true);
-					CompiledBlueprints.Add(BP);
+					if (bIsReinstancingSkeleton)
+					{
+						const bool bForceRegeneration = true;
+						FKismetEditorUtilities::GenerateBlueprintSkeleton(BP, bForceRegeneration);
+					}
+					else
+					{
+						// it's unsafe to GC in the middle of reinstancing because there may be other reinstancers still alive with references to 
+											// otherwise unreferenced classes:
+						const bool bSkipGC = true;
+						// Full compiles first recompile all skeleton classes, so they are up-to-date
+						const bool bSkeletonUpToDate = true;
+						FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGC, false, nullptr, bSkeletonUpToDate, true);
+						CompiledBlueprints.Add(BP);
+					}
 				}
 			}
 
@@ -657,50 +674,58 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 
 			ensure(0 == DependentBlueprintsToRecompile.Num());
 
-			TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
-
-			TArray<TSharedPtr<FReinstanceFinalizer>> Finalizers;
-
-			// All children were recompiled. It's safe to reinstance.
-			for (int32 Idx = 0; Idx < QueueToReinstance.Num(); ++Idx)
+			if (!bIsReinstancingSkeleton)
 			{
-				auto Finalizer = QueueToReinstance[Idx]->ReinstanceInner(bForceAlwaysReinstance);
-				if (Finalizer.IsValid())
+				TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
+
+				TArray<TSharedPtr<FReinstanceFinalizer>> Finalizers;
+
+				// All children were recompiled. It's safe to reinstance.
+				for (int32 Idx = 0; Idx < QueueToReinstance.Num(); ++Idx)
 				{
-					Finalizers.Push(Finalizer);
-				}
-				QueueToReinstance[Idx]->bHasReinstanced = true;
-			}
-			QueueToReinstance.Empty();
-
-			for (auto Finalizer : Finalizers)
-			{
-				if (Finalizer.IsValid())
-				{
-					Finalizer->Finalize();
-				}
-			}
-
-			for (auto CompiledBP : CompiledBlueprints)
-			{
-				CompiledBP->BroadcastCompiled();
-			}
-
-			{
-				BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprintsInReinstancer);
-				for (auto BPPtr : DependentBlueprintsToRefresh)
-				{
-					if (BPPtr.IsValid())
+					auto Finalizer = QueueToReinstance[Idx]->ReinstanceInner(bForceAlwaysReinstance);
+					if (Finalizer.IsValid())
 					{
-						BPPtr->BroadcastChanged();
+						Finalizers.Push(Finalizer);
+					}
+					QueueToReinstance[Idx]->bHasReinstanced = true;
+				}
+				QueueToReinstance.Empty();
+
+				for (auto Finalizer : Finalizers)
+				{
+					if (Finalizer.IsValid())
+					{
+						Finalizer->Finalize();
 					}
 				}
-				DependentBlueprintsToRefresh.Empty();
-			}
 
-			if (GEditor)
+				for (auto CompiledBP : CompiledBlueprints)
+				{
+					CompiledBP->BroadcastCompiled();
+				}
+
+				{
+					BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprintsInReinstancer);
+					for (auto BPPtr : DependentBlueprintsToRefresh)
+					{
+						if (BPPtr.IsValid())
+						{
+							BPPtr->BroadcastChanged();
+						}
+					}
+					DependentBlueprintsToRefresh.Empty();
+				}
+
+				if (GEditor)
+				{
+					GEditor->BroadcastBlueprintCompiled();
+				}
+			}
+			else
 			{
-				GEditor->BroadcastBlueprintCompiled();
+				QueueToReinstance.Empty();
+				DependentBlueprintsToRefresh.Empty();
 			}
 		}
 	}

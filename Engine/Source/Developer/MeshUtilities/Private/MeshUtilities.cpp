@@ -3452,6 +3452,7 @@ public:
 	virtual FVector GetVertexPosition(uint32 WedgeIndex) = 0;
 	virtual FVector GetVertexPosition(uint32 FaceIndex, uint32 TriIndex) = 0;
 	virtual FVector2D GetVertexUV(uint32 FaceIndex, uint32 TriIndex, uint32 UVIndex) = 0;
+	virtual uint32 GetFaceSmoothingGroups(uint32 FaceIndex) = 0;
 
 	virtual uint32 GetNumFaces() = 0;
 	virtual uint32 GetNumWedges() = 0;
@@ -3541,6 +3542,11 @@ public:
 	virtual FVector2D GetVertexUV(uint32 FaceIndex, uint32 TriIndex, uint32 UVIndex) override
 	{
 		return Wedges[Faces[FaceIndex].iWedge[TriIndex]].UVs[UVIndex];
+	}
+
+	virtual uint32 GetFaceSmoothingGroups(uint32 FaceIndex)
+	{
+		return Faces[FaceIndex].SmoothingGroups;
 	}
 
 	virtual uint32 GetNumFaces() override
@@ -4215,7 +4221,7 @@ public:
 									if (!NextFace.bFilled) // && !NextFace.bBlendTangents)
 									{
 										if ((NextFaceIndex != OtherFaceIdx)
-											)//&& (RawMesh.FaceSmoothingMasks[NextFace.FaceIndex] & RawMesh.FaceSmoothingMasks[OtherFace.FaceIndex]))
+											 && (BuildData->GetFaceSmoothingGroups(NextFace.FaceIndex) & BuildData->GetFaceSmoothingGroups(OtherFace.FaceIndex)))
 										{
 											int32 CommonVertices = 0;
 											int32 CommonNormalVertices = 0;

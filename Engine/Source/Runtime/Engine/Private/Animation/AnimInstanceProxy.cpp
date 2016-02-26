@@ -125,17 +125,22 @@ void FAnimInstanceProxy::InitializeRootNode()
 				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(AnimInstanceObject);
 				if (AnimNode)
 				{
+					// Force our functions to be re-evaluated - this reinitialization may have been a 
+					// consequence of our class being recompiled and functions will be invalid in that
+					// case.
+					AnimNode->EvaluateGraphExposedInputs.bInitialized = false;
+
 					if (AnimNode->HasPreUpdate())
 					{
 						GameThreadPreUpdateNodes.Add(AnimNode);
 					}
 
-			if(Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
-			{
+					if(Property->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()))
+					{
 						FAnimNode_StateMachine* StateMachine = static_cast<FAnimNode_StateMachine*>(AnimNode);
-				StateMachine->CacheMachineDescription(AnimClassInterface);
-			}
-		}
+						StateMachine->CacheMachineDescription(AnimClassInterface);
+					}
+				}
 			}
 		}
 

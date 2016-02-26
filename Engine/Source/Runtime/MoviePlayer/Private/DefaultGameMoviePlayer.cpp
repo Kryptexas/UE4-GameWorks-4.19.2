@@ -88,7 +88,7 @@ FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
 
 FDefaultGameMoviePlayer::~FDefaultGameMoviePlayer()
 {
-	if( bInitialized )
+	if ( bInitialized )
 	{
 		// This should not happen if initialize was called correctly.  This is a fallback to ensure that the movie player rendering tickable gets unregistered on the rendering thread correctly
 		Shutdown();
@@ -221,7 +221,6 @@ void FDefaultGameMoviePlayer::Shutdown()
 		SyncMechanism = NULL;
 	}
 }
-
 void FDefaultGameMoviePlayer::PassLoadingScreenWindowBackToGame() const
 {
 	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);

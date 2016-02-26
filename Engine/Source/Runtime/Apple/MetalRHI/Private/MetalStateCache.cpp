@@ -36,8 +36,10 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 , FrameBufferSize(CGSizeMake(0.0, 0.0))
 , RenderTargetArraySize(1)
 , bHasValidRenderTarget(false)
+, bScissorRectEnabled(false)
 {
 	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
+	Scissor.x = Scissor.y = Scissor.width = Scissor.height;
 	
 	FMemory::Memzero(VertexBuffers, sizeof(VertexBuffers));
 	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));
@@ -56,6 +58,70 @@ FMetalStateCache::FMetalStateCache(FMetalCommandEncoder& InCommandEncoder)
 FMetalStateCache::~FMetalStateCache()
 {
 	
+}
+
+void FMetalStateCache::Reset(void)
+{
+	CommandEncoder.Reset();
+	
+	for (uint32 i = 0; i < CrossCompiler::NUM_SHADER_STAGES; i++)
+	{
+		ShaderParameters[i].MarkAllDirty();
+	}
+	for (uint32 i = 0; i < SF_NumFrequencies; i++)
+	{
+		BoundUniformBuffers[i].Empty();
+	}
+	
+	PipelineDesc.Hash = 0;
+	
+	Viewport.originX = Viewport.originY = Viewport.width = Viewport.height = Viewport.znear = Viewport.zfar = 0.0;
+	
+	FMemory::Memzero(RenderTargetsInfo);
+	bHasValidRenderTarget = false;
+	
+	FMemory::Memzero(DirtyUniformBuffers);
+	
+	FMemory::Memzero(VertexBuffers, sizeof(VertexBuffers));
+	FMemory::Memzero(VertexStrides, sizeof(VertexStrides));
+	
+	VisibilityResults = nil;
+	
+	BlendState.SafeRelease();
+	DepthStencilState.SafeRelease();
+	RasterizerState.SafeRelease();
+	BoundShaderState.SafeRelease();
+	ComputeShader.SafeRelease();
+	StencilRef = 0;
+	
+	BlendFactor = FLinearColor::Transparent;
+	FrameBufferSize = CGSizeMake(0.0, 0.0);
+	RenderTargetArraySize = 0;
+	
+}
+
+void FMetalStateCache::SetScissorRect(bool const bEnable, MTLScissorRect const& Rect)
+{
+	bScissorRectEnabled = bEnable;
+	if (bEnable)
+	{
+		Scissor = Rect;
+	}
+	else
+	{
+		Scissor.x = Viewport.originX;
+		Scissor.y = Viewport.originY;
+		Scissor.width = Viewport.width;
+		Scissor.height = Viewport.height;
+	}
+	
+	// Clamp to framebuffer size - Metal doesn't allow scissor to be larger.
+	Scissor.x = Scissor.x;
+	Scissor.y = Scissor.y;
+	Scissor.width = (Scissor.x + Scissor.width <= FrameBufferSize.width) ? Scissor.width : FrameBufferSize.width - Scissor.x;
+	Scissor.height = (Scissor.y + Scissor.height <= FrameBufferSize.height) ? Scissor.height : FrameBufferSize.height - Scissor.y;
+	
+	CommandEncoder.SetScissorRect(Scissor);
 }
 
 void FMetalStateCache::SetBlendFactor(FLinearColor const& InBlendFactor)
@@ -169,68 +235,11 @@ void FMetalStateCache::SetComputeShader(FMetalComputeShader* InComputeShader)
 
 void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer)
 {
-#if METAL_API_1_1
-	if(IsValidRef(DepthStencilTexture) && DepthStencilTexture->GetFormat() == PF_DepthStencil)
-	{
-		MTLStoreAction StoreAction = MTLStoreActionDontCare;
-#if PLATFORM_MAC
-		if(RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite())
-		{
-			StoreAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
-		}
-		else
-		{
-			StoreAction = MTLStoreActionDontCare;
-		}
-#else
-		StoreAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
-#endif
-		
-		if(StoreAction == MTLStoreActionStore)
-		{
-			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(DepthStencilTexture);
-			
-			if(Surface.StencilTexture != Surface.Texture && (Surface.Texture.pixelFormat == MTLPixelFormatDepth32Float_Stencil8
-#if PLATFORM_MAC
-				|| Surface.Texture.pixelFormat == MTLPixelFormatDepth24Unorm_Stencil8
-#endif
-				))
-			{
-				switch(Surface.Type)
-				{
-					case RRT_Texture2D:
-					{
-						id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
-						
-						uint32 Size = Surface.Texture.width * Surface.Texture.height;
-						FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), Size, BUFFER_STORAGE_MODE));
-						
-						[Blitter copyFromTexture:Surface.Texture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Surface.Texture.width, Surface.Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Surface.Texture.width destinationBytesPerImage:Size options:MTLBlitOptionStencilFromDepthStencil];
-						
-						[Blitter copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Surface.Texture.width sourceBytesPerImage:Size sourceSize:MTLSizeMake(Surface.Texture.width, Surface.Texture.height, 1) toTexture:Surface.StencilTexture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
-						
-						SafeReleasePooledBuffer(Buf.Buffer);
-						break;
-					}
-					case RRT_Texture2DArray:
-					case RRT_Texture3D:
-					case RRT_TextureCube:
-					default:
-						NOT_SUPPORTED("Stencil sampling from non-2D texture!");
-						break;
-				}
-			}
-		}
-	}
-#endif
-	
-	ConditionalSwitchToRender();
-	
-	DepthStencilTexture = InRenderTargets.DepthStencilRenderTarget.Texture;
-
 	// see if our new Info matches our previous Info
 	if (NeedsToSetRenderTarget(InRenderTargets) || QueryBuffer != VisibilityResults)
 	{
+		bool bNeedsClear = false;
+		
 		// back this up for next frame
 		RenderTargetsInfo = InRenderTargets;
 		
@@ -357,6 +366,9 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				}
 				
 				ColorAttachment.loadAction = GetMetalRTLoadAction(RenderTargetView.LoadAction);
+				
+				bNeedsClear |= (ColorAttachment.loadAction == MTLLoadActionClear);
+				
 				const FClearValueBinding& ClearValue = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex].Texture->GetClearBinding();
 				if (ClearValue.ColorBinding == EClearBinding::EColorBound)
 				{
@@ -514,6 +526,9 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				// set up the depth attachment
 				DepthAttachment.texture = DepthTexture;
 				DepthAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction);
+				
+				bNeedsClear |= (DepthAttachment.loadAction == MTLLoadActionClear);
+				
 #if PLATFORM_MAC
 				if(RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsDepthWrite())
 				{
@@ -548,6 +563,9 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 				// set up the stencil attachment
 				StencilAttachment.texture = StencilTexture;
 				StencilAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction);
+				
+				bNeedsClear |= (StencilAttachment.loadAction == MTLLoadActionClear);
+				
 #if PLATFORM_MAC
 				if(RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess().IsStencilWrite())
 				{
@@ -580,13 +598,18 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		PipelineDesc.SetHashValue(Offset_SampleCount, NumBits_SampleCount, PipelineDesc.SampleCount);
 	
 		// commit pending commands on the old render target
-		if(CommandEncoder.IsRenderCommandEncoderActive())
+		if(CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive())
 		{
 			CommandEncoder.EndEncoding();
 		}
 	
-		// make a new render context to use to render to the framebuffer
-		CommandEncoder.BeginRenderCommandEncoding(RenderPass);
+		// Set render to the framebuffer
+		CommandEncoder.SetRenderPassDescriptor(RenderPass);
+		
+		// if (bNeedsClear)
+		{
+			CommandEncoder.BeginRenderCommandEncoding();
+		}
 		
 		// Reset any existing state as that must be fully reinitialised by the caller.
 		DepthStencilState.SafeRelease();
@@ -604,6 +627,18 @@ void FMetalStateCache::SetHasValidRenderTarget(bool InHasValidRenderTarget)
 void FMetalStateCache::SetViewport(const MTLViewport& InViewport)
 {
 	Viewport = InViewport;
+	
+	CommandEncoder.SetViewport(Viewport);
+	
+	if (!bScissorRectEnabled)
+	{
+		MTLScissorRect Rect;
+		Rect.x = InViewport.originX;
+		Rect.y = InViewport.originY;
+		Rect.width = InViewport.width;
+		Rect.height = InViewport.height;
+		SetScissorRect(false, Rect);
+	}
 }
 
 void FMetalStateCache::SetVertexBuffer(uint32 const Index, id<MTLBuffer> Buffer, uint32 const Stride, uint32 const Offset)
@@ -670,9 +705,6 @@ void FMetalStateCache::ConditionalSwitchToCompute(void)
 	}
 	if(!CommandEncoder.IsComputeCommandEncoderActive())
 	{
-		// Clear any previous compute shader
-		ComputeShader.SafeRelease();
-		
 		// start encoding for compute
 		CommandEncoder.BeginComputeCommandEncoding();
 	}
@@ -754,6 +786,18 @@ bool FMetalStateCache::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& In
 //				break;
 //			}
 		}
+		
+		if (InRenderTargetsInfo.DepthStencilRenderTarget.Texture && (InRenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear || InRenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear))
+		{
+			bAllChecksPassed = false;
+		}
+		
+#if PLATFORM_MAC
+		if (!(InRenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess() == RenderTargetsInfo.DepthStencilRenderTarget.GetDepthStencilAccess()))
+		{
+			bAllChecksPassed = false;
+		}
+#endif
 	}
 
 	// if we are setting them to nothing, then this is probably end of frame, and we can't make a framebuffer

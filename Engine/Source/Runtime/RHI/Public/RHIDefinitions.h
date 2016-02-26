@@ -59,8 +59,9 @@ enum EShaderPlatform
 	SP_METAL_SM5		= 17,
 	SP_VULKAN_ES2		= 18,
 	SP_METAL_SM4		= 19,
+	SP_METAL_MACES3_1	= 20,
 
-	SP_NumPlatforms		= 20,
+	SP_NumPlatforms		= 21,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -610,19 +611,19 @@ enum class EAsyncComputeBudget
 
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsES2Platform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL || Platform == SP_VULKAN_ES2;
+	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL || Platform == SP_VULKAN_ES2 || Platform == SP_METAL_MACES3_1;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
-	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1;
+	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_METAL_MACES3_1;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
@@ -633,7 +634,7 @@ inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5;
+	return Platform == SP_METAL || Platform == SP_METAL_MRT || Platform == SP_METAL_SM4 || Platform == SP_METAL_SM5 || Platform == SP_METAL_MACES3_1;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -668,6 +669,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_METAL:
 	case SP_PCD3D_ES3_1:
 	case SP_OPENGL_PCES3_1:
+	case SP_METAL_MACES3_1:
 		return ERHIFeatureLevel::ES3_1;
 	default:
 		check(0);
@@ -719,6 +721,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_METAL_SM5:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
+	case SP_METAL_MACES3_1:
+		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	default:
 		return false;
 	}	

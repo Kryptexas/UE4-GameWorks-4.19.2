@@ -474,6 +474,9 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 	FKismetCompilerOptions CompileOptions;
 	Compiler.CompileBlueprint(NewBP, CompileOptions, Results);
 
+	// Mark the BP as being regenerated, so it will not be confused as needing to be loaded and regenerated when a referenced BP loads.
+	NewBP->bHasBeenRegenerated = true;
+
 	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 	if(Settings && Settings->bSpawnDefaultBlueprintNodes)
 	{

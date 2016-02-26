@@ -8,6 +8,31 @@
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "IOS/IOSSystemIncludes.h"
 
+#ifdef __OBJC__
+
+class FScopeAutoreleasePool
+{
+public:
+
+	FScopeAutoreleasePool()
+	{
+		Pool = [[NSAutoreleasePool alloc] init];
+	}
+
+	~FScopeAutoreleasePool()
+	{
+		[Pool release];
+	}
+
+private:
+
+	NSAutoreleasePool*	Pool;
+};
+
+#define SCOPED_AUTORELEASE_POOL const FScopeAutoreleasePool PREPROCESSOR_JOIN(Pool,__LINE__);
+
+#endif // __OBJC__
+
 /**
 * iOS implementation of the misc OS functions
 **/

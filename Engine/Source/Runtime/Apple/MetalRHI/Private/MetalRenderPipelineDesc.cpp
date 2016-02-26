@@ -7,6 +7,8 @@
 static_assert(Offset_End <= sizeof(FMetalRenderPipelineHash) * 8, "Too many bits used for the Hash");
 
 NSMutableDictionary* FMetalRenderPipelineDesc::MetalPipelineCache = [NSMutableDictionary new];
+FCriticalSection FMetalRenderPipelineDesc::MetalPipelineMutex;
+
 uint32 FMetalRenderPipelineDesc::BlendBitOffsets[] = { Offset_BlendState0, Offset_BlendState1, Offset_BlendState2, Offset_BlendState3, Offset_BlendState4, Offset_BlendState5, };
 uint32 FMetalRenderPipelineDesc::RTBitOffsets[] = { Offset_RenderTargetFormat0, Offset_RenderTargetFormat1, Offset_RenderTargetFormat2, Offset_RenderTargetFormat3, Offset_RenderTargetFormat4, Offset_RenderTargetFormat5, };
 
@@ -54,6 +56,12 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	check(SampleCount > 0);
 
 	NSError* Error = nil;
+	
+	if(GUseRHIThread)
+	{
+		MetalPipelineMutex.Lock();
+	}
+	
 	id<MTLRenderPipelineState> PipelineState = (id<MTLRenderPipelineState>)[MetalPipelineCache objectForKey:PipelineDescriptor];
 	if(PipelineState == nil)
 	{
@@ -64,6 +72,11 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 		{
 			[MetalPipelineCache setObject:PipelineState forKey:PipelineDescriptor];
 		}
+	}
+	
+	if(GUseRHIThread)
+	{
+		MetalPipelineMutex.Unlock();
 	}
 	
 	PipelineDescriptor.depthAttachmentPixelFormat = DepthFormat;

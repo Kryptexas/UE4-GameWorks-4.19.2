@@ -90,6 +90,10 @@ private:
 	FVector WindDirection;
 	float WindAdaption;
 
+	/** Whether we have deferred cloth update transform. If true we will update any cloth collision when appropriate */
+	bool bPendingClothUpdateTransform;
+	ETeleportType PendingTeleportType;
+
 	friend class USkeletalMeshComponent;
 };
 
@@ -1259,10 +1263,10 @@ public:
 	 */
 	void UpdateClothStateAndSimulate(float DeltaTime, FTickFunction& ThisTickFunction);
 	/** 
-	 * Updates clothing actor's global pose.
-	 * So should be called when ComponentToWorld is changed.
+	 * Updates cloth collision outside the cloth asset (environment collision, child collision, etc...)
+	 * Should be called when scene changes or world position changes
 	 */
-	void UpdateClothTransform();
+	void UpdateClothTransform(ETeleportType TeleportType);
 
 	/** only check whether there are valid clothing actors or not */
 	bool HasValidClothingActors() const;
@@ -1408,6 +1412,11 @@ private:
 	friend class FParallelBlendPhysicsCompletionTask;
 	void CompleteParallelBlendPhysics();
 	void PostBlendPhysics();
+
+#if WITH_APEX_CLOTHING
+	/** See UpdateClothTransform for documentation. */
+	void UpdateClothTransformImp();
+#endif
 
 	friend class FTickClothingTask;
 

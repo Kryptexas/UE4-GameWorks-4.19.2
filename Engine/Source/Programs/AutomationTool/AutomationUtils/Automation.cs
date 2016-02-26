@@ -619,10 +619,6 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		{
 			if (!bRunningRocket.HasValue)
 			{
-				if (GlobalCommandLine.Rocket)
-				{
-					Log.TraceWarning("Use of -rocket argument on command-line to test Rocket behavior is deprecated, please ensure that you've built a true Rocket build.");
-				}
 				bRunningRocket = GlobalCommandLine.Rocket;
 				string RocketFile = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "Rocket.txt");
 				bRunningRocket |= File.Exists(RocketFile);

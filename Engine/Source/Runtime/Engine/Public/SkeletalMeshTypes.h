@@ -90,7 +90,8 @@ struct FMeshFace
 	FVector	TangentX[3];
 	FVector	TangentY[3];
 	FVector	TangentZ[3];
-	
+
+	uint32   SmoothingGroups; // 32-bit flag for smoothing groups.
 };
 template <> struct TIsPODType<FMeshFace> { enum { Value = true }; };
 

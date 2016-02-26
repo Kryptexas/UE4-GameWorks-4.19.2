@@ -110,17 +110,20 @@ id<MTLDrawable> FMetalViewport::GetDrawable()
 {
 	if (!Drawable)
 	{
-		uint32 IdleStart = FPlatformTime::Cycles();
-		
-#if PLATFORM_MAC
-		CAMetalLayer* CurrentLayer = (CAMetalLayer*)[View layer];
-		Drawable = CurrentLayer ? [[CurrentLayer nextDrawable] retain] : nil;
-#else
-		Drawable = [[[IOSAppDelegate GetDelegate].IOSView MakeDrawable] retain];
-#endif
-		
-		GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-		GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
+		@autoreleasepool
+		{
+			uint32 IdleStart = FPlatformTime::Cycles();
+			
+	#if PLATFORM_MAC
+			CAMetalLayer* CurrentLayer = (CAMetalLayer*)[View layer];
+			Drawable = CurrentLayer ? [[CurrentLayer nextDrawable] retain] : nil;
+	#else
+			Drawable = [[[IOSAppDelegate GetDelegate].IOSView MakeDrawable] retain];
+	#endif
+			
+			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
+			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
+		}
 	}
 	return Drawable;
 }

@@ -69,7 +69,12 @@ FMetalDynamicRHI::FMetalDynamicRHI()
     {
         GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
         GMaxRHIShaderPlatform = SP_METAL;
-    }
+	}
+	
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4) ? (EShaderPlatform)GMaxRHIFeatureLevel : SP_NumPlatforms;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_NumPlatforms;
 
 #else // @todo zebra
     // get the device to ask about capabilities?
@@ -89,6 +94,11 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GMaxRHIShaderPlatform = SP_METAL_SM4;
 	}
+	
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES3_1;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL_MACES3_1;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_METAL_SM4;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) ? (EShaderPlatform)GMaxRHIFeatureLevel : SP_NumPlatforms;
 	
 	GRHIAdapterName = FString(Device.name);
 	
@@ -137,8 +147,6 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	
 #endif
 
-    
-
 	if (FPlatformMisc::IsDebuggerPresent() && UE_BUILD_DEBUG)
 	{
 #if PLATFORM_IOS // @todo zebra : needs a RENDER_API or whatever
@@ -177,16 +185,6 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GMaxTextureMipCount = FPlatformMath::Min<int32>( MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount );
 	GMaxCubeTextureDimensions = 4096;
 	GMaxTextureArrayLayers = 2048;
-
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_NumPlatforms;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL;
-#if PLATFORM_IOS
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIShaderPlatform == SP_METAL_MRT) ? SP_METAL_MRT : SP_NumPlatforms;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_NumPlatforms;
-#elif PLATFORM_MAC
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_METAL_SM4;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIShaderPlatform == SP_METAL_SM5) ? SP_METAL_SM5 : SP_NumPlatforms;
-#endif
 
 	// Initialize the platform pixel format map.
 	GPixelFormats[PF_Unknown			].PlatformFormat	= MTLPixelFormatInvalid;

@@ -105,3 +105,9 @@
 #pragma clang diagnostic ignored "-Winconsistent-missing-override"
 #pragma clang diagnostic ignored "-Wundefined-bool-conversion"
 #pragma clang diagnostic ignored "-Wunused-local-typedef"
+
+// We can pragma optimisation's on and off as of Apple LLVM 7.3.0 but not before.
+#if __clang_major__ >= 7 && __clang_minor__ >= 3
+#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL _Pragma("clang optimize off")
+#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL  _Pragma("clang optimize on")
+#endif

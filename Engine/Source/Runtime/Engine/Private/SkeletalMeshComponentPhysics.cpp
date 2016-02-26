@@ -1429,9 +1429,10 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportT
 #if WITH_APEX_CLOTHING
 	if(ClothingActors.Num() > 0)
 	{
+		
 		//@todo: Should cloth know whether we're teleporting?
 		// Updates cloth animation states because transform is updated
-		UpdateClothTransform();
+		UpdateClothTransform(Teleport);
 	}
 #endif //#if WITH_APEX_CLOTHING
 }
@@ -2143,7 +2144,7 @@ bool USkeletalMeshComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapRes
 
 void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds, const FTransform& LocalToWorld) const
 {
-	for(const FClothingActor& ClothingActor : ClothingActors)
+	for (const FClothingActor& ClothingActor : ClothingActors)
 	{
 		if(NxClothingActor* Actor = ClothingActor.ApexClothingActor)
 		{
@@ -3296,7 +3297,7 @@ void USkeletalMeshComponent::PostPhysicsTickComponent(FSkeletalMeshComponentPost
 
 #if WITH_APEX_CLOTHING
 
-void USkeletalMeshComponent::UpdateClothTransform()
+void USkeletalMeshComponent::UpdateClothTransformImp()
 {
 	int32 NumActors = ClothingActors.Num();
 
@@ -3326,6 +3327,13 @@ void USkeletalMeshComponent::UpdateClothTransform()
 		ComponentToWorld.SetIdentity();
 	}
 //#endif
+}
+
+void USkeletalMeshComponent::UpdateClothTransform(ETeleportType TeleportType)
+{
+	//Note that it's not safe to run the update here. This is because cloth sim could still be running on another thread. We defer it
+	InternalClothSimulationContext.bPendingClothUpdateTransform = true;
+	InternalClothSimulationContext.PendingTeleportType = TeleportType;
 }
 
 void USkeletalMeshComponent::CheckClothTeleport()

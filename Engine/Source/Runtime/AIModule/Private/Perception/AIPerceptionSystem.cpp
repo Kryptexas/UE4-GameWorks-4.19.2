@@ -109,10 +109,10 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
 
-	for (const auto& PercSource : SourcesToRegister)
+	for (const FPerceptionSourceRegistration& PercSource : SourcesToRegister)
 	{
 		AActor* SourceActor = PercSource.Source.Get();
-		if (SourceActor != nullptr && SourceActor->IsPendingKillPending() == false)
+		if (SourceActor != nullptr && SourceActor->IsPendingKillPending() == false && Senses[PercSource.SenseID] != nullptr)
 		{
 			Senses[PercSource.SenseID]->RegisterSource(*SourceActor);
 
@@ -358,7 +358,7 @@ void UAIPerceptionSystem::UnregisterSource(AActor& SourceActor, TSubclassOf<UAIS
 		if (Sense)
 		{
 			const FAISenseID SenseID = UAISense::GetSenseID(Sense);
-			if (StimuliSource->RelevantSenses.ShouldRespondToChannel(Senses[SenseID]->GetSenseID()))
+			if (Senses[SenseID] != nullptr && StimuliSource->RelevantSenses.ShouldRespondToChannel(Senses[SenseID]->GetSenseID()))
 			{
 				Senses[SenseID]->UnregisterSource(SourceActor);
 				StimuliSource->RelevantSenses.FilterOutChannel(SenseID);
@@ -368,7 +368,7 @@ void UAIPerceptionSystem::UnregisterSource(AActor& SourceActor, TSubclassOf<UAIS
 		{
 			for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID)
 			{
-				if (StimuliSource->RelevantSenses.ShouldRespondToChannel(Senses[SenseID]->GetSenseID()))
+				if (Senses[SenseID] != nullptr && StimuliSource->RelevantSenses.ShouldRespondToChannel(Senses[SenseID]->GetSenseID()))
 				{
 					Senses[SenseID]->UnregisterSource(SourceActor);
 				}

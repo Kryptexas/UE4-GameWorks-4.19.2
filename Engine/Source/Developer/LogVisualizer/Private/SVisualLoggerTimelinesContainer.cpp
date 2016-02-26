@@ -199,7 +199,11 @@ FReply SVisualLoggerTimelinesContainer::OnKeyDown(const FGeometry& MyGeometry, c
 			ContainingBorder->RemoveSlot(CurrentNode.ToSharedRef());
 		}
 
-		SetSelectionState(NotSelectedOne.Pin(), true, true);
+		if (NotSelectedOne.IsValid())
+		{
+			SetSelectionState(NotSelectedOne.Pin(), true, true);
+		}
+
 		return FReply::Handled();
 	}
 	else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Down)

@@ -9,9 +9,11 @@
 #include "MetalBufferPools.h"
 #include "MetalCommandEncoder.h"
 #include "MetalCommandQueue.h"
+#include "MetalCommandList.h"
 #if PLATFORM_IOS
 #include "IOSView.h"
 #endif
+#include "LockFreeList.h"
 
 #define NUM_SAFE_FRAMES 4
 
@@ -33,18 +35,20 @@ enum EMetalFeatures
 	EMetalFeaturesDepthStencilBlitOptions = 1 << 4
 };
 
+class FMetalRHICommandContext;
 
 class FMetalContext
 {
 	friend class FMetalCommandContextContainer;
 public:
-	FMetalContext(FMetalCommandQueue& Queue);
+	FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate);
 	virtual ~FMetalContext();
 	
 	static FMetalContext* GetCurrentContext();
 	
 	id<MTLDevice> GetDevice();
 	FMetalCommandQueue& GetCommandQueue();
+	FMetalCommandList& GetCommandList();
 	FMetalCommandEncoder& GetCommandEncoder();
 	id<MTLRenderCommandEncoder> GetRenderContext();
 	id<MTLBlitCommandEncoder> GetBlitContext();
@@ -80,7 +84,7 @@ public:
 	uint32 AllocateFromRingBuffer(uint32 Size, uint32 Alignment=0);
 	id<MTLBuffer> GetRingBuffer()
 	{
-		return RingBuffer.Buffer;
+		return RingBuffer->Buffer;
 	}
 
 	TSharedRef<FMetalQueryBufferPool, ESPMode::ThreadSafe> GetQueryBufferPool()
@@ -92,6 +96,8 @@ public:
 	void SubmitCommandBufferAndWait();
 	void SubmitComputeCommandBufferAndWait();
 	void ResetRenderCommandEncoder();
+	
+	void SetShaderResourceView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV);
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
 #if PLATFORM_MAC
@@ -114,11 +120,6 @@ protected:
 	void ConditionalSwitchToGraphics();
 	
 	/**
-	 * Possibly switch from graphics to compute
-	 */
-	void ConditionalSwitchToCompute();
-	
-	/**
 	 * Switch to blitting
 	 */
 	void ConditionalSwitchToBlit();
@@ -129,9 +130,11 @@ protected:
 	void CommitNonComputeShaderConstants();
 	
 private:
-	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FRHITexture* RESTRICT TextureRHI);
+	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FRHITexture* RESTRICT TextureRHI, float CurrentTime);
 	
-	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState);
+	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV, float CurrentTime);
+	
+	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState, float CurrentTime);
 	
 	template <typename MetalResourceType>
 	inline int32 SetShaderResourcesFromBuffer(uint32 ShaderStage, FMetalUniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex);
@@ -146,6 +149,9 @@ protected:
 	/** The wrapper around the device command-queue for creating & committing command buffers to */
 	FMetalCommandQueue& CommandQueue;
 	
+	/** The wrapper around commabd buffers for ensuring correct parallel execution order */
+	FMetalCommandList CommandList;
+	
 	/** The wrapper for encoding commands into the current command buffer. */
 	FMetalCommandEncoder CommandEncoder;
 	
@@ -159,7 +165,7 @@ protected:
 	dispatch_semaphore_t CommandBufferSemaphore;
 	
 	/** A simple fixed-size ring buffer for dynamic data */
-	FRingBuffer RingBuffer;
+	TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> RingBuffer;
 	
 	/** A pool of buffers for writing visibility query results. */
 	TSharedPtr<FMetalQueryBufferPool, ESPMode::ThreadSafe> QueryBuffer;
@@ -201,6 +207,15 @@ public:
 	void BeginDrawingViewport(FMetalViewport* Viewport);
 	void EndDrawingViewport(FMetalViewport* Viewport, bool bPresent);
 	
+	/** Take a parallel FMetalContext from the free-list or allocate a new one if required */
+	FMetalRHICommandContext* AcquireContext();
+	
+	/** Release a parallel FMetalContext back into the free-list */
+	void ReleaseContext(FMetalRHICommandContext* Context);
+	
+	/** Returns the number of concurrent contexts encoding commands, including the device context. */
+	uint32 GetNumActiveContexts(void) const;
+	
 private:
 	FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalCommandQueue* Queue);
 	
@@ -223,6 +238,9 @@ private:
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	
+	/** Free-list of contexts for parallel encoding */
+	TLockFreePointerListLIFO<FMetalRHICommandContext> ParallelContexts;
+	
 	/** Critical section for FreeList */
 	FCriticalSection FreeListMutex;
 	
@@ -237,4 +255,7 @@ private:
 	
 	/** Bitfield of supported Metal features with varying availability depending on OS/device */
 	uint32 Features;
+	
+	/** Count of concurrent contexts encoding commands. */
+	uint32 ActiveContexts;
 };

@@ -521,6 +521,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 	static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 	static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
+	static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 	
 	TCHAR const* Standard = TEXT("-std=ios-metal1.0");
 
@@ -531,6 +532,12 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
+	}
+	else if (Input.ShaderFormat == NAME_SF_METAL_MACES3_1)
+	{
+		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
+		Standard = TEXT("-std=osx-metal1.1");
+		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM4)
 	{

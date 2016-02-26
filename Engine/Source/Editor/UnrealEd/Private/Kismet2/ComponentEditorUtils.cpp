@@ -631,7 +631,10 @@ void FComponentEditorUtils::AdjustComponentDelta(USceneComponent* Component, FVe
 
 		if (!Component->bAbsoluteLocation)
 		{
-			Drag = ParentToWorldSpace.Inverse().TransformVector(Drag);
+			//transform the drag vector in relative to the parent transform
+			Drag = ParentToWorldSpace.InverseTransformVectorNoScale(Drag);
+			//Now that we have a global drag we can apply the parent scale
+			Drag = Drag * ParentToWorldSpace.Inverse().GetScale3D();
 		}
 
 		if (!Component->bAbsoluteRotation)

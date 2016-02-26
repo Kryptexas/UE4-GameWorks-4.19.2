@@ -212,7 +212,13 @@ bool FAnimNode_Trail::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneCo
 	{
 		for (auto& ChainIndex : ChainBoneIndices)
 		{
-			if (RequiredBones.Contains(ChainIndex) == false)
+			if (ChainIndex == INDEX_NONE)
+			{
+				// we don't want this to spam. We want this to happen once. 
+				ensureMsgf(false, TEXT("AnimNode_Trail [%s]: contains invalid chain index. Verify if the node contains correct length of chain. "), *TrailBone.BoneName.ToString());
+				return false;
+			}
+			else if (RequiredBones.Contains(ChainIndex) == false)
 			{
 				return false;
 			}

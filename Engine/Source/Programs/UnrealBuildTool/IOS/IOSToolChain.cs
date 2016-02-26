@@ -1005,7 +1005,7 @@ namespace UnrealBuildTool
 					if (Directory.Exists(Project))
 					{
 						// ensure the plist, entitlements, and provision files are properly copied
-						var DeployHandler = new UEDeployIOS();
+						var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
 						DeployHandler.PrepTargetForDeployment(Target);
 
 						var ConfigName = Target.Configuration.ToString();

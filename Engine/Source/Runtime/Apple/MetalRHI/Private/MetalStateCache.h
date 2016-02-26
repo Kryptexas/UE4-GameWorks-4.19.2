@@ -11,7 +11,11 @@ class FMetalStateCache
 public:
 	FMetalStateCache(FMetalCommandEncoder& CommandEncoder);
 	~FMetalStateCache();
+	
+	/** Reset cached state for reuse */
+	void Reset(void);
 
+	void SetScissorRect(bool const bEnable, MTLScissorRect const& Rect);
 	void SetBlendFactor(FLinearColor const& InBlendFactor);
 	void SetStencilRef(uint32 const InStencilRef);
 	void SetBlendState(FMetalBlendState* InBlendState);
@@ -59,6 +63,7 @@ public:
 	TArray<TRefCountPtr<FRHIUniformBuffer>> GetBoundUniformBuffers(EShaderFrequency const Freq) const { return BoundUniformBuffers[Freq]; }
 	uint32 GetDirtyUniformBuffers(EShaderFrequency const Freq) const { return DirtyUniformBuffers[Freq]; }
 	id<MTLBuffer> GetVisibilityResultsBuffer() const { return VisibilityResults; }
+	bool GetScissorRectEnabled() const { return bScissorRectEnabled; }
 
 private:
 	void ConditionalUpdateBackBuffer(FMetalSurface& Surface);
@@ -93,8 +98,10 @@ private:
 	uint32 RenderTargetArraySize;
 
 	MTLViewport Viewport;
+	MTLScissorRect Scissor;
 	
 	FRHISetRenderTargetsInfo RenderTargetsInfo;
-	FTextureRHIRef DepthStencilTexture;
 	bool bHasValidRenderTarget;
+	
+	bool bScissorRectEnabled;
 };

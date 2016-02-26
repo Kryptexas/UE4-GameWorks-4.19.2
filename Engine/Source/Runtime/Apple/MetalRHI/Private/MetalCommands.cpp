@@ -73,9 +73,6 @@ void FMetalRHICommandContext::RHISetComputeShader(FComputeShaderRHIParamRef Comp
 {
 	FMetalComputeShader* ComputeShader = ResourceCast(ComputeShaderRHI);
 
-	// active compute mode
-	Context->GetCurrentState().ConditionalSwitchToCompute();
-	
 	// cache this for Dispatch
 	// sets this compute shader pipeline as the current (this resets all state, so we need to set all resources after calling this)
 	Context->GetCurrentState().SetComputeShader(ComputeShader);
@@ -111,8 +108,6 @@ void FMetalRHICommandContext::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,
 	Viewport.znear = MinZ;
 	Viewport.zfar = MaxZ;
 	
-	Context->GetCommandEncoder().SetViewport(Viewport);
-
 	Context->GetCurrentState().SetViewport(Viewport);
 	
 	FShaderCache::SetViewport(MinX,MinY, MinZ, MaxX, MaxY, MaxZ);
@@ -238,35 +233,7 @@ void FMetalRHICommandContext::RHISetShaderTexture(FComputeShaderRHIParamRef Comp
 void FMetalRHICommandContext::RHISetShaderResourceViewParameter(FVertexShaderRHIParamRef VertexShaderRHI, uint32 TextureIndex, FShaderResourceViewRHIParamRef SRVRHI)
 {
 	FMetalShaderResourceView* SRV = ResourceCast(SRVRHI);
-	if (SRV)
-	{
-		FRHITexture* Texture = SRV->SourceTexture.GetReference();
-		if (Texture)
-		{
-			FMetalSurface* Surface = SRV->TextureView;
-			if (Surface != nullptr)
-			{
-				Context->GetCommandEncoder().SetShaderTexture(SF_Vertex, Surface->Texture, TextureIndex);
-			}
-			else
-			{
-				Context->GetCommandEncoder().SetShaderTexture(SF_Vertex, nil, TextureIndex);
-			}
-		}
-		else
-		{
-			FMetalVertexBuffer* VB = SRV->SourceVertexBuffer.GetReference();
-			if (VB)
-			{
-				Context->GetCommandEncoder().SetShaderBuffer(SF_Vertex, VB->Buffer, 0, TextureIndex);
-			}
-		}
-	}
-	else
-	{
-		Context->GetCommandEncoder().SetShaderTexture(SF_Vertex, nil, TextureIndex);
-	}
-	FShaderCache::SetSRV(SF_Vertex, TextureIndex, SRVRHI);
+	Context->SetShaderResourceView(SF_Vertex, TextureIndex, SRV);
 }
 
 void FMetalRHICommandContext::RHISetShaderResourceViewParameter(FHullShaderRHIParamRef HullShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
@@ -287,69 +254,13 @@ void FMetalRHICommandContext::RHISetShaderResourceViewParameter(FGeometryShaderR
 void FMetalRHICommandContext::RHISetShaderResourceViewParameter(FPixelShaderRHIParamRef PixelShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
 {
 	FMetalShaderResourceView* SRV = ResourceCast(SRVRHI);
-	if (SRV)
-	{
-		FRHITexture* Texture = SRV->SourceTexture.GetReference();
-		if (Texture)
-		{
-			FMetalSurface* Surface = SRV->TextureView;
-			if (Surface != nullptr)
-			{
-				Context->GetCommandEncoder().SetShaderTexture(SF_Pixel, Surface->Texture, TextureIndex);
-			}
-			else
-			{
-				Context->GetCommandEncoder().SetShaderTexture(SF_Pixel, nil, TextureIndex);
-			}
-		}
-		else
-		{
-			FMetalVertexBuffer* VB = SRV->SourceVertexBuffer.GetReference();
-			if (VB)
-			{
-				Context->GetCommandEncoder().SetShaderBuffer(SF_Pixel, VB->Buffer, 0, TextureIndex);
-			}
-		}
-	}
-	else
-	{
-		Context->GetCommandEncoder().SetShaderTexture(SF_Pixel, nil, TextureIndex);
-	}
-	FShaderCache::SetSRV(SF_Pixel, TextureIndex, SRVRHI);
+	Context->SetShaderResourceView(SF_Pixel, TextureIndex, SRV);
 }
 
 void FMetalRHICommandContext::RHISetShaderResourceViewParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
 {
 	FMetalShaderResourceView* SRV = ResourceCast(SRVRHI);
-	if (SRV)
-	{
-		FRHITexture* Texture = SRV->SourceTexture.GetReference();
-		if (Texture)
-		{
-			FMetalSurface* Surface = SRV->TextureView;
-			if (Surface != nullptr)
-			{
-				Context->GetCommandEncoder().SetShaderTexture(SF_Compute, Surface->Texture, TextureIndex);
-			}
-			else
-			{
-				Context->GetCommandEncoder().SetShaderTexture(SF_Compute, nil, TextureIndex);
-			}
-		}
-		else
-		{
-			FMetalVertexBuffer* VB = SRV->SourceVertexBuffer.GetReference();
-			if (VB)
-			{
-				Context->GetCommandEncoder().SetShaderBuffer(SF_Compute, VB->Buffer, 0, TextureIndex);
-			}
-		}
-	}
-	else
-	{
-		Context->GetCommandEncoder().SetShaderTexture(SF_Compute, nil, TextureIndex);
-	}
-	FShaderCache::SetSRV(SF_Compute, TextureIndex, SRVRHI);
+	Context->SetShaderResourceView(SF_Compute, TextureIndex, SRV);
 }
 
 
@@ -532,9 +443,7 @@ void FMetalRHICommandContext::RHISetRenderTargets(uint32 NumSimultaneousRenderTa
 
 void FMetalDynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask)
 {
-#if PLATFORM_MAC // @todo zebra
-	NOT_SUPPORTED("RHIDiscardRenderTargets");
-#endif
+	// Deliberate do nothing - Metal doesn't care about this.
 }
 
 void FMetalRHICommandContext::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
@@ -1142,7 +1051,7 @@ void FMetalRHICommandContext::RHIClearMRT(bool bClearColor,int32 NumClearColors,
 
 void FMetalDynamicRHI::RHIBlockUntilGPUIdle()
 {
-	NOT_SUPPORTED("RHIBlockUntilGPUIdle");
+	Context->SubmitCommandBufferAndWait();
 }
 
 uint32 FMetalDynamicRHI::RHIGetGPUFrameCycles()

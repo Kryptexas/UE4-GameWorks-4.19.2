@@ -129,6 +129,8 @@ void FSkeletalMeshImportData::CopyLODImportData(
 		Face.TangentZ[1]		= Faces[f].TangentZ[1];
 		Face.TangentZ[2]		= Faces[f].TangentZ[2];
 
+		Face.SmoothingGroups    = Faces[f].SmoothingGroups;
+
 		LODFaces[f] = Face;
 	}			
 

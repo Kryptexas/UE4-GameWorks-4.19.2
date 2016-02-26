@@ -1619,8 +1619,11 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			// did not cook this package 
 #if DO_CHECK
 			// make sure this package doesn't exist
-			const FString SandboxFilename = ConvertToFullSandboxPath(ToBuild.GetFilename().ToString(), false);
-			check(IFileManager::Get().FileExists(*SandboxFilename) == false);
+			for (const auto& TargetPlatformName : ToBuild.GetPlatformnames())
+			{
+				const FString SandboxFilename = ConvertToFullSandboxPath(ToBuild.GetFilename().ToString(), true, TargetPlatformName.ToString());
+				check(IFileManager::Get().FileExists(*SandboxFilename) == false);
+			}
 #endif
 			CookedPackages.Add( FFilePlatformCookedPackage( ToBuild.GetFilename(), TargetPlatformNames, false) );
 			continue;
@@ -3206,6 +3209,9 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 				SandboxToPackage.Add(PackageSandbox.Replace(*SandboxFile->GetSandboxDirectory(), TEXT("")), PackageFile);
 			}
 
+			// Daniel: optimization
+			// should I loop through the cooked packages which we think we have instead of going through what's on disk?
+
 			// See what files are out of date in the sandbox folder
 			for (int32 Index = 0; Index < Platforms.Num(); Index++)
 			{
@@ -3263,7 +3269,7 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 #if DEBUG_COOKONTHEFLY
 							UE_LOG(LogCook, Display, TEXT("Deleting out of date cooked file: %s"), *CookedFilename);
 #endif
-							IFileManager::Get().Delete(*CookedFilename);
+							IFileManager::Get().Delete(*CookedFilename); // do I need to delete this? the cooked packages list is what the cooker uses to recook this file should be deleted later
 
 							CookedPackages.RemoveFileForPlatform(StandardUnCookedFileFName, PlatformFName);
 						}

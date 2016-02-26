@@ -1304,7 +1304,7 @@ namespace UnrealBuildTool
 								{
 									if (!GlobalContext.ElementVariables.TryGetValue(Name, out Element))
 									{
-										Log.TraceWarning("\nMissing element variable '{0}' in '{1}' (skipping instruction)", Tag, TraceNodeString(Node));
+										Log.TraceWarning("\nMissing element variable '{0}' in '{1}' (skipping instruction)", Name, TraceNodeString(Node));
 										continue;
 									}
 								}

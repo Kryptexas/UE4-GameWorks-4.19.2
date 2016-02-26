@@ -124,7 +124,6 @@ namespace HLODOutliner
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(0.0f, 5.0f))
 			[
-
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -135,7 +134,7 @@ namespace HLODOutliner
 					.HAlign(HAlign_Center)
 					.Text(LOCTEXT("GenerateClusters", "Generate Clusters"))
 					.OnClicked(this, &SHLODOutliner::HandlePreviewHLODs)
-					.ToolTipText(LOCTEXT("GenerateClusterToolTip", "Generates Clusters for Meshes in the Level"))
+					.ToolTipText(LOCTEXT("GenerateClusterToolTip", "Generates Clusters (but not proxy meshes) for Meshes in the Level"))
 				]
 
 				+ SHorizontalBox::Slot()

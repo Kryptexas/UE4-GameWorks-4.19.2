@@ -1392,7 +1392,26 @@ void SGraphPanel::Update()
 			UEdGraphNode* Node = GraphObj->Nodes[NodeIndex];
 			if (Node)
 			{
-				AddNode(Node, CheckUserAddedNodesList);
+				// Helps detect cases of UE-26998 without causing a crash. Prevents the node from being rendered altogether and provides info on the state of the graph vs the node.
+				// Because the editor won't crash, a GLEO can be expected if the node's outer is in the transient package.
+				if (ensureMsgf(Node->GetOuter() == GraphObj, TEXT("Found %s ('%s') that does not belong to %s. Node Outer: %s, Node Outer Type: %s, Graph Outer: %s, Graph Outer Type: %s"),
+					*Node->GetName(), *Node->GetClass()->GetName(),
+					*GraphObj->GetName(),
+					*Node->GetOuter()->GetName(), *Node->GetOuter()->GetClass()->GetName(),
+					*GraphObj->GetOuter()->GetName(), *GraphObj->GetOuter()->GetClass()->GetName()
+					))
+ 				{
+					AddNode(Node, CheckUserAddedNodesList);
+				}
+				else
+				{
+					UE_LOG(LogGraphPanel, Error, TEXT("Found %s ('%s') that does not belong to %s. Node Outer: %s, Node Outer Type: %s, Graph Outer: %s, Graph Outer Type: %s"),
+						*Node->GetName(), *Node->GetClass()->GetName(),
+						*GraphObj->GetName(),
+						*Node->GetOuter()->GetName(), *Node->GetOuter()->GetClass()->GetName(),
+						*GraphObj->GetOuter()->GetName(), *GraphObj->GetOuter()->GetClass()->GetName()
+					);
+				}
 			}
 			else
 			{

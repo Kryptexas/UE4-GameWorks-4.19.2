@@ -7,6 +7,7 @@
 #include "MetalRHIPrivate.h"
 
 #include "MetalCommandQueue.h"
+#include "MetalCommandList.h"
 #if METAL_STATISTICS
 #include "MetalStatistics.h"
 #include "ModuleManager.h"
@@ -59,20 +60,60 @@ FMetalCommandQueue::~FMetalCommandQueue(void)
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 {
-	return [CommandQueue commandBuffer];
+	@autoreleasepool
+	{
+		return [[CommandQueue commandBuffer] retain];
+	}
 }
 
 id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 {
-    static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
-    return bUnretainedRefs ? [CommandQueue commandBufferWithUnretainedReferences] : [CommandQueue commandBuffer];
+	@autoreleasepool
+	{
+		static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
+		return bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
+	}
+}
+
+void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandBuffer)
+{
+	check(CommandBuffer);
+	[CommandBuffer commit];
+	[CommandBuffer release];
+}
+
+void FMetalCommandQueue::SubmitCommandBuffers(FMetalCommandList* BufferList, uint32 Index, uint32 Count)
+{
+	check(BufferList);
+	CommandBuffers.SetNumZeroed(Count);
+	CommandBuffers[Index] = BufferList;
+	bool bComplete = true;
+	for (uint32 i = 0; i < Count; i++)
+	{
+		bComplete &= (CommandBuffers[i] != nullptr);
+	}
+	if (bComplete)
+	{
+		GetMetalDeviceContext().SubmitCommandsHint(true);
+		
+		for (uint32 i = 0; i < Count; i++)
+		{
+			FMetalCommandList* List = CommandBuffers[i];
+			for (id<MTLCommandBuffer> Buffer in List->GetCommandBuffers())
+			{
+				CommitCommandBuffer(Buffer);
+			}
+			List->OnScheduled();
+			CommandBuffers[i] = nullptr;
+		}
+	}
 }
 
 #pragma mark - Public Command Queue Accessors -
 	
-id<MTLCommandQueue> FMetalCommandQueue::GetCommandQueue(void) const
+id<MTLDevice> FMetalCommandQueue::GetDevice(void) const
 {
-	return CommandQueue;
+	return CommandQueue.device;
 }
 
 #pragma mark - Public Debug Support -

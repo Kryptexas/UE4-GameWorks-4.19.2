@@ -43,7 +43,7 @@ public:
 	int32 TargetGraphStackDepth;
 
 	// The last message that an exception delivered
-	FString LastExceptionMessage;
+	FText LastExceptionMessage;
 
 	// Only valid inside intraframe debugging
 	const FFrame* StackFrameAtIntraframeDebugging;
@@ -142,16 +142,13 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 		case EBlueprintExceptionType::AccessViolation:
 			if ( GIsEditor && GIsPlayInEditorWorld )
 			{
-				// a line of text classifying where the exception is coming from (is it a node?, function?, etc.)
-				TSharedRef<FTextToken> TraceClassificationMessageLog = FTextToken::Create(FText::FromString(TEXT("from code generated-function")));
-				
+				TSharedRef<FTokenizedMessage> ErrorMessage = FMessageLog("PIE").Error(LOCTEXT("RuntimeErrorMessage", "Blueprint Runtime Error from function:"));
+
 				// NOTE: StackFrame.Node is not a blueprint node like you may think ("Node" has some legacy meaning)
 				FString GeneratedFuncName = FString::Printf(TEXT("'%s'"), *StackFrame.Node->GetName());
 				// a log token, telling us specifically where the exception is coming from (here
 				// it's not helpful to link to a generated-function, so we just provide the plain name)
-				TSharedRef<IMessageToken> TraceTargetMessageLog = FTextToken::Create(FText::FromString(GeneratedFuncName));
-
-				FString MsgInBlueprintStr(TEXT("in blueprint"));
+				ErrorMessage->AddToken(FTextToken::Create(FText::FromString(GeneratedFuncName)));
 
 #if WITH_EDITORONLY_DATA // to protect access to GeneratedClass->DebugData
 				UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(ClassContainingCode);
@@ -161,22 +158,33 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 					// if instead, there is a node we can point to...
 					if (BlueprintNode != NULL)
 					{
-						TraceClassificationMessageLog = FTextToken::Create(FText::FromString(TEXT("from node")));
+						ErrorMessage->AddToken(FTextToken::Create(LOCTEXT("RuntimeErrorBlueprintNode", "from node:")));
 
 						FText NodeTitle = BlueprintNode->GetNodeTitle(ENodeTitleType::ListView); // a more user friendly name
 						// link to the last executed node (the one throwing the exception, presumably)
-						TraceTargetMessageLog = FUObjectToken::Create(BlueprintNode, NodeTitle)->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated));
+						ErrorMessage->AddToken(
+							FUObjectToken::Create(
+								BlueprintNode, 
+								NodeTitle
+							)->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated))
+						);
 
-						MsgInBlueprintStr = FString::Printf(TEXT("in graph '%s' in blueprint"), *GetNameSafe(BlueprintNode->GetGraph()));
+						ErrorMessage->AddToken( FTextToken::Create( LOCTEXT("RuntimeErrorBlueprintGraph", "in graph:") ) );
+						ErrorMessage->AddToken(
+							FUObjectToken::Create(
+								BlueprintNode->GetGraph(), 
+								FText::FromString(GetNameSafe(BlueprintNode->GetGraph()))
+							)->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated)));
 					}
 				}
 #endif // WITH_EDITORONLY_DATA
 
-				FMessageLog("PIE").Error(FText::FromString(Info.GetDescription()))
-					->AddToken(TraceClassificationMessageLog)
-					->AddToken(TraceTargetMessageLog)
-					->AddToken(FTextToken::Create(FText::FromString(MsgInBlueprintStr)))
+				ErrorMessage->AddToken(FTextToken::Create(LOCTEXT("RuntimeErrorBlueprintObject", "in object:")));
+				ErrorMessage
 					->AddToken(FUObjectToken::Create(BlueprintObj, FText::FromString(BlueprintObj->GetName()))->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated)));
+
+				ErrorMessage->AddToken(FTextToken::Create(LOCTEXT("RuntimeErrorBlueprintDescription", "with description:")));
+				ErrorMessage->AddToken(FTextToken::Create(Info.GetDescription()));
 			}
 			bForceToCurrentObject = true;
 			bShouldBreakExecution = GetDefault<UEditorExperimentalSettings>()->bBreakOnExceptions;
@@ -416,7 +424,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 		switch (Info.GetType())
 		{
 		case EBlueprintExceptionType::FatalError:
-			DisplayErrorLambda(LOCTEXT("FatalErrorType", "Fatal Error"), *Info.GetDescription());
+			DisplayErrorLambda(LOCTEXT("FatalErrorType", "Fatal Error"), *(Info.GetDescription().ToString()));
 			break;
 		case EBlueprintExceptionType::InfiniteLoop:
 			DisplayErrorLambda(LOCTEXT("InfiniteLoopErrorType", "Infinite Loop"), nullptr);
@@ -430,21 +438,15 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 
 UClass* FKismetDebugUtilities::FindClassForNode(const UObject* Object, UFunction* Function)
 {
+	if (NULL != Function)
+	{
+		UClass* FunctionOwner = Function->GetOwnerClass();
+		return FunctionOwner;
+	}
 	if(NULL != Object)
 	{
 		UClass* ObjClass = Object->GetClass();
-		if(NULL != Function)
-		{
-			UClass* FunctionOwner = Function->GetOwnerClass();
-			if(ensure(ObjClass->IsChildOf(FunctionOwner)))
-			{
-				return FunctionOwner;
-			}
-		}
-		else
-		{
-			return ObjClass;
-		}
+		return ObjClass;
 	}
 	return NULL;
 }	
@@ -1120,9 +1122,9 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 FText FKismetDebugUtilities::GetAndClearLastExceptionMessage()
 {
 	FKismetDebugUtilitiesData& Data = FKismetDebugUtilitiesData::Get();
-	const FString Result = Data.LastExceptionMessage;
-	Data.LastExceptionMessage.Empty();
-	return FText::FromString(Result);
+	const FText Result = Data.LastExceptionMessage;
+	Data.LastExceptionMessage = FText();
+	return Result;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -212,6 +212,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 		UK2Node_MakeStruct* PinMakeStruct = CompilerContext.SpawnIntermediateNode<UK2Node_MakeStruct>(this, SourceGraph);
 		PinMakeStruct->StructType = FormatArgumentDataStruct;
 		PinMakeStruct->AllocateDefaultPins();
+		PinMakeStruct->bMadeAfterOverridePinRemoval = true;
 
 		// Set the struct's "ArgumentName" pin literal to be the argument pin's name.
 		PinMakeStruct->GetSchema()->TrySetDefaultValue(*PinMakeStruct->FindPin("ArgumentName"), ArgumentPin->PinName);

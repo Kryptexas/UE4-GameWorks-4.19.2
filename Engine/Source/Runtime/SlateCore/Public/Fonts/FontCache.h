@@ -742,6 +742,11 @@ public:
 	 */
 	void FlushObject( const UObject* const InObject );
 
+	/**
+	 * Flush the given composite font out of the cache
+	 */
+	void FlushCompositeFont(const FCompositeFont& InCompositeFont);
+
 	/** 
 	 * Flush the cache if needed
 	 */
