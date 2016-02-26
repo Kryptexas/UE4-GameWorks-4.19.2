@@ -829,7 +829,7 @@ namespace
 
 			if (NewKey != NAME_None)
 			{
-				UE_LOG(LogCompile, Warning, TEXT("Remapping old metadata key '%s' to new key '%s', please update the declaration."), *CurrentKey.ToString(), *NewKey.ToString());
+				UE_LOG_WARNING_UHT(TEXT("Remapping old metadata key '%s' to new key '%s', please update the declaration."), *CurrentKey.ToString(), *NewKey.ToString());
 				CurrentKey = NewKey;
 			}
 
@@ -1746,7 +1746,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 
 			case EStructSpecifier::NoExport:
 			{
-				//UE_LOG(LogCompile, Warning, TEXT("Struct named %s in %s is still marked noexport"), *EffectiveStructName, *(Class->GetName()));//@TODO: UCREMOVAL: Debug printing
+				//UE_LOG_WARNING_UHT(TEXT("Struct named %s in %s is still marked noexport"), *EffectiveStructName, *(Class->GetName()));//@TODO: UCREMOVAL: Debug printing
 				StructFlags &= ~STRUCT_Native;
 				StructFlags |= STRUCT_NoExport;
 			}
@@ -2897,7 +2897,7 @@ FIndexRange*                    ParsedVarIndexRange
 
 				case EVariableSpecifier::NonPIETransient:
 				{
-					UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
+					UE_LOG_WARNING_UHT(TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
 					Flags |= CPF_NonPIEDuplicateTransient;
 				}
 				break;
@@ -3084,11 +3084,11 @@ FIndexRange*                    ParsedVarIndexRange
 		{
 			if (0 != (CPF_DisableEditOnInstance & Flags))
 			{
-				UE_LOG(LogCompile, Warning, TEXT("Property cannot have 'DisableEditOnInstance' or 'BlueprintReadOnly' and 'ExposeOnSpawn' flags"));
+				UE_LOG_WARNING_UHT(TEXT("Property cannot have 'DisableEditOnInstance' or 'BlueprintReadOnly' and 'ExposeOnSpawn' flags"));
 			}
 			if (0 == (CPF_BlueprintVisible & Flags))
 			{
-				UE_LOG(LogCompile, Warning, TEXT("Property cannot have 'ExposeOnSpawn' with 'BlueprintVisible' flag."));
+				UE_LOG_WARNING_UHT(TEXT("Property cannot have 'ExposeOnSpawn' with 'BlueprintVisible' flag."));
 			}
 			Flags |= CPF_ExposeOnSpawn;
 		}
@@ -3994,7 +3994,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			// Warn if a deprecated property is visible
 			if (VarProperty.PropertyFlags & (CPF_Edit | CPF_EditConst | CPF_BlueprintVisible | CPF_BlueprintReadOnly) && !(VarProperty.ImpliedPropertyFlags & CPF_BlueprintReadOnly))
 			{
-				UE_LOG(LogCompile, Warning, TEXT("%s: Deprecated property '%s' should not be marked as visible or editable"), HintText, *VarName);
+				UE_LOG_WARNING_UHT(TEXT("%s: Deprecated property '%s' should not be marked as visible or editable"), HintText, *VarName);
 			}
 
 			VarProperty.PropertyFlags |= CPF_Deprecated;
@@ -5693,7 +5693,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 			else
 			{
-				UE_LOG(LogCompile, Warning, TEXT("BlueprintImplementableEvents should not be virtual. Use BlueprintNativeEvent instead."));
+				UE_LOG_WARNING_UHT(TEXT("BlueprintImplementableEvents should not be virtual. Use BlueprintNativeEvent instead."));
 			}
 		}
 	}
@@ -6514,7 +6514,7 @@ void FHeaderParser::FinalizeScriptExposedFunctions(UClass* Class)
 		}
 		else
 		{
-			UE_LOG(LogCompile, Warning, TEXT("Unknown and unexpected child named %s of type %s in %s\n"), *ChildStruct->GetName(), *ChildStruct->GetClass()->GetName(), *Class->GetName());
+			UE_LOG_WARNING_UHT(TEXT("Unknown and unexpected child named %s of type %s in %s\n"), *ChildStruct->GetName(), *ChildStruct->GetClass()->GetName(), *Class->GetName());
 			check(false);
 		}
 	}
@@ -6878,7 +6878,7 @@ void FHeaderParser::ExportNativeHeaders(
 			}
 			else
 			{
-				UE_LOG(LogCompile, Warning, TEXT("Exporting native class declarations for %s"), *CurrentPackage->GetName());
+				UE_LOG_WARNING_UHT(TEXT("Exporting native class declarations for %s"), *CurrentPackage->GetName());
 			}
 		}
 		else
@@ -6889,7 +6889,7 @@ void FHeaderParser::ExportNativeHeaders(
 			}
 			else
 			{
-				UE_LOG(LogCompile, Warning, TEXT("Exporting native class declarations"));
+				UE_LOG_WARNING_UHT(TEXT("Exporting native class declarations"));
 			}
 		}
 		UHTMakefile.StartExporting();
