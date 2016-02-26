@@ -2811,8 +2811,7 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 
 bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if (InWorld != nullptr && InWorld->GetGameInstance() != nullptr &&
-		InWorld->WorldType != EWorldType::PIE && !(InWorld->DemoNetDriver && InWorld->DemoNetDriver->IsPlaying()))
+	if (InWorld != nullptr && InWorld->GetGameInstance() != nullptr)
 	{
 		FString DemoName;
 
@@ -2829,11 +2828,6 @@ bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 
 bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if (InWorld->WorldType == EWorldType::PIE)
-	{
-		return true;
-	}
-
 	FString Temp;
 	const TCHAR* ErrorString = nullptr;
 

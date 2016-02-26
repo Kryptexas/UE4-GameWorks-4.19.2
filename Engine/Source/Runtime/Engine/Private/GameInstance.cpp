@@ -758,6 +758,18 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 		return;
 	}
 
+	if ( CurrentWorld->WorldType == EWorldType::PIE )
+	{
+		UE_LOG(LogDemo, Warning, TEXT("UGameInstance::StartRecordingReplay: Function called while running a PIE instance, this is disabled."));
+		return;
+	}
+
+	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
+	{
+		UE_LOG(LogDemo, Warning, TEXT("UGameInstance::StartRecordingReplay: A replay is already playing, cannot begin recording another one."));
+		return;
+	}
+
 	FURL DemoURL;
 	FString DemoName = Name;
 	
@@ -767,7 +779,7 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 	DemoURL.Map = DemoName;
 	DemoURL.AddOption( *FString::Printf( TEXT( "DemoFriendlyName=%s" ), *FriendlyName ) );
 
-	for (const FString& Option : AdditionalOptions)
+	for ( const FString& Option : AdditionalOptions )
 	{
 		DemoURL.AddOption(*Option);
 	}
@@ -824,6 +836,12 @@ void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const
 		return;
 	}
 
+	if ( CurrentWorld->WorldType == EWorldType::PIE )
+	{
+		UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: Function called while running a PIE instance, this is disabled." ) );
+		return;
+	}
+
 	CurrentWorld->DestroyDemoNetDriver();
 
 	FURL DemoURL;
@@ -831,7 +849,7 @@ void UGameInstance::PlayReplay(const FString& Name, UWorld* WorldOverride, const
 
 	DemoURL.Map = Name;
 	
-	for (const FString& Option : AdditionalOptions)
+	for ( const FString& Option : AdditionalOptions )
 	{
 		DemoURL.AddOption(*Option);
 	}
