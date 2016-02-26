@@ -3437,11 +3437,16 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 		{
 			DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
 			FAnimTrailTypeDataPayload* CheckTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_START(CheckTrailData->Flags));
-					CheckTrailData->Flags = TRAIL_EMITTER_SET_DEADTRAIL(CheckTrailData->Flags);
-			SetDeadIndex(CheckTrailData->TrailIndex, CheckStartIndex);
-				}
 
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+				{
+					CheckTrailData->Flags = TRAIL_EMITTER_SET_DEADTRAIL(CheckTrailData->Flags);
+				}
+			}
+			SetDeadIndex(CheckTrailData->TrailIndex, CheckStartIndex);
+		}
 		bTagTrailAsDead = false;
 	}
 	TickCount++;
