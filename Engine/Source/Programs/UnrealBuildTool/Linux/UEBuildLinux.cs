@@ -233,8 +233,8 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			// [RCL] 2015-08-04 FIXME: modular (cross-)builds (e.g. editor, UT server) fail with XGE as FixDeps step apparently depends on artifacts (object files) which aren't listed among its prerequisites.
-			return false;
+			// [RCL] 2015-08-04 FIXME: we have seen XGE builds fail on Windows
+			return BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux;
 		}
 
 		/// <summary>
