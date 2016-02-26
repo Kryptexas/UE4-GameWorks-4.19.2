@@ -9,6 +9,7 @@
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintEditorUtils.h"
 #include "Engine/Blueprint.h" // for EBlueprintType
+#include "Engine/InheritableComponentHandler.h"
 
 /*******************************************************************************
 * NativizationCookControllerImpl
@@ -49,7 +50,8 @@ protected:
 	//~ Begin FScriptCookReplacmentCoordinator interface
 	virtual EReplacementResult IsTargetedForReplacement(const UPackage* Package) const override;
 	virtual EReplacementResult IsTargetedForReplacement(const UObject* Object) const override;
-	virtual UClass* FindReplacedClass(const UClass* Class) const override;
+	virtual UClass* FindReplacedClassForObject(const UObject* Object) const override;
+	virtual UObject* FindReplacedNameAndOuter(UObject* Object, FName& OutName) const override;
 	//~ End FScriptCookReplacmentCoordinator interface
 private:
 	void ReadConfig();
@@ -501,25 +503,85 @@ void FBlueprintNativeCodeGenModule::FinalizeManifest()
 	}
 }
 
-UClass* FBlueprintNativeCodeGenModule::FindReplacedClass(const UClass* Class) const
+UClass* FBlueprintNativeCodeGenModule::FindReplacedClassForObject(const UObject* Object) const
 {
 	// we're only looking to replace class types:
-	while (Class)
+	if (Object && Object->IsA<UField>() 
+		&& (EReplacementResult::ReplaceCompletely == IsTargetedForReplacement(Object)))
 	{
-		if (Class == UUserDefinedEnum::StaticClass())
+		for (const UClass* Class = Object->GetClass(); Class; Class = Class->GetSuperClass())
 		{
-			return UEnum::StaticClass();
+			if (Class == UUserDefinedEnum::StaticClass())
+			{
+				return UEnum::StaticClass();
+			}
+			if (Class == UUserDefinedStruct::StaticClass())
+			{
+				return UScriptStruct::StaticClass();
+			}
+			if (Class == UBlueprintGeneratedClass::StaticClass())
+			{
+				return UDynamicClass::StaticClass();
+			}
 		}
-		if (Class == UUserDefinedStruct::StaticClass())
+	}
+	ensure(!Object || !(Object->IsA<UUserDefinedStruct>() || Object->IsA<UUserDefinedEnum>()));
+	return nullptr;
+}
+
+UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object, FName& OutName) const
+{
+	OutName = NAME_None;
+	UObject* Outer = nullptr;
+
+	UActorComponent* ActorComponent = Cast<UActorComponent>(Object);
+	if (ActorComponent)
+	{
+		//if is child of a BPGC and not child of a CDO
+		UBlueprintGeneratedClass* BPGC = nullptr;
+		for (UObject* OuterObject = ActorComponent->GetOuter(); OuterObject && !BPGC; OuterObject = OuterObject->GetOuter())
 		{
-			return UScriptStruct::StaticClass();
-		}
-		if (Class == UBlueprintGeneratedClass::StaticClass())
-		{
-			return UDynamicClass::StaticClass();
+			if (OuterObject->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				return Outer;
+			}
+			BPGC = Cast<UBlueprintGeneratedClass>(OuterObject);
 		}
 
-		Class = Class->GetSuperClass();
+		for (UBlueprintGeneratedClass* SuperBPGC = BPGC; SuperBPGC && (OutName == NAME_None); SuperBPGC = Cast<UBlueprintGeneratedClass>(SuperBPGC->GetSuperClass()))
+		{
+			if (SuperBPGC->InheritableComponentHandler)
+			{
+				FComponentKey FoundKey = SuperBPGC->InheritableComponentHandler->FindKey(ActorComponent);
+				if (FoundKey.IsValid())
+				{
+					OutName = FoundKey.IsSCSKey() ? FoundKey.GetSCSVariableName() : ActorComponent->GetFName();
+					Outer = BPGC->GetDefaultObject(false);
+					break;
+				}
+			}
+			if (SuperBPGC->SimpleConstructionScript)
+			{
+				for (auto Node : SuperBPGC->SimpleConstructionScript->GetAllNodes())
+				{
+					if (Node->ComponentTemplate == ActorComponent)
+					{
+						OutName = Node->VariableName;
+						if (OutName != NAME_None)
+						{
+							Outer = BPGC->GetDefaultObject(false);
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (Outer && (EReplacementResult::ReplaceCompletely == IsTargetedForReplacement(Object->GetClass())))
+	{
+		UE_LOG(LogBlueprintCodeGen, Log, TEXT("Object '%s' has replaced name '%s' and outer: '%s'"), *GetPathNameSafe(Object), *OutName.ToString(), *GetPathNameSafe(Outer));
+		return Outer;
 	}
 
 	return nullptr;

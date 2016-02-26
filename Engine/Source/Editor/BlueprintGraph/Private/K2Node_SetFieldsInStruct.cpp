@@ -30,10 +30,7 @@ public:
 		: FKCHandler_MakeStruct(InCompilerContext)
 	{
 		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
-		if (Settings->bAllowReferencePassThroughsToCacheNonReferences)
-		{
-			bAutoGenerateGotoForPure = false;
-		}
+		bAutoGenerateGotoForPure = false;
 	}
 
 	virtual UEdGraphPin* FindStructPinChecked(UEdGraphNode* InNode) const override
@@ -48,23 +45,16 @@ public:
 	{
 		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 
-		if (!Settings->bAllowReferencePassThroughsToCacheNonReferences)
+		if (Net->Direction == EGPD_Output)
 		{
-			FKCHandler_MakeStruct::RegisterNet(Context, Net);
-		}
-		else
-		{
-			if (Net->Direction == EGPD_Output)
+			if (Net->ReferencePassThroughConnection)
 			{
-				if (Net->ReferencePassThroughConnection)
+				UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(Net->ReferencePassThroughConnection);
+				FBPTerminal** InputPinTerm = Context.NetMap.Find(InputPinNet);
+				if (InputPinTerm && !(*InputPinTerm)->bPassedByReference)
 				{
-					UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(Net->ReferencePassThroughConnection);
-					FBPTerminal** InputPinTerm = Context.NetMap.Find(InputPinNet);
-					if (InputPinTerm && !(*InputPinTerm)->bPassedByReference)
-					{
-						// We need a net for the output pin which we have thus far prevented from being registered
-						FKCHandler_MakeStruct::RegisterNet(Context, Net);
-					}
+					// We need a net for the output pin which we have thus far prevented from being registered
+					FKCHandler_MakeStruct::RegisterNet(Context, Net);
 				}
 			}
 		}
@@ -75,27 +65,24 @@ public:
 		FKCHandler_MakeStruct::RegisterNets(Context, Node);
 
 		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
-		if (Settings->bAllowReferencePassThroughsToCacheNonReferences)
+		UEdGraphPin* ReturnPin = Node->FindPin(SetFieldsInStructHelper::StructOutPinName());
+		UEdGraphPin* ReturnStructNet = FEdGraphUtilities::GetNetFromPin(ReturnPin);
+		FBPTerminal** ReturnTerm = Context.NetMap.Find(ReturnStructNet);
+
+		UEdGraphPin* InputPin = Node->FindPinChecked(SetFieldsInStructHelper::StructRefPinName());
+		UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(InputPin);
+		FBPTerminal** InputTerm = Context.NetMap.Find(InputPinNet);
+
+		if (InputTerm == nullptr)
 		{
-			UEdGraphPin* ReturnPin = Node->FindPin(SetFieldsInStructHelper::StructOutPinName());
-			UEdGraphPin* ReturnStructNet = FEdGraphUtilities::GetNetFromPin(ReturnPin);
-			FBPTerminal** ReturnTerm = Context.NetMap.Find(ReturnStructNet);
-
-			UEdGraphPin* InputPin = Node->FindPinChecked(SetFieldsInStructHelper::StructRefPinName());
-			UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(InputPin);
-			FBPTerminal** InputTerm = Context.NetMap.Find(InputPinNet);
-
-			if (InputTerm == nullptr)
+			CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoTerm_Error", "Failed to generate a term for the @@ pin; was it a struct reference that was left unset?").ToString(), InputPin);
+		}
+		else
+		{
+			if ((*InputTerm)->bPassedByReference) //InputPinNet->PinType.bIsReference)
 			{
-				CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoTerm_Error", "Failed to generate a term for the @@ pin; was it a struct reference that was left unset?").ToString(), InputPin);
-			}
-			else
-			{
-				if ((*InputTerm)->bPassedByReference) //InputPinNet->PinType.bIsReference)
-				{
-					// Forward the net to the output pin because it's being passed by-ref and this pin is a by-ref pin
-					Context.NetMap.Add(ReturnStructNet, *InputTerm);
-				}
+				// Forward the net to the output pin because it's being passed by-ref and this pin is a by-ref pin
+				Context.NetMap.Add(ReturnStructNet, *InputTerm);
 			}
 		}
 	}
@@ -105,31 +92,28 @@ public:
 		FKCHandler_MakeStruct::Compile(Context, Node);
 
 		UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
-		if (Settings->bAllowReferencePassThroughsToCacheNonReferences)
 		{
+			UEdGraphPin* InputPin = Node->FindPinChecked(SetFieldsInStructHelper::StructRefPinName());
+			UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(InputPin);
+			FBPTerminal** InputTerm = Context.NetMap.Find(InputPinNet);
+
+			// If the InputTerm was not a by-ref, then we need to place the modified structure into the local output term with an AssignStatement
+			if (InputTerm && !(*InputTerm)->bPassedByReference)
 			{
-				UEdGraphPin* InputPin = Node->FindPinChecked(SetFieldsInStructHelper::StructRefPinName());
-				UEdGraphPin* InputPinNet = FEdGraphUtilities::GetNetFromPin(InputPin);
-				FBPTerminal** InputTerm = Context.NetMap.Find(InputPinNet);
+				UEdGraphPin* ReturnPin = Node->FindPin(SetFieldsInStructHelper::StructOutPinName());
+				UEdGraphPin* ReturnStructNet = FEdGraphUtilities::GetNetFromPin(ReturnPin);
+				FBPTerminal** ReturnTerm = Context.NetMap.Find(ReturnStructNet);
 
-				// If the InputTerm was not a by-ref, then we need to place the modified structure into the local output term with an AssignStatement
-				if (InputTerm && !(*InputTerm)->bPassedByReference)
-				{
-					UEdGraphPin* ReturnPin = Node->FindPin(SetFieldsInStructHelper::StructOutPinName());
-					UEdGraphPin* ReturnStructNet = FEdGraphUtilities::GetNetFromPin(ReturnPin);
-					FBPTerminal** ReturnTerm = Context.NetMap.Find(ReturnStructNet);
-
-					FBlueprintCompiledStatement& AssignStatement = Context.AppendStatementForNode(Node);
-					AssignStatement.Type = KCST_Assignment;
-					// The return term is a reference no matter the way we received it.
-					(*ReturnTerm)->bPassedByReference = true;
-					AssignStatement.LHS = *ReturnTerm;
-					AssignStatement.RHS.Add(*InputTerm);
-				}
+				FBlueprintCompiledStatement& AssignStatement = Context.AppendStatementForNode(Node);
+				AssignStatement.Type = KCST_Assignment;
+				// The return term is a reference no matter the way we received it.
+				(*ReturnTerm)->bPassedByReference = true;
+				AssignStatement.LHS = *ReturnTerm;
+				AssignStatement.RHS.Add(*InputTerm);
 			}
-
-			GenerateSimpleThenGoto(Context, *Node);
 		}
+
+		GenerateSimpleThenGoto(Context, *Node);
 	}
 };
 
@@ -298,30 +282,6 @@ void UK2Node_SetFieldsInStruct::FSetFieldsInStructPinManager::GetRecordDefaults(
 	FMakeStructPinManager::GetRecordDefaults(TestProperty, Record);
 
 	Record.bShowPin = false;
-}
-
-void UK2Node_SetFieldsInStruct::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
-{
-	Super::ExpandNode(CompilerContext, SourceGraph);
-
-	UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
-	if (!Settings->bAllowReferencePassThroughsToCacheNonReferences)
-	{
-		UEdGraphPin* OutPin = FindPin(SetFieldsInStructHelper::StructOutPinName());
-		if (OutPin && OutPin->LinkedTo.Num())
-		{
-			UEdGraphPin* InPin = FindPin(SetFieldsInStructHelper::StructRefPinName());
-			UEdGraphPin* SourcePin = (InPin && (1 == InPin->LinkedTo.Num())) ? InPin->LinkedTo[0] : nullptr;
-			auto Schema = CompilerContext.GetSchema();
-			const bool bCopied = SourcePin && Schema->MovePinLinks(*OutPin, *SourcePin, true).CanSafeConnect();
-
-			if (!bCopied)
-			{
-				CompilerContext.MessageLog.Error(*LOCTEXT("ExpansionError", "Cannot copy links from @@").ToString(), OutPin);
-			}
-		}
-		Pins.Remove(OutPin);
-	}
 }
 
 bool UK2Node_SetFieldsInStruct::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const

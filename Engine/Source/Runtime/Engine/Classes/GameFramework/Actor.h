@@ -261,6 +261,7 @@ public:
 	void CopyRemoteRoleFrom(const AActor* CopyFromActor);
 
 	/** Returns how much control the remote machine has over this actor. */
+	UFUNCTION(BlueprintCallable, Category = "Replication")
 	ENetRole GetRemoteRole() const;
 
 	/** Used for replication of our RootComponent's position and velocity */

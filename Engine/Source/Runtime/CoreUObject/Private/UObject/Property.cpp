@@ -438,6 +438,7 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		ExtendedTypeText = *ActualExtendedType;
 	}
 
+	const bool bCanHaveRef = 0 == (AdditionalExportCPPFlags & CPPF_NoRef);
 	const bool bCanHaveConst = 0 == (AdditionalExportCPPFlags & CPPF_NoConst);
 	if (!dynamic_cast<const UBoolProperty*>(this) && bCanHaveConst) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
 	{
@@ -446,18 +447,20 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		// export 'const' for parameters
 		const bool bIsConstParam   = bIsParameter && (HasAnyPropertyFlags(CPF_ConstParm) || (bIsInterfaceProp && !HasAllPropertyFlags(CPF_OutParm)));
 		const bool bIsOnConstClass = ObjectProp && ObjectProp->PropertyClass && ObjectProp->PropertyClass->HasAnyClassFlags(CLASS_Const);
-		if (bIsConstParam || bIsOnConstClass)
+		const bool bShouldHaveRef = bCanHaveRef && HasAnyPropertyFlags(CPF_OutParm | CPF_ReferenceParm);
+
+		const bool bConstAtTheBeginning = bIsOnConstClass || (bIsConstParam && !bShouldHaveRef);
+		if (bConstAtTheBeginning)
 		{
 			TypeText = FString::Printf(TEXT("const %s"), *TypeText);
 		}
 
-		if (DeclarationType == EExportedDeclaration::Member)
+		const UClass* const MyPotentialConstClass = (DeclarationType == EExportedDeclaration::Member) ? dynamic_cast<UClass*>(GetOuter()) : nullptr;
+		const bool bFromConstClass = MyPotentialConstClass && MyPotentialConstClass->HasAnyClassFlags(CLASS_Const);
+		const bool bConstAtTheEnd = bFromConstClass || (bIsConstParam && bShouldHaveRef);
+		if (bConstAtTheEnd)
 		{
-			UClass* MyClass = dynamic_cast<UClass*>(GetOuter());
-			if (MyClass && MyClass->HasAnyClassFlags(CLASS_Const))
-			{
-				ExtendedTypeText += TEXT(" const");
-			}
+			ExtendedTypeText += TEXT(" const");
 		}
 	}
 
@@ -486,7 +489,6 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		}
 	}
 
-	const bool bCanHaveRef = 0 == (AdditionalExportCPPFlags & CPPF_NoRef);
 	if(auto BoolProperty = dynamic_cast<const UBoolProperty*>(this) )
 	{
 		// if this is a member variable, export it as a bitfield

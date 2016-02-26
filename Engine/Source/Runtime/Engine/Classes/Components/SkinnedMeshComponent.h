@@ -839,10 +839,23 @@ public:
 	 * @param TestLocation the location to test against
 	 * @param BoneLocation (optional, out) if specified, set to the world space location of the bone that was found, or (0,0,0) if no bone was found
 	 * @param IgnoreScale (optional) if specified, only bones with scaling larger than the specified factor are considered
+	 * @param bRequirePhysicsAsset (optional) if true, only bones with physics will be considered
 	 *
 	 * @return the name of the bone that was found, or 'None' if no bone was found
 	 */
-	FName FindClosestBone(FVector TestLocation, FVector* BoneLocation = NULL, float IgnoreScale = 0.f) const;
+	FName FindClosestBone(FVector TestLocation, FVector* BoneLocation = NULL, float IgnoreScale = 0.f, bool bRequirePhysicsAsset = false) const;
+
+	/** finds the closest bone to the given location
+	*
+	* @param TestLocation the location to test against
+	* @param BoneLocation (optional, out) if specified, set to the world space location of the bone that was found, or (0,0,0) if no bone was found
+	* @param IgnoreScale (optional) if specified, only bones with scaling larger than the specified factor are considered
+	* @param bRequirePhysicsAsset (optional) if true, only bones with physics will be considered
+	*
+	* @return the name of the bone that was found, or 'None' if no bone was found
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkinnedMesh", meta=(DisplayName="FindClosestBone", AdvancedDisplay="bRequirePhysicsAsset"))
+	FName FindClosestBone_K2(FVector TestLocation, FVector& BoneLocation, float IgnoreScale = 0.f, bool bRequirePhysicsAsset = false) const;
 
 	/**
 	 * Find a named MorphTarget from the current SkeletalMesh

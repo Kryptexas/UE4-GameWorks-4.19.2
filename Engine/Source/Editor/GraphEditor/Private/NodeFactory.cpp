@@ -221,6 +221,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		{
 			return SNew(SGraphNodeK2ArrayFunction, CallFunction);
 		}
+		else if (UK2Node_GetArrayItem* GetArrayItemNode = Cast<UK2Node_GetArrayItem>(InNode))
+		{
+			return SNew(SGraphNodeK2ArrayFunction, GetArrayItemNode);
+		}
 		else if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(InNode))
 		{
 			return SNew(SGraphNodeKnot, Knot);

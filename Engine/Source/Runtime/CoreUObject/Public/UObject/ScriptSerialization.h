@@ -471,6 +471,12 @@
 			SerializeExpr(iCode, Ar);	//default term
 			break;
 		}
+		case EX_ArrayGetByRef:
+			{
+				SerializeExpr( iCode, Ar );
+				SerializeExpr( iCode, Ar );
+				break;
+			}
 		default:
 		{
 			// This should never occur.

@@ -4,9 +4,6 @@
 
 #include "TracePath.h"
 
-struct FSlateBrush;
-class UBlueprintGeneratedClass;
-
 /**  Execution node flags */
 namespace EScriptExecutionNodeFlags
 {
@@ -16,6 +13,7 @@ namespace EScriptExecutionNodeFlags
 		Class				= 0x00000001,	// Class
 		Instance			= 0x00000002,	// Instance
 		Event				= 0x00000004,	// Event
+		Container			= 0x00000007,	// Container type - Class, Instance or Event.
 		FunctionCall		= 0x00000008,	// Function Call
 		MacroCall			= 0x00000010,	// Macro Call
 		CallSite			= 0x00000018,	// Function / Macro call site
@@ -126,6 +124,8 @@ protected:
 //////////////////////////////////////////////////////////////////////////
 // FScriptExecutionNode
 
+typedef TSet<TWeakObjectPtr<const UObject>> FExecNodeFilter;
+
 class KISMET_API FScriptExecutionNode : public FScriptNodeExecLinkage, public FScriptNodePerfData, public TSharedFromThis<FScriptExecutionNode>
 {
 public:
@@ -183,6 +183,15 @@ public:
 	/** Returns if this event potentially multiple exit sites */
 	bool IsBranch() const { return (NodeFlags & EScriptExecutionNodeFlags::BranchNode) != 0U; }
 
+	/** Sets the observed object context */
+	void SetObservedObject(const UObject* ObjectIn) { ObservedObject = ObjectIn; }
+
+	/** Gets the observed object context */
+	const UObject* GetObservedObject() { return ObservedObject.Get(); }
+
+	/** Navigate to object */
+	virtual void NavigateToObject() const;
+
 	/** Returns the display name for widget UI */
 	const FText& GetDisplayName() const { return DisplayName; }
 
@@ -216,9 +225,6 @@ public:
 	/** Sets the current expansion state for widget UI */
 	void SetExpanded(bool bIsExpanded) { bExpansionState = bIsExpanded; }
 
-	/** Returns if this node represents a blueprint */
-	virtual bool IsRootNode() const { return false; }
-
 	/** Return the linear execution path from this node */
 	void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
 
@@ -233,12 +239,22 @@ public:
 
 protected:
 
+	/** Get linear execution path - private implementation */
+	void GetLinearExecutionPath_Internal(FExecNodeFilter& Filter, TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
+
+	/** Refresh Stats - private implementation */
+	void RefreshStats_Internal(const FTracePath& TracePath, FExecNodeFilter& VisitedStats);
+
+protected:
+
 	/** Node name */
 	FName NodeName;
 	/** Owning graph name */
 	FName OwningGraphName;
 	/** Node flags to describe the source graph node type */
 	uint32 NodeFlags;
+	/** Oberved object */
+	TWeakObjectPtr<const UObject> ObservedObject;
 	/** Display name for widget UI */
 	FText DisplayName;
 	/** Tooltip for widget UI */
@@ -253,6 +269,18 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////
+// FScriptExecutionInstance
+
+class KISMET_API FScriptExecutionInstance : public FScriptExecutionNode
+{
+public:
+
+	// FScriptExecutionNode
+	virtual void NavigateToObject() const override;
+	// ~FScriptExecutionNode
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FScriptExecutionBlueprint
 
 class KISMET_API FScriptExecutionBlueprint : public FScriptExecutionNode
@@ -260,49 +288,28 @@ class KISMET_API FScriptExecutionBlueprint : public FScriptExecutionNode
 public:
 
 	/** Adds new blueprint instance node */
-	void AddInstance(TSharedPtr<class FScriptExecutionNode> Instance) { Instances.Add(Instance); }
+	void AddInstance(TSharedPtr<FScriptExecutionNode> Instance) { Instances.Add(Instance); }
 
 	/** Returns the current number of instance nodes */
 	int32 GetInstanceCount() { return Instances.Num(); }
 
 	/** Returns the instance node specified by Index */
-	TSharedPtr<class FScriptExecutionNode> GetInstanceByIndex(const int32 Index) { return Instances[Index]; }
+	TSharedPtr<FScriptExecutionNode> GetInstanceByIndex(const int32 Index) { return Instances[Index]; }
 
 	/** Returns the instance that matches the supplied name if present */
 	TSharedPtr<FScriptExecutionNode> GetInstanceByName(FName InstanceName);
 
-	// ~Begin FScriptExecutionNode
-	virtual bool IsRootNode() const override { return true; }
+	// FScriptExecutionNode
 	virtual EScriptStatContainerType::Type GetStatisticContainerType() const override { return EScriptStatContainerType::Container; }
 	virtual void RefreshStats(const FTracePath& TracePath) override;
 	virtual void GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut) override;
-	// ~End FScriptExecutionNode
+	virtual void NavigateToObject() const override;
+	// ~FScriptExecutionNode
 
 private:
 
 	/** Exec nodes representing all instances based on this blueprint */
-	TArray<TSharedPtr<class FScriptExecutionNode>> Instances;
+	TArray<TSharedPtr<FScriptExecutionNode>> Instances;
 
 };
 
-//////////////////////////////////////////////////////////////////////////
-// FScriptExecutionContext
-
-class KISMET_API FScriptExecutionContext : public TSharedFromThis<FScriptExecutionContext>
-{
-public:
-
-	bool IsContextValid() const { return ContextObject.IsValid(); }
-	const class UEdGraphNode* GetGraphNode() const { return ContextObject.IsValid() ? Cast<UEdGraphNode>(ContextObject.Get()) : nullptr; }
-	const class UEdGraphNode* GetNodeFromCodeLocation(const int32 CodeLocation, UFunction* FunctionOverride = nullptr) const;
-	void GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut);
-	void UpdateConnectedStats();
-
-public:
-
-	TSharedPtr<FScriptExecutionNode> ExecutionNode;
-	TWeakObjectPtr<const UObject> ContextObject;
-	TWeakObjectPtr<const UObject> MacroContextObject;
-	TWeakObjectPtr<UBlueprintGeneratedClass> BlueprintClass;
-	TWeakObjectPtr<UFunction> BlueprintFunction;
-};

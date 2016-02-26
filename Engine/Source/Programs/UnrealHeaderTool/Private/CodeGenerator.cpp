@@ -1379,7 +1379,7 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 		{
 			const FString DynamicClassPackageName = FClass::GetTypePackageName(Class);
 			GeneratedClassRegisterFunctionText.Logf(TEXT("\t\tUPackage* OuterPackage = FindOrConstructDynamicTypePackage(TEXT(\"%s\"));\r\n"), *DynamicClassPackageName);
-			GeneratedClassRegisterFunctionText.Logf(TEXT("\t\tUClass* OuterClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), OuterPackage, TEXT(\"%s\")));\r\n"), *Class->GetName());
+			GeneratedClassRegisterFunctionText.Logf(TEXT("\t\tUClass* OuterClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), OuterPackage, TEXT(\"%s\")));\r\n"), *FNativeClassHeaderGenerator::GetOverriddenName(Class));
 			GeneratedClassRegisterFunctionText.Logf(TEXT("\t\tif (!OuterClass || !(OuterClass->ClassFlags & CLASS_Constructed))\r\n"));
 		}
 		
@@ -1405,8 +1405,8 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 
 		FString OuterString = FString(TEXT("OuterClass"));
 
+		TMap<FName, FString>* MetaDataMap = UMetaData::GetMapForObject(Class);
 		{
-			TMap<FName, FString>* MetaDataMap = UMetaData::GetMapForObject(Class);
 			FClassMetaData* ClassMetaData = GScriptHelper.FindClassData(Class);
 			if (MetaDataMap && ClassMetaData && Class)
 			{
@@ -1490,6 +1490,11 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 
 		if (bIsDynamic)
 		{
+			FString* CustomDynamicClassInitializationMD = MetaDataMap ? MetaDataMap->Find(TEXT("CustomDynamicClassInitialization")) : nullptr;
+			if (CustomDynamicClassInitializationMD)
+			{
+				GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\t%s(CastChecked<UDynamicClass>(OuterClass));\n"), *(*CustomDynamicClassInitializationMD));
+			}
 			GeneratedClassRegisterFunctionText.Logf(TEXT("\t\t\t\tOuterClass->GetDefaultObject();\r\n"));
 		}
 
@@ -2791,6 +2796,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 	{
 		UScriptStruct* Struct = NativeStructs[i];
 		const bool bIsDynamic = FClass::IsDynamic(Struct);
+		const FString ActualStructName = FNativeClassHeaderGenerator::GetOverriddenName(Struct);
 
 		// Export struct.
 		if (Struct->StructFlags & STRUCT_Native)
@@ -2847,7 +2853,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 			else
 			{
 				GeneratedPackageCPP.Logf(TEXT("\tclass UScriptStruct* Singleton = Cast<UScriptStruct>(StaticFindObjectFast(UScriptStruct::StaticClass(), %s, TEXT(\"%s\")));\r\n"),
-					*OuterName, *Struct->GetName());
+					*OuterName, *ActualStructName);
 			}
 			GeneratedPackageCPP.Logf(TEXT("\tif (!Singleton)\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("\t{\r\n"));
@@ -2855,14 +2861,14 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 			GeneratedPackageCPP.Logf(TEXT("\t\textern %suint32 %s();\r\n"), *FriendApiString, *GetCRCName);
 
 			GeneratedPackageCPP.Logf(TEXT("\t\tSingleton = GetStaticStruct(%s, %s, TEXT(\"%s\"), sizeof(%s), %s());\r\n"),
-				*SingletonName, *OuterName, *Struct->GetName(), StructNameCPP, *GetCRCName);
+				*SingletonName, *OuterName, *ActualStructName, StructNameCPP, *GetCRCName);
 
 			GeneratedPackageCPP.Logf(TEXT("\t}\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("\treturn Singleton;\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("}\r\n"));
 
 			GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferStruct Z_CompiledInDeferStruct_UScriptStruct_%s(%s::StaticStruct, TEXT(\"%s\"), TEXT(\"%s\"), %s, %s, %s);\r\n"),
-				StructNameCPP, StructNameCPP, *Struct->GetOutermost()->GetName(), *Struct->GetName(),
+				StructNameCPP, StructNameCPP, *Struct->GetOutermost()->GetName(), *ActualStructName,
 				bIsDynamic ? TEXT("true") : TEXT("false"),
 				bIsDynamic ? *AsTEXT(FClass::GetTypePackageName(Struct)) : TEXT("nullptr"),
 				bIsDynamic ? *AsTEXT(FNativeClassHeaderGenerator::GetOverriddenPathName(Struct)) : TEXT("nullptr"));
@@ -2876,7 +2882,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 				GeneratedPackageCPP.Logf(TEXT("\tFScriptStruct_%s_StaticRegisterNatives%s()\r\n"), *ShortPackageName, StructNameCPP);
 				GeneratedPackageCPP.Logf(TEXT("\t{\r\n"));
 
-				GeneratedPackageCPP.Logf(TEXT("\t\tUScriptStruct::DeferCppStructOps(FName(TEXT(\"%s\")),new UScriptStruct::TCppStructOps<%s%s>);\r\n"), *Struct->GetName(), Struct->GetPrefixCPP(), *Struct->GetName());
+				GeneratedPackageCPP.Logf(TEXT("\t\tUScriptStruct::DeferCppStructOps(FName(TEXT(\"%s\")),new UScriptStruct::TCppStructOps<%s>);\r\n"), *ActualStructName, StructNameCPP);
 
 				GeneratedPackageCPP.Logf(TEXT("\t}\r\n"));
 				GeneratedPackageCPP.Logf(TEXT("} ScriptStruct_%s_StaticRegisterNatives%s;\r\n"), *ShortPackageName, StructNameCPP);
@@ -2923,11 +2929,11 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 			GeneratedStructRegisterFunctionText.Logf(TEXT("\t\textern uint32 %s();\r\n"), *CRCFuncName);
 			if (!bIsDynamic)
 			{
-				GeneratedStructRegisterFunctionText.Logf(TEXT("\t\tstatic UScriptStruct* ReturnStruct = FindExistingStructIfHotReloadOrDynamic(Outer, TEXT(\"%s\"), sizeof(%s), %s(), false);\r\n"), *ScriptStruct->GetName(), NameLookupCPP.GetNameCPP(Struct), *CRCFuncName);
+				GeneratedStructRegisterFunctionText.Logf(TEXT("\t\tstatic UScriptStruct* ReturnStruct = FindExistingStructIfHotReloadOrDynamic(Outer, TEXT(\"%s\"), sizeof(%s), %s(), false);\r\n"), *ActualStructName, NameLookupCPP.GetNameCPP(Struct), *CRCFuncName);
 			}
 			else
 			{
-				GeneratedStructRegisterFunctionText.Logf(TEXT("\t\tUScriptStruct* ReturnStruct = FindExistingStructIfHotReloadOrDynamic(Outer, TEXT(\"%s\"), sizeof(%s), %s(), true);\r\n"), *ScriptStruct->GetName(), NameLookupCPP.GetNameCPP(Struct), *CRCFuncName);
+				GeneratedStructRegisterFunctionText.Logf(TEXT("\t\tUScriptStruct* ReturnStruct = FindExistingStructIfHotReloadOrDynamic(Outer, TEXT(\"%s\"), sizeof(%s), %s(), true);\r\n"), *ActualStructName, NameLookupCPP.GetNameCPP(Struct), *CRCFuncName);
 			}
 			GeneratedStructRegisterFunctionText.Logf(TEXT("\t\tif (!ReturnStruct)\r\n"));
 			GeneratedStructRegisterFunctionText.Logf(TEXT("\t\t{\r\n"));
@@ -2952,7 +2958,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 
 			const TCHAR* UStructObjectFlags = bIsDynamic ? TEXT("RF_Public|RF_Transient") : TEXT("RF_Public|RF_Transient|RF_MarkAsNative");
 			GeneratedStructRegisterFunctionText.Logf(TEXT("\t\t\tReturnStruct = new(EC_InternalUseOnlyConstructor, Outer, TEXT(\"%s\"), %s) UScriptStruct(FObjectInitializer(), %s, %s, EStructFlags(0x%08X)%s);\r\n"),
-				*ScriptStruct->GetName(),
+				*ActualStructName,
 				UStructObjectFlags,
 				*BaseStructString,
 				*CppStructOpsString,
@@ -3053,8 +3059,9 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 		GeneratedPackageCPP.Logf(TEXT("\treturn Singleton;\r\n"));
 		GeneratedPackageCPP.Logf(TEXT("}\r\n"));
 
+		const FString EnumNameCpp = Enum->GetName(); //UserDefinedEnum should already have a valid cpp name.
 		GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferEnum Z_CompiledInDeferEnum_UEnum_%s(%s_StaticEnum, TEXT(\"%s\"), TEXT(\"%s\"), %s, %s, %s);\r\n"), 
-			*Enum->GetName(), *Enum->GetName(), *Enum->GetOutermost()->GetName(), *Enum->GetName(),
+			*EnumNameCpp, *EnumNameCpp, *Enum->GetOutermost()->GetName(), *FNativeClassHeaderGenerator::GetOverriddenName(Enum),
 			bIsDynamic ? TEXT("true") : TEXT("false"),
 			bIsDynamic ? *AsTEXT(FClass::GetTypePackageName(Enum)) : TEXT("nullptr"),
 			bIsDynamic ? *AsTEXT(FNativeClassHeaderGenerator::GetOverriddenPathName(Enum)) : TEXT("nullptr"));

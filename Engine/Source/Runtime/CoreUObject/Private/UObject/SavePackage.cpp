@@ -237,7 +237,7 @@ public:
 	{
 		if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 		{
-			if (const UClass* ReplObjClass = Coordinator->FindReplacedClass(Obj->GetClass()))
+			if (const UClass* ReplObjClass = Coordinator->FindReplacedClassForObject(Obj))
 			{
 				MarkNameAsReferenced(ReplObjClass->GetFName());
 			}
@@ -785,6 +785,12 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 				if (!IsCooking() || !Obj->HasAllMarks(ObjectMarks))
 				{
 					UObject* Parent = Obj->GetOuter();
+#if WITH_EDITOR
+					const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get();
+					FName UnusedName;
+					UObject* ReplacedOuter = Coordinator ? Coordinator->FindReplacedNameAndOuter(Obj, /*out*/UnusedName) : nullptr;
+					Parent = ReplacedOuter ? ReplacedOuter : Obj->GetOuter();
+#endif //WITH_EDITOR
 					if( Parent )
 					{
 						*this << Parent;
@@ -3110,6 +3116,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 {
 	UE_START_LOG_COOK_TIME( Filename );
 
+#if WITH_EDITOR
+	TMap<UObject*, UObject*> ReplacedImportOuters;
+#endif //WITH_EDITOR
+
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
 		if (GIsSavingPackage)
@@ -3502,14 +3512,13 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						EReplacementResult ReplacmentResult = IBlueprintNativeCodeGenCore::Get()->IsTargetedForReplacement(InOuter);
 						if (ReplacmentResult == EReplacementResult::ReplaceCompletely)
 						{
+							UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
 							return ESavePackageResult::ReplaceCompletely;
 						}
 						else if (ReplacmentResult == EReplacementResult::GenerateStub)
 						{
 							bRequestStub = true;
 						}
-						UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
-						// Or replace with the NativeScriptPackage ?
 					}
 #endif
 				}
@@ -3957,31 +3966,36 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							}
 						}
 					}
-
 					for(int32 Index = 0; Index < TagImpObjects.Num(); Index++)
 					{
 						UObject* Obj = TagImpObjects[Index];
 						check(Obj->HasAnyMarks(OBJECTMARK_TagImp) || Linker->IsCooking());
-						UClass* ObjClass = nullptr;
+						UClass* ObjClass = Obj->GetClass();
 #if WITH_EDITOR
-						bool bReplaced = false;
+						FName ReplacedName = NAME_None;
 						if (const IBlueprintNativeCodeGenCore* Coordinator = IBlueprintNativeCodeGenCore::Get())
 						{
-							if (UClass* ReplacedClass = Coordinator->FindReplacedClass(Obj->GetClass()))
+							if (UClass* ReplacedClass = Coordinator->FindReplacedClassForObject(Obj))
 							{
 								ObjClass = ReplacedClass;
-								bReplaced = true;
+							}
+							if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/ReplacedName))
+							{
+								ReplacedImportOuters.Add(Obj, ReplacedOuter);
 							}
 						}
-						if (!bReplaced)
 #endif //WITH_EDITOR
-						{
-							ObjClass = Obj->GetClass();
-						}
+						FObjectImport* LocObjectImport = nullptr;
 						if (Obj->HasAnyMarks(OBJECTMARK_TagImp))
 						{
-							new(Linker->ImportMap)FObjectImport(Obj, ObjClass);
+							LocObjectImport = new(Linker->ImportMap)FObjectImport(Obj, ObjClass);
 						}
+#if WITH_EDITOR
+						if (LocObjectImport && (ReplacedName != NAME_None))
+						{
+							LocObjectImport->ObjectName = ReplacedName;
+						}
+#endif //WITH_EDITOR
 					}
 				}
 
@@ -4578,7 +4592,18 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								}
 							}
 							check(!Import.XObject->GetOuter()->IsIn(InOuter) || Import.XObject->HasAllFlags(RF_Transient) || Import.XObject->IsNative());
-							Import.OuterIndex = Linker->MapObject(Import.XObject->GetOuter());
+#if WITH_EDITOR
+							UObject** ReplacedOuter = ReplacedImportOuters.Find(Import.XObject);
+							if (ReplacedOuter && *ReplacedOuter)
+							{
+								Import.OuterIndex = Linker->MapObject(*ReplacedOuter);
+								ensure(Import.OuterIndex != FPackageIndex());
+							}
+							else
+#endif
+							{
+								Import.OuterIndex = Linker->MapObject(Import.XObject->GetOuter());
+							}
 						}
 					}
 					else

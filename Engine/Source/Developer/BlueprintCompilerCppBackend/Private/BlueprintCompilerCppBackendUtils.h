@@ -290,6 +290,9 @@ struct FEmitDefaultValueHelper
 	// returns empty string if cannot handle
 	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitilize);
 
+	// returns true, and fill OutResult, when the structure is handled in a custom way.
+	static bool SpecialStructureConstructor(const UScriptStruct* Struct, const uint8* ValuePtr, FString* OutResult);
+
 private:
 	// Returns native term, 
 	// returns empty string if cannot handle

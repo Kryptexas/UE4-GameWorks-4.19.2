@@ -18,7 +18,6 @@ public class Kismet : ModuleRules
                 "DerivedDataCache",
                 "LevelEditor",
 				"GameProjectGeneration",
-                "BlueprintProfiler"
 			}
 			);
 
@@ -48,7 +47,8 @@ public class Kismet : ModuleRules
                 "DerivedDataCache",
 				"DesktopPlatform",
 				"HotReload",
-                "BlueprintNativeCodeGen"
+                "BlueprintNativeCodeGen",
+                "BlueprintProfiler"
 			}
 			);
 
@@ -59,7 +59,6 @@ public class Kismet : ModuleRules
 				"EditorWidgets",
 				"GameProjectGeneration",
                 "BlueprintCompilerCppBackend",
-                "BlueprintProfiler"
 			}
             );
 

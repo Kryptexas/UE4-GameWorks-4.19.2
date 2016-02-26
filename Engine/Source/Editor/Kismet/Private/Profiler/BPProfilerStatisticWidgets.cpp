@@ -47,6 +47,7 @@ TSharedRef<SWidget> SProfilerStatRow::GenerateWidgetForColumn(const FName& Colum
 			.VAlign(VAlign_Center)
 			[
 				SNew(SExpanderArrow, SharedThis(this))
+				.IndentAmount(15.f)
 			]
 			+SHorizontalBox::Slot()
 			.FillWidth(1.0f)
@@ -202,21 +203,7 @@ void FBPProfilerStatWidget::NavigateTo() const
 {
 	if (ExecNode.IsValid())
 	{
-		if (IBlueprintProfilerInterface* Profiler = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler"))
-		{
-			if (ExecNode->IsClass())
-			{
-				Profiler->NavigateToBlueprint(ExecNode->GetName());
-			}
-			else if (ExecNode->IsInstance())
-			{
-				Profiler->NavigateToInstance(ExecNode->GetName());
-			}
-			else
-			{
-				Profiler->NavigateToNode(ExecNode->GetName());
-			}
-		}
+		ExecNode->NavigateToObject();
 	}
 }
 

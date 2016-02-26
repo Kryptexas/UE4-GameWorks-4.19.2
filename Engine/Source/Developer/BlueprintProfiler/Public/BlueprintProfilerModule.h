@@ -4,9 +4,6 @@
 
 #include "ModuleManager.h"
 
-class UBlueprint;
-struct EScriptInstrumentationEvent;
-
 /** Delegate to broadcast structural stats changes */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBPStatGraphLayoutChanged, TWeakObjectPtr<UBlueprint>);
 
@@ -34,32 +31,20 @@ public:
 	/** Returns the multicast delegate to signal blueprint layout changes to stats */
 	virtual FOnBPStatGraphLayoutChanged& GetGraphLayoutChangedDelegate() = 0;
 
-	/** Returns the cached object context or creates a new entry */
-	virtual TSharedPtr<class FScriptExecutionContext> GetCachedObjectContext(const FString& ObjectPath) = 0;
+	/** Returns the cached blueprint context or creates and maps a new entry */
+	virtual TSharedPtr<class FBlueprintExecutionContext> GetBlueprintContext(const FString& BlueprintClassPath) = 0;
 
 	/** Returns the current profiling event data for node */
-	virtual TSharedPtr<class FScriptExecutionNode> GetProfilerDataForNode(const FName NodeName) = 0;
+	virtual TSharedPtr<class FScriptExecutionNode> GetProfilerDataForNode(const UEdGraphNode* GraphNode) = 0;
 
-	/** Returns or creates an entry for the node */
-	virtual TSharedPtr<class FScriptExecutionNode> GetOrCreateProfilerDataForNode(const FName NodeName) = 0;
+	/** Maps a blueprint instance and links to blueprint profiling data */
+	virtual void MapBlueprintInstance(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FString& InstancePath) = 0;
 
 	/** Returns if the profiler currently retains any data for the specified instance */
-	virtual bool HasDataForInstance(const UObject* Instance) { return false; }
-
-	/** Get Valid Instance Path */
-	virtual const FString GetValidInstancePath(const FString PathIn) = 0;
+	virtual bool HasDataForInstance(const UObject* Instance) const { return false; }
 
 	/** Process profiling event data */
 	virtual void ProcessEventProfilingData() {}
-
-	/** Navigate to blueprint */
-	virtual void NavigateToBlueprint(const FName NameIn) const = 0;
-
-	/** Navigate to instance */
-	virtual void NavigateToInstance(const FName NameIn) const = 0;
-
-	/** Navigate to profiler node */
-	virtual void NavigateToNode(const FName NameIn) const = 0;
 
 #endif // WITH_EDITOR
 

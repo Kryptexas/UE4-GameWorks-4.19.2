@@ -1728,6 +1728,12 @@ void FBlueprintEditor::InitBlueprintEditor(
 				GetToolkitCommands()->ExecuteAction(FFullBlueprintEditorCommands::Get().EditClassDefaults.ToSharedRef());
 			}
 		}
+
+		// There are upgrade notes, open the log and dump the messages to it
+		if (Blueprint->UpgradeNotesLog.IsValid())
+		{
+			DumpMessagesToCompilerLog(Blueprint->UpgradeNotesLog->Messages, true);
+		}
 	}
 }
 
@@ -3161,6 +3167,11 @@ void FBlueprintEditor::Compile()
 			{
 				JumpToNode(NodeWithError, /*bRequestRename =*/false);
 			}
+		}
+
+		if (BlueprintObj->UpgradeNotesLog.IsValid())
+		{
+			CompilerResultsListing->AddMessages(BlueprintObj->UpgradeNotesLog->Messages);
 		}
 
 		// send record when player clicks compile and send the result

@@ -40,7 +40,12 @@ enum EKismetCompiledStatementType
 	// Kismet instrumentation extensions
 	KCST_InstrumentedPureNodeEntry,	// Instrumented pure node entry
 	KCST_InstrumentedWireEntry,		// Instrumented wiretrace entry
-	KCST_InstrumentedWireExit		// Instrumented wiretrace exit
+	KCST_InstrumentedWireExit,		// Instrumented wiretrace exit
+	KCST_InstrumentedStatePush,		// Instrumented state push
+	KCST_InstrumentedStateRestore,	// Instrumented state restore
+	KCST_InstrumentedStatePop,		// Instrumented state pop
+	//
+	KCST_ArrayGetByRef,
 };
 
 //@TODO: Too rigid / icky design

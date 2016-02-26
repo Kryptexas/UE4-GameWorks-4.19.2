@@ -76,16 +76,15 @@ const TCHAR* UClassProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	const TCHAR* Result = UObjectProperty::ImportText_Internal( Buffer, Data, PortFlags, Parent, ErrorText );
 	if( Result )
 	{
-		CheckValidObject(Data);
 		if (UClass* AssignedPropertyClass = dynamic_cast<UClass*>(GetObjectPropertyValue(Data)))
 		{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-			FLinkerLoad* PropertyLinker = GetLinker();
-			bool const bIsDeferringValueLoad = ((PropertyLinker == nullptr) || (PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads)) &&
-				Cast<ULinkerPlaceholderClass>(MetaClass);
+			FLinkerLoad* ObjectLinker = (Parent != nullptr) ? Parent->GetClass()->GetLinker() : GetLinker();
+			bool const bIsDeferringValueLoad = ((ObjectLinker == nullptr) || (ObjectLinker->LoadFlags & LOAD_DeferDependencyLoads)) &&
+				(Cast<ULinkerPlaceholderClass>(MetaClass) || Cast<ULinkerPlaceholderClass>(AssignedPropertyClass));
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-			check(bIsDeferringValueLoad || !Cast<ULinkerPlaceholderClass>(MetaClass));
+			check( bIsDeferringValueLoad || !(Cast<ULinkerPlaceholderClass>(MetaClass) || Cast<ULinkerPlaceholderClass>(AssignedPropertyClass)) );
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 #else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING 

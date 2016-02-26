@@ -634,6 +634,11 @@ void SGraphNode::UpdateErrorInfo()
 			ErrorColor = FEditorStyle::GetColor("InfoReporting.BackgroundColor");
 		}
 	}
+	else if (!GraphNode->NodeUpgradeMessage.IsEmpty())
+	{
+		ErrorMsg = FString(TEXT("UPGRADE NOTE"));
+		ErrorColor = FEditorStyle::GetColor("InfoReporting.BackgroundColor");
+	}
 	else 
 	{
 		ErrorColor = FLinearColor(0,0,0);
@@ -1237,7 +1242,24 @@ void SGraphNode::PositionThisNodeBetweenOtherNodes(const FVector2D& PrevPos, con
 
 FText SGraphNode::GetErrorMsgToolTip( ) const
 {
-	return FText::FromString(GraphNode->ErrorMsg);
+	FText Result;
+	// Append the node's upgrade message, if any.
+	if (!GraphNode->NodeUpgradeMessage.IsEmpty())
+	{
+		if (Result.IsEmpty())
+		{
+			Result = GraphNode->NodeUpgradeMessage;
+		}
+		else
+		{
+			Result = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), Result, GraphNode->NodeUpgradeMessage);
+		}
+	}
+	else
+	{
+		Result = FText::FromString(GraphNode->ErrorMsg);
+	}
+	return Result;
 }
 
 bool SGraphNode::IsNameReadOnly() const

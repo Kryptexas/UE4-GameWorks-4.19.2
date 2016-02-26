@@ -589,6 +589,18 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	return Result;
 }
 
+FString FBlueprintCompilerCppBackend::EmitArrayGetByRef(FEmitterLocalContext& EmitterContext, FBlueprintCompiledStatement& Statement)
+{
+	check(Statement.RHS.Num() == 2);
+
+	FString Result;
+	Result += TermToText(EmitterContext, Statement.RHS[0]);
+	Result += TEXT("[");
+	Result += TermToText(EmitterContext, Statement.RHS[1]);
+	Result += TEXT("]");
+	return Result;
+}
+
 FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterContext, const FBPTerminal* Term, bool bUseSafeContext, bool bGetter)
 {
 	const FString PSC_Self(TEXT("self"));
@@ -605,6 +617,10 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		else if (KCST_CallFunction == Term->InlineGeneratedParameter->Type)
 		{
 			return EmitCallStatmentInner(EmitterContext, *Term->InlineGeneratedParameter, true, FString());
+		}
+		else if (KCST_ArrayGetByRef == Term->InlineGeneratedParameter->Type)
+		{
+			return EmitArrayGetByRef(EmitterContext, *Term->InlineGeneratedParameter);
 		}
 		else
 		{

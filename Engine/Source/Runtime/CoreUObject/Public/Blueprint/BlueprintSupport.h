@@ -27,6 +27,12 @@ struct FBlueprintSupport
 	static bool UseDeferredDependencyLoading();
 	static bool IsDeferredExportCreationDisabled();
 	static bool IsDeferredCDOInitializationDisabled();
+
+	/** Tells if the specified object is one of the many flavors of FLinkerPlaceholderBase that we have. */
+	static bool IsDeferredDependencyPlaceholder(UObject* LoadedObj);
+
+	/** Not a particularly fast function. Mostly intended for validation in debug builds. */
+	static bool IsInBlueprintPackage(UObject* LoadedObj);
 };
 
 #if WITH_EDITOR
@@ -118,10 +124,19 @@ struct IBlueprintNativeCodeGenCore
 	 * UDynamicClass. Cooking (and conversion in general) must be order independent so
 	 * The scope of this kind of type swap is limited.
 	 * 
-	 * @param Class The class to check for a replacement
+	 * @param Object whose class will be replaced
 	 * @return A replacement class ptr, null if none
 	 */
-	virtual UClass* FindReplacedClass(const UClass* Class) const = 0;
+	virtual UClass* FindReplacedClassForObject(const UObject* Object) const = 0;
+	
+	/** 
+	 * Function used to change the path of subobject from a nativized class.
+	 * 
+	 * @param Object Imported Object.
+	 * @param OutName Referenced to name, that will be saved in import table.
+	 * @return An Outer object that should be saved in import table.
+	 */
+	virtual UObject* FindReplacedNameAndOuter(UObject* Object, FName& OutName) const = 0;
 };
 
 #endif // WITH_EDITOR

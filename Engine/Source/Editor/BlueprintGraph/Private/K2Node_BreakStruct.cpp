@@ -91,11 +91,7 @@ public:
 
 			UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
 			FBPTerminal* Term = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Net->PinName);
-
-			if (Settings->bAllowReferencePassThroughsToCacheNonReferences)
-			{
-				Term->bPassedByReference = ContextTerm->bPassedByReference;
-			}
+			Term->bPassedByReference = ContextTerm->bPassedByReference;
 			Term->AssociatedVarProperty = BoundProperty;
 			Context.NetMap.Add(Net, Term);
 			Term->Context = ContextTerm;

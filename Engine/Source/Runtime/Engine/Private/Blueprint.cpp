@@ -7,6 +7,7 @@
 #include "LatentActions.h"
 
 #if WITH_EDITOR
+#include "UObject/DevObjectVersion.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
@@ -215,6 +216,10 @@ void UBlueprintCore::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+#if WITH_EDITOR
+	Ar.UsingCustomVersion(FBlueprintsObjectVersion::GUID);
+#endif
+
 	Ar << bLegacyGeneratedClassIsAuthoritative;	
 
 	if ((Ar.UE4Ver() < VER_UE4_BLUEPRINT_SKEL_CLASS_TRANSIENT_AGAIN)
@@ -308,6 +313,9 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 void UBlueprint::PreSave()
 {
 	Super::PreSave();
+
+	// Clear all upgrade notes, the user has saved and should not see them anymore
+	UpgradeNotesLog.Reset();
 
 	// Cache the BP for use
 	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
@@ -606,6 +614,18 @@ void UBlueprint::PostLoad()
 			Schema->BackwardCompatibilityNodeConversion(Graph, true);
 		}
 	}
+
+#if WITH_EDITOR
+	if (UpgradeNotesLog.IsValid() && GetLinker())
+	{
+		const FCustomVersion* CustomVersion = GetLinker()->GetCustomVersions().GetVersion(FBlueprintsObjectVersion::GUID);
+		if (CustomVersion == nullptr || CustomVersion->Version < FBlueprintsObjectVersion::ArrayGetByRefUpgrade)
+		{
+			UpgradeNotesLog->Note(TEXT("Auto-Upgrade Note: Updated all array \"Get\" nodes in Blueprint Class \'@@\' to return a reference. Nodes have been injected to ensure they continue to work as they always have."), this);
+			UpgradeNotesLog->Note(TEXT("Auto-Upgrade Note: To remove these upgrade notes, resave @@. Be sure to verify nothing has broken in the upgrade process."), this);
+		}
+	}
+#endif
 
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
 

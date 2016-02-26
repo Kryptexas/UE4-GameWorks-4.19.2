@@ -1479,7 +1479,7 @@ void USkinnedMeshComponent::TransformFromBoneSpace(FName BoneName, FVector InPos
 
 
 
-FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* BoneLocation, float IgnoreScale) const
+FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* BoneLocation, float IgnoreScale, bool bRequirePhysicsAsset) const
 {
 	if (SkeletalMesh == NULL)
 	{
@@ -1491,6 +1491,17 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 	}
 	else
 	{
+		// cache the physics asset
+		const UPhysicsAsset* PhysAsset = GetPhysicsAsset();
+		if (bRequirePhysicsAsset && !PhysAsset)
+		{
+			if (BoneLocation != NULL)
+			{
+				*BoneLocation = FVector::ZeroVector;
+			}
+			return NAME_None;
+		}
+
 		// transform the TestLocation into mesh local space so we don't have to transform the (mesh local) bone locations
 		TestLocation = ComponentToWorld.InverseTransformPosition(TestLocation);
 		
@@ -1499,7 +1510,15 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 		int32 BestIndex = -1;
 		for (int32 i = 0; i < GetNumSpaceBases(); i++)
 		{
-			if (IgnoreScale < 0.f || GetSpaceBases()[i].GetScaledAxis( EAxis::X ).SizeSquared() > IgnoreScaleSquared)
+			// If we require a physics asset, then look it up in the map
+			bool bPassPACheck = !bRequirePhysicsAsset;
+			if (bRequirePhysicsAsset)
+			{
+				FName BoneName = SkeletalMesh->RefSkeleton.GetBoneName(i);
+				bPassPACheck = (PhysAsset->BodySetupIndexMap.FindRef(BoneName) != INDEX_NONE);
+			}
+
+			if (bPassPACheck && (IgnoreScale < 0.f || GetSpaceBases()[i].GetScaledAxis(EAxis::X).SizeSquared() > IgnoreScaleSquared))
 			{
 				float DistSquared = (TestLocation - GetSpaceBases()[i].GetLocation()).SizeSquared();
 				if (DistSquared < BestDistSquared)
@@ -1528,6 +1547,12 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 			return SkeletalMesh->RefSkeleton.GetBoneName(BestIndex);
 		}
 	}
+}
+
+FName USkinnedMeshComponent::FindClosestBone_K2(FVector TestLocation, FVector& BoneLocation, float IgnoreScale, bool bRequirePhysicsAsset) const
+{
+	BoneLocation = FVector::ZeroVector;
+	return FindClosestBone(TestLocation, &BoneLocation, IgnoreScale, bRequirePhysicsAsset);
 }
 
 void USkinnedMeshComponent::ShowMaterialSection(int32 MaterialID, bool bShow, int32 LODIndex)

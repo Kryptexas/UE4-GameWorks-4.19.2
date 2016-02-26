@@ -1765,6 +1765,46 @@ void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(EX_SwitchValue, execSwitchValue);
 
+void UObject::execArrayGetByRef(FFrame& Stack, RESULT_DECL)
+{
+	// Get variable address.
+	Stack.MostRecentPropertyAddress = NULL;
+	Stack.Step( Stack.Object, NULL ); // Evaluate variable.
+
+	if (Stack.MostRecentPropertyAddress == NULL)
+	{
+		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("ArrayGetRefException", "Attempt to assign variable through None"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+	}
+
+	void* ArrayAddr = Stack.MostRecentPropertyAddress;
+	UArrayProperty* ArrayProperty = ExactCast<UArrayProperty>(Stack.MostRecentProperty);
+
+ 	int32 ArrayIndex;
+ 	Stack.Step( Stack.Object, &ArrayIndex);
+
+	FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayAddr);
+	Stack.MostRecentProperty = ArrayProperty->Inner;
+	// Add a little safety for Blueprints to not hard crash
+	if (ArrayHelper.IsValidIndex(ArrayIndex))
+	{
+		Stack.MostRecentPropertyAddress = ArrayHelper.GetRawPtr(ArrayIndex);
+
+		if (RESULT_PARAM)
+		{
+			ArrayProperty->Inner->CopyCompleteValueToScriptVM(RESULT_PARAM, ArrayHelper.GetRawPtr(ArrayIndex));
+		}
+	}
+	else
+	{
+		// The index is not valid. We will report this as an error (it is fatal in C++ conversions) but otherwise let the Blueprint handle the issue.
+		const int32 PropertySize = ArrayProperty->Inner->ElementSize * ArrayProperty->Inner->ArrayDim;
+		ArrayProperty->Inner->InitializeValue(Stack.MostRecentPropertyAddress);
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("Attempted to get an item from array %s out of bounds [%d/%d]!"), *ArrayProperty->GetName(), ArrayIndex, ArrayHelper.Num()? ArrayHelper.Num() - 1 : 0), ELogVerbosity::Warning);
+	}
+}
+IMPLEMENT_VM_FUNCTION(EX_ArrayGetByRef, execArrayGetByRef);
+
 void UObject::execLet(FFrame& Stack, RESULT_DECL)
 {
 	Stack.MostRecentProperty = nullptr;

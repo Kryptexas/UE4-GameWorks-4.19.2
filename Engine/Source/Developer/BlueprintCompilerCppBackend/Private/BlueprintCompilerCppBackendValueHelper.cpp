@@ -175,38 +175,29 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		const bool bInitializeWithoutScriptStruct = false;
 		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
 		UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner);
-		auto IsSpecialStructType = [](UScriptStruct* InScriptStruct) ->bool
-		{
-			return (InScriptStruct == TBaseStructure<FRotator>::Get())
-				|| (InScriptStruct == TBaseStructure<FTransform>::Get())
-				|| (InScriptStruct == TBaseStructure<FLinearColor>::Get())
-				|| (InScriptStruct == TBaseStructure<FColor>::Get())
-				|| (InScriptStruct == TBaseStructure<FVector>::Get())
-				|| (InScriptStruct == TBaseStructure<FVector2D>::Get())
-				|| (InScriptStruct == TBaseStructure<FRandomStream>::Get())
-				|| (InScriptStruct == TBaseStructure<FGuid>::Get());
-		};
-		UScriptStruct* InnerStruct = ((!bInitializeWithoutScriptStruct) && InnerStructProperty && !IsSpecialStructType(InnerStructProperty->Struct)) ? InnerStructProperty->Struct : nullptr;
+		UScriptStruct* RegularInnerStruct = ((!bInitializeWithoutScriptStruct) && InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
+			? InnerStructProperty->Struct
+			: nullptr;
 		if (ScriptArrayHelper.Num())
 		{
-			const TCHAR* ArrayReserveFunctionName = InnerStruct ? TEXT("AddUninitialized") : TEXT("Reserve");
+			const TCHAR* ArrayReserveFunctionName = RegularInnerStruct ? TEXT("AddUninitialized") : TEXT("Reserve");
 			Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, ArrayReserveFunctionName, ScriptArrayHelper.Num()));
 
-			if (InnerStruct)
+			if (RegularInnerStruct)
 			{
-				const FString InnerStructStr = Context.FindGloballyMappedObject(InnerStruct);
+				const FString InnerStructStr = Context.FindGloballyMappedObject(RegularInnerStruct);
 				Context.AddLine(FString::Printf(TEXT("%s->InitializeStruct(%s.GetData(), %d);"), *InnerStructStr, *PathToMember, ScriptArrayHelper.Num()));
 			}
 		}
 
-		const FStructOnScope DefaultStruct(InnerStruct);
+		const FStructOnScope DefaultStruct(RegularInnerStruct);
 
 		for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
 		{
 			const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
 
 			bool bComplete = false;
-			if (!InnerStruct)
+			if (!RegularInnerStruct)
 			{
 				FString ValueStr;
 				bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, bInitializeWithoutScriptStruct);
@@ -214,13 +205,211 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 				Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
 			}
 			
-			if (InnerStruct || (bInitializeWithoutScriptStruct && !bComplete))
+			if (RegularInnerStruct || (bInitializeWithoutScriptStruct && !bComplete))
 			{
 				const FString LocalPathToMember = FString::Printf(TEXT("%s[%d]"), *PathToMember, Index);
 				InnerGenerate(Context, ArrayProperty->Inner, LocalPathToMember, LocalValuePtr, DefaultStruct.GetStructMemory(), true);
 			}
 		}
 	}
+}
+
+bool FEmitDefaultValueHelper::SpecialStructureConstructor(const UScriptStruct* Struct, const uint8* ValuePtr, /*out*/ FString* OutResult)
+{
+	check(ValuePtr || !OutResult);
+
+	if (TBaseStructure<FTransform>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FTransform* Transform = reinterpret_cast<const FTransform*>(ValuePtr);
+			const auto Rotation = Transform->GetRotation();
+			const auto Translation = Transform->GetTranslation();
+			const auto Scale = Transform->GetScale3D();
+			*OutResult = FString::Printf(TEXT("FTransform(FQuat(%f, %f, %f, %f), FVector(%f, %f, %f), FVector(%f, %f, %f))")
+				, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W
+				, Translation.X, Translation.Y, Translation.Z
+				, Scale.X, Scale.Y, Scale.Z);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FVector>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FVector* Vector = reinterpret_cast<const FVector*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FVector(%f, %f, %f)"), Vector->X, Vector->Y, Vector->Z);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FGuid>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FGuid* Guid = reinterpret_cast<const FGuid*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FGuid(0x%08X, 0x%08X, 0x%08X, 0x%08X)"), Guid->A, Guid->B, Guid->C, Guid->D);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FRotator>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FRotator* Rotator = reinterpret_cast<const FRotator*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FRotator(%f, %f, %f)"), Rotator->Pitch, Rotator->Yaw, Rotator->Roll);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FLinearColor>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FLinearColor* LinearColor = reinterpret_cast<const FLinearColor*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FLinearColor(%f, %f, %f, %f)"), LinearColor->R, LinearColor->B, LinearColor->G, LinearColor->A);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FColor>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FColor* Color = reinterpret_cast<const FColor*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FColor(%d, %d, %d, %d)"), Color->R, Color->B, Color->G, Color->A);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FVector2D>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FVector2D* Vector2D = reinterpret_cast<const FVector2D*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FVector2D(%f, %f)"), Vector2D->X, Vector2D->Y);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FBox2D>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FBox2D* Box2D = reinterpret_cast<const FBox2D*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("CreateFBox2D(FVector2D(%f, %f), FVector2D(%f, %f), %s)")
+				, Box2D->Min.X
+				, Box2D->Min.Y
+				, Box2D->Max.X
+				, Box2D->Max.Y
+				, Box2D->bIsValid ? TEXT("true") : TEXT("false"));
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FFloatRangeBound>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FFloatRangeBound* FloatRangeBound = reinterpret_cast<const FFloatRangeBound*>(ValuePtr);
+			if (FloatRangeBound->IsExclusive())
+			{
+				*OutResult = FString::Printf(TEXT("FFloatRangeBound::Exclusive(%f)"), FloatRangeBound->GetValue());
+			}
+			if (FloatRangeBound->IsInclusive())
+			{
+				*OutResult = FString::Printf(TEXT("FFloatRangeBound::Inclusive(%f)"), FloatRangeBound->GetValue());
+			}
+			if (FloatRangeBound->IsOpen())
+			{
+				*OutResult = TEXT("FFloatRangeBound::Open()");
+			}
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FFloatRange>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FFloatRange* FloatRangeBound = reinterpret_cast<const FFloatRange*>(ValuePtr);
+
+			FString LowerBoundStr;
+			FFloatRangeBound LowerBound = FloatRangeBound->GetLowerBound();
+			SpecialStructureConstructor(TBaseStructure<FFloatRangeBound>::Get(), (uint8*)&LowerBound, &LowerBoundStr);
+
+			FString UpperBoundStr;
+			FFloatRangeBound UpperBound = FloatRangeBound->GetUpperBound();
+			SpecialStructureConstructor(TBaseStructure<FFloatRangeBound>::Get(), (uint8*)&UpperBound, &UpperBoundStr);
+
+			*OutResult = FString::Printf(TEXT("FFloatRange(%s, %s)"), *LowerBoundStr, *UpperBoundStr);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FInt32RangeBound>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FInt32RangeBound* RangeBound = reinterpret_cast<const FInt32RangeBound*>(ValuePtr);
+			if (RangeBound->IsExclusive())
+			{
+				*OutResult = FString::Printf(TEXT("FInt32RangeBound::Exclusive(%d)"), RangeBound->GetValue());
+			}
+			if (RangeBound->IsInclusive())
+			{
+				*OutResult = FString::Printf(TEXT("FInt32RangeBound::Inclusive(%d)"), RangeBound->GetValue());
+			}
+			if (RangeBound->IsOpen())
+			{
+				*OutResult = TEXT("FInt32RangeBound::Open()");
+			}
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FInt32Range>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FInt32Range* RangeBound = reinterpret_cast<const FInt32Range*>(ValuePtr);
+
+			FString LowerBoundStr;
+			FInt32RangeBound LowerBound = RangeBound->GetLowerBound();
+			SpecialStructureConstructor(TBaseStructure<FInt32RangeBound>::Get(), (uint8*)&LowerBound, &LowerBoundStr);
+
+			FString UpperBoundStr;
+			FInt32RangeBound UpperBound = RangeBound->GetUpperBound();
+			SpecialStructureConstructor(TBaseStructure<FInt32RangeBound>::Get(), (uint8*)&UpperBound, &UpperBoundStr);
+
+			*OutResult = FString::Printf(TEXT("FInt32Range(%s, %s)"), *LowerBoundStr, *UpperBoundStr);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FFloatInterval>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FFloatInterval* Interval = reinterpret_cast<const FFloatInterval*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FFloatInterval(%f, %f)"), Interval->Min, Interval->Max);
+		}
+		return true;
+	}
+
+	if (TBaseStructure<FInt32Interval>::Get() == Struct)
+	{
+		if (OutResult)
+		{
+			const FInt32Interval* Interval = reinterpret_cast<const FInt32Interval*>(ValuePtr);
+			*OutResult = FString::Printf(TEXT("FFloatInterval(%d, %d)"), Interval->Min, Interval->Max);
+		}
+		return true;
+	}
+
+	return false;
 }
 
 FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr)
@@ -267,64 +456,10 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 
 	if (auto StructProperty = Cast<UStructProperty>(Property))
 	{
-		if (TBaseStructure<FTransform>::Get() == StructProperty->Struct)
+		FString StructConstructor;
+		if (SpecialStructureConstructor(StructProperty->Struct, ValuePtr, &StructConstructor))
 		{
-			check(ValuePtr);
-			const FTransform* Transform = reinterpret_cast<const FTransform*>(ValuePtr);
-			const auto Rotation = Transform->GetRotation();
-			const auto Translation = Transform->GetTranslation();
-			const auto Scale = Transform->GetScale3D();
-			return FString::Printf(TEXT("FTransform(FQuat(%f, %f, %f, %f), FVector(%f, %f, %f), FVector(%f, %f, %f))")
-				, Rotation.X, Rotation.Y, Rotation.Z, Rotation.W
-				, Translation.X, Translation.Y, Translation.Z
-				, Scale.X, Scale.Y, Scale.Z);
-		}
-
-		if (TBaseStructure<FVector>::Get() == StructProperty->Struct)
-		{
-			const FVector* Vector = reinterpret_cast<const FVector*>(ValuePtr);
-			return FString::Printf(TEXT("FVector(%f, %f, %f)"), Vector->X, Vector->Y, Vector->Z);
-		}
-
-		if (TBaseStructure<FGuid>::Get() == StructProperty->Struct)
-		{
-			const FGuid* Guid = reinterpret_cast<const FGuid*>(ValuePtr);
-			return FString::Printf(TEXT("FGuid(0x%08X, 0x%08X, 0x%08X, 0x%08X)"), Guid->A, Guid->B, Guid->C, Guid->D);
-		}
-
-		if (TBaseStructure<FRotator>::Get() == StructProperty->Struct)
-		{
-			const FRotator* Rotator = reinterpret_cast<const FRotator*>(ValuePtr);
-			return FString::Printf(TEXT("FRotator(%f, %f, %f)"), Rotator->Pitch, Rotator->Yaw, Rotator->Roll);
-		}
-
-		if (TBaseStructure<FLinearColor>::Get() == StructProperty->Struct)
-		{
-			const FLinearColor* LinearColor = reinterpret_cast<const FLinearColor*>(ValuePtr);
-			return FString::Printf(TEXT("FLinearColor(%f, %f, %f, %f)"), LinearColor->R, LinearColor->B, LinearColor->G, LinearColor->A);
-		}
-
-		if (TBaseStructure<FColor>::Get() == StructProperty->Struct)
-		{
-			const FColor* Color = reinterpret_cast<const FColor*>(ValuePtr);
-			return FString::Printf(TEXT("FColor(%d, %d, %d, %d)"), Color->R, Color->B, Color->G, Color->A);
-		}
-
-		if (TBaseStructure<FVector2D>::Get() == StructProperty->Struct)
-		{
-			const FVector2D* Vector2D = reinterpret_cast<const FVector2D*>(ValuePtr);
-			return FString::Printf(TEXT("FVector2D(%f, %f)"), Vector2D->X, Vector2D->Y);
-		}
-
-		if (TBaseStructure<FBox2D>::Get() == StructProperty->Struct)
-		{
-			const FBox2D* Box2D = reinterpret_cast<const FBox2D*>(ValuePtr);
-			return FString::Printf(TEXT("CreateFBox2D(FVector2D(%f, %f), FVector2D(%f, %f), %s)")
-				, Box2D->Min.X
-				, Box2D->Min.Y
-				, Box2D->Max.X
-				, Box2D->Max.Y
-				, Box2D->bIsValid ? TEXT("true") : TEXT("false"));
+			return StructConstructor;
 		}
 	}
 
@@ -457,7 +592,7 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 
 struct FDependenciesHelper
 {
-private:
+public:
 	// Keep sync with FTypeSingletonCache::GenerateSingletonName
 	static FString GenerateZConstructor(UField* Item)
 	{
@@ -498,51 +633,11 @@ private:
 		}
 
 		const FString ClassString = Item->IsA<UClass>() ? TEXT("UClass") : TEXT("UScriptStruct");
-		const FString PostFix = Item->IsA<UClass>() ? TEXT("_NoRegister") : TEXT("");
-		return FString(TEXT("Z_Construct_")) + ClassString + TEXT("_") + Result + PostFix + TEXT("()");
+		return FString(TEXT("Z_Construct_")) + ClassString + TEXT("_") + Result + TEXT("()");
 	}
-public:
+
 	static void AddDependenciesInConstructor(FEmitterLocalContext& Context)
 	{
-		const bool bUseZConstructorInGeneratedCode = false;
-		if (Context.Dependencies.ConvertedClasses.Num())
-		{
-			Context.AddLine(TEXT("// List of all referenced converted classes"));
-		}
-		for (auto LocStruct : Context.Dependencies.ConvertedClasses)
-		{
-			FString ClassConstructor;
-			if (bUseZConstructorInGeneratedCode)
-			{
-				ClassConstructor = GenerateZConstructor(Context.Dependencies.FindOriginalClass(LocStruct));
-				Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassConstructor));
-			}
-			else
-			{
-				ClassConstructor = FEmitHelper::GetCppName(LocStruct, true) + TEXT("::StaticClass()");
-			}
-			Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->ReferencedConvertedFields.Add(%s);"), *ClassConstructor));
-		}
-
-		if (Context.Dependencies.ConvertedStructs.Num())
-		{
-			Context.AddLine(TEXT("// List of all referenced converted structures"));
-		}
-		for (auto LocStruct : Context.Dependencies.ConvertedStructs)
-		{
-			FString StructConstructor;
-			if (bUseZConstructorInGeneratedCode)
-			{
-				StructConstructor = GenerateZConstructor(LocStruct);
-				Context.AddLine(FString::Printf(TEXT("extern UScriptStruct* %s;"), *StructConstructor));
-			}
-			else
-			{
-				StructConstructor = FEmitHelper::GetCppName(LocStruct, true) + TEXT("::StaticStruct()");
-			}
-			Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->ReferencedConvertedFields.Add(%s);"), *StructConstructor));
-		}
-
 		if (Context.Dependencies.Assets.Num())
 		{
 			Context.AddLine(TEXT("// List of all referenced assets"));
@@ -662,7 +757,6 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->MiscConvertedSubobjects.Num());"));
-		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->ReferencedConvertedFields.Num());"));
 		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->UsedAssets.Num());"));
 		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->DynamicBindingObjects.Num());"));
 		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->ComponentTemplates.Num());"));
@@ -856,6 +950,37 @@ void FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 			Context.DecreaseIndent();
 			Context.AddLine(TEXT("}"));
 		}
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+	}
+
+	{
+		Context.AddLine(FString::Printf(TEXT("void %s::__GatherReferencedConvertedFields(UDynamicClass* InDynamicClass)"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(TEXT("ensure(0 == InDynamicClass->ReferencedConvertedFields.Num());"));
+		if (Context.Dependencies.ConvertedClasses.Num())
+		{
+			Context.AddLine(TEXT("// List of all referenced converted classes"));
+		}
+		for (auto LocStruct : Context.Dependencies.ConvertedClasses)
+		{
+			const FString ClassConstructor = FDependenciesHelper::GenerateZConstructor(Context.Dependencies.FindOriginalClass(LocStruct));
+			Context.AddLine(FString::Printf(TEXT("extern UClass* %s;"), *ClassConstructor));
+			Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(%s);"), *ClassConstructor));
+		}
+
+		if (Context.Dependencies.ConvertedStructs.Num())
+		{
+			Context.AddLine(TEXT("// List of all referenced converted structures"));
+		}
+		for (auto LocStruct : Context.Dependencies.ConvertedStructs)
+		{
+			const FString StructConstructor = FDependenciesHelper::GenerateZConstructor(LocStruct);
+			Context.AddLine(FString::Printf(TEXT("extern UScriptStruct* %s;"), *StructConstructor));
+			Context.AddLine(FString::Printf(TEXT("InDynamicClass->ReferencedConvertedFields.Add(%s);"), *StructConstructor));
+		}
+
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
 	}

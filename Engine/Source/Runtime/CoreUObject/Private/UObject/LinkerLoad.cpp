@@ -718,6 +718,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags )
 : FLinker(ELinkerType::Load, InParent, InFilename)
 , LoadFlags(InLoadFlags)
+, bHaveImportsBeenVerified(false)
 , bDynamicClassLinker(false)
 , Loader(nullptr)
 , AsyncRoot(nullptr)
@@ -738,7 +739,6 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 , IsTimeLimitExceededCallCount(0)
 , TimeLimit(0.0f)
 , TickStartTime(0.0)
-, VerifiedImportCount(0)
 , bFixupExportMapDone(false)
 #if WITH_EDITOR
 , bExportsDuplicatesFixed(false)
@@ -1885,20 +1885,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 //			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-		// we can't verify our imports if we're currently deferring dependency
-		// loads (or if we've explicitly requested this linker without it);
-		// with the LOAD_DeferDependencyLoads flag, this is most likely a 
-		// UserDefinedStruct package, which we need to load for some other Blueprint
-		// package (further up the stack), but at that Blueprint's request we 
-		// cannot spider out to load anything else - don't worry though, import
-		// verification happens as needed for CreateImport() during export 
-		// serialization, so it's not like this will be skipped completely (just
-		// deferred)
-		if( !(LoadFlags & (LOAD_NoVerify|LOAD_DeferDependencyLoads)) )
-#else 
-		if ( !(LoadFlags & LOAD_NoVerify) )
-#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		if( !(LoadFlags & LOAD_NoVerify))
 		{
 			Verify();
 		}
@@ -1988,21 +1975,16 @@ void FLinkerLoad::Verify()
 {
 	if(!FApp::IsGame() || GIsEditor || IsRunningCommandlet())
 	{
-		if (!HaveImportsBeenVerified())
+		if (!bHaveImportsBeenVerified)
 		{
 #if WITH_EDITOR
 			FScopedSlowTask SlowTask(Summary.ImportCount, NSLOCTEXT("Core", "LinkerLoad_Imports", "Loading Imports"), ShouldReportProgress());
 #endif
 			// Validate all imports and map them to their remote linkers.
-			while (VerifiedImportCount < Summary.ImportCount)
+			for (int32 ImportIndex = 0; ImportIndex < Summary.ImportCount; ImportIndex++)
 			{
-				// use an incrementing class-scoped counter in order to make 
-				// this function reentrant (so we can continue verifying from
-				// where we last left off, up the callstack)
-				const int32 ImportIndex = VerifiedImportCount;
-				++VerifiedImportCount;
-
 				FObjectImport& Import = ImportMap[ImportIndex];
+
 #if WITH_EDITOR
 				SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("Core", "LinkerLoad_LoadingImportName", "Loading Import '{0}'"), FText::FromString(Import.ObjectName.ToString())));
 #endif
@@ -2010,6 +1992,7 @@ void FLinkerLoad::Verify()
 			}
 		}
 	}
+	bHaveImportsBeenVerified = true;
 }
 
 FName FLinkerLoad::GetExportClassPackage( int32 i )
@@ -2327,7 +2310,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 #if WITH_EDITOR
 				if( GIsEditor && !IsRunningCommandlet())
 				{
-					bSupressLinkerError = IsSuppressableBlueprintImportError(Import);
+					bSupressLinkerError = IsSuppressableBlueprintImportError(ImportIndex);
 					if (!bSupressLinkerError)
 					{
 						FDeferredMessageLog LoadErrors(NAME_LoadErrors);
@@ -3556,7 +3539,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 				// SuperStruct needs to be fully linked so that UStruct::Link will have access to UObject::SuperStruct->PropertySize. 
 				// There are other attempts to force our super struct to load, and I have not verified that they can all be removed
 				// in favor of this one:
-				if (!SuperStruct->HasAnyFlags(RF_LoadCompleted)
+				if (!SuperStruct->HasAnyFlags(RF_LoadCompleted | RF_Dynamic)
 					&& !SuperStruct->IsNative()
 					&& SuperStruct->GetLinker()
 					&& Export.SuperIndex.IsImport())

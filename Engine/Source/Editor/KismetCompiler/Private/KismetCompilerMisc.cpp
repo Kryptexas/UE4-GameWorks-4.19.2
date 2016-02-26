@@ -1240,7 +1240,7 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 		FBPTerminal* Term = new (NetArray) FBPTerminal();
 		Term->CopyFromPin(Net, Net->PinName);
 		Term->AssociatedVarProperty = BoundProperty;
-		Term->bPassedByReference = Settings->bAllowReferencePassThroughsToCacheNonReferences;
+		Term->bPassedByReference = true;
 		Context.NetMap.Add(Net, Term);
 
 		// Check if the property is a local variable and mark it so

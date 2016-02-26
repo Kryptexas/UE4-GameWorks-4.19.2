@@ -824,6 +824,15 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 				case EScriptInstrumentation::NodeExit:
 					Ar.Logf(TEXT("%s $%X: .. instrumented wire exit site .."), *Indents, (int32)Opcode);
 					break;
+				case EScriptInstrumentation::PushState:
+					Ar.Logf(TEXT("%s $%X: .. push execution state .."), *Indents, (int32)Opcode);
+					break;
+				case EScriptInstrumentation::RestoreState:
+					Ar.Logf(TEXT("%s $%X: .. restore execution state .."), *Indents, (int32)Opcode);
+					break;
+				case EScriptInstrumentation::PopState:
+					Ar.Logf(TEXT("%s $%X: .. pop execution state .."), *Indents, (int32)Opcode);
+					break;
 			}
 			break;
 		}
@@ -856,6 +865,12 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			SerializeExpr(ScriptIndex);
 			Ar.Logf(TEXT("%s (label: 0x%X)"), *Indents, ScriptIndex);
 			DropIndent();
+			break;
+		}
+	case EX_ArrayGetByRef:
+		{
+			Ar.Logf(TEXT("%s $%X: Array Get-by-Ref Index"), *Indents, (int32)Opcode);
+			AddIndent();
 			break;
 		}
 	default:

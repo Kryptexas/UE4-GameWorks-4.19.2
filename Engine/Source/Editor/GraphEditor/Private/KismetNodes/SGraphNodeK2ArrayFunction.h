@@ -8,7 +8,7 @@ public:
 	SLATE_BEGIN_ARGS(SGraphNodeK2ArrayFunction){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, UK2Node_CallArrayFunction* InNode);
+	void Construct(const FArguments& InArgs, UK2Node* InNode);
 
 	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const;
 

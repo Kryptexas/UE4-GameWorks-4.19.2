@@ -255,6 +255,7 @@ enum EExprToken
 	EX_CallMath				= 0x68, // static pure function from on local call space
 	EX_SwitchValue			= 0x69,
 	EX_InstrumentationEvent	= 0x6A, // Instrumentation event
+	EX_ArrayGetByRef		= 0x6B,
 	EX_Max					= 0x100,
 };
 
@@ -296,6 +297,9 @@ namespace EScriptInstrumentation
 		PureNodeEntry,
 		NodeEntry,
 		NodeExit,
+		PushState,
+		RestoreState,
+		PopState,
 		NodePin,
 		Stop
 	};

@@ -474,7 +474,7 @@ enum EObjectFlags
 };
 
 	// Special all and none masks
-#define RF_AllFlags				(EObjectFlags)0x03ffffff	///< All flags, used mainly for error checking
+#define RF_AllFlags				(EObjectFlags)0x07ffffff	///< All flags, used mainly for error checking
 
 	// Predefined groups of the above
 #define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate)) // Flags to load from Unrealfiles.

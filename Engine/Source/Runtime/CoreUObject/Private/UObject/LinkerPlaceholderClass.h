@@ -32,7 +32,7 @@ public:
 	// End of UField interface.
 
 	// FLinkerPlaceholderBase interface 
-	virtual UObject* GetPlaceholderAsUObject() override { return this; }
+	virtual UObject* GetPlaceholderAsUObject() override { return (UObject*)(this); }
 	// End of FLinkerPlaceholderBase interface
 }; 
 

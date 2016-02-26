@@ -4444,7 +4444,7 @@ void GetPrivateStaticClassBody(
 	}
 	else
 	{
-		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), ALIGNOF(UDynamicClass), true);
+		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), ALIGNOF(UDynamicClass), GIsInitialLoad);
 		ReturnClass = ::new (ReturnClass)
 			UDynamicClass
 			(
@@ -4824,6 +4824,42 @@ UScriptStruct* TBaseStructure<FBox2D>::Get()
 UScriptStruct* TBaseStructure<FFallbackStruct>::Get()
 {
 	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("FallbackStruct"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FFloatRangeBound>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("FloatRangeBound"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FFloatRange>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("FloatRange"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FInt32RangeBound>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Int32RangeBound"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FInt32Range>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Int32Range"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FFloatInterval>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("FloatInterval"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FInt32Interval>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Int32Interval"));
 	return ScriptStruct;
 }
 

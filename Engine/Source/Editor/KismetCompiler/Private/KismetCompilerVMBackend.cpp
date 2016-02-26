@@ -1325,9 +1325,21 @@ public:
 			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
 			case KCST_InstrumentedWireEntry:		EventType = EScriptInstrumentation::NodeEntry; break;
 			case KCST_InstrumentedPureNodeEntry:	EventType = EScriptInstrumentation::PureNodeEntry; break;
+			case KCST_InstrumentedStatePush:		EventType = EScriptInstrumentation::PushState; break;
+			case KCST_InstrumentedStateRestore:		EventType = EScriptInstrumentation::RestoreState; break;
+			case KCST_InstrumentedStatePop:			EventType = EScriptInstrumentation::PopState; break;
 		}
 		Writer << EX_InstrumentationEvent;
 		Writer << EventType;
+	}
+
+	void EmitArrayGetByRef(FBlueprintCompiledStatement& Statement)
+	{
+		Writer << EX_ArrayGetByRef;
+		// The array variable
+		EmitTerm(Statement.RHS[0]);
+		// The index to access in the array
+		EmitTerm(Statement.RHS[1], (UProperty*)(GetDefault<UIntProperty>()));
 	}
 
 	void PushReturnAddress(FBlueprintCompiledStatement& ReturnTarget)
@@ -1486,6 +1498,8 @@ public:
 			break;
 		case KCST_InstrumentedWireExit:
 		case KCST_InstrumentedWireEntry:
+		case KCST_InstrumentedStatePush:
+		case KCST_InstrumentedStatePop:
 			{
 				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(Statement.ExecContext));
 				if (TrueSourcePin)
@@ -1514,12 +1528,16 @@ public:
 				}
 			}
 		case KCST_InstrumentedPureNodeEntry:
+		case KCST_InstrumentedStateRestore:
 			{
 				// Emit Statement
 				EmitInstrumentation(Statement);
 				break;
 			}
 
+		case KCST_ArrayGetByRef:
+			EmitArrayGetByRef(Statement);
+			break;
 		default:
 			UE_LOG(LogK2Compiler, Warning, TEXT("VM backend encountered unsupported statement type %d"), (int32)Statement.Type);
 		}

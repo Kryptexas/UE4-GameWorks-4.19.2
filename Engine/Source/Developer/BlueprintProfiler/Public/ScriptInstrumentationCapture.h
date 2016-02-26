@@ -2,23 +2,30 @@
 
 #pragma once
 
-#include "CoreUObject.h"
-#include "Core.h"
-#include "Script.h"
+#include "Editor/Kismet/Public/Profiler/TracePath.h"
 
 //////////////////////////////////////////////////////////////////////////
-// FBlueprintInstrumentedEvent
+// FScriptInstrumentedEvent
 
-class FBlueprintInstrumentedEvent
+class FScriptInstrumentedEvent
 {
 public:
 
-	FBlueprintInstrumentedEvent() {}
+	FScriptInstrumentedEvent() {}
 
-	/** Constructs a new script event */
-	FBlueprintInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FString& InPathData, const int32 InCodeOffset)
+	bool operator == (const FScriptInstrumentedEvent& OtherIn) const;
+
+	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FString& InPathData)
 		: EventType(InEventType)
 		, PathData(InPathData)
+		, CodeOffset(-1)
+		, Time(FPlatformTime::Seconds())
+	{
+	}
+
+	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FName InFunctionName, const int32 InCodeOffset)
+		: EventType(InEventType)
+		, FunctionName(InFunctionName)
 		, CodeOffset(InCodeOffset)
 		, Time(FPlatformTime::Seconds())
 	{
@@ -30,11 +37,14 @@ public:
 	/** Returns the type of script event */
 	const EScriptInstrumentation::Type GetType() const { return EventType; }
 
+	/** Override the event type */
+	void OverrideType(const EScriptInstrumentation::Type NewType) { EventType = NewType; }
+
 	/** Returns the object path for the object that triggered this event */
 	const FString& GetObjectPath() const { return PathData; }
 
 	/** Returns the function name the event occurred in */
-	FName GetFunctionName() const;
+	FName GetFunctionName() const { return FunctionName; }
 
 	/** Returns the script offset at the time this event was generated */
 	int32 GetScriptCodeOffset() const { return CodeOffset; }
@@ -49,7 +59,7 @@ public:
 	bool IsNewInstance() const { return EventType == EScriptInstrumentation::Instance; }
 
 	/** Returns if this event represents a change in active event */
-	bool IsEvent() const { return EventType == EScriptInstrumentation::Event; }
+	bool IsEvent() const { return EventType == EScriptInstrumentation::Event || EventType == EScriptInstrumentation::Stop; }
 
 	/** Returns if this event represents a node execution event */
 	bool IsNodeTiming() const {	return EventType == EScriptInstrumentation::NodeEntry || EventType == EScriptInstrumentation::NodeExit;	}
@@ -58,6 +68,8 @@ protected:
 	
 	/** The event type */
 	EScriptInstrumentation::Type EventType;
+	/** The owning function name */
+	FName FunctionName;
 	/** The object path for the object emitting the event */
 	FString PathData;
 	/** The script code offset when this event was emitted */
@@ -67,14 +79,14 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// FKismetInstrumentContext
+// FInstrumentationCaptureContext
 
-class FKismetInstrumentContext
+class FInstrumentationCaptureContext
 {
 public:
 
 	/** Update the current execution context, and emit events to signal changes */
-	void UpdateContext(const UObject* InContextObject, TArray<FBlueprintInstrumentedEvent>& ProfilingData);
+	void UpdateContext(const UObject* InContextObject, TArray<FScriptInstrumentedEvent>& InstrumentationQueue);
 
 	/** Reset the current event context */
 	void ResetContext();

@@ -3,10 +3,11 @@
 #pragma once
 
 #include "BlueprintProfilerModule.h"
-#include "BlueprintInstrumentationSupport.h"
-#include "TickableEditorObject.h"
+#include "ScriptInstrumentationCapture.h"
 
-class UEdGraphNode;
+#if WITH_EDITOR
+#include "ScriptInstrumentationPlayback.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintProfiler
@@ -31,15 +32,11 @@ public:
 
 #if WITH_EDITOR
 	virtual FOnBPStatGraphLayoutChanged& GetGraphLayoutChangedDelegate() { return GraphLayoutChangedDelegate; }
-	virtual TSharedPtr<FScriptExecutionContext> GetCachedObjectContext(const FString& ObjectPath) override;
-	virtual TSharedPtr<FScriptExecutionNode> GetProfilerDataForNode(const FName NodeName) override;
-	virtual TSharedPtr<FScriptExecutionNode> GetOrCreateProfilerDataForNode(const FName NodeName) override;
-	virtual bool HasDataForInstance(const UObject* Instance) override;
+	virtual TSharedPtr<FBlueprintExecutionContext> GetBlueprintContext(const FString& BlueprintClassPath) override;
+	virtual TSharedPtr<FScriptExecutionNode> GetProfilerDataForNode(const UEdGraphNode* GraphNode) override;
+	virtual void MapBlueprintInstance(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FString& InstancePath) override;
+	virtual bool HasDataForInstance(const UObject* Instance) const override;
 	virtual void ProcessEventProfilingData() override;
-	virtual const FString GetValidInstancePath(const FString PathIn);
-	virtual void NavigateToBlueprint(const FName NameIn) const override;
-	virtual void NavigateToInstance(const FName NameIn) const override;
-	virtual void NavigateToNode(const FName NameIn) const override;
 #endif
 	// End IBlueprintProfilerModule
 
@@ -59,24 +56,11 @@ private:
 	void BeginPIE(bool bIsSimulating);
 	void EndPIE(bool bIsSimulating);
 
-	/** Utility functon to extract script code offset safely */
-	int32 GetScriptCodeOffset(const EScriptInstrumentationEvent& Event) const;
-
-	/** Utility functon to extract object path safely */
-	FString GetCurrentFunctionPath(const EScriptInstrumentationEvent& Event) const;
-
 #if WITH_EDITOR
+
 	/** Removes all blueprint references from data */
 	void RemoveAllBlueprintReferences(UBlueprint* Blueprint);
 
-	/** Map Blueprint Execution flow */
-	TSharedPtr<class FScriptExecutionContext> MapBlueprintExecutionFlow(const FString& BlueprintPath);
-
-	/** Map Blueprint instance */
-	void MapBlueprintInstance(const FString& InstancePath);
-
-	/** Map Node execution flow */
-	TSharedPtr<FScriptExecutionNode> MapNodeExecutionFlow(TSharedPtr<FScriptExecutionContext> BlueprintContext, UEdGraphNode* EventToMap);
 #endif
 
 protected:
@@ -85,9 +69,9 @@ protected:
 	FOnBPStatGraphLayoutChanged GraphLayoutChangedDelegate;
 
 	/** Current instrumentation context */
-	FKismetInstrumentContext ActiveContext;
+	FInstrumentationCaptureContext CaptureContext;
 	/** Raw instrumentation data */
-	TArray<FBlueprintInstrumentedEvent> InstrumentationEvents;
+	TArray<FScriptInstrumentedEvent> InstrumentationEventQueue;
 
 	/** Profiler active state */
 	bool bProfilerActive;
@@ -97,12 +81,8 @@ protected:
 #if WITH_EDITOR
 	/** PIE Active */
 	bool bPIEActive;
-	/** Instance path mappings between PIE and editor */
-	TMap<FString, FString> PIEInstancePathMap;
-	/** Processed profiling data */
-	TMap<FName, TSharedPtr<FScriptExecutionNode>> NodeProfilingData;
 	/** Cached object path and code offset lookup to UObjects */
-	TMap<FString, TSharedPtr<FScriptExecutionContext>> PathToObjectContext;
+	TMap<FString, TSharedPtr<FBlueprintExecutionContext>> PathToBlueprintContext;
 #endif
 	
 };

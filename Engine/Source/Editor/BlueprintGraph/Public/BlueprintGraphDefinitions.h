@@ -35,6 +35,7 @@
 #include "K2Node_FunctionEntry.h"
 #include "K2Node_FunctionResult.h"
 #include "K2Node_GetDataTableRow.h"
+#include "K2Node_GetArrayItem.h"
 #include "K2Node_IfThenElse.h"
 #include "K2Node_InputAction.h"
 #include "K2Node_InputAxisEvent.h"

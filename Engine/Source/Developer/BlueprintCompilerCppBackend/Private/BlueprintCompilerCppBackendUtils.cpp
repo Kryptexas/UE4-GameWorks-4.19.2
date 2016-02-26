@@ -870,6 +870,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	{
 		auto StructType = Cast<UScriptStruct>(Type.PinSubCategoryObject.Get());
 		ensure(StructType);
+
 		if (StructType == TBaseStructure<FVector>::Get())
 		{
 			FVector Vect = FVector::ZeroVector;
@@ -923,7 +924,6 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 			}
 			else
 			{
-				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s{};"), *LocalStructNativeName, *StructName)); // TODO: ?? should "::GetDefaultValue()" be called here?
 				FStructOnScope StructOnScope(StructType);
 
 				class FImportTextErrorContext : public FStringOutputDevice
@@ -950,6 +950,13 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 					UE_LOG(LogK2Compiler, Error, TEXT("FEmitHelper::LiteralTerm cannot parse struct \"%s\" error: %s class: %s"), *CustomValue, *ImportError, *GetPathNameSafe(EmitterContext.GetCurrentlyGeneratedClass()));
 				}
 
+				FString CustomConstructor;
+				if (FEmitDefaultValueHelper::SpecialStructureConstructor(StructType, StructOnScope.GetStructMemory(), &CustomConstructor))
+				{
+					return CustomConstructor;
+				}
+
+				EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s{};"), *LocalStructNativeName, *StructName)); // TODO: ?? should "::GetDefaultValue()" be called here?
 				for (auto LocalProperty : TFieldRange<const UProperty>(StructType))
 				{
 					FEmitDefaultValueHelper::OuterGenerate(EmitterContext, LocalProperty, LocalStructNativeName, StructOnScope.GetStructMemory(), nullptr, FEmitDefaultValueHelper::EPropertyAccessOperator::Dot);
@@ -1408,6 +1415,8 @@ FString FEmitHelper::AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext&
 {
 	check(Property);
 
+	UE_LOG(LogK2Compiler, Warning, TEXT("AccessInaccessiblePropertyUsingOffset - NOEXPORT structure should be handled in a custom way: %s"), *GetPathNameSafe(Property->GetOwnerStruct()));
+
 	const int32 PropertyOffsetWithoutEditorOnlyMembers = HelperWithoutEditorOnlyMembers::OffsetWithoutEditorOnlyMembers(Property);
 	const int32 PropertySizeWithoutEditorOnlyMembers = HelperWithoutEditorOnlyMembers::SizeWithoutEditorOnlyMembers(Property);
 	const int32 ElementSizeWithoutEditorOnlyMembers = PropertySizeWithoutEditorOnlyMembers / Property->ArrayDim;
@@ -1423,7 +1432,7 @@ FString FEmitHelper::AccessInaccessiblePropertyUsingOffset(FEmitterLocalContext&
 	const uint32 CppTemplateTypeFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
 		| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef | EPropertyExportCPPFlags::CPPF_NoStaticArray
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
-	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, CppTemplateTypeFlags, true);
+	const FString TypeDeclaration = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Member, CppTemplateTypeFlags, true);
 	return FString::Printf(TEXT("(*(AccessPrivateProperty<%s>(%s(%s), 0x%08X, 0x%08X, %d)))")
 		, *TypeDeclaration
 		, *ContextAdressOp

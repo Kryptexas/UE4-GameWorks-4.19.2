@@ -442,6 +442,19 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;
 	const bool bErrorFree = UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(GetClass(), ParentBPClassStack);
 
+	TArray<const UDynamicClass*> ParentDynamicClassStack;
+	for (UClass* ClassIt = GetClass(); ClassIt; ClassIt = ClassIt->GetSuperClass())
+	{
+		if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(ClassIt))
+		{
+			ParentDynamicClassStack.Add(DynamicClass);
+		}
+	}
+	for (int32 i = ParentDynamicClassStack.Num() - 1; i >= 0; i--)
+	{
+		UBlueprintGeneratedClass::CreateComponentsForActor(ParentDynamicClassStack[i], this);
+	}
+
 	// If this actor has a blueprint lineage, go ahead and run the construction scripts from least derived to most
 	if( (ParentBPClassStack.Num() > 0)  )
 	{
@@ -521,7 +534,6 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	}
 	else
 	{
-		UBlueprintGeneratedClass::CreateComponentsForActor(GetClass(), this);
 #if WITH_EDITOR
 		bool bDoUserConstructionScript;
 		GConfig->GetBool(TEXT("Kismet"), TEXT("bTurnOffEditorConstructionScript"), bDoUserConstructionScript, GEngineIni);

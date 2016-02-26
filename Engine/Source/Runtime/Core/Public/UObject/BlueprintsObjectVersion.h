@@ -10,7 +10,7 @@ struct CORE_API FBlueprintsObjectVersion
 		BeforeCustomVersionWasAdded = 0,
 		OverridenEventReferenceFixup,
 		CleanBlueprintFunctionFlags,
-
+		ArrayGetByRefUpgrade,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

@@ -226,9 +226,18 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 	}
 	else
 	{
+		TArray<FString> AdditionalMD;
+		const FString ReplaceConvertedMD = FEmitHelper::GenerateReplaceConvertedMD(OriginalSourceClass);
+		if (!ReplaceConvertedMD.IsEmpty())
+		{
+			AdditionalMD.Add(ReplaceConvertedMD);
+		}
+
+		AdditionalMD.Add(FString::Printf(TEXT("CustomDynamicClassInitialization=\"%s::__GatherReferencedConvertedFields\""), *CppClassName));
+
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("UCLASS(%s%s)")
 			, (!SourceClass->IsChildOf<UBlueprintFunctionLibrary>()) ? TEXT("Blueprintable, BlueprintType, ") : TEXT("")
-			, *FEmitHelper::ReplaceConvertedMetaData(OriginalSourceClass)));
+			, *FEmitHelper::HandleMetaData(nullptr, false, &AdditionalMD)));
 
 		UClass* SuperClass = SourceClass->GetSuperClass();
 		FString ClassDefinition = FString::Printf(TEXT("class %s : public %s"), *CppClassName, *FEmitHelper::GetCppName(SuperClass));
@@ -259,6 +268,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());"), *CppClassName));
 		EmitterContext.Header.AddLine(TEXT("virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;"));
 		EmitterContext.Header.AddLine(TEXT("static void __StaticDependenciesAssets(TArray<FBlueprintDependencyData>& AssetsToLoad);"));
+		EmitterContext.Header.AddLine(TEXT("static void __GatherReferencedConvertedFields(UDynamicClass* InDynamicClass);"));
 
 		FEmitDefaultValueHelper::GenerateConstructor(EmitterContext);
 	}

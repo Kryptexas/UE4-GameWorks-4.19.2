@@ -1302,6 +1302,8 @@ public:
 
 	/** Flags determining loading behavior.																					*/
 	uint32					LoadFlags;
+	/** Indicates whether the imports for this loader have been verified													*/
+	bool					bHaveImportsBeenVerified;
 	/** Indicates that this linker was created for a dynamic class package and will not use Loader */
 	bool					bDynamicClassLinker;
 	/** Hash table for exports.																								*/
@@ -1405,8 +1407,6 @@ private:
 	float					TimeLimit;
 	/** Time at begin of Tick function. Used for time limit determination.													*/
 	double					TickStartTime;
-	/**  Tracks the last verified import (making Verify() reentrant) - used to know when all the imports have been verified */
-	int32					VerifiedImportCount;
 
 	/** Used for ActiveClassRedirects functionality */
 	bool					bFixupExportMapDone;
@@ -1518,12 +1518,6 @@ public:
 	FORCEINLINE int32 GetOwnerThreadId() const
 	{
 		return OwnerThread;
-	}
-
-	/** Indicates when Verify() has gone through the entire  */
-	FORCEINLINE bool HaveImportsBeenVerified() const
-	{
-		return VerifiedImportCount >= Summary.ImportCount;
 	}
 
 	/**
@@ -1984,6 +1978,22 @@ public:
 	* @return True if FinalizeBlueprint() is currently being ran (or about to be ran) for an export (Blueprint) class.
 	*/
 	bool IsBlueprintFinalizationPending() const;
+
+	/**
+	 * Gives external code the ability to create FLinkerPlaceholderBase objects
+	 * in place of loads that may violate the LOAD_DeferDependencyLoads state.
+	 * This will only produce a placeholder if LOAD_DeferDependencyLoads is set
+	 * for this linker.
+	 *
+	 * NOTE: For now, this will only produce UClass placeholders, as that is the 
+	 *       only type we've identified needing.
+	 * 
+	 * @param  ObjectType    The expected type of the object you want to defer loading of.
+	 * @param  ObjectPath    The full object/package path for the expected object.
+	 * @return A FLinkerPlaceholderBase UObject that can be used in place of the import dependency.
+	 */
+	UObject* RequestPlaceholderValue(UClass* ObjectType, const TCHAR* ObjectPath);
+
 private:
 	/**
 	 * Regenerates/Refreshes a blueprint class
@@ -2007,10 +2017,10 @@ private:
 	/**
 	* Determines if the Object Import error should be suppressed
 	*
-	* @param  InImport    Import to check for suppression.
+	* @param  ImportIndex    Internal index into this linker's ImportMap, references the import to check for suppression.
 	* @return True if the import error should be suppressed
 	*/
-	bool IsSuppressableBlueprintImportError(FObjectImport& InImport);
+	bool IsSuppressableBlueprintImportError(int32 ImportIndex) const;
 #endif // WITH_EDITOR
 
 	/**
@@ -2049,9 +2059,11 @@ private:
 	 * 
 	 * @param  Placeholder		A ULinkerPlaceholderClass that was substituted in place of a deferred dependency.
 	 * @param  ReferencingClass	The (Blueprint) class that was loading, while we deferred dependencies (now referencing the placeholder).
+	 * @param  ObjectPath		Optional param that denotes the full object/package path for the object the placeholder is supposed to represent 
+	 *                          (used when the passed placeholder is not tied to an import in the linker's ImportMap).
 	 * @return The number of placeholder references replaced (could be none, if this was recursively resolved).
 	 */
-	int32 ResolveDependencyPlaceholder(class FLinkerPlaceholderBase* Placeholder, UClass* ReferencingClass = nullptr);
+	int32 ResolveDependencyPlaceholder(class FLinkerPlaceholderBase* Placeholder, UClass* ReferencingClass = nullptr, const FName ObjectPath = NAME_None);
 
 	/**
 	 * Query method to help catch recursive behavior. When this returns true, a 
@@ -2120,7 +2132,6 @@ private:
 	 */
 	bool IsExportBeingResolved(int32 ExportIndex);
 
-
 	void ResetDeferredLoadingState();
 
 	bool HasPerformedFullExportResolvePass();
@@ -2155,6 +2166,12 @@ private:
 	 * to the next.
 	 */
 	class FLinkerPlaceholderBase* ResolvingDeferredPlaceholder;
+
+	/** 
+	 * Internal list to track imports that were deferred, but don't belong to 
+	 * the ImportMap (thinks ones loaded through config files via UProperty::ImportText).
+	 */
+	TMap<FName, FLinkerPlaceholderBase*> ImportPlaceholders;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 

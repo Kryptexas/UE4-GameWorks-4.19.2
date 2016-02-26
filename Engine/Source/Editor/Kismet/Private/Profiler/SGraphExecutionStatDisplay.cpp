@@ -6,6 +6,7 @@
 #include "BlueprintEditor.h"
 #include "Public/Profiler/EventExecution.h"
 #include "SDockTab.h"
+#include "Developer/BlueprintProfiler/Public/ScriptInstrumentationPlayback.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfilerGraphExecView"
 
@@ -264,7 +265,7 @@ void SGraphExecutionStatDisplay::Tick(const FGeometry& AllottedGeometry, const d
 {
 	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
 	{
-		if (IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler"))
+		if (IBlueprintProfilerInterface* Profiler = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler"))
 		{
 			// Find and process execution path timing data.
 			if (BlueprintEditor.IsValid())
@@ -274,36 +275,37 @@ void SGraphExecutionStatDisplay::Tick(const FGeometry& AllottedGeometry, const d
 				if (Blueprints->Num() == 1)
 				{
 					UBlueprint* NewBlueprint = Cast<UBlueprint>((*Blueprints)[0]);
+					UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(NewBlueprint->GeneratedClass);
 					TWeakObjectPtr<const UObject> NewInstance = NewBlueprint->GetObjectBeingDebugged();
-					FName NewInstancePath = NewInstance.IsValid() ? FName(*ProfilerInterface->GetValidInstancePath(NewInstance->GetPathName())) : NAME_None;
-					const bool bBlueprintChanged = NewBlueprint != CurrentBlueprint.Get();
-					const bool bInstanceChanged = bScopeToActiveDebugInstance && NewInstancePath != CurrentInstancePath;
-					// Find active graph to filter on
-					bool bGraphFilterChanged = false;
-					TSharedPtr<SDockTab> DockTab = BlueprintEditor.Pin()->DocumentManager->GetActiveTab();
-					if (DockTab.IsValid())
-					{
-						TSharedRef<SGraphEditor> ActiveGraphEditor = StaticCastSharedRef<SGraphEditor>(DockTab->GetContent());
-						bGraphFilterChanged = ActiveGraphEditor->GetCurrentGraph() != CurrentGraph.Get();
-						CurrentGraph = ActiveGraphEditor->GetCurrentGraph();
-					}
+					TSharedPtr<FBlueprintExecutionContext> BlueprintExecContext = Profiler->GetBlueprintContext(BPGC->GetPathName());
 
-					if (bBlueprintChanged||bInstanceChanged||bGraphFilterChanged)
+					if (BlueprintExecContext.IsValid())
 					{
-						const FString BlueprintPath = NewBlueprint->GeneratedClass->GetPathName();
-						TSharedPtr<FScriptExecutionNode> BlueprintEntry = ProfilerInterface->GetProfilerDataForNode(FName(*BlueprintPath));
-						RootTreeItems.Reset(0);
-
-						if (BlueprintEntry.IsValid() && BlueprintEntry->IsRootNode())
+						FName NewInstancePath = BlueprintExecContext->RemapInstancePath(FName(*NewInstance->GetPathName()));
+						const bool bBlueprintChanged = NewBlueprint != CurrentBlueprint.Get();
+						const bool bInstanceChanged = bScopeToActiveDebugInstance && NewInstancePath != CurrentInstancePath;
+						// Find active graph to filter on
+						bool bGraphFilterChanged = false;
+						TSharedPtr<SDockTab> DockTab = BlueprintEditor.Pin()->DocumentManager->GetActiveTab();
+						if (DockTab.IsValid())
 						{
-							// Cache Active blueprint and Instance
-							CurrentBlueprint = NewBlueprint;
-							CurrentInstancePath = NewInstancePath;
-							// Build Instance widget execution trees
-							TSharedPtr<FScriptExecutionBlueprint> BlueprintExecNode = StaticCastSharedPtr<FScriptExecutionBlueprint>(BlueprintEntry);
+							TSharedRef<SGraphEditor> ActiveGraphEditor = StaticCastSharedRef<SGraphEditor>(DockTab->GetContent());
+							bGraphFilterChanged = ActiveGraphEditor->GetCurrentGraph() != CurrentGraph.Get();
+							CurrentGraph = ActiveGraphEditor->GetCurrentGraph();
+						}
+
+						if (bBlueprintChanged||bInstanceChanged||bGraphFilterChanged)
+						{
+							const FString BlueprintPath = NewBlueprint->GeneratedClass->GetPathName();
+							TSharedPtr<FScriptExecutionBlueprint> BlueprintExecNode = BlueprintExecContext->GetBlueprintExecNode();
+							RootTreeItems.Reset(0);
 
 							if (BlueprintExecNode.IsValid())
 							{
+								// Cache Active blueprint and Instance
+								CurrentBlueprint = NewBlueprint;
+								CurrentInstancePath = NewInstancePath;
+								// Build Instance widget execution trees
 								FName GraphFilter = CurrentGraph.IsValid() && bFilterEventsToGraph ? CurrentGraph.Get()->GetFName() : NAME_None;
 
 								if (bDisplayInstances && bScopeToActiveDebugInstance)
@@ -339,24 +341,24 @@ void SGraphExecutionStatDisplay::Tick(const FGeometry& AllottedGeometry, const d
 									RootTreeItems.Add(BlueprintWidget);
 								}
 							}
-						}
-						// Refresh Tree
-						if (ExecutionStatTree.IsValid())
-						{
-							ExecutionStatTree->RequestTreeRefresh();
-							if (bAutoExpandStats)
+							// Refresh Tree
+							if (ExecutionStatTree.IsValid())
 							{
-								for (auto Iter : RootTreeItems)
+								ExecutionStatTree->RequestTreeRefresh();
+								if (bAutoExpandStats)
 								{
-									Iter->ExpandWidgetState(ExecutionStatTree, bAutoExpandStats);
+									for (auto Iter : RootTreeItems)
+									{
+										Iter->ExpandWidgetState(ExecutionStatTree, bAutoExpandStats);
+									}
 								}
-							}
-							else
-							{
-								for (auto Iter : RootTreeItems)
+								else
 								{
-									Iter->ProbeChildWidgetExpansionStates();
-									Iter->RestoreWidgetExpansionState(ExecutionStatTree);
+									for (auto Iter : RootTreeItems)
+									{
+										Iter->ProbeChildWidgetExpansionStates();
+										Iter->RestoreWidgetExpansionState(ExecutionStatTree);
+									}
 								}
 							}
 						}

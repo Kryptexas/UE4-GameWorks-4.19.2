@@ -204,7 +204,21 @@ void SGraphNodeK2Copy::UpdateGraphNode()
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
-			CreateNodeContentArea()
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Top)
+			[
+				CreateNodeContentArea()
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(Settings->GetNonPinNodeBodyPadding())
+			[
+				ErrorReporting->AsWidget()
+			]
 		];
 	CreatePinWidgets();
 }
