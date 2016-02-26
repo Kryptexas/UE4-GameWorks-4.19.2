@@ -1885,7 +1885,20 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 //			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
-		if( !(LoadFlags & LOAD_NoVerify))
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		// we can't verify our imports if we're currently deferring dependency
+		// loads (or if we've explicitly requested this linker without it);
+		// with the LOAD_DeferDependencyLoads flag, this is most likely a 
+		// UserDefinedStruct package, which we need to load for some other Blueprint
+		// package (further up the stack), but at that Blueprint's request we 
+		// cannot spider out to load anything else - don't worry though, import
+		// verification happens as needed for CreateImport() during export 
+		// serialization, so it's not like this will be skipped completely (just
+		// deferred)
+		if (!(LoadFlags & (LOAD_NoVerify | LOAD_DeferDependencyLoads)))
+#else 
+		if (!(LoadFlags & LOAD_NoVerify))
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 		{
 			Verify();
 		}
