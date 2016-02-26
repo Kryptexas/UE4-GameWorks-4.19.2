@@ -1018,7 +1018,7 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 	}
 
 	// add to list of translucent prims
-	else if (bUseNormalTranslucency
+	if (bUseNormalTranslucency
 		|| !bCanBeSeparate
 		)
 	{
