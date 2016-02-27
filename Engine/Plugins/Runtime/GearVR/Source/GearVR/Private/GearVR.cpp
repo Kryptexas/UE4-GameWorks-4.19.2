@@ -12,25 +12,13 @@
 
 #include <android_native_app_glue.h>
 
-#if PLATFORM_ANDROID
-// call out to JNI to see if the application was packaged for GearVR
-bool AndroidThunkCpp_IsGearVRApplication()
-{
-	bool bIsGearVRApplication = false;
-	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
-	{
-		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", false);
-		bIsGearVRApplication = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, Method);
-	}
-	return bIsGearVRApplication;
-}
-#endif
-
 //---------------------------------------------------
 // GearVR Plugin Implementation
 //---------------------------------------------------
 
 #if GEARVR_SUPPORTED_PLATFORMS
+extern bool AndroidThunkCpp_IsGearVRApplication();
+
 static TAutoConsoleVariable<int32> CVarGearVREnableMSAA(TEXT("gearvr.EnableMSAA"), 1, TEXT("Enable MSAA when rendering on GearVR"));
 
 static TAutoConsoleVariable<int32> CVarGearVREnableQueueAhead(TEXT("gearvr.EnableQueueAhead"), 1, TEXT("Enable full-frame queue ahead for rendering on GearVR"));
