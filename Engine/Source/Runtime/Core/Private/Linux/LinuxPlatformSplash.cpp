@@ -588,7 +588,6 @@ bool LinuxSplash_InitSplashResources()
 
 	SDL_SetWindowTitle( GSplashWindow, TCHAR_TO_UTF8(*GSplashScreenAppName.ToString()) );
 
-	UE_LOG(LogInit, Warning, TEXT("GIconPath='%s'"), *GIconPath);
 	GSplashIconImage = LinuxSplash_LoadImage(*GIconPath, GIconImageWrapper);
 
 	if (GSplashIconImage != nullptr)
@@ -608,8 +607,6 @@ bool LinuxSplash_InitSplashResources()
 /** Helper function to tear down resources used by the splash thread */
 void LinuxSplash_TearDownSplashResources()
 {
-	UE_LOG(LogInit, Warning, TEXT("LinuxSplash_TearDownSplashResources() - tearing down splash resources."));
-
 	if (GSplashIconImage)
 	{
 		SDL_FreeSurface(GSplashIconImage);
@@ -907,9 +904,6 @@ void FLinuxPlatformSplash::Show( )
 
 	// decide on which splash screen to show
 	const FText GameName = FText::FromString(FApp::GetGameName());
-
-	//const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault") : TEXT("EdSplash") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault") : TEXT("Splash") );
-	//const TCHAR* IconImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdIconDefault") : TEXT("EdIcon") ) : ( GameName.IsEmpty() ? TEXT("IconDefault") : TEXT("Icon.bmp") );
 
 	bool IsCustom = false;
 
