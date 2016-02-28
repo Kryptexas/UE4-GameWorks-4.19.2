@@ -191,6 +191,8 @@ void FSceneViewport::UpdateModifierKeys( const FPointerEvent& InMouseEvent )
 	KeyStateMap.Add(EKeys::RightControl, InMouseEvent.IsRightControlDown());
 	KeyStateMap.Add(EKeys::LeftShift, InMouseEvent.IsLeftShiftDown());
 	KeyStateMap.Add(EKeys::RightShift, InMouseEvent.IsRightShiftDown());
+	KeyStateMap.Add(EKeys::LeftCommand, InMouseEvent.IsLeftCommandDown());
+	KeyStateMap.Add(EKeys::RightCommand, InMouseEvent.IsRightCommandDown());
 }
 
 void FSceneViewport::ApplyModifierKeys( const FModifierKeysState& InKeysState )
@@ -862,6 +864,8 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 	KeyStateMap.Add( EKeys::RightControl, FSlateApplication::Get().GetModifierKeys().IsRightControlDown());
 	KeyStateMap.Add( EKeys::LeftShift, FSlateApplication::Get().GetModifierKeys().IsLeftShiftDown());
 	KeyStateMap.Add( EKeys::RightShift, FSlateApplication::Get().GetModifierKeys().IsRightShiftDown());
+	KeyStateMap.Add( EKeys::LeftCommand, FSlateApplication::Get().GetModifierKeys().IsLeftCommandDown());
+	KeyStateMap.Add( EKeys::RightCommand, FSlateApplication::Get().GetModifierKeys().IsRightCommandDown());
 
 	return CurrentReplyState;
 }
