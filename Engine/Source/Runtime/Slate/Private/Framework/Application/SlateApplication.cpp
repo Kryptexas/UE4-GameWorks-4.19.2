@@ -3372,10 +3372,12 @@ void FSlateApplication::EnterDebuggingMode()
 	TSharedPtr<SViewport> PreviousGameViewport;
 
 	// Disable any game viewports while we are in debug mode so that mouse capture is released and the cursor is visible
+	// We need to retain the keyboard input for debugging purposes, so this is called directly rather than calling UnregisterGameViewport which resets input.
 	if (GameViewportWidget.IsValid())
 	{
 		PreviousGameViewport = GameViewportWidget.Pin();
-		UnregisterGameViewport();
+		PreviousGameViewport->SetActive(false);
+		GameViewportWidget.Reset();
 	}
 
 	Renderer->FlushCommands();
