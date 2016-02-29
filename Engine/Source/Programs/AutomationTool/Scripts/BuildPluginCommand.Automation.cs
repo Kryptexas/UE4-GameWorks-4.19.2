@@ -37,7 +37,7 @@ class BuildPlugin : BuildCommand
 		}
 
 		// Create a host project for the plugin. For script generator plugins, we need to have UHT be able to load it - and that can only happen if it's enabled in a project.
-		DirectoryReference HostProjectDirectory = DirectoryReference.Combine(PluginDirectory, "Saved", "PackageProject");
+		DirectoryReference HostProjectDirectory = DirectoryReference.Combine(new DirectoryReference(CommandUtils.CmdEnv.LocalRoot), "HostProject");
 		if (CommandUtils.DirectoryExists(HostProjectDirectory.FullName))
 		{
 			CommandUtils.DeleteDirectory(HostProjectDirectory.FullName);
