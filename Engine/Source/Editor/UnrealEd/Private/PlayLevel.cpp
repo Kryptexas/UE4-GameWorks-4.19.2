@@ -2908,6 +2908,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					.ClientSize(FVector2D( NewWindowWidth, NewWindowHeight ))
 					.AutoCenter(CenterNewWindow ? EAutoCenter::PreferredWorkArea : EAutoCenter::None)
 					.UseOSWindowBorder(bUseOSWndBorder)
+					.SaneWindowPlacement(!CenterNewWindow)
 					.SizingRule(ESizingRule::UserSized);
 				}
 
