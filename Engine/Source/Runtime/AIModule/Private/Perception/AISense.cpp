@@ -8,7 +8,7 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Team.h"
 #include "Perception/AISenseConfig_Touch.h"
-#include "PErception/AISense_Blueprint.h"
+#include "Perception/AISense_Blueprint.h"
 #include "Perception/AISense_Prediction.h"
 #include "Perception/AISense_Touch.h"
 

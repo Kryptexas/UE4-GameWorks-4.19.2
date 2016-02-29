@@ -33,7 +33,7 @@
 #endif // WITH_EDITOR
 
 #include "GameplayDebuggingComponent.h"
-#include "GAmeplayDebuggingControllerComponent.h"
+#include "GameplayDebuggingControllerComponent.h"
 #include "GameplayDebuggingReplicator.h"
 
 DEFINE_LOG_CATEGORY(LogGameplayDebugger);
