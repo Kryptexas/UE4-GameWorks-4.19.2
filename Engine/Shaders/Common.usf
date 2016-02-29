@@ -1105,6 +1105,11 @@ float2 SvPositionToViewportUV(float4 SvPosition)
 	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
 }
 
+float2 BufferUVToViewportUV(float2 BufferUV)
+{
+	float2 PixelPos = BufferUV.xy * Frame.BufferSizeAndInvSize.xy - Frame.ViewRectMin.xy;
+	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
+}
 // ----------------------------
 
 /** 

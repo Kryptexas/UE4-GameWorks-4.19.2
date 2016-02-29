@@ -4724,11 +4724,19 @@ UMaterialExpressionScreenPosition::UMaterialExpressionScreenPosition(const FObje
 
 int32 UMaterialExpressionScreenPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->ScreenPosition();
+	return Compiler->ScreenPosition(Mapping);
 }
 
 void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions) const
 {
+
+#if WITH_EDITOR
+	const UEnum* ScreenPositionMappingEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExpressionScreenPositionMapping"));
+	check(ScreenPositionMappingEnum);
+
+	const FString MappingDisplayName = ScreenPositionMappingEnum->GetDisplayNameText(Mapping).ToString();
+	OutCaptions.Add(MappingDisplayName);
+#endif
 	OutCaptions.Add(TEXT("ScreenPosition"));
 }
 

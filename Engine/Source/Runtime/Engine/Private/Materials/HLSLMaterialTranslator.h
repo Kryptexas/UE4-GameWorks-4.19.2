@@ -2142,14 +2142,24 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.LightVector"));
 	}
 
-	virtual int32 ScreenPosition() override
+	virtual int32 ScreenPosition(EMaterialExpressionScreenPositionMapping Mapping) override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
 		{
 			return Errorf(TEXT("Invalid node used in hull/domain shader input!"));
 		}
 
-		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));		
+		switch (Mapping)
+		{
+		case MESP_SceneTextureUV:
+			return AddCodeChunk(MCT_Float2, TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
+		case MESP_ViewportUV:
+			// Works for pixel and vertex shader.  The following commented line would optimize for pixel shader but doesnt work for vertex shader
+			return AddCodeChunk(MCT_Float2, TEXT("BufferUVToViewportUV(ScreenAlignedPosition(GetScreenPosition(Parameters)))"));
+			//return AddCodeChunk(MCT_Float2, TEXT("SvPositionToViewportUV(Parameters.SvPosition)"));
+		default:
+			return Errorf(TEXT("Invalid UV mapping!"));
+		}	
 	}
 
 	virtual int32 ParticleMacroUV() override 
