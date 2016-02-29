@@ -1410,9 +1410,37 @@ namespace MachObjectHandling
 		protected void InitializeFromCert(X509Certificate2 SigningCert, string Bundle)
 		{
 			BundleIdentifier = Bundle;
-			int StartIndex = SigningCert.SubjectName.Name.IndexOf("CN=\"") + 4;
-			int EndIndex = SigningCert.SubjectName.Name.IndexOf("\"", StartIndex);
-			CertificateName = SigningCert.SubjectName.Name.Substring(StartIndex, EndIndex - StartIndex);
+			int StartIndex = SigningCert.SubjectName.Name.IndexOf("CN=");
+			int EndIndex = -1;
+			CertificateName = "";
+			if (StartIndex > -1)
+			{
+				// find the next attribute
+				StartIndex += 3;
+				char SearchChar = ',';
+				if (SigningCert.SubjectName.Name[StartIndex] == '\"')
+				{
+					// quotes are around the string because of special characters
+					StartIndex++;
+					SearchChar = '\"';
+				}
+				EndIndex = SigningCert.SubjectName.Name.IndexOf(SearchChar, StartIndex);
+				if (EndIndex == -1)
+				{
+					// must be at the end, so go to the end
+					EndIndex = SigningCert.SubjectName.Name.Length;
+					if (SearchChar == '\"')
+					{
+						EndIndex--;
+					}
+				}
+				// get the string
+				CertificateName = SigningCert.SubjectName.Name.Substring(StartIndex, EndIndex - StartIndex);
+			}
+			if (string.IsNullOrEmpty(CertificateName))
+			{
+				CertificateName = SigningCert.FriendlyName;
+			}
 		}
 
 		protected override void PackageData(WritingContext SW)
