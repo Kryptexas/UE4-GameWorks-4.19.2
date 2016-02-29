@@ -1951,8 +1951,8 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 		TheirBody->WeldParent = this;
 
-		UPhysicalMaterial* SimplePhysMat = GetSimplePhysicalMaterial();
-		TArray<UPhysicalMaterial*> ComplexPhysMats = GetComplexPhysicalMaterials();
+		UPhysicalMaterial* SimplePhysMat = TheirBody->GetSimplePhysicalMaterial();
+		TArray<UPhysicalMaterial*> ComplexPhysMats = TheirBody->GetComplexPhysicalMaterials();
 		PxMaterial* PSimpleMat =  SimplePhysMat ? SimplePhysMat->GetPhysXMaterial() : nullptr;
 
 		FShapeData ShapeData;
@@ -2055,9 +2055,6 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 
 void FBodyInstance::PostShapeChange()
 {
-	// Apply correct physical materials to shape we created.
-	UpdatePhysicalMaterials();
-
 	// Set the filter data on the shapes (call this after setting BodyData because it uses that pointer)
 	UpdatePhysicsFilterData();
 

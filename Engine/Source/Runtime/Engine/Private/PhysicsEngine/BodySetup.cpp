@@ -328,7 +328,7 @@ struct FAddShapesHelper
 	, NewShapes(InNewShapes)
 	, bShapeSharing(InShapeSharing)
 	{
-		SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+		SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, ShapeScale3DAbs);
 		{
 			float MinScaleRelative;
 			float MinScaleAbsRelative;
@@ -338,9 +338,14 @@ struct FAddShapesHelper
 			SetupNonUniformHelper(Scale3DRelative, MinScaleRelative, MinScaleAbsRelative, Scale3DAbsRelative);
 
 			MinScaleAbs *= MinScaleAbsRelative;
-			Scale3DAbs.X *= Scale3DAbsRelative.X;
-			Scale3DAbs.Y *= Scale3DAbsRelative.Y;
-			Scale3DAbs.Z *= Scale3DAbsRelative.Z;
+			ShapeScale3DAbs.X *= Scale3DAbsRelative.X;
+			ShapeScale3DAbs.Y *= Scale3DAbsRelative.Y;
+			ShapeScale3DAbs.Z *= Scale3DAbsRelative.Z;
+
+			ShapeScale3D = Scale3D;
+			ShapeScale3D.X *= Scale3DAbsRelative.X;
+			ShapeScale3D.Y *= Scale3DAbsRelative.Y;
+			ShapeScale3D.Z *= Scale3DAbsRelative.Z;
 		}
 
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -360,7 +365,8 @@ struct FAddShapesHelper
 
 	float MinScaleAbs;
 	float MinScale;
-	FVector Scale3DAbs;
+	FVector ShapeScale3DAbs;
+	FVector ShapeScale3D;
 
 	float ContactOffsetFactor;
 	float MaxContactOffset;
@@ -401,9 +407,9 @@ public:
 			const FKBoxElem& BoxElem = BodySetup->AggGeom.BoxElems[i];
 
 			PxBoxGeometry PBoxGeom;
-			PBoxGeom.halfExtents.x = (0.5f * BoxElem.X * Scale3DAbs.X);
-			PBoxGeom.halfExtents.y = (0.5f * BoxElem.Y * Scale3DAbs.Y);
-			PBoxGeom.halfExtents.z = (0.5f * BoxElem.Z * Scale3DAbs.Z);
+			PBoxGeom.halfExtents.x = (0.5f * BoxElem.X * ShapeScale3DAbs.X);
+			PBoxGeom.halfExtents.y = (0.5f * BoxElem.Y * ShapeScale3DAbs.Y);
+			PBoxGeom.halfExtents.z = (0.5f * BoxElem.Z * ShapeScale3DAbs.Z);
 
 			FTransform BoxTransform = BoxElem.GetTransform() * RelativeTM;
 			if (PBoxGeom.isValid() && BoxTransform.IsValid())
@@ -428,8 +434,8 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void AddSphylsToRigidActor_AssumesLocked() const
 	{
-		float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
-		float ScaleLength = Scale3DAbs.Z;
+		float ScaleRadius = FMath::Max(ShapeScale3DAbs.X, ShapeScale3DAbs.Y);
+		float ScaleLength = ShapeScale3DAbs.Z;
 
 		for (int32 i = 0; i < BodySetup->AggGeom.SphylElems.Num(); i++)
 		{
@@ -482,7 +488,7 @@ public:
 
 				PxConvexMeshGeometry PConvexGeom;
 				PConvexGeom.convexMesh = bUseNegX ? ConvexElem.ConvexMeshNegX : ConvexElem.ConvexMesh;
-				PConvexGeom.scale.scale = U2PVector(Scale3DAbs * ConvexElem.GetTransform().GetScale3D().GetAbs());
+				PConvexGeom.scale.scale = U2PVector(ShapeScale3DAbs * ConvexElem.GetTransform().GetScale3D().GetAbs());	//scale shape about the origin
 				FTransform ConvexTransform = ConvexElem.GetTransform();
 				if (ConvexTransform.GetScale3D().X < 0 || ConvexTransform.GetScale3D().Y < 0 || ConvexTransform.GetScale3D().Z < 0)
 				{
@@ -490,6 +496,7 @@ public:
 				}
 				if (ConvexTransform.IsValid())
 				{
+					//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
 					PxTransform PElementTransform = U2PTransform(ConvexTransform * RelativeTM);
 					PLocalPose.q *= PElementTransform.q;
 					PLocalPose.p = PElementTransform.p;
@@ -531,7 +538,7 @@ public:
 		
 			PxTriangleMeshGeometry PTriMeshGeom;
 			PTriMeshGeom.triangleMesh = TriMesh;
-			PTriMeshGeom.scale.scale = U2PVector(Scale3D);
+			PTriMeshGeom.scale.scale = U2PVector(ShapeScale3D); //scale shape about the origin
 			if (BodySetup->bDoubleSidedGeometry)
 			{
 				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
@@ -539,6 +546,7 @@ public:
 
 			if (PTriMeshGeom.isValid())
 			{
+				//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
 				PxTransform PElementTransform = U2PTransform(RelativeTM);
 				PElementTransform.p.x *= Scale3D.X;
 				PElementTransform.p.y *= Scale3D.Y;
