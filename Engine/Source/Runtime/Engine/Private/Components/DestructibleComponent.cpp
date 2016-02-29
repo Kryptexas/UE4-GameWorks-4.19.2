@@ -310,8 +310,11 @@ void UDestructibleComponent::CreatePhysicsState()
 	verify( NxParameterized::setParamU32(*ActorParams,"p3ShapeDescTemplate.queryFilterData.word3", PQueryFilterData.word3 ) );
 
 	// Set the PhysX material in the shape descriptor
-	PxMaterial* PMaterial = PhysMat->GetPhysXMaterial();
-	verify( NxParameterized::setParamU64(*ActorParams,"p3ShapeDescTemplate.material", (physx::PxU64)PMaterial) );
+	if(PxMaterial* PMaterial = PhysMat->GetPhysXMaterial())
+	{
+		verify(NxParameterized::setParamU64(*ActorParams, "p3ShapeDescTemplate.material", (physx::PxU64)PMaterial));
+	}
+
 
 	// Set the rest depth to match the skin width in the shape descriptor
 	const physx::PxCookingParams& CookingParams = GApexSDK->getCookingInterface()->getParams();
@@ -337,7 +340,14 @@ void UDestructibleComponent::CreatePhysicsState()
 	SleepEnergyThreshold *= BodyInstance.GetSleepThresholdMultiplier();
 	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.sleepThreshold", SleepEnergyThreshold) );
 //	NxParameterized::setParamF32(*ActorParams,"bodyDescTemplate.sleepDamping", SleepDamping );
-	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.density", 0.001f*PhysMat->Density) );	// Convert from g/cm^3 to kg/cm^3
+	
+	float DensityPerCubicCM = 1.0f;
+	if(PhysMat)
+	{
+		DensityPerCubicCM = PhysMat->Density;
+	}
+	verify( NxParameterized::setParamF32(*ActorParams,"p3BodyDescTemplate.density", 0.001f * DensityPerCubicCM) );	// Convert from g/cm^3 to kg/cm^3
+
 	// Enable CCD if requested
 	verify( NxParameterized::setParamBool(*ActorParams,"p3BodyDescTemplate.flags.eENABLE_CCD", BodyInstance.bUseCCD != 0) );
 	// Ask the actor to create chunk events, for more efficient visibility updates
@@ -1551,12 +1561,14 @@ void UDestructibleComponent::SetMaterial(int32 ElementIndex, UMaterialInterface*
 		if(ApexDestructibleActor->getPhysX3Template(*Template))
 		{
 			UPhysicalMaterial* SimpleMaterial = GetBodyInstance()->GetSimplePhysicalMaterial();
-			check(SimpleMaterial);
-			PxMaterial* PhysxMat = SimpleMaterial->GetPhysXMaterial();
+			
+			if(SimpleMaterial)
+			{
+				PxMaterial* PhysxMat = SimpleMaterial->GetPhysXMaterial();
 
-			Template->setMaterials(&PhysxMat, 1);
-
-			ApexDestructibleActor->setPhysX3Template(Template);
+				Template->setMaterials(&PhysxMat, 1);
+				ApexDestructibleActor->setPhysX3Template(Template);
+			}
 		}
 		Template->release();
 	}
