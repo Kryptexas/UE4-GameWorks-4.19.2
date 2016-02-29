@@ -146,15 +146,10 @@ void UK2Node_GetArrayItem::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 
 	if (Pin != GetIndexPin() && Pin->ParentPin == nullptr)
 	{
-		UEdGraphPin* ArrayPin = Pins[0];
+		UEdGraphPin* ArrayPin  = Pins[0];
 		UEdGraphPin* ResultPin = Pins[2];
 
-		// If a pin connection is made, then we need to propagate the change to the other pins and validate all connections, otherwise reset them to Wildcard pins
-		if (Pin->LinkedTo.Num() > 0)
-		{
-			PropagatePinType(Pin->LinkedTo[0]->PinType);
-		}
-		else if (ArrayPin->LinkedTo.Num() == 0 && ResultPin->LinkedTo.Num() == 0)
+		auto ClearWildcardType = [ArrayPin, ResultPin]()
 		{
 			ArrayPin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
 			ArrayPin->PinType.PinSubCategory = TEXT("");
@@ -167,7 +162,42 @@ void UK2Node_GetArrayItem::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 
 			ArrayPin->BreakAllPinLinks();
 			ResultPin->BreakAllPinLinks();
+		};
+
+		const int32 NewLinkCount  = Pin->LinkedTo.Num();
+		const bool  bPinsHasLinks = (NewLinkCount > 0);
+		if (ArrayPin == Pin)
+		{
+			if (bPinsHasLinks)
+			{
+				// if we had more than one input, we'd have to find the common base type
+				ensure(NewLinkCount == 1); 
+				// the input array has authority, change output types, even if they are connected
+				PropagatePinType(Pin->LinkedTo[0]->PinType);
+			}
+			// if the array pin was disconnected from everything, and...
+			else if (ResultPin->LinkedTo.Num() == 0)
+			{
+				ClearWildcardType();
+			}
 		}
+		else if (ArrayPin->LinkedTo.Num() == 0)
+		{
+			// if we cleared the result pin's connections
+			if (!bPinsHasLinks)
+			{
+				ClearWildcardType();
+			}
+			// if this is the first connection to the result pin...
+			else if (NewLinkCount == 1)
+			{
+				PropagatePinType(Pin->LinkedTo[0]->PinType);
+			}
+			// else, the result pin already had a connection and a type, leave 
+			// it alone, as it is what facilitated this connection as well
+		}
+		// else, leave this node alone, the array input is still connected and 
+		// it has authority over the wildcard types (the type set should already be good)
 	}
 }
 
