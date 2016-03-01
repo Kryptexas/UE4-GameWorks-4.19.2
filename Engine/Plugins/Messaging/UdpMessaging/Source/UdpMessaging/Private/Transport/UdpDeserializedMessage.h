@@ -18,7 +18,11 @@ public:
 	 */
 	FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
 		: Attachment(InAttachment)
+		, MessageData(nullptr)
 	{ }
+
+	/** Virtual destructor. */
+	virtual ~FUdpDeserializedMessage() override;
 
 public:
 

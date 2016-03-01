@@ -12,13 +12,13 @@ const int32 FUdpMessageProcessor::DeadHelloIntervals = 5;
 /* FUdpMessageProcessor structors
  *****************************************************************************/
 
-FUdpMessageProcessor::FUdpMessageProcessor(FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint)
+FUdpMessageProcessor::FUdpMessageProcessor(FSocket& InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint)
 	: Beacon(nullptr)
 	, LastSentMessage(-1)
 	, LocalNodeId(InNodeId)
 	, MulticastEndpoint(InMulticastEndpoint)
-	, Sender(nullptr)
-	, Socket(InSocket)
+	, Socket(&InSocket)
+	, SocketSender(nullptr)
 	, Stopping(false)
 {
 	WorkEvent = FPlatformProcess::GetSynchEventFromPool();
@@ -45,9 +45,22 @@ FUdpMessageProcessor::FUdpMessageProcessor(FSocket* InSocket, const FGuid& InNod
 
 FUdpMessageProcessor::~FUdpMessageProcessor()
 {
+	// shut down worker thread
 	Thread->Kill(true);
 	delete Thread;
 
+	// remove all transport nodes
+	if (NodeLostDelegate.IsBound())
+	{
+		for (auto& KnownNodePair : KnownNodes)
+		{
+			NodeLostDelegate.Execute(KnownNodePair.Key);
+		}
+	}
+
+	KnownNodes.Empty();
+
+	// clean up 
 	FPlatformProcess::ReturnSynchEventToPool(WorkEvent);
 	WorkEvent = nullptr;
 }
@@ -88,7 +101,7 @@ bool FUdpMessageProcessor::EnqueueOutboundMessage(const FUdpSerializedMessageRef
 bool FUdpMessageProcessor::Init()
 {
 	Beacon = new FUdpMessageBeacon(Socket, LocalNodeId, MulticastEndpoint);
-	Sender = new FUdpSocketSender(Socket, TEXT("FUdpMessageProcessor.Sender"));
+	SocketSender = new FUdpSocketSender(Socket, TEXT("FUdpMessageProcessor.Sender"));
 
 	return true;
 }
@@ -112,8 +125,8 @@ uint32 FUdpMessageProcessor::Run()
 	delete Beacon;
 	Beacon = nullptr;
 
-	delete Sender;
-	Sender = nullptr;
+	delete SocketSender;
+	SocketSender = nullptr;
 
 	return 0;
 }
@@ -442,8 +455,7 @@ void FUdpMessageProcessor::UpdateKnownNodes()
 
 	for (const auto& Node : NodesToRemove)
 	{
-		// @todo udpmessaging: gmp: put this back in after testing
-		//RemoveKnownNode(Node);
+		RemoveKnownNode(Node);
 	}
 
 	Beacon->SetEndpointCount(KnownNodes.Num() + 1);
@@ -484,7 +496,7 @@ void FUdpMessageProcessor::UpdateSegmenters(FNodeInfo& NodeInfo)
 					*Writer << DataChunk;
 				}
 
-				if (!Sender->Send(Writer, NodeInfo.Endpoint))
+				if (!SocketSender->Send(Writer, NodeInfo.Endpoint))
 				{
 					return;
  				}
