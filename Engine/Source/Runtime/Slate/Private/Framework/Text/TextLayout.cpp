@@ -1984,6 +1984,7 @@ void FTextLayout::AddLines( const TArray<FNewLineData>& NewLines )
 void FTextLayout::ClearLines()
 {
 	LineModels.Empty();
+	ClearView();
 	DirtyFlags |= ETextLayoutDirtyState::Layout;
 }
 

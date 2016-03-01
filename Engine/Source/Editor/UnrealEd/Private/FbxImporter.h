@@ -180,6 +180,12 @@ struct FBXImportOptions
 		bImportMorph = true;
 		AnimationLengthImportType = FBXALIT_ExportedTime;
 	}
+
+	static void ResetOptions(FBXImportOptions *OptionsToReset)
+	{
+		check(OptionsToReset != nullptr);
+		FMemory::Memzero(OptionsToReset, sizeof(OptionsToReset));
+	}
 };
 
 struct FbxMeshInfo
@@ -783,12 +789,23 @@ protected:
 
 	/**
 	* Compute the global matrix for Fbx Node
+	* If we import scene it will return identity plus the pivot if we turn the bake pivot option
 	*
 	* @param Node	Fbx Node
 	* @return KFbxXMatrix*	The global transform matrix
 	*/
 	FbxAMatrix ComputeTotalMatrix(FbxNode* Node);
-
+	
+	/**
+	* Compute the matrix for skeletal Fbx Node
+	* If we import don't import a scene it will call ComputeTotalMatrix with Node as the parameter. If we import a scene
+	* it will return the relative transform between the RootSkeletalNode and Node.
+	*
+	* @param Node	Fbx Node
+	* @param Node	Fbx RootSkeletalNode
+	* @return KFbxXMatrix*	The global transform matrix
+	*/
+	FbxAMatrix ComputeSkeletalMeshTotalMatrix(FbxNode* Node, FbxNode *RootSkeletalNode);
 	/**
 	 * Check if there are negative scale in the transform matrix and its number is odd.
 	 * @return bool True if there are negative scale and its number is 1 or 3. 
@@ -832,12 +849,24 @@ protected:
 	* @param FbxShape	Fbx Morph object, if not NULL, we are importing a morph object.
 	* @param SortedLinks    Fbx Links(bones) of this skeletal mesh
 	* @param FbxMatList  All material names of the skeletal mesh
+	* @param RootNode       The skeletal mesh root fbx node.
 	*
 	* @returns bool*	true if import successfully.
 	*/
     bool FillSkelMeshImporterFromFbx(FSkeletalMeshImportData& ImportData, FbxMesh*& Mesh, FbxSkin* Skin, 
-										FbxShape* Shape, TArray<FbxNode*> &SortedLinks, const TArray<FbxSurfaceMaterial*>& FbxMaterials );
-
+										FbxShape* Shape, TArray<FbxNode*> &SortedLinks, const TArray<FbxSurfaceMaterial*>& FbxMaterials, FbxNode *RootNode);
+	/**
+	* Fill FSkeletalMeshIMportData from Fbx Nodes and FbxShape Array if exists.  
+	*
+	* @param NodeArray	Fbx node array to look at
+	* @param TemplateImportData template import data 
+	* @param FbxShapeArray	Fbx Morph object, if not NULL, we are importing a morph object.
+	* @param OutData    FSkeletalMeshImportData output data
+	*
+	* @returns bool*	true if import successfully.
+	*/
+	bool FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray, UFbxSkeletalMeshImportData* TemplateImportData, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData);
+	
 	/**
 	 * Import bones from skeletons that NodeArray bind to.
 	 *
@@ -848,7 +877,7 @@ protected:
 	 * @param bDisableMissingBindPoseWarning
 	 * @param bUseTime0AsRefPose	in/out - Use Time 0 as Ref Pose 
 	 */
-	bool ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, UFbxSkeletalMeshImportData* TemplateData, TArray<FbxNode*> &OutSortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose);
+	bool ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, UFbxSkeletalMeshImportData* TemplateData, TArray<FbxNode*> &OutSortedLinks, bool& bOutDiffPose, bool bDisableMissingBindPoseWarning, bool & bUseTime0AsRefPose, FbxNode *SkeletalMeshNode);
 	
 	/**
 	 * Skins the control points of the given mesh or shape using either the default pose for skinning or the first frame of the

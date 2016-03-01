@@ -33,6 +33,10 @@ private:
 
 		EMacroBlockState EvaluateMacroStack() const;
 
+		void SetDefine( const FString& InDefineCtx );
+
+		void RemoveDefine( const FString& InDefineCtx );
+
 		//Working data
 		FString Filename;
 		int32 LineNumber;
@@ -105,8 +109,6 @@ private:
 		static const FString ElseString;
 		static const FString EndIfString;
 		static const FString DefinedString;
-		static const FString LocNamespaceString;
-		static const FString LocDefRegionString;
 		static const FString IniNamespaceString;
 	};
 
@@ -237,6 +239,7 @@ private:
 	static const FString ChangelistName;
 
 	static FString RemoveStringFromTextMacro(const FString& TextMacro, const FString& IdentForLogging, bool& Error);
+	static FString StripCommentsFromToken(const FString& InToken, FSourceFileParseContext& Context);
 	static bool ParseSourceText(const FString& Text, const TArray<FParsableDescriptor*>& Parsables, FSourceFileParseContext& ParseCtxt);
 
 public:

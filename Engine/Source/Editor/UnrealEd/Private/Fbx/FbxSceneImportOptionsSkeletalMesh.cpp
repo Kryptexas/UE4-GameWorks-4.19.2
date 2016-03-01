@@ -22,7 +22,7 @@ UFbxSceneImportOptionsSkeletalMesh::UFbxSceneImportOptionsSkeletalMesh(const FOb
 {
 }
 
-void UFbxSceneImportOptionsSkeletalMesh::FillSkeletalMeshInmportData(UFbxSkeletalMeshImportData* SkeletalMeshImportData, UFbxAnimSequenceImportData* AnimSequenceImportData)
+void UFbxSceneImportOptionsSkeletalMesh::FillSkeletalMeshInmportData(UFbxSkeletalMeshImportData* SkeletalMeshImportData, UFbxAnimSequenceImportData* AnimSequenceImportData, UFbxSceneImportOptions* SceneImportOptions)
 {
 	check(SkeletalMeshImportData != nullptr);
 	SkeletalMeshImportData->bImportMeshesInBoneHierarchy = bImportMeshesInBoneHierarchy;
@@ -31,6 +31,13 @@ void UFbxSceneImportOptionsSkeletalMesh::FillSkeletalMeshInmportData(UFbxSkeleta
 	SkeletalMeshImportData->bPreserveSmoothingGroups = bPreserveSmoothingGroups;
 	SkeletalMeshImportData->bUpdateSkeletonReferencePose = bUpdateSkeletonReferencePose;
 	SkeletalMeshImportData->bUseT0AsRefPose = bUseT0AsRefPose;
+
+	SkeletalMeshImportData->bImportMeshLODs = SceneImportOptions->bImportSkeletalMeshLODs;
+	SkeletalMeshImportData->ImportTranslation = SceneImportOptions->ImportTranslation;
+	SkeletalMeshImportData->ImportRotation = SceneImportOptions->ImportRotation;
+	SkeletalMeshImportData->ImportUniformScale = SceneImportOptions->ImportUniformScale;
+	SkeletalMeshImportData->bTransformVertexToAbsolute = SceneImportOptions->bTransformVertexToAbsolute;
+	SkeletalMeshImportData->bBakePivotInVertex = SceneImportOptions->bBakePivotInVertex;
 	
 	SkeletalMeshImportData->bImportAsScene = true;
 
@@ -40,4 +47,6 @@ void UFbxSceneImportOptionsSkeletalMesh::FillSkeletalMeshInmportData(UFbxSkeleta
 	AnimSequenceImportData->bPreserveLocalTransform = bPreserveLocalTransform;
 	AnimSequenceImportData->bUseDefaultSampleRate = bUseDefaultSampleRate;
 	AnimSequenceImportData->FrameImportRange = FrameImportRange;
+
+	AnimSequenceImportData->bImportAsScene = true;
 }

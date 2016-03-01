@@ -21,27 +21,27 @@ class UMG_API USizeBox : public UContentWidget
 public:
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Child Layout", meta=(InlineEditConditionToggle))
 	uint32 bOverride_WidthOverride : 1;
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Child Layout", meta=(InlineEditConditionToggle))
 	uint32 bOverride_HeightOverride : 1;
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Child Layout", meta=(InlineEditConditionToggle))
 	uint32 bOverride_MinDesiredWidth : 1;
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Child Layout", meta=(InlineEditConditionToggle))
 	uint32 bOverride_MinDesiredHeight : 1;
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Child Layout", meta=(InlineEditConditionToggle))
 	uint32 bOverride_MaxDesiredWidth : 1;
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Child Layout", meta=(InlineEditConditionToggle))
 	uint32 bOverride_MaxDesiredHeight : 1;
 
 

@@ -17,6 +17,7 @@ class FViewportClient;
 
 class SWidget;
 class FCursorReply;
+class FWindowActivateEvent;
 
 enum class EFocusCause : uint8;
 
@@ -806,6 +807,9 @@ public:
 	virtual void LostFocus(FViewport* Viewport) {}
 	virtual void ReceivedFocus(FViewport* Viewport) {}
 	virtual bool IsFocused(FViewport* Viewport) { return true; }
+
+	virtual void Activated(FViewport* Viewport, const FWindowActivateEvent& InActivateEvent) {}
+	virtual void Deactivated(FViewport* Viewport, const FWindowActivateEvent& InActivateEvent) {}
 
 	virtual void CloseRequested(FViewport* Viewport) {}
 

@@ -37,7 +37,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexDestructibleAssetImport, Log, All);
 
 // Forward declarations and external processing functions
 struct ExistingSkelMeshData;
-extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh);
+extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh, bool bSaveMaterials);
 extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh);
 extern void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData);
 extern void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalMeshImportData& ImportData);
@@ -236,7 +236,7 @@ ExistingDestMeshData* SaveExistingDestMeshData(UDestructibleMesh* ExistingDestru
 		// Only save off SkelMeshData if it's been created
 		ExistingDestMeshDataPtr->SkelMeshData = NULL;
 		
-		ExistingDestMeshDataPtr->SkelMeshData = SaveExistingSkelMeshData(ExistingDestructibleMesh);
+		ExistingDestMeshDataPtr->SkelMeshData = SaveExistingSkelMeshData(ExistingDestructibleMesh, true);
 		
 		ExistingDestMeshDataPtr->BodySetup = ExistingDestructibleMesh->BodySetup;
 		ExistingDestMeshDataPtr->FractureEffects = ExistingDestructibleMesh->FractureEffects;

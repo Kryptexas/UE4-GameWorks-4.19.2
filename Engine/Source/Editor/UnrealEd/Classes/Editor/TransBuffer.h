@@ -32,6 +32,9 @@ public:
 	/** Maximum number of bytes the transaction buffer is allowed to occupy */
 	SIZE_T MaxMemory;
 
+	/** Undo barrier stack */
+	TArray<int32> UndoBarrierStack;
+
 public:
 
 	// Constructor.
@@ -102,6 +105,9 @@ public:
 	virtual SIZE_T GetUndoSize() const override;
 	virtual int32 GetUndoCount( ) const override { return UndoCount; }
 	virtual FUndoSessionContext GetRedoContext() override;
+	virtual void SetUndoBarrier() override;
+	virtual void RemoveUndoBarrier() override;
+	virtual void ClearUndoBarriers() override;
 	virtual bool Undo() override;
 	virtual bool Redo() override;
 	virtual bool EnableObjectSerialization() override;

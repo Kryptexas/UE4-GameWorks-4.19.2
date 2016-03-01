@@ -39,6 +39,15 @@ void SProgressBar::SetPercent(TAttribute< TOptional<float> > InPercent)
 void SProgressBar::SetStyle(const FProgressBarStyle* InStyle)
 {
 	Style = InStyle;
+
+	if (Style == nullptr)
+	{
+		FArguments Defaults;
+		Style = Defaults._Style;
+	}
+
+	check(Style);
+
 	Invalidate(EInvalidateWidget::Layout);
 }
 

@@ -27,10 +27,10 @@ struct ENGINE_API FNavigationFilterArea
 	UPROPERTY(EditAnywhere, Category=Area)
 	uint32 bIsExcluded : 1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Area, meta=(InlineEditConditionToggle))
 	uint32 bOverrideTravelCost : 1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Area, meta=(InlineEditConditionToggle))
 	uint32 bOverrideEnteringCost : 1;
 
 	FNavigationFilterArea() : TravelCostOverride(1.0f) {}

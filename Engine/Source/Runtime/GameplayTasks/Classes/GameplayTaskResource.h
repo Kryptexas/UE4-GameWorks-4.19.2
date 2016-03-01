@@ -18,7 +18,7 @@ private:
 	int8 AutoResourceID;
 
 public:
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category = "Task Resource", meta=(InlineEditConditionToggle))
 	uint32 bManuallySetID : 1;
 
 public:

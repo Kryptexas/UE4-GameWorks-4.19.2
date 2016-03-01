@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "UniquePtr.h"
+
 #if WITH_FANCY_TEXT
 
 /**
@@ -113,6 +115,12 @@ public:
 		return FHyperlinkDecorator::Create( Id, FSlateHyperlinkRun::FOnClick::CreateSP( InUserObjectPtr, NavigateFunc ) );
 	}
 
+	/** Constructor */
+	SRichTextBlock();
+
+	/** Destructor */
+	~SRichTextBlock();
+
 	//~ Begin SWidget Interface
 	void Construct( const FArguments& InArgs );
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
@@ -174,7 +182,7 @@ private:
 	TAttribute< FText > BoundText;
 
 	/** The wrapped layout for this text block */
-	TSharedPtr< FTextBlockLayout > TextLayoutCache;
+	TUniquePtr< FTextBlockLayout > TextLayoutCache;
 
 	/** Default style used by the TextLayout */
 	FTextBlockStyle TextStyle;

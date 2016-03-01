@@ -50,7 +50,7 @@ private_subobject:
 	UPROPERTY(EditAnywhere, Category = Navigation, meta=(EditCondition="bActAsNavigationInvoker"))
 	UNavigationInvokerComponent* InvokerComponent;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Navigation, meta=(InlineEditConditionToggle))
 	uint32 bActAsNavigationInvoker : 1;
 
 public:

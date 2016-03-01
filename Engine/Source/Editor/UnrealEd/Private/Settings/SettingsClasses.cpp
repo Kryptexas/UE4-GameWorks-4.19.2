@@ -116,7 +116,7 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 	, AutoReimportThreshold(3.f)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
-	, bDetectChangesOnRestart(true)
+	, bDetectChangesOnStartup(false)
 	, bDeleteSourceFilesWithAssets(false)
 {
 	TextDiffToolPath.FilePath = TEXT("P4Merge.exe");
@@ -177,7 +177,7 @@ void UEditorLoadingSavingSettings::CheckSourceControlCompatability()
 		return;
 	}
 
-	if (ISourceControlModule::Get().IsEnabled() && bDetectChangesOnRestart)
+	if (ISourceControlModule::Get().IsEnabled() && bDetectChangesOnStartup)
 	{
 		// Persistent shared payload captured by the lambdas below
 		struct FPersistentPayload { TSharedPtr<SNotificationItem> Notification; };
@@ -187,7 +187,7 @@ void UEditorLoadingSavingSettings::CheckSourceControlCompatability()
 
  		auto OnTurnOffClicked = [=]{
 			auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
-			Settings->bDetectChangesOnRestart = false;
+			Settings->bDetectChangesOnStartup = false;
 			Settings->SaveConfig();
 
 			Payload->Notification->SetEnabled(false);

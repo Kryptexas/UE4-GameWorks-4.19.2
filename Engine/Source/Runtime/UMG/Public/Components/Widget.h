@@ -170,7 +170,7 @@ public:
 	FGetSlateVisibility VisibilityDelegate;
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Behavior", meta=(InlineEditConditionToggle))
 	uint32 bOverride_Cursor : 1;
 
 	/** The cursor to show when the mouse is over the widget */

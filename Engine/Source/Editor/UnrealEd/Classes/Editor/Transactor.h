@@ -534,11 +534,28 @@ class UTransactor : public UObject
 	virtual FUndoSessionContext GetRedoContext () PURE_VIRTUAL(UTransactor::GetRedoDesc,return FUndoSessionContext(););
 
 	/**
+	 * Sets an undo barrier at the current point in the transaction buffer.
+	 * Undoing beyond this point will not be allowed until the barrier is removed.
+	 */
+	virtual void SetUndoBarrier() PURE_VIRTUAL(UTransactor::SetUndoBarrier, );
+
+	/**
+	 * Removes the last set undo barrier from the transaction buffer.
+	 */
+	virtual void RemoveUndoBarrier() PURE_VIRTUAL(UTransactor::RemoveUndoBarrier, );
+
+	/**
+	 * Clears all undo barriers.
+	 */
+	virtual void ClearUndoBarriers() PURE_VIRTUAL(UTransactor::ClearUndoBarriers, );
+
+	/**
 	 * Executes an undo transaction, undoing all actions contained by that transaction.
 	 * 
 	 * @return				true if the transaction was successfully undone
 	 */
 	virtual bool Undo() PURE_VIRTUAL(UTransactor::Undo,return false;);
+
 	/**
 	 * Executes an redo transaction, redoing all actions contained by that transaction.
 	 * 

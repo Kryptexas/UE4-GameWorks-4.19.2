@@ -82,7 +82,12 @@ public:
 	 */
 	ENodeType GetNodeType() const;
 	/**
-	 * @return The component template or instance represented by this node, if it's a component node.
+	 * @param	bEvenIfPendingKill	If false, nullptr will be returned if the cached component template is pending kill.
+	 *								If true, it will be returned regardless (this is used for recaching the component template if the objects
+	 *								have been reinstanced following construction script execution).
+	 *
+	 * @note	Deliberately non-virtual, for performance reasons.
+	 * @return	The component template or instance represented by this node, if it's a component node.
 	 */
 	UActorComponent* GetComponentTemplate(bool bEvenIfPendingKill = false) const;
 	/**
@@ -379,7 +384,6 @@ protected:
 private:
 	FName InstancedComponentName;
 	TWeakObjectPtr<AActor> InstancedComponentOwnerPtr;
-	TWeakObjectPtr<UActorComponent> ComponentTemplate;
 };
 
 //////////////////////////////////////////////////////////////////////////

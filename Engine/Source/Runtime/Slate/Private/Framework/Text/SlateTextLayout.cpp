@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
-
-#if WITH_FANCY_TEXT
-
 #include "SlateTextLayout.h"
+#include "SlateTextRun.h"
+#include "SlatePasswordRun.h"
 
 TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaultTextStyle)
 {
@@ -17,6 +16,7 @@ TSharedRef< FSlateTextLayout > FSlateTextLayout::Create(FTextBlockStyle InDefaul
 FSlateTextLayout::FSlateTextLayout(FTextBlockStyle InDefaultTextStyle)
 	: Children()
 	, DefaultTextStyle(MoveTemp(InDefaultTextStyle))
+	, bIsPassword(false)
 	, LocalizedFallbackFontRevision(INDEX_NONE)
 {
 
@@ -163,6 +163,11 @@ const FTextBlockStyle& FSlateTextLayout::GetDefaultTextStyle() const
 	return DefaultTextStyle;
 }
 
+void FSlateTextLayout::SetIsPassword(const TAttribute<bool>& InIsPassword)
+{
+	bIsPassword = InIsPassword;
+}
+
 void FSlateTextLayout::AggregateChildren()
 {
 	Children.Empty();
@@ -187,7 +192,9 @@ void FSlateTextLayout::AggregateChildren()
 
 TSharedRef<IRun> FSlateTextLayout::CreateDefaultTextRun(const TSharedRef<FString>& NewText, const FTextRange& NewRange) const
 {
+	if (bIsPassword.Get(false))
+	{
+		return FSlatePasswordRun::Create(FRunInfo(), NewText, DefaultTextStyle, NewRange);
+	}
 	return FSlateTextRun::Create(FRunInfo(), NewText, DefaultTextStyle, NewRange);
 }
-
-#endif //WITH_FANCY_TEXT

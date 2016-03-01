@@ -16,7 +16,7 @@ class UMaterialExpressionTime : public UMaterialExpression
 	uint32 bIgnorePause:1;
 
 	/** Enables or disables the Period value. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionTime, meta=(InlineEditConditionToggle))
 	uint32 bOverride_Period:1;
 
 	/** Time will loop around once it gets to Period. */

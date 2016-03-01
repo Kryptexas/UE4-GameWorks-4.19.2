@@ -101,7 +101,7 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 		SplitterWidget->SetSplitterPercentages(SplitterPercentages);
 	}
 
-	InitCommonLayoutFromString(SpecificLayoutString);
+	InitCommonLayoutFromString(SpecificLayoutString, *BottomLeftKey);
 
 	return SplitterWidget.ToSharedRef();
 }

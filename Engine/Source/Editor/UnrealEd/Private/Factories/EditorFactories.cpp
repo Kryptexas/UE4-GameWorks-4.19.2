@@ -5607,6 +5607,8 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+	//Clean up the options
+	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
 	UFbxStaticMeshImportData* ImportData = Cast<UFbxStaticMeshImportData>(Mesh->AssetImportData);
 	
@@ -5817,6 +5819,8 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+	//Clean up the options
+	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
 	UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(SkeletalMesh->AssetImportData);
 	
@@ -5837,6 +5841,10 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	{
 		// Import data already exists, apply it to the fbx import options
 		ReimportUI->SkeletalMeshImportData = ImportData;
+		//Some options not supported with skeletal mesh
+		ReimportUI->SkeletalMeshImportData->bBakePivotInVertex = false;
+		ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
+
 		ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 	}
 	else
@@ -5964,7 +5972,21 @@ bool UReimportFbxAnimSequenceFactory::CanReimport( UObject* Obj, TArray<FString>
 	UAnimSequence* AnimSequence = Cast<UAnimSequence>(Obj);
 	if(AnimSequence)
 	{
-		AnimSequence->AssetImportData->ExtractFilenames(OutFilenames);
+		if (AnimSequence->AssetImportData)
+		{
+			AnimSequence->AssetImportData->ExtractFilenames(OutFilenames);
+
+			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(AnimSequence->AssetImportData);
+			if (FbxAssetImportData != nullptr && FbxAssetImportData->bImportAsScene)
+			{
+				//This mesh was import with a scene import, we cannot reimport it
+				return false;
+			}
+		}
+		else
+		{
+			OutFilenames.Add(TEXT(""));
+		}
 		return true;
 	}
 	return false;
@@ -6023,6 +6045,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	}
 
 	UnFbx::FFbxImporter* Importer = UnFbx::FFbxImporter::GetInstance();
+	UnFbx::FBXImportOptions::ResetOptions(Importer->ImportOptions);
 
 	CurrentFilename = Filename;
 

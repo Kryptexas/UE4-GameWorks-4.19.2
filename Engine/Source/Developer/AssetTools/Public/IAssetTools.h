@@ -174,4 +174,7 @@ public:
 
 	/** Fix up references to the specified redirectors */
 	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const = 0;
+
+	/** Expands any folders found in the files list, and returns a flattened list of destination paths and files.  Mirrors directory structure. */
+	virtual void ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const = 0;
 };

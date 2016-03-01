@@ -138,8 +138,10 @@ protected:
 	/** The widget used when in editing mode */ 
 	TSharedPtr< SEditableTextBox > TextBox;
 
+#if WITH_FANCY_TEXT
 	/** The widget used when in editing mode */ 
 	TSharedPtr< SMultiLineEditableTextBox > MultiLineTextBox;
+#endif //WITH_FANCY_TEXT
 
 	/** Delegate to execute when the text starts to be edited */
 	FOnBeginTextEdit OnBeginTextEditDelegate;

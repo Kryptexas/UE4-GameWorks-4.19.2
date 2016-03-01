@@ -1058,6 +1058,11 @@ public:
 
 	//~ Begin FSlateApplicationBase Interface
 
+	virtual bool IsActive() const override
+	{
+		return bAppIsActive;
+	}
+
 	virtual TSharedRef<SWindow> AddWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately = true ) override;
 
 	virtual void ArrangeWindowToFrontVirtual( TArray<TSharedRef<SWindow>>& Windows, const TSharedRef<SWindow>& WindowToBringToFront ) override
@@ -1123,6 +1128,7 @@ public:
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EFocusCause InCause ) override;
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
+	virtual void SetAllUserFocusAllowingDescendantFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
 public:
 
@@ -1199,6 +1205,15 @@ public:
 	 * @param bIsSynthetic		Whether or not the move event is synthetic.  Synthetic pointer moves used simulate an event without the pointer actually moving 
 	 */
 	bool RoutePointerMoveEvent( const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic );
+
+	/**
+	 * Directly routes a pointer mouse wheel or gesture event to the widgets in the specified widget path.
+	 * 
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param InWheelEvent			The event data that is is routed to the widget path
+	 * @param InGestureEvent		The event data that is is routed to the widget path
+	 */
+	FReply RouteMouseWheelOrGestureEvent(const FWidgetPath& WidgetsUnderPointer, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent = nullptr);
 
 private:
 

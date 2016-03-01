@@ -71,6 +71,8 @@ void UEditableText::SynchronizeProperties()
 	MyEditableText->SetIsPassword(IsPassword);
 	MyEditableText->SetAllowContextMenu(AllowContextMenu);
 	// TODO UMG Complete making all properties settable on SEditableText
+
+	ShapedTextOptions.SynchronizeShapedTextProperties(*MyEditableText);
 }
 
 FText UEditableText::GetText() const

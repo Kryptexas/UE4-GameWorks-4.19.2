@@ -51,13 +51,23 @@ UFbxSceneImportData *GetFbxSceneImportData(UObject *Obj)
 				SceneImportData = ImportData->bImportAsScene ? ImportData->FbxSceneImportDataReference : nullptr;
 			}
 		}
-		if (Obj->IsA(USkeletalMesh::StaticClass()))
+		else if (Obj->IsA(USkeletalMesh::StaticClass()))
 		{
 			//Reimport from one of the static mesh
 			USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Obj);
 			if (SkeletalMesh != nullptr && SkeletalMesh->AssetImportData != nullptr)
 			{
 				ImportData = Cast<UFbxAssetImportData>(SkeletalMesh->AssetImportData);
+				SceneImportData = ImportData->bImportAsScene ? ImportData->FbxSceneImportDataReference : nullptr;
+			}
+		}
+		else if (Obj->IsA(UAnimSequence::StaticClass()))
+		{
+			//Reimport from one of the static mesh
+			UAnimSequence* AnimSequence = Cast<UAnimSequence>(Obj);
+			if (AnimSequence != nullptr && AnimSequence->AssetImportData != nullptr)
+			{
+				ImportData = Cast<UFbxAssetImportData>(AnimSequence->AssetImportData);
 				SceneImportData = ImportData->bImportAsScene ? ImportData->FbxSceneImportDataReference : nullptr;
 			}
 		}
@@ -191,6 +201,12 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->bImportTextures = true;
 	//Make sure Material get imported
 	GlobalImportSettings->bImportMaterials = true;
+	//TODO support T0AsRefPose
+	GlobalImportSettings->bUseT0AsRefPose = false;
+
+	GlobalImportSettings->ImportTranslation = FVector(0);
+	GlobalImportSettings->ImportRotation = FRotator(0);
+	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
 
@@ -240,6 +256,9 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->bImportStaticMeshLODs = SceneImportOptions->bImportStaticMeshLODs;
 	GlobalImportSettings->bImportSkeletalMeshLODs = SceneImportOptions->bImportSkeletalMeshLODs;
 	SceneImportOptions->bInvertNormalMaps = GlobalImportSettings->bInvertNormalMap;
+	GlobalImportSettings->ImportTranslation = SceneImportOptions->ImportTranslation;
+	GlobalImportSettings->ImportRotation = SceneImportOptions->ImportRotation;
+	GlobalImportSettings->ImportUniformScale = SceneImportOptions->ImportUniformScale;
 
 	//Set the override material into the options
 	for (TSharedPtr<FFbxNodeInfo> NodeInfo : SceneInfoPtr->HierarchyInfo)
@@ -270,6 +289,27 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	}
 
 	SceneImportOptions->SaveConfig();
+
+	//Save the Default setting copy them in the UObject and save them
+	SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettings, StaticMeshImportData);
+	StaticMeshImportData->SaveConfig();
+
+	SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettings, SkeletalMeshImportData);
+	SkeletalMeshImportData->SaveConfig();
+
+	//Make sure default option set will not override fbx global setting by making copy of the real default options
+	ImportOptionsNameMap TmpNameOptionsMap;
+	for (auto kvp : NameOptionsMap)
+	{
+		UnFbx::FBXImportOptions *NewOptions = new UnFbx::FBXImportOptions();
+		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(kvp.Value, NewOptions);
+		TmpNameOptionsMap.Add(kvp.Key, NewOptions);
+	}
+	NameOptionsMap.Reset();
+	for (auto kvp : TmpNameOptionsMap)
+	{
+		NameOptionsMap.Add(kvp.Key, kvp.Value);
+	}
 	return true;
 }
 
@@ -280,6 +320,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	{
 		return EReimportResult::Failed;
 	}
+	NameOptionsMap.Reset();
 
 	//We will call other factory store the filename value since UFactory::CurrentFilename is static
 	FbxImportFileName = ReimportData->SourceFbxFile;
@@ -289,12 +330,14 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	GWarn->BeginSlowTask(NSLOCTEXT("FbxSceneReImportFactory", "BeginReImportingFbxSceneTask", "ReImporting FBX scene"), true);
 
 	GlobalImportSettings = FbxImporter->GetImportOptions();
+	UnFbx::FBXImportOptions::ResetOptions(GlobalImportSettings);
 
 	//Fill the original options
 	for (auto kvp : ReimportData->NameOptionsMap)
 	{
 		if (kvp.Key.Compare(DefaultOptionName) == 0)
 		{
+			//Save the default option to the fbx default import setting
 			SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(kvp.Value, GlobalImportSettings);
 			NameOptionsMap.Add(kvp.Key, GlobalImportSettings);
 		}
@@ -328,6 +371,13 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	//Make sure the Skeleton is null and not garbage, as we are importing the skeletalmesh for the first time we do not need any skeleton
 	GlobalImportSettings->SkeletonForAnimation = nullptr;
 	GlobalImportSettings->PhysicsAsset = nullptr;
+
+	SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettings, SceneImportOptionsStaticMesh);
+	SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettings, SceneImportOptionsSkeletalMesh);
+	SceneImportOptions->bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
+	SceneImportOptions->bTransformVertexToAbsolute = GlobalImportSettings->bTransformVertexToAbsolute;
+	SceneImportOptions->bImportStaticMeshLODs = GlobalImportSettings->bImportStaticMeshLODs;
+	SceneImportOptions->bImportSkeletalMeshLODs = GlobalImportSettings->bImportSkeletalMeshLODs;
 
 	FString PackageName = "";
 	Obj->GetOutermost()->GetName(PackageName);
@@ -494,7 +544,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	StaticMeshImportData->SaveConfig();
 
 	SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
-	SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData);
+	SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData, SceneImportOptions);
 	SkeletalMeshImportData->SaveConfig();
 
 	//Update the blueprint
@@ -588,10 +638,15 @@ UBlueprint *UReimportFbxSceneFactory::UpdateOriginalBluePrint(FString &BluePrint
 	//Find the BluePrint
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	FAssetData BlueprintAssetData = AssetRegistryModule.Get().GetAssetByObjectPath(FName(*(BluePrintFullName)));
-	UPackage* PkgExist = LoadPackage(nullptr, *BlueprintAssetData.PackageName.ToString(), LOAD_Verify | LOAD_NoWarn);
+
+	UPackage* PkgExist = FindPackage(nullptr, *BlueprintAssetData.PackageName.ToString());
 	if (PkgExist == nullptr)
 	{
-		return nullptr;
+		PkgExist = LoadPackage(nullptr, *BlueprintAssetData.PackageName.ToString(), LOAD_Verify | LOAD_NoWarn);
+		if (PkgExist == nullptr)
+		{
+			return nullptr;
+		}
 	}
 	//Load the package before searching the asset
 	PkgExist->FullyLoad();
@@ -712,28 +767,15 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportSkeletalMesh(void* VoidRoo
 	{
 		return EReimportResult::Failed;
 	}
-
-	//Copy default options to StaticMeshImportData
-	SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
-	SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData);
-
-	UnFbx::FBXImportOptions* OverrideImportSettings = GetOptionsFromName(MeshInfo->OptionName);
-	if (OverrideImportSettings != nullptr)
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(OverrideImportSettings, SceneImportOptionsSkeletalMesh);
-	}
-	else
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
-	}
-	SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData);
-	//Override the pivot bake option
-	if (GlobalImportSettings->bBakePivotInVertex && MeshInfo->PivotNodeUid == INVALID_UNIQUE_ID)
-	{
-		GlobalImportSettings->bBakePivotInVertex = false;
-	}
+	ApplyMeshInfoFbxOptions(MeshInfo);
+	
+	//TODO support bBakePivotInVertex
+	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
+	GlobalImportSettings->bBakePivotInVertex = false;
+	//if (GlobalImportSettings->bBakePivotInVertex && MeshInfo->PivotNodeUid == INVALID_UNIQUE_ID)
+	//{
+		//GlobalImportSettings->bBakePivotInVertex = false;
+	//}
 
 	TArray< TArray<FbxNode*>* > SkelMeshArray;
 	FbxImporter->FillFbxSkelMeshArrayInScene(RootNodeToImport, SkelMeshArray, false);
@@ -767,6 +809,8 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportSkeletalMesh(void* VoidRoo
 		
 		NewObject = ImportOneSkeletalMesh(VoidRootNodeToImport, VoidFbxImporter, SceneInfoPtr, RF_Public | RF_Standalone, VoidNodeArray, TotalNumNodes);
 	}
+
+	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
 
 	for (int32 i = 0; i < SkelMeshArray.Num(); i++)
 	{
@@ -858,29 +902,16 @@ EReimportResult::Type UReimportFbxSceneFactory::ReimportSkeletalMesh(void* VoidF
 		return EReimportResult::Failed;
 	}
 
-	//Copy default options to SkeletalMeshImportData
-	SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
-	SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData);
-
-	UnFbx::FBXImportOptions* OverrideImportSettings = GetOptionsFromName(MeshInfo->OptionName);
-	if (OverrideImportSettings != nullptr)
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(OverrideImportSettings, SceneImportOptionsSkeletalMesh);
-	}
-	else
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
-	}
-	SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData);
-
-	//Override the pivot bake option
-	if (GlobalImportSettings->bBakePivotInVertex && MeshInfo->PivotNodeUid == INVALID_UNIQUE_ID)
-	{
-		GlobalImportSettings->bBakePivotInVertex = false;
-	}
+	ApplyMeshInfoFbxOptions(MeshInfo);
+	//TODO support bBakePivotInVertex
+	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
+	GlobalImportSettings->bBakePivotInVertex = false;
+	//if (GlobalImportSettings->bBakePivotInVertex && MeshInfo->PivotNodeUid == INVALID_UNIQUE_ID)
+	//{
+		//GlobalImportSettings->bBakePivotInVertex = false;
+	//}
 	TArray<FbxNode*> OutSkeletalMeshArray;
+	EReimportResult::Type ReimportResult = EReimportResult::Succeeded;
 	if (FbxImporter->ReimportSkeletalMesh(Mesh, SkeletalMeshImportData, MeshInfo->UniqueId, &OutSkeletalMeshArray))
 	{
 		Mesh->AssetImportData->Update(FbxImportFileName);
@@ -903,37 +934,134 @@ EReimportResult::Type UReimportFbxSceneFactory::ReimportSkeletalMesh(void* VoidF
 		//3. Reimport matching animation
 		if (GlobalImportSettings->bImportAnimations)
 		{
-			/*
-			USkeleton* Skeleton = Mesh->Skeleton;//  AnimSequence->GetSkeleton();
-			if (Skeleton)
-			{
-				//For all anim sequence to reimport
-				{
-					if (UEditorEngine::ReimportFbxAnimation(Skeleton, AnimSequence, ImportData, *Filename))
-					{
-						// update the data in case the file source has changed
-						ImportData->Update(UFactory::CurrentFilename);
+			TArray<FbxNode*> FBXMeshNodeArray;
+			FbxNode* SkeletonRoot = FbxImporter->FindFBXMeshesByBone(Mesh->Skeleton->GetReferenceSkeleton().GetBoneName(0), true, FBXMeshNodeArray);
 
-						// Try to find the outer package so we can dirty it up
-						if (AnimSequence->GetOuter())
+			FString AnimName = FbxImporter->MakeNameForMesh(FBXMeshNodeArray[0]->GetName(), FBXMeshNodeArray[0]).ToString();
+			AnimName = (GlobalImportSettings->AnimationName != "") ? GlobalImportSettings->AnimationName : AnimName + TEXT("_Anim");
+
+			TArray<FbxNode*> SortedLinks;
+			FbxImporter->RecursiveBuildSkeleton(SkeletonRoot, SortedLinks);
+
+			if (SortedLinks.Num() != 0)
+			{
+				//Find the number of take
+				int32 ResampleRate = DEFAULT_SAMPLERATE;
+				if (GlobalImportSettings->bResample)
+				{
+					int32 MaxStackResampleRate = FbxImporter->GetMaxSampleRate(SortedLinks, FBXMeshNodeArray);
+					if (MaxStackResampleRate != 0)
+					{
+						ResampleRate = MaxStackResampleRate;
+					}
+				}
+				int32 ValidTakeCount = 0;
+				int32 AnimStackCount = FbxImporter->Scene->GetSrcObjectCount<FbxAnimStack>();
+				for (int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
+				{
+					FbxAnimStack* CurAnimStack = FbxImporter->Scene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
+
+					FbxTimeSpan AnimTimeSpan = FbxImporter->GetAnimationTimeSpan(SortedLinks[0], CurAnimStack);
+					bool bValidAnimStack = FbxImporter->ValidateAnimStack(SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, GlobalImportSettings->bImportMorph, AnimTimeSpan);
+					// no animation
+					if (!bValidAnimStack)
+					{
+						continue;
+					}
+					ValidTakeCount++;
+				}
+
+				if (ValidTakeCount > 0)
+				{
+					//Reimport all sequence (reimport existing and import new one)
+					AnimStackCount = FbxImporter->Scene->GetSrcObjectCount<FbxAnimStack>();
+					for (int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
+					{
+						FbxAnimStack* CurAnimStack = FbxImporter->Scene->GetSrcObject<FbxAnimStack>(AnimStackIndex);
+						FString SequenceName = AnimName;
+						if (ValidTakeCount > 1)
 						{
-							AnimSequence->GetOuter()->MarkPackageDirty();
+							SequenceName += "_";
+							SequenceName += UTF8_TO_TCHAR(CurAnimStack->GetName());
+						}
+
+						// See if this sequence already exists.
+						SequenceName = ObjectTools::SanitizeObjectName(SequenceName);
+						FString 	ParentPath = FString::Printf(TEXT("%s/%s"), *FPackageName::GetLongPackagePath(*Mesh->GetOutermost()->GetName()), *SequenceName);
+						//See if the sequence exist
+						UAnimSequence *DestSeq = nullptr;
+						UPackage *ParentPackage = LoadPackage(nullptr, *ParentPath, LOAD_Verify | LOAD_NoWarn);
+						if (ParentPackage != nullptr)
+						{
+							ParentPackage->FullyLoad();
+						}
+						UObject* Object = FindObjectSafe<UObject>(ANY_PACKAGE, *SequenceName);
+						if (Object != nullptr)
+						{
+							if (ParentPackage == nullptr)
+							{
+								ParentPackage = Object->GetOutermost();
+								ParentPackage->FullyLoad();
+							}
+							//Cast into sequence
+							DestSeq = Cast<UAnimSequence>(Object);
+						}
+						
+						//Get the sequence timespan
+						ResampleRate = DEFAULT_SAMPLERATE;
+						if (FbxImporter->ImportOptions->bResample)
+						{
+							ResampleRate = FbxImporter->GetMaxSampleRate(SortedLinks, FBXMeshNodeArray);
+						}
+						FbxTimeSpan AnimTimeSpan = FbxImporter->GetAnimationTimeSpan(SortedLinks[0], CurAnimStack);
+
+						if (DestSeq == nullptr)
+						{
+							//Import a new sequence
+							ParentPackage = CreatePackage(NULL, *ParentPath);
+							Object = LoadObject<UObject>(ParentPackage, *SequenceName, NULL, LOAD_None, NULL);
+							DestSeq = Cast<UAnimSequence>(Object);
+							if (Object && !DestSeq)
+							{
+								FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_AssetExist", "Asset with same name exists. Can't overwrite another asset")), FFbxErrors::Generic_SameNameAssetExists);
+								continue; // Move on to next sequence...
+							}
+							// If not, create new one now.
+							if (!DestSeq)
+							{
+								DestSeq = NewObject<UAnimSequence>(ParentPackage, *SequenceName, RF_Public | RF_Standalone);
+								// Notify the asset registry
+								FAssetRegistryModule::AssetCreated(DestSeq);
+							}
+							else
+							{
+								DestSeq->RecycleAnimSequence();
+							}
+							DestSeq->SetSkeleton(Mesh->Skeleton);
+							// since to know full path, reimport will need to do same
+							UFbxAnimSequenceImportData* ImportData = UFbxAnimSequenceImportData::GetImportDataForAnimSequence(DestSeq, AnimSequenceImportData);
+							ImportData->Update(UFactory::CurrentFilename);
+							FbxImporter->ImportAnimation(Mesh->Skeleton, DestSeq, CurrentFilename, SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
 						}
 						else
 						{
-							AnimSequence->MarkPackageDirty();
+							//Reimport in a existing sequence
+							if (FbxImporter->ValidateAnimStack(SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, true, AnimTimeSpan))
+							{
+								FbxImporter->ImportAnimation(Mesh->Skeleton, DestSeq, CurrentFilename, SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
+							}
 						}
 					}
 				}
 			}
-			*/
 		}
 	}
 	else
 	{
-		return EReimportResult::Failed;
+		ReimportResult = EReimportResult::Failed;
 	}
-	return EReimportResult::Succeeded;
+	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
+	return ReimportResult;
 }
 
 EReimportResult::Type UReimportFbxSceneFactory::ReimportStaticMesh(void* VoidFbxImporter, TSharedPtr<FFbxMeshInfo> MeshInfo)
@@ -950,28 +1078,14 @@ EReimportResult::Type UReimportFbxSceneFactory::ReimportStaticMesh(void* VoidFbx
 		FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(FText::FromString("Reimport Mesh {0} fail, the original staicmesh in the content browser cannot be load."), FText::FromString(MeshInfo->GetImportPath()))), FName(TEXT("Reimport Fbx Scene")));
 		return EReimportResult::Failed;
 	}
-	
-	//Copy default options to StaticMeshImportData
-	SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettingsReference, SceneImportOptionsStaticMesh);
-	SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
-
-	UnFbx::FBXImportOptions* OverrideImportSettings = GetOptionsFromName(MeshInfo->OptionName);
-	if (OverrideImportSettings != nullptr)
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(OverrideImportSettings, SceneImportOptionsStaticMesh);
-	}
-	else
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettingsReference, SceneImportOptionsStaticMesh);
-	}
-	SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
+	ApplyMeshInfoFbxOptions(MeshInfo);
 	//Override the pivot bake option
+	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
 	if (GlobalImportSettings->bBakePivotInVertex && MeshInfo->PivotNodeUid == INVALID_UNIQUE_ID)
 	{
 		GlobalImportSettings->bBakePivotInVertex = false;
 	}
+	EReimportResult::Type ReimportResult = EReimportResult::Succeeded;
 
 	FbxImporter->ApplyTransformSettingsToFbxNode(FbxImporter->Scene->GetRootNode(), StaticMeshImportData);
 	const TArray<UAssetUserData*>* UserData = Mesh->GetAssetUserDataArray();
@@ -1038,9 +1152,10 @@ EReimportResult::Type UReimportFbxSceneFactory::ReimportStaticMesh(void* VoidFbx
 	}
 	else
 	{
-		return EReimportResult::Failed;
+		ReimportResult = EReimportResult::Failed;
 	}
-	return EReimportResult::Succeeded;
+	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
+	return ReimportResult;
 }
 
 int32 UReimportFbxSceneFactory::GetPriority() const

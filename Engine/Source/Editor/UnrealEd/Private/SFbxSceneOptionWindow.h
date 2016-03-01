@@ -90,8 +90,6 @@ public:
 	ECheckBoxState IsReimportHierarchyChecked() const;
 	void OnToggleBakePivotInVertex(ECheckBoxState CheckType);
 	ECheckBoxState IsBakePivotInVertexChecked() const;
-	void OnToggleInvertNormalMap(ECheckBoxState CheckType);
-	ECheckBoxState IsInvertNormalMapChecked() const;
 
 	//Material UI
 	FText GetMaterialBasePath() const;
@@ -173,6 +171,7 @@ private:
 
 	//Scene Reimport tab variables
 	TSharedPtr<SFbxReimportSceneTreeView> SceneReimportTreeview;
+	TSharedPtr<IDetailsView> SceneReimportTabDetailsView;
 
 	//StaticMesh Reimport tab variables
 	TSharedPtr<SFbxSceneStaticMeshReimportListView> StaticMeshReimportListView;

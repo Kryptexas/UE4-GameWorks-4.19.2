@@ -186,7 +186,7 @@ public:
 	 *
 	 * @return  Text string
 	 */
-	const FText& GetText() const
+	FText GetText() const
 	{
 		return EditableText->GetText();
 	}
@@ -196,7 +196,7 @@ public:
 	 *
 	 * @return  Text string
 	 */
-	const FText GetPlainText() const
+	FText GetPlainText() const
 	{
 		return EditableText->GetPlainText();
 	}
@@ -275,6 +275,15 @@ public:
 	virtual bool HasKeyboardFocus() const override;
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
 
+	/** Query to see if any text is selected within the document */
+	bool AnyTextSelected() const;
+
+	/** Select all the text in the document */
+	void SelectAllText();
+
+	/** Clear the active text selection */
+	void ClearSelection();
+
 	/** Get the currently selected text */
 	FText GetSelectedText() const;
 
@@ -304,7 +313,7 @@ public:
 	TSharedPtr<const IRun> GetRunUnderCursor() const;
 
 	/** Get the runs currently that are current selected, some of which may be only partially selected */
-	const TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
+	TArray<TSharedRef<const IRun>> GetSelectedRuns() const;
 
 	/** Get the horizontal scroll bar widget */
 	TSharedPtr<const SScrollBar> GetHScrollBar() const;

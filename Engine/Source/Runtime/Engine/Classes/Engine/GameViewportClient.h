@@ -156,6 +156,8 @@ public:
 	virtual void LostFocus(FViewport* Viewport) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
 	virtual bool IsFocused(FViewport* Viewport) override;
+	virtual void Activated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent) override;
+	virtual void Deactivated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent) override;
 	virtual void CloseRequested(FViewport* Viewport) override;
 	virtual bool RequiresHitProxyStorage() override { return 0; }
 	virtual bool IsOrtho() const override;

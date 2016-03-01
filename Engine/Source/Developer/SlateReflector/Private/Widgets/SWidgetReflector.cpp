@@ -470,7 +470,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 					[
 						SNew(SSpinBox<float>)
 						.Value(this, &SWidgetReflector::HandleAppScaleSliderValue)
-						.MinValue(0.1f)
+						.MinValue(0.50f)
 						.MaxValue(3.0f)
 						.Delta(0.01f)
 						.OnValueChanged(this, &SWidgetReflector::HandleAppScaleSliderChanged)

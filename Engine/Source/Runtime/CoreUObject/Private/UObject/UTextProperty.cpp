@@ -53,6 +53,19 @@ void UTextProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 	{
 		ValueStr += GenerateCppCodeForTextValue(TextValue, FString());
 	}
+	else if (PortFlags & PPF_PropertyWindow)
+	{
+		if (PortFlags & PPF_Delimited)
+		{
+			ValueStr += TEXT("\"");
+			ValueStr += TextValue.ToString();
+			ValueStr += TEXT("\"");
+		}
+		else
+		{
+			ValueStr += TextValue.ToString();
+		}
+	}
 	else
 	{
 		FTextStringHelper::WriteToString(ValueStr, TextValue, !!(PortFlags & PPF_Delimited));

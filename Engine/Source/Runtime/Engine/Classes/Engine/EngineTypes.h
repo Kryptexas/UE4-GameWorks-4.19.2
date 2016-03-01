@@ -2450,7 +2450,7 @@ struct FMaterialSimplificationSettings
 	FIntPoint BaseColorMapSize;
 
 	// Whether to generate normal map
-	UPROPERTY()
+	UPROPERTY(Category=Material, EditAnywhere, meta=(InlineEditConditionToggle))
 	bool bNormalMap;
 	
 	// Size of generated specular map
@@ -2462,7 +2462,7 @@ struct FMaterialSimplificationSettings
 	float MetallicConstant;
 
 	// Whether to generate metallic map
-	UPROPERTY()
+	UPROPERTY(Category=Material, EditAnywhere, meta=(InlineEditConditionToggle))
 	bool bMetallicMap;
 
 	// Size of generated metallic map
@@ -2474,7 +2474,7 @@ struct FMaterialSimplificationSettings
 	float RoughnessConstant;
 
 	// Whether to generate roughness map
-	UPROPERTY()
+	UPROPERTY(Category=Material, EditAnywhere, meta=(InlineEditConditionToggle))
 	bool bRoughnessMap;
 
 	// Size of generated roughness map
@@ -2486,7 +2486,7 @@ struct FMaterialSimplificationSettings
 	float SpecularConstant;
 
 	// Whether to generate specular map
-	UPROPERTY()
+	UPROPERTY(Category=Material, EditAnywhere, meta=(InlineEditConditionToggle))
 	bool bSpecularMap;
 
 	// Size of generated specular map

@@ -321,6 +321,14 @@ void SCheckBox::SetStyle(const FCheckBoxStyle* InStyle)
 {
 	Style = InStyle;
 
+	if (Style == nullptr)
+	{
+		FArguments Defaults;
+		Style = Defaults._Style;
+	}
+
+	check(Style);
+
 	BuildCheckBox(ContentContainer->GetContent());
 }
 

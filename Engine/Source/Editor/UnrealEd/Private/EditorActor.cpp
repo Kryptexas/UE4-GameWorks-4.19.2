@@ -1286,7 +1286,8 @@ void UUnrealEdEngine::edactHideSelectedStartup( UWorld* InWorld )
 				FBspSurf& CurSurface = *SurfaceIterator;
 				
 				// Set the BSP surface to hide at editor startup, if it's not already set that way
-				if ( ( CurSurface.PolyFlags & PF_Selected ) && !CurSurface.IsHiddenEdAtStartup() && !CurSurface.IsHiddenEd() )
+				const bool bSelected = CurSurface.Actor->IsSelected() || (CurSurface.PolyFlags & PF_Selected);
+				if (bSelected && !CurSurface.IsHiddenEdAtStartup() && !CurSurface.IsHiddenEd())
 				{
 					CurLevelModel.Modify();
 					CurLevelModel.ModifySurf( SurfaceIterator.GetIndex(), false );
@@ -1376,7 +1377,8 @@ void UUnrealEdEngine::edactUnHideSelectedStartup( UWorld* InWorld )
 				FBspSurf& CurSurface = *SurfaceIterator;
 
 				// Mark the selected BSP surface as showing at editor startup if it was currently set to be hidden
-				if ( ( CurSurface.PolyFlags & PF_Selected ) && CurSurface.IsHiddenEdAtStartup() )
+				const bool bSelected = CurSurface.Actor->IsSelected() || (CurSurface.PolyFlags & PF_Selected);
+				if (bSelected && CurSurface.IsHiddenEdAtStartup())
 				{
 					CurLevelModel.Modify();
 					CurLevelModel.ModifySurf( SurfaceIterator.GetIndex(), false );

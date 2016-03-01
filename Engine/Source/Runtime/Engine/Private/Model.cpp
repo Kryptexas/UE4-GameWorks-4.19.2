@@ -24,7 +24,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogModel, Log, All);
  */
 bool FBspSurf::IsHiddenEd() const
 {
-	return bHiddenEdTemporary || bHiddenEdLevel;
+	return bHiddenEdTemporary || bHiddenEdLevel || bHiddenEdLayer;
 }
 
 /**
@@ -60,6 +60,7 @@ FArchive& operator<<( FArchive& Ar, FBspSurf& Surf )
 	{
 		Ar << Surf.bHiddenEdTemporary;
 		Ar << Surf.bHiddenEdLevel;
+		Ar << Surf.bHiddenEdLayer;
 	}
 
 	return Ar;
@@ -352,6 +353,11 @@ void UModel::PostLoad()
 			FBspSurf& CurSurf = *SurfIter;
 			CurSurf.bHiddenEdTemporary = ( ( CurSurf.PolyFlags & PF_HiddenEd ) != 0 );
 			CurSurf.bHiddenEdLevel = 0;
+#if WITH_EDITOR
+			CurSurf.bHiddenEdLayer = CurSurf.Actor ? CurSurf.Actor->bHiddenEdLayer : 0;
+#else
+			CurSurf.bHiddenEdLayer = 0;
+#endif
 		}
 
 #if WITH_EDITOR

@@ -265,8 +265,10 @@ void FEditorPromotionTestUtilities::TakeScreenshot(const FString& ScreenshotName
 
 			TArray<FColor> OutImageData;
 			FIntVector OutImageSize;
-			FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize);
-			FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, ScreenshotFileName);
+			if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
+			{
+				FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, ScreenshotFileName);
+			}
 		}
 		else
 		{

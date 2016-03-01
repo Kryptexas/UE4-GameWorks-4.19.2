@@ -440,6 +440,12 @@ private:
 	/** Paints the marquee for selection */
 	void PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
+	/** Gets the delta value for the input value numeric entry box. */
+	float GetInputNumericEntryBoxDelta() const;
+
+	/** Gets the delta value for the output value numeric entry box. */
+	float GetOutputNumericEntryBoxDelta() const;
+
 protected:
 	//~ Begin SWidget Interface
 	UNREALED_API virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;

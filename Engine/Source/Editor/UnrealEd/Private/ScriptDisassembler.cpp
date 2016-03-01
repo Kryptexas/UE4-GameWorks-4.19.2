@@ -146,6 +146,26 @@ CodeSkipSizeType FKismetBytecodeDisassembler::ReadSkipCount(int32& ScriptIndex)
 #endif
 }
 
+FString FKismetBytecodeDisassembler::ReadString(int32& ScriptIndex)
+{
+	const EExprToken Opcode = (EExprToken)Script[ScriptIndex++];
+
+	switch (Opcode)
+	{
+	case EX_StringConst:
+		return ReadString8(ScriptIndex);
+
+	case EX_UnicodeStringConst:
+		return ReadString16(ScriptIndex);
+
+	default:
+		checkf(false, TEXT("FKismetBytecodeDisassembler::ReadString - Unexpected opcode. Expected %d or %d, got %d"), EX_StringConst, EX_UnicodeStringConst, Opcode);
+		break;
+	}
+
+	return FString();
+}
+
 FString FKismetBytecodeDisassembler::ReadString8(int32& ScriptIndex)
 {
 	FString Result;
@@ -593,7 +613,44 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 		}
 	case EX_TextConst:
 		{
-			Ar.Logf(TEXT("%s $%X: literal text"), *Indents, (int32)Opcode);
+			// What kind of text are we dealing with?
+			const EBlueprintTextLiteralType TextLiteralType = (EBlueprintTextLiteralType)Script[ScriptIndex++];
+
+			switch (TextLiteralType)
+			{
+			case EBlueprintTextLiteralType::Empty:
+				{
+					Ar.Logf(TEXT("%s $%X: literal text - empty"), *Indents, (int32)Opcode);
+				}
+				break;
+
+			case EBlueprintTextLiteralType::LocalizedText:
+				{
+					const FString SourceString = ReadString(ScriptIndex);
+					const FString KeyString = ReadString(ScriptIndex);
+					const FString Namespace = ReadString(ScriptIndex);
+					Ar.Logf(TEXT("%s $%X: literal text - localized text { namespace: \"%s\", key: \"%s\", source: \"%s\" }"), *Indents, (int32)Opcode, *Namespace, *KeyString, *SourceString);
+				}
+				break;
+
+			case EBlueprintTextLiteralType::InvariantText:
+				{
+					const FString SourceString = ReadString(ScriptIndex);
+					Ar.Logf(TEXT("%s $%X: literal text - invariant text: \"%s\""), *Indents, (int32)Opcode, *SourceString);
+				}
+				break;
+
+			case EBlueprintTextLiteralType::LiteralString:
+				{
+					const FString SourceString = ReadString(ScriptIndex);
+					Ar.Logf(TEXT("%s $%X: literal text - literal string: \"%s\""), *Indents, (int32)Opcode, *SourceString);
+				}
+				break;
+
+			default:
+				checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update FKismetBytecodeDisassembler::ProcessCommon to handle this type of text."));
+				break;
+			}
 			break;
 		}
 	case EX_ObjectConst:

@@ -11,6 +11,15 @@
 #include "RichTextLayoutMarshaller.h"
 #include "ReflectionMetadata.h"
 
+SRichTextBlock::SRichTextBlock()
+{
+}
+
+SRichTextBlock::~SRichTextBlock()
+{
+	// Needed to avoid "deletion of pointer to incomplete type 'FTextBlockLayout'; no destructor called" error when using TUniquePtr
+}
+
 void SRichTextBlock::Construct( const FArguments& InArgs )
 {
 	BoundText = InArgs._Text;
@@ -41,7 +50,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 			Marshaller->AppendInlineDecorator(Decorator);
 		}
 
-		TextLayoutCache = FTextBlockLayout::Create(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller.ToSharedRef(), nullptr);
+		TextLayoutCache = MakeUnique<FTextBlockLayout>(TextStyle, InArgs._TextShapingMethod, InArgs._TextFlowDirection, Marshaller.ToSharedRef(), nullptr);
 		TextLayoutCache->SetDebugSourceInfo(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateLambda([this]{ return FReflectionMetaData::GetWidgetDebugInfo(this); })));
 	}
 }

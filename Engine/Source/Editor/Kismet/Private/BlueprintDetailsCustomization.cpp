@@ -1117,9 +1117,12 @@ FText FBlueprintVarActionDetails::OnGetTooltipText() const
 	FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
-		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), TEXT("tooltip"), Result);
-		return FText::FromString(Result);
+		if ( UBlueprint* OwnerBlueprint = GetPropertyOwnerBlueprint() )
+		{
+			FString Result;
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), TEXT("tooltip"), Result);
+			return FText::FromString(Result);
+		}
 	}
 	return FText();
 }
@@ -1334,17 +1337,21 @@ FText FBlueprintVarActionDetails::OnGetCategoryText() const
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-		FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()));
+		if ( UBlueprint* OwnerBlueprint = GetPropertyOwnerBlueprint() )
+		{
+			FText Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(OwnerBlueprint, VarName, GetLocalVariableScope(CachedVariableProperty.Get()));
 
-		// Older blueprints will have their name as the default category and whenever it is the same as the default category, display localized text
-		if( Category.EqualTo(FText::FromString(GetPropertyOwnerBlueprint()->GetName())) || Category.EqualTo(K2Schema->VR_DefaultCategory) )
-		{
-			return K2Schema->VR_DefaultCategory;
+			// Older blueprints will have their name as the default category and whenever it is the same as the default category, display localized text
+			if ( Category.EqualTo(FText::FromString(OwnerBlueprint->GetName())) || Category.EqualTo(K2Schema->VR_DefaultCategory) )
+			{
+				return K2Schema->VR_DefaultCategory;
+			}
+			else
+			{
+				return Category;
+			}
 		}
-		else
-		{
-			return Category;
-		}
+
 		return FText::FromName(VarName);
 	}
 	return FText();
@@ -1659,10 +1666,13 @@ FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const
 	FName VarName = CachedVariableName;
 	if (VarName != NAME_None)
 	{
-		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), Key, /*out*/ Result);
+		if ( UBlueprint* Blueprint = GetPropertyOwnerBlueprint() )
+		{
+			FString Result;
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetPropertyOwnerBlueprint(), VarName, GetLocalVariableScope(CachedVariableProperty.Get()), Key, /*out*/ Result);
 
-		return FText::FromString(Result);
+			return FText::FromString(Result);
+		}
 	}
 	return FText();
 }

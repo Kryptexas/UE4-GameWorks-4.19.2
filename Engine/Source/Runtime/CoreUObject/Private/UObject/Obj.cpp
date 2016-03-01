@@ -322,6 +322,21 @@ void UObject::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyCh
 {
 	FPropertyChangedEvent PropertyEvent(PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue(), PropertyChangedEvent.ChangeType);
 
+	// Set up array index per object map so that GetArrayIndex returns a valid result
+	TArray<TMap<FString, int32>> ArrayIndexForProperty;
+	if (PropertyChangedEvent.Property)
+	{
+		const FString PropertyName = PropertyChangedEvent.Property->GetName();
+		const int32 ArrayIndex = PropertyChangedEvent.GetArrayIndex(PropertyName);
+		if (ArrayIndex != INDEX_NONE)
+		{
+			PropertyEvent.ObjectIteratorIndex = 0;
+			ArrayIndexForProperty.AddDefaulted();
+			ArrayIndexForProperty.Last().Add(PropertyName, ArrayIndex);
+			PropertyEvent.SetArrayIndexPerObject(ArrayIndexForProperty);
+		}
+	}
+
 	if( PropertyChangedEvent.PropertyChain.GetActiveMemberNode() )
 	{
 		PropertyEvent.SetActiveMemberProperty( PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue() );

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "TextWidgetTypes.h"
 #include "MultiLineEditableTextBox.generated.h"
 
 /**
@@ -33,11 +34,11 @@ public:
 public:
 
 	/** The style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Appearance", meta=(DisplayName="Style", ShowOnlyInnerProperties))
 	FEditableTextBoxStyle WidgetStyle;
 
 	/** The text style */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Text Style" ))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Appearance", meta=(DisplayName="Text Style"))
 	FTextBlockStyle TextStyle;
 
 	/** Whether the context menu can be opened */

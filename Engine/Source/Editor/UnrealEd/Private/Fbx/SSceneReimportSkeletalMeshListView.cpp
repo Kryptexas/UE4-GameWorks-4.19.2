@@ -266,7 +266,9 @@ private:
 
 	FText GetAssetPivotNodeName() const
 	{
-		return GlobalImportSettings->bBakePivotInVertex ? FText::FromString(FbxMeshInfo->PivotNodeName) : FText::FromString(TEXT("-"));
+		//TODO support bBakePivotInVertex
+		//return GlobalImportSettings->bBakePivotInVertex ? FText::FromString(FbxMeshInfo->PivotNodeName) : FText::FromString(TEXT("-"));
+		return FText::FromString(TEXT("-"));
 	}
 
 	/** The node info to build the tree view row from. */
@@ -549,7 +551,8 @@ TSharedPtr<SWidget> SFbxSceneSkeletalMeshReimportListView::OnOpenContextMenu()
 	}
 	MenuBuilder.EndSection();
 	
-	AddBakePivotMenu(MenuBuilder);
+	//TODO support bBakePivotInVertex 
+	//AddBakePivotMenu(MenuBuilder);
 
 	bool bShowOptionMenu = false;
 	for (FbxMeshInfoPtr MeshInfo : SelectedItems)

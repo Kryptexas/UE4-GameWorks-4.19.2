@@ -38,6 +38,7 @@ public:
 	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const override;
 	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const override;
 	virtual FAssetPostRenameEvent& OnAssetPostRename() override { return AssetRenameManager->OnAssetPostRenameEvent(); }
+	virtual void ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const override;
 
 public:
 	/** Gets the asset tools singleton as a FAssetTools for asset tools module use */
@@ -46,11 +47,7 @@ public:
 	/** Syncs the primary content browser to the specified assets, whether or not it is locked. Most syncs that come from AssetTools -feel- like they came from the content browser, so this is okay. */
 	void SyncBrowserToAssets(const TArray<UObject*>& AssetsToSync);
 	void SyncBrowserToAssets(const TArray<FAssetData>& AssetsToSync);
-
 private:
-	/** Expands any folders found in the files list, and returns a flattened list of destination paths and files.  Mirrors directory structure. */
-	void ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const;
-
 	/** Checks to see if a package is marked for delete then ask the user if he would like to check in the deleted file before he can continue. Returns true when it is safe to proceed. */
 	bool CheckForDeletedPackage(const UPackage* Package) const;
 

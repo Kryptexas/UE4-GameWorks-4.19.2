@@ -33,7 +33,7 @@ DirectoryWatcher::FFileCacheConfig GenerateFileCacheConfig(const FString& InPath
 	// We always store paths inside content folders relative to the folder
 	Config.PathType = DirectoryWatcher::EPathType::Relative;
 
-	Config.bDetectChangesSinceLastRun = GetDefault<UEditorLoadingSavingSettings>()->bDetectChangesOnRestart;
+	Config.bDetectChangesSinceLastRun = GetDefault<UEditorLoadingSavingSettings>()->bDetectChangesOnStartup;
 
 	// We only detect changes for when the file *contents* have changed (not its timestamp)
 	Config

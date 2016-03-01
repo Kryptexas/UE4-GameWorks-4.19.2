@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IBreakIterator.h"
+#include "UniquePtr.h"
 
 class FTextBlockLayout;
 
@@ -108,11 +109,10 @@ public:
 	SLATE_END_ARGS()
 
 	/** Constructor */
-	STextBlock()
-	{
-		bCanTick = false;
-		bCanSupportFocus = false;
-	}
+	STextBlock();
+
+	/** Destructor */
+	~STextBlock();
 
 	/**
 	 * Construct this widget
@@ -231,12 +231,8 @@ private:
 	/** The text displayed in this text block */
 	TAttribute< FText > BoundText;
 
-#if WITH_FANCY_TEXT
-
 	/** The wrapped layout for this text block */
-	TSharedPtr< FTextBlockLayout > TextLayoutCache;
-
-#endif//WITH_FANCY_TEXT
+	TUniquePtr< FTextBlockLayout > TextLayoutCache;
 
 	/** Default style used by the TextLayout */
 	const FTextBlockStyle* TextStyle;

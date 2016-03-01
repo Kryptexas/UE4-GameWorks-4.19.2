@@ -32,9 +32,10 @@ namespace AutomationCommon
 
 		TArray<FColor> OutImageData;
 		FIntVector OutImageSize;
-		FSlateApplication::Get().TakeScreenshot(WindowRef,OutImageData,OutImageSize);
-
-		FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, FileName);
+		if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
+		{
+			FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, FileName);
+		}
 	}
 }
 

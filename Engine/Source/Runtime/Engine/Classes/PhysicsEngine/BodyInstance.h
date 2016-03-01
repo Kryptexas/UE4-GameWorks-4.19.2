@@ -197,7 +197,7 @@ public:
 	uint32 bSimulatePhysics : 1;
 
 	/** If true, mass will not be automatically computed and you must set it directly */
-	UPROPERTY(meta = (DisplayName = "Override"))
+	UPROPERTY(EditAnywhere, Category = Physics, meta = (InlineEditConditionToggle))
 	uint32 bOverrideMass : 1;
 
 	/** If object should have the force of gravity applied */
@@ -256,7 +256,7 @@ public:
 	uint32 bLockZRotation : 1;
 
 	/** Override the default max angular velocity */
-	UPROPERTY(meta = (editcondition = "bSimulatePhysics"))
+	UPROPERTY(EditAnywhere, Category = Physics, meta = (editcondition = "bSimulatePhysics", InlineEditConditionToggle))
 	uint32 bOverrideMaxAngularVelocity : 1;
 
 	/** When initializing dynamic instances their component or velocity can override the bStartAwake flag */
@@ -271,11 +271,11 @@ protected:
 	uint32 bUseAsyncScene:1;
 
 	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Physics, meta=(InlineEditConditionToggle))
 	uint32 bOverrideMaxDepenetrationVelocity : 1;
 
 	/** Whether this instance of the object has its own custom walkable slope override setting. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Physics, meta = (InlineEditConditionToggle))
 	uint32 bOverrideWalkableSlopeOnInstance : 1;
 
 	uint32 bHasSharedShapes : 1;

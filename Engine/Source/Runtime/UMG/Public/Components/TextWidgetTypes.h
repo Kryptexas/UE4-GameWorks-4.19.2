@@ -24,11 +24,11 @@ struct UMG_API FShapedTextOptions
 	}
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Localization, meta=(InlineEditConditionToggle))
 	uint32 bOverride_TextShapingMethod : 1;
 
 	/**  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Localization, meta=(InlineEditConditionToggle))
 	uint32 bOverride_TextFlowDirection : 1;
 
 	/** Which text shaping method should the text within this widget use? (unset to use the default returned by GetDefaultTextShapingMethod) */

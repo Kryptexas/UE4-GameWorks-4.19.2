@@ -2307,13 +2307,54 @@ IMPLEMENT_VM_FUNCTION( EX_UnicodeStringConst, execUnicodeStringConst );
 
 void UObject::execTextConst( FFrame& Stack, RESULT_DECL )
 {
-	FString SourceString;
-	FString KeyString;
-	FString Namespace;
-	Stack.Step( Stack.Object, &SourceString);
-	Stack.Step( Stack.Object, &KeyString);
-	Stack.Step( Stack.Object, &Namespace);
-	*(FText*)RESULT_PARAM = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *Namespace, *KeyString);
+	// What kind of text are we dealing with?
+	const EBlueprintTextLiteralType TextLiteralType = (EBlueprintTextLiteralType)*Stack.Code++;
+
+	switch (TextLiteralType)
+	{
+	case EBlueprintTextLiteralType::Empty:
+		{
+			*(FText*)RESULT_PARAM = FText::GetEmpty();
+		}
+		break;
+
+	case EBlueprintTextLiteralType::LocalizedText:
+		{
+			FString SourceString;
+			Stack.Step(Stack.Object, &SourceString);
+
+			FString KeyString;
+			Stack.Step(Stack.Object, &KeyString);
+			
+			FString Namespace;
+			Stack.Step(Stack.Object, &Namespace);
+
+			*(FText*)RESULT_PARAM = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *Namespace, *KeyString);
+		}
+		break;
+
+	case EBlueprintTextLiteralType::InvariantText:
+		{
+			FString SourceString;
+			Stack.Step(Stack.Object, &SourceString);
+
+			*(FText*)RESULT_PARAM = FText::AsCultureInvariant(MoveTemp(SourceString));
+		}
+		break;
+
+	case EBlueprintTextLiteralType::LiteralString:
+		{
+			FString SourceString;
+			Stack.Step(Stack.Object, &SourceString);
+
+			*(FText*)RESULT_PARAM = FText::FromString(MoveTemp(SourceString));
+		}
+		break;
+
+	default:
+		checkf(false, TEXT("Unknown EBlueprintTextLiteralType! Please update UObject::execTextConst to handle this type of text."));
+		break;
+	}
 }
 IMPLEMENT_VM_FUNCTION( EX_TextConst, execTextConst );
 

@@ -85,6 +85,7 @@ namespace FbxMeshUtils
 
 		// don't import materials
 		UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+		UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 		UFbxStaticMeshImportData* ImportData = Cast<UFbxStaticMeshImportData>(BaseStaticMesh->AssetImportData);
 		ImportOptions->bImportMaterials = false;
 		ImportOptions->bImportTextures = false;
@@ -190,6 +191,7 @@ namespace FbxMeshUtils
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			// don't import material and animation
 			UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+			UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 			ImportOptions->bImportMaterials = false;
 			ImportOptions->bImportTextures = false;
 			ImportOptions->bImportAnimations = false;

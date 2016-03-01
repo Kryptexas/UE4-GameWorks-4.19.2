@@ -6,6 +6,8 @@ UFbxSkeletalMeshImportData::UFbxSkeletalMeshImportData(const FObjectInitializer&
 	: Super(ObjectInitializer)
 	, bImportMeshesInBoneHierarchy(true)
 {
+	bTransformVertexToAbsolute = true;
+	bBakePivotInVertex = false;
 }
 
 UFbxSkeletalMeshImportData* UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(USkeletalMesh* SkeletalMesh, UFbxSkeletalMeshImportData* TemplateForCreation)

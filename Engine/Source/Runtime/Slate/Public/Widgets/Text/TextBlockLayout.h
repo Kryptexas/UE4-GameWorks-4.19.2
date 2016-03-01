@@ -6,10 +6,8 @@ class FSlateTextLayout;
 class ITextLayoutMarshaller;
 class ISlateRunRenderer;
 
-#if WITH_FANCY_TEXT
-
 /** Class to handle the cached layout of STextBlock/SRichTextBlock by proxying around a FTextLayout */
-class FTextBlockLayout
+class SLATE_API FTextBlockLayout
 {
 public:
 	struct FWidgetArgs
@@ -42,7 +40,10 @@ public:
 		const TAttribute<ETextJustify::Type>& Justification;
 	};
 
-	static TSharedRef<FTextBlockLayout> Create(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	/**
+	 * Constructor
+	 */
+	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/**
 	 * Get the computed desired size for this layout, updating the internal cache as required
@@ -72,7 +73,7 @@ public:
 	void SetTextShapingMethod(const TOptional<ETextShapingMethod>& InTextShapingMethod);
 
 	/**
-	 * See the text flow direction that the internal text layout should use
+	 * Set the text flow direction that the internal text layout should use
 	 */
 	void SetTextFlowDirection(const TOptional<ETextFlowDirection>& InTextFlowDirection);
 
@@ -107,8 +108,6 @@ private:
 	/** Calculate the wrapping width based on the given fixed wrap width, and whether we're auto-wrapping */
 	float CalculateWrappingWidth(const FWidgetArgs& InWidgetArgs) const;
 
-	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, const TOptional<ETextShapingMethod> InTextShapingMethod, const TOptional<ETextFlowDirection> InTextFlowDirection, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
-
 	/** In control of the layout and wrapping of the text */
 	TSharedPtr<FSlateTextLayout> TextLayout;
 
@@ -127,5 +126,3 @@ private:
 	/** The state of the highlight text the last time it was updated (used to allow updates when the text is changed) */
 	FTextSnapshot HighlightTextLastUpdate;
 };
-
-#endif //WITH_FANCY_TEXT

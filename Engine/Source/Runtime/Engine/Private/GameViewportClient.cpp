@@ -591,43 +591,13 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 
 EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y)
 {
-	//bool bIsPlayingMovie = false;//GetMoviePlayer()->IsMovieCurrentlyPlaying();
-
-#if !PLATFORM_WINDOWS
-	bool bIsWithinTitleBar = false;
-#else
-	POINT CursorPos = { X, Y };
-	RECT WindowRect;
-
-	bool bIsWithinWindow = true;
-
-	// For Slate based windows the viewport doesnt have access to the OS window handle and shouln't need it
-	bool bIsWithinTitleBar = false;
-	if( InViewport->GetWindow() )
-	{
-		ClientToScreen( (HWND)InViewport->GetWindow(), &CursorPos );
-		GetWindowRect( (HWND)InViewport->GetWindow(), &WindowRect );
-		bIsWithinWindow = ( CursorPos.x >= WindowRect.left && CursorPos.x <= WindowRect.right &&
-			CursorPos.y >= WindowRect.top && CursorPos.y <= WindowRect.bottom );
-
-		// The user is mousing over the title bar if Y is less than zero and within the window rect
-		bIsWithinTitleBar = Y < 0 && bIsWithinWindow;
-	}
-
-#endif
-
-	if ((!InViewport->HasMouseCapture() && !InViewport->HasFocus()) || (ViewportConsole && ViewportConsole->ConsoleActive()))
+	if (!InViewport->HasMouseCapture() || (ViewportConsole && ViewportConsole->ConsoleActive()))
 	{
 		return EMouseCursor::Default;
 	}
-	else if ( /*(!bIsPlayingMovie) && */(InViewport->IsFullscreen() || !bIsWithinTitleBar) ) //bIsPlayingMovie has always false value
+	else if (GameInstance && GameInstance->GetFirstLocalPlayerController())
 	{
-		if (GameInstance && GameInstance->GetFirstLocalPlayerController())
-		{
-			return GameInstance->GetFirstLocalPlayerController()->GetMouseCursor();
-		}
-
-		return EMouseCursor::None;
+		return GameInstance->GetFirstLocalPlayerController()->GetMouseCursor();
 	}
 
 	return FViewportClient::GetCursor(InViewport, X, Y);
@@ -1273,11 +1243,6 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 			bScreenshotSuccessful = FSlateApplication::Get().TakeScreenshot( WindowRef, Bitmap, Size);
 			GScreenshotResolutionX = Size.X;
 			GScreenshotResolutionY = Size.Y;
-
-			if (Size.X == 0 || Size.Y == 0)
-			{
-				bScreenshotSuccessful = false;
-			}
 		}
 		else
 		{
@@ -1409,6 +1374,16 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 bool UGameViewportClient::IsFocused(FViewport* InViewport)
 {
 	return InViewport->HasFocus() || InViewport->HasMouseCapture();
+}
+
+void UGameViewportClient::Activated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent)
+{
+	ReceivedFocus(InViewport);
+}
+
+void UGameViewportClient::Deactivated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent)
+{
+	LostFocus(InViewport);
 }
 
 void UGameViewportClient::CloseRequested(FViewport* InViewport)

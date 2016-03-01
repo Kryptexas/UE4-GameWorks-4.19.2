@@ -120,6 +120,15 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		// @todo: we can make this slow as showing progress bar later
 		FSlateApplication::Get().AddModalWindow(Window, ParentWindow, false);
 
+		if (ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh || ImportUI->MeshTypeToImport == FBXIT_Animation)
+		{
+			//Set some hardcoded options for skeletal mesh
+			ImportUI->SkeletalMeshImportData->bBakePivotInVertex = false;
+			ImportOptions->bBakePivotInVertex = false;
+			ImportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
+			ImportOptions->bTransformVertexToAbsolute = true;
+		}
+
 		ImportUI->SaveConfig();
 
 		if( ImportUI->StaticMeshImportData )
@@ -161,6 +170,8 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 	{
 		//Automation tests set ImportUI settings directly.  Just copy them over
 		UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
+		//Clean up the options
+		UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 		ApplyImportUIToImportOptions(ImportUI, *ImportOptions);
 		return ImportOptions;
 	}
@@ -192,6 +203,9 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 		InOutImportOptions.ImportTranslation		= StaticMeshData->ImportTranslation;
 		InOutImportOptions.ImportRotation			= StaticMeshData->ImportRotation;
 		InOutImportOptions.ImportUniformScale		= StaticMeshData->ImportUniformScale;
+		InOutImportOptions.bTransformVertexToAbsolute = StaticMeshData->bTransformVertexToAbsolute;
+		InOutImportOptions.bBakePivotInVertex		= StaticMeshData->bBakePivotInVertex;
+		InOutImportOptions.bImportStaticMeshLODs	= StaticMeshData->bImportMeshLODs;
 	}
 	else if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 	{
@@ -201,6 +215,9 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 		InOutImportOptions.ImportTranslation			= SkeletalMeshData->ImportTranslation;
 		InOutImportOptions.ImportRotation				= SkeletalMeshData->ImportRotation;
 		InOutImportOptions.ImportUniformScale			= SkeletalMeshData->ImportUniformScale;
+		InOutImportOptions.bTransformVertexToAbsolute	= SkeletalMeshData->bTransformVertexToAbsolute;
+		InOutImportOptions.bBakePivotInVertex			= SkeletalMeshData->bBakePivotInVertex;
+		InOutImportOptions.bImportSkeletalMeshLODs		= SkeletalMeshData->bImportMeshLODs;
 
 		if(ImportUI->bImportAnimations)
 		{
@@ -228,8 +245,6 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bPreserveSmoothingGroups = ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 	InOutImportOptions.bKeepOverlappingVertices = ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
 	InOutImportOptions.bCombineToSingle = ImportUI->bCombineMeshes;
-	InOutImportOptions.bTransformVertexToAbsolute = ImportUI->StaticMeshImportData->bTransformVertexToAbsolute;
-	InOutImportOptions.bBakePivotInVertex = ImportUI->StaticMeshImportData->bBakePivotInVertex;
 	InOutImportOptions.VertexColorImportOption = ImportUI->StaticMeshImportData->VertexColorImportOption;
 	InOutImportOptions.VertexOverrideColor = ImportUI->StaticMeshImportData->VertexOverrideColor;
 	InOutImportOptions.bRemoveDegenerates = ImportUI->StaticMeshImportData->bRemoveDegenerates;
@@ -1105,6 +1120,18 @@ FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)
 	return OutputName;
 }
 
+FbxAMatrix FFbxImporter::ComputeSkeletalMeshTotalMatrix(FbxNode* Node, FbxNode *RootSkeletalNode)
+{
+	if (ImportOptions->bImportScene && !ImportOptions->bTransformVertexToAbsolute && RootSkeletalNode != nullptr && RootSkeletalNode != Node)
+	{
+		FbxAMatrix GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(Node);
+		FbxAMatrix GlobalSkeletalMeshRootTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(RootSkeletalNode);
+		FbxAMatrix TotalMatrix = GlobalSkeletalMeshRootTransform.Inverse() * GlobalTransform;
+		return TotalMatrix;
+	}
+	return ComputeTotalMatrix(Node);
+}
+
 FbxAMatrix FFbxImporter::ComputeTotalMatrix(FbxNode* Node)
 {
 	FbxAMatrix Geometry;
@@ -1601,6 +1628,24 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 						TempArray->Add(NodeToAdd);
 						outSkelMeshArray.Add(TempArray);
 						SkeletonArray.Add(Link);
+						
+						if (ImportOptions->bImportScene && !ImportOptions->bTransformVertexToAbsolute)
+						{
+							FbxVector4 NodeScaling = NodeToAdd->EvaluateLocalScaling();
+							FbxVector4 NoScale(1.0, 1.0, 1.0);
+							if (NodeScaling != NoScale)
+							{
+								//Scene import cannot import correctly a skeletal mesh with a root node containing scale
+								//Warn the user is skeletal mesh can be wrong
+								AddTokenizedErrorMessage(
+									FTokenizedMessage::Create(
+										EMessageSeverity::Warning,
+										FText::Format(LOCTEXT("FBX_ImportSceneSkeletalMeshRootNodeScaling", "Importing skeletal mesh {0} that dont have a mesh node with no scale is not supported when doing an import scene."), FText::FromString(UTF8_TO_TCHAR(NodeToAdd->GetName())))
+										),
+									FFbxErrors::SkeletalMesh_InvalidRoot
+									);
+							}
+						}
 					}
 
 					bFoundCorrectLink = true;
@@ -1624,9 +1669,32 @@ void FFbxImporter::RecursiveFindFbxSkelMesh(FbxNode* Node, TArray< TArray<FbxNod
 	else
 	{
 		int32 ChildIndex;
-		for (ChildIndex=0; ChildIndex<Node->GetChildCount(); ++ChildIndex)
+		TArray<FbxNode*> ChildNoScale;
+		TArray<FbxNode*> ChildScale;
+		//Sort the node to have the one with no scaling first so we have more chance
+		//to have a root skeletal mesh with no scale. Because scene import do not support
+		//root skeletal mesh containing scale
+		for (ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
 		{
-			RecursiveFindFbxSkelMesh(Node->GetChild(ChildIndex), outSkelMeshArray, SkeletonArray, ExpandLOD);
+			FbxNode *ChildNode = Node->GetChild(ChildIndex);
+			FbxVector4 ChildScaling = ChildNode->EvaluateLocalScaling();
+			FbxVector4 NoScale(1.0, 1.0, 1.0);
+			if (ChildScaling == NoScale)
+			{
+				ChildNoScale.Add(ChildNode);
+			}
+			else
+			{
+				ChildScale.Add(ChildNode);
+			}
+		}
+		for (FbxNode *ChildNode : ChildNoScale)
+		{
+			RecursiveFindFbxSkelMesh(ChildNode, outSkelMeshArray, SkeletonArray, ExpandLOD);
+		}
+		for (FbxNode *ChildNode : ChildScale)
+		{
+			RecursiveFindFbxSkelMesh(ChildNode, outSkelMeshArray, SkeletonArray, ExpandLOD);
 		}
 	}
 }

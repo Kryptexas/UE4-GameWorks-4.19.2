@@ -236,7 +236,7 @@ protected:
 	}
 
 	/** Called in MakeViewportLayout() functions for derived types of layout to init values common to all types */
-	void InitCommonLayoutFromString( const FString& SpecificLayoutString );
+	void InitCommonLayoutFromString( const FString& SpecificLayoutString, FName DefaultMaximizedViewport );
 
 	/** Called in SaveLayoutString() functions for derived types of layout to save values common to all types */
 	void SaveCommonLayoutString( const FString& SpecificLayoutString ) const;

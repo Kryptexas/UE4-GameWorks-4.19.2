@@ -23,7 +23,7 @@ public:
 	float LoSHearingRange;
 
 	/** Warning: has significant runtime cost */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category = "Sense", meta = (InlineEditConditionToggle))
 	uint32 bUseLoSHearing : 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense", config)

@@ -40,6 +40,11 @@ void UObjectLibrary::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 				if(Objects[i] != NULL)
 				{
 					UClass* BlueprintClass = Cast<UClass>(Objects[i]);
+					if (!BlueprintClass)
+					{
+						UBlueprintCore* Blueprint = Cast<UBlueprintCore>(Objects[i]);
+						BlueprintClass = Blueprint ? Blueprint->GeneratedClass : nullptr;
+					}
 
 					if (!BlueprintClass)
 					{

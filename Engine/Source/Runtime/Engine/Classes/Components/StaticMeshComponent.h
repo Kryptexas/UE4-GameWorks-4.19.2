@@ -160,7 +160,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	void OnRep_StaticMesh(class UStaticMesh *OldStaticMesh);
 
 	/** If true, WireframeColorOverride will be used. If false, color is determined based on mobility and physics simulation settings */
-	UPROPERTY(BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering, meta=(InlineEditConditionToggle))
 	bool bOverrideWireframeColor;
 
 	/** Wireframe color to use if bOverrideWireframeColor is true */
@@ -206,7 +206,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	uint32 bIgnoreInstanceForTextureStreaming:1;
 
 	/** Whether to override the lightmap resolution defined in the static mesh. */
-	UPROPERTY(BlueprintReadOnly, Category=Lighting)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(InlineEditConditionToggle))
 	uint32 bOverrideLightMapRes:1;
 
 	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true */

@@ -228,9 +228,10 @@ void SFbxSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InParent, T
 	}
 	else
 	{
-		for (auto Child : InParent->Childrens)
+		for (TSharedPtr<FFbxNodeInfo> Child : InParent->Childrens)
 		{
-			if (Child.IsValid())
+			//We hide skeletal mesh from the tree, a mesh without a valid attributeinfo is a sub skeletal mesh
+			if (Child.IsValid() && (Child->AttributeType.Compare(TEXT("eMesh")) != 0 || Child->AttributeInfo.IsValid()))
 			{
 				OutChildren.Add(Child);
 			}

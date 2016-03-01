@@ -131,6 +131,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 			{
 				TextureFact->LODGroup = TEXTUREGROUP_WorldNormalMap;
 				TextureFact->CompressionSettings = TC_Normalmap;
+				TextureFact->bFlipNormalMapGreenChannel = ImportOptions->bInvertNormalMap;
 			}
 			else
 			{
@@ -303,6 +304,10 @@ bool UnFbx::FFbxImporter::CreateAndLinkExpressionForMaterialProperty(
 						// add/find UVSet and set it to the texture
 						FbxString UVSetName = FbxTexture->UVSet.Get();
 						FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName.Buffer());
+						if (LocalUVSetName.IsEmpty())
+						{
+							LocalUVSetName = TEXT("UVmap_0");
+						}
 						int32 SetIndex = UVSet.Find(LocalUVSetName);
 						if( (SetIndex != 0 && SetIndex != INDEX_NONE) || ScaleU != 1.0f || ScaleV != 1.0f )
 						{

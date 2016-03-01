@@ -50,6 +50,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	, InstanceHandle( HInstance )
 	, bUsingHighPrecisionMouseInput( false )
 	, bIsMouseAttached( false )
+	, bForceActivateByMouse( false )
 	, XInput( XInputInterface::Create( MessageHandler ) )
 	, bHasLoadedInputPlugins( false )
 	, bAllowedToDeferMessageProcessing(true)
@@ -920,6 +921,13 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 #endif
 
 			// Window focus and activation
+		case WM_MOUSEACTIVATE:
+			{
+				DeferMessage(CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam);
+			}
+			break;
+
+			// Window focus and activation
 		case WM_ACTIVATE:
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
@@ -1487,13 +1495,24 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			break;
 
 			// Window focus and activation
+		case WM_MOUSEACTIVATE:
+			{
+				// If the mouse activate isn't in the client area we'll force the WM_ACTIVATE to be EWindowActivation::ActivateByMouse
+				// This ensures that clicking menu buttons on the header doesn't generate a WM_ACTIVATE with EWindowActivation::Activate
+				// which may cause mouse capture to be taken because is not differentiable from Alt-Tabbing back to the application.
+				bForceActivateByMouse = !(LOWORD(lParam) & HTCLIENT);
+				return 0;
+			}
+			break;
+
+			// Window focus and activation
 		case WM_ACTIVATE:
 			{
 				EWindowActivation::Type ActivationType;
 
 				if (LOWORD(wParam) & WA_ACTIVE)
 				{
-					ActivationType = EWindowActivation::Activate;
+					ActivationType = bForceActivateByMouse ? EWindowActivation::ActivateByMouse : EWindowActivation::Activate;
 				}
 				else if (LOWORD(wParam) & WA_CLICKACTIVE)
 				{
@@ -1503,6 +1522,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				{
 					ActivationType = EWindowActivation::Deactivate;
 				}
+				bForceActivateByMouse = false;
 
 				if ( CurrentNativeEventWindowPtr.IsValid() )
 				{

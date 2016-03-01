@@ -1258,7 +1258,7 @@ struct FEQSParametrizedQueryExecutionRequest
 	UPROPERTY(Category = Node, EditAnywhere)
 	TEnumAsByte<EEnvQueryRunMode::Type> RunMode;
 
-	UPROPERTY()
+	UPROPERTY(Category = Node, EditAnywhere, meta=(InlineEditConditionToggle))
 	uint32 bUseBBKeyForQueryTemplate : 1;
 
 	uint32 bInitialized : 1;

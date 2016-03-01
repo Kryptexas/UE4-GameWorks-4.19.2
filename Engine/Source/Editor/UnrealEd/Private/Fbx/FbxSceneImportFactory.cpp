@@ -84,6 +84,12 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->bImportTextures = true;
 	//Make sure Material get imported
 	GlobalImportSettings->bImportMaterials = true;
+	//TODO support T0AsRefPose
+	GlobalImportSettings->bUseT0AsRefPose = false;
+
+	GlobalImportSettings->ImportTranslation = FVector(0);
+	GlobalImportSettings->ImportRotation = FRotator(0);
+	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
 
@@ -130,6 +136,9 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->bImportStaticMeshLODs = SceneImportOptions->bImportStaticMeshLODs;
 	GlobalImportSettings->bImportSkeletalMeshLODs = SceneImportOptions->bImportSkeletalMeshLODs;
 	GlobalImportSettings->bInvertNormalMap = SceneImportOptions->bInvertNormalMaps;
+	GlobalImportSettings->ImportTranslation = SceneImportOptions->ImportTranslation;
+	GlobalImportSettings->ImportRotation = SceneImportOptions->ImportRotation;
+	GlobalImportSettings->ImportUniformScale = SceneImportOptions->ImportUniformScale;
 
 	//Set the override material into the options
 	for (TSharedPtr<FFbxNodeInfo> NodeInfo : SceneInfoPtr->HierarchyInfo)
@@ -166,7 +175,8 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettings, StaticMeshImportData);
 	StaticMeshImportData->SaveConfig();
 
-	//TODO save all other options
+	SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettings, SkeletalMeshImportData);
+	SkeletalMeshImportData->SaveConfig();
 
 	return true;
 }
@@ -695,31 +705,13 @@ void UFbxSceneImportFactory::FillSceneHierarchyPath(TSharedPtr<FFbxSceneInfo> Sc
 
 UFbxSceneImportData* CreateReImportAsset(const FString &PackagePath, const FString &FbxImportFileName, UFbxSceneImportOptions* SceneImportOptions, TSharedPtr<FFbxSceneInfo> SceneInfo, ImportOptionsNameMap &NameOptionsMap)
 {
-	//Create a package
+	//Create or use existing package
+	//The data must have the name of the import file to support drag drop reimport
 	FString FilenameBase = FPaths::GetBaseFilename(FbxImportFileName);
-	FString FbxReImportPkgName = PackagePath + TEXT("/FbxScene_") + FilenameBase;
+	FString FbxReImportPkgName = PackagePath + TEXT("/") + FilenameBase;
 	FbxReImportPkgName = PackageTools::SanitizePackageName(FbxReImportPkgName);
-	FString AssetName = TEXT("FbxScene_") + FilenameBase;
+	FString AssetName = FilenameBase;
 	AssetName = PackageTools::SanitizePackageName(AssetName);
-	UPackage* PkgExist = nullptr;
-	if (!FEditorFileUtils::IsMapPackageAsset(FbxReImportPkgName))
-	{
-		PkgExist = FindPackage(nullptr, *FbxReImportPkgName);
-	}
-	int32 tryCount = 1;
-	while (PkgExist != nullptr)
-	{
-		FbxReImportPkgName = PackagePath + TEXT("/");
-		AssetName = TEXT("FbxScene_") + FilenameBase;
-		AssetName += TEXT("_");
-		AssetName += FString::FromInt(tryCount++);
-		FbxReImportPkgName += AssetName;
-		FbxReImportPkgName = PackageTools::SanitizePackageName(FbxReImportPkgName);
-		if (!FEditorFileUtils::IsMapPackageAsset(FbxReImportPkgName))
-		{
-			PkgExist = FindPackage(nullptr, *FbxReImportPkgName);
-		}
-	}
 	UPackage* Pkg = CreatePackage(nullptr, *FbxReImportPkgName);
 	if (!ensure(Pkg))
 	{
@@ -812,9 +804,13 @@ FFeedbackContext*	Warn
 	Warn->BeginSlowTask(NSLOCTEXT("FbxSceneFactory", "BeginImportingFbxSceneTask", "Importing FBX scene"), true);
 	
 	GlobalImportSettings = FbxImporter->GetImportOptions();
+	UnFbx::FBXImportOptions::ResetOptions(GlobalImportSettings);
 	
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
+
+	//Set the import option in importscene mode
+	GlobalImportSettings->bImportScene = true;
 
 	//Read the fbx and store the hierarchy's information so we can reuse it after importing all the model in the fbx file
 	if (!FbxImporter->ImportFromFile(*FbxImportFileName, Type, true))
@@ -907,13 +903,14 @@ FFeedbackContext*	Warn
 	SkeletalMeshImportData->bImportAsScene = true;
 	SkeletalMeshImportData->FbxSceneImportDataReference = ReimportData;
 
+	AnimSequenceImportData->bImportAsScene = true;
+	AnimSequenceImportData->FbxSceneImportDataReference = ReimportData;
+
 	//Get the scene root node
 	FbxNode* RootNodeToImport = nullptr;
 	RootNodeToImport = FbxImporter->Scene->GetRootNode();
-	
-	//Apply the options scene transform to the root node
-	ApplySceneTransformOptionsToRootNode(SceneInfoPtr);
 
+	
 	// For animation and static mesh we assume there is at lease one interesting node by default
 	int32 InterestingNodeCount = 1;
 
@@ -922,13 +919,13 @@ FFeedbackContext*	Warn
 	int32 NodeIndex = 0;
 
 	//////////////////////////////////////////////////////////////////////////
-	// IMPORT ALL STATIC MESH
-	ImportAllStaticMesh(RootNodeToImport, FbxImporter, Flags, NodeIndex, InterestingNodeCount, SceneInfoPtr);
+	//IMPORT ALL SKELETAL MESH
+	ImportAllSkeletalMesh(RootNodeToImport, FbxImporter, Flags, NodeIndex, InterestingNodeCount, SceneInfoPtr);
 	//////////////////////////////////////////////////////////////////////////
 
 	//////////////////////////////////////////////////////////////////////////
-	//IMPORT ALL SKELETAL MESH
-	ImportAllSkeletalMesh(RootNodeToImport, FbxImporter, Flags, NodeIndex, InterestingNodeCount, SceneInfoPtr);
+	// IMPORT ALL STATIC MESH
+	ImportAllStaticMesh(RootNodeToImport, FbxImporter, Flags, NodeIndex, InterestingNodeCount, SceneInfoPtr);
 	//////////////////////////////////////////////////////////////////////////
 
 	UObject *ReturnObject = nullptr;
@@ -967,10 +964,12 @@ FFeedbackContext*	Warn
 			if (SceneImportOptions->HierarchyType == EFBXSceneOptionsCreateHierarchyType::FBXSOCHT_CreateBlueprint && HierarchyActor != nullptr)
 			{
 				//The location+name of the BP is the user select content path + fbx base filename
-				FString FullnameBP = Path + TEXT("/") + FPaths::GetBaseFilename(UFactory::CurrentFilename);
+				FString FullnameBP = Path + TEXT("/FbxScene_") + FPaths::GetBaseFilename(UFactory::CurrentFilename);
 				FullnameBP = PackageTools::SanitizePackageName(FullnameBP);
+				FString AssetName = TEXT("FbxScene_") + FPaths::GetBaseFilename(UFactory::CurrentFilename);
+				UPackage *Pkg = CreatePackageForNode(FullnameBP, AssetName);
 				//Create the blueprint from the actor and replace the actor with a blueprintactor that point on the blueprint
-				UBlueprint* SceneBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(FullnameBP, HierarchyActor, true);
+				UBlueprint* SceneBlueprint = FKismetEditorUtilities::CreateBlueprintFromActor(Pkg->GetName(), HierarchyActor, true);
 				if (SceneBlueprint != nullptr && ReimportData != nullptr)
 				{
 					//let the scene blueprint be the return object for this import
@@ -1005,22 +1004,6 @@ FFeedbackContext*	Warn
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, World);
 
 	return ReturnObject;
-}
-
-void UFbxSceneImportFactory::ApplySceneTransformOptionsToRootNode(TSharedPtr<FFbxSceneInfo> SceneInfoPtr)
-{
-	for (TSharedPtr<FFbxNodeInfo> NodeInfo : SceneInfoPtr->HierarchyInfo)
-	{
-		if (NodeInfo->NodeName.Compare("RootNode") == 0)
-		{
-			FTransform SceneTransformAddition(SceneImportOptions->ImportRotation, SceneImportOptions->ImportTranslation, FVector(SceneImportOptions->ImportUniformScale));
-			FTransform OutTransform = FTransform::Identity;
-			//We apply the scene pre transform before the existing root node transform and store the result in the rootnode transform
-			FTransform::Multiply(&OutTransform, &NodeInfo->Transform, &SceneTransformAddition);
-			NodeInfo->Transform = OutTransform;
-			return;
-		}
-	}
 }
 
 bool UFbxSceneImportFactory::SetStaticMeshComponentOverrideMaterial(UStaticMeshComponent* StaticMeshComponent, TSharedPtr<FFbxNodeInfo> NodeInfo)
@@ -1109,6 +1092,52 @@ USceneComponent *CreateLightComponent(AActor *ParentActor, TSharedPtr<FFbxLightI
 	return LightComponent;
 }
 
+FVector GetParentPivotAccumulation(TSharedPtr<FFbxNodeInfo> NodeInfo, TSharedPtr<FFbxSceneInfo> SceneInfoPtr, FTransform &RootTransform)
+{
+	TArray<TSharedPtr<FFbxNodeInfo>> ParentHierarchy;
+	FVector PivotAccumulation(0.0f);
+	TSharedPtr<FFbxNodeInfo> ParentNodeInfo = NodeInfo->ParentNodeInfo;
+	while (ParentNodeInfo.IsValid())
+	{
+		ParentHierarchy.Insert(ParentNodeInfo, 0);
+		ParentNodeInfo = ParentNodeInfo->ParentNodeInfo;
+	}
+	FTransform CurrentGlobalMatrix;
+	for (TSharedPtr<FFbxNodeInfo> ParentNode : ParentHierarchy)
+	{
+		FTransform LocalTransformAdjusted = ParentNode->Transform;
+		FVector PivotLocation(0.0f);
+		if (ParentNode->AttributeInfo.IsValid())
+		{
+			for (TSharedPtr<FFbxNodeInfo> NodeInfoIter : SceneInfoPtr->HierarchyInfo)
+			{
+				if (NodeInfoIter->UniqueId == ParentNode->AttributeInfo->PivotNodeUid)
+				{
+					PivotLocation = NodeInfoIter->PivotRotation;
+					break;
+				}
+			}
+		}
+		FTransform LocalTransform = ParentNode->Transform;
+		if (!PivotLocation.IsNearlyZero())
+		{
+			FTransform ParentPivotTransform;
+			ParentPivotTransform.SetLocation(PivotLocation);
+			FTransform AlmostNextCurrentTransform = LocalTransform *CurrentGlobalMatrix;
+			//Get the final matrix with pivot
+			LocalTransform = ParentPivotTransform * LocalTransform;
+			CurrentGlobalMatrix = LocalTransform * CurrentGlobalMatrix;
+			ParentPivotTransform = CurrentGlobalMatrix * AlmostNextCurrentTransform.Inverse();
+			PivotAccumulation = ParentPivotTransform.GetLocation();
+		}
+		else
+		{
+			CurrentGlobalMatrix = LocalTransform * CurrentGlobalMatrix;
+		}
+	}
+	return PivotAccumulation;
+}
+
 void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo> SceneInfoPtr)
 {
 	EComponentMobility::Type MobilityType = SceneImportOptions->bImportAsDynamic ? EComponentMobility::Movable : EComponentMobility::Static;
@@ -1140,6 +1169,7 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 		//Find the asset that link with this node attribute
 		UObject *AssetToPlace = (NodeInfo->AttributeInfo.IsValid() && AllNewAssets.Contains(NodeInfo->AttributeInfo)) ? AllNewAssets[NodeInfo->AttributeInfo] : nullptr;
 		
+		bool IsSkeletalMesh = false;
 		//create actor
 		AActor *PlacedActor = nullptr;
 		if (AssetToPlace != nullptr)
@@ -1154,9 +1184,26 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 				UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(PlacedActor->GetComponentByClass(UStaticMeshComponent::StaticClass()));
 				SetStaticMeshComponentOverrideMaterial(StaticMeshComponent, NodeInfo);
 			}
+			IsSkeletalMesh = (AssetToPlace->GetClass() == USkeletalMesh::StaticClass());
 		}
 		else if (IsEmptyAttribute(NodeInfo->AttributeType) || NodeInfo->AttributeType.Compare("eMesh") == 0 || NodeInfo->AttributeUniqueId != INVALID_UNIQUE_ID)
 		{
+			if (NodeInfo->AttributeType.Compare("eMesh") == 0)
+			{
+				bool bIsSubSkeletalMesh = true;
+				for (TSharedPtr<FFbxMeshInfo> MeshInfo : SceneInfoPtr->MeshInfo)
+				{
+					if (!MeshInfo->bIsSkelMesh && NodeInfo->AttributeUniqueId == MeshInfo->UniqueId)
+					{
+						bIsSubSkeletalMesh = false;
+						break;
+					}
+				}
+				if (bIsSubSkeletalMesh == true)
+				{
+					continue;
+				}
+			}
 			//Create an empty actor if the node is an empty attribute or the attribute is a mesh(static mesh or skeletal mesh) that was not export
 			UActorFactory* Factory = GEditor->FindActorFactoryByClass(UActorFactoryEmptyActor::StaticClass());
 			FAssetData EmptyActorAssetData = FAssetData(Factory->GetDefaultActorClass(FAssetData()));
@@ -1233,20 +1280,25 @@ void UFbxSceneImportFactory::CreateLevelActorHierarchy(TSharedPtr<FFbxSceneInfo>
 				}
 				//Find the pivot location
 				FVector PivotLocation(0.0f);
-				if (GlobalImportSettings->bBakePivotInVertex && NodeInfo->AttributeInfo.IsValid() && NodeInfo->AttributeInfo->PivotNodeUid != INVALID_UNIQUE_ID)
+				FVector ParentPivotAccumulation(0.0f);
+				if (!IsSkeletalMesh && GlobalImportSettings->bBakePivotInVertex)
 				{
-					for (TSharedPtr<FFbxNodeInfo> NodeInfoIter : SceneInfoPtr->HierarchyInfo)
+					ParentPivotAccumulation -= GetParentPivotAccumulation(NodeInfo, SceneInfoPtr, RootTransform);
+					if (NodeInfo->AttributeInfo.IsValid() && NodeInfo->AttributeInfo->PivotNodeUid != INVALID_UNIQUE_ID)
 					{
-						if (NodeInfoIter->UniqueId == NodeInfo->AttributeInfo->PivotNodeUid)
+						for (TSharedPtr<FFbxNodeInfo> NodeInfoIter : SceneInfoPtr->HierarchyInfo)
 						{
-							PivotLocation = NodeInfoIter->PivotRotation;
-							break;
+							if (NodeInfoIter->UniqueId == NodeInfo->AttributeInfo->PivotNodeUid)
+							{
+								PivotLocation = NodeInfoIter->PivotRotation;
+								break;
+							}
 						}
 					}
 				}
 
 				//Apply the hierarchy local transform to the root component
-				ApplyTransformToComponent(RootComponent, &(NodeInfo->Transform), ParentActor == nullptr ? &RootTransform : nullptr, PivotLocation);
+				ApplyTransformToComponent(RootComponent, &(NodeInfo->Transform), ParentActor == nullptr ? &RootTransform : nullptr, PivotLocation, ParentPivotAccumulation);
 			}
 		}
 		//We select only the first actor
@@ -1310,6 +1362,7 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 		//Find the asset that link with this node attribute
 		UObject *AssetToPlace = (NodeInfo->AttributeInfo.IsValid() && AllNewAssets.Contains(NodeInfo->AttributeInfo)) ? AllNewAssets[NodeInfo->AttributeInfo] : nullptr;
 
+		bool IsSkeletalMesh = false;
 		//Create the component where the type depend on the asset point by the component
 		//In case there is no asset we create a SceneComponent
 		USceneComponent* SceneComponent = nullptr;
@@ -1333,10 +1386,28 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 				SkeletalMeshComponent->DepthPriorityGroup = SDPG_World;
 				SceneComponent = SkeletalMeshComponent;
 				SceneComponent->Mobility = MobilityType;
+				IsSkeletalMesh = true;
 			}
 		}
 		else if (IsEmptyAttribute(NodeInfo->AttributeType) || NodeInfo->AttributeType.Compare("eMesh") == 0 || NodeInfo->AttributeUniqueId != INVALID_UNIQUE_ID)
 		{
+			if (NodeInfo->AttributeType.Compare("eMesh") == 0)
+			{
+				bool bIsSubSkeletalMesh = true;
+				for (TSharedPtr<FFbxMeshInfo> MeshInfo : SceneInfoPtr->MeshInfo)
+				{
+					if (!MeshInfo->bIsSkelMesh && NodeInfo->AttributeUniqueId == MeshInfo->UniqueId)
+					{
+						bIsSubSkeletalMesh = false;
+						break;
+					}
+				}
+				if (bIsSubSkeletalMesh == true)
+				{
+					continue;
+				}
+			}
+
 			if (NodeInfo->AttributeType.Compare("eLight") == 0 && SceneInfoPtr->LightInfo.Contains(NodeInfo->AttributeUniqueId))
 			{
 				TSharedPtr<FFbxLightInfo> LightInfo = *SceneInfoPtr->LightInfo.Find(NodeInfo->AttributeUniqueId);
@@ -1404,20 +1475,25 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 
 		//Find the pivot location
 		FVector PivotLocation(0.0f);
-		if (GlobalImportSettings->bBakePivotInVertex && NodeInfo->AttributeInfo.IsValid() && NodeInfo->AttributeInfo->PivotNodeUid != INVALID_UNIQUE_ID)
+		FVector ParentPivotAccumulation(0.0f);
+		if (!IsSkeletalMesh && GlobalImportSettings->bBakePivotInVertex)
 		{
-			for (TSharedPtr<FFbxNodeInfo> NodeInfoIter : SceneInfoPtr->HierarchyInfo)
+			ParentPivotAccumulation -= GetParentPivotAccumulation(NodeInfo, SceneInfoPtr, RootTransform);
+			if (NodeInfo->AttributeInfo.IsValid() && NodeInfo->AttributeInfo->PivotNodeUid != INVALID_UNIQUE_ID)
 			{
-				if (NodeInfoIter->UniqueId == NodeInfo->AttributeInfo->PivotNodeUid)
+				for (TSharedPtr<FFbxNodeInfo> NodeInfoIter : SceneInfoPtr->HierarchyInfo)
 				{
-					PivotLocation = NodeInfoIter->PivotRotation;
-					break;
+					if (NodeInfoIter->UniqueId == NodeInfo->AttributeInfo->PivotNodeUid)
+					{
+						PivotLocation = NodeInfoIter->PivotRotation;
+						break;
+					}
 				}
 			}
 		}
 
 		//Apply the local transform to the scene component
-		ApplyTransformToComponent(SceneComponent, &(NodeInfo->Transform), ParentRootComponent != nullptr ? nullptr : &RootTransform, PivotLocation);
+		ApplyTransformToComponent(SceneComponent, &(NodeInfo->Transform), ParentRootComponent != nullptr ? nullptr : &RootTransform, PivotLocation, ParentPivotAccumulation);
 		
 	}
 	// End of iteration of the hierarchy
@@ -1426,14 +1502,17 @@ AActor *UFbxSceneImportFactory::CreateActorComponentsHierarchy(TSharedPtr<FFbxSc
 	return RootActorContainer;
 }
 
-void UFbxSceneImportFactory::ApplyTransformToComponent(USceneComponent *SceneComponent, FTransform *LocalTransform, FTransform *PreMultiplyTransform, FVector &PivotLocation)
+void UFbxSceneImportFactory::ApplyTransformToComponent(USceneComponent *SceneComponent, FTransform *LocalTransform, FTransform *PreMultiplyTransform, FVector &PivotLocation, FVector &ParentPivotAccumulation)
 {
 	check(SceneComponent);
 	check(LocalTransform);
 	FTransform LocalTransformAdjusted = (*LocalTransform);
-	if (GlobalImportSettings->bBakePivotInVertex && !PivotLocation.IsNearlyZero())
+	if (GlobalImportSettings->bBakePivotInVertex && (!PivotLocation.IsNearlyZero() || !ParentPivotAccumulation.IsNearlyZero()))
 	{
 		FTransform PivotTransform;
+		PivotTransform.SetLocation(ParentPivotAccumulation);
+		LocalTransformAdjusted = LocalTransformAdjusted * PivotTransform;
+		PivotTransform.SetIdentity();
 		PivotTransform.SetLocation(PivotLocation);
 		LocalTransformAdjusted = PivotTransform * LocalTransformAdjusted;
 	}
@@ -1449,7 +1528,36 @@ void UFbxSceneImportFactory::ApplyTransformToComponent(USceneComponent *SceneCom
 		SceneComponent->SetRelativeTransform(LocalTransformAdjusted);
 	}
 }
-
+void UFbxSceneImportFactory::ApplyMeshInfoFbxOptions(TSharedPtr<FFbxMeshInfo> MeshInfo)
+{
+	if (!MeshInfo.IsValid())
+	{
+		//Use the default options
+		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
+		SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
+		SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettingsReference, SceneImportOptionsStaticMesh);
+	}
+	else
+	{
+		UnFbx::FBXImportOptions* OverrideImportSettings = GetOptionsFromName(MeshInfo->OptionName);
+		if (OverrideImportSettings != nullptr)
+		{
+			//Use the override options
+			SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
+			SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(OverrideImportSettings, SceneImportOptionsSkeletalMesh);
+			SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(OverrideImportSettings, SceneImportOptionsStaticMesh);
+		}
+		else
+		{
+			//Use the default options if we found no options
+			SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
+			SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
+			SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettingsReference, SceneImportOptionsStaticMesh);
+		}
+	}
+	SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData, SceneImportOptions);
+	SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
+}
 
 UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImport, void* VoidFbxImporter, TSharedPtr<FFbxSceneInfo> SceneInfo, EObjectFlags Flags, TArray<void*> &VoidNodeArray, int32 &TotalNumNodes)
 {
@@ -1485,26 +1593,14 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 	//Apply the correct fbx options
 	TSharedPtr<FFbxMeshInfo> MeshInfo = StaticCastSharedPtr<FFbxMeshInfo>(RootNodeInfo->AttributeInfo);
 
-	UnFbx::FBXImportOptions* OverrideImportSettings = GetOptionsFromName(MeshInfo->OptionName);
-	if (OverrideImportSettings != nullptr)
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(OverrideImportSettings, SceneImportOptionsSkeletalMesh);
-		SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData);
-	}
-	else
-	{
-		//Use the default options if we dont found options
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToSkeletalMeshOptions(GlobalImportSettingsReference, SceneImportOptionsSkeletalMesh);
-		SceneImportOptionsSkeletalMesh->FillSkeletalMeshInmportData(SkeletalMeshImportData, AnimSequenceImportData);
-	}
-
-	//This is possible for the user to not bake pivot for a particular root node
-	if (GlobalImportSettings->bBakePivotInVertex && RootNodeInfo->AttributeInfo->PivotNodeUid == INVALID_UNIQUE_ID)
-	{
-		GlobalImportSettings->bBakePivotInVertex = false;
-	}
+	ApplyMeshInfoFbxOptions(MeshInfo);
+	//TODO support bBakePivotInVertex
+	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
+	GlobalImportSettings->bBakePivotInVertex = false;
+	//if (GlobalImportSettings->bBakePivotInVertex && RootNodeInfo->AttributeInfo->PivotNodeUid == INVALID_UNIQUE_ID)
+	//{
+		//GlobalImportSettings->bBakePivotInVertex = false;
+	//}
 
 	// check if there is LODGroup for this skeletal mesh
 	int32 MaxLODLevel = 1;
@@ -1559,12 +1655,15 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 				TSharedPtr<FFbxNodeInfo> ExportNodeInfo;
 				if (FindSceneNodeInfo(SceneInfo, SkelMeshNode->GetUniqueID(), ExportNodeInfo))
 				{
-					FbxNode *NodePivot = FindFbxNodeById(FbxImporter, nullptr, ExportNodeInfo->AttributeInfo->PivotNodeUid);
-					if (NodePivot != nullptr)
+					if (ExportNodeInfo->AttributeInfo.IsValid())
 					{
-						SkelMeshNodePivotArray.Add(NodePivot);
-						bUseSkelMeshNodePivotArray = true;
-						continue;
+						FbxNode *NodePivot = FindFbxNodeById(FbxImporter, nullptr, ExportNodeInfo->AttributeInfo->PivotNodeUid);
+						if (NodePivot != nullptr)
+						{
+							SkelMeshNodePivotArray.Add(NodePivot);
+							bUseSkelMeshNodePivotArray = true;
+							continue;
+						}
 					}
 				}
 				SkelMeshNodePivotArray.Add(SkelMeshNode);
@@ -1633,7 +1732,8 @@ UObject* UFbxSceneImportFactory::ImportOneSkeletalMesh(void* VoidRootNodeToImpor
 			FbxImporter->ImportFbxMorphTarget(SkelMeshNodeArray, Cast<USkeletalMesh>(NewObject), Pkg, LODIndex);
 		}
 	}
-
+	//Put back the options
+	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
 	return NewObject;
 }
 
@@ -1843,20 +1943,8 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, void* VoidNo
 	//Apply the correct fbx options
 	TSharedPtr<FFbxMeshInfo> MeshInfo = StaticCastSharedPtr<FFbxMeshInfo>(OutNodeInfo->AttributeInfo);
 	
-	UnFbx::FBXImportOptions* OverrideImportSettings = GetOptionsFromName(MeshInfo->OptionName);
-	if (OverrideImportSettings != nullptr)
-	{
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(OverrideImportSettings, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(OverrideImportSettings, SceneImportOptionsStaticMesh);
-		SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
-	}
-	else
-	{
-		//Use the default options if we dont found options
-		SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettingsReference, GlobalImportSettings);
-		SFbxSceneOptionWindow::CopyFbxOptionsToStaticMeshOptions(GlobalImportSettingsReference, SceneImportOptionsStaticMesh);
-		SceneImportOptionsStaticMesh->FillStaticMeshInmportData(StaticMeshImportData, SceneImportOptions);
-	}
+	ApplyMeshInfoFbxOptions(MeshInfo);
+	bool Old_bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
 	if (GlobalImportSettings->bBakePivotInVertex && OutNodeInfo->AttributeInfo->PivotNodeUid == INVALID_UNIQUE_ID)
 	{
 		GlobalImportSettings->bBakePivotInVertex = false;
@@ -1886,6 +1974,7 @@ UObject* UFbxSceneImportFactory::ImportANode(void* VoidFbxImporter, void* VoidNo
 		GWarn->StatusUpdate(NodeIndex, Total, FText::Format(NSLOCTEXT("UnrealEd", "Importingf", "Importing ({NodeIndex} of {ArrayLength})"), Args));
 	}
 
+	GlobalImportSettings->bBakePivotInVertex = Old_bBakePivotInVertex;
 	return NewObject;
 }
 

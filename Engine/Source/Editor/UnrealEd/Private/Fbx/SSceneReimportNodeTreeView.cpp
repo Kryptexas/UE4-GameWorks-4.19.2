@@ -381,6 +381,7 @@ void SFbxReimportSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InP
 	check(NodeTreeData.Contains(InParent));
 	TSharedPtr<FTreeNodeValue> NodeValue = *(NodeTreeData.Find(InParent));
 	TArray<FString> ChildNames;
+	TArray<FString> ChildProcess;
 	//Current node contain the add and same node
 	if (NodeValue->CurrentNode.IsValid())
 	{
@@ -393,6 +394,7 @@ void SFbxReimportSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InP
 				if (Child.IsValid() && Child->AttributeType.Compare(TEXT("eMesh")) == 0)
 				{
 					ChildNames.Add(Child->NodeName);
+					ChildProcess.Add(Child->NodeName);
 					OutChildren.Add(Child);
 					return;
 				}
@@ -403,10 +405,15 @@ void SFbxReimportSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InP
 		{
 			for (FbxNodeInfoPtr Child : NodeValue->CurrentNode->Childrens)
 			{
-				if (Child.IsValid())
+				if (Child.IsValid() && (Child->AttributeType.Compare(TEXT("eMesh")) != 0 || Child->AttributeInfo.IsValid()))
 				{
 					ChildNames.Add(Child->NodeName);
+					ChildProcess.Add(Child->NodeName);
 					OutChildren.Add(Child);
+				}
+				else if(Child.IsValid() && Child->AttributeType.Compare(TEXT("eMesh")) == 0)
+				{
+					ChildProcess.Add(Child->NodeName);
 				}
 			}
 		}
@@ -423,7 +430,7 @@ void SFbxReimportSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InP
 				Child = Child->Childrens[0];
 				if (Child.IsValid() && Child->AttributeType.Compare(TEXT("eMesh")) == 0)
 				{
-					if (!ChildNames.Contains(Child->NodeName))
+					if (!ChildProcess.Contains(Child->NodeName))
 					{
 						OutChildren.Add(Child);
 					}
@@ -437,7 +444,7 @@ void SFbxReimportSceneTreeView::OnGetChildrenFbxSceneTreeView(FbxNodeInfoPtr InP
 			for (FbxNodeInfoPtr Child : NodeValue->OriginalNode->Childrens)
 			{
 				//We have a delete node
-				if (Child.IsValid() && !ChildNames.Contains(Child->NodeName))
+				if (Child.IsValid() && !ChildProcess.Contains(Child->NodeName))
 				{
 					OutChildren.Add(Child);
 				}

@@ -126,7 +126,7 @@ TSharedRef<SWidget> FCinematicLevelViewportLayout_TwoPane::MakeViewportLayout(co
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget0->GetLevelViewportClient();
 
-	InitCommonLayoutFromString(SpecificLayoutString);
+	InitCommonLayoutFromString(SpecificLayoutString, NAME_None);
 
 	return SplitterWidget.ToSharedRef();
 }

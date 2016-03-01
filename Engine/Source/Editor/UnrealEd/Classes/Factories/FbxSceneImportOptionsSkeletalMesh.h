@@ -20,8 +20,8 @@ class UFbxSceneImportOptionsSkeletalMesh : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = SkeletalMesh)
 	uint32 bCreatePhysicsAsset : 1;
 
-	/** Enable this option to use frame 0 as reference pose */
-	UPROPERTY(EditAnywhere, config, Category = SkeletalMesh)
+	/** TODO support T0AsRefPose Enable this option to use frame 0 as reference pose */
+	UPROPERTY()
 	uint32 bUseT0AsRefPose : 1;
 
 	/** If checked, triangles with non-matching smoothing groups will be physically split. */
@@ -71,7 +71,7 @@ class UFbxSceneImportOptionsSkeletalMesh : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Animation)
 	bool bDeleteExistingMorphTargetCurves;
 
-	void FillSkeletalMeshInmportData(class UFbxSkeletalMeshImportData* SkeletalMeshImportData, class UFbxAnimSequenceImportData* AnimSequenceImportData);
+	void FillSkeletalMeshInmportData(class UFbxSkeletalMeshImportData* SkeletalMeshImportData, class UFbxAnimSequenceImportData* AnimSequenceImportData, class UFbxSceneImportOptions* SceneImportOptions);
 };
 
 

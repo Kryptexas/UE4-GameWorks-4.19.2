@@ -41,7 +41,7 @@ struct ENGINE_API FNavigationLinkBase
 	UPROPERTY(EditAnywhere, Category=Default, meta=(ClampMin = "1.0", EditCondition="bUseSnapHeight"))
 	float SnapHeight;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Default, meta=(InlineEditConditionToggle))
 	uint32 bUseSnapHeight : 1;
 
 	/** If set, link will try to snap to cheapest area in given radius */

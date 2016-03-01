@@ -30,32 +30,32 @@ class UFbxSceneImportOptions : public UObject
 	//UPROPERTY()
 	//FString ContentPath;
 
-	/** If check, a folders hierarchy will be create under the import asset path. All the create folders will match the actor hierarchy. In case there is more then one actor that link to an asset, the shared asset will be place at the first actor place.  */
+	/** If checked, a folder's hierarchy will be created under the import asset path. All the created folders will match the actor hierarchy. In case there is more than one actor that links to an asset, the shared asset will be placed at the first actor's place. */
 	UPROPERTY(EditAnywhere, config, category = ImportOptions)
 	uint32 bCreateContentFolderHierarchy : 1;
 
-	/** If checked, the mobility of all actors or component will be dynamic. If not it will be static  */
+	/** If checked, the mobility of all actors or components will be dynamic. If unchecked, they will be static. */
 	UPROPERTY(EditAnywhere, config, category = ImportOptions)
 	uint32 bImportAsDynamic : 1;
 
-	/** Choose if you want to generate the scene hierarchy with normal level actors or one actor with multiple components or one blueprint asset with multiple components.  */
+	/** Choose if you want to generate the scene hierarchy with normal level actors, one actor with multiple components, or one blueprint asset with multiple components. */
 	UPROPERTY(EditAnywhere, config, category = ImportOptions)
 	TEnumAsByte<enum EFBXSceneOptionsCreateHierarchyType> HierarchyType;
 
-	UPROPERTY(EditAnywhere, config, Category = Transform)
+	UPROPERTY()
 	FVector ImportTranslation;
 
-	UPROPERTY(EditAnywhere, config, Category = Transform)
+	UPROPERTY()
 	FRotator ImportRotation;
 
-	UPROPERTY(EditAnywhere, config, Category = Transform)
+	UPROPERTY()
 	float ImportUniformScale;
 
 	/** If this option is true the node absolute transform (transform, offset and pivot) will be apply to the mesh vertices. */
 	UPROPERTY()
 	bool bTransformVertexToAbsolute;
 
-	/** - Experimental - If this option is true the inverse node pivot will be apply to the mesh vertices. The pivot from the DCC will then be the origin of the mesh. */
+	/** - Experimental - If this option is true the inverse node pivot will be apply to the mesh vertices. The pivot from the DCC will then be the origin of the mesh. This option only work with static meshes.*/
 	UPROPERTY(EditAnywhere, config, category = Meshes)
 	bool bBakePivotInVertex;
 
@@ -67,8 +67,8 @@ class UFbxSceneImportOptions : public UObject
 	UPROPERTY(EditAnywhere, config, category = Meshes)
 	uint32 bImportSkeletalMeshLODs : 1;
 
-	/** If either importing of textures (or materials) is enabled, this option will cause normal map values to be inverted */
-	UPROPERTY(EditAnywhere, config, Category = Textures)
+	/** If importing textures is enabled, this option will cause normal map Y (Green) values to be inverted */
+	UPROPERTY(EditAnywhere, config, category = Material)
 	uint32 bInvertNormalMaps : 1;
 };
 

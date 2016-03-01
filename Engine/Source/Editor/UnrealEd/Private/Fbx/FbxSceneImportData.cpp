@@ -108,7 +108,9 @@ UnFbx::FBXImportOptions *JSONToFbxOption(TSharedPtr<FJsonValue> OptionJsonValue,
 
 	//Skeletal mesh options
 	OptionObj->TryGetBoolField("bUpdateSkeletonReferencePose", Option->bUpdateSkeletonReferencePose);
-	OptionObj->TryGetBoolField("bUseT0AsRefPose", Option->bUseT0AsRefPose);
+	//TODO support T0AsRefPose
+	//OptionObj->TryGetBoolField("bUseT0AsRefPose", Option->bUseT0AsRefPose);
+	Option->bUseT0AsRefPose = false;
 	OptionObj->TryGetBoolField("bPreserveSmoothingGroups", Option->bPreserveSmoothingGroups);
 	OptionObj->TryGetBoolField("bImportMeshesInBoneHierarchy", Option->bImportMeshesInBoneHierarchy);
 	OptionObj->TryGetBoolField("bImportMorphTargets", Option->bImportMorph);

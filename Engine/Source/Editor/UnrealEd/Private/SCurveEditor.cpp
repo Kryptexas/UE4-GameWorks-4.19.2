@@ -355,7 +355,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.MaxValue(TOptional<float>())
 							.MaxSliderValue(TOptional<float>())
 							.MinSliderValue(TOptional<float>())
-							.Delta(0.001f)
+							.Delta(this, &SCurveEditor::GetInputNumericEntryBoxDelta)
 							.MinDesiredValueWidth(60.0f)
 							.Label()
 							[
@@ -387,7 +387,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.MaxValue(TOptional<float>())
 							.MaxSliderValue(TOptional<float>())
 							.MinSliderValue(TOptional<float>())
-							.Delta(.001f)
+							.Delta(this, &SCurveEditor::GetOutputNumericEntryBoxDelta)
 							.MinDesiredValueWidth(60.0f)
 							.Label()
 							[
@@ -1160,6 +1160,16 @@ void SCurveEditor::PaintMarquee(const FGeometry& AllottedGeometry, const FSlateR
 		FEditorStyle::GetBrush(TEXT("MarqueeSelection")),
 		MyClippingRect
 		);
+}
+
+float SCurveEditor::GetInputNumericEntryBoxDelta() const
+{
+	return bSnappingEnabled.Get() ? InputSnap.Get() : 0;
+}
+
+float SCurveEditor::GetOutputNumericEntryBoxDelta() const
+{
+	return bSnappingEnabled.Get() ? OutputSnap.Get() : 0;
 }
 
 void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEdit)

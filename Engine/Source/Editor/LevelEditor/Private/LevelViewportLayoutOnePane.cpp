@@ -54,7 +54,7 @@ TSharedRef<SWidget> FLevelViewportLayoutOnePane::MakeViewportLayout(const FStrin
 	// Make newly-created perspective viewports active by default
 	GCurrentLevelEditingViewportClient = &ViewportWidget->GetLevelViewportClient();
 
-	InitCommonLayoutFromString(SpecificLayoutString);
+	InitCommonLayoutFromString(SpecificLayoutString, NAME_None);
 
 	return StaticCastSharedRef<SWidget>(ViewportBox.ToSharedRef());
 }

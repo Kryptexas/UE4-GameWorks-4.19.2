@@ -454,6 +454,9 @@ void UEditorEngine::EndPlayMap()
 	// Tear down the output log to message log thunker
 	OutputLogErrorsToMessageLogProxyPtr.Reset();
 
+	// Remove undo barrier
+	GUnrealEd->Trans->RemoveUndoBarrier();
+
 	// display any info if required.
 	FMessageLog(NAME_CategoryPIE).Notify(LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."));
 }
@@ -3099,7 +3102,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	GEngine->BroadcastLevelActorListChanged();
 
 	// Set an undo barrier so that transactions prior to PIE can't be undone
-	GUnrealEd->ResetTransaction(NSLOCTEXT("UnrealEd", "PIEStarted", "PIE Started"));
+	GUnrealEd->Trans->SetUndoBarrier();
 
 	return GameInstance;
 }

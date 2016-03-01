@@ -258,7 +258,7 @@ struct ENGINE_API FLevelSimplificationDetails
 	UPROPERTY(Category = Landscape, EditAnywhere)
 	FMaterialProxySettings StaticMeshMaterialSettings;
 
-	UPROPERTY()
+	UPROPERTY(Category = Landscape, EditAnywhere, meta=(InlineEditConditionToggle))
 	bool bOverrideLandscapeExportLOD;
 
 	/** Landscape LOD to use for static mesh generation, when not specified 'Max LODLevel' from landscape actor will be used */

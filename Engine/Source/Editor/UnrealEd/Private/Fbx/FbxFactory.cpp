@@ -189,6 +189,9 @@ UObject* UFbxFactory::FactoryCreateBinary
 	// logger for all error/warnings
 	// this one prints all messages that are stored in FFbxImporter
 	UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
+	UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
+	//Clean up the options
+	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 	
 	UnFbx::FFbxLoggerSetter Logger(FbxImporter);
 
@@ -203,7 +206,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 	bool bShowImportDialog = bShowOption && !GIsAutomationTesting;
 	bool bImportAll = false;
-	UnFbx::FBXImportOptions* ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType );
+	ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType );
 	bOutOperationCanceled = bOperationCanceled;
 	
 	if( bImportAll )

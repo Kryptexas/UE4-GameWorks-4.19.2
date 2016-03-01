@@ -81,6 +81,8 @@ void UEditableTextBox::SynchronizeProperties()
 	MyEditableTextBlock->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
 	MyEditableTextBlock->SetSelectAllTextOnCommit(SelectAllTextOnCommit);
 	MyEditableTextBlock->SetAllowContextMenu(AllowContextMenu);
+
+	ShapedTextOptions.SynchronizeShapedTextProperties(*MyEditableTextBlock);
 }
 
 FText UEditableTextBox::GetText() const

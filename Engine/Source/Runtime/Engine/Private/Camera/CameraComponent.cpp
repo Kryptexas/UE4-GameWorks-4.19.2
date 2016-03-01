@@ -159,6 +159,10 @@ void UCameraComponent::RefreshVisualRepresentation()
 		DrawFrustum->FrustumAspectRatio = AspectRatio;
 		DrawFrustum->MarkRenderStateDirty();
 	}
+	if (ProxyMeshComponent != nullptr)
+	{
+		ProxyMeshComponent->ResetRelativeTransform();
+	}
 }
 
 void UCameraComponent::OverrideFrustumColor(FColor OverrideColor)
@@ -249,6 +253,13 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 	{
 		DesiredView.PostProcessSettings = PostProcessSettings;
 	}
+
+#if WITH_EDITOR
+	if (ProxyMeshComponent != nullptr)
+	{
+		ProxyMeshComponent->ResetRelativeTransform();
+	}
+#endif //WITH_EDITOR
 }
 
 #if WITH_EDITOR

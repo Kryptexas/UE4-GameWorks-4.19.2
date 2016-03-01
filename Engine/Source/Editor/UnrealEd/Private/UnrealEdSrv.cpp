@@ -1285,12 +1285,13 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			{
 				TArray<FColor> OutImageData;
 				FIntVector OutImageSize;
-				FSlateApplication::Get().TakeScreenshot(InWidget,OutImageData,OutImageSize);
-
-				FString FileName;
-				const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
-				FFileHelper::GenerateNextBitmapFilename(BaseFileName, TEXT("bmp"), FileName);
-				FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetData());
+				if (FSlateApplication::Get().TakeScreenshot(InWidget, OutImageData, OutImageSize))
+				{
+					FString FileName;
+					const FString BaseFileName = FPaths::ScreenShotDir() / TEXT("EditorScreenshot");
+					FFileHelper::GenerateNextBitmapFilename(BaseFileName, TEXT("bmp"), FileName);
+					FFileHelper::CreateBitmap(*FileName, OutImageSize.X, OutImageSize.Y, OutImageData.GetData());
+				}
 			}
 		};
 

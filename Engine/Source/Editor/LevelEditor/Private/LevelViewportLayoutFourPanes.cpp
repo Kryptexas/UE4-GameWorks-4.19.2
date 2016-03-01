@@ -55,7 +55,7 @@ TSharedRef<SWidget> FLevelViewportLayoutFourPanes::MakeViewportLayout(const FStr
 		ViewportKey0, ViewportKey1, ViewportKey2, ViewportKey3,
 		PrimarySplitterPercentage, SecondarySplitterPercentage0, SecondarySplitterPercentage1);
 
-	InitCommonLayoutFromString(SpecificLayoutString);
+	InitCommonLayoutFromString(SpecificLayoutString, *ViewportKey1);
 
 	return LayoutWidget;
 }

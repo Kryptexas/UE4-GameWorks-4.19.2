@@ -130,13 +130,15 @@ void FPropertyNode::InitNode( const FPropertyNodeInitParams& InitParams )
 
 		// true if the property can be expanded into the property window; that is, instead of seeing
 		// a pointer to the object, you see the object's properties.
-		const bool bEditInline = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(TEXT("EditInline"));
+		static const FName Name_EditInline("EditInline");
+		const bool bEditInline = bIsObjectOrInterface && GotReadAddresses && MyProperty->HasMetaData(Name_EditInline);
 		SetNodeFlags(EPropertyNodeFlags::EditInline, bEditInline);
 
 		//Get the property max child depth
-		if (Property->HasMetaData(TEXT("MaxPropertyDepth")))
+		static const FName Name_MaxPropertyDepth("MaxPropertyDepth");
+		if (Property->HasMetaData(Name_MaxPropertyDepth))
 		{
-			int32 NewMaxChildDepthAllowed = Property->GetINTMetaData(TEXT("MaxPropertyDepth"));
+			int32 NewMaxChildDepthAllowed = Property->GetINTMetaData(Name_MaxPropertyDepth);
 			//Ensure new depth is valid.  Otherwise just let the parent specified value stand
 			if (NewMaxChildDepthAllowed > 0)
 			{

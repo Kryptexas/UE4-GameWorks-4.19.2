@@ -75,7 +75,7 @@ protected:
 
 private:
 
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, EditAnywhere, Category="Appearance", meta=(InlineEditConditionToggle))
 	bool bEnableRadius;
 
 	/** The CircularThrobber widget managed by this object. */

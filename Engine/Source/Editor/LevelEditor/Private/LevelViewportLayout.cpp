@@ -260,12 +260,10 @@ void  FLevelViewportLayout::EndThrottleForAnimatedResize()
 	}
 }
 
-void FLevelViewportLayout::InitCommonLayoutFromString( const FString& SpecificLayoutString )
+void FLevelViewportLayout::InitCommonLayoutFromString( const FString& SpecificLayoutString, FName DefaultMaximizedViewport )
 {
 	bool bShouldBeMaximized = bIsMaximizeSupported && ViewportLayoutDefs::bDefaultShouldBeMaximized;
 	bool bShouldBeImmersive = ViewportLayoutDefs::bDefaultShouldBeImmersive;
-	
-	FName SavedMaximizedViewport = NAME_None;
 	
 	if (!SpecificLayoutString.IsEmpty())
 	{
@@ -277,17 +275,17 @@ void FLevelViewportLayout::InitCommonLayoutFromString( const FString& SpecificLa
 		FString MaximizedViewportString;
 		if (GConfig->GetString(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewport")), MaximizedViewportString, GEditorPerProjectIni))
 		{
-			SavedMaximizedViewport = *MaximizedViewportString;
+			DefaultMaximizedViewport = *MaximizedViewportString;
 		}
 	}
 	// Replacement layouts (those selected by the user via a command) don't start maximized so the layout can be seen clearly.
-	if (!bIsReplacement && bIsMaximizeSupported && Viewports.Contains(SavedMaximizedViewport) && (bShouldBeMaximized || bShouldBeImmersive))
+	if (!bIsReplacement && bIsMaximizeSupported && Viewports.Contains(DefaultMaximizedViewport) && (bShouldBeMaximized || bShouldBeImmersive))
 	{
 		// we are not toggling maximize or immersive state but setting it directly
 		const bool bToggle=false;
 		// Do not allow animation at startup as it hitches
 		const bool bAllowAnimation=false;
-		MaximizeViewport(SavedMaximizedViewport, bShouldBeMaximized, bShouldBeImmersive, bAllowAnimation);
+		MaximizeViewport(DefaultMaximizedViewport, bShouldBeMaximized, bShouldBeImmersive, bAllowAnimation);
 	}
 }
 

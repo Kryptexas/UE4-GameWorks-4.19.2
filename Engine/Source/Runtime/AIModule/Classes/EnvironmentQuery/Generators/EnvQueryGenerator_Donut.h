@@ -44,7 +44,7 @@ class AIMODULE_API UEnvQueryGenerator_Donut : public UEnvQueryGenerator_Projecte
 	UPROPERTY(EditAnywhere, Category = Generator)
 	TSubclassOf<class UEnvQueryContext> Center;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Generator, meta=(InlineEditConditionToggle))
 	uint32 bDefineArc : 1;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;

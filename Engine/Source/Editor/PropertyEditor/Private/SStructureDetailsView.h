@@ -110,4 +110,6 @@ public:
 protected:
 
 	virtual void CustomUpdatePropertyMap() override;
+
+	EVisibility GetPropertyEditingVisibility() const;
 };

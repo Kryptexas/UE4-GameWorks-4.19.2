@@ -372,6 +372,8 @@ class UNREALED_API UFbxSceneImportFactory : public UFactory
 	static FString DefaultOptionName;
 
 protected:
+	/** Make sure GlobalImportSettings is pointing to the correct options */
+	void ApplyMeshInfoFbxOptions(TSharedPtr<FFbxMeshInfo> MeshInfo);
 
 	/* Compute the path of every node and fill the result in the node. This data will be use by the reimport
 	*  as a unique key for for the reimport status of the node hierarchy.
@@ -389,10 +391,7 @@ protected:
 	* LocalTransform: Must be a valid pointer
 	* PreMultiplyTransform: Can be nullptr
 	*/
-	void ApplyTransformToComponent(USceneComponent *SceneComponent, FTransform *LocalTransform, FTransform *PreMultiplyTransform, FVector &PivotLocation);
-
-	/** This will add the scene transform options to the root node */
-	void ApplySceneTransformOptionsToRootNode(TSharedPtr<FFbxSceneInfo> SceneInfoPtr);
+	void ApplyTransformToComponent(USceneComponent *SceneComponent, FTransform *LocalTransform, FTransform *PreMultiplyTransform, FVector &PivotLocation, FVector &ParentPivotAccumulation);
 
 	/** Import all skeletal mesh from the fbx scene */
 	void ImportAllSkeletalMesh(void* VoidRootNodeToImport, void* VoidFbxImporter, EObjectFlags Flags, int32& NodeIndex, int32& InterestingNodeCount , TSharedPtr<FFbxSceneInfo> SceneInfo);

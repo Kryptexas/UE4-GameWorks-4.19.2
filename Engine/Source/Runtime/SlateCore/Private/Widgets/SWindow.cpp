@@ -1348,50 +1348,46 @@ FCursorReply SWindow::OnCursorQuery( const FGeometry& MyGeometry, const FPointer
 
 bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 {
-	const bool bWasDeactivated = ( ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_Deactivate );
-	if ( bWasDeactivated )
+	const bool bWasDeactivated = ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_Deactivate;
+	if (bWasDeactivated)
 	{
 		OnWindowDeactivated.ExecuteIfBound();	// deprecated
 		WindowDeactivatedEvent.Broadcast();
 
 		const EWindowMode::Type WindowMode = GetWindowMode();
 		// If the window is not fullscreen, we do not want to automatically recapture the mouse unless an external UI such as Steam is open. Fullscreen windows we do.
-		if( WindowMode != EWindowMode::Fullscreen && WidgetToFocusOnActivate.IsValid() && WidgetToFocusOnActivate.Pin()->HasMouseCapture() && !FSlateApplicationBase::Get().IsExternalUIOpened())
+		if (WindowMode != EWindowMode::Fullscreen && WidgetToFocusOnActivate.IsValid() && WidgetToFocusOnActivate.Pin()->HasMouseCapture() && !FSlateApplicationBase::Get().IsExternalUIOpened())
 		{
-			//For a windowed application with an OS border, if the user is giving focus back to the application by clicking on the close/(X) button, then we must clear 
-			//the weak pointer to WidgetToFocus--so that the application's main viewport does not steal focus immediately (thus canceling the close attempt).
-			
-			//This change introduces a different bug where slate context is lost when closing popup menus.  However, this issue is negated by a 
-			//change to FMenuStack::PushMenu, where we ReleaseMouseCapture when immediately shifting focus.
 			WidgetToFocusOnActivate.Reset();
 		}
 	}
 	else
 	{
-		if (SupportsKeyboardFocus() && ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_Activate)
+		if (ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_Activate)
 		{
 			TArray< TSharedRef<SWindow> > JustThisWindow;
-			JustThisWindow.Add( SharedThis(this) );
-			
+			JustThisWindow.Add(SharedThis(this));
+
 			// If we're becoming active and we were set to restore keyboard focus to a specific widget
 			// after reactivating, then do so now
-			TSharedPtr< SWidget > PinnedWidgetToFocus( WidgetToFocusOnActivate.Pin() );
-			
+			TSharedPtr< SWidget > PinnedWidgetToFocus(WidgetToFocusOnActivate.Pin());
 			if (PinnedWidgetToFocus.IsValid())
 			{
 				FWidgetPath WidgetToFocusPath;
-				if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocus.ToSharedRef(), WidgetToFocusPath ) )
+				if (FSlateWindowHelper::FindPathToWidget(JustThisWindow, PinnedWidgetToFocus.ToSharedRef(), WidgetToFocusPath))
 				{
-					FSlateApplicationBase::Get().SetAllUserFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
+					FSlateApplicationBase::Get().SetAllUserFocus(WidgetToFocusPath, EFocusCause::SetDirectly);
 				}
 			}
-			else
+
+			// If we didn't have a specified widget to focus (above)
+			// We'll make sure all the users focus this window, however if they are already focusing something in the window we leave them be.
+			else if (SupportsKeyboardFocus())
 			{
 				FWidgetPath WindowWidgetPath;
-				if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, AsShared(), WindowWidgetPath ) )
+				if (FSlateWindowHelper::FindPathToWidget(JustThisWindow, AsShared(), WindowWidgetPath))
 				{
-					FWeakWidgetPath WeakWindowPath(WindowWidgetPath);
-					FSlateApplicationBase::Get().SetAllUserFocus( WeakWindowPath.ToNextFocusedPath(EUINavigation::Next), EFocusCause::SetDirectly );
+					FSlateApplicationBase::Get().SetAllUserFocusAllowingDescendantFocus(WindowWidgetPath, EFocusCause::SetDirectly);
 				}
 			}
 		}

@@ -128,6 +128,7 @@ struct ExistingSkelMeshData
 	TArray<FMultiSizeIndexContainerData>	ExistingAdjacencyIndexBufferData;
 	FReferenceSkeleton						ExistingRefSkeleton;
 	TArray<FSkeletalMaterial>				ExistingMaterials;
+	bool									bSaveRestoreMaterials;
 	TArray<UMorphTarget*>					ExistingMorphTargets;
 	TArray<UPhysicsAsset*>					ExistingPhysicsAssets;
 	UPhysicsAsset*							ExistingShadowPhysicsAsset;

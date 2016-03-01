@@ -119,7 +119,7 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	FAIDataProviderFloatValue SweetSpotValue;
 
 	/** When set to true enables usage of SweetSpotValue. It's false by default */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category = Score, meta=(InlineEditConditionToggle))
 	bool bDefineSweetSpot;
 	
 	/** Validation: item type that can be used with this test */

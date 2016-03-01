@@ -27,7 +27,7 @@ FReply SCodeEditableText::OnKeyChar(const FGeometry& MyGeometry, const FCharacte
 	const TCHAR Character = InCharacterEvent.GetCharacter();
 	if(Character == TEXT('\t'))
 	{
-		if (!GetIsReadOnly())
+		if (!IsTextReadOnly())
 		{
 			FString String;
 			String.AppendChar(Character);

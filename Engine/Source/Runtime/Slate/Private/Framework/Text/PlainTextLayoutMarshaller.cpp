@@ -3,8 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "PlainTextLayoutMarshaller.h"
 #include "SlateTextLayout.h"
-
-#if WITH_FANCY_TEXT
+#include "SlatePasswordRun.h"
 
 TSharedRef< FPlainTextLayoutMarshaller > FPlainTextLayoutMarshaller::Create()
 {
@@ -13,6 +12,11 @@ TSharedRef< FPlainTextLayoutMarshaller > FPlainTextLayoutMarshaller::Create()
 
 FPlainTextLayoutMarshaller::~FPlainTextLayoutMarshaller()
 {
+}
+
+void FPlainTextLayoutMarshaller::SetIsPassword(const TAttribute<bool>& InIsPassword)
+{
+	bIsPassword = InIsPassword;
 }
 
 void FPlainTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayout& TargetTextLayout)
@@ -25,12 +29,20 @@ void FPlainTextLayoutMarshaller::SetText(const FString& SourceString, FTextLayou
 	TArray<FTextLayout::FNewLineData> LinesToAdd;
 	LinesToAdd.Reserve(LineRanges.Num());
 
-	for(const FTextRange& LineRange : LineRanges)
+	const bool bUsePasswordRun = bIsPassword.Get(false);
+	for (const FTextRange& LineRange : LineRanges)
 	{
 		TSharedRef<FString> LineText = MakeShareable(new FString(SourceString.Mid(LineRange.BeginIndex, LineRange.Len())));
 
 		TArray<TSharedRef<IRun>> Runs;
-		Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, DefaultTextStyle));
+		if (bUsePasswordRun)
+		{
+			Runs.Add(FSlatePasswordRun::Create(FRunInfo(), LineText, DefaultTextStyle));
+		}
+		else
+		{
+			Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, DefaultTextStyle));
+		}
 
 		LinesToAdd.Emplace(MoveTemp(LineText), MoveTemp(Runs));
 	}
@@ -45,6 +57,5 @@ void FPlainTextLayoutMarshaller::GetText(FString& TargetString, const FTextLayou
 
 FPlainTextLayoutMarshaller::FPlainTextLayoutMarshaller()
 {
+	bIsPassword = false;
 }
-
-#endif //WITH_FANCY_TEXT

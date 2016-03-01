@@ -268,6 +268,19 @@ enum ECastToken
 	CST_Max					= 0xFF,
 };
 
+// Kinds of text literals
+enum class EBlueprintTextLiteralType : uint8
+{
+	/* Text is an empty string. The bytecode contains no strings, and you should use FText::GetEmpty() to initialize the FText instance. */
+	Empty,
+	/** Text is localized. The bytecode will contain three strings - source, key, and namespace - and should be loaded via FInternationalization */
+	LocalizedText,
+	/** Text is culture invariant. The bytecode will contain one string, and you should use FText::AsCultureInvariant to initialize the FText instance. */
+	InvariantText,
+	/** Text is a literal FString. The bytecode will contain one string, and you should use FText::FromString to initialize the FText instance. */
+	LiteralString,
+};
+
 // Kinds of Blueprint exceptions
 namespace EBlueprintExceptionType
 {

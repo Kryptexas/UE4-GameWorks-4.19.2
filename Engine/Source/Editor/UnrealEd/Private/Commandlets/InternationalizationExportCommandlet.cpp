@@ -413,7 +413,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 										{
 											const FString KeyName = InfoMetaDataPair.Key;
 											const TSharedPtr<FLocMetadataValue> Value = InfoMetaDataPair.Value;
-											InfoMetaDataStrings.Add(GetConditionedInfoMetaDataForExtractedComment(KeyName, Value->AsString()));
+											InfoMetaDataStrings.Add(GetConditionedInfoMetaDataForExtractedComment(KeyName, Value->ToString()));
 										}
 									}
 									if (InfoMetaDataStrings.Num())
@@ -469,7 +469,7 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 												{
 													const FString KeyName = InfoMetaDataPair.Key;
 													const TSharedPtr<FLocMetadataValue> Value = InfoMetaDataPair.Value;
-													InfoMetaDataStrings.Add(FString::Printf(TEXT("InfoMetaData:\t\"%s\" : \"%s\""), *KeyName, *Value->AsString()));
+													InfoMetaDataStrings.Add(FString::Printf(TEXT("InfoMetaData:\t\"%s\" : \"%s\""), *KeyName, *Value->ToString()));
 												}
 											}
 											if (InfoMetaDataStrings.Num())

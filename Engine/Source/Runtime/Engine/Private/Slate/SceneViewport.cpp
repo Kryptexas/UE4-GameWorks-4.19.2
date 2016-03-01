@@ -24,6 +24,8 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, NumMouseSamplesY( 0 )
 	, MouseDelta( 0, 0 )
 	, bIsCursorVisible( true )
+	, bShouldCaptureMouseOnActivate( true )
+	, bIgnoreCaptureClick( true )
 	, bRequiresVsync( false )
 	, bUseSeparateRenderTarget( InViewportWidget.IsValid() ? !InViewportWidget->ShouldRenderDirectly() : true )
 	, bIsResizing( false )
@@ -153,7 +155,7 @@ void FSceneViewport::GetMousePos( FIntPoint& MousePosition, const bool bLocalPos
 	}
 	else
 	{
-		const FVector2D AbsoluteMousePos = CachedGeometry.LocalToAbsolute(FVector2D(CachedMousePos.X, CachedMousePos.Y));
+		const FVector2D AbsoluteMousePos = CachedGeometry.LocalToAbsolute(FVector2D(CachedMousePos.X / CachedGeometry.Scale, CachedMousePos.Y / CachedGeometry.Scale));
 		MousePosition.X = AbsoluteMousePos.X;
 		MousePosition.Y = AbsoluteMousePos.Y;
 	}
@@ -173,7 +175,11 @@ void FSceneViewport::ProcessInput( float DeltaTime )
 
 void FSceneViewport::UpdateCachedMousePos( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
 {
-	CachedMousePos = InGeometry.AbsoluteToLocal( InMouseEvent.GetScreenSpacePosition() ).IntPoint();
+	FVector2D LocalPixelMousePos = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+	LocalPixelMousePos.X *= CachedGeometry.Scale;
+	LocalPixelMousePos.Y *= CachedGeometry.Scale;
+
+	CachedMousePos = LocalPixelMousePos.IntPoint();
 }
 
 void FSceneViewport::UpdateCachedGeometry( const FGeometry& InGeometry )
@@ -189,6 +195,8 @@ void FSceneViewport::UpdateModifierKeys( const FPointerEvent& InMouseEvent )
 	KeyStateMap.Add(EKeys::RightControl, InMouseEvent.IsRightControlDown());
 	KeyStateMap.Add(EKeys::LeftShift, InMouseEvent.IsLeftShiftDown());
 	KeyStateMap.Add(EKeys::RightShift, InMouseEvent.IsRightShiftDown());
+	KeyStateMap.Add(EKeys::LeftCommand, InMouseEvent.IsLeftCommandDown());
+	KeyStateMap.Add(EKeys::RightCommand, InMouseEvent.IsRightCommandDown());
 }
 
 void FSceneViewport::ApplyModifierKeys( const FModifierKeysState& InKeysState )
@@ -356,72 +364,97 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 	CurrentReplyState = FReply::Handled().PreventThrottling();
 
 	KeyStateMap.Add(InMouseEvent.GetEffectingButton(), true);
-	UpdateModifierKeys( InMouseEvent );
-	UpdateCachedMousePos( InGeometry, InMouseEvent );
+	UpdateModifierKeys(InMouseEvent);
+	UpdateCachedMousePos(InGeometry, InMouseEvent);
 	UpdateCachedGeometry(InGeometry);
 
 	// Switch to the viewport clients world before processing input
-	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
-	if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue )
+	FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+	if (ViewportClient && GetSizeXY() != FIntPoint::ZeroValue)
 	{
 		// If we're obtaining focus, we have to copy the modifier key states prior to processing this mouse button event, as this is the only point at which the mouse down
 		// event is processed when focus initially changes and the modifier keys need to be in-place to detect any unique drag-like events.
-		if ( !HasFocus() )
+		if (!HasFocus())
 		{
 			FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
-			ApplyModifierKeys( KeysState );
+			ApplyModifierKeys(KeysState);
 		}
+
+		const bool bTemporaryCapture = 
+			ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton);
+
+		// Capture if we aren't currently a game viewport, or if we've been set to IgnoreCaptureClick or we already have capture.
+		const bool bProcessInputPrimary = !IsCurrentlyGameViewport() || !bIgnoreCaptureClick || HasMouseCapture();
 
 		const bool bAnyMenuWasVisible = FSlateApplication::Get().AnyMenusVisible();
 
 		// Process the mouse event
-		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Pressed))
+		if (bTemporaryCapture || bProcessInputPrimary)
 		{
-			CurrentReplyState = FReply::Unhandled(); 
+			if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Pressed))
+			{
+				CurrentReplyState = FReply::Unhandled();
+			}
 		}
 
 		// a new menu was opened if there was previously not a menu visible but now there is
 		const bool bNewMenuWasOpened = !bAnyMenuWasVisible && FSlateApplication::Get().AnyMenusVisible();
 
-		if (!ViewportClient->IgnoreInput() &&
+		if (FSlateApplication::Get().IsActive() && !ViewportClient->IgnoreInput() &&
 			!bNewMenuWasOpened && // We should not focus the viewport if a menu was opened as it would close the menu
-			( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently ||
-			  ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
-			  ( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton ) ) )
+			(ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently || bTemporaryCapture))
 		{
-			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
-
-			// Mouse down should focus viewport for user input
-			CurrentReplyState.SetUserFocus(ViewportWidgetRef, EFocusCause::SetDirectly, true);
-			
-			UWorld* World = ViewportClient->GetWorld();
-			if (World && World->IsGameWorld() && World->GetGameInstance() && World->GetGameInstance()->GetFirstLocalPlayerController())
-			{
-				CurrentReplyState.CaptureMouse(ViewportWidgetRef);
-				CurrentReplyState.LockMouseToWidget(ViewportWidgetRef);
-
-				bool bShouldShowMouseCursor = World->GetGameInstance()->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
-				if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
-				{
-					bCursorHiddenDueToCapture = true;
-					MousePosBeforeHiddenDueToCapture = FIntPoint( InMouseEvent.GetScreenSpacePosition().X, InMouseEvent.GetScreenSpacePosition().Y );
-				}
-				if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
-				{
-					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
-				}
-			}
-			else
-			{
-				CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
-			}
+			CurrentReplyState = AcquireFocusAndCapture(FIntPoint(InMouseEvent.GetScreenSpacePosition().X, InMouseEvent.GetScreenSpacePosition().Y));
 		}
 	}
-	
+
 	// Re-set prevent throttling here as it can get reset when inside of InputKey()
 	CurrentReplyState.PreventThrottling();
 
 	return CurrentReplyState;
+}
+
+FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
+{
+	bShouldCaptureMouseOnActivate = false;
+
+	FReply ReplyState = FReply::Handled().PreventThrottling();
+
+	TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
+
+	// Mouse down should focus viewport for user input
+	ReplyState.SetUserFocus(ViewportWidgetRef, EFocusCause::SetDirectly, true);
+
+	UWorld* World = ViewportClient->GetWorld();
+	if (World && World->IsGameWorld() && World->GetGameInstance() && World->GetGameInstance()->GetFirstLocalPlayerController())
+	{
+		ReplyState.CaptureMouse(ViewportWidgetRef);
+		ReplyState.LockMouseToWidget(ViewportWidgetRef);
+
+		bool bShouldShowMouseCursor = World->GetGameInstance()->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
+		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
+		{
+			bCursorHiddenDueToCapture = true;
+			MousePosBeforeHiddenDueToCapture = MousePosition;
+		}
+		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
+		{
+			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+		}
+	}
+	else
+	{
+		ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
+	}
+
+	return ReplyState;
+}
+
+bool FSceneViewport::IsCurrentlyGameViewport()
+{
+	// Either were game code only or were are currently play in editor.
+	return (FApp::IsGame() && !GIsEditor) || IsPlayInEditorViewport();
 }
 
 FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
@@ -450,7 +483,7 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 			ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
 			( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton );
 	}
-	if (!((FApp::IsGame() && !GIsEditor) || bIsPlayInEditorViewport) || bReleaseMouse)
+	if (!IsCurrentlyGameViewport() || bReleaseMouse)
 	{
 		// On mouse up outside of the game (editor viewport) or if the cursor is visible in game, we should make sure the mouse is no longer captured
 		// as long as the left or right mouse buttons are not still down
@@ -485,7 +518,7 @@ void FSceneViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 	{
 		ViewportClient->MouseLeave( this );
 	
-		if ( (FApp::IsGame() && !GIsEditor) || IsPlayInEditorViewport() )
+		if (IsCurrentlyGameViewport())
 		{
 			CachedMousePos = FIntPoint(-1, -1);
 		}
@@ -847,42 +880,6 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
 		ViewportClient->ReceivedFocus(this);
-
-		if ((FApp::IsGame() && !GIsEditor) || bIsPlayInEditorViewport)
-		{
-			if (IsForegroundWindow())
-			{
-				bool bIsCursorForcedVisible = false;
-				APlayerController* FirstLocalPC = nullptr;
-				if (UWorld* ViewportClientWorld = ViewportClient->GetWorld())
-				{
-					if (UGameInstance* GameInstance = ViewportClientWorld->GetGameInstance())
-					{
-						FirstLocalPC = GameInstance->GetFirstLocalPlayerController();
-					}
-				}
-				if (FirstLocalPC)
-				{
-					bIsCursorForcedVisible = FirstLocalPC->GetMouseCursor() != EMouseCursor::None;
-				}
-
-				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InFocusEvent.GetCause() != EFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
-
-				// capturing the mouse interferes with slate UI (like the virtual joysticks)
-				if (FPlatformProperties::SupportsWindowedMode() && bPlayInEditorCapture && !bIsCursorForcedVisible && !FSlateApplication::Get().IsFakingTouchEvents())
-				{
-					// Only require the user to click in the window the first time - after that return focus to the game so long as it was the last focused widget.
-					// Means that tabbing in/out will return the mouse control to where it was & the in-game console won't leave the mouse under editor control.
-					bPlayInEditorGetsMouseControl = true;
-					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidget.Pin().ToSharedRef());
-					CurrentReplyState.LockMouseToWidget(ViewportWidget.Pin().ToSharedRef());
-				}
-			}
-			else
-			{
-				CurrentReplyState.ClearUserFocus(true);
-			}
-		}
 	}
 
 	// Update key state mappings so that the the viewport modifier states are valid upon focus.
@@ -893,29 +890,21 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 	KeyStateMap.Add( EKeys::RightControl, KeysState.IsRightControlDown());
 	KeyStateMap.Add( EKeys::LeftShift, KeysState.IsLeftShiftDown());
 	KeyStateMap.Add( EKeys::RightShift, KeysState.IsRightShiftDown());
+	KeyStateMap.Add( EKeys::LeftCommand, KeysState.IsLeftCommandDown());
+	KeyStateMap.Add( EKeys::RightCommand, KeysState.IsRightCommandDown());
 
 	return CurrentReplyState;
 }
 
 void FSceneViewport::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
+	bShouldCaptureMouseOnActivate = false;
+
 	KeyStateMap.Empty();
 	if (ViewportClient != nullptr)
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->LostFocus( this );
-
-		TSharedPtr<SWidget> ViewportWidgetPin = ViewportWidget.Pin();
-		if( ViewportWidgetPin.IsValid() )
-		{
-			for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
-			{
-				if (FSlateApplication::Get().GetUserFocusedWidget(UserIndex) == ViewportWidgetPin)
-				{
-					FSlateApplication::Get().ClearUserFocus(UserIndex);
-				}
-			}
-		}
 	}
 }
 
@@ -925,6 +914,51 @@ void FSceneViewport::OnViewportClosed()
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 		ViewportClient->CloseRequested( this );
+	}
+}
+
+FReply FSceneViewport::OnViewportActivated(const FWindowActivateEvent& InActivateEvent)
+{
+	if (ViewportClient != nullptr)
+	{
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+		ViewportClient->Activated(this, InActivateEvent);
+		
+		// If we are activating and had Mouse Capture on deactivate then we should get focus again
+		// It's important to note in the case of:
+		//    InActivateEvent.ActivationType == FWindowActivateEvent::EA_ActivateByMouse
+		// we do NOT acquire focus the reasoning is that the click itself will give us a chance on Mouse down to get capture.
+		// This also means we don't go and grab capture in situations like:
+		//    - the user clicked on the application header
+		//    - the user clicked on some UI
+		//    - the user clicked in our window but not an area our viewport covers.
+		if (InActivateEvent.GetActivationType() == FWindowActivateEvent::EA_Activate && bShouldCaptureMouseOnActivate)
+		{
+			return AcquireFocusAndCapture(GetSizeXY() / 2);
+		}
+	}
+	return FReply::Unhandled();
+}
+void FSceneViewport::OnViewportDeactivated(const FWindowActivateEvent& InActivateEvent)
+{
+	// We backup if we have capture for us on activation, however we also maintain "true" if it's already true!
+	// The reasoning behind maintaining "true" is that if the viewport is activated, 
+	// however doesn't reclaim capture we want to claim capture next time we activate unless something else gets focus.
+	// So we reset bHadMouseCaptureOnDeactivate in AcquireFocusAndCapture() and in OnFocusLost()
+	//
+	// This is not ideal, however the better fix probably requires that slate fundamentally chance when it "activates" a window or maybe just the viewport
+	// Which there simply doesn't exist the right hooks currently.
+	//
+	// This fixes the case where the application is deactivated, then the user click on the windows header
+	// this activates the window but we do not capture the mouse, then the User Alt-Tabs to the application.
+	// We properly acquire capture because we maintained the "true" through the activation where nothing was focuses
+	bShouldCaptureMouseOnActivate = bShouldCaptureMouseOnActivate || HasMouseCapture();
+
+	KeyStateMap.Empty();
+	if (ViewportClient != nullptr)
+	{
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+		ViewportClient->Deactivated(this, InActivateEvent);
 	}
 }
 

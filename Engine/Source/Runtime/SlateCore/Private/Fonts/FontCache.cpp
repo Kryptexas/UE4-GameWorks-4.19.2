@@ -431,6 +431,12 @@ FShapedGlyphSequencePtr FShapedGlyphSequence::GetSubSequence(const int32 InStart
 
 bool FShapedGlyphSequence::EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const
 {
+	if (InStartIndex == InEndIndex)
+	{
+		// Nothing to enumerate, but don't say we failed
+		return true;
+	}
+
 	// The given range is exclusive, but we use an inclusive range when performing all the bounds testing below (as it makes things simpler)
 	const FClusterIndexToGlyphData* StartClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InStartIndex);
 	const FClusterIndexToGlyphData* EndClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InEndIndex - 1);
@@ -540,6 +546,12 @@ bool FShapedGlyphSequence::EnumerateGlyphsInClusterRange(const int32 InStartInde
 
 bool FShapedGlyphSequence::EnumerateGlyphsInClusterRange(const int32 InStartIndex, const int32 InEndIndex, const FForEachShapedGlyphClusterBlockCallback& InBeginClusterBlockCallback, const FForEachShapedGlyphClusterBlockCallback& InEndClusterBlockCallback, const FForEachShapedGlyphEntryCallback& InGlyphCallback) const
 {
+	if (InStartIndex == InEndIndex)
+	{
+		// Nothing to enumerate, but don't say we failed
+		return true;
+	}
+
 	// The given range is exclusive, but we use an inclusive range when performing all the bounds testing below (as it makes things simpler)
 	const FClusterIndexToGlyphData* StartClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InStartIndex);
 	const FClusterIndexToGlyphData* EndClusterIndexToGlyphData = ClusterIndicesToGlyphData.GetGlyphData(InEndIndex - 1);

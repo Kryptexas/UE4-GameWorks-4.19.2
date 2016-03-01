@@ -32,6 +32,7 @@ SFbxSceneOptionWindow::SFbxSceneOptionWindow()
 	bShouldImport = false;
 	SceneTabTreeview = nullptr;
 	SceneTabDetailsView = nullptr;
+	SceneReimportTabDetailsView = nullptr;
 	OverrideNameOptions.Empty();
 	StaticMeshTabListView = nullptr;
 	StaticMeshTabDetailsView = nullptr;
@@ -65,6 +66,7 @@ SFbxSceneOptionWindow::~SFbxSceneOptionWindow()
 	bShouldImport = false;
 	SceneTabTreeview = nullptr;
 	SceneTabDetailsView = nullptr;
+	SceneReimportTabDetailsView = nullptr;
 	StaticMeshTabListView = nullptr;
 	StaticMeshTabDetailsView = nullptr;
 	SkeletalMeshTabListView = nullptr;
@@ -180,6 +182,9 @@ void SFbxSceneOptionWindow::OnFinishedChangingPropertiesSceneTabDetailView(const
 	//Set the Global Import setting
 	GlobalImportSettings->bBakePivotInVertex = SceneImportOptionsDisplay->bBakePivotInVertex;
 	GlobalImportSettings->bInvertNormalMap = SceneImportOptionsDisplay->bInvertNormalMaps;
+	GlobalImportSettings->ImportTranslation = SceneImportOptionsDisplay->ImportTranslation;
+	GlobalImportSettings->ImportRotation = SceneImportOptionsDisplay->ImportRotation;
+	GlobalImportSettings->ImportUniformScale = SceneImportOptionsDisplay->ImportUniformScale;
 }
 
 TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshTab(const FSpawnTabArgs& Args)
@@ -739,7 +744,9 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneReimportTab(const FSpawnTa
 		.SceneInfo(SceneInfo)
 		.SceneInfoOriginal(SceneInfoOriginal)
 		.NodeStatusMap(NodeStatusMap);
-
+	
+	TSharedPtr<SBox> InspectorBox;
+	
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
 		.TabRole(ETabRole::PanelTab)
 		.Label(LOCTEXT("WidgetFbxSceneActorTab", "Scene"))
@@ -748,7 +755,7 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneReimportTab(const FSpawnTa
 			SNew(SSplitter)
 			.Orientation(Orient_Horizontal)
 			+ SSplitter::Slot()
-			.Value(0.6f)
+			.Value(0.4f)
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
@@ -801,7 +808,7 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneReimportTab(const FSpawnTa
 				]
 			]
 			+ SSplitter::Slot()
-			.Value(0.4f)
+			.Value(0.6f)
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
@@ -820,7 +827,7 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneReimportTab(const FSpawnTa
 						.IsChecked(this, &SFbxSceneOptionWindow::IsReimportHierarchyChecked)
 					]
 					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
+					.AutoWidth()
 					.Padding(0.0f, 3.0f, 6.0f, 3.0f)
 					.VAlign(VAlign_Top)
 					.HAlign(HAlign_Left)
@@ -834,59 +841,23 @@ TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnSceneReimportTab(const FSpawnTa
 				.HAlign(HAlign_Left)
 				.AutoHeight()
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Left)
-					[
-						SNew(SCheckBox)
-						.HAlign(HAlign_Center)
-						.OnCheckStateChanged(this, &SFbxSceneOptionWindow::OnToggleBakePivotInVertex)
-						.IsChecked(this, &SFbxSceneOptionWindow::IsBakePivotInVertexChecked)
-					]
-					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.Padding(0.0f, 3.0f, 6.0f, 3.0f)
-					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Left)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_BakePivotInVertex", "Bake Pivot In Vertex"))
-						.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_Reimport_BakePivotInVertex_Tooltip", "- Experimental - If this option is true the inverse node pivot will be apply to the mesh vertices. The pivot from the DCC will then be the origin of the mesh."))
-					]
-				]
-				+ SVerticalBox::Slot()
-				.HAlign(HAlign_Left)
-				.AutoHeight()
-				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Left)
-					[
-						SNew(SCheckBox)
-						.HAlign(HAlign_Center)
-						.OnCheckStateChanged(this, &SFbxSceneOptionWindow::OnToggleInvertNormalMap)
-						.IsChecked(this, &SFbxSceneOptionWindow::IsInvertNormalMapChecked)
-					]
-					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.Padding(0.0f, 3.0f, 6.0f, 3.0f)
-					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Left)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("FbxOptionWindow_Scene_Reimport_InvertNormalMap", "Invert Normal Map"))
-						.ToolTipText(LOCTEXT("FbxOptionWindow_Scene_Reimport_InvertNormalMap_Tooltip", "If either importing of textures (or materials) is enabled, this option will cause normal map values to be inverted."))
-					]
+					SAssignNew(InspectorBox, SBox)
+					.WidthOverride(1920.0f)
 				]
 			]
 		];
 
 	//Prevent user to close the tab
 	DockTab->SetCanCloseTab(SDockTab::FCanCloseTab::CreateRaw(this, &SFbxSceneOptionWindow::CanCloseTab));
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	FDetailsViewArgs DetailsViewArgs;
+	DetailsViewArgs.bAllowSearch = false;
+	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+	SceneReimportTabDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+	InspectorBox->SetContent(SceneReimportTabDetailsView->AsShared());
+	SceneReimportTabDetailsView->SetObject(SceneImportOptionsDisplay);
+	SceneReimportTabDetailsView->OnFinishedChangingProperties().AddSP(this, &SFbxSceneOptionWindow::OnFinishedChangingPropertiesSceneTabDetailView);
 
 	return DockTab;
 }
@@ -915,19 +886,6 @@ void SFbxSceneOptionWindow::OnToggleBakePivotInVertex(ECheckBoxState CheckType)
 ECheckBoxState SFbxSceneOptionWindow::IsBakePivotInVertexChecked() const
 {
 	return  GlobalImportSettings->bBakePivotInVertex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void SFbxSceneOptionWindow::OnToggleInvertNormalMap(ECheckBoxState CheckType)
-{
-	if (GlobalImportSettings != nullptr)
-	{
-		GlobalImportSettings->bInvertNormalMap = CheckType == ECheckBoxState::Checked;
-	}
-}
-
-ECheckBoxState SFbxSceneOptionWindow::IsInvertNormalMapChecked() const
-{
-	return  GlobalImportSettings->bInvertNormalMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 TSharedRef<SDockTab> SFbxSceneOptionWindow::SpawnStaticMeshReimportTab(const FSpawnTabArgs& Args)
@@ -1370,6 +1328,7 @@ void SFbxSceneOptionWindow::CloseFbxSceneOption()
 	SkeletalMeshTabListView = nullptr;
 
 	SceneReimportTreeview = nullptr;
+	SceneReimportTabDetailsView = nullptr;
 
 	StaticMeshReimportListView = nullptr;
 	StaticMeshReimportDetailsView = nullptr;

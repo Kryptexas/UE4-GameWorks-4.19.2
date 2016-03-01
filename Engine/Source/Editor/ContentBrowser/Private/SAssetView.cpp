@@ -977,7 +977,7 @@ void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 			AssetAwaitingRename->bRenameWhenScrolledIntoview = false;
 			AwaitingRename = nullptr;
 		}
-		else if (FSlateApplication::Get().HasFocusedDescendants(OwnerWindow.ToSharedRef()))
+		else if (OwnerWindow->HasAnyUserFocusOrFocusedDescendants())
 		{
 			AssetAwaitingRename->RenamedRequestEvent.ExecuteIfBound();
 			AssetAwaitingRename->bRenameWhenScrolledIntoview = false;
@@ -1205,8 +1205,72 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 		{
 			if ( ExternalDragDropOp->HasFiles() )
 			{
+				TArray<FString> ImportFiles;
+				TMap<FString, UObject*> ReimportFiles;
 				FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-				AssetToolsModule.Get().ImportAssets( ExternalDragDropOp->GetFiles(), SourcesData.PackagePaths[0].ToString() );
+				FString RootDestinationPath = SourcesData.PackagePaths[0].ToString();
+				TArray<TPair<FString, FString>> FilesAndDestinations;
+				const TArray<FString>& DragFiles = ExternalDragDropOp->GetFiles();
+				AssetToolsModule.Get().ExpandDirectories(DragFiles, RootDestinationPath, FilesAndDestinations);
+
+				for (int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
+				{
+					const FString& Filename = FilesAndDestinations[FileIdx].Key;
+					const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
+					FString Name = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Filename));
+					FString PackageName = DestinationPath + TEXT("/") + Name;
+
+					// We can not create assets that share the name of a map file in the same location
+					if (FEditorFileUtils::IsMapPackageAsset(PackageName))
+					{
+						//The error message will be log in the import process
+						ImportFiles.Add(Filename);
+						continue;
+					}
+					//Check if package exist in memory
+					UPackage* Pkg = FindPackage(nullptr, *PackageName);
+					bool IsPkgExist = Pkg != nullptr;
+					//check if package exist on file
+					if (!IsPkgExist && !FPackageName::DoesPackageExist(PackageName))
+					{
+						ImportFiles.Add(Filename);
+						continue;
+					}
+					if (Pkg == nullptr)
+					{
+						Pkg = CreatePackage(nullptr, *PackageName);
+						if (Pkg == nullptr)
+						{
+							//Cannot create a package that don't exist on disk or in memory!!!
+							//The error message will be log in the import process
+							ImportFiles.Add(Filename);
+							continue;
+						}
+					}
+					// Make sure the destination package is loaded
+					Pkg->FullyLoad();
+
+					// Check for an existing object
+					UObject* ExistingObject = StaticFindObject(UObject::StaticClass(), Pkg, *Name);
+					if (ExistingObject != nullptr)
+					{
+						ReimportFiles.Add(Filename, ExistingObject);
+					}
+					else
+					{
+						ImportFiles.Add(Filename);
+					}
+				}
+				//Reimport
+				for (auto kvp : ReimportFiles)
+				{
+					FReimportManager::Instance()->Reimport(kvp.Value, false, true, kvp.Key);
+				}
+				//Import
+				if (ImportFiles.Num() > 0)
+				{
+					AssetToolsModule.Get().ImportAssets(ImportFiles, SourcesData.PackagePaths[0].ToString());
+				}
 			}
 
 			return FReply::Handled();

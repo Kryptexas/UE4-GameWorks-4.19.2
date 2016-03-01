@@ -96,6 +96,15 @@ public:
 		return *this;
 	}
 
+	FArchive& operator<<(EBlueprintTextLiteralType E)
+	{
+		static_assert(sizeof(__underlying_type(EBlueprintTextLiteralType)) == sizeof(uint8), "EBlueprintTextLiteralType is expected to be a uint8");
+
+		uint8 B = (uint8)E;
+		Serialize(&B, 1);
+		return *this;
+	}
+
 	FArchive& operator<<(EPropertyType E)
 	{
 		uint8 B = E; 
@@ -382,9 +391,43 @@ public:
 			{
 				Writer << EX_TextConst;
 				
-				EmitStringLiteral(FTextInspector::GetSourceString(Term->TextLiteral)? *FTextInspector::GetSourceString(Term->TextLiteral) : TEXT(""));
-				EmitStringLiteral(FTextInspector::GetKey(Term->TextLiteral).Get(TEXT("")));
-				EmitStringLiteral(FTextInspector::GetNamespace(Term->TextLiteral).Get(TEXT("")));
+				const FString& StringValue = FTextInspector::GetDisplayString(Term->TextLiteral);
+
+				// What kind of text are we dealing with?
+				if (Term->TextLiteral.IsEmpty())
+				{
+					Writer << EBlueprintTextLiteralType::Empty;
+				}
+				else if (Term->TextLiteral.IsCultureInvariant())
+				{
+					Writer << EBlueprintTextLiteralType::InvariantText;
+					EmitStringLiteral(StringValue);
+				}
+				else
+				{
+					bool bIsLocalized = false;
+					FString Namespace;
+					FString Key;
+					const FString* SourceString = FTextInspector::GetSourceString(Term->TextLiteral);
+
+					if (SourceString && Term->TextLiteral.ShouldGatherForLocalization())
+					{
+						bIsLocalized = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(FTextInspector::GetSharedDisplayString(Term->TextLiteral), Namespace, Key);
+					}
+
+					if (bIsLocalized)
+					{
+						Writer << EBlueprintTextLiteralType::LocalizedText;
+						EmitStringLiteral(*SourceString);
+						EmitStringLiteral(Key);
+						EmitStringLiteral(Namespace);
+					}
+					else
+					{
+						Writer << EBlueprintTextLiteralType::LiteralString;
+						EmitStringLiteral(StringValue);
+					}
+				}
 			}
 			else if (CoerceProperty->IsA(UFloatProperty::StaticClass()))
 			{

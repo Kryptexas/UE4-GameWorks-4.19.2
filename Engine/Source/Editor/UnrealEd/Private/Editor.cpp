@@ -223,7 +223,7 @@ void FReimportManager::UpdateReimportPaths( UObject* Obj, const TArray<FString>&
 	}
 }
 
-bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification )
+bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification, FString PreferedReimportFile)
 {
 	// Warn that were about to reimport, so prep for it
 	PreReimport.Broadcast( Obj );
@@ -265,9 +265,17 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, boo
 				}
 
 				bValidSourceFilename = true;
-				if ( bAskForNewFileIfMissing && bMissingFiles )
+				if ((bAskForNewFileIfMissing || !PreferedReimportFile.IsEmpty()) && bMissingFiles )
 				{
-					GetNewReimportPath(Obj, SourceFilenames);
+					if (!bAskForNewFileIfMissing && !PreferedReimportFile.IsEmpty())
+					{
+						SourceFilenames.Empty();
+						SourceFilenames.Add(PreferedReimportFile);
+					}
+					else
+					{
+						GetNewReimportPath(Obj, SourceFilenames);
+					}
 					if ( SourceFilenames.Num() == 0 )
 					{
 						// Failed to specify a new filename. Don't show a notification of the failure since the user exited on his own

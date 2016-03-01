@@ -919,13 +919,13 @@ FSCSEditorTreeNodeInstanceAddedComponent::FSCSEditorTreeNodeInstanceAddedCompone
 	TInlineComponentArray<UActorComponent*> Components;
 	Owner->GetComponents(Components);
 
-	ComponentTemplate = nullptr;
+	SetComponentTemplate(nullptr);
 	for (auto It = Components.CreateConstIterator(); It; ++It)
 	{
 		UActorComponent* ComponentInstance = *It;
 		if (ComponentInstance->GetFName() == InstancedComponentName)
 		{
-			ComponentTemplate = ComponentInstance;
+			SetComponentTemplate(ComponentInstance);
 			break;
 		}
 	}

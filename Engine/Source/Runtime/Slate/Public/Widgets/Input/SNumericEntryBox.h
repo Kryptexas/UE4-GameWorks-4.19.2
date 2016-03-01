@@ -72,7 +72,7 @@ public:
 		/** Whether or not the user should be able to change the value by dragging with the mouse cursor */
 		SLATE_ARGUMENT( bool, AllowSpin )
 		/** Delta to increment the value as the slider moves.  If not specified will determine automatically */
-		SLATE_ARGUMENT( NumericType, Delta )
+		SLATE_ATTRIBUTE( NumericType, Delta )
 		/** The minimum value that can be entered into the text edit box */
 		SLATE_ATTRIBUTE( TOptional< NumericType >, MinValue )
 		/** The maximum value that can be entered into the text edit box */

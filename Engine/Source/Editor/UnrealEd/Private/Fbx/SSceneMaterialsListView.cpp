@@ -145,7 +145,8 @@ void SFbxSceneMaterialsListView::GetMaterialsFromHierarchy(TArray<FbxMaterialInf
 	OutMaterials.Reset();
 	for (FbxNodeInfoPtr NodeInfo : SceneInfoSource->HierarchyInfo)
 	{
-		if (!NodeInfo->AttributeInfo.IsValid() || NodeInfo->NodeName.Compare("RootNode") == 0)
+		//Get all the mesh material
+		if (NodeInfo->AttributeType.Compare(TEXT("eMesh")) != 0 || NodeInfo->NodeName.Compare("RootNode") == 0)
 		{
 			continue;
 		}
