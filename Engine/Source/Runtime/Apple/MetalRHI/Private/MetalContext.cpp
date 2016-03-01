@@ -641,24 +641,14 @@ void FMetalContext::ResetRenderCommandEncoder()
 	
 	ConditionalSwitchToGraphics();
 	
-	TRefCountPtr<FMetalDepthStencilState> Depth = StateCache.GetDepthStencilState();
-	TRefCountPtr<FMetalRasterizerState> Raster = StateCache.GetRasterizerState();
-	TRefCountPtr<FMetalBlendState> Blend = StateCache.GetBlendState();
-	TRefCountPtr<FMetalBoundShaderState> BSS = StateCache.GetBoundShaderState();
-	
-    if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
+	if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
     {
-        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), QueryBuffer->GetCurrentQueryBuffer()->Buffer);
+        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), QueryBuffer->GetCurrentQueryBuffer()->Buffer, false);
     }
     else
     {
-        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), NULL);
+        StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), NULL, false);
     }
-	
-	StateCache.SetDepthStencilState(Depth);
-	StateCache.SetRasterizerState(Raster);
-	StateCache.SetBlendState(Blend);
-	StateCache.SetBoundShaderState(BSS);
 	
 	if (CommandEncoder.IsRenderCommandEncoderActive())
 	{
@@ -729,16 +719,7 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		FTexture2DRHIRef DepthStencil = RHICreateTexture2D(FBSize.width, FBSize.height, PF_DepthStencil, 1, 1, TexCreate_DepthStencilTargetable, TexInfo);
 		Info.DepthStencilRenderTarget.Texture = DepthStencil;
 		
-		TRefCountPtr<FMetalBlendState> BlendState = StateCache.GetBlendState();
-		TRefCountPtr<FMetalDepthStencilState> DepthState = StateCache.GetDepthStencilState();
-		TRefCountPtr<FMetalRasterizerState> RasterState = StateCache.GetRasterizerState();
-
-		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer());
-		
-		StateCache.SetBlendState(BlendState);
-		StateCache.SetDepthStencilState(DepthState);
-		StateCache.SetRasterizerState(RasterState);
-		StateCache.SetBoundShaderState(CurrentBoundShaderState);
+		StateCache.SetRenderTargetsInfo(Info, StateCache.GetVisibilityResultsBuffer(), false);
 		
 		bRestoreState = true;
 	}
@@ -777,11 +758,11 @@ void FMetalContext::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 //	}
     if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
     {
-        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer);
+        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, QueryBuffer->GetCurrentQueryBuffer()->Buffer, true);
     }
     else
     {
-        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL);
+        StateCache.SetRenderTargetsInfo(RenderTargetsInfo, NULL, true);
     }
 }
 

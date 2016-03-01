@@ -23,7 +23,7 @@ public:
 	void SetRasterizerState(FMetalRasterizerState* InRasterizerState);
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
 	void SetComputeShader(FMetalComputeShader* InComputeShader);
-	void SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer);
+	void SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bReset);
 	void SetHasValidRenderTarget(bool const bIsValid);
 	void SetViewport(const MTLViewport& InViewport);
 	void SetVertexBuffer(uint32 const Index, id<MTLBuffer> Buffer, uint32 const Stride, uint32 const Offset);
