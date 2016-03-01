@@ -92,29 +92,19 @@ private:
 
 	// Some APIs don't do internal reference counting, so we have to wait an extra couple of frames before deleting resources
 	// to ensure the GPU has completely finished with them. This avoids expensive fences, etc.
-	struct ResourceToDelete
+	struct ResourcesToDelete
 	{
-		ResourceToDelete()
-			: Resource(nullptr)
-			, FrameDeleted(0)
+		ResourcesToDelete(uint32 InFrameDeleted = 0)
+			: FrameDeleted(InFrameDeleted)
 		{
 
 		}
 
-		ResourceToDelete(
-			FRHIResource* InResource,
-			uint32 InFrameDeleted)
-			: Resource(InResource)
-			, FrameDeleted(InFrameDeleted)
-		{
-
-		}
-
-		FRHIResource*	Resource;
-		uint32			FrameDeleted;
+		TArray<FRHIResource*>	Resources;
+		uint32					FrameDeleted;
 	};
 
-	static TQueue<ResourceToDelete> DeferredDeletionQueue;
+	static TArray<ResourcesToDelete> DeferredDeletionQueue;
 	static uint32 CurrentFrame;
 };
 
