@@ -304,8 +304,11 @@ int32 AndroidMain(struct android_app* state)
 		if(!FAppEventManager::GetInstance()->IsGamePaused())
 		{
 			GEngineLoop.Tick();
-
-			float timeToSleep = 0.05f; //in seconds
+		}
+		else
+		{
+			// use less CPU when paused
+			float timeToSleep = 0.10f; //in seconds
 			sleep(timeToSleep);
 		}
 
