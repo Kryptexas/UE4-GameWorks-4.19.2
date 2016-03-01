@@ -641,6 +641,11 @@ void FMetalContext::ResetRenderCommandEncoder()
 	
 	ConditionalSwitchToGraphics();
 	
+	TRefCountPtr<FMetalDepthStencilState> Depth = StateCache.GetDepthStencilState();
+	TRefCountPtr<FMetalRasterizerState> Raster = StateCache.GetRasterizerState();
+	TRefCountPtr<FMetalBlendState> Blend = StateCache.GetBlendState();
+	TRefCountPtr<FMetalBoundShaderState> BSS = StateCache.GetBoundShaderState();
+	
     if (IsFeatureLevelSupported( GMaxRHIShaderPlatform, ERHIFeatureLevel::SM4 ))
     {
         StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), QueryBuffer->GetCurrentQueryBuffer()->Buffer);
@@ -649,6 +654,11 @@ void FMetalContext::ResetRenderCommandEncoder()
     {
         StateCache.SetRenderTargetsInfo(StateCache.GetRenderTargetsInfo(), NULL);
     }
+	
+	StateCache.SetDepthStencilState(Depth);
+	StateCache.SetRasterizerState(Raster);
+	StateCache.SetBlendState(Blend);
+	StateCache.SetBoundShaderState(BSS);
 	
 	if (CommandEncoder.IsRenderCommandEncoderActive())
 	{
