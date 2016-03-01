@@ -100,7 +100,7 @@ FReply FCrashReportClient::SubmitAndRestart()
 	Submit();
 
 	const FString CrashedAppPath = ErrorReport.FindCrashedAppPath();
-	const FString CommandLineArguments = FPrimaryCrashProperties::Get()->CommandLine.AsString();
+	const FString CommandLineArguments = FPrimaryCrashProperties::Get()->RestartCommandLine;
 
 	FPlatformProcess::CreateProc(*CrashedAppPath, *CommandLineArguments, true, false, false, NULL, 0, NULL, NULL);
 

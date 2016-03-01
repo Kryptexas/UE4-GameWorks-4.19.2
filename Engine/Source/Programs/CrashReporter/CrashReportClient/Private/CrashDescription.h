@@ -320,6 +320,9 @@ struct FPrimaryCrashProperties
 	/** Whether this crash contains primary usable data. */
 	bool bHasPrimaryData;
 
+	/** Copy of CommandLine that isn't anonymized so it can be used to restart the process */
+	FString RestartCommandLine;
+
 protected:
 	/** Default constructor. */
 	FPrimaryCrashProperties();
