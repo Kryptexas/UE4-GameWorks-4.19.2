@@ -3676,14 +3676,19 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const 
 { 
 	if (!FPackageName::IsScriptPackage(InFilename))
 	{
+		FName InFilenameName = FName(*InFilename );
+		if ( InFilenameName == NAME_None)
+		{
+			return;
+		}
 #if 0 // randomize cook file order, don't check in enabled...
 		if ( !InOutFilesToCook.Contains(InFilename) )
 		{
 			int Index = FMath::RandRange(0,InOutFilesToCook.Num()-1);
-			InOutFilesToCook.Insert(InFilename, Index );
+			InOutFilesToCook.Insert(InFilenameName, Index );
 		}
 #else
-		InOutFilesToCook.AddUnique(FName(*InFilename));
+		InOutFilesToCook.AddUnique(FName(*InFilenameName));
 #endif
 	}
 }
