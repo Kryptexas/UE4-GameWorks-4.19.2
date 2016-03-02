@@ -264,16 +264,23 @@ public partial class Project : CommandUtils
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "UE4Server-*.dll", true, null, null, true);
 
             // Put all of the cooked dir into the staged dir
-            // Dedicated server cook doesn't save shaders so no Engine dir is created
-            if ((!SC.DedicatedServer) && (!Params.DLCIncludeEngineContent))
+            string PlatformCookDir = CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform);
+            string[] ExcludeWildCards = {"AssetRegistry.bin"};
+
+            // Stage any loose files in the root folder
+            SC.StageFiles(StagedFileType.UFS, PlatformCookDir, "*", false, ExcludeWildCards, "", true, !Params.UsePak(SC.StageTargetPlatform));
+
+            // Stage each sub directory separately so that we can skip Engine if need be
+            string[] SubDirs = CommandUtils.FindDirectories(true, "*", false, new string[] { PlatformCookDir });
+            foreach (string SubDir in SubDirs)
             {
-                if (Directory.Exists(CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform, "Engine")))
+                // Dedicated server cook doesn't save shaders so no Engine dir is created
+                if ((!SC.DedicatedServer) && (!Params.DLCIncludeEngineContent) && CommandUtils.GetLastDirectoryName(SubDir).Equals("Engine", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform), "*", true, new[] { CommandUtils.CombinePaths("Engine", "*") }, "", true, !Params.UsePak(SC.StageTargetPlatform));
+                    continue;
                 }
+                SC.StageFiles(StagedFileType.UFS, SubDir, "*", true, ExcludeWildCards, "", true, !Params.UsePak(SC.StageTargetPlatform));
             }
-            
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform), "*", true, new[] { "AssetRegistry.bin" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
 
             return;
         }
