@@ -1435,7 +1435,7 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 {
 	bool bSetNotification = true;
 	FFormatNamedArguments Arguments;
-	FText NotificationText = FText::Format(LOCTEXT("LauncherTaskProcessingNotification", "Default"), Arguments);
+	FText NotificationText;
 	if (InStage.Contains(TEXT("Cooking")) || InStage.Contains(TEXT("Cook Task")))
 	{
 		FString PlatformName = PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")));
