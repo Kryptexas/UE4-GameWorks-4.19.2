@@ -1006,7 +1006,7 @@ namespace UnrealBuildTool
 
 					// @todo ubtmake: remove this when building with RPCUtility works
 					// @todo tvos merge: Check the change to this line, not clear why. Is TVOS needed here?
-					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS)
+					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS || CheckPlatform == UnrealTargetPlatform.TVOS)
 					{
 						BuildConfiguration.bUseUBTMakefiles = false;
 					}
