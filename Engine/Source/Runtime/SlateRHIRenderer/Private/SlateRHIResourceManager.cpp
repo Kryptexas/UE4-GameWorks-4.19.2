@@ -224,6 +224,42 @@ bool FSlateRHIResourceManager::IsAtlasPageResourceAlphaOnly() const
 	return false;
 }
 
+void FSlateRHIResourceManager::Tick(float DeltaSeconds)
+{
+	// Don't need to do this if there's no RHI thread.
+	if ( GRHIThread )
+	{
+		struct FDeleteCachedRenderDataContext
+		{
+			FSlateRHIResourceManager* ResourceManager;
+		};
+		FDeleteCachedRenderDataContext DeleteCachedRenderDataContext =
+		{
+			this,
+		};
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			DeleteCachedRenderData,
+			FDeleteCachedRenderDataContext, Context, DeleteCachedRenderDataContext,
+			{
+				// Go through the pending delete buffers and see if any of their fences has cleared
+				// the RHI thread, if so, they should be safe to delete now.
+				for ( int32 BufferIndex = Context.ResourceManager->PooledBuffersPendingRelease.Num() - 1; BufferIndex >= 0; BufferIndex-- )
+				{
+					FCachedRenderBuffers* PooledBuffer = Context.ResourceManager->PooledBuffersPendingRelease[BufferIndex];
+
+					if ( PooledBuffer->ReleaseResourcesFence->IsComplete() )
+					{
+						PooledBuffer->VertexBuffer.Destroy();
+						PooledBuffer->IndexBuffer.Destroy();
+						delete PooledBuffer;
+
+						Context.ResourceManager->PooledBuffersPendingRelease.RemoveAt(BufferIndex);
+					}
+				}
+			});
+	}
+}
+
 void FSlateRHIResourceManager::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	for ( TSet<UObject*>* AccessedUObjects : AllAccessedUObject )
@@ -851,6 +887,9 @@ void FSlateRHIResourceManager::UpdateTextureAtlases()
 
 FCachedRenderBuffers* FSlateRHIResourceManager::FindOrCreateCachedBuffersForHandle(const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle)
 {
+	// Should only be called by the rendering thread
+	check(IsInRenderingThread());
+
 	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(&RenderHandle.Get());
 	if ( Buffers == nullptr )
 	{
@@ -899,13 +938,12 @@ void FSlateRHIResourceManager::BeginReleasingRenderData(const FSlateRenderDataHa
 		ReleaseCachedRenderData,
 		FReleaseCachedRenderDataContext, Context, ReleaseCachedRenderDataContext,
 		{
-			Context.ResourceManager->ReleaseCachedRenderData(Context.RenderDataHandle, Context.LayoutCacher);
+			Context.ResourceManager->ReleaseCachedRenderData(RHICmdList, Context.RenderDataHandle, Context.LayoutCacher);
 		});
 }
 
-void FSlateRHIResourceManager::ReleaseCachedRenderData(const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher)
+void FSlateRHIResourceManager::ReleaseCachedRenderData(FRHICommandListImmediate& RHICmdList, const FSlateRenderDataHandle* RenderHandle, const ILayoutCache* LayoutCacher)
 {
-	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 	check(RenderHandle);
 
@@ -919,29 +957,43 @@ void FSlateRHIResourceManager::ReleaseCachedRenderData(const FSlateRenderDataHan
 		}
 		else
 		{
-			// The buffer pool may have already been released, so lets just delete this buffer.
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
+			ReleaseCachedBuffer(RHICmdList, PooledBuffer);
 		}
 
 		CachedBuffers.Remove(RenderHandle);
 	}
 }
 
-void FSlateRHIResourceManager::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
+void FSlateRHIResourceManager::ReleaseCachingResourcesFor(FRHICommandListImmediate& RHICmdList, const ILayoutCache* Cacher)
 {
+	check(IsInRenderingThread());
+
 	TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(Cacher);
 	if ( Pool )
 	{
 		for ( FCachedRenderBuffers* PooledBuffer : *Pool )
 		{
-			PooledBuffer->VertexBuffer.Destroy();
-			PooledBuffer->IndexBuffer.Destroy();
-			delete PooledBuffer;
+			ReleaseCachedBuffer(RHICmdList, PooledBuffer);
 		}
 
 		CachedBufferPool.Remove(Cacher);
+	}
+}
+
+void FSlateRHIResourceManager::ReleaseCachedBuffer(FRHICommandListImmediate& RHICmdList, FCachedRenderBuffers* PooledBuffer)
+{
+	check(IsInRenderingThread());
+
+	if ( GRHIThread )
+	{
+		PooledBuffersPendingRelease.Add(PooledBuffer);
+		PooledBuffer->ReleaseResourcesFence = RHICmdList.RHIThreadFence();
+	}
+	else
+	{
+		PooledBuffer->VertexBuffer.Destroy();
+		PooledBuffer->IndexBuffer.Destroy();
+		delete PooledBuffer;
 	}
 }
 
