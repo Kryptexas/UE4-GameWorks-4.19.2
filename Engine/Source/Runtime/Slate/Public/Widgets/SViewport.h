@@ -132,6 +132,9 @@ public:
 	 */
 	void SetActive(bool bActive);
 
+	DEPRECATED(4.11, "SetWidgetToFocusOnActivate is no longer needed, remove this call.")
+	void SetWidgetToFocusOnActivate(TSharedPtr<SWidget> WidgetToFocus) { }
+
 public:
 
 	// SWidget interface
