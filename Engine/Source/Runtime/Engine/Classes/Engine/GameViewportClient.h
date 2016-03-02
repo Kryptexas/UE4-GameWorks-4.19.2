@@ -638,7 +638,7 @@ public:
 	/**
 	 * Set the mouse capture behavior when the viewport is clicked
 	 */
-	void SetCaptureMouseOnClick(EMouseCaptureMode::Type Mode)
+	void SetCaptureMouseOnClick(EMouseCaptureMode Mode)
 	{
 		MouseCaptureMode = Mode;
 	}
@@ -646,7 +646,7 @@ public:
 	/**
 	 * Gets the mouse capture behavior when the viewport is clicked
 	 */
-	virtual EMouseCaptureMode::Type CaptureMouseOnClick() override
+	virtual EMouseCaptureMode CaptureMouseOnClick() override
 	{
 		return MouseCaptureMode;
 	}
@@ -796,7 +796,7 @@ private:
 	bool bIgnoreInput;
 
 	/** Mouse capture behavior when the viewport is clicked */
-	EMouseCaptureMode::Type MouseCaptureMode;
+	EMouseCaptureMode MouseCaptureMode;
 
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;
@@ -809,6 +809,9 @@ private:
 
 	/** Whether or not this audio device is in audio-focus */
 	bool bHasAudioFocus;
+
+	/** Whether or not this viewport is active*/
+	bool bActive;
 };
 
 
