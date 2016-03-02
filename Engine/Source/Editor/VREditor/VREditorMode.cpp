@@ -842,11 +842,9 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 		}
 	}
 
-
-	UISystem->Tick( ViewportClient, DeltaTime );
-
 	WorldInteraction->Tick( ViewportClient, DeltaTime );
 
+	UISystem->Tick( ViewportClient, DeltaTime );
 
 	// Update avatar meshes
 	{

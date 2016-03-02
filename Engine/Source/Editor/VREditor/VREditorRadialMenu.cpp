@@ -34,14 +34,14 @@ UVREditorRadialMenu::UVREditorRadialMenu( const FObjectInitializer& ObjectInitia
 
 void UVREditorRadialMenu::Update( const FVirtualHand& Hand )
 {
-	TrackpadPosition = FVector2D( Hand.TrackpadPosition.X, -Hand.TrackpadPosition.Y );
+	TrackpadPosition = Hand.TrackpadPosition;
 	
 	if( !GetOwner()->bHidden )
 	{
 		// Check if position is from the center
 		if( !IsInMenuRadius() )
 		{
-			float Angle = FRotator::NormalizeAxis( FMath::RadiansToDegrees(FMath::Atan2( Hand.TrackpadPosition.X,  Hand.TrackpadPosition.Y ) ) );
+			float Angle = FRotator::NormalizeAxis( FMath::RadiansToDegrees(FMath::Atan2( TrackpadPosition.X, -TrackpadPosition.Y ) ) );
 			TrackpadAngle = Angle;
 			if( Angle < 0)
 			{

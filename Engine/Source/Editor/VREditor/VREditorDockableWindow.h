@@ -13,23 +13,26 @@ class AVREditorDockableWindow : public AVREditorFloatingUI
 {
 	GENERATED_BODY()
 	
-	/** The dockable */
+	/** The dockable window mesh */
 	UPROPERTY()
-	class UStaticMeshComponent* SelectionBar;
+	class UStaticMeshComponent* WindowMeshComponent;
+
+	/** Mesh underneath the window for easy selecting and dragging */
+	UPROPERTY()
+	class UStaticMeshComponent* SelectionMeshComponent;
 
 public:
 
 	/** Default constructor */
 	AVREditorDockableWindow();
 
-	/** Updates the selection bar scale and the widgetcomponent position */
+	/** Updates the meshes for the UI */
 	virtual void TickManually( float DeltaTime ) override;
 
 	/** Updates the last dragged relative position */
 	void UpdateRelativeRoomTransform();
 
 private:
-
-	/** Scale for the selection bar that will be updated with the worldscale */
-	FVector SelectionBarScale;
+	/** The room space scale for the SelectionMeshComponent */
+	FVector SelectionMeshScale;
 };	

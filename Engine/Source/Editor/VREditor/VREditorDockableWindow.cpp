@@ -9,34 +9,63 @@
 
 namespace VREd
 {
-	static FAutoConsoleVariable DockUIZBarOffset( TEXT( "VREd.DockUIZBarOffset" ), 0.5f, TEXT( "Z Distance between the selectionbar and the UI" ) );
+	static FAutoConsoleVariable DockWindowTickness( TEXT( "VREd.DockWindowTickness" ), 0.003f, TEXT( "Z Distance between the selectionbar and the UI" ) );
+	static FAutoConsoleVariable DockUIZBarOffset( TEXT( "VREd.DockUIZBarOffset" ), 1.0f, TEXT( "Z Distance between the selectionbar and the UI" ) );
 }
 
 AVREditorDockableWindow::AVREditorDockableWindow() 
 	: Super(),
-	SelectionBarScale( FVector(1.0f, 1.0f, 1.0f) )
+	SelectionMeshScale( FVector(0.6f, 2.0f, 1.2f) )
 {
-	UStaticMesh* SelectionMesh = nullptr;
+
 	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/SM_ContentWindow_01" ) );
-		SelectionMesh = ObjectFinder.Object; 
-		check( SelectionMesh != nullptr );
+		UStaticMesh* WindowMesh = nullptr;
+		{
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/SM_ContentWindow_01" ) );
+			WindowMesh = ObjectFinder.Object;
+			check( WindowMesh != nullptr );
+		}
+
+		WindowMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBar" ) );
+		WindowMeshComponent->SetStaticMesh( WindowMesh );
+		WindowMeshComponent->SetMobility( EComponentMobility::Movable );
+		WindowMeshComponent->AttachTo( RootComponent );
+
+		WindowMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
+		WindowMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Block );
+		WindowMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+
+		WindowMeshComponent->bGenerateOverlapEvents = false;
+		WindowMeshComponent->SetCanEverAffectNavigation( false );
+		WindowMeshComponent->bCastDynamicShadow = false;
+		WindowMeshComponent->bCastStaticShadow = false;
+		WindowMeshComponent->bAffectDistanceFieldLighting = false;
 	}
 
-	SelectionBar = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBar" ) ); 
-	SelectionBar->SetStaticMesh( SelectionMesh );
-	SelectionBar->SetMobility( EComponentMobility::Movable );
-	SelectionBar->AttachTo( RootComponent );
+	{
+		UStaticMesh* SelectionMesh = nullptr;
+		{
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/UniformScaleHandle" ) );
+			SelectionMesh = ObjectFinder.Object;
+			check( SelectionMesh != nullptr );
+		}
 
-	SelectionBar->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-	SelectionBar->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Block );
-	SelectionBar->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+		SelectionMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionMesh" ) );
+		SelectionMeshComponent->SetStaticMesh( SelectionMesh );
+		SelectionMeshComponent->SetMobility( EComponentMobility::Movable );
+		SelectionMeshComponent->AttachTo( RootComponent );
 
-	SelectionBar->bGenerateOverlapEvents = false;
-	SelectionBar->SetCanEverAffectNavigation( false );
-	SelectionBar->bCastDynamicShadow = false;
-	SelectionBar->bCastStaticShadow = false;
-	SelectionBar->bAffectDistanceFieldLighting = false;
+		SelectionMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
+		SelectionMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Block );
+		SelectionMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+
+		SelectionMeshComponent->bGenerateOverlapEvents = false;
+		SelectionMeshComponent->SetCanEverAffectNavigation( false );
+		SelectionMeshComponent->bCastDynamicShadow = false;
+		SelectionMeshComponent->bCastStaticShadow = false;
+		SelectionMeshComponent->bAffectDistanceFieldLighting = false;
+	}
+
 }
 
 void AVREditorDockableWindow::TickManually( float DeltaTime )
@@ -46,7 +75,15 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 	if( WidgetComponent->IsVisible() )
 	{
 		const FVector AnimatedScale = CalculateAnimatedScale();
-		SelectionBar->SetWorldScale3D( ( FVector( 0.001f, 1.0 / (float)Resolution.X, 1.0f / (float)Resolution.Y ) * ( Size *  GetOwner().GetOwner().GetWorldScaleFactor() ) ) * 10 * AnimatedScale );
+		const float WordScaleFactor = GetOwner().GetOwner().GetWorldScaleFactor();
+		const FVector SelectionMeshWorldScale = SelectionMeshScale * WordScaleFactor;
+		SelectionMeshComponent->SetWorldScale3D( SelectionMeshWorldScale * AnimatedScale );
+
+		const FVector WindowMeshWorldScale = FVector( VREd::DockWindowTickness->GetFloat() , 1.0 / (float)Resolution.X, 1.0f / (float)Resolution.Y  ) * ( Size *  GetOwner().GetOwner().GetWorldScaleFactor() ) * AnimatedScale;
+		WindowMeshComponent->SetWorldScale3D( WindowMeshWorldScale * 10 );	
+		
+		const FVector NewRelativeLocation = FVector( 0.f, 0.f, -(((WindowMeshWorldScale.Z * 0.5f) * 1000) + ((SelectionMeshWorldScale.Z * 0.5) * 10) + (VREd::DockUIZBarOffset->GetFloat() * WordScaleFactor)) );
+		SelectionMeshComponent->SetRelativeLocation( NewRelativeLocation );
 	}
 } 
 
