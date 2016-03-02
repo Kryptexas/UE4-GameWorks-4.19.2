@@ -101,6 +101,11 @@ public:
 	virtual void RebaseObjectOrientationAndPosition(FVector& Position, FQuat& Orientation) const = 0;
 
 	/**
+	 * Get the offset, in device space, of the reported device (screen / eye) position to the center of the head, if supported
+	 */
+	virtual FVector GetAudioListenerOffset() const { return FVector(0.f); }
+
+	/**
 	 * Get the ISceneViewExtension for this HMD, or none.
 	 */
 	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() = 0;

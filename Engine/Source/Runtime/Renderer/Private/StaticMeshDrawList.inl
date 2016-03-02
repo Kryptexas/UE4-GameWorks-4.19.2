@@ -579,9 +579,23 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
 							if (bIsVisible)
 							{
 								const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-								int32 SubCount = Element.Mesh->Elements.Num();
+								const int32 SubCount = Element.Mesh->Elements.Num();
+
 								// Avoid the cache miss looking up batch visibility if there is only one element.
-								Count += (SubCount == 1) ? 1 : CountBits((*BatchVisibilityArray)[Element.Mesh->Id]);
+								if (SubCount == 1)
+								{
+									++Count;
+								}
+								else if (!bIsInstancedStereo)
+								{
+									Count += CountBits((*BatchVisibilityArray)[Element.Mesh->Id]);
+								}
+								else
+								{
+									const int32 LeftCount = CountBits((*StereoView->LeftViewBatchVisibilityArray)[Element.Mesh->Id]);
+									const int32 RightCount = CountBits((*StereoView->RightViewBatchVisibilityArray)[Element.Mesh->Id]);
+									Count += (LeftCount > RightCount) ? LeftCount : RightCount;
+								}
 							}
 						}
 						if (Count)

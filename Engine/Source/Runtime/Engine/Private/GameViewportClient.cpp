@@ -976,6 +976,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 								PlayerController->GetAudioListenerPosition(/*out*/ Location, /*out*/ ProjFront, /*out*/ ProjRight);
 
 								FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
+
+								// Allow the HMD to adjust based on the head position of the player, as opposed to the view location
+								if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled())
+								{
+									const FVector Offset = GEngine->HMDDevice->GetAudioListenerOffset();
+									Location += ListenerTransform.TransformPositionNoScale(Offset);
+								}
+
 								ListenerTransform.SetTranslation(Location);
 								ListenerTransform.NormalizeRotation();
 
