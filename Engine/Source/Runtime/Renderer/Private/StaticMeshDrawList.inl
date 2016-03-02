@@ -16,6 +16,7 @@
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 {
+	check(!GDrawListsLocked);
 	// Make a copy of this handle's variables on the stack, since the call to Elements.RemoveSwap deletes the handle.
 	TStaticMeshDrawList* const LocalDrawList = StaticMeshDrawList;
 	FDrawingPolicyLink* const LocalDrawingPolicyLink = &LocalDrawList->DrawingPolicySet[SetId];
@@ -170,6 +171,8 @@ void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(
 	ERHIFeatureLevel::Type InFeatureLevel
 	)
 {
+	check(!GDrawListsLocked);
+
 	// Check for an existing drawing policy matching the mesh's drawing policy.
 	FDrawingPolicyLink* DrawingPolicyLink = DrawingPolicySet.Find(InDrawingPolicy);
 	if(!DrawingPolicyLink)

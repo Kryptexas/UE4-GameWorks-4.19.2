@@ -7,6 +7,7 @@
 #ifndef __STATICMESHDRAWLIST_H__
 #define __STATICMESHDRAWLIST_H__
 
+extern ENGINE_API bool GDrawListsLocked;
 /** View state for instanced stereo rendering. */
 struct StereoPair
 {

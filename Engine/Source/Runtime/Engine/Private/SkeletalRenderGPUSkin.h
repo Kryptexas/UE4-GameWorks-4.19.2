@@ -173,10 +173,22 @@ public:
 	/** Has been updated or not by UpdateMorphVertexBuffer**/
 	bool bHasBeenUpdated;
 
+	// @param guaranteed only to be valid if the vertex buffer is valid
+	FShaderResourceViewRHIParamRef GetSRV() const
+	{
+		return SRVValue;
+	}
+
+	FStaticLODModel* GetStaticLODModel() const { return &SkelMeshResource->LODModels[LODIdx]; }
+
+protected:
+	// guaranteed only to be valid if the vertex buffer is valid
+	FShaderResourceViewRHIRef SRVValue;
+
 private:
 	/** index to the SkelMeshResource.LODModels */
 	int32	LODIdx;
-	/** parent mesh containing the source data */
+	// parent mesh containing the source data, never 0
 	FSkeletalMeshResource* SkelMeshResource;
 };
 
@@ -393,6 +405,7 @@ private:
 		}
 
 		FSkeletalMeshResource* SkelMeshResource;
+		// index into FSkeletalMeshResource::LODModels[]
 		int32 LODIndex;
 
 		/** Vertex buffer that stores the morph target vertex deltas. Updated on the CPU */
@@ -406,7 +419,7 @@ private:
 		 * delta positions and delta normals from the set of active vertex anims
 		 * @param ActiveVertexAnims - vertex anims to accumulate. assumed to be weighted and have valid targets
 		 */
-		void UpdateMorphVertexBuffer( const TArray<FActiveVertexAnim>& ActiveVertexAnims );
+		void UpdateMorphVertexBuffer(FRHICommandListImmediate& RHICmdList, const TArray<FActiveVertexAnim>& ActiveVertexAnims);
 
 		/**
 		 * Determine the current vertex buffers valid for this LOD

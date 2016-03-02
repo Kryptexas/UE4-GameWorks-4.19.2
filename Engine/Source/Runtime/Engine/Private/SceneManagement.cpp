@@ -6,6 +6,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 
+bool GDrawListsLocked = false;
 
 static TAutoConsoleVariable<float> CVarLODTemporalLag(
 	TEXT("lod.TemporalLag"),

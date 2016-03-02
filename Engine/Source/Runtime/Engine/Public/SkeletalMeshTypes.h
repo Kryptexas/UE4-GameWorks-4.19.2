@@ -814,6 +814,8 @@ public:
 	*/
 	virtual void InitRHI() override;
 
+	virtual void ReleaseRHI() override;
+
 	/**
 	* @return text description for the resource type
 	*/
@@ -1069,6 +1071,16 @@ public:
 			ConvertToFullPrecisionUVsTyped<NumTexCoordsT, false>();
 		}
 	}
+	
+	// @param guaranteed only to be valid if the vertex buffer is valid
+	FShaderResourceViewRHIParamRef GetSRV() const
+	{
+		return SRVValue;
+	}
+
+protected:
+	// guaranteed only to be valid if the vertex buffer is valid
+	FShaderResourceViewRHIRef SRVValue;
 
 private:
 	/** InfluenceBones/InfluenceWeights byte order has been swapped */
@@ -1666,6 +1678,39 @@ public:
 		}
 
 		return false;
+	}
+
+	// @return -1 if not found
+	uint32 FindChunkIndex(const FSkelMeshChunk& Chunk) const
+	{
+		uint32 Ret = -1;
+
+		for(int32 ChunkIdx = 0; ChunkIdx < Chunks.Num(); ++ChunkIdx)
+		{
+			if(&Chunks[ChunkIdx] == &Chunk)
+			{
+				Ret = ChunkIdx;
+				break;
+			}
+		}
+
+		return Ret;
+	}
+
+	// @return 0 if not found
+	const FSkelMeshSection* FindSectionForChunk(int16 ChunkIndex) const
+	{
+		for(auto& ref : Sections)
+		{
+			// should we check ranges instead?
+			if(ref.ChunkIndex == ChunkIndex)
+			{
+				return &ref;
+			}
+		}
+		// should never happen
+		ensure(0);
+		return 0;
 	}
 
 	/**

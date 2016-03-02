@@ -1926,6 +1926,8 @@ public:
 					FLockFreeLink* Repush = IncomingQueue.Pop(); 
 					if (!Repush)
 					{
+						FPlatformMisc::MemoryBarrier();
+						DequeueLock = 0;
 						break;
 					}
 					bResult = false;

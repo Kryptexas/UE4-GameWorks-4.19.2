@@ -108,6 +108,8 @@ uint SkinCacheVertexCount;
 
 float3 MeshOrigin;
 float3 MeshExtension;
+// see r.SkinCache.Debug, default is 1.0f
+float SkinCacheDebug;
 
 //uint4 DebugParameter;
 
@@ -214,8 +216,8 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 		LocalTangentX = normalize( LocalTangentX - (dot(LocalTangentX, LocalTangentZ) * LocalTangentZ) );
 	}
 #endif
-
-	float3 SPos = SkinPosition(Intermediates);
+	
+	float3 SPos = SkinPosition(Intermediates) * SkinCacheDebug;
 		
 	float3 TangentX = mul((float3x3)Intermediates.BlendMatrix, LocalTangentX);
 	float3 TangentZ = mul((float3x3)Intermediates.BlendMatrix, LocalTangentZ);

@@ -3622,8 +3622,9 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 FAutoConsoleTaskPriority CPrio_FParallelClothTask(
 	TEXT("TaskGraph.TaskPriorities.ParallelClothTask"),
 	TEXT("Task and thread priority for parallel cloth."),
-	ENamedThreads::NormalThreadPriority,
-	ENamedThreads::NormalTaskPriority
+	ENamedThreads::HighThreadPriority, // if we have high priority task threads, then use them...
+	ENamedThreads::NormalTaskPriority, // .. at normal task priority
+	ENamedThreads::HighTaskPriority // if we don't have hi pri threads, then use normal priority threads at high task priority instead
 	);
 
 class FParallelClothTask

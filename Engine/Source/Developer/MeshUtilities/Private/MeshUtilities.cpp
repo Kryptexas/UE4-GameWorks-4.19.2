@@ -684,12 +684,17 @@ class FQueuedThreadPool& ThreadPool,
 			SampleDirections.Add(Sample);
 		}
 
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DistanceFields.MaxPerMeshResolution"));
+		const int32 PerMeshMax = CVar->GetValueOnAnyThread();
+
 		// Meshes with explicit artist-specified scale can go higher
-		const int32 MaxNumVoxelsOneDim = DistanceFieldResolutionScale <= 1 ? 64 : 128;
+		const int32 MaxNumVoxelsOneDim = DistanceFieldResolutionScale <= 1 ? PerMeshMax / 2 : PerMeshMax;
 		const int32 MinNumVoxelsOneDim = 8;
 
-		//@todo - project setting
-		const float NumVoxelsPerLocalSpaceUnit = .1f * DistanceFieldResolutionScale;
+		static const auto CVarDensity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DistanceFields.DefaultVoxelDensity"));
+		const float VoxelDensity = CVarDensity->GetValueOnAnyThread();
+
+		const float NumVoxelsPerLocalSpaceUnit = VoxelDensity * DistanceFieldResolutionScale;
 		FBox MeshBounds(Bounds.GetBox());
 
 		{

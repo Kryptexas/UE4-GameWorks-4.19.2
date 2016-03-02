@@ -298,8 +298,20 @@ void MainPS(
 			// not normalized
 			float3 OSNormal = GradientNotNormalized(SvPosition, OSPosition, HitT);
 			
-			// not normalized
-			float3 WSNormal = mul(float4(OSNormal, 0), transpose(WorldToDecal)).xyz;
+			// To transform the normals use tranpose(Inverse(DecalToWorld)) = transpose(WorldToDecal)
+			// But we want to only rotate the normals (we don't want to non-uniformaly scale them).
+			// We assume the matrix is only a scale and rotation, and we remove non-uniform scale:
+			float3 lengthSqr = { length2(DecalToWorld._m00_m01_m02),
+				length2(DecalToWorld._m10_m11_m12),
+				length2(DecalToWorld._m20_m21_m22) };
+
+			float3 scale = rsqrt(lengthSqr);
+
+			// Pre-multiply by the inverse of the non-uniform scale in DecalToWorld
+		    float4 ScaledNormal = float4(OSNormal.xyz * scale.xyz, 0.f); 
+		    float3 WSNormal = mul(ScaledNormal, DecalToWorld).xyz;
+
+			// need to normalized
 
 			MaterialParameters.WorldNormal = normalize(WSNormal);
 		}
@@ -310,9 +322,23 @@ void MainPS(
 
 			// tangent/decal space to world space
 #if MATERIAL_TANGENTSPACENORMAL
-			// normals are transformed by the tranposed of the inverse
-			// DecalToWorld becomes transpose(WorldToDecal)
-			MaterialParameters.WorldNormal = normalize(mul(float4(-MaterialNormal.z, MaterialNormal.y, MaterialNormal.x, 0), transpose(WorldToDecal)).xyz);
+
+	
+			// To transform the normals use tranpose(Inverse(DecalToWorld)) = transpose(WorldToDecal)
+			// But we want to only rotate the normals (we don't want to non-uniformaly scale them).
+			// We assume the matrix is only a scale and rotation, and we remove non-uniform scale:
+			float3 lengthSqr = { length2(DecalToWorld._m00_m01_m02),
+					             length2(DecalToWorld._m10_m11_m12),
+					             length2(DecalToWorld._m20_m21_m22) };
+
+			float3 scale = rsqrt(lengthSqr);
+				
+			// Pre-multiply by the inverse of the non-uniform scale in DecalToWorld
+			float4 ScaledNormal = { -MaterialNormal.z * scale.x, MaterialNormal.y * scale.y, MaterialNormal.x * scale.z, 0.f };
+				
+			// Compute the normal 
+			MaterialParameters.WorldNormal = normalize(mul(ScaledNormal, DecalToWorld).xyz);
+
 #else
 			MaterialParameters.WorldNormal = normalize(MaterialNormal);
 #endif

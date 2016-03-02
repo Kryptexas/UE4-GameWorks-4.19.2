@@ -77,3 +77,5 @@ FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringC
 FCoreDelegates::FOnGameSessionIDChange FCoreDelegates::GameSessionIDChanged;
 
 FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
+FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;
+FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PreRenderingThreadDestroyed;

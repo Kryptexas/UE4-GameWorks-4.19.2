@@ -362,6 +362,9 @@ public:
 	{
 
 	}
+	static void WaitForTasks();
+private:
+	void WaitForTasksInternal();
 };
 
 class FVolumeUpdateRegion

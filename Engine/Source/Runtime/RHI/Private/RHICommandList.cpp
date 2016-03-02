@@ -1515,29 +1515,14 @@ bool FRHICommandListImmediate::StallRHIThread()
 		}
 		if (!RenderThreadSublistDispatchTask.GetReference())
 		{
-			while (RHIThreadTask.GetReference())
+			if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
 			{
-				SCOPE_CYCLE_COUNTER(STAT_ExplicitWaitRHIThread);
-				if (FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local))
-				{
-					// we have to spin here because all task threads might be stalled, meaning the fire event anythread task might not be hit.
-					// todo, add a third queue
-					SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThread);
-					while (!RHIThreadTask->IsComplete())
-					{
-						FPlatformProcess::SleepNoStats(0);
-					}
-				}
-				else
-				{
-					FTaskGraphInterface::Get().WaitUntilTaskCompletes(RHIThreadTask, ENamedThreads::RenderThread_Local);
-				}
-				if (RHIThreadTask.GetReference() && RHIThreadTask->IsComplete())
-				{
-					RHIThreadTask = nullptr;
-				}
+				RHIThreadTask = nullptr;
 			}
-			return false;
+			if (!RHIThreadTask.GetReference())
+			{
+				return false;
+			}
 		}
 		if (!GRHIThreadStallEvent)
 		{

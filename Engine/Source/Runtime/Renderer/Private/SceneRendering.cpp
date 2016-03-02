@@ -187,6 +187,8 @@ static TAutoConsoleVariable<int32> CVarRHICmdMinDrawsPerParallelCmdList(
 	64,
 	TEXT("The minimum number of draws per cmdlist. If the total number of draws is less than this, then no parallel work will be done at all. This can't always be honored or done correctly. More effective with RHICmdBalanceParallelLists."));
 
+static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
+
 FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
 	: View(InView)
 	, ParentCmdList(InParentCmdList)
@@ -205,6 +207,8 @@ FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FV
 	CommandLists.Reserve(Width * 8);
 	Events.Reserve(Width * 8);
 	NumDrawsIfKnown.Reserve(Width * 8);
+	check(!GOutstandingParallelCommandListSet);
+	GOutstandingParallelCommandListSet = this;
 }
 
 FRHICommandList* FParallelCommandListSet::AllocCommandList()
@@ -281,6 +285,9 @@ void FParallelCommandListSet::Dispatch(bool bHighPriority)
 
 FParallelCommandListSet::~FParallelCommandListSet()
 {
+	check(GOutstandingParallelCommandListSet == this);
+	GOutstandingParallelCommandListSet = nullptr;
+
 	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
 	checkf(CommandLists.Num() == 0, TEXT("Derived class of FParallelCommandListSet did not call Dispatch in virtual destructor"));
 	checkf(NumAlloc == 0, TEXT("Derived class of FParallelCommandListSet did not call Dispatch in virtual destructor"));
@@ -314,6 +321,30 @@ void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, F
 	NumDrawsIfKnown.Add(InNumDrawsIfKnown);
 }
 
+void FParallelCommandListSet::WaitForTasks()
+{
+	check(GOutstandingParallelCommandListSet);
+	GOutstandingParallelCommandListSet->WaitForTasksInternal();
+}
+
+void FParallelCommandListSet::WaitForTasksInternal()
+{
+	check(IsInRenderingThread());
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FParallelCommandListSet_WaitForTasks);
+	FGraphEventArray WaitOutstandingTasks;
+	for (int32 Index = 0; Index < Events.Num(); Index++)
+	{
+		if (!Events[Index]->IsComplete())
+		{
+			WaitOutstandingTasks.Add(Events[Index]);
+		}
+	}
+	if (WaitOutstandingTasks.Num())
+	{
+		check(!FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::RenderThread_Local));
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(WaitOutstandingTasks, ENamedThreads::RenderThread_Local);
+	}
+}
 
 
 /*-----------------------------------------------------------------------------

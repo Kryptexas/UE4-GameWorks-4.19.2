@@ -757,7 +757,18 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 			*(PrimitiveSceneInfo->ComponentLastRenderTime) = CurrentWorldTime;
 			if (PrimitiveSceneInfo->NeedsLazyUpdateForRendering())
 			{
-				PrimitiveSceneInfo->ConditionalLazyUpdateForRendering(FRHICommandListExecutor::GetImmediateCommandList());
+				if (GDrawListsLocked && PrimitiveSceneInfo->NeedsUpdateStaticMeshes())
+				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_FProjectedShadowInfo_AddSubjectPrimitive_FlushPrepass);
+					FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+					FParallelCommandListSet::WaitForTasks();
+					TGuardValue<bool> LockDrawLists(GDrawListsLocked, false);
+					PrimitiveSceneInfo->ConditionalLazyUpdateForRendering(FRHICommandListExecutor::GetImmediateCommandList());
+				}
+				else
+				{
+					PrimitiveSceneInfo->ConditionalLazyUpdateForRendering(FRHICommandListExecutor::GetImmediateCommandList());
+				}
 			}
 		}
 

@@ -286,6 +286,8 @@ public:
 				if (AutomationCommand == EAutomationCommand::Quit)
 				{
 					GIsRequestingExit = true;
+					// We have finished the testing, and results are available
+					AutomationTestState = EAutomationTestState::Complete;
 				}
 				break;
 			}

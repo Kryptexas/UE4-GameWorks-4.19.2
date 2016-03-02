@@ -20,7 +20,7 @@ static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("r.GraphicsAdapter"),
 	-1,
 	TEXT("User request to pick a specific graphics adapter (e.g. when using a integrated graphics card with a discrete one)\n")
-	TEXT("At the moment this only works on Direct3D 11.\n")
+	TEXT("At the moment this only works on Direct3D 11. Unless a specific adapter is chosen we reject Microsoft adapters because we don't want the software emulation.\n")
 	TEXT(" -2: Take the first one that fulfills the criteria\n")
 	TEXT(" -1: Favour non integrated because there are usually faster (default)\n")
 	TEXT("  0: Adpater #0\n")
@@ -297,16 +297,18 @@ void FD3D11DynamicRHIModule::FindAdapter()
 					GetFeatureLevelString(ActualFeatureLevel)
 					);
 				UE_LOG(LogD3D11RHI, Log,
-					TEXT("      %uMB of dedicated video memory, %uMB of dedicated system memory, and %uMB of shared system memory, %d output[s]"),
+					TEXT("      %u/%u/%u MB DedicatedVideo/DedicatedSystem/SharedSystem, Outputs:%d, VendorId:0x%x"),
 					(uint32)(AdapterDesc.DedicatedVideoMemory / (1024*1024)),
 					(uint32)(AdapterDesc.DedicatedSystemMemory / (1024*1024)),
 					(uint32)(AdapterDesc.SharedSystemMemory / (1024*1024)),
-					OutputCount
+					OutputCount,
+					AdapterDesc.VendorId
 					);
 
 				bool bIsAMD = AdapterDesc.VendorId == 0x1002;
 				bool bIsIntel = AdapterDesc.VendorId == 0x8086;
 				bool bIsNVIDIA = AdapterDesc.VendorId == 0x10DE;
+				bool bIsMicrosoft = AdapterDesc.VendorId == 0x1414;
 
 				if(bIsAMD) bIsAnyAMD = true;
 				if(bIsIntel) bIsAnyIntel = true;
@@ -319,10 +321,11 @@ void FD3D11DynamicRHIModule::FindAdapter()
 
 				FD3D11Adapter CurrentAdapter(AdapterIndex, ActualFeatureLevel);
 
-				if(!OutputCount)
+				if(bIsMicrosoft && CVarValue < 0)
 				{
-					// This device has no outputs. Reject it, 
-					// http://msdn.microsoft.com/en-us/library/windows/desktop/bb205075%28v=vs.85%29.aspx#WARP_new_for_Win8
+					// To reject the software emulation, unless the cvar wants it.
+					// https://msdn.microsoft.com/en-us/library/windows/desktop/bb205075(v=vs.85).aspx#WARP_new_for_Win8
+					// Before we tested for no output devices but that failed where a laptop had a Intel (with output) and NVidia (with no output)
 					continue;
 				}
 

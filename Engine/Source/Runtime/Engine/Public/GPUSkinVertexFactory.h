@@ -412,9 +412,9 @@ public:
 
 	static bool SupportsTessellationShaders() { return true; }
 
-	const FVertexBuffer* GetSkinVertexBuffer() const
+	const FSkeletalMeshVertexBuffer* GetSkinVertexBuffer() const
 	{
-		return Streams[0].VertexBuffer;
+		return (FSkeletalMeshVertexBuffer*)(Streams[0].VertexBuffer);
 	}
 
 protected:

@@ -226,9 +226,6 @@ void FSkeletalMeshVertexBuffer::CleanUp()
 	VertexData = NULL;
 }
 
-/**
- * Initialize the RHI resource for this vertex buffer
- */
 void FSkeletalMeshVertexBuffer::InitRHI()
 {
 	check(VertexData);
@@ -237,8 +234,18 @@ void FSkeletalMeshVertexBuffer::InitRHI()
 	{
 		// Create the vertex buffer.
 		FRHIResourceCreateInfo CreateInfo(ResourceArray);
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static|BUF_ShaderResource, CreateInfo);
+		
+		// BUF_ShaderResource is needed for support of the SkinCache (we could make is dependent on GEnableGPUSkinCacheShaders or are there other users?)
+		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static | BUF_ShaderResource, CreateInfo);
+		SRVValue = RHICreateShaderResourceView(VertexBufferRHI, 4, PF_R32_FLOAT);
 	}
+}
+
+void FSkeletalMeshVertexBuffer::ReleaseRHI()
+{
+	FVertexBuffer::ReleaseRHI();
+
+	SRVValue.SafeRelease();
 }
 
 /**

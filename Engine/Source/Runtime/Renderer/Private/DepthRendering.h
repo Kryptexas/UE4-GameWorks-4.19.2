@@ -150,8 +150,12 @@ public:
 	{
 		EDepthDrawingMode DepthDrawingMode;
 
-		ContextType(EDepthDrawingMode InDepthDrawingMode) :
-			DepthDrawingMode(InDepthDrawingMode)
+		/** Uses of FDepthDrawingPolicyFactory that are not the depth pre-pass will not want the bUseAsOccluder flag to interfere. */
+		bool bRespectUseAsOccluderFlag;
+
+		ContextType(EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
+			DepthDrawingMode(InDepthDrawingMode),
+			bRespectUseAsOccluderFlag(bInRespectUseAsOccluderFlag)
 		{}
 	};
 

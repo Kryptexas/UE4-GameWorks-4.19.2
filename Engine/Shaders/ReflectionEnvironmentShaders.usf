@@ -474,16 +474,28 @@ void ReflectionApplyPS(
 		float3 V = -normalize( mul( float4(UVAndScreenPos.zw, 1, 0), View.ScreenToWorld ).xyz );
 		float NoV = saturate( dot( GBuffer.WorldNormal, V ) );
 		float3 SpecularColor = EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
-		
+		float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
+		float IndirectIrradiance = GBuffer.IndirectIrradiance;
+
 		float AO = GBuffer.GBufferAO * ScreenSpaceData.AmbientOcclusion;
 		float SpecularOcclusion = saturate( Square( NoV + AO ) - 1 + AO );
 		SpecularColor *= SpecularOcclusion;
+
+		// Indirect occlusion from DFAO, which should be applied to reflection captures and skylight specular, but not SSR
+		float IndirectSpecularOcclusion = 1.0f;
+#if SUPPORT_DFAO_INDIRECT_OCCLUSION
+		float IndirectDiffuseOcclusion = 1.0f;
+		GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness, GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE, IndirectSpecularOcclusion, IndirectDiffuseOcclusion); 
+		// Apply DFAO to IndirectIrradiance before mixing with indirect specular
+		IndirectIrradiance *= IndirectDiffuseOcclusion;
+#endif
 
 		float4 SpecularLighting = float4(0, 0, 0, 1);
 		
 #if APPLY_REFLECTION_ENV
 		// Alpha of the reflection environment texture contains coverage, where 0 the sky reflection should be applied
 		SpecularLighting = Texture2DSample( ReflectionEnvTexture, ReflectionEnvSampler, UV );
+		SpecularLighting.rgb *= IndirectSpecularOcclusion;
 
 #if ALLOW_STATIC_LIGHTING
 		FLATTEN
@@ -496,7 +508,7 @@ void ReflectionApplyPS(
 			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
 
 			// NOTE: this breaks LPV specular if r.allowstaticlighting is enabled
-			SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
+			SpecularLighting.rgb *= IndirectIrradiance;
 		}
 #endif
 #endif
@@ -513,7 +525,6 @@ void ReflectionApplyPS(
 		BRANCH
 		if (SpecularLighting.a > .001f)
 		{
-			float3 ReflectionVector = reflect(-V, GBuffer.WorldNormal);
 			// Normalize for static skylight types which mix with lightmaps
 			bool bNormalize = SkyLightParameters.z < 1 && Frame.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
 			float3 SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
@@ -525,12 +536,10 @@ void ReflectionApplyPS(
 			FLATTEN
 			if (bNormalize)
 			{
-				SkyLighting *= GBuffer.IndirectIrradiance;
+				SkyLighting *= IndirectIrradiance;
 			}
 
-			float Visibility = GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness, GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE); 
-
-			SpecularLighting.rgb += (Visibility * SpecularLighting.a) * SkyLighting;
+			SpecularLighting.rgb += SpecularLighting.a * SkyLighting * IndirectSpecularOcclusion;
 		}
 #endif
 

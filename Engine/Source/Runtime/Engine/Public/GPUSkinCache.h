@@ -5,6 +5,34 @@
 	GPUSkinCache.h: Performs skinning on a compute shader into a buffer to avoid vertex buffer skinning.
 =============================================================================*/
 
+// Requirements
+// * Compute shader support (with Atomics)
+// * Project settings needs to be enabled (r.SkinCacheShaders)
+// * feature need to be enabled (r.SkinCaching)
+
+// Features
+// * Skeletal mesh, 4 / 8 weights per vertex, 16/32 index buffer
+// * Supports Morph target animation (morph target blending is not done by this code)
+// * Saves vertex shader computations when we render an object multiple times (EarlyZ, velocity, shadow, BasePass, CustomDepth, Shadow masking)
+// * Fixes velocity rendering (needed for MotionBlur and TemporalAA) for WorldPosOffset animation and morph target animation
+// * RecomputeTangents results in improved tangent space for WorldPosOffset animation and morph target animation
+// * fixed amount of memory (r.MaxGPUSkinCacheElementsPerFrame, r.SkinCache.BufferSize)
+// * Velocity Rendering for MotionBlur and TemporalAA (test Velocity in BasePass)
+// * r.SkinCaching and r.SkinCaching.RecomputeTangents can be toggled at runtime
+
+// TODO:
+// * Test: Tessellation
+// * Quality/Optimization: increase TANGENT_RANGE for better quality or accumulate two components in one 32bit value
+// * Feature: RecomputeTangents should be a per section setting, the cvar (r.SkinCaching.RecomputeTangents) can stay but should be on by default
+// * Bug: We iterate through all chunks and try to find the Section. This is costly and might fail (Seems the section has a StartChunkIndex but it's called ChunkIndex)
+// * Bug: UpdateMorphVertexBuffer needs to handle SkinCacheObjects that have been rejected by the SkinCache (e.g. because it was running out of memory)
+// * Refactor: Unify the 3 compute shaders to use the same C++ setup code for the variables
+// * Optimization: Dispatch calls can be merged for better performance, stalls between Dispatch calls can be avoided (DX11 back door, DX12, console API)
+// * Feature: Needs show flag to see what objects are using the SkinCache
+// * Investigate: There might be issues with the FrameNumber (SceneCaptures, Split screen, HitProxy rendering, pause, scrubbing in Sequencer) causing TemporalAA or MotionBlur artifacts
+// * Feature: Cloth is not supported yet (Morph targets is a similar code)
+// * Feature: Support Static Meshes ?
+
 #pragma once
 
 #include "Array.h"
@@ -12,7 +40,7 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 
-typedef FRHIShaderResourceView*              FShaderResourceViewRHIParamRef;
+typedef FRHIShaderResourceView* FShaderResourceViewRHIParamRef;
 
 extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
 extern ENGINE_API int32 GEnableGPUSkinCache;
@@ -36,6 +64,10 @@ public:
 		RWTangentZOffsetInFloats = 4,	// Packed U8x4N
 
 		RWStrideInFloats = 5,
+		// 3 ints for normal, 3 ints for tangent, 1 for orientation = 7, rounded up to 8 as it should result in faster math and caching
+		IntermediateAccumBufferNumInts = 8,
+		// max vertex count we support once the r.SkinCache.RecomputeTangents feature is used (GPU memory in bytes = n * sizeof(int) * IntermediateAccumBufferNumInts)
+		IntermediateAccumBufferSizeInKB = 1024,
 	};
 
 	FGPUSkinCache();
@@ -86,11 +118,7 @@ public:
 		const FSkeletalMeshObjectGPUSkin* Skin;
 
 		int32	Key;
-		// index into CachedSRVs[] or -1 if it has no assignment yet
-		int32	VertexBufferSRVIndex;
-		// index into CachedSRVs[] or -1 if it has no assignment yet
-		int32	MorphVertexBufferSRVIndex;
-		
+	
 		uint32	FrameUpdated;
 
 		uint32	InputVBStride;
@@ -100,12 +128,6 @@ public:
 		uint32	PreviousFrameStreamOffset;
 
 		bool	bExtraBoneInfluences;
-
-		FElementCacheStatusInfo()
-			: VertexBufferSRVIndex(-1)
-			, MorphVertexBufferSRVIndex(-1)
-		{
-		}
 
 		struct FSearchInfo
 		{
@@ -133,7 +155,7 @@ public:
 	struct FDispatchData 
 	{
 		FRHICommandListImmediate& RHICmdList;
-
+		const FSkelMeshChunk& Chunk;
 		ERHIFeatureLevel::Type FeatureLevel;
 		
 		// must not be 0
@@ -143,22 +165,40 @@ public:
 		uint32 SkinType;
 
 		// SkinCache output input for RecomputeSkinTagents
-		FShaderResourceViewRHIParamRef VertexBuffer;
-		uint32 VertexBufferOffset;
+		// 0 if no morph
+		FRWBuffer* SkinCacheBuffer;
+		uint32 OutputBufferFloatOffset;
+		uint32 NumVertices;
+
+		uint32 InputStreamFloatOffset;
+		uint32 InputStreamStride;
+		FShaderResourceViewRHIRef InputVertexBufferSRV;
 
 		// morph input
 		FShaderResourceViewRHIParamRef MorphBuffer;
 		uint32 MorphBufferOffset;
 
-		FDispatchData(FRHICommandListImmediate& InRHICmdList, ERHIFeatureLevel::Type InFeatureLevel, FSkeletalMeshObjectGPUSkin* InGPUSkin)
+		// triangle index buffer (input for the RecomputeSkinTangents, might need special index buffer unique to position and normal, not considering UV/vertex color)
+		FShaderResourceViewRHIParamRef IndexBuffer;
+		uint32 IndexBufferOffsetValue;
+		uint32 NumTriangles;
+		
+		FDispatchData(FRHICommandListImmediate& InRHICmdList, const FSkelMeshChunk& InChunk, ERHIFeatureLevel::Type InFeatureLevel, FSkeletalMeshObjectGPUSkin* InGPUSkin)
 			: RHICmdList(InRHICmdList)
+			, Chunk(InChunk)
 			, FeatureLevel(InFeatureLevel)
 			, GPUSkin(InGPUSkin)
 			, SkinType(0)
-			, VertexBuffer(0)
-			, VertexBufferOffset(0)
+			, SkinCacheBuffer(0)
+			, OutputBufferFloatOffset(0)
+			, NumVertices(0)
+			, InputStreamFloatOffset(0)
+			, InputStreamStride(0)
 			, MorphBuffer(0)
 			, MorphBufferOffset(0)
+			, IndexBuffer(0)
+			, IndexBufferOffsetValue(0)
+			, NumTriangles(0)
 		{
 			check(GPUSkin);
 		}
@@ -171,19 +211,25 @@ public:
 private:
 	FElementCacheStatusInfo* FindEvictableCacheStatusInfo();
 
-	struct FSRVCacheEntry;
-
-	void DispatchSkinCacheProcess(uint32 InputStreamFloatOffset, uint32 OutputBufferFloatOffset,
-		const struct FVertexBufferAndSRV& BoneBuffer, FUniformBufferRHIRef UniformBuffer, const FSRVCacheEntry* VBInfo,
-		uint32 VertexStride, uint32 VertexCount, const FVector& MeshOrigin, const FVector& MeshExtension, bool bUseExtraBoneInfluences,
+	void DispatchSkinCacheProcess(
+		const struct FVertexBufferAndSRV& BoneBuffer, FUniformBufferRHIRef UniformBuffer,
+		const FVector& MeshOrigin, const FVector& MeshExtension, bool bUseExtraBoneInfluences,
 		const FDispatchData& DispatchData);
+
+	void DispatchUpdateSkinTangents(const FDispatchData& DispatchData);
 
 	bool InternalSetVertexStreamFromCache(FRHICommandList& RHICmdList, int32 Key, FShader* Shader, const class FGPUSkinPassthroughVertexFactory* VertexFactory, uint32 BaseVertexIndex, FShaderParameter PreviousStreamFloatOffset, FShaderResourceParameter PreviousStreamBuffer);
 
-	bool	bInitialized : 1;
-
 	void TransitionAllToWriteable(FRHICommandList& RHICmdList);
 	bool InternalIsElementProcessed(int32 Key) const;
+
+	uint32 ComputeRecomputeTangentMaxVertexCount() const
+	{
+		uint32 IntermediateAccumBufferSizeInB = FGPUSkinCache::IntermediateAccumBufferSizeInKB * 1024;
+		return IntermediateAccumBufferSizeInB / (sizeof(int32) * FGPUSkinCache::IntermediateAccumBufferNumInts);
+	}
+
+	bool bInitialized : 1;
 
 	uint32	FrameCounter;
 
@@ -195,37 +241,12 @@ private:
 
 	FRWBuffer	SkinCacheBuffer[GPUSKINCACHE_FRAMES];
 
+	// to accumulate tangents on the GPU with atomics, is shared and reused, if not large enough the method fails
+	FRWBuffer SkinTangentIntermediate;
+
 	static void CVarSinkFunction();
 
 	static FAutoConsoleVariableSink CVarSink;
-
-	
-	// -------------------------------------------------
-	
-	// to cache the SRV needed to access the input vertex buffers
-	struct FSRVCacheEntry
-	{
-		// key: input vertex/index buffer from which we need an SRV
-		const FRenderResource* Key;
-		// value: SRV created from the VertexBuffer
-		FShaderResourceViewRHIRef SRVValue;
-		
-		// to support FindByKey()
-		bool operator == (const FRenderResource& Other) const 
-		{
-			return (Key == &Other);
-		}
-	};
-
-	// to cache the SRV needed to access the input vertex buffers
-	TArray<FSRVCacheEntry> CachedSRVs;
-	
-	// @param InOutIndex index -1 if not yet set
-	// @return 0 if we failed to find a buffer
-	FSRVCacheEntry* ReuseOrFindAndCacheSRV(int32& InOutIndex, const FVertexBuffer& InKey);
-	// @param InOutIndex index -1 if not yet set
-	// @return 0 if we failed to find a buffer
-	FSRVCacheEntry* ReuseOrFindAndCacheSRV(int32& InOutIndex, const FIndexBuffer& InKey);
 };
 
 BEGIN_UNIFORM_BUFFER_STRUCT(GPUSkinCacheBonesUniformShaderParameters,)

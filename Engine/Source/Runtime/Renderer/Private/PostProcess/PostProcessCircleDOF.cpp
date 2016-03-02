@@ -584,7 +584,9 @@ public:
 	IMPLEMENT_SHADER_TYPE2(FPostProcessCircleDOFPS##A##B, SF_Pixel);
 
 	VARIATION1(0,0)			VARIATION1(1,0)
-	VARIATION1(0,1)			VARIATION1(1,1)
+	VARIATION1(0,1)	        VARIATION1(1,1)
+	VARIATION1(0,2)         VARIATION1(1,2)
+
 
 #undef VARIATION1
 
@@ -663,20 +665,30 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 	check(CVar);
 	int32 DOFQualityCVarValue = CVar->GetValueOnRenderThread();
 	
-	// 0:normal / 1:slow but very high quality
-	uint32 Quality = DOFQualityCVarValue >= 3;
+	
 
 	FShader* VertexShader = 0;
 
 	if (bNearBlurEnabled)
 	{
-		if(Quality) VertexShader = SetShaderTempl<1, 1>(Context);
-		  else		VertexShader = SetShaderTempl<1, 0>(Context);
+		switch (DOFQualityCVarValue)
+		{
+			case 0:  VertexShader = SetShaderTempl<1, 0>(Context); break;
+			case 3:  VertexShader = SetShaderTempl<1, 1>(Context); break;
+			case 4:  VertexShader = SetShaderTempl<1, 2>(Context); break;
+			default: VertexShader = SetShaderTempl<1, 0>(Context);
+		}
 	}
 	else
 	{
-		if(Quality)	VertexShader = SetShaderTempl<0, 1>(Context);
-		  else		VertexShader = SetShaderTempl<0, 0>(Context);
+		switch (DOFQualityCVarValue)
+		{
+			case 0:  VertexShader = SetShaderTempl<0, 0>(Context);
+			case 3:  VertexShader = SetShaderTempl<0, 1>(Context); break;
+			case 4:  VertexShader = SetShaderTempl<0, 2>(Context); break;	
+			default: VertexShader = SetShaderTempl<0, 0>(Context);
+		}
+
 	}
 
 	DrawPostProcessPass(

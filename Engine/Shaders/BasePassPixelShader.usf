@@ -748,9 +748,23 @@ void Main(
 	}
 #endif
 
+	float3 LocalBaseColor = BaseColor;
+	float LocalSpecular = Specular;
+
+#if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+	// SubsurfaceProfile applies the BaseColor in a later pass. Any lighting output in the base pass needs
+	// to separate specualar and diffuse lighting in a checkerboard pattern
+	{
+		bool bChecker = CheckerFromPixelPos(MaterialParameters.SvPosition.xy);
+
+		LocalBaseColor = bChecker;
+		LocalSpecular = !bChecker;
+	}
+#endif
+
 	// So that the following code can still use DiffuseColor and SpecularColor.
-	half3 DiffuseColor = BaseColor - BaseColor * Metallic;
-	half3 SpecularColor = lerp( 0.08 * Specular.xxx, BaseColor, Metallic.xxx );
+	half3 DiffuseColor = LocalBaseColor - LocalBaseColor * Metallic;
+	half3 SpecularColor = lerp( 0.08 * LocalSpecular.xxx, LocalBaseColor, Metallic.xxx );
 
 #if USE_DEVELOPMENT_SHADERS
 	{

@@ -201,6 +201,12 @@ private:
 	/** Render dynamic sky lighting from Movable sky lights. */
 	void RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& VelocityTexture, TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
 
+	/** Computes DFAO, modulates it to scene color (which is assumed to contain diffuse indirect lighting), and stores the output bent normal for use occluding specular. */
+	void RenderDFAOAsIndirectShadowing(
+		FRHICommandListImmediate& RHICmdList,
+		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
+		TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
+
 	/** Render Ambient Occlusion using mesh distance fields and the surface cache, which supports dynamic rigid meshes. */
 	bool RenderDistanceFieldLighting(
 		FRHICommandListImmediate& RHICmdList, 
@@ -208,6 +214,7 @@ private:
 		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance,
+		bool bModulateToSceneColor,
 		bool bVisualizeAmbientOcclusion,
 		bool bVisualizeGlobalIllumination);
 
