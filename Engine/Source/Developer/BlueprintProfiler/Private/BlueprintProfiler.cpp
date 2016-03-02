@@ -5,8 +5,6 @@
 
 #define LOCTEXT_NAMESPACE "BlueprintProfiler"
 
-#pragma optimize( "g", off )
-
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintProfiler
 
