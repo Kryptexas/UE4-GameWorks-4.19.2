@@ -168,6 +168,9 @@ struct FVirtualHand
 	/** True if we're currently holding the 'SelectAndMove' button down after clicking on UI */
 	bool bIsClickingOnUI;
 
+	/** Last real time that we released the 'SelectAndMove' button on UI.  This is used to detect double-clicks. */
+	double LastClickReleaseTime;
+
 	/** The last real time we played a haptic effect.  This is used to turn off haptic effects shortly after they're triggered. */
 	double LastHapticTime;
 
@@ -316,6 +319,7 @@ struct FVirtualHand
 		}
 		ClickingOnComponent = nullptr;
 		bIsClickingOnUI = false;
+		LastClickReleaseTime = 0.0;
 		LastHapticTime = 0.0;
 		
 		bHasUIInFront = false;
