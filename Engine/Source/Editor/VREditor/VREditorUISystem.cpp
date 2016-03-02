@@ -60,6 +60,7 @@ FVREditorUISystem::FVREditorUISystem( FVREditorMode& InitOwner )
 	  QuickRadialWidgetClass( nullptr ),
 	  DraggingUI( nullptr ),
 	  DraggingUIHandIndex( INDEX_NONE ),
+	  DraggingUIOffsetTransform( FTransform::Identity ),
 	  bPanelVisibilityToggle( false )
 {
 	// Register to find out about VR events
@@ -925,7 +926,32 @@ void FVREditorUISystem::HideRadialMenu( const int32 HandIndex )
 	}
 }
 
-AVREditorFloatingUI* FVREditorUISystem::StartDraggingDockUI( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex )
+
+FTransform FVREditorUISystem::MakeDockableUITransformOnLaser( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance ) const
+{
+	const FVirtualHand& Hand = Owner.GetVirtualHand( HandIndex );
+
+	const FVector NewLocation = Hand.Transform.GetLocation() + ( Hand.Transform.GetRotation().Vector().GetSafeNormal() * DockSelectDistance );
+	
+	FRotator NewRotation = ( Hand.Transform.GetLocation() - NewLocation ).ToOrientationRotator();
+	NewRotation.Roll = -Hand.Transform.GetRotation().Rotator().Roll;
+	
+	const FTransform LaserImpactToWorld( NewRotation, NewLocation );
+	return LaserImpactToWorld;
+}
+
+
+FTransform FVREditorUISystem::MakeDockableUITransform( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance ) const
+{
+	const FTransform UIOnLaserToWorld = MakeDockableUITransformOnLaser( DraggingUI, HandIndex, DockSelectDistance );
+	const FTransform UIToUIOnLaser = DraggingUIOffsetTransform;
+	
+	const FTransform UIToWorld = UIToUIOnLaser * UIOnLaserToWorld;
+	return UIToWorld;
+}
+
+
+AVREditorFloatingUI* FVREditorUISystem::StartDraggingDockUI( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance )
 {
 	AVREditorFloatingUI::EDockedTo DockTo = InitDraggingDockUI->GetDockedTo();
 	if( DockTo == AVREditorFloatingUI::EDockedTo::LeftHand || DockTo == AVREditorFloatingUI::EDockedTo::RightHand )
@@ -934,6 +960,16 @@ AVREditorFloatingUI* FVREditorUISystem::StartDraggingDockUI( AVREditorDockableWi
 	}
 
 	DraggingUIHandIndex = HandIndex;
+
+	FTransform UIToWorld = InitDraggingDockUI->GetActorTransform();
+	UIToWorld.SetScale3D( FVector( 1.0f ) );
+	const FTransform WorldToUI = UIToWorld.Inverse();
+
+	const FTransform UIOnLaserToWorld = MakeDockableUITransformOnLaser( InitDraggingDockUI, HandIndex, DockSelectDistance );
+	const FTransform UIOnLaserToUI = UIOnLaserToWorld * WorldToUI;
+	const FTransform UIToUIOnLaser = UIOnLaserToUI.Inverse();
+	DraggingUIOffsetTransform = UIToUIOnLaser;
+
 	DraggingUI = InitDraggingDockUI;
 	DraggingUI->SetDockedTo( AVREditorFloatingUI::EDockedTo::Nothing );
 	return DraggingUI;

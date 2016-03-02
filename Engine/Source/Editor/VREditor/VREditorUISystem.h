@@ -76,8 +76,14 @@ public:
 	void HideRadialMenu( const int32 HandIndex );
 
 	/** Start dragging a dock window on the hand */
-	class AVREditorFloatingUI* StartDraggingDockUI( class AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex );
+	class AVREditorFloatingUI* StartDraggingDockUI( class AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance );
 
+	/** Makes up a transform for a dockable UI when dragging it with a laser at the specified distance from the laser origin */
+	FTransform MakeDockableUITransformOnLaser( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance ) const;
+
+	/** Makes up a transform for a dockable UI when dragging it that includes the original offset from the laser's impact point */
+	FTransform MakeDockableUITransform( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance ) const;
+	
 	/** Returns the current dragged dock window, nullptr if none */
 	class AVREditorDockableWindow* GetDraggingDockUI() const;
 
@@ -131,6 +137,9 @@ protected:
 
 	/** Hand that is dragging the UI */
 	int32 DraggingUIHandIndex;
+
+	/** Offset transform from room-relative transform to the object where we picked it up at */
+	FTransform DraggingUIOffsetTransform;
 
 	/** The current UI that is being dragged */
 	class AVREditorDockableWindow* DraggingUI;

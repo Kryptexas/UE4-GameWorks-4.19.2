@@ -384,7 +384,7 @@ void FVREditorWorldInteraction::OnVRAction( FEditorViewportClient& ViewportClien
 								{
 									Hand.DraggingMode = EVREditorDraggingMode::DockableWindow;
 									DockSelectDistance = ( LaserPointerStart - HitResult.Location ).Size();
-									Owner.GetUISystem().StartDraggingDockUI( DockableWindow, VRAction.HandIndex );
+									Owner.GetUISystem().StartDraggingDockUI( DockableWindow, VRAction.HandIndex, DockSelectDistance );
 									bWasHandled = true;
 								}
 							}
@@ -1160,13 +1160,9 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 				AVREditorDockableWindow* DraggingUI = Owner.GetUISystem().GetDraggingDockUI();
 				if( DraggingUI )
 				{
-					FVector NewLocation = Hand.Transform.GetLocation() + ( Hand.Transform.GetRotation().Vector().GetSafeNormal() * DockSelectDistance );
-					DraggingUI->SetActorLocation( NewLocation );
-					
-					FRotator Rotation = (Hand.Transform.GetLocation() - NewLocation).ToOrientationRotator();
-					Rotation.Roll = -Hand.Transform.GetRotation().Rotator().Roll;
-					DraggingUI->SetActorRotation( FQuat( Rotation ) );
-					
+					const FTransform DockedUIToWorld = Owner.GetUISystem().MakeDockableUITransform( DraggingUI, HandIndex, DockSelectDistance );
+					DraggingUI->SetActorTransform( DockedUIToWorld );
+
 					DraggingUI->UpdateRelativeRoomTransform();
 				}
 			}
