@@ -4898,21 +4898,31 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 	
 	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse(InMouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows());
 
-	// Switch worlds widgets in the current path
-	FScopedSwitchWorldHack SwitchWorld(WidgetsUnderCursor);
-
-	FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), InMouseEvent, [](const FArrangedWidget& TargetWidget, const FPointerEvent& Event)
-	{
-		return TargetWidget.Widget->OnMouseButtonDoubleClick(TargetWidget.Geometry, Event);
-	});
-
-
-	LOG_EVENT(EEventLog::MouseButtonDoubleClick, Reply);
+	FReply Reply = RoutePointerDoubleClickEvent( WidgetsUnderCursor, InMouseEvent );
 
 	PointerIndexLastPositionMap.Add(InMouseEvent.GetPointerIndex(), InMouseEvent.GetScreenSpacePosition());
 	
 	return Reply.IsEventHandled();
 }
+
+
+FReply FSlateApplication::RoutePointerDoubleClickEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
+{
+	FReply Reply = FReply::Unhandled();
+
+	// Switch worlds widgets in the current path
+	FScopedSwitchWorldHack SwitchWorld( WidgetsUnderPointer );
+
+	Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy( WidgetsUnderPointer ), PointerEvent, []( const FArrangedWidget& TargetWidget, const FPointerEvent& Event )
+	{
+		return TargetWidget.Widget->OnMouseButtonDoubleClick( TargetWidget.Geometry, Event );
+	} );
+
+	LOG_EVENT( EEventLog::MouseButtonDoubleClick, Reply );
+
+	return Reply;
+}
+
 
 bool FSlateApplication::OnMouseUp( const EMouseButtons::Type Button )
 {

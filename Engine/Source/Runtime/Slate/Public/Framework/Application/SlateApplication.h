@@ -1207,6 +1207,14 @@ public:
 	bool RoutePointerMoveEvent( const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic );
 
 	/**
+	 * Directly routes a pointer double click event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 */
+	FReply RoutePointerDoubleClickEvent( FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent );
+
+	/**
 	 * Directly routes a pointer mouse wheel or gesture event to the widgets in the specified widget path.
 	 * 
 	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
