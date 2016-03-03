@@ -394,7 +394,7 @@ void FVREditorWorldInteraction::OnVRAction( FEditorViewportClient& ViewportClien
 										const bool bShouldShow = false;
 										const bool bShowOnHand = false;
 										const bool bRefreshQuickMenu = true;
-										Owner.GetUISystem().ShowEditorUIPanel( DockableWindow, VRAction.HandIndex, bShouldShow, bShowOnHand, bRefreshQuickMenu );
+										Owner.GetUISystem().ShowEditorUIPanel( DockableWindow, Owner.GetOtherHandIndex( VRAction.HandIndex ), bShouldShow, bShowOnHand, bRefreshQuickMenu );
 									}
 									else
 									{
