@@ -125,6 +125,9 @@ protected:
 	/** The Radial Menu UI */
 	AVREditorFloatingUI* QuickRadialMenu;
 
+	/** The time since the radial menu was updated */
+	float RadialMenuHideDelayTime;
+
 	/** Quick menu widget class */
 	UClass* QuickMenuWidgetClass;
 

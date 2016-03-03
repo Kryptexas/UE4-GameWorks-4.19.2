@@ -881,11 +881,6 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 						Owner.GetUISystem().UpdateRadialMenu( HandIndex );
 					}
 				}
-				else
-				{
-					// Hide the radial menu when not touching the trackpad
-					Owner.GetUISystem().HideRadialMenu( HandIndex );
-				}
 			}
 		}
 

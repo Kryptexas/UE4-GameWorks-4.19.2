@@ -61,7 +61,8 @@ FVREditorUISystem::FVREditorUISystem( FVREditorMode& InitOwner )
 	  DraggingUI( nullptr ),
 	  DraggingUIHandIndex( INDEX_NONE ),
 	  DraggingUIOffsetTransform( FTransform::Identity ),
-	  bPanelVisibilityToggle( false )
+	  bPanelVisibilityToggle( false ),
+	  RadialMenuHideDelayTime( 0.0f )
 {
 	// Register to find out about VR events
 	Owner.OnVRAction().AddRaw( this, &FVREditorUISystem::OnVRAction );
@@ -556,6 +557,15 @@ void FVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 			}
 		}
 	}
+	else
+	{
+		// Close the radial menu if it was not updated for a while
+		RadialMenuHideDelayTime += DeltaTime;
+		if( RadialMenuHideDelayTime >= VREd::RadialMenuFadeDelay->GetFloat() )
+		{
+			HideRadialMenu( QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex );
+		}
+	}
 
 	// Tick all of our floating UIs
 	for( AVREditorFloatingUI* FloatingUIPtr : FloatingUIs )
@@ -875,6 +885,7 @@ void FVREditorUISystem::UpdateRadialMenu( const int32 HandIndex )
 
 	if(!QuickRadialMenu->bHidden)
 	{
+		RadialMenuHideDelayTime = 0.0f;
 		QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>()->Update( Owner.GetVirtualHand( HandIndex ) );
 	}
 }
