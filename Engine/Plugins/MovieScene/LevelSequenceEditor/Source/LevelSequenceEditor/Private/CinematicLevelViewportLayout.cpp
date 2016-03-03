@@ -106,7 +106,7 @@ TSharedRef<SWidget> FCinematicLevelViewportLayout_TwoPane::MakeViewportLayout(co
 			SAssignNew(ViewportWidget0, SLevelViewport)
 			.ViewportType(LVT_Perspective)
 			.ParentLayout(AsShared())
-			.ParentLevelEditor(*(TWeakPtr<ILevelEditor>*)&ParentLevelEditor)
+			.ParentLevelEditor(ParentLevelEditor)
 			.ConfigKey(ViewportKey0)
 		]
 

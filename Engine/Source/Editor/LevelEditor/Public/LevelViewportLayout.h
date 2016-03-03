@@ -9,7 +9,8 @@
 #include "LevelEditor.h"
 #include "LevelViewportActions.h"
 
-class SLevelViewport;
+class ILevelEditor;
+class SLevelEditor;
 
 /** Interface that defines an entity within a viewport layout */
 class IViewportLayoutEntity : public TSharedFromThis<IViewportLayoutEntity>
@@ -85,7 +86,7 @@ public:
 	 * @param LayoutString			The layout string loaded from file to custom build the layout with
 	 * @param InParentLevelEditor	Optional level editor parent to use for new viewports
 	 */
-	TSharedRef<SWidget> BuildViewportLayout( TSharedPtr<SDockTab> InParentDockTab, TSharedPtr<class FLevelViewportTabContent> InParentTab, const FString& LayoutString, TWeakPtr<class SLevelEditor> InParentLevelEditor = NULL );
+	TSharedRef<SWidget> BuildViewportLayout( TSharedPtr<SDockTab> InParentDockTab, TSharedPtr<class FLevelViewportTabContent> InParentTab, const FString& LayoutString, TWeakPtr<ILevelEditor> InParentLevelEditor = NULL );
 
 	/**
 	 * Makes a request to maximize a specific viewport and hide the others in this layout
@@ -258,7 +259,7 @@ protected:
 	TWeakPtr< class FLevelViewportTabContent > ParentTabContent;
 
 	/** The optional parent level editor for this layout */
-	TWeakPtr< class SLevelEditor > ParentLevelEditor;
+	TWeakPtr< ILevelEditor > ParentLevelEditor;
 
 	/** The current maximized viewport if any */
 	FName MaximizedViewport;

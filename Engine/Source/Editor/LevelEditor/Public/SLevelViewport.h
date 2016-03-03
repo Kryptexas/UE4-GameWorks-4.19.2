@@ -8,6 +8,7 @@
 
 class SActorPreview;
 class SGameLayerManager;
+class ILevelEditor;
 
 /**
  * Encapsulates an SViewport and an SLevelViewportToolBar
@@ -22,7 +23,7 @@ public:
 
 		SLATE_ARGUMENT( TWeakPtr<class FEditorModeTools>, EditorModeTools )
 		SLATE_ARGUMENT( TSharedPtr<class FLevelViewportLayout>, ParentLayout )
-		SLATE_ARGUMENT( TWeakPtr<class ILevelEditor>, ParentLevelEditor )
+		SLATE_ARGUMENT( TWeakPtr<ILevelEditor>, ParentLevelEditor )
 		SLATE_ARGUMENT( ELevelViewportType, ViewportType )
 		SLATE_ARGUMENT( bool, Realtime )
 		SLATE_ARGUMENT( FString, ConfigKey )
@@ -259,7 +260,7 @@ public:
 	FString GetDeviceProfileString( ) const;
 
 	/** Get the parent level editor for this viewport */
-	TWeakPtr<class SLevelEditor> GetParentLevelEditor() const { return ParentLevelEditor; }
+	TWeakPtr<ILevelEditor> GetParentLevelEditor() const { return ParentLevelEditor; }
 
 	/** Called to get the level text */
 	FText GetCurrentLevelText( bool bDrawOnlyLabel ) const;
@@ -642,7 +643,7 @@ private:
 	TWeakPtr<class FLevelViewportLayout> ParentLayout;
 
 	/** Pointer to the parent level editor for this viewport */
-	TWeakPtr<class SLevelEditor> ParentLevelEditor;
+	TWeakPtr<ILevelEditor> ParentLevelEditor;
 
 	/** Viewport overlay widget exposed to game systems when running play-in-editor */
 	TSharedPtr<SOverlay> PIEViewportOverlayWidget;
