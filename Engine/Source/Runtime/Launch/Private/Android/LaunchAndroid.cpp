@@ -308,8 +308,7 @@ int32 AndroidMain(struct android_app* state)
 		else
 		{
 			// use less CPU when paused
-			float timeToSleep = 0.10f; //in seconds
-			sleep(timeToSleep);
+			FPlatformProcess::Sleep(0.10f);
 		}
 
 #if !UE_BUILD_SHIPPING
