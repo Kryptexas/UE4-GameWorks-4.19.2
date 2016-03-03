@@ -352,9 +352,10 @@ void FHierarchicalLODUtilities::DeleteLODActor(ALODActor* InActor)
 {
 	// Find if it has a parent ALODActor
 	AActor* Actor = CastChecked<AActor>(InActor);
-
-	ALODActor* ParentLOD = GetParentLODActor(Actor);
-	if (ParentLOD)
+	UWorld* World = Actor->GetWorld();
+	ALODActor* ParentLOD = GetParentLODActor(InActor);
+	
+	if (ParentLOD != nullptr)
 	{
 		ParentLOD->RemoveSubActor(Actor);
 	}
@@ -362,36 +363,24 @@ void FHierarchicalLODUtilities::DeleteLODActor(ALODActor* InActor)
 	// Clean out sub actors and update their LODParent
 	while (InActor->SubActors.Num())
 	{
-		auto SubActor = InActor->SubActors[0];
+		AActor* SubActor = InActor->SubActors[0];
 		InActor->RemoveSubActor(SubActor);
 	}
 
-	// you still have to delete all objects just in case they had it and didn't want it anymore
-	TArray<UObject*> AssetsToDelete;
+	// Also destroy the cluster's data
+	DeleteLODActorAssets(InActor);
 
-	AssetsToDelete.Append(InActor->SubObjects);
+	World->DestroyActor(InActor);
 
-	for (auto& Asset : AssetsToDelete)
+	if (ParentLOD != nullptr && !ParentLOD->HasValidSubActors())
 	{
-		if (Asset)
-		{
-			Asset->MarkPendingKill();
-			ObjectTools::DeleteSingleObject(Asset, false);
-		}
+		DeleteLODActor(ParentLOD);
 	}
-
-	// Rebuild streaming data to prevent invalid references
-	ULevel::BuildStreamingData(InActor->GetWorld(), InActor->GetLevel());
-
-	// garbage collect
-	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 }
 
 void FHierarchicalLODUtilities::DeleteLODActorAssets(ALODActor* InActor)
 {
-	// you still have to delete all objects just in case they had it and didn't want it anymore
 	TArray<UObject*> AssetsToDelete;
-
 	AssetsToDelete.Append(InActor->SubObjects);
 	InActor->SubObjects.Empty();
 
@@ -403,21 +392,12 @@ void FHierarchicalLODUtilities::DeleteLODActorAssets(ALODActor* InActor)
 			// Close possible open editors using this asset	
 			FAssetEditorManager::Get().CloseAllEditorsForAsset(AssetObject);
 #endif // WITH_EDITOR
-			AssetObject->MarkPendingKill();
-			ObjectTools::DeleteSingleObject(AssetObject, false);
+			AssetObject->ClearFlags(RF_AllFlags);
 		}
 	}
 
-	InActor->GetStaticMeshComponent()->StaticMesh = nullptr;
-
-	// Mark render state dirty
-	InActor->GetStaticMeshComponent()->MarkRenderStateDirty();
-
-	// Rebuild streaming data to prevent invalid references
-	ULevel::BuildStreamingData(InActor->GetWorld(), InActor->GetLevel());
-
-	// Garbage collecting
-	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+	// Set Static Mesh to null since there isn't a mesh anymore
+	InActor->GetStaticMeshComponent()->SetStaticMesh(nullptr);
 }
 
 ALODActor* FHierarchicalLODUtilities::CreateNewClusterActor(UWorld* InWorld, const int32 InLODLevel, AWorldSettings* WorldSettings)
