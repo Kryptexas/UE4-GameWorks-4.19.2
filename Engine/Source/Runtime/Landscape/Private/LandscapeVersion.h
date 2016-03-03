@@ -15,6 +15,8 @@ namespace FLandscapeCustomVersion
 		GrassMaterialWPO,
 		// Support material world-position-offset in landscape simple collision
 		CollisionMaterialWPO,
+		// Support material world-position-offset in landscape lighting mesh
+		LightmassMaterialWPO,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

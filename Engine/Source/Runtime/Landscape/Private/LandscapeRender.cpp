@@ -563,7 +563,6 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	, LandscapeComponent(InComponent)
 	, LODFalloff(InComponent->GetLandscapeProxy()->LODFalloff)
 #if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	, bBakeMaterialPositionOffsetIntoCollision(InComponent->GetLandscapeProxy()->bBakeMaterialPositionOffsetIntoCollision)
 	, CollisionMipLevel(InComponent->CollisionMipLevel)
 	, SimpleCollisionMipLevel(InComponent->SimpleCollisionMipLevel)
 	, CollisionResponse(InComponent->GetLandscapeProxy()->BodyInstance.GetResponseToChannels())
@@ -658,14 +657,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	bRequiresAdjacencyInformation = RequiresAdjacencyInformation(MaterialInterface, XYOffsetmapTexture == nullptr ? &FLandscapeVertexFactory::StaticType : &FLandscapeXYOffsetVertexFactory::StaticType, InComponent->GetWorld()->FeatureLevel);
 
 	const int8 SubsectionSizeLog2 = FMath::CeilLogTwo(InComponent->SubsectionSizeQuads + 1);
-#if WITH_EDITOR
-	const int8 SharedBufferCollisionMip = bBakeMaterialPositionOffsetIntoCollision ? CollisionMipLevel : 0;
-	const int8 SharedBufferSimpleCollisionMip = bBakeMaterialPositionOffsetIntoCollision ? SimpleCollisionMipLevel : 0;
-#endif
 	SharedBuffersKey = (SubsectionSizeLog2 & 0xf) | ((NumSubsections & 0xf) << 4) |
-#if WITH_EDITOR
-	                   ((SharedBufferCollisionMip & 0xf) << 8) | ((SharedBufferSimpleCollisionMip & 0xf) << 12) |
-#endif
 	                   (FeatureLevel <= ERHIFeatureLevel::ES3_1 ? 0 : 1 << 30) | (XYOffsetmapTexture == nullptr ? 0 : 1 << 31);
 
 	bSupportsHeightfieldRepresentation = true;
@@ -697,17 +689,9 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
 	if (SharedBuffers == nullptr)
 	{
-#if WITH_EDITOR
-		SharedBuffers = new FLandscapeSharedBuffers(
-			SharedBuffersKey, SubsectionSizeQuads, NumSubsections,
-			FeatureLevel, bRequiresAdjacencyInformation,
-			bBakeMaterialPositionOffsetIntoCollision ? CollisionMipLevel : INDEX_NONE,
-			bBakeMaterialPositionOffsetIntoCollision ? SimpleCollisionMipLevel : INDEX_NONE);
-#else
 		SharedBuffers = new FLandscapeSharedBuffers(
 			SharedBuffersKey, SubsectionSizeQuads, NumSubsections,
 			FeatureLevel, bRequiresAdjacencyInformation);
-#endif
 
 		FLandscapeComponentSceneProxy::SharedBuffersMap.Add(SharedBuffersKey, SharedBuffers);
 
@@ -769,8 +753,11 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 	// Create MeshBatch for grass rendering
 	if(SharedBuffers->GrassIndexBuffer)
 	{
-		GrassMeshBatch.Elements.Empty(3);
-		GrassMeshBatch.Elements.AddDefaulted(3);
+		const int32 NumMips = FMath::CeilLogTwo(SubsectionSizeVerts);
+		GrassMeshBatch.Elements.Empty(NumMips);
+		GrassMeshBatch.Elements.AddDefaulted(NumMips);
+		GrassBatchParams.Empty(NumMips);
+		GrassBatchParams.AddDefaulted(NumMips);
 
 		FMaterialRenderProxy* RenderProxy = MaterialInterface->GetRenderProxy(false);
 		GrassMeshBatch.VertexFactory = VertexFactory;
@@ -802,31 +789,18 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 		GrassBatchElement->MinVertexIndex = 0;
 		GrassBatchElement->MaxVertexIndex = SharedBuffers->NumVertices - 1;
 
-		const bool bRenderCollision = CollisionMipLevel > 0;
-		const bool bRenderSimpleCollision = SimpleCollisionMipLevel > CollisionMipLevel;
-
-		if (bRenderCollision)
+		for (int32 Mip = 1; Mip < NumMips; ++Mip)
 		{
-			FMeshBatchElement* CollisionBatchElement = &GrassMeshBatch.Elements[1];
+			const int32 MipSubsectionSizeVerts = SubsectionSizeVerts >> Mip;
+
+			FMeshBatchElement* CollisionBatchElement = &GrassMeshBatch.Elements[Mip];
 			*CollisionBatchElement = *GrassBatchElement;
-			FLandscapeBatchElementParams* CollisionBatchElementParams = &GrassBatchParams[1];
+			FLandscapeBatchElementParams* CollisionBatchElementParams = &GrassBatchParams[Mip];
 			*CollisionBatchElementParams = *BatchElementParams;
-			CollisionBatchElementParams->CurrentLOD = CollisionMipLevel;
+			CollisionBatchElementParams->CurrentLOD = Mip;
 			CollisionBatchElement->UserData = CollisionBatchElementParams;
-			CollisionBatchElement->NumPrimitives = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts >> CollisionMipLevel);
-			CollisionBatchElement->FirstIndex = SharedBuffers->GrassCollisionOffset;
-		}
-
-		if (bRenderSimpleCollision)
-		{
-			FMeshBatchElement* SimpleCollisionBatchElement = &GrassMeshBatch.Elements[2];
-			*SimpleCollisionBatchElement = *GrassBatchElement;
-			FLandscapeBatchElementParams* SimpleCollisionBatchElementParams = &GrassBatchParams[2];
-			*SimpleCollisionBatchElementParams = *BatchElementParams;
-			SimpleCollisionBatchElementParams->CurrentLOD = SimpleCollisionMipLevel;
-			SimpleCollisionBatchElement->UserData = SimpleCollisionBatchElementParams;
-			SimpleCollisionBatchElement->NumPrimitives = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts >> SimpleCollisionMipLevel);
-			SimpleCollisionBatchElement->FirstIndex = SharedBuffers->GrassSimpleCollisionOffset;
+			CollisionBatchElement->NumPrimitives = FMath::Square(NumSubsections) * FMath::Square(MipSubsectionSizeVerts);
+			CollisionBatchElement->FirstIndex = SharedBuffers->GrassIndexMipOffsets[Mip];
 		}
 	}
 #endif
@@ -2086,70 +2060,32 @@ void FLandscapeSharedBuffers::CreateGrassIndexBuffer()
 {
 	TArray<INDEX_TYPE> NewIndices;
 
-	const bool bRenderCollision = GrassCollisionMip > 0;
-	const bool bRenderSimpleCollision = GrassSimpleCollisionMip > GrassCollisionMip;
-	const int32 CollisionSubsectionSizeVerts = bRenderCollision ? SubsectionSizeVerts >> GrassCollisionMip : 0;
-	const int32 SimpleCollisionSubsectionSizeVerts = bRenderSimpleCollision ? SubsectionSizeVerts >> GrassSimpleCollisionMip : 0;
-
-	int32 ExpectedNumIndices = FMath::Square(NumSubsections) * FMath::Square(SubsectionSizeVerts) +
-	                           FMath::Square(NumSubsections) * FMath::Square(CollisionSubsectionSizeVerts) +
-	                           FMath::Square(NumSubsections) * FMath::Square(SimpleCollisionSubsectionSizeVerts);
+	int32 ExpectedNumIndices = FMath::Square(NumSubsections) * (FMath::Square(SubsectionSizeVerts) * 4/3 - 1); // *4/3 is for mips, -1 because we only go down to 2x2 not 1x1
 	NewIndices.Empty(ExpectedNumIndices);
 
-	int32 SubOffset = 0;
-	for (int32 SubY = 0; SubY < NumSubsections; SubY++)
-	{
-		for (int32 SubX = 0; SubX < NumSubsections; SubX++)
-		{
-			for (int32 y = 0; y < SubsectionSizeVerts; y++)
-			{
-				for (int32 x = 0; x < SubsectionSizeVerts; x++)
-				{
-					NewIndices.Add(x + y * SubsectionSizeVerts + SubOffset);
-				}
-			}
+	int32 NumMips = FMath::CeilLogTwo(SubsectionSizeVerts);
 
-			SubOffset += FMath::Square(SubsectionSizeVerts);
-		}
-	}
-	if (bRenderCollision)
+	for (int32 Mip = 0; Mip < NumMips; ++Mip)
 	{
-		GrassCollisionOffset = NewIndices.Num();
+		// Store offset to the start of this mip in the index buffer
+		GrassIndexMipOffsets.Add(NewIndices.Num());
 
-		SubOffset = 0;
+		int32 MipSubsectionSizeVerts = SubsectionSizeVerts >> Mip;
+		int32 SubOffset = 0;
 		for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 		{
 			for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 			{
-				for (int32 y = 0; y < CollisionSubsectionSizeVerts; y++)
+				for (int32 y = 0; y < MipSubsectionSizeVerts; y++)
 				{
-					for (int32 x = 0; x < CollisionSubsectionSizeVerts; x++)
+					for (int32 x = 0; x < MipSubsectionSizeVerts; x++)
 					{
+						// intentionally using SubsectionSizeVerts not MipSubsectionSizeVerts, this is a vert buffer index not a mip vert index
 						NewIndices.Add(x + y * SubsectionSizeVerts + SubOffset);
 					}
 				}
 
-				SubOffset += FMath::Square(SubsectionSizeVerts);
-			}
-		}
-	}
-	if (bRenderSimpleCollision)
-	{
-		GrassSimpleCollisionOffset = NewIndices.Num();
-
-		SubOffset = 0;
-		for (int32 SubY = 0; SubY < NumSubsections; SubY++)
-		{
-			for (int32 SubX = 0; SubX < NumSubsections; SubX++)
-			{
-				for (int32 y = 0; y < SimpleCollisionSubsectionSizeVerts; y++)
-				{
-					for (int32 x = 0; x < SimpleCollisionSubsectionSizeVerts; x++)
-					{
-						NewIndices.Add(x + y * SubsectionSizeVerts + SubOffset);
-					}
-				}
-
+				// intentionally using SubsectionSizeVerts not MipSubsectionSizeVerts (as above)
 				SubOffset += FMath::Square(SubsectionSizeVerts);
 			}
 		}
@@ -2165,27 +2101,17 @@ void FLandscapeSharedBuffers::CreateGrassIndexBuffer()
 }
 #endif
 
-#if WITH_EDITOR
-FLandscapeSharedBuffers::FLandscapeSharedBuffers(const int32 InSharedBuffersKey, const int32 InSubsectionSizeQuads, const int32 InNumSubsections, const ERHIFeatureLevel::Type InFeatureLevel, const bool bRequiresAdjacencyInformation, const int32 InCollisionMipLevel, const int32 InSimpleCollisionMipLevel)
-#else
 FLandscapeSharedBuffers::FLandscapeSharedBuffers(const int32 InSharedBuffersKey, const int32 InSubsectionSizeQuads, const int32 InNumSubsections, const ERHIFeatureLevel::Type InFeatureLevel, const bool bRequiresAdjacencyInformation)
-#endif
 	: SharedBuffersKey(InSharedBuffersKey)
 	, NumIndexBuffers(FMath::CeilLogTwo(InSubsectionSizeQuads + 1))
 	, SubsectionSizeVerts(InSubsectionSizeQuads + 1)
 	, NumSubsections(InNumSubsections)
-#if WITH_EDITOR
-	, GrassCollisionMip(InCollisionMipLevel)
-	, GrassSimpleCollisionMip(InSimpleCollisionMipLevel)
-#endif
 	, VertexFactory(nullptr)
 	, VertexBuffer(nullptr)
 	, AdjacencyIndexBuffers(nullptr)
 	, bUse32BitIndices(false)
 #if WITH_EDITOR
 	, GrassIndexBuffer(nullptr)
-	, GrassCollisionOffset(INDEX_NONE)
-	, GrassSimpleCollisionOffset(INDEX_NONE)
 #endif
 {
 	NumVertices = FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections);

@@ -421,6 +421,12 @@ public:
 	/** Whether this primitive should cast shadows in the far shadow cascades. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting, meta=(DisplayName = "Far Shadow"))
 	uint32 bCastFarShadow:1;
+	
+	/** Whether to use the landscape material's vertical world position offset when calculating static lighting.
+		Note: Only z (vertical) offset is supported. XY offsets are ignored.
+		Does not work correctly with an XY offset map (mesh collision) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting)
+	uint32 bUseMaterialPositionOffsetInStaticLighting:1;
 
 	UPROPERTY()
 	uint32 bIsProxy:1;
@@ -455,7 +461,7 @@ public:
 		Note: Only z (vertical) offset is supported. XY offsets are ignored.
 		Does not work with an XY offset map (mesh collision) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Collision)
-	bool bBakeMaterialPositionOffsetIntoCollision;
+	uint32 bBakeMaterialPositionOffsetIntoCollision:1;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()

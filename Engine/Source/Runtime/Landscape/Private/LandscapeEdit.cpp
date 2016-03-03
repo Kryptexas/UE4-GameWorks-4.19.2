@@ -697,7 +697,21 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 	// Handle Material WPO baked into heightfield collision
 	// Material WPO is not currently supported for mesh collision components
 	const bool bUsingGrassMapHeights = Proxy->bBakeMaterialPositionOffsetIntoCollision && !MeshCollisionComponent && GrassData->HasData() && !IsGrassMapOutdated();
-	const uint16* const GrassHeights = bUsingGrassMapHeights ? (GrassData->CollisionHeightData.Num() > 0 ? GrassData->CollisionHeightData.GetData() : GrassData->HeightData.GetData()) : nullptr;
+	const uint16* GrassHeights = nullptr;
+	if (bUsingGrassMapHeights)
+	{
+		if (CollisionMipLevel == 0)
+		{
+			GrassHeights = GrassData->HeightData.GetData();
+		}
+		else
+		{
+			if (GrassData->HeightMipData.Contains(CollisionMipLevel))
+			{
+				GrassHeights = GrassData->HeightMipData[CollisionMipLevel].GetData();
+			}
+		}
+	}
 
 	const int32 SubSectionX1 = FMath::Max(0, FMath::DivideAndRoundDown(ComponentX1 - 1, SubsectionSizeQuads));
 	const int32 SubSectionY1 = FMath::Max(0, FMath::DivideAndRoundDown(ComponentY1 - 1, SubsectionSizeQuads));
@@ -784,8 +798,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 		const int32 SimpleHeightmapOffsetX = FMath::RoundToInt(HeightmapScaleBias.Z * (float)HeightmapSizeU) >> SimpleCollisionMipLevel;
 		const int32 SimpleHeightmapOffsetY = FMath::RoundToInt(HeightmapScaleBias.W * (float)HeightmapSizeV) >> SimpleCollisionMipLevel;
 
-		const uint16* const SimpleCollisionGrassHeights = bUsingGrassMapHeights ? GrassData->SimpleCollisionHeightData.GetData() : nullptr;
-
+		const uint16* SimpleCollisionGrassHeights = bUsingGrassMapHeights && GrassData->HeightMipData.Contains(SimpleCollisionMipLevel) ? GrassData->HeightMipData[SimpleCollisionMipLevel].GetData() : nullptr;
 		uint16* const SimpleCollisionHeightData = CollisionHeightData + FMath::Square(CollisionSizeVerts);
 
 		for (int32 SubsectionY = SubSectionY1; SubsectionY < SubSectionY2; ++SubsectionY)
@@ -3480,6 +3493,10 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			MarkComponentsRenderStateDirty();
 		}
 		RecreateCollisionComponents();
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, bUseMaterialPositionOffsetInStaticLighting))
+	{
+		InvalidateLightingCache();
 	}
 	else if(PropertyName == FName(TEXT("bCastStaticShadow")) ||
 		PropertyName == FName(TEXT("bCastShadowAsTwoSided")) ||

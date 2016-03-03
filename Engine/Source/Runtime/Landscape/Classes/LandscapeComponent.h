@@ -124,8 +124,8 @@ struct FLandscapeComponentGrassData
 
 	TArray<uint16> HeightData;
 #if WITH_EDITORONLY_DATA
-	TArray<uint16> CollisionHeightData;
-	TArray<uint16> SimpleCollisionHeightData;
+	// Height data for LODs 1+, keyed on LOD index
+	TMap<int32, TArray<uint16>> HeightMipData;
 #endif
 	TMap<ULandscapeGrassType*, TArray<uint8>> WeightData;
 
@@ -135,24 +135,14 @@ struct FLandscapeComponentGrassData
 
 	bool HasData()
 	{
-		return HeightData.Num() > 0;
+		return HeightData.Num() > 0 ||
+#if WITH_EDITORONLY_DATA
+			HeightMipData.Num() > 0 ||
+#endif
+			WeightData.Num() > 0;
 	}
 
-	SIZE_T GetAllocatedSize() const
-	{
-		SIZE_T WeightSize = 0; 
-		for (auto It = WeightData.CreateConstIterator(); It; ++It)
-		{
-			WeightSize += It.Value().GetAllocatedSize();
-		}
-		return sizeof(*this)
-			+ HeightData.GetAllocatedSize()
-#if WITH_EDITORONLY_DATA
-			+ CollisionHeightData.GetAllocatedSize()
-			+ SimpleCollisionHeightData.GetAllocatedSize()
-#endif
-			+ WeightData.GetAllocatedSize() + WeightSize;
-	}
+	SIZE_T GetAllocatedSize() const;
 
 	friend FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data);
 };
@@ -395,6 +385,9 @@ public:
 
 	/* Is the grassmap data outdated, eg by a material */
 	bool IsGrassMapOutdated() const;
+
+	/** Renders the heightmap of this component (including material world-position-offset) at the specified LOD */
+	TArray<uint16> RenderWPOHeightmap(int32 LOD);
 
 	/* Serialize all hashes/guids that record the current state of this component */
 	void SerializeStateHashes(FArchive& Ar);

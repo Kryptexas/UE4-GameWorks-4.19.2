@@ -114,6 +114,27 @@ FString UMaterialExpressionLandscapeLayerBlend::GetInputName(int32 InputIndex) c
 }
 
 #if WITH_EDITOR
+uint32 UMaterialExpressionLandscapeLayerBlend::GetInputType(int32 InputIndex)
+{
+	int32 Idx = 0;
+	for (int32 LayerIdx = 0; LayerIdx<Layers.Num(); LayerIdx++)
+	{
+		if (InputIndex == Idx++)
+		{
+			return MCT_Float | MCT_MaterialAttributes; // can accept pretty much anything including MaterialAttributes
+		}
+		if (Layers[LayerIdx].BlendType == LB_HeightBlend)
+		{
+			if (InputIndex == Idx++)
+			{
+				return MCT_Float1; // the height input must be float1
+			}
+		}
+	}
+
+	return MCT_Unknown;
+}
+
 bool UMaterialExpressionLandscapeLayerBlend::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	if (ContainsInputLoop())

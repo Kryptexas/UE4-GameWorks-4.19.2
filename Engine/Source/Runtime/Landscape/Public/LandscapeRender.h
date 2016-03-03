@@ -290,10 +290,6 @@ public:
 	int32 NumIndexBuffers;
 	int32 SubsectionSizeVerts;
 	int32 NumSubsections;
-#if WITH_EDITOR
-	int32 GrassCollisionMip;
-	int32 GrassSimpleCollisionMip;
-#endif
 
 	FLandscapeVertexFactory* VertexFactory;
 	FLandscapeVertexBuffer* VertexBuffer;
@@ -303,15 +299,10 @@ public:
 	bool bUse32BitIndices;
 #if WITH_EDITOR
 	FIndexBuffer* GrassIndexBuffer;
-	int32 GrassCollisionOffset;
-	int32 GrassSimpleCollisionOffset;
+	TArray<int32, TInlineAllocator<8>> GrassIndexMipOffsets;
 #endif
 
-#if WITH_EDITOR
-	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type FeatureLevel, bool bRequiresAdjacencyInformation, int32 CollisionMipLevel, int32 SimpleCollisionMipLevel);
-#else
 	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type FeatureLevel, bool bRequiresAdjacencyInformation);
-#endif
 
 	template <typename INDEX_TYPE>
 	void CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel, bool bRequiresAdjacencyInformation);
@@ -516,12 +507,9 @@ protected:
 	TArray<FLandscapeBatchElementParams> StaticBatchParamArray;
 
 #if WITH_EDITOR
-	// Precomputed grass rendering MeshBatch and params
-	// 0 - regular grass rendering at LOD 0
-	// 1 - rendering for collision baking
-	// 2 - rendering for "simple collision" baking
-	FMeshBatch					GrassMeshBatch;
-	FLandscapeBatchElementParams GrassBatchParams[3];
+	// Precomputed grass rendering MeshBatch and per-LOD params
+	FMeshBatch                           GrassMeshBatch;
+	TArray<FLandscapeBatchElementParams> GrassBatchParams;
 #endif
 
 	// Precomputed values
@@ -566,7 +554,6 @@ protected:
 
 	// data used in editor or visualisers
 #if WITH_EDITOR || !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	bool bBakeMaterialPositionOffsetIntoCollision;
 	int32 CollisionMipLevel;
 	int32 SimpleCollisionMipLevel;
 

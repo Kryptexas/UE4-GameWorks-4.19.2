@@ -72,7 +72,7 @@ class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 	//~ End UObject Interface
 
 	//~ Begin UMaterialExpression Interface
-	virtual uint32 GetInputType(int32 InputIndex) override { return MCT_Unknown; }
+	virtual uint32 GetInputType(int32 InputIndex) override;
 	virtual uint32 GetOutputType(int32 InputIndex) override { return MCT_Unknown; }
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
