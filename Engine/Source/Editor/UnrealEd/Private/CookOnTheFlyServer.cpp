@@ -3688,7 +3688,7 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const 
 			InOutFilesToCook.Insert(InFilenameName, Index );
 		}
 #else
-		InOutFilesToCook.AddUnique(FName(*InFilenameName));
+		InOutFilesToCook.AddUnique(InFilenameName);
 #endif
 	}
 }
