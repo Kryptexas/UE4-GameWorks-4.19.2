@@ -39,6 +39,7 @@ bool FUdpMessageTransport::StartTransport()
 	UnicastSocket = FUdpSocketBuilder(TEXT("UdpMessageUnicastSocket"))
 		.AsNonBlocking()
 		.BoundToEndpoint(UnicastEndpoint)
+		.WithMulticastLoopback()
 		.WithReceiveBufferSize(UDP_MESSAGING_RECEIVE_BUFFER_SIZE);
 
 	if (UnicastSocket == nullptr)
