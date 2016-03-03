@@ -308,7 +308,10 @@ private:
 			FMemory::Memzero(RawPoses, MaxDevices * sizeof(vr::HmdMatrix34_t));
 		}
  	};
-	FTrackingFrame TrackingFrame;
+	FTrackingFrame GameTrackingFrame;
+	FTrackingFrame RenderTrackingFrame;
+
+	const FTrackingFrame& GetTrackingFrame() const;
 
 	/** Coverts a SteamVR-space vector to an Unreal-space vector.  Does not handle scaling, only axes conversion */
 	FORCEINLINE static FVector CONVERT_STEAMVECTOR_TO_FVECTOR(const vr::HmdVector3_t InVector)
