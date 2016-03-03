@@ -10,7 +10,8 @@
 namespace VREd
 {
 	static FAutoConsoleVariable DockWindowThickness( TEXT( "VREd.DockWindowTickness" ), 1.0f, TEXT( "How thick the window is" ) );
-	static FAutoConsoleVariable DockUIZBarOffset( TEXT( "VREd.DockUIZBarOffset" ), 2.0f, TEXT( "Z Distance between the selectionbar and the UI" ) );
+	static FAutoConsoleVariable DockUISelectionBarVerticalOffset( TEXT( "VREd.DockUISelectionBarVerticalOffset" ), 2.0f, TEXT( "Z Distance between the selectionbar and the UI" ) );
+	static FAutoConsoleVariable DockUICloseButtonOffsetFromCorner( TEXT( "VREd.DockUICloseButtonOffsetFromCorner" ), 2.0f, TEXT( "How far away from the corner (along each 2D axis) of the UI the close button draws" ) );
 }
 
 AVREditorDockableWindow::AVREditorDockableWindow() 
@@ -49,20 +50,20 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 			check( SelectionMesh != nullptr );
 		}
 
-		SelectionMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBarMesh" ) );
-		SelectionMeshComponent->SetStaticMesh( SelectionMesh );
-		SelectionMeshComponent->SetMobility( EComponentMobility::Movable );
-		SelectionMeshComponent->AttachTo( RootComponent );
+		SelectionBarMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBarMesh" ) );
+		SelectionBarMeshComponent->SetStaticMesh( SelectionMesh );
+		SelectionBarMeshComponent->SetMobility( EComponentMobility::Movable );
+		SelectionBarMeshComponent->AttachTo( RootComponent );
 
-		SelectionMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
-		SelectionMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Block );
-		SelectionMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+		SelectionBarMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
+		SelectionBarMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Block );
+		SelectionBarMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
 
-		SelectionMeshComponent->bGenerateOverlapEvents = false;
-		SelectionMeshComponent->SetCanEverAffectNavigation( false );
-		SelectionMeshComponent->bCastDynamicShadow = false;
-		SelectionMeshComponent->bCastStaticShadow = false;
-		SelectionMeshComponent->bAffectDistanceFieldLighting = false;
+		SelectionBarMeshComponent->bGenerateOverlapEvents = false;
+		SelectionBarMeshComponent->SetCanEverAffectNavigation( false );
+		SelectionBarMeshComponent->bCastDynamicShadow = false;
+		SelectionBarMeshComponent->bCastStaticShadow = false;
+		SelectionBarMeshComponent->bAffectDistanceFieldLighting = false;
 
 		UMaterial* HoverMaterial = nullptr;
 		{
@@ -70,9 +71,9 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 			HoverMaterial = ObjectFinder.Object;
 			check( HoverMaterial != nullptr );
 		}
-		HoverMaterialMID = UMaterialInstanceDynamic::Create( HoverMaterial, GetTransientPackage() );
-		check( HoverMaterialMID != nullptr );
-		SelectionMeshComponent->SetMaterial( 0, HoverMaterialMID );
+		SelectionBarMID = UMaterialInstanceDynamic::Create( HoverMaterial, GetTransientPackage() );
+		check( SelectionBarMID != nullptr );
+		SelectionBarMeshComponent->SetMaterial( 0, SelectionBarMID );
 
 		UMaterial* TranslucentHoverMaterial = nullptr;
 		{
@@ -80,9 +81,53 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 			TranslucentHoverMaterial = ObjectFinder.Object;
 			check( TranslucentHoverMaterial != nullptr );
 		}
-		TranslucentHoverMID = UMaterialInstanceDynamic::Create( TranslucentHoverMaterial, GetTransientPackage() );
-		check( TranslucentHoverMID != nullptr );
-		SelectionMeshComponent->SetMaterial( 1, TranslucentHoverMID );
+		SelectionBarTranslucentMID = UMaterialInstanceDynamic::Create( TranslucentHoverMaterial, GetTransientPackage() );
+		check( SelectionBarTranslucentMID != nullptr );
+		SelectionBarMeshComponent->SetMaterial( 1, SelectionBarTranslucentMID );
+	}
+
+	{
+		UStaticMesh* CloseButtonMesh = nullptr;
+		{
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/UI/CloseButtonMesh" ) );
+			CloseButtonMesh = ObjectFinder.Object;
+			check( CloseButtonMesh != nullptr );
+		}
+
+		CloseButtonMeshComponent= CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "CloseButtonMesh" ) );
+		CloseButtonMeshComponent->SetStaticMesh( CloseButtonMesh );
+		CloseButtonMeshComponent->SetMobility( EComponentMobility::Movable );
+		CloseButtonMeshComponent->AttachTo( RootComponent );
+
+		CloseButtonMeshComponent->SetCollisionEnabled( ECollisionEnabled::QueryOnly );
+		CloseButtonMeshComponent->SetCollisionResponseToAllChannels( ECollisionResponse::ECR_Block );
+		CloseButtonMeshComponent->SetCollisionResponseToChannel( ECC_EditorGizmo, ECollisionResponse::ECR_Block );
+
+		CloseButtonMeshComponent->bGenerateOverlapEvents = false;
+		CloseButtonMeshComponent->SetCanEverAffectNavigation( false );
+		CloseButtonMeshComponent->bCastDynamicShadow = false;
+		CloseButtonMeshComponent->bCastStaticShadow = false;
+		CloseButtonMeshComponent->bAffectDistanceFieldLighting = false;
+
+		UMaterial* HoverMaterial = nullptr;
+		{
+			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TransformGizmoMaterial" ) );
+			HoverMaterial = ObjectFinder.Object;
+			check( HoverMaterial != nullptr );
+		}
+		CloseButtonMID = UMaterialInstanceDynamic::Create( HoverMaterial, GetTransientPackage() );
+		check( CloseButtonMID != nullptr );
+		CloseButtonMeshComponent->SetMaterial( 0, CloseButtonMID );
+
+		UMaterial* TranslucentHoverMaterial = nullptr;
+		{
+			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TranslucentTransformGizmoMaterial" ) );
+			TranslucentHoverMaterial = ObjectFinder.Object;
+			check( TranslucentHoverMaterial != nullptr );
+		}
+		CloseButtonTranslucentMID = UMaterialInstanceDynamic::Create( TranslucentHoverMaterial, GetTransientPackage() );
+		check( CloseButtonTranslucentMID != nullptr );
+		CloseButtonMeshComponent->SetMaterial( 1, CloseButtonTranslucentMID );
 	}
 }
 
@@ -92,6 +137,7 @@ void AVREditorDockableWindow::SetupWidgetComponent()
 	Super::SetupWidgetComponent();
 
 	SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UISelectionBarColor ) );
+	SetCloseButtonColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UICloseButtonColor ) );
 }
 
 
@@ -101,26 +147,47 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 
 	if( WidgetComponent->IsVisible() )
 	{
-		// How big the selection bar should be
-		const FVector SelectionBarSize( 1.0f, GetSize().X * 0.8f, 6.0f );	// @todo vreditor tweak
-
 		const float WorldScaleFactor = GetOwner().GetOwner().GetWorldScaleFactor();
 		const FVector AnimatedScale = CalculateAnimatedScale();
 
-		const float WindowMeshSize = 100.0f;	// Size of imported mesh, we need to inverse compensate for
-		const FVector WindowMeshScale = FVector(
-			VREd::DockWindowThickness->GetFloat(),
-			GetSize().X / WindowMeshSize,
-			GetSize().Y / WindowMeshSize ) * AnimatedScale * WorldScaleFactor;
-		WindowMeshComponent->SetRelativeScale3D( WindowMeshScale );
+		// Update the window border mesh
+		{
+			const float WindowMeshSize = 100.0f;	// Size of imported mesh, we need to inverse compensate for
 
-		const FVector SelectionMeshScale = SelectionBarSize * AnimatedScale * WorldScaleFactor;
-		SelectionMeshComponent->SetRelativeScale3D( SelectionMeshScale );
-		const FVector SelectionMeshRelativeLocation = FVector(
-			0.0f,
-			0.0f,
-			-( GetSize().Y * 0.5f + SelectionBarSize.Z * 0.5f + VREd::DockUIZBarOffset->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
-		SelectionMeshComponent->SetRelativeLocation( SelectionMeshRelativeLocation );
+			const FVector WindowMeshScale = FVector(
+				VREd::DockWindowThickness->GetFloat(),
+				GetSize().X / WindowMeshSize,
+				GetSize().Y / WindowMeshSize ) * AnimatedScale * WorldScaleFactor;
+			WindowMeshComponent->SetRelativeScale3D( WindowMeshScale );			
+		}
+
+		// Update the selection bar
+		{
+			// How big the selection bar should be
+			const FVector SelectionBarSize( 1.0f, GetSize().X * 0.8f, 6.0f );	// @todo vreditor tweak
+
+			const FVector SelectionBarScale = SelectionBarSize * AnimatedScale * WorldScaleFactor;
+			SelectionBarMeshComponent->SetRelativeScale3D( SelectionBarScale );
+			const FVector SelectionBarRelativeLocation = FVector(
+				0.0f,
+				0.0f,
+				-( GetSize().Y * 0.5f + SelectionBarSize.Z * 0.5f + VREd::DockUISelectionBarVerticalOffset->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
+			SelectionBarMeshComponent->SetRelativeLocation( SelectionBarRelativeLocation );
+		}
+
+		// Update the close button
+		{
+			// How big the close button should be
+			const FVector CloseButtonSize( 1.0f, 3.0f, 3.0f );	// @todo vreditor tweak
+
+			const FVector CloseButtonScale = CloseButtonSize * AnimatedScale * WorldScaleFactor;
+			CloseButtonMeshComponent->SetRelativeScale3D( CloseButtonScale );
+			const FVector CloseButtonRelativeLocation = FVector(
+				0.0f,
+				-( GetSize().X * 0.5f + CloseButtonSize.Y * 0.5f + VREd::DockUICloseButtonOffsetFromCorner->GetFloat() ),
+				( GetSize().Y * 0.5f + CloseButtonSize.Z * 0.5f + VREd::DockUICloseButtonOffsetFromCorner->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
+			CloseButtonMeshComponent->SetRelativeLocation( CloseButtonRelativeLocation );
+		}
 	}
 } 
 
@@ -141,20 +208,35 @@ void AVREditorDockableWindow::UpdateRelativeRoomTransform()
 
 void AVREditorDockableWindow::OnEnterHover( const FHitResult& HitResult )
 {
-	if( SelectionMeshComponent == HitResult.GetComponent() )
+	if( SelectionBarMeshComponent == HitResult.GetComponent() )
 	{
 		SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::HoverGizmoColor ) );
+	}
+
+	if( CloseButtonMeshComponent == HitResult.GetComponent() )
+	{
+		SetCloseButtonColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::HoverGizmoColor ) );
 	}
 }
 
 void AVREditorDockableWindow::OnLeaveHover()
 {
 	SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UISelectionBarColor ) );
+	SetCloseButtonColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UICloseButtonColor ) );
 }
+
 
 void AVREditorDockableWindow::SetSelectionBarColor( const FLinearColor& LinearColor )
 {
 	static FName StaticColorParameterName( "Color" );
-	HoverMaterialMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
-	TranslucentHoverMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
+	SelectionBarMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
+	SelectionBarTranslucentMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
+}
+
+
+void AVREditorDockableWindow::SetCloseButtonColor( const FLinearColor& LinearColor )
+{
+	static FName StaticColorParameterName( "Color" );
+	CloseButtonMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
+	CloseButtonTranslucentMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
 }

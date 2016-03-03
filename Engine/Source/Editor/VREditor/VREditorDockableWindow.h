@@ -13,14 +13,6 @@ class AVREditorDockableWindow : public AVREditorFloatingUI
 {
 	GENERATED_BODY()
 	
-	/** The dockable window mesh */
-	UPROPERTY()
-	class UStaticMeshComponent* WindowMeshComponent;
-
-	/** Mesh underneath the window for easy selecting and dragging */
-	UPROPERTY()
-	class UStaticMeshComponent* SelectionMeshComponent;
-
 public:
 
 	/** Default constructor */
@@ -37,20 +29,49 @@ public:
 
 	/** Leaving hover with laser changes the color of SelectionMesh */
 	void OnLeaveHover();
+	
+	/** Gets the close button component */
+	UStaticMeshComponent* GetCloseButtonMeshComponent()
+	{
+		return CloseButtonMeshComponent;
+	}
 
 private:
 
 	// AVREditorFloatingUI overrides
 	virtual void SetupWidgetComponent() override;
 
-	/** Setting the color on the dynamic materials of the SelectionMesh */
+	/** Set the color on the dynamic materials of the selection bar */
 	void SetSelectionBarColor( const FLinearColor& LinearColor );
 
-	/** Dynamic material  (opaque) */
-	UPROPERTY()
-	class UMaterialInstanceDynamic* HoverMaterialMID;
+	/** Set the color on the dynamic materials of the close button */
+	void SetCloseButtonColor( const FLinearColor& LinearColor );
 
-	/** Dynamic material (translucent) */
+	/** The dockable window mesh */
 	UPROPERTY()
-	class UMaterialInstanceDynamic* TranslucentHoverMID;
-};	
+	class UStaticMeshComponent* WindowMeshComponent;
+
+	/** Mesh underneath the window for easy selecting and dragging */
+	UPROPERTY()
+	class UStaticMeshComponent* SelectionBarMeshComponent;
+
+	/** Mesh that represents the close button for this UI */
+	UPROPERTY()
+	class UStaticMeshComponent* CloseButtonMeshComponent;
+
+	/** Selection bar dynamic material  (opaque) */
+	UPROPERTY()
+	class UMaterialInstanceDynamic* SelectionBarMID;
+
+	/** Select bar dynamic material (translucent) */
+	UPROPERTY()
+	class UMaterialInstanceDynamic* SelectionBarTranslucentMID;
+
+	/** Close button dynamic material  (opaque) */
+	UPROPERTY()
+	class UMaterialInstanceDynamic* CloseButtonMID;
+
+	/** Close button dynamic material (translucent) */
+	UPROPERTY()
+	class UMaterialInstanceDynamic* CloseButtonTranslucentMID;
+};

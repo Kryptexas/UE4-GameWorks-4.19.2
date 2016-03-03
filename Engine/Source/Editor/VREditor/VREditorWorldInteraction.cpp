@@ -388,9 +388,20 @@ void FVREditorWorldInteraction::OnVRAction( FEditorViewportClient& ViewportClien
 								AVREditorDockableWindow* DockableWindow = Cast< AVREditorDockableWindow >( Actor );
 								if (DockableWindow)
 								{
-									Hand.DraggingMode = EVREditorDraggingMode::DockableWindow;
-									DockSelectDistance = ( LaserPointerStart - HitResult.Location ).Size();
-									Owner.GetUISystem().StartDraggingDockUI( DockableWindow, VRAction.HandIndex, DockSelectDistance );
+									if( HitResult.Component == DockableWindow->GetCloseButtonMeshComponent() )
+									{
+										// Close the window
+										const bool bShouldShow = false;
+										const bool bShowOnHand = false;
+										const bool bRefreshQuickMenu = true;
+										Owner.GetUISystem().ShowEditorUIPanel( DockableWindow, VRAction.HandIndex, bShouldShow, bShowOnHand, bRefreshQuickMenu );
+									}
+									else
+									{
+										Hand.DraggingMode = EVREditorDraggingMode::DockableWindow;
+										DockSelectDistance = ( LaserPointerStart - HitResult.Location ).Size();
+										Owner.GetUISystem().StartDraggingDockUI( DockableWindow, VRAction.HandIndex, DockSelectDistance );
+									}
 									bWasHandled = true;
 								}
 							}
