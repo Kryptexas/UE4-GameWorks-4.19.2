@@ -14,7 +14,7 @@
 
 namespace VREd
 {
-	static FAutoConsoleVariable RadialMenuSelectionRadius( TEXT( "VREd.RadialMenuSelectionRadius" ), 0.2f, TEXT( "The radius that is used for selecting buttons on the radial menu" ) );
+	static FAutoConsoleVariable RadialMenuSelectionRadius( TEXT( "VREd.RadialMenuSelectionRadius" ), 0.5f, TEXT( "The radius that is used for selecting buttons on the radial menu" ) );
 }
 
 UVREditorRadialMenu::UVREditorRadialMenu( const FObjectInitializer& ObjectInitializer )
