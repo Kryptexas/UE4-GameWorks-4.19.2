@@ -468,58 +468,18 @@ void FVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 			const FVirtualHand& OtherHand = Owner.GetOtherHand( HandIndex );
 			const int32 OtherHandIndex = Owner.GetOtherHandIndex( HandIndex );		
 
-			FVector LaserPointerStart, LaserPointerEnd;
-			if( Owner.GetLaserPointer( HandIndex, /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
+			// @todo vreditor tweak: Weird to hard code this here.  Probably should be an accessor on the hand itself, and based on the actual device type
+			const FTransform UICapsuleTransform = OtherHand.Transform;
+			const FVector UICapsuleStart = FVector( -6.0f, 0.0f, 0.0f ) * WorldScaleFactor;
+			const FVector UICapsuleEnd = FVector( -14.0f, 0.0f, 0.0f ) * WorldScaleFactor;
+			const float UICapsuleLocalRadius = 6.0f * WorldScaleFactor;
+			const float MinDistanceToUICapsule = 8.0f * WorldScaleFactor;	// @todo vreditor tweak
+			const FVector UIForwardVector = FVector::UpVector;
+			const float MinDotForAimingAtOtherHand = 0.25f;	// @todo vreditor tweak
+
+			if( Owner.IsHandAimingTowardsCapsule( HandIndex, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand ) )
 			{
-				const FVector LaserPointerStartInOtherHandSpace = OtherHand.Transform.InverseTransformPosition( LaserPointerStart );
-				const FVector LaserPointerEndInOtherHandSpace = OtherHand.Transform.InverseTransformPosition( LaserPointerEnd );
-
-				// @todo vreditor tweak: Weird to hard code this here.  Probably should be an accessor on the hand itself, and based on the actual device type
-				const float UICapsuleLocalRadius = 6.0f * WorldScaleFactor;
-				const FVector UICapsuleStart = FVector( -6.0f, 0.0f, 0.0f ) * WorldScaleFactor;
-				const FVector UICapsuleEnd = FVector( -14.0f, 0.0f, 0.0f ) * WorldScaleFactor;
-				FVector ClosestPointOnLaserPointer, ClosestPointOnUICapsule;
-				FMath::SegmentDistToSegment(
-					LaserPointerStartInOtherHandSpace, LaserPointerEndInOtherHandSpace,
-					UICapsuleStart, UICapsuleEnd,
-					/* Out */ ClosestPointOnLaserPointer,
-					/* Out */ ClosestPointOnUICapsule );
-
-				const FVector TowardLaserPointerVector = ( ClosestPointOnLaserPointer - ClosestPointOnUICapsule ).GetSafeNormal();
-
-				// Apply capsule radius
-				ClosestPointOnUICapsule += TowardLaserPointerVector * UICapsuleLocalRadius;
-
-				if( false )	// @todo vreditor debug
-				{
-					const float RenderCapsuleLength = ( UICapsuleEnd - UICapsuleStart ).Size() + UICapsuleLocalRadius * 2.0f;
-					DrawDebugCapsule( Owner.GetWorld(), OtherHand.Transform.TransformPosition( UICapsuleStart + ( UICapsuleEnd - UICapsuleStart ) * 0.5f ), RenderCapsuleLength * 0.5f, UICapsuleLocalRadius, OtherHand.Transform.GetRotation() * FRotator( 90.0f, 0, 0 ).Quaternion(), FColor::Green, false, 0.0f );
-					DrawDebugLine( Owner.GetWorld(), OtherHand.Transform.TransformPosition( ClosestPointOnLaserPointer ), OtherHand.Transform.TransformPosition( ClosestPointOnUICapsule ), FColor::Green, false, 0.0f );
-					DrawDebugSphere( Owner.GetWorld(), OtherHand.Transform.TransformPosition( ClosestPointOnLaserPointer ), 1.5f * WorldScaleFactor, 32, FColor::Red, false, 0.0f );
-					DrawDebugSphere( Owner.GetWorld(), OtherHand.Transform.TransformPosition( ClosestPointOnUICapsule ), 1.5f * WorldScaleFactor, 32, FColor::Green, false, 0.0f );
-				}
-				
-				// If we're really close to the capsule
-				const float MinDistanceToUICapsule = 8.0f * WorldScaleFactor;	// @todo vreditor tweak
-				if( ( ClosestPointOnUICapsule - ClosestPointOnLaserPointer ).Size() < MinDistanceToUICapsule )
-				{
-					// Make the quick menu UI visible
-					const FVector LaserPointerDirectionInOtherHandSpace = ( LaserPointerEndInOtherHandSpace - LaserPointerStartInOtherHandSpace ).GetSafeNormal();
-					const FVector UIForwardVector = FVector::UpVector;
-
-					if( false )	// @todo vreditor debug
-					{
-						DrawDebugLine( Owner.GetWorld(), OtherHand.Transform.TransformPosition( FVector::ZeroVector ), OtherHand.Transform.TransformPosition( UIForwardVector * 5.0f ), FColor::Yellow, false, 0.0f );
-						DrawDebugLine( Owner.GetWorld(), OtherHand.Transform.TransformPosition( FVector::ZeroVector ), OtherHand.Transform.TransformPosition( -LaserPointerDirectionInOtherHandSpace * 5.0f ), FColor::Purple, false, 0.0f );
-					}
-
-					const float MinDotForAimingAtOtherHand = 0.25f;	// @todo vreditor tweak
-					const float Dot = FVector::DotProduct( UIForwardVector, -LaserPointerDirectionInOtherHandSpace );
-					if( Dot >= MinDotForAimingAtOtherHand )
-					{
-						bShowQuickMenuOnArm = true;
-					}
-				}
+				bShowQuickMenuOnArm = true;
 			}
 
 			if( bShowQuickMenuOnArm )

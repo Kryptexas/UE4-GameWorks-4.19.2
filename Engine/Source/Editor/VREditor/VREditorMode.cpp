@@ -1617,9 +1617,10 @@ void FVREditorMode::SetRoomTransform( const FTransform& NewRoomTransform )
 }
 
 
-bool FVREditorMode::GetHandTransformAndForwardVector( int32 HandIndex, FTransform& OutHandTransform, FVector& OutForwardVector )
+bool FVREditorMode::GetHandTransformAndForwardVector( int32 HandIndex, FTransform& OutHandTransform, FVector& OutForwardVector ) const
 {
-	PollInputIfNeeded();
+	FVREditorMode* MutableThis = const_cast<FVREditorMode*>( this );
+	MutableThis->PollInputIfNeeded();
 
 	const FVirtualHand& Hand = VirtualHands[ HandIndex ];
 	if( Hand.bHaveMotionController )
@@ -1642,7 +1643,7 @@ bool FVREditorMode::GetHandTransformAndForwardVector( int32 HandIndex, FTransfor
 }
 
 
-bool FVREditorMode::GetLaserPointer( const int32 HandIndex, FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfUIIsInFront, const float LaserLengthOverride )
+bool FVREditorMode::GetLaserPointer( const int32 HandIndex, FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfUIIsInFront, const float LaserLengthOverride ) const
 {
 	const FVirtualHand& Hand = VirtualHands[ HandIndex ];
 
@@ -2542,22 +2543,22 @@ void FVREditorMode::ApplyButtonPressColors( FVRAction VRAction, EInputEvent Even
 		{
 			Hand.HandMeshMID->SetScalarParameterValue( StaticShoulderParameter, PressStrength );
 		}
-		else if (Event == IE_Released)
+		else if( Event == IE_Released )
 		{
 			Hand.HandMeshMID->SetScalarParameterValue( StaticShoulderParameter, 0.0f );
 		}
 	}
 
 	//Trackpad
-	if ( VRAction.ActionType == EVRActionType::ConfirmRadialSelection )
+	if( VRAction.ActionType == EVRActionType::ConfirmRadialSelection )
 	{
 		static FName StaticTrackpadParameter( "B3" );
 
-		if (Event == IE_Pressed)
+		if( Event == IE_Pressed )
 		{
 			Hand.HandMeshMID->SetScalarParameterValue( StaticTrackpadParameter, PressStrength );
 		}
-		else if (Event == IE_Released)
+		else if( Event == IE_Released )
 		{
 			Hand.HandMeshMID->SetScalarParameterValue( StaticTrackpadParameter, 0.0f );
 		}
@@ -2580,8 +2581,8 @@ void FVREditorMode::ApplyButtonPressColors( FVRAction VRAction, EInputEvent Even
 
 void FVREditorMode::CycleTransformGizmoHandleType()
 {
-	EGizmoHandleTypes NewGizmoType = (EGizmoHandleTypes)((uint8)CurrentGizmoType + 1);
-	if (NewGizmoType > EGizmoHandleTypes::Scale)
+	EGizmoHandleTypes NewGizmoType = (EGizmoHandleTypes)( (uint8)CurrentGizmoType + 1 );
+	if( NewGizmoType > EGizmoHandleTypes::Scale )
 	{
 		NewGizmoType = EGizmoHandleTypes::All;
 	}
@@ -2620,5 +2621,66 @@ FLinearColor FVREditorMode::GetColor( const EColors Color ) const
 	return Colors[ (int32)Color ];
 }
 
+
+bool FVREditorMode::IsHandAimingTowardsCapsule( const int32 HandIndex, const FTransform& CapsuleTransform, FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule ) const
+{
+	bool bIsAimingTowards = false;
+	const float WorldScaleFactor = GetWorldScaleFactor();
+
+	FVector LaserPointerStart, LaserPointerEnd;
+	if( GetLaserPointer( HandIndex, /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
+	{
+		const FVector LaserPointerStartInCapsuleSpace = CapsuleTransform.InverseTransformPosition( LaserPointerStart );
+		const FVector LaserPointerEndInCapsuleSpace = CapsuleTransform.InverseTransformPosition( LaserPointerEnd );
+
+		FVector ClosestPointOnLaserPointer, ClosestPointOnUICapsule;
+		FMath::SegmentDistToSegment(
+			LaserPointerStartInCapsuleSpace, LaserPointerEndInCapsuleSpace,
+			CapsuleStart, CapsuleEnd,
+			/* Out */ ClosestPointOnLaserPointer,
+			/* Out */ ClosestPointOnUICapsule );
+
+		const bool bIsClosestPointInsideCapsule = ( ClosestPointOnLaserPointer - ClosestPointOnUICapsule ).Size() <= CapsuleRadius;
+
+		const FVector TowardLaserPointerVector = ( ClosestPointOnLaserPointer - ClosestPointOnUICapsule ).GetSafeNormal();
+
+		// Apply capsule radius
+		ClosestPointOnUICapsule += TowardLaserPointerVector * CapsuleRadius;
+
+		if( false )	// @todo vreditor debug
+		{
+			const float RenderCapsuleLength = ( CapsuleEnd - CapsuleStart ).Size() + CapsuleRadius * 2.0f;
+			// @todo vreditor:  This capsule draws with the wrong orientation
+			if( false )
+			{
+				DrawDebugCapsule( GetWorld(), CapsuleTransform.TransformPosition( CapsuleStart + ( CapsuleEnd - CapsuleStart ) * 0.5f ), RenderCapsuleLength * 0.5f, CapsuleRadius, CapsuleTransform.GetRotation() * FRotator( 90.0f, 0, 0 ).Quaternion(), FColor::Green, false, 0.0f );
+			}
+			DrawDebugLine( GetWorld(), CapsuleTransform.TransformPosition( ClosestPointOnLaserPointer ), CapsuleTransform.TransformPosition( ClosestPointOnUICapsule ), FColor::Green, false, 0.0f );
+			DrawDebugSphere( GetWorld(), CapsuleTransform.TransformPosition( ClosestPointOnLaserPointer ), 1.5f * WorldScaleFactor, 32, FColor::Red, false, 0.0f );
+			DrawDebugSphere( GetWorld(), CapsuleTransform.TransformPosition( ClosestPointOnUICapsule ), 1.5f * WorldScaleFactor, 32, FColor::Green, false, 0.0f );
+		}
+
+		// If we're really close to the capsule
+		if( bIsClosestPointInsideCapsule ||
+			( ClosestPointOnUICapsule - ClosestPointOnLaserPointer ).Size() <= MinDistanceToCapsule )
+		{
+			const FVector LaserPointerDirectionInCapsuleSpace = ( LaserPointerEndInCapsuleSpace - LaserPointerStartInCapsuleSpace ).GetSafeNormal();
+
+			if( false )	// @todo vreditor debug
+			{
+				DrawDebugLine( GetWorld(), CapsuleTransform.TransformPosition( FVector::ZeroVector ), CapsuleTransform.TransformPosition( CapsuleFrontDirection * 5.0f ), FColor::Yellow, false, 0.0f );
+				DrawDebugLine( GetWorld(), CapsuleTransform.TransformPosition( FVector::ZeroVector ), CapsuleTransform.TransformPosition( -LaserPointerDirectionInCapsuleSpace * 5.0f ), FColor::Purple, false, 0.0f );
+			}
+
+			const float Dot = FVector::DotProduct( CapsuleFrontDirection, -LaserPointerDirectionInCapsuleSpace );
+			if( Dot >= MinDotForAimingAtCapsule )
+			{
+				bIsAimingTowards = true;
+			}
+		}
+	}
+
+	return bIsAimingTowards;
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -129,6 +129,11 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		check( CloseButtonTranslucentMID != nullptr );
 		CloseButtonMeshComponent->SetMaterial( 1, CloseButtonTranslucentMID );
 	}
+
+	// The selection bar and close button will not be initially visible.  They'll appear when the user aims
+	// their laser toward the UI
+	SelectionBarMeshComponent->SetVisibility( false );
+	CloseButtonMeshComponent->SetVisibility( false );
 }
 
 
@@ -149,6 +154,31 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 	{
 		const float WorldScaleFactor = GetOwner().GetOwner().GetWorldScaleFactor();
 		const FVector AnimatedScale = CalculateAnimatedScale();
+
+		
+		bool bIsLaserAimingTowardUI = false;
+		{
+			const FTransform UICapsuleTransform = this->GetActorTransform();
+
+			const FVector UICapsuleStart = FVector( 0.0f, 0.0f, -GetSize().Y * 0.4f ) * WorldScaleFactor * AnimatedScale;
+			const FVector UICapsuleEnd = FVector( 0.0f, 0.0f, GetSize().Y * 0.4f ) * WorldScaleFactor * AnimatedScale;
+			const float UICapsuleLocalRadius = GetSize().X * 0.5f * WorldScaleFactor * AnimatedScale.Y;
+			const float MinDistanceToUICapsule = 10.0f * WorldScaleFactor * AnimatedScale.Y;	// @todo vreditor tweak
+			const FVector UIForwardVector = FVector::ForwardVector;
+			const float MinDotForAimingAtOtherHand = -1.1f;	// @todo vreditor tweak
+
+			for( int32 HandIndex = 0; HandIndex < VREditorConstants::NumVirtualHands; ++HandIndex )
+			{
+				if( GetOwner().GetOwner().IsHandAimingTowardsCapsule( HandIndex, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand ) )
+				{
+					bIsLaserAimingTowardUI = true;
+				}
+			}
+		}
+
+		// Only show our extra buttons and controls if the user is roughly aiming toward us.  This just reduces clutter.
+		SelectionBarMeshComponent->SetVisibility( bIsLaserAimingTowardUI );
+		CloseButtonMeshComponent->SetVisibility( bIsLaserAimingTowardUI );
 
 		// Update the window border mesh
 		{

@@ -72,7 +72,7 @@ public:
 	virtual void Render( const FSceneView* SceneView, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) override;	
 
 	// IVREditorMode interface
-	virtual bool GetLaserPointer( const int32 HandIndex, FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfUIIsInFront = false, const float LaserLengthOverride = 0.0f) override;
+	virtual bool GetLaserPointer( const int32 HandIndex, FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfUIIsInFront = false, const float LaserLengthOverride = 0.0f) const override;
 	virtual bool IsInputCaptured( const FVRAction VRAction ) const;
 	virtual AActor* GetAvatarMeshActor() override
 	{
@@ -109,6 +109,13 @@ public:
 		return VirtualHands[ VirtualHandIndex ];
 	}
 
+	/** Gets a virtual hand (const) */
+	const FVirtualHand& GetVirtualHand( const int32 VirtualHandIndex ) const
+	{
+		check( VirtualHandIndex >= 0 && VirtualHandIndex < VREditorConstants::NumVirtualHands );
+		return VirtualHands[ VirtualHandIndex ];
+	}
+
 	/** Given an index of a hand, gets the index of the opposite hand */
 	int32 GetOtherHandIndex( const int32 HandIndex ) const
 	{
@@ -119,6 +126,12 @@ public:
 
 	/** Gets the other hand, given a hand index */
 	FVirtualHand& GetOtherHand( const int32 HandIndex )
+	{
+		return VirtualHands[ GetOtherHandIndex( HandIndex ) ];
+	}
+
+	/** Gets the other hand, given a hand index (const) */
+	const FVirtualHand& GetOtherHand( const int32 HandIndex ) const
 	{
 		return VirtualHands[ GetOtherHandIndex( HandIndex ) ];
 	}
@@ -262,6 +275,8 @@ public:
 	/** @return Returns the type of HMD we're dealing with */
 	EHMDDeviceType::Type GetHMDDeviceType() const;
 
+	/** @return Checks to see if the specified hand is aiming roughly toward the specified capsule */
+	bool IsHandAimingTowardsCapsule( const int32 HandIndex, const FTransform& CapsuleTransform, const FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule ) const;
 
 private:
 
@@ -277,7 +292,7 @@ private:
 	 *
 	 * @return	True if we have motion controller data for this hand and could return a valid result
 	 */
-	bool GetHandTransformAndForwardVector( int32 HandIndex, FTransform& OutHandTransform, FVector& OutForwardVector );
+	bool GetHandTransformAndForwardVector( int32 HandIndex, FTransform& OutHandTransform, FVector& OutForwardVector ) const;
 
 	/**
 	 * Translates a raw key into a vr editing action
