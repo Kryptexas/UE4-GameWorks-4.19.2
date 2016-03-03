@@ -1043,6 +1043,8 @@ public:
 	 */
 	explicit FSlateWindowElementList( TSharedPtr<SWindow> InWindow = TSharedPtr<SWindow>() )
 		: TopLevelWindow( InWindow )
+		, bNeedsDeferredResolve( false )
+		, ResolveToDeferredIndex()
 		, MemManager(0)
 	{
 		DrawStack.Push(&RootDrawLayer);
@@ -1148,6 +1150,11 @@ public:
 	SLATECORE_API void QueueDeferredPainting( const FDeferredPaint& InDeferredPaint );
 
 	int32 PaintDeferred(int32 LayerId);
+
+	bool ShouldResolveDeferred() const { return bNeedsDeferredResolve; }
+
+	void BeginDeferredGroup();
+	void EndDeferredGroup();
 
 	struct FVolatilePaint
 	{
@@ -1268,6 +1275,9 @@ private:
 	 * We accomplish this by deferring their painting.
 	 */
 	TArray< TSharedPtr<FDeferredPaint> > DeferredPaintList;
+
+	bool bNeedsDeferredResolve;
+	TArray<int32> ResolveToDeferredIndex;
 
 	/** The widgets be cached for a later paint pass when the invalidation host paints. */
 	TArray< TSharedPtr<FVolatilePaint> > VolatilePaintList;

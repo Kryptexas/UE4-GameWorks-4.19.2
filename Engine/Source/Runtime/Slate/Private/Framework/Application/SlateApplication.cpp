@@ -1890,8 +1890,9 @@ void FSlateApplication::SetModalWindowStackEndedDelegate(FModalWindowStackEnded 
 
 TSharedRef<SWindow> FSlateApplication::AddWindowAsNativeChild( TSharedRef<SWindow> InSlateWindow, TSharedRef<SWindow> InParentWindow, const bool bShowImmediately )
 {
+	// @VREDITOR HACK
 	// Parent window must already have been added
-	checkSlow(FSlateWindowHelper::ContainsWindow(SlateWindows, InParentWindow));
+	//checkSlow(FSlateWindowHelper::ContainsWindow(SlateWindows, InParentWindow));
 
 	// Add the Slate window to the Slate application's top-level window array.  Note that neither the Slate window
 	// or the native window are ready to be used yet, however we need to make sure they're in the Slate window
@@ -1899,16 +1900,21 @@ TSharedRef<SWindow> FSlateApplication::AddWindowAsNativeChild( TSharedRef<SWindo
 	// activation message may be sent by the OS as soon as the window is shown (in the Init function), and if we
 	// don't add the Slate window to our window list, we wouldn't be able to route that message to the window.
 	InParentWindow->AddChildWindow( InSlateWindow );
-	TSharedRef<FGenericWindow> NewWindow = MakeWindow( InSlateWindow, bShowImmediately );
 
-	if( bShowImmediately )
+	// Only make native generic windows if the parent has one.
+	if ( InParentWindow->GetNativeWindow()->GetOSWindowHandle() )
 	{
-		InSlateWindow->ShowWindow();
+		TSharedRef<FGenericWindow> NewWindow = MakeWindow(InSlateWindow, bShowImmediately);
 
-		//@todo Slate: Potentially dangerous and annoying if all slate windows that are created steal focus.
-		if( InSlateWindow->SupportsKeyboardFocus() && InSlateWindow->IsFocusedInitially() )
+		if ( bShowImmediately )
 		{
-			InSlateWindow->GetNativeWindow()->SetWindowFocus();
+			InSlateWindow->ShowWindow();
+
+			//@todo Slate: Potentially dangerous and annoying if all slate windows that are created steal focus.
+			if ( InSlateWindow->SupportsKeyboardFocus() && InSlateWindow->IsFocusedInitially() )
+			{
+				InSlateWindow->GetNativeWindow()->SetWindowFocus();
+			}
 		}
 	}
 
@@ -2397,6 +2403,8 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 
 	if (InFocusPath.IsValid())
 	{
+		//UE_LOG(LogSlate, Warning, TEXT("Focus for user %i seeking focus path:\n%s"), InUserIndex, *InFocusPath.ToString());
+
 		for (int32 WidgetIndex = InFocusPath.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
 		{
 			const FArrangedWidget& WidgetToFocus = InFocusPath.Widgets[WidgetIndex];
@@ -2407,6 +2415,7 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 				// Is we aren't changing focus then simply return
 				if (WidgetToFocus.Widget == OldFocusedWidget)
 				{
+					//UE_LOG(LogSlate, Warning, TEXT("--Focus Has Not Changed--"));
 					return false;
 				}
 				NewFocusedWidget = WidgetToFocus.Widget;
@@ -4430,15 +4439,21 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 
 	const TSharedPtr<SWidget> PreviouslyFocusedWidget = GetKeyboardFocusedWidget();
 
-	FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FTunnelPolicy(WidgetsUnderPointer), PointerEvent, [] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
+	int32 WidgetHandledIndex = 0;
+
+	FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FTunnelPolicy(WidgetsUnderPointer), PointerEvent, [&WidgetHandledIndex] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
 	{
+		WidgetHandledIndex++;
 		return TargetWidget.Widget->OnPreviewMouseButtonDown(TargetWidget.Geometry, Event);
 	});
 
 	if ( !Reply.IsEventHandled() )
 	{
-		Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderPointer), PointerEvent, [this] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
+		WidgetHandledIndex = WidgetsUnderPointer.Widgets.Num();
+
+		Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderPointer), PointerEvent, [this, &WidgetHandledIndex] (const FArrangedWidget TargetWidget, const FPointerEvent& Event)
 		{
+			WidgetHandledIndex--;
 			FReply ThisReply = FReply::Unhandled();
 			if ( !ThisReply.IsEventHandled() )
 			{
@@ -4454,20 +4469,27 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 			return ThisReply;
 		});
 	}
+	else
+	{
+		// Since we always advance 1, need to back that out if it was handled by the preview mouse down code.
+		WidgetHandledIndex--;
+	}
+
 	LOG_EVENT(EEventLog::MouseButtonDown, Reply);
 
 	// If none of the widgets requested keyboard focus to be set (or set the keyboard focus explicitly), set it to the leaf-most widget under the mouse.
 	// On Mac we prevent the OS from activating the window on mouse down, so we have full control and can activate only if there's nothing draggable under the mouse cursor.
 	const bool bFocusChangedByEventHandler = PreviouslyFocusedWidget != GetKeyboardFocusedWidget();
-	if ((!Reply.GetUserFocusRecepient().IsValid() || (PLATFORM_MAC && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid()))
-		&& (!bFocusChangedByEventHandler || bNeedToActivateWindow))
+	if ( ( !Reply.GetUserFocusRecepient().IsValid() || ( PLATFORM_MAC && PointerEvent.GetEffectingButton() == EKeys::LeftMouseButton && !DragDetector.DetectDragForWidget.IsValid() ) )
+		&& ( !bFocusChangedByEventHandler || bNeedToActivateWindow ) )
 	{
-		// The event handler for OnMouseButton down may have altered the widget hierarchy.
-		// Refresh the previously-cached widget path.
-		WidgetsUnderPointer = LocateWindowUnderMouse(PointerEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows());
+		// If the event wasn't handled, we need to resample the screen to find
+		// @HACK VREDITOR No longer resampling from the screen down, that won't
+		//                work well with 3D widgets, so we're just going to use the existing widgets under pointer
+		//                that we already passed in.
 
 		bool bFocusCandidateFound = false;
-		for ( int32 WidgetIndex = WidgetsUnderPointer.Widgets.Num() - 1; !bFocusCandidateFound && WidgetIndex >= 0; --WidgetIndex )
+		for ( int32 WidgetIndex = WidgetHandledIndex; !bFocusCandidateFound && WidgetIndex >= 0; --WidgetIndex )
 		{
 			FArrangedWidget& CurWidget = WidgetsUnderPointer.Widgets[WidgetIndex];
 			if ( CurWidget.Widget->SupportsKeyboardFocus() )
@@ -4480,7 +4502,7 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 
 #if PLATFORM_MAC
 		TSharedPtr<SWindow> TopLevelWindow = WidgetsUnderPointer.TopLevelWindow;
-		if ( bNeedToActivateWindow || (TopLevelWindow.IsValid() && TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() != ActiveWindow) )
+		if ( bNeedToActivateWindow || ( TopLevelWindow.IsValid() && TopLevelWindow->GetNativeWindow()->GetOSWindowHandle() != ActiveWindow ) )
 		{
 			// Clicking on a context menu should not activate anything
 			// @todo: This needs to be updated when we have window type in SWindow and we no longer have to guess if WidgetsUnderCursor.TopLevelWindow is a menu
@@ -4489,7 +4511,7 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 			{
 				MouseCaptorHelper Captor = MouseCaptor;
 				FPlatformMisc::ActivateApplication();
-				if (TopLevelWindow.IsValid())
+				if ( TopLevelWindow.IsValid() )
 				{
 					TopLevelWindow->BringToFront(true);
 				}

@@ -288,13 +288,16 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	if( GetSizeXY() != DrawSize )
 	{
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef() );
-
-		check(Window.IsValid());
-		if (Window->IsViewportSizeDrivenByWindow())
+		if ( Window.IsValid() )
 		{
-			ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
+			//@HACK VREDITOR
+			//check(Window.IsValid());
+			if ( Window->IsViewportSizeDrivenByWindow() )
+			{
+				ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
+			}
 		}
-	}	
+	}
 	
 	// Cannot pass negative canvas positions
 	float CanvasMinX = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.X);
@@ -396,6 +399,20 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 			if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Pressed))
 			{
 				CurrentReplyState = FReply::Unhandled();
+			}
+		}
+		else
+		{
+			TSharedRef<SViewport> ViewportWidgetRef = ViewportWidget.Pin().ToSharedRef();
+			if ( ViewportWidgetRef->HasUserFocusedDescendants(InMouseEvent.GetUserIndex()) )
+			{
+				// If we're still focused on a descendant, force it to stay focused.  Need to do this to fool SlateApplication
+				// otherwise it will reassign focus thinking that nobody requested it.
+				TSharedPtr<SWidget> FocusedWidgetPtr = FSlateApplication::Get().GetUserFocusedWidget(InMouseEvent.GetUserIndex());
+				if ( FocusedWidgetPtr.IsValid() )
+				{
+					CurrentReplyState.SetUserFocus(FocusedWidgetPtr.ToSharedRef(), EFocusCause::SetDirectly, false);
+				}
 			}
 		}
 

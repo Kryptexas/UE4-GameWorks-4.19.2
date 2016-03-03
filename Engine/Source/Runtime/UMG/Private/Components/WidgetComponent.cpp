@@ -14,6 +14,8 @@
 #include "SGameLayerManager.h"
 #include "Slate/WidgetRenderer.h"
 #include "Slate/SWorldWidgetScreenLayer.h"
+#include "Widgets/LayerManager/STooltipPresenter.h"
+#include "Widgets/Layout/SPopup.h"
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
@@ -299,7 +301,7 @@ public:
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Slate3DHitTesting);
 
-		if( World.IsValid() && ensure( World->IsGameWorld() ) )
+		if( World.IsValid() /*&& ensure( World->IsGameWorld() )*/ )
 		{
 			UWorld* SafeWorld = World.Get();
 			if ( SafeWorld )
@@ -583,22 +585,7 @@ void UWidgetComponent::OnRegister()
 			if ( GetWorld()->IsGameWorld() )
 			{
 				TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
-
-				if ( GameViewportWidget.IsValid() )
-				{
-					TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
-					if ( !CustomHitTestPath.IsValid() )
-					{
-						CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
-						GameViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
-					}
-
-					TSharedPtr<FWidget3DHitTester> Widget3DHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
-					if ( Widget3DHitTester->GetWorld() == GetWorld() )
-					{
-						Widget3DHitTester->RegisterWidgetComponent(this);
-					}
-				}
+				RegisterHitTesterWithViewport(GameViewportWidget);
 			}
 
 			if( !MaterialInstance )
@@ -629,18 +616,7 @@ void UWidgetComponent::OnUnregister()
 		TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
 		if( GameViewportWidget.IsValid() )
 		{
-			TSharedPtr<ICustomHitTestPath> CustomHitTestPath = GameViewportWidget->GetCustomHitTestPath();
-			if( CustomHitTestPath.IsValid() )
-			{
-				TSharedPtr<FWidget3DHitTester> WidgetHitTestPath = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
-
-				WidgetHitTestPath->UnregisterWidgetComponent( this );
-
-				if ( WidgetHitTestPath->GetNumRegisteredComponents() == 0 )
-				{
-					GameViewportWidget->SetCustomHitTestPath( nullptr );
-				}
-			}
+			UnregisterHitTesterWithViewport(GameViewportWidget);
 		}
 	}
 
@@ -652,6 +628,46 @@ void UWidgetComponent::OnUnregister()
 #endif
 
 	Super::OnUnregister();
+}
+
+void UWidgetComponent::RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	if ( ViewportWidget.IsValid() )
+	{
+		TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+		if ( !CustomHitTestPath.IsValid() )
+		{
+			CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
+			ViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
+		}
+
+		TSharedPtr<FWidget3DHitTester> Widget3DHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+		if ( Widget3DHitTester->GetWorld() == GetWorld() )
+		{
+			Widget3DHitTester->RegisterWidgetComponent(this);
+		}
+	}
+#endif
+
+}
+
+void UWidgetComponent::UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+	if ( CustomHitTestPath.IsValid() )
+	{
+		TSharedPtr<FWidget3DHitTester> WidgetHitTestPath = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+
+		WidgetHitTestPath->UnregisterWidgetComponent(this);
+
+		if ( WidgetHitTestPath->GetNumRegisteredComponents() == 0 )
+		{
+			ViewportWidget->SetCustomHitTestPath(nullptr);
+		}
+	}
+#endif
 }
 
 void UWidgetComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
@@ -692,14 +708,9 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 	if ( Space != EWidgetSpace::Screen )
 	{
-		const float RenderTimeThreshold = .5f;
-		if ( IsVisible() )
+		if ( ShouldDrawWidget() )
 		{
-			// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
-			if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
-			{
-				DrawWidgetToRenderTarget(DeltaTime);
-			}
+			DrawWidgetToRenderTarget(DeltaTime);
 		}
 	}
 	else
@@ -755,6 +766,21 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	}
 
 #endif // !UE_SERVER
+}
+
+bool UWidgetComponent::ShouldDrawWidget() const
+{
+	const float RenderTimeThreshold = .5f;
+	if ( IsVisible() )
+	{
+		// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
+		if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
@@ -925,9 +951,8 @@ void UWidgetComponent::InitWidget()
 		}
 		
 #if WITH_EDITOR
-		if ( Widget && !GetWorld()->IsGameWorld() )
+		if ( Widget && !GetWorld()->IsGameWorld() && !bEditTimeUsable )
 		{
-			//@todo vreditor: This prevents the UI from executing blueprint events in the editor. For VR editor we need this but still need to disable it for user placed in world components in 2D and VR editors
 			if( !GEnableVREditorHacks )
 			{
 				// Prevent native ticking of editor component previews
@@ -996,10 +1021,10 @@ void UWidgetComponent::UpdateWidget()
 	{
 		if ( Space != EWidgetSpace::Screen )
 		{
-			TSharedPtr<SWidget> NewWidget;
+			TSharedPtr<SWidget> NewSlateWidget;
 			if (Widget)
 			{
-				NewWidget = Widget->TakeWidget();
+				NewSlateWidget = Widget->TakeWidget();
 			}
 
 			if ( !SlateWindow.IsValid() )
@@ -1014,17 +1039,26 @@ void UWidgetComponent::UpdateWidget()
 
 			SlateWindow->Resize(DrawSize);
 
-			if (NewWidget.IsValid())
+			if ( NewSlateWidget.IsValid() )
 			{
-				SlateWindow->SetContent(NewWidget.ToSharedRef());
+				if ( NewSlateWidget != CurrentSlateWidget )
+				{
+					CurrentSlateWidget = NewSlateWidget;
+					SlateWindow->SetContent(NewSlateWidget.ToSharedRef());
+				}
 			}
 			else if( SlateWidget.IsValid() )
 			{
-				SlateWindow->SetContent( SlateWidget.ToSharedRef() );
+				if ( SlateWidget != CurrentSlateWidget )
+				{
+					CurrentSlateWidget = SlateWidget;
+					SlateWindow->SetContent(SlateWidget.ToSharedRef());
+				}
 			}
 			else
 			{
-				SlateWindow->SetContent(SNullWidget::NullWidget);
+				CurrentSlateWidget = SNullWidget::NullWidget;
+				SlateWindow->SetContent( SNullWidget::NullWidget );
 			}
 		}
 		else

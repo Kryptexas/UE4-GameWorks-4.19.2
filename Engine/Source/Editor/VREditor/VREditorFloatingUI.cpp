@@ -6,6 +6,8 @@
 #include "VREditorBaseUserWidget.h"
 #include "VREditorMode.h"
 #include "WidgetComponent.h"
+#include "LevelEditor.h"
+#include "ILevelViewport.h"
 
 
 namespace VREd
@@ -36,7 +38,8 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	check( SceneComponent != nullptr );
 	this->RootComponent = SceneComponent;
 
-	this->WidgetComponent = CreateDefaultSubobject<UWidgetComponent>( TEXT( "WidgetComponent" ), bTransient );
+	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>( TEXT( "WidgetComponent" ), bTransient );
+	WidgetComponent->SetEditTimeUsable(true);
 	WidgetComponent->AttachTo( SceneComponent );
 }
 
@@ -210,7 +213,7 @@ void AVREditorFloatingUI::UpdateFadingState( const float DeltaTime )
  		// Set material color
 		// NOTE: We intentionally make the UI quite dark here, so it doesn't bloom out in HDR
 		const float UIBrightness = FadeAlpha * VREd::UIBrightness->GetFloat();
- 		WidgetComponent->SetTintColorAndOpacity( FLinearColor( UIBrightness, UIBrightness, UIBrightness ).CopyWithNewOpacity( FadeAlpha ) );
+		WidgetComponent->SetTintColorAndOpacity( FLinearColor( UIBrightness, UIBrightness, UIBrightness ).CopyWithNewOpacity( FadeAlpha ) );
 	}
 }
 
@@ -441,6 +444,30 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 			SetActorHiddenInGame( !bShow );
 			WidgetComponent->SetVisibility( bShow );
 			FadeAlpha = bShow ? 1.0f : 0.0f;
+		}
+
+		// @todo vreditor Could fail a million different ways.
+		if ( bShow )
+		{
+			FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+			TSharedPtr<ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+			
+			if ( ActiveLevelViewport.IsValid() )
+			{
+				TSharedPtr<SViewport> ViewportWidget = ActiveLevelViewport->GetViewportWidget().Pin();
+				WidgetComponent->RegisterHitTesterWithViewport(ViewportWidget);
+			}
+		}
+		else
+		{
+			FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+			TSharedPtr<ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+
+			if ( ActiveLevelViewport.IsValid() )
+			{
+				TSharedPtr<SViewport> ViewportWidget = ActiveLevelViewport->GetViewportWidget().Pin();
+				WidgetComponent->UnregisterHitTesterWithViewport(ViewportWidget);
+			}
 		}
 
 		FadeDelay = InitFadeDelay;

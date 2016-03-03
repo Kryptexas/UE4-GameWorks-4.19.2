@@ -23,6 +23,8 @@ enum class EWidgetBlendMode : uint8
 	Transparent
 };
 
+
+
 /**
  * Beware! This feature is experimental and may be substantially changed or removed in future releases.
  * A 3D instance of a Widget Blueprint that can be interacted with in the world.
@@ -49,6 +51,9 @@ public:
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 
 	void ApplyComponentInstanceData(class FWidgetComponentInstanceData* ComponentInstanceData);
+
+	void RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
+	void UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
 
 	// Begin UObject
 	virtual void PostLoad() override;
@@ -195,6 +200,13 @@ public:
 
 	void SetWidgetSpace( EWidgetSpace NewSpace ) { Space = NewSpace; }
 
+	bool GetEditTimeUsable() const { return bEditTimeUsable; }
+
+	void SetEditTimeUsable(bool Value) { bEditTimeUsable = Value; }
+
+protected:
+	virtual bool ShouldDrawWidget() const;
+
 protected:
 	void RemoveWidgetFromScreen();
 
@@ -271,6 +283,9 @@ protected:
 	/** The Slate widget to be displayed by this component.  Only one of either Widget or SlateWidget can be used */
 	TSharedPtr<SWidget> SlateWidget;
 
+	/** The slate widget currently being drawn. */
+	TWeakPtr<SWidget> CurrentSlateWidget;
+
 	/** The body setup of the displayed quad */
 	UPROPERTY(Transient, DuplicateTransient)
 	class UBodySetup* BodySetup;
@@ -312,6 +327,13 @@ protected:
 
 	UPROPERTY(Transient, DuplicateTransient)
 	bool bAddedToScreen;
+
+	/**
+	 * Allows the widget component to be used at editor time.  For use in the VR-Editor.
+	 */
+	UPROPERTY()
+	bool bEditTimeUsable;
+
 protected:
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */

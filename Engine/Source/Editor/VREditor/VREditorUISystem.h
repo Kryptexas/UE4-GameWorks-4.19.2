@@ -153,5 +153,13 @@ protected:
 
 	/** If the panels should become visible or invisible next toggle*/
 	bool bPanelVisibilityToggle;
+
+
+	//
+	// Tab Manager UI
+	//
+
+	/** Allows us to steal the global tabs and show them in the world. */
+	TSharedPtr<FProxyTabmanager> ProxyTabManager;
 };
 

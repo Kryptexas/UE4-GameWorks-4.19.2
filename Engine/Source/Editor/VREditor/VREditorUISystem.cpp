@@ -601,7 +601,9 @@ void FVREditorUISystem::CreateUIs()
 			Config.bCanShowRealTimeThumbnails = false;
 			Config.InitialAssetViewType = EAssetViewType::Tile;
 			Config.bCanShowDevelopersFolder = false;
-			Config.bCanShowFolders = false;
+			Config.bCanShowFolders = true;
+			Config.bUsePathPicker = true;
+			Config.bCanShowFilters = true;
 			Config.bCanShowAssetSearch = false;
 			Config.bUseSourcesView = true;
 			Config.bExpandSourcesView = true;
@@ -730,6 +732,30 @@ void FVREditorUISystem::CreateUIs()
 
 			EditorUIPanels[ (int32)EEditorUIPanel::Tutorial ] = TutorialUI;		
 		}
+
+		{
+			const FIntPoint Resolution(VREd::EditorUIResolutionX->GetInt(), VREd::EditorUIResolutionY->GetInt());
+
+			const bool bWithSceneComponent = false;
+			AVREditorFloatingUI* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("TabManager"), bWithSceneComponent);
+			TabManagerUI->SetSlateWidget(*this, SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+			TabManagerUI->ShowUI(true);
+			TabManagerUI->SetRelativeOffset(FVector(0, 0, 1000));
+			FloatingUIs.Add(TabManagerUI);
+
+			TSharedPtr<SWindow> TabManagerWindow = TabManagerUI->GetWidgetComponent()->GetSlateWindow();
+			TSharedRef<SWindow> TabManagerWindowRef = TabManagerWindow.ToSharedRef();
+			ProxyTabManager = MakeShareable(new FProxyTabmanager(TabManagerWindowRef));
+
+			TSharedRef<FTabManager::FLayout> LoadedLayout = FTabManager::NewLayout(TEXT("VRTabManager"));
+			LoadedLayout->AddArea(FTabManager::NewPrimaryArea());
+
+			TSharedPtr<SWidget> DockLayout = FGlobalTabmanager::Get()->RestoreFrom(LoadedLayout, TabManagerWindowRef, false);
+			TabManagerWindowRef->SetContent(DockLayout.ToSharedRef());
+
+			// We're going to start stealing tabs from the global tab manager inserting them into the world instead.
+			FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
+		}
 	}
 }
 
@@ -748,6 +774,11 @@ void FVREditorUISystem::CleanUpActorsBeforeMapChangeOrSimulate()
 	EditorUIPanels.Reset();
 	QuickRadialMenu = nullptr;
 	QuickMenuUI = nullptr;
+
+	ProxyTabManager.Reset();
+
+	// Remove the proxy tab manager, we don't want to steal tabs any more.
+	FGlobalTabmanager::Get()->SetProxyTabManager(TSharedPtr<FProxyTabmanager>());
 }
 
 
