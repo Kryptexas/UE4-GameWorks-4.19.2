@@ -1479,13 +1479,6 @@ bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport*
 				Hand.LastTrackpadPosition.Y = Hand.bIsTrackpadPositionValid[1] ? Hand.TrackpadPosition.Y : Delta;
 				Hand.LastTrackpadPositionUpdateTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
 				Hand.TrackpadPosition.Y = Delta;
-
-				// @todo vreditor: On the Rift, trackpad vertical values are reversed
-				if( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift )
-				{
-					Hand.TrackpadPosition.Y = -Hand.TrackpadPosition.Y;
-				}
-
 				Hand.bIsTrackpadPositionValid[1] = true;
 			}
 		}
