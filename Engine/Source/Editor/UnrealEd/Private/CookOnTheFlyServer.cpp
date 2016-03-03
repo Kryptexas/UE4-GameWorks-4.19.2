@@ -1891,7 +1891,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			for (const auto& TargetPlatformName : ToBuild.GetPlatformnames())
 			{
 				const FString SandboxFilename = ConvertToFullSandboxPath(ToBuild.GetFilename().ToString(), true, TargetPlatformName.ToString());
-				check(IFileManager::Get().FileExists(*SandboxFilename) == false);
+				if (IFileManager::Get().FileExists(*SandboxFilename))
+				{
+					// if we find the file this means it was cooked on a previous cook, however source package can't be found now. 
+					// this could be because the source package was deleted or renamed, and we are using iterative cooking
+					// perhaps in this case we should delete it?
+					UE_LOG(LogCook, Warning, TEXT("Found cooked file which shouldn't exist as it failed loading %s"), *SandboxFilename); 
+					IFileManager::Get().Delete(*SandboxFilename);
+				}
 			}
 #endif
 			CookedPackages.Add( FFilePlatformCookedPackage( ToBuild.GetFilename(), TargetPlatformNames, false) );
