@@ -174,7 +174,12 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("MorphTargets", DesktopPlats);
         NonCodeProjectNames.Add("PostProcessMatinee", DesktopPlats);
         NonCodeProjectNames.Add("SciFiHallway", DesktopPlats);
-		NonCodeProjectNames.Add("ShowdownDemo", DesktopPlats);
+
+        // Windows only due to VR elements
+        if (HostPlatform == UnrealTargetPlatform.Win64)
+        {
+            NonCodeProjectNames.Add("ShowdownDemo", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32 });
+        }
 
         //NonCodeProjectNames.Add("BlackJack", DesktopAndMobilePlats);
         //NonCodeProjectNames.Add("MemoryGame", DesktopAndMobilePlats);
