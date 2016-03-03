@@ -15,6 +15,7 @@ public:
 		WorldOutliner,
 		ActorDetails,
 		Modes,
+		Tutorial,
 
 		// ...
 
@@ -131,8 +132,11 @@ protected:
 	/** Quick menu widget class */
 	UClass* QuickMenuWidgetClass;
 
-	/** Quick radial menu qidget class */
+	/** Quick radial menu widget class */
 	UClass* QuickRadialWidgetClass;
+
+	/** Tutorial menu widget class */
+	UClass* TutorialWidgetClass;
 	
 	//
 	// Dragging UI
