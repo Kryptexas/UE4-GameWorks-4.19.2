@@ -509,6 +509,7 @@ public:
 		WhiteGizmoColor,
 		HoverGizmoColor,
 		DraggingGizmoColor,
+		UISelectionBarColor,
 		TotalCount
 	};
 
