@@ -596,7 +596,7 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y)
 {
 	// If the viewport isn't active or the console is active we don't want to override the cursor
-	if (!bActive || (ViewportConsole && ViewportConsole->ConsoleActive()))
+	if (!bActive || (!InViewport->HasMouseCapture() && !InViewport->HasFocus()) || (ViewportConsole && ViewportConsole->ConsoleActive()))
 	{
 		return EMouseCursor::Default;
 	}

@@ -357,8 +357,10 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		{
 			FSlateApplication::Get().RegisterGameViewport(GameViewportWidgetRef);
 		}
-		
-		FSlateApplication::Get().SetAllUserFocusToGameViewport();
+		else
+		{
+			FSlateApplication::Get().ActivateGameViewport();
+		}
 	}
 }
 

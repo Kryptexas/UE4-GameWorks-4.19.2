@@ -449,6 +449,11 @@ public:
 	void SetJoystickCaptorToGameViewport();
 
 	/**
+	 * Activates the Game Viewport if it is properly childed under a window
+	 */
+	void ActivateGameViewport();
+
+	/**
 	 * Sets specified user focus to the SWidget passed in.
 	 *
 	 * @param UserIndex Index of the user to change focus for
