@@ -279,7 +279,8 @@ struct FVirtualHand
 	/** Time that we either started showing or hiding help labels (for fade transitions) */
 	FTimespan HelpLabelShowOrHideStartTime;
 
-
+	/** The current component hovered by the laser pointer of this hand */
+	TWeakObjectPtr<class UActorComponent> HoveredActorComponent;
 
 	/** Default constructor for FVirtualHand that initializes safe defaults */
 	FVirtualHand()
@@ -351,6 +352,8 @@ struct FVirtualHand
 
 		bWantHelpLabels = false;
 		HelpLabelShowOrHideStartTime = FTimespan::MinValue();
+
+		HoveredActorComponent = nullptr;
 	}
 };
 

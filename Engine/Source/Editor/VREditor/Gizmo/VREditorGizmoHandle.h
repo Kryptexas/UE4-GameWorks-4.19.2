@@ -92,6 +92,8 @@ public:
 	}
 
 protected:
+	/** Updates the colors of the dynamic material instances for the handle passed using its axis index */	
+	void UpdateHandleColor( const int32 AxisIndex, FVREditorGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles );
 
 	/** Gizmo material (opaque) */
 	UPROPERTY()

@@ -249,53 +249,7 @@ void UVREditorStretchGizmoHandleGroup::UpdateGizmoHandleGroup( const FTransform&
 			StretchingHandle->SetRelativeScale3D( FVector( GizmoHandleScale ) );
 
 			// Update material
-			{
-				if (!StretchingHandle->GetMaterial( 0 )->IsA( UMaterialInstanceDynamic::StaticClass() ))
-				{
-					UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create( GizmoMaterial, this );
-					StretchingHandle->SetMaterial( 0, MID );
-				}
-				if (!StretchingHandle->GetMaterial( 1 )->IsA( UMaterialInstanceDynamic::StaticClass() ))
-				{
-					UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create( TranslucentGizmoMaterial, this );
-					StretchingHandle->SetMaterial( 1, MID );
-				}
-				UMaterialInstanceDynamic* MID0 = CastChecked<UMaterialInstanceDynamic>( StretchingHandle->GetMaterial( 0 ) );
-				UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( StretchingHandle->GetMaterial( 1 ) );
-
-				FLinearColor HandleColor = FLinearColor::White;
-				if (StretchingHandle == DraggingHandle)
-				{
-					HandleColor = VREd::GizmoColor::DraggingGizmoColor;
-				}
-				else 
-				{
-					if (FacingAxisIndex != INDEX_NONE)
-					{
-						switch (FacingAxisIndex)
-						{
-						case 0:
-							HandleColor = VREd::GizmoColor::RedGizmoColor;
-							break;
-
-						case 1:
-							HandleColor = VREd::GizmoColor::GreenGizmoColor;
-							break;
-
-						case 2:
-							HandleColor = VREd::GizmoColor::BlueGizmoColor;
-							break;
-						}
-					}
-
-					if( HoveringOverHandles.Contains( StretchingHandle ) )
-					{
-						HandleColor = FLinearColor::LerpUsingHSV( HandleColor, VREd::GizmoColor::HoverGizmoColor, Handle.HoverAlpha );
-					}
-				}
-				MID0->SetVectorParameterValue( "Color", HandleColor );
-				MID1->SetVectorParameterValue( "Color", HandleColor );
-			}
+			UpdateHandleColor( FacingAxisIndex, Handle, DraggingHandle, HoveringOverHandles );
 		}
 	}
 }

@@ -10,15 +10,6 @@
 
 namespace VREd
 {
-	namespace ModeColors
-	{
-		static const FLinearColor DefaultColor = FLinearColor::Red;
-		static const FLinearColor SelectionColor = FLinearColor::Green;
-		static const FLinearColor TeleportColor = FLinearColor( 1.0f, 0.0f, 0.75f, 1.0f );
-		static const FLinearColor WorldDraggingColor_OneHand = FLinearColor::Yellow;	// With one hand, a laser is visible and you can teleport by pulling the trigger
-		static const FLinearColor WorldDraggingColor_TwoHands = FLinearColor::Blue;		// With two hands you are freely rotating/scaling the world, no laser is visible, and you can't teleport
-	}
-
 	static FAutoConsoleVariable ScaleMax( TEXT( "VREd.ScaleMax" ), 4000.0f, TEXT( "Maximum world scale in centimeters" ) );
 	static FAutoConsoleVariable ScaleMin( TEXT( "VREd.ScaleMin" ), 10.0f, TEXT( "Minimum world scale in centimeters" ) );
 }
@@ -499,5 +490,34 @@ protected:
 
 	/** The current Gizmo type that is used for the TransformGizmo Actor */
 	EGizmoHandleTypes CurrentGizmoType;
+
+	//
+	// Colors
+	//
+public:
+	// Color types
+	enum EColors
+	{
+		DefaultColor,
+		SelectionColor,
+		TeleportColor,
+		WorldDraggingColor_OneHand,
+		WorldDraggingColor_TwoHands,
+		RedGizmoColor,
+		GreenGizmoColor,
+		BlueGizmoColor,
+		WhiteGizmoColor,
+		HoverGizmoColor,
+		DraggingGizmoColor,
+		TotalCount
+	};
+
+	// Gets the color
+	FLinearColor GetColor( const EColors Color ) const;
+
+private:
+
+	// All the colors for this mode
+	TArray<FLinearColor> Colors;
 };
 

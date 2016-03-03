@@ -26,7 +26,7 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 			check( WindowMesh != nullptr );
 		}
 
-		WindowMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBar" ) );
+		WindowMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "WindowMesh" ) );
 		WindowMeshComponent->SetStaticMesh( WindowMesh );
 		WindowMeshComponent->SetMobility( EComponentMobility::Movable );
 		WindowMeshComponent->AttachTo( RootComponent );
@@ -64,6 +64,29 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		SelectionMeshComponent->bCastDynamicShadow = false;
 		SelectionMeshComponent->bCastStaticShadow = false;
 		SelectionMeshComponent->bAffectDistanceFieldLighting = false;
+
+		UMaterial* HoverMaterial = nullptr;
+		{
+			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TransformGizmoMaterial" ) );
+			HoverMaterial = ObjectFinder.Object;
+			check( HoverMaterial != nullptr );
+		}
+		HoverMaterialMID = UMaterialInstanceDynamic::Create( HoverMaterial, GetTransientPackage() );
+		check( HoverMaterialMID != nullptr );
+		SelectionMeshComponent->SetMaterial( 0, HoverMaterialMID );
+
+		UMaterial* TranslucentHoverMaterial = nullptr;
+		{
+			static ConstructorHelpers::FObjectFinder<UMaterial> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/TranslucentTransformGizmoMaterial" ) );
+			TranslucentHoverMaterial = ObjectFinder.Object;
+			check( TranslucentHoverMaterial != nullptr );
+		}
+		TranslucentHoverMID = UMaterialInstanceDynamic::Create( TranslucentHoverMaterial, GetTransientPackage() );
+		check( TranslucentHoverMID != nullptr );
+		SelectionMeshComponent->SetMaterial( 1, TranslucentHoverMID );
+
+		// Can't get the owner here to set the default color
+		SetSelectionBarColor( FLinearColor( 0.7f, 0.7f, 0.7f, 1.0f ) );
 	}
 
 }
@@ -100,4 +123,24 @@ void AVREditorDockableWindow::UpdateRelativeRoomTransform()
 
 	RelativeOffset = RoomSpaceWindowLocation;
 	LocalRotation = RoomSpaceWindowRotation.Rotator();
+}
+
+void AVREditorDockableWindow::OnEnterHover( const FHitResult& HitResult )
+{
+	if( SelectionMeshComponent == HitResult.GetComponent() )
+	{
+		SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::HoverGizmoColor ) );
+	}
+}
+
+void AVREditorDockableWindow::OnLeaveHover()
+{
+	SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::WhiteGizmoColor ) );
+}
+
+void AVREditorDockableWindow::SetSelectionBarColor( const FLinearColor& LinearColor )
+{
+	static FName StaticColorParameterName( "Color" );
+	HoverMaterialMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
+	TranslucentHoverMID->SetVectorParameterValue( StaticColorParameterName, LinearColor );
 }

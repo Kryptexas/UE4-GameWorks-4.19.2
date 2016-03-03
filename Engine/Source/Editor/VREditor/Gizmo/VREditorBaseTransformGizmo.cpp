@@ -4,6 +4,7 @@
 #include "VREditorBaseTransformGizmo.h"
 #include "UnitConversion.h"
 #include "VREditorGizmoHandle.h"
+#include "VREditorMode.h"
 
 namespace VREd
 {
@@ -12,7 +13,8 @@ namespace VREd
 	static FAutoConsoleVariable GizmoSelectionAnimationCurvePower( TEXT( "VREd.GizmoSelectionAnimationCurvePower" ), 2.0f, TEXT( "Controls the animation curve for the gizmo after objects are selected" ) );
 }
 
-ABaseTransformGizmo::ABaseTransformGizmo( )
+ABaseTransformGizmo::ABaseTransformGizmo( ) :
+	Owner( nullptr )
 {
 	// Create root default scene component
 	{
@@ -165,6 +167,16 @@ float ABaseTransformGizmo::GetAnimationAlpha()
 	}
 
 	return AnimationAlpha;
+}
+
+void ABaseTransformGizmo::SetOwnerMode( FVREditorMode* InOwner )
+{
+	Owner = InOwner;
+}
+
+FVREditorMode* ABaseTransformGizmo::GetOwnerMode() const
+{
+	return Owner;
 }
 
 void ABaseTransformGizmo::UpdateHandleVisibility( const EGizmoHandleTypes GizmoType, const ECoordSystem GizmoCoordinateSpace, const bool bAllHandlesVisible, UActorComponent* DraggingHandle )

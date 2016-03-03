@@ -41,6 +41,12 @@ public:
 	/** Updates the animation with the currenttime and selectedtime */
 	float GetAnimationAlpha();
 
+	/** Sets the owner */
+	void SetOwnerMode( class FVREditorMode* InOwner );
+
+	/** Gets the owner */
+	class FVREditorMode* GetOwnerMode() const;
+
 protected:
 
 	/** Makes up a name string for a handle */
@@ -72,4 +78,7 @@ protected:
 	/** All gizmo components */
 	UPROPERTY()
 	TArray< class UVREditorGizmoHandleGroup* > AllHandleGroups;
+
+	/** Owning object */
+	class FVREditorMode* Owner;
 };

@@ -2,7 +2,8 @@
 
 #include "VREditorModule.h"
 #include "VREditorUniformScaleGizmoHandle.h"
-#include "VREditorTransformGizmo.h"
+#include "VREditorBaseTransformGizmo.h"
+#include "VREditorMode.h"
 #include "UnitConversion.h"
 
 UVREditorUniformScaleGizmoHandleGroup::UVREditorUniformScaleGizmoHandleGroup()
@@ -74,23 +75,31 @@ void UVREditorUniformScaleGizmoHandleGroup::UpdateGizmoHandleGroup( const FTrans
 			UMaterialInstanceDynamic* MID0 = CastChecked<UMaterialInstanceDynamic>( UniformScaleHandle->GetMaterial( 0 ) );
 			UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( UniformScaleHandle->GetMaterial( 1 ) );
 
-			FLinearColor HandleColor = FLinearColor::White;
-			if (UniformScaleHandle == DraggingHandle)
+			ABaseTransformGizmo* GizmoActor = CastChecked<ABaseTransformGizmo>( GetOwner() );
+			if( GizmoActor )
 			{
-				HandleColor = VREd::GizmoColor::DraggingGizmoColor;
-			}
-			else
-			{
-				HandleColor = VREd::GizmoColor::WhiteGizmoColor;
-
-				if( HoveringOverHandles.Contains( UniformScaleHandle ) )
+				FVREditorMode* Mode =GizmoActor->GetOwnerMode();
+				if( Mode )
 				{
-					HandleColor = FLinearColor::LerpUsingHSV( HandleColor, VREd::GizmoColor::HoverGizmoColor, Handle.HoverAlpha );
+					FLinearColor HandleColor = Mode->GetColor( FVREditorMode::EColors::WhiteGizmoColor );
+					if (UniformScaleHandle == DraggingHandle)
+					{
+						HandleColor = Mode->GetColor( FVREditorMode::EColors::DraggingGizmoColor );
+					}
+					else
+					{
+						HandleColor = VREd::GizmoColor::WhiteGizmoColor;
+
+						if (HoveringOverHandles.Contains( UniformScaleHandle ))
+						{
+							HandleColor = FLinearColor::LerpUsingHSV( HandleColor, Mode->GetColor( FVREditorMode::EColors::HoverGizmoColor ), Handle.HoverAlpha );
+						}
+					}
+
+					MID0->SetVectorParameterValue( "Color", HandleColor );
+					MID1->SetVectorParameterValue( "Color", HandleColor );
 				}
 			}
-
-			MID0->SetVectorParameterValue( "Color", HandleColor );
-			MID1->SetVectorParameterValue( "Color", HandleColor );
 		}
 	}
 }

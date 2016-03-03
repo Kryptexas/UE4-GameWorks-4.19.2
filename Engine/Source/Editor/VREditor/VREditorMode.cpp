@@ -197,10 +197,25 @@ void FVREditorMode::Enter()
 		KeyToActionMap.Add( EKeys::MotionController_Right_Thumbstick_Y, FVRAction( EVRActionType::TrackpadPositionY, VREditorConstants::RightHandIndex ) );
 	}
 
+	// Setting up colors
+	Colors.SetNumZeroed( (int32)EColors::TotalCount );
+	{
+		Colors[ (int32)EColors::DefaultColor ] = FLinearColor::Red;	
+		Colors[ (int32)EColors::SelectionColor ] = FLinearColor::Green;
+		Colors[ (int32)EColors::TeleportColor ] = FLinearColor( 1.0f, 0.0f, 0.75f, 1.0f );
+		Colors[ (int32)EColors::WorldDraggingColor_OneHand ] = FLinearColor::Yellow;
+		Colors[ (int32)EColors::WorldDraggingColor_TwoHands ] = FLinearColor::Blue;
+		Colors[ (int32)EColors::RedGizmoColor ] = FLinearColor( 0.4f, 0.05f, 0.05f, 1.0f );
+		Colors[ (int32)EColors::GreenGizmoColor ] = FLinearColor( 0.05f, 0.4f, 0.05f, 1.0f );
+		Colors[ (int32)EColors::BlueGizmoColor ] = FLinearColor( 0.05f, 0.05f, 0.4f, 1.0f );
+		Colors[ (int32)EColors::WhiteGizmoColor ] = FLinearColor( 0.7f, 0.7f, 0.7f, 1.0f );
+		Colors[ (int32)EColors::HoverGizmoColor ] = FLinearColor( FLinearColor::Yellow );
+		Colors[ (int32)EColors::DraggingGizmoColor ] = FLinearColor( FLinearColor::White );
+	}
 
 	// @todo vreditor: We need to make sure the user can never switch to orthographic mode, or activate settings that
 	// would disrupt the user's ability to view the VR scene.
-
+		
 	// @todo vreditor: Don't bother drawing toolbars in VR, or other things that won't matter in VR
 
 	{
@@ -605,6 +620,7 @@ void FVREditorMode::SpawnAvatarMeshActor()
 				UMaterialInstance* TranslucentLaserPointerMaterialInst = LoadObject<UMaterialInstance>( nullptr, TEXT( "/Engine/VREditor/LaserPointer/TranslucentLaserPointerMaterialInst" ) );
 				check( TranslucentLaserPointerMaterialInst != nullptr );
 				Hand.TranslucentLaserPointerMID = UMaterialInstanceDynamic::Create( TranslucentLaserPointerMaterialInst, GetTransientPackage() );
+				check( Hand.TranslucentLaserPointerMID != nullptr );
 				Hand.LaserPointerMeshComponent->SetMaterial( 1, Hand.TranslucentLaserPointerMID );
 			}
 
@@ -984,7 +1000,7 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 					const bool CrawlFade = 1.0f;
 					const float CrawlSpeed = 10.0f;
 
-					SetLaserVisuals( HandIndex, VREd::ModeColors::DefaultColor );
+					SetLaserVisuals( HandIndex, GetColor( EColors::DefaultColor ) );
 
 					static FName StaticLengthParameterName( "Length" );
 					Hand.LaserPointerMID->SetScalarParameterValue( StaticLengthParameterName, LaserPointerLength );
@@ -1077,7 +1093,7 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 	{
 		for( int32 HandIndex = 0; HandIndex < VREditorConstants::NumVirtualHands; ++HandIndex )
 		{
-			FLinearColor ResultColor = VREd::ModeColors::DefaultColor;
+			FLinearColor ResultColor = GetColor( EColors::DefaultColor );
 			float CrawlSpeed = 0.0f;
 			float CrawlFade = 0.0f;
 
@@ -1090,20 +1106,20 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 
 			if( bIsDraggingWorldWithTwoHands )
 			{
-				ResultColor = VREd::ModeColors::WorldDraggingColor_TwoHands;
+				ResultColor = GetColor( EColors::WorldDraggingColor_TwoHands );
 			}
 			else if( Hand.DraggingMode == EVREditorDraggingMode::World )
 			{
 				if( WorldInteraction->IsTeleporting() )
 				{
-					ResultColor = VREd::ModeColors::TeleportColor;
+					ResultColor = GetColor( EColors::TeleportColor );
 				}
 				else
 				{
 					// We can teleport in this mode, so animate the laser a bit
 					CrawlFade = 1.0f;
 					CrawlSpeed = 5.0f;
-					ResultColor = VREd::ModeColors::WorldDraggingColor_OneHand;
+					ResultColor = GetColor( EColors::WorldDraggingColor_OneHand );
 				}
 			}
 			else if( Hand.DraggingMode == EVREditorDraggingMode::ActorsAtLaserImpact ||
@@ -1111,7 +1127,7 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 				Hand.DraggingMode == EVREditorDraggingMode::ActorsWithGizmo ||
 				Hand.DraggingMode == EVREditorDraggingMode::AssistingDrag )
 			{
-				ResultColor = VREd::ModeColors::SelectionColor;
+				ResultColor = GetColor( EColors::SelectionColor );
 			}
 
 			SetLaserVisuals( HandIndex, ResultColor, CrawlFade, CrawlSpeed );
@@ -2578,6 +2594,11 @@ ECoordSystem FVREditorMode::GetTransformGizmoCoordinateSpace() const
 EHMDDeviceType::Type FVREditorMode::GetHMDDeviceType() const
 {
 	return GEngine->HMDDevice.IsValid() ? GEngine->HMDDevice->GetHMDDeviceType() : EHMDDeviceType::DT_SteamVR;
+}
+
+FLinearColor FVREditorMode::GetColor( const EColors Color ) const
+{
+	return Colors[ (int32)Color ];
 }
 
 

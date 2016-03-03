@@ -3,6 +3,7 @@
 #include "VREditorModule.h"
 #include "VREditorGizmoHandle.h"
 #include "VREditorTransformGizmo.h"
+#include "VREditorMode.h"
 
 UVREditorGizmoHandleGroup::UVREditorGizmoHandleGroup()
 	: Super()
@@ -164,4 +165,62 @@ TArray<FVREditorGizmoHandle>& UVREditorGizmoHandleGroup::GetHandles()
 EGizmoHandleTypes UVREditorGizmoHandleGroup::GetHandleType() const
 {
 	return EGizmoHandleTypes::All;
+}
+
+void UVREditorGizmoHandleGroup::UpdateHandleColor( const int32 AxisIndex, FVREditorGizmoHandle& Handle, class UActorComponent* DraggingHandle, const TArray< UActorComponent* >& HoveringOverHandles )
+{
+	UStaticMeshComponent* HandleMesh = Handle.HandleMesh;
+
+	if ( !HandleMesh->GetMaterial( 0 )->IsA( UMaterialInstanceDynamic::StaticClass() ) )
+	{
+		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create( GizmoMaterial, this );
+		HandleMesh->SetMaterial( 0, MID );
+	}
+	if ( !HandleMesh->GetMaterial( 1 )->IsA( UMaterialInstanceDynamic::StaticClass() ) )
+	{
+		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create( TranslucentGizmoMaterial, this );
+		HandleMesh->SetMaterial( 1, MID );
+	}
+	UMaterialInstanceDynamic* MID0 = CastChecked<UMaterialInstanceDynamic>( HandleMesh->GetMaterial( 0 ) );
+	UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( HandleMesh->GetMaterial( 1 ) );
+
+	ABaseTransformGizmo* GizmoActor = CastChecked<ABaseTransformGizmo>( GetOwner() );
+	if (GizmoActor)
+	{
+		FVREditorMode* Mode = GizmoActor->GetOwnerMode();
+		if (Mode)
+		{
+			FLinearColor HandleColor = Mode->GetColor( FVREditorMode::EColors::WhiteGizmoColor );
+			if (HandleMesh == DraggingHandle)
+			{
+				HandleColor = Mode->GetColor( FVREditorMode::EColors::DraggingGizmoColor );
+			}
+			else if (AxisIndex != INDEX_NONE)
+			{
+				switch (AxisIndex)
+				{
+				case 0:
+					HandleColor = Mode->GetColor( FVREditorMode::EColors::RedGizmoColor );
+					break;
+
+				case 1:
+					HandleColor = Mode->GetColor( FVREditorMode::EColors::GreenGizmoColor );
+					break;
+
+				case 2:
+					HandleColor = Mode->GetColor( FVREditorMode::EColors::BlueGizmoColor );
+					break;
+				}
+
+				if (HoveringOverHandles.Contains( HandleMesh ))
+				{
+					HandleColor = FLinearColor::LerpUsingHSV( HandleColor, Mode->GetColor( FVREditorMode::EColors::HoverGizmoColor ), Handle.HoverAlpha );
+				}
+			}
+
+			static FName StaticHandleColorParameter( "Color" );
+			MID0->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
+			MID1->SetVectorParameterValue( StaticHandleColorParameter, HandleColor );
+		}
+	}
 }

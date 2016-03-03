@@ -658,8 +658,9 @@ void FVREditorWorldInteraction::OnVRHoverUpdate( FEditorViewportClient& Viewport
 		FVirtualHand& Hand = Owner.GetVirtualHand( HandIndex );
 
 		UActorComponent* PreviousHoverGizmoComponent = Hand.HoveringOverTransformGizmoComponent.Get();
-
 		Hand.HoveringOverTransformGizmoComponent = nullptr;
+
+		UActorComponent* NewHoveredActorComponent = nullptr;
 
 		FHitResult HitResult = Owner.GetHitResultFromLaserPointer( HandIndex );
 		if( HitResult.Actor.IsValid() )
@@ -671,6 +672,7 @@ void FVREditorWorldInteraction::OnVRHoverUpdate( FEditorViewportClient& Viewport
 				this->HoveredObjects.Add( FViewportHoverTarget( Actor ) );
 
 				HoverImpactPoint = HitResult.ImpactPoint;
+				NewHoveredActorComponent = HitResult.GetComponent();
 
 				if( Actor == TransformGizmoActor )
 				{
@@ -696,9 +698,37 @@ void FVREditorWorldInteraction::OnVRHoverUpdate( FEditorViewportClient& Viewport
 
 					Hand.HoverHapticCheckLastHoveredGizmoComponent = HitResult.GetComponent();
 				}
+				else if ( Actor->IsA( AVREditorDockableWindow::StaticClass() ) )
+				{
+					AVREditorDockableWindow* DockableWindow = Cast< AVREditorDockableWindow >( Actor );
+					if (DockableWindow)
+					{
+						DockableWindow->OnEnterHover( HitResult );
+					}
+				}
 
 				bWasHandled = true;
 			}
+		}
+
+		// Leave dockable window hover
+		if( Hand.HoveredActorComponent != nullptr && ( NewHoveredActorComponent == nullptr || Hand.HoveredActorComponent != NewHoveredActorComponent || !HitResult.Actor.IsValid() ) )
+		{
+			AActor* Actor = Hand.HoveredActorComponent->GetOwner();
+			if (Actor->IsA( AVREditorDockableWindow::StaticClass() ))
+			{
+				AVREditorDockableWindow* DockableWindow = Cast< AVREditorDockableWindow >( Actor );
+				if (DockableWindow)
+				{
+					DockableWindow->OnLeaveHover();
+				}
+			}
+		}
+
+		// Set the new hovered actor component if there is any
+		if( HitResult.Actor.IsValid() && NewHoveredActorComponent )
+		{
+			Hand.HoveredActorComponent = NewHoveredActorComponent;
 		}
 	}
 }
@@ -1393,6 +1423,7 @@ void FVREditorWorldInteraction::RefreshTransformGizmo( const bool bNewObjectsSel
 			const bool bWithSceneComponent = false;	// We already have our own scene component
 			TransformGizmoActor = Owner.SpawnTransientSceneActor<ATransformGizmo>( TEXT( "TransformGizmo" ), bWithSceneComponent );
 			check( TransformGizmoActor != nullptr );
+			TransformGizmoActor->SetOwnerMode( &Owner ) ;
 
 			if( VREd::ShowTransformGizmo->GetInt() == 0 )
 			{

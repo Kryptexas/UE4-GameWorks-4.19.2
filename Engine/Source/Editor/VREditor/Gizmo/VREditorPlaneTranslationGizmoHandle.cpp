@@ -2,7 +2,7 @@
 
 #include "VREditorModule.h"
 #include "VREditorPlaneTranslationGizmoHandle.h"
-#include "VREditorTransformGizmo.h"
+#include "VREditorBaseTransformGizmo.h"
 #include "UnitConversion.h"
 
 UVREditorPlaneTranslationGizmoHandleGroup::UVREditorPlaneTranslationGizmoHandleGroup()
@@ -130,52 +130,9 @@ void UVREditorPlaneTranslationGizmoHandleGroup::UpdateGizmoHandleGroup( const FT
 			PlaneTranslationHandle->SetRelativeRotation( GizmoSpaceOrientation );
 
 			PlaneTranslationHandle->SetRelativeScale3D( FVector( GizmoHandleScale ) );
-
+			
 			// Update material
-			{
-				if (!PlaneTranslationHandle->GetMaterial( 0 )->IsA( UMaterialInstanceDynamic::StaticClass() ))
-				{
-					UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create( GizmoMaterial, this );
-					PlaneTranslationHandle->SetMaterial( 0, MID );
-				}
-				if (!PlaneTranslationHandle->GetMaterial( 1 )->IsA( UMaterialInstanceDynamic::StaticClass() ))
-				{
-					UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create( TranslucentGizmoMaterial, this );
-					PlaneTranslationHandle->SetMaterial( 1, MID );
-				}
-				UMaterialInstanceDynamic* MID0 = CastChecked<UMaterialInstanceDynamic>( PlaneTranslationHandle->GetMaterial( 0 ) );
-				UMaterialInstanceDynamic* MID1 = CastChecked<UMaterialInstanceDynamic>( PlaneTranslationHandle->GetMaterial( 1 ) );
-
-				FLinearColor HandleColor = FLinearColor::White;
-				if (PlaneTranslationHandle == DraggingHandle)
-				{
-					HandleColor = VREd::GizmoColor::DraggingGizmoColor;
-				}
-				else if (FacingAxisIndex != INDEX_NONE)
-				{
-					switch (FacingAxisIndex)
-					{
-					case 0:
-						HandleColor = VREd::GizmoColor::RedGizmoColor;
-						break;
-
-					case 1:
-						HandleColor = VREd::GizmoColor::GreenGizmoColor;
-						break;
-
-					case 2:
-						HandleColor = VREd::GizmoColor::BlueGizmoColor;
-						break;
-					}
-
-					if( HoveringOverHandles.Contains( PlaneTranslationHandle ) )
-					{
-						HandleColor = FLinearColor::LerpUsingHSV( HandleColor, VREd::GizmoColor::HoverGizmoColor, Handle.HoverAlpha );
-					}
-				}
-				MID0->SetVectorParameterValue( "Color", HandleColor );
-				MID1->SetVectorParameterValue( "Color", HandleColor );
-			}
+			UpdateHandleColor( FacingAxisIndex, Handle, DraggingHandle, HoveringOverHandles );
 		}
 	}
 }
