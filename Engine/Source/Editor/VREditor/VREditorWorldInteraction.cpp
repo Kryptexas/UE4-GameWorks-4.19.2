@@ -2683,13 +2683,6 @@ void FVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 		}
 	}
 
-	// We're always expecting a hand to be hovering at the time we receive this event, but in forced VR mode
-	// there may not be a hand if you're interacting with the legit CB.
-	if ( !FVREditorMode::IsActuallyUsingVR() && PlacingWithHandIndex == INDEX_NONE )
-	{
-		return;
-	}
-
 	// We're always expecting a hand to be hovering at the time we receive this event
 	if( PlacingWithHandIndex != INDEX_NONE )	// @todo vreditor: This ensure fires when in "fake VR" mode when you drag an asset (Expected)
 	{

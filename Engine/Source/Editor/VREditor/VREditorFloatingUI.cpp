@@ -6,8 +6,7 @@
 #include "VREditorBaseUserWidget.h"
 #include "VREditorMode.h"
 #include "WidgetComponent.h"
-#include "LevelEditor.h"
-#include "ILevelViewport.h"
+#include "SLevelViewport.h"	// For tab manager tricks
 
 
 namespace VREd
@@ -446,28 +445,14 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 			FadeAlpha = bShow ? 1.0f : 0.0f;
 		}
 
-		// @todo vreditor Could fail a million different ways.
+		const TSharedRef<SViewport>& ViewportWidget = Owner->GetOwner().GetLevelViewportPossessedForVR().GetViewportWidget().Pin().ToSharedRef();
 		if ( bShow )
 		{
-			FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-			TSharedPtr<ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
-			
-			if ( ActiveLevelViewport.IsValid() )
-			{
-				TSharedPtr<SViewport> ViewportWidget = ActiveLevelViewport->GetViewportWidget().Pin();
-				WidgetComponent->RegisterHitTesterWithViewport(ViewportWidget);
-			}
+			WidgetComponent->RegisterHitTesterWithViewport(ViewportWidget);
 		}
 		else
 		{
-			FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-			TSharedPtr<ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
-
-			if ( ActiveLevelViewport.IsValid() )
-			{
-				TSharedPtr<SViewport> ViewportWidget = ActiveLevelViewport->GetViewportWidget().Pin();
-				WidgetComponent->UnregisterHitTesterWithViewport(ViewportWidget);
-			}
+			WidgetComponent->UnregisterHitTesterWithViewport(ViewportWidget);
 		}
 
 		FadeDelay = InitFadeDelay;
