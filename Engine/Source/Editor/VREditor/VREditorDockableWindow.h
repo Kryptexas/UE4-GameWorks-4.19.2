@@ -25,7 +25,7 @@ public:
 
 	/** Default constructor */
 	AVREditorDockableWindow();
-
+	
 	/** Updates the meshes for the UI */
 	virtual void TickManually( float DeltaTime ) override;
 
@@ -40,11 +40,11 @@ public:
 
 private:
 
+	// AVREditorFloatingUI overrides
+	virtual void SetupWidgetComponent() override;
+
 	/** Setting the color on the dynamic materials of the SelectionMesh */
 	void SetSelectionBarColor( const FLinearColor& LinearColor );
-
-	/** The room space scale for the SelectionMeshComponent */
-	FVector SelectionMeshScale;
 
 	/** Dynamic material  (opaque) */
 	UPROPERTY()

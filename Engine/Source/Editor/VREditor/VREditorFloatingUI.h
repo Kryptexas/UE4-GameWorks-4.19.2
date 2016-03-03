@@ -33,10 +33,10 @@ public:
 	};
 
 	/** Creates a FVREditorFloatingUI using a Slate widget, and sets up safe defaults */
-	void SetSlateWidget( class FVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitSize, const EDockedTo InitDockedTo );
+	void SetSlateWidget( class FVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo );
 
 	/** Creates a FVREditorFloatingUI using a UMG user widget, and sets up safe defaults */
-	void SetUMGWidget( class FVREditorUISystem& InitOwner, class TSubclassOf<class UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitSize, const EDockedTo InitDockedTo );
+	void SetUMGWidget( class FVREditorUISystem& InitOwner, class TSubclassOf<class UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo );
 
 	/** @return Returns true if the UI is visible (or wants to be visible -- it might be transitioning */
 	bool IsUIVisible() const
@@ -67,6 +67,9 @@ public:
 	{
 		return WidgetComponent;
 	}
+
+	/** Returns the actual size of the UI in either axis, after scaling has been applied.  Does not take into animation or world scaling */
+	FVector2D GetSize() const;
 
 	/** AActor overrides */
 	virtual void Destroyed() override;
@@ -120,7 +123,7 @@ protected:
 	virtual FTransform MakeCustomUITransform() { return FTransform(); };
 
 	/** Called to finish setting everything up, after a widget has been assigned */
-	void SetupWidgetComponent();
+	virtual void SetupWidgetComponent();
 
 private:
 
@@ -137,10 +140,10 @@ private:
 	void RotateToHead( FTransform& Transform );
 
 	/** Create a room transform with the RelativeOffset and LocalRotation */
-	FTransform MakeUITransformLockedToRoom( );
+	FTransform MakeUITransformLockedToRoom();
 
 	/** Create a transform with the RelativeOffset and LocalRotation that moves with the head */
-	FTransform MakeUITransformLockedToHead( );
+	FTransform MakeUITransformLockedToHead();
 
 protected:
 
@@ -162,7 +165,7 @@ protected:
 	class UWidgetComponent* WidgetComponent;
 	
 	/** How big the UI should be */
-	float Size;
+	float Scale;
 
 	/** Resolution we should draw this UI at, regardless of scale */
 	FIntPoint Resolution;

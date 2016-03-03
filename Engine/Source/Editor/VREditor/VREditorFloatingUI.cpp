@@ -16,7 +16,7 @@ namespace VREd
 
 
 AVREditorFloatingUI::AVREditorFloatingUI()
-	: Size( 1.0f ),
+	: Scale( 1.0f ),
 	  DockedTo( EDockedTo::Nothing ),
 	  PreviousDockedTo( EDockedTo::Nothing ),
 	  SlateWidget( nullptr ),
@@ -94,7 +94,7 @@ void AVREditorFloatingUI::SetupWidgetComponent()
 	UpdateTransformIfDocked();
 }
 
-void AVREditorFloatingUI::SetSlateWidget( FVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitSize, const EDockedTo InitDockedTo )
+void AVREditorFloatingUI::SetSlateWidget( FVREditorUISystem& InitOwner, const TSharedRef<SWidget>& InitSlateWidget, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
 {
 	Owner = &InitOwner;
 
@@ -103,14 +103,14 @@ void AVREditorFloatingUI::SetSlateWidget( FVREditorUISystem& InitOwner, const TS
 	Resolution = InitResolution;
 	check( Resolution.X > 0 && Resolution.Y > 0 );
 
-	Size = InitSize;
+	Scale = InitScale;
 	DockedTo = InitDockedTo;
 
 	SetupWidgetComponent();
 }
 
 
-void AVREditorFloatingUI::SetUMGWidget( FVREditorUISystem& InitOwner, TSubclassOf<UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitSize, const EDockedTo InitDockedTo )
+void AVREditorFloatingUI::SetUMGWidget( FVREditorUISystem& InitOwner, TSubclassOf<UVREditorBaseUserWidget> InitUserWidgetClass, const FIntPoint InitResolution, const float InitScale, const EDockedTo InitDockedTo )
 {
 	Owner = &InitOwner;
 
@@ -120,7 +120,7 @@ void AVREditorFloatingUI::SetUMGWidget( FVREditorUISystem& InitOwner, TSubclassO
 	Resolution = InitResolution;
 	check( Resolution.X > 0 && Resolution.Y > 0 );
 
-	Size = InitSize;
+	Scale = InitScale;
 	DockedTo = InitDockedTo;
 
 	SetupWidgetComponent();
@@ -365,7 +365,7 @@ FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandInd
 		FTransform(
 			UIRotation,
 			UILocation,
-			FVector( Size * WorldScaleFactor ) );
+			FVector( Scale * WorldScaleFactor ) );
 
 	return UITransform;
 }
@@ -399,7 +399,7 @@ FTransform AVREditorFloatingUI::MakeUITransformLockedToRoom()
 	return FTransform(
 		LocalRotation + RoomTransform.GetRotation().Rotator(),
 		UILocation,
-		FVector( Size * WorldScaleFactor ) );
+		FVector( Scale * WorldScaleFactor ) );
 }
 
 FTransform AVREditorFloatingUI::MakeUITransformLockedToHead()
@@ -412,7 +412,7 @@ FTransform AVREditorFloatingUI::MakeUITransformLockedToHead()
 	FVector NewLocation = FVector( HeadWorldLocation.X, HeadWorldLocation.Y, RoomWorldLocation.Z );
 	
 	Result.SetLocation( NewLocation + ( RelativeOffset * WorldScaleFactor ) );
-	Result.SetScale3D( FVector( Size *  WorldScaleFactor ) );
+	Result.SetScale3D( FVector( Scale * WorldScaleFactor ) );
 	
 	return Result;
 }
@@ -446,3 +446,11 @@ void AVREditorFloatingUI::ShowUI( const bool bShow, const bool bAllowFading, con
 		FadeDelay = InitFadeDelay;
 	}
 }
+
+
+FVector2D AVREditorFloatingUI::GetSize() const
+{
+	const float Aspect = (float)Resolution.X / (float)Resolution.Y;
+	return FVector2D( Scale, Scale / Aspect );
+}
+

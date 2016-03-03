@@ -9,19 +9,18 @@
 
 namespace VREd
 {
-	static FAutoConsoleVariable DockWindowTickness( TEXT( "VREd.DockWindowTickness" ), 0.003f, TEXT( "Z Distance between the selectionbar and the UI" ) );
-	static FAutoConsoleVariable DockUIZBarOffset( TEXT( "VREd.DockUIZBarOffset" ), 1.0f, TEXT( "Z Distance between the selectionbar and the UI" ) );
+	static FAutoConsoleVariable DockWindowThickness( TEXT( "VREd.DockWindowTickness" ), 1.0f, TEXT( "How thick the window is" ) );
+	static FAutoConsoleVariable DockUIZBarOffset( TEXT( "VREd.DockUIZBarOffset" ), 2.0f, TEXT( "Z Distance between the selectionbar and the UI" ) );
 }
 
 AVREditorDockableWindow::AVREditorDockableWindow() 
-	: Super(),
-	SelectionMeshScale( FVector(0.6f, 2.0f, 1.2f) )
+	: Super()
 {
 
 	{
 		UStaticMesh* WindowMesh = nullptr;
 		{
-			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/SM_ContentWindow_01" ) );
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/UI/SM_ContentWindow_01" ) );
 			WindowMesh = ObjectFinder.Object;
 			check( WindowMesh != nullptr );
 		}
@@ -45,12 +44,12 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 	{
 		UStaticMesh* SelectionMesh = nullptr;
 		{
-			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/TransformGizmo/UniformScaleHandle" ) );
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> ObjectFinder( TEXT( "/Engine/VREditor/UI/SelectionBarMesh" ) );
 			SelectionMesh = ObjectFinder.Object;
 			check( SelectionMesh != nullptr );
 		}
 
-		SelectionMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionMesh" ) );
+		SelectionMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>( TEXT( "SelectionBarMesh" ) );
 		SelectionMeshComponent->SetStaticMesh( SelectionMesh );
 		SelectionMeshComponent->SetMobility( EComponentMobility::Movable );
 		SelectionMeshComponent->AttachTo( RootComponent );
@@ -84,12 +83,17 @@ AVREditorDockableWindow::AVREditorDockableWindow()
 		TranslucentHoverMID = UMaterialInstanceDynamic::Create( TranslucentHoverMaterial, GetTransientPackage() );
 		check( TranslucentHoverMID != nullptr );
 		SelectionMeshComponent->SetMaterial( 1, TranslucentHoverMID );
-
-		// Can't get the owner here to set the default color
-		SetSelectionBarColor( FLinearColor( 0.7f, 0.7f, 0.7f, 1.0f ) );
 	}
-
 }
+
+
+void AVREditorDockableWindow::SetupWidgetComponent()
+{
+	Super::SetupWidgetComponent();
+
+	SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UISelectionBarColor ) );
+}
+
 
 void AVREditorDockableWindow::TickManually( float DeltaTime )
 {
@@ -97,16 +101,26 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 
 	if( WidgetComponent->IsVisible() )
 	{
-		const FVector AnimatedScale = CalculateAnimatedScale();
-		const float WordScaleFactor = GetOwner().GetOwner().GetWorldScaleFactor();
-		const FVector SelectionMeshWorldScale = SelectionMeshScale * WordScaleFactor;
-		SelectionMeshComponent->SetWorldScale3D( SelectionMeshWorldScale * AnimatedScale );
+		// How big the selection bar should be
+		const FVector SelectionBarSize( 1.0f, GetSize().X * 0.8f, 6.0f );	// @todo vreditor tweak
 
-		const FVector WindowMeshWorldScale = FVector( VREd::DockWindowTickness->GetFloat() , 1.0 / (float)Resolution.X, 1.0f / (float)Resolution.Y  ) * ( Size *  GetOwner().GetOwner().GetWorldScaleFactor() ) * AnimatedScale;
-		WindowMeshComponent->SetWorldScale3D( WindowMeshWorldScale * 10 );	
-		
-		const FVector NewRelativeLocation = FVector( 0.f, 0.f, -(((WindowMeshWorldScale.Z * 0.5f) * 1000) + ((SelectionMeshWorldScale.Z * 0.5) * 10) + (VREd::DockUIZBarOffset->GetFloat() * WordScaleFactor)) );
-		SelectionMeshComponent->SetRelativeLocation( NewRelativeLocation );
+		const float WorldScaleFactor = GetOwner().GetOwner().GetWorldScaleFactor();
+		const FVector AnimatedScale = CalculateAnimatedScale();
+
+		const float WindowMeshSize = 100.0f;	// Size of imported mesh, we need to inverse compensate for
+		const FVector WindowMeshScale = FVector(
+			VREd::DockWindowThickness->GetFloat(),
+			GetSize().X / WindowMeshSize,
+			GetSize().Y / WindowMeshSize ) * AnimatedScale * WorldScaleFactor;
+		WindowMeshComponent->SetRelativeScale3D( WindowMeshScale );
+
+		const FVector SelectionMeshScale = SelectionBarSize * AnimatedScale * WorldScaleFactor;
+		SelectionMeshComponent->SetRelativeScale3D( SelectionMeshScale );
+		const FVector SelectionMeshRelativeLocation = FVector(
+			0.0f,
+			0.0f,
+			-( GetSize().Y * 0.5f + SelectionBarSize.Z * 0.5f + VREd::DockUIZBarOffset->GetFloat() ) ) * AnimatedScale * WorldScaleFactor;
+		SelectionMeshComponent->SetRelativeLocation( SelectionMeshRelativeLocation );
 	}
 } 
 
@@ -135,7 +149,7 @@ void AVREditorDockableWindow::OnEnterHover( const FHitResult& HitResult )
 
 void AVREditorDockableWindow::OnLeaveHover()
 {
-	SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::WhiteGizmoColor ) );
+	SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UISelectionBarColor ) );
 }
 
 void AVREditorDockableWindow::SetSelectionBarColor( const FLinearColor& LinearColor )
