@@ -54,7 +54,7 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 		FHullShaderConstantOutput O = (FHullShaderConstantOutput)0;
 
 		#if INSTANCED_STEREO
-			ResolvedView = ResolveView(GetEyeIndex(I[0].FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex));
+			ResolvedView = ResolveView(GetEyeIndex(I[0].PassSpecificData.FactoryInterpolants.InterpolantsVSToPS.PackedEyeIndex));
 		#else
 			ResolvedView = ResolveView();
 		#endif
