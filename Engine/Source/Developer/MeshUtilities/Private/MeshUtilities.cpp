@@ -5240,7 +5240,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 			TInlineComponentArray<UStaticMeshComponent*> Components;
 			Actor->GetComponents<UStaticMeshComponent>(Components);
 			// TODO: support derived classes from static component
-			Components.RemoveAll([](UStaticMeshComponent* Val){ return !(Val->IsA(UStaticMeshComponent::StaticClass()) || Val->IsA(USplineMeshComponent::StaticClass())); });
+			Components.RemoveAll([](UStaticMeshComponent* Val){ return !(Val->GetClass() == UStaticMeshComponent::StaticClass() || Val->IsA(USplineMeshComponent::StaticClass())); });
 
 			// TODO: support non-opaque materials
 			//Components.RemoveAll(&NonOpaqueMaterialPredicate);
