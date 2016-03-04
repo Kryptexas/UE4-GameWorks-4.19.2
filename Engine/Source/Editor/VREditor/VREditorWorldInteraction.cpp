@@ -2926,7 +2926,11 @@ void FVREditorWorldInteraction::PlaceDraggedMaterialOrTexture( const int32 HandI
 			{
 				if( IsInteractableComponent( HitResult.GetComponent() ) )	// @todo vreditor placement: We don't necessarily need to restrict to only VR-interactive components here
 				{
-					HitComponent = HitResult.GetComponent();
+					// Don't place materials on UI widget handles though!
+					if( Cast<AVREditorFloatingUI>( HitResult.GetComponent()->GetOwner() ) == nullptr )
+					{
+						HitComponent = HitResult.GetComponent();
+					}
 				}
 			}
 		}
