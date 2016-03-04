@@ -170,6 +170,8 @@ struct FSoundMixClassOverride
 	float FadeInTime;
 	uint8 bOverrideApplied : 1;
 	uint8 bOverrideChanged : 1;
+	uint8 bIsClearing : 1;
+	uint8 bIsCleared : 1;
 
 	FSoundMixClassOverride()
 		: VolumeOverride(1.0f)
@@ -177,6 +179,8 @@ struct FSoundMixClassOverride
 		, FadeInTime(0.0f)
 		, bOverrideApplied(false)
 		, bOverrideChanged(false)
+		, bIsClearing(false)
+		, bIsCleared(false)
 	{
 	}
 };
@@ -576,6 +580,11 @@ public:
 	void SetSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* InSoundClass, float Volume, float Pitch, float FadeInTime, bool bApplyToChildren);
 
 	/**
+	* Clears a sound class override in the given sound mix.
+	*/
+	void ClearSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* InSoundClass, float FadeOutTime);
+
+	/**
 	 * Pop a SoundMix from the Audio Device's list.
 	 *
 	 * @param SoundMix The SoundMix to pop.
@@ -961,9 +970,6 @@ public:
 
 	/** The Base SoundMix that should be applied by default */
 	USoundMix* DefaultBaseSoundMix;
-
-	/** Special sound mix set by user preferences */
-	USoundMix* UserPreferencesSoundMix;
 
 	/** Map of sound mixes currently affecting audio properties */
 	TMap<USoundMix*, FSoundMixState> SoundMixModifiers;

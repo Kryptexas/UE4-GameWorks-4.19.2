@@ -420,6 +420,9 @@ protected:
 	/** Decompress through XAudio2Buffer, or call USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
 	bool ReadMorePCMData(const int32 BufferIndex, EDataReadMode DataReadMode);
 
+	/** Retrieves the realtime buffer data from the given buffer index */
+	uint8* GetRealtimeBufferData(const int32 InBufferIndex, const int32 InBufferSize);
+
 	/** Returns if the source is using the default 3d spatialization. */
 	bool IsUsingHrtfSpatializer();
 
@@ -480,9 +483,12 @@ protected:
 	/** Destination voices */
 	XAUDIO2_SEND_DESCRIPTOR Destinations[DEST_COUNT];
 
-	/** A pair of sound buffers to allow notification when a sound loops. */
+	/** Used to allow notification when a sound loops and to feed audio to realtime decoded sources. */
 	XAUDIO2_BUFFER XAudio2Buffers[3];
 
+	/** Raw real-time buffer data for use with realtime XAudio2Buffers sources */
+	TArray<uint8> RealtimeBufferData[3];
+	
 	/** Additional buffer info for XWMA sounds */
 	XAUDIO2_BUFFER_WMA XAudio2BufferXWMA[1];
 

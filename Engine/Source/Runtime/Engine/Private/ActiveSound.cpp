@@ -37,6 +37,7 @@ FActiveSound::FActiveSound()
 	, bIsMusic(false)
 	, bReverb(false)
 	, bCenterChannelOnly(false)
+	, bIsPreviewSound(false)
 	, bGotInteriorSettings(false)
 #if !(NO_LOGGING || UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	, bWarnedAboutOrphanedLooping(false)
@@ -58,7 +59,7 @@ FActiveSound::FActiveSound()
 	, CurrentOcclusionVolumeAttenuation(1.0f)
 	, ConcurrencyVolumeScale(1.f)
 	, ConcurrencyDuckingVolumeScale(1.f)
-	, SubtitlePriority(0.f)
+	, SubtitlePriority(DEFAULT_SUBTITLE_PRIORITY)
 	, Priority(1.0f)
 	, FocusPriorityScale(1.0f)
 	, FocusDistanceScale(1.0f)
@@ -217,7 +218,18 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	// (even after the Sound has started playing, and this line takes them all into account and gives us
 	// final value that is correct
 	UpdateAdjustVolumeMultiplier(DeltaTime);
-	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * AudioDevice->TransientMasterVolume * ConcurrencyVolumeScale;
+
+	// If the sound is a preview sound, then ignore the transient master volume and application volume
+	float MasterVolume = AudioDevice->TransientMasterVolume; 
+	float ApplicationVolume = FApp::GetVolumeMultiplier();
+	if (bIsPreviewSound)
+	{
+		MasterVolume = 1.0f;
+		ApplicationVolume = 1.0f;
+	}
+
+	ParseParams.VolumeMultiplier = VolumeMultiplier * Sound->GetVolumeMultiplier() * CurrentAdjustVolumeMultiplier * MasterVolume * ApplicationVolume * ConcurrencyVolumeScale;
+
 	ParseParams.Priority = Priority;
 	ParseParams.Pitch *= PitchMultiplier * Sound->GetPitchMultiplier();
 	ParseParams.bEnableLowPassFilter = bEnableLowPassFilter;

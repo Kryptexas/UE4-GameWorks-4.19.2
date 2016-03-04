@@ -257,7 +257,6 @@ void FIOSAudioSoundSource::Update(void)
 	}
 
 	// Apply global multiplier to disable sound when not the foreground app
-	Volume *= FApp::GetVolumeMultiplier();
 	Volume *= AudioDevice->PlatformAudioHeadroom;
 	Volume = FMath::Clamp(Volume, 0.0f, 1.0f);
 

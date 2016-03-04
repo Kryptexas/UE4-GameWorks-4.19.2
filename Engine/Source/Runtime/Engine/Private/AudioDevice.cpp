@@ -1639,6 +1639,16 @@ static void UpdateClassAdjustorOverrideEntry(FSoundClassAdjuster& ClassAdjustor,
 	// Reset the flags on the override adjuster
 	ClassAdjusterOverride.bOverrideApplied = true;
 	ClassAdjusterOverride.bOverrideChanged = false;
+
+	// Check if we're clearing and check the terminating condition
+	if (ClassAdjusterOverride.bIsClearing)
+	{
+		// If our override dynamic parameter is done, then we've finished clearing
+		if (ClassAdjusterOverride.VolumeOverride.IsDone())
+		{
+			ClassAdjusterOverride.bIsCleared = true;
+		}
+	}
 }
 
 void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, float DeltaTime)
@@ -1678,11 +1688,19 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 			}
 		}
 
-		for (auto& SoundMixOverrideEntry : *SoundMixOverrideMap)
+		TArray<USoundClass*> SoundClassesToRemove;
+		for (TPair<USoundClass*, FSoundMixClassOverride>& SoundMixOverrideEntry : *SoundMixOverrideMap)
 		{
 			// Get the sound class object of the override
 			FSoundMixClassOverride& ClassAdjusterOverride = SoundMixOverrideEntry.Value;
 			USoundClass* SoundClassObject = ClassAdjusterOverride.SoundClassAdjustor.SoundClassObject;
+
+			// If the override has successfully cleared, then just remove it and continue iterating
+			if (ClassAdjusterOverride.bIsCleared)
+			{
+				SoundClassesToRemove.Add(SoundClassObject);
+				continue;
+			}
 
 			// Look for it in the adjusters copy 
 			bool bSoundClassAdjustorExisted = false;
@@ -1710,6 +1728,17 @@ void FAudioDevice::ApplyClassAdjusters(USoundMix* SoundMix, float InterpValue, f
 
 				// Add the new sound class adjuster entry to the array
 				SoundClassAdjusters->Add(NewEntry);
+			}
+		}
+
+		for (USoundClass* SoundClassToRemove : SoundClassesToRemove)
+		{
+			SoundMixOverrideMap->Remove(SoundClassToRemove);
+
+			// If there are no more overrides, remove the sound mix override entry
+			if (SoundMixOverrideMap->Num() == 0)
+			{
+				SoundMixClassEffectOverrides.Remove(SoundMix);
 			}
 		}
 	}
@@ -1992,6 +2021,7 @@ void FAudioDevice::SetSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* 
 
 		// Flag that we've changed so that the update will interpolate to new values
 		ClassOverride->bOverrideChanged = true;
+		ClassOverride->bIsClearing = false;
 		ClassOverride->FadeInTime = FadeInTime;
 	}
 	else
@@ -2003,11 +2033,70 @@ void FAudioDevice::SetSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* 
 		NewClassOverride.SoundClassAdjustor.PitchAdjuster = Pitch;
 		NewClassOverride.SoundClassAdjustor.bApplyToChildren = bApplyToChildren;
 		NewClassOverride.FadeInTime = FadeInTime;
-		NewClassOverride.bOverrideApplied = false;
-		NewClassOverride.bOverrideChanged = false;
 
 		SoundMixClassOverrideMap.Add(InSoundClass, NewClassOverride);
 	}
+}
+
+void FAudioDevice::ClearSoundMixClassOverride(USoundMix* InSoundMix, USoundClass* InSoundClass, float FadeOutTime)
+{
+	if (!InSoundMix || !InSoundClass)
+	{
+		return;
+	}
+
+	// Get the sound mix class override map for the sound mix. If this doesn't exist, then nobody overrode the sound mix
+	FSoundMixClassOverrideMap* SoundMixClassOverrideMap = SoundMixClassEffectOverrides.Find(InSoundMix);
+	if (!SoundMixClassOverrideMap)
+	{
+		return;
+	}
+
+	// Get the sound class override. If this doesn't exist, then the sound class wasn't previously overridden.
+	FSoundMixClassOverride* SoundClassOverride = SoundMixClassOverrideMap->Find(InSoundClass);
+	if (!SoundClassOverride)
+	{
+		return;
+	}
+
+	// If the override is currently applied, then we need to "fade out" the override
+	if (SoundClassOverride->bOverrideApplied)
+	{
+		// Get the new target values that sound mix would be if it weren't overridden. 
+		// If this was a pure add to the sound mix, then the target values will be 1.0f (i.e. not applied)
+		float VolumeAdjuster = 1.0f;
+		float PitchAdjuster = 1.0f;
+
+		// Loop through the sound mix class adjusters and set the volume adjuster to the value that would be in the sound mix
+		for (const FSoundClassAdjuster& Adjustor : InSoundMix->SoundClassEffects)
+		{
+			if (Adjustor.SoundClassObject == InSoundClass)
+			{
+				VolumeAdjuster = Adjustor.VolumeAdjuster;
+				PitchAdjuster = Adjustor.PitchAdjuster;
+				break;
+			}
+		}
+
+		SoundClassOverride->bIsClearing = true;
+		SoundClassOverride->bIsCleared = false;
+		SoundClassOverride->bOverrideChanged = true;
+		SoundClassOverride->FadeInTime = FadeOutTime;
+		SoundClassOverride->SoundClassAdjustor.VolumeAdjuster = VolumeAdjuster;
+		SoundClassOverride->SoundClassAdjustor.PitchAdjuster = PitchAdjuster;
+	}
+	else
+	{
+		// Otherwise, we just simply remove the sound class override in the sound class override map
+		SoundMixClassOverrideMap->Remove(InSoundClass);
+
+		// If there are no more overrides, remove the sound mix override entry
+		if (!SoundMixClassOverrideMap->Num())
+		{
+			SoundMixClassEffectOverrides.Remove(InSoundMix);
+		}
+	}
+
 }
 
 void FAudioDevice::PopSoundMixModifier(USoundMix* SoundMix, bool bIsPassive)
@@ -2387,7 +2476,11 @@ void FAudioDevice::StartSources(TArray<FWaveInstance*>& WaveInstances, int32 Fir
 						if (bSuccess)
 						{
 							check(Source->IsInitialized());
-							Source->Play();
+							// If the source didn't get paused while initializing, then play it
+							if (!Source->IsPaused())
+							{
+								Source->Play();
+							}
 							Source->Update();
 						}
 					}

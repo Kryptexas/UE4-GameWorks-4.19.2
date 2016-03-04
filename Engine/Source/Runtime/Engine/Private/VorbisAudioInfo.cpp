@@ -89,8 +89,10 @@ FVorbisAudioInfo::FVorbisAudioInfo( void )
 
 FVorbisAudioInfo::~FVorbisAudioInfo( void ) 
 { 
-	check( VFWrapper != NULL );
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+	check(VFWrapper != nullptr);
 	delete VFWrapper;
+	VFWrapper = nullptr;
 }
 
 /** Emulate read from memory functionality */
@@ -171,7 +173,13 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 {
 	SCOPE_CYCLE_COUNTER( STAT_VorbisPrepareDecompressionTime );
 
-	check( VFWrapper != NULL );
+	FScopeLock ScopeLock(&VorbisCriticalSection);
+
+	if (!VFWrapper)
+	{
+		return false;
+	}
+
 	ov_callbacks		Callbacks;
 
 	SrcBufferData = InSrcBufferData;
@@ -182,8 +190,6 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 	Callbacks.seek_func = OggSeek;
 	Callbacks.close_func = OggClose;
 	Callbacks.tell_func = OggTell;
-
-	FScopeLock ScopeLock(&VorbisCriticalSection);
 
 	// Set up the read from memory variables
 	int Result = ov_open_callbacks(this, &VFWrapper->vf, NULL, 0, Callbacks);

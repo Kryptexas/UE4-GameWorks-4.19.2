@@ -194,6 +194,9 @@ public:
 	/** Whether or not this sound class forces sounds to the center channel */
 	uint32 bCenterChannelOnly:1;
 
+	/** Whether or not this active sound is a preview sound */
+	uint32 bIsPreviewSound:1;
+
 	/** Whether we have queried for the interior settings at least once */
 	uint32 bGotInteriorSettings:1;
 

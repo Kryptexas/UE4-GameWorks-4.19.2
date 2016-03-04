@@ -61,7 +61,7 @@ USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
 	Volume = 1.0;
 	Pitch = 1.0;
 	CompressionQuality = 40;
-	SubtitlePriority = 10000.f;
+	SubtitlePriority = DEFAULT_SUBTITLE_PRIORITY;
 }
 
 SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)

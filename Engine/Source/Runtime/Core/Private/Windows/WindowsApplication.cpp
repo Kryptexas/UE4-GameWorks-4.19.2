@@ -272,6 +272,31 @@ FModifierKeysState FWindowsApplication::GetModifierKeys() const
 	return CachedModifierKeyState;
 }
 
+void FWindowsApplication::UpdateModifierKeyState(int32 ModifierKey, bool bNewState)
+{
+	const bool bIsLeftShiftDown = (ModifierKey == VK_LSHIFT ? bNewState : CachedModifierKeyState.IsLeftShiftDown());
+	const bool bIsRightShiftDown = (ModifierKey == VK_RSHIFT ? bNewState : CachedModifierKeyState.IsRightShiftDown());
+	const bool bIsLeftControlDown = (ModifierKey == VK_LCONTROL ? bNewState : CachedModifierKeyState.IsLeftControlDown());
+	const bool bIsRightControlDown = (ModifierKey == VK_RCONTROL ? bNewState : CachedModifierKeyState.IsRightControlDown());
+	const bool bIsLeftAltDown = (ModifierKey == VK_LMENU ? bNewState : CachedModifierKeyState.IsLeftAltDown());
+	const bool bIsRightAltDown = (ModifierKey == VK_RMENU ? bNewState : CachedModifierKeyState.IsRightAltDown());
+	const bool bAreCapsLocked = (ModifierKey == VK_CAPITAL ? bNewState : CachedModifierKeyState.AreCapsLocked());
+
+	CachedModifierKeyState = FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
+}
+
+void FWindowsApplication::UpdateAllModifierKeyStates()
+{
+	const bool bIsLeftShiftDown = (::GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0;
+	const bool bIsRightShiftDown = (::GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
+	const bool bIsLeftControlDown = (::GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0;
+	const bool bIsRightControlDown = (::GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
+	const bool bIsLeftAltDown = (::GetAsyncKeyState(VK_LMENU) & 0x8000) != 0;
+	const bool bIsRightAltDown = (::GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
+	const bool bAreCapsLocked = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+
+	CachedModifierKeyState = FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
+}
 
 static TSharedPtr< FWindowsWindow > FindWindowByHWND(const TArray< TSharedRef< FWindowsWindow > >& WindowsToSearch, HWND HandleToFind)
 {
@@ -1239,6 +1264,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 							PressedModifierKeys.Add( VK_RMENU );
 						}
 					}
+					UpdateModifierKeyState(ActualKey, true);
 					break;
 				case VK_CONTROL:
 					// Differentiate between left and right control
@@ -1258,7 +1284,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 							PressedModifierKeys.Add( VK_RCONTROL );
 						}
 					}
-
+					UpdateModifierKeyState(ActualKey, true);
 					break;
 				case VK_SHIFT:
 					// Differentiate between left and right shift
@@ -1267,6 +1293,10 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 					{
 						PressedModifierKeys.Add( ActualKey );
 					}
+					UpdateModifierKeyState(ActualKey, true);
+					break;
+				case VK_CAPITAL:
+					UpdateModifierKeyState(VK_CAPITAL, true);
 					break;
 				default:
 					// No translation needed
@@ -1314,6 +1344,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 						ActualKey = VK_RMENU;
 					}
 					PressedModifierKeys.Remove( ActualKey );
+					UpdateModifierKeyState(ActualKey, false);
 					break;
 				case VK_CONTROL:
 					// Differentiate between left and right control
@@ -1326,11 +1357,16 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 						ActualKey = VK_RCONTROL;
 					}
 					PressedModifierKeys.Remove( ActualKey );
+					UpdateModifierKeyState(ActualKey, false);
 					break;
 				case VK_SHIFT:
 					// Differentiate between left and right shift
 					ActualKey = MapVirtualKey( (lParam & 0x00ff0000) >> 16, MAPVK_VSC_TO_VK_EX);
 					PressedModifierKeys.Remove( ActualKey );
+					UpdateModifierKeyState(ActualKey, false);
+					break;
+				case VK_CAPITAL:
+					UpdateModifierKeyState(VK_CAPITAL, false);
 					break;
 				default:
 					// No translation needed
@@ -1524,6 +1560,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				}
 				bForceActivateByMouse = false;
 
+				UpdateAllModifierKeyStates();
+
 				if ( CurrentNativeEventWindowPtr.IsValid() )
 				{
 					BOOL Result = false;
@@ -1536,6 +1574,7 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			break;
 
 		case WM_ACTIVATEAPP:
+			UpdateAllModifierKeyStates();
 			MessageHandler->OnApplicationActivationChanged( !!wParam );
 			break;
 
@@ -1786,19 +1825,6 @@ void FWindowsApplication::ProcessDeferredEvents( const float TimeDelta )
 			ProcessDeferredDragDropOperation(DeferredDragDropOperation);
 		}
 	}
-}
-
-void FWindowsApplication::Tick( const float TimeDelta )
-{
-	const bool bIsLeftShiftDown = (::GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0;
-	const bool bIsRightShiftDown = (::GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
-	const bool bIsLeftControlDown = (::GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0;
-	const bool bIsRightControlDown = (::GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
-	const bool bIsLeftAltDown = (::GetAsyncKeyState(VK_LMENU) & 0x8000) != 0;
-	const bool bIsRightAltDown = (::GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
-	const bool bAreCapsLocked = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
-
-	CachedModifierKeyState = FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
 }
 
 void FWindowsApplication::PollGameDeviceState( const float TimeDelta )

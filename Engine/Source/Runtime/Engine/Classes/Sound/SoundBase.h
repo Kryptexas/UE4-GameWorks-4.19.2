@@ -104,7 +104,7 @@ public:
 	/**
 	  * Returns the subtitle priority
 	  */
-	virtual float GetSubtitlePriority() const { return 10000.f; };
+	virtual float GetSubtitlePriority() const { return DEFAULT_SUBTITLE_PRIORITY; };
 
 	/** Returns whether or not this sound is looping. */
 	bool IsLooping();

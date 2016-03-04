@@ -49,10 +49,9 @@ void FSubtitleManager::QueueSubtitles( PTRINT SubtitleID, float Priority, bool b
 		return;
 	}
 
-	// Warn when a subtitle is played without its priority having been set.
-	if( Priority == 0.0f )
+	// Return when a subtitle is played with its subtitle suppressed.
+	if (Priority == 0.0f)
 	{
-		UE_LOG(LogSubtitle, Warning, TEXT( "Received subtitle with no priority." ) );
 		return;
 	}
 

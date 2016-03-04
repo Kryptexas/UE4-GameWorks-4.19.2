@@ -333,7 +333,6 @@ public:
 	virtual void PollGameDeviceState( const float TimeDelta ) override;
 	virtual void PumpMessages( const float TimeDelta ) override;
 	virtual void ProcessDeferredEvents( const float TimeDelta ) override;
-	virtual void Tick( const float TimeDelta ) override;
 	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) override;
 	virtual void SetCapture( const TSharedPtr< FGenericWindow >& InWindow ) override;
@@ -421,6 +420,12 @@ private:
 
 	/** Queries and caches the number of connected mouse devices. */
 	void QueryConnectedMice();
+
+	/** Helper function to update the cached states of all modifier keys */
+	void UpdateAllModifierKeyStates();
+
+	/** Helper function to update the cached modifier key state when a key is pressed or released */
+	void UpdateModifierKeyState(int32 ModifierKey, bool bNewState);
 
 private:
 

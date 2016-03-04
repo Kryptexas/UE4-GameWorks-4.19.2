@@ -1942,7 +1942,7 @@ void UEditorEngine::PlayPreviewSound( USoundBase* Sound,  USoundNode* SoundNode 
 		AudioComponent->bAllowSpatialization = false;
 		AudioComponent->bReverb = false;
 		AudioComponent->bCenterChannelOnly = false;
-
+		AudioComponent->bIsPreviewSound = true;
 		AudioComponent->Play();	
 	}
 }

@@ -54,6 +54,8 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 #define MIN_FILTER_BANDWIDTH			0.1f
 #define MAX_FILTER_BANDWIDTH			2.0f
 
+#define DEFAULT_SUBTITLE_PRIORITY		10000.0f
+
 /**
  * Audio stats
  */
@@ -410,6 +412,7 @@ public:
 		, Paused(false)
 		, bInitialized(true) // Note: this is defaulted to true since not all platforms need to deal with async initialization.
 		, bReverbApplied(false)
+		, bIsPreviewSound(false)
 		, StereoBleed(0.0f)
 		, LFEBleed(0.5f)
 		, LPFFrequency(MAX_FILTER_FREQUENCY)
@@ -555,13 +558,15 @@ protected:
 	class FSoundBuffer*		Buffer;
 
 	/** Cached status information whether we are playing or not. */
-	uint32				Playing:1;
+	FThreadSafeBool		Playing;
 	/** Cached status information whether we are paused or not. */
 	uint32				Paused:1;
 	/** Whether or not the sound source is ready to be initialized */
 	uint32				bInitialized:1;
 	/** Cached sound mode value used to detect when to switch outputs. */
 	uint32				bReverbApplied:1;
+	/** Whether or not the sound is a preview sound */
+	uint32				bIsPreviewSound:1;
 	/** The amount of stereo sounds to bleed to the rear speakers */
 	float				StereoBleed;
 	/** The amount of a sound to bleed to the LFE speaker */
@@ -643,10 +648,15 @@ public:
 class ENGINE_API FDynamicParameter
 {
 public:
-	FDynamicParameter(float Value);
+	explicit FDynamicParameter(float Value);
 
 	void Set(float Value, float InDuration);
 	void Update(float DeltaTime);
+	
+	bool IsDone() const 
+	{
+		return CurrTimeSec >= DurationSec;
+	}
 	float GetValue() const
 	{
 		return CurrValue;
