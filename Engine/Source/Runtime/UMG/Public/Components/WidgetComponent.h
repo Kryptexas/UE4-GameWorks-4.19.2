@@ -205,13 +205,13 @@ public:
 	void SetEditTimeUsable(bool Value) { bEditTimeUsable = Value; }
 
 protected:
-	virtual bool ShouldDrawWidget() const;
-
-protected:
 	void RemoveWidgetFromScreen();
 
+	/** Allows subclasses to control if the widget should be drawn.  Called right before we draw the widget. */
+	virtual bool ShouldDrawWidget() const;
+
 	/** Draws the current widget to the render target if possible. */
-	void DrawWidgetToRenderTarget(float DeltaTime);
+	virtual void DrawWidgetToRenderTarget(float DeltaTime);
 
 protected:
 	/** The coordinate space in which to render the widget */
