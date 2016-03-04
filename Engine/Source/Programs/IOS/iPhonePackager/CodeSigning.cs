@@ -841,7 +841,13 @@ namespace iPhonePackager
 				EntitlementsBlob FinalEntitlementsBlob = EntitlementsBlob.Create(EntitlementsText);
 
 				// Create the code directory blob
-				CodeDirectoryBlob FinalCodeDirectoryBlob = CodeDirectoryBlob.Create(CFBundleIdentifier, TeamIdentifier, SignedFileLength);
+				uint Version = CodeDirectoryBlob.cVersion2; 
+				if (CodeSigningBlobLC != null)
+				{
+					CodeDirectoryBlob OldCodeDir = CodeSigningBlobLC.Payload.GetBlobByMagic(AbstractBlob.CSMAGIC_CODEDIRECTORY) as CodeDirectoryBlob;
+					Version = OldCodeDir.Version;
+				}
+				CodeDirectoryBlob FinalCodeDirectoryBlob = CodeDirectoryBlob.Create(CFBundleIdentifier, TeamIdentifier, SignedFileLength, Version);
 
 				// Create or preserve the requirements blob
 				RequirementsBlob FinalRequirementsBlob = null;
@@ -853,8 +859,15 @@ namespace iPhonePackager
 
 				if (FinalRequirementsBlob == null)
 				{
+					RequirementBlob.ExpressionOp OldExpression = null;
+					if (CodeSigningBlobLC != null)
+					{
+						RequirementsBlob OldRequirements = CodeSigningBlobLC.Payload.GetBlobByMagic(AbstractBlob.CSMAGIC_REQUIREMENTS_TABLE) as RequirementsBlob;
+						RequirementBlob OldRequire = OldRequirements.GetBlobByKey(0x00003) as RequirementBlob;
+						OldExpression = OldRequire.Expression;
+					}
 					FinalRequirementsBlob = RequirementsBlob.CreateEmpty();
-					FinalRequirementsBlob.Add(0x00003, RequirementBlob.CreateFromCertificate(SigningCert, CFBundleIdentifier));
+					FinalRequirementsBlob.Add(0x00003, RequirementBlob.CreateFromCertificate(SigningCert, CFBundleIdentifier, OldExpression));
 				}
 
 				// Create the code signature blob (which actually signs the code directory)
