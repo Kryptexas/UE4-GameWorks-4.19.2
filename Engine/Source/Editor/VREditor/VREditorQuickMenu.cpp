@@ -317,4 +317,16 @@ bool UVREditorQuickMenu::IsGameModeEnabled() const
 }
 
 
+void UVREditorQuickMenu::OnTutorialButtonClicked( const bool bIsChecked )
+{
+	bool bShouldShow = !IsTutorialVisible();
+	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
+	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Tutorial, MyHandIndex, bShouldShow );
+}
+
+bool UVREditorQuickMenu::IsTutorialVisible() const
+{
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Tutorial ) );
+}
+
 #undef LOCTEXT_NAMESPACE

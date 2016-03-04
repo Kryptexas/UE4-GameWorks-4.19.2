@@ -126,6 +126,12 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsGameModeEnabled() const;
 
+	UFUNCTION( BlueprintCallable, Category = "Default" )
+	void OnTutorialButtonClicked( const bool bIsChecked );
+
+	UFUNCTION( BlueprintPure, Category = "Default" )
+	bool IsTutorialVisible() const;
+
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Refresh"))
 	void RefreshUI();
 

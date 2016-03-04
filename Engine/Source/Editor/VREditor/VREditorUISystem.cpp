@@ -47,17 +47,20 @@ namespace VREd
 	static FAutoConsoleVariable UIRelativeScrollSpeed( TEXT( "VREd.UIRelativeScrollSpeed" ), 0.75f, TEXT( "How fast the UI scrolls when holding an analog stick" ) );
 	static FAutoConsoleVariable MinUIScrollDeltaForInertia( TEXT( "VREd.MinUIScrollDeltaForInertia" ), 0.25f, TEXT( "Minimum amount of touch pad input before inertial UI scrolling kicks in" ) );
 	static FAutoConsoleVariable MinDockDragDistance( TEXT( "VREd.MinDockDragDistance" ), 10.0f, TEXT( "Minimum amount of distance needed to drag dock from hand" ) );
-	static FAutoConsoleVariable DoubleClickTime( TEXT( "VREd.DoubleClickTime" ), 0.25f, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
+	static FAutoConsoleVariable DoubleClickTime( TEXT( "VREd.DoubleClickTime" ), 0.25f, TEXT( "Minimum duration between clicks for a double click event to fire" ) );
+
+	static FAutoConsoleVariable MaxDockWindowSize( TEXT( "VREd.MaxDockWindowSize" ), 250, TEXT( "Maximum size for dockable windows" ) );
+	static FAutoConsoleVariable MinDockWindowSize( TEXT( "VREd.MinDockWindowSize" ), 40, TEXT( "Minimum size for dockable windows" ) );
 
 	// Tutorial UI commands
-	static FAutoConsoleVariable TutorialUIResolutionX( TEXT( "VREd.TutorialUI.Resolution.X" ), 1920, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
-	static FAutoConsoleVariable TutorialUIResolutionY( TEXT( "VREd.TutorialUI.Resolution.Y" ), 1080, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
-	static FAutoConsoleVariable TutorialUISize( TEXT( "VREd.TutorialUI.Size" ), 200, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
-	static FAutoConsoleVariable TutorialUIYaw( TEXT( "VREd.TutorialUI.Yaw" ), 270, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
-	static FAutoConsoleVariable TutorialUIPitch( TEXT( "VREd.TutorialUI.Pitch" ), 45, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
-	static FAutoConsoleVariable TutorialUILocationX( TEXT( "VREd.TutorialUI.Location.X" ), 0, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
-	static FAutoConsoleVariable TutorialUILocationY( TEXT( "VREd.TutorialUI.Location.Y" ), 200, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
-	static FAutoConsoleVariable TutorialUILocationZ( TEXT( "VREd.TutorialUI.Location.Z" ), 40, TEXT( "Minumum duration between clicks for a double click event to fire" ) );
+	static FAutoConsoleVariable TutorialUIResolutionX( TEXT( "VREd.TutorialUI.Resolution.X" ), 1920, TEXT( "The X resolution for the tutorial UI panel" ) );
+	static FAutoConsoleVariable TutorialUIResolutionY( TEXT( "VREd.TutorialUI.Resolution.Y" ), 1080, TEXT( "The Y resolution for the tutorial UI panel" ) );
+	static FAutoConsoleVariable TutorialUISize( TEXT( "VREd.TutorialUI.Size" ), 200, TEXT( "The room space size for the tutorial UI panel" ) );
+	static FAutoConsoleVariable TutorialUIYaw( TEXT( "VREd.TutorialUI.Yaw" ), 270, TEXT( "The yaw rotation for the tutorial UI panel" ) );
+	static FAutoConsoleVariable TutorialUIPitch( TEXT( "VREd.TutorialUI.Pitch" ), 45, TEXT( "The pitch rotation for the tutorial UI panel" ) );
+	static FAutoConsoleVariable TutorialUILocationX( TEXT( "VREd.TutorialUI.Location.X" ), 0, TEXT( "The X location for the tutorial UI panel" ) );
+	static FAutoConsoleVariable TutorialUILocationY( TEXT( "VREd.TutorialUI.Location.Y" ), 200, TEXT( "The Y location for the tutorial UI panel" ) );
+	static FAutoConsoleVariable TutorialUILocationZ( TEXT( "VREd.TutorialUI.Location.Z" ), 40, TEXT( "The Z location for the tutorial UI panel" ) );
 }
 
 
@@ -292,7 +295,7 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 {
 	FVirtualHand& Hand = Owner.GetVirtualHand( HandIndex );
 
-	if( !bWasHandled )
+	if( !bWasHandled && Hand.DraggingMode != EVREditorDraggingMode::DockableWindow )
 	{
 		FVector LaserPointerStart, LaserPointerEnd;
 		if( Owner.GetLaserPointer( HandIndex, LaserPointerStart, LaserPointerEnd ) )
@@ -864,6 +867,11 @@ void FVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, const int
 			const AVREditorFloatingUI::EDockedTo DockedTo = HandIndex == VREditorConstants::LeftHandIndex ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
 			Panel->SetDockedTo( DockedTo );
 
+			if (bShouldShow)
+			{
+				Panel->SetScale( Panel->GetInitialScale() );
+			}
+
 			const FVector EditorUIRelativeOffset( Panel->GetSize().Y * 0.5f + VREd::EditorUIOffsetFromHand->GetFloat(), 0.0f, 0.0f );
 			Panel->SetRelativeOffset( EditorUIRelativeOffset );
 			Panel->SetLocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) );
@@ -1002,6 +1010,11 @@ AVREditorDockableWindow* FVREditorUISystem::GetDraggingDockUI() const
 	return DraggingUI;
 }
 
+int32 FVREditorUISystem::GetDraggingDockUIHandIndex() const
+{
+	return DraggingUIHandIndex;
+}
+
 void FVREditorUISystem::StopDraggingDockUI()
 {
 	DraggingUI = nullptr;
@@ -1057,4 +1070,14 @@ void FVREditorUISystem::TogglePanelsVisibility()
 	{
 		QuickMenuUI->GetUserWidget<UVREditorQuickMenu>()->RefreshUI();
 	}
+}
+
+float FVREditorUISystem::GetMaxDockWindowSize() const
+{
+	return VREd::MaxDockWindowSize->GetFloat();
+}
+
+float FVREditorUISystem::GetMinDockWindowSize() const
+{
+	return VREd::MinDockWindowSize->GetFloat();
 }

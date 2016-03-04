@@ -814,7 +814,6 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 				if( Hand.bIsTrackpadPositionValid[ 1 ] )
 				{
 					const bool bIsAbsolute = ( Owner.GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
-
 					float SlideDelta = 0.0f;
 					if( Hand.bIsTouchingTrackpad || !bIsAbsolute )
 					{
@@ -880,7 +879,7 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 			}
 			else
 			{
-				if (!Hand.bHasUIInFront && (Hand.bIsTrackpadPositionValid[0] && Hand.bIsTrackpadPositionValid[1] ))
+				if ( !Hand.bHasUIInFront && (Hand.bIsTrackpadPositionValid[0] && Hand.bIsTrackpadPositionValid[1] ) && Owner.GetUISystem().GetDraggingDockUIHandIndex() != HandIndex )
 				{
 					if( Owner.GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR && Hand.bIsTouchingTrackpad )
 					{
@@ -1202,9 +1201,35 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 				AVREditorDockableWindow* DraggingUI = Owner.GetUISystem().GetDraggingDockUI();
 				if( DraggingUI )
 				{
+					//@todo: VR Editor - This should be in the UI system
+					const bool bIsAbsolute = ( Owner.GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
+					float SlideDeltaY = 0.0f;
+					if (Hand.bIsTouchingTrackpad || !bIsAbsolute)
+					{
+						if (bIsAbsolute)
+						{
+							SlideDeltaY = -((Hand.TrackpadPosition.Y - Hand.LastTrackpadPosition.Y) * VREd::TrackpadAbsoluteDragSpeed->GetFloat()) * WorldScaleFactor;
+						}
+						else
+						{
+							SlideDeltaY = -(Hand.TrackpadPosition.Y * VREd::TrackpadRelativeDragSpeed->GetFloat()) * WorldScaleFactor;
+						}
+					}
+
+					float NewUIScale = DraggingUI->GetScale() + SlideDeltaY;
+					if( NewUIScale <= Owner.GetUISystem().GetMinDockWindowSize() )
+					{
+						NewUIScale = Owner.GetUISystem().GetMinDockWindowSize();
+					}
+					else if( NewUIScale >= Owner.GetUISystem().GetMaxDockWindowSize() )
+					{
+						NewUIScale = Owner.GetUISystem().GetMaxDockWindowSize();
+					}
+					DraggingUI->SetScale( NewUIScale );
+
 					const FTransform DockedUIToWorld = Owner.GetUISystem().MakeDockableUITransform( DraggingUI, HandIndex, DockSelectDistance );
 					DraggingUI->SetActorTransform( DockedUIToWorld );
-
+					
 					DraggingUI->UpdateRelativeRoomTransform();
 				}
 			}

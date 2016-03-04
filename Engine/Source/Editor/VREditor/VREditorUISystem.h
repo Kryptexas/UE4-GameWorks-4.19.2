@@ -88,6 +88,9 @@ public:
 	/** Returns the current dragged dock window, nullptr if none */
 	class AVREditorDockableWindow* GetDraggingDockUI() const;
 
+	/** Gets the hand index of the hand that is dragging a dock UI */
+	int32 GetDraggingDockUIHandIndex() const;
+
 	/** Resets all values to stop dragging the current dock window */
 	void StopDraggingDockUI();
 
@@ -96,6 +99,12 @@ public:
 
 	/** Hides and unhides all the editor UI panels */
 	void TogglePanelsVisibility();
+
+	/** Get the maximum dock window size */
+	float GetMaxDockWindowSize() const;
+
+	/** Get the minimum dock window size */
+	float GetMinDockWindowSize() const;
 
 protected:
 

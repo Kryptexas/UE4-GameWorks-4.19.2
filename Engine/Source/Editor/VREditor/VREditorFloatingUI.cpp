@@ -40,6 +40,8 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>( TEXT( "WidgetComponent" ), bTransient );
 	WidgetComponent->SetEditTimeUsable(true);
 	WidgetComponent->AttachTo( SceneComponent );
+
+	InitialScale = Scale;
 }
 
 
@@ -106,6 +108,8 @@ void AVREditorFloatingUI::SetSlateWidget( FVREditorUISystem& InitOwner, const TS
 	check( Resolution.X > 0 && Resolution.Y > 0 );
 
 	Scale = InitScale;
+	InitialScale = Scale;
+
 	DockedTo = InitDockedTo;
 
 	SetupWidgetComponent();
@@ -123,6 +127,8 @@ void AVREditorFloatingUI::SetUMGWidget( FVREditorUISystem& InitOwner, TSubclassO
 	check( Resolution.X > 0 && Resolution.Y > 0 );
 
 	Scale = InitScale;
+	InitialScale = Scale;
+
 	DockedTo = InitDockedTo;
 
 	SetupWidgetComponent();
@@ -331,6 +337,11 @@ void AVREditorFloatingUI::SetCollisionOnShow( const bool bInCollisionOnShow )
 	bCollisionOnShowUI = bInCollisionOnShow;
 }
 
+float AVREditorFloatingUI::GetInitialScale() const
+{
+	return InitialScale;
+}
+
 FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandIndex, const bool bOnArm )
 {
 	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
@@ -466,3 +477,17 @@ FVector2D AVREditorFloatingUI::GetSize() const
 	return FVector2D( Scale, Scale / Aspect );
 }
 
+float AVREditorFloatingUI::GetScale() const
+{
+	return Scale;
+}
+
+void AVREditorFloatingUI::SetScale( const float NewSize )
+{
+	Scale = NewSize;
+
+	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
+	const FVector NewScale( Scale * WorldScaleFactor );
+	const float Aspect = (float)Resolution.X / (float)Resolution.Y;
+	WidgetComponent->SetWorldScale3D( FVector( 1.0f / NewScale.X, 1.0f / (float)Resolution.X, 1.0f / (float)Resolution.Y / Aspect ) * NewScale );
+}

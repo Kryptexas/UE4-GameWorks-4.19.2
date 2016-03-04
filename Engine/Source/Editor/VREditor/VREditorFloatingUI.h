@@ -71,6 +71,12 @@ public:
 	/** Returns the actual size of the UI in either axis, after scaling has been applied.  Does not take into animation or world scaling */
 	FVector2D GetSize() const;
 
+	/** Gets the scale */
+	float GetScale() const;
+
+	/** Sets a new size for the UI */
+	void SetScale( const float NewSize );
+
 	/** AActor overrides */
 	virtual void Destroyed() override;
 
@@ -113,6 +119,9 @@ public:
 
 	/** Sets if the collision is on when showing the UI*/
 	void SetCollisionOnShow( const bool bInCollisionOnShow );
+
+	/** Gets the initial size of this UI */
+	float GetInitialScale() const;
 
 protected:
 
@@ -200,5 +209,8 @@ private:
 
 	/** Delay to fading in or out. Set on ShowUI and cleared on finish of fade in/out */
 	float FadeDelay;
+
+	/** The starting scale of this UI */
+	float InitialScale;
 };
 
