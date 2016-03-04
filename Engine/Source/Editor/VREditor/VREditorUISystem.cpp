@@ -760,18 +760,19 @@ void FVREditorUISystem::CreateUIs()
 			EditorUIPanels[ (int32)EEditorUIPanel::Tutorial ] = TutorialUI;		
 		}
 
-		if ( 0 )
 		{
 			const FIntPoint Resolution(VREd::EditorUIResolutionX->GetInt(), VREd::EditorUIResolutionY->GetInt());
 
 			const bool bWithSceneComponent = false;
-			AVREditorDockableWindow* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >(TEXT("TabManager"), bWithSceneComponent);
-			TabManagerUI->SetSlateWidget(*this, SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+			AVREditorDockableWindow* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >(TEXT("AssetEditor"), bWithSceneComponent);
+			TabManagerUI->SetSlateWidget(*this, SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat() * 2.0f, AVREditorFloatingUI::EDockedTo::Room);
 			TabManagerUI->ShowUI(true);
-			TabManagerUI->SetRelativeOffset(FVector(0, 3000, 1000));
 			TabManagerUI->GetWidgetComponent()->SetDrawingPolicy(EVREditorWidgetDrawingPolicy::Hovering);
-			TabManagerUI->GetWidgetComponent()->SetBlendMode(EWidgetBlendMode::Masked);
+			TabManagerUI->SetRelativeOffset( FVector( 200.0f, 0.0f, 150.0f ) );
+			TabManagerUI->SetLocalRotation( FRotator( 0.0f, 180.0f, 0.0f ) );
 			FloatingUIs.Add(TabManagerUI);
+
+			EditorUIPanels[ (int32)EEditorUIPanel::AssetEditor ] = TabManagerUI;
 
 			TSharedPtr<SWindow> TabManagerWindow = TabManagerUI->GetWidgetComponent()->GetSlateWindow();
 			TSharedRef<SWindow> TabManagerWindowRef = TabManagerWindow.ToSharedRef();

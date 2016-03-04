@@ -329,4 +329,17 @@ bool UVREditorQuickMenu::IsTutorialVisible() const
 	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Tutorial ) );
 }
 
+
+void UVREditorQuickMenu::OnAssetEditorButtonClicked( const bool bIsChecked )
+{
+	bool bShouldShow = !IsAssetEditorVisible();
+	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
+	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::AssetEditor, MyHandIndex, bShouldShow );
+}
+
+bool UVREditorQuickMenu::IsAssetEditorVisible() const
+{
+	return ( GetOwner()->GetOwner().IsShowingEditorUIPanel( FVREditorUISystem::EEditorUIPanel::AssetEditor ) );
+}
+
 #undef LOCTEXT_NAMESPACE

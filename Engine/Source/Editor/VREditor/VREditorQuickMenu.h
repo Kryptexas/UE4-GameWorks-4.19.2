@@ -132,6 +132,12 @@ public:
 	UFUNCTION( BlueprintPure, Category = "Default" )
 	bool IsTutorialVisible() const;
 
+	UFUNCTION( BlueprintCallable, Category = "Default" )
+	void OnAssetEditorButtonClicked( const bool bIsChecked );
+
+	UFUNCTION( BlueprintPure, Category = "Default" )
+	bool IsAssetEditorVisible() const;
+
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Refresh"))
 	void RefreshUI();
 

@@ -16,6 +16,7 @@ public:
 		ActorDetails,
 		Modes,
 		Tutorial,
+		AssetEditor,
 
 		// ...
 
