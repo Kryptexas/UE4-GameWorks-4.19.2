@@ -1488,17 +1488,18 @@ namespace MachObjectHandling
 				UInt32 Count = SR.ReadUInt32();
 				BundleIdentifier = SR.ReadFixedASCII((int)Count);
 				Count = 4 - Count % 4;
-				SR.ReadBytes(Count);
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
 			}
 
 			public override void WriteData(WritingContext SW)
 			{
 				base.WriteData(SW);
-				SW.Write(BundleIdentifier.Length);							// bundle identifier length
-				SW.Write(Utilities.CreateASCIIZ(BundleIdentifier));			// bundle identifier string
-				int Count = (BundleIdentifier.Length + 1) % 4;					// may need to pad to alignment of 4 bytes
+				SW.Write(BundleIdentifier.Length);								// bundle identifier length
+				SW.WriteFixedASCII(BundleIdentifier, BundleIdentifier.Length);	// bundle identifier string
+				int Count = 4 - BundleIdentifier.Length % 4;					// may need to pad to alignment of 4 bytes
 				if (Count > 0 && Count < 4)
-					SW.WriteZeros(4 - Count);
+					SW.WriteZeros(Count);
 			}
 
 			public override void UpdateCertificateAndBundle(string InCertificateName, string InBundleIdentifier)
@@ -1529,30 +1530,32 @@ namespace MachObjectHandling
 				UInt32 Count = SR.ReadUInt32();
 				FieldName = SR.ReadFixedASCII((int)Count);
 				Count = 4 - Count % 4;
-				SR.ReadBytes(Count);
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
 				MatchOp = new MatchSuffix();
 				MatchOp.MatchOp = SR.ReadUInt32();											// must equal
 				Count = SR.ReadUInt32();
 				MatchOp.CertificateName = SR.ReadFixedASCII((int)Count);
 				Count = 4 - Count % 4;
-				SR.ReadBytes(Count);
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
 			}
 
 			public override void WriteData(WritingContext SW)
 			{
 				base.WriteData(SW);
-				SW.Write(CertificateIndex);									// index in the mobile provision certificate list (always 0 for now)
-				SW.Write(FieldName.Length);									// field name length
-				SW.Write(Utilities.CreateASCIIZ(FieldName));				// field name to match
-				int Count = (FieldName.Length + 1) % 4;								// may need to pad to alignment of 4 bytes
+				SW.Write(CertificateIndex);													// index in the mobile provision certificate list (always 0 for now)
+				SW.Write(FieldName.Length);													// field name length
+				SW.WriteFixedASCII(FieldName, FieldName.Length);							// field name to match
+				int Count = 4 - FieldName.Length % 4;										// may need to pad to alignment of 4 bytes
 				if (Count > 0 && Count < 4)
-					SW.WriteZeros(4 - Count);
-				SW.Write(MatchOp.MatchOp);										// must equal
-				SW.Write(MatchOp.CertificateName.Length);							// length of certficate name
-				SW.Write(Utilities.CreateASCIIZ(MatchOp.CertificateName));			// certificate name to match
-				Count = (MatchOp.CertificateName.Length + 1) % 4;							// may need to pad to alignment of 4 bytes
+					SW.WriteZeros(Count);
+				SW.Write(MatchOp.MatchOp);													// must equal
+				SW.Write(MatchOp.CertificateName.Length);									// length of certficate name
+				SW.WriteFixedASCII(MatchOp.CertificateName, MatchOp.CertificateName.Length);// certificate name to match
+				Count = 4 - MatchOp.CertificateName.Length % 4;								// may need to pad to alignment of 4 bytes
 				if (Count > 0 && Count < 4)
-					SW.WriteZeros(4 - Count);
+					SW.WriteZeros(Count);
 			}
 
 			public override void UpdateCertificateAndBundle(string InCertificateName, string InBundleIdentifier)
@@ -1594,9 +1597,9 @@ namespace MachObjectHandling
 				SW.Write(OIDIndex);											// index of the OID value (always 1)
 				SW.Write(OID.Length);										// length of OID
 				SW.Write(OID);						// OID to match
-				int Count = OID.Length % 4;										// may need to pad to alignment of 4 bytes
+				int Count = 4 - OID.Length % 4;										// may need to pad to alignment of 4 bytes
 				if (Count > 0 && Count < 4)
-					SW.WriteZeros(4 - Count);
+					SW.WriteZeros(Count);
 
 				// may need to pad to alignment of 4 bytes
 				SW.Write(MatchOp.MatchOp);										// OID must exist
@@ -1628,9 +1631,9 @@ namespace MachObjectHandling
 				SW.Write(CertificateIndex);											// index of the OID value (always 1)
 				SW.Write(Hash.Length);										// length of OID
 				SW.Write(Hash);						// OID to match
-				int Count = Hash.Length % 4;										// may need to pad to alignment of 4 bytes
+				int Count = 4 -  Hash.Length % 4;										// may need to pad to alignment of 4 bytes
 				if (Count > 0 && Count < 4)
-					SW.WriteZeros(4 - Count);
+					SW.WriteZeros(Count);
 			}
 		};
 
@@ -1714,6 +1717,7 @@ namespace MachObjectHandling
 			// update all of the read expressions with the certificate name and bundle identifier
 			Expression.UpdateCertificateAndBundle(CertificateName, BundleIdentifier);
 			SW.Write(kReqExpression);
+			Expression.WriteData(SW);
 		}
 
 		protected override void UnpackageData(ReadingContext SR, UInt32 Length)
