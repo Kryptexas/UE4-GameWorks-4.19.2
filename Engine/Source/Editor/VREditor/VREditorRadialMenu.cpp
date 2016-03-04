@@ -14,7 +14,8 @@
 
 namespace VREd
 {
-	static FAutoConsoleVariable RadialMenuSelectionRadius( TEXT( "VREd.RadialMenuSelectionRadius" ), 0.5f, TEXT( "The radius that is used for selecting buttons on the radial menu" ) );
+	static FAutoConsoleVariable RadialMenuRiftSelectionRadius( TEXT( "VREd.RadialMenuRiftSelectionRadius" ), 0.25f, TEXT( "The radius that is used for selecting buttons on the radial menu on Oculus Rift" ) );
+	static FAutoConsoleVariable RadialMenuViveSelectionRadius( TEXT( "VREd.RadialMenuViveSelectionRadius" ), 0.5f, TEXT( "The radius that is used for selecting buttons on the radial menu on Vive" ) );
 }
 
 UVREditorRadialMenu::UVREditorRadialMenu( const FObjectInitializer& ObjectInitializer )
@@ -41,7 +42,7 @@ void UVREditorRadialMenu::Update( const FVirtualHand& Hand )
 		// Check if position is from the center
 		if( !IsInMenuRadius() )
 		{
-			float Angle = FRotator::NormalizeAxis( FMath::RadiansToDegrees(FMath::Atan2( TrackpadPosition.X, -TrackpadPosition.Y ) ) );
+			float Angle = FRotator::NormalizeAxis( FMath::RadiansToDegrees(FMath::Atan2( TrackpadPosition.X, TrackpadPosition.Y ) ) );
 			TrackpadAngle = Angle;
 			if( Angle < 0)
 			{
@@ -163,7 +164,8 @@ void UVREditorRadialMenu::SelectCurrentItem( const FVirtualHand& Hand )
 
 bool UVREditorRadialMenu::IsInMenuRadius() const
 {
-	return FVector2D::Distance( FVector2D::ZeroVector, TrackpadPosition ) < VREd::RadialMenuSelectionRadius->GetFloat();
+	const float RadialMenuSelectionRadius = Owner->GetOwner().GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::RadialMenuRiftSelectionRadius->GetFloat() : VREd::RadialMenuViveSelectionRadius->GetFloat();
+	return FVector2D::Distance( FVector2D::ZeroVector, TrackpadPosition ) < RadialMenuSelectionRadius;
 }
 
 void UVREditorRadialMenu::UpdateGizmoTypeLabel()

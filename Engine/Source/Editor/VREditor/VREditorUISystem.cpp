@@ -346,20 +346,20 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 						// Route the mouse scrolling
 						if ( Hand.bIsTrackpadPositionValid[1] )
 						{
-							const bool bIsAbsolute = ( Owner.GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift );
+							const bool bIsAbsolute = ( Owner.GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
 
 							float ScrollDelta = 0.0f;
-							if( Hand.bIsTouchingTrackpad || Owner.GetHMDDeviceType() != EHMDDeviceType::DT_SteamVR )
+							if( Hand.bIsTouchingTrackpad || !bIsAbsolute )
 							{
 								if( bIsAbsolute )
 								{
+									const float ScrollSpeed = VREd::UIAbsoluteScrollSpeed->GetFloat();
+									ScrollDelta = ( Hand.TrackpadPosition.Y - Hand.LastTrackpadPosition.Y ) * ScrollSpeed;
+								}
+								else
+								{
 									const float ScrollSpeed = VREd::UIRelativeScrollSpeed->GetFloat();
 									ScrollDelta = Hand.TrackpadPosition.Y * ScrollSpeed;
-								}
-								else if( Hand.bIsTouchingTrackpad )
-								{
-									const float ScrollSpeed = VREd::UIAbsoluteScrollSpeed->GetFloat();
-									ScrollDelta = ( Hand.LastTrackpadPosition.Y - Hand.TrackpadPosition.Y ) * ScrollSpeed;
 								}
 							}
 
@@ -521,7 +521,7 @@ void FVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 
 			if( Hand.bIsTrackpadPositionValid[ 0 ] && Hand.bIsTrackpadPositionValid[ 1 ] )
 			{
-				if( Hand.TrackpadPosition.Size() > 0.25f )	// @todo vreditor tweak
+				if( Hand.TrackpadPosition.Size() > 0.1f )	// @todo vreditor tweak
 				{
 					TryToSpawnRadialMenu( HandIndex );
 					

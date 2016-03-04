@@ -1513,6 +1513,8 @@ bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport*
 
 			if( VRAction.ActionType == EVRActionType::TrackpadPositionY )
 			{
+				Delta = -Delta;	// Y axis is inverted from HMD
+
 				Hand.LastTrackpadPosition.Y = Hand.bIsTrackpadPositionValid[1] ? Hand.TrackpadPosition.Y : Delta;
 				Hand.LastTrackpadPositionUpdateTime = FTimespan::FromSeconds( FPlatformTime::Seconds() );
 				Hand.TrackpadPosition.Y = Delta;
