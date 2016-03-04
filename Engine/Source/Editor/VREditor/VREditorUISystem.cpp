@@ -13,6 +13,7 @@
 
 // UI
 #include "WidgetComponent.h"
+#include "VREditorWidgetComponent.h"
 
 // Content Browser
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
@@ -189,6 +190,11 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 								if( WidgetComponent != Hand.HoveringOverWidgetComponent )
 								{
 									LastLocalHitLocation = LocalHitLocation;
+
+									if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(Hand.HoveringOverWidgetComponent) )
+									{
+										VRWidgetComponent->SetIsHovering(false);
+									}
 								}
 
 								FWidgetPath WidgetPathUnderFinger = FWidgetPath( WidgetComponent->GetHitWidgetPath( HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false ) );
@@ -209,6 +215,11 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 										FModifierKeysState() );
 
 									Hand.HoveringOverWidgetComponent = WidgetComponent;
+
+									if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(WidgetComponent) )
+									{
+										VRWidgetComponent->SetIsHovering(true);
+									}
 
 									FReply Reply = FReply::Unhandled();
 									if( Event == IE_Pressed )
@@ -316,6 +327,11 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 					if( WidgetComponent != Hand.HoveringOverWidgetComponent )
 					{
 						LastLocalHitLocation = LocalHitLocation;
+
+						if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(Hand.HoveringOverWidgetComponent) )
+						{
+							VRWidgetComponent->SetIsHovering(false);
+						}
 					}
 
 					// @todo vreditor UI: There is a CursorRadius optional arg that we migth want to make use of wherever we call GetHitWidgetPath()!
@@ -342,6 +358,10 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 						Hand.HoveringOverWidgetComponent = WidgetComponent;
 						bIsHoveringOverUI = true;
 
+						if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(WidgetComponent) )
+						{
+							VRWidgetComponent->SetIsHovering(true);
+						}
 
 						// Route the mouse scrolling
 						if ( Hand.bIsTrackpadPositionValid[1] )
@@ -432,6 +452,11 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 	// If nothing was hovered, make sure we tell Slate about that
 	if( !bWasHandled && Hand.HoveringOverWidgetComponent != nullptr )
 	{
+		if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>(Hand.HoveringOverWidgetComponent) )
+		{
+			VRWidgetComponent->SetIsHovering(false);
+		}
+
 		const FVector2D LastLocalHitLocation = Hand.HoveringOverWidgetComponent->GetLastLocalHitLocation();
 		Hand.HoveringOverWidgetComponent = nullptr;
 
@@ -735,29 +760,32 @@ void FVREditorUISystem::CreateUIs()
 			EditorUIPanels[ (int32)EEditorUIPanel::Tutorial ] = TutorialUI;		
 		}
 
-		//{
-		//	const FIntPoint Resolution(VREd::EditorUIResolutionX->GetInt(), VREd::EditorUIResolutionY->GetInt());
+		if ( 0 )
+		{
+			const FIntPoint Resolution(VREd::EditorUIResolutionX->GetInt(), VREd::EditorUIResolutionY->GetInt());
 
-		//	const bool bWithSceneComponent = false;
-		//	AVREditorFloatingUI* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("TabManager"), bWithSceneComponent);
-		//	TabManagerUI->SetSlateWidget(*this, SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
-		//	TabManagerUI->ShowUI(true);
-		//	TabManagerUI->SetRelativeOffset(FVector(0, 0, 1000));
-		//	FloatingUIs.Add(TabManagerUI);
+			const bool bWithSceneComponent = false;
+			AVREditorDockableWindow* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >(TEXT("TabManager"), bWithSceneComponent);
+			TabManagerUI->SetSlateWidget(*this, SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Nothing);
+			TabManagerUI->ShowUI(true);
+			TabManagerUI->SetRelativeOffset(FVector(0, 3000, 1000));
+			TabManagerUI->GetWidgetComponent()->SetDrawingPolicy(EVREditorWidgetDrawingPolicy::Hovering);
+			TabManagerUI->GetWidgetComponent()->SetBlendMode(EWidgetBlendMode::Masked);
+			FloatingUIs.Add(TabManagerUI);
 
-		//	TSharedPtr<SWindow> TabManagerWindow = TabManagerUI->GetWidgetComponent()->GetSlateWindow();
-		//	TSharedRef<SWindow> TabManagerWindowRef = TabManagerWindow.ToSharedRef();
-		//	ProxyTabManager = MakeShareable(new FProxyTabmanager(TabManagerWindowRef));
+			TSharedPtr<SWindow> TabManagerWindow = TabManagerUI->GetWidgetComponent()->GetSlateWindow();
+			TSharedRef<SWindow> TabManagerWindowRef = TabManagerWindow.ToSharedRef();
+			ProxyTabManager = MakeShareable(new FProxyTabmanager(TabManagerWindowRef));
 
-		//	TSharedRef<FTabManager::FLayout> LoadedLayout = FTabManager::NewLayout(TEXT("VRTabManager"));
-		//	LoadedLayout->AddArea(FTabManager::NewPrimaryArea());
+			TSharedRef<FTabManager::FLayout> LoadedLayout = FTabManager::NewLayout(TEXT("VRTabManager"));
+			LoadedLayout->AddArea(FTabManager::NewPrimaryArea());
 
-		//	TSharedPtr<SWidget> DockLayout = FGlobalTabmanager::Get()->RestoreFrom(LoadedLayout, TabManagerWindowRef, false);
-		//	TabManagerWindowRef->SetContent(DockLayout.ToSharedRef());
+			TSharedPtr<SWidget> DockLayout = FGlobalTabmanager::Get()->RestoreFrom(LoadedLayout, TabManagerWindowRef, false);
+			TabManagerWindowRef->SetContent(DockLayout.ToSharedRef());
 
-		//	// We're going to start stealing tabs from the global tab manager inserting them into the world instead.
-		//	FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
-		//}
+			// We're going to start stealing tabs from the global tab manager inserting them into the world instead.
+			FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
+		}
 	}
 }
 

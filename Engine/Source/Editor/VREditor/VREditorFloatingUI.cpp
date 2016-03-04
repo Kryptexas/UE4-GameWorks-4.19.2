@@ -6,6 +6,7 @@
 #include "VREditorBaseUserWidget.h"
 #include "VREditorMode.h"
 #include "WidgetComponent.h"
+#include "VREditorWidgetComponent.h"
 #include "SLevelViewport.h"	// For tab manager tricks
 
 
@@ -37,7 +38,7 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	check( SceneComponent != nullptr );
 	this->RootComponent = SceneComponent;
 
-	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>( TEXT( "WidgetComponent" ), bTransient );
+	WidgetComponent = CreateDefaultSubobject<UVREditorWidgetComponent>( TEXT( "WidgetComponent" ), bTransient );
 	WidgetComponent->SetEditTimeUsable(true);
 	WidgetComponent->AttachTo( SceneComponent );
 

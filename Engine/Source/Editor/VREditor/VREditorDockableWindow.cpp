@@ -6,6 +6,7 @@
 #include "VREditorMode.h"
 #include "VREditorBaseUserWidget.h"
 #include "WidgetComponent.h"
+#include "VREditorWidgetComponent.h"
 
 namespace VREd
 {

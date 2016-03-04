@@ -63,7 +63,7 @@ public:
 	void SetDockedTo( const EDockedTo NewDockedTo );
 
 	/** Returns the widget component for this UI, or nullptr if not spawned right now */
-	class UWidgetComponent* GetWidgetComponent()
+	class UVREditorWidgetComponent* GetWidgetComponent()
 	{
 		return WidgetComponent;
 	}
@@ -171,7 +171,7 @@ protected:
 	
 	/** When in a spawned state, this is the widget component to represent the widget */
 	UPROPERTY()
-	class UWidgetComponent* WidgetComponent;
+	class UVREditorWidgetComponent* WidgetComponent;
 	
 	/** How big the UI should be */
 	float Scale;

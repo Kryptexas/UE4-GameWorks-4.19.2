@@ -391,17 +391,17 @@ void FVREditorMode::Enter()
 
 	WorldInteraction.Reset( new FVREditorWorldInteraction( *this ) );
 
-	// If we're not actually in VR mode, and instead we've forced it, we should spawn some UI at the Origin to help test
-	if ( !bActuallyUsingVR )
-	{
-		const int32 HandIndex = 1;
-		const bool bShouldShow = true;
+	//// If we're not actually in VR mode, and instead we've forced it, we should spawn some UI at the Origin to help test
+	//if ( !bActuallyUsingVR )
+	//{
+	//	const int32 HandIndex = 1;
+	//	const bool bShouldShow = true;
 
-		FVirtualHand& Hand = VirtualHands[HandIndex];
-		Hand.Transform = FTransform(FVector(0, 0, 0));
+	//	FVirtualHand& Hand = VirtualHands[HandIndex];
+	//	Hand.Transform = FTransform(FVector(0, 0, 0));
 
-		UISystem->ShowEditorUIPanel(FVREditorUISystem::EEditorUIPanel::ContentBrowser, HandIndex, bShouldShow);
-	}
+	//	UISystem->ShowEditorUIPanel(FVREditorUISystem::EEditorUIPanel::ContentBrowser, HandIndex, bShouldShow);
+	//}
 
 	bIsFullyInitialized = true;
 }

@@ -6,13 +6,16 @@
 UVREditorWidgetComponent::UVREditorWidgetComponent(const FObjectInitializer& ObjectInitializer)
 	: Super( ObjectInitializer )
 {
-	bAllowDrawing = false;
+	bIsHovering = false;
+	DrawingPolicy = EVREditorWidgetDrawingPolicy::Always;
 	bHasEverDrawn = false;
 }
 
 bool UVREditorWidgetComponent::ShouldDrawWidget() const
 {
-	if ( bAllowDrawing || !bHasEverDrawn )
+	if ( DrawingPolicy == EVREditorWidgetDrawingPolicy::Always ||
+		(DrawingPolicy == EVREditorWidgetDrawingPolicy::Hovering && bIsHovering) ||
+		!bHasEverDrawn )
 	{
 		return Super::ShouldDrawWidget();
 	}

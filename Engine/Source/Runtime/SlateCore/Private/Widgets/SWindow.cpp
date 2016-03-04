@@ -516,7 +516,7 @@ FSlateRect SWindow::GetNonMaximizedRectInScreen() const
 	int Width = 0;
 	int Height = 0;
 	
-	if ( NativeWindow->GetRestoredDimensions(X, Y, Width, Height) )
+	if ( NativeWindow.IsValid() && NativeWindow->GetRestoredDimensions(X, Y, Width, Height) )
 	{
 		return FSlateRect( X, Y, X+Width, Y+Height );
 	}
@@ -947,10 +947,11 @@ void SWindow::RequestDestroyWindow()
 /** Warning: use Request Destroy Window whenever possible!  This method destroys the window immediately! */
 void SWindow::DestroyWindowImmediately()
 {
-	check( NativeWindow.IsValid() );
-
-	// Destroy the native window
-	NativeWindow->Destroy();
+	if ( NativeWindow.IsValid() )
+	{
+		// Destroy the native window
+		NativeWindow->Destroy();
+	}
 }
 
 /** Calls the OnWindowClosed delegate when this window is about to be closed */

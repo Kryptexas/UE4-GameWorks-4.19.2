@@ -2015,8 +2015,8 @@ void FProxyTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPrefer
 	TSharedRef<FArea> NewAreaForTab = FTabManager::NewArea(FTabManager::FallbackWindowSize)
 		->Split
 		(
-		FTabManager::NewStack()
-		->AddTab(UnmanagedTab->GetLayoutIdentifier(), ETabState::OpenedTab)
+			FTabManager::NewStack()
+			->AddTab(UnmanagedTab->GetLayoutIdentifier(), ETabState::OpenedTab)
 		);
 
 	TSharedRef<SDockingArea> DockingArea = RestoreArea(NewAreaForTab, ParentWindow.Pin());
@@ -2025,6 +2025,7 @@ void FProxyTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPrefer
 	check(NewlyOpenedTab.IsValid());
 		
 	NewlyOpenedTab->GetParent()->GetParentDockTabStack()->OpenTab(UnmanagedTab);
+	NewlyOpenedTab->RequestCloseTab();
 }
 
 
