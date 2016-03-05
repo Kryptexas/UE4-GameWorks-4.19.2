@@ -383,6 +383,9 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 								}
 							}
 
+							// Invert scroll direction so that it feels more like scrolling on a mobile device
+							ScrollDelta *= -1.0f;
+
 							if( !FMath::IsNearlyZero( ScrollDelta ) )
 							{
 								FPointerEvent MouseWheelEvent(
