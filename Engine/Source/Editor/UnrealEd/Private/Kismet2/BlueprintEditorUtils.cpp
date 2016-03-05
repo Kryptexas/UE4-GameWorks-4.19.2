@@ -1423,6 +1423,11 @@ static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Bl
 	Blueprint->GeneratedClass->StaticLink(true);
 }
 
+void FBlueprintEditorUtils::ForceLoadMembers(UObject* Object)
+{
+	FRegenerationHelper::ForcedLoadMembers(Object);
+}
+
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
 	bool bRegenerated = false;
