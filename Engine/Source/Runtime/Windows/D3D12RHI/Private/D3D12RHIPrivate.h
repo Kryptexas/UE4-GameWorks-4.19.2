@@ -1165,6 +1165,11 @@ public:
 	virtual class IRHIComputeContext* RHIGetDefaultAsyncComputeContext() final override;
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
 
+	// FD3D12DynamicRHI interface.
+	virtual ID3D12CommandQueue* RHIGetD3DCommandQueue();
+	virtual FTexture2DRHIRef RHICreateTexture2DFromD3D12Resource( uint8 Format, uint32 Flags, const FClearValueBinding& ClearValueBinding, ID3D12Resource* Resource );
+	virtual void RHIAliasTexture2DResources( FTexture2DRHIParamRef DestTexture2D, FTexture2DRHIParamRef SrcTexture2D );
+
 #if UE_BUILD_DEBUG	
 	uint32 SubmissionLockStalls;
 	uint32 DrawCount;

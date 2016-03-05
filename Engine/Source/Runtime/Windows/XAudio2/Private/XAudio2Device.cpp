@@ -24,6 +24,13 @@
 #include "HideWindowsPlatformTypes.h"
 #include "TargetPlatform.h"
 #include "XAudio2Support.h"
+#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+
+static TAutoConsoleVariable<int32> CVarXAudio2HmdDeviceIndex(
+	TEXT("hmd.XAudio2DeviceIndex"),
+	-1,
+	TEXT("Specifies the XAudio2 device index to use when HMD is connected. (-1 == Unknown)\n"),
+	ECVF_Default);
 
 DEFINE_LOG_CATEGORY(LogXAudio2);
 
@@ -128,7 +135,7 @@ bool FXAudio2Device::InitializeHardware()
 	}
 
 	// Initialize the audio device index to 0, which is the windows default device index
-	int32 DeviceIndex = 0;
+	UINT32 DeviceIndex = 0;
 
 	FString WindowsAudioDeviceName;
 	GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("AudioDevice"), WindowsAudioDeviceName, GEngineIni);
@@ -148,6 +155,20 @@ bool FXAudio2Device::InitializeHardware()
 				break;
 			}
 		}
+	}
+
+	// Allow HMD to override which audio device is chosen
+	bool bUseHmdDeviceIndex = CVarXAudio2HmdDeviceIndex.GetValueOnGameThread() >= 0 && 
+		IModularFeatures::Get().IsModularFeatureAvailable(IHeadMountedDisplayModule::GetModularFeatureName());
+
+	if( bUseHmdDeviceIndex )
+	{
+		DeviceIndex = CVarXAudio2HmdDeviceIndex.GetValueOnGameThread();
+	}
+
+	if(DeviceIndex >= DeviceCount)
+	{
+		DeviceIndex = 0;
 	}
 
 	// Get the details of the desired device index (0 is default)
@@ -201,7 +222,7 @@ bool FXAudio2Device::InitializeHardware()
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 	// Create the final output voice
 	if (!ValidateAPICall(TEXT("CreateMasteringVoice"),
-		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, NULL )))
+		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, DeviceIndex, nullptr )))
 	{
 		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		DeviceProperties->XAudio2 = nullptr;

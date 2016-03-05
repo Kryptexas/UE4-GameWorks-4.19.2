@@ -896,11 +896,8 @@ void FWindowsPlatformMisc::PumpMessages(bool bFromMainLoop)
 	GPumpingMessagesOutsideOfMainLoop = false;
 	WinPumpMessages();
 
-	// check to see if the window in the foreground was made by this process (ie, does this app
-	// have focus)
-	::DWORD ForegroundProcess;
-	GetWindowThreadProcessId(GetForegroundWindow(), &ForegroundProcess);
-	bool HasFocus = ForegroundProcess == GetCurrentProcessId();
+	// Determine if application has focus
+	bool HasFocus = FApp::UseVRFocus() ? FApp::HasVRFocus() : FWindowsPlatformProcess::IsThisApplicationForeground();
 
 	// If editor thread doesn't have the focus, don't suck up too much CPU time.
 	if( GIsEditor )

@@ -541,6 +541,37 @@ public:
 	*/
 	static void SetUnfocusedVolumeMultiplier(float InVolumeMultiplier);
 
+	/**
+	 * Sets if VRFocus should be used.
+	 *
+	 * @param  bInUseVRFocus	new bUseVRFocus value
+	 */
+	static void SetUseVRFocus(bool bInUseVRFocus);
+
+	/**
+	 * Gets if VRFocus should be used
+	 */
+	FORCEINLINE static bool UseVRFocus()
+	{
+		return bUseVRFocus;
+	}
+	/**
+	 * Sets VRFocus, which indicates that the application should continue to render 
+	 * Audio and Video as if it had window focus, even though it may not.
+	 *
+	 * @param  bInVRFocus	new VRFocus value
+	 */
+	static void SetHasVRFocus(bool bInHasVRFocus);
+
+	/**
+	 * Gets VRFocus, which indicates that the application should continue to render 
+	 * Audio and Video as if it had window focus, even though it may not.
+	 */
+	FORCEINLINE static bool HasVRFocus()
+	{
+		return bHasVRFocus;
+	}
+
 private:
 
 	/** Holds the instance identifier. */
@@ -584,6 +615,12 @@ private:
 
 	/** Read from config to define the volume when app loses focus */
 	static float UnfocusedVolumeMultiplier;
+
+	/** Holds a flag indicating if VRFocus should be used */
+	static bool bUseVRFocus;
+
+	/** Holds a flag indicating if app has focus in side the VR headset */
+	static bool bHasVRFocus;
 };
 
 

@@ -168,3 +168,47 @@ float UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(UObject* WorldCo
 {
 	return WorldContext ? WorldContext->GetWorld()->GetWorldSettings()->WorldToMeters : 0.f;
 }
+
+void UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(ETrackingOriginSelector::Type InOrigin)
+{
+	if (GEngine->HMDDevice.IsValid())
+	{
+		IHeadMountedDisplay::ETrackingOrigin Origin = IHeadMountedDisplay::Eye;
+		switch (InOrigin)
+		{
+		case ETrackingOriginSelector::Eye:
+			Origin = IHeadMountedDisplay::Eye;
+			break;
+		case ETrackingOriginSelector::Floor:
+			Origin = IHeadMountedDisplay::Floor;
+			break;
+		default: check(0); // shouldn't happen, check the EOriginTypeSelector
+		}
+		GEngine->HMDDevice->SetTrackingOrigin(Origin);
+	}
+}
+
+ETrackingOriginSelector::Type UHeadMountedDisplayFunctionLibrary::GetTrackingOrigin()
+{
+	if (GEngine->HMDDevice.IsValid())
+	{
+		IHeadMountedDisplay::ETrackingOrigin Origin = GEngine->HMDDevice->GetTrackingOrigin();
+		switch (Origin)
+		{
+		case IHeadMountedDisplay::Eye:
+			return ETrackingOriginSelector::Eye;
+			break;
+		case IHeadMountedDisplay::Floor:
+			return ETrackingOriginSelector::Floor;
+			break;
+		default: check(0); // shouldn't happen, check the EOriginTypeSelector
+		}
+	}
+	return ETrackingOriginSelector::Eye;
+}
+
+void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)
+{
+	bUseFocus = GEngine->HMDDevice->DoesAppUseVRFocus();
+	bHasFocus = GEngine->HMDDevice->DoesAppHaveVRFocus();
+}
