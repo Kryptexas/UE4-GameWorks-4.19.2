@@ -396,15 +396,20 @@ FString AndroidThunkCpp_GetMetaDataString(const FString& Key)
 // call out to JNI to see if the application was packaged for GearVR
 bool AndroidThunkCpp_IsGearVRApplication()
 {
-	bool bIsGearVRApplication = false;
-	if (FJavaWrapper::AndroidThunkJava_IsGearVRApplication)
+	static int32 IsGearVRApplication = -1;
+
+	if (IsGearVRApplication == -1)
 	{
-		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+		IsGearVRApplication = 0;
+		if (FJavaWrapper::AndroidThunkJava_IsGearVRApplication)
 		{
-			bIsGearVRApplication = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_IsGearVRApplication);
+			if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+			{
+				IsGearVRApplication = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_IsGearVRApplication) ? 1 : 0;
+			}
 		}
 	}
-	return bIsGearVRApplication;
+	return IsGearVRApplication == 1;
 }
 
 void AndroidThunkCpp_ShowConsoleWindow()

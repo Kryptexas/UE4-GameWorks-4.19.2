@@ -245,8 +245,8 @@ bool FGearVR::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 
 bool FGearVR::IsHMDConnected()
 {
-	// consider HMD connected all the time. 
-	return true;
+	// consider HMD connected all the time if GearVR enabled
+	return AndroidThunkCpp_IsGearVRApplication();
 }
 
 bool FGearVR::IsInLowPersistenceMode() const

@@ -224,6 +224,7 @@ void AndroidEGL::CreateEGLSurface(ANativeWindow* InWindow, bool bCreateWndSurfac
 	// due to possible early initialization, don't redo this
 	if (PImplData->eglSurface != EGL_NO_SURFACE)
 	{
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("AndroidEGL::CreateEGLSurface() Already initialized: %p"), PImplData->eglSurface);
 		return;
 	}
 
@@ -512,9 +513,9 @@ void AndroidEGL::InitBackBuffer()
 
 extern void AndroidThunkCpp_SetDesiredViewSize(int32 Width, int32 Height);
 
-void AndroidEGL::InitSurface(bool bUseSmallSurface)
+void AndroidEGL::InitSurface(bool bUseSmallSurface, bool bCreateWndSurface)
 {
-	FPlatformMisc::LowLevelOutputDebugStringf( TEXT("AndroidEGL::InitSurface %d" ), int(bUseSmallSurface));
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("AndroidEGL::InitSurface %d, %d"), int(bUseSmallSurface), int(bCreateWndSurface));
 	ANativeWindow* window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
 	while(window == NULL)
 	{
@@ -533,7 +534,7 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface)
 		AndroidThunkCpp_SetDesiredViewSize(Width, Height);
 	}
 	ANativeWindow_setBuffersGeometry(PImplData->Window, Width, Height, PImplData->NativeVisualID);
-	CreateEGLSurface(PImplData->Window, bUseSmallSurface);
+	CreateEGLSurface(PImplData->Window, bCreateWndSurface);
 	
 	PImplData->SharedContext.eglSurface = PImplData->auxSurface;
 	PImplData->RenderingContext.eglSurface = PImplData->eglSurface;
@@ -543,8 +544,9 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface)
 
 void AndroidEGL::ReInit()
 {
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::ReInit()"));
 	SetCurrentContext(EGL_NO_CONTEXT, EGL_NO_SURFACE);
-	InitSurface(false);
+	InitSurface(false, true);
 	SetCurrentSharedContext();
 }
 
@@ -806,17 +808,20 @@ FPlatformOpenGLContext* AndroidEGL::GetRenderingContext()
 
 void AndroidEGL::UnBind()
 {
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::UnBind()"));
 	ResetDisplay();
 	DestroySurface();
 }
 
 void FAndroidAppEntry::ReInitWindow()
 {
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::ReInitWindow()"));
 	AndroidEGL::GetInstance()->ReInit();
 }
 
 void FAndroidAppEntry::DestroyWindow()
 {
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::DestroyWindow()"));
 	AndroidEGL::GetInstance()->UnBind();
 }
 
