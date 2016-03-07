@@ -799,12 +799,6 @@ void FVREditorUISystem::CreateUIs()
 			TSharedRef<SWindow> TabManagerWindowRef = TabManagerWindow.ToSharedRef();
 			ProxyTabManager = MakeShareable(new FProxyTabmanager(TabManagerWindowRef));
 
-			TSharedRef<FTabManager::FLayout> LoadedLayout = FTabManager::NewLayout(TEXT("VRTabManager"));
-			LoadedLayout->AddArea(FTabManager::NewPrimaryArea());
-
-			TSharedPtr<SWidget> DockLayout = FGlobalTabmanager::Get()->RestoreFrom(LoadedLayout, TabManagerWindowRef, false);
-			TabManagerWindowRef->SetContent(DockLayout.ToSharedRef());
-
 			// We're going to start stealing tabs from the global tab manager inserting them into the world instead.
 			FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
 		}

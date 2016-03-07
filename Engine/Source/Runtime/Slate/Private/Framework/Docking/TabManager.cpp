@@ -2012,14 +2012,16 @@ void FGlobalTabmanager::SetProxyTabManager(TSharedPtr<FProxyTabmanager> InProxyT
 void FProxyTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab)
 {
 	// No layout info about this tab found; start 
-	TSharedRef<FArea> NewAreaForTab = FTabManager::NewArea(FTabManager::FallbackWindowSize)
+	TSharedRef<FArea> NewAreaForTab = FTabManager::NewPrimaryArea()
 		->Split
 		(
 			FTabManager::NewStack()
 			->AddTab(UnmanagedTab->GetLayoutIdentifier(), ETabState::OpenedTab)
 		);
 
-	TSharedRef<SDockingArea> DockingArea = RestoreArea(NewAreaForTab, ParentWindow.Pin());
+	TSharedPtr<SWindow> ParentWindowPtr = ParentWindow.Pin();
+	TSharedRef<SDockingArea> DockingArea = RestoreArea(NewAreaForTab, ParentWindowPtr, false);
+	ParentWindowPtr->SetContent(DockingArea);
 
 	const TSharedPtr<SDockTab> NewlyOpenedTab = DockingArea->GetAllChildTabs()[0];
 	check(NewlyOpenedTab.IsValid());
