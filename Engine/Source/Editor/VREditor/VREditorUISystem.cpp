@@ -145,7 +145,7 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 
 			bWasHandled = true;
 		}
-		else if( VRAction.ActionType == EVRActionType::SelectAndMove )
+		else if( VRAction.ActionType == EVRActionType::SelectAndMove_LightlyPressed )
 		{
 			FVirtualHand& Hand = Owner.GetVirtualHand( VRAction.HandIndex );
 			FVector LaserPointerStart, LaserPointerEnd;

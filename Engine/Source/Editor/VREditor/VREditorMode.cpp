@@ -1324,7 +1324,7 @@ bool FVREditorMode::InputKey( FEditorViewportClient* ViewportClient, FViewport* 
 					{
 						// How long since the trigger was lightly pressed?
 						const float TimeSinceLightlyPressed = (float)( FPlatformTime::Seconds() - Hand.RealTimeTriggerWasLightlyPressed );
-						if( !Hand.bAllowTriggerLightPressLocking || TimeSinceLightlyPressed < VREd::TriggerLightlyPressedLockTime->GetFloat() )
+						if( !Hand.bIsClickingOnUI && ( !Hand.bAllowTriggerLightPressLocking || TimeSinceLightlyPressed < VREd::TriggerLightlyPressedLockTime->GetFloat() ) )
 						{
 							Hand.bIsTriggerAtLeastLightlyPressed = false;
 							Hand.bHasTriggerBeenReleasedSinceLastPress = false;
