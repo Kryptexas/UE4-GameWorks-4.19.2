@@ -6,6 +6,7 @@
 #include "KismetEditorUtilities.h"
 #include "AttributeSet.h"
 #include "GameplayAbilitiesModule.h"
+#include "AbilitySystemGlobals.h"
 #include "SGameplayAttributeGraphPin.h"
 #include "SSearchBox.h"
 #include "STextComboBox.h"

@@ -40,7 +40,6 @@ namespace UnrealBuildTool.Rules
 
                     // @todo do we really need to include these two? Maybe a smart interface would help here?
                     "GameplayTasks",
-                    "GameplayAbilities",    
 				}
                 );
 
@@ -48,8 +47,9 @@ namespace UnrealBuildTool.Rules
                 new string[]
 				    {
 					    // ... add any modules that your module loads dynamically here ...
-				    }
-                );
+					    "GameplayAbilities",
+					}
+				);
 
             if (UEBuildConfiguration.bBuildEditor == true)
             {
