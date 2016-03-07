@@ -17,15 +17,15 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	bool bSetupTranslucentState = true;
+	bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
 
 	if ((TranslucenyPassType == TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
 	{
-		const bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
 		bSetupTranslucentState = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bNeedsClear);
 	}
-	else
+	else if ((TranslucenyPassType == TPT_NonSeparateTransluceny) && !SceneContext.IsSeparateTranslucencyActive(View))
 	{
-		SceneContext.BeginRenderingTranslucency(RHICmdList, View);
+		SceneContext.BeginRenderingTranslucency(RHICmdList, View, bNeedsClear);
 	}
 
 	if (bSetupTranslucentState)
@@ -918,7 +918,7 @@ public:
 	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPassType InTranslucenyPassType)
 		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, TranslucenyPassType(InTranslucenyPassType)
-		, bFirstTimeThisFrame(InTranslucenyPassType == TPT_SeparateTransluceny)
+		, bFirstTimeThisFrame(true)
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
