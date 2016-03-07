@@ -241,12 +241,12 @@ void AVREditorDockableWindow::OnEnterHover( const FHitResult& HitResult )
 {
 	if( SelectionBarMeshComponent == HitResult.GetComponent() )
 	{
-		SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::HoverGizmoColor ) );
+		SetSelectionBarColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UISelectionBarHoverColor ) );
 	}
 
 	if( CloseButtonMeshComponent == HitResult.GetComponent() )
 	{
-		SetCloseButtonColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::HoverGizmoColor ) );
+		SetCloseButtonColor( GetOwner().GetOwner().GetColor( FVREditorMode::EColors::UICloseButtonHoverColor ) );
 	}
 }
 

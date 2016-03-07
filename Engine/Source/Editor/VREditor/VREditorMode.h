@@ -525,7 +525,9 @@ public:
 		HoverGizmoColor,
 		DraggingGizmoColor,
 		UISelectionBarColor,
+		UISelectionBarHoverColor,
 		UICloseButtonColor,
+		UICloseButtonHoverColor,
 		TotalCount
 	};
 
