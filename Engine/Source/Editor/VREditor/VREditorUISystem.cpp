@@ -178,6 +178,11 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 
 						if( Event != IE_Repeat )
 						{
+							// If the Modifier button is held down, treat this like a right click instead of a left click
+							const bool bIsRightClicking =
+								( Event == IE_Pressed && Hand.bIsModifierPressed ) ||
+								( Event == IE_Released && Hand.bIsRightClickingOnUI );
+
 							UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
 							if( WidgetComponent )
 							{
@@ -203,14 +208,14 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 									TSet<FKey> PressedButtons;
 									if( Event == IE_Pressed )
 									{
-										PressedButtons.Add( EKeys::LeftMouseButton );
+										PressedButtons.Add( bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton );
 									}
 									FPointerEvent PointerEvent(
 										1 + VRAction.HandIndex,
 										LocalHitLocation,
 										LastLocalHitLocation,
 										PressedButtons,
-										EKeys::LeftMouseButton,
+										bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
 										0.0f,	// Wheel delta
 										FModifierKeysState() );
 
@@ -226,6 +231,7 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 									{
 										Reply = FSlateApplication::Get().RoutePointerDownEvent( WidgetPathUnderFinger, PointerEvent );
 										Hand.bIsClickingOnUI = true;
+										Hand.bIsRightClickingOnUI = bIsRightClicking;
 										bIsInputCaptured = true;
 									}
 									else if( Event == IE_Released )
@@ -250,9 +256,15 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 
 			if( Event == IE_Released )
 			{
+				bool bWasRightClicking = false;
 				if( Hand.bIsClickingOnUI )
 				{
+					if( Hand.bIsRightClickingOnUI )
+					{
+						bWasRightClicking = true;
+					}
 					Hand.bIsClickingOnUI = false;
+					Hand.bIsRightClickingOnUI = false;
 					bIsInputCaptured = false;
 				}
 
@@ -264,13 +276,14 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 						FVector2D::ZeroVector,
 						FVector2D::ZeroVector,
 						PressedButtons,
-						EKeys::LeftMouseButton,
+						bWasRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
 						0.0f,	// Wheel delta
 						FModifierKeysState() );
 
 					FWidgetPath EmptyWidgetPath;
 
 					Hand.bIsClickingOnUI = false;
+					Hand.bIsRightClickingOnUI = false;
 					FReply Reply = FSlateApplication::Get().RoutePointerUpEvent( EmptyWidgetPath, PointerEvent );
 				}
 			}

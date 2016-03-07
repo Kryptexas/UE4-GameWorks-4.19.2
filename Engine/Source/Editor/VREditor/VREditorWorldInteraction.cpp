@@ -2700,7 +2700,7 @@ void FVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 	for( int32 HandIndex = 0; HandIndex < VREditorConstants::NumVirtualHands; ++HandIndex )
 	{
 		FVirtualHand& Hand = Owner.GetVirtualHand( HandIndex );
-		if( Hand.IsInputCaptured[ (int32)EVRActionType::SelectAndMove ] && Hand.bIsClickingOnUI )
+		if( Hand.IsInputCaptured[ (int32)EVRActionType::SelectAndMove ] && ( Hand.bIsClickingOnUI && !Hand.bIsRightClickingOnUI ) )
 		{
 			PlacingWithHandIndex = HandIndex;
 			OtherHandIndex = Owner.GetOtherHandIndex( PlacingWithHandIndex );
@@ -2716,6 +2716,7 @@ void FVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser( const TArr
 		// Cancel UI input
 		{
 			Hand.bIsClickingOnUI = false;
+			Hand.bIsRightClickingOnUI = false;
 			Hand.IsInputCaptured[ (int32)EVRActionType::SelectAndMove ] = false;
 			Hand.IsInputCaptured[ (int32)EVRActionType::SelectAndMove_LightlyPressed ] = false;
 		}

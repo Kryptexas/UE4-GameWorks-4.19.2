@@ -168,6 +168,9 @@ struct FVirtualHand
 	/** True if we're currently holding the 'SelectAndMove' button down after clicking on UI */
 	bool bIsClickingOnUI;
 
+	/** When bIsClickingOnUI is true, this will be true if we're "right clicking".  That is, the Modifier key was held down at the time that the user clicked */
+	bool bIsRightClickingOnUI;
+
 	/** Last real time that we released the 'SelectAndMove' button on UI.  This is used to detect double-clicks. */
 	double LastClickReleaseTime;
 
@@ -320,6 +323,7 @@ struct FVirtualHand
 		}
 		ClickingOnComponent = nullptr;
 		bIsClickingOnUI = false;
+		bIsRightClickingOnUI = false;
 		LastClickReleaseTime = 0.0;
 		LastHapticTime = 0.0;
 		
