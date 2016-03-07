@@ -355,8 +355,8 @@ protected:
 	/** The VR level viewport, if we're in VR mode */
 	TWeakPtr< class SLevelViewport > VREditorLevelViewportWeakPtr;
 
-	/** Saved information about the viewport we possessed, so we can restore it after exiting VR mode */
-	struct FSavedViewportState
+	/** Saved information about the editor and viewport we possessed, so we can restore it after exiting VR mode */
+	struct FSavedEditorState
 	{
 		ELevelViewportType ViewportType;
 		FVector ViewLocation;
@@ -368,8 +368,9 @@ protected:
 		float NearClipPlane;
 		bool bRealTime;
 		float DragTriggerDistance;
+		bool bOnScreenMessages;
 
-		FSavedViewportState()
+		FSavedEditorState()
 			: ViewportType( LVT_Perspective ),
 			  ViewLocation( FVector::ZeroVector ),
 			  ViewRotation( FRotator::ZeroRotator ),
@@ -379,11 +380,12 @@ protected:
 			  bAlwaysShowModeWidgetAfterSelectionChanges( false ),
 			  NearClipPlane( 0.0f ),
 			  bRealTime( false ),
-			  DragTriggerDistance( 0.0f )
+			  DragTriggerDistance( 0.0f ),
+			  bOnScreenMessages( false )
 		{
 		}
 		
-	} SavedViewportState;
+	} SavedEditorState;
 
 	/** Static: True if we're in using an actual HMD in this mode, or false if we're "faking" VR mode for testing */
 	static bool bActuallyUsingVR;
