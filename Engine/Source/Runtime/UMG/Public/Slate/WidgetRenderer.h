@@ -18,9 +18,10 @@ class SVirtualWindow : public SWindow
 
 public:
 	void Construct(const FArguments& InArgs);
-
+	
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
 	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent) override;
+	virtual void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
 
 private:
 	TSharedPtr<class STooltipPresenter> TooltipPresenter;

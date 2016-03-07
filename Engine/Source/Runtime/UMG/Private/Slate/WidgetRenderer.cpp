@@ -47,6 +47,23 @@ bool SVirtualWindow::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipConten
 	return true;
 }
 
+void SVirtualWindow::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+{
+	SWindow::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
+
+	// @HACK VREDITOR - otherwise popup layers don't work in nested child windows, in tab managers and such.
+	if ( ArrangedChildren.Allows3DWidgets() )
+	{
+		const TArray< TSharedRef<SWindow> >& WindowChildren = GetChildWindows();
+		for ( int32 ChildIndex=0; ChildIndex < WindowChildren.Num(); ++ChildIndex )
+		{
+			const TSharedRef<SWindow>& ChildWindow = WindowChildren[ChildIndex];
+			FGeometry ChildWindowGeometry = ChildWindow->GetWindowGeometryInWindow();
+			ChildWindow->ArrangeChildren(ChildWindowGeometry, ArrangedChildren);
+		}
+	}
+}
+
 FWidgetRenderer::FWidgetRenderer(bool bUseGammaCorrection)
 	: bPrepassNeeded(true)
 	, bUseGammaSpace(bUseGammaCorrection)
