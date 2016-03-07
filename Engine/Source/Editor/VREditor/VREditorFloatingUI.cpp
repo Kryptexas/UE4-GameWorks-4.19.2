@@ -276,20 +276,11 @@ void AVREditorFloatingUI::UpdateTransformIfDocked()
 	}
 }
 
-// @todo vreditor: Move this to FMath so we can use it everywhere
-// NOTE: OvershootAmount is usually between 0.5 and 2.0, but can go lower and higher for extreme overshots
-template<class T>
-static T OvershootEaseOut( T Alpha, const float OvershootAmount = 1.0f )
-{
-	Alpha--;
-	return 1.0f - ( ( Alpha * ( ( OvershootAmount + 1 ) * Alpha + OvershootAmount ) + 1 ) - 1.0f );
-}
-
 
 FVector AVREditorFloatingUI::CalculateAnimatedScale() const
 {
-	const float UIAnimationOvershootAmount = 0.7f;	// @todo vreditor tweak
-	const float EasedAlpha = OvershootEaseOut( FadeAlpha, UIAnimationOvershootAmount );
+	const float AnimationOvershootAmount = 0.7f;	// @todo vreditor tweak
+	const float EasedAlpha = FVREditorMode::OvershootEaseOut( FadeAlpha, AnimationOvershootAmount );
 
 	// Animate vertically more than horizontally; just looks a little better
 	const float ZScale = FMath::Max( 0.001f, EasedAlpha );

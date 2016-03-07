@@ -191,9 +191,12 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 			AimingAtMeFadeAlpha = FMath::Clamp( AimingAtMeFadeAlpha, 0.0f, 1.0f );
 		}
 
+		const float AnimationOvershootAmount = 1.0f;	// @todo vreditor tweak
+		const float EasedAimingAtMeFadeAlpha = FVREditorMode::OvershootEaseOut( AimingAtMeFadeAlpha, AnimationOvershootAmount );
+
 		// Only show our extra buttons and controls if the user is roughly aiming toward us.  This just reduces clutter.
-		SelectionBarMeshComponent->SetVisibility( AimingAtMeFadeAlpha > KINDA_SMALL_NUMBER ? true : false );
-		CloseButtonMeshComponent->SetVisibility( AimingAtMeFadeAlpha > KINDA_SMALL_NUMBER ? true : false );
+		SelectionBarMeshComponent->SetVisibility( EasedAimingAtMeFadeAlpha > KINDA_SMALL_NUMBER ? true : false );
+		CloseButtonMeshComponent->SetVisibility( EasedAimingAtMeFadeAlpha > KINDA_SMALL_NUMBER ? true : false );
 
 
 		// Update the window border mesh
@@ -225,7 +228,7 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 			SelectionBarScale *= FMath::Lerp( 1.0f, VREd::DockUIHoverScale->GetFloat(), SelectionBarHoverAlpha );
 
 			// Scale vertically based on our fade alpha
-			SelectionBarScale.Z *= AimingAtMeFadeAlpha;
+			SelectionBarScale.Z *= EasedAimingAtMeFadeAlpha;
 
 			SelectionBarMeshComponent->SetRelativeScale3D( SelectionBarScale );
 			const FVector SelectionBarRelativeLocation = FVector(
@@ -251,7 +254,7 @@ void AVREditorDockableWindow::TickManually( float DeltaTime )
 
 			// How big the close button should be
 			const FVector CloseButtonSize( 1.0f, 2.0f, 2.0f );	// @todo vreditor tweak
-			FVector CloseButtonScale = CloseButtonSize * AnimatedScale * WorldScaleFactor * AimingAtMeFadeAlpha;
+			FVector CloseButtonScale = CloseButtonSize * AnimatedScale * WorldScaleFactor * EasedAimingAtMeFadeAlpha;
 			CloseButtonScale *= FMath::Lerp( 1.0f, VREd::DockUIHoverScale->GetFloat(), CloseButtonHoverAlpha );
 
 

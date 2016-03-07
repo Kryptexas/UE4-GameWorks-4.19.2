@@ -99,6 +99,15 @@ public:
 		return FTimespan::FromSeconds( FApp::GetCurrentTime() ) - AppTimeModeEntered;
 	}
 
+	// @todo vreditor: Move this to FMath so we can use it everywhere
+	// NOTE: OvershootAmount is usually between 0.5 and 2.0, but can go lower and higher for extreme overshots
+	template<class T>
+	static T OvershootEaseOut( T Alpha, const float OvershootAmount = 1.0f )
+	{
+		Alpha--;
+		return 1.0f - ( ( Alpha * ( ( OvershootAmount + 1 ) * Alpha + OvershootAmount ) + 1 ) - 1.0f );
+	}
+
 	/** Gets the maximum length of a laser pointer */
 	float GetLaserPointerMaxLength() const;
 
