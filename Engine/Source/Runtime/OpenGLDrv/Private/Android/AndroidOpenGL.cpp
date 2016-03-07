@@ -96,7 +96,7 @@ void FPlatformOpenGLDevice::Init()
 {
 	extern void InitDebugContext();
 
-	AndroidEGL::GetInstance()->InitSurface(false);
+	AndroidEGL::GetInstance()->InitSurface(false, true);
 	PlatformRenderingContextSetup(this);
 
 	LoadEXT();
