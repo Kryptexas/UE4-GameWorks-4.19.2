@@ -559,18 +559,23 @@ void FVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 		{
 			const FVirtualHand& Hand = Owner.GetVirtualHand( HandIndex );
 
-			if( Hand.bIsTrackpadPositionValid[ 0 ] && Hand.bIsTrackpadPositionValid[ 1 ] )
+			bool bShouldShowRadialMenu = false;
+			if( !Hand.bHasUIInFront && Hand.bIsTrackpadPositionValid[ 0 ] && Hand.bIsTrackpadPositionValid[ 1 ] && GetDraggingDockUIHandIndex() != HandIndex )
 			{
-				if( Hand.TrackpadPosition.Size() > 0.1f )	// @todo vreditor tweak
+				if( Hand.TrackpadPosition.Size() > 0.15f )	// @todo vreditor tweak
 				{
-					TryToSpawnRadialMenu( HandIndex );
-					
+					bShouldShowRadialMenu = true;
 				}
-				else
-				{
-					// Close it
-					HideRadialMenu( HandIndex );
-				}
+			}
+
+			if( bShouldShowRadialMenu )
+			{
+				TryToSpawnRadialMenu( HandIndex );
+			}
+			else
+			{
+				// Close it
+				HideRadialMenu( HandIndex );
 			}
 		}
 	}
