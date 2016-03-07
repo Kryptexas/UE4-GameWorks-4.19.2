@@ -74,4 +74,25 @@ private:
 	/** Close button dynamic material (translucent) */
 	UPROPERTY()
 	class UMaterialInstanceDynamic* CloseButtonTranslucentMID;
+
+
+	/** True if at least one hand's laser is aiming toward the UI */
+	bool bIsLaserAimingTowardUI;
+
+	/** Scalar that ramps up toward 1.0 after the user aims toward the UI */
+	float AimingAtMeFadeAlpha;
+
+
+	/** True if we're hovering over the selection bar */
+	bool bIsHoveringOverSelectionBar;
+
+	/** Scalar that will advance toward 1.0 over time as we hover over the selection bar */
+	float SelectionBarHoverAlpha;
+
+
+	/** True if we're hovering over the close button */
+	bool bIsHoveringOverCloseButton;
+
+	/** Scalar that will advance toward 1.0 over time as we hover over the close button */
+	float CloseButtonHoverAlpha;
 };
