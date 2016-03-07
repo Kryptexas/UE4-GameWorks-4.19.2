@@ -2028,6 +2028,8 @@ void FProxyTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPrefer
 		
 	NewlyOpenedTab->GetParent()->GetParentDockTabStack()->OpenTab(UnmanagedTab);
 	NewlyOpenedTab->RequestCloseTab();
+
+	OnProxyTabLaunched.Broadcast(UnmanagedTab);
 }
 
 

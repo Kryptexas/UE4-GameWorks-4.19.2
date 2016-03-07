@@ -990,6 +990,10 @@ private:
 	TSharedPtr<FProxyTabmanager> ProxyTabManager;
 };
 
+//#HACK VREDITOR - Had to introduce the proxy tab manager to steal asset tabs.
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnProxyTabLaunched, TSharedPtr<SDockTab>);
+
 
 class SLATE_API FProxyTabmanager : public FTabManager
 {
@@ -1002,6 +1006,9 @@ public:
 	}
 
 	virtual void OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab) override;
+
+public:
+	FOnProxyTabLaunched OnProxyTabLaunched;
 
 private:
 	TWeakPtr<SWindow> ParentWindow;

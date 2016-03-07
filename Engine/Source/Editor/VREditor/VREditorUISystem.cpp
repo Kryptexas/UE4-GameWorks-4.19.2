@@ -76,7 +76,8 @@ FVREditorUISystem::FVREditorUISystem( FVREditorMode& InitOwner )
 	  DraggingUIHandIndex( INDEX_NONE ),
 	  DraggingUIOffsetTransform( FTransform::Identity ),
 	  bPanelVisibilityToggle( false ),
-	  RadialMenuHideDelayTime( 0.0f )
+	  RadialMenuHideDelayTime( 0.0f ),
+	  bRefocusViewport(false)
 {
 	// Register to find out about VR events
 	Owner.OnVRAction().AddRaw( this, &FVREditorUISystem::OnVRAction );
@@ -478,6 +479,12 @@ void FVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 
 void FVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float DeltaTime )
 {
+	if ( bRefocusViewport )
+	{
+		bRefocusViewport = false;
+		FSlateApplication::Get().SetUserFocus(0, ViewportClient->GetEditorViewportWidget());
+	}
+
 	// Figure out if one hand is "aiming toward" the other hand.  We'll fade in a UI on the hand being
 	// aimed at when the user does this.
 	if( QuickMenuUI != nullptr )
@@ -785,6 +792,7 @@ void FVREditorUISystem::CreateUIs()
 			TSharedPtr<SWindow> TabManagerWindow = TabManagerUI->GetWidgetComponent()->GetSlateWindow();
 			TSharedRef<SWindow> TabManagerWindowRef = TabManagerWindow.ToSharedRef();
 			ProxyTabManager = MakeShareable(new FProxyTabmanager(TabManagerWindowRef));
+			ProxyTabManager->OnProxyTabLaunched.Add(FOnProxyTabLaunched::FDelegate::CreateRaw(this, &FVREditorUISystem::OnProxyTabLaunched));
 
 			// We're going to start stealing tabs from the global tab manager inserting them into the world instead.
 			FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
@@ -1110,4 +1118,9 @@ float FVREditorUISystem::GetMaxDockWindowSize() const
 float FVREditorUISystem::GetMinDockWindowSize() const
 {
 	return VREd::MinDockWindowSize->GetFloat();
+}
+
+void FVREditorUISystem::OnProxyTabLaunched(TSharedPtr<SDockTab> NewTab)
+{
+	bRefocusViewport = true;
 }

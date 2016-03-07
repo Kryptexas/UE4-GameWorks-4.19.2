@@ -118,6 +118,11 @@ protected:
 	/** Testing Slate UI */
 	void CreateUIs();
 
+	/**
+	 * Called when the injected proxy tab manager reports a new tab has been launched, 
+	 * signaling an asset editor has been launched, but really it could be any major global tab.
+	 */
+	void OnProxyTabLaunched(TSharedPtr<SDockTab> NewTab);
 
 protected:
 
@@ -171,5 +176,8 @@ protected:
 
 	/** Allows us to steal the global tabs and show them in the world. */
 	TSharedPtr<FProxyTabmanager> ProxyTabManager;
+
+	/** Set to true when we need to refocus the viewport. */
+	bool bRefocusViewport;
 };
 

@@ -939,6 +939,9 @@ public:
 		return ModeTools;
 	}
 
+	/** Get the editor viewport widget */
+	TSharedPtr<SEditorViewport> GetEditorViewportWidget() const { return EditorViewportWidget.Pin(); }
+
 protected:
 
 	/** Camera speed setting */
