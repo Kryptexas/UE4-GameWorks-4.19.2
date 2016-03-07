@@ -388,9 +388,9 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,F
 	bool bHasChanged;
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_HasChanged);
-		bHasChanged = ComponentToWorld.Equals(NewTransform, SMALL_NUMBER);
+		bHasChanged = !ComponentToWorld.Equals(NewTransform, SMALL_NUMBER);
 	}
-	if (!bHasChanged)
+	if (bHasChanged)
 	{
 		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_Changed);
 		// Update transform
@@ -762,13 +762,13 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 					bool bNeedsDetach = true;
 					if (ExternalAttachParent)
 					{
-						bNeedsDetach = (Child->AttachTo(ExternalAttachParent) == false);
+						bNeedsDetach = (Child->AttachTo(ExternalAttachParent, NAME_None, EAttachLocation::KeepWorldPosition) == false);
 					}
 					if (bNeedsDetach)
 					{
 						if (Child->AttachParent && Child->AttachParent == this)
 						{
-							Child->DetachFromParent();
+							Child->DetachFromParent(true);
 						}
 						else
 						{
@@ -810,13 +810,13 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 					bool bNeedsDetach = true;
 					if (AttachParent)
 					{
-						bNeedsDetach = (Child->AttachTo(AttachParent) == false);
+						bNeedsDetach = (Child->AttachTo(AttachParent, NAME_None, EAttachLocation::KeepWorldPosition) == false);
 					}
 					if (bNeedsDetach)
 					{
 						if (Child->AttachParent && Child->AttachParent == this)
 						{
-							Child->DetachFromParent();
+							Child->DetachFromParent(true);
 						}
 						else
 						{
@@ -849,7 +849,7 @@ void USceneComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		if (AttachParent && (!bDestroyingHierarchy || AttachParent->GetOwner() != MyOwner))
 		{
 			// Ensure we are detached before destroying
-			DetachFromParent();
+			DetachFromParent(true);
 		}
 	}
 }
