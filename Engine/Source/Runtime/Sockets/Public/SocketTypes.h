@@ -80,6 +80,7 @@ enum ESocketErrors
 	SE_UDP_ERR_PORT_UNREACH,
 	SE_ADDRFAMILY,
 	SE_SYSTEM,
+	SE_NODEV,
 
 	// this is a special error which means to lookup the most recent error (via GetLastErrorCode())
 	SE_GET_LAST_ERROR_CODE,
