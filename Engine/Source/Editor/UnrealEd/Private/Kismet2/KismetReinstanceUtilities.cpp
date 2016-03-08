@@ -257,7 +257,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		// Pull the blueprint that generated this reinstance target, and gather the blueprints that are dependent on it
 		UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassToReinstance->ClassGeneratedBy);
 		check(GeneratingBP || GIsAutomationTesting);
-		if(GeneratingBP)
+		if(!bIsReinstancingSkeleton && GeneratingBP)
 		{
 			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcLastCompiledCDO;
 			Dependencies.Empty();
@@ -338,7 +338,7 @@ void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
 
 FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()
 {
-	if (bIsSourceReinstancer)
+	if (bIsSourceReinstancer && !bIsReinstancingSkeleton)
 	{
 		if (CompiledBlueprintsToSave.Num() > 0)
 		{
