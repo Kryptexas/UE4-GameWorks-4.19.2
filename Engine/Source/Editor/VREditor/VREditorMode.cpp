@@ -2602,7 +2602,7 @@ void FVREditorMode::ApplyButtonPressColors( FVRAction VRAction, EInputEvent Even
 
 	if( VRAction.ActionType == EVRActionType::Modifier )
 	{
-		static FName StaticModifierParameter( "B5" );
+		static FName StaticModifierParameter( "B4" );
 
 		if( Event == IE_Pressed )
 		{
