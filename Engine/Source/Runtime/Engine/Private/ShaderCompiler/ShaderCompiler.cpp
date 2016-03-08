@@ -69,6 +69,12 @@ static TAutoConsoleVariable<int32> CVarOptimizeShaders(
 	TEXT("Whether to optimize shaders.  When using graphical debuggers like Nsight it can be useful to disable this on startup."),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarShaderFastMath(
+	TEXT("r.Shaders.FastMath"),
+	1,
+	TEXT("Whether to use fast-math optimisations in shaders."),
+	ECVF_ReadOnly);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<FString> CVarD3DCompilerPath(TEXT("r.D3DCompilerPath"),
 	TEXT(""),	// default

@@ -118,8 +118,8 @@ void FMetalStateCache::SetScissorRect(bool const bEnable, MTLScissorRect const& 
 	// Clamp to framebuffer size - Metal doesn't allow scissor to be larger.
 	Scissor.x = Scissor.x;
 	Scissor.y = Scissor.y;
-	Scissor.width = (Scissor.x + Scissor.width <= FrameBufferSize.width) ? Scissor.width : FrameBufferSize.width - Scissor.x;
-	Scissor.height = (Scissor.y + Scissor.height <= FrameBufferSize.height) ? Scissor.height : FrameBufferSize.height - Scissor.y;
+	Scissor.width = FMath::Max((Scissor.x + Scissor.width <= FMath::RoundToInt(FrameBufferSize.width)) ? Scissor.width : FMath::RoundToInt(FrameBufferSize.width) - Scissor.x, (NSUInteger)1u);
+	Scissor.height = FMath::Max((Scissor.y + Scissor.height <= FMath::RoundToInt(FrameBufferSize.height)) ? Scissor.height : FMath::RoundToInt(FrameBufferSize.height) - Scissor.y, (NSUInteger)1u);
 	
 	CommandEncoder.SetScissorRect(Scissor);
 }

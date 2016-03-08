@@ -737,10 +737,6 @@ namespace UnrealBuildTool
 						{
 							UBTArguments.Append( " -2015" );
 						}
-						if ( UnrealBuildTool.CommandLineContains( "-2013" ) )
-						{
-							UBTArguments.Append(" -2013");
-						}
 
 						// Add UHT plugins to UBT command line as external plugins
 						if (Target.UnrealHeaderToolPlugins != null && Target.UnrealHeaderToolPlugins.Count > 0)

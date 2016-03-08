@@ -15,12 +15,7 @@ public class llvm : ModuleRules
 			return;
 		}
 
-		var LLVMVersion = @"3.5.0";
-		// VS2015 uses a newer version of the libs
-		if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
-		{
-			LLVMVersion = @"3.6.2";
-		}
+		var LLVMVersion = @"3.6.2";
 		var VSVersion = @"vs" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 		var TargetArch = @"x86";
 		var RootDirectory = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, @"llvm", LLVMVersion);

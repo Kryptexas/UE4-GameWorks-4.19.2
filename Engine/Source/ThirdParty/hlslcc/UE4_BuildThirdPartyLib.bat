@@ -4,18 +4,6 @@ pushd hlslcc\projects
 
 	p4 edit %THIRD_PARTY_CHANGELIST% ..\lib\...
 
-	REM vs2013 x64
-	pushd vs2013
-	msbuild hlslcc.sln /target:Clean,hlslcc_lib /m /p:Platform=x64;Configuration="Release"
-	msbuild hlslcc.sln /target:Clean,hlslcc_lib /m /p:Platform=x64;Configuration="Debug"
-	popd
-
-	REM vs2013 x86
-	pushd vs2013
-	msbuild hlslcc.sln /target:Clean,hlslcc_lib /m /p:Platform=Win32;Configuration="Release"
-	msbuild hlslcc.sln /target:Clean,hlslcc_lib /m /p:Platform=Win32;Configuration="Debug"
-	popd
-
 	REM vs2015 x64
 	pushd vs2015
 	msbuild hlslcc.sln /target:Clean,hlslcc_lib /p:Platform=x64;Configuration="Debug"

@@ -11,14 +11,10 @@
 		#define XM_NO_OPERATOR_OVERLOADS 1		// @todo clang: These xnamath operators don't compile correctly under clang
 		#define _XM_NO_INTRINSICS_ 1	// @todo clang: Clang has issues with __m128 intrinsics in xnamathvector.inl
 	#endif
-	#if _MSC_VER == 1900
-		#pragma warning(push)
-		#pragma warning(disable:4838)
-	#endif // _MSC_VER == 1900
+	#pragma warning(push)
+	#pragma warning(disable:4838)
 	#include <xnamath.h>
-	#if _MSC_VER == 1900
-		#pragma warning(pop)
-	#endif // _MSC_VER == 1900
+	#pragma warning(pop)
 #include "HideWindowsPlatformTypes.h"
 #endif
 #include "D3D11RHIPrivateUtil.h"

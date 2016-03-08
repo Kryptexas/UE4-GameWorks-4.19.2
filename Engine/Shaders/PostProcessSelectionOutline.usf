@@ -84,7 +84,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 	// outline even between multiple selected objects (best usability)
 	Ret.ObjectId = Stencil;
 
-#if (COMPILER_GLSL == 1 && !GL4_PROFILE) || (COMPILER_METAL && FEATURE_LEVEL < FEATURE_LEVEL_SM4)
+#if (COMPILER_GLSL == 1 && FEATURE_LEVEL < FEATURE_LEVEL_SM4) || (COMPILER_METAL && FEATURE_LEVEL < FEATURE_LEVEL_SM4)
 	// Stencil read in opengl is not supported on older versions
 	Ret.ObjectId = Ret.bObjectMask ? 2 : 0;
 #endif
@@ -237,6 +237,9 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 //	DeviceZPlane.y = ddy(DeviceZPlane.z);
 
 	float4 Sum = 0;
+#if COMPILER_GLSL && FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	UNROLL
+#endif
 	for(int SampleID = 0; SampleID < MSAA_SAMPLE_COUNT; ++SampleID)
 	{
 		Sum += PerSample(PixelPos, SampleID, DeviceZPlane, DeviceZMinMax);

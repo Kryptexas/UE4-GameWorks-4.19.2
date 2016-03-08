@@ -517,11 +517,6 @@ void FWindowsPlatformMisc::PlatformPreInit()
 
 void FWindowsPlatformMisc::PlatformInit()
 {
-#if _MSC_VER == 1800 && PLATFORM_64BITS
-	// Work around bug in the VS 2013 math libraries in 64bit on certain windows versions. http://connect.microsoft.com/VisualStudio/feedback/details/811093 has details, remove this when runtime libraries are fixed
-	_set_FMA3_enable(0);
-#endif
-
 	// Set granularity of sleep and such to 1 ms.
 	timeBeginPeriod( 1 );
 
@@ -2763,13 +2758,13 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 
 bool FWindowsPlatformMisc::GetVSComnTools(int32 Version, FString& OutData)
 {
-	checkf(11 <= Version && Version <= 14, L"Not supported Visual Studio version.");
+	checkf(12 <= Version && Version <= 14, L"Not supported Visual Studio version.");
 
 	const TCHAR* PossibleRegPaths[] = {
-		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS2013 on 64-bit machine.
-		L"Microsoft\\VisualStudio",					// Non-express VS2013 on 32-bit machine.
-		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS2013 on 64-bit machine.
-		L"Microsoft\\WDExpress"						// Express VS2013 on 32-bit machine.
+		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS201x on 64-bit machine.
+		L"Microsoft\\VisualStudio",					// Non-express VS201x on 32-bit machine.
+		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS201x on 64-bit machine.
+		L"Microsoft\\WDExpress"						// Express VS201x on 32-bit machine.
 	};
 
 	bool bResult = false;

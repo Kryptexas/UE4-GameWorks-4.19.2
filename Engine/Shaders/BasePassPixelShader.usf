@@ -963,7 +963,7 @@ void Main(
 
 #if USE_DEVELOPMENT_SHADERS
 	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-	#if SM5_PROFILE || SM4_PROFILE
+	#if METAL_SM5_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_SM4_PROFILE
 		BRANCH
 		if (Frame.OutOfBoundsMask > 0)
 		{

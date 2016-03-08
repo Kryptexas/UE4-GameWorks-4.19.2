@@ -161,7 +161,7 @@ float4x4 GetParticleTransform(FVertexFactoryInput Input)
 float4x4 GetParticlePrevTransform(FVertexFactoryInput Input)
 {
 #if PARTICLE_MESH_INSTANCED
-	uint TransformBaseIdx = Input.InstanceId * 3;
+	uint TransformBaseIdx = GetLayerInstanceID(Input.InstanceId) * 3;
 
 	float4x4 PrevTransform4x4 = float4x4(
 		PrevTransformBuffer[TransformBaseIdx + 0], 

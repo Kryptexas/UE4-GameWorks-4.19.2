@@ -737,13 +737,6 @@ FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCm
 {
 	FString CmdLineParams = InCmdLineParams;
 
-#if PLATFORM_WINDOWS
-	if (_MSC_VER >= 1900)
-	{
-		CmdLineParams += TEXT(" -2015");
-	}
-#endif // PLATFORM_WINDOWS
-
 	// UnrealBuildTool is currently always located in the Binaries/DotNET folder
 	FString ExecutableFileName = GetUnrealBuildToolExecutableFilename(FPaths::RootDir());
 
@@ -1158,10 +1151,8 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 #if PLATFORM_WINDOWS
 	#if _MSC_VER >= 1900
 		FPlatformMisc::GetVSComnTools(14, VCVarsBat);
-	#elif _MSC_VER >= 1800
-		FPlatformMisc::GetVSComnTools(12, VCVarsBat);
 	#else
-		FPlatformMisc::GetVSComnTools(11, VCVarsBat);
+		#error "Unsupported Visual Studio version."
 	#endif
 #endif // PLATFORM_WINDOWS
 

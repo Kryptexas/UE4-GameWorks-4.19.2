@@ -70,6 +70,7 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
 	, BlueprintProfilerRecentSampleBias(0.2f)
+	, bUseOpenCLForConvexHullDecomp(false)
 {
 }
 

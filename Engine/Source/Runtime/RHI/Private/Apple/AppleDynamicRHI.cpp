@@ -3,7 +3,7 @@
 #include "RHI.h"
 #include "ModuleManager.h"
 
-int32 GMacMetalEnabled = 0;
+int32 GMacMetalEnabled = 1;
 static FAutoConsoleVariableRef CVarMacMetalEnabled(
 	TEXT("r.Mac.UseMetal"),
 	GMacMetalEnabled,

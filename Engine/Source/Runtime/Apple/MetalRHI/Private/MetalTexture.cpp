@@ -35,6 +35,11 @@ public:
 	{
 		FRHITextureReference::SetReferencedTexture(InTexture);
 	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return GetMetalSurfaceFromRHITexture(GetReferencedTexture());
+	}
 };
 
 /** Given a pointer to a RHI texture that was created by the Metal RHI, returns a pointer to the FMetalTextureBase it encapsulates. */
@@ -43,31 +48,11 @@ FMetalSurface* GetMetalSurfaceFromRHITexture(FRHITexture* Texture)
     if (!Texture)
     {
         return NULL;
-	}
-	if(Texture->GetTexture2D())
-	{
-		return &((FMetalTexture2D*)Texture)->Surface;
-	}
-	else if(Texture->GetTexture2DArray())
-	{
-		return &((FMetalTexture2DArray*)Texture)->Surface;
-	}
-	else if(Texture->GetTexture3D())
-	{
-		return &((FMetalTexture3D*)Texture)->Surface;
-	}
-	else if(Texture->GetTextureCube())
-	{
-		return &((FMetalTextureCube*)Texture)->Surface;
-	}
-	else if(Texture->GetTextureReference())
-	{
-		return GetMetalSurfaceFromRHITexture(static_cast<FMetalTextureReference*>(Texture)->GetReferencedTexture());
-	}
+    }
 	else
 	{
-		UE_LOG(LogMetal, Fatal, TEXT("Unknown RHI texture type"));
-		return &((FMetalTexture2D*)Texture)->Surface;
+		FMetalSurface* Surface = (FMetalSurface*)Texture->GetTextureBaseRHI();
+		return Surface;
 	}
 }
 
@@ -309,7 +294,7 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 					MTLTextureDescriptor* Desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:StencilFormat width:Source.SizeX height:Source.SizeY mipmapped:false];
 					if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions))
 					{
-						Desc.usage = ConvertFlagsToUsage(Flags);
+						Desc.usage = ConvertFlagsToUsage(TexCreate_ShaderResource);
 #if PLATFORM_MAC
 						Desc.cpuCacheMode = MTLCPUCacheModeWriteCombined;
 						Desc.storageMode = MTLStorageModePrivate;
@@ -960,10 +945,20 @@ void FMetalSurface::UpdateSRV()
 
 void FMetalDynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
-	OutStats.DedicatedVideoMemory = 0;
-	OutStats.DedicatedSystemMemory = 0;
-	OutStats.SharedSystemMemory = 0;
-	OutStats.TotalGraphicsMemory = 0;
+	if(MemoryStats.TotalGraphicsMemory > 0)
+	{
+		OutStats.DedicatedVideoMemory = MemoryStats.DedicatedVideoMemory;
+		OutStats.DedicatedSystemMemory = MemoryStats.DedicatedSystemMemory;
+		OutStats.SharedSystemMemory = MemoryStats.SharedSystemMemory;
+		OutStats.TotalGraphicsMemory = MemoryStats.TotalGraphicsMemory;
+	}
+	else
+	{
+		OutStats.DedicatedVideoMemory = 0;
+		OutStats.DedicatedSystemMemory = 0;
+		OutStats.SharedSystemMemory = 0;
+		OutStats.TotalGraphicsMemory = 0;
+	}
 
 	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
 	OutStats.LargestContiguousAllocation = OutStats.AllocatedMemorySize;

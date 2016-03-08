@@ -533,10 +533,10 @@ void FPerforceSourceControlProvider::LoadSSLLibraries()
 #if PLATFORM_WINDOWS
 #if PLATFORM_64BITS
 
-#if _MSC_VER >= 1800
-	const FString VSVersion = TEXT("VS2013/");
+#if _MSC_VER >= 1900
+	const FString VSVersion = TEXT("VS2015/");
 #else
-	const FString VSVersion = TEXT("VS2012/");
+	#error "Unsupported Visual Studio version."
 #endif
 
 	const FString PlatformString = TEXT("Win64");

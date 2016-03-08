@@ -10,11 +10,11 @@ class UMacGraphicsSwitchingSettings : public UObject
 	
 public:
 	
+	UPROPERTY(Config, EditAnywhere, Category=RHI)
+	int32 RendererID;
+	
 	UPROPERTY(Config, EditAnywhere, Category=OpenGL)
 	int32 DisplayMask;
-
-	UPROPERTY(Config, EditAnywhere, Category=OpenGL)
-	int32 RendererID;
 	
 	UPROPERTY(Config, EditAnywhere, Category=OpenGL)
 	bool bAllowAutomaticGraphicsSwitching;

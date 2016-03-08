@@ -152,10 +152,8 @@ STDMETHODIMP FWmfMediaResolver::Invoke(IMFAsyncResult* AsyncResult)
 }
 
 
-#if _MSC_VER == 1900
 #pragma warning(push)
 #pragma warning(disable:4838)
-#endif // _MSC_VER == 1900
 
 STDMETHODIMP FWmfMediaResolver::QueryInterface(REFIID RefID, void** Object)
 {
@@ -168,9 +166,7 @@ STDMETHODIMP FWmfMediaResolver::QueryInterface(REFIID RefID, void** Object)
 	return QISearch( this, QITab, RefID, Object );
 }
 
-#if _MSC_VER == 1900
 #pragma warning(pop)
-#endif // _MSC_VER == 1900
 
 
 STDMETHODIMP_(ULONG) FWmfMediaResolver::Release()

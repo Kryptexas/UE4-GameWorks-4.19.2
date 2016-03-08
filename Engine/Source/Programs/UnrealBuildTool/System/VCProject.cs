@@ -1099,14 +1099,6 @@ namespace UnrealBuildTool
 
 					// @todo UWP: For the MS toolchains, if an override was set for project generation, push that into the build strings to override the build toolchain as well
 					string BuildToolOverride = "";
-					if (UnrealBuildTool.CommandLineContains("-2012"))
-					{
-						BuildToolOverride = " -2012";
-					}
-					if (UnrealBuildTool.CommandLineContains("-2013"))
-					{
-						BuildToolOverride = " -2013";
-					}
 					if (UnrealBuildTool.CommandLineContains("-2015"))
 					{
 						BuildToolOverride = " -2015";

@@ -3464,7 +3464,7 @@ static float AdjustGestureCameraRotation(float Delta, float AdjustLimit, float D
 	return bIsUsingTrackpad ? Delta : FMath::Clamp(Delta, -DeltaCutoff, DeltaCutoff);
 }
 
-bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta)
+bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice)
 {
 	if (bDisableInput)
 	{
@@ -3492,10 +3492,13 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 			if (GestureType == EGestureEvent::Scroll && !LeftMouseButtonDown && !RightMouseButtonDown)
 			{
 				const float UnitsPerPixel = GetOrthoUnitsPerPixel(InViewport);
-				
+
+				const EScrollGestureDirection DirectionSetting = GetDefault<ULevelEditorViewportSettings>()->ScrollGestureDirectionForOrthoViewports;
+				const bool bUseDirectionInvertedFromDevice = DirectionSetting == EScrollGestureDirection::Natural || (DirectionSetting == EScrollGestureDirection::UseSystemSetting && bIsDirectionInvertedFromDevice);
+
 				// GestureDelta is in window pixel coords.  Adjust for ortho units.
-				FVector2D AdjustedGestureDelta = GestureDelta * UnitsPerPixel;
-		
+				const FVector2D AdjustedGestureDelta = (bUseDirectionInvertedFromDevice == bIsDirectionInvertedFromDevice ? GestureDelta : -GestureDelta) * UnitsPerPixel;
+
 				switch (LevelViewportType)
 				{
 					case LVT_OrthoXY:
@@ -3536,20 +3539,24 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 		{
 			if (GestureType == EGestureEvent::Scroll)
 			{
+				const EScrollGestureDirection DirectionSetting = GetDefault<ULevelEditorViewportSettings>()->ScrollGestureDirectionFor3DViewports;
+				const bool bUseDirectionInvertedFromDevice = DirectionSetting == EScrollGestureDirection::Natural || (DirectionSetting == EScrollGestureDirection::UseSystemSetting && bIsDirectionInvertedFromDevice);
+				const FVector2D AdjustedGestureDelta = bUseDirectionInvertedFromDevice == bIsDirectionInvertedFromDevice ? GestureDelta : -GestureDelta;
+
 				if( LeftMouseButtonDown )
 				{
 					// Pan left/right/up/down
 					
-					CurrentGestureDragDelta.X += GestureDelta.X * -FMath::Sin( ViewRotation.Yaw * PI / 180.f );
-					CurrentGestureDragDelta.Y += GestureDelta.X *  FMath::Cos( ViewRotation.Yaw * PI / 180.f );
-					CurrentGestureDragDelta.Z += -GestureDelta.Y;
+					CurrentGestureDragDelta.X += AdjustedGestureDelta.X * -FMath::Sin( ViewRotation.Yaw * PI / 180.f );
+					CurrentGestureDragDelta.Y += AdjustedGestureDelta.X *  FMath::Cos( ViewRotation.Yaw * PI / 180.f );
+					CurrentGestureDragDelta.Z += -AdjustedGestureDelta.Y;
 				}
 				else
 				{
 					// Change viewing angle
 					
-					CurrentGestureRotDelta.Yaw += AdjustGestureCameraRotation( GestureDelta.X, 20.0f, 35.0f ) * -0.35f;
-					CurrentGestureRotDelta.Pitch += AdjustGestureCameraRotation( GestureDelta.Y, 20.0f, 35.0f ) * 0.35f;
+					CurrentGestureRotDelta.Yaw += AdjustGestureCameraRotation( AdjustedGestureDelta.X, 20.0f, 35.0f ) * -0.35f;
+					CurrentGestureRotDelta.Pitch += AdjustGestureCameraRotation( AdjustedGestureDelta.Y, 20.0f, 35.0f ) * 0.35f;
 				}
 
 				FEditorViewportStats::Used(FEditorViewportStats::CAT_ORTHOGRAPHIC_GESTURE_SCROLL);

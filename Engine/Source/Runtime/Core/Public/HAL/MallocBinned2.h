@@ -63,24 +63,26 @@ private:
 
 	struct FPtrToPoolMapping
 	{
-		explicit FPtrToPoolMapping(uint32 InPageSize, uint64 InNumPoolsPerPage)
+		explicit FPtrToPoolMapping(uint32 InPageSize, uint64 InNumPoolsPerPage, uint64 AddressLimit)
 		{
 			uint64 PoolPageToPoolBitShift = FPlatformMath::CeilLogTwo(InNumPoolsPerPage);
 
 			PtrToPoolPageBitShift = FPlatformMath::CeilLogTwo(InPageSize);
 			HashKeyShift          = PtrToPoolPageBitShift + PoolPageToPoolBitShift;
 			PoolMask              = (1ull << PoolPageToPoolBitShift) - 1;
+			MaxHashBuckets        = AddressLimit >> HashKeyShift;
 		}
 
 		FORCEINLINE void GetHashBucketAndPoolIndices(const void* InPtr, UPTRINT& OutBucketIndex, uint32& OutPoolIndex) const
 		{
 			OutBucketIndex = (UPTRINT)InPtr >> HashKeyShift;
+			OutBucketIndex &= (MaxHashBuckets - 1);
 			OutPoolIndex   = ((UPTRINT)InPtr >> PtrToPoolPageBitShift) & PoolMask;
 		}
 
-		FORCEINLINE uint64 GetMaxHashBuckets(uint64 AddressLimit) const
+		FORCEINLINE uint64 GetMaxHashBuckets() const
 		{
-			return AddressLimit >> HashKeyShift;
+			return MaxHashBuckets;
 		}
 
 	private:
@@ -92,6 +94,9 @@ private:
 
 		/** Used to mask off the bits that have been used to lookup the indirect table */
 		uint64 PoolMask;
+
+		// PageSize dependent constants
+		uint64 MaxHashBuckets;
 	};
 
 	const FPtrToPoolMapping PtrToPoolMapping;

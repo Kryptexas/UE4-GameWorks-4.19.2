@@ -83,7 +83,7 @@ FString FMacPlatformProcess::GenerateApplicationPath( const FString& AppName, EB
 	{
 		FString ExecutablePath = FString::Printf(TEXT("../%s/%s.app/Contents/MacOS/%s"), *PlatformName, *ExecutableName, *ExecutableName);
 			
-		NSString* LaunchPath = (NSString*)FPlatformString::TCHARToCFString(*ExecutablePath);
+		NSString* LaunchPath = ExecutablePath.GetNSString();
 		
 		if ([[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
 		{
@@ -706,6 +706,10 @@ bool FMacPlatformProcess::IsSandboxedApplication()
 		
 		bIsSandboxedApplication = (Err == errSecSuccess);
 		
+		if(SandboxRequirement)
+		{
+			CFRelease(SandboxRequirement);
+		}
 		CFRelease(SecCodeObj);
 	}
 	

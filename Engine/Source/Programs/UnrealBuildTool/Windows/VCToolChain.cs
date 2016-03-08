@@ -132,16 +132,6 @@ namespace UnrealBuildTool
 				string FullVersionString;
 				switch (WindowsPlatform.Compiler)
 				{
-					case WindowsCompiler.VisualStudio2012:
-						VersionString = "17.0";
-						FullVersionString = "1700";
-						break;
-
-					case WindowsCompiler.VisualStudio2013:
-						VersionString = "18.0";
-						FullVersionString = "1800";
-						break;
-
 					case WindowsCompiler.VisualStudio2015:
 						VersionString = "19.0";
 						FullVersionString = "1900";
@@ -448,7 +438,7 @@ namespace UnrealBuildTool
 						}
 						// We need to add this so VS won't lock the PDB file and prevent synchronous updates. This forces serialization through MSPDBSRV.exe.
 						// See http://msdn.microsoft.com/en-us/library/dn502518.aspx for deeper discussion of /FS switch.
-						if (BuildConfiguration.bUseIncrementalLinking && WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2013)
+						if (BuildConfiguration.bUseIncrementalLinking)
 						{
 							Arguments.Append(" /FS");
 						}
@@ -533,15 +523,7 @@ namespace UnrealBuildTool
 				{
 					// Allow optimized code to be debugged more easily.  This makes PDBs a bit larger, but doesn't noticeably affect
 					// compile times.  The executable code is not affected at all by this switch, only the debugging information.
-					if (EnvVars.CLExeVersion >= new Version("18.0.30723"))
-					{
-						// VC2013 Update 3 has a new flag for doing this
-						Arguments.Append(" /Zo");
-					}
-					else
-					{
-						Arguments.Append(" /d2Zi+");
-					}
+					Arguments.Append(" /Zo");
 				}
 			}
 
@@ -1331,7 +1313,7 @@ namespace UnrealBuildTool
 					string UCAMode = BuildConfiguration.bUCACheckUObjectThreadSafety ? @"-CheckThreadSafety " : @"-CreateIncludeFiles ";
 					var ObjectFileExtension = BuildConfiguration.bUCACheckUObjectThreadSafety ? @".tsc" : @".includes";
 					FileItem ObjectFile = FileItem.GetItemByFileReference(FileReference.Combine(CompileEnvironment.Config.OutputDirectory, Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension));
-					var ClangPath = System.IO.Path.Combine(CompileAction.WorkingDirectory, @"ThirdParty", @"llvm", @"3.5.0", @"bin", @"vs2013", @"x86", @"release", @"clang++.exe");
+					var ClangPath = System.IO.Path.Combine(CompileAction.WorkingDirectory, @"ThirdParty", @"llvm", @"3.6.2", @"bin", @"vs2015", @"x86", @"release", @"clang++.exe");
 					UnrealCodeAnalyzerArguments = UCAMode + SourceFile.AbsolutePath + @" -OutputFile=""" + ObjectFile.AbsolutePath + @""" -- " + ClangPath + @" --driver-mode=cl ";
 				}
 

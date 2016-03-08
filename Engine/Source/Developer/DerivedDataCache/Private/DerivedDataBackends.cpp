@@ -443,6 +443,7 @@ public:
 		else if ( InnerNodes.Num() == 1 )
 		{
 			Hierarchy = InnerNodes[ 0 ];
+			InnerNodes.Empty();
 		}
 		else
 		{

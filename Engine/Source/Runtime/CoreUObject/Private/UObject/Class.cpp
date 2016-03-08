@@ -3504,7 +3504,21 @@ void UClass::Serialize( FArchive& Ar )
 	Ar << FuncMap;
 
 	// Class flags first.
-	Ar << ClassFlags;
+	if (Ar.IsSaving())
+	{
+		auto SavedClassFlags = ClassFlags;
+		SavedClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
+		Ar << SavedClassFlags;
+	}
+	else if (Ar.IsLoading())
+	{
+		Ar << ClassFlags;
+		ClassFlags &= ~(CLASS_ShouldNeverBeLoaded | CLASS_TokenStreamAssembled);
+	}
+	else 
+	{
+		Ar << ClassFlags;
+	}
 	if (Ar.UE4Ver() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
 		// We need to invert the CLASS_NotPlaceable flag here because it used to mean CLASS_Placeable

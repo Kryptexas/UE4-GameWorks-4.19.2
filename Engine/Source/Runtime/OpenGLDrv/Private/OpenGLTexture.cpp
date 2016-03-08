@@ -1760,7 +1760,10 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 	}
 	else
 	{
+		uint32 const Target = Texture2D->Target;
 		GLuint Resource = Texture2D->Resource;
+		
+		FTexture2DRHIParamRef DepthStencilTex = nullptr;
 		
 		// For stencil sampling we have to use a separate single channel texture to blit stencil data into
 #if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
@@ -1772,7 +1775,6 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 			{
 				FOpenGL::GenTextures(1, &Texture2D->SRVResource);
 				
-				uint32 const Target = Texture2D->Target;
 				GLenum const InternalFormat = GL_R8UI;
 				GLenum const ChannelFormat = GL_RED_INTEGER;
 				uint32 const SizeX = Texture2D->GetSizeX();
@@ -1788,19 +1790,37 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 					glTexImage2D(Target, 0, InternalFormat, SizeX, SizeY, 0, ChannelFormat, Type, nullptr);
 				}
 				
+				TArray<uint8> ZeroData;
+				ZeroData.AddZeroed(SizeX * SizeY);
+				
+				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+				glTexSubImage2D(
+								Target,
+								0,
+								0,
+								0,
+								SizeX,
+								SizeY,
+								ChannelFormat,
+								Type,
+								ZeroData.GetData());
+				glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+				
 				//set the texture to return the stencil index, and then force the components to match D3D
-				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_R, GL_ZERO);
-				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_G, GL_RED);
-				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_B, GL_ZERO);
-				glTexParameteri( Texture2D->Target, GL_TEXTURE_SWIZZLE_A, GL_ZERO);
+				glTexParameteri( Target, GL_TEXTURE_SWIZZLE_R, GL_ZERO);
+				glTexParameteri( Target, GL_TEXTURE_SWIZZLE_G, GL_RED);
+				glTexParameteri( Target, GL_TEXTURE_SWIZZLE_B, GL_ZERO);
+				glTexParameteri( Target, GL_TEXTURE_SWIZZLE_A, GL_ZERO);
 			}
 			check(Texture2D->SRVResource);
 			
 			Resource = Texture2D->SRVResource;
+			DepthStencilTex = Texture2DRHI;
 		}
 #endif
 		
-		View = new FOpenGLShaderResourceView(this, Resource, Texture2D->Target, MipLevel, false);
+		View = new FOpenGLShaderResourceView(this, Resource, Target, MipLevel, false);
+		View->Texture2D = DepthStencilTex;
 	}
 	
 	FShaderCache::LogSRV(View, Texture2DRHI, MipLevel, NumMipLevels, Format);

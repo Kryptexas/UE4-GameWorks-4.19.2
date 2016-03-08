@@ -77,7 +77,7 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 	{
 		if (LocalAudioDevice->HasCompressedAudioInfoClass(this) && DecompressionType == DTYPE_Native)
 		{
-			check(ResourceSize == 0);
+			// check(ResourceSize == 0);
 			CalculatedResourceSize = RawPCMDataSize;
 		}
 		else 

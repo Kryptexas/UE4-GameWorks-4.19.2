@@ -738,7 +738,7 @@ public:
 	 * @param	GestureDelta - @todo desc
 	 * @return	True to consume the gesture event, false to pass it on.
 	 */
-	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) { return false; }
+	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta, bool bIsDirectionInvertedFromDevice) { return false; }
 
 	/**
 	 * Each frame, the input system will update the motion data.

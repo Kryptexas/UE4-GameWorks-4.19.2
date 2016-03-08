@@ -9,13 +9,6 @@
 #include "Templates/UniquePtr.h"
 #include <stdio.h>
 
-// #if _MSC_VER
-// #pragma warning (push)
-// #pragma warning (disable : 4548) // needed as xlocale does not compile cleanly
-// #include <iostream>
-// #pragma warning (pop)
-// #endif
-
 /** Used by tools which include only core to disable log file creation. */
 #ifndef ALLOW_LOG_FILE
 	#define ALLOW_LOG_FILE 1

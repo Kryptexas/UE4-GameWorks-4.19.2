@@ -265,6 +265,11 @@ public:
 	{
 		FShaderCache::RemoveTexture(this);
 	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
+	}
 };
 
 class FMetalTexture2DArray : public FRHITexture2DArray
@@ -298,6 +303,11 @@ public:
 	virtual ~FMetalTexture2DArray()
 	{
 		FShaderCache::RemoveTexture(this);
+	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
 	}
 };
 
@@ -333,6 +343,11 @@ public:
 	{
 		FShaderCache::RemoveTexture(this);
 	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
+	}
 };
 
 class FMetalTextureCube : public FRHITextureCube
@@ -366,6 +381,11 @@ public:
 	virtual ~FMetalTextureCube()
 	{
 		FShaderCache::RemoveTexture(this);
+	}
+	
+	virtual void* GetTextureBaseRHI() override final
+	{
+		return &Surface;
 	}
 };
 

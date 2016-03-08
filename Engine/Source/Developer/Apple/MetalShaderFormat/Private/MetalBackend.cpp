@@ -1923,6 +1923,17 @@ protected:
 		{
 			ralloc_asprintf_append(buffer, "as_type<uint>(half2(");
 		}
+		else if (!strcmp(call->callee_name(), "unpackHalf2x16"))
+		{
+			if(call->return_deref && call->return_deref->type && call->return_deref->type->base_type == GLSL_TYPE_HALF)
+			{
+				ralloc_asprintf_append(buffer, "half2(as_type<half2>(");
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, "float2(as_type<half2>(");
+			}
+		}
 		else
 		{
 			ralloc_asprintf_append(buffer, "%s(", call->callee_name());
@@ -1939,10 +1950,10 @@ protected:
 			bPrintComma = true;
 		}
 		ralloc_asprintf_append(buffer, ")");
-
-		if (!strcmp(call->callee_name(), "packHalf2x16"))
+		
+		if (!strcmp(call->callee_name(), "packHalf2x16") || !strcmp(call->callee_name(), "unpackHalf2x16"))
 		{
-			ralloc_asprintf_append(buffer, ")");			
+			ralloc_asprintf_append(buffer, ")");
 		}
 	}
 

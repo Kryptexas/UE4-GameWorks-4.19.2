@@ -2355,17 +2355,16 @@ namespace AutomationTool
 			string SignToolName = null;
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				//@todo: Get these paths from the registry
+				if (WindowsPlatform.bUseWindowsSDK10)
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/10/bin/x86/SignTool.exe";
+				}
+				else
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				}
 			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
-			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.0/bin/x86/SignTool.exe";
-			}
-
 
 			if (!File.Exists(SignToolName))
 			{
@@ -2531,17 +2530,16 @@ namespace AutomationTool
 			string SignToolName = null;
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				//@todo: Get these paths from the registry
+				if (WindowsPlatform.bUseWindowsSDK10)
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/10/bin/x86/SignTool.exe";
+				}
+				else
+				{
+					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+				}
 			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
-			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-			{
-				SignToolName = "C:/Program Files (x86)/Windows Kits/8.0/bin/x86/SignTool.exe";
-			}
-
 
 			if (!File.Exists(SignToolName))
 			{

@@ -709,7 +709,7 @@ FReply FSceneViewport::OnTouchGesture( const FGeometry& MyGeometry, const FPoint
 
 		FSlateApplication::Get().SetKeyboardFocus(ViewportWidget.Pin());
 
-		if( !ViewportClient->InputGesture( this, GestureEvent.GetGestureType(), GestureEvent.GetGestureDelta() ) )
+		if( !ViewportClient->InputGesture( this, GestureEvent.GetGestureType(), GestureEvent.GetGestureDelta(), GestureEvent.IsDirectionInvertedFromDevice() ) )
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}

@@ -70,7 +70,7 @@ namespace UnrealBuildTool
 			BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
 			if (string.IsNullOrEmpty(BaseVSToolPath))
 			{
-				throw new BuildException("Visual Studio 2012, 2013 or 2015 must be installed in order to build this target.");
+				throw new BuildException("Visual Studio 2015 must be installed in order to build this target.");
 			}
 
 			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, bSupportWindowsXP);
@@ -163,14 +163,6 @@ namespace UnrealBuildTool
 						}
 						break;
 
-					case WindowsCompiler.VisualStudio2013:
-						Version = "v8.1";
-						break;
-
-					case WindowsCompiler.VisualStudio2012:
-						Version = "v8.0";
-						break;
-
 					default:
 						throw new BuildException("Unexpected compiler setting when trying to determine Windows SDK folder");
 				}
@@ -203,11 +195,7 @@ namespace UnrealBuildTool
 		static string FindWindowsSDKLibVersion(string WindowsSDKDir)
 		{
 			string WindowsSDKLibVersion;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-			{
-				WindowsSDKLibVersion = "win8";
-			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+			if (WindowsPlatform.bUseWindowsSDK10)
 			{
 				DirectoryInfo IncludeDir = new DirectoryInfo(Path.Combine(WindowsSDKDir, "include"));
 				if (!IncludeDir.Exists)
@@ -301,8 +289,7 @@ namespace UnrealBuildTool
 		{
 			Version LatestVersion = new Version(0, 0, 0, 0);
 
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 &&
-				WindowsPlatform.bUseWindowsSDK10 &&
+			if (WindowsPlatform.bUseWindowsSDK10 &&
 				!string.IsNullOrEmpty(WindowsSDKExtensionDir) &&
 				Directory.Exists(WindowsSDKExtensionDir))
 			{
@@ -392,14 +379,7 @@ namespace UnrealBuildTool
 			if (!File.Exists(CompilerExe))
 			{
 				// By default VS2015 doesn't install the C++ toolchain. Help developers out with a special message.
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
-				{
-					throw new BuildException("Failed to find cl.exe in the default toolchain directory " + CompilerExe + ". Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
-				}
-				else
-				{
-					throw new BuildException("Failed to find cl.exe in the default toolchain directory " + CompilerExe + ". Please check that Visual Studio is correctly installed.");
-				}
+				throw new BuildException("Failed to find cl.exe in the default toolchain directory " + CompilerExe + ". Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
 			}
 
 			var ExeVersionInfo = FileVersionInfo.GetVersionInfo(CompilerExe);
@@ -453,7 +433,7 @@ namespace UnrealBuildTool
 			// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
 			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP)
 			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+				if (WindowsPlatform.bUseWindowsSDK10)
 				{
 					return Path.Combine(WindowsSDKExtensionDir, "bin/x64/rc.exe");
 				}
@@ -466,7 +446,7 @@ namespace UnrealBuildTool
 			// @todo UWP: Verify that Windows XP will compile using VS 2015 (it should be supported)
 			if (!bSupportWindowsXP)	// Windows XP requires use to force Windows SDK 7.1 even on the newer compiler, so we need the old path RC.exe
 			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+				if (WindowsPlatform.bUseWindowsSDK10)
 				{
 					return Path.Combine(WindowsSDKExtensionDir, "bin/x86/rc.exe");
 				}
@@ -535,12 +515,6 @@ namespace UnrealBuildTool
 				case WindowsCompiler.VisualStudio2015:
 					VisualCppVersion = "14.0";
 					break;
-				case WindowsCompiler.VisualStudio2013:
-					VisualCppVersion = "12.0";
-					break;
-				case WindowsCompiler.VisualStudio2012:
-					VisualCppVersion = "11.0";
-					break;
 				default:
 					throw new BuildException("Unexpected compiler version when trying to determine Visual C++ installation folder");
 			}
@@ -565,11 +539,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		static string FindUniversalCRTInstallationFolder()
 		{
-			if (WindowsPlatform.Compiler != WindowsCompiler.VisualStudio2015)
-			{
-				return null;
-			}
-
 			object Value =
 				Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null) ??
 				Registry.GetValue("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null) ??
@@ -632,7 +601,7 @@ namespace UnrealBuildTool
 			}
 
 			// Add the Windows SDK paths
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+			if (WindowsPlatform.bUseWindowsSDK10)
 			{
 				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include", WindowsSDKLibVersion, "shared"));
 				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include", WindowsSDKLibVersion, "um"));
@@ -664,7 +633,7 @@ namespace UnrealBuildTool
 			List<string> LibraryPaths = new List<string>();
 
 			// Add the standard Visual C++ library paths
-			if (Platform == CPPTargetPlatform.UWP && UWPPlatform.bBuildForStore && WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (Platform == CPPTargetPlatform.UWP && UWPPlatform.bBuildForStore)
 			{
 				string StoreLibraryDir = Path.Combine(VisualCppDir, "LIB", "amd64", "store");
 				if (Directory.Exists(StoreLibraryDir))

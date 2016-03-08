@@ -29,21 +29,7 @@ if not exist Source\Programs\AutomationToolLauncher\AutomationToolLauncher.cspro
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
-rem ## Check for Visual Studio 2013
-
-for %%P in (%*) do if "%%P" == "-2015" goto NoVisualStudio2013Environment
-
-pushd %~dp0
-call GetVSComnToolsPath 12
-popd
-
-if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
-
 rem ## Check for Visual Studio 2015
-:NoVisualStudio2013Environment
 
 pushd %~dp0
 call GetVSComnToolsPath 14
@@ -56,17 +42,7 @@ call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 
-rem ## Check for Visual Studio 2012
 :NoVisualStudio2015Environment
-
-pushd %~dp0
-call GetVSComnToolsPath 11
-popd
-
-if "%VsComnToolsPath%" == "" goto RunPrecompiled
-call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
-goto ReadyToCompile
-
 
 rem ## ok, well it doesn't look like visual studio is installed, let's try running the precompiled one.
 :RunPrecompiled
@@ -103,7 +79,7 @@ set RUNUAT_EXITCODE=1
 goto Exit_Failure
 
 :Error_NoVisualStudioEnvironment
-echo RunUAT.bat ERROR: A valid version of Visual Studio 2015 or Visual Studio 2013 or Visual Studio 2012 does not appear to be installed.
+echo RunUAT.bat ERROR: A valid version of Visual Studio 2015 does not appear to be installed.
 set RUNUAT_EXITCODE=1
 goto Exit_Failure
 

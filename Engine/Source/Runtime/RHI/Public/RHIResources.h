@@ -420,11 +420,11 @@ public:
 		// Override this in derived classes to expose access to the native texture resource
 		return nullptr;
 	}
-
+	
 	/**
-	* Returns access to the platform-specific RHI texture baseclass.  This is designed to provide the RHI with fast access to its base classes in the face of multiple inheritance.
-	* @return	The pointer to the platform-specific RHI texture baseclass or NULL if it not initialized or not supported for this RHI
-	*/
+	 * Returns access to the platform-specific RHI texture baseclass.  This is designed to provide the RHI with fast access to its base classes in the face of multiple inheritance.
+	 * @return	The pointer to the platform-specific RHI texture baseclass or NULL if it not initialized or not supported for this RHI
+	 */
 	virtual void* GetTextureBaseRHI()
 	{
 		// Override this in derived classes to expose access to the native texture resource

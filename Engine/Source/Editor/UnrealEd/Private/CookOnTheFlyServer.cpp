@@ -2670,6 +2670,10 @@ bool UCookOnTheFlyServer::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputD
 		
 		StartCookByTheBook(StartupOptions);
 	}
+	else if (FParse::Command(&Cmd, TEXT("clearall")))
+	{
+		StopAndClearCookedData();
+	}
 
 	return false;
 }

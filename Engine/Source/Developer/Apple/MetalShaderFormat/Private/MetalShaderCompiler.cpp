@@ -60,6 +60,8 @@ static void BuildMetalShaderOutput(
 	}
 	
 	FMetalCodeHeader Header = {0};
+	Header.bFastMath = !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath);
+	
 	FShaderParameterMap& ParameterMap = ShaderOutput.ParameterMap;
 	EShaderFrequency Frequency = (EShaderFrequency)ShaderOutput.Target.Frequency;
 
@@ -364,7 +366,8 @@ static void BuildMetalShaderOutput(
 			}
 
 			// metal commandlines
-			FString Params = FString::Printf(TEXT("%s -Wno-null-character -ffmast-math %s -o %s"), Standard, *InputFilename, *ObjFilename);
+			FString MathMode = Header.bFastMath ? TEXT("-ffast-math") : TEXT("-fno-fast-math");
+			FString Params = FString::Printf(TEXT("%s -Wno-null-character %s %s -o %s"), *MathMode, Standard, *InputFilename, *ObjFilename);
 			FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
 
 			// handle compile error

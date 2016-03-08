@@ -1201,9 +1201,6 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL3_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelSM4;
-			// On OS X it is always better to leave the flow control statements in the GLSL & let the GLSL->GPU compilers
-			// optimise it appropriately for each GPU. This gives a performance gain on AMD & Intel and is neutral on Nvidia.
-			PlatformFlowControl = CFLAG_PreferFlowControl;
 			break;
 
 		case GLSL_ES2_WEBGL:

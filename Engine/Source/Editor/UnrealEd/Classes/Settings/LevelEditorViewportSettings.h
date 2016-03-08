@@ -56,6 +56,16 @@ enum EMeasuringToolUnits
 	MeasureUnits_Kilometers  UMETA(DisplayName="Kilometers")
 };
 
+/**
+ * Scroll gesture direction
+ */
+UENUM()
+enum class EScrollGestureDirection : uint8
+{
+	UseSystemSetting	UMETA(DisplayName = "Use system setting"),
+	Standard			UMETA(DisplayName = "Standard"),
+	Natural				UMETA(DisplayName = "Natural"),
+};
 
 /**
  * Implements the Level Editor's per-instance view port settings.
@@ -249,6 +259,14 @@ class UNREALED_API ULevelEditorViewportSettings
 	/** When checked, orbit the camera by using the L or U keys when unchecked, Alt and Left Mouse Drag will orbit around the look at point */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Use UE3 Orbit Controls"), AdvancedDisplay)
 	bool bUseUE3OrbitControls;
+
+	/** Direction of the scroll gesture for 3D viewports */
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Scroll gesture direction for 3D viewports"))
+	EScrollGestureDirection ScrollGestureDirectionFor3DViewports;
+
+	/** Direction of the scroll gesture for orthographic viewports */
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Scroll gesture direction for orthographic viewports"))
+	EScrollGestureDirection ScrollGestureDirectionForOrthoViewports;
 
 public:
 

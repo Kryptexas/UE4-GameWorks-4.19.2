@@ -5231,7 +5231,7 @@ bool FSlateApplication::OnControllerButtonReleased( FGamepadKeyNames::Type KeyNa
 	return ProcessKeyUpEvent(KeyEvent);
 }
 
-bool FSlateApplication::OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D &Delta, const float MouseWheelDelta )
+bool FSlateApplication::OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D &Delta, const float MouseWheelDelta, bool bIsDirectionInvertedFromDevice )
 {
 	const FVector2D CurrentCursorPosition = GetCursorPos();
 	
@@ -5241,7 +5241,8 @@ bool FSlateApplication::OnTouchGesture( EGestureEvent::Type GestureType, const F
 		PressedMouseButtons,
 		PlatformApplication->GetModifierKeys(),
 		GestureType,
-		Delta
+		Delta,
+		bIsDirectionInvertedFromDevice
 	);
 	
 	FPointerEvent MouseWheelEvent(

@@ -726,7 +726,7 @@ FMallocBinned2::FPoolInfo& FMallocBinned2::FPoolList::PushNewPoolToFront(FMalloc
 FMallocBinned2::FMallocBinned2(uint32 InPageSize, uint64 AddressLimit)
 	: PageSize          (InPageSize)
 	, NumPoolsPerPage   (PageSize / sizeof(FPoolInfo))
-	, PtrToPoolMapping  (PageSize, NumPoolsPerPage)
+	, PtrToPoolMapping  (PageSize, NumPoolsPerPage, AddressLimit)
 	, HashBucketFreeList(nullptr)
 {
 	checkf(FMath::IsPowerOfTwo(PageSize),                                                      TEXT("OS page size must be a power of two"));
@@ -759,7 +759,7 @@ FMallocBinned2::FMallocBinned2(uint32 InPageSize, uint64 AddressLimit)
 		*IndexEntry++ = PoolIndex;
 	}
 
-	uint64 MaxHashBuckets = PtrToPoolMapping.GetMaxHashBuckets(AddressLimit);
+	uint64 MaxHashBuckets = PtrToPoolMapping.GetMaxHashBuckets();
 
 	HashBuckets = (PoolHashBucket*)FPlatformMemory::BinnedAllocFromOS(Align(MaxHashBuckets * sizeof(PoolHashBucket), PageSize));
 	DefaultConstructItems<PoolHashBucket>(HashBuckets, MaxHashBuckets);

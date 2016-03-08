@@ -165,6 +165,9 @@ public:
 	virtual void RHIEndFrame() final override;
 	virtual void RHIBeginScene() final override;
 	virtual void RHIEndScene() final override;
+	
+private:
+	FTextureMemoryStats MemoryStats;
 };
 
 /** Implements the Metal module as a dynamic RHI providing module. */

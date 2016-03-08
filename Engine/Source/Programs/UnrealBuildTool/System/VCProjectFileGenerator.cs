@@ -121,7 +121,6 @@ namespace UnrealBuildTool
 
 		public enum VCProjectFileFormat
 		{
-			VisualStudio2012,
 			VisualStudio2013,
 			VisualStudio2015,
 		}
@@ -133,8 +132,6 @@ namespace UnrealBuildTool
 			{
 				switch (ProjectFileFormat)
 				{
-					case VCProjectFileFormat.VisualStudio2012:
-						return "4.0";
 					case VCProjectFileFormat.VisualStudio2013:
 						return "12.0";
 					case VCProjectFileFormat.VisualStudio2015:
@@ -149,13 +146,9 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				switch (ProjectFileFormat)
+				switch (WindowsPlatform.Compiler)
 				{
-					case VCProjectFileFormat.VisualStudio2012:
-						return "v110";
-					case VCProjectFileFormat.VisualStudio2013:
-						return "v120";
-					case VCProjectFileFormat.VisualStudio2015:
+					case WindowsCompiler.VisualStudio2015:
 						return "v140";
 				}
 				return string.Empty;
@@ -170,12 +163,6 @@ namespace UnrealBuildTool
 		{
 			switch (WindowsPlatform.Compiler)
 			{
-				case WindowsCompiler.VisualStudio2012:
-					ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
-					break;
-				case WindowsCompiler.VisualStudio2013:
-					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
-					break;
 				case WindowsCompiler.VisualStudio2015:
 					ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
 					break;
@@ -205,14 +192,6 @@ namespace UnrealBuildTool
 			{
 				switch (WindowsPlatform.Compiler)
 				{
-					case WindowsCompiler.VisualStudio2012:
-						ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
-						break;
-
-					case WindowsCompiler.VisualStudio2013:
-						ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
-						break;
-
 					case WindowsCompiler.VisualStudio2015:
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
 						break;
@@ -223,10 +202,6 @@ namespace UnrealBuildTool
 			{
 				switch (CurArgument.ToUpperInvariant())
 				{
-					case "-2012":
-						ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
-						break;
-
 					case "-2013":
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
 						break;
@@ -246,6 +221,12 @@ namespace UnrealBuildTool
 					Log.TraceInformation("Visual C++ 2015 toolchain does not appear to be correctly installed. Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
 				}
 			}
+
+			// Warn users if they are using a deprecated toolchain
+			if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2013)
+			{
+				Log.TraceWarning("The Visual Studio 2013 toolchain is no longer supported. Generating 2013 solution and project files, but builds will still use the Visual Studio 2015 toolchain.");
+			}
 		}
 
 
@@ -261,16 +242,16 @@ namespace UnrealBuildTool
 
 			// Certain platforms override the project file format because their debugger add-ins may not yet support the latest
 			// version of Visual Studio.  This is their chance to override that.
-			foreach (var SupportedPlatform in SupportedPlatforms)
+			// ...but only if the user didn't override this via the command-line.
+			if (!UnrealBuildTool.CommandLineContains("-2015") && !UnrealBuildTool.CommandLineContains("-2013"))
 			{
-				var BuildPlatform = UEBuildPlatform.GetBuildPlatform(SupportedPlatform, true);
-				if (BuildPlatform != null)
+				foreach (var SupportedPlatform in SupportedPlatforms)
 				{
-					// Don't worry about platforms that we're missing SDKs for
-					if (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid)
+					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(SupportedPlatform, true);
+					if (BuildPlatform != null)
 					{
-						// ...but only if the user didn't override this via the command-line.
-						if (!UnrealBuildTool.CommandLineContains("-2015") && !UnrealBuildTool.CommandLineContains("-2013") && !UnrealBuildTool.CommandLineContains("-2012"))
+						// Don't worry about platforms that we're missing SDKs for
+						if (BuildPlatform.HasRequiredSDKsInstalled() == SDKStatus.Valid)
 						{
 							VCProjectFileFormat ProposedFormat = ProjectFileFormat;
 
@@ -284,8 +265,7 @@ namespace UnrealBuildTool
 							// Visual Studio 2015 is not supported by the Android debugger we currently furnish
 							if (SupportedPlatform == UnrealTargetPlatform.Android)
 							{
-								Log.TraceInformation("Forcing Visual Studio max version to 2013 projects for Android compatibility (use '-2015' to override.)");
-								ProposedFormat = VCProjectFileFormat.VisualStudio2013;
+								Log.TraceInformation("The default Android debugger does not support Visual Studio 2015. Please use an updated debugger or use -2013 to generate compatible project files.");
 							}
 
 							// Reduce the Visual Studio version to the max supported by each platform we plan to include.
@@ -374,14 +354,6 @@ namespace UnrealBuildTool
 					ProjectFileGenerator.NewLine +
 					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
 					"# Visual Studio 2013" + ProjectFileGenerator.NewLine +
-					VersionTag + ProjectFileGenerator.NewLine);
-			}
-			else if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2012)
-			{
-				VCSolutionFileContent.Append(
-					ProjectFileGenerator.NewLine +
-					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
-					"# Visual Studio 2012" + ProjectFileGenerator.NewLine +
 					VersionTag + ProjectFileGenerator.NewLine);
 			}
 			else
@@ -895,9 +867,6 @@ namespace UnrealBuildTool
 				string SolutionOptionsExtension = "vUnknown.suo";
 				switch (ProjectFileFormat)
 				{
-					case VCProjectFileFormat.VisualStudio2012:
-						SolutionOptionsExtension = "v11.suo";
-						break;
 					case VCProjectFileFormat.VisualStudio2013:
 						SolutionOptionsExtension = "v12.suo";
 						break;
