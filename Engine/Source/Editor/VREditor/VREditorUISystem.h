@@ -127,6 +127,12 @@ protected:
 	 */
 	void OnProxyTabLaunched(TSharedPtr<SDockTab> NewTab);
 
+	/** Called when the injected proxy tab manager reports needing to draw attention to a tab. */
+	void OnAttentionDrawnToTab(TSharedPtr<SDockTab> NewTab);
+
+	/** Show the asset editor if it's not currently visible. */
+	void ShowAssetEditor();
+
 protected:
 
 	/** Owning object */

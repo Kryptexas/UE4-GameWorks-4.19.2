@@ -808,7 +808,7 @@ void FVREditorUISystem::CreateUIs()
 			const bool bWithSceneComponent = false;
 			AVREditorDockableWindow* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >(TEXT("AssetEditor"), bWithSceneComponent);
 			TabManagerUI->SetSlateWidget(*this, SNullWidget::NullWidget, Resolution, VREd::EditorUISize->GetFloat() * 2.0f, AVREditorFloatingUI::EDockedTo::Nothing);
-			TabManagerUI->ShowUI( false );
+			TabManagerUI->ShowUI( true );
 
 			// @todo vreditor: Could use "Hovering" instead for better performance with many UIs, but needs to be manually refreshed in some cases
 			TabManagerUI->GetWidgetComponent()->SetDrawingPolicy(EVREditorWidgetDrawingPolicy::Always);
@@ -822,7 +822,9 @@ void FVREditorUISystem::CreateUIs()
 			TSharedPtr<SWindow> TabManagerWindow = TabManagerUI->GetWidgetComponent()->GetSlateWindow();
 			TSharedRef<SWindow> TabManagerWindowRef = TabManagerWindow.ToSharedRef();
 			ProxyTabManager = MakeShareable(new FProxyTabmanager(TabManagerWindowRef));
-			ProxyTabManager->OnProxyTabLaunched.Add(FOnProxyTabLaunched::FDelegate::CreateRaw(this, &FVREditorUISystem::OnProxyTabLaunched));
+
+			ProxyTabManager->OnTabOpened.Add(FOnTabEvent::FDelegate::CreateRaw(this, &FVREditorUISystem::OnProxyTabLaunched));
+			ProxyTabManager->OnAttentionDrawnToTab.Add(FOnTabEvent::FDelegate::CreateRaw(this, &FVREditorUISystem::OnAttentionDrawnToTab));
 
 			// We're going to start stealing tabs from the global tab manager inserting them into the world instead.
 			FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
@@ -1178,23 +1180,33 @@ float FVREditorUISystem::GetMinDockWindowSize() const
 
 void FVREditorUISystem::OnProxyTabLaunched(TSharedPtr<SDockTab> NewTab)
 {
+	ShowAssetEditor();
+}
+
+void FVREditorUISystem::OnAttentionDrawnToTab(TSharedPtr<SDockTab> NewTab)
+{
+	ShowAssetEditor();
+}
+
+void FVREditorUISystem::ShowAssetEditor()
+{
 	bRefocusViewport = true;
 
 	// A tab was opened, so make sure the "Asset" UI is visible.  That's where the user can interact
 	// with the newly-opened tab
-	if( !IsShowingEditorUIPanel( EEditorUIPanel::AssetEditor ) )
+	if ( !IsShowingEditorUIPanel(EEditorUIPanel::AssetEditor) )
 	{
 		// Always spawn on a hand.  But which hand?  Well, we'll choose the hand that isn't actively clicking on something using a laser.
-		const int32 HandIndex = Owner.GetVirtualHand( VREditorConstants::LeftHandIndex ).bIsClickingOnUI ? VREditorConstants::RightHandIndex : VREditorConstants::LeftHandIndex;	// Hand that did not clicked with a laser
+		const int32 HandIndex = Owner.GetVirtualHand(VREditorConstants::LeftHandIndex).bIsClickingOnUI ? VREditorConstants::RightHandIndex : VREditorConstants::LeftHandIndex;	// Hand that did not clicked with a laser
 		const bool bShouldShow = true;
 		const bool bShowOnHand = true;
-		ShowEditorUIPanel( EEditorUIPanel::AssetEditor, HandIndex, bShouldShow, bShowOnHand );
+		ShowEditorUIPanel(EEditorUIPanel::AssetEditor, HandIndex, bShouldShow, bShowOnHand);
 
 		// Play haptic effect so user knows to look at their hand that now has UI on it!
 		const float Strength = VREd::UIAssetEditorSummonedOnHandHapticFeedbackStrength->GetFloat();
 		Owner.PlayHapticEffect(
 			HandIndex == VREditorConstants::LeftHandIndex ? Strength : 0.0f,
-			HandIndex == VREditorConstants::RightHandIndex ? Strength : 0.0f );
+			HandIndex == VREditorConstants::RightHandIndex ? Strength : 0.0f);
 	}
 }
 
@@ -1216,3 +1228,4 @@ void FVREditorUISystem::TogglePanelVisibility( const EEditorUIPanel EditorUIPane
 		}
 	}
 }
+

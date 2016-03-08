@@ -1788,6 +1788,12 @@ void FGlobalTabmanager::DrawAttentionToTabManager( const TSharedRef<FTabManager>
 	if ( Tab.IsValid() )
 	{
 		this->DrawAttention(Tab.ToSharedRef());
+
+		// #HACK VREDITOR
+		if ( ProxyTabManager.IsValid() )
+		{
+			ProxyTabManager->DrawAttention(Tab.ToSharedRef());
+		}
 	}
 }
 
@@ -2029,7 +2035,16 @@ void FProxyTabmanager::OpenUnmanagedTab(FName PlaceholderId, const FSearchPrefer
 	NewlyOpenedTab->GetParent()->GetParentDockTabStack()->OpenTab(UnmanagedTab);
 	NewlyOpenedTab->RequestCloseTab();
 
-	OnProxyTabLaunched.Broadcast(UnmanagedTab);
+	MainNonCloseableTab = UnmanagedTab;
+
+	OnTabOpened.Broadcast(UnmanagedTab);
+}
+
+void FProxyTabmanager::DrawAttention(const TSharedRef<SDockTab>& TabToHighlight)
+{
+	FTabManager::DrawAttention(TabToHighlight);
+
+	OnAttentionDrawnToTab.Broadcast(TabToHighlight);
 }
 
 

@@ -607,7 +607,7 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 
 		void PopulateTabSpawnerMenu( FMenuBuilder &PopulateMe, const FName& TabType );
 
-		void DrawAttention( const TSharedRef<SDockTab>& TabToHighlight );
+		virtual void DrawAttention( const TSharedRef<SDockTab>& TabToHighlight );
 
 		struct ESearchPreference
 		{
@@ -992,7 +992,7 @@ private:
 
 //#HACK VREDITOR - Had to introduce the proxy tab manager to steal asset tabs.
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnProxyTabLaunched, TSharedPtr<SDockTab>);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnTabEvent, TSharedPtr<SDockTab>);
 
 
 class SLATE_API FProxyTabmanager : public FTabManager
@@ -1003,12 +1003,15 @@ public:
 		: FTabManager(TSharedPtr<SDockTab>(), MakeShareable(new FTabSpawner()))
 		, ParentWindow(InParentWindow)
 	{
+		bCanDoDragOperation = false;
 	}
 
 	virtual void OpenUnmanagedTab(FName PlaceholderId, const FSearchPreference& SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab) override;
+	virtual void DrawAttention(const TSharedRef<SDockTab>& TabToHighlight) override;
 
 public:
-	FOnProxyTabLaunched OnProxyTabLaunched;
+	FOnTabEvent OnTabOpened;
+	FOnTabEvent OnAttentionDrawnToTab;
 
 private:
 	TWeakPtr<SWindow> ParentWindow;
