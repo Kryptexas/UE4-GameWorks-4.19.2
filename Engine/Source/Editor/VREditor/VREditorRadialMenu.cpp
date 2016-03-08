@@ -101,6 +101,7 @@ void UVREditorRadialMenu::Update( const FVirtualHand& Hand )
 			{
 				CurrentItem->OnLeaveHover();
 				CurrentItem = nullptr;
+				PreviousItem = nullptr;
 			}
 		}
 	}
