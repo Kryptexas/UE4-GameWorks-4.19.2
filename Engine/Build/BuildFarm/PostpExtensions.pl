@@ -102,7 +102,7 @@ unshift @::gMatchers, (
 	},
 	{
 		id =>               "automationException",
-		pattern =>          q{^.* AutomationTool.AutomationException: },
+		pattern =>          q{AutomationTool\\.AutomationException: },
 		action =>           q{incValue("errors"); diagnostic("Exception", "error", 0, forwardWhile("^  at "));}
 	}
 );
