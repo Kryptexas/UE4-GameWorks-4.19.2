@@ -131,6 +131,9 @@ FVREditorMode::~FVREditorMode()
 
 void FVREditorMode::Enter()
 {
+	InputProcessor = MakeShareable(new FVREditorInputProcessor(this));
+	FSlateApplication::Get().SetInputPreProcessor(true, InputProcessor);
+
 	bIsFullyInitialized = false;
 	bWantsToExitMode = false;
 
@@ -430,6 +433,8 @@ void FVREditorMode::Enter()
 void FVREditorMode::Exit()
 {
 	bIsFullyInitialized = false;
+
+	FSlateApplication::Get().SetInputPreProcessor(false);
 
 	// Kill subsystems
 	{
@@ -1297,14 +1302,19 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 }
 
 
-bool FVREditorMode::InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
+bool FVREditorMode::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
 	// Only if this is our VR viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-	if( ViewportClient != GetLevelViewportPossessedForVR().GetViewportClient().Get() )
+	if ( ViewportClient != GetLevelViewportPossessedForVR().GetViewportClient().Get() )
 	{
-		return InputKey( GetLevelViewportPossessedForVR().GetViewportClient().Get(), Viewport, Key, Event );
+		return InputKey(GetLevelViewportPossessedForVR().GetViewportClient().Get(), Viewport, Key, Event);
 	}
 
+	return FEdMode::InputKey(ViewportClient, Viewport, Key, Event);
+}
+
+bool FVREditorMode::HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+{
 	bool bHandled = false;
 
 	FVRAction* KnownAction = KeyToActionMap.Find( Key );
@@ -1338,7 +1348,7 @@ bool FVREditorMode::InputKey( FEditorViewportClient* ViewportClient, FViewport* 
 							// Synthesize an input key for releasing the light press
 							// NOTE: Intentionally re-entrant call here.
 							const EInputEvent InputEvent = IE_Released;
-							const bool bWasLightReleaseHandled = this->InputKey( ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
+							const bool bWasLightReleaseHandled = HandleInputKey(ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent);
 						}
 						else
 						{
@@ -1448,18 +1458,23 @@ bool FVREditorMode::InputKey( FEditorViewportClient* ViewportClient, FViewport* 
 
 	StopOldHapticEffects();
 
-	return bHandled ? true : FEdMode::InputKey( ViewportClient, Viewport, Key, Event );
+	return bHandled;
 }
 
 
-bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime )
+bool FVREditorMode::InputAxis(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
 {
 	// Only if this is our VR viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-	if( ViewportClient != GetLevelViewportPossessedForVR().GetViewportClient().Get() )
+	if ( ViewportClient != GetLevelViewportPossessedForVR().GetViewportClient().Get() )
 	{
-		return InputAxis( GetLevelViewportPossessedForVR().GetViewportClient().Get(), Viewport, ControllerId, Key, Delta, DeltaTime );
+		return InputAxis(GetLevelViewportPossessedForVR().GetViewportClient().Get(), Viewport, ControllerId, Key, Delta, DeltaTime);
 	}
 
+	return FEdMode::InputAxis(ViewportClient, Viewport, ControllerId, Key, Delta, DeltaTime);
+}
+
+bool FVREditorMode::HandleInputAxis(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
+{
 	bool bHandled = false;
 
 	FVRAction* KnownAction = KeyToActionMap.Find( Key );
@@ -1487,7 +1502,7 @@ bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport*
 
 						// Synthesize an input key for this light press
 						const EInputEvent InputEvent = IE_Pressed;
-						const bool bWasLightPressHandled = this->InputKey( ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
+						const bool bWasLightPressHandled = HandleInputKey(ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent);
 					}
 					else if( Hand.bIsTriggerAtLeastLightlyPressed && Delta < VREd::TriggerLightlyPressedThreshold->GetFloat() )
 					{
@@ -1495,7 +1510,7 @@ bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport*
 
 						// Synthesize an input key for this light press
 						const EInputEvent InputEvent = IE_Released;
-						const bool bWasLightReleaseHandled = this->InputKey( ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
+						const bool bWasLightReleaseHandled = HandleInputKey(ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_LightlyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_LightlyPressedTriggerAxis, InputEvent);
 					}
 				}
 
@@ -1513,7 +1528,7 @@ bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport*
 
 						// Synthesize an input key for this full press
 						const EInputEvent InputEvent = IE_Pressed;
-						this->InputKey( ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_FullyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_FullyPressedTriggerAxis, InputEvent );
+						HandleInputKey(ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_FullyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_FullyPressedTriggerAxis, InputEvent);
 					}
 					else if( Hand.bIsTriggerFullyPressed && Delta < VREd::TriggerFullyPressedReleaseThreshold->GetFloat() )
 					{
@@ -1521,7 +1536,7 @@ bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport*
 
 						// Synthesize an input key for this full press
 						const EInputEvent InputEvent = IE_Released;
-						this->InputKey( ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_FullyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_FullyPressedTriggerAxis, InputEvent );
+						HandleInputKey(ViewportClient, Viewport, VRAction.HandIndex == VREditorConstants::LeftHandIndex ? VREditorKeyNames::MotionController_Left_FullyPressedTriggerAxis : VREditorKeyNames::MotionController_Right_FullyPressedTriggerAxis, InputEvent);
 					}
 				}
 			}
@@ -1552,23 +1567,7 @@ bool FVREditorMode::InputAxis( FEditorViewportClient* ViewportClient, FViewport*
 	// ...
 	StopOldHapticEffects();
 
-	return bHandled ? true : FEdMode::InputAxis( ViewportClient, Viewport, ControllerId, Key, Delta, DeltaTime );
-}
-
-bool FVREditorMode::InputDelta( FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
-{
-	// Only if this is our VR viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-	if( ViewportClient != GetLevelViewportPossessedForVR().GetViewportClient().Get() )
-	{
-		return InputDelta( GetLevelViewportPossessedForVR().GetViewportClient().Get(), Viewport, InDrag, InRot, InScale );
-	}
-
-	bool bHandled = false;
-
-	// ... 
-	StopOldHapticEffects();
-
-	return bHandled ? true : FEdMode::InputDelta( ViewportClient,Viewport,InDrag, InRot, InScale);
+	return bHandled;
 }
 
 bool FVREditorMode::IsCompatibleWith(FEditorModeID OtherModeID) const

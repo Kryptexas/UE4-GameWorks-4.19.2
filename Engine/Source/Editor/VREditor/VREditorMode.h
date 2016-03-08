@@ -6,6 +6,7 @@
 #include "IVREditorModule.h"
 #include "VirtualHand.h"
 #include "HeadMountedDisplayTypes.h"	// For EHMDDeviceType::Type
+#include "VREditorInputProcessor.h"
 
 
 namespace VREd
@@ -66,10 +67,12 @@ public:
 	virtual void Tick( FEditorViewportClient* ViewportClient, float DeltaTime ) override;
 	virtual bool InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
 	virtual bool InputAxis( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime ) override;
-	virtual bool InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale) override;
 	virtual bool IsCompatibleWith( FEditorModeID OtherModeID ) const override;
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	virtual void Render( const FSceneView* SceneView, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) override;	
+
+	bool HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event);
+	bool HandleInputAxis(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime);
 
 	// IVREditorMode interface
 	virtual bool GetLaserPointer( const int32 HandIndex, FVector& LaserPointerStart, FVector& LaserPointerEnd, const bool bEvenIfUIIsInFront = false, const float LaserLengthOverride = 0.0f) const override;
@@ -262,9 +265,6 @@ public:
 
 	/** Duplicates the selected objects */
 	void Duplicate();
-
-	/** Snaps the selected objects to the ground */
-	void SnapSelectedActorsToGround();
 
 	/** Sets the visuals of the LaserPointer */
 	void SetLaserVisuals( const int32 HandIndex, const FLinearColor& NewColor, const float CrawlFade = 0.0f, const float CrawlSpeed = 0.0f );
@@ -519,6 +519,9 @@ protected:
 
 	/** The current Gizmo type that is used for the TransformGizmo Actor */
 	EGizmoHandleTypes CurrentGizmoType;
+
+	// Slate Input Processor
+	TSharedPtr<FVREditorInputProcessor> InputProcessor;
 
 	//
 	// Colors
