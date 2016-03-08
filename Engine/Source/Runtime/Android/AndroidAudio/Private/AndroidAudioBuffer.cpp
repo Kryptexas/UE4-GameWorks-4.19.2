@@ -201,7 +201,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::Init(  FSLESAudioDevice* AudioDevice ,USound
 	
 	EDecompressionType DecompressionType = InWave->DecompressionType;
 
-	UE_LOG(LogAndroidAudio, Display, TEXT("Init: Using decompression type: %d"), int32(DecompressionType));
+	UE_LOG(LogAndroidAudio, Verbose, TEXT("Init: Using decompression type: %d"), int32(DecompressionType));
 
 	switch( DecompressionType )
 	{
