@@ -455,6 +455,17 @@ void InstallSignalHandlers()
 		// use IPhone6 image for now
 		[ImageString appendString : @"-IPhone6Plus-Landscape"];
 	}
+	else if (Device == FPlatformMisc::IOS_IPadPro)
+	{
+		if (!self.bDeviceInPortraitMode)
+		{
+			[ImageString appendString : @"-Landscape-1336"];
+		}
+		else
+		{
+			[ImageString appendString : @"-Portrait-1336"];
+		}
+	}
 	else
 	{
 		if (MainFrame.size.height == 320 && MainFrame.size.width != 480 && !self.bDeviceInPortraitMode)
