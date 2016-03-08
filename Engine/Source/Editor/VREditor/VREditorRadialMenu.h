@@ -25,8 +25,8 @@ public:
 
 	/** To bind the buttons from UMG */
 	UFUNCTION(BlueprintCallable, Category = "RadialItems")
-	void SetButtons(UVREditorRadialMenuItem* InitTopItem, UVREditorRadialMenuItem* InitTopRightItem, UVREditorRadialMenuItem* InitRightItem, UVREditorRadialMenuItem* InitBottomRightItem,
-		UVREditorRadialMenuItem* InitLeftBottomItem, UVREditorRadialMenuItem* InitLeftItem, UVREditorRadialMenuItem* InitTopLeftItem);
+	void SetButtons( UVREditorRadialMenuItem* InitTopItem, UVREditorRadialMenuItem* InitTopRightItem, UVREditorRadialMenuItem* InitRightItem, UVREditorRadialMenuItem* InitBottomRightItem,
+		UVREditorRadialMenuItem* InitBottomItem, UVREditorRadialMenuItem* InitLeftBottomItem, UVREditorRadialMenuItem* InitLeftItem, UVREditorRadialMenuItem* InitTopLeftItem );
 
 	/** Resets the current item to not hovering */
 	void ResetItem();
@@ -56,6 +56,8 @@ private:
 	UPROPERTY()
 	UVREditorRadialMenuItem* BottomRightItem;
 	UPROPERTY()
+	UVREditorRadialMenuItem* BottomItem;
+	UPROPERTY()
 	UVREditorRadialMenuItem* LeftBottomItem;
 	UPROPERTY()
 	UVREditorRadialMenuItem* LeftItem;
@@ -81,4 +83,5 @@ private:
 	void OnRedoButtonClicked();
 	void OnCopyButtonClicked();
 	void OnPasteButtonClicked();
+	void OnSnapActorsToGroundClicked();
 };

@@ -10,6 +10,8 @@
 #include "VREditorTransformGizmo.h"
 #include "VirtualHand.h"
 
+#include "Editor/LevelEditor/Public/LevelEditor.h"
+
 #define LOCTEXT_NAMESPACE "VREditorRadialMenu"
 
 namespace VREd
@@ -24,6 +26,7 @@ UVREditorRadialMenu::UVREditorRadialMenu( const FObjectInitializer& ObjectInitia
 	TopRightItem(nullptr),
 	RightItem(nullptr),
 	BottomRightItem(nullptr),
+	BottomItem(nullptr),
 	LeftBottomItem(nullptr),
 	LeftItem(nullptr),
 	TopLeftItem(nullptr),
@@ -66,6 +69,10 @@ void UVREditorRadialMenu::Update( const FVirtualHand& Hand )
 			{
 				CurrentItem = BottomRightItem;
 			}
+			else if ( Angle > 157.5f && Angle <= 202.5f)
+			{
+				CurrentItem = BottomItem;
+			}
 			else if (Angle > 202.5f && Angle <= 247.5f)
 			{
 				CurrentItem = LeftBottomItem;
@@ -107,7 +114,8 @@ void UVREditorRadialMenu::Update( const FVirtualHand& Hand )
 	}
 }
 
-void UVREditorRadialMenu::SetButtons(UVREditorRadialMenuItem* InitTopItem, UVREditorRadialMenuItem* InitTopRightItem, UVREditorRadialMenuItem* InitRightItem, UVREditorRadialMenuItem* InitBottomRightItem, UVREditorRadialMenuItem* InitLeftBottomItem, UVREditorRadialMenuItem* InitLeftItem, UVREditorRadialMenuItem* InitTopLeftItem)
+void UVREditorRadialMenu::SetButtons( UVREditorRadialMenuItem* InitTopItem, UVREditorRadialMenuItem* InitTopRightItem, UVREditorRadialMenuItem* InitRightItem, UVREditorRadialMenuItem* InitBottomRightItem,
+	UVREditorRadialMenuItem* InitBottomItem, UVREditorRadialMenuItem* InitLeftBottomItem, UVREditorRadialMenuItem* InitLeftItem, UVREditorRadialMenuItem* InitTopLeftItem )
 {
 	TopItem = InitTopItem;
 	TopItem->OnPressedDelegate.AddUObject( this, &UVREditorRadialMenu::OnGizmoCycle );
@@ -124,6 +132,10 @@ void UVREditorRadialMenu::SetButtons(UVREditorRadialMenuItem* InitTopItem, UVREd
 	BottomRightItem = InitBottomRightItem;
 	BottomRightItem->OnPressedDelegate.AddUObject(this, &UVREditorRadialMenu::OnRedoButtonClicked);
 	BottomRightItem->SetLabel(FString("Redo"));
+
+	BottomItem = InitBottomItem;
+	BottomItem->OnPressedDelegate.AddUObject( this, &UVREditorRadialMenu::OnSnapActorsToGroundClicked );
+	BottomItem->SetLabel( FString( "Snap To Ground" ) );
 
 	LeftBottomItem = InitLeftBottomItem;
 	LeftBottomItem->OnPressedDelegate.AddUObject(this, &UVREditorRadialMenu::OnUndoButtonClicked);
@@ -234,5 +246,11 @@ void UVREditorRadialMenu::OnPasteButtonClicked()
 {
 	GetOwner()->GetOwner().GetOwner().Paste();
 }
+
+void UVREditorRadialMenu::OnSnapActorsToGroundClicked()
+{
+	GetOwner()->GetOwner().GetOwner().SnapSelectedActorsToGround();
+}
+
 
 #undef LOCTEXT_NAMESPACE

@@ -46,6 +46,9 @@ public:
 		return bIsTeleporting;
 	}
 
+	/** Creates a Transformable for each selected actor, wiping out the existing transformables */
+	void SetupTransformablesForSelectedActors();
+
 protected:
 
 	/** Called when the user presses a button on their motion controller device */
@@ -106,9 +109,6 @@ protected:
 
 	/** Called to finish a drag action with the specified hand */
 	void StopDragging( const int32 HandIndex );
-
-	/** Creates a Transformable for each selected actor, wiping out the existing transformables */
-	void SetupTransformablesForSelectedActors();
 
 	/** True if we're actively interacting with the specified actor */
 	bool IsTransformingActor( AActor* Actor ) const;

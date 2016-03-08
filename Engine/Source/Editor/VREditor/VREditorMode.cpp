@@ -17,6 +17,8 @@
 #include "IMotionController.h"
 #include "MotionControllerComponent.h"
 
+#include "Editor/LevelEditor/Public/LevelEditorActions.h"
+
 #define LOCTEXT_NAMESPACE "VREditorMode"
 
 namespace VREd
@@ -2505,6 +2507,15 @@ void FVREditorMode::Duplicate()
 	ABrush::SetSuppressBSPRegeneration( false );
 }
 
+
+void FVREditorMode::SnapSelectedActorsToGround()
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT( "LevelEditor" ) );
+	const FLevelEditorCommands& Commands = LevelEditorModule.GetLevelEditorCommands();
+	const TSharedPtr< FUICommandList >& CommandList = GetLevelViewportPossessedForVR().GetParentLevelEditor().Pin()->GetLevelEditorActions();
+	CommandList->ExecuteAction( Commands.SnapBottomCenterBoundsToFloor.ToSharedRef() );
+	WorldInteraction->SetupTransformablesForSelectedActors();
+}
 
 void FVREditorMode::SetLaserVisuals( const int32 HandIndex, const FLinearColor& NewColor, const float CrawlFade, const float CrawlSpeed )
 {
