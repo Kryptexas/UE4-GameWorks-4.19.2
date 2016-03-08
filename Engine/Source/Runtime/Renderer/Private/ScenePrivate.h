@@ -1510,11 +1510,11 @@ public:
 	/** Information about the primitives that are attached together. */
 	struct FLODSceneNode
 	{
-		/** The primitive. */
-		FPrimitiveSceneInfo* SceneInfo;
-
 		/** Children scene infos. */
 		TArray<FPrimitiveSceneInfo*> ChildrenSceneInfos;
+
+		/** The primitive. */
+		FPrimitiveSceneInfo* SceneInfo;
 
 		/** Last updated FrameCount */
 		int32 LatestUpdateCount;
@@ -1522,12 +1522,14 @@ public:
 		/** Persistent visibility states */
 		bool bWasVisible;
 		bool bIsVisible;
+		bool bIsFading;
 
-		FLODSceneNode() :
-			SceneInfo(nullptr), 
-			LatestUpdateCount(INDEX_NONE),
-			bWasVisible(false),
-			bIsVisible(false)
+		FLODSceneNode()
+			: SceneInfo(nullptr)
+			, LatestUpdateCount(INDEX_NONE)
+			, bWasVisible(false)
+			, bIsVisible(false)
+			, bIsFading(false)
 		{}
 
 		void AddChild(FPrimitiveSceneInfo * NewChild)
@@ -1551,8 +1553,7 @@ public:
 	void RemoveChildNode(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* ChildSceneInfo);
 
 	void UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* SceneInfo);
-	void PopulateFadingFlags(FViewInfo& View);
-	void PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenFlags);
+	void UpdateAndApplyVisibilityStates(FViewInfo& View);
 
 	bool IsNodeFading(const int32 Index) const
 	{
@@ -1583,9 +1584,9 @@ private:
 	/**  Update Count. This is used to skip Child node that has been updated */
 	int32 UpdateCount;
 
-	/** Propagate flags to children */
-	void PropagateFadingFlagsToChildren(FViewInfo& View, FLODSceneNode& Node, bool bIsFading, bool bIsFadingOut);
-	void PropagateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, FLODSceneNode& Node);
+	/** Recursive state updates */
+	void ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut);
+	void HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags);
 };
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;

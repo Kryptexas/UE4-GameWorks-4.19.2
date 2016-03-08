@@ -857,7 +857,14 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 	View->StartFinalPostprocessSettings(ViewLocation);
 
-	OverridePostProcessSettings( *View );
+	if (bUseControllingActorViewInfo)
+	{
+		View->OverridePostProcessSettings(ControllingActorViewInfo.PostProcessSettings, ControllingActorViewInfo.PostProcessBlendWeight);
+	}
+	else
+	{
+		OverridePostProcessSettings(*View);
+	}
 
 	View->EndFinalPostprocessSettings(ViewInitOptions);
 

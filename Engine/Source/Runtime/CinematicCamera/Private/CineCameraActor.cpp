@@ -70,7 +70,10 @@ void ACineCameraActor::Tick(float DeltaTime)
 		// more complex component hierarchies will require different handling here
 		FVector const LookatLoc = GetLookatLocation();
 		FVector const ToLookat = LookatLoc - GetActorLocation();
-		FRotator const FinalRot = FMath::RInterpTo(LookatTrackingSettings.LastLookatTrackingRotation, ToLookat.Rotation(), DeltaTime, LookatTrackingSettings.LookAtTrackingInterpSpeed);
+		FRotator const FinalRot = 
+			bResetInterplation
+			? ToLookat.Rotation()
+			: FMath::RInterpTo(LookatTrackingSettings.LastLookatTrackingRotation, ToLookat.Rotation(), DeltaTime, LookatTrackingSettings.LookAtTrackingInterpSpeed);
 		SetActorRotation(FinalRot);
 
 		// we store this ourselves in case other systems try to change our rotation, and end fighting the interpolation
@@ -87,6 +90,16 @@ void ACineCameraActor::Tick(float DeltaTime)
 		// no tracking, no ticking
 		SetActorTickEnabled(false);
 	}
+
+	bResetInterplation = false;
+}
+
+
+void ACineCameraActor::NotifyCameraCut()
+{
+	Super::NotifyCameraCut();
+	
+	bResetInterplation = true;
 }
 
 

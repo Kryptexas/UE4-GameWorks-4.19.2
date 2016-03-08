@@ -17,7 +17,9 @@
 #include "IStructureDetailsView.h"
 #include "PropertyEditorModule.h"
 #include "MovieSceneSequence.h"
-
+#include "IntegralKeyDetailsCustomization.h"
+#include "MovieSceneSubSection.h"
+#include "MovieSceneCinematicShotSection.h"
 
 #define LOCTEXT_NAMESPACE "SequencerContextMenus"
 
@@ -34,18 +36,21 @@ void FKeyContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 	FSequencer* SequencerPtr = &Sequencer.Get();
 	TSharedRef<FKeyContextMenu> Shared = AsShared();
 
-	MenuBuilder.AddSubMenu(
-		LOCTEXT("KeyProperties", "Properties"),
-		LOCTEXT("KeyPropertiesTooltip", "Modify the key properties"),
-		FNewMenuDelegate::CreateLambda([=](FMenuBuilder& SubMenuBuilder){ Shared->AddPropertiesMenu(SubMenuBuilder); }),
-		FUIAction (
-			FExecuteAction(),
-			// @todo sequencer: only one struct per structure view supported right now :/
-			FCanExecuteAction::CreateLambda([=]{ return (Shared->Sequencer->GetSelection().GetSelectedKeys().Num() == 1); })
-		),
-		NAME_None,
-		EUserInterfaceActionType::Button
-	);
+	if(CanAddPropertiesMenu())
+	{
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("KeyProperties", "Properties"),
+			LOCTEXT("KeyPropertiesTooltip", "Modify the key properties"),
+			FNewMenuDelegate::CreateLambda([=](FMenuBuilder& SubMenuBuilder){ Shared->AddPropertiesMenu(SubMenuBuilder); }),
+			FUIAction (
+				FExecuteAction(),
+				// @todo sequencer: only one struct per structure view supported right now :/
+				FCanExecuteAction::CreateLambda([=]{ return (Shared->Sequencer->GetSelection().GetSelectedKeys().Num() == 1); })
+			),
+			NAME_None,
+			EUserInterfaceActionType::Button
+		);
+	}
 
 	MenuBuilder.BeginSection("SequencerKeyEdit", LOCTEXT("EditMenu", "Edit"));
 	{
@@ -155,6 +160,23 @@ void FKeyContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 	MenuBuilder.EndSection(); // SequencerKeys
 }
 
+bool FKeyContextMenu::CanAddPropertiesMenu() const
+{
+	for (const FSequencerSelectedKey& Key : Sequencer->GetSelection().GetSelectedKeys())
+	{
+		if (Key.KeyArea.IsValid() && Key.KeyHandle.IsSet())
+		{
+			TSharedPtr<FStructOnScope> KeyStruct = Key.KeyArea->GetKeyStruct(Key.KeyHandle.GetValue());
+
+			if (KeyStruct.IsValid())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 {
@@ -179,7 +201,7 @@ void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 		StructureViewArgs.bShowInterfaces = false;
 	}
 
-	TArray<TSharedPtr<FStructOnScope>> Keys;
+	TArray<TPair<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>> Keys;
 	{
 		for (const FSequencerSelectedKey& Key : Sequencer->GetSelection().GetSelectedKeys())
 		{
@@ -189,7 +211,7 @@ void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 
 				if (KeyStruct.IsValid())
 				{
-					Keys.Add(KeyStruct);
+					Keys.Add(TPairInitializer<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>(KeyStruct, Key));
 				}
 			}
 		}
@@ -201,13 +223,17 @@ void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 		// @todo sequencer: only one struct per structure view supported right now :/
 		if (Keys.Num() == 1)
 		{
-			TSharedPtr<FStructOnScope>& Key = Keys[0];
-			StructureDetailsView->SetStructureData(Key);
+			TPair<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>& Key = Keys[0];
+
+			// register details customizations for this instance
+			StructureDetailsView->GetDetailsView().RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(Key.Value.Section)));
+
+			StructureDetailsView->SetStructureData(Key.Key);
 			StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddLambda(
 				[=](const FPropertyChangedEvent& ChangeEvent) {
-					if (Key->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
+					if (Key.Key->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
 					{
-						((FMovieSceneKeyStruct*)Key->GetStructMemory())->PropagateChanges(ChangeEvent);
+						((FMovieSceneKeyStruct*)Key.Key->GetStructMemory())->PropagateChanges(ChangeEvent);
 					}
 					Sequencer->GetFocusedMovieSceneSequence()->Modify();
 					Sequencer->UpdateRuntimeInstances();
@@ -278,6 +304,21 @@ void FSectionContextMenu::PopulateMenu(FMenuBuilder& MenuBuilder)
 
 	MenuBuilder.BeginSection("SequencerSections", LOCTEXT("SectionsMenu", "Sections"));
 	{
+		if (CanPrimeForRecording())
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("PrimeForRecording", "Primed For Recording"),
+				LOCTEXT("PrimeForRecordingTooltip", "Prime this track for recording a new sequence."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateLambda([=]{ return Shared->TogglePrimeForRecording(); }),
+					FCanExecuteAction(),
+					FGetActionCheckState::CreateLambda([=]{ return Shared->IsPrimedForRecording() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+		}
+
 		if (CanSelectAllKeys())
 		{
 			MenuBuilder.AddMenuEntry(
@@ -530,6 +571,55 @@ void FSectionContextMenu::SelectAllKeys()
 			}
 		}
 	}
+}
+
+
+void FSectionContextMenu::TogglePrimeForRecording() const
+{
+	TArray<FSectionHandle> SelectedSections = StaticCastSharedRef<SSequencer>(Sequencer->GetSequencerWidget())->GetSectionHandles(Sequencer->GetSelection().GetSelectedSections());
+	if(SelectedSections.Num() > 0)
+	{
+		const FSectionHandle& Handle = SelectedSections[0];
+		UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Handle.GetSectionObject());
+		if (SubSection)
+		{
+			SubSection->SetAsRecording(SubSection != UMovieSceneSubSection::GetRecordingSection());
+		}	
+	}
+}
+
+
+bool FSectionContextMenu::IsPrimedForRecording() const
+{
+	TArray<FSectionHandle> SelectedSections = StaticCastSharedRef<SSequencer>(Sequencer->GetSequencerWidget())->GetSectionHandles(Sequencer->GetSelection().GetSelectedSections());
+	if(SelectedSections.Num() > 0)
+	{
+		const FSectionHandle& Handle = SelectedSections[0];
+		UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Handle.GetSectionObject());
+		if (SubSection)
+		{
+			return SubSection == UMovieSceneSubSection::GetRecordingSection();
+		}	
+	}
+
+	return false;
+}
+
+bool FSectionContextMenu::CanPrimeForRecording() const
+{
+	TArray<FSectionHandle> SelectedSections = StaticCastSharedRef<SSequencer>(Sequencer->GetSequencerWidget())->GetSectionHandles(Sequencer->GetSelection().GetSelectedSections());
+	if(SelectedSections.Num() > 0)
+	{
+		const FSectionHandle& Handle = SelectedSections[0];
+		UMovieSceneSubSection* SubSection = Cast<UMovieSceneSubSection>(Handle.GetSectionObject());
+		UMovieSceneCinematicShotSection* CinematicShotSection = Cast<UMovieSceneCinematicShotSection>(Handle.GetSectionObject());
+		if (SubSection && !CinematicShotSection)
+		{
+			return true;
+		}	
+	}
+
+	return false;
 }
 
 
@@ -966,7 +1056,7 @@ void FSectionContextMenu::BringForward()
 				return A.GetOverlapPriority() < B.GetOverlapPriority();
 			});
 
-			for (int32 SectionIndex = Row.Sections.Num() - 1; SectionIndex >= 0; --SectionIndex)
+			for (int32 SectionIndex = Row.Sections.Num() - 1; SectionIndex > 0; --SectionIndex)
 			{
 				UMovieSceneSection* ThisSection = Row.Sections[SectionIndex];
 				if (Row.SectionToReOrder.Contains(ThisSection))

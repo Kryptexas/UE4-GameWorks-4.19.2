@@ -59,7 +59,7 @@ public:
 	 * 
 	 * @return All key areas
 	 */
-	TArray<TSharedRef<IKeyArea>> GetAllKeyAreas() const
+	const TArray<TSharedRef<IKeyArea>>& GetAllKeyAreas() const
 	{
 		return KeyAreas;
 	}

@@ -24,6 +24,7 @@ void SComboButton::Construct( const FArguments& InArgs )
 		.Method(InArgs._Method)
 		.OnMenuOpenChanged(InArgs._OnMenuOpenChanged)
 		.OnGetMenuContent(InArgs._OnGetMenuContent)
+		.IsCollapsedByParent(InArgs._CollapseMenuOnParentFocus)
 		[
 			SNew( SButton )
 			.ButtonStyle( OurButtonStyle )

@@ -2510,21 +2510,12 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		}
 
 		// visibility test is done, so now build the hidden flags based on visibility set up
-		bool bLODSceneTreeActive = Scene->SceneLODHierarchy.IsActive();
-		FSceneBitArray PrimitiveHiddenByLODMap;
-		if (bLODSceneTreeActive)
+		FLODSceneTree& HLODTree = Scene->SceneLODHierarchy;
+
+		if (HLODTree.IsActive())
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_HLOD);
-			Scene->SceneLODHierarchy.PopulateFadingFlags(View);
-
-			PrimitiveHiddenByLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
-			Scene->SceneLODHierarchy.PopulateHiddenFlags(View, PrimitiveHiddenByLODMap);
-
-			// now iterate through turn off visibility if hidden by LOD
-			for(FSceneSetBitIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
-			{
-				View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-			}
+			HLODTree.UpdateAndApplyVisibilityStates(View);
 		}
 
 		MarkAllPrimitivesForReflectionProxyUpdate(Scene);
@@ -2536,15 +2527,6 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ViewRelevance);
 			ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
-
-			if (bLODSceneTreeActive)
-			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime_HLOD_Prop);
-				for (FSceneSetBitIterator BitIt(PrimitiveHiddenByLODMap); BitIt; ++BitIt)
-				{
-					View.PrimitiveViewRelevanceMap[BitIt.GetIndex()].bInitializedThisFrame = true;
-				}
-			}
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2937,10 +2919,13 @@ void FLODSceneTree::UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitive
 	}
 }
 
-void FLODSceneTree::PopulateFadingFlags(FViewInfo& View)
+void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 {
 	PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
 	PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+	FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
+
+	++UpdateCount;
 
 	if (const FSceneViewState* ViewState = (FSceneViewState*)View.State)
 	{
@@ -2957,49 +2942,90 @@ void FLODSceneTree::PopulateFadingFlags(FViewInfo& View)
 		for (auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
 		{
 			FLODSceneNode& Node = Iter.Value();
-			if (Node.SceneInfo && Node.LatestUpdateCount == UpdateCount)
+			const TIndirectArray<FStaticMesh>& NodeMeshes = Node.SceneInfo->StaticMeshes;
+
+			// Ignore already updated nodes, or those that we can't work with
+			if (Node.LatestUpdateCount == UpdateCount || !Node.SceneInfo || NodeMeshes.Num() == 0)
 			{
-				const int32 NodeIndex = Node.SceneInfo->GetIndex();
-				const TIndirectArray<FStaticMesh>& NodeMeshes = Node.SceneInfo->StaticMeshes;
+				continue;
+			}
 
-				if (NodeMeshes.Num() > 0 && NodeMeshes[0].bDitheredLODTransition)
+			const int32 NodeIndex = Node.SceneInfo->GetIndex();
+			bool bIsVisible = VisibilityFlags[NodeIndex];
+
+			// Update fading state
+			if (NodeMeshes[0].bDitheredLODTransition)
+			{
+				// Update with syncs
+				if (bSyncFrame)
 				{
-					if (bSyncFrame)
-					{
-						bool bChildrenFading = false;
+					// Determine desired HLOD state
+					const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
+					const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+					const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
-						// Note: Unless ending a fade, need to wait for all children to finish fading?
-						// Not sure this can actually happen as we wait for the syncs so will override the fade
-						if (Node.bWasVisible != Node.bIsVisible || !bChildrenFading)
-						{
-							Node.bWasVisible = Node.bIsVisible;
-							Node.bIsVisible = View.PrimitiveVisibilityMap[NodeIndex];
-						}
+					// Fade when HLODs change threshold on-screen, else snap
+					// TODO: This logic can still be improved to clear state and
+					//       transitions when off-screen, but needs better detection
+					const bool bChangedRange = bIsInDrawRange != Node.bWasVisible;
+					const bool bIsOnScreen = bIsVisible || Node.bWasVisible;
+				
+					if (Node.bIsFading)
+					{
+						Node.bIsFading = false;
+					}
+					else if (bChangedRange && bIsOnScreen)
+					{
+						Node.bIsFading = true;	
 					}
 
-					// Fade until state back in sync, then hold visibility
-					if (Node.bWasVisible != Node.bIsVisible)
-					{
-						PrimitiveFadingLODMap[NodeIndex] = true;
-						PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
-
-						PropagateFadingFlagsToChildren(View, Node, true, Node.bIsVisible);
-					}
-					else
-					{
-						View.PrimitiveVisibilityMap[NodeIndex] = Node.bIsVisible;
-					}
+					Node.bWasVisible = Node.bIsVisible;
+					Node.bIsVisible = bIsInDrawRange;
 				}
+
+				// Flag as fading or freeze visibility if waiting for a fade
+				if (Node.bIsFading)
+				{
+					PrimitiveFadingLODMap[NodeIndex] = true;
+					PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
+				}
+				else
+				{
+					VisibilityFlags[NodeIndex] = Node.bWasVisible;
+					bIsVisible = Node.bWasVisible;
+				}
+			}
+#if WITH_EDITOR
+			else
+			{
+				// Force the default state in-case material edits cause an object to get stuck
+				Node.bIsFading = false;
+			}
+#endif
+
+			if (Node.bIsFading)
+			{
+				// Fade until state back in sync
+				ApplyNodeFadingToChildren(Node, VisibilityFlags, true, Node.bIsVisible);
+			}
+			else if (bIsVisible)
+			{
+				// If stable and visible, override hierarchy visibility
+				HideNodeChildren(Node, VisibilityFlags);
 			}
 		}
 	}
 }
 
-void FLODSceneTree::PropagateFadingFlagsToChildren(FViewInfo& View, FLODSceneNode& Node, bool bIsFading, bool bIsFadingOut)
+void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)
 {
 	if (Node.SceneInfo)
 	{
+		Node.LatestUpdateCount = UpdateCount;
+
+		// Force visibility during fades
 		const int32 NodeIndex = Node.SceneInfo->GetIndex();
+		VisibilityFlags[NodeIndex] = true;
 
 		for (const auto& Child : Node.ChildrenSceneInfos)
 		{
@@ -3007,91 +3033,31 @@ void FLODSceneTree::PropagateFadingFlagsToChildren(FViewInfo& View, FLODSceneNod
 
 			PrimitiveFadingLODMap[ChildIndex] = bIsFading;
 			PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
+			VisibilityFlags[ChildIndex] = true;
+
+			// Fading only occurs at the adjacent hierarchy level, below should be hidden
+			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
+			{
+				HideNodeChildren(*ChildNode, VisibilityFlags);
+			}
+		}
+	}
+}
+
+void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
+{
+	if (Node.LatestUpdateCount != UpdateCount)
+	{
+		Node.LatestUpdateCount = UpdateCount;
+
+		for (const auto& Child : Node.ChildrenSceneInfos)
+		{
+			const int32 ChildIndex = Child->GetIndex();
+			VisibilityFlags[ChildIndex] = false;
 
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 			{
-				PropagateFadingFlagsToChildren(View, *ChildNode, bIsFading, bIsFadingOut);
-			}
-		}
-
-		// Force visibility during fades
-		View.PrimitiveVisibilityMap[NodeIndex] = true;
-	}
-}
-
-void FLODSceneTree::PropagateHiddenFlagsToChildren(FSceneBitArray& HiddenFlags, FLODSceneNode& Node)
-{
-	// if already updated, no reason to do this
-	if(Node.LatestUpdateCount != UpdateCount)
-	{
-		Node.LatestUpdateCount = UpdateCount;
-		// if node doesn't have scene info, that means it doesn't to populate, children is disconnected, so don't bother
-		// in this case we still update children when this node is missing scene info
-		// because parent is showing, so you don't have to show anyway anybody below
-		// although this node might be MIA at this moment
-		for(const auto& Child : Node.ChildrenSceneInfos)
-		{
-			const int32 ChildIndex = Child->GetIndex();
-
-			// first update the flags
-			FRelativeBitReference BitRef(ChildIndex);
-			HiddenFlags.AccessCorrespondingBit(BitRef) = true;
-			// find the node for it
-			FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
-			// if you have child, populate it again, 
-			if (ChildNode)
-			{
-				PropagateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
-			}
-		}
-	}
-}
-
-void FLODSceneTree::PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenFlags)
-{
-	++UpdateCount;
-
-	// @todo this is experimental code - hide the children if parent is showing
-	for(auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
-	{
-		FLODSceneNode& Node = Iter.Value();
-		// if already updated, no reason to do this
-		if(Node.LatestUpdateCount != UpdateCount)
-		{
-			Node.LatestUpdateCount = UpdateCount;
-			// if node doesn't have scene info, that means it doesn't have any
-			if(Node.SceneInfo)
-			{
-				int32 NodeIndex = Node.SceneInfo->GetIndex();
-
-				// Only override visibility when fading isn't forcing state
-				if (!IsNodeFading(NodeIndex))
-				{
-					// if this node is visible, children shouldn't show up
-					if (View.PrimitiveVisibilityMap[NodeIndex])
-					{
-						for (const auto& Child : Node.ChildrenSceneInfos)
-						{
-							const int32 ChildIndex = Child->GetIndex();
-
-							// first update the flags
-							FRelativeBitReference BitRef(ChildIndex);
-							HiddenFlags.AccessCorrespondingBit(BitRef) = true;
-
-							// find the node for it
-							FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId);
-							// if you have child, populate it again, 
-							if (ChildNode)
-							{
-								PropagateHiddenFlagsToChildren(HiddenFlags, *ChildNode);
-							}
-						}
-					}
-					else
-					{
-						HiddenFlags.AccessCorrespondingBit(FRelativeBitReference(NodeIndex)) = true;
-					}
-				}
+				HideNodeChildren(*ChildNode, VisibilityFlags);
 			}
 		}
 	}

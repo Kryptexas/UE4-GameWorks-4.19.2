@@ -70,7 +70,7 @@ void GetAnimatedStreamingLevels( UMovieSceneLevelVisibilityTrack* LevelVisibilit
 }
 
 
-void FMovieSceneLevelVisibilityTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneLevelVisibilityTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	TArray<ULevelStreaming*> AnimatedStreamingLevels;
 	GetAnimatedStreamingLevels(LevelVisibilityTrack, AnimatedStreamingLevels);
@@ -82,7 +82,7 @@ void FMovieSceneLevelVisibilityTrackInstance::SaveState(const TArray<UObject*>& 
 }
 
 
-void FMovieSceneLevelVisibilityTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneLevelVisibilityTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	TArray<ULevelStreaming*> AnimatedStreamingLevels;
 	GetAnimatedStreamingLevels( LevelVisibilityTrack, AnimatedStreamingLevels );
@@ -100,7 +100,7 @@ void FMovieSceneLevelVisibilityTrackInstance::RestoreState(const TArray<UObject*
 }
 
 
-void FMovieSceneLevelVisibilityTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
+void FMovieSceneLevelVisibilityTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
 {
 	for ( UMovieSceneSection* Section : LevelVisibilityTrack->GetAllSections() )
 	{
@@ -158,7 +158,7 @@ void FMovieSceneLevelVisibilityTrackInstance::Update(EMovieSceneUpdateData& Upda
 }
 
 
-void FMovieSceneLevelVisibilityTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
+void FMovieSceneLevelVisibilityTrackInstance::RefreshInstance( const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance )
 {
 	NameToLevelMap.Empty();
 

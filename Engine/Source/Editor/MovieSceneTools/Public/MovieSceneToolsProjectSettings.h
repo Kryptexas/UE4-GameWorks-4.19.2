@@ -21,6 +21,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Timeline, meta=(ClampMin=0.00001f, Units=s))
 	float DefaultDuration;
 
+	/** The default directory for the shots. */
+	UPROPERTY(config, EditAnywhere, Category=Shots)
+	FString ShotDirectory;
+
 	/** The default prefix for shot names. */
 	UPROPERTY(config, EditAnywhere, Category=Shots)
 	FString ShotPrefix;

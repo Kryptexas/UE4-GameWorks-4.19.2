@@ -43,6 +43,12 @@ private:
 
 	bool CanSelectAllKeys() const;
 
+	void TogglePrimeForRecording() const;
+
+	bool IsPrimedForRecording() const;
+
+	bool CanPrimeForRecording() const;
+
 	bool CanSetExtrapolationMode() const;
 
 	void TrimSection(bool bTrimLeft);
@@ -201,6 +207,9 @@ private:
 
 	/** Add the Properties sub-menu. */
 	void AddPropertiesMenu(FMenuBuilder& MenuBuilder);
+
+	/** Check if we can add the key properties menu */
+	bool CanAddPropertiesMenu() const;
 
 	void PopulateMenu(FMenuBuilder& MenuBuilder);
 

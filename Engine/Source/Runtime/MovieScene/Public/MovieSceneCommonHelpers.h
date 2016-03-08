@@ -64,7 +64,15 @@ public:
 	 */
 	static UCameraComponent* CameraComponentFromActor(const AActor* InActor);
 
-	/*
+	/**
+	 * Find and return camera component from the runtime object
+	 *
+	 * @param Object The object to get the camera component for
+	 * @return The found camera component
+	 */	
+	static UCameraComponent* CameraComponentFromRuntimeObject(UObject* RuntimeObject);
+
+	/**
 	 * Set the runtime object movable
 	 *
 	 * @param Object The object to set the mobility for
@@ -118,7 +126,7 @@ public:
 	 *
 	 * @param InRuntimeObjects	The objects to rebuild mappings for
 	 */
-	void UpdateBindings( const TArray<UObject*>& InRuntimeObjects );
+	void UpdateBindings( const TArray<TWeakObjectPtr<UObject>>& InRuntimeObjects );
 
 	/**
 	 * Gets the UProperty that is bound to the track instance

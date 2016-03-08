@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IKeyframeSection.h"
 #include "MovieSceneBoolSection.generated.h"
 
 /**

@@ -12,7 +12,10 @@ void FMovieScene3DLocationKeyStruct::PropagateChanges(const FPropertyChangedEven
 {
 	for (int32 Index = 0; Index <= 2; ++Index)
 	{
-		LocationKeys[Index]->Value = Location[Index];
+		if(LocationKeys[Index] != nullptr)
+		{
+			LocationKeys[Index]->Value = Location[Index];
+		}
 	}
 }
 
@@ -22,9 +25,18 @@ void FMovieScene3DLocationKeyStruct::PropagateChanges(const FPropertyChangedEven
 
 void FMovieScene3DRotationKeyStruct::PropagateChanges(const FPropertyChangedEvent& ChangeEvent)
 {
-	RotationKeys[0]->Value = Rotation.Pitch;
-	RotationKeys[1]->Value = Rotation.Yaw;
-	RotationKeys[2]->Value = Rotation.Roll;
+	if(RotationKeys[0] != nullptr)
+	{
+		RotationKeys[0]->Value = Rotation.Pitch;
+	}
+	if(RotationKeys[1] != nullptr)
+	{	
+		RotationKeys[1]->Value = Rotation.Yaw;
+	}
+	if(RotationKeys[2] != nullptr)
+	{
+		RotationKeys[2]->Value = Rotation.Roll;
+	}
 }
 
 
@@ -35,7 +47,10 @@ void FMovieScene3DScaleKeyStruct::PropagateChanges(const FPropertyChangedEvent& 
 {
 	for (int32 Index = 0; Index <= 2; ++Index)
 	{
-		ScaleKeys[Index]->Value = Scale[Index];
+		if(ScaleKeys[Index] != nullptr)
+		{
+			ScaleKeys[Index]->Value = Scale[Index];
+		}
 	}
 }
 
@@ -47,13 +62,28 @@ void FMovieScene3DTransformKeyStruct::PropagateChanges(const FPropertyChangedEve
 {
 	for (int32 Index = 0; Index <= 2; ++Index)
 	{
-		LocationKeys[Index]->Value = Location[Index];
-		ScaleKeys[Index]->Value = Scale[Index];
+		if(LocationKeys[Index] != nullptr)
+		{
+			LocationKeys[Index]->Value = Location[Index];
+		}
+		if(ScaleKeys[Index] != nullptr)
+		{
+			ScaleKeys[Index]->Value = Scale[Index];
+		}
 	}
 
-	RotationKeys[0]->Value = Rotation.Pitch;
-	RotationKeys[1]->Value = Rotation.Yaw;
-	RotationKeys[2]->Value = Rotation.Roll;
+	if(RotationKeys[0] != nullptr)
+	{
+		RotationKeys[0]->Value = Rotation.Pitch;
+	}
+	if(RotationKeys[1] != nullptr)
+	{	
+		RotationKeys[1]->Value = Rotation.Yaw;
+	}
+	if(RotationKeys[2] != nullptr)
+	{
+		RotationKeys[2]->Value = Rotation.Roll;
+	}
 }
 
 
@@ -202,65 +232,115 @@ TSharedPtr<FStructOnScope> UMovieScene3DTransformSection::GetKeyStruct(const TAr
 	FRichCurveKey* RotationKeys[3];
 	FRichCurveKey* ScaleKeys[3];
 
+	bool bHasTranslationKeys = false;
+	bool bHasRotationKeys = false;
+	bool bHasScaleKeys = false;
+
 	for (int32 Index = 0; Index <= 2; ++Index)
 	{
 		TranslationKeys[Index] = Translation[Index].GetFirstMatchingKey(KeyHandles);
+		if(TranslationKeys[Index] != nullptr)
+		{
+			bHasTranslationKeys = true;
+		}
 		RotationKeys[Index] = Rotation[Index].GetFirstMatchingKey(KeyHandles);
+		if(RotationKeys[Index] != nullptr)
+		{
+			bHasRotationKeys = true;
+		}
 		ScaleKeys[Index] = Scale[Index].GetFirstMatchingKey(KeyHandles);
+		if(ScaleKeys[Index] != nullptr)
+		{
+			bHasScaleKeys = true;
+		}
 	}
 
-	if ((TranslationKeys[0] != nullptr) && (RotationKeys[0] != nullptr) && (ScaleKeys[0] != nullptr))
+	int32 KeyTypeCount = 0;
+	if(bHasTranslationKeys)
+	{
+		KeyTypeCount++;
+	}
+	if(bHasRotationKeys)
+	{
+		KeyTypeCount++;
+	}
+	if(bHasScaleKeys)
+	{
+		KeyTypeCount++;
+	}
+
+	// do we have multiple keys on multiple parts of the transform?
+	if (KeyTypeCount > 1)
 	{
 		TSharedRef<FStructOnScope> KeyStruct = MakeShareable(new FStructOnScope(FMovieScene3DTransformKeyStruct::StaticStruct()));
 		auto Struct = (FMovieScene3DTransformKeyStruct*)KeyStruct->GetStructMemory();
 		{
 			for (int32 Index = 0; Index <= 2; ++Index)
 			{
-				check(TranslationKeys[Index] != nullptr);
-				Struct->LocationKeys[Index] = TranslationKeys[Index];
-				Struct->Location[Index] = TranslationKeys[Index]->Value;
+				if(TranslationKeys[Index] != nullptr)
+				{
+					Struct->LocationKeys[Index] = TranslationKeys[Index];
+					Struct->Location[Index] = TranslationKeys[Index]->Value;
+				}
 
-				check(RotationKeys[Index] != nullptr);
-				Struct->RotationKeys[Index] = RotationKeys[Index];
-
-				check(ScaleKeys[Index] != nullptr);
-				Struct->ScaleKeys[Index] = ScaleKeys[Index];
-				Struct->Scale[Index] = ScaleKeys[Index]->Value;
+				if(RotationKeys[Index] != nullptr)
+				{
+					Struct->RotationKeys[Index] = RotationKeys[Index];
+				}
+				
+				if(ScaleKeys[Index] != nullptr)
+				{
+					Struct->ScaleKeys[Index] = ScaleKeys[Index];
+					Struct->Scale[Index] = ScaleKeys[Index]->Value;
+				}
 			}
 
-			Struct->Rotation.Pitch = RotationKeys[0]->Value;
-			Struct->Rotation.Yaw = RotationKeys[1]->Value;
-			Struct->Rotation.Roll = RotationKeys[2]->Value;
+			if(RotationKeys[0] != nullptr)
+			{
+				Struct->Rotation.Pitch = RotationKeys[0]->Value;
+			}
+			if(RotationKeys[1] != nullptr)
+			{
+				Struct->Rotation.Yaw = RotationKeys[1]->Value;
+			}
+			if(RotationKeys[2] != nullptr)
+			{
+				Struct->Rotation.Roll = RotationKeys[2]->Value;
+			}
 		}
 
 		return KeyStruct;
 	}
 	
-	if (TranslationKeys[0] != nullptr)
+	if (bHasTranslationKeys)
 	{
 		TSharedRef<FStructOnScope> KeyStruct = MakeShareable(new FStructOnScope(FMovieScene3DLocationKeyStruct::StaticStruct()));
 		auto Struct = (FMovieScene3DLocationKeyStruct*)KeyStruct->GetStructMemory();
 		{
 			for (int32 Index = 0; Index <= 2; ++Index)
 			{
-				check(TranslationKeys[Index] != nullptr);
-				Struct->LocationKeys[Index] = TranslationKeys[Index];
-				Struct->Location[Index] = TranslationKeys[Index]->Value;
+				if(TranslationKeys[Index] != nullptr)
+				{
+					Struct->LocationKeys[Index] = TranslationKeys[Index];
+					Struct->Location[Index] = TranslationKeys[Index]->Value;
+				}
 			}
 		}
 
 		return KeyStruct;
 	}
 	
-	if (RotationKeys[0] != nullptr)
+	if (bHasRotationKeys)
 	{
 		TSharedRef<FStructOnScope> KeyStruct = MakeShareable(new FStructOnScope(FMovieScene3DRotationKeyStruct::StaticStruct()));
 		auto Struct = (FMovieScene3DRotationKeyStruct*)KeyStruct->GetStructMemory();
 		{
 			for (int32 Index = 0; Index <= 2; ++Index)
 			{
-				check(RotationKeys[Index] != nullptr);
-				Struct->RotationKeys[Index] = RotationKeys[Index];
+				if(RotationKeys[Index] != nullptr)
+				{
+					Struct->RotationKeys[Index] = RotationKeys[Index];
+				}
 			}
 
 			Struct->Rotation.Pitch = Struct->RotationKeys[0]->Value;
@@ -271,16 +351,18 @@ TSharedPtr<FStructOnScope> UMovieScene3DTransformSection::GetKeyStruct(const TAr
 		return KeyStruct;
 	}
 	
-	if (ScaleKeys[0] != nullptr)
+	if (bHasScaleKeys)
 	{
 		TSharedRef<FStructOnScope> KeyStruct = MakeShareable(new FStructOnScope(FMovieScene3DScaleKeyStruct::StaticStruct()));
 		auto Struct = (FMovieScene3DScaleKeyStruct*)KeyStruct->GetStructMemory();
 		{
 			for (int32 Index = 0; Index <= 2; ++Index)
 			{
-				check(ScaleKeys[Index] != nullptr);
-				Struct->ScaleKeys[Index] = ScaleKeys[Index];
-				Struct->Scale[Index] = ScaleKeys[Index]->Value;
+				if(ScaleKeys[Index] != nullptr)
+				{
+					Struct->ScaleKeys[Index] = ScaleKeys[Index];
+					Struct->Scale[Index] = ScaleKeys[Index]->Value;
+				}
 			}
 		}
 

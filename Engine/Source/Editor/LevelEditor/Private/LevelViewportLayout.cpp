@@ -129,48 +129,6 @@ TSharedPtr<FLevelViewportTabContent> SViewportsOverlay::GetLevelViewportTab() co
 	return LevelViewportTab;
 }
 
-FLevelViewportLayoutEntity::FLevelViewportLayoutEntity(TSharedRef<SLevelViewport> InLevelViewport)
-	: LevelViewport(InLevelViewport)
-{}
-
-TSharedRef<SWidget> FLevelViewportLayoutEntity::AsWidget() const
-{
-	return LevelViewport;
-}
-
-TSharedPtr<SLevelViewport> FLevelViewportLayoutEntity::AsLevelViewport() const
-{
-	return LevelViewport;
-}
-
-bool FLevelViewportLayoutEntity::IsPlayInEditorViewportActive() const
-{
-	return LevelViewport->IsPlayInEditorViewportActive();
-}
-
-void FLevelViewportLayoutEntity::RegisterGameViewportIfPIE()
-{
-	return LevelViewport->RegisterGameViewportIfPIE();
-}
-
-void FLevelViewportLayoutEntity::SetKeyboardFocus()
-{
-	return LevelViewport->SetKeyboardFocusToThisViewport();
-}
-
-void FLevelViewportLayoutEntity::OnLayoutDestroyed()
-{
-	if (LevelViewport->IsPlayInEditorViewportActive() || LevelViewport->GetLevelViewportClient().IsSimulateInEditorViewport() )
-	{
-		GUnrealEd->EndPlayMap();
-	}
-}
-
-void FLevelViewportLayoutEntity::SaveConfig(const FString& ConfigSection)
-{
-	LevelViewport->SaveConfig(ConfigSection);
-}
-
 // FLevelViewportLayout /////////////////////////////
 
 FLevelViewportLayout::FLevelViewportLayout()
@@ -208,7 +166,7 @@ FLevelViewportLayout::~FLevelViewportLayout()
 }
 
 
-TSharedRef<SWidget> FLevelViewportLayout::BuildViewportLayout( TSharedPtr<SDockTab> InParentDockTab, TSharedPtr<FLevelViewportTabContent> InParentTab, const FString& LayoutString, TWeakPtr<SLevelEditor> InParentLevelEditor )
+TSharedRef<SWidget> FLevelViewportLayout::BuildViewportLayout( TSharedPtr<SDockTab> InParentDockTab, TSharedPtr<FLevelViewportTabContent> InParentTab, const FString& LayoutString, TWeakPtr<ILevelEditor> InParentLevelEditor )
 {
 	// We don't support reconfiguring an existing layout object, as this makes handling of transitions
 	// particularly difficult.  Instead just destroy the old layout and create a new layout object.
@@ -296,7 +254,11 @@ void FLevelViewportLayout::SaveCommonLayoutString( const FString& SpecificLayout
 	// Save all our data using the additional layout config
 	for (auto& Pair : Viewports)
 	{
-		Pair.Value->SaveConfig(SpecificLayoutString + Pair.Key.ToString());
+		FString ConfigName = SpecificLayoutString + Pair.Key.ToString();
+
+		Pair.Value->SaveConfig(ConfigName);
+
+		GConfig->SetString( *IniSection, *( ConfigName + TEXT(".TypeWithinLayout") ), *Pair.Value->GetType().ToString(), GEditorPerProjectIni );
 	}
 
 	// We don't bother saving that we were in immersive mode, because we never want to start back up directly in immersive mode

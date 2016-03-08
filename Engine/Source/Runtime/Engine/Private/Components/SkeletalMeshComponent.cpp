@@ -1354,6 +1354,9 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	if(AnimScriptInstance)
 	{
+#if WITH_EDITOR
+		GetEditableAnimationCurves() = EvaluationContext.Curve;
+#endif 
 		// curve update happens first
 		AnimScriptInstance->UpdateCurves(EvaluationContext.Curve);
 	}

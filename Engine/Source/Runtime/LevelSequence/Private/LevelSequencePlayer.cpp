@@ -236,7 +236,7 @@ void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* I
 /* IMovieScenePlayer interface
  *****************************************************************************/
 
-void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<UObject*>& OutObjects) const
+void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<TWeakObjectPtr<UObject>>& OutObjects) const
 {
 	UObject* FoundObject = MovieSceneInstance->FindObject(ObjectId, *this);
 	if (FoundObject)
@@ -246,7 +246,7 @@ void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInsta
 }
 
 
-void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject) const
+void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) const
 {
 	// skip missing player controller
 	APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
@@ -335,7 +335,9 @@ void ULevelSequencePlayer::Update(const float DeltaSeconds)
 		UpdateMovieSceneInstance(TimeCursorPosition, LastTimePosition);
 
 		bHasCleanedUpSequence = true;
-		SpawnRegister->DestroyAllOwnedObjects(*this);
+		
+		SpawnRegister->ForgetExternallyOwnedSpawnedObjects(*this);
+		SpawnRegister->CleanUp(*this);
 	}
 }
 

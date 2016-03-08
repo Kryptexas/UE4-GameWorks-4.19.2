@@ -31,8 +31,10 @@ float ComputeFocalLengthFromFov(const FSceneView& View)
 	//   f = focal length
 	// 
 	// f = 0.5 * d * (1/tan(fov/2))
-	float HalfFOV = FMath::Atan(1.0f / View.ViewMatrices.ProjMatrix.M[0][0]);
-	float FocalLength = 0.5f * 24.576f * (1.0f/FMath::Tan(HalfFOV));
+
+	float const d = View.FinalPostProcessSettings.DepthOfFieldSensorWidth;
+	float const HalfFOV = FMath::Atan(1.0f / View.ViewMatrices.ProjMatrix.M[0][0]);
+	float const FocalLength = 0.5f * d * (1.0f/FMath::Tan(HalfFOV));
 
 	return FocalLength;
 }
@@ -63,10 +65,10 @@ FVector4 CircleDofHalfCoc(const FSceneView& View)
 		//   n = fstop (where n is the "n" in "f/n")
 		float Radius = FMath::Square(FocalLengthInMM) / (View.FinalPostProcessSettings.DepthOfFieldFstop * (FocalDistanceInMM - FocalLengthInMM));
 
-		// Scale so that APS-C 24.576 mm = full frame.
 		// Convert mm to pixels.
-		float Width = (float)View.ViewRect.Width();
-		Radius = Radius * Width * (1.0f/24.576f);
+		float const Width = (float)View.ViewRect.Width();
+		float const SensorWidth = View.FinalPostProcessSettings.DepthOfFieldSensorWidth;
+		Radius = Radius * Width * (1.0f / SensorWidth);
 
 		// Convert diameter to radius at half resolution (algorithm radius is at half resolution).
 		Radius *= 0.25f;

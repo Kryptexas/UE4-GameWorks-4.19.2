@@ -250,6 +250,34 @@ void FRawCurveTracks::DeleteAllCurveData(ESupportedCurveType SupportedCurveType 
 	}
 }
 
+#if WITH_EDITOR
+void FRawCurveTracks::AddFloatCurveKey(const USkeleton::AnimCurveUID Uid, int32 CurveFlags, float Time, float Value)
+{
+	FFloatCurve* FloatCurve = GetCurveDataImpl<FFloatCurve>(FloatCurves, Uid);
+	if (FloatCurve == nullptr)
+	{
+		AddCurveData(Uid, CurveFlags, FloatType);
+		FloatCurve = GetCurveDataImpl<FFloatCurve>(FloatCurves, Uid);
+	}
+
+	if (FloatCurve->GetCurveTypeFlags() != CurveFlags)
+	{
+		FloatCurve->SetCurveTypeFlags(FloatCurve->GetCurveTypeFlags() | CurveFlags);
+	}
+
+	FloatCurve->UpdateOrAddKey(Value, Time);
+}
+
+void FRawCurveTracks::RemoveRedundantKeys()
+{
+	for (auto CurveIter = FloatCurves.CreateIterator(); CurveIter; ++CurveIter)
+	{
+		FFloatCurve& Curve = *CurveIter;
+		Curve.FloatCurve.RemoveRedundantKeys(SMALL_NUMBER);
+	}
+}
+#endif
+
 bool FRawCurveTracks::AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags /*= ACF_DefaultCurve*/, ESupportedCurveType SupportedCurveType /*= FloatType*/)
 {
 	switch(SupportedCurveType)

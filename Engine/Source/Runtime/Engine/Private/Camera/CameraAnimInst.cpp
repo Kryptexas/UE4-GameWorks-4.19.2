@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "Camera/CameraComponent.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraAnim.h"
 #include "Camera/CameraAnimInst.h"
@@ -18,6 +19,7 @@ UCameraAnimInst::UCameraAnimInst(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bFinished = true;
+	bStopAutomatically = true;
 	PlayRate = 1.0f;
 	TransientScaleModifier = 1.0f;
 	PlaySpace = ECameraAnimPlaySpace::CameraLocal;
@@ -74,7 +76,7 @@ void UCameraAnimInst::AdvanceAnim(float DeltaTime, bool bJump)
 
 		if (bBlendingIn)
 		{
-			if (CurBlendInTime > BlendInTime)
+			if ((CurBlendInTime > BlendInTime) || (BlendInTime == 0.f))
 			{
 				// done blending in!
 				bBlendingIn = false;
@@ -95,6 +97,9 @@ void UCameraAnimInst::AdvanceAnim(float DeltaTime, bool bJump)
 			float const BlendInWeight = (bBlendingIn) ? (CurBlendInTime / BlendInTime) : 1.f;
 			float const BlendOutWeight = (bBlendingOut) ? (1.f - CurBlendOutTime / BlendOutTime) : 1.f;
 			CurrentBlendWeight = FMath::Min(BlendInWeight, BlendOutWeight) * BasePlayScale * TransientScaleModifier;
+			
+			// this is intended to be applied only once
+			TransientScaleModifier = 1.f;
 		}
 
 		// this will update tracks and apply the effects to the group actor (except move tracks)
@@ -103,23 +108,33 @@ void UCameraAnimInst::AdvanceAnim(float DeltaTime, bool bJump)
 			InterpGroupInst->Group->UpdateGroup(CurTime, InterpGroupInst, false, bJump);
 		}
 
-		if (bAnimJustFinished)
+		if (bStopAutomatically)
 		{
-			// completely finished
-			Stop(true);
-		}
-		else if (RemainingTime > 0.f)
-		{
-			// handle any specified duration
-			RemainingTime -= DeltaTime;
-			if (RemainingTime <= 0.f)
+			if (bAnimJustFinished)
 			{
-				// stop with blend out
-				Stop();
+				// completely finished
+				Stop(true);
+			}
+			else if (RemainingTime > 0.f)
+			{
+				// handle any specified duration
+				RemainingTime -= DeltaTime;
+				if (RemainingTime <= 0.f)
+				{
+					// stop with blend out
+					Stop();
+				}
 			}
 		}
 	}
 }
+
+void UCameraAnimInst::SetCurrentTime(float NewTime)
+{
+	float const TimeDelta = NewTime - (CurTime / PlayRate);
+	AdvanceAnim(TimeDelta, true);
+}
+
 
 void UCameraAnimInst::Update(float NewRate, float NewScale, float NewBlendInTime, float NewBlendOutTime, float NewDuration)
 {
@@ -172,6 +187,14 @@ void UCameraAnimInst::SetScale(float NewScale)
 	BasePlayScale = NewScale;
 }
 
+void UCameraAnimInst::SetCameraActor(class AActor* Actor)
+{
+	if (InterpGroupInst)
+	{
+		InterpGroupInst->SetGroupActor(Actor);
+	}
+}
+
 static const FName NAME_CameraComponentFieldOfViewPropertyName(TEXT("CameraComponent.FieldOfView"));
 
 void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRate, float InScale, float InBlendInTime, float InBlendOutTime, bool bInLooping, bool bRandomStartTime, float Duration)
@@ -200,15 +223,14 @@ void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRa
 		RemainingTime = (Duration > 0.f) ? (Duration - BlendOutTime) : 0.f;
 
 		// init the interpgroup
-		if ( CamActor->IsA(ACameraActor::StaticClass()) )
+		if ( CamActor && CamActor->IsA(ACameraActor::StaticClass()) )
 		{
+			// #fixme jf: I don't think this is necessary anymore
 			// ensure CameraActor is zeroed, so RelativeToInitial anims get proper InitialTM
 			CamActor->SetActorLocation(FVector::ZeroVector, false);
 			CamActor->SetActorRotation(FRotator::ZeroRotator);
 		}
 		InterpGroupInst->InitGroupInst(CamAnim->CameraInterpGroup, CamActor);
-
-		checkf(CamAnim->CameraInterpGroup->InterpTracks.Num() == InterpGroupInst->TrackInst.Num(), TEXT("Track count mismatch! Outer = %s"), *GetNameSafe(CamAnim));
 
 		// cache move track refs
 		for (int32 Idx = 0; Idx < InterpGroupInst->TrackInst.Num(); ++Idx)
@@ -286,4 +308,78 @@ void UCameraAnimInst::SetPlaySpace(ECameraAnimPlaySpace::Type NewSpace, FRotator
 
 
 /** Returns InterpGroupInst subobject **/
-UInterpGroupInst* UCameraAnimInst::GetInterpGroupInst() const { return InterpGroupInst; }
+UInterpGroupInst* UCameraAnimInst::GetInterpGroupInst() const
+{ 
+	return InterpGroupInst;
+}
+
+void UCameraAnimInst::ApplyToView(FMinimalViewInfo& InOutPOV) const
+{
+	if (CurrentBlendWeight > 0.f)
+	{
+		ACameraActor const* AnimatedCamActor = dynamic_cast<ACameraActor*>(InterpGroupInst->GetGroupActor());
+		if (AnimatedCamActor)
+		{
+
+			if (CamAnim->bRelativeToInitialTransform)
+			{
+				// move animated cam actor to initial-relative position
+				FTransform const AnimatedCamToWorld = AnimatedCamActor->GetTransform();
+				FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * InitialCamToWorld.Inverse();
+				ACameraActor* const MutableCamActor = const_cast<ACameraActor*>(AnimatedCamActor);
+				MutableCamActor->SetActorTransform(AnimatedCamToInitialCam);
+			}
+
+			float const Scale = CurrentBlendWeight;
+			FRotationMatrix const CameraToWorld(InOutPOV.Rotation);
+
+			if (PlaySpace == ECameraAnimPlaySpace::CameraLocal)
+			{
+				// the code in the else block will handle this just fine, but this path provides efficiency and simplicity for the most common case
+
+				// loc
+				FVector const LocalOffset = CameraToWorld.TransformVector(AnimatedCamActor->GetActorLocation()*Scale);
+				InOutPOV.Location += LocalOffset;
+
+				// rot
+				FRotationMatrix const AnimRotMat(AnimatedCamActor->GetActorRotation()*Scale);
+				InOutPOV.Rotation = (AnimRotMat * CameraToWorld).Rotator();
+			}
+			else
+			{
+				// handle playing the anim in an arbitrary space relative to the camera
+
+				// find desired space
+				FMatrix const PlaySpaceToWorld = (PlaySpace == ECameraAnimPlaySpace::UserDefined) ? UserPlaySpaceMatrix : FMatrix::Identity;
+
+				// loc
+				FVector const LocalOffset = PlaySpaceToWorld.TransformVector(AnimatedCamActor->GetActorLocation()*Scale);
+				InOutPOV.Location += LocalOffset;
+
+				// rot
+				// find transform from camera to the "play space"
+				FMatrix const CameraToPlaySpace = CameraToWorld * PlaySpaceToWorld.Inverse();	// CameraToWorld * WorldToPlaySpace
+
+				// find transform from anim (applied in playspace) back to camera
+				FRotationMatrix const AnimToPlaySpace(AnimatedCamActor->GetActorRotation()*Scale);
+				FMatrix const AnimToCamera = AnimToPlaySpace * CameraToPlaySpace.Inverse();			// AnimToPlaySpace * PlaySpaceToCamera
+
+				// RCS = rotated camera space, meaning camera space after it's been animated
+				// this is what we're looking for, the diff between rotated cam space and regular cam space.
+				// apply the transform back to camera space from the post-animated transform to get the RCS
+				FMatrix const RCSToCamera = CameraToPlaySpace * AnimToCamera;
+
+				// now apply to real camera
+				FRotationMatrix const RealCamToWorld(InOutPOV.Rotation);
+				InOutPOV.Rotation = (RCSToCamera * RealCamToWorld).Rotator();
+			}
+
+			// fov
+			const float FOVMin = 5.f;
+			const float FOVMax = 170.f;
+			InOutPOV.FOV += (AnimatedCamActor->GetCameraComponent()->FieldOfView - InitialFOV) * Scale;
+			InOutPOV.FOV = FMath::Clamp<float>(InOutPOV.FOV, FOVMin, FOVMax);
+		}
+	}
+}
+

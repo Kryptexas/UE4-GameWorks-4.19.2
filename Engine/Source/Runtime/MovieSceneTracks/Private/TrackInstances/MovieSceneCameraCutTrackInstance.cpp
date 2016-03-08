@@ -26,7 +26,7 @@ void FMovieSceneCameraCutTrackInstance::ClearInstance(IMovieScenePlayer& Player,
 }
 
 
-void FMovieSceneCameraCutTrackInstance::RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneCameraCutTrackInstance::RefreshInstance(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	const TArray<UMovieSceneSection*>& CameraCutSections = CameraCutTrack->GetAllSections();
 
@@ -41,12 +41,12 @@ void FMovieSceneCameraCutTrackInstance::RefreshInstance(const TArray<UObject*>& 
 }
 
 	
-void FMovieSceneCameraCutTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+void FMovieSceneCameraCutTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
 	Player.UpdateCameraCut(nullptr, nullptr);
 }
 	
-void FMovieSceneCameraCutTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+void FMovieSceneCameraCutTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
 {
 	// Don't switch CameraCuts when in preroll
 	if (UpdateData.bPreroll)
@@ -75,12 +75,12 @@ void FMovieSceneCameraCutTrackInstance::Update(EMovieSceneUpdateData& UpdateData
 
 	if (CameraObject != LastCameraObject)
 	{
-		Player.UpdateCameraCut(CameraObject, LastCameraObject.Get());
+		Player.UpdateCameraCut(CameraObject, LastCameraObject.Get(), UpdateData.bJumpCut);
 		LastCameraObject = CameraObject;
 	}
 	else if (CameraObject != nullptr)
 	{
-		Player.UpdateCameraCut(CameraObject, nullptr);
+		Player.UpdateCameraCut(CameraObject, nullptr, UpdateData.bJumpCut);
 	}
 }
 

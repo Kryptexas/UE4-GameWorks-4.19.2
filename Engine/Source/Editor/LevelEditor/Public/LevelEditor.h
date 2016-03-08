@@ -8,7 +8,7 @@
 #include "ModuleInterface.h"
 #include "SEditorViewport.h"
 #include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
-#include "CustomViewportLayout.h"
+#include "ViewportTypeDefinition.h"
 
 extern const FName LevelEditorApp;
 
@@ -230,38 +230,29 @@ public:
 
 public:
 	
-	/** Register a custom viewport layout for the level editor */
-	void RegisterCustomViewportLayout(FName InLayoutName, const FCustomViewportLayoutDefinition& InDefinition)
+	/** Register a viewport type for the level editor */
+	void RegisterViewportType(FName InLayoutName, const FViewportTypeDefinition& InDefinition)
 	{
-		CustomViewportLayouts.Add(InLayoutName, InDefinition);
+		CustomViewports.Add(InLayoutName, InDefinition);
 	}
 
-	/** Unregister a previously registered custom viewport layout */
-	void UnRegisterCustomViewportLayout(FName InLayoutName)
+	/** Unregister a previously registered viewport type */
+	void UnregisterViewportType(FName InLayoutName)
 	{
-		CustomViewportLayouts.Remove(InLayoutName);
+		CustomViewports.Remove(InLayoutName);
 	}
 
-	/** Iterate all registered custom viewport layouts */
-	void IterateCustomViewportLayouts(TFunctionRef<void(FName, const FCustomViewportLayoutDefinition&)> Iter)
+	/** Iterate all registered viewport types */
+	void IterateViewportTypes(TFunctionRef<void(FName, const FViewportTypeDefinition&)> Iter)
 	{
-		for (auto& Pair : CustomViewportLayouts)
+		for (auto& Pair : CustomViewports)
 		{
 			Iter(Pair.Key, Pair.Value);
 		}
 	}
 
-	/** Create an instanceof a custom viewport layout from the specified layout name */
-	TSharedPtr<FLevelViewportLayout> FactoryCustomViewportLayout(FName InLayoutName) const
-	{
-		const FCustomViewportLayoutDefinition* Definition = CustomViewportLayouts.Find(InLayoutName);
-		if (Definition)
-		{
-			return Definition->FactoryFunction();
-		}
-		
-		return nullptr;
-	}
+	/** Create an instance of a custom viewport from the specified viewport type name */
+	TSharedRef<IViewportLayoutEntity> FactoryViewport(FName InTypeName, const FViewportConstructionArgs& ConstructionArgs) const;
 
 private:
 	/**
@@ -336,8 +327,8 @@ private:
 	/* Holds the Editor's tab manager */
 	TSharedPtr<FTabManager> LevelEditorTabManager;
 
-	/** Map of named viewport layouts to factory functions */
-	TMap<FName, FCustomViewportLayoutDefinition> CustomViewportLayouts;
+	/** Map of named viewport types to factory functions */
+	TMap<FName, FViewportTypeDefinition> CustomViewports;
 };
 
 #endif // __LevelEditor_h__

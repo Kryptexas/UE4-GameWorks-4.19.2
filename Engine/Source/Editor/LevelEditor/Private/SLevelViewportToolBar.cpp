@@ -124,22 +124,24 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 		.ColorAndOpacity( this, &SViewportToolBar::OnGetColorAndOpacity )
 		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 		[
-			SNew( SVerticalBox )
-			+ SVerticalBox::Slot()
-			.AutoHeight()
+			SNew( SHorizontalBox )
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding( ToolbarSlotPadding )
+			[
+				SNew( SEditorViewportToolbarMenu )
+				.ParentToolBar( SharedThis( this ) )
+				.Cursor( EMouseCursor::Default )
+				.Image( "EditorViewportToolBar.MenuDropdown" )
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("EditorViewportToolBar.MenuDropdown")))
+				.OnGetMenuContent( this, &SLevelViewportToolBar::GenerateOptionsMenu )
+			]
+
+			+ SHorizontalBox::Slot()
 			[
 				SNew( SHorizontalBox )
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding( ToolbarSlotPadding )
-				[
-					SNew( SEditorViewportToolbarMenu )
-					.ParentToolBar( SharedThis( this ) )
-					.Cursor( EMouseCursor::Default )
-					.Image( "EditorViewportToolBar.MenuDropdown" )
-					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("EditorViewportToolBar.MenuDropdown")))
-					.OnGetMenuContent( this, &SLevelViewportToolBar::GenerateOptionsMenu )
-				]
+				.Visibility(Viewport.Pin().Get(), &SLevelViewport::GetFullToolbarVisibility)
+
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding( ToolbarSlotPadding )
@@ -192,7 +194,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					SNew(STransformViewportToolBar)
 					.Viewport(ViewportRef)
 					.CommandList(LevelEditorModule.GetGlobalLevelEditorActions())
-					.Extenders(LevelEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders())					
+					.Extenders(LevelEditorModule.GetToolBarExtensibilityManager()->GetAllExtenders())
 					.Visibility(ViewportRef, &SLevelViewport::GetTransformToolbarVisibility)
 				]
 				+ SHorizontalBox::Slot()
@@ -503,6 +505,7 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 			OptionsMenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().ToggleRealTime );
 			OptionsMenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().ToggleStats );
 			OptionsMenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().ToggleFPS );
+			OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.ToggleViewportToolbar );
 
 			FText HideAllLabel = LOCTEXT("HideAllLabel", "Hide All");
 			TArray< FLevelViewportCommands::FShowMenuCommand > HideStatsMenu;
@@ -692,6 +695,17 @@ void SLevelViewportToolBar::GeneratePlacedCameraMenuEntries( FMenuBuilder& Build
 	}
 }
 
+void SLevelViewportToolBar::GenerateViewportTypeMenu( FMenuBuilder& Builder ) const
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	LevelEditorModule.IterateViewportTypes([&](FName, const FViewportTypeDefinition& InDefinition) {
+		if (InDefinition.ToggleCommand.IsValid())
+		{
+			Builder.AddMenuEntry(InDefinition.ToggleCommand);
+		}
+	});
+}
+
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 {
 	Viewport.Pin()->OnFloatingButtonClicked();
@@ -710,7 +724,6 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Front);
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Back);
 	CameraMenuBuilder.EndSection();
-
 
 	TArray<ACameraActor*> Cameras;
 
@@ -733,6 +746,30 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 	{
 		CameraMenuBuilder.BeginSection("CameraActors", CameraActorsHeading );
 			GeneratePlacedCameraMenuEntries( CameraMenuBuilder, Cameras );
+		CameraMenuBuilder.EndSection();
+	}
+
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+
+		int32 NumCustomViewportTypes = 0;
+		LevelEditorModule.IterateViewportTypes([&](FName, const FViewportTypeDefinition&){ ++NumCustomViewportTypes; });
+
+		FText ViewportTypesHeading = LOCTEXT("ViewportTypes", "Viewport Type");
+		const uint32 MaxViewportTypesInTopLevelMenu = 4;
+		if( NumCustomViewportTypes > MaxViewportTypesInTopLevelMenu )
+		{
+			CameraMenuBuilder.BeginSection("ViewportTypes");
+			CameraMenuBuilder.AddSubMenu( ViewportTypesHeading, FText(), FNewMenuDelegate::CreateSP(this, &SLevelViewportToolBar::GenerateViewportTypeMenu) );
+			CameraMenuBuilder.EndSection();
+		}
+		else
+		{
+			CameraMenuBuilder.BeginSection("ViewportTypes", ViewportTypesHeading);
+			GenerateViewportTypeMenu(CameraMenuBuilder);
+			CameraMenuBuilder.EndSection();
+
+		}
 		CameraMenuBuilder.EndSection();
 	}
 
@@ -849,44 +886,6 @@ void SLevelViewportToolBar::GenerateViewportConfigsMenu(FMenuBuilder& MenuBuilde
 			],
 			FText::GetEmpty(), true
 			);
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("LevelViewportSpecializedConfigs", LOCTEXT("SpecializedConfigHeader", "Specialized") );
-	{
-		FToolBarBuilder SpecializedButtons(CommandList, FMultiBoxCustomization::None);
-		SpecializedButtons.SetLabelVisibility(EVisibility::Collapsed);
-		SpecializedButtons.SetStyle(&FEditorStyle::Get(), "ViewportLayoutToolbar");
-
-
-		FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>("LevelEditor");
-		LevelEditorModule.IterateCustomViewportLayouts([&](FName InName, const FCustomViewportLayoutDefinition& Definition){
-
-			SpecializedButtons.AddToolBarButton(
-				FExecuteAction::CreateSP(Viewport.Pin().Get(), &SLevelViewport::OnSetViewportConfiguration, InName ),
-				NAME_None,
-				Definition.DisplayName,
-				Definition.Description,
-				Definition.Icon
-			);
-
-		});
-
-		MenuBuilder.AddWidget(
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SpecializedButtons.MakeWidget()
-			]
-			+SHorizontalBox::Slot()
-			.FillWidth(1)
-			[
-				SNullWidget::NullWidget
-			],
-			FText::GetEmpty(),
-			true
-		);
 	}
 	MenuBuilder.EndSection();
 }

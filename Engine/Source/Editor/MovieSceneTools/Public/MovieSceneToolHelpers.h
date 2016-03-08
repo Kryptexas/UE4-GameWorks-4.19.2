@@ -4,6 +4,7 @@
 
 class UMovieSceneSection;
 
+DECLARE_DELEGATE_TwoParams(FOnEnumSelectionChanged, int32 /*Selection*/, ESelectInfo::Type /*SelectionType*/);
 
 class MOVIESCENETOOLS_API MovieSceneToolHelpers
 {
@@ -57,7 +58,7 @@ public:
 	static FString GenerateNewShotName(const TArray<UMovieSceneSection*>& AllSections, float Time);
 
 	/**
-	 * Gather takes (level sequence assets that have the same shot prefix and shot number)
+	 * Gather takes - level sequence assets that have the same shot prefix and shot number in the same asset path (directory)
 	 * 
 	 * @param Section The section to gather takes from
 	 * @param TakeNumbers The gathered take numbers
@@ -74,4 +75,14 @@ public:
 	 * @return The asset
 	 */
 	static UObject* GetTake(const UMovieSceneSection* Section, uint32 TakeNumber);
+
+	/**
+	 * Generate a combobox for editing enum values
+	 *
+	 * @param Enum The enum to make the combobox from
+	 * @param CurrentValue The current value to display
+	 * @param OnSelectionChanged Delegate fired when selection is changed
+	 * @return The new widget
+	 */
+	static TSharedRef<SWidget> MakeEnumComboBox(const UEnum* Enum, TAttribute<int32> CurrentValue, FOnEnumSelectionChanged OnSelectionChanged, TAttribute<TOptional<uint8>> InIntermediateValue);
 };

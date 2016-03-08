@@ -30,24 +30,16 @@ public:
 
 		// tab icons
 		Set("LevelSequenceEditor.Tabs.Sequencer", new IMAGE_BRUSH("icon_tab_sequencer_16x", Icon16x16));
-		Set("LevelSequenceEditor.PossessNewActor", new IMAGE_BRUSH("PossessNewActor_16x", Icon16x16));
-		Set("LevelSequenceEditor.PossessNewActor.Small", new IMAGE_BRUSH("PossessNewActor_16x", Icon16x16));
+		Set("LevelSequenceEditor.PossessNewActor", new IMAGE_BRUSH("Icon_Actor_To_Sequencer_16x", Icon16x16));
+		Set("LevelSequenceEditor.PossessNewActor.Small", new IMAGE_BRUSH("Icon_Actor_To_Sequencer_16x", Icon16x16));
 		Set("LevelSequenceEditor.CreateNewLevelSequenceInLevel", new IMAGE_BRUSH("CreateNewLevelSequenceInLevel_16x", Icon16x16));
 		Set("LevelSequenceEditor.CreateNewLevelSequenceInLevel.Small", new IMAGE_BRUSH("CreateNewLevelSequenceInLevel_16x", Icon16x16));
-		Set("LevelSequenceEditor.OnePaneCinematicViewportLayout", new IMAGE_BRUSH("ViewportLayout_OnePaneCinematic", FVector2D(47, 37)));
-		Set("LevelSequenceEditor.TwoPaneCinematicViewportLayout", new IMAGE_BRUSH("ViewportLayout_TwoPaneCinematic", FVector2D(47, 37)));
-		Set("LevelSequenceEditor.OnePaneCinematicViewportLayout.Small", new IMAGE_BRUSH("ViewportLayout_OnePaneCinematic", FVector2D(47, 37)));
-		Set("LevelSequenceEditor.TwoPaneCinematicViewportLayout.Small", new IMAGE_BRUSH("ViewportLayout_TwoPaneCinematic", FVector2D(47, 37)));
-
-		Set("LevelSequenceEditor.CinematicViewportCamera", new IMAGE_BRUSH("CinematicViewportCamera", FVector2D(36, 24)));
-		Set("LevelSequenceEditor.CinematicViewportClose", new IMAGE_BRUSH("CinematicViewportClose", FVector2D(16, 16)));
-
+		
 		Set("LevelSequenceEditor.CinematicViewportPlayMarker", new IMAGE_BRUSH("CinematicViewportPlayMarker", FVector2D(11, 6)));
 		Set("LevelSequenceEditor.CinematicViewportRangeStart", new BORDER_BRUSH("CinematicViewportRangeStart", FMargin(1.f,.3f,0.f,.6f)));
 		Set("LevelSequenceEditor.CinematicViewportRangeEnd", new BORDER_BRUSH("CinematicViewportRangeEnd", FMargin(0.f,.3f,1.f,.6f)));
 
-		Set("LevelSequenceEditor.CinematicViewportSetPlayStart", new IMAGE_BRUSH("CinematicViewportSetPlayStart", FVector2D(24, 24)));
-		Set("LevelSequenceEditor.CinematicViewportSetPlayEnd", new IMAGE_BRUSH("CinematicViewportSetPlayEnd", FVector2D(24, 24)));
+		Set("LevelSequenceEditor.CinematicViewportTransportRangeKey", new IMAGE_BRUSH("CinematicViewportTransportRangeKey", FVector2D(7.f, 7.f)));
 
 		Set("FilmOverlay.DefaultThumbnail", new IMAGE_BRUSH("DefaultFilmOverlayThumbnail", FVector2D(36, 24)));
 

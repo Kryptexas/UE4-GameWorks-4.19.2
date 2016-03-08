@@ -5,7 +5,7 @@
 #include "Runtime/MovieSceneTracks/Public/Sections/MovieSceneCameraCutSection.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "SInlineEditableTextBlock.h"
-
+#include "MovieSceneToolsUserSettings.h"
 
 #define LOCTEXT_NAMESPACE "FCameraCutSection"
 
@@ -25,8 +25,37 @@ FCameraCutSection::~FCameraCutSection()
 /* ISequencerSection interface
  *****************************************************************************/
 
+void FCameraCutSection::SetSingleTime(float GlobalTime)
+{
+	UMovieSceneCameraCutSection* CameraCutSection = Cast<UMovieSceneCameraCutSection>(Section);
+	if (CameraCutSection)
+	{
+		CameraCutSection->SetThumbnailReferenceOffset(GlobalTime - CameraCutSection->GetStartTime());
+	}
+}
+
+void FCameraCutSection::Tick(const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	UMovieSceneCameraCutSection* CameraCutSection = Cast<UMovieSceneCameraCutSection>(Section);
+	if (CameraCutSection)
+	{
+		if (GetDefault<UMovieSceneUserThumbnailSettings>()->bDrawSingleThumbnails)
+		{
+			ThumbnailCache.SetSingleReferenceFrame(CameraCutSection->GetThumbnailReferenceOffset() + CameraCutSection->GetStartTime());
+		}
+		else
+		{
+			ThumbnailCache.SetSingleReferenceFrame(TOptional<float>());
+		}
+	}
+
+	FThumbnailSection::Tick(AllottedGeometry, ClippedGeometry, InCurrentTime, InDeltaTime);
+}
+
 void FCameraCutSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding)
 {
+	FThumbnailSection::BuildSectionContextMenu(MenuBuilder, ObjectBinding);
+
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 
 	if (World == nullptr)
@@ -34,15 +63,16 @@ void FCameraCutSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const
 		return;
 	}
 
+	const AActor* CameraActor = GetCameraForFrame(Section->GetStartTime());
+
 	// get list of available cameras
 	TArray<AActor*> AllCameras;
-	TArray<AActor*> SelectedCameras;
 
 	for (FActorIterator ActorIt(World); ActorIt; ++ActorIt)
 	{
 		AActor* Actor = *ActorIt;
 
-		if ((Actor != GetCameraObject()) && Actor->IsListedInSceneOutliner())
+		if ((Actor != CameraActor) && Actor->IsListedInSceneOutliner())
 		{
 			UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(Actor);
 			if (CameraComponent)
@@ -84,41 +114,31 @@ FText FCameraCutSection::GetDisplayName() const
 /* FThumbnailSection interface
  *****************************************************************************/
 
-AActor* FCameraCutSection::GetCameraObject() const
+const AActor* FCameraCutSection::GetCameraForFrame(float Time) const
 {
 	UMovieSceneCameraCutSection* CameraCutSection = Cast<UMovieSceneCameraCutSection>(Section);
+	TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
 
-	TArray<UObject*> OutObjects;
-	// @todo sequencer: the director track may be able to get cameras from sub-movie scenes
-	SequencerPtr.Pin()->GetRuntimeObjects(SequencerPtr.Pin()->GetRootMovieSceneSequenceInstance(),  CameraCutSection->GetCameraGuid(), OutObjects);
-
-	AActor* ReturnCam = nullptr;
-
-	if (OutObjects.Num() > 0)
+	if (CameraCutSection && Sequencer.IsValid())
 	{
-		ReturnCam = Cast<AActor>(OutObjects[0]);
+		TSharedRef<FMovieSceneSequenceInstance> SequenceInstance = Sequencer->GetFocusedMovieSceneSequenceInstance();
 
-		if (ReturnCam != nullptr)
+		AActor* Actor = Cast<AActor>(SequenceInstance->FindObject(CameraCutSection->GetCameraGuid(), *Sequencer));
+		if (Actor)
 		{
-			return ReturnCam;
+			return Actor;
+		}
+		else
+		{
+			FMovieSceneSpawnable* Spawnable = SequenceInstance->GetSequence()->GetMovieScene()->FindSpawnable(CameraCutSection->GetCameraGuid());
+			if (Spawnable)
+			{
+				return GetDefault<AActor>(Spawnable->GetClass());
+			}
 		}
 	}
 
-	// Otherwise look in the current movie scene
-	OutObjects.Empty();
-	SequencerPtr.Pin()->GetRuntimeObjects(SequencerPtr.Pin()->GetFocusedMovieSceneSequenceInstance(), CameraCutSection->GetCameraGuid(), OutObjects);
-
-	if (OutObjects.Num() > 0)
-	{
-		ReturnCam = Cast<AActor>(OutObjects[0]);
-
-		if (ReturnCam != nullptr)
-		{
-			return ReturnCam;
-		}
-	}
-
-	return ReturnCam;
+	return nullptr;
 }
 
 float FCameraCutSection::GetSectionHeight() const
@@ -128,7 +148,7 @@ float FCameraCutSection::GetSectionHeight() const
 
 FMargin FCameraCutSection::GetContentPadding() const
 {
-	return FMargin(6.f, 12.f);
+	return FMargin(6.f, 10.f);
 }
 
 int32 FCameraCutSection::OnPaintSection(FSequencerSectionPainter& InPainter) const
@@ -141,7 +161,7 @@ int32 FCameraCutSection::OnPaintSection(FSequencerSectionPainter& InPainter) con
 
 FText FCameraCutSection::HandleThumbnailTextBlockText() const
 {
-	AActor* CameraActor = GetCameraObject();
+	const AActor* CameraActor = GetCameraForFrame(Section->GetStartTime());
 	if (CameraActor)
 	{
 		return FText::FromString(CameraActor->GetActorLabel());

@@ -88,6 +88,7 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 		, bIsRealtime(false)
 		, bShowFPS_DEPRECATED(false)
 		, bShowStats(false)
+		, bShowFullToolbar(true)
 	{ }
 
 	/** The viewport type */
@@ -147,6 +148,10 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 	/* Whether viewport statistics should be enabled by default. */
 	UPROPERTY(config)
 	TArray<FString> EnabledStats;
+
+	/** When enabled, the full viewport toolbar will be shown. When disabled, a compact toolbar is used. */
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel)
+	bool bShowFullToolbar;
 };
 
 

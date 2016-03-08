@@ -33,6 +33,7 @@ public:
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	virtual FName GetIdentifier() const override;
 	virtual bool CanDeactivate() const override;
+	virtual const ISequencerHotspot* GetDragHotspot() const override;
 	
 private:
 

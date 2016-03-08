@@ -17,7 +17,7 @@ UMovieSceneCinematicShotTrack::UMovieSceneCinematicShotTrack(const FObjectInitia
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(0,0,0);
+	TrackTint = FColor(0, 0, 0, 127);
 #endif
 }
 
@@ -40,7 +40,7 @@ UMovieSceneSubSection* UMovieSceneCinematicShotTrack::AddSequence(UMovieSceneSeq
 	MovieSceneHelpers::SortConsecutiveSections(Sections);
 
 	// Once sequences are sorted fixup the surrounding sequences to fix any gaps
-	MovieSceneHelpers::FixupConsecutiveSections(Sections, *NewSection, false);
+	//MovieSceneHelpers::FixupConsecutiveSections(Sections, *NewSection, false);
 
 	return NewSection;
 }
@@ -71,7 +71,7 @@ UMovieSceneSection* UMovieSceneCinematicShotTrack::CreateNewSection()
 void UMovieSceneCinematicShotTrack::RemoveSection(UMovieSceneSection& Section)
 {
 	Sections.Remove(&Section);
-	MovieSceneHelpers::FixupConsecutiveSections(Sections, Section, true);
+	//MovieSceneHelpers::FixupConsecutiveSections(Sections, Section, true);
 	MovieSceneHelpers::SortConsecutiveSections(Sections);
 
 	// @todo Sequencer: The movie scene owned by the section is now abandoned.  Should we offer to delete it?  
@@ -79,7 +79,7 @@ void UMovieSceneCinematicShotTrack::RemoveSection(UMovieSceneSection& Section)
 
 bool UMovieSceneCinematicShotTrack::SupportsMultipleRows() const
 {
-	return false;
+	return true;
 }
 
 bool UMovieSceneCinematicShotTrack::AddsSectionBoundsToPlayRange() const
@@ -90,7 +90,7 @@ bool UMovieSceneCinematicShotTrack::AddsSectionBoundsToPlayRange() const
 #if WITH_EDITOR
 void UMovieSceneCinematicShotTrack::OnSectionMoved(UMovieSceneSection& Section)
 {
-	MovieSceneHelpers::FixupConsecutiveSections(Sections, Section, false);
+	//MovieSceneHelpers::FixupConsecutiveSections(Sections, Section, false);
 }
 #endif
 

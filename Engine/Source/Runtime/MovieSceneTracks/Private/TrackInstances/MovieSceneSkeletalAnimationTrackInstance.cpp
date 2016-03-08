@@ -8,40 +8,24 @@
 #include "Matinee/MatineeAnimInterface.h"
 #include "MovieSceneCommonHelpers.h"
 
-struct FAnimEvalTimes
+float MapTimeToAnimation(float ThisPosition, UMovieSceneSkeletalAnimationSection* AnimSection)
 {
-	float Current, Previous;
+	ThisPosition = FMath::Clamp(ThisPosition, AnimSection->GetStartTime(), AnimSection->GetEndTime());
 
-	/** Map the specified times onto the specified anim section */
-	static FAnimEvalTimes MapTimesToAnimation(float ThisPosition, float LastPosition, UMovieSceneSkeletalAnimationSection* AnimSection)
+	ThisPosition -= 1 / 1000.0f;
+
+	float AnimPlayRate = FMath::IsNearlyZero(AnimSection->GetPlayRate()) ? 1.0f : AnimSection->GetPlayRate();
+	float SeqLength = AnimSection->GetSequenceLength() - (AnimSection->GetStartOffset() + AnimSection->GetEndOffset());
+
+	ThisPosition = (ThisPosition - AnimSection->GetStartTime()) * AnimPlayRate;
+	ThisPosition = FMath::Fmod(ThisPosition, SeqLength);
+	ThisPosition += AnimSection->GetStartOffset();
+	if (AnimSection->GetReverse())
 	{
-		ThisPosition = FMath::Clamp(ThisPosition, AnimSection->GetStartTime(), AnimSection->GetEndTime());
-		LastPosition = FMath::Clamp(LastPosition, AnimSection->GetStartTime(), AnimSection->GetEndTime());
-
-		ThisPosition -= 1 / 1000.0f;
-
-		float AnimPlayRate = FMath::IsNearlyZero(AnimSection->GetPlayRate()) ? 1.0f : AnimSection->GetPlayRate();
-		float SeqLength = AnimSection->GetSequenceLength() - (AnimSection->GetStartOffset() + AnimSection->GetEndOffset());
-
-		ThisPosition = (ThisPosition - AnimSection->GetStartTime()) * AnimPlayRate;
-		ThisPosition = FMath::Fmod(ThisPosition, SeqLength);
-		ThisPosition += AnimSection->GetStartOffset();
-		if (AnimSection->GetReverse())
-		{
-			ThisPosition = (SeqLength - (ThisPosition - AnimSection->GetStartOffset())) + AnimSection->GetStartOffset();
-		}
-
-		LastPosition = (LastPosition - AnimSection->GetStartTime()) * AnimPlayRate;
-		LastPosition = FMath::Fmod(LastPosition, SeqLength);
-		LastPosition += AnimSection->GetStartOffset();
-		if (AnimSection->GetReverse())
-		{
-			LastPosition = (SeqLength - (LastPosition - AnimSection->GetStartOffset())) + AnimSection->GetStartOffset();
-		}
-
-		FAnimEvalTimes EvalTimes = { ThisPosition, LastPosition };
-		return EvalTimes;
+		ThisPosition = (SeqLength - (ThisPosition - AnimSection->GetStartOffset())) + AnimSection->GetStartOffset();
 	}
+
+	return ThisPosition;
 };
 
 FMovieSceneSkeletalAnimationTrackInstance::FMovieSceneSkeletalAnimationTrackInstance( UMovieSceneSkeletalAnimationTrack& InAnimationTrack )
@@ -52,24 +36,21 @@ FMovieSceneSkeletalAnimationTrackInstance::FMovieSceneSkeletalAnimationTrackInst
 
 FMovieSceneSkeletalAnimationTrackInstance::~FMovieSceneSkeletalAnimationTrackInstance()
 {
-	// @todo Sequencer Need to find some way to call PreviewFinishAnimControl (needs the runtime objects)
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+void FMovieSceneSkeletalAnimationTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	// @todo Sequencer gameplay update has a different code path than editor update for animation
-
 	for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
 	{
 		// get the skeletal mesh component we want to control
 		USkeletalMeshComponent* Component = nullptr;
+		UObject* RuntimeObject = RuntimeObjects[i].Get();
 
-		UObject* RuntimeObject = RuntimeObjects[i];
-		if(RuntimeObject != nullptr)
+		if (RuntimeObject != nullptr)
 		{
 			// first try to control the component directly
 			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(RuntimeObject);
-			if(SkeletalMeshComponent == nullptr)
+			if (SkeletalMeshComponent == nullptr)
 			{
 				// then check to see if we are controlling an actor & if so use its first USkeletalMeshComponent 
 				AActor* Actor = Cast<AActor>(RuntimeObject);
@@ -79,7 +60,83 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& Up
 				}
 			}
 
-			if(SkeletalMeshComponent)
+			if (SkeletalMeshComponent)
+			{
+				if (GIsEditor && !RuntimeObject->GetWorld()->HasBegunPlay())
+				{
+					PreviewBeginAnimControl(SkeletalMeshComponent);
+				}
+				else
+				{
+					BeginAnimControl(SkeletalMeshComponent);
+				}
+			}
+		}
+	}
+}
+
+void FMovieSceneSkeletalAnimationTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
+{
+	for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
+	{
+		// get the skeletal mesh component we want to control
+		USkeletalMeshComponent* Component = nullptr;
+		UObject* RuntimeObject = RuntimeObjects[i].Get();
+
+		if (RuntimeObject != nullptr)
+		{
+			// first try to control the component directly
+			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(RuntimeObject);
+			if (SkeletalMeshComponent == nullptr)
+			{
+				// then check to see if we are controlling an actor & if so use its first USkeletalMeshComponent 
+				AActor* Actor = Cast<AActor>(RuntimeObject);
+				if(Actor != nullptr)
+				{
+					SkeletalMeshComponent = Actor->FindComponentByClass<USkeletalMeshComponent>();
+				}
+			}
+
+			if (SkeletalMeshComponent)
+			{
+				if (GIsEditor && !RuntimeObject->GetWorld()->HasBegunPlay())
+				{
+					PreviewFinishAnimControl(SkeletalMeshComponent);
+				}
+				else
+				{
+					FinishAnimControl(SkeletalMeshComponent);
+				}
+			}
+		}
+	}
+}
+
+void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) 
+{
+	// @todo Sequencer gameplay update has a different code path than editor update for animation
+
+	for (int32 i = 0; i < RuntimeObjects.Num(); ++i)
+	{
+		// get the skeletal mesh component we want to control
+		USkeletalMeshComponent* Component = nullptr;
+		UObject* RuntimeObject = RuntimeObjects[i].Get();
+
+		if (RuntimeObject != nullptr)
+		{
+			// first try to control the component directly
+			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(RuntimeObject);
+			if (SkeletalMeshComponent == nullptr)
+			{
+				// then check to see if we are controlling an actor & if so use its first USkeletalMeshComponent 
+				AActor* Actor = Cast<AActor>(RuntimeObject);
+				if(Actor != nullptr)
+				{
+					SkeletalMeshComponent = Actor->FindComponentByClass<USkeletalMeshComponent>();
+				}
+			}
+
+			if (SkeletalMeshComponent)
 			{
 				UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(UpdateData.Position));
 			
@@ -99,19 +156,20 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& Up
 
 					if (AnimSequence)
 					{
-						const FAnimEvalTimes EvalTimes = FAnimEvalTimes::MapTimesToAnimation(UpdateData.Position, UpdateData.LastPosition, AnimSection);
+						float EvalTime = MapTimeToAnimation(UpdateData.Position, AnimSection);
 
 						int32 ChannelIndex = 0;
 
-						// NOTE: The order of the bLooping and bFireNotifiers parameters are swapped in the preview and non-preview SetAnimPosition functions.
 						const bool bLooping = false;
-						if (GIsEditor && !GWorld->HasBegunPlay())
+
+						// we also use PreviewSetAnimPosition in PIE when not playing, as we can preview in PIE
+						const bool bIsNotInPIEOrNotPlaying = !RuntimeObject->GetWorld()->HasBegunPlay() || Player.GetPlaybackStatus() != EMovieScenePlayerStatus::Playing;
+						if (GIsEditor && bIsNotInPIEOrNotPlaying)
 						{
-							// Pass an absolute delta time to the preview anim evaluation
-							float DeltaTime = FMath::Abs(EvalTimes.Current - EvalTimes.Previous);
-						
 							// If the playback status is jumping, ie. one such occurrence is setting the time for thumbnail generation, disable anim notifies updates because it could fire audio
 							const bool bFireNotifies = Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Jumping || Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Stopped ? false : true;
+
+							float DeltaTime = UpdateData.Position > UpdateData.LastPosition ? UpdateData.Position - UpdateData.LastPosition : 0.f;
 
 							// When jumping from one cut to another cut, the delta time should be 0 so that anim notifies before the current position are not evaluated. Note, anim notifies at the current time should still be evaluated.
 							if (UpdateData.bJumpCut)
@@ -119,15 +177,13 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update(EMovieSceneUpdateData& Up
 								DeltaTime = 0.f;
 							}
 						
-							PreviewBeginAnimControl(SkeletalMeshComponent);
-							PreviewSetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTimes.Current, bLooping, bFireNotifies, DeltaTime);
+							PreviewSetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies, DeltaTime, Player.GetPlaybackStatus() == EMovieScenePlayerStatus::Playing);
 						}
 						else
 						{
 							// Don't fire notifies at runtime since they will be fired through the standard animation tick path.
 							const bool bFireNotifies = false;
-							BeginAnimControl(SkeletalMeshComponent);
-							SetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTimes.Current, bFireNotifies, bLooping);
+							SetAnimPosition(SkeletalMeshComponent, AnimSection->GetSlotName(), ChannelIndex, AnimSequence, EvalTime, bLooping, bFireNotifies);
 						}
 					}
 				}
@@ -154,7 +210,7 @@ bool FMovieSceneSkeletalAnimationTrackInstance::CanPlayAnimation(USkeletalMeshCo
 		(!AnimAssetBase || SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::SetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bFireNotifies, bool bLooping)
+void FMovieSceneSkeletalAnimationTrackInstance::SetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies)
 {
 	if (CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 	{
@@ -215,10 +271,32 @@ void FMovieSceneSkeletalAnimationTrackInstance::PreviewFinishAnimControl(USkelet
 	}
 }
 
-void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime)
+void FMovieSceneSkeletalAnimationTrackInstance::PreviewSetAnimPosition(USkeletalMeshComponent* SkeletalMeshComponent, FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime, bool bPlaying)
 {
 	if(CanPlayAnimation(SkeletalMeshComponent, InAnimSequence))
 	{
 		FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, CurrentlyPlayingMontage, InPosition, bLooping, bFireNotifies, DeltaTime);
+
+		// if we are not playing, make sure we dont continue (as skeletal meshes can still tick us onwards)
+		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
+		UAnimSingleNodeInstance * SingleNodeInst = SkeletalMeshComponent->GetSingleNodeInstance();
+		if(SingleNodeInst)
+		{
+			SingleNodeInst->SetPlaying(bPlaying);
+		}
+		else if (AnimInst)
+		{
+			if(CurrentlyPlayingMontage.IsValid())
+			{
+				if(bPlaying)
+				{
+					AnimInst->Montage_Resume(CurrentlyPlayingMontage.Get());
+				}
+				else
+				{
+					AnimInst->Montage_Pause(CurrentlyPlayingMontage.Get());
+				}
+			}
+		}
 	}
 }

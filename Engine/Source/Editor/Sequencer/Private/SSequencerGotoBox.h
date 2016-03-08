@@ -18,13 +18,11 @@ public:
 	SLATE_BEGIN_ARGS(SSequencerGotoBox) { }
 	SLATE_END_ARGS()
 
+	/** Construct the widget. */
 	void Construct(const FArguments& InArgs, const TSharedRef<FSequencer>& InSequencer, USequencerSettings& InSettings, const TSharedRef<INumericTypeInterface<float>>& InNumericTypeInterface);
 
-public:
-
-	// SWidget interface
-
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	/** Toggle the widget's visibility. */
+	void ToggleVisibility();
 
 private:
 
@@ -33,8 +31,14 @@ private:
 
 private:
 
+	/** The border widget. */
+	TSharedPtr<SWidget> Border;
+
 	/** The entry box widget. */
 	TSharedPtr<SNumericEntryBox<float>> EntryBox;
+
+	/** The widget that focused prior to this goto box. */
+	TWeakPtr<SWidget> LastFocusedWidget;
 
 	/** Numeric type interface used for converting parsing and generating strings from numbers. */
 	TSharedPtr<INumericTypeInterface<float>> NumericTypeInterface;
@@ -44,7 +48,4 @@ private:
 
 	/** Cached settings provided to the sequencer itself on creation. */
 	USequencerSettings* Settings;
-
-	/** Whether the box was hidden. */
-	bool WasHidden;
 };

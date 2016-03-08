@@ -2,13 +2,14 @@
 
 #include "MovieScenePrivatePCH.h"
 #include "MovieScene.h"
-
+#include "MovieSceneFolder.h"
 
 /* UMovieScene interface
  *****************************************************************************/
 
 UMovieScene::UMovieScene(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, InOutRange(FFloatRange::Empty())
 	, PlaybackRange(FFloatRange::Empty())
 	, InTime_DEPRECATED(FLT_MAX)
 	, OutTime_DEPRECATED(-FLT_MAX)
@@ -55,10 +56,13 @@ bool UMovieScene::RemoveSpawnable( const FGuid& Guid )
 				{
 					UClass* GeneratedClass = CurSpawnable.GetClass();
 					UBlueprint* Blueprint = GeneratedClass ? Cast<UBlueprint>(GeneratedClass->ClassGeneratedBy) : nullptr;
-					check(nullptr != Blueprint);
-					// @todo sequencer: Also remove created Blueprint inner object.  Is this sufficient?  Needs to work with Undo too!
-					Blueprint->ClearFlags( RF_Standalone );	// @todo sequencer: Probably not needed for Blueprint
-					Blueprint->MarkPendingKill();
+
+					if (Blueprint)
+					{
+						// @todo sequencer: Also remove created Blueprint inner object.  Is this sufficient?  Needs to work with Undo too!
+						Blueprint->ClearFlags( RF_Standalone );	// @todo sequencer: Probably not needed for Blueprint
+						Blueprint->MarkPendingKill();
+					}
 				}
 
 				RemoveBinding( Guid );
@@ -248,17 +252,16 @@ void UMovieScene::SetObjectDisplayName(const FGuid& ObjectId, const FText& Displ
 		ObjectsToDisplayNames.Add(ObjectId.ToString(), DisplayName);
 	}
 }
+
+
+TArray<UMovieSceneFolder*>&  UMovieScene::GetRootFolders()
+{
+	return RootFolders;
+}
 #endif
 
 
-TRange<float> UMovieScene::GetPlaybackRange() const
-{
-	check(PlaybackRange.HasLowerBound() && PlaybackRange.HasUpperBound());
-	return PlaybackRange;
-}
-
-
-void UMovieScene::SetPlaybackRange(float Start, float End)
+void UMovieScene::SetPlaybackRange(float Start, float End, bool bAlwaysMarkDirty)
 {
 	if (ensure(End >= Start))
 	{
@@ -269,8 +272,11 @@ void UMovieScene::SetPlaybackRange(float Start, float End)
 			return;
 		}
 
-		Modify();
-		
+		if (bAlwaysMarkDirty)
+		{
+			Modify();
+		}
+
 		PlaybackRange = NewRange;
 
 #if WITH_EDITORONLY_DATA
@@ -335,7 +341,7 @@ UMovieSceneTrack* UMovieScene::FindTrack(TSubclassOf<UMovieSceneTrack> TrackClas
 }
 
 
-class UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid )
+UMovieSceneTrack* UMovieScene::AddTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid )
 {
 	UMovieSceneTrack* CreatedType = nullptr;
 
@@ -379,6 +385,22 @@ bool bAnythingRemoved = false;
 	return bAnythingRemoved;
 }
 
+bool UMovieScene::FindTrackBinding(const UMovieSceneTrack& InTrack, FGuid& OutGuid) const
+{
+	for (auto& Binding : ObjectBindings)
+	{
+		for(auto& Track : Binding.GetTracks())
+		{
+			if(Track == &InTrack)
+			{
+				OutGuid = Binding.GetObjectGuid();
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 UMovieSceneTrack* UMovieScene::FindMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass ) const
 {
@@ -397,7 +419,7 @@ UMovieSceneTrack* UMovieScene::FindMasterTrack( TSubclassOf<UMovieSceneTrack> Tr
 }
 
 
-class UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
+UMovieSceneTrack* UMovieScene::AddMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
 {
 	Modify();
 

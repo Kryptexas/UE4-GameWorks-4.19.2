@@ -15,6 +15,7 @@
 #include "SequencerCommands.h"
 #include "SequencerNodeTree.h"
 #include "SequencerDisplayNode.h"
+#include "SequencerFolderNode.h"
 #include "SequencerObjectBindingNode.h"
 #include "SequencerSectionCategoryNode.h"
 #include "SequencerSectionKeyAreaNode.h"

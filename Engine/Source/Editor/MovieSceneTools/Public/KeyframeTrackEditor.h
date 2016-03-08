@@ -6,6 +6,7 @@
 #include "IKeyframeSection.h"
 #include "ISequencerObjectChangeListener.h"
 #include "MovieSceneCommonHelpers.h"
+#include "MovieSceneSection.h"
 
 class IPropertyHandle;
 class FPropertyChangedParams;
@@ -151,6 +152,8 @@ private:
 		else
 		{
 			EMovieSceneKeyInterpolation InterpolationMode = GetSequencer()->GetKeyInterpolation();
+			bool bInfiniteKeyAreas = GetSequencer()->GetInfiniteKeyAreas();
+
 			for ( const KeyDataType& NewKey : NewKeys )
 			{
 				// Only modify the track if the new key will create new data, or if creating keys has been forced.
@@ -158,11 +161,11 @@ private:
 				{
 					if ( HasKeys( Track, NewKey ) || KeyParams.bCreateKeyIfEmpty )
 					{
-						bSectionCreated |= AddKey( Track, KeyTime, NewKey, InterpolationMode );
+						bSectionCreated |= AddKey( Track, KeyTime, NewKey, InterpolationMode, bInfiniteKeyAreas );
 					}
 					else
 					{
-						bSectionCreated |= SetDefault( Track, KeyTime, NewKey );
+						bSectionCreated |= SetDefault( Track, KeyTime, NewKey, bInfiniteKeyAreas );
 					}
 				}
 			}
@@ -171,7 +174,7 @@ private:
 			{
 				for ( const KeyDataType& DefaultKey : DefaultKeys )
 				{
-					bSectionCreated |= SetDefault( Track, KeyTime, DefaultKey );
+					bSectionCreated |= SetDefault( Track, KeyTime, DefaultKey, bInfiniteKeyAreas  );
 				}
 			}
 		}
@@ -200,17 +203,23 @@ private:
 	using FMovieSceneTrackEditor::AddKey;
 
 	/* Return whether a section was added */
-	bool AddKey( TrackType* Track, float Time, const KeyDataType& KeyData, EMovieSceneKeyInterpolation KeyInterpolation )
+	bool AddKey( TrackType* Track, float Time, const KeyDataType& KeyData, EMovieSceneKeyInterpolation KeyInterpolation, bool bInfiniteKeyAreas )
 	{
 		bool bSectionAdded = false;
 		Track->Modify();
-		IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( Track->FindOrAddSection( Time, bSectionAdded ) );
+		UMovieSceneSection* NewSection = Track->FindOrAddSection( Time, bSectionAdded );
+		IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( NewSection );
 		KeyframeSection->AddKey( Time, KeyData, KeyInterpolation );
+
+		if (bSectionAdded)
+		{
+			NewSection->SetIsInfinite(bInfiniteKeyAreas);
+		}
 		return bSectionAdded;
 	}
 
 	/* Return whether a section was added */
-	bool SetDefault( TrackType* Track, float Time, const KeyDataType& KeyData )
+	bool SetDefault( TrackType* Track, float Time, const KeyDataType& KeyData, bool bInfiniteKeyAreas )
 	{
 		bool bSectionAdded = false;
 		Track->Modify();
@@ -225,8 +234,14 @@ private:
 		}
 		else
 		{
-			IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( Track->FindOrAddSection( Time, bSectionAdded ) );
+			UMovieSceneSection* NewSection = Track->FindOrAddSection( Time, bSectionAdded );
+			IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( NewSection );
 			KeyframeSection->SetDefault( KeyData );
+
+			if (bSectionAdded)
+			{
+				NewSection->SetIsInfinite(bInfiniteKeyAreas);
+			}
 		}
 		return bSectionAdded;
 	}

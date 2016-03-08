@@ -13,7 +13,7 @@ FLevelSequenceEditorCommands::FLevelSequenceEditorCommands()
 void FLevelSequenceEditorCommands::RegisterCommands()
 {
 	UI_COMMAND(CreateNewLevelSequenceInLevel, "Add Level Sequence", "Create a new level sequence asset, and place an instance of it in this level", EUserInterfaceActionType::Button, FInputChord());
-	UI_COMMAND(ToggleImmersive, "Immersive Mode", "Switches this cinematic viewport between immersive mode and regular mode", EUserInterfaceActionType::ToggleButton, FInputChord( EKeys::F11 ) );
+	UI_COMMAND(ToggleCinematicViewportCommand, "Cinematic Viewport", "A viewport layout tailored to cinematic preview", EUserInterfaceActionType::RadioButton, FInputChord(EKeys::C, EModifierKey::Shift));
 }
 
 #undef LOCTEXT_NAMESPACE

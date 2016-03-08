@@ -224,6 +224,12 @@ public class UnrealEd : ModuleRules
 			DynamicallyLoadedModuleNames.Add("AndroidPlatformEditor");
 		}
 
+        if (Target.Type == TargetRules.TargetType.Editor)
+        {
+            DynamicallyLoadedModuleNames.Add("SequenceRecorder");
+            PrivateIncludePathModuleNames.Add("SequenceRecorder");
+        }
+
 		CircularlyReferencedDependentModules.AddRange(
 			new string[] 
 			{

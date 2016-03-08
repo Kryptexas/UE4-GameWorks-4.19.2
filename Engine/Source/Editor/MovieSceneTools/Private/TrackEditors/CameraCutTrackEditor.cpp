@@ -115,16 +115,29 @@ bool FCameraCutTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) con
 
 void FCameraCutTrackEditor::Tick(float DeltaTime)
 {
-	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks())
+	TSharedPtr<ISequencer> SequencerPin = GetSequencer();
+	if (!SequencerPin.IsValid())
 	{
-		float SavedTime = GetSequencer()->GetGlobalTime();
+		return;
+	}
 
-		if (ThumbnailPool->DrawThumbnails())
+	EMovieScenePlayerStatus::Type PlaybackState = SequencerPin->GetPlaybackStatus();
+
+	if (FSlateThrottleManager::Get().IsAllowingExpensiveTasks() && PlaybackState != EMovieScenePlayerStatus::Playing && PlaybackState != EMovieScenePlayerStatus::Scrubbing)
+	{
+		SequencerPin->EnterSilentMode();
+
+		float SavedTime = SequencerPin->GetGlobalTime();
+
+		if (DeltaTime > 0.f && ThumbnailPool->DrawThumbnails())
 		{
-			GetSequencer()->SetGlobalTime(SavedTime);
+			SequencerPin->SetGlobalTimeDirectly(SavedTime);
 		}
+
+		SequencerPin->ExitSilentMode();
 	}
 }
+
 
 const FSlateBrush* FCameraCutTrackEditor::GetIconBrush() const
 {

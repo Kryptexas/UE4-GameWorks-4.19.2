@@ -29,17 +29,7 @@ public:
 
 			if (Selection.GetSelectedOutlinerNodes().Num())
 			{
-				if (SequencerWidget.Pin().IsValid())
-				{
-					SequencerWidget.Pin()->SetUserIsSelecting(true);
-				}
-
 				Selection.EmptySelectedOutlinerNodes();
-
-				if (SequencerWidget.Pin().IsValid())
-				{
-					SequencerWidget.Pin()->SetUserIsSelecting(false);
-				}
 				return FReply::Handled();
 			}
 		}

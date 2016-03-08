@@ -3106,6 +3106,16 @@ bool FMath::Eval( FString Str, float& OutValue )
 	return bResult;
 }
 
+void FMath::WindRelativeAnglesDegrees(float InAngle0, float& InOutAngle1)
+{
+	const float Diff = InAngle0 - InOutAngle1;
+	const float AbsDiff = Abs(Diff);
+	if(AbsDiff > 180.0f)
+	{
+		InOutAngle1 += 360.0f * Sign(Diff) * FloorToFloat((AbsDiff / 360.0f) + 0.5f);
+	}
+}
+
 float FMath::FixedTurn(float InCurrent, float InDesired, float InDeltaRate)
 {
 	if (InDeltaRate == 0.f)

@@ -36,7 +36,7 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	GameModeOverride = nullptr;
 	OutputFormat = TEXT("{world}");
 	FrameRate = 24;
-	bEnableTextureStreaming = true;
+	bEnableTextureStreaming = false;
 	bCinematicMode = true;
 	bAllowMovement = false;
 	bAllowTurning = false;

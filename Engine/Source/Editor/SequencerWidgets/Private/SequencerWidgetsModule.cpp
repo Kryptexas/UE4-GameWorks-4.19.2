@@ -5,6 +5,7 @@
 #include "ModuleManager.h"
 #include "SSequencerTimeSlider.h"
 #include "STimeRange.h"
+#include "STimeRangeSlider.h"
 
 
 /**
@@ -30,12 +31,23 @@ public:
 			.MirrorLabels(bMirrorLabels);
 	}
 
-	TSharedRef<ITimeSlider> CreateTimeRange(const TSharedRef<ITimeSliderController>& InController, const TAttribute<EVisibility>& VisibilityDelegate, const TAttribute<bool>& ShowFrameNumbersDelegate, const TAttribute<float>& TimeSnapIntervalDelegate) override
+	TSharedRef<SWidget> CreateTimeRangeSlider( const TSharedRef<class ITimeSliderController>& InController, const TAttribute<float>& InTimeSnapIntervalDelegate ) override
 	{
-		return SNew(STimeRange, InController)
-			.Visibility(VisibilityDelegate)
-			.ShowFrameNumbers(ShowFrameNumbersDelegate)
-			.TimeSnapInterval(TimeSnapIntervalDelegate);
+		return SNew( STimeRangeSlider, InController )
+			.TimeSnapInterval( InTimeSnapIntervalDelegate );
+	}
+
+	TSharedRef<ITimeSlider> CreateTimeRange(const FTimeRangeArgs& InArgs, const TSharedRef<SWidget>& Content) override
+	{
+		return SNew( STimeRange, InArgs.Controller, InArgs.NumericTypeInterface)
+		.Visibility(InArgs.VisibilityDelegate)
+		.ShowFrameNumbers(InArgs.ShowFrameNumbersDelegate)
+		.ShowWorkingRange(!!(InArgs.ShowRanges & EShowRange::WorkingRange))
+		.ShowViewRange(!!(InArgs.ShowRanges & EShowRange::ViewRange))
+		.ShowPlaybackRange(!!(InArgs.ShowRanges & EShowRange::PlaybackRange))
+		[
+			Content
+		];
 	}
 
 public:

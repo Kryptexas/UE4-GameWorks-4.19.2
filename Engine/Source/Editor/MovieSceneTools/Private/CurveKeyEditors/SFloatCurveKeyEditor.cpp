@@ -5,15 +5,31 @@
 
 #define LOCTEXT_NAMESPACE "FloatCurveKeyEditor"
 
+
+template<typename T>
+struct SNonThrottledSpinBox : SSpinBox<T>
+{
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		FReply Reply = SSpinBox<T>::OnMouseButtonDown(MyGeometry, MouseEvent);
+		if (Reply.IsEventHandled())
+		{
+			Reply.PreventThrottling();
+		}
+		return Reply;
+	}
+};
+
 void SFloatCurveKeyEditor::Construct(const FArguments& InArgs)
 {
 	Sequencer = InArgs._Sequencer;
 	OwningSection = InArgs._OwningSection;
 	Curve = InArgs._Curve;
+	OnValueChangedEvent = InArgs._OnValueChanged;
 	IntermediateValue = InArgs._IntermediateValue;
 	ChildSlot
 	[
-		SNew(SSpinBox<float>)
+		SNew(SNonThrottledSpinBox<float>)
 		.Style(&FEditorStyle::GetWidgetStyle<FSpinBoxStyle>("Sequencer.HyperlinkSpinBox"))
 		.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
 		.MinValue(TOptional<float>())
@@ -88,6 +104,9 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 				OwningSection->SetEndTime(CurrentTime);
 			}
 		}
+
+		OnValueChangedEvent.ExecuteIfBound(Value);
+
 		Sequencer->UpdateRuntimeInstances();
 	}
 }

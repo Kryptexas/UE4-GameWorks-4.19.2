@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IKeyArea.h"
+#include "ISequencerKeyCollection.h"
 
 
 class FSequencerDisplayNode;
@@ -76,13 +77,33 @@ struct FKeyGrouping
 
 
 /** A key area that represents multiple, distinct key areas */
-class FGroupedKeyArea
-	: public IKeyArea
+class FGroupedKeyCollection
+	: public ISequencerKeyCollection
 {
 public:
 
-	/** Construct the area from a display node */
-	FGroupedKeyArea(FSequencerDisplayNode& InNode, int32 InSectionIndex);
+	/** Constructor */
+	FGroupedKeyCollection();
+
+public:
+
+	/** Initialize this key collection from the specified nodes. Only gathers keys from those explicitly specified. */
+	virtual void InitializeExplicit(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) override;
+
+	/** Initialize this key collection from the specified nodes. Gathers keys from all child nodes. */
+	virtual void InitializeRecursive(const TArray<FSequencerDisplayNode*>& InNodes, float DuplicateThreshold = SMALL_NUMBER) override;
+	
+	/** Initialize this key collection from the specified node and section index. */
+	virtual void InitializeRecursive(FSequencerDisplayNode& InNode, int32 InSectionIndex, float DuplicateThreshold = SMALL_NUMBER) override;
+
+	/** Iterate the keys contained within this collection */
+	virtual void IterateKeys(const TFunctionRef<bool(float)>& Iter) override;
+
+	/** Get a value specifying how close keys need to be in order to be considered equal by this collection */
+	virtual float GetKeyGroupingThreshold() const override;
+
+	/** Find the first key in the given range. */
+	virtual TOptional<float> FindFirstKeyInRange(const TRange<float>& InRange, EFindKeyDirection Direction) const override;
 
 public:
 
@@ -91,6 +112,47 @@ public:
 
 	/** Get the brush name for the specified key handle */
 	const FSlateBrush* GetBrush(FKeyHandle InHandle) const;
+
+protected:
+
+	/** Add the specified key area to this collection */
+	void AddKeyArea(const TSharedRef<IKeyArea>& InKeyArea);
+
+	/** Remove key groups that reside at similar times */
+	void RemoveDuplicateKeys(float DuplicateThreshold);
+
+	/** Update the persistent index with our new key handles */
+	void UpdateIndex() const;
+
+	/** Helper function to find the group of keys relating to the specified handle */
+	const FKeyGrouping* FindGroup(FKeyHandle InHandle) const;
+
+	/** Helper function to find the group of keys relating to the specified handle */
+	FKeyGrouping* FindGroup(FKeyHandle InHandle);
+
+protected:
+	/** Array of (child) key areas that we are reflecting */
+	TArray<TSharedRef<IKeyArea>> KeyAreas;
+
+	/** Generated array of groups of keys harvested from the above array */
+	TArray<FKeyGrouping> Groups;
+
+	/** Key into our index */
+	FIndexKey IndexKey;
+
+	/** Value specifying how close keys need to be in order to be considered equal by this collection */
+	float GroupingThreshold;
+};
+
+/** A key area that represents multiple, distinct key areas */
+class FGroupedKeyArea
+	: public IKeyArea
+	, public FGroupedKeyCollection
+{
+public:
+
+	/** Construct the area from a display node */
+	FGroupedKeyArea(FSequencerDisplayNode& InNode, int32 InSectionIndex);
 
 public:
 
@@ -122,27 +184,7 @@ public:
 	virtual TOptional<FLinearColor> GetColor() override;
 
 protected:
-
-	/** Update the persistent index with our new key handles */
-	void UpdateIndex() const;
-
-	/** Helper function to find the group of keys relating to the specified handle */
-	const FKeyGrouping* FindGroup(FKeyHandle InHandle) const;
-
-	/** Helper function to find the group of keys relating to the specified handle */
-	FKeyGrouping* FindGroup(FKeyHandle InHandle);
-
-protected:
 	
 	/** Pointer to the section to which this key area relates */
 	UMovieSceneSection* Section;
-
-	/** Array of (child) key areas that we are reflecting */
-	TArray<TSharedRef<IKeyArea>> KeyAreas;
-
-	/** Generated array of groups of keys harvested from the above array */
-	TArray<FKeyGrouping> Groups;
-
-	/** Key into our index */
-	FIndexKey IndexKey;
 };

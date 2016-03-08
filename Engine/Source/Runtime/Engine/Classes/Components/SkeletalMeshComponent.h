@@ -1463,6 +1463,21 @@ public:
 	FTransform ConvertLocalRootMotionToWorld(const FTransform& InTransform);
 
 	FRootMotionMovementParams ConsumeRootMotion();
+
+private:
+
+#if WITH_EDITOR
+	/** This is required for recording animations, so save for editor only */
+	/** Temporary array of curve arrays that are active on this component - keeps same buffer index as SpaceBases - Please check SkinnedMeshComponent*/
+	FBlendedHeapCurve	CurvesArray[2];
+public: 
+	/** Access Curve Array for reading */
+	const FBlendedHeapCurve& GetAnimationCurves() const { return CurvesArray[CurrentReadSpaceBases]; }
+
+	/** Get Access to the current editable Curve Array - uses same buffer as space bases*/
+	FBlendedHeapCurve& GetEditableAnimationCurves() { return CurvesArray[CurrentEditableSpaceBases]; }
+	const FBlendedHeapCurve& GetEditableAnimationCurves() const { return CurvesArray[CurrentEditableSpaceBases]; }
+#endif 
 };
 
 

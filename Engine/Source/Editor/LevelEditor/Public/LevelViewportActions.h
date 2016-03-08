@@ -162,6 +162,8 @@ public:
 	TSharedPtr< FUICommandInfo > ViewportConfig_FourPanesBottom;
 	TSharedPtr< FUICommandInfo > ViewportConfig_FourPanes2x2;
 
+	TSharedPtr< FUICommandInfo > ToggleViewportToolbar;
+
 	TSharedPtr< FUICommandInfo > EnablePreviewMesh;
 	TSharedPtr< FUICommandInfo > CyclePreviewMesh;
 

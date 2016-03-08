@@ -684,12 +684,6 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 	}
 
 	World->Tick(LEVELTICK_All, DeltaSeconds * SharedData->EditorSimOptions->TimeDilation);
-
-	if (PhATPtr.Pin()->IsRecording())
-	{
-		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
-		PersonaModule.OnTickRecording().ExecuteIfBound(SharedData->EditorSkelComp, DeltaSeconds);
-	}
 }
 
 FSceneInterface* FPhATEdPreviewViewportClient::GetScene() const

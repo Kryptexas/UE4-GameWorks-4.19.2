@@ -48,6 +48,9 @@ struct FFOscillator
 
 	/** Returns the initial value of the oscillator. */
 	static float GetInitialOffset(FFOscillator const& Osc);
+
+	/** Returns the offset at the given time */
+	static float GetOffsetAtTime(FFOscillator const& Osc, float InitialOffset, float Time);
 };
 
 /** Defines FRotator oscillation. */
@@ -208,6 +211,15 @@ protected:
 	/** Current FOV sinusoidal offset. */
 	float FOVSinOffset;
 
+	/** Initial offset (could have been assigned at random). */
+	FVector InitialLocSinOffset;
+
+	/** Initial offset (could have been assigned at random). */
+	FVector InitialRotSinOffset;
+
+	/** Initial offset (could have been assigned at random). */
+	float InitialFOVSinOffset;
+
 	/** Matrix defining the playspace, used when PlaySpace == CAPS_UserDefined */
 	FMatrix UserPlaySpaceMatrix;
 
@@ -259,6 +271,9 @@ public:
 
 	// Returns true if this camera shake will loop forever
 	bool IsLooping() const;
+
+	/** Sets current playback time and applies the shake (both oscillation and cameraanim) to the given POV. */
+	void SetCurrentTimeAndApplyShake(float NewTime, FMinimalViewInfo& POV);
 };
 
 

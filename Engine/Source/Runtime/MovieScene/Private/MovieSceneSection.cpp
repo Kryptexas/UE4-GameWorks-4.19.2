@@ -31,14 +31,16 @@ bool UMovieSceneSection::TryModify(bool bAlwaysMarkDirty)
 
 const UMovieSceneSection* UMovieSceneSection::OverlapsWithSections(const TArray<UMovieSceneSection*>& Sections, int32 TrackDelta, float TimeDelta) const
 {
+	// Check overlaps with exclusive ranges so that sections can butt up against each other
 	int32 NewTrackIndex = RowIndex + TrackDelta;
-	TRange<float> NewSectionRange = TRange<float>(StartTime + TimeDelta, EndTime + TimeDelta);
+	TRange<float> NewSectionRange = TRange<float>(TRange<float>::BoundsType::Exclusive(StartTime + TimeDelta), TRange<float>::BoundsType::Exclusive(EndTime + TimeDelta));
 
 	for (const auto Section : Sections)
 	{
 		if ((this != Section) && (Section->GetRowIndex() == NewTrackIndex))
 		{
-			if (NewSectionRange.Overlaps(Section->GetRange()))
+			TRange<float> ExclusiveSectionRange = TRange<float>(TRange<float>::BoundsType::Exclusive(Section->GetRange().GetLowerBoundValue()), TRange<float>::BoundsType::Exclusive(Section->GetRange().GetUpperBoundValue()));
+			if (NewSectionRange.Overlaps(ExclusiveSectionRange))
 			{
 				return Section;
 			}

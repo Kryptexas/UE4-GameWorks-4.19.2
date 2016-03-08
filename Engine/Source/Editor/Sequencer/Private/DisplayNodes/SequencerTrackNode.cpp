@@ -19,10 +19,11 @@ namespace SequencerNodeConstants
 /* FTrackNode structors
  *****************************************************************************/
 
-FSequencerTrackNode::FSequencerTrackNode(UMovieSceneTrack& InAssociatedTrack, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree)
+FSequencerTrackNode::FSequencerTrackNode(UMovieSceneTrack& InAssociatedTrack, ISequencerTrackEditor& InAssociatedEditor, bool bInCanBeDragged, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree)
 	: FSequencerDisplayNode(InAssociatedTrack.GetTrackName(), InParentNode, InParentTree)
 	, AssociatedEditor(InAssociatedEditor)
 	, AssociatedTrack(&InAssociatedTrack)
+	, bCanBeDragged(bInCanBeDragged)
 { }
 
 
@@ -110,8 +111,13 @@ void FSequencerTrackNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 
 bool FSequencerTrackNode::CanRenameNode() const
 {
-	UMovieSceneTrack* Track = AssociatedTrack.Get();
-	return (Track != nullptr) && Track->IsA(UMovieSceneNameableTrack::StaticClass());
+	auto NameableTrack = Cast<UMovieSceneNameableTrack>(AssociatedTrack.Get());
+
+	if (NameableTrack != nullptr)
+	{
+		return NameableTrack->CanRename();
+	}
+	return false;
 }
 
 TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
@@ -236,6 +242,12 @@ const FSlateBrush* FSequencerTrackNode::GetIconBrush() const
 }
 
 
+bool FSequencerTrackNode::CanDrag() const
+{
+	return bCanBeDragged;
+}
+
+
 void FSequencerTrackNode::GetChildKeyAreaNodesRecursively(TArray<TSharedRef<FSequencerSectionKeyAreaNode>>& OutNodes) const
 {
 	FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(OutNodes);
@@ -255,17 +267,18 @@ FText FSequencerTrackNode::GetDisplayName() const
 
 float FSequencerTrackNode::GetNodeHeight() const
 {
-	float Height = (Sections.Num() > 0)
-		? Sections[0]->GetSectionHeight() * (GetMaxRowIndex() + 1)
-		: SequencerLayoutConstants::SectionAreaDefaultHeight;
+	if (Sections.Num() > 0)
+	{
+		return (Sections[0]->GetSectionHeight() + 2 * SequencerNodeConstants::CommonPadding) * (GetMaxRowIndex() + 1);
+	}
 
-	return Height + 2*SequencerNodeConstants::CommonPadding;
+	return SequencerLayoutConstants::SectionAreaDefaultHeight + 2*SequencerNodeConstants::CommonPadding;
 }
 
 
 FNodePadding FSequencerTrackNode::GetNodePadding() const
 {
-	return FNodePadding(0.f);//SequencerNodeConstants::CommonPadding);
+	return FNodePadding(0.f);
 }
 
 

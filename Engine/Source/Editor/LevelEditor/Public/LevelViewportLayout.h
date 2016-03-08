@@ -9,7 +9,31 @@
 #include "LevelEditor.h"
 #include "LevelViewportActions.h"
 
+class ILevelEditor;
 class SLevelViewport;
+class FLevelViewportLayout;
+
+/** Arguments for constructing a viewport */
+struct FViewportConstructionArgs
+{
+	FViewportConstructionArgs()
+		: ViewportType(LVT_Perspective)
+		, bRealtime(false)
+	{}
+
+	/** The viewport's parent layout */
+	TSharedPtr<FLevelViewportLayout> ParentLayout;
+	/** The viewport's parent level editor */
+	TWeakPtr<ILevelEditor> ParentLevelEditor;
+	/** The viewport's desired type */
+	ELevelViewportType ViewportType;
+	/** Whether the viewport should default to realtime */
+	bool bRealtime;
+	/** A config key for loading/saving settings for the viewport */
+	FString ConfigKey;
+	/** Widget enabled attribute */
+	TAttribute<bool> IsEnabled;
+};
 
 /** Interface that defines an entity within a viewport layout */
 class IViewportLayoutEntity : public TSharedFromThis<IViewportLayoutEntity>
@@ -23,6 +47,9 @@ public:
 
 	/** Optionally return this entity as an SLevelViewport. Legacy function for interop with code that used to deal directly with SLevelViewports */
 	virtual TSharedPtr<SLevelViewport> AsLevelViewport() const { return nullptr; }
+
+	/** Get this viewport's level editor viewport client */
+	virtual FLevelEditorViewportClient& GetLevelViewportClient() const = 0;
 
 	/** Check if this entity has an active play in editor viewport */
 	virtual bool IsPlayInEditorViewportActive() const = 0;
@@ -38,26 +65,9 @@ public:
 
 	/** Called to save this item's settings in the specified config section */
 	virtual void SaveConfig(const FString& ConfigSection) = 0;
-};
 
-class LEVELEDITOR_API FLevelViewportLayoutEntity : public IViewportLayoutEntity
-{
-public:
-
-	FLevelViewportLayoutEntity(TSharedRef<SLevelViewport> InLevelViewport);
-	virtual TSharedRef<SWidget> AsWidget() const override;
-	virtual TSharedPtr<SLevelViewport> AsLevelViewport() const override;
-
-	bool IsPlayInEditorViewportActive() const;
-	void RegisterGameViewportIfPIE();
-	void SetKeyboardFocus();
-	void OnLayoutDestroyed();
-	void SaveConfig(const FString& ConfigSection);
-
-protected:
-
-	/** This entity's level viewport */
-	TSharedRef<SLevelViewport> LevelViewport;
+	/** Get the type of this viewport as a name */
+	virtual FName GetType() const = 0;
 };
 
 /**
@@ -85,7 +95,7 @@ public:
 	 * @param LayoutString			The layout string loaded from file to custom build the layout with
 	 * @param InParentLevelEditor	Optional level editor parent to use for new viewports
 	 */
-	TSharedRef<SWidget> BuildViewportLayout( TSharedPtr<SDockTab> InParentDockTab, TSharedPtr<class FLevelViewportTabContent> InParentTab, const FString& LayoutString, TWeakPtr<class SLevelEditor> InParentLevelEditor = NULL );
+	TSharedRef<SWidget> BuildViewportLayout( TSharedPtr<SDockTab> InParentDockTab, TSharedPtr<class FLevelViewportTabContent> InParentTab, const FString& LayoutString, TWeakPtr<ILevelEditor> InParentLevelEditor = NULL );
 
 	/**
 	 * Makes a request to maximize a specific viewport and hide the others in this layout
@@ -258,7 +268,7 @@ protected:
 	TWeakPtr< class FLevelViewportTabContent > ParentTabContent;
 
 	/** The optional parent level editor for this layout */
-	TWeakPtr< class SLevelEditor > ParentLevelEditor;
+	TWeakPtr< ILevelEditor > ParentLevelEditor;
 
 	/** The current maximized viewport if any */
 	FName MaximizedViewport;

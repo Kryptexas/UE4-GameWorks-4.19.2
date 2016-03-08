@@ -212,6 +212,29 @@ UCameraComponent* MovieSceneHelpers::CameraComponentFromActor(const AActor* InAc
 	return nullptr;
 }
 
+UCameraComponent* MovieSceneHelpers::CameraComponentFromRuntimeObject(UObject* RuntimeObject)
+{
+	if (RuntimeObject)
+	{
+		// find camera we want to control
+		UCameraComponent* const CameraComponent = dynamic_cast<UCameraComponent*>(RuntimeObject);
+		if (CameraComponent)
+		{
+			return CameraComponent;
+		}
+
+		// see if it's an actor that has a camera component
+		AActor* const Actor = dynamic_cast<AActor*>(RuntimeObject);
+		if (Actor)
+		{
+			return CameraComponentFromActor(Actor);
+		}
+	}
+
+	return nullptr;
+}
+
+
 void MovieSceneHelpers::SetKeyInterpolation(FRichCurve& InCurve, FKeyHandle InKeyHandle, EMovieSceneKeyInterpolation InKeyInterpolation)
 {
 	switch (InKeyInterpolation)
@@ -317,17 +340,25 @@ FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings:
 }
 
 
-void FTrackInstancePropertyBindings::UpdateBindings( const TArray<UObject*>& InRuntimeObjects )
+void FTrackInstancePropertyBindings::UpdateBindings( const TArray<TWeakObjectPtr<UObject>>& InRuntimeObjects )
 {
-	for(UObject* Object : InRuntimeObjects)
+	for (auto ObjectPtr : InRuntimeObjects)
 	{
-		FPropertyAndFunction PropAndFunction;
+		UObject* Object = ObjectPtr.Get();
 
-		PropAndFunction.Function = Object->FindFunction(FunctionName);
-		PropAndFunction.PropertyAddress = FindProperty( Object, PropertyPath );
-		RuntimeObjectToFunctionMap.Add(Object, PropAndFunction);
+		if (Object != nullptr)
+		{
+			FPropertyAndFunction PropAndFunction;
+			{
+				PropAndFunction.Function = Object->FindFunction(FunctionName);
+				PropAndFunction.PropertyAddress = FindProperty(Object, PropertyPath);
+			}
+
+			RuntimeObjectToFunctionMap.Add(Object, PropAndFunction);
+		}
 	}
 }
+
 
 UProperty* FTrackInstancePropertyBindings::GetProperty(const UObject* Object) const
 {

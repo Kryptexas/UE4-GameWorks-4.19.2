@@ -34,6 +34,7 @@ public:
 	// ISequencerTrackEditor interface
 
 	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track) override;
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type) const override;
@@ -45,12 +46,18 @@ protected:
 	bool AddNewMasterSound(float KeyTime, class USoundBase* Sound);
 
 	/** Delegate for AnimatablePropertyChanged in HandleAssetAdded for attached sounds */
-	bool AddNewAttachedSound(float KeyTime, class USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo);
+	bool AddNewAttachedSound(float KeyTime, class USoundBase* Sound, TArray<TWeakObjectPtr<UObject>> ObjectsToAttachTo);
 
 private:
 
 	/** Callback for executing the "Add Event Track" menu entry. */
 	void HandleAddAudioTrackMenuEntryExecute();
+
+	/** Audio sub menu */
+	TSharedRef<SWidget> BuildAudioSubMenu(UMovieSceneTrack* Track);
+
+	/** Audio asset selected */
+	void OnAudioAssetSelected(const FAssetData& AssetData, UMovieSceneTrack* Track);
 };
 
 

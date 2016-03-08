@@ -238,13 +238,15 @@ FString FPropertyValueImpl::GetPropertyValueArray() const
 
 bool FPropertyValueImpl::SendTextToObjectProperty( const FString& Text, EPropertyValueSetFlags::Type Flags )
 {
-	if (IsAnyOuterObjectFromEngine() && !FPackageName::IsEnginePackageName(Text))
+	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
+	bool bIsLazyObjectProperty = PropertyNodePin.IsValid() && PropertyNodePin->GetProperty() && PropertyNodePin->GetProperty()->GetClass() == ULazyObjectProperty::StaticClass();
+
+	if (IsAnyOuterObjectFromEngine() && !FPackageName::IsEnginePackageName(Text) && !bIsLazyObjectProperty)
 	{
 		UE_LOG(LogPropertyNode, Log, TEXT("Cannot assign a Project object %s to an Engine property."), *Text);
 		return false;
 	}
-
-	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
+	
 	if( PropertyNodePin.IsValid() )
 	{
 		FComplexPropertyNode* ParentNode = PropertyNodePin->FindComplexParent();

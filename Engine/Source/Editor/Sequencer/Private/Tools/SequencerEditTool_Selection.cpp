@@ -20,34 +20,48 @@ struct FSelectionPreviewVisitor
 		, SetStateTo(InSetStateTo)
 	{}
 
-	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const override
+	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section, TSharedRef<FSequencerDisplayNode> Node) const override
 	{
 		FSequencerSelectedKey Key(*Section, KeyArea, KeyHandle);
 
-		bool bResetSectionSelection = false;
-
-		// If we're trying to change this key's selection state, we reset the selection state of the section
+		// If we're trying to change this key's selection state, we go into 'key selection mode', thus we reset the selection state of any nodes that weren't selected by keys
 		bool bKeyIsSelected = ExistingSelection.IsSelected(Key);
 		if ( (bKeyIsSelected && SetStateTo == ESelectionPreviewState::NotSelected) ||
 			(!bKeyIsSelected && SetStateTo == ESelectionPreviewState::Selected) )
 		{
-			SelectionPreview.SetSelectionState(Section, ESelectionPreviewState::Undefined);
-			SectionsWithKeysSelected.Add(Section);
+			// Clear selected nodes
+			for (TSharedRef<FSequencerDisplayNode> SelectedNode : NodesSelectedBySections)
+			{
+				if (!NodesSelectedByKeys.Contains(SelectedNode))
+				{
+					SelectionPreview.SetSelectionState(SelectedNode, ESelectionPreviewState::Undefined);
+				}
+			}
+			
+			// Clear selected sections
+			SelectionPreview.EmptyDefinedSectionStates();
 		}
 
 		SelectionPreview.SetSelectionState(Key, SetStateTo);
+		SelectionPreview.SetSelectionState(Node, SetStateTo);
+		NodesSelectedByKeys.Add(Node);
 	}
 
-	virtual void VisitSection(UMovieSceneSection* Section) const
+	virtual void VisitSection(UMovieSceneSection* Section, TSharedRef<FSequencerDisplayNode> Node) const
 	{
-		if (!SectionsWithKeysSelected.Contains(Section))
+		// Never select a combination of sections and keys
+		// Never allow infinite sections to be selected (they're only selectable through right click)
+		if (SelectionPreview.GetDefinedKeyStates().Num() == 0 && !Section->IsInfinite())
 		{
 			SelectionPreview.SetSelectionState(Section, SetStateTo);
+			SelectionPreview.SetSelectionState(Node, SetStateTo);
+			NodesSelectedBySections.Add(Node);
 		}
 	}
 
 private:
-	mutable TSet<UMovieSceneSection*> SectionsWithKeysSelected;
+	mutable TSet<TSharedRef<FSequencerDisplayNode>> NodesSelectedBySections;
+	mutable TSet<TSharedRef<FSequencerDisplayNode>> NodesSelectedByKeys;
 
 	FSequencerSelectionPreview& SelectionPreview;
 	FSequencerSelection& ExistingSelection;
@@ -195,6 +209,7 @@ public:
 		for (const auto& Pair : SelectionPreview.GetDefinedSectionStates())
 		{
 			UMovieSceneSection* Section = Pair.Key.Get();
+
 			if (Pair.Value == ESelectionPreviewState::Selected)
 			{
 				// Select it in the main selection
@@ -206,8 +221,21 @@ public:
 			}
 		}
 
+		for (const auto& Pair : SelectionPreview.GetDefinedOutlinerNodeStates())
+		{
+			if (Pair.Value == ESelectionPreviewState::Selected)
+			{
+				Selection.AddToNodesWithSelectedKeysOrSections(Pair.Key);
+			}
+			else
+			{
+				Selection.RemoveFromNodesWithSelectedKeysOrSections(Pair.Key);
+			}
+		}
+
 		// We're done with this now
 		SelectionPreview.Empty();
+		SequencerHelpers::ValidateNodesWithSelectedKeysOrSections(Sequencer);
 	}
 
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const
@@ -430,6 +458,11 @@ FName FSequencerEditTool_Selection::GetIdentifier() const
 bool FSequencerEditTool_Selection::CanDeactivate() const
 {
 	return !DelayedDrag.IsSet();
+}
+
+const ISequencerHotspot* FSequencerEditTool_Selection::GetDragHotspot() const
+{
+	return DelayedDrag.IsSet() ? DelayedDrag->Hotspot.Get() : nullptr;
 }
 
 void FSequencerEditTool_Selection::UpdateCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

@@ -175,12 +175,12 @@ private:
 	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
 	TArray<FTransform> SpaceBasesArray[2];
 
+protected:
 	/** The index for the space bases buffer we can currently write to */
 	int32 CurrentEditableSpaceBases;
 
 	/** The index for the space bases buffer we can currently read from */
 	int32 CurrentReadSpaceBases;
-
 protected:
 	/** Are we using double buffered blend spaces */
 	bool bDoubleBufferedBlendSpaces;

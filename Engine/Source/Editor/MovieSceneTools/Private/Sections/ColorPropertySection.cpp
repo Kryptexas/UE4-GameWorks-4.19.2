@@ -25,21 +25,24 @@ void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& 
 
 int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) const
 {
-	int32 LayerId = Painter.PaintSectionBackground(FColor(255,255,255));
+	int32 LayerId = Painter.PaintSectionBackground();
 
 	const ESlateDrawEffect::Type DrawEffects = Painter.bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
 	const UMovieSceneColorSection* ColorSection = Cast<const UMovieSceneColorSection>( &SectionObject );
 
-	float StartTime = ColorSection->GetStartTime();
-	float EndTime = ColorSection->GetEndTime();
-	float SectionDuration = EndTime - StartTime;
+	const FTimeToPixel& TimeConverter = Painter.GetTimeConverter();
+
+	const float StartTime = TimeConverter.PixelToTime(0.f);
+	const float EndTime = TimeConverter.PixelToTime(Painter.SectionGeometry.GetLocalSize().X);
+	const float SectionDuration = EndTime - StartTime;
 
 	if ( !FMath::IsNearlyZero( SectionDuration ) )
 	{
-		FVector2D GradientSize = FVector2D( Painter.SectionGeometry.Size.X, (Painter.SectionGeometry.Size.Y / 4) - 3.0f );
+		FVector2D GradientSize = FVector2D( Painter.SectionGeometry.Size.X - 2.f, (Painter.SectionGeometry.Size.Y / 4) - 3.0f );
 
-		FPaintGeometry PaintGeometry = Painter.SectionGeometry.ToPaintGeometry( FVector2D( 0, 0 ), GradientSize );
+		FPaintGeometry PaintGeometry = Painter.SectionGeometry.ToPaintGeometry( FVector2D( 1.f, 1.f ), GradientSize );
+		FSlateRect ClippingRect = Painter.SectionClippingRect.InsetBy(1.f);
 
 		// If we are showing a background pattern and the colors is transparent, draw a checker pattern
 		FSlateDrawElement::MakeBox(
@@ -47,7 +50,7 @@ int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter )
 			LayerId,
 			PaintGeometry,
 			FEditorStyle::GetBrush( "Checker" ),
-			Painter.SectionClippingRect,
+			ClippingRect,
 			DrawEffects);
 
 		TArray<FSlateGradientStop> GradientStops;
@@ -73,7 +76,7 @@ int32 FColorPropertySection::OnPaintSection( FSequencerSectionPainter& Painter )
 				PaintGeometry,
 				GradientStops,
 				Orient_Vertical,
-				Painter.SectionClippingRect,
+				ClippingRect,
 				DrawEffects
 				);
 		}

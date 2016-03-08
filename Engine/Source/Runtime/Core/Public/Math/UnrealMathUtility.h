@@ -473,6 +473,14 @@ struct FMath : public FPlatformMath
 		return A;
 	}
 
+	/** 
+	 * Given two angles in degrees, 'wind' the rotation in Angle1 so that it avoids >180 degree flips.
+	 * Good for winding rotations previously expressed as quaternions into a euler-angle representation.
+	 * @param	Angle0	The first angle that we wind relative to.
+	 * @param	Angle1	The second angle that we may wind relative to the first.
+	 */
+	static CORE_API void WindRelativeAnglesDegrees(float InAngle0, float& InOutAngle1);
+
 	/** Returns a new rotation component value
 	 *
 	 * @param InCurrent is the current rotation value

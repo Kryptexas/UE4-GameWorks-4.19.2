@@ -2570,6 +2570,11 @@ AActor* UInterpGroupInst::GetGroupActor() const
 	}
 }
 
+void UInterpGroupInst::SetGroupActor(AActor* Actor)
+{
+	GroupActor = Actor;
+}
+
 void UInterpGroupInst::SaveGroupActorState()
 {
 	check(Group);

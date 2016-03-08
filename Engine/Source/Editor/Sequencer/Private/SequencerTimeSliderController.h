@@ -61,6 +61,9 @@ public:
 	/** Get the current clamp range for this controller */
 	virtual FAnimatedRange GetClampRange() const override { return TimeSliderArgs.ClampRange.Get(); }
 
+	/** Get the current play range for this controller */
+	virtual TRange<float> GetPlayRange() const override { return TimeSliderArgs.PlaybackRange.Get(TRange<float>()); }
+
 	/** Convert time to frame */
 	virtual int32 TimeToFrame(float Time) const override;
 
@@ -93,6 +96,14 @@ public:
 	virtual void SetClampRange( float NewRangeMin, float NewRangeMax ) override;
 
 	/**
+	 * Set a new playback range based on a min, max
+	 * 
+	 * @param NewRangeMin		The new lower bound of the playback range
+	 * @param NewRangeMax		The new upper bound of the playback range
+	 */
+	virtual void SetPlayRange( float NewRangeMin, float NewRangeMax ) override;
+
+	/**
 	 * Zoom the range by a given delta.
 	 * 
 	 * @param InDelta		The total amount to zoom by (+ve = zoom out, -ve = zoom in)
@@ -122,7 +133,7 @@ private:
 	void CommitScrubPosition( float NewValue, bool bIsScrubbing );
 
 	/**
-	 * Draws time tick marks
+	 * Draw time tick marks
 	 *
 	 * @param OutDrawElements	List to add draw elements to
 	 * @param RangeToScreen		Time range to screen space converter
@@ -131,21 +142,30 @@ private:
 	void DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, struct FDrawTickArgs& InArgs ) const;
 
 	/**
-	 * Draws the playback range
+	 * Draw the in/out selection range.
+	 *
+	 * @return The new layer ID.
+	 */
+	int32 DrawInOutRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const;
+
+	/**
+	 * Draw the playback range.
+	 *
 	 * @return the new layer ID
 	 */
 	int32 DrawPlaybackRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const;
 
 private:
+
 	/**
 	 * Hit test the lower bound of the playback range
 	 */
-	bool HitTestPlaybackStart(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
+	bool HitTestScrubberStart(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
 
 	/**
 	 * Hit test the upper bound of the playback range
 	 */
-	bool HitTestPlaybackEnd(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
+	bool HitTestScrubberEnd(const FScrubRangeToScreen& RangeToScreen, const TRange<float>& PlaybackRange, float LocalHitPositionX, float ScrubPosition) const;
 
 	void SetPlaybackRangeStart(float NewStart);
 	void SetPlaybackRangeEnd(float NewEnd);
@@ -169,6 +189,8 @@ private:
 		DRAG_SETTING_RANGE,
 		DRAG_START_RANGE,
 		DRAG_END_RANGE,
+		DRAG_IN_RANGE,
+		DRAG_OUT_RANGE,
 		DRAG_NONE
 	};
 	DragType MouseDragType;

@@ -2,7 +2,8 @@
 
 #include "LevelSequenceEditorPCH.h"
 #include "CineCameraActor.h"
-#include "CinematicLevelViewportLayout.h"
+#include "CameraRig_Crane.h"
+#include "CameraRig_Rail.h"
 #include "IPlacementModeModule.h"
 #include "ISettingsModule.h"
 #include "LevelEditor.h"
@@ -10,6 +11,7 @@
 #include "LevelSequenceEditorStyle.h"
 #include "ModuleInterface.h"
 #include "PropertyEditorModule.h"
+#include "CinematicViewport/CinematicViewportLayoutEntity.h"
 
 
 #define LOCTEXT_NAMESPACE "LevelSequenceEditor"
@@ -84,17 +86,9 @@ protected:
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 
-		FCustomViewportLayoutDefinition TwoPaneDefinition = FCustomViewportLayoutDefinition::FromType<FCinematicLevelViewportLayout_OnePane>();
-		TwoPaneDefinition.DisplayName = LOCTEXT("OnePaneCinematicLayoutName", "Cinematic");
-		TwoPaneDefinition.Description = LOCTEXT("OnePaneCinematicLayoutDesc", "A viewport layout tailored to cinematic preview");
-		TwoPaneDefinition.Icon = FSlateIcon("LevelSequenceEditorStyle", "LevelSequenceEditor.OnePaneCinematicViewportLayout");
-		LevelEditorModule.RegisterCustomViewportLayout("OnePaneCinematic", TwoPaneDefinition);
-
-		FCustomViewportLayoutDefinition OnePaneDefinition = FCustomViewportLayoutDefinition::FromType<FCinematicLevelViewportLayout_TwoPane>();
-		OnePaneDefinition.DisplayName = LOCTEXT("TwoPaneCinematicLayoutName", "Two Pane Cinematic");
-		OnePaneDefinition.Description = LOCTEXT("TwoPaneCinematicLayoutDesc", "A viewport layout comprising an edit viewport, and a cinematic preview viewport");
-		OnePaneDefinition.Icon = FSlateIcon("LevelSequenceEditorStyle", "LevelSequenceEditor.TwoPaneCinematicViewportLayout");
-		LevelEditorModule.RegisterCustomViewportLayout("TwoPaneCinematic", OnePaneDefinition);
+		FViewportTypeDefinition CinematicViewportType = FViewportTypeDefinition::FromType<FCinematicViewportLayoutEntity>();
+		CinematicViewportType.ToggleCommand = FLevelSequenceEditorCommands::Get().ToggleCinematicViewportCommand;
+		LevelEditorModule.RegisterViewportType("Cinematic", CinematicViewportType);
 	}
 
 	/** Register menu extensions for the level editor toolbar. */
@@ -129,6 +123,8 @@ protected:
 
 		IPlacementModeModule::Get().RegisterPlacementCategory(Info);
 		IPlacementModeModule::Get().RegisterPlaceableItem(Info.UniqueHandle, MakeShareable( new FPlaceableItem(nullptr, FAssetData(ACineCameraActor::StaticClass())) ));
+		IPlacementModeModule::Get().RegisterPlaceableItem(Info.UniqueHandle, MakeShareable( new FPlaceableItem(nullptr, FAssetData(ACameraRig_Crane::StaticClass())) ));
+		IPlacementModeModule::Get().RegisterPlaceableItem(Info.UniqueHandle, MakeShareable( new FPlaceableItem(nullptr, FAssetData(ACameraRig_Rail::StaticClass())) ));
 	}
 
 	/** Register settings objects. */
@@ -181,7 +177,7 @@ protected:
 		FLevelEditorModule* LevelEditorModule = FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor");
 		if (LevelEditorModule)
 		{
-			LevelEditorModule->UnRegisterCustomViewportLayout("Cinematic");
+			LevelEditorModule->UnregisterViewportType("Cinematic");
 		}
 	}
 

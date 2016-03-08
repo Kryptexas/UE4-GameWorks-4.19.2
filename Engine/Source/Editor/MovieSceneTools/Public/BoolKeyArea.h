@@ -24,4 +24,8 @@ public:
 
 	virtual bool CanCreateKeyEditor() override;
 	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) override;
+
+protected:
+
+	void OnValueChanged(bool InValue);
 };

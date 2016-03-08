@@ -2224,6 +2224,8 @@ int32 FEngineLoop::Init()
 	{
 		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));
 	}
+
+	FModuleManager::Get().LoadModule(TEXT("SequenceRecorder"));
 #endif
 
 	GIsRunning = true;

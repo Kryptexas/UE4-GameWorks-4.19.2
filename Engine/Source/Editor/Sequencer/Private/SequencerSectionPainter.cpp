@@ -13,19 +13,22 @@ FSequencerSectionPainter::FSequencerSectionPainter(FSlateWindowElementList& OutD
 {
 }
 
-int32 FSequencerSectionPainter::PaintSectionBackground(const FColor& Tint)
-{
-	FSequencerSectionTintRegion Region(Tint);
-	return PaintSectionBackground(&Region, 1);
-}
-
 int32 FSequencerSectionPainter::PaintSectionBackground()
 {
-	FSequencerSectionTintRegion Region(GetTrack()->GetColorTint());
-	return PaintSectionBackground(&Region, 1);
+	return PaintSectionBackground(GetTrack()->GetColorTint());
 }
 
 UMovieSceneTrack* FSequencerSectionPainter::GetTrack() const
 {
 	return Section.GetTypedOuter<UMovieSceneTrack>();
+}
+
+FLinearColor FSequencerSectionPainter::BlendColor(FLinearColor InColor)
+{
+	static FLinearColor BaseColor(FColor(71,71,71));
+
+	const float Alpha = InColor.A;
+	InColor.A = 1.f;
+	
+	return BaseColor * (1.f - Alpha) + InColor * Alpha;
 }

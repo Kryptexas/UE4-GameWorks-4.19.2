@@ -90,6 +90,7 @@ TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(Curve)
+		.OnValueChanged(this, &FFloatCurveKeyArea::OnValueChanged)
 		.IntermediateValue_Lambda([this] {
 			return IntermediateValue;
 		});
@@ -291,4 +292,9 @@ void FFloatCurveKeyArea::PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack,
 
 		return true;
 	});
+}
+
+void FFloatCurveKeyArea::OnValueChanged(float InValue)
+{
+	ClearIntermediateValue();
 }

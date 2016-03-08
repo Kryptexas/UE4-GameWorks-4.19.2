@@ -34,4 +34,26 @@ private:
 	/** The camera possessable or spawnable that this movie CameraCut uses */
 	UPROPERTY()
 	FGuid CameraGuid;
+
+#if WITH_EDITORONLY_DATA
+public:
+	/** @return The thumbnail reference frame offset from the start of this section */
+	float GetThumbnailReferenceOffset() const
+	{
+		return ThumbnailReferenceOffset;
+	}
+
+	/** Set the thumbnail reference offset */
+	void SetThumbnailReferenceOffset(float InNewOffset)
+	{
+		Modify();
+		ThumbnailReferenceOffset = InNewOffset;
+	}
+
+private:
+
+	/** The reference frame offset for single thumbnail rendering */
+	UPROPERTY()
+	float ThumbnailReferenceOffset;
+#endif
 };

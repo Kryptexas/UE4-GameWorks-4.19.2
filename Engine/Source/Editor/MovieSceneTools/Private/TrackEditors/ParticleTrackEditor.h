@@ -46,7 +46,7 @@ public:
 private:
 
 	/** Delegate for AnimatablePropertyChanged in AddKey. */
-	virtual bool AddKeyInternal( float KeyTime, const TArray<UObject*> Objects);
+	virtual bool AddKeyInternal( float KeyTime, const TArray<TWeakObjectPtr<UObject>> Objects);
 };
 
 
@@ -72,6 +72,7 @@ public:
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override;
 	virtual int32 OnPaintSection( FSequencerSectionPainter& InPainter ) const override;
 	virtual const FSlateBrush* GetKeyBrush( FKeyHandle KeyHandle ) const override;
+	virtual FVector2D GetKeyBrushOrigin( FKeyHandle KeyHandle ) const override;
 	virtual bool SectionIsResizable() const override { return false; }
 
 private:
@@ -80,7 +81,7 @@ private:
 	UMovieSceneSection& Section;
 
 	/** The sequencer that owns this section */
-	TSharedRef<ISequencer> OwningSequencer;
+	TWeakPtr<ISequencer> OwningSequencerPtr;
 
 	/** The UEnum for the EParticleKey enum */
 	const UEnum* ParticleKeyEnum;

@@ -19,6 +19,7 @@
 #include "CineCameraComponent.h"
 #include "UnitConversion.h"
 #include "ScopedTransaction.h"
+#include "SLevelViewport.h"
 
 #define LOCTEXT_NAMESPACE "SCinematicLevelViewport"
 
@@ -80,21 +81,6 @@ FCinematicViewportClient::FCinematicViewportClient()
 	bDisableInput = false;
 }
 
-bool FCinematicViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
-{
-	// Allow immersive mode to be processed when input handling is disabled
-	if (bDisableInput)		
-	{
-		if (Key == EKeys::F11)
-		{
-			return false;
-		}
-	}
-
-	return FLevelEditorViewportClient::InputKey(Viewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
-}
-
-
 class SPreArrangedBox : public SCompoundWidget
 {
 public:
@@ -125,15 +111,37 @@ private:
 	FOnArrange OnArrange;
 };
 
-class SCinematicPreviewViewport : public SEditorViewport
+class SCinematicPreviewViewport : public SLevelViewport
 {
 public:
+	virtual const FSlateBrush* OnGetViewportBorderBrush() const override { return nullptr; }
+	virtual EVisibility GetCurrentLevelTextVisibility() const override { return EVisibility::Collapsed; }
+	virtual EVisibility GetViewportControlsVisibility() const override { return EVisibility::Collapsed; }
 
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient()
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() { return nullptr; }
+
+	TSharedPtr<SWidget> MakeExternalViewportToolbar() { return SLevelViewport::MakeViewportToolbar(); }
+
+	FSlateColor GetBorderColorAndOpacity() const
 	{
-		return MakeShareable( new FCinematicViewportClient );
+		return OnGetViewportBorderColorAndOpacity();
 	}
+
+	const FSlateBrush* GetBorderBrush() const
+	{
+		return SLevelViewport::OnGetViewportBorderBrush();
+	}
+
+	EVisibility GetBorderVisibility() const
+	{
+		EVisibility Visibility = SLevelViewport::OnGetViewportContentVisibility();
+		return Visibility == EVisibility::Visible ? EVisibility::HitTestInvisible : Visibility;
+	}
+
+private:
+	bool bShowToolbar;
 };
+
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SCinematicLevelViewport::Construct(const FArguments& InArgs)
@@ -141,6 +149,17 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 	ParentLayout = InArgs._ParentLayout;
 	LayoutName = InArgs._LayoutName;
 	RevertToLayoutName = InArgs._RevertToLayoutName;
+
+	ViewportClient = MakeShareable( new FCinematicViewportClient() );
+
+	ViewportWidget = SNew(SCinematicPreviewViewport)
+		.LevelEditorViewportClient(ViewportClient)
+		.ParentLevelEditor(InArgs._ParentLevelEditor)
+		.ParentLayout(ParentLayout.Pin())
+		.ConfigKey(LayoutName.ToString())
+		.Realtime(true);
+
+	ViewportClient->SetViewportWidget(ViewportWidget);
 
 	TypeInterfaceProxy = MakeShareable( new FTypeInterfaceProxy );
 
@@ -150,102 +169,75 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 
 	TSharedRef<SFilmOverlayOptions> FilmOverlayOptions = SNew(SFilmOverlayOptions);
 
-	TSharedRef<SWidget> MaximizeButton = SNullWidget::NullWidget;
-	if (InArgs._bShowMaximize)
-	{
-		MaximizeButton =
-			SNew(SButton)
-			.Cursor(EMouseCursor::Default)
-			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-			.OnClicked(this, &SCinematicLevelViewport::OnToggleMaximize)
-			.ToolTipText(LOCTEXT("Maximize_ToolTip", "Maximizes or restores this viewport"))
-			[
-				SNew(SBox)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				[
-					SNew(SImage)
-					.Image(this, &SCinematicLevelViewport::GetMaximizeImage)
-					.ColorAndOpacity(Gray)
-				]
-			];
-	}
+	DecoratedTransportControls = SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			SNew(SSpacer)
+		]
 
-	ChildSlot
-	[
-		SNew(SBorder)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(5.f, 0.f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SNew(SBorder)
+			.Padding(0)
+			.BorderImage(nullptr)
+			.ForegroundColor(FEditorStyle::GetSlateColor("SelectionColor").GetColor(FWidgetStyle()))
+			[
+				SNew(SNonThrottledSpinBox<float>)
+				.TypeInterface(TypeInterfaceProxy)
+				.Style(FEditorStyle::Get(), "Sequencer.HyperlinkSpinBox")
+				.Font(FEditorStyle::GetFontStyle("Sequencer.FixedFont"))
+				.OnValueCommitted(this, &SCinematicLevelViewport::OnTimeCommitted)
+				.OnValueChanged(this, &SCinematicLevelViewport::SetTime)
+				.OnEndSliderMovement(this, &SCinematicLevelViewport::SetTime)
+				.MinValue(this, &SCinematicLevelViewport::GetMinTime)
+				.MaxValue(this, &SCinematicLevelViewport::GetMaxTime)
+				.Value(this, &SCinematicLevelViewport::GetTime)
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SAssignNew(TransportControlsContainer, SBox)
+		]
+
+		+ SHorizontalBox::Slot()
+		[
+			SNew(SSpacer)
+		];
+
+	TSharedRef<SWidget> MainViewport = 	SNew(SBorder)
 		.BorderImage(FEditorStyle::GetBrush("BlackBrush"))
 		.ForegroundColor(Gray)
-		.Padding(5.f)
+		.Padding(0)
 		[
 			SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot()
+			.Padding(5.f)
 			.AutoHeight()
 			[
 				SNew(SHorizontalBox)
 
 				+ SHorizontalBox::Slot()
-				.AutoWidth()
 				[
-					SNew(SComboButton)
-					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-					.ForegroundColor(Gray)
-					.OnGetMenuContent(this, &SCinematicLevelViewport::MakeCameraMenu)
-					.ButtonContent()
-					[
-						SNew(SBox)
-						.WidthOverride(36)
-						.HeightOverride(24)
-						.ToolTipText(LOCTEXT("CameraSelectionTooltip", "Displays a list of available cameras to view through."))
-						[
-							SNew(SImage)
-							.Image(FLevelSequenceEditorStyle::Get()->GetBrush("LevelSequenceEditor.CinematicViewportCamera"))
-							.ColorAndOpacity(Gray)
-						]
-					]
+					ViewportWidget->MakeExternalViewportToolbar().ToSharedRef()
 				]
-				
-				+ SHorizontalBox::Slot()
-				[
-					SNew(SSpacer)
-				]
-				
+
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					FilmOverlayOptions
 				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					MaximizeButton
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.Cursor(EMouseCursor::Default)
-					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-					.OnClicked(this, &SCinematicLevelViewport::OnRevertLayout)
-					.ToolTipText(LOCTEXT("Close_ToolTip", "Close this cinematic viewport, reverting it back to a standard viewport"))
-					[
-						SNew(SBox)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						[
-							SNew(SImage)
-							.Image(FLevelSequenceEditorStyle::Get()->GetBrush("LevelSequenceEditor.CinematicViewportClose"))
-							.ColorAndOpacity(Gray)
-						]
-					]
-				]
 			]
 
 			+ SVerticalBox::Slot()
-			.Padding(20.f)
 			[
 				SNew(SPreArrangedBox)
 				.OnArrange(this, &SCinematicLevelViewport::CacheDesiredViewportSize)
@@ -269,7 +261,7 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 
 							+ SOverlay::Slot()
 							[
-								SAssignNew(ViewportWidget, SCinematicPreviewViewport)
+								ViewportWidget.ToSharedRef()
 							]
 
 							+ SOverlay::Slot()
@@ -282,11 +274,12 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 					+ SVerticalBox::Slot()
 					.AutoHeight()
 					.HAlign(HAlign_Center)
+					.Padding(10.f, 0.f)
 					[
 						SAssignNew(ViewportControls, SBox)
 						.Visibility(this, &SCinematicLevelViewport::GetControlsVisibility)
 						.WidthOverride(this, &SCinematicLevelViewport::GetDesiredViewportWidth)
-						.Padding(FMargin(0.f, 10.f))
+						.Padding(FMargin(0.f, 10.f, 0.f, 0.f))
 						[
 							SNew(SHorizontalBox)
 
@@ -317,7 +310,7 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 							]
 						]
 					]
-
+				
 					+ SVerticalBox::Slot()
 					[
 						SNew(SSpacer)
@@ -325,11 +318,10 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 				]
 			]
 
-
 			+ SVerticalBox::Slot()
+			.Padding(5.f)
 			.AutoHeight()
 			[
-			
 				SNew(SWidgetSwitcher)
 				.WidgetIndex(this, &SCinematicLevelViewport::GetVisibleWidgetIndex)
 
@@ -348,95 +340,42 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 					.AutoHeight()
 					.Padding(5.f, 0.f)
 					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-							.Font(FEditorStyle::GetFontStyle("Sequencer.FixedFont"))
-							.ColorAndOpacity(Gray)
-							.Text_Lambda([=]{ return UIData.MasterStartText; })
-						]
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						.Padding(FMargin(10.f, 0.f))
-						[
-							SNew(SNonThrottledSpinBox<float>)
-							.TypeInterface(TypeInterfaceProxy)
-							.Style(FEditorStyle::Get(), "Sequencer.HyperlinkSpinBox")
-							.Font(FEditorStyle::GetFontStyle("Sequencer.FixedFont"))
-							.OnValueCommitted(this, &SCinematicLevelViewport::OnTimeCommitted)
-							.OnValueChanged(this, &SCinematicLevelViewport::SetTime)
-							.OnEndSliderMovement(this, &SCinematicLevelViewport::SetTime)
-							.MinValue(this, &SCinematicLevelViewport::GetMinTime)
-							.MaxValue(this, &SCinematicLevelViewport::GetMaxTime)
-							.Value(this, &SCinematicLevelViewport::GetTime)
-						]
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Right)
-						[
-							SNew(SButton)
-							.OnClicked(this, &SCinematicLevelViewport::SetPlaybackStart)
-							.ToolTipText(LOCTEXT("SetPlayStart_Tooltip", "Set playback start to the current position"))
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-							.ContentPadding(2.0f)
-							[
-								SNew(SImage)
-								.Image(FLevelSequenceEditorStyle::Get()->GetBrush("LevelSequenceEditor.CinematicViewportSetPlayStart"))
-							]
-						]
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.AutoWidth()
-						[
-							SAssignNew(TransportControls, SBox)
-						]
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Left)
-						[
-							SNew(SButton)
-							.OnClicked(this, &SCinematicLevelViewport::SetPlaybackEnd)
-							.ToolTipText(LOCTEXT("SetPlayEnd_Tooltip", "Set playback end to the current position"))
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-							.ContentPadding(2.0f)
-							[
-								SNew(SImage)
-								.Image(FLevelSequenceEditorStyle::Get()->GetBrush("LevelSequenceEditor.CinematicViewportSetPlayEnd"))
-							]
-						]
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-							.Font(FEditorStyle::GetFontStyle("Sequencer.FixedFont"))
-							.ColorAndOpacity(Gray)
-							.Text_Lambda([=]{ return UIData.MasterEndText; })
-						]
+						SAssignNew(TimeRangeContainer, SBox)
 					]
 				]
 
 				+ SWidgetSwitcher::Slot()
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
-				.Padding(5.f, 0.f)
 				[
-					SNew(STextBlock)
-					.ColorAndOpacity(Gray)
-					.Text(LOCTEXT("NoSequencerMessage", "No active Level Sequencer detected. Please edit a Level Sequence to enable full controls."))
+					SNew(SBox)
+					.Padding(FMargin(5.f, 10.f))
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(Gray)
+						.Text(LOCTEXT("NoSequencerMessage", "No active Level Sequencer detected. Please edit a Level Sequence to enable full controls."))
+					]
 				]
 			]
+		];
+
+	ChildSlot
+	[
+		SNew(SOverlay)
+
+		+ SOverlay::Slot()
+		[
+			MainViewport
+		]
+
+		+SOverlay::Slot()
+		[
+			SNew(SBorder)
+			.BorderImage(ViewportWidget.Get(), &SCinematicPreviewViewport::GetBorderBrush)
+			.BorderBackgroundColor(ViewportWidget.Get(), &SCinematicPreviewViewport::GetBorderColorAndOpacity)
+			.Visibility(ViewportWidget.Get(), &SCinematicPreviewViewport::GetBorderVisibility)
+			.Padding(0.0f)
+			.ShowEffectWhenDisabled( false )
 		]
 	];
 
@@ -448,25 +387,12 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 	CommandList = MakeShareable( new FUICommandList );
 	// Ensure the commands are registered
 	FLevelSequenceEditorCommands::Register();
-	BindCommands();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FReply SCinematicLevelViewport::OnRevertLayout()
+TSharedPtr<SLevelViewport> SCinematicLevelViewport::GetLevelViewport() const
 {
-	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
-	if (LayoutPinned.IsValid())
-	{
-		TSharedPtr<FLevelViewportTabContent> ViewportTabPinned = LayoutPinned->GetParentTabContent().Pin();
-		if (ViewportTabPinned.IsValid())
-		{
-			// Viewport clients are going away.  Any current one is invalid.
-			GCurrentLevelEditingViewportClient = nullptr;
-			ViewportTabPinned->SetViewportConfiguration(RevertToLayoutName);
-			FSlateApplication::Get().DismissAllMenus();
-		}
-	}
-	return FReply::Handled();
+	return ViewportWidget;
 }
 
 int32 SCinematicLevelViewport::GetVisibleWidgetIndex() const
@@ -476,58 +402,7 @@ int32 SCinematicLevelViewport::GetVisibleWidgetIndex() const
 
 EVisibility SCinematicLevelViewport::GetControlsVisibility() const
 {
-	return CurrentToolkit.IsValid() ? EVisibility::Visible : EVisibility::Hidden;
-}
-
-FReply SCinematicLevelViewport::OnToggleMaximize()
-{
-	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
-	if (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported())
-	{
-		const bool bAllowAnimation = true;
-		const bool bMaximize = !ParentLayoutPinned->IsViewportMaximized(LayoutName);
-		
-		ParentLayoutPinned->RequestMaximizeViewport( LayoutName, bMaximize, false, bAllowAnimation );
-	}
-	return FReply::Handled();
-}
-
-bool SCinematicLevelViewport::IsMaximized() const
-{
-	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
-	if (ParentLayoutPinned.IsValid())
-	{
-		return ParentLayoutPinned->IsViewportMaximized(LayoutName);
-	}
-	return false;
-}
-
-void SCinematicLevelViewport::OnToggleImmersive()
-{
-	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
-	if (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported())
-	{
-		const bool bAllowAnimation = true;
-		const bool bMaximize = !ParentLayoutPinned->IsViewportMaximized(LayoutName);
-		
-		const bool bImmersive = !IsImmersive();
-		ParentLayoutPinned->RequestMaximizeViewport( LayoutName, bMaximize, bImmersive, bAllowAnimation );
-	}
-}
-
-bool SCinematicLevelViewport::IsImmersive() const
-{
-	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
-	if (ParentLayoutPinned.IsValid())
-	{
-		return ParentLayoutPinned->IsViewportImmersive(LayoutName);
-	}
-	return false;
-}
-
-const FSlateBrush* SCinematicLevelViewport::GetMaximizeImage() const
-{
-	return IsMaximized() ? FEditorStyle::GetBrush("LevelViewportToolBar.Maximize.Checked") : FEditorStyle::GetBrush("LevelViewportToolBar.Maximize.Normal");
+	return CurrentToolkit.IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 TOptional<float> SCinematicLevelViewport::GetMinTime() const
@@ -574,46 +449,15 @@ float SCinematicLevelViewport::GetTime() const
 	return 0.f;
 }
 
-FReply SCinematicLevelViewport::SetPlaybackStart()
-{
-	ISequencer* Sequencer = GetSequencer();
-	if (Sequencer)
-	{
-		FScopedTransaction Transaction(LOCTEXT("SetPlaybackStart", "Set Playback Start"));
-
-		TRange<float> CurrentRange = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetPlaybackRange();
-
-		float NewPos = FMath::Min(Sequencer->GetGlobalTime(), CurrentRange.GetUpperBoundValue());
-		Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->SetPlaybackRange(NewPos, CurrentRange.GetUpperBoundValue());
-	}
-	return FReply::Handled();
-}
-FReply SCinematicLevelViewport::SetPlaybackEnd()
-{
-	ISequencer* Sequencer = GetSequencer();
-	if (Sequencer)
-	{
-		FScopedTransaction Transaction(LOCTEXT("SetPlaybackEnd", "Set Playback End"));
-
-		TRange<float> CurrentRange = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->GetPlaybackRange();
-
-		float NewPos = FMath::Max(Sequencer->GetGlobalTime(), CurrentRange.GetLowerBoundValue());
-		Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->SetPlaybackRange(CurrentRange.GetLowerBoundValue(), NewPos);
-	}
-	return FReply::Handled();
-}
 void SCinematicLevelViewport::CacheDesiredViewportSize(const FGeometry& AllottedGeometry)
 {
-	FVector2D ViewportControlsSize = ViewportControls->GetDesiredSize();
-
 	FVector2D AllowableSpace = AllottedGeometry.GetLocalSize();
-	AllowableSpace.Y -= ViewportControlsSize.Y;
+	AllowableSpace.Y -= ViewportControls->GetDesiredSize().Y;
 
-	TSharedPtr<FCinematicViewportClient> ViewportClient = GetViewportClient();
 	if (ViewportClient->IsAspectRatioConstrained())
 	{
-		const float MinSize = FMath::Min(AllowableSpace.X / ViewportClient->AspectRatio, AllowableSpace.Y);
-		DesiredViewportSize = FVector2D(int32(ViewportClient->AspectRatio * MinSize), int32(MinSize));
+		const float MinSize = FMath::TruncToFloat(FMath::Min(AllowableSpace.X / ViewportClient->AspectRatio, AllowableSpace.Y));
+		DesiredViewportSize = FVector2D(FMath::TruncToFloat(ViewportClient->AspectRatio * MinSize), MinSize);
 	}
 	else
 	{
@@ -629,214 +473,6 @@ FOptionalSize SCinematicLevelViewport::GetDesiredViewportWidth() const
 FOptionalSize SCinematicLevelViewport::GetDesiredViewportHeight() const
 {
 	return DesiredViewportSize.Y;
-}
-
-TSharedRef<SWidget> SCinematicLevelViewport::MakeCameraMenu()
-{
-	ISequencer* Sequencer = GetSequencer();
-	UMovieSceneSequence* Sequence = Sequencer ? Sequencer->GetFocusedMovieSceneSequence() : nullptr;
-
-	FMenuBuilder MenuBuilder(true, nullptr, nullptr);
-	{
-		// let toolkits populate the menu
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("FreeCamera", "Free Camera"),
-			LOCTEXT("FreeCamera_ToolTip", "Allows the arbitrary movement of the camera"),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP(this, &SCinematicLevelViewport::SetCameraMode, ECinematicCameraMode::FreeCamera, TOptional<FGuid>()),
-				FCanExecuteAction::CreateLambda([=]{ return true; }),
-				FIsActionChecked::CreateLambda([=]{ return CameraMode == ECinematicCameraMode::FreeCamera; })
-			),
-			NAME_None,
-			EUserInterfaceActionType::ToggleButton
-		);
-
-		if (Sequence)
-		{
-			MenuBuilder.BeginSection("Sequence");
-			{
-				MenuBuilder.AddMenuEntry(
-					LOCTEXT("AutoCamera", "Auto"),
-					LOCTEXT("AutoCamera_ToolTip", "Looks through the camera defined by either the shot track, camera cut track, or any other available camera (in that order)"),
-					FSlateIcon(),
-					FUIAction(
-						FExecuteAction::CreateSP(this, &SCinematicLevelViewport::SetCameraMode, ECinematicCameraMode::Auto, TOptional<FGuid>()),
-						FCanExecuteAction::CreateLambda([=]{ return true; }),
-						FIsActionChecked::CreateLambda([=]{ return CameraMode == ECinematicCameraMode::Auto; })
-					),
-					NAME_None,
-					EUserInterfaceActionType::ToggleButton
-				);
-			}
-			MenuBuilder.EndSection();
-
-			MenuBuilder.BeginSection("Cameras");
-			{
-				for (auto& Pair : Cameras)
-				{
-					FGuid CameraGuid = Pair.Key;
-
-					MenuBuilder.AddMenuEntry(
-						FText::FromString(Pair.Value.DisplayName),
-						FText(),
-						FSlateIcon(),
-						FUIAction(
-							FExecuteAction::CreateSP(this, &SCinematicLevelViewport::SetCameraMode, ECinematicCameraMode::SpecificCamera, TOptional<FGuid>(CameraGuid)),
-							FCanExecuteAction::CreateLambda([=]{ return true; }),
-							FIsActionChecked::CreateLambda([=]{
-								return CameraMode == ECinematicCameraMode::SpecificCamera &&
-									LockedCameraGuid.IsSet() &&
-									LockedCameraGuid.GetValue() == CameraGuid;
-							})
-						),
-						NAME_None,
-						EUserInterfaceActionType::ToggleButton
-					);
-				}
-			}
-			MenuBuilder.EndSection();
-		}
-	}
-
-	return MenuBuilder.MakeWidget();
-}
-
-void SCinematicLevelViewport::SetCameraMode(ECinematicCameraMode InCameraMode, TOptional<FGuid> InSpecificCameraGuid)
-{
-	CameraMode = InCameraMode;
-
-	TSharedPtr<FCinematicViewportClient> ViewportClient = GetViewportClient();
-
-	// Reset everything
-	LockedCameraGuid = TOptional<FGuid>();
-	ViewportClient->SetActorLock(nullptr);
-
-	switch (CameraMode)
-	{
-	case ECinematicCameraMode::FreeCamera:
-		ViewportClient->bDisableInput = false;
-		break;
-
-	case ECinematicCameraMode::Auto:
-		ViewportClient->bDisableInput = true;
-		break;
-
-	case ECinematicCameraMode::SpecificCamera:
-		LockedCameraGuid = InSpecificCameraGuid;
-		ViewportClient->bDisableInput = true;
-		break;
-	}
-
-	ISequencer* Sequencer = GetSequencer();
-	if (Sequencer)
-	{
-		Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
-	}
-}
-
-void SCinematicLevelViewport::UpdateActiveCameras()
-{
-	Cameras.Reset();
-
-	ISequencer* Sequencer = GetSequencer();
-	if (!Sequencer)
-	{
-		return;
-	}
-
-	TSharedPtr<FMovieSceneSequenceInstance> SequenceInstance = Sequencer->GetFocusedMovieSceneSequenceInstance();
-	UMovieScene* MovieScene = SequenceInstance->GetSequence()->GetMovieScene();
-
-	const int32 NumSpawnables = MovieScene->GetSpawnableCount();
-	for (int32 SpawnableIndex = 0; SpawnableIndex < NumSpawnables; ++SpawnableIndex)
-	{
-		FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableIndex);
-		if (Spawnable.GetClass()->IsChildOf(AActor::StaticClass()))
-		{
-			AActor* CameraActor = Cast<AActor>(SequenceInstance->FindObject(Spawnable.GetGuid(), *Sequencer));
-			if (CameraActor)
-			{
-				UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(CameraActor);
-				if (CameraComponent)
-				{
-					Cameras.Add(Spawnable.GetGuid(), FActiveCamera(Spawnable.GetName(), CameraActor));
-				}
-			}
-		}
-	}
-
-	const int32 NumPossessables = MovieScene->GetPossessableCount();
-	for (int32 PossessableIndex = 0; PossessableIndex < NumPossessables; ++PossessableIndex)
-	{
-		FMovieScenePossessable& Possessable = MovieScene->GetPossessable(PossessableIndex);
-		AActor* CameraActor = Cast<AActor>(SequenceInstance->FindObject(Possessable.GetGuid(), *Sequencer));
-		if (CameraActor)
-		{
-			UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(CameraActor);
-			if (CameraComponent)
-			{
-				Cameras.Add(Possessable.GetGuid(), FActiveCamera(Possessable.GetName(), CameraActor));
-			}
-		}
-	}
-}
-
-TSharedPtr<FCinematicViewportClient> SCinematicLevelViewport::GetViewportClient() const
-{
-	return StaticCastSharedPtr<FCinematicViewportClient>(ViewportWidget->GetViewportClient());
-}
-
-void SCinematicLevelViewport::OnUpdateCameraCut(UObject* CameraObject)
-{
-	if (CameraMode != ECinematicCameraMode::Auto)
-	{
-		return;
-	}
-
-	AActor* CameraActor = Cast<AActor>(CameraObject);
-	TSharedPtr<FCinematicViewportClient> ViewportClient = GetViewportClient();
-	
-	if (CameraActor)
-	{
-		ViewportClient->SetViewLocation(CameraActor->GetActorLocation());
-		ViewportClient->SetViewRotation(CameraActor->GetActorRotation());
-		//ViewportClient->bEditorCameraCut = !ViewportClient->IsLockedToActor(CameraActor);
-		ViewportClient->bLockedCameraView = true;
-	}
-	else
-	{
-		ViewportClient->ViewFOV = ViewportClient->FOVAngle;
-		//ViewportClient->bEditorCameraCut = false;
-		ViewportClient->bLockedCameraView = false;
-	}
-
-	// Set the actor lock.
-	ViewportClient->SetActorLock(CameraActor);
-	ViewportClient->RemoveCameraRoll();
-
-	// If viewing through a camera - enforce aspect ratio.
-	if (CameraActor)
-	{
-		UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromActor(CameraActor);
-		if (CameraComponent)
-		{
-			if (CameraComponent->AspectRatio == 0)
-			{
-				ViewportClient->AspectRatio = 1.7f;
-			}
-			else
-			{
-				ViewportClient->AspectRatio = CameraComponent->AspectRatio;
-			}
-
-			//don't stop the camera from zooming when not playing back
-			ViewportClient->ViewFOV = CameraComponent->FieldOfView;
-		}
-	}
-
-	// Update ControllingActorViewInfo, so it is in sync with the updated viewport
-	ViewportClient->UpdateViewForLockedActor();
 }
 
 FReply SCinematicLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) 
@@ -864,37 +500,32 @@ void SCinematicLevelViewport::Setup(FLevelSequenceEditorToolkit& NewToolkit)
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
+		Sequencer->SetViewportTransportControlsVisibility(false);
 		TypeInterfaceProxy->Impl = Sequencer->GetZeroPadNumericTypeInterface();
-
-		OnCameraCutHandle = Sequencer->OnCameraCut().AddSP(this, &SCinematicLevelViewport::OnUpdateCameraCut);
 
 		if (TransportRange.IsValid())
 		{
 			TransportRange->SetSequencer(Sequencer->AsShared());
 		}
 
-		if (TransportControls.IsValid())
+		if (TransportControlsContainer.IsValid())
 		{
-			TransportControls->SetContent(Sequencer->MakeTransportControls());
+			TransportControlsContainer->SetContent(Sequencer->MakeTransportControls(true));
 		}
 
-		SetCameraMode(ECinematicCameraMode::Auto);
-	}
-	else
-	{
-		SetCameraMode(ECinematicCameraMode::FreeCamera);
+		if (TimeRangeContainer.IsValid())
+		{
+			const bool bShowWorkingRange = true, bShowViewRange = false, bShowPlaybackRange = true;
+			TimeRangeContainer->SetContent(Sequencer->MakeTimeRange(DecoratedTransportControls.ToSharedRef(), bShowWorkingRange, bShowViewRange, bShowPlaybackRange));
+		}
 	}
 }
 
 void SCinematicLevelViewport::CleanUp()
 {
-	ISequencer* Sequencer = GetSequencer();
-	if (Sequencer && OnCameraCutHandle.IsValid())
-	{
-		Sequencer->OnCameraCut().Remove(OnCameraCutHandle);
-	}
+	TransportControlsContainer->SetContent(SNullWidget::NullWidget);
+	TimeRangeContainer->SetContent(SNullWidget::NullWidget);
 
-	TransportControls->SetContent(SNullWidget::NullWidget);
 }
 
 void SCinematicLevelViewport::OnEditorOpened(FLevelSequenceEditorToolkit& Toolkit)
@@ -919,23 +550,6 @@ void SCinematicLevelViewport::OnEditorClosed()
 	{
 		Setup(*NewToolkit);
 	}
-	else
-	{
-		SetCameraMode(ECinematicCameraMode::FreeCamera);
-	}
-}
-
-void SCinematicLevelViewport::BindCommands()
-{
-	FUICommandList& CommandListRef = *CommandList;
-
-	const FLevelSequenceEditorCommands& Commands = FLevelSequenceEditorCommands::Get();
-
-	CommandListRef.MapAction( 
-		Commands.ToggleImmersive,
-		FExecuteAction::CreateSP( this, &SCinematicLevelViewport::OnToggleImmersive ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SCinematicLevelViewport::IsImmersive));
 }
 
 ISequencer* SCinematicLevelViewport::GetSequencer() const
@@ -954,35 +568,17 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	ISequencer* Sequencer = GetSequencer();
-	UMovieSceneSequence* Sequence = Sequencer ? Sequencer->GetFocusedMovieSceneSequence() : nullptr;
-
-	if (!Sequence)
+	if (!Sequencer)
 	{
 		return;
 	}
 
-	UpdateActiveCameras();
+	ViewportClient->bDisableInput = Sequencer->GetPlaybackStatus() == EMovieScenePlayerStatus::Playing;
 
-	TSharedPtr<FCinematicViewportClient> ViewportClient = GetViewportClient();
-
-	// Update the specific locked camera if set. We do this each tick as it might be a spawnable camera
-	if (LockedCameraGuid.IsSet())
+	UMovieSceneSequence* Sequence = Sequencer->GetFocusedMovieSceneSequence();
+	if (!Sequence)
 	{
-		FActiveCamera* Camera = Cameras.Find(LockedCameraGuid.GetValue());
-		if (Camera && Camera->CameraActor.IsValid())
-		{
-			ViewportClient->SetActorLock(Camera->CameraActor.Get());
-
-			ViewportClient->bLockedCameraView = true;
-			ViewportClient->bDisableInput = true;
-		}
-		else
-		{
-			// If the camera's not available, just use free cam until it is
-			ViewportClient->SetActorLock(nullptr);
-			ViewportClient->bLockedCameraView = false;
-			ViewportClient->bDisableInput = false;
-		}
+		return;
 	}
 
 	// Find either a cinematic shot track or a sub track
@@ -1033,7 +629,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		{
 			UIData.ShotName = CinematicShotSection->GetShotDisplayName();
 		}
-		else
+		else if (SubSection->GetSequence() != nullptr)
 		{
 			UIData.ShotName = SubSection->GetSequence()->GetDisplayName();
 		}

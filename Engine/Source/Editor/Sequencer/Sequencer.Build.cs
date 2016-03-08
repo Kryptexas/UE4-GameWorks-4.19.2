@@ -41,7 +41,8 @@ public class Sequencer : ModuleRules
                 "ContentBrowser",
 				"PropertyEditor",
 				"Kismet",
-				"SceneOutliner"
+				"SceneOutliner",
+				"SequenceRecorder"
 			}
 		);
 
@@ -50,7 +51,8 @@ public class Sequencer : ModuleRules
 				"PropertyEditor",
 				"LevelEditor",
 				"SceneOutliner",
-				"WorkspaceMenuStructure"
+				"WorkspaceMenuStructure",
+				"SequenceRecorder"
 			}
 		);
 

@@ -63,3 +63,23 @@ TSharedRef<SWidget> FSequencerUtilities::MakeAddButton(FText HoverText, FOnGetCo
 	return ComboButton;
 }
 
+FName FSequencerUtilities::GetUniqueName( FName CandidateName, const TArray<FName>& ExistingNames )
+{
+	FString CandidateNameString = CandidateName.ToString();
+	FString BaseNameString = CandidateNameString;
+	if ( CandidateNameString.Len() >= 3 && CandidateNameString.Right(3).IsNumeric() )
+	{
+		BaseNameString = CandidateNameString.Left( CandidateNameString.Len() - 3 );
+	}
+
+	FName UniqueName = FName(*BaseNameString);
+	int32 NameIndex = 1;
+	while ( ExistingNames.Contains( UniqueName ) )
+	{
+		UniqueName = FName( *FString::Printf(TEXT("%s%03i"), *BaseNameString, NameIndex ) );
+		NameIndex++;
+	}
+
+	return UniqueName;
+}
+

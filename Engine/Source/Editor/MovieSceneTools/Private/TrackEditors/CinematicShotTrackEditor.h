@@ -147,7 +147,7 @@ private:
 	bool CanAddSubSequence(const UMovieSceneSequence& Sequence) const;
 
 	/** Called when our sequencer wants to switch cameras */
-	void OnUpdateCameraCut(UObject* CameraObject);
+	void OnUpdateCameraCut(UObject* CameraObject, bool bJumpCut);
 
 	/** Callback for AnimatablePropertyChanged in HandleAssetAdded. */
 	bool HandleSequenceAdded(float KeyTime, UMovieSceneSequence* Sequence);

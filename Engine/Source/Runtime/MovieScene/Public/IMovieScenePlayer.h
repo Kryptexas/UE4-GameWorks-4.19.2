@@ -3,6 +3,11 @@
 #pragma once
 
 #include "IMovieSceneSpawnRegister.h"
+#include "UnrealClient.h"
+
+
+class FMovieSceneSequenceInstance;
+
 
 namespace EMovieScenePlayerStatus
 {
@@ -13,9 +18,11 @@ namespace EMovieScenePlayerStatus
 		Recording,
 		Scrubbing,
 		Jumping,
+		Stepping,
 		MAX
 	};
 }
+
 
 struct EMovieSceneViewportParams
 {
@@ -42,7 +49,6 @@ struct EMovieSceneViewportParams
 	bool bEnableColorScaling;
 };
 
-class FMovieSceneSequenceInstance;
 
 /**
  * Interface for movie scene players
@@ -58,16 +64,16 @@ public:
 	 * @param ObjectHandle The handle to runtime objects
 	 * @Param The list of runtime objects that will be populated
 	 */
-	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const = 0;
-
+	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<TWeakObjectPtr<UObject>>& OutObjects) const = 0;
 
 	/**
 	 * Updates the perspective viewports with the actor to view through
 	 *
 	 * @param CameraObject The object, probably a camera, that the viewports should lock to
 	 * @param UnlockIfCameraObject If this is not nullptr, release actor lock only if currently locked to this object.
+	 * @param bJumpCut Whether this is a jump cut, ie. the cut jumps from one shot to another shot
 	 */
-	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject = nullptr) const = 0;
+	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject = nullptr, bool bJumpCut = false) const = 0;
 
 	/*
 	 * Set the perspective viewport settings
@@ -121,6 +127,11 @@ public:
 	 * Access the playback context for this movie scene player
 	 */
 	virtual UObject* GetPlaybackContext() const { return nullptr; }
+
+	/**
+	 * Test whether this is a preview player or not. As such, playback range becomes insignificant for things like spawnables
+	 */
+	virtual bool IsPreview() const { return false; }
 
 private:
 	/** Null register that asserts on use */

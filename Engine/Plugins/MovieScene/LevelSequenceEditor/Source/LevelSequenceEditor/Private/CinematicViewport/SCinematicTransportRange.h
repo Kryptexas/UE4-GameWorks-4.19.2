@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ISequencerKeyCollection.h"
+
 class SCinematicTransportRange : public SCompoundWidget
 {
 public:
@@ -16,6 +18,7 @@ public:
 	void SetSequencer(TWeakPtr<ISequencer> InSequencer);
 
 	virtual FVector2D ComputeDesiredSize(float) const override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
@@ -30,6 +33,9 @@ private:
 
 	/** The sequencer that we're controlling */
 	TWeakPtr<ISequencer> WeakSequencer;
+
+	/** The collection of keys for the currently active sequencer selection */
+	TUniquePtr<ISequencerKeyCollection> ActiveKeyCollection;
 
 	bool bDraggingTime;
 };

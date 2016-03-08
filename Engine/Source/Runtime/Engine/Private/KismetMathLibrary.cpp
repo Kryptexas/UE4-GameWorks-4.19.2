@@ -388,6 +388,11 @@ float UKismetMathLibrary::GetPI()
 	return PI;
 }
 
+float UKismetMathLibrary::GetTAU()
+{
+	return 2.f * PI;
+}
+
 float UKismetMathLibrary::DegreesToRadians(float A)
 {
 	return FMath::DegreesToRadians(A);

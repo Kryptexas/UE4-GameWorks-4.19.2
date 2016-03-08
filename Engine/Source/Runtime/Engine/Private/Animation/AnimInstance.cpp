@@ -1805,6 +1805,30 @@ void UAnimInstance::Montage_Pause(UAnimMontage* Montage)
 	}
 }
 
+void UAnimInstance::Montage_Resume(UAnimMontage* Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance && !MontageInstance->IsPlaying())
+		{
+			MontageInstance->SetPlaying(true);
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive() && !MontageInstance->IsPlaying())
+			{
+				MontageInstance->SetPlaying(true);
+			}
+		}
+	}
+}
+
 void UAnimInstance::Montage_JumpToSection(FName SectionName, UAnimMontage* Montage)
 {
 	if (Montage)

@@ -21,6 +21,8 @@
 #include "TargetPlatform.h"
 #include "IIntroTutorials.h"
 #include "IProjectManager.h"
+#include "LevelViewportLayout.h"
+#include "LevelViewportLayoutEntity.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -230,6 +232,8 @@ void FLevelEditorModule::StartupModule()
 
 	// Bind level editor commands shared across an instance
 	BindGlobalLevelEditorCommands();
+
+	RegisterViewportType("Default", FViewportTypeDefinition::FromType<FLevelViewportLayoutEntity>());
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
@@ -532,6 +536,17 @@ TSharedPtr<ILevelEditor> FLevelEditorModule::GetFirstLevelEditor()
 TSharedPtr<SDockTab> FLevelEditorModule::GetLevelEditorTab() const
 {
 	return LevelEditorInstanceTabPtr.Pin();
+}
+
+TSharedRef<IViewportLayoutEntity> FLevelEditorModule::FactoryViewport(FName InTypeName, const FViewportConstructionArgs& ConstructionArgs) const
+{
+	const FViewportTypeDefinition* Definition = CustomViewports.Find(InTypeName);
+	if (Definition)
+	{
+		return Definition->FactoryFunction(ConstructionArgs);
+	}
+
+	return FViewportTypeDefinition::FromType<FLevelViewportLayoutEntity>().FactoryFunction(ConstructionArgs);
 }
 
 void FLevelEditorModule::BindGlobalLevelEditorCommands()

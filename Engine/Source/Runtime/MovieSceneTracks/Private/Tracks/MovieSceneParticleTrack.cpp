@@ -14,7 +14,7 @@ UMovieSceneParticleTrack::UMovieSceneParticleTrack( const FObjectInitializer& Ob
 	: Super( ObjectInitializer )
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(255,255,255);
+	TrackTint = FColor(255,255,255,160);
 #endif
 }
 

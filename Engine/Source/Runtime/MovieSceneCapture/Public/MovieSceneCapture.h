@@ -49,7 +49,7 @@ public:
 public:
 
 	/** The type of capture protocol to use */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
+	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, DisplayName="Output Format")
 	FCaptureProtocolID CaptureType;
 
 	/** Settings specific to the capture protocol */

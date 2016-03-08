@@ -41,7 +41,9 @@ public class MovieSceneTools : ModuleRules
                 "EditorStyle",
 				"EditorWidgets",
 				"RenderCore",
-				"RHI"
+				"RHI",
+				"ShaderCore",
+				"SequenceRecorder",
 			}
 		);
 
@@ -52,7 +54,7 @@ public class MovieSceneTools : ModuleRules
 				"Sequencer",
                 "Settings",
 				"SceneOutliner",
-				"PropertyEditor"
+				"PropertyEditor",
 			}
 		);
 
@@ -61,8 +63,10 @@ public class MovieSceneTools : ModuleRules
                 "AssetRegistry",
 				"AssetTools",
 				"SceneOutliner",
-				"PropertyEditor"
+				"PropertyEditor",
 			}
 		);
-	}
+
+        CircularlyReferencedDependentModules.Add("Sequencer");
+    }
 }

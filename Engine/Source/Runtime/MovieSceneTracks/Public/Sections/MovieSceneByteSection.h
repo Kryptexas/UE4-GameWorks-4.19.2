@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IKeyframeSection.h"
 #include "MovieSceneByteSection.generated.h"
 
 /**

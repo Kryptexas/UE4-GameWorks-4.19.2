@@ -22,7 +22,7 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 	// Setup camera defaults
 	CraneYawControl = CreateDefaultSubobject<USceneComponent>(TEXT("CraneYawControl"));
 	CraneYawControl->AttachParent = TransformComponent;
-	CraneYawControl->RelativeLocation = FVector(0.f, 0.f, 100.f);			// pivot height off the ground
+	CraneYawControl->RelativeLocation = FVector(0.f, 0.f, 70.f);			// pivot height off the ground
 	CraneYawControl->RelativeRotation = FRotator(0.f, CraneYaw, 0.f);
 
 	CranePitchControl = CreateDefaultSubobject<USceneComponent>(TEXT("CranePitchControl"));
@@ -31,12 +31,12 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 
 	CraneCameraMount = CreateDefaultSubobject<USceneComponent>(TEXT("CraneCameraMount"));
 	CraneCameraMount->AttachParent = CranePitchControl;
-	CraneCameraMount->RelativeLocation = FVector(CraneArmLength, 0.f, -35.f);			// negative z == underslung mount
+	CraneCameraMount->RelativeLocation = FVector(CraneArmLength, 0.f, -15.f);			// negative z == underslung mount
 
 	// preview meshes
 	if (!IsRunningCommandlet() && !IsRunningDedicatedServer())
 	{
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> CraneBaseMesh(TEXT("/Engine/BasicShapes/Cone"));
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> CraneBaseMesh(TEXT("/Engine/EditorMeshes/Camera/SM_CraneRig_Base.SM_CraneRig_Base"));
 		PreviewMesh_CraneBase = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewMesh_CraneBase"));
 		if (PreviewMesh_CraneBase)
 		{
@@ -48,11 +48,10 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 			PreviewMesh_CraneBase->CastShadow = false;
 			PreviewMesh_CraneBase->PostPhysicsComponentTick.bCanEverTick = false;
 
-			PreviewMesh_CraneBase->AttachParent = RootComponent;		// sibling of yawcontrol
-			PreviewMesh_CraneBase->RelativeLocation = FVector(0.f, 0.f, 50.f);
+			PreviewMesh_CraneBase->AttachParent = TransformComponent;		// sibling of yawcontrol
 		}
 
-		static ConstructorHelpers::FObjectFinder<UStaticMesh> CraneArmMesh(TEXT("/Engine/BasicShapes/Cube"));
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> CraneArmMesh(TEXT("/Engine/EditorMeshes/Camera/SM_CraneRig_Arm.SM_CraneRig_Arm"));
 		PreviewMesh_CraneArm = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewMesh_CraneArm"));
 		if (PreviewMesh_CraneArm)
 		{
@@ -65,35 +64,67 @@ ACameraRig_Crane::ACameraRig_Crane(const FObjectInitializer& ObjectInitializer)
 			PreviewMesh_CraneArm->PostPhysicsComponentTick.bCanEverTick = false;
 			
 			PreviewMesh_CraneArm->AttachParent = CranePitchControl;		// sibling of the mount
-			PreviewMesh_CraneArm->RelativeScale3D = FVector(0.2f, 0.2f, 0.2f);
+			PreviewMesh_CraneArm->RelativeRotation = FRotator(0.f, 90.f, 0.f);
+			PreviewMesh_CraneArm->RelativeLocation = FVector(0.f, 0.f, 52.f);
+			PreviewMesh_CraneArm->RelativeScale3D = FVector(0.7f, 0.7f, 0.7f);
+		}
+		
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> CraneArmMount(TEXT("/Engine/EditorMeshes/Camera/SM_CraneRig_Mount.SM_CraneRig_Mount"));
+		PreviewMesh_CraneMount = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewMesh_CraneMount"));
+		if (PreviewMesh_CraneMount)
+		{
+			PreviewMesh_CraneMount->SetStaticMesh(CraneArmMount.Object);
+			PreviewMesh_CraneMount->AlwaysLoadOnClient = false;
+			PreviewMesh_CraneMount->AlwaysLoadOnServer = false;
+			PreviewMesh_CraneMount->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+			PreviewMesh_CraneMount->bHiddenInGame = true;
+			PreviewMesh_CraneMount->CastShadow = false;
+			PreviewMesh_CraneMount->PostPhysicsComponentTick.bCanEverTick = false;
+
+			PreviewMesh_CraneMount->AttachParent = CraneCameraMount;
+			PreviewMesh_CraneMount->RelativeRotation = FRotator(0.f, 90.f, 0.f);
+			PreviewMesh_CraneMount->RelativeLocation = FVector(0.f, 0.f, 57.f);
+			PreviewMesh_CraneMount->RelativeScale3D = FVector(0.7f, 0.7f, 0.7f);
+		}
+		
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> CraneArmCW(TEXT("/Engine/EditorMeshes/Camera/SM_CraneRig_Body.SM_CraneRig_Body"));
+		PreviewMesh_CraneCounterWeight = CreateOptionalDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewMesh_CraneCounterWeight"));
+		if (PreviewMesh_CraneCounterWeight)
+		{
+			PreviewMesh_CraneCounterWeight->SetStaticMesh(CraneArmCW.Object);
+			PreviewMesh_CraneCounterWeight->AlwaysLoadOnClient = false;
+			PreviewMesh_CraneCounterWeight->AlwaysLoadOnServer = false;
+			PreviewMesh_CraneCounterWeight->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+			PreviewMesh_CraneCounterWeight->bHiddenInGame = true;
+			PreviewMesh_CraneCounterWeight->CastShadow = false;
+			PreviewMesh_CraneCounterWeight->PostPhysicsComponentTick.bCanEverTick = false;
+
+			PreviewMesh_CraneCounterWeight->AttachParent = CranePitchControl;
+			PreviewMesh_CraneCounterWeight->RelativeRotation = FRotator(0.f, 90.f, 0.f);
+			PreviewMesh_CraneCounterWeight->RelativeScale3D = FVector(0.7f, 0.7f, 0.7f);
 		}
 
 		UpdatePreviewMeshes();
 	}
 }
 
-static const float CraneArmMesh_CounterweightOverhang = 100.f;
+static const float CraneArmMesh_CounterweightOverhang = 0.f;
+static const float CraneArmMesh_DefaultMeshSize = 29.f * 0.7f;		// size of the mesh in the dimension that will stretch (accounting for the 0.7 scale)
 
 void ACameraRig_Crane::UpdatePreviewMeshes()
 {
 	if (PreviewMesh_CraneArm)
 	{
 		// note to explain the math here:
-		// crane arm mesh is current a 100x100 cube. we want it to overhang the base pivot by 100cm
-		// (chosen arbitrarily)
+		// this tailored to the dimensions of the asset (29cm in scaling direction, pivot at the edge)
 
 		float const TotalCraneArmMeshLength = CraneArmMesh_CounterweightOverhang + CraneArmLength;
-		float const CraneArmXScale = TotalCraneArmMeshLength / 100.f;
-		float const CraneArmXOffset = TotalCraneArmMeshLength * 0.5f - CraneArmMesh_CounterweightOverhang;
+		float const CraneArmYScale = TotalCraneArmMeshLength / CraneArmMesh_DefaultMeshSize;
 
 		FVector NewRelScale3D = PreviewMesh_CraneArm->RelativeScale3D;
-		NewRelScale3D.X = CraneArmXScale;
-
-		FVector NewRelLoc = PreviewMesh_CraneArm->RelativeLocation;
-		NewRelLoc.X = CraneArmXOffset;
+		NewRelScale3D.Y = CraneArmYScale * 0.7f;
 
 		PreviewMesh_CraneArm->SetRelativeScale3D(NewRelScale3D);
-		PreviewMesh_CraneArm->SetRelativeLocation(NewRelLoc);
 	}
 }
 

@@ -16,6 +16,7 @@
 #include "UnrealEd.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "ISequenceRecorder.h"
 #define LOCTEXT_NAMESPACE "GameplayCueManager"
 #endif
 
@@ -212,6 +213,12 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 				SpawnedCue->SetActorHiddenInGame(false);
 				SpawnedCue->SetOwner(NewOwnerActor);
 				SpawnedCue->SetActorLocationAndRotation(TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+
+#if WITH_EDITOR
+				// let things know that we 'spawned'
+				ISequenceRecorder& SequenceRecorder	= FModuleManager::LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
+				SequenceRecorder.NotifyActorStartRecording(SpawnedCue);
+#endif
 			}
 		}
 
@@ -263,6 +270,12 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 			FPreallocationInfo& Info = GetPreallocationInfo(Actor->GetWorld());
 			TArray<AGameplayCueNotify_Actor*>& PreAllocatedList = Info.PreallocatedInstances.FindOrAdd(Actor->GetClass());
 			PreAllocatedList.Push(Actor);
+
+#if WITH_EDITOR
+			// let things know that we 'de-spawned'
+			ISequenceRecorder& SequenceRecorder	= FModuleManager::LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
+			SequenceRecorder.NotifyActorStopRecording(Actor);
+#endif
 
 			return;
 		}

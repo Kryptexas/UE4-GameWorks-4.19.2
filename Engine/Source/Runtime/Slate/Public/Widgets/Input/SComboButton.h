@@ -25,6 +25,7 @@ public:
 		, _HAlign(HAlign_Fill)
 		, _VAlign(VAlign_Center)
 		, _Method()
+		, _CollapseMenuOnParentFocus(false)
 		{}
 
 		SLATE_STYLE_ARGUMENT( FComboButtonStyle, ComboButtonStyle )
@@ -54,6 +55,10 @@ public:
 
 		/** Spawn a new window or reuse current window for this combo*/
 		SLATE_ARGUMENT( TOptional<EPopupMethod>, Method )
+
+		/** True if this combo's menu should be collapsed when our parent receives focus, false (default) otherwise */
+		SLATE_ARGUMENT(bool, CollapseMenuOnParentFocus)
+
 	SLATE_END_ARGS()
 
 	// SMenuAnchor interface

@@ -401,6 +401,13 @@ protected:
 
 	/** Called to get the visibility of the filter box */
 	EVisibility GetFilterBoxVisibility() const;
+
+	/** Utility function allowing derived classes to optionally implement RegisterInstancedCustomPropertyLayout */
+	void RegisterInstancedCustomPropertyLayoutInternal(UStruct* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate);
+
+	/** Utility function allowing derived classes to optionally implement UnregisterInstancedCustomPropertyLayout */
+	void UnregisterInstancedCustomPropertyLayoutInternal(UStruct* Class);
+
 protected:
 	/** The user defined args for the details view */
 	FDetailsViewArgs DetailsViewArgs;

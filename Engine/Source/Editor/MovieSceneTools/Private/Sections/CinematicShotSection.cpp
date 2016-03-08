@@ -6,10 +6,20 @@
 #include "CinematicShotTrackEditor.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "SInlineEditableTextBlock.h"
-#include "CinematicShotTrackEditor.h"
 #include "MovieSceneToolHelpers.h"
+#include "MovieSceneToolsUserSettings.h"
 
 #define LOCTEXT_NAMESPACE "FCinematicShotSection"
+
+FCinematicShotSection::FCinematicSectionCache::FCinematicSectionCache(UMovieSceneCinematicShotSection* Section)
+	: ActualStartTime(0.f), TimeScale(0.f)
+{
+	if (Section)
+	{
+		ActualStartTime = Section->GetStartTime() - Section->StartOffset;
+		TimeScale = Section->TimeScale;
+	}
+}
 
 
 /* FCinematicShotSection structors
@@ -20,6 +30,9 @@ FCinematicShotSection::FCinematicShotSection(TSharedPtr<ISequencer> InSequencer,
 	, SectionObject(*CastChecked<UMovieSceneCinematicShotSection>(&InSection))
 	, Sequencer(InSequencer)
 	, CinematicShotTrackEditor(InCinematicShotTrackEditor)
+	, InitialStartOffsetDuringResize(0.f)
+	, InitialStartTimeDuringResize(0.f)
+	, ThumbnailCacheData(&SectionObject)
 {
 	if (InSequencer->HasSequenceInstanceForSection(InSection))
 	{
@@ -34,12 +47,63 @@ FCinematicShotSection::~FCinematicShotSection()
 
 float FCinematicShotSection::GetSectionHeight() const
 {
-	return FThumbnailSection::GetSectionHeight() + 2*13.f;
+	return FThumbnailSection::GetSectionHeight() + 2*9.f;
 }
 
 FMargin FCinematicShotSection::GetContentPadding() const
 {
 	return FMargin(8.f, 15.f);
+}
+
+void FCinematicShotSection::SetSingleTime(float GlobalTime)
+{
+	SectionObject.SetThumbnailReferenceOffset(GlobalTime - SectionObject.GetStartTime());
+}
+
+void FCinematicShotSection::BeginResizeSection()
+{
+	InitialStartOffsetDuringResize = SectionObject.StartOffset;
+	InitialStartTimeDuringResize = SectionObject.GetStartTime();
+}
+
+void FCinematicShotSection::ResizeSection(ESequencerSectionResizeMode ResizeMode, float ResizeTime)
+{
+	// Adjust the start offset when resizing from the beginning
+	if (ResizeMode == SSRM_LeadingEdge)
+	{
+		float StartOffset = (ResizeTime - InitialStartTimeDuringResize) / SectionObject.TimeScale;
+		StartOffset += InitialStartOffsetDuringResize;
+
+		// Ensure start offset is not less than 0
+		StartOffset = FMath::Max(StartOffset, 0.f);
+
+		SectionObject.StartOffset = StartOffset;
+	}
+
+	FThumbnailSection::ResizeSection(ResizeMode, ResizeTime);
+}
+
+void FCinematicShotSection::Tick(const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	// Set cached data
+	FCinematicSectionCache NewCacheData(&SectionObject);
+	if (NewCacheData != ThumbnailCacheData)
+	{
+		ThumbnailCache.ForceRedraw();
+	}
+	ThumbnailCacheData = NewCacheData;
+
+	// Update single reference frame settings
+	if (GetDefault<UMovieSceneUserThumbnailSettings>()->bDrawSingleThumbnails)
+	{
+		ThumbnailCache.SetSingleReferenceFrame(SectionObject.GetStartTime() + SectionObject.GetThumbnailReferenceOffset());
+	}
+	else
+	{
+		ThumbnailCache.SetSingleReferenceFrame(TOptional<float>());
+	}
+
+	FThumbnailSection::Tick(AllottedGeometry, ClippedGeometry, InCurrentTime, InDeltaTime);
 }
 
 int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter) const
@@ -78,6 +142,8 @@ int32 FCinematicShotSection::OnPaintSection(FSequencerSectionPainter& InPainter)
 
 void FCinematicShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding)
 {
+	FThumbnailSection::BuildSectionContextMenu(MenuBuilder, ObjectBinding);
+
 	MenuBuilder.BeginSection(NAME_None, LOCTEXT("ShotMenuText", "Shot"));
 	{
 		if (SequenceInstance.IsValid())
@@ -149,11 +215,6 @@ FText FCinematicShotSection::GetDisplayName() const
 
 /* FCinematicShotSection callbacks
  *****************************************************************************/
-
-AActor* FCinematicShotSection::GetCameraObject() const
-{
-	return CinematicShotTrackEditor.IsValid() ? CinematicShotTrackEditor.Pin()->GetCinematicShotCamera().Get() : nullptr;
-}
 
 FText FCinematicShotSection::HandleThumbnailTextBlockText() const
 {

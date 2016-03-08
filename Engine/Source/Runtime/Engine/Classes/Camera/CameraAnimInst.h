@@ -33,6 +33,10 @@ public:
 	uint32 bFinished : 1;
 
 protected:
+
+	/** If true, this anim inst will automatically stop itself when it finishes, otherwise, it will wait for an explicit Stop() call. */
+	uint32 bStopAutomatically : 1;
+
 	/** True if the animation should loop, false otherwise. */
 	uint32 bLooping:1;
 
@@ -116,6 +120,12 @@ public:
 	/** advances the animation by the specified time - updates any modified interp properties, moves the group actor, etc */
 	void AdvanceAnim(float DeltaTime, bool bJump);
 	
+	/** Jumps he camera anim to the given (unscaled) time. */
+	void SetCurrentTime(float NewTime);
+
+	/** Returns the current playback time. */
+	float GetCurrentTime() const { return CurTime; };
+
 	/** Stops this instance playing whatever animation it is playing. */
 	UFUNCTION(BlueprintCallable, Category = CameraAnimInst)
 	void Stop(bool bImmediate = false);
@@ -133,6 +143,15 @@ public:
 	/** Changes the scale of the animation while playing.*/
 	UFUNCTION(BlueprintCallable, Category = CameraAnimInst)
 	void SetScale(float NewDuration);
+
+	/** Sets the camera actor that will be modified when this anim is played. (Usually a temporary actor whose data is subsequently harvested). */
+	void SetCameraActor(class AActor* Actor);
+
+	/** Takes the given view and applies the camera anim transform and fov changes to it. Does not affect PostProcess. */
+	void ApplyToView(FMinimalViewInfo& InOutPOV) const;
+
+	/** Sets whether this anim instance should automatically stop when finished. */
+	void SetStopAutomatically(bool bNewStopAutoMatically) { bStopAutomatically = bNewStopAutoMatically; };
 
 protected:
 	/** Returns InterpGroupInst subobject **/

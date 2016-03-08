@@ -48,6 +48,9 @@ public:
 	/** Set end playback range */
 	TSharedPtr< FUICommandInfo > SetEndPlaybackRange;
 
+	/** Reset the view range to the playback range */
+	TSharedPtr< FUICommandInfo > ResetViewRange;
+
 	/** Zoom into the view range */
 	TSharedPtr< FUICommandInfo > ZoomInViewRange;
 
@@ -71,6 +74,12 @@ public:
 
 	/** Expand/collapse nodes and descendants */
 	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodesAndDescendants;
+
+	/** Sets the upper bound of the in/out section */
+	TSharedPtr< FUICommandInfo > SetInOutEnd;
+
+	/** Sets the lower bound of the in/out section */
+	TSharedPtr< FUICommandInfo > SetInOutStart;
 
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
@@ -138,6 +147,9 @@ public:
 	/** Toggles whether or not sections should snap to other sections. */
 	TSharedPtr< FUICommandInfo > ToggleSnapSectionTimesToSections;
 
+	/** Toggles whether or not snap to key times while scrubbing. */
+	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToKeys;
+
 	/** Toggles whether or not the play time should snap to the selected interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToInterval;
 
@@ -155,6 +167,9 @@ public:
 
 	/** Toggles whether to show combined keys at the top node level. */
 	TSharedPtr< FUICommandInfo > ToggleCombinedKeyframes;
+
+	/** Toggles whether to show channel colors in the track area. */
+	TSharedPtr< FUICommandInfo > ToggleChannelColors;
 
 	/** Toggles whether the label browser is enabled in the level editor. */
 	TSharedPtr< FUICommandInfo > ToggleLabelBrowser;
@@ -185,6 +200,10 @@ public:
 
 	/** Discard all changes to the current movie scene. */
 	TSharedPtr< FUICommandInfo > DiscardChanges;
+
+	/** Attempts to fix broken actor references. */
+	TSharedPtr< FUICommandInfo > FixActorReferences;
+
 
 	/**
 	 * Initialize commands

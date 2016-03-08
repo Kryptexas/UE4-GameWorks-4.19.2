@@ -3045,13 +3045,6 @@ void FPersona::Tick(float DeltaTime)
 		Viewport.Pin()->RefreshViewport();
 	}
 
-	if (IsRecording())
-	{
-		// make sure you don't allow switch previewcomponent
-		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
-		PersonaModule.OnTickRecording().ExecuteIfBound(PreviewComponent, DeltaTime);
-	}
-
 	if (PreviewComponent && LastCachedLODForPreviewComponent != PreviewComponent->PredictedLODLevel)
 	{
 		OnLODChanged.Broadcast();

@@ -18,9 +18,10 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapKeyTimesToKeys = true;
 	bSnapSectionTimesToInterval = true;
 	bSnapSectionTimesToSections = true;
+	bSnapPlayTimeToKeys = false;
 	bSnapPlayTimeToInterval = true;
 	bSnapPlayTimeToDraggedKey = false;
-	bFixedTimeStepPlayback = false;
+	bFixedTimeStepPlayback = true;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bDetailsViewVisible = false;
@@ -34,6 +35,9 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bKeepPlayRangeInSectionBounds = true;
 	ZeroPadFrames = 0;
 	bShowCombinedKeyframes = true;
+	bInfiniteKeyAreas = false;
+	bShowChannelColors = false;
+	bShowViewportTransportControls = true;
 }
 
 EAutoKeyMode USequencerSettings::GetAutoKeyMode() const
@@ -116,20 +120,6 @@ void USequencerSettings::SetShowFrameNumbers(bool InbShowFrameNumbers)
 	if ( bShowFrameNumbers != InbShowFrameNumbers )
 	{
 		bShowFrameNumbers = InbShowFrameNumbers;
-		SaveConfig();
-	}
-}
-
-bool USequencerSettings::GetShowGotoBox() const
-{
-	return bShowGotoBox;
-}
-
-void USequencerSettings::SetShowGotoBox(bool InbShowGotoBox)
-{
-	if ( bShowGotoBox != InbShowGotoBox )
-	{
-		bShowGotoBox = InbShowGotoBox;
 		SaveConfig();
 	}
 }
@@ -228,6 +218,20 @@ void USequencerSettings::SetSnapSectionTimesToSections( bool InbSnapSectionTimes
 	if ( bSnapSectionTimesToSections != InbSnapSectionTimesToSections )
 	{
 		bSnapSectionTimesToSections = InbSnapSectionTimesToSections;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetSnapPlayTimeToKeys() const
+{
+	return bSnapPlayTimeToKeys;
+}
+
+void USequencerSettings::SetSnapPlayTimeToKeys(bool InbSnapPlayTimeToKeys)
+{
+	if ( bSnapPlayTimeToKeys != InbSnapPlayTimeToKeys )
+	{
+		bSnapPlayTimeToKeys = InbSnapPlayTimeToKeys;
 		SaveConfig();
 	}
 }
@@ -460,6 +464,49 @@ void USequencerSettings::SetShowCombinedKeyframes(bool InbShowCombinedKeyframes)
 	}
 }
 
+
+bool USequencerSettings::GetInfiniteKeyAreas() const
+{
+	return bInfiniteKeyAreas;
+}
+
+void USequencerSettings::SetInfiniteKeyAreas(bool InbInfiniteKeyAreas)
+{
+	if (bInfiniteKeyAreas != InbInfiniteKeyAreas)
+	{
+		bInfiniteKeyAreas = InbInfiniteKeyAreas;
+		SaveConfig();
+	}
+}
+
+
+bool USequencerSettings::GetShowChannelColors() const
+{
+	return bShowChannelColors;
+}
+
+void USequencerSettings::SetShowChannelColors(bool InbShowChannelColors)
+{
+	if (bShowChannelColors != InbShowChannelColors)
+	{
+		bShowChannelColors = InbShowChannelColors;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetShowViewportTransportControls() const
+{
+	return bShowViewportTransportControls;
+}
+
+void USequencerSettings::SetShowViewportTransportControls(bool bVisible)
+{
+	if (bShowViewportTransportControls != bVisible)
+	{
+		bShowViewportTransportControls = bVisible;
+		SaveConfig();
+	}
+}
 
 float USequencerSettings::SnapTimeToInterval( float InTimeValue ) const
 {

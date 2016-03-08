@@ -51,6 +51,11 @@ TSharedPtr<ISequencerEditToolDragOperation> FSectionResizeHotspot::InitiateDrag(
 	
 	if (!SelectedSections.Contains(Section.GetSectionObject()))
 	{
+		Sequencer.GetSelection().Empty();
+		Sequencer.GetSelection().AddToSelection(Section.GetSectionObject());
+		SequencerHelpers::UpdateHoveredNodeFromSelectedSections(static_cast<FSequencer&>(Sequencer));
+
+		SectionHandles.Empty();
 		SectionHandles.Add(Section);
 	}
 	return MakeShareable( new FResizeSection(static_cast<FSequencer&>(Sequencer), SectionHandles, HandleType == Right) );

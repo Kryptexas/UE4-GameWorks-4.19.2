@@ -25,6 +25,9 @@
 #include "Sound/SoundBase.h"
 #include "Sound/SoundWave.h"
 #include "Sound/SoundCue.h"
+#include "ContentBrowserModule.h"
+#include "SequencerUtilities.h"
+#include "AssetRegistryModule.h"
 
 
 #define LOCTEXT_NAMESPACE "FAudioTrackEditor"
@@ -288,9 +291,11 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 		if (AudioDevice)
 		{
-			SoundWave->InitAudioResource(AudioDevice->GetRuntimeFormat(SoundWave));
-			FAsyncAudioDecompress TempDecompress(SoundWave);
-			TempDecompress.StartSynchronousTask();
+			if ( SoundWave->InitAudioResource( AudioDevice->GetRuntimeFormat( SoundWave ) ) && (SoundWave->DecompressionType != DTYPE_RealTime || SoundWave->CachedRealtimeFirstBuffer == nullptr ) )
+			{
+				FAsyncAudioDecompress TempDecompress(SoundWave);
+				TempDecompress.StartSynchronousTask();
+			}
 		}
 	}
 
@@ -298,6 +303,11 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 	const int16* LookupData = (int16*)SoundWave->RawPCMData;
 	const int32 LookupDataSize = SoundWave->RawPCMDataSize;
 	const int32 LookupSize = LookupDataSize * sizeof(uint8) / sizeof(int16);
+
+	if (!LookupData)
+	{
+		return;
+	}
 
 	const bool bShowIntensity = AudioSection->ShouldShowIntensity();
 
@@ -768,6 +778,19 @@ TSharedRef<ISequencerSection> FAudioTrackEditor::MakeSectionInterface( UMovieSce
 	return MakeShareable( new FAudioSection(SectionObject, bIsAMasterTrack, GetSequencer()) );
 }
 
+TSharedPtr<SWidget> FAudioTrackEditor::BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params)
+{
+	// Create a container edit box
+	return SNew(SHorizontalBox)
+
+	// Add the audio combo box
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.VAlign(VAlign_Center)
+	[
+		FSequencerUtilities::MakeAddButton(LOCTEXT("AudioText", "Audio"), FOnGetContent::CreateSP(this, &FAudioTrackEditor::BuildAudioSubMenu, Track), Params.NodeIsHovered)
+	];
+}
 
 bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
 {
@@ -777,7 +800,7 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 		
 		if (TargetObjectGuid.IsValid())
 		{
-			TArray<UObject*> OutObjects;
+			TArray<TWeakObjectPtr<UObject>> OutObjects;
 			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
 			AnimatablePropertyChanged( FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));
@@ -805,7 +828,7 @@ bool FAudioTrackEditor::AddNewMasterSound( float KeyTime, USoundBase* Sound )
 }
 
 
-bool FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, TArray<UObject*> ObjectsToAttachTo )
+bool FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, TArray<TWeakObjectPtr<UObject>> ObjectsToAttachTo )
 {
 	bool bHandleCreated = false;
 	bool bTrackCreated = false;
@@ -813,7 +836,7 @@ bool FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, T
 
 	for( int32 ObjectIndex = 0; ObjectIndex < ObjectsToAttachTo.Num(); ++ObjectIndex )
 	{
-		UObject* Object = ObjectsToAttachTo[ObjectIndex];
+		UObject* Object = ObjectsToAttachTo[ObjectIndex].Get();
 
 		FFindOrCreateHandleResult HandleResult = FindOrCreateHandleToObject( Object );
 		FGuid ObjectHandle = HandleResult.Handle;
@@ -862,5 +885,63 @@ void FAudioTrackEditor::HandleAddAudioTrackMenuEntryExecute()
 	GetSequencer()->NotifyMovieSceneDataChanged();
 }
 
+TSharedRef<SWidget> FAudioTrackEditor::BuildAudioSubMenu(UMovieSceneTrack* Track)
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	TArray<FName> ClassNames;
+	ClassNames.Add(USoundBase::StaticClass()->GetFName());
+	TSet<FName> DerivedClassNames;
+	AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
 
+	FMenuBuilder MenuBuilder(true, nullptr);
+
+	FAssetPickerConfig AssetPickerConfig;
+	{
+		AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateRaw( this, &FAudioTrackEditor::OnAudioAssetSelected, Track);
+		AssetPickerConfig.bAllowNullSelection = false;
+		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+		for (auto ClassName : DerivedClassNames)
+		{
+			AssetPickerConfig.Filter.ClassNames.Add(ClassName);
+		}
+	}
+
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+	TSharedPtr<SBox> MenuEntry = SNew(SBox)
+		.WidthOverride(300.0f)
+		.HeightOverride(300.f)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		];
+
+	MenuBuilder.AddWidget(MenuEntry.ToSharedRef(), FText::GetEmpty(), true);
+
+	return MenuBuilder.MakeWidget();
+}
+
+
+void FAudioTrackEditor::OnAudioAssetSelected(const FAssetData& AssetData, UMovieSceneTrack* Track)
+{
+	FSlateApplication::Get().DismissAllMenus();
+
+	UObject* SelectedObject = AssetData.GetAsset();
+
+	if (SelectedObject)
+	{
+		USoundBase* NewSound = CastChecked<USoundBase>(AssetData.GetAsset());
+		if (NewSound != nullptr)
+		{
+			const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddAudio_Transaction", "Add Audio"));
+
+			auto AudioTrack = Cast<UMovieSceneAudioTrack>(Track);
+			AudioTrack->Modify();
+
+			float KeyTime = GetSequencer()->GetGlobalTime();
+			AudioTrack->AddNewSound( NewSound, KeyTime );
+
+			GetSequencer()->NotifyMovieSceneDataChanged();
+		}
+	}
+}
 #undef LOCTEXT_NAMESPACE

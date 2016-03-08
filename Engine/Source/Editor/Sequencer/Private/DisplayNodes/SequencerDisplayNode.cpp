@@ -166,7 +166,7 @@ void FSequencerDisplayNode::Initialize(float InVirtualTop, float InVirtualBottom
 
 void FSequencerDisplayNode::AddObjectBindingNode(TSharedRef<FSequencerObjectBindingNode> ObjectBindingNode)
 {
-	ChildNodes.Add(ObjectBindingNode);
+	AddChildAndSetParent( ObjectBindingNode );
 }
 
 
@@ -300,7 +300,7 @@ TSharedRef<FSequencerTrackNode> FSequencerDisplayNode::AddSectionAreaNode(UMovie
 	if (!SectionNode.IsValid())
 	{
 		// No existing node found make a new one
-		SectionNode = MakeShareable(new FSequencerTrackNode(AssociatedTrack, AssociatedEditor, SharedThis(this), ParentTree));
+		SectionNode = MakeShareable( new FSequencerTrackNode( AssociatedTrack, AssociatedEditor, false, SharedThis(this), ParentTree ) );
 		ChildNodes.Add( SectionNode.ToSharedRef() );
 	}
 
@@ -334,6 +334,15 @@ void FSequencerDisplayNode::AddKeyAreaNode(FName KeyAreaName, const FText& Displ
 	KeyAreaNode->AddKeyArea(KeyArea);
 }
 
+FLinearColor FSequencerDisplayNode::GetDisplayNameColor() const
+{
+	return FLinearColor( 1.f, 1.f, 1.f, 1.f );
+}
+
+FText FSequencerDisplayNode::GetDisplayNameToolTipText() const
+{
+	return FText();
+}
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner(const TSharedRef<SSequencerTreeViewRow>& InRow)
 {
@@ -425,7 +434,7 @@ FString FSequencerDisplayNode::GetPathName() const
 }
 
 
-TSharedPtr<SWidget> FSequencerDisplayNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+TSharedPtr<SWidget> FSequencerDisplayNode::OnSummonContextMenu()
 {
 	// @todo sequencer replace with UI Commands instead of faking it
 	const bool bShouldCloseWindowAfterMenuSelection = true;
@@ -592,5 +601,13 @@ void FSequencerDisplayNode::EnableKeyGoupingRegeneration()
 {
 	KeyGroupRegenerationLock.Decrement();
 }
+
+
+void FSequencerDisplayNode::AddChildAndSetParent( TSharedRef<FSequencerDisplayNode> InChild )
+{
+	ChildNodes.Add( InChild );
+	InChild->ParentNode = SharedThis( this );
+}
+
 
 #undef LOCTEXT_NAMESPACE

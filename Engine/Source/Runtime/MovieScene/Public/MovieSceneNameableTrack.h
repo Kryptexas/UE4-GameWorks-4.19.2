@@ -25,6 +25,13 @@ public:
 	 */
 	MOVIESCENE_API void SetDisplayName(const FText& NewDisplayName);
 
+	/**
+	 * Can rename this track.
+	 *
+	 * @return Whether this track can be renamed.
+	 */
+	MOVIESCENE_API virtual bool CanRename() const { return true; }
+
 public:
 
 	// UMovieSceneTrack interface

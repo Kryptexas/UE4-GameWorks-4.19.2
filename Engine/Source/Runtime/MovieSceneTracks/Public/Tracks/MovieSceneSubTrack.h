@@ -44,6 +44,11 @@ public:
 	 */
 	MOVIESCENETRACKS_API bool ContainsSequence(const UMovieSceneSequence& Sequence, bool Recursively = false) const;
 
+	/**
+	 * Add a new sequence to record
+	 */
+	MOVIESCENETRACKS_API virtual UMovieSceneSubSection* AddSequenceToRecord();
+
 public:
 
 	// UMovieSceneTrack interface
@@ -62,7 +67,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	virtual FText GetDefaultDisplayName() const override;
 #endif
-
+	
 protected:
 
 	/** All movie scene sections. */

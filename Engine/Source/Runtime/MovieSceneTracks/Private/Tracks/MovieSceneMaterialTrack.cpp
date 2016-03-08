@@ -11,7 +11,7 @@ UMovieSceneMaterialTrack::UMovieSceneMaterialTrack(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 #if WITH_EDITORONLY_DATA
-	TrackTint = FColor(64,192,64);
+	TrackTint = FColor(64,192,64,65);
 #endif
 }
 

@@ -288,7 +288,14 @@ void SLevelViewport::ConstructViewportOverlayContent()
 
 void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArgs )
 {
-	LevelViewportClient = MakeShareable( new FLevelEditorViewportClient(SharedThis(this)) );
+	if (InArgs._LevelEditorViewportClient.IsValid())
+	{
+		LevelViewportClient = InArgs._LevelEditorViewportClient;
+	}
+	else
+	{
+		LevelViewportClient = MakeShareable( new FLevelEditorViewportClient(SharedThis(this)) );
+	}
 
 	// Default level viewport client values for settings that could appear in layout config ini
 	FLevelEditorViewportInstanceSettings ViewportInstanceSettings;
@@ -386,6 +393,8 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->EngineShowFlags.SetCompositeEditorPrimitives(true);
 
 	LevelViewportClient->SetViewModes(ViewportInstanceSettings.PerspViewModeIndex, ViewportInstanceSettings.OrthoViewModeIndex );
+
+	bShowFullToolbar = ViewportInstanceSettings.bShowFullToolbar;
 }
 
 const FSceneViewport* SLevelViewport::GetGameSceneViewport() const
@@ -417,13 +426,14 @@ FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& 
 		//  the SLevelEditor is not a direct parent of the viewport.  
 		if ( this->IsImmersive() && !Reply.IsEventHandled() )
 		{
-			TSharedPtr<SLevelEditor> ParentLevelEditorSharedPtr = ParentLevelEditor.Pin();
+			TSharedPtr<ILevelEditor> ParentLevelEditorSharedPtr = ParentLevelEditor.Pin();
 			if( ParentLevelEditorSharedPtr.IsValid() )
 			{
 				Reply = ParentLevelEditorSharedPtr->OnKeyDownInViewport( MyGeometry, InKeyEvent );
 			}
 		}
 	}
+
 	return Reply;
 }
 
@@ -1188,7 +1198,14 @@ void SLevelViewport::BindOptionCommands( FUICommandList& CommandList )
 
 	CommandList.MapAction(
 		ViewportActions.ClearAllBookMarks,
-		FExecuteAction::CreateSP( this, &SLevelViewport::OnClearAllBookMarks )		
+		FExecuteAction::CreateSP( this, &SLevelViewport::OnClearAllBookMarks )
+		);
+
+	CommandList.MapAction(
+		ViewportActions.ToggleViewportToolbar,
+		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleShowFullToolbar ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SLevelViewport::ShouldShowFullToolbar )
 		);
 }
 
@@ -1286,6 +1303,18 @@ void SLevelViewport::BindViewCommands( FUICommandList& CommandList )
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SLevelViewport::IsViewportConfigurationSet, LevelViewportConfigurationNames::FourPanes2x2 ));
 
+	auto ProcessViewportTypeActions = [&](FName InViewportTypeName, const FViewportTypeDefinition& InDefinition){
+		if (InDefinition.ToggleCommand.IsValid())
+		{
+			CommandList.MapAction(InDefinition.ToggleCommand, FUIAction(
+				FExecuteAction::CreateSP(this, &SLevelViewport::ToggleViewportTypeActivationWithinLayout, InViewportTypeName),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SLevelViewport::IsViewportTypeWithinLayoutEqual, InViewportTypeName)
+			));
+		}
+	};
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	LevelEditorModule.IterateViewportTypes(ProcessViewportTypeActions);
 
 	// Map Buffer visualization mode actions
 	for (FLevelViewportCommands::TBufferVisualizationModeCommandMap::TConstIterator It = ViewportActions.BufferVisualizationModeCommands.CreateConstIterator(); It; ++It)
@@ -1983,6 +2012,7 @@ void SLevelViewport::SaveConfig(const FString& ConfigName)
 	ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
 	ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
 	ViewportInstanceSettings.FarViewPlane = LevelViewportClient->GetFarClipPlaneOverride();
+	ViewportInstanceSettings.bShowFullToolbar = bShowFullToolbar;
 
 	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
 	{
@@ -3312,6 +3342,50 @@ bool SLevelViewport::IsViewportConfigurationSet(FName ConfigurationName) const
 		}
 	}
 	return false;
+}
+
+FName SLevelViewport::GetViewportTypeWithinLayout() const
+{
+	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
+	if (LayoutPinned.IsValid() && !ConfigKey.IsEmpty())
+	{
+		TSharedPtr<IViewportLayoutEntity> Entity = LayoutPinned->GetViewports().FindRef(*ConfigKey);
+		if (Entity.IsValid())
+		{
+			return Entity->GetType();
+		}
+	}
+	return "Default";
+}
+
+void SLevelViewport::SetViewportTypeWithinLayout(FName InLayoutType)
+{
+	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
+	if (LayoutPinned.IsValid() && !ConfigKey.IsEmpty())
+	{
+		const FString& IniSection = FLayoutSaveRestore::GetAdditionalLayoutConfigIni();
+		GConfig->SetString( *IniSection, *( ConfigKey + TEXT(".TypeWithinLayout") ), *InLayoutType.ToString(), GEditorPerProjectIni );
+
+		// Force a refresh of the tab content
+		OnSetViewportConfiguration(LayoutPinned->GetLayoutTypeName());
+	}
+}
+
+void SLevelViewport::ToggleViewportTypeActivationWithinLayout(FName InLayoutType)
+{
+	if (GetViewportTypeWithinLayout() == InLayoutType)
+	{
+		SetViewportTypeWithinLayout("Default");
+	}
+	else
+	{
+		SetViewportTypeWithinLayout(InLayoutType);
+	}
+}
+
+bool SLevelViewport::IsViewportTypeWithinLayoutEqual(FName InLayoutType)
+{
+	return GetViewportTypeWithinLayout() == InLayoutType;
 }
 
 void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, const bool bInSimulateInEditor)

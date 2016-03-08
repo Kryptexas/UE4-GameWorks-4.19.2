@@ -72,9 +72,6 @@ public:
 	/** Delegate used to get the currently recording animation time */
 	FGetCurrentRecordingTime& OnGetCurrentRecordingTime() { return GetCurrentRecordingTimeDelegate; }
 
-	/** Delegate used to tick the skelmesh component recording */
-	FTickRecording& OnTickRecording() { return TickRecordingDelegate; }
-
 private:
 	/** When a new AnimBlueprint is created, this will handle post creation work such as adding non-event default nodes */
 	void OnNewBlueprintCreated(UBlueprint* InBlueprint);

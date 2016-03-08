@@ -31,6 +31,7 @@ public:
 		, _Placement( MenuPlacement_BelowAnchor )
 		, _Method()
 		, _ShouldDeferPaintingAfterWindowContent(true)
+		, _IsCollapsedByParent(false)
 		{}
 		
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -46,6 +47,9 @@ public:
 		SLATE_ARGUMENT(TOptional<EPopupMethod>, Method)
 
 		SLATE_ARGUMENT(bool, ShouldDeferPaintingAfterWindowContent)
+
+		/** True if this menu anchor should be collapsed when its parent receives focus, false (default) otherwise */
+		SLATE_ARGUMENT(bool, IsCollapsedByParent)
 
 	SLATE_END_ARGS()
 
@@ -141,6 +145,9 @@ protected:
 
 	/** Was the menu just dismissed this tick? */
 	bool bDismissedThisTick;
+
+	/** Whether this menu should be collapsed when its parent gets focus */
+	bool bIsCollapsedByParent;
 
 	/** Should we summon a new window for this popup or  */
 	TOptional<EPopupMethod> Method;

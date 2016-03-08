@@ -195,6 +195,23 @@ void FSequencerObjectBindingNode::AddSpawnOwnershipMenu(FMenuBuilder& MenuBuilde
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
 	);
+
+	MenuBuilder.AddMenuSeparator();
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("IgnoreOwnership_Label", "Keep Alive Outside Playback Range (In Sequencer)"),
+		LOCTEXT("IgnoreOwnership_Tooltip", "Keeps the spawned object alive when viewing this specific sequence outside of its playback range. Does not apply to runtime evaluation."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([=]{
+				Spawnable->SetIgnoreOwnershipInEditor(!Spawnable->ShouldIgnoreOwnershipInEditor());
+				GetSequencer().SetGlobalTimeDirectly(GetSequencer().GetGlobalTime());
+			}),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateLambda([=]{ return Spawnable->ShouldIgnoreOwnershipInEditor(); })
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton
+	);
 }
 
 bool FSequencerObjectBindingNode::CanRenameNode() const
@@ -238,6 +255,36 @@ FText FSequencerObjectBindingNode::GetDisplayName() const
 	}
 
 	return DefaultDisplayName;
+}
+
+FLinearColor FSequencerObjectBindingNode::GetDisplayNameColor() const
+{
+	FSequencer& Sequencer = ParentTree.GetSequencer();
+	TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
+	Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneSequenceInstance(), ObjectBinding, RuntimeObjects );
+	if ( RuntimeObjects.Num() == 0 )
+	{
+		return FLinearColor::Red;
+	}
+	else
+	{
+		return FSequencerDisplayNode::GetDisplayNameColor();
+	}
+}
+
+FText FSequencerObjectBindingNode::GetDisplayNameToolTipText() const
+{
+	FSequencer& Sequencer = ParentTree.GetSequencer();
+	TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
+	Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneSequenceInstance(), ObjectBinding, RuntimeObjects );
+	if ( RuntimeObjects.Num() == 0 )
+	{
+		return LOCTEXT("InvalidBoundObjectToolTip", "The object bound to this track is missing.");
+	}
+	else
+	{
+		return FText();
+	}
 }
 
 const FSlateBrush* FSequencerObjectBindingNode::GetIconBrush() const
@@ -294,6 +341,13 @@ void FSequencerObjectBindingNode::SetDisplayName(const FText& NewDisplayName)
 	{
 		MovieScene->SetObjectDisplayName(ObjectBinding, NewDisplayName);
 	}
+}
+
+
+bool FSequencerObjectBindingNode::CanDrag() const
+{
+	TSharedPtr<FSequencerDisplayNode> ParentNode = GetParent();
+	return ParentNode.IsValid() == false || ParentNode->GetType() != ESequencerNode::Object;
 }
 
 
