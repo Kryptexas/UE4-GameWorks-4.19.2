@@ -426,6 +426,21 @@ bool UK2Node_MacroInstance::HasExternalDependencies(TArray<class UStruct*>* Opti
 		{
 			OptionalOutput->AddUnique(OtherClass);
 		}
+
+		for (UEdGraphPin* Pin : Pins)
+		{
+			if (Pin->PinType.PinSubCategoryObject.IsValid())
+			{
+				if (UStruct* Struct = Cast<UStruct>(Pin->PinType.PinSubCategoryObject.Get()))
+				{
+					OptionalOutput->AddUnique(Struct);
+				}
+				else
+				{
+					OptionalOutput->AddUnique(Pin->PinType.PinSubCategoryObject.Get()->GetClass());
+				}
+			}
+		}
 	}
 	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
 	return bSuperResult || bResult;
