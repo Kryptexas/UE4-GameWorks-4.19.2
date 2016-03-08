@@ -49,6 +49,9 @@ public:
 	/** Creates a Transformable for each selected actor, wiping out the existing transformables */
 	void SetupTransformablesForSelectedActors();
 
+	/** Gets the Y delta of the trackpad */
+	float GetTrackpadSlideDelta( const int32 HandIndex );
+
 protected:
 
 	/** Called when the user presses a button on their motion controller device */

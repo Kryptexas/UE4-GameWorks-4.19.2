@@ -1001,6 +1001,7 @@ void FVREditorUISystem::TryToSpawnRadialMenu( const int32 HandIndex )
 		Hand.DraggingMode != EVREditorDraggingMode::ActorsFreely &&
 		Hand.DraggingMode != EVREditorDraggingMode::ActorsWithGizmo &&
 		Hand.DraggingMode != EVREditorDraggingMode::AssistingDrag &&
+		DraggingUIHandIndex != HandIndex &&
 		!Hand.bIsHoveringOverUI;	// Don't show radial menu when aiming at a UI  (too much clutter)
 
 	UVREditorRadialMenu* RadialMenu = QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>();

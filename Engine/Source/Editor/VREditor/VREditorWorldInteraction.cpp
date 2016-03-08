@@ -829,18 +829,7 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 				if( Hand.bIsTrackpadPositionValid[ 1 ] )
 				{
 					const bool bIsAbsolute = ( Owner.GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
-					float SlideDelta = 0.0f;
-					if( Hand.bIsTouchingTrackpad || !bIsAbsolute )
-					{
-						if( bIsAbsolute )
-						{
-							SlideDelta = ( ( Hand.TrackpadPosition.Y - Hand.LastTrackpadPosition.Y ) * VREd::TrackpadAbsoluteDragSpeed->GetFloat() ) * WorldScaleFactor;
-						}
-						else
-						{
-							SlideDelta = ( Hand.TrackpadPosition.Y * VREd::TrackpadRelativeDragSpeed->GetFloat() ) * WorldScaleFactor;
-						}
-					}
+					float SlideDelta = GetTrackpadSlideDelta( HandIndex ) * WorldScaleFactor;
 
 					if( !FMath::IsNearlyZero( SlideDelta ) )
 					{
@@ -1219,18 +1208,7 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 				{
 					//@todo: VR Editor - This should be in the UI system
 					const bool bIsAbsolute = ( Owner.GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
-					float SlideDeltaY = 0.0f;
-					if (Hand.bIsTouchingTrackpad || !bIsAbsolute)
-					{
-						if (bIsAbsolute)
-						{
-							SlideDeltaY = ((Hand.TrackpadPosition.Y - Hand.LastTrackpadPosition.Y) * VREd::TrackpadAbsoluteDragSpeed->GetFloat()) * WorldScaleFactor;
-						}
-						else
-						{
-							SlideDeltaY = (Hand.TrackpadPosition.Y * VREd::TrackpadRelativeDragSpeed->GetFloat()) * WorldScaleFactor;
-						}
-					}
+					float SlideDeltaY = GetTrackpadSlideDelta( HandIndex );
 
 					float NewUIScale = DraggingUI->GetScale() + SlideDeltaY;
 					if( NewUIScale <= Owner.GetUISystem().GetMinDockWindowSize() )
@@ -2667,6 +2645,26 @@ void FVREditorWorldInteraction::SetupTransformablesForSelectedActors()
 	}
 }
 
+
+float FVREditorWorldInteraction::GetTrackpadSlideDelta( const int32 HandIndex )
+{
+	const bool bIsAbsolute = (Owner.GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR);
+	float SlideDelta = 0.0f;
+	FVirtualHand& Hand = Owner.GetVirtualHand( HandIndex );
+	if (Hand.bIsTouchingTrackpad || !bIsAbsolute)
+	{
+		if (bIsAbsolute)
+		{
+			SlideDelta = ((Hand.TrackpadPosition.Y - Hand.LastTrackpadPosition.Y) * VREd::TrackpadAbsoluteDragSpeed->GetFloat());
+		}
+		else
+		{
+			SlideDelta = (Hand.TrackpadPosition.Y * VREd::TrackpadRelativeDragSpeed->GetFloat());
+		}
+	}
+
+	return SlideDelta;
+}
 
 bool FVREditorWorldInteraction::IsTransformingActor( AActor* Actor ) const
 {
