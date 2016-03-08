@@ -6,7 +6,7 @@
 /**
  * Platform specific Http implementations
  */
-class FIOSPlatformHttp : public FGenericPlatformHttp
+class FApplePlatformHttp : public FGenericPlatformHttp
 {
 public:
 
@@ -39,4 +39,4 @@ public:
 };
 
 
-typedef FIOSPlatformHttp FPlatformHttp;
+typedef FApplePlatformHttp FPlatformHttp;

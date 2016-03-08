@@ -2,55 +2,55 @@
 
 
 #include "HttpPrivatePCH.h"
-#include "MacHTTP.h"
+#include "AppleHTTP.h"
 #include "EngineVersion.h"
 #include "Security/Security.h"
 
 /****************************************************************************
- * FMacHttpRequest implementation
+ * FAppleHttpRequest implementation
  ***************************************************************************/
 
 
-FMacHttpRequest::FMacHttpRequest()
+FAppleHttpRequest::FAppleHttpRequest()
 :	Connection(NULL)
 ,	CompletionStatus(EHttpRequestStatus::NotStarted)
 ,	ProgressBytesSent(0)
 ,	StartRequestTime(0.0)
 ,	ElapsedTime(0.0f)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::FMacHttpRequest()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::FAppleHttpRequest()"));
 	Request = [[NSMutableURLRequest alloc] init];
 	[Request setTimeoutInterval: FHttpModule::Get().GetHttpTimeout()];
 }
 
 
-FMacHttpRequest::~FMacHttpRequest()
+FAppleHttpRequest::~FAppleHttpRequest()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::~FMacHttpRequest()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::~FAppleHttpRequest()"));
 	[Request release];
 }
 
 
-FString FMacHttpRequest::GetURL()
+FString FAppleHttpRequest::GetURL()
 {
 	SCOPED_AUTORELEASE_POOL;
 	FString URL([[Request URL] absoluteString]);
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetURL() - %s"), *URL);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetURL() - %s"), *URL);
 	return URL;
 }
 
 
-void FMacHttpRequest::SetURL(const FString& URL)
+void FAppleHttpRequest::SetURL(const FString& URL)
 {
 	SCOPED_AUTORELEASE_POOL;
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::SetURL() - %s"), *URL);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetURL() - %s"), *URL);
 	[Request setURL: [NSURL URLWithString: URL.GetNSString()]];
 }
 
 
-FString FMacHttpRequest::GetURLParameter(const FString& ParameterName)
+FString FAppleHttpRequest::GetURLParameter(const FString& ParameterName)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetURLParameter() - %s"), *ParameterName);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetURLParameter() - %s"), *ParameterName);
 
 	NSString* ParameterNameStr = ParameterName.GetNSString();
 	NSArray* Parameters = [[[Request URL] query] componentsSeparatedByString:@"&"];
@@ -67,24 +67,24 @@ FString FMacHttpRequest::GetURLParameter(const FString& ParameterName)
 }
 
 
-FString FMacHttpRequest::GetHeader(const FString& HeaderName)
+FString FAppleHttpRequest::GetHeader(const FString& HeaderName)
 {
 	FString Header([Request valueForHTTPHeaderField:HeaderName.GetNSString()]);
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetHeader() - %s"), *Header);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetHeader() - %s"), *Header);
 	return Header;
 }
 
 
-void FMacHttpRequest::SetHeader(const FString& HeaderName, const FString& HeaderValue)
+void FAppleHttpRequest::SetHeader(const FString& HeaderName, const FString& HeaderValue)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::SetHeader() - %s / %s"), *HeaderName, *HeaderValue );
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetHeader() - %s / %s"), *HeaderName, *HeaderValue );
 	[Request setValue: HeaderValue.GetNSString() forHTTPHeaderField: HeaderName.GetNSString()];
 }
 
 
-TArray<FString> FMacHttpRequest::GetAllHeaders()
+TArray<FString> FAppleHttpRequest::GetAllHeaders()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetAllHeaders()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetAllHeaders()"));
 	NSDictionary* Headers = [Request allHTTPHeaderFields];
 	TArray<FString> Result;
 	Result.Reserve([Headers count]);
@@ -100,41 +100,41 @@ TArray<FString> FMacHttpRequest::GetAllHeaders()
 }
 
 
-const TArray<uint8>& FMacHttpRequest::GetContent()
+const TArray<uint8>& FAppleHttpRequest::GetContent()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetContent()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetContent()"));
 	RequestPayload.Empty();
 	RequestPayload.Append((const uint8*)[[Request HTTPBody] bytes], GetContentLength());
 	return RequestPayload;
 }
 
 
-void FMacHttpRequest::SetContent(const TArray<uint8>& ContentPayload)
+void FAppleHttpRequest::SetContent(const TArray<uint8>& ContentPayload)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::SetContent()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetContent()"));
 	[Request setHTTPBody:[NSData dataWithBytes:ContentPayload.GetData() length:ContentPayload.Num()]];
 }
 
 
-FString FMacHttpRequest::GetContentType()
+FString FAppleHttpRequest::GetContentType()
 {
 	FString ContentType = GetHeader(TEXT("Content-Type"));
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetContentType() - %s"), *ContentType);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetContentType() - %s"), *ContentType);
 	return ContentType;
 }
 
 
-int32 FMacHttpRequest::GetContentLength()
+int32 FAppleHttpRequest::GetContentLength()
 {
 	int Len = [[Request HTTPBody] length];
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetContentLength() - %i"), Len);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetContentLength() - %i"), Len);
 	return Len;
 }
 
 
-void FMacHttpRequest::SetContentAsString(const FString& ContentString)
+void FAppleHttpRequest::SetContentAsString(const FString& ContentString)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::SetContentAsString() - %s"), *ContentString);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetContentAsString() - %s"), *ContentString);
 	FTCHARToUTF8 Converter(*ContentString);
 	
 	// The extra length computation here is unfortunate, but it's technically not safe to assume the length is the same.
@@ -142,25 +142,25 @@ void FMacHttpRequest::SetContentAsString(const FString& ContentString)
 }
 
 
-FString FMacHttpRequest::GetVerb()
+FString FAppleHttpRequest::GetVerb()
 {
 	FString ConvertedVerb([Request HTTPMethod]);
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetVerb() - %s"), *ConvertedVerb);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetVerb() - %s"), *ConvertedVerb);
 	return ConvertedVerb;
 }
 
 
-void FMacHttpRequest::SetVerb(const FString& Verb)
+void FAppleHttpRequest::SetVerb(const FString& Verb)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::SetVerb() - %s"), *Verb);
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::SetVerb() - %s"), *Verb);
 	[Request setHTTPMethod: Verb.GetNSString()];
 }
 
 
-bool FMacHttpRequest::ProcessRequest()
+bool FAppleHttpRequest::ProcessRequest()
 {
 	SCOPED_AUTORELEASE_POOL;
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::ProcessRequest()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::ProcessRequest()"));
 	bool bStarted = false;
 
 	FString Scheme([[Request URL] scheme]);
@@ -193,22 +193,22 @@ bool FMacHttpRequest::ProcessRequest()
 }
 
 
-FHttpRequestCompleteDelegate& FMacHttpRequest::OnProcessRequestComplete()
+FHttpRequestCompleteDelegate& FAppleHttpRequest::OnProcessRequestComplete()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::OnProcessRequestComplete()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::OnProcessRequestComplete()"));
 	return RequestCompleteDelegate;
 }
 
-FHttpRequestProgressDelegate& FMacHttpRequest::OnRequestProgress() 
+FHttpRequestProgressDelegate& FAppleHttpRequest::OnRequestProgress() 
 {
-	UE_LOG(LogHttp, VeryVerbose, TEXT("FMacHttpRequest::OnRequestProgress()"));
+	UE_LOG(LogHttp, VeryVerbose, TEXT("FAppleHttpRequest::OnRequestProgress()"));
 	return RequestProgressDelegate;
 }
 
 
-bool FMacHttpRequest::StartRequest()
+bool FAppleHttpRequest::StartRequest()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::StartRequest()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::StartRequest()"));
 	bool bStarted = false;
 
 	// set the content-length and user-agent
@@ -228,7 +228,7 @@ bool FMacHttpRequest::StartRequest()
 		[Request addValue:UserAgent.GetNSString() forHTTPHeaderField:@"User-Agent"];
 	}
 
-	Response = MakeShareable( new FMacHttpResponse( *this ) );
+	Response = MakeShareable( new FAppleHttpResponse( *this ) );
 
 	// Create the connection, tell it to run in the main run loop, and kick it off.
 	Connection = [[NSURLConnection alloc] initWithRequest:Request delegate:Response->ResponseWrapper startImmediately:NO];
@@ -255,9 +255,9 @@ bool FMacHttpRequest::StartRequest()
 	return bStarted;
 }
 
-void FMacHttpRequest::FinishedRequest()
+void FAppleHttpRequest::FinishedRequest()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::FinishedRequest()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::FinishedRequest()"));
 	ElapsedTime = (float)(FPlatformTime::Seconds() - StartRequestTime);
 	if( Response.IsValid() && Response->IsReady() && !Response->HadError())
 	{
@@ -287,9 +287,9 @@ void FMacHttpRequest::FinishedRequest()
 }
 
 
-void FMacHttpRequest::CleanupRequest()
+void FAppleHttpRequest::CleanupRequest()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::CleanupRequest()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::CleanupRequest()"));
 	if(CompletionStatus == EHttpRequestStatus::Processing)
 	{
 		CancelRequest();
@@ -302,9 +302,9 @@ void FMacHttpRequest::CleanupRequest()
 }
 
 
-void FMacHttpRequest::CancelRequest()
+void FAppleHttpRequest::CancelRequest()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::CancelRequest()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::CancelRequest()"));
 	if(Connection != NULL)
 	{
 		[Connection cancel];
@@ -313,20 +313,20 @@ void FMacHttpRequest::CancelRequest()
 }
 
 
-EHttpRequestStatus::Type FMacHttpRequest::GetStatus()
+EHttpRequestStatus::Type FAppleHttpRequest::GetStatus()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetStatus()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::GetStatus()"));
 	return CompletionStatus;
 }
 
 
-const FHttpResponsePtr FMacHttpRequest::GetResponse() const
+const FHttpResponsePtr FAppleHttpRequest::GetResponse() const
 {
 	return Response;
 }
 
 
-void FMacHttpRequest::Tick(float DeltaSeconds)
+void FAppleHttpRequest::Tick(float DeltaSeconds)
 {
 	if( CompletionStatus == EHttpRequestStatus::Processing || Response->HadError() )
 	{
@@ -346,26 +346,26 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 	}
 }
 
-float FMacHttpRequest::GetElapsedTime()
+float FAppleHttpRequest::GetElapsedTime()
 {
 	return ElapsedTime;
 }
 
 
 /****************************************************************************
- * FHttpResponseMacWrapper implementation
+ * FHttpResponseAppleWrapper implementation
  ***************************************************************************/
 
-@implementation FHttpResponseMacWrapper
+@implementation FHttpResponseAppleWrapper
 @synthesize Response;
 @synthesize bIsReady;
 @synthesize bHadError;
 @synthesize BytesWritten;
 
 
--(FHttpResponseMacWrapper*) init
+-(FHttpResponseAppleWrapper*) init
 {
-	UE_LOG(LogHttp, Verbose, TEXT("-(FHttpResponseMacWrapper*) init"));
+	UE_LOG(LogHttp, Verbose, TEXT("-(FHttpResponseAppleWrapper*) init"));
 	self = [super init];
 	bIsReady = false;
 	
@@ -460,20 +460,20 @@ float FMacHttpRequest::GetElapsedTime()
 
 
 /****************************************************************************
- * FMacHTTPResponse implementation
+ * FAppleHTTPResponse implementation
  **************************************************************************/
 
-FMacHttpResponse::FMacHttpResponse(const FMacHttpRequest& InRequest)
+FAppleHttpResponse::FAppleHttpResponse(const FAppleHttpRequest& InRequest)
 	: Request( InRequest )
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::FMacHttpResponse()"));
-	ResponseWrapper = [[FHttpResponseMacWrapper alloc] init];
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::FAppleHttpResponse()"));
+	ResponseWrapper = [[FHttpResponseAppleWrapper alloc] init];
 }
 
 
-FMacHttpResponse::~FMacHttpResponse()
+FAppleHttpResponse::~FAppleHttpResponse()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::~FMacHttpResponse()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::~FAppleHttpResponse()"));
 	[ResponseWrapper getPayload].Empty();
 
 	[ResponseWrapper release];
@@ -481,16 +481,16 @@ FMacHttpResponse::~FMacHttpResponse()
 }
 
 
-FString FMacHttpResponse::GetURL()
+FString FAppleHttpResponse::GetURL()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetURL()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetURL()"));
 	return FString([[Request.Request URL] query]);
 }
 
 
-FString FMacHttpResponse::GetURLParameter(const FString& ParameterName)
+FString FAppleHttpResponse::GetURLParameter(const FString& ParameterName)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetURLParameter()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetURLParameter()"));
 
 	NSString* ParameterNameStr = ParameterName.GetNSString();
 	NSArray* Parameters = [[[Request.Request URL] query] componentsSeparatedByString:@"&"];
@@ -507,18 +507,18 @@ FString FMacHttpResponse::GetURLParameter(const FString& ParameterName)
 }
 
 
-FString FMacHttpResponse::GetHeader(const FString& HeaderName)
+FString FAppleHttpResponse::GetHeader(const FString& HeaderName)
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetHeader()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetHeader()"));
 
 	NSString* ConvertedHeaderName = HeaderName.GetNSString();
 	return FString([[[ResponseWrapper Response] allHeaderFields] objectForKey:ConvertedHeaderName]);
 }
 
 
-TArray<FString> FMacHttpResponse::GetAllHeaders()
+TArray<FString> FAppleHttpResponse::GetAllHeaders()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetAllHeaders()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetAllHeaders()"));
 
 	NSDictionary* Headers = [GetResponseObj() allHeaderFields];
 	TArray<FString> Result;
@@ -533,23 +533,23 @@ TArray<FString> FMacHttpResponse::GetAllHeaders()
 }
 
 
-FString FMacHttpResponse::GetContentType()
+FString FAppleHttpResponse::GetContentType()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetContentType()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetContentType()"));
 
 	return GetHeader( TEXT( "Content-Type" ) );
 }
 
 
-int32 FMacHttpResponse::GetContentLength()
+int32 FAppleHttpResponse::GetContentLength()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetContentLength()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetContentLength()"));
 
 	return [ResponseWrapper getPayload].Num();
 }
 
 
-const TArray<uint8>& FMacHttpResponse::GetContent()
+const TArray<uint8>& FAppleHttpResponse::GetContent()
 {
 	if( !IsReady() )
 	{
@@ -558,16 +558,16 @@ const TArray<uint8>& FMacHttpResponse::GetContent()
 	else
 	{
 		Payload = [ResponseWrapper getPayload];
-		UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetContent() - Num: %i"), [ResponseWrapper getPayload].Num());
+		UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetContent() - Num: %i"), [ResponseWrapper getPayload].Num());
 	}
 
 	return Payload;
 }
 
 
-FString FMacHttpResponse::GetContentAsString()
+FString FAppleHttpResponse::GetContentAsString()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetContentAsString()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetContentAsString()"));
 
 	// Fill in our data.
 	GetContent();
@@ -580,52 +580,52 @@ FString FMacHttpResponse::GetContentAsString()
 }
 
 
-int32 FMacHttpResponse::GetResponseCode()
+int32 FAppleHttpResponse::GetResponseCode()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetResponseCode()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetResponseCode()"));
 
 	return [GetResponseObj() statusCode];
 }
 
 
-NSHTTPURLResponse* FMacHttpResponse::GetResponseObj()
+NSHTTPURLResponse* FAppleHttpResponse::GetResponseObj()
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetResponseObj()"));
+	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetResponseObj()"));
 
 	return [ResponseWrapper Response];
 }
 
 
-bool FMacHttpResponse::IsReady()
+bool FAppleHttpResponse::IsReady()
 {
 	bool Ready = [ResponseWrapper bIsReady];
 
 	if( Ready )
 	{
-		UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::IsReady()"));
+		UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::IsReady()"));
 	}
 
 	return Ready;
 }
 
-bool FMacHttpResponse::HadError()
+bool FAppleHttpResponse::HadError()
 {
 	bool bHadError = [ResponseWrapper bHadError];
 	
 	if( bHadError )
 	{
-		UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::HadError()"));
+		UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::HadError()"));
 	}
 	
 	return bHadError;
 }
 
-const int32 FMacHttpResponse::GetNumBytesReceived() const
+const int32 FAppleHttpResponse::GetNumBytesReceived() const
 {
 	return [ResponseWrapper getPayload].Num();
 }
 
-const int32 FMacHttpResponse::GetNumBytesWritten() const
+const int32 FAppleHttpResponse::GetNumBytesWritten() const
 {
     int32 NumBytesWritten = [ResponseWrapper getBytesWritten];
     return NumBytesWritten;

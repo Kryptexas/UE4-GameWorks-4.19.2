@@ -4,12 +4,12 @@
 
 
 /**
- * IOS implementation of an Http request
+ * Apple implementation of an Http request
  */
-class FIOSHttpRequest : public IHttpRequest
+class FAppleHttpRequest : public IHttpRequest
 {
 private:
-	// This is the NSMutableURLRequest, all our ios functionality will deal with this.
+	// This is the NSMutableURLRequest, all our Apple functionality will deal with this.
 	NSMutableURLRequest* Request;
 
 	// This is the connection our request is sent along.
@@ -18,7 +18,7 @@ private:
 
 public:
 	// implementation friends
-	friend class FIOSHttpResponse;
+	friend class FAppleHttpResponse;
 
 
 	//~ Begin IHttpBase Interface
@@ -52,12 +52,12 @@ public:
 	/**
 	 * Constructor
 	 */
-	FIOSHttpRequest();
+	FAppleHttpRequest();
 
 	/**
 	 * Destructor. Clean up any connection/request handles
 	 */
-	virtual ~FIOSHttpRequest();
+	virtual ~FAppleHttpRequest();
 
 
 private:
@@ -83,7 +83,7 @@ private:
 
 private:
 	/** The response object which we will use to pair with this request */
-	TSharedPtr<class FIOSHttpResponse,ESPMode::ThreadSafe> Response;
+	TSharedPtr<class FAppleHttpResponse,ESPMode::ThreadSafe> Response;
 
 	/** BYTE array payload to use with the request. Typically for a POST */
 	TArray<uint8> RequestPayload;
@@ -97,6 +97,9 @@ private:
 	/** Current status of request being processed */
 	EHttpRequestStatus::Type CompletionStatus;
 
+	/** Number of bytes sent to progress update */
+	int32 ProgressBytesSent;
+
 	/** Start of the request */
 	double StartRequestTime;
 
@@ -105,49 +108,55 @@ private:
 };
 
 
-
 /**
- * IOS Response Wrapper which will be used for it's delegates to receive responses.
+ * Apple Response Wrapper which will be used for it's delegates to receive responses.
  */
-@interface FHttpResponseIOSWrapper : NSObject
+@interface FHttpResponseAppleWrapper : NSObject
 {
-};
+	/** Holds the payload as we receive it. */
+	TArray<uint8> Payload;
+}
 /** A handle for the response */
 @property(retain) NSHTTPURLResponse* Response;
-/** Holds the payload as we receive it. */
-@property(retain) NSMutableData* Payload;
 /** Flag whether the response is ready */
 @property BOOL bIsReady;
 /** When the response is complete, indicates whether the response was received without error. */
 @property BOOL bHadError;
+/** The total number of bytes written out during the request/response */
+@property int32 BytesWritten;
 
-/** Delegate called with we receive a response. See iOS docs for when/how this should be used. */
+/** Delegate called when we send data. See Apple docs for when/how this should be used. */
+-(void) connection:(NSURLConnection *)connection didSendBodyData:(NSInteger)bytesWritten totalBytesWritten:(NSInteger)totalBytesWritten totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite;
+/** Delegate called with we receive a response. See Apple docs for when/how this should be used. */
 -(void) connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response;
-/** Delegate called with we receive data. See iOS docs for when/how this should be used. */
+/** Delegate called with we receive data. See Apple docs for when/how this should be used. */
 -(void) connection:(NSURLConnection *)connection didReceiveData:(NSData *)data;
-/** Delegate called with we complete with an error. See iOS docs for when/how this should be used. */
+/** Delegate called with we complete with an error. See Apple docs for when/how this should be used. */
 -(void) connection:(NSURLConnection *)connection didFailWithError:(NSError *)error;
-/** Delegate called with we complete successfully. See iOS docs for when/how this should be used. */
+/** Delegate called with we complete successfully. See Apple docs for when/how this should be used. */
 -(void) connectionDidFinishLoading:(NSURLConnection *)connection;
+
+- (TArray<uint8>&)getPayload;
+- (int32)getBytesWritten;
 @end
 
 
 /**
- * IOS implementation of an Http response
+ * Apple implementation of an Http response
  */
-class FIOSHttpResponse : public IHttpResponse
+class FAppleHttpResponse : public IHttpResponse
 {
 private:
 	// This is the NSHTTPURLResponse, all our functionality will deal with.
-	FHttpResponseIOSWrapper* ResponseWrapper;
+	FHttpResponseAppleWrapper* ResponseWrapper;
 
 	/** Request that owns this response */
-	const FIOSHttpRequest& Request;
+	const FAppleHttpRequest& Request;
 
 
 public:
 	// implementation friends
-	friend class FIOSHttpRequest;
+	friend class FAppleHttpRequest;
 
 
 	//~ Begin IHttpBase Interface
@@ -171,23 +180,33 @@ public:
 	 * Check whether a response is ready or not.
 	 */
 	bool IsReady();
-
+	
 	/**
-	 * See if the request experienced a connection error during processing
+	 * Check whether a response had an error.
 	 */
 	bool HadError();
+
+	/**
+	 * Get the number of bytes received so far
+	 */
+	const int32 GetNumBytesReceived() const;
+
+	/**
+	* Get the number of bytes sent so far
+	*/
+	const int32 GetNumBytesWritten() const;
 
 	/**
 	 * Constructor
 	 *
 	 * @param InRequest - original request that created this response
 	 */
-	FIOSHttpResponse(const FIOSHttpRequest& InRequest);
+	FAppleHttpResponse(const FAppleHttpRequest& InRequest);
 
 	/**
 	 * Destructor
 	 */
-	virtual ~FIOSHttpResponse();
+	virtual ~FAppleHttpResponse();
 
 
 private:
