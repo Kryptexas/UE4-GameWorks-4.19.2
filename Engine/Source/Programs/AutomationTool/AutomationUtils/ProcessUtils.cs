@@ -849,7 +849,8 @@ namespace AutomationTool
 		/// <param name="CommandLine">Commandline to pass on to the executable</param>
 		public static string RunUAT(CommandEnvironment Env, string CommandLine)
 		{
-			// this doesn't do much, but it does need to make sure log folders are reasonable and don't collide
+			// We want to redirect the output from recursive UAT calls into our normal log folder, but prefix everything with a unique identifier. To do so, we set the EnvVarNames.LogFolder environment
+			// variable to a subfolder of it, then copy its contents into the main folder with a prefix after it's finished. Start by finding a base name we can use to identify the output of this run.
 			string BaseLogSubdir = "Recur";
 			if (!String.IsNullOrEmpty(CommandLine))
 			{
@@ -868,11 +869,11 @@ namespace AutomationTool
                     BaseLogSubdir = BaseLogSubdir + "_" + CommandLine;
                 }
 			}
-			int Index = 0;
-
 			BaseLogSubdir = BaseLogSubdir.Trim();
-			string DirOnlyName = BaseLogSubdir;
 
+			// Check if there are already log files which start with this prefix, and try to uniquify it if until there aren't.
+			int Index = 0;
+			string DirOnlyName = BaseLogSubdir;
 			string LogSubdir = CombinePaths(CmdEnv.LogFolder, DirOnlyName, "");
             while (true)
 			{
@@ -889,10 +890,13 @@ namespace AutomationTool
 				DirOnlyName = String.Format("{0}_{1}_", BaseLogSubdir, Index);
 				LogSubdir = CombinePaths(CmdEnv.LogFolder, DirOnlyName, "");
 			}
+
+			// Get the stdout log file for this run, and create the subdirectory for all the other log output
 			string LogFile = CombinePaths(CmdEnv.LogFolder, DirOnlyName + ".log");
 			LogVerbose("Recursive UAT Run, in log folder {0}, main log file {1}", LogSubdir, LogFile);
 			CreateDirectory(LogSubdir);
 
+			// Run UAT with the log folder redirected through the environment
 			string App = CmdEnv.UATExe;
 
 			Log("Running {0} {1}", App, CommandLine);
@@ -915,6 +919,7 @@ namespace AutomationTool
 				WriteToFile(LogFile, "[None!, no output produced]");
 			}
 
+			// Copy everything into the main log folder, using the prefix we decided on earlier.
 			LogVerbose("Flattening log folder {0}", LogSubdir);
 
 			var Files = FindFiles("*", true, LogSubdir);

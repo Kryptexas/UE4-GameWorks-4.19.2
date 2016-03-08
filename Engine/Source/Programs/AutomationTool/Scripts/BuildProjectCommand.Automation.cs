@@ -135,7 +135,7 @@ public partial class Project : CommandUtils
 				}
 			}
 		}
-		if (Params.HasProgramTargets && !Automation.RunningRocket() && (TargetMask & ProjectBuildTargets.Programs) == ProjectBuildTargets.Programs)
+		if (Params.HasProgramTargets && (TargetMask & ProjectBuildTargets.Programs) == ProjectBuildTargets.Programs)
 		{
 			foreach (var BuildConfig in Params.ClientConfigsToBuild)
 			{

@@ -688,7 +688,7 @@ bool FDesktopPlatformBase::InvalidateMakefiles(const FString& RootDir, const FSt
 
 bool FDesktopPlatformBase::IsUnrealBuildToolAvailable()
 {
-	// If using Rocket and the Rocket unreal build tool executable exists, then UBT is available. Otherwise check it can be built.
+	// If using installed build and the unreal build tool executable exists, then UBT is available. Otherwise check it can be built.
 	if (FApp::IsEngineInstalled())
 	{
 		return FPaths::FileExists(GetUnrealBuildToolExecutableFilename(FPaths::RootDir()));
@@ -740,11 +740,11 @@ FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCm
 	// UnrealBuildTool is currently always located in the Binaries/DotNET folder
 	FString ExecutableFileName = GetUnrealBuildToolExecutableFilename(FPaths::RootDir());
 
-	// Rocket never builds UBT, UnrealBuildTool should already exist
+	// Installed builds never build UBT, UnrealBuildTool should already exist
 	bool bSkipBuild = FApp::IsEngineInstalled() || bSkipBuildUBT;
 	if (!bSkipBuild)
 	{
-		// When not using rocket, we should attempt to build UBT to make sure it is up to date
+		// When not using an installed build, we should attempt to build UBT to make sure it is up to date
 		// Only do this if we have not already successfully done it once during this session.
 		static bool bSuccessfullyBuiltUBTOnce = false;
 		if (!bSuccessfullyBuiltUBTOnce)

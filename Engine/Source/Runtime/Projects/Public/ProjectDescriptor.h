@@ -41,7 +41,7 @@ struct PROJECTS_API FProjectDescriptor
 	 * open a project with a different version of the editor and need the upgrade/downgrade UI flow. The normal engine 
 	 * version doesn't work for those purposes, because you can have multiple 4.x branches in various states on one machine.
 	 *
-	 * For Rocket users, this field gets set to something stable like "4.7" or "4.8", so you can swap projects and game binaries 
+	 * For Launcher users, this field gets set to something stable like "4.7" or "4.8", so you can swap projects and game binaries 
 	 * between users, and it'll automatically work on any platform or machine regardless of where the engine is installed. You 
 	 * can only have one binary release of each major engine version installed at once.
 	 * 

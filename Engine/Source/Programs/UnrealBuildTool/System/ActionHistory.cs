@@ -32,7 +32,7 @@ namespace UnrealBuildTool
 		{
 			FilePath = Path.GetFullPath(InFilePath);
 
-			var bFoundCache = false;
+			bool bFoundCache = false;
 			if (File.Exists(FilePath) == true)
 			{
 				try

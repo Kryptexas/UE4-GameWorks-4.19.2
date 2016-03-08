@@ -110,7 +110,7 @@ namespace UnrealBuildTool
 		{
 			PrerequisiteItems.Add(SourceFile);
 
-			var RemoteThis = this as RemoteToolChain;
+			RemoteToolChain RemoteThis = this as RemoteToolChain;
 			bool bAllowUploading = RemoteThis != null && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;	// Don't use remote features when compiling from a Mac
 			if (bAllowUploading)
 			{
@@ -123,7 +123,7 @@ namespace UnrealBuildTool
 				//		-> Two CASES:
 				//				1) NOT WORKING: Non-unity file went away (SourceFile in this context).  That seems like an existing old use case.  Compile params or Response file should have changed?
 				//				2) WORKING: Indirect file went away (unity'd original source file or include).  This would return a file that no longer exists and adds to the prerequiteitems list
-				var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles(Target, SourceFile, BuildPlatform, CompileEnvironment.Config.CPPIncludeInfo, bOnlyCachedDependencies: BuildConfiguration.bUseUBTMakefiles);
+				List<FileItem> IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles(Target, SourceFile, BuildPlatform, CompileEnvironment.Config.CPPIncludeInfo, bOnlyCachedDependencies: BuildConfiguration.bUseUBTMakefiles);
 				if (IncludedFileList != null)
 				{
 					foreach (FileItem IncludedFile in IncludedFileList)

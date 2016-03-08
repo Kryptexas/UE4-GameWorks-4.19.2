@@ -2562,7 +2562,7 @@ bool FLightmassProcessor::BeginRun()
 #endif
 	const int32 RequiredDependencyPaths64Count = ARRAY_COUNT(RequiredDependencyPaths64);
 
-	// Set up optional dependencies.  These might not exist in Rocket distributions, for example.
+	// Set up optional dependencies.  These might not exist in Launcher distributions, for example.
 	const TCHAR* OptionalDependencyPaths32[] =
 	{
 		TEXT("../Win32/UnrealLightmass.pdb"),

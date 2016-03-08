@@ -1350,7 +1350,6 @@ public:
 		"runautomationtest", ""
 		"runautomationtests", "true/false"
 		"skipserver", "true/false"
-		"rocket", "true/false"
 		"ue4exe", ""
 		"unattended", "true/false"
 		"deviceuser", ""

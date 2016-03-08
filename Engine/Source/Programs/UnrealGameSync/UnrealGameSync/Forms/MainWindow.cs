@@ -1953,7 +1953,7 @@ namespace UnrealGameSync
 					BuildListContextMenu_Sync.Font = new Font(SystemFonts.MenuFont, bIsCurrentChange? FontStyle.Regular : FontStyle.Bold);
 					BuildListContextMenu_SyncContentOnly.Visible = !bIsBusy && ShouldSyncPrecompiledEditor;
 					BuildListContextMenu_SyncOnlyThisChange.Visible = !bIsBusy && !bIsCurrentChange && ContextMenuChange.Number > Workspace.CurrentChangeNumber && Workspace.CurrentChangeNumber != -1;
-					BuildListContextMenu_Build.Visible = !bIsBusy && bIsCurrentChange && !ShouldSyncPrecompiledEditor;
+					BuildListContextMenu_Build.Visible = !bIsBusy && bIsCurrentChange && !ShouldSyncPrecompiledEditor && OptionsContextMenu_UseIncrementalBuilds.Checked;
 					BuildListContextMenu_Rebuild.Visible = !bIsBusy && bIsCurrentChange && !ShouldSyncPrecompiledEditor;
 					BuildListContextMenu_GenerateProjectFiles.Visible = !bIsBusy && bIsCurrentChange;
 					BuildListContextMenu_LaunchEditor.Visible = !bIsBusy && ContextMenuChange.Number == Workspace.CurrentChangeNumber;
@@ -2239,7 +2239,7 @@ namespace UnrealGameSync
 
 		private void BuildListContextMenu_SyncContentOnly_Click(object sender, EventArgs e)
 		{
-			StartWorkspaceUpdate(ContextMenuChange.Number, WorkspaceUpdateOptions.Sync);
+			StartWorkspaceUpdate(ContextMenuChange.Number, WorkspaceUpdateOptions.Sync | WorkspaceUpdateOptions.SkipShaders);
 		}
 
 		private void BuildListContextMenu_SyncOnlyThisChange_Click(object sender, EventArgs e)
@@ -2982,6 +2982,15 @@ namespace UnrealGameSync
 		{
 			Settings.bKeepInTray ^= true;
 			Settings.Save();
+		}
+
+		private void BuildList_KeyDown(object Sender, KeyEventArgs Args)
+		{
+			if(Args.Control && Args.KeyCode == Keys.C && BuildList.SelectedItems.Count > 0)
+			{
+				int SelectedChange = ((PerforceChangeSummary)BuildList.SelectedItems[0].Tag).Number;
+				Clipboard.SetText(String.Format("{0}", SelectedChange));
+			}
 		}
 	}
 }

@@ -979,7 +979,7 @@ namespace AutomationTool
 				}
 				else
 				{
-					// This is the standard Rocket versioning scheme, e.g. "4.5.0-12345678+++depot+UE4"
+					// This is the standard Launcher versioning scheme, e.g. "4.5.0-12345678+++depot+UE4"
 					var dotSplit = versionString.Split(new[] { '.' }, 3);
 					var dashSplit = dotSplit[2].Split(new[] { '-' }, 2);
 					var plusSplit = dashSplit[1].Split(new[] { '+' }, 2);

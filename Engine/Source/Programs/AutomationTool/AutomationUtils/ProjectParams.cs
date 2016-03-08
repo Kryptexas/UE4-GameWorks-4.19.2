@@ -1559,50 +1559,7 @@ namespace AutomationTool
 			var ProgramTarget = String.Empty;
 			var ProjectType = TargetRules.TargetType.Game;
 
-			if (Automation.RunningRocket())
-			{
-				if (!CommandUtils.CmdEnv.HasCapabilityToCompile || !bIsCodeBasedProject)
-				{
-					if (bIsCodeBasedProject)
-					{
-						var ShortName = ProjectUtils.GetShortProjectName(RawProjectPath);
-						GameTarget = ShortName;
-						EditorTarget = ShortName + "Editor";
-						ServerTarget = ShortName + "Server";
-					}
-					else
-					{
-						GameTarget = "UE4Game";
-						EditorTarget = "UE4Editor";
-						//ServerTarget = "RocketServer";
-
-						Build = false;
-					}
-				}
-				else
-				{
-					SingleTargetProperties TargetData;
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Editor, out TargetData))
-					{
-						EditorTarget = TargetData.TargetName;
-					}
-
-					if (DetectedTargets.TryGetValue(TargetRules.TargetType.Program, out TargetData))
-					{
-						ProgramTarget = TargetData.TargetName;
-					}
-					//DetectedTargets.TryGetValue(TargetRules.TargetType.Server, out ServerTarget);
-
-					if (string.IsNullOrEmpty(GameTarget))
-					{
-						if (DetectedTargets.TryGetValue(TargetRules.TargetType.Game, out TargetData))
-						{
-							GameTarget = TargetData.TargetName;
-						}
-					}
-				}
-			}
-			else if (!bIsCodeBasedProject)
+			if (!bIsCodeBasedProject)
 			{
 				GameTarget = "UE4Game";
 				EditorTarget = "UE4Editor";
@@ -1694,7 +1651,7 @@ namespace AutomationTool
 
 			IsProgramTarget = ProjectType == TargetRules.TargetType.Program;
 
-			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList) && !Automation.RunningRocket())
+			if (String.IsNullOrEmpty(EditorTarget) && ProjectType != TargetRules.TargetType.Program && CommandUtils.IsNullOrEmpty(EditorTargetsList))
 			{
 				if (Properties.bWasGenerated)
 				{
@@ -1705,7 +1662,7 @@ namespace AutomationTool
 					throw new AutomationException("Editor target not found!");
 				}
 			}
-			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList) && !Automation.RunningRocket())
+			if (String.IsNullOrEmpty(GameTarget) && Run && !NoClient && (Cook || CookOnTheFly) && CommandUtils.IsNullOrEmpty(ClientCookedTargetsList))
 			{
 				throw new AutomationException("Game target not found. Game target is required with -cook or -cookonthefly");
 			}
@@ -2284,7 +2241,6 @@ namespace AutomationTool
 				CommandUtils.LogLog("Prereqs={0}", Prereqs);
 				CommandUtils.LogLog("NoBootstrapExe={0}", NoBootstrapExe);
 				CommandUtils.LogLog("RawProjectPath={0}", RawProjectPath);
-				CommandUtils.LogLog("Rocket={0}", Automation.RunningRocket());
 				CommandUtils.LogLog("Run={0}", Run);
 				CommandUtils.LogLog("ServerConfigsToBuild={0}", string.Join(",", ServerConfigsToBuild));
 				CommandUtils.LogLog("ServerCookedTargets={0}", ServerCookedTargets.ToString());

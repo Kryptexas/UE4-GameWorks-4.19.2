@@ -198,7 +198,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			foreach (var CurArgument in Arguments)
+			foreach (string CurArgument in Arguments)
 			{
 				switch (CurArgument.ToUpperInvariant())
 				{
@@ -245,9 +245,9 @@ namespace UnrealBuildTool
 			// ...but only if the user didn't override this via the command-line.
 			if (!UnrealBuildTool.CommandLineContains("-2015") && !UnrealBuildTool.CommandLineContains("-2013"))
 			{
-				foreach (var SupportedPlatform in SupportedPlatforms)
+				foreach (UnrealTargetPlatform SupportedPlatform in SupportedPlatforms)
 				{
-					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(SupportedPlatform, true);
+					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(SupportedPlatform, true);
 					if (BuildPlatform != null)
 					{
 						// Don't worry about platforms that we're missing SDKs for
@@ -312,7 +312,7 @@ namespace UnrealBuildTool
 		/// <returns>The generated solution configuration name</returns>
 		string MakeSolutionConfigurationName(UnrealTargetConfiguration Configuration, string TargetConfigurationName)
 		{
-			var SolutionConfigName = Configuration.ToString();
+			string SolutionConfigName = Configuration.ToString();
 
 			// Don't bother postfixing "Game" or "Program" -- that will be the default when using "Debug", "Development", etc.
 			// Also don't postfix "RocketGame" when we're building Rocket game projects.  That's the only type of game there is in that case!
@@ -331,10 +331,10 @@ namespace UnrealBuildTool
 		{
 			bool bSuccess = true;
 
-			var SolutionFileName = MasterProjectName + ".sln";
+			string SolutionFileName = MasterProjectName + ".sln";
 
 			// Setup solution file content
-			var VCSolutionFileContent = new StringBuilder();
+			StringBuilder VCSolutionFileContent = new StringBuilder();
 
 			const string VersionTag = "# UnrealEngineGeneratedSolutionVersion=1.0";
 
@@ -392,16 +392,16 @@ namespace UnrealBuildTool
 			// Solution folders, files and project entries
 			{
 				// This the GUID that Visual Studio uses to identify a solution folder
-				var SolutionFolderEntryGUID = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
+				string SolutionFolderEntryGUID = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
 
 				// Solution folders
 				{
-					var AllSolutionFolders = new List<MasterProjectFolder>();
+					List<MasterProjectFolder> AllSolutionFolders = new List<MasterProjectFolder>();
 					System.Action<List<MasterProjectFolder> /* Folders */ > GatherFoldersFunction = null;
 					GatherFoldersFunction = FolderList =>
 						{
 							AllSolutionFolders.AddRange(FolderList);
-							foreach (var CurSubFolder in FolderList)
+							foreach (MasterProjectFolder CurSubFolder in FolderList)
 							{
 								GatherFoldersFunction(CurSubFolder.SubFolders);
 							}
@@ -410,7 +410,7 @@ namespace UnrealBuildTool
 
 					foreach (VisualStudioSolutionFolder CurFolder in AllSolutionFolders)
 					{
-						var FolderGUIDString = CurFolder.FolderGUID.ToString("B").ToUpperInvariant();
+						string FolderGUIDString = CurFolder.FolderGUID.ToString("B").ToUpperInvariant();
 						VCSolutionFileContent.Append(
 								"Project(\"" + SolutionFolderEntryGUID + "\") = \"" + CurFolder.FolderName + "\", \"" + CurFolder.FolderName + "\", \"" + FolderGUIDString + "\"" + ProjectFileGenerator.NewLine);
 
@@ -419,7 +419,7 @@ namespace UnrealBuildTool
 						{
 							VCSolutionFileContent.Append(
 									"	ProjectSection(SolutionItems) = preProject" + ProjectFileGenerator.NewLine);
-							foreach (var CurFile in CurFolder.Files)
+							foreach (string CurFile in CurFolder.Files)
 							{
 								// Syntax is:  <relative file path> = <relative file path>
 								VCSolutionFileContent.Append(
@@ -444,10 +444,10 @@ namespace UnrealBuildTool
 
 					// NOTE: The project name in the solution doesn't actually *have* to match the project file name on disk.  However,
 					//       we prefer it when it does match so we use the actual file name here.
-					var ProjectNameInSolution = CurProject.ProjectFilePath.GetFileNameWithoutExtension();
+					string ProjectNameInSolution = CurProject.ProjectFilePath.GetFileNameWithoutExtension();
 
 					// Use the existing project's GUID that's already known to us
-					var ProjectGUID = CurProject.ProjectGUID.ToString("B").ToUpperInvariant();
+					string ProjectGUID = CurProject.ProjectGUID.ToString("B").ToUpperInvariant();
 
 					VCSolutionFileContent.Append(
 							"Project(\"" + ProjectTypeGUID + "\") = \"" + ProjectNameInSolution + "\", \"" + CurProject.ProjectFilePath.MakeRelativeTo(ProjectFileGenerator.MasterProjectPath) + "\", \"" + ProjectGUID + "\"" + ProjectFileGenerator.NewLine);
@@ -456,7 +456,7 @@ namespace UnrealBuildTool
 					// freshly compiled before kicking off any build operations on this target project
 					if (!CurProject.IsStubProject)
 					{
-						var Dependencies = new List<ProjectFile>();
+						List<ProjectFile> Dependencies = new List<ProjectFile>();
 						if (CurProject.IsGeneratedProject && UBTProject != null && CurProject != UBTProject)
 						{
 							Dependencies.Add(UBTProject);
@@ -473,9 +473,9 @@ namespace UnrealBuildTool
 							VCSolutionFileContent.Append("\tProjectSection(ProjectDependencies) = postProject" + ProjectFileGenerator.NewLine);
 
 							// Setup any addition dependencies this project has...
-							foreach (var DependsOnProject in Dependencies)
+							foreach (ProjectFile DependsOnProject in Dependencies)
 							{
-								var DependsOnProjectGUID = ((MSBuildProjectFile)DependsOnProject).ProjectGUID.ToString("B").ToUpperInvariant();
+								string DependsOnProjectGUID = ((MSBuildProjectFile)DependsOnProject).ProjectGUID.ToString("B").ToUpperInvariant();
 								VCSolutionFileContent.Append("\t\t" + DependsOnProjectGUID + " = " + DependsOnProjectGUID + ProjectFileGenerator.NewLine);
 							}
 
@@ -491,7 +491,7 @@ namespace UnrealBuildTool
 
 			// Solution configuration platforms.  This is just a list of all of the platforms and configurations that
 			// appear in Visual Studio's build configuration selector.
-			var SolutionConfigCombinations = new List<VCSolutionConfigCombination>();
+			List<VCSolutionConfigCombination> SolutionConfigCombinations = new List<VCSolutionConfigCombination>();
 
 			// The "Global" section has source control, solution configurations, project configurations,
 			// preferences, and project hierarchy data
@@ -503,18 +503,18 @@ namespace UnrealBuildTool
 						VCSolutionFileContent.Append(
 							"	GlobalSection(SolutionConfigurationPlatforms) = preSolution" + ProjectFileGenerator.NewLine);
 
-						var SolutionConfigurationsValidForProjects = new Dictionary<string, Tuple<UnrealTargetConfiguration, string>>();
-						var PlatformsValidForProjects = new HashSet<UnrealTargetPlatform>();
+						Dictionary<string, Tuple<UnrealTargetConfiguration, string>> SolutionConfigurationsValidForProjects = new Dictionary<string, Tuple<UnrealTargetConfiguration, string>>();
+						HashSet<UnrealTargetPlatform> PlatformsValidForProjects = new HashSet<UnrealTargetPlatform>();
 
-						foreach (var CurConfiguration in SupportedConfigurations)
+						foreach (UnrealTargetConfiguration CurConfiguration in SupportedConfigurations)
 						{
 							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
 							{
-								foreach (var CurPlatform in SupportedPlatforms)
+								foreach (UnrealTargetPlatform CurPlatform in SupportedPlatforms)
 								{
 									if (UnrealBuildTool.IsValidPlatform(CurPlatform))
 									{
-										foreach (var CurProject in AllProjectFiles)
+										foreach (ProjectFile CurProject in AllProjectFiles)
 										{
 											if (!CurProject.IsStubProject)
 											{
@@ -524,20 +524,20 @@ namespace UnrealBuildTool
 												}
 
 												// Figure out the set of valid target configuration names
-												foreach (var ProjectTarget in CurProject.ProjectTargets)
+												foreach (ProjectTarget ProjectTarget in CurProject.ProjectTargets)
 												{
 													if (VCProjectFile.IsValidProjectPlatformAndConfiguration(ProjectTarget, CurPlatform, CurConfiguration))
 													{
 														PlatformsValidForProjects.Add(CurPlatform);
 
 														// Default to a target configuration name of "Game", since that will collapse down to an empty string
-														var TargetConfigurationName = TargetRules.TargetType.Game.ToString();
+														string TargetConfigurationName = TargetRules.TargetType.Game.ToString();
 														if (ProjectTarget.TargetRules != null)
 														{
 															TargetConfigurationName = ProjectTarget.TargetRules.ConfigurationName;
 														}
 
-														var SolutionConfigName = MakeSolutionConfigurationName(CurConfiguration, TargetConfigurationName);
+														string SolutionConfigName = MakeSolutionConfigurationName(CurConfiguration, TargetConfigurationName);
 														SolutionConfigurationsValidForProjects[SolutionConfigName] = new Tuple<UnrealTargetConfiguration, string>(CurConfiguration, TargetConfigurationName);
 													}
 												}
@@ -548,18 +548,18 @@ namespace UnrealBuildTool
 							}
 						}
 
-						foreach (var CurPlatform in PlatformsValidForProjects)
+						foreach (UnrealTargetPlatform CurPlatform in PlatformsValidForProjects)
 						{
-							foreach (var SolutionConfigKeyValue in SolutionConfigurationsValidForProjects)
+							foreach (KeyValuePair<string, Tuple<UnrealTargetConfiguration, string>> SolutionConfigKeyValue in SolutionConfigurationsValidForProjects)
 							{
 								// e.g.  "Development|Win64 = Development|Win64"
-								var SolutionConfigName = SolutionConfigKeyValue.Key;
-								var Configuration = SolutionConfigKeyValue.Value.Item1;
-								var TargetConfigurationName = SolutionConfigKeyValue.Value.Item2;
+								string SolutionConfigName = SolutionConfigKeyValue.Key;
+								UnrealTargetConfiguration Configuration = SolutionConfigKeyValue.Value.Item1;
+								string TargetConfigurationName = SolutionConfigKeyValue.Value.Item2;
 
-								var SolutionPlatformName = CurPlatform.ToString();
+								string SolutionPlatformName = CurPlatform.ToString();
 
-								var SolutionConfigAndPlatformPair = SolutionConfigName + "|" + SolutionPlatformName;
+								string SolutionConfigAndPlatformPair = SolutionConfigName + "|" + SolutionPlatformName;
 								SolutionConfigCombinations.Add(
 										new VCSolutionConfigCombination
 										{
@@ -579,8 +579,8 @@ namespace UnrealBuildTool
 								)
 							);
 
-						var AppendedSolutionConfigAndPlatformNames = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-						foreach (var SolutionConfigCombination in SolutionConfigCombinations)
+						HashSet<string> AppendedSolutionConfigAndPlatformNames = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+						foreach (VCSolutionConfigCombination SolutionConfigCombination in SolutionConfigCombinations)
 						{
 							// We alias "Game" and "Program" to both have the same solution configuration, so we're careful not to add the same combination twice.
 							if (!AppendedSolutionConfigAndPlatformNames.Contains(SolutionConfigCombination.VCSolutionConfigAndPlatformName))
@@ -602,7 +602,7 @@ namespace UnrealBuildTool
 						VCSolutionFileContent.Append(
 							"	GlobalSection(ProjectConfigurationPlatforms) = postSolution" + ProjectFileGenerator.NewLine);
 
-						var CombinationsThatWereMatchedToProjects = new List<VCSolutionConfigCombination>();
+						List<VCSolutionConfigCombination> CombinationsThatWereMatchedToProjects = new List<VCSolutionConfigCombination>();
 
 						foreach (MSBuildProjectFile CurProject in AllProjectFiles)
 						{
@@ -618,17 +618,17 @@ namespace UnrealBuildTool
 								{
 									throw new BuildException("Expecting project '" + CurProject.ProjectFilePath + "' to have at least one ProjectTarget associated with it!");
 								}
-								var IsProgramProject = CurProject.ProjectTargets[0].TargetRules != null && CurProject.ProjectTargets[0].TargetRules.Type == TargetRules.TargetType.Program;
+								bool IsProgramProject = CurProject.ProjectTargets[0].TargetRules != null && CurProject.ProjectTargets[0].TargetRules.Type == TargetRules.TargetType.Program;
 
-								var GameOrProgramConfigsAlreadyMapped = new HashSet<string>();
-								foreach (var SolutionConfigCombination in SolutionConfigCombinations)
+								HashSet<string> GameOrProgramConfigsAlreadyMapped = new HashSet<string>();
+								foreach (VCSolutionConfigCombination SolutionConfigCombination in SolutionConfigCombinations)
 								{
 									// Handle aliasing of Program and Game target configuration names
 									if ((IsProgramProject && GameOrProgramConfigsAlreadyMapped.Add(SolutionConfigCombination.VCSolutionConfigAndPlatformName)) ||
 										IsProgramProject && SolutionConfigCombination.TargetConfigurationName != TargetRules.TargetType.Game.ToString() ||
 										!IsProgramProject && SolutionConfigCombination.TargetConfigurationName != TargetRules.TargetType.Program.ToString())
 									{
-										var TargetConfigurationName = SolutionConfigCombination.TargetConfigurationName;
+										string TargetConfigurationName = SolutionConfigCombination.TargetConfigurationName;
 										if (IsProgramProject && TargetConfigurationName == TargetRules.TargetType.Game.ToString())
 										{
 											TargetConfigurationName = TargetRules.TargetType.Program.ToString();
@@ -637,7 +637,7 @@ namespace UnrealBuildTool
 										// Now, we want to find a target in this project that maps to the current solution config combination.  Only up to one target should
 										// and every solution config combination should map to at least one target in one project (otherwise we shouldn't have added it!).
 										ProjectTarget MatchingProjectTarget = null;
-										foreach (var ProjectTarget in CurProject.ProjectTargets)
+										foreach (ProjectTarget ProjectTarget in CurProject.ProjectTargets)
 										{
 											bool IsMatchingCombination = VCProjectFile.IsValidProjectPlatformAndConfiguration(ProjectTarget, SolutionConfigCombination.Platform, SolutionConfigCombination.Configuration);
 											if (ProjectTarget.TargetRules != null)
@@ -675,8 +675,8 @@ namespace UnrealBuildTool
 											}
 										}
 
-										var SolutionConfiguration = SolutionConfigCombination.Configuration;
-										var SolutionPlatform = SolutionConfigCombination.Platform;
+										UnrealTargetConfiguration SolutionConfiguration = SolutionConfigCombination.Configuration;
+										UnrealTargetPlatform SolutionPlatform = SolutionConfigCombination.Platform;
 
 
 										if (MatchingProjectTarget == null)
@@ -690,7 +690,7 @@ namespace UnrealBuildTool
 											SolutionPlatform = UnrealTargetPlatform.Win64;
 											if (CurProject.ProjectTargets[0].TargetRules != null)
 											{
-												var ProjectSupportedPlatforms = new List<UnrealTargetPlatform>();
+												List<UnrealTargetPlatform> ProjectSupportedPlatforms = new List<UnrealTargetPlatform>();
 												CurProject.ProjectTargets[0].TargetRules.GetSupportedPlatforms(ref ProjectSupportedPlatforms);
 												if (!ProjectSupportedPlatforms.Contains(SolutionPlatform))
 												{
@@ -738,10 +738,10 @@ namespace UnrealBuildTool
 										string ProjectPlatformName;
 										CurProject.MakeProjectPlatformAndConfigurationNames(SolutionPlatform, SolutionConfiguration, TargetConfigurationName, out ProjectPlatformName, out ProjectConfigName);
 
-										var ProjectConfigAndPlatformPair = ProjectConfigName.ToString() + "|" + ProjectPlatformName.ToString();
+										string ProjectConfigAndPlatformPair = ProjectConfigName.ToString() + "|" + ProjectPlatformName.ToString();
 
 										// e.g.  "{4232C52C-680F-4850-8855-DC39419B5E9B}.Debug|iOS.ActiveCfg = iOS_Debug|Win32"
-										var CurProjectGUID = CurProject.ProjectGUID.ToString("B").ToUpperInvariant();
+										string CurProjectGUID = CurProject.ProjectGUID.ToString("B").ToUpperInvariant();
 										VCSolutionFileContent.Append(
 											"		" + CurProjectGUID + "." + SolutionConfigCombination.VCSolutionConfigAndPlatformName + ".ActiveCfg = " + ProjectConfigAndPlatformPair + ProjectFileGenerator.NewLine);
 
@@ -761,7 +761,7 @@ namespace UnrealBuildTool
 												VCSolutionFileContent.Append(
 														"		" + CurProjectGUID + "." + SolutionConfigCombination.VCSolutionConfigAndPlatformName + ".Build.0 = " + ProjectConfigAndPlatformPair + ProjectFileGenerator.NewLine);
 
-												var ProjGen = UEPlatformProjectGenerator.GetPlatformProjectGenerator(SolutionConfigCombination.Platform, true);
+												UEPlatformProjectGenerator ProjGen = UEPlatformProjectGenerator.GetPlatformProjectGenerator(SolutionConfigCombination.Platform, true);
 												if (MatchingProjectTarget.ProjectDeploys ||
 													((ProjGen != null) && (ProjGen.GetVisualStudioDeploymentEnabled(SolutionPlatform, SolutionConfiguration) == true)))
 												{
@@ -778,7 +778,7 @@ namespace UnrealBuildTool
 						}
 
 						// Check for problems
-						foreach (var SolutionConfigCombination in SolutionConfigCombinations)
+						foreach (VCSolutionConfigCombination SolutionConfigCombination in SolutionConfigCombinations)
 						{
 							if (!CombinationsThatWereMatchedToProjects.Contains(SolutionConfigCombination))
 							{
@@ -820,7 +820,7 @@ namespace UnrealBuildTool
 							{
 								foreach (VisualStudioSolutionFolder CurFolder in LocalMasterProjectFolders)
 								{
-									var CurFolderGUIDString = CurFolder.FolderGUID.ToString("B").ToUpperInvariant();
+									string CurFolderGUIDString = CurFolder.FolderGUID.ToString("B").ToUpperInvariant();
 
 									foreach (MSBuildProjectFile ChildProject in CurFolder.ChildProjects)
 									{
@@ -855,7 +855,7 @@ namespace UnrealBuildTool
 			// Save the solution file
 			if (bSuccess)
 			{
-				var SolutionFilePath = FileReference.Combine(MasterProjectPath, SolutionFileName).FullName;
+				string SolutionFilePath = FileReference.Combine(MasterProjectPath, SolutionFileName).FullName;
 				bSuccess = WriteFileIfChanged(SolutionFilePath, VCSolutionFileContent.ToString());
 			}
 
@@ -938,7 +938,7 @@ namespace UnrealBuildTool
 		/// <returns>The cleaned up string</returns>
 		public string CleanupStringForSCC(string Str)
 		{
-			var Cleaned = Str;
+			string Cleaned = Str;
 
 			// SCC is expecting paths to contain only double-backslashes for path separators.  It's a bit weird but we need to do it.
 			Cleaned = Cleaned.Replace(Path.DirectorySeparatorChar.ToString(), Path.DirectorySeparatorChar.ToString() + Path.DirectorySeparatorChar.ToString());

@@ -320,7 +320,7 @@ namespace UnrealBuildTool
 				throw new BuildException("GetRemoteIntermediateFrameworkZipPath: No owning module for framework {0}", Framework.FrameworkName);
 			}
 
-			string IntermediatePath = Framework.OwningModule.Target.ProjectDirectory + "/Intermediate/UnzippedFrameworks/" + Framework.OwningModule.Name;
+			string IntermediatePath = ((ProjectFile != null)? ProjectFile.Directory : UnrealBuildTool.EngineDirectory) + "/Intermediate/UnzippedFrameworks/" + Framework.OwningModule.Name;
 			IntermediatePath = Path.GetFullPath((IntermediatePath + Framework.FrameworkZipPath).Replace(".zip", ""));
 
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
@@ -1066,11 +1066,6 @@ namespace UnrealBuildTool
 							continue;		// Only care if we need to copy bundle assets
 						}
 
-						if (Framework.OwningModule.Target != Target)
-						{
-							continue;		// This framework item doesn't belong to this target, skip it
-						}
-
 						string UnpackedZipPath = GetRemoteIntermediateFrameworkZipPath(Framework);
 
 						// For now, this is hard coded, but we need to loop over all modules, and copy bundled assets that need it
@@ -1274,11 +1269,6 @@ namespace UnrealBuildTool
 						if (Framework.OwningModule == null || Framework.CopyBundledAssets == null || Framework.CopyBundledAssets == "")
 						{
 							continue;		// Only care if we need to copy bundle assets
-						}
-
-						if (Framework.OwningModule.Target != Target)
-						{
-							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
 						string RemoteZipPath = GetRemoteIntermediateFrameworkZipPath(Framework);

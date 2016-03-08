@@ -262,8 +262,8 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCPD");
 
 				//@todo ATL: Currently, only VSAccessor requires ATL (which is only used in editor builds)
-				// When compiling games, we do not want to include ATL - and we can't when compiling Rocket games
-				// due to VS 2012 Express not including ATL.
+				// When compiling games, we do not want to include ATL - and we can't when compiling games
+				// made with Launcher build due to VS 2012 Express not including ATL.
 				// If more modules end up requiring ATL, this should be refactored into a BuildTarget flag (bNeedsATL)
 				// that is set by the modules the target includes to allow for easier tracking.
 				// Alternatively, if VSAccessor is modified to not require ATL than we should always exclude the libraries.
@@ -610,7 +610,7 @@ namespace UnrealBuildTool
 
 			string VSPath = null;
 
-			foreach (var PossibleRegPath in PossibleRegPaths)
+			foreach (string PossibleRegPath in PossibleRegPaths)
 			{
 				VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
 

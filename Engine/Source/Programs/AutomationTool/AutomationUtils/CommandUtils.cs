@@ -1903,8 +1903,8 @@ namespace AutomationTool
 		/// <summary>
 		/// Command line parameters for this command (empty by non-null by default)
 		/// </summary>
-		private object[] CommandLineParams = new object[0];
-		public object[] Params
+		private string[] CommandLineParams = new string[0];
+		public string[] Params
 		{
 			get { return CommandLineParams; }
 			set { CommandLineParams = value; }
@@ -2090,13 +2090,13 @@ namespace AutomationTool
 					FilesList += " \"" + FilteredFile + "\"";
 					if (FilesList.Length > 32000)
 					{
-						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q " + ZipFileName + FilesList);
+						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFileName + "\"" + FilesList);
 						FilesList = "";
 					}
 				}
 				if (FilesList.Length > 0)
 				{
-					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q " + ZipFileName + FilesList);
+					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFileName + "\"" + FilesList);
 				}
 				CommandUtils.PopDir();
 			}
@@ -2110,6 +2110,48 @@ namespace AutomationTool
 				}
 				CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
 				Zip.Save(ZipFileName);
+			}
+		}
+
+		/// <summary>
+		/// Creates a zip file containing the given input files
+		/// </summary>
+		/// <param name="ZipFile">Filename for the zip</param>
+		/// <param name="BaseDirectory">Base directory to store relative paths in the zip file to</param>
+		/// <param name="Files">Files to include in the archive</param>
+		public static void ZipFiles(FileReference ZipFile, DirectoryReference BaseDirectory, IEnumerable<FileReference> Files)
+		{
+			// Ionic.Zip.Zip64Option.Always option produces broken archives on Mono, so we use system zip tool instead
+			if (Utils.IsRunningOnMono)
+			{
+				CommandUtils.CreateDirectory(ZipFile.Directory.FullName);
+ 				CommandUtils.PushDir(BaseDirectory.FullName);
+ 				string FilesList = "";
+				foreach(FileReference File in Files)
+				{
+					FilesList += " \"" + File.MakeRelativeTo(BaseDirectory) + "\"";
+					if (FilesList.Length > 32000)
+					{
+						CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFile.FullName + "\"" + FilesList);
+						FilesList = "";
+					}
+				}
+				if (FilesList.Length > 0)
+				{
+					CommandUtils.RunAndLog(CommandUtils.CmdEnv, "zip", "-g -q \"" + ZipFile.FullName + "\"" + FilesList);
+				}
+				CommandUtils.PopDir();
+			}
+			else
+			{
+				Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+				Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
+				foreach(FileReference File in Files)
+				{
+					Zip.AddFile(File.FullName, Path.GetDirectoryName(File.MakeRelativeTo(BaseDirectory)));
+				}
+				CommandUtils.CreateDirectory(ZipFile.Directory.FullName);
+				Zip.Save(ZipFile.FullName);
 			}
 		}
 

@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 			// Our build exceptions do not show the callstack so they are more friendly to users.
 			if (!string.IsNullOrEmpty(Message))
 			{
-				var Result = Message;
+				string Result = Message;
 				if (InnerException != null)
 				{
 					Result += '\n' + InnerException.ToString();

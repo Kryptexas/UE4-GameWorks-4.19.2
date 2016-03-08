@@ -6103,8 +6103,8 @@ void UEditorEngine::UpdateAutoLoadProject()
 {
 	// If the recent project file exists and is non-empty, update the contents with the currently loaded .uproject
 	// If the recent project file exists and is empty, recent project files should not be auto-loaded
-	// If the recent project file does not exist, auto-populate it with the currently loaded project in Rocket and auto-populate empty in non-rocket
-	//		In Rocket we default to auto-loading, in non-Rocket we default to opting out of auto loading
+	// If the recent project file does not exist, auto-populate it with the currently loaded project in installed builds and auto-populate empty in non-installed
+	//		In installed builds we default to auto-loading, in non-installed we default to opting out of auto loading
 	const FString& AutoLoadProjectFileName = IProjectManager::Get().GetAutoLoadProjectFileName();
 	FString RecentProjectFileContents;
 	bool bShouldLoadRecentProjects = false;

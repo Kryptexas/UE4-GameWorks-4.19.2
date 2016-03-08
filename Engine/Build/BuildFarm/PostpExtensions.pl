@@ -16,6 +16,10 @@
 	# Warning from Android monolithic builds about the javac version 
 	".*major version 51 is newer than 50.*",
 	
+	# SignTool errors which we can retry and recover from
+	"SignTool Error: ",
+	
+	
 #	".*ERROR: The process.*not found",
 #	".*ERROR: This operation returned because the timeout period expired.*",
 #	".*Sync.VerifyKnownFileInManifest: ERROR:.*",

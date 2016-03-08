@@ -467,7 +467,7 @@ namespace UnrealBuildTool
 		/// <param name="Only">  If this is not unknown, then only run that platform</param>
 		public static void PlatformModifyHostModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target, UnrealTargetPlatform Only = UnrealTargetPlatform.Unknown)
 		{
-			foreach (var PlatformEntry in BuildPlatformDictionary)
+			foreach (KeyValuePair<UnrealTargetPlatform, UEBuildPlatform> PlatformEntry in BuildPlatformDictionary)
 			{
 				if (Only == UnrealTargetPlatform.Unknown || PlatformEntry.Key == Only)
 				{
@@ -531,7 +531,7 @@ namespace UnrealBuildTool
 		public static bool PlatformRequiresMonolithicBuilds(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			// Some platforms require monolithic builds...
-			var BuildPlatform = GetBuildPlatform(InPlatform, true);
+			UEBuildPlatform BuildPlatform = GetBuildPlatform(InPlatform, true);
 			if (BuildPlatform != null)
 			{
 				return BuildPlatform.ShouldCompileMonolithicBinary(InPlatform);
@@ -1100,7 +1100,7 @@ namespace UnrealBuildTool
 					//HookProcess.StartInfo.RedirectStandardOutput = true;
 					//HookProcess.StartInfo.RedirectStandardError = true;					
 
-					using (var HookTimer = new ScopedTimer("Time to run hook: ", bShouldLogInfo ? LogEventType.Log : LogEventType.Verbose))
+					using (ScopedTimer HookTimer = new ScopedTimer("Time to run hook: ", bShouldLogInfo ? LogEventType.Log : LogEventType.Verbose))
 					{
 						//installers may require administrator access to succeed. so run as an admmin.
 						HookProcess.StartInfo.Verb = "runas";

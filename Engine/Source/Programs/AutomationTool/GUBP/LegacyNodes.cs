@@ -1058,6 +1058,10 @@ partial class GUBP
 				{
 					UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Linux/UnrealPak");
 				}
+                else if (HostPlatform == UnrealTargetPlatform.Mac)
+                {
+                    UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Mac/UnrealPak");
+                }
 				else
 				{
 					throw new AutomationException("Unknown path to UnrealPak for host platform ({0})", HostPlatform);

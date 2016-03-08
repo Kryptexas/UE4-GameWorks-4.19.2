@@ -492,7 +492,7 @@ namespace UnrealBuildTool
 			// Log.TraceInformation("Compile Arguments for {0}:", ModuleName);
 			// Log.TraceInformation(Arguments);
 
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 
 			// Create a compile action for each source file.
 			CPPOutput Result = new CPPOutput();
@@ -529,7 +529,7 @@ namespace UnrealBuildTool
 					string OriginalPCHHeaderDirectory = Path.GetDirectoryName(SourceFile.AbsolutePath);
 					FileArguments += string.Format(" /I \"{0}\"", OriginalPCHHeaderDirectory);
 
-					var PCHExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.WinRT).GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
+					string PCHExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.WinRT).GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 
 					// Add the precompiled header file to the produced items list.
 					FileItem PrecompiledHeaderFile = FileItem.GetItemByFileReference(
@@ -586,7 +586,7 @@ namespace UnrealBuildTool
 					CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				}
 
-				var ObjectFileExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.WinRT).GetBinaryExtension(UEBuildBinaryType.Object);
+				string ObjectFileExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.WinRT).GetBinaryExtension(UEBuildBinaryType.Object);
 
 				// Add the object file to the produced item list.
 				FileItem ObjectFile = FileItem.GetItemByFileReference(
