@@ -5,30 +5,6 @@
 #include "VREditorWorldInteractionTypes.h"
 
 
-// @todo vreditor: Horrible that we have to roll our own input events.  This should all be handled by the plugin
-struct FSTEMControllerState
-{
-	int Buttons;
-	int ButtonsPrevious;
-	float TriggerVal;
-	float LastTriggerVal;
-	float JoystickX;
-	float JoystickY;
-	FVector2D LastJoystickVal;
-
-
-	FSTEMControllerState()
-	{
-		Buttons = 0;
-		ButtonsPrevious = 0;
-		TriggerVal = 0;
-		LastTriggerVal = 0;
-		JoystickX = 0;
-		JoystickY = 0;
-		LastJoystickVal = FVector2D();
-	}
-};
-
 
 /** Represents a single virtual hand */
 struct FVirtualHand
@@ -57,9 +33,6 @@ struct FVirtualHand
 
 	/** True if this hand has a motion controller (or both!) */
 	bool bHaveMotionController;
-
-	/** STEM controller state for this hand */
-	FSTEMControllerState STEMControllerState;
 
 
 	//
