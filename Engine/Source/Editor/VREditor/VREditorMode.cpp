@@ -390,7 +390,7 @@ void FVREditorMode::Enter()
 			// Tell Slate to require a larger pixel distance threshold before the drag starts.  This is important for things 
 			// like Content Browser drag and drop.
 			SavedEditorState.DragTriggerDistance = FSlateApplication::Get().GetDragTriggerDistance();
-			FSlateApplication::Get().SetDragTriggerDistance( 30.0f );
+			FSlateApplication::Get().SetDragTriggerDistance( 100.0f );	// @todo vreditor tweak
 		}
 	}
 
