@@ -14,10 +14,7 @@ public:
 public:
 	void Construct(const FArguments& InArgs, FVector2D InSize, FInputChord InTriggerChord);
 
-	~SGlobalTabSwitchingDialog()
-	{
-		bIsAlreadyOpen = false;
-	}
+	~SGlobalTabSwitchingDialog();
 
 	// SWidget interface
 	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;

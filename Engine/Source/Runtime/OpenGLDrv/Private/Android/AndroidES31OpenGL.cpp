@@ -123,7 +123,7 @@ void FPlatformOpenGLDevice::Init()
 	UE_LOG( LogRHI, Warning, TEXT("Entering FPlatformOpenGLDevice::Init"));
 	extern void InitDebugContext();
 
-	AndroidEGL::GetInstance()->InitSurface(false);
+	AndroidEGL::GetInstance()->InitSurface(false, true);
 	AndroidEGL::GetInstance()->SetSingleThreadRenderingContext();
 
 	// Initialize all of the entry points we have to query manually

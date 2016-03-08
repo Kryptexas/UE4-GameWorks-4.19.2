@@ -136,7 +136,6 @@ void UGameEngine::CreateGameViewport( UGameViewportClient* GameViewportClient )
 
 	auto Window = GameViewportWindow.Pin();
 
-	Window->SetWidgetToFocusOnActivate( GameViewportWidgetRef );
 	Window->SetOnWindowClosed( FOnWindowClosed::CreateUObject( this, &UGameEngine::OnGameWindowClosed ) );
 
 	// SAVEWINPOS tells us to load/save window positions to user settings (this is disabled by default)
@@ -358,8 +357,10 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 		{
 			FSlateApplication::Get().RegisterGameViewport(GameViewportWidgetRef);
 		}
-		
-		FSlateApplication::Get().SetAllUserFocusToGameViewport();
+		else
+		{
+			FSlateApplication::Get().ActivateGameViewport();
+		}
 	}
 }
 

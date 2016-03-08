@@ -29,6 +29,7 @@ namespace UnrealBuildTool
 		PostConfigInit,
 		PreLoadingScreen,
 		PostEngineInit,
+		None,
 	}
 
 	[DebuggerDisplay("Name={Name}")]

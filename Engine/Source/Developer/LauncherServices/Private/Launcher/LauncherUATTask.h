@@ -63,6 +63,7 @@ protected:
 		UATCommandLine += FParse::Param( FCommandLine::Get(), TEXT("development") ) || ChainState.Profile->IsBuildingUAT() ? TEXT("") : TEXT(" -nocompile");
 		// we never want to build the editor when launching from the editor or running with an installed engine (which can't rebuild itself)
 		UATCommandLine += GIsEditor || FApp::IsEngineInstalled() ? TEXT(" -nocompileeditor") : TEXT("");
+		UATCommandLine += FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT("");
 
 		// specify the path to the editor exe if necessary
 		if(EditorExe.Len() > 0)

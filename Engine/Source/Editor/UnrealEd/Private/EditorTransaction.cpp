@@ -670,6 +670,20 @@ bool UTransBuffer::CanUndo( FText* Text )
 		}
 		return false;
 	}
+	
+	if (UndoBarrierStack.Num())
+	{
+		const int32 UndoBarrier = UndoBarrierStack.Last();
+		if (UndoBuffer.Num() - UndoCount <= UndoBarrier)
+		{
+			if (Text)
+			{
+				*Text = NSLOCTEXT("TransactionSystem", "HitUndoBarrier", "(Hit Undo barrier; can't undo any further)");
+			}
+			return false;
+		}
+	}
+
 	if( UndoBuffer.Num()==UndoCount )
 	{
 		if( Text )
@@ -707,7 +721,7 @@ bool UTransBuffer::CanRedo( FText* Text )
 
 const FTransaction* UTransBuffer::GetTransaction( int32 QueueIndex ) const
 {
-	if (UndoBuffer.Num() > QueueIndex)
+	if (UndoBuffer.Num() > QueueIndex && QueueIndex != INDEX_NONE)
 	{
 		return &UndoBuffer[QueueIndex];
 	}
@@ -743,6 +757,27 @@ FUndoSessionContext UTransBuffer::GetRedoContext()
 
 	const FTransaction* Transaction = &UndoBuffer[ UndoBuffer.Num() - UndoCount ];
 	return Transaction->GetContext();
+}
+
+
+void UTransBuffer::SetUndoBarrier()
+{
+	UndoBarrierStack.Push(UndoBuffer.Num() - UndoCount);
+}
+
+
+void UTransBuffer::RemoveUndoBarrier()
+{
+	if (UndoBarrierStack.Num() > 0)
+	{
+		UndoBarrierStack.Pop();
+	}
+}
+
+
+void UTransBuffer::ClearUndoBarriers()
+{
+	UndoBarrierStack.Empty();
 }
 
 

@@ -95,8 +95,6 @@ void FXAudio2SoundSource::FreeResources( void )
 	// Release voice.
 	if (Source)
 	{
-		// Because XAudio2's DestroyVoice source is blocking and can be slow on some processors (e.g. AMD), we're creating
-		// a task that destroys the voice on a separate thread to avoid blocking or hitching.
 		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels);
 		Source = nullptr;
 	}
@@ -442,7 +440,6 @@ bool FXAudio2SoundSource::CreateSource( void )
 #if XAUDIO2_SUPPORTS_SENDLIST
 		Source->SetOutputVoices(&SourceSendList);
 #endif
-		Source->SetEffectChain(nullptr);
 	}
 
 	return true;
@@ -629,7 +626,7 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 		}
 		check(AudioDevice->SpatializeProcessor != nullptr);
 
-		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, FAudioSpatializationParams(SpatializationParams.EmitterPosition));
+		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, FAudioSpatializationParams(SpatializationParams.EmitterPosition, WaveInstance->Location));
 		GetStereoChannelVolumes(ChannelVolumes, AttenuatedVolume);
 	}
 	else // Spatialize the mono stream using the normal 3d audio algorithm

@@ -92,10 +92,12 @@ namespace AutomationTool
 		#endregion
 
 		protected UnrealTargetPlatform TargetPlatformType = UnrealTargetPlatform.Unknown;
+		protected UnrealTargetPlatform TargetIniPlatformType = UnrealTargetPlatform.Unknown;
 
 		public Platform(UnrealTargetPlatform PlatformType)
 		{
 			TargetPlatformType = PlatformType;
+			TargetIniPlatformType = PlatformType;
 		}
 
 		/// <summary>
@@ -386,6 +388,14 @@ namespace AutomationTool
 		public UnrealTargetPlatform PlatformType
 		{
 			get { return TargetPlatformType; }
+		}
+
+		/// <summary>
+		/// UnrealTargetPlatform type for this platform.
+		/// </summary>
+		public UnrealTargetPlatform IniPlatformType
+		{
+			get { return TargetIniPlatformType; }
 		}
 
 		/// <summary>

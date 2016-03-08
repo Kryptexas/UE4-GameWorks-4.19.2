@@ -454,6 +454,9 @@ void UEditorEngine::EndPlayMap()
 	// Tear down the output log to message log thunker
 	OutputLogErrorsToMessageLogProxyPtr.Reset();
 
+	// Remove undo barrier
+	GUnrealEd->Trans->RemoveUndoBarrier();
+
 	// display any info if required.
 	FMessageLog(NAME_CategoryPIE).Notify(LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."));
 }
@@ -1430,6 +1433,7 @@ private:
 
 void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
+	bool bSetNotification = true;
 	FFormatNamedArguments Arguments;
 	FText NotificationText;
 	if (InStage.Contains(TEXT("Cooking")) || InStage.Contains(TEXT("Cook Task")))
@@ -1463,7 +1467,7 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	else if (InStage.Contains(TEXT("Deploy Task")))
 	{
 		Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
-		if(PlayUsingLauncherDeviceName.Len() == 0)
+		if (PlayUsingLauncherDeviceName.Len() == 0)
 		{
 			NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotificationNoDevice", "Deploying Executable and Assets..."), Arguments);
 		}
@@ -1476,17 +1480,24 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	{
 		Arguments.Add(TEXT("GameName"), FText::FromString(FApp::GetGameName()));
 		Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
-		if(PlayUsingLauncherDeviceName.Len() == 0)
+		if (PlayUsingLauncherDeviceName.Len() == 0)
 		{
-			NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotificationNoDevice", "Running {GameName}..."), Arguments);
+			NotificationText = FText::Format(LOCTEXT("LauncherTaskRunNotificationNoDevice", "Running {GameName}..."), Arguments);
 		}
 		else
 		{
-			NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotification", "Running {GameName} on {DeviceName}..."), Arguments);
+			NotificationText = FText::Format(LOCTEXT("LauncherTaskRunNotification", "Running {GameName} on {DeviceName}..."), Arguments);
 		}
 	}
+	else
+	{
+		bSetNotification = false;
+	}
 
-	NotificationItemPtr.Pin()->SetText(NotificationText);
+	if (bSetNotification)
+	{
+		NotificationItemPtr.Pin()->SetText(NotificationText);
+	}
 }
 
 void UEditorEngine::HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)
@@ -2905,6 +2916,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					.ClientSize(FVector2D( NewWindowWidth, NewWindowHeight ))
 					.AutoCenter(CenterNewWindow ? EAutoCenter::PreferredWorkArea : EAutoCenter::None)
 					.UseOSWindowBorder(bUseOSWndBorder)
+					.SaneWindowPlacement(!CenterNewWindow)
 					.SizingRule(ESizingRule::UserSized);
 				}
 
@@ -3097,7 +3109,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	GEngine->BroadcastLevelActorListChanged();
 
 	// Set an undo barrier so that transactions prior to PIE can't be undone
-	GUnrealEd->ResetTransaction(NSLOCTEXT("UnrealEd", "PIEStarted", "PIE Started"));
+	GUnrealEd->Trans->SetUndoBarrier();
 
 	return GameInstance;
 }

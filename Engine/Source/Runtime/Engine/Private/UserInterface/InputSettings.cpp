@@ -12,7 +12,8 @@
 #include "GameFramework/InputSettings.h"
 
 UInputSettings::UInputSettings(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
+	, DefaultViewportMouseCaptureMode(EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown)
 {
 }
 

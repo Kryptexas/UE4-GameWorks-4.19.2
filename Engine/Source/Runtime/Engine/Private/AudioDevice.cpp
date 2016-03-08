@@ -1062,11 +1062,12 @@ void FAudioDevice::RecurseIntoSoundClasses( USoundClass* CurrentClass, FSoundCla
 
 void FAudioDevice::UpdateHighestPriorityReverb()
 {
-	for (auto It = ActivatedReverbs.CreateConstIterator(); It; ++It)
+	HighestPriorityReverb = nullptr;
+	for (const TPair<FName, FActivatedReverb>& ActivatedReverb : ActivatedReverbs)
 	{
-		if (!HighestPriorityReverb || It.Value().Priority > HighestPriorityReverb->Priority)
+		if (HighestPriorityReverb == nullptr || ActivatedReverb.Value.Priority > HighestPriorityReverb->Priority)
 		{
-			HighestPriorityReverb = &It.Value();
+			HighestPriorityReverb = &ActivatedReverb.Value;
 		}
 	}
 }
@@ -1662,49 +1663,21 @@ void FAudioDevice::ClearSoundMixModifiers()
 
 void FAudioDevice::ActivateReverbEffect(class UReverbEffect* ReverbEffect, FName TagName, float Priority, float Volume, float FadeTime)
 {
-	FActivatedReverb* ExistingReverb = ActivatedReverbs.Find(TagName);
+	FActivatedReverb& ActivatedReverb = ActivatedReverbs.FindOrAdd(TagName);
 
-	if (ExistingReverb)
-	{
-		float OldPriority = ExistingReverb->Priority;
-		ExistingReverb->ReverbSettings.ReverbEffect = ReverbEffect;
-		ExistingReverb->ReverbSettings.Volume = Volume;
-		ExistingReverb->ReverbSettings.FadeTime = FadeTime;
-		ExistingReverb->Priority = Priority;
+	ActivatedReverb.ReverbSettings.ReverbEffect = ReverbEffect;
+	ActivatedReverb.ReverbSettings.Volume = Volume;
+	ActivatedReverb.ReverbSettings.FadeTime = FadeTime;
+	ActivatedReverb.Priority = Priority;
 
-		if (OldPriority != Priority)
-		{
-			UpdateHighestPriorityReverb();
-		}
-	}
-	else
-	{
-		ExistingReverb = &ActivatedReverbs.Add(TagName, FActivatedReverb());
-		ExistingReverb->ReverbSettings.ReverbEffect = ReverbEffect;
-		ExistingReverb->ReverbSettings.Volume = Volume;
-		ExistingReverb->ReverbSettings.FadeTime = FadeTime;
-		ExistingReverb->Priority = Priority;
-
-		UpdateHighestPriorityReverb();
-	}
+	UpdateHighestPriorityReverb();
 }
 
 void FAudioDevice::DeactivateReverbEffect(FName TagName)
 {
-	FActivatedReverb* ExistingReverb = ActivatedReverbs.Find(TagName);
-	if (ExistingReverb)
+	if (ActivatedReverbs.Remove(TagName) > 0)
 	{
-		if (ExistingReverb == HighestPriorityReverb)
-		{
-			HighestPriorityReverb = NULL;
-		}
-
-		ActivatedReverbs.Remove(TagName);
-
-		if (HighestPriorityReverb == NULL)
-		{
-			UpdateHighestPriorityReverb();
-		}
+		UpdateHighestPriorityReverb();
 	}
 }
 

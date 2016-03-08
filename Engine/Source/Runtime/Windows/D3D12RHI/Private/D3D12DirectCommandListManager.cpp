@@ -9,40 +9,68 @@ extern bool D3D12RHI_ShouldCreateWithD3DDebug();
 
 FComputeFenceRHIRef FD3D12DynamicRHI::RHICreateComputeFence(const FName& Name)
 {
-	FD3D12Fence* Fence = new FD3D12Fence(Name);
+	FD3D12Fence* Fence = new FD3D12Fence(GetRHIDevice(),Name);
 
-	Fence->CreateFence(GetRHIDevice()->GetDevice(), 0);
+	Fence->CreateFence(0);
 
 	return Fence;
 }
 
-FD3D12Fence::FD3D12Fence(const FName& Name)
-	: FRHIComputeFence(Name)
-	, CurrentFence(-1)
-	, SignalFence(-1)
-	, LastCompletedFence(-1)
-	, hFenceCompleteEvent(INVALID_HANDLE_VALUE)
+FD3D12FenceCore::FD3D12FenceCore(FD3D12Device* Parent, uint64 InitialValue)
+	: hFenceCompleteEvent(INVALID_HANDLE_VALUE)
+	, FenceValueAvailableAt(0)
+	, FD3D12DeviceChild(Parent)
 {
-	// Create an event
+	check(Parent);
 	hFenceCompleteEvent = CreateEvent(nullptr, false, false, nullptr);
 	check(INVALID_HANDLE_VALUE != hFenceCompleteEvent);
+
+	VERIFYD3D11RESULT(Parent->GetDevice()->CreateFence(InitialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(Fence.GetInitReference())));
 }
 
-FD3D12Fence::~FD3D12Fence()
+FD3D12FenceCore::~FD3D12FenceCore()
 {
 	if (hFenceCompleteEvent != INVALID_HANDLE_VALUE)
 	{
 		CloseHandle(hFenceCompleteEvent);
 		hFenceCompleteEvent = INVALID_HANDLE_VALUE;
 	}
-
 }
 
-void FD3D12Fence::CreateFence(ID3D12Device* pDirect3DDevice, uint64 InitialValue)
+FD3D12Fence::FD3D12Fence(FD3D12Device* Parent, const FName& Name)
+	: FRHIComputeFence(Name)
+	, CurrentFence(-1)
+	, SignalFence(-1)
+	, LastCompletedFence(-1)
+	, FenceCore(nullptr)
+	, FD3D12DeviceChild(Parent)
 {
-	check(Fence == nullptr);
+}
 
-	VERIFYD3D11RESULT(pDirect3DDevice->CreateFence(InitialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(Fence.GetInitReference())));
+FD3D12Fence::~FD3D12Fence()
+{
+	Destroy();
+}
+
+void FD3D12Fence::Destroy()
+{
+	if (FenceCore)
+	{
+		//Return the underlying fence to the pool, store the last value signaled on this fence
+		GetParentDevice()->GetFenceCorePool().ReleaseFenceCore(FenceCore, SignalFence);
+		FenceCore = nullptr;
+	}
+}
+
+void FD3D12Fence::CreateFence(uint64 InitialValue)
+{
+	check(FenceCore == nullptr);
+
+	//Get a fence from the pool
+	FenceCore = GetParentDevice()->GetFenceCorePool().ObtainFenceCore(InitialValue);
+	ID3D12Fence* Fence = FenceCore->GetFence();
+	check(Fence);
+
 	SetName(Fence, *GetName().ToString());
 	LastCompletedFence = Fence->GetCompletedValue();
 	CurrentFence = SignalFence = LastCompletedFence + 1;
@@ -52,7 +80,7 @@ uint64 FD3D12Fence::Signal(ID3D12CommandQueue* pCommandQueue)
 {
 	check(pCommandQueue != nullptr);
 
-	VERIFYD3D11RESULT(pCommandQueue->Signal(Fence.GetReference(), CurrentFence));
+	VERIFYD3D11RESULT(pCommandQueue->Signal(FenceCore->GetFence(), CurrentFence));
 
 	// Save the current fence and increment it
 	SignalFence = CurrentFence++;
@@ -65,12 +93,12 @@ void FD3D12Fence::GpuWait(ID3D12CommandQueue* pCommandQueue, uint64 FenceValue)
 {
 	check(pCommandQueue != nullptr);
 
-	VERIFYD3D11RESULT(pCommandQueue->Wait(Fence.GetReference(), FenceValue));
+	VERIFYD3D11RESULT(pCommandQueue->Wait(FenceCore->GetFence(), FenceValue));
 }
 
 bool FD3D12Fence::IsFenceComplete(uint64 FenceValue)
 {
-	check(Fence != nullptr);
+	check(FenceCore);
 
 	// Avoid repeatedly calling GetCompletedValue()
 	if (FenceValue <= LastCompletedFence)
@@ -79,13 +107,13 @@ bool FD3D12Fence::IsFenceComplete(uint64 FenceValue)
 	}
 
 	// Refresh the completed fence value
-	LastCompletedFence = Fence->GetCompletedValue();
+	LastCompletedFence = FenceCore->GetFence()->GetCompletedValue();
 	return FenceValue <= LastCompletedFence;
 }
 
 uint64 FD3D12Fence::GetLastCompletedFence()
 {
-	LastCompletedFence = Fence->GetCompletedValue();
+	LastCompletedFence = FenceCore->GetFence()->GetCompletedValue();
 	return LastCompletedFence;
 }
 
@@ -93,7 +121,7 @@ void FD3D12Fence::WaitForFence(uint64 FenceValue)
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12WaitForFenceTime);
 
-	check(Fence != nullptr);
+	check(FenceCore);
 
 	if (IsFenceComplete(FenceValue))
 	{
@@ -101,10 +129,10 @@ void FD3D12Fence::WaitForFence(uint64 FenceValue)
 	}
 
 	// We must wait.  Do so with an event handler so we don't oversleep.
-	VERIFYD3D11RESULT(Fence->SetEventOnCompletion(FenceValue, hFenceCompleteEvent));
+	VERIFYD3D11RESULT(FenceCore->GetFence()->SetEventOnCompletion(FenceValue, FenceCore->GetCompleteionEvent()));
 
 	// Wait for the event to complete (the event is automatically reset afterwards)
-	const uint32 WaitResult = WaitForSingleObject(hFenceCompleteEvent, INFINITE);
+	const uint32 WaitResult = WaitForSingleObject(FenceCore->GetCompleteionEvent(), INFINITE);
 	check(0 == WaitResult);
 
 	LastCompletedFence = FenceValue;
@@ -147,6 +175,10 @@ FD3D12CommandListManager::FD3D12CommandListManager(FD3D12Device* InParent, D3D12
 	, ResourceBarrierCommandAllocator(nullptr)
 	, ResourceBarrierCommandAllocatorManager(InParent, D3D12_COMMAND_LIST_TYPE_DIRECT)
 {
+	for (FD3D12Fence& Fence : Fences)
+	{
+		Fence.SetParentDevice(InParent);
+	}
 }
 
 FD3D12CommandListManager::~FD3D12CommandListManager()
@@ -166,6 +198,11 @@ void FD3D12CommandListManager::Destroy()
 	{
 		ReadyLists.Dequeue(hList);
 	}
+
+	for (FD3D12Fence& Fence : Fences)
+	{
+		Fence.Destroy();
+	}
 }
 
 void FD3D12CommandListManager::Create(uint32 NumCommandLists)
@@ -184,7 +221,7 @@ void FD3D12CommandListManager::Create(uint32 NumCommandLists)
 
 	for (uint32 i = 0; i < FT_NumTypes; i++)
 	{
-		Fences[i].CreateFence(Direct3DDevice, 0);
+		Fences[i].CreateFence(0);
 	}
 
 	if (NumCommandLists > 0)
@@ -312,6 +349,11 @@ void FD3D12CommandListManager::ExecuteCommandLists(TArray<FD3D12CommandListHandl
 	FD3D12CommandListHandle BarrierCommandList[128];
 	if (NeedsResourceBarriers)
 	{
+#if !USE_D3D12RHI_RESOURCE_STATE_TRACKING
+		// If we're using the engine's resource state tracking and barriers, then we should never have pending resource barriers.
+		check(false);
+#endif // !USE_D3D12RHI_RESOURCE_STATE_TRACKING
+
 		//#todo-rco: Need verification from MS
 #if 0//UE_BUILD_DEBUG	
 		if (!ResourceStateCS.TryLock())
@@ -527,4 +569,42 @@ FD3D12CommandListHandle FD3D12CommandListManager::CreateCommandListHandle(FD3D12
 	// are empty
 	check(CommandListCount < MAX_ALLOCATED_COMMAND_LISTS);
 	return List;
+}
+
+FD3D12FenceCore* FD3D12FenceCorePool::ObtainFenceCore(uint64 InitialValue)
+{
+	{
+		FScopeLock Lock(&CS);
+		FD3D12FenceCore* Fence = nullptr;
+		if (AvailableFences.Peek(Fence))
+		{
+			if (Fence->IsAvailable())
+			{
+				AvailableFences.Dequeue(Fence);
+
+				//Reset the fence value
+				Fence->GetFence()->Signal(InitialValue);
+
+				return Fence;
+			}
+		}
+	}
+
+	return new FD3D12FenceCore(GetParentDevice(), InitialValue);
+}
+
+void FD3D12FenceCorePool::ReleaseFenceCore(FD3D12FenceCore* Fence, uint64 CurrentFenceValue)
+{
+	FScopeLock Lock(&CS);
+	Fence->FenceValueAvailableAt = CurrentFenceValue;
+	AvailableFences.Enqueue(Fence);
+}
+
+void FD3D12FenceCorePool::Destroy()
+{
+	FD3D12FenceCore* Fence = nullptr;
+	while (AvailableFences.Dequeue(Fence))
+	{
+		delete(Fence);
+	}
 }

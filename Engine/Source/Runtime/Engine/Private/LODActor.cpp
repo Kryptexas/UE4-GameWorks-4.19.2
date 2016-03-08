@@ -148,11 +148,33 @@ void ALODActor::PostRegisterAllComponents()
 	// Clean up sub actor if assets were delete manually
 	CleanSubActorArray();
 
+	// Clean up sub objects if assets were delete manually
+	CleanSubObjectsArray();
+
 	UpdateSubActorLODParents();	
 #endif
 }
 
 #if WITH_EDITOR
+
+void ALODActor::PreEditChange(UProperty* PropertyThatWillChange)
+{
+	Super::PreEditChange(PropertyThatWillChange);
+
+	if (PropertyThatWillChange)
+	{
+		const FName PropertyName = PropertyThatWillChange->GetFName();
+
+		// If the Sub Objects array is changed, in case of asset deletion make sure me flag as dirty since the cluster will be invalid
+		if (PropertyName == TEXT("SubObjects"))
+		{
+			SetIsDirty(true);
+		}
+	}
+
+	// Flush all pending rendering commands.
+	FlushRenderingCommands();
+}
 
 void ALODActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -497,14 +519,41 @@ void ALODActor::UpdateSubActorLODParents()
 
 void ALODActor::CleanSubActorArray()
 {
+	bool bIsDirty = false;
 	for (int32 SubActorIndex = 0; SubActorIndex < SubActors.Num(); ++SubActorIndex)
 	{
 		auto& Actor = SubActors[SubActorIndex];
 		if (Actor == nullptr)
 		{
-			SubActors.RemoveAt(SubActorIndex);
+			SubActors.RemoveAtSwap(SubActorIndex);
 			SubActorIndex--;
+			bIsDirty = true;
 		}
+	}
+
+	if (bIsDirty)
+	{
+		SetIsDirty(true);
+	}
+}
+
+void ALODActor::CleanSubObjectsArray()
+{
+	bool bIsDirty = false;
+	for (int32 SubObjectIndex = 0; SubObjectIndex < SubObjects.Num(); ++SubObjectIndex)
+	{
+		UObject* Object = SubObjects[SubObjectIndex];
+		if (Object == nullptr)
+		{
+			SubObjects.RemoveAtSwap(SubObjectIndex);
+			SubObjectIndex--;
+			bIsDirty = true;
+		}
+	}
+
+	if (bIsDirty)
+	{
+		SetIsDirty(true);
 	}
 }
 

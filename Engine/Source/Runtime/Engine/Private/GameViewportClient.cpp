@@ -119,6 +119,7 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, bHideCursorDuringCapture(false)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
+	, bActive(false)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
@@ -177,6 +178,7 @@ UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
 	, bHideCursorDuringCapture(false)
 	, AudioDeviceHandle(INDEX_NONE)
 	, bHasAudioFocus(false)
+	, bActive(false)
 {
 
 }
@@ -274,6 +276,9 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 
 	// remember our game instance
 	GameInstance = OwningGameInstance;
+
+	// Set the projects default viewport mouse capture mode
+	MouseCaptureMode = GetDefault<UInputSettings>()->DefaultViewportMouseCaptureMode;
 
 	// Create the cursor Widgets
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
@@ -590,43 +595,14 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 
 EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y)
 {
-	//bool bIsPlayingMovie = false;//GetMoviePlayer()->IsMovieCurrentlyPlaying();
-
-#if !PLATFORM_WINDOWS
-	bool bIsWithinTitleBar = false;
-#else
-	POINT CursorPos = { X, Y };
-	RECT WindowRect;
-
-	bool bIsWithinWindow = true;
-
-	// For Slate based windows the viewport doesnt have access to the OS window handle and shouln't need it
-	bool bIsWithinTitleBar = false;
-	if( InViewport->GetWindow() )
-	{
-		ClientToScreen( (HWND)InViewport->GetWindow(), &CursorPos );
-		GetWindowRect( (HWND)InViewport->GetWindow(), &WindowRect );
-		bIsWithinWindow = ( CursorPos.x >= WindowRect.left && CursorPos.x <= WindowRect.right &&
-			CursorPos.y >= WindowRect.top && CursorPos.y <= WindowRect.bottom );
-
-		// The user is mousing over the title bar if Y is less than zero and within the window rect
-		bIsWithinTitleBar = Y < 0 && bIsWithinWindow;
-	}
-
-#endif
-
-	if ((!InViewport->HasMouseCapture() && !InViewport->HasFocus()) || (ViewportConsole && ViewportConsole->ConsoleActive()))
+	// If the viewport isn't active or the console is active we don't want to override the cursor
+	if (!bActive || (!InViewport->HasMouseCapture() && !InViewport->HasFocus()) || (ViewportConsole && ViewportConsole->ConsoleActive()))
 	{
 		return EMouseCursor::Default;
 	}
-	else if ( /*(!bIsPlayingMovie) && */(InViewport->IsFullscreen() || !bIsWithinTitleBar) ) //bIsPlayingMovie has always false value
+	else if (GameInstance && GameInstance->GetFirstLocalPlayerController())
 	{
-		if (GameInstance && GameInstance->GetFirstLocalPlayerController())
-		{
-			return GameInstance->GetFirstLocalPlayerController()->GetMouseCursor();
-		}
-
-		return EMouseCursor::None;
+		return GameInstance->GetFirstLocalPlayerController()->GetMouseCursor();
 	}
 
 	return FViewportClient::GetCursor(InViewport, X, Y);
@@ -1405,6 +1381,18 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 bool UGameViewportClient::IsFocused(FViewport* InViewport)
 {
 	return InViewport->HasFocus() || InViewport->HasMouseCapture();
+}
+
+void UGameViewportClient::Activated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent)
+{
+	ReceivedFocus(InViewport);
+	bActive = true;
+}
+
+void UGameViewportClient::Deactivated(FViewport* InViewport, const FWindowActivateEvent& InActivateEvent)
+{
+	LostFocus(InViewport);
+	bActive = false;
 }
 
 void UGameViewportClient::CloseRequested(FViewport* InViewport)

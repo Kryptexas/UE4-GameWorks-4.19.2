@@ -718,6 +718,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InLoadFlags )
 : FLinker(ELinkerType::Load, InParent, InFilename)
 , LoadFlags(InLoadFlags)
+, bHaveImportsBeenVerified(false)
 , bDynamicClassLinker(false)
 , Loader(nullptr)
 , AsyncRoot(nullptr)
@@ -738,7 +739,6 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 , IsTimeLimitExceededCallCount(0)
 , TimeLimit(0.0f)
 , TickStartTime(0.0)
-, VerifiedImportCount(0)
 , bFixupExportMapDone(false)
 #if WITH_EDITOR
 , bExportsDuplicatesFixed(false)
@@ -1895,9 +1895,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 		// verification happens as needed for CreateImport() during export 
 		// serialization, so it's not like this will be skipped completely (just
 		// deferred)
-		if( !(LoadFlags & (LOAD_NoVerify|LOAD_DeferDependencyLoads)) )
+		if (!(LoadFlags & (LOAD_NoVerify | LOAD_DeferDependencyLoads)))
 #else 
-		if ( !(LoadFlags & LOAD_NoVerify) )
+		if (!(LoadFlags & LOAD_NoVerify))
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 		{
 			Verify();
@@ -1988,21 +1988,16 @@ void FLinkerLoad::Verify()
 {
 	if(!FApp::IsGame() || GIsEditor || IsRunningCommandlet())
 	{
-		if (!HaveImportsBeenVerified())
+		if (!bHaveImportsBeenVerified)
 		{
 #if WITH_EDITOR
 			FScopedSlowTask SlowTask(Summary.ImportCount, NSLOCTEXT("Core", "LinkerLoad_Imports", "Loading Imports"), ShouldReportProgress());
 #endif
 			// Validate all imports and map them to their remote linkers.
-			while (VerifiedImportCount < Summary.ImportCount)
+			for (int32 ImportIndex = 0; ImportIndex < Summary.ImportCount; ImportIndex++)
 			{
-				// use an incrementing class-scoped counter in order to make 
-				// this function reentrant (so we can continue verifying from
-				// where we last left off, up the callstack)
-				const int32 ImportIndex = VerifiedImportCount;
-				++VerifiedImportCount;
-
 				FObjectImport& Import = ImportMap[ImportIndex];
+
 #if WITH_EDITOR
 				SlowTask.EnterProgressFrame(1, FText::Format(NSLOCTEXT("Core", "LinkerLoad_LoadingImportName", "Loading Import '{0}'"), FText::FromString(Import.ObjectName.ToString())));
 #endif
@@ -2010,6 +2005,7 @@ void FLinkerLoad::Verify()
 			}
 		}
 	}
+	bHaveImportsBeenVerified = true;
 }
 
 FName FLinkerLoad::GetExportClassPackage( int32 i )
@@ -2327,7 +2323,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 				if( GIsEditor && !IsRunningCommandlet())
 				{
 					bool bSupressLinkerError = false;
-					bSupressLinkerError = IsSuppressableBlueprintImportError(Import);
+					bSupressLinkerError = IsSuppressableBlueprintImportError(ImportIndex);
 					if (!bSupressLinkerError)
 					{
 						FDeferredMessageLog LoadErrors(NAME_LoadErrors);
@@ -2924,7 +2920,7 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 	// Mark package as having been fully loaded.
 	if( LinkerRoot )
 	{
-		LinkerRoot->MarkAsFullyLoaded();
+		LinkerRoot->MarkAsFullyLoaded();		
 	}
 }
 
@@ -3846,10 +3842,14 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			EInternalObjectFlags::None,
 			Template
 		);
-		if (FPlatformProperties::RequiresCookedData() && GIsInitialLoad)
+		if (FPlatformProperties::RequiresCookedData())
 		{
-			Export.Object->AddToRoot();
+			if (GIsInitialLoad || GUObjectArray.IsOpenForDisregardForGC())
+			{
+				Export.Object->AddToRoot();
+			}
 		}
+		
 		LoadClass = Export.Object->GetClass(); // this may have changed if we are overwriting a CDO component
 
 		if (NewName != Export.ObjectName)

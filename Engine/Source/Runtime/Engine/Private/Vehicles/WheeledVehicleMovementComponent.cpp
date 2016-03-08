@@ -634,6 +634,12 @@ void UWheeledVehicleMovementComponent::CreatePhysicsState()
 				//LogVehicleSettings( PVehicle );
 				SCOPED_SCENE_WRITE_LOCK(VehicleManager->GetScene());
 				PVehicle->getRigidDynamicActor()->wakeUp();
+
+				// Need to bind to the notify delegate on the mesh incase physics state is changed
+				if(USkeletalMeshComponent* MeshComp = Cast<USkeletalMeshComponent>(GetMesh()))
+				{
+					MeshOnPhysicsStateChangeHandle = MeshComp->RegisterOnPhysicsCreatedDelegate(FOnSkelMeshPhysicsCreated::CreateUObject(this, &UWheeledVehicleMovementComponent::RecreatePhysicsState));
+				}
 			}
 		}
 	}
@@ -649,6 +655,14 @@ void UWheeledVehicleMovementComponent::DestroyPhysicsState()
 
 		World->GetPhysicsScene()->GetVehicleManager()->RemoveVehicle( this );
 		PVehicle = NULL;
+
+		if(MeshOnPhysicsStateChangeHandle.IsValid())
+		{
+			if(USkeletalMeshComponent* MeshComp = Cast<USkeletalMeshComponent>(GetMesh()))
+			{
+				MeshComp->UnregisterOnPhysicsCreatedDelegate(MeshOnPhysicsStateChangeHandle);
+			}
+		}
 
 		if ( UpdatedComponent )
 		{

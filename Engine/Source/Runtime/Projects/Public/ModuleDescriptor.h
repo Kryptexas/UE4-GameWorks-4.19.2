@@ -31,6 +31,9 @@ namespace ELoadingPhase
 		/** After the engine has been initialized */
 		PostEngineInit,
 
+		/** Do not automatically load this module */
+		None,
+
 		// NOTE: If you add a new value, make sure to update the ToString() method below!
 		Max
 	};

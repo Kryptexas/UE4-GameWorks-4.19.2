@@ -5204,12 +5204,13 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			&&	(InsidePackage	||	!FCString::Strfind(Cmd,TEXT("PACKAGE="))) 
 			&&	(InsideObject	||	!FCString::Strfind(Cmd,TEXT("INSIDE=")))))
 		{
-			const bool bTrackDetailedObjectInfo		= bAll || (CheckType != NULL && CheckType != UObject::StaticClass()) || CheckOuter != NULL || InsideObject != NULL || InsidePackage != NULL || !ObjectName.IsEmpty();
-			const bool bOnlyListGCObjects				= FParse::Param( Cmd, TEXT("GCONLY") );
-			const bool bOnlyListRootObjects				= FParse::Param( Cmd, TEXT("ROOTONLY") );
-			const bool bShouldIncludeDefaultObjects	= FParse::Param( Cmd, TEXT("INCLUDEDEFAULTS") );
-			const bool bOnlyListDefaultObjects			= FParse::Param( Cmd, TEXT("DEFAULTSONLY") );
-			const bool bShowDetailedObjectInfo			= FParse::Param( Cmd, TEXT("NODETAILEDINFO") ) == false && bTrackDetailedObjectInfo;
+			const bool bTrackDetailedObjectInfo = bAll || (CheckType != NULL && CheckType != UObject::StaticClass()) || CheckOuter != NULL || InsideObject != NULL || InsidePackage != NULL || !ObjectName.IsEmpty();
+			const bool bOnlyListGCObjects = FParse::Param(Cmd, TEXT("GCONLY"));
+			const bool bOnlyListGCObjectsNoClusters = FParse::Param(Cmd, TEXT("GCNOCLUSTERS"));
+			const bool bOnlyListRootObjects = FParse::Param(Cmd, TEXT("ROOTONLY"));
+			const bool bShouldIncludeDefaultObjects = FParse::Param(Cmd, TEXT("INCLUDEDEFAULTS"));
+			const bool bOnlyListDefaultObjects = FParse::Param(Cmd, TEXT("DEFAULTSONLY"));
+			const bool bShowDetailedObjectInfo = FParse::Param(Cmd, TEXT("NODETAILEDINFO")) == false && bTrackDetailedObjectInfo;
 
 			for( FObjectIterator It; It; ++It )
 			{
@@ -5228,6 +5229,19 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				if ( bOnlyListGCObjects && GUObjectArray.IsDisregardForGC(*It) )
 				{
 					continue;
+				}
+
+				if (bOnlyListGCObjectsNoClusters)
+				{
+					if (GUObjectArray.IsDisregardForGC(*It))
+					{
+						continue;
+					}
+					FUObjectItem* ObjectItem = GUObjectArray.ObjectToObjectItem(*It);
+					if (ObjectItem->GetOwnerIndex())
+					{
+						continue;
+					}
 				}
 
 				if ( bOnlyListRootObjects && !It->IsRooted() )
@@ -9529,6 +9543,25 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	UPackage* WorldPackage = NULL;
 	UWorld*	NewWorld = NULL;
 	
+	// If this world is a PIE instance, we need to check if we are travelling to another PIE instance's world.
+	// If we are, we need to set the PIERemapPrefix so that we load a copy of that world, instead of loading the
+	// PIE world directly.
+	if (!WorldContext.PIEPrefix.IsEmpty())
+	{
+		for (const FWorldContext& WorldContextFromList : WorldList)
+		{
+			// We want to ignore our own PIE instance so that we don't unnecessarily set the PIERemapPrefix if we are not travelling to
+			// a server.
+			if (WorldContextFromList.World() != WorldContext.World())
+			{
+				if (!WorldContextFromList.PIEPrefix.IsEmpty() && URL.Map.Contains(WorldContextFromList.PIEPrefix))
+				{
+					WorldContext.PIERemapPrefix = WorldContextFromList.PIEPrefix;
+				}
+			}
+		}
+	}
+
 	// Is this a PIE networking thing?
 	if (!WorldContext.PIERemapPrefix.IsEmpty())
 	{

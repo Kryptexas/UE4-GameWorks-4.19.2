@@ -15,6 +15,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Engine/UserDefinedStruct.h"
 
+#define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
 //////////////////////////////////////////////////////////////////////////
 // FScriptBytecodeWriter
 
@@ -522,6 +523,7 @@ public:
 							// Create a new term for each property, and serialize it out
 							FBPTerminal NewTerm;
 							NewTerm.bIsLiteral = true;
+							NewTerm.Source = Term->Source;
 							Prop->ExportText_InContainer(ArrayIter, NewTerm.Name, StructData, StructData, NULL, PPF_None);
 							if (Prop->IsA(UTextProperty::StaticClass()))
 							{
@@ -556,6 +558,7 @@ public:
 				{
 					FBPTerminal NewTerm;
 					NewTerm.bIsLiteral = true;
+					NewTerm.Source = Term->Source;
 					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
 					InnerProp->ExportText_Direct(NewTerm.Name, RawElemData, RawElemData, NULL, PPF_None);
 					if (InnerProp->IsA(UTextProperty::StaticClass()))
@@ -626,7 +629,13 @@ public:
 			// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
 			else
 			{
-				ensureMsgf(false, TEXT("It is not possible to express this type as a literal value! (%s)"), *CoerceProperty->GetFullName());
+				if (ensure(CurrentCompilerContext))
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("PropertyType"), CoerceProperty->GetClass()->GetDisplayNameText());
+					Args.Add(TEXT("PropertyName"), CoerceProperty->GetDisplayNameText());
+					CurrentCompilerContext->MessageLog.Error(*FText::Format(LOCTEXT("InvalidProperty", "It is not possible to express this type ({PropertyType}) as a literal value for the property {PropertyName} on pin @@! If it is inside a struct, you can add a Make struct node to resolve this issue!"), Args).ToString(), Term->Source);
+				}
 			}
 		}
 		else
@@ -1625,3 +1634,5 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 	static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 #endif
 }
+
+#undef LOCTEXT_NAMESPACE

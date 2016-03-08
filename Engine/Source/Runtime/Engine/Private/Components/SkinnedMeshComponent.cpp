@@ -344,9 +344,6 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 
 		if(MeshObject)
 		{
-			// verifies vertex animations are valid
-			RefreshActiveVertexAnims();
-
 			// Identify current LOD
 			int32 UseLOD;
 			if(MasterPoseComponent.IsValid())

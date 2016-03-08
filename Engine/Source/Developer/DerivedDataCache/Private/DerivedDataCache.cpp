@@ -923,6 +923,9 @@ FDerivedDataCache& InternalSingleton()
  */
 class FDerivedDataCacheModule : public IDerivedDataCacheModule
 {
+	/** Cached reference to DDC singleton, helpful to control singleton's lifetime. */
+	FDerivedDataCache* DDC;
+
 public:
 	virtual FDerivedDataCacheInterface& GetDDC() override
 	{
@@ -935,14 +938,24 @@ public:
 		// Make sure the CookingStats module gets loaded on the correct thread (used by DDCStats on a background thread)
 		FModuleManager::Get().LoadModule(TEXT("CookingStats"));
 #endif // WITH_EDITOR
+
+		// make sure DDC gets created early, previously it might have happened in ShutdownModule() (for PrintLeaks()) when it was already too late
+		DDC = static_cast< FDerivedDataCache* >( &GetDDC() );
 	}
 
 	virtual void ShutdownModule() override
 	{
 		FDDCCleanup::Shutdown();
 
-		FDerivedDataCache& DDC = static_cast< FDerivedDataCache& >( GetDDC() );
-		DDC.PrintLeaks();
+		if (DDC)
+		{
+			DDC->PrintLeaks();
+		}
+	}
+
+	FDerivedDataCacheModule()
+		:	DDC(nullptr)
+	{
 	}
 };
 

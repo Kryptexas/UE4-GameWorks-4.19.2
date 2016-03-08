@@ -468,7 +468,9 @@ public class DeploymentContext //: ProjectParams
                     bool OtherPlatform = false;
                     foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
                     {
-                        if (Plat != StageTargetPlatform.PlatformType && Plat != UnrealTargetPlatform.Unknown)
+						bool bMatchesIniPlatform = (AllFile.EndsWith(".ini") && Plat == StageTargetPlatform.IniPlatformType); // filter ini files for the ini file platform
+						bool bMatchesTargetPlatform = (Plat == StageTargetPlatform.PlatformType || Plat == UnrealTargetPlatform.Unknown); // filter platform files for the target platform
+						if (!bMatchesIniPlatform && !bMatchesTargetPlatform)
                         {
                             var Search = FileToCopy;
                             if (Search.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))

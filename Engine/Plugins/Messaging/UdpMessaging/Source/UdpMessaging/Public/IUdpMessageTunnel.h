@@ -4,7 +4,7 @@
 
 
 // forward declarations
-class FIPv4Endpoint;
+struct FIPv4Endpoint;
 class IUdpMessageTunnelConnection;
 
 

@@ -49,6 +49,7 @@ FMacApplication::FMacApplication()
 ,	bSystemModalMode(false)
 ,	ModifierKeysFlags(0)
 ,	CurrentModifierFlags(0)
+,	bIsRightClickEmulationEnabled(true)
 ,	bEmulatingRightClick(false)
 ,	bIgnoreMouseMoveDelta(false)
 ,	bIsWorkspaceSessionActive(true)
@@ -359,7 +360,7 @@ void FMacApplication::DeferEvent(NSObject* Object)
 			case NSOtherMouseUp:
 				DeferredEvent.ButtonNumber = [Event buttonNumber];
 				DeferredEvent.ClickCount = [Event clickCount];
-				if (DeferredEvent.Type == NSLeftMouseDown && (DeferredEvent.ModifierFlags & NSControlKeyMask))
+				if (bIsRightClickEmulationEnabled && DeferredEvent.Type == NSLeftMouseDown && (DeferredEvent.ModifierFlags & NSControlKeyMask))
 				{
 					bEmulatingRightClick = true;
 					DeferredEvent.Type = NSRightMouseDown;

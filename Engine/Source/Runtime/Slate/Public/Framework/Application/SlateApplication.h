@@ -449,6 +449,11 @@ public:
 	void SetJoystickCaptorToGameViewport();
 
 	/**
+	 * Activates the Game Viewport if it is properly childed under a window
+	 */
+	void ActivateGameViewport();
+
+	/**
 	 * Sets specified user focus to the SWidget passed in.
 	 *
 	 * @param UserIndex Index of the user to change focus for
@@ -1058,6 +1063,11 @@ public:
 
 	//~ Begin FSlateApplicationBase Interface
 
+	virtual bool IsActive() const override
+	{
+		return bAppIsActive;
+	}
+
 	virtual TSharedRef<SWindow> AddWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately = true ) override;
 
 	virtual void ArrangeWindowToFrontVirtual( TArray<TSharedRef<SWindow>>& Windows, const TSharedRef<SWindow>& WindowToBringToFront ) override
@@ -1123,6 +1133,7 @@ public:
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EFocusCause InCause ) override;
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
+	virtual void SetAllUserFocusAllowingDescendantFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
 public:
 

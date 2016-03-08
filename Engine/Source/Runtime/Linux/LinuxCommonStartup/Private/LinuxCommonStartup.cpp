@@ -13,6 +13,10 @@ static FString GSavedCommandLine;
 extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
 
+#if WITH_ENGINE
+// see comment in LaunchLinux.cpp for details why it is done this way
+extern void LaunchLinux_FEngineLoop_AppExit();
+#endif // WITH_ENGINE
 // FIXME: handle expose it someplace else?
 extern int32 DLLIMPORT ReportCrash(const FLinuxCrashContext& Context);
 extern void DLLIMPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext& Context);
@@ -227,6 +231,11 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 			GIsGuarded = 0;
 		}
 	}
+
+	// Final shut down.
+#if WITH_ENGINE
+	LaunchLinux_FEngineLoop_AppExit();
+#endif // WITH_ENGINE
 
 	if (ErrorLevel)
 	{

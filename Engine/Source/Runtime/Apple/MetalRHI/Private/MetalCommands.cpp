@@ -1061,12 +1061,12 @@ uint32 FMetalDynamicRHI::RHIGetGPUFrameCycles()
 
 void FMetalRHICommandContext::RHIAutomaticCacheFlushAfterComputeShader(bool bEnable)
 {
-	NOT_SUPPORTED("RHIAutomaticCacheFlushAfterComputeShader");
+	// Nothing required here
 }
 
 void FMetalRHICommandContext::RHIFlushComputeShaderCache()
 {
-	NOT_SUPPORTED("RHIFlushComputeShaderCache");
+	// Nothing required here
 }
 
 void FMetalDynamicRHI::RHIExecuteCommandList(FRHICommandList* RHICmdList)

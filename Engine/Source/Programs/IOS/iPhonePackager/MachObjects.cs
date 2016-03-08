@@ -1376,120 +1376,360 @@ namespace MachObjectHandling
 
 	public class RequirementBlob : OpaqueBlob
 	{
+		const UInt32 kOpUnknown = 1000;
+		const UInt32 kOpIdent = 2;
+		const UInt32 kOpAnchorHash = 4;
+		const UInt32 kOpAnd = 6;
+		const UInt32 kOpCertField = 11;
+		const UInt32 kOpCertGeneric = 14;
+		const UInt32 kOpGenericAnchor = 15;
+
+		public class ExpressionOp
+		{
+			public UInt32 OpVal = kOpUnknown;
+
+			public ExpressionOp() { }
+			public ExpressionOp(UInt32 InOpVal)
+			{
+				OpVal = InOpVal;
+			}
+
+			public virtual void ReadData(ReadingContext SR)
+			{ }
+
+			public virtual void WriteData(WritingContext SW)
+			{
+				SW.Write(OpVal);
+			}
+
+			public virtual void UpdateCertificateAndBundle(string CertificateName, string BundleIdentifier)
+			{ }
+
+			static public ExpressionOp ReadOperand(ReadingContext SR)
+			{
+				UInt32 OpVal = SR.ReadUInt32();
+				ExpressionOp Op = null;
+				switch (OpVal)
+				{
+					case kOpAnd:
+						Op = new AndOp();
+						break;
+
+					case kOpIdent:
+						Op = new IdentOp();
+						break;
+
+					case kOpGenericAnchor:
+						Op = new ExpressionOp(OpVal);
+						break;
+
+					case kOpCertField:
+						Op = new CertFieldOp();
+						break;
+
+					case kOpCertGeneric:
+						Op = new CertGenericOp();
+						break;
+
+					case kOpAnchorHash:
+						Op = new AnchorHashOp();
+						break;
+
+					default:
+						throw new Exception("Unknown Expression Operand: " + OpVal.ToString());
+				}
+
+				Op.ReadData(SR);
+				return Op;
+			}
+		};
+
+		class AndOp : ExpressionOp
+		{
+			public ExpressionOp Op1;
+			public ExpressionOp Op2;
+
+			public AndOp()
+			{
+				OpVal = kOpAnd;
+			}
+
+			public override void ReadData(ReadingContext SR)
+			{
+				Op1 = ExpressionOp.ReadOperand(SR);
+				Op2 = ExpressionOp.ReadOperand(SR);
+			}
+
+			public override void WriteData(WritingContext SW)
+			{
+				base.WriteData(SW);
+				Op1.WriteData(SW);
+				Op2.WriteData(SW);
+			}
+
+			public override void UpdateCertificateAndBundle(string CertificateName, string BundleIdentifier)
+			{
+				Op1.UpdateCertificateAndBundle(CertificateName, BundleIdentifier);
+				Op2.UpdateCertificateAndBundle(CertificateName, BundleIdentifier);
+			}
+		};
+
+		class IdentOp : ExpressionOp
+		{
+			public string BundleIdentifier;
+
+			public IdentOp()
+			{
+				OpVal = kOpIdent;
+			}
+
+			public override void ReadData(ReadingContext SR)
+			{
+				UInt32 Count = SR.ReadUInt32();
+				BundleIdentifier = SR.ReadFixedASCII((int)Count);
+				Count = 4 - Count % 4;
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
+			}
+
+			public override void WriteData(WritingContext SW)
+			{
+				base.WriteData(SW);
+				SW.Write(BundleIdentifier.Length);								// bundle identifier length
+				SW.WriteFixedASCII(BundleIdentifier, BundleIdentifier.Length);	// bundle identifier string
+				int Count = 4 - BundleIdentifier.Length % 4;					// may need to pad to alignment of 4 bytes
+				if (Count > 0 && Count < 4)
+					SW.WriteZeros(Count);
+			}
+
+			public override void UpdateCertificateAndBundle(string InCertificateName, string InBundleIdentifier)
+			{
+				BundleIdentifier = InBundleIdentifier;
+			}
+		};
+
+		class CertFieldOp : ExpressionOp
+		{
+			public int CertificateIndex = 0;
+			public string FieldName = "subject.CN";
+			struct MatchSuffix
+			{
+				public UInt32 MatchOp;
+				public string CertificateName;
+			};
+			MatchSuffix MatchOp;
+
+			public CertFieldOp()
+			{
+				OpVal = kOpCertField;
+			}
+
+			public override void ReadData(ReadingContext SR)
+			{
+				CertificateIndex = (int)SR.ReadUInt32();					// index in the mobile provision certificate list (always 0 for now)
+				UInt32 Count = SR.ReadUInt32();
+				FieldName = SR.ReadFixedASCII((int)Count);
+				Count = 4 - Count % 4;
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
+				MatchOp = new MatchSuffix();
+				MatchOp.MatchOp = SR.ReadUInt32();											// must equal
+				Count = SR.ReadUInt32();
+				MatchOp.CertificateName = SR.ReadFixedASCII((int)Count);
+				Count = 4 - Count % 4;
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
+			}
+
+			public override void WriteData(WritingContext SW)
+			{
+				base.WriteData(SW);
+				SW.Write(CertificateIndex);													// index in the mobile provision certificate list (always 0 for now)
+				SW.Write(FieldName.Length);													// field name length
+				SW.WriteFixedASCII(FieldName, FieldName.Length);							// field name to match
+				int Count = 4 - FieldName.Length % 4;										// may need to pad to alignment of 4 bytes
+				if (Count > 0 && Count < 4)
+					SW.WriteZeros(Count);
+				SW.Write(MatchOp.MatchOp);													// must equal
+				SW.Write(MatchOp.CertificateName.Length);									// length of certficate name
+				SW.WriteFixedASCII(MatchOp.CertificateName, MatchOp.CertificateName.Length);// certificate name to match
+				Count = 4 - MatchOp.CertificateName.Length % 4;								// may need to pad to alignment of 4 bytes
+				if (Count > 0 && Count < 4)
+					SW.WriteZeros(Count);
+			}
+
+			public override void UpdateCertificateAndBundle(string InCertificateName, string InBundleIdentifier)
+			{
+				MatchOp.CertificateName = InCertificateName;
+			}
+		};
+
+		class CertGenericOp : ExpressionOp
+		{
+			public int OIDIndex = 1;
+			byte[] OID = new byte[] { 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x63, 0x64, 0x06, 0x02, 0x01 };
+			struct MatchSuffix
+			{
+				public UInt32 MatchOp;
+			};
+			MatchSuffix MatchOp;
+
+			public CertGenericOp()
+			{
+				OpVal = kOpCertGeneric;
+			}
+
+			public override void ReadData(ReadingContext SR)
+			{
+				OIDIndex = (int)SR.ReadUInt32();							// index of the OID value (always 1)
+				UInt32 Count = SR.ReadUInt32();
+				OID = SR.ReadBytes((int)Count);
+				Count = 4 - Count % 4;
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
+
+				MatchOp.MatchOp = SR.ReadUInt32();							// OID must exist
+			}
+
+			public override void WriteData(WritingContext SW)
+			{
+				base.WriteData(SW);
+				SW.Write(OIDIndex);											// index of the OID value (always 1)
+				SW.Write(OID.Length);										// length of OID
+				SW.Write(OID);						// OID to match
+				int Count = 4 - OID.Length % 4;										// may need to pad to alignment of 4 bytes
+				if (Count > 0 && Count < 4)
+					SW.WriteZeros(Count);
+
+				// may need to pad to alignment of 4 bytes
+				SW.Write(MatchOp.MatchOp);										// OID must exist
+			}
+		};
+
+		class AnchorHashOp : ExpressionOp
+		{
+			byte[] Hash = new byte[] { 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x63, 0x64, 0x06, 0x02, 0x01 };
+			int CertificateIndex = -1;
+			public AnchorHashOp()
+			{
+				OpVal = kOpAnchorHash;
+			}
+
+			public override void ReadData(ReadingContext SR)
+			{
+				CertificateIndex = (int)SR.ReadUInt32();
+				UInt32 Count = SR.ReadUInt32();
+				Hash = SR.ReadBytes((int)Count);
+				Count = 4 - Count % 4;
+				if (Count > 0 && Count < 4)
+					SR.ReadBytes(Count);
+			}
+
+			public override void WriteData(WritingContext SW)
+			{
+				base.WriteData(SW);
+				SW.Write(CertificateIndex);											// index of the OID value (always 1)
+				SW.Write(Hash.Length);										// length of OID
+				SW.Write(Hash);						// OID to match
+				int Count = 4 -  Hash.Length % 4;										// may need to pad to alignment of 4 bytes
+				if (Count > 0 && Count < 4)
+					SW.WriteZeros(Count);
+			}
+		};
+
 		const int kReqExpression = 1;
 
-		const int kOpIdent = 2;
-		const int kOpAnd = 6;
-		const int kOpCertField = 11;
-		const int kOpCertGeneric = 14;
-		const int kOpGenericAnchor = 15;
-	
 		const int kMatchExists = 0;
 		const int kMatchEqual = 1;
 
 		string BundleIdentifier = "";
 		string CertificateName = "";
-		int CertificateIndex = 0;
-		byte[] OID = new byte[] { 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x63, 0x64, 0x06, 0x02, 0x01 };
-		int OIDIndex = 1;
 
-		const string FieldName = "subject.CN";
+		public ExpressionOp Expression = null;
 
 		public RequirementBlob()
 		{
 			MyMagic = CSMAGIC_REQUIREMENT;
 		}
 
-		public static RequirementBlob CreateFromCertificate(X509Certificate2 SigningCert, string Bundle)
+		public static RequirementBlob CreateFromCertificate(X509Certificate2 SigningCert, string Bundle, ExpressionOp OldReq = null)
 		{
 			RequirementBlob Blob = new RequirementBlob();
-			Blob.InitializeFromCert(SigningCert, Bundle);
+			Blob.InitializeFromCert(SigningCert, Bundle, OldReq);
 			return Blob;
 		}
 
-		protected void InitializeFromCert(X509Certificate2 SigningCert, string Bundle)
+		protected void InitializeFromCert(X509Certificate2 SigningCert, string Bundle, ExpressionOp OldReq = null)
 		{
 			BundleIdentifier = Bundle;
-			CertificateName = SigningCert.FriendlyName;
+			int StartIndex = SigningCert.SubjectName.Name.IndexOf("CN=");
+			int EndIndex = -1;
+			CertificateName = "";
+			if (StartIndex > -1)
+			{
+				// find the next attribute
+				StartIndex += 3;
+				char SearchChar = ',';
+				if (SigningCert.SubjectName.Name[StartIndex] == '\"')
+				{
+					// quotes are around the string because of special characters
+					StartIndex++;
+					SearchChar = '\"';
+				}
+				EndIndex = SigningCert.SubjectName.Name.IndexOf(SearchChar, StartIndex);
+				if (EndIndex == -1)
+				{
+					// must be at the end, so go to the end
+					EndIndex = SigningCert.SubjectName.Name.Length;
+					if (SearchChar == '\"')
+					{
+						EndIndex--;
+					}
+				}
+				// get the string
+				CertificateName = SigningCert.SubjectName.Name.Substring(StartIndex, EndIndex - StartIndex);
+			}
+			if (string.IsNullOrEmpty(CertificateName))
+			{
+				CertificateName = SigningCert.FriendlyName;
+			}
+
+			if (OldReq != null)
+			{
+				Expression = OldReq;
+			}
+			else
+			{
+				// create expression
+				Expression = new AndOp();
+				(Expression as AndOp).Op1 = new IdentOp();
+				((Expression as AndOp).Op1 as IdentOp).BundleIdentifier = BundleIdentifier;
+				(Expression as AndOp).Op2 = new AndOp();
+				((Expression as AndOp).Op2 as AndOp).Op1 = new ExpressionOp(kOpGenericAnchor);
+				((Expression as AndOp).Op2 as AndOp).Op2 = new AndOp();
+				(((Expression as AndOp).Op2 as AndOp).Op2 as AndOp).Op1 = new CertFieldOp();
+				(((Expression as AndOp).Op2 as AndOp).Op2 as AndOp).Op2 = new CertGenericOp();
+			}
 		}
 
 		protected override void PackageData(WritingContext SW)
 		{
-			SW.Write(kReqExpression);									// it's a requirement expression
-			SW.Write(kOpAnd);											// AND operation
-			SW.Write(kOpIdent);											// requires bundle identifier
-			SW.Write(BundleIdentifier.Length);							// bundle identifier length
-			SW.Write(Utilities.CreateASCIIZ(BundleIdentifier));			// bundle identifier string
-			int Count = (BundleIdentifier.Length+1) % 4;					// may need to pad to alignment of 4 bytes
-			if (Count > 0 && Count < 4)
-				SW.WriteZeros(4 - Count);
-
-			SW.Write(kOpAnd);											// AND operation
-			SW.Write(kOpGenericAnchor);									// requires Apple certificate somewhere in the signing data
-			SW.Write(kOpAnd);											// AND operation
-			SW.Write(kOpCertField);										// requires a signing certificate where the subject.cn matches the certificate name
-			SW.Write(CertificateIndex);									// index in the mobile provision certificate list (always 0 for now)
-			SW.Write(FieldName.Length);									// field name length
-			SW.Write(Utilities.CreateASCIIZ(FieldName));				// field name to match
-			Count = (FieldName.Length+1) % 4;								// may need to pad to alignment of 4 bytes
-			if (Count > 0 && Count < 4)
-				SW.WriteZeros(4 - Count);
-			
-			// may need to pad to alignment of 4 bytes
-			SW.Write(kMatchEqual);										// must equal
-			SW.Write(CertificateName.Length);							// length of certficate name
-			SW.Write(Utilities.CreateASCIIZ(CertificateName));			// certificate name to match
-			Count = (CertificateName.Length+1) % 4;							// may need to pad to alignment of 4 bytes
-			if (Count > 0 && Count < 4)
-				SW.WriteZeros(4 - Count);
-			
-			// may need to pad to alignment of 4 bytes
-			SW.Write(kOpCertGeneric);
-			SW.Write(OIDIndex);											// index of the OID value (always 1)
-			SW.Write(OID.Length);										// length of OID
-			SW.Write(OID);						// OID to match
-			Count = OID.Length % 4;										// may need to pad to alignment of 4 bytes
-			if (Count > 0 && Count < 4)
-				SW.WriteZeros(4 - Count);
-
-			// may need to pad to alignment of 4 bytes
-			SW.Write(kMatchExists);										// OID must exist
+			// update all of the read expressions with the certificate name and bundle identifier
+			Expression.UpdateCertificateAndBundle(CertificateName, BundleIdentifier);
+			SW.Write(kReqExpression);
+			Expression.WriteData(SW);
 		}
 
 		protected override void UnpackageData(ReadingContext SR, UInt32 Length)
 		{
-			SR.ReadUInt32();
-			SR.ReadUInt32();
-			SR.ReadUInt32();
-			UInt32 Count = SR.ReadUInt32();
-			BundleIdentifier = SR.ReadFixedASCII((int)Count);
-			Count = 4 - Count % 4;
-			SR.ReadBytes(Count);
-
-			SR.ReadUInt32();											// AND operation
-			SR.ReadUInt32();											// requires Apple certificate somewhere in the signing data
-			SR.ReadUInt32();											// AND operation
-			SR.ReadUInt32();											// requires a signing certificate where the subject.cn matches the certificate name
-			CertificateIndex = (int)SR.ReadUInt32();					// index in the mobile provision certificate list (always 0 for now)
-			Count = SR.ReadUInt32();
-			SR.ReadFixedASCII((int)Count);
-			Count = 4 - Count % 4;
-			SR.ReadBytes(Count);
-
-			SR.ReadUInt32();											// must equal
-			Count = SR.ReadUInt32();
-			CertificateName = SR.ReadFixedASCII((int)Count);
-			Count = 4 - Count % 4;
-			SR.ReadBytes(Count);
-			
-			SR.ReadUInt32();
-			OIDIndex = (int)SR.ReadUInt32();							// index of the OID value (always 1)
-			Count = SR.ReadUInt32();
-			OID = SR.ReadBytes((int)Count);
-			Count = 4 - Count % 4;
-			SR.ReadBytes(Count);
-
-			SR.ReadUInt32();											// OID must exist
+			if (Length > 0)
+			{
+				UInt32 ExpressionVal = SR.ReadUInt32();
+				if (ExpressionVal == kReqExpression)
+				{
+					Expression = ExpressionOp.ReadOperand(SR);
+				}
+			}
 		}
 	}
 
@@ -1861,7 +2101,9 @@ namespace MachObjectHandling
 
 	public class CodeDirectoryBlob : AbstractBlob
 	{
-		UInt32 Version;
+		public const UInt32 cVersion2 = 0x20200;
+
+		public UInt32 Version;
 		UInt32 Flags;
 
 		//UInt32 HashOffset;
@@ -1922,17 +2164,28 @@ namespace MachObjectHandling
 			LogPageSize = SR.ReadByte();
 			Spare2 = SR.ReadUInt32();
 			ScatterCount = SR.ReadUInt32();
-			UInt32 TeamStringOffset = SR.ReadUInt32();
 
-			// Read the identifier string
-			SR.PushPositionAndJump(StartOfBlob + IdentifierStringOffset);
-			Identifier = SR.ReadASCIIZ();
-			SR.PopPosition();
+			if (Version == cVersion2)
+			{
+				UInt32 TeamStringOffset = SR.ReadUInt32();
 
-			// Read the team string
-			SR.PushPositionAndJump(StartOfBlob + TeamStringOffset);
-			Team = SR.ReadASCIIZ();
-			SR.PopPosition();
+				// Read the identifier string
+				SR.PushPositionAndJump(StartOfBlob + IdentifierStringOffset);
+				Identifier = SR.ReadASCIIZ();
+				SR.PopPosition();
+
+				// Read the team string
+				SR.PushPositionAndJump(StartOfBlob + TeamStringOffset);
+				Team = SR.ReadASCIIZ();
+				SR.PopPosition();
+			}
+			else
+			{
+				// Read the identifier string
+				SR.PushPositionAndJump(StartOfBlob + IdentifierStringOffset);
+				Identifier = SR.ReadASCIIZ();
+				SR.PopPosition();
+			}
 
 			// Read the hashes
 			long TotalNumHashes = SpecialSlotCount + CodeSlotCount;
@@ -1985,17 +2238,27 @@ namespace MachObjectHandling
 			SW.Write(Spare2);
 			SW.Write(ScatterCount);
 
-			OffsetFieldU32or64 TeamStringOffset = SW.WriteDeferredOffsetFrom(StartPos, Bits.Num._32);
+			if (Version == cVersion2)
+			{
+				OffsetFieldU32or64 TeamStringOffset = SW.WriteDeferredOffsetFrom(StartPos, Bits.Num._32);
 
-			// Write the identifier
-			SW.CommitDeferredField(IdentifierStringOffset);
-			byte[] IdentifierOutput = Utilities.CreateASCIIZ(Identifier);
-			SW.Write(IdentifierOutput);
+				// Write the identifier
+				SW.CommitDeferredField(IdentifierStringOffset);
+				byte[] IdentifierOutput = Utilities.CreateASCIIZ(Identifier);
+				SW.Write(IdentifierOutput);
 
-			// Write the team identifier
-			SW.CommitDeferredField(TeamStringOffset);
-			byte[] TeamOutput = Utilities.CreateASCIIZ(Team);
-			SW.Write(TeamOutput);
+				// Write the team identifier
+				SW.CommitDeferredField(TeamStringOffset);
+				byte[] TeamOutput = Utilities.CreateASCIIZ(Team);
+				SW.Write(TeamOutput);
+			}
+			else
+			{
+				// Write the identifier
+				SW.CommitDeferredField(IdentifierStringOffset);
+				byte[] IdentifierOutput = Utilities.CreateASCIIZ(Identifier);
+				SW.Write(IdentifierOutput);
+			}
 
 			// Write the hashes
 			SW.CommitDeferredField(HashOffset);
@@ -2040,7 +2303,7 @@ namespace MachObjectHandling
 			}
 		}
 
-		public static CodeDirectoryBlob Create(string ApplicationID, string TeamID, int SignedFileLength)
+		public static CodeDirectoryBlob Create(string ApplicationID, string TeamID, int SignedFileLength, uint Version = cVersion2)
 		{
 			CodeDirectoryBlob Blob = new CodeDirectoryBlob();
 			Blob.Allocate(ApplicationID, TeamID, SignedFileLength);
@@ -2048,12 +2311,12 @@ namespace MachObjectHandling
 			return Blob;
 		}
 
-		public void Allocate(string ApplicationID, string TeamID, int SignedFileLength)
+		public void Allocate(string ApplicationID, string TeamID, int SignedFileLength, uint InVersion = cVersion2)
 		{
 			Identifier = ApplicationID;
 			Team = TeamID;
 
-			Version = 0x20200;
+			Version = InVersion;
 			Flags = 0;
 			Spare1 = 0;
 			Spare2 = 0;

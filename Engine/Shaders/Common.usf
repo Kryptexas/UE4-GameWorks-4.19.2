@@ -12,6 +12,10 @@
 	#include "PS4/PS4Common.usf"
 #endif
 
+#if XBOXONE_PROFILE
+	#define STENCIL_COMPONENT_SWIZZLE .x
+#endif
+
 #if COMPILER_METAL
 	// Helps with iteration when changing Metal shader code generation backend.
 	#include "MetalCommon.usf"
@@ -1101,6 +1105,11 @@ float2 SvPositionToViewportUV(float4 SvPosition)
 	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
 }
 
+float2 BufferUVToViewportUV(float2 BufferUV)
+{
+	float2 PixelPos = BufferUV.xy * Frame.BufferSizeAndInvSize.xy - Frame.ViewRectMin.xy;
+	return PixelPos.xy * Frame.ViewSizeAndInvSize.zw;
+}
 // ----------------------------
 
 /** 

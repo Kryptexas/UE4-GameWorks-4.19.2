@@ -434,7 +434,7 @@ void InstallSignalHandlers()
 		[ImageString appendString:@"-IPhone6"];
 		if (!self.bDeviceInPortraitMode)
 		{
-			orient = UIImageOrientationRight;
+			[ImageString appendString : @"-Landscape"];
 		}
 	}
 	else if (Device == FPlatformMisc::IOS_IPhone6Plus)

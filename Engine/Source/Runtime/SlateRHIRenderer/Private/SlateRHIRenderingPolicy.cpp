@@ -33,17 +33,6 @@ FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy(TSharedRef<FSlateFontServices
 	SetDefaultBlendMode(FBlendStateInitializerRHI::FRenderTarget(BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha, CW_RGBA));
 }
 
-FSlateRHIRenderingPolicy::~FSlateRHIRenderingPolicy()
-{
-	// Delete released resources.  Note this MUST NOT be called before the rendering resources have been released
-	ReleaseResources();
-
-	if ( IsInGameThread() )
-	{
-		FlushRenderingCommands();
-	}
-}
-
 void FSlateRHIRenderingPolicy::InitResources()
 {
 	int32 NumVertices = 100;
@@ -134,9 +123,9 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, Buffers->VertexBuffer, Buffers->IndexBuffer);
 }
 
-void FSlateRHIRenderingPolicy::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
+void FSlateRHIRenderingPolicy::ReleaseCachingResourcesFor(FRHICommandListImmediate& RHICmdList, const ILayoutCache* Cacher)
 {
-	ResourceManager->ReleaseCachingResourcesFor(Cacher);
+	ResourceManager->ReleaseCachingResourcesFor(RHICmdList, Cacher);
 }
 
 void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData, TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer, FSlateElementIndexBuffer& IndexBuffer)

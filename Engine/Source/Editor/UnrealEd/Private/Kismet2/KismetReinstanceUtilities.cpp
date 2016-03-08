@@ -1703,11 +1703,11 @@ FRecreateUberGraphFrameScope::FRecreateUberGraphFrameScope(UClass* InClass, bool
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RecreateUberGraphPersistentFrame);
 
 		const bool bIncludeDerivedClasses = true;
-		GetObjectsOfClass(RecompiledClass, Objects, bIncludeDerivedClasses);
+		GetObjectsOfClass(RecompiledClass, Objects, bIncludeDerivedClasses, RF_NoFlags);
 
 		for (auto Obj : Objects)
 		{
-			RecompiledClass->DestroyPersistentUberGraphFrame(Obj, true);
+			RecompiledClass->DestroyPersistentUberGraphFrame(Obj);
 		}
 	}
 }
@@ -1719,7 +1719,7 @@ FRecreateUberGraphFrameScope::~FRecreateUberGraphFrameScope()
 	{
 		if (IsValid(Obj))
 		{
-			RecompiledClass->CreatePersistentUberGraphFrame(Obj, false, true);
+			RecompiledClass->CreatePersistentUberGraphFrame(Obj, false);
 		}
 	}
 }

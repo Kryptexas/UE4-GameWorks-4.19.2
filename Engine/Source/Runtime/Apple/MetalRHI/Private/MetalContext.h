@@ -216,12 +216,18 @@ public:
 	/** Returns the number of concurrent contexts encoding commands, including the device context. */
 	uint32 GetNumActiveContexts(void) const;
 	
-private:
-	FMetalDeviceContext(id<MTLDevice> MetalDevice, FMetalCommandQueue* Queue);
+	/** Get the index of the bound Metal device in the global list of rendering devices. */
+	uint32 GetDeviceIndex(void) const;
 	
 private:
-	/** The chose Metal device */
+	FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 DeviceIndex, FMetalCommandQueue* Queue);
+	
+private:
+	/** The chosen Metal device */
 	id<MTLDevice> Device;
+	
+	/** The index into the GPU device list for the selected Metal device */
+	uint32 DeviceIndex;
 	
 	/** Mutex for access to the unsafe buffer pool */
 	FCriticalSection PoolMutex;

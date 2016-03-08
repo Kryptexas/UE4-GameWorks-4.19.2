@@ -977,7 +977,7 @@ void SAssetView::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 			AssetAwaitingRename->bRenameWhenScrolledIntoview = false;
 			AwaitingRename = nullptr;
 		}
-		else if (FSlateApplication::Get().HasFocusedDescendants(OwnerWindow.ToSharedRef()))
+		else if (OwnerWindow->HasAnyUserFocusOrFocusedDescendants())
 		{
 			AssetAwaitingRename->RenamedRequestEvent.ExecuteIfBound();
 			AssetAwaitingRename->bRenameWhenScrolledIntoview = false;

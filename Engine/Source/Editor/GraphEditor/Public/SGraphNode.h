@@ -330,6 +330,9 @@ protected:
 	/* Populate a meta data tag with information about this graph node */
 	virtual void PopulateMetaTag(class FGraphNodeMetaData* TagMeta) const;
 
+	/** Returns TRUE if the input pin should be hidden from view */
+	bool ShouldPinBeHidden(const UEdGraphPin* InPin) const;
+
 protected:
 	/** Input pin widgets on this node */
 	TArray< TSharedRef<SGraphPin> > InputPins;

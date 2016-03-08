@@ -880,8 +880,14 @@ void UObjectBaseInit()
 	}
 	else
 	{
+#if IS_PROGRAM
+		// Maximum number of UObjects for programs can be low
+		MaxUObjects = 100000; // Default to 100K for programs
+		GConfig->GetInt(TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsInProgram"), MaxUObjects, GEngineIni);
+#else
 		// Maximum number of UObjects in the editor
 		GConfig->GetInt(TEXT("/Script/Engine.GarbageCollectionSettings"), TEXT("gc.MaxObjectsInEditor"), MaxUObjects, GEngineIni);
+#endif
 	}
 
 	// Log what we're doing to track down what really happens as log in LaunchEngineLoop doesn't report those settings in pristine form.

@@ -524,6 +524,21 @@ public:
 	virtual void OnViewportClosed()
 	{
 	}
+
+	/**
+	 * Called when the viewports top level window is being Activated
+	 */
+	virtual FReply OnViewportActivated(const FWindowActivateEvent& InActivateEvent)
+	{
+		return FReply::Unhandled();
+	}
+
+	/**
+	 * Called when the viewports top level window is being Deactivated
+	 */
+	virtual void OnViewportDeactivated(const FWindowActivateEvent& InActivateEvent)
+	{
+	}
 };
 
 /**

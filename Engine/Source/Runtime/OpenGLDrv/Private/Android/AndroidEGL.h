@@ -65,7 +65,7 @@ public:
 	void UnBind();
 	bool SwapBuffers();
 	void Terminate();
-	void InitSurface(bool bUseSmallSurface);
+	void InitSurface(bool bUseSmallSurface, bool bCreateWndSurface);
 
 	void GetDimensions(uint32& OutWidth, uint32& OutHeight);
 	

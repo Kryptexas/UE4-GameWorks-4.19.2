@@ -432,6 +432,8 @@ private:
 
 	bool bIsMouseAttached;
 
+	bool bForceActivateByMouse;
+
 	TArray<FDeferredWindowsMessage> DeferredMessages;
 
 	TArray<FDeferredWindowsDragDropOperation> DeferredDragDropOperations;

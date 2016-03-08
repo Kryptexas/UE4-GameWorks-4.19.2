@@ -308,16 +308,14 @@ public:
 	void RemoveAnnotation(const UObjectBase *Object)
 	{
 		TAnnotation Annotation = this->GetAndRemoveAnnotation(Object);
-		if (Annotation.IsDefault())
+		for (auto It = InverseAnnotationMap.CreateIterator(); It; ++It)
 		{
-			// should not exist in the mapping
-			checkSlow(!InverseAnnotationMap.Find(Annotation));
+			if (It->Value == Object)
+			{
+				It.RemoveCurrent();
+			}
 		}
-		else
-		{
-			int32 NumRemoved = InverseAnnotationMap.Remove(Annotation);
-			checkSlow(NumRemoved == 1);
-		}
+		checkSlow(!InverseAnnotationMap.Find(Annotation));
 	}
 	/**
 	 * Removes all annotation from the annotation list. 

@@ -805,37 +805,31 @@ void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Normal, int32 NumNo
 }
 
 void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
-{	
-	int32 Value = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
-
+{
 	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
-
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
+	int32 CVarEnabled = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
 
+	bool bCanBeSeparate = CVarEnabled
+		&& FeatureLevel >= ERHIFeatureLevel::SM4
+		&& (ViewInfo.Family->EngineShowFlags.PostProcessing || ViewInfo.Family->EngineShowFlags.ShaderComplexity)
+		&& ViewInfo.Family->EngineShowFlags.SeparateTranslucency;
+
+	// add to list of sepaate translucency prims 
 	if (bUseSeparateTranslucency
-		&& ViewInfo.Family->EngineShowFlags.SeparateTranslucency
-		&& ViewInfo.Family->EngineShowFlags.PostProcessing
-		&& FeatureLevel >= ERHIFeatureLevel::SM4)
+		&& bCanBeSeparate
+		)
 	{
-		// add to list of translucent prims that use scene color
-		new (SeparatePlace) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
+		new (SeparatePlace)FSortedPrim(PrimitiveSceneInfo, SortKey, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
 		SeparateNum++;
 	}
 
-	if (bUseNormalTranslucency 
-
-		// Force separate translucency to be rendered normally if separate translucency is disabled via cvar
-		|| Value == 0
-
-		// Force separate translucency to be rendered normally if the feature level does not support separate translucency
-		|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4)
-
-		// Force separate translucency to be rendered normally if separate translucency is disabled in the view
-		|| (!ViewInfo.Family->EngineShowFlags.SeparateTranslucency))
-
+	// add to list of translucent prims
+	else if (bUseNormalTranslucency
+		|| !bCanBeSeparate
+		)
 	{
-		// add to list of translucent prims
-		new (NormalPlace) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
+		new (NormalPlace)FSortedPrim(PrimitiveSceneInfo, SortKey, PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
 		NormalNum++;
 	}
 }
@@ -977,7 +971,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 				// we need to allocate this now so it ends up in the snapshot
 				static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SeparateTranslucencyScreenPercentage"));
 				float Scale = CVar->GetValueOnRenderThread() / 100.0f;
-				FIntPoint ScaledSize(SceneContext.GetBufferSizeXY().X * Scale, SceneContext.GetBufferSizeXY().Y * (Scale / 100.0f) );
+				FIntPoint ScaledSize(SceneContext.GetBufferSizeXY().X * Scale, SceneContext.GetBufferSizeXY().Y * Scale );
 				SceneContext.GetSeparateTranslucency(RHICmdList, ScaledSize);
 
 				if (Scale<1.0f)

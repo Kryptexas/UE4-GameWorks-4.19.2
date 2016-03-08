@@ -537,6 +537,9 @@ protected:
 	
 	/** remaining time of avoidance velocity lock */
 	float AvoidanceLockTimer;
+
+	/** Handle for delegate registered on mesh component */
+	FDelegateHandle MeshOnPhysicsStateChangeHandle;
 	
 	/** BEGIN IRVOAvoidanceInterface */
 	virtual void SetRVOAvoidanceUID(int32 UID) override;

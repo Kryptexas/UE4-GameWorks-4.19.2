@@ -70,7 +70,7 @@ float2 TileCoord = Input.TexCoord.xy * float2(TILE_SIZE_X,TILE_SIZE_Y) + TileOff
 /** Define to 1 to force no collision in the shader. */
 #define FORCE_NO_COLLISION 0
 
-#if FORCE_NO_COLLISION || FEATURE_LEVEL < FEATURE_LEVEL_SM5
+#if FORCE_NO_COLLISION || FEATURE_LEVEL < FEATURE_LEVEL_SM4
 	#undef DEPTH_BUFFER_COLLISION
 	#define DEPTH_BUFFER_COLLISION 0
 	#undef DISTANCE_FIELD_COLLISION

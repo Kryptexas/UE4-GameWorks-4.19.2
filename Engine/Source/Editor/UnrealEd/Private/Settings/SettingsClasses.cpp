@@ -68,6 +68,7 @@ UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializ
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
 	, BlueprintProfilerAverageSampleCount(20)
+	, bUseOpenCLForConvexHullDecomp(false)
 {
 }
 

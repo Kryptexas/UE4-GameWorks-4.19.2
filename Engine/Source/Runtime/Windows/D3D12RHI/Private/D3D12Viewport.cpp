@@ -165,6 +165,8 @@ FD3D12Texture2D* GetSwapChainSurface(FD3D12Device* Parent, EPixelFormat PixelFor
 	D3D11TextureAllocated2D(*NewTexture);
 
 	NewTexture->DoNoDeferDelete();
+	pWrappedShaderResourceView->DoNoDeferDelete();
+	BackBufferRenderTargetView->DoNoDeferDelete();
 
 	return NewTexture;
 }
@@ -314,7 +316,7 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 		// Signal the frame is complete.
 		GetParentDevice()->GetCommandListManager().SignalFrameComplete();
 
-#if UE_BUILD_DEBUG
+#if 0 //UE_BUILD_DEBUG
 		if (RHIConsoleVariables::DumpStatsEveryNFrames > 0)
 		{
 			GetParentDevice()->GetOwningRHI()->DrawCount = 0;
@@ -322,9 +324,7 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 
 			if (GetParentDevice()->GetOwningRHI()->PresentCount % RHIConsoleVariables::DumpStatsEveryNFrames == 0)
 			{
-				UE_LOG(LogD3D12RHI, Log, TEXT("*** PRESENT ***"), this);
-				FOutputDeviceRedirector* pOutputDevice = FOutputDeviceRedirector::Get();
-				GetParentDevice()->GetDefaultUploadHeapAllocator().DumpAllocatorStats(*pOutputDevice);
+				//TODO: Dump allocator stats.
 			}
 		}
 #endif

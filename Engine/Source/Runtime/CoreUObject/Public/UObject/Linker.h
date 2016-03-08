@@ -1302,6 +1302,8 @@ public:
 
 	/** Flags determining loading behavior.																					*/
 	uint32					LoadFlags;
+	/** Indicates whether the imports for this loader have been verified													*/
+	bool					bHaveImportsBeenVerified;
 	/** Indicates that this linker was created for a dynamic class package and will not use Loader */
 	bool					bDynamicClassLinker;
 	/** Hash table for exports.																								*/
@@ -1405,8 +1407,6 @@ private:
 	float					TimeLimit;
 	/** Time at begin of Tick function. Used for time limit determination.													*/
 	double					TickStartTime;
-	/**  Tracks the last verified import (making Verify() reentrant) - used to know when all the imports have been verified */
-	int32					VerifiedImportCount;
 
 	/** Used for ActiveClassRedirects functionality */
 	bool					bFixupExportMapDone;
@@ -1518,12 +1518,6 @@ public:
 	FORCEINLINE int32 GetOwnerThreadId() const
 	{
 		return OwnerThread;
-	}
-
-	/** Indicates when Verify() has gone through the entire  */
-	FORCEINLINE bool HaveImportsBeenVerified() const
-	{
-		return VerifiedImportCount >= Summary.ImportCount;
 	}
 
 	/**
@@ -2006,10 +2000,10 @@ private:
 	/**
 	* Determines if the Object Import error should be suppressed
 	*
-	* @param  InImport    Import to check for suppression.
+	* @param  ImportIndex    Internal index into this linker's ImportMap, references the import to check for suppression.
 	* @return True if the import error should be suppressed
 	*/
-	bool IsSuppressableBlueprintImportError(FObjectImport& InImport);
+	bool IsSuppressableBlueprintImportError(int32 ImportIndex) const;
 #endif // WITH_EDITOR
 
 	/**

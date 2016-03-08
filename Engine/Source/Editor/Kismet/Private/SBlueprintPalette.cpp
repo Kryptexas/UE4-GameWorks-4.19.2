@@ -1450,7 +1450,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)PaletteAction.Get();
-			if (GraphAction->EdGraph != NULL)
+			if (GraphAction->EdGraph != NULL && GraphAction->EdGraph->GetSchema())
 			{
 				FGraphDisplayInfo DisplayInfo;
 				GraphAction->EdGraph->GetSchema()->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);

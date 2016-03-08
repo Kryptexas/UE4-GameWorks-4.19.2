@@ -101,6 +101,9 @@ public:
 	/** Cleans the SubActor array (removes all NULL entries) */
 	void CleanSubActorArray();
 
+	/** Cleans the SubObject array (removes all NULL entries) */
+	void CleanSubObjectsArray();
+
 	/** Recalculates the drawing distance according to a fixed FOV of 90 and the transition screen size*/
 	void RecalculateDrawingDistance(const float TransitionScreenSize);
 #endif // WITH_EDITOR
@@ -109,6 +112,7 @@ public:
 	virtual FString GetDetailedInfoInternal() const override;
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;	
 #if WITH_EDITOR
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void EditorApplyTranslation(const FVector& DeltaTranslation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
 	virtual void EditorApplyRotation(const FRotator& DeltaRotation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;

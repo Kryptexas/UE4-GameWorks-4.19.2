@@ -1891,7 +1891,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			for (const auto& TargetPlatformName : ToBuild.GetPlatformnames())
 			{
 				const FString SandboxFilename = ConvertToFullSandboxPath(ToBuild.GetFilename().ToString(), true, TargetPlatformName.ToString());
-				check(IFileManager::Get().FileExists(*SandboxFilename) == false);
+				if (IFileManager::Get().FileExists(*SandboxFilename))
+				{
+					// if we find the file this means it was cooked on a previous cook, however source package can't be found now. 
+					// this could be because the source package was deleted or renamed, and we are using iterative cooking
+					// perhaps in this case we should delete it?
+					UE_LOG(LogCook, Warning, TEXT("Found cooked file which shouldn't exist as it failed loading %s"), *SandboxFilename); 
+					IFileManager::Get().Delete(*SandboxFilename);
+				}
 			}
 #endif
 			CookedPackages.Add( FFilePlatformCookedPackage( ToBuild.GetFilename(), TargetPlatformNames, false) );
@@ -2240,6 +2247,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 					SCOPE_TIMER(SaveCookedPackage);
 					uint32 SaveFlags = SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0);
+
+					bool KeepEditorOnlyPackages = false;
+					// removing editor only packages only works when cooking in commandlet and non iterative cooking
+					// also doesn't work in multiprocess cooking
+					KeepEditorOnlyPackages = !(IsCookByTheBookMode() && !IsCookingInEditor()) || IsCookFlagSet(ECookInitializationFlags::Iterative);
+					KeepEditorOnlyPackages |= IsChildCooker() || (CookByTheBookOptions->ChildCookers.Num() > 0);
+					SaveFlags |= KeepEditorOnlyPackages ? SAVE_KeepEditorOnlyCookedPackages : SAVE_None;
+
 					SavePackageResult = SaveCookedPackage(Package, SaveFlags, bWasUpToDate, AllTargetPlatformNames);
 					if (SavePackageResult == ESavePackageResult::Success)
 					{
@@ -3668,14 +3683,19 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const 
 { 
 	if (!FPackageName::IsScriptPackage(InFilename))
 	{
+		FName InFilenameName = FName(*InFilename );
+		if ( InFilenameName == NAME_None)
+		{
+			return;
+		}
 #if 0 // randomize cook file order, don't check in enabled...
 		if ( !InOutFilesToCook.Contains(InFilename) )
 		{
 			int Index = FMath::RandRange(0,InOutFilesToCook.Num()-1);
-			InOutFilesToCook.Insert(InFilename, Index );
+			InOutFilesToCook.Insert(InFilenameName, Index );
 		}
 #else
-		InOutFilesToCook.AddUnique(FName(*InFilename));
+		InOutFilesToCook.AddUnique(InFilenameName);
 #endif
 	}
 }

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "MaterialShared.h"
+#include "Materials/MaterialExpressionScreenPosition.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
@@ -79,7 +80,7 @@ public:
 	virtual int32 CameraVector() = 0;
 	virtual int32 LightVector() = 0;
 
-	virtual int32 ScreenPosition() = 0;
+	virtual int32 ScreenPosition(EMaterialExpressionScreenPositionMapping Mapping) = 0;
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) = 0;
 	virtual int32 ObjectWorldPosition() = 0;
 	virtual int32 ObjectRadius() = 0;
@@ -255,7 +256,7 @@ public:
 	virtual int32 CameraVector() override { return Compiler->CameraVector(); }
 	virtual int32 LightVector() override { return Compiler->LightVector(); }
 
-	virtual int32 ScreenPosition() override { return Compiler->ScreenPosition(); }
+	virtual int32 ScreenPosition(EMaterialExpressionScreenPositionMapping Mapping = MESP_SceneTextureUV) override { return Compiler->ScreenPosition(Mapping); }
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override { return Compiler->WorldPosition(WorldPositionIncludedOffsets); }
 	virtual int32 ObjectWorldPosition() override { return Compiler->ObjectWorldPosition(); }
 	virtual int32 ObjectRadius() override { return Compiler->ObjectRadius(); }

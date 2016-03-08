@@ -121,10 +121,16 @@ protected:
 /** Data structure used to setup an input mode that allows only the player input / player controller to respond to user input. */
 struct ENGINE_API FInputModeGameOnly : public FInputModeDataBase
 {
+	/** Whether the mouse down that causes capture should be consumed, and not passed to player input processing */
+	FInputModeGameOnly& SetConsumeCaptureMouseDown(bool InConsumeCaptureMouseDown) { bConsumeCaptureMouseDown = InConsumeCaptureMouseDown; return *this; }
+
 	FInputModeGameOnly()
+		: bConsumeCaptureMouseDown(true)
 	{}
 
 protected:
+	bool bConsumeCaptureMouseDown;
+
 	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const override;
 };
 
@@ -902,6 +908,13 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
 	void SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand);
+	
+	/**
+	* Sets the light color of the player's controller
+	* @param	Color					The color for the light to be
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Game|Feedback")
+	void SetControllerLightColor(FColor Color);
 
 	/**
 	 * Travel to a different map or IP address. Calls the PreClientTravel event before doing anything.

@@ -1367,25 +1367,8 @@ static int32 FindVertexAnim(const TArray<FActiveVertexAnim>& ActiveAnims, UVerte
 	return INDEX_NONE;
 }
 
-TArray<FActiveVertexAnim> FAnimationRuntime::UpdateActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, const TArray<FActiveVertexAnim>& ActiveAnims)
+void FAnimationRuntime::AppendActiveVertexAnims(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveVertexAnim>& InOutActiveAnims)
 {
-	TArray<struct FActiveVertexAnim> OutVertexAnims;
-
-	// First copy ActiveAnims
-	for(int32 AnimIdx=0; AnimIdx < ActiveAnims.Num(); AnimIdx++)
-	{
-		const FActiveVertexAnim& ActiveAnim = ActiveAnims[AnimIdx];
-		const float ActiveAnimAbsWeight = FMath::Abs(ActiveAnim.Weight);
-
-		// Check it has valid weight, and works on this SkeletalMesh
-		if (	ActiveAnimAbsWeight > MinVertexAnimBlendWeight &&
-			ActiveAnim.VertAnim != NULL &&
-			ActiveAnim.VertAnim->BaseSkelMesh == InSkeletalMesh)
-		{
-			OutVertexAnims.Add(ActiveAnim);
-		}
-		// @TODO Need to check for duplicates here?
-	}
 
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
@@ -1401,23 +1384,21 @@ TArray<FActiveVertexAnim> FAnimationRuntime::UpdateActiveVertexAnims(const USkel
 			if(Target != NULL)				
 			{
 				// See if this morph target already has an entry
-				int32 AnimIndex = FindVertexAnim(OutVertexAnims, Target);
+				int32 AnimIndex = FindVertexAnim(InOutActiveAnims, Target);
 				// If not, add it
 				if(AnimIndex == INDEX_NONE)
 				{
-					OutVertexAnims.Add(FActiveVertexAnim(Target, Weight));
+					InOutActiveAnims.Add(FActiveVertexAnim(Target, Weight));
 				}
 				// If it does, use the max weight
 				else
 				{
-					const float CurrentWeight = OutVertexAnims[AnimIndex].Weight;
-					OutVertexAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
+					const float CurrentWeight = InOutActiveAnims[AnimIndex].Weight;
+					InOutActiveAnims[AnimIndex].Weight = FMath::Max<float>(CurrentWeight, Weight);
 				}
 			}
 		}
 	}
-
-	return OutVertexAnims;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////

@@ -47,12 +47,14 @@ private:
 		{
 			FAndroidAppEntry::PlatformInit();
 #if PLATFORM_ANDROIDES31
-			EGL->InitSurface(true);
+			EGL->InitSurface(false, true);
 #endif
 		}
 #if !PLATFORM_ANDROIDES31
-		// Do not create a window surface if the app is for GearVR
-		EGL->InitSurface(!AndroidThunkCpp_IsGearVRApplication());
+		// Do not create a window surface if the app is for GearVR (use small buffer)
+		bool bCreateSurface = !AndroidThunkCpp_IsGearVRApplication();
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("FAndroidGPUInfo"));
+		EGL->InitSurface(bCreateSurface, bCreateSurface);
 #endif
 		EGL->SetCurrentSharedContext();
 

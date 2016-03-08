@@ -62,6 +62,9 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_GetMetaDataInt = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataInt", "(Ljava/lang/String;)I", bIsOptional);
 	AndroidThunkJava_GetMetaDataString = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_GetMetaDataString", "(Ljava/lang/String;)Ljava/lang/String;", bIsOptional);
 
+	// this is optional - only inserted if GearVR plugin enabled
+	AndroidThunkJava_IsGearVRApplication = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_IsGearVRApplication", "()Z", true);
+
 	// get field IDs for InputDeviceInfo class members
 	jclass localInputDeviceInfoClass = FindClass(Env, "com/epicgames/ue4/GameActivity$InputDeviceInfo", bIsOptional);
 	InputDeviceInfoClass = (jclass)Env->NewGlobalRef(localInputDeviceInfoClass);
@@ -204,6 +207,7 @@ jmethodID FJavaWrapper::AndroidThunkJava_HasMetaDataKey;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataBoolean;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataInt;
 jmethodID FJavaWrapper::AndroidThunkJava_GetMetaDataString;
+jmethodID FJavaWrapper::AndroidThunkJava_IsGearVRApplication;
 
 jclass FJavaWrapper::InputDeviceInfoClass;
 jfieldID FJavaWrapper::InputDeviceInfo_VendorId;
@@ -387,6 +391,25 @@ FString AndroidThunkCpp_GetMetaDataString(const FString& Key)
 		}
 	}
 	return Result;
+}
+
+// call out to JNI to see if the application was packaged for GearVR
+bool AndroidThunkCpp_IsGearVRApplication()
+{
+	static int32 IsGearVRApplication = -1;
+
+	if (IsGearVRApplication == -1)
+	{
+		IsGearVRApplication = 0;
+		if (FJavaWrapper::AndroidThunkJava_IsGearVRApplication)
+		{
+			if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+			{
+				IsGearVRApplication = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_IsGearVRApplication) ? 1 : 0;
+			}
+		}
+	}
+	return IsGearVRApplication == 1;
 }
 
 void AndroidThunkCpp_ShowConsoleWindow()

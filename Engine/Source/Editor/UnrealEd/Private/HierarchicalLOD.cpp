@@ -365,12 +365,12 @@ bool FHierarchicalLODBuilder::ShouldGenerateCluster(AActor* Actor, const bool bP
 	if (Components.Num() > 0)
 	{
 		for (auto& ComponentIter : Components)
-		{
-			
+		{			
 			if (ComponentIter->GetLODParentPrimitive())
 			{
 				auto ParentActor = CastChecked<ALODActor>(ComponentIter->GetLODParentPrimitive()->GetOwner());
-				if (!ParentActor->GetStaticMeshComponent()->StaticMesh || !bPreviewBuild)
+				
+				if (ParentActor && bPreviewBuild)
 				{
 					return false;
 				}
@@ -464,7 +464,7 @@ void FHierarchicalLODBuilder::BuildMeshesForLODActors()
 
 		if (LevelIter->Actors.Num() > 0)
 		{
-			UPackage* AssetsOuter = LevelIter->GetOutermost();
+			UPackage* AssetsOuter = FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(LevelIter);
 
 			if (AssetsOuter)
 			{
@@ -550,7 +550,7 @@ void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const ui
 {
 	AWorldSettings* WorldSetting = World->GetWorldSettings();
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
-	UPackage* AssetsOuter = LODActor->GetLevel()->GetOutermost();
+	UPackage* AssetsOuter = FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(LODActor->GetLevel());
 
 	const bool bResult = FHierarchicalLODUtilities::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);	
 	check(bResult);

@@ -700,20 +700,6 @@ FLinkerLoad* GetPackageLinker
 
 		Result = FLinkerLoad::CreateLinker( InOuter, *NewFilename, LoadFlags );
 	}
-#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	else if ( !Result->HaveImportsBeenVerified() && !(LoadFlags & (LOAD_NoVerify|LOAD_DeferDependencyLoads)) )
-	{
-		// if we're in here, then this Linker is most likely in FinalizeCreation() 
-		// earlier on in the stack (HasFinishedInitialization() is probably false
-		// at this point in time); since we've recursively requested this Linker
-		// (and we're about to return it), we want to make sure verification 
-		// (what FinalizeCreation() invokes) has completed - this is important 
-		// for cyclic dependencies because we'd rather all these other packages 
-		// are loaded up front, instead of during the serialization process 
-		// (when 'DeferredDependencyLoading' is on, and external loads are problematic)
-		Result->Verify();
-	}
-#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 	// Verify compatibility.
 	if (Result && CompatibleGuid && Result->Summary.Guid != *CompatibleGuid)

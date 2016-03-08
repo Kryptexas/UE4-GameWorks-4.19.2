@@ -240,7 +240,7 @@ void UAIPerceptionComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-void UAIPerceptionComponent::UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue)
+void UAIPerceptionComponent::UpdatePerceptionWhitelist(const FAISenseID Channel, const bool bNewValue)
 {
 	const bool bCurrentValue = PerceptionFilter.ShouldRespondToChannel(Channel);
 	if (bNewValue != bCurrentValue)
@@ -707,3 +707,11 @@ void UAIPerceptionComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) con
 
 }
 #endif // ENABLE_VISUAL_LOG
+
+//----------------------------------------------------------------------//
+// deprecated
+//----------------------------------------------------------------------//
+void UAIPerceptionComponent::UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue)
+{
+	UpdatePerceptionWhitelist(Channel, bNewValue);
+}

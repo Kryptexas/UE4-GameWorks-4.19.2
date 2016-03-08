@@ -139,7 +139,6 @@ void FSteamVRHMD::D3D11Bridge::FinishRendering()
 	Texture.eType = vr::API_DirectX;
 	Texture.eColorSpace = vr::ColorSpace_Auto;
 	vr::EVRCompositorError Error = Plugin->VRCompositor->Submit(vr::Eye_Left, &Texture, &LeftBounds);
-	check(Error == vr::VRCompositorError_None);
 
 	vr::VRTextureBounds_t RightBounds;
 	RightBounds.uMin = 0.5f;
@@ -149,7 +148,10 @@ void FSteamVRHMD::D3D11Bridge::FinishRendering()
 
 	Texture.handle = RenderTargetTexture;
 	Error = Plugin->VRCompositor->Submit(vr::Eye_Right, &Texture, &RightBounds);
-	check(Error == vr::VRCompositorError_None);
+	if (Error != vr::VRCompositorError_None)
+	{
+		UE_LOG(LogHMD, Log, TEXT("Warning:  SteamVR Compositor had an error on present (%d)"), (int32)Error);
+	}
 }
 
 void FSteamVRHMD::D3D11Bridge::Reset()
