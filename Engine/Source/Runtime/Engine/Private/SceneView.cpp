@@ -580,12 +580,6 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	// Query instanced stereo state
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
 	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
-
-	// Check to see if this is an isolated capture component (i.e. not part of a stereo pair), and disable the instancing if so.  This will prevent single views that are set up to emulate different eyes from going down a path where it's paired view is not available (see StereoPanorama capturing)
-	if (Family && (Family->Views.Num() < 2))
-	{
-		bIsInstancedStereoEnabled = false;
-	}
 }
 
 static TAutoConsoleVariable<int32> CVarCompensateForFOV(
