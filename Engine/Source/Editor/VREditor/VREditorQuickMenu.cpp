@@ -245,9 +245,7 @@ bool UVREditorQuickMenu::IsSimulatingEnabled() const
 
 void UVREditorQuickMenu::OnContentBrowserButtonClicked( const bool bIsChecked )
 {
-	bool bShouldShow = !IsContentBrowserVisible();
-	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
-	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::ContentBrowser, MyHandIndex, bShouldShow );
+	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::ContentBrowser );
 }
 
 
@@ -259,9 +257,7 @@ bool UVREditorQuickMenu::IsContentBrowserVisible() const
 
 void UVREditorQuickMenu::OnWorldOutlinerButtonClicked( const bool bIsChecked )
 {
-	bool bShouldShow = !IsWorldOutlinerVisible();
-	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
-	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::WorldOutliner, MyHandIndex, bShouldShow );
+	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::WorldOutliner );
 }
 
 
@@ -273,9 +269,7 @@ bool UVREditorQuickMenu::IsWorldOutlinerVisible() const
 
 void UVREditorQuickMenu::OnActorDetailsButtonClicked( const bool bIsChecked )
 {
-	bool bShouldShow = !IsActorDetailsVisible();
-	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
-	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::ActorDetails, MyHandIndex, bShouldShow );
+	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::ActorDetails );
 }
 
 
@@ -287,9 +281,7 @@ bool UVREditorQuickMenu::IsActorDetailsVisible() const
 
 void UVREditorQuickMenu::OnModesButtonClicked( const bool bIsChecked )
 {
-	bool bShouldShow = !IsModesVisible();
-	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
-	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Modes, MyHandIndex, bShouldShow );
+	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::Modes );
 }
 
 
@@ -319,9 +311,7 @@ bool UVREditorQuickMenu::IsGameModeEnabled() const
 
 void UVREditorQuickMenu::OnTutorialButtonClicked( const bool bIsChecked )
 {
-	bool bShouldShow = !IsTutorialVisible();
-	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
-	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::Tutorial, MyHandIndex, bShouldShow );
+	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::Tutorial );
 }
 
 bool UVREditorQuickMenu::IsTutorialVisible() const
@@ -332,9 +322,8 @@ bool UVREditorQuickMenu::IsTutorialVisible() const
 
 void UVREditorQuickMenu::OnAssetEditorButtonClicked( const bool bIsChecked )
 {
-	bool bShouldShow = !IsAssetEditorVisible();
-	const int32 MyHandIndex = GetOwner()->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
-	GetOwner()->GetOwner().ShowEditorUIPanel( FVREditorUISystem::EEditorUIPanel::AssetEditor, MyHandIndex, bShouldShow );
+	GetOwner()->GetOwner().TogglePanelVisibility( FVREditorUISystem::EEditorUIPanel::AssetEditor );
+	
 }
 
 bool UVREditorQuickMenu::IsAssetEditorVisible() const

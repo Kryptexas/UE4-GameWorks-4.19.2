@@ -15,7 +15,7 @@
 namespace VREd
 {
 	static FAutoConsoleVariable RadialMenuRiftSelectionRadius( TEXT( "VREd.RadialMenuRiftSelectionRadius" ), 0.25f, TEXT( "The radius that is used for selecting buttons on the radial menu on Oculus Rift" ) );
-	static FAutoConsoleVariable RadialMenuViveSelectionRadius( TEXT( "VREd.RadialMenuViveSelectionRadius" ), 0.5f, TEXT( "The radius that is used for selecting buttons on the radial menu on Vive" ) );
+	static FAutoConsoleVariable RadialMenuViveSelectionRadius( TEXT( "VREd.RadialMenuViveSelectionRadius" ), 0.3f, TEXT( "The radius that is used for selecting buttons on the radial menu on Vive" ) );
 }
 
 UVREditorRadialMenu::UVREditorRadialMenu( const FObjectInitializer& ObjectInitializer )

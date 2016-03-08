@@ -30,6 +30,7 @@ public:
 		Room,
 		Head,
 		Custom,
+		Dragging,
 	};
 
 	/** Creates a FVREditorFloatingUI using a Slate widget, and sets up safe defaults */

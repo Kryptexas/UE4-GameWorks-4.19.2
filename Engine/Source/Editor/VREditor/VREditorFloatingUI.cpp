@@ -222,11 +222,11 @@ void AVREditorFloatingUI::UpdateFadingState( const float DeltaTime )
 		WidgetComponent->SetTintColorAndOpacity( FLinearColor( UIBrightness, UIBrightness, UIBrightness ).CopyWithNewOpacity( FadeAlpha ) );
 	}
 }
-
+	
 
 void AVREditorFloatingUI::UpdateTransformIfDocked()
 {
-	if( DockedTo != EDockedTo::Nothing )
+	if( DockedTo != EDockedTo::Nothing && DockedTo != EDockedTo::Dragging )
 	{
 		FTransform NewTransform;
 		

@@ -107,6 +107,9 @@ public:
 	/** Get the minimum dock window size */
 	float GetMinDockWindowSize() const;
 
+	/** Toggles the visibility of the panel, if the panel is in room space it will be hidden and docked to nothing */
+	void TogglePanelVisibility( const EEditorUIPanel EditorUIPanel );
+
 protected:
 
 	/** Called when the user presses a button on their motion controller device */
@@ -179,5 +182,22 @@ protected:
 
 	/** Set to true when we need to refocus the viewport. */
 	bool bRefocusViewport;
+
+
+	//
+	// Sounds
+	//
+
+	/** Start dragging UI sound */
+	class USoundCue* StartDragUISound;
+
+	/** Stop dragging UI sound */
+	class USoundCue* StopDragUISound;
+
+	/** Hide UI sound */
+	class USoundCue* HideUISound;
+
+	/** Show UI sound */
+	class USoundCue* ShowUISound;
 };
 

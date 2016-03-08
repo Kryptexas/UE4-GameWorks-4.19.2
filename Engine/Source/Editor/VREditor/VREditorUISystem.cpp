@@ -94,6 +94,19 @@ FVREditorUISystem::FVREditorUISystem( FVREditorMode& InitOwner )
 	TutorialWidgetClass = LoadClass<UVREditorBaseUserWidget>( nullptr, TEXT( "/Engine/VREditor/Tutorial/UI_VR_Tutorial_00.UI_VR_Tutorial_00_C" ) );
 	check( TutorialWidgetClass != nullptr );
 
+	// Load sounds
+	StartDragUISound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_negative_Cue" ) );
+	check( StartDragUISound != nullptr );
+
+	StopDragUISound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_negative_Cue" ) );
+	check( StopDragUISound != nullptr );
+
+	HideUISound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_close_Cue" ) );
+	check( HideUISound != nullptr );
+
+	ShowUISound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_open_Cue" ) );
+	check( ShowUISound != nullptr );
+
 	// Create all of our UI panels
 	CreateUIs();
 }
@@ -290,16 +303,16 @@ void FVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, const
 			FVirtualHand& Hand = Owner.GetVirtualHand( VRAction.HandIndex );
 			FVirtualHand& OtherHand = Owner.GetOtherHand( VRAction.HandIndex );
 			const float Distance = FVector::Dist( Hand.HoverLocation, OtherHand.Transform.GetLocation() ) / Owner.GetWorldScaleFactor();
+			bool bOnHand = true;
 			if (Distance > VREd::MinDockDragDistance->GetFloat())
 			{
 				DraggingUI->SetDockedTo( AVREditorFloatingUI::EDockedTo::Room );
-			}
-			else
-			{
-				const int32 OtherHandIndex = Owner.GetOtherHandIndex( DraggingUIHandIndex );
-				ShowEditorUIPanel( DraggingUI, OtherHandIndex, true, true );
+				bOnHand = false;
 			}
 
+			const int32 OtherHandIndex = Owner.GetOtherHandIndex( DraggingUIHandIndex );
+			ShowEditorUIPanel( DraggingUI, OtherHandIndex, true, bOnHand, true );
+			
 			StopDraggingDockUI();
 		}
 	}
@@ -773,9 +786,12 @@ void FVREditorUISystem::CreateUIs()
 		{
 			AVREditorFloatingUI* TutorialUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "TutorialUI" ), false );
 			TutorialUI->SetUMGWidget( *this, TutorialWidgetClass, FIntPoint( VREd::TutorialUIResolutionX->GetFloat(), VREd::TutorialUIResolutionY->GetFloat() ), VREd::TutorialUISize->GetFloat(), AVREditorFloatingUI::EDockedTo::Room );
-			TutorialUI->ShowUI( true );
 			TutorialUI->SetRelativeOffset( FVector( VREd::TutorialUILocationX->GetFloat(), VREd::TutorialUILocationY->GetFloat(), VREd::TutorialUILocationZ->GetFloat() ) );
 			TutorialUI->SetLocalRotation( FRotator( VREd::TutorialUIPitch->GetFloat(), VREd::TutorialUIYaw->GetFloat(), 0 ) );
+			
+			const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );
+			TutorialUI->ShowUI( !bIsVREditorDemo );
+
 			FloatingUIs.Add( TutorialUI );
 
 			EditorUIPanels[ (int32)EEditorUIPanel::Tutorial ] = TutorialUI;		
@@ -864,7 +880,7 @@ bool FVREditorUISystem::IsShowingEditorUIPanel( const EEditorUIPanel EditorUIPan
 }
 
 
-void FVREditorUISystem::ShowEditorUIPanel( const UWidgetComponent* WidgetComponent, const int32 HandIndex, const bool bShouldShow, const bool OnHand, const bool bRefreshQuickMenu  )
+void FVREditorUISystem::ShowEditorUIPanel( const UWidgetComponent* WidgetComponent, const int32 HandIndex, const bool bShouldShow, const bool OnHand, const bool bRefreshQuickMenu )
 {
 	AVREditorFloatingUI* Panel = nullptr;
 	for( AVREditorFloatingUI* CurrentPanel : EditorUIPanels )
@@ -880,7 +896,7 @@ void FVREditorUISystem::ShowEditorUIPanel( const UWidgetComponent* WidgetCompone
 }
 
 
-void FVREditorUISystem::ShowEditorUIPanel( const EEditorUIPanel EditorUIPanel, const int32 HandIndex, const bool bShouldShow, const bool OnHand, const bool bRefreshQuickMenu  )
+void FVREditorUISystem::ShowEditorUIPanel( const EEditorUIPanel EditorUIPanel, const int32 HandIndex, const bool bShouldShow, const bool OnHand, const bool bRefreshQuickMenu )
 {
 	AVREditorFloatingUI* Panel = EditorUIPanels[ (int32)EditorUIPanel ];
 	ShowEditorUIPanel( Panel, HandIndex, bShouldShow, OnHand, bRefreshQuickMenu );
@@ -890,8 +906,8 @@ void FVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, const int
 {
 	if( Panel != nullptr )
 	{
-		AVREditorFloatingUI::EDockedTo DockTo = Panel->GetDockedTo();
-		if( OnHand || DockTo == AVREditorFloatingUI::EDockedTo::Nothing || DockTo == AVREditorFloatingUI::EDockedTo::LeftHand || DockTo == AVREditorFloatingUI::EDockedTo::RightHand )
+		AVREditorFloatingUI::EDockedTo DockedTo = Panel->GetDockedTo();
+		if( OnHand || DockedTo == AVREditorFloatingUI::EDockedTo::Nothing )
 		{
 			// Hide any panels that are already shown on this hand
 			for( int32 PanelIndex = 0; PanelIndex < (int32)EEditorUIPanel::TotalCount; ++PanelIndex )
@@ -908,11 +924,14 @@ void FVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, const int
 					}
 				}
 			}
-
-			Owner.GetVirtualHand( HandIndex ).bHasUIInFront = bShouldShow;
-
-			const AVREditorFloatingUI::EDockedTo DockedTo = HandIndex == VREditorConstants::LeftHandIndex ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
-			Panel->SetDockedTo( DockedTo );
+			
+			const AVREditorFloatingUI::EDockedTo NewDockedTo = HandIndex == VREditorConstants::LeftHandIndex ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
+			Panel->SetDockedTo( NewDockedTo );
+			
+			if ( NewDockedTo == AVREditorFloatingUI::EDockedTo::LeftHand || NewDockedTo == AVREditorFloatingUI::EDockedTo::RightHand )
+			{
+				Owner.GetVirtualHand( HandIndex ).bHasUIInFront = bShouldShow;
+			}
 
 			if (bShouldShow)
 			{
@@ -924,11 +943,15 @@ void FVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, const int
 			Panel->SetLocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) );
 		}
 
-		Panel->ShowUI( bShouldShow );
-
-		if( bRefreshQuickMenu && QuickMenuUI )
+		if( Panel->IsUIVisible() != bShouldShow )
 		{
-			QuickMenuUI->GetUserWidget<UVREditorQuickMenu>()->RefreshUI();
+			Panel->ShowUI( bShouldShow );
+			UGameplayStatics::PlaySound2D( Owner.GetWorld(), bShouldShow ? ShowUISound : HideUISound ); 
+			
+			if (bRefreshQuickMenu && QuickMenuUI)
+			{
+				QuickMenuUI->GetUserWidget<UVREditorQuickMenu>()->RefreshUI();
+			}
 		}
 	}
 }
@@ -1048,7 +1071,10 @@ AVREditorFloatingUI* FVREditorUISystem::StartDraggingDockUI( AVREditorDockableWi
 	DraggingUIOffsetTransform = UIToUIOnLaser;
 
 	DraggingUI = InitDraggingDockUI;
-	DraggingUI->SetDockedTo( AVREditorFloatingUI::EDockedTo::Nothing );
+	DraggingUI->SetDockedTo( AVREditorFloatingUI::EDockedTo::Dragging );
+
+	UGameplayStatics::PlaySound2D( Owner.GetWorld(), StartDragUISound );
+
 	return DraggingUI;
 }
 
@@ -1068,6 +1094,8 @@ void FVREditorUISystem::StopDraggingDockUI()
 	FVirtualHand& Hand = Owner.GetVirtualHand( DraggingUIHandIndex );
 	Hand.DraggingMode = EVREditorDraggingMode::Nothing;
 	DraggingUIHandIndex = INDEX_NONE;
+
+	UGameplayStatics::PlaySound2D( Owner.GetWorld(), StopDragUISound );
 }
 
 bool FVREditorUISystem::IsDraggingDockUI()
@@ -1079,26 +1107,40 @@ void FVREditorUISystem::TogglePanelsVisibility()
 {
 	bPanelVisibilityToggle = !bPanelVisibilityToggle;
 	
-	bool bOneHandUsed = false;
-	for ( AVREditorFloatingUI* Panel : EditorUIPanels )
+	UGameplayStatics::PlaySound2D( Owner.GetWorld(), bPanelVisibilityToggle ? ShowUISound : HideUISound );
+
+	bool bFirstCheckOnHand = true;
+	AVREditorFloatingUI* PanelOnHand = nullptr;
+	for( AVREditorFloatingUI* Panel : EditorUIPanels )
 	{
-		if ( Panel != nullptr && Panel->IsUIVisible() != bPanelVisibilityToggle )
+		if( Panel != nullptr && Panel->IsUIVisible() != bPanelVisibilityToggle )
 		{
 			bool bShouldSetNewVisibility = true;
 			const AVREditorFloatingUI::EDockedTo DockedTo = Panel->GetDockedTo();
-			
-			// Prevent the panel from spawning on the hand if there is already a UI on the hand
 			if( DockedTo == AVREditorFloatingUI::EDockedTo::LeftHand ||  DockedTo == AVREditorFloatingUI::EDockedTo::RightHand )
 			{
-				if( bOneHandUsed && bPanelVisibilityToggle )
+				// Prevent the panel from spawning on the hand if there is already a UI on the hand
+				if( bFirstCheckOnHand )
 				{
-					bShouldSetNewVisibility = false;
+					bFirstCheckOnHand = false;
+					for(AVREditorFloatingUI* OtherPanel : EditorUIPanels)
+					{
+						if( OtherPanel != Panel && OtherPanel->IsUIVisible() && ( OtherPanel->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand || OtherPanel->GetDockedTo() == AVREditorFloatingUI::EDockedTo::RightHand ) )
+						{
+							PanelOnHand = OtherPanel;
+							break;
+						}
+					}
 				}
-				else
+
+				if( !PanelOnHand )
 				{
 					const uint32 HandIndex = Panel->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
 					Owner.GetVirtualHand( HandIndex ).bHasUIInFront = bPanelVisibilityToggle;
-					bOneHandUsed = true;
+				}
+				else
+				{
+					bShouldSetNewVisibility = false;
 				}
 			}
 			else if ( DockedTo == AVREditorFloatingUI::EDockedTo::Nothing )
@@ -1132,4 +1174,23 @@ float FVREditorUISystem::GetMinDockWindowSize() const
 void FVREditorUISystem::OnProxyTabLaunched(TSharedPtr<SDockTab> NewTab)
 {
 	bRefocusViewport = true;
+}
+
+void FVREditorUISystem::TogglePanelVisibility( const EEditorUIPanel EditorUIPanel )
+{
+	AVREditorFloatingUI* Panel = EditorUIPanels[(int32)EditorUIPanel];
+	if (Panel != nullptr)
+	{
+		const bool bIsShowing = Panel->IsUIVisible();
+		const int32 HandIndexWithQuickMenu = QuickMenuUI->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
+		if( Panel->GetDockedTo() == AVREditorFloatingUI::EDockedTo::Room )
+		{
+			Panel->ShowUI( false );
+			Panel->SetDockedTo( AVREditorFloatingUI::EDockedTo::Nothing );
+		}
+		else
+		{
+			ShowEditorUIPanel( Panel, HandIndexWithQuickMenu, !bIsShowing, true );
+		}
+	}
 }
