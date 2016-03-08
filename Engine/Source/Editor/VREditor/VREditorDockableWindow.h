@@ -24,16 +24,22 @@ public:
 	/** Updates the last dragged relative position */
 	void UpdateRelativeRoomTransform();
 
-	/** Enter hover with laser changes the color of SelectionMesh */
-	void OnEnterHover( const FHitResult& HitResult );
+	/** Enter hover with laser changes the color of SelectionMesh and CloseButtonMesh */
+	void OnEnterHover( const FHitResult& HitResult, const int32 HandIndex );
 
-	/** Leaving hover with laser changes the color of SelectionMesh */
-	void OnLeaveHover();
+	/** Leaving hover with laser changes the color of SelectionMesh and CloseButtonMesh */
+	void OnLeaveHover( const int32 HandIndex, const class UActorComponent* NewHoveredComponent );
 	
 	/** Gets the close button component */
 	UStaticMeshComponent* GetCloseButtonMeshComponent()
 	{
 		return CloseButtonMeshComponent;
+	}
+
+	/** Gets the selection bar component */
+	UStaticMeshComponent* GetSelectionBarMeshComponent()
+	{
+		return SelectionBarMeshComponent;
 	}
 
 private:

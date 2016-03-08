@@ -286,29 +286,32 @@ void AVREditorDockableWindow::UpdateRelativeRoomTransform()
 	LocalRotation = RoomSpaceWindowRotation.Rotator();
 }
 
-void AVREditorDockableWindow::OnEnterHover( const FHitResult& HitResult )
+void AVREditorDockableWindow::OnEnterHover( const FHitResult& HitResult, const int32 HandIndex )
 {
 	if( SelectionBarMeshComponent == HitResult.GetComponent() )
 	{
 		bIsHoveringOverSelectionBar = true;
-		bIsHoveringOverCloseButton = false;
 	}
-	else if( CloseButtonMeshComponent == HitResult.GetComponent() )
+	
+	if( CloseButtonMeshComponent == HitResult.GetComponent() )
 	{
 		bIsHoveringOverCloseButton = true;
-		bIsHoveringOverSelectionBar = false;
-	}
-	else
-	{
-		bIsHoveringOverCloseButton = false;
-		bIsHoveringOverSelectionBar = false;
 	}
 }
 
-void AVREditorDockableWindow::OnLeaveHover()
+void AVREditorDockableWindow::OnLeaveHover( const int32 HandIndex, const UActorComponent* NewComponent  )
 {
-	bIsHoveringOverSelectionBar = false;
-	bIsHoveringOverCloseButton = false;
+	FVirtualHand& OtherHand = GetOwner().GetOwner().GetOtherHand( HandIndex );
+
+	if( OtherHand.HoveredActorComponent != SelectionBarMeshComponent && NewComponent != SelectionBarMeshComponent )
+	{
+		bIsHoveringOverSelectionBar = false;
+	}
+	
+	if( OtherHand.HoveredActorComponent != CloseButtonMeshComponent && NewComponent != CloseButtonMeshComponent  )
+	{
+		bIsHoveringOverCloseButton = false;
+	}
 }
 
 
