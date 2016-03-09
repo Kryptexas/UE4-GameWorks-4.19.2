@@ -22,7 +22,7 @@ bool FVREditorInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, co
 {
 	FEditorViewportClient* ViewportClient = VRMode->GetLevelViewportPossessedForVR().GetViewportClient().Get();
 	FViewport* ActiveViewport = VRMode->GetLevelViewportPossessedForVR().GetActiveViewport();
-	return VRMode->HandleInputKey(ViewportClient, ActiveViewport, InKeyEvent.GetKey(), IE_Pressed);
+	return VRMode->HandleInputKey(ViewportClient, ActiveViewport, InKeyEvent.GetKey(), InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed);
 }
 
 bool FVREditorInputProcessor::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent)
