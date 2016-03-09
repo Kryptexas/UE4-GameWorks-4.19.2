@@ -839,6 +839,8 @@ void FVREditorUISystem::CreateUIs()
 
 			// We're going to start stealing tabs from the global tab manager inserting them into the world instead.
 			FGlobalTabmanager::Get()->SetProxyTabManager(ProxyTabManager);
+
+			FAssetEditorManager::Get().OnAssetEditorOpened().AddRaw(this, &FVREditorUISystem::OnAssetEditorOpened);
 		}
 	}
 }
@@ -863,8 +865,18 @@ void FVREditorUISystem::CleanUpActorsBeforeMapChangeOrSimulate()
 
 	// Remove the proxy tab manager, we don't want to steal tabs any more.
 	FGlobalTabmanager::Get()->SetProxyTabManager(TSharedPtr<FProxyTabmanager>());
+	FAssetEditorManager::Get().OnAssetEditorOpened().RemoveAll(this);
 }
 
+void FVREditorUISystem::OnAssetEditorOpened(UObject* Asset)
+{
+	// We need to disable drag drop on the tabs spawned in VR mode.
+	TArray<IAssetEditorInstance*> Editors = FAssetEditorManager::Get().FindEditorsForAsset(Asset);
+	for ( IAssetEditorInstance* Editor : Editors )
+	{
+		Editor->GetAssociatedTabManager()->SetCanDoDragOperation(false);
+	}
+}
 
 bool FVREditorUISystem::IsWidgetAnEditorUIWidget( const UActorComponent* WidgetComponent ) const
 {

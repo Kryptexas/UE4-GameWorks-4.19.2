@@ -133,6 +133,9 @@ protected:
 	/** Show the asset editor if it's not currently visible. */
 	void ShowAssetEditor();
 
+	/** Called when an asset editor opens an asset while in VR Editor Mode. */
+	void OnAssetEditorOpened(UObject* Asset);
+
 protected:
 
 	/** Owning object */
