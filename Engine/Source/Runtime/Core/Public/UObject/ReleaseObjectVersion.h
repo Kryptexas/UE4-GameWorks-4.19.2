@@ -9,6 +9,9 @@ struct CORE_API FReleaseObjectVersion
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
 
+		// Static Mesh extended bounds radius fix
+		StaticMeshExtendedBoundsFix,
+
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
