@@ -1900,13 +1900,8 @@ ENGINE_API EQuadOverdrawMode FSceneViewFamily::GetQuadOverdrawMode() const
 
 const FSceneView& FSceneViewFamily::GetStereoEyeView(const EStereoscopicPass Eye) const
 {
-	int32 EyeIndex = static_cast<int32>(Eye);
-
-	// If we have less views than our eye index, it implies that we're using a scene capture that is emulating stereo behaviour, so re-index accordingly
-	if (Views.Num() <= EyeIndex)
-	{
-		EyeIndex = 1;
-	}
+	const int32 EyeIndex = static_cast<int32>(Eye);
+	check(Views.Num() > 0 && Views.Num() >= EyeIndex);
 
 	// Mono or left eye
 	if (EyeIndex <= 1)
