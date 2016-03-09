@@ -472,15 +472,6 @@ protected:
 	/** Post process for drawing VR-specific post effects */
 	class UPostProcessComponent* PostProcessComponent;
 
-
-	//
-	// 3D interactions
-	//
-
-	/** Toggles motion controller laser sights between two orientations, one which may be better-suited for standing up vs. sitting down */
-	FAutoConsoleVariable UseAlternativeLaserPointerDirection;
-
-
 	//
 	// Input
 	//

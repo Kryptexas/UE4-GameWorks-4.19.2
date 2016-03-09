@@ -28,7 +28,6 @@ public:
 		LeftArm,
 		RightArm,
 		Room,
-		Head,
 		Custom,
 		Dragging,
 	};
@@ -109,9 +108,6 @@ public:
 		return CastChecked<T>( UserWidget );
 	}
 
-	/** Sets if the UI should rotate towards head */
-	void SetRotateToHead( const bool bInitRotateToHead );
-
 	/** Sets the relative offset of the UI */
 	void SetRelativeOffset( const FVector& InRelativeOffset );
 
@@ -146,14 +142,9 @@ private:
 	/** Given a hand to lock to, returns a transform to place UI at that hand's location and orientation */
 	FTransform MakeUITransformLockedToHand( const int32 HandIndex, const bool bOnArm);
 
-	/** Rotates the UI towards the head */
-	void RotateToHead( FTransform& Transform );
-
 	/** Create a room transform with the RelativeOffset and LocalRotation */
 	FTransform MakeUITransformLockedToRoom();
 
-	/** Create a transform with the RelativeOffset and LocalRotation that moves with the head */
-	FTransform MakeUITransformLockedToHead();
 
 protected:
 

@@ -26,11 +26,12 @@ namespace VREd
 	static FAutoConsoleVariable LaserPointerMaxLength( TEXT( "VREd.LaserPointerMaxLength" ), 10000.0f, TEXT( "Maximum length of the laser pointer line" ) );
 	static FAutoConsoleVariable LaserPointerRadius( TEXT( "VREd.LaserPointerRadius" ), 0.5f, TEXT( "Radius of the laser pointer line" ) );
 	static FAutoConsoleVariable LaserPointerHoverBallRadius( TEXT( "VREd.LaserPointerHoverBallRadius" ), 1.5f, TEXT( "Radius of the visual cue for a hovered object along the laser pointer ray" ) );
-	static FAutoConsoleVariable AlternativeLaserPointerRotationOffset( TEXT( "VREd.LaserPointerRotationOffset" ), 90.0f, TEXT( "How much to rotate the laser pointer (pitch) when using the alternative laser pointer direction mode" ) );
 	static FAutoConsoleVariable LaserPointerLightPullBackDistance( TEXT( "VREd.LaserPointerLightPullBackDistance" ), 2.5f, TEXT( "How far to pull back our little hover light from the impact surface" ) );
 	static FAutoConsoleVariable LaserPointerLightRadius( TEXT( "VREd.LaserPointLightRadius" ), 20.0f, TEXT( "How big our hover light is" ) );
+	static FAutoConsoleVariable OculusLaserPointerRotationOffset( TEXT( "VREd.OculusLaserPointerRotationOffset" ), 0.0f, TEXT( "How much to rotate the laser pointer (pitch) relative to the forward vector of the controller (Oculus)" ) );
+	static FAutoConsoleVariable ViveLaserPointerRotationOffset( TEXT( "VREd.ViveLaserPointerRotationOffset" ), -57.8f, TEXT( "How much to rotate the laser pointer (pitch) relative to the forward vector of the controller (Vive)" ) );
 	static FAutoConsoleVariable OculusLaserPointerStartOffset( TEXT( "VREd.OculusLaserPointerStartOffset" ), 2.8f, TEXT( "How far to offset the start of the laser pointer to avoid overlapping the hand mesh geometry (Oculus)" ) );
-	static FAutoConsoleVariable ViveLaserPointerStartOffset( TEXT( "VREd.ViveLaserPointerStartOffset" ), 2.0f, TEXT( "How far to offset the start of the laser pointer to avoid overlapping the hand mesh geometry (Vive)" ) );
+	static FAutoConsoleVariable ViveLaserPointerStartOffset( TEXT( "VREd.ViveLaserPointerStartOffset" ), 8.5f, TEXT( "How far to offset the start of the laser pointer to avoid overlapping the hand mesh geometry (Vive)" ) );
 
 	static FAutoConsoleVariable UseMouseAsHandInForcedVRMode( TEXT( "VREd.UseMouseAsHandInForcedVRMode" ), 1, TEXT( "When in forced VR mode, enabling this setting uses the mouse cursor as a virtual hand instead of motion controllers" ) );
 
@@ -109,7 +110,6 @@ FVREditorMode::FVREditorMode()
 	  CurrentScaleProgressMeshComponent( nullptr ),
 	  UserScaleIndicatorText( nullptr ),
 	  CurrentGizmoType( EGizmoHandleTypes::All ),
-	  UseAlternativeLaserPointerDirection( TEXT( "VREd.UseAlternativeLaserPointerDirection" ), 0, TEXT( "When enabled, the laser pointer direction will be rotated to make interactions more comfortable when seated" ) ),
 	  UISystem(),
 	  WorldInteraction()
 {
@@ -1008,14 +1008,20 @@ void FVREditorMode::Tick( FEditorViewportClient* ViewportClient, float DeltaTime
 					LaserPointerImpactPoint = Hand.HoverLocation;
 				}
 
+				// Apply rotation offset to the laser direction
+				const float LaserPointerRotationOffset = GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::OculusLaserPointerRotationOffset->GetFloat() : VREd::ViveLaserPointerRotationOffset->GetFloat();
+				Hand.LaserPointerMeshComponent->SetRelativeRotation( FRotator( LaserPointerRotationOffset, 0.0f, 0.0f ) );
+
+				const FVector LaserPointerDirection = ( LaserPointerImpactPoint - LaserPointerStart ).GetSafeNormal();
+
 				// Offset the beginning of the laser pointer a bit, so that it doesn't overlap the hand mesh
 				const float LaserPointerStartOffset =
 					GetWorldScaleFactor() *
 					( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::OculusLaserPointerStartOffset->GetFloat() : VREd::ViveLaserPointerStartOffset->GetFloat() );
-				Hand.LaserPointerMeshComponent->SetRelativeLocation( FVector( LaserPointerStartOffset, 0.0f, 0.0f ) );
 
-				const FVector LaserPointerDirection = ( LaserPointerImpactPoint - LaserPointerStart ).GetSafeNormal();
 				const float LaserPointerLength = FMath::Max( 0.000001f, ( LaserPointerImpactPoint - LaserPointerStart ).Size() - LaserPointerStartOffset );
+
+				Hand.LaserPointerMeshComponent->SetRelativeLocation( FRotator( LaserPointerRotationOffset, 0.0f, 0.0f ).RotateVector( FVector( LaserPointerStartOffset, 0.0f, 0.0f ) ) );
 
 				// The laser pointer needs to stay the same size relative to our tracking space, so we inverse compensate for world to meters scale here
 				float LaserPointerRadius = VREd::LaserPointerRadius->GetFloat() * GetWorldScaleFactor();
@@ -1665,14 +1671,8 @@ bool FVREditorMode::GetHandTransformAndForwardVector( int32 HandIndex, FTransfor
 	{
 		OutHandTransform = Hand.Transform;
 
-		if( UseAlternativeLaserPointerDirection->GetInt() > 0 )
-		{
-			OutForwardVector = OutHandTransform.GetRotation().RotateVector( FRotator( VREd::AlternativeLaserPointerRotationOffset->GetFloat(), 0.0f, 0.0f ).RotateVector( FVector( 1.0f, 0.0f, 0.0f ) ) );
-		}
-		else
-		{
-			OutForwardVector = OutHandTransform.GetRotation().RotateVector( FVector( 1.0f, 0.0f, 0.0f ) );
-		}
+		const float LaserPointerRotationOffset = GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ? VREd::OculusLaserPointerRotationOffset->GetFloat() : VREd::ViveLaserPointerRotationOffset->GetFloat();
+		OutForwardVector = OutHandTransform.GetRotation().RotateVector( FRotator( LaserPointerRotationOffset, 0.0f, 0.0f ).RotateVector( FVector( 1.0f, 0.0f, 0.0f ) ) );
 
 		return true;
 	}

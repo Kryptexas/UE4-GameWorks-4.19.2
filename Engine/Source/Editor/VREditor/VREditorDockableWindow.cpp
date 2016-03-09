@@ -279,7 +279,7 @@ void AVREditorDockableWindow::UpdateRelativeRoomTransform()
 	const FTransform WindowToWorldTransform = GetActorTransform();
 	const FTransform WindowToRoomTransform = WindowToWorldTransform * WorldToRoom;
 
-	const FVector RoomSpaceWindowLocation = WindowToRoomTransform.GetLocation() / GetOwner().GetOwner().GetWorldScaleFactor();
+	const FVector RoomSpaceWindowLocation = WindowToRoomTransform.GetLocation();
 	const FQuat RoomSpaceWindowRotation = WindowToRoomTransform.GetRotation();
 
 	RelativeOffset = RoomSpaceWindowLocation;

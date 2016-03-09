@@ -14,6 +14,7 @@ namespace VREd
 {
 	static FAutoConsoleVariable UIFadeSpeed( TEXT( "VREd.UIFadeSpeed" ), 6.0f, TEXT( "How fast UI should fade in and out" ) );
 	static FAutoConsoleVariable UIBrightness( TEXT( "VREd.UIBrightness" ), 0.3f, TEXT( "How bright the UI should be" ) );
+	static FAutoConsoleVariable UIOnHandRotationOffset( TEXT( "VREd.UIOnHandRotationOffset" ), 45.0f, TEXT( "Rotation offset for UI that's docked to your hand, to make it more comfortable to hold" ) );
 }
 
 
@@ -28,7 +29,6 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	  WidgetComponent( nullptr ),
 	  bShouldBeVisible(),
 	  FadeAlpha( 1.0f ),
-	  bRotateToHead( false ),
 	  LocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) ),
 	  bCollisionOnShowUI( true ),
 	  FadeDelay( 0.0f )
@@ -232,12 +232,12 @@ void AVREditorFloatingUI::UpdateTransformIfDocked()
 		
 		if( DockedTo == EDockedTo::LeftHand )
 		{
-			const bool bOnArm = true;
+			const bool bOnArm = false;
 			NewTransform = MakeUITransformLockedToHand( VREditorConstants::LeftHandIndex, bOnArm );
 		}
 		else if( DockedTo == EDockedTo::RightHand )
 		{
-			const bool bOnArm = true;
+			const bool bOnArm = false;
 			NewTransform = MakeUITransformLockedToHand( VREditorConstants::RightHandIndex, bOnArm );
 		}
 		else if( DockedTo == EDockedTo::LeftArm )
@@ -254,10 +254,6 @@ void AVREditorFloatingUI::UpdateTransformIfDocked()
 		{
 			NewTransform = MakeUITransformLockedToRoom();
 		}
-		else if (DockedTo == EDockedTo::Head)
-		{
-			NewTransform = MakeUITransformLockedToHead();
-		}
 		else if( DockedTo == EDockedTo::Custom )
 		{
 			NewTransform = MakeCustomUITransform();
@@ -265,11 +261,6 @@ void AVREditorFloatingUI::UpdateTransformIfDocked()
 		else
 		{
 			check( 0 );
-		}
-
-		if( bRotateToHead )
-		{
-			RotateToHead( NewTransform );
 		}
 
 		SetTransform( NewTransform );
@@ -309,11 +300,6 @@ void AVREditorFloatingUI::SetTransform( const FTransform& Transform )
 }
 
 
-void AVREditorFloatingUI::SetRotateToHead( const bool bInitRotateToHead )
-{
-	bRotateToHead = bInitRotateToHead;
-}
-
 void AVREditorFloatingUI::SetRelativeOffset( const FVector& InRelativeOffset )
 {
 	RelativeOffset = InRelativeOffset;
@@ -338,88 +324,32 @@ FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandInd
 {
 	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
 
-	const FTransform& HandTransform = Owner->GetOwner().GetVirtualHand( HandIndex ).Transform;
-
-	FVector UILocation;
-	FRotator UIRotation;
-	FTransform OnArmTransform;
-	
-	FTransform LocalTransform( LocalRotation.Quaternion(), FVector::ZeroVector );
-
-	if( bOnArm )
+	FTransform UIToHandTransform( LocalRotation, RelativeOffset );
+	if( !bOnArm )
 	{
-		OnArmTransform = LocalTransform * HandTransform;
-
-		const FVector HandForward = HandTransform.GetUnitAxis( EAxis::X );	
-		const FVector HandRight = HandTransform.GetUnitAxis( EAxis::Y );
-		const FVector HandUp = HandTransform.GetUnitAxis( EAxis::Z );
-
-		UILocation =
-			OnArmTransform.GetLocation() +
-			HandForward * RelativeOffset.X * WorldScaleFactor +
-			HandRight * RelativeOffset.Y * WorldScaleFactor +
-			HandUp * RelativeOffset.Z * WorldScaleFactor;
+		UIToHandTransform *= FTransform( FRotator( VREd::UIOnHandRotationOffset->GetFloat(), 0.0f, 0.0f ).Quaternion(), FVector::ZeroVector );
 	}
 
-	if ( !bRotateToHead )
-	{
-		UIRotation = ( OnArmTransform.GetRotation() ).Rotator();
-	}
+	const FTransform HandToWorldTransform = Owner->GetOwner().GetVirtualHand( HandIndex ).Transform;
 
-	const FTransform UITransform =
-		FTransform(
-			UIRotation,
-			UILocation,
-			FVector( Scale * WorldScaleFactor ) );
+	FTransform UIToWorldTransform = UIToHandTransform * HandToWorldTransform;
+	UIToWorldTransform.SetScale3D( FVector( Scale * WorldScaleFactor ) );
 
-	return UITransform;
-}
-
-void AVREditorFloatingUI::RotateToHead( FTransform& Transform )
-{
-	FRotator UIRotation;
-	const FVector HeadToUIDirection = ( Owner->GetOwner().GetHeadTransform().GetLocation() - Transform.GetLocation() ).GetSafeNormal();
-	UIRotation = HeadToUIDirection.ToOrientationRotator();
-	UIRotation.Roll = 0.0f;
-
-	Transform.SetRotation( FQuat( UIRotation ) );
+	return UIToWorldTransform;
 }
 
 FTransform AVREditorFloatingUI::MakeUITransformLockedToRoom()
 {
-	FVector UILocation;
-	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
-	const FTransform RoomTransform = Owner->GetOwner().GetRoomTransform();
-	
-	const FVector RoomForward = RoomTransform.GetUnitAxis( EAxis::X );
-	const FVector RoomRight = RoomTransform.GetUnitAxis( EAxis::Y );
-	const FVector RoomUp = RoomTransform.GetUnitAxis( EAxis::Z );
-
-	UILocation =
-		RoomTransform.GetLocation() +
-		RoomForward * RelativeOffset.X * WorldScaleFactor +
-		RoomRight * RelativeOffset.Y * WorldScaleFactor +
-		RoomUp * RelativeOffset.Z * WorldScaleFactor;
-
-	return FTransform(
-		LocalRotation + RoomTransform.GetRotation().Rotator(),
-		UILocation,
-		FVector( Scale * WorldScaleFactor ) );
-}
-
-FTransform AVREditorFloatingUI::MakeUITransformLockedToHead()
-{
-	FTransform Result;
 	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
 
-	FVector HeadWorldLocation = Owner->GetOwner().GetHeadTransform().GetLocation();
-	FVector RoomWorldLocation = Owner->GetOwner().GetRoomTransform().GetLocation();
-	FVector NewLocation = FVector( HeadWorldLocation.X, HeadWorldLocation.Y, RoomWorldLocation.Z );
-	
-	Result.SetLocation( NewLocation + ( RelativeOffset * WorldScaleFactor ) );
-	Result.SetScale3D( FVector( Scale * WorldScaleFactor ) );
-	
-	return Result;
+	const FTransform UIToRoomTransform( LocalRotation, RelativeOffset );
+
+	const FTransform RoomToWorldTransform = Owner->GetOwner().GetRoomTransform();
+
+	FTransform UIToWorldTransform = UIToRoomTransform * RoomToWorldTransform;
+	UIToWorldTransform.SetScale3D( FVector( Scale * WorldScaleFactor ) );
+
+	return UIToWorldTransform;
 }
 
 void AVREditorFloatingUI::SetDockedTo( const EDockedTo NewDockedTo )
