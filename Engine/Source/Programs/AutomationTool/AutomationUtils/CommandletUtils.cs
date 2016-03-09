@@ -301,18 +301,22 @@ namespace AutomationTool
 				// Dump them all to the log
 				foreach(FileInfo CrashFileInfo in CrashFileInfos)
 				{
-					CommandUtils.LogWarning("Found crash log - {0}:", CrashFileInfo.FullName);
-					try
+					// snmpd seems to often crash (suspect due to it being starved of CPU cycles during cooks)
+					if(!CrashFileInfo.Name.StartsWith("snmpd_"))
 					{
-						string[] Lines = File.ReadAllLines(CrashFileInfo.FullName);
-						foreach(string Line in Lines)
+						CommandUtils.Log("Found crash log - {0}", CrashFileInfo.FullName);
+						try
 						{
-							CommandUtils.Log("CrashDump: {0}", Line);
+							string[] Lines = File.ReadAllLines(CrashFileInfo.FullName);
+							foreach(string Line in Lines)
+							{
+								CommandUtils.Log("Crash: {0}", Line);
+							}
 						}
-					}
-					catch(Exception Ex)
-					{
-						CommandUtils.LogWarning("Failed to read file ({0})", Ex.Message);
+						catch(Exception Ex)
+						{
+							CommandUtils.LogWarning("Failed to read file ({0})", Ex.Message);
+						}
 					}
 				}
 			}
