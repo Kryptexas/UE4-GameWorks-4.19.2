@@ -386,7 +386,7 @@ void SAuthorizingPlugin::ShowStorePageForPlugin()
 
 	if ( DesktopPlatform != nullptr )
 	{
-		FOpenLauncherOptions StorePageOpen(FString(TEXT("/ue/marketplace/offers/")) + PluginOfferId);
+		FOpenLauncherOptions StorePageOpen(FString(TEXT("/ue/marketplace/content/")) + PluginOfferId);
 		DesktopPlatform->OpenLauncher(StorePageOpen);
 	}
 }
