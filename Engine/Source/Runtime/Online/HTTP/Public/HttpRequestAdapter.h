@@ -30,6 +30,7 @@ public:
 	virtual void                          SetContent(const TArray<uint8>& ContentPayload) override                 { HttpRequest->SetContent(ContentPayload); }
 	virtual void                          SetContentAsString(const FString& ContentString) override                 { HttpRequest->SetContentAsString(ContentString); }
 	virtual void                          SetHeader(const FString& HeaderName, const FString& HeaderValue) override { HttpRequest->SetHeader(HeaderName, HeaderValue); }
+	virtual void                          AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue) override { HttpRequest->AppendToHeader(HeaderName, AdditionalHeaderValue); }
 	virtual const FHttpResponsePtr        GetResponse() const override                                             { return HttpRequest->GetResponse(); }
 	virtual float                         GetElapsedTime() override                                                { return HttpRequest->GetElapsedTime(); }
 	virtual EHttpRequestStatus::Type	  GetStatus() override { return HttpRequest->GetStatus(); }

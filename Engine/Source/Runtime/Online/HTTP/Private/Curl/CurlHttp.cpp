@@ -198,6 +198,22 @@ void FCurlHttpRequest::SetHeader(const FString& HeaderName, const FString& Heade
 	Headers.Add(HeaderName, HeaderValue);
 }
 
+void FCurlHttpRequest::AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue)
+{
+	if (!HeaderName.IsEmpty() && !AdditionalHeaderValue.IsEmpty())
+	{
+		FString* PreviousValue = Headers.Find(HeaderName);
+		FString NewValue;
+		if (PreviousValue != nullptr && !PreviousValue->IsEmpty())
+		{
+			NewValue = (*PreviousValue) + TEXT(", ");
+		}
+		NewValue += AdditionalHeaderValue;
+
+		SetHeader(HeaderName, NewValue);
+	}
+}
+
 FString FCurlHttpRequest::GetVerb()
 {
 	return Verb;
@@ -269,15 +285,25 @@ size_t FCurlHttpRequest::ReceiveResponseHeaderCallback(void* Ptr, size_t SizeInB
 
 			UE_LOG(LogHttp, Verbose, TEXT("%p: Received response header '%s'."), this, *Header);
 
-			FString HeaderName, Param;
-			if (Header.Split(TEXT(": "), &HeaderName, &Param))
+			FString HeaderKey, HeaderValue;
+			if (Header.Split(TEXT(": "), &HeaderKey, &HeaderValue))
 			{
-				Response->Headers.Add(HeaderName, Param);
-
-				//Store the content length so OnRequestProgress() delegates have something to work with
-				if (HeaderName == TEXT("Content-Length"))
+				if (!HeaderKey.IsEmpty() && !HeaderValue.IsEmpty())
 				{
-					Response->ContentLength = FCString::Atoi(*Param);
+					FString* PreviousValue = Response->Headers.Find(HeaderKey);
+					FString NewValue;
+					if (PreviousValue != nullptr && !PreviousValue->IsEmpty())
+					{
+						NewValue = (*PreviousValue) + TEXT(", ");
+					}
+					NewValue += HeaderValue;
+					Response->Headers.Add(HeaderKey, NewValue);
+
+					//Store the content length so OnRequestProgress() delegates have something to work with
+					if (HeaderKey == TEXT("Content-Length"))
+					{
+						Response->ContentLength = FCString::Atoi(*HeaderValue);
+					}
 				}
 			}
 			return HeaderSize;

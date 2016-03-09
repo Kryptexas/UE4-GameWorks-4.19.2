@@ -113,13 +113,29 @@ namespace EClientLoginState
 };
 
 #if DO_ENABLE_NET_TEST
-//
-// A lagged packet
-//
+/**
+ * An artificially lagged packet
+ */
 struct DelayedPacket
 {
+	/** The packet data to send */
 	TArray<uint8> Data;
+
+	/** The size of the packet in bits */
+	int32 SizeBits;
+
+	/** The time at which to send the packet */
 	double SendTime;
+
+public:
+	FORCEINLINE DelayedPacket(uint8* InData, int32 InSizeBytes, int32 InSizeBits)
+		: Data()
+		, SizeBits(InSizeBits)
+		, SendTime(0.0)
+	{
+		Data.AddUninitialized(InSizeBytes);
+		FMemory::Memcpy(Data.GetData(), InData, InSizeBytes);
+	}
 };
 #endif
 
@@ -203,8 +219,13 @@ public:
 	
 	uint32 bPendingDestroy:1;    // when true, playercontroller or beaconclient is being destroyed
 
-	// Packet Handler
+
+	/** PacketHandler, for managing layered handler components, which modify packets as they are sent/received */
 	TUniquePtr<PacketHandler> Handler;
+
+	/** Reference to the PacketHandler component, for managing stateless connection handshakes */
+	TWeakPtr<StatelessConnectHandlerComponent> StatelessConnectComponent;
+
 
 	/** Whether this channel needs to byte swap all data or not */
 	bool			bNeedsByteSwapping;
@@ -416,10 +437,13 @@ public:
 	/**
 	 * Sends a byte stream to the remote endpoint using the underlying socket
 	 *
-	 * @param Data the byte stream to send
-	 * @param Count the length of the stream to send
+	 * @param Data			The byte stream to send
+	 * @param CountBytes	The length of the stream to send, in bytes
+	 * @param CountBits		The length of the stream to send, in bits (to support bit-level additions to packets, from PacketHandler's)
 	 */
-	virtual void LowLevelSend( void* Data, int32 Count ) PURE_VIRTUAL(UNetConnection::LowLevelSend,); //!! "Looks like an FArchive"
+	// @todo: Deprecate 'CountBytes' eventually
+	ENGINE_API virtual void LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
+		PURE_VIRTUAL(UNetConnection::LowLevelSend,);
 
 	/** Validates the FBitWriter to make sure it's not in an error state */
 	ENGINE_API virtual void ValidateSendBuffer();

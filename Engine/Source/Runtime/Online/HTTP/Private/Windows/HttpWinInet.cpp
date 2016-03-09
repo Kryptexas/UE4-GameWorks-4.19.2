@@ -439,6 +439,22 @@ void FHttpRequestWinInet::SetHeader(const FString& HeaderName, const FString& He
 	RequestHeaders.Add(HeaderName, HeaderValue);
 }
 
+void FHttpRequestWinInet::AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue)
+{
+	if (!HeaderName.IsEmpty() && !AdditionalHeaderValue.IsEmpty())
+	{
+		FString* PreviousValue = RequestHeaders.Find(HeaderName);
+		FString NewValue;
+		if (PreviousValue != nullptr && !PreviousValue->IsEmpty())
+		{
+			NewValue = (*PreviousValue) + TEXT(", ");
+		}
+		NewValue += AdditionalHeaderValue;
+
+		SetHeader(HeaderName, NewValue);
+	}
+}
+
 bool FHttpRequestWinInet::ProcessRequest()
 {
 	bool bStarted = false;
@@ -1056,9 +1072,16 @@ void FHttpResponseWinInet::ProcessResponseHeaders()
 			FString HeaderKey,HeaderValue;
 			if (HeaderLine.Split(TEXT(":"), &HeaderKey, &HeaderValue, ESearchCase::CaseSensitive))
 			{
-				if (!HeaderKey.IsEmpty())
+				if (!HeaderKey.IsEmpty() && !HeaderValue.IsEmpty())
 				{
-					ResponseHeaders.Add(HeaderKey, HeaderValue.Trim());
+					FString* PreviousValue = ResponseHeaders.Find(HeaderKey);
+					FString NewValue;
+					if (PreviousValue != nullptr && !PreviousValue->IsEmpty())
+					{
+						NewValue = (*PreviousValue) + TEXT(", ");
+					}
+					NewValue += HeaderValue;
+					ResponseHeaders.Add(HeaderKey, NewValue);
 				}
 			}
 			HeaderPtr = DelimiterPtr + 2;

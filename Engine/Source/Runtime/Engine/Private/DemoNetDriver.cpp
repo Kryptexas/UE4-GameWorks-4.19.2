@@ -4,6 +4,11 @@
 	UDemoNetDriver.cpp: Simulated network driver for recording and playing back game sessions.
 =============================================================================*/
 
+
+// @todo: LowLevelSend now includes the packet size in bits, but this is ignored locally.
+//			Tracking of this must be added, if demos are to support PacketHandler's in the future (not presently needed).
+
+
 #include "EnginePrivate.h"
 #include "Engine/DemoNetDriver.h"
 #include "Engine/DemoNetConnection.h"
@@ -1355,7 +1360,9 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	for ( int32 i = 0; i < ClientDemoConnection->QueuedDemoPackets.Num(); i++ )
 	{
-		ClientDemoConnection->LowLevelSend( (char*)&ClientDemoConnection->QueuedDemoPackets[i].Data[0], ClientDemoConnection->QueuedDemoPackets[i].Data.Num() );
+		FQueuedDemoPacket& CurPacket = ClientDemoConnection->QueuedDemoPackets[i];
+
+		ClientDemoConnection->LowLevelSend((char*)&CurPacket.Data[0], CurPacket.Data.Num(), CurPacket.SizeBits);
 	}
 
 	ClientDemoConnection->QueuedDemoPackets.Empty();
@@ -1743,11 +1750,11 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		CVarGotoTimeInSeconds.AsVariable()->Set( TEXT( "-1" ), ECVF_SetByConsole );
 	}
 
-	if ( CVarDemoSkipTime.GetValueOnGameThread() > 0 )
+	if (FMath::Abs(CVarDemoSkipTime.GetValueOnGameThread()) > 0.0f)
 	{
 		// Just overwrite existing value, cvar wins in this case
-		SkipTime( CVarDemoSkipTime.GetValueOnGameThread() );
-		CVarDemoSkipTime.AsVariable()->Set( TEXT( "0" ), ECVF_SetByConsole );
+		GotoTimeInSeconds(DemoCurrentTime + CVarDemoSkipTime.GetValueOnGameThread());
+		CVarDemoSkipTime.AsVariable()->Set(TEXT("0"), ECVF_SetByConsole);
 	}
 
 	if ( !ProcessReplayTasks() )
@@ -2326,7 +2333,7 @@ FString UDemoNetConnection::LowLevelGetRemoteAddress( bool bAppendPort )
 	return TEXT( "UDemoNetConnection" );
 }
 
-void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
+void UDemoNetConnection::LowLevelSend(void* Data, int32 CountBytes, int32 CountBits)
 {
 	if ( GetDriver()->bSavingCheckpoint )
 	{
@@ -2337,22 +2344,22 @@ void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 			return;
 		}
 	
-		*CheckpointArchive << Count;
-		CheckpointArchive->Serialize( Data, Count );
+		*CheckpointArchive << CountBytes;
+		CheckpointArchive->Serialize(Data, CountBytes);
 
-		TrackSendForProfiler( Data, Count );
+		TrackSendForProfiler(Data, CountBytes);
 		return;
 	}
 
-	if ( Count == 0 )
+	if ( CountBytes == 0 )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LowLevelSend: Ignoring empty packet." ) );
 		return;
 	}
 
-	if ( Count > MAX_DEMO_READ_WRITE_BUFFER )
+	if ( CountBytes > MAX_DEMO_READ_WRITE_BUFFER )
 	{
-		UE_LOG( LogDemo, Fatal, TEXT( "UDemoNetConnection::LowLevelSend: Count > MAX_DEMO_READ_WRITE_BUFFER." ) );
+		UE_LOG( LogDemo, Fatal, TEXT( "UDemoNetConnection::LowLevelSend: CountBytes > MAX_DEMO_READ_WRITE_BUFFER." ) );
 	}
 
 	FArchive* FileAr = GetDriver()->ReplayStreamer->GetStreamingArchive();
@@ -2362,19 +2369,18 @@ void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 		// If we're outside of an official demo frame, we need to queue this up or it will throw off the stream
 		if ( !GetDriver()->bIsRecordingDemoFrame )
 		{
-			FQueuedDemoPacket & B = *( new( QueuedDemoPackets )FQueuedDemoPacket );
-			B.Data.AddUninitialized( Count );
-			FMemory::Memcpy( B.Data.GetData(), Data, Count );
+			new( QueuedDemoPackets )FQueuedDemoPacket((uint8*)Data, CountBytes, CountBits);
+
 			return;
 		}
 
-		*FileAr << Count;
-		FileAr->Serialize( Data, Count );
+		*FileAr << CountBytes;
+		FileAr->Serialize( Data, CountBytes);
 		
-		TrackSendForProfiler( Data, Count );
+		TrackSendForProfiler( Data, CountBytes );
 		
 #if DEMO_CHECKSUMS == 1
-		uint32 Checksum = FCrc::MemCrc32( Data, Count, 0 );
+		uint32 Checksum = FCrc::MemCrc32( Data, CountBytes, 0 );
 		*FileAr << Checksum;
 #endif
 	}

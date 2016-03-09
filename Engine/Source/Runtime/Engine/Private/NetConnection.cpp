@@ -47,6 +47,8 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	InternalAck			( false )
 ,	MaxPacketHandlerBits ( 0 )
 ,	State				( USOCK_Invalid )
+,	Handler()
+,	StatelessConnectComponent()
 ,	PacketOverhead		( 0 )
 ,	ResponseId			( 0 )
 
@@ -210,7 +212,23 @@ void UNetConnection::InitHandler()
 	if (Handler.IsValid())
 	{
 		Handler::Mode Mode = Driver->ServerConnection != nullptr ? Handler::Mode::Client : Handler::Mode::Server;
+
 		Handler->Initialize(Mode);
+
+
+		// Add handling for the stateless connect handshake, for connectionless packets, as the outermost layer
+		TSharedPtr<HandlerComponent> NewComponent =
+			Handler->AddHandler(TEXT("Engine.EngineHandlerComponentFactory(StatelessConnectHandlerComponent)"), true);
+
+		StatelessConnectComponent = StaticCastSharedPtr<StatelessConnectHandlerComponent>(NewComponent);
+
+		if (StatelessConnectComponent.IsValid())
+		{
+			StatelessConnectComponent.Pin()->SetDriver(Driver);
+		}
+
+
+		Handler->InitializeComponents();
 
 		MaxPacketHandlerBits = Handler->GetTotalPacketOverheadBits();
 	}
@@ -499,7 +517,7 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 	{
 		const ProcessedPacket UnProcessedPacket = Handler->Incoming(Data, Count);
 
-		Count = UnProcessedPacket.Count;
+		Count = FMath::DivideAndRoundUp(UnProcessedPacket.CountBits, 8);
 
 		if (Count > 0)
 		{
@@ -585,14 +603,12 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			// Checked in FlushNet() so each child class doesn't have to implement this
 			if (Driver->IsNetResourceValid())
 			{
-				LowLevelSend(SendBuffer.GetData(), SendBuffer.GetNumBytes());
+				LowLevelSend(SendBuffer.GetData(), SendBuffer.GetNumBytes(), SendBuffer.GetNumBits());
 			}
 		}
 		else if( PacketSimulationSettings.PktOrder )
 		{
-			DelayedPacket& B = *(new(Delayed)DelayedPacket);
-			B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
-			FMemory::Memcpy( B.Data.GetData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+			DelayedPacket& B = *(new(Delayed)DelayedPacket(SendBuffer.GetData(), SendBuffer.GetNumBytes(), SendBuffer.GetNumBits()));
 
 			for( int32 i=Delayed.Num()-1; i>=0; i-- )
 			{
@@ -603,7 +619,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 						// Checked in FlushNet() so each child class doesn't have to implement this
 						if (Driver->IsNetResourceValid())
 						{
-							LowLevelSend( (char*)&Delayed[i].Data[0], Delayed[i].Data.Num() );
+							LowLevelSend( (char*)&Delayed[i].Data[0], Delayed[i].Data.Num(), Delayed[i].SizeBits );
 						}
 					}
 					Delayed.RemoveAt( i );
@@ -614,9 +630,8 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		{
 			if( !PacketSimulationSettings.PktLoss || FMath::FRand()*100.f > PacketSimulationSettings.PktLoss )
 			{
-				DelayedPacket& B = *(new(Delayed)DelayedPacket);
-				B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
-				FMemory::Memcpy( B.Data.GetData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+				DelayedPacket& B = *(new(Delayed)DelayedPacket(SendBuffer.GetData(), SendBuffer.GetNumBytes(), SendBuffer.GetNumBits()));
+
 				B.SendTime = FPlatformTime::Seconds() + (double(PacketSimulationSettings.PktLag)  + 2.0f * (FMath::FRand() - 0.5f) * double(PacketSimulationSettings.PktLagVariance))/ 1000.f;
 			}
 		}
@@ -626,7 +641,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			// Checked in FlushNet() so each child class doesn't have to implement this
 			if (Driver->IsNetResourceValid())
 			{
-				LowLevelSend( SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+				LowLevelSend(SendBuffer.GetData(), SendBuffer.GetNumBytes(), SendBuffer.GetNumBits());
 			}
 #if DO_ENABLE_NET_TEST
 			if( PacketSimulationSettings.PktDup && FMath::FRand()*100.f < PacketSimulationSettings.PktDup )
@@ -634,7 +649,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 				// Checked in FlushNet() so each child class doesn't have to implement this
 				if (Driver->IsNetResourceValid())
 				{
-					LowLevelSend( (char*)SendBuffer.GetData(), SendBuffer.GetNumBytes() );
+					LowLevelSend((char*)SendBuffer.GetData(), SendBuffer.GetNumBytes(), SendBuffer.GetNumBits());
 				}
 			}
 		}
@@ -1436,7 +1451,7 @@ void UNetConnection::Tick()
 		{
 			if( FPlatformTime::Seconds() > Delayed[i].SendTime )
 			{
-				LowLevelSend( (char*)&Delayed[i].Data[0], Delayed[i].Data.Num() );
+				LowLevelSend((char*)&Delayed[i].Data[0], Delayed[i].Data.Num(), Delayed[i].SizeBits);
 				Delayed.RemoveAt( i );
 				i--;
 			}
@@ -1510,15 +1525,6 @@ void UNetConnection::Tick()
 	// Compute time passed since last update.
 	const float DeltaTime	= Driver->Time - LastTickTime;
 	LastTickTime			= Driver->Time;
-
-	// Check to see if too much time is passing between ticks
-	// Setting this to somewhat large value for now, but small enough to catch blocking calls that are causing timeouts
-	const float TickLogThreshold = 5.0f;
-
-	if ( DeltaTime > TickLogThreshold || FrameTime > TickLogThreshold )
-	{
-		UE_LOG( LogNet, Log, TEXT( "UNetConnection::Tick: Very long time between ticks. DeltaTime: %2.2f, Realtime: %2.2f %s" ), DeltaTime, FrameTime, *Describe() );
-	}
 
 	// Handle timeouts.
 	const float Timeout = GetTimeoutValue();
@@ -1622,7 +1628,7 @@ void UNetConnection::Tick()
 		/* Send all queued packets */
 		while(QueuedPacket != nullptr)
 		{
-			LowLevelSend(QueuedPacket->Data, QueuedPacket->BytesCount);
+			LowLevelSend(QueuedPacket->Data, FMath::DivideAndRoundUp(QueuedPacket->CountBits, 8u), QueuedPacket->CountBits);
 			delete QueuedPacket;
 			QueuedPacket = Handler->GetQueuedPacket();
 		}

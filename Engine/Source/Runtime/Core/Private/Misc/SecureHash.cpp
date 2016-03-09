@@ -731,6 +731,64 @@ void FSHA1::HashBuffer(const void* Data, uint32 DataSize, uint8* OutHash)
 	Sha.GetHash(OutHash);
 }
 
+void FSHA1::HMACBuffer(const void* Key, uint32 KeySize, const void* Data, uint32 DataSize, uint8* OutHash)
+{
+	const uint8 BlockSize = 64;
+	const uint8 HashSize = 20;
+	uint8 FinalKey[BlockSize];
+
+	// Fit 'Key' into a BlockSize-aligned 'FinalKey' value
+	if (KeySize > BlockSize)
+	{
+		HashBuffer(Key, KeySize, FinalKey);
+
+		FMemory::Memzero(FinalKey + HashSize, BlockSize - HashSize);
+	}
+	else if (KeySize < BlockSize)
+	{
+		FMemory::Memcpy(FinalKey, Key, KeySize);
+		FMemory::Memzero(FinalKey + KeySize, BlockSize - KeySize);
+	}
+	else
+	{
+		FMemory::Memcpy(FinalKey, Key, KeySize);
+	}
+
+
+	uint8 OKeyPad[BlockSize];
+	uint8 IKeyPad[BlockSize];
+
+	for (int32 i=0; i<BlockSize; i++)
+	{
+		OKeyPad[i] = 0x5C ^ FinalKey[i];
+		IKeyPad[i] = 0x36 ^ FinalKey[i];
+	}
+
+
+	// Start concatenating/hashing the pads/data etc: Hash(OKeyPad + Hash(IKeyPad + Data))
+	uint8* IKeyPad_Data = new uint8[ARRAY_COUNT(IKeyPad) + DataSize];
+
+	FMemory::Memcpy(IKeyPad_Data, IKeyPad, ARRAY_COUNT(IKeyPad));
+	FMemory::Memcpy(IKeyPad_Data + ARRAY_COUNT(IKeyPad), Data, DataSize);
+
+
+	uint8 IKeyPad_Data_Hash[HashSize];
+
+	HashBuffer(IKeyPad_Data, ARRAY_COUNT(IKeyPad) + DataSize, IKeyPad_Data_Hash);
+
+	delete[] IKeyPad_Data;
+
+
+	uint8 OKeyPad_IHash[ARRAY_COUNT(OKeyPad) + HashSize];
+
+	FMemory::Memcpy(OKeyPad_IHash, OKeyPad, ARRAY_COUNT(OKeyPad));
+	FMemory::Memcpy(OKeyPad_IHash + ARRAY_COUNT(OKeyPad), IKeyPad_Data_Hash, HashSize);
+
+
+	// Output the final hash
+	HashBuffer(OKeyPad_IHash, ARRAY_COUNT(OKeyPad_IHash), OutHash);
+}
+
 
 /**
  * Shared hashes.sha reading code (each platform gets a buffer to the data,

@@ -229,6 +229,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 		// Suspend the game, until a resume request is received (used for giving time, to attach a debugger)
 		else if (CmdType == ENUTControlCommand::SuspendProcess)
 		{
+#if PLATFORM_WINDOWS
 			UE_LOG(LogUnitTest, Log, TEXT("Suspend start."));
 
 
@@ -273,6 +274,9 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 			ResumePipe.Destroy();
 
 			UE_LOG(LogUnitTest, Log, TEXT("Suspend end."));
+#else
+			UE_LOG(LogUnitTest, Log, TEXT("Suspend/Resume is only supported in Windows."));
+#endif
 		}
 
 		bHandledMessage = true;

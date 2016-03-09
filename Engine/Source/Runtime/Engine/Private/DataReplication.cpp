@@ -196,7 +196,7 @@ void FObjectReplicator::InitWithObject( UObject* InObject, UNetConnection * InCo
 	RepLayout = Connection->Driver->GetObjectClassRepLayout( ObjectClass );
 
 	// Make a copy of the net properties
-	uint8* Source = bUseDefaultState ? (uint8*)GetObject()->GetClass()->GetDefaultObject() : (uint8*)InObject;
+	uint8* Source = bUseDefaultState ? (uint8*)GetObject()->GetArchetype() : (uint8*)InObject;
 
 	InitRecentProperties( Source );
 

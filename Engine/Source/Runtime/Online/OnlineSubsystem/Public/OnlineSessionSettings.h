@@ -571,7 +571,7 @@ public:
 	/** Constructor */
 	FOnlineSessionSearch() :
 		SearchState(EOnlineAsyncTaskState::NotStarted),
-		MaxSearchResults(0),
+		MaxSearchResults(1),
 		bIsLanQuery(false),
 		PingBucketSize(0),
 		TimeoutInSeconds(0.0f)

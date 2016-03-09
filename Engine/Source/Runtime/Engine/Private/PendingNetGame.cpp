@@ -38,15 +38,24 @@ void UPendingNetGame::InitNetDriver()
 
 		if( NetDriver->InitConnect( this, URL, ConnectionError ) )
 		{
+			UNetConnection* ServerConn = NetDriver->ServerConnection;
+
+			// Kick off the connection handshake
+			if (ServerConn->StatelessConnectComponent.IsValid())
+			{
+				ServerConn->StatelessConnectComponent.Pin()->SendInitialConnect();
+			}
+
+
 			// Send initial message.
 			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
 			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
 			
 			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
 
-			FNetControlMessage<NMT_Hello>::Send( NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion );
+			FNetControlMessage<NMT_Hello>::Send(ServerConn, IsLittleEndian, LocalNetworkVersion);
 
-			NetDriver->ServerConnection->FlushNet();
+			ServerConn->FlushNet();
 		}
 		else
 		{

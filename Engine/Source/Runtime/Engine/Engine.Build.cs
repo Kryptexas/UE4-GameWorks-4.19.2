@@ -76,6 +76,7 @@ public class Engine : ModuleRules
 				"SynthBenchmark",
                 "AIModule",
 				"DatabaseSupport",
+                "PacketHandler"
 			}
 		);
 
@@ -100,7 +101,6 @@ public class Engine : ModuleRules
 				"Projects",
 				"Niagara",
                 "Internationalization",
-                "PacketHandler",
                 "MaterialShaderQualitySettings",
 			}
         );

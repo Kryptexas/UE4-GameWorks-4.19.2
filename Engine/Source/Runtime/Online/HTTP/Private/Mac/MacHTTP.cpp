@@ -81,6 +81,23 @@ void FMacHttpRequest::SetHeader(const FString& HeaderName, const FString& Header
 	[Request setValue: HeaderValue.GetNSString() forHTTPHeaderField: HeaderName.GetNSString()];
 }
 
+void FMacHttpRequest::AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue)
+{
+    if (!HeaderName.IsEmpty() && !AdditionalHeaderValue.IsEmpty())
+    {
+        NSDictionary* Headers = [Request allHTTPHeaderFields];
+        NSString* PreviousHeaderValuePtr = [Headers objectForKey: HeaderName.GetNSString()];
+        FString PreviousValue(PreviousHeaderValuePtr);
+		FString NewValue;
+		if (PreviousValue != nullptr && !PreviousValue.IsEmpty())
+		{
+			NewValue = PreviousValue + TEXT(", ");
+		}
+		NewValue += AdditionalHeaderValue;
+
+        SetHeader(HeaderName, NewValue);
+	}
+}
 
 TArray<FString> FMacHttpRequest::GetAllHeaders()
 {

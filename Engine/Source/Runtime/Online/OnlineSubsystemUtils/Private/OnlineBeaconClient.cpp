@@ -75,6 +75,14 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 			FString Error;
 			if (NetDriver->InitConnect(this, URL, Error))
 			{
+				BeaconConnection = NetDriver->ServerConnection;
+
+				// Kick off the connection handshake
+				if (BeaconConnection->StatelessConnectComponent.IsValid())
+				{
+					BeaconConnection->StatelessConnectComponent.Pin()->SendInitialConnect();
+				}
+
 				SetConnectionState(EBeaconConnectionState::Pending);
 
 				NetDriver->SetWorld(GetWorld());
@@ -85,7 +93,6 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 				// Send initial message.
 				uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
 				check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
-				BeaconConnection = NetDriver->ServerConnection;
 
 				uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
 				

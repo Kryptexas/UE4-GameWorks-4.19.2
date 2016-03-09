@@ -174,6 +174,9 @@ bool UIpNetDriver::InitListen( FNetworkNotify* InNotify, FURL& LocalURL, bool bR
 		return false;
 	}
 
+
+	InitConnectionlessHandler();
+
 	// Update result URL.
 	//LocalURL.Host = LocalAddr->ToString(false);
 	LocalURL.Port = LocalAddr->GetPort();
@@ -193,7 +196,10 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 
 	// Process all incoming packets.
 	uint8 Data[MAX_PACKET_SIZE];
+	uint8* DataRef = Data;
+	bool bIgnorePacket = false;
 	TSharedRef<FInternetAddr> FromAddr = SocketSubsystem->CreateInternetAddr();
+
 	for( ; Socket != NULL; )
 	{
 		{
@@ -207,12 +213,21 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 		}
 
 		int32 BytesRead = 0;
+
 		// Get data, if any.
 		CLOCK_CYCLES(RecvCycles);
 		bool bOk = Socket->RecvFrom(Data, sizeof(Data), BytesRead, *FromAddr);
 		UNCLOCK_CYCLES(RecvCycles);
-		// Handle result.
-		if( bOk == false )
+
+		if (bOk)
+		{
+			// Immediately stop processing, for empty packets (usually a DDoS)
+			if (BytesRead == 0)
+			{
+				break;
+			}
+		}
+		else
 		{
 			ESocketErrors Error = SocketSubsystem->GetLastErrorCode();
 			if(Error == SE_EWOULDBLOCK ||
@@ -317,22 +332,59 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 			if( !Connection )
 			{
 				// Determine if allowing for client/server connections
-				const bool bAcceptingConnection = Notify->NotifyAcceptingConnection() == EAcceptConnection::Accept;
+				const bool bAcceptingConnection = Notify != nullptr && Notify->NotifyAcceptingConnection() == EAcceptConnection::Accept;
 
 				if (bAcceptingConnection)
 				{
-					Connection = NewObject<UIpConnection>(GetTransientPackage(), NetConnectionClass);
-                    check(Connection);
-					Connection->InitRemoteConnection( this, Socket,  FURL(), *FromAddr, USOCK_Open);
-					Notify->NotifyAcceptedConnection( Connection );
-					AddClientConnection(Connection);
+					bool bPassedChallenge = false;
+
+					bIgnorePacket = true;
+
+					if (ConnectionlessHandler.IsValid() && StatelessConnectComponent.IsValid())
+					{
+						TSharedPtr<StatelessConnectHandlerComponent> StatelessConnect = StatelessConnectComponent.Pin();
+						FString IncomingAddress = FromAddr->ToString(true);
+
+						const ProcessedPacket UnProcessedPacket =
+												ConnectionlessHandler->IncomingConnectionless(IncomingAddress, DataRef, BytesRead);
+
+						bPassedChallenge = StatelessConnect->HasPassedChallenge(IncomingAddress);
+
+						if (bPassedChallenge)
+						{
+							BytesRead = FMath::DivideAndRoundUp(UnProcessedPacket.CountBits, 8);
+
+							if (BytesRead > 0)
+							{
+								DataRef = UnProcessedPacket.Data;
+								bIgnorePacket = false;
+							}
+						}
+					}
+					else
+					{
+						UE_LOG(LogNet, Log,
+								TEXT("Invalid ConnectionlessHandler (%i) or StatelessConnectComponent (%i); can't accept connections."),
+								(int32)(ConnectionlessHandler.IsValid()), (int32)(StatelessConnectComponent.IsValid()));
+					}
+
+					if (bPassedChallenge)
+					{
+						UE_LOG(LogNet, Log, TEXT("Server accepting post-challenge connection from: %s"), *FromAddr->ToString(true));
+
+						Connection = NewObject<UIpConnection>(GetTransientPackage(), NetConnectionClass);
+						check(Connection);
+						Connection->InitRemoteConnection( this, Socket,  FURL(), *FromAddr, USOCK_Open);
+						Notify->NotifyAcceptedConnection( Connection );
+						AddClientConnection(Connection);
+					}
 				}
 			}
 
 			// Send the packet to the connection for processing.
-			if( Connection )
+			if (Connection && !bIgnorePacket)
 			{
-				Connection->ReceivedRawPacket( Data, BytesRead );
+				Connection->ReceivedRawPacket( DataRef, BytesRead );
 			}
 		}
 	}
@@ -343,6 +395,48 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	if (DeltaReceiveTime > GIpNetDriverLongFramePrintoutThresholdSecs)
 	{
 		UE_LOG( LogNet, Warning, TEXT( "UIpNetDriver::TickDispatch: Took too long to receive packets. Time: %2.2f %s" ), DeltaReceiveTime, *GetName() );
+	}
+}
+
+void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
+{
+	bool bValidAddress = !Address.IsEmpty();
+	TSharedRef<FInternetAddr> RemoteAddr = GetSocketSubsystem()->CreateInternetAddr();
+
+	if (bValidAddress)
+	{
+		RemoteAddr->SetIp(*Address, bValidAddress);
+	}
+
+	if (bValidAddress)
+	{
+		const uint8* DataToSend = reinterpret_cast<uint8*>(Data);
+
+		if (ConnectionlessHandler.IsValid())
+		{
+			const ProcessedPacket ProcessedData =
+					ConnectionlessHandler->OutgoingConnectionless(Address, (uint8*)DataToSend, CountBits);
+
+			DataToSend = ProcessedData.Data;
+			CountBits = ProcessedData.CountBits;
+		}
+
+
+		int32 BytesSent = 0;
+
+		CLOCK_CYCLES(SendCycles);
+		Socket->SendTo(DataToSend, FMath::DivideAndRoundUp(CountBits, 8), BytesSent, *RemoteAddr);
+		UNCLOCK_CYCLES(SendCycles);
+
+
+		// @todo: Can't implement these profiling events (require UNetConnections)
+		//NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(/* UNetConnection */));
+		//NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendTo(Socket->GetDescription(),Data,BytesSent,NumPacketIdBits,NumBunchBits,
+							//NumAckBits,NumPaddingBits, /* UNetConnection */));
+	}
+	else
+	{
+		UE_LOG(LogNet, Warning, TEXT("UIpNetDriver::LowLevelSend: Invalid send address '%s'"), *Address);
 	}
 }
 

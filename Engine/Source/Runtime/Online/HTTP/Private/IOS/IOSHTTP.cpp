@@ -84,6 +84,23 @@ void FIOSHttpRequest::SetHeader(const FString& HeaderName, const FString& Header
 	[Request setValue:[NSString stringWithFString:HeaderValue] forHTTPHeaderField:[NSString stringWithFString:HeaderName]];
 }
 
+void FIOSHttpRequest::AppendToHeader(const FString& HeaderName, const FString& AdditionalHeaderValue)
+{
+    if (!HeaderName.IsEmpty() && !AdditionalHeaderValue.IsEmpty())
+    {
+        NSDictionary* Headers = [Request allHTTPHeaderFields];
+        NSString* PreviousHeaderValuePtr = [Headers objectForKey: HeaderName.GetNSString()];
+        FString PreviousValue(PreviousHeaderValuePtr);
+        FString NewValue;
+        if (PreviousValue != nullptr && !PreviousValue.IsEmpty())
+        {
+            NewValue = PreviousValue + TEXT(", ");
+        }
+        NewValue += AdditionalHeaderValue;
+        
+        SetHeader(HeaderName, NewValue);
+    }
+}
 
 TArray<FString> FIOSHttpRequest::GetAllHeaders() 
 {

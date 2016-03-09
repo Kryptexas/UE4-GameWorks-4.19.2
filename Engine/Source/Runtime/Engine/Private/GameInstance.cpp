@@ -51,13 +51,17 @@ void UGameInstance::Init()
 {
 	ReceiveInit();
 
-	const auto OnlineSub = IOnlineSubsystem::Get();
-	if (OnlineSub != nullptr)
+	if (!IsRunningCommandlet())
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid())
+		const auto OnlineSub = IOnlineSubsystem::Get();
+		if (OnlineSub != nullptr)
 		{
-			SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
+			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+			if (SessionInt.IsValid())
+			{
+				SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(
+					FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
+			}
 		}
 	}
 
@@ -73,13 +77,16 @@ void UGameInstance::Shutdown()
 {
 	ReceiveShutdown();
 
-	const auto OnlineSub = IOnlineSubsystem::Get();
-	if (OnlineSub != nullptr)
+	if (!IsRunningCommandlet())
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid())
+		const auto OnlineSub = IOnlineSubsystem::Get();
+		if (OnlineSub != nullptr)
 		{
-			SessionInt->ClearOnSessionUserInviteAcceptedDelegate_Handle(OnSessionUserInviteAcceptedDelegateHandle);
+			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+			if (SessionInt.IsValid())
+			{
+				SessionInt->ClearOnSessionUserInviteAcceptedDelegate_Handle(OnSessionUserInviteAcceptedDelegateHandle);
+			}
 		}
 	}
 

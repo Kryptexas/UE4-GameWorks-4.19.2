@@ -128,6 +128,8 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,   bNoTimeouts(false)
 ,   ServerConnection(nullptr)
 ,	ClientConnections()
+,	ConnectionlessHandler()
+,	StatelessConnectComponent()
 ,   World(nullptr)
 ,   Notify(nullptr)
 ,	Time( 0.f )
@@ -615,6 +617,13 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		ClientConnections[i]->Tick();
 	}
 
+	if (ConnectionlessHandler.IsValid())
+	{
+		ConnectionlessHandler->Tick(DeltaSeconds);
+
+		FlushHandler();
+	}
+
 	if (CVarNetDormancyDraw.GetValueOnGameThread() > 0)
 	{
 		DrawNetDriverDebug();
@@ -861,8 +870,56 @@ bool UNetDriver::InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FU
 {
 	LastTickDispatchRealtime = FPlatformTime::Seconds();
 	bool bSuccess = InitConnectionClass();
+
+	if (!bInitAsClient)
+	{
+		ConnectionlessHandler.Reset(nullptr);
+	}
+
 	Notify = InNotify;
+
 	return bSuccess;
+}
+
+void UNetDriver::InitConnectionlessHandler()
+{
+	check(!ConnectionlessHandler.IsValid());
+
+	ConnectionlessHandler = MakeUnique<PacketHandler>();
+
+	if (ConnectionlessHandler.IsValid())
+	{
+		ConnectionlessHandler->Initialize(Handler::Mode::Server, true);
+
+
+		// Add handling for the stateless connect handshake, for connectionless packets, as the outermost layer
+		TSharedPtr<HandlerComponent> NewComponent =
+			ConnectionlessHandler->AddHandler(TEXT("Engine.EngineHandlerComponentFactory(StatelessConnectHandlerComponent)"), true);
+
+		StatelessConnectComponent = StaticCastSharedPtr<StatelessConnectHandlerComponent>(NewComponent);
+
+		if (StatelessConnectComponent.IsValid())
+		{
+			StatelessConnectComponent.Pin()->SetDriver(this);
+		}
+
+
+		ConnectionlessHandler->InitializeComponents();
+	}
+}
+
+void UNetDriver::FlushHandler()
+{
+	BufferedPacket* QueuedPacket = ConnectionlessHandler->GetQueuedConnectionlessPacket();
+
+	while (QueuedPacket != nullptr)
+	{
+		LowLevelSend(QueuedPacket->Address, QueuedPacket->Data, QueuedPacket->CountBits);
+
+		delete QueuedPacket;
+
+		QueuedPacket = ConnectionlessHandler->GetQueuedConnectionlessPacket();
+	}
 }
 
 ENetMode UNetDriver::GetNetMode() const
@@ -938,6 +995,8 @@ void UNetDriver::Shutdown()
 			ClientConnections[ClientIndex]->CleanUp();
 		}
 	}
+
+	ConnectionlessHandler.Reset(nullptr);
 
 #if DO_ENABLE_NET_TEST
 	PacketSimulationSettings.UnregisterCommands();
