@@ -32,9 +32,9 @@ public class libcurl : ModuleRules
             PublicLibraryPaths.Add(LibCurlPath + "lib/Android/x64");
 
 			PublicAdditionalLibraries.Add("curl");
-            PublicAdditionalLibraries.Add("crypto");
-            PublicAdditionalLibraries.Add("ssl");
-            PublicAdditionalLibraries.Add("dl");
+//            PublicAdditionalLibraries.Add("crypto");
+//            PublicAdditionalLibraries.Add("ssl");
+//            PublicAdditionalLibraries.Add("dl");
         }
         else if (Target.Platform == UnrealTargetPlatform.Win32 ||
 				 Target.Platform == UnrealTargetPlatform.Win64 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
