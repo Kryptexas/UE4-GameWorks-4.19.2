@@ -436,7 +436,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 
 	int32 VertexCount = Mesh->GetControlPointsCount();
 	int32 WedgeCount = TriangleCount * 3;
-	bool OddNegativeScale = ImportOptions->bTransformVertexToAbsolute ? false : IsOddNegativeScale(TotalMatrix);
+	bool OddNegativeScale = IsOddNegativeScale(TotalMatrix);
 
 	int32 VertexOffset = RawMesh.VertexPositions.Num();
 	int32 WedgeOffset = RawMesh.WedgeIndices.Num();
