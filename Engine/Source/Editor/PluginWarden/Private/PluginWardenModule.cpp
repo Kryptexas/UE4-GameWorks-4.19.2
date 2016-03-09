@@ -21,10 +21,10 @@ void FPluginWardenModule::ShutdownModule()
 
 }
 
-void FPluginWardenModule::CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginGuid, TFunction<void()> AuthorizedCallback)
+void FPluginWardenModule::CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, TFunction<void()> AuthorizedCallback)
 {
 	// If we've previously authorized the plug-in, just immediately verify access.
-	if ( AuthorizedPlugins.Contains(PluginGuid) )
+	if ( AuthorizedPlugins.Contains(PluginItemId) )
 	{
 		AuthorizedCallback();
 		return;
@@ -38,7 +38,7 @@ void FPluginWardenModule::CheckEntitlementForPlugin(const FText& PluginFriendlyN
 		.SizingRule(ESizingRule::Autosized)
 		.Title(FText::Format(LOCTEXT("EntitlementCheckFormat", "{0} - Entitlement Check"), PluginFriendlyName));
 
-	TSharedRef<SAuthorizingPlugin> PluginAuthPanel = SNew(SAuthorizingPlugin, AuthorizingPluginWindow, PluginFriendlyName, PluginGuid, AuthorizedCallback);
+	TSharedRef<SAuthorizingPlugin> PluginAuthPanel = SNew(SAuthorizingPlugin, AuthorizingPluginWindow, PluginFriendlyName, PluginItemId, PluginOfferId, AuthorizedCallback);
 
 	AuthorizingPluginWindow->SetContent(PluginAuthPanel);
 

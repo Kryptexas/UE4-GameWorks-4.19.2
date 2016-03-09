@@ -50,8 +50,9 @@ public:
 	 * });
 	 * 
 	 * @param PluginFriendlyName The localized friendly name of the plug-in.
-	 * @param PluginGuid The unique identifier of the plug-in on the marketplace.
+	 * @param PluginItemId The unique identifier of the item plug-in on the marketplace.
+	 * @param PluginOfferId The unique identifier of the offer for the plug-in on the marketplace.
 	 * @param AuthorizedCallback This function will be called after the user has been given entitlement.
 	 */
-	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginGuid, TFunction<void()> AuthorizedCallback) = 0;
+	virtual void CheckEntitlementForPlugin(const FText& PluginFriendlyName, const FString& PluginItemId, const FString& PluginOfferId, TFunction<void()> AuthorizedCallback) = 0;
 };
