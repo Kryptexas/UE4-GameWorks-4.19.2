@@ -19,7 +19,12 @@ inline UObject* BuildSubobjectKey(UObject* InObj, TArray<FName>& OutHierarchyNam
 		const bool bIsCDO = Obj->HasAllFlags(RF_ClassDefaultObject);
 		const UObject* CDO = bIsCDO ? Obj : nullptr;
 		const bool bIsClassCDO = (CDO != nullptr) ? (CDO->GetClass()->ClassDefaultObject == CDO) : false;
-		check(bIsCDO && bIsClassCDO || (!bIsCDO && !bIsClassCDO));
+		if(!bIsClassCDO && CDO)
+		{
+			// Likely a trashed CDO, try to recover. Only known cause of this is
+			// ambiguous use of DSOs:
+			CDO = CDO->GetClass()->ClassDefaultObject;
+		}
 		const UActorComponent* AsComponent = Cast<UActorComponent>(Obj);
 		const bool bIsDSO = Obj->HasAnyFlags(RF_DefaultSubObject);
 		const bool bIsSCSComponent = AsComponent && AsComponent->IsCreatedByConstructionScript();
