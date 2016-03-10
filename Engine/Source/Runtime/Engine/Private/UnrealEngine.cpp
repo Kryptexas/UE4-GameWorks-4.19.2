@@ -12074,29 +12074,33 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 	{
 		TArray<FWaveInstance*> WaveInstances;
 		int32 FirstActiveIndex = AudioDevice->GetSortedActiveWaveInstances(WaveInstances, ESortedActiveWaveGetType::QueryOnly);
+		int32 ActiveInstances = 0;
 
 		for (int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++)
 		{
 			FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
 
-			ActiveSounds.Add(WaveInstance->ActiveSound);
+			if (WaveInstance->GetActualVolume() >= 0.01f)
+			{
+				++ActiveInstances;
+				ActiveSounds.Add(WaveInstance->ActiveSound);
 
-			UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
-			AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
-			USoundClass* SoundClass = WaveInstance->SoundClass;
+				UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
+				AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
+				USoundClass* SoundClass = WaveInstance->SoundClass;
 
-			FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
-				InstanceIndex,
-				WaveInstance->GetActualVolume(),
-				*WaveInstance->WaveData->GetPathName(),
-				SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
-				SoundClass ? *SoundClass->GetName() : TEXT("None"));
+				FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
+					InstanceIndex,
+					WaveInstance->GetActualVolume(),
+					*WaveInstance->WaveData->GetPathName(),
+					SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
+					SoundClass ? *SoundClass->GetName() : TEXT("None"));
 
-			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
-			Y += 12;
+				Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
+				Y += 12;
+			}
 		}
 
-		int32 ActiveInstances = WaveInstances.Num() - FirstActiveIndex;
 		int32 Max = AudioDevice->MaxChannels / 2;
 		float f = FMath::Clamp<float>((float)(ActiveInstances - Max) / (float)Max, 0.f, 1.f);
 		int32 R = FMath::TruncToInt(f * 255);
@@ -12131,8 +12135,10 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 		for (int32 InstanceIndex = FirstActiveIndex; InstanceIndex < WaveInstances.Num(); InstanceIndex++)
 		{
 			FWaveInstance* WaveInstance = WaveInstances[InstanceIndex];
-
-			ActiveSounds.Add(WaveInstance->ActiveSound);
+			if (WaveInstance->GetActualVolume() >= 0.01f)
+			{
+				ActiveSounds.Add(WaveInstance->ActiveSound);
+			}
 		}
 	}
 
