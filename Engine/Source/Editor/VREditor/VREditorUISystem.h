@@ -61,9 +61,9 @@ public:
 	bool IsShowingEditorUIPanel( const EEditorUIPanel EditorUIPanel ) const;
 
 	/** Sets whether the specified editor UI panel should be visible.  Any other UI floating off this hand will be dismissed when showing it. */
-	void ShowEditorUIPanel( const class UWidgetComponent* WidgetComponent, const int32 HandIndex, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true );
-	void ShowEditorUIPanel( const EEditorUIPanel EditorUIPanel, const int32 HandIndex, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true );
-	void ShowEditorUIPanel( class AVREditorFloatingUI* Panel, const int32 HandIndex, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true );
+	void ShowEditorUIPanel( const class UWidgetComponent* WidgetComponent, const int32 HandIndex, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true, const bool bPlaySound = true );
+	void ShowEditorUIPanel( const EEditorUIPanel EditorUIPanel, const int32 HandIndex, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true, const bool bPlaySound = true );
+	void ShowEditorUIPanel( class AVREditorFloatingUI* Panel, const int32 HandIndex, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true, const bool bPlaySound = true );
 
 	/** Returns true if the radial menu is visible on this hand */
 	bool IsShowingRadialMenu( const int32 HandIndex ) const;
@@ -84,7 +84,7 @@ public:
 	FTransform MakeDockableUITransformOnLaser( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance ) const;
 
 	/** Makes up a transform for a dockable UI when dragging it that includes the original offset from the laser's impact point */
-	FTransform MakeDockableUITransform( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance ) const;
+	FTransform MakeDockableUITransform( AVREditorDockableWindow* InitDraggingDockUI, const int32 HandIndex, const float DockSelectDistance );
 	
 	/** Returns the current dragged dock window, nullptr if none */
 	class AVREditorDockableWindow* GetDraggingDockUI() const;
@@ -178,10 +178,6 @@ protected:
 	/** The current UI that is being dragged */
 	class AVREditorDockableWindow* DraggingUI;
 
-	/** If the panels should become visible or invisible next toggle*/
-	bool bPanelVisibilityToggle;
-
-
 	//
 	// Tab Manager UI
 	//
@@ -208,5 +204,11 @@ protected:
 
 	/** Show UI sound */
 	class USoundCue* ShowUISound;
+
+	/** If the current dragged dock passed a certain distance if dragged from a hand */
+	bool bDraggedDockFromHandPassedThreshold;
+
+	/** The last dragged hover location by the laser */
+	FVector LastDraggingHoverLocation;
 };
 

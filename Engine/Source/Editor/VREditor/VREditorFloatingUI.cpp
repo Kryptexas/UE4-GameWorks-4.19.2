@@ -31,7 +31,12 @@ AVREditorFloatingUI::AVREditorFloatingUI()
 	  FadeAlpha( 1.0f ),
 	  LocalRotation( FRotator( 90.0f, 180.0f, 0.0f ) ),
 	  bCollisionOnShowUI( true ),
-	  FadeDelay( 0.0f )
+	  FadeDelay( 0.0f ),
+	  bIsMoving( false ),
+	  MoveToTransform( FTransform() ),
+	  StartMoveToTransform( FTransform() ),
+	  MoveToAlpha( 0.0f ),
+	  MoveToTime( 0.0f )
 {
 	const bool bTransient = true;
 	USceneComponent* SceneComponent = CreateDefaultSubobject<USceneComponent>( TEXT( "SceneComponent" ), bTransient );
@@ -167,8 +172,15 @@ void AVREditorFloatingUI::TickManually( float DeltaTime )
 	// Update fading state
 	UpdateFadingState( DeltaTime );
 
-	// Update transform
-	UpdateTransformIfDocked();
+	if ( bIsMoving )
+	{
+		TickMoveTo( DeltaTime );
+	}
+	else
+	{
+		// Update transform
+		UpdateTransformIfDocked();
+	}
 }
 
 
@@ -322,10 +334,15 @@ float AVREditorFloatingUI::GetInitialScale() const
 
 FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandIndex, const bool bOnArm )
 {
+	return MakeUITransformLockedToHand( HandIndex, bOnArm, RelativeOffset, LocalRotation );
+}
+
+FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandIndex, const bool bOnArm, const FVector& InRelativeOffset, const FRotator& InLocalRotation )
+{
 	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
 
-	FTransform UIToHandTransform( LocalRotation, RelativeOffset * WorldScaleFactor );
-	if( !bOnArm )
+	FTransform UIToHandTransform( InLocalRotation, InRelativeOffset * WorldScaleFactor );
+	if (!bOnArm)
 	{
 		UIToHandTransform *= FTransform( FRotator( VREd::UIOnHandRotationOffset->GetFloat(), 0.0f, 0.0f ).Quaternion(), FVector::ZeroVector );
 	}
@@ -336,6 +353,23 @@ FTransform AVREditorFloatingUI::MakeUITransformLockedToHand( const int32 HandInd
 	UIToWorldTransform.SetScale3D( FVector( Scale * WorldScaleFactor ) );
 
 	return UIToWorldTransform;
+}
+
+void AVREditorFloatingUI::MoveTo( const FTransform& ResultTransform, const float TotalMoveToTime, const EDockedTo ResultDock )
+{
+	MoveToTime = TotalMoveToTime;
+	bIsMoving = true;
+	StartMoveToTransform = GetActorTransform();
+	MoveToTransform = ResultTransform;
+	MoveToAlpha = 0.0f;
+	MoveToResultDock = ResultDock;
+}
+
+void AVREditorFloatingUI::StopMoveTo()
+{
+	bIsMoving = false;
+	SetTransform( MoveToTransform );
+	MoveToTransform = FTransform();
 }
 
 FTransform AVREditorFloatingUI::MakeUITransformLockedToRoom()
@@ -350,6 +384,27 @@ FTransform AVREditorFloatingUI::MakeUITransformLockedToRoom()
 	UIToWorldTransform.SetScale3D( FVector( Scale * WorldScaleFactor ) );
 
 	return UIToWorldTransform;
+}
+
+void AVREditorFloatingUI::TickMoveTo( const float DeltaTime )
+{
+	const float WorldScaleFactor = Owner->GetOwner().GetWorldScaleFactor();
+
+	MoveToAlpha += DeltaTime;
+	const float LerpTime = MoveToTime;
+	if (MoveToAlpha > MoveToTime)
+	{
+		MoveToAlpha = MoveToTime;
+		bIsMoving = false;
+		SetDockedTo( MoveToResultDock );
+	}
+
+	const float CurrentALpha = MoveToAlpha / LerpTime;
+	const FVector NewLocation = FMath::Lerp( StartMoveToTransform.GetLocation(), MoveToTransform.GetLocation(), CurrentALpha );
+	const FQuat NewRotation = FMath::Lerp( StartMoveToTransform.GetRotation(), MoveToTransform.GetRotation(), CurrentALpha );
+	FTransform NewTransform( NewRotation, NewLocation, FVector( Scale * WorldScaleFactor ) );
+
+	SetTransform( NewTransform );
 }
 
 void AVREditorFloatingUI::SetDockedTo( const EDockedTo NewDockedTo )

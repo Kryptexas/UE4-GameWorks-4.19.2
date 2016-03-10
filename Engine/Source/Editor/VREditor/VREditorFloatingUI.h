@@ -120,6 +120,15 @@ public:
 	/** Gets the initial size of this UI */
 	float GetInitialScale() const;
 
+	/** Get a relative transform from the hand */
+	FTransform MakeUITransformLockedToHand( const int32 HandIndex, const bool bOnArm, const FVector& InRelativeOffset, const FRotator& InLocalRotation );
+
+	/** Start moving towards a transform */
+	void MoveTo( const FTransform& ResultTransform, const float TotalMoveToTime, const EDockedTo ResultDock );
+
+	/** Abort moving to transform and move instant to MoveToTransform */
+	void StopMoveTo();
+
 protected:
 
 	/** Returns a scale to use for this widget that takes into account animation */
@@ -145,8 +154,10 @@ private:
 	/** Create a room transform with the RelativeOffset and LocalRotation */
 	FTransform MakeUITransformLockedToRoom();
 
+	/** Updates the lerp movement */
+	void TickMoveTo( const float DeltaTime );
 
-protected:
+public:
 
 	/** Local rotation of the UI */
 	FRotator LocalRotation;
@@ -154,6 +165,7 @@ protected:
 	/** Relative offset of the UI */
 	FVector RelativeOffset;
 
+protected:
 	/** Slate widget we're drawing, or null if we're drawing a UMG user widget */
 	TSharedPtr<SWidget> SlateWidget;
 	
@@ -204,5 +216,23 @@ private:
 
 	/** The starting scale of this UI */
 	float InitialScale;
+
+	/** If the UI is currently moving */
+	bool bIsMoving;
+
+	/** The end transform to move to */
+	FTransform MoveToTransform;
+
+	/** The actor transform when started moving */
+	FTransform StartMoveToTransform;
+
+	/** Current lerp alpha */
+	float MoveToAlpha;
+
+	/** Total time to move to the end transform */
+	float MoveToTime;
+
+	/** Dock state to switch to when finished moving */
+	EDockedTo MoveToResultDock;
 };
 
