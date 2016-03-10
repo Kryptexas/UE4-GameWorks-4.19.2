@@ -844,14 +844,14 @@ void FVREditorWorldInteraction::Tick( FEditorViewportClient* ViewportClient, con
 							if( CurrentTime - Hand.LastTrackpadPositionUpdateTime <= FTimespan::FromSeconds( 1.0f / 30.0f ) )
 							{
 								Hand.DragRayLengthVelocity = SlideDelta;
-
-								// Don't go too far
-								if( Hand.DragRayLength < 0.0f )
-								{
-									Hand.DragRayLength = 0.0f;
-									Hand.DragRayLengthVelocity = 0.0f;
-								}
 							}
+						}
+
+						// Don't go too far
+						if( Hand.DragRayLength < 0.0f )
+						{
+							Hand.DragRayLength = 0.0f;
+							Hand.DragRayLengthVelocity = 0.0f;
 						}
 					}
 				}
