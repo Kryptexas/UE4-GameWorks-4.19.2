@@ -292,12 +292,7 @@ public:
 
 	/** @return Checks to see if the specified hand is aiming roughly toward the specified capsule */
 	bool IsHandAimingTowardsCapsule( const int32 HandIndex, const FTransform& CapsuleTransform, const FVector CapsuleStart, const FVector CapsuleEnd, const float CapsuleRadius, const float MinDistanceToCapsule, const FVector CapsuleFrontDirection, const float MinDotForAimingAtCapsule ) const;
-
-private:
-
-	/** Called when someone closes a standalone VR Editor window */
-	void OnVREditorWindowClosed( const TSharedRef<SWindow>& ClosedWindow );
-
+	
 	/**
 	 * Creates a hand transform and forward vector for a laser pointer for a given hand
 	 *
@@ -308,6 +303,11 @@ private:
 	 * @return	True if we have motion controller data for this hand and could return a valid result
 	 */
 	bool GetHandTransformAndForwardVector( int32 HandIndex, FTransform& OutHandTransform, FVector& OutForwardVector ) const;
+
+private:
+
+	/** Called when someone closes a standalone VR Editor window */
+	void OnVREditorWindowClosed( const TSharedRef<SWindow>& ClosedWindow );
 
 	/**
 	 * Translates a raw key into a vr editing action
