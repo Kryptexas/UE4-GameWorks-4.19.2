@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "UnitTest.h"
+#include "ClientUnitTest.h"
 
 #include "PacketLimitTest.generated.h"
 
