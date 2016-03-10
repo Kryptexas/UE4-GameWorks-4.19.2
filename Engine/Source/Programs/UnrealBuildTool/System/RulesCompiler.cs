@@ -767,6 +767,16 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Give the target an opportunity to override toolchain settings
+		/// </summary>
+		/// <param name="Target">The target currently being setup</param>
+		/// <returns>true if successful, false if not</returns>
+		public virtual bool ConfigureToolchain(TargetInfo Target)
+		{
+			return true;
+		}
+
+		/// <summary>
 		/// Get the supported platforms for this target
 		/// </summary>
 		/// <param name="OutPlatforms">The list of platforms supported</param>

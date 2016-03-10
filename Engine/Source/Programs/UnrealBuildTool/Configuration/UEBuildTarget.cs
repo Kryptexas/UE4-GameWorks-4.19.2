@@ -3830,6 +3830,7 @@ namespace UnrealBuildTool
 			GlobalCompileEnvironment.Config.Target.Architecture = ActiveArchitecture;
 			GlobalLinkEnvironment.Config.Target.Architecture = ActiveArchitecture;
 
+			Rules.ConfigureToolchain(TargetInfo);
 
 			// Set up the platform-specific environment.
 			PlatformContext.SetUpEnvironment(this);
