@@ -451,20 +451,22 @@ namespace UnrealBuildTool
 		/// <returns>List of all referenced modules</returns>
 		public override List<UEBuildModule> GetAllDependencyModules(bool bIncludeDynamicallyLoaded, bool bForceCircular)
 		{
-			var ReferencedModules = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
-			foreach (var Module in Modules)
+			List<UEBuildModule> ReferencedModules = new List<UEBuildModule>();
+			HashSet<UEBuildModule> IgnoreReferencedModules = new HashSet<UEBuildModule>();
+
+			foreach (UEBuildModule Module in Modules)
 			{
-				if (!ReferencedModules.ContainsKey(Module.Name))
+				if (!IgnoreReferencedModules.Contains(Module))
 				{
-					ReferencedModules[Module.Name] = null;
+					IgnoreReferencedModules.Add(Module);
 
-					Module.GetAllDependencyModules(ReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies: false);
+					Module.GetAllDependencyModules(ReferencedModules, IgnoreReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies: false);
 
-					ReferencedModules[Module.Name] = new UEBuildModule.ModuleIndexPair { Module = Module, Index = ReferencedModules.Count };
+					ReferencedModules.Add(Module);
 				}
 			}
 
-			return ReferencedModules.Values.OrderBy(M => M.Index).Select(M => M.Module).ToList();
+			return ReferencedModules;
 		}
 
 		/// <summary>

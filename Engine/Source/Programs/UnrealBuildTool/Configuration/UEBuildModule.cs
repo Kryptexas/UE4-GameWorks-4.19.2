@@ -670,10 +670,11 @@ namespace UnrealBuildTool
 		/// Gets all of the modules referenced by this module
 		/// </summary>
 		/// <param name="ReferencedModules">Hash of all referenced modules with their addition index.</param>
+		/// <param name="IgnoreReferencedModules">Hashset used to ignore modules which are already added to the list</param>
 		/// <param name="bIncludeDynamicallyLoaded">True if dynamically loaded modules (and all of their dependent modules) should be included.</param>
 		/// <param name="bForceCircular">True if circular dependencies should be processed</param>
 		/// <param name="bOnlyDirectDependencies">True to return only this module's direct dependencies</param>
-		public virtual void GetAllDependencyModules(CaselessDictionary<ModuleIndexPair> ReferencedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies)
+		public virtual void GetAllDependencyModules(List<UEBuildModule> ReferencedModules, HashSet<UEBuildModule> IgnoreReferencedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies)
 		{
 		}
 
@@ -1164,13 +1165,13 @@ namespace UnrealBuildTool
 					if (bAllowSharedPCH && (!bIsASharedPCHModule || bCanModuleUseOwnSharedPCH))
 					{
 						// Figure out which shared PCH tier we're in
-						var ReferencedModules = new CaselessDictionary<ModuleIndexPair>();
+						List<UEBuildModule> ReferencedModules = new List<UEBuildModule>();
 						{
-							this.GetAllDependencyModules(ReferencedModules, bIncludeDynamicallyLoaded: false, bForceCircular: false, bOnlyDirectDependencies: true);
+							this.GetAllDependencyModules(ReferencedModules, new HashSet<UEBuildModule>(), bIncludeDynamicallyLoaded: false, bForceCircular: false, bOnlyDirectDependencies: true);
 						}
 
 						int LargestSharedPCHHeaderFileIndex = -1;
-						foreach (var DependencyModule in ReferencedModules.Values.OrderBy(P => P.Index).Select(P => P.Module))
+						foreach (var DependencyModule in ReferencedModules)
 						{
 							// These Shared PCHs are ordered from least complex to most complex.  We'll start at the last one and search backwards.
 							for (var SharedPCHHeaderFileIndex = GlobalCompileEnvironment.SharedPCHHeaderFiles.Count - 1; SharedPCHHeaderFileIndex > LargestSharedPCHHeaderFileIndex; --SharedPCHHeaderFileIndex)
@@ -1743,7 +1744,7 @@ namespace UnrealBuildTool
 			return UHTModuleInfoCache;
 		}
 
-		public override void GetAllDependencyModules(CaselessDictionary<ModuleIndexPair> ReferencedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies)
+		public override void GetAllDependencyModules(List<UEBuildModule> ReferencedModules, HashSet<UEBuildModule> IgnoreReferencedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies)
 		{
 			List<UEBuildModule> AllDependencyModules = new List<UEBuildModule>();
 			AllDependencyModules.AddRange(PrivateDependencyModules);
@@ -1756,21 +1757,21 @@ namespace UnrealBuildTool
 
 			foreach (UEBuildModule DependencyModule in AllDependencyModules)
 			{
-				if (!ReferencedModules.ContainsKey(DependencyModule.Name))
+				if (!IgnoreReferencedModules.Contains(DependencyModule))
 				{
 					// Don't follow circular back-references!
 					bool bIsCircular = HasCircularDependencyOn(DependencyModule.Name);
 					if (bForceCircular || !bIsCircular)
 					{
-						ReferencedModules[DependencyModule.Name] = null;
+						IgnoreReferencedModules.Add(DependencyModule);
 
 						if (!bOnlyDirectDependencies)
 						{
 							// Recurse into dependent modules first
-							DependencyModule.GetAllDependencyModules(ReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
+							DependencyModule.GetAllDependencyModules(ReferencedModules, IgnoreReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
 						}
 
-						ReferencedModules[DependencyModule.Name] = new ModuleIndexPair { Module = DependencyModule, Index = ReferencedModules.Where(x => x.Value != null).Count() - 1 };
+						ReferencedModules.Add(DependencyModule);
 					}
 				}
 			}
