@@ -224,6 +224,9 @@ protected:
 	/** Teleport sound */
 	class USoundCue* TeleportSound;
 
+	/** Sound for dropping materials and textures */
+	class USoundCue* DropMaterialOrMaterialSound;
+
 	/** The distance when starting dragging docks */
 	float DockSelectDistance;
 
