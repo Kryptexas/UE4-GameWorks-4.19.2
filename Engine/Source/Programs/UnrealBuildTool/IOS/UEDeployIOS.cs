@@ -234,11 +234,14 @@ namespace UnrealBuildTool
 					case "IOS_8":
 						MinVersion = "8.0";
 						break;
+					case "IOS_9":
+						MinVersion = "9.0";
+						break;
 				}
 			}
 			else
 			{
-				MinVersion = "6.1";
+				MinVersion = "7.0";
 			}
 
 			// Get Facebook Support details
@@ -345,6 +348,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t\t\t<string>Icon57.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon57@2x.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon60@2x.png</string>");
+			Text.AppendLine("\t\t\t\t<string>Icon60@3x.png</string>");
 			Text.AppendLine("\t\t\t</array>");
 			Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
 			Text.AppendLine("\t\t\t<true/>");
@@ -366,6 +370,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t\t\t<string>Icon72@2x.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon76.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon76@2x.png</string>");
+			Text.AppendLine("\t\t\t\t<string>Icon83.5@2x.png</string>");
 			Text.AppendLine("\t\t\t</array>");
 			Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
 			Text.AppendLine("\t\t\t<true/>");
@@ -446,6 +451,9 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t</array>");
 			Text.AppendLine("\t<key>MinimumOSVersion</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", MinVersion));
+			// disable exempt encryption
+			Text.AppendLine("\t<key>ITSAppUsesNonExemptEncryption</key>");
+			Text.AppendLine("\t<false/>");
 			if (bEnableFacebookSupport)
 			{
 				Text.AppendLine("\t<key>FacebookAppID</key>");
