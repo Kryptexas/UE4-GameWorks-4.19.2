@@ -2407,6 +2407,10 @@ namespace AutomationTool
 					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 				}
 			}
+			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			{
+				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
+			}
 
 			if (!File.Exists(SignToolName))
 			{
@@ -2581,6 +2585,10 @@ namespace AutomationTool
 				{
 					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 				}
+			}
+			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			{
+				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 			}
 
 			if (!File.Exists(SignToolName))

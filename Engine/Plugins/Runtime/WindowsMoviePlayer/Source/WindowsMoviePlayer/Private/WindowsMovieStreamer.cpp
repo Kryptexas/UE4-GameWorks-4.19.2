@@ -179,8 +179,10 @@ void FMediaFoundationMovieStreamer::CleanupRenderingResources()
 	}
 }
 
+#if _MSC_VER == 1900
 #pragma warning(push)
 #pragma warning(disable:4838)
+#endif // _MSC_VER == 1900
 STDMETHODIMP FVideoPlayer::QueryInterface(REFIID RefID, void** Object)
 {
 	static const QITAB QITab[] =
@@ -190,7 +192,9 @@ STDMETHODIMP FVideoPlayer::QueryInterface(REFIID RefID, void** Object)
 	};
 	return QISearch(this, QITab, RefID, Object);
 }
+#if _MSC_VER == 1900
 #pragma warning(pop)
+#endif // _MSC_VER == 1900
 
 STDMETHODIMP_(ULONG) FVideoPlayer::AddRef()
 {
@@ -477,8 +481,10 @@ FIntPoint FVideoPlayer::AddStreamToTopology(IMFTopology* Topology, IMFPresentati
 
 
 
+#if _MSC_VER == 1900
 #pragma warning(push)
 #pragma warning(disable:4838)
+#endif // _MSC_VER == 1900
 STDMETHODIMP FSampleGrabberCallback::QueryInterface(REFIID RefID, void** Object)
 {
 	static const QITAB QITab[] =
@@ -489,7 +495,9 @@ STDMETHODIMP FSampleGrabberCallback::QueryInterface(REFIID RefID, void** Object)
 	};
 	return QISearch(this, QITab, RefID, Object);
 }
+#if _MSC_VER == 1900
 #pragma warning(pop)
+#endif // _MSC_VER == 1900
 
 STDMETHODIMP_(ULONG) FSampleGrabberCallback::AddRef()
 {

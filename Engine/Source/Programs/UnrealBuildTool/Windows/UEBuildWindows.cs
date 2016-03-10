@@ -15,6 +15,9 @@ namespace UnrealBuildTool
 	/// </summary>
 	public enum WindowsCompiler
 	{
+		/// Visual Studio 2013 (Visual C++ 12.0)
+		VisualStudio2013,
+
 		/// Visual Studio 2015 (Visual C++ 14.0)
 		VisualStudio2015,
 	}
@@ -223,7 +226,8 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
 
 			String MorpheusShaderPath = Path.Combine(BuildConfiguration.RelativeEnginePath, "Shaders/PS4/PostProcessHMDMorpheus.usf");
-			if (File.Exists(MorpheusShaderPath))
+			//@todo: VS2015 currently does not have support for Morpheus
+			if (File.Exists(MorpheusShaderPath) && WindowsPlatform.Compiler != WindowsCompiler.VisualStudio2015)
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_MORPHEUS=1");
 
@@ -468,10 +472,9 @@ namespace UnrealBuildTool
 				// First, default based on whether there is a command line override...
 				if (UnrealBuildTool.CommandLineContains("-2013"))
 				{
-					// We don't support compiling with VS 2013 on Windows platform, but you can still generate project files that are 2013-compatible.  That's handled elsewhere
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
 				}
-
-				if (UnrealBuildTool.CommandLineContains("-2015"))
+				else if (UnrealBuildTool.CommandLineContains("-2015"))
 				{
 					CachedCompiler = WindowsCompiler.VisualStudio2015;
 				}
@@ -494,6 +497,11 @@ namespace UnrealBuildTool
 				}
 
 				return CachedCompiler.Value;
+			}
+
+			set
+			{
+				CachedCompiler = value;
 			}
 		}
 
@@ -542,6 +550,9 @@ namespace UnrealBuildTool
 						case WindowsCompiler.VisualStudio2015:
 							DTEKey = "VisualStudio.DTE.14.0";
 							break;
+						case WindowsCompiler.VisualStudio2013:
+							DTEKey = "VisualStudio.DTE.12.0";
+							break;
 					}
 					return RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry32).OpenSubKey(DTEKey) != null;
 				}
@@ -580,6 +591,42 @@ namespace UnrealBuildTool
 			return GetVSComnToolsPath(Compiler);
 		}
 
+		public static bool HasVSInstalled(WindowsCompiler Toolchain)
+		{
+			string VSVersion = "";
+			switch (Toolchain)
+			{
+				case WindowsCompiler.VisualStudio2013:
+					VSVersion = "12.0";
+					break;
+				case WindowsCompiler.VisualStudio2015:
+					VSVersion = "14.0";
+					break;
+				default:
+					throw new NotSupportedException("Not supported compiler.");
+			}
+
+			RegistryKey BaseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+			object InstalledFlag = BaseKey.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\DevDiv\vs\Servicing\{0}\devenv\Install", VSVersion));
+			if (InstalledFlag != null && InstalledFlag.ToString() == "1")
+			{
+				return true;
+			}
+			return false;
+		}
+
+		public static bool HasAnyVSInstalled()
+		{
+			foreach (WindowsCompiler Toolchain in Enum.GetValues(typeof(WindowsCompiler)))
+			{
+				if (HasVSInstalled(Toolchain))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		/// <summary>
 		/// Returns VisualStudio common tools path for given compiler.
 		/// </summary>
@@ -596,6 +643,9 @@ namespace UnrealBuildTool
 
 			switch (Compiler)
 			{
+				case WindowsCompiler.VisualStudio2013:
+					VSVersion = 12;
+					break;
 				case WindowsCompiler.VisualStudio2015:
 					VSVersion = 14;
 					break;
@@ -686,6 +736,8 @@ namespace UnrealBuildTool
 		{
 			switch (Compiler)
 			{
+				case WindowsCompiler.VisualStudio2013:
+					return "2013";
 				case WindowsCompiler.VisualStudio2015:
 					return "2015";
 

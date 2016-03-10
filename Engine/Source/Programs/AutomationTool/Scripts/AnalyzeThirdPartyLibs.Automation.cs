@@ -178,6 +178,7 @@ class AnalyzeThirdPartyLibs : BuildCommand
 		Platforms.Add(new PlatformLibraryInfo("Linux", "Linux"));
 		Platforms.Add(new PlatformLibraryInfo("WinRT", "WinRT"));
 
+		Platforms.Add(new PlatformLibraryInfo("VS2013", "VS2013", "vs12"));
 		Platforms.Add(new PlatformLibraryInfo("VS2015", "VS2015", "vs14"));
 
 		List<long> LastSizes = new List<long>();

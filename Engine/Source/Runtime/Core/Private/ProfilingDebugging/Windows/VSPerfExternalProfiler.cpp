@@ -95,6 +95,8 @@ public:
 		// Visual Studio.  For example, for Visual Studio 2013, the file name is VSPerf120.dll.
 #if _MSC_VER >= 1900
 		DLLHandle = FPlatformProcess::GetDllHandle(TEXT("VSPerf140.dll"));	// Visual Studio 2015
+#elif _MSC_VER >= 1800
+		DLLHandle = FPlatformProcess::GetDllHandle(TEXT("VSPerf120.dll"));	// Visual Studio 2013
 #else
 		// Older versions of Visual Studio did not support profiling, or did not include the profiling tools with the professional edition
 #endif

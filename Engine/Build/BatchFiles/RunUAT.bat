@@ -44,6 +44,18 @@ goto ReadyToCompile
 
 :NoVisualStudio2015Environment
 
+rem ## Check for Visual Studio 2013
+
+pushd %~dp0
+call GetVSComnToolsPath 12
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+goto ReadyToCompile
+
+:NoVisualStudio2013Environment
+
 rem ## ok, well it doesn't look like visual studio is installed, let's try running the precompiled one.
 :RunPrecompiled
 

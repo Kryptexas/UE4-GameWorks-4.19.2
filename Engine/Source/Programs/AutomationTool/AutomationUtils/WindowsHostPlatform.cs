@@ -56,6 +56,16 @@ namespace AutomationTool
 					return false;
 				}
 			}
+			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			{
+				WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.1" );
+
+				if (string.IsNullOrEmpty(BaseVSToolPath))
+				{
+					Log.TraceError("Visual Studio 2013 must be installed in order to build this target.");
+					return false;
+				}
+			}
 			else
 			{
 				throw new BuildException("Unexpected WindowsPlatform.Compiler version");

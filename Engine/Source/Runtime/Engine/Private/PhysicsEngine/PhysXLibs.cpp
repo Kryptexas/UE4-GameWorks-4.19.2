@@ -41,9 +41,12 @@ void LoadPhysXModules()
 
 	#if PLATFORM_64BITS
 
-		#if _MSC_VER == 1900
+		#if _MSC_VER >= 1900
 			FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win64/VS2015/"));
 			FString RootAPEXPath(APEXBinariesRoot + TEXT("Win64/VS2015/"));
+		#elif _MSC_VER >= 1800
+			FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win64/VS2013/"));
+			FString RootAPEXPath(APEXBinariesRoot + TEXT("Win64/VS2013/"));
 		#else
 			#error "Unrecognized Visual Studio version."
 		#endif
@@ -120,9 +123,12 @@ void LoadPhysXModules()
 		#endif	//UE_BUILD_DEBUG
 	#else	//!PLATFORM_64BITS
 
-		#if _MSC_VER == 1900
+		#if _MSC_VER >= 1900
 			FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win32/VS2015/"));
 			FString RootAPEXPath(APEXBinariesRoot + TEXT("Win32/VS2015/"));
+		#elif _MSC_VER >= 1800
+			FString RootPhysXPath(PhysXBinariesRoot + TEXT("Win32/VS2013/"));
+			FString RootAPEXPath(APEXBinariesRoot + TEXT("Win32/VS2013/"));
 		#else
 			#error "Unrecognized Visual Studio version."
 		#endif

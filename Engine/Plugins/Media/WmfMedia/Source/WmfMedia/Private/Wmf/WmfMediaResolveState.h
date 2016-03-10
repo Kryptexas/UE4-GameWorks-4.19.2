@@ -91,8 +91,10 @@ public:
 		return FPlatformAtomics::InterlockedIncrement(&RefCount);
 	}
 
+#if _MSC_VER == 1900
 #pragma warning(push)
 #pragma warning(disable:4838)
+#endif // _MSC_VER == 1900
 	STDMETHODIMP QueryInterface(REFIID RefID, void** Object)
 	{
 		static const QITAB QITab[] =
@@ -103,7 +105,9 @@ public:
 
 		return QISearch(this, QITab, RefID, Object);
 	}
+#if _MSC_VER == 1900
 #pragma warning(pop)
+#endif // _MSC_VER == 1900
 
 	STDMETHODIMP_(ULONG) Release()
 	{

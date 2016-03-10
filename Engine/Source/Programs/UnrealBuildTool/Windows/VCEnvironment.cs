@@ -163,6 +163,10 @@ namespace UnrealBuildTool
 						}
 						break;
 
+					case WindowsCompiler.VisualStudio2013:
+						Version = "v8.1";
+						break;
+
 					default:
 						throw new BuildException("Unexpected compiler setting when trying to determine Windows SDK folder");
 				}
@@ -515,6 +519,9 @@ namespace UnrealBuildTool
 				case WindowsCompiler.VisualStudio2015:
 					VisualCppVersion = "14.0";
 					break;
+				case WindowsCompiler.VisualStudio2013:
+					VisualCppVersion = "12.0";
+					break;
 				default:
 					throw new BuildException("Unexpected compiler version when trying to determine Visual C++ installation folder");
 			}
@@ -539,6 +546,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		static string FindUniversalCRTInstallationFolder()
 		{
+			if (WindowsPlatform.Compiler != WindowsCompiler.VisualStudio2015)
+			{
+				return null;
+			}
+
 			object Value =
 				Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null) ??
 				Registry.GetValue("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", null) ??

@@ -132,6 +132,11 @@ namespace UnrealBuildTool
 				string FullVersionString;
 				switch (WindowsPlatform.Compiler)
 				{
+					case WindowsCompiler.VisualStudio2013:
+						VersionString = "18.0";
+						FullVersionString = "1800";
+						break;
+
 					case WindowsCompiler.VisualStudio2015:
 						VersionString = "19.0";
 						FullVersionString = "1900";

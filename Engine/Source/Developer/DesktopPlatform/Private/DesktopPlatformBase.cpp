@@ -1151,6 +1151,8 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 #if PLATFORM_WINDOWS
 	#if _MSC_VER >= 1900
 		FPlatformMisc::GetVSComnTools(14, VCVarsBat);
+	#elif _MSC_VER >= 1800
+		FPlatformMisc::GetVSComnTools(12, VCVarsBat);
 	#else
 		#error "Unsupported Visual Studio version."
 	#endif

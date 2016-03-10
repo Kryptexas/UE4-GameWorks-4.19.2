@@ -157,6 +157,8 @@ void FICUInternationalization::LoadDLLs()
 
 #if _MSC_VER == 1900
 	const FString VSVersionFolderName = TEXT("VS2015");
+#elif _MSC_VER == 1800
+	const FString VSVersionFolderName = TEXT("VS2013");
 #else
 	#error "FICUInternationalization::LoadDLLs - Unknown _MSC_VER! Please update this code for this version of MSVC."
 #endif //_MSVC_VER

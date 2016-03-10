@@ -21,7 +21,7 @@ extern "C" CORE_API HINSTANCE hInstance;
 // 'DoNotUseOldUE4Type' namespace.  This is because these headers will redeclare various numeric typedefs, but under the Clang and Visual
 // Studio compilers it is not allowed to define a typedef with a global scope operator in it (such as ::INT). So we'll get these headers
 // included early on to avoid compiler errors with that.
-#if defined(__clang__) || defined(_MSC_VER)
+#if defined(__clang__) || (defined(_MSC_VER) && (_MSC_VER >= 1900))
 #include <intsafe.h>
 #include <strsafe.h>
 #endif

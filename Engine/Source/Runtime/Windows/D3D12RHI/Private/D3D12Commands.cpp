@@ -7,10 +7,14 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 #include "D3D12RHIPrivate.h"
 #if WITH_D3DX_LIBS
 #include "AllowWindowsPlatformTypes.h"
-	#pragma warning(push)
-	#pragma warning(disable:4838)
+	#if _MSC_VER == 1900
+		#pragma warning(push)
+		#pragma warning(disable:4838)
+	#endif // _MSC_VER == 1900
 	#include <xnamath.h>
-	#pragma warning(pop)
+	#if _MSC_VER == 1900
+		#pragma warning(pop)
+	#endif // _MSC_VER == 1900
 #include "HideWindowsPlatformTypes.h"
 #endif
 #include "D3D12RHIPrivateUtil.h"

@@ -148,6 +148,8 @@ namespace UnrealBuildTool
 			{
 				switch (WindowsPlatform.Compiler)
 				{
+					case WindowsCompiler.VisualStudio2013:
+						return "v120";
 					case WindowsCompiler.VisualStudio2015:
 						return "v140";
 				}
@@ -163,6 +165,9 @@ namespace UnrealBuildTool
 		{
 			switch (WindowsPlatform.Compiler)
 			{
+				case WindowsCompiler.VisualStudio2013:
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
+					break;
 				case WindowsCompiler.VisualStudio2015:
 					ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
 					break;
@@ -192,6 +197,9 @@ namespace UnrealBuildTool
 			{
 				switch (WindowsPlatform.Compiler)
 				{
+					case WindowsCompiler.VisualStudio2013:
+						ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
+						break;
 					case WindowsCompiler.VisualStudio2015:
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
 						break;
@@ -220,12 +228,6 @@ namespace UnrealBuildTool
 				{
 					Log.TraceInformation("Visual C++ 2015 toolchain does not appear to be correctly installed. Please verify that \"Common Tools for Visual C++ 2015\" was selected when installing Visual Studio 2015.");
 				}
-			}
-
-			// Warn users if they are using a deprecated toolchain
-			if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2013)
-			{
-				Log.TraceWarning("The Visual Studio 2013 toolchain is no longer supported. Generating 2013 solution and project files, but builds will still use the Visual Studio 2015 toolchain.");
 			}
 		}
 
