@@ -184,9 +184,16 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 		if (AudioDevice)
 		{
-			SoundWave->InitAudioResource(AudioDevice->GetRuntimeFormat(SoundWave));
-			FAsyncAudioDecompress TempDecompress(SoundWave);
-			TempDecompress.StartSynchronousTask();
+			EDecompressionType DecompressionType =  SoundWave->DecompressionType;
+			SoundWave->DecompressionType = DTYPE_Native;
+
+			if ( SoundWave->InitAudioResource( AudioDevice->GetRuntimeFormat( SoundWave ) ) && (SoundWave->DecompressionType != DTYPE_RealTime || SoundWave->CachedRealtimeFirstBuffer == nullptr ) )
+			{
+				FAsyncAudioDecompress TempDecompress(SoundWave);
+				TempDecompress.StartSynchronousTask();
+			}
+
+			SoundWave->DecompressionType = DecompressionType;
 		}
 	}
 
