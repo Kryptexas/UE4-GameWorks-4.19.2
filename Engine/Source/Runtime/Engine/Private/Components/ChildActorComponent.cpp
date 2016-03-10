@@ -260,7 +260,10 @@ void UChildActorComponent::PostLoad()
 	Super::PostLoad();
 
 	// For a period of time the parent component property on Actor was not a UPROPERTY so this value was not set
-	FActorParentComponentSetter::Set(ChildActor, this);
+	if (ChildActor)
+	{
+		FActorParentComponentSetter::Set(ChildActor, this);
+	}
 }
 #endif
 
