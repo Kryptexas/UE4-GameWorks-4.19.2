@@ -136,6 +136,9 @@ protected:
 	/** Called when an asset editor opens an asset while in VR Editor Mode. */
 	void OnAssetEditorOpened(UObject* Asset);
 
+	/** Sets the main windows to their default transform */
+	void SetDefaultWindowLayout();
+
 protected:
 
 	/** Owning object */
@@ -210,5 +213,11 @@ protected:
 
 	/** The last dragged hover location by the laser */
 	FVector LastDraggingHoverLocation;
+
+	/** Default transforms */
+	TArray<FTransform> DefaultWindowTransforms;
+
+	/** If this is the first time using TogglePanelsVisibility */
+	bool bSetDefaultLayout;
 };
 
