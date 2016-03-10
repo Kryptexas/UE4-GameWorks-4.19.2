@@ -610,7 +610,7 @@ void FVREditorWorldInteraction::OnVRAction( FEditorViewportClient& ViewportClien
 					if( Hand.DraggingMode == EVREditorDraggingMode::ActorsAtLaserImpact ||
 						Hand.DraggingMode == EVREditorDraggingMode::Material )
 					{
-						Owner.GetUISystem().ShowEditorUIPanel( FloatingUIAssetDraggedFrom, Owner.GetOtherHandIndex( VRAction.HandIndex ), true, true, false, false );
+						Owner.GetUISystem().ShowEditorUIPanel( FloatingUIAssetDraggedFrom, Owner.GetOtherHandIndex( VRAction.HandIndex ), true, false, false, false );
 						FloatingUIAssetDraggedFrom = nullptr;
 					}
 
