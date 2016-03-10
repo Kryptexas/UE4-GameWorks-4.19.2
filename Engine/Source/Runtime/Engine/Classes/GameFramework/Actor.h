@@ -439,6 +439,7 @@ private:
 	TWeakObjectPtr<AActor> ParentComponentActor_DEPRECATED;	
 
 	/** The UChildActorComponent that owns this Actor. */
+	UPROPERTY()
 	TWeakObjectPtr<UChildActorComponent> ParentComponent;	
 
 public:
