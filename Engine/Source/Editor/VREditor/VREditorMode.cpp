@@ -11,7 +11,6 @@
 #include "CameraController.h"
 #include "DynamicMeshBuilder.h"
 #include "Features/IModularFeatures.h"
-#include "IHeadMountedDisplay.h"
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
 #include "IMotionController.h"
@@ -372,6 +371,12 @@ void FVREditorMode::Enter()
 			SavedEditorState.bOnScreenMessages = GAreScreenMessagesEnabled;
 			GAreScreenMessagesEnabled = false;
 
+			if( bActuallyUsingVR )
+			{
+				SavedEditorState.TrackingOrigin = GEngine->HMDDevice->GetTrackingOrigin();
+				GEngine->HMDDevice->SetTrackingOrigin( IHeadMountedDisplay::Floor );
+			}
+
 			// Make the new viewport the active level editing viewport right away
 			GCurrentLevelEditingViewportClient = &VRViewportClient;
 		}
@@ -519,6 +524,11 @@ void FVREditorMode::Exit()
 
 				GNearClippingPlane = SavedEditorState.NearClipPlane;
 				GAreScreenMessagesEnabled = SavedEditorState.bOnScreenMessages;
+
+				if( bActuallyUsingVR )
+				{
+					GEngine->HMDDevice->SetTrackingOrigin( SavedEditorState.TrackingOrigin );
+				}
 			}
 
 			if( bActuallyUsingVR )

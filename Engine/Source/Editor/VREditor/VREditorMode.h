@@ -6,6 +6,7 @@
 #include "IVREditorModule.h"
 #include "VirtualHand.h"
 #include "HeadMountedDisplayTypes.h"	// For EHMDDeviceType::Type
+#include "IHeadMountedDisplay.h"	// For IHeadMountedDisplay::ETrackingOrigin
 #include "VREditorInputProcessor.h"
 
 
@@ -375,6 +376,7 @@ protected:
 		bool bRealTime;
 		float DragTriggerDistance;
 		bool bOnScreenMessages;
+		IHeadMountedDisplay::ETrackingOrigin TrackingOrigin;
 
 		FSavedEditorState()
 			: ViewportType( LVT_Perspective ),
@@ -387,7 +389,8 @@ protected:
 			  NearClipPlane( 0.0f ),
 			  bRealTime( false ),
 			  DragTriggerDistance( 0.0f ),
-			  bOnScreenMessages( false )
+			  bOnScreenMessages( false ),
+			  TrackingOrigin( IHeadMountedDisplay::Eye )
 		{
 		}
 		
