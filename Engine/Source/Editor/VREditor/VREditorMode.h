@@ -9,13 +9,6 @@
 #include "IHeadMountedDisplay.h"	// For IHeadMountedDisplay::ETrackingOrigin
 #include "VREditorInputProcessor.h"
 
-
-namespace VREd
-{
-	static FAutoConsoleVariable ScaleMax( TEXT( "VREd.ScaleMax" ), 6000.0f, TEXT( "Maximum world scale in centimeters" ) );
-	static FAutoConsoleVariable ScaleMin( TEXT( "VREd.ScaleMin" ), 10.0f, TEXT( "Minimum world scale in centimeters" ) );
-}
-
 // Forward declare the GizmoHandleTypes that is defined in VREditorTransformGizmo
 enum class EGizmoHandleTypes : uint8;
 
@@ -304,6 +297,12 @@ public:
 	 * @return	True if we have motion controller data for this hand and could return a valid result
 	 */
 	bool GetHandTransformAndForwardVector( int32 HandIndex, FTransform& OutHandTransform, FVector& OutForwardVector ) const;
+
+	/** Returns the maximum user scale */
+	float GetMaxScale();
+
+	/** Returns the minimum user scale */
+	float GetMinScale();
 
 private:
 

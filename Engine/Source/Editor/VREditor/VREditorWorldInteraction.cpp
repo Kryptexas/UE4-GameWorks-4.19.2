@@ -2305,7 +2305,7 @@ void FVREditorWorldInteraction::UpdateDragging(
 
 				// NOTE: Instead of clamping, we simply skip changing the W2M this frame if it's out of bounds.  Clamping makes our math more complicated.
 				if( NewWorldToMetersScale != OldWorldToMetersScale &&
-					NewWorldToMetersScale >= VREd::ScaleMin->GetFloat() && NewWorldToMetersScale <= VREd::ScaleMax->GetFloat() )
+					NewWorldToMetersScale >= Owner.GetMinScale() && NewWorldToMetersScale <= Owner.GetMaxScale() )
 				{
 					// @todo vreditor: This is bad because we're clobbering the world settings which will be saved with the map.  Instead we need to 
 					// be able to apply an override before the scene view gets it
