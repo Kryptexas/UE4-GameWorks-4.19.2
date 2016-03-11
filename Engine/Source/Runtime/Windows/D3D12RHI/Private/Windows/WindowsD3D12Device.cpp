@@ -9,6 +9,7 @@
 #include <delayimp.h>
 #include "HideWindowsPlatformTypes.h"
 #include "HardwareInfo.h"
+#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 
 #pragma comment(lib, "d3d12.lib")
 
@@ -20,9 +21,17 @@ static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
 	TEXT("r.D3D12GraphicsAdapter"),
 	-1,
 	TEXT("User request to pick a specific graphics adapter (e.g. when using a integrated graphics card with a descrete one)\n")
-	TEXT("At the moment this only works on Direct3D 11.\n")
 	TEXT(" -2: Take the first one that fulfills the criteria\n")
 	TEXT(" -1: Favour non integrated because there are usually faster\n")
+	TEXT("  0: Adpater #0\n")
+	TEXT("  1: Adpater #1, ..."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarHmdGraphicsAdapter(
+	TEXT("hmd.D3D12GraphicsAdapter"),
+	-1,
+	TEXT("Specifies the index of the graphics adapter where the HMD is connected.  Overrides r.D3D12GraphicsAdapter when the Hmd is enabled.\n")
+	TEXT(" -1: Unknown\n")
 	TEXT("  0: Adpater #0\n")
 	TEXT("  1: Adpater #1, ..."),
 	ECVF_RenderThreadSafe);
@@ -247,7 +256,11 @@ void FD3D12DynamicRHIModule::FindAdapter()
 	bAllowPerfHUD = false;
 #endif
 
-	int32 CVarValue = CVarGraphicsAdapter.GetValueOnGameThread();
+	// Allow HMD to override which graphics adapter is chosen, so we pick the adapter where the HMD is connected
+	bool bUseHmdGraphicsAdapter = CVarHmdGraphicsAdapter.GetValueOnGameThread() >= 0 && 
+		IModularFeatures::Get().IsModularFeatureAvailable(IHeadMountedDisplayModule::GetModularFeatureName());
+
+	int32 CVarValue = bUseHmdGraphicsAdapter ? CVarHmdGraphicsAdapter.GetValueOnGameThread() : CVarGraphicsAdapter.GetValueOnGameThread();
 
 	const bool bFavorNonIntegrated = CVarValue == -1;
 
@@ -312,9 +325,9 @@ void FD3D12DynamicRHIModule::FindAdapter()
 					continue;
 				}
 
-				if (!OutputCount && !bIsWARP)
+				if (!OutputCount && !bIsWARP && !bUseHmdGraphicsAdapter)
 				{
-					// Add special check to support WARP, which does not have an output associated with it.
+					// Add special check to support WARP and HMDs, which do not have associated outputs.
 
 					// This device has no outputs. Reject it, 
 					// http://msdn.microsoft.com/en-us/library/windows/desktop/bb205075%28v=vs.85%29.aspx#WARP_new_for_Win8

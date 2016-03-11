@@ -168,3 +168,41 @@ float UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(UObject* WorldCo
 {
 	return WorldContext ? WorldContext->GetWorld()->GetWorldSettings()->WorldToMeters : 0.f;
 }
+
+void UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(TEnumAsByte<EHMDTrackingOrigin::Type> InOrigin)
+{
+	if (GEngine->HMDDevice.IsValid())
+	{
+		EHMDTrackingOrigin::Type Origin = EHMDTrackingOrigin::Eye;
+		switch (InOrigin)
+		{
+		case EHMDTrackingOrigin::Eye:
+			Origin = EHMDTrackingOrigin::Eye;
+			break;
+		case EHMDTrackingOrigin::Floor:
+			Origin = EHMDTrackingOrigin::Floor;
+			break;
+		default:
+			break;
+		}
+		GEngine->HMDDevice->SetTrackingOrigin(Origin);
+	}
+}
+
+TEnumAsByte<EHMDTrackingOrigin::Type> UHeadMountedDisplayFunctionLibrary::GetTrackingOrigin()
+{
+	EHMDTrackingOrigin::Type Origin = EHMDTrackingOrigin::Eye;
+
+	if (GEngine->HMDDevice.IsValid())
+	{
+		Origin = GEngine->HMDDevice->GetTrackingOrigin();
+	}
+
+	return Origin;
+}
+
+void UHeadMountedDisplayFunctionLibrary::GetVRFocusState(bool& bUseFocus, bool& bHasFocus)
+{
+	bUseFocus = GEngine->HMDDevice->DoesAppUseVRFocus();
+	bHasFocus = GEngine->HMDDevice->DoesAppHaveVRFocus();
+}

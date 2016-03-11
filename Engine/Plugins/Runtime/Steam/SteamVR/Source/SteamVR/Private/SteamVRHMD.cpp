@@ -303,28 +303,28 @@ TArray<FVector> FSteamVRHMD::GetBounds() const
 	return ConvertBoundsToUnrealSpace(ChaperoneBounds.Bounds, WorldToMetersScale);
 }
 
-void FSteamVRHMD::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace)
+void FSteamVRHMD::SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin)
 {
 	if(VRCompositor)
 	{
-		vr::TrackingUniverseOrigin NewOrigin;
+		vr::TrackingUniverseOrigin NewSteamOrigin;
 
-		switch(NewSpace)
+		switch (NewOrigin)
 		{
-			case ESteamVRTrackingSpace::Seated:
-				NewOrigin = vr::TrackingUniverseOrigin::TrackingUniverseSeated;
+			case EHMDTrackingOrigin::Eye:
+				NewSteamOrigin = vr::TrackingUniverseOrigin::TrackingUniverseSeated;
 				break;
-			case ESteamVRTrackingSpace::Standing:
+			case EHMDTrackingOrigin::Floor:
 			default:
-				NewOrigin = vr::TrackingUniverseOrigin::TrackingUniverseStanding;
+				NewSteamOrigin = vr::TrackingUniverseOrigin::TrackingUniverseStanding;
 				break;
 		}
 
-		VRCompositor->SetTrackingSpace(NewOrigin);
+		VRCompositor->SetTrackingSpace(NewSteamOrigin);
 	}
 }
 
-ESteamVRTrackingSpace FSteamVRHMD::GetTrackingSpace() const
+EHMDTrackingOrigin::Type FSteamVRHMD::GetTrackingOrigin()
 {
 	if(VRCompositor)
 	{
@@ -333,15 +333,15 @@ ESteamVRTrackingSpace FSteamVRHMD::GetTrackingSpace() const
 		switch(CurrentOrigin)
 		{
 		case vr::TrackingUniverseOrigin::TrackingUniverseSeated:
-			return ESteamVRTrackingSpace::Seated;
+			return EHMDTrackingOrigin::Eye;
 		case vr::TrackingUniverseOrigin::TrackingUniverseStanding:
 		default:
-			return ESteamVRTrackingSpace::Standing;
+			return EHMDTrackingOrigin::Floor;
 		}
 	}
 
 	// By default, assume standing
-	return ESteamVRTrackingSpace::Standing;
+	return EHMDTrackingOrigin::Floor;
 }
 
 void FSteamVRHMD::SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ] )

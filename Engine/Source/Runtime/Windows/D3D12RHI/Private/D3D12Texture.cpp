@@ -1973,3 +1973,166 @@ void FD3D12CommandContext::RHIUpdateTextureReference(FTextureReferenceRHIParamRe
 		TextureRef->SetReferencedTexture(NewTextureRHI, NewTexture, NewSRV);
 	}
 }
+
+ID3D12CommandQueue* FD3D12DynamicRHI::RHIGetD3DCommandQueue()
+{
+	return MainDevice->GetCommandListManager().GetD3DCommandQueue();
+}
+
+FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 Format, uint32 Flags, const FClearValueBinding& ClearValueBinding, ID3D12Resource* Resource)
+{
+	check(Resource);
+
+	D3D12_RESOURCE_DESC TextureDesc = Resource->GetDesc();
+	uint32 SizeX = TextureDesc.Width;
+	uint32 SizeY = TextureDesc.Height;
+	uint32 SizeZ = TextureDesc.DepthOrArraySize;
+	uint32 NumMips = TextureDesc.MipLevels;
+	uint32 NumSamples = TextureDesc.SampleDesc.Count;
+
+	SCOPE_CYCLE_COUNTER(STAT_D3D12CreateTextureTime);
+
+	if (GMaxRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	{
+		// Remove sRGB read flag when not supported
+		Flags &= ~TexCreate_SRGB;
+	}
+
+	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
+
+	const DXGI_FORMAT PlatformResourceFormat = TextureDesc.Format;
+	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+	const DXGI_FORMAT PlatformDepthStencilFormat = FindDepthStencilDXGIFormat(PlatformResourceFormat);
+
+	// Determine the MSAA settings to use for the texture.
+	D3D12_DSV_DIMENSION DepthStencilViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	D3D12_RTV_DIMENSION RenderTargetViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	D3D12_SRV_DIMENSION ShaderResourceViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+
+	uint32 ActualMSAACount = NumSamples;
+	uint32 ActualMSAAQuality = TextureDesc.SampleDesc.Quality;
+
+	if (ActualMSAACount > 1)
+	{
+		DepthStencilViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+		RenderTargetViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+		ShaderResourceViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+	}
+
+	// Set up the texture bind flags.
+	bool bCreateRTV = (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0;
+	bool bCreateDSV = (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
+	bool bCreatedRTVPerSlice = false;
+
+	TRefCountPtr<FD3D12Resource> TextureResource = new FD3D12Resource(Resource, TextureDesc);
+	TArray<TRefCountPtr<FD3D12RenderTargetView> > RenderTargetViews;
+	TRefCountPtr<FD3D12DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
+
+	if (bCreateRTV)
+	{
+		// Create a render target view for each mip
+		for (uint32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
+		{
+			D3D12_RENDER_TARGET_VIEW_DESC RTVDesc;
+			FMemory::Memzero(&RTVDesc, sizeof(RTVDesc));
+			RTVDesc.Format = PlatformRenderTargetFormat;
+			RTVDesc.ViewDimension = RenderTargetViewDimension;
+			RTVDesc.Texture2D.MipSlice = MipIndex;
+			RTVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, RTVDesc.Format);
+
+			TRefCountPtr<FD3D12RenderTargetView> RenderTargetView = new FD3D12RenderTargetView(GetRHIDevice(), &RTVDesc, TextureResource);
+			RenderTargetViews.Add(RenderTargetView);
+		}
+	}
+
+	if (bCreateDSV)
+	{
+		// Create a depth-stencil-view for the texture.
+		D3D12_DEPTH_STENCIL_VIEW_DESC DSVDesc;
+		FMemory::Memzero(&DSVDesc, sizeof(DSVDesc));
+		DSVDesc.Format = FindDepthStencilDXGIFormat(PlatformResourceFormat);
+		DSVDesc.ViewDimension = DepthStencilViewDimension;
+		DSVDesc.Texture2D.MipSlice = 0;
+
+		const bool HasStencil = HasStencilBits(DSVDesc.Format);
+		for (uint32 AccessType = 0; AccessType < FExclusiveDepthStencil::MaxIndex; ++AccessType)
+		{
+			// Create a read-only access views for the texture.
+			DSVDesc.Flags = (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite) ? D3D12_DSV_FLAG_READ_ONLY_DEPTH : D3D12_DSV_FLAG_NONE;
+			if (HasStencil)
+			{
+				DSVDesc.Flags |= (AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) ? D3D12_DSV_FLAG_READ_ONLY_STENCIL : D3D12_DSV_FLAG_NONE;
+			}
+			DepthStencilViews[AccessType] = new FD3D12DepthStencilView(GetRHIDevice(), &DSVDesc, TextureResource, HasStencil);
+		}
+	}
+
+	// Create a shader resource view for the texture.
+    D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+    SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	SRVDesc.Format = PlatformShaderResourceFormat;
+	SRVDesc.ViewDimension = ShaderResourceViewDimension;
+	SRVDesc.Texture2D.MostDetailedMip = 0;
+	SRVDesc.Texture2D.MipLevels = NumMips;
+	SRVDesc.Texture2D.PlaneSlice = GetPlaneSliceFromViewFormat(PlatformResourceFormat, SRVDesc.Format);
+
+	TRefCountPtr<FD3D12ResourceLocation> TextureResourceLocation = new FD3D12ResourceLocation(GetRHIDevice());
+	TextureResourceLocation->SetFromD3DResource(TextureResource, 0, 0);
+
+	FD3D12Texture2D* Texture2D = new FD3D12Texture2D(
+		GetRHIDevice(),
+		TextureResourceLocation,
+		bCreatedRTVPerSlice,
+		TextureDesc.DepthOrArraySize,
+		RenderTargetViews,
+		DepthStencilViews,
+		SizeX,
+		SizeY,
+		SizeZ,
+		NumMips,
+		ActualMSAACount,
+		(EPixelFormat)Format,
+		false, // bCubeTexture,
+		Flags,
+		false, // bPooledTexture,
+		ClearValueBinding
+#if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
+		, RawTextureMemory
+#endif
+		);
+
+	if (Flags & TexCreate_CPUReadback)
+	{
+		const uint32 BlockBytes = GPixelFormats[PlatformResourceFormat].BlockBytes;
+		const uint32 XBytesAligned = Align((uint32)SizeX * BlockBytes, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		D3D12_SUBRESOURCE_FOOTPRINT destSubresource;
+		destSubresource.Depth = SizeZ;
+		destSubresource.Height = SizeY;
+		destSubresource.Width = SizeX;
+		destSubresource.Format = PlatformResourceFormat;
+		destSubresource.RowPitch = XBytesAligned;
+
+		check(destSubresource.RowPitch % D3D12_TEXTURE_DATA_PITCH_ALIGNMENT == 0);	// Make sure we align correctly.
+
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT placedTexture2D = { 0 };
+		placedTexture2D.Offset = 0;
+		placedTexture2D.Footprint = destSubresource;
+		Texture2D->SetReadBackHeapDesc(placedTexture2D);
+	}
+
+	FD3D12ShaderResourceView* pWrappedShaderResourceView = new FD3D12ShaderResourceView(GetRHIDevice(), &SRVDesc, Texture2D->ResourceLocation);
+	Texture2D->SetShaderResourceView(pWrappedShaderResourceView);
+
+	D3D11TextureAllocated(*Texture2D);
+
+	return Texture2D;
+}
+
+void FD3D12DynamicRHI::RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2DRHI, FTexture2DRHIParamRef SrcTexture2DRHI)
+{
+	FD3D12Texture2D* DestTexture2D = FD3D12DynamicRHI::ResourceCast(DestTexture2DRHI);
+	FD3D12Texture2D* SrcTexture2D = FD3D12DynamicRHI::ResourceCast(SrcTexture2DRHI);
+
+	DestTexture2D->AliasResources(SrcTexture2D);
+}

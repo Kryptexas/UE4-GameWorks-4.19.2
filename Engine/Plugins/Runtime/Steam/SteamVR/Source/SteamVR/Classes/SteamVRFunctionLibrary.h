@@ -21,17 +21,6 @@ enum class ESteamVRTrackedDeviceType
 	Invalid
 };
 
-/** Defines which calibration point to use (e.g. center of the room for standing, calibrated head position for seated) */
-UENUM(BlueprintType)
-enum class ESteamVRTrackingSpace
-{
-	/** Standing origin, where poses are relative to the safe room bounds provided by the user's calibration */
-	Standing,
-
-	/** Seated origin, where poses are relative to the user's calibrated seated head position */
-	Seated
-};
-
 /**
  * SteamVR Extensions Function Library
  */
@@ -73,18 +62,4 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "SteamVR")
 	static bool GetHandPositionAndOrientation(int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FRotator& OutOrientation);
-
-	/**
-	 * Sets the tracking space (e.g. sitting or standing), which changes which space tracked positions are returned to
-	 *
-	 * NewSpace		The new space to consider all tracked positions in.  For instance, standing assumes the center of the safe zone as the origin.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "SteamVR")
-	static void SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace);
-
-	/**
-	 * Gets the tracking space (e.g. sitting or standing), which determines the location of the origin.
-	 */
-	UFUNCTION(BlueprintPure, Category = "SteamVR")
-	static TEnumAsByte<ESteamVRTrackingSpace> GetTrackingSpace();
 };
