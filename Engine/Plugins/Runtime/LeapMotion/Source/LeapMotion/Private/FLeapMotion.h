@@ -11,7 +11,8 @@
  */
 class FLeapMotion : public ILeapMotion
 {
-	Leap::Controller LeapController;
+	void* LeapMotionDLLHandle = nullptr;
+	Leap::Controller* LeapController = nullptr;
 public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;

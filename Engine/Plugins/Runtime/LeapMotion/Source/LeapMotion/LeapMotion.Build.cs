@@ -87,6 +87,9 @@ namespace UnrealBuildTool.Rules
                 string PlatformString = (Target.Platform == UnrealTargetPlatform.Win64) ? "Win64" : "Win32";
 
                 PublicAdditionalLibraries.Add(Path.Combine(LibraryPath, PlatformString, "Leap.lib"));
+
+                PublicDelayLoadDLLs.Add("Leap.dll");
+                RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/LeapMotion/" + Target.Platform.ToString() + "/" + "Leap.dll"));
             }
             else if (Target.Platform == UnrealTargetPlatform.Mac){
 
