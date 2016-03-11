@@ -1953,6 +1953,8 @@ void UStaticMesh::CacheDerivedData()
 	}
 }
 
+#endif // #if WITH_EDITORONLY_DATA
+
 void UStaticMesh::CalculateExtendedBounds()
 {
 	FBoxSphereBounds Bounds(ForceInit);
@@ -1975,7 +1977,6 @@ void UStaticMesh::CalculateExtendedBounds()
 	ExtendedBounds = Bounds;
 }
 
-#endif // #if WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
 FUObjectAnnotationSparseBool GStaticMeshesThatNeedMaterialFixup;

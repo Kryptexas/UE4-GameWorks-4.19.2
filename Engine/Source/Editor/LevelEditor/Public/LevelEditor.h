@@ -75,7 +75,12 @@ public:
 	/**
 	 * Starts a play in editor session using the active viewport
 	 */
-	virtual void StartImmersivePlayInEditorSession();
+	virtual void StartPlayInEditorSession();
+
+	/**
+	 * Takes the first active viewport and switches it to immersive mode.  Designed to be called at editor startup.  Optionally forces the viewport into game view mode too.
+	 */
+	virtual void GoImmersiveWithActiveLevelViewport( const bool bForceGameView );
 
 	/**
 	 * Toggles immersive mode on the currently active level viewport
@@ -146,6 +151,7 @@ public:
 	/** Called when the tab manager is changed */
 	DECLARE_EVENT(FLevelEditorModule, FTabManagerChangedEvent);
 	virtual FTabManagerChangedEvent& OnTabManagerChanged() { return TabManagerChangedEvent; }
+
 
 	/**
 	 * Called when actor selection changes

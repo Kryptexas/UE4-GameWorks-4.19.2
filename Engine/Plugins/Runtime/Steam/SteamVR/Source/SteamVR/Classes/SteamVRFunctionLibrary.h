@@ -75,6 +75,26 @@ public:
 	static bool GetHandPositionAndOrientation(int32 ControllerIndex, EControllerHand Hand, FVector& OutPosition, FRotator& OutOrientation);
 
 	/**
+	 * Gets the number of tracked lighthouse tracking reference objects
+	 *
+	 * @return	The number of lighthouses that are currently tracked
+	 */
+	UFUNCTION(BlueprintPure, Category = "SteamVR")
+	static int32 GetNumberOfLighthouses();
+
+	/**
+	 * Gets the orientation and position (in device space) of a lighthouse tracking reference object
+	 *
+	 * @param	LighthouseIndex	The Unreal controller index to request positional data for
+	 * @param	OutPosition		(out) Current position of the device
+	 * @param	OutOrientation	(out) Current orientation of the device
+	 *
+	 * @return	True if the specified device id had a valid tracking pose this frame, false otherwise
+	 */
+	UFUNCTION(BlueprintPure, Category = "SteamVR")
+	static bool GetLighthousePositionAndOrientation(const int32 LighthouseIndex, FVector& OutPosition, FRotator& OutOrientation);
+
+	/**
 	 * Sets the tracking space (e.g. sitting or standing), which changes which space tracked positions are returned to
 	 *
 	 * NewSpace		The new space to consider all tracked positions in.  For instance, standing assumes the center of the safe zone as the origin.
@@ -87,4 +107,16 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "SteamVR")
 	static TEnumAsByte<ESteamVRTrackingSpace> GetTrackingSpace();
+
+	/**
+	 * Returns the soft bounds from the Chaperone, in Unreal-scale HMD-space coordinates, centered around the HMD's calibration origin (0,0,0).  Note that the Z component is always zero
+	 */
+	UFUNCTION(BlueprintPure, Category = "SteamVR")
+	static TArray<FVector> GetSoftBounds();
+
+	/**
+	 * Returns the hard bounds from the Chaperone, in Unreal-scale HMD-space coordinates, centered around the HMD's calibration origin (0,0,0).  Each set of four bounds will form a quad to define a set of hard bounds
+	*/
+	UFUNCTION(BlueprintPure, Category = "SteamVR")
+	static TArray<FVector> GetHardBounds();
 };

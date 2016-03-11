@@ -400,9 +400,10 @@ enum ECollisionChannel
 	ECC_PhysicsBody UMETA(DisplayName="PhysicsBody"),
 	ECC_Vehicle UMETA(DisplayName="Vehicle"),
 	ECC_Destructible UMETA(DisplayName="Destructible"),
+	ECC_EditorGizmo UMETA(DisplayName="EditorGizmo", TraceQuery="1"),
 	// @NOTE : when you add more here for predefined engine channel
 	// please change the max in the CollisionProfile
-	// search ECC_Destructible
+	// search ECC_EditorGizmo
 
 	// Unspecified Engine Trace Channels
 	ECC_EngineTraceChannel1 UMETA(Hidden),

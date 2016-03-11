@@ -8,6 +8,7 @@
 #include "NotificationManager.h"
 #include "AutoSaveUtils.h"
 #include "ShaderCompiler.h"
+#include "IVREditorModule.h"
 
 namespace PackageAutoSaverJson
 {
@@ -400,8 +401,9 @@ bool FPackageAutoSaver::CanAutoSave() const
 	const bool bIsInteracting = FSlateApplication::Get().HasAnyMouseCaptor() || GUnrealEd->IsUserInteracting() || (bDidInteractRecently && !bAutoSaveNotificationLaunched && !bDelayingDueToFailedSave);
 	const bool bHasGameOrProjectLoaded = FApp::HasGameName();
 	const bool bAreShadersCompiling = GShaderCompilingManager->IsCompiling();
+	const bool bIsVREditorActive = IVREditorModule::Get().IsVREditorEnabled();	// @todo vreditor: Eventually we should support this while in VR (modal VR progress, with sufficient early warning)
 
-	return (bAutosaveEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible && !bAutomationTesting && !bIsInteracting && !GIsDemoMode && bHasGameOrProjectLoaded && !bAreShadersCompiling);
+	return (bAutosaveEnabled && !bSlowTask && !bInterpEditMode && !bPlayWorldValid && !bAnyMenusVisible && !bAutomationTesting && !bIsInteracting && !GIsDemoMode && bHasGameOrProjectLoaded && !bAreShadersCompiling && !bIsVREditorActive);
 }
 
 bool FPackageAutoSaver::DoPackagesNeedAutoSave() const

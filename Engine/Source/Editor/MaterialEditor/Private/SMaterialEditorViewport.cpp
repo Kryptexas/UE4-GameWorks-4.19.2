@@ -33,7 +33,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 	virtual bool ShouldOrbitCamera() const override;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass) override;
 	
 	void SetShowGrid(bool bShowGrid);
 
@@ -134,9 +134,9 @@ FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 }
 
 
-FSceneView* FMaterialEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FMaterialEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily);
+	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
 	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
 	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White;

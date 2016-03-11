@@ -4503,13 +4503,14 @@ FReply FSlateApplication::RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer
 }
 
 
-bool FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
+FReply FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent)
 {
+	FReply Reply = FReply::Unhandled();
+
 #if PLATFORM_MAC
 	NSWindow* ActiveNativeWindow = [NSApp keyWindow];
 	TSharedPtr<SWindow> TopLevelWindow;
 #endif
-	FReply Reply = FReply::Unhandled();
 
 	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
 	{
@@ -4600,7 +4601,7 @@ bool FSlateApplication::RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FP
 	}
 #endif
 
-	return Reply.IsEventHandled();
+	return Reply;
 }
 
 bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic)
@@ -4611,7 +4612,7 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 
 	// User asked us to detect a drag.
 	bool bDragDetected = false;
-	if( DragDetector.DetectDragForWidget.IsValid() )
+	if( DragDetector.DetectDragForWidget.IsValid() && !bIsSynthetic )
 	{	
 		const FVector2D DragDelta = (DragDetector.DetectDragStartLocation - PointerEvent.GetScreenSpacePosition());
 		bDragDetected = ( DragDelta.SizeSquared() > FMath::Square(FSlateApplication::Get().GetDragTriggerDistance()) );
@@ -4661,6 +4662,13 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 		LastWidgetsUnderCursor = WidgetsUnderCursorLastEvent.FindRef( FUserAndPointer( PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex() ) );
 	}
 
+	FWidgetPath MouseCaptorPath;
+	if ( MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()) )
+	{
+		//MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex(), FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
+		MouseCaptorPath = MouseCaptor.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid, &PointerEvent);
+	}
+
 	// Send out mouse leave events
 	// If we are doing a drag and drop, we will send this event instead.
 	{
@@ -4699,9 +4707,13 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 						}
 						else
 						{
-							// Note that the event's pointer position is not translated.
-							SomeWidgetPreviouslyUnderCursor->OnMouseLeave( PointerEvent );
-							LOG_EVENT( EEventLog::MouseLeave, SomeWidgetPreviouslyUnderCursor );
+							// Only fire mouse leave events for widgets inside the captor path, or whoever if there is no captor path.
+							if ( MouseCaptorPath.IsValid() == false || MouseCaptorPath.ContainsWidget(SomeWidgetPreviouslyUnderCursor.ToSharedRef()) )
+							{
+								// Note that the event's pointer position is not translated.
+								SomeWidgetPreviouslyUnderCursor->OnMouseLeave(PointerEvent);
+								LOG_EVENT(EEventLog::MouseLeave, SomeWidgetPreviouslyUnderCursor);
+							}
 						}			
 					}
 				}
@@ -4710,12 +4722,7 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 	}
 
 
-	FWidgetPath MouseCaptorPath;
-	if (MouseCaptor.HasCaptureForPointerIndex(PointerEvent.GetUserIndex(), PointerEvent.GetPointerIndex()))
-	{
-		//MouseCaptorPath = MouseCaptor.ToWidgetPath(MouseEvent.GetPointerIndex(), FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid);
-		MouseCaptorPath = MouseCaptor.ToWidgetPath(FWeakWidgetPath::EInterruptedPathHandling::ReturnInvalid, &PointerEvent );
-	}
+	
 
 	if (MouseCaptorPath.IsValid())
 	{
@@ -4723,6 +4730,18 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 		{
 			// Switch worlds widgets in the current path
 			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
+
+			FEventRouter::Route<FNoReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderPointer), PointerEvent, [&MouseCaptorPath, &LastWidgetsUnderCursor] (const FArrangedWidget& WidgetUnderCursor, const FPointerEvent& Event)
+			{
+				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
+				{
+					if ( MouseCaptorPath.ContainsWidget(WidgetUnderCursor.Widget) )
+					{
+						WidgetUnderCursor.Widget->OnMouseEnter(WidgetUnderCursor.Geometry, Event);
+					}
+				}
+				return FNoReply();
+			});
 			
 			FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), PointerEvent, [this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
 			{
@@ -4936,7 +4955,7 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 
 	// An empty widget path is passed in.  As an optimization, one will be generated only if a captured mouse event isnt routed
 	FWidgetPath EmptyPath;
-	const bool bHandled = RoutePointerUpEvent( EmptyPath, MouseEvent );
+	const bool bHandled = RoutePointerUpEvent( EmptyPath, MouseEvent ).IsEventHandled();
 
 	// If in responsive mode throttle, leave it on mouse up.
 	if( MouseButtonDownResponsivnessThrottle.IsValid() )

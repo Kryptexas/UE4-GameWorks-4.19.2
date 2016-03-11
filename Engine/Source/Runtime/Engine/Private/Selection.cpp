@@ -25,12 +25,6 @@ void USelection::Select(UObject* InObject)
 {
 	check( InObject );
 
-	// Warn if we attempt to select a PIE object.
-	if ( InObject->GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor) )
-	{
-		UE_LOG(LogSelection, Warning, TEXT("PIE object was selected: \"%s\""), *InObject->GetFullName() );
-	}
-
 	const bool bSelectionChanged = !InObject->IsSelected();
 	GSelectedAnnotation.Set(InObject);
 

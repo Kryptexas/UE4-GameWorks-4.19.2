@@ -26,8 +26,23 @@ FSceneViewport* FindSceneViewport()
 #if WITH_EDITOR
 	else
 	{
-		UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine);
-		return (FSceneViewport*)(EditorEngine->GetPIEViewport());
+		UEditorEngine* EditorEngine = CastChecked<UEditorEngine>( GEngine );
+		FSceneViewport* PIEViewport = (FSceneViewport*)EditorEngine->GetPIEViewport();
+		if( PIEViewport != nullptr && PIEViewport->IsStereoRenderingAllowed() )
+		{
+			// PIE is setup for stereo rendering
+			return PIEViewport;
+		}
+		else
+		{
+			// Check to see if the active editor viewport is drawing in stereo mode
+			// @todo vreditor: Should work with even non-active viewport!
+			FSceneViewport* EditorViewport = (FSceneViewport*)EditorEngine->GetActiveViewport();
+			if( EditorViewport != nullptr && EditorViewport->IsStereoRenderingAllowed() )
+			{
+				return EditorViewport;
+			}
+		}
 	}
 #endif
 	return nullptr;
@@ -181,7 +196,7 @@ float FSteamVRHMD::GetInterpupillaryDistance() const
 	return 0.064f;
 }
 
-void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceId, bool bForceRefresh /* = false*/)
+void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceId, EPoseRefreshMode RefreshMode/* = EPoseRefreshMode::None*/, float ForceRefreshWorldToMetersScale /* = 0.0f */ )
 {
 	if (VRSystem == nullptr)
 	{
@@ -190,15 +205,20 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 
 	check(DeviceId >= 0 && DeviceId < vr::k_unMaxTrackedDeviceCount);
 
-	if (bForceRefresh)
+	if (RefreshMode != EPoseRefreshMode::None)
 	{
-		// With SteamVR, we should only update on the PreRender_ViewFamily, and then the next frame should use the previous frame's results
-		check(IsInRenderingThread());
-
 		TrackingFrame.FrameNumber = GFrameNumberRenderThread;
 
 		vr::TrackedDevicePose_t Poses[vr::k_unMaxTrackedDeviceCount];
-		vr::EVRCompositorError PoseError = VRCompositor->WaitGetPoses(Poses, ARRAYSIZE(Poses) , NULL, 0);
+		if (RefreshMode == EPoseRefreshMode::RenderRefresh)
+		{
+			vr::EVRCompositorError PoseError = VRCompositor->WaitGetPoses(Poses, ARRAYSIZE(Poses) , NULL, 0);
+		}
+		else
+		{
+			check(RefreshMode == EPoseRefreshMode::GameRefresh);
+			VRSystem->GetDeviceToAbsoluteTrackingPose(VRCompositor->GetTrackingSpace(), 0.0f, Poses, ARRAYSIZE(Poses));
+		}
 
 		for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
 		{
@@ -207,7 +227,9 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 
 			FVector LocalCurrentPosition;
 			FQuat LocalCurrentOrientation;
-			PoseToOrientationAndPosition(Poses[i].mDeviceToAbsoluteTracking, LocalCurrentOrientation, LocalCurrentPosition);
+			PoseToOrientationAndPosition(Poses[i].mDeviceToAbsoluteTracking, ForceRefreshWorldToMetersScale, LocalCurrentOrientation, LocalCurrentPosition);
+
+			TrackingFrame.WorldToMetersScale = ForceRefreshWorldToMetersScale;
 
 			TrackingFrame.DeviceOrientation[i] = LocalCurrentOrientation;
 			TrackingFrame.DevicePosition[i] = LocalCurrentPosition;
@@ -300,7 +322,7 @@ TArray<FVector> ConvertBoundsToUnrealSpace(const FBoundingQuad& InBounds, const 
 
 TArray<FVector> FSteamVRHMD::GetBounds() const
 {
-	return ConvertBoundsToUnrealSpace(ChaperoneBounds.Bounds, WorldToMetersScale);
+	return ConvertBoundsToUnrealSpace(ChaperoneBounds.Bounds, GetWorldToMetersScale());
 }
 
 void FSteamVRHMD::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace)
@@ -355,7 +377,7 @@ void FSteamVRHMD::SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealContro
 	}
 }
 
-void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, FQuat& OutOrientation, FVector& OutPosition) const
+void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, const float WorldToMetersScale, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	FMatrix Pose = ToFMatrix(InPose);
 	FQuat Orientation(Pose);
@@ -379,6 +401,11 @@ void FSteamVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FV
 	CurrentOrientation = LastHmdOrientation = CurHmdOrientation;
 
 	CurrentPosition = CurHmdPosition;
+}
+
+float FSteamVRHMD::GetWorldToMetersScale() const
+{
+	return TrackingFrame.bPoseIsValid ? TrackingFrame.WorldToMetersScale : 100.0f;
 }
 
 ESteamVRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) const
@@ -495,6 +522,12 @@ bool FSteamVRHMD::UpdatePlayerCamera(FQuat& CurrentOrientation, FVector& Current
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	LastHmdOrientation = CurHmdOrientation;
 
+	if( !bImplicitHmdPosition && GEnableVREditorHacks )
+	{
+		DeltaControlOrientation = CurrentOrientation;
+		DeltaControlRotation = DeltaControlOrientation.Rotator();
+	}
+
 	CurrentOrientation = CurHmdOrientation;
 	CurrentPosition = CurHmdPosition;
 
@@ -606,6 +639,10 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 		return false;
 	}
 
+	FQuat Orientation;
+	FVector Position;
+	GetCurrentPose(Orientation, Position, vr::k_unTrackedDeviceIndex_Hmd, EPoseRefreshMode::GameRefresh, GWorld->GetWorldSettings()->WorldToMeters);
+
 	float TimeDeltaSeconds = FApp::GetDeltaTime();
 
 	// Poll SteamVR events
@@ -685,6 +722,7 @@ void FSteamVRHMD::SetClippingPlanes(float NCP, float FCP)
 
 void FSteamVRHMD::SetBaseRotation(const FRotator& BaseRot)
 {
+	BaseOrientation = BaseRot.Quaternion();
 }
 FRotator FSteamVRHMD::GetBaseRotation() const
 {
@@ -716,10 +754,23 @@ bool FSteamVRHMD::EnableStereo(bool bStereo)
 	FSceneViewport* SceneVP = FindSceneViewport();
 	if (VRSystem && SceneVP)
 	{
-		int32 PosX, PosY;
-		uint32 Width, Height;
-		GetWindowBounds(&PosX, &PosY, &Width, &Height);
-		SceneVP->SetViewportSize(Width, Height);
+		if( bStereo )
+		{
+			int32 PosX, PosY;
+			uint32 Width, Height;
+			GetWindowBounds( &PosX, &PosY, &Width, &Height );
+			SceneVP->SetViewportSize( Width, Height );
+		}
+		else
+		{
+			TSharedPtr<SWindow> Window = SceneVP->FindWindow();
+			if( Window.IsValid() )
+			{
+				FVector2D size = SceneVP->FindWindow()->GetSizeInScreen();
+				SceneVP->SetViewportSize( size.X, size.Y );
+				Window->SetViewportSizeDrivenByWindow( true );
+			}
+		}
 	}
 
 	// Uncap fps to enable FPS higher than 62
@@ -835,7 +886,6 @@ void FSteamVRHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 {
 	InView.BaseHmdOrientation = LastHmdOrientation;
 	InView.BaseHmdLocation = LastHmdPosition;
-	WorldToMetersScale = InView.WorldToMetersScale;
 	InViewFamily.bUseSeparateRenderTarget = true;
 }
 
@@ -855,14 +905,16 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	check(IsInRenderingThread());
 	GetActiveRHIBridgeImpl()->BeginRendering();
 
+	const float WorldToMetersScale = ViewFamily.Views[ 0 ]->WorldToMetersScale;
+
 	FVector OldPosition;
 	FQuat OldOrientation;
-	GetCurrentPose(OldOrientation, OldPosition, vr::k_unTrackedDeviceIndex_Hmd, false);
+	GetCurrentPose(OldOrientation, OldPosition, vr::k_unTrackedDeviceIndex_Hmd);
 	const FTransform OldRelativeTransform(OldOrientation, OldPosition);
 
 	FVector NewPosition;
 	FQuat NewOrientation;
-	GetCurrentPose(NewOrientation, NewPosition, vr::k_unTrackedDeviceIndex_Hmd, true);
+	GetCurrentPose(NewOrientation, NewPosition, vr::k_unTrackedDeviceIndex_Hmd, EPoseRefreshMode::RenderRefresh, WorldToMetersScale);
 	const FTransform NewRelativeTransform(NewOrientation, NewPosition);
 
 	ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
@@ -948,6 +1000,7 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	WindowMirrorBoundsHeight(1200),
 	CurHmdOrientation(FQuat::Identity),
 	LastHmdOrientation(FQuat::Identity),
+	LastHmdPosition(FVector::ZeroVector),
 	BaseOrientation(FQuat::Identity),
 	BaseOffset(FVector::ZeroVector),
 	bIsQuitting(false),
@@ -955,11 +1008,9 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	DeltaControlRotation(FRotator::ZeroRotator),
 	DeltaControlOrientation(FQuat::Identity),
 	CurHmdPosition(FVector::ZeroVector),
-	WorldToMetersScale(100.0f),
 	SteamVRPlugin(SteamVRPlugin),
 	RendererModule(nullptr),
-	OpenVRDLLHandle(nullptr),
-	IdealScreenPercentage(100.0f)
+	OpenVRDLLHandle(nullptr)
 {
 	Startup();
 }

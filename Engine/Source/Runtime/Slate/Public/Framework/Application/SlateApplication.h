@@ -1193,9 +1193,9 @@ public:
 	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
 	 * @param PointerEvent		The event data that is is routed to the widget path
 	 *
-	 * @return True if handled, false otherwise
+	 * @return The reply from the event
 	 */
-	bool RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
+	FReply RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
 
 	/**
 	 * Directly routes a pointer move event to the widgets in the specified widget path

@@ -116,7 +116,7 @@ const FSlateBrush* SButton::GetBorder() const
 	{
 		return DisabledImage;
 	}
-	else if (IsPressed())
+	else if ( IsPressed() )
 	{
 		return PressedImage;
 	}
@@ -139,6 +139,8 @@ bool SButton::SupportsKeyboardFocus() const
 
 void SButton::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
+	SBorder::OnFocusLost(InFocusEvent);
+
 	Release();
 }
 

@@ -9,6 +9,9 @@
 IMPLEMENT_HIT_PROXY_BASE( HHitProxy, NULL );
 IMPLEMENT_HIT_PROXY(HObject,HHitProxy);
 
+const FHitProxyId FHitProxyId::InvisibleHitProxyId( INDEX_NONE - 1 );
+
+
 /** The global list of allocated hit proxies, indexed by hit proxy ID. */
 
 class FHitProxyArray

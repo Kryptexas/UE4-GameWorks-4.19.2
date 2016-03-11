@@ -22,7 +22,7 @@ public:
 
 		SLATE_ARGUMENT( TWeakPtr<class FEditorModeTools>, EditorModeTools )
 		SLATE_ARGUMENT( TSharedPtr<class FLevelViewportLayout>, ParentLayout )
-		SLATE_ARGUMENT( TWeakPtr<class SLevelEditor>, ParentLevelEditor )
+		SLATE_ARGUMENT( TWeakPtr<class ILevelEditor>, ParentLevelEditor )
 		SLATE_ARGUMENT( ELevelViewportType, ViewportType )
 		SLATE_ARGUMENT( bool, Realtime )
 		SLATE_ARGUMENT( FString, ConfigKey )
@@ -91,8 +91,12 @@ public:
 	virtual void RegisterGameViewportIfPIE() override;
 	virtual bool HasPlayInEditorViewport() const override; 
 	virtual FViewport* GetActiveViewport() override;
-	virtual TSharedRef< const SWidget> AsWidget() override { return AsShared(); }
+	virtual TSharedRef< const SWidget> AsWidget() const override { return AsShared(); }
+	virtual TSharedRef< SWidget> AsWidget() override { return AsShared(); }
 	virtual TWeakPtr< SViewport > GetViewportWidget() override { return ViewportWidget; }
+	virtual void AddOverlayWidget( TSharedRef<SWidget> OverlaidWidget ) override;
+	virtual void RemoveOverlayWidget( TSharedRef<SWidget> OverlaidWidget ) override;
+
 
 
 	/** SEditorViewport Interface */
@@ -595,12 +599,6 @@ private:
 	 */
 	void RemoveActorPreview( int32 PreviewIndex );
 	
-	/** Adds a widget overlaid over the viewport */
-	virtual void AddOverlayWidget(TSharedRef<SWidget> OverlaidWidget) override;
-
-	/** Removes a widget that was previously overlaid on to this viewport */
-	virtual void RemoveOverlayWidget(TSharedRef<SWidget> OverlaidWidget) override;
-
 	/** Returns true if this viewport is the active viewport and can process UI commands */
 	bool CanProduceActionForCommand(const TSharedRef<const FUICommandInfo>& Command) const;
 

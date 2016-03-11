@@ -31,7 +31,7 @@ public:
 	virtual FMatrix GetWidgetCoordSystem() const override;
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const override { return COORD_Local; }
 	virtual bool ShouldOrbitCamera() const override;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass = eSSP_FULL) override;
 
 	/** 
 	 *	Updates the static mesh and static mesh component being used in the Static Mesh Editor.

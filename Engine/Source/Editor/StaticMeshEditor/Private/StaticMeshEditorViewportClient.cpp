@@ -1144,9 +1144,9 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 	Invalidate();
 }
 
-FSceneView* FStaticMeshEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FStaticMeshEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily);
+	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
 	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
 	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White * AmbientCubemapIntensity;

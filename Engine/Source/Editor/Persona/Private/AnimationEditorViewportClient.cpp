@@ -172,11 +172,11 @@ FLinearColor FAnimationViewportClient::GetBackgroundColor() const
 	return SelectedHSVColor.HSVToLinearRGB();
 }
 
-FSceneView* FAnimationViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
+FSceneView* FAnimationViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const EStereoscopicPass StereoPass)
 {
 	float AmbientCubemapIntensity = 0.4f;
 
-	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily);
+	FSceneView* SceneView = FEditorViewportClient::CalcSceneView(ViewFamily, StereoPass);
 	FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(SceneView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
 	CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
 	CubemapEntry.AmbientCubemapTintMulScaleValue = FLinearColor::White * AmbientCubemapIntensity;

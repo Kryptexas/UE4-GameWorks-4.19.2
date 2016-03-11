@@ -519,6 +519,7 @@ public:
 	TSharedPtr< FUICommandInfo > OpenContentBrowser;
 	TSharedPtr< FUICommandInfo > OpenMarketplace;
 	TSharedPtr< FUICommandInfo > EditMatinee;
+	TSharedPtr< FUICommandInfo > ToggleVR;
 
 	/**
 	 * Blueprints commands
@@ -627,6 +628,11 @@ public:
 	/** Opens an existing level */
 	static void OpenLevel();
 	static bool OpenLevel_CanExecute();
+
+	/** Toggles VR mode */
+	static void ToggleVR();
+	static bool ToggleVR_CanExecute();
+	static bool ToggleVR_IsChecked();
 
 	/** Opens delta transform */
 	static void DeltaTransform();

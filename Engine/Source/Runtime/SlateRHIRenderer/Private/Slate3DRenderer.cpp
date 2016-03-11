@@ -90,14 +90,14 @@ struct TKeepAliveCommand : public FRHICommand < TKeepAliveCommand<TKeepAliveType
 	void Execute(FRHICommandListBase& CmdList) {}
 };
 
-void FSlate3DRenderer::DrawWindowToTarget_RenderThread(FRHICommandListImmediate& InRHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& WindowDrawBuffer)
+void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate& InRHICmdList, FTextureRenderTarget2DResource* RenderTargetResource, FSlateDrawBuffer& WindowDrawBuffer )
 {
-	SCOPED_DRAW_EVENT(InRHICmdList, SlateRenderToTarget);
+	SCOPED_DRAW_EVENT( InRHICmdList, SlateRenderToTarget );
 
-	checkSlow(WindowDrawBuffer.GetWindowElementLists().Num() == 1);
-	checkSlow(RenderTargetResource);
+	checkSlow( WindowDrawBuffer.GetWindowElementLists().Num() == 1 );
+	checkSlow( RenderTargetResource );
 
-	FSlateWindowElementList& WindowElementList = *WindowDrawBuffer.GetWindowElementLists()[0].Get();
+	FSlateWindowElementList& WindowElementList = *WindowDrawBuffer.GetWindowElementLists()[ 0 ].Get();
 
 	FSlateBatchData& BatchData = WindowElementList.GetBatchData();
 	FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();

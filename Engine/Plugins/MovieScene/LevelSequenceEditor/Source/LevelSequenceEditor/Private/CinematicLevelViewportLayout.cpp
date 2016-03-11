@@ -4,6 +4,7 @@
 #include "CinematicLevelViewportLayout.h"
 #include "LevelViewportLayout.h"
 #include "SLevelViewport.h"
+#include "ILevelEditor.h"
 #include "CinematicViewport/SCinematicLevelViewport.h"
 #include "LevelViewportActions.h"
 
@@ -105,7 +106,7 @@ TSharedRef<SWidget> FCinematicLevelViewportLayout_TwoPane::MakeViewportLayout(co
 			SAssignNew(ViewportWidget0, SLevelViewport)
 			.ViewportType(LVT_Perspective)
 			.ParentLayout(AsShared())
-			.ParentLevelEditor(ParentLevelEditor)
+			.ParentLevelEditor(*(TWeakPtr<ILevelEditor>*)&ParentLevelEditor)
 			.ConfigKey(ViewportKey0)
 		]
 

@@ -3503,7 +3503,7 @@ void SAssetView::OnListMouseButtonDoubleClick(TSharedPtr<FAssetViewItem> AssetIt
 
 FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( bAllowDragging && MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
+	if ( bAllowDragging )
 	{
 		TArray<FAssetData> AssetDataList = GetSelectedAssets();
 
@@ -3526,9 +3526,18 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 				InAssetData.Add(AssetData);
 			}
 			
-			if ( InAssetData.Num() > 0 )
+			if( InAssetData.Num() > 0 )
 			{
-				return FReply::Handled().BeginDragDrop(FAssetDragDropOp::New(InAssetData));
+				UActorFactory* FactoryToUse = nullptr;
+				FEditorDelegates::OnAssetDragStarted.Broadcast( InAssetData, FactoryToUse );
+				if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
+				{
+					return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( InAssetData ) );
+				}
+				else
+				{
+					return FReply::Handled();
+				}
 			}
 		}
 		else

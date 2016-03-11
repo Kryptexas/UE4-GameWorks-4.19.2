@@ -55,6 +55,7 @@ public class MainFrame : ModuleRules
 				"SourceCodeAccess",
                 "Toolbox",
                 "LocalizationDashboard",
+				"HeadMountedDisplay",
 			}
 		);
 
@@ -77,7 +78,8 @@ public class MainFrame : ModuleRules
 				"SourceCodeAccess",
 				"EditorLiveStreaming",
 				"HotReload",
-                "LocalizationDashboard"
+                "LocalizationDashboard",
+				"HeadMountedDisplay",
 			}
 		);
 	}

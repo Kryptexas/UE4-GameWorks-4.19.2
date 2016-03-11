@@ -691,6 +691,9 @@ void FSceneView::UpdateViewMatrix()
 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
 	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
 	InvViewProjectionMatrix = ViewMatrices.GetInvProjMatrix() * InvViewMatrix;
+
+	// Derive the view frustum from the view projection matrix.
+	GetViewFrustumBounds( ViewFrustum, ViewProjectionMatrix, false );
 }
 
 void FSceneView::SetScaledViewRect(FIntRect InScaledViewRect)
@@ -1670,7 +1673,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 
 		if (!bSceneCapture && GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
-		{
+		{												  
 			bFullscreen = GEngine->GameViewport->GetWindow()->GetWindowMode() != EWindowMode::Windowed;
 		}
 
@@ -1679,9 +1682,14 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if(CVarScreenPercentageEditor.GetValueOnAnyThread() == 0)
 		{
-			bool bNotInGame = GEngine && GEngine->GameViewport == 0;
+			// Don't apply editor screen percentage scaling while in a PIE viewport
+			const bool bInGame = !GEngine || GEngine->GameViewport != nullptr;
 
-			if(bNotInGame)
+			// Don't apply editor screen percentage scaling while rendering a stereo view in the editor, as HMDs often
+			// require device-specific upscaling to look correct
+			const bool bStereo = ViewInitOptions.StereoPass != eSSP_FULL;
+
+			if(!bInGame && !bStereo)
 			{
 				Fraction = 1.0f;
 			}

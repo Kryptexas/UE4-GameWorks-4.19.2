@@ -297,7 +297,10 @@ inline int32 FViewElementPDI::DrawMesh(const FMeshBatch& Mesh)
 		TIndirectArray<FMeshBatch>& ViewMeshElementList = ( ( DPGIndex == SDPG_Foreground  ) ? ViewInfo->TopViewMeshElements : ViewInfo->ViewMeshElements );
 
 		FMeshBatch* NewMesh = new(ViewMeshElementList) FMeshBatch(Mesh);
-		NewMesh->BatchHitProxyId = CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId();
+		if( CurrentHitProxy != nullptr )
+		{
+			NewMesh->BatchHitProxyId = CurrentHitProxy->Id;
+		}
 
 		return 1;
 	}

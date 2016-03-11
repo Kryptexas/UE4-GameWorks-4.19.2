@@ -28,6 +28,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bIgnoreCaptureClick( true )
 	, bRequiresVsync( false )
 	, bUseSeparateRenderTarget( InViewportWidget.IsValid() ? !InViewportWidget->ShouldRenderDirectly() : true )
+	, bForceSeparateRenderTarget( false )
 	, bIsResizing( false )
 	, bPlayInEditorGetsMouseControl( true )
 	, bPlayInEditorIsSimulate( false )
@@ -1122,7 +1123,7 @@ bool FSceneViewport::IsStereoRenderingAllowed() const
 void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
 {
 	// Do not resize if the viewport is an invalid size or our UI should be responsive
-	if( NewSizeX > 0 && NewSizeY > 0 && FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
+	if( NewSizeX > 0 && NewSizeY > 0 )
 	{
 		bIsResizing = true;
 
@@ -1224,7 +1225,7 @@ void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 
 		{
 			BeginInitResource(this);
 				
-			if( !bUseSeparateRenderTarget )
+			if( !UseSeparateRenderTarget() )
 			{
 				// Get the viewport for this window from the renderer so we can render directly to the backbuffer
 				TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
@@ -1272,12 +1273,12 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// check if we need to reallocate rendertarget for HMD and update HMD rendering viewport 
 	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
 	{
-		bool bNewUseSepRenTarget = GEngine->StereoRenderingDevice->ShouldUseSeparateRenderTarget();
-		if (bNewUseSepRenTarget != bUseSeparateRenderTarget ||
-		    (bNewUseSepRenTarget && GEngine->StereoRenderingDevice->NeedReAllocateViewportRenderTarget(*this)))
+		bool bHMDWantsSeparateRenderTarget = GEngine->StereoRenderingDevice->ShouldUseSeparateRenderTarget();
+		if (bHMDWantsSeparateRenderTarget != bForceSeparateRenderTarget ||
+		    (bHMDWantsSeparateRenderTarget && GEngine->StereoRenderingDevice->NeedReAllocateViewportRenderTarget(*this)))
 		{
 			// This will cause RT to be allocated (or freed)
-			bUseSeparateRenderTarget = bNewUseSepRenTarget;
+			bForceSeparateRenderTarget = bHMDWantsSeparateRenderTarget;
 			UpdateViewportRHI(false, SizeX, SizeY, WindowMode);
 		}
 	}
@@ -1287,9 +1288,9 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// Note: ViewportRHI is only updated on the game thread
 
 	// If we dont have the ViewportRHI then we need to get it before rendering
-	// Note, we need ViewportRHI even if bUseSeparateRenderTarget is true when stereo rendering
+	// Note, we need ViewportRHI even if UseSeparateRenderTarget() is true when stereo rendering
 	// is enabled.
-	if( !IsValidRef(ViewportRHI) && (!bUseSeparateRenderTarget || (GEngine->StereoRenderingDevice.IsValid())) )
+	if( !IsValidRef(ViewportRHI) && (!UseSeparateRenderTarget() || (GEngine->StereoRenderingDevice.IsValid())) )
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
@@ -1321,14 +1322,14 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 
 	if (GEngine->StereoRenderingDevice.IsValid())
 	{
-		GEngine->StereoRenderingDevice->UpdateViewport(bUseSeparateRenderTarget, *this, ViewportWidget.Pin().Get());	
+		GEngine->StereoRenderingDevice->UpdateViewport(UseSeparateRenderTarget(), *this, ViewportWidget.Pin().Get());	
 	}
 }
 
 void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 {
 	check( IsInRenderingThread() );
-	if (bUseSeparateRenderTarget)
+	if (UseSeparateRenderTarget())
 	{		
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, RenderTargetTextureRenderThreadRHI);
 		SetRenderTarget(RHICmdList,  RenderTargetTextureRenderThreadRHI,  FTexture2DRHIRef(), true);
@@ -1349,7 +1350,7 @@ void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync)
 {
 	check( IsInRenderingThread() );
-	if (bUseSeparateRenderTarget)
+	if (UseSeparateRenderTarget())
 	{
 		if (BufferedSlateHandles[CurrentBufferedTargetIndex])
 		{			
@@ -1414,7 +1415,7 @@ void FSceneViewport::WindowRenderTargetUpdate(FSlateRenderer* Renderer, SWindow*
 	check(IsInGameThread());
 	if (Renderer)
 	{
-		if (bUseSeparateRenderTarget)
+		if (UseSeparateRenderTarget())
 		{
 			if (Window)
 			{
@@ -1451,10 +1452,11 @@ void FSceneViewport::InitDynamicRHI()
 
 	TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
 	uint32 TexSizeX = SizeX, TexSizeY = SizeY;
-	if (bUseSeparateRenderTarget)
+	if (UseSeparateRenderTarget())
 	{
 		NumBufferedFrames = 1;
 		
+		// @todo vreditor switch: This code needs to be called when switching between stereo/non when going immersive.  Seems to always work out that way anyway though? (Probably due to resize)
 		const bool bStereo = (IsStereoRenderingAllowed() && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabledOnNextFrame());
 		bool bUseCustomPresentTexture = false;
 
@@ -1555,7 +1557,7 @@ void FSceneViewport::InitDynamicRHI()
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(PinnedViewport.ToSharedRef(), WidgetPath);
 		
 		WindowRenderTargetUpdate(Renderer.Get(), Window.Get());
-		if (bUseSeparateRenderTarget)
+		if (UseSeparateRenderTarget())
 		{
 			RTTSize = FIntPoint(TexSizeX, TexSizeY);
 		}

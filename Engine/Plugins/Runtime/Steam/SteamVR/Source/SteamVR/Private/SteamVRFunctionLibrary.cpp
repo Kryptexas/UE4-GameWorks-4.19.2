@@ -60,6 +60,45 @@ bool USteamVRFunctionLibrary::GetHandPositionAndOrientation(int32 ControllerInde
 	return RetVal;
 }
 
+
+int32 USteamVRFunctionLibrary::GetNumberOfLighthouses()
+{
+	int32 NumLighthouses = 0;
+
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if( SteamVRHMD )
+	{
+		TArray< int32 > TrackedLighthouseDeviceIds;
+		SteamVRHMD->GetTrackedDeviceIds( ESteamVRTrackedDeviceType::TrackingReference, /* Out */ TrackedLighthouseDeviceIds );
+
+		NumLighthouses = TrackedLighthouseDeviceIds.Num();
+	}
+
+	return NumLighthouses;
+}
+
+
+bool USteamVRFunctionLibrary::GetLighthousePositionAndOrientation( const int32 LighthouseIndex, FVector& OutPosition, FRotator& OutOrientation )
+{
+	bool RetVal = false;
+
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if( SteamVRHMD )
+	{
+		TArray< int32 > TrackedLighthouseDeviceIds;
+		SteamVRHMD->GetTrackedDeviceIds( ESteamVRTrackedDeviceType::TrackingReference, /* Out */ TrackedLighthouseDeviceIds );
+
+		if( LighthouseIndex >= 0 && LighthouseIndex < TrackedLighthouseDeviceIds.Num() )
+		{
+			FQuat DeviceOrientation = FQuat::Identity;
+			RetVal = SteamVRHMD->GetTrackedObjectOrientationAndPosition( TrackedLighthouseDeviceIds[ LighthouseIndex ], DeviceOrientation, OutPosition);
+			OutOrientation = DeviceOrientation.Rotator();
+		}
+	}
+
+	return RetVal;
+}
+
 void USteamVRFunctionLibrary::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace)
 {
 	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
@@ -80,4 +119,31 @@ TEnumAsByte<ESteamVRTrackingSpace> USteamVRFunctionLibrary::GetTrackingSpace()
 	}
 
 	return RetVal;
+}
+
+TArray<FVector> USteamVRFunctionLibrary::GetSoftBounds()
+{
+	TArray<FVector> SoftBounds;
+
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if( SteamVRHMD )
+	{
+		SoftBounds = SteamVRHMD->GetBounds();
+	}
+	
+	return SoftBounds;
+}
+
+
+TArray<FVector> USteamVRFunctionLibrary::GetHardBounds()
+{
+	TArray<FVector> HardBounds;
+
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if( SteamVRHMD )
+	{
+		HardBounds = SteamVRHMD->GetBounds();
+	}
+
+	return HardBounds;
 }

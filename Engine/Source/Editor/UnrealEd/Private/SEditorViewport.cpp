@@ -388,6 +388,19 @@ void SEditorViewport::OnToggleRealtime()
 	}
 }
 
+
+void SEditorViewport::SetRenderDirectlyToWindow( const bool bInRenderDirectlyToWindow )
+{
+	ViewportWidget->SetRenderDirectlyToWindow( bInRenderDirectlyToWindow );
+}
+
+
+void SEditorViewport::EnableStereoRendering( const bool bInEnableStereoRendering )
+{
+	ViewportWidget->EnableStereoRendering( bInEnableStereoRendering );
+}
+
+
 void SEditorViewport::OnToggleStats()
 {
 	bool bIsEnabled =  Client->ShouldShowStats();
