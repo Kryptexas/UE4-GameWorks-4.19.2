@@ -1709,7 +1709,7 @@ FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* 
 		USceneComponent* SceneComponent = SourceComponent->AttachChildren[i];
 		if (SceneComponent && SceneComponent->GetOwner() == SourceOwner && !SceneComponent->IsCreatedByConstructionScript())
 		{
-			AttachedInstanceComponents.Add(SceneComponent);
+			AttachedInstanceComponents.Add(TPairInitializer<USceneComponent*,FTransform>(SceneComponent, FTransform(SceneComponent->RelativeRotation, SceneComponent->RelativeLocation, SceneComponent->RelativeScale3D)));
 		}
 	}
 }
@@ -1725,10 +1725,14 @@ void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 		SceneComponent->UpdateComponentToWorld();
 	}
 
-	for (USceneComponent* ChildComponent : AttachedInstanceComponents)
+	for (const TPair<USceneComponent*, FTransform>& ChildComponentPair : AttachedInstanceComponents)
 	{
+		USceneComponent* ChildComponent = ChildComponentPair.Key;
 		if (ChildComponent)
 		{
+			ChildComponent->RelativeLocation = ChildComponentPair.Value.GetLocation();
+			ChildComponent->RelativeRotation = ChildComponentPair.Value.GetRotation().Rotator();
+			ChildComponent->RelativeScale3D = ChildComponentPair.Value.GetScale3D();
 			ChildComponent->AttachTo(SceneComponent);
 		}
 	}
@@ -1742,11 +1746,11 @@ void FSceneComponentInstanceData::AddReferencedObjects(FReferenceCollector& Coll
 
 void FSceneComponentInstanceData::FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
-	for (USceneComponent*& ChildComponent : AttachedInstanceComponents)
+	for (TPair<USceneComponent*, FTransform>& ChildComponentPair : AttachedInstanceComponents)
 	{
-		if (UObject* const* NewChildComponent = OldToNewInstanceMap.Find(ChildComponent))
+		if (UObject* const* NewChildComponent = OldToNewInstanceMap.Find(ChildComponentPair.Key))
 		{
-			ChildComponent = CastChecked<USceneComponent>(*NewChildComponent, ECastCheckedType::NullAllowed);
+			ChildComponentPair.Key = CastChecked<USceneComponent>(*NewChildComponent, ECastCheckedType::NullAllowed);
 		}
 	}
 }
