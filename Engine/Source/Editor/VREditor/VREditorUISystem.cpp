@@ -1228,7 +1228,7 @@ void FVREditorUISystem::TogglePanelsVisibility()
 	
 	UGameplayStatics::PlaySound2D( Owner.GetWorld(), bShowUI ? ShowUISound : HideUISound );
 
-	if (!bAnyPanelsVisible && bSetDefaultLayout)
+	if ( bSetDefaultLayout)
 	{
 		bSetDefaultLayout = false;
 		SetDefaultWindowLayout();
