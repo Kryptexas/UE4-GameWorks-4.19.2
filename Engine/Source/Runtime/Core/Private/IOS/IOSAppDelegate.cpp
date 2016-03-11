@@ -429,7 +429,7 @@ void InstallSignalHandlers()
 	FPlatformMisc::EIOSDevice Device = FPlatformMisc::GetIOSDeviceType();
 
 	// iphone6 has specially named files
-	if (Device == FPlatformMisc::IOS_IPhone6)
+    if (Device == FPlatformMisc::IOS_IPhone6 || Device == FPlatformMisc::IOS_IPhone6S)
 	{
 		[ImageString appendString:@"-IPhone6"];
 		if (!self.bDeviceInPortraitMode)
@@ -437,7 +437,7 @@ void InstallSignalHandlers()
 			[ImageString appendString : @"-Landscape"];
 		}
 	}
-	else if (Device == FPlatformMisc::IOS_IPhone6Plus)
+    else if (Device == FPlatformMisc::IOS_IPhone6Plus || Device == FPlatformMisc::IOS_IPhone6SPlus)
 	{
 		[ImageString appendString : @"-IPhone6Plus"];
 		if (!self.bDeviceInPortraitMode)
@@ -494,16 +494,16 @@ void InstallSignalHandlers()
 		{
 			[ImageString appendString:@"-Landscape"];
 		}
-
-		if (NativeScale > 1.0f)
-		{
-			[ImageString appendString:@"@2x.png"];
-		}
-		else
-		{
-			[ImageString appendString:@".png"];
-		}
 	}
+
+    if (NativeScale > 1.0f)
+    {
+        [ImageString appendString:@"@2x.png"];
+    }
+    else
+    {
+        [ImageString appendString:@".png"];
+    }
 
     [path setString: [path stringByAppendingPathComponent:ImageString]];
     UIImage* image = [[UIImage alloc] initWithContentsOfFile: path];
