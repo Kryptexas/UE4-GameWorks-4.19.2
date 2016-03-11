@@ -291,6 +291,8 @@ FCrashContext::FCrashContext( const FString& CrashContextFilepath )
 	const bool bIsValid = XmlFile->IsValid();
 	if (bIsValid)
 	{
+		RestartCommandLine = CommandLine.AsString();
+
 		// Setup properties required for the analytics.
 		GetCrashProperty( CrashVersion, FGenericCrashContext::RuntimePropertiesTag, TEXT( "CrashVersion" ) );
 		GetCrashProperty( CrashGUID, FGenericCrashContext::RuntimePropertiesTag, TEXT( "CrashGUID" ) );
@@ -384,6 +386,8 @@ FCrashWERContext::FCrashWERContext( const FString& WERXMLFilepath )
 				ErrorMessage = ParsedParameters8[2];
 			}
 		}
+
+		RestartCommandLine = CommandLine.AsString();
 
 		FString Parameter9Value;
 		GetCrashProperty( Parameter9Value, TEXT( "ProblemSignatures" ), TEXT( "Parameter9" ) );

@@ -2157,28 +2157,13 @@ void FSlateApplication::InvalidateAllViewports()
 	Renderer->InvalidateAllViewports();
 }
 
-
 void FSlateApplication::RegisterGameViewport( TSharedRef<SViewport> InViewport )
 {
 	InViewport->SetActive(true);
 	GameViewportWidget = InViewport;
 	
-	FWidgetPath PathToViewport;
-	// If we cannot find the window it could have been destroyed.
-	if (FSlateWindowHelper::FindPathToWidget(SlateWindows, InViewport, PathToViewport, EVisibility::All))
-	{
-		FReply Reply = FReply::Handled().SetUserFocus(InViewport, EFocusCause::SetDirectly, true);
-	
-		// Set keyboard focus on the actual OS window for the top level Slate window in the viewport path
-		// This is needed because some OS messages are only sent to the window with keyboard focus
-		// Slate will translate the message and send it to the actual widget with focus.
-		// Without this we don't get WM_KEYDOWN or WM_CHAR messages in play in viewport sessions.
-		PathToViewport.GetWindow()->GetNativeWindow()->SetWindowFocus();
-
-		ProcessReply( PathToViewport, Reply, nullptr, nullptr );
-	}
+	ActivateGameViewport();
 }
-
 
 void FSlateApplication::UnregisterGameViewport()
 {
@@ -2254,6 +2239,36 @@ void FSlateApplication::SetAllUserFocusToGameViewport(EFocusCause ReasonFocusIsC
 void FSlateApplication::SetJoystickCaptorToGameViewport()
 {
 	SetAllUserFocusToGameViewport();
+}
+
+void FSlateApplication::ActivateGameViewport()
+{
+	// Only focus the window if the application is active, if not the application activation sequence will take care of it.
+	if (bAppIsActive && GameViewportWidget.IsValid())
+	{
+		TSharedRef<SViewport> GameViewportWidgetRef = GameViewportWidget.Pin().ToSharedRef();
+		
+		FWidgetPath PathToViewport;
+		// If we cannot find the window it could have been destroyed.
+		if (FSlateWindowHelper::FindPathToWidget(SlateWindows, GameViewportWidgetRef, PathToViewport, EVisibility::All))
+		{
+			TSharedRef<SWindow> Window = PathToViewport.GetWindow();
+
+			// Set keyboard focus on the actual OS window for the top level Slate window in the viewport path
+			// This is needed because some OS messages are only sent to the window with keyboard focus
+			// Slate will translate the message and send it to the actual widget with focus.
+			// Without this we don't get WM_KEYDOWN or WM_CHAR messages in play in viewport sessions.
+			Window->GetNativeWindow()->SetWindowFocus();
+
+			// Activate the viewport and process the reply 
+			FWindowActivateEvent ActivateEvent(FWindowActivateEvent::EA_Activate, Window);
+			FReply ViewportActivatedReply = GameViewportWidgetRef->OnViewportActivated(ActivateEvent);
+			if (ViewportActivatedReply.IsEventHandled())
+			{
+				ProcessReply(PathToViewport, ViewportActivatedReply, nullptr, nullptr);
+			}
+		}
+	}
 }
 
 void FSlateApplication::SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
@@ -5550,6 +5565,7 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 			{
 				if (PathToViewport.GetWindow() == ActiveTopLevelWindow)
 				{
+					// Activate the viewport and process the reply 
 					FReply ViewportActivatedReply = GameViewportWidgetPtr->OnViewportActivated(ActivateEvent);
 					if (ViewportActivatedReply.IsEventHandled())
 					{

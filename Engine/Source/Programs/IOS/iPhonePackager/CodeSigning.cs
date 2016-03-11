@@ -85,7 +85,7 @@ namespace iPhonePackager
 				string plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
 				if (!string.IsNullOrEmpty(Config.ProjectFile))
 				{
-					plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Intermediate/IOS/" + Path.GetFileNameWithoutExtension(Config.ProjectFile) + "-Info.plist";
+					plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Intermediate/" + Config.OSString + "/" + Path.GetFileNameWithoutExtension(Config.ProjectFile) + "-Info.plist";
 
 					if (!File.Exists(plistFile))
 					{

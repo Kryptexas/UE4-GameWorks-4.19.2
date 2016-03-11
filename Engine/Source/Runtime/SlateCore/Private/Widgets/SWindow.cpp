@@ -311,7 +311,7 @@ void SWindow::Construct(const FArguments& InArgs)
 			WindowSize.X = FMath::Min(WindowSize.X, AutoCenterRect.GetSize().X);
 			WindowSize.Y = FMath::Min(WindowSize.Y, AutoCenterRect.GetSize().Y);
 		}
-
+		
 		// Setup a position and size for the main frame window that's centered in the desktop work area
 		const FVector2D DisplayTopLeft( AutoCenterRect.Left, AutoCenterRect.Top );
 		const FVector2D DisplaySize( AutoCenterRect.Right - AutoCenterRect.Left, AutoCenterRect.Bottom - AutoCenterRect.Top );
@@ -327,7 +327,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->InitialDesiredSize = WindowSize;
 
 	// Resize adds extra borders / title bar if necessary, but this is already taken into account in WindowSize, so subtract them again first
-	Resize(WindowSize -DeltaSize);
+	Resize(WindowSize - DeltaSize);
 
 	// Window visibility is currently driven by whether the window is interactive.
 	this->Visibility = TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateRaw(this, &SWindow::GetWindowVisibility) );

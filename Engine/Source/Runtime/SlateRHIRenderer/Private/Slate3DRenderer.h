@@ -4,11 +4,13 @@
 
 #include "ISlate3DRenderer.h"
 
-class FSlate3DRenderer : public ISlate3DRenderer
+class FSlate3DRenderer : public ISlate3DRenderer, public FDeferredCleanupInterface
 {
 public:
 	FSlate3DRenderer( TSharedRef<FSlateFontServices> InSlateFontServices, TSharedRef<FSlateRHIResourceManager> InResourceManager, bool bUseGammaCorrection = false );
-	~FSlate3DRenderer();
+
+	void Cleanup();
+	virtual void FinishCleanup() override;
 
 	virtual FSlateDrawBuffer& GetDrawBuffer() override;
 	virtual void DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer) override;

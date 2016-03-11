@@ -1558,7 +1558,14 @@ void FRepLayout::CallRepNotifies( FRepState * RepState, UObject* Object ) const
 	{
 		UProperty * RepProperty = RepState->RepNotifies[i];
 
-		UFunction * RepNotifyFunc = Object->FindFunctionChecked( RepProperty->RepNotifyFunc );
+		UFunction * RepNotifyFunc = Object->FindFunction( RepProperty->RepNotifyFunc );
+
+		if (RepNotifyFunc == nullptr)
+		{
+			UE_LOG(LogRep, Warning, TEXT("FRepLayout::CallRepNotifies: Can't find RepNotify function %s for property %s on object %s."),
+				*RepProperty->RepNotifyFunc.ToString(), *RepProperty->GetName(), *Object->GetName());
+			continue;
+		}
 
 		check( RepNotifyFunc->NumParms <= 1 );	// 2 parms not supported yet
 

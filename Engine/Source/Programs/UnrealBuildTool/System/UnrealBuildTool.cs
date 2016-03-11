@@ -1018,7 +1018,7 @@ namespace UnrealBuildTool
 
 					// @todo ubtmake: remove this when building with RPCUtility works
 					// @todo tvos merge: Check the change to this line, not clear why. Is TVOS needed here?
-					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS)
+					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS || CheckPlatform == UnrealTargetPlatform.TVOS)
 					{
 						BuildConfiguration.bUseUBTMakefiles = false;
 					}
@@ -2016,7 +2016,10 @@ namespace UnrealBuildTool
 								// clean up any stale modules
 								foreach (UEBuildTarget Target in Targets)
 								{
-									Target.CleanStaleModules();
+									if (Target.OnlyModules == null || Target.OnlyModules.Count == 0)
+									{
+										Target.CleanStaleModules();
+									}
 								}
 							}
 
@@ -2218,6 +2221,12 @@ namespace UnrealBuildTool
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeExecutablePaths");
 				}
 
+				string EditorProcessFilename = EditorProcessFilenames[0].CanonicalName;
+				if (TargetDesc.Platform == UnrealTargetPlatform.Mac && !EditorProcessFilename.Contains(".app/contents/macos/"))
+				{
+					EditorProcessFilename += ".app/contents/macos/" + Path.GetFileNameWithoutExtension(EditorProcessFilename);
+				}
+					
 				BuildHostPlatform.ProcessInfo[] Processes = BuildHostPlatform.Current.GetProcesses();
 				string EditorRunsDir = Path.Combine(UnrealBuildTool.EngineDirectory.FullName, "Intermediate", "EditorRuns");
 
@@ -2243,7 +2252,7 @@ namespace UnrealBuildTool
 					if (!bIsRunning)
 					{
 						// Otherwise check if the path matches.
-						bIsRunning = new FileReference(Proc.Filename).CanonicalName == EditorProcessFilenames[0].CanonicalName;
+						bIsRunning = new FileReference (Proc.Filename).CanonicalName == EditorProcessFilename;
 					}
 				}
 			}

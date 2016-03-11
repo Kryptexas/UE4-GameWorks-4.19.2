@@ -153,6 +153,7 @@ protected:
 	UPROPERTY(Transient)
 	AAIController* AIOwner;
 
+	/** @todo this field is misnamed. It's a whitelist. */
 	FPerceptionChannelWhitelist PerceptionFilter;
 
 private:
@@ -219,6 +220,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI|Perception")
 	void RequestStimuliListenerUpdate();
 
+	/** Allows toggling senses on and off */
+	void UpdatePerceptionWhitelist(const FAISenseID Channel, const bool bNewValue);
+
 	void RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus);
 	void ProcessStimuli();
 	/** Returns true if, as result of stimuli aging, this listener needs an update (like if some stimuli expired) */
@@ -264,8 +268,9 @@ public:
 	FActorPerceptionUpdatedDelegate OnTargetPerceptionUpdated;
 
 protected:
-
+	DEPRECATED(4.11, "Function has been renamed and made public. Please use UpdatePerceptionWhitelist instead")
 	void UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue);
+
 	TActorPerceptionContainer& GetPerceptualData() { return PerceptualData; }
 
 	/** called to clean up on owner's end play or destruction */

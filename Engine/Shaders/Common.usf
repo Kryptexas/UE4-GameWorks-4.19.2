@@ -12,6 +12,10 @@
 	#include "PS4/PS4Common.usf"
 #endif
 
+#if XBOXONE_PROFILE
+	#define STENCIL_COMPONENT_SWIZZLE .x
+#endif
+
 #if COMPILER_METAL
 	// Helps with iteration when changing Metal shader code generation backend.
 	#include "MetalCommon.usf"

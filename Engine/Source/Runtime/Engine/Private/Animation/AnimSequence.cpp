@@ -25,6 +25,7 @@ DECLARE_CYCLE_STAT(TEXT("AnimSeq GetBonePose"), STAT_AnimSeq_GetBonePose, STATGR
 DECLARE_CYCLE_STAT(TEXT("Build Anim Track Pairs"), STAT_BuildAnimTrackPairs, STATGROUP_Anim);
 DECLARE_CYCLE_STAT(TEXT("Extract Pose From Anim Data"), STAT_ExtractPoseFromAnimData, STATGROUP_Anim);
 
+TAutoConsoleVariable<int32> CVarUseBakedAdditiveAnimations(TEXT("a.UseBakedAdditiveAnimations"), 0, TEXT("If 1, additive delta calculations will be baked into the animation during cook. This improves runtime performance at the expense of significantly increasing cook times"));
 
 /////////////////////////////////////////////////////
 // FRawAnimSequenceTrackNativeDeprecated
@@ -326,7 +327,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	FScopedAnimSequenceCompressedDataCache CompressedDataCache;
 
-	if (!bCompressedOnCook && Ar.IsCooking() && Ar.IsSaving() && CanBakeAdditive())
+	if (!bCompressedOnCook && Ar.IsCooking() && Ar.IsSaving() && CanBakeAdditive() && CVarUseBakedAdditiveAnimations.GetValueOnGameThread() == 1)
 	{
 		CompressedDataCache.InitFrom(this);
 

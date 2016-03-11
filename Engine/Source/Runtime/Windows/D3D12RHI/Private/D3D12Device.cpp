@@ -23,10 +23,18 @@ using namespace D3D12RHI;
 bool D3D12RHI_ShouldCreateWithD3DDebug()
 {
 	// Use a debug device if specified on the command line.
-	return
+	static bool bCreateWithD3DDebug = 
 		FParse::Param(FCommandLine::Get(), TEXT("d3ddebug")) ||
 		FParse::Param(FCommandLine::Get(), TEXT("d3debug")) ||
 		FParse::Param(FCommandLine::Get(), TEXT("dxdebug"));
+	return bCreateWithD3DDebug;
+}
+
+bool D3D12RHI_ShouldCreateWithWarp()
+{
+	// Use the warp adapter if specified on the command line.
+	static bool bCreateWithWarp = FParse::Param(FCommandLine::Get(), TEXT("warp"));
+	return bCreateWithWarp;
 }
 
 bool D3D12RHI_ShouldAllowAsyncResourceCreation()
@@ -141,19 +149,33 @@ public:
 
 		CommandLists.Reset();
 
-		if (GCommandListBatchingMode != CLB_AggressiveBatching)
+		bool Flush = false;
+		// If the GPU is starving (i.e. we are CPU bound) feed it asap!
+		if (OwningDevice->IsGPUIdle() && OwningDevice->PendingCommandLists.Num() > 0)
 		{
-			// Submit when the batch is finished.
-			const bool FinalCommandListInBatch = Index == (Num - 1);
-			if (FinalCommandListInBatch && OwningDevice->PendingCommandLists.Num() > 0)
+			Flush = true;
+		}
+		else
+		{
+			if (GCommandListBatchingMode != CLB_AggressiveBatching)
 			{
-#if SUPPORTS_MEMORY_RESIDENCY
-				OwningDevice->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
-#endif
-				OwningDevice->GetCommandListManager().ExecuteCommandLists(OwningDevice->PendingCommandLists);
-				OwningDevice->PendingCommandLists.Reset();
-				OwningDevice->PendingCommandListsTotalWorkCommands = 0;
+				// Submit when the batch is finished.
+				const bool FinalCommandListInBatch = Index == (Num - 1);
+				if (FinalCommandListInBatch && OwningDevice->PendingCommandLists.Num() > 0)
+				{
+					Flush = true;
+				}
 			}
+		}
+
+		if (Flush)
+		{
+#if SUPPORTS_MEMORY_RESIDENCY
+			OwningDevice->GetOwningRHI()->GetResourceResidencyManager().MakeResident();
+#endif
+			OwningDevice->GetCommandListManager().ExecuteCommandLists(OwningDevice->PendingCommandLists);
+			OwningDevice->PendingCommandLists.Reset();
+			OwningDevice->PendingCommandListsTotalWorkCommands = 0;
 		}
 
 		delete this;
@@ -264,7 +286,8 @@ FD3D12Device::FD3D12Device(FD3D12DynamicRHI* InOwningRHI, IDXGIFactory4* InDXGIF
 	BufferInitializerFastAllocatorPagePool(this, D3D12_HEAP_TYPE_UPLOAD, 1024 * 512),
 	BufferInitializerFastAllocator(this, &BufferInitializerFastAllocatorPagePool),
 	DefaultUploadHeapAllocator(this, FString(L"Upload Buffer Allocator"),kManualSubAllocationStrategy, DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_SIZE, DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT),
-	TextureAllocator(this)
+	TextureAllocator(this),
+	FenceCorePool(this)
 {
 }
 
@@ -426,6 +449,8 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& 
 	GMaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
 	GSupportsTimestampRenderQueries = true;
 
+	GMaxTextureMipCount = FMath::CeilLogTwo(GMaxTextureDimensions) + 1;
+	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
 
@@ -701,6 +726,12 @@ uint32 FD3D12DynamicRHI::GetMaxMSAAQuality(uint32 SampleCount)
 	return 0xffffffff;
 }
 
+bool FD3D12Device::IsGPUIdle()
+{
+	FD3D12Fence& Fence = CommandListManager.GetFence(EFenceType::FT_CommandList);
+	return Fence.GetLastCompletedFence() >= (Fence.GetCurrentFence() - 1);
+}
+
 void FD3D12Device::CreateSignatures()
 {
 	// ExecuteIndirect command signatures
@@ -747,12 +778,6 @@ void FD3D12Device::CreateSignatures()
 
 void FD3D12Device::SetupAfterDeviceCreation()
 {
-	DXGI_ADAPTER_DESC* AdapterDesc = GetD3DAdapterDesc();
-
-	// Need to get these early to make vendor-specific decisions in initialization
-	GRHIAdapterName = AdapterDesc->Description;
-	GRHIVendorId = AdapterDesc->VendorId;
-
 	CreateSignatures();
 
 	PipelineStateCache = FD3D12PipelineStateCache(this);
@@ -826,12 +851,9 @@ void FD3D12Device::CleanupD3DDevice()
 		// Ensure any pending rendering is finished
 		GetCommandListManager().SignalFrameComplete(true);
 
-		// Flush all pending deletes before destroying the device.
-		FRHIResource::FlushPendingDeletes();
-
 		check(Direct3DDevice);
 
-		OwningRHI->OutstandingLocks.Empty();
+		OwningRHI->ClearOutstandingLocks();
 
 		PipelineStateCache.Close();
 
@@ -852,6 +874,9 @@ void FD3D12Device::CleanupD3DDevice()
 		{
 			ResourceIt->ReleaseDynamicRHI();
 		}
+
+		// Flush all pending deletes before destroying the device.
+		FRHIResource::FlushPendingDeletes();
 
 		Viewports.Empty();
 		DrawingViewport = nullptr;
@@ -881,6 +906,9 @@ void FD3D12Device::CleanupD3DDevice()
 		// queue use the frame fence values. This includes any deleted resources that may have been deleted 
 		// after the above signal frame
 		GetCommandListManager().SignalFrameComplete(true);
+
+		// Flush all pending deletes before destroying the device.
+		FRHIResource::FlushPendingDeletes();
 
 		// Cleanup the allocator near the end, as some resources may be returned to the allocator
 		DefaultBufferAllocator.FreeDefaultBufferPools();
@@ -925,6 +953,8 @@ void FD3D12Device::CleanupD3DDevice()
 		CopyCommandListManager.Destroy();
 		AsyncCommandListManager.Destroy();
 
+
+		FenceCorePool.Destroy();
 
 	}
 }

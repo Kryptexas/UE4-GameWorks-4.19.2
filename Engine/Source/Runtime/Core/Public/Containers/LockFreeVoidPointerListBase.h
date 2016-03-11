@@ -2128,7 +2128,7 @@ public:
 	 *	CAUTION: This methods safety depends on external assumptions. For example, if another thread could add to the list at any time, the return value is no better than a best guess.
 	 *	As typically used, the list is not being access concurrently when this is called.
 	 */
-	FORCEINLINE bool IsEmpty() const  
+	FORCEINLINE bool IsEmpty()  
 	{
 		return FLockFreePointerListFIFOBase<TPaddingForCacheContention>::IsEmpty();
 	}

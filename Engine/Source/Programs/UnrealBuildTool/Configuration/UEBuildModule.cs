@@ -1143,7 +1143,7 @@ namespace UnrealBuildTool
 					}
 
 					// A shared PCH was not already set up for us, so set one up.
-					if (ModulePCHEnvironment == null)
+					if (ModulePCHEnvironment == null && SourceFilesToBuild.CPPFiles.Count > 0)
 					{
 						FileItem PCHHeaderFile = ProcessedDependencies.UniquePCHHeaderFile;
 						string PCHModuleName = this.Name;

@@ -407,12 +407,11 @@ void FBodyInstance::UpdatePhysicalMaterials()
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePhysMats);
 	UPhysicalMaterial* SimplePhysMat = GetSimplePhysicalMaterial();
-	check(SimplePhysMat != NULL);
 	TArray<UPhysicalMaterial*> ComplexPhysMats = GetComplexPhysicalMaterials();
 
 #if WITH_PHYSX
-	PxMaterial* PSimpleMat = SimplePhysMat->GetPhysXMaterial();
-	check(PSimpleMat != NULL);
+	PxMaterial* PSimpleMat = SimplePhysMat ? SimplePhysMat->GetPhysXMaterial() : nullptr;
+
 	ExecuteOnPhysicsReadWrite([&]()
 	{
 		ApplyMaterialToInstanceShapes_AssumesLocked(PSimpleMat, ComplexPhysMats);
@@ -422,12 +421,19 @@ void FBodyInstance::UpdatePhysicalMaterials()
 #if WITH_BOX2D
 	if (BodyInstancePtr)
 	{
-		for (b2Fixture* Fixture = BodyInstancePtr->GetFixtureList(); Fixture; Fixture = Fixture->GetNext())
+		if(SimplePhysMat)
 		{
-			Fixture->SetFriction(SimplePhysMat->Friction);
-			Fixture->SetRestitution(SimplePhysMat->Restitution);
+			for(b2Fixture* Fixture = BodyInstancePtr->GetFixtureList(); Fixture; Fixture = Fixture->GetNext())
+			{
+				Fixture->SetFriction(SimplePhysMat->Friction);
+				Fixture->SetRestitution(SimplePhysMat->Restitution);
 
-			//@TODO: BOX2D: Determine if it's feasible to add support for FrictionCombineMode to Box2D
+				//@TODO: BOX2D: Determine if it's feasible to add support for FrictionCombineMode to Box2D
+			}
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Error, TEXT("FBodyInstance::UpdatePhysicalMaterials : No valid physics material found when setting Box2D physical material parameters."));
 		}
 	}
 #endif
@@ -1218,7 +1224,8 @@ struct FInitBodiesHelper
 	{
 		UPhysicalMaterial* SimplePhysMat = Instance->GetSimplePhysicalMaterial();
 		TArray<UPhysicalMaterial*> ComplexPhysMats = Instance->GetComplexPhysicalMaterials();
-		PxMaterial* PSimpleMat = SimplePhysMat->GetPhysXMaterial();
+
+		PxMaterial* PSimpleMat = SimplePhysMat ? SimplePhysMat->GetPhysXMaterial() : nullptr;
 
 		FShapeData ShapeData;
 		Instance->GetFilterData_AssumesLocked(ShapeData);
@@ -2023,9 +2030,9 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 		TheirBody->WeldParent = this;
 
-		UPhysicalMaterial* SimplePhysMat = GetSimplePhysicalMaterial();
-		TArray<UPhysicalMaterial*> ComplexPhysMats = GetComplexPhysicalMaterials();
-		PxMaterial* PSimpleMat = SimplePhysMat->GetPhysXMaterial();
+		UPhysicalMaterial* SimplePhysMat = TheirBody->GetSimplePhysicalMaterial();
+		TArray<UPhysicalMaterial*> ComplexPhysMats = TheirBody->GetComplexPhysicalMaterials();
+		PxMaterial* PSimpleMat =  SimplePhysMat ? SimplePhysMat->GetPhysXMaterial() : nullptr;
 
 		FShapeData ShapeData;
 		GetFilterData_AssumesLocked(ShapeData);
@@ -2148,9 +2155,6 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 
 void FBodyInstance::PostShapeChange()
 {
-	// Apply correct physical materials to shape we created.
-	UpdatePhysicalMaterials();
-
 	// Set the filter data on the shapes (call this after setting BodyData because it uses that pointer)
 	UpdatePhysicsFilterData();
 
@@ -3180,11 +3184,16 @@ UPhysicalMaterial* FBodyInstance::GetSimplePhysicalMaterial() const
 
 UPhysicalMaterial* FBodyInstance::GetSimplePhysicalMaterial(const FBodyInstance* BodyInstance, TWeakObjectPtr<UPrimitiveComponent> OwnerComp, TWeakObjectPtr<UBodySetup> BodySetupPtr)
 {
-	check(GEngine->DefaultPhysMaterial != NULL);
+	if(!GEngine || !GEngine->DefaultPhysMaterial)
+	{
+		UE_LOG(LogPhysics, Error, TEXT("FBodyInstance::GetSimplePhysicalMaterial : GEngine not initialized! Cannot call this during native CDO construction, wrap with if(!HasAnyFlags(RF_ClassDefaultObject)) or move out of constructor, material parameters will not be correct."));
+
+		return nullptr;
+	}
 
 	// Find the PhysicalMaterial we need to apply to the physics bodies.
 	// (LOW priority) Engine Mat, Material PhysMat, BodySetup Mat, Component Override, Body Override (HIGH priority)
-
+	
 	UPhysicalMaterial* ReturnPhysMaterial = NULL;
 
 	// BodyInstance override
@@ -3326,7 +3335,6 @@ float gPerCm3ToKgPerCm3(float gPerCm3)
 void FBodyInstance::UpdateMassProperties()
 {
 	UPhysicalMaterial* PhysMat = GetSimplePhysicalMaterial();
-	check(PhysMat);
 
 #if WITH_PHYSX
 	ExecuteOnPxRigidBodyReadWrite(this, [&] (PxRigidBody* PRigidBody)
@@ -3334,7 +3342,14 @@ void FBodyInstance::UpdateMassProperties()
 		if(GetNumSimShapes_AssumesLocked(PRigidBody) > 0)
 	{
 		// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
-		float DensityKGPerCubicUU = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
+		float DensityKGPerCubicUU = 1.0f;
+		float RaiseMassToPower = 0.75f;
+		if(PhysMat)
+		{
+			DensityKGPerCubicUU = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
+			RaiseMassToPower = PhysMat->RaiseMassToPower;
+		}
+
 		PxRigidBodyExt::updateMassAndInertia(*PRigidBody, DensityKGPerCubicUU);
 
 		//grab OldMass so we can apply new mass while maintaining inertia tensor
@@ -3343,7 +3358,7 @@ void FBodyInstance::UpdateMassProperties()
 
 		if (bOverrideMass == false)
 		{
-			float UsePow = FMath::Clamp<float>(PhysMat->RaiseMassToPower, KINDA_SMALL_NUMBER, 1.f);
+			float UsePow = FMath::Clamp<float>(RaiseMassToPower, KINDA_SMALL_NUMBER, 1.f);
 			NewMass = FMath::Pow(OldMass, UsePow);
 
 			// Apply user-defined mass scaling.
@@ -3384,7 +3399,13 @@ void FBodyInstance::UpdateMassProperties()
 		{
 			// Unreal material density is in g/cm^3, and Box2D density is in kg/m^2
 			// physical material - nothing can weigh less than hydrogen (0.09 kg/m^3)
-			float DensityKGPerCubicCM = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
+
+			float DensityKGPerCubicCM = 1.0f;
+			if(PhysMat)
+			{
+				DensityKGPerCubicCM = FMath::Max(KgPerM3ToKgPerCm3(0.09f), gPerCm3ToKgPerCm3(PhysMat->Density));
+			}
+
 			const float DensityKGPerCubicM = DensityKGPerCubicCM * 1000.0f;
 			const float DensityKGPerSquareM = DensityKGPerCubicM * 0.1f; //@TODO: BOX2D: Should there be a thickness property for mass calculations?
 			MassScaledDensity = DensityKGPerSquareM * FMath::Clamp<float>(MassScale, 0.01f, 100.0f);
@@ -4626,15 +4647,26 @@ void FBodyInstance::ApplyMaterialToShape_AssumesLocked(PxShape* PShape, PxMateri
 		}
 		else
 		{
-			UE_LOG(LogPhysics, Verbose, TEXT("FBodyInstance::ApplyMaterialToShape_AssumesLocked : PComplexMats is empty - falling back on simple physical material."));
-			PShape->setMaterials(&PSimpleMat, 1);
+			if(PSimpleMat)
+			{
+				UE_LOG(LogPhysics, Verbose, TEXT("FBodyInstance::ApplyMaterialToShape_AssumesLocked : PComplexMats is empty - falling back on simple physical material."));
+				PShape->setMaterials(&PSimpleMat, 1);
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Error, TEXT("FBodyInstance::ApplyMaterialToShape_AssumesLocked : PComplexMats is empty, and we do not have a valid simple material."));
+			}
 		}
 
 	}
 	// Simple shape, 
-	else
+	else if(PSimpleMat)
 	{
 		PShape->setMaterials(&PSimpleMat, 1);
+	}
+	else
+	{
+		UE_LOG(LogPhysics, Error, TEXT("FBodyInstance::ApplyMaterialToShape_AssumesLocked : No valid simple physics material found."));
 	}
 }
 

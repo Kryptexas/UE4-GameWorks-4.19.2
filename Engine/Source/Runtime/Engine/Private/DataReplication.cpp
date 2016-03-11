@@ -1162,7 +1162,14 @@ void FObjectReplicator::CallRepNotifies(bool bSkipIfChannelHasQueuedBunches)
 		{
 			//UE_LOG(LogRep, Log,  TEXT("Calling Object->%s with %s"), *RepNotifies(RepNotifyIdx)->RepNotifyFunc.ToString(), *RepNotifies(RepNotifyIdx)->GetName()); 						
 			UProperty* RepProperty = RepNotifies[RepNotifyIdx];
-			UFunction* RepNotifyFunc = Object->FindFunctionChecked(RepProperty->RepNotifyFunc);
+			UFunction* RepNotifyFunc = Object->FindFunction(RepProperty->RepNotifyFunc);
+
+			if (RepNotifyFunc == nullptr)
+			{
+				UE_LOG(LogRep, Warning, TEXT("FObjectReplicator::CallRepNotifies: Can't find RepNotify function %s for property %s on object %s."),
+					*RepProperty->RepNotifyFunc.ToString(), *RepProperty->GetName(), *Object->GetName());
+				continue;
+			}
 
 			if (RepNotifyFunc->NumParms == 0)
 			{

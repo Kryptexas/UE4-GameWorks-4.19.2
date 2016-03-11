@@ -437,7 +437,10 @@ bool USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		{
 			AnimScriptInstance->InitializeAnimation();
 			bCalledInitialize = true;
-		}
+		}		
+
+		// refresh vertex animation - this can happen when re-registration happens
+		RefreshActiveVertexAnims();
 	}
 	return bCalledInitialize;
 }
@@ -588,25 +591,7 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime, bool bNeedsValidRoot
 		{
 			// Tick the animation
 			AnimScriptInstance->UpdateAnimation(DeltaTime * GlobalAnimRateScale, bNeedsValidRootMotion);
-
-			// TODO @LinaH - I've hit access violations due to AnimScriptInstance being NULL after this, probably due to
-			// AnimNotifies?  Please take a look and fix as we discussed.  Temporary fix:
-			if (AnimScriptInstance != NULL)
-			{
-				AnimScriptInstance->UpdateMorphTargetCurves(MorphTargetCurves);
-
-				//Update material parameters
-				AnimScriptInstance->UpdateComponentsMaterialParameters(this);
-			}
 		}
-	}
-}
-
-void USkeletalMeshComponent::UpdateMaterialParameters()
-{
-	if(AnimScriptInstance != nullptr)
-	{
-		AnimScriptInstance->UpdateComponentsMaterialParameters(this);
 	}
 }
 
@@ -703,6 +688,13 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 {
 	UpdatePostPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
+
+	// clear and add morphtarget curves that are added via SetMorphTarget
+	ActiveVertexAnims.Reset();
+	if (SkeletalMesh && MorphTargetCurves.Num() > 0)
+	{
+		FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, MorphTargetCurves, ActiveVertexAnims);
+	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -1033,7 +1025,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	CachedSpaceBases.Empty();
 }
 
-void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
+void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
 {
 	ANIM_MT_SCOPE_CYCLE_COUNTER(SkeletalComponentAnimEvaluate, IsRunningParallelEvaluation());
 
@@ -1048,18 +1040,11 @@ void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMe
 		ensure(bRequiredBonesUpToDate) &&
 		InAnimInstance->ParallelCanEvaluate(InSkeletalMesh))
 	{
-		InAnimInstance->ParallelEvaluateAnimation(bForceRefpose, InSkeletalMesh, OutLocalAtoms, OutVertexAnims, OutCurve);
+		InAnimInstance->ParallelEvaluateAnimation(bForceRefpose, InSkeletalMesh, OutLocalAtoms, OutCurve);
 	}
 	else
 	{
 		OutLocalAtoms = InSkeletalMesh->RefSkeleton.GetRefBonePose();
-
-		// if it's only morph, there is no reason to blend
-		if ( MorphTargetCurves.Num() > 0 )
-		{
-			TArray<struct FActiveVertexAnim> EmptyVertexAnims;
-			OutVertexAnims = FAnimationRuntime::UpdateActiveVertexAnims(InSkeletalMesh, MorphTargetCurves, EmptyVertexAnims);
-		}
 	}
 
 	// Remember the root bone's translation so we can move the bounds.
@@ -1070,20 +1055,18 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 {
 	check (MasterPoseComponent.IsValid());
 
-	if(MasterPoseComponent->IsA(USkeletalMeshComponent::StaticClass()))
+	if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
 	{
-		USkeletalMeshComponent* MasterSMC= CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
-
-		if ( MasterSMC->AnimScriptInstance )
+		if (MasterSMC->AnimScriptInstance)
 		{
-			ActiveVertexAnims = MasterSMC->AnimScriptInstance->UpdateActiveVertexAnims(SkeletalMesh);
+			MasterSMC->AnimScriptInstance->RefreshCurves(this);
 		}
 	}
-
+ 
 	Super::UpdateSlaveComponent();
 }
 
-void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
+void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const
 {
 	ANIM_MT_SCOPE_CYCLE_COUNTER(PerformAnimEvaluation, IsRunningParallelEvaluation());
 
@@ -1101,7 +1084,7 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	}
 
 	// evaluate pure animations, and fill up LocalAtoms
-	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation, OutCurve);
+	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutLocalAtoms, OutRootBoneTranslation, OutCurve);
 	// Fill SpaceBases from LocalAtoms
 	FillSpaceBases(InSkeletalMesh, OutLocalAtoms, OutSpaceBases);
 }
@@ -1243,8 +1226,6 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 			AnimEvaluationContext.LocalAtoms.Append(LocalAtoms);
 			AnimEvaluationContext.SpaceBases.Reset();
 			AnimEvaluationContext.SpaceBases.Append(GetSpaceBases());
-			AnimEvaluationContext.VertexAnims.Reset();
-			AnimEvaluationContext.VertexAnims.Append(ActiveVertexAnims);
 		}
 
 		// start parallel work
@@ -1268,11 +1249,11 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_USkeletalMeshComponent_RefreshBoneTransforms_GamethreadEval);
 			if (AnimEvaluationContext.bDoInterpolation)
 			{
-				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, CachedSpaceBases, CachedLocalAtoms, ActiveVertexAnims, RootBoneTranslation, CachedCurve);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, CachedSpaceBases, CachedLocalAtoms, RootBoneTranslation, CachedCurve);
 			}
 			else
 			{
-				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableSpaceBases(), LocalAtoms, ActiveVertexAnims, RootBoneTranslation, AnimEvaluationContext.Curve);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableSpaceBases(), LocalAtoms, RootBoneTranslation, AnimEvaluationContext.Curve);
 			}
 		}
 		else
@@ -1375,6 +1356,26 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	}
 
 	AnimEvaluationContext.Clear();
+}
+
+void USkeletalMeshComponent::ApplyAnimationCurvesToComponent(const TMap<FName, float>* InMaterialParameterCurves, const TMap<FName, float>* InAnimationMorphCurves)
+{
+	if (InMaterialParameterCurves && InMaterialParameterCurves->Num() > 0)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimInstanceProxy_UpdateComponentsMaterialParameters);
+		for (auto Iter = InMaterialParameterCurves->CreateConstIterator(); Iter; ++Iter)
+		{
+			FName ParameterName = Iter.Key();
+			float ParameterValue = Iter.Value();
+			SetScalarParameterValueOnMaterials(ParameterName, ParameterValue);
+		}
+	}
+
+	if (SkeletalMesh && InAnimationMorphCurves && InAnimationMorphCurves->Num() > 0)
+	{
+		// we want to append to existing curves - i.e. BP driven curves 
+		FAnimationRuntime::AppendActiveVertexAnims(SkeletalMesh, *InAnimationMorphCurves, ActiveVertexAnims);
+	}
 }
 
 FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -1950,7 +1951,6 @@ FRootMotionMovementParams USkeletalMeshComponent::ConsumeRootMotion()
 	return FRootMotionMovementParams();
 }
 
-
 float USkeletalMeshComponent::CalculateMass(FName BoneName)
 {
 	float Mass = 0.0f;
@@ -2249,7 +2249,14 @@ void USkeletalMeshComponent::RefreshActiveVertexAnims()
 	{
 		// as this can be called from any worker thread (i.e. from CreateRenderState_Concurrent) we cant currently be doing parallel evaluation
 		check(!IsRunningParallelEvaluation());
-		ActiveVertexAnims = AnimScriptInstance->UpdateActiveVertexAnims(SkeletalMesh);
+		AnimScriptInstance->RefreshCurves(this);
+	}
+	else if (USkeletalMeshComponent* MasterSMC = Cast<USkeletalMeshComponent>(MasterPoseComponent.Get()))
+	{
+		if (MasterSMC->AnimScriptInstance)
+		{
+			MasterSMC->AnimScriptInstance->RefreshCurves(this);
+		}
 	}
 	else
 	{
@@ -2259,7 +2266,7 @@ void USkeletalMeshComponent::RefreshActiveVertexAnims()
 
 void USkeletalMeshComponent::ParallelAnimationEvaluation() 
 { 
-	PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation, AnimEvaluationContext.Curve); 
+	PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.RootBoneTranslation, AnimEvaluationContext.Curve); 
 }
 
 void USkeletalMeshComponent::CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation)
@@ -2273,7 +2280,6 @@ void USkeletalMeshComponent::CompleteParallelAnimationEvaluation(bool bDoPostAni
 
 			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : GetEditableSpaceBases());
 			Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
-			Exchange(AnimEvaluationContext.VertexAnims, ActiveVertexAnims);
 			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);
 		}
 
@@ -2432,4 +2438,14 @@ void USkeletalMeshComponent::UpdateCachedAnimCurveMappingNameUids()
 TArray<FSmartNameMapping::UID> const * USkeletalMeshComponent::GetCachedAnimCurveMappingNameUids()
 {
 	return &CachedAnimCurveMappingNameUids;
+}
+
+FDelegateHandle USkeletalMeshComponent::RegisterOnPhysicsCreatedDelegate(const FOnSkelMeshPhysicsCreated& Delegate)
+{
+	return OnSkelMeshPhysicsCreated.Add(Delegate);
+}
+
+void USkeletalMeshComponent::UnregisterOnPhysicsCreatedDelegate(const FDelegateHandle& DelegateHandle)
+{
+	OnSkelMeshPhysicsCreated.Remove(DelegateHandle);
 }

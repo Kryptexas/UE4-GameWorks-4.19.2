@@ -272,6 +272,10 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	if ( Blueprint->SkeletonGeneratedClass != Class )
 	{
 		UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
+		if( !Blueprint->bHasBeenRegenerated )
+		{
+			FBlueprintEditorUtils::ForceLoadMembers(Blueprint->WidgetTree);
+		}
 		BPGClass->WidgetTree = BPGClass->DesignerWidgetTree = DuplicateObject<UWidgetTree>(Blueprint->WidgetTree, BPGClass);
 
 		for ( const UWidgetAnimation* Animation : Blueprint->Animations )

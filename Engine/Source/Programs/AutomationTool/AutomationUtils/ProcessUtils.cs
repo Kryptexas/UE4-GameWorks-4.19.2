@@ -552,13 +552,24 @@ namespace AutomationTool
             Process[] AllProcs = Process.GetProcesses();
             foreach (Process KillCandidate in AllProcs)
             {
-                HashSet<int> VisitedPids = new HashSet<int>();
-                if (ProcessManager.CanBeKilled(KillCandidate.ProcessName) && IsOurDescendant(ProcessToCheck, KillCandidate.Id, VisitedPids))
-                {
-					CommandUtils.LogLog("Descendant pid={0}, name={1}, filename={2}", KillCandidate.Id, KillCandidate.ProcessName,
-						KillCandidate.MainModule != null ? KillCandidate.MainModule.FileName : "unknown");
-                    return true;
-                }
+				// Silently skip InvalidOperationExceptions here, because it depends on the process still running. It may have terminated.
+				string ProcessName;
+				try
+				{
+					ProcessName = KillCandidate.ProcessName;
+				}
+				catch(InvalidOperationException)
+				{
+					continue;
+				}
+
+				// Check if it's still running
+				HashSet<int> VisitedPids = new HashSet<int>();
+				if (ProcessManager.CanBeKilled(ProcessName) && IsOurDescendant(ProcessToCheck, KillCandidate.Id, VisitedPids))
+				{
+					CommandUtils.LogLog("Descendant pid={0}, name={1}", KillCandidate.Id, ProcessName);
+					return true;
+				}
             }
             return false;
         }

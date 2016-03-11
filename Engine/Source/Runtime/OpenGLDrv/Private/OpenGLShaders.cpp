@@ -1150,7 +1150,7 @@ public:
 		for (int32 Index = 0; Index < PackedGlobalArrays.Num(); ++Index)
 		{
 			auto& PackedArray = PackedGlobalArrays[Index];
-			int32 FoundIndex = -1;
+			FPackedUniformInfo OutInfo = {-1, PackedArray.TypeName, CrossCompiler::PACKED_TYPEINDEX_MAX};
 
 			// Find this Global Array in the reflection list
 			for (int32 FindIndex = 0; FindIndex < ReflectedUniformInfos.Num(); ++FindIndex)
@@ -1158,11 +1158,12 @@ public:
 				auto& ReflectedInfo = ReflectedUniformInfos[FindIndex];
 				if (ReflectedInfo.ArrayType == PackedArray.TypeName)
 				{
-					FoundIndex = FindIndex;
-					OutPackedUniformInfos.Add(ReflectedInfo);
+					OutInfo = ReflectedInfo;
 					break;
 				}
 			}
+
+			OutPackedUniformInfos.Add(OutInfo);
 		}
 	}
 };
@@ -2729,6 +2730,12 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 	for (int32 PackedUniform = 0; PackedUniform < PackedUniforms.Num(); ++PackedUniform)
 	{
 		const FOpenGLLinkedProgram::FPackedUniformInfo& UniformInfo = PackedUniforms[PackedUniform];
+		if (UniformInfo.Location < 0)
+		{
+			// Probably this uniform array was optimized away in a linked program
+			continue;
+		}
+		
 		const uint32 ArrayIndex = UniformInfo.Index;
 		check(ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX);
 		const int32 NumVectors = PackedArrays[PackedUniform].Size / BytesPerRegister;

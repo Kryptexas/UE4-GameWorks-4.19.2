@@ -1885,7 +1885,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 //			UE_LOG(LogLinker, Log, TEXT("Found a user created pacakge (%s)"), *(FPaths::GetBaseFilename(Filename)));
 		}
 
-		if( !(LoadFlags & LOAD_NoVerify))
+		if ( !(LoadFlags & LOAD_NoVerify) )
 		{
 			Verify();
 		}
@@ -2907,7 +2907,7 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 	// Mark package as having been fully loaded.
 	if( LinkerRoot )
 	{
-		LinkerRoot->MarkAsFullyLoaded();		
+		LinkerRoot->MarkAsFullyLoaded();
 	}
 }
 
@@ -3832,9 +3832,9 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		if (FPlatformProperties::RequiresCookedData())
 		{
 			if (GIsInitialLoad || GUObjectArray.IsOpenForDisregardForGC())
-			{
-				Export.Object->AddToRoot();
-			}
+		{
+			Export.Object->AddToRoot();
+		}
 		}
 		
 		LoadClass = Export.Object->GetClass(); // this may have changed if we are overwriting a CDO component

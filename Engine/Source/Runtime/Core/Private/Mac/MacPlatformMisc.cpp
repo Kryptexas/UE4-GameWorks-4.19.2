@@ -2133,6 +2133,29 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 		{
 			write(LogDst, Data, Bytes);
 		}
+		
+		// Copy the system log to capture GPU restarts and other nasties not reported by our application
+		if ( !GMacAppInfo.bIsSandboxed && GMacAppInfo.SystemLogSize >= 0 && access("/var/log/system.log", R_OK|F_OK) == 0 )
+		{
+			char const* SysLogHeader = "\nAppending System Log:\n";
+			write(LogDst, SysLogHeader, strlen(SysLogHeader));
+			
+			int SysLogSrc = open("/var/log/system.log", O_RDONLY);
+			
+			// Attempt to capture only the system log from while our application was running but
+			if (lseek(SysLogSrc, GMacAppInfo.SystemLogSize, SEEK_SET) != GMacAppInfo.SystemLogSize)
+			{
+				close(SysLogSrc);
+				SysLogSrc = open("/var/log/system.log", O_RDONLY);
+			}
+			
+			while((Bytes = read(SysLogSrc, Data, PATH_MAX)) > 0)
+			{
+				write(LogDst, Data, Bytes);
+			}
+			close(SysLogSrc);
+		}
+		
 		close(LogDst);
 		close(LogSrc);
 		// best effort, so don't care about result: couldn't copy -> tough, no log
@@ -2152,30 +2175,6 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 			}
 			close(VideoDst);
 			close(VideoSrc);
-		}
-		
-		// Copy the system log to capture GPU restarts and other nasties not reported by our application
-		if ( !GMacAppInfo.bIsSandboxed && GMacAppInfo.SystemLogSize >= 0 && access("/var/log/system.log", R_OK|F_OK) == 0 )
-		{
-			FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
-			FCStringAnsi::Strcat(FilePath, PATH_MAX, "/");
-			FCStringAnsi::Strcat(FilePath, PATH_MAX, "system.log");
-			int SysLogSrc = open("/var/log/system.log", O_RDONLY);
-			int SysLogDst = open(FilePath, O_CREAT|O_WRONLY, 0766);
-			
-			// Attempt to capture only the system log from while our application was running but
-			if (lseek(SysLogSrc, GMacAppInfo.SystemLogSize, SEEK_SET) != GMacAppInfo.SystemLogSize)
-			{
-				close(SysLogSrc);
-				SysLogSrc = open("/var/log/system.log", O_RDONLY);
-			}
-			
-			while((Bytes = read(SysLogSrc, Data, PATH_MAX)) > 0)
-			{
-				write(SysLogDst, Data, Bytes);
-			}
-			close(SysLogDst);
-			close(SysLogSrc);
 		}
 	}
 }

@@ -179,6 +179,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 					if (time2 > time1)
 					{
 						PrevCert->Expires = Cert->Expires;
+						PrevCert->Status = Cert->Status;
 					}
 					Cert = NULL;
 				}

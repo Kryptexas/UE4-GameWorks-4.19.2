@@ -351,7 +351,6 @@ void FHierarchicalLODUtilities::DestroyCluster(ALODActor* InActor)
 	const FScopedTransaction Transaction(LOCTEXT("UndoAction_DeleteCluster", "Deleting a (invalid) Cluster"));
 	Actor->Modify();
 	World->Modify();
-
 	if (ParentLOD != nullptr)
 	{
 		ParentLOD->Modify();

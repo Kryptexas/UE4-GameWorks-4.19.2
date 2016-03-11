@@ -1290,11 +1290,21 @@ void UObject::execLocalVariable(FFrame& Stack, RESULT_DECL)
 	checkSlow(Stack.Locals != NULL);
 
 	UProperty* VarProperty = Stack.ReadProperty();
-	Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(Stack.Locals);
-
-	if (RESULT_PARAM)
+	if (VarProperty == nullptr)
 	{
-		VarProperty->CopyCompleteValueToScriptVM( RESULT_PARAM, Stack.MostRecentPropertyAddress );
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, LOCTEXT("MissingLocalVariable", "Attempted to access missing local variable. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+		Stack.MostRecentPropertyAddress = nullptr;
+	}
+	else
+	{
+		Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(Stack.Locals);
+
+		if (RESULT_PARAM)
+		{
+			VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+		}
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_LocalVariable, execLocalVariable );

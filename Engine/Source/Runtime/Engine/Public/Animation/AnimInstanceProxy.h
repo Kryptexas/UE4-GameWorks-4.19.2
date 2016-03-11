@@ -338,11 +338,8 @@ protected:
 	 */
 	void RecalcRequiredBones(USkeletalMeshComponent* Component, UObject* Asset);
 
-	/** Update morph target curves for external map (from USkeletalMeshComponent) */
-	void UpdateMorphTargetCurves(const TMap<FName, float>& InMorphTargetCurves);
-
 	/** Update the material parameters of the supplied component from this instance */
-	void UpdateComponentsMaterialParameters(UPrimitiveComponent* Component);
+	void UpdateCurvesToComponents(USkeletalMeshComponent* Component=nullptr);
 
 	/** Get Currently active montage evaluation state.
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/

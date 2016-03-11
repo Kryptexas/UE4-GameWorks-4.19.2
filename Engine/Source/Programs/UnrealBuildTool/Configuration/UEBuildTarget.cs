@@ -978,6 +978,7 @@ namespace UnrealBuildTool
 		/// Filename for the receipt for this target.
 		/// </summary>
 		private string ReceiptFileName;
+		public string BuildReceiptFileName { get { return ReceiptFileName; } }
 
 		/// <summary>
 		/// Version manifests to be written to each output folder

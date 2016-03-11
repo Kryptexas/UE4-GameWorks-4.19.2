@@ -533,54 +533,47 @@ namespace UnrealBuildTool
 
 		public static void CompileOutputReceivedDataEventHandler(Object Sender, DataReceivedEventArgs e)
 		{
+			Debug.Assert(CrossCompiling());
+
 			string Output = e.Data;
 			if (String.IsNullOrEmpty(Output))
 			{
 				return;
 			}
 
-			if (CrossCompiling())
+			// format the string so the output errors are clickable in Visual Studio
+
+			// Need to match following for clickable links
+			string RegexFilePath = @"^[A-Z]\:([\\\/][A-Za-z0-9_\-\.]*)+\.(cpp|c|mm|m|hpp|h)";
+			string RegexLineNumber = @"\:\d+\:\d+\:";
+			string RegexDescription = @"(\serror:\s|\swarning:\s|\snote:\s).*";
+
+			// Get Matches
+			string MatchFilePath = Regex.Match(Output, RegexFilePath).Value.Replace("Engine\\Source\\..\\..\\", "");
+			string MatchLineNumber = Regex.Match(Output, RegexLineNumber).Value;
+			string MatchDescription = Regex.Match(Output, RegexDescription).Value;
+
+			// If any of the above matches failed, do nothing
+			if (MatchFilePath.Length == 0 ||
+				MatchLineNumber.Length == 0 ||
+				MatchDescription.Length == 0)
 			{
-				// format the string so the output errors are clickable in Visual Studio
-
-				// Need to match following for clickable links
-				string RegexFilePath = @"^[A-Z]\:([\\\/][A-Za-z0-9_\-\.]*)+\.(cpp|c|mm|m|hpp|h)";
-				string RegexLineNumber = @"\:\d+\:\d+\:";
-				string RegexDescription = @"(\serror:\s|\swarning:\s|\snote:\s).*";
-
-				// Get Matches
-				string MatchFilePath = Regex.Match(Output, RegexFilePath).Value.Replace("Engine\\Source\\..\\..\\", "");
-				string MatchLineNumber = Regex.Match(Output, RegexLineNumber).Value;
-				string MatchDescription = Regex.Match(Output, RegexDescription).Value;
-
-				// If any of the above matches failed, do nothing
-				if (MatchFilePath.Length == 0 ||
-					MatchLineNumber.Length == 0 ||
-					MatchDescription.Length == 0)
-				{
-					Console.WriteLine(Output);
-					return;
-				}
-
-				// Convert Path
-				string RegexStrippedPath = @"\\Engine\\.*"; //@"(Engine\/|[A-Za-z0-9_\-\.]*\/).*";
-				string ConvertedFilePath = Regex.Match(MatchFilePath, RegexStrippedPath).Value;
-				ConvertedFilePath = Path.GetFullPath("..\\.." + ConvertedFilePath);
-
-				// Extract Line + Column Number
-				string ConvertedLineNumber = Regex.Match(MatchLineNumber, @"\d+").Value;
-				string ConvertedColumnNumber = Regex.Match(MatchLineNumber, @"(?<=:\d+:)\d+").Value;
-
-				// Write output
-				string ConvertedExpression = "  " + ConvertedFilePath + "(" + ConvertedLineNumber + "," + ConvertedColumnNumber + "):" + MatchDescription;
-				Console.WriteLine(ConvertedExpression); // To create clickable vs link
+				Console.WriteLine(Output);
+				return;
 			}
-			else
-			{
-				// native platform tools expect this in stderror
 
-				Console.Error.WriteLine(Output);
-			}
+			// Convert Path
+			string RegexStrippedPath = @"\\Engine\\.*"; //@"(Engine\/|[A-Za-z0-9_\-\.]*\/).*";
+			string ConvertedFilePath = Regex.Match(MatchFilePath, RegexStrippedPath).Value;
+			ConvertedFilePath = Path.GetFullPath("..\\.." + ConvertedFilePath);
+
+			// Extract Line + Column Number
+			string ConvertedLineNumber = Regex.Match(MatchLineNumber, @"\d+").Value;
+			string ConvertedColumnNumber = Regex.Match(MatchLineNumber, @"(?<=:\d+:)\d+").Value;
+
+			// Write output
+			string ConvertedExpression = "  " + ConvertedFilePath + "(" + ConvertedLineNumber + "," + ConvertedColumnNumber + "):" + MatchDescription;
+			Console.WriteLine(ConvertedExpression); // To create clickable vs link
 		}
 
 		// cache the location of NDK tools
@@ -751,7 +744,11 @@ namespace UnrealBuildTool
 					CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create ||
 					BuildConfiguration.bAllowRemotelyCompiledPCHs;
 
-				CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
+				// piping output through the handler during native builds is unnecessary and reportedly causes problems with tools like octobuild.
+				if (CrossCompiling())
+				{
+					CompileAction.OutputEventHandler = new DataReceivedEventHandler(CompileOutputReceivedDataEventHandler);
+				}
 			}
 
 			return Result;

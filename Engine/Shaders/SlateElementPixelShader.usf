@@ -24,10 +24,12 @@ float3 GammaCorrect(float3 InColor)
 {
 	float3 CorrectedColor = InColor;
 
+#if (!(ES2_PROFILE || ES3_1_PROFILE)) || USE_MATERIALS
 	FLATTEN if( GammaValues.y != 1.0f )
 	{
 		CorrectedColor = ApplyGammaCorrection(CorrectedColor, GammaValues.x);
 	}
+#endif
 
 	return CorrectedColor;
 }
@@ -112,13 +114,6 @@ float4 GetTextureColor( VertexToPixelInterpolants InVertex, float2 UV )
 	float4 BaseColor = Texture2DSample(ElementTexture, ElementTextureSampler, UV );
 #if !USE_TEXTURE_ALPHA
 	BaseColor.a = 1.0f;
-#endif
-
-#if (ES2_PROFILE || ES3_1_PROFILE)
-	FLATTEN if( GammaValues.y != 1.0f )
-	{
-		BaseColor.rgb = sRGBToLinear(BaseColor.rgb);
-	}
 #endif
 
 	return BaseColor;

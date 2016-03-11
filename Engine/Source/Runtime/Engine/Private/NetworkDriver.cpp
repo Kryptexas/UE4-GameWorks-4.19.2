@@ -666,7 +666,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		}
 
 		LastCleanupTime = CurrentRealtimeSeconds;
-	}
+}
 
 	// Update the lag state
 	UpdateNetworkLagState();
@@ -2217,24 +2217,24 @@ FActorPriority::FActorPriority(class UNetConnection* InConnection, struct FActor
 
 #if WITH_SERVER_CODE
 int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSeconds )
-{
+	{
 	int32 NumClientsToTick = ClientConnections.Num();
 
 	// by default only throttle update for listen servers unless specified on the commandline
-	static bool bForceClientTickingThrottle = FParse::Param( FCommandLine::Get(), TEXT( "limitclientticks" ) );
-	if ( bForceClientTickingThrottle || GetNetMode() == NM_ListenServer )
+	static bool bForceClientTickingThrottle = FParse::Param(FCommandLine::Get(),TEXT("limitclientticks"));
+	if (bForceClientTickingThrottle || GetNetMode() == NM_ListenServer)
 	{
 		// determine how many clients to tick this frame based on GEngine->NetTickRate (always tick at least one client), double for lan play
 		// FIXME: DeltaTimeOverflow is a static, and will conflict with other running net drivers, we investigate storing it on the driver itself!
 		static float DeltaTimeOverflow = 0.f;
 		// updates are doubled for lan play
-		static bool LanPlay = FParse::Param( FCommandLine::Get(), TEXT( "lanplay" ) );
+		static bool LanPlay = FParse::Param(FCommandLine::Get(),TEXT("lanplay"));
 		//@todo - ideally we wouldn't want to tick more clients with a higher deltatime as that's not going to be good for performance and probably saturate bandwidth in hitchy situations, maybe 
 		// come up with a solution that is greedier with higher framerates, but still won't risk saturating server upstream bandwidth
-		float ClientUpdatesThisFrame = GEngine->NetClientTicksPerSecond * ( DeltaSeconds + DeltaTimeOverflow ) * ( LanPlay ? 2.f : 1.f );
-		NumClientsToTick = FMath::Min<int32>( NumClientsToTick, FMath::TruncToInt( ClientUpdatesThisFrame ) );
+		float ClientUpdatesThisFrame = GEngine->NetClientTicksPerSecond * (DeltaSeconds + DeltaTimeOverflow) * (LanPlay ? 2.f : 1.f);
+		NumClientsToTick = FMath::Min<int32>(NumClientsToTick,FMath::TruncToInt(ClientUpdatesThisFrame));
 		//UE_LOG(LogNet, Log, TEXT("%2.3f: Ticking %d clients this frame, %2.3f/%2.4f"),GetWorld()->GetTimeSeconds(),NumClientsToTick,DeltaSeconds,ClientUpdatesThisFrame);
-		if ( NumClientsToTick == 0 )
+		if (NumClientsToTick == 0)
 		{
 			// if no clients are ticked this frame accumulate the time elapsed for the next frame
 			DeltaTimeOverflow += DeltaSeconds;
@@ -2245,31 +2245,31 @@ int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSecond
 
 	bool bFoundReadyConnection = false;
 
-	for ( int32 ConnIdx = 0; ConnIdx < ClientConnections.Num(); ConnIdx++ )
+	for( int32 ConnIdx = 0; ConnIdx < ClientConnections.Num(); ConnIdx++ )
 	{
 		UNetConnection* Connection = ClientConnections[ConnIdx];
-		check( Connection );
-		check( Connection->State == USOCK_Pending || Connection->State == USOCK_Open || Connection->State == USOCK_Closed );
-		checkSlow( Connection->GetUChildConnection() == NULL );
+		check(Connection);
+		check(Connection->State == USOCK_Pending || Connection->State == USOCK_Open || Connection->State == USOCK_Closed);
+		checkSlow(Connection->GetUChildConnection() == NULL);
 
 		// Handle not ready channels.
 		//@note: we cannot add Connection->IsNetReady(0) here to check for saturation, as if that's the case we still want to figure out the list of relevant actors
 		//			to reset their NetUpdateTime so that they will get sent as soon as the connection is no longer saturated
 		AActor* OwningActor = Connection->OwningActor;
-		if ( OwningActor != NULL && Connection->State == USOCK_Open && ( Connection->Driver->Time - Connection->LastReceiveTime < 1.5f ) )
+		if (OwningActor != NULL && Connection->State == USOCK_Open && (Connection->Driver->Time - Connection->LastReceiveTime < 1.5f))
 		{
 			check( World == OwningActor->GetWorld() );
 
 			bFoundReadyConnection = true;
-
+			
 			// the view target is what the player controller is looking at OR the owning actor itself when using beacons
 			Connection->ViewTarget = Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : OwningActor;
 
-			for ( int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++ )
+			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
 				UNetConnection *Child = Connection->Children[ChildIdx];
 				APlayerController* ChildPlayerController = Child->PlayerController;
-				if ( ChildPlayerController != NULL )
+				if (ChildPlayerController != NULL)
 				{
 					Child->ViewTarget = ChildPlayerController->GetViewTarget();
 				}
@@ -2282,7 +2282,7 @@ int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSecond
 		else
 		{
 			Connection->ViewTarget = NULL;
-			for ( int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++ )
+			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
 				Connection->Children[ChildIdx]->ViewTarget = NULL;
 			}
@@ -2293,7 +2293,7 @@ int32 UNetDriver::ServerReplicateActors_PrepConnections( const float DeltaSecond
 }
 
 void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectInfo*>& OutConsiderList, const float ServerTickTime )
-{
+	{
 	SCOPE_CYCLE_COUNTER( STAT_NetConsiderActorsTime );
 
 	UE_LOG( LogNetTraffic, Log, TEXT( "ServerReplicateActors_BuildConsiderList, Building ConsiderList %4.2f" ), World->GetTimeSeconds() );
@@ -2309,49 +2309,49 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 		FNetworkObjectInfo* ActorInfo = ( *ActorIt ).Get();
 		AActor* Actor = ActorInfo->Actor;
 
-		if ( Actor->IsPendingKill() )
-		{
-			ActorIt.RemoveCurrent();
-			continue;
-		}
+			if (Actor->IsPendingKill() )
+			{
+				ActorIt.RemoveCurrent();
+				continue;
+			}
 
-		if ( Actor->GetRemoteRole() == ROLE_None )
-		{
-			ActorIt.RemoveCurrent();
-			continue;
-		}
+			if (Actor->GetRemoteRole()==ROLE_None)
+			{
+				ActorIt.RemoveCurrent();
+				continue;
+			}
 
-		// This actor may belong to a different net driver, make sure this is the correct one
-		// (this can happen when using beacon net drivers for example)
-		if ( Actor->NetDriverName != NetDriverName )
-		{
-			continue;
-		}
+			// This actor may belong to a different net driver, make sure this is the correct one
+			// (this can happen when using beacon net drivers for example)
+			if ( Actor->NetDriverName != NetDriverName )
+			{
+				continue;
+			}
 
-		// Don't send actors that may still be streaming in
-		ULevel* Level = Actor->GetLevel();
-		if ( Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel )
-		{
-			continue;
-		}
+			// Don't send actors that may still be streaming in
+			ULevel* Level = Actor->GetLevel();
+			if ( Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel )
+			{
+				continue;
+			}
 
-		if ( Actor->NetDormancy == DORM_Initial && Actor->IsNetStartupActor() )
-		{
-			// This stat isn't that useful in its current form when using NetworkActors list
-			// We'll want to track initially dormant actors some other way to track them with stats
-			SCOPE_CYCLE_COUNTER( STAT_NetInitialDormantCheckTime );
-			NumInitiallyDormant++;
-			ActorIt.RemoveCurrent();
-			//UE_LOG(LogNetTraffic, Log, TEXT("Skipping Actor %s - its initially dormant!"), *Actor->GetName() );
-			continue;
-		}
+			if ( Actor->NetDormancy == DORM_Initial && Actor->IsNetStartupActor() )
+			{
+				// This stat isn't that useful in its current form when using NetworkActors list
+				// We'll want to track initially dormant actors some other way to track them with stats
+				SCOPE_CYCLE_COUNTER(STAT_NetInitialDormantCheckTime);		
+				NumInitiallyDormant++;
+				ActorIt.RemoveCurrent();
+				//UE_LOG(LogNetTraffic, Log, TEXT("Skipping Actor %s - its initially dormant!"), *Actor->GetName() );
+				continue;
+			}
 
-		check( Actor->NeedsLoadForClient() );			// We have no business sending this unless the client can load
+			check( Actor->NeedsLoadForClient() );			// We have no business sending this unless the client can load
 		check( World == Actor->GetWorld() );
 
 		// See if it's time for this actor to update replicated properties
-		if ( ( Actor->bPendingNetUpdate || World->TimeSeconds > Actor->NetUpdateTime ) )
-		{
+			if( (Actor->bPendingNetUpdate || World->TimeSeconds > Actor->NetUpdateTime) ) 
+			{
 			// Set defaults if this actor is replicating for first time
 			if ( ActorInfo->LastNetReplicateTime == 0 )
 			{
@@ -2384,122 +2384,122 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 			// NOTE - We don't do this if bPendingNetUpdate is true, since this means we're forcing an update due to at least one connection
 			//	that wasn't to replicate previously (due to saturation, etc)
 			// NOTE - This also means all other connections will force an update (even if they just updated, we should look into this)
-			if ( !Actor->bPendingNetUpdate )
-			{
-				UE_LOG( LogNetTraffic, Log, TEXT( "actor %s requesting new net update, time: %2.3f" ), *Actor->GetName(), World->TimeSeconds );
+				if (!Actor->bPendingNetUpdate)
+				{
+					UE_LOG(LogNetTraffic, Log, TEXT("actor %s requesting new net update, time: %2.3f"), *Actor->GetName(), World->TimeSeconds);
 
 				const float NextUpdateDelta = bUseAdapativeNetFrequency ? ActorInfo->OptimalNetUpdateDelta : 1.0f / Actor->NetUpdateFrequency;
 
-				// then set the next update time
+					// then set the next update time
 				Actor->NetUpdateTime = World->TimeSeconds + FMath::SRand() * ServerTickTime + NextUpdateDelta;
 
-				// and mark when the actor first requested an update
-				//@note: using Time because it's compared against UActorChannel.LastUpdateTime which also uses that value
-				Actor->LastNetUpdateTime = Time;
-			}
+					// and mark when the actor first requested an update
+					//@note: using Time because it's compared against UActorChannel.LastUpdateTime which also uses that value
+					Actor->LastNetUpdateTime = Time;
+				}
 
-			// and clear the pending update flag assuming all clients will be able to consider it
-			Actor->bPendingNetUpdate = false;
+				// and clear the pending update flag assuming all clients will be able to consider it
+				Actor->bPendingNetUpdate = false;
 
-			// add it to the list to consider below
-			// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+					// add it to the list to consider below
+					// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
 			ensure( OutConsiderList.Num() < OutConsiderList.Max() );
 			OutConsiderList.Add( ActorInfo );
 
 			// Call PreReplication on all actors that will be considered
 			Actor->CallPreReplication( this );
 		}
-	}
-
+				}
+										
 	// Update stats
 	SET_DWORD_STAT( STAT_NumInitiallyDormantActors, NumInitiallyDormant );
 	SET_DWORD_STAT( STAT_NumConsideredActors, OutConsiderList.Num() );
-}
+									}
 
 // Returns true if this actor should replicate to *any* of the passed in connections
 static FORCEINLINE_DEBUGGABLE bool IsActorRelevantToConnection( const AActor* Actor, const TArray<FNetViewer>& ConnectionViewers )
-{
+								{
 	for ( int32 viewerIdx = 0; viewerIdx < ConnectionViewers.Num(); viewerIdx++ )
-	{
+							{
 		if ( Actor->IsNetRelevantFor( ConnectionViewers[viewerIdx].InViewer, ConnectionViewers[viewerIdx].ViewTarget, ConnectionViewers[viewerIdx].ViewLocation ) )
-		{
+								{
 			return true;
-		}
-	}
+								}
+							}
 
 	return false;
-}
+					}
 
 // Returns true if this actor is owned by, and should replicate to *any* of the passed in connections
 static FORCEINLINE_DEBUGGABLE UNetConnection* IsActorOwnedByAndRelevantToConnection( const AActor* Actor, const TArray<FNetViewer>& ConnectionViewers, bool& bOutHasNullViewTarget )
-{
+				{
 	const AActor* ActorOwner = Actor->GetNetOwner();
 
 	bOutHasNullViewTarget = false;
 
 	for ( int i = 0; i < ConnectionViewers.Num(); i++ )
-	{
+			{
 		UNetConnection* ViewerConnection = ConnectionViewers[i].Connection;
 
 		if ( ViewerConnection->ViewTarget == nullptr )
-		{
+				{
 			bOutHasNullViewTarget = true;
-		}
+				}
 
 		if ( ActorOwner == ViewerConnection->PlayerController ||
 			 ( ViewerConnection->PlayerController && ActorOwner == ViewerConnection->PlayerController->GetPawn() ) ||
 			 ViewerConnection->ViewTarget->IsRelevancyOwnerFor( Actor, ActorOwner, ViewerConnection->OwningActor ) )
 		{
 			return ViewerConnection;
+			}
 		}
-	}
 
 	return nullptr;
-}
+	}
 
 // Returns true if this actor is considered dormant (and all properties caught up) to the current connection
 static FORCEINLINE_DEBUGGABLE bool IsActorDormant( const AActor* Actor, const UNetConnection* Connection )
-{
+	{
 	// If actor is already dormant on this channel, then skip replication entirely
 	if ( Connection->DormantActors.Contains( Actor ) )
-	{
+		{
 		// net.DormancyValidate can be set to 2 to validate dormant actor properties on every replicate
 		// (this could be moved to be done every tick instead of every net update if necessary, but seems excessive)
 		if ( CVarNetDormancyValidate.GetValueOnGameThread() == 2 )
-		{
+			{
 			const TSharedRef< FObjectReplicator > * Replicator = Connection->DormantReplicatorMap.Find( Actor );
 
 			if ( Replicator != NULL )
-			{
+				{
 				Replicator->Get().ValidateAgainstState( Actor );
-			}
-		}
+					}
+				}
 
 		return true;
-	}
+			}
 
 	return false;
-}
-
+			}
+			
 // Returns true if this actor wants to go dormant for a particular connection
 static FORCEINLINE_DEBUGGABLE bool ShouldActorGoDormant( AActor* Actor, const TArray<FNetViewer>& ConnectionViewers, UActorChannel* Channel, const float Time, const bool bLowNetBandwidth )
-{
+			{
 	if ( Actor->NetDormancy <= DORM_Awake || !Channel || Channel->bPendingDormancy || Channel->Dormant )
-	{
+				{
 		// Either shouldn't go dormant, or is already dormant
 		return false;
-	}
-
+				}
+				
 	if ( Actor->NetDormancy == DORM_DormantPartial )
 	{
 		for ( int32 viewerIdx = 0; viewerIdx < ConnectionViewers.Num(); viewerIdx++ )
-		{
+				{
 			if ( !Actor->GetNetDormancy( ConnectionViewers[viewerIdx].ViewLocation, ConnectionViewers[viewerIdx].ViewDir, ConnectionViewers[viewerIdx].InViewer, ConnectionViewers[viewerIdx].ViewTarget, Channel, Time, bLowNetBandwidth ) )
-			{
+					{
 				return false;
 			}
-		}
-	}
+					}
+				}
 
 	return true;
 }
@@ -2508,20 +2508,20 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 {
 	SCOPE_CYCLE_COUNTER( STAT_NetPrioritizeActorsTime );
 
-	// Get list of visible/relevant actors.
+				// Get list of visible/relevant actors.
+				
+				NetTag++;
+				Connection->TickCount++;
 
-	NetTag++;
-	Connection->TickCount++;
-
-	// Set up to skip all sent temporary actors
+				// Set up to skip all sent temporary actors
 	for ( int32 j=0; j < Connection->SentTemporaries.Num(); j++ )
-	{
-		Connection->SentTemporaries[j]->NetTag = NetTag;
-	}
+				{
+					Connection->SentTemporaries[j]->NetTag = NetTag;
+				}
 
-	// Make list of all actors to consider.
-	check( World == Connection->OwningActor->GetWorld() );
-
+				// Make list of all actors to consider.
+				check(World == Connection->OwningActor->GetWorld());
+				
 	int32 FinalSortedCount = 0;
 	int32 DeletedCount = 0;
 
@@ -2531,261 +2531,261 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 		OutPriorityList = new( FMemStack::Get(), MaxSortedActors )FActorPriority;
 		OutPriorityActors = new( FMemStack::Get(), MaxSortedActors )FActorPriority*;
 
-		// determine whether we should priority sort the list of relevant actors based on the saturation/bandwidth of the current connection
-		//@note - if the server is currently CPU saturated then do not sort until framerate improves
-		check( World == Connection->ViewTarget->GetWorld() );
-		AGameMode const* const GameMode = World->GetAuthGameMode();
+				// determine whether we should priority sort the list of relevant actors based on the saturation/bandwidth of the current connection
+				//@note - if the server is currently CPU saturated then do not sort until framerate improves
+				check(World == Connection->ViewTarget->GetWorld());
+				AGameMode const* const GameMode = World->GetAuthGameMode();
 		const bool bLowNetBandwidth = !bCPUSaturated && ( Connection->CurrentNetSpeed / float( GameMode->NumPlayers + GameMode->NumBots ) < 500.f );
 
 		for ( FNetworkObjectInfo* ActorInfo : ConsiderList )
-		{
+				{
 			AActor* Actor = ActorInfo->Actor;
 
-			UActorChannel* Channel = Connection->ActorChannels.FindRef( Actor );
+					UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
 
 			UNetConnection* PriorityConnection = Connection;
 
 			if ( Actor->bOnlyRelevantToOwner )
-			{
+					{
 				// This actor should be owned by a particular connection, see if that connection is the one passed in
 				bool bHasNullViewTarget = false;
 
 				PriorityConnection = IsActorOwnedByAndRelevantToConnection( Actor, ConnectionViewers, bHasNullViewTarget );
 
 				if ( PriorityConnection == nullptr )
-				{
+						{
 					// Not owned by this connection, if we have a channel, close it, and continue
 					// NOTE - We won't close the channel if any connection has a NULL view target.
 					//	This is to give all connections a chance to own it
 					if ( !bHasNullViewTarget && Channel != NULL && Time - Channel->RelevantTime >= RelevantTimeout )
-					{
+							{
 						Channel->Close();
-					}
+							}
 
 					// This connection doesn't own this actor
-					continue;
-				}
+							continue;
+						}
 			}
 			else if ( CVarSetNetDormancyEnabled.GetValueOnGameThread() != 0 )
-			{
+						{
 				// Skip Actor if dormant
 				if ( IsActorDormant( Actor, Connection ) )
-				{
+							{
 					continue;
-				}
+									}
 
 				// See of actor wants to try and go dormant
 				if ( ShouldActorGoDormant( Actor, ConnectionViewers, Channel, Time, bLowNetBandwidth ) )
-				{
-					// Channel is marked to go dormant now once all properties have been replicated (but is not dormant yet)
-					Channel->StartBecomingDormant();
-				}
-			}
+							{
+								// Channel is marked to go dormant now once all properties have been replicated (but is not dormant yet)
+								Channel->StartBecomingDormant();
+							}
+						}
 
-			// Skip actor if not relevant and theres no channel already.
-			// Historically Relevancy checks were deferred until after prioritization because they were expensive (line traces).
-			// Relevancy is now cheap and we are dealing with larger lists of considered actors, so we want to keep the list of
-			// prioritized actors low.
-			if ( !Channel )
-			{
-				if ( !IsLevelInitializedForActor( Actor, Connection ) )
-				{
-					// If the level this actor belongs to isn't loaded on client, don't bother sending
-					continue;
-				}
+					// Skip actor if not relevant and theres no channel already.
+					// Historically Relevancy checks were deferred until after prioritization because they were expensive (line traces).
+					// Relevancy is now cheap and we are dealing with larger lists of considered actors, so we want to keep the list of
+					// prioritized actors low.
+					if (!Channel)
+					{
+						if ( !IsLevelInitializedForActor(Actor, Connection) )
+						{
+							// If the level this actor belongs to isn't loaded on client, don't bother sending
+							continue;
+						}
 
 				if ( !IsActorRelevantToConnection( Actor, ConnectionViewers ) )
-				{
+						{
 					// If not relevant (and we don't have a channel), skip
-					continue;
-				}
-			}
+							continue;
+						}
+					}
 
 			// Actor is relevant to this connection, add it to the list
 			// NOTE - We use NetTag to make sure SentTemporaries didn't already mark this actor to be skipped
 			if ( Actor->NetTag != NetTag )
-			{
-				UE_LOG( LogNetTraffic, Log, TEXT( "Consider %s alwaysrelevant %d frequency %f " ), *Actor->GetName(), Actor->bAlwaysRelevant, Actor->NetUpdateFrequency );
+					{
+						UE_LOG(LogNetTraffic, Log, TEXT("Consider %s alwaysrelevant %d frequency %f "),*Actor->GetName(), Actor->bAlwaysRelevant, Actor->NetUpdateFrequency);
 
-				Actor->NetTag = NetTag;
+						Actor->NetTag                 = NetTag;
 
 				OutPriorityList[FinalSortedCount]	= FActorPriority( PriorityConnection, Channel, ActorInfo, ConnectionViewers, bLowNetBandwidth );
 				OutPriorityActors[FinalSortedCount] = OutPriorityList + FinalSortedCount;
 
 				FinalSortedCount++;
 
-				if ( DebugRelevantActors )
-				{
-					LastPrioritizedActors.Add( Actor );
+						if (DebugRelevantActors)
+						{
+							LastPrioritizedActors.Add(Actor);
+						}
+					}
 				}
-			}
-		}
 
-		// Add in deleted actors
-		for ( auto It = Connection->DestroyedStartupOrDormantActors.CreateIterator(); It; ++It )
-		{
-			FActorDestructionInfo &DInfo = DestroyedStartupOrDormantActors.FindChecked( *It );
+				// Add in deleted actors
+				for (auto It = Connection->DestroyedStartupOrDormantActors.CreateIterator(); It; ++It)
+				{
+					FActorDestructionInfo &DInfo = DestroyedStartupOrDormantActors.FindChecked(*It);
 			OutPriorityList[FinalSortedCount]	= FActorPriority( Connection, &DInfo, ConnectionViewers );
 			OutPriorityActors[FinalSortedCount] = OutPriorityList + FinalSortedCount;
 			FinalSortedCount++;
-			DeletedCount++;
-		}
+					DeletedCount++;
+				}
 
 		// Sort by priority
 		struct FCompareFActorPriority
-		{
+				{
 			FORCEINLINE bool operator()( const FActorPriority& A, const FActorPriority& B ) const
-			{
+					{
 				return B.Priority < A.Priority;
 			}
 		};
 
 		Sort( OutPriorityActors, FinalSortedCount, FCompareFActorPriority() );
-	}
+					}
 
 	UE_LOG( LogNetTraffic, Log, TEXT( "ServerReplicateActors_PrioritizeActors: Potential %04i ConsiderList %03i FinalSortedCount %03i" ), MaxSortedActors, ConsiderList.Num(), FinalSortedCount );
-	
+
 	// Setup stats
 	SET_DWORD_STAT( STAT_PrioritizedActors, FinalSortedCount );
-	SET_DWORD_STAT( STAT_NumRelevantDeletedActors, DeletedCount );
+				SET_DWORD_STAT(STAT_NumRelevantDeletedActors,DeletedCount);
 
 	return FinalSortedCount;
 }
 
 int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection* Connection, const TArray<FNetViewer>& ConnectionViewers, FActorPriority** PriorityActors, const int32 FinalSortedCount, int32& OutUpdated )
-{
+				{
 	if ( !Connection->IsNetReady( 0 ) )
-	{
+					{
 		// Connection saturated, don't process any actors
 		return 0;
-	}
+					}
 
 	int32 ActorUpdatesThisConnection		= 0;
 	int32 ActorUpdatesThisConnectionSent	= 0;
 	int32 FinalRelevantCount				= 0;
 
 	for ( int32 j = 0; j < FinalSortedCount; j++ )
-	{
-		// Deletion entry
+			{
+					// Deletion entry
 		if ( PriorityActors[j]->ActorInfo == NULL && PriorityActors[j]->DestructionInfo )
-		{
-			// Make sure client has streaming level loaded
-			if ( PriorityActors[j]->DestructionInfo->StreamingLevelName != NAME_None && !Connection->ClientVisibleLevelNames.Contains( PriorityActors[j]->DestructionInfo->StreamingLevelName ) )
-			{
-				// This deletion entry is for an actor in a streaming level the connection doesn't have loaded, so skip it
-				continue;
-			}
+					{
+						// Make sure client has streaming level loaded
+						if (PriorityActors[j]->DestructionInfo->StreamingLevelName != NAME_None && !Connection->ClientVisibleLevelNames.Contains(PriorityActors[j]->DestructionInfo->StreamingLevelName))
+						{
+							// This deletion entry is for an actor in a streaming level the connection doesn't have loaded, so skip it
+							continue;
+						}
 
-			UActorChannel* Channel = ( UActorChannel* )Connection->CreateChannel( CHTYPE_Actor, 1 );
-			if ( Channel )
-			{
-				FinalRelevantCount++;
-				UE_LOG( LogNetTraffic, Log, TEXT( "Server replicate actor creating destroy channel for NetGUID <%s,%s> Priority: %d" ), *PriorityActors[j]->DestructionInfo->NetGUID.ToString(), *PriorityActors[j]->DestructionInfo->PathName, PriorityActors[j]->Priority );
+						UActorChannel* Channel = (UActorChannel*)Connection->CreateChannel( CHTYPE_Actor, 1 );
+						if (Channel)
+						{
+							FinalRelevantCount++;
+							UE_LOG(LogNetTraffic, Log, TEXT("Server replicate actor creating destroy channel for NetGUID <%s,%s> Priority: %d"), *PriorityActors[j]->DestructionInfo->NetGUID.ToString(), *PriorityActors[j]->DestructionInfo->PathName, PriorityActors[j]->Priority );
 
-				Channel->SetChannelActorForDestroy( PriorityActors[j]->DestructionInfo ); // Send a close bunch on the new channel
-				Connection->DestroyedStartupOrDormantActors.Remove( PriorityActors[j]->DestructionInfo->NetGUID ); // Remove from connections to-be-destroyed list (close bunch of reliable, so it will make it there)
-			}
-			continue;
-		}
+							Channel->SetChannelActorForDestroy( PriorityActors[j]->DestructionInfo ); // Send a close bunch on the new channel
+							Connection->DestroyedStartupOrDormantActors.Remove( PriorityActors[j]->DestructionInfo->NetGUID ); // Remove from connections to-be-destroyed list (close bunch of reliable, so it will make it there)
+						}
+						continue;
+					}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		static IConsoleVariable* DebugObjectCvar = IConsoleManager::Get().FindConsoleVariable( TEXT( "net.PackageMap.DebugObject" ) );
-		static IConsoleVariable* DebugAllObjectsCvar = IConsoleManager::Get().FindConsoleVariable( TEXT( "net.PackageMap.DebugAll" ) );
+					static IConsoleVariable* DebugObjectCvar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.DebugObject"));
+					static IConsoleVariable* DebugAllObjectsCvar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.PackageMap.DebugAll"));
 		if ( PriorityActors[j]->ActorInfo &&
 				( ( DebugObjectCvar && !DebugObjectCvar->GetString().IsEmpty() && PriorityActors[j]->ActorInfo->Actor->GetName().Contains( DebugObjectCvar->GetString() ) ) ||
-				( DebugAllObjectsCvar && DebugAllObjectsCvar->GetInt() != 0 ) ) )
-		{
+						(DebugAllObjectsCvar && DebugAllObjectsCvar->GetInt() != 0)))
+					{
 			UE_LOG( LogNetPackageMap, Log, TEXT( "Evaluating actor for replication %s" ), *PriorityActors[j]->ActorInfo->Actor->GetName() );
-		}
+					}
 #endif
 
-		// Normal actor replication
-		UActorChannel* Channel = PriorityActors[j]->Channel;
+					// Normal actor replication
+					UActorChannel* Channel     = PriorityActors[j]->Channel;
 		UE_LOG( LogNetTraffic, Log, TEXT( " Maybe Replicate %s" ), *PriorityActors[j]->ActorInfo->Actor->GetName() );
-		if ( !Channel || Channel->Actor ) //make sure didn't just close this channel
-		{
+					if ( !Channel || Channel->Actor ) //make sure didn't just close this channel
+					{ 
 			AActor*		Actor       = PriorityActors[j]->ActorInfo->Actor;
-			bool		bIsRelevant = false;
+						bool		bIsRelevant = false;
 
-			const bool bLevelInitializedForActor = IsLevelInitializedForActor( Actor, Connection );
+						const bool bLevelInitializedForActor = IsLevelInitializedForActor(Actor, Connection);
 
-			// only check visibility on already visible actors every 1.0 + 0.5R seconds
-			// bTearOff actors should never be checked
-			if ( bLevelInitializedForActor )
-			{
-				if ( !Actor->bTearOff && ( !Channel || Time - Channel->RelevantTime > 1.f ) )
-				{
-					if ( IsActorRelevantToConnection( Actor, ConnectionViewers ) )
-					{
-						bIsRelevant = true;
-					}
-					else if ( DebugRelevantActors )
-					{
-						LastNonRelevantActors.Add( Actor );
-					}
-				}
-			}
-			else
-			{
-				// Actor is no longer relevant because the world it is/was in is not loaded by client
-				// exception: player controllers should never show up here
-				UE_LOG( LogNetTraffic, Log, TEXT( "- Level not initialized for actor %s" ), *Actor->GetName() );
-			}
-
-			// if the actor is now relevant or was recently relevant
-			const bool bIsRecentlyRelevant = bIsRelevant || ( Channel && Time - Channel->RelevantTime < RelevantTimeout );
-
-			if ( bIsRecentlyRelevant )
-			{
-				FinalRelevantCount++;
-
-				// Find or create the channel for this actor.
-				// we can't create the channel if the client is in a different world than we are
-				// or the package map doesn't support the actor's class/archetype (or the actor itself in the case of serializable actors)
-				// or it's an editor placed actor and the client hasn't initialized the level it's in
-				if ( Channel == NULL && GuidCache->SupportsObject( Actor->GetClass() ) && GuidCache->SupportsObject( Actor->IsNetStartupActor() ? Actor : Actor->GetArchetype() ) )
-				{
-					if ( bLevelInitializedForActor )
-					{
-						// Create a new channel for this actor.
-						Channel = ( UActorChannel* )Connection->CreateChannel( CHTYPE_Actor, 1 );
-						if ( Channel )
+						// only check visibility on already visible actors every 1.0 + 0.5R seconds
+						// bTearOff actors should never be checked
+						if ( bLevelInitializedForActor )
 						{
-							Channel->SetChannelActor( Actor );
-						}
-					}
-					// if we couldn't replicate it for a reason that should be temporary, and this Actor is updated very infrequently, make sure we update it again soon
-					else if ( Actor->NetUpdateFrequency < 1.0f )
-					{
-						UE_LOG( LogNetTraffic, Log, TEXT( "Unable to replicate %s" ), *Actor->GetName() );
-						Actor->NetUpdateTime = Actor->GetWorld()->TimeSeconds + 0.2f * FMath::FRand();
-					}
-				}
-
-				if ( Channel )
-				{
-					// if it is relevant then mark the channel as relevant for a short amount of time
-					if ( bIsRelevant )
-					{
-						Channel->RelevantTime = Time + 0.5f * FMath::SRand();
-					}
-					// if the channel isn't saturated
-					if ( Channel->IsNetReady( 0 ) )
-					{
-						// replicate the actor
-						UE_LOG( LogNetTraffic, Log, TEXT( "- Replicate %s. %d" ), *Actor->GetName(), PriorityActors[j]->Priority );
-						if ( DebugRelevantActors )
-						{
-							LastRelevantActors.Add( Actor );
-						}
-
-						if ( Channel->ReplicateActor() )
-						{
-							ActorUpdatesThisConnectionSent++;
-							if ( DebugRelevantActors )
+							if (!Actor->bTearOff && (!Channel || Time - Channel->RelevantTime > 1.f))
 							{
-								LastSentActors.Add( Actor );
+					if ( IsActorRelevantToConnection( Actor, ConnectionViewers ) )
+									{
+										bIsRelevant = true;
+									}
+					else if ( DebugRelevantActors )
+									{
+											LastNonRelevantActors.Add(Actor);
+										}
+									}
+								}
+						else
+						{
+							// Actor is no longer relevant because the world it is/was in is not loaded by client
+							// exception: player controllers should never show up here
+							UE_LOG(LogNetTraffic, Log, TEXT("- Level not initialized for actor %s"), *Actor->GetName());
+						}
+						
+						// if the actor is now relevant or was recently relevant
+						const bool bIsRecentlyRelevant = bIsRelevant || (Channel && Time - Channel->RelevantTime < RelevantTimeout);
+
+						if( bIsRecentlyRelevant )
+						{	
+							FinalRelevantCount++;
+
+							// Find or create the channel for this actor.
+							// we can't create the channel if the client is in a different world than we are
+							// or the package map doesn't support the actor's class/archetype (or the actor itself in the case of serializable actors)
+							// or it's an editor placed actor and the client hasn't initialized the level it's in
+				if ( Channel == NULL && GuidCache->SupportsObject( Actor->GetClass() ) && GuidCache->SupportsObject( Actor->IsNetStartupActor() ? Actor : Actor->GetArchetype() ) )
+							{
+								if (bLevelInitializedForActor)
+								{
+									// Create a new channel for this actor.
+									Channel = (UActorChannel*)Connection->CreateChannel( CHTYPE_Actor, 1 );
+									if( Channel )
+									{
+										Channel->SetChannelActor( Actor );
+									}
+								}
+								// if we couldn't replicate it for a reason that should be temporary, and this Actor is updated very infrequently, make sure we update it again soon
+								else if (Actor->NetUpdateFrequency < 1.0f)
+								{
+									UE_LOG(LogNetTraffic, Log, TEXT("Unable to replicate %s"),*Actor->GetName());
+									Actor->NetUpdateTime = Actor->GetWorld()->TimeSeconds + 0.2f * FMath::FRand();
+								}
 							}
+
+							if( Channel )
+							{
+								// if it is relevant then mark the channel as relevant for a short amount of time
+								if( bIsRelevant )
+								{
+									Channel->RelevantTime = Time + 0.5f * FMath::SRand();
+								}
+								// if the channel isn't saturated
+								if( Channel->IsNetReady(0) )
+								{
+									// replicate the actor
+									UE_LOG(LogNetTraffic, Log, TEXT("- Replicate %s. %d"),*Actor->GetName(), PriorityActors[j]->Priority);
+									if (DebugRelevantActors)
+									{
+										LastRelevantActors.Add( Actor );
+									}
+
+									if (Channel->ReplicateActor())
+									{
+										ActorUpdatesThisConnectionSent++;
+										if (DebugRelevantActors)
+										{
+											LastSentActors.Add( Actor );
+										}
 
 							// Calculate min delta (max rate actor will upate), and max delta (slowest rate actor will update)
 							const float MinOptimalDelta				= 1.0f / Actor->NetUpdateFrequency;
@@ -2795,50 +2795,50 @@ int32 UNetDriver::ServerReplicateActors_ProcessPrioritizedActors( UNetConnection
 							// Choose an optimal time, we choose 70% of the actual rate to allow frequency to go up if needed
 							PriorityActors[j]->ActorInfo->OptimalNetUpdateDelta = FMath::Clamp( DeltaBetweenReplications * 0.7f, MinOptimalDelta, MaxOptimalDelta );
 							PriorityActors[j]->ActorInfo->LastNetReplicateTime = World->TimeSeconds;
-						}
-						ActorUpdatesThisConnection++;
+									}
+									ActorUpdatesThisConnection++;
 						OutUpdated++;
-					}
-					else
-					{
-						UE_LOG( LogNetTraffic, Log, TEXT( "- Channel saturated, forcing pending update for %s" ), *Actor->GetName() );
-						// otherwise force this actor to be considered in the next tick again
-						Actor->ForceNetUpdate();
-					}
-					// second check for channel saturation
-					if ( !Connection->IsNetReady( 0 ) )
-					{
+								}
+								else
+								{							
+									UE_LOG(LogNetTraffic, Log, TEXT("- Channel saturated, forcing pending update for %s"),*Actor->GetName());
+									// otherwise force this actor to be considered in the next tick again
+									Actor->ForceNetUpdate();
+								}
+								// second check for channel saturation
+								if (!Connection->IsNetReady(0))
+								{
 						// We can bail out now since this connection is saturated, we'll return how far we got though
 						SET_DWORD_STAT( STAT_NumReplicatedActorAttempts, ActorUpdatesThisConnection );
 						SET_DWORD_STAT( STAT_NumReplicatedActors, ActorUpdatesThisConnectionSent );
 						SET_DWORD_STAT( STAT_NumRelevantActors, FinalRelevantCount );
 						return j;
+								}
+							}
+						}
+						
+			// If the actor wasn't recently relevant, or if it was torn off, close the actor channel if it exists for this connection
+						if ((!bIsRecentlyRelevant || Actor->bTearOff) && Channel != NULL)
+						{
+							// Non startup (map) actors have their channels closed immediately, which destroys them.
+							// Startup actors get to keep their channels open.
+
+							// Fixme: this should be a setting
+							if ( !bLevelInitializedForActor || !Actor->IsNetStartupActor() )
+							{
+								UE_LOG(LogNetTraffic, Log, TEXT("- Closing channel for no longer relevant actor %s"),*Actor->GetName());
+								Channel->Close();
+							}
+						}
 					}
 				}
-			}
-
-			// If the actor wasn't recently relevant, or if it was torn off, close the actor channel if it exists for this connection
-			if ( ( !bIsRecentlyRelevant || Actor->bTearOff ) && Channel != NULL )
-			{
-				// Non startup (map) actors have their channels closed immediately, which destroys them.
-				// Startup actors get to keep their channels open.
-
-				// Fixme: this should be a setting
-				if ( !bLevelInitializedForActor || !Actor->IsNetStartupActor() )
-				{
-					UE_LOG( LogNetTraffic, Log, TEXT( "- Closing channel for no longer relevant actor %s" ), *Actor->GetName() );
-					Channel->Close();
-				}
-			}
-		}
-	}
 
 	SET_DWORD_STAT( STAT_NumReplicatedActorAttempts, ActorUpdatesThisConnection );
 	SET_DWORD_STAT( STAT_NumReplicatedActors, ActorUpdatesThisConnectionSent );
-	SET_DWORD_STAT( STAT_NumRelevantActors, FinalRelevantCount );
+				SET_DWORD_STAT(STAT_NumRelevantActors,FinalRelevantCount);
 
 	return FinalSortedCount;
-}
+			}
 #endif
 
 int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
@@ -2981,14 +2981,14 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				else if ( IsActorRelevantToConnection( Actor, ConnectionViewers ) )
 				{
 					// If this actor was relevant but didn't get processed, force another update for next frame
-					UE_LOG( LogNetTraffic, Log, TEXT( " Saturated. Mark %s NetUpdateTime to be checked for next tick" ), *Actor->GetName() );
-					Actor->bPendingNetUpdate = true;
-					if ( Channel != NULL )
-					{
-						Channel->RelevantTime = Time + 0.5f * FMath::SRand();
+							UE_LOG(LogNetTraffic, Log, TEXT(" Saturated. Mark %s NetUpdateTime to be checked for next tick"), *Actor->GetName());
+							Actor->bPendingNetUpdate = true;
+							if (Channel != NULL)
+							{
+								Channel->RelevantTime = Time + 0.5f * FMath::SRand();
+							}
 					}
 				}
-			}
 			RelevantActorMark.Pop();
 		}
 	}

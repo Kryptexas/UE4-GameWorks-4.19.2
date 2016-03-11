@@ -40,6 +40,9 @@ const TCHAR* ELoadingPhase::ToString( const ELoadingPhase::Type Value )
 	case PostEngineInit:
 		return TEXT( "PostEngineInit" );
 
+	case None:
+		return TEXT( "None" );
+
 	default:
 		ensureMsgf( false, TEXT( "Unrecognized ELoadingPhase value: %i" ), Value );
 		return NULL;

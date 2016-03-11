@@ -130,7 +130,7 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 	Camera->FieldOfView = 90.f;
 
 	// Create In-Car camera component 
-	InternalCameraOrigin = FVector(-34.0f, 0.0f, 50.0f);
+	InternalCameraOrigin = FVector(-34.0f, -10.0f, 50.0f);
 	InternalCameraBase = CreateDefaultSubobject<USceneComponent>(TEXT("InternalCameraBase"));
 	InternalCameraBase->SetRelativeLocation(InternalCameraOrigin);
 	InternalCameraBase->AttachTo(GetMesh());

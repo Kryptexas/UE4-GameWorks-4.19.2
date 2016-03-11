@@ -655,7 +655,7 @@ void FTextLocalizationManager::UpdateFromLocalizationResource(const FString& Loc
 {
 	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
 
-	FLocalizationEntryTracker LocalizationEntryTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
+	FLocalizationEntryTracker& LocalizationEntryTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
 	LocalizationEntryTracker.LoadFromFile(LocalizationResourceFilePath);
 	LocalizationEntryTracker.DetectAndLogConflicts();
 

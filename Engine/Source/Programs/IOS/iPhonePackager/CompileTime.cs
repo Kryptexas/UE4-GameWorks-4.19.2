@@ -71,11 +71,18 @@ namespace iPhonePackager
 		static private string GetBaseXcodeCommandline()
 		{
 			string CmdLine = XcodeDeveloperDir + "usr/bin/xcodebuild" +
-					" -project UE4_FromPC.xcodeproj" + 
+					" -project UE4_FromPC.xcodeproj" +
 					" -configuration \"" + Program.SchemeConfiguration + "\"" +
-					" -target '" + Program.SchemeName + "'" +
-					" -destination generic/platform=iOS" +
-					" -sdk " + ((Program.Architecture == "-simulator") ? "iphonesimulator" : "iphoneos");
+					" -target '" + Program.SchemeName + "'";
+			
+			if (Config.OSString == "IOS")
+			{
+				CmdLine += " -destination generic/platform=iOS" +" -sdk " + ((Program.Architecture == "-simulator") ? "iphonesimulator" : "iphoneos");
+			}
+			else
+			{
+				CmdLine += " -destination generic/platform=tvOS" + " -sdk " + ((Program.Architecture == "-simulator") ? "appletvsimulator" : "appletvos");
+			}
 
 			// sign with the Distribution identity when packaging for distribution
 			if (Config.bUseRPCUtil)
@@ -131,11 +138,11 @@ namespace iPhonePackager
 			Console.WriteLine("BranchPath = {0} --- GameBranchPath = {1}", BranchPath, GameBranchPath);
 
 			// generate the directories to recursively copy into later on
-			MacStagingRootDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
+			MacStagingRootDir = string.Format("{0}/{1}/" + Config.OSString, iPhone_SigningDevRootMac, GameBranchPath);
 			MacStagingRootDir = MacStagingRootDir.Replace("//", "/");
-			MacBinariesDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
+			MacBinariesDir = string.Format("{0}/{1}/" + Config.OSString, iPhone_SigningDevRootMac, GameBranchPath);
 			MacBinariesDir = MacBinariesDir.Replace("//", "/");
-			MacXcodeStagingDir = string.Format("{0}/{1}/IOS/XcodeSupportFiles", iPhone_SigningDevRootMac, GameBranchPath);
+			MacXcodeStagingDir = string.Format("{0}/{1}/" + Config.OSString + "/XcodeSupportFiles", iPhone_SigningDevRootMac, GameBranchPath);
 			MacXcodeStagingDir = MacXcodeStagingDir.Replace("//", "/");
 
 			MacMobileProvisionFilename = MachineName + "_UE4Temp.mobileprovision";
@@ -277,7 +284,7 @@ namespace iPhonePackager
 			File.WriteAllBytes(Path.Combine(Config.PCXcodeStagingDir, MacSigningIdentityFilename), Data);
 
 			// needs Mac line endings so it can be executed
-			string SrcPath = @"..\..\..\Build\IOS\XcodeSupportFiles\prepackage.sh";
+			string SrcPath = @"..\..\..\Build\" + Config.OSString + @"\XcodeSupportFiles\prepackage.sh";
 			string DestPath = Path.Combine(Config.PCXcodeStagingDir, @"prepackage.sh");
 			Program.Log(" ... '" + SrcPath + "' -> '" + DestPath + "'");
 			string SHContents = File.ReadAllText(SrcPath);
@@ -345,7 +352,7 @@ namespace iPhonePackager
 
 			case "prepackage":
 				Program.Log(" ... running prepackage script remotely ");
-				DisplayCommandLine = String.Format("sh prepackage.sh {0} IOS {1} {2}", Program.GameName, Program.GameConfiguration, Program.Architecture);
+				DisplayCommandLine = String.Format("sh prepackage.sh {0} " + Config.OSString + " {1} {2}", Program.GameName, Program.GameConfiguration, Program.Architecture);
 				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
 				WorkingFolder = "\"" + MacXcodeStagingDir + "\"";
 				break;

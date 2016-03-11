@@ -398,7 +398,6 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 			{
 				// Initialize Parallel Task arrays
 				AnimEvaluationContext.SpaceBases = GetSpaceBases();
-				AnimEvaluationContext.VertexAnims = ActiveVertexAnims;
 			}
 
 			AnimEvaluationContext.LocalAtoms.Reset(LocalAtoms.Num());

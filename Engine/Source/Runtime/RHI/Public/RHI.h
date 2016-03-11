@@ -141,6 +141,9 @@ extern RHI_API float GMinClipZ;
 /** The sign to apply to the Y axis of projection matrices. */
 extern RHI_API float GProjectionSignY;
 
+/** Does this RHI need to wait for deletion of resources due to ref counting. */
+extern RHI_API bool GRHINeedsExtraDeletionLatency;
+
 /** The maximum size to allow for the shadow depth buffer in the X dimension.  This must be larger or equal to GMaxShadowDepthBufferSizeY. */
 extern RHI_API int32 GMaxShadowDepthBufferSizeX;
 /** The maximum size to allow for the shadow depth buffer in the Y dimension. */

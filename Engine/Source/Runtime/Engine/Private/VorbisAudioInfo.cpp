@@ -99,7 +99,7 @@ FVorbisAudioInfo::~FVorbisAudioInfo( void )
 size_t FVorbisAudioInfo::Read( void *Ptr, uint32 Size )
 {
 	check(Ptr);
-	size_t BytesToRead = FMath::Min( Size, SrcBufferDataSize - BufferOffset );
+	size_t BytesToRead = FMath::Min(Size, SrcBufferDataSize - BufferOffset);
 	FMemory::Memcpy( Ptr, SrcBufferData + BufferOffset, BytesToRead );
 	BufferOffset += BytesToRead;
 	return( BytesToRead );
@@ -128,6 +128,7 @@ int FVorbisAudioInfo::Seek( uint32 offset, int whence )
 	case SEEK_END:
 		BufferOffset = SrcBufferDataSize - offset;
 		break;
+
 	default:
 		checkf(false, TEXT("Uknown seek type"));
 		break;
@@ -180,7 +181,7 @@ bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 
 		return false;
 	}
 
-	ov_callbacks		Callbacks;
+	ov_callbacks Callbacks;
 
 	SrcBufferData = InSrcBufferData;
 	SrcBufferDataSize = InSrcBufferDataSize;

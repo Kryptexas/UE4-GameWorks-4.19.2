@@ -233,7 +233,7 @@ void FMetalStateCache::SetComputeShader(FMetalComputeShader* InComputeShader)
 	}
 }
 
-void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer)
+void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRenderTargets, id<MTLBuffer> const QueryBuffer, bool const bReset)
 {
 	// see if our new Info matches our previous Info
 	if (NeedsToSetRenderTarget(InRenderTargets) || QueryBuffer != VisibilityResults)
@@ -604,18 +604,21 @@ void FMetalStateCache::SetRenderTargetsInfo(FRHISetRenderTargetsInfo const& InRe
 		}
 	
 		// Set render to the framebuffer
-		CommandEncoder.SetRenderPassDescriptor(RenderPass);
+		CommandEncoder.SetRenderPassDescriptor(RenderPass, bReset);
 		
 		// if (bNeedsClear)
 		{
 			CommandEncoder.BeginRenderCommandEncoding();
 		}
 		
-		// Reset any existing state as that must be fully reinitialised by the caller.
-		DepthStencilState.SafeRelease();
-		RasterizerState.SafeRelease();
-		BlendState.SafeRelease();
-		BoundShaderState.SafeRelease();
+		if (bReset)
+		{
+			// Reset any existing state as that must be fully reinitialised by the caller.
+			DepthStencilState.SafeRelease();
+			RasterizerState.SafeRelease();
+			BlendState.SafeRelease();
+			BoundShaderState.SafeRelease();
+		}
 	}
 }
 

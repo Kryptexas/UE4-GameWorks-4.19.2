@@ -1173,8 +1173,10 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		&&	!bIsPaused
 		&&	(!NetDriver || !NetDriver->ServerConnection || NetDriver->ServerConnection->State==USOCK_Open);
 
+	FLatentActionManager& CurrentLatentActionManager = GetLatentActionManager();
+
 	// Reset the list of objects the LatentActionManager has processed this frame
-	LatentActionManager.BeginFrame();
+	CurrentLatentActionManager.BeginFrame();
 	// If caller wants time update only, or we are paused, skip the rest.
 	if (bDoingActorTicks)
 	{
@@ -1221,7 +1223,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	if( !bIsPaused )
 	{
 		// This will process any latent actions that have not been processed already
-		LatentActionManager.ProcessLatentActions( NULL, DeltaSeconds );	
+		CurrentLatentActionManager.ProcessLatentActions(NULL, DeltaSeconds);
 	}
 #if 0 // if you need to debug physics drawing in editor, use this. If you type pxvis collision, it will work. 
 	else

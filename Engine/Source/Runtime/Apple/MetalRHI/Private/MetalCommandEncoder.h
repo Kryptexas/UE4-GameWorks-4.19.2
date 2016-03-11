@@ -109,8 +109,9 @@ public:
 	/**
 	 * Set the render pass descriptor - no encoder may be active when this function is called.
 	 * @param RenderPass The render pass descriptor to set. May be nil.
+	 * @param bReset Whether to reset existing state.
 	 */
-	void SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass);
+	void SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass, bool const bReset);
 	
 	/*
 	 * Sets the current render pipeline state object.

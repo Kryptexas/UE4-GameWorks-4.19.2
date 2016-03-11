@@ -18,8 +18,8 @@ class UAnimInstance;
 struct FEngineShowFlags;
 struct FConvexVolume;
 
-
-
+DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
+typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;
 
 namespace physx
 { 
@@ -108,7 +108,6 @@ struct FAnimationEvaluationContext
 	// Double buffer evaluation data
 	TArray<FTransform> SpaceBases;
 	TArray<FTransform> LocalAtoms;
-	TArray<FActiveVertexAnim> VertexAnims;
 	FVector RootBoneTranslation;
 
 	// Double buffer curve data
@@ -142,8 +141,6 @@ struct FAnimationEvaluationContext
 		SpaceBases.Append(Other.SpaceBases);
 		LocalAtoms.Reset();
 		LocalAtoms.Append(Other.LocalAtoms);
-		VertexAnims.Reset();
-		VertexAnims.Append(Other.VertexAnims);
 		RootBoneTranslation = Other.RootBoneTranslation;
 		Curve.InitFrom(Other.Curve);
 		bDoInterpolation = Other.bDoInterpolation;
@@ -1035,7 +1032,7 @@ public:
 	* @param	OutVertexAnims			Active vertex animations
 	* @param	OutRootBoneTranslation	Calculated root bone translation
 	*/
-	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
+	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
 	void PostAnimEvaluation( FAnimationEvaluationContext& EvaluationContext );
 
 	/**
@@ -1081,9 +1078,6 @@ public:
 	/** Set bSimulatePhysics to true for all bone bodies. Does not change the component bSimulatePhysics flag. */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void SetAllBodiesSimulatePhysics(bool bNewSimulate);
-
-	/** Update Material Parameters based on AnimInstance */
-	void UpdateMaterialParameters();
 
 	/** This is global set up for setting physics blend weight
 	 * This does multiple things automatically
@@ -1331,7 +1325,7 @@ private:
 	void PostPhysicsTickComponent(FSkeletalMeshComponentPostPhysicsTickFunction& ThisTickFunction);
 
 	/** Evaluate Anim System **/
-	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
+	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, FVector& OutRootBoneTranslation, FBlendedHeapCurve& OutCurve) const;
 
 	/**
 	* Take the SourceAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (DestSpaceBases).
@@ -1382,6 +1376,9 @@ public:
 	/** Returns array containing cachec animation curve mapping UIDs (which are copied over from USkeleton) */
 	TArray<FSmartNameMapping::UID> const * GetCachedAnimCurveMappingNameUids();
 
+	/** Apply animation curves to this component */
+	void ApplyAnimationCurvesToComponent(const TMap<FName, float>* InMaterialParameterCurves, const TMap<FName, float>* InAnimationMorphCurves);
+	
 private:
 	// Returns whether we need to run the Pre Cloth Tick or not
 	bool ShouldRunPostPhysicsTick() const;
@@ -1478,7 +1475,14 @@ public:
 	FBlendedHeapCurve& GetEditableAnimationCurves() { return CurvesArray[CurrentEditableSpaceBases]; }
 	const FBlendedHeapCurve& GetEditableAnimationCurves() const { return CurvesArray[CurrentEditableSpaceBases]; }
 #endif 
+
+public:
+	/** Register/Unregister for physics state creation callback */
+	FDelegateHandle RegisterOnPhysicsCreatedDelegate(const FOnSkelMeshPhysicsCreated& Delegate);
+	void UnregisterOnPhysicsCreatedDelegate(const FDelegateHandle& DelegateHandle);
+
+private:
+
+	/** Multicaster fired when this component creates physics state (in case external objects rely on physics state)*/
+	FOnSkelMeshPhysicsCreatedMultiCast OnSkelMeshPhysicsCreated;
 };
-
-
-

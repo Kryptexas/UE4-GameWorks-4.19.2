@@ -414,6 +414,17 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 			case MTLPixelFormatBGRA8Unorm:
 				MTLFormat = MTLPixelFormatBGRA8Unorm_sRGB;
 				break;
+			case MTLPixelFormatR8Unorm:
+				// For now R8 sRGB expansion is 2D only, log other usage for later.
+				if(Type == RRT_Texture2D)
+				{
+					MTLFormat = MTLPixelFormatRGBA8Unorm_sRGB;
+				}
+				else
+				{
+					UE_LOG(LogMetal, Display, TEXT("Attempting to use unsupported MTLPixelFormatR8Unorm_sRGB on Mac with texture type: %d, no format expansion will be provided so rendering errors may occur."), Type);
+				}
+				break;
 			default:
 				break;
 		}
@@ -739,7 +750,7 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 	if(!LockedMemory[MipIndex])
 	{
 #if METAL_API_1_1
-		NSUInteger ResMode = MTLResourceStorageModeShared | (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions) ? MTLResourceCPUCacheModeWriteCombined : 0);
+		NSUInteger ResMode = MTLResourceStorageModeShared | (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions) && !(PixelFormat == PF_G8 && (Flags & TexCreate_SRGB)) ? MTLResourceCPUCacheModeWriteCombined : 0);
 #else
 		NSUInteger ResMode = MTLStorageModeShared;
 #endif
@@ -773,11 +784,37 @@ void* FMetalSurface::Lock(uint32 MipIndex, uint32 ArrayIndex, EResourceLockMode 
 			//kick the current command buffer.
 			GetMetalDeviceContext().SubmitCommandBufferAndWait();
 			
+			// Pack RGBA8_sRGB into R8_sRGB for Mac.
+			if (PixelFormat == PF_G8 && (Flags & TexCreate_SRGB) && Type == RRT_Texture2D)
+			{
+				TArray<uint8> Data;
+				uint8* ExpandedMem = (uint8*)[LockedMemory[MipIndex] contents];
+				Data.Append(ExpandedMem, MipBytes);
+				uint32 SrcStride = DestStride;
+				DestStride = FMath::Max<uint32>(SizeX >> MipIndex, 1);
+				for(uint y = 0; y < FMath::Max<uint32>(SizeY >> MipIndex, 1); y++)
+				{
+					uint8* RowDest = ExpandedMem;
+					for(uint x = 0; x < FMath::Max<uint32>(SizeX >> MipIndex, 1); x++)
+					{
+						*(RowDest++) = Data[(y * SrcStride) + (x * 4)];
+					}
+					ExpandedMem = (ExpandedMem + DestStride);
+				}
+			}
+			
             break;
         }
         case RLM_WriteOnly:
         {
             WriteLock |= 1 << MipIndex;
+#if PLATFORM_MAC
+			// Expand R8_sRGB into RGBA8_sRGB for Mac.
+			if (PixelFormat == PF_G8 && (Flags & TexCreate_SRGB) && Type == RRT_Texture2D)
+			{
+				DestStride = FMath::Max<uint32>(SizeX >> MipIndex, 1);
+			}
+#endif
             break;
         }
         default:
@@ -808,6 +845,27 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
             Region = MTLRegionMake3D(0, 0, 0, FMath::Max<uint32>(SizeX >> MipIndex, 1), FMath::Max<uint32>(SizeY >> MipIndex, 1), FMath::Max<uint32>(SizeZ >> MipIndex, 1));
         }
 #if PLATFORM_MAC
+		// Expand R8_sRGB into RGBA8_sRGB for Mac.
+		if (PixelFormat == PF_G8 && (Flags & TexCreate_SRGB) && Type == RRT_Texture2D)
+		{
+			TArray<uint8> Data;
+			uint8* ExpandedMem = (uint8*)[LockedMemory[MipIndex] contents];
+			Data.Append(ExpandedMem, BytesPerImage);
+			uint32 SrcStride = FMath::Max<uint32>(SizeX >> MipIndex, 1);
+			for(uint y = 0; y < FMath::Max<uint32>(SizeY >> MipIndex, 1); y++)
+			{
+				uint8* RowDest = ExpandedMem;
+				for(uint x = 0; x < FMath::Max<uint32>(SizeX >> MipIndex, 1); x++)
+				{
+					*(RowDest++) = Data[(y * SrcStride) + x];
+					*(RowDest++) = Data[(y * SrcStride) + x];
+					*(RowDest++) = Data[(y * SrcStride) + x];
+					*(RowDest++) = Data[(y * SrcStride) + x];
+				}
+				ExpandedMem = (ExpandedMem + Stride);
+			}
+		}
+
 		if(Texture.storageMode == MTLStorageModePrivate)
 		{
 			SCOPED_AUTORELEASE_POOL;
@@ -857,6 +915,13 @@ uint32 FMetalSurface::GetMipSize(uint32 MipIndex, uint32* Stride, bool bSingleLa
 		NumBlocksX = FMath::Max<uint32>(NumBlocksX, 2);
 		NumBlocksY = FMath::Max<uint32>(NumBlocksY, 2);
 	}
+#if PLATFORM_MAC
+	else if (PixelFormat == PF_G8 && (Flags & TexCreate_SRGB))
+	{
+		// RGBA_sRGB is the closest match - so expand the data.
+		NumBlocksX *= 4;
+	}
+#endif
 
 	const uint32 MipBytes = NumBlocksX * NumBlocksY * BlockBytes * MipSizeZ;
 

@@ -236,7 +236,7 @@ static void RenameVariableReferencesInGraph(UBlueprint* InBlueprint, UClass* InV
 
 		if(UK2Node_ComponentBoundEvent* const ComponentBoundEventNode = Cast<UK2Node_ComponentBoundEvent>(GraphNode))
 		{
-			if(InOldVarName == ComponentBoundEventNode->ComponentPropertyName)
+			if( InOldVarName == ComponentBoundEventNode->ComponentPropertyName && InVariableClass->IsChildOf(InBlueprint->GeneratedClass) )
 			{
 				ComponentBoundEventNode->Modify();
 				ComponentBoundEventNode->ComponentPropertyName = InNewVarName;
@@ -1421,6 +1421,11 @@ static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Bl
 	Blueprint->GeneratedClass->Children = nullptr;
 	Blueprint->GeneratedClass->Bind();
 	Blueprint->GeneratedClass->StaticLink(true);
+}
+
+void FBlueprintEditorUtils::ForceLoadMembers(UObject* Object)
+{
+	FRegenerationHelper::ForcedLoadMembers(Object);
 }
 
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)

@@ -204,15 +204,15 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	bool bSetupTranslucentState = true;
+	bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
 
 	if ((TranslucenyPassType == TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
 	{
-		const bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
 		bSetupTranslucentState = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bNeedsClear);
 	}
-	else
+	else if ((TranslucenyPassType == TPT_NonSeparateTransluceny) && !SceneContext.IsSeparateTranslucencyActive(View))
 	{
-		SceneContext.BeginRenderingTranslucency(RHICmdList, View);
+		SceneContext.BeginRenderingTranslucency(RHICmdList, View, bNeedsClear);
 	}
 
 	if (bSetupTranslucentState)
@@ -998,7 +998,7 @@ void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Normal, int32 NumNo
 }
 
 void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
-{	
+{
 	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 	int32 CVarEnabled = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
@@ -1110,7 +1110,7 @@ public:
 	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPassType InTranslucenyPassType)
 		: FParallelCommandListSet(GET_STATID(STAT_CLP_Translucency), InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, TranslucenyPassType(InTranslucenyPassType)
-		, bFirstTimeThisFrame(InTranslucenyPassType == TPT_SeparateTransluceny)
+		, bFirstTimeThisFrame(true)
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}

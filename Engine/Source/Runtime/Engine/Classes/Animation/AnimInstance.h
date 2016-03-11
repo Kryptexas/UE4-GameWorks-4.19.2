@@ -1016,7 +1016,7 @@ public:
 	bool ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const;
 
 	/** Perform evaluation. Can be called from worker threads. */
-	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FBlendedHeapCurve& OutCurve);
+	void ParallelEvaluateAnimation(bool bForceRefPose, const USkeletalMesh* InSkeletalMesh, TArray<FTransform>& OutLocalAtoms, FBlendedHeapCurve& OutCurve);
 
 	void PostEvaluateAnimation();
 	void UninitializeAnimation();
@@ -1105,6 +1105,9 @@ public:
 	/** Update all internal curves from Blended Curve */
 	void UpdateCurves(const FBlendedHeapCurve& InCurves);
 
+	/** Refresh currently existing curves */
+	void RefreshCurves(USkeletalMeshComponent* Component);
+
 	/** Check whether we have active morph target curves */
 	bool HasMorphTargetCurves() const;
 
@@ -1182,12 +1185,6 @@ public:
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);
 
-	/** Pass-thru function to proxy - only call on the game thread */
-	void UpdateMorphTargetCurves(const TMap<FName, float>& InMorphTargetCurves);
-
-	/** Pass-thru function to proxy - only call on the game thread */
-	void UpdateComponentsMaterialParameters(UPrimitiveComponent* Component);
-
 	/** Given a machine and state index, record a state weight for this frame */
 	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
@@ -1211,8 +1208,6 @@ public:
 	/** Get current accumulated root motion, removing it from the AnimInstance in the process */
 	FRootMotionMovementParams ConsumeExtractedRootMotion(float Alpha);
 
-	/** Wrapper around UpdateActiveVertexAnims that can use vertex anims internal to the proxy */
-	TArray<FActiveVertexAnim> UpdateActiveVertexAnims(const USkeletalMesh* SkeletalMesh);
 private:
 	/** Active Root Motion Montage Instance, if any. */
 	struct FAnimMontageInstance * RootMotionMontageInstance;

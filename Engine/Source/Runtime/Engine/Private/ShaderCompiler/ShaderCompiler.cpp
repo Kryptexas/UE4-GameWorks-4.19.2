@@ -824,7 +824,10 @@ void FShaderCompileThreadRunnable::WriteNewTasks()
 
 			if (!DoWriteTasks(CurrentWorkerInfo.QueuedJobs, *TransferFile))
 			{
-				UE_LOG(LogShaderCompilers, Fatal, TEXT("Could not write the shader compiler transfer filename to '%s'."), *TransferFileName);
+				uint64 TotalDiskSpace = 0;
+				uint64 FreeDiskSpace = 0;
+				FPlatformMisc::GetDiskTotalAndFreeSpace(TransferFileName, TotalDiskSpace, FreeDiskSpace);
+				UE_LOG(LogShaderCompilers, Fatal, TEXT("Could not write the shader compiler transfer filename to '%s' (Free Disk Space: %llu."), *TransferFileName, FreeDiskSpace);
 			}
 			delete TransferFile;
 
@@ -832,7 +835,10 @@ void FShaderCompileThreadRunnable::WriteNewTasks()
 			FString ProperTransferFileName = WorkingDirectory / TEXT("WorkerInputOnly.in");
 			if (!IFileManager::Get().Move(*ProperTransferFileName, *TransferFileName))
 			{
-				UE_LOG(LogShaderCompilers, Fatal, TEXT("Could not rename the shader compiler transfer filename to '%s' from '%s'."), *ProperTransferFileName, *TransferFileName);
+				uint64 TotalDiskSpace = 0;
+				uint64 FreeDiskSpace = 0;
+				FPlatformMisc::GetDiskTotalAndFreeSpace(TransferFileName, TotalDiskSpace, FreeDiskSpace);
+				UE_LOG(LogShaderCompilers, Fatal, TEXT("Could not rename the shader compiler transfer filename to '%s' from '%s' (Free Disk Space: %llu)."), *ProperTransferFileName, *TransferFileName, FreeDiskSpace);
 			}
 		}
 	}

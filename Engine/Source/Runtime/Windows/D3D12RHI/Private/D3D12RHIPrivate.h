@@ -41,6 +41,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 #include "../Public/D3D12ConstantBuffer.h"
 #include "D3D12StateCache.h"
 #include "D3D12DirectCommandListManager.h"
+#include "D3D12Allocation.h"
 
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
 #define CHECK_SRV_TRANSITIONS 0
@@ -52,22 +53,24 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 #define DX_MAX_MSAA_COUNT 8
 
 // Definitions.
+#define USE_D3D12RHI_RESOURCE_STATE_TRACKING 1	// Fully relying on the engine's resource barriers is a work in progress. For now, continue to use the D3D12 RHI's resource state tracking.
 #define EXECUTE_DEBUG_COMMAND_LISTS 0
 #define DEBUG_RESOURCE_STATES 0
 #define ENABLE_PLACED_RESOURCES 0 // Disabled due to a couple of NVidia bugs related to placed resources. Works fine on Intel
 #define REMOVE_OLD_QUERY_BATCHES 1  // D3D12: MSFT: TODO: Works around a suspected UE4 InfiltratorDemo bug where a query is never released
 
-#define DEFAULT_BUFFER_POOL_SIZE (128 * 1024 * 1024)
-#define DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE (128 * 1024)
+#define DEFAULT_BUFFER_POOL_SIZE (16 * 1024 * 1024)
+#define DEFAULT_BUFFER_POOL_MAX_ALLOC_SIZE (512 * 1024)
 #define DEFAULT_CONTEXT_UPLOAD_POOL_SIZE (64 * 1024 * 1024)
 #define DEFAULT_CONTEXT_UPLOAD_POOL_MAX_ALLOC_SIZE (1024 * 1024 * 4)
 #define DEFAULT_CONTEXT_UPLOAD_POOL_ALIGNMENT (D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)
 
-
 #if DEBUG_RESOURCE_STATES
 #define LOG_EXECUTE_COMMAND_LISTS 1
+#define ASSERT_RESOURCE_STATES 1
 #else
 #define LOG_EXECUTE_COMMAND_LISTS 0
+#define ASSERT_RESOURCE_STATES 0
 #endif
 
 #if EXECUTE_DEBUG_COMMAND_LISTS
@@ -733,6 +736,7 @@ public:
 	virtual void RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data) final override;
 	virtual void RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values) final override;
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) final override;
+	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures) final override;
 	virtual void RHIBeginRenderQuery(FRenderQueryRHIParamRef RenderQuery) final override;
 	virtual void RHIEndRenderQuery(FRenderQueryRHIParamRef RenderQuery) final override;
 	virtual void RHIBeginOcclusionQueryBatch() final override;
@@ -777,7 +781,7 @@ public:
 	virtual void RHISetBlendState(FBlendStateRHIParamRef NewState, const FLinearColor& BlendFactor) final override;
 	virtual void RHISetRenderTargets(uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargets, const FRHIDepthRenderTargetView* NewDepthStencilTarget, uint32 NumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs) final override;
 	virtual void RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo) final override;
-	//virtual void RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil) final override;
+	virtual void RHIBindClearMRTValues(bool bClearColor, bool bClearDepth, bool bClearStencil) final override;
 	virtual void RHIDrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances) final override;
 	virtual void RHIDrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset) final override;
 	virtual void RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, int32 DrawArgumentsIndex, uint32 NumInstances) final override;
@@ -905,6 +909,8 @@ public:
 	inline FD3D12GlobalOnlineHeap&          GetGlobalSamplerHeap() { return GlobalSamplerHeap; }
 	inline FD3D12GlobalOnlineHeap&          GetGlobalViewHeap() { return GlobalViewHeap; }
 
+	bool IsGPUIdle();
+
 	inline const D3D12_HEAP_PROPERTIES &GetConstantBufferPageProperties() { return ConstantBufferPageProperties; }
 
 	inline uint32 GetNumContexts() { return CommandContextArray.Num(); }
@@ -937,6 +943,8 @@ public:
 
 	inline D3D12_RESOURCE_HEAP_TIER    GetResourceHeapTier() { return ResourceHeapTier; }
 	inline D3D12_RESOURCE_BINDING_TIER GetResourceBindingTier() { return ResourceBindingTier; }
+
+	inline FD3D12FenceCorePool& GetFenceCorePool() { return FenceCorePool; }
 
 	TArray<FD3D12CommandListHandle> PendingCommandLists;
 	uint32 PendingCommandListsTotalWorkCommands;
@@ -1036,6 +1044,8 @@ protected:
 	FD3D12DynamicHeapAllocator	DefaultUploadHeapAllocator;
 
 	FD3D12TextureAllocatorPool TextureAllocator;
+
+	FD3D12FenceCorePool FenceCorePool;
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */
@@ -1049,8 +1059,39 @@ public:
 
 	static FD3D12DynamicRHI* GetD3DRHI() { return SingleD3DRHI; }
 
+private:
 	/** Global D3D12 lock list */
 	TMap<FD3D12LockedKey, FD3D12LockedData> OutstandingLocks;
+	FCriticalSection OutstandingLocksCS;
+
+	/** Texture pool size */
+	int64 RequestedTexturePoolSize;
+
+public:
+
+	inline void ClearOutstandingLocks()
+	{
+		FScopeLock Lock(&OutstandingLocksCS);
+		OutstandingLocks.Empty();
+	}
+
+	inline void AddToOutstandingLocks(FD3D12LockedKey& Key, FD3D12LockedData& Value)
+	{
+		FScopeLock Lock(&OutstandingLocksCS);
+		OutstandingLocks.Add(Key, Value);
+	}
+
+	inline void RemoveFromOutstandingLocks(FD3D12LockedKey& Key)
+	{
+		FScopeLock Lock(&OutstandingLocksCS);
+		OutstandingLocks.Remove(Key);
+	}
+
+	inline FD3D12LockedData* FindInOutstandingLocks(FD3D12LockedKey& Key)
+	{
+		FScopeLock Lock(&OutstandingLocksCS);
+		return OutstandingLocks.Find(Key);
+	}
 
 	/** Initialization constructor. */
 	FD3D12DynamicRHI(IDXGIFactory4* InDXGIFactory, FD3D12Adapter& InAdapter);
@@ -1165,6 +1206,67 @@ public:
 	virtual class IRHIComputeContext* RHIGetDefaultAsyncComputeContext() final override;
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
 
+
+	//
+	// The Following functions are the _RenderThread version of the above functions. They allow the RHI to control the thread synchronization for greater efficiency.
+	// These will be un-commented as they are implemented.
+	//
+	virtual FVertexBufferRHIRef CreateVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
+	virtual void* LockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode);
+	virtual void UnlockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer);
+	// virtual FTexture2DRHIRef AsyncReallocateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus);
+	// virtual ETextureReallocationStatus FinalizeAsyncReallocateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted);
+	// virtual ETextureReallocationStatus CancelAsyncReallocateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted);
+	virtual FIndexBufferRHIRef CreateIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
+	virtual void* LockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode);
+	virtual void UnlockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBuffer);
+	// virtual FVertexDeclarationRHIRef CreateVertexDeclaration_RenderThread(class FRHICommandListImmediate& RHICmdList, const FVertexDeclarationElementList& Elements);
+	// virtual void UpdateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData);
+	// virtual void* LockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush = true);
+	// virtual void UnlockTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture, uint32 MipIndex, bool bLockWithinMiptail, bool bNeedsDefaultRHIFlush = true);
+	// 
+	// virtual FTexture2DRHIRef RHICreateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo);
+	// virtual FTexture2DArrayRHIRef RHICreateTexture2DArray_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo);
+	// virtual FTexture3DRHIRef RHICreateTexture3D_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo);
+	virtual FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView_RenderThread(class FRHICommandListImmediate& RHICmdList, FStructuredBufferRHIParamRef StructuredBuffer, bool bUseUAVCounter, bool bAppendBuffer);
+	virtual FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView_RenderThread(class FRHICommandListImmediate& RHICmdList, FTextureRHIParamRef Texture, uint32 MipLevel);
+	virtual FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint8 Format);
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel);
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format);
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel);
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DArrayRHIParamRef Texture2DArrayRHI, uint8 MipLevel);
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel);
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint8 Format);
+	virtual FShaderResourceViewRHIRef RHICreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FStructuredBufferRHIParamRef StructuredBuffer);
+	// virtual FTextureCubeRHIRef RHICreateTextureCube_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo);
+	// virtual FTextureCubeRHIRef RHICreateTextureCubeArray_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo);
+	// virtual FRenderQueryRHIRef RHICreateRenderQuery_RenderThread(class FRHICommandListImmediate& RHICmdList, ERenderQueryType QueryType);
+
+	FD3D12ResourceLocation* CreateBuffer(FRHICommandListImmediate* RHICmdList, const D3D12_RESOURCE_DESC Desc, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo, uint32 Alignment);
+
+	template<class BufferType>
+	void* LockBuffer(FRHICommandListImmediate* RHICmdList, BufferType* Buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode);
+
+	template<class BufferType>
+	void UnlockBuffer(FRHICommandListImmediate* RHICmdList, BufferType* Buffer);
+
+	inline bool ShouldDeferBufferLockOperation(FRHICommandList* RHICmdList)
+	{
+		if (RHICmdList == nullptr)
+		{
+			return false;
+		}
+
+		if (RHICmdList->Bypass() || !GRHIThread)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	void UpdateBuffer(FD3D12Resource* Dest, uint32 DestOffset, FD3D12Resource* Source, uint32 SourceOffset, uint32 NumBytes);
+
 #if UE_BUILD_DEBUG	
 	uint32 SubmissionLockStalls;
 	uint32 DrawCount;
@@ -1181,6 +1283,8 @@ public:
 		MainDevice->InitD3DDevice();
 		PerRHISetup(MainDevice);
 	}
+
+	inline void UpdataTextureMemorySize(int64 TextureSizeInKiloBytes) { FPlatformAtomics::InterlockedAdd(&GCurrentTextureMemorySize, TextureSizeInKiloBytes); }
 
 	/** Determine if an two views intersect */
 	template <class LeftT, class RightT>
@@ -1226,6 +1330,7 @@ public:
 	/** Transition a resource's state based on a Render target view */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12RenderTargetView* pView, D3D12_RESOURCE_STATES after)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 		FD3D12Resource* pResource = pView->GetResource();
 
 		const D3D12_RENDER_TARGET_VIEW_DESC &desc = pView->GetDesc();
@@ -1251,15 +1356,17 @@ public:
 			check(false);	// Need to update this code to include the view type
 			break;
 		}
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 	}
 
 	/** Transition a resource's state based on a Depth stencil view's desc flags */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12DepthStencilView* pView)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 		// Determine the required subresource states from the view desc
 		const D3D12_DEPTH_STENCIL_VIEW_DESC &desc = pView->GetDesc();
-		const D3D12_RESOURCE_STATES depthState =	(desc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH)	? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_DEPTH_WRITE;
-		const D3D12_RESOURCE_STATES stencilState =	(desc.Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL)	? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		const D3D12_RESOURCE_STATES depthState = (desc.Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH) ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		const D3D12_RESOURCE_STATES stencilState = (desc.Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL) ? D3D12_RESOURCE_STATE_DEPTH_READ : D3D12_RESOURCE_STATE_DEPTH_WRITE;
 		const bool bSameState = depthState == stencilState;
 
 		FD3D12Resource* pResource = pView->GetResource();
@@ -1287,11 +1394,13 @@ public:
 			TransitionResource(hCommandList, pResource, depthState, pView->GetDepthOnlyViewSubresourceSubset());
 			TransitionResource(hCommandList, pResource, stencilState, pView->GetStencilOnlyViewSubresourceSubset());
 		}
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 	}
 
 	/** Transition a resource's state based on a Depth stencil view */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12DepthStencilView* pView, D3D12_RESOURCE_STATES after)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 		FD3D12Resource* pResource = pView->GetResource();
 
 		const D3D12_DEPTH_STENCIL_VIEW_DESC &desc = pView->GetDesc();
@@ -1325,11 +1434,13 @@ public:
 			check(false);	// Need to update this code to include the view type
 			break;
 		}
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 	}
 
 	/** Transition a resource's state based on a Unordered access view */
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12UnorderedAccessView* pView, D3D12_RESOURCE_STATES after)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 		FD3D12Resource* pResource = pView->GetResource();
 
 		const D3D12_UNORDERED_ACCESS_VIEW_DESC &desc = pView->GetDesc();
@@ -1361,12 +1472,14 @@ public:
 			check(false);	// Need to update this code to include the view type
 			break;
 		}
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 	}
 
 	/** Transition a resource's state based on a Shader resource view */
-	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12ShaderResourceView* pSRView, D3D12_RESOURCE_STATES after)
+	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12ShaderResourceView* pView, D3D12_RESOURCE_STATES after)
 	{
-		FD3D12Resource* pResource = pSRView->GetResource();
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
+		FD3D12Resource* pResource = pView->GetResource();
 
 		if (!pResource || !pResource->RequiresResourceStateTracking())
 		{
@@ -1375,9 +1488,9 @@ public:
 		}
 
 		const D3D12_RESOURCE_DESC &ResDesc = pResource->GetDesc();
-		const CViewSubresourceSubset &subresourceSubset = pSRView->GetViewSubresourceSubset();
+		const CViewSubresourceSubset &subresourceSubset = pView->GetViewSubresourceSubset();
 
-		const D3D12_SHADER_RESOURCE_VIEW_DESC &desc = pSRView->GetDesc();
+		const D3D12_SHADER_RESOURCE_VIEW_DESC &desc = pView->GetDesc();
 		switch (desc.ViewDimension)
 		{
 		default:
@@ -1397,18 +1510,23 @@ public:
 			break;
 		}
 		}
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 	}
 
 	// Transition a specific subresource to the after state.
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, uint32 subresource)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 		TransitionResourceWithTracking(hCommandList, pResource, after, subresource);
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 	}
 
 	// Transition a subset of subresources to the after state.
 	static inline void TransitionResource(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, const CViewSubresourceSubset& subresourceSubset)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 		TransitionResourceWithTracking(hCommandList, pResource, after, subresourceSubset);
+#endif USE_D3D12RHI_RESOURCE_STATE_TRACKING || ASSERT_RESOURCE_STATES
 	}
 
 	// Transition subresources from one state to another
@@ -1462,6 +1580,7 @@ public:
 	// Transition a subresource from current to a new state, using resource state tracking.
 	static void TransitionResourceWithTracking(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, uint32 subresource)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		check(pResource->RequiresResourceStateTracking());
 
 		CResourceState& ResourceState = hCommandList.GetResourceState(pResource);
@@ -1530,11 +1649,17 @@ public:
 				ResourceState.SetSubresourceState(subresource, after);
 			}
 		}
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
+
+#if ASSERT_RESOURCE_STATES
+		AssertResourceState(hCommandList.CommandList(), pResource, after, subresource);
+#endif // ASSERT_RESOURCE_STATES
 	}
 
 	// Transition subresources from current to a new state, using resource state tracking.
 	static void TransitionResourceWithTracking(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, const CViewSubresourceSubset& subresourceSubset)
 	{
+#if USE_D3D12RHI_RESOURCE_STATE_TRACKING
 		check(pResource->RequiresResourceStateTracking());
 
 		D3D12_RESOURCE_STATES before;
@@ -1625,6 +1750,11 @@ public:
 				ResourceState.SetResourceState(after);
 			}
 		}
+#endif // USE_D3D12RHI_RESOURCE_STATE_TRACKING
+
+#if ASSERT_RESOURCE_STATES
+		AssertResourceState(hCommandList.CommandList(), pResource, after, subresourceSubset);
+#endif // ASSERT_RESOURCE_STATES
 	}
 
 	void GetLocalVideoMemoryInfo(DXGI_QUERY_VIDEO_MEMORY_INFO* LocalVideoMemoryInfo);

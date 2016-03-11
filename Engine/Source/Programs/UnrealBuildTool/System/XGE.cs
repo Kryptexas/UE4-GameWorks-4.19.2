@@ -343,10 +343,11 @@ namespace UnrealBuildTool
 					ToolElement.SetAttribute("OutputPrefix", OutputPrefix);
 				}
 
-				// batch files (.bat, .cmd) need to be run via or cmd /c or shellexecute, 
+				// When running on Windows, differentiate between .exe and batch files.
+				// Those (.bat, .cmd) need to be run via cmd /c or shellexecute, 
 				// the latter which we can't use because we want to redirect input/output
 
-				bool bLaunchViaCmdExe = !Path.GetExtension(Action.CommandPath).ToLower().EndsWith("exe");
+				bool bLaunchViaCmdExe = (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64) && (!Path.GetExtension(Action.CommandPath).ToLower().EndsWith(".exe"));
 
 				string CommandPath = "";
 				string CommandArguments = "";

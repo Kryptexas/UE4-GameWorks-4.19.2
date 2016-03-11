@@ -7,6 +7,7 @@
 
 class ULocalPlayer;
 class FUniqueNetId;
+struct FLatentActionManager;
 
 // 
 // 	EWelcomeScreen, 	//initial screen.  Used for platforms where we may not have a signed in user yet.
@@ -204,6 +205,8 @@ public:
 
 	inline FTimerManager& GetTimerManager() const { return *TimerManager; }
 
+	inline FLatentActionManager& GetLatentActionManager() const { return *LatentActionManager;  }
+
 	/**
 	 * Start recording a replay with the given custom name and friendly name.
 	 *
@@ -234,6 +237,7 @@ public:
 	{}
 
 	FTimerManager* TimerManager;
+	FLatentActionManager* LatentActionManager;
 
 	/** @return online session management object associated with this game instance */
 	class UOnlineSession* GetOnlineSession() const { return OnlineSession; }

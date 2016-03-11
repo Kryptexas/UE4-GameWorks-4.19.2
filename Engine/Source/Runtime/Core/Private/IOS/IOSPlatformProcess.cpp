@@ -41,10 +41,8 @@ void FIOSPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 {
 	UE_LOG(LogIOS, Log,  TEXT("LaunchURL %s %s"), URL, Parms?Parms:TEXT("") );
 	NSString* CFUrl = (NSString*)FPlatformString::TCHARToCFString( URL );
-//	CFUrl = CFURLCreateStringByAddingPercentEscapes(NULL, CFUrl, CFSTR("#?+"), NULL, kCFStringEncodingUTF8);
-    CFUrl = [CFUrl stringByAddingPercentEncodingWithAllowedCharacters: [NSCharacterSet characterSetWithCharactersInString:@"#?+"]];
+    CFUrl = [CFUrl stringByAddingPercentEncodingWithAllowedCharacters: [[NSCharacterSet characterSetWithCharactersInString:@"#?+"] invertedSet]];
 	[[UIApplication sharedApplication] openURL: [NSURL URLWithString:( NSString *)CFUrl]];
-	CFRelease( CFUrl );
 
 	if (Error != nullptr)
 	{
@@ -55,10 +53,8 @@ void FIOSPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 bool FIOSPlatformProcess::CanLaunchURL(const TCHAR* URL)
 {
 	NSString* CFUrl = (NSString*)FPlatformString::TCHARToCFString(URL);
-//	CFUrl = CFURLCreateStringByAddingPercentEscapes(NULL, CFUrl, CFSTR("#?+"), NULL, kCFStringEncodingUTF8);
-    CFUrl = [CFUrl stringByAddingPercentEncodingWithAllowedCharacters: [NSCharacterSet characterSetWithCharactersInString: @"#?+"]];
+    CFUrl = [CFUrl stringByAddingPercentEncodingWithAllowedCharacters: [[NSCharacterSet characterSetWithCharactersInString: @"#?+"] invertedSet]];
 	bool Result = [[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString : (NSString *)CFUrl]];
-	CFRelease(CFUrl);
 
 	return Result;
 }

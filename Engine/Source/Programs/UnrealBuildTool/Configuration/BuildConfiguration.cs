@@ -667,9 +667,9 @@ namespace UnrealBuildTool
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
 
-			// By default check and stop the build on EULA violation
-			bCheckLicenseViolations = false;
-			bBreakBuildOnLicenseViolation = true;
+			// By default check for EULA violation and warn
+			bCheckLicenseViolations = true;
+			bBreakBuildOnLicenseViolation = false;
 
 			// Enables support for fast include dependency scanning, as well as gathering data for 'UBT Makefiles', then quickly
 			// assembling builds in subsequent runs using data in those cached makefiles

@@ -125,7 +125,7 @@ namespace UnrealBuildTool
 
 			MakefileContent.Append("\n\n" + BuildCommand + ProjectBuildCommand + "\n" +
 				"all: StandardSet\n\n" +
-				"RequiredTools: CrashReportClient ShaderCompileWorker UnrealPak UnrealLightmass\n\n" +
+				"RequiredTools: CrashReportClient-Linux-Shipping ShaderCompileWorker UnrealPak UnrealLightmass\n\n" +
 				"StandardSet: RequiredTools UnrealFrontend UE4Editor\n\n" +
 				"DebugSet: RequiredTools UnrealFrontend-Linux-Debug UE4Editor-Linux-Debug\n\n"
 			);

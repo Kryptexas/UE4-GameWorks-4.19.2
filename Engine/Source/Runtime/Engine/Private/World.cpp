@@ -2870,7 +2870,7 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 
 bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if ( InWorld != nullptr && InWorld->GetGameInstance() != nullptr )
+	if (InWorld != nullptr && InWorld->GetGameInstance() != nullptr)
 	{
 		FString DemoName;
 
@@ -2902,19 +2902,19 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 	{
 		ErrorString = TEXT( "InWorld->GetGameInstance() is null" );
 	}
-
-	if ( ErrorString != nullptr )
+	
+	if (ErrorString != nullptr)
 	{
-		Ar.Log( ErrorString );
+		Ar.Log(ErrorString);
 
-		if ( GetGameInstance() != nullptr )
+		if (GetGameInstance() != nullptr)
 		{
-			GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( ErrorString ) );
+			GetGameInstance()->HandleDemoPlaybackFailure(EDemoPlayFailure::Generic, FString(ErrorString));
 		}
 	}
 	else
 	{
-		InWorld->GetGameInstance()->PlayReplay( Temp );
+		InWorld->GetGameInstance()->PlayReplay(Temp);
 	}
 
 	return true;
@@ -4534,7 +4534,7 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 			FName CurrentMapName = CurrentWorld->GetOutermost()->GetFName();
 			FName DestinationMapName = FName(*PendingTravelURL.Map);
 
-			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap;
+			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap.GetLongPackageName();
 			FName DefaultMapFinalName(*TransitionMap);
 
 			// if we're already in the default map, skip loading it and just go to the destination

@@ -20,13 +20,44 @@ enum EFenceType
 	FT_NumTypes
 };
 
-class FD3D12Fence : public FRHIComputeFence, public FNoncopyable
+class FD3D12FenceCore : public FD3D12DeviceChild
 {
 public:
-	FD3D12Fence(const FName& Name = L"<unnamed>");
+	FD3D12FenceCore(FD3D12Device* Parent, uint64 InitialValue);
+	~FD3D12FenceCore();
+
+	inline ID3D12Fence* GetFence() const { return Fence.GetReference(); }
+	inline HANDLE GetCompleteionEvent() const { return hFenceCompleteEvent; }
+	inline bool IsAvailable() const { return FenceValueAvailableAt >= Fence->GetCompletedValue(); }
+
+	uint32 FenceValueAvailableAt;
+private:
+	TRefCountPtr<ID3D12Fence> Fence;
+	HANDLE hFenceCompleteEvent;
+};
+
+class FD3D12FenceCorePool : public FD3D12DeviceChild
+{
+public:
+
+	FD3D12FenceCorePool(FD3D12Device* Parent) : FD3D12DeviceChild(Parent) {};
+
+	FD3D12FenceCore* ObtainFenceCore(uint64 InitialValue);
+	void ReleaseFenceCore(FD3D12FenceCore* Fence, uint64 CurrentFenceValue);
+	void Destroy();
+
+private:
+	FCriticalSection CS;
+	TQueue<FD3D12FenceCore*> AvailableFences;
+};
+
+class FD3D12Fence : public FRHIComputeFence, public FNoncopyable, public FD3D12DeviceChild
+{
+public:
+	FD3D12Fence(FD3D12Device* Parent = nullptr, const FName& Name = L"<unnamed>");
 	~FD3D12Fence();
 
-	void CreateFence(ID3D12Device* pDirect3DDevice, uint64 InitialValue = 0);
+	void CreateFence(uint64 InitialValue = 0);
 	uint64 Signal(ID3D12CommandQueue* pCommandQueue);
 	void GpuWait(ID3D12CommandQueue* pCommandQueue, uint64 FenceValue);
 	bool IsFenceComplete(uint64 FenceValue);
@@ -36,12 +67,14 @@ public:
 	uint64 GetSignalFence() const { return SignalFence; }
 	uint64 GetLastCompletedFence();
 
+	void Destroy();
+
 private:
-	TRefCountPtr<ID3D12Fence> Fence;
 	uint64 CurrentFence;
 	uint64 SignalFence;
 	uint64 LastCompletedFence;
-	HANDLE hFenceCompleteEvent;
+
+	FD3D12FenceCore* FenceCore;
 };
 
 class FD3D12CommandAllocatorManager : public FD3D12DeviceChild

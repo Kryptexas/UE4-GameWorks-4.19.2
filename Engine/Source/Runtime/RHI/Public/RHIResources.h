@@ -22,10 +22,7 @@ public:
 	}
 	virtual ~FRHIResource() 
 	{
-		if (!PlatformNeedsExtraDeletionLatency())
-		{
-			check(NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass())); // this should not have any outstanding refs
-		}
+		check(PlatformNeedsExtraDeletionLatency() || (NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass()))); // this should not have any outstanding refs
 	}
 	FORCEINLINE_DEBUGGABLE uint32 AddRef() const
 	{
@@ -38,7 +35,7 @@ public:
 		int32 NewValue = NumRefs.Decrement();
 		if (NewValue == 0)
 		{
-			if (bDoNotDeferDelete || Bypass())
+			if (!DeferDelete())
 			{ 
 				delete this;
 			}
@@ -69,19 +66,12 @@ public:
 
 	static void FlushPendingDeletes();
 
-	static bool PlatformNeedsExtraDeletionLatency()
+	FORCEINLINE static bool PlatformNeedsExtraDeletionLatency()
 	{
-		return (PLATFORM_XBOXONE == 1);
+		return GRHINeedsExtraDeletionLatency && GIsRHIInitialized;
 	}
 
-#if DISABLE_RHI_DEFFERED_DELETE
-	FORCEINLINE static bool Bypass()
-	{
-		return true;
-	}
-#else
 	static bool Bypass();
-#endif
 
 private:
 	mutable FThreadSafeCounter NumRefs;
@@ -90,31 +80,31 @@ private:
 	static TLockFreePointerListUnordered<FRHIResource, PLATFORM_CACHE_LINE_SIZE> PendingDeletes;
 	static FRHIResource* CurrentlyDeleting;
 
+	FORCEINLINE bool DeferDelete() const
+	{
+#if DISABLE_RHI_DEFFERED_DELETE
+		return false;
+#else
+		// Defer if GRHINeedsExtraDeletionLatency or we are doing threaded rendering (unless otherwise requested).
+		return !bDoNotDeferDelete && (GRHINeedsExtraDeletionLatency || !Bypass());
+#endif
+	}
+
 	// Some APIs don't do internal reference counting, so we have to wait an extra couple of frames before deleting resources
 	// to ensure the GPU has completely finished with them. This avoids expensive fences, etc.
-	struct ResourceToDelete
+	struct ResourcesToDelete
 	{
-		ResourceToDelete()
-			: Resource(nullptr)
-			, FrameDeleted(0)
+		ResourcesToDelete(uint32 InFrameDeleted = 0)
+			: FrameDeleted(InFrameDeleted)
 		{
 
 		}
 
-		ResourceToDelete(
-			FRHIResource* InResource,
-			uint32 InFrameDeleted)
-			: Resource(InResource)
-			, FrameDeleted(InFrameDeleted)
-		{
-
-		}
-
-		FRHIResource*	Resource;
-		uint32			FrameDeleted;
+		TArray<FRHIResource*>	Resources;
+		uint32					FrameDeleted;
 	};
 
-	static TQueue<ResourceToDelete> DeferredDeletionQueue;
+	static TArray<ResourcesToDelete> DeferredDeletionQueue;
 	static uint32 CurrentFrame;
 };
 

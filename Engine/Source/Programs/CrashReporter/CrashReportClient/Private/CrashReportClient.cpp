@@ -2,13 +2,11 @@
 
 #include "CrashReportClientApp.h"
 #include "CrashReportUtil.h"
-
 #include "CrashDescription.h"
-
 #include "CrashReportClient.h"
 #include "UniquePtr.h"
-
 #include "TaskGraphInterfaces.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -93,10 +91,48 @@ FReply FCrashReportClient::SubmitAndRestart()
 {
 	Submit();
 
+	// Check for processes that were started from the Launcher using -EpicPortal on the command line
+	bool bRunFromLauncher = FParse::Param(*FPrimaryCrashProperties::Get()->RestartCommandLine, TEXT("EPICPORTAL"));
 	const FString CrashedAppPath = ErrorReport.FindCrashedAppPath();
-	const FString CommandLineArguments = FPrimaryCrashProperties::Get()->CommandLine.AsString();
 
-	FPlatformProcess::CreateProc(*CrashedAppPath, *CommandLineArguments, true, false, false, NULL, 0, NULL, NULL);
+	bool bLauncherRestarted = false;
+	if (bRunFromLauncher)
+	{
+		// We'll restart Launcher-run processes by having the installed Launcher handle it
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+		if (DesktopPlatform != nullptr)
+		{
+			// Split the path so we can format it as a URI
+			TArray<FString> PathArray;
+			CrashedAppPath.Replace(TEXT("//"), TEXT("/")).ParseIntoArray(PathArray, TEXT("/"), false);	// WER saves this out on Windows with double slashes as the separator for some reason.
+			FString CrashedAppPathUri;
+
+			// Exclude the last item (the filename). The Launcher currently expects an installed application folder.
+			for (int32 ItemIndex = 0; ItemIndex < PathArray.Num() - 1; ItemIndex++)
+			{
+				FString& PathItem = PathArray[ItemIndex];
+				CrashedAppPathUri += FPlatformHttp::UrlEncode(PathItem);
+				CrashedAppPathUri += TEXT("/");
+			}
+			CrashedAppPathUri.RemoveAt(CrashedAppPathUri.Len() - 1);
+
+			// Re-run the application via the Launcher
+			FOpenLauncherOptions OpenOptions(FString::Printf(TEXT("apps/%s"), *CrashedAppPathUri));
+			OpenOptions.bSilent = true;
+			if (DesktopPlatform->OpenLauncher(OpenOptions))
+			{
+				bLauncherRestarted = true;
+			}
+		}
+	}
+
+	if (!bLauncherRestarted)
+	{
+		// Launcher didn't restart the process so start it ourselves
+		const FString CommandLineArguments = FPrimaryCrashProperties::Get()->RestartCommandLine;
+		FPlatformProcess::CreateProc(*CrashedAppPath, *CommandLineArguments, true, false, false, NULL, 0, NULL, NULL);
+	}
 
 	return FReply::Handled();
 }

@@ -419,6 +419,9 @@ namespace UnrealBuildTool
 							}
 						}
 
+						// Engine Extras files
+						AddEngineExtrasFiles(EngineProject);
+
 						// Engine localization files
 						if( IncludeLocalizationFiles )
 						{
@@ -841,6 +844,11 @@ namespace UnrealBuildTool
 			{
 				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( EngineConfigDirectory ), UnrealBuildTool.EngineDirectory );
 			}
+		}
+
+		/// Adds all engine extras files to the specified project
+		protected virtual void AddEngineExtrasFiles(ProjectFile EngineProject)
+		{
 		}
 
 		/// Adds UnrealHeaderTool config files to the specified project

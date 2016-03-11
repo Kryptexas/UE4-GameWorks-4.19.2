@@ -640,7 +640,9 @@ inline void FOpenGLDynamicRHI::ApplyTextureStage(FOpenGLContextState& ContextSta
 		FOpenGL::TexParameter(Target, GL_TEXTURE_MAG_FILTER, SamplerState->Data.MagFilter);
 		if( FOpenGL::SupportsTextureFilterAnisotropic() )
 		{
-			FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_ANISOTROPY_EXT, SamplerState->Data.MaxAnisotropy);
+			// GL_EXT_texture_filter_anisotropic requires value to be at least 1
+			GLint MaxAnisotropy = FMath::Max(1, SamplerState->Data.MaxAnisotropy);
+			FOpenGL::TexParameter(Target, GL_TEXTURE_MAX_ANISOTROPY_EXT, MaxAnisotropy);
 		}
 
 		if( FOpenGL::SupportsTextureCompare() )

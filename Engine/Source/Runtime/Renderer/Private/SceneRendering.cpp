@@ -1029,7 +1029,7 @@ void FViewInfo::CreateUniformBuffer(
 		GMaxRHIFeatureLevel > ERHIFeatureLevel::ES3_1) ? 1.0f : 0.0f;
 
 	// Padding between the left and right eye may be introduced by an HMD, which instanced stereo needs to account for.
-	if (Family != nullptr && StereoPass == eSSP_LEFT_EYE)
+	if ((Family != nullptr) && (StereoPass == eSSP_LEFT_EYE) && (Family->Views.Num() > 1))
 	{
 		check(Family->Views.Num() == 2);
 		const float FamilySizeX = static_cast<float>(Family->FamilySizeX);

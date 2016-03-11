@@ -306,6 +306,22 @@ bool UPlayerInput::InputTouch(uint32 Handle, ETouchType::Type Type, const FVecto
 	{
 	case ETouchType::Began:
 		KeyState.EventAccumulator[IE_Pressed].Add(++EventCount);
+		if (KeyState.bDownPrevious == false)
+		{
+			UWorld* World = GetWorld();
+			check(World);
+
+			// check for doubleclick
+			// note, a tripleclick will currently count as a 2nd double click.
+			const float WorldRealTimeSeconds = World->GetRealTimeSeconds();
+			if ((WorldRealTimeSeconds - KeyState.LastUpDownTransitionTime) < GetDefault<UInputSettings>()->DoubleClickTime)
+			{
+				KeyState.EventAccumulator[IE_DoubleClick].Add(++EventCount);
+			}
+
+			// just went down
+			KeyState.LastUpDownTransitionTime = WorldRealTimeSeconds;
+		}
 		break;
 
 	case ETouchType::Ended:

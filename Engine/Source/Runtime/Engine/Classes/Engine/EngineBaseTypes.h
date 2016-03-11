@@ -24,6 +24,21 @@ enum EInputEvent
 	IE_MAX                  =5,
 };
 
+UENUM()
+enum class EMouseCaptureMode : uint8
+{
+	/** Do not capture the mouse at all */
+	NoCapture,
+	/** Capture the mouse permanently when the viewport is clicked, and consume the initial mouse down that caused the capture so it isn't processed by player input */
+	CapturePermanently,
+	/** Capture the mouse permanently when the viewport is clicked, and allow player input to process the mouse down that caused the capture */
+	CapturePermanently_IncludingInitialMouseDown,
+	/** Capture the mouse during a mouse down, releases on mouse up */
+	CaptureDuringMouseDown,
+	/** Capture only when the right mouse button is down, not any of the other mouse buttons */
+	CaptureDuringRightMouseDown,
+};
+
 /** Type of tick we wish to perform on the level */
 enum ELevelTick
 {

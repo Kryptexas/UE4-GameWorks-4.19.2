@@ -3583,6 +3583,11 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 		return;
 	}
 
+	if (Player == nullptr)
+	{
+		return;
+	}
+
 	IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
 	if (InputInterface)
 	{
@@ -3590,6 +3595,21 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 
 		FHapticFeedbackValues Values(Frequency, Amplitude);
 		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand.GetValue(), Values);
+	}
+}
+
+void APlayerController::SetControllerLightColor(FColor Color)
+{
+	if (Player == nullptr)
+	{
+		return;
+	}
+
+	IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
+	if (InputInterface)
+	{
+		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
+		InputInterface->SetLightColor(ControllerId, Color);
 	}
 }
 
@@ -4572,7 +4592,7 @@ void FInputModeGameOnly::ApplyInputMode(FReply& SlateOperations, class UGameView
 		SlateOperations.SetUserFocus(ViewportWidgetRef);
 		SlateOperations.LockMouseToWidget(ViewportWidgetRef);
 		GameViewportClient.SetIgnoreInput(false);
-		GameViewportClient.SetCaptureMouseOnClick(EMouseCaptureMode::CapturePermanently);
+		GameViewportClient.SetCaptureMouseOnClick(bConsumeCaptureMouseDown ? EMouseCaptureMode::CapturePermanently : EMouseCaptureMode::CapturePermanently_IncludingInitialMouseDown);
 	}
 }
 

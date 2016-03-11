@@ -539,6 +539,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	else if (Input.ShaderFormat == NAME_SF_METAL_MACES3_1)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
 		Standard = TEXT("-std=osx-metal1.1");
 		MetalCompilerTarget = HCT_FeatureLevelES3_1;
 	}

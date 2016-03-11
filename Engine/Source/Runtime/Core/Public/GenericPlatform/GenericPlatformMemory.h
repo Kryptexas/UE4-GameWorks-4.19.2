@@ -251,6 +251,12 @@ struct CORE_API FGenericPlatformMemory
 	 */
 	static void BinnedFreeToOS( void* Ptr );
 
+	// These alloc/free memory that is mapped to the GPU
+	// Only for platforms with UMA (XB1/PS4/etc)
+	static void* GPUMalloc(SIZE_T Count, uint32 Alignment = 0) { return nullptr; };
+	static void* GPURealloc(void* Original, SIZE_T Count, uint32 Alignment = 0) { return nullptr; };
+	static void GPUFree(void* Original) { };
+
 	/** Dumps basic platform memory statistics into the specified output device. */
 	static void DumpStats( FOutputDevice& Ar );
 

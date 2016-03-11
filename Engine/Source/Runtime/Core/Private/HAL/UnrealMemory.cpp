@@ -326,6 +326,21 @@ void FMemory::Free( void* Original )
 	return GMalloc->Free( Original );
 }
 
+void* FMemory::GPUMalloc(SIZE_T Count, uint32 Alignment /* = DEFAULT_ALIGNMENT */)
+{
+	return FPlatformMemory::GPUMalloc(Count, Alignment);
+}
+
+void* FMemory::GPURealloc(void* Original, SIZE_T Count, uint32 Alignment /* = DEFAULT_ALIGNMENT */)
+{
+	return FPlatformMemory::GPURealloc(Original, Count, Alignment);
+}
+
+void FMemory::GPUFree(void* Original)
+{
+	return FPlatformMemory::GPUFree(Original);
+}
+
 SIZE_T FMemory::GetAllocSize( void* Original )
 {
 	if( !GMalloc )

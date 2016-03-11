@@ -239,7 +239,11 @@ public:
 
 			if (Data)
 			{
+#if PLATFORM_HAS_UMA
+				FMemory::GPUFree(Data);
+#else
 				FMemory::Free(Data);
+#endif
 			}
 
 			Data       = Other.Data;
@@ -251,7 +255,11 @@ public:
 		{
 			if(Data)
 			{
+#if PLATFORM_HAS_UMA
+				// The RHI should have taken ownership of this memory, so we don't free it here
+#else
 				FMemory::Free(Data);
+#endif
 			}
 		}
 
@@ -267,10 +275,14 @@ public:
 			)
 		{
 			// Avoid calling FMemory::Realloc( nullptr, 0 ) as ANSI C mandates returning a valid pointer which is not what we want.
-			if( Data || NumElements )
+			if (Data || NumElements)
 			{
+#if PLATFORM_HAS_UMA
+				Data = (FScriptContainerElement*)FMemory::GPURealloc(Data, NumElements*NumBytesPerElement, Alignment);
+#else
 				//checkSlow(((uint64)NumElements*(uint64)ElementTypeInfo.GetSize() < (uint64)INT_MAX));
 				Data = (FScriptContainerElement*)FMemory::Realloc( Data, NumElements*NumBytesPerElement, Alignment );
+#endif
 			}
 		}
 		int32 CalculateSlack(

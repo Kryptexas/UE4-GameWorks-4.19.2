@@ -1433,6 +1433,7 @@ private:
 
 void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
+	bool bSetNotification = true;
 	FFormatNamedArguments Arguments;
 	FText NotificationText;
 	if (InStage.Contains(TEXT("Cooking")) || InStage.Contains(TEXT("Cook Task")))
@@ -1466,7 +1467,7 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	else if (InStage.Contains(TEXT("Deploy Task")))
 	{
 		Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
-		if(PlayUsingLauncherDeviceName.Len() == 0)
+		if (PlayUsingLauncherDeviceName.Len() == 0)
 		{
 			NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotificationNoDevice", "Deploying Executable and Assets..."), Arguments);
 		}
@@ -1479,17 +1480,24 @@ void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotific
 	{
 		Arguments.Add(TEXT("GameName"), FText::FromString(FApp::GetGameName()));
 		Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
-		if(PlayUsingLauncherDeviceName.Len() == 0)
+		if (PlayUsingLauncherDeviceName.Len() == 0)
 		{
-			NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotificationNoDevice", "Running {GameName}..."), Arguments);
+			NotificationText = FText::Format(LOCTEXT("LauncherTaskRunNotificationNoDevice", "Running {GameName}..."), Arguments);
 		}
 		else
 		{
-			NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotification", "Running {GameName} on {DeviceName}..."), Arguments);
+			NotificationText = FText::Format(LOCTEXT("LauncherTaskRunNotification", "Running {GameName} on {DeviceName}..."), Arguments);
 		}
 	}
+	else
+	{
+		bSetNotification = false;
+	}
 
-	NotificationItemPtr.Pin()->SetText(NotificationText);
+	if (bSetNotification)
+	{
+		NotificationItemPtr.Pin()->SetText(NotificationText);
+	}
 }
 
 void UEditorEngine::HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)

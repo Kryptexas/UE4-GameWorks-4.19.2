@@ -301,7 +301,7 @@ public class IOSPlatform : Platform
 					}
 
 					IPPArguments += (cookonthefly ? " -cookonthefly" : "");
-					IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
+					IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, PlatformName) + "\"";
 					IPPArguments += " -project \"" + Params.RawProjectPath + "\"";
 					if (Params.IterativeDeploy)
 					{
@@ -315,7 +315,10 @@ public class IOSPlatform : Platform
 					{
 						IPPArguments += " -certificate \"" + Params.Certificate + "\"";
 					}
-
+					if (PlatformName == "TVOS")
+					{
+						IPPArguments += " -tvos";
+					}
 					RunAndLog(CmdEnv, IPPExe, IPPArguments);
 				}
 				else

@@ -334,6 +334,9 @@ public:
 	virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
+	virtual const float* GetRedDistortionParameters() const { return nullptr; }
+	virtual const float* GetGreenDistortionParameters() const { return nullptr; }
+	virtual const float* GetBlueDistortionParameters() const { return nullptr; }
 
 	virtual bool NeedsUpscalePostProcessPass()  { return false; }
 

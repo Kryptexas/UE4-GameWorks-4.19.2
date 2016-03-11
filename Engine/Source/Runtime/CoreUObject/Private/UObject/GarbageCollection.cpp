@@ -349,12 +349,13 @@ public:
 			{
 				if (ReferencedMutableObjectItem->IsUnreachable() && ReferencedMutableObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 				{
+					ReferencedMutableObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 					ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
 				}
 			}
 			else if (ReferencedMutableObjectItem->IsUnreachable())
 			{
-				ReferencedMutableObjectItem->ClearUnreachable();
+				ReferencedMutableObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
 				ObjectsToSerialize.Add(static_cast<UObject*>(ReferencedMutableObjectItem->Object));
 			}
 		}
@@ -373,11 +374,11 @@ public:
 			// This condition should get collapsed by the compiler based on the template argument
 			if (bParallel)
 			{
-				ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedRFUnreachable();
+				ReferencedClusterRootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
 			}
 			else
 			{
-				ReferencedClusterRootObjectItem->ClearUnreachable();
+				ReferencedClusterRootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference | EInternalObjectFlags::Unreachable);
 			}
 			FUObjectCluster* ReferencedCluster = GUObjectClusters.FindChecked(ReferncedClusterIndex);
 			MarkClusterMutableObjectsAsReachable<bParallel>(ReferencedCluster, ObjectsToSerialize);
@@ -482,13 +483,14 @@ public:
 			{
 				if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
 				{
+					RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
 					// Make sure all referenced clusters are marked as reachable too
 					MarkReferencedClustersAsReachable<true>(OwnerIndex, ObjectsToSerialize);
 				}
 			}
 			else if (RootObjectItem->IsUnreachable())
 			{
-				RootObjectItem->ClearUnreachable();
+				RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
 				// Make sure all referenced clusters are marked as reachable too
 				MarkReferencedClustersAsReachable<false>(OwnerIndex, ObjectsToSerialize);
 			}

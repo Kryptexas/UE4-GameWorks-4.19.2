@@ -4930,6 +4930,10 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	auto PrologFinishLine = InputLine;
 
+	// Members of classes have a default private access level in c++
+	// Setting this directly should be ok as we don't support nested classes, so the outer scope access should not need restoring
+	CurrentAccessSpecifier = ACCESS_Private;
+
 	AddFormattedPrevCommentAsTooltipMetaData(MetaData);
 
 	// New style files have the class name / extends afterwards

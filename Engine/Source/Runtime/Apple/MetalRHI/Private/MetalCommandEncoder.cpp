@@ -494,7 +494,7 @@ void FMetalCommandEncoder::PopDebugGroup(void)
 	
 #pragma mark - Public Render State Mutators -
 
-void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass)
+void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass, bool const bReset)
 {
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
 	
@@ -508,11 +508,14 @@ void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* cons
 		RenderPassDesc = RenderPass;
 	}
 	
-	for(uint32 i = 0; i < SF_NumFrequencies; i++)
+	if (bReset)
 	{
-		ShaderBuffers[i].Bound = 0;
-		ShaderTextures[i].Bound = 0;
-		ShaderSamplers[i].Bound = 0;
+		for(uint32 i = 0; i < SF_NumFrequencies; i++)
+		{
+			ShaderBuffers[i].Bound = 0;
+			ShaderTextures[i].Bound = 0;
+			ShaderSamplers[i].Bound = 0;
+		}
 	}
 }
 

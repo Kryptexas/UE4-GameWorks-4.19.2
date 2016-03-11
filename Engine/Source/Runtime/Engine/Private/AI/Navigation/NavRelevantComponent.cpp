@@ -5,6 +5,7 @@
 
 UNavRelevantComponent::UNavRelevantComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+	bCanEverAffectNavigation = true;
 	bNavigationRelevant = true;
 	bAttachToOwnersRoot = true;
 	bBoundsInitialized = false;

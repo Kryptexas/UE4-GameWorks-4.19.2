@@ -202,6 +202,8 @@ public:
 
 	void IgnoreMouseMoveDelta() { bIgnoreMouseMoveDelta = true; }
 
+	void SetIsRightClickEmulationEnabled(bool bEnabled) { bIsRightClickEmulationEnabled = bEnabled; }
+
 public:
 
 	static void UpdateScreensArray();
@@ -308,6 +310,7 @@ private:
 	/** The current set of Cocoa modifier flags, used to detect when Mission Control has been invoked & returned so that we can synthesis the modifier events it steals */
 	NSUInteger CurrentModifierFlags;
 
+	bool bIsRightClickEmulationEnabled;
 	bool bEmulatingRightClick;
 
 	bool bIgnoreMouseMoveDelta;

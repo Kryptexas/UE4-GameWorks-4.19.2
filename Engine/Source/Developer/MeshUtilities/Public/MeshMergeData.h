@@ -3,6 +3,7 @@
 #pragma once
 
 #include "RawMesh.h"
+#include "PhysicsEngine/AggregateGeom.h"
 
 /** Structure holding intermediate mesh merging data that is used throughout the mesh merging and proxy creation processes */
 struct FMeshMergeData
@@ -26,5 +27,6 @@ struct FRawMeshExt
 	FRawMeshExt()
 	{}
 
-	FMeshMergeData MeshLODData[MAX_STATIC_MESH_LODS];
+	FMeshMergeData		MeshLODData[MAX_STATIC_MESH_LODS];
+	FKAggregateGeom		AggGeom;
 };
