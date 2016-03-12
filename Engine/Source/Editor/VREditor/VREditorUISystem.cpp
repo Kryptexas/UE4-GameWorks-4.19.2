@@ -1354,6 +1354,13 @@ void FVREditorUISystem::SetDefaultWindowLayout()
 		AVREditorFloatingUI* Panel = EditorUIPanels[PanelIndex];
 		if (Panel)
 		{
+			const AVREditorFloatingUI::EDockedTo DockedTo = Panel->GetDockedTo();
+			if (DockedTo == AVREditorFloatingUI::EDockedTo::LeftHand || DockedTo == AVREditorFloatingUI::EDockedTo::RightHand)
+			{
+				const int32 HandIndex = DockedTo == AVREditorFloatingUI::EDockedTo::LeftHand ? VREditorConstants::LeftHandIndex : VREditorConstants::RightHandIndex;
+				Owner.GetVirtualHand( HandIndex ).bHasUIInFront = false;
+			}
+
 			Panel->SetDockedTo( AVREditorFloatingUI::EDockedTo::Room );
 			Panel->ShowUI( true );
 
