@@ -9,7 +9,7 @@
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
  * within this plugin.
  */
-class ILeapMotion : public IModuleInterface
+class LEAPMOTION_API ILeapMotion : public IModuleInterface
 {
 
 public:

@@ -18,7 +18,7 @@ public:
 	UTexture2D* Texture32FromLeapImage(int32 SrcWidth, int32 SrcHeight, uint8* ImageBuffer);
 	void UpdateTextureRegions(UTexture2D* Texture, int32 MipIndex, uint32 NumRegions, FUpdateTextureRegion2D* Regions, uint32 SrcPitch, uint32 SrcBpp, uint8* SrcData, bool bFreeData);
 	UTexture2D* EnqueuedTexture32FromLeapImage(int32 SrcWidth, int32 SrcHeight, uint8* ImageBuffer);
-	UTexture2D* Texture32FromLeapDistortion(int32 SrcWidth, int32 SrcHeight, float* ImageBuffer);		//optimized, requires shader channel flipping
+	UTexture2D* Texture32FromLeapDistortion(int32 SrcWidth, int32 SrcHeight, float* ImageBuffer);		//optimized, requires shader channel flipping TODO: change from shader to CPU cost as distortions are fetched once!
 	UTexture2D* Texture32PrettyFromLeapDistortion(int32 SrcWidth, int32 SrcHeight, float* ImageBuffer);	//unoptimized roughly +1ms
 	UTexture2D* Texture128FromLeapDistortion(int32 SrcWidth, int32 SrcHeight, float* ImageBuffer);		//4x float 32
 	UTexture2D* TextureFFromLeapDistortion(int32 SrcWidth, int32 SrcHeight, float* ImageBuffer);
@@ -437,5 +437,6 @@ void ULeapImage::SetLeapImage(const Leap::Image &LeapImage)
 	RayOffsetY = Private->LeapImage.rayOffsetY();
 	RayScaleX = Private->LeapImage.rayScaleX();
 	RayScaleY = Private->LeapImage.rayScaleY();
+	//Timestamp = Private->LeapImage.timestamp(); //TODO: fix did leap image remove timestamp in 3.0?
 	Width = Private->LeapImage.width();
 }

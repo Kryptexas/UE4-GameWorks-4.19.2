@@ -72,13 +72,13 @@ ULeapTool* ULeapToolList::Frontmost()
 	return (PFrontmost);
 }
 
-ULeapPointable* ULeapToolList::GetPointableById(int32 id)
+ULeapPointable* ULeapToolList::GetPointableByIndex(int32 Index)
 {
 	if (PPointableById == nullptr)
 	{
 		PPointableById = NewObject<ULeapTool>(this, ULeapTool::StaticClass());
 	}
-	PPointableById->SetPointable(Private->Tools[id]);
+	PPointableById->SetPointable(Private->Tools[Index]);
 	return (PPointableById);
 }
 

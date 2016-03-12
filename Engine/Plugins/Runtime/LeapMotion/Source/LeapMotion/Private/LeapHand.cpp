@@ -156,6 +156,8 @@ void ULeapHand::SetHand(const Leap::Hand &Hand)
 
 	PalmOrientation = FRotationMatrix::MakeFromZX(PalmNormal*-1.f, Direction).Rotator();
 
+	WristPosition = ConvertLeapToUE(Private->Hand.wristPosition());
+
 	Basis = ConvertLeapBasisMatrix(Private->Hand.basis());
 
 	//Convenience Setting, allows for easy branching in blueprint

@@ -6,10 +6,15 @@
 #include "LeapPointable.h"
 #include "LeapTool.generated.h"
 
-//API Reference: https://developer.leapmotion.com/documentation/cpp/api/Leap.Tool.html
-
+/**
+* The Tool class represents a tracked tool.
+* Tools are Pointable objects that the Leap Motion software has classified as a tool.
+* Get valid Tool objects from a Frame object.
+*
+* Leap API reference: https://developer.leapmotion.com/documentation/cpp/api/Leap.Tool.html
+*/
 UCLASS(BlueprintType)
-class ULeapTool : public ULeapPointable
+class LEAPMOTION_API ULeapTool : public ULeapPointable
 {
 	GENERATED_UCLASS_BODY()
 public:

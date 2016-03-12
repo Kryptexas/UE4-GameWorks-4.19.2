@@ -91,14 +91,14 @@ ULeapPointable *ULeapPointableList::Frontmost()
 	return (PFrontmost);
 }
 
-ULeapPointable *ULeapPointableList::GetPointableById(int32 Id)
+ULeapPointable *ULeapPointableList::GetPointableByIndex(int32 Index)
 {
-	if (PPointableById == nullptr)
+	if (PPointableByIndex == nullptr)
 	{
-		PPointableById = NewObject<ULeapPointable>(this);
+		PPointableByIndex = NewObject<ULeapPointable>(this);
 	}
-	PPointableById->SetPointable(Private->Pointables[Id]);
-	return (PPointableById);
+	PPointableByIndex->SetPointable(Private->Pointables[Index]);
+	return (PPointableByIndex);
 }
 
 void ULeapPointableList::SetPointableList(const Leap::PointableList &Pointables)

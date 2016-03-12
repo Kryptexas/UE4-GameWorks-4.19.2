@@ -5,8 +5,11 @@
 #include "LeapMotionPublicPCH.h"
 #include "LeapBaseObject.generated.h"
 
+/**
+* Optional base class for custom memory management
+*/
 UCLASS()
-class ULeapBaseObject : public UObject
+class LEAPMOTION_API ULeapBaseObject : public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:

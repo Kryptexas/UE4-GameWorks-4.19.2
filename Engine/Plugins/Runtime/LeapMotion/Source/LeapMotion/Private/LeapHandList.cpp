@@ -47,13 +47,13 @@ ULeapHand* ULeapHandList::Rightmost()
 	return (PRightmost);
 }
 
-ULeapHand* ULeapHandList::getIndex(int32 index)
+ULeapHand* ULeapHandList::GetIndex(int32 Index)
 {
 	if (PIndexHand == nullptr)
 	{
 		PIndexHand = NewObject<ULeapHand>(this);
 	}
-	PIndexHand->SetHand(Private->Hands[index]);
+	PIndexHand->SetHand(Private->Hands[Index]);
 	return (PIndexHand);
 }
 
