@@ -585,7 +585,7 @@ void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 	// The update is invalid if the lighting cache allocation was not in a functional state.
 	if (bPrecomputedLightingBufferDirty && (!IndirectLightingCacheAllocation || (Scene->IndirectLightingCache.IsInitialized() && IndirectLightingCacheAllocation->bHasEverUpdatedSingleSample)))
 	{
-		EUniformBufferUsage BufferUsage = /*Proxy->IsOftenMoving() ? UniformBuffer_SingleFrame : */ UniformBuffer_MultiFrame;
+		EUniformBufferUsage BufferUsage = Proxy->IsOftenMoving() ? UniformBuffer_SingleFrame : UniformBuffer_MultiFrame;
 
 		// If the PrimitiveInfo has no precomputed lighting buffer, it will fallback to the global Empty buffer.
 		if (IndirectLightingCacheAllocation)
@@ -621,7 +621,7 @@ void FPrimitiveSceneInfo::UpdatePrecomputedLightingBuffer()
 
 void FPrimitiveSceneInfo::ClearPrecomputedLightingBuffer(bool bSingleFrameOnly)
 {
-	if (!bSingleFrameOnly /* || Proxy->IsOftenMoving()*/)
+	if (!bSingleFrameOnly || Proxy->IsOftenMoving())
 	{
 		IndirectLightingCacheUniformBuffer.SafeRelease();
 

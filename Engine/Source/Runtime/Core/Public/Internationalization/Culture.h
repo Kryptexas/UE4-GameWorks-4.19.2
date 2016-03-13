@@ -39,6 +39,8 @@ public:
 
 	TArray<FString> GetPrioritizedParentCultureNames() const;
 
+	static TArray<FString> GetPrioritizedParentCultureNames(const FString& LanguageCode, const FString& ScriptCode, const FString& RegionCode);
+
 	static FString GetCanonicalName(const FString& Name);
 
 	const FString& GetName() const;

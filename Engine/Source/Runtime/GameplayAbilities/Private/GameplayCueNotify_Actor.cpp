@@ -18,11 +18,13 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 	bUniqueInstancePerInstigator = false;
 	bAllowMultipleOnActiveEvents = true;
 	bAllowMultipleWhileActiveEvents = true;
+	bHasHandledOnRemoveEvent = false;
 
 	NumPreallocatedInstances = 0;
 
 	bHasHandledOnActiveEvent = false;
 	bHasHandledWhileActiveEvent = false;
+	bInRecycleQueue = false;
 }
 
 #if WITH_EDITOR
@@ -63,11 +65,26 @@ void AGameplayCueNotify_Actor::Serialize(FArchive& Ar)
 void AGameplayCueNotify_Actor::BeginPlay()
 {
 	Super::BeginPlay();
+}
 
-	// Most likely case for this is the target actor is no longer net relevant to us and has been destroyed, so this should be destroyed too
-	if (GetOwner())
+void AGameplayCueNotify_Actor::SetOwner( AActor* InNewOwner )
+{
+	// Remove our old delegate
+	ClearOwnerDestroyedDelegate();
+
+	Super::SetOwner(InNewOwner);
+	if (AActor* NewOwner = GetOwner())
 	{
-		GetOwner()->OnDestroyed.AddDynamic(this, &AGameplayCueNotify_Actor::OnOwnerDestroyed);
+		NewOwner->OnDestroyed.AddDynamic(this, &AGameplayCueNotify_Actor::OnOwnerDestroyed);
+	}
+}
+
+void AGameplayCueNotify_Actor::ClearOwnerDestroyedDelegate()
+{
+	AActor* OldOwner = GetOwner();
+	if (OldOwner)
+	{
+		OldOwner->OnDestroyed.RemoveDynamic(this, &AGameplayCueNotify_Actor::OnOwnerDestroyed);
 	}
 }
 
@@ -102,6 +119,11 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 		}
 
 		if (EventType == EGameplayCueEvent::WhileActive && !bAllowMultipleWhileActiveEvents && bHasHandledWhileActiveEvent)
+		{
+			return;
+		}
+
+		if (EventType == EGameplayCueEvent::Removed && bHasHandledOnRemoveEvent)
 		{
 			return;
 		}
@@ -143,13 +165,15 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 			break;
 
 		case EGameplayCueEvent::Removed:
+			bHasHandledOnRemoveEvent = true;
 			OnRemove(MyTarget, Parameters);
 
 			if (bAutoDestroyOnRemove)
 			{
 				if (AutoDestroyDelay > 0.f)
 				{
-					GetWorld()->GetTimerManager().SetTimer(FinishTimerHandle, this, &AGameplayCueNotify_Actor::GameplayCueFinishedCallback, AutoDestroyDelay);
+					FTimerDelegate Delegate = FTimerDelegate::CreateUObject(this, &AGameplayCueNotify_Actor::GameplayCueFinishedCallback);
+					GetWorld()->GetTimerManager().SetTimer(FinishTimerHandle, Delegate, AutoDestroyDelay, false);
 				}
 				else
 				{
@@ -172,6 +196,12 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 
 void AGameplayCueNotify_Actor::OnOwnerDestroyed()
 {
+	if (bInRecycleQueue)
+	{
+		// We are already done
+		return;
+	}
+
 	// May need to do extra cleanup in child classes
 	GameplayCueFinishedCallback();
 }
@@ -201,6 +231,15 @@ void AGameplayCueNotify_Actor::GameplayCueFinishedCallback()
 	if (FinishTimerHandle.IsValid())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(FinishTimerHandle);
+		FinishTimerHandle.Invalidate();
+	}
+
+	// Make sure OnRemoved has been called at least once if WhileActive was called (for possible cleanup)
+	if (bHasHandledWhileActiveEvent && !bHasHandledOnRemoveEvent)
+	{
+		// Force onremove to be called with null parameters
+		bHasHandledOnRemoveEvent = true;
+		OnRemove(nullptr, FGameplayCueParameters());
 	}
 	
 	UAbilitySystemGlobals::Get().GetGameplayCueManager()->NotifyGameplayCueActorFinished(this);
@@ -215,5 +254,12 @@ bool AGameplayCueNotify_Actor::Recycle()
 {
 	bHasHandledOnActiveEvent = false;
 	bHasHandledWhileActiveEvent = false;
+	bHasHandledOnRemoveEvent = false;
+	ClearOwnerDestroyedDelegate();
+	if (FinishTimerHandle.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(FinishTimerHandle);
+		FinishTimerHandle.Invalidate();
+	}
 	return false;
 }

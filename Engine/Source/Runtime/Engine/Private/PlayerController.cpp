@@ -3937,13 +3937,15 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 			{
 				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->GetPredictionData_Server();
 				const float TimeSinceUpdate = ServerData ? GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp : 0.f;
-				if (TimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f,AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL))
+				const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
+				if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f,AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
 				{
+					//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
 					const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
 					if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
 					{
-						NetworkPredictionInterface->ForcePositionUpdate(TimeSinceUpdate);
-						ServerData->ServerTimeStamp = GetWorld()->TimeSeconds;
+						NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+						ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
 					}					
 				}
 			}

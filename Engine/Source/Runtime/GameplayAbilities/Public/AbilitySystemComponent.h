@@ -418,12 +418,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGameplayEffectAppliedDelegate, UAbilitySystemComponent*, const FGameplayEffectSpec&, FActiveGameplayEffectHandle);
 
+	/** Called on server whenever a GE is applied to self. This includes instant and duration based GEs. */
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToSelf;
 
+	/** Called on server whenever a GE is applied to someone else. This includes instant and duration based GEs. */
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToTarget;
 
+	/** Called on both client and server whenever a duraton based GE is added (E.g., instant GEs do not trigger this). */
+	FOnGameplayEffectAppliedDelegate OnActiveGameplayEffectAddedDelegateToSelf;
+
+	/** Called on server whenever a periodic GE executes on self */
 	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnSelf;
 
+	/** Called on server whenever a periodic GE executes on target */
 	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnTarget;
 
 	// --------------------------------------------
@@ -475,6 +482,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	FORCEINLINE void RemoveLooseGameplayTags(const FGameplayTagContainer& GameplayTags, int32 Count = 1)
 	{
 		UpdateTagMap(GameplayTags, -Count);
+	}
+
+	FORCEINLINE void SetLooseGameplayTagCount(const FGameplayTag& GameplayTag, int32 NewCount)
+	{
+		SetTagMapCount(GameplayTag, NewCount);
 	}
 
 	/** 	 
@@ -850,6 +862,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Returns the list of all activatable abilities */
 	const TArray<FGameplayAbilitySpec>& GetActivatableAbilities() const;
 
+	/** Returns local world time that an ability was activated. Valid on authority (server) and autonomous proxy (controlling client).  */
+	float GetAbilityLastActivatedTime() const { return AbilityLastActivatedTime; }
+
 	/** Returns an ability spec from a handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromHandle(FGameplayAbilitySpecHandle Handle);
 	
@@ -968,6 +983,10 @@ protected:
 	int32 AbilityScopeLockCount;
 	TArray<FGameplayAbilitySpecHandle, TInlineAllocator<2> > AbilityPendingRemoves;
 	TArray<FGameplayAbilitySpec, TInlineAllocator<2> > AbilityPendingAdds;
+
+	/** Local World time of the last ability activation. This is used for AFK/idle detection */
+	float AbilityLastActivatedTime;
+
 	UFUNCTION()
 	void	OnRep_ActivateAbilities();
 
@@ -998,8 +1017,8 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
 
-	/** Called by prediction system when an ability has failed to activate */
-	void	OnClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey::KeyType PredictionKey);
+	
+	void	OnClientActivateAbilityCaughtUp(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey::KeyType PredictionKey);
 
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey);
@@ -1149,6 +1168,9 @@ protected:
 	/** Data structure for replicating montage info to simulated clients */
 	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedAnimMontage)
 	FGameplayAbilityRepAnimMontage RepAnimMontageInfo;
+
+	/** Set if montage rep happens while we don't have the animinstance associated with us yet */
+	bool bPendingMontagerep;
 
 	/** Data structure for montages that were instigated locally (everything if server, predictive if client. replicated if simulated proxy) */
 	UPROPERTY()

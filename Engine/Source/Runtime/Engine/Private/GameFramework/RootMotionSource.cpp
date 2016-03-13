@@ -1464,10 +1464,11 @@ void FRootMotionSourceGroup::UpdateStateFrom(const FRootMotionSourceGroup& Group
 
 bool FRootMotionSourceGroup::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	int32 SourcesNum;
+	uint8 SourcesNum;
 	if (Ar.IsSaving())
 	{
-		SourcesNum = RootMotionSources.Num();
+		UE_CLOG(RootMotionSources.Num() > MAX_uint8, LogRootMotion, Warning, TEXT("Too many root motion sources (%d!) to net serialize. Clamping to %d"), RootMotionSources.Num(), MAX_uint8);
+		SourcesNum = FMath::Min<int32>(RootMotionSources.Num(), MAX_uint8);
 	}
 	Ar << SourcesNum;
 	if (Ar.IsLoading())
@@ -1477,11 +1478,11 @@ bool FRootMotionSourceGroup::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 
 	Ar << bHasAdditiveSources;
 	Ar << bHasOverrideSources;
-	Ar << LastPreAdditiveVelocity; // TODO-RootMotionSource: quantize
+	LastPreAdditiveVelocity.NetSerialize(Ar, Map, bOutSuccess);
 	Ar << bIsAdditiveVelocityApplied;
 	Ar << LastAccumulatedSettings.Flags;
 
-	for (int32 i = 0; i < SourcesNum; ++i)
+	for (int32 i = 0; i < SourcesNum && !Ar.IsError(); ++i)
 	{
 		UScriptStruct* ScriptStruct = RootMotionSources[i].IsValid() ? RootMotionSources[i]->GetScriptStruct() : nullptr;
 		UScriptStruct* ScriptStructLocal = ScriptStruct;

@@ -1110,7 +1110,7 @@ void FD3D11DynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsInf
 			ClearValue.GetDepthStencil(DepthClear, StencilClear);
 		}
 
-		this->RHIClearMRTImpl(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect(), false);
+		this->RHIClearMRTImpl(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect(), false, EForceFullScreenClear::EForce);
 	}
 }
 
@@ -1711,15 +1711,15 @@ void FD3D11DynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 // Raster operations.
 void FD3D11DynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
-	FD3D11DynamicRHI::RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true);
+	FD3D11DynamicRHI::RHIClearMRTImpl(bClearColor, 1, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true, EForceFullScreenClear::EDoNotForce);
 }
 
 void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
-	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true);
+	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true, EForceFullScreenClear::EDoNotForce);
 }
 
-void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear)
+void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear, EForceFullScreenClear ForceFullScreen)
 {	
 	//don't force shaders clears for the moment.  There are bugs with the state cache/restore behavior.
 	//will either fix this soon, or move clear out of the RHI entirely.
@@ -1881,6 +1881,7 @@ void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, c
 	if (Viewport.TopLeftX > 0 || Viewport.TopLeftY > 0)
 	{
 		UseDrawClear = true;
+		ensureMsgf(ForceFullScreen == EForceFullScreenClear::EDoNotForce, TEXT("Forced Full Screen Clear ignoring Viewport Restriction"));
 	}
 
 /*	// possible optimization
@@ -1892,7 +1893,14 @@ void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, c
 	if(ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Viewport.Width && ExcludeRect.Min.Y == 0 && ExcludeRect.Height() == Viewport.Height)
 	{
 		// no need to do anything
-		return;
+		if (ForceFullScreen == EForceFullScreenClear::EDoNotForce)
+		{
+			return;
+		}
+		else
+		{
+			//ensureMsgf(false, TEXT("Forced Full Screen Clear ignoring Exclude Rect Restriction"));
+		}
 	}
 	
 	D3D11_RECT ScissorRect;
@@ -1904,6 +1912,7 @@ void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, c
 		|| ScissorRect.bottom < Viewport.TopLeftY + Viewport.Height)
 	{
 		UseDrawClear = true;
+		//ensureMsgf(ForceFullScreen == EForceFullScreenClear::EDoNotForce, TEXT("Forced Full Screen Clear ignoring Scissor Rect Restriction"));
 	}
 
 	if (!UseDrawClear)
@@ -1945,7 +1954,13 @@ void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, c
 			&& (Viewport.Width > 1 && Viewport.Height > 1))
 		{
 			UseDrawClear = true;
+			//ensureMsgf(ForceFullScreen == EForceFullScreenClear::EDoNotForce, TEXT("Forced Full Screen Clear ignoring View Dimension Restriction"));
 		}
+	}
+
+	if (ForceFullScreen == EForceFullScreenClear::EForce)
+	{
+		UseDrawClear = false;
 	}
 
 	if (UseDrawClear)

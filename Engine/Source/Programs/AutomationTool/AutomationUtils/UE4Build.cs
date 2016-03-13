@@ -544,27 +544,33 @@ namespace AutomationTool
 		/// </summary>
 		public void UpdatePublicKey(string KeyFilename)
 		{
-			var Lines = ReadEncryptionKeys(KeyFilename);
-			if (Lines != null && Lines.Length >= 3)
-			{
-				// Line0: Private key exponent, Line1: Modulus, Line2: Public key exponent.
-				string Modulus = String.Format("\"{0}\"", Lines[1]);
-				string PublicKeyExponent = String.Format("\"{0}\"", Lines[2]);
-				string VerFile = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
+			string Modulus = "\"0x0\"";
+			string PublicKeyExponent = "\"0x0\"";
 
-				LogVerbose("Updating {0} with:", VerFile);
-				LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
-				LogVerbose(" #define DECYRPTION_KEY_MODULUS {0}", Modulus);
-
-				VersionFileUpdater PublicKeyInl = new VersionFileUpdater(VerFile);
-				PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_EXPONENT ", PublicKeyExponent);
-				PublicKeyInl.ReplaceLine("#define DECYRPTION_KEY_MODULUS ", Modulus);
-                PublicKeyInl.Commit();
-			}
-			else
+			if (!string.IsNullOrEmpty(KeyFilename))
 			{
-				LogError("{0} doesn't look like a valid encryption key file or value.");
+				var Lines = ReadEncryptionKeys(KeyFilename);
+				if (Lines != null && Lines.Length >= 3)
+				{
+					Modulus = String.Format("\"{0}\"", Lines[1]);
+					PublicKeyExponent = String.Format("\"{0}\"", Lines[2]);
+				}
+				else
+				{
+					LogError("{0} doesn't look like a valid encryption key file or value.", KeyFilename);
+				}
 			}
+
+			string VerFile = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
+
+			LogVerbose("Updating {0} with:", VerFile);
+			LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
+			LogVerbose(" #define DECYRPTION_KEY_MODULUS {0}", Modulus);
+
+			VersionFileUpdater PublicKeyInl = new VersionFileUpdater(VerFile);
+			PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_EXPONENT ", PublicKeyExponent);
+			PublicKeyInl.ReplaceLine("#define DECYRPTION_KEY_MODULUS ", Modulus);
+			PublicKeyInl.Commit();
 		}
 
 		/// <summary>
@@ -1215,7 +1221,7 @@ namespace AutomationTool
 		/// <param name="InUpdateVersionFiles">True if the version files are to be updated </param>
 		/// <param name="InForceNoXGE">If true will force XGE off</param>
 		/// <param name="InUseParallelExecutor">If true AND XGE not present or not being used then use ParallelExecutor</param>
-		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InUseParallelExecutor = false, bool InForceNonUnity = false, bool InForceUnity = false, bool InShowProgress = false, Dictionary<UnrealBuildTool.UnrealTargetPlatform, Dictionary<string, string>> PlatformEnvVars = null)
+		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InUseParallelExecutor = false, bool InForceNonUnity = false, bool InForceUnity = false, bool InShowProgress = false, Dictionary<UnrealBuildTool.UnrealTargetPlatform, Dictionary<string, string>> PlatformEnvVars = null, int? InChangelistNumberOverride = null)
 		{
 			if (!CmdEnv.HasCapabilityToCompile)
 			{
@@ -1224,16 +1230,11 @@ namespace AutomationTool
 			DeleteBuildProducts = InDeleteBuildProducts.HasValue ? InDeleteBuildProducts.Value : ParseParam("Clean");
 			if (InUpdateVersionFiles)
 			{
-				UpdateVersionFiles();
+				UpdateVersionFiles(ActuallyUpdateVersionFiles: true, ChangelistNumberOverride: InChangelistNumberOverride);
 			}
 
-			{
-				var EncryptionKeyFilename = ParseParamValue("SignPak");
-				if (String.IsNullOrEmpty(EncryptionKeyFilename) == false)
-				{
-					UpdatePublicKey(EncryptionKeyFilename);
-				}
-			}
+			var EncryptionKeyFilename = ParseParamValue("SignPak");
+			UpdatePublicKey(EncryptionKeyFilename);
 
 			//////////////////////////////////////
 

@@ -134,12 +134,22 @@ public:
 	int32 GetOverallScalabilityLevel() const;
 
 	// Returns the current resolution scale and the range
-	UFUNCTION(BlueprintCallable, Category=Settings)
+	DEPRECATED(4.12, "Please call GetResolutionScaleInformationEx")
+	UFUNCTION(BlueprintCallable, Category = Settings, meta = (DeprecatedFunction, DisplayName = "GetResolutionScaleInformation_Deprecated"))
 	void GetResolutionScaleInformation(float& CurrentScaleNormalized, int32& CurrentScaleValue, int32& MinScaleValue, int32& MaxScaleValue) const;
 
+	// Returns the current resolution scale and the range
+	UFUNCTION(BlueprintCallable, Category=Settings, meta=(DisplayName="GetResolutionScaleInformation"))
+	void GetResolutionScaleInformationEx(float& CurrentScaleNormalized, float& CurrentScaleValue, float& MinScaleValue, float& MaxScaleValue) const;
+
 	// Sets the current resolution scale
-	UFUNCTION(BlueprintCallable, Category=Settings)
+	DEPRECATED(4.12, "Please call SetResolutionScaleValueEx")
+	UFUNCTION(BlueprintCallable, Category=Settings, meta=(DeprecatedFunction, DisplayName="SetResolutionScaleValue_Deprecated"))
 	void SetResolutionScaleValue(int32 NewScaleValue);
+
+	// Sets the current resolution scale
+	UFUNCTION(BlueprintCallable, Category=Settings, meta=(DisplayName="SetResolutionScaleValue"))
+	void SetResolutionScaleValueEx(float NewScaleValue);
 
 	// Sets the current resolution scale as a normalized 0..1 value between MinScaleValue and MaxScaleValue
 	UFUNCTION(BlueprintCallable, Category=Settings)
@@ -219,6 +229,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	virtual void SetToDefaults();
+
+	/** Gets the desired resolution quality based on DesiredScreenHeight and the current screen resolution */
+	UFUNCTION(BlueprintCallable, Category=Settings)
+	virtual float GetDefaultResolutionScale();
 
 	/** Loads the resolution settings before is object is available */
 	static void PreloadResolutionSettings();
@@ -314,7 +328,7 @@ protected:
 	float FrameRateLimit;
 
 	/** Min resolution scale we allow in current display mode */
-	int32 MinResolutionScale;
+	float MinResolutionScale;
 
 	/** Desired screen height used to calculate the resolution scale when user changes display mode */
 	UPROPERTY(config)
@@ -329,7 +343,8 @@ protected:
 	/** Update the version of the game user settings to the current version */
 	virtual void UpdateVersion();
 
-	int32 FindResolutionQualityForScreenHeight(int32 ScreenHeight);
+	/** Picks the best resolution quality for a given screen height */
+	float FindResolutionQualityForScreenHeight(int32 ScreenHeight);
 
 private:
 

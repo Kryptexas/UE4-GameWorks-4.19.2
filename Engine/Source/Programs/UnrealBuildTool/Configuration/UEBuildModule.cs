@@ -1558,6 +1558,13 @@ namespace UnrealBuildTool
 		{
 			CPPEnvironment Result = BaseCompileEnvironment.DeepCopy();
 
+            if (Binary == null)
+            {
+                // Adding this check here as otherwise the call to Binary.Config.IntermediateDirectory will give an 
+                // unhandled exception
+                throw new BuildException("UEBuildBinary not set up for module {0}", this.ToString());
+            }
+
 			// Override compile environment
 			Result.Config.bFasterWithoutUnity = Rules.bFasterWithoutUnity;
 			Result.Config.OptimizeCode = Rules.OptimizeCode;

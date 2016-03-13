@@ -367,6 +367,12 @@ public:
 	static bool IsScriptPackage(const FString& InPackageName);
 
 	/**
+	 * Checks the root of the package's path to see if it is a localized package
+	 * @return true if the root of the path matches any localized root path
+	 */
+	static bool IsLocalizedPackage(const FString& InPackageName);
+
+	/**
 	 * Checks if a package name contains characters that are invalid for package names.
 	 */
 	static bool DoesPackageNameContainInvalidCharacters(const FString& InLongPackageName, FText* OutReason = NULL);

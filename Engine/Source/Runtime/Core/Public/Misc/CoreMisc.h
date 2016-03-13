@@ -415,8 +415,10 @@ public:
 	}
 };
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define DO_BLUEPRINT_GUARD 1
+#ifndef DO_BLUEPRINT_GUARD
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		#define DO_BLUEPRINT_GUARD 1
+	#endif
 #endif
 
 #if DO_BLUEPRINT_GUARD

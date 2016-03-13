@@ -99,6 +99,19 @@ FFriendsListStyle& FFriendsListStyle::SetPCIconBrush(const FSlateBrush& BrushSty
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetConsoleIconBrush(const FSlateBrush& BrushStyle)
+{
+	ConsoleIconBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetEpicIconBrush(const FSlateBrush& BrushStyle)
+{
+	EpicIconBrush = BrushStyle;
+	return *this;
+}
+
+
 /** Friend Image brush style */
 FFriendsListStyle& FFriendsListStyle::SetFriendImageBrush(const FSlateBrush& BrushStyle)
 {
@@ -124,6 +137,13 @@ FFriendsListStyle& FFriendsListStyle::SetOnlineBrush(const FSlateBrush& BrushSty
 FFriendsListStyle& FFriendsListStyle::SetAwayBrush(const FSlateBrush& BrushStyle)
 {
 	AwayBrush = BrushStyle;
+	return *this;
+}
+
+/** Away brush style */
+FFriendsListStyle& FFriendsListStyle::SetSpectateBrush(const FSlateBrush& BrushStyle)
+{
+	SpectateBrush = BrushStyle;
 	return *this;
 }
 
@@ -173,6 +193,12 @@ FFriendsListStyle& FFriendsListStyle::SetSettingsBrush(const FSlateBrush& Brush)
 FFriendsListStyle& FFriendsListStyle::SetSeperatorBrush(const FSlateBrush& Brush)
 {
 	SeperatorBrush = Brush;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetPresenceSeperatorBrush(const FSlateBrush& Brush)
+{
+	PresenceSeperatorBrush = Brush;
 	return *this;
 }
 

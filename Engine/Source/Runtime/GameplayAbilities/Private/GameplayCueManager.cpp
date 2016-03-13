@@ -169,6 +169,9 @@ void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 int32 GameplayCueActorRecycle = 1;
 static FAutoConsoleVariableRef CVarGameplayCueActorRecycle(TEXT("AbilitySystem.GameplayCueActorRecycle"), GameplayCueActorRecycle, TEXT("Allow recycling of GameplayCue Actors"), ECVF_Default );
 
+int32 GameplayCueActorRecycleDebug = 0;
+static FAutoConsoleVariableRef CVarGameplayCueActorRecycleDebug(TEXT("AbilitySystem.GameplayCueActorRecycleDebug"), GameplayCueActorRecycle, TEXT("Prints logs for GC actor recycling debugging"), ECVF_Default );
+
 AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* TargetActor, UClass* CueClass, const FGameplayCueParameters& Parameters)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_GameplayCueManager_GetInstancedCueActor);
@@ -187,7 +190,16 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		// If the cue is scheduled to be destroyed, don't reuse it, create a new one instead
 		if (SpawnedCue && SpawnedCue->GameplayCuePendingRemove() == false)
 		{
-			return SpawnedCue;
+			if (SpawnedCue->GetOwner() != TargetActor)
+			{
+				// This should not happen. This means we think we can recycle and GC actor that is currently being used by someone else.
+				ABILITY_LOG(Warning, TEXT("GetInstancedCueActor attempting to reuse GC Actor with a different owner! %s (Target: %s). Using GC Actor: %s. Current Owner: %s"), *GetNameSafe(CueClass), *GetNameSafe(TargetActor), *GetNameSafe(SpawnedCue), *GetNameSafe(SpawnedCue->GetOwner()));
+			}
+			else
+			{
+				UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("::GetInstancedCueActor Using Existing %s (Target: %s). Using GC Actor: %s"), *GetNameSafe(CueClass), *GetNameSafe(TargetActor), *GetNameSafe(SpawnedCue));
+				return SpawnedCue;
+			}
 		}
 	}
 
@@ -209,11 +221,12 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 			{
 				SpawnedCue = PreallocatedList->Pop(false);
 				checkf(SpawnedCue && SpawnedCue->IsPendingKill() == false, TEXT("Spawned Cue is pending kill or null: %s"), *GetNameSafe(SpawnedCue));
-
+				SpawnedCue->bInRecycleQueue = false;				
 				SpawnedCue->SetActorHiddenInGame(false);
 				SpawnedCue->SetOwner(NewOwnerActor);
 				SpawnedCue->SetActorLocationAndRotation(TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
 
+				UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("GetInstancedCueActor Popping Recycled %s (Target: %s). Using GC Actor: %s"), *GetNameSafe(CueClass), *GetNameSafe(TargetActor), *GetNameSafe(SpawnedCue));
 #if WITH_EDITOR
 				// let things know that we 'spawned'
 				ISequenceRecorder& SequenceRecorder	= FModuleManager::LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
@@ -246,6 +259,7 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		}
 	}
 
+	UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("GetInstancedCueActor  Returning %s (Target: %s). Using GC Actor: %s"), *GetNameSafe(CueClass), *GetNameSafe(TargetActor), *GetNameSafe(SpawnedCue));
 	return SpawnedCue;
 }
 
@@ -253,10 +267,18 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 {
 	if (GameplayCueActorRecycle)
 	{
+		if (Actor->bInRecycleQueue)
+		{
+			// We are already in the recycle queue. This can happen normally
+			// (For example the GC is removed and the owner is destroyed in the same frame)
+			return;
+		}
+
 		AGameplayCueNotify_Actor* CDO = Actor->GetClass()->GetDefaultObject<AGameplayCueNotify_Actor>();
 		if (CDO && Actor->Recycle())
 		{
 			ensure(Actor->IsPendingKill() == false);
+			Actor->bInRecycleQueue = true;
 
 			// Remove this now from our internal map so that it doesn't get reused like a currently active cue would
 			if (TWeakObjectPtr<AGameplayCueNotify_Actor>* WeakPtrPtr = NotifyMapActor.Find(Actor->NotifyKey))
@@ -264,19 +286,26 @@ void UGameplayCueManager::NotifyGameplayCueActorFinished(AGameplayCueNotify_Acto
 				WeakPtrPtr->Reset();
 			}
 
+			UE_CLOG((GameplayCueActorRecycleDebug>0), LogAbilitySystem, Display, TEXT("NotifyGameplayCueActorFinished %s"), *GetNameSafe(Actor));
+
+			Actor->SetOwner(nullptr);
 			Actor->SetActorHiddenInGame(true);
 			Actor->DetachRootComponentFromParent();
 
 			FPreallocationInfo& Info = GetPreallocationInfo(Actor->GetWorld());
 			TArray<AGameplayCueNotify_Actor*>& PreAllocatedList = Info.PreallocatedInstances.FindOrAdd(Actor->GetClass());
-			PreAllocatedList.Push(Actor);
 
+			// Put the actor back in the list
+			if (ensureMsgf(PreAllocatedList.Contains(Actor)==false, TEXT("GC Actor PreallocationList already contains Actor %s"), *GetNameSafe(Actor)))
+			{
+				PreAllocatedList.Push(Actor);
+			}
+			
 #if WITH_EDITOR
 			// let things know that we 'de-spawned'
 			ISequenceRecorder& SequenceRecorder	= FModuleManager::LoadModuleChecked<ISequenceRecorder>("SequenceRecorder");
 			SequenceRecorder.NotifyActorStopRecording(Actor);
 #endif
-
 			return;
 		}
 	}	
@@ -1087,6 +1116,7 @@ void UGameplayCueManager::UpdatePreallocation(UWorld* World)
 				ABILITY_LOG(Warning, TEXT("Prespawning GC %s"), *GetNameSafe(CDO));
 			}
 
+			PrespawnedInstance->bInRecycleQueue = true;
 			PreallocatedList.Push(PrespawnedInstance);
 			PrespawnedInstance->SetActorHiddenInGame(true);
 

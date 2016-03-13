@@ -633,7 +633,10 @@ void ULandscapeEditorObject::RefreshImportLayersList()
 			UMaterialInstanceConstant* CombinationMaterialInstance = CastChecked<UMaterialInstanceConstant>(NewImportLayer.ThumbnailMIC->Parent);
 			if (CombinationMaterialInstance->Parent != Material)
 			{
-				CombinationMaterialInstance->SetParentEditorOnly(Material);
+				FMaterialUpdateContext Context;
+				CombinationMaterialInstance->SetParentEditorOnly(Material);	
+				Context.AddMaterialInterface(Material);
+
 				//NewImportLayer.ThumbnailMIC = ALandscapeProxy::GetLayerThumbnailMIC(Material, LayerName, ThumbnailWeightmap, ThumbnailHeightmap, NULL);
 			}
 

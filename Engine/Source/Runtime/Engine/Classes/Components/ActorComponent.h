@@ -299,7 +299,7 @@ public:
 	/** Returns whether this component is an editor-only object or not */
 	virtual bool IsEditorOnly() const { return false; }
 
-	/** Returns neat role of the owning actor */
+	/** Returns net role of the owning actor */
 	/** Returns true if we are replicating and not authorative */
 	bool	IsNetSimulating() const;
 

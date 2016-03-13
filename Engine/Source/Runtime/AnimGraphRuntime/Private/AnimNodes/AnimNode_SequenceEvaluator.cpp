@@ -20,6 +20,7 @@ float FAnimNode_SequenceEvaluator::GetCurrentAssetLength()
 void FAnimNode_SequenceEvaluator::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_AssetPlayerBase::Initialize(Context);
+	bReinitialized = true;
 }
 
 void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
@@ -37,7 +38,17 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 
 		if ((!bTeleportToExplicitTime || (GroupIndex != INDEX_NONE)) && (Context.AnimInstanceProxy->IsSkeletonCompatible(Sequence->GetSkeleton())))
 		{
+			if (bReinitialized)
+			{
+				switch (ReinitializationBehavior)
+				{
+					case ESequenceEvalReinit::StartPosition: InternalTimeAccumulator = StartPosition; break;
+					case ESequenceEvalReinit::ExplicitTime: InternalTimeAccumulator = ExplicitTime; break;
+				}
+			}
+
 			InternalTimeAccumulator = FMath::Clamp(InternalTimeAccumulator, 0.f, Sequence->SequenceLength);
+
 			float TimeJump = ExplicitTime - InternalTimeAccumulator;
 			if (bShouldLoopWhenInSyncGroup)
 			{
@@ -63,6 +74,8 @@ void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContex
 			InternalTimeAccumulator = ExplicitTime;
 		}
 	}
+
+	bReinitialized = false;
 }
 
 void FAnimNode_SequenceEvaluator::Evaluate(FPoseContext& Output)

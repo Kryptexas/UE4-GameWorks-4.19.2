@@ -87,3 +87,54 @@ ULocalizationTargetSet* ULocalizationSettings::GetGameTargetSet()
 	check(LocalizationSettings);
 	return LocalizationSettings->GameTargetSet;
 }
+
+
+const FString FLocalizationSourceControlSettings::LocalizationSourceControlSettingsCategoryName = TEXT("LocalizationSourceControlSettings");
+const FString FLocalizationSourceControlSettings::SourceControlEnabledSettingName = TEXT("SourceControlEnabled");
+const FString FLocalizationSourceControlSettings::SourceControlAutoSubmitEnabledSettingName = TEXT("SourceControlAutoSubmitEnabled");
+
+bool FLocalizationSourceControlSettings::IsSourceControlAvailable()
+{
+	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+	return SourceControlModule.IsEnabled() && SourceControlModule.GetProvider().IsAvailable();
+}
+
+bool FLocalizationSourceControlSettings::IsSourceControlEnabled()
+{
+	if (!IsSourceControlAvailable())
+	{
+		return false;
+	}
+
+	bool bIsEnabled = true;
+	if (!GConfig->GetBool(*LocalizationSourceControlSettingsCategoryName, *SourceControlEnabledSettingName, bIsEnabled, GEditorPerProjectIni))
+	{
+		bIsEnabled = true;
+	}
+	return bIsEnabled;
+}
+
+bool FLocalizationSourceControlSettings::IsSourceControlAutoSubmitEnabled()
+{
+	if (!IsSourceControlAvailable())
+	{
+		return false;
+	}
+
+	bool bIsEnabled = false;
+	if (!GConfig->GetBool(*LocalizationSourceControlSettingsCategoryName, *SourceControlAutoSubmitEnabledSettingName, bIsEnabled, GEditorPerProjectIni))
+	{
+		bIsEnabled = false;
+	}
+	return bIsEnabled;
+}
+
+void FLocalizationSourceControlSettings::SetSourceControlEnabled(const bool bIsEnabled)
+{
+	GConfig->SetBool(*LocalizationSourceControlSettingsCategoryName, *SourceControlEnabledSettingName, bIsEnabled, GEditorPerProjectIni);
+}
+
+void FLocalizationSourceControlSettings::SetSourceControlAutoSubmitEnabled(const bool bIsEnabled)
+{
+	GConfig->SetBool(*LocalizationSourceControlSettingsCategoryName, *SourceControlAutoSubmitEnabledSettingName, bIsEnabled, GEditorPerProjectIni);
+}

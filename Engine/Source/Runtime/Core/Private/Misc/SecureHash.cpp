@@ -473,47 +473,56 @@ namespace LexicalConversion
 
 	void FromString(FMD5Hash& Hash, const TCHAR* Buffer)
 	{
-		uint8 Bytes[16];
-		for (int32 Index = 0; Index < 16; ++Index)
+		auto HexCharacterToDecimalValue = [](const TCHAR InHexChar, uint8& OutDecValue) -> bool
 		{
-			if (Buffer[Index] == '\0')
-			{
-				return;
-			}
-
 			TCHAR Base = 0;
-			if (Buffer[Index] >= '0' && Buffer[Index] <= '9')
+			if (InHexChar >= '0' && InHexChar <= '9')
 			{
-				Base = '0';
+				OutDecValue = InHexChar - '0';
 			}
-			else if (Buffer[Index] >= 'A' && Buffer[Index] <= 'F')
+			else if (InHexChar >= 'A' && InHexChar <= 'F')
 			{
-				Base = 'A';
+				OutDecValue = (InHexChar - 'A') + 10;
 			}
-			else if (Buffer[Index] >= 'a' && Buffer[Index] <= 'f')
+			else if (InHexChar >= 'a' && InHexChar <= 'f')
 			{
-				Base = 'a';
+				OutDecValue = (InHexChar - 'a') + 10;
 			}
 			else
 			{
-				// Invalid hex char
+				return false;
+			}
+
+			return true;
+		};
+
+		uint8 Bytes[16];
+		for (int32 ByteIndex = 0, BufferIndex = 0; ByteIndex < 16; ++ByteIndex)
+		{
+			const TCHAR FirstChar = Buffer[BufferIndex++];
+			if (FirstChar == '\0')
+			{
 				return;
 			}
 
-			if (Index % 2)
+			const TCHAR SecondChar = Buffer[BufferIndex++];
+			if (SecondChar == '\0')
 			{
-				Bytes[Index] = (Buffer[Index] - Base) << 4;
+				return;
 			}
-			else
+
+			uint8 FirstCharVal, SecondCharVal;
+			if (!HexCharacterToDecimalValue(FirstChar, FirstCharVal) || !HexCharacterToDecimalValue(SecondChar, SecondCharVal))
 			{
-				Bytes[Index] = (Bytes[Index] & ((Buffer[Index] - Base) | 0xF0));
-			}	
+				return;
+			}
+
+			Bytes[ByteIndex] = (FirstCharVal << 4) + SecondCharVal;
 		}
 
 		FMemory::Memcpy(Hash.Bytes, Bytes, 16);
 		Hash.bIsValid = true;
 	}
-
 }
 
 FMD5Hash FMD5Hash::HashFile(const TCHAR* InFilename, TArray<uint8>* Buffer)

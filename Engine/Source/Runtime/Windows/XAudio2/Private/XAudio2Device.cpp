@@ -245,6 +245,7 @@ void FXAudio2Device::TeardownHardware()
 
 void FXAudio2Device::UpdateHardware()
 {
+	DeviceProperties->ProcessPendingTasksToCleanup();
 }
 
 FAudioEffectsManager* FXAudio2Device::CreateEffectsManager()

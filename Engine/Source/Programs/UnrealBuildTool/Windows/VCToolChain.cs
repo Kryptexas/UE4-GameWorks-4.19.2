@@ -1712,6 +1712,7 @@ namespace UnrealBuildTool
 			{
 				ObjectFileDirectories.Add(new DirectoryReference(LibraryPath));
 			}
+			Directory.CreateDirectory(Path.GetDirectoryName(FileName));
 			File.WriteAllLines(FileName, ObjectFileDirectories.Select(x => x.FullName).OrderBy(x => x).ToArray());
 		}
 

@@ -267,32 +267,32 @@ bool DoesMaterialUseTexture(const UMaterialInterface* Material,const UTexture* C
 	return false;
 }
 
-float UMaterialInterface::GetOpacityMaskClipValue(bool bIsInGameThread) const
+float UMaterialInterface::GetOpacityMaskClipValue() const
 {
 	return 0.0f;
 }
 
-EBlendMode UMaterialInterface::GetBlendMode(bool bIsInGameThread) const
+EBlendMode UMaterialInterface::GetBlendMode() const
 {
 	return BLEND_Opaque;
 }
 
-bool UMaterialInterface::IsTwoSided(bool bIsInGameThread) const
+bool UMaterialInterface::IsTwoSided() const
 {
 	return false;
 }
 
-bool UMaterialInterface::IsDitheredLODTransition(bool bIsInGameThread) const
+bool UMaterialInterface::IsDitheredLODTransition() const
 {
 	return false;
 }
 
-bool UMaterialInterface::IsMasked(bool bIsInGameThread) const
+bool UMaterialInterface::IsMasked() const
 {
 	return false;
 }
 
-EMaterialShadingModel UMaterialInterface::GetShadingModel(bool bIsInGameThread) const
+EMaterialShadingModel UMaterialInterface::GetShadingModel() const
 {
 	return MSM_DefaultLit;
 }
@@ -342,7 +342,7 @@ void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
 	// no 0 pointer
 	check(&Proxy);
 
-	EMaterialShadingModel MaterialShadingModel = GetShadingModel(true);
+	EMaterialShadingModel MaterialShadingModel = GetShadingModel();
 
 	// for better performance we only update SubsurfaceProfileRT if the feature is used
 	if (MaterialShadingModel == MSM_SubsurfaceProfile)

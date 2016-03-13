@@ -124,7 +124,7 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 
 void FKismet2CompilerModule::CompileStructure(UUserDefinedStruct* Struct, FCompilerResultsLog& Results)
 {
-	Results.SetSourceName(Struct->GetName());
+	Results.SetSourcePath(Struct->GetPathName());
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
 	FUserDefinedStructureCompilerUtils::CompileStruct(Struct, Results, true);
 }
@@ -156,7 +156,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
 
-	Results.SetSourceName(Blueprint->GetName());
+	Results.SetSourcePath(Blueprint->GetPathName());
 
 	const bool bIsBrandNewBP = (Blueprint->SkeletonGeneratedClass == NULL) && (Blueprint->GeneratedClass == NULL) && (Blueprint->ParentClass != NULL) && !CompileOptions.bIsDuplicationInstigated;
 

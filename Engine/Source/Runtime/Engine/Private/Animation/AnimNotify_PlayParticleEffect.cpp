@@ -41,6 +41,12 @@ void UAnimNotify_PlayParticleEffect::PostEditChangeProperty(FPropertyChangedEven
 
 void UAnimNotify_PlayParticleEffect::Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation)
 {
+	if (PSTemplate->IsImmortal())
+	{
+		UE_LOG(LogParticles, Warning, TEXT("Particle Notify: Anim %s tried to spawn infinitely looping particle system %s. Spawning suppressed."), *GetNameSafe(Animation), *GetNameSafe(PSTemplate));
+		return;
+	}
+
 	// Don't call super to avoid unnecessary call in to blueprints
 	if (PSTemplate)
 	{

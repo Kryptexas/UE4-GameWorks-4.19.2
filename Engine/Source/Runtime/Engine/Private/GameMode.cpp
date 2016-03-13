@@ -1539,6 +1539,7 @@ void AGameMode::PostCommitMapChange() {}
 
 void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* PC)
 {
+	check(PlayerState)
 	// don't store if it's an old PlayerState from the previous level or if it's a spectator
 	if (!PlayerState->bFromPreviousLevel && !PlayerState->bOnlySpectator)
 	{
@@ -1554,14 +1555,20 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 			NewPlayerState->SetLifeSpan(InactivePlayerStateLifeSpan);
 
 			// On console, we have to check the unique net id as network address isn't valid
-			bool bIsConsole = GEngine->IsConsoleBuild();
-
+			const bool bIsConsole = GEngine->IsConsoleBuild();
+			// Assume valid unique ids means comparison should be via this method
+			const bool bHasValidUniqueId = NewPlayerState->UniqueId.IsValid();
+			// Don't accidentally compare empty network addresses (already issue with two clients on same machine during development)
+			const bool bHasValidNetworkAddress = !NewPlayerState->SavedNetworkAddress.IsEmpty();
+			const bool bUseUniqueIdCheck = bIsConsole || bHasValidUniqueId;
+			
 			// make sure no duplicates
-			for (int32 i=0; i<InactivePlayerArray.Num(); i++)
+			for (int32 i=0; i < InactivePlayerArray.Num(); i++)
 			{
-				APlayerState* CurrentPlayerState = InactivePlayerArray[i];
-				if ( (CurrentPlayerState == NULL) || CurrentPlayerState->IsPendingKill() ||
-					(!bIsConsole && (CurrentPlayerState->SavedNetworkAddress == NewPlayerState->SavedNetworkAddress)))
+				const APlayerState* CurrentPlayerState = InactivePlayerArray[i];
+				if ((CurrentPlayerState == NULL) || CurrentPlayerState->IsPendingKill() ||
+					(!bUseUniqueIdCheck && bHasValidNetworkAddress && (CurrentPlayerState->SavedNetworkAddress == NewPlayerState->SavedNetworkAddress)) ||
+					(bUseUniqueIdCheck && (CurrentPlayerState->UniqueId == NewPlayerState->UniqueId)))
 				{
 					InactivePlayerArray.RemoveAt(i,1);
 					i--;
@@ -1583,6 +1590,7 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 
 bool AGameMode::FindInactivePlayer(APlayerController* PC)
 {
+	check(PC && PC->PlayerState);
 	// don't bother for spectators
 	if (PC->PlayerState->bOnlySpectator)
 	{
@@ -1590,11 +1598,16 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 	}
 
 	// On console, we have to check the unique net id as network address isn't valid
-	bool bIsConsole = GEngine->IsConsoleBuild();
+	const bool bIsConsole = GEngine->IsConsoleBuild();
+	// Assume valid unique ids means comparison should be via this method
+	const bool bHasValidUniqueId = PC->PlayerState->UniqueId.IsValid();
+	// Don't accidentally compare empty network addresses (already issue with two clients on same machine during development)
+	const bool bHasValidNetworkAddress = !PC->PlayerState->SavedNetworkAddress.IsEmpty();
+	const bool bUseUniqueIdCheck = bIsConsole || bHasValidUniqueId;
 
-	FString NewNetworkAddress = PC->PlayerState->SavedNetworkAddress;
-	FString NewName = PC->PlayerState->PlayerName;
-	for (int32 i=0; i<InactivePlayerArray.Num(); i++)
+	const FString NewNetworkAddress = PC->PlayerState->SavedNetworkAddress;
+	const FString NewName = PC->PlayerState->PlayerName;
+	for (int32 i=0; i < InactivePlayerArray.Num(); i++)
 	{
 		APlayerState* CurrentPlayerState = InactivePlayerArray[i];
 		if ( (CurrentPlayerState == NULL) || CurrentPlayerState->IsPendingKill() )
@@ -1602,18 +1615,18 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 			InactivePlayerArray.RemoveAt(i,1);
 			i--;
 		}
-		else if ( (bIsConsole && ( CurrentPlayerState->UniqueId == PC->PlayerState->UniqueId ) ) ||
-			(!bIsConsole && (FCString::Stricmp(*CurrentPlayerState->SavedNetworkAddress, *NewNetworkAddress) == 0) && (FCString::Stricmp(*CurrentPlayerState->PlayerName, *NewName) == 0)) )
+		else if ((bUseUniqueIdCheck && (CurrentPlayerState->UniqueId == PC->PlayerState->UniqueId)) ||
+				 (!bUseUniqueIdCheck && bHasValidNetworkAddress && (FCString::Stricmp(*CurrentPlayerState->SavedNetworkAddress, *NewNetworkAddress) == 0) && (FCString::Stricmp(*CurrentPlayerState->PlayerName, *NewName) == 0)))
 		{
 			// found it!
 			APlayerState* OldPlayerState = PC->PlayerState;
 			PC->PlayerState = CurrentPlayerState;
 			PC->PlayerState->SetOwner(PC);
 			PC->PlayerState->SetReplicates(true);
-			PC->PlayerState->SetLifeSpan( 0.0f );
+			PC->PlayerState->SetLifeSpan(0.0f);
 			OverridePlayerState(PC, OldPlayerState);
 			GetWorld()->GameState->AddPlayerState(PC->PlayerState);
-			InactivePlayerArray.RemoveAt(i,1);
+			InactivePlayerArray.RemoveAt(i, 1);
 			OldPlayerState->bIsInactive = true;
 			// Set the uniqueId to NULL so it will not kill the player's registration 
 			// in UnregisterPlayerWithSession()
@@ -1622,6 +1635,7 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 			PC->PlayerState->OnReactivated();
 			return true;
 		}
+		
 	}
 	return false;
 }

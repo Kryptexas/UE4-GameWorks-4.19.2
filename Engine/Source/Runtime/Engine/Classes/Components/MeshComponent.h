@@ -56,6 +56,15 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	 *	@param CinematicTextureGroups			Bitfield indicating which texture groups that use extra high-resolution mips
 	 */
 	virtual void PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups = 0 );
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	/**
+	 * Output to the log which materials and textures are used by this component.
+	 * @param Indent	Number of tabs to put before the log.
+	 */
+	virtual void LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const;
+#endif
+
 public:
 	/** Material parameter setting and caching */
 

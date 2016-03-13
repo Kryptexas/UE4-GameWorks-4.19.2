@@ -84,7 +84,7 @@ namespace AutomationScripts.Automation
 			try
 			{
 				UE4Build Builder = new UE4Build(this);
-				Builder.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true, InForceNoXGE: false);
+				Builder.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: true, InForceNoXGE: false, InChangelistNumberOverride: GetLatestCodeChange());
 				UE4Build.CheckBuildProducts(Builder.BuildProductFiles);
 			}
 			catch (AutomationException Ex)
@@ -94,6 +94,15 @@ namespace AutomationScripts.Automation
 			}
 		}
 
+		private int GetLatestCodeChange()
+		{
+			List<P4Connection.ChangeRecord> ChangeRecords;
+			if(!P4.Changes(out ChangeRecords, String.Format("-m 1 //{0}/....cpp@<{1} //{0}/....h@<{1} //{0}/....cs@<{1} //{0}/....usf@<{1}", P4Env.Client, P4Env.Changelist), WithClient: true))
+			{
+				throw new AutomationException("Couldn't enumerate latest change from branch");
+			}
+			return ChangeRecords.Max(x => x.CL);
+		}
 
 		private void CreateChangelist(ProjectParams Params)
 		{
@@ -225,15 +234,23 @@ namespace AutomationScripts.Automation
 			MailMessage Message = new System.Net.Mail.MailMessage();
 			Message.Priority = MailPriority.High;
 			Message.From = new MailAddress("unrealbot@epicgames.com");
+
+            string Branch = "Unknown";
+            if ( P4Enabled )
+            {
+                Branch = P4Env.BuildRootP4;
+            }
+
 			foreach (String NextStakeHolder in StakeholdersEmailAddresses)
 			{
 				Message.To.Add(new MailAddress(NextStakeHolder));
 			}
 
-			Message.CC.Add(new MailAddress("Terence.Burns@epicgames.com"));
-			Message.Subject = String.Format("Nightly lightmap rebuild ", bWasSuccessful ? "[SUCCESS]" : "[FAILED]");
+			Message.CC.Add(new MailAddress("Daniel.Lamb@epicgames.com"));
+			Message.Subject = String.Format("Nightly lightmap rebuild {0} for {1}", bWasSuccessful ? "[SUCCESS]" : "[FAILED]", Branch);
 			Message.Body = MessageBody;
-
+            /*Attachment Attach = new Attachment();
+            Message.Attachments.Add()*/
 			try
 			{
 				SmtpClient MailClient = new SmtpClient("smtp.epicgames.net");

@@ -75,6 +75,9 @@ namespace EGameplayAbilityActivationMode
 
 		// We are not the authority, but the authority has confirmed this activation
 		Confirmed,
+
+		// We tried to activate it, and server told us we couldn't (even though we thought we could)
+		Rejected,
 	};
 }
 
@@ -172,6 +175,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 	uint8 bCanBeEndedByOtherInstance:1;
 
 	void SetActivationConfirmed();
+
+	void SetActivationRejected();
 
 	/** Called on client to set this as a predicted ability */
 	void SetPredicting(FPredictionKey PredictionKey);

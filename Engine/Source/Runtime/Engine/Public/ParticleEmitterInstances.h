@@ -14,6 +14,9 @@
 #include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleHelper.h"
 
+//Temporary define to allow switching on and off of some trail optimizations until bugs can be worked out.
+#define ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION (0)
+
 /*-----------------------------------------------------------------------------
 	Forward declarations
 -----------------------------------------------------------------------------*/
@@ -1161,13 +1164,11 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	 */
 	uint32 bEnableInactiveTimeTracking:1;
 
+#if ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
 	/** The direct index of the particle that is the start of each ribbon */
 	int32 CurrentStartIndices[128];
 	/** The direct index of the particle that is the end of each ribbon */
 	int32 CurrentEndIndices[128];
-
-
-
 
 	void SetStartIndex(int32 TrailIndex, int32 ParticleIndex)
 	{
@@ -1283,6 +1284,54 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 #endif
 	}
 
+#else //ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
+
+template<typename TrailDataType> void GetTrailStart(const int32 TrailIdx, int32 &OutStartIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
+{
+	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
+	{
+		int32 CheckIndex = ParticleIndices[FindTrailIdx];
+		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckIndex);
+		TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
+		if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+		{
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				OutStartIndex = CheckIndex;
+				OutParticle = CheckParticle;
+				OutTrailData = CheckTrailData;				
+				break;
+			}
+		}
+	}
+}
+template<typename TrailDataType> void GetTrailEnd(const int32 TrailIdx, int32 &OutEndIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
+{
+	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
+	{
+		int32 CheckIndex = ParticleIndices[FindTrailIdx];
+		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckIndex);
+		TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
+		if (TRAIL_EMITTER_IS_END(CheckTrailData->Flags))
+		{
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				OutEndIndex = CheckIndex;
+				OutParticle = CheckParticle;
+				OutTrailData = CheckTrailData;
+				break;
+			}
+		}
+	}
+}
+void SetStartIndex(int32 TrailIndex, int32 ParticleIndex){}
+void SetEndIndex(int32 TrailIndex, int32 ParticleIndex){}
+void SetDeadIndex(int32 TrailIndex, int32 ParticleIndex){}
+void ClearIndices(int32 TrailIndex, int32 ParticleIndex){}
+void CheckIndices(int32 TrailIdx){}
+void CheckAllIndices(){}
+
+#endif
 
 	/** Constructor	*/
 	FParticleTrailsEmitterInstance_Base() :
@@ -1304,8 +1353,10 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 
 		for (int32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
 		{
+#if ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
 			CurrentStartIndices[TrailIdx] = INDEX_NONE;
 			CurrentEndIndices[TrailIdx] = INDEX_NONE;
+#endif
 		}
 	}
 

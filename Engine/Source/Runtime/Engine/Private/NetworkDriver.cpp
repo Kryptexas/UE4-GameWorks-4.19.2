@@ -3257,8 +3257,9 @@ TSharedPtr<FRepChangedPropertyTracker> UNetDriver::FindOrCreateRepChangedPropert
 
 	if ( !GlobalPropertyTrackerPtr ) 
 	{
-		const bool bForceAlwaysActive = GetWorld() != nullptr ? GetWorld()->IsRecordingClientReplay() : false;
-		FRepChangedPropertyTracker * Tracker = new FRepChangedPropertyTracker(bForceAlwaysActive);
+		const bool bIsReplay = GetWorld() != nullptr && static_cast< void* >( GetWorld()->DemoNetDriver ) == static_cast< void* >( this );
+		const bool bIsClientReplayRecording = GetWorld() != nullptr ? GetWorld()->IsRecordingClientReplay() : false;
+		FRepChangedPropertyTracker * Tracker = new FRepChangedPropertyTracker( bIsReplay, bIsClientReplayRecording );
 
 		GetObjectClassRepLayout( Obj->GetClass() )->InitChangedTracker( Tracker );
 

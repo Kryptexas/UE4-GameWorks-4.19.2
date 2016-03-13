@@ -1883,6 +1883,36 @@ protected:
 	  * @see VerifyClientTimeStamp */
 	bool IsClientTimeStampValid(float TimeStamp, const FNetworkPredictionData_Server_Character& ServerData, bool& bTimeStampResetDetected) const;
 
+	/** Called by UCharacterMovementComponent::VerifyClientTimeStamp() when a client timestamp reset has been detected and is valid. */
+	virtual void OnClientTimeStampResetDetected();
+
+	/** 
+	 * Processes client timestamps from ServerMoves, detects and protects against time discrepancy between client-reported times and server time
+	 * Called by UCharacterMovementComponent::VerifyClientTimeStamp() for valid timestamps.
+	 */
+	virtual void ProcessClientTimeStampForTimeDiscrepancy(float ClientTimeStamp, FNetworkPredictionData_Server_Character& ServerData);
+
+	/** 
+	 * Called by UCharacterMovementComponent::ProcessClientTimeStampForTimeDiscrepancy() (on server) when the time from client moves 
+	 * significantly differs from the server time, indicating potential time manipulation by clients (speed hacks, significant network 
+	 * issues, client performance problems) 
+	 * @param CurrentTimeDiscrepancy		Accumulated time difference between client ServerMove and server time - this is bounded
+	 *										by MovementTimeDiscrepancy config variables in AGameNetworkManager, and is the value with which
+	 *										we test against to trigger this function. This is reset when MovementTimeDiscrepancy resolution
+	 *										is enabled
+	 * @param LifetimeRawTimeDiscrepancy	Accumulated time difference between client ServerMove and server time - this is unbounded
+	 *										and does NOT get affected by MovementTimeDiscrepancy resolution, and is useful as a longer-term
+	 *										view of how the given client is performing. High magnitude unbounded error points to
+	 *										intentional tampering by a client vs. occasional "naturally caused" spikes in error due to
+	 *										burst packet loss/performance hitches
+	 * @param Lifetime						Game time over which LifetimeRawTimeDiscrepancy has accrued (useful for determining severity
+	 *										of LifetimeUnboundedError)
+	 * @param CurrentMoveError				Time difference between client ServerMove and how much time has passed on the server for the
+	 *										current move that has caused TimeDiscrepancy to accumulate enough to trigger detection.
+	 */
+	virtual void OnTimeDiscrepancyDetected(float CurrentTimeDiscrepancy, float LifetimeRawTimeDiscrepancy, float Lifetime, float CurrentMoveError);
+
+
 public:
 
 	////////////////////////////////////
@@ -2222,6 +2252,23 @@ public:
 	uint8 MovementMode;
 };
 
+class FCharacterReplaySample
+{
+public:
+	FCharacterReplaySample() : RemoteViewPitch( 0 ), Time( 0.0f )
+	{
+	}
+
+	friend FArchive& operator<<( FArchive& Ar, FCharacterReplaySample& V );
+
+	FVector			Location;
+	FRotator		Rotation;
+	FVector			Velocity;
+	FVector			Acceleration;
+	uint8			RemoteViewPitch;
+	float			Time;					// This represents time since replay started
+};
+
 class ENGINE_API FNetworkPredictionData_Client_Character : public FNetworkPredictionData_Client, protected FNoncopyable
 {
 public:
@@ -2306,14 +2353,29 @@ public:
 
 	/** How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.  Must be >= 0. Not used for linear smoothing. */
 	float SmoothNetUpdateRotationTime;
-	
-	/** How long server will wait for client move update before setting position */
+
+	/** (DEPRECATED) How long server will wait for client move update before setting position */
+	DEPRECATED(4.12, "MaxResponseTime has been renamed to MaxMoveDeltaTime for clarity in what it does and will be removed, use MaxMoveDeltaTime instead.")
 	float MaxResponseTime;
+	
+	/** 
+	 * Max delta time for a given move, in real seconds
+	 * Based off of AGameNetworkManager::MaxMoveDeltaTime config setting, but can be modified per actor
+	 * if needed.
+	 * This value is mirrored in FNetworkPredictionData_Server, which is what server logic runs off of.
+	 * Client needs to know this in order to not send move deltas that are going to get clamped anyway (meaning
+	 * they'll be rejected/corrected).
+	 * Note: This was previously named MaxResponseTime, but has been renamed to reflect what it does more accurately
+	 */
+	float MaxMoveDeltaTime;
 
 	/** Values used for visualization and debugging of simulated net corrections */
 	FVector LastSmoothLocation;
 	FVector LastServerLocation;
 	float	SimulatedDebugDrawTime;
+
+	/** Array of replay samples that we use to interpolate between to get smooth location/rotation/velocity/ect */
+	TArray< FCharacterReplaySample > ReplaySamples;
 
 	/** Finds SavedMove index for given TimeStamp. Returns INDEX_NONE if not found (move has been already Acked or cleared). */
 	int32 GetSavedMoveIndex(float TimeStamp) const;
@@ -2342,21 +2404,75 @@ class ENGINE_API FNetworkPredictionData_Server_Character : public FNetworkPredic
 {
 public:
 
-	FNetworkPredictionData_Server_Character();
+	FNetworkPredictionData_Server_Character(const UCharacterMovementComponent& ServerMovement);
 	virtual ~FNetworkPredictionData_Server_Character();
 
 	FClientAdjustment PendingAdjustment;
 
-	float CurrentClientTimeStamp;	// Timestamp from the Client of most recent ServerMove() processed for this player
-	float LastUpdateTime;			// Last time server updated client with a move correction or confirmation
+	/** Timestamp from the Client of most recent ServerMove() processed for this player */
+	float CurrentClientTimeStamp;
 
-	// how long server will wait for client move update before setting position
-	// @TODO: don't duplicate between server and client data (though it's used by both)
+	/** Last time server updated client with a move correction */
+	float LastUpdateTime;
+
+	/** Server clock time when last server move was received from client (does NOT include forced moves on server) */
+	float ServerTimeStampLastServerMove;
+
+	/** (DEPRECATED) How long server will wait for client move update before setting position */
+	DEPRECATED(4.12, "MaxResponseTime has been renamed to MaxMoveDeltaTime for clarity in what it does and will be removed, use MaxMoveDeltaTime instead.")
 	float MaxResponseTime;
+	
+	/** 
+	 * Max delta time for a given move, in real seconds
+	 * Based off of AGameNetworkManager::MaxMoveDeltaTime config setting, but can be modified per actor
+	 * if needed.
+	 * Note: This was previously named MaxResponseTime, but has been renamed to reflect what it does more accurately
+	 */
+	float MaxMoveDeltaTime;
 
-	uint32 bForceClientUpdate:1;	// Force client update on the next ServerMoveHandleClientError() call.
+	/** Force client update on the next ServerMoveHandleClientError() call. */
+	uint32 bForceClientUpdate:1;
 
-	/** @return time delta to use for the current ServerMove() */
-	float GetServerMoveDeltaTime(float TimeStamp) const;
+	/** Accumulated timestamp difference between autonomous client and server for tracking long-term trends */
+	float LifetimeRawTimeDiscrepancy;
+
+	/** 
+	 * Current time discrepancy between client-reported moves and time passed
+	 * on the server. Time discrepancy resolution's goal is to keep this near zero.
+	 */
+	float TimeDiscrepancy;
+
+	/** True if currently in the process of resolving time discrepancy */
+	bool bResolvingTimeDiscrepancy;
+
+	/** 
+	 * When bResolvingTimeDiscrepancy is true, we are in time discrepancy resolution mode whose output is
+	 * this value (to be used as the DeltaTime for current ServerMove)
+	 */
+	float TimeDiscrepancyResolutionMoveDeltaOverride;
+
+	/** 
+	 * When bResolvingTimeDiscrepancy is true, we are in time discrepancy resolution mode where we bound
+	 * move deltas by Server Deltas. In cases where there are multiple ServerMove RPCs handled within one
+	 * server frame tick, we need to accumulate the client deltas of the "no tick" Moves so that the next
+	 * Move processed that the server server has ticked for takes into account those previous deltas. 
+	 * If we did not use this, the higher the framerate of a client vs the server results in more 
+	 * punishment/payback time.
+	 */
+	float TimeDiscrepancyAccumulatedClientDeltasSinceLastServerTick;
+
+	/** Creation time of this prediction data, used to contextualize LifetimeRawTimeDiscrepancy */
+	float WorldCreationTime;
+
+	/** 
+	 * @return Time delta to use for the current ServerMove(). Takes into account time discrepancy resolution if active.
+	 */
+	float GetServerMoveDeltaTime(float ClientTimeStamp, float ActorTimeDilation) const;
+
+	/** 
+	 * @return Base time delta to use for a ServerMove, default calculation (no time discrepancy resolution)
+	 */
+	float GetBaseServerMoveDeltaTime(float ClientTimeStamp, float ActorTimeDilation) const;
+
 };
 

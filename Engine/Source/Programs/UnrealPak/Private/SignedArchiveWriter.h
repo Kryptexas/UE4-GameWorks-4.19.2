@@ -20,6 +20,8 @@ class FSignedArchiveWriter : public FArchive
 	FEncryptionKey PublicKey;
 	/** Encryption key */
 	FEncryptionKey PrivateKey;
+	/** Signatures */
+	TArray<FEncryptedSignature<GPakFileChunkHashSize>> ChunkSignatures;
 
 	/** 
 	 * Encrypts a signature 

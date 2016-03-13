@@ -2539,6 +2539,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 	TArray<FOnlineAccountCredentials> PIELogins;
 	Online::GetUtils()->GetPIELogins(PIELogins);
+	ensure(PIELogins.Num() > 0);
 
 	int32 ClientNum = 0;
 	int32 PIEInstance = 1;

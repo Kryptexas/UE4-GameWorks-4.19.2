@@ -1052,6 +1052,7 @@ struct FHUDGroupManager
 			TSet<FName> HierEnabledItems;
 			for( auto It = EnabledGroups.CreateIterator(); It; ++It )
 			{
+				if(It.Value().ThreadBudgetMap.Num() == 0)
 				{
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_GetStatsForGroup_EveryFrame);
 					GetStatsForGroup(It.Value().EnabledItems, It.Key());

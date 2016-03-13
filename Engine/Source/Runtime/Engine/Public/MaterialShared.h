@@ -1043,14 +1043,14 @@ public:
 	 * 
 	 * @return returns true if compilation is complete false otherwise
 	 */
-	ENGINE_API bool IsCompilationFinished();
+	ENGINE_API bool IsCompilationFinished() const;
 
 	/**
 	* Checks if there is a valid GameThreadShaderMap, that is, the material can be rendered as intended.
 	*
 	* @return returns true if there is a GameThreadShaderMap.
 	*/
-	ENGINE_API bool HasValidGameThreadShaderMap();
+	ENGINE_API bool HasValidGameThreadShaderMap() const;
 
 
 	EMaterialQualityLevel::Type GetQualityLevel() const 
@@ -1682,6 +1682,9 @@ public:
 
 	/** Adds a material instance that has been updated to the context. */
 	ENGINE_API void AddMaterialInstance(UMaterialInstance* Instance);
+
+	/** Adds a material interface that has been updated to the context. */
+	ENGINE_API void AddMaterialInterface(UMaterialInterface* Instance);
 };
 
 /**

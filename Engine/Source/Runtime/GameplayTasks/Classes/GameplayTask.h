@@ -220,6 +220,7 @@ public:
 	
 	FORCEINLINE EGameplayTaskState GetState() const { return TaskState; }
 	FORCEINLINE bool IsActive() const { return (TaskState == EGameplayTaskState::Active); }
+	FORCEINLINE bool IsFinished() const { return (TaskState == EGameplayTaskState::Finished); }
 	
 	IGameplayTaskOwnerInterface* GetTaskOwner() const { return TaskOwner.IsValid() ? &(*TaskOwner) : nullptr; }
 	UGameplayTasksComponent* GetGameplayTasksComponent() { return TasksComponent.Get(); }

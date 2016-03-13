@@ -13,7 +13,7 @@
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 	#include <werapi.h>
 	#pragma comment( lib, "wer.lib" )
-#endif	// WINVER
+#endif	// WINVERFc
 	#include <dbghelp.h>
 	#include <Shlwapi.h>
 
@@ -477,64 +477,180 @@ void CreateExceptionInfoString(EXCEPTION_RECORD* ExceptionRecord)
 
 #undef HANDLE_CASE
 }
+
+/** 
+ * Crash reporting thread. 
+ * We process all the crashes on a separate thread in case the original thread's stack is corrupted (stack overflow etc).
+ * We're using low level API functions here because at the time we initialize the thread, nothing in the engine exists yet.
+ **/
+class FCrashReportingThread
+{
+	/** Thread Id */
+	DWORD ThreadId;
+	/** Thread handle */
+	HANDLE Thread;
+
+	/** Stops this thread */
+	FThreadSafeCounter StopTaskCounter;
+	/** Signals that the game has crashed */
+	HANDLE CrashEvent;
+	/** Exception information */
+	LPEXCEPTION_POINTERS ExceptionInfo;
+	/** Event that signals the crash reporting thread has finished processing the crash */
+	HANDLE CrashHandledEvent;
+
+	/** Thread main proc */
+	static DWORD STDCALL CrashReportingThreadProc(LPVOID pThis)
+	{
+		FCrashReportingThread* This = (FCrashReportingThread*)pThis;
+		return This->Run();
+	}
+
+	/** Main loop that waits for a crash to trigger the report generation */
+	FORCENOINLINE uint32 Run()
+	{
+		while (StopTaskCounter.GetValue() == 0)
+		{
+			if (WaitForSingleObject(CrashEvent, 500) == WAIT_OBJECT_0)
+			{
+				HandleCrashInternal();
+				ResetEvent(CrashEvent);
+				// Let the thread that crashed know we're done.				
+				SetEvent(CrashHandledEvent);
+				break;
+			}
+		}
+		return 0;
+	}
+
+	/** Called by the destructor to terminate the thread */
+	void Stop()
+	{
+		StopTaskCounter.Increment();
+	}
+
+public:
+		
+	FCrashReportingThread()
+		: Thread(nullptr)
+		, CrashEvent(nullptr)
+		, ExceptionInfo(nullptr)
+		, CrashHandledEvent(nullptr)
+	{
+		// Create a background thread that will process the crash and generate crash reports
+		Thread = CreateThread(NULL, 0, CrashReportingThreadProc, this, 0, &ThreadId);
+		SetThreadPriority(Thread, THREAD_PRIORITY_BELOW_NORMAL);
+		// Synchronization objects
+		CrashEvent = CreateEvent(nullptr, true, 0, nullptr);
+		CrashHandledEvent = CreateEvent(nullptr, false, 0, nullptr);
+	}
+
+	FORCENOINLINE ~FCrashReportingThread()
+	{
+		if (Thread)
+		{
+			// Stop the crash reporting thread
+			Stop();
+			// 1s should be enough for the thread to exit, otherwise don't bother with cleanup
+			if (WaitForSingleObject(Thread, 1000) == WAIT_OBJECT_0)
+			{
+				CloseHandle(Thread);
+				CloseHandle(CrashEvent);
+				CloseHandle(CrashHandledEvent);
+			}
+			Thread = nullptr;
+			CrashEvent = nullptr;
+			CrashHandledEvent = nullptr;
+		}
+	}
+
+	/** The thread that crashed calls this function which will trigger the CR thread to report the crash */
+	FORCEINLINE void OnCrashed(LPEXCEPTION_POINTERS InExceptionInfo)
+	{
+		ExceptionInfo = InExceptionInfo;
+		SetEvent(CrashEvent);
+	}
+
+	/** The thread that crashed calls this function to wait for the report to be generated */
+	FORCEINLINE bool WaitUntilCrashIsHandled()
+	{
+		// Wait 60s, it's more than enough to generate crash report. We don't want to stall forever otherwise.
+		return WaitForSingleObject(CrashHandledEvent, 60000) == WAIT_OBJECT_0;
+	}
+
+private:
+
+	/** Handles the crash */
+	FORCENOINLINE void HandleCrashInternal()
+	{
+		GLog->PanicFlushThreadedLogs();
+
+		// First launch the crash reporter client.
+#if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
+		if (GUseCrashReportClient)
+		{
+			ReportCrashUsingCrashReportClient(ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog, false);
+		}
+		else
+#endif		// WINVER
+		{
+			WriteMinidump(MiniDumpFilenameW, ExceptionInfo, false);
+
+#if UE_BUILD_SHIPPING && WITH_EDITOR
+			uint32 dwOpt = 0;
+			EFaultRepRetVal repret = ReportFault(ExceptionInfo, dwOpt);
+#endif
+		}
+
+		// Then try run time crash processing and broadcast information about a crash.
+		FCoreDelegates::OnHandleSystemError.Broadcast();
+
+		const bool bGenerateRuntimeCallstack = FParse::Param(FCommandLine::Get(), TEXT("ForceLogCallstacks")) || FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+		if (bGenerateRuntimeCallstack)
+		{
+			const SIZE_T StackTraceSize = 65535;
+			ANSICHAR* StackTrace = (ANSICHAR*)GMalloc->Malloc(StackTraceSize);
+			StackTrace[0] = 0;
+			// Walk the stack and dump it to the allocated memory. This process usually allocates a lot of memory.
+			FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord);
+
+			if (ExceptionInfo->ExceptionRecord->ExceptionCode != 1)
+			{
+				CreateExceptionInfoString(ExceptionInfo->ExceptionRecord);
+				FCString::Strncat(GErrorHist, GErrorExceptionDescription, ARRAY_COUNT(GErrorHist));
+				FCString::Strncat(GErrorHist, TEXT("\r\n\r\n"), ARRAY_COUNT(GErrorHist));
+			}
+
+			FCString::Strncat(GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist));
+
+			GMalloc->Free(StackTrace);
+		}
+
+#if !UE_BUILD_SHIPPING
+		FPlatformStackWalk::UploadLocalSymbols();
+#endif
+	}
+
+};
+
 #include "HideWindowsPlatformTypes.h"
+
+TAutoPtr<FCrashReportingThread> GCrashReportingThread(new FCrashReportingThread());
 
 // #CrashReport: 2015-05-28 THis should be named EngineCrashHandler
 int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
-	if( FPlatformAtomics::InterlockedIncrement( &ReportCrashCallCount ) != 1 )
+	if (FPlatformAtomics::InterlockedIncrement(&ReportCrashCallCount) != 1 || !GCrashReportingThread.IsValid())
 	{
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
-	GLog->PanicFlushThreadedLogs();
+	GCrashReportingThread->OnCrashed(ExceptionInfo);
 
-	// First launch the crash reporter client.
-#if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
-	if (GUseCrashReportClient)
-	{
-		ReportCrashUsingCrashReportClient( ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog, false );
-	}
-	else
-#endif		// WINVER
-	{
-		WriteMinidump( MiniDumpFilenameW, ExceptionInfo, false );
-
-#if UE_BUILD_SHIPPING && WITH_EDITOR
-		uint32 dwOpt = 0;
-		EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt );
-#endif
-	}
-
-	// Then try run time crash processing and broadcast information about a crash.
-	FCoreDelegates::OnHandleSystemError.Broadcast();
-
-	const bool bGenerateRuntimeCallstack = FParse::Param(FCommandLine::Get(), TEXT("ForceLogCallstacks")) || FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
-	if (bGenerateRuntimeCallstack)
-	{
-		const SIZE_T StackTraceSize = 65535;
-		ANSICHAR* StackTrace = (ANSICHAR*)GMalloc->Malloc( StackTraceSize );
-		StackTrace[0] = 0;
-		// Walk the stack and dump it to the allocated memory. This process usually allocates a lot of memory.
-		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord );
-
-		if (ExceptionInfo->ExceptionRecord->ExceptionCode != 1)
-		{
-			CreateExceptionInfoString( ExceptionInfo->ExceptionRecord );
-			FCString::Strncat( GErrorHist, GErrorExceptionDescription, ARRAY_COUNT( GErrorHist ) );
-			FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
-		}
-
-		FCString::Strncat( GErrorHist, ANSI_TO_TCHAR( StackTrace ), ARRAY_COUNT( GErrorHist ) );
-
-		GMalloc->Free( StackTrace );
-	}
-
-#if !UE_BUILD_SHIPPING
-	FPlatformStackWalk::UploadLocalSymbols();
-#endif
+	// Wait 60s for the crash reporting thread to process the message
+	GCrashReportingThread->WaitUntilCrashIsHandled();
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }

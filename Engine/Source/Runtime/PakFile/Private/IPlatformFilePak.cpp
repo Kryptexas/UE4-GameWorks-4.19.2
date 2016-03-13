@@ -15,6 +15,11 @@
 
 DEFINE_LOG_CATEGORY(LogPakFile);
 
+DEFINE_STAT(STAT_PakFile_Read);
+DEFINE_STAT(STAT_PakFile_NumOpenHandles);
+
+// Enable to stop the loading of any loose files outside of the pak file
+static const bool GEnablePakFileSecurity = false;
 
 /**
  * Class to handle correctly reading from a compressed file within a compressed package
@@ -231,6 +236,55 @@ bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEnt
 		bResult = false;
 	}
 	return bResult;
+}
+
+bool FPakPlatformFile::IsFilenameAllowed(const FString& InFilename)
+{
+	if (!bSecurityEnabled)
+	{
+		return true;
+	}
+
+	FName FilenameHash(*InFilename);
+
+#if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
+	if (SecurityExcludedFiles.Contains(FilenameHash))
+	{
+		return false;
+	}
+#endif
+
+	static TSet<FName> AllowedExtensions;
+
+	if (AllowedExtensions.Num() == 0)
+	{
+		static const FName PakExtension(TEXT("pak"));
+		static const FName LogExtension(TEXT("log"));
+		AllowedExtensions.Add(PakExtension);
+		AllowedExtensions.Add(LogExtension);
+	}
+
+	static const FName IniExtension(TEXT("ini"));
+
+	FName ExtensionName = FName(*FPaths::GetExtension(InFilename));
+	bool bAllowed = false;
+
+	if (AllowedExtensions.Contains(ExtensionName))
+	{
+		bAllowed = true;
+	}
+	else if (ExtensionName == IniExtension)
+	{
+		// TODO: Filter out ini files that we don't trust
+		bAllowed = InFilename.Contains(TEXT("GameUserSettings"), ESearchCase::IgnoreCase);
+	}
+
+#if PAKFILE_TRACK_SECURITY_EXCLUDED_FILES
+	UE_CLOG(!bAllowed, LogPakFile, Log, TEXT("Ignoring request for loose file '%s'"), *InFilename);
+	SecurityExcludedFiles.Add(FilenameHash);
+#endif
+
+	return bAllowed;
 }
 
 FPakFile::FPakFile(const TCHAR* Filename, bool bIsSigned)
@@ -506,6 +560,14 @@ FPakPlatformFile::FPakPlatformFile()
 	: LowerLevel(NULL)
 	, bSigned(false)
 {
+
+#if PLATFORM_DESKTOP && UE_BUILD_SHIPPING
+	bool UsePakSecurity = true;
+#else
+	bool UsePakSecurity = FParse::Param(FCommandLine::Get(), TEXT("PlatformFileSecurity"));
+#endif
+
+	bSecurityEnabled = GEnablePakFileSecurity && UsePakSecurity;
 }
 
 FPakPlatformFile::~FPakPlatformFile()
@@ -850,10 +912,13 @@ IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 		Result = CreatePakFileHandle(Filename, PakFile, FileEntry);
 	}
 #if !USING_SIGNED_CONTENT
-	else if (!bSigned)
+	else
 	{
-		// Default to wrapped file but only if we don't force use signed content
-		Result = LowerLevel->OpenRead(Filename, bAllowWrite);
+		if (IsFilenameAllowed(Filename))
+		{
+			// Default to wrapped file
+			Result = LowerLevel->OpenRead(Filename, bAllowWrite);
+		}
 	}
 #endif
 	return Result;
@@ -906,6 +971,14 @@ bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 	return Result;
 }
 
+void ComputePakChunkHash(const uint8* InData, const int64 InDataSize, uint8* OutHash)
+{
+#if PAKFILE_USE_CRC_FOR_CHUNK_HASHES
+	*(reinterpret_cast<uint32*>(OutHash)) = FCrc::MemCrc32(InData, InDataSize);
+#else
+	FSHA1::HashBuffer(InData, InDataSize, OutHash);
+#endif
+}
 
 /**
  * Module for the pak file

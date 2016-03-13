@@ -447,6 +447,7 @@ private:
 	TWeakObjectPtr<AActor> ParentComponentActor_DEPRECATED;	
 
 	/** The UChildActorComponent that owns this Actor. */
+	UPROPERTY()
 	TWeakObjectPtr<UChildActorComponent> ParentComponent;	
 
 public:
@@ -1867,7 +1868,7 @@ public:
 	 * @param NewOwner	The Actor whom takes over ownership of this Actor
 	 */
 	UFUNCTION(BlueprintCallable, Category=Actor)
-	void SetOwner( AActor* NewOwner );
+	virtual void SetOwner( AActor* NewOwner );
 
 	/**
 	 * Get the owner of this Actor, used primarily for network replication.

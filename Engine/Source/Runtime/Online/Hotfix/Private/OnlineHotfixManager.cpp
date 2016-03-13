@@ -534,7 +534,8 @@ bool UOnlineHotfixManager::HotfixIniFile(const FString& FileName, const FString&
 				// Per object config entries will have a space in the name, but classes won't
 				if (PerObjectNameIndex == -1 || PerObjectNameIndex > EndIndex)
 				{
-					if (IniData.StartsWith(TEXT("[/Script/"), ESearchCase::IgnoreCase))
+					const TCHAR* ScriptHeader = TEXT("[/Script/");
+					if (FCString::Strnicmp(*IniData + StartIndex, ScriptHeader, FCString::Strlen(ScriptHeader)) == 0)
 					{
 						const int32 ScriptSectionTag = 9;
 						// Snip the text out and try to find the class for that

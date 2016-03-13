@@ -1921,6 +1921,8 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	, HighestSignificance(EParticleSignificanceLevel::Critical)
 	, LowestSignificance(EParticleSignificanceLevel::Low)
 	, bAnyEmitterLoopsForever(false)
+	, bIsImmortal(false)
+	, bWillBecomeZombie(false)
 {
 #if WITH_EDITORONLY_DATA
 	ThumbnailDistance = 200.0;
@@ -2073,6 +2075,22 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 						if ((RequiredModule != nullptr) && (RequiredModule->EmitterLoops == 0))
 						{
 							bAnyEmitterLoopsForever = true;
+
+							UParticleModuleSpawn* SpawnModule = LODLevel->SpawnModule;
+							check(SpawnModule);
+
+							// check if any emitter will cause the system to never be deleted
+							// terms here are zombie (burst-only, so will stop spawning but emitter instances and psys component will continue existing)
+							// and immortal (any emitter will loop indefinitely and does not have finite duration)
+							if (RequiredModule->EmitterDuration == 0.0f)
+							{
+								bIsImmortal = true;
+								if (SpawnModule->GetMaximumSpawnRate() == 0.0f && !bAutoDeactivate)
+								{
+									bWillBecomeZombie = true;
+								}
+							}
+
 						}
 					}
 				}
@@ -2197,6 +2215,18 @@ void UParticleSystem::PostLoad()
 						{
 							bAnyEmitterLoopsForever = true;
 						}
+
+						UParticleModuleSpawn* SpawnModule = LODLevel->SpawnModule;
+						check(SpawnModule);
+
+						if (RequiredModule->EmitterDuration == 0.0f)
+						{
+							bIsImmortal = true;
+							if (SpawnModule->GetMaximumSpawnRate() == 0.0f && !bAutoDeactivate)
+							{
+								bWillBecomeZombie = true;
+							}
+						}
 					}
 				}
 			}
@@ -2209,8 +2239,8 @@ void UParticleSystem::PostLoad()
 			if (EmitterSignificance < LowestSignificance)
 			{
 				LowestSignificance = EmitterSignificance;
+			}
 		}
-	}
 	}
 
 	bShouldManageSignificance = GetLowestSignificance() != EParticleSignificanceLevel::Critical /* && !ContainsEmitterType(UParticleModuleTypeDataBeam2::StaticClass())*/;
@@ -2400,7 +2430,8 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 
 	OutTags.Add(FAssetRegistryTag("CPUCollision", UsesCPUCollision() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 	OutTags.Add(FAssetRegistryTag("Looping", bAnyEmitterLoopsForever ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
-	OutTags.Add(FAssetRegistryTag("Immortal", IsPotentiallyImmortal() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add(FAssetRegistryTag("Immortal", IsImmortal() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
+	OutTags.Add(FAssetRegistryTag("Becomes Zombie", WillBecomeZombie() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical));
 	OutTags.Add(FAssetRegistryTag("CanBeOccluded", OcclusionBoundsMethod == EParticleSystemOcclusionBoundsMethod::EPSOBM_None ? TEXT("False") : TEXT("True"), FAssetRegistryTag::TT_Alphabetical));
 
 	uint32 NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Num] = { 0, 0, 0, 0 };
@@ -2417,42 +2448,6 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	OutTags.Add(FAssetRegistryTag("Low Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Low]), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);
-}
-
-bool UParticleSystem::IsPotentiallyImmortal() const
-{
-	if (bAutoDeactivate)
-	{
-		return false;
-	}
-
-	// Run thru the emitters and see if any will loop forever
-	for (const UParticleEmitter* Emitter : Emitters)
-	{
-		if (Emitter != nullptr)
-		{
-			for (const UParticleLODLevel* LODLevel : Emitter->LODLevels)
-			{
-				if (LODLevel != nullptr)
-				{
-					const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
-					check(RequiredModule);
-
-					UParticleModuleSpawn* SpawnModule = LODLevel->SpawnModule;
-					check(SpawnModule);
-
-					if (SpawnModule->GetMaximumSpawnRate() == 0
-						&& RequiredModule->EmitterDuration == 0
-						&& RequiredModule->EmitterLoops == 0
-						)
-					{
-						return true;
-					}
-				}
-			}
-		}
-	}
-	return false;
 }
 
 bool UParticleSystem::UsesCPUCollision() const
@@ -3144,7 +3139,7 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLevel NewRequiredSignificance)
 {
-	if (Template)//This shouldn't be possible but for now allow it until the root cause can be found.
+	if (ensure(Template))
 	{
 		RequiredSignificance = NewRequiredSignificance;
 
@@ -3161,7 +3156,7 @@ void UParticleSystemComponent::SetRequiredSignificance(EParticleSignificanceLeve
 			OnSignificanceChanged(true, true, true);
 		}
 	}
-	}
+}
 
 void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bApplyToEmitters, bool bAsync)
 {
@@ -3182,28 +3177,28 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 			//Mark any emitters as significant if needed.
 			for (FParticleEmitterInstance* Inst : EmitterInstances)
 			{
-				if (Inst)					
+				if (Inst)
 				{
 					if (Inst->SpriteTemplate->IsSignificant(RequiredSignificance))
-	{
+					{
 						Inst->bEnabled = true;
 						Inst->SetHaltSpawning(false);
 						Inst->SetFakeBurstWhenSpawningSupressed(false);
 						++LocalNumSignificantEmitters;
-	}
-	}
-	else
-	{
+					}
+				}
+				else
+				{
 					++LocalNumSignificantEmitters;//Set significant for missing emitters due to other reasons such as detail mode.
 				}
-	}
+			}
 
 			if (LocalNumSignificantEmitters == 0)
-	{
+			{
 				UE_LOG(LogParticles, Warning, TEXT("Setting PSC as significant but it has no significant emitters. %s Template: %s"), *GetFullName(), *Template->GetFullName());
 			}
 			NumSignificantEmitters = LocalNumSignificantEmitters;
-	}
+		}
 	}
 	else
 	{
@@ -3219,25 +3214,29 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 		if (bApplyToEmitters && EmitterInstances.Num() > 0)
 		{
 			//Mark any emitters as significant if needed.
-	for (FParticleEmitterInstance* Inst : EmitterInstances)
-	{
-		if (Inst)
-		{
-					if(Inst->SpriteTemplate->IsSignificant(RequiredSignificance))
+			for (FParticleEmitterInstance* Inst : EmitterInstances)
 			{
-						++LocalNumSignificantEmitters;
+				if (Inst)
+				{
+					UParticleLODLevel* SpriteLODLevel = Inst->SpriteTemplate->GetCurrentLODLevel(Inst);
+					if (SpriteLODLevel && SpriteLODLevel->bEnabled)//Checking these too as they can stop us from marking emitters as signficant during update and trigger setting insignificant.
+					{
+						if (Inst->SpriteTemplate->IsSignificant(RequiredSignificance))
+						{
+							++LocalNumSignificantEmitters;
+						}
+						else
+						{
+							Inst->bEnabled = false;
+							Inst->SetHaltSpawning(true);
+							Inst->SetFakeBurstWhenSpawningSupressed(true);
+						}
+					}
+				}
 			}
-			else
-			{
-						Inst->bEnabled = false;
-				Inst->SetHaltSpawning(true);
-						Inst->SetFakeBurstWhenSpawningSupressed(true);
-			}
-		}
-	}
 
 			if (LocalNumSignificantEmitters > 0)
-	{
+			{
 				UE_LOG(LogParticles, Warning, TEXT("Setting PSC as not significant but it has some significant emitters. %s Template: %s"), *GetFullName(), *Template->GetFullName());
 			}
 
@@ -3248,10 +3247,10 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 		if (Template->InsignificantReaction == EParticleSystemInsignificanceReaction::Auto)
 		{
 			Reaction = Template->IsLooping() ? EParticleSystemInsignificanceReaction::DisableTick : EParticleSystemInsignificanceReaction::Complete;
-	}
+		}
 
 		switch (Reaction)
-	{
+		{
 		case EParticleSystemInsignificanceReaction::Complete:
 		{
 			Complete();
@@ -3260,7 +3259,7 @@ void UParticleSystemComponent::OnSignificanceChanged(bool bSignificant, bool bAp
 		case EParticleSystemInsignificanceReaction::DisableTick:
 		{
 			SetComponentTickEnabled(false);
-	}
+		}
 			break;
 		case EParticleSystemInsignificanceReaction::DisableTickAndKill:
 		{

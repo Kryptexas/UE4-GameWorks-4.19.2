@@ -105,6 +105,10 @@ FString FOnlineSubsystemAmazon::GetAppId() const
 
 bool FOnlineSubsystemAmazon::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
 {
+	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
+	{
+		return true;
+	}
 	return false;
 }
 

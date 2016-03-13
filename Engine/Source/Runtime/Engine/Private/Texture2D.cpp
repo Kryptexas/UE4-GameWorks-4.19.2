@@ -1479,7 +1479,6 @@ void FTexture2DResource::BeginUpdateMipCount( bool bShouldPrioritizeAsyncIOReque
 	Owner->PendingMipChangeRequestStatus.Set( TexState_InProgress_Allocation );
 
 	bPrioritizedIORequest = bShouldPrioritizeAsyncIORequest;
-	GStreamMemoryTracker.GameThread_BeginUpdate( *Owner );
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		UpdateMipCountCommand,
@@ -1599,9 +1598,6 @@ void FTexture2DResource::UpdateMipCount()
 				Owner->PendingMipChangeRequestStatus.Set( TexState_InProgress_Loading );
 				LoadMipData();
 
-				// Update the memory tracker.
-				GStreamMemoryTracker.RenderThread_Update( *Owner, true );
-
 				return;
 			}
 			// Transform from regular allocation to virtual allocation
@@ -1646,9 +1642,6 @@ void FTexture2DResource::UpdateMipCount()
 		// Set the state to TexState_InProgress_Loading and start loading right away.
 		Owner->PendingMipChangeRequestStatus.Set( TexState_InProgress_Loading );
 		LoadMipData();
-
-		// Update the memory tracker.
-		GStreamMemoryTracker.RenderThread_Update( *Owner, true );
 
 		return;
 	}
@@ -1725,9 +1718,6 @@ void FTexture2DResource::UpdateMipCount()
 		// Decrement the counter so that when async allocation finishes the game thread will see TexState_ReadyFor_Loading.
 		Owner->PendingMipChangeRequestStatus.Decrement();
 	}
-
-	// Update the memory tracker.
-	GStreamMemoryTracker.RenderThread_Update( *Owner, IsValidRef(IntermediateTextureRHI) || bUsingAsyncCreation );
 }
 
 /**
@@ -2125,8 +2115,6 @@ void FTexture2DResource::FinalizeMipCount()
 			MipBiasFade.SetNewMipCount( Owner->ResidentMips, Owner->ResidentMips, LastRenderTime, MipFadeSetting );
 		}
 
-		GStreamMemoryTracker.RenderThread_Finalize( *Owner, bSuccess );
-
 		// We're done.
 		Owner->PendingMipChangeRequestStatus.Decrement();
 
@@ -2196,8 +2184,6 @@ void FTexture2DResource::FinalizeMipCount()
 			DEC_DWORD_STAT_FNAME_BY( LODGroupStatName, IntermediateTextureSize );
 		}
 		IntermediateTextureRHI.SafeRelease();
-
-		GStreamMemoryTracker.RenderThread_Finalize( *Owner, bSuccess );
 
 		HintDoneWithStreamedTextureFiles(Owner);
 	}

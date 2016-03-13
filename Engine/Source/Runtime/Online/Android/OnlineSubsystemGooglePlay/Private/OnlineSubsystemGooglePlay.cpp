@@ -46,11 +46,6 @@ IOnlineSessionPtr FOnlineSubsystemGooglePlay::GetSessionInterface() const
 	return nullptr;
 }
 
-IMessageSanitizerPtr FOnlineSubsystemGooglePlay::GetMessageSanitizerInterface() const
-{
-	return nullptr;
-}
-
 IOnlineFriendsPtr FOnlineSubsystemGooglePlay::GetFriendsInterface() const
 {
 	return nullptr;
@@ -198,6 +193,10 @@ FString FOnlineSubsystemGooglePlay::GetAppId() const
 
 bool FOnlineSubsystemGooglePlay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
 {
+	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
+	{
+		return true;
+	}
 	return false;
 }
 

@@ -17,7 +17,7 @@
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-
+#include "IWebBrowserWindow.h"
 class FWebBrowserWindow;
 class FWebBrowserPopupFeatures;
 
@@ -38,7 +38,7 @@ class FWebBrowserHandler
 public:
 
 	/** Default constructor. */
-	FWebBrowserHandler();
+	FWebBrowserHandler(bool InUseTransparency);
 
 public:
 
@@ -49,13 +49,6 @@ public:
 	 */
 	void SetBrowserWindow(TSharedPtr<FWebBrowserWindow> InBrowserWindow);
 	
-	/**
-	 * Pass in a pointer to our parent Browser Window.
-	 *
-	 * @param InBrowserWindow The parent browser window.
-	 */
-	void SetBrowserWindowParent(TSharedPtr<FWebBrowserWindow> InBrowserWindow);
-
 	/**
 	 * Sets the browser window features and settings for popups which will be passed along when creating the new window.
 	 *
@@ -227,15 +220,35 @@ public:
 
 	virtual void OnResetDialogState(CefRefPtr<CefBrowser> Browser) override;
 
+public:
+
+	IWebBrowserWindow::FOnBeforePopupDelegate& OnBeforePopup()
+	{
+		return BeforePopupDelegate;
+	}
+
+	IWebBrowserWindow::FOnCreateWindow& OnCreateWindow()
+	{
+		return CreateWindowDelegate;
+	}
+
 private:
 
 	bool ShowDevTools(const CefRefPtr<CefBrowser>& Browser);
 
+	bool bUseTransparency;
+
+	/** Delegate for notifying that a popup window is attempting to open. */
+	IWebBrowserWindow::FOnBeforePopupDelegate BeforePopupDelegate;
+	
+	/** Delegate for handling requests to create new windows. */
+	IWebBrowserWindow::FOnCreateWindow CreateWindowDelegate;
+
 	/** Weak Pointer to our Web Browser window so that events can be passed on while it's valid.*/
 	TWeakPtr<FWebBrowserWindow> BrowserWindowPtr;
 	
-	/** Weak Pointer to the parent web browser window */
-	TWeakPtr<FWebBrowserWindow> BrowserWindowParentPtr;
+	/** Pointer to the parent web browser handler */
+	CefRefPtr<FWebBrowserHandler> ParentHandler;
 
 	/** Stores popup window features and settings */
 	TSharedPtr<FWebBrowserPopupFeatures> BrowserPopupFeatures;

@@ -89,42 +89,74 @@ void FXAudio2SoundSource::InitializeSourceEffects(uint32 InVoiceId)
  */
 void FXAudio2SoundSource::FreeResources( void )
 {
-	// Clean up the realtime async decoding task
-	if (RealtimeAsyncTask)
-	{
-		RealtimeAsyncTask->EnsureCompletion();
-		delete RealtimeAsyncTask;
-		RealtimeAsyncTask = nullptr;
-	}
-
-	// Clean the realtime async header parsing task
-	if (XAudio2Buffer && XAudio2Buffer->RealtimeAsyncHeaderParseTask)
-	{
-		XAudio2Buffer->RealtimeAsyncHeaderParseTask->EnsureCompletion();
-		delete XAudio2Buffer->RealtimeAsyncHeaderParseTask;
-		XAudio2Buffer->RealtimeAsyncHeaderParseTask = nullptr;
-	}
-
-	// Release voice.
+	// Release voice. Note that this will stop calling OnBufferEnd
 	if (Source)
 	{
 		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels);
 		Source = nullptr;
 	}
 
-	// If we're a streaming buffer...
-	if( bResourcesNeedFreeing )
+	bool bCanFreeNow = true;
+	
+	// If the async decoding tasks are not done, to avoid blocking, add them to a pending list and clean up later
+	FPendingAsyncTaskInfo PendingTaskInfo;
+
+	if (XAudio2Buffer && XAudio2Buffer->RealtimeAsyncHeaderParseTask)
 	{
-		// Buffers without a valid resource ID are transient and need to be deleted.
-		if( Buffer )
+		check(bResourcesNeedFreeing);
+
+		if (XAudio2Buffer->RealtimeAsyncHeaderParseTask->IsDone())
 		{
-			check( Buffer->ResourceID == 0 );
-			delete Buffer;
-			Buffer = XAudio2Buffer = nullptr;
+			delete XAudio2Buffer->RealtimeAsyncHeaderParseTask;
+		}
+		else
+		{
+			bCanFreeNow = false;
+			PendingTaskInfo.RealtimeAsyncHeaderParseTask = XAudio2Buffer->RealtimeAsyncHeaderParseTask;
 		}
 
-		CurrentBuffer = 0;
+		XAudio2Buffer->RealtimeAsyncHeaderParseTask = nullptr;
 	}
+
+	if (RealtimeAsyncTask)
+	{
+		check(bResourcesNeedFreeing);
+
+		if (RealtimeAsyncTask->IsDone())
+		{
+			delete RealtimeAsyncTask;
+		}
+		else
+		{
+			bCanFreeNow = false;
+			PendingTaskInfo.RealtimeAsyncTask = RealtimeAsyncTask;
+		}
+
+		RealtimeAsyncTask = nullptr;
+	}
+
+	// If we're not able to free now
+	if (!bCanFreeNow)
+	{
+		check(bResourcesNeedFreeing);
+
+		// Add the info to the pending list of tasks to cleanup later
+		check(Buffer->ResourceID == 0);
+		PendingTaskInfo.Buffer = Buffer;
+
+		AudioDevice->DeviceProperties->AddPendingTaskToCleanup(PendingTaskInfo);
+
+		// Clear our buffer ptr here
+		Buffer = XAudio2Buffer = nullptr;
+	}
+	else if (bResourcesNeedFreeing && Buffer)
+	{
+		check(Buffer->ResourceID == 0);
+		delete Buffer;
+		Buffer = XAudio2Buffer = nullptr;
+	}
+
+	CurrentBuffer = 0;
 }
 
 /** 
@@ -482,6 +514,13 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 	XAudio2Buffer = FXAudio2SoundBuffer::Init(BestAudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
 	if (XAudio2Buffer)
 	{
+		// If our realtime source is not ready, then we will need to free our resources because this 
+		// buffer is an async decoded buffer and could be stopped before the header is finished being parsed
+		if (!XAudio2Buffer->IsRealTimeSourceReady())
+		{
+			bResourcesNeedFreeing = true;
+		}
+
 		Buffer = XAudio2Buffer;
 
 		WaveInstance = InWaveInstance;
@@ -1332,7 +1371,7 @@ void FXAudio2SoundSource::Play()
 	{
 		if (!Playing)
 		{
-			if( Buffer->NumChannels >= SPEAKER_COUNT )
+			if (Buffer->NumChannels >= SPEAKER_COUNT)
 			{
 				XMPHelper.CinematicAudioStarted();
 			}
@@ -1397,7 +1436,7 @@ void FXAudio2SoundSource::Pause()
 	{
 		if (Source)
 		{
-			// If a source is pasued while it's async loading for realtime decoding,
+			// If a source is paused while it's async loading for realtime decoding,
 			// we'll set the paused flag but our IXAudio2Source pointer won't be valid yet.
 			// We check if the sound is paused after initialization finishes.
 			check(bInitialized);

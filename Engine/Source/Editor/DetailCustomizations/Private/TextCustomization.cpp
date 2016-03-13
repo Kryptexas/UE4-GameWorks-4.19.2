@@ -47,6 +47,8 @@ namespace
 
 		virtual int32 GetNumTexts() const override
 		{
+			RefreshRawData();
+
 			return (PropertyHandle->IsValidHandle())
 				? RawTextData.Num() 
 				: 0;
@@ -54,16 +56,23 @@ namespace
 
 		virtual FText GetText(const int32 InIndex) const override
 		{
+			RefreshRawData();
+
 			if (PropertyHandle->IsValidHandle())
 			{
 				check(RawTextData.IsValidIndex(InIndex));
-				return *RawTextData[InIndex];
+				if (RawTextData[InIndex])
+				{
+					return *RawTextData[InIndex];
+				}
 			}
 			return FText::GetEmpty();
 		}
 
 		virtual void SetText(const int32 InIndex, const FText& InText) override
 		{
+			RefreshRawData();
+
 			if (PropertyHandle->IsValidHandle())
 			{
 				check(RawTextData.IsValidIndex(InIndex));
@@ -99,7 +108,7 @@ namespace
 		}
 
 	private:
-		void RefreshRawData()
+		void RefreshRawData() const
 		{
 			RawTextData.Empty();
 
@@ -112,7 +121,7 @@ namespace
 
 		TSharedRef<IPropertyHandle> PropertyHandle;
 		TSharedPtr<IPropertyUtilities> PropertyUtilities;
-		TArray<FText*> RawTextData;
+		mutable TArray<FText*> RawTextData;
 	};
 }
 

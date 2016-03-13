@@ -100,7 +100,7 @@ bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& 
 		return false;
 	}
 	
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 	FriendsQueryRequests.Add(&HttpRequest.Get(), FPendingFriendsQuery(LocalUserNum));
 
 	// Optional list of fields to query for each friend
@@ -322,4 +322,8 @@ void FOnlineFriendsFacebook::QueryFriendsList_HttpRequestComplete(FHttpRequestPt
 	}
 
 	Delegate.ExecuteIfBound(PendingFriendsQuery.LocalUserNum, bResult, EFriendsLists::ToString(EFriendsLists::Default), ErrorStr);
+}
+
+void FOnlineFriendsFacebook::DumpBlockedPlayers() const
+{
 }

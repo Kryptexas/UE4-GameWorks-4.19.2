@@ -827,8 +827,10 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FRepl
 	ConditionMap[COND_OwnerOnly] = bIsOwner;
 	ConditionMap[COND_SkipOwner] = !bIsOwner;
 	ConditionMap[COND_SimulatedOnly] = bIsSimulated;
+	ConditionMap[COND_SimulatedOnlyNoReplay] = bIsSimulated && !bIsReplay;
 	ConditionMap[COND_AutonomousOnly] = !bIsSimulated;
 	ConditionMap[COND_SimulatedOrPhysics] = bIsSimulated || bIsPhysics;
+	ConditionMap[COND_SimulatedOrPhysicsNoReplay] = ( bIsSimulated || bIsPhysics ) && !bIsReplay;
 	ConditionMap[COND_InitialOrOwner] = bIsInitial || bIsOwner;
 	ConditionMap[COND_Custom] = true;
 	ConditionMap[COND_ReplayOrOwner] = bIsReplay || bIsOwner;

@@ -113,6 +113,10 @@ void FGameplayAbilityActivationInfo::SetPredicting(FPredictionKey PredictionKey)
 {
 	ActivationMode = EGameplayAbilityActivationMode::Predicting;
 	PredictionKeyWhenActivated = PredictionKey;
+
+	// Abilities can be cancelled by server at any time. There is no reason to have to wait until confirmation.
+	// prediction keys keep previous activations of abilities from ending future activations.
+	bCanBeEndedByOtherInstance = true;
 }
 
 void FGameplayAbilityActivationInfo::ServerSetActivationPredictionKey(FPredictionKey PredictionKey)
@@ -125,6 +129,11 @@ void FGameplayAbilityActivationInfo::SetActivationConfirmed()
 	ActivationMode = EGameplayAbilityActivationMode::Confirmed;
 	//Remote (server) commands to end the ability that come in after this point are considered for this instance
 	bCanBeEndedByOtherInstance = true;
+}
+
+void FGameplayAbilityActivationInfo::SetActivationRejected()
+{
+	ActivationMode = EGameplayAbilityActivationMode::Rejected;
 }
 
 bool FGameplayAbilitySpec::IsActive() const

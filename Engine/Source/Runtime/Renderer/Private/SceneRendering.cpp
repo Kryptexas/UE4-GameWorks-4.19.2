@@ -347,6 +347,7 @@ void FParallelCommandListSet::WaitForTasksInternal()
 }
 
 
+
 /*-----------------------------------------------------------------------------
 	FViewInfo
 -----------------------------------------------------------------------------*/
@@ -1465,6 +1466,9 @@ bool FSceneRenderer::DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) c
 
 FSceneRenderer::~FSceneRenderer()
 {
+	// To prevent keeping persistent references to single frame buffers, clear any such reference at this point.
+	ClearPrimitiveSingleFramePrecomputedLightingBuffers();
+
 	if(Scene)
 	{
 		// Destruct the projected shadow infos.
@@ -1640,9 +1644,6 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 	}
 
 #endif
-
-	// To prevent keeping persistent references to single frame buffers, clear any such reference at this point.
-	ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 
 	// Notify the RHI we are done rendering a scene.
 	RHICmdList.EndScene();

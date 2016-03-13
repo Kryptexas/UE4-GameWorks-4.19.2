@@ -19,7 +19,7 @@ class UCapsuleComponent;
 /**
  * NavMovementComponent defines base functionality for MovementComponents that move any 'agent' that may be involved in AI pathfinding.
  */
-UCLASS(abstract)
+UCLASS(abstract, config=Engine)
 class ENGINE_API UNavMovementComponent : public UMovementComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -38,7 +38,7 @@ protected:
 	uint32 bUpdateNavAgentWithOwnersCollision:1;
 
 	/** If set, FixedPathBrakingDistance will be used for path following deceleration */
-	UPROPERTY(EditAnywhere, Category = NavMovement)
+	UPROPERTY(EditAnywhere, Category = NavMovement, GlobalConfig)
 	uint32 bUseAccelerationForPaths : 1;
 
 	/** If set, FixedPathBrakingDistance will be used for path following deceleration */

@@ -124,6 +124,7 @@ public partial class Project : CommandUtils
         {
             CmdLine += " -generatepatch=" + CommandUtils.MakePathSafeToUseWithCommandLine(PatchSourceContentPath);
         }
+		CmdLine += " -multiprocess"; // Prevents warnings about being unable to write to config files
 		CmdLine += PlatformOptions;
 		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 		Log("UnrealPak Done *******");
@@ -1074,7 +1075,7 @@ public partial class Project : CommandUtils
 			}
 			if (!bAddedToChunk)
 			{
-				Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
+				//Log("No chunk assigned found for {0}. Using default chunk.", StagingFile.Key);
 				PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
 			}
 		}
@@ -1096,11 +1097,13 @@ public partial class Project : CommandUtils
 			}
 		}
 
-		for (int ChunkIndex = 0; ChunkIndex < PakResponseFiles.Length; ++ChunkIndex)
+		IEnumerable<Tuple<Dictionary<string,string>, string>> PakPairs = PakResponseFiles.Zip(ChunkList, (a, b) => Tuple.Create(a, b));
+
+		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
-			var ChunkName = Path.GetFileNameWithoutExtension(ChunkList[ChunkIndex]);
-			CreatePak(Params, SC, PakResponseFiles[ChunkIndex], ChunkName);
-		}
+			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
+			CreatePak(Params, SC, PakPair.Item1, ChunkName);
+		});
 
 		String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());
 		String OutputChunkLayerFilename = Path.Combine(SC.ProjectRoot, "Build", SC.FinalCookPlatform, "ChunkLayerInfo", GetChunkPakLayerListName());

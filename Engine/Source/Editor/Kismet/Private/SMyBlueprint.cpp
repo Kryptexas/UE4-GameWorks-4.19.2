@@ -133,6 +133,7 @@ public:
 void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint )
 {
 	bNeedsRefresh = false;
+	bShowReplicatedVariablesOnly = false;
 
 	BlueprintEditorPtr = InBlueprintEditor;
 	EdGraph = nullptr;
@@ -290,6 +291,20 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton,
 		TEXT("MyBlueprint_ShowEmptySections")
+	);
+
+	ViewOptions.AddMenuEntry(
+		LOCTEXT("ShowReplicatedVariablesOnly", "Show Replicated Variables Only"),
+		LOCTEXT("ShowReplicatedVariablesOnlyTooltip", "Should we only show variables that are replicated?"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnToggleShowReplicatedVariablesOnly),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SMyBlueprint::IsShowingReplicatedVariablesOnly)
+		),
+		NAME_None,
+		EUserInterfaceActionType::ToggleButton,
+		TEXT("MyBlueprint_ShowReplicatedVariablesOnly")
 	);
 
 	SAssignNew(FilterBox, SSearchBox)
@@ -990,6 +1005,8 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FieldIteratorSuperFlag = EFieldIteratorFlags::ExcludeSuper;
 	}
 
+	bool bShowReplicatedOnly = IsShowingReplicatedVariablesOnly();
+
 	// Helper structure to aid category sorting
 	struct FGraphActionSort
 	{
@@ -1083,6 +1100,12 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 	{
 		UProperty* Property = *PropertyIt;
 		FName PropName = Property->GetFName();
+
+		// If we're showing only replicated, ignore the rest
+		if (bShowReplicatedOnly && (!Property->HasAnyPropertyFlags(CPF_Net | CPF_RepNotify) || Property->HasAnyPropertyFlags(CPF_RepSkip)))
+		{
+			continue;
+		}
 		
 		// Don't show delegate properties, there is special handling for these
 		const bool bMulticastDelegateProp = Property->IsA(UMulticastDelegateProperty::StaticClass());
@@ -1415,6 +1438,17 @@ void SMyBlueprint::OnToggleShowEmptySections()
 bool SMyBlueprint::IsShowingEmptySections() const
 {
 	return GetMutableDefault<UBlueprintEditorSettings>()->bShowEmptySections;
+}
+
+void SMyBlueprint::OnToggleShowReplicatedVariablesOnly()
+{
+	bShowReplicatedVariablesOnly = !bShowReplicatedVariablesOnly;
+	Refresh();
+}
+
+bool SMyBlueprint::IsShowingReplicatedVariablesOnly() const
+{
+	return bShowReplicatedVariablesOnly;
 }
 
 FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent )

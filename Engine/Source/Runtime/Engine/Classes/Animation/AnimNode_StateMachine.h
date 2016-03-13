@@ -118,6 +118,12 @@ public:
 	// The maximum number of transitions that can be taken by this machine 'simultaneously' in a single frame
 	UPROPERTY(EditAnywhere, Category=Settings)
 	int32 MaxTransitionsPerFrame;
+
+	// Skip transition from entry state on first update?
+	// default is true, we throw away transition data on first update
+	UPROPERTY(EditAnywhere, Category = Settings)
+	bool bSkipFirstUpdateTransition;
+
 public:
 
 	int32 GetCurrentState() const
@@ -179,6 +185,7 @@ private:
 public:
 	FAnimNode_StateMachine()
 		: MaxTransitionsPerFrame(3)
+		, bSkipFirstUpdateTransition(true)
 		, PRIVATE_MachineDescription(NULL)
 		, CurrentState(INDEX_NONE)
 		, bFirstUpdate(true)

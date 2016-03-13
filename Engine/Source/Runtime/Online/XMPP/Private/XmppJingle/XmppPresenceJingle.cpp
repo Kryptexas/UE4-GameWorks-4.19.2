@@ -7,14 +7,44 @@
 
 #if WITH_XMPP_JINGLE
 
+class FXmppMucPresenceStatus : 
+	public buzz::MucPresenceStatus
+{
+public:
+	void set_role(const std::string& role)
+	{
+		Role = role;
+	}
+
+	const std::string& get_role() const
+	{
+		return Role;
+	}
+
+	void set_affiliation(const std::string& affiliation)
+	{
+		Affiliation = affiliation;
+	}
+
+	const std::string& get_affiliation() const
+	{
+		return Affiliation;
+	}
+
+private:
+	std::string Role;
+	std::string Affiliation;
+};
+
 /**
 * Task for receiving Xmpp presence
 */
 class FXmppPresenceReceiveTask : public buzz::XmppTask
 {
 public:
-	explicit FXmppPresenceReceiveTask(buzz::XmppTaskParentInterface* Parent)
+	explicit FXmppPresenceReceiveTask(buzz::XmppTaskParentInterface* Parent, const std::string& InMucDomain)
 		: buzz::XmppTask(Parent, buzz::XmppEngine::HL_TYPE)
+		, MucDomain(InMucDomain)
 	{}
 
 	virtual ~FXmppPresenceReceiveTask()
@@ -43,6 +73,10 @@ public:
 
 	/** signal callback for when presence is received & processed */
 	sigslot::signal1<const buzz::PresenceStatus& /*Status*/> SignalPresenceUpdate;
+	sigslot::signal1<const FXmppMucPresenceStatus& /*Status*/> MucSignalPresenceUpdate;
+
+	/** domain for muc room endpoint from connection */
+	std::string MucDomain;
 
 protected:
 
@@ -63,13 +97,46 @@ protected:
 	{
 		if (Stanza->Attr(buzz::QN_TYPE) != buzz::STR_ERROR) 
 		{
-			buzz::PresenceStatus Status;
-			DecodeStatus(From, Stanza, &Status);
-			SignalPresenceUpdate(Status);
+			// detect muc room specific presence updates
+			if (FCStringAnsi::Strnicmp(MucDomain.c_str(), From.domain().c_str(), MucDomain.length()) == 0)
+			{
+				FXmppMucPresenceStatus MucStatus;
+				DecodeMucStatus(From, Stanza, &MucStatus);
+				MucSignalPresenceUpdate(MucStatus);
+			}
+			else
+			{
+				buzz::PresenceStatus Status;
+				DecodeStatus(From, Stanza, &Status);
+				SignalPresenceUpdate(Status);
+			}
 		}
 	}
 
-	void DecodeStatus(const buzz::Jid& From,
+	void DecodeMucStatus(
+		const buzz::Jid& From,
+		const buzz::XmlElement* Stanza,
+		FXmppMucPresenceStatus* MucPresenceStatus)
+	{
+		DecodeStatus(From, Stanza, MucPresenceStatus);
+		if (Stanza->Attr(buzz::QN_TYPE) != buzz::STR_UNAVAILABLE)
+		{
+			const buzz::XmlElement* UserElem = Stanza->FirstNamed(buzz::QN_MUC_USER_X);
+			if (UserElem != nullptr)
+			{
+				const buzz::XmlElement* UserItemElem = UserElem->FirstNamed(buzz::QN_MUC_USER_ITEM);
+				if (UserItemElem != nullptr)
+				{
+					MucPresenceStatus->set_role(UserItemElem->Attr(buzz::QN_ROLE));
+					MucPresenceStatus->set_affiliation(UserItemElem->Attr(buzz::QN_AFFILIATION));
+				}
+			}
+		}
+
+	}
+
+	void DecodeStatus(
+		const buzz::Jid& From,
 		const buzz::XmlElement* Stanza,
 		buzz::PresenceStatus* PresenceStatus) 
 	{
@@ -493,8 +560,9 @@ void FXmppPresenceJingle::HandlePumpStarting(buzz::XmppPump* XmppPump)
 	}
 	if (PresenceRcvTask == NULL)
 	{
-		PresenceRcvTask = new FXmppPresenceReceiveTask(XmppPump->client());
+		PresenceRcvTask = new FXmppPresenceReceiveTask(XmppPump->client(), TCHAR_TO_UTF8(*Connection.GetMucDomain()));
 		PresenceRcvTask->SignalPresenceUpdate.connect(this, &FXmppPresenceJingle::OnSignalPresenceUpdate);
+		PresenceRcvTask->MucSignalPresenceUpdate.connect(this, &FXmppPresenceJingle::OnSignalMucPresenceUpdate);
 		PresenceRcvTask->Start();
 	}
 	CachedStatus.set_jid(XmppPump->client()->jid());
@@ -542,31 +610,49 @@ void FXmppPresenceJingle::HandlePumpTick(buzz::XmppPump* XmppPump)
 
 void FXmppPresenceJingle::OnSignalPresenceUpdate(const buzz::PresenceStatus& InStatus)
 {	
-	// ignore muc presence
-	FString Domain(UTF8_TO_TCHAR(InStatus.jid().domain().c_str()));
-	if (!Domain.Equals(Connection.GetMucDomain(), ESearchCase::IgnoreCase))
+	FXmppUserJid UserJid;
+	FXmppJingle::ConvertToJid(UserJid, InStatus.jid());
+
+	// Don't keep presence entries missing a resource, this comes in when a new friend is added but will never get updated when user logs off
+	if (UserJid.IsValid() && !UserJid.Resource.IsEmpty())
 	{
-		FXmppUserJid UserJid;
-		FXmppJingle::ConvertToJid(UserJid, InStatus.jid());
-		// Don't keep presence entries missing a resource, this comes in when a new friend is added but will never get updated when user logs off
-		if (UserJid.IsValid() && !UserJid.Resource.IsEmpty())
-		{
-			FScopeLock Lock(&RosterLock);
+		FScopeLock Lock(&RosterLock);
 		
-			FXmppUserPresenceJingle& RosterEntry = RosterPresence.FindOrAdd(UserJid.GetFullPath());
-			ConvertToPresence(*RosterEntry.Presence, InStatus, UserJid);
-			FXmppJingle::ConvertToJid(RosterEntry.UserJid, InStatus.jid());
+		FXmppUserPresenceJingle& RosterEntry = RosterPresence.FindOrAdd(UserJid.GetFullPath());
+		ConvertToPresence(*RosterEntry.Presence, InStatus, UserJid);
+		FXmppJingle::ConvertToJid(RosterEntry.UserJid, InStatus.jid());
 
-			UE_LOG(LogXmpp, Verbose, TEXT("Received presence for user [%s]"), *UserJid.GetFullPath());
-			DebugPrintPresence(*RosterEntry.Presence);
+		UE_LOG(LogXmpp, Verbose, TEXT("Received presence for user [%s]"), *UserJid.GetFullPath());
+		DebugPrintPresence(*RosterEntry.Presence);
 
-			RosterUpdates.Enqueue(UserJid.GetFullPath());
-		}
-		else if (UserJid.IsValid() && UserJid.Resource.IsEmpty())
-		{
-			UE_LOG(LogXmpp, Warning, TEXT("Ignoring presence update with empty resource. StatusJid = %s, JidFullPath = %s"), UTF8_TO_TCHAR(InStatus.jid().Str().c_str()), *UserJid.GetFullPath());
-		}
+		RosterUpdates.Enqueue(UserJid.GetFullPath());
+	}
+	else if (UserJid.IsValid() && UserJid.Resource.IsEmpty())
+	{
+		UE_LOG(LogXmpp, Warning, TEXT("Ignoring presence update with empty resource. StatusJid = %s, JidFullPath = %s"), UTF8_TO_TCHAR(InStatus.jid().Str().c_str()), *UserJid.GetFullPath());
 	}
 }
+
+void FXmppPresenceJingle::ConvertToMucPresence(FXmppMucPresence& OutMucPresence, const class FXmppMucPresenceStatus& InMucStatus, const FXmppUserJid& InJid)
+{
+	FXmppPresenceJingle::ConvertToPresence(OutMucPresence, InMucStatus, InJid);
+
+	OutMucPresence.Role = UTF8_TO_TCHAR(InMucStatus.get_role().c_str());
+	OutMucPresence.Affiliation = UTF8_TO_TCHAR(InMucStatus.get_affiliation().c_str());
+}
+
+void FXmppPresenceJingle::OnSignalMucPresenceUpdate(const class FXmppMucPresenceStatus& MucStatus)
+{
+	FXmppUserJid MucJid;
+	FXmppJingle::ConvertToJid(MucJid, MucStatus.jid());
+
+	UE_LOG(LogXmpp, Verbose, TEXT("Received MUC presence from [%s]"), *MucJid.GetFullPath());
+
+	FXmppMucPresence MucPresence;
+	ConvertToMucPresence(MucPresence, MucStatus, MucJid);
+	Connection.MultiUserChat()->HandleMucPresence(MucPresence);
+}
+
+
 
 #endif //WITH_XMPP_JINGLE

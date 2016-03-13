@@ -42,6 +42,9 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 
 	bSuppressGrantAbility = false;
 	bSuppressGameplayCues = false;
+	bPendingMontagerep = false;
+
+	AbilityLastActivatedTime = 0.f;
 }
 
 UAbilitySystemComponent::~UAbilitySystemComponent()
@@ -1816,10 +1819,11 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 			}
 
 			FString InputPressedStr = AbilitySpec.InputPressed ? TEXT("(InputPressed)") : TEXT("");
+			FString ActivationModeStr = AbilitySpec.IsActive() ? UEnum::GetValueAsString(TEXT("GameplayAbilities.EGameplayAbilityActivationMode"), AbilitySpec.ActivationInfo.ActivationMode) : TEXT("");
 
 			if (Info.Canvas) Info.Canvas->SetDrawColor(AbilityTextColor);
 
-			DebugLine(Info, FString::Printf(TEXT("%s %s %s"), *CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText, *InputPressedStr), 4.f, 0.f);
+			DebugLine(Info, FString::Printf(TEXT("%s %s %s %s"), *CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText, *InputPressedStr, *ActivationModeStr), 4.f, 0.f);
 
 			if (AbilitySpec.IsActive())
 			{

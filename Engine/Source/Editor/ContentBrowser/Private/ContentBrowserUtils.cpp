@@ -1117,14 +1117,7 @@ bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 
 bool ContentBrowserUtils::IsLocalizationFolder( const FString& InPath )
 {
-	static const FString EngineLocPathWithSlash = TEXT("/Engine/L10N");
-	static const FString EngineLocPathWithoutSlash = TEXT("Engine/L10N");
-
-	static const FString GameLocPathWithSlash = TEXT("/Game/L10N");
-	static const FString GameLocPathWithoutSlash = TEXT("Game/L10N");
-
-	return	InPath.StartsWith(EngineLocPathWithSlash) || InPath.StartsWith(EngineLocPathWithoutSlash) ||
-			InPath.StartsWith(GameLocPathWithSlash) || InPath.StartsWith(GameLocPathWithoutSlash);
+	return FPackageName::IsLocalizedPackage(InPath);
 }
 
 void ContentBrowserUtils::GetObjectsInAssetData(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects)

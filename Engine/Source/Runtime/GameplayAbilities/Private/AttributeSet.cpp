@@ -10,6 +10,15 @@
 #include "ComponentReregisterContext.h"
 #include "PropertyTag.h"
 
+#if ENABLE_VISUAL_LOG
+namespace
+{
+	int32 bDoAttributeGraphVLogging = 1;
+	FAutoConsoleVariableRef PickUp_Debug_CVar(TEXT("g.debug.vlog.AttributeGraph")
+		, bDoAttributeGraphVLogging, TEXT("Controlls whether Attribute changes are being recorded by VisLog"), ECVF_Cheat);
+}
+#endif
+
 FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
 {
 	// Only numeric properties are allowed right now
@@ -26,10 +35,13 @@ void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttribute
 
 #if ENABLE_VISUAL_LOG
 	// draw a graph of the changes to the attribute in the visual logger
-	AActor* OwnerActor = Dest->GetOwningAbilitySystemComponent()->OwnerActor;
-	if (OwnerActor)
+	if (bDoAttributeGraphVLogging && FVisualLogger::IsRecording())
 	{
-		ABILITY_VLOG_ATTRIBUTE_GRAPH(OwnerActor, Log, GetName(), OldValue, NewValue);
+		AActor* OwnerActor = Dest->GetOwningAbilitySystemComponent()->OwnerActor;
+		if (OwnerActor)
+		{
+			ABILITY_VLOG_ATTRIBUTE_GRAPH(OwnerActor, Log, GetName(), OldValue, NewValue);
+		}
 	}
 #endif
 }

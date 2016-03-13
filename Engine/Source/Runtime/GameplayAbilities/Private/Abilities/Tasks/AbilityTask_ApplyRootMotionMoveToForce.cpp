@@ -28,7 +28,7 @@ UAbilityTask_ApplyRootMotionMoveToForce* UAbilityTask_ApplyRootMotionMoveToForce
 
 	MyTask->ForceName = TaskInstanceName;
 	MyTask->TargetLocation = TargetLocation;
-	MyTask->Duration = FMath::Max(Duration, 0.001f);		// Avoid negative or divide-by-zero cases
+	MyTask->Duration = FMath::Max(Duration, KINDA_SMALL_NUMBER); // Avoid negative or divide-by-zero cases
 	MyTask->bSetNewMovementMode = bSetNewMovementMode;
 	MyTask->NewMovementMode = MovementMode;
 	MyTask->bRestrictSpeedToExpected = bRestrictSpeedToExpected;
@@ -180,14 +180,34 @@ void UAbilityTask_ApplyRootMotionMoveToForce::OnDestroy(bool AbilityIsEnding)
 
 		if (VelocityOnFinishMode == EOrionRootMotionFinishVelocityMode::SetVelocity)
 		{
+			FVector EndVelocity;
 			ACharacter* Character = MovementComponent->GetCharacterOwner();
 			if (Character)
 			{
-				MovementComponent->Velocity = Character->GetActorRotation().RotateVector(SetVelocityOnFinish);
+				EndVelocity = Character->GetActorRotation().RotateVector(SetVelocityOnFinish);
 			}
 			else
 			{
-				MovementComponent->Velocity = SetVelocityOnFinish;
+				EndVelocity = SetVelocityOnFinish;
+			}
+
+			// When we mean to SetVelocity when finishing a MoveTo, we apply a short-duration low-priority
+			// root motion velocity override. This ensures that the velocity we set is replicated properly
+			// and takes effect.
+			{
+				const FName OnFinishForceName = FName("AbilityTaskApplyRootMotionMoveToForce_EndForce");
+				FRootMotionSource_ConstantForce* ConstantForce = new FRootMotionSource_ConstantForce();
+				ConstantForce->InstanceName = OnFinishForceName;
+				ConstantForce->AccumulateMode = ERootMotionAccumulateMode::Override;
+				ConstantForce->Priority = 1; // Low priority so any other override root motion sources stomp it
+				ConstantForce->Force = EndVelocity;
+				ConstantForce->Duration = 0.001f;
+				MovementComponent->ApplyRootMotionSource(ConstantForce);
+
+				if (Ability)
+				{
+					Ability->SetMovementSyncPoint(OnFinishForceName);
+				}
 			}
 		}
 	}

@@ -524,6 +524,17 @@ struct FConsoleRenderThreadPropagation : public IConsoleThreadPropagation
 			Dest = NewValue;
 		});
 	}
+
+	virtual void OnCVarChange(bool& Dest, bool NewValue)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			OnCVarChange2,
+			bool&, Dest, Dest,
+			bool, NewValue, NewValue,
+		{
+			Dest = NewValue;
+		});
+	}
 	
 	virtual void OnCVarChange(FString& Dest, const FString& NewValue)
 	{

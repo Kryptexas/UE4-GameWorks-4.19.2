@@ -234,6 +234,19 @@ private:
 	friend UChildActorComponent;
 };
 
+#if WITH_EDITOR
+void UChildActorComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// For a period of time the parent component property on Actor was not a UPROPERTY so this value was not set
+	if (ChildActor)
+	{
+		FActorParentComponentSetter::Set(ChildActor, this);
+	}
+}
+#endif
+
 void UChildActorComponent::CreateChildActor()
 {
 	// Kill spawned actor if we have one

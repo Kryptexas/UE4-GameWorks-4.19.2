@@ -663,7 +663,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UObject* Worl
 			PSC->ActivateSystem(true);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+			if (PSC->Template && PSC->Template->IsImmortal())
 			{
 				UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 					*(PSC->GetPathName()), *(PSC->Template->GetPathName())
@@ -696,7 +696,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAtLocation(UWorld* World
 		PSC->ActivateSystem(true);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+		if (PSC->Template && PSC->Template->IsImmortal())
 		{
 			UE_LOG(LogParticles, Warning, TEXT("GameplayStatics::SpawnEmitterAtLocation spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 				*(PSC->GetPathName()), *(PSC->Template->GetPathName())
@@ -747,7 +747,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 				PSC->ActivateSystem(true);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if (PSC->Template && PSC->Template->IsPotentiallyImmortal())
+				if (PSC->Template && PSC->Template->IsImmortal())
 				{
 					UE_LOG(LogParticles, Log, TEXT("GameplayStatics::SpawnEmitterAttached spawned potentially immortal particle system! %s (%s) may stay in world despite never spawning particles after burst spawning is over."),
 						*(PSC->GetPathName()), *(PSC->Template->GetPathName())

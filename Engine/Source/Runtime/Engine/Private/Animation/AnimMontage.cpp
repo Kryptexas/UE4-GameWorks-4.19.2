@@ -351,7 +351,7 @@ void UAnimMontage::PostLoad()
 
 		if(CurrentCalculatedLength != SequenceLength)
 		{
-			UE_LOG(LogAnimMontage, Warning, TEXT("UAnimMontage::PostLoad: The actual sequence length for %s does not match the length stored in the asset, please resave the asset."), *GetFullName());
+			UE_LOG(LogAnimMontage, Display, TEXT("UAnimMontage::PostLoad: The actual sequence length for %s does not match the length stored in the asset, please resave the asset."), *GetFullName());
 			SequenceLength = CurrentCalculatedLength;
 		}
 	}
@@ -1216,6 +1216,10 @@ void FAnimMontageInstance::Pause()
 
 void FAnimMontageInstance::Initialize(class UAnimMontage * InMontage)
 {
+	// Generate unique ID for this instance
+	static int32 IncrementInstanceID = 0;
+	InstanceID = IncrementInstanceID++;
+
 	if (InMontage)
 	{
 		Montage = InMontage;

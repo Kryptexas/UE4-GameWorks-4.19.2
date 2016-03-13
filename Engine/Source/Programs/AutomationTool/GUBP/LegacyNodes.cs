@@ -1086,6 +1086,7 @@ partial class GUBP
 		bool WithXp;
 		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
 		bool EnhanceAgentRequirements;
+		public List<UnrealTargetConfiguration> ExcludeConfigurations = new List<UnrealTargetConfiguration>();
 
         public GamePlatformMonolithicsNode(GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InBranchConfig, InHostPlatform)
@@ -1349,7 +1350,7 @@ partial class GUBP
 								Configs = Target.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, TargetPlatform).Except(Target.Rules.GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(HostPlatform, TargetPlatform)).ToList();
 							}
 							
-							foreach (var Config in Configs)
+							foreach (var Config in Configs.Where(x => !ExcludeConfigurations.Contains(x)))
 							{
 								if (GameProj.GameName == BranchConfig.Branch.BaseEngineProject.GameName)
 								{

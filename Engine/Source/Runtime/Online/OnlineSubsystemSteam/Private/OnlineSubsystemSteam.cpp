@@ -170,11 +170,6 @@ IOnlineFriendsPtr FOnlineSubsystemSteam::GetFriendsInterface() const
 	return FriendInterface;
 }
 
-IMessageSanitizerPtr FOnlineSubsystemSteam::GetMessageSanitizerInterface() const
-{
-	return nullptr;
-}
-
 IOnlineGroupsPtr FOnlineSubsystemSteam::GetGroupsInterface() const
 {
 	return nullptr;
@@ -726,6 +721,12 @@ static void DeleteFromEnumerateUserFilesComplete(bool bWasSuccessful, const FUni
 
 bool FOnlineSubsystemSteam::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
 {
+	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
+	{
+		return true;
+	}
+
+	bool bWasHandled = false;
 	if (FParse::Command(&Cmd, TEXT("DELETECLOUDFILES")))
 	{
 		IOnlineUserCloudPtr UserCloud = GetUserCloudInterface();
@@ -735,18 +736,18 @@ bool FOnlineSubsystemSteam::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevic
 		FOnEnumerateUserFilesCompleteDelegate Delegate = FOnEnumerateUserFilesCompleteDelegate::CreateStatic(&DeleteFromEnumerateUserFilesComplete);
 		GPerCloudDeleteFromEnumerateUserFilesCompleteDelegateHandles.Add(UserCloud.Get(), UserCloud->AddOnEnumerateUserFilesCompleteDelegate_Handle(Delegate));
 		UserCloud->EnumerateUserFiles(SteamId);
-		return true;
+		bWasHandled = true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("SYNCLOBBIES")))
 	{
 		if (SessionInterface.IsValid())
 		{
 			SessionInterface->SyncLobbies();
-			return true;
+			bWasHandled = true;
 		}
 	}
 
-	return false;
+	return bWasHandled;
 }
 
 FString FOnlineSubsystemSteam::GetAppId() const

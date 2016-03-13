@@ -401,7 +401,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XA
 
 	Buffer->DecompressionState = XAudio2Device->CreateCompressedAudioInfo(Wave);
 
-	if (Buffer->DecompressionState && Buffer->DecompressionState->ReadCompressedInfo(Wave->ResourceData, Wave->ResourceSize, nullptr))
+	if (Buffer->DecompressionState)
 	{
 		// Start the async task that parses the decompressed asset header info
 		// Doing this step synchronously causes huge main-thread hitches for large ogg-vorbis files

@@ -247,6 +247,12 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseLoggingInShipping;
 
+        /// <summary>
+        /// Whether to check that the process was launched through an external launcher
+        /// </summary>
+        [XmlConfig]
+        public static bool bUseLauncherChecks;
+
 		/// <summary>
 		/// Whether to turn on checks (asserts) for test/shipping builds
 		/// </summary>
@@ -348,6 +354,7 @@ namespace UnrealBuildTool
 			bCompileWithPluginSupport = false;
 			bUseLoggingInShipping = false;
 			bUseChecksInShipping = false;
+            bUseLauncherChecks = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
 			bCompilePhysXVehicle = true;

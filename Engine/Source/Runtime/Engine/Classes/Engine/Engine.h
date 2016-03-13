@@ -1979,8 +1979,9 @@ public:
 	 * Starts the FPS chart data capture.
 	 *
 	 * @param	Label		Label for this run
+	 * @param	bRecordPerFrameTimes	Should we record per-frame times (potentially unbounded memory growth; used when triggered via the console but not when triggered by game code)
 	 */
-	virtual void StartFPSChart( const FString& Label );
+	virtual void StartFPSChart( const FString& Label, bool bRecordPerFrameTimes );
 
 	/**
 	 * Stops the FPS chart data capture.
@@ -2009,11 +2010,6 @@ public:
 	virtual void GetFPSChartBoundByFrameCounts(uint32& OutGameThread, uint32& OutRenderThread, uint32& OutGPU) const;
 
 private:
-
-	/**
-	* Calculates the range of FPS values for the given bucket index
-	*/
-	void CalcQuantisedFPSRange(int32 BucketIndex, int32& StartFPS, int32& EndFPS);
 
 	/**
 	 * Dumps the FPS chart information to HTML.
@@ -2064,6 +2060,14 @@ protected:
 	 {
 		// Intentionally empty.
 	 }
+
+	 /**
+	 * Requests that the engine intentionally performs an invalid operation. Used for testing error handling
+	 * and external crash reporters
+	 *
+	 * @param Cmd			Error to perform. See implementation for options
+	 */
+	 bool PerformError(const TCHAR* Cmd, FOutputDevice& Out = *GLog);
 
 public:
 	/** @return the GIsEditor flag setting */

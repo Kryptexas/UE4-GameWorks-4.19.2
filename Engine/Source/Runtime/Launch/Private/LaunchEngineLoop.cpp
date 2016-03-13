@@ -91,9 +91,12 @@
 #endif
 
 #if ENABLE_VISUAL_LOG
-#	include "VisualLogger/VisualLogger.h"
+	#include "VisualLogger/VisualLogger.h"
 #endif
 
+#if WITH_LAUNCHERCHECK
+	#include "LauncherCheck.h"
+#endif
 
 // Pipe output to std output
 // This enables UBT to collect the output for it's own use
@@ -728,6 +731,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Fail, shipping builds will crash if setting command line fails
 		return -1;
 	}
+
+#if WITH_LAUNCHERCHECK
+	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
+	{
+		// Tell Launcher to run us instead
+		ILauncherCheckModule::Get().RunLauncher();
+		// We wish to exit
+		GIsRequestingExit = true;
+		return 0;
+	}
+#endif
 
 #if	STATS
 	// Create the stats malloc profiler proxy.

@@ -224,10 +224,12 @@ public:
 	virtual IOnlineFriendsPtr GetFriendsInterface() const = 0;
 
 	/**
-	* Get the interface for accessing the message sanitizer service
-	* @return Interface pointer for the appropriate sanitizer service
-	*/
-	virtual IMessageSanitizerPtr GetMessageSanitizerInterface() const = 0;
+	 * Get the interface for accessing the message sanitizer service
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param OutAuthTypeToExclude platform to exclude in sanitization requests
+	 * @return Interface pointer for the appropriate sanitizer service
+	 */
+	virtual IMessageSanitizerPtr GetMessageSanitizer(int32 LocalUserNum, FString& OutAuthTypeToExclude) const = 0;
 
 	/**
 	 * Get the interface for accessing the groups services

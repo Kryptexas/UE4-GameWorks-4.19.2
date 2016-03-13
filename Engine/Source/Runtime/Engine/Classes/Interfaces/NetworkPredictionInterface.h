@@ -85,7 +85,7 @@ public:
 
 	virtual ~FNetworkPredictionData_Server() {}
 
-	/** Server clock time when last server move was received */
+	/** Server clock time when last server move was received or movement was forced to be processed */
 	float ServerTimeStamp;
 };
 

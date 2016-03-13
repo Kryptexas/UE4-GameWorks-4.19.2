@@ -3098,7 +3098,7 @@ void FAudioDevice::Flush(UWorld* WorldToFlush, bool bClearActivatedReverb)
 	{
 		FActiveSound* ActiveSound = ActiveSounds[Index];
 		// if we are in the editor we want to always flush the ActiveSounds
-		if (ActiveSound->bIgnoreForFlushing)
+		if (WorldToFlush && ActiveSound->bIgnoreForFlushing)
 		{
 			bFoundIgnoredComponent = true;
 		}

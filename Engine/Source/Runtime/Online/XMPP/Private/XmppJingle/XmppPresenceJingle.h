@@ -53,11 +53,14 @@ public:
 
 	static void ConvertFromPresence(buzz::PresenceStatus& OutStatus, const FXmppUserPresence& InPresence);
 	static void ConvertToPresence(FXmppUserPresence& OutPresence, const buzz::PresenceStatus& InStatus, const FXmppUserJid& InJid);
+	static void ConvertToMucPresence(FXmppMucPresence& OutMucPresence, const class FXmppMucPresenceStatus& InMucStatus, const FXmppUserJid& InJid);
 
 private:
 
 	/** callback on pump thread when presence status has been updated for a roster member */
 	void OnSignalPresenceUpdate(const buzz::PresenceStatus& Status);
+	/** callback on pump thread when presence status has been updated for a muc room member */
+	void OnSignalMucPresenceUpdate(const class FXmppMucPresenceStatus& MucStatus);
 
 	// called on pump thread
 	void HandlePumpStarting(buzz::XmppPump* XmppPump);

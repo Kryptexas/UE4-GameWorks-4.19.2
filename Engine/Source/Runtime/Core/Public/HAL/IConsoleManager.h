@@ -295,6 +295,7 @@ struct IConsoleThreadPropagation
 {
 	virtual void OnCVarChange(int32& Dest, int32 NewValue) = 0;
 	virtual void OnCVarChange(float& Dest, float NewValue) = 0;
+	virtual void OnCVarChange(bool& Dest, bool NewValue) = 0;
 	virtual void OnCVarChange(FString& Dest, const FString& NewValue) = 0;
 };
 
@@ -380,6 +381,13 @@ struct CORE_API IConsoleManager
 	 * @param Flags bitmask combined from EConsoleVariableFlags
 	 */
 	virtual IConsoleVariable* RegisterConsoleVariableRef(const TCHAR* Name, float& RefValue, const TCHAR* Help, uint32 Flags = ECVF_Default) = 0;
+	/**
+	* Create a reference to a bool console variable
+	* @param Name must not be 0
+	* @param Help must not be 0
+	* @param Flags bitmask combined from EConsoleVariableFlags
+	*/
+	virtual IConsoleVariable* RegisterConsoleVariableRef(const TCHAR* Name, bool& RefValue, const TCHAR* Help, uint32 Flags = ECVF_Default) = 0;
 	/**
 	 * Create a reference to a show flag variable
 	 * @param CVarName must not be 0, e.g. "Show.PostProcessing"

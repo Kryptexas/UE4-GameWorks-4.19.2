@@ -16,6 +16,9 @@ static TAutoConsoleVariable<int32> CVarDoPropertyChecksum( TEXT( "net.DoProperty
 
 FAutoConsoleVariable CVarDoReplicationContextString( TEXT( "net.ContextDebug" ), 0, TEXT( "" ) );
 
+int32 LogSkippedRepNotifies = 0;
+static FAutoConsoleVariableRef CVarLogSkippedRepNotifies(TEXT("Net.LogSkippedRepNotifies"), LogSkippedRepNotifies, TEXT("Log when the networking code skips calling a repnotify clientside due to the property value not changing."), ECVF_Default );
+
 #define ENABLE_PROPERTY_CHECKSUMS
 
 //#define SANITY_CHECK_MERGES
@@ -1259,6 +1262,10 @@ public:
 		{
 			RepState->RepNotifies.AddUnique( Parent.Property );
 		}
+		else
+		{
+			UE_CLOG( LogSkippedRepNotifies > 0, LogRep, Display, TEXT( "1 FReceivedPropertiesStackState Skipping RepNotify for propery %s because local value has not changed."), *Cmd.Property->GetName() );
+		}
 
 		check( CastChecked< UArrayProperty >( Cmd.Property ) != NULL );
 
@@ -1322,6 +1329,10 @@ public:
 			if ( Parent.RepNotifyCondition == REPNOTIFY_Always || !PropertiesAreIdentical( Cmd, ShadowData + Cmd.Offset, Data + SwappedCmd.Offset ) )
 			{
 				RepState->RepNotifies.AddUnique( Parent.Property );
+			}
+			else
+			{
+				UE_CLOG( LogSkippedRepNotifies > 0, LogRep, Display, TEXT( "2 FReceivedPropertiesStackState Skipping RepNotify for propery %s because local value has not changed."), *Cmd.Property->GetName() );
 			}
 		} 
 		else
@@ -1523,7 +1534,11 @@ void FRepLayout::UpdateUnmappedObjects_r(
 				{
 					// If this properties needs an OnRep, queue that up to be handled later
 					RepState->RepNotifies.AddUnique( Parent.Property );
-				} 
+				}
+				else
+				{
+					UE_CLOG( LogSkippedRepNotifies, LogRep, Display, TEXT( "UpdateUnmappedObjects_r: Skipping RepNotify because Property did not change. %s" ), *Cmd.Property->GetName() );
+				}
 			}
 		}
 
@@ -1962,6 +1977,10 @@ public:
 			{
 				RepNotifies->AddUnique( Parent.Property );
 			}
+		}
+		else
+		{
+			UE_CLOG( LogSkippedRepNotifies > 0, LogRep, Display, TEXT( "FDiffPropertiesImpl: Skipping RepNotify because values are the same: %s" ), *Cmd.Property->GetFullName() );
 		}
 	}
 
@@ -2567,10 +2586,12 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	ConditionMap[COND_OwnerOnly]			= bIsOwner;
 	ConditionMap[COND_SkipOwner]			= !bIsOwner;
 
-	ConditionMap[COND_SimulatedOnly]		= bIsSimulated;
-	ConditionMap[COND_AutonomousOnly]		= !bIsSimulated;
+	ConditionMap[COND_SimulatedOnly]			= bIsSimulated;
+	ConditionMap[COND_SimulatedOnlyNoReplay]	= bIsSimulated && !bIsReplay;
+	ConditionMap[COND_AutonomousOnly]			= !bIsSimulated;
 
-	ConditionMap[COND_SimulatedOrPhysics]	= bIsSimulated || bIsPhysics;
+	ConditionMap[COND_SimulatedOrPhysics]			= bIsSimulated || bIsPhysics;
+	ConditionMap[COND_SimulatedOrPhysicsNoReplay]	= ( bIsSimulated || bIsPhysics ) && !bIsReplay;
 
 	ConditionMap[COND_InitialOrOwner]		= bIsInitial || bIsOwner;
 	ConditionMap[COND_ReplayOrOwner]		= bIsReplay || bIsOwner;

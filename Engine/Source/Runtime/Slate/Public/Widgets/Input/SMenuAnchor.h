@@ -31,6 +31,7 @@ public:
 		, _Placement( MenuPlacement_BelowAnchor )
 		, _Method()
 		, _ShouldDeferPaintingAfterWindowContent(true)
+		, _UseApplicationMenuStack(true)
 		, _IsCollapsedByParent(false)
 		{}
 		
@@ -48,6 +49,8 @@ public:
 
 		SLATE_ARGUMENT(bool, ShouldDeferPaintingAfterWindowContent)
 
+		SLATE_ARGUMENT(bool, UseApplicationMenuStack)
+		
 		/** True if this menu anchor should be collapsed when its parent receives focus, false (default) otherwise */
 		SLATE_ARGUMENT(bool, IsCollapsedByParent)
 
@@ -128,6 +131,12 @@ protected:
 	 */
 	TWeakPtr<IMenu> PopupMenuPtr;
 
+	/**
+	 * An interface pointer to the menu object presenting this popup.
+	 * This one is for menus owned by this widget and not by the application's menu stack
+	 */
+	TSharedPtr<IMenu> OwnedMenuPtr;
+
 	/** Static menu content to use when the delegate used when OnGetMenuContent is not defined. */
 	TSharedPtr<SWidget> MenuContent;
 
@@ -156,7 +165,10 @@ protected:
 	FPopupMethodReply MethodInUse;
 
 	/** Should the menu content painting be deferred? If not, the menu content will layer over the menu anchor, rather than above all window contents. */
-	bool ShouldDeferPaintingAfterWindowContent;
+	bool bShouldDeferPaintingAfterWindowContent;
+
+	/** Should the menu by created by the application stack code making it behave like and have the lifetime of a normal menu? */
+	bool bUseApplicationMenuStack;
 
 	/**
 	 * @todo Slate : Unify geometry so that this is not necessary.

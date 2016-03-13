@@ -1332,6 +1332,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 
 	bool IsPendingRemove;
 
+	/** Last StackCount that the client had. Used to tell if the stackcount has changed in PostReplicatedChange */
+	int32 ClientCachedStackCount;
+
 	FOnActiveGameplayEffectRemoved OnRemovedDelegate;
 
 	FOnActiveGameplayEffectStackChange OnStackChangeDelegate;
@@ -1390,13 +1393,18 @@ public:
 
 	/** Matches on GameplayEffects with this definition */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Query)
-	const UGameplayEffect* EffectDefinition;
+	TSubclassOf<UGameplayEffect> EffectDefinition;
 
 	/** Handles to ignore as matches, even if other criteria is met */
 	TArray<FActiveGameplayEffectHandle> IgnoreHandles;
 
 	/** Returns true if Effect matches all specified criteria of this query, including CustomMatch delegates if bound. Returns false otherwise. */
 	bool Matches(const FActiveGameplayEffect& Effect) const;
+
+	/** Returns true if Effect matches all specified criteria of this query. This does NOT check FActiveGameplayEffectQueryCustomMatch since this is performed on the spec (possibly prior to applying).
+	 *	Note: it would be reasonable to support a custom delegate that operated on the FGameplayEffectSpec itself.
+	 */
+	bool Matches(const FGameplayEffectSpec& Effect) const;
 
 	/** 
 	 * Shortcuts for easily creating common query types 
@@ -1760,7 +1768,7 @@ private:
 	
 	/** Called both in server side creation and replication creation/deletion */
 	void InternalOnActiveGameplayEffectAdded(FActiveGameplayEffect& Effect);
-	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);
+	void InternalOnActiveGameplayEffectRemoved(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);
 
 	void RemoveActiveGameplayEffectGrantedTagsAndModifiers(const FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);
 	void AddActiveGameplayEffectGrantedTagsAndModifiers(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);

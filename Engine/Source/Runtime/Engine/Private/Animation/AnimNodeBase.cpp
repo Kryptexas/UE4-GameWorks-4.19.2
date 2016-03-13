@@ -239,8 +239,33 @@ void FPoseLink::Evaluate(FPoseContext& Output)
 	}
 
 	// Detect non valid output
-	checkSlow( !Output.ContainsNaN() );
-	checkSlow( Output.IsNormalized() );
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (Output.ContainsNaN())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetBones())
+		{
+			if (Bone.ContainsNaN())
+			{
+				ensureMsgf(!Bone.ContainsNaN(), TEXT("Bone transform contains NaN from AnimInstance:[%s] Node:[%s] Value:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.ToString());
+			}
+		}
+	}
+
+	if (!Output.IsNormalized())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetBones())
+		{
+			if (!Bone.IsRotationNormalized())
+			{
+				ensureMsgf(Bone.IsRotationNormalized(), TEXT("Bone Rotation not normalized from AnimInstance:[%s] Node:[%s] Value:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.ToString());
+			}
+		}
+	}
+#endif
 }
 
 /////////////////////////////////////////////////////
@@ -273,8 +298,33 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 	}
 
 	// Detect non valid output
-	checkSlow( !Output.ContainsNaN() );
-	checkSlow( Output.IsNormalized() );
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (Output.ContainsNaN())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetPose().GetBones())
+		{
+			if (Bone.ContainsNaN())
+			{
+				ensureMsgf(!Bone.ContainsNaN(), TEXT("Bone transform contains NaN from AnimInstance:[%s] Node:[%s] Value:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.ToString());
+			}
+		}
+	}
+
+	if (!Output.IsNormalized())
+	{
+		// Show bone transform with some useful debug info
+		for (const FTransform& Bone : Output.Pose.GetPose().GetBones())
+		{
+			if (!Bone.IsRotationNormalized())
+			{
+				ensureMsgf(Bone.IsRotationNormalized(), TEXT("Bone Rotation not normalized from AnimInstance:[%s] Node:[%s] Value:[%s]")
+					, *Output.AnimInstanceProxy->GetAnimInstanceName(), LinkedNode ? *LinkedNode->StaticStruct()->GetName() : TEXT("NULL"), *Bone.ToString());
+			}
+		}
+	}
+#endif
 }
 
 /////////////////////////////////////////////////////

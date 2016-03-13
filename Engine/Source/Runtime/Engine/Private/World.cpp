@@ -4475,7 +4475,10 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 		SetHandlerLoadedData(LevelPackage, World);
 
 		// Now that the p map is loaded, start async loading any always loaded levels
-		World->AsyncLoadAlwaysLoadedLevelsForSeamlessTravel();
+		if (World)
+		{
+			World->AsyncLoadAlwaysLoadedLevelsForSeamlessTravel();
+		}
 	}
 
 	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "StartTravelComplete - " ) + PackageName.ToString() )) );

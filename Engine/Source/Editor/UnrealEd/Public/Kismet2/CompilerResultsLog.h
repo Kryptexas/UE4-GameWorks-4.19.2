@@ -100,7 +100,7 @@ protected:
 	FBacktrackMap SourceBacktrackMap;
 
 	// Name of the source object being compiled
-	FString SourceName;
+	FString SourcePath;
 
 public:
 	FCompilerResultsLog();
@@ -116,9 +116,9 @@ public:
 	static FName GetLogName(){ return Name; }
 
 	/** Set the source name for the final log summary */
-	void SetSourceName(const FString& InSourceName)
+	void SetSourcePath(const FString& InSourcePath)
 	{
-		SourceName = InSourceName;
+		SourcePath = InSourcePath;
 	}
 
 	// Note: Message is not a fprintf string!  It should be preformatted, but can contain @@ to indicate object references, which are the varargs

@@ -536,42 +536,49 @@ void FBlendSampleData::NormalizeDataWeight(TArray<FBlendSampleData>& SampleDataL
 	float TotalSum = 0.f;
 
 	check(SampleDataList.Num() > 0);
-	int32 NumBones = SampleDataList[0].PerBoneBlendData.Num();
+	const int32 NumBones = SampleDataList[0].PerBoneBlendData.Num();
 
 	TArray<float> PerBoneTotalSums;
 	PerBoneTotalSums.AddZeroed(NumBones);
 
-	for(int32 I = 0; I < SampleDataList.Num(); ++I)
+	for (int32 PoseIndex = 0; PoseIndex < SampleDataList.Num(); PoseIndex++)
 	{
-		checkf(SampleDataList[I].PerBoneBlendData.Num() == NumBones, TEXT("Attempted to normalise a blend sample list, but the samples have differing numbers of bones."));
+		checkf(SampleDataList[PoseIndex].PerBoneBlendData.Num() == NumBones, TEXT("Attempted to normalise a blend sample list, but the samples have differing numbers of bones."));
 
-		TotalSum += SampleDataList[I].GetWeight();
+		TotalSum += SampleDataList[PoseIndex].GetWeight();
 
-		if(SampleDataList[I].PerBoneBlendData.Num() > 0)
+		if (SampleDataList[PoseIndex].PerBoneBlendData.Num() > 0)
 		{
 			// now interpolate the per bone weights
-			for(int32 Iter = 0; Iter<SampleDataList[I].PerBoneBlendData.Num(); ++Iter)
+			for (int32 BoneIndex = 0; BoneIndex<NumBones; BoneIndex++)
 			{
-				PerBoneTotalSums[Iter] += SampleDataList[I].PerBoneBlendData[Iter];
+				PerBoneTotalSums[BoneIndex] += SampleDataList[PoseIndex].PerBoneBlendData[BoneIndex];
 			}
 		}
 	}
 
-	if(ensure(TotalSum > ZERO_ANIMWEIGHT_THRESH))
+	// Re-normalize Pose weight
+	if (ensure(TotalSum > ZERO_ANIMWEIGHT_THRESH))
 	{
-		for(int32 I = 0; I < SampleDataList.Num(); ++I)
+		if (FMath::Abs<float>(TotalSum - 1.f) > ZERO_ANIMWEIGHT_THRESH)
 		{
-			if(FMath::Abs<float>(TotalSum - 1.f) > ZERO_ANIMWEIGHT_THRESH)
+			for (int32 PoseIndex = 0; PoseIndex < SampleDataList.Num(); PoseIndex++)
 			{
-				SampleDataList[I].TotalWeight /= TotalSum;
+				SampleDataList[PoseIndex].TotalWeight /= TotalSum;
 			}
+		}
+	}
 
-			// now interpolate the per bone weights
-			for(int32 Iter = 0; Iter < SampleDataList[I].PerBoneBlendData.Num(); ++Iter)
+	// Re-normalize per bone weights.
+	for (int32 BoneIndex = 0; BoneIndex < NumBones; BoneIndex++)
+	{
+		if (ensure(PerBoneTotalSums[BoneIndex] > ZERO_ANIMWEIGHT_THRESH))
+		{
+			if (FMath::Abs<float>(PerBoneTotalSums[BoneIndex] - 1.f) > ZERO_ANIMWEIGHT_THRESH)
 			{
-				if(FMath::Abs<float>(PerBoneTotalSums[Iter] - 1.f) > ZERO_ANIMWEIGHT_THRESH)
+				for (int32 PoseIndex = 0; PoseIndex < SampleDataList.Num(); PoseIndex++)
 				{
-					SampleDataList[I].PerBoneBlendData[Iter] /= PerBoneTotalSums[Iter];
+					SampleDataList[PoseIndex].PerBoneBlendData[BoneIndex] /= PerBoneTotalSums[BoneIndex];
 				}
 			}
 		}

@@ -129,6 +129,12 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	// cant fire arbitrary delegates here off the game thread
 	if (IsInGameThread())
 	{
+		// If nothing is bound, show warnings so something is left in the log.
+		if (OnScriptException.IsBound() == false)
+		{
+			UE_LOG(LogScript, Warning, TEXT("%s"), *StackFrame.GetStackTrace());
+		}
+
 		OnScriptException.Broadcast(ActiveObject, StackFrame, Info);
 	}
 
@@ -835,9 +841,6 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		}
 		else if (++FBlueprintExceptionTracker::Get().Recurse == RECURSE_LIMIT)
 		{
-			// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
-			UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
-
 			// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
 			UProperty* ReturnProp = (Function)->GetReturnProperty();
 			ClearReturnValue(ReturnProp, RESULT_PARAM);
@@ -865,9 +868,6 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 #if DO_BLUEPRINT_GUARD
 			if( FBlueprintExceptionTracker::Get().Runaway > GMaximumScriptLoopIterations )
 			{
-				// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
-				UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
-
 				// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
 				UProperty* ReturnProp = (Function)->GetReturnProperty();
 				ClearReturnValue(ReturnProp, RESULT_PARAM);

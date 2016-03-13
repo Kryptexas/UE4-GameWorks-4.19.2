@@ -70,7 +70,7 @@ void UAsyncTaskDownloadImage::Start(FString URL)
 {
 #if !UE_SERVER
 	// Create the Http request and add to pending request list
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	HttpRequest->OnProcessRequestComplete().BindUObject(this, &UAsyncTaskDownloadImage::HandleImageRequest);
 	HttpRequest->SetURL(URL);

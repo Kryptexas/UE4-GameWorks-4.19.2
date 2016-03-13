@@ -121,7 +121,7 @@ public:
 
 	virtual void DumpAllocatorStats(FOutputDevice& Ar) override
 	{
-		Verify.DumpOpenCallstacks();
+		Verify.DumpOpenCallstacks(1024 * 1024);
 		UsedMalloc->DumpAllocatorStats(Ar);
 	}
 

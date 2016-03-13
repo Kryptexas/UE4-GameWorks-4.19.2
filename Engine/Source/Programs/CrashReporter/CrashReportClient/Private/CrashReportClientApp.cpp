@@ -246,6 +246,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	FPlatformErrorReport::ShutDown();
 
 	FEngineLoop::AppPreExit();
+	FModuleManager::Get().UnloadModulesAtShutdown();
 	FTaskGraphInterface::Shutdown();
 
 	FEngineLoop::AppExit();

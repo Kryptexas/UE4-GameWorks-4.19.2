@@ -1794,25 +1794,26 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void ListThirdPartySoftware()
 		{
-			// Find all the external modules
-			HashSet<FileReference> TpsFiles = new HashSet<FileReference>();
-			foreach(UEBuildBinary Binary in AppBinaries)
-			{
-				foreach(UEBuildModule Module in Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false))
-				{
-					if(Module.RulesFile != null)
-					{
-						foreach(FileReference TpsFile in Module.RulesFile.Directory.EnumerateFileReferences("*.tps", SearchOption.AllDirectories))
-						{
-							TpsFiles.Add(TpsFile);
-						}
-					}
-				}
-			}
+			List<string> UnsupportedSubstrings =
+				// Make a list of all the directories to exclude
+				Utils.MakeListOfUnsupportedPlatforms(new List<UnrealTargetPlatform> { Platform })
+				// convert to to a directory string.
+				.Select(x => Path.DirectorySeparatorChar + x + Path.DirectorySeparatorChar)
+				.ToList();
 
-			// Write out the list of files
 			string FileListPath = "../Intermediate/Build/ThirdPartySoftware.txt";
-			File.WriteAllLines(FileListPath, TpsFiles.Select(x => x.MakeRelativeTo(UnrealBuildTool.EngineDirectory)).OrderBy(x => x).ToArray());
+			// Find all the external modules
+			File.WriteAllLines(FileListPath, AppBinaries
+				.SelectMany(Binary => Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: true, bForceCircular: false)) // Flatten the list of modules for all the binaries
+				.Where(Module => !string.IsNullOrEmpty(Module.ModuleDirectory.FullName)) // skip modules with an empty directory
+				.Select(Module => Module.ModuleDirectory.FullName) // Pull out the directory name
+				.Distinct() // remove duplicate directories
+				.SelectMany(ModuleDir => { Log.TraceLog(ModuleDir); return Directory.EnumerateFiles(ModuleDir, "*.tps", SearchOption.AllDirectories); }) // flatten the list of TPS files in all the modules
+				.Where(TpsFile => UnsupportedSubstrings.All(SubStr => TpsFile.IndexOf(SubStr, StringComparison.InvariantCultureIgnoreCase) < 0)) // remove any directories with unsupported platforms
+				.Distinct() // remove duplicate TPS files.
+				.Select(x => new FileReference(x).MakeRelativeTo(UnrealBuildTool.EngineDirectory)) // make the file relative to engine
+				.OrderBy(x => x) // sort all files by path.
+				);
 			Console.WriteLine("Written {0}", FileListPath);
 		}
 
@@ -2225,7 +2226,7 @@ namespace UnrealBuildTool
 			// Build the target's binaries.
 			foreach (UEBuildBinary Binary in AppBinaries)
 			{
-				OutputItems.AddRange(Binary.Build(this, TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));
+                OutputItems.AddRange(Binary.Build(this, TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));  
 			}
 
 			if (BuildConfiguration.bPrintPerformanceInfo)
@@ -3236,6 +3237,11 @@ namespace UnrealBuildTool
 				// Otherwise create a new module for it
 				Module.Binary = CreateBinaryForModule(Module, UEBuildBinaryType.DynamicLinkLibrary, bAllowCompilation: true, bIsCrossTarget: bIsCrossTarget);
 			}
+
+            if (Module.Binary == null)
+            {
+                throw new BuildException("Failed to set up binary for module {0}", Module.Name);
+            }
 		}
 
 		/// <summary>

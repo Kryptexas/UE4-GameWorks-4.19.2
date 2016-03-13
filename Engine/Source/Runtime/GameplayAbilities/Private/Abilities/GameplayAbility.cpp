@@ -840,6 +840,12 @@ FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo() const
 
 AActor* UGameplayAbility::GetOwningActorFromActorInfo() const
 {
+	if (!ensureMsgf(IsInstantiated(), TEXT("%s: GetOwningActorFromActorInfo can not be called on a non-instanced ability"), *GetName()))
+	{
+		ABILITY_LOG(Warning, TEXT("%s: GetOwningActorFromActorInfo can not be called on a non-instanced ability"), *GetName());
+		return nullptr;
+	}
+
 	if (!ensure(CurrentActorInfo))
 	{
 		return nullptr;

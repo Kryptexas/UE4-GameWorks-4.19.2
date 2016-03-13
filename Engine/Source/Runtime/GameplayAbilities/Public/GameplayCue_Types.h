@@ -7,6 +7,7 @@ class AGameplayCueNotify_Actor;
 
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
+#include "ObjectKey.h"
 #include "GameplayCue_Types.generated.h"
 
 UENUM()
@@ -77,16 +78,18 @@ struct FGCNotifyActorKey
 
 	FGCNotifyActorKey(AActor* InTargetActor, UClass* InCueClass, AActor* InInstigatorActor=nullptr, const UObject* InSourceObj=nullptr)
 	{
-		TargetActor = InTargetActor;
-		OptionalInstigatorActor = InInstigatorActor;
-		OptionalSourceObject = InSourceObj;
-		CueClass = InCueClass;
+		TargetActor = FObjectKey(InTargetActor);
+		OptionalInstigatorActor = FObjectKey(InInstigatorActor);
+		OptionalSourceObject = FObjectKey(InSourceObj);
+		CueClass = FObjectKey(InCueClass);
 	}
 
-	TWeakObjectPtr<AActor>	TargetActor;
-	TWeakObjectPtr<AActor>	OptionalInstigatorActor;
-	TWeakObjectPtr<UObject>	OptionalSourceObject;
-	TWeakObjectPtr<UClass>	CueClass;
+	
+
+	FObjectKey	TargetActor;
+	FObjectKey	OptionalInstigatorActor;
+	FObjectKey	OptionalSourceObject;
+	FObjectKey	CueClass;
 
 	FORCEINLINE bool operator==(const FGCNotifyActorKey& Other) const
 	{

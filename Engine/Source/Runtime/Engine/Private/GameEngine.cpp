@@ -805,7 +805,6 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 }
 
-
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	Ar.Log( TEXT("Closing by request") );
@@ -845,10 +844,6 @@ bool UGameEngine::HandleApplyUserSettingsCommand( const TCHAR* Cmd, FOutputDevic
 #endif // !UE_BUILD_SHIPPING
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void UGameEngine::PostLoadMap()
-{
-}
 
 float UGameEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) const
 {

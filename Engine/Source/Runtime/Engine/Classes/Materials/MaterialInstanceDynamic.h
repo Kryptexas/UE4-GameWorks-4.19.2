@@ -91,5 +91,15 @@ class UMaterialInstanceDynamic : public UMaterialInstance
 	 * For runtime use. More specialized and efficient than CopyMaterialInstanceParameters().
 	 */
 	ENGINE_API void CopyScalarAndVectorParameters(const UMaterialInterface& SourceMaterialToCopyFrom, ERHIFeatureLevel::Type FeatureLevel);
+
+	ENGINE_API virtual bool HasOverridenBaseProperties()const override{ return false; }
+
+	//Material base property overrides. MIDs cannot override these so they just grab from their parent.
+	ENGINE_API virtual float GetOpacityMaskClipValue() const override;
+	ENGINE_API virtual EBlendMode GetBlendMode() const override;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const override;
+	ENGINE_API virtual bool IsTwoSided() const override;
+	ENGINE_API virtual bool IsDitheredLODTransition() const override;
+	ENGINE_API virtual bool IsMasked() const override;
 };
 

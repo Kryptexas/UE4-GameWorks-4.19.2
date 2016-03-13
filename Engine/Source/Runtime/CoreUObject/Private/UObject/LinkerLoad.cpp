@@ -1992,6 +1992,7 @@ void FLinkerLoad::Verify()
 			}
 		}
 	}
+
 	bHaveImportsBeenVerified = true;
 }
 

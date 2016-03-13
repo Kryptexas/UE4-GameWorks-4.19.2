@@ -16,8 +16,12 @@ public:
 	bool Initialize();
 	void Terminate();
 
+	bool IsCultureRemapped(const FString& Name, FString* OutMappedCulture);
+	bool IsCultureDisabled(const FString& Name);
+
 	bool SetCurrentCulture(const FString& Name);
 	void GetCultureNames(TArray<FString>& CultureNames) const;
+	TArray<FString> GetPrioritizedCultureNames(const FString& Name);
 	FCulturePtr GetCulture(const FString& Name);
 
 private:
@@ -26,12 +30,45 @@ private:
 	void UnloadDLLs();
 #endif
 
+	void InitializeAvailableCultures();
+	void ConditionalInitializeCultureMappings();
+	void ConditionalInitializeDisabledCultures();
+
 	FCulturePtr FindOrMakeCulture(const FString& Name, const bool AllowDefaultFallback = false);
+
+private:
+	struct FICUCultureData
+	{
+		FString Name;
+		FString LanguageCode;
+		FString ScriptCode;
+		FString CountryCode;
+
+		bool operator==(const FICUCultureData& Other) const
+		{
+			return Name == Other.Name;
+		}
+
+		bool operator!=(const FICUCultureData& Other) const
+		{
+			return Name != Other.Name;
+		}
+	};
 
 private:
 	FInternationalization* const I18N;
 
 	TArray< void* > DLLHandles;
+
+	TArray<FICUCultureData> AllAvailableCultures;
+	TMap<FString, int32> AllAvailableCulturesMap;
+	TMap<FString, TArray<int32>> AllAvailableLanguagesToSubCulturesMap;
+
+	bool bHasInitializedCultureMappings;
+	TMap<FString, FString> CultureMappings;
+
+	bool bHasInitializedDisabledCultures;
+	TSet<FString> DisabledCultures;
 
 	TMap<FString, FCultureRef> CachedCultures;
 	FCriticalSection CachedCulturesCS;

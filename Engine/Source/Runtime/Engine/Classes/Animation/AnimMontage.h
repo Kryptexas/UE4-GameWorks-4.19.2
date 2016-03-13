@@ -198,6 +198,9 @@ private:
 	// reference to AnimInstance
 	TWeakObjectPtr<UAnimInstance> AnimInstance;
 
+	// Unique ID for this instance
+	int32 InstanceID;
+
 	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
 		call NotifyEnd on the event after a deletion in the editor. After this the event
 		is removed correctly. */
@@ -283,6 +286,7 @@ public:
 		, DefaultBlendTimeMultiplier(1.0f)
 		, bDidUseMarkerSyncThisTick(false)
 		, AnimInstance(NULL)
+		, InstanceID(INDEX_NONE)
 		, Position(0.f)
 		, PlayRate(1.f)
 		, bInterrupted(false)
@@ -301,6 +305,7 @@ public:
 		, DefaultBlendTimeMultiplier(1.0f)
 		, bDidUseMarkerSyncThisTick(false)
 		, AnimInstance(InAnimInstance)
+		, InstanceID(INDEX_NONE)
 		, Position(0.f)
 		, PlayRate(1.f)
 		, bInterrupted(false)
@@ -339,6 +344,7 @@ public:
 	/**
 	 *  Getters
 	 */
+	int32 GetInstanceID() const { return InstanceID; }
 	float GetPosition() const { return Position; };
 	float GetPlayRate() const { return PlayRate; }
 	float GetDeltaMoved() const { return DeltaMoved; }

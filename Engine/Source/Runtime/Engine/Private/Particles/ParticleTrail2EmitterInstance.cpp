@@ -3408,7 +3408,9 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	int32 StartIndex = -1;
 	if (TrailIdx != INDEX_NONE)
 	{
-		StartIndex = CurrentStartIndices[TrailIdx];
+		FBaseParticle* Particle = nullptr;
+		FAnimTrailTypeDataPayload* TrailData = nullptr;
+		GetTrailStart(TrailIdx, StartIndex, TrailData, Particle);
 	}
 
 	bool bTilingTrail = !FMath::IsNearlyZero(TrailTypeData->TilingDistance);
@@ -3477,9 +3479,9 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
 				{
 					CheckTrailData->Flags = TRAIL_EMITTER_SET_DEADTRAIL(CheckTrailData->Flags);
+					SetDeadIndex(CheckTrailData->TrailIndex, CheckStartIndex);
 				}
 			}
-			SetDeadIndex(CheckTrailData->TrailIndex, CheckStartIndex);
 		}
 		bTagTrailAsDead = false;
 	}

@@ -133,10 +133,11 @@ FGameplayAbilityTargetDataHandle FGameplayAbilityTargetingLocationInfo::MakeTarg
 
 bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	int32 DataNum;
+	uint8 DataNum;
 	if (Ar.IsSaving())
 	{
-		DataNum = Data.Num();
+		UE_CLOG(Data.Num() > MAX_uint8, LogAbilitySystem, Warning, TEXT("Too many TargetData sources (%d!) to net serialize. Clamping to %d"), Data.Num(), MAX_uint8);
+		DataNum = FMath::Min<int32>( Data.Num(), MAX_uint8 );
 	}
 	Ar << DataNum;
 	if (Ar.IsLoading())
@@ -144,7 +145,7 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 		Data.SetNumZeroed(DataNum);
 	}
 
-	for (int32 i = 0; i < DataNum; ++i)
+	for (int32 i = 0; i < DataNum && !Ar.IsError(); ++i)
 	{
 		UScriptStruct* ScriptStruct = Data[i].IsValid() ? Data[i]->GetScriptStruct() : NULL;
 		Ar << ScriptStruct;
@@ -235,7 +236,7 @@ bool FGameplayAbilityTargetData_LocationInfo::NetSerialize(FArchive& Ar, class U
 bool FGameplayAbilityTargetData_ActorArray::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	SourceLocation.NetSerialize(Ar, Map, bOutSuccess);
-	Ar << TargetActorArray;
+	SafeNetSerializeTArray_Default<32>(Ar, TargetActorArray);
 
 	bOutSuccess = true;
 	return true;

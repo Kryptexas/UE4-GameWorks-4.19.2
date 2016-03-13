@@ -163,7 +163,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 	}
 	if (RepBits & (1 << 4))
 	{
-		Ar << Actors;
+		SafeNetSerializeTArray_Default<32>(Ar, Actors);
 	}
 	if (RepBits & (1 << 5))
 	{

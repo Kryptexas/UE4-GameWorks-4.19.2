@@ -2812,7 +2812,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 
 	bool RendersWithTranslucentMaterial() const
 	{
-		EBlendMode BlendMode = Material->GetRenderProxy(false)->GetMaterial(FXSystem->GetFeatureLevel())->GetBlendMode();
+		EBlendMode BlendMode = Material->GetBlendMode();
 		return IsTranslucentBlendMode(BlendMode);
 	}
 

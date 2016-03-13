@@ -616,7 +616,7 @@ struct ENGINE_API FRootMotionSourceGroup
 	 *  the velocity that we added heading into the wall last tick would make you go backwards. With
 	 *  this method we override that resulting Velocity due to obstructions */
 	UPROPERTY()
-	FVector LastPreAdditiveVelocity;
+	FVector_NetQuantize10 LastPreAdditiveVelocity;
 
 	/** True when we had additive velocity applied last tick, checked to know if we should restore
 	 *  LastPreAdditiveVelocity before a Velocity computation */

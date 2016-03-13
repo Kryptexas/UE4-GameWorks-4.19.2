@@ -102,6 +102,14 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FSlateBrush PCIconBrush;
 	FFriendsListStyle& SetPCIconBrush(const FSlateBrush& BrushStyle);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ConsoleIconBrush;
+	FFriendsListStyle& SetConsoleIconBrush(const FSlateBrush& BrushStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush EpicIconBrush;
+	FFriendsListStyle& SetEpicIconBrush(const FSlateBrush& BrushStyle);
+
 	/** Friend Image brush style */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush FriendImageBrush;
@@ -121,6 +129,11 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush AwayBrush;
 	FFriendsListStyle& SetAwayBrush(const FSlateBrush& AwayBrush);
+
+	/** Away brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush SpectateBrush;
+	FFriendsListStyle& SetSpectateBrush(const FSlateBrush& SpectateBrush);
 
 	/** Friends window background */
 	UPROPERTY(EditAnywhere, Category = Appearance)
@@ -155,6 +168,10 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush SeperatorBrush;
 	FFriendsListStyle& SetSeperatorBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush PresenceSeperatorBrush;
+	FFriendsListStyle& SetPresenceSeperatorBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush FontSizeBrush;
@@ -239,6 +256,15 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	float SubMenuSeperatorThickness;
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	float PresenceSeperatorThickness;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendTipMargin;
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin FriendTipSeperatorMargin;
+		
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FMargin ToolTipMargin;
 

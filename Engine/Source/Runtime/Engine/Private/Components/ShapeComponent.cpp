@@ -107,7 +107,7 @@ void UShapeComponent::CreateShapeBodySetupIfNeeded()
 	if (ShapeBodySetup == nullptr || ShapeBodySetup->IsPendingKill())
 	{
 		ShapeBodySetup = NewObject<UBodySetup>(this);
-		if (IsTemplate())
+		if (IsTemplate() && IsRooted())
 		{
 			ShapeBodySetup->AddToRoot();
 		}

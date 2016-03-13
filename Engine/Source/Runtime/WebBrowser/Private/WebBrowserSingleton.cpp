@@ -257,7 +257,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	bool bThumbMouseButtonNavigation = BrowserWindowParent->IsThumbMouseButtonNavigationEnabled();
 	bool bUseTransparency = BrowserWindowParent->UseTransparency();
 	FString InitialURL = BrowserWindowInfo->Browser->GetMainFrame()->GetURL().ToWString().c_str();
-	TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(BrowserWindowInfo->Browser, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+	TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(BrowserWindowInfo->Browser, BrowserWindowInfo->Handler, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 	BrowserWindowInfo->Handler->SetBrowserWindow(NewBrowserWindow);
 
 	WindowInterfaces.Add(NewBrowserWindow);
@@ -309,14 +309,14 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 
 
 		// WebBrowserHandler implements browser-level callbacks.
-		CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
+		CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler(bUseTransparency));
 
 		// Create the CEF browser window.
 		CefRefPtr<CefBrowser> Browser = CefBrowserHost::CreateBrowserSync(WindowInfo, NewHandler.get(), *InitialURL, BrowserSettings, nullptr);
 		if (Browser.get())
 		{
 			// Create new window
-			TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(Browser, InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+			TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(Browser, NewHandler, InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 			NewHandler->SetBrowserWindow(NewBrowserWindow);
 
 			WindowInterfaces.Add(NewBrowserWindow);

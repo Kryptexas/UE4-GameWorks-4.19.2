@@ -1187,3 +1187,32 @@ bool FPackageName::IsScriptPackage(const FString& InPackageName)
 {
 	return InPackageName.StartsWith(FLongPackagePathsSingleton::Get().ScriptRootPath);
 }
+
+bool FPackageName::IsLocalizedPackage(const FString& InPackageName)
+{
+	// Minimum valid package name length is "/A/L10N"
+	if (InPackageName.Len() < 7)
+	{
+		return false;
+	}
+
+	const TCHAR* CurChar = *InPackageName;
+
+	// Must start with a slash
+	if (*CurChar++ != TEXT('/'))
+	{
+		return false;
+	}
+
+	// Find the end of the first part of the path, eg /Game/
+	while (*CurChar && *CurChar++ != TEXT('/')) {}
+	if (!*CurChar)
+	{
+		// Found end-of-string
+		return false;
+	}
+
+	// Are we part of the L10N folder?
+	return FCString::Strnicmp(CurChar, TEXT("L10N/"), 5) == 0	// StartsWith "L10N/"
+		|| FCString::Stricmp(CurChar, TEXT("L10N")) == 0;		// Is "L10N"
+}

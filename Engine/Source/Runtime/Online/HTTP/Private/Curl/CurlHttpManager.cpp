@@ -182,7 +182,7 @@ FCurlHttpManager::FCurlHttpManager()
 }
 
 // note that we cannot call parent implementation because lock might be possible non-multiple
-void FCurlHttpManager::AddRequest(const TSharedRef<class IHttpRequest>& Request)
+void FCurlHttpManager::AddRequest(const TSharedRef<IHttpRequest>& Request)
 {
 	FScopeLock ScopeLock(&RequestLock);
 
@@ -195,7 +195,7 @@ void FCurlHttpManager::AddRequest(const TSharedRef<class IHttpRequest>& Request)
 }
 
 // note that we cannot call parent implementation because lock might be possible non-multiple
-void FCurlHttpManager::RemoveRequest(const TSharedRef<class IHttpRequest>& Request)
+void FCurlHttpManager::RemoveRequest(const TSharedRef<IHttpRequest>& Request)
 {
 	FScopeLock ScopeLock(&RequestLock);
 

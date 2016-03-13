@@ -317,6 +317,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 		return EffectCauser.Get();
 	}
 
+	void SetEffectCauser(AActor* InEffectCauser)
+	{
+		EffectCauser = InEffectCauser;
+	}
+
 	/** Should always return the original instigator that started the whole chain. Subclasses can override what this does */
 	virtual AActor* GetOriginalInstigator() const
 	{

@@ -76,8 +76,7 @@ protected:
 
 protected:
 	static void PushUpdate(uint32 VectorArtId, const SMeshWidget& Widget, const FVector2D& Position, float Scale, uint32 BaseAddress);
-
-private:
+	static void PushUpdate(uint32 VectorArtId, const SMeshWidget& Widget, const FVector2D& Position, float Scale, float OptionalFloat = 0);
 
 	struct FRenderData
 	{
@@ -94,6 +93,7 @@ private:
 	};
 	TArray<FRenderData, TInlineAllocator<3>> RenderData;
 
+private:
 	/** Which mesh to draw, starting with which instance offset and how many instances to draw in this run/batch. */
 	class FRenderRun
 	{

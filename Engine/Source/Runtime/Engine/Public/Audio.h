@@ -42,6 +42,8 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 #define MIN_SOUND_PRIORITY				0.0f
 #define MAX_SOUND_PRIORITY				100.0f
 
+#define DEFAULT_SUBTITLE_PRIORITY		10000.0f
+
 /**
  * Some filters don't work properly with extreme values, so these are the limits 
  */

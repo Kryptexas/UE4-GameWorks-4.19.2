@@ -18,11 +18,6 @@ IOnlineFriendsPtr FOnlineSubsystemIOS::GetFriendsInterface() const
 	return FriendsInterface;
 }
 
-IMessageSanitizerPtr FOnlineSubsystemIOS::GetMessageSanitizerInterface() const
-{
-	return nullptr;
-}
-
 IOnlinePartyPtr FOnlineSubsystemIOS::GetPartyInterface() const
 {
 	return nullptr;
@@ -190,6 +185,10 @@ FString FOnlineSubsystemIOS::GetAppId() const
 
 bool FOnlineSubsystemIOS::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)  
 {
+	if (FOnlineSubsystemImpl::Exec(InWorld, Cmd, Ar))
+	{
+		return true;
+	}
 	return false;
 }
 

@@ -1469,7 +1469,6 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 				if (FiBVersionedSearchData->Len() == 0)
 				{
 					// agrant TODO: Can we patch this up? Is it dangerous not to?
-					UE_LOG(LogBlueprint, Warning, TEXT("Blueprint %s had empty search data!"), *InAssetData.ObjectPath.ToString());
 					UncachedBlueprints.Add(InAssetData.ObjectPath);
 				}
 				else

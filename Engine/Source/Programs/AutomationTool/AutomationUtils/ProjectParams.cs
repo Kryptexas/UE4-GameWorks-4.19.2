@@ -875,11 +875,30 @@ namespace AutomationTool
 			return Pak || PlatformToCheck.RequiresPak(this) == Platform.PakType.Always;
 		}
 
+		private string SignPakInternal { get; set; }
+
 		/// <summary>
 		/// Shared: Encryption keys used for signing the pak file.
 		/// </summary>
 		[Help("signpak=keys", "sign the generated pak file with the specified key, i.e. -signpak=C:\\Encryption.keys. Also implies -signedpak.")]
-		public string SignPak { private set; get; }
+		public string SignPak 
+		{ 
+			private set
+			{
+				if (string.IsNullOrEmpty(value) || value.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase))
+				{
+					SignPakInternal = value;
+				}
+				else
+				{
+					SignPakInternal = Path.GetFullPath(value);
+				}
+			}
+			get
+			{
+				return SignPakInternal;
+			}
+		}
 
 		/// <summary>
 		/// Shared: the game will use only signed content.

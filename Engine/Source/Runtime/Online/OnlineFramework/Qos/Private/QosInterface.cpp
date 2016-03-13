@@ -32,16 +32,24 @@ TSharedRef<FQosInterface> FQosInterface::Get()
 }
 
 FQosInterface::FQosInterface()
-	: MaximumPingMs(250)
-	, BestRegionPingMs(MAX_int32)
+	: BestRegionPingMs(MAX_int32)
 	, QosEvalResult(EQosCompletionResult::Invalid)
 {
 	check(GConfig);
-	GConfig->GetInt(TEXT("Qos"), TEXT("MinimumPingMs"), MaximumPingMs, GGameIni);
 	GConfig->GetString(TEXT("Qos"), TEXT("ForceRegionId"), ForceRegionId, GGameIni);
 
 	// get a forced region id from the command line as an override
 	FParse::Value(FCommandLine::Get(), TEXT("McpRegion="), ForceRegionId);
+}
+
+int32 FQosInterface::GetMaxPingMs() const
+{
+	int32 MaxPing = -1;
+	if (GConfig->GetInt(TEXT("Qos"), TEXT("MaximumPingMs"), MaxPing, GGameIni) && MaxPing > 0)
+	{
+		return MaxPing;
+	}
+	return -1;
 }
 
 // static
@@ -126,6 +134,9 @@ void FQosInterface::OnQosEvaluationComplete(EQosCompletionResult Result, const T
 
 	if (QosEvalResult == EQosCompletionResult::Success)
 	{
+		// read from config in case it's changed
+		int32 MaximumPingMs = GetMaxPingMs();
+
 		// copy over region info that meets our minimum ping
 		for (const FQosRegionInfo& Region : RegionInfo)
 		{

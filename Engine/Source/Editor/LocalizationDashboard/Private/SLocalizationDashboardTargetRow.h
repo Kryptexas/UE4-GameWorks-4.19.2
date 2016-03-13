@@ -29,11 +29,29 @@ private:
 
 	void UpdateTargetFromReports();
 
-	FReply Gather();
-	FReply ImportAll();
-	FReply ExportAll();
+	bool CanGatherText() const;
+	FReply GatherText();
+
+	bool CanImportText() const;
+	FReply ImportText();
+
+	bool CanExportText() const;
+	FReply ExportText();
+
+	bool CanImportDialogueScript() const;
+	FReply ImportDialogueScript();
+
+	bool CanExportDialogueScript() const;
+	FReply ExportDialogueScript();
+
+	bool CanImportDialogue() const;
+	FReply ImportDialogue();
+
+	bool CanCountWords() const;
 	FReply CountWords();
-	FReply CompileAll();
+
+	bool CanCompileText() const;
+	FReply CompileText();
 
 	FReply EnqueueDeletion();
 	void Delete();

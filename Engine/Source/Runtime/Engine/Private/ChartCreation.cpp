@@ -27,6 +27,14 @@ static TAutoConsoleVariable<int32> GRoundChartingFPSBeforeBinning(
 	TEXT("Should we round raw FPS values before thresholding them into bins when doing a FPS chart?\n")
 	TEXT(" default: 0"));
 
+float GMaximumFrameTimeToConsiderForHitchesAndBinning = 1.0f;
+
+static FAutoConsoleVariableRef GMaximumFrameTimeToConsiderForHitchesAndBinningCVar(
+	TEXT("t.FPSChart.MaxFrameDeltaSecsBeforeDiscarding"),
+	GMaximumFrameTimeToConsiderForHitchesAndBinning,
+	TEXT("The maximum length a frame can be (in seconds) to be considered for FPS chart binning (default 1.0s; no maximum length if <= 0.0)")
+	);
+
 // NOTE:  if you add any new stats make certain to update the StartFPSChart()
 
 /** Enables capturing the fps chart data */
@@ -38,10 +46,10 @@ FString GCaptureStartTime;
 /** User label set when starting the chart. */
 FString GFPSChartLabel;
 
-/** Start time of current FPS chart.										*/
-double			GFPSChartStartTime = 0;
+/** Start time of current FPS chart. */
+double GFPSChartStartTime = 0;
 
-/** FPS chart information. Time spent for each bucket and count.			*/
+/** FPS chart information. Time spent for each bucket and count. */
 FFPSChartEntry	GFPSChart[STAT_FPSChartLastBucketStat - STAT_FPSChartFirstStat];
 
 /** Hitch histogram.  How many times the game experienced hitches of various lengths. */
@@ -56,11 +64,17 @@ uint32 GNumFramesBound_GameThread = 0;
 uint32 GNumFramesBound_RenderThread = 0;
 uint32 GNumFramesBound_GPU = 0;
 
-double GTotalFramesBoundTime_GameThread = 0;
-double GTotalFramesBoundTime_RenderThread = 0;
-double GTotalFramesBoundTime_GPU = 0;
+double GTotalFramesBoundTime_GameThread = 0.0;
+double GTotalFramesBoundTime_RenderThread = 0.0;
+double GTotalFramesBoundTime_GPU = 0.0;
 
-/** Arrays of render/game/GPU and total frame times. Captured and written out if FPS charting is enabled */
+double GTotalFrameTime_GameThread = 0.0;
+double GTotalFrameTime_RenderThread = 0.0;
+
+/** Should we record per-frame times */
+bool GFPSChartRecordPerFrameTimes = false;
+
+/** Arrays of render/game/GPU and total frame times. Captured and written out if FPS charting is enabled and GFPSChartRecordPerFrameTimes is true */
 TArray<float> GRenderThreadFrameTimes;
 TArray<float> GGameThreadFrameTimes;
 TArray<float> GGPUFrameTimes;
@@ -166,7 +180,7 @@ protected:
 		PrintToEndpoint(FString::Printf(TEXT("\tOS: %s %s"), *OSMajor, *OSMinor));
 		PrintToEndpoint(FString::Printf(TEXT("\tCPU: %s %s"), *CPUVendor, *CPUBrand));
 		PrintToEndpoint(FString::Printf(TEXT("\tGPU: %s"), *PrimaryGPUBrand));
-		PrintToEndpoint(FString::Printf(TEXT("\tResolution Quality: %d"), ScalabilityQuality.ResolutionQuality));
+		PrintToEndpoint(FString::Printf(TEXT("\tResolution Quality: %.2f"), ScalabilityQuality.ResolutionQuality));
 		PrintToEndpoint(FString::Printf(TEXT("\tView Distance Quality: %d"), ScalabilityQuality.ViewDistanceQuality));
 		PrintToEndpoint(FString::Printf(TEXT("\tAnti-Aliasing Quality: %d"), ScalabilityQuality.AntiAliasingQuality));
 		PrintToEndpoint(FString::Printf(TEXT("\tShadow Quality: %d"), ScalabilityQuality.ShadowQuality));
@@ -515,7 +529,7 @@ protected:
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_OS"), *FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_CPU"), *FString::Printf(TEXT("%s %s"), *CPUVendor, *CPUBrand), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_GPU"), *FString::Printf(TEXT("%s"), *PrimaryGPUBrand), ESearchCase::CaseSensitive);
-		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_RES"), *FString::Printf(TEXT("%d"), ScalabilityQuality.ResolutionQuality), ESearchCase::CaseSensitive);
+		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_RES"), *FString::Printf(TEXT("%.2f"), ScalabilityQuality.ResolutionQuality), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_VD"), *FString::Printf(TEXT("%d"), ScalabilityQuality.ViewDistanceQuality), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_AA"), *FString::Printf(TEXT("%d"), ScalabilityQuality.AntiAliasingQuality), ESearchCase::CaseSensitive);
 		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_SETTINGS_SHADOW"), *FString::Printf(TEXT("%d"), ScalabilityQuality.ShadowQuality), ESearchCase::CaseSensitive);
@@ -538,18 +552,8 @@ protected:
 // 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), FString::Printf(TEXT("%s"), ANSI_TO_TCHAR(FPlatformProperties::PlatformName()))));
 
 		// Sum up FrameTimes and GameTimes
-		float TotalFrameTime = 0;
-		float TotalGameTime = 0;
-
-		//@TODO: Remove the reliance on the array by tracking this per-frame
-		for (int32 i = 0; i < GFrameTimes.Num(); i++)
-		{
-			TotalFrameTime += GRenderThreadFrameTimes[i];
-			TotalGameTime += GGameThreadFrameTimes[i];
-		}
-
-		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_AVG_RENDTIME"), *FString::Printf(TEXT("%4.2f ms"), float((TotalFrameTime / NumFrames)*1000.0)), ESearchCase::CaseSensitive);
-		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_AVG_GAMETIME"), *FString::Printf(TEXT("%4.2f ms"), float((TotalGameTime / NumFrames)*1000.0)), ESearchCase::CaseSensitive);
+		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_AVG_RENDTIME"), *FString::Printf(TEXT("%4.2f ms"), float((GTotalFrameTime_RenderThread / NumFrames)*1000.0)), ESearchCase::CaseSensitive);
+		FPSChartRow = FPSChartRow.Replace(TEXT("TOKEN_AVG_GAMETIME"), *FString::Printf(TEXT("%4.2f ms"), float((GTotalFrameTime_GameThread / NumFrames)*1000.0)), ESearchCase::CaseSensitive);
 	}
 };
 #endif
@@ -656,8 +660,9 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 		MaxThreadTimeValue = FMath::Max3<uint32>( GGameThreadTime, LocalRenderThreadTime, PossibleGPUTime );
 	}
 
-	// Disregard frames that took longer than one second when accumulating data.
-	if (DeltaSeconds < 1.0f)
+	// Optionally disregard frames that took longer than one second when accumulating data.
+	const bool bBinThisFrame = (DeltaSeconds < GMaximumFrameTimeToConsiderForHitchesAndBinning) || (GMaximumFrameTimeToConsiderForHitchesAndBinning <= 0.0f);
+	if (bBinThisFrame)
 	{
 		const float CurrentFPS_Raw = 1.0f / DeltaSeconds;
 
@@ -781,12 +786,19 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 
 	// Track per frame stats.
 
+	const float RenderThreadTimeInSecs = FPlatformTime::ToSeconds(LocalRenderThreadTime);
+	GTotalFrameTime_RenderThread += RenderThreadTimeInSecs;
+
+	const float GameThreadTimeInSecs = FPlatformTime::ToSeconds(GGameThreadTime);
+	GTotalFrameTime_GameThread += GameThreadTimeInSecs;
+
 	// Capturing FPS chart info. We only use these when we intend to write out to a stats log
 #if ALLOW_DEBUG_FILES
+	if (GFPSChartRecordPerFrameTimes)
 	{		
-		GGameThreadFrameTimes.Add( FPlatformTime::ToSeconds(GGameThreadTime) );
-		GRenderThreadFrameTimes.Add( FPlatformTime::ToSeconds(LocalRenderThreadTime) );
-		GGPUFrameTimes.Add( FPlatformTime::ToSeconds(LocalGPUFrameTime) );
+		GGameThreadFrameTimes.Add(GameThreadTimeInSecs);
+		GRenderThreadFrameTimes.Add(RenderThreadTimeInSecs);
+		GGPUFrameTimes.Add(FPlatformTime::ToSeconds(LocalGPUFrameTime));
 		GFrameTimes.Add(DeltaSeconds);
 	}
 #endif
@@ -862,9 +874,10 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 	}
 }
 
-void UEngine::StartFPSChart( const FString& Label )
+void UEngine::StartFPSChart(const FString& Label, bool bRecordPerFrameTimes)
 {
 	GFPSChartLabel = Label;
+	GFPSChartRecordPerFrameTimes = bRecordPerFrameTimes;
 
 	for( int32 BucketIndex=0; BucketIndex<ARRAY_COUNT(GFPSChart); BucketIndex++ )
 	{
@@ -881,21 +894,26 @@ void UEngine::StartFPSChart( const FString& Label )
 		GHitchChart[ BucketIndex ].GPUBoundHitchCount = 0;
 	}
 
-	// Pre-allocate 10 minutes worth of frames at 30 Hz. This is only needed if we intend to write out a stats log
 #if ALLOW_DEBUG_FILES
-	int32 NumFrames = 10 * 60 * 30;
-	GRenderThreadFrameTimes.Reset(NumFrames);
-	GGPUFrameTimes.Reset(NumFrames);
-	GGameThreadFrameTimes.Reset(NumFrames);
-	GFrameTimes.Reset(NumFrames);
+	if (GFPSChartRecordPerFrameTimes)
+	{
+		// Pre-allocate 10 minutes worth of frames at 30 Hz. This is only needed if we intend to write out a stats log
+		const int32 InitialNumFrames = 10 * 60 * 30;
+		GRenderThreadFrameTimes.Reset(InitialNumFrames);
+		GGPUFrameTimes.Reset(InitialNumFrames);
+		GGameThreadFrameTimes.Reset(InitialNumFrames);
+		GFrameTimes.Reset(InitialNumFrames);
+	}
 #endif
+
+	GTotalFrameTime_RenderThread = 0.0;
+	GTotalFrameTime_GameThread = 0.0;
 
 	//@TODO: Drive this from a cvar
 	GTargetFrameRatesForSummary.Reset();
 	GTargetFrameRatesForSummary.Add(30);
 	GTargetFrameRatesForSummary.Add(60);
 	GTargetFrameRatesForSummary.Add(120);
-
 
 	GTotalGPUTime = 0;
 	GGPUFrameTime = 0;
@@ -916,11 +934,6 @@ void UEngine::StartFPSChart( const FString& Label )
 void UEngine::StopFPSChart()
 {
 	GEnableDataCapture = false;
-}
-
-void UEngine::CalcQuantisedFPSRange(int32 BucketIndex, int32& StartFPS, int32& EndFPS )
-{
-	FDumpFPSChartToEndpoint::CalcQuantisedFPSRange(BucketIndex, StartFPS, EndFPS);
 }
 
 void UEngine::DumpFPSChartToLog( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName )
@@ -1011,6 +1024,7 @@ void UEngine::DumpFrameTimesToStatsLog( float TotalTime, float DeltaTime, int32 
 	const FString ChartName = OutputDir / CreateFileNameForChart( ChartType, InMapName, TEXT( ".csv" ) );
 	FArchive* OutputFile = IFileManager::Get().CreateDebugFileWriter( *ChartName );
 
+	ensure(GFPSChartRecordPerFrameTimes);
 	if( OutputFile )
 	{
 		OutputFile->Logf(TEXT("Percentile,Frame (ms), GT (ms), RT (ms), GPU (ms)"));

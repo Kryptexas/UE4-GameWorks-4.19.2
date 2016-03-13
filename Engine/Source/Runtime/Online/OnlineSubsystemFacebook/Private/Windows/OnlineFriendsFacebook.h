@@ -96,6 +96,7 @@ public:
 	virtual bool UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) override;
 	virtual bool QueryBlockedPlayers(const FUniqueNetId& UserId) override;
 	virtual bool GetBlockedPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineBlockedPlayer> >& OutBlockedPlayers) override;
+	virtual void DumpBlockedPlayers() const override;
 
 	// FOnlineFriendsFacebook
 

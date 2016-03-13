@@ -50,8 +50,8 @@ void FAnimNode_ApplyMeshSpaceAdditive::Evaluate(FPoseContext& Output)
 			Base.Evaluate(Output);
 			Additive.Evaluate(AdditiveEvalContext);
 
-			FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Output.Pose, AdditiveEvalContext.Pose, Output.Curve, AdditiveEvalContext.Curve, ActualAlpha);
-
+			FAnimationRuntime::AccumulateAdditivePose(Output.Pose, AdditiveEvalContext.Pose, Output.Curve, AdditiveEvalContext.Curve, ActualAlpha, AAT_RotationOffsetMeshSpace);
+			Output.Pose.NormalizeRotations();
 		}
 		else
 		{

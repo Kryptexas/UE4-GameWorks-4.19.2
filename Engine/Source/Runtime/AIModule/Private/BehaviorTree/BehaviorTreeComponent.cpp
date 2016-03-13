@@ -293,6 +293,7 @@ void UBehaviorTreeComponent::StopTree(EBTStopMode::Type StopMode)
 	bRequestedFlowUpdate = false;
 	bRequestedStop = false;
 	bIsRunning = false;
+	bWaitingForAbortingTasks = false;
 }
 
 void UBehaviorTreeComponent::RestartTree()

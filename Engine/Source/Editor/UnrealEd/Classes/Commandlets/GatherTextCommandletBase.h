@@ -236,7 +236,6 @@ private:
 };
 
 
-
 class FGatherTextSCC
 {
 public:
@@ -252,6 +251,31 @@ public:
 
 private:
 	TArray<FString> CheckedOutFiles;
+};
+
+
+struct FLocalizedAssetSCCUtil
+{
+	static bool SaveAssetWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, UObject* InAsset);
+	static bool SaveAssetWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, UObject* InAsset, const FString& InFilename);
+
+	static bool SavePackageWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, UPackage* InPackage);
+	static bool SavePackageWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, UPackage* InPackage, const FString& InFilename);
+
+	static bool DeleteAssetWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, UObject* InAsset);
+
+	static bool DeletePackageWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, UPackage* InPackage);
+
+	typedef TFunctionRef<bool(const FString&)> FSaveFileCallback;
+	static bool SaveFileWithSCC(const TSharedPtr<FGatherTextSCC>& InSourceControlInfo, const FString& InFilename, const FSaveFileCallback& InSaveFileCallback);
+};
+
+
+class IAssetRegistry;
+struct FLocalizedAssetUtil
+{
+	static bool GetAssetsByPathAndClass(IAssetRegistry& InAssetRegistry, const FName InPackagePath, const FName InClassName, const bool bIncludeLocalizedAssets, TArray<FAssetData>& OutAssets);
+	static bool GetAssetsByPathAndClass(IAssetRegistry& InAssetRegistry, const TArray<FName>& InPackagePaths, const FName InClassName, const bool bIncludeLocalizedAssets, TArray<FAssetData>& OutAssets);
 };
 
 

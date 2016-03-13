@@ -10,6 +10,7 @@
 UMenuAnchor::UMenuAnchor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, ShouldDeferPaintingAfterWindowContent(true)
+	, UseApplicationMenuStack(true)
 {
 	Placement = MenuPlacement_ComboBox;
 }
@@ -27,7 +28,8 @@ TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 		.Placement(Placement)
 		.OnGetMenuContent(BIND_UOBJECT_DELEGATE(FOnGetContent, HandleGetMenuContent))
 		.OnMenuOpenChanged(BIND_UOBJECT_DELEGATE(FOnIsOpenChanged, HandleMenuOpenChanged))
-		.ShouldDeferPaintingAfterWindowContent(ShouldDeferPaintingAfterWindowContent);
+		.ShouldDeferPaintingAfterWindowContent(ShouldDeferPaintingAfterWindowContent)
+		.UseApplicationMenuStack(UseApplicationMenuStack);
 
 	if ( GetChildrenCount() > 0 )
 	{

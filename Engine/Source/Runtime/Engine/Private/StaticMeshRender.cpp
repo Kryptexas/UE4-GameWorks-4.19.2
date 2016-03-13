@@ -362,7 +362,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(
 		else
 		{
 			// no support for stateless dithered LOD transitions for movable meshes
-			OutMeshBatch.bDitheredLODTransition = !IsMovable() && Material->IsDitheredLODTransition(false);
+			OutMeshBatch.bDitheredLODTransition = !IsMovable() && Material->IsDitheredLODTransition();
 
 			OutBatchElement.MaxScreenSize = GetScreenSize(LODIndex);
 			OutBatchElement.MinScreenSize = 0.0f;
