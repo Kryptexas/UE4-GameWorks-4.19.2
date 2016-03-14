@@ -1646,9 +1646,8 @@ class TestCleanFormalBuilds : BuildCommand
 	public override void ExecuteBuild()
 	{
 		Log("*********************** TestCleanFormalBuilds");
-		var Dir = ParseParamValue("Dir", @"P:\Builds\Soul\Soul_Android_Shipping_MakeBuild\++depot+UE4-CL-2077154");
-		var CLString = ParseParamValue("CL", "2077154");
-		CleanFormalBuilds(Dir, CLString);
+		var Dir = ParseParamValue("Dir", @"P:\Builds\UE4\PackagedBuilds\++UE4+Release-4.11");
+		CleanFormalBuilds(Dir, "CL-*");
 	}
 }
 

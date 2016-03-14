@@ -2109,15 +2109,22 @@ partial class GUBP
 		{
 			return base.CISFrequencyQuantumShift(BranchConfig) + 3;
 		}
+
+		public static string GetBranchArchiveDirectory(GUBP.GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject InGameProj)
+		{
+			// Find the build share where formal builds will be placed for this game.
+			string BuildShareName;
+			if (!BranchConfig.BranchOptions.GameNameToBuildShareMapping.TryGetValue(InGameProj.GameName, out BuildShareName))
+			{
+				BuildShareName = "UE4";
+			}
+			return CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName, "PackagedBuilds", P4Env.BuildRootEscaped);
+		}
+
 		public static string GetArchiveDirectory(GUBP.GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
         {
-            // Find the build share where formal builds will be placed for this game.
-            string BuildShareName;
-            if (!BranchConfig.BranchOptions.GameNameToBuildShareMapping.TryGetValue(InGameProj.GameName, out BuildShareName))
-            {
-                BuildShareName = "UE4";
-            }
-            string BaseDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName, "PackagedBuilds", P4Env.BuildRootEscaped, BranchConfig.JobInfo.BuildName);
+			string BranchArchiveDir = GetBranchArchiveDirectory(BranchConfig, InGameProj);
+            string BaseDir = CommandUtils.CombinePaths(BranchArchiveDir, BranchConfig.JobInfo.BuildName);
 			string NodeName = StaticGetBaseName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
 			string ArchiveDirectory = CombinePaths(BaseDir, NodeName);
             return ArchiveDirectory;
@@ -2245,7 +2252,7 @@ partial class GUBP
 					}
 					CreateDirectory_NoExceptions(IntermediateArchiveDirectory);
 				}
-				CleanFormalBuilds(FinalArchiveDirectory);
+				CleanFormalBuilds(FinalArchiveDirectory, "CL-*");
 				if (DirectoryExists_NoExceptions(FinalArchiveDirectory))
                 {
                     if (IsBuildMachine)
