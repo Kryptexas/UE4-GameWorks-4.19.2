@@ -1709,7 +1709,7 @@ FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* 
 		USceneComponent* SceneComponent = SourceComponent->AttachChildren[i];
 		if (SceneComponent && SceneComponent->GetOwner() == SourceOwner && !SceneComponent->IsCreatedByConstructionScript())
 		{
-			AttachedInstanceComponents.Add(TPairInitializer<USceneComponent*,FTransform>(SceneComponent, FTransform(SceneComponent->RelativeRotation, SceneComponent->RelativeLocation, SceneComponent->RelativeScale3D)));
+			AttachedInstanceComponents.Add(TPairInitializer<USceneComponent*,const FTransform&>(SceneComponent, FTransform(SceneComponent->RelativeRotation, SceneComponent->RelativeLocation, SceneComponent->RelativeScale3D)));
 		}
 	}
 }
