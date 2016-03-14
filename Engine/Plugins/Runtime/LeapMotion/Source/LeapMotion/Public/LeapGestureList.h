@@ -46,5 +46,5 @@ private:
 	class FPrivateGestureList* Private;
 
 	UPROPERTY()
-	ULeapGesture* PGesture = nullptr;
+	ULeapGesture* Gesture = nullptr;
 };
