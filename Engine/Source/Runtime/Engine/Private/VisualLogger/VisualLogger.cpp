@@ -442,11 +442,26 @@ UObject* FVisualLogger::FindRedirection(const UObject* Object)
 	auto& RedirectionMap = GetRedirectionMap(Object);
 	if (RedirectionMap.Contains(Object) == false)
 	{
-		for (auto& Redirection : RedirectionMap)
+		for (RedirectionMapType::TIterator It(RedirectionMap); It; ++It)
 		{
-			if (Redirection.Value.Find(Object) != INDEX_NONE)
+			if (It.Value().Find(Object) != INDEX_NONE)
 			{
-				return FindRedirection(Redirection.Key);
+				// TODO: it really shouldn't keep raw pointers here
+				// TArray<FWeakObjectPtr>::Contains/Find(UObject*) requires converting UObject to weak pointer first,
+				// but that operation is checked against data in GObjectArray and can result in a crash
+				// patch it for now, fix with vlog refactor later
+				//
+				// GUObjectArray.IsValid prints warning in log, try silent check with object index first
+				
+				const UObject* RedirectionKey = It.Key();
+				const bool bIsValid = RedirectionKey && (GUObjectArray.ObjectToIndex(RedirectionKey) >= 0) && GUObjectArray.IsValid(RedirectionKey);
+				if (!bIsValid)
+				{
+					It.RemoveCurrent();
+					break;
+				}
+
+				return FindRedirection(RedirectionKey);
 			}
 		}
 	}

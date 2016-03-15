@@ -183,7 +183,7 @@ void UAbilitySystemComponent::SetNumericAttributeBase(const FGameplayAttribute &
 	ActiveGameplayEffects.SetAttributeBaseValue(Attribute, NewFloatValue);
 }
 
-float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute &Attribute)
+float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute &Attribute) const
 {
 	return ActiveGameplayEffects.GetAttributeBaseValue(Attribute);
 }
@@ -242,7 +242,7 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::MakeOutgoingSpec(TSubclassOf<
 	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
 	if (Context.IsValid() == false)
 	{
-		Context = GetEffectContext();
+		Context = MakeEffectContext();
 	}
 
 	if (GameplayEffectClass)
@@ -260,7 +260,7 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGamepl
 {
 	if (GameplayEffect)
 	{
-		return MakeOutgoingSpec(GameplayEffect->GetClass(), Level, GetEffectContext());
+		return MakeOutgoingSpec(GameplayEffect->GetClass(), Level, MakeEffectContext());
 	}
 
 	return FGameplayEffectSpecHandle(nullptr);
@@ -268,10 +268,10 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGamepl
 
 FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level) const
 {
-	return GetOutgoingSpec(GameplayEffect, Level, GetEffectContext());
+	return GetOutgoingSpec(GameplayEffect, Level, MakeEffectContext());
 }
 
-FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
+FGameplayEffectContextHandle UAbilitySystemComponent::MakeEffectContext() const
 {
 	FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
 	// By default use the owner and avatar as the instigator and causer
@@ -279,6 +279,11 @@ FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 	
 	Context.AddInstigator(AbilityActorInfo->OwnerActor.Get(), AbilityActorInfo->AvatarActor.Get());
 	return Context;
+}
+
+FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
+{
+	return MakeEffectContext();
 }
 
 int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent, bool bEnforceOnGoingCheck)
@@ -358,7 +363,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget
 	{
 		if (!Context.IsValid())
 		{
-			Context = GetEffectContext();
+			Context = MakeEffectContext();
 		}
 
 		FGameplayEffectSpec	Spec(GameplayEffect, Context, Level);
@@ -895,9 +900,9 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 {
 	for (const FActiveGameplayEffect& ActiveGE : &ActiveGameplayEffects)
 	{
-		for (const FGameplayAbilitySpecDef& AbiilitySpecDef : ActiveGE.Spec.GrantedAbilitySpecs)
+		for (const FGameplayAbilitySpecDef& AbilitySpecDef : ActiveGE.Spec.GrantedAbilitySpecs)
 		{
-			if (AbiilitySpecDef.AssignedHandle == Handle)
+			if (AbilitySpecDef.AssignedHandle == Handle)
 			{
 				return ActiveGE.Handle;
 			}
@@ -1142,6 +1147,11 @@ TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActi
 TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
+}
+
+TArray<TPair<float,float>> UAbilitySystemComponent::GetActiveEffectsTimeRemainingAndDuration(const FGameplayEffectQuery& Query) const
+{
+	return ActiveGameplayEffects.GetActiveEffectsTimeRemainingAndDuration(Query);
 }
 
 // #deprecated, use FGameplayEffectQuery version

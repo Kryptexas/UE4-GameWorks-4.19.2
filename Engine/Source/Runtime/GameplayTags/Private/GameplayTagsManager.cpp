@@ -350,7 +350,7 @@ bool UGameplayTagsManager::ShouldImportTagsFromINI()
 	return ImportFromINI;
 }
 
-void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Container, TSet<FName>& DeprecatedTagNamesNotFoundInTagMap)
+void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Container, TSet<FName>& DeprecatedTagNamesNotFoundInTagMap, UProperty* SerializingProperty)
 {
 	TSet<FName> NamesToRemove;
 	TSet<const FGameplayTag*> TagsToAdd;
@@ -369,6 +369,17 @@ void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Conta
 				DeprecatedTagNamesNotFoundInTagMap.Remove(NewTag->GetTagName());
 			}
 		}
+#if WITH_EDITOR
+		else
+		{
+			// Warn about invalid tags at load time in editor builds, too late to fix it in cooked builds
+			FGameplayTag OldTag = RequestGameplayTag(TagName, false);
+			if (!OldTag.IsValid())
+			{
+				UE_LOG(LogGameplayTags, Warning, TEXT("Invalid GameplayTag %s found while loading property %s."), *TagName.ToString(), *GetPathNameSafe(SerializingProperty));
+			}
+		}
+#endif
 	}
 
 	// Add additional tags to the TagsToAdd set from the deprecated list if they weren't already added above
@@ -401,6 +412,30 @@ void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Conta
 		check(AddTag);
 		Container.AddTag(*AddTag);
 	}
+}
+
+void UGameplayTagsManager::RedirectSingleGameplayTag(FGameplayTag& Tag, UProperty* SerializingProperty)
+{
+	const FName TagName = Tag.GetTagName();
+	const FGameplayTag* NewTag = TagRedirects.Find(TagName);
+	if (NewTag)
+	{
+		if (NewTag->IsValid())
+		{
+			Tag = *NewTag;
+		}
+	}
+#if WITH_EDITOR
+	else if (TagName != NAME_None)
+	{
+		// Warn about invalid tags at load time in editor builds, too late to fix it in cooked builds
+		FGameplayTag OldTag = RequestGameplayTag(TagName, false);
+		if (!OldTag.IsValid())
+		{
+			UE_LOG(LogGameplayTags, Warning, TEXT("Invalid GameplayTag %s found while loading property %s."), *TagName.ToString(), *GetPathNameSafe(SerializingProperty));
+		}
+	}
+#endif
 }
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)

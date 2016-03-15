@@ -1383,6 +1383,13 @@ TSharedPtr<SGraphNode> SGraphPanel::GetNodeWidgetFromGuid(FGuid Guid) const
 
 void SGraphPanel::Update()
 {
+	static bool bIsUpdating = false;
+	if (bIsUpdating)
+	{
+		return;
+	}
+	TGuardValue<bool> ReentrancyGuard(bIsUpdating, true);
+
 	// Add widgets for all the nodes that don't have one.
 	if (GraphObj != nullptr)
 	{

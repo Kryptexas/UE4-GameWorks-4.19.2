@@ -39,7 +39,7 @@ public:
 	virtual const FXmppUserPresence& GetPresence() const override;
 	virtual bool QueryPresence(const FString& UserId) override;	
 	virtual TArray<TSharedPtr<FXmppUserPresence>> GetRosterPresence(const FString& UserId) override;
-	virtual void GetRosterMembers(TArray<FString>& Members) override;
+	virtual void GetRosterMembers(TArray<FXmppUserJid>& Members) override;
 	virtual FOnXmppPresenceReceived& OnReceivePresence() override { return OnXmppPresenceReceivedDelegate; }
 
 	// FTickerObjectBase

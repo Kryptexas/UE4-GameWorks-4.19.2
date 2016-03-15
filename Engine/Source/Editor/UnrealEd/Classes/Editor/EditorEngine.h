@@ -559,6 +559,14 @@ public:
 	/** The feature level we should use when loading or creating a new world */
 	ERHIFeatureLevel::Type DefaultWorldFeatureLevel;
 
+protected:
+
+	/* These are parameters that we need to cache for late joining */
+	FString ServerPrefix;
+	int32 PIEInstance;
+	int32 SettingsIndex;
+	bool bStartLateJoinersInSpectatorMode;
+
 public:
 
 	/** The "manager" of all the layers for the UWorld currently being edited */
@@ -1652,6 +1660,11 @@ public:
 	bool ShouldEndPlayMap() const { return bRequestEndPlayMapQueued; }
 
 	/**
+	 * Request to create a new PIE window and join the currently running PIE session.
+	 */
+	void RequestLateJoin();
+
+	/**
 	 * Saves play in editor levels and also fixes up references in AWorldSettings to other levels.
 	 *
 	 * @param	Prefix				Prefix used to save files to disk.
@@ -1679,7 +1692,7 @@ public:
 	 */
 	virtual void PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor );
 
-	virtual UGameInstance* CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
+	virtual UGameInstance* CreatePIEGameInstance(int32 InPIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
 
 	/**
 	 * Kills the Play From Here session

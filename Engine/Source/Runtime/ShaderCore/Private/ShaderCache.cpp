@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include "RHI.h"
 #include "RenderingThread.h"
+#include "EngineVersion.h"
 
 DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);
@@ -178,6 +179,12 @@ void FShaderCache::InitShaderCache(uint32 Options, uint32 InMaxResources)
 #endif
 	check(!Cache);
 	checkf(!(Options & SCO_Cooking) || (Options == SCO_Cooking && WITH_EDITORONLY_DATA), TEXT("Binary shader cache cooking is only permitted on its own & within the editor/cooker."));
+	
+	// Set the GameVersion to the FEngineVersion::Current().GetChangelist() value if it wasn't set to ensure we don't load invalidated caches.
+	if (GameVersion == 0)
+	{
+		GameVersion = (int32)FEngineVersion::Current().GetChangelist();
+	}
 	
 	if(bUseShaderCaching)
 	{

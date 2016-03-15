@@ -468,6 +468,12 @@ bool UUnrealEdEngine::CanSelectActor(AActor* Actor, bool bInSelected, bool bSele
 			return false;
 		}
 
+		// If the actor explicitly makes itself unselectable, leave.
+		if (!Actor->IsSelectable())
+		{
+			return false;
+		}
+
 		// Ensure that neither the level nor the actor is being destroyed or is unreachable
 		const EObjectFlags InvalidSelectableFlags = RF_BeginDestroyed;
 		if (Actor->GetLevel()->HasAnyFlags(InvalidSelectableFlags) || Actor->GetLevel()->IsPendingKillOrUnreachable())

@@ -298,6 +298,7 @@ namespace AutomationTool
 			this.bCodeSign = InParams.bCodeSign;
 			this.UploadSymbols = InParams.UploadSymbols;
 			this.TitleID = InParams.TitleID;
+			this.bTreatNonShippingBinariesAsDebugFiles = InParams.bTreatNonShippingBinariesAsDebugFiles;
 			this.RunAssetNativization = InParams.RunAssetNativization;
 		}
 
@@ -406,6 +407,7 @@ namespace AutomationTool
 			bool? IgnoreCookErrors = null,
             bool? RunAssetNativization = null,
 			bool? CodeSign = null,
+			bool? TreatNonShippingBinariesAsDebugFiles = null,
 			bool? UploadSymbols = null,
 			string Provision = null,
 			string Certificate = null,
@@ -542,6 +544,7 @@ namespace AutomationTool
 			}
 			this.StageDirectoryParam = ParseParamValueIfNotSpecified(Command, StageDirectoryParam, "stagingdirectory", String.Empty, true);
 			this.bCodeSign = GetParamValueIfNotSpecified(Command, CodeSign, CommandUtils.IsBuildMachine, "CodeSign");
+			this.bTreatNonShippingBinariesAsDebugFiles = GetParamValueIfNotSpecified(Command, TreatNonShippingBinariesAsDebugFiles, false, "TreatNonShippingBinariesAsDebugFiles");
 			this.Manifests = GetParamValueIfNotSpecified(Command, Manifests, this.Manifests, "manifests");
             this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
 			this.ChunkInstallDirectory = ParseParamValueIfNotSpecified(Command, ChunkInstallDirectory, "chunkinstalldirectory", String.Empty, true);
@@ -1341,6 +1344,11 @@ namespace AutomationTool
 		/// TitleID to package
 		/// </summary>
 		public ParamList<string> TitleID = new ParamList<string>();
+
+		/// <summary>
+		/// If true, non-shipping binaries will be considered DebugUFS files and will appear on the debugfiles manifest
+		/// </summary>
+		public bool bTreatNonShippingBinariesAsDebugFiles = false;
 
 		#endregion
 
@@ -2276,6 +2284,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("bUsesCEF3={0}", bUsesCEF3);
 				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
+				CommandUtils.LogLog("bTreatNonShippingBinariesAsDebugFiles={0}", bTreatNonShippingBinariesAsDebugFiles);
 				CommandUtils.LogLog("UploadSymbols={0}", UploadSymbols);
                 CommandUtils.LogLog("NativizeAssets={0}", RunAssetNativization);
 				CommandUtils.LogLog("Project Params **************");

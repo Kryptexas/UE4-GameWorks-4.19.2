@@ -1760,15 +1760,21 @@ bool FPImplRecastNavMesh::GetPolyEdges(NavNodeRef PolyID, TArray<FNavigationPort
 		dtStatus Status = DetourNavMesh->getTileAndPolyByRef(PolyRef, &Tile, &Poly);
 		if (dtStatusSucceed(Status))
 		{
-			for (int32 Idx = 0; Idx < Poly->vertCount; Idx++)
-			{
-				FNavigationPortalEdge NeiData;
-				NeiData.Left = Recast2UnrealPoint(&Tile->verts[3 * Poly->verts[Idx]]);
-				NeiData.Right = Recast2UnrealPoint(&Tile->verts[3 * Poly->verts[(Idx + 1) % Poly->vertCount]]);
+			const bool bIsNavLink = (Poly->getType() != DT_POLYTYPE_GROUND);
 
-				// not a ref, but can be converted into one later if needed, basic info (hard edge) is there
-				NeiData.ToRef = Poly->neis[Idx];
-				Edges.Add(NeiData);
+			for (uint32 LinkIt = Poly->firstLink; LinkIt != DT_NULL_LINK;)
+			{
+				const dtLink& LinkInfo = DetourNavMesh->getLink(Tile, LinkIt);
+				if (LinkInfo.edge >= 0 && LinkInfo.edge < Poly->vertCount)
+				{
+					FNavigationPortalEdge NeiData;
+					NeiData.Left = Recast2UnrealPoint(&Tile->verts[3 * Poly->verts[LinkInfo.edge]]);
+					NeiData.Right = bIsNavLink ? NeiData.Left : Recast2UnrealPoint(&Tile->verts[3 * Poly->verts[(LinkInfo.edge + 1) % Poly->vertCount]]);
+					NeiData.ToRef = LinkInfo.ref;
+					Edges.Add(NeiData);
+				}
+
+				LinkIt = LinkInfo.next;
 			}
 
 			return true;

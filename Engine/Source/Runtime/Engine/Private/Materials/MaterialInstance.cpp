@@ -1660,10 +1660,11 @@ bool UMaterialInstance::GetStaticSwitchParameterValue(FName ParameterName, bool 
 
 	for (int32 ValueIndex = 0;ValueIndex < StaticParameters.StaticSwitchParameters.Num();ValueIndex++)
 	{
-		if (StaticParameters.StaticSwitchParameters[ValueIndex].ParameterName == ParameterName)
+		const FStaticSwitchParameter& Param = StaticParameters.StaticSwitchParameters[ValueIndex];
+		if (Param.bOverride && Param.ParameterName == ParameterName)
 		{
-			OutValue = StaticParameters.StaticSwitchParameters[ValueIndex].Value;
-			OutExpressionGuid = StaticParameters.StaticSwitchParameters[ValueIndex].ExpressionGUID;
+			OutValue = Param.Value;
+			OutExpressionGuid = Param.ExpressionGUID;
 			return true;
 		}
 	}
@@ -1688,13 +1689,14 @@ bool UMaterialInstance::GetStaticComponentMaskParameterValue(FName ParameterName
 
 	for (int32 ValueIndex = 0;ValueIndex < StaticParameters.StaticComponentMaskParameters.Num();ValueIndex++)
 	{
-		if (StaticParameters.StaticComponentMaskParameters[ValueIndex].ParameterName == ParameterName)
+		const FStaticComponentMaskParameter& Param = StaticParameters.StaticComponentMaskParameters[ValueIndex];
+		if (Param.bOverride && Param.ParameterName == ParameterName)
 		{
-			OutR = StaticParameters.StaticComponentMaskParameters[ValueIndex].R;
-			OutG = StaticParameters.StaticComponentMaskParameters[ValueIndex].G;
-			OutB = StaticParameters.StaticComponentMaskParameters[ValueIndex].B;
-			OutA = StaticParameters.StaticComponentMaskParameters[ValueIndex].A;
-			OutExpressionGuid = StaticParameters.StaticComponentMaskParameters[ValueIndex].ExpressionGUID;
+			OutR = Param.R;
+			OutG = Param.G;
+			OutB = Param.B;
+			OutA = Param.A;
+			OutExpressionGuid = Param.ExpressionGUID;
 			return true;
 		}
 	}
@@ -1719,10 +1721,11 @@ bool UMaterialInstance::GetTerrainLayerWeightParameterValue(FName ParameterName,
 
 	for (int32 ValueIndex = 0;ValueIndex < StaticParameters.TerrainLayerWeightParameters.Num();ValueIndex++)
 	{
-		if (StaticParameters.TerrainLayerWeightParameters[ValueIndex].ParameterName == ParameterName)
+		const FStaticTerrainLayerWeightParameter& Param = StaticParameters.TerrainLayerWeightParameters[ValueIndex];
+		if (Param.bOverride && Param.ParameterName == ParameterName)
 		{
-			OutWeightmapIndex = StaticParameters.TerrainLayerWeightParameters[ValueIndex].WeightmapIndex;
-			OutExpressionGuid = StaticParameters.TerrainLayerWeightParameters[ValueIndex].ExpressionGUID;
+			OutWeightmapIndex = Param.WeightmapIndex;
+			OutExpressionGuid = Param.ExpressionGUID;
 			return true;
 		}
 	}

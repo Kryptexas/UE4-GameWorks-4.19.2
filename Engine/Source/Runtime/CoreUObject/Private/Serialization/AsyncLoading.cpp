@@ -947,7 +947,7 @@ void FAsyncLoadingThread::CancelAsyncLoading()
 
 void FAsyncLoadingThread::SuspendLoading()
 {
-	UE_CLOG(!IsInGameThread(), LogStreaming, Fatal, TEXT("Async loading can only be suspended from the main thread"));
+	UE_CLOG(!IsInGameThread() || IsInSlateThread(), LogStreaming, Fatal, TEXT("Async loading can only be suspended from the main thread"));
 	const int32 SuspendCount = IsLoadingSuspended.Increment();
 #if !WITH_EDITORONLY_DATA
 	UE_LOG(LogStreaming, Display, TEXT("Suspending async loading (%d)"), SuspendCount);
@@ -960,7 +960,7 @@ void FAsyncLoadingThread::SuspendLoading()
 
 void FAsyncLoadingThread::ResumeLoading()
 {
-	check(IsInGameThread());
+	check(IsInGameThread() && !IsInSlateThread());
 	const int32 SuspendCount = IsLoadingSuspended.Decrement();
 #if !WITH_EDITORONLY_DATA
 	UE_LOG(LogStreaming, Display, TEXT("Resuming async loading (%d)"), SuspendCount);
@@ -2294,6 +2294,12 @@ bool IsAsyncLoadingCoreUObjectInternal()
 {
 	// GIsInitialLoad guards the async loading thread from being created too early
 	return !GIsInitialLoad && FAsyncLoadingThread::Get().IsAsyncLoadingPackages();
+}
+
+bool IsAsyncLoadingMultithreadedCoreUObjectInternal()
+{
+	// GIsInitialLoad guards the async loading thread from being created too early
+	return !GIsInitialLoad && FAsyncLoadingThread::Get().IsMultithreaded();
 }
 
 void SuspendAsyncLoadingInternal()

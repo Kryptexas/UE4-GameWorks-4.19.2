@@ -678,80 +678,81 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 #if !UE_SERVER
-
-	static const int32 LayerZOrder = -100;
-
-	UpdateWidget();
-
-	if ( Widget == nullptr )
+	if (!IsRunningDedicatedServer())
 	{
-		return;
-	}
+		static const int32 LayerZOrder = -100;
 
-	if ( Space != EWidgetSpace::Screen )
-	{
-		const float RenderTimeThreshold = .5f;
-		if ( IsVisible() )
+		UpdateWidget();
+
+		if ( Widget == nullptr )
 		{
-			// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
-			if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
+			return;
+		}
+
+		if ( Space != EWidgetSpace::Screen )
+		{
+			const float RenderTimeThreshold = .5f;
+			if ( IsVisible() )
 			{
-				DrawWidgetToRenderTarget(DeltaTime);
+				// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
+				if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
+				{
+					DrawWidgetToRenderTarget(DeltaTime);
+				}
 			}
 		}
-	}
-	else
-	{
-		if ( Widget && !Widget->IsDesignTime() )
+		else
 		{
-			UWorld* ThisWorld = GetWorld();
-
-			ULocalPlayer* TargetPlayer = GetOwnerPlayer();
-			APlayerController* PlayerController = TargetPlayer ? TargetPlayer->PlayerController : nullptr;
-
-			if ( TargetPlayer && PlayerController && IsVisible() )
+			if ( Widget && !Widget->IsDesignTime() )
 			{
-				if ( !bAddedToScreen )
+				UWorld* ThisWorld = GetWorld();
+
+				ULocalPlayer* TargetPlayer = GetOwnerPlayer();
+				APlayerController* PlayerController = TargetPlayer ? TargetPlayer->PlayerController : nullptr;
+
+				if ( TargetPlayer && PlayerController && IsVisible() )
 				{
-					if ( ThisWorld->IsGameWorld() )
+					if ( !bAddedToScreen )
 					{
-						if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+						if ( ThisWorld->IsGameWorld() )
 						{
-							TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
-							if ( LayerManager.IsValid() )
+							if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 							{
-								TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer;
-
-								FLocalPlayerContext PlayerContext(TargetPlayer, GetWorld());
-
-								TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
-								if ( !Layer.IsValid() )
+								TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+								if ( LayerManager.IsValid() )
 								{
-									TSharedRef<FWorldWidgetScreenLayer> NewScreenLayer = MakeShareable(new FWorldWidgetScreenLayer(PlayerContext));
-									LayerManager->AddLayerForPlayer(TargetPlayer, SharedLayerName, NewScreenLayer, LayerZOrder);
-									ScreenLayer = NewScreenLayer;
-								}
-								else
-								{
-									ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
-								}
+									TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer;
+
+									FLocalPlayerContext PlayerContext(TargetPlayer, GetWorld());
+
+									TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
+									if ( !Layer.IsValid() )
+									{
+										TSharedRef<FWorldWidgetScreenLayer> NewScreenLayer = MakeShareable(new FWorldWidgetScreenLayer(PlayerContext));
+										LayerManager->AddLayerForPlayer(TargetPlayer, SharedLayerName, NewScreenLayer, LayerZOrder);
+										ScreenLayer = NewScreenLayer;
+									}
+									else
+									{
+										ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
+									}
 								
-								bAddedToScreen = true;
+									bAddedToScreen = true;
 								
-								Widget->SetPlayerContext(PlayerContext);
-								ScreenLayer->AddComponent(this);
+									Widget->SetPlayerContext(PlayerContext);
+									ScreenLayer->AddComponent(this);
+								}
 							}
 						}
 					}
 				}
-			}
-			else if ( bAddedToScreen )
-			{
-				RemoveWidgetFromScreen();
+				else if ( bAddedToScreen )
+				{
+					RemoveWidgetFromScreen();
+				}
 			}
 		}
 	}
-
 #endif // !UE_SERVER
 }
 
@@ -788,20 +789,23 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 void UWidgetComponent::RemoveWidgetFromScreen()
 {
 #if !UE_SERVER
-	bAddedToScreen = false;
-
-	if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+	if (!IsRunningDedicatedServer())
 	{
-		TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
-		if ( LayerManager.IsValid() )
-		{
-			ULocalPlayer* TargetPlayer = GetOwnerPlayer();
+		bAddedToScreen = false;
 
-			TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
-			if ( Layer.IsValid() )
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			TSharedPtr<IGameLayerManager> LayerManager = ViewportClient->GetGameLayerManager();
+			if ( LayerManager.IsValid() )
 			{
-				TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
-				ScreenLayer->RemoveComponent(this);
+				ULocalPlayer* TargetPlayer = GetOwnerPlayer();
+
+				TSharedPtr<IGameLayer> Layer = LayerManager->FindLayerForPlayer(TargetPlayer, SharedLayerName);
+				if ( Layer.IsValid() )
+				{
+					TSharedPtr<FWorldWidgetScreenLayer> ScreenLayer = StaticCastSharedPtr<FWorldWidgetScreenLayer>(Layer);
+					ScreenLayer->RemoveComponent(this);
+				}
 			}
 		}
 	}

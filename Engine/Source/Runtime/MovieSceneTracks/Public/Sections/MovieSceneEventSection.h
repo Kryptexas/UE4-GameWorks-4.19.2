@@ -42,11 +42,11 @@ public:
 	/**
 	 * Trigger the events that fall into the given time range.
 	 *
-	 * @param LevelScriptActor The script actor to trigger the events on.
+	 * @param EventContextObject The object to trigger the events on.
 	 * @param Position The current position in time.
 	 * @param LastPosition The time at the last update.
 	 */
-	void TriggerEvents(ALevelScriptActor* LevelScriptActor, float Position, float LastPosition);
+	void TriggerEvents(UObject* EventContextObject, float Position, float LastPosition);
 
 public:
 
@@ -59,12 +59,12 @@ public:
 protected:
 
 	/**
-	 * Trigger event for the specified key.
+	 * Trigger event for the specified name.
 	 *
-	 * @param Key The key to trigger.
-	 * @param LevelScriptActor The script actor to trigger the events on.
+	 * @param Event The Name to trigger.
+	 * @param Object The object to trigger the events on.
 	 */
-	void TriggerEvent(const FName& Event, ALevelScriptActor* LevelScriptActor);
+	void TriggerEvent(const FName& Event, UObject* EventContextObject);
 
 private:
 

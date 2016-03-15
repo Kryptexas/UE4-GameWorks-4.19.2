@@ -1830,14 +1830,13 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 	}
 	else
 	{
-		Result.Path = Self->CreatePathInstance<FNavMeshPath>(Query.Owner.Get());
+		Result.Path = Self->CreatePathInstance<FNavMeshPath>(Query);
 		NavPath = Result.Path.Get();
 		NavMeshPath = NavPath ? NavPath->CastPath<FNavMeshPath>() : nullptr;
 	}
 
 	if (NavMeshPath)
 	{
-		NavMeshPath->SetFilter(Query.QueryFilter);
 		NavMeshPath->ApplyFlags(Query.NavDataFlags);
 
 		if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)

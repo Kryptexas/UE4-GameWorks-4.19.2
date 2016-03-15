@@ -254,14 +254,15 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 void AOnlineBeaconHost::DisconnectClient(AOnlineBeaconClient* ClientActor)
 {
-	if (ClientActor)
+	if (ClientActor && ClientActor->GetConnectionState() != EBeaconConnectionState::Closed && !ClientActor->IsPendingKill())
 	{
 		ClientActor->SetConnectionState(EBeaconConnectionState::Closed);
 
 		// Closing the connection will start the chain of events leading to the removal from lists and destruction of the actor
 		UNetConnection* Connection = ClientActor->GetNetConnection();
-		if (Connection)
+		if (Connection && ensure(Connection->State != USOCK_Closed))
 		{
+			UE_LOG(LogBeacon, Log, TEXT("DisconnectClient for %s. PendingKill %d UNetConnection %s UNetDriver %s State %d"), *GetNameSafe(ClientActor), ClientActor->IsPendingKill(), *GetNameSafe(ClientActor->BeaconConnection), ClientActor->BeaconConnection ? *GetNameSafe(ClientActor->BeaconConnection->Driver) : TEXT("null"), ClientActor->BeaconConnection ? ClientActor->BeaconConnection->State : -1);
 			Connection->FlushNet(true);
 			Connection->Close();
 		}

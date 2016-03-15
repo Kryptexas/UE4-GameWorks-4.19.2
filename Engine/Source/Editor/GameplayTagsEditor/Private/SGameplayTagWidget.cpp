@@ -560,12 +560,15 @@ void SGameplayTagWidget::VerifyAssetTagValidity()
 		if (Container)
 		{
 			FGameplayTagContainer EditableContainer = *Container;
-			FGameplayTagContainer InvalidTags;
+
+			// Use a set instead of a container so we can find and remove None tags
+			TSet<FGameplayTag> InvalidTags;
+
 			for (auto It = Container->CreateConstIterator(); It; ++It)
 			{
 				if (!LibraryTags.HasTag(*It, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
 				{
-					InvalidTags.AddTag(*It);
+					InvalidTags.Add(*It);
 				}
 			}
 			if (InvalidTags.Num() > 0)

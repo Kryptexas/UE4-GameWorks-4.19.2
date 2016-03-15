@@ -421,7 +421,7 @@ public:
 	FShaderCache(uint32 Options, uint32 InMaxResources);
 	virtual ~FShaderCache();
 	
-	/** Called by the game to set the game specific shader cache version, only caches of this version will be loaded. Must be called before RHI initialisation, as InitShaderCache will load any existing cache. */
+    /** Called by the game to set the game specific shader cache version, only caches of this version will be loaded. Must be called before RHI initialisation, as InitShaderCache will load any existing cache. Defaults to FEngineVersion::Current().GetChangelist() if never called. */
 	static void SetGameVersion(int32 InGameVersion);
 	static int32 GetGameVersion() { return GameVersion; }
 	

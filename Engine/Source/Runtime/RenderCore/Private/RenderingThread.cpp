@@ -71,7 +71,10 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 {
 	// Suspend async loading thread so that it doesn't start queueing render commands 
 	// while the render thread is suspended.
-	SuspendAsyncLoading();
+	if (IsAsyncLoadingMultithreaded())
+	{
+		SuspendAsyncLoading();
+	}
 
 	bRecreateThread = bInRecreateThread;
 	bUseRenderingThread = GUseThreadedRendering;
@@ -175,7 +178,10 @@ FSuspendRenderingThread::~FSuspendRenderingThread()
 		// Resume the render thread again. 
 		FPlatformAtomics::InterlockedDecrement( &GIsRenderingThreadSuspended );
 	}
-	ResumeAsyncLoading();
+	if (IsAsyncLoadingMultithreaded())
+	{
+		ResumeAsyncLoading();
+	}
 }
 
 

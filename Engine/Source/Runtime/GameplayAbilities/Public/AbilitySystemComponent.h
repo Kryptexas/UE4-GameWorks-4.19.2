@@ -137,7 +137,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	void SetNumericAttributeBase(const FGameplayAttribute &Attribute, float NewBaseValue);
 
 	/** Gets the base value of an attribute. That is, the value of the attribute with no stateful modifiers */
-	float GetNumericAttributeBase(const FGameplayAttribute &Attribute);
+	float GetNumericAttributeBase(const FGameplayAttribute &Attribute) const;
 
 	/**
 	 *	Applies an inplace mod to the given attribute. This correctly update the attribute's aggregator, updates the attribute set property,
@@ -305,6 +305,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Create an EffectContext for the owner of this AbilitySystemComponent */
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	FGameplayEffectContextHandle MakeEffectContext() const;
+
+	/** Deprecated. Use MakeEffectContext instead. */
+	DEPRECATED(4.12, "GetEffectContext is deprecated, use MakeEffectContext")
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(DeprecatedFunction, DeprecationMessage = "Use new MakeEffectContext"))
 	FGameplayEffectContextHandle GetEffectContext() const;
 
 	/**
@@ -601,6 +606,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const;
 
+	TArray<TPair<float,float>> GetActiveEffectsTimeRemainingAndDuration(const FGameplayEffectQuery& Query) const;
+
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
@@ -783,7 +790,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	 * For example, Behavior Trees can use various decorators to test an ability fetched using this mechanism as well
 	 * as the Task to execute the ability without needing to know that there even is more than one such ability.
 	 */
-	void GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities) const;
+	void GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities, bool bOnlyAbilitiesThatSatisfyTagRequirements = true) const;
 
 	/** 
 	 * Attempts to activate every gameplay ability that matches the given tag and DoesAbilitySatisfyTagRequirements().

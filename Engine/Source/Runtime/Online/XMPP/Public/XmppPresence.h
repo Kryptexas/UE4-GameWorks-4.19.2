@@ -129,7 +129,7 @@ public:
 	 *
 	 * @param OutMembers [out] members to update
 	 */
-	virtual void GetRosterMembers(TArray<FString>& OutMembers) = 0;
+	virtual void GetRosterMembers(TArray<FXmppUserJid>& OutMembers) = 0;
 
 	/**
 	 * Obtain presence info for a given roster member id

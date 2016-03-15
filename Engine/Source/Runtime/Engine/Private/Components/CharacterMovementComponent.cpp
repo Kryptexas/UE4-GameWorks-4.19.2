@@ -4399,8 +4399,8 @@ FVector UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSecon
 
 			// blocked by world static and optionally world dynamic
 			FCollisionResponseParams ResponseParams(ECR_Ignore);
-			ResponseParams.CollisionResponse.SetResponse(ECC_WorldStatic, ECR_Block);
-			ResponseParams.CollisionResponse.SetResponse(ECC_WorldDynamic, bProjectNavMeshOnBothWorldChannels ? ECR_Block : ECR_Ignore);
+			ResponseParams.CollisionResponse.SetResponse(ECC_WorldStatic, ECR_Overlap);
+			ResponseParams.CollisionResponse.SetResponse(ECC_WorldDynamic, bProjectNavMeshOnBothWorldChannels ? ECR_Overlap : ECR_Ignore);
 
 			TArray<FHitResult> MultiTraceHits;
 			GetWorld()->LineTraceMultiByChannel(MultiTraceHits, TraceStart, TraceEnd, ECC_WorldStatic, Params, ResponseParams);
@@ -4422,6 +4422,23 @@ FVector UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSecon
 				const FVector& SourceLocation;
 			};
 
+			struct FRemoveNotBlockingResponseNavMeshTrace
+			{
+				FRemoveNotBlockingResponseNavMeshTrace(bool bInCheckOnlyWorldStatic) : bCheckOnlyWorldStatic(bInCheckOnlyWorldStatic) {}
+
+				FORCEINLINE bool operator()(const FHitResult& TestHit) const
+				{
+					UPrimitiveComponent* PrimComp = TestHit.GetComponent();
+					const bool bBlockOnWorldStatic = PrimComp && (PrimComp->GetCollisionResponseToChannel(ECC_WorldStatic) == ECR_Block);
+					const bool bBlockOnWorldDynamic = PrimComp && (PrimComp->GetCollisionResponseToChannel(ECC_WorldDynamic) == ECR_Block);
+
+					return !bBlockOnWorldStatic && (!bBlockOnWorldDynamic || bCheckOnlyWorldStatic);
+				}
+
+				bool bCheckOnlyWorldStatic;
+			};
+
+			MultiTraceHits.RemoveAllSwap(FRemoveNotBlockingResponseNavMeshTrace(!bProjectNavMeshOnBothWorldChannels), /*bAllowShrinking*/false);
 			if (MultiTraceHits.Num() > 0)
 			{
 				// Sort the hits by the closest to our origin.

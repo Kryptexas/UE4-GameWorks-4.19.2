@@ -860,15 +860,16 @@ void UAbilitySystemComponent::OnRep_ActivateAbilities()
 
 }
 
-void UAbilitySystemComponent::GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities) const
+void UAbilitySystemComponent::GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities, bool bOnlyAbilitiesThatSatisfyTagRequirements) const
 {
 	for (const FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{		
 		if (Spec.Ability && Spec.Ability->AbilityTags.MatchesAll(GameplayTagContainer, false))
 		{
-			// Do NOT consider abilities that are blocked by tags currently.  That way, we can use the blocking to find
-			// an appropriate ability based on tags when we have more than one ability that match the GameplayTagContainer.
-			if (Spec.Ability->DoesAbilitySatisfyTagRequirements(*this))
+			// Consider abilities that are blocked by tags currently if we're supposed to (default behavior).  
+			// That way, we can use the blocking to find an appropriate ability based on tags when we have more than 
+			// one ability that match the GameplayTagContainer.
+			if (!bOnlyAbilitiesThatSatisfyTagRequirements || Spec.Ability->DoesAbilitySatisfyTagRequirements(*this))
 			{
 				MatchingGameplayAbilities.Add(const_cast<FGameplayAbilitySpec*>(&Spec));
 			}

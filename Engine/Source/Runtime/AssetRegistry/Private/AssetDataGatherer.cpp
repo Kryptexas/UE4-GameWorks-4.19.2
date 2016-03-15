@@ -364,7 +364,7 @@ void FAssetDataDiscovery::SortPathsByPriority(const int32 MaxNumToSort)
 }
 
 
-FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInIsSynchronous, EAssetDataCacheMode AssetDataCacheMode)
+FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bInIsSynchronous, EAssetDataCacheMode AssetDataCacheMode)
 	: StopTaskCounter( 0 )
 	, bIsSynchronous( bInIsSynchronous )
 	, bIsDiscoveringFiles( false )
@@ -401,6 +401,8 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInI
 		}
 	}
 
+	// Add any specific files before doing search
+	AddFilesToSearch(InSpecificFiles);
 
 	if ( bIsSynchronous )
 	{
@@ -730,6 +732,7 @@ void FAssetDataGatherer::AddFilesToSearch(const TArray<FString>& Files)
 		}
 	}
 
+	if (FilesToAdd.Num() > 0)
 	{
 		FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 		FilesToSearch.Append(FilesToAdd);

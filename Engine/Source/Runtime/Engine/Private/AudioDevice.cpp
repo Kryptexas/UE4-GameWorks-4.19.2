@@ -2266,41 +2266,28 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 			UWorld* ActiveSoundWorldPtr = ActiveSound->World.Get();
 			if (ActiveSoundWorldPtr == nullptr || ActiveSoundWorldPtr->AllowAudioPlayback())
 			{
+				const float Duration = ActiveSound->Sound->GetDuration();
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. AudioComponent=%s. DebugOriginalSoundName=%s"),
-					 ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetPathName() : TEXT("NO COMPONENT"),
-					 *ActiveSound->DebugOriginalSoundName.ToString()))
+				// Divide by minimum pitch for longest possible duration
+				if (Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH)
 				{
-					// Sound was not valid, stop playing it.
+					UE_LOG(LogAudio, Log, TEXT("Sound stopped due to duration: %g > %g : %s %s"),
+						ActiveSound->PlaybackTime,
+						Duration,
+						*ActiveSound->Sound->GetName(),
+						(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
 					AddSoundToStop(ActiveSound);
 				}
 				else
-#endif
 				{
-					const float Duration = ActiveSound->Sound->GetDuration();
-
-					// Divide by minimum pitch for longest possible duration
-					if (Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH)
+					// If not in game, do not advance sounds unless they are UI sounds.
+					float UsedDeltaTime = FApp::GetDeltaTime();
+					if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
 					{
-						UE_LOG(LogAudio, Log, TEXT("Sound stopped due to duration: %g > %g : %s %s"),
-							ActiveSound->PlaybackTime,
-							Duration,
-							*ActiveSound->Sound->GetName(),
-							(ActiveSound->GetAudioComponent() ? *ActiveSound->GetAudioComponent()->GetName() : TEXT("NO COMPONENT")));
-						AddSoundToStop(ActiveSound);
+						UsedDeltaTime = 0.0f;
 					}
-					else
-					{
-						// If not in game, do not advance sounds unless they are UI sounds.
-						float UsedDeltaTime = FApp::GetDeltaTime();
-						if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
-						{
-							UsedDeltaTime = 0.0f;
-						}
 
-						ActiveSound->UpdateWaveInstances(WaveInstances, UsedDeltaTime);
-					}
+					ActiveSound->UpdateWaveInstances(WaveInstances, UsedDeltaTime);
 				}
 			}
 		}
@@ -2650,13 +2637,7 @@ void FAudioDevice::AddNewActiveSound(const FActiveSound& NewActiveSound)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (ActiveSound->Sound)
 	{
-		if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("AddNewActiveSound with INVALID sound. AudioComponent=%s"),
-			AudioComponent ? *AudioComponent->GetPathName() : TEXT("NO COMPONENT")))
-		{
-			static FName InvalidSoundName(TEXT("INVALID_Sound"));
-			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
-		}
-		else if (!ensureMsgf(ActiveSound->Sound->GetFName() != NAME_None, TEXT("AddNewActiveSound with DESTROYED sound %s. AudioComponent=%s. IsPendingKill=%d. BeginDestroy=%d"),
+		if (!ensureMsgf(ActiveSound->Sound->GetFName() != NAME_None, TEXT("AddNewActiveSound with DESTROYED sound %s. AudioComponent=%s. IsPendingKill=%d. BeginDestroy=%d"),
 			*ActiveSound->Sound->GetPathName(),
 			AudioComponent ? *AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
 			(int32)ActiveSound->Sound->IsPendingKill(),

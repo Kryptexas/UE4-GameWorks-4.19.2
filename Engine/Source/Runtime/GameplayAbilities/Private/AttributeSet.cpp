@@ -160,7 +160,7 @@ FAttributeMetaData::FAttributeMetaData()
 
 }
 
-float FScalableFloat::GetValueAtLevel(float Level) const
+float FScalableFloat::GetValueAtLevel(float Level, const FString* ContextString) const
 {
 	if (Curve.CurveTable != nullptr)
 	{
@@ -179,8 +179,8 @@ float FScalableFloat::GetValueAtLevel(float Level) const
 #endif
 		
 		{
-			static const FString ContextString = TEXT("FScalableFloat::GetValueAtLevel");
-			FinalCurve = Curve.GetCurve(ContextString);
+			static const FString DefaultContextString = TEXT("FScalableFloat::GetValueAtLevel");
+			FinalCurve = Curve.GetCurve(ContextString ? *ContextString : DefaultContextString);
 		}
 
 		if (FinalCurve != nullptr)

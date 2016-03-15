@@ -129,6 +129,11 @@ public:
 	virtual UObject* GetPlaybackContext() const { return nullptr; }
 
 	/**
+	 * Access the event context for this movie scene player
+	 */
+	virtual UObject* GetEventContext() const { return nullptr; }
+
+	/**
 	 * Test whether this is a preview player or not. As such, playback range becomes insignificant for things like spawnables
 	 */
 	virtual bool IsPreview() const { return false; }

@@ -92,6 +92,7 @@ public:
 	static FText GetResumePlaySessionToolTip();
 	static void ResumePlaySession_Clicked();
 	static void StopPlaySession_Clicked();
+	static void LateJoinSession_Clicked();
 	static void PausePlaySession_Clicked();
 	static void SingleFrameAdvance_Clicked();
 
@@ -111,6 +112,8 @@ public:
 	static bool HasPlayWorld();
 	static bool HasPlayWorldAndPaused();
 	static bool HasPlayWorldAndRunning();
+	static bool CanLateJoin();
+	static bool CanShowLateJoinButton();
 
 	static bool IsStoppedAtBreakpoint();
 
@@ -246,6 +249,7 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( StopPlaySession, "Stop", "Stop simulation", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( ResumePlaySession, "Resume", "Resume simulation", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( PausePlaySession, "Pause", "Pause simulation", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( LateJoinSession, "Add Client", "Add another client", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( SingleFrameAdvance, "Frame Skip", "Advances a single frame", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( TogglePlayPauseOfPlaySession, "Toggle Play/Pause", "Resume playing if paused, or pause if playing", EUserInterfaceActionType::Button, FInputChord( EKeys::Pause ) );
 	UI_COMMAND( PossessEjectPlayer, "Possess or Eject Player", "Possesses or ejects the player from the camera", EUserInterfaceActionType::Button, FInputChord( EKeys::F8 ) );
@@ -362,6 +366,14 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorld ),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::HasPlayWorld )
+		);
+
+	// Late join session
+	ActionList.MapAction(Commands.LateJoinSession,
+		FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::LateJoinSession_Clicked),
+		FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanLateJoin),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanShowLateJoinButton)
 		);
 
 	// Play, Pause, Toggle between play and pause
@@ -501,6 +513,9 @@ void FPlayWorldCommands::BuildToolbar( FToolBarBuilder& ToolbarBuilder, bool bIn
 
 	// Stop
 	ToolbarBuilder.AddToolBarButton(FPlayWorldCommands::Get().StopPlaySession, NAME_None, TAttribute<FText>(), TAttribute<FText>(), TAttribute<FSlateIcon>(), FName(TEXT("StopPlaySession")));
+
+	// Late Join
+	ToolbarBuilder.AddToolBarButton(FPlayWorldCommands::Get().LateJoinSession, NAME_None, TAttribute<FText>(), TAttribute<FText>(), TAttribute<FSlateIcon>(), FName(TEXT("LateJoinSession")));
 
 	// Eject/possess toggle
 	ToolbarBuilder.AddToolBarButton(FPlayWorldCommands::Get().PossessEjectPlayer, NAME_None, 
@@ -1736,6 +1751,14 @@ void FInternalPlayWorldCommandCallbacks::StopPlaySession_Clicked()
 	}
 }
 
+void FInternalPlayWorldCommandCallbacks::LateJoinSession_Clicked()
+{
+	if (HasPlayWorld())
+	{
+		GEditor->RequestLateJoin();
+	}
+}
+
 
 void FInternalPlayWorldCommandCallbacks::ShowCurrentStatement_Clicked()
 {
@@ -1810,6 +1833,16 @@ bool FInternalPlayWorldCommandCallbacks::CanShowVROnlyActions()
 bool FInternalPlayWorldCommandCallbacks::HasPlayWorld()
 {
 	return GEditor->PlayWorld != NULL;
+}
+
+bool FInternalPlayWorldCommandCallbacks::CanLateJoin()
+{
+	return HasPlayWorld();
+}
+
+bool FInternalPlayWorldCommandCallbacks::CanShowLateJoinButton()
+{
+	return GetDefault<UEditorExperimentalSettings>()->bAllowLateJoinInPIE && HasPlayWorld();
 }
 
 

@@ -447,6 +447,11 @@ FVector UAbilitySystemBlueprintLibrary::EffectContextGetOrigin(FGameplayEffectCo
 	return FVector::ZeroVector;
 }
 
+void UAbilitySystemBlueprintLibrary::EffectContextSetOrigin(FGameplayEffectContextHandle EffectContext, FVector Origin)
+{
+	EffectContext.AddOrigin(Origin);
+}
+
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
 {
 	return Parameters.IsInstigatorLocallyControlled();
@@ -724,6 +729,21 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::SetStackCountToMax(FGa
 		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::AddLinkedGameplayEffectSpec called with invalid SpecHandle"));
 	}
 	return SpecHandle;
+}
+
+FGameplayEffectContextHandle UAbilitySystemBlueprintLibrary::GetEffectContext(FGameplayEffectSpecHandle SpecHandle)
+{
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	if (Spec)
+	{
+		return Spec->GetEffectContext();
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::GetEffectContext called with invalid SpecHandle"));
+	}
+
+	return FGameplayEffectContextHandle();
 }
 
 int32 UAbilitySystemBlueprintLibrary::GetActiveGameplayEffectStackCount(FActiveGameplayEffectHandle ActiveHandle)

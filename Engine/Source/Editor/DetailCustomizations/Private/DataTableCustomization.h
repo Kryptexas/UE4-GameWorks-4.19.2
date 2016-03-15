@@ -22,6 +22,12 @@ public:
 	{
 		this->StructPropertyHandle = InStructPropertyHandle;
 
+		if (StructPropertyHandle->HasMetaData(TEXT("RowType")))
+		{
+			const FString& RowType = StructPropertyHandle->GetMetaData(TEXT("RowType"));
+			RowTypeFilter = FName(*RowType);
+		}
+
 		HeaderRow
 			.NameContent()
 			[
@@ -40,10 +46,26 @@ public:
 			/** Queue up a refresh of the selected item, not safe to do from here */
 			StructCustomizationUtils.GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateSP(this, &FDataTableCustomizationLayout::OnDataTableChanged));
 
-			/** Edit the data table uobject as normal */
-			StructBuilder.AddChildProperty( DataTablePropertyHandle.ToSharedRef() );
+			/** Setup Change callback */
 			FSimpleDelegate OnDataTableChangedDelegate = FSimpleDelegate::CreateSP( this, &FDataTableCustomizationLayout::OnDataTableChanged );
 			DataTablePropertyHandle->SetOnPropertyValueChanged( OnDataTableChangedDelegate );
+
+			/** Construct a asset picker widget with a custom filter */
+			StructBuilder.AddChildContent(LOCTEXT("DataTable_TableName", "Data Table"))
+			.NameContent()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("DataTable_TableName", "Data Table"))
+					.Font(StructCustomizationUtils.GetRegularFont())
+				]
+			.ValueContent()
+			.MaxDesiredWidth(0.0f) // don't constrain the combo button width
+				[
+					SNew(SObjectPropertyEntryBox)
+						.PropertyHandle(DataTablePropertyHandle)
+						.AllowedClass(UDataTable::StaticClass())
+						.OnShouldFilterAsset(this, &FDataTableCustomizationLayout::ShouldFilterAsset)
+				];
 
 			/** Construct a combo box widget to select from a list of valid options */
 			StructBuilder.AddChildContent( LOCTEXT( "DataTable_RowName", "Row Name" ) )
@@ -70,6 +92,21 @@ public:
 	}
 
 private:
+
+	bool ShouldFilterAsset(const class FAssetData& AssetData)
+	{
+		if (!RowTypeFilter.IsNone())
+		{
+			const UDataTable* DataTable = Cast<UDataTable>(AssetData.GetAsset());
+			if (DataTable->RowStruct && DataTable->RowStruct->GetFName() == RowTypeFilter)
+			{
+				return false;
+			}
+			return true;
+		}
+		return false;
+	}
+
 	/** Init the contents the combobox sources its data off */
 	TSharedPtr<FString> InitWidgetContent()
 	{
@@ -208,6 +245,8 @@ private:
 	TSharedPtr<IPropertyHandle> RowNamePropertyHandle;
 	/** A cached copy of strings to populate the combo box */
 	TArray<TSharedPtr<FString> > RowNames;
+	/** The MetaData derived filter for the row type */
+	FName RowTypeFilter;
 };
 
 #undef LOCTEXT_NAMESPACE

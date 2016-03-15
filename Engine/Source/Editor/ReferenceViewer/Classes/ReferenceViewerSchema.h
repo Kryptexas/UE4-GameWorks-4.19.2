@@ -20,7 +20,11 @@ public:
 	// End of UEdGraphSchema interface
 
 private:
-	/** Constructs the sub-menu for Make Collection With Referenced Asset */
-	void GetMakeCollectionWithReferencedAssetsSubMenu(class FMenuBuilder& MenuBuilder);
+
+	/** Constructs the sub-menu for Make Collection With */
+	void GetMakeCollectionWithSubMenu(FMenuBuilder& MenuBuilder);
+
+	/** Constructs the sub-menu for Make Collection With Referencers/Dependencies */
+	void GetMakeCollectionWithReferencersOrDependenciesSubMenu(class FMenuBuilder& MenuBuilder, bool bReferencers);
 };
 

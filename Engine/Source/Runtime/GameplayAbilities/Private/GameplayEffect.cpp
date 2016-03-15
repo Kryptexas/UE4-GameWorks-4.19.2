@@ -212,7 +212,8 @@ float FAttributeBasedFloat::CalculateMagnitude(const FGameplayEffectSpec& InRele
 	}
 
 	const float SpecLvl = InRelevantSpec.GetLevel();
-	return ((Coefficient.GetValueAtLevel(SpecLvl) * (AttribValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl));
+	FString ContextString = FString::Printf(TEXT("FAttributeBasedFloat::CalculateMagnitude from spec %s"), *InRelevantSpec.ToSimpleString());
+	return ((Coefficient.GetValueAtLevel(SpecLvl, &ContextString) * (AttribValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString));
 }
 
 bool FAttributeBasedFloat::operator==(const FAttributeBasedFloat& Other) const
@@ -259,7 +260,8 @@ float FCustomCalculationBasedFloat::CalculateMagnitude(const FGameplayEffectSpec
 	float CustomBaseValue = CalcCDO->CalculateBaseMagnitude(InRelevantSpec);
 
 	const float SpecLvl = InRelevantSpec.GetLevel();
-	return ((Coefficient.GetValueAtLevel(SpecLvl) * (CustomBaseValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl));
+	FString ContextString = FString::Printf(TEXT("FCustomCalculationBasedFloat::CalculateMagnitude from effect %s"), *CalcCDO->GetName());
+	return ((Coefficient.GetValueAtLevel(SpecLvl, &ContextString) * (CustomBaseValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl, &ContextString));
 }
 
 /** Equality/Inequality operators */
@@ -306,11 +308,13 @@ bool FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude(const FGameplay
 	const bool bCanCalc = CanCalculateMagnitude(InRelevantSpec);
 	if (bCanCalc)
 	{
+		FString ContextString = FString::Printf(TEXT("FGameplayEffectModifierMagnitude::AttemptCalculateMagnitude from effect %s"), *InRelevantSpec.ToSimpleString());
+
 		switch (MagnitudeCalculationType)
 		{
 			case EGameplayEffectMagnitudeCalculation::ScalableFloat:
 			{
-				OutCalculatedMagnitude = ScalableFloatMagnitude.GetValueAtLevel(InRelevantSpec.GetLevel());
+				OutCalculatedMagnitude = ScalableFloatMagnitude.GetValueAtLevel(InRelevantSpec.GetLevel(), &ContextString);
 			}
 			break;
 
@@ -392,11 +396,11 @@ void FGameplayEffectModifierMagnitude::GetAttributeCaptureDefinitions(OUT TArray
 	}
 }
 
-bool FGameplayEffectModifierMagnitude::GetStaticMagnitudeIfPossible(float InLevel, float& OutMagnitude) const
+bool FGameplayEffectModifierMagnitude::GetStaticMagnitudeIfPossible(float InLevel, float& OutMagnitude, const FString* ContextString) const
 {
 	if (MagnitudeCalculationType == EGameplayEffectMagnitudeCalculation::ScalableFloat)
 	{
-		OutMagnitude = ScalableFloatMagnitude.GetValueAtLevel(InLevel);
+		OutMagnitude = ScalableFloatMagnitude.GetValueAtLevel(InLevel, ContextString);
 		return true;
 	}
 
@@ -808,9 +812,10 @@ void FGameplayEffectSpec::SetLevel(float InLevel)
 		{
 			SetDuration(DefCalcDuration, false);
 		}
-		
-		Period = Def->Period.GetValueAtLevel(InLevel);
-		ChanceToApplyToTarget = Def->ChanceToApplyToTarget.GetValueAtLevel(InLevel);
+
+		FString ContextString = FString::Printf(TEXT("FGameplayEffectSpec::SetLevel from effect %s"), *Def->GetName());
+		Period = Def->Period.GetValueAtLevel(InLevel, &ContextString);
+		ChanceToApplyToTarget = Def->ChanceToApplyToTarget.GetValueAtLevel(InLevel, &ContextString);
 	}
 }
 
@@ -837,6 +842,29 @@ void FGameplayEffectSpec::SetDuration(float NewDuration, bool bLockDuration)
 			CapturedRelevantAttributes.AddCaptureDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture());
 		}
 	}
+}
+
+float FGameplayEffectSpec::CalculateModifiedDuration() const
+{
+	FAggregator DurationAgg;
+
+	const FGameplayEffectAttributeCaptureSpec* OutgoingCaptureSpec = CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture(), true);
+	if (OutgoingCaptureSpec)
+	{
+		OutgoingCaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
+	}
+
+	const FGameplayEffectAttributeCaptureSpec* IncomingCaptureSpec = CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetIncomingDurationCapture(), true);
+	if (IncomingCaptureSpec)
+	{
+		IncomingCaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
+	}
+
+	FAggregatorEvaluateParameters Params;
+	Params.SourceTags = CapturedSourceTags.GetAggregatedTags();
+	Params.TargetTags = CapturedTargetTags.GetAggregatedTags();
+
+	return DurationAgg.EvaluateWithBase(GetDuration(), Params);
 }
 
 float FGameplayEffectSpec::GetPeriod() const
@@ -1051,6 +1079,18 @@ bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeBonusMagnitud
 	if (Agg)
 	{
 		OutBonusMagnitude = Agg->EvaluateBonus(InEvalParams);
+		return true;
+	}
+
+	return false;
+}
+
+bool FGameplayEffectAttributeCaptureSpec::AttemptCalculateAttributeContributionMagnitude(const FAggregatorEvaluateParameters& InEvalParams, FActiveGameplayEffectHandle ActiveHandle, OUT float& OutBonusMagnitude) const
+{
+	FAggregator* Agg = AttributeAggregator.Get();
+	if (Agg && ActiveHandle.IsValid())
+	{
+		OutBonusMagnitude = Agg->EvaluateContribution(InEvalParams, ActiveHandle);
 		return true;
 	}
 
@@ -1938,29 +1978,6 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::FindStackableActiveGamep
 	return StackableGE;
 }
 
-float FActiveGameplayEffectsContainer::ComputeModifiedDurationOfAppliedSpec(const FGameplayEffectSpec& Spec, float BaseValue) const
-{
-	FAggregator DurationAgg;
-
-	const FGameplayEffectAttributeCaptureSpec* OutgoingCaptureSpec = Spec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetOutgoingDurationCapture(), true);
-	if (OutgoingCaptureSpec)
-	{
-		OutgoingCaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
-	}
-
-	const FGameplayEffectAttributeCaptureSpec* IncomingCaptureSpec = Spec.CapturedRelevantAttributes.FindCaptureSpecByDefinition(UAbilitySystemComponent::GetIncomingDurationCapture(), true);
-	if (IncomingCaptureSpec)
-	{
-		IncomingCaptureSpec->AttemptAddAggregatorModsToAggregator(DurationAgg);
-	}
-
-	FAggregatorEvaluateParameters Params;
-	Params.SourceTags = Spec.CapturedSourceTags.GetAggregatedTags();
-	Params.TargetTags = Spec.CapturedTargetTags.GetAggregatedTags();
-
-	return DurationAgg.EvaluateWithBase(BaseValue, Params);
-}
-
 bool FActiveGameplayEffectsContainer::HandleActiveGameplayEffectStackOverflow(const FActiveGameplayEffect& ActiveStackableGE, const FGameplayEffectSpec& OldSpec, const FGameplayEffectSpec& OverflowingSpec)
 {
 	const UGameplayEffect* StackedGE = OldSpec.Def;
@@ -2141,10 +2158,10 @@ void FActiveGameplayEffectsContainer::SetAttributeBaseValue(FGameplayAttribute A
 	}
 }
 
-float FActiveGameplayEffectsContainer::GetAttributeBaseValue(FGameplayAttribute Attribute)
+float FActiveGameplayEffectsContainer::GetAttributeBaseValue(FGameplayAttribute Attribute) const
 {
 	float BaseValue = 0.f;
-	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
+	const FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
 	if (RefPtr)
 	{
 		BaseValue = RefPtr->Get()->GetBaseValue();
@@ -2155,6 +2172,12 @@ float FActiveGameplayEffectsContainer::GetAttributeBaseValue(FGameplayAttribute 
 	}
 
 	return BaseValue;
+}
+
+float FActiveGameplayEffectsContainer::GetEffectContribution(const FAggregatorEvaluateParameters& Parameters, FActiveGameplayEffectHandle ActiveHandle, FGameplayAttribute Attribute)
+{
+	FAggregatorRef Aggregator = FindOrCreateAttributeAggregator(Attribute);
+	return Aggregator.Get()->EvaluateContribution(Parameters, ActiveHandle);
 }
 
 bool FActiveGameplayEffectsContainer::InternalExecuteMod(FGameplayEffectSpec& Spec, FGameplayModifierEvaluatedData& ModEvalData)
@@ -2272,6 +2295,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	bool bSetDuration = true;
 	bool bSetPeriod = true;
 	int32 StartingStackCount = 0;
+	int32 NewStackCount = 0;
 
 	// Check if there's an active GE this application should stack upon
 	if (ExistingStackableGE)
@@ -2302,7 +2326,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 			}
 		}
 		
-		int32 NewStackCount = ExistingSpec.StackCount + Spec.StackCount;
+		NewStackCount = ExistingSpec.StackCount + Spec.StackCount;
 		if (ExistingSpec.Def->StackLimitCount > 0)
 		{
 			NewStackCount = FMath::Min(NewStackCount, ExistingSpec.Def->StackLimitCount);
@@ -2460,7 +2484,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		// Calculate Duration mods if we have a real duration
 		if (DurationBaseValue > 0.f)
 		{
-			float FinalDuration = ComputeModifiedDurationOfAppliedSpec(AppliedEffectSpec, DurationBaseValue);
+			float FinalDuration = AppliedEffectSpec.CalculateModifiedDuration();
 
 			// We cannot mod ourselves into an instant or infinite duration effect
 			if (FinalDuration <= 0.f)
@@ -2521,7 +2545,10 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	// as a result of stacking. In reality it could in complicated cases with differing sets of dynamically-granted tags.
 	if (ExistingStackableGE)
 	{
-		OnStackCountChange(*ExistingStackableGE, StartingStackCount);
+		if (NewStackCount != StartingStackCount)
+		{
+			OnStackCountChange(*ExistingStackableGE, StartingStackCount);
+		}
 	}
 	else
 	{
@@ -3296,6 +3323,31 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FG
 		}
 
 		ReturnList.Add(Effect.GetDuration());
+	}
+
+	// Note: keep one return location to avoid copy operation.
+	return ReturnList;
+}
+
+TArray<TPair<float,float>> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemainingAndDuration(const FGameplayEffectQuery& Query) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsTimeRemainingAndDuration);
+
+	TArray<TPair<float,float>> ReturnList;
+
+	float CurrentTime = GetWorldTime();
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (!Query.Matches(Effect))
+		{
+			continue;
+		}
+
+		float Elapsed = CurrentTime - Effect.StartWorldTime;
+		float Duration = Effect.GetDuration();
+
+		ReturnList.Add(TPairInitializer<float, float>(Duration - Elapsed, Duration));
 	}
 
 	// Note: keep one return location to avoid copy operation.

@@ -21,6 +21,9 @@ void UEnvQueryInstanceBlueprintWrapper::OnQueryFinished(TSharedPtr<FEnvQueryResu
 
 	OnQueryFinishedEvent.Broadcast(this, Result->GetRawStatus());
 
+	// remove our reference to the query instance
+	QueryInstance = nullptr;
+
 	// unregister self, no longer shielded from GC
 	UEnvQueryManager* EnvQueryManager = Cast<UEnvQueryManager>(GetOuter());
 	if (ensure(EnvQueryManager))
@@ -83,6 +86,16 @@ void UEnvQueryInstanceBlueprintWrapper::RunQuery(const EEnvQueryRunMode::Type In
 		if (ensure(EnvQueryManager))
 		{
 			EnvQueryManager->RegisterActiveWrapper(*this);
+			QueryInstance = EnvQueryManager->FindQueryInstance(QueryID);
 		}
+	}
+}
+
+void UEnvQueryInstanceBlueprintWrapper::SetNamedParam(FName ParamName, float Value)
+{
+	FEnvQueryInstance* InstancePtr = QueryInstance.Get();
+	if (InstancePtr != nullptr)
+	{
+		InstancePtr->NamedParams.Add(ParamName, Value);
 	}
 }

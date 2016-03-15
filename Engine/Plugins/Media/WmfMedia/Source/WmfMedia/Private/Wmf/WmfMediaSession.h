@@ -206,6 +206,13 @@ protected:
 	bool ChangeState();
 
 	/**
+	 * Updates the CurrentPlayRate if it is different than the RequestedPlayRate
+	 *
+	 * @param OutStopped If true, the media player was stopped as a result of the change
+	 */
+	void UpdateRate(bool &OutStopped);
+
+	/**
 	 * Gets the playback position as known by the internal WMF clock.
 	 *
 	 * @return The internal playback position.

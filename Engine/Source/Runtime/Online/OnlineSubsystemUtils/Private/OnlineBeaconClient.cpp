@@ -49,6 +49,7 @@ bool AOnlineBeaconClient::DestroyNetworkActorHandled()
 	if (BeaconConnection)
 	{
 		BeaconConnection->bPendingDestroy = true;
+		return true;
 	}
 
 	return false;
@@ -167,6 +168,9 @@ void AOnlineBeaconClient::OnNetCleanup(UNetConnection* Connection)
 	{
 		BeaconHostObject->NotifyClientDisconnected(this);
 	}
+
+	BeaconConnection = nullptr;
+	Destroy(true);
 }
 
 void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch)

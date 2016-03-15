@@ -12,7 +12,7 @@ void Main(
 	out float3 OutScreenVector : TEXCOORD1,
 	out float4 OutPosition : SV_POSITION
 	)
-{	
+{
 	ResolvedView = ResolveView();
 
 	// screenspace position from vb

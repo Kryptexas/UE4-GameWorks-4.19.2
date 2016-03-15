@@ -2320,7 +2320,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	if (bInSimulateInEditor || (PlayNetMode == EPlayNetMode::PIE_Standalone && PlayNumberOfClients <= 1 && !bSupportsOnlinePIE) || !CanRunUnderOneProcess)
 	{
 		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
-		const int32 PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
+		PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
 		UGameInstance* const GameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
 
 		if (bInSimulateInEditor)
@@ -2378,11 +2378,11 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode)
 {
 	double PIEStartTime = FPlatformTime::Seconds();
+	bStartLateJoinersInSpectatorMode = bStartInSpectatorMode;
 
 	// Has to be false or this function wouldn't be called
 	bool bInSimulateInEditor = false;
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-	int32 PIEInstance = 0;
 
 	// Spawning multiple PIE instances
 	if (PlayInSettings->MultipleInstancePositions.Num() == 0)
@@ -2394,7 +2394,7 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 
 	int32 NextX = 0;
 	int32 NextY = 0;
-	int32 SettingsIndex = 1;
+	SettingsIndex = 1;
 	int32 ClientNum = 0;
 
 	PIEInstance = 1;
@@ -2402,7 +2402,6 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 
 	// Server
-	FString ServerPrefix;
 	if (CanPlayNetDedicated || WillAutoConnectToServer)
 	{
 		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_ListenServer);
@@ -2529,10 +2528,11 @@ bool UEditorEngine::SupportsOnlinePIE() const
 void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpectatorMode, double PIEStartTime)
 {
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
+	SettingsIndex = 0;
 
 	/** Setup the common data values for each login instance */
 	FPieLoginStruct DataStruct;
-	DataStruct.SettingsIndex = 1;
+	DataStruct.SettingsIndex = ++SettingsIndex;
 	DataStruct.bAnyBlueprintErrors = bAnyBlueprintErrors;
 	DataStruct.bStartInSpectatorMode = bStartInSpectatorMode;
 	DataStruct.PIEStartTime = PIEStartTime;
@@ -2542,7 +2542,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 	ensure(PIELogins.Num() > 0);
 
 	int32 ClientNum = 0;
-	int32 PIEInstance = 1;
+	PIEInstance = 1;
 	int32 NextX = 0;
 	int32 NextY = 0;
 
@@ -2614,7 +2614,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 		// Update login struct parameters
 		DataStruct.WorldContextHandle = PieWorldContext.ContextHandle;
-		DataStruct.SettingsIndex++;
+		DataStruct.SettingsIndex = ++SettingsIndex;
 		DataStruct.NextX = NextX;
 		DataStruct.NextY = NextY;
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
@@ -2697,7 +2697,106 @@ void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuc
 	}
 }
 
-UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bRunAsDedicated, float PIEStartTime)
+void UEditorEngine::RequestLateJoin()
+{
+	bool bSupportsOnlinePIE = false;
+
+	if (SupportsOnlinePIE())
+	{
+// 		bool bHasRequiredLogins = PlayNumberOfClients <= Online::GetUtils()->GetNumPIELogins();
+// 		if (bHasRequiredLogins)
+		{
+			// If we support online PIE use it even if we're standalone
+			bSupportsOnlinePIE = true;
+		}
+	}
+
+	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
+	double PIEStartTime = FPlatformTime::Seconds();
+	int32 NextX = 0;
+	int32 NextY = 0;
+
+	PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Client);
+
+
+	if (bSupportsOnlinePIE)
+	{
+		FPieLoginStruct DataStruct;
+		DataStruct.bAnyBlueprintErrors = false;
+		DataStruct.bStartInSpectatorMode = bStartLateJoinersInSpectatorMode;
+		DataStruct.PIEStartTime = PIEStartTime;
+
+		TArray<FOnlineAccountCredentials> PIELogins;
+		Online::GetUtils()->GetPIELogins(PIELogins);
+
+		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
+		PieWorldContext.PIEInstance = PIEInstance++;
+		PieWorldContext.bWaitingOnOnlineSubsystem = true;
+
+		// Update login struct parameters
+		DataStruct.WorldContextHandle = PieWorldContext.ContextHandle;
+		DataStruct.SettingsIndex = ++SettingsIndex;
+		DataStruct.NextX = NextX;
+		DataStruct.NextY = NextY;
+		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
+		DataStruct.NetMode = EPlayNetMode::PIE_Client;
+
+		FName OnlineIdentifier = Online::GetUtils()->GetOnlineIdentifier(PieWorldContext);
+		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
+		IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
+		check(IdentityInt.IsValid());
+
+		// Login to online platform before creating world
+		FOnLoginCompleteDelegate Delegate;
+		Delegate.BindUObject(this, &UEditorEngine::OnLoginPIEComplete, DataStruct);
+
+		FDelegateHandle DelegateHandle = OnLoginPIECompleteDelegateHandlesForPIEInstances.FindRef(OnlineIdentifier);
+		IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, DelegateHandle);
+		OnLoginPIECompleteDelegateHandlesForPIEInstances.Add(OnlineIdentifier, IdentityInt->AddOnLoginCompleteDelegate_Handle(0, Delegate));
+		IdentityInt->Login(0, PIELogins[NumOnlinePIEInstances - 1]); // The server doesn't get a PIE login but counts as an online instance
+
+		NumOnlinePIEInstances++;
+
+
+	}
+	else
+	{
+
+		//FRED_TODO: do stuff here similar to what happens above
+		// Only launch as clients if they should connect
+
+		// 	// this is kind of sketchy but should work
+		// 	int32 SettingsIndex = PIEInstance;
+
+		//	if (WillAutoConnectToServer)
+		{
+			
+		}
+		// 	else
+		// 	{
+		// 		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Standalone);
+		// 	}
+
+		GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
+
+		UGameInstance* const ClientGameInstance = CreatePIEGameInstance(PIEInstance, false, false, bStartLateJoinersInSpectatorMode, false, PIEStartTime);
+		if (ClientGameInstance)
+		{
+			ClientGameInstance->GetWorldContext()->PIERemapPrefix = ServerPrefix;
+		}
+		else
+		{
+			// Failed, abort
+			return;
+		}
+
+		PIEInstance++;
+	}
+
+	GetMultipleInstancePositions(0, NextX, NextY);
+}
+
+UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bRunAsDedicated, float PIEStartTime)
 {
 	const FString WorldPackageName = EditorWorld->GetOutermost()->GetName();
 	
@@ -2728,7 +2827,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	// We need to temporarily add the GameInstance to the root because the InitPIE call can do garbage collection wiping out the GameInstance
 	GameInstance->AddToRoot();
 
-	bool bSuccess = GameInstance->InitializePIE(bAnyBlueprintErrors, PIEInstance, bRunAsDedicated);
+	bool bSuccess = GameInstance->InitializePIE(bAnyBlueprintErrors, InPIEInstance, bRunAsDedicated);
 	if (!bSuccess)
 	{
 		FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);

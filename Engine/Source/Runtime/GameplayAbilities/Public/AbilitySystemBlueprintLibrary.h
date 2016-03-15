@@ -138,6 +138,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "GetOrigin"))
 	static FVector EffectContextGetOrigin(FGameplayEffectContextHandle EffectContext);
 
+	/** Sets the location the effect originated from */
+	UFUNCTION(BlueprintCallable, Category = "Ability|EffectContext", Meta = (DisplayName = "SetOrigin"))
+	static void EffectContextSetOrigin(FGameplayEffectContextHandle EffectContext, FVector Origin);
+
 	/** Gets the instigating actor (that holds the ability system component) of the EffectContext */
 	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "GetInstigatorActor"))
 	static AActor* EffectContextGetInstigatorActor(FGameplayEffectContextHandle EffectContext);
@@ -240,6 +244,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	/** Sets the GameplayEffectSpec's StackCount to the max stack count defined in the GameplayEffect definition */
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
 	static FGameplayEffectSpecHandle SetStackCountToMax(FGameplayEffectSpecHandle SpecHandle);
+
+	/** Gets the GameplayEffectSpec's effect context handle */
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
+	static FGameplayEffectContextHandle GetEffectContext(FGameplayEffectSpecHandle SpecHandle);
 
 	// -------------------------------------------------------------------------------
 	//		GameplayEffectSpec

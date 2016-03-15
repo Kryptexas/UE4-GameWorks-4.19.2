@@ -119,7 +119,7 @@ void UGameplayTagReponseTable::AddOrUpdate(UAbilitySystemComponent* ASC, const T
 		}
 		else
 		{
-			Handle = ASC->ApplyGameplayEffectToSelf(Cast<UGameplayEffect>(ResponseGameplayEffect->ClassDefaultObject), TotalCount, ASC->GetEffectContext());
+			Handle = ASC->ApplyGameplayEffectToSelf(Cast<UGameplayEffect>(ResponseGameplayEffect->ClassDefaultObject), TotalCount, ASC->MakeEffectContext());
 		}
 	}
 }

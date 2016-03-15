@@ -157,9 +157,9 @@ namespace AutomationTool
 							CommandUtils.Log("Waiting for descendants of main process...");
                         }
                     }
-                    catch (Exception)
+                    catch (Exception Ex)
                     {
-						CommandUtils.LogWarning("Exception Waiting for descendants of main process");
+						CommandUtils.LogWarning("Exception Waiting for descendants of main process. " + Ex);
                         AllDone = false;
                     }
 

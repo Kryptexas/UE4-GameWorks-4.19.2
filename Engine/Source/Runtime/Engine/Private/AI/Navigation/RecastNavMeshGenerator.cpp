@@ -2143,14 +2143,16 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<uint8>& RawCollisi
 	
 	const int32 NumCoords = CollisionCache.Header.NumVerts * 3;
 	const int32 NumIndices = CollisionCache.Header.NumFaces * 3;
-	
-	GeometryElement.GeomCoords.SetNumUninitialized(NumCoords);
-	GeometryElement.GeomIndices.SetNumUninitialized(NumIndices);
+	if (NumIndices > 0)
+	{
+		GeometryElement.GeomCoords.SetNumUninitialized(NumCoords);
+		GeometryElement.GeomIndices.SetNumUninitialized(NumIndices);
 
-	FMemory::Memcpy(GeometryElement.GeomCoords.GetData(), CollisionCache.Verts, sizeof(float) * NumCoords);
-	FMemory::Memcpy(GeometryElement.GeomIndices.GetData(), CollisionCache.Indices, sizeof(int32) * NumIndices);
+		FMemory::Memcpy(GeometryElement.GeomCoords.GetData(), CollisionCache.Verts, sizeof(float) * NumCoords);
+		FMemory::Memcpy(GeometryElement.GeomIndices.GetData(), CollisionCache.Indices, sizeof(int32) * NumIndices);
 
-	RawGeometry.Add(MoveTemp(GeometryElement));
+		RawGeometry.Add(MoveTemp(GeometryElement));
+	}	
 }
 
 bool FRecastTileGenerator::GenerateTile()

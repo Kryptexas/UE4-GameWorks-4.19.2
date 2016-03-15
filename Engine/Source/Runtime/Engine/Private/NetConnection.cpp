@@ -566,6 +566,8 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 
 void UNetConnection::FlushNet(bool bIgnoreSimulation)
 {
+	check(Driver);
+
 	// Update info.
 	ValidateSendBuffer();
 	LastEnd = FBitWriterMark();
@@ -1628,7 +1630,10 @@ void UNetConnection::Tick()
 		/* Send all queued packets */
 		while(QueuedPacket != nullptr)
 		{
-			LowLevelSend(QueuedPacket->Data, FMath::DivideAndRoundUp(QueuedPacket->CountBits, 8u), QueuedPacket->CountBits);
+			if (Driver->IsNetResourceValid())
+			{
+				LowLevelSend(QueuedPacket->Data, FMath::DivideAndRoundUp(QueuedPacket->CountBits, 8u), QueuedPacket->CountBits);
+			}
 			delete QueuedPacket;
 			QueuedPacket = Handler->GetQueuedPacket();
 		}

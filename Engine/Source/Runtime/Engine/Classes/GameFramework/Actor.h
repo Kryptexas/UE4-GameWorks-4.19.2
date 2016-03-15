@@ -1649,6 +1649,9 @@ public:
 	/** @return	Returns true if this actor is allowed to be displayed, selected and manipulated by the editor. */
 	bool IsEditable() const;
 
+	/** @return	Returns true if this actor can EVER be selected in a level in the editor.  Can be overridden by specific actors to make them unselectable. */
+	virtual bool IsSelectable() const { return true; }
+
 	/** @return	Returns true if this actor should be shown in the scene outliner */
 	bool IsListedInSceneOutliner() const;
 

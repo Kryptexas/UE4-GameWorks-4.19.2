@@ -1278,14 +1278,16 @@ void UCrowdManager::PostMovePointUpdate()
 	{
 		UCrowdFollowingComponent* PathComp = Cast<UCrowdFollowingComponent>(It.Key);
 		const FCrowdAgentData& AgentData = It.Value;
-		FVector UpdatedGoalPos;
+		FVector NewGoalPosition;
 
-		const bool bShouldUpdateGoalPos = PathComp ? PathComp->UpdateCachedGoal(UpdatedGoalPos) : false;
-		if (bShouldUpdateGoalPos && AgentFlags.IsValidIndex(AgentData.AgentIndex))
+		const bool bUpdateTargetPos = PathComp ? PathComp->ShouldTrackMovingGoal(NewGoalPosition) : false;
+		if (bUpdateTargetPos && AgentFlags.IsValidIndex(AgentData.AgentIndex))
 		{
+			PathComp->UpdateDestinationForMovingGoal(NewGoalPosition);
+
 			const dtCrowdAgent* Agent = DetourCrowd->getAgent(AgentData.AgentIndex);
 			dtCrowdAgent* MutableAgent = (dtCrowdAgent*)Agent;
-			const FVector RcTargetPos = Unreal2RecastPoint(UpdatedGoalPos);
+			const FVector RcTargetPos = Unreal2RecastPoint(NewGoalPosition);
 		
 			dtVcopy(MutableAgent->targetPos, &RcTargetPos.X);
 			AgentFlags[AgentData.AgentIndex] |= UpdateDestinationFlag;

@@ -520,14 +520,14 @@ TArray<TSharedPtr<FXmppUserPresence>> FXmppPresenceJingle::GetRosterPresence(con
 	return Result;
 }
 
-void FXmppPresenceJingle::GetRosterMembers(TArray<FString>& Members)
+void FXmppPresenceJingle::GetRosterMembers(TArray<FXmppUserJid>& Members)
 {
 	FScopeLock Lock(&RosterLock);
 
 	for (auto It = RosterPresence.CreateConstIterator(); It; ++It)
 	{
 		const FXmppUserPresenceJingle& PresenceJingle = It.Value();
-		Members.AddUnique(PresenceJingle.UserJid.Id);
+		Members.AddUnique(PresenceJingle.UserJid);
 	}
 }
 

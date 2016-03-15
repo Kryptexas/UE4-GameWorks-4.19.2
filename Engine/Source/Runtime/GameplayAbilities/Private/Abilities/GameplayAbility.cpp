@@ -59,6 +59,8 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 	bServerRespectsRemoteAbilityCancellation = true;
 	bReplicateInputDirectly = false;
 	RemoteInstanceEnded = false;
+
+	ScopeLockCount = 0;
 }
 
 int32 UGameplayAbility::GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack)
@@ -477,6 +479,12 @@ void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, co
 {
 	if (CanBeCanceled())
 	{
+		if (ScopeLockCount > 0)
+		{
+			WaitingToExecute.Add(FPostLockDelegate::CreateUObject(this, &UGameplayAbility::CancelAbility, Handle, ActorInfo, ActivationInfo, bReplicateCancelAbility));
+			return;
+		}
+
 		// Replicate the the server/client if needed
 		if (bReplicateCancelAbility)
 		{
@@ -521,6 +529,12 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 {
 	if (IsEndAbilityValid(Handle, ActorInfo))
 	{
+		if (ScopeLockCount > 0)
+		{
+			WaitingToExecute.Add(FPostLockDelegate::CreateUObject(this, &UGameplayAbility::EndAbility, Handle, ActorInfo, ActivationInfo, bReplicateEndAbility));
+			return;
+		}
+
 		// Give blueprint a chance to react
 		K2_OnEndAbility();
 
@@ -731,7 +745,7 @@ bool UGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, const 
 	if (CostGE)
 	{
 		check(ActorInfo->AbilitySystemComponent.IsValid());
-		if (!ActorInfo->AbilitySystemComponent->CanApplyAttributeModifiers(CostGE, GetAbilityLevel(Handle, ActorInfo), GetEffectContext(Handle, ActorInfo)))
+		if (!ActorInfo->AbilitySystemComponent->CanApplyAttributeModifiers(CostGE, GetAbilityLevel(Handle, ActorInfo), MakeEffectContext(Handle, ActorInfo)))
 		{
 			const FGameplayTag& CostTag = UAbilitySystemGlobals::Get().ActivateFailCostTag;
 
@@ -801,24 +815,22 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecH
 	if (CooldownTags && CooldownTags->Num() > 0)
 	{
 		FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(*CooldownTags);
-		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(Query);
-		if (DurationRemaining.Num() > 0)
+		TArray< TPair<float,float> > DurationAndTimeRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemainingAndDuration(Query);
+		if (DurationAndTimeRemaining.Num() > 0)
 		{
-			TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsDuration(Query);
-			check(Durations.Num() == DurationRemaining.Num());
 			int32 BestIdx = 0;
-			float LongestTime = DurationRemaining[0];
-			for (int32 Idx = 1; Idx < DurationRemaining.Num(); ++Idx)
+			float LongestTime = DurationAndTimeRemaining[0].Key;
+			for (int32 Idx = 1; Idx < DurationAndTimeRemaining.Num(); ++Idx)
 			{
-				if (DurationRemaining[Idx] > LongestTime)
+				if (DurationAndTimeRemaining[Idx].Key > LongestTime)
 				{
-					LongestTime = DurationRemaining[Idx];
+					LongestTime = DurationAndTimeRemaining[Idx].Key;
 					BestIdx = Idx;
 				}
 			}
 
-			TimeRemaining = DurationRemaining[BestIdx];
-			CooldownDuration = Durations[BestIdx];
+			TimeRemaining = DurationAndTimeRemaining[BestIdx].Key;
+			CooldownDuration = DurationAndTimeRemaining[BestIdx].Value;
 		}
 	}
 }
@@ -906,7 +918,7 @@ FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(const
 	}
 #endif
 
-	FGameplayEffectSpecHandle NewHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(GameplayEffectClass, Level, GetEffectContext(Handle, ActorInfo));
+	FGameplayEffectSpecHandle NewHandle = ActorInfo->AbilitySystemComponent->MakeOutgoingSpec(GameplayEffectClass, Level, MakeEffectContext(Handle, ActorInfo));
 	if (NewHandle.IsValid())
 	{
 		FGameplayAbilitySpec* AbilitySpec =  ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
@@ -1252,7 +1264,7 @@ void UGameplayAbility::K2_RemoveGameplayCue(FGameplayTag GameplayCueTag)
 FGameplayEffectContextHandle UGameplayAbility::GetContextFromOwner(FGameplayAbilityTargetDataHandle OptionalTargetData) const
 {
 	check(CurrentActorInfo);
-	FGameplayEffectContextHandle Context = GetEffectContext(CurrentSpecHandle, CurrentActorInfo);
+	FGameplayEffectContextHandle Context = MakeEffectContext(CurrentSpecHandle, CurrentActorInfo);
 	
 	for (auto Data : OptionalTargetData.Data)
 	{
@@ -1345,7 +1357,7 @@ UObject* UGameplayAbility::GetCurrentSourceObject() const
 	return nullptr;
 }
 
-FGameplayEffectContextHandle UGameplayAbility::GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const
+FGameplayEffectContextHandle UGameplayAbility::MakeEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const
 {
 	check(ActorInfo);
 	FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
@@ -1356,6 +1368,11 @@ FGameplayEffectContextHandle UGameplayAbility::GetEffectContext(const FGameplayA
 	Context.SetAbility(this);
 
 	return Context;
+}
+
+FGameplayEffectContextHandle UGameplayAbility::GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const
+{
+	return MakeEffectContext(Handle, ActorInfo);
 }
 
 bool UGameplayAbility::IsTriggered() const
@@ -1548,12 +1565,32 @@ TArray<FActiveGameplayEffectHandle> UGameplayAbility::ApplyGameplayEffectSpecToT
 	
 	if (SpecHandle.IsValid() && HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
-		for (auto Data : TargetData.Data)
+		TARGETLIST_SCOPE_LOCK(*ActorInfo->AbilitySystemComponent);
+		for (TSharedPtr<FGameplayAbilityTargetData> Data : TargetData.Data)
 		{
 			EffectHandles.Append(Data->ApplyGameplayEffectSpec(*SpecHandle.Data.Get(), ActorInfo->AbilitySystemComponent->GetPredictionKeyForNewAction()));
 		}
 	}
 	return EffectHandles;
+}
+
+void UGameplayAbility::IncrementListLock() const
+{
+	++ScopeLockCount;
+}
+void UGameplayAbility::DecrementListLock() const
+{
+	if (--ScopeLockCount == 0)
+	{
+		// execute delayed functions in the order they came in
+		// These may end or cancel this ability
+		for (int32 Idx = 0; Idx < WaitingToExecute.Num(); ++Idx)
+		{
+			WaitingToExecute[Idx].ExecuteIfBound();
+		}
+
+		WaitingToExecute.Empty();
+	}
 }
 
 void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithAssetTags(FGameplayTagContainer WithTags, int32 StacksToRemove)

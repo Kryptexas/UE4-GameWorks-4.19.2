@@ -199,6 +199,9 @@ extern CORE_API void (*SuspendAsyncLoading)();
 /** Resumes async package loading. */
 extern CORE_API void (*ResumeAsyncLoading)();
 
+/** Returns true if async loading is using the async loading thread */
+extern CORE_API bool(*IsAsyncLoadingMultithreaded)();
+
 /** Whether the editor is currently loading a package or not */
 extern CORE_API bool GIsEditorLoadingPackage;
 

@@ -75,6 +75,9 @@ DECLARE_MULTICAST_DELEGATE(FOnGameplayAbilityCancelled);
 /** Used to notify ability state tasks that a state is being ended */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameplayAbilityStateEnded, FName);
 
+/** Used to delay execution until we leave a critical section */
+DECLARE_DELEGATE(FPostLockDelegate);
+
 /** TriggerData */
 USTRUCT()
 struct FAbilityTriggerData
@@ -104,6 +107,7 @@ class GAMEPLAYABILITIES_API UGameplayAbility : public UObject, public IGameplayT
 
 	friend class UAbilitySystemComponent;
 	friend class UGameplayAbilitySet;
+	friend struct FScopedTargetListLock;
 
 public:
 
@@ -201,6 +205,9 @@ public:
 	void RemoveGrantedByEffect();
 
 	/** Returns an effect context, given a specified actor info */
+	virtual FGameplayEffectContextHandle MakeEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const;
+
+	DEPRECATED(4.12, "GetEffectContext is deprecated, use MakeEffectContext")
 	virtual FGameplayEffectContextHandle GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const;
 
 	virtual UWorld* GetWorld() const override
@@ -851,6 +858,18 @@ protected:
 	/** True if the ability is currently cancelable, if not will only be canceled by hard EndAbility calls */
 	UPROPERTY()
 	bool bIsCancelable;
+
+	/** A count of all the current scope locks. */
+	mutable int8 ScopeLockCount;
+
+	/** A list of all the functions waiting for the scope lock to end so they can run. */
+	mutable TArray<FPostLockDelegate> WaitingToExecute;
+
+	/** Increases the scope lock count. */
+	void IncrementListLock() const;
+
+	/** Decreases the scope lock count. Runs the waiting to execute delegates if the count drops to zero. */
+	void DecrementListLock() const;
 
 	/** True if the ability block flags are currently enabled */
 	UPROPERTY()

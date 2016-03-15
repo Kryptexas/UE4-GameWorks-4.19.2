@@ -38,7 +38,7 @@ public abstract class BaseWinPlatform : Platform
 		// Stage all the build products
 		foreach(StageTarget Target in SC.StageTargets)
 		{
-			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist);
+			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist, Params.bTreatNonShippingBinariesAsDebugFiles);
 		}
 
 		// Copy the splash screen, windows specific

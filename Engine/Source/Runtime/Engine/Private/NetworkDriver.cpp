@@ -2328,6 +2328,12 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 				continue;
 			}
 
+			// Verify the actor is actually initialized (it might have been intentionally spawn deferred until a later frame)
+ 			if ( !Actor->IsActorInitialized() )
+ 			{
+ 				continue;
+ 			}
+
 			// Don't send actors that may still be streaming in
 			ULevel* Level = Actor->GetLevel();
 			if ( Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel )
@@ -2371,7 +2377,7 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 					Actor->MinNetUpdateFrequency = 2.0f;
 				}
 
-				// Calculate min delta (max rate actor will upate), and max delta (slowest rate actor will update)
+				// Calculate min delta (max rate actor will update), and max delta (slowest rate actor will update)
 				const float MinOptimalDelta = 1.0f / Actor->NetUpdateFrequency;										// Don't go faster than NetUpdateFrequency
 				const float MaxOptimalDelta = FMath::Max( 1.0f / Actor->MinNetUpdateFrequency, MinOptimalDelta );	// Don't go slower than MinNetUpdateFrequency (or NetUpdateFrequency if it's slower)
 

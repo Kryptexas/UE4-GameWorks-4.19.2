@@ -320,19 +320,27 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 	}
 }
 
-bool UCrowdFollowingComponent::UpdateCachedGoal(FVector& NewGoalPos)
+bool UCrowdFollowingComponent::ShouldTrackMovingGoal(FVector& OutGoalLocation) const
 {
 	if (bFinalPathPart && !bUpdateDirectMoveVelocity &&
 		Path.IsValid() && !Path->IsPartial() && Path->GetGoalActor())
 	{
-		NewGoalPos = Path->GetGoalLocation();
-		CurrentDestination.Set(Path->GetBaseActor(), NewGoalPos);
+		OutGoalLocation = Path->GetGoalLocation();
 		return true;
 	}
 
 	return false;
 }
 
+void UCrowdFollowingComponent::UpdateDestinationForMovingGoal(const FVector& NewDestination)
+{
+	CurrentDestination.Set(Path->GetBaseActor(), NewDestination);
+}
+
+bool UCrowdFollowingComponent::UpdateCachedGoal(FVector& NewGoalPos)
+{
+	return ShouldTrackMovingGoal(NewGoalPos);
+}
 
 void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink)
 {

@@ -134,6 +134,8 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	/** Overridden for fast serialize */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
+	/** Handles fixup and errors. This is only called when not serializing a full FGameplayTagContainer */
+	void PostSerialize(const FArchive& Ar);
 	bool NetSerialize_Packed(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 private:
@@ -155,6 +157,7 @@ struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
 	enum
 	{
 		WithNetSerializer = true,
+		WithPostSerialize = true,
 	};
 };
 

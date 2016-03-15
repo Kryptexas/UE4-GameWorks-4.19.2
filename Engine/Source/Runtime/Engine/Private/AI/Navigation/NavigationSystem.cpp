@@ -316,7 +316,8 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 
 UNavigationSystem::~UNavigationSystem()
 {
-	CleanUp();
+	CleanUp(ECleanupMode::CleanupUnsafe);
+
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
@@ -2559,22 +2560,7 @@ void UNavigationSystem::UpdateNavOctreeAfterMove(USceneComponent* Comp)
 	AActor* OwnerActor = Comp->GetOwner();
 	if (OwnerActor && OwnerActor->GetRootComponent() == Comp)
 	{
-		UpdateActorInNavOctree(*OwnerActor);
-
-		TInlineComponentArray<UActorComponent*> Components;
-		OwnerActor->GetComponents(Components);
-
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UActorComponent* const Component = Components[ComponentIndex];
-			// updating only INavRelevantInterfaces here on purpose, all the rest will get updated automatically
-			if (Component && Cast<INavRelevantInterface>(Component))
-			{
-				UpdateComponentInNavOctree(*Component);
-			}
-		}
-
-		UpdateAttachedActorsInNavOctree(*OwnerActor);
+		UpdateActorAndComponentsInNavOctree(*OwnerActor, true);
 	}
 }
 
@@ -3208,6 +3194,13 @@ ANavigationData* UNavigationSystem::CreateNavigationDataInstance(const FNavDataC
 			UObject* ExistingObject = StaticFindObject(/*Class=*/ NULL, Instance->GetOuter(), *StrName, true);
 			if (ExistingObject != NULL)
 			{
+				ANavigationData* ExistingNavigationData = Cast<ANavigationData>(ExistingObject);
+				if (ExistingNavigationData)
+				{
+					UnregisterNavData(ExistingNavigationData);
+					AgentToNavDataMap.Remove(ExistingNavigationData->GetConfig());
+				}
+
 				ExistingObject->Rename(NULL, NULL, REN_DontCreateRedirectors | REN_ForceGlobalUnique | REN_DoNotDirty | REN_NonTransactional);
 			}
 

@@ -13,6 +13,7 @@ class UEdGraphNode_Reference : public UEdGraphNode
 	virtual void SetReferenceNodeCollapsed(const FIntPoint& NodeLoc, int32 InNumReferencesExceedingMax);
 	virtual void AddReferencer(class UEdGraphNode_Reference* ReferencerNode);
 	virtual FName GetPackageName() const;
+	virtual void GetAllPackageNames(TArray<FName>& OutPackageNames) const;
 	class UEdGraph_ReferenceViewer* GetReferenceViewerGraph() const;
 
 	// UEdGraphNode implementation

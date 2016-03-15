@@ -144,6 +144,7 @@ protected:
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
 	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override;
 	virtual UObject* GetPlaybackContext() const override;
+	virtual UObject* GetEventContext() const override;
 
 public:
 

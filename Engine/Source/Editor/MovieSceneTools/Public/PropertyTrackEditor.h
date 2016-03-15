@@ -214,7 +214,7 @@ private:
 
 		// If the track class has been customized for this property then it's possible this track editor doesn't support it, 
 		// also check for track editors which should only be used for customization.
-		if ( SupportsType( TrackClass ) && ( ForCustomizedUseOnly() == false || CustomizedClass != nullptr) )
+		if ( SupportsType( TrackClass ) && ( ForCustomizedUseOnly() == false || *CustomizedClass != nullptr) )
 		{
 			return FKeyframeTrackEditor<TrackType, SectionType, KeyDataType>::AddKeysToObjects(
 				PropertyChangedParams.ObjectsThatChanged,

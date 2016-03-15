@@ -565,14 +565,12 @@ namespace ENavigationQueryResult
 	};
 }
 
-struct ENGINE_API FPathFindingQuery
+struct ENGINE_API FPathFindingQueryData
 {
-	TWeakObjectPtr<const ANavigationData> NavData;
 	TWeakObjectPtr<const UObject> Owner;
 	FVector StartLocation;
 	FVector EndLocation;
 	FSharedConstNavQueryFilter QueryFilter;
-	FNavPathSharedPtr PathInstanceToFill;
 	FNavAgentProperties NavAgentProperties;
 
 	/** additional flags passed to navigation data handling request */
@@ -581,12 +579,21 @@ struct ENGINE_API FPathFindingQuery
 	/** if set, allow partial paths as a result */
 	uint32 bAllowPartialPaths : 1;
 
-	FPathFindingQuery() {}
+	FPathFindingQueryData() : StartLocation(FNavigationSystem::InvalidLocation), EndLocation(FNavigationSystem::InvalidLocation), NavDataFlags(0), bAllowPartialPaths(true) {}
+	FPathFindingQueryData(const UObject* InOwner, const FVector& InStartLocation, const FVector& InEndLocation, FSharedConstNavQueryFilter InQueryFilter = nullptr, int32 InNavDataFlags = 0, bool bInAllowPartialPaths = true) :
+		Owner(InOwner), StartLocation(InStartLocation), EndLocation(InEndLocation), QueryFilter(InQueryFilter), NavDataFlags(InNavDataFlags), bAllowPartialPaths(bInAllowPartialPaths) {}
+};
 
+struct ENGINE_API FPathFindingQuery : public FPathFindingQueryData
+{
+	TWeakObjectPtr<const ANavigationData> NavData;
+	FNavPathSharedPtr PathInstanceToFill;
+	FNavAgentProperties NavAgentProperties;
+
+	FPathFindingQuery() {}
 	FPathFindingQuery(const FPathFindingQuery& Source);
 
 	FPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
-
 	FPathFindingQuery(const INavAgentInterface& InNavAgent, const ANavigationData& InNavData, const FVector& Start, const FVector& End, FSharedConstNavQueryFilter SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
 
 	explicit FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const ANavigationData* NavDataOverride = NULL);

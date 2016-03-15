@@ -492,6 +492,9 @@ private:
 	/** Lookup the vertex color corresponding to a location traced on a static mesh */
 	static bool GetStaticMeshVertexColorForHit(const UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor);
 
+	/** Returns true when at least one color channel is used by the vertex color mask */
+	static bool IsUsingVertexColorMask(const UFoliageType* Settings);
+
 	/** Does a filter based on the vertex color of a static mesh */
 	static bool VertexMaskCheck(const FHitResult& Hit, const UFoliageType* Settings);
 

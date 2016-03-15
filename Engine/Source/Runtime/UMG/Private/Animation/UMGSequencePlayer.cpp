@@ -17,7 +17,7 @@ UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializ
 	Animation = nullptr;
 }
 
-void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& UserWidget )
+void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& InUserWidget )
 {
 	Animation = &InAnimation;
 
@@ -27,7 +27,8 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	TimeRange = MovieScene->GetPlaybackRange();
 	AnimationStartOffset = TimeRange.GetLowerBoundValue();
 
-	UWidgetTree* WidgetTree = UserWidget.WidgetTree;
+	UserWidget = &InUserWidget;
+	UWidgetTree* WidgetTree = InUserWidget.WidgetTree;
 
 	// Bind to Runtime Objects
 	for (const FWidgetAnimationBinding& Binding : InAnimation.GetBindings())
@@ -50,27 +51,40 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 {
 	if ( PlayerStatus == EMovieScenePlayerStatus::Playing )
 	{
-		double LastTimePosition = TimeCursorPosition;
+		const double AnimationLength = CurrentPlayRange.Size<double>();
 
+		const double LastTimePosition = TimeCursorPosition;
 		TimeCursorPosition += bIsPlayingForward ? DeltaTime : -DeltaTime;
 
-		float AnimationLength = TimeRange.Size<float>();
-		if ( TimeCursorPosition < 0 )
+		// Check if we crossed over bounds
+		const bool bCrossedLowerBound = TimeCursorPosition < CurrentPlayRange.GetLowerBoundValue();
+		const bool bCrossedUpperBound = TimeCursorPosition > CurrentPlayRange.GetUpperBoundValue();
+		const bool bCrossedEndTime = bIsPlayingForward
+			? LastTimePosition < EndTime && EndTime <= TimeCursorPosition
+			: LastTimePosition > EndTime && EndTime >= TimeCursorPosition;
+
+		// Increment the num loops if we crossed any bounds.
+		if (bCrossedLowerBound || bCrossedUpperBound || (bCrossedEndTime && NumLoopsCompleted >= NumLoopsToPlay - 1))
 		{
 			NumLoopsCompleted++;
-			if (NumLoopsToPlay != 0 && NumLoopsCompleted >= NumLoopsToPlay)
+		}
+
+		// Did the animation complete
+		const bool bCompleted = NumLoopsToPlay != 0 && NumLoopsCompleted >= NumLoopsToPlay;
+
+		// Handle Times
+		if (bCrossedLowerBound)
+		{
+			if (bCompleted)
 			{
-				TimeCursorPosition = 0;
-				PlayerStatus = EMovieScenePlayerStatus::Stopped;
-				OnSequenceFinishedPlayingEvent.Broadcast(*this);
-				Animation->OnAnimationFinished.Broadcast();
+				TimeCursorPosition = CurrentPlayRange.GetLowerBoundValue();
 			}
 			else
 			{
 				if (PlayMode == EUMGSequencePlayMode::PingPong)
 				{
 					bIsPlayingForward = !bIsPlayingForward;
-					TimeCursorPosition = FMath::Abs(TimeCursorPosition);
+					TimeCursorPosition = FMath::Abs(TimeCursorPosition - CurrentPlayRange.GetLowerBoundValue()) + CurrentPlayRange.GetLowerBoundValue();
 				}
 				else
 				{
@@ -78,28 +92,38 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				}
 			}
 		}
-		else if ( TimeCursorPosition > AnimationLength )
+		else if (bCrossedUpperBound)
 		{
-			NumLoopsCompleted++;
-			if (NumLoopsToPlay != 0 && NumLoopsCompleted >= NumLoopsToPlay)
+			if (bCompleted)
 			{
-				TimeCursorPosition = AnimationLength;
-				PlayerStatus = EMovieScenePlayerStatus::Stopped;
-				OnSequenceFinishedPlayingEvent.Broadcast(*this);
-				Animation->OnAnimationFinished.Broadcast();
+				TimeCursorPosition = CurrentPlayRange.GetUpperBoundValue();
 			}
 			else
 			{
 				if (PlayMode == EUMGSequencePlayMode::PingPong)
 				{
 					bIsPlayingForward = !bIsPlayingForward;
-					TimeCursorPosition = AnimationLength - (TimeCursorPosition - AnimationLength);
+					TimeCursorPosition = CurrentPlayRange.GetUpperBoundValue() - (TimeCursorPosition - CurrentPlayRange.GetUpperBoundValue());
 				}
 				else
 				{
 					TimeCursorPosition -= AnimationLength;
 				}
 			}
+		}
+		else if (bCrossedEndTime)
+		{
+			if (bCompleted)
+			{
+				TimeCursorPosition = EndTime;
+			}
+		}
+		
+		if (bCompleted)
+		{
+			PlayerStatus = EMovieScenePlayerStatus::Stopped;
+			OnSequenceFinishedPlayingEvent.Broadcast(*this);
+			Animation->OnAnimationFinished.Broadcast();
 		}
 
 		if (RootMovieSceneInstance.IsValid())
@@ -110,23 +134,29 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 	}
 }
 
-void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode)
+void UUMGSequencePlayer::PlayInternal(double StartAtTime, double EndAtTime, double SubAnimStartTime, double SubAnimEndTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode)
 {
 	RootMovieSceneInstance = MakeShareable( new FMovieSceneSequenceInstance( *Animation ) );
 	RootMovieSceneInstance->RefreshInstance( *this );
 
 	PlayMode = InPlayMode;
 
-	float AnimationLength = TimeRange.Size<float>();
-
-	// Clamp the start time to be between 0 and the animation length
-	TimeCursorPosition = StaticCast<double>(FMath::Clamp(StartAtTime, 0.0f, AnimationLength));
+	// Set the temporary range for this play of the animation
+	CurrentPlayRange = TRange<double>(SubAnimStartTime, TRangeBound<double>::Inclusive(SubAnimEndTime));
 
 	if (PlayMode == EUMGSequencePlayMode::Reverse)
 	{
 		// When playing in reverse count substract the start time from the end.
-		TimeCursorPosition = AnimationLength - TimeCursorPosition;
+		TimeCursorPosition = CurrentPlayRange.GetUpperBoundValue() - StartAtTime;
 	}
+	else
+	{
+		TimeCursorPosition = StartAtTime;
+	}
+	
+	// Clamp the start time and end time to be within the bounds
+	TimeCursorPosition = FMath::Clamp(TimeCursorPosition, CurrentPlayRange.GetLowerBoundValue(), CurrentPlayRange.GetUpperBoundValue());
+	EndTime = FMath::Clamp(EndAtTime, CurrentPlayRange.GetLowerBoundValue(), CurrentPlayRange.GetUpperBoundValue());
 
 	if ( PlayMode == EUMGSequencePlayMode::PingPong )
 	{
@@ -143,6 +173,22 @@ void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSeq
 
 	PlayerStatus = EMovieScenePlayerStatus::Playing;
 	Animation->OnAnimationStarted.Broadcast();
+}
+
+void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode)
+{
+	double SubAnimStartTime = 0.0;
+	double SubAnimEndTime = TimeRange.GetUpperBoundValue();
+
+	PlayInternal(StartAtTime, 0.0, SubAnimStartTime, SubAnimEndTime, InNumLoopsToPlay, InPlayMode);
+}
+
+void UUMGSequencePlayer::PlayTo(float StartAtTime, float EndAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode)
+{
+	double SubAnimStartTime = 0.0;
+	double SubAnimEndTime = TimeRange.GetUpperBoundValue();
+
+	PlayInternal(StartAtTime, EndAtTime, SubAnimStartTime, SubAnimEndTime, InNumLoopsToPlay, InPlayMode);
 }
 
 void UUMGSequencePlayer::Pause()
@@ -194,6 +240,15 @@ void UUMGSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstanc
 EMovieScenePlayerStatus::Type UUMGSequencePlayer::GetPlaybackStatus() const
 {
 	return PlayerStatus;
+}
+
+UObject* UUMGSequencePlayer::GetEventContext() const
+{
+	if (UserWidget.IsValid())
+	{
+		return UserWidget.Get();
+	}
+	return nullptr;
 }
 
 void UUMGSequencePlayer::SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus)

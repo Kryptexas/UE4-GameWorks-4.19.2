@@ -486,6 +486,9 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance)
 {
+	// Reset so next instance will warn if algorithm changes inflight
+	bEditorWarnedChangedSpatialization = false;
+
 	// We are not supporting playing audio on a controller
 	if (InWaveInstance->OutputTarget == EAudioOutputTarget::Controller)
 	{
@@ -522,6 +525,10 @@ bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance
 		}
 
 		Buffer = XAudio2Buffer;
+
+		// Reset the LPFFrequency values
+		LPFFrequency = MAX_FILTER_FREQUENCY;
+		LastLPFFrequency = FLT_MAX;
 
 		WaveInstance = InWaveInstance;
 

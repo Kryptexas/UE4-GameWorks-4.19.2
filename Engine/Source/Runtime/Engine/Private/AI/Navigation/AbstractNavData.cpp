@@ -55,7 +55,7 @@ FPathFindingResult AAbstractNavData::FindPathAbstract(const FNavAgentProperties&
 	}
 	else
 	{
-		Result.Path = Self->CreatePathInstance<FAbstractNavigationPath>(Query.Owner.Get());
+		Result.Path = Self->CreatePathInstance<FAbstractNavigationPath>(Query);
 	}
 
 	Result.Path->GetPathPoints().Reset();

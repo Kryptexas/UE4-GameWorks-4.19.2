@@ -528,12 +528,9 @@ void UWorld::FinishDestroy()
 		// Wait for Async Trace data to finish and reset global variable
 		WaitForAllAsyncTraceTasks();
 
-		if (NavigationSystem != NULL)
-		{
-			// NavigationSystem should be already cleaned by now, after call 
-			// in UWorld::CleanupWorld, but it never hurts to call it again
-			NavigationSystem->CleanUp();
-		}
+		// navigation system should be removed already by UWorld::CleanupWorld
+		// unless it wanted to keep resources but got destroyed now
+		SetNavigationSystem(nullptr);
 
 		if (FXSystem)
 		{
@@ -3246,10 +3243,8 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 
 	if (bCleanupResources == true)
 	{
-		if (NavigationSystem != NULL)
-		{
-			NavigationSystem->CleanUp(UNavigationSystem::CleanupWithWorld);
-		}
+		// cleanup & remove navigation system
+		SetNavigationSystem(nullptr);
 	}
 
 	ForEachNetDriver(this, [](UNetDriver* const Driver)

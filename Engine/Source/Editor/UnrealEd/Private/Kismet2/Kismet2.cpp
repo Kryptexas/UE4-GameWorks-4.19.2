@@ -42,6 +42,7 @@
 #include "Engine/SCS_Node.h"
 #include "GeneralProjectSettings.h"
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+#include "Engine/InheritableComponentHandler.h"
 
 DECLARE_CYCLE_STAT(TEXT("Compile Blueprint"), EKismetCompilerStats_CompileBlueprint, STATGROUP_KismetCompiler);
 DECLARE_CYCLE_STAT(TEXT("Broadcast Precompile"), EKismetCompilerStats_BroadcastPrecompile, STATGROUP_KismetCompiler);
@@ -1124,6 +1125,12 @@ void FKismetEditorUtilities::ConformBlueprintFlagsAndComponents(UBlueprint* Blue
 		UObject* GenCDO = GenClass->GetDefaultObject();
 		ConformComponentsUtils::ConformRemovedNativeComponents(GenCDO);
 		GenCDO->InstanceSubobjectTemplates();
+	}
+
+	UInheritableComponentHandler* InheritableComponentHandler = BlueprintObj->GetInheritableComponentHandler(false);
+	if (InheritableComponentHandler)
+	{
+		InheritableComponentHandler->ValidateTemplates();
 	}
 }
 

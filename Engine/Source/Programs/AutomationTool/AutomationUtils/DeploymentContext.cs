@@ -391,7 +391,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
+	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist, bool TreatNonShippingBinariesAsDebugFiles)
 	{
 		// Stage all the build products needed at runtime
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -404,7 +404,13 @@ public class DeploymentContext //: ProjectParams
 
 			if(BuildProduct.Type == BuildProductType.Executable || BuildProduct.Type == BuildProductType.DynamicLibrary || BuildProduct.Type == BuildProductType.RequiredResource)
 			{
-				StageFile(StagedFileType.NonUFS, BuildProduct.Path);
+				StagedFileType FileTypeToUse = StagedFileType.NonUFS;
+				if (TreatNonShippingBinariesAsDebugFiles && Receipt.Configuration != UnrealTargetConfiguration.Shipping)
+				{
+					FileTypeToUse = StagedFileType.DebugNonUFS;
+				}
+
+				StageFile(FileTypeToUse, BuildProduct.Path);
 			}
 			else if(BuildProduct.Type == BuildProductType.SymbolFile)
 			{

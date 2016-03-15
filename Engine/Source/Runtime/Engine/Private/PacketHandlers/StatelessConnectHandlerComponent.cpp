@@ -209,7 +209,10 @@ void StatelessConnectHandlerComponent::SendInitialConnect()
 		if (!bRandFail)
 #endif
 		{
-			ServerConn->LowLevelSend(InitialPacket.GetData(), InitialPacket.GetNumBytes(), InitialPacket.GetNumBits());
+			if (ServerConn->Driver->IsNetResourceValid())
+			{
+				ServerConn->LowLevelSend(InitialPacket.GetData(), InitialPacket.GetNumBytes(), InitialPacket.GetNumBits());
+			}
 		}
 
 		Handler->SetRawSend(false);
@@ -260,8 +263,11 @@ void StatelessConnectHandlerComponent::SendConnectChallenge(FString ClientAddres
 		if (!bRandFail)
 #endif
 		{
-			// 'SetRawSend' is not used here, as that only affects UNetConnections
-			Driver->LowLevelSend(ClientAddress, ChallengePacket.GetData(), ChallengePacket.GetNumBits());
+			if (Driver->IsNetResourceValid())
+			{
+				// 'SetRawSend' is not used here, as that only affects UNetConnections
+				Driver->LowLevelSend(ClientAddress, ChallengePacket.GetData(), ChallengePacket.GetNumBits());
+			}
 		}
 	}
 	else
@@ -310,7 +316,10 @@ void StatelessConnectHandlerComponent::SendChallengeResponse(uint8 InSecretId, f
 		if (!bRandFail)
 #endif
 		{
-			ServerConn->LowLevelSend(ResponsePacket.GetData(), ResponsePacket.GetNumBytes(), ResponsePacket.GetNumBits());
+			if (ServerConn->Driver->IsNetResourceValid())
+			{
+				ServerConn->LowLevelSend(ResponsePacket.GetData(), ResponsePacket.GetNumBytes(), ResponsePacket.GetNumBits());
+			}
 		}
 
 		Handler->SetRawSend(false);

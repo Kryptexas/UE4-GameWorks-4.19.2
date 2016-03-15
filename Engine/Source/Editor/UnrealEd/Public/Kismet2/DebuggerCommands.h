@@ -60,6 +60,7 @@ public:
 	TSharedPtr<FUICommandInfo> SingleFrameAdvance;
 	TSharedPtr<FUICommandInfo> TogglePlayPauseOfPlaySession;
 	TSharedPtr<FUICommandInfo> StopPlaySession;
+	TSharedPtr<FUICommandInfo> LateJoinSession;
 	TSharedPtr<FUICommandInfo> PossessEjectPlayer;
 	TSharedPtr<FUICommandInfo> ShowCurrentStatement;
 	TSharedPtr<FUICommandInfo> StepInto;

@@ -656,6 +656,8 @@ namespace UnrealBuildTool
 			string[] PossibleRegPaths = new string[] {
                 @"Wow6432Node\Microsoft\VisualStudio",	// VS2015 on 64-bit machine.
                 @"Microsoft\VisualStudio",				// VS2015 on 32-bit machine.
+				@"Wow6432Node\Microsoft\WDExpress",		// VSExpress on 64-bit machine.
+                @"Microsoft\WDExpress"					// VSExpress on 32-bit machine.
             };
 
 			string VSPath = null;

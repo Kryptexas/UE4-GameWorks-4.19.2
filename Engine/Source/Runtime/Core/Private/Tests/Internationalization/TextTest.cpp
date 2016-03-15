@@ -638,7 +638,6 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextRoundingTest, "System.Core.Misc.TextRounding", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
-
 bool FTextRoundingTest::RunTest (const FString& Parameters)
 {
 	static const TCHAR* RoundingModeNames[] = {

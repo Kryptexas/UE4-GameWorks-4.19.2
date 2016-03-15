@@ -856,7 +856,7 @@ namespace SceneOutliner
 			for (const FWorldContext& Context : GEngine->GetWorldContexts())
 			{
 				UWorld* World = Context.World();
-				if (Context.WorldType == EWorldType::PIE)
+				if (World && Context.WorldType == EWorldType::PIE)
 				{
 					if(World->GetNetMode() == NM_Standalone)
 					{

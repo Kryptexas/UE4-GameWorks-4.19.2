@@ -320,6 +320,15 @@ UObject* ULevelSequencePlayer::GetPlaybackContext() const
 	return World.Get();
 }
 
+UObject* ULevelSequencePlayer::GetEventContext() const
+{
+	if (World.IsValid())
+	{
+		return World->GetLevelScriptActor();
+	}
+	return nullptr;
+}
+
 void ULevelSequencePlayer::Update(const float DeltaSeconds)
 {
 	float LastTimePosition = TimeCursorPosition;

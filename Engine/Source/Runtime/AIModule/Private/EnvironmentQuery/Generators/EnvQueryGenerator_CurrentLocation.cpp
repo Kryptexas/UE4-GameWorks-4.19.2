@@ -21,7 +21,8 @@ void UEnvQueryGenerator_CurrentLocation::GenerateItems(FEnvQueryInstance& QueryI
 
 	for (const FVector& Location : ContextLocations)
 	{
-		QueryInstance.AddItemData<UEnvQueryItemType_Point>(Location);
+		FNavLocation NavLoc(Location);
+		QueryInstance.AddItemData<UEnvQueryItemType_Point>(NavLoc);
 	}
 }
 

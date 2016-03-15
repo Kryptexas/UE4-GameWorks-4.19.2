@@ -11,6 +11,7 @@ bool IsInAsyncLoadingThreadCoreUObjectInternal();
 bool IsAsyncLoadingCoreUObjectInternal();
 void SuspendAsyncLoadingInternal();
 void ResumeAsyncLoadingInternal();
+bool IsAsyncLoadingMultithreadedCoreUObjectInternal();
 
 // CoreUObject module. Handles UObject system pre-init (registers init function with Core callbacks).
 class FCoreUObjectModule : public FDefaultModuleImpl
@@ -29,6 +30,7 @@ public:
 		IsAsyncLoading = &IsAsyncLoadingCoreUObjectInternal;
 		SuspendAsyncLoading = &SuspendAsyncLoadingInternal;
 		ResumeAsyncLoading = &ResumeAsyncLoadingInternal;
+		IsAsyncLoadingMultithreaded = &IsAsyncLoadingMultithreadedCoreUObjectInternal;
 
 		// Make sure that additional content mount points can be registered after CoreUObject loads
 		FPackageName::EnsureContentPathsAreRegistered();		

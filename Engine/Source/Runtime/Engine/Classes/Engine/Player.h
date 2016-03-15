@@ -7,7 +7,7 @@
 #pragma once
 #include "Player.generated.h"
 
-UCLASS(transient, config=Engine)
+UCLASS(MinimalAPI, transient, config=Engine)
 class UPlayer : public UObject, public FExec
 {
 	GENERATED_UCLASS_BODY()

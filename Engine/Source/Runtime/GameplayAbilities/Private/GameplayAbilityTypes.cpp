@@ -181,9 +181,8 @@ void FGameplayAbilitySpecContainer::RegisterWithOwner(UAbilitySystemComponent* I
 
 // ----------------------------------------------------
 
-FGameplayAbilitySpec:: FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, int32 InGameplayEffectLevel, FActiveGameplayEffectHandle InGameplayEffectHandle)
+FGameplayAbilitySpec::FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, int32 InGameplayEffectLevel, FActiveGameplayEffectHandle InGameplayEffectHandle)
 	: Ability(InDef.Ability ? InDef.Ability->GetDefaultObject<UGameplayAbility>() : nullptr)
-	, Level(InDef.LevelScalableFloat.GetValueAtLevel(InGameplayEffectLevel))
 	, InputID(InDef.InputID)
 	, SourceObject(InDef.SourceObject)
 	, ActiveCount(0)
@@ -194,6 +193,11 @@ FGameplayAbilitySpec:: FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, int3
 	Handle.GenerateNewHandle();
 	InDef.AssignedHandle = Handle;
 	GameplayEffectHandle = InGameplayEffectHandle;
+
+	FString ContextString = FString::Printf(TEXT("FGameplayAbilitySpec::FGameplayAbilitySpec for %s from %s"), 
+		(InDef.Ability ? *InDef.Ability->GetName() : TEXT("INVALID ABILITY")), 
+		(InDef.SourceObject ? *InDef.SourceObject->GetName() : TEXT("INVALID ABILITY")));
+	Level = InDef.LevelScalableFloat.GetValueAtLevel(InGameplayEffectLevel, &ContextString);
 }
 
 // ----------------------------------------------------
@@ -207,4 +211,18 @@ FScopedAbilityListLock::FScopedAbilityListLock(UAbilitySystemComponent& InAbilit
 FScopedAbilityListLock::~FScopedAbilityListLock()
 {
 	AbilitySystemComponent.DecrementAbilityListLock();
+}
+
+// ----------------------------------------------------
+
+FScopedTargetListLock::FScopedTargetListLock(UAbilitySystemComponent& InAbilitySystemComponent, const UGameplayAbility& InAbility)
+	: GameplayAbility(InAbility)
+	, AbilityLock(InAbilitySystemComponent)
+{
+	GameplayAbility.IncrementListLock();
+}
+
+FScopedTargetListLock::~FScopedTargetListLock()
+{
+	GameplayAbility.DecrementListLock();
 }

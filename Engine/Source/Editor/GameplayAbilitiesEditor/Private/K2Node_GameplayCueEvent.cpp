@@ -33,7 +33,7 @@ void UK2Node_GameplayCueEvent::Serialize(FArchive& Ar)
 
 FText UK2Node_GameplayCueEvent::GetTooltipText() const
 {
-	return LOCTEXT("GameplayCueEvent_Tooltip", "Handle GameplayCue Event");
+	return FText::Format(LOCTEXT("GameplayCueEvent_Tooltip", "Handle GameplayCue Event {0}"), FText::FromName(CustomFunctionName));
 }
 
 FText UK2Node_GameplayCueEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const

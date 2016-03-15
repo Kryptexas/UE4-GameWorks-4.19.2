@@ -36,6 +36,7 @@ public:
 	virtual bool RemovePath(const FString& PathToRemove) override;
 	virtual void SearchAllAssets(bool bSynchronousSearch) override;
 	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) override;
+	virtual void ScanFilesSynchronous(const TArray<FString>& InFilePaths, bool bForceRescan = false) override;
 	virtual void PrioritizeSearchPath(const FString& PathToPrioritize) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) override;
@@ -82,7 +83,7 @@ public:
 private:
 
 	/** Internal handler for ScanPathsSynchronous */
-	void ScanPathsSynchronous_Internal(const TArray<FString>& InPaths, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode);
+	void ScanPathsAndFilesSynchronous(const TArray<FString>& InPaths, const TArray<FString>& InSpecificFiles, bool bForceRescan, EAssetDataCacheMode AssetDataCacheMode);
 
 	/** Called every tick to when data is retrieved by the background asset search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
 	void AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults);
@@ -270,8 +271,8 @@ private:
 	FAssetData* PreallocatedAssetDataBuffer;
 	FDependsNode* PreallocatedDependsNodeDataBuffer;
 
-	/** A set used to ignore repeated requests to synchronously scan the same folder multiple times */
-	TSet<FString> SynchronouslyScannedPaths;
+	/** A set used to ignore repeated requests to synchronously scan the same folder or file multiple times */
+	TSet<FString> SynchronouslyScannedPathsAndFiles;
 
 	/** List of all class names derived from Blueprint (including Blueprint itself) */
 	TSet<FName> ClassGeneratorNames;

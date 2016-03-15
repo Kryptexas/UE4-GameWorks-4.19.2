@@ -252,7 +252,7 @@ public:
 	EGameplayEffectMagnitudeCalculation GetMagnitudeCalculationType() const { return MagnitudeCalculationType; }
 
 	/** Returns the magnitude as it was entered in data. Only applies to ScalableFloat or any other type that can return data without context */
-	bool GetStaticMagnitudeIfPossible(float InLevel, float& OutMagnitude) const;
+	bool GetStaticMagnitudeIfPossible(float InLevel, float& OutMagnitude, const FString* ContextString = nullptr) const;
 
 	/** Returns the DataName associated with this magnitude if it is set by caller */
 	bool GetSetByCallerDataNameIfPossible(FName& OutDataName) const;
@@ -844,7 +844,19 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 	 * @return True if the bonus magnitude was successfully calculated, false if it was not
 	 */
 	bool AttemptCalculateAttributeBonusMagnitude(const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutBonusMagnitude) const;
-	
+
+	/**
+	 * Attempts to calculate the contribution of the specified GE to the captured attribute given the specified parameters. Can fail if the spec doesn't have
+	 * a valid capture yet.
+	 *
+	 * @param InEvalParams		Parameters to evaluate the attribute under
+	 * @param ActiveHandle		Handle of the gameplay effect to query about
+	 * @param OutBonusMagnitude	[OUT] Computed bonus magnitude
+	 *
+	 * @return True if the bonus magnitude was successfully calculated, false if it was not
+	 */
+	bool AttemptCalculateAttributeContributionMagnitude(const FAggregatorEvaluateParameters& InEvalParams, FActiveGameplayEffectHandle ActiveHandle, OUT float& OutBonusMagnitude) const;
+
 	/**
 	 * Attempts to populate the specified aggregator with a snapshot of the backing captured aggregator. Can fail if the spec doesn't have
 	 * a valid capture yet.
@@ -1061,7 +1073,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	FString ToSimpleString() const
 	{
-		return FString::Printf(TEXT("%s"), *Def->GetName());
+		return FString::Printf(TEXT("%s"), *GetNameSafe(Def));
 	}
 
 	const FGameplayEffectContextHandle& GetEffectContext() const
@@ -1093,6 +1105,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	/** Helper function to initialize all of the capture definitions required by the spec */
 	void SetupAttributeCaptureDefinitions();
+
+	/** Helper function that returns the duration after applying relevant modifiers from the source and target ability system components */
+	float CalculateModifiedDuration() const;
 
 private:
 
@@ -1565,7 +1580,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle);
 
 	const FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const;
-		
+
 	void ExecuteActiveEffectsFrom(FGameplayEffectSpec &Spec, FPredictionKey PredictionKey = FPredictionKey() );
 	
 	void ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning AbilitySystemComponent
@@ -1580,7 +1595,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	void SetAttributeBaseValue(FGameplayAttribute Attribute, float NewBaseValue);
 
-	float GetAttributeBaseValue(FGameplayAttribute Attribute);
+	float GetAttributeBaseValue(FGameplayAttribute Attribute) const;
+
+	float GetEffectContribution(const FAggregatorEvaluateParameters& Parameters, FActiveGameplayEffectHandle ActiveHandle, FGameplayAttribute Attribute);
 
 	/** Actually applies given mod to the attribute */
 	void ApplyModToAttribute(const FGameplayAttribute &Attribute, TEnumAsByte<EGameplayModOp::Type> ModifierOp, float ModifierMagnitude, const FGameplayEffectModCallbackData* ModData=nullptr);
@@ -1648,6 +1665,8 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const;
+
+	TArray<TPair<float,float>> GetActiveEffectsTimeRemainingAndDuration(const FGameplayEffectQuery& Query) const;
 
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
@@ -1808,9 +1827,6 @@ private:
 
 	/** Helper function to find the active GE that the specified spec can stack with, if any */
 	FActiveGameplayEffect* FindStackableActiveGameplayEffect(const FGameplayEffectSpec& Spec);
-
-	/** Helper function to compute the modified duration of a specified spec & base duration value */
-	float ComputeModifiedDurationOfAppliedSpec(const FGameplayEffectSpec& Spec, float BaseValue) const;
 	
 	/** Helper function to handle the case of same-effect stacking overflow; Returns true if the overflow application should apply, false if it should not */
 	bool HandleActiveGameplayEffectStackOverflow(const FActiveGameplayEffect& ActiveStackableGE, const FGameplayEffectSpec& OldSpec, const FGameplayEffectSpec& OverflowingSpec);

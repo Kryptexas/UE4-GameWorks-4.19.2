@@ -14,13 +14,16 @@ class UMG_API UUMGSequencePlayer : public UObject, public IMovieScenePlayer
 	GENERATED_UCLASS_BODY()
 
 public:
-	void InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& UserWidget );
+	void InitSequencePlayer(const UWidgetAnimation& InAnimation, UUserWidget& InUserWidget);
 
 	/** Updates the running movie */
 	void Tick( float DeltaTime );
 
 	/** Begins playing or restarts an animation */
-	void Play( float StartAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode);
+	void Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode);
+
+	/** Begins playing or restarts an animation  and plays to the specified end time */
+	void PlayTo(float StartAtTime, float EndAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode);
 
 	/** Stops a running animation and resets time */
 	void Stop();
@@ -49,15 +52,22 @@ public:
 	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove ) override {}
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override { return RootMovieSceneInstance.ToSharedRef(); }
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
+	virtual UObject* GetEventContext() const override;
 	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) override;
 
 	DECLARE_EVENT_OneParam(UUMGSequencePlayer, FOnSequenceFinishedPlaying, UUMGSequencePlayer&);
 	FOnSequenceFinishedPlaying& OnSequenceFinishedPlaying() { return OnSequenceFinishedPlayingEvent; }
 
 private:
+	/** Internal play function with a verbose parameter set */
+	void PlayInternal(double StartAtTime, double EndAtTime, double SubAnimStartTime, double SubAnimEndTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode);
+
 	/** Animation being played */
 	UPROPERTY()
 	const UWidgetAnimation* Animation;
+
+	/** The user widget this is sequence is animating */
+	TWeakObjectPtr<UUserWidget> UserWidget;
 
 	TMap<FGuid, TArray<UObject*> > GuidToRuntimeObjectMap;
 
@@ -70,8 +80,14 @@ private:
 	/** The current time cursor position within the sequence (in seconds) */
 	double TimeCursorPosition;
 
+	/** The time the animation should end, only effects the last loop (in seconds) */
+	double EndTime;
+
 	/** The offset from 0 to the start of the animation (in seconds) */
 	double AnimationStartOffset;
+
+	/** Time range of the current play of the animation */
+	TRange<double> CurrentPlayRange;
 
 	/** Status of the player (e.g play, stopped) */
 	EMovieScenePlayerStatus::Type PlayerStatus;
