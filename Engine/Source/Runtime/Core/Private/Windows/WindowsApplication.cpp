@@ -24,6 +24,7 @@
 #include <devguid.h>
 #include <dwmapi.h>
 #include <cfgmgr32.h>
+#include <windowsx.h>
 
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
@@ -265,6 +266,24 @@ void FWindowsApplication::SetMessageHandler( const TSharedRef< FGenericApplicati
 		(*DeviceIt)->SetMessageHandler(InMessageHandler);
 	}
 
+}
+
+bool FWindowsApplication::IsGamepadAttached() const
+{
+	if (XInput->IsGamepadAttached())
+	{
+		return true;
+	}
+
+	for( auto DeviceIt = ExternalInputDevices.CreateConstIterator(); DeviceIt; ++DeviceIt )
+	{
+		if ((*DeviceIt)->IsGamepadAttached())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 FModifierKeysState FWindowsApplication::GetModifierKeys() const
@@ -1394,91 +1413,91 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			// Mouse Button Down
 		case WM_LBUTTONDBLCLK:
 		case WM_LBUTTONDOWN:
-			{
-				if( msg == WM_LBUTTONDOWN )
-				{
-					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, EMouseButtons::Left );
-				}
-				else
-				{
-					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, EMouseButtons::Left );
-				}
-				return 0;
-			}
-			break;
-
 		case WM_MBUTTONDBLCLK:
 		case WM_MBUTTONDOWN:
-			{
-				if( msg == WM_MBUTTONDOWN )
-				{
-					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, EMouseButtons::Middle );
-				}
-				else
-				{
-					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, EMouseButtons::Middle );
-				}
-				return 0;
-			}
-			break;
-
 		case WM_RBUTTONDBLCLK:
 		case WM_RBUTTONDOWN:
-			{
-				if( msg == WM_RBUTTONDOWN )
-				{
-					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, EMouseButtons::Right );
-				}
-				else
-				{
-					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, EMouseButtons::Right );
-				}
-				return 0;
-			}
-			break;
-
 		case WM_XBUTTONDBLCLK:
 		case WM_XBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_RBUTTONUP:
+		case WM_XBUTTONUP:
 			{
-				EMouseButtons::Type MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+				POINT CursorPoint;
+				CursorPoint.x = GET_X_LPARAM(lParam);
+				CursorPoint.y = GET_Y_LPARAM(lParam); 
 
-				BOOL Result = false;
-				if( msg == WM_XBUTTONDOWN )
+				ClientToScreen(hwnd, &CursorPoint);
+
+				const FVector2D CursorPos(CursorPoint.x, CursorPoint.y);
+
+				EMouseButtons::Type MouseButton = EMouseButtons::Invalid;
+				bool bDoubleClick = false;
+				bool bMouseUp = false;
+				switch(msg)
 				{
-					Result = MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, MouseButton );
+				case WM_LBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = EMouseButtons::Left;
+					break;
+				case WM_LBUTTONUP:
+					bMouseUp = true;
+					MouseButton = EMouseButtons::Left;
+					break;
+				case WM_LBUTTONDOWN:
+					MouseButton = EMouseButtons::Left;
+					break;
+				case WM_MBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = EMouseButtons::Middle;
+					break;
+				case WM_MBUTTONUP:
+					bMouseUp = true;
+					MouseButton = EMouseButtons::Middle;
+					break;
+				case WM_MBUTTONDOWN:
+					MouseButton = EMouseButtons::Middle;
+					break;
+				case WM_RBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = EMouseButtons::Right;
+					break;
+				case WM_RBUTTONUP:
+					bMouseUp = true;
+					MouseButton = EMouseButtons::Right;
+					break;
+				case WM_RBUTTONDOWN:
+					MouseButton = EMouseButtons::Right;
+					break;
+				case WM_XBUTTONDBLCLK:
+					bDoubleClick = true;
+					MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+					break;
+				case WM_XBUTTONUP:
+					bMouseUp = true;
+					MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+					break;
+				case WM_XBUTTONDOWN:
+					MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
+					break;
+				default:
+					check(0);
+				}
+
+				if (bMouseUp)
+				{
+					return MessageHandler->OnMouseUp( MouseButton, CursorPos ) ? 0 : 1;
+				}
+				else if (bDoubleClick)
+				{
+					MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, MouseButton, CursorPos );
 				}
 				else
 				{
-					Result = MessageHandler->OnMouseDoubleClick( CurrentNativeEventWindowPtr, MouseButton );
+					MessageHandler->OnMouseDown( CurrentNativeEventWindowPtr, MouseButton, CursorPos );
 				}
-
-				return Result ? 0 : 1;
-			}
-			break;
-
-			// Mouse Button Up
-		case WM_LBUTTONUP:
-			{
-				return MessageHandler->OnMouseUp( EMouseButtons::Left ) ? 0 : 1;
-			}
-			break;
-
-		case WM_MBUTTONUP:
-			{
-				return MessageHandler->OnMouseUp( EMouseButtons::Middle ) ? 0 : 1;
-			}
-			break;
-
-		case WM_RBUTTONUP:
-			{
-				return MessageHandler->OnMouseUp( EMouseButtons::Right ) ? 0 : 1;
-			}
-			break;
-
-		case WM_XBUTTONUP:
-			{
-				EMouseButtons::Type MouseButton = ( HIWORD(wParam) & XBUTTON1 ) ? EMouseButtons::Thumb01  : EMouseButtons::Thumb02;
-				return MessageHandler->OnMouseUp( MouseButton ) ? 0 : 1;
+				return 0;
 			}
 			break;
 
@@ -1518,7 +1537,13 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				const float SpinFactor = 1 / 120.0f;
 				const SHORT WheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
-				const BOOL Result = MessageHandler->OnMouseWheel( static_cast<float>( WheelDelta ) * SpinFactor );
+				POINT CursorPoint;
+				CursorPoint.x = GET_X_LPARAM(lParam);
+				CursorPoint.y = GET_Y_LPARAM(lParam); 
+
+				const FVector2D CursorPos(CursorPoint.x, CursorPoint.y);
+
+				const BOOL Result = MessageHandler->OnMouseWheel( static_cast<float>( WheelDelta ) * SpinFactor, CursorPos );
 				return Result ? 0 : 1;
 			}
 			break;

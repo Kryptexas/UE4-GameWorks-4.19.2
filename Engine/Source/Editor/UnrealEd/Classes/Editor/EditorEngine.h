@@ -437,10 +437,6 @@ public:
 	UPROPERTY(globalconfig)
 	uint32 bAllowMultiplePIEWorlds:1;
 
-	/** The PlayerStart class used when spawning the player at the current camera location. */
-	UPROPERTY()
-	TSubclassOf<class ANavigationObjectBase>  PlayFromHerePlayerStartClass;
-
 	/** True if there is a pending end play map queued */
 	UPROPERTY()
 	uint32 bRequestEndPlayMapQueued:1;
@@ -460,6 +456,14 @@ public:
 	/** True if we're Simulating In Editor, as opposed to Playing In Editor.  In this mode, simulation takes place right the level editing environment */
 	UPROPERTY()
 	uint32 bIsSimulatingInEditor:1;
+
+	/** True if we should not display notifications about undo/redo */
+	UPROPERTY()
+	uint32 bSquelchTransactionNotification:1;
+
+	/** The PlayerStart class used when spawning the player at the current camera location. */
+	UPROPERTY()
+	TSubclassOf<class ANavigationObjectBase>  PlayFromHerePlayerStartClass;
 
 	/** When Simulating In Editor, a pointer to the original (non-simulating) editor world */
 	UPROPERTY()
@@ -887,7 +891,7 @@ public:
 	int32 EndTransaction();
 	void ResetTransaction(const FText& Reason);
 	void CancelTransaction(int32 Index);
-	bool UndoTransaction();
+	bool UndoTransaction(bool bCanRedo = true);
 	bool RedoTransaction();
 	bool IsTransactionActive();
 	FText GetTransactionName() const;

@@ -410,8 +410,18 @@ public:
 			*const_cast<FQuat*>(this) = FQuat::Identity;
 		}
 	}
+
+	FORCEINLINE void DiagnosticCheckNaN(const TCHAR* Message) const
+	{
+		if (ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("%s: FQuat contains NaN: %s"), Message, *ToString());
+			*const_cast<FQuat*>(this) = FQuat::Identity;
+		}
+	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}
+	FORCEINLINE void DiagnosticCheckNaN(const TCHAR* Message) const {}
 #endif
 
 public:

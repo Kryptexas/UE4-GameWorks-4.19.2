@@ -2777,37 +2777,37 @@ void UPrimitiveComponent::DispatchTouchOverEvents(ETouchIndex::Type FingerIndex,
 	}
 }
 
-void UPrimitiveComponent::DispatchOnClicked()
+void UPrimitiveComponent::DispatchOnClicked(FKey ButtonPressed)
 {
 	if (IsActorValidToNotify(GetOwner()))
 	{
-		GetOwner()->NotifyActorOnClicked();
+		GetOwner()->NotifyActorOnClicked(ButtonPressed);
 		if (IsActorValidToNotify(GetOwner()))
 		{
-			GetOwner()->OnClicked.Broadcast();
+			GetOwner()->OnClicked.Broadcast(ButtonPressed);
 		}
 	}
 
 	if (!IsPendingKill())
 	{
-		OnClicked.Broadcast(this);
+		OnClicked.Broadcast(this, ButtonPressed);
 	}
 }
 
-void UPrimitiveComponent::DispatchOnReleased()
+void UPrimitiveComponent::DispatchOnReleased(FKey ButtonReleased)
 {
 	if (IsActorValidToNotify(GetOwner()))
 	{
-		GetOwner()->NotifyActorOnReleased();
+		GetOwner()->NotifyActorOnReleased(ButtonReleased);
 		if (IsActorValidToNotify(GetOwner()))
 		{
-			GetOwner()->OnReleased.Broadcast();
+			GetOwner()->OnReleased.Broadcast(ButtonReleased);
 		}
 	}
 
 	if (!IsPendingKill())
 	{
-		OnReleased.Broadcast(this);
+		OnReleased.Broadcast(this, ButtonReleased);
 	}
 }
 

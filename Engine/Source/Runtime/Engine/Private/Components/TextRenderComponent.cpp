@@ -941,6 +941,12 @@ void UTextRenderComponent::SetHorizontalAlignment(EHorizTextAligment Value)
 	MarkRenderStateDirty();	
 }
 
+void UTextRenderComponent::SetVerticalAlignment(EVerticalTextAligment Value)
+{
+	VerticalAlignment = Value;
+	MarkRenderStateDirty();
+}
+
 void UTextRenderComponent::SetTextRenderColor(FColor Value)
 {
 	TextRenderColor = Value;

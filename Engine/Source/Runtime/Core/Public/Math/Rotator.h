@@ -36,8 +36,18 @@ public:
 			*const_cast<FRotator*>(this) = ZeroRotator;
 		}
 	}
+
+	FORCEINLINE void DiagnosticCheckNaN(const TCHAR* Message) const
+	{
+		if (ContainsNaN())
+		{
+			logOrEnsureNanError(TEXT("%s: FRotator contains NaN: %s"), Message, *ToString());
+			*const_cast<FRotator*>(this) = ZeroRotator;
+		}
+	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}
+	FORCEINLINE void DiagnosticCheckNaN(const TCHAR* Message) const {}
 #endif
 
 	/**

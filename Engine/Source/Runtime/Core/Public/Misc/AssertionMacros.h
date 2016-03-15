@@ -23,7 +23,7 @@
 	#define _DebugBreakAndPromptForRemote()
 #endif // !UE_BUILD_SHIPPING
 #if DO_CHECK
-	#define checkCode( Code )		do { Code } while ( false );
+	#define checkCode( Code )		do { Code; } while ( false );
 	#define verify(expr)			{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
 	#define check(expr)				{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
 	

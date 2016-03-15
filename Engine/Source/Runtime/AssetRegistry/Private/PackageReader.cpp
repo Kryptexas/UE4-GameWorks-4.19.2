@@ -342,14 +342,10 @@ void FPackageReader::SerializeNameMap()
 		for ( int32 NameMapIdx = 0; NameMapIdx < PackageFileSummary.NameCount; ++NameMapIdx )
 		{
 			// Read the name entry from the file.
-			FNameEntry NameEntry(ENAME_LinkerConstructor);
+			FNameEntrySerialized NameEntry(ENAME_LinkerConstructor);
 			*this << NameEntry;
 
-			NameMap.Add( 
-				NameEntry.IsWide() ? 
-					FName(ENAME_LinkerConstructor, NameEntry.GetWideName()) : 
-					FName(ENAME_LinkerConstructor, NameEntry.GetAnsiName())
-				);
+			NameMap.Add(FName(NameEntry));
 		}
 	}
 }

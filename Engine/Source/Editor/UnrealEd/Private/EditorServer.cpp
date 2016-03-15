@@ -1088,7 +1088,10 @@ void UEditorEngine::HandleTransactorRedo( FUndoSessionContext SessionContext, bo
 
 	BroadcastPostRedo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
 	InvalidateAllViewportsAndHitProxies();
-	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
+	if (!bSquelchTransactionNotification)
+	{
+		ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
+	}
 }
 
 void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded )
@@ -1098,7 +1101,10 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 
 	BroadcastPostUndo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
 	InvalidateAllViewportsAndHitProxies();
-	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
+	if (!bSquelchTransactionNotification)
+	{
+		ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
+	}
 }
 
 bool UEditorEngine::AreEditorAnalyticsEnabled() const 
@@ -1261,7 +1267,7 @@ void UEditorEngine::PostUndo(bool bSuccess)
 	FBlueprintCompileReinstancer::BatchReplaceInstancesOfClass(OldToNewClassMapToReinstance);
 }
 
-bool UEditorEngine::UndoTransaction()
+bool UEditorEngine::UndoTransaction(bool bCanRedo)
 {
 	// make sure we're in a valid state to perform this
 	if (GIsSavingPackage || IsGarbageCollecting())
@@ -1269,7 +1275,7 @@ bool UEditorEngine::UndoTransaction()
 		return false;
 	}
 
-	return Trans->Undo();
+	return Trans->Undo(bCanRedo);
 }
 
 bool UEditorEngine::RedoTransaction()

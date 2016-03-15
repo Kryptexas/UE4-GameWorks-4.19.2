@@ -1153,7 +1153,7 @@ private:
 
 
 void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
-	{
+{
 	UWorld* World = GWorld;
 
 	// check if PersistentLevel has any external references
@@ -1171,29 +1171,36 @@ void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
 	// Temporarily rename streaming levels for pie saving
 	FScopedRenameStreamingLevels ScopedRenameStreamingLevels( World, PlayOnConsolePackageName, Prefix );
 	
-	const FString WorldPackageName = World->GetOutermost()->GetName();
-	
 	// spawn a play-from-here player start or a temporary player start
 	AActor* PlayerStart = NULL;
 	bool bCreatedPlayerStart = false;
 
-	SpawnPlayFromHereStart( World, PlayerStart, PlayWorldLocation, PlayWorldRotation );
+	// Gross hack to avoid marking the level dirty while this temporary spawn is done while saving we flag the editor as loading package
+	bool bTempIsEditorLoadingPackage = GIsEditorLoadingPackage;
+	GIsEditorLoadingPackage = true;
 
-	if (PlayerStart != NULL)
 	{
-		bCreatedPlayerStart = true;
-	}
-	else
-	{
-		PlayerStart = CheckForPlayerStart();
-	
-		if( PlayerStart == NULL )
+		// Do the spawning in a transaction so that we can undo it below
+		FScopedTransaction SpawnPlayFromHereStartTransaction(LOCTEXT("SpawnPlayFromHereStart","Spawn Play From Here Start"));
+
+		SpawnPlayFromHereStart( World, PlayerStart, PlayWorldLocation, PlayWorldRotation );
+
+		if (PlayerStart != NULL)
 		{
-			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			PlayerStart = World->SpawnActor<AActor>( APlayerStart::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo );
-
 			bCreatedPlayerStart = true;
+		}
+		else
+		{
+			PlayerStart = CheckForPlayerStart();
+	
+			if( PlayerStart == NULL )
+			{
+				FActorSpawnParameters SpawnInfo;
+				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				PlayerStart = World->SpawnActor<AActor>( APlayerStart::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo );
+
+				bCreatedPlayerStart = true;
+			}
 		}
 	}
 	
@@ -1201,11 +1208,13 @@ void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
 	TArray<FString> SavedWorldFileNames;
 	bool bSavedWorld = SavePlayWorldPackages(World, *Prefix, /*out*/ SavedWorldFileNames);
 
-	// Remove the player start we added if we made one
-	if (bCreatedPlayerStart)
-	{
-		World->DestroyActor(PlayerStart);
-	}
+	// Undo the (potentially) spawning transaction and don't display a notification banner about it
+	bool bTempSquelched = GEditor->bSquelchTransactionNotification;
+	GEditor->bSquelchTransactionNotification = true;
+	GEditor->UndoTransaction(false);
+	GEditor->bSquelchTransactionNotification = bTempSquelched;
+
+	GIsEditorLoadingPackage = bTempIsEditorLoadingPackage;
 	
 	if (bSavedWorld)
 	{

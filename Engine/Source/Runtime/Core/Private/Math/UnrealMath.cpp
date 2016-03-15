@@ -2352,7 +2352,7 @@ CORE_API FRotator FMath::RInterpTo( const FRotator& Current, const FRotator& Tar
 CORE_API float FMath::FInterpTo( float Current, float Target, float DeltaTime, float InterpSpeed )
 {
 	// If no interp speed, jump to target value
-	if( InterpSpeed == 0.f )
+	if( InterpSpeed <= 0.f )
 	{
 		return Target;
 	}

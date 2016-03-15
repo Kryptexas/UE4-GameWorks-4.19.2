@@ -1057,6 +1057,7 @@ struct FHUDGroupManager
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_GetStatsForGroup_EveryFrame);
 					GetStatsForGroup(It.Value().EnabledItems, It.Key());
 				}
+
 				HierEnabledItems.Append(It.Value().EnabledItems);
 			}
 		

@@ -29,8 +29,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FActorHitSignature, AActor*, Self
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorBeginCursorOverSignature );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorEndCursorOverSignature );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorOnClickedSignature );
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorOnReleasedSignature );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnClickedSignature, FKey, ButtonPressed );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnReleasedSignature, FKey, ButtonReleased );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnInputTouchBeginSignature, ETouchIndex::Type, FingerIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnInputTouchEndSignature, ETouchIndex::Type, FingerIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorBeginTouchOverSignature, ETouchIndex::Type, FingerIndex );
@@ -1256,16 +1256,16 @@ public:
 	void ReceiveActorEndCursorOver();
 
 	/** Event when this actor is clicked by the mouse when using the clickable interface. */
-	virtual void NotifyActorOnClicked();
+	virtual void NotifyActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton);
 	/** Event when this actor is clicked by the mouse when using the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorOnClicked"), Category="Mouse Input")
-	void ReceiveActorOnClicked();
+	void ReceiveActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton);
 
 	/** Event when this actor is under the mouse when left mouse button is released while using the clickable interface. */
-	virtual void NotifyActorOnReleased();
+	virtual void NotifyActorOnReleased(FKey ButtonReleased = EKeys::LeftMouseButton);
 	/** Event when this actor is under the mouse when left mouse button is released while using the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorOnReleased"), Category="Mouse Input")
-	void ReceiveActorOnReleased();
+	void ReceiveActorOnReleased(FKey ButtonReleased = EKeys::LeftMouseButton);
 
 	/** Event when this actor is touched when click events are enabled. */
 	virtual void NotifyActorOnInputTouchBegin(const ETouchIndex::Type FingerIndex);

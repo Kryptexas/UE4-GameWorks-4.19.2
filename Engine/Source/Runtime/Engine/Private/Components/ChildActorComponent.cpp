@@ -24,11 +24,16 @@ void UChildActorComponent::OnRegister()
 		else
 		{
 			ChildActorName = ChildActor->GetFName();
-			// attach new actor to this component
-			// we can't attach in CreateChildActor since it has intermediate Mobility set up
-			// causing spam with inconsistent mobility set up
-			// so moving Attach to happen in Register
-			ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTargetIncludingScale);
+			
+			USceneComponent* ChildRoot = ChildActor->GetRootComponent();
+			if (ChildRoot && ChildRoot->GetAttachParent() != this)
+			{
+				// attach new actor to this component
+				// we can't attach in CreateChildActor since it has intermediate Mobility set up
+				// causing spam with inconsistent mobility set up
+				// so moving Attach to happen in Register
+				ChildRoot->AttachTo(this, NAME_None, EAttachLocation::SnapToTarget);
+			}
 		}
 	}
 	else if (ChildActorClass)
@@ -88,6 +93,13 @@ void UChildActorComponent::OnComponentCreated()
 void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
+
+	check(ChildActor == nullptr);
+}
+
+void UChildActorComponent::OnUnregister()
+{
+	Super::OnUnregister();
 
 	const UWorld* const MyWorld = GetWorld();
 	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
@@ -309,7 +321,7 @@ void UChildActorComponent::CreateChildActor()
 					const FComponentInstanceDataCache* ComponentInstanceData = (CachedInstanceData ? CachedInstanceData->ComponentInstanceData : nullptr);
 					ChildActor->FinishSpawning(ComponentToWorld, false, ComponentInstanceData);
 
-					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTargetIncludingScale);
+					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
 				}
 			}
 		}
@@ -326,10 +338,10 @@ void UChildActorComponent::CreateChildActor()
 void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 {
 	// If we own an Actor, kill it now
-	if(ChildActor != nullptr && !GExitPurge)
+	if (ChildActor != nullptr && !GExitPurge)
 	{
 		// if still alive, destroy, otherwise just clear the pointer
-		if(!ChildActor->IsPendingKill())
+		if (!ChildActor->IsPendingKill())
 		{
 #if WITH_EDITOR
 			if (CachedInstanceData)
@@ -343,7 +355,7 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 
 			UWorld* World = ChildActor->GetWorld();
 			// World may be nullptr during shutdown
-			if(World != nullptr)
+			if (World != nullptr)
 			{
 				UClass* ChildClass = ChildActor->GetClass();
 
@@ -361,7 +373,7 @@ void UChildActorComponent::DestroyChildActor(const bool bRequiresRename)
 				World->DestroyActor(ChildActor);
 			}
 		}
-
-		ChildActor = nullptr;
 	}
+
+	ChildActor = nullptr;
 }

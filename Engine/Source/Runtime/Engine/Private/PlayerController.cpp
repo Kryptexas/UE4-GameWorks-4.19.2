@@ -89,6 +89,8 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bIsPlayerController = true;
 	bIsLocalPlayerController = false;
 
+	ClickEventKeys.Add(EKeys::LeftMouseButton);
+
 	if (RootComponent)
 	{
 		// We want to drive rotation with ControlRotation regardless of attachment state.
@@ -2066,9 +2068,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 	if (PlayerInput)
 	{
 		bResult = PlayerInput->InputKey(Key, EventType, AmountDepressed, bGamepad);
-
-		// TODO: Allow click key(s?) to be defined
-		if (bEnableClickEvents && Key == EKeys::LeftMouseButton)
+		if (bEnableClickEvents && (ClickEventKeys.Contains(Key) || ClickEventKeys.Contains(EKeys::AnyKey)))
 		{
 			FVector2D MousePosition;
 			UGameViewportClient* ViewportClient = CastChecked<ULocalPlayer>(Player)->ViewportClient;
@@ -2102,11 +2102,11 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 					{
 					case IE_Pressed:
 					case IE_DoubleClick:
-						ClickedPrimitive->DispatchOnClicked();
+						ClickedPrimitive->DispatchOnClicked(Key);
 						break;
 
 					case IE_Released:
-						ClickedPrimitive->DispatchOnReleased();
+						ClickedPrimitive->DispatchOnReleased(Key);
 						break;
 
 					case IE_Axis:

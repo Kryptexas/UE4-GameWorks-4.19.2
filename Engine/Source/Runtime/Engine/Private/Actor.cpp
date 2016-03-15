@@ -1200,16 +1200,16 @@ void AActor::NotifyActorEndCursorOver()
 	ReceiveActorEndCursorOver();
 }
 
-void AActor::NotifyActorOnClicked()
+void AActor::NotifyActorOnClicked(FKey ButtonPressed)
 {
 	// call BP handler
-	ReceiveActorOnClicked();
+	ReceiveActorOnClicked(ButtonPressed);
 }
 
-void AActor::NotifyActorOnReleased()
+void AActor::NotifyActorOnReleased(FKey ButtonReleased)
 {
 	// call BP handler
-	ReceiveActorOnReleased();
+	ReceiveActorOnReleased(ButtonReleased);
 }
 
 void AActor::NotifyActorOnInputTouchBegin(const ETouchIndex::Type FingerIndex)
@@ -2595,7 +2595,7 @@ void AActor::FinishSpawning(const FTransform& UserTransform, bool bIsDefaultTran
 	{
 		bHasFinishedSpawning = true;
 
-		FTransform FinalRootComponentTransform = UserTransform;
+		FTransform FinalRootComponentTransform = (RootComponent ? RootComponent->ComponentToWorld : UserTransform);
 
 		// see if we need to adjust the transform (i.e. in deferred cases where the caller passes in a different transform here 
 		// than was passed in during the original SpawnActor call)

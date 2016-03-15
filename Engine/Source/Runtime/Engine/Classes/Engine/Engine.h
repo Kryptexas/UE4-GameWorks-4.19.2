@@ -1570,6 +1570,13 @@ public:
 	/** Called by internal engine systems after an actor has been moved to notify other subsystems */
 	void BroadcastOnActorMoved( AActor* Actor ) { OnActorMovedEvent.Broadcast( Actor ); }
 
+	/** Editor-only event triggered when any component transform is changed */
+	DECLARE_EVENT_TwoParams(UEngine, FOnComponentTransformChangedEvent, USceneComponent*, ETeleportType);
+	FOnComponentTransformChangedEvent& OnComponentTransformChanged() { return OnComponentTransformChangedEvent; }
+
+	/** Called by SceneComponent PropagateTransformUpdate to nofify of any component transform change */
+	void BroadcastOnComponentTransformChanged(USceneComponent* InComponent, ETeleportType InTeleport) { OnComponentTransformChangedEvent.Broadcast(InComponent, InTeleport); }
+
 	/** Editor-only event triggered when actors are being requested to be renamed */
 	DECLARE_EVENT_OneParam( UEngine, FLevelActorRequestRenameEvent, const AActor* );
 	FLevelActorRequestRenameEvent& OnLevelActorRequestRename() { return LevelActorRequestRenameEvent; }
@@ -2330,6 +2337,9 @@ private:
 
 	/** Broadcasts after an actor has been moved, rotated or scaled */
 	FOnActorMovedEvent		OnActorMovedEvent;
+
+	/** Broadcasts after a component has been moved, rotated or scaled */
+	FOnComponentTransformChangedEvent OnComponentTransformChangedEvent;
 	
 	/** Delegate broadcast after UEditorEngine::Tick has been called (or UGameEngine::Tick in standalone) */
 	FPostEditorTick PostEditorTickEvent;

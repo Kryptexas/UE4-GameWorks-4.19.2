@@ -437,6 +437,8 @@ public:
 
 	virtual bool IsMouseAttached() const { return true; }
 
+	virtual bool IsGamepadAttached() const { return false; }
+
 	virtual void RegisterConsoleCommandListener(const FOnConsoleCommandListener& InListener) {}
 
 	virtual void AddPendingConsoleCommand(const FString& InCommand) {}

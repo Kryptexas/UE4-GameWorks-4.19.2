@@ -1222,7 +1222,7 @@ void FRawDistributionVector::GetOutRange(float& MinOut, float& MaxOut)
 
 void FRawDistributionVector::GetRange(FVector& MinOut, FVector& MaxOut)
 {
-	if (!HasLookupTable() && Distribution)
+	if (/*!HasLookupTable() &&*/ Distribution)
 	{
 		check(Distribution);
 		Distribution->GetRange(MinOut, MaxOut);

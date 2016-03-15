@@ -33,5 +33,10 @@ public:
 	{
 		return nullptr;
 	}
+
+	virtual bool IsGamepadAttached() const
+	{
+		return false;
+	}
 };
 

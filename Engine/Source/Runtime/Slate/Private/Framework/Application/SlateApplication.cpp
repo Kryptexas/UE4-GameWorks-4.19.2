@@ -4322,8 +4322,12 @@ bool FSlateApplication::IsFakingTouchEvents() const
 	return bIsFakingTouch || bIsGameFakingTouch;
 }
 
+bool FSlateApplication::OnMouseDown(const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button)
+{
+	return OnMouseDown(PlatformWindow, Button, GetCursorPos());
+}
 
-bool FSlateApplication::OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button )
+bool FSlateApplication::OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button, const FVector2D CursorPos )
 {
 	// convert to touch event if we are faking it	
 	if (bIsFakingTouch || bIsGameFakingTouch)
@@ -4336,7 +4340,7 @@ bool FSlateApplication::OnMouseDown( const TSharedPtr< FGenericWindow >& Platfor
 
 	FPointerEvent MouseEvent(
 		CursorPointerIndex,
-		GetCursorPos(),
+		CursorPos,
 		GetLastCursorPos(),
 		PressedMouseButtons,
 		Key,
@@ -4854,6 +4858,11 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 
 bool FSlateApplication::OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button )
 {
+	return OnMouseDoubleClick(PlatformWindow, Button, GetCursorPos());
+}
+
+bool FSlateApplication::OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button, const FVector2D CursorPos )
+{
 	if (bIsFakingTouch || bIsGameFakingTouch)
 	{
 		bIsFakingTouched = true;
@@ -4864,7 +4873,7 @@ bool FSlateApplication::OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& 
 
 	FPointerEvent MouseEvent(
 		CursorPointerIndex,
-		GetCursorPos(),
+		CursorPos,
 		GetLastCursorPos(),
 		PressedMouseButtons,
 		Key,
@@ -4912,6 +4921,11 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 
 bool FSlateApplication::OnMouseUp( const EMouseButtons::Type Button )
 {
+	return OnMouseUp(Button, GetCursorPos());
+}
+
+bool FSlateApplication::OnMouseUp( const EMouseButtons::Type Button, const FVector2D CursorPos )
+{
 	// convert to touch event if we are faking it	
 	if (bIsFakingTouch || bIsGameFakingTouch)
 	{
@@ -4923,7 +4937,7 @@ bool FSlateApplication::OnMouseUp( const EMouseButtons::Type Button )
 
 	FPointerEvent MouseEvent(
 		CursorPointerIndex,
-		GetCursorPos(),
+		CursorPos,
 		GetLastCursorPos(),
 		PressedMouseButtons,
 		Key,
@@ -4970,12 +4984,15 @@ bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 
 bool FSlateApplication::OnMouseWheel( const float Delta )
 {
-	const FVector2D CurrentCursorPosition = GetCursorPos();
+	return OnMouseWheel(Delta, GetCursorPos());
+}
 
+bool FSlateApplication::OnMouseWheel( const float Delta, const FVector2D CursorPos )
+{
 	FPointerEvent MouseWheelEvent(
 		CursorPointerIndex,
-		CurrentCursorPosition,
-		CurrentCursorPosition,
+		CursorPos,
+		CursorPos,
 		PressedMouseButtons,
 		EKeys::Invalid,
 		Delta,

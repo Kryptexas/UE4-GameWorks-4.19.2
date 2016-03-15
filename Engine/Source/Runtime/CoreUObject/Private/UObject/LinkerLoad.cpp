@@ -1246,19 +1246,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeNameMap()
 	while( bFinishedPrecaching && NameMapIndex < Summary.NameCount && !IsTimeLimitExceeded(TEXT("serializing name map"),100) )
 	{
 		// Read the name entry from the file.
-		FNameEntry NameEntry(ENAME_LinkerConstructor);
+		FNameEntrySerialized NameEntry(ENAME_LinkerConstructor);
 		*this << NameEntry;
 
-		// Add it to the name table. We disregard the context flags as we don't support flags on names for final release builds.
+		// Add it to the name table with no splitting and no hash calculations
+		NameMap.Add(FName(NameEntry));
 
-		// now, we make sure we DO NOT split the name here because it will have been written out
-		// split, and we don't want to keep splitting A_3_4_9 every time
-
-		NameMap.Add( 
-			NameEntry.IsWide() ? 
-				FName(ENAME_LinkerConstructor, NameEntry.GetWideName()) : 
-				FName(ENAME_LinkerConstructor, NameEntry.GetAnsiName())
-			);
 		NameMapIndex++;
 	}
 

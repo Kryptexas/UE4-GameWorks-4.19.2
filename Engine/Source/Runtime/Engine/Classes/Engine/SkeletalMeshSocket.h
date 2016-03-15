@@ -85,6 +85,8 @@ class USkeletalMeshSocket : public UObject
 	 */
 	ENGINE_API bool AttachActor (class AActor* Actor, class USkeletalMeshComponent* SkelComp) const;
 
+	virtual void Serialize(FArchive& Ar) override;
+
 #if WITH_EDITOR
 	/** Broadcasts a notification whenever the socket property has changed. */
 	DECLARE_EVENT_TwoParams(USkeletalMeshSocket, FSocketChangedEvent, const class USkeletalMeshSocket*, const class UProperty*);

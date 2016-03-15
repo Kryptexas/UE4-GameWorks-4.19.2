@@ -279,6 +279,12 @@ void UParticleLODLevel::PostLoad()
 	{
 		RequiredModule->ConditionalPostLoad();
 	}
+
+	for(UParticleModule* ParticleModule : Modules)
+	{
+		ParticleModule->ConditionalPostLoad();
+	}
+
 	// shouldn't ever set another UObjects serialized variable in post load
 	// this causes determinisitc cooking issues due to load order being different
 	/*if (RequiredModule)

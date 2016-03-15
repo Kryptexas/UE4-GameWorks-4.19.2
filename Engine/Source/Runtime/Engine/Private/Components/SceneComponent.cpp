@@ -497,6 +497,14 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 			}
 		}
 
+#if WITH_EDITOR
+		// Notify the editor of transformation update
+		if (!IsTemplate())
+		{
+			GEngine->BroadcastOnComponentTransformChanged(this, Teleport);
+		}
+#endif // WITH_EDITOR
+
 		// Refresh navigation
 		if (bNavigationRelevant && bRegistered)
 		{

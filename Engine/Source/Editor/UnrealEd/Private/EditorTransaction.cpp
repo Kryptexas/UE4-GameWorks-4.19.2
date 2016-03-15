@@ -781,7 +781,7 @@ void UTransBuffer::ClearUndoBarriers()
 }
 
 
-bool UTransBuffer::Undo()
+bool UTransBuffer::Undo(bool bCanRedo)
 {
 	CheckState();
 
@@ -801,6 +801,12 @@ bool UTransBuffer::Undo()
 		BeforeRedoUndoDelegate.Broadcast(Transaction.GetContext());
 		Transaction.Apply();
 		UndoDelegate.Broadcast(Transaction.GetContext(), true);
+
+		if (!bCanRedo)
+		{
+			UndoBuffer.RemoveAt(UndoBuffer.Num() - UndoCount, UndoCount);
+			UndoCount = 0;
+		}
 	}
 	GIsTransacting = false;
 
