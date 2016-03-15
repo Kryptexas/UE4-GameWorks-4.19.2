@@ -4564,17 +4564,22 @@ void FBodyInstance::ApplyMaterialToShape_AssumesLocked(PxShape* PShape, PxMateri
 
 void FBodyInstance::ApplyMaterialToInstanceShapes_AssumesLocked(PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
 {
+	FBodyInstance* TheirBI = this;
+	FBodyInstance* BIWithActor = TheirBI->WeldParent ? TheirBI->WeldParent : TheirBI;
+
 	TArray<PxShape*> AllShapes;
-	GetAllShapes_AssumesLocked(AllShapes);
+	BIWithActor->GetAllShapes_AssumesLocked(AllShapes);
 
 	for(int32 ShapeIdx = 0; ShapeIdx < AllShapes.Num(); ShapeIdx++)
 	{
 		PxShape* PShape = AllShapes[ShapeIdx];
-
-		ExecuteOnPxShapeWrite(this, PShape, [&](PxShape* PNewShape)
+		if (TheirBI->IsShapeBoundToBody(PShape))
 		{
-			ApplyMaterialToShape_AssumesLocked(PNewShape, PSimpleMat, ComplexPhysMats, HasSharedShapes());
-		});		
+			ExecuteOnPxShapeWrite(BIWithActor, PShape, [&](PxShape* PNewShape)
+			{
+				ApplyMaterialToShape_AssumesLocked(PNewShape, PSimpleMat, ComplexPhysMats, TheirBI->HasSharedShapes());
+			});
+		}
 	}
 }
 
