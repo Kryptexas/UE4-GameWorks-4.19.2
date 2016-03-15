@@ -5419,8 +5419,17 @@ FSCSEditorTreeNodePtrType SSCSEditor::FindTreeNode(const UActorComponent* InComp
 
 		if(InStartNodePtr.IsValid())
 		{
+			const UActorComponent* Template = InStartNodePtr->GetComponentTemplate();
 			// Check to see if the given component template matches the given tree node
+			// 
+			// For certain node types, GetEditableComponentTemplate() will handle retrieving 
+			// the "OverridenComponentTemplate" which may be what we're looking for in some 
+			// cases; if not, then we fall back to just checking GetComponentTemplate()
 			if (InStartNodePtr->GetEditableComponentTemplate(GetBlueprint()) == InComponent)
+			{
+				NodePtr = InStartNodePtr;
+			}
+			else if (InStartNodePtr->GetComponentTemplate() == InComponent)
 			{
 				NodePtr = InStartNodePtr;
 			}
