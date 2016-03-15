@@ -2252,7 +2252,7 @@ partial class GUBP
 					}
 					CreateDirectory_NoExceptions(IntermediateArchiveDirectory);
 				}
-				CleanFormalBuilds(FinalArchiveDirectory, "CL-*");
+				CleanFormalBuilds(GetBranchArchiveDirectory(BranchConfig, GameProj), "CL-*");
 				if (DirectoryExists_NoExceptions(FinalArchiveDirectory))
                 {
                     if (IsBuildMachine)
