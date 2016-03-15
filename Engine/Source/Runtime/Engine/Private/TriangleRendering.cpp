@@ -73,12 +73,6 @@ public:
 
 TGlobalResource<FMaterialTriangleVertexBuffer> GTriangleRendererVertexBuffer;
 
-static bool IsMobileHDR()
-{
-	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	return MobileHDRCvar->GetValueOnAnyThread() == 1;
-}
-
 /**
 * Vertex factory for rendering tiles.
 */

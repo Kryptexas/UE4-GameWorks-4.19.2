@@ -106,12 +106,6 @@ public:
 };
 TGlobalResource<FTileVertexFactory> GTileVertexFactory;
 
-static bool IsMobileHDR()
-{
-	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	return MobileHDRCvar->GetValueOnAnyThread() == 1;
-}
-
 /**
  * Mesh used to render tiles.
  */
