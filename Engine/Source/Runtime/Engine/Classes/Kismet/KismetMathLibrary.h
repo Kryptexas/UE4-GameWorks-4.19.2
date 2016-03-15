@@ -922,6 +922,20 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FLinearColor Multiply_LinearColorFloat(FLinearColor A, float B);
 
 	//
+	// Plane functions.
+	//
+	
+	/** 
+	* Creates a plane with a facing direction of Normal at the given Point
+	* 
+	* @param Point	A point on the plane
+	* @param Normal  The Normal of the plane at Point
+	* @return Plane instance
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Plane", meta=(Keywords="make plane"))
+	static FPlane MakePlaneFromPointAndNormal(FVector Point, FVector Normal);
+	
+	//
 	// DateTime functions.
 	//
 

@@ -1635,9 +1635,10 @@ void UK2Node_CallFunction::FixupSelfMemberContext()
 		}
 		return bIsChildOf;
 	};
-	
 
 	UClass* MemberClass = FunctionReference.GetMemberParentClass();
+	const bool bIsLocalMacro = Blueprint && Blueprint->MacroGraphs.Contains(GetGraph());
+	ensureMsgf(FunctionReference.IsSelfContext() || (MemberClass != nullptr) || bIsLocalMacro, TEXT("Unknown member class in %s"), *GetPathName());
 	if (FunctionReference.IsSelfContext())
 	{
 		if (MemberClass == nullptr)
@@ -1664,7 +1665,7 @@ void UK2Node_CallFunction::FixupSelfMemberContext()
 		// identically named function)... if there is no function matching this 
 		// reference, then the node will produce an error later during compilation
 	}
-	else if (ensure(MemberClass != nullptr))
+	else if (MemberClass != nullptr)
 	{
 		if (IsBlueprintOfType(MemberClass))
 		{

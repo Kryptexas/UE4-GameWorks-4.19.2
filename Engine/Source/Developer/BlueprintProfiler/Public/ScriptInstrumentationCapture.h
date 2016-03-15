@@ -59,7 +59,10 @@ public:
 	bool IsNewInstance() const { return EventType == EScriptInstrumentation::Instance; }
 
 	/** Returns if this event represents a change in active event */
-	bool IsEvent() const { return EventType == EScriptInstrumentation::Event || EventType == EScriptInstrumentation::Stop; }
+	bool IsEvent() const { return EventType == EScriptInstrumentation::Event||EventType == EScriptInstrumentation::ResumeEvent; }
+
+	/** Returns if this event represents a active event resuming execution */
+	bool IsResumeEvent() const { return EventType == EScriptInstrumentation::ResumeEvent; }
 
 	/** Returns if this event represents a node execution event */
 	bool IsNodeTiming() const {	return EventType == EScriptInstrumentation::NodeEntry || EventType == EScriptInstrumentation::NodeExit;	}

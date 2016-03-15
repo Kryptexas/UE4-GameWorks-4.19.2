@@ -304,16 +304,15 @@ namespace EScriptInstrumentation
 		Class = 0,
 		Instance,
 		Event,
-		Function,
-		Branch,
-		Macro,
+		ResumeEvent,
 		PureNodeEntry,
 		NodeEntry,
 		NodeExit,
 		PushState,
 		RestoreState,
+		ResetState,
+		SuspendState,
 		PopState,
-		NodePin,
 		Stop
 	};
 }

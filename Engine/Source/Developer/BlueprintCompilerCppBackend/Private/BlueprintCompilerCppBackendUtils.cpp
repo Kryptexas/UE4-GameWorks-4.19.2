@@ -101,7 +101,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 
 	if (ActualClass && ((Object == ActualClass) || (Object == OriginalActualClass)))
 	{
-		return CastCustomClass(TEXT("GetClass()"));
+		return CastCustomClass(((CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass) ? TEXT("InDynamicClass") : TEXT("GetClass()")));
 	}
 
 	{
@@ -156,7 +156,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(const UObject* Object, co
 			const int32 AssetIndex = Dependencies.Assets.IndexOfByKey(Object);
 			if (INDEX_NONE != AssetIndex)
 			{
-				return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->UsedAssets[%d])")
+				return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->UsedAssets[%d], ECastCheckedType::NullAllowed)")
 					, *ClassString()
 					, *FEmitHelper::GetCppName(ActualClass)
 					, AssetIndex);

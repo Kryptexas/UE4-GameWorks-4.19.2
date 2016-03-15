@@ -834,7 +834,7 @@ void FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 	{
 		bUseGotoState = FunctionContext.MustUseSwitchState(nullptr) || FunctionContext.bIsUbergraph;
 	}
-	ensure(!bUseFlowStack || bUseGotoState);
+	ensureMsgf(!bUseFlowStack || bUseGotoState, TEXT("FBlueprintCompilerCppBackend::InnerFunctionImplementation - %s"), *GetPathNameSafe(FunctionContext.Function));
 	TArray<UEdGraphNode*>* ActualLinearExecutionList = &FunctionContext.LinearExecutionList;
 	if (bUseGotoState)
 	{
@@ -1074,7 +1074,10 @@ void FBlueprintCompilerCppBackend::EmitAllStatements(FKismetFunctionContext &Fun
 	{
 		UEdGraphNode* StatementNode = LinearExecutionList[NodeIndex];
 		TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(StatementNode);
-		ensure(StatementNode && StatementNode->IsA<UK2Node>() && !CastChecked<UK2Node>(StatementNode)->IsNodePure());
+		ensureMsgf(StatementNode && StatementNode->IsA<UK2Node>() && !CastChecked<UK2Node>(StatementNode)->IsNodePure()
+			, TEXT("Wrong Statement node %s in function %s")
+			, *GetPathNameSafe(StatementNode)
+			, *GetPathNameSafe(FunctionContext.Function));
 
 		const bool bIsCurrentExecutionGroup = !bUseExecutionGroup || FunctionContext.UnsortedSeparateExecutionGroups[ExecutionGroup].Contains(StatementNode);
 		if (StatementList && bIsCurrentExecutionGroup)

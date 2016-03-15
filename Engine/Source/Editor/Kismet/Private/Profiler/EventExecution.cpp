@@ -7,6 +7,12 @@
 //////////////////////////////////////////////////////////////////////////
 // FScriptNodeExecLinkage
 
+void FScriptNodeExecLinkage::AddPureNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> PureNode)
+{
+	TSharedPtr<class FScriptExecutionNode>& Result = PureNodes.FindOrAdd(PinScriptOffset);
+	Result = PureNode;
+}
+
 void FScriptNodeExecLinkage::AddLinkedNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> LinkedNode)
 {
 	TSharedPtr<class FScriptExecutionNode>& Result = LinkedNodes.FindOrAdd(PinScriptOffset);
@@ -15,6 +21,17 @@ void FScriptNodeExecLinkage::AddLinkedNode(const int32 PinScriptOffset, TSharedP
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptNodePerfData
+
+bool FScriptNodePerfData::HasPerfDataForInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath) const
+{
+	const TMap<const uint32, TSharedPtr<FScriptPerfData>>* InstanceMapPtr = InstanceInputPinToPerfDataMap.Find(InstanceName);
+	if (InstanceMapPtr)
+	{
+		return InstanceMapPtr->Contains(TracePath);
+	}
+
+	return false;
+}
 
 TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetPerfDataByInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath)
 { 
@@ -58,6 +75,19 @@ TSharedPtr<FScriptPerfData> FScriptNodePerfData::GetBlueprintPerfDataByTracePath
 
 FScriptExecutionNode::FScriptExecutionNode()
 	: NodeFlags(EScriptExecutionNodeFlags::None)
+	, bExpansionState(false)
+{
+}
+
+FScriptExecutionNode::FScriptExecutionNode(const FScriptExecNodeParams& InitParams)
+	: NodeName(InitParams.NodeName)
+	, OwningGraphName(InitParams.OwningGraphName)
+	, NodeFlags(InitParams.NodeFlags)
+	, ObservedObject(InitParams.ObservedObject)
+	, DisplayName(InitParams.DisplayName)
+	, Tooltip(InitParams.Tooltip)
+	, IconColor(InitParams.IconColor)
+	, Icon(InitParams.Icon)
 	, bExpansionState(false)
 {
 }
@@ -168,7 +198,7 @@ void FScriptExecutionNode::RefreshStats_Internal(const FTracePath& TracePath, FE
 						TSharedPtr<FScriptPerfData> InstancePerfData = GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
 						InstancePerfData->Reset();
 						BlueprintPooledStats.Add(InstancePerfData);
-				
+
 						for (auto ChildIter : ChildNodes)
 						{
 							TSharedPtr<FScriptPerfData> ChildPerfData = ChildIter->GetPerfDataByInstanceAndTracePath(InstanceIter, TracePath);
@@ -200,6 +230,21 @@ void FScriptExecutionNode::RefreshStats_Internal(const FTracePath& TracePath, FE
 		// Refresh All links
 		if (bRefreshLinkStats)
 		{
+			if (!IsPureNode())
+			{
+				TMap<int32, TSharedPtr<FScriptExecutionNode>> AllPureNodes;
+				GetAllPureNodes(AllPureNodes);
+
+				AllPureNodes.KeySort(TLess<int32>());
+
+				FTracePath PureTracePath(TracePath);
+				for (auto PureIter : AllPureNodes)
+				{
+					PureTracePath.AddExitPin(PureIter.Key);
+					PureIter.Value->RefreshStats(PureTracePath);
+				}
+			}
+
 			for (auto LinkIter : LinkedNodes)
 			{
 				FTracePath LinkTracePath(TracePath);
@@ -232,6 +277,24 @@ void FScriptExecutionNode::GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecuti
 	{
 		LinkIter.Value->GetAllExecNodes(ExecNodesOut);
 		ExecNodesOut.Add(LinkIter.Value->GetName()) = LinkIter.Value;
+	}
+}
+
+void FScriptExecutionNode::GetAllPureNodes(TMap<int32, TSharedPtr<class FScriptExecutionNode>>& PureNodesOut)
+{
+	GetAllPureNodes_Internal(PureNodesOut, PureNodeScriptCodeRange);
+}
+
+void FScriptExecutionNode::GetAllPureNodes_Internal(TMap<int32, TSharedPtr<class FScriptExecutionNode>>& PureNodesOut, const FInt32Range& ScriptCodeRange)
+{
+	for (auto PureIter : PureNodes)
+	{
+		PureIter.Value->GetAllPureNodes_Internal(PureNodesOut, ScriptCodeRange);
+
+		if (ScriptCodeRange.Contains(PureIter.Key))
+		{
+			PureNodesOut.Add(PureIter.Key, PureIter.Value);
+		}
 	}
 }
 

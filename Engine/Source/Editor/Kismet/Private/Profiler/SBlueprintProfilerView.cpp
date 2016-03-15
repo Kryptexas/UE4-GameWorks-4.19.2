@@ -50,8 +50,15 @@ void SBlueprintProfilerView::Construct(const FArguments& InArgs)
 
 void SBlueprintProfilerView::OnToggleProfiler(bool bEnabled)
 {
-	StatusText = bEnabled ? LOCTEXT("ProfilerNoDataText", "The Blueprint Profiler is active but does not currently have any data to display") :
-							LOCTEXT("ProfilerInactiveText", "The Blueprint Profiler is currently Inactive");
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	{
+		StatusText = bEnabled ? LOCTEXT("ProfilerNoDataText", "The Blueprint Profiler is active but does not currently have any data to display") :
+								LOCTEXT("ProfilerInactiveText", "The Blueprint Profiler is currently Inactive");
+	}
+	else
+	{
+		StatusText = LOCTEXT("DisabledProfilerText", "The Blueprint Profiler is experimental and is currently not enabled in the editor preferences");
+	}
 	UpdateActiveProfilerWidget();
 }
 
@@ -174,10 +181,13 @@ TSharedRef<SWidget> SBlueprintProfilerView::CreateActiveStatisticWidget()
 {
 	// Get profiler status
 	EBlueprintPerfViewType::Type NewViewType = EBlueprintPerfViewType::None;
-	IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
-	if (ProfilerInterface && ProfilerInterface->IsProfilerEnabled())
+	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
 	{
-		NewViewType = CurrentViewType;
+		IBlueprintProfilerInterface* ProfilerInterface = FModuleManager::GetModulePtr<IBlueprintProfilerInterface>("BlueprintProfiler");
+		if (ProfilerInterface && ProfilerInterface->IsProfilerEnabled())
+		{
+			NewViewType = CurrentViewType;
+		}
 	}
 	switch(NewViewType)
 	{

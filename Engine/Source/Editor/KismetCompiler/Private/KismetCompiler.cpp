@@ -1187,6 +1187,17 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			ValidateSelfPinsInGraph(Context);
 			ValidateNoWildcardPinsInGraph(Context.SourceGraph);
 
+			for (int32 ChildIndex = 0; ChildIndex < Context.SourceGraph->Nodes.Num(); ++ChildIndex)
+			{
+				const UEdGraphNode* Node = Context.SourceGraph->Nodes[ChildIndex];
+				const int32 SavedErrorCount = MessageLog.NumErrors;
+				UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(Context.SourceGraph->Nodes[ChildIndex]);
+				if (bIsFullCompile || SrcEventNode)
+				{
+					ValidateNode(Node);
+				}
+			}
+
 			// Transforms
 			TransformNodes(Context);
 		}
@@ -1567,18 +1578,40 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 
 		if (IsNodePure(Node))
 		{
+			// For profiling purposes, find the statement that marks the function's entry point.
+			FBlueprintCompiledStatement* ProfilerStatement = nullptr;
+			TArray<FBlueprintCompiledStatement*>* SourceStatementList = Context.StatementsPerNode.Find(Node);
+			const bool bDidNodeGenerateCode = SourceStatementList != nullptr && SourceStatementList->Num() > 0;
+			if (bDidNodeGenerateCode)
+			{
+				for (auto Statement : *SourceStatementList)
+				{
+					if (Statement && Statement->Type == KCST_InstrumentedPureNodeEntry)
+					{
+						ProfilerStatement = Statement;
+						break;
+					}
+				}
+			}
+
 			// Push this node to the requirements list of any other nodes using it's outputs, if this node had any real impact
-			if (Context.DidNodeGenerateCode(Node) || bHasAntecedentPureNodes)
+			if (bDidNodeGenerateCode || bHasAntecedentPureNodes)
 			{
 				for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
 				{
 					UEdGraphPin* Pin = Node->Pins[PinIndex];
-					if (Pin->Direction == EGPD_Output)
+					if (Pin->Direction == EGPD_Output && Pin->LinkedTo.Num() > 0)
 					{
-						for (int32 OutputIndex = 0; OutputIndex < Pin->LinkedTo.Num(); ++OutputIndex)
+						// Record the pure node output pin, since it's linked
+						if (ProfilerStatement)
 						{
-							UEdGraphNode* NodeUsingOutput = Pin->LinkedTo[OutputIndex]->GetOwningNode();
-							if (NodeUsingOutput != NULL)
+							ProfilerStatement->PureOutputContextArray.AddUnique(Pin);
+						}
+
+						for (UEdGraphPin* LinkedTo : Pin->LinkedTo)
+						{
+							UEdGraphNode* NodeUsingOutput = LinkedTo->GetOwningNode();
+							if (NodeUsingOutput != nullptr)
 							{
 								// Add this node, as well as other nodes this node depends on
 								TSet<UEdGraphNode*>& TargetNodesRequired = PureNodesNeeded.FindOrAdd(NodeUsingOutput);
@@ -1610,12 +1643,24 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 					OrderedInsertIntoArray(SortedPureNodes, SortKeyMap, *It);
 				}
 
+				if (Context.IsInstrumentationRequired())
+				{
+					FBlueprintCompiledStatement& PopState = Context.PrependStatementForNode(Node);
+					PopState.Type = KCST_InstrumentedStatePop;
+				}
+
 				// Inline their code
 				for (int32 i = 0; i < SortedPureNodes.Num(); ++i)
 				{
 					UEdGraphNode* NodeToInline = SortedPureNodes[SortedPureNodes.Num() - 1 - i];
 
 					Context.CopyAndPrependStatements(Node, NodeToInline);
+				}
+
+				if (Context.IsInstrumentationRequired())
+				{
+					FBlueprintCompiledStatement& PushState = Context.PrependStatementForNode(Node);
+					PushState.Type = KCST_InstrumentedStatePush;
 				}
 			}
 
@@ -2596,16 +2641,8 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			// Validate all the nodes in the graph
 			for (int32 ChildIndex = 0; ChildIndex < ConsolidatedEventGraph->Nodes.Num(); ++ChildIndex)
 			{
-				const UEdGraphNode* Node = ConsolidatedEventGraph->Nodes[ChildIndex];
-				const int32 SavedErrorCount = MessageLog.NumErrors;
-				UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]);
-				if (bIsFullCompile || SrcEventNode)
-				{
-					ValidateNode(Node);
-				}
-
-				// If the node didn't generate any errors then generate function stubs for event entry nodes etc.
-				if ((SavedErrorCount == MessageLog.NumErrors) && SrcEventNode)
+				UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]);	
+				if (SrcEventNode)
 				{
 					CreateFunctionStubForEvent(SrcEventNode, Blueprint);
 				}
@@ -2941,41 +2978,29 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool
 	// If a function in the graph cannot be overridden/placed as event make sure that it is not.
 	VerifyValidOverrideFunction(FunctionGraph);
 
-	// First do some cursory validation (pin types match, inputs to outputs, pins never point to their parent node, etc...)
-	// If this fails we don't proceed any further to avoid crashes or infinite loops
-	// When compiling only the skeleton class, we want the UFunction to be generated and processed so it contains all the local variables, this is unsafe to do during any other compilation mode
-	//
-	// NOTE: the order of this conditional check is intentional, and should not
-	//       be rearranged; we do NOT want ValidateGraphIsWellFormed() ran for 
-	//       skeleton-only compiles (that's why we have that check second) 
-	//       because it would most likely result in errors (the function hasn't
-	//       been added to the class yet, etc.)
-	if ((CompileOptions.CompileType == EKismetCompileType::SkeletonOnly) || ValidateGraphIsWellFormed(FunctionGraph))
+	FKismetFunctionContext& Context = *new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration(), CompileOptions.IsInstrumentationActive());
+	Context.SourceGraph = FunctionGraph;
+
+	if(FBlueprintEditorUtils::IsDelegateSignatureGraph(SourceGraph))
 	{
-		FKismetFunctionContext& Context = *new (FunctionList)FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint, CompileOptions.DoesRequireCppCodeGeneration(), CompileOptions.IsInstrumentationActive());
-		Context.SourceGraph = FunctionGraph;
+		Context.SetDelegateSignatureName(SourceGraph->GetFName());
+	}
 
-		if(FBlueprintEditorUtils::IsDelegateSignatureGraph(SourceGraph))
-		{
-			Context.SetDelegateSignatureName(SourceGraph->GetFName());
-		}
+	// If this is an interface blueprint, mark the function contexts as stubs
+	if (FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
+	{
+		Context.MarkAsInterfaceStub();
+	}
 
-		// If this is an interface blueprint, mark the function contexts as stubs
-		if (FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
-		{
-			Context.MarkAsInterfaceStub();
-		}
+	bool bEnforceConstCorrectness = true;
+	if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
+	{
+		Context.MarkAsConstFunction(bEnforceConstCorrectness);
+	}
 
-		bool bEnforceConstCorrectness = true;
-		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
-		{
-			Context.MarkAsConstFunction(bEnforceConstCorrectness);
-		}
-
-		if ( bInternalFunction )
-		{
-			Context.MarkAsInternalOrCppUseOnly();
-		}
+	if ( bInternalFunction )
+	{
+		Context.MarkAsInternalOrCppUseOnly();
 	}
 }
 

@@ -4712,7 +4712,14 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 
 	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 	{
-		DisplayInfo.DisplayName = FText::FromString(FName::NameToDisplayString( DisplayInfo.PlainName.ToString(), false ));
+		if (GraphType == GT_Function && Function)
+		{
+			DisplayInfo.DisplayName = GetFriendlySignatureName(Function);
+		}
+		else
+		{
+			DisplayInfo.DisplayName = FText::FromString(FName::NameToDisplayString(DisplayInfo.PlainName.ToString(), false));
+		}
 	}
 	else
 	{

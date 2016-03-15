@@ -801,6 +801,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bSkipDefinitionsForCompileEnvironment = false;
 
+        public int FindNumberOfGeneratedCppFiles()
+        {
+           return ((null == GeneratedCodeDirectory) || !GeneratedCodeDirectory.Exists()) ? 0
+                : (GeneratedCodeDirectory.EnumerateFileReferences("*.generated.*.cpp", SearchOption.AllDirectories).Count() 
+                 + GeneratedCodeDirectory.EnumerateFileReferences("*.generated.cpp", SearchOption.AllDirectories).Count());
+        }
+
 		/// <summary>
 		/// Categorizes source files into per-extension buckets
 		/// </summary>

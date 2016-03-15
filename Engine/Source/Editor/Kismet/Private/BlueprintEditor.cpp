@@ -8039,6 +8039,8 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputChord InChord, const F
 		return FReply::Handled();
 	}
 
+	FScopedTransaction Transaction(LOCTEXT("AddNode", "Add Node"));
+
 	TArray<UEdGraphNode*> OutNodes;
 	FVector2D NodeSpawnPos = InPosition;
 	FBlueprintSpawnNodeCommands::Get().GetGraphActionByChord(InChord, InGraph, NodeSpawnPos, OutNodes);
@@ -8054,6 +8056,10 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputChord InChord, const F
 	if(OutNodes.Num() > 0)
 	{
 		Graph->SelectNodeSet(NodesToSelect, /*bFromUI =*/true);
+	}
+	else
+	{
+		Transaction.Cancel();
 	}
 
 	return FReply::Handled();

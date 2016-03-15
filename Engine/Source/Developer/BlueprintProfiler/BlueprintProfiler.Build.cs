@@ -21,8 +21,10 @@ public class BlueprintProfiler : ModuleRules
         {
             PrivateDependencyModuleNames.Add("UnrealEd");
             PrivateDependencyModuleNames.Add("Kismet");
+            PrivateDependencyModuleNames.Add("GraphEditor");
             PrivateDependencyModuleNames.Add("BlueprintGraph");
             PrivateDependencyModuleNames.Add("EditorStyle");
+            PrivateDependencyModuleNames.Add("InputCore");
         }
     }
 }

@@ -10,6 +10,16 @@ DEFINE_LOG_CATEGORY_STATIC(LogUObjectArray, Log, All);
 
 TMap<int32, FUObjectCluster*> GUObjectClusters;
 
+FUObjectArray::FUObjectArray()
+: ObjFirstGCIndex(0)
+, ObjLastNonGCIndex(INDEX_NONE)
+, MaxObjectsNotConsideredByGC(0)
+, OpenForDisregardForGC(!IS_PROGRAM)
+, MasterSerialNumber(START_SERIAL_NUMBER)
+{
+	FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate().BindStatic(GetObjectArrayForDebugVisualizers);
+}
+
 void FUObjectArray::AllocateObjectPool(int32 InMaxUObjects, int32 InMaxObjectsNotConsideredByGC)
 {
 	check(IsInGameThread());
@@ -48,17 +58,17 @@ void FUObjectArray::CloseDisregardForGC()
 	// assembles the token reference stream at this point. This is required for class objects that are
 	// not taken into account for garbage collection but have instances that are.
 
-	// Workaround for Visual Studio 2013 analyzer bug. Using a temporary directly in the range-for
-	// errors if the analyzer is enabled.
-	TObjectRange<UClass> Range;
-	for (UClass* Class : Range)
+	for (FRawObjectIterator It(false); It; ++It) // GetDefaultObject can create a new class, that need to be handled as well, so we cannot use TObjectIterator
 	{
-		// Force the default object to be created.
-		Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
-		// Assemble reference token stream for garbage collection/ RTGC.
-		if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+		if (UClass* Class = Cast<UClass>((UObject*)(It->Object)))
 		{
-			Class->AssembleReferenceTokenStream();
+			// Force the default object to be created.
+			Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
+			// Assemble reference token stream for garbage collection/ RTGC.
+			if (!Class->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+			{
+				Class->AssembleReferenceTokenStream();
+			}
 		}
 	}
 
@@ -100,6 +110,17 @@ void FUObjectArray::CloseDisregardForGC()
 
 	OpenForDisregardForGC = false;
 	GIsInitialLoad = false;
+}
+
+void FUObjectArray::DisableDisregardForGC()
+{
+	MaxObjectsNotConsideredByGC = 0;
+	ObjFirstGCIndex = 0;
+	ObjLastNonGCIndex = INDEX_NONE;
+	if (IsOpenForDisregardForGC())
+	{
+		CloseDisregardForGC();
+	}
 }
 
 void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThreads /*= false*/)

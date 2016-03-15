@@ -688,9 +688,20 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 				}
 				else
 				{
-					// Move connection from the variable pin on the spawn node to the 'value' pin
-					CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
-					SetVarNode->PinConnectionListChanged(ValuePin);
+					// For non-array struct pins that are not linked, transfer the pin type so that the node will expand an auto-ref that will assign the value by-ref.
+					if (OrgPin->PinType.bIsArray == false && OrgPin->PinType.PinCategory == Schema->PC_Struct && OrgPin->LinkedTo.Num() == 0)
+					{
+						ValuePin->PinType.PinCategory = OrgPin->PinType.PinCategory;
+						ValuePin->PinType.PinSubCategory = OrgPin->PinType.PinSubCategory;
+						ValuePin->PinType.PinSubCategoryObject = OrgPin->PinType.PinSubCategoryObject;
+						CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
+					}
+					else
+					{
+						CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
+						SetVarNode->PinConnectionListChanged(ValuePin);
+					}
+
 				}
 			}
 		}

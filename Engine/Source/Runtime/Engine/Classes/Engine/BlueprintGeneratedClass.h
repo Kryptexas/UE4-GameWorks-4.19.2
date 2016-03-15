@@ -52,8 +52,14 @@ public:
 	// Reverse map from code offset to macro instance node(s)
 	TMultiMap< int32, TWeakObjectPtr<UEdGraphNode> > LineNumberToMacroInstanceNodeMap;
 
-	// Reverse map from code offset to exec pin
-	TMap< int32, TWeakObjectPtr<UEdGraphPin> > LineNumberToPinMap;
+	// Reverse map from code offset to source pin
+	TMap< int32, TWeakObjectPtr<UEdGraphPin> > LineNumberToSourcePinMap;
+
+	// Reverse map from source pin to mapped code offset(s)
+	TMultiMap< TWeakObjectPtr<UEdGraphPin>, int32 > SourcePinToLineNumbersMap;
+
+	// Map from source node (impure) to pure node script code range
+	TMap< TWeakObjectPtr<UEdGraphNode>, FInt32Range > PureNodeScriptCodeRangeMap;
 
 public:
 	FDebuggingInfoForSingleFunction()
@@ -266,15 +272,59 @@ public:
 		}
 	}
 
-	// Finds the macro source node associated with the code location Function+CodeOffset, or nullptr if there isn't one
-	UEdGraphPin* FindExecPinFromCodeLocation(UFunction* Function, int32 CodeOffset) const
+	// Finds the source pin associated with the code location Function+CodeOffset, or nullptr if there isn't one
+	UEdGraphPin* FindSourcePinFromCodeLocation(UFunction* Function, int32 CodeOffset) const
 	{
 		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
 		{
-			return pFuncInfo->LineNumberToPinMap.FindRef(CodeOffset).Get();
+			return pFuncInfo->LineNumberToSourcePinMap.FindRef(CodeOffset).Get();
 		}
 
 		return nullptr;
+	}
+
+	// Finds all code locations (Function+CodeOffset) associated with the source pin
+	void FindAllCodeLocationsFromSourcePin(UEdGraphPin const* SourcePin, UFunction* InFunction, TArray<int32>& OutPinToCodeAssociations) const
+	{
+		OutPinToCodeAssociations.Empty();
+
+		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(InFunction))
+		{
+			pFuncInfo->SourcePinToLineNumbersMap.MultiFind(SourcePin, OutPinToCodeAssociations, true);
+		}
+	}
+
+	// Finds the first code location (Function+CodeOffset) associated with the source pin within the given range, or INDEX_NONE if there isn't one
+	int32 FindCodeLocationFromSourcePin(UEdGraphPin const* SourcePin, UFunction* InFunction, FInt32Range InRange = FInt32Range()) const
+	{
+		TArray<int32> PinToCodeAssociations;
+		FindAllCodeLocationsFromSourcePin(SourcePin, InFunction, PinToCodeAssociations);
+
+		for (int32 i = 0; i < PinToCodeAssociations.Num(); ++i)
+		{
+			if (InRange.Contains(PinToCodeAssociations[i]))
+			{
+				return PinToCodeAssociations[i];
+			}
+		}
+
+		return INDEX_NONE;
+	}
+
+	// Finds the pure node script code range associated with the [impure] source node, or FInt32Range(INDEX_NONE) if there is no existing association
+	FInt32Range FindPureNodeScriptCodeRangeFromSourceNode(const UEdGraphNode* SourceNode, UFunction* InFunction) const
+	{
+		FInt32Range Result = FInt32Range(INDEX_NONE);
+
+		if (const FDebuggingInfoForSingleFunction* DebugInfoPtr = PerFunctionLineNumbers.Find(InFunction))
+		{
+			if (const FInt32Range* ValuePtr = DebugInfoPtr->PureNodeScriptCodeRangeMap.Find(SourceNode))
+			{
+				Result = *ValuePtr;
+			}
+		}
+
+		return Result;
 	}
 
 	// Finds the breakpoint injection site(s) in bytecode if any were associated with the given node
@@ -335,21 +385,17 @@ public:
 		}
 	}
 
-	void RegisterPinToCodeAssociation(UEdGraphPin const* ExecPin, UFunction* InFunction, int32 CodeOffset)
+	void RegisterPureNodeScriptCodeRange(UEdGraphNode* TrueSourceNode, UFunction* InFunction, FInt32Range InPureNodeScriptCodeRange)
 	{
 		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
-		PerFuncInfo.LineNumberToPinMap.Add(CodeOffset, ExecPin);
+		PerFuncInfo.PureNodeScriptCodeRangeMap.Add(TrueSourceNode, InPureNodeScriptCodeRange);
 	}
 
-	int32 FindPinToCodeAssociation(UEdGraphPin const* ExecPin, UFunction* InFunction)
+	void RegisterPinToCodeAssociation(UEdGraphPin const* SourcePin, UFunction* InFunction, int32 CodeOffset)
 	{
 		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
-		int32 Result = INDEX_NONE;
-		if (const int32* CodeOffset = PerFuncInfo.LineNumberToPinMap.FindKey(ExecPin))
-		{
-			Result = *CodeOffset;
-		}
-		return Result;
+		PerFuncInfo.LineNumberToSourcePinMap.Add(CodeOffset, SourcePin);
+		PerFuncInfo.SourcePinToLineNumbersMap.Add(SourcePin, CodeOffset);
 	}
 
 	// Registers an association between an object (pin or node typically) and an associated class member property

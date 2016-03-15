@@ -13,16 +13,18 @@ namespace EScriptExecutionNodeFlags
 		Class				= 0x00000001,	// Class
 		Instance			= 0x00000002,	// Instance
 		Event				= 0x00000004,	// Event
+		CustomEvent			= 0x00000008,	// Custom Event
 		Container			= 0x00000007,	// Container type - Class, Instance or Event.
-		FunctionCall		= 0x00000008,	// Function Call
-		MacroCall			= 0x00000010,	// Macro Call
-		CallSite			= 0x00000018,	// Function / Macro call site
+		FunctionCall		= 0x00000010,	// Function Call
+		MacroCall			= 0x00000020,	// Macro Call
+		CallSite			= 0x00000030,	// Function / Macro call site
 		MacroNode			= 0x00000100,	// Macro Node
 		ConditionalBranch	= 0x00000200,	// Node has multiple exit pins using a jump
 		SequentialBranch	= 0x00000400,	// Node has multiple exit pins ran in sequence
 		BranchNode			= 0x00000600,	// BranchNode
 		Node				= 0x00000800,	// Node timing
-		ExecPin				= 0x00001000	// Exec pin dummy node
+		ExecPin				= 0x00001000,	// Exec pin dummy node
+		PureNode			= 0x00002000	// Pure node (no exec pins)
 	};
 }
 
@@ -63,14 +65,20 @@ public:
 	/** Sets the parent node */
 	void SetParentNode(TSharedPtr<class FScriptExecutionNode> InParentNode) { ParentNode = InParentNode; }
 
+	/** Returns the pure nodes map */
+	TMap<int32, TSharedPtr<class FScriptExecutionNode>>& GetPureNodes() { return PureNodes; }
+
+	/** Returns the number of pure nodes */
+	int32 GetNumPureNodes() const { return PureNodes.Num(); }
+
+	/** Add pure node */
+	void AddPureNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> PureNode);
+
 	/** Returns the linked nodes map */
 	TMap<int32, TSharedPtr<class FScriptExecutionNode>>& GetLinkedNodes() { return LinkedNodes; }
 
 	/** Returns the number of linked nodes */
 	int32 GetNumLinkedNodes() const { return LinkedNodes.Num(); }
-
-	/** Returns the linked node for the specified pin script offset */
-	TSharedPtr<class FScriptExecutionNode> GetLinkedNodeByPinScriptOffset(const int32 PinScriptOffset) { return LinkedNodes[PinScriptOffset]; }
 
 	/** Add linked node */
 	void AddLinkedNode(const int32 PinScriptOffset, TSharedPtr<class FScriptExecutionNode> LinkedNode);
@@ -91,11 +99,12 @@ protected:
 
 	/** Parent node */
 	TSharedPtr<class FScriptExecutionNode> ParentNode;
+	/** Pure nodes */
+	TMap<int32, TSharedPtr<class FScriptExecutionNode>> PureNodes;
 	/** Linked nodes */
 	TMap<int32, TSharedPtr<class FScriptExecutionNode>> LinkedNodes;
 	/** Child nodes */
 	TArray<TSharedPtr<class FScriptExecutionNode>> ChildNodes;
-
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -105,7 +114,10 @@ class KISMET_API FScriptNodePerfData
 {
 public:
 
-	/** Get perf data for instance and tracepath */
+	/** Test whether or not perf data is available for the given instance/trace path */
+	bool HasPerfDataForInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath) const;
+
+	/** Get/add perf data for instance and tracepath */
 	TSharedPtr<class FScriptPerfData> GetPerfDataByInstanceAndTracePath(FName InstanceName, const FTracePath& TracePath);
 
 	/** Get all instance perf data for the trace path, excluding the global blueprint data */
@@ -122,6 +134,29 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////
+// FScriptExecutionNodeParams
+
+struct KISMET_API FScriptExecNodeParams
+{
+	/** Node name */
+	FName NodeName;
+	/** Owning graph name */
+	FName OwningGraphName;
+	/** Node flags to describe the source graph node type */
+	uint32 NodeFlags;
+	/** Oberved object */
+	TWeakObjectPtr<const UObject> ObservedObject;
+	/** Display name for widget UI */
+	FText DisplayName;
+	/** Tooltip for widget UI */
+	FText Tooltip;
+	/** Icon color for widget UI */
+	FLinearColor IconColor;
+	/** Icon for widget UI */
+	FSlateBrush* Icon;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FScriptExecutionNode
 
 typedef TSet<TWeakObjectPtr<const UObject>> FExecNodeFilter;
@@ -131,6 +166,7 @@ class KISMET_API FScriptExecutionNode : public FScriptNodeExecLinkage, public FS
 public:
 
 	FScriptExecutionNode();
+	FScriptExecutionNode(const FScriptExecNodeParams& InitParams);
     virtual ~FScriptExecutionNode() {}
 
 	bool operator == (const FScriptExecutionNode& NodeIn) const;
@@ -138,20 +174,8 @@ public:
 	/** Get the node's name */
 	FName GetName() const { return NodeName; }
 
-	/** Set the node's name */
-	void SetName(FName NewName) { NodeName = NewName; }
-
-	/** Set the node's name by string */
-	void SetNameByString(const FString& NewName) { NodeName = FName(*NewName); }
-
 	/** Returns the owning graph name */
 	FName GetGraphName() const { return OwningGraphName; }
-
-	/** Sets the owning graph name */
-	void SetGraphName(FName GraphNameIn) { OwningGraphName = GraphNameIn; }
-
-	/** Set the node's flags */
-	void SetFlags(const uint32 NewFlags) { NodeFlags = NewFlags; }
 
 	/** Add to the node's flags */
 	void AddFlags(const uint32 NewFlags) { NodeFlags |= NewFlags; }
@@ -171,6 +195,9 @@ public:
 	/** Returns if this exec event represents the start of an event execution path */
 	bool IsEvent() const { return (NodeFlags & EScriptExecutionNodeFlags::Event) != 0U; }
 
+	/** Returns if this exec event represents the start of a custon event execution path */
+	bool IsCustomEvent() const { return (NodeFlags & EScriptExecutionNodeFlags::CustomEvent) != 0U; }
+	
 	/** Returns if this event is a function callsite event */
 	bool IsFunctionCallSite() const { return (NodeFlags & EScriptExecutionNodeFlags::FunctionCall) != 0U; }
 
@@ -180,11 +207,11 @@ public:
 	/** Returns if this event happened inside a macro instance */
 	bool IsMacroNode() const { return (NodeFlags & EScriptExecutionNodeFlags::MacroNode) != 0U; }
 
+	/** Returns if this node is also a pure node (i.e. no exec input pin) */
+	bool IsPureNode() const { return (NodeFlags & EScriptExecutionNodeFlags::PureNode) != 0U; }
+
 	/** Returns if this event potentially multiple exit sites */
 	bool IsBranch() const { return (NodeFlags & EScriptExecutionNodeFlags::BranchNode) != 0U; }
-
-	/** Sets the observed object context */
-	void SetObservedObject(const UObject* ObjectIn) { ObservedObject = ObjectIn; }
 
 	/** Gets the observed object context */
 	const UObject* GetObservedObject() { return ObservedObject.Get(); }
@@ -194,9 +221,6 @@ public:
 
 	/** Returns the display name for widget UI */
 	const FText& GetDisplayName() const { return DisplayName; }
-
-	/** Sets the display name for widget UI */
-	void SetDisplayName(const FText InDisplayName) { DisplayName = InDisplayName; }
 
 	/** Returns the tooltip for widget UI */
 	const FText& GetToolTipText() const { return Tooltip; }
@@ -213,9 +237,6 @@ public:
 	/** Returns the icon for widget UI */
 	const FSlateBrush* GetIcon() const { return Icon; }
 
-	/** Sets the icon for widget UI */
-	void SetIcon(FSlateBrush* InIcon) { Icon = InIcon; }
-
 	/** Returns the profiler heat color */
 	FLinearColor GetHeatColor(const FTracePath& TracePath) const;
 
@@ -224,6 +245,9 @@ public:
 
 	/** Sets the current expansion state for widget UI */
 	void SetExpanded(bool bIsExpanded) { bExpansionState = bIsExpanded; }
+
+	/** Sets the pure node script code range */
+	void SetPureNodeScriptCodeRange(FInt32Range InScriptCodeRange) { PureNodeScriptCodeRange = InScriptCodeRange; }
 
 	/** Return the linear execution path from this node */
 	void GetLinearExecutionPath(TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
@@ -237,7 +261,13 @@ public:
 	/** Get all exec nodes */
 	virtual void GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut);
 
+	/** Get all pure nodes associated with the given trace path */
+	virtual void GetAllPureNodes(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut);
+
 protected:
+
+	/** Get all pure nodes - private implementation */
+	void GetAllPureNodes_Internal(TMap<int32, TSharedPtr<FScriptExecutionNode>>& PureNodesOut, const FInt32Range& ScriptCodeRange);
 
 	/** Get linear execution path - private implementation */
 	void GetLinearExecutionPath_Internal(FExecNodeFilter& Filter, TArray<FLinearExecPath>& LinearExecutionNodes, const FTracePath& TracePath);
@@ -265,7 +295,8 @@ protected:
 	FSlateBrush* Icon;
 	/** Expansion state */
 	bool bExpansionState;
-
+	/** Script code range for pure node linkage */
+	FInt32Range PureNodeScriptCodeRange;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -274,6 +305,11 @@ protected:
 class KISMET_API FScriptExecutionInstance : public FScriptExecutionNode
 {
 public:
+
+	FScriptExecutionInstance(const FScriptExecNodeParams& InitParams)
+		: FScriptExecutionNode(InitParams)
+	{
+	}
 
 	// FScriptExecutionNode
 	virtual void NavigateToObject() const override;
@@ -286,6 +322,11 @@ public:
 class KISMET_API FScriptExecutionBlueprint : public FScriptExecutionNode
 {
 public:
+
+	FScriptExecutionBlueprint(const FScriptExecNodeParams& InitParams)
+		: FScriptExecutionNode(InitParams)
+	{
+	}
 
 	/** Adds new blueprint instance node */
 	void AddInstance(TSharedPtr<FScriptExecutionNode> Instance) { Instances.Add(Instance); }

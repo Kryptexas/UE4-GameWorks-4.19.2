@@ -1580,7 +1580,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 
-	GUObjectArray.CloseDisregardForGC();
+	if (GUObjectArray.IsOpenForDisregardForGC())
+	{
+		GUObjectArray.CloseDisregardForGC();
+	}
 
 	if (IOnlineSubsystem::IsLoaded())
 	{

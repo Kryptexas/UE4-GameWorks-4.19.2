@@ -272,6 +272,8 @@ struct FEmitDefaultValueHelper
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 
+	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context);
+
 	enum class EPropertyAccessOperator
 	{
 		None, // for self scope, this

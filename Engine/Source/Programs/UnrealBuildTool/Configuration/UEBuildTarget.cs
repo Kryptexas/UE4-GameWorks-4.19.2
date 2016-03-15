@@ -2856,10 +2856,23 @@ namespace UnrealBuildTool
 
 			// Fill out the body of the function with the empty function calls. This is what causes the static libraries to be considered relevant
 			List<UEBuildModule> DependencyModules = ExecutableBinary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
-			foreach (string ModuleName in DependencyModules.OfType<UEBuildModuleCPP>().Where(CPPModule => CPPModule.AutoGenerateCppInfo != null).Select(CPPModule => CPPModule.Name).Distinct())
+            HashSet<string> AlreadyAddedEmptyLinkFunctions = new HashSet<string>();
+            foreach (UEBuildModuleCPP BuildModuleCPP in DependencyModules.OfType<UEBuildModuleCPP>().Where(CPPModule => CPPModule.AutoGenerateCppInfo != null))
 			{
-				Result.Add("    extern void EmptyLinkFunctionForGeneratedCode" + ModuleName + "();");
-				Result.Add("    EmptyLinkFunctionForGeneratedCode" + ModuleName + "();");
+                int NumGeneratedCppFilesWithTheFunction = BuildModuleCPP.FindNumberOfGeneratedCppFiles();
+                if(NumGeneratedCppFilesWithTheFunction == 0)
+                {
+                    Result.Add("    //" + BuildModuleCPP.Name + " has no generated files, path: " + BuildModuleCPP.GeneratedCodeDirectory.ToString());
+                }
+                for (int FileIdx = 1; FileIdx <= NumGeneratedCppFilesWithTheFunction; ++FileIdx)
+                {
+                    string FunctionName = "EmptyLinkFunctionForGeneratedCode" + FileIdx + BuildModuleCPP.Name;
+                    if (AlreadyAddedEmptyLinkFunctions.Add(FunctionName))
+                    {
+                        Result.Add("    extern void " + FunctionName + "();");
+                        Result.Add("    " + FunctionName + "();");
+                    }
+                }
 			}
 			foreach (string DependencyModuleName in PrivateDependencyModuleNames)
 			{

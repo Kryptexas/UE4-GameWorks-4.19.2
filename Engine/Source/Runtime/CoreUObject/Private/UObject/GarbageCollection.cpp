@@ -1181,6 +1181,12 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 			bool bShouldAssert = false;
 			FUObjectItem* ObjectItem = *It;
 			UObject* Object = (UObject*)ObjectItem->Object;
+
+			if (Object->HasAnyFlags(RF_ClassDefaultObject) && Object->GetName().Contains(TEXT("RecastFilter_UseDefaultArea")))
+			{
+				printf("");
+			}
+
 			// Don't require UGCObjectReferencer's references to adhere to the assumptions.
 			// Although we want the referencer itself to sit in the disregard for gc set, most of the objects
 			// it's referencing will not be in the root set.
@@ -1192,19 +1198,25 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 				ObjectReferenceCollector.FindReferences( Object );
 
 				// Iterate over referenced objects, finding bad ones.
-				for( int32 ReferenceIndex=0; ReferenceIndex<CollectedReferences.Num(); ReferenceIndex++ )
+				for (int32 ReferenceIndex = 0; ReferenceIndex < CollectedReferences.Num(); ReferenceIndex++)
 				{
 					UObject* ReferencedObject = CollectedReferences[ReferenceIndex];
-					if (ReferencedObject && 
-						!(ReferencedObject->IsRooted() || 
-						  UObjectArray.IsDisregardForGC(ReferencedObject) || 
-							UObjectArray.ObjectToObjectItem(ReferencedObject)->GetOwnerIndex() ||
-							UObjectArray.ObjectToObjectItem(ReferencedObject)->HasAnyFlags(EInternalObjectFlags::ClusterRoot)))
+
+
+					if (ReferencedObject)
 					{
-						UE_LOG(LogGarbage, Warning, TEXT("Disregard for GC object %s referencing %s which is not part of root set"),
-							*Object->GetFullName(),
-							*ReferencedObject->GetFullName());						
-						bShouldAssert = true;
+						bool bIsRooted = ReferencedObject->IsRooted();
+						bool bIsDisregard = UObjectArray.IsDisregardForGC(ReferencedObject);
+						int32 OwnerIndex = UObjectArray.ObjectToObjectItem(ReferencedObject)->GetOwnerIndex();
+						bool bHasClusterRoot = UObjectArray.ObjectToObjectItem(ReferencedObject)->HasAnyFlags(EInternalObjectFlags::ClusterRoot);
+
+						if (!(bIsRooted || bIsDisregard || OwnerIndex || bHasClusterRoot))
+						{
+							UE_LOG(LogGarbage, Warning, TEXT("Disregard for GC object %s referencing %s which is not part of root set"),
+								*Object->GetFullName(),
+								*ReferencedObject->GetFullName());
+							bShouldAssert = true;
+						}
 					}
 				}
 			}
