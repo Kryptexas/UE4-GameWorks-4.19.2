@@ -398,9 +398,7 @@ int32 FAudioSection::OnPaintSection( const FGeometry& AllottedGeometry, const FS
 			AllottedGeometry.ToPaintGeometry(FVector2D(StoredXOffset, 0), FVector2D(StoredXSize, AllottedGeometry.Size.Y)),
 			WaveformThumbnail,
 			SectionClippingRect,
-			false,
-			false,
-			DrawEffects,
+			DrawEffects | ESlateDrawEffect::NoGamma | ESlateDrawEffect::NoBlending,
 			FLinearColor(1.f, 1.f, 1.f, 0.9f)
 		);
 	}
