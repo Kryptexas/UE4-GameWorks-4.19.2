@@ -94,7 +94,8 @@ void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
-	check(ChildActor == nullptr);
+	const UWorld* const MyWorld = GetWorld();
+	DestroyChildActor(MyWorld && !MyWorld->IsGameWorld());
 }
 
 void UChildActorComponent::OnUnregister()
