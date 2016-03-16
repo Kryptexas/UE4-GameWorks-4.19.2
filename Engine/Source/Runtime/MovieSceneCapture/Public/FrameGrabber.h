@@ -25,7 +25,7 @@ struct MOVIESCENECAPTURE_API FViewportSurfaceReader
 	 * @param	ViewportRHI		The viewport to resolve
 	 * @param	Callback 		Callback to call with the locked texture data. This will be called on an undefined thread.
 	 */
-	void ResolveRenderTarget(const FViewportRHIRef& ViewportRHI, TFunction<void(FColor*)> Callback);
+	void ResolveRenderTarget(const FViewportRHIRef& ViewportRHI, TFunction<void(FColor*, int32, int32)> Callback);
 
 	/** Get the current size of the texture */
 	FIntPoint GetCurrentSize() const;
@@ -139,7 +139,7 @@ protected:
 	void OnSlateWindowRendered( SWindow& SlateWindow, void* ViewportRHIPtr );
 
 	/** Called when the specified surface index has been locked for reading with the render target data (called on render thread)  */
-	void OnFrameReady(int32 SurfaceIndex, FColor* ColorBuffer);
+	void OnFrameReady(int32 SurfaceIndex, FColor* ColorBuffer, int32 Width, int32 Height);
 
 private:
 
