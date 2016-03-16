@@ -107,7 +107,7 @@ void UShapeComponent::CreateShapeBodySetupIfNeeded()
 	if (ShapeBodySetup == nullptr || ShapeBodySetup->IsPendingKill())
 	{
 		ShapeBodySetup = NewObject<UBodySetup>(this);
-		if (IsTemplate() && IsRooted())
+		if (GUObjectArray.IsDisregardForGC(this))
 		{
 			ShapeBodySetup->AddToRoot();
 		}
