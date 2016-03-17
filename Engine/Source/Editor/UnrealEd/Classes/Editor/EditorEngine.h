@@ -1618,10 +1618,10 @@ public:
 	 * @param	bUseMobilePreview		True to enable mobile preview mode (PC platform only)
 	 * @param	bUseVRPreview			True to enable VR preview mode (PC platform only)
 	 */
-	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false );
+	void RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, bool bUseMobilePreview = false, bool bUseVRPreview = false, bool bUseVulkanPreview = false);
 
 	// @todo gmp: temp hack for Rocket demo
-	void RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview );
+	void RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview );
 
 	/**
 	 * Request to play a game on a remote device 
@@ -2732,6 +2732,7 @@ private:
 	// @todo: This should be an enum along with bPlayOnLocalPcSession, or completely refactored
 	bool bPlayUsingLauncher;
 	bool bPlayUsingMobilePreview;
+	bool bPlayUsingVulkanPreview;
 
 	/** The platform to run on (as selected in dreop down) */
 	FString PlayUsingLauncherDeviceId;

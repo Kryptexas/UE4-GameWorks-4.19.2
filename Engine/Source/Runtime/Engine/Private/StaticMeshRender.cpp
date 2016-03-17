@@ -1438,8 +1438,14 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 	FLODMask Result;
 	int32 CVarForcedLODLevel = GetCVarForceLOD();
 
+	// Planar reflections always use the highest available LOD level
+	if (View->bIsPlanarReflectionCapture && RenderData->LODResources.Num() > 0)
+	{
+		Result.SetLOD(RenderData->LODResources.Num() - 1);
+	}
+
 	//If a LOD is being forced, use that one
-	if (CVarForcedLODLevel >= 0)
+	else if (CVarForcedLODLevel >= 0)
 	{
 		Result.SetLOD(FMath::Clamp<int32>(CVarForcedLODLevel, 0, RenderData->LODResources.Num() - 1));
 	}

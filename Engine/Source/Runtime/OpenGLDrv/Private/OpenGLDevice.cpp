@@ -610,7 +610,10 @@ static void InitRHICapabilitiesForGL()
 	GMaxOpenGLIntegerSamples = Value_GL_MAX_INTEGER_SAMPLES;
 
 	// Verify some assumptions.
+	// Android seems like reports one color attachment even when it supports MRT
+#if !PLATFORM_ANDROID
 	check(Value_GL_MAX_COLOR_ATTACHMENTS >= MaxSimultaneousRenderTargets || !FOpenGL::SupportsMultipleRenderTargets());
+#endif
 
 	// We don't check for compressed formats right now because vendors have not
 	// done a great job reporting what is actually supported:
@@ -691,7 +694,11 @@ static void InitRHICapabilitiesForGL()
 	GSupportsDepthBoundsTest = FOpenGL::SupportsDepthBoundsTest();
 
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
-
+	
+	GSupportsMultipleRenderTargets = FOpenGL::SupportsMultipleRenderTargets();
+	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
+	GSupportsResourceView = FOpenGL::SupportsResourceView();
+		
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
 	GSupportsShaderDepthStencilFetch = FOpenGL::SupportsShaderDepthStencilFetch();
 	GMaxShadowDepthBufferSizeX = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096); // Limit to the D3D11 max.
@@ -839,6 +846,20 @@ static void InitRHICapabilitiesForGL()
 		else
 		{
 			SetupTextureFormat( PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
+		}
+
+		if (FOpenGL::SupportsColorBufferFloat() && FOpenGL::SupportsTextureFloat())
+		{
+			SetupTextureFormat( PF_G16,				FOpenGLTextureFormat( GL_R16,					GL_R16,					GL_RED,			GL_UNSIGNED_SHORT,					false,	false));
+			SetupTextureFormat( PF_R32_FLOAT,		FOpenGLTextureFormat( GL_R32F,					GL_R32F,				GL_RED,			GL_FLOAT,							false,	false));
+			SetupTextureFormat( PF_G16R16F,			FOpenGLTextureFormat( GL_RG16F,					GL_RG16F,				GL_RG_EXT,		GL_HALF_FLOAT,						false,	false));
+			SetupTextureFormat( PF_G16R16F_FILTER,	FOpenGLTextureFormat( GL_RG16F,					GL_RG16F,				GL_RG_EXT,		GL_HALF_FLOAT,						false,	false));
+			SetupTextureFormat( PF_G32R32F,			FOpenGLTextureFormat( GL_RG32F,					GL_RG32F,				GL_RG_EXT,		GL_FLOAT,							false,	false));
+#ifdef GL_UNSIGNED_INT_2_10_10_10_REV
+			SetupTextureFormat( PF_A2B10G10R10,		FOpenGLTextureFormat( GL_RGB10_A2,				GL_RGB10_A2,			GL_RGBA,		GL_UNSIGNED_INT_2_10_10_10_REV,		false,	false));
+#endif
+			SetupTextureFormat( PF_R16F,			FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
+			SetupTextureFormat( PF_R16F_FILTER,		FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
 		}
 
 		if (FOpenGL::SupportsPackedDepthStencil())

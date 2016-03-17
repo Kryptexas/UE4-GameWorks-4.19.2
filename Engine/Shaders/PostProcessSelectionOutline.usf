@@ -61,7 +61,7 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 	float DeviceZ = PostprocessInput1MS.Load(PixelPos, SampleID).r;
 	int Stencil = EditorPrimitivesStencil.Load(int3(PixelPos, 0), SampleID) STENCIL_COMPONENT_SWIZZLE;
 
-#if !COMPILER_GLSL && !PS4_PROFILE && !COMPILER_METAL
+#if !COMPILER_GLSL && !PS4_PROFILE && !COMPILER_METAL && !COMPILER_HLSLCC
 	// not yet supported on OpenGL, slightly better quality
 	ReconstructionOffset += PostprocessInput1MS.GetSamplePosition(SampleID);
 #endif

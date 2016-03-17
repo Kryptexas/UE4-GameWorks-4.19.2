@@ -17,7 +17,7 @@ UTextureRenderTarget2D::UTextureRenderTarget2D(const FObjectInitializer& ObjectI
 	bHDR = true;
 	bAutoGenerateMips = false;
 	NumMips = 0;
-	ClearColor = FLinearColor(0.0f, 1.0f, 0.0f, 1.0f);
+	ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	OverrideFormat = PF_Unknown;
 	bForceLinearGamma = true;
 }

@@ -79,9 +79,9 @@ public:
 	}
 
 	~FOutputLogErrorsToMessageLogProxy()
-	{
+{
 		GLog->RemoveOutputDevice(this);
-	}
+}
 
 	// FOutputDevice interface
 	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) override
@@ -731,7 +731,7 @@ void UEditorEngine::PlayMap( const FVector* StartLocation, const FRotator* Start
 }
 
 
-void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation, const FRotator* StartRotation, int32 DestinationConsole, bool bUseMobilePreview, bool bUseVRPreview )
+void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class ILevelViewport> DestinationViewport, bool bInSimulateInEditor, const FVector* StartLocation, const FRotator* StartRotation, int32 DestinationConsole, bool bUseMobilePreview, bool bUseVRPreview, bool bUseVulkanPreview )
 {
 	// Remember whether or not we were attempting to play from playerstart or from viewport
 	GIsPIEUsingPlayerStart = bAtPlayerStart;
@@ -777,11 +777,12 @@ void UEditorEngine::RequestPlaySession( bool bAtPlayerStart, TSharedPtr<class IL
 
 
 // @todo gmp: temp hack for Rocket demo
-void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview )
+void UEditorEngine::RequestPlaySession( const FVector* StartLocation, const FRotator* StartRotation, bool MobilePreview, bool VulkanPreview )
 {
 	bPlayOnLocalPcSession = true;
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = MobilePreview;
+	bPlayUsingVulkanPreview = VulkanPreview;
 
 	if (StartLocation != NULL)
 	{
@@ -818,6 +819,7 @@ void UEditorEngine::CancelRequestPlaySession()
 	bPlayOnLocalPcSession = false;
 	bPlayUsingLauncher = false;
 	bPlayUsingMobilePreview = false;
+	bPlayUsingVulkanPreview = false;
 }
 
 void UEditorEngine::PlaySessionPaused()
@@ -1066,11 +1068,11 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 		// If we're playing in the editor
 		if (!bPlayOnLocalPcSession)
 		{
-			PlayInEditor(GetEditorWorldContext().World(), bWantSimulateInEditor);
+				PlayInEditor(GetEditorWorldContext().World(), bWantSimulateInEditor);
 
-			// Editor counts as a client
-			NumClients++;
-		}
+				// Editor counts as a client
+				NumClients++;
+			}
 
 		// Spawn number of clients
 		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
@@ -1315,8 +1317,13 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 		AdditionalParameters += TEXT(" -featureleveles2 -faketouches");
 	}
 
+	if (bPlayUsingVulkanPreview)
+	{
+		AdditionalParameters += TEXT(" -vulkan -faketouches");
+	}
+
 	// Disable the HMD device in the new process if present. The editor process owns the HMD resource.
-	if (!bPlayUsingMobilePreview && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+	if (!bPlayUsingMobilePreview && !bPlayUsingVulkanPreview && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
 	{
 		AdditionalParameters += TEXT(" -nohmd");
 		UE_LOG(LogHMD, Warning, TEXT("Standalone game VR not supported, please use VR Preview."));
@@ -1794,7 +1801,7 @@ void UEditorEngine::PlayUsingLauncher()
 			}
 			break;
 		}
-		
+
 		// select the quickest cook mode based on which in editor cook mode is enabled
 		bool bIncrimentalCooking = true;
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
@@ -3036,20 +3043,20 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				if (!bHasCustomWindow)
 				{
-					// Mac does not support parenting, do not keep on top
-	#if PLATFORM_MAC
+				// Mac does not support parenting, do not keep on top
+#if PLATFORM_MAC
 					FSlateApplication::Get().AddWindow(PieWindow.ToSharedRef());
-	#else
-					TSharedRef<SWindow, ESPMode::NotThreadSafe> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
-					if (PlayInSettings->PIEAlwaysOnTop)
-					{
+#else
+				TSharedRef<SWindow, ESPMode::NotThreadSafe> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
+				if (PlayInSettings->PIEAlwaysOnTop)
+				{
 						FSlateApplication::Get().AddWindowAsNativeChild(PieWindow.ToSharedRef(), MainWindow, true);
-					}
-					else
-					{
+				}
+				else
+				{
 						FSlateApplication::Get().AddWindow(PieWindow.ToSharedRef());
-					}
-	#endif
+				}
+#endif
 				}
 
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew(SOverlay);
@@ -3075,8 +3082,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				if (!bHasCustomWindow)
 				{
-					// Ensure the PIE window appears does not appear behind other windows.
-					PieWindow->BringToFront();
+				// Ensure the PIE window appears does not appear behind other windows.
+				PieWindow->BringToFront();
 				}
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
@@ -3134,7 +3141,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				// Create a new viewport that the viewport widget will use to render the game
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport = MakeShareable( new FSceneViewport( ViewportClient, PieViewportWidget ) );
 				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->SetPlayInEditorGetsMouseControl(GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl);
-				PieViewportWidget->SetViewportInterface(SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.ToSharedRef());
+				PieViewportWidget->SetViewportInterface( SlatePlayInEditorSession.SlatePlayInEditorWindowViewport.ToSharedRef() );
 
 				SlatePlayInEditorSession.SlatePlayInEditorWindow = PieWindow;
 
@@ -3336,47 +3343,47 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 				{
 					APlayerController* PC = GameViewport->GetGameInstance()->GetFirstLocalPlayerController();
 					if (PC != nullptr)
+				{
+					AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
+					PC->PlayerState->bOnlySpectator = false;
+					AuthGameMode->NumPlayers++;
+
+					bool bNeedsRestart = true;
+					if (PC->GetPawn() == NULL)
 					{
-						AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
-						PC->PlayerState->bOnlySpectator = false;
-						AuthGameMode->NumPlayers++;
-
-						bool bNeedsRestart = true;
-						if (PC->GetPawn() == NULL)
+						// Use the "auto-possess" pawn in the world, if there is one.
+						for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
 						{
-							// Use the "auto-possess" pawn in the world, if there is one.
-							for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
+							APawn* Pawn = *Iterator;
+							if (Pawn && Pawn->AutoPossessPlayer == EAutoReceiveInput::Player0)
 							{
-								APawn* Pawn = *Iterator;
-								if (Pawn && Pawn->AutoPossessPlayer == EAutoReceiveInput::Player0)
+								if (Pawn->Controller == nullptr)
 								{
-									if (Pawn->Controller == nullptr)
-									{
-										PC->Possess(Pawn);
-										bNeedsRestart = false;
-									}
-									break;
+									PC->Possess(Pawn);
+									bNeedsRestart = false;
 								}
-							}
-						}
-
-						if (bNeedsRestart)
-						{
-							AuthGameMode->RestartPlayer(PC);
-
-							if (PC->GetPawn())
-							{
-								// If there was no player start, then try to place the pawn where the camera was.						
-								if (PC->StartSpot == nullptr || Cast<AWorldSettings>(PC->StartSpot.Get()))
-								{
-									const FVector Location = EditorViewportClient.GetViewLocation();
-									const FRotator Rotation = EditorViewportClient.GetViewRotation();
-									PC->SetControlRotation(Rotation);
-									PC->GetPawn()->TeleportTo(Location, Rotation);
-								}
+								break;
 							}
 						}
 					}
+
+					if (bNeedsRestart)
+					{
+						AuthGameMode->RestartPlayer(PC);
+
+						if (PC->GetPawn())
+						{
+							// If there was no player start, then try to place the pawn where the camera was.						
+							if (PC->StartSpot == nullptr || Cast<AWorldSettings>(PC->StartSpot.Get()))
+							{
+								const FVector Location = EditorViewportClient.GetViewLocation();
+								const FRotator Rotation = EditorViewportClient.GetViewRotation();
+								PC->SetControlRotation(Rotation);
+								PC->GetPawn()->TeleportTo(Location, Rotation);
+							}
+						}
+					}
+				}
 				}
 
 				OnSwitchWorldsForPIE(false);

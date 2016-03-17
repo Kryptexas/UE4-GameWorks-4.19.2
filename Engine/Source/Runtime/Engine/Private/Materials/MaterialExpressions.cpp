@@ -6675,6 +6675,12 @@ void UMaterialExpressionCustom::Serialize(FArchive& Ar)
 			}
 		}
 
+		// Look for WorldPosition rename
+		if (Code.ReplaceInline(TEXT("Parameters.WorldPosition"), TEXT("Parameters.AbsoluteWorldPosition"), ESearchCase::CaseSensitive) > 0)
+		{
+			bDidUpdate = true;
+		}
+
 		// If we made changes, copy the original into the description just in case
 		if (bDidUpdate)
 		{

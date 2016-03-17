@@ -6,6 +6,7 @@
 #include "hlslcc.h"
 #include "MetalBackend.h"
 #include "GlslBackend.h"
+#include "VulkanBackend.h"
 #include "HlslAST.h"
 #include "HlslLexer.h"
 #include "HlslParser.h"
@@ -68,6 +69,9 @@ namespace CCT
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
 		FMetalCodeBackend MetalBackend(Flags, CompileTarget);
+		FVulkanBindingTable VulkanBindingTable(RunInfo.Frequency);
+		FVulkanLanguageSpec VulkanLanguage(false);
+		FVulkanCodeBackend VulkanBackend(Flags, VulkanBindingTable, CompileTarget);
 
 		switch (RunInfo.BackEnd)
 		{
@@ -80,6 +84,12 @@ namespace CCT
 		case CCT::FRunInfo::BE_OpenGL:
 			Language = &GlslLanguage;
 			Backend = &GlslBackend;
+			Flags |= HLSLCC_DX11ClipSpace;
+			break;
+
+		case CCT::FRunInfo::BE_Vulkan:
+			Language = &VulkanLanguage;
+			Backend = &VulkanBackend;
 			Flags |= HLSLCC_DX11ClipSpace;
 			break;
 

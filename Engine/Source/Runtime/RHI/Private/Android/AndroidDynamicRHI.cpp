@@ -9,7 +9,15 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 
 	// Load the dynamic RHI module.
 	IDynamicRHIModule* DynamicRHIModule = NULL;
-	DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv")); //duplicate? memory redudancy ?
+
+	if (FPlatformMisc::HasPlatformFeature(TEXT("Vulkan")))
+	{
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("VulkanRHI"));
+	}
+	else
+	{
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv")); //duplicate? memory redudancy ?
+	}
 
 	if (!DynamicRHIModule->IsSupported()) 
 	{

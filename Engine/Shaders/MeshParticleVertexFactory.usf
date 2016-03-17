@@ -9,14 +9,20 @@
 // These are only enabled for SM5 due to limited interpolators elsewhere
 #define USE_PARTICLE_NODES (FEATURE_LEVEL >= FEATURE_LEVEL_SM5)
 
+// Only support previous transform for deferred feature level
+#define USE_PREVIOUS_TRANSFORM (FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
+
 float4x4 PreviousLocalToWorld;
 
+
+#if USE_PREVIOUS_TRANSFORM
 #if PARTICLE_MESH_INSTANCED
 	Buffer<float4> PrevTransformBuffer;
 #else
 	float4 PrevTransform0;
 	float4 PrevTransform1;
 	float4 PrevTransform2;
+#endif
 #endif
 	
 #if !PARTICLE_MESH_INSTANCED
@@ -66,7 +72,7 @@ struct FVertexFactoryInput
 #endif
 
 /** Optional instance ID for vertex layered rendering */
-#if FEATURE_LEVEL > FEATURE_LEVEL_ES2 
+#if PARTICLE_MESH_INSTANCED
 	uint InstanceId	: SV_InstanceID;
 #endif
 };
@@ -158,6 +164,7 @@ float4x4 GetParticleTransform(FVertexFactoryInput Input)
 #endif
 }
 
+#if USE_PREVIOUS_TRANSFORM
 float4x4 GetParticlePrevTransform(FVertexFactoryInput Input)
 {
 #if PARTICLE_MESH_INSTANCED
@@ -180,6 +187,7 @@ float4x4 GetParticlePrevTransform(FVertexFactoryInput Input)
 	//Transform is transposed on CPU and position is packed into W. Transpose again to get the correct transform back.
 	return transpose(PrevTransform4x4);
 }
+#endif
 
 /** Converts from vertex factory specific interpolants to a FMaterialPixelParameters, which is used by material inputs. */
 FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVSToPS Interpolants, float4 SvPosition)
@@ -306,6 +314,7 @@ float4 CalcWorldPosition(FVertexFactoryInput Input)
 
 float4 CalcPrevWorldPosition(FVertexFactoryInput Input)
 {
+#if USE_PREVIOUS_TRANSFORM
 	if (MeshParticleVF.PrevTransformAvailable > 0)
 	{
 		float4x4 PrevTransform = GetParticlePrevTransform(Input);
@@ -313,6 +322,7 @@ float4 CalcPrevWorldPosition(FVertexFactoryInput Input)
 		return float4(PrevWorldPosition, Input.Position.w);
 	}
 	else
+#endif
 	{
 		return CalcWorldPosition(Input);
 	}

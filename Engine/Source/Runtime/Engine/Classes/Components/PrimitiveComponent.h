@@ -290,6 +290,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, AdvancedDisplay, meta=(EditCondition="CastShadow", DisplayName = "Static Shadow"))
 	uint32 bCastStaticShadow:1;
 
+	/** Whether the object should be rendered into the planar refelction pass. */
+	UPROPERTY(EditAnywhere, Category=Lighting)
+	uint32 bVisibleInPlanarReflection:1;
+
 	/** 
 	 * Whether the object should cast a volumetric translucent shadow.
 	 * Volumetric translucent shadows are useful for primitives with smoothly changing opacity like particles representing a volume, 
@@ -356,6 +360,10 @@ public:
 	/** Quality of indirect lighting for Movable primitives.  This has a large effect on Indirect Lighting Cache update time. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	TEnumAsByte<EIndirectLightingCacheQuality> IndirectLightingCacheQuality;
+
+	/** Should this primitive receive dynamic-only CSM shadows */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Lighting, meta=(Display="Receive CSM Shadows From Dynamic Objects"))
+	uint32 bReceiveCSMFromDynamicObjects : 1;
 
 	/** 
 	 * Whether the whole component should be shadowed as one from stationary lights, which makes shadow receiving much cheaper.

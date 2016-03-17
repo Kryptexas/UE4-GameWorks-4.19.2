@@ -678,6 +678,11 @@ public:
 
 		// Set a define so we can tell in MaterialTemplate.usf when we are compiling a sprite vertex factory
 		OutEnvironment.SetDefine(TEXT("PARTICLE_SPRITE_FACTORY"),TEXT("1"));
+
+		if (Platform == SP_OPENGL_ES2_ANDROID)
+		{
+			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
+		}
 	}
 
 	/**
@@ -898,7 +903,12 @@ public:
 		OutEnvironment.SetFloatDefine(
 			TEXT("TILE_SIZE_Y"),
 			(float)GParticleSimulationTileSize / (float)GParticleSimulationTextureSizeY
-									  );
+			);
+
+		if (Platform == SP_OPENGL_ES2_ANDROID)
+		{
+			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
+		}
 	}
 
 	/** Default constructor. */
@@ -937,22 +947,6 @@ private:
 	FShaderResourceParameter TileOffsets;
 };
 
-enum EParticleCollisionShaderMode
-{
-	PCM_None,
-	PCM_DepthBuffer,
-	PCM_DistanceField,
-	PCM_None_FixedDT,
-	PCM_DepthBuffer_FixedDT,
-	PCM_DistanceField_FixedDT
-};
-
-/** Helper function to determine whether the given particle collision shader mode is supported on the given shader platform */
-inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EParticleCollisionShaderMode InCollisionShaderMode)
-{
-	return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM5) || InCollisionShaderMode != PCM_DistanceField;
-}
-
 /**
  * Pixel shader for simulating particles on the GPU.
  */
@@ -976,6 +970,11 @@ public:
 		OutEnvironment.SetDefine(TEXT("DEPTH_BUFFER_COLLISION"), (uint32)(CollisionMode == PCM_DepthBuffer ? 1 : 0));
 		OutEnvironment.SetDefine(TEXT("DISTANCE_FIELD_COLLISION"), (uint32)(CollisionMode == PCM_DistanceField ? 1 : 0));
 		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
+
+		if (Platform == SP_OPENGL_ES2_ANDROID)
+		{
+			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
+		}
 	}
 
 	/** Default constructor. */
@@ -997,14 +996,11 @@ public:
 		RenderAttributesTextureSampler.Bind(Initializer.ParameterMap, TEXT("RenderAttributesTextureSampler"));
 		CurveTexture.Bind(Initializer.ParameterMap, TEXT("CurveTexture"));
 		CurveTextureSampler.Bind(Initializer.ParameterMap, TEXT("CurveTextureSampler"));
-		VectorFieldTextures0.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures0"));
-		VectorFieldTextures1.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures1"));
-		VectorFieldTextures2.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures2"));
-		VectorFieldTextures3.Bind(Initializer.ParameterMap, TEXT("VectorFieldTextures3"));
-		VectorFieldTexturesSampler0.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler0"));
-		VectorFieldTexturesSampler1.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler1"));
-		VectorFieldTexturesSampler2.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler2"));
-		VectorFieldTexturesSampler3.Bind(Initializer.ParameterMap, TEXT("VectorFieldTexturesSampler3"));
+		for (int32 i = 0; i < MAX_VECTOR_FIELDS; ++i)
+		{
+			VectorFieldTextures[i].Bind(Initializer.ParameterMap, *FString::Printf(TEXT("VectorFieldTextures%d"), i));
+			VectorFieldTexturesSamplers[i].Bind(Initializer.ParameterMap, *FString::Printf(TEXT("VectorFieldTexturesSampler%d"), i));
+		}
 		SceneDepthTextureParameter.Bind(Initializer.ParameterMap,TEXT("SceneDepthTexture"));
 		SceneDepthTextureParameterSampler.Bind(Initializer.ParameterMap,TEXT("SceneDepthTextureSampler"));
 		GBufferATextureParameter.Bind(Initializer.ParameterMap,TEXT("GBufferATexture"));
@@ -1028,14 +1024,11 @@ public:
 		Ar << RenderAttributesTextureSampler;
 		Ar << CurveTexture;
 		Ar << CurveTextureSampler;
-		Ar << VectorFieldTextures0;
-		Ar << VectorFieldTextures1;
-		Ar << VectorFieldTextures2;
-		Ar << VectorFieldTextures3;
-		Ar << VectorFieldTexturesSampler0;
-		Ar << VectorFieldTexturesSampler1;
-		Ar << VectorFieldTexturesSampler2;
-		Ar << VectorFieldTexturesSampler3;
+		for (int32 i = 0; i < MAX_VECTOR_FIELDS; i++)
+		{
+			Ar << VectorFieldTextures[i];
+			Ar << VectorFieldTexturesSamplers[i];
+		}
 		Ar << SceneDepthTextureParameter;
 		Ar << SceneDepthTextureParameterSampler;
 		Ar << GBufferATextureParameter;
@@ -1120,12 +1113,15 @@ public:
 	void SetVectorFieldParameters(FRHICommandList& RHICmdList, const FVectorFieldUniformBufferRef& UniformBuffer, const FTexture3DRHIParamRef VolumeTexturesRHI[])
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
-		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 		SetUniformBufferParameter(RHICmdList, PixelShaderRHI, GetUniformBufferParameter<FVectorFieldUniformParameters>(), UniformBuffer);
-		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures0, VectorFieldTexturesSampler0, SamplerStateLinear, VolumeTexturesRHI[0], 0);
-		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures1, VectorFieldTexturesSampler1, SamplerStateLinear, VolumeTexturesRHI[1], 0);
-		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures2, VectorFieldTexturesSampler2, SamplerStateLinear, VolumeTexturesRHI[2], 0);
-		SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures3, VectorFieldTexturesSampler3, SamplerStateLinear, VolumeTexturesRHI[3], 0);
+		
+		FSamplerStateRHIParamRef SamplerStateLinear = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+
+		for (int32 i = 0; i < MAX_VECTOR_FIELDS; ++i)
+		{
+			SetSamplerParameter(RHICmdList, PixelShaderRHI, VectorFieldTexturesSamplers[i], SamplerStateLinear);
+			SetTextureParameter(RHICmdList, PixelShaderRHI, VectorFieldTextures[i], VolumeTexturesRHI[i]);
+		}
 	}
 
 	/**
@@ -1145,21 +1141,12 @@ public:
 	{
 		FPixelShaderRHIParamRef PixelShaderRHI = GetPixelShader();
 		FShaderResourceViewRHIParamRef NullSRV = FShaderResourceViewRHIParamRef();
-		if (VectorFieldTextures0.IsBound())
+		for (int32 i = 0; i < MAX_VECTOR_FIELDS; ++i)
 		{
-			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures0.GetBaseIndex(), NullSRV);
-		}
-		if (VectorFieldTextures1.IsBound())
-		{
-			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures1.GetBaseIndex(), NullSRV);
-		}
-		if (VectorFieldTextures2.IsBound())
-		{
-			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures2.GetBaseIndex(), NullSRV);
-		}
-		if (VectorFieldTextures3.IsBound())
-		{
-			RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures3.GetBaseIndex(), NullSRV);
+			if (VectorFieldTextures[i].IsBound())
+			{
+				RHICmdList.SetShaderResourceViewParameter(PixelShaderRHI, VectorFieldTextures[i].GetBaseIndex(), NullSRV);
+			}
 		}
 	}
 
@@ -1181,14 +1168,8 @@ private:
 	FShaderResourceParameter CurveTexture;
 	FShaderResourceParameter CurveTextureSampler;
 	/** Vector fields. */
-	FShaderResourceParameter VectorFieldTextures0;
-	FShaderResourceParameter VectorFieldTextures1;
-	FShaderResourceParameter VectorFieldTextures2;
-	FShaderResourceParameter VectorFieldTextures3;
-	FShaderResourceParameter VectorFieldTexturesSampler0;
-	FShaderResourceParameter VectorFieldTexturesSampler1;
-	FShaderResourceParameter VectorFieldTexturesSampler2;
-	FShaderResourceParameter VectorFieldTexturesSampler3;
+	FShaderResourceParameter VectorFieldTextures[MAX_VECTOR_FIELDS];
+	FShaderResourceParameter VectorFieldTexturesSamplers[MAX_VECTOR_FIELDS];
 	/** The SceneDepthTexture parameter for depth buffer collision. */
 	FShaderResourceParameter SceneDepthTextureParameter;
 	FShaderResourceParameter SceneDepthTextureParameterSampler;
@@ -1221,6 +1202,11 @@ public:
 		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
 		OutEnvironment.SetDefine( TEXT("PARTICLE_CLEAR_PIXELSHADER"), 1 );
 		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
+
+		if (Platform == SP_OPENGL_ES2_ANDROID)
+		{
+			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
+		}
 	}
 
 	/** Default constructor. */
@@ -1305,8 +1291,8 @@ static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const
 		TileOffset[Index].X = 100.0f;
 		TileOffset[Index].Y = 100.0f;
 	}
-		RHIUnlockVertexBuffer( TileOffsetsRef );
-	}
+	RHIUnlockVertexBuffer( TileOffsetsRef );
+}
 
 /**
  * Builds a vertex buffer containing the offsets for a set of tiles.
@@ -1618,6 +1604,11 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
 	{
 		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+
+		if (Platform == SP_OPENGL_ES2_ANDROID)
+		{
+			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
+		}
 	}
 
 	/** Default constructor. */
@@ -1663,6 +1654,11 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
+
+		if (Platform == SP_OPENGL_ES2_ANDROID)
+		{
+			OutEnvironment.CompilerFlags.Add(CFLAG_FeatureLevelES31);
+		}
 	}
 
 	/** Default constructor. */
@@ -2440,7 +2436,7 @@ public:
 	/** Initialize RHI resources. */
 	virtual void InitRHI() override
 	{
-		if ( ParticleCount > 0 && RHISupportsGPUParticles(GetFeatureLevel()) )
+		if ( ParticleCount > 0 && RHISupportsGPUParticles() )
 		{
 			const int32 BufferStride = sizeof(FParticleIndex);
 			const int32 BufferSize = ParticleCount * BufferStride;
@@ -2851,13 +2847,14 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		}
 
 		const bool bTranslucent = RendersWithTranslucentMaterial();
+		const bool bSupportsDepthBufferCollision = IsParticleCollisionModeSupported(FXSystem->GetShaderPlatform(), PCM_DepthBuffer);
 
 		// If the simulation wants to collide against the depth buffer
 		// and we're not rendering with an opaque material put the 
 		// simulation in the collision phase.
 		if (bTranslucent && Simulation->bWantsCollision && Simulation->CollisionMode == EParticleCollisionMode::SceneDepth)
 		{
-			Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDepthBuffer;
+			Simulation->SimulationPhase = bSupportsDepthBufferCollision ? EParticleSimulatePhase::CollisionDepthBuffer : EParticleSimulatePhase::Main;
 		}
 		else if (Simulation->bWantsCollision && Simulation->CollisionMode == EParticleCollisionMode::DistanceField)
 		{
@@ -2865,7 +2862,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 			{
 				Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDistanceField;
 			}
-			else if (bTranslucent)
+			else if (bTranslucent && bSupportsDepthBufferCollision)
 			{
 				// Fall back to scene depth collision if translucent
 				Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDepthBuffer;
@@ -2895,7 +2892,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	{
 		auto FeatureLevel = ViewFamily.GetFeatureLevel();
 
-		if (RHISupportsGPUParticles(FeatureLevel))
+		if (RHISupportsGPUParticles())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_GPUSpritePreRenderTime);
 
@@ -3277,7 +3274,7 @@ public:
 		const bool bSimulateGPUParticles = 
 			FXConsoleVariables::bFreezeGPUSimulation == false &&
 			FXConsoleVariables::bFreezeParticleSimulation == false &&
-			RHISupportsGPUParticles(FXSystem->GetFeatureLevel());
+			RHISupportsGPUParticles();
 
 		if (bSimulateGPUParticles)
 		{
@@ -3480,7 +3477,7 @@ public:
 
 		if (FXConsoleVariables::bFreezeGPUSimulation ||
 			FXConsoleVariables::bFreezeParticleSimulation ||
-			!RHISupportsGPUParticles(FXSystem->GetFeatureLevel()))
+			!RHISupportsGPUParticles())
 		{
 			return;
 		}
@@ -4335,7 +4332,7 @@ void FFXSystem::DestroyGPUSimulation()
 
 void FFXSystem::InitGPUResources()
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		check(ParticleSimulationResources);
 		ParticleSimulationResources->Init();
@@ -4344,7 +4341,7 @@ void FFXSystem::InitGPUResources()
 
 void FFXSystem::ReleaseGPUResources()
 {
-	if (RHISupportsGPUParticles(FeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		check(ParticleSimulationResources);
 		ParticleSimulationResources->Release();
@@ -4755,7 +4752,7 @@ void FFXSystem::SimulateGPUParticles(
 	SetRenderTarget(RHICmdList, FTextureRHIParamRef(), FTextureRHIParamRef());
 
 	// Stats.
-	if (Phase == EParticleSimulatePhase::Last)
+	if (Phase == GetLastParticleSimulationPhase(GetShaderPlatform()))
 	{
 		INC_DWORD_STAT_BY(STAT_FreeGPUTiles,ParticleSimulationResources->GetFreeTileCount());
 	}
@@ -4899,7 +4896,7 @@ static void ClearGPUSpriteResourceData( FGPUSpriteResources* Resources )
 FGPUSpriteResources* BeginCreateGPUSpriteResources( const FGPUSpriteResourceData& InResourceData )
 {
 	FGPUSpriteResources* Resources = NULL;
-	if (RHISupportsGPUParticles(GMaxRHIFeatureLevel))
+	if (RHISupportsGPUParticles())
 	{
 		Resources = new FGPUSpriteResources;
 		SetGPUSpriteResourceData( Resources, InResourceData );

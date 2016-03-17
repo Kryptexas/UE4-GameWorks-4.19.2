@@ -23,6 +23,7 @@
 #include "LandscapeRender.h"
 #include "LandscapeVersion.h"
 #include "Algo/Accumulate.h"
+#include "LandscapeLight.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -656,6 +657,20 @@ FLandscapeComponentGrassData::FLandscapeComponentGrassData(ULandscapeComponent* 
 {
 }
 
+bool ULandscapeComponent::MaterialHasGrass() const
+{
+	UMaterialInterface* Material = GetLandscapeMaterial();
+	TArray<const UMaterialExpressionLandscapeGrassOutput*> GrassExpressions;
+	Material->GetMaterial()->GetAllExpressionsOfType<UMaterialExpressionLandscapeGrassOutput>(GrassExpressions);
+	if (GrassExpressions.Num() > 0 &&
+		GrassExpressions[0]->GrassTypes.Num() > 0)
+	{
+		return GrassExpressions[0]->GrassTypes.ContainsByPredicate([](FGrassInput& GrassInput) { return (GrassInput.Input.IsConnected() && GrassInput.GrassType); });
+	}
+
+	return false;
+}
+
 bool ULandscapeComponent::IsGrassMapOutdated() const
 {
 	if (GrassData->HasData())
@@ -814,8 +829,33 @@ void ALandscapeProxy::RenderGrassMaps(const TArray<ULandscapeComponent*>& InLand
 	FLandscapeGrassWeightExporter Exporter(this, InLandscapeComponents, GrassTypes, true, MoveTemp(HeightMips));
 	Exporter.ApplyResults();
 }
+#endif //WITH_EDITOR
 
-#endif
+// the purpose of this class is to copy the lightmap from the terrain, and set the CoordinateScale and CoordinateBias to zero.
+// we re-use the same texture references, so the memory cost is relatively minimal.
+class FLandscapeGrassLightMap : public FLightMap2D
+{
+public:
+	FLandscapeGrassLightMap(const FLightMap2D& InLightMap)
+		: FLightMap2D(InLightMap)
+	{
+		CoordinateScale = FVector2D::ZeroVector;
+		CoordinateBias = FVector2D::ZeroVector;
+	}
+};
+
+// the purpose of this class is to copy the shadowmap from the terrain, and set the CoordinateScale and CoordinateBias to zero.
+// we re-use the same texture references, so the memory cost is relatively minimal.
+class FLandscapeGrassShadowMap : public FShadowMap2D
+{
+public:
+	FLandscapeGrassShadowMap(const FShadowMap2D& InShadowMap)
+		: FShadowMap2D(InShadowMap)
+	{
+		CoordinateScale = FVector2D::ZeroVector;
+		CoordinateBias = FVector2D::ZeroVector;
+	}
+};
 
 //
 // UMaterialExpressionLandscapeGrassOutput
@@ -1127,6 +1167,8 @@ struct FGrassBuilderBase
 	int32 ComponentSizeQuads;
 	FVector Origin;
 	FVector Extent;
+	FVector ComponentOrigin;
+
 	int32 SqrtMaxInstances;
 
 	FGrassBuilderBase(ALandscapeProxy* Landscape, ULandscapeComponent* Component, const FGrassVariety& GrassVariety, int32 SqrtSubsections = 1, int32 SubX = 0, int32 SubY = 0)
@@ -1146,9 +1188,11 @@ struct FGrassBuilderBase
 		Origin = FVector(DrawScale.X * float(SectionBase.X), DrawScale.Y * float(SectionBase.Y), 0.0f);
 		Extent = FVector(DrawScale.X * float(SectionBase.X + ComponentSizeQuads), DrawScale.Y * float(SectionBase.Y + ComponentSizeQuads), 0.0f) - Origin;
 
+		ComponentOrigin = Origin - FVector(DrawScale.X * LandscapeSectionOffset.X, DrawScale.Y * LandscapeSectionOffset.Y, 0.0f);
+
 		SqrtMaxInstances = FMath::CeilToInt(FMath::Sqrt(FMath::Abs(Extent.X * Extent.Y * GrassDensity / 1000.0f / 1000.0f)));
 
-		if (!SqrtMaxInstances)
+		if (SqrtMaxInstances == 0)
 		{
 			bHaveValidData = false;
 		}
@@ -1235,6 +1279,14 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	int32 TotalInstances;
 	uint32 HaltonBaseIndex;
 
+	bool UseLandscapeLightmap;
+	FVector2D LightmapBaseBias;
+	FVector2D LightmapBaseScale;
+	FVector2D ShadowmapBaseBias;
+	FVector2D ShadowmapBaseScale;
+	FVector2D LightMapComponentBias;
+	FVector2D LightMapComponentScale;
+
 	// output
 	FStaticMeshInstanceData InstanceBuffer;
 	TArray<FClusterNode> ClusterTree;
@@ -1243,23 +1295,103 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	FAsyncGrassBuilder(ALandscapeProxy* Landscape, ULandscapeComponent* Component, const ULandscapeGrassType* GrassType, const FGrassVariety& GrassVariety, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent, int32 SqrtSubsections, int32 SubX, int32 SubY, uint32 InHaltonBaseIndex)
 		: FGrassBuilderBase(Landscape, Component, GrassVariety, SqrtSubsections, SubX, SubY)
 		, GrassData(Component, GrassType)
+		, RandomRotation(GrassVariety.RandomRotation)
+		, AlignToSurface(GrassVariety.AlignToSurface)
+		, PlacementJitter(GrassVariety.PlacementJitter)
+		, RandomStream(HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed)
+		, XForm(LandscapeToWorld * HierarchicalInstancedStaticMeshComponent->ComponentToWorld.ToMatrixWithScale().Inverse())
+		, MeshBox(GrassVariety.GrassMesh->GetBounds().GetBox())
+		, DesiredInstancesPerLeaf(HierarchicalInstancedStaticMeshComponent->DesiredInstancesPerLeaf())
+
+		, RasterTime(0)
+		, BuildTime(0)
+		, InstanceTime(0)
+		, TotalInstances(0)
+		, HaltonBaseIndex(InHaltonBaseIndex)
+
+		, UseLandscapeLightmap(GrassVariety.bUseLandscapeLightmap)
+		, LightmapBaseBias(FVector2D::ZeroVector)
+		, LightmapBaseScale(FVector2D::UnitVector)
+		, ShadowmapBaseBias(FVector2D::ZeroVector)
+		, ShadowmapBaseScale(FVector2D::UnitVector)
+		, LightMapComponentBias(FVector2D::ZeroVector)
+		, LightMapComponentScale(FVector2D::UnitVector)
+
+		// output
 		, InstanceBuffer(/*NeedsCPUAccess*/ false, /*bSupportsVertexHalfFloat*/ GVertexElementTypeSupport.IsSupported(VET_Half2))
+		, ClusterTree()
+		, OutOcclusionLayerNum(0)
 	{
 		bHaveValidData = bHaveValidData && GrassData.IsValid();
-		XForm = LandscapeToWorld * HierarchicalInstancedStaticMeshComponent->ComponentToWorld.ToMatrixWithScale().Inverse();
-		PlacementJitter = GrassVariety.PlacementJitter;
-		RandomRotation = GrassVariety.RandomRotation;
-		AlignToSurface = GrassVariety.AlignToSurface;
 
-		RandomStream.Initialize(HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed);
-
-		MeshBox = GrassVariety.GrassMesh->GetBounds().GetBox();
-		DesiredInstancesPerLeaf = HierarchicalInstancedStaticMeshComponent->DesiredInstancesPerLeaf();
 		check(DesiredInstancesPerLeaf > 0);
 
-		TotalInstances = 0;
-		HaltonBaseIndex = InHaltonBaseIndex;
-		OutOcclusionLayerNum = 0;
+		if (UseLandscapeLightmap)
+		{
+			InitLandscapeLightmap(Component);
+		}
+	}
+
+	void InitLandscapeLightmap(ULandscapeComponent* Component)
+	{
+		const int32 SubsectionSizeQuads = Component->SubsectionSizeQuads;
+		const int32 NumSubsections = Component->NumSubsections;
+		const int32 ComponentSizeQuads = Component->ComponentSizeQuads;
+	
+		const int32 StaticLightingLOD = Component->GetLandscapeProxy()->StaticLightingLOD;
+		const int32 ComponentSizeVerts = ComponentSizeQuads + 1;
+		const float LightMapRes = Component->StaticLightingResolution > 0.0f ? Component->StaticLightingResolution : Component->GetLandscapeProxy()->StaticLightingResolution;
+		const int32 LightingLOD = Component->GetLandscapeProxy()->StaticLightingLOD;
+
+		// Calculate mapping from landscape to lightmap space for mapping landscape grass to the landscape lightmap
+		// Copied from the calculation of FLandscapeUniformShaderParameters::LandscapeLightmapScaleBias in FLandscapeComponentSceneProxy::OnTransformChanged()
+		int32 PatchExpandCountX = 0;
+		int32 PatchExpandCountY = 0;
+		int32 DesiredSize = 1;
+		const float LightMapRatio = ::GetTerrainExpandPatchCount(LightMapRes, PatchExpandCountX, PatchExpandCountY, ComponentSizeQuads, (NumSubsections * (SubsectionSizeQuads + 1)), DesiredSize, LightingLOD);
+		const float LightmapLODScaleX = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountX);
+		const float LightmapLODScaleY = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountY);
+		const float LightmapBiasX = PatchExpandCountX * LightmapLODScaleX;
+		const float LightmapBiasY = PatchExpandCountY * LightmapLODScaleY;
+		const float LightmapScaleX = LightmapLODScaleX * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / ComponentSizeQuads;
+		const float LightmapScaleY = LightmapLODScaleY * (float)((ComponentSizeVerts >> StaticLightingLOD) - 1) / ComponentSizeQuads;
+
+		LightMapComponentScale = FVector2D(LightmapScaleX, LightmapScaleY) / FVector2D(DrawScale);
+		LightMapComponentBias = FVector2D(LightmapBiasX, LightmapBiasY);
+
+		if (Component->LightMap.IsValid())
+		{
+			LightmapBaseBias = Component->LightMap->GetLightMap2D()->GetCoordinateBias();
+			LightmapBaseScale = Component->LightMap->GetLightMap2D()->GetCoordinateScale();
+		}
+
+		if (Component->ShadowMap.IsValid())
+		{
+			ShadowmapBaseBias = Component->ShadowMap->GetShadowMap2D()->GetCoordinateBias();
+			ShadowmapBaseScale = Component->ShadowMap->GetShadowMap2D()->GetCoordinateScale();
+		}
+	}
+
+	void SetInstance(int32 InstanceIndex, const FMatrix& InXForm, float RandomFraction)
+	{
+		if (UseLandscapeLightmap)
+		{
+			float InstanceX = InXForm.M[3][0];
+			float InstanceY = InXForm.M[3][1];
+
+			FVector2D NormalizedGrassCoordinate;
+			NormalizedGrassCoordinate.X = (InstanceX - ComponentOrigin.X) * LightMapComponentScale.X + LightMapComponentBias.X;
+			NormalizedGrassCoordinate.Y = (InstanceY - ComponentOrigin.Y) * LightMapComponentScale.Y + LightMapComponentBias.Y;
+
+			FVector2D LightMapCoordinate = NormalizedGrassCoordinate * LightmapBaseScale + LightmapBaseBias;
+			FVector2D ShadowMapCoordinate = NormalizedGrassCoordinate * ShadowmapBaseScale + ShadowmapBaseBias;
+
+			InstanceBuffer.SetInstance(InstanceIndex, InXForm, RandomStream.GetFraction(), LightMapCoordinate, ShadowMapCoordinate);
+		}
+		else
+		{
+			InstanceBuffer.SetInstance(InstanceIndex, InXForm, RandomStream.GetFraction());
+		}
 	}
 
 	void Build()
@@ -1339,7 +1471,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 				for (int32 InstanceIndex = 0; InstanceIndex < InstanceTransforms.Num(); InstanceIndex++)
 				{
 					const FMatrix& OutXForm = InstanceTransforms[InstanceIndex];
-					InstanceBuffer.SetInstance(InstanceIndex, OutXForm, RandomStream.GetFraction());
+					SetInstance(InstanceIndex, OutXForm, RandomStream.GetFraction());
 				}
 			}
 		}
@@ -1422,7 +1554,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 									OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
 								}
 								InstanceTransforms[OutInstanceIndex] = OutXForm;
-								InstanceBuffer.SetInstance(OutInstanceIndex++, OutXForm, RandomStream.GetFraction());
+								SetInstance(OutInstanceIndex++, OutXForm, RandomStream.GetFraction());
 							}
 							InstanceIndex++;
 						}
@@ -1873,6 +2005,23 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										HierarchicalInstancedStaticMeshComponent->bDisableCollision = true;
 										HierarchicalInstancedStaticMeshComponent->SetCanEverAffectNavigation(false);
 										HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed = FolSeed;
+
+										if (GrassVariety.bUseLandscapeLightmap
+											&& GrassVariety.GrassMesh->GetNumLODs() > 0
+											&& Component->LightMap.IsValid())
+										{
+											HierarchicalInstancedStaticMeshComponent->SetLODDataCount(GrassVariety.GrassMesh->GetNumLODs(), GrassVariety.GrassMesh->GetNumLODs());
+											HierarchicalInstancedStaticMeshComponent->bHasCachedStaticLighting = true;
+
+											FLightMapRef GrassLightMap = new FLandscapeGrassLightMap(*Component->LightMap->GetLightMap2D());
+											FShadowMapRef GrassShadowMap = Component->ShadowMap ? new FLandscapeGrassShadowMap(*Component->ShadowMap->GetShadowMap2D()) : nullptr;
+
+											for (auto& LOD : HierarchicalInstancedStaticMeshComponent->LODData)
+											{
+												LOD.LightMap = GrassLightMap;
+												LOD.ShadowMap = GrassShadowMap;
+											}
+										}
 
 										if (!Cameras.Num() || bDisableGPUCull)
 										{

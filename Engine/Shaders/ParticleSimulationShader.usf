@@ -110,10 +110,23 @@ Texture3D VectorFieldTextures0;
 Texture3D VectorFieldTextures1;
 Texture3D VectorFieldTextures2;
 Texture3D VectorFieldTextures3;
+//Texture3D VectorFieldTextures4;
+//Texture3D VectorFieldTextures5;
+//Texture3D VectorFieldTextures6;
+//Texture3D VectorFieldTextures7;
+//Texture3D VectorFieldTextures8;
+//Texture3D VectorFieldTextures9;
+
 SamplerState VectorFieldTexturesSampler0;
 SamplerState VectorFieldTexturesSampler1;
 SamplerState VectorFieldTexturesSampler2;
 SamplerState VectorFieldTexturesSampler3;
+//SamplerState VectorFieldTexturesSampler4;
+//SamplerState VectorFieldTexturesSampler5;
+//SamplerState VectorFieldTexturesSampler6;
+//SamplerState VectorFieldTexturesSampler7;
+//SamplerState VectorFieldTexturesSampler8;
+//SamplerState VectorFieldTexturesSampler9;
 
 /**
  * Computes the orbit velocity to apply to the particle based on time.
@@ -149,6 +162,15 @@ float3 ComputeOrbitVelocity(float Time, float RandomOrbit)
 	if (Index == 1) return Texture3DSample(VectorFieldTextures1, VectorFieldTexturesSampler1, UV).xyz;
 	if (Index == 2) return Texture3DSample(VectorFieldTextures2, VectorFieldTexturesSampler2, UV).xyz;
 	return Texture3DSample(VectorFieldTextures3, VectorFieldTexturesSampler3, UV).xyz;
+
+//	if (Index == 3) return Texture3DSample(VectorFieldTextures3, VectorFieldTexturesSampler3, UV).xyz;
+//	if (Index == 4) return Texture3DSample(VectorFieldTextures4, VectorFieldTexturesSampler4, UV).xyz;
+//	if (Index == 5) return Texture3DSample(VectorFieldTextures5, VectorFieldTexturesSampler5, UV).xyz;
+//	if (Index == 6) return Texture3DSample(VectorFieldTextures6, VectorFieldTexturesSampler6, UV).xyz;
+//	if (Index == 7) return Texture3DSample(VectorFieldTextures7, VectorFieldTexturesSampler7, UV).xyz;
+//	if (Index == 8) return Texture3DSample(VectorFieldTextures8, VectorFieldTexturesSampler8, UV).xyz;
+//	
+//	return Texture3DSample(VectorFieldTextures9, VectorFieldTexturesSampler9, UV).xyz;
  }
 
 /**
@@ -182,7 +204,7 @@ void EvaluateVectorFields(out float3 OutForce, out float4 OutVelocity, float3 Po
 
 		// @todo compat hack: Some compilers only allow constant indexing into a texture array
 //		float3 VectorSample = Texture3DSample(VectorFieldTextures[VectorFieldIndex], VectorFieldTexturesSampler, saturate(VolumeUV)).xyz;
-float3 VectorSample = SampleVectorFieldTexture(VectorFieldIndex, saturate(VolumeUV));
+		float3 VectorSample = SampleVectorFieldTexture(VectorFieldIndex, saturate(VolumeUV));
 
 		float3 Vec = mul(float4(VectorSample,0), VectorFields.VolumeToWorld[VectorFieldIndex]).xyz;
 		TotalForce += (Vec * DistanceWeight * Intensity);
@@ -540,11 +562,13 @@ void PixelMain(
 
 void PixelMain(
 	in FShaderInterpolants Interpolants,
-	out float4 OutPosition : SV_Target0
+	out float4 OutPosition : SV_Target0,
+	out float4 OutVelocity : SV_Target1
 	)
 {
 	// Relative time just needs to be >1.0f so the particle is considered dead.
 	OutPosition = float4(0,0,0,2.0f);
+	OutVelocity = float4(0,0,0,0);
 }
 
 #endif // #if PARTICLE_CLEAR_PIXELSHADER

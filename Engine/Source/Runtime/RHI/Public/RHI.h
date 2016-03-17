@@ -123,6 +123,15 @@ extern RHI_API bool GSupportsSeparateRenderTargetBlendState;
 /** True if the RHI can render to a depth-only render target with no additional color render target. */
 extern RHI_API bool GSupportsDepthRenderTargetWithoutColorRenderTarget;
 
+/** true if the RHI supports 3D textures */
+extern RHI_API bool GSupportsTexture3D;
+
+/** true if the RHI supports SRVs */
+extern RHI_API bool GSupportsResourceView;
+
+/** true if the RHI supports MRT */
+extern RHI_API bool GSupportsMultipleRenderTargets;
+
 /** True if the RHI and current hardware supports supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
 

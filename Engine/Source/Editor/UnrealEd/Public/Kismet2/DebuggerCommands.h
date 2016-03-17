@@ -47,6 +47,7 @@ public:
 	TSharedPtr<FUICommandInfo> PlayInEditorFloating;
 	TSharedPtr<FUICommandInfo> PlayInVR;
 	TSharedPtr<FUICommandInfo> PlayInMobilePreview;
+	TSharedPtr<FUICommandInfo> PlayInVulkanPreview;
 	TSharedPtr<FUICommandInfo> PlayInNewProcess;
 	TSharedPtr<FUICommandInfo> PlayInCameraLocation;
 	TSharedPtr<FUICommandInfo> PlayInDefaultPlayerStart;

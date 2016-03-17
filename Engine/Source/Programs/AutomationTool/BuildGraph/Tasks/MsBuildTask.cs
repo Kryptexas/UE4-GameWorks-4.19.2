@@ -1,4 +1,4 @@
-﻿using AutomationTool;
+using AutomationTool;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -309,7 +309,7 @@ namespace BuildGraph.Tasks
 			Document.Load(File.FullName);
 
 			// Check the root element is the right type
-			HashSet<FileReference> ProjectBuildProducts = new HashSet<FileReference>();
+//			HashSet<FileReference> ProjectBuildProducts = new HashSet<FileReference>();
 			if(Document.DocumentElement.Name != "Project")
 			{
 				OutProjectInfo = null;

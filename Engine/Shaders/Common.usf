@@ -21,6 +21,11 @@
 	#include "MetalCommon.usf"
 #endif
 
+#if VULKAN_PROFILE
+	// Helps with iteration when changing Vulkan shader code generation backend.
+	#include "VulkanCommon.usf"
+#endif
+
 #ifndef FORCE_FLOATS
 #define FORCE_FLOATS 0
 #endif
@@ -112,7 +117,11 @@
 #elif SM4_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 #elif VULKAN_PROFILE
-	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#define FEATURE_LEVEL FEATURE_LEVEL_ES3_1
+#elif VULKAN_PROFILE_SM4
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+#elif VULKAN_PROFILE_SM5
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 #elif GL3_PROFILE || GL4_PROFILE
 
 	#if GL3_PROFILE
@@ -347,6 +356,33 @@ MaterialFloat length2(MaterialFloat3 v)
 MaterialFloat length2(MaterialFloat4 v)
 {
 	return dot(v, v);
+}
+
+uint Mod(uint a, uint b)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
+	return a % b;
+#else
+	return a - (b * (uint)((float)a / (float)b));
+#endif
+}
+
+uint2 Mod(uint2 a, uint2 b)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
+	return a % b;
+#else
+	return a - (b * (uint2)((float2)a / (float2)b));
+#endif
+}
+
+uint3 Mod(uint3 a, uint3 b)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1
+	return a % b;
+#else
+	return a - (b * (uint3)((float3)a / (float3)b));
+#endif
 }
 
 MaterialFloat UnClampedPow(MaterialFloat X, MaterialFloat Y)

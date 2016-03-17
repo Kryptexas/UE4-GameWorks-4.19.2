@@ -48,6 +48,9 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bSeparateTranslucency : 1;
 
 	UPROPERTY()
+	uint32 bMobileSeparateTranslucency : 1;
+
+	UPROPERTY()
 	uint32 bNormalTranslucency : 1;
 
 	UPROPERTY()
@@ -68,6 +71,7 @@ struct ENGINE_API FMaterialRelevance
 		, bMasked(false)
 		, bDistortion(false)
 		, bSeparateTranslucency(false)
+		, bMobileSeparateTranslucency(false)
 		, bNormalTranslucency(false)
 		, bDisableDepthTest(false)		
 		, bOutputsVelocityInBasePass(true)
@@ -82,6 +86,7 @@ struct ENGINE_API FMaterialRelevance
 		bMasked |= B.bMasked;
 		bDistortion |= B.bDistortion;
 		bSeparateTranslucency |= B.bSeparateTranslucency;
+		bMobileSeparateTranslucency |= B.bMobileSeparateTranslucency;
 		bNormalTranslucency |= B.bNormalTranslucency;
 		bDisableDepthTest |= B.bDisableDepthTest;
 		ShadingModelMask |= B.ShadingModelMask;

@@ -37,6 +37,34 @@ namespace EParticleSimulatePhase
 	};
 };
 
+enum EParticleCollisionShaderMode
+{
+	PCM_None,
+	PCM_DepthBuffer,
+	PCM_DistanceField
+};
+
+/** Helper function to determine whether the given particle collision shader mode is supported on the given shader platform */
+inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EParticleCollisionShaderMode InCollisionShaderMode)
+{
+	switch (InCollisionShaderMode)
+	{
+	case PCM_None:
+		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::ES2);
+	case PCM_DepthBuffer:
+		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4);
+	case PCM_DistanceField:
+		return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM5);
+	}
+	check(0);
+	return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM4);
+}
+
+inline EParticleSimulatePhase::Type GetLastParticleSimulationPhase(EShaderPlatform InPlatform)
+{
+	return (IsParticleCollisionModeSupported(InPlatform, PCM_DepthBuffer) ? EParticleSimulatePhase::Last : EParticleSimulatePhase::Main);
+}
+
 /*-----------------------------------------------------------------------------
 	FX system declaration.
 -----------------------------------------------------------------------------*/

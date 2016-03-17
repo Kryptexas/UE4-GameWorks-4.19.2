@@ -373,6 +373,9 @@ public:
 	void GeneratePlatformVertexData();
 	void GeneratePlatformPixelData();
 
+	// true if the component's landscape material supports grass
+	bool MaterialHasGrass() const;
+
 	/** Creates and destroys cooked grass data stored in the map */
 	void RenderGrassMap();
 	void RemoveGrassMap();

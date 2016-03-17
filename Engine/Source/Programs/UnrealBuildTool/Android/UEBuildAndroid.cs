@@ -25,6 +25,36 @@ namespace UnrealBuildTool
 
 		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
 		{
+            string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+            if (!String.IsNullOrEmpty(VulkanSDKPath))
+            {
+                ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
+                bool bSupportsVulkan = false;
+                Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
+
+                // Make sure we have the .so to compile in the RHI. 
+                // Currently using static linking. This check will go away when we support dynamic linking.
+                string VulkanSoPath = System.IO.Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so");
+                bool bSoExists = System.IO.File.Exists(VulkanSoPath);
+
+                if (bSupportsVulkan && bSoExists)
+                {
+                    PlatformExtraModules.Add("VulkanRHI");
+                }
+                else
+                {
+                    if (bSupportsVulkan == false)
+                    {
+                        Log.TraceInformationOnce("Vulkan SDK is installed, but the project disabled Vulkan (bSupportsVulkan setting in Engine). Disabling Vulkan RHI for Android");
+                    }
+                    else if (bSoExists == false)
+                    {
+                        Log.TraceInformationOnce("Vulkan SDK is installed, but [SDK]/Source/lib/libvulkan.so was not found. Disabling Vulkan RHI for Android");
+                    }
+                }
+            }
+
+
 		}
 
 		/// <summary>
@@ -151,6 +181,25 @@ namespace UnrealBuildTool
 
 			UEBuildConfiguration.bCompileSimplygon = false;
 			BuildConfiguration.bDeployAfterCompile = true;
+
+			//!! RONIN need to fix this
+			bool bBuildWithVulkan = false;
+			string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
+			if (!string.IsNullOrEmpty(VulkanSDKPath))
+			{
+				string VulkanSoPath = Path.Combine(VulkanSDKPath, "Source/lib/libvulkan.so");
+				bBuildWithVulkan = System.IO.File.Exists(VulkanSoPath);
+			}
+
+			if (bBuildWithVulkan)
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_ANDROID_VULKAN=1");
+                Log.TraceInformationOnce("building with Vulkan");
+			}
+			else
+			{
+				Log.TraceInformationOnce("building WITHOUT VULKAN define");
+			}
 		}
 
 		private bool UseTegraGraphicsDebugger(UEBuildTarget InBuildTarget)
@@ -199,7 +248,7 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			return false;
+			return true;
 		}
 
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
@@ -234,10 +283,10 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
-				"bBuildForES2", "bBuildForES31",
+				"bBuildForES2", "bBuildForES31", "bSupportsVulkan",
 			};
 
-			// look up iOS specific settings
+			// look up Android specific settings
 			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings",
 				BoolKeys, null, null))
 			{

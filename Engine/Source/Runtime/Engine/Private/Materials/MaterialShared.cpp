@@ -876,6 +876,11 @@ bool FMaterialResource::IsSeparateTranslucencyEnabled() const
 	return Material->bEnableSeparateTranslucency && !IsUIMaterial();
 }
 
+bool FMaterialResource::IsMobileSeparateTranslucencyEnabled() const
+{
+	return Material->bEnableMobileSeparateTranslucency && !IsUIMaterial();
+}
+
 bool FMaterialResource::IsAdaptiveTessellationEnabled() const
 {
 	return Material->bEnableAdaptiveTessellation;
@@ -889,6 +894,11 @@ bool FMaterialResource::IsFullyRough() const
 bool FMaterialResource::IsUsingHQForwardReflections() const
 {
 	return Material->bUseHQForwardReflections;
+}
+
+bool FMaterialResource::IsUsingPlanarReflection() const
+{
+	return Material->bAcceptsPlanarReflection;
 }
 
 bool FMaterialResource::OutputsVelocityOnBasePass() const
@@ -1361,6 +1371,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR_COPY"), RequiresSceneColorCopy_GameThread() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_FULLY_ROUGH"), IsFullyRough() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_HQ_FORWARD_REFLECTIONS"), IsUsingHQForwardReflections() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_PLANAR_REFLECTION"), IsUsingPlanarReflection() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NONMETAL"), IsNonmetal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));

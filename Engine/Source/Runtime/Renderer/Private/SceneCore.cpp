@@ -179,9 +179,13 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 		{
 			// Update the game thread's counter of number of uncached static lighting interactions.
 			bUncachedStaticLighting = true;
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			LightSceneInfo->NumUnbuiltInteractions++;
+	#endif
 
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			FPlatformAtomics::InterlockedIncrement(&PrimitiveSceneInfo->Scene->NumUncachedStaticLightingInteractions);
+	#endif
 
 #if WITH_EDITOR
 			PrimitiveSceneInfo->Proxy->NumUncachedStaticLightingInteractions++;

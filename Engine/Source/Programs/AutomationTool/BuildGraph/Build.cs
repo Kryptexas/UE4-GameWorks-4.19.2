@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -86,8 +86,8 @@ namespace AutomationTool
 			string SchemaFileName = ParseParamValue("Schema", null);
 			string ExportFileName = ParseParamValue("Export", null);
 
-			string BranchName = ParseParamValue("Branch", P4Enabled? P4Env.BuildRootP4 : "Unknown");
-			string ChangeName = ParseParamValue("Change", P4Enabled? P4Env.ChangelistString : "Unknown");
+//			string BranchName = ParseParamValue("Branch", P4Enabled? P4Env.BuildRootP4 : "Unknown");
+//			string ChangeName = ParseParamValue("Change", P4Enabled? P4Env.ChangelistString : "Unknown");
 
 			string SharedStorageDir = ParseParamValue("SharedStorageDir", null);
 			string SingleNodeName = ParseParamValue("SingleNode", null);

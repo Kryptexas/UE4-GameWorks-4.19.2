@@ -874,8 +874,16 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 	{
 		SimpleDirectionalLight = LightSceneInfo;
 
-		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy
-		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (!ShouldUseDeferredRenderer() && !SimpleDirectionalLight->Proxy->HasStaticShadowing());		
+		// if we are forward rendered and this light is a dynamic shadowcast then we need to update the static draw lists to pick a new lightingpolicy:
+		bool bForwardRendererRequiresLightPolicyChange = !ShouldUseDeferredRenderer() &&
+			(
+			// this light is a dynamic shadowcast 
+			!SimpleDirectionalLight->Proxy->HasStaticShadowing() || 
+			// this light casts both static and dynamic shadows.
+			SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects()
+			);
+
+		bScenesPrimitivesNeedStaticMeshElementUpdate = bScenesPrimitivesNeedStaticMeshElementUpdate || (bForwardRendererRequiresLightPolicyChange);
 	}
 
 	if (LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight() &&
@@ -1395,6 +1403,14 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 			{
 				if( LightSceneInfo && LightSceneInfo->bVisible )
 				{
+					// Forward renderer:
+					// a light with no color/intensity can cause the light to be ignored when rendering.
+					// thus, lights that change state in this way must update the draw lists.
+					Scene->bScenesPrimitivesNeedStaticMeshElementUpdate =
+						Scene->bScenesPrimitivesNeedStaticMeshElementUpdate ||
+						( !Scene->ShouldUseDeferredRenderer() 
+						&& Parameters.NewColor.IsAlmostBlack() != LightSceneInfo->Proxy->GetColor().IsAlmostBlack() );
+
 					LightSceneInfo->Proxy->SetColor(Parameters.NewColor);
 					LightSceneInfo->Proxy->IndirectLightingScale = Parameters.NewIndirectLightingScale;
 

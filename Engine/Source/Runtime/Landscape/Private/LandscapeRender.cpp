@@ -2546,8 +2546,6 @@ ULandscapeMaterialInstanceConstant::ULandscapeMaterialInstanceConstant(const FOb
 	: Super(ObjectInitializer)
 {
 	bIsLayerThumbnail = false;
-	DataWeightmapIndex = -1;
-	DataWeightmapSize = 0;
 }
 
 void ULandscapeComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const

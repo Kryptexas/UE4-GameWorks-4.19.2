@@ -5300,7 +5300,12 @@ bool UWorld::IsPlayInPreview() const
 
 bool UWorld::IsPlayInMobilePreview() const
 {
-	return FParse::Param(FCommandLine::Get(), TEXT("simmobile"));
+	return FParse::Param(FCommandLine::Get(), TEXT("simmobile")) && !IsPlayInVulkanPreview();
+}
+
+bool UWorld::IsPlayInVulkanPreview() const
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("vulkan"));
 }
 
 bool UWorld::IsGameWorld() const

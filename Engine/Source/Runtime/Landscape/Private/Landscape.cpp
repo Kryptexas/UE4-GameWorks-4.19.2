@@ -572,7 +572,7 @@ void ULandscapeComponent::PostLoad()
 #endif // WITH_EDITOR
 
 ALandscape::ALandscape(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	bIsProxy = false;
 
@@ -587,8 +587,14 @@ ALandscape* ALandscape::GetLandscapeActor()
 }
 
 ALandscapeProxy::ALandscapeProxy(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bHasLandscapeGrass(true)
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bTickEvenWhenPaused = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+	bAllowTickBeforeBeginPlay = true;
+
 	bReplicates = false;
 	NetUpdateFrequency = 10.0f;
 	bHidden = false;
@@ -991,12 +997,23 @@ void ULandscapeInfo::BeginDestroy()
 }
 
 #if WITH_EDITOR
-
 void ALandscape::CheckForErrors()
 {
 }
-
 #endif
+
+void ALandscapeProxy::PreSave()
+{
+	Super::PreSave();
+
+#if WITH_EDITOR
+	// Work out whether we have grass or not for the next game run
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		bHasLandscapeGrass = LandscapeComponents.ContainsByPredicate([](ULandscapeComponent* Component) { return Component->MaterialHasGrass(); });
+	}
+#endif
+}
 
 void ALandscapeProxy::Serialize(FArchive& Ar)
 {
@@ -1337,6 +1354,13 @@ bool ULandscapeInfo::UpdateLayerInfoMap(ALandscapeProxy* Proxy /*= NULL*/, bool 
 void ALandscapeProxy::PostLoad()
 {
 	Super::PostLoad();
+
+	// disable ticking if we have no grass to tick
+	if (!GIsEditor && !bHasLandscapeGrass)
+	{
+		SetActorTickEnabled(false);
+		PrimaryActorTick.bCanEverTick = false;
+	}
 
 	// Temporary
 	if (ComponentSizeQuads == 0 && LandscapeComponents.Num() > 0)
@@ -2287,26 +2311,24 @@ bool LandscapeMaterialsParameterSetUpdater(FStaticParameterSet &StaticParameterS
 	return UpdateParameterSet<FStaticTerrainLayerWeightParameter, UMaterialExpressionLandscapeLayerWeight>(StaticParameterSet.TerrainLayerWeightParameters, ParentMaterial);
 }
 
-void ALandscapeProxy::Tick(float DeltaSeconds)
+void ALandscapeProxy::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
-	if (!IsPendingKillPending() && !HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_ClassDefaultObject) && 
-		!HasAnyInternalFlags(EInternalObjectFlags::PendingKill | EInternalObjectFlags::AsyncLoading | EInternalObjectFlags::Unreachable))
-	{
-		// this is NOT an actor tick, it is a FTickableGameObject tick
-		// the super tick is for an actor tick...
-		//Super::Tick(DeltaSeconds);
-
 #if WITH_EDITOR
-		UWorld* World = GetWorld();
-
-		if (GIsEditor && World && !World->IsPlayInEditor())
-		{
-			UpdateBakedTextures();
-		}
+	// editor-only
+	UWorld* World = GetWorld();
+	if (GIsEditor && World && !World->IsPlayInEditor())
+	{
+		UpdateBakedTextures();
+	}
 #endif
 
+	// Tick grass even while paused or in the editor
+	if (GIsEditor || bHasLandscapeGrass)
+	{
 		TickGrass();
 	}
+
+	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 }
 
 ALandscapeProxy::~ALandscapeProxy()

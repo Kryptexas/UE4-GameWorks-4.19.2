@@ -538,7 +538,9 @@ void FRHICommandListExecutor::LatchBypass()
 		}
 
 		check((GRHICommandList.OutstandingCmdListCount.GetValue() == 2 && !GRHICommandList.GetImmediateCommandList().HasCommands() && !GRHICommandList.GetImmediateAsyncComputeCommandList().HasCommands()));
-		bool NewBypass = (CVarRHICmdBypass.GetValueOnAnyThread() >= 1);
+
+		check(!GDynamicRHI || IsInRenderingThread());
+		bool NewBypass = IsInGameThread() || (CVarRHICmdBypass.GetValueOnAnyThread() >= 1);
 
 		if (NewBypass && !bLatchedBypass)
 		{

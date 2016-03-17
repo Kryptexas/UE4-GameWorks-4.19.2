@@ -1137,7 +1137,7 @@ public:
 		ensureMsgf(DepthStencilAccess.IsStencilWrite() || StencilStoreAction == ERenderTargetStoreAction::ENoAction, TEXT("Stencil is read-only, but we are performing a store.  This is a waste on mobile.  If stencil can't change, we don't need to store it out again"));
 	}
 
-	bool operator==(const FRHIDepthRenderTargetView& Other)
+	bool operator==(const FRHIDepthRenderTargetView& Other) const
 	{
 		return
 			Texture == Other.Texture &&
@@ -1201,6 +1201,65 @@ public:
 		}
 		bClearDepth = bInClearDepth;		
 		bClearStencil = bInClearStencil;		
+	}
+
+	uint32 CalculateHash() const
+	{
+		// Need a separate struct so we can memzero/remove dependencies on reference counts
+		struct FHashableStruct
+		{
+			// Depth goes in the last slot
+			FRHITexture* Texture[MaxSimultaneousRenderTargets + 1];
+			uint32 MipIndex[MaxSimultaneousRenderTargets];
+			uint32 ArraySliceIndex[MaxSimultaneousRenderTargets];
+			ERenderTargetLoadAction LoadAction[MaxSimultaneousRenderTargets];
+			ERenderTargetStoreAction StoreAction[MaxSimultaneousRenderTargets];
+
+			ERenderTargetLoadAction		DepthLoadAction;
+			ERenderTargetStoreAction	DepthStoreAction;
+			ERenderTargetLoadAction		StencilLoadAction;
+			ERenderTargetStoreAction	StencilStoreAction;
+			FExclusiveDepthStencil		DepthStencilAccess;
+
+			bool bClearDepth;
+			bool bClearStencil;
+			bool bClearColor;
+			FRHIUnorderedAccessView* UnorderedAccessView[MaxSimultaneousUAVs];
+
+			void Set(const FRHISetRenderTargetsInfo& RTInfo)
+			{
+				FMemory::Memzero(*this);
+				for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
+				{
+					Texture[Index] = RTInfo.ColorRenderTarget[Index].Texture;
+					MipIndex[Index] = RTInfo.ColorRenderTarget[Index].MipIndex;
+					ArraySliceIndex[Index] = RTInfo.ColorRenderTarget[Index].ArraySliceIndex;
+					LoadAction[Index] = RTInfo.ColorRenderTarget[Index].LoadAction;
+					StoreAction[Index] = RTInfo.ColorRenderTarget[Index].StoreAction;
+				}
+
+				Texture[MaxSimultaneousRenderTargets] = RTInfo.DepthStencilRenderTarget.Texture;
+				DepthLoadAction = RTInfo.DepthStencilRenderTarget.DepthLoadAction;
+				DepthStoreAction = RTInfo.DepthStencilRenderTarget.DepthStoreAction;
+				StencilLoadAction = RTInfo.DepthStencilRenderTarget.StencilLoadAction;
+				StencilStoreAction = RTInfo.DepthStencilRenderTarget.GetStencilStoreAction();
+				DepthStencilAccess = RTInfo.DepthStencilRenderTarget.GetDepthStencilAccess();
+
+				bClearDepth = RTInfo.bClearDepth;
+				bClearStencil = RTInfo.bClearStencil;
+				bClearColor = RTInfo.bClearColor;
+
+				for (int32 Index = 0; Index < MaxSimultaneousUAVs; ++Index)
+				{
+					UnorderedAccessView[Index] = RTInfo.UnorderedAccessView[Index];
+				}
+			}
+		};
+
+		FHashableStruct RTHash;
+		FMemory::Memzero(RTHash);
+		RTHash.Set(*this);
+		return FCrc::MemCrc32(&RTHash, sizeof(RTHash));
 	}
 };
 

@@ -269,6 +269,7 @@ bool USceneCaptureComponent::GetSettingForShowFlag(FString FlagName, FEngineShow
 
 USceneCaptureComponent2D::USceneCaptureComponent2D(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, ReflectionPlaneNormal(0.0f, 0.0f, 1.0f) // World space up vector
 {
 	FOVAngle = 90.0f;
 	bAutoActivate = true;

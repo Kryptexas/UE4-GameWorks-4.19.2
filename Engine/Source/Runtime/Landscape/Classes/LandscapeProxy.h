@@ -322,7 +322,7 @@ public:
 };
 
 UCLASS(NotPlaceable, NotBlueprintable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"), MinimalAPI)
-class ALandscapeProxy : public AActor, public FTickableGameObject
+class ALandscapeProxy : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -399,6 +399,11 @@ public:
 	FCachedLandscapeFoliage FoliageCache;
 	/** A transient data structure for tracking the grass tasks*/
 	TArray<FAsyncTask<FAsyncGrassTask>* > AsyncFoliageTasks;
+
+	// Only used outside of the editor (e.g. in cooked builds)
+	// Disables landscape grass processing entirely if no landscape components have landscape grass configured
+	UPROPERTY()
+	bool bHasLandscapeGrass;
 
 	/**
 	 *	The resolution to cache lighting at, in texels/quad in one axis
@@ -590,26 +595,12 @@ public:
 	int32 UpdateBakedTexturesCountdown;
 #endif
 
-	//~ Begin FTickableGameObject Interface.
-	virtual void Tick(float DeltaTime) override;
-	virtual bool IsTickable() const override 
-	{ 
-		return !HasAnyFlags(RF_ClassDefaultObject); 
-	}
-	virtual bool IsTickableWhenPaused() const override
-	{
-		return !HasAnyFlags(RF_ClassDefaultObject); 
-	}
-	virtual bool IsTickableInEditor() const override
-	{
-		return !HasAnyFlags(RF_ClassDefaultObject); 
-	}
-	virtual TStatId GetStatId() const override
-	{
-		return GetStatID();
-	}
+	//~ Begin AActor Interface.
+	virtual void TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+	//~ End AActor Interface
 
 	//~ Begin UObject Interface.
+	virtual void PreSave() override;
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostLoad() override;

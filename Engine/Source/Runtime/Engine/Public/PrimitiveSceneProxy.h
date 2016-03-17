@@ -393,6 +393,7 @@ public:
 	inline bool HasStaticLighting() const { return bStaticLighting; }
 	inline bool NeedsUnbuiltPreviewLighting() const { return bNeedsUnbuiltPreviewLighting; }
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
+	inline bool IsVisibleInPlanarReflection() const { return bVisibleInPlanarReflection; }
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool AffectsDynamicIndirectLighting() const { return bAffectDynamicIndirectLighting; }
 	inline bool AffectsDistanceFieldLighting() const { return bAffectDistanceFieldLighting; }
@@ -431,6 +432,7 @@ public:
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
 	inline bool IsStaticPathAvailable() const { return !bDisableStaticPath; }
+	inline bool ShouldRenderCSMForDynamicObjects() const { return bReceiveCSMFromDynamicObjects; }
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -607,6 +609,9 @@ protected:
 	/** True if the primitive casts static shadows. */
 	uint32 bCastStaticShadow : 1;
 
+	/** True if the primitive is rendered into the planar reflection pass. */
+	uint32 bVisibleInPlanarReflection : 1;
+
 	/** 
 	 * Whether the object should cast a volumetric translucent shadow.
 	 * Volumetric translucent shadows are useful for primitives with smoothly changing opacity like particles representing a volume, 
@@ -702,6 +707,9 @@ private:
 	/** Whether this primitive should be composited onto the scene after post processing (editor only) */
 	uint32 bUseEditorCompositing : 1;
 
+	/** Should this primitive receive dynamic-only CSM shadows */
+	uint32 bReceiveCSMFromDynamicObjects : 1;
+		
 	/** This primitive has bRenderCustomDepth enabled */
 	uint32 bRenderCustomDepth : 1;
 

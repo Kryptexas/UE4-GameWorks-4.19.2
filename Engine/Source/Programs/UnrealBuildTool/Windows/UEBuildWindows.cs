@@ -92,14 +92,14 @@ namespace UnrealBuildTool
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
 					Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 
-					//#todo-rco: Remove when public
 					string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
 					{
-/*						if ((!String.IsNullOrEmpty(VulkanSDKPath)))
+                        if ((!String.IsNullOrEmpty(VulkanSDKPath)))
 						{
+            				Rules.DynamicallyLoadedModuleNames.Remove("VulkanRHI");
 							Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
-						}
-*/					}
+                        }
+					}
 				}
 			}
 

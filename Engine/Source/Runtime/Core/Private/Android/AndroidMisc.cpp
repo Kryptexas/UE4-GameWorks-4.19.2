@@ -8,6 +8,7 @@
 #include "ModuleManager.h"
 #include <android/keycodes.h>
 #include <string.h>
+#include <dlfcn.h>
 
 #include "AndroidPlatformCrashContext.h"
 #include "PlatformMallocCrash.h"
@@ -361,8 +362,24 @@ bool FAndroidMisc::ControlScreensaver(EScreenSaverAction Action)
 	return true;
 }
 
+bool FAndroidMisc::HasPlatformFeature(const TCHAR* FeatureName)
+{
+	if (FCString::Stricmp(FeatureName, TEXT("Vulkan")) == 0)
+	{
+		return FAndroidMisc::ShouldUseVulkan();
+	}
+
+	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
+}
+
 bool FAndroidMisc::AllowRenderThread()
 {
+	if (FAndroidMisc::ShouldUseVulkan())
+	{
+		// @todo vulkan: stop forcing no RT!
+		return false;
+	}
+
 	// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
 	// when running multithreaded it can't handle multiple threads using opengl (bug)
 	// tested with lg optimus 2x and motorola xoom 
@@ -399,6 +416,75 @@ int32 FAndroidMisc::NumberOfCores()
 	int32 NumberOfCores = android_getCpuCount();
 	return NumberOfCores;
 }
+
+static FAndroidMisc::FCPUState CurrentCPUState;
+
+FAndroidMisc::FCPUState& FAndroidMisc::GetCPUState(){
+	uint64_t UserTime, NiceTime, SystemTime, SoftIRQTime, IRQTime, IdleTime, IOWaitTime;
+	int32		Index = 0;
+	ANSICHAR	Buffer[500];
+
+	CurrentCPUState.CoreCount = FAndroidMisc::NumberOfCores();
+	FILE* FileHandle = fopen("/proc/stat", "r");
+	if (FileHandle){
+		CurrentCPUState.ActivatedCoreCount = 0;
+		for (size_t n = 0; n < CurrentCPUState.CoreCount; n++) {
+			CurrentCPUState.Status[n] = 0;
+			CurrentCPUState.PreviousUsage[n] = CurrentCPUState.CurrentUsage[n];
+		}
+		
+		while (fgets(Buffer, 100, FileHandle)) {
+			sscanf(Buffer, "%4s %8llu %8llu %8llu %8llu %8llu %8llu %8llu", CurrentCPUState.Name,
+				&UserTime, &NiceTime, &SystemTime, &IdleTime, &IOWaitTime, &IRQTime,
+				&SoftIRQTime);
+
+			if (0 == strncmp(CurrentCPUState.Name, "cpu", 3)) {
+				Index = CurrentCPUState.Name[3] - '0';
+				if (Index >= 0 && Index < CurrentCPUState.CoreCount) {
+					CurrentCPUState.CurrentUsage[Index].IdleTime = IdleTime;
+					CurrentCPUState.CurrentUsage[Index].NiceTime = NiceTime;
+					CurrentCPUState.CurrentUsage[Index].SystemTime = SystemTime;
+					CurrentCPUState.CurrentUsage[Index].SoftIRQTime = SoftIRQTime;
+					CurrentCPUState.CurrentUsage[Index].IRQTime = IRQTime;
+					CurrentCPUState.CurrentUsage[Index].IOWaitTime = IOWaitTime;
+					CurrentCPUState.CurrentUsage[Index].UserTime = UserTime;
+					CurrentCPUState.CurrentUsage[Index].TotalTime = UserTime + NiceTime + SystemTime + SoftIRQTime + IRQTime + IdleTime + IOWaitTime;
+					CurrentCPUState.Status[Index] = 1;
+					CurrentCPUState.ActivatedCoreCount++;
+				}
+				if (Index == CurrentCPUState.CoreCount-1)
+					break;
+			}
+		}
+		fclose(FileHandle);
+
+		double WallTime;
+		double CPULoad[CurrentCPUState.CoreCount];
+		CurrentCPUState.AverageUtilization = 0.0; 
+		for (size_t n = 0; n < CurrentCPUState.CoreCount; n++) {
+			if (CurrentCPUState.CurrentUsage[n].TotalTime <= CurrentCPUState.PreviousUsage[n].TotalTime) {
+				CPULoad[n] = 0;
+				continue;
+			}
+
+			WallTime = CurrentCPUState.CurrentUsage[n].TotalTime - CurrentCPUState.PreviousUsage[n].TotalTime;
+			IdleTime = CurrentCPUState.CurrentUsage[n].IdleTime - CurrentCPUState.PreviousUsage[n].IdleTime;
+
+			if (!WallTime || WallTime <= IdleTime) {
+				CPULoad[n] = 0;
+				continue;
+			}
+			CPULoad[n] = (WallTime - (double)IdleTime) * 100.0 / WallTime;
+			CurrentCPUState.Utilization[n] = CPULoad[n];
+			CurrentCPUState.AverageUtilization += CPULoad[n];
+		}
+		CurrentCPUState.AverageUtilization /= (double)CurrentCPUState.CoreCount;
+	}else{
+		FMemory::Memzero(CurrentCPUState);		
+	}
+	return CurrentCPUState;
+}
+
 
 extern FString GFilePathBase;
 extern FString GFontPathBase;
@@ -937,6 +1023,66 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 		}
 	}
 	return AndroidBuildVersion;
+}
+
+extern bool AndroidThunkCpp_GetMetaDataBoolean(const FString& Key);
+
+bool FAndroidMisc::ShouldUseVulkan()
+{
+#if PLATFORM_ANDROID_VULKAN
+	// just do this check once
+	static int32 ShouldUseVulkanFlag = -1;
+	if (ShouldUseVulkanFlag == -1)
+	{
+		// assume no
+		ShouldUseVulkanFlag = 0;
+
+		// make sure the project setting has enabled Vulkan support (per-project user settings in the editor) from AndroidManifest.xml
+		bool bSupportsVulkan = AndroidThunkCpp_GetMetaDataBoolean(TEXT("com.epicgames.ue4.GameActivity.bSupportsVulkan"));
+		if (bSupportsVulkan)
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with Vulkan support"));
+
+			// does commandline override (using GL or ES2 for legacy commandlines)
+			bool bForceOpenGL = FParse::Param(FCommandLine::Get(), TEXT("GL")) || FParse::Param(FCommandLine::Get(), TEXT("OpenGL")) || FParse::Param(FCommandLine::Get(), TEXT("ES2"));
+			if (!bForceOpenGL)
+			{
+				// check for libvulkan_sec.so or libvulkan.so for detection
+				void* Lib = dlopen("libvulkan_sec.so", 0);
+				if (Lib != NULL)
+				{
+					ShouldUseVulkanFlag = 1;
+					FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library detected, using Vulkan"));
+				}
+				else
+				{
+					Lib = dlopen("libvulkan.so", 0);
+					if (Lib != NULL)
+					{
+						ShouldUseVulkanFlag = 1;
+						FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library detected, using Vulkan"));
+					}
+					else
+					{
+						FPlatformMisc::LowLevelOutputDebugString(TEXT("Vulkan library NOT detected, falling back to OpenGL ES"));
+					}
+				}
+			}
+			else
+			{
+				FPlatformMisc::LowLevelOutputDebugString(TEXT("Forced OpenGL ES"));
+			}
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("Compiled with OpenGL ES support"));
+		}
+	}
+
+	return ShouldUseVulkanFlag ==1;
+#else
+	return false;
+#endif
 }
 
 #if !UE_BUILD_SHIPPING

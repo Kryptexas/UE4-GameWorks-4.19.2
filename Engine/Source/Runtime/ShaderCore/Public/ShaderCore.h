@@ -113,6 +113,8 @@ enum ECompilerFlags
 	CFLAG_OnChip,
 	CFLAG_KeepDebugInfo,
 	CFLAG_NoFastMath,
+	// Compile ES2 with ES3.1 features
+	CFLAG_FeatureLevelES31
 };
 
 /**

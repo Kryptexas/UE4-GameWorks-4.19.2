@@ -15,6 +15,8 @@
 
 // maximum number of sample available using unrolled loop shaders
 #define MAX_FILTER_COMPILE_TIME_SAMPLES 32
+#define MAX_FILTER_COMPILE_TIME_SAMPLES_SM4 16
+#define MAX_FILTER_COMPILE_TIME_SAMPLES_ES2 7
 
 #define MAX_PACKED_SAMPLES_OFFSET ((MAX_FILTER_SAMPLES + 1) / 2)
 
@@ -67,11 +69,11 @@ public:
 		}
 		else if( IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) )
 		{
-			return CompileTimeNumSamples <= 16;
+			return CompileTimeNumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_SM4;
 		}
 		else
 		{
-			return CompileTimeNumSamples <= 7;
+			return CompileTimeNumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_ES2;
 		}
 	}
 
@@ -187,6 +189,78 @@ protected:
 #undef VARIATION1
 #undef VARIATION2
 
+
+/** A vertex shader which filters a texture. Can re reused by other postprocessing pixel shaders. */
+template<uint32 NumSamples>
+class TFilterVS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(TFilterVS, Global);
+public:
+
+	/** The number of 4D constant registers used to hold the packed 2D sample offsets. */
+	enum { NumSampleChunks = (NumSamples + 1) / 2 };
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
+		{
+			return true;
+		}
+		else if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
+		{
+			return NumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_SM4;
+		}
+		else
+		{
+			return NumSamples <= MAX_FILTER_COMPILE_TIME_SAMPLES_ES2;
+		}
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("NUM_SAMPLES"), NumSamples);
+	}
+
+	/** Default constructor. */
+	TFilterVS() {}
+
+	/** Initialization constructor. */
+	TFilterVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		SampleOffsets.Bind(Initializer.ParameterMap, TEXT("SampleOffsets"));
+	}
+
+	/** Serializer */
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << SampleOffsets;
+
+		return bShaderHasOutdatedParameters;
+	}
+
+	/** Sets shader parameter values */
+	void SetParameters(FRHICommandList& RHICmdList, const FVector2D* SampleOffsetsValue)
+	{
+		FVector4 PackedSampleOffsetsValue[NumSampleChunks];
+		for (int32 SampleIndex = 0; SampleIndex < NumSamples; SampleIndex += 2)
+		{
+			PackedSampleOffsetsValue[SampleIndex / 2].X = SampleOffsetsValue[SampleIndex + 0].X;
+			PackedSampleOffsetsValue[SampleIndex / 2].Y = SampleOffsetsValue[SampleIndex + 0].Y;
+			if (SampleIndex + 1 < NumSamples)
+			{
+				PackedSampleOffsetsValue[SampleIndex / 2].W = SampleOffsetsValue[SampleIndex + 1].X;
+				PackedSampleOffsetsValue[SampleIndex / 2].Z = SampleOffsetsValue[SampleIndex + 1].Y;
+			}
+		}
+		SetShaderValueArray(RHICmdList, GetVertexShader(), SampleOffsets, PackedSampleOffsetsValue, NumSampleChunks);
+	}
+
+private:
+	FShaderParameter SampleOffsets;
+};
 
 /** A macro to declaring a filter shader type for a specific number of samples. */
 #define IMPLEMENT_FILTER_SHADER_TYPE(NumSamples) \
@@ -556,18 +630,21 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		BlurWeights[i] = TintValue * OffsetAndWeight[i].Y;
 	}
 
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
-
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
 	bool bRequiresClear = true;
 	// check if we have to clear the whole surface.
 	// Otherwise perform the clear when the dest rectangle has been computed.
 	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
 	{
-		Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 		bRequiresClear = false;
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
+	else
+	{
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);	
+	}
+
+	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
 	FIntRect SrcRect = FIntRect::DivideAndRoundUp(View.ViewRect, SrcScaleFactor);
 	if (bRequiresClear)
@@ -662,6 +739,8 @@ FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(E
 	Ret.Reset();
 	Ret.DebugName = DebugName;
 	Ret.AutoWritable = false;
+
+	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
 	return Ret;
 }
@@ -780,11 +859,11 @@ uint32 FRCPassPostProcessWeightedSampleSum::GetMaxNumSamples(ERHIFeatureLevel::T
 
 	if (InFeatureLevel == ERHIFeatureLevel::SM4)
 	{
-		MaxNumSamples = 16;
+		MaxNumSamples = MAX_FILTER_COMPILE_TIME_SAMPLES_SM4;
 	}
 	else if (InFeatureLevel < ERHIFeatureLevel::SM4)
 	{
-		MaxNumSamples = 7;
+		MaxNumSamples = MAX_FILTER_COMPILE_TIME_SAMPLES_ES2;
 	}
 	return MaxNumSamples;
 }

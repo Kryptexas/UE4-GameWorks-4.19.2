@@ -1028,7 +1028,6 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetMeshRenderSta
 {
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-
 	VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState, PolicyContext.ShadowInfo);
 
 	if( HullShader && DomainShader )
@@ -3939,7 +3938,7 @@ static bool IsProjectedForwardShadowPotentiallyVisible(const FProjectedShadowInf
 		return false;
 	}
 
-	if (ProjectedShadowInfo->bWholeSceneShadow && LightSceneInfo.Proxy->HasStaticShadowing())
+	if (ProjectedShadowInfo->bWholeSceneShadow && (LightSceneInfo.Proxy->HasStaticShadowing() && !LightSceneInfo.Proxy->UseCSMForDynamicObjects()))
 	{
 		return false;
 	}
@@ -4056,7 +4055,7 @@ void FForwardShadingSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediat
 
 		if (LightSceneInfo.ShouldRenderViewIndependentWholeSceneShadows()
 			// Only render movable shadowcasting lights
-			&& !LightSceneInfo.Proxy->HasStaticShadowing()
+			&& (!LightSceneInfo.Proxy->HasStaticShadowing() || LightSceneInfo.Proxy->StationaryLightUsesCSMForMovableShadows())
 			&& CheckForProjectedShadows(&LightSceneInfo))
 		{
 			bool bRender = false;

@@ -2134,7 +2134,7 @@ inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 
 				// Include all primitives for movable lights, but only statically shadowed primitives from a light with static shadowing,
 				// Since lights with static shadowing still create per-object shadows for primitives without static shadowing.
-				if( (!LightProxy->HasStaticLighting() || !ProjectedShadowInfo->GetLightSceneInfo().IsPrecomputedLightingValid())
+				if( (!LightProxy->HasStaticLighting() || (!ProjectedShadowInfo->GetLightSceneInfo().IsPrecomputedLightingValid() || LightProxy->UseCSMForDynamicObjects()))
 					// Check if this primitive is in the shadow's cylinder
 					&& PrimitiveDistanceFromCylinderAxisSq < CombinedRadiusSq
 					// Check if the primitive is closer than the cylinder cap toward the light
@@ -2170,7 +2170,9 @@ inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 							// Exclude primitives that will create a per-object shadow from a stationary light
 							&& !ShouldCreateObjectShadowForStationaryLight(&ProjectedShadowInfo->GetLightSceneInfo(), PrimitiveSceneInfo->Proxy, true)
 							// Only render shadows from objects that use static lighting during a reflection capture, since the reflection capture doesn't update at runtime
-							&& (!bStaticSceneOnly || PrimitiveProxy->HasStaticLighting()) 
+							&& (!bStaticSceneOnly || PrimitiveProxy->HasStaticLighting())
+							// Render dynamic lit objects if CSMForDynamicObjects is enabled.
+							&& (!LightProxy->UseCSMForDynamicObjects() || !PrimitiveProxy->HasStaticLighting())
 							&& !bScreenSpaceSizeCulled )
 						{
 							// Add this primitive to the shadow.
@@ -2464,7 +2466,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 			{
 				if (LightSceneInfo->ShouldRenderViewIndependentWholeSceneShadows() && Scene->SimpleDirectionalLight == LightSceneInfo
 					// Only consider movable shadowcasting lights
-					&& !LightSceneInfo->Proxy->HasStaticShadowing()
+					&& (!LightSceneInfo->Proxy->HasStaticShadowing() || LightSceneInfo->Proxy->UseCSMForDynamicObjects())
 					)
 				{
 					AddViewDependentWholeSceneShadowsForView(ViewDependentWholeSceneShadows, ViewDependentWholeSceneShadowsThatNeedCulling, VisibleLightInfo, *LightSceneInfo);
@@ -2540,7 +2542,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 	GatherShadowDynamicMeshElements();
 	
 	bCSMShadowsInUse = bCSMAllocated;
-	bModulatedShadowsInUse = bPerObjectShadowsInUse;
+	bModulatedShadowsInUse = bPerObjectShadowsInUse && !bCSMShadowsInUse;
 }
 
 void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)

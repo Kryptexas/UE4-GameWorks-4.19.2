@@ -2659,6 +2659,9 @@ public:
 	/** Returns whether script is executing within a mobile preview window */
 	bool IsPlayInMobilePreview() const;
 
+	/** Returns whether script is executing within a vulkan preview window */
+	bool IsPlayInVulkanPreview() const;
+
 	/** Returns true if this world is any kind of game world (including PIE worlds) */
 	bool IsGameWorld() const;
 
@@ -2977,6 +2980,5 @@ FORCEINLINE_DEBUGGABLE bool UWorld::ComponentSweepMulti(TArray<struct FHitResult
 	// Pass through to FQuat version.
 	return ComponentSweepMulti(OutHits, PrimComp, Start, End, Rot.Quaternion(), Params);
 }
-
 
 

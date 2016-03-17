@@ -381,6 +381,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsViewInfo(false)
 	, bIsSceneCapture(false)
 	, bIsReflectionCapture(false)
+	, bIsPlanarReflectionCapture(false)
+	, ReflectionPlane(0.0f)
 	, bIsLocked(false)
 	, bStaticSceneOnly(false)
 	, bIsInstancedStereoEnabled(false)
@@ -555,7 +557,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	// OpenGL Gamma space output in GLSL flips Y when rendering directly to the back buffer (so not needed on PC, as we never render directly into the back buffer)
 	auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
 	bool bUsingForwardRenderer = FSceneInterface::ShouldUseDeferredRenderer(FeatureLevel) == false;
-	bool bPlatformRequiresReverseCulling = (IsOpenGLPlatform(ShaderPlatform) && bUsingForwardRenderer && !IsPCPlatform(ShaderPlatform));
+	bool bPlatformRequiresReverseCulling = (IsOpenGLPlatform(ShaderPlatform) && bUsingForwardRenderer && !IsPCPlatform(ShaderPlatform) && !IsVulkanMobilePlatform(ShaderPlatform));
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	check(MobileHDRCvar);
 	bReverseCulling = (bPlatformRequiresReverseCulling && MobileHDRCvar->GetValueOnAnyThread() == 0) ? !bReverseCulling : bReverseCulling;
@@ -1108,6 +1110,11 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 			Dest.DepthOfFieldMethod = Src.DepthOfFieldMethod;
 		}
 
+		if (Src.bOverride_MobileHQGaussian)
+		{
+			Dest.bMobileHQGaussian = Src.bMobileHQGaussian;
+		}	
+
 		if (Src.bOverride_AutoExposureMethod)
 		{
 			Dest.AutoExposureMethod = Src.AutoExposureMethod;
@@ -1347,11 +1354,13 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	}
 
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-		if(CVar ? CVar->GetValueOnGameThread() > 1 : false)
+		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+		if (FeatureLevel <= ERHIFeatureLevel::ES3_1 && CVarMobileMSAA ? CVarMobileMSAA->GetValueOnGameThread() > 1 : false)
 		{
+			//@todo Ronin check what we support under MSAA
+
 			// Turn off various features which won't work with mobile MSAA.
-			FinalPostProcessSettings.DepthOfFieldScale = 0.0f;
+			//FinalPostProcessSettings.DepthOfFieldScale = 0.0f;
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
 	}

@@ -595,7 +595,8 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 	}
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-	if ((GShaderPlatformForFeatureLevel[View->GetFeatureLevel()] == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+	const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[View->GetFeatureLevel()];
+	if ((GSupportsShaderFramebufferFetch && (ShaderPlatform == SP_METAL || ShaderPlatform == SP_VULKAN_PCES3_1)) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
 	{
 		Bitmask += TonemapperMsaa;
 	}
@@ -610,8 +611,11 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 	{
 		// add full mobile post if FP16 is supported.
 		Bitmask += TonemapperGenerateBitmaskPost(View);
-		Bitmask += (View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? TonemapperDOF         : 0;
-		Bitmask += (View->bLightShaftUse)                                    ? TonemapperLightShafts : 0;
+
+		bool bUseDof = View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f && (!View->FinalPostProcessSettings.bMobileHQGaussian || (View->GetFeatureLevel() < ERHIFeatureLevel::ES3_1));
+
+		Bitmask += (bUseDof)					? TonemapperDOF : 0;
+		Bitmask += (View->bLightShaftUse)		? TonemapperLightShafts : 0;
 	}
 
 	// Mobile is not supporting grain quantization and grain jitter currently.
@@ -824,7 +828,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1141,19 +1145,32 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		ConfigIndexPC, bDoGammaOnly, bDoScreenPercentageInTonemapper, DestRect.Width(), DestRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
-	
-	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
 
-	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
+	const EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[Context.GetFeatureLevel()];
+
+	if (IsVulkanPlatform(ShaderPlatform))
 	{
-		// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
-		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
+		// Clearing for letterbox mode. We could ENoAction if View.ViewRect == RT dims.
+		FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+		FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+		Context.RHICmdList.SetRenderTargetsAndClear(Info);
 	}
-	else if( ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture )
+	else
 	{
-		// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
-		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
+		// Set the view family's render target/viewport.
+		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef(), ESimpleRenderTargetMode::EUninitializedColorAndDepth);
+
+		if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
+		{
+			// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
+			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		}
+		else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
+		{
+			// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
+			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
+		}
 	}
 
 	Context.SetViewportAndCallRHI(DestRect, 0.0f, 1.0f );
@@ -1215,7 +1232,22 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	{
 		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
 		// This becomes even more important with some limited VRam (XBoxOne).
-		SceneContext.SetSceneColor(0);
+
+		//@todo Ronin - Keeping this RT around for previous frame depth
+		//SceneContext.SetSceneColor(0);
+	}
+
+	if (ViewFamily.Scene && !ViewFamily.Scene->ShouldUseDeferredRenderer())
+	{
+		// Double buffer tonemapper output for temporal AA.
+		if(View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+		{
+			FSceneViewState* ViewState = (FSceneViewState*)View.State;
+			if(ViewState) 
+			{
+				ViewState->MobileAaColor0 = PassOutputs[0].PooledRenderTarget;
+			}
+		}
 	}
 }
 
@@ -1227,6 +1259,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
+	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
 	return Ret;
 }
@@ -1298,6 +1331,7 @@ public:
 	FShaderParameter ColorShadow_Tint2;
 
 	FShaderParameter OverlayColor;
+	FShaderParameter FringeIntensity;
 
 	/** Initialization constructor. */
 	FPostProcessTonemapPS_ES2(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1321,6 +1355,7 @@ public:
 		ColorShadow_Tint2.Bind(Initializer.ParameterMap, TEXT("ColorShadow_Tint2"));
 
 		OverlayColor.Bind(Initializer.ParameterMap, TEXT("OverlayColor"));
+		FringeIntensity.Bind(Initializer.ParameterMap, TEXT("FringeIntensity"));
 	}
 	
 	// FShader interface.
@@ -1330,7 +1365,8 @@ public:
 		Ar  << PostprocessParameter << ColorScale0 << ColorScale1 << InverseGamma
 			<< TexScale << GrainScaleBiasJitter << TonemapperParams
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
-			<< OverlayColor;
+			<< OverlayColor
+			<< FringeIntensity;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -1356,6 +1392,7 @@ public:
 		}
 			
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, FringeIntensity, fabsf(Settings.SceneFringeIntensity) * 0.01f); // Interpreted as [0-1] percentage
 
 		{
 			FLinearColor Col = Settings.SceneColorTint;
@@ -1451,6 +1488,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
+	FShaderParameter FringeIntensity;
 	bool bUsedFramebufferFetch;
 
 	FPostProcessTonemapVS_ES2(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1458,6 +1496,7 @@ public:
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
+		FringeIntensity.Bind(Initializer.ParameterMap, TEXT("FringeIntensity"));
 	}
 
 	void SetVS(const FRenderingCompositePassContext& Context)
@@ -1472,12 +1511,15 @@ public:
 		// TODO: Don't use full on mobile with framebuffer fetch.
 		GrainRandomFullValue.Z = bUsedFramebufferFetch ? 0.0f : 1.0f;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
+
+		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
+		SetShaderValue(Context.RHICmdList, ShaderRHI, FringeIntensity, fabsf(Settings.SceneFringeIntensity) * 0.01f); // Interpreted as [0-1] percentage
 	}
 	
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << GrainRandomFull;
+		Ar << PostprocessParameter << GrainRandomFull << FringeIntensity;
 		return bShaderHasOutdatedParameters;
 	}
 };
@@ -1539,7 +1581,28 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DstSize = OutputDesc.Extent;
 
+	// Render mobile separate translucency primitives over the final scene color input. 
+	// This allows us to render translucent objects that aren't affected by bloom or DOF
+	if (Context.View.TranslucentPrimSet.NumSeparateTranslucencyPrims() > 0)
+	{
+		const FSceneRenderTargetItem& TranslucencyRenderTarget = GetInput(ePId_Input0)->GetOutput()->RequestSurface(Context);
+		SetRenderTarget(Context.RHICmdList, TranslucencyRenderTarget.TargetableTexture, FTextureRHIParamRef());
+		Context.SetViewportAndCallRHI(SrcRect);
+		Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		//@todo Ronin: fix & cleanup separate trans.
+		//Context.View.TranslucentPrimSet.DrawPrimitivesForForwardShading(Context.RHICmdList, Context.View, ("supply an FSceneRenderer instance!")) ;
+	}
+
 	// Set the view family's render target/viewport.
+	//@HACK: gets around an uneccessary load in Vulkan. NOT FOR MAIN as it'll probably kill GearVR
+#if 1 // AJB: Just doing this for all platforms to ensure consistent behaviour with PC.
+	//@HACK: needs to set the framebuffer to clear/ignore in vulkan (doesn't support RHIClear)
+	FRHIRenderTargetView ColorView(DestRenderTarget.TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
+	Context.RHICmdList.SetRenderTargetsAndClear(Info);
+#else
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 	// Full clear to avoid restore
@@ -1547,6 +1610,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	{
 		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 	}
+#endif
 
 	Context.SetViewportAndCallRHI(DestRect);
 
@@ -1636,5 +1700,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.Extent = DestSize;
+	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
+
 	return Ret;
 }

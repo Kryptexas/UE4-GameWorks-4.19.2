@@ -872,6 +872,9 @@ public:
 	/** Whether this light should create per object shadows for dynamic objects. */
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
 
+	/** Whether this light should create CSM for dynamic objects only (forward renderer) */
+	virtual bool UseCSMForDynamicObjects() const;
+
 	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
 	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View, bool bPrecomputedLightingIsValid) const { return 0; }
 
@@ -962,6 +965,7 @@ public:
 	inline bool CastsTranslucentShadows() const { return bCastTranslucentShadows; }
 	inline bool CastsShadowsFromCinematicObjectsOnly() const { return bCastShadowsFromCinematicObjectsOnly; }
 	inline bool CastsModulatedShadows() const { return bCastModulatedShadows; }
+	inline bool StationaryLightUsesCSMForMovableShadows() const { return bStationaryLightUsesCSMForMovableShadows; }
 	inline const FLinearColor& GetModulatedShadowColor() const { return ModulatedShadowColor; }
 	inline bool AffectsTranslucentLighting() const { return bAffectTranslucentLighting; }
 	inline bool UseRayTracedDistanceFieldShadows() const { return bUseRayTracedDistanceFieldShadows; }
@@ -1089,6 +1093,12 @@ protected:
 	/** Whether to use ray traced distance field area shadows. */
 	const uint32 bUseRayTracedDistanceFieldShadows : 1;
 
+	/** Whether the light will cast modulated shadows when using the forward renderer (mobile). */
+	uint32 bCastModulatedShadows : 1;
+
+	/** Whether to render csm shadows for movable objects only (mobile). */
+	uint32 bStationaryLightUsesCSMForMovableShadows : 1;
+
 	float RayStartOffsetDepthScale;
 
 	/** The light type (ELightComponentType) */
@@ -1110,12 +1120,10 @@ protected:
 
 	/** Only for whole scene directional lights, 0: no FarShadowCascades, otherwise the count of cascades between WholeSceneDynamicShadowRadius and FarShadowDistance that are covered by distant shadow cascades. */
 	uint32 FarShadowCascadeCount;
-
-	/** Whether the light will cast modulated shadows when using the forward renderer (mobile). */
-	uint32 bCastModulatedShadows : 1;
-
+	
 	/** Modulated shadow color. */
 	FLinearColor ModulatedShadowColor;
+
 	/**
 	 * Updates the light proxy's cached transforms.
 	 * @param InLightToWorld - The new light-to-world transform.

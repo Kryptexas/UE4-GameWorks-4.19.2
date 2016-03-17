@@ -58,7 +58,7 @@ public:
 	static bool PlayInViewport_CanExecute();
 	static void PlayInEditorFloating_Clicked();
 	static bool PlayInEditorFloating_CanExecute();
-	static void PlayInNewProcess_Clicked( bool MobilePreview );
+	static void PlayInNewProcess_Clicked( bool MobilePreview, bool VulkanPreview );
 	static bool PlayInNewProcess_CanExecute();
 	static void PlayInVR_Clicked();
 	static bool PlayInVR_CanExecute();
@@ -238,6 +238,7 @@ void FPlayWorldCommands::RegisterCommands()
 	UI_COMMAND( PlayInEditorFloating, "New Editor Window (PIE)", "Play this level in a new window", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInVR, "VR Preview", "Play this level in VR", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInMobilePreview, "Mobile Preview (PIE)", "Play this level as a mobile device preview (runs in its own process)", EUserInterfaceActionType::Check, FInputChord() );
+	UI_COMMAND( PlayInVulkanPreview, "Vulkan Preview (PIE)", "Play this level using mobile Vulkan rendering (runs in its own process)", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInNewProcess, "Standalone Game", "Play this level in a new window that runs in its own process", EUserInterfaceActionType::Check, FInputChord() );
 	UI_COMMAND( PlayInCameraLocation, "Current Camera Location", "Spawn the player at the current camera location", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( PlayInDefaultPlayerStart, "Default Player Start", "Spawn the player at the map's default player start", EUserInterfaceActionType::RadioButton, FInputChord() );
@@ -312,14 +313,21 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 		);
 
 	ActionList.MapAction( Commands.PlayInMobilePreview,
-		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, true ),
+		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, true, false ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute ),
 		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InMobilePreview ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
 		);
 
-	ActionList.MapAction( Commands.PlayInNewProcess,
-		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, false ),
+	ActionList.MapAction(Commands.PlayInVulkanPreview,
+		FExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, false, true),
+		FCanExecuteAction::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute),
+		FIsActionChecked::CreateStatic(&FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InVulkanPreview),
+		FIsActionButtonVisible::CreateStatic(&FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions)
+		);
+
+	ActionList.MapAction(Commands.PlayInNewProcess,
+		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, false, false ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute ),
 		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InNewProcess ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
@@ -562,6 +570,10 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 				PlayModeCommand = FPlayWorldCommands::Get().PlayInMobilePreview;
 				break;
 
+			case PlayMode_InVulkanPreview:
+				PlayModeCommand = FPlayWorldCommands::Get().PlayInVulkanPreview;
+				break;
+
 			case PlayMode_InNewProcess:
 				PlayModeCommand = FPlayWorldCommands::Get().PlayInNewProcess;
 				break;
@@ -594,6 +606,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 	{
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InViewPort);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InMobilePreview);
+		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InVulkanPreview);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InEditorFloating);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InVR);
 		FLocal::AddPlayModeMenuEntry(MenuBuilder, PlayMode_InNewProcess);
@@ -1076,6 +1089,10 @@ const TSharedRef < FUICommandInfo > GetLastPlaySessionCommand()
 		Command = Commands.PlayInMobilePreview.ToSharedRef();
 		break;
 
+	case PlayMode_InVulkanPreview:
+		Command = Commands.PlayInVulkanPreview.ToSharedRef();
+		break;
+
 	case PlayMode_InNewProcess:
 		Command = Commands.PlayInNewProcess.ToSharedRef();
 		break;
@@ -1132,6 +1149,10 @@ void RecordLastExecutedPlayMode()
 
 		case PlayMode_InMobilePreview:
 			PlayModeString = TEXT("InMobilePreview");
+			break;
+
+		case PlayMode_InVulkanPreview:
+			PlayModeString = TEXT("InVulkanPreview");
 			break;
 
 		case PlayMode_InNewProcess:
@@ -1345,11 +1366,15 @@ bool FInternalPlayWorldCommandCallbacks::PlayInVR_CanExecute()
 }
 
 
-void FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked( bool MobilePreview )
+void FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked( bool MobilePreview, bool VulkanPreview )
 {
 	if (MobilePreview)
 	{
 		SetLastExecutedPlayMode(PlayMode_InMobilePreview);
+	}
+	else if (VulkanPreview)
+	{
+		SetLastExecutedPlayMode(PlayMode_InVulkanPreview);
 	}
 	else
 	{
@@ -1378,7 +1403,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked( bool MobilePr
 		}
 
 		// Spawn a new window to play in.
-		GUnrealEd->RequestPlaySession(StartLoc, StartRot, MobilePreview);
+		GUnrealEd->RequestPlaySession(StartLoc, StartRot, MobilePreview, VulkanPreview);
 	}
 	else
 	{

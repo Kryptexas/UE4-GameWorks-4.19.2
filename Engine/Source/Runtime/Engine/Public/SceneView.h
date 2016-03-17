@@ -732,6 +732,12 @@ public:
 
 	/** Whether this view is being used to render a reflection capture. */
 	bool bIsReflectionCapture;
+
+	/** Whether this view is being used to render a planar reflection capture. */
+	bool bIsPlanarReflectionCapture;
+
+	/** World space reflection plane normal and origin height. Used when rendering a planar reflection capture. */
+	FVector4 ReflectionPlane;
 	
 	/** Whether this view was created from a locked viewpoint. */
 	bool bIsLocked;

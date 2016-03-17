@@ -75,7 +75,7 @@ public:
 				SetShaderValue(RHICmdList, VertexShaderRHI, DynamicParameter, FVector4(DynamicVertex->DynamicValue[0], DynamicVertex->DynamicValue[1], DynamicVertex->DynamicValue[2], DynamicVertex->DynamicValue[3]));
 			}
 
-			if (BatchParameters->PrevTransformBuffer)
+			if (BatchParameters->PrevTransformBuffer && View.FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
 				SetShaderValue(RHICmdList, VertexShaderRHI, PrevTransform0, PrevTransformVertex->PrevTransform0);
 				SetShaderValue(RHICmdList, VertexShaderRHI, PrevTransform1, PrevTransformVertex->PrevTransform1);
@@ -84,7 +84,7 @@ public:
 
 			SetShaderValue(RHICmdList, VertexShaderRHI, ParticleColor, FVector4(Vertex->Color.Component(0), Vertex->Color.Component(1), Vertex->Color.Component(2), Vertex->Color.Component(3)));
 		}
-		else
+		else if (View.FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			SetSRVParameter(RHICmdList, VertexShaderRHI, PrevTransformBuffer, MeshParticleVF->GetPreviousTransformBufferSRV());
 		}

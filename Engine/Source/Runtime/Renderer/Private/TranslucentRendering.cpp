@@ -971,22 +971,24 @@ inline float CalculateTranslucentSortKey(FPrimitiveSceneInfo* PrimitiveSceneInfo
 * @param PrimitiveSceneInfo - primitive info to add. Origin of bounds is used for sort.
 * @param ViewInfo - used to transform bounds to view space
 */
-void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency)
+void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency)
 {
 	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 
-	if(bUseSeparateTranslucency 
-		&& FeatureLevel >= ERHIFeatureLevel::SM4)
+	const bool bIsSeparateTranslucency = (bUseSeparateTranslucency && FeatureLevel >= ERHIFeatureLevel::SM4) || (bUseMobileSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4);
+
+	// Force separate translucency to be rendered normally if the feature level does not support separate translucency
+	const bool bIsNormalTranslucency = bUseNormalTranslucency || (bUseSeparateTranslucency && !bUseMobileSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4);
+
+	if (bIsSeparateTranslucency)
 	{
 		// add to list of translucent prims that use scene color
 		new(SortedSeparateTranslucencyPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
 	}
 
-	if (bUseNormalTranslucency 
-		// Force separate translucency to be rendered normally if the feature level does not support separate translucency
-		|| (bUseSeparateTranslucency && FeatureLevel < ERHIFeatureLevel::SM4))
+	if (bIsNormalTranslucency)
 	{
 		// add to list of translucent prims
 		new(SortedPrims) FSortedPrim(PrimitiveSceneInfo,SortKey,PrimitiveSceneInfo->Proxy->GetTranslucencySortPriority());
@@ -999,7 +1001,7 @@ void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Normal, int32 NumNo
 	SortedSeparateTranslucencyPrims.Append(Separate, NumSeparate);
 }
 
-void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
+void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, bool bUseMobileSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
 {
 	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
@@ -1020,7 +1022,7 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 	}
 
 	// add to list of translucent prims
-	if (bUseNormalTranslucency
+	if (bUseNormalTranslucency 
 		|| !bCanBeSeparate
 		)
 	{
@@ -1211,12 +1213,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			// Draw the view's mesh elements with the translucent drawing policy.
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_SDPG_World);
-				DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_World, false, ParallelCommandListSet);
+			DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_World, false, ParallelCommandListSet);
 			}
 			// Draw the view's mesh elements with the translucent drawing policy.
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_SDPG_Foreground);
-				DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_Foreground, false, ParallelCommandListSet);
+			DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_Foreground, false, ParallelCommandListSet);
 			}
 		}
 		FinishTranslucentRenderTarget(RHICmdList, View, TPT_NonSeparateTransluceny);
@@ -1377,7 +1379,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 						DrawAllTranslucencyPasses(RHICmdList, View, TPT_SeparateTransluceny);
 					}
 
-					SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);			
+					SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
 
 					EndTimingSeparateTranslucencyPass(RHICmdList, View);
 				}

@@ -416,6 +416,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Separate Translucency"), AdvancedDisplay)
 	uint32 bEnableSeparateTranslucency:1;
 
+	/** Indicates that the translucent material should not be affected by bloom or DOF. (Note: Depth testing is not available) */
+	UPROPERTY(EditAnywhere, Category = Translucency, meta = (DisplayName = "Mobile Separate Translucency"), AdvancedDisplay)
+	uint32 bEnableMobileSeparateTranslucency : 1;
+
 	/**
 	 * Indicates that the material should be rendered using responsive anti-aliasing. Improves sharpness of small moving particles such as sparks.
 	 * Only use for small moving features because it will cause aliasing of the background.
@@ -644,6 +648,10 @@ public:
 	/* Enables high quality reflections in the forward renderer. Enabling this setting reduces the number of samplers available to the material as two more samplers will be used for reflection cubemaps. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "High Quality Reflections"))
 	uint32 bUseHQForwardReflections : 1;
+
+	/** Whether the material should composite a planar reflection pass. */
+	UPROPERTY(EditAnywhere, Category = Mobile)
+	uint32 bAcceptsPlanarReflection : 1;
 
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)

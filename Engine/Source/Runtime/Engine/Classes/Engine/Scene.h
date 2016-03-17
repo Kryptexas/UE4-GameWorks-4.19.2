@@ -405,6 +405,9 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_DepthOfFieldMethod:1;
 
+	UPROPERTY(EditAnywhere, Category = Overrides, meta = (PinHiddenByDefault))
+	uint32 bOverride_MobileHQGaussian:1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault, InlineEditConditionToggle))
 	uint32 bOverride_DepthOfFieldBokehShape:1;
 
@@ -847,6 +850,10 @@ struct FPostProcessSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DepthOfField, meta=(editcondition = "bOverride_DepthOfFieldMethod", DisplayName = "Method"))
 	TEnumAsByte<enum EDepthOfFieldMethod> DepthOfFieldMethod;
 
+	/** Enable HQ Gaussian on high end mobile platforms. (ES3_1) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = DepthOfField, meta = (editcondition = "bOverride_MobileHQGaussian", DisplayName = "High Quality Gaussian DoF on Mobile"))
+	uint32 bMobileHQGaussian : 1;
+
 	/** CircleDOF only: Defines the opening of the camera lens, Aperture is 1/fstop, typical lens go down to f/1.2 (large opening), larger numbers reduce the DOF effect */
 	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(ClampMin = "1.0", ClampMax = "32.0", editcondition = "bOverride_DepthOfFieldFstop", DisplayName = "Aperture F-stop"))
 	float DepthOfFieldFstop;
@@ -879,7 +886,9 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(UIMin = "0.0", UIMax = "10000.0", editcondition = "bOverride_DepthOfFieldFarTransitionRegion", DisplayName = "Far Transition Region"))
 	float DepthOfFieldFarTransitionRegion;
 
-	/** BokehDOF only: To amplify the depth of field effect (like aperture)  0=off */
+	/** SM5: BokehDOF only: To amplify the depth of field effect (like aperture)  0=off 
+	    ES2: Used to blend DoF. 0=off
+	*/
 	UPROPERTY(interp, BlueprintReadWrite, Category=DepthOfField, meta=(ClampMin = "0.0", ClampMax = "2.0", editcondition = "bOverride_DepthOfFieldScale", DisplayName = "Scale"))
 	float DepthOfFieldScale;
 
@@ -1171,6 +1180,7 @@ struct FPostProcessSettings
 		ScreenSpaceReflectionIntensity = 100.0f;
 		ScreenSpaceReflectionQuality = 50.0f;
 		ScreenSpaceReflectionMaxRoughness = 0.6f;
+		bMobileHQGaussian = false;
 	}
 
 	/**

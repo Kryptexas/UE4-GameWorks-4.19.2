@@ -104,7 +104,7 @@ public:
 
 		// Set a define so we can tell in MaterialTemplate.usf when we are compiling a mesh particle vertex factory
 		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_FACTORY"),TEXT("1"));
-		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"), (GetMaxSupportedFeatureLevel(Platform) > ERHIFeatureLevel::ES2) ? 1 : 0);
+		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"),TEXT("1"));
 	}
 	
 	/**
@@ -193,15 +193,15 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 	{
-		return (GetMaxSupportedFeatureLevel(Platform) <= ERHIFeatureLevel::ES2)
-				&& FMeshParticleVertexFactory::ShouldCache(Platform, Material, ShaderType);
+		return (Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL) // Those are only platforms that might not support hardware instancing
+			&& FMeshParticleVertexFactory::ShouldCache(Platform, Material, ShaderType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMeshParticleVertexFactory::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 
-		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"), (uint32) 0);
+		OutEnvironment.SetDefine(TEXT("PARTICLE_MESH_INSTANCED"),TEXT("0"));
 	}
 };
 

@@ -776,7 +776,17 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "ProjectOnTo"))
 	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
 
-	 /**
+	/**
+	* Projects a point onto a plane defined by a point on the plane and a plane normal.
+	*
+	* @param  A1 Start of first line segment
+	* @param  PlaneBase A point on the plane.
+	* @param  PlaneNormal Normal of the plane.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Vector")
+	static void FindNearestPointsOnLineSegments(FVector Segment1Start, FVector Segment1End, FVector Segment2Start, FVector Segment2End, FVector& Segment1Point, FVector& Segment2Point);
+	
+	/**
 	 * Projects a point onto a plane defined by a point on the plane and a plane normal.
 	 *
 	 * @param  Point Point to project onto the plane.

@@ -598,6 +598,7 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	MaxDisplacement = 0.0f;
 	bOutputVelocityOnBasePass = true;
 	bEnableSeparateTranslucency = true;
+	bEnableMobileSeparateTranslucency = false;
 	bEnableResponsiveAA = false;
 	bTangentSpaceNormal = true;
 	bUseLightmapDirectionality = true;

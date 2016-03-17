@@ -827,10 +827,6 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 				{
 					for (int32 VertX = SimpleVertX1; VertX <= SimpleVertX2; VertX++)
 					{
-						// X/Y of the vertex we're looking indexed into the texture data
-						const int32 TexX = SimpleHeightmapOffsetX + SimpleCollisionSubsectionSizeVerts * SubsectionX + VertX;
-						const int32 TexY = SimpleHeightmapOffsetY + SimpleCollisionSubsectionSizeVerts * SubsectionY + VertY;
-
 						// this uses Quads as we don't want the duplicated vertices
 						const int32 CompVertX = SimpleCollisionSubsectionSizeQuads * SubsectionX + VertX;
 						const int32 CompVertY = SimpleCollisionSubsectionSizeQuads * SubsectionY + VertY;
@@ -843,6 +839,9 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* const Heightma
 						}
 						else
 						{
+							// X/Y of the vertex we're looking indexed into the texture data
+							const int32 TexX = SimpleHeightmapOffsetX + SimpleCollisionSubsectionSizeVerts * SubsectionX + VertX;
+							const int32 TexY = SimpleHeightmapOffsetY + SimpleCollisionSubsectionSizeVerts * SubsectionY + VertY;
 							const FColor& TexData = SimpleCollisionHeightmapTextureData[TexX + TexY * SimpleMipSizeU];
 
 							// Copy collision data

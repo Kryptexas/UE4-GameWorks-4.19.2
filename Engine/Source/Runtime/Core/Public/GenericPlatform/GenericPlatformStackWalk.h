@@ -65,7 +65,7 @@ struct FProgramCounterSymbolInfo final
 	uint64		ProgramCounter;
 
 	/** Default constructor. */
-	FProgramCounterSymbolInfo();
+	CORE_API FProgramCounterSymbolInfo();
 };
 
 struct FProgramCounterSymbolInfoEx;

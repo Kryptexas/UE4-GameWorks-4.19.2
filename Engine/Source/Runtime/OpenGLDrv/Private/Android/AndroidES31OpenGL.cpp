@@ -574,8 +574,12 @@ void FAndroidAppEntry::PlatformInit()
 {
 	const bool Debug = PlatformOpenGLDebugCtx();
 
-	//AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 3, 1, Debug);
-	AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, Debug);
+	// @todo vulkan: Yet another bit of FAndroidApp stuff that's in GL - and should be cleaned up if possible
+	if (!FAndroidMisc::ShouldUseVulkan())
+	{
+		//AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 3, 1, Debug);
+		AndroidEGL::GetInstance()->Init(AndroidEGL::AV_OpenGLES, 2, 0, Debug);
+	}
 }
 
 #endif

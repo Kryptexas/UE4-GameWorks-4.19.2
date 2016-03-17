@@ -1542,7 +1542,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					DynamicParameterAllocation = FGlobalDynamicVertexBuffer::Get().Allocate( ParticleCount * DynamicParameterVertexStride );
 				}
 
-				if (Source.MeshMotionBlurOffset)
+				if (Source.MeshMotionBlurOffset && FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
 					PrevTransformBuffer = MeshVertexFactory->LockPreviousTransformBuffer(ParticleCount);
 				}
@@ -1565,7 +1565,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					}
 				}
 
-				if (Source.MeshMotionBlurOffset)
+				if (Source.MeshMotionBlurOffset && FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
 					MeshVertexFactory->UnlockPreviousTransformBuffer();
 				}
@@ -1585,22 +1585,24 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.AddUninitialized(ParticleCount);
 				}
 
-				if (Source.MeshMotionBlurOffset)
+				void* PrevTransformBuffer = nullptr;
+				if (Source.MeshMotionBlurOffset && FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
 					InstanceVerticesCPU->PrevTransformDataAllocationsCPU.Reset(ParticleCount);
 					InstanceVerticesCPU->PrevTransformDataAllocationsCPU.AddUninitialized(ParticleCount);
+					PrevTransformBuffer = (void*)InstanceVerticesCPU->PrevTransformDataAllocationsCPU.GetData();
 				}
 
 				// Fill instance buffer.
 				if (Collector.ShouldUseTasks())
 				{
 					Collector.AddTask(
-						[this, View, Proxy, InstanceVerticesCPU]()
+						[this, View, Proxy, InstanceVerticesCPU, PrevTransformBuffer]()
 						{
 							GetInstanceData(
 								(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), 
 								(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), 
-								(void*)InstanceVerticesCPU->PrevTransformDataAllocationsCPU.GetData(), 
+								PrevTransformBuffer, 
 								Proxy, 
 								View
 								);
@@ -1612,7 +1614,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 					GetInstanceData(
 						(void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), 
 						(void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), 
-						(void*)InstanceVerticesCPU->PrevTransformDataAllocationsCPU.GetData(), 
+						PrevTransformBuffer, 
 						Proxy, 
 						View
 						);
@@ -2213,7 +2215,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 		CurrentInstanceVertex->Transform[1] = FVector4(Transpose.M[1][0], Transpose.M[1][1], Transpose.M[1][2], Transpose.M[1][3]);
 		CurrentInstanceVertex->Transform[2] = FVector4(Transpose.M[2][0], Transpose.M[2][1], Transpose.M[2][2], Transpose.M[2][3]);
 
-		if (Source.MeshMotionBlurOffset)
+		if (PrevTransformBuffer)
 		{
 			FVector4* PrevTransformVertex = (FVector4*)TempPrevTranformVert;
 

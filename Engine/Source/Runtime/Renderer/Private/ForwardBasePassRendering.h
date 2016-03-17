@@ -60,6 +60,7 @@ protected:
 	{
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
+		PlanarReflectionCaptureDataParameter.Bind(Initializer.ParameterMap, TEXT("PlanarReflectionCaptureData"));
 	}
 
 public:
@@ -76,6 +77,7 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
+		Ar << PlanarReflectionCaptureDataParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -90,6 +92,11 @@ public:
 	{
 		HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
+
+		if (PlanarReflectionCaptureDataParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), PlanarReflectionCaptureDataParameter, View.ReflectionPlane);
+		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -99,6 +106,7 @@ public:
 
 private:
 	FHeightFogShaderParameters HeightFogParameters;
+	FShaderParameter PlanarReflectionCaptureDataParameter;
 };
 
 template<typename LightMapPolicyType>
@@ -214,6 +222,7 @@ public:
 		ReflectionSampler1.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler1"));
 		ReflectionCubemap2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap2"));
 		ReflectionSampler2.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler2"));
+		PlanarReflectionCaptureDataParameter.Bind(Initializer.ParameterMap, TEXT("PlanarReflectionCaptureData"));
 	}
 	TBasePassForForwardShadingPSPolicyParamType() {}
 
@@ -221,6 +230,12 @@ public:
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,TextureMode);
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
+
+		if (PlanarReflectionCaptureDataParameter.IsBound())
+		{
+			check(View != nullptr);
+			SetShaderValue(RHICmdList, GetPixelShader(), PlanarReflectionCaptureDataParameter, View->ReflectionPlane);
+		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -321,6 +336,7 @@ public:
 		Ar << ReflectionPositionsAndRadii;
 		Ar << ReflectionSampler1;
 		Ar << ReflectionSampler2;
+		Ar << PlanarReflectionCaptureDataParameter;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -343,6 +359,7 @@ private:
 	FShaderResourceParameter ReflectionCubemap2;
 	FShaderResourceParameter ReflectionSampler2;
 	FShaderParameter ReflectionPositionsAndRadii;
+	FShaderParameter PlanarReflectionCaptureDataParameter;
 };
 
 template<typename LightMapPolicyType, int32 NumDynamicPointLights>
@@ -540,6 +557,9 @@ GetBasePassForForwardShadingShaders<FUniformLightMapPolicy, NumDynamicPointLight
 	case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
 		GetUniformBasePassorForwardShadingShaders<LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
+	case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+		GetUniformBasePassorForwardShadingShaders<LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+		break;
 	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
 		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
@@ -548,6 +568,9 @@ GetBasePassForForwardShadingShaders<FUniformLightMapPolicy, NumDynamicPointLight
 		break;
 	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
 		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
+		break;
+	case LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
+		GetUniformBasePassorForwardShadingShaders<LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
 		break;
 	case LMP_MOVABLE_DIRECTIONAL_LIGHT:
 		GetUniformBasePassorForwardShadingShaders<LMP_MOVABLE_DIRECTIONAL_LIGHT, NumDynamicPointLights>(Material, VertexFactoryType, bEnableSkyLight, VertexShader, PixelShader);
@@ -879,9 +902,17 @@ void ProcessBasePassMeshForForwardShading(
 		const FLightSceneInfo* SimpleDirectionalLight = Action.GetSimpleDirectionalLight();
 		const bool bUseMovableLight = SimpleDirectionalLight && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 
+		static auto* CVarAllReceiveDynamicCSM = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllReceiveDynamicCSM"));
+		const bool bAllReceiveDynamicCSM = (CVarAllReceiveDynamicCSM->GetValueOnAnyThread() == 1);
+		const bool bUseCSM = SimpleDirectionalLight && SimpleDirectionalLight->Proxy->UseCSMForDynamicObjects() && (bAllReceiveDynamicCSM || (Parameters.PrimitiveSceneProxy != nullptr && Parameters.PrimitiveSceneProxy->ShouldRenderCSMForDynamicObjects()));
+
 		if (LightMapInteraction.GetType() == LMIT_Texture)
 		{
 			// Lightmap path
+			const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
+				? Parameters.Mesh.LCI->GetShadowMapInteraction()
+				: FShadowMapInteraction();
+
 			if (bUseMovableLight)
 			{
 				// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
@@ -894,12 +925,19 @@ void ProcessBasePassMeshForForwardShading(
 					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP), Parameters.Mesh.LCI);
 				}
 			}
+			else if (bUseCSM)
+			{
+				if (ShadowMapInteraction.GetType() == SMIT_Texture && SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM), Parameters.Mesh.LCI);
+				}
+				else
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_LQ_LIGHTMAP), Parameters.Mesh.LCI);
+				}
+			}
 			else
 			{
-				const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
-					? Parameters.Mesh.LCI->GetShadowMapInteraction()
-					: FShadowMapInteraction();
-
 				if (ShadowMapInteraction.GetType() == SMIT_Texture)
 				{
 					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP), Parameters.Mesh.LCI);
@@ -931,7 +969,14 @@ void ProcessBasePassMeshForForwardShading(
 			}
 			else
 			{
-				Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT), Parameters.Mesh.LCI);
+				if (bUseCSM)
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT), Parameters.Mesh.LCI);
+				}
+				else
+				{
+					Action.template Process<FUniformLightMapPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FUniformLightMapPolicy(LMP_SIMPLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT), Parameters.Mesh.LCI);
+				}
 			}
 
 			// Exit to avoid NoLightmapPolicy

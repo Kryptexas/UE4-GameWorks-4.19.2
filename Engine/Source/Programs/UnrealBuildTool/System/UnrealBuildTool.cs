@@ -502,6 +502,7 @@ namespace UnrealBuildTool
 			string LowercaseArg = InArg.ToLowerInvariant();
 
 			string ProjectArg = null;
+            FileReference TryProjectFile;
 			if (LowercaseArg.StartsWith("-project="))
 			{
 				if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
@@ -522,7 +523,14 @@ namespace UnrealBuildTool
 				RemoteIniPath = InArg.Substring(11);
 			}
 			else
-			{
+            if (UProjectInfo.TryGetProjectForTarget(LowercaseArg, out TryProjectFile))
+            {
+                ProjectFile = TryProjectFile;
+                OutGameName = InArg;
+                return true;
+            }
+            else
+            {
 				return false;
 			}
 
@@ -885,6 +893,7 @@ namespace UnrealBuildTool
 				{
 					// This is to allow relative paths for the project file
 					Log.TraceVerbose("UBT Running for Rocket: " + ProjectFile);
+                    break;
 				}
 			}
 
@@ -1034,7 +1043,7 @@ namespace UnrealBuildTool
 					{
 						string LowercaseArg = Arg.ToLowerInvariant();
 						const string OnlyPlatformSpecificForArg = "-onlyplatformspecificfor=";
-						if (ParseRocketCommandlineArg(Arg, ref GameName, ref ProjectFile))
+						if (ProjectFile == null && ParseRocketCommandlineArg(Arg, ref GameName, ref ProjectFile))
 						{
 							// Already handled at startup. Calling now just to properly set the game name
 							continue;

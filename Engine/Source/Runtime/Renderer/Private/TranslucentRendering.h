@@ -98,6 +98,11 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
+		bool bRenderingSeparateTranslucency;
+
+		ContextType(bool InbRenderingSeparateTranslucency)
+		:	bRenderingSeparateTranslucency(InbRenderingSeparateTranslucency)
+		{}
 	};
 
 	/**
