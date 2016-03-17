@@ -1441,7 +1441,7 @@ bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) co
 	int32 Value = FSceneRenderTargets::CVarSetSeperateTranslucencyEnabled.GetValueOnRenderThread();
 
 	return (Value != 0) && CurrentFeatureLevel >= ERHIFeatureLevel::SM4
-		&& View.Family->EngineShowFlags.PostProcessing
+		&& (View.Family->EngineShowFlags.PostProcessing || View.Family->EngineShowFlags.ShaderComplexity)
 		&& View.Family->EngineShowFlags.SeparateTranslucency;
 }
 
