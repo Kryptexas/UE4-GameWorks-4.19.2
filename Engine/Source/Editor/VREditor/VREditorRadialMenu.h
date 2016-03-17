@@ -46,23 +46,8 @@ public:
 	float TrackpadAngle;
 
 private:
-	/** @todo vreditor : this should be a group/struct */
-	UPROPERTY()
-	UVREditorRadialMenuItem* TopItem;
-	UPROPERTY()
-	UVREditorRadialMenuItem* TopRightItem;
-	UPROPERTY()
-	UVREditorRadialMenuItem* RightItem;
-	UPROPERTY()
-	UVREditorRadialMenuItem* BottomRightItem;
-	UPROPERTY()
-	UVREditorRadialMenuItem* BottomItem;
-	UPROPERTY()
-	UVREditorRadialMenuItem* LeftBottomItem;
-	UPROPERTY()
-	UVREditorRadialMenuItem* LeftItem;
-	UPROPERTY()
-	UVREditorRadialMenuItem* TopLeftItem;
+	/** All the buttons in the radial menu */
+	TArray<UVREditorRadialMenuItem*> MenuItems;
 
 	/** The current widget currently selected */
 	UPROPERTY()
