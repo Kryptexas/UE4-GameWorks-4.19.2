@@ -13,6 +13,8 @@
 #include "SColorPicker.h"
 #include "GenericCommands.h"
 #include "NativeClassHierarchy.h"
+#include "NotificationManager.h"
+#include "SNotificationList.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
@@ -623,6 +625,20 @@ bool FPathContextMenu::CanExecuteDelete() const
 
 void FPathContextMenu::ExecuteDelete()
 {
+	// Don't allow asset deletion during PIE
+	if (GIsEditor)
+	{
+		UEditorEngine* Editor = GEditor;
+		FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext();
+		if (PIEWorldContext)
+		{
+			FNotificationInfo Notification(LOCTEXT("CannotDeleteAssetInPIE", "Assets cannot be deleted while in PIE."));
+			Notification.ExpireDuration = 3.0f;
+			FSlateNotificationManager::Get().AddNotification(Notification);
+			return;
+		}
+	}
+
 	check(SelectedPaths.Num() > 0);
 	if (ParentContent.IsValid())
 	{
