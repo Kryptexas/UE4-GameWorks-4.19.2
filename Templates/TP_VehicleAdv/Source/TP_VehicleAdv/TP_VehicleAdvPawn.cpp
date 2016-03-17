@@ -16,11 +16,9 @@
 #include "Engine/SkeletalMesh.h"
 
 
-#ifdef HMD_INTGERATION
 // Needed for VR Headset
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"
-#endif // HMD_INTGERATION
 
 const FName ATP_VehicleAdvPawn::LookUpBinding("LookUp");
 const FName ATP_VehicleAdvPawn::LookRightBinding("LookRight");
@@ -255,12 +253,10 @@ void ATP_VehicleAdvPawn::Tick(float Delta)
 	SetupInCarHUD();
 
 	bool bHMDActive = false;
-#ifdef HMD_INTGERATION
 	if ((GEngine->HMDDevice.IsValid() == true ) && ( (GEngine->HMDDevice->IsHeadTrackingAllowed() == true) || (GEngine->IsStereoscopic3D() == true)))
 	{
 		bHMDActive = true;
 	}
-#endif // HMD_INTGERATION
 	if( bHMDActive == false )
 	{
 		if ( (InputComponent) && (bInCarCameraActive == true ))
@@ -282,15 +278,13 @@ void ATP_VehicleAdvPawn::BeginPlay()
 	Super::BeginPlay();
 
 	bool bWantInCar = false;
-	// First disable both speed/gear displays
+	// First disable both speed/gear displays 
 	bInCarCameraActive = false;
 	InCarSpeed->SetVisibility(bInCarCameraActive);
 	InCarGear->SetVisibility(bInCarCameraActive);
 
-#ifdef HMD_INTGERATION
 	// Enable in car view if HMD is attached
-	bWantInCar = GEngine->HMDDevice.IsValid()
-#endif // HMD_INTGERATION
+	bWantInCar = UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled();
 	
 	EnableIncarView(bWantInCar);
 	// Start an engine sound playing
@@ -299,14 +293,12 @@ void ATP_VehicleAdvPawn::BeginPlay()
 
 void ATP_VehicleAdvPawn::OnResetVR()
 {
-#ifdef HMD_INTGERATION
 	if (GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->ResetOrientationAndPosition();
 		InternalCamera->SetRelativeLocation(InternalCameraOrigin);
 		GetController()->SetControlRotation(FRotator());
 	}
-#endif // HMD_INTGERATION
 }
 
 void ATP_VehicleAdvPawn::UpdateHUDStrings()

@@ -212,7 +212,7 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 	{
 		bSetupTranslucentState = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bNeedsClear);
 	}
-	else if ((TranslucenyPassType == TPT_NonSeparateTransluceny) && !SceneContext.IsSeparateTranslucencyActive(View))
+	else if (TranslucenyPassType == TPT_NonSeparateTransluceny)
 	{
 		SceneContext.BeginRenderingTranslucency(RHICmdList, View, bNeedsClear);
 	}
@@ -1324,7 +1324,8 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 			// non separate translucency
 			{
-				SetTranslucentRenderTargetAndState(RHICmdList, View, TPT_NonSeparateTransluceny);
+				bool bFirstTimeThisFrame = (ViewIndex == 0);
+				SetTranslucentRenderTargetAndState(RHICmdList, View, TPT_NonSeparateTransluceny, bFirstTimeThisFrame);
 
 				DrawAllTranslucencyPasses(RHICmdList, View, TPT_NonSeparateTransluceny);
 

@@ -587,6 +587,15 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& InShaderCode)
 			// Cache it; compile status will be checked later on link (always caching will prevent multiple attempts to compile a failed shader)
 			GetOpenGLCompiledShaderCache().Add(Key, Resource);
 		}
+#if PLATFORM_IOS // fix for running out of memory in the driver when compiling a lot of shaders on the first frame
+        static int CompileCount = 0;
+        CompileCount++;
+        if (CompileCount == 5000)
+        {
+            glFlush();
+            CompileCount = 0;
+        }
+#endif
 	}
 
 	Shader = new ShaderType();

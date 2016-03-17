@@ -2758,6 +2758,19 @@ public:
 		return (NumDepthStencilViews > 0);
 	}
 
+	void AliasResources(FD3D12TextureBase* Texture)
+	{
+		ResourceLocation = Texture->ResourceLocation;
+		BaseShaderResource = Texture->BaseShaderResource;
+		ShaderResourceView = Texture->ShaderResourceView;
+		RenderTargetViews = Texture->RenderTargetViews;
+
+		for (uint32 Index = 0; Index < FExclusiveDepthStencil::MaxIndex; Index++)
+		{
+			DepthStencilViews[Index] = Texture->DepthStencilViews[Index];
+		}
+	}
+
 protected:
 
 	/** Amount of memory allocated by this texture, in bytes. */

@@ -234,11 +234,14 @@ namespace UnrealBuildTool
 					case "IOS_8":
 						MinVersion = "8.0";
 						break;
+					case "IOS_9":
+						MinVersion = "9.0";
+						break;
 				}
 			}
 			else
 			{
-				MinVersion = "6.1";
+				MinVersion = "7.0";
 			}
 
 			// Get Facebook Support details
@@ -345,6 +348,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t\t\t<string>Icon57.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon57@2x.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon60@2x.png</string>");
+			Text.AppendLine("\t\t\t\t<string>Icon60@3x.png</string>");
 			Text.AppendLine("\t\t\t</array>");
 			Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
 			Text.AppendLine("\t\t\t<true/>");
@@ -366,6 +370,7 @@ namespace UnrealBuildTool
 			Text.AppendLine("\t\t\t\t<string>Icon72@2x.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon76.png</string>");
 			Text.AppendLine("\t\t\t\t<string>Icon76@2x.png</string>");
+			Text.AppendLine("\t\t\t\t<string>Icon83.5@2x.png</string>");
 			Text.AppendLine("\t\t\t</array>");
 			Text.AppendLine("\t\t\t<key>UIPrerenderedIcon</key>");
 			Text.AppendLine("\t\t\t<true/>");
@@ -384,23 +389,23 @@ namespace UnrealBuildTool
 				// eventually we want to generate this based on what the user has set in the project settings
 				string[] IPhoneConfigs =  
 					{ 
-						"Default-IPhone6-Landscape", "Landscape", "{375, 667}", 
-						"Default-IPhone6", "Portrait", "{375, 667}", 
-						"Default-IPhone6Plus-Landscape", "Landscape", "{414, 736}", 
-						"Default-IPhone6Plus-Portrait", "Portrait", "{414, 736}", 
-						"Default", "Landscape", "{320, 480}",
-						"Default", "Portrait", "{320, 480}",
-						"Default-568h", "Landscape", "{320, 568}",
-						"Default-568h", "Portrait", "{320, 568}",
+						"Default-IPhone6-Landscape", "Landscape", "{375, 667}", "8.0", 
+						"Default-IPhone6", "Portrait", "{375, 667}",  "8.0",
+						"Default-IPhone6Plus-Landscape", "Landscape", "{414, 736}",  "8.0",
+						"Default-IPhone6Plus-Portrait", "Portrait", "{414, 736}",  "8.0",
+						"Default", "Landscape", "{320, 480}", "7.0",
+						"Default", "Portrait", "{320, 480}", "7.0",
+						"Default-568h", "Landscape", "{320, 568}", "7.0",
+						"Default-568h", "Portrait", "{320, 568}", "7.0",
 					};
 
 				Text.AppendLine("\t<key>UILaunchImages~iphone</key>");
 				Text.AppendLine("\t<array>");
-				for (int ConfigIndex = 0; ConfigIndex < IPhoneConfigs.Length; ConfigIndex += 3)
+				for (int ConfigIndex = 0; ConfigIndex < IPhoneConfigs.Length; ConfigIndex += 4)
 				{
 					Text.AppendLine("\t\t<dict>");
 					Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
-					Text.AppendLine("\t\t\t<string>8.0</string>");
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 3]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageName</key>");
 					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 0]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageOrientation</key>");
@@ -412,36 +417,43 @@ namespace UnrealBuildTool
 
 				// close it out
 				Text.AppendLine("\t</array>");
+
+				// this is a temp way to inject the iPad Pro without needing to upgrade everyone's plist
+				// eventually we want to generate this based on what the user has set in the project settings
+				string[] IPadConfigs =  
+					{ 
+						"Default-Landscape", "Landscape", "{768, 1024}", "7.0", 
+						"Default-Portrait", "Portrait", "{768, 1024}",  "7.0",
+						"Default-Landscape-1336", "Landscape", "{1024, 1366}",  "9.0",
+						"Default-Portrait-1336", "Portrait", "{1024, 1366}",  "9.0",
+					};
+
+				Text.AppendLine("\t<key>UILaunchImages~ipad</key>");
+				Text.AppendLine("\t<array>");
+				for (int ConfigIndex = 0; ConfigIndex < IPadConfigs.Length; ConfigIndex += 4)
+				{
+					Text.AppendLine("\t\t<dict>");
+					Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 3]));
+					Text.AppendLine("\t\t\t<key>UILaunchImageName</key>");
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 0]));
+					Text.AppendLine("\t\t\t<key>UILaunchImageOrientation</key>");
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 1]));
+					Text.AppendLine("\t\t\t<key>UILaunchImageSize</key>");
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 2]));
+					Text.AppendLine("\t\t</dict>");
+				}
+				Text.AppendLine("\t</array>");
 			}
-			Text.AppendLine("\t<key>UILaunchImages~ipad</key>");
-			Text.AppendLine("\t<array>");
-			Text.AppendLine("\t\t<dict>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
-			Text.AppendLine("\t\t\t<string>7.0</string>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageName</key>");
-			Text.AppendLine("\t\t\t<string>Default-Landscape</string>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageOrientation</key>");
-			Text.AppendLine("\t\t\t<string>Landscape</string>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageSize</key>");
-			Text.AppendLine("\t\t\t<string>{768, 1024}</string>");
-			Text.AppendLine("\t\t</dict>");
-			Text.AppendLine("\t\t<dict>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
-			Text.AppendLine("\t\t\t<string>7.0</string>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageName</key>");
-			Text.AppendLine("\t\t\t<string>Default-Portrait</string>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageOrientation</key>");
-			Text.AppendLine("\t\t\t<string>Portrait</string>");
-			Text.AppendLine("\t\t\t<key>UILaunchImageSize</key>");
-			Text.AppendLine("\t\t\t<string>{768, 1024}</string>");
-			Text.AppendLine("\t\t</dict>");
-			Text.AppendLine("\t</array>");
 			Text.AppendLine("\t<key>CFBundleSupportedPlatforms</key>");
 			Text.AppendLine("\t<array>");
 			Text.AppendLine("\t\t<string>iPhoneOS</string>");
 			Text.AppendLine("\t</array>");
 			Text.AppendLine("\t<key>MinimumOSVersion</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", MinVersion));
+			// disable exempt encryption
+			Text.AppendLine("\t<key>ITSAppUsesNonExemptEncryption</key>");
+			Text.AppendLine("\t<false/>");
 			if (bEnableFacebookSupport)
 			{
 				Text.AppendLine("\t<key>FacebookAppID</key>");

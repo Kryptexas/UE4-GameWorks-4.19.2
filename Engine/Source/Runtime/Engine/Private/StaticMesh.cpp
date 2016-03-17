@@ -26,6 +26,8 @@
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
 
+#include "ReleaseObjectVersion.h"
+
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
 
 DECLARE_MEMORY_STAT( TEXT( "StaticMesh Total Memory" ), STAT_StaticMeshTotalMemory2, STATGROUP_MemoryStaticMesh );
@@ -1969,16 +1971,20 @@ void UStaticMesh::CalculateExtendedBounds()
 		Bounds = RenderData->Bounds;
 	}
 
-	// Convert to Min and Max
-	FVector Min = Bounds.Origin - Bounds.BoxExtent;
-	FVector Max = Bounds.Origin + Bounds.BoxExtent;
-	// Apply bound extensions
-	Min -= NegativeBoundsExtension;
-	Max += PositiveBoundsExtension;
-	// Convert back to Origin, Extent and update SphereRadius
-	Bounds.Origin = (Min + Max) / 2;
-	Bounds.BoxExtent = (Max - Min) / 2;	
-	Bounds.SphereRadius = Bounds.BoxExtent.GetAbsMax();
+	// Only apply bound extension if necessary, as it will result in a larger bounding sphere radius than retrieved from the render data
+	if (!NegativeBoundsExtension.IsZero() || !PositiveBoundsExtension.IsZero())
+	{
+		// Convert to Min and Max
+		FVector Min = Bounds.Origin - Bounds.BoxExtent;
+		FVector Max = Bounds.Origin + Bounds.BoxExtent;
+		// Apply bound extensions
+		Min -= NegativeBoundsExtension;
+		Max += PositiveBoundsExtension;
+		// Convert back to Origin, Extent and update SphereRadius
+		Bounds.Origin = (Min + Max) / 2;
+		Bounds.BoxExtent = (Max - Min) / 2;
+		Bounds.SphereRadius = Bounds.BoxExtent.Size();
+	}
 
 	ExtendedBounds = Bounds;
 }
@@ -2002,6 +2008,8 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("UStaticMesh::Serialize"), STAT_StaticMesh_Serialize, STATGROUP_LoadTime );
 
 	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 
 	FStripDataFlags StripFlags( Ar );
 
@@ -2261,6 +2269,13 @@ void UStaticMesh::PostLoad()
 
 #if WITH_EDITOR
 	if (GetLinkerUE4Version() < VER_UE4_STATIC_MESH_EXTENDED_BOUNDS)
+	{
+		CalculateExtendedBounds();
+	}
+
+	// New fix for incorrect extended bounds
+	const int32 CustomVersion = GetLinkerCustomVersion(FReleaseObjectVersion::GUID);
+	if (CustomVersion < FReleaseObjectVersion::StaticMeshExtendedBoundsFix)
 	{
 		CalculateExtendedBounds();
 	}

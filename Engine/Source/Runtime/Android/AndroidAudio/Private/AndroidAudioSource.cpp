@@ -32,16 +32,6 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 	}
 	else
 	{
-		// Sound decoding is complete, just waiting to finish playing
-		if (bBuffersToFlush)
-		{
-			// set the player's state to stopped
-			SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
-			check(SL_RESULT_SUCCESS == result);
-
-			return;
-		}
-
 		// Enqueue the previously decoded buffer
 		if (RealtimeAsyncTask)
 		{
@@ -61,6 +51,16 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 			RealtimeAsyncTask = nullptr;
 		}
 
+		// Sound decoding is complete, just waiting to finish playing
+		if (bBuffersToFlush)
+		{
+			// set the player's state to stopped
+			SLresult result = (*SL_PlayerPlayInterface)->SetPlayState(SL_PlayerPlayInterface, SL_PLAYSTATE_STOPPED);
+			check(SL_RESULT_SUCCESS == result);
+
+			return;
+		}
+
 		SLresult result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, AudioBuffers[BufferInUse].AudioData, AudioBuffers[BufferInUse].AudioDataSize );
 		if(result != SL_RESULT_SUCCESS) 
 		{ 
@@ -71,12 +71,12 @@ void FSLESSoundSource::OnRequeueBufferCallback( SLAndroidSimpleBufferQueueItf In
 		BufferInUse = !BufferInUse;
 		if (bHasLooped == false || WaveInstance->LoopingMode != LOOP_Never)
 		{
-			if (ReadMorePCMData(BufferInUse, (bSkipFirstBuffer ? EDataReadMode::AsynchronousSkipFirstFrame : EDataReadMode::Asynchronous)))
+			// Do this in the callback thread instead of creating an asynchronous task (thread id from callback is not consistent and use of TLS for stats causes issues)
+			if (ReadMorePCMData(BufferInUse, EDataReadMode::Synchronous))
 			{
 				// If this is a synchronous source we may get notified immediately that we have looped
 				bHasLooped = true;
 			}
-			bSkipFirstBuffer = false;
 		}
 	}
 }
@@ -152,7 +152,14 @@ bool FSLESSoundSource::EnqueuePCMBuffer( bool bLoop)
 	}
 	
 	result = (*SL_PlayerBufferQueue)->Enqueue(SL_PlayerBufferQueue, Buffer->AudioData, Buffer->GetSize() );
-	if (result != SL_RESULT_SUCCESS) { UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, Buffer->AudioData, int32(Buffer->GetSize())); return false; }
+	if (result != SL_RESULT_SUCCESS) {
+		if (bLoop)
+		{
+			result = (*SL_PlayerBufferQueue)->RegisterCallback(SL_PlayerBufferQueue, NULL, NULL);
+		}
+		UE_LOG(LogAndroidAudio, Warning, TEXT("FAILED OPENSL BUFFER Enqueue SL_PlayerBufferQueue 0x%x params( %p, %d)"), result, Buffer->AudioData, int32(Buffer->GetSize()));
+		return false;
+	}
 
 	bStreamedSound = false;
 	bHasLooped = false;
@@ -215,12 +222,10 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	AudioBuffers[1].AudioDataSize = BufferSize;
 
 	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
-	bSkipFirstBuffer = false;
 	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
 	{
 		FMemory::Memcpy((uint8*)AudioBuffers[0].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
-		FMemory::Memcpy((uint8*)AudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
-		bSkipFirstBuffer = true;
+		ReadMorePCMData(1, EDataReadMode::AsynchronousSkipFirstFrame);
 	}
 	else
 	{

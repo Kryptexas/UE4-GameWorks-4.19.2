@@ -253,112 +253,146 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Find all the modules which affect the public compile environment. Searches through 
+		/// </summary>
+		/// <param name="Modules"></param>
+		/// <param name="bIncludePathsOnly"></param>
+		/// <param name="DependencyModules"></param>
+		protected void FindModulesInPublicCompileEnvironment(List<UEBuildModule> Modules, Dictionary<UEBuildModule, bool> ModuleToIncludePathsOnlyFlag)
+		{
+			//
+			bool bModuleIncludePathsOnly;
+			if (!ModuleToIncludePathsOnlyFlag.TryGetValue(this, out bModuleIncludePathsOnly))
+			{
+				Modules.Add(this);
+			}
+			else if (!bModuleIncludePathsOnly)
+			{
+				return;
+			}
+
+			ModuleToIncludePathsOnlyFlag[this] = false;
+
+			foreach (UEBuildModule DependencyModule in PublicDependencyModules)
+			{
+				DependencyModule.FindModulesInPublicCompileEnvironment(Modules, ModuleToIncludePathsOnlyFlag);
+			}
+
+			// Now add an include paths from modules with header files that we need access to, but won't necessarily be importing
+			foreach (UEBuildModule IncludePathModule in PublicIncludePathModules)
+			{
+				IncludePathModule.FindIncludePathModulesInPublicCompileEnvironment(Modules, ModuleToIncludePathsOnlyFlag);
+			}
+		}
+
+		/// <summary>
+		/// Find all the modules which affect the public compile environment. Searches through 
+		/// </summary>
+		/// <param name="Modules"></param>
+		/// <param name="bIncludePathsOnly"></param>
+		/// <param name="DependencyModules"></param>
+		protected void FindIncludePathModulesInPublicCompileEnvironment(List<UEBuildModule> Modules, Dictionary<UEBuildModule, bool> ModuleToIncludePathsOnlyFlag)
+		{
+			if (!ModuleToIncludePathsOnlyFlag.ContainsKey(this))
+			{
+				// Add this module to the list
+				Modules.Add(this);
+				ModuleToIncludePathsOnlyFlag.Add(this, true);
+
+				// Include any of its public include path modules in the compile environment too
+				foreach (UEBuildModule IncludePathModule in PublicIncludePathModules)
+				{
+					IncludePathModule.FindIncludePathModulesInPublicCompileEnvironment(Modules, ModuleToIncludePathsOnlyFlag);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Sets up the environment for compiling any module that includes the public interface of this module.
 		/// </summary>
-		protected virtual void SetupPublicCompileEnvironment(
+		public void AddModuleToCompileEnvironment(
 			UEBuildBinary SourceBinary,
 			bool bIncludePathsOnly,
 			HashSet<string> IncludePaths,
 			HashSet<string> SystemIncludePaths,
 			List<string> Definitions,
-			List<UEBuildFramework> AdditionalFrameworks,
-			HashSet<UEBuildModule> VisitedModules
+			List<UEBuildFramework> AdditionalFrameworks
 			)
 		{
-			// There may be circular dependencies in compile dependencies, so we need to avoid reentrance.
-			if (VisitedModules.Add(this))
-			{
-				// Add this module's public include paths and definitions.
-				AddIncludePathsWithChecks(IncludePaths, PublicIncludePaths);
-				AddIncludePathsWithChecks(SystemIncludePaths, PublicSystemIncludePaths);
-				Definitions.AddRange(PublicDefinitions);
+			// Add this module's public include paths and definitions.
+			AddIncludePathsWithChecks(IncludePaths, PublicIncludePaths);
+			AddIncludePathsWithChecks(SystemIncludePaths, PublicSystemIncludePaths);
+			Definitions.AddRange(PublicDefinitions);
 
-				// If this module is being built into a DLL or EXE, set up an IMPORTS or EXPORTS definition for it.
-				if (Binary == null)
+			// If this module is being built into a DLL or EXE, set up an IMPORTS or EXPORTS definition for it.
+			if (Binary == null)
+			{
+				// If we're referencing include paths for a module that's not being built, we don't actually need to import anything from it, but we need to avoid barfing when
+				// the compiler encounters an _API define. We also want to avoid changing the compile environment in cases where the module happens to be compiled because it's a dependency
+				// of something else, which cause a fall-through to the code below and set up an empty _API define.
+				if (bIncludePathsOnly)
 				{
-					// If we're referencing include paths for a module that's not being built, we don't actually need to import anything from it, but we need to avoid barfing when
-					// the compiler encounters an _API define. We also want to avoid changing the compile environment in cases where the module happens to be compiled because it's a dependency
-					// of something else, which cause a fall-through to the code below and set up an empty _API define.
-					if (bIncludePathsOnly)
+					Log.TraceVerbose("{0}: Include paths only for {1} (no binary)", SourceBinary.Config.OutputFilePaths[0].GetFileNameWithoutExtension(), Name);
+					Definitions.Add(ModuleApiDefine + "=");
+				}
+			}
+			else
+			{
+				FileReference BinaryPath = Binary.Config.OutputFilePaths[0];
+				FileReference SourceBinaryPath = SourceBinary.Config.OutputFilePaths[0];
+
+				if (ProjectFileGenerator.bGenerateProjectFiles || (Binary.Config.Type == UEBuildBinaryType.StaticLibrary))
+				{
+					// When generating IntelliSense files, never add dllimport/dllexport specifiers as it
+					// simply confuses the compiler
+					Definitions.Add(ModuleApiDefine + "=");
+				}
+				else if (Binary == SourceBinary)
+				{
+					if (Binary.Config.bAllowExports)
 					{
-						Log.TraceVerbose("{0}: Include paths only for {1} (no binary)", SourceBinary.Config.OutputFilePaths[0].GetFileNameWithoutExtension(), Name);
+						Log.TraceVerbose("{0}: Exporting {1} from {2}", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
+						Definitions.Add(ModuleApiDefine + "=DLLEXPORT");
+					}
+					else
+					{
+						Log.TraceVerbose("{0}: Not importing/exporting {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
 						Definitions.Add(ModuleApiDefine + "=");
 					}
 				}
 				else
 				{
-					FileReference BinaryPath = Binary.Config.OutputFilePaths[0];
-					FileReference SourceBinaryPath = SourceBinary.Config.OutputFilePaths[0];
-
-					if (ProjectFileGenerator.bGenerateProjectFiles || (Binary.Config.Type == UEBuildBinaryType.StaticLibrary))
+					// @todo SharedPCH: Public headers included from modules that are not importing the module of that public header, seems invalid.  
+					//		Those public headers have no business having APIs in them.  OnlineSubsystem has some public headers like this.  Without changing
+					//		this, we need to suppress warnings at compile time.
+					if (bIncludePathsOnly)
 					{
-						// When generating IntelliSense files, never add dllimport/dllexport specifiers as it
-						// simply confuses the compiler
+						Log.TraceVerbose("{0}: Include paths only for {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
 						Definitions.Add(ModuleApiDefine + "=");
 					}
-					else if (Binary == SourceBinary)
+					else if (Binary.Config.bAllowExports)
 					{
-						if (Binary.Config.bAllowExports)
-						{
-							Log.TraceVerbose("{0}: Exporting {1} from {2}", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
-							Definitions.Add(ModuleApiDefine + "=DLLEXPORT");
-						}
-						else
-						{
-							Log.TraceVerbose("{0}: Not importing/exporting {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
-							Definitions.Add(ModuleApiDefine + "=");
-						}
+						Log.TraceVerbose("{0}: Importing {1} from {2}", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
+						Definitions.Add(ModuleApiDefine + "=DLLIMPORT");
 					}
 					else
 					{
-						// @todo SharedPCH: Public headers included from modules that are not importing the module of that public header, seems invalid.  
-						//		Those public headers have no business having APIs in them.  OnlineSubsystem has some public headers like this.  Without changing
-						//		this, we need to suppress warnings at compile time.
-						if (bIncludePathsOnly)
-						{
-							Log.TraceVerbose("{0}: Include paths only for {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
-							Definitions.Add(ModuleApiDefine + "=");
-						}
-						else if (Binary.Config.bAllowExports)
-						{
-							Log.TraceVerbose("{0}: Importing {1} from {2}", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
-							Definitions.Add(ModuleApiDefine + "=DLLIMPORT");
-						}
-						else
-						{
-							Log.TraceVerbose("{0}: Not importing/exporting {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
-							Definitions.Add(ModuleApiDefine + "=");
-						}
+						Log.TraceVerbose("{0}: Not importing/exporting {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
+						Definitions.Add(ModuleApiDefine + "=");
 					}
 				}
+			}
 
-				if (!bIncludePathsOnly)
-				{
-					// Recurse on this module's public dependencies.
-					foreach (UEBuildModule DependencyModule in PublicDependencyModules)
-					{
-						DependencyModule.SetupPublicCompileEnvironment(SourceBinary, bIncludePathsOnly, IncludePaths, SystemIncludePaths, Definitions, AdditionalFrameworks, VisitedModules);
-					}
-				}
+			// Add the module's directory to the include path, so we can root #includes to it
+			IncludePaths.Add(NormalizedModuleIncludePath);
 
-				// Now add an include paths from modules with header files that we need access to, but won't necessarily be importing
-				foreach (UEBuildModule IncludePathModule in PublicIncludePathModules)
-				{
-					bool bInnerIncludePathsOnly = true;
-					IncludePathModule.SetupPublicCompileEnvironment(SourceBinary, bInnerIncludePathsOnly, IncludePaths, SystemIncludePaths, Definitions, AdditionalFrameworks, VisitedModules);
-				}
+			// Add the additional frameworks so that the compiler can know about their #include paths
+			AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
 
-				// Add the module's directory to the include path, so we can root #includes to it
-				IncludePaths.Add(NormalizedModuleIncludePath);
-
-				// Add the additional frameworks so that the compiler can know about their #include paths
-				AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
-
-				// Remember the module so we can refer to it when needed
-				foreach (UEBuildFramework Framework in PublicAdditionalFrameworks)
-				{
-					Framework.OwningModule = this;
-				}
+			// Remember the module so we can refer to it when needed
+			foreach (UEBuildFramework Framework in PublicAdditionalFrameworks)
+			{
+				Framework.OwningModule = this;
 			}
 		}
 
@@ -417,21 +451,27 @@ namespace UnrealBuildTool
 			// Add this module's private include paths and definitions.
 			AddIncludePathsWithChecks(IncludePaths, PrivateIncludePaths);
 
-			// Allow the module's public dependencies to modify the compile environment.
-			bool bIncludePathsOnly = false;
-			SetupPublicCompileEnvironment(Binary, bIncludePathsOnly, IncludePaths, SystemIncludePaths, Definitions, AdditionalFrameworks, VisitedModules);
+			// Find all the modules that are part of the public compile environment for this module.
+			List<UEBuildModule> Modules = new List<UEBuildModule>();
+			Dictionary<UEBuildModule, bool> ModuleToIncludePathsOnlyFlag = new Dictionary<UEBuildModule, bool>();
+			FindModulesInPublicCompileEnvironment(Modules, ModuleToIncludePathsOnlyFlag);
 
-			// Also allow the module's private dependencies to modify the compile environment.
+			// Add in all the modules that are private dependencies
 			foreach (UEBuildModule DependencyModule in PrivateDependencyModules)
 			{
-				DependencyModule.SetupPublicCompileEnvironment(Binary, bIncludePathsOnly, IncludePaths, SystemIncludePaths, Definitions, AdditionalFrameworks, VisitedModules);
+				DependencyModule.FindModulesInPublicCompileEnvironment(Modules, ModuleToIncludePathsOnlyFlag);
 			}
 
-			// Add include paths from modules with header files that our private files need access to, but won't necessarily be importing
+			// And finally add in all the modules that are include path only dependencies
 			foreach (UEBuildModule IncludePathModule in PrivateIncludePathModules)
 			{
-				bool bInnerIncludePathsOnly = true;
-				IncludePathModule.SetupPublicCompileEnvironment(Binary, bInnerIncludePathsOnly, IncludePaths, SystemIncludePaths, Definitions, AdditionalFrameworks, VisitedModules);
+				IncludePathModule.FindIncludePathModulesInPublicCompileEnvironment(Modules, ModuleToIncludePathsOnlyFlag);
+			}
+
+			// Now set up the compile environment for the modules in the original order that we encountered them
+			foreach (UEBuildModule Module in Modules)
+			{
+				Module.AddModuleToCompileEnvironment(Binary, ModuleToIncludePathsOnlyFlag[Module], IncludePaths, SystemIncludePaths, Definitions, AdditionalFrameworks);
 			}
 		}
 
@@ -1230,14 +1270,20 @@ namespace UnrealBuildTool
 								CPPEnvironment SharedPCHCompileEnvironment = GlobalCompileEnvironment.DeepCopy();
 								SharedPCHCompileEnvironment.Config.bEnableShadowVariableWarning = SharedPCHModule.Rules.bEnableShadowVariableWarnings;
 
-								SharedPCHModule.SetupPublicCompileEnvironment(
-									Binary,
-									false,
-									SharedPCHCompileEnvironment.Config.CPPIncludeInfo.IncludePaths,
-									SharedPCHCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths,
-									SharedPCHCompileEnvironment.Config.Definitions,
-									SharedPCHCompileEnvironment.Config.AdditionalFrameworks,
-									new HashSet<UEBuildModule>());
+								List<UEBuildModule> Modules = new List<UEBuildModule>();
+								Dictionary<UEBuildModule, bool> ModuleToIncludePathsOnlyFlag = new Dictionary<UEBuildModule, bool>();
+								SharedPCHModule.FindModulesInPublicCompileEnvironment(Modules, ModuleToIncludePathsOnlyFlag);
+
+								foreach (UEBuildModule Module in Modules)
+								{
+									Module.AddModuleToCompileEnvironment(
+										Binary,
+										ModuleToIncludePathsOnlyFlag[Module],
+										SharedPCHCompileEnvironment.Config.CPPIncludeInfo.IncludePaths,
+										SharedPCHCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths,
+										SharedPCHCompileEnvironment.Config.Definitions,
+										SharedPCHCompileEnvironment.Config.AdditionalFrameworks);
+								}
 
 								PCHOutput = PrecompileHeaderEnvironment.GeneratePCHCreationAction(
 									ToolChain,

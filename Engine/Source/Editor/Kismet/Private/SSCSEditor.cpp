@@ -5365,7 +5365,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::FindTreeNode(const UActorComponent* InComp
 		if(InStartNodePtr.IsValid())
 		{
 			// Check to see if the given component template matches the given tree node
-			if(InStartNodePtr->GetComponentTemplate() == InComponent)
+			if (InStartNodePtr->GetEditableComponentTemplate(GetBlueprint()) == InComponent)
 			{
 				NodePtr = InStartNodePtr;
 			}

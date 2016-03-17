@@ -46,7 +46,7 @@ void Main(
 			OutPosition.x *= 0.5 * Frame.HMDEyePaddingOffset;
 
 			// Shift to the eye viewport
-			OutPosition.x += (EyeOffsetScale[EyeIndex] * OutPosition.w) / Frame.HMDEyePaddingOffset;
+			OutPosition.x += (EyeOffsetScale[EyeIndex] * OutPosition.w) * (1.0f - 0.5 * Frame.HMDEyePaddingOffset);
 		}
 		
 		// Bias the depth	

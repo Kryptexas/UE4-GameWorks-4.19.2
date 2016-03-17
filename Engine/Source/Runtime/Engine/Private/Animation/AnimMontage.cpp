@@ -1730,9 +1730,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 							FTransform RootMotion = Montage->ExtractRootMotionFromTrackRange(PrevPosition, Position);
 							if (bBlendRootMotion)
 							{
-								const float RootMotionSlotWeight = AnimInstance.Get()->GetSlotRootMotionWeight(Montage->SlotAnimTracks[0].SlotName);
-								const float RootMotionInstanceWeight = Weight * RootMotionSlotWeight;
-								OutRootMotionParams->AccumulateWithBlend(RootMotion, RootMotionInstanceWeight);
+								// Defer blending in our root motion until after we get our slot weight updated
+								AnimInstance.Get()->QueueRootMotionBlend(RootMotion, Montage->SlotAnimTracks[0].SlotName, Weight);
 							}
 							else
 							{

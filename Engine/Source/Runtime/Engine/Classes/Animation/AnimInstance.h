@@ -1208,9 +1208,36 @@ public:
 	/** Get current accumulated root motion, removing it from the AnimInstance in the process */
 	FRootMotionMovementParams ConsumeExtractedRootMotion(float Alpha);
 
+	/**  
+	 * Queue blended root motion. This is used to blend in root motion transforms according to 
+	 * the correctly-updated slot weight (after the animation graph has been updated).
+	 */
+	void QueueRootMotionBlend(const FTransform& RootTransform, const FName& SlotName, float Weight);
+
 private:
 	/** Active Root Motion Montage Instance, if any. */
 	struct FAnimMontageInstance * RootMotionMontageInstance;
+
+	/** Temporarily queued root motion blend */
+	struct FQueuedRootMotionBlend
+	{
+		FQueuedRootMotionBlend(const FTransform& InTransform, const FName& InSlotName, float InWeight)
+			: Transform(InTransform)
+			, SlotName(InSlotName)
+			, Weight(InWeight)
+		{}
+
+		FTransform Transform;
+		FName SlotName;
+		float Weight;
+	};
+
+	/** 
+	 * Blend queue for blended root motion. This is used to blend in root motion transforms according to 
+	 * the correctly-updated slot weight (after the animation graph has been updated).
+	 */
+	TArray<FQueuedRootMotionBlend> RootMotionBlendQueue;
+
 private:
 	// update montage
 	void UpdateMontage(float DeltaSeconds);

@@ -179,6 +179,27 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDev
 
 FMetalDeviceContext::~FMetalDeviceContext()
 {
+	if (CurrentCommandBuffer)
+	{
+		// commit the render context to the commandBuffer
+		if (CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive())
+		{
+			CommandEncoder.EndEncoding();
+		}
+		
+		// kick the whole buffer
+		// Commit to hand the commandbuffer off to the gpu
+		CommandEncoder.CommitCommandBuffer(true);
+		
+		// Wait for completion as requested.
+		[CurrentCommandBuffer waitUntilCompleted];
+		
+		//once a commandbuffer is commited it can't be added to again.
+		UNTRACK_OBJECT(CurrentCommandBuffer);
+		[CurrentCommandBuffer release];
+		
+		CurrentCommandBuffer = nil;
+	}
 	delete &(GetCommandQueue());
 }
 
@@ -444,7 +465,27 @@ FMetalContext::FMetalContext(FMetalCommandQueue& Queue, bool const bIsImmediate)
 
 FMetalContext::~FMetalContext()
 {
-	
+	if (CurrentCommandBuffer)
+	{
+		// commit the render context to the commandBuffer
+		if (CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive())
+		{
+			CommandEncoder.EndEncoding();
+		}
+		
+		// kick the whole buffer
+		// Commit to hand the commandbuffer off to the gpu
+		CommandEncoder.CommitCommandBuffer(true);
+		
+		// Wait for completion as requested.
+		[CurrentCommandBuffer waitUntilCompleted];
+		
+		//once a commandbuffer is commited it can't be added to again.
+		UNTRACK_OBJECT(CurrentCommandBuffer);
+		[CurrentCommandBuffer release];
+		
+		CurrentCommandBuffer = nil;
+	}
 }
 
 FMetalContext* FMetalContext::GetCurrentContext()

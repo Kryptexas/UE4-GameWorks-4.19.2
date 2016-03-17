@@ -1867,6 +1867,11 @@ void FWindowsApplication::PollGameDeviceState( const float TimeDelta )
 		bHasLoadedInputPlugins = true;
 	}
 
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
 	// Poll game device states and send new events
 	XInput->SendControllerEvents();
 
@@ -1880,6 +1885,11 @@ void FWindowsApplication::PollGameDeviceState( const float TimeDelta )
 
 void FWindowsApplication::SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
 {
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
@@ -1889,6 +1899,11 @@ void FWindowsApplication::SetForceFeedbackChannelValue(int32 ControllerId, FForc
 
 void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
 {
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
 	const FForceFeedbackValues* InternalValues = &Values;
  
 	XInput->SetChannelValues( ControllerId, *InternalValues );
@@ -1902,6 +1917,11 @@ void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, cons
 
 void FWindowsApplication::SetHapticFeedbackValues(int32 ControllerId, int32 Hand, const FHapticFeedbackValues& Values)
 {
+	if (FApp::UseVRFocus() && !FApp::HasVRFocus())
+	{
+		return; // do not proceed if the app uses VR focus but doesn't have it
+	}
+
 	for (auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt)
 	{
 		IHapticDevice* HapticDevice = (*DeviceIt)->GetHapticDevice();

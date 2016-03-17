@@ -396,6 +396,8 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 
 	if (BoundFunction != NAME_None)
 	{
+		// we cant call FindFunction on anything but the game thread as it accesses a shared map in the object's class
+		check(IsInGameThread());
 		Function = AnimInstanceObject->FindFunction(BoundFunction);
 		check(Function);
 	}

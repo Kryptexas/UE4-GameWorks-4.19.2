@@ -128,6 +128,80 @@ void FCurlHttpManager::InitCurl()
 			UE_LOG(LogInit, Log, TEXT(" Libcurl: did not find a cert bundle in any of known locations, TLS may not work"));
 		}
 	}
+#if PLATFORM_ANDROID
+	// used #if here to protect against GExternalFilePath only available on Android
+	else
+	if (PLATFORM_ANDROID)
+	{
+		const int32 PathLength = 200;
+		static ANSICHAR capath[PathLength] = { 0 };
+
+		// if file does not already exist, create local PEM file with system trusted certificates
+		extern FString GExternalFilePath;
+		FString PEMFilename = GExternalFilePath / TEXT("ca-bundle.pem");
+		if (!FPaths::FileExists(PEMFilename))
+		{
+			FString Contents;
+
+			IFileManager* FileManager = &IFileManager::Get();
+			auto Ar = TUniquePtr<FArchive>(FileManager->CreateFileWriter(*PEMFilename, 0));
+			if (Ar)
+			{
+				// check for override ca-bundle.pem embedded in game content
+				FString OverridePEMFilename = FPaths::GameContentDir() + TEXT("CurlCertificates/ca-bundle.pem");
+				if (FFileHelper::LoadFileToString(Contents, *OverridePEMFilename))
+				{
+					const TCHAR* StrPtr = *Contents;
+					auto Src = StringCast<ANSICHAR>(StrPtr, Contents.Len());
+					Ar->Serialize((ANSICHAR*)Src.Get(), Src.Length() * sizeof(ANSICHAR));
+				}
+				else
+				{
+					// gather all the files in system certificates directory
+					TArray<FString> directoriesToIgnoreAndNotRecurse;
+					FLocalTimestampDirectoryVisitor Visitor(FPlatformFileManager::Get().GetPlatformFile(), directoriesToIgnoreAndNotRecurse, directoriesToIgnoreAndNotRecurse, false);
+					FileManager->IterateDirectory(TEXT("/system/etc/security/cacerts"), Visitor);
+
+					for (TMap<FString, FDateTime>::TIterator TimestampIt(Visitor.FileTimes); TimestampIt; ++TimestampIt)
+					{
+						// read and append the certificate file contents
+						const FString CertFilename = TimestampIt.Key();
+						if (FFileHelper::LoadFileToString(Contents, *CertFilename))
+						{
+							const TCHAR* StrPtr = *Contents;
+							auto Src = StringCast<ANSICHAR>(StrPtr, Contents.Len());
+							Ar->Serialize((ANSICHAR*)Src.Get(), Src.Length() * sizeof(ANSICHAR));
+						}
+					}
+
+					// add optional additional certificates
+					FString OptionalPEMFilename = FPaths::GameContentDir() + TEXT("CurlCertificates/ca-additions.pem");
+					if (FFileHelper::LoadFileToString(Contents, *OptionalPEMFilename))
+					{
+						const TCHAR* StrPtr = *Contents;
+						auto Src = StringCast<ANSICHAR>(StrPtr, Contents.Len());
+						Ar->Serialize((ANSICHAR*)Src.Get(), Src.Length() * sizeof(ANSICHAR));
+					}
+				}
+
+				FPlatformString::Strncpy(capath, TCHAR_TO_ANSI(*PEMFilename), PathLength);
+				CurlRequestOptions.CertBundlePath = capath;
+				UE_LOG(LogInit, Log, TEXT(" Libcurl: using generated PEM file: '%s'"), *PEMFilename);
+			}
+		}
+		else
+		{
+			FPlatformString::Strncpy(capath, TCHAR_TO_ANSI(*PEMFilename), PathLength);
+			CurlRequestOptions.CertBundlePath = capath;
+			UE_LOG(LogInit, Log, TEXT(" Libcurl: using existing PEM file: '%s'"), *PEMFilename);
+		}
+
+		if (CurlRequestOptions.CertBundlePath == nullptr)
+		{
+			UE_LOG(LogInit, Log, TEXT(" Libcurl: failed to generate a PEM cert bundle, TLS may not work"));
+		}
+	}
+#endif
 
 	// print for visibility
 	CurlRequestOptions.Log();

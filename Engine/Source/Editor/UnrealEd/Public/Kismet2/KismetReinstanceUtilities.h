@@ -81,6 +81,9 @@ protected:
 	/** TRUE if this is the root reinstancer that all other active reinstancing is spawned from */
 	bool bIsRootReinstancer;
 
+	/** TRUE if this reinstancer should resave compiled Blueprints if the user has requested it */
+	bool bAllowResaveAtTheEndIfRequested;
+
 public:
 	// FSerializableObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -92,9 +95,9 @@ public:
 	virtual void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
 	virtual void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
 
-	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false)
+	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false, bool bAutoInferSaveOnCompile = true)
 	{
-		return MakeShareable(new FBlueprintCompileReinstancer(InClassToReinstance, bIsBytecodeOnly, bSkipGC));
+		return MakeShareable(new FBlueprintCompileReinstancer(InClassToReinstance, bIsBytecodeOnly, bSkipGC, bAutoInferSaveOnCompile));
 	}
 
 	virtual ~FBlueprintCompileReinstancer();
@@ -152,8 +155,15 @@ protected:
 		, bIsRootReinstancer(false)
 	{}
 
-	/** Sets the reinstancer up to work on every object of the specified class */
-	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false);
+	/** 
+	 * Sets the reinstancer up to work on every object of the specified class
+	 *
+	 * @param InClassToReinstance		Class being reinstanced
+	 * @param bIsBytecodeOnly			TRUE if only the bytecode is being recompiled
+	 * @param bSkipGC					TRUE if garbage collection should be skipped
+	 * @param bAutoInferSaveOnCompile	TRUE if the reinstancer should infer whether or not save on compile should occur, FALSE if it should never save on compile
+	 */
+	FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false, bool bAutoInferSaveOnCompile = true);
 
 	/** Reparents the specified blueprint or class to be the duplicated class in order to allow properties to be copied from the previous CDO to the new one */
 	void ReparentChild(UBlueprint* ChildBP);

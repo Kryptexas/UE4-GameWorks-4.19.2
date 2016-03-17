@@ -884,6 +884,34 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 	{
 		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
 		ViewportClient->ReceivedFocus(this);
+
+		if ((FApp::IsGame() && !GIsEditor) || bIsPlayInEditorViewport)
+		{
+			if (IsForegroundWindow() || FApp::UseVRFocus())
+			{
+				bool bIsCursorForcedVisible = false;
+				if (ViewportClient->GetWorld() && ViewportClient->GetWorld()->GetGameInstance() && ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController())
+				{
+					bIsCursorForcedVisible = ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController()->GetMouseCursor() != EMouseCursor::None;
+				}
+
+				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InFocusEvent.GetCause() != EFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;
+
+				// capturing the mouse interferes with slate UI (like the virtual joysticks)
+				if (FPlatformProperties::SupportsWindowedMode() && bPlayInEditorCapture && !bIsCursorForcedVisible && !FSlateApplication::Get().IsFakingTouchEvents())
+				{
+					// Only require the user to click in the window the first time - after that return focus to the game so long as it was the last focused widget.
+					// Means that tabbing in/out will return the mouse control to where it was & the in-game console won't leave the mouse under editor control.
+					bPlayInEditorGetsMouseControl = true;
+					CurrentReplyState.UseHighPrecisionMouseMovement(ViewportWidget.Pin().ToSharedRef());
+					CurrentReplyState.LockMouseToWidget(ViewportWidget.Pin().ToSharedRef());
+				}
+			}
+			else
+			{
+				CurrentReplyState.ClearUserFocus(true);
+			}
+		}
 	}
 
 	// Update key state mappings so that the the viewport modifier states are valid upon focus.
@@ -998,7 +1026,9 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 			uint32 ViewportSizeX = NewSizeX;
 			uint32 ViewportSizeY = NewSizeY;
 
-			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+			bool bIsHMDConnected = GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected();
+
+			if (bIsHMDConnected)
 			{
 				WindowToResize->SetViewportSizeDrivenByWindow(true);
 				// Resize & move only if moving to a fullscreen mode
@@ -1029,11 +1059,11 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 			}
 
 			// Avoid resizing if nothing changes.
-			bool bNeedsResize = SizeX != ViewportSizeX || SizeY != ViewportSizeY || NewWindowMode != DesiredWindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
+			bool bNeedsResize = SizeX != ViewportSizeX || SizeY != ViewportSizeY || NewWindowMode != WindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
 
 			if (bNeedsResize)
 			{
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+				if (bIsHMDConnected)
 				{
 					// Resize & move only if moving to a fullscreen mode
 					if (NewWindowMode != EWindowMode::Windowed)
@@ -1056,7 +1086,7 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 				// Toggle fullscreen and resize
 				WindowToResize->SetWindowMode(DesiredWindowMode);
 
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
+				if (bIsHMDConnected)
 				{
 					if (NewWindowMode == EWindowMode::Windowed)
 					{

@@ -146,3 +146,12 @@
 	#define SCOPED_RHI_CONDITIONAL_DRAW_EVENTF_COLOR(...)
 
 #endif
+
+/** True if HDR is enabled for the mobile renderer. */
+ENGINE_API bool IsMobileHDR();
+
+/** True if the mobile renderer is emulating HDR in a 32bpp render target. */
+ENGINE_API bool IsMobileHDR32bpp();
+
+/** True if the mobile renderer is emulating HDR with mosaic. */
+ENGINE_API bool IsMobileHDRMosaic();

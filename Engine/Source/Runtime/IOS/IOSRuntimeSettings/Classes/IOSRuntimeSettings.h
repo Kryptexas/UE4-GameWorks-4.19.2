@@ -32,6 +32,9 @@ UENUM()
 
 	/** iOS 8 */
 	IOS_8 = 8 UMETA(DisplayName="8.0"),
+
+	/** iOS 9 */
+	IOS_9 = 9 UMETA(DisplayName = "9.0"),
 };
 
 

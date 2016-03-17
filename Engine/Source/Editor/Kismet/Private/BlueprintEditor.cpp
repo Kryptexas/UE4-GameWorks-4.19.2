@@ -510,7 +510,7 @@ bool FBlueprintEditor::IsInAScriptingMode() const
 
 bool FBlueprintEditor::OnRequestClose()
 {
-	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
 	{
 		TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
 	}
@@ -1682,19 +1682,22 @@ void FBlueprintEditor::InitBlueprintEditor(
 	PostLayoutBlueprintEditorInitialization();
 
 	// Ensure the profiler UI respects the current state if it had previously been enabled.
-	bool bShowBlueprintProfilerTab = false;
-	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsBlueprintProfilerSupported())
 	{
-		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
-		bShowBlueprintProfilerTab = ProfilerModule.IsProfilerEnabled();
-	}
-	if (bShowBlueprintProfilerTab)
-	{
-		TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID);
-	}
-	else
-	{
-		TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
+		bool bOpenProfilerTab = false;
+		if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+		{
+			IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+			bOpenProfilerTab = ProfilerModule.IsProfilerEnabled();
+		}
+		if (bOpenProfilerTab)
+		{
+			TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID);
+		}
+		else
+		{
+			TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
+		}
 	}
 
 	// Find and set any instances of this blueprint type if any exists and we are not already editing one
@@ -2481,13 +2484,10 @@ void FBlueprintEditor::CreateDefaultCommands()
 		);
 
 	// Blueprint Profiler Commands
-	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
-	{
-		ToolkitCommands->MapAction(FFullBlueprintEditorCommands::Get().ToggleProfiler,
-			FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleProfiler),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsProfilerActive));
-	}
+	ToolkitCommands->MapAction(FFullBlueprintEditorCommands::Get().ToggleProfiler,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleProfiler),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FBlueprintEditor::IsProfilerActive));
 
 	// New document actions
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().AddNewVariable,
@@ -2574,7 +2574,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 
 bool FBlueprintEditor::IsProfilerActive() const
 {
-	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
 	{
 		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 		return ProfilerModule.IsProfilerEnabled();
@@ -2584,7 +2584,7 @@ bool FBlueprintEditor::IsProfilerActive() const
 
 void FBlueprintEditor::ToggleProfiler()
 {
-	if (GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
+	if (IsBlueprintProfilerSupported() && GetDefault<UEditorExperimentalSettings>()->bBlueprintPerformanceAnalysisTools)
 	{
 		IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
 		ProfilerModule.ToggleProfilingCapture();
@@ -2598,6 +2598,22 @@ void FBlueprintEditor::ToggleProfiler()
 			TabManager->InvokeTab(FBlueprintEditorTabs::BlueprintProfilerID)->RequestCloseTab();
 		}
 	}
+}
+
+bool FBlueprintEditor::IsBlueprintProfilerSupported() const
+{
+	bool bIsBPProfilerSupported = false;
+	if (GetToolkitFName() == FName("BlueprintEditor") && GetCurrentMode() == FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
+	{
+		if (auto Blueprint = GetBlueprintObj())
+		{
+			if (Blueprint->BlueprintType == BPTYPE_Normal || Blueprint->BlueprintType == BPTYPE_LevelScript)
+			{
+				bIsBPProfilerSupported = true;
+			}
+		}
+	}
+	return bIsBPProfilerSupported;
 }
 
 void FBlueprintEditor::OpenNativeCodeGenerationTool()

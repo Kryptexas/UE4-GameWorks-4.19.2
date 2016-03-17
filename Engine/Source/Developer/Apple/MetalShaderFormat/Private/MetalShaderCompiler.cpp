@@ -346,6 +346,7 @@ static void BuildMetalShaderOutput(
 		bool bSucceeded = false;
 
 #if METAL_OFFLINE_COMPILE
+	#if PLATFORM_MAC
 		const bool bIsMobile = (ShaderInput.Target.Platform == SP_METAL || ShaderInput.Target.Platform == SP_METAL_MRT);
 		FString XcodePath = FPlatformMisc::GetXcodePath();
 		if (XcodePath.Len() > 0 && (bIsMobile || FPlatformMisc::MacOSXVersionCompare(10, 11, 0) >= 0))
@@ -437,6 +438,11 @@ static void BuildMetalShaderOutput(
 				}
 			}
 		}
+	#else
+		// do not compile on non-Windows
+		UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Metal shader compilation is not supported on this platform"));
+		bSucceeded = false;
+	#endif // PLATFORM_MAC
 #else
 		// Assume success for non-Mac
 		bSucceeded = true;

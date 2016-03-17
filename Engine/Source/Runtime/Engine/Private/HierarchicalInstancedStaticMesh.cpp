@@ -1890,7 +1890,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 	// if we are only updating rotation/scale we update the instance directly in the cluster tree
 	const bool bIsBuiltInstance = OldReorderIndex < NumBuiltInstances;
-	const bool bDoInPlaceUpdate = bIsBuiltInstance && NewLocalLocation.Equals(OldTransform.GetOrigin());
+	const bool bDoInPlaceUpdate = !bIsBuiltInstance || NewLocalLocation.Equals(OldTransform.GetOrigin());
 
 	// If we're updating an instance in the tree and can't do it in-place, we have to remove it and re-add it
 	if (bIsBuiltInstance && !bDoInPlaceUpdate)
@@ -1911,12 +1911,20 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 		if (bDoInPlaceUpdate)
 		{
-			// If the new bounds are larger than the old ones, then expand the bounds on the tree to make sure culling works correctly
-			const FBox OldInstanceBounds = StaticMesh->GetBounds().GetBox().TransformBy(OldTransform);
-			if (!OldInstanceBounds.IsInside(NewInstanceBounds))
+			if (bIsBuiltInstance)
 			{
-				BuiltInstanceBounds += NewInstanceBounds;
-				UpdateInstanceTreeBoundsInternal(OldReorderIndex, NewInstanceBounds);
+				// If the new bounds are larger than the old ones, then expand the bounds on the tree to make sure culling works correctly
+				const FBox OldInstanceBounds = StaticMesh->GetBounds().GetBox().TransformBy(OldTransform);
+				if (!OldInstanceBounds.IsInside(NewInstanceBounds))
+				{
+					BuiltInstanceBounds += NewInstanceBounds;
+					UpdateInstanceTreeBoundsInternal(OldReorderIndex, NewInstanceBounds);
+				}
+			}
+			else
+			{
+				UnbuiltInstanceBounds += NewInstanceBounds;
+				UnbuiltInstanceBoundsList[InstanceIndex - NumBuiltInstances] = NewInstanceBounds;
 			}
 		}
 		else

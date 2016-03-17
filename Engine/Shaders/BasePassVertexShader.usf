@@ -70,7 +70,7 @@ void Main(
 			Output.Position.x *= 0.5 * Frame.HMDEyePaddingOffset;
 
 			// Shift to the eye viewport
-			Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) / Frame.HMDEyePaddingOffset;
+			Output.Position.x += (EyeOffsetScale[EyeIndex] * Output.Position.w) * (1.0f - 0.5 * Frame.HMDEyePaddingOffset);
 		}
 		#endif
 	}

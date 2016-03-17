@@ -27,9 +27,27 @@ IConsoleVariable* FStereoPanoramaManager::ShouldOverrideInitialYaw   = IConsoleM
 IConsoleVariable* FStereoPanoramaManager::ForcedInitialYaw           = IConsoleManager::Get().RegisterConsoleVariable(TEXT("SP.ForcedInitialYaw"), 90.0f, TEXT("Yaw value for initial Camera view direction. Set ShouldOverrideInitialYaw to true to use this value"), ECVF_Default);
 IConsoleVariable* FStereoPanoramaManager::FadeStereoToZeroAtSides    = IConsoleManager::Get().RegisterConsoleVariable(TEXT("SP.FadeStereoToZeroAtSides"), false, TEXT("Fade stereo effect between left/right eye to zero at 90 degrees."), ECVF_Default);
 
+bool FStereoPanoramaManager::ValidateRendererState() const
+{
+	static const auto InstancedStereoCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
+	const bool bIsInstancedStereoEnabled = (InstancedStereoCVar && InstancedStereoCVar->GetValueOnAnyThread() != 0);
+
+	if (bIsInstancedStereoEnabled)
+	{
+		UE_LOG(LogStereoPanorama, Error, TEXT("Panoramic capture not supported with instanced stereo rendering enabled."));
+		return false;
+	}
+
+	return true;
+}
 
 void FStereoPanoramaManager::PanoramicScreenshot(const TArray<FString>& Args)
 {
+	if (!ValidateRendererState())
+	{
+		return;
+	}
+
     FStereoCaptureDoneDelegate EmptyDelegate;
     FStereoPanoramaManager::PanoramicScreenshot(0, 0, EmptyDelegate);
 }
@@ -61,6 +79,11 @@ void FStereoPanoramaManager::Cleanup()
 
 void FStereoPanoramaManager::PanoramicMovie(const TArray<FString>& Args)
 {
+	if (!ValidateRendererState())
+	{
+		return;
+	}
+
     int32 StartFrame = 0;
     int32 EndFrame   = 0;
 

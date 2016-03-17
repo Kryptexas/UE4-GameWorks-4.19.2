@@ -129,6 +129,7 @@ void FAnimInstanceProxy::InitializeRootNode()
 					// consequence of our class being recompiled and functions will be invalid in that
 					// case.
 					AnimNode->EvaluateGraphExposedInputs.bInitialized = false;
+					AnimNode->EvaluateGraphExposedInputs.Initialize(AnimNode, AnimInstanceObject);
 
 					if (AnimNode->HasPreUpdate())
 					{

@@ -280,7 +280,7 @@ float4 ComputeControlPoint(float4 PositionA, float4 PositionB, float4 NormalA)
 			Result.Position.x *= 0.5 * Frame.HMDEyePaddingOffset;
 
 			// Shift to the eye viewport
-			Result.Position.x += (EyeOffsetScale[EyeIndex] * Result.Position.w) / Frame.HMDEyePaddingOffset;
+			Result.Position.x += (EyeOffsetScale[EyeIndex] * Result.Position.w) * (1.0f - 0.5 * Frame.HMDEyePaddingOffset);
 		}
 		#endif
 

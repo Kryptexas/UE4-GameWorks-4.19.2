@@ -414,6 +414,7 @@ void UAnimInstance::PreUpdateAnimation(float DeltaSeconds)
 	bNeedsUpdate = true;
 
 	NotifyQueue.Reset(GetSkelMeshComponent());
+	RootMotionBlendQueue.Reset();
 
 	GetProxyOnGameThread<FAnimInstanceProxy>().PreUpdate(this, DeltaSeconds);
 }
@@ -430,9 +431,18 @@ void UAnimInstance::PostUpdateAnimation()
 
 	Proxy.PostUpdate(this);
 
+	FRootMotionMovementParams& ExtractedRootMotion = Proxy.GetExtractedRootMotion();
+
+	// blend in any montage-blended root motion that we now have correct weights for
+	for(const FQueuedRootMotionBlend& RootMotionBlend : RootMotionBlendQueue)
+	{
+		const float RootMotionSlotWeight = GetSlotRootMotionWeight(RootMotionBlend.SlotName);
+		const float RootMotionInstanceWeight = RootMotionBlend.Weight * RootMotionSlotWeight;
+		ExtractedRootMotion.AccumulateWithBlend(RootMotionBlend.Transform, RootMotionInstanceWeight);
+	}
+
 	// We may have just partially blended root motion, so make it up to 1 by
 	// blending in identity too
-	FRootMotionMovementParams& ExtractedRootMotion = Proxy.GetExtractedRootMotion();
 	if (ExtractedRootMotion.bHasRootMotion)
 	{
 		ExtractedRootMotion.MakeUpToFullWeight();
@@ -2621,6 +2631,11 @@ void UAnimInstance::RecordStateWeight(const int32& InMachineClassIndex, const in
 FBoneContainer& UAnimInstance::GetRequiredBones()
 {
 	return GetProxyOnGameThread<FAnimInstanceProxy>().GetRequiredBones();
+}
+
+void UAnimInstance::QueueRootMotionBlend(const FTransform& RootTransform, const FName& SlotName, float Weight)
+{
+	RootMotionBlendQueue.Add(FQueuedRootMotionBlend(RootTransform, SlotName, Weight));
 }
 
 #undef LOCTEXT_NAMESPACE 

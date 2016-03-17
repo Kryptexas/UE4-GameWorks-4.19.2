@@ -224,9 +224,14 @@ public:
 		case ERealtimeAudioTaskType::Decompress:
 			if (bSkipFirstBuffer)
 			{
+#if PLATFORM_ANDROID
+				// Only skip one buffer on Android
+				AudioBuffer->ReadCompressedData( ( uint8* )AudioData, bLoopingMode );
+#else
 				// If we're using cached data we need to skip the first two reads from the data
 				AudioBuffer->ReadCompressedData( ( uint8* )AudioData, bLoopingMode );
 				AudioBuffer->ReadCompressedData( ( uint8* )AudioData, bLoopingMode );
+#endif
 			}
 			bLooped = AudioBuffer->ReadCompressedData( ( uint8* )AudioData, bLoopingMode );
 			break;

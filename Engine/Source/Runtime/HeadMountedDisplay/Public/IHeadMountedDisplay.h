@@ -4,10 +4,8 @@
 
 #include "StereoRendering.h"
 #include "Layout/SlateRect.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "HeadMountedDisplayTypes.h"
-
-// depending on your kit and SDK, you may want to use this.
-// new distortion handling still in development.
 
 /**
  * HMD device interface
@@ -70,7 +68,7 @@ public:
 	virtual void	GetFieldOfView(float& InOutHFOVInDegrees, float& InOutVFOVInDegrees) const = 0;
 
 	/**
-	 * Whether or not the HMD supports positional tracking (either via camera or other means)
+	 * Whether or not the HMD supports positional tracking (either via sensor or other means)
 	 */
 	virtual bool	DoesSupportPositionalTracking() const = 0;
 
@@ -80,7 +78,7 @@ public:
 	virtual bool	HasValidTrackingPosition() = 0;
 
 	/**
-	 * If the HMD supports positional tracking via a camera, this returns the frustum properties (all in game-world space) of the tracking camera.
+	 * If the HMD supports positional tracking via a sensor, this returns the frustum properties (all in game-world space) of the sensor.
 	 */
 	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;
 
@@ -348,6 +346,28 @@ public:
 	 * Returns version string.
 	 */
 	virtual FString GetVersionString() const { return FString(TEXT("GenericHMD")); }
+
+	/**
+	 * Sets tracking origin (either 'eye'-level or 'floor'-level).
+	 */
+	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin) {};
+
+	/**
+	 * Returns current tracking origin.
+	 */
+	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() { return EHMDTrackingOrigin::Eye; }
+
+	/**
+	 * Returns true, if the App is using VR focus. This means that the app may handle lifecycle events differently from
+	 * the regular desktop apps. In this case, FCoreDelegates::ApplicationWillEnterBackgroundDelegate and FCoreDelegates::ApplicationHasEnteredForegroundDelegate
+	 * reflect the state of VR focus (either the app should be rendered in HMD or not).
+	 */
+	virtual bool DoesAppUseVRFocus() const;
+
+	/**
+	 * Returns true, if the app has VR focus, meaning if it is rendered in the HMD.
+	 */
+	virtual bool DoesAppHaveVRFocus() const;
 
 	/** Setup state for applying the render thread late update */
 	virtual void SetupLateUpdate(const FTransform& ParentToWorld, USceneComponent* Component);
