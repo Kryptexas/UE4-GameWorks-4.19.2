@@ -3212,8 +3212,15 @@ namespace UnrealBuildTool
 						if (bCanPrecompile)
 						{
 							UEBuildModule Module = FindOrCreateModuleByName(FilteredModuleName);
-							Module.RecursivelyCreateModules(this);
-							PrecompiledModules.Add(Module);
+							try
+							{
+								Module.RecursivelyCreateModules(this);
+								PrecompiledModules.Add(Module);
+							}
+							catch(BuildException)
+							{
+
+							}
 						}
 					}
 				}
