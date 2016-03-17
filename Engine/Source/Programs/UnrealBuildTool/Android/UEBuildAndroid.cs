@@ -248,7 +248,7 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			return true;
+			return false;
 		}
 
 		public override string GetBinaryExtension(UEBuildBinaryType InBinaryType)
