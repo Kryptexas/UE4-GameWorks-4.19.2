@@ -90,6 +90,15 @@ namespace UnrealBuildTool
 		{
 		}
 
+		public virtual bool ValidatePrecompiledModule(string Module)
+		{
+			if (Module == "VulkanRHI" || Module == "VulkanShaderFormat")
+			{
+				return !String.IsNullOrEmpty(Environment.GetEnvironmentVariable("VK_SDK_PATH"));
+			}
+			return true;
+		}
+
 		/// <summary>
 		/// Setup the target environment for building
 		/// </summary>
@@ -495,8 +504,6 @@ namespace UnrealBuildTool
 					return ";";
 			}
 		}
-
-
 
 		/// <summary>
 		/// If this platform can be compiled with XGE

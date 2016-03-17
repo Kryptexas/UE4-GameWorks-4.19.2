@@ -61,9 +61,5 @@ public class VulkanRHI : ModuleRules
                     );
             }
 		}
-		else
-		{
-			throw new UnrealBuildTool.BuildException("Vulkan SDK not found");
-		}
     }
 }
