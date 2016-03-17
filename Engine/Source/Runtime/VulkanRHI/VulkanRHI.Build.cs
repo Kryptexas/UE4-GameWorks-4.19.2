@@ -61,5 +61,9 @@ public class VulkanRHI : ModuleRules
                     );
             }
 		}
+		else
+		{
+			PrecompileForTargets = PrecompileTargetsType.None;
+		}
     }
 }
