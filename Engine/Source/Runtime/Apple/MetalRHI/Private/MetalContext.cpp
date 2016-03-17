@@ -750,7 +750,9 @@ void FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	bool bRestoreState = false;
 	if (IsValidRef(CurrentBoundShaderState->PixelShader) && (CurrentBoundShaderState->PixelShader->Bindings.InOutMask & 0x8000) && StateCache.GetRenderPipelineDesc().PipelineDescriptor.depthAttachmentPixelFormat == MTLPixelFormatInvalid && !FShaderCache::IsPredrawCall())
 	{
+#if UE_BUILD_DEBUG
 		UE_LOG(LogMetal, Warning, TEXT("Binding a temporary depth-stencil surface as the bound shader pipeline that writes to depth/stencil but no depth/stencil surface was bound!"));
+#endif
 		check(StateCache.GetRenderTargetArraySize() <= 1);
 		CGSize FBSize = StateCache.GetFrameBufferSize();
 		
