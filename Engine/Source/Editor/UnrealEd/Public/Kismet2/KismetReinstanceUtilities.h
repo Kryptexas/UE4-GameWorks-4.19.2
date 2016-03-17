@@ -150,7 +150,9 @@ protected:
 		, OriginalCDO(NULL)
 		, bHasReinstanced(false)
 		, bSkipGarbageCollection(false)
+		, bIsReinstancingSkeleton(false)
 		, ClassToReinstanceDefaultValuesCRC(0)
+		, bIsSourceReinstancer(false)
 	{}
 
 	/** 
