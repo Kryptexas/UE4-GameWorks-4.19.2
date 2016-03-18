@@ -110,8 +110,10 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 		case EBlueprintExceptionType::AccessViolation:
 			if ( GIsEditor && GIsPlayInEditorWorld )
 			{
-				TSharedRef<FTokenizedMessage> ErrorMessage = FMessageLog("PIE").Error(LOCTEXT("RuntimeErrorMessage", "Blueprint Runtime Error from function:"));
-
+				FMessageLog Pie("PIE"); // FMessageLog dtor flushes the buffer..
+				TSharedRef<FTokenizedMessage> ErrorMessage = Pie.Error(LOCTEXT("RuntimeErrorMessage", "Blueprint Runtime Error:"));
+				ErrorMessage->AddToken(FTextToken::Create(Info.GetDescription()));
+				ErrorMessage->AddToken(FTextToken::Create(LOCTEXT("RuntimeErrorBlueprintFunction", "from function:")));
 				// NOTE: StackFrame.Node is not a blueprint node like you may think ("Node" has some legacy meaning)
 				FString GeneratedFuncName = FString::Printf(TEXT("'%s'"), *StackFrame.Node->GetName());
 				// a log token, telling us specifically where the exception is coming from (here
@@ -148,11 +150,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 #endif // WITH_EDITORONLY_DATA
 
 				ErrorMessage->AddToken(FTextToken::Create(LOCTEXT("RuntimeErrorBlueprintObject", "in object:")));
-				ErrorMessage
-					->AddToken(FUObjectToken::Create(BlueprintObj, FText::FromString(BlueprintObj->GetName()))->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated)));
-
-				ErrorMessage->AddToken(FTextToken::Create(LOCTEXT("RuntimeErrorBlueprintDescription", "with description:")));
-				ErrorMessage->AddToken(FTextToken::Create(Info.GetDescription()));
+				ErrorMessage->AddToken(FUObjectToken::Create(BlueprintObj, FText::FromString(BlueprintObj->GetName()))->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated)));
 			}
 			bForceToCurrentObject = true;
 			bShouldBreakExecution = GetDefault<UEditorExperimentalSettings>()->bBreakOnExceptions;
