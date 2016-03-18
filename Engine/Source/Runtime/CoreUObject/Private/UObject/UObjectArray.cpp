@@ -116,7 +116,6 @@ void FUObjectArray::DisableDisregardForGC()
 {
 	MaxObjectsNotConsideredByGC = 0;
 	ObjFirstGCIndex = 0;
-	ObjLastNonGCIndex = INDEX_NONE;
 	if (IsOpenForDisregardForGC())
 	{
 		CloseDisregardForGC();
