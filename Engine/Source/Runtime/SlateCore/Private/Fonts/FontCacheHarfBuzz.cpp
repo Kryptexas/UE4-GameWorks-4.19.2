@@ -8,7 +8,10 @@
 	#if PLATFORM_WINDOWS
 		#pragma warning(push)
 		#pragma warning(disable:4996) // warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead.
-	#endif // #if PLATFORM_WINDOWS
+	#ifndef snprintf
+		#define snprintf _snprintf
+	#endif
+#endif // #if PLATFORM_WINDOWS
 
 	// Include some private headers needed for our font implementation
 	#include "hb-private.hh"
