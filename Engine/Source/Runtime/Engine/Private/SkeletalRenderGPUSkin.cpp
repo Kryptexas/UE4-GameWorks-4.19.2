@@ -1080,8 +1080,6 @@ const FTwoVectors& FSkeletalMeshObjectGPUSkin::GetCustomLeftRightVectors(int32 S
 FDynamicSkelMeshObjectDataGPUSkin
 -----------------------------------------------------------------------------*/
 
-static TLockFreePointerListUnordered<FDynamicSkelMeshObjectDataGPUSkin, PLATFORM_CACHE_LINE_SIZE>	FreeDynamicSkelMeshObjectDataGPUSkins;
-
 void FDynamicSkelMeshObjectDataGPUSkin::Clear()
 {
 	ReferenceToLocal.Reset();
@@ -1099,19 +1097,12 @@ void FDynamicSkelMeshObjectDataGPUSkin::Clear()
 
 FDynamicSkelMeshObjectDataGPUSkin* FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin()
 {
-	FDynamicSkelMeshObjectDataGPUSkin* Result = FreeDynamicSkelMeshObjectDataGPUSkins.Pop();
-	if (!Result)
-	{
-		Result = new FDynamicSkelMeshObjectDataGPUSkin;
-	}
-	return Result;
+	return new FDynamicSkelMeshObjectDataGPUSkin;
 }
 
 void FDynamicSkelMeshObjectDataGPUSkin::FreeDynamicSkelMeshObjectDataGPUSkin(FDynamicSkelMeshObjectDataGPUSkin* Who)
 {
-	check(Who);
-	Who->Clear();
-	FreeDynamicSkelMeshObjectDataGPUSkins.Push(Who);
+	delete Who;
 }
 
 void FDynamicSkelMeshObjectDataGPUSkin::InitDynamicSkelMeshObjectDataGPUSkin(

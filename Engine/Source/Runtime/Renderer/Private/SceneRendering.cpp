@@ -546,6 +546,25 @@ static void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
 	}
 }
 
+void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters)
+{
+	if (GSystemTextures.PerlinNoiseGradient.GetReference())
+	{
+		FrameUniformShaderParameters.PerlinNoiseGradientTexture = (FTexture2DRHIRef&)GSystemTextures.PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack2DIfNull(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
+	}
+	check(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
+	FrameUniformShaderParameters.PerlinNoiseGradientTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+
+	if (GSystemTextures.PerlinNoise3D.GetReference())
+	{
+		FrameUniformShaderParameters.PerlinNoise3DTexture = (FTexture3DRHIRef&)GSystemTextures.PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture;
+		SetBlack3DIfNull(FrameUniformShaderParameters.PerlinNoise3DTexture);
+	}
+	check(FrameUniformShaderParameters.PerlinNoise3DTexture);
+	FrameUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+}
+
 
 /** Creates the view's uniform buffers given a set of view transforms. */
 void FViewInfo::CreateUniformBuffer(
@@ -855,21 +874,8 @@ void FViewInfo::CreateUniformBuffer(
 	FrameUniformShaderParameters.AtmosphereIrradianceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 	FrameUniformShaderParameters.AtmosphereInscatterTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 
-	if (GSystemTextures.PerlinNoiseGradient.GetReference())
-	{
-		FrameUniformShaderParameters.PerlinNoiseGradientTexture = (FTexture2DRHIRef&)GSystemTextures.PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture;
-		SetBlack2DIfNull(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
-	}
-	check(FrameUniformShaderParameters.PerlinNoiseGradientTexture);
-	FrameUniformShaderParameters.PerlinNoiseGradientTextureSampler = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-
-	if (GSystemTextures.PerlinNoise3D.GetReference())
-	{
-		FrameUniformShaderParameters.PerlinNoise3DTexture = (FTexture3DRHIRef&)GSystemTextures.PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture;
-		SetBlack3DIfNull(FrameUniformShaderParameters.PerlinNoise3DTexture);
-	}
-	check(FrameUniformShaderParameters.PerlinNoise3DTexture);
-	FrameUniformShaderParameters.PerlinNoise3DTextureSampler = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	// Update the Texture Parameters used for noise
+	UpdateNoiseTextureParameters(FrameUniformShaderParameters);
 
 	for (int32 Index = 0; Index < GMaxGlobalDistanceFieldClipmaps; Index++)
 	{

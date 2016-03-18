@@ -61,9 +61,13 @@ void Main(
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, SvPosition);
 	FPixelMaterialInputs PixelMaterialInputs;
 	#if INTERPOLATE_POSITION
-		{
-			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, 1, SvPositionToResolvedTranslatedWorld(SvPosition), SvPosition.xyz);
+	    {
+			float4 ScreenPosition  = SvPositionToScreenPosition(SvPosition);  
+			
+			float3 TranslatedWorld = Inputs.PixelPosition.xyz;
+
+			CalcMaterialParametersEx(MaterialParameters, PixelMaterialInputs, SvPosition, ScreenPosition, 1, TranslatedWorld, TranslatedWorld);
+
 		}
 	#else
 		CalcMaterialParameters(MaterialParameters, PixelMaterialInputs, SvPosition, 1);

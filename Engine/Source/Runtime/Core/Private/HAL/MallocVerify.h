@@ -104,6 +104,22 @@ public:
 	{
 		return UsedMalloc->GetAllocationSize(Original, OutSize);
 	}
+	virtual SIZE_T QuantizeSize(SIZE_T Count, uint32 Alignment) override
+	{
+		return UsedMalloc->QuantizeSize(Count, Alignment);
+	}
+	virtual void Trim() override
+	{
+		return UsedMalloc->Trim();
+	}
+	virtual void SetupTLSCachesOnCurrentThread() override
+	{
+		return UsedMalloc->SetupTLSCachesOnCurrentThread();
+	}
+	virtual void ClearAndDisableTLSCachesOnCurrentThread() override
+	{
+		return UsedMalloc->ClearAndDisableTLSCachesOnCurrentThread();
+	}
 
 	virtual const TCHAR* GetDescriptiveName() override
 	{ 

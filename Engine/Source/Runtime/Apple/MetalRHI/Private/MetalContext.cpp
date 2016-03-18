@@ -1222,9 +1222,7 @@ static TLockFreeFixedSizeAllocator<sizeof(FMetalCommandContextContainer), PLATFO
 
 void* FMetalCommandContextContainer::operator new(size_t Size)
 {
-	// doesn't support derived classes with a different size
-	check(Size == sizeof(FMetalCommandContextContainer));
-	return FMetalCommandContextContainerAllocator.Allocate();
+	return FMemory::Malloc(Size);
 }
 
 /**
@@ -1232,7 +1230,7 @@ void* FMetalCommandContextContainer::operator new(size_t Size)
  */
 void FMetalCommandContextContainer::operator delete(void *RawMemory)
 {
-	FMetalCommandContextContainerAllocator.Free(RawMemory);
+	FMemory::Free(RawMemory);
 }
 
 IRHICommandContextContainer* FMetalDynamicRHI::RHIGetCommandContextContainer()

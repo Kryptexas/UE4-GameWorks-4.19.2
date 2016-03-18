@@ -215,6 +215,10 @@ void FGenericPlatformMallocCrash::SetAsGMalloc()
 {
 	InternalLock.Lock();
 	GMalloc = this;
+	if (PLATFORM_USES_FIXED_GMalloc_CLASS && GFixedMallocLocationPtr)
+	{
+		*GFixedMallocLocationPtr = nullptr; // this disables any fast-path inline allocators
+	}
 	CrashedThreadId = FPlatformTLS::GetCurrentThreadId();
 }
 

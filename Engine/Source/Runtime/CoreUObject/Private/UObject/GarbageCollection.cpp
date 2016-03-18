@@ -1164,6 +1164,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	if( GObjIncrementalPurgeIsInProgress || GObjPurgeIsRequired )
 	{
 		IncrementalPurgeGarbage( false );
+		FMemory::Trim();
 	}
 	check( !GObjIncrementalPurgeIsInProgress );
 	check( !GObjPurgeIsRequired );
@@ -1326,6 +1327,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	{
 		IncrementalPurgeGarbage( false );	
 	}
+	FMemory::Trim();
 
 	// Destroy all pending delete linkers
 	DeleteLoaders();

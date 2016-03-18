@@ -1001,3 +1001,6 @@ private:
 	bool bModulatedShadowsInUse;
 	bool bCSMShadowsInUse;
 };
+
+// The noise textures need to be set in Slate too.
+RENDERER_API void UpdateNoiseTextureParameters(FFrameUniformShaderParameters& FrameUniformShaderParameters);

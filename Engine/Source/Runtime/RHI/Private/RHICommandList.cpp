@@ -1634,37 +1634,24 @@ void FRHICommandListBase::HandleRTThreadTaskCompletion(const FGraphEventRef& MyC
 	RTTasks.Empty();
 }
 
-static TLockFreeFixedSizeAllocator<sizeof(FRHICommandList), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> RHICommandListAllocator;
-static TLockFreeFixedSizeAllocator<sizeof(FRHIAsyncComputeCommandList), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> RHIAsyncComputeCommandListAllocator;
-
 void* FRHICommandList::operator new(size_t Size)
 {
-	// doesn't support derived classes with a different size
-	check(Size == sizeof(FRHICommandList));
-	return RHICommandListAllocator.Allocate();
-	//return FMemory::Malloc(Size);
+	return FMemory::Malloc(Size);
 }
 
 void FRHICommandList::operator delete(void *RawMemory)
 {
-	check(RawMemory != (void*) &GRHICommandList.GetImmediateCommandList());
-	RHICommandListAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }
 
 void* FRHIAsyncComputeCommandList::operator new(size_t Size)
 {
-	// doesn't support derived classes with a different size
-	check(Size == sizeof(FRHICommandList));
-	return RHIAsyncComputeCommandListAllocator.Allocate();
-	//return FMemory::Malloc(Size);
+	return FMemory::Malloc(Size);
 }
 
 void FRHIAsyncComputeCommandList::operator delete(void *RawMemory)
 {
-	check(RawMemory != (void*)&GRHICommandList.GetImmediateAsyncComputeCommandList());
-	RHIAsyncComputeCommandListAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }
 
 void* FRHICommandListBase::operator new(size_t Size)
@@ -1675,9 +1662,7 @@ void* FRHICommandListBase::operator new(size_t Size)
 
 void FRHICommandListBase::operator delete(void *RawMemory)
 {
-	check(RawMemory != (void*) &GRHICommandList.GetImmediateCommandList());
-	RHICommandListAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }	
 
 ///////// Pass through functions that allow RHIs to optimize certain calls.

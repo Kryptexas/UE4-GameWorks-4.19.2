@@ -144,84 +144,15 @@ DECLARE_CYCLE_STAT(TEXT("EmitterInstance PrepPerInstanceBlock"), STAT_PrepPerIns
 DECLARE_CYCLE_STAT(TEXT("EmitterInstance Resize"), STAT_ParticleEmitterInstance_Resize, STATGROUP_Particles);
 
 
-/*-----------------------------------------------------------------------------
-	Fast allocators for small block data being sent to the render thread
------------------------------------------------------------------------------*/
-
-static TLockFreeFixedSizeAllocator<256, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc256;
-static TLockFreeFixedSizeAllocator<384, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc384;
-static TLockFreeFixedSizeAllocator<512, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc512;
-static TLockFreeFixedSizeAllocator<768, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc768;
-static TLockFreeFixedSizeAllocator<1024, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc1024;
-static TLockFreeFixedSizeAllocator<1792, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc1792;
-static TLockFreeFixedSizeAllocator<2048, PLATFORM_CACHE_LINE_SIZE> FastParticleSmallBlockAlloc2048;
-
 FORCEINLINE static void* FastParticleSmallBlockAlloc(size_t AllocSize)
 {
-	check(AllocSize > 0);
-	if (AllocSize <= 768)
-	{
-		if (AllocSize <= 256)
-		{
-			return FastParticleSmallBlockAlloc256.Allocate();
-		}
-		if (AllocSize <= 384)
-		{
-			return FastParticleSmallBlockAlloc384.Allocate();
-		}
-		if (AllocSize <= 512)
-		{
-			return FastParticleSmallBlockAlloc512.Allocate();
-		}
-		return FastParticleSmallBlockAlloc768.Allocate();
-	}
-	if (AllocSize <= 1024)
-	{
-		return FastParticleSmallBlockAlloc1024.Allocate();
-	}
-	if (AllocSize <= 1792)
-	{
-		return FastParticleSmallBlockAlloc1792.Allocate();
-	}
-	if (AllocSize <= 2048)
-	{
-		return FastParticleSmallBlockAlloc2048.Allocate();
-	}
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
 	return FMemory::Malloc(AllocSize);
 }
 
 FORCEINLINE static void FastParticleSmallBlockFree(void *RawMemory, size_t AllocSize)
 {
-	check(AllocSize > 0);
-	if (AllocSize <= 768)
-	{
-		if (AllocSize <= 256)
-		{
-			return FastParticleSmallBlockAlloc256.Free(RawMemory);
-		}
-		if (AllocSize <= 384)
-		{
-			return FastParticleSmallBlockAlloc384.Free(RawMemory);
-		}
-		if (AllocSize <= 512)
-		{
-			return FastParticleSmallBlockAlloc512.Free(RawMemory);
-		}
-		return FastParticleSmallBlockAlloc768.Free(RawMemory);
-	}
-
-	if (AllocSize <= 1024)
-	{
-		return FastParticleSmallBlockAlloc1024.Free(RawMemory);
-	}
-	if (AllocSize <= 1792)
-	{
-		return FastParticleSmallBlockAlloc1792.Free(RawMemory);
-	}
-	if (AllocSize <= 2048)
-	{
-		return FastParticleSmallBlockAlloc2048.Free(RawMemory);
-	}
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PARTALLOC);
 	FMemory::Free(RawMemory);
 }
 
@@ -791,9 +722,10 @@ void FParticleEmitterInstance::CheckEmitterFinished()
 			const UParticleModuleRequired* RequiredModule = LODLevel->RequiredModule;
 			check(RequiredModule);
 
-			if (SpawnModule->GetMaximumSpawnRate() == 0
+			if (HasCompleted() || 
+				(SpawnModule->GetMaximumSpawnRate() == 0
 				&& RequiredModule->EmitterDuration == 0
-				&& RequiredModule->EmitterLoops == 0
+				&& RequiredModule->EmitterLoops == 0)
 				)
 			{
 				bEmitterIsDone = true;
@@ -3769,20 +3701,14 @@ void FDynamicEmitterDataBase::operator delete(void *RawMemory, size_t AllocSize)
 	FastParticleSmallBlockFree(RawMemory, AllocSize);
 }	
 
-static TLockFreeFixedSizeAllocator<sizeof(FParticleDynamicData), PLATFORM_CACHE_LINE_SIZE> ParticleDynamicDataAllocator;
-
 void* FParticleDynamicData::operator new(size_t AllocSize)
 {
-	check(AllocSize == sizeof(FParticleDynamicData));
-	return ParticleDynamicDataAllocator.Allocate();
-	//return FMemory::Malloc(AllocSize);
+	return FMemory::Malloc(AllocSize);
 }
 
 void FParticleDynamicData::operator delete(void *RawMemory, size_t AllocSize)
 {
-	check(AllocSize == sizeof(FParticleDynamicData));
-	ParticleDynamicDataAllocator.Free(RawMemory);
-	//FMemory::Free(RawMemory);
+	FMemory::Free(RawMemory);
 }	
 
 FDynamicEmitterDataBase::FDynamicEmitterDataBase(const UParticleModuleRequired* RequiredModule)

@@ -844,8 +844,10 @@ public:
 	/** Attaches to the task graph stats thread, all processing will be handled by the task graph. */
 	virtual uint32 Run() override
 	{
+		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::StatsThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::StatsThread);
+		FMemory::ClearAndDisableTLSCachesOnCurrentThread();
 		return 0;
 	}
 

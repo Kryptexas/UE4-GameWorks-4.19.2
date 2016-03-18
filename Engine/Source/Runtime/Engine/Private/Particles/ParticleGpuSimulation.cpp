@@ -2681,66 +2681,16 @@ public:
 	}
 };
 
-struct FNewParticleAlloc
-{
-	TLockFreeFixedSizeAllocator<sizeof(TArray<FNewParticle>), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> FreeTArrayFNewParticleArrays;
-	TLockFreePointerListUnordered<TArray<FNewParticle>, PLATFORM_CACHE_LINE_SIZE>	FreeTArrayFNewParticle;
-	~FNewParticleAlloc()
-	{
-		while (true)
-		{
-			TArray<FNewParticle>* Recycle = FreeTArrayFNewParticle.Pop();
-			if (!Recycle)
-			{
-				break;
-			}
-			Recycle->Empty();
-			FreeTArrayFNewParticleArrays.Free(Recycle);
-		}
-	}
-
-};
-
-static FNewParticleAlloc& GNewParticleAlloc()
-{
-	static FNewParticleAlloc Singleton;
-	return Singleton;
-}
-
-static const int MaxNumParticlesToRecycle  = 512; // these can be quite large
-
 // recycle memory blocks for the NewParticle array
 static void FreeNewParticleArray(TArray<FNewParticle>& NewParticles)
 {
 	NewParticles.Reset();
-	const int MaxNumToRecycledArrays  = 100; 
-	int32 CurrentSize = NewParticles.GetSlack();
-	if (CurrentSize > 0 && CurrentSize <= MaxNumParticlesToRecycle && GNewParticleAlloc().FreeTArrayFNewParticleArrays.GetNumUsed().GetValue() < MaxNumToRecycledArrays)
-	{
-		TArray<FNewParticle>* Recycle = new (GNewParticleAlloc().FreeTArrayFNewParticleArrays.Allocate()) TArray<FNewParticle>;
-		Exchange(*Recycle, NewParticles);
-		check(Recycle->Num() == 0 && Recycle->GetSlack());
-		check(NewParticles.Num() == 0 && NewParticles.GetSlack() == 0);
-		GNewParticleAlloc().FreeTArrayFNewParticle.Push(Recycle);
-	}
 }
 
 static void GetNewParticleArray(TArray<FNewParticle>& NewParticles, int32 NumParticlesNeeded = -1)
 {
-	if (NumParticlesNeeded <= MaxNumParticlesToRecycle)
-	{
-		TArray<FNewParticle>* Recycle = GNewParticleAlloc().FreeTArrayFNewParticle.Pop();
-		if (Recycle)
-		{
-			Exchange(*Recycle, NewParticles);
-			Recycle->~TArray<FNewParticle>(); // this probably doesn't do anything, but type safety and all
-			GNewParticleAlloc().FreeTArrayFNewParticleArrays.Free(Recycle);
-			check(NewParticles.Num() == 0 && NewParticles.GetSlack());
-		}
-	}
 	if (NumParticlesNeeded > 0)
 	{
-		// this might realloc, but we need to get the small blocks out of the recycle list
 		NewParticles.Reserve(NumParticlesNeeded);
 	}
 }

@@ -2266,6 +2266,7 @@ void FlushAsyncLoading(int32 PackageID /* = INDEX_NONE */)
 
 		// Reset min priority again.
 		FIOSystem::Get().SetMinPriority( AIOP_MIN );
+		FMemory::Trim();
 	}
 }
 

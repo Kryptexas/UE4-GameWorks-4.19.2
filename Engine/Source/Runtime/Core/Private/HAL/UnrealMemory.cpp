@@ -17,6 +17,36 @@
 #include "MallocLeakDetection.h"
 #include "PlatformMallocCrash.h"
 
+#if MALLOC_GT_HOOKS
+
+// This code is used to find memory allocations, you set up the lambda in the section of the code you are interested in and add a breakpoint to your lambda to see who is allocating memory
+
+//An example:
+//static TFunction<void(int32)> AnimHook(
+//	[](int32 Index)
+//{
+//	TickAnimationMallocStats[Index]++;
+//	if (++AllCount % 337 == 0)
+//	{
+//		BreakMe();
+//	}
+//}
+//);
+//extern CORE_API TFunction<void(int32)>* GGameThreadMallocHook;
+//TGuardValue<TFunction<void(int32)>*> RestoreHook(GGameThreadMallocHook, &AnimHook);
+
+
+CORE_API TFunction<void(int32)>* GGameThreadMallocHook = nullptr;
+
+void DoGamethreadHook(int32 Index)
+{
+	if (GIsRunning && GGameThreadMallocHook // otherwise our hook might not be initialized yet
+		&& IsInGameThread())
+	{
+		(*GGameThreadMallocHook)(Index);
+	}
+}
+#endif
 
 class FMallocPurgatoryProxy : public FMalloc
 {
@@ -155,6 +185,22 @@ public:
 		return UsedMalloc->GetAllocationSize(Original, SizeOut);
 	}
 
+	virtual SIZE_T QuantizeSize(SIZE_T Count, uint32 Alignment) override
+	{
+		return UsedMalloc->QuantizeSize(Count, Alignment);
+	}
+	virtual void Trim() override
+	{
+		return UsedMalloc->Trim();
+	}
+	virtual void SetupTLSCachesOnCurrentThread() override
+	{
+		return UsedMalloc->SetupTLSCachesOnCurrentThread();
+	}
+	virtual void ClearAndDisableTLSCachesOnCurrentThread() override
+	{
+		return UsedMalloc->ClearAndDisableTLSCachesOnCurrentThread();
+	}
 	virtual const TCHAR* GetDescriptiveName() override
 	{
 		return UsedMalloc->GetDescriptiveName();
@@ -163,6 +209,11 @@ public:
 
 void FMemory::EnablePurgatoryTests()
 {
+	if (PLATFORM_USES_FIXED_GMalloc_CLASS)
+	{
+		UE_LOG(LogMemory, Error, TEXT("Purgatory proxy cannot be turned on because we are using PLATFORM_USES_FIXED_GMalloc_CLASS"));
+		return;
+	}
 	static bool bOnce = false;
 	if (bOnce)
 	{
@@ -218,12 +269,21 @@ FConsoleCommandDelegate::CreateStatic(&FMemory::EnablePurgatoryTests)
 
 
 /** Helper function called on first allocation to create and initialize GMalloc */
-void GCreateMalloc()
+void FMemory::GCreateMalloc()
 {
 	GMalloc = FPlatformMemory::BaseAllocator();
 	// Setup malloc crash as soon as possible.
 	FPlatformMallocCrash::Get( GMalloc );
 
+#if PLATFORM_USES_FIXED_GMalloc_CLASS
+#if USE_MALLOC_PROFILER || MALLOC_VERIFY || MALLOC_LEAKDETECTION
+#error "Turn of PLATFORM_USES_FIXED_GMalloc_CLASS in order to use special allocator proxies"
+#endif
+	if (!GMalloc->IsInternallyThreadSafe())
+	{
+		UE_LOG(LogMemory, Fatal, TEXT("PLATFORM_USES_FIXED_GMalloc_CLASS only makes sense for allocators that are internally threadsafe."));
+	}
+#else
 // so now check to see if we are using a Mem Profiler which wraps the GMalloc
 #if USE_MALLOC_PROFILER
 	#if WITH_ENGINE && IS_MONOLITHIC
@@ -249,81 +309,143 @@ void GCreateMalloc()
 #if MALLOC_LEAKDETECTION
 	GMalloc = new FMallocLeakDetectionProxy(GMalloc);
 #endif
+#endif
 }
 
+#if TIME_MALLOC
 
-#if STATS
-	#define MALLOC_GT_HOOKS 1
-#else
-	#define MALLOC_GT_HOOKS 0
-#endif
+uint64 FScopedMallocTimer::GTotalCycles[4] = { 0 };
+uint64 FScopedMallocTimer::GTotalCount[4] = { 0 };
+uint64 FScopedMallocTimer::GTotalMisses[4] = { 0 };
 
-#if MALLOC_GT_HOOKS
-
-// This code is used to find memory allocations, you set up the lambda in the section of the code you are interested in and add a breakpoint to your lambda to see who is allocating memory
-
-//An example:
-//static TFunction<void(int32)> AnimHook(
-//	[](int32 Index)
-//{
-//	TickAnimationMallocStats[Index]++;
-//	if (++AllCount % 337 == 0)
-//	{
-//		BreakMe();
-//	}
-//}
-//);
-//extern CORE_API TFunction<void(int32)>* GGameThreadMallocHook;
-//TGuardValue<TFunction<void(int32)>*> RestoreHook(GGameThreadMallocHook, &AnimHook);
-
-
-CORE_API TFunction<void(int32)>* GGameThreadMallocHook = nullptr;
-
-FORCEINLINE static void DoGamethreadHook(int32 Index)
+void FScopedMallocTimer::Spew()
 {
-	if (GIsRunning && GGameThreadMallocHook // otherwise our hook might not be initialized yet
-		&& IsInGameThread() ) 
+	static uint64 GLastTotalCycles[4] = { 0 };
+	static uint64 GLastTotalCount[4] = { 0 };
+	static uint64 GLastTotalMisses[4] = { 0 };
+	static uint64 GLastFrame = 0;
+
+	uint64 Frames = GFrameCounter - GLastFrame;
+	if (Frames)
 	{
-		(*GGameThreadMallocHook)(Index);
+		GLastFrame = GFrameCounter;
+		// not atomic; we assume the error is minor
+		uint64 TotalCycles[4] = { 0 };
+		uint64 TotalCount[4] = { 0 };
+		uint64 TotalMisses[4] = { 0 };
+		for (int32 Comp = 0; Comp < 4; Comp++)
+		{
+			TotalCycles[Comp] = GTotalCycles[Comp] - GLastTotalCycles[Comp];
+			TotalCount[Comp] = GTotalCount[Comp] - GLastTotalCount[Comp];
+			TotalMisses[Comp] = GTotalMisses[Comp] - GLastTotalMisses[Comp];
+			GLastTotalCycles[Comp] = GTotalCycles[Comp];
+			GLastTotalCount[Comp] = GTotalCount[Comp];
+			GLastTotalMisses[Comp] = GTotalMisses[Comp];
+		}
+		auto PrintIt = [&TotalCycles, &TotalCount, &TotalMisses, &Frames](const TCHAR * Op, int32 InIndex)
+		{
+			if (TotalCount[InIndex])
+			{
+				UE_LOG(LogMemory, Display, TEXT("FMemory %8s  %5d count/frame   %6.2fms / frame (all threads)  %6.2fns / op    inline miss rate %5.2f%%"),
+					Op,
+					int32(TotalCount[InIndex] / Frames),
+					1000.0f * float(FPlatformTime::GetSecondsPerCycle64()) * float(TotalCycles[InIndex]) / float(Frames),
+					1000000000.0f * float(FPlatformTime::GetSecondsPerCycle64()) * float(TotalCycles[InIndex]) / float(TotalCount[InIndex]),
+					100.0f * float(TotalMisses[InIndex]) / float(TotalCount[InIndex])
+					);
+			}
+		};
+		PrintIt(TEXT("Malloc"), 0);
+		PrintIt(TEXT("Realloc"), 1);
+		PrintIt(TEXT("Free"), 2);
+		PrintIt(TEXT("NullFree"), 3);
 	}
 }
-#else
-FORCEINLINE static void DoGamethreadHook(int32 Index)
-{
-}
+
 #endif
 
-void* FMemory::Malloc( SIZE_T Count, uint32 Alignment ) 
-{ 
-	if( !GMalloc )
+void* FMemory::MallocExternal(SIZE_T Count, uint32 Alignment)
+{
+	if (!GMalloc)
 	{
 		GCreateMalloc();
-		CA_ASSUME( GMalloc != NULL );	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
+		CA_ASSUME(GMalloc != NULL);	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
 	}
-	DoGamethreadHook(0);
-	return GMalloc->Malloc( Count, Alignment );
+	return GMalloc->Malloc(Count, Alignment);
 }
 
-void* FMemory::Realloc( void* Original, SIZE_T Count, uint32 Alignment ) 
+void* FMemory::ReallocExternal(void* Original, SIZE_T Count, uint32 Alignment)
+{
+	if (!GMalloc)
+	{
+		GCreateMalloc();
+		CA_ASSUME(GMalloc != NULL);	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
+	}
+	return GMalloc->Realloc(Original, Count, Alignment);
+}
+
+void FMemory::FreeExternal(void* Original)
+{
+	if (!GMalloc)
+	{
+		GCreateMalloc();
+		CA_ASSUME(GMalloc != NULL);	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
+	}
+	if (Original)
+	{
+		GMalloc->Free(Original);
+}
+}
+
+SIZE_T FMemory::GetAllocSizeExternal(void* Original)
 { 
-	if( !GMalloc )
+	if (!GMalloc)
+	{
+		GCreateMalloc();
+		CA_ASSUME(GMalloc != NULL);	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
+	}
+	SIZE_T Size = 0;
+	return GMalloc->GetAllocationSize(Original, Size) ? Size : 0;
+}
+
+SIZE_T FMemory::QuantizeSizeExternal(SIZE_T Count, uint32 Alignment)
+{ 
+	if (!GMalloc)
 	{
 		GCreateMalloc();	
-		CA_ASSUME( GMalloc != NULL );	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
+		CA_ASSUME(GMalloc != NULL);	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
 	}
-	DoGamethreadHook(1);
-	return GMalloc->Realloc( Original, Count, Alignment );
+	return GMalloc->QuantizeSize(Count, Alignment);
 }	
 
-void FMemory::Free( void* Original )
+
+void FMemory::Trim()
 {
-	if( !GMalloc )
+	if (!GMalloc)
 	{
 		GCreateMalloc();
-		CA_ASSUME( GMalloc != NULL );	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
+		CA_ASSUME(GMalloc != NULL);	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
 	}
-	DoGamethreadHook(2);
-	return GMalloc->Free( Original );
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FMemory_Trim);
+	GMalloc->Trim();
+}
+
+void FMemory::SetupTLSCachesOnCurrentThread()
+{
+	if (!GMalloc)
+	{
+		GCreateMalloc();	
+		CA_ASSUME(GMalloc != NULL);	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
+	}
+	GMalloc->SetupTLSCachesOnCurrentThread();
+}
+	
+void FMemory::ClearAndDisableTLSCachesOnCurrentThread()
+{
+	if (GMalloc)
+	{
+		GMalloc->ClearAndDisableTLSCachesOnCurrentThread();
+	}
 }
 
 void* FMemory::GPUMalloc(SIZE_T Count, uint32 Alignment /* = DEFAULT_ALIGNMENT */)
@@ -339,18 +461,6 @@ void* FMemory::GPURealloc(void* Original, SIZE_T Count, uint32 Alignment /* = DE
 void FMemory::GPUFree(void* Original)
 {
 	return FPlatformMemory::GPUFree(Original);
-}
-
-SIZE_T FMemory::GetAllocSize( void* Original )
-{
-	if( !GMalloc )
-	{
-		GCreateMalloc();	
-		CA_ASSUME( GMalloc != NULL );	// Don't want to assert, but suppress static analysis warnings about potentially NULL GMalloc
-	}
-	
-	SIZE_T Size = 0;
-	return GMalloc->GetAllocationSize( Original, Size ) ? Size : 0;
 }
 
 void FMemory::TestMemory()
@@ -400,3 +510,27 @@ void FMemory::TestMemory()
 	}
 #endif
 }
+
+void* FUseSystemMallocForNew::operator new(size_t Size)
+{
+	return FMemory::SystemMalloc(Size);
+}
+
+void FUseSystemMallocForNew::operator delete(void* Ptr)
+{
+	FMemory::SystemFree(Ptr);
+}
+
+void* FUseSystemMallocForNew::operator new[](size_t Size)
+{
+	return FMemory::SystemMalloc(Size);
+}
+
+void FUseSystemMallocForNew::operator delete[](void* Ptr)
+{
+	FMemory::SystemFree(Ptr);
+}
+
+#if !INLINE_FMEMORY_OPERATION && !PLATFORM_USES_FIXED_GMalloc_CLASS
+#include "FMemory.inl"
+#endif

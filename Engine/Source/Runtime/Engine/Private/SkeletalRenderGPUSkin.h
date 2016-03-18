@@ -27,8 +27,6 @@ class FDynamicSkelMeshObjectDataGPUSkin
 
 	virtual ~FDynamicSkelMeshObjectDataGPUSkin()
 	{
-		// we leak these
-		check(0);
 	}
 
 	void Clear();

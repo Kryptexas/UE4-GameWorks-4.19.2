@@ -182,18 +182,14 @@ public:
 	}
 };
 
-static TLockFreeFixedSizeAllocator<sizeof(FD3D12CommandContextContainer), PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> FD3D12CommandContextContainerAllocator;
-
 void* FD3D12CommandContextContainer::operator new(size_t Size)
 {
-	// doesn't support derived classes with a different size
-	check(Size == sizeof(FD3D12CommandContextContainer));
-	return FD3D12CommandContextContainerAllocator.Allocate();
+	return FMemory::Malloc(Size);
 }
 
 void FD3D12CommandContextContainer::operator delete(void* RawMemory)
 {
-	FD3D12CommandContextContainerAllocator.Free(RawMemory);
+	FMemory::Free(RawMemory);
 }
 
 IRHICommandContextContainer* FD3D12DynamicRHI::RHIGetCommandContextContainer()

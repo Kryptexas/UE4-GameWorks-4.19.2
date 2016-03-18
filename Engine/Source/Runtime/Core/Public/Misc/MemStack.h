@@ -24,14 +24,12 @@ public:
 	enum
 	{
 		PageSize = 64 * 1024,
-		SmallPageSize = 1024
+		SmallPageSize = 1024-16 // allow a little extra space for allocator headers, etc
 	};
 #if UE_BUILD_SHIPPING
 	typedef TLockFreeFixedSizeAllocator<PageSize, PLATFORM_CACHE_LINE_SIZE, FNoopCounter> TPageAllocator;
-	typedef TLockFreeFixedSizeAllocator<SmallPageSize, PLATFORM_CACHE_LINE_SIZE, FNoopCounter> TSmallPageAllocator;
 #else
 	typedef TLockFreeFixedSizeAllocator<PageSize, PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> TPageAllocator;
-	typedef TLockFreeFixedSizeAllocator<SmallPageSize, PLATFORM_CACHE_LINE_SIZE, FThreadSafeCounter> TSmallPageAllocator;
 #endif
 
 	static void *Alloc();
@@ -47,7 +45,6 @@ private:
 	static void UpdateStats();
 #endif
 	static TPageAllocator TheAllocator;
-	static TSmallPageAllocator TheSmallAllocator;
 };
 
 
@@ -295,14 +292,27 @@ public:
 				}
 			}
 		}
-		int32 CalculateSlack(int32 NumElements,int32 NumAllocatedElements,int32 NumBytesPerElement) const
+		FORCEINLINE int32 CalculateSlackReserve(int32 NumElements, int32 NumBytesPerElement) const
 		{
-			return DefaultCalculateSlack(NumElements,NumAllocatedElements,NumBytesPerElement);
+			return DefaultCalculateSlackReserve(NumElements, NumBytesPerElement, false, Alignment);
+		}
+		FORCEINLINE int32 CalculateSlackShrink(int32 NumElements, int32 NumAllocatedElements, int32 NumBytesPerElement) const
+		{
+			return DefaultCalculateSlackShrink(NumElements, NumAllocatedElements, NumBytesPerElement, false, Alignment);
+		}
+		FORCEINLINE int32 CalculateSlackGrow(int32 NumElements, int32 NumAllocatedElements, int32 NumBytesPerElement) const
+		{
+			return DefaultCalculateSlackGrow(NumElements, NumAllocatedElements, NumBytesPerElement, false, Alignment);
 		}
 
-		int32 GetAllocatedSize(int32 NumAllocatedElements, int32 NumBytesPerElement) const
+		FORCEINLINE int32 GetAllocatedSize(int32 NumAllocatedElements, int32 NumBytesPerElement) const
 		{
 			return NumAllocatedElements * NumBytesPerElement;
+		}
+
+		bool HasAllocation()
+		{
+			return !!Data;
 		}
 			
 	private:

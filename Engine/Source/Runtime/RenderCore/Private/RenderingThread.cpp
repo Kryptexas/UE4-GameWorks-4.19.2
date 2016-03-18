@@ -267,8 +267,10 @@ public:
 
 	virtual uint32 Run()
 	{
+		FMemory::SetupTLSCachesOnCurrentThread();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::RHIThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RHIThread);
+		FMemory::ClearAndDisableTLSCachesOnCurrentThread();
 		return 0;
 	}
 
@@ -424,6 +426,7 @@ public:
 
 	virtual uint32 Run(void) override
 	{
+		FMemory::SetupTLSCachesOnCurrentThread();
 		FPlatformProcess::SetupGameOrRenderThread(true);
 
 #if PLATFORM_WINDOWS
@@ -453,6 +456,7 @@ public:
 		{
 			RenderingThreadMain( TaskGraphBoundSyncEvent );
 		}
+		FMemory::ClearAndDisableTLSCachesOnCurrentThread();
 		return 0;
 	}
 };

@@ -120,7 +120,8 @@ namespace UnrealBuildTool
 
 
 		public enum VCProjectFileFormat
-		{
+        {
+            VisualStudio2012,
 			VisualStudio2013,
 			VisualStudio2015,
 		}
@@ -131,7 +132,9 @@ namespace UnrealBuildTool
 			get
 			{
 				switch (ProjectFileFormat)
-				{
+                {
+                    case VCProjectFileFormat.VisualStudio2012:
+                        return "4.0";
 					case VCProjectFileFormat.VisualStudio2013:
 						return "12.0";
 					case VCProjectFileFormat.VisualStudio2015:
@@ -146,13 +149,15 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				switch (WindowsPlatform.Compiler)
-				{
-					case WindowsCompiler.VisualStudio2013:
-						return "v120";
-					case WindowsCompiler.VisualStudio2015:
-						return "v140";
-				}
+                switch (ProjectFileFormat)
+                {
+                    case VCProjectFileFormat.VisualStudio2012:
+                        return "v110";
+                    case VCProjectFileFormat.VisualStudio2013:
+                        return "v120";
+                    case VCProjectFileFormat.VisualStudio2015:
+                        return "v140";
+                }
 				return string.Empty;
 			}
 		}
@@ -164,7 +169,7 @@ namespace UnrealBuildTool
 		static VCProjectFileGenerator()
 		{
 			switch (WindowsPlatform.Compiler)
-			{
+            {
 				case WindowsCompiler.VisualStudio2013:
 					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
 					break;
@@ -196,7 +201,7 @@ namespace UnrealBuildTool
 			// Default the project file format to whatever UBT is using
 			{
 				switch (WindowsPlatform.Compiler)
-				{
+                {
 					case WindowsCompiler.VisualStudio2013:
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
 						break;
@@ -209,7 +214,11 @@ namespace UnrealBuildTool
 			foreach (string CurArgument in Arguments)
 			{
 				switch (CurArgument.ToUpperInvariant())
-				{
+                {
+                    case "-2012":
+                        ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
+                        break;
+
 					case "-2013":
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
 						break;
@@ -260,7 +269,7 @@ namespace UnrealBuildTool
 			// Certain platforms override the project file format because their debugger add-ins may not yet support the latest
 			// version of Visual Studio.  This is their chance to override that.
 			// ...but only if the user didn't override this via the command-line.
-			if (!UnrealBuildTool.CommandLineContains("-2015") && !UnrealBuildTool.CommandLineContains("-2013"))
+            if (!UnrealBuildTool.CommandLineContains("-2015") && !UnrealBuildTool.CommandLineContains("-2013") && !UnrealBuildTool.CommandLineContains("-2012"))
 			{
 				foreach (UnrealTargetPlatform SupportedPlatform in SupportedPlatforms)
 				{
@@ -372,7 +381,15 @@ namespace UnrealBuildTool
 					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
 					"# Visual Studio 2013" + ProjectFileGenerator.NewLine +
 					VersionTag + ProjectFileGenerator.NewLine);
-			}
+            }
+            else if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2012)
+            {
+                VCSolutionFileContent.Append(
+                    ProjectFileGenerator.NewLine +
+                    "Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
+                    "# Visual Studio 2012" + ProjectFileGenerator.NewLine +
+                    VersionTag + ProjectFileGenerator.NewLine);
+            }
 			else
 			{
 				throw new BuildException("Unexpected ProjectFileFormat");
@@ -883,7 +900,10 @@ namespace UnrealBuildTool
 				// Figure out the filename for the SUO file. VS will automatically import the options from earlier versions if necessary.
 				string SolutionOptionsExtension = "vUnknown.suo";
 				switch (ProjectFileFormat)
-				{
+                {
+                    case VCProjectFileFormat.VisualStudio2012:
+                        SolutionOptionsExtension = "v11.suo";
+                        break;
 					case VCProjectFileFormat.VisualStudio2013:
 						SolutionOptionsExtension = "v12.suo";
 						break;

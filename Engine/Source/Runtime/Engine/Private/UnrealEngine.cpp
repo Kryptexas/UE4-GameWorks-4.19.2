@@ -12085,7 +12085,25 @@ static void SetupThreadAffinity(const TArray<FString>& Args)
 	{
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 			FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
-			TStatId(), NULL, ENamedThreads::AnyThread);
+			TStatId(), NULL, ENamedThreads::AnyNormalThreadHiPriTask);
+	}
+	if (ENamedThreads::bHasHighPriorityThreads)
+	{
+		for (int32 Index = 0; Index < FTaskGraphInterface::Get().GetNumWorkerThreads(); Index++)
+		{
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
+				TStatId(), NULL, ENamedThreads::AnyHiPriThreadHiPriTask);
+		}
+	}
+	if (ENamedThreads::bHasBackgroundThreads)
+	{
+		for (int32 Index = 0; Index < FTaskGraphInterface::Get().GetNumWorkerThreads(); Index++)
+		{
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),
+				TStatId(), NULL, ENamedThreads::AnyBackgroundHiPriTask);
+		}
 	}
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 		FSimpleDelegateGraphTask::FDelegate::CreateStatic(&SetAffinityOnThread),

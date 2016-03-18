@@ -634,6 +634,8 @@ FEngineLoop::FEngineLoop()
 
 int32 FEngineLoop::PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline)
 {
+	FMemory::SetupTLSCachesOnCurrentThread();
+
 	FString CmdLine;
 
 	// loop over the parameters, skipping the first one (which is the executable name)
@@ -747,6 +749,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Create the stats malloc profiler proxy.
 	if( FStatsMallocProfilerProxy::HasMemoryProfilerToken() )
 	{
+		if (PLATFORM_USES_FIXED_GMalloc_CLASS)
+		{
+			UE_LOG(LogMemory, Fatal, TEXT("Cannot do malloc profiling with PLATFORM_USES_FIXED_GMalloc_CLASS."));
+		}
 		// Assumes no concurrency here.
 		GMalloc = FStatsMallocProfilerProxy::Get();
 	}

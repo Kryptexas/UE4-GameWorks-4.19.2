@@ -33,6 +33,17 @@ struct FGenericPlatformMemoryConstants
 	/** The size of a page, in bytes. */
 	SIZE_T PageSize;
 
+	/** 
+	* For platforms that support multiple page sizes this is non-zero and smaller than PageSize.
+	* If non-zero, then BinnedAllocFromOS will take allocation requests aligned to this size and return blocks aligned to PageSize
+	*/
+	SIZE_T OsAllocationGranularity;
+
+	// AddressLimit - Second parameter is estimate of the range of addresses expected to be returns by BinnedAllocFromOS(). Binned
+	// Malloc will adjust its internal structures to make lookups for memory allocations O(1) for this range. 
+	// It is ok to go outside this range, lookups will just be a little slower
+	uint64 AddressLimit;
+
 	/** Approximate physical RAM in GB; 1 on everything except PC. Used for "course tuning", like FPlatformMisc::NumberOfCores(). */
 	uint32 TotalPhysicalGB;
 
@@ -41,6 +52,8 @@ struct FGenericPlatformMemoryConstants
 		: TotalPhysical( 0 )
 		, TotalVirtual( 0 )
 		, PageSize( 0 )
+		, OsAllocationGranularity(0)
+		, AddressLimit((uint64)0xffffffff + 1)
 		, TotalPhysicalGB( 1 )
 	{}
 
@@ -49,7 +62,9 @@ struct FGenericPlatformMemoryConstants
 		: TotalPhysical( Other.TotalPhysical )
 		, TotalVirtual( Other.TotalVirtual )
 		, PageSize( Other.PageSize )
-		, TotalPhysicalGB( Other.TotalPhysicalGB )
+		, OsAllocationGranularity(Other.OsAllocationGranularity)
+		, AddressLimit(Other.AddressLimit)
+		, TotalPhysicalGB(Other.TotalPhysicalGB)
 	{}
 };
 
