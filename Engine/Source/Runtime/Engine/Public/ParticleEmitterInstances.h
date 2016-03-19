@@ -14,9 +14,6 @@
 #include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleHelper.h"
 
-//Temporary define to allow switching on and off of some trail optimizations until bugs can be worked out.
-#define ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION (0)
-
 /*-----------------------------------------------------------------------------
 	Forward declarations
 -----------------------------------------------------------------------------*/
@@ -218,8 +215,6 @@ public:
 	FMatrix EmitterToSimulation;
 	/** Transform from simulation space to world space.					*/
 	FMatrix SimulationToWorld;
-	/** Component can disable Tick and Rendering of this emitter. */
-	uint32 bEnabled : 1;
 	/** If true, kill this emitter instance when it is deactivated.		*/
 	uint32 bKillOnDeactivate:1;
 	/** if true, kill this emitter instance when it has completed.		*/
@@ -236,8 +231,6 @@ public:
 	uint32 bIsBeam:1;
 	/** Whether axis lock is enabled, cached here to avoid finding it from the module each frame */
 	uint32 bAxisLockEnabled : 1;
-	/** When true and spawning is supressed, the bursts will be faked so that when spawning is enabled again, the bursts don't fire late. */
-	uint32 bFakeBurstsWhenSpawningSupressed : 1;
 	/** Axis lock flags, cached here to avoid finding it from the module each frame */
 	TEnumAsByte<EParticleAxisLock> LockAxisFlags;
 	/** The sort mode to use for this emitter as specified by artist.	*/
@@ -342,9 +335,6 @@ public:
 	virtual void Tick(float DeltaTime, bool bSuppressSpawning);
 	void CheckEmitterFinished();
 
-	/** Advances the bursts as though they were fired with out actually firing them. */
-	void FakeBursts();
-
 	/**
 	 *	Tick sub-function that handles EmitterTime setup, looping, etc.
 	 *
@@ -359,7 +349,7 @@ public:
 	 *
 	 *	@param	DeltaTime			The current time slice
 	 *	@param	CurrentLODLevel		The current LOD level for the instance
-	 *	@param	bSuppressSpawning	true if spawning has been suppressed on the owning particle system component
+	 *	@param	bSuppressSpawning	true if spawning has been supressed on the owning particle system component
 	 *	@param	bFirstTime			true if this is the first time the instance has been ticked
 	 *
 	 *	@return	float				The SpawnFraction remaining
@@ -485,11 +475,6 @@ public:
 	virtual void SetHaltSpawning(bool bInHaltSpawning)
 	{
 		bHaltSpawning = bInHaltSpawning;
-	}
-
-	FORCEINLINE void SetFakeBurstWhenSpawningSupressed(bool bInFakeBurstsWhenSpawningSupressed)
-	{
-		bFakeBurstsWhenSpawningSupressed = bInFakeBurstsWhenSpawningSupressed;
 	}
 
 	/** Get the offset of the orbit payload. */
@@ -728,59 +713,6 @@ protected:
 
 };
 
-#if STATS
-struct FScopeCycleCounterEmitter : public FCycleCounter
-{
-	/**
-	* Constructor, starts timing
-	*/
-	template<class T>
-	FORCEINLINE_STATS FScopeCycleCounterEmitter(const T *Object)
-	{
-		if (Object)
-		{
-			TStatId StatId = Object->SpriteTemplate->GetStatID();
-			if (FThreadStats::IsCollectingData(StatId))
-			{
-				Start(StatId);
-			}
-		}
-	}
-	/**
-	* Constructor, starts timing with an alternate enable stat to use high performance disable for only SOME UObject stats
-	*/
-	template<class T>
-	FORCEINLINE_STATS FScopeCycleCounterEmitter(const T *Object, TStatId OtherStat)
-	{
-		if (FThreadStats::IsCollectingData(OtherStat) && Object)
-		{
-			TStatId StatId = Object->SpriteTemplate->GetStatID();
-			if (!StatId.IsNone())
-			{
-				Start(StatId);
-			}
-		}
-	}
-	/**
-	* Updates the stat with the time spent
-	*/
-	FORCEINLINE_STATS ~FScopeCycleCounterEmitter()
-	{
-		Stop();
-	}
-};
-#else
-struct FScopeCycleCounterEmitter
-{
-	FORCEINLINE_STATS FScopeCycleCounterEmitter(const FParticleEmitterInstance *Object)
-	{
-	}
-	FORCEINLINE_STATS FScopeCycleCounterEmitter(const FParticleEmitterInstance *Object, TStatId OtherStat)
-	{
-	}
-};
-#endif
-
 /*-----------------------------------------------------------------------------
 	ParticleSpriteEmitterInstance
 -----------------------------------------------------------------------------*/
@@ -849,7 +781,6 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	UParticleModuleTypeDataMesh* MeshTypeData;
 	bool MeshRotationActive;
 	int32 MeshRotationOffset;
-	int32 MeshMotionBlurOffset;
 
 	/** The materials to render this instance with.	*/
 	TArray<UMaterialInterface*> CurrentMaterials;
@@ -1164,11 +1095,13 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	 */
 	uint32 bEnableInactiveTimeTracking:1;
 
-#if ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
 	/** The direct index of the particle that is the start of each ribbon */
 	int32 CurrentStartIndices[128];
 	/** The direct index of the particle that is the end of each ribbon */
 	int32 CurrentEndIndices[128];
+
+
+
 
 	void SetStartIndex(int32 TrailIndex, int32 ParticleIndex)
 	{
@@ -1179,39 +1112,6 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 		}
 		CheckIndices(TrailIndex);
 	}
-
-	template<typename TrailDataType> void GetTrailStart(const int32 TrailIdx, int32 &OutStartIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
-	{
-		if (TrailIdx != INDEX_NONE)
-		{
-			OutStartIndex = CurrentStartIndices[TrailIdx];
-			if (OutStartIndex != INDEX_NONE)
-			{
-				DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * OutStartIndex);
-				TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
-				check(TRAIL_EMITTER_IS_START(CheckTrailData->Flags));
-				OutTrailData = CheckTrailData;
-				OutParticle = CheckParticle;
-			}
-		}
-	}
-
-	template<typename TrailDataType> void GetTrailEnd(const int32 TrailIdx, int32 &OutEndIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
-	{
-		if (TrailIdx != INDEX_NONE)
-		{
-			OutEndIndex = CurrentEndIndices[TrailIdx];
-			if (OutEndIndex != INDEX_NONE)
-			{
-				DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * OutEndIndex);
-				TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
-				check(TRAIL_EMITTER_IS_END(CheckTrailData->Flags));
-				OutTrailData = CheckTrailData;
-				OutParticle = CheckParticle;
-			}
-		}
-	}
-
 
 	void SetEndIndex(int32 TrailIndex, int32 ParticleIndex)
 	{
@@ -1246,92 +1146,22 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	void CheckIndices(int32 TrailIdx)
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
- 		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
- 		{
- 			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
-			FTrailsBaseTypeDataPayload* EndTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
- 			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
- 		}
- 
- 		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
- 		{
- 			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
-			FTrailsBaseTypeDataPayload* StartTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
- 			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
- 		}
-#endif
-	}
-
-	void CheckAllIndices()
-	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		for (uint32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
+		if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
 		{
-			if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
-			{
-				DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
-				FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
-				check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
-			}
+			DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
+			FRibbonTypeDataPayload* EndTrailData = ((FRibbonTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
+			check(TRAIL_EMITTER_IS_END(EndTrailData->Flags));
+		}
 
-			if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
-			{
-				DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
-				FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-				check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
-			}
+		if (CurrentStartIndices[TrailIdx] != INDEX_NONE)
+		{
+			DECLARE_PARTICLE_PTR(StartParticle, ParticleData + ParticleStride * CurrentStartIndices[TrailIdx]);
+			FRibbonTypeDataPayload* StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
+			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
 		}
 #endif
 	}
 
-#else //ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
-
-template<typename TrailDataType> void GetTrailStart(const int32 TrailIdx, int32 &OutStartIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
-{
-	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
-	{
-		int32 CheckIndex = ParticleIndices[FindTrailIdx];
-		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckIndex);
-		TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
-		if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
-		{
-			if (CheckTrailData->TrailIndex == TrailIdx)
-			{
-				OutStartIndex = CheckIndex;
-				OutParticle = CheckParticle;
-				OutTrailData = CheckTrailData;				
-				break;
-			}
-		}
-	}
-}
-template<typename TrailDataType> void GetTrailEnd(const int32 TrailIdx, int32 &OutEndIndex, TrailDataType *&OutTrailData, FBaseParticle *&OutParticle)
-{
-	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
-	{
-		int32 CheckIndex = ParticleIndices[FindTrailIdx];
-		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckIndex);
-		TrailDataType* CheckTrailData = ((TrailDataType*)((uint8*)CheckParticle + TypeDataOffset));
-		if (TRAIL_EMITTER_IS_END(CheckTrailData->Flags))
-		{
-			if (CheckTrailData->TrailIndex == TrailIdx)
-			{
-				OutEndIndex = CheckIndex;
-				OutParticle = CheckParticle;
-				OutTrailData = CheckTrailData;
-				break;
-			}
-		}
-	}
-}
-void SetStartIndex(int32 TrailIndex, int32 ParticleIndex){}
-void SetEndIndex(int32 TrailIndex, int32 ParticleIndex){}
-void SetDeadIndex(int32 TrailIndex, int32 ParticleIndex){}
-void ClearIndices(int32 TrailIndex, int32 ParticleIndex){}
-void CheckIndices(int32 TrailIdx){}
-void CheckAllIndices(){}
-
-#endif
 
 	/** Constructor	*/
 	FParticleTrailsEmitterInstance_Base() :
@@ -1353,10 +1183,8 @@ void CheckAllIndices(){}
 
 		for (int32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
 		{
-#if ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION
 			CurrentStartIndices[TrailIdx] = INDEX_NONE;
 			CurrentEndIndices[TrailIdx] = INDEX_NONE;
-#endif
 		}
 	}
 
