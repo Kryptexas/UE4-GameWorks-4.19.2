@@ -1136,16 +1136,18 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	FApp::UpdateLastTime();
 
 	// Calculate delta time and update time.
-	if( bUseFixedTimeStep || bUseFixedFrameRate )
+	if( bUseFixedTimeStep )
 	{
 		bTimeWasManipulated = true;
-		const float FrameRate = bUseFixedTimeStep ? FApp::GetFixedDeltaTime() : (1.f / FixedFrameRate);
+		const float FrameRate = FApp::GetFixedDeltaTime();
 		FApp::SetDeltaTime(FrameRate);
 		LastTime = FApp::GetCurrentTime();
 		FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
 	}
 	else
 	{
+		const float FrameRate = bUseFixedTimeStep ? FApp::GetFixedDeltaTime() : ( 1.f / FixedFrameRate );
+
 		FApp::SetCurrentTime(FPlatformTime::Seconds());
 		// Did we just switch from a fixed time step to real-time?  If so, then we'll update our
 		// cached 'last time' so our current interval isn't huge (or negative!)
@@ -1212,6 +1214,13 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 				}
 			}
 			FApp::SetCurrentTime(FPlatformTime::Seconds());
+		}
+		else if (bUseFixedTimeStep)
+		{
+			const float FrameRate = 1.f / FixedFrameRate;
+			FApp::SetDeltaTime(FrameRate);
+			LastTime = FApp::GetCurrentTime();
+			FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
 		}
 
 
@@ -6588,6 +6597,11 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 		{
 			MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
 		}
+	}
+
+	if (bUseFixedFrameRate)
+	{
+		MaxTickRate = FixedFrameRate;
 	}
 
 	if (CVarCauseHitches.GetValueOnGameThread())
