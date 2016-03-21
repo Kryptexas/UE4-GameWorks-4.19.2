@@ -784,9 +784,9 @@ void FParticleEmitterInstance::CheckEmitterFinished()
 			check(RequiredModule);
 
 			if (HasCompleted() ||
-				SpawnModule->GetMaximumSpawnRate() == 0
+				(SpawnModule->GetMaximumSpawnRate() == 0
 				&& RequiredModule->EmitterDuration == 0
-				&& RequiredModule->EmitterLoops == 0)
+				&& RequiredModule->EmitterLoops == 0))
 			{
 				bEmitterIsDone = true;
 			}
