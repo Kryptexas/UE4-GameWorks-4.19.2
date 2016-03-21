@@ -111,7 +111,7 @@ void FParticleTrailsEmitterInstance_Base::Tick(float DeltaTime, bool bSuppressSp
 		Tick_ModulePostUpdate(DeltaTime, LODLevel);
 
 		// Update the orbit data...
-	// 	UpdateOrbitData(DeltaTime);
+		// 	UpdateOrbitData(DeltaTime);
 
 		// Calculate bounding box and simulate velocity.
 		UpdateBoundingBox(DeltaTime);
@@ -501,22 +501,16 @@ void FParticleTrailsEmitterInstance_Base::KillParticles(int32 InTrailIdx, int32 
 	if (ActiveParticles)
 	{
 		int32 KilledCount = 0;
-		// Loop over the active particles...
-		//for (int32 ParticleIdx = ActiveParticles - 1; ParticleIdx >= 0 && (KilledCount < InKillCount); ParticleIdx--)
-		{
-			// Find the End particle of the current trail...
-			FBaseParticle *EndParticle = nullptr;
-			FTrailsBaseTypeDataPayload* EndTrailData = nullptr;
-			int32 EndIndex = CurrentEndIndices[InTrailIdx];
-			if (EndIndex != INDEX_NONE)
-		{
-				EndParticle = (FBaseParticle*)(ParticleData + ParticleStride * EndIndex);
-				EndTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)EndParticle + TypeDataOffset));
-			}
 
+		{
+			// Find the end particle
+			FTrailsBaseTypeDataPayload* EndTrailData = nullptr;
+			FBaseParticle *EndParticle = nullptr;
+			int32 EndIndex;
+			GetTrailEnd<FTrailsBaseTypeDataPayload>(InTrailIdx, EndIndex, EndTrailData, EndParticle);
 			if (EndParticle)
 			{
-				if (EndTrailData->TrailIndex == InTrailIdx)
+				if (EndTrailData && EndTrailData->TrailIndex == InTrailIdx)
 				{
 					while ((EndTrailData != NULL) && (KilledCount < InKillCount))
 					{
@@ -551,7 +545,6 @@ void FParticleTrailsEmitterInstance_Base::KillParticles(int32 InTrailIdx, int32 
 				}
 			}
 		}
-
 		if (KilledCount > 0)
 		{
 			// Now use the standard KillParticles call...
@@ -624,27 +617,6 @@ bool FParticleTrailsEmitterInstance_Base::GetParticleInTrail(
 		UE_LOG(LogParticles, Warning, TEXT("GetParticleInTrail: START particle will always be in the PREV direction!"));
 	}
 
-
-	if (InGetOption == GET_Start && !bSkipStartingParticle)
-	{
-		int32 StartIndex = CurrentStartIndices[InStartingTrailData->TrailIndex];
-		OutParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-		OutTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)OutParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(OutTrailData->Flags));
-		return true;
-	}
-
-	if (InGetOption == GET_End)
-	{
-		int32 EndIndex = CurrentEndIndices[InStartingTrailData->TrailIndex];
-		OutParticle = (FBaseParticle*)(ParticleData + ParticleStride * EndIndex);
-		OutTrailData = ((FTrailsBaseTypeDataPayload*)((uint8*)OutParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(OutTrailData->Flags));
-		return true;
-	}
-
-
-
 	bool bDone = false;
 	FBaseParticle* CheckParticle = InStartingFromParticle;
 	FTrailsBaseTypeDataPayload* CheckTrailData = InStartingTrailData;
@@ -660,12 +632,31 @@ bool FParticleTrailsEmitterInstance_Base::GetParticleInTrail(
 				bItsGood = true;
 				break;
 			case GET_Spawned:
-				bItsGood = !CheckTrailData->bInterpolatedSpawn;
+				if (CheckTrailData->bInterpolatedSpawn == false)
+				{
+					bItsGood = true;
+				}
 				break;
 			case GET_Interpolated:
-				bItsGood = CheckTrailData->bInterpolatedSpawn;
+				if (CheckTrailData->bInterpolatedSpawn == true)
+				{
+					bItsGood = true;
+				}
+				break;
+			case GET_Start:
+				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+				{
+					bItsGood = true;
+				}
+				break;
+			case GET_End:
+				if (TRAIL_EMITTER_IS_END(CheckTrailData->Flags))
+				{
+					bItsGood = true;
+				}
 				break;
 			}
+
 
 			if (bItsGood == true)
 			{
@@ -674,7 +665,6 @@ bool FParticleTrailsEmitterInstance_Base::GetParticleInTrail(
 				bDone = true;
 			}
 		}
-
 		int32 Index = -1;
 		if (!bDone)
 		{
@@ -865,15 +855,10 @@ void FParticleRibbonEmitterInstance::Tick_RecalculateTangents(float DeltaTime, U
 		for (int32 TrailIdx = 0; TrailIdx < MaxTrailCount; TrailIdx++)
 		{
 			// Find the Start particle of the current trail...
-			FBaseParticle *StartParticle = nullptr;
-			FRibbonTypeDataPayload* StartTrailData = nullptr;
-			int32 StartIndex = CurrentStartIndices[TrailIdx];
-			if (StartIndex != INDEX_NONE)
-			{
-				StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-				StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-				check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
-			}
+			FBaseParticle* StartParticle = NULL;
+			FRibbonTypeDataPayload* StartTrailData = NULL;
+			int32 StartIndex = -1;
+			GetTrailStart<FRibbonTypeDataPayload>(TrailIdx, StartIndex, StartTrailData, StartParticle);
 
 			// Recalculate tangents at each particle to properly handle moving particles...
 			if ((StartParticle != NULL) && (TRAIL_EMITTER_IS_ONLY(StartTrailData->Flags) == 0))
@@ -1272,17 +1257,11 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 		return SafetyLeftover;
 	}
 
-	// Find the Start particle of the current trail...
-	FBaseParticle *StartParticle = nullptr;
-	FRibbonTypeDataPayload* StartTrailData = nullptr;
-	int32 StartIndex = 0;
-	StartIndex = CurrentStartIndices[TrailIdx];
-	if (StartIndex != INDEX_NONE)
-	{
-		StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-		StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
-	}
+	// Find the start particle of the current trail...
+	FBaseParticle* StartParticle = NULL;
+	int32 StartIndex = -1;
+	FRibbonTypeDataPayload* StartTrailData = NULL;
+	GetTrailStart<FRibbonTypeDataPayload>(TrailIdx, StartIndex, StartTrailData, StartParticle);
 
 	bNoLivingParticles = (StartParticle == NULL);
 	bool bTilingTrail = !FMath::IsNearlyZero(TrailTypeData->TilingDistance);
@@ -1330,6 +1309,7 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 			float StoredSpawnTime = DeltaTime * TimeStep;
 
 			PreSpawn(Particle, Location, FVector::ZeroVector);
+			SetDeadIndex(TrailData->TrailIndex, ParticleIndex);
 			if (LODLevel->TypeDataModule)
 			{
 				UParticleModuleTypeDataBase* pkBase = Cast<UParticleModuleTypeDataBase>(LODLevel->TypeDataModule);
@@ -1600,17 +1580,28 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 
 
 
-		// Find the Start particle of the current trail...
-		FBaseParticle *StartParticle = nullptr;
-		FRibbonTypeDataPayload* StartTrailData = nullptr;
-		int32 StartIndex = INDEX_NONE;
-		int32 OrigStartIndex = INDEX_NONE;
-		StartIndex = OrigStartIndex = CurrentStartIndices[TrailIdx];
-		if (StartIndex != INDEX_NONE)
+		// Find the start particle of the current trail...
+		FBaseParticle* StartParticle = NULL;
+		int32 StartIndex = -1;
+		FRibbonTypeDataPayload* StartTrailData = NULL;
+
+		// temporarily not using index cache here, as it causes problems later
+
+		for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 		{
-			StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-			StartTrailData = ((FRibbonTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+			int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
+			DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
+			FRibbonTypeDataPayload* CheckTrailData = ((FRibbonTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
+			if (CheckTrailData->TrailIndex == TrailIdx)
+			{
+				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+				{
+					StartParticle = CheckParticle;
+					StartIndex = CheckStartIndex;
+					StartTrailData = CheckTrailData;
+					break;
+				}
+			}
 		}
 
 		// If we are particle sourced, and the source time is NEWER than the last source time,
@@ -1803,6 +1794,8 @@ bool FParticleRibbonEmitterInstance::Spawn_Source(float DeltaTime)
 
 				// Standard spawn setup
 				PreSpawn(Particle, CurrPosition, FVector::ZeroVector);
+				SetDeadIndex(TrailData->TrailIndex, ParticleIndex);
+
 				for (int32 SpawnModuleIdx = 0; SpawnModuleIdx < LODLevel->SpawnModules.Num(); SpawnModuleIdx++)
 				{
 					UParticleModule* SpawnModule = LODLevel->SpawnModules[SpawnModuleIdx];
@@ -2022,7 +2015,6 @@ void FParticleRibbonEmitterInstance::SetupTrailModules()
 
 void FParticleRibbonEmitterInstance::ResolveSource()
 {
-	check(IsInGameThread());
 	if (SourceModule && SourceModule->SourceName != NAME_None)
 	{
 		switch (SourceModule->SourceMethod)
@@ -2030,10 +2022,11 @@ void FParticleRibbonEmitterInstance::ResolveSource()
 		case PET2SRCM_Actor:
 			if (SourceActor == NULL)
 			{
+				const TArray<struct FParticleSysParam>& AsyncInstanceParameters = Component->GetAsyncInstanceParameters();
 				FParticleSysParam Param;
-				for (int32 ParamIdx = 0; ParamIdx < Component->InstanceParameters.Num(); ParamIdx++)
+				for (int32 ParamIdx = 0; ParamIdx < AsyncInstanceParameters.Num(); ParamIdx++)
 				{
-					Param = Component->InstanceParameters[ParamIdx];
+					Param = AsyncInstanceParameters[ParamIdx];
 					if (Param.Name == SourceModule->SourceName)
 					{
 						SourceActor = Param.Actor;
@@ -2043,9 +2036,9 @@ void FParticleRibbonEmitterInstance::ResolveSource()
 
 				if (SourceModule->SourceOffsetCount > 0)
 				{
-					for (int32 ParamIdx = 0; ParamIdx < Component->InstanceParameters.Num(); ParamIdx++)
+					for (int32 ParamIdx = 0; ParamIdx < AsyncInstanceParameters.Num(); ParamIdx++)
 					{
-						Param = Component->InstanceParameters[ParamIdx];
+						Param = AsyncInstanceParameters[ParamIdx];
 						FString ParamName = Param.Name.ToString();
 						const TCHAR* TrailSourceOffset = FCString::Strstr(*ParamName, TEXT("TrailSourceOffset"));
 						if (TrailSourceOffset)
@@ -2097,36 +2090,57 @@ void FParticleRibbonEmitterInstance::UpdateSourceData(float DeltaTime, bool bFir
 	float TangentStrength;
 	// For each possible trail in this emitter, update it's source information
 	float ElapsedTime = RunningTime;//SecondsSinceCreation;
+	bool bCanBeValidParticleSource = ((SourceModule != NULL) && (SourceModule->SourceMethod == PET2SRCM_Particle));
 	for (int32 TrailIdx = 0; TrailIdx < MaxTrailCount; TrailIdx++)
 	{
 		bool bNewSource = (SourceIndices[TrailIdx] == -1);
 		if (ResolveSourcePoint(TrailIdx, Position, Rotation, Up, Tangent, TangentStrength) == true)
 		{
-			if ((bFirstTime == true) || 
-				((bNewSource == true) && ((SourceModule != NULL) && (SourceModule->SourceMethod == PET2SRCM_Particle))))
+			if (SourceIndices[TrailIdx] == -1 && bCanBeValidParticleSource)
 			{
+				//No valid particle for source so set all last and prev data to the same defaults. Stops issues with SpawnPerUnit trails having a segment back to the default location.
 				LastSourcePosition[TrailIdx] = Position;
-				LastSourceTangent[TrailIdx] = FVector::ZeroVector;//Component->LocalToWorld.TransformVector(FVector(1,0,0));
+				LastSourceTangent[TrailIdx] = Tangent;
 				LastSourceTangentStrength[TrailIdx] = TangentStrength;
+				LastSourceRotation[TrailIdx] = Rotation;
 				LastSourceUp[TrailIdx] = Up;
-				TrailSpawnTimes[TrailIdx] = RunningTime;
-			}
-			CurrentSourcePosition[TrailIdx] = Position;
-			CurrentSourceRotation[TrailIdx] = Rotation;
-			float ElapsedTimeSinceSpanwed = ElapsedTime - TrailSpawnTimes[TrailIdx];
-			if ( ElapsedTimeSinceSpanwed != 0.f )
-			{
-				CurrentSourceTangent[TrailIdx] = (CurrentSourcePosition[TrailIdx] - LastSourcePosition[TrailIdx]) / ElapsedTimeSinceSpanwed;
+
+				CurrentSourcePosition[TrailIdx] = Position;
+				CurrentSourceTangent[TrailIdx] = Tangent;
+				CurrentSourceTangentStrength[TrailIdx] = TangentStrength;
+				CurrentSourceRotation[TrailIdx] = Rotation;
+				CurrentSourceUp[TrailIdx] = Up;
+
+				TrailSpawnTimes[TrailIdx] = 0.0f;				
 			}
 			else
 			{
-				CurrentSourceTangent[TrailIdx] = FVector(1.f, 0.f, 0.f);
-			}
-			CurrentSourceTangentStrength[TrailIdx] = TangentStrength;
-			CurrentSourceUp[TrailIdx] = Up;
-			if (bFirstTime == true)
-			{
-				LastSourceRotation[TrailIdx] = CurrentSourceRotation[TrailIdx];
+				if ((bFirstTime == true) || 
+					((bNewSource == true) && bCanBeValidParticleSource))
+				{
+					LastSourcePosition[TrailIdx] = Position;
+					LastSourceTangent[TrailIdx] = FVector::ZeroVector;//Component->LocalToWorld.TransformVector(FVector(1,0,0));
+					LastSourceTangentStrength[TrailIdx] = TangentStrength;
+					LastSourceUp[TrailIdx] = Up;
+					TrailSpawnTimes[TrailIdx] = RunningTime;
+				}
+				CurrentSourcePosition[TrailIdx] = Position;
+				CurrentSourceRotation[TrailIdx] = Rotation;
+				float ElapsedTimeSinceSpanwed = ElapsedTime - TrailSpawnTimes[TrailIdx];
+				if ( ElapsedTimeSinceSpanwed != 0.f )
+				{
+					CurrentSourceTangent[TrailIdx] = (CurrentSourcePosition[TrailIdx] - LastSourcePosition[TrailIdx]) / ElapsedTimeSinceSpanwed;
+				}
+				else
+				{
+					CurrentSourceTangent[TrailIdx] = FVector(1.f, 0.f, 0.f);
+				}
+				CurrentSourceTangentStrength[TrailIdx] = TangentStrength;
+				CurrentSourceUp[TrailIdx] = Up;
+				if (bFirstTime == true)
+				{
+					LastSourceRotation[TrailIdx] = CurrentSourceRotation[TrailIdx];
+				}
 			}
 		}
 	}
@@ -2147,6 +2161,7 @@ void FParticleRibbonEmitterInstance::UpdateSourceData(float DeltaTime, bool bFir
 bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx, 
 	FVector& OutPosition, FQuat& OutRotation, FVector& OutUp, FVector& OutTangent, float& OutTangentStrength)
 {
+	const FTransform& AsyncComponentToWorld = Component->GetAsyncComponentToWorld();
 	bool bSourceWasSet = false;
 	// Resolve the source point...
 	if (SourceModule)
@@ -2281,10 +2296,11 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 						//@todo. How to handle this... can potentially cause a jump from the emitter to the
 						// particle...
 						SourceTimes[InTrailIdx] = 0.0f;
+						SourceIndices[InTrailIdx] = -1;//No valid particle source;
 					}
 					OutTangentStrength = OutTangent.SizeSquared();
 					//@todo. Allow particle rotation to define up??
-					OutUp = SourceEmitter->Component->ComponentToWorld.GetScaledAxis( EAxis::Z );
+					OutUp = SourceEmitter->Component->ComponentToWorld.GetScaledAxis(EAxis::Z);
 
 					//@todo. Where to get rotation from????
 					OutRotation = FQuat(0,0,0,1);
@@ -2312,7 +2328,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					OutTangent = SourceActor->GetVelocity();
 					OutTangentStrength = OutTangent.SizeSquared();
 
-					OutUp = ActorToWorld.TransformVector(FVector(0.f,0.f,1.f));
+					OutUp = ActorToWorld.TransformVector(FVector(0.f, 0.f, 1.f));
 
 					bSourceWasSet = true;
 				}
@@ -2340,7 +2356,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 		OutRotation = Component->GetComponentQuat();
 		OutTangent = Component->PartSysVelocity;
 		OutTangentStrength = OutTangent.SizeSquared();
-		OutUp = Component->ComponentToWorld.GetScaledAxis( EAxis::Z );
+		OutUp = Component->ComponentToWorld.GetScaledAxis(EAxis::Z);
 
 		bSourceWasSet = true;
 	}
@@ -2555,7 +2571,7 @@ FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData(bool bSe
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_GetDynamicData);
 
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetLODLevel(0);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -2610,7 +2626,7 @@ bool FParticleRibbonEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* 
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_UpdateDynamicData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -2648,7 +2664,7 @@ bool FParticleRibbonEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBase* 
  */
 FDynamicEmitterReplayDataBase* FParticleRibbonEmitterInstance::GetReplayData()
 {
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return NULL;
 	}
@@ -2723,7 +2739,7 @@ bool FParticleRibbonEmitterInstance::FillReplayData(FDynamicEmitterReplayDataBas
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleRibbonEmitterInstance_FillReplayData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -2940,16 +2956,11 @@ void FParticleAnimTrailEmitterInstance::Tick_RecalculateTangents(float DeltaTime
 	{
 		//@todo. Multiple trails, single emitter
 		int32 TrailIdx = 0;
+		int32 StartIndex = 0;
 		// Find the Start particle of the current trail...
-		FBaseParticle *StartParticle = nullptr;
-		FAnimTrailTypeDataPayload* StartTrailData = nullptr;
-		int32 StartIndex = CurrentStartIndices[TrailIdx];
-		if (StartIndex != INDEX_NONE)
-		{
-			StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-			StartTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-			check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
-		}
+		FBaseParticle* StartParticle = NULL;
+		FAnimTrailTypeDataPayload* StartTrailData = NULL;
+		GetTrailStart<FAnimTrailTypeDataPayload>(TrailIdx, StartIndex, StartTrailData, StartParticle);
 
 		// Recalculate tangents at each particle to properly handle moving particles...
 		if ((StartParticle != NULL) && (TRAIL_EMITTER_IS_ONLY(StartTrailData->Flags) == 0))
@@ -3063,6 +3074,7 @@ void FParticleAnimTrailEmitterInstance::SpawnParticle( int32& StartParticleIndex
 
 	// Standard spawn setup
 	PreSpawn(Particle, Location, FVector::ZeroVector);
+	SetDeadIndex(TrailData->TrailIndex, ParticleIndex);
 	for (int32 SpawnModuleIdx = 0; SpawnModuleIdx < LODLevel->SpawnModules.Num(); SpawnModuleIdx++)
 	{
 		UParticleModule* SpawnModule = LODLevel->SpawnModules[SpawnModuleIdx];
@@ -3095,7 +3107,7 @@ void FParticleAnimTrailEmitterInstance::SpawnParticle( int32& StartParticleIndex
 //	}
 //	else
 	{
-		UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->AttachParent);
+		UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->GetAttachParent());
 		check(TrailTypeData);
 		check(MeshComp);
 
@@ -3366,21 +3378,19 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	}
 
 	//@todo. Support multiple trails per emitter
-	// Find the Start particle of the current trail...
-	FBaseParticle *StartParticle = nullptr;
-	FAnimTrailTypeDataPayload* StartTrailData = nullptr;
-	int32 StartIndex = CurrentStartIndices[TrailIdx];
-	if (StartIndex != INDEX_NONE)
+	// Find the start particle of the current trail...
+	int32 StartIndex = -1;
+	if (TrailIdx != INDEX_NONE)
 	{
-		StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartIndex);
-		StartTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
-		check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+		FBaseParticle* Particle = nullptr;
+		FAnimTrailTypeDataPayload* TrailData = nullptr;
+		GetTrailStart(TrailIdx, StartIndex, TrailData, Particle);
 	}
 
 	bool bTilingTrail = !FMath::IsNearlyZero(TrailTypeData->TilingDistance);
 
 	//The mesh we're sampline socket locations from.
-	UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->AttachParent);
+	UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->GetAttachParent());
 
 	check(TrailTypeData);
 	// Don't allow new spawning if the emitter is finished
@@ -3432,12 +3442,11 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 
 	if (bTagTrailAsDead == true)
 	{
-		int32 CheckStartIndex = CurrentStartIndices[TrailIdx];
-		if (CheckStartIndex != INDEX_NONE)
+		for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 		{
+			int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
 			DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
 			FAnimTrailTypeDataPayload* CheckTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
-
 			if (CheckTrailData->TrailIndex == TrailIdx)
 			{
 				if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
@@ -3445,7 +3454,6 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 					CheckTrailData->Flags = TRAIL_EMITTER_SET_DEADTRAIL(CheckTrailData->Flags);
 				}
 			}
-			SetDeadIndex(CheckTrailData->TrailIndex, CheckStartIndex);
 		}
 		bTagTrailAsDead = false;
 	}
@@ -3895,7 +3903,7 @@ FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool 
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_GetDynamicData);
 
 	UParticleLODLevel* LODLevel = SpriteTemplate->GetLODLevel(0);
-	if (IsDynamicDataRequired(LODLevel) == false)
+	if (IsDynamicDataRequired(LODLevel) == false || !bEnabled)
 	{
 		return NULL;
 	}
@@ -3959,7 +3967,7 @@ bool FParticleAnimTrailEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBas
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_UpdateDynamicData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -4002,7 +4010,7 @@ bool FParticleAnimTrailEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBas
  */
 FDynamicEmitterReplayDataBase* FParticleAnimTrailEmitterInstance::GetReplayData()
 {
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return NULL;
 	}
@@ -4132,7 +4140,7 @@ bool FParticleAnimTrailEmitterInstance::FillReplayData( FDynamicEmitterReplayDat
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ParticleAnimTrailEmitterInstance_FillReplayData);
 
-	if (ActiveParticles <= 0)
+	if (ActiveParticles <= 0 || !bEnabled)
 	{
 		return false;
 	}
@@ -4240,7 +4248,7 @@ void FParticleAnimTrailEmitterInstance::PrintParticleData(FBaseParticle* Particl
 		);
 	UE_LOG(LogParticles, Log, TEXT("TI=%4d - TC=%4d, SpT=%.5f, SpD= %.5f, TU=%.4f, SpTP=%4d, RIntpC=%4d, PSF=%.4f, %s, %s"),
 		TrailData->TrailIndex, TrailData->TriangleCount, TrailData->SpawnTime, TrailData->SpawnDelta, TrailData->TiledU, TrailData->SpawnedTessellationPoints,
-		TrailData->RenderingInterpCount, TrailData->PinchScaleFactor, TrailData->bInterpolatedSpawn ? "1" : "0", TrailData->bMovementSpawned ? "1" : "0");
+		TrailData->RenderingInterpCount, TrailData->PinchScaleFactor, TrailData->bInterpolatedSpawn ? TEXT("1") : TEXT("0"), TrailData->bMovementSpawned ? TEXT("1") : TEXT("0"));
 }
 
 void FParticleAnimTrailEmitterInstance::PrintAllActiveParticles()
