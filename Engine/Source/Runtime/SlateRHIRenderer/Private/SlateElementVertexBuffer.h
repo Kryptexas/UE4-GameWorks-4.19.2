@@ -119,19 +119,6 @@ public:
 		RHIUnlockVertexBuffer( VertexBufferRHI );
 	}
 
-	void* LockBuffer_RHIThread(int32 NumVertices)
-	{
-		int32 RequiredBufferSize = NumVertices*sizeof(VertexType);
-
-		//use non-flushing DynamicRHI version when on RHIThread.
-		return GDynamicRHI->RHILockVertexBuffer(VertexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly);
-	}
-
-	void UnlockBuffer_RHIThread()
-	{
-		GDynamicRHI->RHIUnlockVertexBuffer(VertexBufferRHI);		
-	}
-
 private:
 	/** Resizes the buffer to the passed in size.  Preserves internal data*/
 	void ResizeBuffer( int32 NewSizeBytes )

@@ -40,9 +40,6 @@ public:
 	void* LockBuffer_RenderThread(int32 NumIndices);
 	void UnlockBuffer_RenderThread();
 
-	void* LockBuffer_RHIThread(int32 NumIndices);
-	void UnlockBuffer_RHIThread();
-
 	int32 GetMinBufferSize() const { return MinBufferSize; }
 
 private:

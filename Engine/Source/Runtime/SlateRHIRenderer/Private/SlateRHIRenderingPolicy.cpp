@@ -81,15 +81,17 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 
 struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertexAndIndexBuffers>
 {
-	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer;
-	FSlateElementIndexBuffer& IndexBuffer;
+	FVertexBufferRHIRef VertexBufferRHI;
+	FIndexBufferRHIRef IndexBufferRHI;
 	FSlateBatchData& BatchData;
 
 	FSlateUpdateVertexAndIndexBuffers(TSlateElementVertexBuffer<FSlateVertex>& InVertexBuffer, FSlateElementIndexBuffer& InIndexBuffer, FSlateBatchData& InBatchData)
-		: VertexBuffer(InVertexBuffer)
-		, IndexBuffer(InIndexBuffer)
+		: VertexBufferRHI(InVertexBuffer.VertexBufferRHI)
+		, IndexBufferRHI(InIndexBuffer.IndexBufferRHI)
 		, BatchData(InBatchData)
-	{}
+	{
+		check(IsInRenderingThread());
+	}
 
 	void Execute(FRHICommandListBase& CmdList)
 	{
@@ -98,13 +100,16 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 		const int32 NumBatchedVertices = BatchData.GetNumBatchedVertices();
 		const int32 NumBatchedIndices = BatchData.GetNumBatchedIndices();
 
-		uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RHIThread(NumBatchedVertices);
-		uint8* IndexBufferData = (uint8*)IndexBuffer.LockBuffer_RHIThread(NumBatchedIndices);
+		int32 RequiredVertexBufferSize = NumBatchedVertices*sizeof(FSlateVertex);
+		uint8* VertexBufferData = (uint8*)GDynamicRHI->RHILockVertexBuffer( VertexBufferRHI, 0, RequiredVertexBufferSize, RLM_WriteOnly );
 
-		BatchData.FillVertexAndIndexBuffer(VertexBufferData, IndexBufferData);
+		uint32 RequiredIndexBufferSize = NumBatchedIndices*sizeof(SlateIndex);		
+		uint8* IndexBufferData = (uint8*)GDynamicRHI->RHILockIndexBuffer( IndexBufferRHI, 0, RequiredIndexBufferSize, RLM_WriteOnly );
 
-		VertexBuffer.UnlockBuffer_RHIThread();
-		IndexBuffer.UnlockBuffer_RHIThread();
+		BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
+
+		GDynamicRHI->RHIUnlockVertexBuffer( VertexBufferRHI );
+		GDynamicRHI->RHIUnlockIndexBuffer( IndexBufferRHI );
 	}
 };
 
@@ -434,32 +439,79 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				FTextureRHIParamRef TextureRHI = GWhiteTexture->TextureRHI;
 				if( ShaderResource )
 				{
+					TextureFilter Filter = TF_Bilinear;
+
 					if (ResourceType == ESlateShaderResource::TextureObject)
 					{
 						FSlateUTextureResource* TextureObjectResource = (FSlateUTextureResource*)ShaderResource;
-		
 						TextureRHI = TextureObjectResource->AccessRHIResource();
+
+						if ( UTexture* TextureObj = TextureObjectResource->TextureObject )
+						{
+							Filter = TextureObj->Filter;
+						}
 					}
 					else
 					{	
 						TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)ShaderResource)->GetTypedResource();
 					}
 
-					if( DrawFlags == (ESlateBatchDrawFlag::TileU | ESlateBatchDrawFlag::TileV) )
+					if ( DrawFlags == ( ESlateBatchDrawFlag::TileU | ESlateBatchDrawFlag::TileV ) )
 					{
-						SamplerState = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+						switch ( Filter )
+						{
+						case TF_Nearest:
+							SamplerState = TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+							break;
+						case TF_Trilinear:
+							SamplerState = TStaticSamplerState<SF_Trilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+							break;
+						default:
+							SamplerState = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+						}
 					}
-					else if (DrawFlags & ESlateBatchDrawFlag::TileU)
+					else if ( DrawFlags & ESlateBatchDrawFlag::TileU )
 					{
-						SamplerState = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Clamp, AM_Wrap>::GetRHI();
+						switch ( Filter )
+						{
+						case TF_Nearest:
+							SamplerState = TStaticSamplerState<SF_Point, AM_Wrap, AM_Clamp, AM_Wrap>::GetRHI();
+							break;
+						case TF_Trilinear:
+							SamplerState = TStaticSamplerState<SF_Trilinear, AM_Wrap, AM_Clamp, AM_Wrap>::GetRHI();
+							break;
+						default:
+							SamplerState = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Clamp, AM_Wrap>::GetRHI();
+						}
 					}
-					else if (DrawFlags & ESlateBatchDrawFlag::TileV)
+					else if ( DrawFlags & ESlateBatchDrawFlag::TileV )
 					{
-						SamplerState = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Wrap, AM_Wrap>::GetRHI();
+						switch ( Filter )
+						{
+						case TF_Nearest:
+							SamplerState = TStaticSamplerState<SF_Point, AM_Clamp, AM_Wrap, AM_Wrap>::GetRHI();
+							break;
+						case TF_Trilinear:
+							SamplerState = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Wrap, AM_Wrap>::GetRHI();
+							break;
+						default:
+							SamplerState = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Wrap, AM_Wrap>::GetRHI();
+						}
 					}
 					else
 					{
-						SamplerState = BilinearClamp;
+						switch ( Filter )
+						{
+						case TF_Nearest:
+							SamplerState = TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+							break;
+						case TF_Trilinear:
+							SamplerState = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+							break;
+						default:
+							SamplerState = BilinearClamp;
+							break;
+						}
 					}
 				}
 

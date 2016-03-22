@@ -106,17 +106,6 @@ void FSlateElementIndexBuffer::UnlockBuffer_RenderThread()
 	RHIUnlockIndexBuffer( IndexBufferRHI );
 }
 
-void* FSlateElementIndexBuffer::LockBuffer_RHIThread(int32 NumIndices)
-{
-	uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);		
-	return GDynamicRHI->RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
-}
-
-void FSlateElementIndexBuffer::UnlockBuffer_RHIThread()
-{
-	GDynamicRHI->RHIUnlockIndexBuffer( IndexBufferRHI );
-}
-
 /** Releases the index buffers RHI resource. */
 void FSlateElementIndexBuffer::ReleaseDynamicRHI()
 {
