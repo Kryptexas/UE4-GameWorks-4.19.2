@@ -14,7 +14,9 @@
 #include "Engine.h"
 
 // Needed for VR Headset
+#if HMD_MODULE_INCLUDED
 #include "IHeadMountedDisplay.h"
+#endif // HMD_MODULE_INCLUDED
 
 const FName ATP_VehiclePawn::LookUpBinding("LookUp");
 const FName ATP_VehiclePawn::LookRightBinding("LookRight");
@@ -200,10 +202,12 @@ void ATP_VehiclePawn::Tick(float Delta)
 	SetupInCarHUD();
 
 	bool bHMDActive = false;
+#if HMD_MODULE_INCLUDED
 	if ((GEngine->HMDDevice.IsValid() == true) && ((GEngine->HMDDevice->IsHeadTrackingAllowed() == true) || (GEngine->IsStereoscopic3D() == true)))
 	{
 		bHMDActive = true;
 	}
+#endif // HMD_MODULE_INCLUDED
 	if (bHMDActive == false)
 	{
 		if ( (InputComponent) && (bInCarCameraActive == true ))
@@ -221,18 +225,22 @@ void ATP_VehiclePawn::BeginPlay()
 	Super::BeginPlay();
 
 	bool bEnableInCar = false;
+#if HMD_MODULE_INCLUDED
 	bEnableInCar = UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled();
+#endif // HMD_MODULE_INCLUDED
 	EnableIncarView(bEnableInCar,true);
 }
 
 void ATP_VehiclePawn::OnResetVR()
 {
+#if HMD_MODULE_INCLUDED
 	if (GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->ResetOrientationAndPosition();
 		InternalCamera->SetRelativeLocation(InternalCameraOrigin);
 		GetController()->SetControlRotation(FRotator());
 	}
+#endif // HMD_MODULE_INCLUDED
 }
 
 void ATP_VehiclePawn::UpdateHUDStrings()

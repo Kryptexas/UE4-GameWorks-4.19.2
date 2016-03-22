@@ -5,4 +5,6 @@
 
 #include "CoreUObject.h"
 
+#define HMD_MODULE_INCLUDED 1
+
 #endif
