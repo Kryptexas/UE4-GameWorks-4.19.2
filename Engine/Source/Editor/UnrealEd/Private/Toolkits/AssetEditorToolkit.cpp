@@ -28,6 +28,7 @@ const FName FAssetEditorToolkit::ToolbarTabId( TEXT( "AssetEditorToolkit_Toolbar
 FAssetEditorToolkit::FAssetEditorToolkit()
 	: bCheckDirtyOnAssetSave(false)
 	, bIsToolbarFocusable(false)
+	, GCEditingObjects(*this)
 {
 	WorkspaceMenuCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_BaseAssetEditor", "Asset Editor"));
 }
@@ -950,6 +951,12 @@ void FAssetEditorToolkit::AddToolbarWidget(TSharedRef<SWidget> Widget)
 void FAssetEditorToolkit::RemoveAllToolbarWidgets()
 {
 	ToolbarWidgets.Empty();
+}
+
+
+void FAssetEditorToolkit::FGCEditingObjects::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObjects(OwnerToolkit.EditingObjects);
 }
 
 
