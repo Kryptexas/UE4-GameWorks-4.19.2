@@ -1146,12 +1146,10 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	}
 	else
 	{
-		const float FrameRate = bUseFixedTimeStep ? FApp::GetFixedDeltaTime() : ( 1.f / FixedFrameRate );
-
 		FApp::SetCurrentTime(FPlatformTime::Seconds());
 		// Did we just switch from a fixed time step to real-time?  If so, then we'll update our
 		// cached 'last time' so our current interval isn't huge (or negative!)
-		if( bTimeWasManipulated )
+		if( bTimeWasManipulated && !bUseFixedFrameRate )
 		{
 			LastTime = FApp::GetCurrentTime() - FApp::GetDeltaTime();
 			bTimeWasManipulated = false;
@@ -1215,12 +1213,13 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			}
 			FApp::SetCurrentTime(FPlatformTime::Seconds());
 		}
-		else if (bUseFixedTimeStep)
+		else if (bUseFixedFrameRate)
 		{
+			//We are doing fixed framerate and the real delta time is bigger than our desired delta time. In this case we start falling behind real time (and that's ok)
 			const float FrameRate = 1.f / FixedFrameRate;
 			FApp::SetDeltaTime(FrameRate);
-			LastTime = FApp::GetCurrentTime();
-			FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
+			FApp::SetCurrentTime(LastTime + FApp::GetDeltaTime());
+			bTimeWasManipulated = true;
 		}
 
 
