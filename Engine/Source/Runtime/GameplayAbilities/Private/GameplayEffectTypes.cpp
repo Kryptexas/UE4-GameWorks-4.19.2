@@ -78,6 +78,11 @@ void FGameplayEffectContext::SetAbility(const UGameplayAbility* InGameplayAbilit
 	}
 }
 
+const UGameplayAbility* FGameplayEffectContext::GetAbility() const
+{
+	return Ability.GetDefaultObject();
+}
+
 void FGameplayEffectContext::AddActors(const TArray<TWeakObjectPtr<AActor>>& InActors, bool bReset)
 {
 	if (bReset && Actors.Num())

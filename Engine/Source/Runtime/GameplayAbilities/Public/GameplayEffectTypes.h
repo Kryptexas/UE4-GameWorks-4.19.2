@@ -306,10 +306,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	}
 
 	/** returns the CDO of the ability used to instigate this context */
-	const UGameplayAbility* GetAbility() const
-	{
-		return Ability.GetDefaultObject();
-	}
+	const UGameplayAbility* GetAbility() const;
 
 	int32 GetAbilityLevel() const
 	{
