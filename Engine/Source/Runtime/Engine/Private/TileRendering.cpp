@@ -239,7 +239,7 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 	
-	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && IsMobileHDR();
 
 	for (int32 TileIdx = 0; TileIdx < Data->Tiles.Num(); TileIdx++)
 	{
@@ -306,7 +306,8 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
-	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && IsMobileHDR();
+
 	struct FDrawTileParameters
 	{
 		FSceneView* View;

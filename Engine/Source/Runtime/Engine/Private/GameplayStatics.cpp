@@ -916,7 +916,14 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 	FVector TestLocation = Location;
 	if (LocationType != EAttachLocation::KeepWorldPosition)
 	{
-		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+		if (AttachPointName != NAME_None)
+		{
+			TestLocation = AttachToComponent->GetSocketTransform(AttachPointName).TransformPosition(Location);
+		}
+		else
+		{
+			TestLocation = AttachToComponent->GetComponentTransform().TransformPosition(Location);
+		}
 	}
 
 	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings, ConcurrencySettings);

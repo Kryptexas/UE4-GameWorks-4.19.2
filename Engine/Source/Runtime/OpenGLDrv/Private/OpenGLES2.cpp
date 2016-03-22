@@ -139,6 +139,9 @@ bool FOpenGLES2::bRequiresShaderFramebufferFetchUndef = false;
 /* Indicates shader compiler hack checks are being tested */
 bool FOpenGLES2::bIsCheckingShaderCompilerHacks = false;
 
+/* Indicates shader compiler hack checks are being tested */
+bool FOpenGLES2::bIsLimitingShaderCompileCount = false;
+
 bool FOpenGLES2::SupportsDisjointTimeQueries()
 {
 	bool bAllowDisjointTimerQueries = false;

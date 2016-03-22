@@ -2808,9 +2808,9 @@ namespace UnrealBuildTool
 								var SharedPCHHeaderFileItem = FileItem.GetExistingItemByPath(SharedPCHHeaderFilePath);
 								if (SharedPCHHeaderFileItem != null)
 								{
-									var ModuleDependencies = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
+									List<UEBuildModule> ModuleDependencies = new List<UEBuildModule>();
 									bool bIncludeDynamicallyLoaded = false;
-									CPPModule.GetAllDependencyModules(ModuleDependencies, bIncludeDynamicallyLoaded, bForceCircular: false, bOnlyDirectDependencies: false);
+									CPPModule.GetAllDependencyModules(ModuleDependencies, new HashSet<UEBuildModule>(), bIncludeDynamicallyLoaded, bForceCircular: false, bOnlyDirectDependencies: false);
 
 									// Figure out where to insert the shared PCH into our list, based off the module dependency ordering
 									int InsertAtIndex = SharedPCHHeaderFiles.Count;
@@ -2845,7 +2845,7 @@ namespace UnrealBuildTool
 									var NewSharedPCHHeaderInfo = new SharedPCHHeaderInfo();
 									NewSharedPCHHeaderInfo.PCHHeaderFile = SharedPCHHeaderFileItem;
 									NewSharedPCHHeaderInfo.Module = CPPModule;
-									NewSharedPCHHeaderInfo.Dependencies = ModuleDependencies.Values.OrderBy(x => x.Index).Select(x => x.Module).ToDictionary(M => M.Name);
+									NewSharedPCHHeaderInfo.Dependencies = ModuleDependencies.ToDictionary(M => M.Name);
 									SharedPCHHeaderFiles.Insert(InsertAtIndex, NewSharedPCHHeaderInfo);
 								}
 								else

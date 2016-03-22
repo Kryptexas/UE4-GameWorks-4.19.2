@@ -24,6 +24,13 @@
 #include "HideWindowsPlatformTypes.h"
 #include "TargetPlatform.h"
 #include "XAudio2Support.h"
+#include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
+
+static TAutoConsoleVariable<int32> CVarXAudio2HmdDeviceIndex(
+	TEXT("hmd.XAudio2DeviceIndex"),
+	-1,
+	TEXT("Specifies the XAudio2 device index to use when HMD is connected. (-1 == Unknown)\n"),
+	ECVF_Default);
 
 DEFINE_LOG_CATEGORY(LogXAudio2);
 
@@ -122,9 +129,18 @@ bool FXAudio2Device::InitializeHardware()
 		return( false );		
 	}
 
-	// Get the details of the desired device index (0 is default)
-	if (!ValidateAPICall(TEXT("GetDeviceDetails"),
-		DeviceProperties->XAudio2->GetDeviceDetails(0, &FXAudioDeviceProperties::DeviceDetails)))
+	// Allow HMD to override which audio device is chosen
+	bool bUseHmdDeviceIndex = CVarXAudio2HmdDeviceIndex.GetValueOnGameThread() >= 0 && 
+		IModularFeatures::Get().IsModularFeatureAvailable(IHeadMountedDisplayModule::GetModularFeatureName());
+
+	UINT32 DeviceIndex = bUseHmdDeviceIndex ? CVarXAudio2HmdDeviceIndex.GetValueOnGameThread() : 0;
+
+	if(DeviceIndex >= DeviceCount)
+		DeviceIndex = 0;
+
+	// Get the details of the default device
+	if( !ValidateAPICall(TEXT("GetDeviceDetails"),
+		DeviceProperties->XAudio2->GetDeviceDetails(DeviceIndex, &FXAudioDeviceProperties::DeviceDetails)))
 	{
 		UE_LOG(LogInit, Log, TEXT("Failed to get DeviceDetails for XAudio2"));
 		DeviceProperties->XAudio2 = nullptr;
@@ -164,7 +180,7 @@ bool FXAudio2Device::InitializeHardware()
 
 	// Create the final output voice with either 2 or 6 channels
 	if (!ValidateAPICall(TEXT("CreateMasteringVoice"), 
-		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, 0, nullptr)))
+		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, DeviceIndex, nullptr)))
 	{
 		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		DeviceProperties->XAudio2 = nullptr;
@@ -173,7 +189,7 @@ bool FXAudio2Device::InitializeHardware()
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 	// Create the final output voice
 	if (!ValidateAPICall(TEXT("CreateMasteringVoice"),
-		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, NULL )))
+		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, nullptr )))
 	{
 		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		DeviceProperties->XAudio2 = nullptr;

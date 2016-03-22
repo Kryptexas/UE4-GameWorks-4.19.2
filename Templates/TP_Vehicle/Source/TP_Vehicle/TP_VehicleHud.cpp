@@ -13,9 +13,7 @@
 #include "Engine.h"
 
 // Needed for VR Headset
-#ifdef HMD_INTGERATION
 #include "IHeadMountedDisplay.h"
-#endif // HMD_INTGERATION
 
 
 #define LOCTEXT_NAMESPACE "VehicleHUD"
@@ -35,12 +33,10 @@ void ATP_VehicleHud::DrawHUD()
 	const float HUDYRatio = Canvas->SizeY / 720.f;
 
 	bool bWantHUD = true;
-#ifdef HMD_INTGERATION
 	if (GEngine->HMDDevice.IsValid() == true)
 	{
 		bWantHUD = GEngine->HMDDevice->IsStereoEnabled();
 	}
-#endif// HMD_INTGERATION
 	// We dont want the onscreen hud when using a HMD device	
 	if (bWantHUD == true)
 	{

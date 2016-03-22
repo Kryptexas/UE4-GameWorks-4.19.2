@@ -17,15 +17,15 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	bool bSetupTranslucentState = true;
+	bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
 
 	if ((TranslucenyPassType == TPT_SeparateTransluceny) && SceneContext.IsSeparateTranslucencyActive(View))
 	{
-		const bool bNeedsClear = (&View == View.Family->Views[0]) && bFirstTimeThisFrame;
 		bSetupTranslucentState = SceneContext.BeginRenderingSeparateTranslucency(RHICmdList, View, bNeedsClear);
 	}
-	else
+	else if (TranslucenyPassType == TPT_NonSeparateTransluceny)
 	{
-		SceneContext.BeginRenderingTranslucency(RHICmdList, View);
+		SceneContext.BeginRenderingTranslucency(RHICmdList, View, bNeedsClear);
 	}
 
 	if (bSetupTranslucentState)
@@ -812,7 +812,8 @@ void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveScen
 
 	bool bCanBeSeparate = CVarEnabled
 		&& FeatureLevel >= ERHIFeatureLevel::SM4
-		&& (ViewInfo.Family->EngineShowFlags.PostProcessing || ViewInfo.Family->EngineShowFlags.ShaderComplexity)
+		&& ViewInfo.Family->EngineShowFlags.PostProcessing 
+		&& !ViewInfo.Family->EngineShowFlags.ShaderComplexity
 		&& ViewInfo.Family->EngineShowFlags.SeparateTranslucency;
 
 	// add to list of sepaate translucency prims 
@@ -918,7 +919,7 @@ public:
 	FTranslucencyPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, ETranslucencyPassType InTranslucenyPassType)
 		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, TranslucenyPassType(InTranslucenyPassType)
-		, bFirstTimeThisFrame(InTranslucenyPassType == TPT_SeparateTransluceny)
+		, bFirstTimeThisFrame(true)
 	{
 		SetStateOnCommandList(ParentCmdList);
 	}
@@ -1121,7 +1122,8 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 			// non separate translucency
 			{
-				SetTranslucentRenderTargetAndState(RHICmdList, View, TPT_NonSeparateTransluceny);
+				bool bFirstTimeThisFrame = (ViewIndex == 0);
+				SetTranslucentRenderTargetAndState(RHICmdList, View, TPT_NonSeparateTransluceny, bFirstTimeThisFrame);
 
 				DrawAllTranslucencyPasses(RHICmdList, View, TPT_NonSeparateTransluceny);
 

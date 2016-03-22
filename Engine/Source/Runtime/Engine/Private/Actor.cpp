@@ -2883,6 +2883,7 @@ void AActor::BeginPlay()
 	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
+	ActorHasBegunPlay = EActorBeginPlayState::BeginningPlay;
 	for (UActorComponent* Component : Components)
 	{
 		// bHasBegunPlay will be true for the component if the component was renamed and moved to a new outer during initialization
@@ -2901,7 +2902,6 @@ void AActor::BeginPlay()
 		}
 	}
 
-	ActorHasBegunPlay = EActorBeginPlayState::BeginningPlay;
 	ReceiveBeginPlay();
 
 	ActorHasBegunPlay = EActorBeginPlayState::HasBegunPlay;

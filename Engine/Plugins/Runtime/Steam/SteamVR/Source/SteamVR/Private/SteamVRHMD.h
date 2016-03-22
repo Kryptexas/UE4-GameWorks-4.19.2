@@ -100,6 +100,9 @@ public:
 
 	virtual bool OnStartGameFrame(FWorldContext& WorldContext) override;
 
+	virtual void SetTrackingOrigin(EHMDTrackingOrigin::Type NewOrigin) override;
+	virtual EHMDTrackingOrigin::Type GetTrackingOrigin() override;
+
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;
 	virtual bool EnableStereo(bool stereo = true) override;
@@ -194,12 +197,6 @@ public:
 
 	/** Get the windowed mirror mode.  @todo steamvr: thread safe flags */
 	int32 GetWindowMirrorMode() const { return WindowMirrorMode; }
-
-	/** Sets the tracking space for the returned coordinate system (e.g. standing, sitting) */
-	void SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace);
-
-	/** Returns the tracking space for the returned coordinate system (e.g. standing, sitting) */
-	ESteamVRTrackingSpace GetTrackingSpace() const;
 
 	/** Sets the map from Unreal controller id and hand index, to tracked device id. */
 	void SetUnrealControllerIdAndHandToDeviceIdMap(int32 InUnrealControllerIdAndHandToDeviceIdMap[ MAX_STEAMVR_CONTROLLER_PAIRS ][ 2 ]);

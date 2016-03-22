@@ -326,8 +326,13 @@ void FAsyncAudioDecompressWorker::DoWork()
 			{
 				const uint32 PCMBufferSize = MONO_PCM_BUFFER_SIZE * Wave->NumChannels;
 				check(Wave->CachedRealtimeFirstBuffer == nullptr);
+#if PLATFORM_ANDROID
+				Wave->CachedRealtimeFirstBuffer = (uint8*)FMemory::Malloc(PCMBufferSize);
+				AudioInfo->ReadCompressedData(Wave->CachedRealtimeFirstBuffer, false, PCMBufferSize);
+#else
 				Wave->CachedRealtimeFirstBuffer = (uint8*)FMemory::Malloc(PCMBufferSize * 2);
 				AudioInfo->ReadCompressedData( Wave->CachedRealtimeFirstBuffer, false, PCMBufferSize * 2 );
+#endif
 			}
 			else
 			{

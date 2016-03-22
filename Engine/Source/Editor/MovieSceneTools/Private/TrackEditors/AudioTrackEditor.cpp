@@ -184,9 +184,16 @@ void FAudioThumbnail::GenerateWaveformPreview(TArray<uint8>& OutData, TRange<flo
 		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 		if (AudioDevice)
 		{
-			SoundWave->InitAudioResource(AudioDevice->GetRuntimeFormat(SoundWave));
-			FAsyncAudioDecompress TempDecompress(SoundWave);
-			TempDecompress.StartSynchronousTask();
+			EDecompressionType DecompressionType =  SoundWave->DecompressionType;
+			SoundWave->DecompressionType = DTYPE_Native;
+
+			if ( SoundWave->InitAudioResource( AudioDevice->GetRuntimeFormat( SoundWave ) ) && (SoundWave->DecompressionType != DTYPE_RealTime || SoundWave->CachedRealtimeFirstBuffer == nullptr ) )
+			{
+				FAsyncAudioDecompress TempDecompress(SoundWave);
+				TempDecompress.StartSynchronousTask();
+			}
+
+			SoundWave->DecompressionType = DecompressionType;
 		}
 	}
 
@@ -391,9 +398,7 @@ int32 FAudioSection::OnPaintSection( const FGeometry& AllottedGeometry, const FS
 			AllottedGeometry.ToPaintGeometry(FVector2D(StoredXOffset, 0), FVector2D(StoredXSize, AllottedGeometry.Size.Y)),
 			WaveformThumbnail,
 			SectionClippingRect,
-			false,
-			false,
-			DrawEffects,
+			DrawEffects | ESlateDrawEffect::NoGamma | ESlateDrawEffect::NoBlending,
 			FLinearColor(1.f, 1.f, 1.f, 0.9f)
 		);
 	}

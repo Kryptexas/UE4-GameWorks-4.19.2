@@ -721,10 +721,12 @@ void UParticleModuleTypeDataBeam2::CacheModuleInfo(UParticleEmitter* Emitter)
 			LOD_BeamTypeData = CastChecked<UParticleModuleTypeDataBeam2>(LODLevel->TypeDataModule);
 			check(LOD_BeamTypeData);
 		}
+		/*
 		else
 		{
 			check(LOD_BeamTypeData == LODLevel->TypeDataModule);
 		}
+		*/
 
 		// Go over all the modules in the LOD level
 		for (int32 ii = 0; ii < LODLevel->Modules.Num(); ii++)

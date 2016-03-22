@@ -32,7 +32,9 @@
 
 #if PLATFORM_DESKTOP
 // For Depth Bounds Test interface
-#include "nvapi.h"
+#include "AllowWindowsPlatformTypes.h"
+	#include "nvapi.h"
+#include "HideWindowsPlatformTypes.h"
 #endif
 
 FGlobalBoundShaderState GD3D11ClearMRTBoundShaderState[8];

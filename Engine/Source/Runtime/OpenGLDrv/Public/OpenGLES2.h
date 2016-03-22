@@ -140,7 +140,8 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool RequiresTexture2DPrecisionHack()			{ return bRequiresTexture2DPrecisionHack; }
 	static FORCEINLINE bool RequiresShaderFramebufferFetchUndef()		{ return bRequiresShaderFramebufferFetchUndef; }
 	static FORCEINLINE bool IsCheckingShaderCompilerHacks()				{ return bIsCheckingShaderCompilerHacks; }
-
+    static FORCEINLINE bool IsLimitingShaderCompileCount()              { return bIsLimitingShaderCompileCount; }
+        
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT_OES; }
@@ -502,6 +503,9 @@ public:
 
 	/* Indicates shader compiler hack checks are being tested */
 	static bool bIsCheckingShaderCompilerHacks;
+    
+    /* Indicates shader compiler should be limited */
+    static bool bIsLimitingShaderCompileCount;
 };
 
 

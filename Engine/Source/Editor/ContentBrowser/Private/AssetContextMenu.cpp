@@ -1403,6 +1403,20 @@ void FAssetContextMenu::ExecuteRename()
 
 void FAssetContextMenu::ExecuteDelete()
 {
+	// Don't allow asset deletion during PIE
+	if (GIsEditor)
+	{
+		UEditorEngine* Editor = GEditor;
+		FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext();
+		if (PIEWorldContext)
+		{
+			FNotificationInfo Notification(LOCTEXT("CannotDeleteAssetInPIE", "Assets cannot be deleted while in PIE."));
+			Notification.ExpireDuration = 3.0f;
+			FSlateNotificationManager::Get().AddNotification(Notification);
+			return;
+		}
+	}
+
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	if(AssetViewSelectedAssets.Num() > 0)
 	{

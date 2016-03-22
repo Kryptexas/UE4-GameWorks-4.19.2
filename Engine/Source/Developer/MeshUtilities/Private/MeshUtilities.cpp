@@ -6696,7 +6696,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		}
 	}
 
-#if 0 // TODO AG: The FRawMesh structure has changed
 	if (InSettings.bMergePhysicsData)
 	{
 		for (int32 MeshId = 0; MeshId < ComponentsToMerge.Num(); ++MeshId)
@@ -6711,7 +6710,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			}
 		}
 	}
-#endif
 
 	TArray<bool> MeshShouldBakeVertexData;
 	TMap<FMeshIdAndLOD, TArray<int32> > NewMaterialMap;
@@ -6944,16 +6942,14 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	}
 
 	// Transform physics primitives to merged mesh pivot
-#if 0 // TODO AG: The FRawMesh structure has changed
-	if (InSettings.bMergePhysicsData && !MergedMesh.Pivot.IsZero())
+	if (InSettings.bMergePhysicsData && !MergedAssetPivot.IsZero())
 	{
-		FTransform PivotTM(-MergedMesh.Pivot);
+		FTransform PivotTM(-MergedAssetPivot);
 		for (auto& SourceMesh : SourceMeshes)
 		{
 			TransformPhysicsGeometry(PivotTM, SourceMesh.AggGeom);
 		}
 	}
-#endif 
 
 	// Compute target lightmap channel for each LOD
 	// User can specify any index, but there are should not be empty gaps in UV channel list
@@ -7037,7 +7033,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			StaticMesh->Materials.Add(Material);
 		}
 
-#if 0 // TODO AG: The FRawMesh structure has changed
 		if (InSettings.bMergePhysicsData && BodySetupSource)
 		{
 			StaticMesh->CreateBodySetup();
@@ -7049,7 +7044,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 				StaticMesh->BodySetup->AddCollisionFrom(SourceMesh.AggGeom);
 			}
 		}
-#endif
 
 		MainTask.EnterProgressFrame(10, LOCTEXT("MeshUtilities_MergeStaticMeshComponents_BuildingStaticMesh", "Building Static Mesh"));
 

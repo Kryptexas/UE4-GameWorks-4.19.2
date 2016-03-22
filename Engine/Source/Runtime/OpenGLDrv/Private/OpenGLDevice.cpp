@@ -1120,6 +1120,11 @@ static void CheckVaryingLimit()
 
 		UE_LOG(LogRHI, Warning, TEXT("gl_FragCoord does not need a varying"));
 	}
+#elif PLATFORM_IOS
+    if (IsES2Platform(GMaxRHIShaderPlatform))
+    {
+        FOpenGL::bIsLimitingShaderCompileCount = FPlatformMisc::GetIOSDeviceType() == FPlatformMisc::IOS_IPad4;
+    }
 #endif
 }
 

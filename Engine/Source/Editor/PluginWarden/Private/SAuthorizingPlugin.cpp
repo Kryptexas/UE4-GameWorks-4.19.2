@@ -6,13 +6,14 @@
 
 #define LOCTEXT_NAMESPACE "PluginWarden"
 
-void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SWindow>& InParentWindow, const FText& InPluginFriendlyName, const FString& InPluginGuid, TFunction<void()> InAuthorizedCallback)
+void SAuthorizingPlugin::Construct(const FArguments& InArgs, const TSharedRef<SWindow>& InParentWindow, const FText& InPluginFriendlyName, const FString& InPluginItemId, const FString& InPluginOfferId, TFunction<void()> InAuthorizedCallback)
 {
 	CurrentState = EPluginAuthorizationState::Initializing;
 	WaitingTime = 0;
 	ParentWindow = InParentWindow;
 	PluginFriendlyName = InPluginFriendlyName;
-	PluginGuid = InPluginGuid;
+	PluginItemId = InPluginItemId;
+	PluginOfferId = InPluginOfferId;
 	AuthorizedCallback = InAuthorizedCallback;
 
 	InParentWindow->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SAuthorizingPlugin::OnWindowClosed));
@@ -167,7 +168,7 @@ EActiveTimerReturnType SAuthorizingPlugin::RefreshStatus(double InCurrentTime, f
 		case EPluginAuthorizationState::AuthorizePlugin:
 		{
 			WaitingTime = 0;
-			EntitlementResult = PortalUserService->IsEntitledToItem(PluginGuid, EEntitlementCacheLevelRequest::Memory);
+			EntitlementResult = PortalUserService->IsEntitledToItem(PluginItemId, EEntitlementCacheLevelRequest::Memory);
 			CurrentState = EPluginAuthorizationState::AuthorizePlugin_Waiting;
 			break;
 		}
@@ -341,7 +342,7 @@ void SAuthorizingPlugin::OnWindowClosed(const TSharedRef<SWindow>& InWindow)
 	{
 		if ( CurrentState == EPluginAuthorizationState::Authorized )
 		{
-			AuthorizedPlugins.Add(PluginGuid);
+			AuthorizedPlugins.Add(PluginItemId);
 			AuthorizedCallback();
 		}
 		else
@@ -385,7 +386,7 @@ void SAuthorizingPlugin::ShowStorePageForPlugin()
 
 	if ( DesktopPlatform != nullptr )
 	{
-		FOpenLauncherOptions StorePageOpen(FString(TEXT("/ue/marketplace/offers/")) + PluginGuid);
+		FOpenLauncherOptions StorePageOpen(FString(TEXT("/ue/marketplace/content/")) + PluginOfferId);
 		DesktopPlatform->OpenLauncher(StorePageOpen);
 	}
 }

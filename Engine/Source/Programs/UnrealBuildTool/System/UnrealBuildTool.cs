@@ -1341,25 +1341,27 @@ namespace UnrealBuildTool
 								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false))
 							{
 								var TargetDescs = UEBuildTarget.ParseTargetCommandLine(Arguments, ref ProjectFile);
-
-								UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform);
-								UEBuildPlatformContext PlatformContext = BuildPlatform.CreateContext(TargetDescs[0].ProjectFile);
-
-								UEBuildDeploy DeploymentHandler = PlatformContext.CreateDeploymentHandler();
-								if (DeploymentHandler != null)
+								if (TargetDescs[0].OnlyModules.Count == 0)
 								{
-									// We need to be able to identify the Target.Type we can derive it from the Arguments.
-									BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
-									UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget(TargetDescs[0]);	// @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
-									UEToolChain ToolChain = PlatformContext.CreateToolChainForDefaultCppPlatform();
-									CheckTarget.SetupGlobalEnvironment(ToolChain);
-									if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
-										(CheckTarget.TargetType == TargetRules.TargetType.Server) ||
-										(CheckTarget.TargetType == TargetRules.TargetType.Client))
+									UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform);
+									UEBuildPlatformContext PlatformContext = BuildPlatform.CreateContext(TargetDescs[0].ProjectFile);
+
+									UEBuildDeploy DeploymentHandler = PlatformContext.CreateDeploymentHandler();
+									if (DeploymentHandler != null)
 									{
-										CheckTarget.AppName = CheckTarget.TargetName;
+										// We need to be able to identify the Target.Type we can derive it from the Arguments.
+										BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
+										UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget(TargetDescs[0]); // @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
+										UEToolChain ToolChain = PlatformContext.CreateToolChainForDefaultCppPlatform();
+										CheckTarget.SetupGlobalEnvironment(ToolChain);
+										if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
+											(CheckTarget.TargetType == TargetRules.TargetType.Server) ||
+											(CheckTarget.TargetType == TargetRules.TargetType.Client))
+										{
+											CheckTarget.AppName = CheckTarget.TargetName;
+										}
+										DeploymentHandler.PrepTargetForDeployment(CheckTarget);
 									}
-									DeploymentHandler.PrepTargetForDeployment(CheckTarget);
 								}
 							}
 						}

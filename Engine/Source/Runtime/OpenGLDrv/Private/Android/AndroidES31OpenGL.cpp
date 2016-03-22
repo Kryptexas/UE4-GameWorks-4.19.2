@@ -37,6 +37,18 @@ void FAndroidES31OpenGL::ProcessExtensions(const FString& ExtensionsString)
 	FOpenGLES31::ProcessExtensions(ExtensionsString);
 
 	bSupportsBindlessTexture = ExtensionsString.Contains(TEXT("GL_NV_bindless_texture"));
+
+	// Nexus 9 running Android < 6.0 runs slow with NvTimerQuery so disable it
+	if (FAndroidMisc::GetDeviceModel() == FString(TEXT("Nexus 9")))
+	{
+		TArray<FString> VersionParts;
+		FAndroidMisc::GetAndroidVersion().ParseIntoArray(VersionParts, TEXT("."), true);
+		if (VersionParts.Num() > 0 && FCString::Atoi(*VersionParts[0]) < 6)
+		{
+			UE_LOG(LogRHI, Log, TEXT("Disabling support for NvTimerQuery on Nexus 9 before Android 6.0"));
+			bSupportsNvTimerQuery = false;
+		}
+	}
 }
 
 

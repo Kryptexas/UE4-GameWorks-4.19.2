@@ -1013,12 +1013,12 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 		NetworkFileServers.Add(TcpFileServer);
 	}
 
-	/*INetworkFileServer *HttpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
+	INetworkFileServer *HttpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
 		.CreateNetworkFileServer(true, BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, ENetworkFileServerProtocol::NFSP_Http);
 	if ( HttpFileServer )
 	{
 		NetworkFileServers.Add( HttpFileServer );
-	}*/
+	}
 
 	// loop while waiting for requests
 	GIsRequestingExit = false;
@@ -2252,7 +2252,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					// removing editor only packages only works when cooking in commandlet and non iterative cooking
 					// also doesn't work in multiprocess cooking
 					KeepEditorOnlyPackages = !(IsCookByTheBookMode() && !IsCookingInEditor()) || IsCookFlagSet(ECookInitializationFlags::Iterative);
-					KeepEditorOnlyPackages |= IsChildCooker() || (CookByTheBookOptions->ChildCookers.Num() > 0);
+					KeepEditorOnlyPackages |= IsChildCooker() || (CookByTheBookOptions && CookByTheBookOptions->ChildCookers.Num() > 0);
 					SaveFlags |= KeepEditorOnlyPackages ? SAVE_KeepEditorOnlyCookedPackages : SAVE_None;
 
 					SavePackageResult = SaveCookedPackage(Package, SaveFlags, bWasUpToDate, AllTargetPlatformNames);
@@ -2824,13 +2824,6 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 
 	// return success
 	return Result;
-}
-
-// this is a duplciate of the 
-static bool IsMobileHDR()
-{
-	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	return MobileHDRCvar->GetValueOnAnyThread() == 1;
 }
 
 void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInitializationFlags InCookFlags, const FString &InOutputDirectoryOverride )

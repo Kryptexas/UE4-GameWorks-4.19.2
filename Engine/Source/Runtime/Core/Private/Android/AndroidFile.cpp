@@ -1799,6 +1799,7 @@ private:
 		{
 			if ((AllowLocal && AndroidPath.StartsWith(TEXT("/"))) ||
 				AndroidPath.StartsWith(GFontPathBase) ||
+				AndroidPath.StartsWith(TEXT("/system/etc/")) ||
 				AndroidPath.StartsWith(GExternalFilePath.Left(AndroidPath.Len())))
 			{
 				// Absolute paths are only local.

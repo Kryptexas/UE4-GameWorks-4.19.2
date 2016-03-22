@@ -303,9 +303,7 @@ int32 FShotSequencerSection::OnPaintSection(const FGeometry& AllottedGeometry, c
 				TruncatedGeometry.ToPaintGeometry(),
 				Thumbnail,
 				SectionClippingRect,
-				false,
-				false,
-				DrawEffects,
+				DrawEffects | ESlateDrawEffect::NoGamma | ESlateDrawEffect::NoBlending,
 				FLinearColor::White
 			);
 

@@ -60,15 +60,14 @@ class BuildPlugin : BuildCommand
 
 		// Build the host platforms
 		List<string> ReceiptFileNames = new List<string>();
-		UE4Build.BuildAgenda Agenda = new UE4Build.BuildAgenda();
 		UnrealTargetPlatform HostPlatform = BuildHostPlatform.Current.Platform;
 		if(!ParseParam("NoHostPlatform"))
 		{
 			if (Plugin.bCanBeUsedWithUnrealHeaderTool)
 			{
-				AddPluginToAgenda(Agenda, PluginFile, Plugin, null, "UnrealHeaderTool", TargetRules.TargetType.Program, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, String.Format("{0} -plugin {1}", AdditionalArgs, CommandUtils.MakePathSafeToUseWithCommandLine(HostProjectPluginFile.FullName)));
+				BuildPluginWithUBT(PluginFile, Plugin, null, "UnrealHeaderTool", TargetRules.TargetType.Program, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, String.Format("{0} -plugin {1}", AdditionalArgs, CommandUtils.MakePathSafeToUseWithCommandLine(HostProjectPluginFile.FullName)));
 			}
-			AddPluginToAgenda(Agenda, PluginFile, Plugin, HostProjectFile, "UE4Editor", TargetRules.TargetType.Editor, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, AdditionalArgs);
+			BuildPluginWithUBT(PluginFile, Plugin, HostProjectFile, "UE4Editor", TargetRules.TargetType.Editor, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, AdditionalArgs);
 		}
 
 		// Add the game targets
@@ -77,14 +76,10 @@ class BuildPlugin : BuildCommand
 		{
 			if(Rocket.RocketBuild.IsCodeTargetPlatform(HostPlatform, TargetPlatform))
 			{
-				AddPluginToAgenda(Agenda, PluginFile, Plugin, HostProjectFile, "UE4Game", TargetRules.TargetType.Game, TargetPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, AdditionalArgs);
-				AddPluginToAgenda(Agenda, PluginFile, Plugin, HostProjectFile, "UE4Game", TargetRules.TargetType.Game, TargetPlatform, UnrealTargetConfiguration.Shipping, ReceiptFileNames, AdditionalArgs);
+				BuildPluginWithUBT(PluginFile, Plugin, HostProjectFile, "UE4Game", TargetRules.TargetType.Game, TargetPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames, AdditionalArgs);
+				BuildPluginWithUBT(PluginFile, Plugin, HostProjectFile, "UE4Game", TargetRules.TargetType.Game, TargetPlatform, UnrealTargetConfiguration.Shipping, ReceiptFileNames, AdditionalArgs);
 			}
 		}
-
-		// Build it
-		UE4Build Build = new UE4Build(this);
-		Build.Build(Agenda, InDeleteBuildProducts: false, InUpdateVersionFiles: false);
 
 		// Package the plugin to the output folder
 		string PackageDirectory = ParseParamValue("Package");
@@ -95,7 +90,7 @@ class BuildPlugin : BuildCommand
 		}
 	}
 
-	static void AddPluginToAgenda(UE4Build.BuildAgenda Agenda, FileReference PluginFile, PluginDescriptor Plugin, FileReference HostProjectFile, string TargetName, TargetRules.TargetType TargetType, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, List<string> ReceiptFileNames, string InAdditionalArgs)
+	void BuildPluginWithUBT(FileReference PluginFile, PluginDescriptor Plugin, FileReference HostProjectFile, string TargetName, TargetRules.TargetType TargetType, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, List<string> ReceiptFileNames, string InAdditionalArgs)
 	{
 		// Find a list of modules that need to be built for this plugin
 		List<string> ModuleNames = new List<string>();
@@ -118,7 +113,9 @@ class BuildPlugin : BuildCommand
 				Arguments += String.Format(" -module {0}", ModuleName);
 			}
 
-			string ReceiptFileName = TargetReceipt.GetDefaultPath(Path.GetDirectoryName(PluginFile.FullName), TargetName, Platform, Configuration, "");
+			string Architecture = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(HostProjectFile).GetActiveArchitecture();
+
+			string ReceiptFileName = TargetReceipt.GetDefaultPath(Path.GetDirectoryName(PluginFile.FullName), TargetName, Platform, Configuration, Architecture);
 			Arguments += String.Format(" -receipt {0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName));
 			ReceiptFileNames.Add(ReceiptFileName);
 			
@@ -127,7 +124,7 @@ class BuildPlugin : BuildCommand
 				Arguments += InAdditionalArgs;
 			}
 
-			Agenda.AddTarget(TargetName, Platform, Configuration, InUprojectPath: HostProjectFile, InAddArgs: Arguments);
+			CommandUtils.RunUBT(CmdEnv, UE4Build.GetUBTExecutable(), String.Format("{0} {1} {2}{3} {4}", TargetName, Platform, Configuration, (HostProjectFile == null)? "" : String.Format(" -project=\"{0}\"", HostProjectFile.FullName), Arguments));
 		}
 	}
 

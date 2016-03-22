@@ -323,14 +323,7 @@ public:
 	/**
 	 * Constructor, initializes to no permanent object pool
 	 */
-	FUObjectArray() :
-		ObjFirstGCIndex(0),
-		ObjLastNonGCIndex(INDEX_NONE),
-		OpenForDisregardForGC(true),
-		MasterSerialNumber(START_SERIAL_NUMBER)
-	{
-		FCoreDelegates::GetObjectArrayForDebugVisualizersDelegate().BindStatic(GetObjectArrayForDebugVisualizers);
-	}
+	FUObjectArray();
 
 	/**
 	 * Allocates and initializes the permanent object pool
@@ -341,13 +334,10 @@ public:
 	void AllocateObjectPool(int32 MaxUObjects, int32 MaxObjectsNotConsideredByGC);
 
 	/**
-	 * Disables the disregard for GC optimization. Commandlets can't use it.
+	 * Disables the disregard for GC optimization.
 	 *
 	 */
-	void DisableDisregardForGC()
-	{
-		ObjFirstGCIndex = 0;
-	}
+	void DisableDisregardForGC();
 
 	/**
 	* If there's enough slack in the disregard pool, we can re-open it and keep adding objects to it

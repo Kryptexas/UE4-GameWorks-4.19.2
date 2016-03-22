@@ -59,25 +59,3 @@ bool USteamVRFunctionLibrary::GetHandPositionAndOrientation(int32 ControllerInde
 
 	return RetVal;
 }
-
-void USteamVRFunctionLibrary::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace> NewSpace)
-{
-	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
-	if (SteamVRHMD)
-	{
-		SteamVRHMD->SetTrackingSpace(NewSpace);
-	}
-}
-
-TEnumAsByte<ESteamVRTrackingSpace> USteamVRFunctionLibrary::GetTrackingSpace()
-{
-	ESteamVRTrackingSpace RetVal = ESteamVRTrackingSpace::Standing;
-
-	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
-	if (SteamVRHMD)
-	{
-		RetVal = SteamVRHMD->GetTrackingSpace();
-	}
-
-	return RetVal;
-}

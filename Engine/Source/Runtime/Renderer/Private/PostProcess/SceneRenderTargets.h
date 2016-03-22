@@ -262,7 +262,7 @@ public:
 	/** Resolves the appropriate shadow depth cube map and restores default state. */
 	void FinishRenderingCubeShadowDepth(FRHICommandList& RHICmdList, int32 ShadowResolution);
 	
-	void BeginRenderingTranslucency(FRHICommandList& RHICmdList, const class FViewInfo& View);
+	void BeginRenderingTranslucency(FRHICommandList& RHICmdList, const class FViewInfo& View, bool bFirstTimeThisFrame = true);
 	void FinishRenderingTranslucency(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View);
 
 	bool BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
@@ -296,8 +296,15 @@ public:
 	{
 		if (!SeparateTranslucencyRT || SeparateTranslucencyRT->GetDesc().Extent != Size)
 		{
+			uint32 Flags = TexCreate_RenderTargetable;
+
+#if PLATFORM_XBOXONE
+			// Evil place to put this I know, but it's almost 4.11 deadline!
+			Flags |= TexCreate_NoFastClear;
+#endif
+
 			// Create the SeparateTranslucency render target (alpha is needed to lerping)
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, Flags, false));
 			Desc.AutoWritable = false;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SeparateTranslucencyRT, TEXT("SeparateTranslucency"));
 		}

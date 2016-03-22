@@ -4358,12 +4358,13 @@ bool FBodyInstance::OverlapPhysX_AssumesLocked(const PxGeometry& PGeom, const Px
 		{
 			PxVec3 POutDirection;
 			float OutDistance;
-			if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody)))
+			//TODO: this 0 check is a temp fix because physx is reporting contacts with distance 0 which gives us nan
+			if (PxGeometryQuery::computePenetration(POutDirection, OutDistance, PGeom, ShapePose, PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody)) && !FMath::IsNearlyZero(OutDistance))
 			{
 				if(OutMTD)
 				{
 					OutMTD->Direction = P2UVector(POutDirection);
-					OutMTD->Distance = OutDistance;
+					OutMTD->Distance = FMath::Abs(OutDistance);
 				}
 					
 				return true;
@@ -4564,17 +4565,22 @@ void FBodyInstance::ApplyMaterialToShape_AssumesLocked(PxShape* PShape, PxMateri
 
 void FBodyInstance::ApplyMaterialToInstanceShapes_AssumesLocked(PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
 {
+	FBodyInstance* TheirBI = this;
+	FBodyInstance* BIWithActor = TheirBI->WeldParent ? TheirBI->WeldParent : TheirBI;
+
 	TArray<PxShape*> AllShapes;
-	GetAllShapes_AssumesLocked(AllShapes);
+	BIWithActor->GetAllShapes_AssumesLocked(AllShapes);
 
 	for(int32 ShapeIdx = 0; ShapeIdx < AllShapes.Num(); ShapeIdx++)
 	{
 		PxShape* PShape = AllShapes[ShapeIdx];
-
-		ExecuteOnPxShapeWrite(this, PShape, [&](PxShape* PNewShape)
+		if (TheirBI->IsShapeBoundToBody(PShape))
 		{
-			ApplyMaterialToShape_AssumesLocked(PNewShape, PSimpleMat, ComplexPhysMats, HasSharedShapes());
-		});		
+			ExecuteOnPxShapeWrite(BIWithActor, PShape, [&](PxShape* PNewShape)
+			{
+				ApplyMaterialToShape_AssumesLocked(PNewShape, PSimpleMat, ComplexPhysMats, TheirBI->HasSharedShapes());
+			});
+		}
 	}
 }
 

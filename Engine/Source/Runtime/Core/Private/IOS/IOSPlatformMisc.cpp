@@ -469,10 +469,14 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 				DeviceType = IOS_IPadAir2;
 			}
 		}
-		// Default to highest settings currently available for any future device
-		else if (Major > 5)
+		else if (Major == 6)
 		{
-			DeviceType = IOS_IPadAir2;
+			DeviceType = IOS_IPadPro;
+		}
+		// Default to highest settings currently available for any future device
+		else if (Major > 6)
+		{
+			DeviceType = IOS_IPadPro;
 		}
 	}
 	// iPhones
@@ -513,11 +517,11 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 			// note that Apple switched the minor order around between 6 and 6S (gotta keep us on our toes!)
 			if (Minor == 1)
 			{
-				DeviceType = IOS_IPhone6;
+				DeviceType = IOS_IPhone6S;
 			}
 			else if (Minor == 2)
 			{
-				DeviceType = IOS_IPhone6Plus;
+				DeviceType = IOS_IPhone6SPlus;
 			}
 		}
 		else if (Major >= 9)
